@@ -1,7 +1,6 @@
 # Swift Package Manager
 .build/
 .swiftpm/
-Package.resolved
 
 # Model bundles (downloaded separately)
 models/
@@ -25,6 +24,3 @@ xcuserdata/
 
 # SourceKit-LSP build server config
 buildServer.json
-
-# The verification tool pins its dependencies.
-!Tools/Verify/Package.resolved

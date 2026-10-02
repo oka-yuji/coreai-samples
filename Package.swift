@@ -9,8 +9,25 @@ let package = Package(
     ],
     products: [
         .library(name: "CoreAIBackend", targets: ["CoreAIBackend"]),
+        .executable(name: "coreai-chat", targets: ["coreai-chat"]),
+    ],
+    dependencies: [
+        .package(url: "https://github.com/huggingface/swift-transformers", from: "1.3.4"),
     ],
     targets: [
-        .target(name: "CoreAIBackend"),
+        .target(
+            name: "CoreAIBackend",
+            dependencies: [
+                .product(name: "Tokenizers", package: "swift-transformers"),
+            ]
+        ),
+        .executableTarget(
+            name: "coreai-chat",
+            dependencies: ["CoreAIBackend"]
+        ),
+        .testTarget(
+            name: "CoreAIBackendTests",
+            dependencies: ["CoreAIBackend"]
+        ),
     ]
 )
