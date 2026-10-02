@@ -1,0 +1,27 @@
+# Swift Package Manager
+.build/
+.swiftpm/
+Package.resolved
+
+# Model bundles (downloaded separately)
+models/
+*.aimodel
+*.aimodelc
+*.safetensors
+
+# Xcode
+*.xcodeproj
+*.xcworkspace
+DerivedData/
+xcuserdata/
+
+# macOS
+.DS_Store
+
+# Editor
+*.swp
+.vscode/
+.idea/
+
+# SourceKit-LSP build server config
+buildServer.json
