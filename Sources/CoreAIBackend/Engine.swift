@@ -31,6 +31,7 @@ public final class Engine {
     public struct Checkpoint: Sendable {
         public let tokens: [Int32]
         let fixedStates: [Data]
+        var logits: [Float16] = []
 
         public var stateBytes: Int { fixedStates.reduce(0) { $0 + $1.count } }
     }
@@ -168,12 +169,22 @@ public final class Engine {
     }
 
     public func checkpoint() -> Checkpoint {
-        context.checkpoint()
+        var point = context.checkpoint()
+        if hasLogits { point.logits = logits() }
+        return point
     }
 
     public func restore(_ checkpoint: Checkpoint) throws {
         try context.restore(checkpoint)
-        hasLogits = false
+        hasLogits = checkpoint.logits.count == vocabSize
+        guard hasLogits else { return }
+        var array = NDArray(descriptor: logitsDescriptor.resolvingDynamicDimensions([1, 1, vocabSize]))
+        array.mutableView(as: Float16.self).withUnsafeMutablePointer { pointer, _, _ in
+            checkpoint.logits.withUnsafeBufferPointer { pointer.update(from: $0.baseAddress!, count: $0.count) }
+        }
+        logitsArray = array
+        logitsRows = 1
+        logitsOffset = 0
     }
 
     public func reset() {
@@ -190,7 +201,7 @@ public final class Engine {
         hasLogits = false
     }
 
-    private func withLogits<R>(_ body: (UnsafeBufferPointer<Float16>) -> R) -> R {
+    func withLogits<R>(_ body: (UnsafeBufferPointer<Float16>) -> R) -> R {
         precondition(hasLogits, "no logits for the current position")
         let array = logitsArray
         let offset = logitsOffset

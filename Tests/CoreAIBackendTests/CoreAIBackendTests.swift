@@ -1,4 +1,5 @@
 import Foundation
+import FoundationModels
 import Testing
 
 @testable import CoreAIBackend
@@ -125,6 +126,120 @@ func contiguous(_ width: Int) -> @Sendable ([Int]) -> (strides: [Int], byteCount
     #expect(pick(values) == 1000)
 }
 
+@Test func reusePlanGoesBackToTheRightPoint() {
+    typealias Stop = ReusePlan.Stop
+    var plan = ReusePlan(processed: [1, 2, 3, 9, 9], saved: [], prompt: [1, 2, 3, 4, 5], hybrid: false, afterUser: 4)
+    #expect(plan.keep == 3)
+    #expect(plan.stops == [Stop(position: 5, role: .generationStart)])
+
+    plan = ReusePlan(processed: [1, 2, 3, 4, 5, 6], saved: [], prompt: [1, 2, 3], hybrid: false, afterUser: 2)
+    #expect(plan.keep == 2)
+    #expect(plan.stops == [Stop(position: 3, role: .generationStart)])
+    plan = ReusePlan(processed: [1, 2, 3, 4, 5, 6], saved: [3], prompt: [1, 2, 3], hybrid: false, afterUser: 2)
+    #expect(plan.keep == 3)
+    #expect(plan.stops.isEmpty)
+
+    plan = ReusePlan(processed: [1, 2, 3, 4, 5, 6, 7], saved: [2, 6], prompt: [1, 2, 3, 4, 9, 9, 9, 9], hybrid: true, afterUser: 6)
+    #expect(plan.keep == 2)
+    #expect(plan.stops == [Stop(position: 6, role: .afterUser), Stop(position: 8, role: .generationStart)])
+
+    let preamble = (0..<300).map(Int32.init)
+    plan = ReusePlan(processed: preamble + [7, 7], saved: [302], prompt: preamble + [8, 9, 10], hybrid: true, afterUser: 302)
+    #expect(plan.keep == 0)
+    #expect(plan.stops == [
+        Stop(position: 300, role: .divergence), Stop(position: 302, role: .afterUser), Stop(position: 303, role: .generationStart),
+    ])
+    plan = ReusePlan(processed: preamble + [8, 9, 10, 11], saved: [300], prompt: preamble + [5, 6], hybrid: true, afterUser: 301)
+    #expect(plan.keep == 300)
+    #expect(plan.stops == [Stop(position: 301, role: .afterUser), Stop(position: 302, role: .generationStart)])
+    plan = ReusePlan(processed: Array(preamble[..<200]) + [7], saved: [], prompt: preamble, hybrid: true, afterUser: 299)
+    #expect(plan.keep == 0)
+    #expect(plan.stops == [Stop(position: 299, role: .afterUser), Stop(position: 300, role: .generationStart)])
+
+    plan = ReusePlan(processed: [1, 2, 3], saved: [], prompt: [1, 2, 3, 4, 5], hybrid: true, afterUser: 4)
+    #expect(plan.keep == 3)
+    #expect(plan.stops == [Stop(position: 4, role: .afterUser), Stop(position: 5, role: .generationStart)])
+
+    plan = ReusePlan(processed: [1, 2, 3, 4, 5, 6], saved: [3, 4], prompt: [1, 2, 3, 4], hybrid: true, afterUser: 3)
+    #expect(plan.keep == 4)
+    #expect(plan.stops.isEmpty)
+    plan = ReusePlan(processed: [1, 2, 3, 4, 5, 6], saved: [3], prompt: [1, 2, 3, 4], hybrid: true, afterUser: 3)
+    #expect(plan.keep == 3)
+    #expect(plan.stops == [Stop(position: 4, role: .generationStart)])
+}
+
+func merged(_ parts: [ThinkParser.Part]) -> [ThinkParser.Part] {
+    parts.reduce(into: []) { result, part in
+        switch (result.last, part) {
+        case (.reasoning(let a)?, .reasoning(let b)): result[result.count - 1] = .reasoning(a + b)
+        case (.response(let a)?, .response(let b)): result[result.count - 1] = .response(a + b)
+        default: result.append(part)
+        }
+    }
+}
+
+@Test func thinkParserSeparatesReasoningFromTheAnswer() {
+    var parser = ThinkParser(reasoning: false)
+    var parts: [ThinkParser.Part] = []
+    for chunk in ["<th", "ink>", "\n", "Let me", " think.", "\n</", "think>", "\n\n", "Paris", "."] {
+        parts += parser.feed(chunk)
+    }
+    #expect(merged(parts + parser.finish()) == [.reasoning("Let me think.\n"), .response("Paris.")])
+
+    parser = ThinkParser(reasoning: true)
+    #expect(merged(parser.feed("Hmm") + parser.feed("</think>\n\nOK") + parser.finish()) == [.reasoning("Hmm"), .response("OK")])
+
+    parser = ThinkParser(reasoning: false)
+    #expect(parser.feed("Paris") == [.response("Paris")])
+    #expect(parser.feed(" is <thi") == [.response(" is ")])
+    #expect(parser.finish() == [.response("<thi")])
+
+    #expect(ThinkParser.opensReasoning("<|im_start|>assistant\n<think>\n"))
+    #expect(!ThinkParser.opensReasoning("<|im_start|>assistant\n<think>\n\n</think>\n\n"))
+    #expect(!ThinkParser.opensReasoning("<|im_start|>assistant\n"))
+}
+
+@Test func transcriptKeepsReasoningForTheTemplate() throws {
+    func text(_ content: String) -> [Transcript.Segment] { [.text(.init(content: content))] }
+    let transcript = Transcript(entries: [
+        .instructions(.init(segments: text("Be brief."), toolDefinitions: [])),
+        .prompt(.init(segments: text("Hi"))),
+        .reasoning(.init(segments: text("The user greets."))),
+        .response(.init(segments: text("Hello."))),
+        .prompt(.init(segments: text("Bye"))),
+    ])
+    let messages = try Runtime.messages(transcript)
+    #expect(messages.map { $0["role"] as? String } == ["system", "user", "assistant", "user"])
+    #expect(messages.map { $0["content"] as? String } == ["Be brief.", "Hi", "Hello.", "Bye"])
+    #expect(messages[2]["reasoning_content"] as? String == "The user greets.")
+    #expect(messages[1]["reasoning_content"] == nil)
+
+    #expect(Runtime.templateContext(nil).isEmpty)
+    #expect(Runtime.templateContext(.light)["reasoning_effort"] as? String == "low")
+    #expect(Runtime.templateContext(.moderate)["reasoning_effort"] as? String == "medium")
+    #expect(Runtime.templateContext(.deep)["reasoning_effort"] as? String == "xhigh")
+    #expect(Runtime.templateContext(.custom("off"))["enable_thinking"] as? Bool == false)
+}
+
+@Test func samplerHonorsModeTemperatureAndSeed() {
+    let logits: [Float16] = [1, 4, 3, 0, 2]
+    func draws(_ mode: Sampler.Mode, temperature: Float = 1, seed: UInt64?, count: Int = 400) -> [Int32] {
+        var sampler = Sampler(mode: mode, temperature: temperature, seed: seed)
+        return (0..<count).map { _ in logits.withUnsafeBufferPointer { sampler.next($0) } }
+    }
+    #expect(Set(draws(.greedy, seed: nil)) == [1])
+    #expect(Set(draws(.topK(5), temperature: 0, seed: 1)) == [1])
+    #expect(Set(draws(.topK(1), seed: 1)) == [1])
+    #expect(Set(draws(.topK(2), seed: 1)) == [1, 2])
+    #expect(Set(draws(.topP(0.5), seed: 1)) == [1])
+    #expect(Set(draws(.topP(0.8), seed: 1)) == [1, 2])
+    #expect(Set(draws(.full, seed: 1, count: 4000)) == [0, 1, 2, 3, 4])
+    #expect(draws(.topK(3), seed: 7) == draws(.topK(3), seed: 7))
+    #expect(draws(.topK(3), seed: 7) != draws(.topK(3), seed: 8))
+    #expect(draws(.topP(0.95), seed: 7) == draws(.topP(0.95), seed: 7))
+    #expect(draws(.topP(0.95), seed: 7) != draws(.topP(0.95), seed: 8))
+}
+
 let bundlePaths = (ProcessInfo.processInfo.environment["COREAI_TEST_BUNDLES"] ?? "")
     .split(separator: ":").map(String.init)
 
@@ -159,4 +274,84 @@ func modelRunsAndRestores(path: String) async throws {
     await #expect(throws: EngineError.contextOverflow(needed: prefix.count, limit: 8)) {
         try await small.prefill(prefix)
     }
+}
+
+func texts(_ session: LanguageModelSession) -> String {
+    session.transcript.map { entry -> String in
+        let (kind, segments): (String, [Transcript.Segment]) =
+            switch entry {
+            case .prompt(let prompt): ("prompt", prompt.segments)
+            case .reasoning(let reasoning): ("reasoning", reasoning.segments)
+            case .response(let response): ("response", response.segments)
+            default: ("other", [])
+            }
+        return kind + ": " + segments.map { if case .text(let text) = $0 { text.content } else { "" } }.joined()
+    }.joined(separator: "\n")
+}
+
+@Test(.enabled(if: !bundlePaths.isEmpty), arguments: bundlePaths)
+func sessionReusesStopsSamplesAndCancels(path: String) async throws {
+    let model = try await LocalLanguageModel(bundle: URL(filePath: path))
+    func stopReason(_ session: LanguageModelSession) -> String? {
+        guard case .response(let response) = session.transcript.last else { return nil }
+        return try? response.metadata["stopReason"]?.value(String.self)
+    }
+    func prefilled(_ session: LanguageModelSession) -> Int? {
+        guard case .response(let response) = session.transcript.last else { return nil }
+        return try? response.metadata["prefillTokens"]?.value(Int.self)
+    }
+
+    let session = LanguageModelSession(model: model, instructions: "You are a concise assistant.")
+    for (turn, prompt) in ["My name is Taro. Remember it.", "What is the capital of France? Answer with one word.", "What is my name?"].enumerated() {
+        let response = try await session.respond(to: prompt, options: GenerationOptions(maximumResponseTokens: 512))
+        let usage = response.usage
+        #expect(stopReason(session) == "stopToken")
+        #expect(usage.input.cachedTokenCount + (prefilled(session) ?? -1) == usage.input.totalTokenCount)
+        #expect((usage.input.cachedTokenCount > 0) == (turn > 0))
+        #expect(await model.runtime.processed.count == usage.input.totalTokenCount + usage.output.totalTokenCount)
+    }
+
+    let direct = try await LanguageModelSession(model: model).respond(
+        to: "What is the capital of France? Answer with one word.", options: GenerationOptions(maximumResponseTokens: 64),
+        contextOptions: ContextOptions(reasoningLevel: .custom("off")))
+    #expect(direct.usage.output.reasoningTokenCount == 0)
+    #expect(direct.content.contains("Paris"))
+
+    let limited = LanguageModelSession(model: model)
+    let short = try await limited.respond(to: "Explain why the sky is blue.", options: GenerationOptions(maximumResponseTokens: 8))
+    #expect(stopReason(limited) == "maxTokens")
+    #expect(short.usage.output.totalTokenCount == 8)
+    #expect(await model.runtime.processed.count == short.usage.input.totalTokenCount + 7)
+
+    func sample(_ mode: GenerationOptions.SamplingMode) async throws -> String {
+        let options = GenerationOptions(samplingMode: mode, maximumResponseTokens: 24)
+        let session = LanguageModelSession(model: model)
+        try await session.respond(to: "Write a short poem about the sea.", options: options)
+        return texts(session)
+    }
+    #expect(try await sample(.greedy) == sample(.greedy))
+    #expect(try await sample(.random(top: 40, seed: 7)) == sample(.random(top: 40, seed: 7)))
+    #expect(try await sample(.random(top: 40, seed: 7)) != sample(.random(top: 40, seed: 8)))
+    #expect(try await sample(.random(probabilityThreshold: 0.95, seed: 7)) == sample(.random(probabilityThreshold: 0.95, seed: 7)))
+    #expect(try await sample(.random(probabilityThreshold: 0.95, seed: 7)) != sample(.random(probabilityThreshold: 0.95, seed: 8)))
+
+    let cancelled = LanguageModelSession(model: model)
+    let task = Task { try await cancelled.respond(to: "Write a long story about a dragon.", options: GenerationOptions(maximumResponseTokens: 2048)) }
+    try await Task.sleep(for: .milliseconds(300))
+    task.cancel()
+    _ = try? await task.value
+    let after = try await cancelled.respond(to: "What is the capital of Japan? Answer with one word.", options: GenerationOptions(maximumResponseTokens: 512))
+    #expect(cancelled.transcript.filter { if case .prompt = $0 { true } else { false } }.count == 1)
+    #expect(stopReason(cancelled) == "stopToken")
+    #expect(!after.content.isEmpty, "\(texts(cancelled))")
+    #expect(await model.runtime.processed.count == after.usage.input.totalTokenCount + after.usage.output.totalTokenCount)
+
+    let tiny = try await LocalLanguageModel(bundle: URL(filePath: path), contextLimit: 16)
+    await #expect {
+        try await LanguageModelSession(model: tiny).respond(to: "Tell me about the history of computing in detail.")
+    } throws: { error in
+        guard case LanguageModelError.contextSizeExceeded(let exceeded) = error else { return false }
+        return exceeded.contextSize == 16 && exceeded.tokenCount > 16
+    }
+    #expect(await tiny.runtime.processed.isEmpty)
 }
