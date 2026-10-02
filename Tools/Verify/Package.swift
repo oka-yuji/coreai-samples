@@ -7,6 +7,7 @@ let package = Package(
         .macOS("27.0"),
     ],
     dependencies: [
+        .package(path: "../.."),
         .package(url: "https://github.com/apple/coreai-models", exact: "1.0.0"),
         .package(url: "https://github.com/apple/swift-argument-parser", from: "1.7.0"),
     ],
@@ -21,6 +22,7 @@ let package = Package(
             name: "coreai-verify",
             dependencies: [
                 "ControlRuntime",
+                .product(name: "CoreAIBackend", package: "coreai-samples"),
                 .product(name: "CoreAILM", package: "coreai-models"),
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
             ]

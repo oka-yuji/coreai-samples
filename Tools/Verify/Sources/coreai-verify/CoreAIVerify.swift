@@ -10,8 +10,8 @@ import Synchronization
 struct CoreAIVerify: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "coreai-verify",
-        abstract: "Drive the official Core AI runtime through Foundation Models and print one JSON line per measurement.",
-        subcommands: [Chat.self, ToolRoundTrip.self, Bench.self]
+        abstract: "Drive the official Core AI runtime and the own engine, and print one JSON line per measurement.",
+        subcommands: [Chat.self, ToolRoundTrip.self, Bench.self, Compare.self, Rewind.self, Speed.self, SpeedRun.self]
     )
 }
 
