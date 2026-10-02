@@ -13,12 +13,14 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/huggingface/swift-transformers", from: "1.3.4"),
+        .package(url: "https://github.com/huggingface/swift-jinja.git", from: "2.5.1"),
     ],
     targets: [
         .target(
             name: "CoreAIBackend",
             dependencies: [
                 .product(name: "Tokenizers", package: "swift-transformers"),
+                .product(name: "Jinja", package: "swift-jinja"),
             ]
         ),
         .executableTarget(
@@ -27,7 +29,10 @@ let package = Package(
         ),
         .testTarget(
             name: "CoreAIBackendTests",
-            dependencies: ["CoreAIBackend"]
+            dependencies: [
+                "CoreAIBackend",
+                .product(name: "Jinja", package: "swift-jinja"),
+            ]
         ),
     ]
 )

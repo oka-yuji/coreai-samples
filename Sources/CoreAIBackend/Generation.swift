@@ -3,6 +3,7 @@ import Foundation
 enum CheckpointRole: Hashable {
     case divergence
     case afterUser
+    case previousAfterUser
     case generationStart
 }
 
@@ -180,5 +181,113 @@ struct ThinkParser {
         }
         guard !text.isEmpty else { return }
         parts.append(reasoning ? .reasoning(String(text)) : .response(String(text)))
+    }
+}
+
+struct ToolCallParser {
+    enum Event: Equatable {
+        case text(String)
+        case call(name: String, arguments: String)
+    }
+
+    static let open = "<tool_call>"
+    static let close = "</tool_call>"
+
+    let types: [String: [String: String]]
+    private var buffer = ""
+    private var separator = ""
+    private var inside = false
+
+    init(types: [String: [String: String]]) {
+        self.types = types
+    }
+
+    mutating func feed(_ text: String) -> [Event] {
+        buffer += text
+        var events: [Event] = []
+        while true {
+            if inside {
+                guard let end = buffer.range(of: Self.close) else { return events }
+                let body = String(buffer[..<end.lowerBound])
+                buffer = String(buffer[end.upperBound...])
+                inside = false
+                events.append(call(body) ?? .text(separator + Self.open + body + Self.close))
+                separator = ""
+            } else if let start = buffer.range(of: Self.open) {
+                let text = Self.dropTrailingWhitespace(buffer[..<start.lowerBound])
+                if !text.isEmpty { events.append(.text(String(text))) }
+                separator = String(buffer[text.endIndex..<start.lowerBound])
+                buffer = String(buffer[start.upperBound...])
+                inside = true
+            } else {
+                let held = (1..<Self.open.count).last { buffer.hasSuffix(Self.open.prefix($0)) } ?? 0
+                let text = Self.dropTrailingWhitespace(buffer.dropLast(held))
+                if !text.isEmpty { events.append(.text(String(text))) }
+                buffer = String(buffer[text.endIndex...])
+                return events
+            }
+        }
+    }
+
+    mutating func finish() -> [Event] {
+        let rest = inside ? separator + Self.open + buffer : buffer
+        buffer = ""
+        separator = ""
+        inside = false
+        return rest.isEmpty ? [] : [.text(rest)]
+    }
+
+    private func call(_ body: String) -> Event? {
+        let body = body.trimmingCharacters(in: .whitespacesAndNewlines)
+        if body.hasPrefix("<function=") { return function(body) }
+        guard let object = try? JSONSerialization.jsonObject(with: Data(body.utf8)) as? [String: Any],
+            let name = object["name"] as? String, !name.isEmpty
+        else { return nil }
+        var arguments = object["arguments"] ?? [String: Any]()
+        if let text = arguments as? String, let parsed = try? JSONSerialization.jsonObject(with: Data(text.utf8)) {
+            arguments = parsed
+        }
+        guard arguments is [String: Any],
+            let data = try? JSONSerialization.data(withJSONObject: arguments, options: [.sortedKeys, .withoutEscapingSlashes])
+        else { return nil }
+        return .call(name: name, arguments: String(decoding: data, as: UTF8.self))
+    }
+
+    private func function(_ body: String) -> Event? {
+        guard body.hasSuffix("</function>"), let nameEnd = body.firstIndex(of: ">") else { return nil }
+        let name = body[body.index(body.startIndex, offsetBy: 10)..<nameEnd].trimmingCharacters(in: .whitespaces)
+        var rest = body[body.index(after: nameEnd)...].dropLast(11)
+        var pairs: [String] = []
+        while let start = rest.firstIndex(where: { !$0.isWhitespace }) {
+            rest = rest[start...]
+            guard rest.hasPrefix("<parameter="), let keyEnd = rest.firstIndex(of: ">"),
+                let end = rest.range(of: "</parameter>"), keyEnd < end.lowerBound
+            else { return nil }
+            let key = rest[rest.index(rest.startIndex, offsetBy: 11)..<keyEnd].trimmingCharacters(in: .whitespaces)
+            var value = rest[rest.index(after: keyEnd)..<end.lowerBound]
+            if value.hasPrefix("\n") { value = value.dropFirst() }
+            if value.hasSuffix("\n") { value = value.dropLast() }
+            guard !key.isEmpty else { return nil }
+            pairs.append(Self.quoted(key) + ":" + json(String(value), type: types[name]?[key]))
+            rest = rest[end.upperBound...]
+        }
+        guard !name.isEmpty else { return nil }
+        return .call(name: name, arguments: "{" + pairs.joined(separator: ",") + "}")
+    }
+
+    private func json(_ value: String, type: String?) -> String {
+        if type != "string", (try? JSONSerialization.jsonObject(with: Data(value.utf8), options: .fragmentsAllowed)) != nil {
+            return value.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        return Self.quoted(value)
+    }
+
+    static func quoted(_ text: String) -> String {
+        let data = try? JSONSerialization.data(withJSONObject: text, options: [.fragmentsAllowed, .withoutEscapingSlashes])
+        return String(decoding: data ?? Data(#""""#.utf8), as: UTF8.self)
+    }
+
+    private static func dropTrailingWhitespace(_ text: Substring) -> Substring {
+        text[..<(text.lastIndex { !$0.isWhitespace }.map(text.index(after:)) ?? text.startIndex)]
     }
 }

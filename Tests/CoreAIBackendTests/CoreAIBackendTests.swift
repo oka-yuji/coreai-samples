@@ -1,5 +1,6 @@
 import Foundation
 import FoundationModels
+import Jinja
 import Testing
 
 @testable import CoreAIBackend
@@ -166,6 +167,106 @@ func contiguous(_ width: Int) -> @Sendable ([Int]) -> (strides: [Int], byteCount
     plan = ReusePlan(processed: [1, 2, 3, 4, 5, 6], saved: [3], prompt: [1, 2, 3, 4], hybrid: true, afterUser: 3)
     #expect(plan.keep == 3)
     #expect(plan.stops == [Stop(position: 4, role: .generationStart)])
+}
+
+@Test func reusePlanKeepsTheQuestionBoundaryThroughToolSteps() {
+    typealias Stop = ReusePlan.Stop
+    let question = Array<Int32>(1...6)
+    let step1 = question + [7, 8]
+    let generated = step1 + [20, 21, 22]
+    var plan = ReusePlan(processed: generated, saved: [6, 8], prompt: generated + [30, 31, 32, 33], hybrid: true, afterUser: 6)
+    #expect(plan.keep == generated.count)
+    #expect(plan.stops == [Stop(position: 15, role: .generationStart)])
+
+    plan = ReusePlan(processed: generated, saved: [6, 8], prompt: step1 + [20, 29, 22, 30, 31], hybrid: true, afterUser: 6)
+    #expect(plan.shared == 9)
+    #expect(plan.keep == 8)
+    #expect(plan.stops == [Stop(position: 13, role: .generationStart)])
+
+    let cancelled = generated + [40, 41, 42, 43, 50, 51]
+    plan = ReusePlan(processed: cancelled, saved: [6, 15], prompt: generated + [44, 45, 46], hybrid: true, afterUser: 13)
+    #expect(plan.keep == 6)
+    #expect(plan.stops == [Stop(position: 13, role: .afterUser), Stop(position: 14, role: .generationStart)])
+}
+
+@Generable struct AddArguments {
+    var a: Int
+    var b: Int
+}
+
+@Test func toolCallParserReadsBothFormats() {
+    let types = ["add": ["a": "integer", "b": "integer"], "get_weather": ["city": "string"]]
+    func parse(_ chunks: [String]) -> [ToolCallParser.Event] {
+        var parser = ToolCallParser(types: types)
+        return chunks.flatMap { parser.feed($0) } + parser.finish()
+    }
+
+    #expect(parse(["<tool_call>", "\n{\"name\": \"get_weather\", \"arguments\": {\"city\": \"Tokyo\"}}\n", "</tool_call>"])
+        == [.call(name: "get_weather", arguments: #"{"city":"Tokyo"}"#)])
+    #expect(parse([#"<tool_call>{"name": "add", "arguments": "{\"b\": 2, \"a\": 1}"}</tool_call>"#])
+        == [.call(name: "add", arguments: #"{"a":1,"b":2}"#)])
+    #expect(parse(["<tool_call>\n<function=add>\n<parameter=b>\n25\n</parameter>\n<parameter=a>\n17\n</parameter>\n</function>\n</tool_call>"])
+        == [.call(name: "add", arguments: #"{"b":25,"a":17}"#)])
+    #expect(parse(["<tool_call>\n<function=get_weather>\n<parameter=city>\n42\n</parameter>\n<parameter=note>\ntrue\n</parameter>\n</function>\n</tool_call>"])
+        == [.call(name: "get_weather", arguments: #"{"city":"42","note":true}"#)])
+    #expect(parse(["<tool_call>\n<function=add>\n<parameter=a>\nseventeen\n</parameter>\n<parameter=b>\n[1, 2]\n</parameter>\n</function>\n</tool_call>"])
+        == [.call(name: "add", arguments: #"{"a":"seventeen","b":[1, 2]}"#)])
+
+    let weather = "<tool_call>\n<function=get_weather>\n<parameter=city>\nParis\n</parameter>\n</function>\n</tool_call>"
+    let sum = "<tool_call>\n<function=add>\n<parameter=a>\n17\n</parameter>\n<parameter=b>\n25\n</parameter>\n</function>\n</tool_call>"
+    #expect(parse(["Let me check.\n\n", weather, "\n", sum])
+        == [.text("Let me check."), .call(name: "get_weather", arguments: #"{"city":"Paris"}"#), .call(name: "add", arguments: #"{"a":17,"b":25}"#)])
+    #expect(parse(["<tool", "_call>\n<function=get", "_weather>\n<parameter=city>\nTo", "kyo\n</parameter>\n</function>\n</tool", "_call>"])
+        == [.call(name: "get_weather", arguments: #"{"city":"Tokyo"}"#)])
+
+    var parser = ToolCallParser(types: types)
+    #expect(parser.feed("Paris is") == [.text("Paris is")])
+    #expect(parser.feed(" sunny.\n<") == [.text(" sunny.")])
+    #expect(parser.feed("b>") == [.text("\n<b>")])
+    #expect(parser.finish().isEmpty)
+
+    #expect(parse(["<tool_call>\n<function=get_weather>\n<param"]) == [.text("<tool_call>\n<function=get_weather>\n<param")])
+    #expect(parse(["Hi\n", "<tool_call>\n<function=>\n</function>\n</tool_call>"]) == [.text("Hi"), .text("\n<tool_call>\n<function=>\n</function>\n</tool_call>")])
+    #expect(parse([#"<tool_call>{"name": "add", "arguments": {"a": }}</tool_call>"#]) == [.text(#"<tool_call>{"name": "add", "arguments": {"a": }}</tool_call>"#)])
+    #expect(parse([#"<tool_call>{"arguments": {"a": 1}}</tool_call>"#]) == [.text(#"<tool_call>{"arguments": {"a": 1}}</tool_call>"#)])
+    #expect(parse(["<tool_call>\n<function=add>\n<parameter=a>\n1\n</parameter>\n</tool_call>"]) == [.text("<tool_call>\n<function=add>\n<parameter=a>\n1\n</parameter>\n</tool_call>")])
+}
+
+@Test func transcriptRebuildsToolCallsAndOutputs() throws {
+    func text(_ content: String) -> [Transcript.Segment] { [.text(.init(content: content))] }
+    let add = Transcript.ToolDefinition(name: "add", description: "Add two integers.", parameters: AddArguments.generationSchema)
+    let schema = ToolSchema(add)
+    #expect(schema.order == ["a", "b"])
+    #expect(schema.types == ["a": "integer", "b": "integer"])
+    #expect(try JSON.dumps(schema.spec) == #"{"type": "function", "function": {"name": "add", "description": "Add two integers.", "parameters": {"type": "object", "properties": {"a": {"type": "integer"}, "b": {"type": "integer"}}, "required": ["a", "b"]}}}"#)
+
+    let transcript = Transcript(entries: [
+        .instructions(.init(segments: [], toolDefinitions: [add])),
+        .prompt(.init(segments: text("What is 1 plus 2?"))),
+        .reasoning(.init(segments: text("Use the tool."))),
+        .response(.init(segments: text("Let me add."))),
+        .toolCalls(.init([
+            Transcript.ToolCall(id: "c1", toolName: "add", arguments: try GeneratedContent(json: #"{"b": 2, "a": 1}"#)),
+            Transcript.ToolCall(id: "c2", toolName: "add", arguments: try GeneratedContent(json: #"{"a": 3, "b": 4}"#)),
+        ])),
+        .toolOutput(.init(id: "c1", toolName: "add", segments: text("3"))),
+        .toolOutput(.init(id: "c2", toolName: "add", segments: text("7"))),
+        .reasoning(.init(segments: text("Done."))),
+        .response(.init(segments: text("1 plus 2 is 3."))),
+        .prompt(.init(segments: text("Thanks."))),
+    ])
+    let messages = try Runtime.messages(transcript)
+    #expect(messages.map { $0["role"] as? String } == ["user", "assistant", "tool", "tool", "assistant", "user"])
+    #expect(messages.map { $0["content"] as? String } == ["What is 1 plus 2?", "Let me add.", "3", "7", "1 plus 2 is 3.", "Thanks."])
+    #expect(messages[1]["reasoning_content"] as? String == "Use the tool.")
+    #expect(messages[4]["reasoning_content"] as? String == "Done.")
+    let calls = try #require(messages[1]["tool_calls"] as? [Value])
+    #expect(try calls.map { try JSON.dumps($0) } == [
+        #"{"type": "function", "function": {"name": "add", "arguments": {"a": 1, "b": 2}}}"#,
+        #"{"type": "function", "function": {"name": "add", "arguments": {"a": 3, "b": 4}}}"#,
+    ])
+    #expect(try JSON.dumps(Runtime.value(GeneratedContent(json: #"{"x": 2.5, "n": 17, "s": "a", "f": true, "z": null, "l": [1]}"#), order: ["n", "x"]))
+        .hasPrefix(#"{"n": 17, "x": 2.5, "#))
 }
 
 func merged(_ parts: [ThinkParser.Part]) -> [ThinkParser.Part] {
@@ -354,4 +455,65 @@ func sessionReusesStopsSamplesAndCancels(path: String) async throws {
         return exceeded.contextSize == 16 && exceeded.tokenCount > 16
     }
     #expect(await tiny.runtime.processed.isEmpty)
+}
+
+struct WeatherTool: Tool {
+    let name = "get_weather"
+    let description = "Get the current weather for a city."
+
+    @Generable
+    struct Arguments {
+        @Guide(description: "The city name.")
+        var city: String
+    }
+
+    func call(arguments: Arguments) async throws -> String {
+        "Sunny, 22 C in \(arguments.city)."
+    }
+}
+
+@Test(.enabled(if: !bundlePaths.isEmpty), arguments: bundlePaths)
+func sessionCallsToolsReusesAndRecovers(path: String) async throws {
+    let model = try await LocalLanguageModel(bundle: URL(filePath: path))
+    func metadata(_ session: LanguageModelSession, _ key: String) -> Int? {
+        guard case .response(let response) = session.transcript.last else { return nil }
+        return try? response.metadata[key]?.value(Int.self)
+    }
+
+    let session = LanguageModelSession(model: model, tools: [WeatherTool()])
+    try await session.respond(to: "What is the weather in Tokyo right now?", options: GenerationOptions(maximumResponseTokens: 512))
+    let calls = session.transcript.flatMap { entry -> [Transcript.ToolCall] in
+        if case .toolCalls(let calls) = entry { Array(calls) } else { [] }
+    }
+    #expect(calls.map(\.toolName) == ["get_weather"])
+    #expect(try calls.first?.arguments.value(String.self, forProperty: "city") == "Tokyo")
+    #expect(session.transcript.contains { if case .toolOutput = $0 { true } else { false } })
+    #expect(texts(session).contains("22"), "\(texts(session))")
+    let shared = try #require(metadata(session, "sharedTokens"))
+    let prefilled = try #require(metadata(session, "prefillTokens"))
+    #expect(shared > 200 && prefilled < 64, "shared \(shared) prefilled \(prefilled)")
+
+    let question = "What is the capital of Japan?"
+    let allowed = try await LanguageModelSession(model: model, tools: [WeatherTool()]).respond(
+        to: question, options: GenerationOptions(maximumResponseTokens: 16, toolCallingMode: .allowed))
+    let disallowed = try await LanguageModelSession(model: model, tools: [WeatherTool()]).respond(
+        to: question, options: GenerationOptions(maximumResponseTokens: 16, toolCallingMode: .disallowed))
+    let plain = try await LanguageModelSession(model: model).respond(to: question, options: GenerationOptions(maximumResponseTokens: 16))
+    #expect(disallowed.usage.input.totalTokenCount == plain.usage.input.totalTokenCount)
+    #expect(allowed.usage.input.totalTokenCount > disallowed.usage.input.totalTokenCount + 100)
+
+    let cut = LanguageModelSession(model: model, tools: [WeatherTool()])
+    try await cut.respond(to: "What is the weather in Tokyo right now?", options: GenerationOptions(maximumResponseTokens: 8))
+    #expect(!cut.transcript.contains { if case .toolCalls = $0 { true } else { false } })
+    guard case .response(let last) = cut.transcript.last else { Issue.record("no response entry"); return }
+    #expect(try last.metadata["stopReason"]?.value(String.self) == "maxTokens")
+
+    let resumed = LanguageModelSession(model: model, instructions: "You are a concise assistant.")
+    try await resumed.respond(to: "My name is Taro. Remember it.", options: GenerationOptions(maximumResponseTokens: 256))
+    let task = Task { try await resumed.respond(to: "Write a long story about a dragon.", options: GenerationOptions(maximumResponseTokens: 2048)) }
+    try await Task.sleep(for: .milliseconds(400))
+    task.cancel()
+    _ = try? await task.value
+    let after = try await resumed.respond(to: "What is my name?", options: GenerationOptions(maximumResponseTokens: 256))
+    #expect(after.usage.input.cachedTokenCount > 0, "\(after.usage)")
 }
