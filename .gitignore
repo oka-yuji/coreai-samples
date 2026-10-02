@@ -25,3 +25,6 @@ xcuserdata/
 
 # SourceKit-LSP build server config
 buildServer.json
+
+# The verification tool pins its dependencies.
+!Tools/Verify/Package.resolved
