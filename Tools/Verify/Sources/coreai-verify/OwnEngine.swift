@@ -3,6 +3,7 @@ import CoreAIBackend
 import CoreAILanguageModels
 import Darwin
 import Foundation
+import FoundationModels
 import Tokenizers
 
 let rewindQuestions = [
@@ -25,8 +26,15 @@ struct Compare: AsyncParsableCommand {
     @Option(help: "Maximum generated tokens per prompt.")
     var maxTokens = 1024
 
+    @Option(help: "Text file sent as the system message before each prompt.")
+    var system: String?
+
+    @Flag(help: "Prefill the own engine in two parts split at the end of the user turn, as the own runtime does for hybrid models.")
+    var turnBoundary = false
+
     func run() async throws {
         let url = URL(filePath: model)
+        let systemText = try system.map { try String(contentsOfFile: $0, encoding: .utf8) }
         let (tokenizer, own) = try await loadOwn(url)
         let clock = ContinuousClock()
         let start = clock.now
@@ -36,13 +44,16 @@ struct Compare: AsyncParsableCommand {
         let stop = stopTokens(tokenizer)
         for entry in prompt {
             let name = String(entry.prefix { $0 != "=" })
-            let input = try chatInput(tokenizer, user: String(entry.dropFirst(name.count + 1)))
-            for usePrefillFunction in [true, false] {
+            let user = String(entry.dropFirst(name.count + 1))
+            let input = try chatInput(tokenizer, system: systemText, user: user)
+            let boundary = try chatInput(tokenizer, system: systemText, user: user, generationPrompt: false)
+            let split = zip(boundary, input).prefix { $0 == $1 }.count
+            for usePrefillFunction in turnBoundary ? [true] : [true, false] {
                 own.reset()
                 try await official.reset(to: 0)
                 var record = try await lockstep(
                     own: own, official: official, input: input, usePrefillFunction: usePrefillFunction,
-                    maxTokens: maxTokens, stop: stop)
+                    split: turnBoundary ? split : nil, maxTokens: maxTokens, stop: stop)
                 record.prompt = name
                 record.text = tokenizer.decode(tokens: record.tokens.map(Int.init))
                 try emit(record)
@@ -52,15 +63,21 @@ struct Compare: AsyncParsableCommand {
 
     func lockstep(
         own: CoreAIBackend.Engine, official: some InferenceEngine, input: [Int32], usePrefillFunction: Bool,
-        maxTokens: Int, stop: Set<Int32>
+        split: Int?, maxTokens: Int, stop: Set<Int32>
     ) async throws -> CompareRecord {
         let sequence = try await official.generate(
             with: input, samplingConfiguration: .greedy,
             inferenceOptions: InferenceOptions(maxTokens: maxTokens, includeLogits: true))
         var iterator = sequence.makeAsyncIterator()
-        try await own.prefill(input, usePrefillFunction: usePrefillFunction)
+        if let split {
+            try await own.prefill(Array(input[..<split]))
+            try await own.prefill(Array(input[split...]))
+        } else {
+            try await own.prefill(input, usePrefillFunction: usePrefillFunction)
+        }
         var record = CompareRecord(
-            prefill: usePrefillFunction ? "prefill-function" : "main-only", promptTokens: input.count)
+            prefill: split.map { "turn-boundary-\($0)" } ?? (usePrefillFunction ? "prefill-function" : "main-only"),
+            promptTokens: input.count)
         while record.tokens.count < maxTokens, let reference = try await iterator.next() {
             let logits = own.logits()
             let token = own.greedyToken()
@@ -301,6 +318,16 @@ struct SpeedRun: AsyncParsableCommand {
     }
 }
 
+func loadOwnModel(_ url: URL) async throws -> any LanguageModel {
+    let clock = ContinuousClock()
+    let start = clock.now
+    let model = try await LocalLanguageModel(bundle: url)
+    try emit(OwnModelLoadRecord(
+        cached: model.loadStats.cached, specializeS: model.loadStats.specializeSeconds,
+        initS: (clock.now - start) / .seconds(1), memory: .now()))
+    return model
+}
+
 func loadOwn(_ url: URL) async throws -> (any Tokenizer, CoreAIBackend.Engine) {
     let bundle = try ModelBundle(url: url)
     let tokenizer = try await bundle.loadTokenizer()
@@ -312,9 +339,12 @@ func loadOwn(_ url: URL) async throws -> (any Tokenizer, CoreAIBackend.Engine) {
     return (tokenizer, engine)
 }
 
-func chatInput(_ tokenizer: any Tokenizer, system: String? = nil, user: String) throws -> [Int32] {
+func chatInput(_ tokenizer: any Tokenizer, system: String? = nil, user: String, generationPrompt: Bool = true) throws -> [Int32] {
     let messages: [Message] = (system.map { [["role": "system", "content": $0]] } ?? []) + [["role": "user", "content": user]]
-    return try tokenizer.applyChatTemplate(messages: messages).map(Int32.init)
+    return try tokenizer.applyChatTemplate(
+        messages: messages, chatTemplate: nil, addGenerationPrompt: generationPrompt, truncation: false, maxLength: nil, tools: nil,
+        additionalContext: nil
+    ).map(Int32.init)
 }
 
 func stopTokens(_ tokenizer: any Tokenizer) -> Set<Int32> {
@@ -346,6 +376,15 @@ struct OwnLoadRecord: Encodable {
     let prefillFunction: Bool
     let hybrid: Bool
     let contextLimit: Int
+    let memory: Memory
+}
+
+struct OwnModelLoadRecord: Encodable {
+    var record = "load"
+    var runtime = "own"
+    let cached: Bool
+    let specializeS: Double
+    let initS: Double
     let memory: Memory
 }
 

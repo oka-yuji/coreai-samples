@@ -17,17 +17,26 @@ struct CoreAIVerify: AsyncParsableCommand {
 
 extension Engine: ExpressibleByArgument {}
 
+enum RuntimeKind: String, ExpressibleByArgument {
+    case official
+    case own
+}
+
 struct ModelOptions: ParsableArguments {
     @Option(help: "Model bundle folder.")
     var model: String
 
-    @Option(help: "Inference engine: default or sequential.")
+    @Option(help: "Runtime: official (coreai-models) or own (CoreAIBackend).")
+    var runtime: RuntimeKind = .official
+
+    @Option(help: "Inference engine of the official runtime: default or sequential.")
     var engine: Engine = .default
 
     @Flag(help: "Print the runtime's own log lines to stderr.")
     var verbose = false
 
-    func load() async throws -> CoreAILanguageModel {
+    func load() async throws -> any LanguageModel {
+        if runtime == .own { return try await loadOwnModel(URL(filePath: model)) }
         if verbose { CLILogger.level = 1 }
         let clock = ContinuousClock()
         let start = clock.now
@@ -68,11 +77,19 @@ struct Chat: AsyncParsableCommand {
             let result = await stream(session, from: .now) {
                 session.streamResponse(to: text, options: GenerationOptions(maximumResponseTokens: maxTokens))
             }
+            let response = joinedText(result.entries, where: responseSegments)
+            let reasoning = joinedText(result.entries, where: reasoningSegments)
             try emit(TurnRecord(
+                runtime: options.runtime.rawValue,
                 turn: index + 1,
                 promptChars: text.count,
-                response: joinedText(result.entries, where: responseSegments),
-                reasoning: joinedText(result.entries, where: reasoningSegments),
+                response: response,
+                reasoning: reasoning,
+                responseChars: response.count,
+                reasoningChars: reasoning.count,
+                stopReason: result.metadata("stopReason", as: String.self),
+                prefillTokens: result.metadata("prefillTokens", as: Int.self),
+                sharedTokens: result.metadata("sharedTokens", as: Int.self),
                 ttftS: result.ttft,
                 firstAnswerS: result.firstAnswer,
                 totalS: result.total,
@@ -155,18 +172,30 @@ struct Bench: AsyncParsableCommand {
 
     func run() async throws {
         let model = try await options.load()
-        model.unload()
-        let clock = ContinuousClock()
-        let start = clock.now
-        try await model.load()
-        try emit(ReloadRecord(loadS: seconds(clock.now - start), memory: .now()))
+        if let official = model as? CoreAILanguageModel {
+            official.unload()
+            let clock = ContinuousClock()
+            let start = clock.now
+            try await official.load()
+            try emit(ReloadRecord(loadS: seconds(clock.now - start), memory: .now()))
+        }
         for run in 1...3 {
             let session = LanguageModelSession(model: model)
             let result = await stream(session, from: .now) {
                 session.streamResponse(to: Self.fixedPrompt, options: GenerationOptions(maximumResponseTokens: 1024))
             }
+            let response = joinedText(result.entries, where: responseSegments)
+            let reasoning = joinedText(result.entries, where: reasoningSegments)
             try emit(BenchRecord(
+                runtime: options.runtime.rawValue,
                 run: run,
+                response: response,
+                reasoning: reasoning,
+                responseChars: response.count,
+                reasoningChars: reasoning.count,
+                stopReason: result.metadata("stopReason", as: String.self),
+                prefillTokens: result.metadata("prefillTokens", as: Int.self),
+                sharedTokens: result.metadata("sharedTokens", as: Int.self),
                 ttftS: result.ttft,
                 firstAnswerS: result.firstAnswer,
                 totalS: result.total,
@@ -278,6 +307,12 @@ struct StreamResult {
     var decodeRate: Double? {
         guard let ttft, usage.outputTotal > 1, total > ttft else { return nil }
         return Double(usage.outputTotal - 1) / (total - ttft)
+    }
+
+    func metadata<Value: ConvertibleFromGeneratedContent>(_ key: String, as type: Value.Type) -> Value? {
+        let last = entries.last { if case .response = $0 { true } else { false } }
+        guard case .response(let response) = last else { return nil }
+        return try? response.metadata[key]?.value(type)
     }
 }
 
@@ -418,10 +453,16 @@ struct ReloadRecord: Encodable {
 
 struct TurnRecord: Encodable {
     var record = "turn"
+    let runtime: String
     let turn: Int
     let promptChars: Int
     let response: String
     let reasoning: String
+    let responseChars: Int
+    let reasoningChars: Int
+    let stopReason: String?
+    let prefillTokens: Int?
+    let sharedTokens: Int?
     let ttftS: Double?
     let firstAnswerS: Double?
     let totalS: Double
@@ -457,7 +498,15 @@ struct ToolRecord: Encodable {
 
 struct BenchRecord: Encodable {
     var record = "bench"
+    let runtime: String
     let run: Int
+    let response: String
+    let reasoning: String
+    let responseChars: Int
+    let reasoningChars: Int
+    let stopReason: String?
+    let prefillTokens: Int?
+    let sharedTokens: Int?
     let ttftS: Double?
     let firstAnswerS: Double?
     let totalS: Double
