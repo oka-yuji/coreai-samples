@@ -106,15 +106,29 @@ struct Chat: AsyncParsableCommand {
     }
 }
 
+enum ToolMode: String, ExpressibleByArgument {
+    case allowed
+    case required
+    case disallowed
+
+    var mode: GenerationOptions.ToolCallingMode {
+        switch self {
+        case .allowed: .allowed
+        case .required: .required
+        case .disallowed: .disallowed
+        }
+    }
+}
+
 struct ToolRoundTrip: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "tools",
-        abstract: "Ask questions that need zero, one, or two tool calls, each in a new session."
+        abstract: "Ask questions that may need tools; print one record per model step and one per question."
     )
 
     @OptionGroup var options: ModelOptions
 
-    @Option(help: "A question. Each one runs in a new session.")
+    @Option(help: "A question. Each one runs in a new session unless --same-session is set.")
     var prompt: [String] = [
         "What is the weather in Tokyo right now?",
         "What is the weather in Paris, and what is 17 plus 25? Use the tools for both.",
@@ -124,27 +138,52 @@ struct ToolRoundTrip: AsyncParsableCommand {
     @Option(help: "Maximum response tokens per model call.")
     var maxTokens = 512
 
+    @Option(help: "Text file used as the session instructions.")
+    var instructionsFile: String?
+
+    @Option(help: "Folder of <name>.txt pages served by a read_page tool, used instead of get_weather and add.")
+    var pages: String?
+
+    @Flag(help: "Send every question in one session.")
+    var sameSession = false
+
+    @Option(help: "Tool calling mode: allowed, required or disallowed.")
+    var toolMode: ToolMode?
+
+    @Option(help: "Cancel this question (1-based) after --cancel-after seconds.")
+    var cancel: Int?
+
+    @Option(help: "Seconds before the cancellation.")
+    var cancelAfter = 1.0
+
     func run() async throws {
         let model = try await options.load()
+        let snapshot = tokenSnapshot(model)
+        let log = ToolLog(snapshot: snapshot)
+        let instructions = try instructionsFile.map { try String(contentsOfFile: $0, encoding: .utf8) }
+        let tools: [any Tool] = pages.map { [PageTool(folder: $0, log: log)] } ?? [WeatherTool(log: log), AddTool(log: log)]
+        var session = LanguageModelSession(model: model, tools: tools, instructions: instructions)
         for (index, text) in prompt.enumerated() {
-            let log = ToolLog(start: .now)
-            let session = LanguageModelSession(model: model, tools: [WeatherTool(log: log), AddTool(log: log)])
-            let result = await stream(session, from: log.start) {
-                session.streamResponse(to: text, options: GenerationOptions(maximumResponseTokens: maxTokens))
+            if !sameSession, index > 0 {
+                session = LanguageModelSession(model: model, tools: tools, instructions: instructions)
             }
-            let calls = result.entries.flatMap { entry -> [CallRecord] in
-                guard case .toolCalls(let calls) = entry else { return [] }
-                return calls.map { CallRecord(name: $0.toolName, arguments: $0.arguments.jsonString) }
+            let start = log.restart()
+            let options = GenerationOptions(maximumResponseTokens: maxTokens, toolCallingMode: toolMode?.mode)
+            let result = await stream(session, from: start, cancelAfter: cancel == index + 1 ? cancelAfter : nil) {
+                session.streamResponse(to: text, options: options)
             }
-            let invocations = log.events
-            let outputs = result.entries.map { if case .toolOutput = $0 { true } else { false } }
+            let (invocations, snapshots) = log.take()
+            let final = await snapshot?()
+            let steps = StepRecord.split(result, runtime: self.options.runtime.rawValue, question: index + 1, snapshots: snapshots, final: final)
+            for step in steps { try emit(step) }
             try emit(ToolRecord(
                 question: index + 1,
                 prompt: text,
                 toolCalled: !invocations.isEmpty,
-                calls: calls,
+                calls: steps.flatMap { $0.calls },
                 invocations: invocations,
-                roundTrips: zip(outputs, outputs.dropFirst() + [false]).filter { $0 && !$1 }.count,
+                steps: steps.count,
+                cancelled: cancel == index + 1,
                 response: joinedText(result.entries.suffix(1), where: responseSegments),
                 ttftS: result.ttft,
                 firstAnswerS: result.firstAnswer,
@@ -223,7 +262,8 @@ struct WeatherTool: Tool {
     }
 
     func call(arguments: Arguments) async throws -> String {
-        log.record(name)
+        let started = await log.begin()
+        defer { log.record(name, started) }
         return "Sunny, 22 C in \(arguments.city)."
     }
 }
@@ -242,26 +282,66 @@ struct AddTool: Tool {
     }
 
     func call(arguments: Arguments) async throws -> String {
-        log.record(name)
+        let started = await log.begin()
+        defer { log.record(name, started) }
         return String(arguments.a + arguments.b)
     }
 }
 
+struct PageTool: Tool {
+    let name = "read_page"
+    let description = "Read a page of the office handbook by its name and return the full text of the page."
+    let folder: String
+    let log: ToolLog
+
+    @Generable
+    struct Arguments {
+        @Guide(description: "The page name, for example index.")
+        var name: String
+    }
+
+    func call(arguments: Arguments) async throws -> String {
+        let started = await log.begin()
+        defer { log.record(name, started) }
+        let url = URL(filePath: folder).appending(path: arguments.name + ".txt")
+        if let page = try? String(contentsOf: url, encoding: .utf8) { return page }
+        let names = (try? FileManager.default.contentsOfDirectory(atPath: folder)) ?? []
+        let available = names.filter { $0.hasSuffix(".txt") }.map { String($0.dropLast(4)) }.sorted()
+        return "No page named \(arguments.name). Available pages: \(available.joined(separator: ", "))."
+    }
+}
+
 final class ToolLog: Sendable {
-    let start: ContinuousClock.Instant
-    private let storage = Mutex<[Invocation]>([])
+    private let snapshot: (@Sendable () async -> [Int32])?
+    private let state = Mutex<(start: ContinuousClock.Instant, events: [Invocation], snapshots: [[Int32]])>((.now, [], []))
 
-    init(start: ContinuousClock.Instant) {
-        self.start = start
+    init(snapshot: (@Sendable () async -> [Int32])?) {
+        self.snapshot = snapshot
     }
 
-    func record(_ name: String) {
-        let event = Invocation(name: name, t: seconds(ContinuousClock.now - start))
-        storage.withLock { $0.append(event) }
+    func restart() -> ContinuousClock.Instant {
+        state.withLock { state in
+            state = (.now, [], [])
+            return state.start
+        }
     }
 
-    var events: [Invocation] {
-        storage.withLock { $0 }
+    func begin() async -> ContinuousClock.Instant {
+        let now = ContinuousClock.now
+        if let snapshot {
+            let tokens = await snapshot()
+            state.withLock { if $0.snapshots.last != tokens { $0.snapshots.append(tokens) } }
+        }
+        return now
+    }
+
+    func record(_ name: String, _ started: ContinuousClock.Instant) {
+        let end = ContinuousClock.now
+        state.withLock { $0.events.append(Invocation(name: name, t: seconds(started - $0.start), endT: seconds(end - $0.start))) }
+    }
+
+    func take() -> (events: [Invocation], snapshots: [[Int32]]) {
+        state.withLock { ($0.events, $0.snapshots) }
     }
 }
 
@@ -274,12 +354,12 @@ final class TranscriptWatch: Sendable {
         state = Mutex((seen, [], 0, false))
     }
 
-    func observe(_ kinds: [String]) -> Bool {
+    func observe(_ kinds: [String], usage: Usage) -> Bool {
         let t = seconds(ContinuousClock.now - start)
         return state.withLock { state in
             guard !state.stopped else { return false }
             state.changes += 1
-            state.marks += kinds.dropFirst(state.seen).map { EntryMark(t: t, kind: $0) }
+            state.marks += kinds.dropFirst(state.seen).map { EntryMark(t: t, kind: $0, usage: usage) }
             state.seen = max(state.seen, kinds.count)
             return true
         }
@@ -319,6 +399,7 @@ struct StreamResult {
 func stream(
     _ session: LanguageModelSession,
     from start: ContinuousClock.Instant,
+    cancelAfter: Double? = nil,
     _ makeStream: () -> LanguageModelSession.ResponseStream<String>
 ) async -> StreamResult {
     let base = session.transcript.count
@@ -326,22 +407,36 @@ func stream(
     let watch = TranscriptWatch(start: start, seen: base)
     let (armed, arm) = AsyncStream<Void>.makeStream()
     let observer = Task {
-        for await kinds in Observations({ session.transcript.map(kind) }) {
+        for await (kinds, usage) in Observations({ (session.transcript.map(kind), Usage(session.usage, since: before)) }) {
             arm.finish()
-            if !watch.observe(kinds) { break }
+            if !watch.observe(kinds, usage: usage) { break }
         }
     }
     for await _ in armed {}
-    var result = StreamResult()
-    do {
-        for try await _ in makeStream() {
-            if result.firstAnswer == nil { result.firstAnswer = seconds(ContinuousClock.now - start) }
-            result.snapshots += 1
+    let responses = makeStream()
+    let consumer = Task { () -> (first: Double?, snapshots: Int, error: String?) in
+        var first: Double?
+        var snapshots = 0
+        do {
+            for try await _ in responses {
+                if first == nil { first = seconds(ContinuousClock.now - start) }
+                snapshots += 1
+            }
+            return (first, snapshots, Task.isCancelled ? "cancelled" : nil)
+        } catch {
+            return (first, snapshots, String(describing: error))
         }
-    } catch {
-        result.error = String(describing: error)
     }
+    if let cancelAfter {
+        Task {
+            try? await Task.sleep(for: .seconds(cancelAfter))
+            consumer.cancel()
+        }
+    }
+    var result = StreamResult()
+    (result.firstAnswer, result.snapshots, result.error) = await consumer.value
     result.total = seconds(ContinuousClock.now - start)
+    if cancelAfter != nil { try? await Task.sleep(for: .milliseconds(300)) }
     (result.marks, result.changes) = watch.stop()
     observer.cancel()
     result.ttft = result.marks.first { $0.kind != "prompt" }?.t
@@ -412,6 +507,12 @@ struct Usage: Encodable {
     var inputCached = 0
     var outputTotal = 0
     var outputReasoning = 0
+
+    static func - (a: Usage, b: Usage) -> Usage {
+        Usage(
+            inputTotal: a.inputTotal - b.inputTotal, inputCached: a.inputCached - b.inputCached,
+            outputTotal: a.outputTotal - b.outputTotal, outputReasoning: a.outputReasoning - b.outputReasoning)
+    }
 }
 
 extension Usage {
@@ -426,16 +527,93 @@ extension Usage {
 struct EntryMark: Encodable {
     let t: Double
     let kind: String
+    let usage: Usage
 }
 
 struct Invocation: Encodable {
     let name: String
     let t: Double
+    let endT: Double
 }
 
 struct CallRecord: Encodable {
     let name: String
     let arguments: String
+    let keys: [String]
+}
+
+struct StepRecord: Encodable {
+    var record = "step"
+    let runtime: String
+    let question: Int
+    let step: Int
+    let startS: Double
+    let ttftS: Double
+    var entries: [String] = []
+    var calls: [CallRecord] = []
+    var reasoning = ""
+    var response = ""
+    var usage = Usage()
+    var stopReason: String?
+    var prefillTokens: Int?
+    var sharedTokens: Int?
+    var prefillSeconds: Double?
+    var decodeSeconds: Double?
+    var processedTokens: [Int32]?
+
+    static func split(_ result: StreamResult, runtime: String, question: Int, snapshots: [[Int32]], final: [Int32]?) -> [StepRecord] {
+        var steps: [StepRecord] = []
+        var current: StepRecord?
+        var boundary = 0.0
+        var counted = Usage()
+        for (index, mark) in result.marks.enumerated() where mark.kind != "prompt" {
+            if mark.kind.hasPrefix("toolOutput") {
+                if var step = current {
+                    step.usage = mark.usage - counted
+                    counted = mark.usage
+                    steps.append(step)
+                    current = nil
+                }
+                boundary = mark.t
+                continue
+            }
+            var step = current ?? StepRecord(runtime: runtime, question: question, step: steps.count + 1, startS: boundary, ttftS: mark.t - boundary)
+            step.entries.append(mark.kind)
+            if index < result.entries.count { step.read(result.entries[index]) }
+            current = step
+        }
+        if var step = current {
+            step.usage = result.usage - counted
+            steps.append(step)
+        }
+        for index in steps.indices {
+            steps[index].processedTokens = index == steps.count - 1 ? final : index < snapshots.count ? snapshots[index] : nil
+        }
+        return steps
+    }
+
+    mutating func read(_ entry: Transcript.Entry) {
+        var metadata: [String: GeneratedContent] = [:]
+        switch entry {
+        case .reasoning(let reasoning): self.reasoning += joinedText([entry], where: reasoningSegments)
+            metadata = reasoning.metadata
+        case .response(let response): self.response += joinedText([entry], where: responseSegments)
+            metadata = response.metadata
+        case .toolCalls(let toolCalls):
+            calls += toolCalls.map { call in
+                let keys: [String] = if case .structure(_, let keys) = call.arguments.kind { keys } else { [] }
+                return CallRecord(name: call.toolName, arguments: call.arguments.jsonString, keys: keys)
+            }
+            metadata = toolCalls.last?.metadata ?? [:]
+        default: break
+        }
+        guard metadata["stopReason"] != nil else { return }
+        stopReason = try? metadata["stopReason"]?.value(String.self)
+        prefillTokens = try? metadata["prefillTokens"]?.value(Int.self)
+        sharedTokens = try? metadata["sharedTokens"]?.value(Int.self)
+        prefillSeconds = try? metadata["prefillSeconds"]?.value(Double.self)
+        decodeSeconds = try? metadata["decodeSeconds"]?.value(Double.self)
+    }
 }
 
 struct LoadRecord: Encodable {
@@ -483,7 +661,8 @@ struct ToolRecord: Encodable {
     let toolCalled: Bool
     let calls: [CallRecord]
     let invocations: [Invocation]
-    let roundTrips: Int
+    let steps: Int
+    let cancelled: Bool
     let response: String
     let ttftS: Double?
     let firstAnswerS: Double?

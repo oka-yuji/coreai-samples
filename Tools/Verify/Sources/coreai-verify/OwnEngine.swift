@@ -21,7 +21,10 @@ struct Compare: AsyncParsableCommand {
     var model: String
 
     @Option(help: "A prompt as name=text. Repeat to send several.")
-    var prompt: [String]
+    var prompt: [String] = []
+
+    @Option(help: "Prompt tokens as name=path, path being a JSON array of token IDs; append @n to prefill the own engine in two parts split at n.")
+    var tokens: [String] = []
 
     @Option(help: "Maximum generated tokens per prompt.")
     var maxTokens = 1024
@@ -58,6 +61,20 @@ struct Compare: AsyncParsableCommand {
                 record.text = tokenizer.decode(tokens: record.tokens.map(Int.init))
                 try emit(record)
             }
+        }
+        for entry in tokens {
+            let name = String(entry.prefix { $0 != "=" })
+            let spec = entry.dropFirst(name.count + 1)
+            let path = String(spec.prefix { $0 != "@" })
+            let split = Int(spec.dropFirst(path.count + 1))
+            let input = try JSONDecoder().decode([Int32].self, from: Data(contentsOf: URL(filePath: path)))
+            own.reset()
+            try await official.reset(to: 0)
+            var record = try await lockstep(
+                own: own, official: official, input: input, usePrefillFunction: true, split: split, maxTokens: maxTokens, stop: stop)
+            record.prompt = name
+            record.text = tokenizer.decode(tokens: record.tokens.map(Int.init))
+            try emit(record)
         }
     }
 
@@ -326,6 +343,11 @@ func loadOwnModel(_ url: URL) async throws -> any LanguageModel {
         cached: model.loadStats.cached, specializeS: model.loadStats.specializeSeconds,
         initS: (clock.now - start) / .seconds(1), memory: .now()))
     return model
+}
+
+func tokenSnapshot(_ model: any LanguageModel) -> (@Sendable () async -> [Int32])? {
+    guard let own = model as? LocalLanguageModel else { return nil }
+    return { await own.processedTokens() }
 }
 
 func loadOwn(_ url: URL) async throws -> (any Tokenizer, CoreAIBackend.Engine) {
