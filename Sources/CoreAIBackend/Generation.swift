@@ -287,16 +287,45 @@ struct ToolCallParser {
         let body = body.trimmingCharacters(in: .whitespacesAndNewlines)
         if body.hasPrefix("<function=") { return function(body) }
         guard let object = try? JSONSerialization.jsonObject(with: Data(body.utf8)) as? [String: Any],
-            let name = object["name"] as? String, !name.isEmpty
+            let name = object["name"] as? String, !name.isEmpty,
+            let arguments = Self.members(
+                object["arguments"] as? String ?? Self.members(body)?.first(where: { $0.key == "arguments" })?.value ?? "{}")
         else { return nil }
-        var arguments = object["arguments"] ?? [String: Any]()
-        if let text = arguments as? String, let parsed = try? JSONSerialization.jsonObject(with: Data(text.utf8)) {
-            arguments = parsed
+        return .call(name: name, arguments: "{" + arguments.map { Self.quoted($0.key) + ":" + $0.value }.joined(separator: ",") + "}")
+    }
+
+    static func members(_ json: String) -> [(key: String, value: String)]? {
+        guard (try? JSONSerialization.jsonObject(with: Data(json.utf8))) is [String: Any] else { return nil }
+        let scalars = json.unicodeScalars
+        var members: [(key: String, value: String)] = []
+        var depth = 0
+        var quoted = false
+        var escaped = false
+        var start = scalars.startIndex
+        var colon: String.Index?
+        for index in scalars.indices {
+            switch scalars[index] {
+            case _ where escaped: escaped = false
+            case "\\" where quoted: escaped = true
+            case "\"": quoted.toggle()
+            case _ where quoted: break
+            case "{", "[":
+                depth += 1
+                if depth == 1 { start = scalars.index(after: index) }
+            case "}" where depth > 1, "]": depth -= 1
+            case ":" where depth == 1 && colon == nil: colon = index
+            case "," where depth == 1, "}":
+                if let colon,
+                    let key = try? JSONSerialization.jsonObject(with: Data(String(scalars[start..<colon]).utf8), options: .fragmentsAllowed) as? String
+                {
+                    members.append((key, String(scalars[scalars.index(after: colon)..<index]).trimmingCharacters(in: .whitespacesAndNewlines)))
+                }
+                start = scalars.index(after: index)
+                colon = nil
+            default: break
+            }
         }
-        guard arguments is [String: Any],
-            let data = try? JSONSerialization.data(withJSONObject: arguments, options: [.sortedKeys, .withoutEscapingSlashes])
-        else { return nil }
-        return .call(name: name, arguments: String(decoding: data, as: UTF8.self))
+        return members
     }
 
     private func function(_ body: String) -> Event? {

@@ -333,7 +333,12 @@ func contiguous(_ width: Int) -> @Sendable ([Int]) -> (strides: [Int], byteCount
     #expect(parse(["<tool_call>", "\n{\"name\": \"get_weather\", \"arguments\": {\"city\": \"Tokyo\"}}\n", "</tool_call>"])
         == [.call(name: "get_weather", arguments: #"{"city":"Tokyo"}"#)])
     #expect(parse([#"<tool_call>{"name": "add", "arguments": "{\"b\": 2, \"a\": 1}"}</tool_call>"#])
-        == [.call(name: "add", arguments: #"{"a":1,"b":2}"#)])
+        == [.call(name: "add", arguments: #"{"b":2,"a":1}"#)])
+    #expect(parse([#"<tool_call>{"name": "add", "arguments": {"b": 2, "a": 1}}</tool_call>"#])
+        == [.call(name: "add", arguments: #"{"b":2,"a":1}"#)])
+    #expect(parse([#"<tool_call>{"arguments": {"z": "a, \"b\": {c}\\", "y": [1, {"x": ":"}], "w": null}, "name": "add"}</tool_call>"#])
+        == [.call(name: "add", arguments: #"{"z":"a, \"b\": {c}\\","y":[1, {"x": ":"}],"w":null}"#)])
+    #expect(parse([#"<tool_call>{"name": "add", "arguments": 5}</tool_call>"#]) == [.text(#"<tool_call>{"name": "add", "arguments": 5}</tool_call>"#)])
     #expect(parse(["<tool_call>\n<function=add>\n<parameter=b>\n25\n</parameter>\n<parameter=a>\n17\n</parameter>\n</function>\n</tool_call>"])
         == [.call(name: "add", arguments: #"{"b":25,"a":17}"#)])
     #expect(parse(["<tool_call>\n<function=get_weather>\n<parameter=city>\n42\n</parameter>\n<parameter=note>\ntrue\n</parameter>\n</function>\n</tool_call>"])
@@ -396,6 +401,35 @@ func contiguous(_ width: Int) -> @Sendable ([Int]) -> (strides: [Int], byteCount
     ])
     #expect(try JSON.dumps(Runtime.value(GeneratedContent(json: #"{"x": 2.5, "n": 17, "s": "a", "f": true, "z": null, "l": [1]}"#), order: ["n", "x"]))
         .hasPrefix(#"{"n": 17, "x": 2.5, "#))
+}
+
+@Test func historyDrawsToolCallArgumentsInTheWrittenOrder() throws {
+    let add = Transcript.ToolDefinition(name: "add", description: "Add two integers.", parameters: AddArguments.generationSchema)
+    let written = [#"{"b":2,"a":1}"#, #"{"b":4,"a":3}"#].map { ToolCallParser.members($0)?.map(\.key) }
+    #expect(written == [["b", "a"], ["b", "a"]])
+    #expect(ToolCallParser.members("{}")?.isEmpty == true)
+    #expect(ToolCallParser.members(#"{"a": }"#) == nil)
+
+    let transcript = Transcript(entries: [
+        .instructions(.init(segments: [], toolDefinitions: [add])),
+        .prompt(.init(segments: [.text(.init(content: "Add."))])),
+        .toolCalls(.init([
+            Transcript.ToolCall(id: "c1", toolName: "add", arguments: try GeneratedContent(json: #"{"a": 1, "b": 2}"#)),
+            Transcript.ToolCall(id: "c2", toolName: "add", arguments: try GeneratedContent(json: #"{"a": 3, "b": 4}"#)),
+            Transcript.ToolCall(id: "c3", toolName: "add", arguments: try GeneratedContent(json: #"{"a": 5, "b": 6}"#)),
+            Transcript.ToolCall(id: "c4", toolName: "add", arguments: try GeneratedContent(json: #"{"b": 8, "a": 7}"#)),
+        ])),
+    ])
+    let fitted = try Runtime.fit(
+        transcript, remembered: [:], written: ["c1": written[0] ?? [], "c2": written[1] ?? [], "c3": ["b", "b"]], limit: 10, reserve: nil
+    ) { _ in [0] }
+    let calls = try #require(fitted.messages[1]["tool_calls"] as? [Value])
+    #expect(try calls.map { try JSON.dumps($0) } == [
+        #"{"type": "function", "function": {"name": "add", "arguments": {"b": 2, "a": 1}}}"#,
+        #"{"type": "function", "function": {"name": "add", "arguments": {"b": 4, "a": 3}}}"#,
+        #"{"type": "function", "function": {"name": "add", "arguments": {"b": 6, "a": 5}}}"#,
+        #"{"type": "function", "function": {"name": "add", "arguments": {"a": 7, "b": 8}}}"#,
+    ])
 }
 
 func merged(_ parts: [ThinkParser.Part]) -> [ThinkParser.Part] {

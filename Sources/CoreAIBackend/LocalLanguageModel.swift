@@ -41,6 +41,8 @@ public struct LocalLanguageModel: LanguageModel {
 }
 
 actor Runtime {
+    static let rememberedCalls = 512
+
     nonisolated let loadStats: Engine.LoadStats
     nonisolated let thinks: Bool
     private let core: EngineBox
@@ -48,6 +50,7 @@ actor Runtime {
     private let stopTokens: Set<Int32>
     private let overflow: LocalLanguageModel.OverflowPolicy
     private var cuts: [String: ToolOutputCut] = [:]
+    private var written: OrderedDictionary<String, [String]> = [:]
     private var checkpoints: [CheckpointRole: Engine.Checkpoint] = [:]
     private var busy = false
     private var waiting: [CheckedContinuation<Void, Never>] = []
@@ -75,7 +78,9 @@ actor Runtime {
         if !tools.isEmpty { context["tools"] = Value.array(tools.map(\.spec)) }
         let contextLimit = core.engine.contextLimit
         let reserve = overflow == .dropOldToolOutputs ? min(request.generationOptions.maximumResponseTokens ?? 1024, contextLimit / 2) : nil
-        let (messages, prompt, cuts) = try Self.fit(request.transcript, remembered: self.cuts, limit: contextLimit, reserve: reserve) {
+        let (messages, prompt, cuts) = try Self.fit(
+            request.transcript, remembered: self.cuts, written: written, limit: contextLimit, reserve: reserve
+        ) {
             try render($0, generationPrompt: true, context: context)
         }
         let truncated = cuts.filter { self.cuts[$0.key] != $0.value }.count
@@ -104,6 +109,10 @@ actor Runtime {
         let readEnd = clock.now
 
         var output = Output(channel: channel, calls: tools.isEmpty ? nil : ToolCallParser(types: Dictionary(tools.map { ($0.name, $0.types) }) { a, _ in a }))
+        defer {
+            for call in output.written { written[call.id] = call.keys }
+            written.removeFirst(max(0, written.count - Self.rememberedCalls))
+        }
         var parser = ThinkParser(reasoning: opensReasoning)
         var pending: [Int] = []
         var produced = 0
@@ -204,14 +213,14 @@ actor Runtime {
     }
 
     static func fit(
-        _ transcript: Transcript, remembered: [String: ToolOutputCut], limit: Int, reserve: Int?,
-        render: ([Message]) throws -> [Int32]
+        _ transcript: Transcript, remembered: [String: ToolOutputCut], written: OrderedDictionary<String, [String]> = [:], limit: Int,
+        reserve: Int?, render: ([Message]) throws -> [Int32]
     ) throws -> (messages: [Message], prompt: [Int32], cuts: [String: ToolOutputCut]) {
         let ids = Set(transcript.map(\.id))
         var cuts = remembered.filter { ids.contains($0.key) }
         let groups = toolOutputGroups(transcript)
         while true {
-            let messages = try Self.messages(transcript, cuts: cuts)
+            let messages = try Self.messages(transcript, cuts: cuts, written: written)
             let prompt = try render(messages)
             if let reserve, prompt.count + reserve > limit, let next = ToolOutputCut.shrink(groups, cuts) {
                 cuts = next
@@ -240,7 +249,9 @@ actor Runtime {
         return groups
     }
 
-    static func messages(_ transcript: Transcript, cuts: [String: ToolOutputCut] = [:]) throws -> [Message] {
+    static func messages(
+        _ transcript: Transcript, cuts: [String: ToolOutputCut] = [:], written: OrderedDictionary<String, [String]> = [:]
+    ) throws -> [Message] {
         var messages: [Message] = []
         var order: [String: [String]] = [:]
         var reply: Message?
@@ -278,7 +289,8 @@ actor Runtime {
             case .toolCalls(let calls):
                 var message = reply ?? ["role": "assistant", "content": ""]
                 message["tool_calls"] = (message["tool_calls"] as? [Value] ?? []) + calls.map { call in
-                    ["type": "function", "function": ["name": .string(call.toolName), "arguments": Self.value(call.arguments, order: order[call.toolName] ?? [])]]
+                    let arguments = Self.value(call.arguments, order: (written[call.id] ?? []) + (order[call.toolName] ?? []))
+                    return ["type": "function", "function": ["name": .string(call.toolName), "arguments": arguments]]
                 }
                 reply = message
             case .toolOutput(let output):
@@ -302,9 +314,9 @@ actor Runtime {
         case .string(let string): .string(string)
         case .array(let items): .array(items.map { value($0) })
         case .structure(let properties, let keys):
-            .object(OrderedDictionary(uniqueKeysWithValues: (order.filter(keys.contains) + keys.filter { !order.contains($0) }).map {
+            .object(OrderedDictionary((order.filter(keys.contains) + keys).map {
                 (ObjectKey.string($0), value(properties[$0] ?? GeneratedContent(kind: .null)))
-            }))
+            }, uniquingKeysWith: { first, _ in first }))
         @unknown default: .null
         }
     }
@@ -335,6 +347,7 @@ struct Output {
     let channel: LanguageModelExecutorGenerationChannel
     var calls: ToolCallParser?
     var lastCall: (id: String, name: String)?
+    var written: [(id: String, keys: [String])] = []
     private var unreported = 0
 
     init(channel: LanguageModelExecutorGenerationChannel, calls: ToolCallParser?) {
@@ -359,6 +372,7 @@ struct Output {
                 lastCall = nil
             case .call(let name, let arguments):
                 let id = UUID().uuidString
+                written.append((id, ToolCallParser.members(arguments)?.map(\.key) ?? []))
                 await channel.send(.toolCalls(action: .toolCall(id: id, name: name, action: .appendArguments(arguments, tokenCount: take()))))
                 lastCall = (id, name)
             }
