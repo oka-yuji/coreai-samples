@@ -9,6 +9,7 @@ let package = Package(
     ],
     products: [
         .library(name: "CoreAIBackend", targets: ["CoreAIBackend"]),
+        .library(name: "RAGContext", targets: ["RAGContext"]),
         .executable(name: "coreai-chat", targets: ["coreai-chat"]),
     ],
     dependencies: [
@@ -23,6 +24,7 @@ let package = Package(
                 .product(name: "Jinja", package: "swift-jinja"),
             ]
         ),
+        .target(name: "RAGContext"),
         .executableTarget(
             name: "coreai-chat",
             dependencies: ["CoreAIBackend"]
@@ -34,5 +36,6 @@ let package = Package(
                 .product(name: "Jinja", package: "swift-jinja"),
             ]
         ),
+        .testTarget(name: "RAGContextTests", dependencies: ["RAGContext"]),
     ]
 )

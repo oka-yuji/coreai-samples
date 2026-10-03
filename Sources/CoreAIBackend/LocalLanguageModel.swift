@@ -38,6 +38,10 @@ public struct LocalLanguageModel: LanguageModel {
     public func processedTokens() async -> [Int32] {
         await runtime.processed
     }
+
+    public func countTokens(_ text: String) -> Int {
+        runtime.tokenizer.encode(text: text, addSpecialTokens: false).count
+    }
 }
 
 actor Runtime {
@@ -46,7 +50,7 @@ actor Runtime {
     nonisolated let loadStats: Engine.LoadStats
     nonisolated let thinks: Bool
     private let core: EngineBox
-    private let tokenizer: any Tokenizer
+    nonisolated let tokenizer: any Tokenizer
     private let stopTokens: Set<Int32>
     private let overflow: LocalLanguageModel.OverflowPolicy
     private var cuts: [String: ToolOutputCut] = [:]
