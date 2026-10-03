@@ -1,111 +1,134 @@
 # Core AI Samples
 
-This repository will hold a Swift runtime, a verification harness, and a sample app for running open LLMs on Apple silicon with **Core AI** and **Foundation Models**.
+Swift code for running open language models such as Qwen on a Mac with Apple's Core AI framework: a runtime library, a command-line chat, a demo app and a verification tool.
+The runtime reads the model bundles made by Apple's converter in [apple/coreai-models](https://github.com/apple/coreai-models) and works as a Foundation Models `LanguageModel`, so an app talks to it through an ordinary `LanguageModelSession`.
 
-> Work in progress. Nothing here is released yet.
+> **Status:** not released yet. No model bundle has been published, so you convert one yourself (step 1 below). The first release is planned to be Qwen3.8 27B (4-bit) for macOS.
 
-## Requirements
+## Who this is for
 
-- macOS 27 or iOS 27
-- Xcode 27 with the Metal Toolchain component
-- [XcodeGen](https://github.com/yonaskolb/XcodeGen), only to regenerate the demo app's project
+- **For** Swift developers who want an open model inside a Mac app through the Foundation Models API, with the runtime's source at hand.
+- **For** anyone who wants to check such a runtime against Apple's own: `Tools/Verify` compares the two token by token.
+- **Not for**, yet: iOS apps, or ready-made model downloads (none are published). For macOS 26 / iOS 26, see [coreml-llm-samples](https://github.com/oka-yuji/coreml-llm-samples).
 
-## Demo app (macOS)
+Requirements: an Apple silicon Mac with macOS 27, and Xcode 27 with the Metal Toolchain component. `Package.swift` also declares iOS 27, but nothing has been run on iOS.
 
-`Examples/DemoApp` is a SwiftUI app that runs a local model bundle through Foundation Models with the runtime in this repository (`CoreAIBackend`). It does not use the official `coreai-models` package.
+## Quick start
 
-- **Models**: open a bundle folder on this Mac (the app remembers it), load it, and clear the copy the app prepared for the GPU. The download catalog for Hugging Face is in place but stays empty until bundles are published.
-- **Chat**: a `LanguageModelSession` on `LocalLanguageModel`. Replies stream, thinking streams into a collapsed section, and the status line shows the time to the first token, the speed, the input, reused and output tokens, and why the reply stopped. With **RAG** on, the app first collects sources from the web and from `~/Documents/rag/` and the model answers from them with numbered citations. See [RAG](#rag) below.
-- **Agent**: searches the web, reads pages, saves notes and answers with a `Sources:` section, on the model that Chat has loaded. See [Agent](#agent) below.
-
-### Build and run
+**1. Make a bundle** with Apple's converter. Setup (it uses `uv`) and the supported models are in [its models README](https://github.com/apple/coreai-models/blob/1.0.0/models/README.md). This is the command used here for Qwen3-0.6B:
 
 ```bash
-cd Examples/DemoApp
-xcodegen generate   # only needed after editing project.yml; the generated project is committed
-xcodebuild -scheme DemoApp -configuration Release -derivedDataPath .build build
-open .build/Build/Products/Release/DemoApp.app
+git clone https://github.com/apple/coreai-models.git && cd coreai-models && git checkout 1.0.0
+uv run coreai.llm.export Qwen/Qwen3-0.6B --output-dir ~/coreai-bundles   # writes ~/coreai-bundles/qwen3_0_6b_4bit_dynamic
 ```
 
-The app is signed ad hoc and runs without the App Sandbox. To sign with your team, copy `Local.xcconfig.template` to `Local.xcconfig` and set `DEVELOPMENT_TEAM`. The context window is 16,384 tokens (or the bundle's maximum, if smaller) for Chat, RAG and Agent; launch with `--context-limit N` to change it, for example `open .build/Build/Products/Release/DemoApp.app --args --context-limit 1024`.
+The runtime has been run with that bundle, with bundles of Qwen3.5-0.8B and Qwen3.5-9B, and with Qwen3.8-27B in 4-bit and 8-bit. The Qwen3.5 and Qwen3.8 exports come from [pull request #321](https://github.com/apple/coreai-models/pull/321) of apple/coreai-models, which is still open (checked 2026-10-03), so they are not in the 1.0.0 tag.
 
-The first load of a model prepares it for the GPU (about 21 s for Qwen3.5-9B on an M4 Max); later loads reuse the prepared copy in `~/Library/Caches/coreai-cache/<OS build>/com.coreai-samples.DemoApp/`.
-
-### Headless self-test
+**2. Chat** from the root of this repository:
 
 ```bash
-APP=.build/Build/Products/Release/DemoApp.app/Contents/MacOS/DemoApp
-$APP --selftest --model /path/to/bundle --prompts-file prompts.txt [--max-tokens 2048] [--context-limit 4096]
+swift build -c release
+.build/release/coreai-chat --model ~/coreai-bundles/qwen3_0_6b_4bit_dynamic --system "You are a concise assistant." \
+  --prompt "My name is Taro. Remember it." --prompt "What is the capital of France? Answer with one word." \
+  --prompt "What is my name?" --max-tokens 1024 --stats
 ```
 
-- `prompts.txt` holds the turns of one conversation, separated by lines that read `===PROMPT===`.
-- Each turn prints one JSON line: `turn`, `answer`, `inputTokens`, `cachedTokens` (reused), `outputTokens`, `ttftSeconds`, `tokensPerSecond` (output tokens divided by the decode time) and `stopReason`. The last line is `SELFTEST PASS` or `SELFTEST FAIL`, and the exit status is 0 or 1.
-- A pass means every turn finished without an error, generated tokens, stopped on a stop token or the token limit, and every turn after the first reused tokens. No window opens.
+Each `--prompt` is one turn of the same conversation. When the model thinks, the thinking prints under `[reasoning]` and the answer under `[response]`. `--stats` writes JSON lines to stderr: one for the load (`cached`, `specialize_s`, `load_s`) and one per turn, where `cached_tokens` is the part of the prompt reused from earlier turns.
 
-### Screen check
+## Use it from Swift
+
+```swift
+import CoreAIBackend
+import Foundation
+import FoundationModels
+
+let model = try await LocalLanguageModel(bundle: URL(filePath: "/path/to/qwen3_0_6b_4bit_dynamic"))
+let session = LanguageModelSession(model: model, instructions: "You are a concise assistant.")
+for try await snapshot in session.streamResponse(
+    to: "What is the capital of France? Answer with one word.",
+    options: GenerationOptions(maximumResponseTokens: 1024)
+) {
+    print(snapshot.content)  // the whole answer so far, growing with each snapshot
+}
+```
+
+This is the core of `Sources/coreai-chat/ChatCommand.swift`, cut down to the calls that matter; the CLI sends one turn per `--prompt` to the same session and prints only the new part of each snapshot. The thinking arrives as `.reasoning` entries in `session.transcript`, the token counts in `session.usage`, and the stop reason in the response metadata (`stopReason`). `LocalLanguageModel(bundle:contextLimit:overflow:)` also takes a context limit and an `OverflowPolicy` (below). The demo app and `Tools/Verify` use `CoreAIBackend` from this repository as a local path dependency; there is no tagged release to depend on yet.
+
+## What the runtime does
+
+- **Reuses what it has already read.** Each request is compared with the tokens the engine already holds, and only the part after the first difference is read again (in hybrid models, from the nearest saved point; next item): across the turns of a conversation and across the steps of a tool loop. The reused count is reported as `cachedTokenCount` in the session's usage. Sessions created from the same `LocalLanguageModel` share one engine, and their requests run one at a time.
+- **Returns to a saved point in hybrid models.** Bundles with fixed-size recurrent state (Qwen3.5 and Qwen3.8) cannot be rewound by trimming the cache, so the runtime saves that state where the user's turn ends, where generation starts and where two prompts part, and restores the nearest point instead of reading from the start (`Engine.checkpoint()`, `Engine.restore(_:)`).
+- **Separates thinking from the answer.** Text between `<think>` and `</think>` streams as `.reasoning` entries, the rest as the response. `ContextOptions.reasoningLevel` reaches the chat template as `reasoning_effort` (`.custom("off")` sets `enable_thinking` to false); whether it has an effect depends on the template.
+- **Calls tools.** Tool definitions go into the chat template, and calls are parsed while streaming from `<tool_call>` blocks in either form, JSON (`{"name": ..., "arguments": ...}`) or `<function=...>` with `<parameter=...>`. A malformed block stays in the answer as text. With `toolCallingMode` `.disallowed` the tools are left out of the prompt. Foundation Models runs the tools and asks the model again.
+- **Handles a full context in one of two ways** (`OverflowPolicy`). `.error`, the default, throws `LanguageModelError.contextSizeExceeded` only when the prompt itself no longer fits; otherwise the reply gets what is left. `.dropOldToolOutputs` first replaces the oldest tool results with `[truncated]` (the newest two groups are kept) and then halves the newest ones, to leave room for the reply; if that is not enough, it falls back to `.error`.
+- **Samples as asked.** With no sampling options it decodes greedily. The `GenerationOptions` sampling modes `.random(top:seed:)` and `.random(probabilityThreshold:seed:)` and its `temperature` are honoured, and the same seed gives the same text.
+- **Stops and cancels cleanly.** Generation ends at the end-of-sequence token or `<|endoftext|>` (the stop token is not fed back to the model) or at `maximumResponseTokens`, and the response metadata says which (`stopReason`: `stopToken` or `maxTokens`). A reply that runs out of tokens while still thinking ends with an empty answer, not an error. After a cancelled request, the next one on the session works.
+
+## Repository layout
+
+```
+Sources/CoreAIBackend/   the runtime: Engine (Core AI calls), LocalLanguageModel (Foundation Models), ModelBundle (metadata.json)
+Sources/RAGContext/      passages, ranking, token budget, prompt and dates for answers from retrieved sources; a document-folder reader
+Sources/coreai-chat/     the command-line chat (ChatCommand.swift)
+Examples/DemoApp/        macOS SwiftUI demo app: Models, Chat (with RAG), Agent
+Tools/Verify/            separate package: coreai-verify, which compares this runtime with apple/coreai-models 1.0.0
+Tests/                   CoreAIBackendTests and RAGContextTests (swift test)
+LICENSE                  MIT, for the code
+```
+
+## Demo app
+
+`Examples/DemoApp` is a macOS SwiftUI app built on this repository's `CoreAIBackend` and `RAGContext`, without the official `coreai-models` package.
+
+- **Models** opens a bundle folder on this Mac, loads it, and clears the copy prepared for the GPU.
+- **Chat** streams the reply and the thinking, and with RAG answers from web pages and local documents with numbered sources.
+- **Agent** searches the web, reads pages and saves notes through the Foundation Models tool loop.
+
+Building it, the headless self-tests, the screen checks and the logs are in [Examples/DemoApp/README.md](Examples/DemoApp/README.md).
+
+## Verification
+
+`Tools/Verify` is a separate Swift package and the only place that depends on Apple's `coreai-models` package, pinned to 1.0.0; the library, the CLI and the demo app do not. Its `coreai-verify` tool drives Apple's runtime (`--runtime official`, with `--engine default` or `sequential`) and this one (`--runtime own`) and prints one JSON line per measurement. In the table, "own" is this repository's runtime.
+
+| Subcommand | What it does |
+|---|---|
+| `chat` | Stream several turns through one LanguageModelSession. |
+| `tools` | Ask questions that may need tools; print one record per model step and one per question. |
+| `bench` | Time a reload, then stream one fixed prompt three times, each in a new session. |
+| `compare` | Feed the same tokens to the own engine and the official sequential engine; compare greedy tokens and logits. |
+| `rewind` | Save a point after a shared preamble, generate, restore, and generate again; time a full re-read for comparison. |
+| `speed` | Alternate the own engine, the official sequential engine, and the official default engine, one process each. |
+
+`chat`, `tools` and `bench` take `--runtime` and `--engine`, plus `--context-limit` and `--drop-old-tool-outputs` for `--runtime own`.
 
 ```bash
-$APP --gui-e2e /path/to/output --model /path/to/bundle [--clear-prepared] [--context-limit 1024] [--max-tokens N]
+cd Tools/Verify
+swift build -c release
+.build/release/coreai-verify compare --model <bundle> --max-tokens 64 --prompt "en=List three fruits, one per line."
+.build/release/coreai-verify chat --model <bundle> --runtime own --max-tokens 64 --prompt "What is the capital of France? Answer with one word."
 ```
 
-The app opens the bundle in Models, loads it, chats one turn, starts a long reply, stops it and starts a new chat, saving a screenshot after each step with `results.json`, `driver.log` and the metrics rows of the run. `--clear-prepared` removes the prepared copy first, so the load shows the preparing state. With `--context-limit`, it then keeps chatting until the context window is full.
-
-### Metrics
-
-Every generation appends one JSON line to `~/Library/Application Support/com.coreai-samples.DemoApp/metrics.jsonl`: the model, the turn, the input, reused and output tokens, the time to the first token, the speed, the stop reason, the resident memory and the app build. RAG answers also carry `sources`, `sourceTokens`, `ragPromptTokens` and `retrievalSeconds`.
-
-### RAG
-
-Turn on **RAG** in the Chat status bar, then pick **Web**, **Docs** or both. The app retrieves; the model never calls a tool.
-
-1. **Web**: search (DuckDuckGo, top 8; Brave Search when the Agent settings hold an API key), then read the top 5 pages in parallel and keep up to 3,000 characters of each, the part that matches the question.
-2. **Docs**: read every `.txt`, `.md` (also `.text`, `.markdown`) and `.pdf` file in `~/Documents/rag/`. The folder is created on first use and read again on every question, so there is no index to rebuild. PDFs are read with PDFKit.
-3. Split pages and documents into passages of about 500 characters that repeat the last 100 characters of the previous one, rank them against the question with SQLite FTS5 (BM25), and keep the best ones up to 6,000 tokens, so that the whole prompt stays within 8,000 tokens (counted with the model's tokenizer, `LocalLanguageModel.countTokens(_:)`).
-4. Answer in a new `LanguageModelSession` per question: the instructions are a fixed Japanese instruction with today's date, and the prompt is the sources as `資料[n] title / url / date` plus the passage, then the question. RAG turns are not added to the chat history, and the reasoning setting is Chat's.
-
-The answer is followed by its sources, numbered like the `[n]` marks in the text (`[n] title — url (date)`; `日付不明` when the page gives no date), and one line for each source that failed (no network, no search results, a page that would not load). With no sources at all, the reply is `資料が取得できませんでした。` and the model does not run. The status line adds `sources N | source tok N | prompt(rag) N tok | retrieval N.Ns`.
-
-A page's date comes from its `article:published_time` and similar meta tags, then a `<time datetime>` tag, then the search snippet, then the first 600 characters of the page text. The splitting, ranking, budget, prompt and dates are in the `RAGContext` library of this package, with no network, files or UI (`swift test --filter RAG`).
-
-Headless, with no window:
+From the repository root, `swift test` runs the tests that need no model, such as the reuse plan, the parsers, the sampler, the context fitting and the RAG passages and dates. The tests that load a model run only when `COREAI_TEST_BUNDLES` lists bundle folders, separated by `:`.
 
 ```bash
-$APP --selftest --model /path/to/bundle --rag "question 1|question 2" [--rag-web off] [--rag-local off] \
-  [--rag-docs /path/to/folder] [--max-tokens N]
+swift test
+COREAI_TEST_BUNDLES=/path/to/bundle-a:/path/to/bundle-b swift test
 ```
 
-Each question prints `[rag] turn=N search N / pages N / passages N → N sources, N tokens`, one `[rag] turn=N source [k] title — url (date)` and one `[rag] turn=N passage [k] …` (the text the model saw) line per source, `[rag] turn=N note …` for each failure and `[rag] turn=N answer=…` on stderr, then its JSON line and `SELFTEST PASS` or `SELFTEST FAIL` on stdout. A question with sources passes when the model answers without an error; a question without sources passes when the reply is `資料が取得できませんでした。` and the model did not run. `--rag-docs` reads another folder instead of `~/Documents/rag/`. `$APP --gui-e2e /path/to/output --model /path/to/bundle --rag "question"` turns RAG on and answers one question on the screen, saving screenshots of the switches and of the answer with its sources and the status line.
+## Operational notes
 
-### Agent
+- **The first load prepares the model for the GPU.** Core AI keeps the prepared copy in `~/Library/Caches/coreai-cache/<OS build>/<name>/`, where `<name>` is the process name of a command-line tool (`coreai-chat`, `coreai-verify`, `swiftpm-testing-helper` for `swift test`) or the bundle ID of an app (`com.coreai-samples.DemoApp`). Later loads by the same program reuse it; another program prepares its own copy, which takes about as much disk as the model (more for an unquantized bundle). `coreai-chat --stats` shows whether the copy was reused (`cached`) and how long preparing took (`specialize_s`).
+- **To remove a prepared copy**, call `Engine.deleteSpecializationCache(bundle:)`, which removes the calling program's copy of that bundle, use **Clear Prepared Copy** in the demo app's Models screen (`--clear-prepared` in its screen check), or delete the folder.
 
-The loop belongs to Foundation Models: the screen runs `LanguageModelSession(model:tools:instructions:)` with four tools and streams the response, and Foundation Models calls the tools and generates again until the model answers. The app counts the steps (one step is one generation) by watching the transcript.
+## Limitations
 
-| Tool | Arguments | Returns |
-|---|---|---|
-| `web_search` | `query`, `max_results` (1–10, default 5) | title, url and snippet per result (DuckDuckGo, or Brave Search with an API key) |
-| `fetch_page` | `url`, `query` (optional) | the page's readable text from a `WKWebView`, or the passages that match `query`, up to **Page budget** characters |
-| `write_note` | `title`, `content` | `saved to <path>` (Markdown in the notes folder; a taken name gets ` 2`, ` 3`, …) |
-| `move_note` | `title`, `destination` | `moved to <path>`, only into Desktop, Documents, Downloads or a folder under them |
-
-- A tool never throws: a failure comes back to the model as one line that starts with `error: `. Foundation Models ends the whole turn when a tool throws.
-- Foundation Models runs the calls of one response at the same time and adds the results in call order. There is no limit on the number of calls per response.
-- `move_note` is offered only when **Allow file operations** was on when the task started; the tools of a task are fixed when its session starts.
-- The instructions carry today's date as `yyyy-MM-dd (EEE)` and ask the model to retry a failed call once in a different way and to end the answer with `Sources:`. **Max steps** (default 8) cancels the task with "Step limit reached". When the context fills up, the runtime drops the oldest tool results (the newest two are kept) or shortens the newest one, and the screen shows a "Context full" note; if the prompt still does not fit, the task ends with "Context window is full".
-- Settings, kept in `UserDefaults`: reasoning effort (Off, Low, Medium, Xhigh; default Low), max steps (1–16), max tokens per step (default 1,536), page budget (500–20,000 characters, default 10,000), Brave Search API key (stored in the clear; empty means DuckDuckGo), allow file operations, notes folder.
-
-Headless, with no window:
-
-```bash
-$APP --agent-e2e --model /path/to/bundle --task "…" [--effort off|low|medium|xhigh] [--max-steps N] \
-  [--page-budget N] [--max-tokens N] [--deadline SECONDS] [--file-ops] [--notes-dir /path] [--context-limit N]
-$APP --agent-selftest [--offline]
-```
-
-- `--agent-e2e` prints each entry as `--- <kind> <title>` and its text, `[e2e] …` progress and status lines, `[e2e] outcome: <answered|step-limit|overflow|cap|stopped|failed>`, and `AGENT E2E COMPLETED  diverges=N  capSteps=N` (exit 0) or `AGENT E2E INCOMPLETE …` (exit 1). `diverges` counts steps whose prompt did not extend the previous step's prompt and output (the line `[agent] re-render diverges` goes to stderr); `capSteps` counts steps that stopped at the token limit.
-- `--agent-selftest` checks the instructions, the tool definitions and arguments, the note and move rules, the page passage selection, the search and HTML parsers, the citation check, the verdict table and the transcript format. `--offline` skips the network cases.
-- `$APP --gui-e2e /path/to/output --model /path/to/bundle --agent` drives the Agent screen instead of Chat: it sends a task, waits for the tool calls and results and the answer with `Sources:`, stops a second task, and starts a new task, saving a screenshot after each step.
-
-Logs: `metrics.jsonl` gets one `message` line per step (prompt, reused and generated tokens, time to the first token, prefill time, speed, finish reason, resident memory, the step's tool calls, whether it diverged, citations on the answer) and one `agent-tool` line per tool call (tool, argument, start and end time, seconds, result size, error). Each task is saved as Markdown in `~/Library/Application Support/com.coreai-samples.DemoApp/agent-transcripts/<session>.md`; notes go to `…/agent-notes/` unless another folder is set.
+- Run on macOS only (Apple silicon, macOS 27.0). `Package.swift` declares iOS 27, but nothing has been run on iOS, and the demo app is macOS only.
+- Only bundles from the converter's macOS export (the `*_dynamic` folders) have been run, all of them Qwen models (Qwen3, Qwen3.5, Qwen3.8). The stop tokens, the `<think>` tags and the tool-call forms above are the ones those templates use; other model families may need more.
+- Text in, text out: a transcript segment that is not text throws `LanguageModelError.unsupportedTranscriptContent`, and there is no image or audio input.
+- No guided generation: a request with a response schema throws `LanguageModelError.unsupportedCapability`.
+- Cancellation is checked before the prompt is read and between generated tokens, not while a long prompt is being read.
+- Decoding is synchronous, one token at a time, like the official `sequential` engine; the official default engine pipelines the work and decodes faster, most of all on small models (`coreai-verify speed` runs the three side by side).
+- No published bundles and no tagged release yet, and the Qwen3.5 and Qwen3.8 exports need the unmerged branch of apple/coreai-models (Quick start, step 1).
 
 ## Related
 
