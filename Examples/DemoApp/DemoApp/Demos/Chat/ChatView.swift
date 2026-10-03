@@ -97,13 +97,14 @@ struct ChatView: View {
             if vm.isResponding {
                 ProgressView().controlSize(.small)
             }
-            Text(vm.isResponding ? "Generating…" : vm.statusLine)
+            Text(vm.isResponding ? (vm.retrieving ? "Collecting sources…" : "Generating…") : vm.statusLine)
                 .font(.caption.monospacedDigit())
                 .foregroundStyle(vm.last?.error == nil ? Color.secondary : Color.red)
-                .lineLimit(1)
+                .lineLimit(2)
                 .truncationMode(.tail)
                 .textSelection(.enabled)
             Spacer()
+            RAGControls()
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 6)
@@ -181,6 +182,10 @@ struct TurnView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(10)
                     .background(.quaternary.opacity(0.5), in: .rect(cornerRadius: 10))
+            }
+            if !turn.notes.isEmpty || !turn.sources.isEmpty {
+                RAGSourceFooter(notes: turn.notes, sources: turn.sources)
+                    .padding(.horizontal, 10)
             }
         }
     }

@@ -140,13 +140,15 @@ final class GUIDriver {
     private func run(navigator: DemoNavigator, chat: ChatViewModel, agent: AgentViewModel, models: ModelsViewModel) async {
         try? FileManager.default.createDirectory(at: outDir, withIntermediateDirectories: true)
         let metricsBefore = (try? String(contentsOf: MetricsLog.fileURL, encoding: .utf8))?.split(separator: "\n").count ?? 0
-        note("out=\(outDir.path(percentEncoded: false)) contextLimit=\(chat.contextLimit.map(String.init) ?? "default")")
+        note("out=\(outDir.path(percentEncoded: false)) contextLimit=\(chat.contextLimit)")
         guard let path = LaunchArguments.value("--model") else {
             note("--model <folder> is required")
             await finish(metricsBefore: metricsBefore)
             return
         }
         let url = URL(filePath: path, directoryHint: .isDirectory)
+        if let tokens = LaunchArguments.value("--max-tokens").flatMap(Int.init) { chat.maxTokens = tokens }
+        if let effort = LaunchArguments.value("--effort").flatMap({ ChatViewModel.Reasoning(rawValue: $0.capitalized) }) { chat.reasoning = effort }
         NSApp.activate()
         _ = await wait(seconds: 30) { self.window() != nil }
         await settle()
@@ -203,6 +205,12 @@ final class GUIDriver {
             return
         }
 
+        if let question = LaunchArguments.value("--rag") {
+            await runRAG(chat: chat, question: question)
+            await finish(metricsBefore: metricsBefore)
+            return
+        }
+
         await step(4, "chat", "One turn streams to the end and the status line shows the numbers") {
             let done = await self.ask(chat, "Explain in two sentences what a context window is in a language model.")
             let last = chat.last
@@ -240,7 +248,7 @@ final class GUIDriver {
                 "entries=\(chat.entries.count) phase=\(chat.phase) status=\(chat.statusLine)")
         }
 
-        if chat.contextLimit != nil {
+        if LaunchArguments.value("--context-limit") != nil {
             await step(8, "context-full", "A long chat with a small context limit ends with a notice, not an error") {
                 var sent = 0
                 while !chat.contextFull, sent < 40 {
@@ -314,6 +322,31 @@ final class GUIDriver {
             await self.settle()
             return (agent.entries.isEmpty && agent.sessionID == nil && !agent.running,
                 "entries=\(agent.entries.count) session=\(agent.sessionID ?? "none") status=\(agent.statusLine)")
+        }
+    }
+
+    private func runRAG(chat: ChatViewModel, question: String) async {
+        if let window = window(), let visible = window.screen?.visibleFrame {
+            let height = min(1_300, visible.height)
+            window.setFrame(NSRect(x: visible.minX + 40, y: visible.maxY - height, width: 1_200, height: height), display: true)
+        }
+
+        await step(4, "rag-switches", "RAG: the RAG, Web and Docs switches are on in the status bar") {
+            chat.ragEnabled = true
+            chat.ragWeb = !SelfTest.isOff(LaunchArguments.value("--rag-web"))
+            chat.ragLocal = !SelfTest.isOff(LaunchArguments.value("--rag-local"))
+            await self.settle()
+            return (chat.ragIsOn, "rag=\(chat.ragEnabled) web=\(chat.ragWeb) docs=\(chat.ragLocal) window=\(self.window()?.frame.size ?? .zero)")
+        }
+
+        await step(5, "rag-answer", "RAG: the answer, its numbered sources and the status line, with no turn added to the chat") {
+            let done = await self.ask(chat, question)
+            let turn = chat.turns.last
+            let sources = turn?.sources ?? []
+            let pass = done && chat.last?.error == nil && !sources.isEmpty && !(turn?.response ?? "").isEmpty && chat.entries.isEmpty
+                && chat.statusLine.contains("prompt(rag)")
+            return (pass, "status=\(chat.statusLine) chatEntries=\(chat.entries.count) sources=\(sources.count) notes=\(turn?.notes ?? []) "
+                + "first=\(sources.first ?? "none") answer=\(Self.head(turn?.response ?? "", 600))")
         }
     }
 

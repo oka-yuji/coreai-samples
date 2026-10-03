@@ -45,8 +45,8 @@ enum AgentSelfTest {
         }
         out(String(format: "[e2e] loaded %@ in %.1fs", chat.modelName, Date().timeIntervalSince(loadStart)))
         out(String(
-            format: "[e2e] prepared: cached=%@ specializeSeconds=%.2f contextLimit=%@", String(stats.cached), stats.specializeSeconds,
-            chat.contextLimit.map(String.init) ?? "default"))
+            format: "[e2e] prepared: cached=%@ specializeSeconds=%.2f contextLimit=%d", String(stats.cached), stats.specializeSeconds,
+            chat.contextLimit))
         let agent = AgentViewModel()
         agent.persistsSettings = false
         agent.effort = effort

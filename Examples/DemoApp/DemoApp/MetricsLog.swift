@@ -17,6 +17,10 @@ enum MetricsLog {
         let stopReason: String
         let error: String?
         let rssMB: Double
+        let sources: Int?
+        let sourceTokens: Int?
+        let ragPromptTokens: Int?
+        let retrievalSeconds: Double?
     }
 
     struct AgentRecord: Encodable {
@@ -74,7 +78,11 @@ enum MetricsLog {
             tokensPerSecond: stats.tokensPerSecond,
             stopReason: stats.stopReason,
             error: stats.error,
-            rssMB: residentMB()))
+            rssMB: residentMB(),
+            sources: stats.sources,
+            sourceTokens: stats.sourceTokens,
+            ragPromptTokens: stats.ragPromptTokens,
+            retrievalSeconds: stats.retrievalSeconds))
     }
 
     static func agent(_ kind: String, model: String) -> AgentRecord {

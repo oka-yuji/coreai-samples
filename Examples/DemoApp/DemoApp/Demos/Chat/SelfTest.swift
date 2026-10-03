@@ -1,37 +1,56 @@
 import Foundation
+import RAGContext
 
 enum SelfTest {
     static func run() -> Never {
         Task { @MainActor in exit(await execute()) }
-        dispatchMain()
+        RunLoop.main.run()
+        fatalError("the main run loop returned")
+    }
+
+    static func isOff(_ value: String?) -> Bool {
+        ["0", "no", "off", "false"].contains(value ?? "")
     }
 
     @MainActor
     static func execute() async -> Int32 {
-        guard let model = LaunchArguments.value("--model"), let file = LaunchArguments.value("--prompts-file"),
-            let text = try? String(contentsOfFile: file, encoding: .utf8)
-        else {
-            log("usage: DemoApp --selftest --model <folder> --prompts-file <file> [--max-tokens N] [--context-limit N]")
+        let questions = LaunchArguments.value("--rag").map { $0.split(separator: "|").map(String.init) } ?? []
+        let file = LaunchArguments.value("--prompts-file").flatMap { try? String(contentsOfFile: $0, encoding: .utf8) }
+        guard let model = LaunchArguments.value("--model"), !questions.isEmpty || file != nil else {
+            log("usage: DemoApp --selftest --model <folder> (--prompts-file <file> | --rag \"question 1|question 2\" [--rag-web off] [--rag-local off] [--rag-docs <folder>]) [--max-tokens N] [--context-limit N]")
             return finish(false)
         }
-        let prompts = text.components(separatedBy: "\n===PROMPT===\n")
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { !$0.isEmpty }
+        let prompts = questions.isEmpty
+            ? (file ?? "").components(separatedBy: "\n===PROMPT===\n").map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
+            : questions
         let chat = ChatViewModel()
         if let maxTokens = LaunchArguments.value("--max-tokens").flatMap(Int.init) { chat.maxTokens = maxTokens }
+        if let effort = LaunchArguments.value("--effort").flatMap({ ChatViewModel.Reasoning(rawValue: $0.capitalized) }) { chat.reasoning = effort }
+        if !questions.isEmpty {
+            chat.ragEnabled = true
+            chat.ragWeb = !isOff(LaunchArguments.value("--rag-web"))
+            chat.ragLocal = !isOff(LaunchArguments.value("--rag-local"))
+        }
         await chat.load(URL(filePath: model, directoryHint: .isDirectory))
         guard chat.phase == .ready, let stats = chat.loadStats else {
             log("[selftest] load failed: \(chat.phase)")
             return finish(false)
         }
         log(String(
-            format: "[selftest] model=%@ prompts=%d maxTokens=%d contextLimit=%@ cached=%@ specializeSeconds=%.2f loadSeconds=%.2f",
-            chat.modelName, prompts.count, chat.maxTokens, chat.contextLimit.map(String.init) ?? "default",
+            format: "[selftest] model=%@ prompts=%d maxTokens=%d contextLimit=%d effort=%@ cached=%@ specializeSeconds=%.2f loadSeconds=%.2f",
+            chat.modelName, prompts.count, chat.maxTokens, chat.contextLimit, chat.reasoning.rawValue,
             String(stats.cached), stats.specializeSeconds, chat.loadSeconds))
+        if chat.ragEnabled {
+            let settings = RAGSettings.fromDefaults()
+            log("[rag] mode=on web=\(chat.ragWeb) local=\(chat.ragLocal) search=\(settings.provider) results=\(settings.searchResults) "
+                + "pages=\(settings.pagesToRead) pageBudget=\(settings.pageCharacterBudget)chars sourceBudget=\(RAGContext.sourceTokenBudget)tok "
+                + "promptBudget=\(RAGContext.promptTokenBudget)tok today=\(RAGContext.today())")
+            log("[rag] documents=" + settings.documentsDirectory.path(percentEncoded: false))
+        }
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
         var pass = !prompts.isEmpty
-        for prompt in prompts {
+        for (index, prompt) in prompts.enumerated() {
             chat.input = prompt
             guard chat.send() else {
                 log("[selftest] send refused: phase=\(chat.phase) contextFull=\(chat.contextFull)")
@@ -43,10 +62,30 @@ enum SelfTest {
                 pass = false
                 break
             }
+            if chat.ragEnabled, let retrieval = chat.retrieval {
+                log("[rag] turn=\(index) question=\(prompt)")
+                log("[rag] turn=\(index) \(retrieval.summary)")
+                for line in retrieval.notes { log("[rag] turn=\(index) note \(line)") }
+                for line in retrieval.citations { log("[rag] turn=\(index) source \(line)") }
+                for (number, source) in retrieval.sources.enumerated() {
+                    log("[rag] turn=\(index) passage [\(number + 1)] \(source.text.replacing("\n", with: "\\n"))")
+                }
+                let thinking = chat.turns.last?.reasoning ?? ""
+                log("[rag] turn=\(index) thinking (\(thinking.count) chars)=\(thinking.replacing("\n", with: "\\n"))")
+                log("[rag] turn=\(index) answer=\(result.answer.replacing("\n", with: " "))")
+            }
             FileHandle.standardOutput.write((try? encoder.encode(result)) ?? Data())
             FileHandle.standardOutput.write(Data("\n".utf8))
-            pass = pass && result.error == nil && ["stopToken", "maxTokens"].contains(result.stopReason) && result.outputTokens > 0
-                && (result.turn == 1 || (result.cachedTokens ?? 0) > 0)
+            log("[selftest] \(chat.statusLine)")
+            log("[selftest] engineTokens=\(await chat.model?.processedTokens().count ?? 0)")
+            let generated = result.error == nil && ["stopToken", "maxTokens"].contains(result.stopReason) && result.outputTokens > 0
+            if !chat.ragEnabled {
+                pass = pass && generated && (result.turn == 1 || (result.cachedTokens ?? 0) > 0)
+            } else if (result.sources ?? 0) > 0 {
+                pass = pass && generated && !result.answer.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            } else {
+                pass = pass && result.stopReason == "noSources" && result.answer == RAGContext.noSourcesReply && result.inputTokens == nil
+            }
         }
         await MetricsLog.flush()
         return finish(pass)

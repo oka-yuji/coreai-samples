@@ -20,8 +20,10 @@
 		9E333D365C54EE16839F9441 /* Catalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DA2CE786E14E456666C45DC /* Catalog.swift */; };
 		BFF21A67415D503917D74D34 /* ModelsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 201FDFD4C2617312CDF10C20 /* ModelsView.swift */; };
 		C9DF519AC833FDE454187B9A /* AgentViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD58AC60D2EE1B6D37356EF4 /* AgentViewModel.swift */; };
+		D50EE46B5987FB44525ED263 /* ChatRAG.swift in Sources */ = {isa = PBXBuildFile; fileRef = EACFC6CF85A4B1BE15F23794 /* ChatRAG.swift */; };
 		DA2E524C81EE205770B83ACF /* DemoRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6946403106441AB2ED7A4630 /* DemoRootView.swift */; };
 		DFA0256A139D0EF6D51130AF /* CoreAIBackend in Frameworks */ = {isa = PBXBuildFile; productRef = 7E1D4158D172A02B7B989435 /* CoreAIBackend */; };
+		EB0CEF1EEDF7B846F6F75962 /* RAGContext in Frameworks */ = {isa = PBXBuildFile; productRef = 33621FB1A5A47CC112BCFB9A /* RAGContext */; };
 		F054EA73A985B4D591628A4C /* ChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D721601AF8302B97432587EA /* ChatView.swift */; };
 		F7419A36171D9CEF222FE436 /* SelfTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96BE74A7623526708986F062 /* SelfTest.swift */; };
 		FA7972DCB5F33B4FB4846D95 /* HubDownloader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2619A7AFA183FE8490939FDF /* HubDownloader.swift */; };
@@ -45,9 +47,10 @@
 		CEB723B3B0854B2E728DC0D0 /* AgentTools.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentTools.swift; sourceTree = "<group>"; };
 		D721601AF8302B97432587EA /* ChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatView.swift; sourceTree = "<group>"; };
 		E3CA9B9D6773A6CFD8CCBCE1 /* ChatViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatViewModel.swift; sourceTree = "<group>"; };
+		EACFC6CF85A4B1BE15F23794 /* ChatRAG.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatRAG.swift; sourceTree = "<group>"; };
 		F02B9EA454BBC2DA0860913C /* AgentSelfTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentSelfTest.swift; sourceTree = "<group>"; };
 		F562386F185691642C44B1E9 /* GUIDriver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GUIDriver.swift; sourceTree = "<group>"; };
-		"TEMP_CA3E6E58-D16E-4634-B8FA-B2C093FD2DBC" /* Signing.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.xcconfig; sourceTree = "<group>"; };
+		"TEMP_E85E4357-8AEF-4287-82B6-DDDFA04E8102" /* Signing.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -56,6 +59,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				DFA0256A139D0EF6D51130AF /* CoreAIBackend in Frameworks */,
+				EB0CEF1EEDF7B846F6F75962 /* RAGContext in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -86,6 +90,7 @@
 		5138FDD1E4F08E501221B1DB /* Chat */ = {
 			isa = PBXGroup;
 			children = (
+				EACFC6CF85A4B1BE15F23794 /* ChatRAG.swift */,
 				D721601AF8302B97432587EA /* ChatView.swift */,
 				E3CA9B9D6773A6CFD8CCBCE1 /* ChatViewModel.swift */,
 				96BE74A7623526708986F062 /* SelfTest.swift */,
@@ -143,10 +148,10 @@
 			path = DemoApp;
 			sourceTree = "<group>";
 		};
-		"TEMP_2DF09355-F680-4BC5-9D36-EC2CB8F71BAD" /* DemoApp */ = {
+		"TEMP_E600B883-D6A0-4351-9F67-5C98EAB37201" /* DemoApp */ = {
 			isa = PBXGroup;
 			children = (
-				"TEMP_CA3E6E58-D16E-4634-B8FA-B2C093FD2DBC" /* Signing.xcconfig */,
+				"TEMP_E85E4357-8AEF-4287-82B6-DDDFA04E8102" /* Signing.xcconfig */,
 			);
 			path = DemoApp;
 			sourceTree = "<group>";
@@ -168,6 +173,7 @@
 			name = DemoApp;
 			packageProductDependencies = (
 				7E1D4158D172A02B7B989435 /* CoreAIBackend */,
+				33621FB1A5A47CC112BCFB9A /* RAGContext */,
 			);
 			productName = DemoApp;
 			productReference = 154FAE636D5E23DF886F3868 /* DemoApp.app */;
@@ -220,6 +226,7 @@
 				897157FF7C6F9EF280D64E69 /* AgentView.swift in Sources */,
 				C9DF519AC833FDE454187B9A /* AgentViewModel.swift in Sources */,
 				9E333D365C54EE16839F9441 /* Catalog.swift in Sources */,
+				D50EE46B5987FB44525ED263 /* ChatRAG.swift in Sources */,
 				F054EA73A985B4D591628A4C /* ChatView.swift in Sources */,
 				89A5606E1F6EB51E514D9B15 /* ChatViewModel.swift in Sources */,
 				873FFC0BCC919261A31F32A5 /* DemoAppMain.swift in Sources */,
@@ -239,7 +246,7 @@
 /* Begin XCBuildConfiguration section */
 		041C67ECF87CA2F42B2A6BA2 /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = "TEMP_CA3E6E58-D16E-4634-B8FA-B2C093FD2DBC" /* Signing.xcconfig */;
+			baseConfigurationReference = "TEMP_E85E4357-8AEF-4287-82B6-DDDFA04E8102" /* Signing.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ANALYZER_NONNULL = YES;
@@ -297,7 +304,7 @@
 		};
 		17707D7259CA9368A4B03200 /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = "TEMP_CA3E6E58-D16E-4634-B8FA-B2C093FD2DBC" /* Signing.xcconfig */;
+			baseConfigurationReference = "TEMP_E85E4357-8AEF-4287-82B6-DDDFA04E8102" /* Signing.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ANALYZER_NONNULL = YES;
@@ -445,6 +452,10 @@
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		33621FB1A5A47CC112BCFB9A /* RAGContext */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = RAGContext;
+		};
 		7E1D4158D172A02B7B989435 /* CoreAIBackend */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = CoreAIBackend;
