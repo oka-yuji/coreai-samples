@@ -112,6 +112,10 @@ public final class Engine {
             totalSeconds: (clock.now - start) / .seconds(1))
     }
 
+    public static func deleteSpecializationCache(bundle: ModelBundle) throws {
+        try AIModelCache.default.deleteEntries(for: bundle.modelURL)
+    }
+
     public func prefill(_ input: [Int32], usePrefillFunction: Bool = true) async throws {
         precondition(!input.isEmpty)
         guard let main else { throw EngineError.unloaded }
