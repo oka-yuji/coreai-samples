@@ -228,6 +228,47 @@ func contiguous(_ width: Int) -> @Sendable ([Int]) -> (strides: [Int], byteCount
     #expect(rendered == 0)
 }
 
+@Test func spliceRestoresTheGeneratedSplitWhereTheTextIsTheSame() {
+    let pieces = [
+        1: "<|im_start|>assistant\n", 2: "<|im_end|>\n<|im_start|>user\n<tool_response>\nsaved\n</tool_response><|im_end|>\n", 3: "Write a note.",
+        4: "Write it.", 5: " ", 177636: "dingu", 5205: ",", 160305: "rei", 162532: "tore-", 161546: "shingu", 247202: "taiou",
+        42420: "re", 75218: "ito", 149896: "re-",
+    ]
+    func decode(_ tokens: [Int]) -> String { tokens.map { pieces[$0] ?? "?" }.joined() }
+    let question: [Int32] = [3, 1]
+    let toolTurn: [Int32] = [2, 1]
+    let generated: [Int32] = [177636, 5205, 160305, 162532, 161546, 247202]
+    let rerendered: [Int32] = [177636, 5205, 42420, 75218, 149896, 161546, 247202]
+    #expect(decode(generated.map(Int.init)) == decode(rerendered.map(Int.init)))
+
+    var result = ReusePlan.splice(question + rerendered + toolTurn, processed: question + generated, generations: [(2, generated)], decode: decode)
+    #expect(result.prompt == question + generated + toolTurn)
+    #expect(result.spliced == 1)
+
+    result = ReusePlan.splice(question + generated + toolTurn, processed: question + generated, generations: [(2, generated)], decode: decode)
+    #expect(result.prompt == question + generated + toolTurn)
+    #expect(result.spliced == 0)
+
+    let spaced = question + [177636, 5205, 5, 42420, 75218, 149896, 161546, 247202] + toolTurn
+    result = ReusePlan.splice(spaced, processed: question + generated, generations: [(2, generated)], decode: decode)
+    #expect(result.prompt == spaced)
+    #expect(result.spliced == 0)
+
+    result = ReusePlan.splice(question + rerendered + toolTurn, processed: [4, 1] + generated, generations: [(2, generated)], decode: decode)
+    #expect(result.prompt == question + rerendered + toolTurn)
+    #expect(result.spliced == 0)
+
+    let first: [Int32] = [160305, 162532, 161546]
+    let processed = question + first + toolTurn + generated
+    let prompt = question + [42420, 75218, 149896, 161546] + toolTurn + rerendered + toolTurn
+    result = ReusePlan.splice(prompt, processed: processed, generations: [(7, generated), (2, first)], decode: decode)
+    #expect(result.prompt == processed + toolTurn)
+    #expect(result.spliced == 2)
+    result = ReusePlan.splice(prompt, processed: processed, generations: [(7, generated)], decode: decode)
+    #expect(result.prompt == prompt)
+    #expect(result.spliced == 0)
+}
+
 @Test func toolOutputCutsDropTheOldestGroupsAndHalveTheLast() {
     let groups: [[(id: String, count: Int)]] = [[("a", 3000)], [("b", 3000), ("c", 800)], [("d", 3000)], [("e", 1800), ("f", 700), ("g", 300)]]
     var cuts = ToolOutputCut.shrink(groups, [:])
@@ -663,6 +704,16 @@ func sessionCallsToolsReusesAndRecovers(path: String) async throws {
     let shared = try #require(metadata(session, "sharedTokens"))
     let prefilled = try #require(metadata(session, "prefillTokens"))
     #expect(shared > 200 && prefilled < 64, "shared \(shared) prefilled \(prefilled)")
+    #expect(metadata(session, "splicedGenerations") != nil)
+
+    let tokenizer = model.runtime.tokenizer
+    func encode(_ text: String) -> [Int32] { tokenizer.encode(text: text, addSpecialTokens: false).map(Int32.init) }
+    let parts = ["\u{30EC}\u{30A4}", "\u{30C8}\u{30EC}\u{30FC}", "\u{30B7}\u{30F3}\u{30B0}"]
+    let written = parts.flatMap(encode)
+    let rerendered = encode(parts.joined())
+    #expect(written != rerendered)
+    let restored = ReusePlan.splice([0] + rerendered + [1], processed: [0] + written, generations: [(1, written)]) { tokenizer.decode(tokens: $0) }
+    #expect(restored.prompt == [0] + written + [1] && restored.spliced == 1)
 
     let question = "What is the capital of Japan?"
     let allowed = try await LanguageModelSession(model: model, tools: [WeatherTool()]).respond(

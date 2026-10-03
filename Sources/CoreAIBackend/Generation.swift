@@ -43,6 +43,27 @@ struct ReusePlan: Equatable {
         self.keep = keep
         self.stops = stops.sorted { $0.position < $1.position }
     }
+
+    static let spliceWindow = 8
+
+    static func splice(
+        _ prompt: [Int32], processed: [Int32], generations: [(start: Int, tokens: [Int32])], decode: ([Int]) -> String
+    ) -> (prompt: [Int32], spliced: Int) {
+        var prompt = prompt
+        var spliced = 0
+        for (start, tokens) in generations.sorted(by: { $0.start < $1.start }) {
+            guard start <= min(prompt.count, processed.count), prompt[..<start] == processed[..<start], !prompt[start...].starts(with: tokens)
+            else { continue }
+            let text = decode(tokens.map(Int.init))
+            let counts = [tokens.count] + (1...spliceWindow).flatMap { [tokens.count + $0, tokens.count - $0] }
+            guard let count = counts.first(where: {
+                $0 > 0 && start + $0 <= prompt.count && decode(prompt[start..<start + $0].map(Int.init)).utf8.elementsEqual(text.utf8)
+            }) else { continue }
+            prompt.replaceSubrange(start..<start + count, with: tokens)
+            spliced += 1
+        }
+        return (prompt, spliced)
+    }
 }
 
 enum ToolOutputCut: Equatable {

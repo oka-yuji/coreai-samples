@@ -46,6 +46,7 @@ public struct LocalLanguageModel: LanguageModel {
 
 actor Runtime {
     static let rememberedCalls = 512
+    static let rememberedGenerations = 32
 
     nonisolated let loadStats: Engine.LoadStats
     nonisolated let thinks: Bool
@@ -55,6 +56,7 @@ actor Runtime {
     private let overflow: LocalLanguageModel.OverflowPolicy
     private var cuts: [String: ToolOutputCut] = [:]
     private var written: OrderedDictionary<String, [String]> = [:]
+    private var generations: [(start: Int, tokens: [Int32])] = []
     private var checkpoints: [CheckpointRole: Engine.Checkpoint] = [:]
     private var busy = false
     private var waiting: [CheckedContinuation<Void, Never>] = []
@@ -82,7 +84,7 @@ actor Runtime {
         if !tools.isEmpty { context["tools"] = Value.array(tools.map(\.spec)) }
         let contextLimit = core.engine.contextLimit
         let reserve = overflow == .dropOldToolOutputs ? min(request.generationOptions.maximumResponseTokens ?? 1024, contextLimit / 2) : nil
-        let (messages, prompt, cuts) = try Self.fit(
+        let (messages, rendered, cuts) = try Self.fit(
             request.transcript, remembered: self.cuts, written: written, limit: contextLimit, reserve: reserve
         ) {
             try render($0, generationPrompt: true, context: context)
@@ -91,45 +93,54 @@ actor Runtime {
         self.cuts = cuts
         let lastUser = messages.lastIndex { $0["role"] as? String == "user" }
         let afterUser = try lastUser.map {
-            zip(try render(Array(messages[...$0]), generationPrompt: false, context: context), prompt).prefix { $0 == $1 }.count
+            zip(try render(Array(messages[...$0]), generationPrompt: false, context: context), rendered).prefix { $0 == $1 }.count
         } ?? 0
-        let opensReasoning = ThinkParser.opensReasoning(after: prompt) { tokenizer.decode(tokens: $0) }
         var sampler = Self.sampler(request.generationOptions)
-        let limit = min(request.generationOptions.maximumResponseTokens ?? .max, contextLimit - prompt.count)
 
         await lock()
         defer { unlock() }
         try Task.checkCancellation()
+        var splicing = generations
+        func splice(_ tokens: ArraySlice<Int32>) -> (prompt: [Int32], spliced: Int) {
+            ReusePlan.splice(Array(tokens), processed: core.engine.tokens, generations: splicing) { tokenizer.decode(tokens: $0) }
+        }
+        var (prompt, spliced) = splice(rendered[...])
+        if prompt.count >= contextLimit { (splicing, prompt, spliced) = ([], rendered, 0) }
+        let opensReasoning = ThinkParser.opensReasoning(after: prompt) { tokenizer.decode(tokens: $0) }
+        let limit = min(request.generationOptions.maximumResponseTokens ?? .max, contextLimit - prompt.count)
         let clock = ContinuousClock()
         let start = clock.now
         let before = core.engine.stats.prefillTokens
-        let plan = try await read(prompt, afterUser: afterUser) {
+        let plan = try await read(prompt, afterUser: splice(rendered.prefix(afterUser)).prompt.count) {
             guard let lastUser else { return 0 }
             var replaced = Array(messages[...lastUser])
             replaced[lastUser]["content"] = (messages[lastUser]["content"] as? String ?? "").hasPrefix("A") ? "B" : "A"
-            return zip(try render(replaced, generationPrompt: false, context: context), prompt).prefix { $0 == $1 }.count
+            let question = zip(try render(replaced, generationPrompt: false, context: context), rendered).prefix { $0 == $1 }.count
+            return splice(rendered.prefix(question)).prompt.count
         }
         let prefilled = core.engine.stats.prefillTokens - before
         let readEnd = clock.now
 
         var output = Output(channel: channel, calls: tools.isEmpty ? nil : ToolCallParser(types: Dictionary(tools.map { ($0.name, $0.types) }) { a, _ in a }))
+        var generated: [Int32] = []
         defer {
             for call in output.written { written[call.id] = call.keys }
             written.removeFirst(max(0, written.count - Self.rememberedCalls))
+            if !generated.isEmpty { generations.append((prompt.count, generated)) }
+            generations.removeFirst(max(0, generations.count - Self.rememberedGenerations))
         }
         var parser = ThinkParser(reasoning: opensReasoning)
         var pending: [Int] = []
-        var produced = 0
         var reasoningTokens = 0
         var stopReason = "maxTokens"
-        while produced < limit {
+        while generated.count < limit {
             try Task.checkCancellation()
             let token = core.engine.withLogits { sampler.next($0) }
             if stopTokens.contains(token) {
                 stopReason = "stopToken"
                 break
             }
-            produced += 1
+            generated.append(token)
             pending.append(Int(token))
             let text = tokenizer.decode(tokens: pending)
             let complete = !text.hasSuffix("\u{FFFD}")
@@ -139,12 +150,12 @@ actor Runtime {
             let counted = wasReasoning || parser.reasoning
             if counted { reasoningTokens += 1 }
             await output.send(parts, reasoning: counted)
-            if produced < limit { try await compute { try await core.engine.step(token) } }
+            if generated.count < limit { try await compute { try await core.engine.step(token) } }
         }
         await output.send(parser.feed(tokenizer.decode(tokens: pending)) + parser.finish(), reasoning: false, last: true)
         let metadata: [String: any ConvertibleToGeneratedContent] = [
             "stopReason": stopReason, "prefillTokens": prefilled, "sharedTokens": plan.shared, "truncatedToolOutputs": truncated,
-            "reservedTokens": contextLimit - prompt.count,
+            "reservedTokens": contextLimit - prompt.count, "splicedGenerations": spliced,
             "prefillSeconds": (readEnd - start) / .seconds(1), "decodeSeconds": (clock.now - readEnd) / .seconds(1),
         ]
         if let call = output.lastCall {
@@ -154,7 +165,7 @@ actor Runtime {
         }
         await channel.send(.response(action: .updateUsage(
             input: .init(totalTokenCount: prompt.count, cachedTokenCount: plan.keep),
-            output: .init(totalTokenCount: produced, reasoningTokenCount: reasoningTokens))))
+            output: .init(totalTokenCount: generated.count, reasoningTokenCount: reasoningTokens))))
     }
 
     private func read(_ prompt: [Int32], afterUser: Int, questionStart: () throws -> Int) async throws -> ReusePlan {
@@ -184,6 +195,7 @@ actor Runtime {
             checkpoints.removeAll()
             throw EngineError.checkpointMismatch
         }
+        generations.removeAll { !prompt.dropFirst($0.start).starts(with: $0.tokens) }
         return plan
     }
 
