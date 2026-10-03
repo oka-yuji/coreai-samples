@@ -35,8 +35,23 @@ struct ModelOptions: ParsableArguments {
     @Flag(help: "Print the runtime's own log lines to stderr.")
     var verbose = false
 
+    @Option(help: "Context limit in tokens of the own runtime.")
+    var contextLimit: Int?
+
+    @Flag(help: "On overflow, let the own runtime drop old tool outputs instead of returning an error.")
+    var dropOldToolOutputs = false
+
+    func validate() throws {
+        if runtime == .official, contextLimit != nil || dropOldToolOutputs {
+            throw ValidationError("--context-limit and --drop-old-tool-outputs apply to --runtime own only.")
+        }
+    }
+
     func load() async throws -> any LanguageModel {
-        if runtime == .own { return try await loadOwnModel(URL(filePath: model)) }
+        if runtime == .own {
+            return try await loadOwnModel(
+                URL(filePath: model), contextLimit: contextLimit, overflow: dropOldToolOutputs ? .dropOldToolOutputs : .error)
+        }
         if verbose { CLILogger.level = 1 }
         let clock = ContinuousClock()
         let start = clock.now
@@ -424,7 +439,11 @@ func stream(
             }
             return (first, snapshots, Task.isCancelled ? "cancelled" : nil)
         } catch {
-            return (first, snapshots, String(describing: error))
+            let mirror = Mirror(reflecting: error)
+            guard mirror.displayStyle == .enum, let name = mirror.children.first?.label else {
+                return (first, snapshots, String(describing: error))
+            }
+            return (first, snapshots, "\(type(of: error)).\(name): \(error)")
         }
     }
     if let cancelAfter {
@@ -559,6 +578,8 @@ struct StepRecord: Encodable {
     var sharedTokens: Int?
     var prefillSeconds: Double?
     var decodeSeconds: Double?
+    var truncatedToolOutputs: Int?
+    var reservedTokens: Int?
     var processedTokens: [Int32]?
 
     static func split(_ result: StreamResult, runtime: String, question: Int, snapshots: [[Int32]], final: [Int32]?) -> [StepRecord] {
@@ -613,6 +634,8 @@ struct StepRecord: Encodable {
         sharedTokens = try? metadata["sharedTokens"]?.value(Int.self)
         prefillSeconds = try? metadata["prefillSeconds"]?.value(Double.self)
         decodeSeconds = try? metadata["decodeSeconds"]?.value(Double.self)
+        truncatedToolOutputs = try? metadata["truncatedToolOutputs"]?.value(Int.self)
+        reservedTokens = try? metadata["reservedTokens"]?.value(Int.self)
     }
 }
 

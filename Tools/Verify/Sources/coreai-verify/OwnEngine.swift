@@ -335,10 +335,10 @@ struct SpeedRun: AsyncParsableCommand {
     }
 }
 
-func loadOwnModel(_ url: URL) async throws -> any LanguageModel {
+func loadOwnModel(_ url: URL, contextLimit: Int?, overflow: LocalLanguageModel.OverflowPolicy) async throws -> any LanguageModel {
     let clock = ContinuousClock()
     let start = clock.now
-    let model = try await LocalLanguageModel(bundle: url)
+    let model = try await LocalLanguageModel(bundle: url, contextLimit: contextLimit, overflow: overflow)
     try emit(OwnModelLoadRecord(
         cached: model.loadStats.cached, specializeS: model.loadStats.specializeSeconds,
         initS: (clock.now - start) / .seconds(1), memory: .now()))
