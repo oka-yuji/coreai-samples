@@ -9,10 +9,11 @@ models/
 *.safetensors
 
 # Xcode
-*.xcodeproj
-*.xcworkspace
 DerivedData/
 xcuserdata/
+
+# Local signing (per-developer team id; copy from Local.xcconfig.template)
+Examples/DemoApp/Local.xcconfig
 
 # macOS
 .DS_Store
