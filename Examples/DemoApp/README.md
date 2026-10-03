@@ -57,7 +57,7 @@ Turn on **RAG** in the Chat status bar, then pick **Web**, **Docs** or both. The
 
 The answer is followed by its sources, numbered like the `[n]` marks in the text (`[n] title — url (date)`; `日付不明` when the page gives no date), and one line for each source that failed (no network, no search results, a page that would not load). With no sources at all, the reply is `資料が取得できませんでした。` and the model does not run. The status line adds `sources N | source tok N | prompt(rag) N tok | retrieval N.Ns`.
 
-A page's date comes from its `article:published_time` and similar meta tags, then a `<time datetime>` tag, then the search snippet, then the first 600 characters of the page text. The splitting, ranking, budget, prompt and dates are in the `RAGContext` library of this package, with no network, files or UI (`swift test --filter RAG`).
+A page's date comes from its `article:published_time` and similar meta tags, then a `<time datetime>` tag, then the search snippet, then the first 600 characters of the page text. The splitting, the packing to the token budget, the prompt and its citations, the date parsing, the reading of a documents folder (the app supplies the PDF text) and a term-match ranking are in the `RAGContext` library of this package, with no network or UI, and `swift test --filter RAG` tests them; the SQLite FTS5 (BM25) ranking is in the app, which uses the term-match ranking only when the FTS5 ranking returns nothing.
 
 Headless, with no window:
 
@@ -70,14 +70,14 @@ Each question prints `[rag] turn=N search N / pages N / passages N → N sources
 
 ## Agent
 
-The loop belongs to Foundation Models: the screen runs `LanguageModelSession(model:tools:instructions:)` with four tools and streams the response, and Foundation Models calls the tools and generates again until the model answers. The app counts the steps (one step is one generation) by watching the transcript.
+The loop belongs to Foundation Models: the screen runs `LanguageModelSession(model:tools:instructions:)` with three tools (four when **Allow file operations** is on, below) and streams the response, and Foundation Models calls the tools and generates again until the model answers. The app counts the steps (one step is one generation) by watching the transcript.
 
 | Tool | Arguments | Returns |
 |---|---|---|
 | `web_search` | `query`, `max_results` (1–10, default 5) | title, url and snippet per result (DuckDuckGo, or Brave Search with an API key) |
 | `fetch_page` | `url`, `query` (optional) | the page's readable text from a `WKWebView`, or the passages that match `query`, up to **Page budget** characters |
 | `write_note` | `title`, `content` | `saved to <path>` (Markdown in the notes folder; a taken name gets ` 2`, ` 3`, …) |
-| `move_note` | `title`, `destination` | `moved to <path>`, only into Desktop, Documents, Downloads or a folder under them |
+| `move_note` | `title`, `destination` | `moved to <path>`, only into Desktop, Documents, Downloads or the notes folder, or a folder under one of them (never the home folder or a folder above it) |
 
 - A tool never throws: a failure comes back to the model as one line that starts with `error: `. Foundation Models ends the whole turn when a tool throws.
 - Foundation Models runs the calls of one response at the same time and adds the results in call order. There is no limit on the number of calls per response.
