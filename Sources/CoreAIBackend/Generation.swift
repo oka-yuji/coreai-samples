@@ -19,7 +19,9 @@ struct ReusePlan: Equatable {
     let keep: Int
     let stops: [Stop]
 
-    init(processed: [Int32], saved: [Int], prompt: [Int32], hybrid: Bool, afterUser: Int) {
+    init(
+        processed: [Int32], saved: [Int], prompt: [Int32], hybrid: Bool, afterUser: Int, questionStart: () throws -> Int
+    ) rethrows {
         let shared = zip(processed, prompt).prefix { $0 == $1 }.count
         func latest(atMost limit: Int) -> Int { saved.filter { $0 <= limit }.max() ?? 0 }
         let keep: Int
@@ -31,14 +33,53 @@ struct ReusePlan: Equatable {
             keep = latest(atMost: shared)
         }
         var stops: [Stop] = []
-        if shared < prompt.count, shared - keep >= Self.divergenceStopTokens {
-            stops.append(Stop(position: shared, role: .divergence))
+        if shared < prompt.count, min(shared, afterUser) - keep >= Self.divergenceStopTokens {
+            let position = min(shared, try questionStart())
+            if position - keep >= Self.divergenceStopTokens { stops.append(Stop(position: position, role: .divergence)) }
         }
         if hybrid, afterUser > keep { stops.append(Stop(position: afterUser, role: .afterUser)) }
         if prompt.count > keep { stops.append(Stop(position: prompt.count, role: .generationStart)) }
         self.shared = shared
         self.keep = keep
         self.stops = stops.sorted { $0.position < $1.position }
+    }
+}
+
+enum ToolOutputCut: Equatable {
+    case dropped
+    case prefix(Int)
+
+    static let marker = "[truncated]"
+    static let floor = 500
+    static let protectedGroups = 2
+
+    func apply(_ text: String) -> String {
+        switch self {
+        case .dropped: Self.marker
+        case .prefix(let count): String(text.prefix(count))
+        }
+    }
+
+    static func shrink(_ groups: [[(id: String, count: Int)]], _ cuts: [String: ToolOutputCut]) -> [String: ToolOutputCut]? {
+        var cuts = cuts
+        if let group = groups.dropLast(protectedGroups).first(where: { group in group.contains { cuts[$0.id] != .dropped } }) {
+            for output in group { cuts[output.id] = .dropped }
+            return cuts
+        }
+        var halved = false
+        for output in groups.last ?? [] {
+            let count =
+                switch cuts[output.id] {
+                case .dropped?: marker.count
+                case .prefix(let kept)?: min(kept, output.count)
+                case nil: output.count
+                }
+            if count > floor {
+                cuts[output.id] = .prefix(max(floor, count / 2))
+                halved = true
+            }
+        }
+        return halved ? cuts : nil
     }
 }
 
@@ -132,6 +173,7 @@ struct ThinkParser {
 
     static let open = "<think>"
     static let close = "</think>"
+    static let promptTail = 16
 
     private(set) var reasoning: Bool
     private var pending = ""
@@ -139,6 +181,10 @@ struct ThinkParser {
 
     init(reasoning: Bool) {
         self.reasoning = reasoning
+    }
+
+    static func opensReasoning(after prompt: [Int32], decode: ([Int]) -> String) -> Bool {
+        opensReasoning(decode(prompt.suffix(promptTail).map(Int.init)))
     }
 
     static func opensReasoning(_ text: String) -> Bool {

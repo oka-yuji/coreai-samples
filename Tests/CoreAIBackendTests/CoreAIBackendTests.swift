@@ -129,42 +129,42 @@ func contiguous(_ width: Int) -> @Sendable ([Int]) -> (strides: [Int], byteCount
 
 @Test func reusePlanGoesBackToTheRightPoint() {
     typealias Stop = ReusePlan.Stop
-    var plan = ReusePlan(processed: [1, 2, 3, 9, 9], saved: [], prompt: [1, 2, 3, 4, 5], hybrid: false, afterUser: 4)
+    var plan = ReusePlan(processed: [1, 2, 3, 9, 9], saved: [], prompt: [1, 2, 3, 4, 5], hybrid: false, afterUser: 4) { 0 }
     #expect(plan.keep == 3)
     #expect(plan.stops == [Stop(position: 5, role: .generationStart)])
 
-    plan = ReusePlan(processed: [1, 2, 3, 4, 5, 6], saved: [], prompt: [1, 2, 3], hybrid: false, afterUser: 2)
+    plan = ReusePlan(processed: [1, 2, 3, 4, 5, 6], saved: [], prompt: [1, 2, 3], hybrid: false, afterUser: 2) { 0 }
     #expect(plan.keep == 2)
     #expect(plan.stops == [Stop(position: 3, role: .generationStart)])
-    plan = ReusePlan(processed: [1, 2, 3, 4, 5, 6], saved: [3], prompt: [1, 2, 3], hybrid: false, afterUser: 2)
+    plan = ReusePlan(processed: [1, 2, 3, 4, 5, 6], saved: [3], prompt: [1, 2, 3], hybrid: false, afterUser: 2) { 0 }
     #expect(plan.keep == 3)
     #expect(plan.stops.isEmpty)
 
-    plan = ReusePlan(processed: [1, 2, 3, 4, 5, 6, 7], saved: [2, 6], prompt: [1, 2, 3, 4, 9, 9, 9, 9], hybrid: true, afterUser: 6)
+    plan = ReusePlan(processed: [1, 2, 3, 4, 5, 6, 7], saved: [2, 6], prompt: [1, 2, 3, 4, 9, 9, 9, 9], hybrid: true, afterUser: 6) { 0 }
     #expect(plan.keep == 2)
     #expect(plan.stops == [Stop(position: 6, role: .afterUser), Stop(position: 8, role: .generationStart)])
 
     let preamble = (0..<300).map(Int32.init)
-    plan = ReusePlan(processed: preamble + [7, 7], saved: [302], prompt: preamble + [8, 9, 10], hybrid: true, afterUser: 302)
+    plan = ReusePlan(processed: preamble + [7, 7], saved: [302], prompt: preamble + [8, 9, 10], hybrid: true, afterUser: 302) { 300 }
     #expect(plan.keep == 0)
     #expect(plan.stops == [
         Stop(position: 300, role: .divergence), Stop(position: 302, role: .afterUser), Stop(position: 303, role: .generationStart),
     ])
-    plan = ReusePlan(processed: preamble + [8, 9, 10, 11], saved: [300], prompt: preamble + [5, 6], hybrid: true, afterUser: 301)
+    plan = ReusePlan(processed: preamble + [8, 9, 10, 11], saved: [300], prompt: preamble + [5, 6], hybrid: true, afterUser: 301) { 0 }
     #expect(plan.keep == 300)
     #expect(plan.stops == [Stop(position: 301, role: .afterUser), Stop(position: 302, role: .generationStart)])
-    plan = ReusePlan(processed: Array(preamble[..<200]) + [7], saved: [], prompt: preamble, hybrid: true, afterUser: 299)
+    plan = ReusePlan(processed: Array(preamble[..<200]) + [7], saved: [], prompt: preamble, hybrid: true, afterUser: 299) { 0 }
     #expect(plan.keep == 0)
     #expect(plan.stops == [Stop(position: 299, role: .afterUser), Stop(position: 300, role: .generationStart)])
 
-    plan = ReusePlan(processed: [1, 2, 3], saved: [], prompt: [1, 2, 3, 4, 5], hybrid: true, afterUser: 4)
+    plan = ReusePlan(processed: [1, 2, 3], saved: [], prompt: [1, 2, 3, 4, 5], hybrid: true, afterUser: 4) { 0 }
     #expect(plan.keep == 3)
     #expect(plan.stops == [Stop(position: 4, role: .afterUser), Stop(position: 5, role: .generationStart)])
 
-    plan = ReusePlan(processed: [1, 2, 3, 4, 5, 6], saved: [3, 4], prompt: [1, 2, 3, 4], hybrid: true, afterUser: 3)
+    plan = ReusePlan(processed: [1, 2, 3, 4, 5, 6], saved: [3, 4], prompt: [1, 2, 3, 4], hybrid: true, afterUser: 3) { 0 }
     #expect(plan.keep == 4)
     #expect(plan.stops.isEmpty)
-    plan = ReusePlan(processed: [1, 2, 3, 4, 5, 6], saved: [3], prompt: [1, 2, 3, 4], hybrid: true, afterUser: 3)
+    plan = ReusePlan(processed: [1, 2, 3, 4, 5, 6], saved: [3], prompt: [1, 2, 3, 4], hybrid: true, afterUser: 3) { 0 }
     #expect(plan.keep == 3)
     #expect(plan.stops == [Stop(position: 4, role: .generationStart)])
 }
@@ -174,19 +174,148 @@ func contiguous(_ width: Int) -> @Sendable ([Int]) -> (strides: [Int], byteCount
     let question = Array<Int32>(1...6)
     let step1 = question + [7, 8]
     let generated = step1 + [20, 21, 22]
-    var plan = ReusePlan(processed: generated, saved: [6, 8], prompt: generated + [30, 31, 32, 33], hybrid: true, afterUser: 6)
+    var plan = ReusePlan(processed: generated, saved: [6, 8], prompt: generated + [30, 31, 32, 33], hybrid: true, afterUser: 6) { 0 }
     #expect(plan.keep == generated.count)
     #expect(plan.stops == [Stop(position: 15, role: .generationStart)])
 
-    plan = ReusePlan(processed: generated, saved: [6, 8], prompt: step1 + [20, 29, 22, 30, 31], hybrid: true, afterUser: 6)
+    plan = ReusePlan(processed: generated, saved: [6, 8], prompt: step1 + [20, 29, 22, 30, 31], hybrid: true, afterUser: 6) { 0 }
     #expect(plan.shared == 9)
     #expect(plan.keep == 8)
     #expect(plan.stops == [Stop(position: 13, role: .generationStart)])
 
     let cancelled = generated + [40, 41, 42, 43, 50, 51]
-    plan = ReusePlan(processed: cancelled, saved: [6, 15], prompt: generated + [44, 45, 46], hybrid: true, afterUser: 13)
+    plan = ReusePlan(processed: cancelled, saved: [6, 15], prompt: generated + [44, 45, 46], hybrid: true, afterUser: 13) { 0 }
     #expect(plan.keep == 6)
     #expect(plan.stops == [Stop(position: 13, role: .afterUser), Stop(position: 14, role: .generationStart)])
+}
+
+@Test func reusePlanSavesTheDivergenceAtTheQuestionStart() {
+    typealias Stop = ReusePlan.Stop
+    let preamble = (0..<300).map(Int32.init)
+    var plan = ReusePlan(processed: preamble + [5, 6, 7, 1, 1], saved: [305], prompt: preamble + [5, 6, 8, 2, 2, 2], hybrid: true, afterUser: 305) { 300 }
+    #expect(plan.shared == 302)
+    #expect(plan.keep == 0)
+    #expect(plan.stops == [
+        Stop(position: 300, role: .divergence), Stop(position: 305, role: .afterUser), Stop(position: 306, role: .generationStart),
+    ])
+
+    plan = ReusePlan(processed: preamble + [5, 6, 8, 2, 2, 2, 9], saved: [300, 305, 306], prompt: preamble + [5, 4, 4, 4, 4], hybrid: true, afterUser: 304) { 300 }
+    #expect(plan.shared == 301)
+    #expect(plan.keep == 300)
+    #expect(plan.stops == [Stop(position: 304, role: .afterUser), Stop(position: 305, role: .generationStart)])
+
+    plan = ReusePlan(processed: Array(preamble[..<280]) + [9, 9, 9], saved: [], prompt: preamble + [5, 6], hybrid: true, afterUser: 301) { 300 }
+    #expect(plan.stops.first == Stop(position: 280, role: .divergence))
+
+    let longer = (0..<500).map(Int32.init)
+    plan = ReusePlan(processed: longer + [7], saved: [100], prompt: longer + [8, 8], hybrid: true, afterUser: 501) { 300 }
+    #expect(plan.keep == 100)
+    #expect(plan.stops == [Stop(position: 501, role: .afterUser), Stop(position: 502, role: .generationStart)])
+
+    var rendered = 0
+    let question = preamble + [5, 6]
+    let steps = question + Array(repeating: 3, count: 400)
+    plan = ReusePlan(processed: steps, saved: [302], prompt: question + [3, 3, 9, 9], hybrid: true, afterUser: 302) {
+        rendered += 1
+        return 300
+    }
+    #expect(plan.keep == 302)
+    plan = ReusePlan(processed: steps, saved: [302], prompt: steps + [4, 4], hybrid: true, afterUser: 302) {
+        rendered += 1
+        return 300
+    }
+    #expect(plan.keep == steps.count)
+    #expect(rendered == 0)
+}
+
+@Test func toolOutputCutsDropTheOldestGroupsAndHalveTheLast() {
+    let groups: [[(id: String, count: Int)]] = [[("a", 3000)], [("b", 3000), ("c", 800)], [("d", 3000)], [("e", 1800), ("f", 700), ("g", 300)]]
+    var cuts = ToolOutputCut.shrink(groups, [:])
+    #expect(cuts == ["a": .dropped] as [String: ToolOutputCut])
+    cuts = ToolOutputCut.shrink(groups, cuts ?? [:])
+    #expect(cuts == ["a": .dropped, "b": .dropped, "c": .dropped])
+    cuts = ToolOutputCut.shrink(groups, cuts ?? [:])
+    #expect(cuts == ["a": .dropped, "b": .dropped, "c": .dropped, "e": .prefix(900), "f": .prefix(500)])
+    cuts = ToolOutputCut.shrink(groups, cuts ?? [:])
+    #expect(cuts == ["a": .dropped, "b": .dropped, "c": .dropped, "e": .prefix(500), "f": .prefix(500)])
+    #expect(ToolOutputCut.shrink(groups, cuts ?? [:]) == nil)
+
+    #expect(ToolOutputCut.shrink([[("x", 4000)], [("y", 600)]], [:]) == ["y": .prefix(500)])
+    #expect(ToolOutputCut.shrink([[("x", 4000)], [("y", 500)]], [:]) == nil)
+    #expect(ToolOutputCut.shrink([], [:]) == nil)
+    #expect(ToolOutputCut.prefix(3).apply("abcdef") == "abc")
+    #expect(ToolOutputCut.dropped.apply("abcdef") == "[truncated]")
+}
+
+@Test func fitShortensToolOutputsAndRemembersByEntry() throws {
+    typealias Cuts = [String: ToolOutputCut]
+    func text(_ content: String) -> [Transcript.Segment] { [.text(.init(content: content))] }
+    func call(_ id: String) throws -> Transcript.Entry {
+        .toolCalls(.init([Transcript.ToolCall(id: id, toolName: "read_page", arguments: try GeneratedContent(json: #"{"name": "x"}"#))]))
+    }
+    func page(_ id: String, _ count: Int) -> Transcript.Entry {
+        .toolOutput(.init(id: id, toolName: "read_page", segments: text(String(repeating: "p", count: count))))
+    }
+    let characters: ([[String: any Sendable]]) -> [Int32] = { messages in
+        Array(repeating: 0, count: messages.reduce(0) { $0 + ($1["content"] as? String ?? "").count })
+    }
+    func contents(_ messages: [[String: any Sendable]]) -> [Int] {
+        messages.filter { $0["role"] as? String == "tool" }.map { ($0["content"] as? String ?? "").count }
+    }
+    var entries: [Transcript.Entry] = [.prompt(.init(segments: text("Read three pages.")))]
+    entries += [try call("c1"), page("o1", 2000), try call("c2"), page("o2", 2000), try call("c3"), page("o3", 2000)]
+    #expect(entries[2].id == "o1")
+
+    var fitted = try Runtime.fit(Transcript(entries: entries), remembered: [:], limit: 5000, reserve: 1000, render: characters)
+    var expected: Cuts = ["o1": .dropped, "o3": .prefix(1000)]
+    #expect(fitted.cuts == expected)
+    #expect(contents(fitted.messages) == [11, 2000, 1000])
+    #expect(fitted.prompt.count == 3028)
+
+    entries += [try call("c4"), page("o4", 500)]
+    let remembered = fitted.cuts.merging(["gone": ToolOutputCut.dropped]) { a, _ in a }
+    fitted = try Runtime.fit(Transcript(entries: entries), remembered: remembered, limit: 5000, reserve: 1000, render: characters)
+    #expect(fitted.cuts == expected)
+    #expect(contents(fitted.messages) == [11, 2000, 1000, 500])
+
+    entries += [try call("c5"), page("o5", 4000)]
+    fitted = try Runtime.fit(Transcript(entries: entries), remembered: fitted.cuts, limit: 5000, reserve: 1000, render: characters)
+    expected = ["o1": .dropped, "o2": .dropped, "o3": .dropped, "o5": .prefix(2000)]
+    #expect(fitted.cuts == expected)
+    #expect(contents(fitted.messages) == [11, 11, 11, 500, 2000])
+
+    let plain = try Runtime.fit(Transcript(entries: entries), remembered: [:], limit: 20000, reserve: nil, render: characters)
+    #expect(plain.cuts.isEmpty)
+    #expect(plain.prompt.count == 10517)
+}
+
+@Test func fitGoesOnInWhatIsLeftAndFailsOnlyWhenThePromptDoesNotFit() throws {
+    func text(_ content: String) -> [Transcript.Segment] { [.text(.init(content: content))] }
+    func call(_ id: String) throws -> Transcript.Entry {
+        .toolCalls(.init([Transcript.ToolCall(id: id, toolName: "read_page", arguments: try GeneratedContent(json: #"{"name": "x"}"#))]))
+    }
+    func page(_ id: String, _ count: Int) -> Transcript.Entry {
+        .toolOutput(.init(id: id, toolName: "read_page", segments: text(String(repeating: "p", count: count))))
+    }
+    let characters: ([[String: any Sendable]]) -> [Int32] = { messages in
+        Array(repeating: 0, count: messages.reduce(0) { $0 + ($1["content"] as? String ?? "").count })
+    }
+    let settled: [Transcript.Entry] = [
+        .prompt(.init(segments: text(String(repeating: "q", count: 4000)))), try call("c1"), page("o1", 300), try call("c2"), page("o2", 300),
+    ]
+    let fitted = try Runtime.fit(Transcript(entries: settled), remembered: [:], limit: 5000, reserve: 1000, render: characters)
+    #expect(fitted.cuts.isEmpty)
+    #expect(fitted.prompt.count == 4600)
+
+    let long = Transcript(entries: [.prompt(.init(segments: text(String(repeating: "q", count: 5000))))])
+    for reserve in [1000, nil] {
+        #expect {
+            try Runtime.fit(long, remembered: [:], limit: 5000, reserve: reserve, render: characters)
+        } throws: { error in
+            guard case LanguageModelError.contextSizeExceeded(let exceeded) = error else { return false }
+            return exceeded.contextSize == 5000 && exceeded.tokenCount == 5000
+        }
+    }
 }
 
 @Generable struct AddArguments {
@@ -298,6 +427,14 @@ func merged(_ parts: [ThinkParser.Part]) -> [ThinkParser.Part] {
     #expect(ThinkParser.opensReasoning("<|im_start|>assistant\n<think>\n"))
     #expect(!ThinkParser.opensReasoning("<|im_start|>assistant\n<think>\n\n</think>\n\n"))
     #expect(!ThinkParser.opensReasoning("<|im_start|>assistant\n"))
+
+    let pieces = [1: "<think>", 2: "x", 3: "</think>", 4: "<|im_start|>assistant\n"]
+    func decode(_ tokens: [Int]) -> String { tokens.map { pieces[$0] ?? "" }.joined() }
+    let filler = Array<Int32>(repeating: 2, count: 15)
+    #expect(!ThinkParser.opensReasoning(after: [1] + filler + [4], decode: decode))
+    #expect(ThinkParser.opensReasoning(after: [1] + filler.dropLast() + [4], decode: decode))
+    #expect(ThinkParser.opensReasoning(after: filler + filler + [4, 1, 2], decode: decode))
+    #expect(!ThinkParser.opensReasoning(after: filler + [4, 1, 2, 3, 2], decode: decode))
 }
 
 @Test func transcriptKeepsReasoningForTheTemplate() throws {

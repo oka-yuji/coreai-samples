@@ -18,13 +18,18 @@ public struct LocalLanguageModel: LanguageModel {
         }
     }
 
+    public enum OverflowPolicy: Sendable {
+        case error
+        case dropOldToolOutputs
+    }
+
     public let capabilities: LanguageModelCapabilities
     public let executorConfiguration: URL
     public let loadStats: Engine.LoadStats
     let runtime: Runtime
 
-    public init(bundle url: URL, contextLimit: Int? = nil) async throws {
-        runtime = try await Runtime(bundle: ModelBundle(url: url), contextLimit: contextLimit)
+    public init(bundle url: URL, contextLimit: Int? = nil, overflow: OverflowPolicy = .error) async throws {
+        runtime = try await Runtime(bundle: ModelBundle(url: url), contextLimit: contextLimit, overflow: overflow)
         capabilities = LanguageModelCapabilities(runtime.thinks ? [.reasoning, .toolCalling] : [.toolCalling])
         executorConfiguration = url
         loadStats = runtime.loadStats
@@ -41,13 +46,16 @@ actor Runtime {
     private let core: EngineBox
     private let tokenizer: any Tokenizer
     private let stopTokens: Set<Int32>
+    private let overflow: LocalLanguageModel.OverflowPolicy
+    private var cuts: [String: ToolOutputCut] = [:]
     private var checkpoints: [CheckpointRole: Engine.Checkpoint] = [:]
     private var busy = false
     private var waiting: [CheckedContinuation<Void, Never>] = []
 
-    init(bundle: ModelBundle, contextLimit: Int?) async throws {
+    init(bundle: ModelBundle, contextLimit: Int?, overflow: LocalLanguageModel.OverflowPolicy) async throws {
         tokenizer = try await bundle.loadTokenizer()
         core = EngineBox(try await Engine(bundle: bundle, contextLimit: contextLimit))
+        self.overflow = overflow
         loadStats = core.engine.loadStats
         thinks = tokenizer.convertTokenToId(ThinkParser.open) != nil
         stopTokens = Set([tokenizer.eosTokenId, tokenizer.convertTokenToId("<|endoftext|>")].compactMap { $0.map(Int32.init) })
@@ -63,20 +71,22 @@ actor Runtime {
             throw LanguageModelError.unsupportedCapability(.init(capability: .guidedGeneration, debugDescription: "Guided generation is not supported."))
         }
         let tools = (request.generationOptions.toolCallingMode?.kind == .disallowed ? [] : request.enabledToolDefinitions).map(ToolSchema.init)
-        let messages = try Self.messages(request.transcript)
         var context = Self.templateContext(request.contextOptions.reasoningLevel)
         if !tools.isEmpty { context["tools"] = Value.array(tools.map(\.spec)) }
-        let prompt = try render(messages, generationPrompt: true, context: context)
-        let afterUser = try messages.lastIndex { $0["role"] as? String == "user" }.map {
+        let contextLimit = core.engine.contextLimit
+        let reserve = overflow == .dropOldToolOutputs ? min(request.generationOptions.maximumResponseTokens ?? 1024, contextLimit / 2) : nil
+        let (messages, prompt, cuts) = try Self.fit(request.transcript, remembered: self.cuts, limit: contextLimit, reserve: reserve) {
+            try render($0, generationPrompt: true, context: context)
+        }
+        let truncated = cuts.filter { self.cuts[$0.key] != $0.value }.count
+        self.cuts = cuts
+        let lastUser = messages.lastIndex { $0["role"] as? String == "user" }
+        let afterUser = try lastUser.map {
             zip(try render(Array(messages[...$0]), generationPrompt: false, context: context), prompt).prefix { $0 == $1 }.count
         } ?? 0
-        guard !prompt.isEmpty, prompt.count < core.engine.contextLimit else {
-            throw LanguageModelError.contextSizeExceeded(
-                .init(contextSize: core.engine.contextLimit, tokenCount: prompt.count, debugDescription: "The prompt has \(prompt.count) tokens; the context limit is \(core.engine.contextLimit)."))
-        }
-        let opensReasoning = ThinkParser.opensReasoning(tokenizer.decode(tokens: prompt[afterUser...].map(Int.init)))
+        let opensReasoning = ThinkParser.opensReasoning(after: prompt) { tokenizer.decode(tokens: $0) }
         var sampler = Self.sampler(request.generationOptions)
-        let limit = min(request.generationOptions.maximumResponseTokens ?? .max, core.engine.contextLimit - prompt.count)
+        let limit = min(request.generationOptions.maximumResponseTokens ?? .max, contextLimit - prompt.count)
 
         await lock()
         defer { unlock() }
@@ -84,7 +94,12 @@ actor Runtime {
         let clock = ContinuousClock()
         let start = clock.now
         let before = core.engine.stats.prefillTokens
-        let plan = try await read(prompt, afterUser: afterUser)
+        let plan = try await read(prompt, afterUser: afterUser) {
+            guard let lastUser else { return 0 }
+            var replaced = Array(messages[...lastUser])
+            replaced[lastUser]["content"] = (messages[lastUser]["content"] as? String ?? "").hasPrefix("A") ? "B" : "A"
+            return zip(try render(replaced, generationPrompt: false, context: context), prompt).prefix { $0 == $1 }.count
+        }
         let prefilled = core.engine.stats.prefillTokens - before
         let readEnd = clock.now
 
@@ -115,7 +130,8 @@ actor Runtime {
         }
         await output.send(parser.feed(tokenizer.decode(tokens: pending)) + parser.finish(), reasoning: false, last: true)
         let metadata: [String: any ConvertibleToGeneratedContent] = [
-            "stopReason": stopReason, "prefillTokens": prefilled, "sharedTokens": plan.shared,
+            "stopReason": stopReason, "prefillTokens": prefilled, "sharedTokens": plan.shared, "truncatedToolOutputs": truncated,
+            "reservedTokens": contextLimit - prompt.count,
             "prefillSeconds": (readEnd - start) / .seconds(1), "decodeSeconds": (clock.now - readEnd) / .seconds(1),
         ]
         if let call = output.lastCall {
@@ -128,10 +144,10 @@ actor Runtime {
             output: .init(totalTokenCount: produced, reasoningTokenCount: reasoningTokens))))
     }
 
-    private func read(_ prompt: [Int32], afterUser: Int) async throws -> ReusePlan {
-        let plan = ReusePlan(
+    private func read(_ prompt: [Int32], afterUser: Int, questionStart: () throws -> Int) async throws -> ReusePlan {
+        let plan = try ReusePlan(
             processed: core.engine.tokens, saved: checkpoints.values.map(\.tokens.count), prompt: prompt,
-            hybrid: core.engine.isHybrid, afterUser: afterUser)
+            hybrid: core.engine.isHybrid, afterUser: afterUser, questionStart: questionStart)
         checkpoints = checkpoints.filter { $0.value.tokens.count <= plan.keep }
         if let point = checkpoints.values.first(where: { $0.tokens.count == plan.keep }) {
             try core.engine.restore(point)
@@ -187,7 +203,44 @@ actor Runtime {
         if waiting.isEmpty { busy = false } else { waiting.removeFirst().resume() }
     }
 
-    static func messages(_ transcript: Transcript) throws -> [Message] {
+    static func fit(
+        _ transcript: Transcript, remembered: [String: ToolOutputCut], limit: Int, reserve: Int?,
+        render: ([Message]) throws -> [Int32]
+    ) throws -> (messages: [Message], prompt: [Int32], cuts: [String: ToolOutputCut]) {
+        let ids = Set(transcript.map(\.id))
+        var cuts = remembered.filter { ids.contains($0.key) }
+        let groups = toolOutputGroups(transcript)
+        while true {
+            let messages = try Self.messages(transcript, cuts: cuts)
+            let prompt = try render(messages)
+            if let reserve, prompt.count + reserve > limit, let next = ToolOutputCut.shrink(groups, cuts) {
+                cuts = next
+                continue
+            }
+            guard !prompt.isEmpty, prompt.count < limit else {
+                throw LanguageModelError.contextSizeExceeded(
+                    .init(contextSize: limit, tokenCount: prompt.count, debugDescription: "The prompt has \(prompt.count) tokens; the context limit is \(limit)."))
+            }
+            return (messages, prompt, cuts)
+        }
+    }
+
+    static func toolOutputGroups(_ transcript: Transcript) -> [[(id: String, count: Int)]] {
+        var groups: [[(id: String, count: Int)]] = []
+        var previous = false
+        for entry in transcript {
+            guard case .toolOutput(let output) = entry else {
+                previous = false
+                continue
+            }
+            let count = output.segments.map { if case .text(let text) = $0 { text.content } else { "" } }.joined(separator: "\n").count
+            if previous { groups[groups.count - 1].append((entry.id, count)) } else { groups.append([(entry.id, count)]) }
+            previous = true
+        }
+        return groups
+    }
+
+    static func messages(_ transcript: Transcript, cuts: [String: ToolOutputCut] = [:]) throws -> [Message] {
         var messages: [Message] = []
         var order: [String: [String]] = [:]
         var reply: Message?
@@ -230,7 +283,8 @@ actor Runtime {
                 reply = message
             case .toolOutput(let output):
                 flush()
-                messages.append(["role": "tool", "content": try text(output.segments)])
+                let content = try text(output.segments)
+                messages.append(["role": "tool", "content": cuts[entry.id]?.apply(content) ?? content])
             @unknown default:
                 throw LanguageModelError.unsupportedTranscriptContent(
                     .init(unsupportedContent: [entry], debugDescription: "Unknown transcript entry."))
