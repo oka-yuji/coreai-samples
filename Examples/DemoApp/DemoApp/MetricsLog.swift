@@ -58,6 +58,21 @@ enum MetricsLog {
         var toolSeconds: Double?
         var toolResultChars: Int?
         var toolError: Bool?
+        var agentInstructions: String?
+        var citationGuard: Bool?
+        var ledgerChecks: [LedgerCheck]?
+        var fetchLedger: [FetchRecord]?
+        var fetchAttempts: [FetchAttempt]?
+        var guardOutcome: String?
+        var guardReason: String?
+        var repairTurns: Int?
+        var repairFetches: Int?
+        var repairSeconds: Double?
+        var repairPromptTokens: Int?
+        var repairGeneratedTokens: Int?
+        var cassetteHits: Int?
+        var cassetteMisses: Int?
+        var cassetteRecords: Int?
     }
 
     static var fileURL: URL { ModelStorage.root.appending(path: "metrics.jsonl") }

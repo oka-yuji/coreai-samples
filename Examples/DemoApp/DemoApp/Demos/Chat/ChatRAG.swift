@@ -10,7 +10,11 @@ struct RAGSettings: Sendable {
     var braveAPIKey = ""
     var pagesToRead = 5
     var pageCharacterBudget = 3_000
+    var sourceTokenBudget = RAGContext.sourceTokenBudget
     var documentsDirectory: URL = RAGRetriever.defaultDocumentsDirectory()
+
+    /// The source budgets Chat offers (tokens). The first is the default.
+    static let budgetChoices = [3_000, 6_000]
 
     var provider: String { braveAPIKey.isEmpty ? "DuckDuckGo" : "Brave" }
 
@@ -68,7 +72,7 @@ enum RAGRetriever {
         out.candidates = candidates.count
         let fixed = count(RAGContext.prompt(question: question, sources: [], today: RAGContext.today()))
         out.sources = RAGContext.select(
-            candidates, question: question, budget: min(RAGContext.sourceTokenBudget, RAGContext.promptTokenBudget - fixed),
+            candidates, question: question, budget: min(settings.sourceTokenBudget, RAGContext.promptTokenBudget - fixed),
             count: count, rank: bestRanking)
         out.sourceTokens = out.sources.map { count(RAGContext.measuredBlock($0)) }.reduce(0, +)
         out.seconds = (ContinuousClock.now - start) / .seconds(1)
@@ -162,6 +166,12 @@ struct RAGControls: View {
             if vm.ragEnabled {
                 Toggle("Web", isOn: $vm.ragWeb)
                 Toggle("Docs", isOn: $vm.ragLocal)
+                Picker("Sources", selection: $vm.ragBudget) {
+                    ForEach(RAGSettings.budgetChoices, id: \.self) { Text("\($0.formatted()) tok").tag($0) }
+                }
+                .pickerStyle(.menu)
+                .fixedSize()
+                .help("How many tokens of sources go into the prompt")
             }
         }
         .toggleStyle(.switch)

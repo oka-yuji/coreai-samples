@@ -16,8 +16,10 @@ enum SelfTest {
     static func execute() async -> Int32 {
         let questions = LaunchArguments.value("--rag").map { $0.split(separator: "|").map(String.init) } ?? []
         let file = LaunchArguments.value("--prompts-file").flatMap { try? String(contentsOfFile: $0, encoding: .utf8) }
-        guard let model = LaunchArguments.value("--model"), !questions.isEmpty || file != nil else {
-            log("usage: DemoApp --selftest --model <folder> (--prompts-file <file> | --rag \"question 1|question 2\" [--rag-web off] [--rag-local off] [--rag-docs <folder>]) [--max-tokens N] [--context-limit N]")
+        guard let model = LaunchArguments.value("--model"), !questions.isEmpty || file != nil,
+            LaunchArguments.value("--rag-budget") == nil || ChatViewModel.launchRAGBudget != nil
+        else {
+            log("usage: DemoApp --selftest --model <folder> (--prompts-file <file> | --rag \"question 1|question 2\" [--rag-web off] [--rag-local off] [--rag-docs <folder>] [--rag-budget 3000|6000]) [--max-tokens N] [--context-limit N]")
             return finish(false)
         }
         let prompts = questions.isEmpty
@@ -43,7 +45,7 @@ enum SelfTest {
         if chat.ragEnabled {
             let settings = RAGSettings.fromDefaults()
             log("[rag] mode=on web=\(chat.ragWeb) local=\(chat.ragLocal) search=\(settings.provider) results=\(settings.searchResults) "
-                + "pages=\(settings.pagesToRead) pageBudget=\(settings.pageCharacterBudget)chars sourceBudget=\(RAGContext.sourceTokenBudget)tok "
+                + "pages=\(settings.pagesToRead) pageBudget=\(settings.pageCharacterBudget)chars sourceBudget=\(chat.ragBudget)tok "
                 + "promptBudget=\(RAGContext.promptTokenBudget)tok today=\(RAGContext.today())")
             log("[rag] documents=" + settings.documentsDirectory.path(percentEncoded: false))
         }

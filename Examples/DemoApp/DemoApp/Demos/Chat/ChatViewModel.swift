@@ -81,6 +81,7 @@ final class ChatViewModel {
     var ragEnabled = false
     var ragWeb = true
     var ragLocal = true
+    var ragBudget = ChatViewModel.launchRAGBudget ?? RAGContext.sourceTokenBudget
     let contextLimit = LaunchArguments.value("--context-limit").flatMap(Int.init) ?? ChatViewModel.defaultContextLimit
 
     @ObservationIgnored private(set) var model: LocalLanguageModel?
@@ -89,6 +90,11 @@ final class ChatViewModel {
     @ObservationIgnored private var consumer: Task<(any Error)?, Never>?
     @ObservationIgnored private var firstEntryAt: ContinuousClock.Instant?
     @ObservationIgnored private var run = 0
+
+    /// `--rag-budget 3000|6000`; nil when the flag is absent or not one of the choices.
+    nonisolated static var launchRAGBudget: Int? {
+        LaunchArguments.value("--rag-budget").flatMap(Int.init).flatMap { RAGSettings.budgetChoices.contains($0) ? $0 : nil }
+    }
 
     var isLoading: Bool { if case .loading = phase { true } else { false } }
     var trimmedInput: String { input.trimmingCharacters(in: .whitespacesAndNewlines) }
@@ -207,6 +213,7 @@ final class ChatViewModel {
             var settings = RAGSettings.fromDefaults()
             settings.web = ragWeb
             settings.local = ragLocal
+            settings.sourceTokenBudget = ragBudget
             generation = Task { await respondFromSources(model, prompt, settings, options, context) }
         } else {
             generation = Task { await respond(session, prompt, options, context) }

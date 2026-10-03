@@ -125,6 +125,11 @@ struct ChatView: View {
                 .font(.callout)
                 .foregroundStyle(.orange)
             }
+            if vm.externallyBusy {
+                Text("The agent is running a task on this model. Chat can send when it finishes.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
             HStack(alignment: .bottom, spacing: 8) {
                 TextField("Message", text: $vm.input, axis: .vertical)
                     .textFieldStyle(.plain)

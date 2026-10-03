@@ -21,6 +21,8 @@ struct AgentToolCall: Equatable, Sendable {
 struct AgentToolOutput: Sendable {
     var text: String
     var seen: [String: String] = [:]
+    /// fetch_page only: the URL the page came from after redirects. Set only when the page text was handed to the model.
+    var finalURL: String?
 }
 
 struct AgentToolSettings: Sendable {
@@ -31,6 +33,12 @@ struct AgentToolSettings: Sendable {
     var notesDirectory: URL = AgentTools.defaultNotesDirectory()
 
     var allowFileOperations = false
+
+    /// `--tool-cassette`: web_search and fetch_page results are replayed from, or recorded to, this cassette.
+    var cassette: ToolCassette?
+
+    /// `--stable-note-paths`: write_note tells the model `agent-notes/<file>.md` instead of the absolute path.
+    var stableNotePaths = false
 }
 
 struct AgentToolMessage: Error, Sendable {
@@ -52,6 +60,11 @@ enum AgentTools {
         + "(KHTML, like Gecko) Version/18.0 Safari/605.1.15"
 
     static func run(_ call: AgentToolCall, settings: AgentToolSettings) async -> AgentToolOutput {
+        if let cassette = settings.cassette, let key = ToolCassette.key(for: call, settings: settings) {
+            var direct = settings
+            direct.cassette = nil
+            return await cassette.output(for: key) { [direct] in await run(call, settings: direct) }
+        }
         switch call.name {
         case "web_search":
             let query = (call.value("query") ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
@@ -92,8 +105,9 @@ enum AgentTools {
                 return AgentToolOutput(text: "error: write_note needs a content parameter")
             }
             do {
-                return AgentToolOutput(text: "saved to " + (try writeNote(
-                    title: title, content: content, directory: settings.notesDirectory)))
+                return AgentToolOutput(text: savedText(
+                    try writeNote(title: title, content: content, directory: settings.notesDirectory),
+                    stable: settings.stableNotePaths))
             } catch let failure as AgentToolMessage {
                 return AgentToolOutput(text: failure.text)
             } catch {
@@ -225,22 +239,32 @@ enum AgentTools {
 
     static func fetchPage(url: URL, budget: Int, query: String = "") async throws -> AgentToolOutput {
         var full: String
+        var final: URL?
         do {
-            full = condense(try await AgentPageReader.readableText(url: url))
+            let page = try await AgentPageReader.read(url: url)
+            full = condense(page.text)
+            final = page.finalURL
         } catch let failure as AgentToolMessage where failure.fatal {
             throw failure
         } catch is CancellationError {
             throw CancellationError()
         } catch {
             log("[fetch] webview failed: \(error)")
-            full = plainText(fromHTML: try await download(url: url))
+            let page = try await downloadPage(url: url)
+            full = plainText(fromHTML: page.text)
+            final = page.finalURL
         }
 
+        let text = pageText(full, query: query, budget: budget)
         return AgentToolOutput(
-            text: pageText(full, query: query, budget: budget), seen: [url.absoluteString: full])
+            text: text, seen: [url.absoluteString: full], finalURL: text.isEmpty ? nil : (final ?? url).absoluteString)
     }
 
     static func download(url: URL) async throws -> String {
+        try await downloadPage(url: url).text
+    }
+
+    static func downloadPage(url: URL) async throws -> (text: String, finalURL: URL?) {
         let (stream, response) = try await URLSession.shared.bytes(for: get(url))
         if let http = response as? HTTPURLResponse, http.statusCode >= 400 {
             throw AgentToolMessage(
@@ -262,7 +286,7 @@ enum AgentTools {
                 throw AgentToolMessage(text: "error: page too large", fatal: true)
             }
         }
-        return decodeText(Data(bytes), encodingName: response.textEncodingName)
+        return (decodeText(Data(bytes), encodingName: response.textEncodingName), response.url)
     }
 
     static func decodeText(_ data: Data, encodingName: String?) -> String {
@@ -440,6 +464,13 @@ enum AgentTools {
         FileHandle.standardError.write(Data((line + "\n").utf8))
     }
 
+    /// `["a","b"]`, for log lines that list URLs or a cassette key.
+    static func jsonList(_ items: [String]) -> String {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = .withoutEscapingSlashes
+        return (try? encoder.encode(items)).map { String(decoding: $0, as: UTF8.self) } ?? "\(items)"
+    }
+
     static func defaultNotesDirectory() -> URL {
         ModelStorage.root.appending(path: "agent-notes", directoryHint: .isDirectory)
     }
@@ -528,23 +559,74 @@ enum AgentTools {
         title: String, content: String, directory: URL = AgentTools.defaultNotesDirectory()
     ) throws -> String {
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        let name = noteFileName(title)
-        var url = directory.appending(path: name)
-        if FileManager.default.fileExists(atPath: url.path(percentEncoded: false)) {
-            let base = String(name.dropLast(3))
-            guard let free = (2...99).lazy
-                .map({ directory.appending(path: "\(base) \($0).md") })
-                .first(where: { !FileManager.default.fileExists(atPath: $0.path(percentEncoded: false)) })
-            else {
-                throw AgentToolMessage(text: "error: \(name) already exists; choose another title")
-            }
-            url = free
-        }
+        let url = directory.appending(path: try freeName(noteFileName(title), in: [directory]))
+        try Data(noteBody(title: title, content: content).utf8).write(to: url, options: .atomic)
+        return url.path(percentEncoded: false)
+    }
+
+    static func noteBody(title: String, content: String) -> String {
         let heading = title.trimmingCharacters(in: .whitespacesAndNewlines)
         let hasHeading = content.trimmingCharacters(in: .whitespacesAndNewlines).hasPrefix("#")
-        let body = (heading.isEmpty || hasHeading ? "" : "# \(heading)\n\n") + content + "\n"
-        try Data(body.utf8).write(to: url, options: .atomic)
-        return url.path(percentEncoded: false)
+        return (heading.isEmpty || hasHeading ? "" : "# \(heading)\n\n") + content + "\n"
+    }
+
+    /// `name`, or `name 2.md` … `name 99.md`, whichever is free in all of `directories`.
+    static func freeName(_ name: String, in directories: [URL]) throws -> String {
+        func taken(_ candidate: String) -> Bool {
+            directories.contains { FileManager.default.fileExists(atPath: $0.appending(path: candidate).path(percentEncoded: false)) }
+        }
+        guard taken(name) else { return name }
+        let base = String(name.dropLast(3))
+        guard let free = (2...99).lazy.map({ "\(base) \($0).md" }).first(where: { !taken($0) }) else {
+            throw AgentToolMessage(text: "error: \(name) already exists; choose another title")
+        }
+        return free
+    }
+
+    /// The text write_note returns: the saved path, or `agent-notes/<file>` with `--stable-note-paths`.
+    static func savedText(_ path: String, stable: Bool) -> String {
+        "saved to " + (stable ? "agent-notes/" + (path as NSString).lastPathComponent : path)
+    }
+
+    static let draftFolderName = ".draft"
+
+    /// Citation guard on: notes wait in `<notes>/.draft/` until the answer and the notes pass the check. The name is
+    /// chosen as write_note would choose it in the notes folder (and kept free among the drafts); `replacing` rewrites
+    /// a draft in place (the repair turn saving the same title again).
+    static func writeDraft(title: String, content: String, notesDirectory: URL, replacing name: String? = nil) throws -> String {
+        let drafts = notesDirectory.appending(path: draftFolderName, directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: drafts, withIntermediateDirectories: true)
+        let chosen = try name ?? freeName(noteFileName(title), in: [notesDirectory, drafts])
+        try Data(noteBody(title: title, content: content).utf8).write(to: drafts.appending(path: chosen), options: .atomic)
+        return chosen
+    }
+
+    /// Moves the drafts into the notes folder and returns where they landed.
+    static func commitDrafts(_ names: [String], notesDirectory: URL) -> [String] {
+        let drafts = notesDirectory.appending(path: draftFolderName, directoryHint: .isDirectory)
+        var committed: [String] = []
+        for name in names {
+            do {
+                let target = notesDirectory.appending(path: try freeName(name, in: [notesDirectory]))
+                try FileManager.default.moveItem(at: drafts.appending(path: name), to: target)
+                committed.append(target.path(percentEncoded: false))
+            } catch {
+                log("[guard] could not commit the draft \(name): \(error)")
+            }
+        }
+        return committed
+    }
+
+    /// Leaves the drafts where they are and writes why in `<notes>/.draft/HELD.txt`.
+    static func holdDrafts(_ names: [String], notesDirectory: URL, reason: String) {
+        let file = notesDirectory.appending(path: draftFolderName, directoryHint: .isDirectory).appending(path: "HELD.txt")
+        let text = (["reason: \(reason)", "held: \(Date.now.ISO8601Format())", "drafts:"] + names.map { "- \($0)" })
+            .joined(separator: "\n") + "\n"
+        do {
+            try Data(text.utf8).write(to: file, options: .atomic)
+        } catch {
+            log("[guard] could not write \(file.path(percentEncoded: false)): \(error)")
+        }
     }
 
     static func noteFileName(_ title: String) -> String {
@@ -626,6 +708,120 @@ enum AgentTools {
     }
 }
 
+/// Tool results on disk (M4-g): one JSON line per web_search or fetch_page result, keyed by the tool and its arguments as
+/// the tool reads them. A key that is recorded is replayed (the first record of a key wins); an unrecorded key is fetched
+/// live and appended (`record`, `replay-or-record`) or answered with `error: cassette miss` (`replay`). write_note and
+/// move_note never go through it.
+actor ToolCassette {
+    enum Mode: String, CaseIterable {
+        case record, replay
+        case replayOrRecord = "replay-or-record"
+    }
+
+    struct Entry: Codable {
+        var key: [String]
+        var text: String
+        var seen: [String: String]
+        var ok: Bool
+        var finalURL: String?
+        var ms: Int
+        var recorded: String
+    }
+
+    static let missText = "error: cassette miss"
+
+    nonisolated let file: URL
+    nonisolated let mode: Mode
+    nonisolated let replaysLatency: Bool
+    nonisolated let loaded: Int
+    private var entries: [[String]: Entry]
+    private(set) var hits = 0
+    private(set) var misses = 0
+    private(set) var records = 0
+
+    init(file: URL, mode: Mode, replaysLatency: Bool = true) throws {
+        var entries: [[String]: Entry] = [:]
+        if FileManager.default.fileExists(atPath: file.path(percentEncoded: false)) {
+            for line in try String(contentsOf: file, encoding: .utf8).split(separator: "\n") where !line.isEmpty {
+                let entry = try JSONDecoder().decode(Entry.self, from: Data(line.utf8))
+                if entries[entry.key] == nil { entries[entry.key] = entry }
+            }
+        } else if mode == .replay {
+            throw AgentToolMessage(text: "the cassette \(file.path(percentEncoded: false)) does not exist")
+        }
+        self.file = file
+        self.mode = mode
+        self.replaysLatency = replaysLatency
+        self.entries = entries
+        loaded = entries.count
+    }
+
+    /// The tool name and its arguments as the tool uses them (trimmed; max_results clamped as web_search clamps it).
+    static func key(for call: AgentToolCall, settings: AgentToolSettings) -> [String]? {
+        func trimmed(_ name: String) -> String { (call.value(name) ?? "").trimmingCharacters(in: .whitespacesAndNewlines) }
+        switch call.name {
+        case "web_search":
+            let requested = Int(trimmed("max_results"))
+            return [call.name, trimmed("query"), String(min(10, max(1, requested ?? settings.searchResults)))]
+        case "fetch_page":
+            return [call.name, trimmed("url"), trimmed("query")]
+        default:
+            return nil
+        }
+    }
+
+    func output(for key: [String], live: @Sendable () async -> AgentToolOutput) async -> AgentToolOutput {
+        if let entry = entries[key] {
+            hits += 1
+            Self.log("hit", key, entry.ms)
+            if replaysLatency, entry.ms > 0 { try? await Task.sleep(for: .milliseconds(entry.ms)) }
+            return AgentToolOutput(text: entry.text, seen: entry.seen, finalURL: entry.finalURL)
+        }
+        guard mode != .replay else {
+            misses += 1
+            Self.log("miss", key, 0)
+            return AgentToolOutput(text: Self.missText)
+        }
+        let start = ContinuousClock.now
+        let output = await live()
+        guard !Task.isCancelled else { return output }  // a stopped call is not what the page returns
+        let ms = Int(((ContinuousClock.now - start) / .milliseconds(1)).rounded())
+        let entry = Entry(
+            key: key, text: output.text, seen: output.seen,
+            ok: key.first == "fetch_page" ? output.finalURL != nil : !output.text.hasPrefix("error:"),
+            finalURL: output.finalURL, ms: ms, recorded: Date.now.ISO8601Format())
+        if entries[key] == nil { entries[key] = entry }
+        records += 1
+        append(entry)
+        Self.log("record", key, ms)
+        return output
+    }
+
+    private func append(_ entry: Entry) {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
+        do {
+            var line = try encoder.encode(entry)
+            line.append(0x0A)
+            let path = file.path(percentEncoded: false)
+            if !FileManager.default.fileExists(atPath: path) {
+                try FileManager.default.createDirectory(at: file.deletingLastPathComponent(), withIntermediateDirectories: true)
+                FileManager.default.createFile(atPath: path, contents: nil)
+            }
+            let handle = try FileHandle(forWritingTo: file)
+            defer { try? handle.close() }
+            try handle.seekToEnd()
+            try handle.write(contentsOf: line)
+        } catch {
+            AgentTools.log("[cassette] write failed: \(error)")
+        }
+    }
+
+    private static func log(_ what: String, _ key: [String], _ ms: Int) {
+        AgentTools.log("[cassette] \(what) tool=\(key.first ?? "?") key=\(AgentTools.jsonList(key)) ms=\(ms)")
+    }
+}
+
 @MainActor
 final class AgentPageReader: NSObject, WKNavigationDelegate {
 
@@ -653,10 +849,15 @@ final class AgentPageReader: NSObject, WKNavigationDelegate {
     private var statusFailure: AgentToolMessage?
 
     static func readableText(url: URL) async throws -> String {
+        try await read(url: url).text
+    }
+
+    /// The readable text and the URL the web view ended on (after redirects).
+    static func read(url: URL) async throws -> (text: String, finalURL: URL?) {
         try await AgentPageReader().text(from: url)
     }
 
-    private func text(from url: URL) async throws -> String {
+    private func text(from url: URL) async throws -> (text: String, finalURL: URL?) {
         let configuration = WKWebViewConfiguration()
         configuration.websiteDataStore = .nonPersistent()
         let view = WKWebView(
@@ -707,7 +908,7 @@ final class AgentPageReader: NSObject, WKNavigationDelegate {
                   !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
                 throw AgentToolMessage(text: "fetch_page: the web view found no text")
             }
-            return text
+            return (text, view.url)
         } onCancel: {
             Task { @MainActor in self.abort(with: CancellationError()) }
         }

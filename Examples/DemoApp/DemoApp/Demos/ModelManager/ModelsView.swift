@@ -87,7 +87,8 @@ struct FolderRowView: View {
                 .lineLimit(1)
                 .truncationMode(.middle)
             HStack {
-                Text(folder.name == nil ? "Not a readable bundle" : folder.size.formatted(.byteCount(style: .file)))
+                Text(folder.name == nil ? (folder.problem ?? "Not a readable bundle") : folder.size.formatted(.byteCount(style: .file)))
+                    .lineLimit(2)
                 if let state {
                     Text(state).foregroundStyle(.green)
                 }

@@ -1,5 +1,7 @@
+import CryptoKit
 import Foundation
 import FoundationModels
+import RAGContext
 
 enum AgentSelfTest {
     static func run() -> Never {
@@ -35,6 +37,15 @@ enum AgentSelfTest {
             out("agent-e2e: --model <bundle> and --task \"…\" are required")
             return 2
         }
+        let agent = AgentViewModel()
+        agent.persistsSettings = false
+        let m4g: String?
+        do {
+            m4g = try applyM4GOptions(to: agent)
+        } catch {
+            out("agent-e2e: " + ((error as? AgentToolMessage)?.text ?? "\(error)"))
+            return 2
+        }
         let chat = ChatViewModel()
         out("[e2e] loading \(model)")
         let loadStart = Date()
@@ -47,8 +58,6 @@ enum AgentSelfTest {
         out(String(
             format: "[e2e] prepared: cached=%@ specializeSeconds=%.2f contextLimit=%d", String(stats.cached), stats.specializeSeconds,
             chat.contextLimit))
-        let agent = AgentViewModel()
-        agent.persistsSettings = false
         agent.effort = effort
         if let steps = LaunchArguments.value("--max-steps").flatMap({ Int($0) }) { agent.maxIterations = steps }
         if let tokens = LaunchArguments.value("--max-tokens").flatMap({ Int($0) }) { agent.maxNewTokens = tokens }
@@ -56,11 +65,13 @@ enum AgentSelfTest {
         agent.allowFileOperations = LaunchArguments.flag("--file-ops")
         if let notes = LaunchArguments.value("--notes-dir") { agent.notesFolderPath = notes }
         out("[e2e] effort=\(agent.effort.rawValue) steps=\(agent.maxIterations) tokens=\(agent.maxNewTokens) "
-            + "pageBudget=\(agent.pageCharacterBudget) search=\(agent.searchProvider) date=\(AgentPromptBuilder.today()) "
+            + "pageBudget=\(agent.pageCharacterBudget) search=\(agent.searchProvider) date=\(agent.fixedDate ?? AgentPromptBuilder.today()) "
             + "fileOps=\(agent.allowFileOperations) notesDir=\(agent.notesDirectory.path(percentEncoded: false))")
+        if let m4g { out("[e2e] m4g: \(m4g)") }
         out("[e2e] task: \(task)")
         agent.input = task
         let started = Date()
+        agent.deadline = started.addingTimeInterval(deadline)
         guard agent.send(chat: chat) else {
             out("agent-e2e: the agent refused to start")
             return 1
@@ -99,19 +110,89 @@ enum AgentSelfTest {
             format: "[e2e] %.1fs  toolCalls=%d  entries=%d  failures=%d", Date().timeIntervalSince(started),
             agent.entries.filter { $0.kind == .toolCall }.count, agent.entries.count, failureTitles.count))
         out("[e2e] status: \(agent.statusLine)")
-        let answer = agent.entries.last { $0.kind == .answer }?.text ?? ""
+        let answer = agent.finalAnswer()
+        if let before = agent.answerBeforeRepair { out("[e2e] answer before repair (\(before.count) chars):\n\(before)") }
         out("[e2e] final answer (\(answer.count) chars):\n\(answer)")
         let outcome = e2eOutcome(
-            stoppedByDeadline: stoppedByDeadline, failureTitles: failureTitles, answer: answer, finishReason: agent.lastFinishReason)
+            stoppedByDeadline: stoppedByDeadline, failureTitles: failureTitles, answer: answer, finishReason: agent.lastFinishReason,
+            held: agent.guardOutcome == heldOutcome)
         out("[e2e] outcome: \(outcome)")
-        out((outcome == answeredOutcome ? "AGENT E2E COMPLETED" : "AGENT E2E INCOMPLETE")
+        for check in agent.checks { out(check.logLine) }
+        if let guardOutcome = agent.guardOutcome {
+            out(String(
+                format: "[guard] outcome=%@ reason=%@ repair_turns=%d repair_fetches=%d repair_seconds=%.1f repair_prompt_tokens=%d "
+                    + "repair_generated_tokens=%d drafts=%d",
+                guardOutcome, agent.guardReason, agent.repairTurns, agent.repairFetches, agent.repairSeconds ?? 0,
+                agent.repairPromptTokens ?? 0, agent.repairGeneratedTokens ?? 0, agent.draftOrder.count))
+        }
+        if let cassette = agent.cassette {
+            out("[cassette] summary hits=\(await cassette.hits) misses=\(await cassette.misses) records=\(await cassette.records)")
+        }
+        let completed = outcome == answeredOutcome || outcome == heldOutcome
+        out((completed ? "AGENT E2E COMPLETED" : "AGENT E2E INCOMPLETE")
             + "  diverges=\(agent.divergeCount)  capSteps=\(agent.capSteps)")
-        return outcome == answeredOutcome ? 0 : 1
+        return completed ? 0 : 1
+    }
+
+    /// The M4-g options of one headless run. None of them given = the frozen M4-e run. Returns the `[e2e] m4g:` line.
+    @MainActor
+    private static func applyM4GOptions(to agent: AgentViewModel) throws -> String? {
+        func choice(_ name: String, _ allowed: [String]) throws -> String? {
+            guard let value = LaunchArguments.value(name) else { return nil }
+            guard allowed.contains(value) else {
+                throw AgentToolMessage(text: "\(name) must be \(allowed.joined(separator: "|")), not '\(value)'")
+            }
+            return value
+        }
+        var given: [String] = []
+        if let value = try choice("--instructions", ["frozen", "cite-fetched"]) {
+            agent.citeFetched = value == "cite-fetched"
+            given.append("instructions=\(value)")
+        }
+        if let value = try choice("--citation-guard", ["on", "off"]) {
+            agent.citationGuard = value == "on"
+            given.append("citationGuard=\(value)")
+        }
+        if let value = try choice("--sources-required", ["yes", "no", "auto"]) {
+            agent.sourcesRequired = value == "auto" ? nil : value == "yes"
+            given.append("sourcesRequired=\(value)")
+        }
+        if let value = LaunchArguments.value("--date") {
+            guard AgentPromptBuilder.isDateLabel(value) else {
+                throw AgentToolMessage(text: "--date must read like \"\(AgentPromptBuilder.today())\" with the right weekday, not '\(value)'")
+            }
+            agent.fixedDate = value
+            given.append("date=\(value)")
+        }
+        if LaunchArguments.flag("--stable-note-paths") {
+            agent.stableNotePaths = true
+            given.append("stableNotePaths=true")
+        }
+        let latency = try choice("--cassette-latency", ["replay", "none"])
+        let mode = try choice("--cassette-mode", ToolCassette.Mode.allCases.map(\.rawValue)).flatMap(ToolCassette.Mode.init(rawValue:))
+        let path = LaunchArguments.value("--tool-cassette")
+        if path != nil || mode != nil {
+            guard let path, let mode else {
+                throw AgentToolMessage(text: "--tool-cassette <path> and --cassette-mode record|replay|replay-or-record go together")
+            }
+            let cassette = try ToolCassette(file: URL(filePath: path), mode: mode, replaysLatency: latency != "none")
+            agent.cassette = cassette
+            given.append("cassette=\(path) mode=\(mode.rawValue) latency=\(latency ?? "replay") entries=\(cassette.loaded)")
+        } else if latency != nil {
+            throw AgentToolMessage(text: "--cassette-latency needs --tool-cassette")
+        }
+        return given.isEmpty ? nil : given.joined(separator: " ")
     }
 
     static let answeredOutcome = "answered"
+    static let heldOutcome = "held"
 
-    static func e2eOutcome(stoppedByDeadline: Bool, failureTitles: [String], answer: String, finishReason: String?) -> String {
+    /// `held`: the citation guard could not confirm the answer's sources. The run still counts as completed here; the
+    /// M4-g tables count it as a task failure.
+    static func e2eOutcome(
+        stoppedByDeadline: Bool, failureTitles: [String], answer: String, finishReason: String?, held: Bool = false
+    ) -> String {
+        if held { return heldOutcome }
         if stoppedByDeadline { return "stopped" }
         if let title = failureTitles.first {
             if title.hasPrefix("Context window is full") { return "overflow" }
@@ -351,6 +432,8 @@ enum AgentSelfTest {
                 && markdown.contains("````"),
             "offsets \(offsets)")
 
+        await m4gChecks { name, passed, detail in check(name, passed, detail) }
+
         if offline {
             out("SKIP  search/live (--offline)")
             out("SKIP  html/webView (--offline)")
@@ -384,6 +467,379 @@ enum AgentSelfTest {
 
     static let goldenDate = "2026-08-26 (Wed)"
 
+    /// SHA-256 of `instructions(date: goldenDate)` at coreai-samples 1e3897b (before M4-g), 986 bytes.
+    static let frozenInstructionsSHA256 = "0fb923293ac863625dcae287a826fb5cdaaedd57ab39eefff2f7b979ec3cc430"
+    /// SHA-256 of the two added lines and of the repair text as they stand in the M4-g appendix (§6, §7).
+    static let appendixSHA256 = [
+        "7a22fe768ac577131d7df8e6fe0592a89149852837e2e84415a16c5ad8788b1d",
+        "60bcc151dd2e931e53f1e9859ffdc7ad144a6c4e680b280a9169b1c51d992b49",
+        "3a6fa54009bb644d3bf299341a00831fd369a40eb029787b6c449fd1dc6f1b94",
+    ]
+
+    static func sha256(_ text: String) -> String {
+        SHA256.hash(data: Data(text.utf8)).map { String(format: "%02x", $0) }.joined()
+    }
+
+    /// M4-g, no model and no network: the instruction versions, the guard's URL reader, the fetch ledger, the citation
+    /// check, the cassette, the repair budget, the drafts, the stable note paths, the RAG budget and the bundle errors.
+    @MainActor
+    private static func m4gChecks(_ check: (String, Bool, String) -> Void) async {
+        let frozen = AgentPromptBuilder.instructions(date: goldenDate)
+        check("m4g/frozenInstructionsUnchanged", sha256(frozen) == frozenInstructionsSHA256 && frozen.utf8.count == 986, sha256(frozen))
+        let cited = AgentPromptBuilder.instructions(date: goldenDate, citeFetched: true)
+        let added = AgentPromptBuilder.citeFetchedInstructions
+        check("m4g/citeFetchedInstructions",
+            cited == frozen.replacingOccurrences(
+                of: "\n\nCurrent date: ", with: "\n" + added.joined(separator: "\n") + "\n\nCurrent date: ")
+                && (added + [AgentPromptBuilder.repairPromptTemplate]).map(sha256) == appendixSHA256,
+            cited.debugDescription)
+        let twoURLs = AgentPromptBuilder.repairPrompt(unfetched: ["https://a.example/x", "https://b.example/y"])
+        let noURL = AgentPromptBuilder.repairPrompt(unfetched: [])
+        check("m4g/repairPrompt",
+            twoURLs.hasPrefix("Citation check by the app: these sources were not opened with fetch_page in this task: "
+                + "https://a.example/x, https://b.example/y. Open the pages you need")
+                && noURL.contains("in this task: none listed. Open") && !noURL.contains("<URL list"),
+            twoURLs)
+        check("m4g/dateLabel",
+            AgentPromptBuilder.isDateLabel("2026-10-04 (Sun)") && !AgentPromptBuilder.isDateLabel("2026-10-04 (Mon)")
+                && !AgentPromptBuilder.isDateLabel("2026-10-04") && AgentPromptBuilder.isDateLabel(AgentPromptBuilder.today()),
+            "")
+
+        let readings: [(String, [String])] = [
+            ("see https://ja.wikipedia.org/wiki/Metal_(API).", ["https://ja.wikipedia.org/wiki/Metal_(API)"]),
+            ("(see https://en.wikipedia.org/wiki/MLX_(machine_learning_framework))",
+             ["https://en.wikipedia.org/wiki/MLX_(machine_learning_framework)"]),
+            ("(https://example.com/a) and [t](https://example.com/b)", ["https://example.com/a", "https://example.com/b"]),
+            ("[https://example.com/c](https://example.com/c/)", ["https://example.com/c"]),
+            ("\u{51FA}\u{5178}\u{FF1A}https://example.jp/x\u{3002}\u{FF08}https://example.jp/y\u{FF09}\u{300C}https://example.jp/z\u{300D}",
+             ["https://example.jp/x", "https://example.jp/y", "https://example.jp/z"]),
+            ("<https://example.com/d>, **https://example.com/e**; https://example.com/f?", 
+             ["https://example.com/d", "https://example.com/e", "https://example.com/f"]),
+            ("HTTPS://Example.com/Path?Q=1#frag", ["HTTPS://Example.com/Path?Q=1#frag"]),
+            ("no link, just https:// and text", []),
+        ]
+        let misread = readings.filter { AgentViewModel.guardURLs(in: $0.0) != $0.1 }
+        check("m4g/guardURLReader",
+            misread.isEmpty && AgentViewModel.urls(in: "https://ja.wikipedia.org/wiki/Metal_(API)") == ["https://ja.wikipedia.org/wiki/Metal_"],
+            misread.map { "\($0.0.debugDescription) -> \(AgentViewModel.guardURLs(in: $0.0))" }.joined(separator: " | "))
+        check("m4g/guardNormalized",
+            AgentViewModel.guardNormalized("HTTPS://Example.COM/Path/To/?Q=A#frag") == "https://example.com/Path/To/?Q=A"
+                && AgentViewModel.guardNormalized("https://example.com/Path/") == "https://example.com/Path"
+                && AgentViewModel.guardNormalized("https://example.com/") == "https://example.com"
+                && AgentViewModel.guardNormalized("https://example.com/path") != AgentViewModel.guardNormalized("https://example.com/Path")
+                && AgentViewModel.normalized("https://Example.com/Path/") == "https://example.com/path",
+            AgentViewModel.guardNormalized("HTTPS://Example.COM/Path/To/?Q=A#frag"))
+        func same(_ a: String, _ b: String) -> Bool { AgentViewModel.guardNormalized(a) == AgentViewModel.guardNormalized(b) }
+        check("m4g/guardPercentEscapes",
+            same("https://ja.wikipedia.org/wiki/Metal_%28API%29", "https://ja.wikipedia.org/wiki/Metal_(API)")
+                && same("https://ja.wikipedia.org/wiki/%E3%82%A2%E3%83%83%E3%83%97%E3%83%AB", "https://ja.wikipedia.org/wiki/\u{30A2}\u{30C3}\u{30D7}\u{30EB}")
+                && same("https://example.com/s?q=%e3%82%a2", "https://example.com/s?q=\u{30A2}")
+                && !same("https://example.com/a%2Fb", "https://example.com/a/b") && same("https://example.com/a%2fb", "https://example.com/a%2Fb")
+                && !same("https://example.com/a%3Fb", "https://example.com/a?b") && !same("https://example.com/a%23b", "https://example.com/a")
+                && AgentViewModel.guardNormalized("https://example.com/100%25") == "https://example.com/100%25"
+                && AgentViewModel.guardNormalized("https://example.com/%E3%82x%zz") == "https://example.com/%E3%82x%zz",
+            AgentViewModel.guardNormalized("https://ja.wikipedia.org/wiki/Metal_%28API%29") + " | "
+                + AgentViewModel.guardNormalized("https://example.com/%E3%82x%zz"))
+
+        func fetchCall(_ url: String) -> AgentToolCall {
+            AgentToolCall(name: "fetch_page", arguments: [AgentArgument(name: "url", value: url)])
+        }
+        func writeCall(_ title: String, _ content: String) -> AgentToolCall {
+            AgentToolCall(name: "write_note", arguments: [AgentArgument(name: "title", value: title), AgentArgument(name: "content", value: content)])
+        }
+        let page = AgentToolOutput(text: "page text", seen: ["https://example.com/old": "full page text"], finalURL: "https://example.com/new")
+        let record = AgentViewModel.fetchRecord(fetchCall("https://example.com/old"), page)
+        check("m4g/ledgerOnlyFetchedPages",
+            AgentViewModel.fetchRecord(
+                AgentToolCall(name: "web_search", arguments: [AgentArgument(name: "query", value: "q")]),
+                AgentToolOutput(text: "1. A\n   https://example.com/snippet\n   s", seen: ["https://example.com/snippet": "A\ns"])) == nil
+                && AgentViewModel.fetchRecord(fetchCall("https://example.com/gone"), AgentToolOutput(text: "error: HTTP 404 for https://example.com/gone")) == nil
+                && AgentViewModel.fetchRecord(fetchCall("https://example.com/empty"), AgentToolOutput(text: "", finalURL: "https://example.com/empty")) == nil
+                && record == FetchRecord(
+                    url: "https://example.com/old", finalURL: "https://example.com/new", sha256: sha256("page text"), characters: 9),
+            String(describing: record))
+        let ledger = [record].compactMap { $0 }
+        func verdict(_ answer: String, notes: [String] = [], required: Bool? = true, web: Bool = true) -> LedgerCheck {
+            AgentViewModel.ledgerCheck(stage: "t", answer: answer, notes: notes, ledger: ledger, sourcesRequired: required, usedWebTools: web)
+        }
+        let redirect = verdict("A.\n\nSources:\nhttps://example.com/new\nhttps://Example.com/old/#top")
+        check("m4g/ledgerRedirectMatches", !redirect.violation && redirect.citationsTotal == 2 && redirect.citationsFetched == 2, "\(redirect)")
+        let unfetched = verdict("A.\n\nSources:\nhttps://example.com/new\nhttps://example.com/snippet")
+        let missing = verdict("A without sources.")
+        let inBody = verdict("Per https://example.org/body-link, A.\n\nSources:\nhttps://example.com/new")
+        let inNote = verdict("A.\n\nSources:\nhttps://example.com/new", notes: ["Title\nsee https://example.org/note-link"])
+        let passed = verdict("A.\n\nSources:\nhttps://example.com/new", notes: ["Title\nfrom https://example.com/old"])
+        let autoNoWeb = verdict("A.", required: nil, web: false)
+        let autoWeb = verdict("A.", required: nil, web: true)
+        let notRequired = verdict("Could not read the page.", required: false)
+        check("m4g/guardVerdicts",
+            unfetched.violation && unfetched.citationsUnfetched == ["https://example.com/snippet"] && unfetched.reason == "unfetched"
+                && missing.violation && missing.sourcesMissing && missing.reason == "sources-missing"
+                && inBody.violation && inBody.citationsUnfetched == ["https://example.org/body-link"]
+                && inNote.violation && inNote.noteCitationsUnfetched == ["https://example.org/note-link"] && inNote.reason == "note-unfetched"
+                && inNote.unfetched == ["https://example.org/note-link"]
+                && !passed.violation && passed.citationsTotal == 1 && passed.citationsFetched == 1
+                && !autoNoWeb.violation && !autoNoWeb.sourcesRequired && autoWeb.violation && autoWeb.sourcesMissing
+                && !notRequired.violation,
+            [unfetched, missing, inBody, inNote, passed, autoNoWeb, autoWeb, notRequired].map(\.logLine).joined(separator: " | "))
+        let attempts = [FetchAttempt(url: "https://example.com/old", ok: true), FetchAttempt(url: "https://example.invalid/gone", ok: false)]
+        func tried(_ answer: String, required: Bool?, ledger: [FetchRecord] = ledger, attempts: [FetchAttempt] = attempts) -> LedgerCheck {
+            AgentViewModel.ledgerCheck(
+                stage: "t", answer: answer, notes: [], ledger: ledger, attempts: attempts, sourcesRequired: required, usedWebTools: true)
+        }
+        let onlyFailed = [FetchAttempt(url: "https://coreai-samples-heldout.invalid/notes", ok: false)]
+        let h9 = "I could not fetch https://coreai-samples-heldout.invalid/notes, so I cannot list its points."
+        let reportedNo = tried(h9, required: false, ledger: [], attempts: onlyFailed)
+        let reportedAuto = tried(h9, required: nil, ledger: [], attempts: onlyFailed)
+        let reportedYes = tried(h9, required: true, ledger: [], attempts: onlyFailed)
+        let mixed = tried("A.\n\nSources:\nhttps://example.com/new\nhttps://example.invalid/gone\nhttps://example.org/never", required: true)
+        let failedOnlyWithAPage = tried("Could not read https://example.invalid/gone.", required: nil)
+        check("m4g/failedFetchesAreNotViolations",
+            !reportedNo.violation && reportedNo.citationsFailed == 1 && reportedNo.citationsFetched == 0 && reportedNo.citationsUnfetched.isEmpty
+                && !reportedAuto.violation && !reportedAuto.sourcesRequired
+                && reportedYes.violation && reportedYes.sourcesMissing && reportedYes.reason == "sources-missing" && reportedYes.unfetched.isEmpty
+                && AgentPromptBuilder.repairPrompt(unfetched: reportedYes.unfetched).contains("in this task: none listed. Open")
+                && mixed.violation && mixed.citationsTotal == 3 && mixed.citationsFetched == 1 && mixed.citationsFailed == 1
+                && mixed.citationsUnfetched == ["https://example.org/never"] && !mixed.sourcesMissing
+                && failedOnlyWithAPage.sourcesRequired && failedOnlyWithAPage.sourcesMissing,
+            [reportedNo, reportedAuto, reportedYes, mixed, failedOnlyWithAPage].map(\.logLine).joined(separator: " | "))
+        let percentCited = AgentViewModel.ledgerCheck(
+            stage: "t", answer: "Sources:\nhttps://ja.wikipedia.org/wiki/Metal_%28API%29", notes: [],
+            ledger: [FetchRecord(url: "https://ja.wikipedia.org/wiki/Metal_(API)", finalURL: "https://ja.wikipedia.org/wiki/Metal_(API)",
+                                 sha256: "", characters: 1)],
+            sourcesRequired: true, usedWebTools: true)
+        check("m4g/percentEscapedCitationIsFetched", !percentCited.violation && percentCited.citationsFetched == 1, percentCited.logLine)
+        let noteOf = { (outcome: String, check: LedgerCheck) in
+            AgentViewModel.guardNoteText(outcome: outcome, reason: "none", check: check, drafts: false)
+        }
+        let countsOnly = noteOf("verified", reportedNo)
+        let labelled = noteOf("verified", passed)
+        let repairedCounts = noteOf("repaired", reportedNo)
+        let heldNote = AgentViewModel.guardNoteText(outcome: "held", reason: "re-violation", check: mixed, drafts: true)
+        func counts(_ total: Int, _ fetched: Int, _ failed: Int) -> LedgerCheck {
+            LedgerCheck(
+                stage: "t", citationsTotal: total, citationsFetched: fetched, citationsFailed: failed, citationsUnfetched: [],
+                noteCitationsUnfetched: [], sourcesRequired: true, sourcesMissing: false)
+        }
+        let partly = noteOf("verified", counts(4, 3, 1))
+        let allThree = noteOf("verified", counts(3, 3, 0))
+        let repairedAll = noteOf("repaired", counts(3, 3, 0))
+        let repairedPartly = noteOf("repaired", counts(4, 3, 1))
+        check("m4g/passLabelNeedsAFetchedPage",
+            countsOnly?.text == "0/1 cited URLs were fetched in this task · 1 could not be fetched" && countsOnly?.warning == false
+                && partly?.text == "3/4 cited URLs were fetched in this task · 1 could not be fetched" && partly?.warning == false
+                && allThree?.text == "\(AgentViewModel.verifiedLabel) · 3/3 cited URLs were fetched in this task"
+                && repairedAll?.text == "\(AgentViewModel.verifiedLabel) · after one repair turn · 3/3 cited URLs were fetched in this task"
+                && repairedPartly?.text == "after one repair turn · 3/4 cited URLs were fetched in this task · 1 could not be fetched"
+                && labelled?.text == "\(AgentViewModel.verifiedLabel) · 1/1 cited URLs were fetched in this task"
+                && repairedCounts?.text == "after one repair turn · 0/1 cited URLs were fetched in this task · 1 could not be fetched"
+                && heldNote?.text.hasPrefix("\(AgentViewModel.heldLabel) · re-violation · not fetched: https://example.org/never") == true
+                && heldNote?.warning == true
+                && AgentViewModel.guardNoteText(outcome: "skipped", reason: "cap", check: nil, drafts: false) == nil,
+            [countsOnly, labelled, repairedCounts, heldNote, partly, allThree, repairedAll, repairedPartly].map { $0?.text ?? "nil" }
+                .joined(separator: " | "))
+        check("e2e/heldVerdict",
+            e2eOutcome(stoppedByDeadline: true, failureTitles: ["Stopped"], answer: "done", finishReason: "eos", held: true) == "held"
+                && e2eOutcome(stoppedByDeadline: false, failureTitles: [], answer: "done", finishReason: "eos", held: false) == "answered",
+            "")
+        let now = Date()
+        check("m4g/repairBudgetBlockers",
+            AgentViewModel.repairBlocker(stepsUsed: 8, maxSteps: 8, deadline: nil, now: now, stopped: false) == "no-steps-left"
+                && AgentViewModel.repairBlocker(stepsUsed: 4, maxSteps: 8, deadline: now.addingTimeInterval(-1), now: now, stopped: false) == "deadline"
+                && AgentViewModel.repairBlocker(stepsUsed: 7, maxSteps: 8, deadline: now.addingTimeInterval(60), now: now, stopped: false) == nil
+                && AgentViewModel.repairBlocker(stepsUsed: 4, maxSteps: 8, deadline: nil, now: now, stopped: true) == "stopped",
+            "")
+
+        let folder = FileManager.default.temporaryDirectory
+            .appending(path: "agent-selftest-m4g-\(UUID().uuidString)", directoryHint: .isDirectory)
+        try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        func exists(_ url: URL) -> Bool { FileManager.default.fileExists(atPath: url.path(percentEncoded: false)) }
+        func lines(_ entries: [ToolCassette.Entry]) -> Data {
+            let encoder = JSONEncoder()
+            return Data(entries.compactMap { try? encoder.encode($0) }.map { String(decoding: $0, as: UTF8.self) + "\n" }.joined().utf8)
+        }
+        let key = ["fetch_page", "https://example.com/old", ""]
+        do {
+            let tape = folder.appending(path: "cassette.jsonl")
+            let tally = CallCount()
+            let recorder = try ToolCassette(file: tape, mode: .record, replaysLatency: false)
+            let recorded = await recorder.output(for: key) {
+                await tally.add()
+                try? await Task.sleep(for: .milliseconds(120))
+                return page
+            }
+            let replayer = try ToolCassette(file: tape, mode: .replay, replaysLatency: false)
+            let replayed = await replayer.output(for: key) {
+                await tally.add()
+                return AgentToolOutput(text: "fetched again")
+            }
+            let missed = await replayer.output(for: ["fetch_page", "https://example.com/other", ""]) {
+                await tally.add()
+                return page
+            }
+            let (records, hits, misses, liveCalls) = (await recorder.records, await replayer.hits, await replayer.misses, await tally.value)
+            let saved = (try? String(contentsOf: tape, encoding: .utf8)) ?? ""
+            check("m4g/cassetteRecordReplay",
+                recorded.text == "page text" && replayed.text == recorded.text && replayed.seen == page.seen
+                    && replayed.finalURL == page.finalURL && records == 1 && hits == 1 && liveCalls == 1
+                    && saved.contains("\"ms\":") && saved.contains("\"ok\":true"),
+                "records=\(records) hits=\(hits) live=\(liveCalls) saved=\(saved.prefix(300))")
+            check("m4g/cassetteReplayMiss", missed.text == ToolCassette.missText && misses == 1, missed.text)
+
+            let doubled = folder.appending(path: "doubled.jsonl")
+            let first = ToolCassette.Entry(
+                key: key, text: "first", seen: [:], ok: true, finalURL: "https://example.com/old", ms: 300, recorded: "t1")
+            var second = first
+            second.text = "second"
+            second.ms = 0
+            try lines([first, second]).write(to: doubled)
+            let clock = ContinuousClock()
+            let slow = try ToolCassette(file: doubled, mode: .replay, replaysLatency: true)
+            var mark = clock.now
+            let firstWins = await slow.output(for: key) { AgentToolOutput(text: "live") }
+            let waited = (clock.now - mark) / .seconds(1)
+            let fast = try ToolCassette(file: doubled, mode: .replay, replaysLatency: false)
+            mark = clock.now
+            let quick = await fast.output(for: key) { AgentToolOutput(text: "live") }
+            let skipped = (clock.now - mark) / .seconds(1)
+            check("m4g/cassetteFirstRecordAndLatency",
+                firstWins.text == "first" && quick.text == "first" && waited >= 0.3 && skipped < 0.1,
+                String(format: "first=%@ waited=%.3fs none=%.3fs", firstWins.text, waited, skipped))
+
+            let stoppedTape = folder.appending(path: "stopped.jsonl")
+            let stopping = try ToolCassette(file: stoppedTape, mode: .replayOrRecord, replaysLatency: false)
+            let call = Task {
+                await stopping.output(for: key) {
+                    try? await Task.sleep(for: .seconds(5))
+                    return AgentToolOutput(text: "error: fetch_page failed (CancellationError())")
+                }
+            }
+            call.cancel()
+            _ = await call.value
+            let stoppedRecords = await stopping.records
+            check("m4g/cassetteSkipsStoppedCalls", stoppedRecords == 0 && !exists(stoppedTape), "records=\(stoppedRecords)")
+
+            let wired = try ToolCassette(file: tape, mode: .replay, replaysLatency: false)
+            var settings = AgentToolSettings(notesDirectory: folder)
+            settings.cassette = wired
+            let viaRun = await AgentTools.run(fetchCall("https://example.com/old"), settings: settings)
+            let plainNote = await AgentTools.run(writeCall("Wired", "body"), settings: settings)
+            settings.stableNotePaths = true
+            let stableNote = await AgentTools.run(writeCall("Stable", "body"), settings: settings)
+            let (wiredHits, wiredMisses) = (await wired.hits, await wired.misses)
+            check("m4g/cassetteAtToolEntry",
+                viaRun.text == "page text" && viaRun.finalURL == "https://example.com/new" && wiredHits == 1 && wiredMisses == 0
+                    && plainNote.text.hasPrefix("saved to ") && exists(folder.appending(path: "Wired.md")),
+                "\(viaRun.text) hits=\(wiredHits) misses=\(wiredMisses) note=\(plainNote.text)")
+            check("m4g/stableNotePaths",
+                stableNote.text == "saved to agent-notes/Stable.md" && exists(folder.appending(path: "Stable.md"))
+                    && plainNote.text == "saved to " + folder.appending(path: "Wired.md").path(percentEncoded: false),
+                stableNote.text + " | " + plainNote.text)
+
+            let four = folder.appending(path: "four.jsonl")
+            try lines((1...4).map {
+                ToolCassette.Entry(
+                    key: ["fetch_page", "https://example.com/p\($0)", ""], text: "page \($0)", seen: [:], ok: true,
+                    finalURL: "https://example.com/p\($0)", ms: 0, recorded: "t")
+            }).write(to: four)
+            let repairing = AgentViewModel()
+            repairing.persistsSettings = false
+            repairing.notesFolderPath = folder.path(percentEncoded: false)
+            repairing.cassette = try ToolCassette(file: four, mode: .replay, replaysLatency: false)
+            repairing.repairFetchLimit = AgentViewModel.repairFetchLimit
+            let runner = repairing.toolRunner()
+            let calls = (1...4).map { fetchCall("https://example.com/p\($0)") }
+            let results = await withTaskGroup(of: String.self) { group in
+                for call in calls { group.addTask { await runner(call) } }
+                var out: [String] = []
+                for await result in group { out.append(result) }
+                return out
+            }
+            let fourHits = await repairing.cassette?.hits ?? -1
+            check("m4g/repairFetchLimitInParallel",
+                results.count { $0 == AgentViewModel.repairFetchLimitText } == 1 && results.count { $0.hasPrefix("page ") } == 3
+                    && repairing.repairFetches == 3 && fourHits == 3 && repairing.ledger.count == 3
+                    && repairing.fetchAttempts.count == 4 && repairing.fetchAttempts.count { $0.ok } == 3,
+                "\(results) reserved=\(repairing.repairFetches) hits=\(fourHits) attempts=\(repairing.fetchAttempts)")
+
+            let mixedTape = folder.appending(path: "mixed.jsonl")
+            try lines([
+                ToolCassette.Entry(
+                    key: ["fetch_page", "https://example.invalid/gone", ""], text: "error: HTTP 404 for https://example.invalid/gone",
+                    seen: [:], ok: false, finalURL: nil, ms: 0, recorded: "t"),
+                ToolCassette.Entry(
+                    key: ["fetch_page", "https://example.com/p1", ""], text: "page 1", seen: [:], ok: true,
+                    finalURL: "https://example.com/p1", ms: 0, recorded: "t"),
+            ]).write(to: mixedTape)
+            let trying = AgentViewModel()
+            trying.persistsSettings = false
+            trying.notesFolderPath = folder.path(percentEncoded: false)
+            trying.cassette = try ToolCassette(file: mixedTape, mode: .replay, replaysLatency: false)
+            let tryRunner = trying.toolRunner()
+            _ = await tryRunner(fetchCall("https://example.invalid/gone"))
+            _ = await tryRunner(fetchCall("https://example.com/p1"))
+            check("m4g/fetchAttemptsRecordFailures",
+                trying.fetchAttempts == [
+                    FetchAttempt(url: "https://example.invalid/gone", ok: false), FetchAttempt(url: "https://example.com/p1", ok: true),
+                ] && trying.ledger.map(\.url) == ["https://example.com/p1"],
+                "attempts=\(trying.fetchAttempts) ledger=\(trying.ledger.map(\.url))")
+
+            let notesA = folder.appending(path: "notes-a", directoryHint: .isDirectory)
+            let drafting = AgentViewModel()
+            drafting.persistsSettings = false
+            drafting.notesFolderPath = notesA.path(percentEncoded: false)
+            drafting.guardActive = true
+            let draftRunner = drafting.toolRunner()
+            let saved1 = await draftRunner(writeCall("Summary", "first body"))
+            let saved2 = await draftRunner(writeCall("Summary", "second body"))
+            drafting.repairFetchLimit = AgentViewModel.repairFetchLimit
+            let saved3 = await draftRunner(writeCall("Summary", "repaired body"))
+            drafting.repairFetchLimit = nil
+            let draftFolder = notesA.appending(path: AgentTools.draftFolderName, directoryHint: .isDirectory)
+            let draftsBefore = ((try? FileManager.default.contentsOfDirectory(atPath: draftFolder.path(percentEncoded: false))) ?? []).sorted()
+            let committedBefore = ((try? FileManager.default.contentsOfDirectory(atPath: notesA.path(percentEncoded: false))) ?? [])
+                .filter { $0 != AgentTools.draftFolderName }
+            drafting.finishNotes(commit: true)
+            let kept = (try? String(contentsOf: notesA.appending(path: "Summary 2.md"), encoding: .utf8)) ?? ""
+            check("m4g/draftsCommitOnPass",
+                saved1 == "saved to " + notesA.appending(path: "Summary.md").path(percentEncoded: false)
+                    && saved2 == "saved to " + notesA.appending(path: "Summary 2.md").path(percentEncoded: false) && saved3 == saved2
+                    && draftsBefore == ["Summary 2.md", "Summary.md"] && committedBefore.isEmpty
+                    && kept.contains("repaired body") && exists(notesA.appending(path: "Summary.md"))
+                    && !exists(draftFolder.appending(path: "Summary.md")),
+                "\(saved1) | \(saved2) | \(saved3) drafts=\(draftsBefore) committedBefore=\(committedBefore)")
+
+            let notesB = folder.appending(path: "notes-b", directoryHint: .isDirectory)
+            let holding = AgentViewModel()
+            holding.persistsSettings = false
+            holding.notesFolderPath = notesB.path(percentEncoded: false)
+            holding.guardActive = true
+            _ = await holding.toolRunner()(writeCall("Held note", "body"))
+            holding.finishNotes(commit: false)
+            let held = (try? String(
+                contentsOf: notesB.appending(path: AgentTools.draftFolderName).appending(path: "HELD.txt"), encoding: .utf8)) ?? ""
+            check("m4g/draftsHeldNotCommitted",
+                !exists(notesB.appending(path: "Held note.md"))
+                    && exists(notesB.appending(path: AgentTools.draftFolderName).appending(path: "Held note.md"))
+                    && held.contains("reason: ") && held.contains("- Held note.md"),
+                held)
+        } catch {
+            check("m4g/cassette", false, "\(error)")
+        }
+
+        check("m4g/ragBudget",
+            RAGContext.sourceTokenBudget == 3_000 && RAGSettings.budgetChoices == [3_000, 6_000] && RAGSettings().sourceTokenBudget == 3_000,
+            "\(RAGContext.sourceTokenBudget) \(RAGSettings.budgetChoices)")
+
+        let broken = folder.appending(path: "broken-bundle", directoryHint: .isDirectory)
+        try? FileManager.default.createDirectory(at: broken, withIntermediateDirectories: true)
+        try? Data("{}".utf8).write(to: broken.appending(path: "metadata.json"))
+        let models = ModelsViewModel()
+        models.open(broken)
+        check("m4g/modelsShowBundleError", models.message?.hasSuffix("metadata.json has no name.") == true, models.message ?? "nil")
+    }
+
     static let longPageFixture: String = {
         var lines = ["Core ML \u{30C9}\u{30AD}\u{30E5}\u{30E1}\u{30F3}\u{30C8} \u{76EE}\u{6B21}"]
         lines += (1...60).map {
@@ -393,6 +849,11 @@ enum AgentSelfTest {
         lines += (61...80).map { "\u{7B2C}\($0)\u{7AE0} \u{88DC}\u{8DB3}\u{8CC7}\u{6599}\u{3068}\u{53C2}\u{8003}\u{6587}\u{732E}\u{306E}\u{4E00}\u{89A7}\u{3067}\u{3059}\u{3002}\u{8A73}\u{7D30}\u{306F}\u{5404}\u{30EA}\u{30F3}\u{30AF}\u{3092}\u{53C2}\u{7167}\u{3057}\u{3066}\u{304F}\u{3060}\u{3055}\u{3044}\u{3002}" }
         return lines.joined(separator: "\n")
     }()
+
+    private actor CallCount {
+        var value = 0
+        func add() { value += 1 }
+    }
 
     static let htmlFixture = """
         <!-- a comment with <b>tags</b> -->

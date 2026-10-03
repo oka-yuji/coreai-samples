@@ -17,7 +17,7 @@ public struct RAGSource: Sendable, Equatable {
 }
 
 public enum RAGContext {
-    public static let sourceTokenBudget = 6_000
+    public static let sourceTokenBudget = 3_000
     public static let promptTokenBudget = 8_000
 
     public static func instruction(today: String) -> String {

@@ -41,6 +41,7 @@ final class ModelsViewModel {
         let url: URL
         let name: String?
         let size: Int64
+        var problem: String?
 
         var id: String { ModelStorage.key(url) }
     }
@@ -65,15 +66,21 @@ final class ModelsViewModel {
         }
         folders = ModelStorage.folders.map { path in
             let url = URL(filePath: path, directoryHint: .isDirectory)
-            return Folder(url: url, name: try? ModelBundle(url: url).name, size: ModelStorage.size(of: url))
+            do {
+                return Folder(url: url, name: try ModelBundle(url: url).name, size: ModelStorage.size(of: url))
+            } catch {
+                return Folder(url: url, name: nil, size: ModelStorage.size(of: url), problem: error.localizedDescription)
+            }
         }
         downloadedSize = ModelStorage.size(of: ModelStorage.modelsRoot)
         availableSpace = ModelStorage.availableSpace()
     }
 
     func open(_ url: URL) {
-        guard (try? ModelBundle(url: url)) != nil else {
-            message = "\(url.lastPathComponent) is not a Core AI model bundle: metadata.json is missing or unreadable."
+        do {
+            _ = try ModelBundle(url: url)
+        } catch {
+            message = "\(url.lastPathComponent) is not a Core AI model bundle: \(error.localizedDescription)"
             return
         }
         let key = ModelStorage.key(url)

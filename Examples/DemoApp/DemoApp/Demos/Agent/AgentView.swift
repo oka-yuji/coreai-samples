@@ -142,6 +142,8 @@ struct AgentView: View {
                     .frame(maxWidth: 280)
             }
             Toggle("Allow file operations (move_note, from the next task)", isOn: $agent.allowFileOperations)
+            Toggle("Citation guard", isOn: $agent.citationGuard)
+                .help("Check the answer's and the notes' URLs against the pages fetched in this task, ask the model to fix them once, and keep notes as drafts until the check passes")
             HStack(spacing: 6) {
                 Text("Notes folder")
                 Text(agent.notesDirectory.path(percentEncoded: false))
@@ -193,6 +195,18 @@ struct AgentView: View {
     }
 
     private var composer: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            if !agent.running && chat.isResponding {
+                Text("Chat is replying on this model. The agent can start when it finishes.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            input
+        }
+        .padding(10)
+    }
+
+    private var input: some View {
         @Bindable var agent = agent
         return HStack(alignment: .bottom, spacing: 8) {
             TextField("Task", text: $agent.input, axis: .vertical)
@@ -220,7 +234,6 @@ struct AgentView: View {
                     .disabled(!agent.canSend(chat: chat))
             }
         }
-        .padding(10)
     }
 
     private func sendIfPossible() {
@@ -260,9 +273,9 @@ struct AgentEntryRow: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         case .note:
-            Label("\(entry.title): \(entry.text)", systemImage: "checkmark.seal")
+            Label("\(entry.title): \(entry.text)", systemImage: entry.warning ? "exclamationmark.triangle" : "checkmark.seal")
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(entry.warning ? Color.orange : Color.secondary)
                 .textSelection(.enabled)
                 .frame(maxWidth: .infinity, alignment: .leading)
         case .toolCall:

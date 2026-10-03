@@ -68,15 +68,41 @@ enum AgentPromptBuilder {
         "- Compare source dates with the current date: an event dated before today has already happened, so describe it in the past tense and prefer the most recent sources.",
     ]
 
-    static func instructions(date: String) -> String {
-        "You are an agent running on this device." + systemPromptBody + "\n\n" + extraInstructions.joined(separator: "\n") + "\n\nCurrent date: " + date
+    /// `--instructions cite-fetched` (M4-g G1 and G2): two lines after the frozen three, worded as in the M4-g appendix §6.
+    static let citeFetchedInstructions = [
+        "- Cite only pages you actually opened with fetch_page in this task. A search-result snippet is not a source: fetch the page before you rely on it or cite it, and drop any claim you could not confirm in a fetched page.",
+        "- When you quote a number from a table, check the row and column headers (date, year, unit) so the value belongs to the item you are describing.",
+    ]
+
+    static func instructions(date: String, citeFetched: Bool = false) -> String {
+        "You are an agent running on this device." + systemPromptBody + "\n\n"
+            + (extraInstructions + (citeFetched ? citeFetchedInstructions : [])).joined(separator: "\n") + "\n\nCurrent date: " + date
+    }
+
+    /// The citation guard's one repair turn, worded as in the M4-g appendix §7; the placeholder becomes the unfetched URLs.
+    static let repairPromptTemplate = "Citation check by the app: these sources were not opened with fetch_page in this task: <URL list, or \"none listed\">. Open the pages you need with fetch_page (at most 3), then answer the original question again. Keep only claims that a fetched page supports, list only fetched pages under Sources, and say \"unconfirmed\" for anything you could not confirm. If you saved a note, save it again with the same title after the same correction. Fetching a page does not by itself make a claim true."
+    static let repairURLPlaceholder = "<URL list, or \"none listed\">"
+
+    static func repairPrompt(unfetched: [String]) -> String {
+        repairPromptTemplate.replacingOccurrences(
+            of: repairURLPlaceholder, with: unfetched.isEmpty ? "none listed" : unfetched.joined(separator: ", "))
     }
 
     static func today(_ date: Date = Date()) -> String {
+        dateFormatter().string(from: date)
+    }
+
+    /// `--date` must read like `today()` and name the right weekday.
+    static func isDateLabel(_ text: String) -> Bool {
+        let formatter = dateFormatter()
+        return formatter.date(from: text).map(formatter.string(from:)) == text
+    }
+
+    private static func dateFormatter() -> DateFormatter {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.dateFormat = "yyyy-MM-dd (EEE)"
-        return formatter.string(from: date)
+        return formatter
     }
 
     static func tools(fileOperations: Bool, run: @escaping @Sendable (AgentToolCall) async -> String) -> [any Tool] {
