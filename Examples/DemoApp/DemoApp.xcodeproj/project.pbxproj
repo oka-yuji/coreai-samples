@@ -9,12 +9,17 @@
 /* Begin PBXBuildFile section */
 		1FC56C8DEADFDCBB87F89AEA /* GUIDriver.swift in Sources */ = {isa = PBXBuildFile; fileRef = F562386F185691642C44B1E9 /* GUIDriver.swift */; };
 		2571C7BFDD45C331F1399D3D /* ModelStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16E551C28EBA72A6BB553D1E /* ModelStorage.swift */; };
+		3E1808C0E34BD5E29340F58C /* AgentTools.swift in Sources */ = {isa = PBXBuildFile; fileRef = CEB723B3B0854B2E728DC0D0 /* AgentTools.swift */; };
+		541B2F9C2D3DD23698E20517 /* AgentSelfTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = F02B9EA454BBC2DA0860913C /* AgentSelfTest.swift */; };
 		5FF4C42E6FBA3B39734F975E /* MetricsLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4257A85A05752939D54D8DD6 /* MetricsLog.swift */; };
+		8238AA7B1F1A1A31B8F56A6C /* AgentPromptBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53FA5FB27187C443C7E5326A /* AgentPromptBuilder.swift */; };
 		873FFC0BCC919261A31F32A5 /* DemoAppMain.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC51CB72599FFDE3FE0BE8B2 /* DemoAppMain.swift */; };
+		897157FF7C6F9EF280D64E69 /* AgentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6180203241A69AF78B1EA051 /* AgentView.swift */; };
 		89A5606E1F6EB51E514D9B15 /* ChatViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3CA9B9D6773A6CFD8CCBCE1 /* ChatViewModel.swift */; };
 		8A80C55FCFB485CFDE43E02D /* ModelsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FDDE78A1F2C3AA789F5EBBF /* ModelsViewModel.swift */; };
 		9E333D365C54EE16839F9441 /* Catalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DA2CE786E14E456666C45DC /* Catalog.swift */; };
 		BFF21A67415D503917D74D34 /* ModelsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 201FDFD4C2617312CDF10C20 /* ModelsView.swift */; };
+		C9DF519AC833FDE454187B9A /* AgentViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD58AC60D2EE1B6D37356EF4 /* AgentViewModel.swift */; };
 		DA2E524C81EE205770B83ACF /* DemoRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6946403106441AB2ED7A4630 /* DemoRootView.swift */; };
 		DFA0256A139D0EF6D51130AF /* CoreAIBackend in Frameworks */ = {isa = PBXBuildFile; productRef = 7E1D4158D172A02B7B989435 /* CoreAIBackend */; };
 		F054EA73A985B4D591628A4C /* ChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D721601AF8302B97432587EA /* ChatView.swift */; };
@@ -30,14 +35,19 @@
 		2619A7AFA183FE8490939FDF /* HubDownloader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HubDownloader.swift; sourceTree = "<group>"; };
 		4257A85A05752939D54D8DD6 /* MetricsLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetricsLog.swift; sourceTree = "<group>"; };
 		4DA2CE786E14E456666C45DC /* Catalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Catalog.swift; sourceTree = "<group>"; };
+		53FA5FB27187C443C7E5326A /* AgentPromptBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentPromptBuilder.swift; sourceTree = "<group>"; };
+		6180203241A69AF78B1EA051 /* AgentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentView.swift; sourceTree = "<group>"; };
 		6946403106441AB2ED7A4630 /* DemoRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoRootView.swift; sourceTree = "<group>"; };
 		96BE74A7623526708986F062 /* SelfTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelfTest.swift; sourceTree = "<group>"; };
 		9FDDE78A1F2C3AA789F5EBBF /* ModelsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelsViewModel.swift; sourceTree = "<group>"; };
+		AD58AC60D2EE1B6D37356EF4 /* AgentViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentViewModel.swift; sourceTree = "<group>"; };
 		CC51CB72599FFDE3FE0BE8B2 /* DemoAppMain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoAppMain.swift; sourceTree = "<group>"; };
+		CEB723B3B0854B2E728DC0D0 /* AgentTools.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentTools.swift; sourceTree = "<group>"; };
 		D721601AF8302B97432587EA /* ChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatView.swift; sourceTree = "<group>"; };
 		E3CA9B9D6773A6CFD8CCBCE1 /* ChatViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatViewModel.swift; sourceTree = "<group>"; };
+		F02B9EA454BBC2DA0860913C /* AgentSelfTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentSelfTest.swift; sourceTree = "<group>"; };
 		F562386F185691642C44B1E9 /* GUIDriver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GUIDriver.swift; sourceTree = "<group>"; };
-		"TEMP_821A4429-7551-422D-8D7B-BCACCDCBE5F2" /* Signing.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.xcconfig; sourceTree = "<group>"; };
+		"TEMP_CA3E6E58-D16E-4634-B8FA-B2C093FD2DBC" /* Signing.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -52,6 +62,18 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		1023144273CD5423540C7B8B /* Agent */ = {
+			isa = PBXGroup;
+			children = (
+				53FA5FB27187C443C7E5326A /* AgentPromptBuilder.swift */,
+				F02B9EA454BBC2DA0860913C /* AgentSelfTest.swift */,
+				CEB723B3B0854B2E728DC0D0 /* AgentTools.swift */,
+				6180203241A69AF78B1EA051 /* AgentView.swift */,
+				AD58AC60D2EE1B6D37356EF4 /* AgentViewModel.swift */,
+			);
+			path = Agent;
+			sourceTree = "<group>";
+		};
 		440193E401A4E83EEA00B144 = {
 			isa = PBXGroup;
 			children = (
@@ -74,6 +96,7 @@
 		5183B0CE22F31FA0116AC0F5 /* Demos */ = {
 			isa = PBXGroup;
 			children = (
+				1023144273CD5423540C7B8B /* Agent */,
 				5138FDD1E4F08E501221B1DB /* Chat */,
 				BDCB1E5DB44A0564814718D2 /* ModelManager */,
 			);
@@ -120,10 +143,10 @@
 			path = DemoApp;
 			sourceTree = "<group>";
 		};
-		"TEMP_264FA6FB-3AA8-47E2-926A-C1A790C7B374" /* DemoApp */ = {
+		"TEMP_2DF09355-F680-4BC5-9D36-EC2CB8F71BAD" /* DemoApp */ = {
 			isa = PBXGroup;
 			children = (
-				"TEMP_821A4429-7551-422D-8D7B-BCACCDCBE5F2" /* Signing.xcconfig */,
+				"TEMP_CA3E6E58-D16E-4634-B8FA-B2C093FD2DBC" /* Signing.xcconfig */,
 			);
 			path = DemoApp;
 			sourceTree = "<group>";
@@ -191,6 +214,11 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				8238AA7B1F1A1A31B8F56A6C /* AgentPromptBuilder.swift in Sources */,
+				541B2F9C2D3DD23698E20517 /* AgentSelfTest.swift in Sources */,
+				3E1808C0E34BD5E29340F58C /* AgentTools.swift in Sources */,
+				897157FF7C6F9EF280D64E69 /* AgentView.swift in Sources */,
+				C9DF519AC833FDE454187B9A /* AgentViewModel.swift in Sources */,
 				9E333D365C54EE16839F9441 /* Catalog.swift in Sources */,
 				F054EA73A985B4D591628A4C /* ChatView.swift in Sources */,
 				89A5606E1F6EB51E514D9B15 /* ChatViewModel.swift in Sources */,
@@ -211,7 +239,7 @@
 /* Begin XCBuildConfiguration section */
 		041C67ECF87CA2F42B2A6BA2 /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = "TEMP_821A4429-7551-422D-8D7B-BCACCDCBE5F2" /* Signing.xcconfig */;
+			baseConfigurationReference = "TEMP_CA3E6E58-D16E-4634-B8FA-B2C093FD2DBC" /* Signing.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ANALYZER_NONNULL = YES;
@@ -269,7 +297,7 @@
 		};
 		17707D7259CA9368A4B03200 /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = "TEMP_821A4429-7551-422D-8D7B-BCACCDCBE5F2" /* Signing.xcconfig */;
+			baseConfigurationReference = "TEMP_CA3E6E58-D16E-4634-B8FA-B2C093FD2DBC" /* Signing.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ANALYZER_NONNULL = YES;

@@ -15,17 +15,21 @@ final class GUIDriver {
         let seconds: Double
     }
 
+    static let agentTask = "Search for what Apple's MLX framework is and summarise it in three lines."
+    static let stopTask = "Read https://developer.apple.com/documentation/createml and list three key points."
+
     private var attached = false
     private var results: [StepResult] = []
     private var lines: [String] = []
+    private var sessions: [String] = []
     private var outDir = URL.temporaryDirectory
     private var maxStall = 0.0
 
-    func attach(navigator: DemoNavigator, chat: ChatViewModel, models: ModelsViewModel) {
+    func attach(navigator: DemoNavigator, chat: ChatViewModel, agent: AgentViewModel, models: ModelsViewModel) {
         guard let path = LaunchArguments.value("--gui-e2e"), !attached else { return }
         attached = true
         outDir = URL(filePath: path, directoryHint: .isDirectory)
-        Task { await run(navigator: navigator, chat: chat, models: models) }
+        Task { await run(navigator: navigator, chat: chat, agent: agent, models: models) }
     }
 
     private func note(_ text: String) {
@@ -133,7 +137,7 @@ final class GUIDriver {
         return await wait(seconds: timeout) { !chat.isResponding }
     }
 
-    private func run(navigator: DemoNavigator, chat: ChatViewModel, models: ModelsViewModel) async {
+    private func run(navigator: DemoNavigator, chat: ChatViewModel, agent: AgentViewModel, models: ModelsViewModel) async {
         try? FileManager.default.createDirectory(at: outDir, withIntermediateDirectories: true)
         let metricsBefore = (try? String(contentsOf: MetricsLog.fileURL, encoding: .utf8))?.split(separator: "\n").count ?? 0
         note("out=\(outDir.path(percentEncoded: false)) contextLimit=\(chat.contextLimit.map(String.init) ?? "default")")
@@ -193,6 +197,12 @@ final class GUIDriver {
                 self.maxStall, String(preparingShown), chat.loadNote))
         }
 
+        if LaunchArguments.flag("--agent") {
+            await runAgent(navigator: navigator, chat: chat, agent: agent)
+            await finish(metricsBefore: metricsBefore)
+            return
+        }
+
         await step(4, "chat", "One turn streams to the end and the status line shows the numbers") {
             let done = await self.ask(chat, "Explain in two sentences what a context window is in a language model.")
             let last = chat.last
@@ -246,7 +256,76 @@ final class GUIDriver {
         await finish(metricsBefore: metricsBefore)
     }
 
+    private func runAgent(navigator: DemoNavigator, chat: ChatViewModel, agent: AgentViewModel) async {
+        agent.persistsSettings = false
+        agent.effort = .low
+        note("agent effort=\(agent.effort.rawValue) steps=\(agent.maxIterations) tokens=\(agent.maxNewTokens) "
+            + "budget=\(agent.pageCharacterBudget) search=\(agent.searchProvider) fileOps=\(agent.allowFileOperations)")
+
+        await step(4, "agent-task", "Agent: the task is sent and the first step streams") {
+            navigator.selection = .agent
+            await self.settle()
+            agent.input = Self.agentTask
+            guard agent.send(chat: chat) else { return (false, "send refused") }
+            if let id = agent.sessionID { self.sessions.append(id) }
+            let streaming = await self.wait(seconds: 120) { agent.entries.contains { $0.kind != .user } }
+            return (streaming && agent.running,
+                "running=\(agent.running) kinds=\(agent.entries.map { "\($0.kind)" }) status=\(agent.statusLine)")
+        }
+
+        await step(5, "agent-tools", "Agent: tool calls and their results are listed") {
+            let listed = await self.wait(seconds: 600) {
+                agent.entries.contains { $0.kind == .toolCall } && agent.entries.contains { $0.kind == .toolResult }
+            }
+            let calls = agent.entries.filter { $0.kind == .toolCall }.map { "\($0.title) {\(Self.head($0.text, 120))}" }
+            let results = agent.entries.filter { $0.kind == .toolResult }.map { "\($0.title) \($0.text.count) chars" }
+            return (listed, "calls=\(calls) results=\(results) status=\(agent.statusLine)")
+        }
+
+        await step(6, "agent-answer", "Agent: the answer ends with Sources and every step has its numbers") {
+            let done = await self.wait(seconds: 900) { !agent.running }
+            let answer = agent.entries.last { $0.kind == .answer }?.text ?? ""
+            let stats = agent.entries.compactMap(\.stats)
+            return (done && answer.contains("Sources") && agent.lastFinishReason == "eos" && !stats.isEmpty,
+                "finished=\(done) sources=\(answer.contains("Sources")) finish=\(agent.lastFinishReason ?? "none") "
+                    + "stats=\(stats.joined(separator: " ;; ")) answer=\(Self.head(answer, 800))")
+        }
+
+        await step(7, "agent-stop", "Agent: Stop halts a running task within three seconds and keeps what was written") {
+            let mark = agent.entries.count
+            agent.input = Self.stopTask
+            guard agent.send(chat: chat) else { return (false, "send refused") }
+            let grew = await self.wait(seconds: 180) {
+                agent.entries.count > mark + 1 && (agent.entries.last?.text.count ?? 0) > 20
+            }
+            let started = ContinuousClock.now
+            agent.stop()
+            let halted = await self.wait(seconds: 3) { !agent.running }
+            let seconds = (ContinuousClock.now - started) / .seconds(1)
+            _ = await self.wait(seconds: 120) { !agent.running }
+            let stopped = agent.entries.last { $0.kind == .failure && $0.title == "Stopped" }
+            return (grew && halted && stopped != nil, String(
+                format: "grew=%@ halted=%@ seconds=%.3f stopped=%@ status=%@", String(grew), String(halted), seconds,
+                Self.head(stopped?.text ?? "none", 200), agent.statusLine))
+        }
+
+        await step(8, "agent-new-task", "Agent: New Task clears the transcript") {
+            agent.reset()
+            await self.settle()
+            return (agent.entries.isEmpty && agent.sessionID == nil && !agent.running,
+                "entries=\(agent.entries.count) session=\(agent.sessionID ?? "none") status=\(agent.statusLine)")
+        }
+    }
+
     private func finish(metricsBefore: Int) async {
+        for id in sessions {
+            let source = AgentViewModel.transcriptsDirectory().appending(path: "\(id).md")
+            do {
+                try FileManager.default.copyItem(at: source, to: outDir.appending(path: "transcript-\(id).md"))
+            } catch {
+                note("transcript missing for \(id): \(error)")
+            }
+        }
         await MetricsLog.flush()
         let metrics = ((try? String(contentsOf: MetricsLog.fileURL, encoding: .utf8)) ?? "").split(separator: "\n").dropFirst(metricsBefore)
         try? Data((metrics.joined(separator: "\n") + "\n").utf8).write(to: outDir.appending(path: "metrics.jsonl"), options: .atomic)

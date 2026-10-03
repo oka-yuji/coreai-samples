@@ -64,6 +64,7 @@ final class ChatViewModel {
     private(set) var contextNotice: String?
     private(set) var contextFull = false
     var input = ""
+    var externallyBusy = false
     var reasoning = Reasoning.medium
     var maxTokens = 2048
     let contextLimit = LaunchArguments.value("--context-limit").flatMap(Int.init)
@@ -77,7 +78,7 @@ final class ChatViewModel {
 
     var isLoading: Bool { if case .loading = phase { true } else { false } }
     var trimmedInput: String { input.trimmingCharacters(in: .whitespacesAndNewlines) }
-    var canSend: Bool { phase == .ready && !isResponding && !contextFull && !trimmedInput.isEmpty }
+    var canSend: Bool { phase == .ready && !isResponding && !externallyBusy && !contextFull && !trimmedInput.isEmpty }
     var loadStats: Engine.LoadStats? { model?.loadStats }
 
     var turns: [Turn] {
@@ -124,7 +125,7 @@ final class ChatViewModel {
     }
 
     func load(_ url: URL) async {
-        guard !isLoading, !isResponding else { return }
+        guard !isLoading, !isResponding, !externallyBusy else { return }
         let key = ModelStorage.key(url)
         model = nil
         session = nil

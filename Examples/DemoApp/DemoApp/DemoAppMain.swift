@@ -16,6 +16,12 @@ enum DemoAppMain {
         if LaunchArguments.flag("--selftest") {
             SelfTest.run()
         }
+        if LaunchArguments.flag("--agent-selftest") {
+            AgentSelfTest.run()
+        }
+        if LaunchArguments.flag("--agent-e2e") {
+            AgentSelfTest.runEndToEnd()
+        }
         DemoApp.main()
     }
 }

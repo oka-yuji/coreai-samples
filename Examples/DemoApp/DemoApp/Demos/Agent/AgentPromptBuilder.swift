@@ -1,0 +1,118 @@
+import Foundation
+import FoundationModels
+
+enum AgentReasoningEffort: String, CaseIterable, Identifiable, Sendable {
+    case off, low, medium, xhigh
+
+    var id: String { rawValue }
+    var label: String { self == .xhigh ? "Xhigh" : rawValue.capitalized }
+
+    var level: ContextOptions.ReasoningLevel {
+        switch self {
+        case .off: .custom("off")
+        case .low: .light
+        case .medium: .moderate
+        case .xhigh: .deep
+        }
+    }
+}
+
+struct AgentTool<Arguments: Generable>: Tool {
+    let name: String
+    let description: String
+    let run: @Sendable (AgentToolCall) async -> String
+
+    @concurrent func call(arguments: Arguments) async -> String {
+        await run(AgentToolCall(name: name, arguments: AgentPromptBuilder.arguments(name, arguments.generatedContent)))
+    }
+}
+
+@Generable
+struct WebSearchArguments {
+    @Guide(description: "What to search for.")
+    var query: String
+    @Guide(description: "How many results to return, 1 to 10. Defaults to 5.")
+    var max_results: Int?
+}
+
+@Generable
+struct FetchPageArguments {
+    @Guide(description: "The absolute http or https URL to fetch.")
+    var url: String
+    @Guide(description: "What you are looking for on this page. When given, the tool returns the passages most relevant to it instead of the beginning of the page.")
+    var query: String?
+}
+
+@Generable
+struct WriteNoteArguments {
+    @Guide(description: "Short note title, used for the file name.")
+    var title: String
+    @Guide(description: "Markdown body of the note.")
+    var content: String
+}
+
+@Generable
+struct MoveNoteArguments {
+    @Guide(description: "The title the note was saved with, or its file name.")
+    var title: String
+    @Guide(description: "Target folder: Desktop, Documents, Downloads, or a path under one of them such as Desktop/notes.")
+    var destination: String
+}
+
+enum AgentPromptBuilder {
+    static let systemPromptBody = " Use the tools to gather facts before you answer. Keep queries short, and cite the URLs you used. You may issue up to 3 tool calls in one turn when they are independent (for example, fetching two search results at once). Dependent steps must stay in separate turns. When you have enough information, answer directly without calling a tool."
+
+    static let extraInstructions = [
+        "- If a tool returns an error or empty result, state in one short sentence why it likely failed, then retry ONCE with an adjusted query or a different tool. Never repeat the exact same failing call.",
+        "- When your final answer uses information from web_search or fetch_page, end the answer with a \"Sources:\" section listing the URLs you actually used (one per line). This applies even when you also saved a note.",
+        "- Compare source dates with the current date: an event dated before today has already happened, so describe it in the past tense and prefer the most recent sources.",
+    ]
+
+    static func instructions(date: String) -> String {
+        "You are an agent running on this device." + systemPromptBody + "\n\n" + extraInstructions.joined(separator: "\n") + "\n\nCurrent date: " + date
+    }
+
+    static func today(_ date: Date = Date()) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyy-MM-dd (EEE)"
+        return formatter.string(from: date)
+    }
+
+    static func tools(fileOperations: Bool, run: @escaping @Sendable (AgentToolCall) async -> String) -> [any Tool] {
+        var tools: [any Tool] = [
+            AgentTool<WebSearchArguments>(
+                name: "web_search", description: "Search the web and return the top results as title, url and snippet.", run: run),
+            AgentTool<FetchPageArguments>(
+                name: "fetch_page", description: "Fetch a web page by URL and return its readable text, truncated to a character budget.", run: run),
+            AgentTool<WriteNoteArguments>(
+                name: "write_note", description: "Save a Markdown note on this device and return the file path. Keep content under about 2,000 characters.", run: run),
+        ]
+        if fileOperations {
+            tools.append(AgentTool<MoveNoteArguments>(
+                name: "move_note",
+                description: "Move a note saved with write_note to another folder on this device and return its new path. Allowed destinations: Desktop, Documents, Downloads, or a sub-folder of one of them. Existing files are never overwritten.",
+                run: run))
+        }
+        return tools
+    }
+
+    static let argumentOrder = [
+        "web_search": ["query", "max_results"], "fetch_page": ["url", "query"],
+        "write_note": ["title", "content"], "move_note": ["title", "destination"],
+    ]
+
+    static func arguments(_ tool: String, _ content: GeneratedContent) -> [AgentArgument] {
+        guard case .structure(let properties, let keys) = content.kind else { return [] }
+        let order = argumentOrder[tool] ?? []
+        return (order.filter(keys.contains) + keys.filter { !order.contains($0) }.sorted()).compactMap { key in
+            guard let value = properties[key] else { return nil }
+            switch value.kind {
+            case .null: return nil
+            case .string(let text): return AgentArgument(name: key, value: text)
+            case .number(let number): return AgentArgument(name: key, value: Int(exactly: number).map(String.init) ?? String(number))
+            default: return AgentArgument(name: key, value: value.jsonString)
+            }
+        }
+    }
+}

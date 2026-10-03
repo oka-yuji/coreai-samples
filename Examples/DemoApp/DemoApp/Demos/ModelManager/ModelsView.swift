@@ -30,7 +30,7 @@ struct ModelsView: View {
                     FolderRowView(
                         folder: folder,
                         state: chat.state(of: folder.url),
-                        busy: chat.isLoading || chat.isResponding,
+                        busy: chat.isLoading || chat.isResponding || chat.externallyBusy,
                         onLoad: { load(folder.url) },
                         onClear: { vm.clearPrepared(folder.url) },
                         onForget: { vm.forget(folder) })

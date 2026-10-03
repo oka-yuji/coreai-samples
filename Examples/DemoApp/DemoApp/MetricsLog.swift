@@ -19,12 +19,48 @@ enum MetricsLog {
         let rssMB: Double
     }
 
+    struct AgentRecord: Encodable {
+        let kind: String
+        let timestamp: String
+        let appBuild: String
+        let osVersion: String
+        let deviceModel: String
+        let model: String
+        var agentSession: String?
+        var agentTurn: Int?
+        var agentStep: Int?
+        var agentEffort: String?
+        var promptTokens: Int?
+        var reusedTokens: Int?
+        var generatedTokens: Int?
+        var ttftSeconds: Double?
+        var prefillSeconds: Double?
+        var decodeTokPerSec: Double?
+        var finishReason: String?
+        var rssMB: Double?
+        var agentToolCalls: [String]?
+        var agentRerenderDiverged: Bool?
+        var agentThinkingChars: Int?
+        var agentAnswerChars: Int?
+        var truncatedToolOutputs: Int?
+        var citationsTotal: Int?
+        var citationsSeen: Int?
+        var citationMeanOverlap: Double?
+        var toolName: String?
+        var toolArg: String?
+        var toolStart: String?
+        var toolEnd: String?
+        var toolSeconds: Double?
+        var toolResultChars: Int?
+        var toolError: Bool?
+    }
+
     static var fileURL: URL { ModelStorage.root.appending(path: "metrics.jsonl") }
 
     private static let queue = DispatchQueue(label: "com.coreai-samples.DemoApp.metrics")
 
     static func generation(model: String, stats: GenerationStats) {
-        let record = Record(
+        save(Record(
             timestamp: Date.now.ISO8601Format(),
             appBuild: appBuild(),
             osVersion: ProcessInfo.processInfo.operatingSystemVersionString,
@@ -38,7 +74,16 @@ enum MetricsLog {
             tokensPerSecond: stats.tokensPerSecond,
             stopReason: stats.stopReason,
             error: stats.error,
-            rssMB: Double(residentBytes()) / 1_048_576)
+            rssMB: residentMB()))
+    }
+
+    static func agent(_ kind: String, model: String) -> AgentRecord {
+        AgentRecord(
+            kind: kind, timestamp: Date.now.ISO8601Format(), appBuild: appBuild(),
+            osVersion: ProcessInfo.processInfo.operatingSystemVersionString, deviceModel: deviceModel(), model: model)
+    }
+
+    static func save(_ record: some Encodable) {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
         guard var line = try? encoder.encode(record) else { return }
@@ -62,7 +107,7 @@ enum MetricsLog {
         close(descriptor)
     }
 
-    private static func residentBytes() -> UInt64 {
+    static func residentMB() -> Double {
         var info = task_vm_info_data_t()
         var count = mach_msg_type_number_t(MemoryLayout<task_vm_info_data_t>.size / MemoryLayout<integer_t>.size)
         let result = withUnsafeMutablePointer(to: &info) { pointer in
@@ -70,7 +115,7 @@ enum MetricsLog {
                 task_info(mach_task_self_, task_flavor_t(TASK_VM_INFO), $0, &count)
             }
         }
-        return result == KERN_SUCCESS ? info.resident_size : 0
+        return result == KERN_SUCCESS ? Double(info.resident_size) / 1_048_576 : 0
     }
 
     private static func deviceModel() -> String {
