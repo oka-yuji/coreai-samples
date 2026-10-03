@@ -390,6 +390,7 @@ final class AgentViewModel {
         record.agentThinkingChars = thinking
         record.agentAnswerChars = answer.count
         record.truncatedToolOutputs = truncated
+        record.splicedGenerations = try? metadata["splicedGenerations"]?.value(Int.self)
         record.citationsTotal = citations?.total
         record.citationsSeen = citations?.seenCount
         record.citationMeanOverlap = citations?.meanOverlap

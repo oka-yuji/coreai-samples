@@ -47,6 +47,7 @@ enum MetricsLog {
         var agentThinkingChars: Int?
         var agentAnswerChars: Int?
         var truncatedToolOutputs: Int?
+        var splicedGenerations: Int?
         var citationsTotal: Int?
         var citationsSeen: Int?
         var citationMeanOverlap: Double?
