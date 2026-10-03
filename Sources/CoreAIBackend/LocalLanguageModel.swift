@@ -70,7 +70,13 @@ actor Runtime {
         stopTokens = Set([tokenizer.eosTokenId, tokenizer.convertTokenToId("<|endoftext|>")].compactMap { $0.map(Int32.init) })
     }
 
-    var processed: [Int32] { core.engine.tokens }
+    var processed: [Int32] {
+        get async {
+            await lock()
+            defer { unlock() }
+            return core.engine.tokens
+        }
+    }
 
     func respond(
         to request: LanguageModelExecutorGenerationRequest,
@@ -79,27 +85,26 @@ actor Runtime {
         if request.schema != nil {
             throw LanguageModelError.unsupportedCapability(.init(capability: .guidedGeneration, debugDescription: "Guided generation is not supported."))
         }
-        let tools = (request.generationOptions.toolCallingMode?.kind == .disallowed ? [] : request.enabledToolDefinitions).map(ToolSchema.init)
+        let tools = try Self.tools(request)
         var context = Self.templateContext(request.contextOptions.reasoningLevel)
         if !tools.isEmpty { context["tools"] = Value.array(tools.map(\.spec)) }
         let contextLimit = core.engine.contextLimit
         let reserve = overflow == .dropOldToolOutputs ? min(request.generationOptions.maximumResponseTokens ?? 1024, contextLimit / 2) : nil
+
+        await lock()
+        defer { unlock() }
+        try Task.checkCancellation()
         let (messages, rendered, cuts) = try Self.fit(
             request.transcript, remembered: self.cuts, written: written, limit: contextLimit, reserve: reserve
         ) {
             try render($0, generationPrompt: true, context: context)
         }
-        let truncated = cuts.filter { self.cuts[$0.key] != $0.value }.count
-        self.cuts = cuts
+        let truncated = Self.remember(cuts, in: &self.cuts)
         let lastUser = messages.lastIndex { $0["role"] as? String == "user" }
         let afterUser = try lastUser.map {
             zip(try render(Array(messages[...$0]), generationPrompt: false, context: context), rendered).prefix { $0 == $1 }.count
         } ?? 0
         var sampler = Self.sampler(request.generationOptions)
-
-        await lock()
-        defer { unlock() }
-        try Task.checkCancellation()
         var splicing = generations
         func splice(_ tokens: ArraySlice<Int32>) -> (prompt: [Int32], spliced: Int) {
             ReusePlan.splice(Array(tokens), processed: core.engine.tokens, generations: splicing) { tokenizer.decode(tokens: $0) }
@@ -226,6 +231,24 @@ actor Runtime {
 
     private func unlock() {
         if waiting.isEmpty { busy = false } else { waiting.removeFirst().resume() }
+    }
+
+    static func tools(_ request: LanguageModelExecutorGenerationRequest) throws -> [ToolSchema] {
+        switch request.generationOptions.toolCallingMode?.kind {
+        case .required?:
+            throw LanguageModelError.unsupportedCapability(.init(
+                capability: .guidedGeneration,
+                debugDescription: "This runtime cannot force a tool call (toolCallingMode .required needs constrained decoding). Use .allowed."))
+        case .disallowed?: return []
+        default: return request.enabledToolDefinitions.map(ToolSchema.init)
+        }
+    }
+
+    static func remember(_ cuts: [String: ToolOutputCut], in memory: inout [String: ToolOutputCut]) -> Int {
+        let changed = cuts.filter { memory[$0.key] != $0.value }.count
+        memory.merge(cuts) { $1 }
+        if memory.count > rememberedCalls { memory = cuts }
+        return changed
     }
 
     static func fit(

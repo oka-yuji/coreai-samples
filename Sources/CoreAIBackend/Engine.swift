@@ -69,6 +69,9 @@ public final class Engine {
         if let cached = (try? AIModelCache.default.model(for: bundle.modelURL, options: options)) ?? nil {
             model = cached
         } else {
+            if let width = Self.mainOutputWidth(bundle.modelURL), width != bundle.vocabSize {
+                throw BundleError.notLanguageModel(outputWidth: width, vocabSize: bundle.vocabSize)
+            }
             let specializeStart = clock.now
             model = try await AIModel.specialize(contentsOf: bundle.modelURL, options: options)
             specializeSeconds = (clock.now - specializeStart) / .seconds(1)
@@ -84,6 +87,9 @@ public final class Engine {
             case .ndArray(let logitsDescriptor) = descriptor.outputDescriptor(of: logitsName),
             logitsDescriptor.scalarType == .float16
         else { throw EngineError.missingOutput }
+        if let width = logitsDescriptor.shape.last, width >= 0, width != bundle.vocabSize {
+            throw BundleError.notLanguageModel(outputWidth: width, vocabSize: bundle.vocabSize)
+        }
         let prefillFunction = model.functionNames.contains("prefill") ? try model.loadFunction(named: "prefill") : nil
 
         let limit = min(contextLimit ?? bundle.maxContextLength, bundle.maxContextLength)
@@ -110,6 +116,16 @@ public final class Engine {
             cached: specializeSeconds == 0,
             specializeSeconds: specializeSeconds,
             totalSeconds: (clock.now - start) / .seconds(1))
+    }
+
+    static func mainOutputWidth(_ modelURL: URL) -> Int? {
+        let summary = try? AIModelAsset(contentsOf: modelURL).summary(includingStatistics: false)
+        return (summary?.functions.first { $0.name == "main" }?.outputs.first?.typeName).flatMap(lastDimension)
+    }
+
+    static func lastDimension(_ typeName: String) -> Int? {
+        guard typeName.hasSuffix(")"), let shape = typeName.dropLast().split(separator: ",").last else { return nil }
+        return shape.split(separator: "\u{D7}").last.flatMap { Int($0.trimmingCharacters(in: .whitespaces)) }
     }
 
     public static func deleteSpecializationCache(bundle: ModelBundle) throws {

@@ -84,6 +84,7 @@ struct Chat: AsyncParsableCommand {
 
     func run() async throws {
         let model = try await options.load()
+        let snapshot = tokenSnapshot(model)
         var session = LanguageModelSession(model: model, instructions: instructions)
         for (index, text) in prompt.enumerated() {
             if freshSession, index > 0 {
@@ -94,6 +95,7 @@ struct Chat: AsyncParsableCommand {
             }
             let response = joinedText(result.entries, where: responseSegments)
             let reasoning = joinedText(result.entries, where: reasoningSegments)
+            let processed = await snapshot?()
             try emit(TurnRecord(
                 runtime: options.runtime.rawValue,
                 turn: index + 1,
@@ -115,6 +117,7 @@ struct Chat: AsyncParsableCommand {
                 usage: result.usage,
                 entries: result.marks,
                 memory: .now(),
+                processedTokens: processed,
                 error: result.error
             ))
         }
@@ -674,6 +677,7 @@ struct TurnRecord: Encodable {
     let usage: Usage
     let entries: [EntryMark]
     let memory: Memory
+    let processedTokens: [Int32]?
     let error: String?
 }
 

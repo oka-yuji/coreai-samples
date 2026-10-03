@@ -5,17 +5,30 @@ import Testing
 
 @testable import CoreAIBackend
 
-@Test func readsMetadata() throws {
+let tinyMetadata = """
+    {"metadata_version": "0.2", "kind": "llm", "name": "tiny",
+     "assets": {"main": "tiny.aimodel"},
+     "language": {"tokenizer": "x/tiny", "vocab_size": 151936, "max_context_length": 8192,
+                  "embedded_tokenizer": true, "function_map": {"main": ["main"]}}}
+    """
+
+func tinyBundle(metadata: String = tinyMetadata) throws -> URL {
     let folder = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
-    try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+    try FileManager.default.createDirectory(at: folder.appending(path: "tiny.aimodel"), withIntermediateDirectories: true)
+    try FileManager.default.createDirectory(at: folder.appending(path: "tokenizer"), withIntermediateDirectories: true)
+    try Data(metadata.utf8).write(to: folder.appending(path: "metadata.json"))
+    try Data(#"{"tokenizer_class": "Qwen2Tokenizer", "eos_token": "<|im_end|>"}"#.utf8)
+        .write(to: folder.appending(path: "tokenizer/tokenizer_config.json"))
+    try Data(#"""
+        {"added_tokens": [{"id": 3, "content": "<|im_end|>", "special": true}],
+         "model": {"type": "BPE", "vocab": {"a": 0, "b": 1, "ab": 2}, "merges": ["a b"]}}
+        """#.utf8).write(to: folder.appending(path: "tokenizer/tokenizer.json"))
+    return folder
+}
+
+@Test func readsMetadata() throws {
+    let folder = try tinyBundle()
     defer { try? FileManager.default.removeItem(at: folder) }
-    let json = """
-        {"metadata_version": "0.2", "kind": "llm", "name": "tiny",
-         "assets": {"main": "tiny.aimodel"},
-         "language": {"tokenizer": "x/tiny", "vocab_size": 151936, "max_context_length": 8192,
-                      "embedded_tokenizer": true, "function_map": {"main": ["main"]}}}
-        """
-    try Data(json.utf8).write(to: folder.appending(path: "metadata.json"))
 
     let bundle = try ModelBundle(url: folder)
     #expect(bundle.name == "tiny")
@@ -23,9 +36,69 @@ import Testing
     #expect(bundle.tokenizerURL == folder.appending(path: "tokenizer"))
     #expect(bundle.vocabSize == 151936)
     #expect(bundle.maxContextLength == 8192)
+}
 
-    try Data(#"{"name": "tiny", "assets": {"main": "tiny.aimodel"}}"#.utf8).write(to: folder.appending(path: "metadata.json"))
-    #expect(throws: DecodingError.self) { try ModelBundle(url: folder) }
+@Test func bundleNamesWhatIsMissingOrWrong() throws {
+    for (path, error) in [
+        ("metadata.json", BundleError.missingFile("metadata.json")), ("tiny.aimodel", .missingFile("tiny.aimodel")),
+        ("tokenizer", .missingFile("tokenizer/tokenizer.json")),
+    ] {
+        let folder = try tinyBundle()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        try FileManager.default.removeItem(at: folder.appending(path: path))
+        #expect(throws: error) { try ModelBundle(url: folder) }
+    }
+
+    for (metadata, error) in [
+        (#"{"assets": {"main": "tiny.aimodel"}, "language": {}}"#, BundleError.missingField("name")),
+        (#"{"name": "tiny", "assets": {}}"#, .missingField("assets.main")),
+        (#"{"name": "tiny", "assets": {"main": "tiny.aimodel"}}"#, .missingField("language.vocab_size")),
+        (#"{"name": "tiny", "assets": {"main": "tiny.aimodel"}, "language": {"vocab_size": 8}}"#, .missingField("language.max_context_length")),
+        (#"{"name": "tiny", "assets": {"main": "tiny.aimodel"}, "language": {"vocab_size": 8, "max_context_length": 64, "function_map": {"main": []}}}"#,
+         .missingField("language.function_map.main")),
+        (#"{"name": "tiny", "assets": {"main": "tiny.aimodel"}, "language": {"vocab_size": 0, "max_context_length": 64, "function_map": {"main": ["main"]}}}"#,
+         .invalidValue("language.vocab_size", 0)),
+    ] {
+        let folder = try tinyBundle(metadata: metadata)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        #expect(throws: error) { try ModelBundle(url: folder) }
+    }
+    #expect(BundleError.missingField("language.vocab_size").localizedDescription == "metadata.json has no language.vocab_size.")
+
+    for functionMap in ["", #", "function_map": {}"#, #", "function_map": {"main": ["main"]}"#] {
+        let folder = try tinyBundle(metadata: #"{"name": "tiny", "assets": {"main": "tiny.aimodel"}, "language": {"vocab_size": 8, "max_context_length": 64"#
+            + functionMap + "}}")
+        defer { try? FileManager.default.removeItem(at: folder) }
+        #expect(throws: Never.self) { try ModelBundle(url: folder) }
+    }
+}
+
+@Test func readsTheLastDimensionOfAnOutputType() {
+    #expect(Engine.lastDimension("NDArray (Float16, 1 \u{D7} ? \u{D7} 248320)") == 248320)
+    #expect(Engine.lastDimension("NDArray (Float16, 1 \u{D7} ? \u{D7} 4096)") == 4096)
+    #expect(Engine.lastDimension("NDArray (Float16, 3 \u{D7} 5)") == 5)
+    #expect(Engine.lastDimension("NDArray (Float16, 7)") == 7)
+    #expect(Engine.lastDimension("NDArray (Float16, 1 \u{D7} ? \u{D7} ?)") == nil)
+    #expect(Engine.lastDimension("Image") == nil)
+}
+
+@Test func tokenizerMustFitTheVocabularySize() async throws {
+    let fits = try tinyBundle(metadata: tinyMetadata.replacingOccurrences(of: "151936", with: "4"))
+    let tooSmall = try tinyBundle(metadata: tinyMetadata.replacingOccurrences(of: "151936", with: "3"))
+    defer {
+        try? FileManager.default.removeItem(at: fits)
+        try? FileManager.default.removeItem(at: tooSmall)
+    }
+    #expect(try ModelBundle.tokenCount(fits.appending(path: "tokenizer/tokenizer.json")) == 4)
+    let tokenizer = try await ModelBundle(url: fits).loadTokenizer()
+    #expect(tokenizer.eosTokenId == 3)
+    await #expect(throws: BundleError.vocabularyMismatch(tokenizer: 4, metadata: 3)) {
+        try await ModelBundle(url: tooSmall).loadTokenizer()
+    }
+
+    let unigram = fits.appending(path: "unigram.json")
+    try Data(#"{"added_tokens": [], "model": {"type": "Unigram", "vocab": [["a", -1.0], ["b", -2.0]]}}"#.utf8).write(to: unigram)
+    #expect(try ModelBundle.tokenCount(unigram) == 2)
 }
 
 @Test func growsCapacityByDoublingUpToTheLimit() {
@@ -359,9 +432,65 @@ func contiguous(_ width: Int) -> @Sendable ([Int]) -> (strides: [Int], byteCount
     }
 }
 
+@Test func cutMemoryStaysWithEachConversation() throws {
+    func text(_ content: String) -> [Transcript.Segment] { [.text(.init(content: content))] }
+    func call(_ id: String) throws -> Transcript.Entry {
+        .toolCalls(.init([Transcript.ToolCall(id: id, toolName: "read_page", arguments: try GeneratedContent(json: #"{"name": "x"}"#))]))
+    }
+    func page(_ id: String, _ count: Int) -> Transcript.Entry {
+        .toolOutput(.init(id: id, toolName: "read_page", segments: text(String(repeating: "p", count: count))))
+    }
+    let characters: ([[String: any Sendable]]) -> [Int32] = { messages in
+        Array(repeating: 0, count: messages.reduce(0) { $0 + ($1["content"] as? String ?? "").count })
+    }
+    func conversation(_ name: String) throws -> [Transcript.Entry] {
+        [.prompt(.init(segments: text("Read three pages.")))] + (try (1...3).flatMap { [try call("\(name)c\($0)"), page("\(name)o\($0)", 2000)] })
+    }
+    var memory: [String: ToolOutputCut] = [:]
+    func step(_ entries: [Transcript.Entry]) throws -> (cuts: [String: ToolOutputCut], truncated: Int) {
+        let fitted = try Runtime.fit(Transcript(entries: entries), remembered: memory, limit: 5000, reserve: 1000, render: characters)
+        return (fitted.cuts, Runtime.remember(fitted.cuts, in: &memory))
+    }
+
+    var a = try conversation("a")
+    let a1 = try step(a)
+    #expect(a1.cuts == ["ao1": .dropped, "ao3": .prefix(1000)])
+    #expect(a1.truncated == 2)
+    let b1 = try step(try conversation("b"))
+    #expect(b1.cuts == ["bo1": .dropped, "bo3": .prefix(1000)])
+    #expect(b1.truncated == 2)
+    a += [try call("ac4"), page("ao4", 500)]
+    let a2 = try step(a)
+    #expect(a2.cuts == a1.cuts)
+    #expect(a2.truncated == 0)
+    #expect(memory.count == 4)
+
+    var full = Dictionary(uniqueKeysWithValues: (0..<Runtime.rememberedCalls).map { ("old\($0)", ToolOutputCut.dropped) })
+    #expect(Runtime.remember(["new": .dropped], in: &full) == 1)
+    #expect(full == ["new": .dropped])
+}
+
 @Generable struct AddArguments {
     var a: Int
     var b: Int
+}
+
+@Test func requiredToolCallingIsRefused() throws {
+    let add = Transcript.ToolDefinition(name: "add", description: "Add two integers.", parameters: AddArguments.generationSchema)
+    func request(_ mode: GenerationOptions.ToolCallingMode?) -> LanguageModelExecutorGenerationRequest {
+        LanguageModelExecutorGenerationRequest(
+            id: UUID(), transcript: Transcript(entries: [.prompt(.init(segments: [.text(.init(content: "Add 1 and 2."))]))]),
+            enabledTools: [add], generationOptions: GenerationOptions(toolCallingMode: mode), contextOptions: ContextOptions(), metadata: [:])
+    }
+    #expect(try Runtime.tools(request(nil)).map(\.name) == ["add"])
+    #expect(try Runtime.tools(request(.allowed)).map(\.name) == ["add"])
+    #expect(try Runtime.tools(request(.disallowed)).isEmpty)
+    #expect {
+        try Runtime.tools(request(.required))
+    } throws: { error in
+        guard case LanguageModelError.unsupportedCapability(let unsupported) = error else { return false }
+        return unsupported.capability == .guidedGeneration && unsupported.debugDescription.hasSuffix("Use .allowed.")
+    }
 }
 
 @Test func toolCallParserReadsBothFormats() {
@@ -556,9 +685,33 @@ func merged(_ parts: [ThinkParser.Part]) -> [ThinkParser.Part] {
 let bundlePaths = (ProcessInfo.processInfo.environment["COREAI_TEST_BUNDLES"] ?? "")
     .split(separator: ":").map(String.init)
 
+let checkPaths = (ProcessInfo.processInfo.environment["COREAI_CHECK_BUNDLES"] ?? "")
+    .split(separator: ":").map(String.init)
+
+@Test(.enabled(if: !checkPaths.isEmpty), arguments: checkPaths)
+func bundleOpensWithoutLoadingTheModel(path: String) async throws {
+    let bundle = try ModelBundle(url: URL(filePath: path))
+    let tokenizer = try await bundle.loadTokenizer()
+    #expect(tokenizer.eosTokenId.map { $0 < bundle.vocabSize } == true)
+}
+
+let nonLanguageModelPaths = (ProcessInfo.processInfo.environment["COREAI_NONLM_BUNDLES"] ?? "")
+    .split(separator: ":").map(String.init)
+
+@Test(.enabled(if: !nonLanguageModelPaths.isEmpty), arguments: nonLanguageModelPaths)
+func engineRefusesABundleThatIsNotALanguageModel(path: String) async throws {
+    let bundle = try ModelBundle(url: URL(filePath: path))
+    let width = try #require(Engine.mainOutputWidth(bundle.modelURL))
+    #expect(width != bundle.vocabSize)
+    await #expect(throws: BundleError.notLanguageModel(outputWidth: width, vocabSize: bundle.vocabSize)) {
+        try await LocalLanguageModel(bundle: URL(filePath: path))
+    }
+}
+
 @Test(.enabled(if: !bundlePaths.isEmpty), arguments: bundlePaths)
 func modelRunsAndRestores(path: String) async throws {
     let bundle = try ModelBundle(url: URL(filePath: path))
+    #expect(Engine.mainOutputWidth(bundle.modelURL) == bundle.vocabSize)
     let tokenizer = try await bundle.loadTokenizer()
     let engine = try await Engine(bundle: bundle)
     let stop = Set([tokenizer.eosTokenId].compactMap { $0.map(Int32.init) })
@@ -723,6 +876,15 @@ func sessionCallsToolsReusesAndRecovers(path: String) async throws {
     let plain = try await LanguageModelSession(model: model).respond(to: question, options: GenerationOptions(maximumResponseTokens: 16))
     #expect(disallowed.usage.input.totalTokenCount == plain.usage.input.totalTokenCount)
     #expect(allowed.usage.input.totalTokenCount > disallowed.usage.input.totalTokenCount + 100)
+    let processed = await model.runtime.processed
+    await #expect {
+        try await LanguageModelSession(model: model, tools: [WeatherTool()]).respond(
+            to: question, options: GenerationOptions(maximumResponseTokens: 16, toolCallingMode: .required))
+    } throws: { error in
+        guard case LanguageModelError.unsupportedCapability(let unsupported) = error else { return false }
+        return unsupported.capability == .guidedGeneration
+    }
+    #expect(await model.runtime.processed == processed)
 
     let cut = LanguageModelSession(model: model, tools: [WeatherTool()])
     try await cut.respond(to: "What is the weather in Tokyo right now?", options: GenerationOptions(maximumResponseTokens: 8))
