@@ -47,10 +47,11 @@ struct ModelOptions: ParsableArguments {
         }
     }
 
-    func load() async throws -> any LanguageModel {
+    func load(_ experiment: ExperimentOptions? = nil) async throws -> any LanguageModel {
         if runtime == .own {
             return try await loadOwnModel(
-                URL(filePath: model), contextLimit: contextLimit, overflow: dropOldToolOutputs ? .dropOldToolOutputs : .error)
+                URL(filePath: model), contextLimit: contextLimit, overflow: dropOldToolOutputs ? .dropOldToolOutputs : .error,
+                experiment: experiment)
         }
         if verbose { CLILogger.level = 1 }
         let clock = ContinuousClock()
@@ -82,8 +83,14 @@ struct Chat: AsyncParsableCommand {
     @Flag(help: "Send each prompt in a new session instead of one shared session.")
     var freshSession = false
 
+    @OptionGroup var experiment: ExperimentOptions
+
+    func validate() throws {
+        try experiment.validate(options.runtime)
+    }
+
     func run() async throws {
-        let model = try await options.load()
+        let model = try await options.load(experiment)
         let snapshot = tokenSnapshot(model)
         var session = LanguageModelSession(model: model, instructions: instructions)
         for (index, text) in prompt.enumerated() {
@@ -91,7 +98,8 @@ struct Chat: AsyncParsableCommand {
                 session = LanguageModelSession(model: model, instructions: instructions)
             }
             let result = await stream(session, from: .now) {
-                session.streamResponse(to: text, options: GenerationOptions(maximumResponseTokens: maxTokens))
+                session.streamResponse(
+                    to: text, options: GenerationOptions(maximumResponseTokens: maxTokens), contextOptions: experiment.contextOptions)
             }
             let response = joinedText(result.entries, where: responseSegments)
             let reasoning = joinedText(result.entries, where: reasoningSegments)
@@ -121,6 +129,7 @@ struct Chat: AsyncParsableCommand {
                 error: result.error
             ))
         }
+        if experiment.checkState { try await checkState(model) }
     }
 }
 
@@ -174,8 +183,14 @@ struct ToolRoundTrip: AsyncParsableCommand {
     @Option(help: "Seconds before the cancellation.")
     var cancelAfter = 1.0
 
+    @OptionGroup var experiment: ExperimentOptions
+
+    func validate() throws {
+        try experiment.validate(options.runtime)
+    }
+
     func run() async throws {
-        let model = try await options.load()
+        let model = try await options.load(experiment)
         let snapshot = tokenSnapshot(model)
         let log = ToolLog(snapshot: snapshot)
         let instructions = try instructionsFile.map { try String(contentsOfFile: $0, encoding: .utf8) }
@@ -188,7 +203,7 @@ struct ToolRoundTrip: AsyncParsableCommand {
             let start = log.restart()
             let options = GenerationOptions(maximumResponseTokens: maxTokens, toolCallingMode: toolMode?.mode)
             let result = await stream(session, from: start, cancelAfter: cancel == index + 1 ? cancelAfter : nil) {
-                session.streamResponse(to: text, options: options)
+                session.streamResponse(to: text, options: options, contextOptions: experiment.contextOptions)
             }
             let (invocations, snapshots) = log.take()
             let final = await snapshot?()
@@ -214,6 +229,7 @@ struct ToolRoundTrip: AsyncParsableCommand {
                 error: result.error
             ))
         }
+        if experiment.checkState { try await checkState(model) }
     }
 }
 

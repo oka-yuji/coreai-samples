@@ -1,5 +1,5 @@
 import ArgumentParser
-import CoreAIBackend
+@_spi(Verification) import CoreAIBackend
 import CoreAILanguageModels
 import Darwin
 import Foundation
@@ -335,14 +335,99 @@ struct SpeedRun: AsyncParsableCommand {
     }
 }
 
-func loadOwnModel(_ url: URL, contextLimit: Int?, overflow: LocalLanguageModel.OverflowPolicy) async throws -> any LanguageModel {
+enum OnOff: String, ExpressibleByArgument {
+    case on
+    case off
+}
+
+enum HistoryReasoning: String, ExpressibleByArgument {
+    case keep
+    case drop
+}
+
+enum ReasoningChoice: String, ExpressibleByArgument {
+    case `default`
+    case low
+    case off
+}
+
+struct ExperimentOptions: ParsableArguments {
+    @Option(help: "Reuse the processed state across requests: on (the default) or off. Own runtime only.")
+    var reuse: OnOff?
+
+    @Option(help: "Reasoning of earlier assistant entries in the rebuilt history: keep (the default) or drop. Own runtime only.")
+    var historyReasoning: HistoryReasoning?
+
+    @Option(help: "An extra chat template variable as name=true or name=false. Repeat to set several. Own runtime only.")
+    var templateVar: [String] = []
+
+    @Option(help: "Reasoning level of every request: default, low or off. Own runtime only.")
+    var reasoning: ReasoningChoice?
+
+    @Flag(help: "After the last prompt, read the processed tokens again from a reset engine and compare the next-token logits. Own runtime only.")
+    var checkState = false
+
+    func validate() throws {
+        if templateVar.contains(where: { Self.variable($0) == nil }) {
+            throw ValidationError("--template-var takes name=true or name=false.")
+        }
+    }
+
+    func validate(_ runtime: RuntimeKind) throws {
+        if runtime != .own, reuse != nil || historyReasoning != nil || !templateVar.isEmpty || reasoning != nil || checkState {
+            throw ValidationError("--reuse, --history-reasoning, --template-var, --reasoning and --check-state apply to --runtime own only.")
+        }
+    }
+
+    var settings: LocalLanguageModel.VerificationSettings {
+        var settings = LocalLanguageModel.VerificationSettings()
+        settings.reusesState = reuse != .off
+        settings.keepsHistoryReasoning = historyReasoning != .drop
+        settings.templateVariables = Dictionary(templateVar.compactMap(Self.variable)) { $1 }
+        return settings
+    }
+
+    var contextOptions: ContextOptions {
+        switch reasoning {
+        case .low?: ContextOptions(reasoningLevel: .light)
+        case .off?: ContextOptions(reasoningLevel: .custom("off"))
+        default: ContextOptions()
+        }
+    }
+
+    static func variable(_ entry: String) -> (String, Bool)? {
+        let parts = entry.split(separator: "=", maxSplits: 1, omittingEmptySubsequences: false)
+        guard parts.count == 2, !parts[0].isEmpty, let value = Bool(String(parts[1])) else { return nil }
+        return (String(parts[0]), value)
+    }
+}
+
+func loadOwnModel(
+    _ url: URL, contextLimit: Int?, overflow: LocalLanguageModel.OverflowPolicy, experiment: ExperimentOptions?
+) async throws -> any LanguageModel {
     let clock = ContinuousClock()
     let start = clock.now
-    let model = try await LocalLanguageModel(bundle: url, contextLimit: contextLimit, overflow: overflow)
+    let model = try await LocalLanguageModel(
+        bundle: url, contextLimit: contextLimit, overflow: overflow, verification: experiment?.settings ?? .init())
     try emit(OwnModelLoadRecord(
         cached: model.loadStats.cached, specializeS: model.loadStats.specializeSeconds,
         initS: (clock.now - start) / .seconds(1), memory: .now()))
     return model
+}
+
+func checkState(_ model: any LanguageModel) async throws {
+    guard let own = model as? LocalLanguageModel else { return }
+    let (tokens, logits) = await own.processedState()
+    guard !logits.isEmpty else {
+        try emit(StateRecord(tokens: tokens.count, error: "No logits for the processed tokens."))
+        return
+    }
+    let start = ContinuousClock.now
+    let reread = try await own.resetAndRead(tokens)
+    let check = StateCheck(current: logits, reread: reread)
+    try emit(StateRecord(
+        tokens: tokens.count, current: top2(logits), reread: top2(reread), sameTop: check.currentTop == check.rereadTop,
+        marginTicks: check.marginTicks, maxAbsDiff: check.maxAbsDiff, pass: check.passed, rereadS: (ContinuousClock.now - start) / .seconds(1)))
 }
 
 func tokenSnapshot(_ model: any LanguageModel) -> (@Sendable () async -> [Int32])? {
@@ -441,6 +526,19 @@ struct CompareRecord: Encodable {
     var tokens: [Int32] = []
     var officialTokens: [Int32] = []
     var text = ""
+}
+
+struct StateRecord: Encodable {
+    var record = "state-check"
+    let tokens: Int
+    var current: [Candidate] = []
+    var reread: [Candidate] = []
+    var sameTop: Bool?
+    var marginTicks: Int?
+    var maxAbsDiff: Float?
+    var pass: Bool?
+    var rereadS: Double?
+    var error: String?
 }
 
 struct PointRecord: Encodable {

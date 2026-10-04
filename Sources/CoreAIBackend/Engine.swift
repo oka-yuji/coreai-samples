@@ -53,7 +53,7 @@ public final class Engine {
     private var logitsArray: NDArray
     private var logitsRows = 1
     private var logitsOffset = 0
-    private var hasLogits = false
+    private(set) var hasLogits = false
     private var scratch: [Float]
 
     public var tokens: [Int32] { context.tokens }

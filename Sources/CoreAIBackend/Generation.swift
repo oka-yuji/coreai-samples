@@ -387,3 +387,43 @@ struct ToolCallParser {
         text[..<(text.lastIndex { !$0.isWhitespace }.map(text.index(after:)) ?? text.startIndex)]
     }
 }
+
+@_spi(Verification) public struct StateCheck: Sendable {
+    static let toleranceTicks = 8
+
+    public let currentTop: Int
+    public let rereadTop: Int
+    public let marginTicks: Int
+    public let maxAbsDiff: Float
+    public let passed: Bool
+
+    public init(current: [Float16], reread: [Float16]) {
+        precondition(current.count == reread.count && current.count > 1)
+        let a = Self.top2(current)
+        let b = Self.top2(reread)
+        currentTop = a.first
+        rereadTop = b.first
+        marginTicks = max(Self.ticks(current[a.first], current[a.second]), Self.ticks(reread[b.first], reread[b.second]))
+        maxAbsDiff = zip(current, reread).reduce(0) { max($0, abs(Float($1.0) - Float($1.1))) }
+        passed = a.first == b.first || (a.first == b.second && a.second == b.first && marginTicks <= Self.toleranceTicks)
+    }
+
+    static func top2(_ values: [Float16]) -> (first: Int, second: Int) {
+        var first = 0
+        var second = 1
+        if values[1] > values[0] { (first, second) = (1, 0) }
+        for i in values.indices.dropFirst(2) {
+            if values[i] > values[first] {
+                (first, second) = (i, first)
+            } else if values[i] > values[second] {
+                second = i
+            }
+        }
+        return (first, second)
+    }
+
+    static func ticks(_ a: Float16, _ b: Float16) -> Int {
+        func ordered(_ x: Float16) -> Int { x.sign == .minus ? -Int(x.bitPattern & 0x7FFF) : Int(x.bitPattern) }
+        return abs(ordered(a) - ordered(b))
+    }
+}

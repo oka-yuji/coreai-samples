@@ -23,13 +23,27 @@ public struct LocalLanguageModel: LanguageModel {
         case dropOldToolOutputs
     }
 
+    @_spi(Verification) public struct VerificationSettings: Sendable {
+        public var reusesState = true
+        public var keepsHistoryReasoning = true
+        public var templateVariables: [String: Bool] = [:]
+
+        public init() {}
+    }
+
     public let capabilities: LanguageModelCapabilities
     public let executorConfiguration: URL
     public let loadStats: Engine.LoadStats
     let runtime: Runtime
 
     public init(bundle url: URL, contextLimit: Int? = nil, overflow: OverflowPolicy = .error) async throws {
-        runtime = try await Runtime(bundle: ModelBundle(url: url), contextLimit: contextLimit, overflow: overflow)
+        try await self.init(bundle: url, contextLimit: contextLimit, overflow: overflow, verification: VerificationSettings())
+    }
+
+    @_spi(Verification) public init(
+        bundle url: URL, contextLimit: Int?, overflow: OverflowPolicy, verification: VerificationSettings
+    ) async throws {
+        runtime = try await Runtime(bundle: ModelBundle(url: url), contextLimit: contextLimit, overflow: overflow, settings: verification)
         capabilities = LanguageModelCapabilities(runtime.thinks ? [.reasoning, .toolCalling] : [.toolCalling])
         executorConfiguration = url
         loadStats = runtime.loadStats
@@ -41,6 +55,14 @@ public struct LocalLanguageModel: LanguageModel {
 
     public func countTokens(_ text: String) -> Int {
         runtime.tokenizer.encode(text: text, addSpecialTokens: false).count
+    }
+
+    @_spi(Verification) public func processedState() async -> (tokens: [Int32], logits: [Float16]) {
+        await runtime.state()
+    }
+
+    @_spi(Verification) public func resetAndRead(_ tokens: [Int32]) async throws -> [Float16] {
+        try await runtime.resetAndRead(tokens)
     }
 }
 
@@ -54,6 +76,7 @@ actor Runtime {
     nonisolated let tokenizer: any Tokenizer
     private let stopTokens: Set<Int32>
     private let overflow: LocalLanguageModel.OverflowPolicy
+    private let settings: LocalLanguageModel.VerificationSettings
     private var cuts: [String: ToolOutputCut] = [:]
     private var written: OrderedDictionary<String, [String]> = [:]
     private var generations: [(start: Int, tokens: [Int32])] = []
@@ -61,10 +84,13 @@ actor Runtime {
     private var busy = false
     private var waiting: [CheckedContinuation<Void, Never>] = []
 
-    init(bundle: ModelBundle, contextLimit: Int?, overflow: LocalLanguageModel.OverflowPolicy) async throws {
+    init(
+        bundle: ModelBundle, contextLimit: Int?, overflow: LocalLanguageModel.OverflowPolicy, settings: LocalLanguageModel.VerificationSettings
+    ) async throws {
         tokenizer = try await bundle.loadTokenizer()
         core = EngineBox(try await Engine(bundle: bundle, contextLimit: contextLimit))
         self.overflow = overflow
+        self.settings = settings
         loadStats = core.engine.loadStats
         thinks = tokenizer.convertTokenToId(ThinkParser.open) != nil
         stopTokens = Set([tokenizer.eosTokenId, tokenizer.convertTokenToId("<|endoftext|>")].compactMap { $0.map(Int32.init) })
@@ -78,6 +104,22 @@ actor Runtime {
         }
     }
 
+    func state() async -> (tokens: [Int32], logits: [Float16]) {
+        await lock()
+        defer { unlock() }
+        return (core.engine.tokens, core.engine.hasLogits ? core.engine.logits() : [])
+    }
+
+    func resetAndRead(_ tokens: [Int32]) async throws -> [Float16] {
+        await lock()
+        defer { unlock() }
+        core.engine.reset()
+        checkpoints.removeAll()
+        guard !tokens.isEmpty else { return [] }
+        try await compute { try await core.engine.prefill(tokens) }
+        return core.engine.logits()
+    }
+
     func respond(
         to request: LanguageModelExecutorGenerationRequest,
         streamingInto channel: LanguageModelExecutorGenerationChannel
@@ -86,7 +128,7 @@ actor Runtime {
             throw LanguageModelError.unsupportedCapability(.init(capability: .guidedGeneration, debugDescription: "Guided generation is not supported."))
         }
         let tools = try Self.tools(request)
-        var context = Self.templateContext(request.contextOptions.reasoningLevel)
+        var context = Self.templateContext(request.contextOptions.reasoningLevel, variables: settings.templateVariables)
         if !tools.isEmpty { context["tools"] = Value.array(tools.map(\.spec)) }
         let contextLimit = core.engine.contextLimit
         let reserve = overflow == .dropOldToolOutputs ? min(request.generationOptions.maximumResponseTokens ?? 1024, contextLimit / 2) : nil
@@ -95,7 +137,8 @@ actor Runtime {
         defer { unlock() }
         try Task.checkCancellation()
         let (messages, rendered, cuts) = try Self.fit(
-            request.transcript, remembered: self.cuts, written: written, limit: contextLimit, reserve: reserve
+            request.transcript, remembered: self.cuts, written: written, keepsReasoning: settings.keepsHistoryReasoning, limit: contextLimit,
+            reserve: reserve
         ) {
             try render($0, generationPrompt: true, context: context)
         }
@@ -174,9 +217,9 @@ actor Runtime {
     }
 
     private func read(_ prompt: [Int32], afterUser: Int, questionStart: () throws -> Int) async throws -> ReusePlan {
-        let plan = try ReusePlan(
-            processed: core.engine.tokens, saved: checkpoints.values.map(\.tokens.count), prompt: prompt,
-            hybrid: core.engine.isHybrid, afterUser: afterUser, questionStart: questionStart)
+        let plan = try Self.plan(
+            prompt, processed: core.engine.tokens, saved: checkpoints.values.map(\.tokens.count), hybrid: core.engine.isHybrid,
+            reusing: settings.reusesState, afterUser: afterUser, questionStart: questionStart)
         checkpoints = checkpoints.filter { $0.value.tokens.count <= plan.keep }
         if let point = checkpoints.values.first(where: { $0.tokens.count == plan.keep }) {
             try core.engine.restore(point)
@@ -244,6 +287,13 @@ actor Runtime {
         }
     }
 
+    static func plan(
+        _ prompt: [Int32], processed: [Int32], saved: [Int], hybrid: Bool, reusing: Bool, afterUser: Int, questionStart: () throws -> Int
+    ) rethrows -> ReusePlan {
+        try ReusePlan(
+            processed: reusing ? processed : [], saved: saved, prompt: prompt, hybrid: hybrid, afterUser: afterUser, questionStart: questionStart)
+    }
+
     static func remember(_ cuts: [String: ToolOutputCut], in memory: inout [String: ToolOutputCut]) -> Int {
         let changed = cuts.filter { memory[$0.key] != $0.value }.count
         memory.merge(cuts) { $1 }
@@ -252,14 +302,14 @@ actor Runtime {
     }
 
     static func fit(
-        _ transcript: Transcript, remembered: [String: ToolOutputCut], written: OrderedDictionary<String, [String]> = [:], limit: Int,
-        reserve: Int?, render: ([Message]) throws -> [Int32]
+        _ transcript: Transcript, remembered: [String: ToolOutputCut], written: OrderedDictionary<String, [String]> = [:],
+        keepsReasoning: Bool = true, limit: Int, reserve: Int?, render: ([Message]) throws -> [Int32]
     ) throws -> (messages: [Message], prompt: [Int32], cuts: [String: ToolOutputCut]) {
         let ids = Set(transcript.map(\.id))
         var cuts = remembered.filter { ids.contains($0.key) }
         let groups = toolOutputGroups(transcript)
         while true {
-            let messages = try Self.messages(transcript, cuts: cuts, written: written)
+            let messages = try Self.messages(transcript, cuts: cuts, written: written, keepsReasoning: keepsReasoning)
             let prompt = try render(messages)
             if let reserve, prompt.count + reserve > limit, let next = ToolOutputCut.shrink(groups, cuts) {
                 cuts = next
@@ -289,7 +339,8 @@ actor Runtime {
     }
 
     static func messages(
-        _ transcript: Transcript, cuts: [String: ToolOutputCut] = [:], written: OrderedDictionary<String, [String]> = [:]
+        _ transcript: Transcript, cuts: [String: ToolOutputCut] = [:], written: OrderedDictionary<String, [String]> = [:],
+        keepsReasoning: Bool = true
     ) throws -> [Message] {
         var messages: [Message] = []
         var order: [String: [String]] = [:]
@@ -318,6 +369,7 @@ actor Runtime {
                 flush()
                 messages.append(["role": "user", "content": try text(prompt.segments)])
             case .reasoning(let thought):
+                guard keepsReasoning else { continue }
                 var message = reply ?? ["role": "assistant", "content": ""]
                 message["reasoning_content"] = (message["reasoning_content"] as? String ?? "") + (try text(thought.segments))
                 reply = message
@@ -360,15 +412,17 @@ actor Runtime {
         }
     }
 
-    static func templateContext(_ level: ContextOptions.ReasoningLevel?) -> [String: any Sendable] {
-        switch level {
-        case .light?: ["reasoning_effort": "low"]
-        case .moderate?: ["reasoning_effort": "medium"]
-        case .deep?: ["reasoning_effort": "xhigh"]
-        case .custom("off")?: ["enable_thinking": false]
-        case .custom(let effort)?: ["reasoning_effort": effort]
-        default: [:]
-        }
+    static func templateContext(_ level: ContextOptions.ReasoningLevel?, variables: [String: Bool] = [:]) -> [String: any Sendable] {
+        let context: [String: any Sendable] =
+            switch level {
+            case .light?: ["reasoning_effort": "low"]
+            case .moderate?: ["reasoning_effort": "medium"]
+            case .deep?: ["reasoning_effort": "xhigh"]
+            case .custom("off")?: ["enable_thinking": false]
+            case .custom(let effort)?: ["reasoning_effort": effort]
+            default: [:]
+            }
+        return variables.reduce(into: context) { $0[$1.key] = $1.value }
     }
 
     static func sampler(_ options: GenerationOptions) -> Sampler {

@@ -3,7 +3,7 @@ import FoundationModels
 import Jinja
 import Testing
 
-@testable import CoreAIBackend
+@_spi(Verification) @testable import CoreAIBackend
 
 let tinyMetadata = """
     {"metadata_version": "0.2", "kind": "llm", "name": "tiny",
@@ -680,6 +680,113 @@ func merged(_ parts: [ThinkParser.Part]) -> [ThinkParser.Part] {
     #expect(draws(.topK(3), seed: 7) != draws(.topK(3), seed: 8))
     #expect(draws(.topP(0.95), seed: 7) == draws(.topP(0.95), seed: 7))
     #expect(draws(.topP(0.95), seed: 7) != draws(.topP(0.95), seed: 8))
+}
+
+@Test func reuseOffReadsTheWholePromptFromAReset() {
+    typealias Stop = ReusePlan.Stop
+    let processed = (0..<300).map(Int32.init) + [5, 6, 7, 8]
+    let prompt = processed + [9, 9]
+    for hybrid in [true, false] {
+        let on = Runtime.plan(prompt, processed: processed, saved: [302], hybrid: hybrid, reusing: true, afterUser: 304) { 300 }
+        #expect(on == ReusePlan(processed: processed, saved: [302], prompt: prompt, hybrid: hybrid, afterUser: 304) { 300 })
+        #expect(on.keep == processed.count)
+        let off = Runtime.plan(prompt, processed: processed, saved: [302], hybrid: hybrid, reusing: false, afterUser: 304) { 300 }
+        #expect(off.keep == 0)
+        #expect(off.stops == (hybrid ? [Stop(position: 304, role: .afterUser)] : []) + [Stop(position: prompt.count, role: .generationStart)])
+    }
+}
+
+@Test func droppingHistoryReasoningKeepsTheRestOfTheHistory() throws {
+    func text(_ content: String) -> [Transcript.Segment] { [.text(.init(content: content))] }
+    func call(_ id: String, _ json: String) throws -> Transcript.Entry {
+        .toolCalls(.init([Transcript.ToolCall(id: id, toolName: "add", arguments: try GeneratedContent(json: json))]))
+    }
+    let add = Transcript.ToolDefinition(name: "add", description: "Add two integers.", parameters: AddArguments.generationSchema)
+    let transcript = Transcript(entries: [
+        .instructions(.init(segments: text("Be brief."), toolDefinitions: [add])),
+        .prompt(.init(segments: text("What is 1 plus 2?"))),
+        .reasoning(.init(segments: text("Use the tool."))),
+        try call("c1", #"{"a": 1, "b": 2}"#),
+        .toolOutput(.init(id: "c1", toolName: "add", segments: text("3"))),
+        .reasoning(.init(segments: text("Done."))),
+        .response(.init(segments: text("3."))),
+        .prompt(.init(segments: text("And 2 plus 2?"))),
+        .reasoning(.init(segments: text("Add again."))),
+        try call("c2", #"{"a": 2, "b": 2}"#),
+        .toolOutput(.init(id: "c2", toolName: "add", segments: text("4"))),
+    ])
+    func outline(_ messages: [[String: any Sendable]]) throws -> [String] {
+        try messages.map { message in
+            let calls = try (message["tool_calls"] as? [Value] ?? []).map { try JSON.dumps($0) }
+            return ([message["role"] as? String ?? "", message["content"] as? String ?? ""] + calls).joined(separator: "|")
+        }
+    }
+    let kept = try Runtime.messages(transcript)
+    let dropped = try Runtime.messages(transcript, keepsReasoning: false)
+    #expect(kept.compactMap { $0["reasoning_content"] as? String } == ["Use the tool.", "Done.", "Add again."])
+    #expect(dropped.allSatisfy { $0["reasoning_content"] == nil })
+    #expect(try outline(dropped) == outline(kept))
+    #expect(try outline(kept).count == 8)
+
+    let fitted = try Runtime.fit(transcript, remembered: [:], keepsReasoning: false, limit: 10, reserve: nil) { _ in [0] }
+    #expect(fitted.messages.allSatisfy { $0["reasoning_content"] == nil })
+    let fittedDefault = try Runtime.fit(transcript, remembered: [:], limit: 10, reserve: nil) { _ in [0] }
+    #expect(fittedDefault.messages.compactMap { $0["reasoning_content"] as? String }.count == 3)
+}
+
+@Test func templateVariablesReachTheRendering() async throws {
+    #expect(Runtime.templateContext(.light, variables: ["preserve_thinking": false])["reasoning_effort"] as? String == "low")
+    #expect(Runtime.templateContext(.light, variables: ["preserve_thinking": false])["preserve_thinking"] as? Bool == false)
+    #expect(Runtime.templateContext(.custom("off"), variables: ["enable_thinking": true])["enable_thinking"] as? Bool == true)
+    #expect(Runtime.templateContext(nil, variables: [:]).isEmpty)
+
+    let folder = try tinyBundle()
+    defer { try? FileManager.default.removeItem(at: folder) }
+    let tokenizer = try await ModelBundle(url: folder).loadTokenizer()
+    let template = "{%- if preserve_thinking is undefined or preserve_thinking is true %}b{%- else %}a{%- endif %}"
+    func render(_ variables: [String: Bool]) throws -> [Int] {
+        let context = Runtime.templateContext(nil, variables: variables)
+        return try tokenizer.applyChatTemplate(
+            messages: [["role": "user", "content": "x"]], chatTemplate: .literal(template), addGenerationPrompt: false, truncation: false,
+            maxLength: nil, tools: nil, additionalContext: context.isEmpty ? nil : context)
+    }
+    #expect(try render([:]) == [1])
+    #expect(try render(["preserve_thinking": true]) == [1])
+    #expect(try render(["preserve_thinking": false]) == [0])
+}
+
+@Test func stateCheckPassesTheSameTopAndNearTiesOnly() {
+    func up(_ value: Float16, _ ticks: Int) -> Float16 { (0..<ticks).reduce(value) { next, _ in next.nextUp } }
+    func pair(_ high: Int, _ low: Int, ticks: Int) -> [Float16] {
+        var values: [Float16] = [1, 0, 0, -2, 3]
+        values[low] = 20
+        values[high] = up(20, ticks)
+        return values
+    }
+    #expect(StateCheck.ticks(up(16, 3), 16) == 3)
+    #expect(StateCheck.ticks(20, 19) == 64)
+    #expect(StateCheck.ticks(-0.0, 0) == 0)
+    #expect(StateCheck.ticks(Float16.leastNonzeroMagnitude, -Float16.leastNonzeroMagnitude) == 2)
+    #expect(StateCheck.top2([5, 5, 1]) == (0, 1))
+    #expect(StateCheck.top2([1, 5, 7, 6]) == (2, 3))
+
+    let base: [Float16] = [1, 20, 3, -2, 19]
+    var check = StateCheck(current: base, reread: base)
+    #expect(check.passed && check.currentTop == 1 && check.rereadTop == 1 && check.marginTicks == 64 && check.maxAbsDiff == 0)
+    var shifted = base
+    shifted[3] = 2
+    check = StateCheck(current: base, reread: shifted)
+    #expect(check.passed && check.maxAbsDiff == 4)
+
+    for ticks in [1, 8] {
+        check = StateCheck(current: pair(1, 2, ticks: ticks), reread: pair(2, 1, ticks: ticks))
+        #expect(check.passed && check.currentTop == 1 && check.rereadTop == 2 && check.marginTicks == ticks)
+        #expect(check.maxAbsDiff == Float(ticks) / 64)
+    }
+    check = StateCheck(current: pair(1, 2, ticks: 9), reread: pair(2, 1, ticks: 9))
+    #expect(!check.passed && check.marginTicks == 9)
+    check = StateCheck(current: pair(1, 2, ticks: 2), reread: pair(2, 4, ticks: 2))
+    #expect(!check.passed && check.marginTicks == 2)
 }
 
 let bundlePaths = (ProcessInfo.processInfo.environment["COREAI_TEST_BUNDLES"] ?? "")
