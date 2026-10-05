@@ -30,6 +30,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		0F5FC9669CBF0AB94BEDB751 /* Local.xcconfig.template */ = {isa = PBXFileReference; path = Local.xcconfig.template; sourceTree = "<group>"; };
 		154FAE636D5E23DF886F3868 /* DemoApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DemoApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		16E551C28EBA72A6BB553D1E /* ModelStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelStorage.swift; sourceTree = "<group>"; };
 		201FDFD4C2617312CDF10C20 /* ModelsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelsView.swift; sourceTree = "<group>"; };
@@ -43,6 +44,7 @@
 		96BE74A7623526708986F062 /* SelfTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelfTest.swift; sourceTree = "<group>"; };
 		9FDDE78A1F2C3AA789F5EBBF /* ModelsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelsViewModel.swift; sourceTree = "<group>"; };
 		AD58AC60D2EE1B6D37356EF4 /* AgentViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentViewModel.swift; sourceTree = "<group>"; };
+		B607565BEDB92E9A265B8871 /* Signing.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.xcconfig; sourceTree = "<group>"; };
 		CC51CB72599FFDE3FE0BE8B2 /* DemoAppMain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoAppMain.swift; sourceTree = "<group>"; };
 		CEB723B3B0854B2E728DC0D0 /* AgentTools.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentTools.swift; sourceTree = "<group>"; };
 		D721601AF8302B97432587EA /* ChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatView.swift; sourceTree = "<group>"; };
@@ -50,7 +52,6 @@
 		EACFC6CF85A4B1BE15F23794 /* ChatRAG.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatRAG.swift; sourceTree = "<group>"; };
 		F02B9EA454BBC2DA0860913C /* AgentSelfTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentSelfTest.swift; sourceTree = "<group>"; };
 		F562386F185691642C44B1E9 /* GUIDriver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GUIDriver.swift; sourceTree = "<group>"; };
-		"TEMP_E85E4357-8AEF-4287-82B6-DDDFA04E8102" /* Signing.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -81,7 +82,9 @@
 		440193E401A4E83EEA00B144 = {
 			isa = PBXGroup;
 			children = (
+				0F5FC9669CBF0AB94BEDB751 /* Local.xcconfig.template */,
 				F1DF8958A1BCF35E04E58873 /* DemoApp */,
+				8ECB8F2FC60D720B766C8387 /* DemoApp */,
 				9E76448A8A8689BB96FE5017 /* Packages */,
 				D4CC74EBFCAF08A1E61D64BF /* Products */,
 			);
@@ -106,6 +109,15 @@
 				BDCB1E5DB44A0564814718D2 /* ModelManager */,
 			);
 			path = Demos;
+			sourceTree = "<group>";
+		};
+		8ECB8F2FC60D720B766C8387 /* DemoApp */ = {
+			isa = PBXGroup;
+			children = (
+				B607565BEDB92E9A265B8871 /* Signing.xcconfig */,
+			);
+			name = DemoApp;
+			path = .;
 			sourceTree = "<group>";
 		};
 		9E76448A8A8689BB96FE5017 /* Packages */ = {
@@ -144,14 +156,6 @@
 				F562386F185691642C44B1E9 /* GUIDriver.swift */,
 				4257A85A05752939D54D8DD6 /* MetricsLog.swift */,
 				5183B0CE22F31FA0116AC0F5 /* Demos */,
-			);
-			path = DemoApp;
-			sourceTree = "<group>";
-		};
-		"TEMP_E600B883-D6A0-4351-9F67-5C98EAB37201" /* DemoApp */ = {
-			isa = PBXGroup;
-			children = (
-				"TEMP_E85E4357-8AEF-4287-82B6-DDDFA04E8102" /* Signing.xcconfig */,
 			);
 			path = DemoApp;
 			sourceTree = "<group>";
@@ -246,7 +250,7 @@
 /* Begin XCBuildConfiguration section */
 		041C67ECF87CA2F42B2A6BA2 /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = "TEMP_E85E4357-8AEF-4287-82B6-DDDFA04E8102" /* Signing.xcconfig */;
+			baseConfigurationReference = B607565BEDB92E9A265B8871 /* Signing.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ANALYZER_NONNULL = YES;
@@ -304,7 +308,7 @@
 		};
 		17707D7259CA9368A4B03200 /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = "TEMP_E85E4357-8AEF-4287-82B6-DDDFA04E8102" /* Signing.xcconfig */;
+			baseConfigurationReference = B607565BEDB92E9A265B8871 /* Signing.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ANALYZER_NONNULL = YES;
@@ -371,8 +375,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_IDENTITY = "-";
-				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_APP_SANDBOX = NO;
@@ -398,8 +400,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_IDENTITY = "-";
-				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_APP_SANDBOX = NO;

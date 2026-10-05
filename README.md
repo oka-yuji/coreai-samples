@@ -35,6 +35,8 @@ swift build -c release
 
 Each `--prompt` is one turn of the same conversation. When the model thinks, the thinking prints under `[reasoning]` and the answer under `[response]`. `--stats` writes JSON lines to stderr: one for the load (`cached`, `specialize_s`, `load_s`) and one per turn, where `cached_tokens` is the part of the prompt reused from earlier turns.
 
+**3. Run the demo app.** Open `coreai-samples.xcworkspace` in Xcode, choose the `DemoApp` scheme and press Run. Xcode resolves the package dependencies the first time. The `DemoApp` scheme runs a Release build, and `DemoApp-Debug` runs a Debug build for debugging. In the app, **Models** opens the bundle folder from step 1.
+
 ## Use it from Swift
 
 ```swift
@@ -71,6 +73,7 @@ Sources/CoreAIBackend/   the runtime: Engine (Core AI calls), LocalLanguageModel
 Sources/RAGContext/      passages, ranking, token budget, prompt and dates for answers from retrieved sources; a document-folder reader
 Sources/coreai-chat/     the command-line chat (ChatCommand.swift)
 Examples/DemoApp/        macOS SwiftUI demo app: Models, Chat (with RAG), Agent
+coreai-samples.xcworkspace  the Xcode workspace for the demo app: open it and press Run
 Tools/Verify/            separate package: coreai-verify, which compares this runtime with apple/coreai-models 1.0.0
 Tests/                   CoreAIBackendTests and RAGContextTests (swift test)
 LICENSE                  MIT, for the code
@@ -84,7 +87,7 @@ LICENSE                  MIT, for the code
 - **Chat** streams the reply and the thinking, and with RAG answers from web pages and local documents with numbered sources.
 - **Agent** searches the web, reads pages and saves notes through the Foundation Models tool loop.
 
-Building it, the headless self-tests, the screen checks and the logs are in [Examples/DemoApp/README.md](Examples/DemoApp/README.md).
+To try it, open `coreai-samples.xcworkspace` and press Run. Building it from the command line, the headless self-tests, the screen checks and the logs are in [Examples/DemoApp/README.md](Examples/DemoApp/README.md).
 
 ## Verification
 
