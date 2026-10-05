@@ -4,12 +4,15 @@ options:
   bundleIdPrefix: com.coreai-samples
   deploymentTarget:
     macOS: "27.0"
-  createIntermediateGroups: true
+  createIntermediateGroups: false
   minimumXcodeGenVersion: "2.0.0"
 
 configFiles:
   Debug: Signing.xcconfig
   Release: Signing.xcconfig
+
+fileGroups:
+  - Local.xcconfig.template
 
 settings:
   base:
@@ -43,13 +46,21 @@ targets:
         INFOPLIST_KEY_CFBundleDisplayName: Core AI Demos
         INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.developer-tools
         INFOPLIST_KEY_NSHumanReadableCopyright: ""
-        CODE_SIGN_STYLE: Manual
-        CODE_SIGN_IDENTITY: "-"
         ENABLE_HARDENED_RUNTIME: "NO"
         ENABLE_APP_SANDBOX: "NO"
 
 schemes:
   DemoApp:
+    build:
+      targets:
+        DemoApp: all
+    run:
+      config: Release
+    profile:
+      config: Release
+    archive:
+      config: Release
+  DemoApp-Debug:
     build:
       targets:
         DemoApp: all

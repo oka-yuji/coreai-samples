@@ -12,6 +12,8 @@
 
 ## Build and run
 
+In Xcode, open `coreai-samples.xcworkspace` at the repository root, choose the `DemoApp` scheme and `My Mac`, and press Run. The `DemoApp` scheme runs a Release build and `DemoApp-Debug` a Debug build. From the command line:
+
 ```bash
 cd Examples/DemoApp
 xcodegen generate   # only needed after editing project.yml; the generated project is committed
@@ -19,7 +21,7 @@ xcodebuild -scheme DemoApp -configuration Release -derivedDataPath .build build
 open .build/Build/Products/Release/DemoApp.app
 ```
 
-The app is signed ad hoc and runs without the App Sandbox. To sign with your team, copy `Local.xcconfig.template` to `Local.xcconfig` and set `DEVELOPMENT_TEAM`. The context window is 16,384 tokens (or the bundle's maximum, if smaller) for Chat, RAG and Agent; launch with `--context-limit N` to change it, for example `open .build/Build/Products/Release/DemoApp.app --args --context-limit 1024`.
+The app is signed ad hoc and runs without the App Sandbox. To sign with your team, copy `Local.xcconfig.template` to `Local.xcconfig` and set `DEVELOPMENT_TEAM`; the template also switches to automatic signing with an Apple Development certificate. Choosing a team in Xcode's Signing & Capabilities instead writes it into the shared project file. The context window is 16,384 tokens (or the bundle's maximum, if smaller) for Chat, RAG and Agent; launch with `--context-limit N` to change it, for example `open .build/Build/Products/Release/DemoApp.app --args --context-limit 1024`.
 
 The first load of a model prepares it for the GPU (about 21 s for Qwen3.5-9B on an M4 Max); later loads reuse the prepared copy in `~/Library/Caches/coreai-cache/<OS build>/com.coreai-samples.DemoApp/`.
 
