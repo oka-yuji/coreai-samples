@@ -20,7 +20,7 @@ xcodebuild -project CoreAISamples.xcodeproj -scheme CoreAISamples -configuration
 open .build/Build/Products/Release/CoreAISamples.app
 ```
 
-The app is signed ad hoc and runs without the App Sandbox. To sign with your team, copy `Config/Local.xcconfig.template` to `Config/Local.xcconfig` and set `DEVELOPMENT_TEAM`; the template also switches to automatic signing with an Apple Development certificate. Choosing a team in Xcode's Signing & Capabilities instead writes it into the shared project file. The context window is 16,384 tokens (or the bundle's maximum, if smaller) for Chat, RAG and Agent; launch with `--context-limit N` to change it, for example `open .build/Build/Products/Release/CoreAISamples.app --args --context-limit 1024`.
+The app is signed ad hoc and runs without the App Sandbox. To sign with your team, copy `Config/Local.xcconfig.template` to `Config/Local.xcconfig` and set `DEVELOPMENT_TEAM`; the template also switches to automatic signing with an Apple Development certificate. Choosing a team in Xcode's Signing & Capabilities instead writes it into the shared project file. A `Local.xcconfig` made in an earlier checkout under `Examples/DemoApp/` is not moved by git; move it to `Config/Local.xcconfig`. The context window is 16,384 tokens (or the bundle's maximum, if smaller) for Chat, RAG and Agent; launch with `--context-limit N` to change it, for example `open .build/Build/Products/Release/CoreAISamples.app --args --context-limit 1024`.
 
 The first load of a model prepares it for the GPU (about 21 s for Qwen3.5-9B on an M4 Max); later loads reuse the prepared copy in `~/Library/Caches/coreai-cache/<OS build>/com.coreai-samples.DemoApp/`.
 
@@ -58,7 +58,7 @@ Turn on **RAG** in the Chat status bar, then pick **Web**, **Docs** or both. The
 
 The answer is followed by its sources, numbered like the `[n]` marks in the text (`[n] title — url (date)`; `日付不明` when the page gives no date), and one line for each source that failed (no network, no search results, a page that would not load). With no sources at all, the reply is `資料が取得できませんでした。` and the model does not run. The status line adds `sources N | source tok N | prompt(rag) N tok | retrieval N.Ns`.
 
-A page's date comes from its `article:published_time` and similar meta tags, then a `<time datetime>` tag, then the search snippet, then the first 600 characters of the page text. The splitting, the packing to the token budget, the prompt and its citations, the date parsing, the reading of a documents folder (the app supplies the PDF text) and a term-match ranking are in the `RAGContext` library of this package, with no network or UI, and `swift test --filter RAG` tests them; the SQLite FTS5 (BM25) ranking is in the app, which uses the term-match ranking only when the FTS5 ranking returns nothing.
+A page's date comes from its `article:published_time` and similar meta tags, then a `<time datetime>` tag, then the search snippet, then the first 600 characters of the page text. The splitting, the packing to the token budget, the prompt and its citations, the date parsing, the reading of a documents folder (the app supplies the PDF text) and a term-match ranking are in the `RAGContext` library of the `CoreAISamplesKit` package, with no network or UI, and `swift test --package-path CoreAISamplesKit --filter RAG` tests them; the SQLite FTS5 (BM25) ranking is in the app, which uses the term-match ranking only when the FTS5 ranking returns nothing.
 
 Headless, with no window:
 
