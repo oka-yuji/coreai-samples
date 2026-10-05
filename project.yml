@@ -1,4 +1,4 @@
-name: DemoApp
+name: CoreAISamples
 
 options:
   bundleIdPrefix: com.coreai-samples
@@ -8,36 +8,36 @@ options:
   minimumXcodeGenVersion: "2.0.0"
 
 configFiles:
-  Debug: Signing.xcconfig
-  Release: Signing.xcconfig
+  Debug: Config/Signing.xcconfig
+  Release: Config/Signing.xcconfig
 
 fileGroups:
-  - Local.xcconfig.template
+  - Config/Local.xcconfig.template
 
 settings:
   base:
     EXCLUDED_ARCHS: x86_64
 
 packages:
-  CoreAISamples:
-    path: ../..
+  CoreAISamplesKit:
+    path: CoreAISamplesKit
 
 targets:
-  DemoApp:
+  CoreAISamples:
     type: application
     platform: macOS
     deploymentTarget: "27.0"
     sources:
-      - path: DemoApp
+      - path: CoreAISamples
     dependencies:
-      - package: CoreAISamples
+      - package: CoreAISamplesKit
         product: CoreAIBackend
-      - package: CoreAISamples
+      - package: CoreAISamplesKit
         product: RAGContext
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.coreai-samples.DemoApp
-        PRODUCT_NAME: DemoApp
+        PRODUCT_NAME: CoreAISamples
         MARKETING_VERSION: "1.0"
         CURRENT_PROJECT_VERSION: "1"
         SWIFT_VERSION: "6.0"
@@ -50,20 +50,20 @@ targets:
         ENABLE_APP_SANDBOX: "NO"
 
 schemes:
-  DemoApp:
+  CoreAISamples:
     build:
       targets:
-        DemoApp: all
+        CoreAISamples: all
     run:
       config: Release
     profile:
       config: Release
     archive:
       config: Release
-  DemoApp-Debug:
+  CoreAISamples-Debug:
     build:
       targets:
-        DemoApp: all
+        CoreAISamples: all
     run:
       config: Debug
     profile:

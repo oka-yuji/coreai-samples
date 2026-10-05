@@ -19,7 +19,7 @@ enum SelfTest {
         guard let model = LaunchArguments.value("--model"), !questions.isEmpty || file != nil,
             LaunchArguments.value("--rag-budget") == nil || ChatViewModel.launchRAGBudget != nil
         else {
-            log("usage: DemoApp --selftest --model <folder> (--prompts-file <file> | --rag \"question 1|question 2\" [--rag-web off] [--rag-local off] [--rag-docs <folder>] [--rag-budget 3000|6000]) [--max-tokens N] [--context-limit N]")
+            log("usage: CoreAISamples --selftest --model <folder> (--prompts-file <file> | --rag \"question 1|question 2\" [--rag-web off] [--rag-local off] [--rag-docs <folder>] [--rag-budget 3000|6000]) [--max-tokens N] [--context-limit N]")
             return finish(false)
         }
         let prompts = questions.isEmpty

@@ -12,8 +12,8 @@ models/
 DerivedData/
 xcuserdata/
 
-# Local signing (per-developer team id; copy from Local.xcconfig.template)
-Examples/DemoApp/Local.xcconfig
+# Local signing (per-developer team id; copy from Config/Local.xcconfig.template)
+Config/Local.xcconfig
 
 # macOS
 .DS_Store

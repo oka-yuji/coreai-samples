@@ -2,7 +2,7 @@
 import PackageDescription
 
 let package = Package(
-    name: "CoreAISamples",
+    name: "CoreAISamplesKit",
     platforms: [
         .macOS("27.0"),
         .iOS("27.0"),

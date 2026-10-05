@@ -15,10 +15,10 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "CD9365CEE296087B81D5EDE0"
-               BuildableName = "DemoApp.app"
-               BlueprintName = "DemoApp"
-               ReferencedContainer = "container:DemoApp.xcodeproj">
+               BlueprintIdentifier = "EF1E58AEA5F6AFD087CF347F"
+               BuildableName = "CoreAISamples.app"
+               BlueprintName = "CoreAISamples"
+               ReferencedContainer = "container:CoreAISamples.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -32,17 +32,17 @@
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "CD9365CEE296087B81D5EDE0"
-            BuildableName = "DemoApp.app"
-            BlueprintName = "DemoApp"
-            ReferencedContainer = "container:DemoApp.xcodeproj">
+            BlueprintIdentifier = "EF1E58AEA5F6AFD087CF347F"
+            BuildableName = "CoreAISamples.app"
+            BlueprintName = "CoreAISamples"
+            ReferencedContainer = "container:CoreAISamples.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
       <Testables>
       </Testables>
    </TestAction>
    <LaunchAction
-      buildConfiguration = "Release"
+      buildConfiguration = "Debug"
       selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
       launchStyle = "0"
@@ -55,10 +55,10 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "CD9365CEE296087B81D5EDE0"
-            BuildableName = "DemoApp.app"
-            BlueprintName = "DemoApp"
-            ReferencedContainer = "container:DemoApp.xcodeproj">
+            BlueprintIdentifier = "EF1E58AEA5F6AFD087CF347F"
+            BuildableName = "CoreAISamples.app"
+            BlueprintName = "CoreAISamples"
+            ReferencedContainer = "container:CoreAISamples.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
       <CommandLineArguments>
@@ -74,10 +74,10 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "CD9365CEE296087B81D5EDE0"
-            BuildableName = "DemoApp.app"
-            BlueprintName = "DemoApp"
-            ReferencedContainer = "container:DemoApp.xcodeproj">
+            BlueprintIdentifier = "EF1E58AEA5F6AFD087CF347F"
+            BuildableName = "CoreAISamples.app"
+            BlueprintName = "CoreAISamples"
+            ReferencedContainer = "container:CoreAISamples.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
       <CommandLineArguments>
