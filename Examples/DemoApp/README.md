@@ -12,7 +12,7 @@
 
 ## Build and run
 
-In Xcode, open `coreai-samples.xcworkspace` at the repository root, choose the `DemoApp` scheme and press Run. The `DemoApp` scheme runs a Release build and `DemoApp-Debug` a Debug build. From the command line:
+In Xcode, open `coreai-samples.xcworkspace` at the repository root, choose the `DemoApp` scheme and `My Mac`, and press Run. The `DemoApp` scheme runs a Release build and `DemoApp-Debug` a Debug build. From the command line:
 
 ```bash
 cd Examples/DemoApp
