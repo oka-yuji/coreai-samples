@@ -1,6 +1,6 @@
 # Demo app (macOS)
 
-`Examples/DemoApp` is a SwiftUI app that runs a local model bundle through Foundation Models with the runtime in this repository (`CoreAIBackend`). It does not use the official `coreai-models` package.
+`CoreAISamples` (`CoreAISamples.xcodeproj` and the `CoreAISamples` folder at the repository root) is a SwiftUI app that runs a local model bundle through Foundation Models with the runtime in this repository (`CoreAIBackend`). It does not use the official `coreai-models` package.
 
 - **Models**: open a bundle folder on this Mac (the app remembers it), load it, and clear the copy the app prepared for the GPU. The download catalog for Hugging Face is in place but stays empty until bundles are published.
 - **Chat**: a `LanguageModelSession` on `LocalLanguageModel`. Replies stream, thinking streams into a collapsed section, and the status line shows the time to the first token, the speed, the input, reused and output tokens, and why the reply stopped. With **RAG** on, the app first collects sources from the web and from `~/Documents/rag/` and the model answers from them with numbered citations. See [RAG](#rag) below.
@@ -12,23 +12,22 @@
 
 ## Build and run
 
-In Xcode, open `coreai-samples.xcworkspace` at the repository root, choose the `DemoApp` scheme and `My Mac`, and press Run. The `DemoApp` scheme runs a Release build and `DemoApp-Debug` a Debug build. From the command line:
+In Xcode, open `CoreAISamples.xcodeproj` at the repository root, choose the `CoreAISamples` scheme and `My Mac`, and press Run. The `CoreAISamples` scheme runs a Release build and `CoreAISamples-Debug` a Debug build. From the command line, at the repository root:
 
 ```bash
-cd Examples/DemoApp
 xcodegen generate   # only needed after editing project.yml; the generated project is committed
-xcodebuild -scheme DemoApp -configuration Release -derivedDataPath .build build
-open .build/Build/Products/Release/DemoApp.app
+xcodebuild -project CoreAISamples.xcodeproj -scheme CoreAISamples -configuration Release -derivedDataPath .build build
+open .build/Build/Products/Release/CoreAISamples.app
 ```
 
-The app is signed ad hoc and runs without the App Sandbox. To sign with your team, copy `Local.xcconfig.template` to `Local.xcconfig` and set `DEVELOPMENT_TEAM`; the template also switches to automatic signing with an Apple Development certificate. Choosing a team in Xcode's Signing & Capabilities instead writes it into the shared project file. The context window is 16,384 tokens (or the bundle's maximum, if smaller) for Chat, RAG and Agent; launch with `--context-limit N` to change it, for example `open .build/Build/Products/Release/DemoApp.app --args --context-limit 1024`.
+The app is signed ad hoc and runs without the App Sandbox. To sign with your team, copy `Config/Local.xcconfig.template` to `Config/Local.xcconfig` and set `DEVELOPMENT_TEAM`; the template also switches to automatic signing with an Apple Development certificate. Choosing a team in Xcode's Signing & Capabilities instead writes it into the shared project file. The context window is 16,384 tokens (or the bundle's maximum, if smaller) for Chat, RAG and Agent; launch with `--context-limit N` to change it, for example `open .build/Build/Products/Release/CoreAISamples.app --args --context-limit 1024`.
 
 The first load of a model prepares it for the GPU (about 21 s for Qwen3.5-9B on an M4 Max); later loads reuse the prepared copy in `~/Library/Caches/coreai-cache/<OS build>/com.coreai-samples.DemoApp/`.
 
 ## Headless self-test
 
 ```bash
-APP=.build/Build/Products/Release/DemoApp.app/Contents/MacOS/DemoApp
+APP=.build/Build/Products/Release/CoreAISamples.app/Contents/MacOS/CoreAISamples
 $APP --selftest --model /path/to/bundle --prompts-file prompts.txt [--max-tokens 2048] [--context-limit 4096]
 ```
 

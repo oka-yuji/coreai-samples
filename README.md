@@ -11,7 +11,7 @@ The runtime reads the model bundles made by Apple's converter in [apple/coreai-m
 - **For** anyone who wants to check such a runtime against Apple's own: `Tools/Verify` compares the two token by token.
 - **Not for**, yet: iOS apps, or ready-made model downloads (none are published). For macOS 26 / iOS 26, see [coreml-llm-samples](https://github.com/oka-yuji/coreml-llm-samples).
 
-Requirements: an Apple silicon Mac with macOS 27, and Xcode 27 with the Metal Toolchain component. `Package.swift` also declares iOS 27, but nothing has been run on iOS.
+Requirements: an Apple silicon Mac with macOS 27, and Xcode 27 with the Metal Toolchain component. `CoreAISamplesKit/Package.swift` also declares iOS 27, but nothing has been run on iOS.
 
 ## Quick start
 
@@ -24,9 +24,10 @@ uv run coreai.llm.export Qwen/Qwen3-0.6B --output-dir ~/coreai-bundles   # write
 
 The runtime has been run with that bundle, with bundles of Qwen3.5-0.8B and Qwen3.5-9B, and with Qwen3.8-27B in 4-bit and 8-bit. The Qwen3.5 and Qwen3.8 exports come from [pull request #321](https://github.com/apple/coreai-models/pull/321) of apple/coreai-models, which is still open (checked 2026-10-03), so they are not in the 1.0.0 tag.
 
-**2. Chat** from the root of this repository:
+**2. Chat** from the `CoreAISamplesKit` folder:
 
 ```bash
+cd CoreAISamplesKit
 swift build -c release
 .build/release/coreai-chat --model ~/coreai-bundles/qwen3_0_6b_4bit_dynamic --system "You are a concise assistant." \
   --prompt "My name is Taro. Remember it." --prompt "What is the capital of France? Answer with one word." \
@@ -35,7 +36,7 @@ swift build -c release
 
 Each `--prompt` is one turn of the same conversation. When the model thinks, the thinking prints under `[reasoning]` and the answer under `[response]`. `--stats` writes JSON lines to stderr: one for the load (`cached`, `specialize_s`, `load_s`) and one per turn, where `cached_tokens` is the part of the prompt reused from earlier turns.
 
-**3. Run the demo app.** Open `coreai-samples.xcworkspace` in Xcode, choose the `DemoApp` scheme and `My Mac`, and press Run. Xcode resolves the package dependencies the first time. The `DemoApp` scheme runs a Release build, and `DemoApp-Debug` runs a Debug build for debugging. In the app, **Models** opens the bundle folder from step 1.
+**3. Run the demo app.** Open `CoreAISamples.xcodeproj` in Xcode, choose the `CoreAISamples` scheme and `My Mac`, and press Run. Xcode resolves the package dependencies the first time. The `CoreAISamples` scheme runs a Release build, and `CoreAISamples-Debug` runs a Debug build for debugging. In the app, **Models** opens the bundle folder from step 1.
 
 ## Use it from Swift
 
@@ -54,7 +55,7 @@ for try await snapshot in session.streamResponse(
 }
 ```
 
-This is the core of `Sources/coreai-chat/ChatCommand.swift`, cut down to the calls that matter; the CLI sends one turn per `--prompt` to the same session and prints only the new part of each snapshot. The thinking arrives as `.reasoning` entries in `session.transcript`, the token counts in `session.usage`, and the stop reason in the response metadata (`stopReason`). `LocalLanguageModel(bundle:contextLimit:overflow:)` also takes a context limit and an `OverflowPolicy` (below). The demo app and `Tools/Verify` use `CoreAIBackend` from this repository as a local path dependency; there is no tagged release to depend on yet.
+This is the core of `CoreAISamplesKit/Sources/coreai-chat/ChatCommand.swift`, cut down to the calls that matter; the CLI sends one turn per `--prompt` to the same session and prints only the new part of each snapshot. The thinking arrives as `.reasoning` entries in `session.transcript`, the token counts in `session.usage`, and the stop reason in the response metadata (`stopReason`). `LocalLanguageModel(bundle:contextLimit:overflow:)` also takes a context limit and an `OverflowPolicy` (below). The demo app and `Tools/Verify` use `CoreAIBackend` from the `CoreAISamplesKit` package in this repository as a local path dependency; there is no tagged release to depend on yet. To use it in your own app, add the `CoreAISamplesKit` folder as a local package (in Xcode, File > Add Package Dependencies > Add Local).
 
 ## What the runtime does
 
@@ -69,25 +70,29 @@ This is the core of `Sources/coreai-chat/ChatCommand.swift`, cut down to the cal
 ## Repository layout
 
 ```
-Sources/CoreAIBackend/   the runtime: Engine (Core AI calls), LocalLanguageModel (Foundation Models), ModelBundle (metadata.json)
-Sources/RAGContext/      passages, ranking, token budget, prompt and dates for answers from retrieved sources; a document-folder reader
-Sources/coreai-chat/     the command-line chat (ChatCommand.swift)
-Examples/DemoApp/        macOS SwiftUI demo app: Models, Chat (with RAG), Agent
-coreai-samples.xcworkspace  the Xcode workspace for the demo app: open it and press Run
+CoreAISamples.xcodeproj  the demo app project: open it and press Run
+CoreAISamples/           macOS SwiftUI demo app: Models, Chat (with RAG), Agent
+CoreAISamplesKit/        the Swift package the app is built on
+  Sources/CoreAIBackend/ the runtime: Engine (Core AI calls), LocalLanguageModel (Foundation Models), ModelBundle (metadata.json)
+  Sources/RAGContext/    passages, ranking, token budget, prompt and dates for answers from retrieved sources; a document-folder reader
+  Sources/coreai-chat/   the command-line chat (ChatCommand.swift)
+  Tests/                 CoreAIBackendTests and RAGContextTests (swift test)
+Config/                  the app's signing settings: Signing.xcconfig and Local.xcconfig.template
+project.yml              the XcodeGen spec of CoreAISamples.xcodeproj
 Tools/Verify/            separate package: coreai-verify, which compares this runtime with apple/coreai-models 1.0.0
-Tests/                   CoreAIBackendTests and RAGContextTests (swift test)
+docs/demo-app.md         the demo app: building it, headless self-tests, screen checks and logs
 LICENSE                  MIT, for the code
 ```
 
 ## Demo app
 
-`Examples/DemoApp` is a macOS SwiftUI app built on this repository's `CoreAIBackend` and `RAGContext`, without the official `coreai-models` package.
+`CoreAISamples` is a macOS SwiftUI app built on this repository's `CoreAIBackend` and `RAGContext`, without the official `coreai-models` package.
 
 - **Models** opens a bundle folder on this Mac, loads it, and clears the copy prepared for the GPU.
 - **Chat** streams the reply and the thinking, and with RAG answers from web pages and local documents with numbered sources.
 - **Agent** searches the web, reads pages and saves notes through the Foundation Models tool loop.
 
-To try it, open `coreai-samples.xcworkspace` and press Run. Building it from the command line, the headless self-tests, the screen checks and the logs are in [Examples/DemoApp/README.md](Examples/DemoApp/README.md).
+To try it, open `CoreAISamples.xcodeproj` and press Run. Building it from the command line, the headless self-tests, the screen checks and the logs are in [docs/demo-app.md](docs/demo-app.md).
 
 ## Verification
 
@@ -111,9 +116,10 @@ swift build -c release
 .build/release/coreai-verify chat --model <bundle> --runtime own --max-tokens 64 --prompt "What is the capital of France? Answer with one word."
 ```
 
-From the repository root, `swift test` runs the tests that need no model, such as the reuse plan, the parsers, the sampler, the context fitting and the RAG passages and dates. The tests that load a model run only when `COREAI_TEST_BUNDLES` lists bundle folders, separated by `:`.
+From the `CoreAISamplesKit` folder, `swift test` runs the tests that need no model, such as the reuse plan, the parsers, the sampler, the context fitting and the RAG passages and dates. The tests that load a model run only when `COREAI_TEST_BUNDLES` lists bundle folders, separated by `:`.
 
 ```bash
+cd CoreAISamplesKit
 swift test
 COREAI_TEST_BUNDLES=/path/to/bundle-a:/path/to/bundle-b swift test
 ```
@@ -125,7 +131,7 @@ COREAI_TEST_BUNDLES=/path/to/bundle-a:/path/to/bundle-b swift test
 
 ## Limitations
 
-- Run on macOS only (Apple silicon, macOS 27.0). `Package.swift` declares iOS 27, but nothing has been run on iOS, and the demo app is macOS only.
+- Run on macOS only (Apple silicon, macOS 27.0). `CoreAISamplesKit/Package.swift` declares iOS 27, but nothing has been run on iOS, and the demo app is macOS only.
 - Only bundles from the converter's macOS export (the `*_dynamic` folders) have been run, all of them Qwen models (Qwen3, Qwen3.5, Qwen3.8). The stop tokens, the `<think>` tags and the tool-call forms above are the ones those templates use; other model families may need more.
 - Text in, text out: a transcript segment that is not text throws `LanguageModelError.unsupportedTranscriptContent`, and there is no image or audio input.
 - No guided generation: a request with a response schema throws `LanguageModelError.unsupportedCapability`.
