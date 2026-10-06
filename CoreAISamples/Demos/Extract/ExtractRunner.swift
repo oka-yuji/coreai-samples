@@ -93,9 +93,9 @@ struct ExtractRunner {
             "The model has no function \(name)."
         case GLiNERModelError.signatureMismatch(let function, let value):
             "\(function) of the model differs from what this app implements at \(value): it takes and returns Int32 "
-                + "and Float32 (FP32) values of the contract's shapes."
+                + "values and either Float32 (FP32) or Float16 (FP16) values throughout, of the contract's shapes."
         case GLiNERModelError.unreadableOutput(let name):
-            "The model returned \(name) as something other than a contiguous Float32 array."
+            "The model returned \(name) as something other than a contiguous Float32 or Float16 array."
         default:
             error.localizedDescription
         }

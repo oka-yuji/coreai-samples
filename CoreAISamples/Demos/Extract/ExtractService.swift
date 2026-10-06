@@ -69,7 +69,8 @@ final class GLiNERExtractService: ExtractService {
         self.extractor = extractor
         return AssetInfo(
             path: folder.path(percentEncoded: false), revision: revision,
-            loadSeconds: (clock.now - started) / .seconds(1))
+            loadSeconds: (clock.now - started) / .seconds(1),
+            floatType: extractor.model.floatType == .float16 ? "float16" : "float32")
     }
 
     func extract(text: String, schema: FormSchema, filter: CandidateFilter) async throws -> (
