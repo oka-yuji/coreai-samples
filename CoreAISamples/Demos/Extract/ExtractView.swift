@@ -107,6 +107,9 @@ struct ExtractView: View {
         case .ready, .idle:
             if let timing = state.result?.timing {
                 Text(Self.describe(timing)).monospacedDigit().foregroundStyle(.secondary)
+            } else if state.schema.fields.isEmpty {
+                Text(state.mode == .labels ? "Add a label to extract." : "Add a field to extract.")
+                    .foregroundStyle(.secondary)
             } else if case .ready = state.asset {
                 Text(state.text.isEmpty ? "Paste or type a note." : "Waiting for the text to settle…")
                     .foregroundStyle(.secondary)

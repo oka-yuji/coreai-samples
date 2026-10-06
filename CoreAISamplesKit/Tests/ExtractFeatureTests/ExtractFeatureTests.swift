@@ -91,10 +91,11 @@ struct ExtractFeatureTests {
     }
 
     @Test(
-        "reduce clears people's confirmations when the text or the fields change",
+        "reduce clears people's confirmations when the text, the fields or the candidate filter change",
         arguments: [
             ExtractAction.textChanged("pressure 0.5MPa"),
             ExtractAction.fieldsChanged(FormSchema(fields: [testForm.fields[0]])),
+            ExtractAction.candidateFilterChanged(.none),
         ])
     func clearsConfirmationsOnANewVersion(change: ExtractAction) {
         var state = readyState()
@@ -280,7 +281,10 @@ struct ExtractFeatureTests {
         var state = readyState()
         _ = send(&state, .textChanged("pressure 0.4MPa"), .select(field: "noise"))
         let before = state
-        #expect(send(&state, .textChanged("pressure 0.4MPa"), .fieldsChanged(testForm)) == [[], []])
+        #expect(
+            send(
+                &state, .textChanged("pressure 0.4MPa"), .fieldsChanged(testForm),
+                .candidateFilterChanged(.clauseFieldName)) == [[], [], []])
         #expect(state == before)
         _ = send(&state, .fieldsChanged(FormSchema(fields: [testForm.fields[0]])))
         #expect(state.selectedField == nil)
@@ -357,7 +361,7 @@ struct ExtractFeatureTests {
 
         let toLabels = send(
             &state, .modeChanged(.labels), .extractionFinished(version: 1, mapping: mapping, timing: timing),
-            .extractRequested, .confirm(field: "value", choice: .hold))
+            .extractRequested, .confirm(field: "noise", choice: .option(name: "ok")))
         #expect(
             toLabels == [
                 [.run(.settle, id: .extraction)], [],
@@ -379,6 +383,41 @@ struct ExtractFeatureTests {
         #expect(state.result == nil)
         #expect(state.confirmations.isEmpty)
         #expect(send(&state, .modeChanged(.form)) == [[]])
+    }
+
+    @Test(
+        "In the label mode, reduce extracts nothing without a label, edits and extracts the labels and not the form, and the export writes the labels"
+    )
+    func labelModeWorksOnTheLabels() {
+        var state = ExtractState(form: testForm)
+        _ = send(
+            &state, .assetFolderChosen(path: "/asset"),
+            .assetOpened(AssetInfo(path: "/asset", revision: nil, loadSeconds: 1)))
+        let text = "pressure 0.4MPa, noise ok"
+        #expect(
+            send(&state, .textChanged(text), .extractRequested) == [
+                [.run(.settle, id: .extraction)], [.cancel(.extraction)],
+            ])
+        #expect(state.phase == .idle)
+
+        let labels = FormSchema(fields: [FormField(key: "value", name: "value", kind: .number(unit: ""))])
+        let added = send(&state, .fieldsChanged(labels), .extractRequested)
+        #expect(
+            added == [
+                [.run(.settle, id: .extraction)],
+                [.run(.extract(version: 2, text: text, form: labels, filter: .clauseFieldName), id: .extraction)],
+            ])
+        #expect(state.labels == labels)
+        #expect(state.form == testForm)
+        #expect(send(&state, .fieldsChanged(labels)) == [[]])
+
+        let mapping = FormMapping(fields: [FieldMapping(field: labels.fields[0], candidates: [])], corrections: [])
+        _ = send(&state, .extractionFinished(version: 2, mapping: mapping, timing: timing))
+        let document = ExportDocument(state)
+        #expect(document.mode == "labels")
+        #expect(document.form == labels)
+        #expect(document.model?.fields.map(\.key) == ["value"])
+        #expect(document.confirmations.isEmpty)
     }
 
     @Test(
