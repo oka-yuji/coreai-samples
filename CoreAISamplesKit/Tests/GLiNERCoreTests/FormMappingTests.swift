@@ -184,4 +184,42 @@ struct FormMappingTests {
         #expect(calls.map(\.text) == clauseTexts + clauseTexts)
         #expect(calls.map(\.schema) == schemas)
     }
+
+    @Test(
+        "The classification requests are the clause and schema pairs map asks for, once each in the order first asked, and map gives the same result from their looked-up answers"
+    )
+    func listsEachClassificationOnce() throws {
+        let text = examples.twoClauses.text
+        let scalars = Array(text.unicodeScalars)
+        let comma = try #require(scalars.firstIndex(of: "\u{3001}"))
+        let clauseTexts = [0..<comma, (comma + 1)..<scalars.count].map { String(String.UnicodeScalarView(scalars[$0])) }
+        let words = scalarRanges(of: examples.twoClauses.piece, in: text)
+        try #require(words.count == 2)
+        // Oil leak has two spans in the first clause and one in the second; abnormal sound one in the second; the
+        // pressure span (a number field) is never classified.
+        let spans = [
+            makeSpan(0, words[0], in: text), makeSpan(2, 0..<comma, in: text), makeSpan(2, words[0], in: text),
+            makeSpan(2, words[1], in: text), makeSpan(3, words[1], in: text),
+        ]
+        let oilLeak = form.classificationSchema(for: form.fields[2])
+        let sound = form.classificationSchema(for: form.fields[3])
+        let requests = mapper.classificationRequests(text: text, extraction: makeExtraction(spans))
+        #expect(
+            requests == [
+                ClassificationRequest(clause: clauseTexts[0], schema: oilLeak),
+                ClassificationRequest(clause: clauseTexts[1], schema: oilLeak),
+                ClassificationRequest(clause: clauseTexts[1], schema: sound),
+            ])
+
+        func answer(_ clause: String, _ schema: GLiNERSchema) -> ClassificationResult {
+            guard case .classification(_, let labels) = schema else { return ClassificationResult(probabilities: []) }
+            let rising = labels.indices.map { Float($0 + 1) }
+            return ClassificationResult(probabilities: clause == clauseTexts[0] ? rising : rising.reversed())
+        }
+        let answers = Dictionary(uniqueKeysWithValues: requests.map { ($0, answer($0.clause, $0.schema)) })
+        let looked = mapper.map(text: text, extraction: makeExtraction(spans)) { clause, schema in
+            answers[ClassificationRequest(clause: clause, schema: schema)] ?? ClassificationResult(probabilities: [])
+        }
+        #expect(looked == mapper.map(text: text, extraction: makeExtraction(spans), classify: answer))
+    }
 }

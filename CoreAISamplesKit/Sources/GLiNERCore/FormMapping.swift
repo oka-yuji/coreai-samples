@@ -60,6 +60,17 @@ public struct OptionSuggestion: Equatable, Sendable {
     }
 }
 
+/// One clause classification of `FormMapper`: the clause text and the classification schema of a list field.
+public struct ClassificationRequest: Hashable, Sendable {
+    public var clause: String
+    public var schema: GLiNERSchema
+
+    public init(clause: String, schema: GLiNERSchema) {
+        self.clause = clause
+        self.schema = schema
+    }
+}
+
 /// Method (i): the spans of the value labels, then each span's clause classified over the options of its field.
 public struct FormMapper: Sendable {
     public var schema: FormSchema
@@ -101,6 +112,18 @@ public struct FormMapper: Sendable {
             return FieldMapping(field: field, candidates: candidates)
         }
         return FormMapping(fields: fields, corrections: CorrectionCue.find(in: text, words: correctionWords))
+    }
+
+    /// The classifications `map(text:extraction:classify:)` asks for, in the order it first asks for each, without
+    /// repeats. Run them (asynchronously, if need be), then pass `map` a `classify` that looks the results up.
+    public func classificationRequests(text: String, extraction: ExtractionResult) -> [ClassificationRequest] {
+        var requests: [ClassificationRequest] = []
+        _ = map(text: text, extraction: extraction) { clause, schema in
+            let request = ClassificationRequest(clause: clause, schema: schema)
+            if !requests.contains(request) { requests.append(request) }
+            return ClassificationResult(probabilities: [])
+        }
+        return requests
     }
 
     /// Japanese and ASCII punctuation and the line break. The ASCII period is a decimal point in these notes, not a

@@ -8,7 +8,7 @@ public struct WordSpan: Equatable, Sendable {
     }
 }
 
-public struct EntityLabel: Equatable, Sendable {
+public struct EntityLabel: Hashable, Sendable {
     public var name: String
     public var description: String?
 
@@ -18,7 +18,7 @@ public struct EntityLabel: Equatable, Sendable {
     }
 }
 
-public enum GLiNERSchema: Equatable, Sendable {
+public enum GLiNERSchema: Hashable, Sendable {
     case entities([EntityLabel])
     case classification(name: String, labels: [String])
 }

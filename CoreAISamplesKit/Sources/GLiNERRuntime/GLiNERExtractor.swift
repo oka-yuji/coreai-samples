@@ -18,8 +18,20 @@ public struct GLiNERExtractor: Sendable {
     public func extract(
         text: String, labels: [EntityLabel], tokenCapacities: [Int] = PreparedInput.tokenCapacities
     ) async throws -> ExtractionResult {
+        try await timedExtract(text: text, labels: labels, tokenCapacities: tokenCapacities).result
+    }
+
+    /// `extract(text:labels:tokenCapacities:)` with the wall-clock time of each stage.
+    @concurrent
+    public func timedExtract(
+        text: String, labels: [EntityLabel], tokenCapacities: [Int] = PreparedInput.tokenCapacities
+    ) async throws -> (result: ExtractionResult, times: GLiNERStageTimes) {
+        let clock = ContinuousClock()
+        let started = clock.now
         let input = try preprocessor.prepare(text: text, schema: .entities(labels), tokenCapacities: tokenCapacities)
-        return try await model.extract(input, text: text)
+        let preprocess = clock.now - started
+        let (result, encode, pair) = try await model.extract(input, text: text)
+        return (result, GLiNERStageTimes(preprocess: preprocess, encode: encode, pair: pair))
     }
 
     /// The probability of each label for `text` under the classification `task`. Up to 16 labels.
@@ -33,4 +45,13 @@ public struct GLiNERExtractor: Sendable {
             text: text, schema: .classification(name: task, labels: labels), tokenCapacities: tokenCapacities)
         return try await model.classify(input)
     }
+}
+
+/// The wall-clock time of the stages of one extraction.
+public struct GLiNERStageTimes: Equatable, Sendable {
+    public var preprocess: Duration
+    /// `encode_t<T>`, without the wait for earlier requests.
+    public var encode: Duration
+    /// The candidate pool, `pair_t<T>` and decoding.
+    public var pair: Duration
 }
