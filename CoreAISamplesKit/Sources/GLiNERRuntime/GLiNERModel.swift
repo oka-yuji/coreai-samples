@@ -40,11 +40,16 @@ public actor GLiNERModel {
         self.functions = functions
     }
 
-    /// Encodes an entity input, picks the candidates, scores them and decodes the spans of `text`.
-    func extract(_ input: PreparedInput, text: String) async throws -> ExtractionResult {
+    /// Encodes an entity input, picks the candidates, scores them and decodes the spans of `text`. The times exclude
+    /// the wait for earlier requests: `encode` is `encode_t<T>`, `pair` the candidates, `pair_t<T>` and decoding.
+    func extract(
+        _ input: PreparedInput, text: String
+    ) async throws -> (result: ExtractionResult, encode: Duration, pair: Duration) {
         await lock()
         defer { unlock() }
         try Task.checkCancellation()
+        let clock = ContinuousClock()
+        let started = clock.now
         let capacity = input.tokenCapacity
         let inputs = Self.encodeInputs(input)
         var encoded = try await run("encode_t\(capacity)", inputs)
@@ -53,6 +58,7 @@ public actor GLiNERModel {
             guard let output = encoded.remove(name)?.ndArray else { throw GLiNERModelError.unreadableOutput(name) }
             outputs[name] = output
         }
+        let encodedAt = clock.now
         let pool = try CandidatePool(
             startLogits: Self.matrix(outputs["start_logits"], "start_logits"),
             endLogits: Self.matrix(outputs["end_logits"], "end_logits"),
@@ -69,9 +75,10 @@ public actor GLiNERModel {
         pairInputs["cand_mask"] = NDArray(scalars: pool.mask, shape: [1, CandidatePool.size])
         pairInputs["cand_prior"] = NDArray(scalars: pool.priors, shape: [1, CandidatePool.size])
         var paired = try await run("pair_t\(capacity)", pairInputs)
-        return try ExtractionResult(
+        let result = try ExtractionResult(
             pairLogits: Self.matrix(paired.remove("pair_logits")?.ndArray, "pair_logits"),
             nullLogits: Self.floats(outputs["null_logits"], "null_logits"), pool: pool, input: input, text: text)
+        return (result, encodedAt - started, clock.now - encodedAt)
     }
 
     /// Encodes a classification input and returns the softmax of its class logits.
