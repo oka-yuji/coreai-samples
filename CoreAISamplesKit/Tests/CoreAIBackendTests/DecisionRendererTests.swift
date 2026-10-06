@@ -69,13 +69,17 @@ struct DecisionFixture: Decodable, CustomTestStringConvertible {
 }
 
 struct DecisionRendererTests {
-    @Test func fixturesAreThirtyLabRecordsAndTwoEdgeCases() throws {
+    @Test("The fixtures are the 30 lab records and 2 synthetic edge cases")
+    func fixturesAreThirtyLabRecordsAndTwoEdgeCases() throws {
         let ids = try DecisionFixture.all().map(\.id)
         #expect(ids.count == 32)
         #expect(ids.filter { $0.hasPrefix("edge_") }.count == 2)
     }
 
-    @Test(arguments: try DecisionFixture.all())
+    @Test(
+        "Fragment strings, option IDs and question types match the Python rendering without a tokenizer",
+        arguments: try DecisionFixture.all()
+    )
     func fragmentsOptionIDsAndTypesMatchThePythonRendering(_ fixture: DecisionFixture) throws {
         let request = fixture.decisionRequest
         #expect(DecisionRenderer.fragments(for: request).map(\.text) == fixture.expected.fragments)
@@ -84,7 +88,11 @@ struct DecisionRendererTests {
         #expect(rendered.questionTypes == fixture.expected.questionTypes)
     }
 
-    @Test(.enabled(if: !clefTokenizerFolder.isEmpty), arguments: try DecisionFixture.all())
+    @Test(
+        "Tokens, spans, option IDs and question types match the Python rendering for all fixtures",
+        .enabled(if: !clefTokenizerFolder.isEmpty),
+        arguments: try DecisionFixture.all()
+    )
     func tokensAndSpansMatchThePythonRendering(_ fixture: DecisionFixture) async throws {
         let tokenizer = try await clefTokenizer.value
         let rendered = try DecisionRenderer.render(fixture.decisionRequest, tokenizer: tokenizer)
@@ -96,7 +104,10 @@ struct DecisionRendererTests {
         #expect(try DecisionRenderer.render(fixture.decisionRequest, tokenizer: tokenizer) == rendered)
     }
 
-    @Test(.enabled(if: !clefTokenizerFolder.isEmpty))
+    @Test(
+        "A request over 9,216 tokens with the Clef-Flash tokenizer is refused with DecisionError",
+        .enabled(if: !clefTokenizerFolder.isEmpty)
+    )
     func aDocumentPastTheTokenLimitIsRefusedWithTheClefTokenizer() async throws {
         let tokenizer = try await clefTokenizer.value
         let fixture = try #require(try DecisionFixture.all().first { $0.id == "s2e_ctr9k_03" })
@@ -110,7 +121,8 @@ struct DecisionRendererTests {
         }
     }
 
-    @Test func questionAndOptionLimitsAreCheckedBeforeTokenizing() throws {
+    @Test("Requests with 0 or over 16 questions, 0 or over 8 options or a repeated ID are refused before tokenizing")
+    func questionAndOptionLimitsAreCheckedBeforeTokenizing() throws {
         func render(_ questions: [DecisionQuestion]) throws -> RenderedDecision {
             try DecisionRenderer.render(DecisionRequest(state: "s", questions: questions), limits: DecisionLimits()) {
                 Issue.record("Tokenized \($0)")
@@ -146,7 +158,8 @@ struct DecisionRendererTests {
         }
     }
 
-    @Test func atMostSixteenQuestionsEightOptionsAndTheTokenLimitAreAccepted() throws {
+    @Test("Exactly 16 questions with 8 options and 9,216 tokens are accepted and one more token is refused")
+    func atMostSixteenQuestionsEightOptionsAndTheTokenLimitAreAccepted() throws {
         func request(stateLength: Int) -> DecisionRequest {
             let options = Dictionary(uniqueKeysWithValues: (1...8).map { ("o\($0)", String?.none) })
             let pick = DecisionQuestion(id: "pick", criteria: .choice(options))
@@ -165,7 +178,8 @@ struct DecisionRendererTests {
         }
     }
 
-    @Test func renderingTwiceGivesTheSameResultWhateverTheDictionaryOrder() throws {
+    @Test("Rendering the same request twice gives the same result whatever the dictionary order")
+    func renderingTwiceGivesTheSameResultWhateverTheDictionaryOrder() throws {
         let pairs = (0..<8).map { ("option \($0)", $0.isMultiple(of: 3) ? nil : "meaning \($0)") }
         var forward: [String: String?] = [:]
         var backward: [String: String?] = [:]
