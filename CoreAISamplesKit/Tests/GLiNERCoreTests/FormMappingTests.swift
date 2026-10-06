@@ -337,7 +337,7 @@ struct FormMappingTests {
             let all = mapper(filter).map(text: note, extraction: equipment, classify: noClassification)
             #expect(all.fields[0].candidates.map(\.span.text) == ["P-3", "0.5MPa"], "\(filter)")
             #expect(all.fields.flatMap(\.droppedCandidates).isEmpty, "\(filter)")
-            for example in n1.examples + n1.folding {
+            for example in n1.examples + n1.folding + n1.boundaries {
                 #expect(try keeps(example, filter), "\(filter): \(example.why)")
             }
         }

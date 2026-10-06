@@ -110,7 +110,8 @@ public struct FormMapper: Sendable {
     ) -> FormMapping {
         let scalars = Array(text.unicodeScalars)
         let numeralRuns =
-            candidateFilter == .clauseFieldNameAndEquipmentNumber ? EquipmentNumberWords.bundled.runs(in: scalars) : []
+            candidateFilter == .clauseFieldNameAndEquipmentNumber
+            ? EquipmentNumberWords.bundled.numeralRuns(in: scalars) : []
         let fields = schema.fields.enumerated().map { index, field in
             let spans = extraction.spans.filter { $0.labelIndex == index }.sorted {
                 ($0.scalarRange.lowerBound, $0.scalarRange.upperBound)
@@ -122,7 +123,7 @@ public struct FormMapper: Sendable {
                     return FieldCandidate(
                         span: span, clause: clause, number: ParsedNumber(parsing: span.text), suggestions: [])
                 }
-                // The filter reads names only, so the clause of a dropped candidate is not classified.
+                // Rule R1 reads names only, so the clause of a dropped candidate is not classified.
                 guard !drops(field, clause: scalars[clause]) else {
                     return FieldCandidate(span: span, clause: clause, number: nil, suggestions: [])
                 }

@@ -154,7 +154,7 @@ public struct ExtractState: Equatable, Sendable {
     public var labels: FormSchema
     /// The form of the experiment.
     public var form: FormSchema
-    /// The rule `FormMapper` applies to list fields: rule R1 unless people turn it off.
+    /// The rule `FormMapper` drops candidates by: rule R1 unless people turn it off.
     public var candidateFilter = CandidateFilter.clauseFieldName
     /// The latest result of the current version; nil until one arrives.
     public var result: ExtractResult?

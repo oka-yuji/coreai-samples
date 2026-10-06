@@ -1,8 +1,8 @@
 import Foundation
 
 /// The words of rule N1, kept in `Resources/equipment_numbers.json` because they are Japanese: the markers of an
-/// equipment name around its number (such as `No.` and `P-` before it, and the words for unit and line after it) and
-/// the numeral words in kana and kanji.
+/// equipment name around its number (such as `No.` and `P-` before it, and the words for a machine or line number
+/// after it) and the numeral words in kana and kanji.
 struct EquipmentNumberWords: Decodable, Equatable, Sendable {
     /// Text that ends right before the numeral run of an equipment name.
     var before: [String]
@@ -11,13 +11,13 @@ struct EquipmentNumberWords: Decodable, Equatable, Sendable {
     /// The words that make a numeral run, besides half- and full-width digits.
     var numerals: [String]
 
-    /// The file ships with the package: one that is missing or broken stops the app rather than let N1 drop nothing.
+    /// The file ships with the package: one that is missing or broken stops the app rather than letting N1 drop
+    /// nothing.
     static let bundled: EquipmentNumberWords = {
         do {
-            guard
-                let url = Bundle.module.url(
-                    forResource: "equipment_numbers", withExtension: "json", subdirectory: "Resources")
-            else { throw CocoaError(.fileNoSuchFile) }
+            guard let url = Bundle.module.url(forResource: "equipment_numbers", withExtension: "json") else {
+                throw CocoaError(.fileNoSuchFile)
+            }
             return try JSONDecoder().decode(EquipmentNumberWords.self, from: Data(contentsOf: url))
         } catch {
             preconditionFailure("The bundled equipment_numbers.json cannot be read: \(error)")
@@ -25,9 +25,10 @@ struct EquipmentNumberWords: Decodable, Equatable, Sendable {
     }()
 
     /// The numeral runs of a note and whether a marker touches each. A run goes on while digits and numeral words
-    /// follow one another (the longest word where several start at one place); a decimal point ends it. The note and
-    /// the markers are compared folded, one scalar for one, so positions do not move.
-    func runs(in scalars: [Unicode.Scalar]) -> [(range: Range<Int>, marked: Bool)] {
+    /// follow one another (the longest word where several start at one place); anything else ends it, a `.` or its
+    /// full-width form too, while the decimal point in words is one of the numeral words. The note and the markers
+    /// are compared folded, one scalar for one, so positions do not move.
+    func numeralRuns(in scalars: [Unicode.Scalar]) -> [(range: Range<Int>, marked: Bool)] {
         let words = numerals.map { Array($0.unicodeScalars) }
         var runs: [Range<Int>] = []
         var index = 0

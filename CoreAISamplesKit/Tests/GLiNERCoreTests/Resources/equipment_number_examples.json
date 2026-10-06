@@ -21,6 +21,12 @@
     {"text": "nO.12 0.5MPa", "field": "discharge_pressure", "candidate": "12", "expect": "drop", "why": "letters match in any case"},
     {"text": "＃５ 40℃", "field": "temperature", "candidate": "＃５", "expect": "drop", "why": "full-width number sign folds to #"},
     {"text": "Ｐー３ 0.5MPa", "field": "discharge_pressure", "candidate": "Ｐー３", "expect": "keep", "why": "the long vowel mark is outside U+FF01-FF5E and does not fold to a hyphen"},
-    {"text": "İ P-3 0.5MPa", "field": "discharge_pressure", "candidate": "3", "expect": "drop", "why": "a letter whose lower case is two scalars folds to the first, so P- stays right before 3"}
+    {"text": "İ P-3 0.5MPa", "field": "discharge_pressure", "candidate": "3", "expect": "drop", "why": "a letter whose lower case is two scalars folds to the first, so P- stays right before 3"},
+    {"text": "温度は40℃、P-3の吐出圧は0.5MPa", "field": "discharge_pressure", "candidate": "3", "expect": "drop", "why": "the degree sign stays one scalar, so P- stays right before 3"}
+  ],
+  "boundaries": [
+    {"text": "しち号の温度は40度", "field": "temperature", "candidate": "しち号", "expect": "drop", "why": "the longest numeral word is the run, so 号 comes right after it"},
+    {"text": "P-0.5MPa", "field": "discharge_pressure", "candidate": "0.5MPa", "expect": "keep", "why": "a decimal point ends a run, so 5 has no marker"},
+    {"text": "温度40度、2号機は異常なし", "field": "temperature", "candidate": "40度", "expect": "keep", "why": "号機 comes later in the note, not right after 40"}
   ]
 }
