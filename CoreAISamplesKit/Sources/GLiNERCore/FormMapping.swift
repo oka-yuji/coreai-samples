@@ -81,6 +81,10 @@ public enum CandidateFilter: Sendable {
     /// Rule R1: drop a candidate of a list field when its clause holds the name of another list field and not the
     /// field's own name. Names match as substrings, in Unicode scalars. Number fields keep every candidate.
     case clauseFieldName
+    /// Rule R1 for list fields, and rule N1 for number fields: drop a candidate that overlaps one or more numeral runs
+    /// of the note when an equipment marker touches every one of them, as in `No.3` or `P-3`. A candidate with an
+    /// unmarked run, or with no run, is kept. Markers and numeral words are in `Resources/equipment_numbers.json`.
+    case clauseFieldNameAndEquipmentNumber
 }
 
 /// Method (i): the spans of the value labels, then each span's clause classified over the options of its field.
@@ -105,6 +109,8 @@ public struct FormMapper: Sendable {
         text: String, extraction: ExtractionResult, classify: (String, GLiNERSchema) -> ClassificationResult
     ) -> FormMapping {
         let scalars = Array(text.unicodeScalars)
+        let numeralRuns =
+            candidateFilter == .clauseFieldNameAndEquipmentNumber ? EquipmentNumberWords.bundled.runs(in: scalars) : []
         let fields = schema.fields.enumerated().map { index, field in
             let spans = extraction.spans.filter { $0.labelIndex == index }.sorted {
                 ($0.scalarRange.lowerBound, $0.scalarRange.upperBound)
@@ -128,22 +134,35 @@ public struct FormMapper: Sendable {
                     .map { OptionSuggestion(option: $0.element.0.name, probability: $0.element.1) }
                 return FieldCandidate(span: span, clause: clause, number: nil, suggestions: suggestions)
             }
+            func dropped(_ candidate: FieldCandidate) -> Bool {
+                drops(field, clause: scalars[candidate.clause])
+                    || drops(field, span: candidate.span.scalarRange, numeralRuns: numeralRuns)
+            }
             return FieldMapping(
-                field: field, candidates: candidates.filter { !drops(field, clause: scalars[$0.clause]) },
-                droppedCandidates: candidates.filter { drops(field, clause: scalars[$0.clause]) })
+                field: field, candidates: candidates.filter { !dropped($0) },
+                droppedCandidates: candidates.filter(dropped))
         }
         return FormMapping(fields: fields, corrections: CorrectionCue.find(in: text, words: correctionWords))
     }
 
-    /// Whether `candidateFilter` drops a candidate of `field` whose clause is `clause`.
+    /// Whether `candidateFilter` drops a candidate of `field` whose clause is `clause`: rule R1, list fields only.
     private func drops(_ field: FormField, clause: ArraySlice<Unicode.Scalar>) -> Bool {
-        guard candidateFilter == .clauseFieldName, case .list = field.kind else { return false }
+        guard candidateFilter != .none, case .list = field.kind else { return false }
         func holds(_ name: String) -> Bool { clause.contains(Array(name.unicodeScalars)) }
         return !holds(field.name)
             && schema.fields.contains { other in
                 guard case .list = other.kind else { return false }
                 return holds(other.name)
             }
+    }
+
+    /// Whether `candidateFilter` drops a candidate of `field` over `span`: rule N1, number fields only.
+    private func drops(
+        _ field: FormField, span: Range<Int>, numeralRuns: [(range: Range<Int>, marked: Bool)]
+    ) -> Bool {
+        guard candidateFilter == .clauseFieldNameAndEquipmentNumber, case .number = field.kind else { return false }
+        let own = numeralRuns.filter { $0.range.overlaps(span) }
+        return !own.isEmpty && own.allSatisfy { $0.marked }
     }
 
     /// The classifications `map(text:extraction:classify:)` asks for, in the order it first asks for each, without

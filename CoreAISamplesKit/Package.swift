@@ -35,7 +35,7 @@ let package = Package(
         ),
         .target(name: "RAGContext"),
         .target(name: "FeatureStore", swiftSettings: approachableConcurrency),
-        .target(name: "GLiNERCore", swiftSettings: approachableConcurrency),
+        .target(name: "GLiNERCore", resources: [.copy("Resources")], swiftSettings: approachableConcurrency),
         .target(
             name: "ExtractFeature",
             dependencies: ["FeatureStore", "GLiNERCore"],

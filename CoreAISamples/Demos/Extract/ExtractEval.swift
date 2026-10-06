@@ -4,18 +4,43 @@ import Foundation
 import GLiNERCore
 
 /// `--extract-eval <gold.json> --asset <folder> --out <result.json> [--form <form.json>]
-/// [--compute-units gpu|default]`: maps every sentence of a gold file that is not excluded with the same service as
-/// the screen, scores the mappings and writes the report.
+/// [--compute-units gpu|default] [--candidate-filter r1|r1n1|none]`: maps every sentence of a gold file that is not
+/// excluded with the same service as the screen, scores the mappings and writes the report.
 enum ExtractEval {
     private static let usage =
         "usage: CoreAISamples --extract-eval <gold.json> --asset <folder> --out <result.json> [--form <form.json>] "
-        + "[--compute-units gpu|default]"
+        + "[--compute-units gpu|default] [--candidate-filter r1|r1n1|none]"
 
     struct Output: Encodable {
         struct Asset: Encodable {
             let path: String
             /// The type of the model's floating-point inputs and outputs: `float32` or `float16`.
             let floatType: String
+        }
+
+        /// A candidate the rule dropped. Positions count Unicode scalars of the sentence.
+        struct Dropped: Encodable {
+            /// The sentence's `id`.
+            let id: String
+            let field: String
+            let start: Int
+            let end: Int
+            let text: String
+            let probability: Float
+
+            /// Every candidate the rule dropped, in sentence, form and text order.
+            static func all(in scored: [(gold: GoldSentence, mapping: FormMapping)]) -> [Dropped] {
+                scored.flatMap { sentence, mapping in
+                    mapping.fields.flatMap { field in
+                        field.droppedCandidates.map {
+                            Dropped(
+                                id: sentence.id, field: field.field.key, start: $0.span.scalarRange.lowerBound,
+                                end: $0.span.scalarRange.upperBound, text: $0.span.text,
+                                probability: $0.span.probability)
+                        }
+                    }
+                }
+            }
         }
 
         /// The hardware model identifier: `hw.machine` on iOS, `hw.model` on macOS.
@@ -30,8 +55,11 @@ enum ExtractEval {
         let form: String
         let asset: Asset
         let revision: String?
-        /// The rule that dropped candidates of list fields: the screen's default, rule R1 (`clauseFieldName`).
+        /// The rule of `--candidate-filter`: `clauseFieldName` (`r1`, rule R1, the default and the screen's),
+        /// `clauseFieldNameAndEquipmentNumber` (`r1n1`, rules R1 and N1) or `none`.
         let candidateFilter: String
+        /// The report does not score them.
+        let droppedCandidates: [Dropped]
         let appVersion: String
         let assetLoadSeconds: Double
         let sentences: Int
@@ -52,7 +80,8 @@ enum ExtractEval {
     @MainActor
     static func execute() async -> Int32 {
         guard let goldPath = LaunchArguments.value("--extract-eval"), let assetPath = LaunchArguments.value("--asset"),
-            let outPath = LaunchArguments.value("--out"), let computeUnits = ComputeUnits.launchValue
+            let outPath = LaunchArguments.value("--out"), let computeUnits = ComputeUnits.launchValue,
+            let filter = candidateFilter
         else {
             log(usage)
             return 2
@@ -78,7 +107,6 @@ enum ExtractEval {
                 "[extract-eval] asset \(asset.path) revision \(asset.revision ?? "none") loaded in \(asset.loadSeconds) s"
                     + " floatType \(asset.floatType) computeUnits \(computeUnits.rawValue) device \(hardwareModel)"
             )
-            let filter = CandidateFilter.clauseFieldName
             let cold = try await service.extract(text: first.text, schema: form, filter: filter).timing
             var scored: [(gold: GoldSentence, mapping: FormMapping)] = []
             var warm: [ExtractTiming] = []
@@ -94,7 +122,8 @@ enum ExtractEval {
                 gold: goldPath, goldSHA256: SHA256.hash(data: goldData).map { String(format: "%02x", $0) }.joined(),
                 form: formPath ?? "bundled", asset: Output.Asset(path: asset.path, floatType: asset.floatType),
                 revision: asset.revision,
-                candidateFilter: filter.name, appVersion: ExtractRunner.appVersion,
+                candidateFilter: filter.name, droppedCandidates: Output.Dropped.all(in: scored),
+                appVersion: ExtractRunner.appVersion,
                 assetLoadSeconds: asset.loadSeconds, sentences: sentences.count,
                 excluded: gold.filter { $0.excluded == true }.map(\.id),
                 timing: ExtractEvaluation.timing(cold: cold, warm: warm), report: ExtractEvaluation.evaluate(scored))
@@ -107,6 +136,16 @@ enum ExtractEval {
         } catch {
             log("[extract-eval] failed: \(ExtractRunner.describe(error))")
             return 1
+        }
+    }
+
+    /// `--candidate-filter`: rule R1 without one, or nil for a value it does not know.
+    private static var candidateFilter: CandidateFilter? {
+        switch LaunchArguments.value("--candidate-filter") ?? "r1" {
+        case "r1": .clauseFieldName
+        case "r1n1": .clauseFieldNameAndEquipmentNumber
+        case "none": CandidateFilter.none
+        default: nil
         }
     }
 

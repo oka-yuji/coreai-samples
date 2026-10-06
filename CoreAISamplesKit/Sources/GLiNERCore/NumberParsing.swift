@@ -35,9 +35,9 @@ public struct ParsedNumber: Equatable, Sendable {
 
 extension Unicode.Scalar {
     /// The ASCII form of a full-width ASCII variant (U+FF01...U+FF5E).
-    fileprivate var halfWidth: Unicode.Scalar {
+    var halfWidth: Unicode.Scalar {
         (0xFF01...0xFF5E).contains(value) ? Unicode.Scalar(value - 0xFEE0) ?? self : self
     }
 
-    fileprivate var isASCIIDigit: Bool { ("0"..."9").contains(self) }
+    var isASCIIDigit: Bool { ("0"..."9").contains(self) }
 }

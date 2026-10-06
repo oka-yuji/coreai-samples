@@ -1,0 +1,26 @@
+{
+  "words": {
+    "before": ["No.", "No", "Ｎｏ", "Ｎｏ．", "P-", "Ｐ-", "#", "第"],
+    "after": ["号機", "号", "番", "系統", "ライン", "台目", "機"],
+    "numerals": ["〇", "一", "二", "三", "四", "五", "六", "七", "八", "九", "十", "百", "千", "れい", "ぜろ", "いち", "に", "さん", "よん", "し", "ご", "ろく", "なな", "しち", "はち", "きゅう", "く", "じゅう", "てん", "点"]
+  },
+  "examples": [
+    {"text": "P-3の吐出圧は0.5MPa", "field": "discharge_pressure", "candidate": "3", "expect": "drop", "why": "P- right before"},
+    {"text": "P-3の吐出圧は0.5MPa", "field": "discharge_pressure", "candidate": "0.5MPa", "expect": "keep", "why": "no marker"},
+    {"text": "2号機の温度は40度", "field": "temperature", "candidate": "2号機", "expect": "drop", "why": "号機 right after"},
+    {"text": "No.3の吐出圧は不明", "field": "discharge_pressure", "candidate": "No.3", "expect": "drop", "why": "No. right before"},
+    {"text": "第二系統の温度は記録なし", "field": "temperature", "candidate": "第二系統", "expect": "drop", "why": "kanji numeral, 第 before and 系統 after"},
+    {"text": "3台目は温度38℃", "field": "temperature", "candidate": "3台目は温度38℃", "expect": "keep", "why": "38 has no marker"},
+    {"text": "Ｐ－６は吐出圧の記入なし", "field": "discharge_pressure", "candidate": "Ｐ－６", "expect": "drop", "why": "full-width P and hyphen fold to P-"},
+    {"text": "4階のポンプは温度が高め", "field": "temperature", "candidate": "4", "expect": "keep", "why": "階 is not a marker"},
+    {"text": "三号は温度の記録なし", "field": "temperature", "candidate": "三号", "expect": "drop", "why": "kanji numeral, 号 after"},
+    {"text": "温度は問題ない", "field": "temperature", "candidate": "問題ない", "expect": "keep", "why": "no numeral run"}
+  ],
+  "folding": [
+    {"text": "ＮＯ．３ 0.5MPa", "field": "discharge_pressure", "candidate": "ＮＯ．３", "expect": "drop", "why": "full-width upper-case NO and full stop fold to no."},
+    {"text": "nO.12 0.5MPa", "field": "discharge_pressure", "candidate": "12", "expect": "drop", "why": "letters match in any case"},
+    {"text": "＃５ 40℃", "field": "temperature", "candidate": "＃５", "expect": "drop", "why": "full-width number sign folds to #"},
+    {"text": "Ｐー３ 0.5MPa", "field": "discharge_pressure", "candidate": "Ｐー３", "expect": "keep", "why": "the long vowel mark is outside U+FF01-FF5E and does not fold to a hyphen"},
+    {"text": "İ P-3 0.5MPa", "field": "discharge_pressure", "candidate": "3", "expect": "drop", "why": "a letter whose lower case is two scalars folds to the first, so P- stays right before 3"}
+  ]
+}
