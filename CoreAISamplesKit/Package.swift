@@ -14,6 +14,8 @@ let package = Package(
     ],
     products: [
         .library(name: "CoreAIBackend", targets: ["CoreAIBackend"]),
+        .library(name: "GLiNERCore", targets: ["GLiNERCore"]),
+        .library(name: "GLiNERRuntime", targets: ["GLiNERRuntime"]),
         .library(name: "RAGContext", targets: ["RAGContext"]),
         .executable(name: "coreai-chat", targets: ["coreai-chat"]),
         .library(name: "FeatureStore", targets: ["FeatureStore"]),
@@ -32,6 +34,16 @@ let package = Package(
         ),
         .target(name: "RAGContext"),
         .target(name: "FeatureStore", swiftSettings: approachableConcurrency),
+        .target(name: "GLiNERCore", swiftSettings: approachableConcurrency),
+        .target(
+            name: "GLiNERRuntime",
+            dependencies: [
+                "GLiNERCore",
+                .product(name: "Hub", package: "swift-transformers"),
+                .product(name: "Tokenizers", package: "swift-transformers"),
+            ],
+            swiftSettings: approachableConcurrency
+        ),
         .executableTarget(
             name: "coreai-chat",
             dependencies: ["CoreAIBackend"]
@@ -45,5 +57,11 @@ let package = Package(
         ),
         .testTarget(name: "RAGContextTests", dependencies: ["RAGContext"]),
         .testTarget(name: "FeatureStoreTests", dependencies: ["FeatureStore"], swiftSettings: approachableConcurrency),
+        .testTarget(name: "GLiNERCoreTests", dependencies: ["GLiNERCore"], swiftSettings: approachableConcurrency),
+        .testTarget(
+            name: "GLiNERRuntimeTests",
+            dependencies: ["GLiNERCore", "GLiNERRuntime"],
+            swiftSettings: approachableConcurrency
+        ),
     ]
 )
