@@ -12,6 +12,12 @@ enum ExtractEval {
         + "[--compute-units gpu|default]"
 
     struct Output: Encodable {
+        struct Asset: Encodable {
+            let path: String
+            /// The type of the model's floating-point inputs and outputs: `float32` or `float16`.
+            let floatType: String
+        }
+
         /// The hardware model identifier: `hw.machine` on iOS, `hw.model` on macOS.
         let device: String
         /// The OS version with its build, as `ProcessInfo.operatingSystemVersionString` gives it.
@@ -22,7 +28,7 @@ enum ExtractEval {
         let goldSHA256: String
         /// `bundled` or the path of `--form`.
         let form: String
-        let asset: String
+        let asset: Asset
         let revision: String?
         /// The rule that dropped candidates of list fields: the screen's default, rule R1 (`clauseFieldName`).
         let candidateFilter: String
@@ -70,7 +76,7 @@ enum ExtractEval {
             let asset = try await service.open(folder: URL(filePath: assetPath, directoryHint: .isDirectory))
             log(
                 "[extract-eval] asset \(asset.path) revision \(asset.revision ?? "none") loaded in \(asset.loadSeconds) s"
-                    + " computeUnits \(computeUnits.rawValue) device \(hardwareModel)"
+                    + " floatType \(asset.floatType) computeUnits \(computeUnits.rawValue) device \(hardwareModel)"
             )
             let filter = CandidateFilter.clauseFieldName
             let cold = try await service.extract(text: first.text, schema: form, filter: filter).timing
@@ -86,7 +92,8 @@ enum ExtractEval {
                 device: hardwareModel, osVersion: ProcessInfo.processInfo.operatingSystemVersionString,
                 computeUnits: computeUnits.rawValue,
                 gold: goldPath, goldSHA256: SHA256.hash(data: goldData).map { String(format: "%02x", $0) }.joined(),
-                form: formPath ?? "bundled", asset: asset.path, revision: asset.revision,
+                form: formPath ?? "bundled", asset: Output.Asset(path: asset.path, floatType: asset.floatType),
+                revision: asset.revision,
                 candidateFilter: filter.name, appVersion: ExtractRunner.appVersion,
                 assetLoadSeconds: asset.loadSeconds, sentences: sentences.count,
                 excluded: gold.filter { $0.excluded == true }.map(\.id),

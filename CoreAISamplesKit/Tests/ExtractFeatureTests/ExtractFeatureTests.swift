@@ -52,7 +52,7 @@ func send(_ state: inout ExtractState, _ actions: ExtractAction...) -> [Commands
 func readyState() -> ExtractState {
     var state = ExtractState(form: testForm)
     state.mode = .form
-    let info = AssetInfo(path: "/asset", revision: "r1", loadSeconds: 1)
+    let info = AssetInfo(path: "/asset", revision: "r1", loadSeconds: 1, floatType: "float32")
     _ = send(&state, .assetFolderChosen(path: "/asset"), .assetOpened(info))
     return state
 }
@@ -124,7 +124,7 @@ struct ExtractFeatureTests {
                 version: 1, mapping: makeMapping(text, pressure: 9..<15, noise: 23..<25), timing: timing),
             .confirm(field: "noise", choice: .option(name: "ok")), .confirm(field: "pressure", choice: .hold))
 
-        let reopened = AssetInfo(path: "/other", revision: "r2", loadSeconds: 2)
+        let reopened = AssetInfo(path: "/other", revision: "r2", loadSeconds: 2, floatType: "float32")
         let rerun = send(&state, .assetFolderChosen(path: "/other"), .assetOpened(reopened))
         #expect(
             rerun.last == [
@@ -147,7 +147,7 @@ struct ExtractFeatureTests {
         #expect(idle == [[.run(.settle, id: .extraction)], [.cancel(.extraction)]])
         #expect(state.phase == .idle)
 
-        let info = AssetInfo(path: "/second", revision: nil, loadSeconds: 1)
+        let info = AssetInfo(path: "/second", revision: nil, loadSeconds: 1, floatType: "float32")
         let opened = send(
             &state, .assetFolderChosen(path: "/first"), .assetFolderChosen(path: "/second"),
             .assetFailed(path: "/first", message: "old"), .assetOpened(info))
@@ -392,7 +392,7 @@ struct ExtractFeatureTests {
         var state = ExtractState(form: testForm)
         _ = send(
             &state, .assetFolderChosen(path: "/asset"),
-            .assetOpened(AssetInfo(path: "/asset", revision: nil, loadSeconds: 1)))
+            .assetOpened(AssetInfo(path: "/asset", revision: nil, loadSeconds: 1, floatType: "float32")))
         let text = "pressure 0.4MPa, noise ok"
         #expect(
             send(&state, .textChanged(text), .extractRequested) == [

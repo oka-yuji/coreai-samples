@@ -4,9 +4,10 @@ import GLiNERCore
 
 public enum GLiNERModelError: Error, Equatable {
     case missingFunction(String)
-    /// An input or output differs from the contract: missing or extra, not Int32 / Float32 (FP32), or another shape.
+    /// An input or output differs from the contract: missing or extra, another shape, an integer that is not Int32, or
+    /// a floating-point value that is neither Float32 (FP32) nor Float16 (FP16) or not of the type of the others.
     case signatureMismatch(function: String, value: String)
-    /// A run returned an output that is missing or not a contiguous Float32 array.
+    /// A run returned an output that is missing or not a contiguous Float32 or Float16 array.
     case unreadableOutput(String)
 }
 
@@ -16,6 +17,9 @@ public enum GLiNERModelError: Error, Equatable {
 /// Requests run one at a time in arrival order. A request cancelled while it waits, or between its function calls,
 /// throws `CancellationError`; a function call in flight runs to its end.
 public actor GLiNERModel {
+    /// The type of every floating-point input and output: `.float32` in an FP32 export, `.float16` in an FP16 one. The
+    /// host computes in `Float` either way.
+    public nonisolated let floatType: NDArray.ScalarType
     private let functions: [String: InferenceFunction]
     private var busy = false
     private var waiting: [CheckedContinuation<Void, Never>] = []
@@ -26,11 +30,15 @@ public actor GLiNERModel {
         asset: GLiNERAsset, options: SpecializationOptions = SpecializationOptions(preferredComputeUnitKind: .gpu)
     ) async throws {
         let model = try await AIModel.specialize(contentsOf: asset.modelURL, options: options)
-        for (name, signature) in Contract.implemented.functions {
+        var floatType: NDArray.ScalarType?
+        for (name, signature) in Contract.implemented.functions.sorted(by: { $0.key < $1.key }) {
             guard let descriptor = model.functionDescriptor(for: name) else {
                 throw GLiNERModelError.missingFunction(name)
             }
-            try Self.check(descriptor, of: name, against: signature)
+            floatType = try Self.check(
+                inputs: Self.arrays(descriptor.inputNames, of: name, descriptor.inputDescriptor(of:)),
+                outputs: Self.arrays(descriptor.outputNames, of: name, descriptor.outputDescriptor(of:)), of: name,
+                against: signature, floatType: floatType)
         }
         var functions: [String: InferenceFunction] = [:]
         for name in Contract.implemented.functions.keys {
@@ -40,6 +48,8 @@ public actor GLiNERModel {
             functions[name] = function
         }
         self.functions = functions
+        // Every function of the contract has floating-point values, so the checks have set the type.
+        self.floatType = floatType ?? .float32
     }
 
     /// Encodes an entity input, picks the candidates, scores them and decodes the spans of `text`. The times exclude
@@ -75,7 +85,7 @@ public actor GLiNERModel {
         pairInputs["cand_start"] = NDArray(scalars: pool.starts, shape: [1, CandidatePool.size])
         pairInputs["cand_end"] = NDArray(scalars: pool.ends, shape: [1, CandidatePool.size])
         pairInputs["cand_mask"] = NDArray(scalars: pool.mask, shape: [1, CandidatePool.size])
-        pairInputs["cand_prior"] = NDArray(scalars: pool.priors, shape: [1, CandidatePool.size])
+        pairInputs["cand_prior"] = Self.array(pool.priors, shape: [1, CandidatePool.size], as: floatType)
         var paired = try await run("pair_t\(capacity)", pairInputs)
         let result = try ExtractionResult(
             pairLogits: Self.matrix(paired.remove("pair_logits")?.ndArray, "pair_logits"),
@@ -126,16 +136,22 @@ public actor GLiNERModel {
         ]
     }
 
-    /// The values of a contiguous Float32 array (`run` returns row-major contiguous arrays).
-    private static func floats(_ array: NDArray?, _ name: String) throws -> [Float] {
-        guard let array, array.scalarType == .float32,
-            let values = array.view(as: Float.self).contiguousElements?.withUnsafeBufferPointer({ Array($0) })
-        else { throw GLiNERModelError.unreadableOutput(name) }
+    /// The values of a contiguous Float32 or Float16 array, as `Float` (`run` returns row-major contiguous arrays).
+    static func floats(_ array: NDArray?, _ name: String) throws -> [Float] {
+        guard let array else { throw GLiNERModelError.unreadableOutput(name) }
+        let values: [Float]? =
+            switch array.scalarType {
+            case .float32: array.view(as: Float.self).contiguousElements?.withUnsafeBufferPointer { Array($0) }
+            case .float16:
+                array.view(as: Float16.self).contiguousElements?.withUnsafeBufferPointer { $0.map(Float.init) }
+            default: nil
+            }
+        guard let values else { throw GLiNERModelError.unreadableOutput(name) }
         return values
     }
 
     /// A `[1, rows, columns]` output without its batch axis.
-    private static func matrix(_ array: NDArray?, _ name: String) throws -> Matrix {
+    static func matrix(_ array: NDArray?, _ name: String) throws -> Matrix {
         let values = try floats(array, name)
         guard let shape = array?.shape, shape.count == 3, shape[0] == 1 else {
             throw GLiNERModelError.unreadableOutput(name)
@@ -143,23 +159,51 @@ public actor GLiNERModel {
         return Matrix(rows: shape[1], columns: shape[2], values: values)
     }
 
+    /// `values` as an input of the model's floating-point type.
+    static func array(_ values: [Float], shape: [Int], as type: NDArray.ScalarType) -> NDArray {
+        type == .float16
+            ? NDArray(scalars: values.map(Float16.init), shape: shape) : NDArray(scalars: values, shape: shape)
+    }
+
     private static let integerValues = Set(Contract.encodeInputs + ["cand_start", "cand_end", "cand_mask"])
 
-    private static func check(
-        _ descriptor: InferenceFunctionDescriptor, of name: String, against signature: Contract.Function
-    ) throws {
-        guard Set(descriptor.inputNames) == Set(signature.inputs), Set(descriptor.outputNames) == Set(signature.outputs)
+    /// The scalar type and shape of an input or output, as a function's descriptor gives them.
+    typealias ArrayValue = (scalarType: NDArray.ScalarType, shape: [Int])
+
+    /// The values `names` lists, from `descriptor`; a value that is not an array differs from the contract.
+    private static func arrays(
+        _ names: [String], of function: String, _ descriptor: (String) -> InferenceValue.Descriptor?
+    ) throws -> [String: ArrayValue] {
+        var arrays: [String: ArrayValue] = [:]
+        for name in names {
+            guard case .ndArray(let array)? = descriptor(name) else {
+                throw GLiNERModelError.signatureMismatch(function: function, value: name)
+            }
+            arrays[name] = (array.scalarType, array.shape)
+        }
+        return arrays
+    }
+
+    /// Checks the function `name` against `signature` and returns the type of its floating-point values: Float32 or
+    /// Float16, one type for all of them, and `floatType` when an earlier function has set it.
+    static func check(
+        inputs: [String: ArrayValue], outputs: [String: ArrayValue], of name: String,
+        against signature: Contract.Function, floatType: NDArray.ScalarType?
+    ) throws -> NDArray.ScalarType? {
+        guard Set(inputs.keys) == Set(signature.inputs), Set(outputs.keys) == Set(signature.outputs)
         else { throw GLiNERModelError.signatureMismatch(function: name, value: "names") }
         let capacity = PreparedInput.tokenCapacities.first { name.hasSuffix("_t\($0)") } ?? 0
-        let values =
-            signature.inputs.map { ($0, descriptor.inputDescriptor(of: $0)) }
-            + signature.outputs.map { ($0, descriptor.outputDescriptor(of: $0)) }
-        for (value, valueDescriptor) in values {
-            guard case .ndArray(let array)? = valueDescriptor,
-                array.scalarType == (integerValues.contains(value) ? .int32 : .float32),
+        let values = signature.inputs.map { ($0, inputs[$0]) } + signature.outputs.map { ($0, outputs[$0]) }
+        var floatType = floatType
+        for (value, array) in values {
+            let integer = integerValues.contains(value)
+            let allowed: [NDArray.ScalarType] = integer ? [.int32] : floatType.map { [$0] } ?? [.float32, .float16]
+            guard let array, allowed.contains(array.scalarType),
                 matches(array.shape, shape(of: value, capacity: capacity))
             else { throw GLiNERModelError.signatureMismatch(function: name, value: value) }
+            if !integer { floatType = array.scalarType }
         }
+        return floatType
     }
 
     /// The shapes of the values the host writes or reads; `nil` dimensions are not checked.

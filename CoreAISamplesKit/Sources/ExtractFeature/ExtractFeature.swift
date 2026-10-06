@@ -293,11 +293,14 @@ public struct AssetInfo: Equatable, Sendable {
     /// The `revision` in the asset's `contract.json`.
     public var revision: String?
     public var loadSeconds: Double
+    /// The type of the model's floating-point inputs and outputs: `float32` or `float16`.
+    public var floatType: String
 
-    public init(path: String, revision: String?, loadSeconds: Double) {
+    public init(path: String, revision: String?, loadSeconds: Double, floatType: String) {
         self.path = path
         self.revision = revision
         self.loadSeconds = loadSeconds
+        self.floatType = floatType
     }
 }
 
