@@ -59,7 +59,8 @@ public struct ExportDocument: Codable, Equatable, Sendable {
         public var version: Int
         /// The probabilities are model scores; they are not calibrated.
         public var probabilitiesCalibrated: Bool
-        /// The rule that dropped candidates of list fields: `clauseFieldName` (rule R1) or `none`.
+        /// The rule that dropped candidates: `clauseFieldName` (rule R1), `clauseFieldNameAndEquipmentNumber` (rules R1
+        /// and N1) or `none`.
         public var candidateFilter: String
         /// The `revision` in the asset's `contract.json`; nil when it is unknown.
         public var assetRevision: String?
@@ -139,6 +140,7 @@ extension CandidateFilter {
         switch self {
         case .none: "none"
         case .clauseFieldName: "clauseFieldName"
+        case .clauseFieldNameAndEquipmentNumber: "clauseFieldNameAndEquipmentNumber"
         }
     }
 }

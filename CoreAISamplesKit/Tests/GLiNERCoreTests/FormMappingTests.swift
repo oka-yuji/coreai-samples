@@ -303,4 +303,43 @@ struct FormMappingTests {
         }
         #expect(outcome(of: mapping) == kept.mapValues { _ in true })
     }
+
+    @Test("Rule R1+N1 leaves list fields to rule R1 and keeps every number candidate of .none and .clauseFieldName")
+    func appliesRuleN1ToNumberFieldsOnly() throws {
+        func mapper(_ filter: CandidateFilter) -> FormMapper {
+            FormMapper(schema: form, correctionWords: [], candidateFilter: filter)
+        }
+        func noClassification(_: String, _: GLiNERSchema) -> ClassificationResult {
+            ClassificationResult(probabilities: [])
+        }
+        // The R1 example has no equipment number: R1+N1 keeps, drops and classifies what R1 does.
+        let (spans, kept) = try filterSpans()
+        let text = examples.filter.text
+        let extraction = makeExtraction(spans)
+        let both = mapper(.clauseFieldNameAndEquipmentNumber)
+        #expect(outcome(of: both.map(text: text, extraction: extraction, classify: noClassification)) == kept)
+        #expect(
+            both.classificationRequests(text: text, extraction: extraction)
+                == mapper(.clauseFieldName).classificationRequests(text: text, extraction: extraction))
+
+        // An equipment number, P-3, as a pressure and as an oil leak: only the pressure candidate is dropped.
+        let note = "P-3 0.5MPa x"
+        let equipment = makeExtraction([
+            makeSpan(0, 0..<3, in: note), makeSpan(0, 4..<10, in: note), makeSpan(2, 0..<3, in: note),
+        ])
+        let mapped = both.map(text: note, extraction: equipment, classify: noClassification)
+        #expect(mapped.fields[0].candidates.map(\.span.text) == ["0.5MPa"])
+        #expect(mapped.fields[0].droppedCandidates.map(\.span.text) == ["P-3"])
+        #expect(mapped.fields[2].candidates.map(\.span.text) == ["P-3"])
+
+        let n1 = try EquipmentNumberExamples.load()
+        for filter in [CandidateFilter.none, .clauseFieldName] {
+            let all = mapper(filter).map(text: note, extraction: equipment, classify: noClassification)
+            #expect(all.fields[0].candidates.map(\.span.text) == ["P-3", "0.5MPa"], "\(filter)")
+            #expect(all.fields.flatMap(\.droppedCandidates).isEmpty, "\(filter)")
+            for example in n1.examples + n1.folding + n1.boundaries {
+                #expect(try keeps(example, filter), "\(filter): \(example.why)")
+            }
+        }
+    }
 }
