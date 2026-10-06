@@ -40,6 +40,17 @@ struct GLiNERModelTests {
         #expect(try GLiNERModel.floats(prior, "cand_prior") == [0.375, -2])
     }
 
+    @Test("A function whose floating values are Float32 still passes, and its values are written and read as Float32")
+    func float32FunctionIsUnchanged() throws {
+        #expect(try checkPair(pairArrays(float: .float32)) == .float32)
+        #expect(try checkPair(pairArrays(float: .float32), floatType: .float32) == .float32)
+
+        // 0.1 has no exact Float16 value, so a detour through Float16 would change it.
+        let prior = GLiNERModel.array([0.1, -2], shape: [1, 2], as: .float32)
+        #expect(prior.scalarType == .float32)
+        #expect(try GLiNERModel.floats(prior, "cand_prior") == [0.1, -2])
+    }
+
     @Test(
         "A function whose floating values are neither Float32 nor Float16 is a signature mismatch",
         arguments: [NDArray.ScalarType.bfloat16, .float64])
