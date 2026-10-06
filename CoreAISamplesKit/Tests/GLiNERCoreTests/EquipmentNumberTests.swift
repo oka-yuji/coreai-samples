@@ -80,7 +80,7 @@ struct EquipmentNumberTests {
     func readsTheRecordedWords() throws {
         let examples = try EquipmentNumberExamples.load()
         #expect(EquipmentNumberWords.bundled == examples.words)
-        // A test with no arguments passes without running.
+        // A parameterized test with no arguments is skipped, which does not fail the run.
         let counts: [Int] = [examples.examples.count, examples.folding.count, examples.boundaries.count]
         #expect(counts == [10, 6, 3])
     }
