@@ -1,4 +1,4 @@
-# Demo app (macOS)
+# Demo app (macOS, and Extract on iPhone)
 
 `CoreAISamples` (`CoreAISamples.xcodeproj` and the `CoreAISamples` folder at the repository root) is a SwiftUI app that runs a local model bundle through Foundation Models with the runtime in this repository (`CoreAIBackend`). It does not use the official `coreai-models` package.
 
@@ -24,6 +24,55 @@ open .build/Build/Products/Release/CoreAISamples.app
 The app is signed ad hoc and runs without the App Sandbox. To sign with your team, copy `Config/Local.xcconfig.template` to `Config/Local.xcconfig` and set `DEVELOPMENT_TEAM`; the template also switches to automatic signing with an Apple Development certificate. Choosing a team in Xcode's Signing & Capabilities instead writes it into the shared project file. A `Local.xcconfig` made in an earlier checkout under `Examples/DemoApp/` is not moved by git; move it to `Config/Local.xcconfig`. The context window is 16,384 tokens (or the bundle's maximum, if smaller) for Chat, RAG and Agent; launch with `--context-limit N` to change it, for example `open .build/Build/Products/Release/CoreAISamples.app --args --context-limit 1024`.
 
 The first load of a model prepares it for the GPU (about 21 s for Qwen3.5-9B on an M4 Max); later loads reuse the prepared copy in `~/Library/Caches/coreai-cache/<OS build>/com.coreai-samples.DemoApp/`.
+
+## Extract on iPhone
+
+`CoreAISamples-iOS` is an iPhone app with [Extract](#extract) only: a screen that extracts one note, and the headless `--extract-eval`. Chat, Agent and Models stay on the Mac. The bundle ID is `com.coreai-samples.DemoApp.ios` and it needs iOS 27.0. It runs on a device only: the iOS Simulator SDK (`iPhoneSimulator27.0.sdk`) has no `CoreAI.framework`, so a simulator build stops at `Unable to resolve module dependency: 'CoreAI'`. The Extract service, runner, headless evaluation and bundled JSON files are the Mac app's; the entry point and the screen are in `CoreAISamples/iOS/`. It has not been run on a device yet.
+
+**Build and install.** Without a team, the device build is left unsigned: it shows that the app compiles, but it cannot be installed.
+
+```bash
+xcodebuild -project CoreAISamples.xcodeproj -scheme CoreAISamples-iOS -configuration Release -destination 'generic/platform=iOS' build
+```
+
+To install it, copy `Config/Local.xcconfig.template` to `Config/Local.xcconfig` and set `DEVELOPMENT_TEAM` (the template signs the iPhone build too), turn on Developer Mode on the iPhone and connect it. In Xcode, choose the `CoreAISamples-iOS` scheme and the iPhone and press Run (a Release build; the first Run also registers the iPhone with the team), or, once the iPhone is registered, from the command line:
+
+```bash
+xcrun devicectl list devices    # the iPhone's identifier, <UDID> below
+xcodebuild -project CoreAISamples.xcodeproj -scheme CoreAISamples-iOS -configuration Release \
+  -destination 'generic/platform=iOS' -derivedDataPath .build -allowProvisioningUpdates build
+xcrun devicectl device install app --device <UDID> .build/Build/Products/Release-iphoneos/CoreAISamples-iOS.app
+```
+
+**Copy the asset and the gold file into the app's Documents.** The asset folder is the one the Mac reads (`contract.json`, one `.aimodel` and `tokenizer.json` in `tokenizer/` or in the folder itself), made of real files: `cp -RL` resolves symbolic links. The FP32 (1.23 GB) and FP16 (0.62 GB) folders can sit side by side, but the app opens the FP32 asset only: the FP16 export takes and returns Float16 values, and opening it fails with `pair_t256 of the model differs from what this app implements at scorer_start`.
+
+```bash
+BID=com.coreai-samples.DemoApp.ios
+mkdir -p /tmp/gliner-fp32/tokenizer
+cp -RL /path/to/export/contract.json /path/to/export/*.aimodel /tmp/gliner-fp32/
+cp -L /path/to/tokenizer.json /tmp/gliner-fp32/tokenizer/
+xcrun devicectl device copy to --device <UDID> --domain-type appDataContainer --domain-identifier $BID \
+  --source /tmp/gliner-fp32 --destination Documents/gliner-fp32
+xcrun devicectl device copy to --device <UDID> --domain-type appDataContainer --domain-identifier $BID \
+  --source /path/to/gold.json --destination Documents/gold.json
+```
+
+- Copy before you launch the app, and let the copy finish: a model read while its files are still arriving has been reported to leave a broken entry in the specialization cache.
+- Leave out `--remove-existing-content true`, which has been reported to empty the whole data container.
+
+**The screen** shows the same note as the Mac's Extract screen and lists the folders in Documents that hold a `contract.json`, as they were at launch; relaunch the app after copying another one. Tap a folder to open it (no folder can be tapped while one opens): the status shows the load time and the `revision`. Edit the note (the first example is filled in) and press **Extract**, which extracts again even when the note has not changed: each example label of `extract_examples.json` lists the spans the model returns for it, as written in the note, with their scores, and a line shows the time of each stage. The labels cannot be edited here, and the form experiment is on the Mac only. The model is specialized for the GPU; launch with `--compute-units default` to let Core AI place it (the footer shows which).
+
+**Headless evaluation.** Launch with the arguments the Mac takes (see [Extract](#extract)). Relative paths are read in Documents: the app makes Documents its working directory. The app keeps the screen from locking during the run; unlock the iPhone before you launch, and keep the app in the foreground, since an app in the background cannot use the GPU. The app exits when the run ends, which ends `--console`, and stdout and stderr come back through it as on the Mac.
+
+```bash
+xcrun devicectl device process launch --console --terminate-existing --device <UDID> $BID \
+  --extract-eval gold.json --asset gliner-fp32 --out result-fp32-gpu.json
+xcrun devicectl device copy from --device <UDID> --domain-type appDataContainer --domain-identifier $BID \
+  --source Documents/result-fp32-gpu.json --destination ./result-fp32-gpu.json
+```
+
+- `--compute-units gpu`, the default, prefers the GPU; `--compute-units default` leaves the choice among the CPU, the GPU and the Neural Engine to Core AI. Try the default placement in a launch of its own. Any other value is an argument error (exit status 2).
+- The output JSON also has `device` (the hardware model identifier, `hw.machine`), `osVersion` (the OS version with its build) and `computeUnits` next to the asset's `revision`. The Mac writes the same fields (`device` is `hw.model` there) and takes `--compute-units` too.
 
 ## Headless self-test
 

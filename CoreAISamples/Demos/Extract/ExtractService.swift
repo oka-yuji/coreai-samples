@@ -1,7 +1,28 @@
+import CoreAI
 import ExtractFeature
 import Foundation
 import GLiNERCore
 import GLiNERRuntime
+
+/// Where Core AI places the model: `--compute-units gpu` (the default) prefers the GPU, `--compute-units default`
+/// leaves the choice among the CPU, the GPU and the Neural Engine to Core AI.
+enum ComputeUnits: String {
+    case gpu
+    case automatic = "default"
+
+    /// The launch argument, `gpu` without one, or nil for a value it does not know.
+    static var launchValue: ComputeUnits? {
+        guard let value = LaunchArguments.value("--compute-units") else { return .gpu }
+        return ComputeUnits(rawValue: value)
+    }
+
+    var options: SpecializationOptions {
+        switch self {
+        case .gpu: SpecializationOptions(preferredComputeUnitKind: .gpu)
+        case .automatic: .default
+        }
+    }
+}
 
 /// Opens a GLiNER asset folder and maps notes onto a form with it.
 @MainActor
@@ -31,16 +52,18 @@ enum ExtractServiceError: LocalizedError {
 @MainActor
 final class GLiNERExtractService: ExtractService {
     private let correctionWords: [String]
+    private let computeUnits: ComputeUnits
     private var extractor: GLiNERExtractor?
 
-    init(correctionWords: [String]) {
+    init(correctionWords: [String], computeUnits: ComputeUnits = .gpu) {
         self.correctionWords = correctionWords
+        self.computeUnits = computeUnits
     }
 
     func open(folder: URL) async throws -> AssetInfo {
         let clock = ContinuousClock()
         let started = clock.now
-        let (extractor, revision) = try await Self.load(folder)
+        let (extractor, revision) = try await Self.load(folder, options: computeUnits.options)
         // Loading does not stop when cancelled: drop the result of a folder that another one has replaced.
         try Task.checkCancellation()
         self.extractor = extractor
@@ -82,7 +105,7 @@ final class GLiNERExtractService: ExtractService {
 
     /// Reads the tokenizer and specializes the model off the main actor.
     @concurrent
-    private static func load(_ folder: URL) async throws -> (GLiNERExtractor, String?) {
+    private static func load(_ folder: URL, options: SpecializationOptions) async throws -> (GLiNERExtractor, String?) {
         let asset = try GLiNERAsset(directory: folder)
         let nested = folder.appending(path: "tokenizer", directoryHint: .isDirectory)
         let tokenizerFolder = [nested, folder].first {
@@ -90,7 +113,7 @@ final class GLiNERExtractService: ExtractService {
         }
         guard let tokenizerFolder else { throw ExtractServiceError.noTokenizer(folder.path(percentEncoded: false)) }
         let tokenizer = try GLiNERTokenizer(directory: tokenizerFolder)
-        let model = try await GLiNERModel(asset: asset)
+        let model = try await GLiNERModel(asset: asset, options: options)
         let contract = try? JSONDecoder().decode(
             ContractRevision.self, from: Data(contentsOf: folder.appending(path: "contract.json")))
         return (

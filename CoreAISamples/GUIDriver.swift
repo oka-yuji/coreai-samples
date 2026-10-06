@@ -473,7 +473,7 @@ final class GUIDriver {
         await step(2, "extract-labels", "A pasted note gets the spans of the labels, colored in the note by label") {
             store.send(.textChanged(example))
             let done = await extracted()
-            let timing = store.state.result.map { ExtractView.describe($0.timing) } ?? "none"
+            let timing = store.state.result.map { ExtractRunner.describe($0.timing) } ?? "none"
             let spans = (store.state.result?.mapping.fields ?? []).map { field in
                 "\(field.field.key)=\(field.candidates.map { "\($0.span.text) \($0.span.probability)" })"
             }
