@@ -1,3 +1,8 @@
+extension Unicode.Scalar {
+    /// Python's `str.isspace()`, which the reference splitter and decoder use: White_Space plus U+001C...U+001F.
+    public var isPythonWhitespace: Bool { properties.isWhitespace || (0x1C...0x1F).contains(value) }
+}
+
 extension String {
     /// The UTF-16 range (for `NSString` and `AttributedString`) of a range counted in Unicode scalars.
     public func utf16Range(fromScalarRange range: Range<Int>) -> Range<Int>? {
