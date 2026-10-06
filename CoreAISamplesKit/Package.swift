@@ -1,6 +1,11 @@
 // swift-tools-version: 6.2
 import PackageDescription
 
+let approachableConcurrency: [SwiftSetting] = [
+    .enableUpcomingFeature("NonisolatedNonsendingByDefault"),
+    .enableUpcomingFeature("InferIsolatedConformances"),
+]
+
 let package = Package(
     name: "CoreAISamplesKit",
     platforms: [
@@ -11,6 +16,7 @@ let package = Package(
         .library(name: "CoreAIBackend", targets: ["CoreAIBackend"]),
         .library(name: "RAGContext", targets: ["RAGContext"]),
         .executable(name: "coreai-chat", targets: ["coreai-chat"]),
+        .library(name: "FeatureStore", targets: ["FeatureStore"]),
     ],
     dependencies: [
         .package(url: "https://github.com/huggingface/swift-transformers", from: "1.3.4"),
@@ -25,6 +31,7 @@ let package = Package(
             ]
         ),
         .target(name: "RAGContext"),
+        .target(name: "FeatureStore", swiftSettings: approachableConcurrency),
         .executableTarget(
             name: "coreai-chat",
             dependencies: ["CoreAIBackend"]
@@ -37,5 +44,6 @@ let package = Package(
             ]
         ),
         .testTarget(name: "RAGContextTests", dependencies: ["RAGContext"]),
+        .testTarget(name: "FeatureStoreTests", dependencies: ["FeatureStore"], swiftSettings: approachableConcurrency),
     ]
 )
