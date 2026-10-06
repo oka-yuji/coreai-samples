@@ -1,0 +1,187 @@
+import Foundation
+import GLiNERCore
+import Testing
+
+struct MissingResource: Error {
+    let path: String
+}
+
+/// A JSON file of this target's `Resources` folder.
+func resource<Value: Decodable>(_ type: Value.Type, _ path: String) throws -> Value {
+    guard let folder = Bundle.module.url(forResource: "Resources", withExtension: nil) else {
+        throw MissingResource(path: path)
+    }
+    return try JSONDecoder().decode(type, from: Data(contentsOf: folder.appending(path: path)))
+}
+
+/// Form U1, with the wording GL6 chose for the clause classification.
+func formU1() throws -> FormSchema { try resource(FormSchema.self, "forms/inspection_u1.json") }
+
+func correctionWords() throws -> [String] { try resource([String].self, "correction_words.json") }
+
+func makeSpan(_ label: Int, _ range: Range<Int>, in text: String, probability: Float = 0.9) -> ExtractedSpan {
+    let scalars = Array(text.unicodeScalars)[range]
+    return ExtractedSpan(
+        labelIndex: label, scalarRange: range, text: String(String.UnicodeScalarView(scalars)), probability: probability
+    )
+}
+
+func makeExtraction(_ spans: [ExtractedSpan]) -> ExtractionResult {
+    ExtractionResult(spans: spans, abstained: [], tokenCapacity: PreparedInput.tokenCapacities[0])
+}
+
+func scalarRanges(of piece: String, in text: String) -> [Range<Int>] {
+    Array(text.unicodeScalars).ranges(of: Array(piece.unicodeScalars))
+}
+
+private func decimal(_ text: String) throws -> Decimal { try #require(Decimal(string: text)) }
+
+/// `Resources/mapping_examples.json`: notes in Japanese for the tests below.
+struct MappingExamples: Decodable {
+    struct NumberExample: Decodable, CustomTestStringConvertible {
+        let text: String
+        let value: String?
+        let unit: String?
+        let normalizedUnit: String?
+
+        var testDescription: String { text }
+    }
+
+    struct Sentence: Decodable {
+        let text: String
+        let piece: String
+    }
+
+    struct Cues: Decodable {
+        let text: String
+        let words: [String]
+    }
+
+    let numbers: [NumberExample]
+    /// Two pressures with a correction word between them; `piece` is the word.
+    let twoValues: Sentence
+    /// A pressure in kana; `piece` is the number.
+    let kanaNumber: Sentence
+    /// Two clauses that end in the same word; `piece` is the word.
+    let twoClauses: Sentence
+    let cues: Cues
+}
+
+struct FormMappingTests {
+    let examples: MappingExamples
+    let form: FormSchema
+    let mapper: FormMapper
+
+    init() throws {
+        examples = try resource(MappingExamples.self, "mapping_examples.json")
+        form = try formU1()
+        mapper = FormMapper(schema: form, correctionWords: try correctionWords())
+    }
+
+    @Test(
+        "A field without spans is not detected, both values stay as candidates in a sentence with two, and a sentence with a correction word gets a cue"
+    )
+    func keepsBothValuesAndMarksTheCorrection() throws {
+        let text = examples.twoValues.text
+        let old = try #require(scalarRanges(of: "0.45", in: text).first)
+        let new = try #require(scalarRanges(of: "0.54MPa", in: text).first)
+        let cue = try #require(scalarRanges(of: examples.twoValues.piece, in: text).first)
+        // The later value scores higher, as a correction would; the candidates still come in text order.
+        let spans = [makeSpan(0, new, in: text, probability: 0.95), makeSpan(0, old, in: text, probability: 0.8)]
+        let mapping = mapper.map(text: text, extraction: makeExtraction(spans)) { _, _ in
+            Issue.record("No list field has a span to classify")
+            return ClassificationResult(probabilities: [])
+        }
+        let numbers = [
+            ParsedNumber(value: try decimal("0.45"), unit: nil, normalizedUnit: nil),
+            ParsedNumber(value: try decimal("0.54"), unit: "MPa", normalizedUnit: "MPa"),
+        ]
+        #expect(mapping.fields.map(\.state) == [.candidate] + Array(repeating: .notDetected, count: 5))
+        #expect(mapping.fields[0].candidates.map(\.span.scalarRange) == [old, new])
+        #expect(mapping.fields[0].candidates.map(\.number) == numbers)
+        #expect(mapping.corrections == [CorrectionCue(range: cue, word: examples.twoValues.piece)])
+    }
+
+    @Test("Correction words are found left to right without overlap, the longest where several start at one place")
+    func findsTheLongestCorrectionWords() throws {
+        let cues = CorrectionCue.find(in: examples.cues.text, words: try correctionWords())
+        let scalars = Array(examples.cues.text.unicodeScalars)
+        #expect(cues.map(\.word) == examples.cues.words)
+        #expect(cues.map { String(String.UnicodeScalarView(scalars[$0.range])) } == examples.cues.words)
+    }
+
+    @Test(
+        "Number parsing turns 0.45MPa, 72 with the kanji for degree, full-width 0.5MPa and 72 with the degree Celsius sign into a number and a unit, and a number in kana stays a candidate as written",
+        arguments: try resource(MappingExamples.self, "mapping_examples.json").numbers)
+    func parsesTheNumberAndUnit(example: MappingExamples.NumberExample) throws {
+        let expected = try example.value.map {
+            ParsedNumber(value: try decimal($0), unit: example.unit, normalizedUnit: example.normalizedUnit)
+        }
+        #expect(ParsedNumber(parsing: example.text) == expected)
+    }
+
+    @Test(
+        "Number parsing turns 0.45MPa, 72 with the kanji for degree, full-width 0.5MPa and 72 with the degree Celsius sign into a number and a unit, and a number in kana stays a candidate as written"
+    )
+    func keepsANumberInKanaAsACandidate() throws {
+        let text = examples.kanaNumber.text
+        let range = try #require(scalarRanges(of: examples.kanaNumber.piece, in: text).first)
+        let mapping = mapper.map(text: text, extraction: makeExtraction([makeSpan(0, range, in: text)])) { _, _ in
+            Issue.record("No list field has a span to classify")
+            return ClassificationResult(probabilities: [])
+        }
+        #expect(mapping.fields[0].state == .candidate)
+        #expect(mapping.fields[0].candidates.map(\.span.text) == [examples.kanaNumber.piece])
+        #expect(mapping.fields[0].candidates.map(\.number) == [nil])
+        #expect(mapping.corrections.isEmpty)
+    }
+
+    @Test(
+        "Each span of a list field is a candidate whose suggestions are the two best options of its clause, by option name"
+    )
+    func suggestsTheTwoBestOptionsOfEachClause() throws {
+        let text = examples.twoClauses.text
+        let scalars = Array(text.unicodeScalars)
+        let comma = try #require(scalars.firstIndex(of: "\u{3001}"))
+        let clauses = [0..<comma, (comma + 1)..<scalars.count]
+        let clauseTexts = clauses.map { String(String.UnicodeScalarView(scalars[$0])) }
+        let words = scalarRanges(of: examples.twoClauses.piece, in: text)
+        try #require(words.count == 2)
+        // Oil leak and abnormal sound both point at both words, as in sentence 12 of the PyTorch run.
+        let listFields = [2, 3]
+        let spans = listFields.flatMap { label in words.map { makeSpan(label, $0, in: text) } }
+        var calls: [(text: String, schema: GLiNERSchema)] = []
+        let mapping = mapper.map(text: text, extraction: makeExtraction(spans)) { clause, schema in
+            calls.append((clause, schema))
+            guard case .classification(_, let labels) = schema else { return ClassificationResult(probabilities: []) }
+            let rising = labels.indices.map { Float($0 + 1) }
+            return ClassificationResult(probabilities: clause == clauseTexts[0] ? rising : rising.reversed())
+        }
+        var schemas: [GLiNERSchema] = []
+        for index in listFields {
+            let field = form.fields[index]
+            guard case .list(let options, let modelTask) = field.kind else {
+                Issue.record("\(field.key) is not a list field")
+                continue
+            }
+            let schema = GLiNERSchema.classification(name: modelTask ?? field.name, labels: options.map(\.modelLabel))
+            schemas += [schema, schema]
+            let names = options.map(\.name)
+            let best = Float(names.count)
+            #expect(mapping.fields[index].candidates.map(\.clause) == clauses)
+            #expect(
+                mapping.fields[index].candidates.map(\.suggestions) == [
+                    [
+                        OptionSuggestion(option: names[names.count - 1], probability: best),
+                        OptionSuggestion(option: names[names.count - 2], probability: best - 1),
+                    ],
+                    [
+                        OptionSuggestion(option: names[0], probability: best),
+                        OptionSuggestion(option: names[1], probability: best - 1),
+                    ],
+                ])
+        }
+        #expect(calls.map(\.text) == clauseTexts + clauseTexts)
+        #expect(calls.map(\.schema) == schemas)
+    }
+}

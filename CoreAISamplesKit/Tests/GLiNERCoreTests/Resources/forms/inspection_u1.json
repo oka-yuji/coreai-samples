@@ -1,0 +1,10 @@
+{
+  "fields": [
+    {"key": "discharge_pressure", "name": "吐出圧", "modelLabel": "吐出圧の値", "description": "数値と単位", "kind": {"number": {"unit": "MPa"}}},
+    {"key": "temperature", "name": "温度", "modelLabel": "温度の値", "description": "数値と単位", "kind": {"number": {"unit": "℃"}}},
+    {"key": "oil_leak", "name": "油漏れ", "modelLabel": "油漏れの有無", "description": "油漏れがあるかないかを述べた語句", "kind": {"list": {"options": [{"name": "あり", "modelLabel": "あり"}, {"name": "なし", "modelLabel": "なし"}]}}},
+    {"key": "abnormal_sound", "name": "異音", "modelLabel": "異音の状態", "description": "異音の有無や程度、点検したかどうかを述べた語句", "kind": {"list": {"options": [{"name": "正常", "modelLabel": "問題なし"}, {"name": "異常", "modelLabel": "問題あり"}, {"name": "未点検", "modelLabel": "未点検"}], "modelTask": "異音の状態"}}},
+    {"key": "vibration", "name": "振動", "modelLabel": "振動の状態", "description": "振動の有無や程度、点検したかどうかを述べた語句", "kind": {"list": {"options": [{"name": "正常", "modelLabel": "問題なし"}, {"name": "異常", "modelLabel": "問題あり"}, {"name": "未点検", "modelLabel": "未点検"}], "modelTask": "振動の状態"}}},
+    {"key": "next_action", "name": "次回作業", "modelLabel": "次回の作業", "description": "次回に行う予定の作業を述べた語句", "kind": {"list": {"options": [{"name": "給油", "modelLabel": "給油"}, {"name": "交換", "modelLabel": "交換"}, {"name": "清掃", "modelLabel": "清掃"}, {"name": "なし", "modelLabel": "なし"}]}}}
+  ]
+}
