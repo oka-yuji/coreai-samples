@@ -8,9 +8,11 @@ import GLiNERRuntime
 protocol ExtractService {
     /// Opens `folder`: `contract.json`, one `.aimodel`, and `tokenizer.json` in `tokenizer/` or in the folder itself.
     func open(folder: URL) async throws -> AssetInfo
-    /// The candidates of each field of `schema` in `text`, and the time of each stage. Throws `CancellationError`
-    /// when cancelled, and then runs no further model call.
-    func extract(text: String, schema: FormSchema) async throws -> (mapping: FormMapping, timing: ExtractTiming)
+    /// The candidates of each field of `schema` in `text` that `filter` keeps, and the time of each stage. Throws
+    /// `CancellationError` when cancelled, and then runs no further model call.
+    func extract(text: String, schema: FormSchema, filter: CandidateFilter) async throws -> (
+        mapping: FormMapping, timing: ExtractTiming
+    )
 }
 
 enum ExtractServiceError: LocalizedError {
@@ -47,13 +49,15 @@ final class GLiNERExtractService: ExtractService {
             loadSeconds: (clock.now - started) / .seconds(1))
     }
 
-    func extract(text: String, schema: FormSchema) async throws -> (mapping: FormMapping, timing: ExtractTiming) {
+    func extract(text: String, schema: FormSchema, filter: CandidateFilter) async throws -> (
+        mapping: FormMapping, timing: ExtractTiming
+    ) {
         guard let extractor else { throw ExtractServiceError.noAsset }
         let clock = ContinuousClock()
         let started = clock.now
         let labels: [EntityLabel] = if case .entities(let labels) = schema.extractionSchema() { labels } else { [] }
         let (extraction, times) = try await extractor.timedExtract(text: text, labels: labels)
-        let mapper = FormMapper(schema: schema, correctionWords: correctionWords)
+        let mapper = FormMapper(schema: schema, correctionWords: correctionWords, candidateFilter: filter)
         let requests = mapper.classificationRequests(text: text, extraction: extraction)
         let classifyStarted = clock.now
         var results: [ClassificationRequest: ClassificationResult] = [:]

@@ -425,9 +425,9 @@ final class GUIDriver {
         }
     }
 
-    /// `--extract <asset folder>`: open the asset, paste the example note, add a field, confirm two fields and export
-    /// the JSON. The folder is the flag's value: AppKit reads arguments as `-key value` pairs and opens a path left
-    /// alone as a document, and then SwiftUI opens no window.
+    /// `--extract <asset folder>`: open the asset in the label mode, paste the example note, switch to the form
+    /// experiment, add a field, confirm two fields and export the JSON. The folder is the flag's value: AppKit reads
+    /// arguments as `-key value` pairs and opens a path left alone as a document, and then SwiftUI opens no window.
     private func runExtract(navigator: DemoNavigator, store: Store<ExtractFeature>) async {
         let examples = ExtractResources.examples
         guard let asset = LaunchArguments.value("--extract"), let example = examples.notes.first else {
@@ -454,7 +454,7 @@ final class GUIDriver {
             (store.state.result?.mapping.fields ?? []).filter { !$0.candidates.isEmpty }.map(\.field.key)
         }
 
-        await step(1, "extract-initial", "Extract opens the asset folder and waits for a note") {
+        await step(1, "extract-initial", "Extract opens in the label mode and waits for a note") {
             navigator.selection = .extract
             store.send(.assetFolderChosen(path: asset))
             _ = await self.wait(seconds: 900) {
@@ -465,23 +465,39 @@ final class GUIDriver {
             }
             let opened = if case .ready = store.state.asset { true } else { false }
             return (
-                opened && store.state.text.isEmpty,
-                "asset=\(store.state.asset) fields=\(store.state.form.fields.map(\.key))"
+                opened && store.state.text.isEmpty && store.state.mode == .labels,
+                "asset=\(store.state.asset) mode=\(store.state.mode) labels=\(store.state.labels.fields.map(\.key))"
             )
         }
 
-        await step(2, "extract-pasted", "A pasted note gets candidates, colored in the note by field") {
+        await step(2, "extract-labels", "A pasted note gets the spans of the labels, colored in the note by label") {
             store.send(.textChanged(example))
             let done = await extracted()
             let timing = store.state.result.map { ExtractView.describe($0.timing) } ?? "none"
-            let cues = store.state.result?.mapping.corrections.map(\.word) ?? []
+            let spans = (store.state.result?.mapping.fields ?? []).map { field in
+                "\(field.field.key)=\(field.candidates.map { "\($0.span.text) \($0.span.probability)" })"
+            }
             return (
-                done && !detected().isEmpty,
-                "phase=\(store.state.phase) detected=\(detected()) cues=\(cues) timing=\(timing)"
+                done && !detected().isEmpty && store.state.mode == .labels,
+                "phase=\(store.state.phase) spans=\(spans) timing=\(timing)"
             )
         }
 
-        await step(3, "extract-field-added", "An added field gets candidates and its evidence is emphasized") {
+        await step(3, "extract-experiment", "The Experiment switch maps the note onto the form, with suggestions") {
+            store.send(.modeChanged(.form))
+            let done = await extracted()
+            let suggested = (store.state.result?.mapping.fields ?? []).contains { field in
+                field.candidates.contains { !$0.suggestions.isEmpty }
+            }
+            let cues = store.state.result?.mapping.corrections.map(\.word) ?? []
+            return (
+                done && store.state.mode == .form && suggested && !detected().isEmpty,
+                "phase=\(store.state.phase) detected=\(detected()) cues=\(cues) "
+                    + "filter=\(store.state.candidateFilter.name)"
+            )
+        }
+
+        await step(4, "extract-field-added", "An added field gets candidates and its evidence is emphasized") {
             let field = examples.extraField
             store.send(.fieldsChanged(FormSchema(fields: store.state.form.fields + [field])))
             store.send(.select(field: field.key))
@@ -495,7 +511,8 @@ final class GUIDriver {
         }
 
         await step(
-            4, "extract-confirmed", "Two confirmed fields keep their choices and the JSON keeps each section apart"
+            5, "extract-confirmed",
+            "Two confirmed fields keep their choices, and the JSON keeps each section, the filter and the versions"
         ) {
             let fields = store.state.result?.mapping.fields ?? []
             var confirmed: [String: ExtractChoice] = [:]
@@ -520,14 +537,17 @@ final class GUIDriver {
             else { return (false, "export=\(store.state.export)") }
             try? data.write(to: self.outDir.appending(path: "export.json"), options: .atomic)
             let exported = Dictionary(uniqueKeysWithValues: document.confirmations.map { ($0.key, $0.choice) })
+            let model = document.model
             let pass =
                 confirmed.count == 2 && store.state.confirmations == confirmed && exported == confirmed
-                && document.input.text == example && document.model?.fields.count == document.form.fields.count
-                && document.rules != nil
+                && document.input.text == example && model?.fields.count == document.form.fields.count
+                && document.rules != nil && document.mode == "form" && model?.candidateFilter == "clauseFieldName"
+                && model?.assetRevision != nil && model?.appVersion != nil
             return (
                 pass,
-                "confirmed=\(confirmed) export=\(path) modelFields=\(document.model?.fields.count ?? 0) "
-                    + "cues=\(document.rules?.correctionCues.map(\.word) ?? [])"
+                "confirmed=\(confirmed) export=\(path) mode=\(document.mode) modelFields=\(model?.fields.count ?? 0) "
+                    + "filter=\(model?.candidateFilter ?? "none") revision=\(model?.assetRevision ?? "none") "
+                    + "app=\(model?.appVersion ?? "none") cues=\(document.rules?.correctionCues.map(\.word) ?? [])"
             )
         }
     }

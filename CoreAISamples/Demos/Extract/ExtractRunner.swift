@@ -12,6 +12,11 @@ struct ExtractRunner {
     nonisolated static var exportsFolder: URL {
         ModelStorage.root.appending(path: "extract-exports", directoryHint: .isDirectory)
     }
+    /// The app's version and build, as `metrics.jsonl` writes them, for the export and `--extract-eval`.
+    nonisolated static var appVersion: String {
+        func value(_ key: String) -> String { Bundle.main.infoDictionary?[key] as? String ?? "?" }
+        return "\(value("CFBundleShortVersionString")) (\(value("CFBundleVersion")))"
+    }
 
     let service: any ExtractService
 
@@ -36,9 +41,9 @@ struct ExtractRunner {
             } catch {
                 send(.assetFailed(path: path, message: Self.describe(error)))
             }
-        case .extract(let version, let text, let form):
+        case .extract(let version, let text, let form, let filter):
             do {
-                let (mapping, timing) = try await service.extract(text: text, schema: form)
+                let (mapping, timing) = try await service.extract(text: text, schema: form, filter: filter)
                 send(.extractionFinished(version: version, mapping: mapping, timing: timing))
             } catch is CancellationError {
                 return
@@ -85,10 +90,12 @@ struct ExtractRunner {
     }
 }
 
-/// The bundled examples: form U1, the correction words and example notes, in Japanese, kept out of the source.
+/// The bundled examples: form U1, the correction words, example notes and labels, in Japanese, kept out of the source.
 enum ExtractResources {
     struct Examples: Decodable {
         let notes: [String]
+        /// The labels the label mode starts with.
+        let labels: FormSchema
         /// A field the screen check adds to the form.
         let extraField: FormField
     }

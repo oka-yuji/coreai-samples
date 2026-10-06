@@ -5,8 +5,14 @@ import GLiNERCore
 import SwiftUI
 import UniformTypeIdentifiers
 
-/// Paste a note, see where each field's candidates come from, and confirm the values.
+/// Type labels, paste a note and see the spans the model returns for each label. As an experiment, map the note onto
+/// an inspection form, with suggestions for its list fields, and confirm the values.
 struct ExtractView: View {
+    static let notice =
+        "Technical verification of a Core AI conversion. Zero-shot GLiNER2.5-multi did not reach the pre-registered "
+        + "bar for Japanese inspection memos (sealed set: fabricated candidates 9/199, primary-span precision 0.791, "
+        + "recall 0.874). Suggestions are uncalibrated scores."
+
     let store: Store<ExtractFeature>
     @State private var choosingAsset = false
     @State private var draft: FieldDraft?
@@ -20,7 +26,7 @@ struct ExtractView: View {
             Divider()
             HSplitView {
                 notePane.frame(minWidth: 340, idealWidth: 460, maxWidth: .infinity, maxHeight: .infinity)
-                formPane.frame(minWidth: 380, idealWidth: 520, maxWidth: .infinity, maxHeight: .infinity)
+                fieldsPane.frame(minWidth: 380, idealWidth: 520, maxWidth: .infinity, maxHeight: .infinity)
             }
         }
         .navigationTitle("Extract")
@@ -32,7 +38,7 @@ struct ExtractView: View {
         .fileDialogDefaultDirectory(ModelStorage.root)
         .sheet(isPresented: Binding(get: { draft != nil }, set: { if !$0 { draft = nil } })) {
             if let draft {
-                FieldEditor(draft: draft, form: state.form) { form, selected in
+                FieldEditor(draft: draft, form: state.schema, isLabel: state.mode == .labels) { form, selected in
                     store.send(.fieldsChanged(form))
                     store.send(.select(field: selected))
                 }
@@ -47,6 +53,10 @@ struct ExtractView: View {
                 Button("Open Asset Folder…") { choosingAsset = true }
                 assetStatus
                 Spacer()
+                Toggle(
+                    "Experiment: inspection form",
+                    isOn: Binding(get: { state.mode == .form }, set: { store.send(.modeChanged($0 ? .form : .labels)) })
+                )
                 Button("Paste Example") {
                     let notes = ExtractResources.examples.notes
                     guard !notes.isEmpty else { return }
@@ -56,6 +66,9 @@ struct ExtractView: View {
                 Button("Export JSON") { store.send(.exportRequested) }
                     .disabled(state.text.isEmpty)
             }
+            Label(Self.notice, systemImage: "info.circle")
+                .font(.caption)
+                .foregroundStyle(.secondary)
             HStack(spacing: 10) {
                 runStatus
                 Spacer()
@@ -149,7 +162,7 @@ struct ExtractView: View {
     }
 
     private var legend: some View {
-        let fields = Array(state.form.fields.enumerated())
+        let fields = Array(state.schema.fields.enumerated())
         return ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 10) {
                 ForEach(fields, id: \.element.key) { index, field in
@@ -201,22 +214,35 @@ struct ExtractView: View {
         return attributed
     }
 
-    private var formPane: some View {
-        VStack(alignment: .leading, spacing: 0) {
+    /// The labels, or the form of the experiment with its candidate filter.
+    private var fieldsPane: some View {
+        let isLabel = state.mode == .labels
+        return VStack(alignment: .leading, spacing: 0) {
             HStack {
-                Text("Form").font(.headline)
+                Text(isLabel ? "Labels" : "Form").font(.headline)
                 Spacer()
-                Button("Reset Form") { store.send(.fieldsChanged(ExtractResources.form)) }
-                    .disabled(state.form == ExtractResources.form)
-                Button("Add Field") { draft = FieldDraft() }
-                    .disabled(state.form.fields.count >= PreparedInput.labelCapacity)
+                if !isLabel {
+                    Picker(
+                        "Candidate filter",
+                        selection: Binding(
+                            get: { state.candidateFilter }, set: { store.send(.candidateFilterChanged($0)) })
+                    ) {
+                        Text("R1 (clauseFieldName)").tag(CandidateFilter.clauseFieldName)
+                        Text("None").tag(CandidateFilter.none)
+                    }
+                    .fixedSize()
+                    Button("Reset Form") { store.send(.fieldsChanged(ExtractResources.form)) }
+                        .disabled(state.form == ExtractResources.form)
+                }
+                Button(isLabel ? "Add Label" : "Add Field") { draft = FieldDraft() }
+                    .disabled(state.schema.fields.count >= PreparedInput.labelCapacity)
             }
             .padding(14)
             ScrollView {
                 LazyVStack(spacing: 8) {
-                    ForEach(Array(state.form.fields.enumerated()), id: \.element.key) { index, field in
+                    ForEach(Array(state.schema.fields.enumerated()), id: \.element.key) { index, field in
                         FieldRow(
-                            field: field, color: Self.color(index),
+                            field: field, isLabel: isLabel, color: Self.color(index),
                             mapping: state.result?.mapping.fields.first { $0.field.key == field.key },
                             confirmation: state.confirmations[field.key], cues: state.cues(forField: field.key),
                             selected: state.selectedField == field.key, send: store.send,

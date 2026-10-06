@@ -5,7 +5,7 @@
 - **Models**: open a bundle folder on this Mac (the app remembers it), load it, and clear the copy the app prepared for the GPU. The download catalog for Hugging Face is in place but stays empty until bundles are published.
 - **Chat**: a `LanguageModelSession` on `LocalLanguageModel`. Replies stream, thinking streams into a collapsed section, and the status line shows the time to the first token, the speed, the input, reused and output tokens, and why the reply stopped. With **RAG** on, the app first collects sources from the web and from `~/Documents/rag/` and the model answers from them with numbered citations. See [RAG](#rag) below.
 - **Agent**: searches the web, reads pages, saves notes and answers with a `Sources:` section, on the model that Chat has loaded. See [Agent](#agent) below.
-- **Extract**: paste an inspection memo and GLiNER2.5-multi (Core AI, FP32) marks where each field of a form is in the text, suggests the two best options of each list field, and leaves the choice to you; the result exports as JSON. See [Extract](#extract) below.
+- **Extract**: a technical verification of a Core AI conversion. Type labels and GLiNER2.5-multi (Core AI, FP32) marks the spans it finds for each in a text, with their scores; mapping an inspection memo onto a form with option suggestions is kept as an experiment. The result exports as JSON. See [Extract](#extract) below.
 
 ## Requirements
 
@@ -121,22 +121,59 @@ With **Citation guard** on, the app checks the sources of the answer before it a
 
 ## Extract
 
-Extract maps a free-text inspection memo onto a form with GLiNER2.5-multi: the model returns the spans of each field's label in the text, and each span's clause is classified over the options of its field. Nothing is filled in automatically: a field's value is only what you confirm.
+> Technical verification of a Core AI conversion. Zero-shot GLiNER2.5-multi did not reach the pre-registered bar for Japanese inspection memos (sealed set: fabricated candidates 9/199, primary-span precision 0.791, recall 0.874). Suggestions are uncalibrated scores.
+
+Extract runs GLiNER2.5-multi, converted to Core AI (FP32), on a text you paste or type. By default you type labels and see the spans the model returns for each label, with their scores. Mapping an inspection memo onto a form, where each span's clause is classified over the options of its field, is kept as an experiment behind **Experiment: inspection form**. Nothing is filled in automatically.
+
+### Evaluation
+
+Before a sealed set of 200 synthetic Japanese inspection memos was opened, once, two bars were fixed: B1 for suggesting the values of a form (span precision 0.95, recall 0.90, no fabricated candidate) and B2 for a span-extraction sample (0.90, 0.80, at most 2). Both were missed. One memo is excluded, so 199 count. Each memo leaves one chosen field of form U1 unmentioned, and a candidate on that field is a fabricated candidate. The memos were written for the test and their answers checked independently, not by domain experts.
+
+| Sealed set: 199 memos, Core AI FP32 | Result | B2 |
+|---|---|---|
+| Fabricated candidates on the field each memo leaves out | 9/199 (4.5%) | at most 2 |
+| Primary-span precision (each field's most probable candidate) | 0.791 (462/584) | 0.90 |
+| Span recall, any candidate | 0.874 (500/572) | 0.80 |
+| List fields with a mention whose primary span's top suggestion is right | 296/394 | |
+| Memos with all six fields right | 57/199 | |
+| "No matching option" fields left without an option | 2/24 | |
+| Mention precision / recall | 0.942 / 0.918 | |
+
+- Core AI made the same decisions as PyTorch FP32 on all 249 sealed texts (the 199 memos and 50 delivery reports), with probabilities within 2.2e-5. Four span ends differ by one character: gliner2 adds a period to a text that does not end with `.`, `!` or `?`, and four of its spans ended on that period, past the end of the text.
+- The 50 delivery reports, on a form that was not tuned, are reported apart and not added in: mention precision 0.959, recall 0.784, fabricated candidates 1/50.
+- Warm, one memo took 27 ms (p50) and 43 ms (p95) from preprocessing to the mapping on an M4 Max, without drawing.
+- Rule R1 (the candidate filter below) did not reduce the fabricated candidates on the sealed set, and it added 6 misses.
+
+The evaluation does not show:
+
+- that the model can fill in inspection forms for people, or that it never makes up a candidate;
+- quality on Japanese text in general, or on forms it was not tried with;
+- that further training will bring the fabricated candidates under a given rate;
+- that a person's confirmation makes the output safe, or that corrections in a memo are handled (the correction words only mark the place);
+- that a score is the probability of being right;
+- anything on iPhone, or that it is ready to ship;
+- that 43 ms includes drawing, or that the speed target for 512-token inputs is met (not measured; the sealed memos are short);
+- the same output as PyTorch in every detail (four span ends differ).
+
+### The screen
 
 **The asset folder** holds `contract.json`, one `.aimodel` (`encode_t256`, `pair_t256`, `encode_t512`, `pair_t512`, FP32) and the tokenizer's `tokenizer.json` in a `tokenizer/` folder or in the folder itself. Choose it with **Open Asset Folder…**; the app remembers it and opens it again when the Extract screen appears. Opening specializes the model for the GPU, and the status line shows how long it took and the `revision` in `contract.json`.
 
-**The screen**:
-
-- **Note**: paste or type the memo, or press **Paste Example** (examples in `CoreAISamples/Demos/Extract/Resources/extract_examples.json`). The note is extracted 300 ms after the last change, and never while an input method is composing a word. A change of the text or of the form starts a new version: a result that arrives for an older version is dropped, and the confirmations are cleared.
-- **Evidence**: the note with each field's candidates in the field's color. Select a field (its row or its name under the note) to make its evidence stronger and underlined. Correction words found by rule (`correction_words.json`) are red; they mark the place only.
-- **Form**: one row per field with its state (`Candidate`, `Confirmed` or `Not detected`; not detected can also mean the model missed it), each candidate as written in the note with its span score, the number and unit of a number field, the two best options of a list field with `score (uncalibrated)`, and `Correction cue (rule)` with the words found in the sentence of a candidate. **Confirm** offers every option (or every candidate of a number field), `No matching option` (`None of these`) and `On hold`; nothing is chosen by default, even when a field has two values. **Clear** removes the choice. A new result for the same text and form keeps the choices.
-- **Add Field** and **Edit** change the form: name, the label the model reads (the name when empty), type (number with a unit, or list with comma-separated options) and description. A field keeps its option labels and its task while its name and option names stay. **Reset Form** goes back to form U1 (`Resources/forms/inspection_u1.json`). The model takes up to 16 fields and 16 options.
+- **Note**: paste or type the text, or press **Paste Example** (examples in `CoreAISamples/Demos/Extract/Resources/extract_examples.json`). The note is extracted 300 ms after the last change, and never while an input method is composing a word. A change of the text, of the labels or form, of the mode or of the candidate filter starts a new version: a result that arrives for an older version is dropped, and the confirmations are cleared.
+- **Evidence**: the note with each label's (or field's) spans in its color. Select a label (its row or its name under the note) to make its spans stronger and underlined. Correction words found by rule (`correction_words.json`) are red; they mark the place only.
+- **Labels**, the default: one row per label with its description, each span the model returns for it as written in the note, and the span's score. **Add Label** and **Edit** take the label, which the model reads, and an optional description; the screen starts with the example labels of `extract_examples.json`. A label is kept as a number field without a unit, so no clause is classified, and nothing is confirmed.
+- **Experiment: inspection form** maps the note onto form U1 (`Resources/forms/inspection_u1.json`) instead. Switching between the labels and the form clears the result and the choices and extracts again.
+  - **Form**: one row per field with its state (`Candidate`, `Confirmed` or `Not detected`; not detected can also mean the model missed it), each candidate as written in the note with its span score, the number and unit of a number field, the two best options of a list field with `score (uncalibrated)`, and `Correction cue (rule)` with the words found in the sentence of a candidate. **Confirm** offers every option (or every candidate of a number field), `No matching option` (`None of these`) and `On hold`; nothing is chosen by default, even when a field has two values. **Clear** removes the choice. A new result for the same text and form keeps the choices.
+  - **Candidate filter**: rule R1 (`clauseFieldName`, the default and the rule that was evaluated) drops a candidate of a list field when its clause holds the name of another list field and not its own; `None` keeps every candidate. Dropped candidates are not shown, and the export keeps them apart. The filter starts as R1 at every launch.
+  - **Add Field** and **Edit** change the form: name, the label the model reads (the name when empty), type (number with a unit, or list with comma-separated options) and description. A field keeps its option labels and its task while its name and option names stay. **Reset Form** goes back to form U1. The model takes up to 16 labels or fields and 16 options.
 - The status line shows the time of the last extraction: preprocessing, `encode`, `pair` (with the candidates and the decoding), the clause classifications (count and time), the mapping and the total.
-- **Export JSON** writes `~/Library/Application Support/com.coreai-samples.DemoApp/extract-exports/extract-<time>.json` with separate sections: `input` (text and version), `form`, `model` (the candidates per field with probabilities, the suggestions, `probabilitiesCalibrated: false`, the timing), `rules` (the correction cues) and `confirmations`. Every position is given in Unicode scalars and in UTF-16.
+- **Export JSON** writes `~/Library/Application Support/com.coreai-samples.DemoApp/extract-exports/extract-<time>.json` with separate sections: `input` (text and version), `mode` (`labels` or `form`), `form` (the labels or the form), `model` (the candidates per label or field with probabilities, the suggestions, the dropped candidates, `probabilitiesCalibrated: false`, `candidateFilter` (`clauseFieldName` or `none`), the asset's `assetRevision`, the app's `appVersion` and the timing), `rules` (the correction cues) and `confirmations`. Every position is given in Unicode scalars and in UTF-16.
 
 The state, the actions and `reduce` are in the `ExtractFeature` library of `CoreAISamplesKit` (no UI, no model; `swift test --package-path CoreAISamplesKit --filter ExtractFeature`), run by the generic `Store` of `FeatureStore`.
 
-Headless, with no window:
+### Headless
+
+With no window:
 
 ```bash
 $APP --extract-eval /path/to/gold.json --asset /path/to/asset-folder --out /path/to/result.json [--form /path/to/form.json]
@@ -145,6 +182,6 @@ $APP --extract-eval /path/to/gold.json --asset /path/to/asset-folder --out /path
 - The gold file is a JSON array of sentences in the GL2 format (`id`, `text`, `main_unmentioned_field`, `features`, and per field `mentioned`, `explicit_empty`, `statement_span`, `value_span`, `value`, `unit`, `option`; positions in Unicode scalars). Sentences with `excluded: true` are left out of every count. `--form` replaces form U1; the correction words stay the bundled ones.
 - Every sentence is extracted with the service the screen uses, after one warm-up run on the first sentence (reported as `cold`).
 - Scoring, per field, per `features` tag and overall: **mention** is found when a candidate overlaps the gold statement span, fabricated when the field is not mentioned but has candidates (`mainFabrication` counts the sentence's `main_unmentioned_field` on its own), missed when it is mentioned with no candidates, and misplaced when it is mentioned and no candidate overlaps its statement span (a false positive and a false negative). **Span match**: a candidate overlaps the field's gold value span, stays in the same sentence (ended by `。`) and overlaps no other field's value span; two fields that share a predicate have the same value span, which does not count (precision over all candidates, each matching candidate counting, recall over gold value spans; exact ranges are given for reference). The **policy** takes the candidate with the highest probability: its top suggestion for a list field (`option`; a null gold option never matches, and `optionNull` counts the null ones the policy leaves without an option; `optionTopTwo` checks the two best) and its number and unit for a number field (`number`; the form's unit when none is written; `numberInCandidates` checks every candidate). The number is the one `ParsedNumber` reads, digits only: `numberWithoutDigits` counts the gold values written in kana or kanji, which cannot match. Explicitly empty fields are not in the option, top-two and number scores. The miss rate counts mentioned fields with no candidate; a misplaced field is counted on its own. `agreement` counts fields that agree with the gold under the policy (an empty gold agrees with no candidates) and `allFields` the sentences whose fields all agree. `correctionCues` compares the sentences with a cue with those the gold tags `correction`.
-- The output has the gold file's path and SHA-256, the form, the asset path and `revision`, the asset load time, the timing (`cold`, and the `p50` and `p95` of each stage of the warm runs, nearest rank, in milliseconds; `total` is from the start of preprocessing to the end of the mapping), the summaries and every sentence with its judgments and candidates. stdout gets one line for the overall summary and one per field, a timing line, then `EXTRACT EVAL DONE <out>` (the summaries per tag are in the JSON only); the exit status is 0, 1 when the run fails, or 2 when an argument is missing.
+- The output has the gold file's path and SHA-256, the form, the asset path and `revision`, `candidateFilter` (always `clauseFieldName`, rule R1, the screen's default) and `appVersion`, the asset load time, the timing (`cold`, and the `p50` and `p95` of each stage of the warm runs, nearest rank, in milliseconds; `total` is from the start of preprocessing to the end of the mapping), the summaries and every sentence with its judgments and candidates. stdout gets one line for the overall summary and one per field, a timing line, then `EXTRACT EVAL DONE <out>` (the summaries per tag are in the JSON only); the exit status is 0, 1 when the run fails, or 2 when an argument is missing.
 
-`$APP --gui-e2e /path/to/output --extract /path/to/asset-folder` drives the Extract screen: it opens the asset, pastes the first example, adds the example's extra field and selects it, confirms one number field and one list field and exports the JSON, saving a screenshot after each step with `results.json`, `driver.log` and `export.json`. Give the asset folder as the value of `--extract`: AppKit reads the arguments as `-key value` pairs and opens a path left on its own as a document, and SwiftUI then opens no window. If no window appears for another reason (a saved window state that AppKit cannot restore also leaves the app without one), put `-ApplePersistenceIgnoreState YES` before the other arguments.
+`$APP --gui-e2e /path/to/output --extract /path/to/asset-folder` drives the Extract screen: it opens the asset in the label mode, pastes the first example, switches to the form experiment, adds the example's extra field and selects it, confirms one number field and one list field and exports the JSON (with its mode, candidate filter, asset revision and app version), saving a screenshot after each step with `results.json`, `driver.log` and `export.json`. Give the asset folder as the value of `--extract`: AppKit reads the arguments as `-key value` pairs and opens a path left on its own as a document, and SwiftUI then opens no window. If no window appears for another reason (a saved window state that AppKit cannot restore also leaves the app without one), put `-ApplePersistenceIgnoreState YES` before the other arguments.

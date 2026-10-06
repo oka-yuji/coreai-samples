@@ -2,11 +2,12 @@ import FeatureStore
 import Foundation
 import GLiNERCore
 
-/// Extract: a note, a form, the model's candidates for each field, and the values people confirm.
+/// Extract: a note, the labels people type (or, as an experiment, a form), the model's candidates for each, and the
+/// values people confirm in the form.
 ///
-/// Every change to the text or the form starts a new version. A result carries the version it was asked for and is
-/// kept only while that version is current. A new version clears people's confirmations; a result of the same
-/// version replaces the candidates and keeps them.
+/// Every change to the text, the labels or form being extracted, the mode or the candidate filter starts a new
+/// version. A result carries the version it was asked for and is kept only while that version is current. A new
+/// version clears people's confirmations; a result of the same version replaces the candidates and keeps them.
 public enum ExtractFeature: Feature {
     public enum EffectID: Hashable, Sendable {
         case extraction
@@ -25,11 +26,20 @@ public enum ExtractFeature: Feature {
             state.text = text
             return startVersion(&state)
         case .fieldsChanged(let form):
-            guard form != state.form else { return [] }
-            state.form = form
+            guard form != state.schema else { return [] }
+            if state.mode == .labels { state.labels = form } else { state.form = form }
             if let selected = state.selectedField, !form.fields.contains(where: { $0.key == selected }) {
                 state.selectedField = nil
             }
+            return startVersion(&state)
+        case .modeChanged(let mode):
+            guard mode != state.mode else { return [] }
+            state.mode = mode
+            state.selectedField = nil
+            return startVersion(&state)
+        case .candidateFilterChanged(let filter):
+            guard filter != state.candidateFilter else { return [] }
+            state.candidateFilter = filter
             return startVersion(&state)
         case .compositionChanged(let composing):
             guard composing != state.composing else { return [] }
@@ -41,7 +51,9 @@ public enum ExtractFeature: Feature {
             return extract(&state)
         case .extractionFinished(let version, let mapping, let timing):
             guard version == state.version else { return [] }
-            state.result = ExtractResult(version: version, mapping: mapping, timing: timing)
+            // A result that arrives while another folder opens came from the folder before it: its revision is unknown.
+            let revision: String? = if case .ready(let info) = state.asset { info.revision } else { nil }
+            state.result = ExtractResult(version: version, mapping: mapping, timing: timing, assetRevision: revision)
             state.phase = .ready
             return []
         case .extractionFailed(let version, let message):
@@ -52,7 +64,7 @@ public enum ExtractFeature: Feature {
             state.selectedField = key
             return []
         case .confirm(let key, let choice):
-            guard state.form.fields.contains(where: { $0.key == key }) else { return [] }
+            guard state.mode == .form, state.form.fields.contains(where: { $0.key == key }) else { return [] }
             state.confirmations[key] = choice
             return []
         case .unconfirm(let key):
@@ -92,14 +104,16 @@ public enum ExtractFeature: Feature {
     }
 
     private static func extract(_ state: inout ExtractState) -> [Command<ExtractEffect, EffectID>] {
-        guard case .ready = state.asset, !state.composing, !state.form.fields.isEmpty,
+        guard case .ready = state.asset, !state.composing, !state.schema.fields.isEmpty,
             !state.text.allSatisfy(\.isWhitespace)
         else {
             state.phase = .idle
             return [.cancel(.extraction)]
         }
         state.phase = .extracting(version: state.version)
-        return [.run(.extract(version: state.version, text: state.text, form: state.form), id: .extraction)]
+        let effect = ExtractEffect.extract(
+            version: state.version, text: state.text, form: state.schema, filter: state.candidateFilter)
+        return [.run(effect, id: .extraction)]
     }
 }
 
@@ -125,13 +139,26 @@ public struct ExtractState: Equatable, Sendable {
         case failed(String)
     }
 
+    public enum Mode: String, Sendable {
+        /// People type labels and see the spans the model returns for them. Nothing is confirmed.
+        case labels
+        /// The experiment: an inspection form with suggestions for its list fields, and people's choices.
+        case form
+    }
+
     public var text = ""
-    /// The version of `text` and `form`: every change adds one.
+    /// The version of what is extracted: every change of the text, the labels or form, the mode or the filter adds one.
     public var version = 0
+    public var mode = Mode.labels
+    /// The labels of the label mode, as number fields without a unit: no clause is classified.
+    public var labels: FormSchema
+    /// The form of the experiment.
     public var form: FormSchema
+    /// The rule `FormMapper` applies to list fields: rule R1 unless people turn it off.
+    public var candidateFilter = CandidateFilter.clauseFieldName
     /// The latest result of the current version; nil until one arrives.
     public var result: ExtractResult?
-    /// People's choices, by field key.
+    /// People's choices in the form, by field key.
     public var confirmations: [String: ExtractChoice] = [:]
     /// The field whose evidence is emphasized in the note.
     public var selectedField: String?
@@ -142,10 +169,20 @@ public struct ExtractState: Equatable, Sendable {
     public var lastAssetPath: String?
     /// An input method is converting a word in the note: nothing is extracted until it is committed.
     public var composing = false
+    /// The app's version and build, for the export.
+    public var appVersion: String?
 
-    public init(form: FormSchema, lastAssetPath: String? = nil) {
+    /// The labels or the form, as the mode says: what is extracted.
+    public var schema: FormSchema { mode == .labels ? labels : form }
+
+    public init(
+        form: FormSchema, labels: FormSchema = FormSchema(fields: []), lastAssetPath: String? = nil,
+        appVersion: String? = nil
+    ) {
         self.form = form
+        self.labels = labels
         self.lastAssetPath = lastAssetPath
+        self.appVersion = appVersion
     }
 
     /// The correction cues in the sentences that hold a candidate of the field. They only mark the place.
@@ -164,7 +201,10 @@ public enum ExtractAction: Sendable {
     case textChanged(String)
     /// An input method started (true) or stopped (false) converting a word in the note.
     case compositionChanged(Bool)
+    /// The labels in the label mode, the form in the form mode.
     case fieldsChanged(FormSchema)
+    case modeChanged(ExtractState.Mode)
+    case candidateFilterChanged(CandidateFilter)
     /// The text has settled: extract it when an asset is open.
     case extractRequested
     case extractionFinished(version: Int, mapping: FormMapping, timing: ExtractTiming)
@@ -187,8 +227,8 @@ public enum ExtractEffect: Equatable, Sendable {
     case settle
     /// Open the asset folder, then send `assetOpened` or `assetFailed`.
     case openAsset(path: String)
-    /// Extract and map the text, then send `extractionFinished` or `extractionFailed` with the version.
-    case extract(version: Int, text: String, form: FormSchema)
+    /// Extract and map the text with the filter, then send `extractionFinished` or `extractionFailed` with the version.
+    case extract(version: Int, text: String, form: FormSchema, filter: CandidateFilter)
     /// Write the document as JSON, then send `exportFinished` or `exportFailed`.
     case export(ExportDocument)
 }
@@ -197,11 +237,14 @@ public struct ExtractResult: Equatable, Sendable {
     public var version: Int
     public var mapping: FormMapping
     public var timing: ExtractTiming
+    /// The `revision` of the asset that was open when the result arrived; nil when none was.
+    public var assetRevision: String?
 
-    public init(version: Int, mapping: FormMapping, timing: ExtractTiming) {
+    public init(version: Int, mapping: FormMapping, timing: ExtractTiming, assetRevision: String? = nil) {
         self.version = version
         self.mapping = mapping
         self.timing = timing
+        self.assetRevision = assetRevision
     }
 }
 
