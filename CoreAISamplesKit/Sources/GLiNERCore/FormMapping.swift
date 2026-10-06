@@ -20,14 +20,17 @@ public struct FieldMapping: Equatable, Sendable {
     }
 
     public var field: FormField
-    /// Every span of the field's label, in text order.
+    /// The spans of the field's label that `FormMapper.candidateFilter` keeps, in text order.
     public var candidates: [FieldCandidate]
+    /// The spans the filter drops, in text order. People do not see them; the export keeps them.
+    public var droppedCandidates: [FieldCandidate]
 
     public var state: State { candidates.isEmpty ? .notDetected : .candidate }
 
-    public init(field: FormField, candidates: [FieldCandidate]) {
+    public init(field: FormField, candidates: [FieldCandidate], droppedCandidates: [FieldCandidate] = []) {
         self.field = field
         self.candidates = candidates
+        self.droppedCandidates = droppedCandidates
     }
 }
 
@@ -37,8 +40,8 @@ public struct FieldCandidate: Equatable, Sendable {
     public var clause: Range<Int>
     /// The number and unit in the span text of a number field. Nil when the text has no digits, and in a list field.
     public var number: ParsedNumber?
-    /// The two best options for the clause of a list field, highest first; empty in a number field. The
-    /// probabilities are not calibrated.
+    /// The two best options for the clause of a list field, highest first; empty in a number field and in a dropped
+    /// candidate, whose clause is not classified. The probabilities are not calibrated.
     public var suggestions: [OptionSuggestion]
 
     public init(span: ExtractedSpan, clause: Range<Int>, number: ParsedNumber?, suggestions: [OptionSuggestion]) {
@@ -71,15 +74,27 @@ public struct ClassificationRequest: Hashable, Sendable {
     }
 }
 
+/// The candidates `FormMapper` drops before people see them.
+public enum CandidateFilter: Sendable {
+    /// Keep every candidate.
+    case none
+    /// Rule R1: drop a candidate of a list field when its clause holds the name of another list field and not the
+    /// field's own name. Names match as substrings, in Unicode scalars. Number fields keep every candidate.
+    case clauseFieldName
+}
+
 /// Method (i): the spans of the value labels, then each span's clause classified over the options of its field.
 public struct FormMapper: Sendable {
     public var schema: FormSchema
     /// The words `CorrectionCue.find(in:words:)` looks for.
     public var correctionWords: [String]
+    /// Rule R1 unless set.
+    public var candidateFilter: CandidateFilter
 
-    public init(schema: FormSchema, correctionWords: [String]) {
+    public init(schema: FormSchema, correctionWords: [String], candidateFilter: CandidateFilter = .clauseFieldName) {
         self.schema = schema
         self.correctionWords = correctionWords
+        self.candidateFilter = candidateFilter
     }
 
     /// - Parameters:
@@ -101,6 +116,10 @@ public struct FormMapper: Sendable {
                     return FieldCandidate(
                         span: span, clause: clause, number: ParsedNumber(parsing: span.text), suggestions: [])
                 }
+                // The filter reads names only, so the clause of a dropped candidate is not classified.
+                guard !drops(field, clause: scalars[clause]) else {
+                    return FieldCandidate(span: span, clause: clause, number: nil, suggestions: [])
+                }
                 let result = classify(
                     String(String.UnicodeScalarView(scalars[clause])), schema.classificationSchema(for: field))
                 let suggestions = zip(options, result.probabilities).enumerated()
@@ -109,9 +128,22 @@ public struct FormMapper: Sendable {
                     .map { OptionSuggestion(option: $0.element.0.name, probability: $0.element.1) }
                 return FieldCandidate(span: span, clause: clause, number: nil, suggestions: suggestions)
             }
-            return FieldMapping(field: field, candidates: candidates)
+            return FieldMapping(
+                field: field, candidates: candidates.filter { !drops(field, clause: scalars[$0.clause]) },
+                droppedCandidates: candidates.filter { drops(field, clause: scalars[$0.clause]) })
         }
         return FormMapping(fields: fields, corrections: CorrectionCue.find(in: text, words: correctionWords))
+    }
+
+    /// Whether `candidateFilter` drops a candidate of `field` whose clause is `clause`.
+    private func drops(_ field: FormField, clause: ArraySlice<Unicode.Scalar>) -> Bool {
+        guard candidateFilter == .clauseFieldName, case .list = field.kind else { return false }
+        func holds(_ name: String) -> Bool { clause.contains(Array(name.unicodeScalars)) }
+        return !holds(field.name)
+            && schema.fields.contains { other in
+                guard case .list = other.kind else { return false }
+                return holds(other.name)
+            }
     }
 
     /// The classifications `map(text:extraction:classify:)` asks for, in the order it first asks for each, without
