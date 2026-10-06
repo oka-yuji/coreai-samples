@@ -17,7 +17,7 @@
 ### 規約との差分
 
 - T7(`@Test` の表示名は日本語の 1 文): 英語の 1 文で書く。理由: 下の「公開物の規約」で、ソースに日本語を入れないため。代わりの判定: 表示名が Issue の `[test]` の文を英語にしたものか、レビューで見る。
-- T3 と `ADOPTION.md` §4(汎用 Store): `Store.swift` はアプリの target ではなく、`Feature.swift` と同じ `CoreAISamplesKit/Sources/FeatureStore`(既定分離 nonisolated。`Store` は `@MainActor` を明記している)に置く。テンプレートのコメントとテストの表示名は英語に訳し、コードはテンプレートと同じにしてある。テンプレートが変わったら、コードの差分だけを取り込む。lint の純ロジックの規則は `FeatureStore` にも掛け、`Store.swift` だけを外す。代わりの判定: `swift test --package-path CoreAISamplesKit --filter StoreTests`。
+- T3 と `ADOPTION.md` §4(汎用 Store): `Store.swift` はアプリの target ではなく、`Feature.swift` と同じ `CoreAISamplesKit/Sources/FeatureStore`(既定分離 nonisolated。`Store` は `@MainActor` を明記している)に置く。テンプレートのコメントとテストの表示名は英語に訳し、コードはテンプレートと同じにしてある。テンプレートが変わったら、コードの差分だけを取り込む。lint の純ロジックの規則は `FeatureStore` にも掛け、import と並行処理の規則からだけ `Store.swift` を外す。代わりの判定: `swift test --package-path CoreAISamplesKit --filter StoreTests`。
 
 ## 公開物の規約
 
