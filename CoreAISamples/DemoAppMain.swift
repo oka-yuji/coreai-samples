@@ -22,6 +22,9 @@ enum DemoAppMain {
         if LaunchArguments.flag("--agent-e2e") {
             AgentSelfTest.runEndToEnd()
         }
+        if LaunchArguments.value("--extract-eval") != nil {
+            ExtractEval.run()
+        }
         DemoApp.main()
     }
 }

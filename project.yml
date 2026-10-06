@@ -34,6 +34,14 @@ targets:
         product: CoreAIBackend
       - package: CoreAISamplesKit
         product: RAGContext
+      - package: CoreAISamplesKit
+        product: FeatureStore
+      - package: CoreAISamplesKit
+        product: ExtractFeature
+      - package: CoreAISamplesKit
+        product: GLiNERCore
+      - package: CoreAISamplesKit
+        product: GLiNERRuntime
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.coreai-samples.DemoApp

@@ -1,5 +1,8 @@
 import AppKit
+import ExtractFeature
+import FeatureStore
 import Foundation
+import GLiNERCore
 import ScreenCaptureKit
 
 @MainActor
@@ -24,10 +27,15 @@ final class GUIDriver {
     private var sessions: [String] = []
     private var outDir = URL.temporaryDirectory
     private var maxStall = 0.0
+    private var extract: Store<ExtractFeature>?
 
-    func attach(navigator: DemoNavigator, chat: ChatViewModel, agent: AgentViewModel, models: ModelsViewModel) {
+    func attach(
+        navigator: DemoNavigator, chat: ChatViewModel, agent: AgentViewModel, models: ModelsViewModel,
+        extract: Store<ExtractFeature>
+    ) {
         guard let path = LaunchArguments.value("--gui-e2e"), !attached else { return }
         attached = true
+        self.extract = extract
         outDir = URL(filePath: path, directoryHint: .isDirectory)
         Task { await run(navigator: navigator, chat: chat, agent: agent, models: models) }
     }
@@ -151,6 +159,11 @@ final class GUIDriver {
         let metricsBefore =
             (try? String(contentsOf: MetricsLog.fileURL, encoding: .utf8))?.split(separator: "\n").count ?? 0
         note("out=\(outDir.path(percentEncoded: false)) contextLimit=\(chat.contextLimit)")
+        if LaunchArguments.value("--extract") != nil, let extract {
+            await runExtract(navigator: navigator, store: extract)
+            await finish(metricsBefore: metricsBefore)
+            return
+        }
         guard let path = LaunchArguments.value("--model") else {
             note("--model <folder> is required")
             await finish(metricsBefore: metricsBefore)
@@ -408,6 +421,114 @@ final class GUIDriver {
                 pass,
                 "status=\(chat.statusLine) chatEntries=\(chat.entries.count) sources=\(sources.count) notes=\(turn?.notes ?? []) "
                     + "first=\(sources.first ?? "none") answer=\(Self.head(turn?.response ?? "", 600))"
+            )
+        }
+    }
+
+    /// `--extract <asset folder>`: open the asset, paste the example note, add a field, confirm two fields and export
+    /// the JSON. The folder is the flag's value: AppKit reads arguments as `-key value` pairs and opens a path left
+    /// alone as a document, and then SwiftUI opens no window.
+    private func runExtract(navigator: DemoNavigator, store: Store<ExtractFeature>) async {
+        guard let asset = LaunchArguments.value("--extract"), let examples = ExtractResources.examples,
+            let example = examples.notes.first
+        else {
+            note("--extract needs an asset folder and the bundled examples")
+            return
+        }
+        NSApp.activate()
+        _ = await wait(seconds: 30) { self.window() != nil }
+        if let window = window(), let visible = window.screen?.visibleFrame {
+            let height = min(900, visible.height)
+            window.setFrame(
+                NSRect(x: visible.minX + 40, y: visible.maxY - height, width: 1_320, height: height), display: true)
+        }
+        func extracted() async -> Bool {
+            _ = await wait(seconds: 120) {
+                switch store.state.phase {
+                case .ready, .failed: true
+                case .idle, .extracting: false
+                }
+            }
+            return store.state.phase == .ready
+        }
+        func detected() -> [String] {
+            (store.state.result?.mapping.fields ?? []).filter { !$0.candidates.isEmpty }.map(\.field.key)
+        }
+
+        await step(1, "extract-initial", "Extract opens the asset folder and waits for a note") {
+            navigator.selection = .extract
+            store.send(.assetFolderChosen(path: asset))
+            _ = await self.wait(seconds: 900) {
+                switch store.state.asset {
+                case .ready, .failed: true
+                case .none, .opening: false
+                }
+            }
+            let opened = if case .ready = store.state.asset { true } else { false }
+            return (
+                opened && store.state.text.isEmpty,
+                "asset=\(store.state.asset) fields=\(store.state.form.fields.map(\.key))"
+            )
+        }
+
+        await step(2, "extract-pasted", "A pasted note gets candidates, colored in the note by field") {
+            store.send(.textChanged(example))
+            let done = await extracted()
+            let timing = store.state.result.map { ExtractView.describe($0.timing) } ?? "none"
+            let cues = store.state.result?.mapping.corrections.map(\.word) ?? []
+            return (
+                done && !detected().isEmpty,
+                "phase=\(store.state.phase) detected=\(detected()) cues=\(cues) timing=\(timing)"
+            )
+        }
+
+        await step(3, "extract-field-added", "An added field gets candidates and its evidence is emphasized") {
+            let field = examples.extraField
+            store.send(.fieldsChanged(FormSchema(fields: store.state.form.fields + [field])))
+            store.send(.select(field: field.key))
+            let done = await extracted()
+            let added = store.state.result?.mapping.fields.first { $0.field.key == field.key }
+            let texts = added?.candidates.map(\.span.text) ?? []
+            return (
+                done && !texts.isEmpty && store.state.selectedField == field.key,
+                "phase=\(store.state.phase) added=\(field.key) candidates=\(texts) detected=\(detected())"
+            )
+        }
+
+        await step(
+            4, "extract-confirmed", "Two confirmed fields keep their choices and the JSON keeps each section apart"
+        ) {
+            let fields = store.state.result?.mapping.fields ?? []
+            var confirmed: [String: ExtractChoice] = [:]
+            for field in fields where confirmed.count < 2 {
+                guard let first = field.candidates.first, let last = field.candidates.last else { continue }
+                switch field.field.kind {
+                case .number where !confirmed.values.contains { if case .value = $0 { true } else { false } }:
+                    // As a person reading the example's correction would: the later of two values.
+                    confirmed[field.field.key] = .value(text: last.span.text)
+                case .list where !confirmed.values.contains { if case .option = $0 { true } else { false } }:
+                    guard let option = first.suggestions.first?.option else { continue }
+                    confirmed[field.field.key] = .option(name: option)
+                default:
+                    continue
+                }
+            }
+            for (key, choice) in confirmed { store.send(.confirm(field: key, choice: choice)) }
+            store.send(.exportRequested)
+            _ = await self.wait(seconds: 10) { store.state.export != .none }
+            guard case .saved(let path) = store.state.export, let data = FileManager.default.contents(atPath: path),
+                let document = try? JSONDecoder().decode(ExportDocument.self, from: data)
+            else { return (false, "export=\(store.state.export)") }
+            try? data.write(to: self.outDir.appending(path: "export.json"), options: .atomic)
+            let exported = Dictionary(uniqueKeysWithValues: document.confirmations.map { ($0.key, $0.choice) })
+            let pass =
+                confirmed.count == 2 && store.state.confirmations == confirmed && exported == confirmed
+                && document.input.text == example && document.model?.fields.count == document.form.fields.count
+                && document.rules != nil
+            return (
+                pass,
+                "confirmed=\(confirmed) export=\(path) modelFields=\(document.model?.fields.count ?? 0) "
+                    + "cues=\(document.rules?.correctionCues.map(\.word) ?? [])"
             )
         }
     }
