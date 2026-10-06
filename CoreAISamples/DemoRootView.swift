@@ -24,7 +24,7 @@ enum Demo: String, CaseIterable, Identifiable {
         switch self {
         case .chat: "Talk to a local model through Foundation Models"
         case .agent: "Search the web and run multi-step tasks with tool calls"
-        case .extract: "Pull values out of an inspection memo with evidence in the text"
+        case .extract: "Technical verification: type labels and see the spans GLiNER finds in a text"
         case .models: "Get, open and prepare model bundles"
         }
     }
@@ -52,8 +52,9 @@ struct DemoRootView: View {
     @State private var models = ModelsViewModel()
     @State private var extract = Store<ExtractFeature>(
         initialState: ExtractState(
-            form: ExtractResources.form,
-            lastAssetPath: UserDefaults.standard.string(forKey: ExtractRunner.assetFolderKey)),
+            form: ExtractResources.form, labels: ExtractResources.examples.labels,
+            lastAssetPath: UserDefaults.standard.string(forKey: ExtractRunner.assetFolderKey),
+            appVersion: ExtractRunner.appVersion),
         run: ExtractRunner(service: GLiNERExtractService(correctionWords: ExtractResources.correctionWords)).run)
 
     var body: some View {

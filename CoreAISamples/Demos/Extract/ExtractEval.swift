@@ -13,6 +13,9 @@ enum ExtractEval {
         let form: String
         let asset: String
         let revision: String?
+        /// The rule that dropped candidates of list fields: the screen's default, rule R1 (`clauseFieldName`).
+        let candidateFilter: String
+        let appVersion: String
         let assetLoadSeconds: Double
         let sentences: Int
         let excluded: [String]
@@ -58,11 +61,12 @@ enum ExtractEval {
             log(
                 "[extract-eval] asset \(asset.path) revision \(asset.revision ?? "none") loaded in \(asset.loadSeconds) s"
             )
-            let cold = try await service.extract(text: first.text, schema: form).timing
+            let filter = CandidateFilter.clauseFieldName
+            let cold = try await service.extract(text: first.text, schema: form, filter: filter).timing
             var scored: [(gold: GoldSentence, mapping: FormMapping)] = []
             var warm: [ExtractTiming] = []
             for (index, sentence) in sentences.enumerated() {
-                let (mapping, timing) = try await service.extract(text: sentence.text, schema: form)
+                let (mapping, timing) = try await service.extract(text: sentence.text, schema: form, filter: filter)
                 scored.append((sentence, mapping))
                 warm.append(timing)
                 log("[extract-eval] \(index + 1)/\(sentences.count) \(sentence.id) \(ExtractView.describe(timing))")
@@ -70,6 +74,7 @@ enum ExtractEval {
             let output = Output(
                 gold: goldPath, goldSHA256: SHA256.hash(data: goldData).map { String(format: "%02x", $0) }.joined(),
                 form: formPath ?? "bundled", asset: asset.path, revision: asset.revision,
+                candidateFilter: filter.name, appVersion: ExtractRunner.appVersion,
                 assetLoadSeconds: asset.loadSeconds, sentences: sentences.count,
                 excluded: gold.filter { $0.excluded == true }.map(\.id),
                 timing: ExtractEvaluation.timing(cold: cold, warm: warm), report: ExtractEvaluation.evaluate(scored))

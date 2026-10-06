@@ -59,6 +59,12 @@ public struct ExportDocument: Codable, Equatable, Sendable {
         public var version: Int
         /// The probabilities are model scores; they are not calibrated.
         public var probabilitiesCalibrated: Bool
+        /// The rule that dropped candidates of list fields: `clauseFieldName` (rule R1) or `none`.
+        public var candidateFilter: String
+        /// The `revision` in the asset's `contract.json`; nil when it is unknown.
+        public var assetRevision: String?
+        /// The app's version and build.
+        public var appVersion: String?
         public var fields: [FieldOutput]
         public var timing: ExtractTiming
     }
@@ -80,6 +86,9 @@ public struct ExportDocument: Codable, Equatable, Sendable {
     }
 
     public var input: Input
+    /// `labels` or `form`: what `form` holds.
+    public var mode: String
+    /// The labels in the label mode, the form in the form mode.
     public var form: FormSchema
     /// Nil before the current text and form have a result.
     public var model: ModelOutput?
@@ -90,10 +99,12 @@ public struct ExportDocument: Codable, Equatable, Sendable {
     public init(_ state: ExtractState) {
         let text = state.text
         input = Input(text: text, version: state.version)
-        form = state.form
+        mode = state.mode.rawValue
+        form = state.schema
         model = state.result.map { result in
             ModelOutput(
-                version: result.version, probabilitiesCalibrated: false,
+                version: result.version, probabilitiesCalibrated: false, candidateFilter: state.candidateFilter.name,
+                assetRevision: result.assetRevision, appVersion: state.appVersion,
                 fields: result.mapping.fields.map { field in
                     FieldOutput(
                         key: field.field.key, name: field.field.name,
@@ -119,5 +130,15 @@ public struct ExportDocument: Codable, Equatable, Sendable {
             probability: candidate.span.probability, clause: Position(candidate.clause, in: text),
             number: candidate.number.map { "\($0.value)" }, unit: candidate.number?.unit,
             suggestions: candidate.suggestions.map { Suggestion(option: $0.option, probability: $0.probability) })
+    }
+}
+
+extension CandidateFilter {
+    /// The name the exports write.
+    public var name: String {
+        switch self {
+        case .none: "none"
+        case .clauseFieldName: "clauseFieldName"
+        }
     }
 }

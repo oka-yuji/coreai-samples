@@ -48,9 +48,10 @@ func send(_ state: inout ExtractState, _ actions: ExtractAction...) -> [Commands
     actions.map { ExtractFeature.reduce(&state, $0) }
 }
 
-/// A state with an open asset and no text.
+/// A state in the form mode with an open asset and no text.
 func readyState() -> ExtractState {
     var state = ExtractState(form: testForm)
+    state.mode = .form
     let info = AssetInfo(path: "/asset", revision: "r1", loadSeconds: 1)
     _ = send(&state, .assetFolderChosen(path: "/asset"), .assetOpened(info))
     return state
@@ -69,9 +70,9 @@ struct ExtractFeatureTests {
         #expect(
             started == [
                 [.run(.settle, id: .extraction)],
-                [.run(.extract(version: 1, text: first, form: testForm), id: .extraction)],
+                [.run(.extract(version: 1, text: first, form: testForm, filter: .clauseFieldName), id: .extraction)],
                 [.run(.settle, id: .extraction)],
-                [.run(.extract(version: 2, text: second, form: testForm), id: .extraction)],
+                [.run(.extract(version: 2, text: second, form: testForm, filter: .clauseFieldName), id: .extraction)],
             ])
         #expect(state.phase == .extracting(version: 2))
 
@@ -85,15 +86,16 @@ struct ExtractFeatureTests {
 
         let new = makeMapping(second, pressure: 9..<15, noise: 23..<25, best: "ng")
         _ = send(&state, .extractionFinished(version: 2, mapping: new, timing: timing))
-        #expect(state.result == ExtractResult(version: 2, mapping: new, timing: timing))
+        #expect(state.result == ExtractResult(version: 2, mapping: new, timing: timing, assetRevision: "r1"))
         #expect(state.phase == .ready)
     }
 
     @Test(
-        "reduce clears people's confirmations when the text or the fields change",
+        "reduce clears people's confirmations when the text, the fields or the candidate filter change",
         arguments: [
             ExtractAction.textChanged("pressure 0.5MPa"),
             ExtractAction.fieldsChanged(FormSchema(fields: [testForm.fields[0]])),
+            ExtractAction.candidateFilterChanged(.none),
         ])
     func clearsConfirmationsOnANewVersion(change: ExtractAction) {
         var state = readyState()
@@ -124,7 +126,10 @@ struct ExtractFeatureTests {
 
         let reopened = AssetInfo(path: "/other", revision: "r2", loadSeconds: 2)
         let rerun = send(&state, .assetFolderChosen(path: "/other"), .assetOpened(reopened))
-        #expect(rerun.last == [.run(.extract(version: 1, text: text, form: testForm), id: .extraction)])
+        #expect(
+            rerun.last == [
+                .run(.extract(version: 1, text: text, form: testForm, filter: .clauseFieldName), id: .extraction)
+            ])
         let changed = makeMapping(text, pressure: 9..<12, noise: 17..<25, best: "ng")
         _ = send(&state, .extractionFinished(version: 1, mapping: changed, timing: timing))
 
@@ -137,6 +142,7 @@ struct ExtractFeatureTests {
     @Test("reduce waits for an open asset and a non-blank text before it extracts, and drops an older folder's result")
     func extractsOnlyWithAnAssetAndText() {
         var state = ExtractState(form: testForm)
+        state.mode = .form
         let idle = send(&state, .textChanged("pressure 0.4MPa"), .extractRequested)
         #expect(idle == [[.run(.settle, id: .extraction)], [.cancel(.extraction)]])
         #expect(state.phase == .idle)
@@ -147,7 +153,12 @@ struct ExtractFeatureTests {
             .assetFailed(path: "/first", message: "old"), .assetOpened(info))
         #expect(opened[0] == [.run(.openAsset(path: "/first"), id: .asset)])
         #expect(opened[2] == [])
-        #expect(opened[3] == [.run(.extract(version: 1, text: "pressure 0.4MPa", form: testForm), id: .extraction)])
+        #expect(
+            opened[3] == [
+                .run(
+                    .extract(version: 1, text: "pressure 0.4MPa", form: testForm, filter: .clauseFieldName),
+                    id: .extraction)
+            ])
         #expect(state.asset == .ready(info))
 
         let blank = send(&state, .textChanged("  \n"), .extractRequested)
@@ -270,7 +281,10 @@ struct ExtractFeatureTests {
         var state = readyState()
         _ = send(&state, .textChanged("pressure 0.4MPa"), .select(field: "noise"))
         let before = state
-        #expect(send(&state, .textChanged("pressure 0.4MPa"), .fieldsChanged(testForm)) == [[], []])
+        #expect(
+            send(
+                &state, .textChanged("pressure 0.4MPa"), .fieldsChanged(testForm),
+                .candidateFilterChanged(.clauseFieldName)) == [[], [], []])
         #expect(state == before)
         _ = send(&state, .fieldsChanged(FormSchema(fields: [testForm.fields[0]])))
         #expect(state.selectedField == nil)
@@ -295,7 +309,7 @@ struct ExtractFeatureTests {
         var state = readyState()
         let text = "pressure 0.4MPa, noise ok"
         let extract = Command<ExtractEffect, ExtractFeature.EffectID>.run(
-            .extract(version: 1, text: text, form: testForm), id: .extraction)
+            .extract(version: 1, text: text, form: testForm, filter: .clauseFieldName), id: .extraction)
         let steps = send(
             &state, .textChanged(text), .compositionChanged(true), .extractRequested, .compositionChanged(true),
             .compositionChanged(false), .extractRequested, .compositionChanged(true))
@@ -327,5 +341,113 @@ struct ExtractFeatureTests {
             .extractionFinished(version: 1, mapping: mapping, timing: timing))
         #expect(state.cues(forField: "pressure") == mapping.corrections)
         #expect(state.cues(forField: "noise").isEmpty)
+    }
+
+    @Test(
+        "reduce carries neither the confirmations nor the result across a switch between the label mode and the form mode"
+    )
+    func switchingModesStartsOver() {
+        #expect(ExtractState(form: testForm).mode == .labels)
+        var state = readyState()
+        let labels = FormSchema(fields: [FormField(key: "value", name: "value", kind: .number(unit: ""))])
+        state.labels = labels
+        let text = "pressure 0.4MPa, noise ok"
+        let mapping = makeMapping(text, pressure: 9..<15, noise: 23..<25)
+        _ = send(
+            &state, .textChanged(text), .extractRequested,
+            .extractionFinished(version: 1, mapping: mapping, timing: timing), .select(field: "noise"),
+            .confirm(field: "noise", choice: .option(name: "ok")))
+        #expect(state.confirmations == ["noise": .option(name: "ok")])
+
+        let toLabels = send(
+            &state, .modeChanged(.labels), .extractionFinished(version: 1, mapping: mapping, timing: timing),
+            .extractRequested, .confirm(field: "noise", choice: .option(name: "ok")))
+        #expect(
+            toLabels == [
+                [.run(.settle, id: .extraction)], [],
+                [.run(.extract(version: 2, text: text, form: labels, filter: .clauseFieldName), id: .extraction)], [],
+            ])
+        #expect(state.result == nil)
+        #expect(state.confirmations.isEmpty)
+        #expect(state.selectedField == nil)
+        let labelMapping = FormMapping(fields: [FieldMapping(field: labels.fields[0], candidates: [])], corrections: [])
+        _ = send(&state, .extractionFinished(version: 2, mapping: labelMapping, timing: timing))
+        #expect(state.result?.mapping == labelMapping)
+
+        let toForm = send(&state, .modeChanged(.form), .extractRequested)
+        #expect(
+            toForm == [
+                [.run(.settle, id: .extraction)],
+                [.run(.extract(version: 3, text: text, form: testForm, filter: .clauseFieldName), id: .extraction)],
+            ])
+        #expect(state.result == nil)
+        #expect(state.confirmations.isEmpty)
+        #expect(send(&state, .modeChanged(.form)) == [[]])
+    }
+
+    @Test(
+        "In the label mode, reduce extracts nothing without a label, edits and extracts the labels and not the form, and the export writes the labels"
+    )
+    func labelModeWorksOnTheLabels() {
+        var state = ExtractState(form: testForm)
+        _ = send(
+            &state, .assetFolderChosen(path: "/asset"),
+            .assetOpened(AssetInfo(path: "/asset", revision: nil, loadSeconds: 1)))
+        let text = "pressure 0.4MPa, noise ok"
+        #expect(
+            send(&state, .textChanged(text), .extractRequested) == [
+                [.run(.settle, id: .extraction)], [.cancel(.extraction)],
+            ])
+        #expect(state.phase == .idle)
+
+        let labels = FormSchema(fields: [FormField(key: "value", name: "value", kind: .number(unit: ""))])
+        let added = send(&state, .fieldsChanged(labels), .extractRequested)
+        #expect(
+            added == [
+                [.run(.settle, id: .extraction)],
+                [.run(.extract(version: 2, text: text, form: labels, filter: .clauseFieldName), id: .extraction)],
+            ])
+        #expect(state.labels == labels)
+        #expect(state.form == testForm)
+        #expect(send(&state, .fieldsChanged(labels)) == [[]])
+
+        let mapping = FormMapping(fields: [FieldMapping(field: labels.fields[0], candidates: [])], corrections: [])
+        _ = send(&state, .extractionFinished(version: 2, mapping: mapping, timing: timing))
+        let document = ExportDocument(state)
+        #expect(document.mode == "labels")
+        #expect(document.form == labels)
+        #expect(document.model?.fields.map(\.key) == ["value"])
+        #expect(document.confirmations.isEmpty)
+    }
+
+    @Test(
+        "The exported JSON carries the candidate filter's name and the asset's revision, and a filter change starts over"
+    )
+    func exportsTheFilterAndTheRevision() throws {
+        var state = readyState()
+        state.appVersion = "1.0 (1)"
+        let text = "pressure 0.4MPa, noise ok"
+        let mapping = makeMapping(text, pressure: 9..<15, noise: 23..<25)
+        _ = send(
+            &state, .textChanged(text), .extractRequested,
+            .extractionFinished(version: 1, mapping: mapping, timing: timing))
+        let json = try #require(
+            try JSONSerialization.jsonObject(with: JSONEncoder().encode(ExportDocument(state))) as? [String: Any])
+        let model = try #require(json["model"] as? [String: Any])
+        #expect(json["mode"] as? String == "form")
+        #expect(model["candidateFilter"] as? String == "clauseFieldName")
+        #expect(model["assetRevision"] as? String == "r1")
+        #expect(model["appVersion"] as? String == "1.0 (1)")
+
+        let off = send(&state, .candidateFilterChanged(.none), .extractRequested)
+        #expect(off[1] == [.run(.extract(version: 2, text: text, form: testForm, filter: .none), id: .extraction)])
+        #expect(state.result == nil)
+        // A result that arrives while another folder opens has no known revision.
+        _ = send(
+            &state, .assetFolderChosen(path: "/other"),
+            .extractionFinished(version: 2, mapping: mapping, timing: timing))
+        let output = try #require(ExportDocument(state).model)
+        #expect(output.candidateFilter == "none")
+        #expect(output.assetRevision == nil)
     }
 }
