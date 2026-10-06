@@ -15,17 +15,12 @@ public enum JapaneseWordSplitter {
             .map { scalarOffset($0.lowerBound)..<scalarOffset($0.upperBound) }
             .filter { !$0.isEmpty }
         let covered = Set(ranges.joined())
-        for (offset, scalar) in scalars.enumerated() where !covered.contains(offset) && !isSpace(scalar) {
+        for (offset, scalar) in scalars.enumerated() where !covered.contains(offset) && !scalar.isPythonWhitespace {
             ranges.append(offset..<offset + 1)
         }
         ranges.sort { ($0.lowerBound, $0.upperBound) < ($1.lowerBound, $1.upperBound) }
         return ranges.map {
             WordSpan(text: String(String.UnicodeScalarView(scalars[$0])).lowercased(), scalarRange: $0)
         }
-    }
-
-    // Python's str.isspace(), used by the reference splitter, also counts U+001C...U+001F.
-    private static func isSpace(_ scalar: Unicode.Scalar) -> Bool {
-        scalar.properties.isWhitespace || (0x1C...0x1F).contains(scalar.value)
     }
 }

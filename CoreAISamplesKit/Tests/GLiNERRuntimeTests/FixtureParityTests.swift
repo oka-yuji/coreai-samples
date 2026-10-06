@@ -198,3 +198,121 @@ struct FixtureParityTests {
         #expect(mismatches.isEmpty, "\(mismatches.joined(separator: "\n"))")
     }
 }
+
+private let assetDirectory = environment["GLINER_ASSET_DIR"].map { URL(filePath: $0) }
+private let referencePath = "work/g4_swift_out_fp32.json"
+private let hasReference = FileManager.default.fileExists(
+    atPath: fixturesDirectory.appending(path: referencePath).path(percentEncoded: false))
+
+/// The output of the GL4 Swift CLI (`swift/gliner-run.swift`, FP32, GPU) on `work/g4_swift_fixtures.json`.
+private struct SwiftOutput: Decodable {
+    /// `[label, start, end, probability]`, scalar offsets of the model text.
+    struct Span: Decodable {
+        let label: String
+        let start: Int
+        let end: Int
+        let probability: Float
+
+        init(from decoder: any Decoder) throws {
+            var container = try decoder.unkeyedContainer()
+            label = try container.decode(String.self)
+            start = try container.decode(Int.self)
+            end = try container.decode(Int.self)
+            probability = try container.decode(Float.self)
+        }
+    }
+
+    struct Result: Decodable {
+        let id: String
+        let bucket: Int
+        let call: String
+        let spans: [Span]?
+        let probs: [Float]?
+    }
+
+    let results: [Result]
+
+    func result(_ entry: SwiftFixture.Entry) -> Result? {
+        results.first { $0.id == entry.id && $0.bucket == entry.bucket && $0.call == entry.call }
+    }
+}
+
+private func makeExtractor() async throws -> GLiNERExtractor {
+    let model = try await GLiNERModel(asset: GLiNERAsset(directory: #require(assetDirectory)))
+    let tokenizer = try GLiNERTokenizer(directory: #require(tokenizerDirectory))
+    return GLiNERExtractor(preprocessor: GLiNERPreprocessor(tokenizer: tokenizer), model: model)
+}
+
+/// Runs the FP32 asset on the GPU: take the heavy-job lock first (CLAUDE.md).
+@Suite(
+    .serialized,
+    .enabled(
+        if: hasFixtures && hasReference && assetDirectory != nil && tokenizerDirectory != nil,
+        "set GLINER_ASSET_DIR (contract.json and the FP32 .aimodel) and GLINER_TOKENIZER_DIR"))
+struct InferenceParityTests {
+    @Test("Spans and probabilities through Core AI match the reference in 160/160 calls within 1e-4")
+    func extractionMatchesReference() async throws {
+        let extractor = try await makeExtractor()
+        let entries = try load(SwiftFixture.self, "work/g4_swift_fixtures.json").entries.filter { $0.call == "x" }
+        let reference = try load(SwiftOutput.self, referencePath)
+        let specs = try load(InputFixture.self, "fixtures/g1_method_i_input_N.json").entitySpecs
+        let descriptions = Dictionary(uniqueKeysWithValues: specs.map { ($0.label, $0.description) })
+        try #require(entries.count == 160)
+        var matched = 0
+        var largest: Float = 0
+        var mismatches: [String] = []
+        for entry in entries {
+            try #require(entry.text.unicodeScalars.last == ".")
+            let text = String(String.UnicodeScalarView(entry.text.unicodeScalars.dropLast()))
+            let result = try await extractor.extract(
+                text: text, labels: entry.queryNames.map { EntityLabel(name: $0, description: descriptions[$0]) },
+                tokenCapacities: [entry.bucket])
+            let length = text.unicodeScalars.count
+            let expected = try #require(reference.result(entry)?.spans).map { span in
+                let label = entry.queryNames.firstIndex(of: span.label) ?? -1
+                return ("\(label) \(min(span.start, length))..<\(min(span.end, length))", span.probability)
+            }
+            let actual = result.spans.map { ("\($0.labelIndex) \($0.scalarRange)", $0.probability) }
+            let expectedSpans = Dictionary(expected) { first, _ in first }
+            let actualSpans = Dictionary(actual) { first, _ in first }
+            guard Set(actualSpans.keys) == Set(expectedSpans.keys), actual.count == expected.count,
+                result.tokenCapacity == entry.bucket
+            else {
+                mismatches.append("\(entry.id) T=\(entry.bucket): \(actual) != \(expected)")
+                continue
+            }
+            matched += 1
+            for (key, probability) in actualSpans {
+                largest = max(largest, abs(probability - (expectedSpans[key] ?? .infinity)))
+            }
+        }
+        print("GLiNER extraction: span sets equal \(matched)/\(entries.count), largest difference \(largest)")
+        #expect(mismatches.isEmpty, "\(mismatches.joined(separator: "\n"))")
+        #expect(matched == 160 && largest <= 1e-4, "largest probability difference \(largest)")
+    }
+
+    @Test("Class probabilities through Core AI match the reference in 258/258 calls within 1e-5")
+    func classificationMatchesReference() async throws {
+        let extractor = try await makeExtractor()
+        let entries = try load(SwiftFixture.self, "work/g4_swift_fixtures.json").entries.filter { $0.call != "x" }
+        let reference = try load(SwiftOutput.self, referencePath)
+        let form = try load(Preregistration.self, "data/g1_preregistration.json").form
+        let names = Dictionary(uniqueKeysWithValues: form.map { ($0.key, $0.name) })
+        try #require(entries.count == 258)
+        var compared = 0
+        var largest: Float = 0
+        for entry in entries {
+            let result = try await extractor.classify(
+                text: #require(entry.sourceText), task: #require(names[String(entry.call.dropFirst(2))]),
+                labels: entry.labels, tokenCapacities: [entry.bucket])
+            let expected = try #require(reference.result(entry)?.probs)
+            try #require(result.probabilities.count == expected.count)
+            for (probability, reference) in zip(result.probabilities, expected) {
+                largest = max(largest, abs(probability - reference))
+            }
+            compared += 1
+        }
+        print("GLiNER classification: \(compared)/\(entries.count) calls, largest probability difference \(largest)")
+        #expect(compared == 258 && largest <= 1e-5, "largest probability difference \(largest)")
+    }
+}
