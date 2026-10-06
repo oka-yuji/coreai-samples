@@ -15,6 +15,8 @@ public struct GLiNERAsset: Sendable {
     public let modelURL: URL
 
     public init(directory: URL) throws {
+        // `contentsOfDirectory(at:)` fails on a symbolic link to a folder (ENOTDIR): read the folder it points to.
+        let directory = directory.resolvingSymlinksInPath()
         let decoder = JSONDecoder()
         decoder.keyDecodingStrategy = .convertFromSnakeCase
         let contract = try decoder.decode(

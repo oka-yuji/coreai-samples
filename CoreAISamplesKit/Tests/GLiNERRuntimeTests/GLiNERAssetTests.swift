@@ -54,6 +54,13 @@ private func assetFolder(models: Int = 1, _ edit: (inout [String: [String: Any]]
     return folder
 }
 
+/// A symbolic link to `folder`, next to it.
+private func symbolicLink(to folder: URL) throws -> URL {
+    let link = folder.deletingLastPathComponent().appending(path: "gliner-asset-link-\(UUID().uuidString)")
+    try FileManager.default.createSymbolicLink(at: link, withDestinationURL: folder)
+    return link
+}
+
 struct GLiNERAssetTests {
     @Test("The asset accepts the GL4 contract and finds its one .aimodel")
     func acceptsTheGL4Contract() throws {
@@ -77,5 +84,21 @@ struct GLiNERAssetTests {
         #expect(throws: GLiNERAssetError.contractMismatch("host")) { try GLiNERAsset(directory: folders[2]) }
         #expect(throws: GLiNERAssetError.modelCount(2)) { try GLiNERAsset(directory: folders[3]) }
         #expect(throws: GLiNERAssetError.modelCount(0)) { try GLiNERAsset(directory: folders[4]) }
+    }
+
+    @Test("A directory URL that is a symbolic link to the asset folder opens the same model as the folder itself")
+    func opensThroughASymbolicLink() throws {
+        let folder = try assetFolder()
+        let link = try symbolicLink(to: folder)
+        defer { for url in [link, folder] { try? FileManager.default.removeItem(at: url) } }
+        #expect(try GLiNERAsset(directory: link).modelURL == GLiNERAsset(directory: folder).modelURL)
+    }
+
+    @Test("A symbolic link whose target has no aimodel is reported as a model count of zero")
+    func countsNoModelThroughASymbolicLink() throws {
+        let folder = try assetFolder(models: 0)
+        let link = try symbolicLink(to: folder)
+        defer { for url in [link, folder] { try? FileManager.default.removeItem(at: url) } }
+        #expect(throws: GLiNERAssetError.modelCount(0)) { try GLiNERAsset(directory: link) }
     }
 }
