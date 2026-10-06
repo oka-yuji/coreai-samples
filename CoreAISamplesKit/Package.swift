@@ -57,7 +57,12 @@ let package = Package(
         ),
         .testTarget(name: "RAGContextTests", dependencies: ["RAGContext"]),
         .testTarget(name: "FeatureStoreTests", dependencies: ["FeatureStore"], swiftSettings: approachableConcurrency),
-        .testTarget(name: "GLiNERCoreTests", dependencies: ["GLiNERCore"], swiftSettings: approachableConcurrency),
+        .testTarget(
+            name: "GLiNERCoreTests",
+            dependencies: ["GLiNERCore"],
+            resources: [.copy("Resources")],
+            swiftSettings: approachableConcurrency
+        ),
         .testTarget(
             name: "GLiNERRuntimeTests",
             dependencies: ["GLiNERCore", "GLiNERRuntime"],
