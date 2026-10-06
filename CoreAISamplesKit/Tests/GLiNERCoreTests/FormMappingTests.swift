@@ -57,6 +57,19 @@ struct MappingExamples: Decodable {
         let words: [String]
     }
 
+    struct FilterExample: Decodable {
+        /// A span `piece` of field `key`, in the clause `clause`, and whether R1 keeps it.
+        struct Candidate: Decodable {
+            let key: String
+            let clause: String
+            let piece: String
+            let kept: Bool
+        }
+
+        let text: String
+        let candidates: [Candidate]
+    }
+
     let numbers: [NumberExample]
     /// Two pressures with a correction word between them; `piece` is the word.
     let twoValues: Sentence
@@ -65,17 +78,48 @@ struct MappingExamples: Decodable {
     /// Two clauses that end in the same word; `piece` is the word.
     let twoClauses: Sentence
     let cues: Cues
+    let filter: FilterExample
 }
 
 struct FormMappingTests {
     let examples: MappingExamples
     let form: FormSchema
+    /// Keeps every candidate; the filter has its own tests.
     let mapper: FormMapper
 
     init() throws {
         examples = try resource(MappingExamples.self, "mapping_examples.json")
         form = try formU1()
-        mapper = FormMapper(schema: form, correctionWords: try correctionWords())
+        mapper = FormMapper(schema: form, correctionWords: try correctionWords(), candidateFilter: .none)
+    }
+
+    /// The spans of `examples.filter`, and whether R1 keeps each, by `outcome(of:)`'s description.
+    func filterSpans() throws -> (spans: [ExtractedSpan], kept: [String: Bool]) {
+        let text = examples.filter.text
+        var kept: [String: Bool] = [:]
+        let spans = try examples.filter.candidates.map { candidate in
+            let clause = try #require(scalarRanges(of: candidate.clause, in: text).first)
+            let piece = try #require(scalarRanges(of: candidate.piece, in: candidate.clause).first)
+            let range = (clause.lowerBound + piece.lowerBound)..<(clause.lowerBound + piece.upperBound)
+            kept["\(candidate.key) \(candidate.clause) \(range)"] = candidate.kept
+            return makeSpan(try #require(form.fields.firstIndex { $0.key == candidate.key }), range, in: text)
+        }
+        return (spans, kept)
+    }
+
+    /// Whether each candidate of `mapping` of `examples.filter` is kept, by field key, clause text and span range.
+    func outcome(of mapping: FormMapping) -> [String: Bool] {
+        let scalars = Array(examples.filter.text.unicodeScalars)
+        var outcome: [String: Bool] = [:]
+        for field in mapping.fields {
+            for (candidates, kept) in [(field.candidates, true), (field.droppedCandidates, false)] {
+                for candidate in candidates {
+                    let clause = String(String.UnicodeScalarView(scalars[candidate.clause]))
+                    outcome["\(field.field.key) \(clause) \(candidate.span.scalarRange)"] = kept
+                }
+            }
+        }
+        return outcome
     }
 
     @Test(
@@ -221,5 +265,42 @@ struct FormMappingTests {
             answers[ClassificationRequest(clause: clause, schema: schema)] ?? ClassificationResult(probabilities: [])
         }
         #expect(looked == mapper.map(text: text, extraction: makeExtraction(spans), classify: answer))
+    }
+
+    @Test(
+        "A candidate in a clause with its own field name is kept, one in a clause with only another field's name is dropped, and one in a clause without field names is kept (hand-made example)"
+    )
+    func dropsCandidatesFromAnotherFieldsClause() throws {
+        let (spans, kept) = try filterSpans()
+        // The example also has a number candidate in a clause with a list field's name, and a list candidate in a
+        // clause with only a number field's name: R1 reads list fields and their names only.
+        let mapping = FormMapper(schema: form, correctionWords: []).map(
+            text: examples.filter.text, extraction: makeExtraction(spans)
+        ) { _, _ in ClassificationResult(probabilities: []) }
+        #expect(outcome(of: mapping) == kept)
+        #expect(
+            mapping.fields.filter { $0.state == .notDetected }.map(\.field.key) == [
+                "discharge_pressure", "abnormal_sound",
+            ])
+    }
+
+    @Test("The clause of a dropped candidate is not classified, and the filter .none keeps every candidate")
+    func classifiesOnlyTheKeptCandidates() throws {
+        let (spans, kept) = try filterSpans()
+        let text = examples.filter.text
+        let extraction = makeExtraction(spans)
+        let expected = try examples.filter.candidates.compactMap { candidate -> ClassificationRequest? in
+            let field = try #require(form.fields.first { $0.key == candidate.key })
+            guard candidate.kept, case .list = field.kind else { return nil }
+            return ClassificationRequest(clause: candidate.clause, schema: form.classificationSchema(for: field))
+        }
+        let filtered = FormMapper(schema: form, correctionWords: [])
+        #expect(Set(filtered.classificationRequests(text: text, extraction: extraction)) == Set(expected))
+
+        let unfiltered = FormMapper(schema: form, correctionWords: [], candidateFilter: .none)
+        let mapping = unfiltered.map(text: text, extraction: extraction) { _, _ in
+            ClassificationResult(probabilities: [])
+        }
+        #expect(outcome(of: mapping) == kept.mapValues { _ in true })
     }
 }

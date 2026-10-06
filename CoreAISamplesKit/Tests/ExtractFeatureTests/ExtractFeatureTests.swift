@@ -191,6 +191,22 @@ struct ExtractFeatureTests {
         #expect(try JSONDecoder().decode(ExportDocument.self, from: data) == document)
     }
 
+    @Test("The export writes the candidates the filter dropped apart from the candidates people see")
+    func exportsTheDroppedCandidates() throws {
+        var state = readyState()
+        let text = "pressure 0.4MPa, noise ok"
+        var mapping = makeMapping(text, pressure: 9..<15, noise: 23..<25)
+        mapping.fields[1].droppedCandidates = mapping.fields[1].candidates
+        mapping.fields[1].candidates = []
+        _ = send(
+            &state, .textChanged(text), .extractRequested,
+            .extractionFinished(version: 1, mapping: mapping, timing: timing))
+        let fields = try #require(ExportDocument(state).model?.fields)
+        #expect(fields.map(\.state) == ["candidate", "notDetected"])
+        #expect(fields.map(\.candidates.count) == [1, 0])
+        #expect(fields.map { $0.droppedCandidates.map(\.text) } == [[], ["ok"]])
+    }
+
     @Test("A field draft keeps the model wording of a field whose name stays, and a new field gets a free key")
     func makesFieldsFromDrafts() {
         let tuned = FormField(

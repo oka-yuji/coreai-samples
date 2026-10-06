@@ -40,7 +40,7 @@ public struct ExportDocument: Codable, Equatable, Sendable {
         /// The number in the span of a number field, and the unit written after it.
         public var number: String?
         public var unit: String?
-        /// The two best options of a list field, highest first.
+        /// The two best options of a list field, highest first; empty in a dropped candidate.
         public var suggestions: [Suggestion]
     }
 
@@ -50,6 +50,8 @@ public struct ExportDocument: Codable, Equatable, Sendable {
         /// `candidate` or `notDetected`.
         public var state: String
         public var candidates: [Candidate]
+        /// The candidates the mapper's filter dropped. People do not see them.
+        public var droppedCandidates: [Candidate]
     }
 
     public struct ModelOutput: Codable, Equatable, Sendable {
@@ -96,7 +98,8 @@ public struct ExportDocument: Codable, Equatable, Sendable {
                     FieldOutput(
                         key: field.field.key, name: field.field.name,
                         state: field.state == .candidate ? "candidate" : "notDetected",
-                        candidates: field.candidates.map { Self.candidate($0, in: text) })
+                        candidates: field.candidates.map { Self.candidate($0, in: text) },
+                        droppedCandidates: field.droppedCandidates.map { Self.candidate($0, in: text) })
                 }, timing: result.timing)
         }
         rules = state.result.map { result in

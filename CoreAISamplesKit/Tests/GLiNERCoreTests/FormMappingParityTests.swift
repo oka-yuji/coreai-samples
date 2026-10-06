@@ -14,8 +14,12 @@ private let outputsPath = baselinePath + "e3_outputs_N_i.json"
 private let itemsPath = baselinePath + "e3_items_N_i.tsv"
 private let summaryPath = baselinePath + "e3_summary.json"
 private let wordingSummaryPath = recordsPath + "2026-10-06-coreai-gliner25-option-wording/g6_summary.json"
+private let filterPath = recordsPath + "2026-10-06-coreai-gliner25-candidate-filter/"
+private let droppedPath = filterPath + "g6b_dropped.tsv"
+private let judgmentsPath = filterPath + "g6b_judgments.tsv"
 private let hasFixtures = [
-    preregistrationPath, wordingVariantsPath, outputsPath, itemsPath, summaryPath, wordingSummaryPath,
+    preregistrationPath, wordingVariantsPath, outputsPath, itemsPath, summaryPath, wordingSummaryPath, droppedPath,
+    judgmentsPath,
 ].allSatisfy {
     FileManager.default.fileExists(atPath: fixturesDirectory.appending(path: $0).path(percentEncoded: false))
 }
@@ -197,6 +201,21 @@ private func baselineRows() throws -> [BaselineRow] {
     return try lines.dropFirst().map { try #require(BaselineRow($0)) }
 }
 
+/// The rows of a GL6b table for rule R1 on dev30, each as `columns` joined by spaces.
+private func gl6bRows(_ path: String, _ columns: [String]) throws -> [String] {
+    let lines = try String(contentsOf: fixturesDirectory.appending(path: path), encoding: .utf8)
+        .split(separator: "\n")
+    let header = try #require(lines.first).split(separator: "\t").map(String.init)
+    let rows = try lines.dropFirst().map { line in
+        let values = line.split(separator: "\t", omittingEmptySubsequences: false).map(String.init)
+        try #require(values.count == header.count)
+        return Dictionary(uniqueKeysWithValues: zip(header, values))
+    }
+    return rows.filter { $0["rule"] == "R1" && $0["set"] == "dev30" }.map { row in
+        columns.map { row[$0, default: "?"] }.joined(separator: " ")
+    }
+}
+
 private struct SavedCall: Hashable {
     let task: String
     let labels: [String]
@@ -329,7 +348,7 @@ struct FormMappingParityTests {
     }
 
     @Test(
-        "Mapping the saved extraction and classification outputs (30 sentences) gives the candidates and suggestions of PyTorch e3_items_N_i.tsv for every field in all 30 sentences"
+        "With the candidate filter .none, mapping the saved extraction and classification outputs (30 sentences) gives the candidates and suggestions of PyTorch e3_items_N_i.tsv for every field in all 30 sentences"
     )
     func mappingMatchesPyTorch() throws {
         let preregistration = try load(Preregistration.self, preregistrationPath)
@@ -338,7 +357,7 @@ struct FormMappingParityTests {
         let flagged = try load(BaselineSummary.self, summaryPath).correctionRule.flaggedCases
         try #require(sentences.count == 30 && rows.count == 180)
         let form = gl1Wording(try formU1())
-        let mapper = FormMapper(schema: form, correctionWords: try correctionWords())
+        let mapper = FormMapper(schema: form, correctionWords: try correctionWords(), candidateFilter: .none)
         let labelIndex = Dictionary(uniqueKeysWithValues: form.fields.enumerated().map { ($1.key, $0) })
         let saved = savedClassifications(sentences, preregistration)
         var mismatches: [String] = []
@@ -369,5 +388,44 @@ struct FormMappingParityTests {
             }
         }
         #expect(mismatches.isEmpty, "\(mismatches.joined(separator: "\n"))")
+    }
+
+    @Test("Applying R1 to the saved dev30 outputs drops the same candidates as the GL6b list (its dev30 rows)")
+    func filterDropsTheGL6bCandidates() throws {
+        let sentences = try load(BaselineOutputs.self, outputsPath).outputs
+        try #require(sentences.count == 30)
+        let form = try formU1()
+        let mapper = FormMapper(schema: form, correctionWords: [])
+        let labelIndex = Dictionary(uniqueKeysWithValues: form.fields.enumerated().map { ($1.key, $0) })
+        var dropped: [String] = []
+        var kept: [String] = []
+        for sentence in sentences {
+            let spans = try sentence.spans.map { span in
+                ExtractedSpan(
+                    labelIndex: try #require(labelIndex[span.key]), scalarRange: span.range, text: span.text,
+                    probability: span.probability)
+            }
+            let mapping = mapper.map(text: sentence.text, extraction: makeExtraction(spans)) { _, _ in
+                ClassificationResult(probabilities: [])
+            }
+            let scalars = Array(sentence.text.unicodeScalars)
+            for field in mapping.fields {
+                dropped += field.droppedCandidates.map { candidate in
+                    let range = candidate.span.scalarRange
+                    return [
+                        "\(sentence.number)", field.field.key, candidate.span.text, "\(range.lowerBound)",
+                        "\(range.upperBound)", String(String.UnicodeScalarView(scalars[candidate.clause])),
+                    ].joined(separator: " ")
+                }
+                // GL6b's judgments give what each field keeps: the candidate count and the most probable text.
+                let best = field.candidates.max { $0.span.probability < $1.span.probability }
+                kept.append("\(sentence.number) \(field.field.key) \(field.candidates.count) \(best?.span.text ?? "")")
+            }
+        }
+        let expectedDropped = try gl6bRows(droppedPath, ["id", "field", "text", "start", "end", "clause"])
+        let expectedKept = try gl6bRows(judgmentsPath, ["id", "field", "candidates", "primary_text"])
+        try #require(expectedDropped.count == 12 && expectedKept.count == 180)
+        #expect(dropped.sorted() == expectedDropped.sorted())
+        #expect(kept.sorted() == expectedKept.sorted())
     }
 }
