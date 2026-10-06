@@ -169,6 +169,7 @@ struct StageOutputParityTests {
                 largest = max(largest, abs(probability - reference[index]), abs(probability - call.probs[index]))
             }
         }
+        print("GLiNER softmax: \(calls.count) calls, largest probability difference \(largest)")
         #expect(largest <= 1e-5, "largest difference \(largest)")
     }
 }
