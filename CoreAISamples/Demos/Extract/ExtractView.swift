@@ -53,10 +53,6 @@ struct ExtractView: View {
                 Button("Open Asset Folder…") { choosingAsset = true }
                 assetStatus
                 Spacer()
-                Toggle(
-                    "Experiment: inspection form",
-                    isOn: Binding(get: { state.mode == .form }, set: { store.send(.modeChanged($0 ? .form : .labels)) })
-                )
                 Button("Paste Example") {
                     let notes = ExtractResources.examples.notes
                     guard !notes.isEmpty else { return }
@@ -65,6 +61,24 @@ struct ExtractView: View {
                 }
                 Button("Export JSON") { store.send(.exportRequested) }
                     .disabled(state.text.isEmpty)
+            }
+            HStack(spacing: 16) {
+                Toggle(
+                    "Experiment: inspection form",
+                    isOn: Binding(get: { state.mode == .form }, set: { store.send(.modeChanged($0 ? .form : .labels)) })
+                )
+                if state.mode == .form {
+                    Picker(
+                        "Candidate filter",
+                        selection: Binding(
+                            get: { state.candidateFilter }, set: { store.send(.candidateFilterChanged($0)) })
+                    ) {
+                        Text("R1 (clauseFieldName)").tag(CandidateFilter.clauseFieldName)
+                        Text("None").tag(CandidateFilter.none)
+                    }
+                    .fixedSize()
+                }
+                Spacer()
             }
             Label(Self.notice, systemImage: "info.circle")
                 .font(.caption)
@@ -217,7 +231,7 @@ struct ExtractView: View {
         return attributed
     }
 
-    /// The labels, or the form of the experiment with its candidate filter.
+    /// The labels, or the form of the experiment.
     private var fieldsPane: some View {
         let isLabel = state.mode == .labels
         return VStack(alignment: .leading, spacing: 0) {
@@ -225,15 +239,6 @@ struct ExtractView: View {
                 Text(isLabel ? "Labels" : "Form").font(.headline)
                 Spacer()
                 if !isLabel {
-                    Picker(
-                        "Candidate filter",
-                        selection: Binding(
-                            get: { state.candidateFilter }, set: { store.send(.candidateFilterChanged($0)) })
-                    ) {
-                        Text("R1 (clauseFieldName)").tag(CandidateFilter.clauseFieldName)
-                        Text("None").tag(CandidateFilter.none)
-                    }
-                    .fixedSize()
                     Button("Reset Form") { store.send(.fieldsChanged(ExtractResources.form)) }
                         .disabled(state.form == ExtractResources.form)
                 }
