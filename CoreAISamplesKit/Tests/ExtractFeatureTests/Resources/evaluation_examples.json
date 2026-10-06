@@ -1,0 +1,648 @@
+{
+ "gold": [
+  {
+   "id": "E1",
+   "form": "inspection",
+   "text": "吐出圧0.42、温度38℃。異音なし。",
+   "main_unmentioned_field": "oil_leak",
+   "features": [
+    "negation"
+   ],
+   "fields": {
+    "discharge_pressure": {
+     "mentioned": true,
+     "explicit_empty": false,
+     "statement_span": {
+      "start": 0,
+      "end": 7,
+      "text": "吐出圧0.42"
+     },
+     "mention_span": null,
+     "value_span": {
+      "start": 3,
+      "end": 7,
+      "text": "0.42"
+     },
+     "value": "0.42",
+     "unit": "MPa",
+     "option": null,
+     "correction": false,
+     "target": null
+    },
+    "temperature": {
+     "mentioned": true,
+     "explicit_empty": false,
+     "statement_span": {
+      "start": 8,
+      "end": 13,
+      "text": "温度38℃"
+     },
+     "mention_span": null,
+     "value_span": {
+      "start": 10,
+      "end": 13,
+      "text": "38℃"
+     },
+     "value": "38",
+     "unit": "℃",
+     "option": null,
+     "correction": false,
+     "target": null
+    },
+    "oil_leak": {
+     "mentioned": false
+    },
+    "abnormal_sound": {
+     "mentioned": true,
+     "explicit_empty": false,
+     "statement_span": {
+      "start": 14,
+      "end": 18,
+      "text": "異音なし"
+     },
+     "mention_span": null,
+     "value_span": {
+      "start": 16,
+      "end": 18,
+      "text": "なし"
+     },
+     "value": null,
+     "unit": null,
+     "option": "正常",
+     "correction": false,
+     "target": null
+    },
+    "vibration": {
+     "mentioned": false
+    },
+    "next_action": {
+     "mentioned": false
+    }
+   }
+  },
+  {
+   "id": "E2",
+   "form": "inspection",
+   "text": "温度は四十五度、振動が大きい。次回は給油。",
+   "main_unmentioned_field": "discharge_pressure",
+   "features": [
+    "paraphrase",
+    "number_format"
+   ],
+   "fields": {
+    "discharge_pressure": {
+     "mentioned": false
+    },
+    "temperature": {
+     "mentioned": true,
+     "explicit_empty": false,
+     "statement_span": {
+      "start": 0,
+      "end": 7,
+      "text": "温度は四十五度"
+     },
+     "mention_span": null,
+     "value_span": {
+      "start": 3,
+      "end": 7,
+      "text": "四十五度"
+     },
+     "value": "45",
+     "unit": "℃",
+     "option": null,
+     "correction": false,
+     "target": null
+    },
+    "oil_leak": {
+     "mentioned": false
+    },
+    "abnormal_sound": {
+     "mentioned": false
+    },
+    "vibration": {
+     "mentioned": true,
+     "explicit_empty": false,
+     "statement_span": {
+      "start": 8,
+      "end": 14,
+      "text": "振動が大きい"
+     },
+     "mention_span": null,
+     "value_span": {
+      "start": 11,
+      "end": 14,
+      "text": "大きい"
+     },
+     "value": null,
+     "unit": null,
+     "option": "異常",
+     "correction": false,
+     "target": null
+    },
+    "next_action": {
+     "mentioned": true,
+     "explicit_empty": false,
+     "statement_span": {
+      "start": 15,
+      "end": 20,
+      "text": "次回は給油"
+     },
+     "mention_span": null,
+     "value_span": {
+      "start": 18,
+      "end": 20,
+      "text": "給油"
+     },
+     "value": null,
+     "unit": null,
+     "option": "給油",
+     "correction": false,
+     "target": null
+    }
+   }
+  },
+  {
+   "id": "E3",
+   "form": "inspection",
+   "text": "油漏れは見てないです。異音は判断つかない。",
+   "main_unmentioned_field": "vibration",
+   "features": [
+    "explicit_empty",
+    "no_matching_option"
+   ],
+   "fields": {
+    "discharge_pressure": {
+     "mentioned": false
+    },
+    "temperature": {
+     "mentioned": false
+    },
+    "oil_leak": {
+     "mentioned": true,
+     "explicit_empty": true,
+     "statement_span": {
+      "start": 0,
+      "end": 10,
+      "text": "油漏れは見てないです"
+     },
+     "mention_span": null,
+     "value_span": null,
+     "value": null,
+     "unit": null,
+     "option": null,
+     "correction": false,
+     "target": null
+    },
+    "abnormal_sound": {
+     "mentioned": true,
+     "explicit_empty": false,
+     "statement_span": {
+      "start": 11,
+      "end": 20,
+      "text": "異音は判断つかない"
+     },
+     "mention_span": null,
+     "value_span": {
+      "start": 14,
+      "end": 20,
+      "text": "判断つかない"
+     },
+     "value": null,
+     "unit": null,
+     "option": null,
+     "correction": false,
+     "target": null
+    },
+    "vibration": {
+     "mentioned": false
+    },
+    "next_action": {
+     "mentioned": false
+    }
+   }
+  },
+  {
+   "id": "E4",
+   "form": "inspection",
+   "text": "吐出圧0.5MPa。温度は40℃、油漏れなし。",
+   "main_unmentioned_field": "next_action",
+   "features": [
+    "negation"
+   ],
+   "fields": {
+    "discharge_pressure": {
+     "mentioned": true,
+     "explicit_empty": false,
+     "statement_span": {
+      "start": 0,
+      "end": 9,
+      "text": "吐出圧0.5MPa"
+     },
+     "mention_span": null,
+     "value_span": {
+      "start": 3,
+      "end": 9,
+      "text": "0.5MPa"
+     },
+     "value": "0.5",
+     "unit": "MPa",
+     "option": null,
+     "correction": false,
+     "target": null
+    },
+    "temperature": {
+     "mentioned": true,
+     "explicit_empty": false,
+     "statement_span": {
+      "start": 10,
+      "end": 16,
+      "text": "温度は40℃"
+     },
+     "mention_span": null,
+     "value_span": {
+      "start": 13,
+      "end": 16,
+      "text": "40℃"
+     },
+     "value": "40",
+     "unit": "℃",
+     "option": null,
+     "correction": false,
+     "target": null
+    },
+    "oil_leak": {
+     "mentioned": true,
+     "explicit_empty": false,
+     "statement_span": {
+      "start": 17,
+      "end": 22,
+      "text": "油漏れなし"
+     },
+     "mention_span": null,
+     "value_span": {
+      "start": 20,
+      "end": 22,
+      "text": "なし"
+     },
+     "value": null,
+     "unit": null,
+     "option": "なし",
+     "correction": false,
+     "target": null
+    },
+    "abnormal_sound": {
+     "mentioned": false
+    },
+    "vibration": {
+     "mentioned": false
+    },
+    "next_action": {
+     "mentioned": false
+    }
+   }
+  },
+  {
+   "id": "E5",
+   "form": "inspection",
+   "text": "振動は少し大きい。吐出圧0.61MPa、いや違う、0.16MPa。",
+   "main_unmentioned_field": "temperature",
+   "features": [
+    "correction"
+   ],
+   "fields": {
+    "discharge_pressure": {
+     "mentioned": true,
+     "explicit_empty": false,
+     "statement_span": {
+      "start": 9,
+      "end": 32,
+      "text": "吐出圧0.61MPa、いや違う、0.16MPa"
+     },
+     "mention_span": null,
+     "value_span": {
+      "start": 25,
+      "end": 32,
+      "text": "0.16MPa"
+     },
+     "value": "0.16",
+     "unit": "MPa",
+     "option": null,
+     "correction": true,
+     "target": null,
+     "superseded_spans": [
+      {
+       "start": 12,
+       "end": 19,
+       "text": "0.61MPa"
+      }
+     ]
+    },
+    "temperature": {
+     "mentioned": false
+    },
+    "oil_leak": {
+     "mentioned": false
+    },
+    "abnormal_sound": {
+     "mentioned": false
+    },
+    "vibration": {
+     "mentioned": true,
+     "explicit_empty": false,
+     "statement_span": {
+      "start": 0,
+      "end": 8,
+      "text": "振動は少し大きい"
+     },
+     "mention_span": null,
+     "value_span": {
+      "start": 3,
+      "end": 8,
+      "text": "少し大きい"
+     },
+     "value": null,
+     "unit": null,
+     "option": "異常",
+     "correction": false,
+     "target": null
+    },
+    "next_action": {
+     "mentioned": false
+    }
+   }
+  },
+  {
+   "id": "E6",
+   "form": "inspection",
+   "text": "温度は40℃。",
+   "main_unmentioned_field": "oil_leak",
+   "features": [],
+   "fields": {
+    "discharge_pressure": {
+     "mentioned": false
+    },
+    "temperature": {
+     "mentioned": true,
+     "explicit_empty": false,
+     "statement_span": {
+      "start": 0,
+      "end": 6,
+      "text": "温度は40℃"
+     },
+     "mention_span": null,
+     "value_span": {
+      "start": 3,
+      "end": 6,
+      "text": "40℃"
+     },
+     "value": "40",
+     "unit": "℃",
+     "option": null,
+     "correction": false,
+     "target": null
+    },
+    "oil_leak": {
+     "mentioned": false
+    },
+    "abnormal_sound": {
+     "mentioned": false
+    },
+    "vibration": {
+     "mentioned": false
+    },
+    "next_action": {
+     "mentioned": false
+    }
+   },
+   "excluded": true
+  }
+ ],
+ "outputs": {
+  "E1": {
+   "candidates": {
+    "discharge_pressure": [
+     {
+      "start": 3,
+      "end": 7,
+      "probability": 0.9,
+      "suggestions": []
+     }
+    ],
+    "temperature": [
+     {
+      "start": 10,
+      "end": 13,
+      "probability": 0.9,
+      "suggestions": []
+     }
+    ],
+    "abnormal_sound": [
+     {
+      "start": 16,
+      "end": 18,
+      "probability": 0.9,
+      "suggestions": [
+       {
+        "option": "正常",
+        "probability": 0.8
+       },
+       {
+        "option": "異常",
+        "probability": 0.15
+       }
+      ]
+     }
+    ]
+   },
+   "corrections": []
+  },
+  "E2": {
+   "candidates": {
+    "temperature": [
+     {
+      "start": 3,
+      "end": 6,
+      "probability": 0.8,
+      "suggestions": []
+     }
+    ],
+    "vibration": [
+     {
+      "start": 11,
+      "end": 14,
+      "probability": 0.7,
+      "suggestions": [
+       {
+        "option": "正常",
+        "probability": 0.6
+       },
+       {
+        "option": "異常",
+        "probability": 0.3
+       }
+      ]
+     }
+    ]
+   },
+   "corrections": []
+  },
+  "E3": {
+   "candidates": {
+    "oil_leak": [
+     {
+      "start": 4,
+      "end": 8,
+      "probability": 0.7,
+      "suggestions": [
+       {
+        "option": "なし",
+        "probability": 0.7
+       },
+       {
+        "option": "あり",
+        "probability": 0.3
+       }
+      ]
+     }
+    ],
+    "abnormal_sound": [
+     {
+      "start": 14,
+      "end": 20,
+      "probability": 0.8,
+      "suggestions": [
+       {
+        "option": "未点検",
+        "probability": 0.5
+       },
+       {
+        "option": "異常",
+        "probability": 0.3
+       }
+      ]
+     }
+    ],
+    "vibration": [
+     {
+      "start": 14,
+      "end": 20,
+      "probability": 0.6,
+      "suggestions": [
+       {
+        "option": "未点検",
+        "probability": 0.6
+       },
+       {
+        "option": "正常",
+        "probability": 0.2
+       }
+      ]
+     }
+    ]
+   },
+   "corrections": []
+  },
+  "E4": {
+   "candidates": {
+    "discharge_pressure": [
+     {
+      "start": 13,
+      "end": 16,
+      "probability": 0.8,
+      "suggestions": []
+     }
+    ],
+    "temperature": [
+     {
+      "start": 13,
+      "end": 22,
+      "probability": 0.7,
+      "suggestions": []
+     }
+    ],
+    "oil_leak": [
+     {
+      "start": 20,
+      "end": 22,
+      "probability": 0.9,
+      "suggestions": [
+       {
+        "option": "なし",
+        "probability": 0.9
+       },
+       {
+        "option": "あり",
+        "probability": 0.05
+       }
+      ]
+     }
+    ]
+   },
+   "corrections": []
+  },
+  "E5": {
+   "candidates": {
+    "discharge_pressure": [
+     {
+      "start": 12,
+      "end": 19,
+      "probability": 0.9,
+      "suggestions": []
+     },
+     {
+      "start": 25,
+      "end": 32,
+      "probability": 0.85,
+      "suggestions": []
+     }
+    ],
+    "vibration": [
+     {
+      "start": 5,
+      "end": 12,
+      "probability": 0.6,
+      "suggestions": [
+       {
+        "option": "異常",
+        "probability": 0.7
+       },
+       {
+        "option": "正常",
+        "probability": 0.2
+       }
+      ]
+     }
+    ]
+   },
+   "corrections": [
+    {
+     "start": 20,
+     "end": 22,
+     "word": "いや"
+    }
+   ]
+  },
+  "E6": {
+   "candidates": {
+    "oil_leak": [
+     {
+      "start": 3,
+      "end": 6,
+      "probability": 0.9,
+      "suggestions": [
+       {
+        "option": "あり",
+        "probability": 0.9
+       },
+       {
+        "option": "なし",
+        "probability": 0.1
+       }
+      ]
+     }
+    ]
+   },
+   "corrections": []
+  }
+ }
+}
