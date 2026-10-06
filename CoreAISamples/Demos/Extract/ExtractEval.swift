@@ -3,10 +3,21 @@ import ExtractFeature
 import Foundation
 import GLiNERCore
 
-/// `--extract-eval <gold.json> --asset <folder> --out <result.json> [--form <form.json>]`: maps every sentence of a
-/// gold file that is not excluded with the same service as the screen, scores the mappings and writes the report.
+/// `--extract-eval <gold.json> --asset <folder> --out <result.json> [--form <form.json>]
+/// [--compute-units gpu|default]`: maps every sentence of a gold file that is not excluded with the same service as
+/// the screen, scores the mappings and writes the report.
 enum ExtractEval {
+    private static let usage =
+        "usage: CoreAISamples --extract-eval <gold.json> --asset <folder> --out <result.json> [--form <form.json>] "
+        + "[--compute-units gpu|default]"
+
     struct Output: Encodable {
+        /// The hardware model identifier: `hw.machine` on iOS, `hw.model` on macOS.
+        let device: String
+        /// The OS version with its build, as `ProcessInfo.operatingSystemVersionString` gives it.
+        let osVersion: String
+        /// `gpu` or `default`, from `--compute-units`.
+        let computeUnits: String
         let gold: String
         let goldSHA256: String
         /// `bundled` or the path of `--form`.
@@ -35,11 +46,9 @@ enum ExtractEval {
     @MainActor
     static func execute() async -> Int32 {
         guard let goldPath = LaunchArguments.value("--extract-eval"), let assetPath = LaunchArguments.value("--asset"),
-            let outPath = LaunchArguments.value("--out")
+            let outPath = LaunchArguments.value("--out"), let computeUnits = ComputeUnits.launchValue
         else {
-            log(
-                "usage: CoreAISamples --extract-eval <gold.json> --asset <folder> --out <result.json> [--form <form.json>]"
-            )
+            log(usage)
             return 2
         }
         do {
@@ -56,10 +65,12 @@ enum ExtractEval {
                 log("[extract-eval] nothing to score: \(form.fields.count) fields, \(sentences.count) sentences")
                 return 1
             }
-            let service = GLiNERExtractService(correctionWords: ExtractResources.correctionWords)
+            let service = GLiNERExtractService(
+                correctionWords: ExtractResources.correctionWords, computeUnits: computeUnits)
             let asset = try await service.open(folder: URL(filePath: assetPath, directoryHint: .isDirectory))
             log(
                 "[extract-eval] asset \(asset.path) revision \(asset.revision ?? "none") loaded in \(asset.loadSeconds) s"
+                    + " computeUnits \(computeUnits.rawValue) device \(hardwareModel)"
             )
             let filter = CandidateFilter.clauseFieldName
             let cold = try await service.extract(text: first.text, schema: form, filter: filter).timing
@@ -69,9 +80,11 @@ enum ExtractEval {
                 let (mapping, timing) = try await service.extract(text: sentence.text, schema: form, filter: filter)
                 scored.append((sentence, mapping))
                 warm.append(timing)
-                log("[extract-eval] \(index + 1)/\(sentences.count) \(sentence.id) \(ExtractView.describe(timing))")
+                log("[extract-eval] \(index + 1)/\(sentences.count) \(sentence.id) \(ExtractRunner.describe(timing))")
             }
             let output = Output(
+                device: hardwareModel, osVersion: ProcessInfo.processInfo.operatingSystemVersionString,
+                computeUnits: computeUnits.rawValue,
                 gold: goldPath, goldSHA256: SHA256.hash(data: goldData).map { String(format: "%02x", $0) }.joined(),
                 form: formPath ?? "bundled", asset: asset.path, revision: asset.revision,
                 candidateFilter: filter.name, appVersion: ExtractRunner.appVersion,
@@ -133,5 +146,19 @@ enum ExtractEval {
 
     private static func log(_ line: String) {
         FileHandle.standardError.write(Data((line + "\n").utf8))
+    }
+
+    /// `hw.machine` on iOS; on macOS that is the CPU architecture, and `hw.model` names the Mac.
+    private static var hardwareModel: String {
+        #if os(iOS)
+            let name = "hw.machine"
+        #else
+            let name = "hw.model"
+        #endif
+        var size = 0
+        sysctlbyname(name, nil, &size, nil, 0)
+        var value = [UInt8](repeating: 0, count: max(size, 1))
+        sysctlbyname(name, &value, &size, nil, 0)
+        return String(decoding: value.prefix { $0 != 0 }, as: UTF8.self)
     }
 }

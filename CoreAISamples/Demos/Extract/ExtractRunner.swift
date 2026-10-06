@@ -17,6 +17,11 @@ struct ExtractRunner {
         func value(_ key: String) -> String { Bundle.main.infoDictionary?[key] as? String ?? "?" }
         return "\(value("CFBundleShortVersionString")) (\(value("CFBundleVersion")))"
     }
+    /// The note the Extract screens of the Mac and the iPhone show.
+    static let notice =
+        "Technical verification of a Core AI conversion. Zero-shot GLiNER2.5-multi did not reach the pre-registered "
+        + "bar for Japanese inspection memos (sealed set: fabricated candidates 9/199, primary-span precision 0.791, "
+        + "recall 0.874). Suggestions are uncalibrated scores."
 
     let service: any ExtractService
 
@@ -84,9 +89,23 @@ struct ExtractRunner {
             "The folder must hold exactly one .aimodel; it holds \(count)."
         case GLiNERAssetError.contractMismatch(let part):
             "contract.json does not match what this app implements (\(part))."
+        case GLiNERModelError.missingFunction(let name):
+            "The model has no function \(name)."
+        case GLiNERModelError.signatureMismatch(let function, let value):
+            "\(function) of the model differs from what this app implements at \(value): it takes and returns Int32 "
+                + "and Float32 (FP32) values of the contract's shapes."
+        case GLiNERModelError.unreadableOutput(let name):
+            "The model returned \(name) as something other than a contiguous Float32 array."
         default:
             error.localizedDescription
         }
+    }
+
+    static func describe(_ timing: ExtractTiming) -> String {
+        func milliseconds(_ value: Double) -> String { value.formatted(.number.precision(.fractionLength(0))) + " ms" }
+        return "preprocess \(milliseconds(timing.preprocess)) · encode \(milliseconds(timing.encode)) · "
+            + "pair \(milliseconds(timing.pair)) · classify \(timing.classifications)× \(milliseconds(timing.classify)) · "
+            + "map \(milliseconds(timing.map)) · total \(milliseconds(timing.total))"
     }
 }
 

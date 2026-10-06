@@ -10,7 +10,8 @@ public enum GLiNERModelError: Error, Equatable {
     case unreadableOutput(String)
 }
 
-/// The four Core AI functions of a GLiNER asset, specialized for the GPU, with the host steps between them.
+/// The four Core AI functions of a GLiNER asset, specialized for the GPU unless told otherwise, with the host steps
+/// between them.
 ///
 /// Requests run one at a time in arrival order. A request cancelled while it waits, or between its function calls,
 /// throws `CancellationError`; a function call in flight runs to its end.
@@ -19,11 +20,12 @@ public actor GLiNERModel {
     private var busy = false
     private var waiting: [CheckedContinuation<Void, Never>] = []
 
-    /// Specializes the model for the GPU (or takes the cached specialization), checks every function against the
+    /// Specializes the model with `options` (or takes the cached specialization), checks every function against the
     /// contract before loading any, then loads the four functions.
-    public init(asset: GLiNERAsset) async throws {
-        let model = try await AIModel.specialize(
-            contentsOf: asset.modelURL, options: SpecializationOptions(preferredComputeUnitKind: .gpu))
+    public init(
+        asset: GLiNERAsset, options: SpecializationOptions = SpecializationOptions(preferredComputeUnitKind: .gpu)
+    ) async throws {
+        let model = try await AIModel.specialize(contentsOf: asset.modelURL, options: options)
         for (name, signature) in Contract.implemented.functions {
             guard let descriptor = model.functionDescriptor(for: name) else {
                 throw GLiNERModelError.missingFunction(name)

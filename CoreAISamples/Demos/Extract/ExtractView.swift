@@ -8,11 +8,6 @@ import UniformTypeIdentifiers
 /// Type labels, paste a note and see the spans the model returns for each label. As an experiment, map the note onto
 /// an inspection form, with suggestions for its list fields, and confirm the values.
 struct ExtractView: View {
-    static let notice =
-        "Technical verification of a Core AI conversion. Zero-shot GLiNER2.5-multi did not reach the pre-registered "
-        + "bar for Japanese inspection memos (sealed set: fabricated candidates 9/199, primary-span precision 0.791, "
-        + "recall 0.874). Suggestions are uncalibrated scores."
-
     let store: Store<ExtractFeature>
     @State private var choosingAsset = false
     @State private var draft: FieldDraft?
@@ -80,7 +75,7 @@ struct ExtractView: View {
                 }
                 Spacer()
             }
-            Label(Self.notice, systemImage: "info.circle")
+            Label(ExtractRunner.notice, systemImage: "info.circle")
                 .font(.caption)
                 .foregroundStyle(.secondary)
             HStack(spacing: 10) {
@@ -120,7 +115,7 @@ struct ExtractView: View {
             Text(message).foregroundStyle(.red)
         case .ready, .idle:
             if let timing = state.result?.timing {
-                Text(Self.describe(timing)).monospacedDigit().foregroundStyle(.secondary)
+                Text(ExtractRunner.describe(timing)).monospacedDigit().foregroundStyle(.secondary)
             } else if state.schema.fields.isEmpty {
                 Text(state.mode == .labels ? "Add a label to extract." : "Add a field to extract.")
                     .foregroundStyle(.secondary)
@@ -267,12 +262,5 @@ struct ExtractView: View {
             .orange, .blue, .green, .pink, .purple, .teal, .yellow, .red, .mint, .indigo, .brown, .cyan,
         ]
         return palette[index % palette.count]
-    }
-
-    static func describe(_ timing: ExtractTiming) -> String {
-        func milliseconds(_ value: Double) -> String { value.formatted(.number.precision(.fractionLength(0))) + " ms" }
-        return "preprocess \(milliseconds(timing.preprocess)) · encode \(milliseconds(timing.encode)) · "
-            + "pair \(milliseconds(timing.pair)) · classify \(timing.classifications)× \(milliseconds(timing.classify)) · "
-            + "map \(milliseconds(timing.map)) · total \(milliseconds(timing.total))"
     }
 }
