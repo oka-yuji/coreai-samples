@@ -168,10 +168,11 @@ struct ExtractFeatureTests {
             .extractionFinished(version: 1, mapping: mapping, timing: timing),
             .confirm(field: "noise", choice: .option(name: "ok")))
         let commands = ExtractFeature.reduce(&state, .exportRequested)
-        guard case .run(.export(let document), id: nil)? = commands.first, commands.count == 1 else {
-            Issue.record("exportRequested returned \(commands)")
-            return
-        }
+        #expect(commands.count == 1)
+        let document = try #require(
+            commands.first.flatMap { command -> ExportDocument? in
+                if case .run(.export(let document), id: nil) = command { document } else { nil }
+            })
         #expect(document.input.text == text)
         #expect(document.input.version == 1)
         #expect(document.form == testForm)
@@ -232,6 +233,71 @@ struct ExtractFeatureTests {
         added.name = "state"
         added.kind = .list
         #expect(added.field(in: form) == nil)
+    }
+
+    @Test("reduce shows the failure of the current extraction and of the folder being opened, and the export's outcome")
+    func showsFailuresAndTheExportOutcome() {
+        var state = readyState()
+        _ = send(
+            &state, .textChanged("pressure 0.4MPa"), .extractRequested, .extractionFailed(version: 1, message: "boom"))
+        #expect(state.phase == .failed("boom"))
+        _ = send(&state, .assetFolderChosen(path: "/bad"), .assetFailed(path: "/bad", message: "no model"))
+        #expect(state.asset == .failed(path: "/bad", message: "no model"))
+        _ = send(&state, .exportFinished(path: "/out.json"))
+        #expect(state.export == .saved(path: "/out.json"))
+        _ = send(&state, .exportFailed("disk full"))
+        #expect(state.export == .failed("disk full"))
+    }
+
+    @Test("reduce ignores a text or a form that did not change, and forgets a selected field that was removed")
+    func ignoresNoChangeAndForgetsARemovedSelection() {
+        var state = readyState()
+        _ = send(&state, .textChanged("pressure 0.4MPa"), .select(field: "noise"))
+        let before = state
+        #expect(send(&state, .textChanged("pressure 0.4MPa"), .fieldsChanged(testForm)) == [[], []])
+        #expect(state == before)
+        _ = send(&state, .fieldsChanged(FormSchema(fields: [testForm.fields[0]])))
+        #expect(state.selectedField == nil)
+        #expect(state.version == 2)
+    }
+
+    @Test("reduce opens the last asset folder when the screen appears with no asset open, and only then")
+    func reopensTheLastAssetFolder() {
+        var state = ExtractState(form: testForm, lastAssetPath: "/last")
+        #expect(ExtractFeature.reduce(&state, .appeared) == [.run(.openAsset(path: "/last"), id: .asset)])
+        #expect(state.asset == .opening(path: "/last"))
+        #expect(ExtractFeature.reduce(&state, .appeared) == [])
+        var fresh = ExtractState(form: testForm)
+        #expect(ExtractFeature.reduce(&fresh, .appeared) == [])
+        #expect(fresh.asset == .none)
+    }
+
+    @Test(
+        "reduce starts no extraction while an input method converts a word, stops the one under way, and waits again for the text when the conversion ends without a result"
+    )
+    func waitsForTheConversionToEnd() {
+        var state = readyState()
+        let text = "pressure 0.4MPa, noise ok"
+        let extract = Command<ExtractEffect, ExtractFeature.EffectID>.run(
+            .extract(version: 1, text: text, form: testForm), id: .extraction)
+        let steps = send(
+            &state, .textChanged(text), .compositionChanged(true), .extractRequested, .compositionChanged(true),
+            .compositionChanged(false), .extractRequested, .compositionChanged(true))
+        #expect(
+            steps == [
+                [.run(.settle, id: .extraction)], [.cancel(.extraction)], [.cancel(.extraction)], [],
+                [.run(.settle, id: .extraction)], [extract], [.cancel(.extraction)],
+            ])
+        #expect(state.phase == .idle)
+
+        let mapping = makeMapping(text, pressure: 9..<15, noise: 23..<25)
+        let finished = send(
+            &state, .compositionChanged(false), .extractRequested,
+            .extractionFinished(version: 1, mapping: mapping, timing: timing), .compositionChanged(true),
+            .compositionChanged(false))
+        #expect(finished == [[.run(.settle, id: .extraction)], [extract], [], [.cancel(.extraction)], []])
+        #expect(state.result?.mapping == mapping)
+        #expect(state.phase == .ready)
     }
 
     @Test("A correction cue belongs to the fields with a candidate in its sentence")

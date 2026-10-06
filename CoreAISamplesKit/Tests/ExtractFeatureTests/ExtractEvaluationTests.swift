@@ -96,7 +96,8 @@ struct ExtractEvaluationTests {
         #expect(overall.option == Ratio(3, of: 6))
         #expect(overall.optionWithCandidate == Ratio(3, of: 5))
         #expect(overall.optionTopTwo == Ratio(4, of: 6))
-        #expect(overall.optionNull == 1)
+        #expect(overall.optionNull == Ratio(0, of: 1))
+        #expect(overall.numberWithoutDigits == 1)
         #expect(overall.number == Ratio(3, of: 6))
         #expect(overall.numberInCandidates == Ratio(4, of: 6))
         #expect(overall.spans.matched == Ratio(8, of: 14))
@@ -152,5 +153,38 @@ struct ExtractEvaluationTests {
         #expect(summary.p95?.encode == 38)
         #expect(summary.p95?.total == 57)
         #expect(summary.p50?.classifications == 4)
+    }
+
+    @Test(
+        "A candidate on a value span that two fields share matches both fields, since a shared predicate is not another field's value"
+    )
+    func sharesAValueSpan() throws {
+        let gold = try GoldSentence.decode(
+            Data(
+                """
+                [{"id": "S1", "text": "noise and shake: none.", "fields": {
+                  "noise": {"mentioned": true, "explicit_empty": false, "option": "ok",
+                    "statement_span": {"start": 0, "end": 21, "text": "noise and shake: none"},
+                    "value_span": {"start": 17, "end": 21, "text": "none"}},
+                  "shake": {"mentioned": true, "explicit_empty": false, "option": "ok",
+                    "statement_span": {"start": 10, "end": 21, "text": "shake: none"},
+                    "value_span": {"start": 17, "end": 21, "text": "none"}}}}]
+                """.utf8))
+        let options = [FormOption(name: "ok"), FormOption(name: "ng")]
+        let fields = ["noise", "shake"].enumerated().map { index, key in
+            FieldMapping(
+                field: FormField(key: key, name: key, kind: .list(options: options)),
+                candidates: [
+                    FieldCandidate(
+                        span: ExtractedSpan(labelIndex: index, scalarRange: 17..<21, text: "none", probability: 0.9),
+                        clause: 0..<21, number: nil, suggestions: [OptionSuggestion(option: "ok", probability: 0.8)])
+                ])
+        }
+        let report = ExtractEvaluation.evaluate([
+            (try #require(gold.first), FormMapping(fields: fields, corrections: []))
+        ])
+        #expect(report.overall.spans.matched == Ratio(2, of: 2))
+        #expect(report.overall.spans.found == Ratio(2, of: 2))
+        #expect(report.overall.allFields == Ratio(1, of: 1))
     }
 }

@@ -38,11 +38,7 @@ struct ExtractView: View {
                 }
             }
         }
-        .onAppear {
-            guard state.asset == .none, let path = UserDefaults.standard.string(forKey: ExtractRunner.assetFolderKey)
-            else { return }
-            store.send(.assetFolderChosen(path: path))
-        }
+        .onAppear { store.send(.appeared) }
     }
 
     private var header: some View {
@@ -52,7 +48,8 @@ struct ExtractView: View {
                 assetStatus
                 Spacer()
                 Button("Paste Example") {
-                    guard let notes = ExtractResources.examples?.notes, !notes.isEmpty else { return }
+                    let notes = ExtractResources.examples.notes
+                    guard !notes.isEmpty else { return }
                     store.send(.textChanged(notes[nextExample % notes.count]))
                     nextExample += 1
                 }
@@ -123,9 +120,12 @@ struct ExtractView: View {
     private var notePane: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Note").font(.headline)
-            NoteEditor(text: state.text) { store.send(.textChanged($0)) }
-                .frame(minHeight: 110, idealHeight: 150, maxHeight: 220)
-                .overlay(RoundedRectangle(cornerRadius: 4).stroke(.separator))
+            NoteEditor(
+                text: state.text, onChange: { store.send(.textChanged($0)) },
+                onComposing: { store.send(.compositionChanged($0)) }
+            )
+            .frame(minHeight: 110, idealHeight: 150, maxHeight: 220)
+            .overlay(RoundedRectangle(cornerRadius: 4).stroke(.separator))
             HStack {
                 Text("Evidence").font(.headline)
                 Spacer()

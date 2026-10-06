@@ -429,9 +429,8 @@ final class GUIDriver {
     /// the JSON. The folder is the flag's value: AppKit reads arguments as `-key value` pairs and opens a path left
     /// alone as a document, and then SwiftUI opens no window.
     private func runExtract(navigator: DemoNavigator, store: Store<ExtractFeature>) async {
-        guard let asset = LaunchArguments.value("--extract"), let examples = ExtractResources.examples,
-            let example = examples.notes.first
-        else {
+        let examples = ExtractResources.examples
+        guard let asset = LaunchArguments.value("--extract"), let example = examples.notes.first else {
             note("--extract needs an asset folder and the bundled examples")
             return
         }

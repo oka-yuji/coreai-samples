@@ -51,7 +51,9 @@ struct DemoRootView: View {
     @State private var agent = AgentViewModel()
     @State private var models = ModelsViewModel()
     @State private var extract = Store<ExtractFeature>(
-        initialState: ExtractState(form: ExtractResources.form),
+        initialState: ExtractState(
+            form: ExtractResources.form,
+            lastAssetPath: UserDefaults.standard.string(forKey: ExtractRunner.assetFolderKey)),
         run: ExtractRunner(service: GLiNERExtractService(correctionWords: ExtractResources.correctionWords)).run)
 
     var body: some View {

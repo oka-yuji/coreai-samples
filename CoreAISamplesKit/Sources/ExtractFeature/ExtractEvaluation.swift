@@ -46,12 +46,14 @@ public struct GoldSentence: Decodable, Equatable, Sendable {
 ///   mentioned but has candidates, missed when it is mentioned without candidates, and misplaced when it is mentioned
 ///   and no candidate overlaps its statement span (counted as both a false positive and a false negative).
 /// - Span match: a candidate overlaps the field's gold value span, lies in the same sentence (ended by an
-///   ideographic full stop or a line break) and overlaps no other field's value span (other than an identical one).
+///   ideographic full stop) and overlaps no other field's value span (other than an identical one: fields that share
+///   a predicate share its span). Every matching candidate counts.
 /// - The policy takes the candidate with the highest probability (the first on a tie): its top suggestion for a
-///   list field, its number and unit (the form's unit when none is written) for a number field. Option and number
-///   scores count mentioned fields that are not explicitly empty; a null gold option is never matched. A field agrees
-///   when the policy's value equals the gold, or when the gold is empty (not mentioned, or explicitly empty) and the
-///   field has no candidates.
+///   list field, its number and unit (the form's unit when none is written) for a number field. The number is the
+///   one `ParsedNumber` reads, digits only; a gold value written without digits is counted in `numberWithoutDigits`.
+///   Option, top-two and number scores count mentioned fields that are not explicitly empty; a null gold option is
+///   never matched. A field agrees when the policy's value equals the gold, or when the gold is empty (not mentioned,
+///   or explicitly empty) and the field has no candidates.
 public enum ExtractEvaluation {
     public static func evaluate(_ sentences: [(gold: GoldSentence, mapping: FormMapping)]) -> EvaluationReport {
         let judged = sentences.filter { $0.gold.excluded != true }.map { judge($0.gold, $0.mapping) }
@@ -119,7 +121,7 @@ public enum ExtractEvaluation {
         let others = valueSpans.filter { $0.key != key && $0.value != goldValue }.values
         func matches(_ range: Range<Int>) -> Bool {
             guard let goldValue, range.overlaps(goldValue) else { return false }
-            let sentence = Sentence.range(around: goldValue, in: scalars)
+            let sentence = Sentence.range(around: goldValue, in: scalars, ends: Sentence.fullStop)
             return sentence.lowerBound <= range.lowerBound && range.upperBound <= sentence.upperBound
                 && !others.contains { $0.overlaps(range) }
         }
@@ -174,6 +176,7 @@ public enum ExtractEvaluation {
                 return number.value == value && (number.normalizedUnit ?? unit) == goldUnit
             }
             judgment.goldNumber = "\(value) \(goldUnit)"
+            judgment.goldNumberWithoutDigits = gold.valueSpan.map { ParsedNumber(parsing: $0.text) == nil }
             judgment.numberCorrect = best.map(agrees) ?? false
             judgment.numberInCandidates = candidates.contains(where: agrees)
             judgment.agrees = judgment.numberCorrect == true
@@ -209,9 +212,11 @@ public enum ExtractEvaluation {
             optionWithCandidate: ratio(
                 { $0.optionCorrect }, among: { $0.optionCorrect != nil && !$0.candidates.isEmpty }),
             optionTopTwo: ratio({ $0.optionInTopTwo }, among: { $0.optionInTopTwo != nil }),
-            optionNull: count { $0.optionCorrect != nil && $0.goldOption == .some(nil) },
+            optionNull: ratio(
+                { $0.suggestion == nil }, among: { $0.optionCorrect != nil && $0.goldOption == .some(nil) }),
             number: ratio({ $0.numberCorrect }, among: { $0.numberCorrect != nil }),
             numberInCandidates: ratio({ $0.numberInCandidates }, among: { $0.numberInCandidates != nil }),
+            numberWithoutDigits: count { $0.numberCorrect != nil && $0.goldNumberWithoutDigits == true },
             spans: spans, agreement: ratio({ $0.agrees }, among: { _ in true }),
             allFields: key == nil ? Ratio(sentences.count(where: \.allFieldsAgree), of: sentences.count) : nil,
             correctionCues: key == nil
@@ -310,12 +315,15 @@ public struct Summary: Encodable, Equatable, Sendable {
     public var option: Ratio
     public var optionWithCandidate: Ratio
     public var optionTopTwo: Ratio
-    /// List fields in `option` whose gold option is null (never matched).
-    public var optionNull: Int
+    /// List fields in `option` whose gold option is null ("no option fits"), and those of them the policy leaves
+    /// without an option (no candidate).
+    public var optionNull: Ratio
     /// Number fields whose policy number and unit are the gold's.
     public var number: Ratio
     /// Number fields with any candidate of the gold number and unit.
     public var numberInCandidates: Ratio
+    /// Number fields in `number` whose gold value span has no digits (kana or kanji): `ParsedNumber` cannot read them.
+    public var numberWithoutDigits: Int
     public var spans: SpanSummary
     /// Fields that agree with the gold under the policy.
     public var agreement: Ratio
@@ -384,6 +392,8 @@ public struct FieldJudgment: Encodable, Equatable, Sendable {
     public var optionInTopTwo: Bool?
     /// The gold number and unit of a scored number field.
     public var goldNumber: String?
+    /// The gold value span of a scored number field has no digits.
+    public var goldNumberWithoutDigits: Bool?
     /// Nil outside the number score.
     public var numberCorrect: Bool?
     public var numberInCandidates: Bool?

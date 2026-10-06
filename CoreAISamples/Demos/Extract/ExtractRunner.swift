@@ -9,7 +9,9 @@ import GLiNERRuntime
 struct ExtractRunner {
     /// The last asset folder that opened, in `UserDefaults`.
     static let assetFolderKey = "extractAssetFolder"
-    static var exportsFolder: URL { ModelStorage.root.appending(path: "extract-exports", directoryHint: .isDirectory) }
+    nonisolated static var exportsFolder: URL {
+        ModelStorage.root.appending(path: "extract-exports", directoryHint: .isDirectory)
+    }
 
     let service: any ExtractService
 
@@ -45,21 +47,23 @@ struct ExtractRunner {
             }
         case .export(let document):
             do {
-                send(.exportFinished(path: try Self.write(document)))
+                send(.exportFinished(path: try await Self.write(document)))
             } catch {
                 send(.exportFailed(Self.describe(error)))
             }
         }
     }
 
-    /// Writes `document` to a new file in `exportsFolder` and returns its path.
-    static func write(_ document: ExportDocument) throws -> String {
+    /// Writes `document` to a new file in `exportsFolder`, off the main actor, and returns its path. The name carries
+    /// the time to the millisecond, so a second export does not replace the first.
+    @concurrent
+    static func write(_ document: ExportDocument) async throws -> String {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
         let data = try encoder.encode(document)
         try FileManager.default.createDirectory(at: exportsFolder, withIntermediateDirectories: true)
         let stamp = Date.now.formatted(
-            .iso8601.year().month().day().time(includingFractionalSeconds: false).timeZone(separator: .omitted))
+            .iso8601.year().month().day().time(includingFractionalSeconds: true).timeZone(separator: .omitted))
         let url = exportsFolder.appending(path: "extract-\(stamp.replacing(":", with: "")).json")
         try data.write(to: url, options: .atomic)
         return url.path(percentEncoded: false)
@@ -89,12 +93,20 @@ enum ExtractResources {
         let extraField: FormField
     }
 
-    static let form = load(FormSchema.self, "inspection_u1") ?? FormSchema(fields: [])
-    static let correctionWords = load([String].self, "correction_words") ?? []
+    static let form = load(FormSchema.self, "inspection_u1")
+    static let correctionWords = load([String].self, "correction_words")
     static let examples = load(Examples.self, "extract_examples")
 
-    private static func load<Value: Decodable>(_ type: Value.Type, _ name: String) -> Value? {
-        guard let url = Bundle.main.url(forResource: name, withExtension: "json") else { return nil }
-        return try? JSONDecoder().decode(type, from: Data(contentsOf: url))
+    /// A JSON file of the app bundle. The files ship with the app, so one that is missing or broken is a build
+    /// error: stop rather than run with an empty form or no correction words.
+    private static func load<Value: Decodable>(_ type: Value.Type, _ name: String) -> Value {
+        do {
+            guard let url = Bundle.main.url(forResource: name, withExtension: "json") else {
+                throw CocoaError(.fileNoSuchFile)
+            }
+            return try JSONDecoder().decode(type, from: Data(contentsOf: url))
+        } catch {
+            preconditionFailure("The bundled \(name).json cannot be read: \(error)")
+        }
     }
 }

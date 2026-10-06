@@ -31,6 +31,12 @@ public enum ExtractFeature: Feature {
                 state.selectedField = nil
             }
             return startVersion(&state)
+        case .compositionChanged(let composing):
+            guard composing != state.composing else { return [] }
+            state.composing = composing
+            guard composing else { return state.result == nil ? [.run(.settle, id: .extraction)] : [] }
+            if case .extracting = state.phase { state.phase = .idle }
+            return [.cancel(.extraction)]
         case .extractRequested:
             return extract(&state)
         case .extractionFinished(let version, let mapping, let timing):
@@ -52,6 +58,9 @@ public enum ExtractFeature: Feature {
         case .unconfirm(let key):
             state.confirmations[key] = nil
             return []
+        case .appeared:
+            guard state.asset == .none, let path = state.lastAssetPath else { return [] }
+            return reduce(&state, .assetFolderChosen(path: path))
         case .assetFolderChosen(let path):
             state.asset = .opening(path: path)
             return [.run(.openAsset(path: path), id: .asset)]
@@ -83,7 +92,7 @@ public enum ExtractFeature: Feature {
     }
 
     private static func extract(_ state: inout ExtractState) -> [Command<ExtractEffect, EffectID>] {
-        guard case .ready = state.asset, !state.form.fields.isEmpty,
+        guard case .ready = state.asset, !state.composing, !state.form.fields.isEmpty,
             !state.text.allSatisfy(\.isWhitespace)
         else {
             state.phase = .idle
@@ -96,7 +105,7 @@ public enum ExtractFeature: Feature {
 
 public struct ExtractState: Equatable, Sendable {
     public enum Phase: Equatable, Sendable {
-        /// Nothing to extract yet: no text, no fields, no asset, or the text is still settling.
+        /// Nothing to extract yet: no text, no fields, no asset, a word being converted, or the text still settling.
         case idle
         case extracting(version: Int)
         case ready
@@ -129,9 +138,14 @@ public struct ExtractState: Equatable, Sendable {
     public var phase = Phase.idle
     public var asset = Asset.none
     public var export = Export.none
+    /// The asset folder opened last time; `appeared` opens it again when no asset is open.
+    public var lastAssetPath: String?
+    /// An input method is converting a word in the note: nothing is extracted until it is committed.
+    public var composing = false
 
-    public init(form: FormSchema) {
+    public init(form: FormSchema, lastAssetPath: String? = nil) {
         self.form = form
+        self.lastAssetPath = lastAssetPath
     }
 
     /// The correction cues in the sentences that hold a candidate of the field. They only mark the place.
@@ -146,13 +160,18 @@ public struct ExtractState: Equatable, Sendable {
 }
 
 public enum ExtractAction: Sendable {
+    /// The committed text of the note.
     case textChanged(String)
+    /// An input method started (true) or stopped (false) converting a word in the note.
+    case compositionChanged(Bool)
     case fieldsChanged(FormSchema)
     /// The text has settled: extract it when an asset is open.
     case extractRequested
     case extractionFinished(version: Int, mapping: FormMapping, timing: ExtractTiming)
     case extractionFailed(version: Int, message: String)
     case select(field: String?)
+    /// The screen appeared.
+    case appeared
     case confirm(field: String, choice: ExtractChoice)
     case unconfirm(field: String)
     case assetFolderChosen(path: String)
@@ -239,12 +258,17 @@ public struct AssetInfo: Equatable, Sendable {
     }
 }
 
-/// Sentences of a note: they end at an ideographic full stop or a line break, which belongs to the sentence.
+/// Sentences of a note: they end at one of `ends`, which belongs to the sentence.
 enum Sentence {
+    /// The ideographic full stop and the line break, for the screen.
     static let ends: Set<Unicode.Scalar> = ["\u{3002}", "\n"]
+    /// The ideographic full stop only, as the scoring rules define a sentence.
+    static let fullStop: Set<Unicode.Scalar> = ["\u{3002}"]
 
     /// From the start of the sentence that holds the start of `range` to the end of the sentence that holds its end.
-    static func range(around range: Range<Int>, in scalars: [Unicode.Scalar]) -> Range<Int> {
+    static func range(
+        around range: Range<Int>, in scalars: [Unicode.Scalar], ends: Set<Unicode.Scalar> = Sentence.ends
+    ) -> Range<Int> {
         var lower = min(range.lowerBound, scalars.count)
         while lower > 0, !ends.contains(scalars[lower - 1]) { lower -= 1 }
         var upper = min(max(range.upperBound, lower), scalars.count)
