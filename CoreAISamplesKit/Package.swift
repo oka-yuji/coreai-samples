@@ -59,7 +59,8 @@ let package = Package(
             dependencies: [
                 "CoreAIBackend",
                 .product(name: "Jinja", package: "swift-jinja"),
-            ]
+            ],
+            resources: [.copy("Fixtures")]
         ),
         .testTarget(name: "RAGContextTests", dependencies: ["RAGContext"]),
         .testTarget(name: "FeatureStoreTests", dependencies: ["FeatureStore"], swiftSettings: approachableConcurrency),

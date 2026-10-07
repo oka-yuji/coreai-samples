@@ -1,0 +1,13 @@
+{
+ "id": "edge_empty_state",
+ "source": "synthetic (edge cases)",
+ "request": {"state":"","questions":[{"id":"yes","type":"noul"}]},
+ "expected": {
+  "fragments": ["<|im_start|>system\nRead the complete state and schema. Decide every field jointly. Each answer must be exactly one of that field's allowed options.<|im_end|>\n<|im_start|>user\nSTATE:\n","","\n\nSCHEMA FIELDS:\n","\nFIELD 1\nID: yes\nTYPE: noul\nINSTRUCTION: ","yes","\nALLOWED OPTIONS:\n","OPTION 1: ","{\"description\":\"The proposition is true or the answer is yes.\",\"option_id\":\"true\"}","\n","OPTION 2: ","{\"description\":\"The proposition is false or the answer is no.\",\"option_id\":\"false\"}","\n","END FIELD\n","\n<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\nJOINT SCHEMA DECISIONS:"],
+  "ids": [248045,8678,198,4274,279,4434,1528,321,10485,13,95462,1396,2002,50407,13,8618,4087,1902,381,6681,799,314,421,2002,579,5252,2519,13,248046,198,248045,846,198,23852,25,198,271,3423,34651,426,32349,25,198,198,27806,220,16,198,887,25,9542,198,9222,25,307,10644,198,669,55530,25,220,9405,198,51535,1425,49555,25,198,32929,220,16,25,220,4754,4532,3147,760,38749,369,804,466,279,4087,369,9542,46292,1979,816,3147,1802,8934,198,32929,220,17,25,220,4754,4532,3147,760,38749,369,867,466,279,4087,369,874,46292,1979,816,3147,3721,8934,198,4537,38945,198,198,248046,198,248045,74455,198,248068,271,248069,271,25310,3118,7295,34651,41402,23451,50,25],
+  "questionSpans": [[61,62]],
+  "optionSpans": [[[73,91],[97,115]]],
+  "optionIDs": [["true","false"]],
+  "questionTypes": [0]
+ }
+}
