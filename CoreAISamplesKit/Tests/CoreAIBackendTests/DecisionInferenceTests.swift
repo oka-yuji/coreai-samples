@@ -110,7 +110,7 @@ struct DecisionInferenceTests {
         #expect(shortGrowth < 100_000_000)
     }
 
-    private static func footprint() throws -> UInt64 {
+    static func footprint() throws -> UInt64 {
         var info = task_vm_info_data_t()
         var count = mach_msg_type_number_t(MemoryLayout<task_vm_info_data_t>.size / MemoryLayout<integer_t>.size)
         let result = withUnsafeMutablePointer(to: &info) { pointer in
@@ -122,7 +122,7 @@ struct DecisionInferenceTests {
         return info.phys_footprint
     }
 
-    private static func writeMetrics(_ values: [String: Any], name: String) throws {
+    static func writeMetrics(_ values: [String: Any], name: String) throws {
         guard let path = ProcessInfo.processInfo.environment["DECIDE_METRICS_DIR"] else { return }
         let folder = URL(filePath: path)
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)

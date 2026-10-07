@@ -16,9 +16,69 @@ struct DecisionRuntime: Sendable {
     var valueCache: NDArray
     var convStates: NDArray
     var recurrentStates: NDArray
+    let convStateByteCount: Int
+    let recurrentStateByteCount: Int
     var processed = 0
 
-    static func load(bundle: DecisionBundle, capacity: Int) async throws -> Self {
+    struct RetainedStates: Sendable {
+        let capacity: Int
+        let keyCache: NDArray
+        let valueCache: NDArray
+        let convStates: NDArray
+        let recurrentStates: NDArray
+
+        func array(named name: String) -> NDArray? {
+            switch name {
+            case "keyCache": keyCache
+            case "valueCache": valueCache
+            case "convStates": convStates
+            case "recurrentStates": recurrentStates
+            default: nil
+            }
+        }
+    }
+
+    func retainedStates() -> RetainedStates {
+        RetainedStates(
+            capacity: capacity, keyCache: keyCache, valueCache: valueCache,
+            convStates: convStates, recurrentStates: recurrentStates)
+    }
+
+    struct Checkpoint: Sendable {
+        let convolution: Data
+        let recurrence: Data
+    }
+
+    func checkpoint() -> Checkpoint {
+        Checkpoint(
+            convolution: convStates.rawView().withUnsafeBytes { pointer, _, _ in
+                Data(bytes: pointer, count: convStateByteCount)
+            },
+            recurrence: recurrentStates.rawView().withUnsafeBytes { pointer, _, _ in
+                Data(bytes: pointer, count: recurrentStateByteCount)
+            })
+    }
+
+    mutating func restore(_ checkpoint: Checkpoint, processed: Int) throws {
+        guard checkpoint.convolution.count == convStateByteCount,
+            checkpoint.recurrence.count == recurrentStateByteCount
+        else { throw DecisionError.invalidOutput("The saved decision state has the wrong size.") }
+        convStates.mutableRawView().withUnsafeMutableBytes { destination, _, _ in
+            checkpoint.convolution.withUnsafeBytes { source in
+                if let pointer = source.baseAddress { destination.copyMemory(from: pointer, byteCount: source.count) }
+            }
+        }
+        recurrentStates.mutableRawView().withUnsafeMutableBytes { destination, _, _ in
+            checkpoint.recurrence.withUnsafeBytes { source in
+                if let pointer = source.baseAddress { destination.copyMemory(from: pointer, byteCount: source.count) }
+            }
+        }
+        self.processed = processed
+    }
+
+    static func load(
+        bundle: DecisionBundle, capacity: Int, retaining retained: RetainedStates? = nil
+    ) async throws -> Self {
         for (url, functionName, outputName) in [
             (bundle.backboneURL, bundle.manifest.backbone.function, "hidden_states"),
             (bundle.headURL, bundle.manifest.head.function, "logits"),
@@ -86,6 +146,12 @@ struct DecisionRuntime: Sendable {
             }
             let shape = spec.shape.map { $0 < 0 ? capacity : $0 }
             let resolved = spec.resolvingDynamicDimensions(shape)
+            if let retained, let array = retained.array(named: name) {
+                guard retained.capacity == capacity, array.shape == shape,
+                    array.scalarType == spec.scalarType, array.strides == resolved.preferredStrides
+                else { throw DecisionError.invalidBundle("The retained state layout changed.") }
+                return array
+            }
             var array = NDArray(descriptor: resolved)
             let bytes = resolved.minimumByteCount
             array.mutableRawView().withUnsafeMutableBytes { pointer, _, _ in
@@ -93,12 +159,19 @@ struct DecisionRuntime: Sendable {
             }
             return array
         }
+        func fixedSize(_ name: String) throws -> Int {
+            guard case .ndArray(let array) = descriptor.stateDescriptor(of: name) else {
+                throw DecisionError.invalidBundle("Missing fixed state.")
+            }
+            return array.minimumByteCount
+        }
         return try Self(
             backbone: backbone, head: head, function: function, headFunction: headFunction,
             hiddenDescriptor: hidden, logitsDescriptor: logits, capacity: capacity,
             width: hidden.shape[2], questions: logits.shape[0], options: logits.shape[1],
             keyCache: state("keyCache"), valueCache: state("valueCache"),
-            convStates: state("convStates"), recurrentStates: state("recurrentStates"))
+            convStates: state("convStates"), recurrentStates: state("recurrentStates"),
+            convStateByteCount: fixedSize("convStates"), recurrentStateByteCount: fixedSize("recurrentStates"))
     }
 
     mutating func forward(_ ids: ArraySlice<Int>) async throws -> [Float16] {

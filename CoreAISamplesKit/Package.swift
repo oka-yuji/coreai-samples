@@ -31,7 +31,8 @@ let package = Package(
             dependencies: [
                 .product(name: "Tokenizers", package: "swift-transformers"),
                 .product(name: "Jinja", package: "swift-jinja"),
-            ]
+            ],
+            resources: [.process("Resources")]
         ),
         .target(name: "RAGContext"),
         .target(name: "FeatureStore", swiftSettings: approachableConcurrency),

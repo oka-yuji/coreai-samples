@@ -46,15 +46,25 @@ public struct DecisionResult: Sendable, Equatable, Codable {
     public let modelVersion: String
     public let inputTokens: Int
     public let elapsedSeconds: Double
+    public let reusedTokens: Int
+    public let recomputedAll: Bool
+    public let changedQuestions: [String]
+    public let reviewFirstQuestions: [String]
 
     public init(
-        answers: [DecisionAnswer], model: String, modelVersion: String, inputTokens: Int, elapsedSeconds: Double
+        answers: [DecisionAnswer], model: String, modelVersion: String, inputTokens: Int, elapsedSeconds: Double,
+        reusedTokens: Int = 0, recomputedAll: Bool = false, changedQuestions: [String] = [],
+        reviewFirstQuestions: [String] = []
     ) {
         self.answers = answers
         self.model = model
         self.modelVersion = modelVersion
         self.inputTokens = inputTokens
         self.elapsedSeconds = elapsedSeconds
+        self.reusedTokens = reusedTokens
+        self.recomputedAll = recomputedAll
+        self.changedQuestions = changedQuestions
+        self.reviewFirstQuestions = reviewFirstQuestions
     }
 
     static func answers(request: DecisionRequest, rendered: RenderedDecision, logits: [Float], stride: Int) throws

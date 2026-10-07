@@ -93,6 +93,18 @@ struct DecisionRendererTests {
         }
     }
 
+    @Test(
+        "A cached document prefix produces the same tokens and spans as a complete rendering",
+        arguments: try DecisionFixture.all())
+    func cachedRenderingMatchesCompleteRendering(_ fixture: DecisionFixture) throws {
+        let request = fixture.decisionRequest
+        let prefix = fixture.expected.fragments.prefix(2).flatMap(scalarIDs)
+        let complete = try DecisionRenderer.render(request, limits: DecisionLimits(tokens: 100_000), encode: scalarIDs)
+        let reused = try DecisionRenderer.render(
+            request, limits: DecisionLimits(tokens: 100_000), prefix: prefix, encode: scalarIDs)
+        #expect(reused == complete)
+    }
+
     @Test("The fixtures are the 30 lab records and 2 synthetic edge cases")
     func fixturesAreThirtyLabRecordsAndTwoEdgeCases() throws {
         let ids = try DecisionFixture.all().map(\.id)
