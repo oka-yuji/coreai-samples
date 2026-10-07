@@ -14,6 +14,8 @@ public struct DecisionLimits: Sendable, Hashable {
 }
 
 public enum DecisionError: Error, Equatable, LocalizedError {
+    case contextInvalidated
+    case questionBudgetExceeded(count: Int, limit: Int)
     case invalidBundle(String)
     case invalidRequest(String)
     case invalidOutput(String)
@@ -27,6 +29,10 @@ public enum DecisionError: Error, Equatable, LocalizedError {
 
     public var errorDescription: String? {
         switch self {
+        case .contextInvalidated: "This document context is no longer current."
+        case .questionBudgetExceeded(let count, let limit):
+            "The questions need \(count) tokens; this context reserves \(limit) tokens."
+
         case .invalidBundle(let message), .invalidRequest(let message), .invalidOutput(let message): message
         case .noQuestions: "The request has no questions."
         case .duplicateQuestion(let id): "The question \(id) appears more than once."
@@ -76,13 +82,14 @@ public enum DecisionRenderer {
     static func render(
         _ request: DecisionRequest,
         limits: DecisionLimits,
+        prefix: [Int]? = nil,
         encode: (String) -> [Int]
     ) throws -> RenderedDecision {
         try validate(request, limits: limits)
-        var ids: [Int] = []
+        var ids = prefix ?? []
         var questionSpans: [Range<Int>] = []
         var optionSpans = [[Range<Int>]](repeating: [], count: request.questions.count)
-        for fragment in fragments(for: request) {
+        for fragment in fragments(for: request).dropFirst(prefix == nil ? 0 : 2) {
             let start = ids.count
             ids += encode(fragment.text)
             switch fragment.role {

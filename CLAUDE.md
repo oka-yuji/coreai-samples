@@ -34,3 +34,4 @@
   `COREAI_DECISION_BUNDLE=/path/to/decision-bundle swift test --package-path CoreAISamplesKit -c release --filter DecisionInferenceTests`
   20 文書のメモリ試験は `DECIDE_MEMORY_TEST=1` を追加する。測定の JSON は `DECIDE_METRICS_DIR=/path/to/output` で保存できる。
   `COREAI_TEST_BUNDLES` は言語モデル用だけに使い、両変数を同時に設定しない。
+- 同じ文書で質問数を変えるメモリ検査は `DECIDE_SHAPE_MEMORY=1` と `--filter DecisionInferenceTests.questionSizeMemory`。headless の文書再利用経路は `--decide-json input.json output.json --reuse-document`。

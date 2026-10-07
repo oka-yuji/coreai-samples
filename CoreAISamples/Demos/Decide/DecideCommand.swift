@@ -14,7 +14,13 @@ enum DecideCommand {
             }
             let request = try DecisionRequest(json: Data(contentsOf: URL(filePath: arguments[index + 1])))
             let model = try await DecisionModel.load(bundle: URL(filePath: path))
-            let result = try await model.decide(request)
+            let result: DecisionResult
+            if LaunchArguments.flag("--reuse-document") {
+                let context = try await model.context(state: request.state)
+                result = try await context.decide(request.questions)
+            } else {
+                result = try await model.decide(request)
+            }
             try result.systemOneJSON(for: request)
                 .write(to: URL(filePath: arguments[index + 2]), options: .atomic)
         } catch {

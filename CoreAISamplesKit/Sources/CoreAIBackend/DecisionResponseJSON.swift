@@ -50,10 +50,14 @@ extension DecisionResult {
             return "{\"id\":" + quote(answer.id) + ",\"top\":" + quote(answer.top) + ",\"distribution\":[" + values
                 + "]}"
         }.joined(separator: ",")
+        let changed = changedQuestions.map(quote).joined(separator: ",")
+        let review = reviewFirstQuestions.map(quote).joined(separator: ",")
         let json =
             "{\"model\":" + quote(model) + ",\"answers\":{" + fields.joined(separator: ",")
             + "},\"usage\":{\"input_tokens\":" + String(inputTokens) + ",\"output_tokens\":0},\"metadata\":{"
             + "\"model_version\":" + quote(modelVersion) + ",\"elapsed_seconds\":" + String(elapsedSeconds)
+            + ",\"reused_tokens\":" + String(reusedTokens) + ",\"recomputed_all\":" + String(recomputedAll)
+            + ",\"changed_questions\":[" + changed + "],\"review_first\":[" + review + "]"
             + ",\"calibrated\":false,\"diagnostics\":[" + diagnostics + "]}}"
         return Data(json.utf8)
     }

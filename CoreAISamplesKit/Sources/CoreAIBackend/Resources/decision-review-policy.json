@@ -1,0 +1,11 @@
+{
+  "threshold": 0.6,
+  "unknownOptions": [
+    "unknown",
+    "Unknown",
+    "unspecified",
+    "not specified",
+    "不明",
+    "記載なし"
+  ]
+}
