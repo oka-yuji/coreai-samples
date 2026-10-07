@@ -541,7 +541,8 @@ final class GUIDriver {
             let pass =
                 confirmed.count == 2 && store.state.confirmations == confirmed && exported == confirmed
                 && document.input.text == example && model?.fields.count == document.form.fields.count
-                && document.rules != nil && document.mode == "form" && model?.candidateFilter == "clauseFieldName"
+                && document.rules != nil && document.mode == "form"
+                && model?.candidateFilter == "clauseFieldNameAndEquipmentNumber"
                 && model?.assetRevision != nil && model?.appVersion != nil
             return (
                 pass,

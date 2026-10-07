@@ -395,7 +395,7 @@ struct FormMappingParityTests {
         let sentences = try load(BaselineOutputs.self, outputsPath).outputs
         try #require(sentences.count == 30)
         let form = try formU1()
-        let mapper = FormMapper(schema: form, correctionWords: [])
+        let mapper = FormMapper(schema: form, correctionWords: [], candidateFilter: .clauseFieldName)
         let labelIndex = Dictionary(uniqueKeysWithValues: form.fields.enumerated().map { ($1.key, $0) })
         var dropped: [String] = []
         var kept: [String] = []
