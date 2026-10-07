@@ -14,6 +14,9 @@ public struct DecisionLimits: Sendable, Hashable {
 }
 
 public enum DecisionError: Error, Equatable, LocalizedError {
+    case invalidBundle(String)
+    case invalidRequest(String)
+    case invalidOutput(String)
     case noQuestions
     case duplicateQuestion(String)
     case duplicateOption(question: String, option: String)
@@ -24,6 +27,7 @@ public enum DecisionError: Error, Equatable, LocalizedError {
 
     public var errorDescription: String? {
         switch self {
+        case .invalidBundle(let message), .invalidRequest(let message), .invalidOutput(let message): message
         case .noQuestions: "The request has no questions."
         case .duplicateQuestion(let id): "The question \(id) appears more than once."
         case .duplicateOption(let question, let option): "The option \(option) appears more than once in \(question)."

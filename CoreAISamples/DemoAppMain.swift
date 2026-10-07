@@ -12,7 +12,11 @@ struct DemoApp: App {
 
 @main
 enum DemoAppMain {
-    static func main() {
+    static func main() async {
+        if LaunchArguments.flag("--decide-json") {
+            await DecideCommand.run()
+            return
+        }
         if LaunchArguments.flag("--selftest") {
             SelfTest.run()
         }
