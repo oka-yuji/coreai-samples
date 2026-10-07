@@ -1,10 +1,11 @@
-# Demo app (macOS)
+# Demo app (macOS, and Extract on iPhone)
 
 `CoreAISamples` (`CoreAISamples.xcodeproj` and the `CoreAISamples` folder at the repository root) is a SwiftUI app that runs a local model bundle through Foundation Models with the runtime in this repository (`CoreAIBackend`). It does not use the official `coreai-models` package.
 
 - **Models**: open a bundle folder on this Mac (the app remembers it), load it, and clear the copy the app prepared for the GPU. The download catalog for Hugging Face is in place but stays empty until bundles are published.
 - **Chat**: a `LanguageModelSession` on `LocalLanguageModel`. Replies stream, thinking streams into a collapsed section, and the status line shows the time to the first token, the speed, the input, reused and output tokens, and why the reply stopped. With **RAG** on, the app first collects sources from the web and from `~/Documents/rag/` and the model answers from them with numbered citations. See [RAG](#rag) below.
 - **Agent**: searches the web, reads pages, saves notes and answers with a `Sources:` section, on the model that Chat has loaded. See [Agent](#agent) below.
+- **Extract**: a technical verification of a Core AI conversion. Type labels and GLiNER2.5-multi (Core AI, FP32) marks the spans it finds for each in a text, with their scores; mapping an inspection memo onto a form with option suggestions is kept as an experiment. The result exports as JSON. See [Extract](#extract) below.
 
 ## Requirements
 
@@ -23,6 +24,55 @@ open .build/Build/Products/Release/CoreAISamples.app
 The app is signed ad hoc and runs without the App Sandbox. To sign with your team, copy `Config/Local.xcconfig.template` to `Config/Local.xcconfig` and set `DEVELOPMENT_TEAM`; the template also switches to automatic signing with an Apple Development certificate. Choosing a team in Xcode's Signing & Capabilities instead writes it into the shared project file. A `Local.xcconfig` made in an earlier checkout under `Examples/DemoApp/` is not moved by git; move it to `Config/Local.xcconfig`. The context window is 16,384 tokens (or the bundle's maximum, if smaller) for Chat, RAG and Agent; launch with `--context-limit N` to change it, for example `open .build/Build/Products/Release/CoreAISamples.app --args --context-limit 1024`.
 
 The first load of a model prepares it for the GPU (about 21 s for Qwen3.5-9B on an M4 Max); later loads reuse the prepared copy in `~/Library/Caches/coreai-cache/<OS build>/com.coreai-samples.DemoApp/`.
+
+## Extract on iPhone
+
+`CoreAISamples-iOS` is an iPhone app with [Extract](#extract) only: a screen that extracts one note, and the headless `--extract-eval`. Chat, Agent and Models stay on the Mac. The bundle ID is `com.coreai-samples.DemoApp.ios` and it needs iOS 27.0. It runs on a device only: the iOS Simulator SDK (`iPhoneSimulator27.0.sdk`) has no `CoreAI.framework`, so a simulator build stops at `Unable to resolve module dependency: 'CoreAI'`. The Extract service, runner, headless evaluation and bundled JSON files are the Mac app's; the entry point and the screen are in `CoreAISamples/iOS/`. It has not been run on a device yet.
+
+**Build and install.** Without a team, the device build is left unsigned: it shows that the app compiles, but it cannot be installed.
+
+```bash
+xcodebuild -project CoreAISamples.xcodeproj -scheme CoreAISamples-iOS -configuration Release -destination 'generic/platform=iOS' build
+```
+
+To install it, copy `Config/Local.xcconfig.template` to `Config/Local.xcconfig` and set `DEVELOPMENT_TEAM` (the template signs the iPhone build too), turn on Developer Mode on the iPhone and connect it. In Xcode, choose the `CoreAISamples-iOS` scheme and the iPhone and press Run (a Release build; the first Run also registers the iPhone with the team), or, once the iPhone is registered, from the command line:
+
+```bash
+xcrun devicectl list devices    # the iPhone's identifier, <UDID> below
+xcodebuild -project CoreAISamples.xcodeproj -scheme CoreAISamples-iOS -configuration Release \
+  -destination 'generic/platform=iOS' -derivedDataPath .build -allowProvisioningUpdates build
+xcrun devicectl device install app --device <UDID> .build/Build/Products/Release-iphoneos/CoreAISamples-iOS.app
+```
+
+**Copy the asset and the gold file into the app's Documents.** The asset folder is the one the Mac reads (`contract.json`, one `.aimodel` and `tokenizer.json` in `tokenizer/` or in the folder itself), made of real files: `cp -RL` resolves symbolic links. The FP32 (1.23 GB) and FP16 (0.62 GB) folders can sit side by side, and the app opens either.
+
+```bash
+BID=com.coreai-samples.DemoApp.ios
+mkdir -p /tmp/gliner-fp32/tokenizer
+cp -RL /path/to/export/contract.json /path/to/export/*.aimodel /tmp/gliner-fp32/
+cp -L /path/to/tokenizer.json /tmp/gliner-fp32/tokenizer/
+xcrun devicectl device copy to --device <UDID> --domain-type appDataContainer --domain-identifier $BID \
+  --source /tmp/gliner-fp32 --destination Documents/gliner-fp32
+xcrun devicectl device copy to --device <UDID> --domain-type appDataContainer --domain-identifier $BID \
+  --source /path/to/gold.json --destination Documents/gold.json
+```
+
+- Copy before you launch the app, and let the copy finish: a model read while its files are still arriving has been reported to leave a broken entry in the specialization cache.
+- Leave out `--remove-existing-content true`, which has been reported to empty the whole data container.
+
+**The screen** shows the same note as the Mac's Extract screen and lists the folders in Documents that hold a `contract.json`, as they were at launch; relaunch the app after copying another one. Tap a folder to open it (no folder can be tapped while one opens): the status shows the load time and the `revision`. Edit the note (the first example is filled in) and press **Extract**, which extracts again even when the note has not changed: each example label of `extract_examples.json` lists the spans the model returns for it, as written in the note, with their scores, and a line shows the time of each stage. The labels cannot be edited here, and the form experiment is on the Mac only. The model is specialized for the GPU; launch with `--compute-units default` to let Core AI place it (the footer shows which).
+
+**Headless evaluation.** Launch with the arguments the Mac takes (see [Extract](#extract)). Relative paths are read in Documents: the app makes Documents its working directory. The app keeps the screen from locking during the run; unlock the iPhone before you launch, and keep the app in the foreground, since an app in the background cannot use the GPU. The app exits when the run ends, which ends `--console`, and stdout and stderr come back through it as on the Mac.
+
+```bash
+xcrun devicectl device process launch --console --terminate-existing --device <UDID> $BID \
+  --extract-eval gold.json --asset gliner-fp32 --out result-fp32-gpu.json
+xcrun devicectl device copy from --device <UDID> --domain-type appDataContainer --domain-identifier $BID \
+  --source Documents/result-fp32-gpu.json --destination ./result-fp32-gpu.json
+```
+
+- `--compute-units gpu`, the default, prefers the GPU; `--compute-units default` leaves the choice among the CPU, the GPU and the Neural Engine to Core AI. Try the default placement in a launch of its own. Any other value is an argument error (exit status 2).
+- The output JSON also has `device` (the hardware model identifier, `hw.machine`), `osVersion` (the OS version with its build) and `computeUnits` next to the asset's `revision`. The Mac writes the same fields (`device` is `hw.model` there) and takes `--compute-units` too.
 
 ## Headless self-test
 
@@ -117,3 +167,71 @@ With **Citation guard** on, the app checks the sources of the answer before it a
 - When the check fails again, no step is left, the task is stopped, the repair turn does not end with an answer, or (headless) the `--deadline` has passed, the answer stays on screen but is held: the notes stay in `.draft/` with the reason in `.draft/HELD.txt`. The guard does not judge a task that ends without a complete answer (`skipped`: step limit, token limit, stop, error), and its notes stay in `.draft/` as well.
 - The transcript ends with `Citation guard: 引用元取得確認` and the counts (passed, with or without the repair turn, and every URL the answer cites was fetched), only the counts (passed, but a cited URL could not be fetched or none was, such as `3/4 cited URLs were fetched in this task · 1 could not be fetched`), or `Citation guard: 引用元の取得を確認できませんでした` and the reason. It says the cited pages were fetched in the task, not that the answer is true.
 - `move_note` cannot move a draft, so with the guard on it finds a note only after a task has passed.
+
+## Extract
+
+> Technical verification of a Core AI conversion. Zero-shot GLiNER2.5-multi did not reach the pre-registered bar for Japanese inspection memos (sealed set: fabricated candidates 9/199, primary-span precision 0.791, recall 0.874). Suggestions are uncalibrated scores.
+
+Extract runs GLiNER2.5-multi, converted to Core AI (FP32), on a text you paste or type. By default you type labels and see the spans the model returns for each label, with their scores. Mapping an inspection memo onto a form, where each span's clause is classified over the options of its field, is kept as an experiment behind **Experiment: inspection form**. Nothing is filled in automatically.
+
+### Evaluation
+
+Before a sealed set of 200 synthetic Japanese inspection memos was opened, once, two bars were fixed: B1 for suggesting the values of a form (span precision 0.95, recall 0.90, no fabricated candidate) and B2 for a span-extraction sample (0.90, 0.80, at most 2). Both were missed. One memo is excluded, so 199 count. Each memo leaves one chosen field of form U1 unmentioned, and a candidate on that field is a fabricated candidate. The memos were written for the test and their answers checked independently, not by domain experts.
+
+| Sealed set: 199 memos, Core AI FP32 | Result | B2 |
+|---|---|---|
+| Fabricated candidates on the field each memo leaves out | 9/199 (4.5%) | at most 2 |
+| Primary-span precision (each field's most probable candidate) | 0.791 (462/584) | 0.90 |
+| Span recall, any candidate | 0.874 (500/572) | 0.80 |
+| List fields with a mention whose primary span's top suggestion is right | 296/394 | |
+| Memos with all six fields right | 57/199 | |
+| "No matching option" fields left without an option | 2/24 | |
+| Mention precision / recall | 0.942 / 0.918 | |
+
+- Core AI made the same decisions as PyTorch FP32 on all 249 sealed texts (the 199 memos and 50 delivery reports), with probabilities within 2.2e-5. Four span ends differ by one character: gliner2 adds a period to a text that does not end with `.`, `!` or `?`, and four of its spans ended on that period, past the end of the text.
+- The 50 delivery reports, on a form that was not tuned, are reported apart and not added in: mention precision 0.959, recall 0.784, fabricated candidates 1/50.
+- Warm, one memo took 27 ms (p50) and 43 ms (p95) from preprocessing to the mapping on an M4 Max, without drawing.
+- Rule R1 (the candidate filter below) did not reduce the fabricated candidates on the sealed set, and it added 6 misses.
+
+The evaluation does not show:
+
+- that the model can fill in inspection forms for people, or that it never makes up a candidate;
+- quality on Japanese text in general, or on forms it was not tried with;
+- that further training will bring the fabricated candidates under a given rate;
+- that a person's confirmation makes the output safe, or that corrections in a memo are handled (the correction words only mark the place);
+- that a score is the probability of being right;
+- anything on iPhone, or that it is ready to ship;
+- that 43 ms includes drawing, or that the speed target for 512-token inputs is met (not measured; the sealed memos are short);
+- the same output as PyTorch in every detail (four span ends differ).
+
+### The screen
+
+**The asset folder** holds `contract.json`, one `.aimodel` (`encode_t256`, `pair_t256`, `encode_t512`, `pair_t512`, in FP32 or FP16: an FP16 export takes and returns Float16 values, which the app reads into Float) and the tokenizer's `tokenizer.json` in a `tokenizer/` folder or in the folder itself. Choose it with **Open Asset Folder…**; the app remembers it and opens it again when the Extract screen appears. Opening specializes the model for the GPU, and the status line shows how long it took and the `revision` in `contract.json`.
+
+- **Note**: paste or type the text, or press **Paste Example** (examples in `CoreAISamples/Demos/Extract/Resources/extract_examples.json`). The note is extracted 300 ms after the last change, and never while an input method is composing a word. A change of the text, of the labels or form, of the mode or of the candidate filter starts a new version: a result that arrives for an older version is dropped, and the confirmations are cleared.
+- **Evidence**: the note with each label's (or field's) spans in its color. Select a label (its row or its name under the note) to make its spans stronger and underlined. Correction words found by rule (`correction_words.json`) are red; they mark the place only.
+- **Labels**, the default: one row per label with its description, each span the model returns for it as written in the note, and the span's score. **Add Label** and **Edit** take the label, which the model reads, and an optional description; the screen starts with the example labels of `extract_examples.json`. A label is kept as a number field without a unit, so no clause is classified, and nothing is confirmed.
+- **Experiment: inspection form** maps the note onto form U1 (`Resources/forms/inspection_u1.json`) instead. Switching between the labels and the form clears the result and the choices and extracts again.
+  - **Form**: one row per field with its state (`Candidate`, `Confirmed` or `Not detected`; not detected can also mean the model missed it), each candidate as written in the note with its span score, the number and unit of a number field, the two best options of a list field with `score (uncalibrated)`, and `Correction cue (rule)` with the words found in the sentence of a candidate. **Confirm** offers every option (or every candidate of a number field), `No matching option` (`None of these`) and `On hold`; nothing is chosen by default, even when a field has two values. **Clear** removes the choice. A new result for the same text and form keeps the choices.
+  - **Candidate filter**: rule R1 (`clauseFieldName`, the default and the rule that was evaluated) drops a candidate of a list field when its clause holds the name of another list field and not its own; `None` keeps every candidate. Dropped candidates are not shown, and the export keeps them apart. The filter starts as R1 at every launch.
+  - **Add Field** and **Edit** change the form: name, the label the model reads (the name when empty), type (number with a unit, or list with comma-separated options) and description. A field keeps its option labels and its task while its name and option names stay. **Reset Form** goes back to form U1. The model takes up to 16 labels or fields and 16 options.
+- The status line shows the time of the last extraction: preprocessing, `encode`, `pair` (with the candidates and the decoding), the clause classifications (count and time), the mapping and the total.
+- **Export JSON** writes `~/Library/Application Support/com.coreai-samples.DemoApp/extract-exports/extract-<time>.json` with separate sections: `input` (text and version), `mode` (`labels` or `form`), `form` (the labels or the form), `model` (the candidates per label or field with probabilities, the suggestions, the dropped candidates, `probabilitiesCalibrated: false`, `candidateFilter` (`clauseFieldName` or `none`), the asset's `assetRevision`, the app's `appVersion` and the timing), `rules` (the correction cues) and `confirmations`. Every position is given in Unicode scalars and in UTF-16.
+
+The state, the actions and `reduce` are in the `ExtractFeature` library of `CoreAISamplesKit` (no UI, no model; `swift test --package-path CoreAISamplesKit --filter ExtractFeature`), run by the generic `Store` of `FeatureStore`.
+
+### Headless
+
+With no window:
+
+```bash
+$APP --extract-eval /path/to/gold.json --asset /path/to/asset-folder --out /path/to/result.json [--form /path/to/form.json] [--candidate-filter r1|r1n1|none]
+```
+
+- The gold file is a JSON array of sentences in the GL2 format (`id`, `text`, `main_unmentioned_field`, `features`, and per field `mentioned`, `explicit_empty`, `statement_span`, `value_span`, `value`, `unit`, `option`; positions in Unicode scalars). Sentences with `excluded: true` are left out of every count. `--form` replaces form U1; the correction words stay the bundled ones.
+- Every sentence is extracted with the service the screen uses, after one warm-up run on the first sentence (reported as `cold`).
+- `--candidate-filter` picks the rule that drops candidates: `r1` (rule R1, the default and the screen's), `none`, or `r1n1`, which adds rule N1 to R1 for number fields. Any other value is an argument error (exit status 2). N1 drops a candidate that overlaps one or more numeral runs of the note when an equipment marker touches every one of them (`No.3`, `P-3`): a run is half- or full-width digits and numeral words in kana and kanji, the longest word first, ended by anything else (a `.` too; the decimal point written in kana or kanji is one of the numeral words); a marker ends right before the run or starts right after it, compared with full-width ASCII (U+FF01...U+FF5E) as ASCII and in lower case. A candidate with an unmarked run, or with no run, is kept. The markers and numeral words are in `CoreAISamplesKit/Sources/GLiNERCore/Resources/equipment_numbers.json`.
+- Scoring, per field, per `features` tag and overall: **mention** is found when a candidate overlaps the gold statement span, fabricated when the field is not mentioned but has candidates (`mainFabrication` counts the sentence's `main_unmentioned_field` on its own), missed when it is mentioned with no candidates, and misplaced when it is mentioned and no candidate overlaps its statement span (a false positive and a false negative). **Span match**: a candidate overlaps the field's gold value span, stays in the same sentence (ended by `。`) and overlaps no other field's value span; two fields that share a predicate have the same value span, which does not count (precision over all candidates, each matching candidate counting, recall over gold value spans; exact ranges are given for reference). The **policy** takes the candidate with the highest probability: its top suggestion for a list field (`option`; a null gold option never matches, and `optionNull` counts the null ones the policy leaves without an option; `optionTopTwo` checks the two best) and its number and unit for a number field (`number`; the form's unit when none is written; `numberInCandidates` checks every candidate). The number is the one `ParsedNumber` reads, digits only: `numberWithoutDigits` counts the gold values written in kana or kanji, which cannot match. Explicitly empty fields are not in the option, top-two and number scores. The miss rate counts mentioned fields with no candidate; a misplaced field is counted on its own. `agreement` counts fields that agree with the gold under the policy (an empty gold agrees with no candidates) and `allFields` the sentences whose fields all agree. `correctionCues` compares the sentences with a cue with those the gold tags `correction`.
+- The output has the gold file's path and SHA-256, the form, the asset (`path`, and `floatType`: `float32` or `float16`) and `revision`, `candidateFilter` (`clauseFieldName`, `clauseFieldNameAndEquipmentNumber` or `none`), `droppedCandidates` (every candidate the rule dropped, with the sentence `id`, `field`, `start`, `end`, `text` and `probability`; they are not scored) and `appVersion`, the asset load time, the timing (`cold`, and the `p50` and `p95` of each stage of the warm runs, nearest rank, in milliseconds; `total` is from the start of preprocessing to the end of the mapping), the summaries and every sentence with its judgments and candidates. stdout gets one line for the overall summary and one per field, a timing line, then `EXTRACT EVAL DONE <out>` (the summaries per tag are in the JSON only); the exit status is 0, 1 when the run fails, or 2 when an argument is missing or has a value it does not know.
+
+`$APP --gui-e2e /path/to/output --extract /path/to/asset-folder` drives the Extract screen: it opens the asset in the label mode, pastes the first example, switches to the form experiment, adds the example's extra field and selects it, confirms one number field and one list field and exports the JSON (with its mode, candidate filter, asset revision and app version), saving a screenshot after each step with `results.json`, `driver.log` and `export.json`. Give the asset folder as the value of `--extract`: AppKit reads the arguments as `-key value` pairs and opens a path left on its own as a document, and SwiftUI then opens no window. If no window appears for another reason (a saved window state that AppKit cannot restore also leaves the app without one), put `-ApplePersistenceIgnoreState YES` before the other arguments.

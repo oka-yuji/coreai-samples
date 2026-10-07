@@ -71,7 +71,7 @@ This is the core of `CoreAISamplesKit/Sources/coreai-chat/ChatCommand.swift`, cu
 
 ```
 CoreAISamples.xcodeproj  the demo app project: open it and press Run
-CoreAISamples/           macOS SwiftUI demo app: Models, Chat (with RAG), Agent
+CoreAISamples/           macOS SwiftUI demo app: Models, Chat (with RAG), Agent, Extract
 CoreAISamplesKit/        the Swift package the app is built on
   Sources/CoreAIBackend/ the runtime: Engine (Core AI calls), LocalLanguageModel (Foundation Models), ModelBundle (metadata.json)
   Sources/RAGContext/    passages, ranking, token budget, prompt and dates for answers from retrieved sources; a document-folder reader
@@ -91,6 +91,7 @@ LICENSE                  MIT, for the code
 - **Models** opens a bundle folder on this Mac, loads it, and clears the copy prepared for the GPU.
 - **Chat** streams the reply and the thinking, and with RAG answers from web pages and local documents with numbered sources.
 - **Agent** searches the web, reads pages and saves notes through the Foundation Models tool loop.
+- **Extract** shows the spans GLiNER2.5-multi (Core AI, FP32) finds in a text for the labels you type, with their scores; mapping an inspection memo onto a form with option suggestions is kept as an experiment. Technical verification of a Core AI conversion. Zero-shot GLiNER2.5-multi did not reach the pre-registered bar for Japanese inspection memos (sealed set: fabricated candidates 9/199, primary-span precision 0.791, recall 0.874). Suggestions are uncalibrated scores.
 
 To try it, open `CoreAISamples.xcodeproj` and press Run. Building it from the command line, the headless self-tests, the screen checks and the logs are in [docs/demo-app.md](docs/demo-app.md).
 
@@ -131,7 +132,7 @@ COREAI_TEST_BUNDLES=/path/to/bundle-a:/path/to/bundle-b swift test
 
 ## Limitations
 
-- Run on macOS only (Apple silicon, macOS 27.0). `CoreAISamplesKit/Package.swift` declares iOS 27, but nothing has been run on iOS, and the demo app is macOS only.
+- Run on macOS only (Apple silicon, macOS 27.0). `CoreAISamplesKit/Package.swift` declares iOS 27, but nothing has been run on iOS. The demo app's iPhone target (`CoreAISamples-iOS`, Extract only, see [docs/demo-app.md](docs/demo-app.md#extract-on-iphone)) builds but has not been run on a device yet.
 - Only bundles from the converter's macOS export (the `*_dynamic` folders) have been run, all of them Qwen models (Qwen3, Qwen3.5, Qwen3.8). The stop tokens, the `<think>` tags and the tool-call forms above are the ones those templates use; other model families may need more.
 - Text in, text out: a transcript segment that is not text throws `LanguageModelError.unsupportedTranscriptContent`, and there is no image or audio input.
 - No guided generation: a request with a response schema throws `LanguageModelError.unsupportedCapability`.

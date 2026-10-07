@@ -14,9 +14,12 @@ let package = Package(
     ],
     products: [
         .library(name: "CoreAIBackend", targets: ["CoreAIBackend"]),
+        .library(name: "GLiNERCore", targets: ["GLiNERCore"]),
+        .library(name: "GLiNERRuntime", targets: ["GLiNERRuntime"]),
         .library(name: "RAGContext", targets: ["RAGContext"]),
         .executable(name: "coreai-chat", targets: ["coreai-chat"]),
         .library(name: "FeatureStore", targets: ["FeatureStore"]),
+        .library(name: "ExtractFeature", targets: ["ExtractFeature"]),
     ],
     dependencies: [
         .package(url: "https://github.com/huggingface/swift-transformers", from: "1.3.4"),
@@ -32,6 +35,21 @@ let package = Package(
         ),
         .target(name: "RAGContext"),
         .target(name: "FeatureStore", swiftSettings: approachableConcurrency),
+        .target(name: "GLiNERCore", resources: [.process("Resources")], swiftSettings: approachableConcurrency),
+        .target(
+            name: "ExtractFeature",
+            dependencies: ["FeatureStore", "GLiNERCore"],
+            swiftSettings: approachableConcurrency
+        ),
+        .target(
+            name: "GLiNERRuntime",
+            dependencies: [
+                "GLiNERCore",
+                .product(name: "Hub", package: "swift-transformers"),
+                .product(name: "Tokenizers", package: "swift-transformers"),
+            ],
+            swiftSettings: approachableConcurrency
+        ),
         .executableTarget(
             name: "coreai-chat",
             dependencies: ["CoreAIBackend"]
@@ -46,5 +64,22 @@ let package = Package(
         ),
         .testTarget(name: "RAGContextTests", dependencies: ["RAGContext"]),
         .testTarget(name: "FeatureStoreTests", dependencies: ["FeatureStore"], swiftSettings: approachableConcurrency),
+        .testTarget(
+            name: "GLiNERCoreTests",
+            dependencies: ["GLiNERCore"],
+            resources: [.copy("Resources")],
+            swiftSettings: approachableConcurrency
+        ),
+        .testTarget(
+            name: "ExtractFeatureTests",
+            dependencies: ["ExtractFeature", "FeatureStore", "GLiNERCore"],
+            resources: [.copy("Resources")],
+            swiftSettings: approachableConcurrency
+        ),
+        .testTarget(
+            name: "GLiNERRuntimeTests",
+            dependencies: ["GLiNERCore", "GLiNERRuntime"],
+            swiftSettings: approachableConcurrency
+        ),
     ]
 )

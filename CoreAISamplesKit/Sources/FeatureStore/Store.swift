@@ -15,7 +15,7 @@ import Observation
 /// - G8: `.cancelAll` cancels every running effect. Commands are handled in the order they are returned.
 @MainActor
 @Observable
-final class Store<F: Feature> {
+public final class Store<F: Feature> {
     /// Runs one effect and reports its results by calling `send` zero or more times. `send` is non-escaping,
     /// so it can be called only while the effect runs. The runner runs on the MainActor, so do not put heavy
     /// work directly here (convention A9). Use `@concurrent` for heavy computation that holds no state.
@@ -23,9 +23,9 @@ final class Store<F: Feature> {
     ///
     /// G6: The runner promises to return failures as actions. The type cannot enforce it (`catch {}` still
     /// compiles), so check it with a failure test for each effect.
-    typealias Run = @MainActor (_ effect: F.Effect, _ send: (F.Action) -> Void) async -> Void
+    public typealias Run = @MainActor (_ effect: F.Effect, _ send: (F.Action) -> Void) async -> Void
 
-    private(set) var state: F.State
+    public private(set) var state: F.State
 
     @ObservationIgnored private let run: Run
     /// Effects in flight, keyed by token. An effect can deliver actions only while it is listed here.
@@ -34,7 +34,7 @@ final class Store<F: Feature> {
     @ObservationIgnored private var queue: [F.Action] = []
     @ObservationIgnored private var isProcessing = false
 
-    init(initialState: F.State, run: @escaping Run) {
+    public init(initialState: F.State, run: @escaping Run) {
         state = initialState
         self.run = run
     }
@@ -44,7 +44,7 @@ final class Store<F: Feature> {
     }
 
     /// Reduces `action`, and any action sent while it is processed, one at a time in arrival order (G1).
-    func send(_ action: F.Action) {
+    public func send(_ action: F.Action) {
         queue.append(action)
         guard !isProcessing else { return }  // A reentrant send only queues; the outer loop handles it in turn.
         isProcessing = true

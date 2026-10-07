@@ -1,0 +1,27 @@
+{
+  "numbers": [
+    {"text": "0.45MPa", "value": "0.45", "unit": "MPa", "normalizedUnit": "MPa"},
+    {"text": "72度", "value": "72", "unit": "度", "normalizedUnit": "℃"},
+    {"text": "０．５ＭＰａ", "value": "0.5", "unit": "MPa", "normalizedUnit": "MPa"},
+    {"text": "72℃", "value": "72", "unit": "℃", "normalizedUnit": "℃"},
+    {"text": "圧力0.45", "value": "0.45", "unit": null, "normalizedUnit": null},
+    {"text": "８６ｋｍ", "value": "86", "unit": "km", "normalizedUnit": "km"},
+    {"text": "れいてんよんご", "value": null, "unit": null, "normalizedUnit": null},
+    {"text": "七十二度", "value": null, "unit": null, "normalizedUnit": null}
+  ],
+  "twoValues": {"text": "圧力0.45、違った、0.54MPa", "piece": "違った"},
+  "kanaNumber": {"text": "吐出圧はれいてんよんご", "piece": "れいてんよんご"},
+  "twoClauses": {"text": "油漏れなし、異音なし", "piece": "なし"},
+  "cues": {"text": "0.45は聞き間違いで、やっぱり0.54でした", "words": ["聞き間違い", "やっぱり"]},
+  "filter": {
+    "text": "油漏れなし、異音も振動も正常、温度変化なし、異音の箇所は72度、ほかに問題なし",
+    "candidates": [
+      {"key": "oil_leak", "clause": "油漏れなし", "piece": "なし", "kept": true},
+      {"key": "abnormal_sound", "clause": "油漏れなし", "piece": "なし", "kept": false},
+      {"key": "vibration", "clause": "異音も振動も正常", "piece": "正常", "kept": true},
+      {"key": "vibration", "clause": "温度変化なし", "piece": "なし", "kept": true},
+      {"key": "temperature", "clause": "異音の箇所は72度", "piece": "72度", "kept": true},
+      {"key": "next_action", "clause": "ほかに問題なし", "piece": "なし", "kept": true}
+    ]
+  }
+}

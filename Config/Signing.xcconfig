@@ -1,4 +1,6 @@
 CODE_SIGN_STYLE = Manual
 CODE_SIGN_IDENTITY = -
+// iOS has no ad hoc signing: without a team, a device build is left unsigned and cannot be installed.
+CODE_SIGNING_ALLOWED[sdk=iphoneos*] = NO
 
 #include? "Local.xcconfig"

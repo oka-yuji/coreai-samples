@@ -1,0 +1,15 @@
+{
+  "notes": [
+    "3号機の定期点検です。吐出圧は0.84MPa、いや違った、0.48MPaでした。温度は41度。異音なし、振動もいつも通り。油漏れはパッキン付近に少しにじみあり。湿度は65%。次回はグリスアップ予定。",
+    "B系統のポンプ。圧力0.39MPa、温度は37℃で問題なし。振動はまだ見てないです。次回はフィルター清掃。"
+  ],
+  "labels": {
+    "fields": [
+      {"key": "equipment", "name": "設備名", "modelLabel": "設備名", "description": "点検した機械や装置の名前", "kind": {"number": {"unit": ""}}},
+      {"key": "measurement", "name": "測定値", "modelLabel": "測定値", "description": "数値と単位", "kind": {"number": {"unit": ""}}},
+      {"key": "part", "name": "部品", "modelLabel": "部品", "description": "機械の部品の名前", "kind": {"number": {"unit": ""}}},
+      {"key": "work", "name": "作業", "modelLabel": "作業", "description": "行った作業や予定の作業", "kind": {"number": {"unit": ""}}}
+    ]
+  },
+  "extraField": {"key": "humidity", "name": "湿度", "modelLabel": "湿度の値", "description": "数値と単位", "kind": {"number": {"unit": "%"}}}
+}
