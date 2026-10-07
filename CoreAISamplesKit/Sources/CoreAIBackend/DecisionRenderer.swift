@@ -16,6 +16,7 @@ public struct DecisionLimits: Sendable, Hashable {
 public enum DecisionError: Error, Equatable, LocalizedError {
     case noQuestions
     case duplicateQuestion(String)
+    case duplicateOption(question: String, option: String)
     case noOptions(question: String)
     case tooManyQuestions(count: Int, limit: Int)
     case tooManyOptions(question: String, count: Int, limit: Int)
@@ -25,6 +26,7 @@ public enum DecisionError: Error, Equatable, LocalizedError {
         switch self {
         case .noQuestions: "The request has no questions."
         case .duplicateQuestion(let id): "The question \(id) appears more than once."
+        case .duplicateOption(let question, let option): "The option \(option) appears more than once in \(question)."
         case .noOptions(let id): "The question \(id) has no options."
         case .tooManyQuestions(let count, let limit):
             "The request has \(count) questions; the model takes at most \(limit) questions."
@@ -103,10 +105,19 @@ public enum DecisionRenderer {
         guard questions.count <= limits.questions else {
             throw DecisionError.tooManyQuestions(count: questions.count, limit: limits.questions)
         }
-        var seen: Set<String> = []
+        var seen: Set<[UInt8]> = []
         for question in questions {
-            guard seen.insert(question.id).inserted else { throw DecisionError.duplicateQuestion(question.id) }
-            let count = options(of: question).count
+            guard seen.insert(Array(question.id.utf8)).inserted else {
+                throw DecisionError.duplicateQuestion(question.id)
+            }
+            let optionList = options(of: question)
+            let count = optionList.count
+            var optionIDs: Set<[UInt8]> = []
+            for option in optionList {
+                guard optionIDs.insert(Array(option.id.utf8)).inserted else {
+                    throw DecisionError.duplicateOption(question: question.id, option: option.id)
+                }
+            }
             guard count > 0 else { throw DecisionError.noOptions(question: question.id) }
             guard count <= limits.optionsPerQuestion else {
                 throw DecisionError.tooManyOptions(
@@ -151,7 +162,7 @@ public enum DecisionRenderer {
                 (id: "false", description: criteria["false"] ?? "The proposition is false or the answer is no."),
             ]
         case .choice(let criteria):
-            criteria.map { (id: $0.key, description: $0.value) }
+            criteria.map { (id: $0.id, description: $0.description) }
                 .sorted { $0.id.unicodeScalars.lexicographicallyPrecedes($1.id.unicodeScalars) }
         case .score(let levels):
             levels.enumerated().map { (id: String($0.offset), description: $0.element) }

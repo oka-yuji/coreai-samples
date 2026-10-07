@@ -11,8 +11,12 @@ public struct DecisionRequest: Sendable, Hashable {
 public struct DecisionQuestion: Sendable, Hashable {
     public enum Criteria: Sendable, Hashable {
         case noul([String: String?] = [:])
-        case choice([String: String?])
+        case choice([DecisionOption])
         case score([String?])
+
+        public static func choice(_ options: [String: String?]) -> Self {
+            .choice(options.map { DecisionOption(id: $0.key, description: $0.value) })
+        }
     }
 
     public var id: String
@@ -23,5 +27,15 @@ public struct DecisionQuestion: Sendable, Hashable {
         self.id = id
         self.instructions = instructions
         self.criteria = criteria
+    }
+}
+
+public struct DecisionOption: Sendable, Hashable {
+    public var id: String
+    public var description: String?
+
+    public init(id: String, description: String? = nil) {
+        self.id = id
+        self.description = description
     }
 }

@@ -69,6 +69,30 @@ struct DecisionFixture: Decodable, CustomTestStringConvertible {
 }
 
 struct DecisionRendererTests {
+    @Test("Canonically equivalent identifiers with different Unicode scalars remain distinct")
+    func scalarDistinctIdentifiersArePreserved() throws {
+        let composed = "\u{00E9}"
+        let decomposed = "e\u{0301}"
+        let choices: [DecisionOption] = [
+            DecisionOption(id: composed, description: "first"),
+            DecisionOption(id: decomposed, description: "second"),
+        ]
+        let questions = [
+            DecisionQuestion(id: composed, criteria: .choice(choices)),
+            DecisionQuestion(id: decomposed, criteria: .noul()),
+        ]
+        let request = DecisionRequest(state: "", questions: questions)
+        let rendered = try DecisionRenderer.render(request, limits: DecisionLimits(), encode: scalarIDs)
+        #expect(rendered.questionSpans.count == 2)
+        #expect(rendered.optionIDs[0].map { Array($0.utf8) } == [decomposed, composed].map { Array($0.utf8) })
+        #expect(rendered.optionSpans[0].count == 2)
+        let duplicate = DecisionRequest(
+            state: "", questions: [DecisionQuestion(id: "q", criteria: .choice(choices + [choices[0]]))])
+        #expect(throws: DecisionError.duplicateOption(question: "q", option: composed)) {
+            try DecisionRenderer.render(duplicate, limits: DecisionLimits(), encode: scalarIDs)
+        }
+    }
+
     @Test("The fixtures are the 30 lab records and 2 synthetic edge cases")
     func fixturesAreThirtyLabRecordsAndTwoEdgeCases() throws {
         let ids = try DecisionFixture.all().map(\.id)
