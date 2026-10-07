@@ -13,6 +13,10 @@ struct DemoApp: App {
 @main
 enum DemoAppMain {
     static func main() async {
+        if let directory = LaunchArguments.value("--decide-e2e") {
+            await DecideSelfTest.run(directory: directory)
+            return
+        }
         if LaunchArguments.flag("--decide-json") {
             await DecideCommand.run()
             return

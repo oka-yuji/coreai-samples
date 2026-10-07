@@ -42,16 +42,16 @@ custom_rules:
   # A2: 純ロジックの target が import してよいのは Foundation と、純ロジックの target だけ。
   # 属性(@testable など)やアクセスレベル(public など)の付いた import、字下げした import も数える。
   pure_logic_imports:
-    included: ".*/CoreAISamplesKit/Sources/(FeatureStore|GLiNERCore|ExtractFeature)/.*\\.swift"  # ★ 純ロジックの target の Sources
+    included: ".*/CoreAISamplesKit/Sources/(FeatureStore|GLiNERCore|ExtractFeature|DecideFeature)/.*\\.swift"  # ★ 純ロジックの target の Sources
     excluded: ".*/CoreAISamplesKit/Sources/FeatureStore/Store\\.swift"  # ★ 汎用 Store は Observation を import する(A4 の持ち主)
-    regex: '\bimport\s+(?:(?:typealias|struct|class|enum|protocol|let|var|func)\s+)?+(?!(?:Foundation|FeatureStore|GLiNERCore|ExtractFeature)\b)\w+'  # ★ 純ロジックの target が複数あれば (?!(?:Foundation|Other)\b) にする
+    regex: '\bimport\s+(?:(?:typealias|struct|class|enum|protocol|let|var|func)\s+)?+(?!(?:Foundation|FeatureStore|GLiNERCore|ExtractFeature|DecideFeature)\b)\w+'  # ★ 純ロジックの target が複数あれば (?!(?:Foundation|Other)\b) にする
     match_kinds: [keyword, identifier]
     message: "純ロジックの target が import してよいのは Foundation と、純ロジックの target だけ(architecture.md A2)"
     severity: error
 
   # A2: 純ロジックに並行処理を書かない。
   pure_logic_no_concurrency:
-    included: ".*/CoreAISamplesKit/Sources/(FeatureStore|GLiNERCore|ExtractFeature)/.*\\.swift"  # ★
+    included: ".*/CoreAISamplesKit/Sources/(FeatureStore|GLiNERCore|ExtractFeature|DecideFeature)/.*\\.swift"  # ★
     excluded: ".*/CoreAISamplesKit/Sources/FeatureStore/Store\\.swift"  # ★ 汎用 Store は Task を作る唯一の場所(A4)
     regex: '\b(async|await|actor|Task)\b'
     match_kinds: [keyword, identifier, typeidentifier]
@@ -61,7 +61,7 @@ custom_rules:
   # A3: 純ロジックは、時刻・乱数・UUID・現在のロケールなどを自分で取得しない。
   # 型を書かない `.now` や `.init()`(例: `let now: Date = .init()`)は数えない。レビューで見る。
   pure_logic_no_ambient:
-    included: ".*/CoreAISamplesKit/Sources/(FeatureStore|GLiNERCore|ExtractFeature)/.*\\.swift"  # ★
+    included: ".*/CoreAISamplesKit/Sources/(FeatureStore|GLiNERCore|ExtractFeature|DecideFeature)/.*\\.swift"  # ★
     regex: '\bDate\(\)|\bDate\.now\b|\bUUID\(\)|\.random\(|\.randomElement\(\)|\.shuffled?\(\)|\b(Calendar|TimeZone|Locale)\.(current|autoupdatingCurrent)\b'
     match_kinds: [identifier, typeidentifier]
     message: "純ロジックは時刻・乱数・UUID・現在のロケールを自分で取得しない。action や引数で受け取る(architecture.md A3)"

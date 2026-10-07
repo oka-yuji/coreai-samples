@@ -1,8 +1,11 @@
+import DecideFeature
+import FeatureStore
 import SwiftUI
 import UniformTypeIdentifiers
 
 struct ModelsView: View {
     @Environment(ModelsViewModel.self) private var vm
+    @Environment(Store<DecideFeature>.self) private var decide
     @Environment(ChatViewModel.self) private var chat
     @Environment(DemoNavigator.self) private var navigator
     @State private var importing = false
@@ -36,6 +39,7 @@ struct ModelsView: View {
                         onForget: { vm.forget(folder) })
                 }
                 Button("Open Folder…", systemImage: "folder") { importing = true }
+                DecideModelButton(store: decide)
                 if let message = vm.message {
                     Text(message)
                         .font(.callout)
@@ -52,7 +56,10 @@ struct ModelsView: View {
         .fileImporter(isPresented: $importing, allowedContentTypes: [.folder]) { result in
             if case .success(let url) = result { vm.open(url) }
         }
-        .alert("Delete this model?", isPresented: Binding(get: { pendingDelete != nil }, set: { if !$0 { pendingDelete = nil } })) {
+        .alert(
+            "Delete this model?",
+            isPresented: Binding(get: { pendingDelete != nil }, set: { if !$0 { pendingDelete = nil } })
+        ) {
             Button("Delete", role: .destructive) {
                 if let row = pendingDelete { vm.delete(row) }
                 pendingDelete = nil
@@ -87,8 +94,11 @@ struct FolderRowView: View {
                 .lineLimit(1)
                 .truncationMode(.middle)
             HStack {
-                Text(folder.name == nil ? (folder.problem ?? "Not a readable bundle") : folder.size.formatted(.byteCount(style: .file)))
-                    .lineLimit(2)
+                Text(
+                    folder.name == nil
+                        ? (folder.problem ?? "Not a readable bundle") : folder.size.formatted(.byteCount(style: .file))
+                )
+                .lineLimit(2)
                 if let state {
                     Text(state).foregroundStyle(.green)
                 }
@@ -121,15 +131,21 @@ struct CatalogRowView: View {
         VStack(alignment: .leading, spacing: 6) {
             Text(row.model.name)
                 .fontWeight(.medium)
-            Text("\(row.model.repo)  ·  \(row.model.sizeBytes.formatted(.byteCount(style: .file)))  ·  memory \(row.model.memory)  ·  \(row.model.platforms)")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            Text(
+                "\(row.model.repo)  ·  \(row.model.sizeBytes.formatted(.byteCount(style: .file)))  ·  memory \(row.model.memory)  ·  \(row.model.platforms)"
+            )
+            .font(.caption)
+            .foregroundStyle(.secondary)
             if row.isDownloading {
                 ProgressView(value: row.progress)
                 HStack {
-                    Text(row.bytesPerSecond > 0 ? "\(Int64(row.bytesPerSecond).formatted(.byteCount(style: .file)))/s" : "Preparing…")
+                    Text(
+                        row.bytesPerSecond > 0
+                            ? "\(Int64(row.bytesPerSecond).formatted(.byteCount(style: .file)))/s" : "Preparing…")
                     Spacer()
-                    Text("\(row.downloadedBytes.formatted(.byteCount(style: .file))) / \(row.totalBytes.formatted(.byteCount(style: .file)))")
+                    Text(
+                        "\(row.downloadedBytes.formatted(.byteCount(style: .file))) / \(row.totalBytes.formatted(.byteCount(style: .file)))"
+                    )
                     Button("Pause", action: onCancel)
                         .buttonStyle(.borderless)
                 }

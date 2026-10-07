@@ -42,6 +42,10 @@ targets:
         product: GLiNERCore
       - package: CoreAISamplesKit
         product: GLiNERRuntime
+      - package: CoreAISamplesKit
+        product: DecideFeature
+      - package: CoreAISamplesKit
+        product: DecideRuntime
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.coreai-samples.DemoApp
