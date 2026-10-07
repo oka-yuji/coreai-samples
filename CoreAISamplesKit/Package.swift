@@ -20,6 +20,8 @@ let package = Package(
         .executable(name: "coreai-chat", targets: ["coreai-chat"]),
         .library(name: "FeatureStore", targets: ["FeatureStore"]),
         .library(name: "ExtractFeature", targets: ["ExtractFeature"]),
+        .library(name: "DecideFeature", targets: ["DecideFeature"]),
+        .library(name: "DecideRuntime", targets: ["DecideRuntime"]),
     ],
     dependencies: [
         .package(url: "https://github.com/huggingface/swift-transformers", from: "1.3.4"),
@@ -35,6 +37,11 @@ let package = Package(
             resources: [.process("Resources")]
         ),
         .target(name: "RAGContext"),
+        .target(name: "DecideFeature", dependencies: ["FeatureStore"], swiftSettings: approachableConcurrency),
+        .target(
+            name: "DecideRuntime", dependencies: ["DecideFeature", "CoreAIBackend"],
+            swiftSettings: approachableConcurrency
+        ),
         .target(name: "FeatureStore", swiftSettings: approachableConcurrency),
         .target(name: "GLiNERCore", resources: [.process("Resources")], swiftSettings: approachableConcurrency),
         .target(
@@ -64,6 +71,14 @@ let package = Package(
             resources: [.copy("Fixtures")]
         ),
         .testTarget(name: "RAGContextTests", dependencies: ["RAGContext"]),
+        .testTarget(
+            name: "DecideFeatureTests", dependencies: ["DecideFeature", "FeatureStore"],
+            swiftSettings: approachableConcurrency
+        ),
+        .testTarget(
+            name: "DecideRuntimeTests", dependencies: ["DecideRuntime", "DecideFeature", "FeatureStore"],
+            swiftSettings: approachableConcurrency
+        ),
         .testTarget(name: "FeatureStoreTests", dependencies: ["FeatureStore"], swiftSettings: approachableConcurrency),
         .testTarget(
             name: "GLiNERCoreTests",

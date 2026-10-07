@@ -1,3 +1,4 @@
+import DecideFeature
 import ExtractFeature
 import FeatureStore
 import Observation
@@ -6,6 +7,7 @@ import SwiftUI
 enum Demo: String, CaseIterable, Identifiable {
     case chat
     case agent
+    case decide
     case extract
     case models
 
@@ -15,6 +17,7 @@ enum Demo: String, CaseIterable, Identifiable {
         switch self {
         case .chat: "Chat"
         case .agent: "Agent"
+        case .decide: "Decide"
         case .extract: "Extract"
         case .models: "Models"
         }
@@ -24,6 +27,7 @@ enum Demo: String, CaseIterable, Identifiable {
         switch self {
         case .chat: "Talk to a local model through Foundation Models"
         case .agent: "Search the web and run multi-step tasks with tool calls"
+        case .decide: "Check a document against an editable checklist"
         case .extract: "Technical verification: type labels and see the spans GLiNER finds in a text"
         case .models: "Get, open and prepare model bundles"
         }
@@ -33,6 +37,7 @@ enum Demo: String, CaseIterable, Identifiable {
         switch self {
         case .chat: "bubble.left.and.bubble.right"
         case .agent: "sparkles"
+        case .decide: "checklist"
         case .extract: "text.magnifyingglass"
         case .models: "square.and.arrow.down"
         }
@@ -50,6 +55,7 @@ struct DemoRootView: View {
     @State private var chat = ChatViewModel()
     @State private var agent = AgentViewModel()
     @State private var models = ModelsViewModel()
+    @State private var decide = DecideAssembly.makeStore()
     @State private var extract = Store<ExtractFeature>(
         initialState: ExtractState(
             form: ExtractResources.form, labels: ExtractResources.examples.labels,
@@ -82,6 +88,7 @@ struct DemoRootView: View {
             switch navigator.selection {
             case .chat?: ChatView()
             case .agent?: AgentView()
+            case .decide?: DecideView(store: decide)
             case .extract?: ExtractView(store: extract)
             case .models?: ModelsView()
             case nil: ContentUnavailableView("Select a demo", systemImage: "square.grid.2x2")
@@ -91,6 +98,7 @@ struct DemoRootView: View {
         .environment(chat)
         .environment(agent)
         .environment(models)
+        .environment(decide)
         .task {
             GUIDriver.shared.attach(navigator: navigator, chat: chat, agent: agent, models: models, extract: extract)
         }
