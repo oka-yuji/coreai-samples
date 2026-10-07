@@ -112,7 +112,7 @@ public enum ExtractFeature: Feature {
         }
         state.phase = .extracting(version: state.version)
         let effect = ExtractEffect.extract(
-            version: state.version, text: state.text, form: state.schema, filter: state.candidateFilter)
+            version: state.version, text: state.text, form: state.schema, filter: state.appliedFilter)
         return [.run(effect, id: .extraction)]
     }
 }
@@ -154,8 +154,8 @@ public struct ExtractState: Equatable, Sendable {
     public var labels: FormSchema
     /// The form of the experiment.
     public var form: FormSchema
-    /// The rule `FormMapper` drops candidates by: rule R1 unless people turn it off.
-    public var candidateFilter = CandidateFilter.clauseFieldName
+    /// The rule `FormMapper` drops the form's candidates by: rules R1 and N1 unless people choose another.
+    public var candidateFilter = CandidateFilter.clauseFieldNameAndEquipmentNumber
     /// The latest result of the current version; nil until one arrives.
     public var result: ExtractResult?
     /// People's choices in the form, by field key.
@@ -174,6 +174,9 @@ public struct ExtractState: Equatable, Sendable {
 
     /// The labels or the form, as the mode says: what is extracted.
     public var schema: FormSchema { mode == .labels ? labels : form }
+    /// The rule applied to what is extracted, as the mode says: none for the labels, which are number fields whose
+    /// spans on equipment names rule N1 would drop, and `candidateFilter` for the form.
+    public var appliedFilter: CandidateFilter { mode == .labels ? .none : candidateFilter }
 
     public init(
         form: FormSchema, labels: FormSchema = FormSchema(fields: []), lastAssetPath: String? = nil,

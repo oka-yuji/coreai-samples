@@ -92,10 +92,13 @@ public struct FormMapper: Sendable {
     public var schema: FormSchema
     /// The words `CorrectionCue.find(in:words:)` looks for.
     public var correctionWords: [String]
-    /// Rule R1 unless set.
+    /// Rules R1 and N1 unless set.
     public var candidateFilter: CandidateFilter
 
-    public init(schema: FormSchema, correctionWords: [String], candidateFilter: CandidateFilter = .clauseFieldName) {
+    public init(
+        schema: FormSchema, correctionWords: [String],
+        candidateFilter: CandidateFilter = .clauseFieldNameAndEquipmentNumber
+    ) {
         self.schema = schema
         self.correctionWords = correctionWords
         self.candidateFilter = candidateFilter

@@ -14,6 +14,9 @@ let testForm = FormSchema(fields: [
 
 let timing = ExtractTiming(preprocess: 1, encode: 2, pair: 3, classify: 4, classifications: 1, map: 0, total: 10)
 
+/// The candidate filter a new state starts with: rules R1 and N1.
+let defaultFilter = CandidateFilter.clauseFieldNameAndEquipmentNumber
+
 /// A mapping of `text` with one candidate for each field, at `pressure` and `noise` (Unicode scalar ranges).
 func makeMapping(_ text: String, pressure: Range<Int>, noise: Range<Int>, best: String = "ok") -> FormMapping {
     let scalars = Array(text.unicodeScalars)
@@ -58,6 +61,12 @@ func readyState() -> ExtractState {
 }
 
 struct ExtractFeatureTests {
+    @Test("The initial Extract state and a FormMapper made without a filter use rule R1+N1")
+    func defaultsToRulesR1AndN1() {
+        #expect(ExtractState(form: testForm).candidateFilter == .clauseFieldNameAndEquipmentNumber)
+        #expect(FormMapper(schema: testForm, correctionWords: []).candidateFilter == .clauseFieldNameAndEquipmentNumber)
+    }
+
     @Test(
         "reduce, given a text change, an extraction start, an older version's result and the newer version's result in that order, drops the old result and keeps only the new one"
     )
@@ -70,9 +79,9 @@ struct ExtractFeatureTests {
         #expect(
             started == [
                 [.run(.settle, id: .extraction)],
-                [.run(.extract(version: 1, text: first, form: testForm, filter: .clauseFieldName), id: .extraction)],
+                [.run(.extract(version: 1, text: first, form: testForm, filter: defaultFilter), id: .extraction)],
                 [.run(.settle, id: .extraction)],
-                [.run(.extract(version: 2, text: second, form: testForm, filter: .clauseFieldName), id: .extraction)],
+                [.run(.extract(version: 2, text: second, form: testForm, filter: defaultFilter), id: .extraction)],
             ])
         #expect(state.phase == .extracting(version: 2))
 
@@ -128,7 +137,7 @@ struct ExtractFeatureTests {
         let rerun = send(&state, .assetFolderChosen(path: "/other"), .assetOpened(reopened))
         #expect(
             rerun.last == [
-                .run(.extract(version: 1, text: text, form: testForm, filter: .clauseFieldName), id: .extraction)
+                .run(.extract(version: 1, text: text, form: testForm, filter: defaultFilter), id: .extraction)
             ])
         let changed = makeMapping(text, pressure: 9..<12, noise: 17..<25, best: "ng")
         _ = send(&state, .extractionFinished(version: 1, mapping: changed, timing: timing))
@@ -156,7 +165,7 @@ struct ExtractFeatureTests {
         #expect(
             opened[3] == [
                 .run(
-                    .extract(version: 1, text: "pressure 0.4MPa", form: testForm, filter: .clauseFieldName),
+                    .extract(version: 1, text: "pressure 0.4MPa", form: testForm, filter: defaultFilter),
                     id: .extraction)
             ])
         #expect(state.asset == .ready(info))
@@ -284,7 +293,7 @@ struct ExtractFeatureTests {
         #expect(
             send(
                 &state, .textChanged("pressure 0.4MPa"), .fieldsChanged(testForm),
-                .candidateFilterChanged(.clauseFieldName)) == [[], [], []])
+                .candidateFilterChanged(defaultFilter)) == [[], [], []])
         #expect(state == before)
         _ = send(&state, .fieldsChanged(FormSchema(fields: [testForm.fields[0]])))
         #expect(state.selectedField == nil)
@@ -309,7 +318,7 @@ struct ExtractFeatureTests {
         var state = readyState()
         let text = "pressure 0.4MPa, noise ok"
         let extract = Command<ExtractEffect, ExtractFeature.EffectID>.run(
-            .extract(version: 1, text: text, form: testForm, filter: .clauseFieldName), id: .extraction)
+            .extract(version: 1, text: text, form: testForm, filter: defaultFilter), id: .extraction)
         let steps = send(
             &state, .textChanged(text), .compositionChanged(true), .extractRequested, .compositionChanged(true),
             .compositionChanged(false), .extractRequested, .compositionChanged(true))
@@ -365,7 +374,7 @@ struct ExtractFeatureTests {
         #expect(
             toLabels == [
                 [.run(.settle, id: .extraction)], [],
-                [.run(.extract(version: 2, text: text, form: labels, filter: .clauseFieldName), id: .extraction)], [],
+                [.run(.extract(version: 2, text: text, form: labels, filter: .none), id: .extraction)], [],
             ])
         #expect(state.result == nil)
         #expect(state.confirmations.isEmpty)
@@ -378,7 +387,7 @@ struct ExtractFeatureTests {
         #expect(
             toForm == [
                 [.run(.settle, id: .extraction)],
-                [.run(.extract(version: 3, text: text, form: testForm, filter: .clauseFieldName), id: .extraction)],
+                [.run(.extract(version: 3, text: text, form: testForm, filter: defaultFilter), id: .extraction)],
             ])
         #expect(state.result == nil)
         #expect(state.confirmations.isEmpty)
@@ -386,7 +395,7 @@ struct ExtractFeatureTests {
     }
 
     @Test(
-        "In the label mode, reduce extracts nothing without a label, edits and extracts the labels and not the form, and the export writes the labels"
+        "In the label mode, reduce extracts nothing without a label, edits and extracts the labels and not the form with no candidate filter, and the export writes the labels and no filter"
     )
     func labelModeWorksOnTheLabels() {
         var state = ExtractState(form: testForm)
@@ -405,7 +414,7 @@ struct ExtractFeatureTests {
         #expect(
             added == [
                 [.run(.settle, id: .extraction)],
-                [.run(.extract(version: 2, text: text, form: labels, filter: .clauseFieldName), id: .extraction)],
+                [.run(.extract(version: 2, text: text, form: labels, filter: .none), id: .extraction)],
             ])
         #expect(state.labels == labels)
         #expect(state.form == testForm)
@@ -417,6 +426,7 @@ struct ExtractFeatureTests {
         #expect(document.mode == "labels")
         #expect(document.form == labels)
         #expect(document.model?.fields.map(\.key) == ["value"])
+        #expect(document.model?.candidateFilter == "none")
         #expect(document.confirmations.isEmpty)
     }
 
@@ -435,7 +445,7 @@ struct ExtractFeatureTests {
             try JSONSerialization.jsonObject(with: JSONEncoder().encode(ExportDocument(state))) as? [String: Any])
         let model = try #require(json["model"] as? [String: Any])
         #expect(json["mode"] as? String == "form")
-        #expect(model["candidateFilter"] as? String == "clauseFieldName")
+        #expect(model["candidateFilter"] as? String == "clauseFieldNameAndEquipmentNumber")
         #expect(model["assetRevision"] as? String == "r1")
         #expect(model["appVersion"] as? String == "1.0 (1)")
 

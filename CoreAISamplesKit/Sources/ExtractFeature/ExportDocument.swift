@@ -104,7 +104,7 @@ public struct ExportDocument: Codable, Equatable, Sendable {
         form = state.schema
         model = state.result.map { result in
             ModelOutput(
-                version: result.version, probabilitiesCalibrated: false, candidateFilter: state.candidateFilter.name,
+                version: result.version, probabilitiesCalibrated: false, candidateFilter: state.appliedFilter.name,
                 assetRevision: result.assetRevision, appVersion: state.appVersion,
                 fields: result.mapping.fields.map { field in
                     FieldOutput(

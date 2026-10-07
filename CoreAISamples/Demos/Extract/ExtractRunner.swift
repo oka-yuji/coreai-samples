@@ -20,8 +20,9 @@ struct ExtractRunner {
     /// The note the Extract screens of the Mac and the iPhone show.
     static let notice =
         "Technical verification of a Core AI conversion. Zero-shot GLiNER2.5-multi did not reach the pre-registered "
-        + "bar for Japanese inspection memos (sealed set: fabricated candidates 9/199, primary-span precision 0.791, "
-        + "recall 0.874). Suggestions are uncalibrated scores."
+        + "bar for Japanese inspection memos (outcome B3). The evaluated version is the default candidate filter, "
+        + "R1 + N1: on a second sealed set of 200 memos, fabricated candidates 13/200, primary-span precision 0.788, "
+        + "recall 0.822. Suggestions are uncalibrated scores."
 
     let service: any ExtractService
 
