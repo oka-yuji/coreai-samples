@@ -68,6 +68,8 @@ struct ExtractView: View {
                         selection: Binding(
                             get: { state.candidateFilter }, set: { store.send(.candidateFilterChanged($0)) })
                     ) {
+                        Text("R1+N1 (clauseFieldNameAndEquipmentNumber)")
+                            .tag(CandidateFilter.clauseFieldNameAndEquipmentNumber)
                         Text("R1 (clauseFieldName)").tag(CandidateFilter.clauseFieldName)
                         Text("None").tag(CandidateFilter.none)
                     }

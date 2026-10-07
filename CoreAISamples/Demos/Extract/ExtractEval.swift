@@ -55,8 +55,8 @@ enum ExtractEval {
         let form: String
         let asset: Asset
         let revision: String?
-        /// The rule of `--candidate-filter`: `clauseFieldName` (`r1`, rule R1, the default and the screen's),
-        /// `clauseFieldNameAndEquipmentNumber` (`r1n1`, rules R1 and N1) or `none`.
+        /// The rule of `--candidate-filter`: `clauseFieldNameAndEquipmentNumber` (`r1n1`, rules R1 and N1, the default
+        /// and the screen's), `clauseFieldName` (`r1`, rule R1) or `none`.
         let candidateFilter: String
         /// The report does not score them.
         let droppedCandidates: [Dropped]
@@ -139,9 +139,9 @@ enum ExtractEval {
         }
     }
 
-    /// `--candidate-filter`: rule R1 without one, or nil for a value it does not know.
+    /// `--candidate-filter`: rules R1 and N1 without one, or nil for a value it does not know.
     private static var candidateFilter: CandidateFilter? {
-        switch LaunchArguments.value("--candidate-filter") ?? "r1" {
+        switch LaunchArguments.value("--candidate-filter") ?? "r1n1" {
         case "r1": .clauseFieldName
         case "r1n1": .clauseFieldNameAndEquipmentNumber
         case "none": CandidateFilter.none

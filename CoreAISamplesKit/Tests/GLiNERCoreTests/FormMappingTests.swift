@@ -274,7 +274,7 @@ struct FormMappingTests {
         let (spans, kept) = try filterSpans()
         // The example also has a number candidate in a clause with a list field's name, and a list candidate in a
         // clause with only a number field's name: R1 reads list fields and their names only.
-        let mapping = FormMapper(schema: form, correctionWords: []).map(
+        let mapping = FormMapper(schema: form, correctionWords: [], candidateFilter: .clauseFieldName).map(
             text: examples.filter.text, extraction: makeExtraction(spans)
         ) { _, _ in ClassificationResult(probabilities: []) }
         #expect(outcome(of: mapping) == kept)
@@ -294,7 +294,7 @@ struct FormMappingTests {
             guard candidate.kept, case .list = field.kind else { return nil }
             return ClassificationRequest(clause: candidate.clause, schema: form.classificationSchema(for: field))
         }
-        let filtered = FormMapper(schema: form, correctionWords: [])
+        let filtered = FormMapper(schema: form, correctionWords: [], candidateFilter: .clauseFieldName)
         #expect(Set(filtered.classificationRequests(text: text, extraction: extraction)) == Set(expected))
 
         let unfiltered = FormMapper(schema: form, correctionWords: [], candidateFilter: .none)
