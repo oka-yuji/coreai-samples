@@ -37,13 +37,15 @@ public struct LocalLanguageModel: LanguageModel {
     let runtime: Runtime
 
     public init(bundle url: URL, contextLimit: Int? = nil, overflow: OverflowPolicy = .error) async throws {
-        try await self.init(bundle: url, contextLimit: contextLimit, overflow: overflow, verification: VerificationSettings())
+        try await self.init(
+            bundle: url, contextLimit: contextLimit, overflow: overflow, verification: VerificationSettings())
     }
 
     @_spi(Verification) public init(
         bundle url: URL, contextLimit: Int?, overflow: OverflowPolicy, verification: VerificationSettings
     ) async throws {
-        runtime = try await Runtime(bundle: ModelBundle(url: url), contextLimit: contextLimit, overflow: overflow, settings: verification)
+        runtime = try await Runtime(
+            bundle: ModelBundle(url: url), contextLimit: contextLimit, overflow: overflow, settings: verification)
         capabilities = LanguageModelCapabilities(runtime.thinks ? [.reasoning, .toolCalling] : [.toolCalling])
         executorConfiguration = url
         loadStats = runtime.loadStats
@@ -75,6 +77,7 @@ actor Runtime {
     private let core: EngineBox
     nonisolated let tokenizer: any Tokenizer
     private let stopTokens: Set<Int32>
+    private let sanitizer: ControlTokenSanitizer
     private let overflow: LocalLanguageModel.OverflowPolicy
     private let settings: LocalLanguageModel.VerificationSettings
     private var cuts: [String: ToolOutputCut] = [:]
@@ -85,15 +88,18 @@ actor Runtime {
     private var waiting: [CheckedContinuation<Void, Never>] = []
 
     init(
-        bundle: ModelBundle, contextLimit: Int?, overflow: LocalLanguageModel.OverflowPolicy, settings: LocalLanguageModel.VerificationSettings
+        bundle: ModelBundle, contextLimit: Int?, overflow: LocalLanguageModel.OverflowPolicy,
+        settings: LocalLanguageModel.VerificationSettings
     ) async throws {
+        sanitizer = try ControlTokenSanitizer(tokens: bundle.addedTokenStrings())
         tokenizer = try await bundle.loadTokenizer()
         core = EngineBox(try await Engine(bundle: bundle, contextLimit: contextLimit))
         self.overflow = overflow
         self.settings = settings
         loadStats = core.engine.loadStats
         thinks = tokenizer.convertTokenToId(ThinkParser.open) != nil
-        stopTokens = Set([tokenizer.eosTokenId, tokenizer.convertTokenToId("<|endoftext|>")].compactMap { $0.map(Int32.init) })
+        stopTokens = Set(
+            [tokenizer.eosTokenId, tokenizer.convertTokenToId("<|endoftext|>")].compactMap { $0.map(Int32.init) })
     }
 
     var processed: [Int32] {
@@ -124,33 +130,38 @@ actor Runtime {
         to request: LanguageModelExecutorGenerationRequest,
         streamingInto channel: LanguageModelExecutorGenerationChannel
     ) async throws {
-        if request.schema != nil {
-            throw LanguageModelError.unsupportedCapability(.init(capability: .guidedGeneration, debugDescription: "Guided generation is not supported."))
-        }
-        let tools = try Self.tools(request)
+        let tools = try Self.validatedTools(for: request)
         var context = Self.templateContext(request.contextOptions.reasoningLevel, variables: settings.templateVariables)
         if !tools.isEmpty { context["tools"] = Value.array(tools.map(\.spec)) }
         let contextLimit = core.engine.contextLimit
-        let reserve = overflow == .dropOldToolOutputs ? min(request.generationOptions.maximumResponseTokens ?? 1024, contextLimit / 2) : nil
+        let reserve =
+            overflow == .dropOldToolOutputs
+            ? min(request.generationOptions.maximumResponseTokens ?? 1024, contextLimit / 2) : nil
 
         await lock()
         defer { unlock() }
         try Task.checkCancellation()
         let (messages, rendered, cuts) = try Self.fit(
-            request.transcript, remembered: self.cuts, written: written, keepsReasoning: settings.keepsHistoryReasoning, limit: contextLimit,
-            reserve: reserve
+            request.transcript, remembered: self.cuts, written: written, keepsReasoning: settings.keepsHistoryReasoning,
+            limit: contextLimit,
+            reserve: reserve, sanitizer: sanitizer
         ) {
             try render($0, generationPrompt: true, context: context)
         }
         let truncated = Self.remember(cuts, in: &self.cuts)
         let lastUser = messages.lastIndex { $0["role"] as? String == "user" }
-        let afterUser = try lastUser.map {
-            zip(try render(Array(messages[...$0]), generationPrompt: false, context: context), rendered).prefix { $0 == $1 }.count
-        } ?? 0
+        let afterUser =
+            try lastUser.map {
+                zip(try render(Array(messages[...$0]), generationPrompt: false, context: context), rendered).prefix {
+                    $0 == $1
+                }.count
+            } ?? 0
         var sampler = Self.sampler(request.generationOptions)
         var splicing = generations
         func splice(_ tokens: ArraySlice<Int32>) -> (prompt: [Int32], spliced: Int) {
-            ReusePlan.splice(Array(tokens), processed: core.engine.tokens, generations: splicing) { tokenizer.decode(tokens: $0) }
+            ReusePlan.splice(Array(tokens), processed: core.engine.tokens, generations: splicing) {
+                tokenizer.decode(tokens: $0)
+            }
         }
         var (prompt, spliced) = splice(rendered[...])
         if prompt.count >= contextLimit { (splicing, prompt, spliced) = ([], rendered, 0) }
@@ -163,13 +174,18 @@ actor Runtime {
             guard let lastUser else { return 0 }
             var replaced = Array(messages[...lastUser])
             replaced[lastUser]["content"] = (messages[lastUser]["content"] as? String ?? "").hasPrefix("A") ? "B" : "A"
-            let question = zip(try render(replaced, generationPrompt: false, context: context), rendered).prefix { $0 == $1 }.count
+            let question = zip(try render(replaced, generationPrompt: false, context: context), rendered).prefix {
+                $0 == $1
+            }.count
             return splice(rendered.prefix(question)).prompt.count
         }
         let prefilled = core.engine.stats.prefillTokens - before
         let readEnd = clock.now
 
-        var output = Output(channel: channel, calls: tools.isEmpty ? nil : ToolCallParser(types: Dictionary(tools.map { ($0.name, $0.types) }) { a, _ in a }))
+        var output = Output(
+            channel: channel,
+            calls: tools.isEmpty
+                ? nil : ToolCallParser(types: Dictionary(tools.map { ($0.name, $0.types) }) { a, _ in a }))
         var generated: [Int32] = []
         defer {
             for call in output.written { written[call.id] = call.keys }
@@ -200,25 +216,31 @@ actor Runtime {
             await output.send(parts, reasoning: counted)
             if generated.count < limit { try await compute { try await core.engine.step(token) } }
         }
-        await output.send(parser.feed(tokenizer.decode(tokens: pending)) + parser.finish(), reasoning: false, last: true)
+        await output.send(
+            parser.feed(tokenizer.decode(tokens: pending)) + parser.finish(), reasoning: false, last: true)
         let metadata: [String: any ConvertibleToGeneratedContent] = [
-            "stopReason": stopReason, "prefillTokens": prefilled, "sharedTokens": plan.shared, "truncatedToolOutputs": truncated,
+            "stopReason": stopReason, "prefillTokens": prefilled, "sharedTokens": plan.shared,
+            "truncatedToolOutputs": truncated,
             "reservedTokens": contextLimit - prompt.count, "splicedGenerations": spliced,
             "prefillSeconds": (readEnd - start) / .seconds(1), "decodeSeconds": (clock.now - readEnd) / .seconds(1),
         ]
         if let call = output.lastCall {
-            await channel.send(.toolCalls(action: .toolCall(id: call.id, name: call.name, action: .updateMetadata(metadata))))
+            await channel.send(
+                .toolCalls(action: .toolCall(id: call.id, name: call.name, action: .updateMetadata(metadata))))
         } else {
             await channel.send(.response(action: .updateMetadata(metadata)))
         }
-        await channel.send(.response(action: .updateUsage(
-            input: .init(totalTokenCount: prompt.count, cachedTokenCount: plan.keep),
-            output: .init(totalTokenCount: generated.count, reasoningTokenCount: reasoningTokens))))
+        await channel.send(
+            .response(
+                action: .updateUsage(
+                    input: .init(totalTokenCount: prompt.count, cachedTokenCount: plan.keep),
+                    output: .init(totalTokenCount: generated.count, reasoningTokenCount: reasoningTokens))))
     }
 
     private func read(_ prompt: [Int32], afterUser: Int, questionStart: () throws -> Int) async throws -> ReusePlan {
         let plan = try Self.plan(
-            prompt, processed: core.engine.tokens, saved: checkpoints.values.map(\.tokens.count), hybrid: core.engine.isHybrid,
+            prompt, processed: core.engine.tokens, saved: checkpoints.values.map(\.tokens.count),
+            hybrid: core.engine.isHybrid,
             reusing: settings.reusesState, afterUser: afterUser, questionStart: questionStart)
         checkpoints = checkpoints.filter { $0.value.tokens.count <= plan.keep }
         if let point = checkpoints.values.first(where: { $0.tokens.count == plan.keep }) {
@@ -226,7 +248,8 @@ actor Runtime {
         } else if plan.keep == 0 {
             core.engine.reset()
         } else if plan.keep < core.engine.tokens.count {
-            try core.engine.restore(Engine.Checkpoint(tokens: Array(core.engine.tokens.prefix(plan.keep)), fixedStates: []))
+            try core.engine.restore(
+                Engine.Checkpoint(tokens: Array(core.engine.tokens.prefix(plan.keep)), fixedStates: []))
         }
         var cursor = plan.keep
         for stop in plan.stops {
@@ -235,7 +258,9 @@ actor Runtime {
                 try await compute { try await core.engine.prefill(segment) }
                 cursor = stop.position
             }
-            if stop.role == .afterUser { checkpoints[.previousAfterUser] = checkpoints[.afterUser] ?? checkpoints[.previousAfterUser] }
+            if stop.role == .afterUser {
+                checkpoints[.previousAfterUser] = checkpoints[.afterUser] ?? checkpoints[.previousAfterUser]
+            }
             checkpoints[stop.role] = core.engine.checkpoint()
         }
         guard core.engine.tokens == prompt else {
@@ -257,9 +282,12 @@ actor Runtime {
         }
     }
 
-    private func render(_ messages: [Message], generationPrompt: Bool, context: [String: any Sendable]) throws -> [Int32] {
+    private func render(_ messages: [Message], generationPrompt: Bool, context: [String: any Sendable]) throws
+        -> [Int32]
+    {
         try tokenizer.applyChatTemplate(
-            messages: messages, chatTemplate: nil, addGenerationPrompt: generationPrompt, truncation: false, maxLength: nil,
+            messages: messages, chatTemplate: nil, addGenerationPrompt: generationPrompt, truncation: false,
+            maxLength: nil,
             tools: nil, additionalContext: context.isEmpty ? nil : context
         ).map(Int32.init)
     }
@@ -279,19 +307,24 @@ actor Runtime {
     static func tools(_ request: LanguageModelExecutorGenerationRequest) throws -> [ToolSchema] {
         switch request.generationOptions.toolCallingMode?.kind {
         case .required?:
-            throw LanguageModelError.unsupportedCapability(.init(
-                capability: .guidedGeneration,
-                debugDescription: "This runtime cannot force a tool call (toolCallingMode .required needs constrained decoding). Use .allowed."))
+            throw LanguageModelError.unsupportedCapability(
+                .init(
+                    capability: .guidedGeneration,
+                    debugDescription:
+                        "This runtime cannot force a tool call (toolCallingMode .required needs constrained decoding). Use .allowed."
+                ))
         case .disallowed?: return []
         default: return request.enabledToolDefinitions.map(ToolSchema.init)
         }
     }
 
     static func plan(
-        _ prompt: [Int32], processed: [Int32], saved: [Int], hybrid: Bool, reusing: Bool, afterUser: Int, questionStart: () throws -> Int
+        _ prompt: [Int32], processed: [Int32], saved: [Int], hybrid: Bool, reusing: Bool, afterUser: Int,
+        questionStart: () throws -> Int
     ) rethrows -> ReusePlan {
         try ReusePlan(
-            processed: reusing ? processed : [], saved: saved, prompt: prompt, hybrid: hybrid, afterUser: afterUser, questionStart: questionStart)
+            processed: reusing ? processed : [], saved: saved, prompt: prompt, hybrid: hybrid, afterUser: afterUser,
+            questionStart: questionStart)
     }
 
     static func remember(_ cuts: [String: ToolOutputCut], in memory: inout [String: ToolOutputCut]) -> Int {
@@ -302,14 +335,17 @@ actor Runtime {
     }
 
     static func fit(
-        _ transcript: Transcript, remembered: [String: ToolOutputCut], written: OrderedDictionary<String, [String]> = [:],
-        keepsReasoning: Bool = true, limit: Int, reserve: Int?, render: ([Message]) throws -> [Int32]
+        _ transcript: Transcript, remembered: [String: ToolOutputCut],
+        written: OrderedDictionary<String, [String]> = [:],
+        keepsReasoning: Bool = true, limit: Int, reserve: Int?, sanitizer: ControlTokenSanitizer = .init(tokens: []),
+        render: ([Message]) throws -> [Int32]
     ) throws -> (messages: [Message], prompt: [Int32], cuts: [String: ToolOutputCut]) {
         let ids = Set(transcript.map(\.id))
         var cuts = remembered.filter { ids.contains($0.key) }
         let groups = toolOutputGroups(transcript)
         while true {
-            let messages = try Self.messages(transcript, cuts: cuts, written: written, keepsReasoning: keepsReasoning)
+            let messages = try Self.messages(
+                transcript, cuts: cuts, written: written, keepsReasoning: keepsReasoning, sanitizer: sanitizer)
             let prompt = try render(messages)
             if let reserve, prompt.count + reserve > limit, let next = ToolOutputCut.shrink(groups, cuts) {
                 cuts = next
@@ -317,7 +353,9 @@ actor Runtime {
             }
             guard !prompt.isEmpty, prompt.count < limit else {
                 throw LanguageModelError.contextSizeExceeded(
-                    .init(contextSize: limit, tokenCount: prompt.count, debugDescription: "The prompt has \(prompt.count) tokens; the context limit is \(limit)."))
+                    .init(
+                        contextSize: limit, tokenCount: prompt.count,
+                        debugDescription: "The prompt has \(prompt.count) tokens; the context limit is \(limit)."))
             }
             return (messages, prompt, cuts)
         }
@@ -331,16 +369,23 @@ actor Runtime {
                 previous = false
                 continue
             }
-            let count = output.segments.map { if case .text(let text) = $0 { text.content } else { "" } }.joined(separator: "\n").count
-            if previous { groups[groups.count - 1].append((entry.id, count)) } else { groups.append([(entry.id, count)]) }
+            let count = output.segments.map { if case .text(let text) = $0 { text.content } else { "" } }.joined(
+                separator: "\n"
+            ).count
+            if previous {
+                groups[groups.count - 1].append((entry.id, count))
+            } else {
+                groups.append([(entry.id, count)])
+            }
             previous = true
         }
         return groups
     }
 
     static func messages(
-        _ transcript: Transcript, cuts: [String: ToolOutputCut] = [:], written: OrderedDictionary<String, [String]> = [:],
-        keepsReasoning: Bool = true
+        _ transcript: Transcript, cuts: [String: ToolOutputCut] = [:],
+        written: OrderedDictionary<String, [String]> = [:],
+        keepsReasoning: Bool = true, sanitizer: ControlTokenSanitizer = .init(tokens: [])
     ) throws -> [Message] {
         var messages: [Message] = []
         var order: [String: [String]] = [:]
@@ -367,11 +412,12 @@ actor Runtime {
                 if !content.isEmpty { messages.append(["role": "system", "content": content]) }
             case .prompt(let prompt):
                 flush()
-                messages.append(["role": "user", "content": try text(prompt.segments)])
+                messages.append(["role": "user", "content": sanitizer.sanitized(try text(prompt.segments))])
             case .reasoning(let thought):
                 guard keepsReasoning else { continue }
                 var message = reply ?? ["role": "assistant", "content": ""]
-                message["reasoning_content"] = (message["reasoning_content"] as? String ?? "") + (try text(thought.segments))
+                message["reasoning_content"] =
+                    (message["reasoning_content"] as? String ?? "") + (try text(thought.segments))
                 reply = message
             case .response(let response):
                 var message = reply ?? ["role": "assistant", "content": ""]
@@ -379,15 +425,22 @@ actor Runtime {
                 reply = message
             case .toolCalls(let calls):
                 var message = reply ?? ["role": "assistant", "content": ""]
-                message["tool_calls"] = (message["tool_calls"] as? [Value] ?? []) + calls.map { call in
-                    let arguments = Self.value(call.arguments, order: (written[call.id] ?? []) + (order[call.toolName] ?? []))
-                    return ["type": "function", "function": ["name": .string(call.toolName), "arguments": arguments]]
-                }
+                message["tool_calls"] =
+                    (message["tool_calls"] as? [Value] ?? [])
+                    + calls.map { call in
+                        let arguments = Self.value(
+                            call.arguments, order: (written[call.id] ?? []) + (order[call.toolName] ?? []))
+                        return [
+                            "type": "function", "function": ["name": .string(call.toolName), "arguments": arguments],
+                        ]
+                    }
                 reply = message
             case .toolOutput(let output):
                 flush()
                 let content = try text(output.segments)
-                messages.append(["role": "tool", "content": cuts[entry.id]?.apply(content) ?? content])
+                messages.append([
+                    "role": "tool", "content": sanitizer.sanitized(cuts[entry.id]?.apply(content) ?? content),
+                ])
             @unknown default:
                 throw LanguageModelError.unsupportedTranscriptContent(
                     .init(unsupportedContent: [entry], debugDescription: "Unknown transcript entry."))
@@ -405,14 +458,18 @@ actor Runtime {
         case .string(let string): .string(string)
         case .array(let items): .array(items.map { value($0) })
         case .structure(let properties, let keys):
-            .object(OrderedDictionary((order.filter(keys.contains) + keys).map {
-                (ObjectKey.string($0), value(properties[$0] ?? GeneratedContent(kind: .null)))
-            }, uniquingKeysWith: { first, _ in first }))
+            .object(
+                OrderedDictionary(
+                    (order.filter(keys.contains) + keys).map {
+                        (ObjectKey.string($0), value(properties[$0] ?? GeneratedContent(kind: .null)))
+                    }, uniquingKeysWith: { first, _ in first }))
         @unknown default: .null
         }
     }
 
-    static func templateContext(_ level: ContextOptions.ReasoningLevel?, variables: [String: Bool] = [:]) -> [String: any Sendable] {
+    static func templateContext(_ level: ContextOptions.ReasoningLevel?, variables: [String: Bool] = [:]) -> [String:
+        any Sendable]
+    {
         let context: [String: any Sendable] =
             switch level {
             case .light?: ["reasoning_effort": "low"]
@@ -429,7 +486,8 @@ actor Runtime {
         let temperature = Float(options.temperature ?? 1)
         switch options.samplingMode?.kind {
         case .randomTopK(let k, let seed)?: return Sampler(mode: .topK(k), temperature: temperature, seed: seed)
-        case .randomProbabilityThreshold(let p, let seed)?: return Sampler(mode: .topP(p), temperature: temperature, seed: seed)
+        case .randomProbabilityThreshold(let p, let seed)?:
+            return Sampler(mode: .topP(p), temperature: temperature, seed: seed)
         case nil where options.temperature != nil: return Sampler(mode: .full, temperature: temperature)
         default: return Sampler(mode: .greedy)
         }
@@ -466,7 +524,9 @@ struct Output {
             case .call(let name, let arguments):
                 let id = UUID().uuidString
                 written.append((id, ToolCallParser.members(arguments)?.map(\.key) ?? []))
-                await channel.send(.toolCalls(action: .toolCall(id: id, name: name, action: .appendArguments(arguments, tokenCount: take()))))
+                await channel.send(
+                    .toolCalls(
+                        action: .toolCall(id: id, name: name, action: .appendArguments(arguments, tokenCount: take()))))
                 lastCall = (id, name)
             }
         }
@@ -489,7 +549,8 @@ struct ToolSchema {
     let types: [String: String]
 
     init(_ definition: Transcript.ToolDefinition) {
-        let parameters = (try? JSONEncoder().encode(definition.parameters))
+        let parameters =
+            (try? JSONEncoder().encode(definition.parameters))
             .flatMap { try? JSONSerialization.jsonObject(with: $0) as? [String: Any] } ?? [:]
         let properties = parameters["properties"] as? [String: Any] ?? [:]
         name = definition.name
@@ -497,7 +558,10 @@ struct ToolSchema {
         types = properties.compactMapValues { ($0 as? [String: Any])?["type"] as? String }
         spec = [
             "type": "function",
-            "function": ["name": .string(definition.name), "description": .string(definition.description), "parameters": Self.value(parameters)],
+            "function": [
+                "name": .string(definition.name), "description": .string(definition.description),
+                "parameters": Self.value(parameters),
+            ],
         ]
     }
 
@@ -505,11 +569,14 @@ struct ToolSchema {
         switch json {
         case let object as [String: Any]:
             let first = order ?? leadingKeys
-            let rest = object.keys.filter { !first.contains($0) && (order != nil || !droppedKeys.contains($0)) }.sorted()
-            return .object(OrderedDictionary(uniqueKeysWithValues: (first.filter { object[$0] != nil } + rest).map { key in
-                let children = order == nil && key == "properties" ? object["x-order"] as? [String] ?? [] : nil
-                return (ObjectKey.string(key), value(object[key]!, order: children))
-            }))
+            let rest = object.keys.filter { !first.contains($0) && (order != nil || !droppedKeys.contains($0)) }
+                .sorted()
+            return .object(
+                OrderedDictionary(
+                    uniqueKeysWithValues: (first.filter { object[$0] != nil } + rest).map { key in
+                        let children = order == nil && key == "properties" ? object["x-order"] as? [String] ?? [] : nil
+                        return (ObjectKey.string(key), value(object[key]!, order: children))
+                    }))
         case let array as [Any]: return .array(array.map { value($0) })
         case let string as String: return .string(string)
         case let number as NSNumber:

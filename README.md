@@ -59,6 +59,8 @@ This is the core of `CoreAISamplesKit/Sources/coreai-chat/ChatCommand.swift`, cu
 
 ## What the runtime does
 
+- **Keeps input text from inserting control tokens.** Literal strings listed in the bundle's `added_tokens` are removed from user prompts (including RAG sources) and tool results before rendering. Removal also handles nested markers and markers formed by joining the remaining text. System instructions and model-generated history are unchanged. Text without those strings is preserved.
+
 - **Reuses what it has already read.** Each request is compared with the tokens the engine already holds, and only the part after the first difference is read again (in hybrid models, from the nearest saved point; next item): across the turns of a conversation and across the steps of a tool loop. The reused count is reported as `cachedTokenCount` in the session's usage. Sessions created from the same `LocalLanguageModel` share one engine, and their requests run one at a time.
 - **Returns to a saved point in hybrid models.** Bundles with fixed-size recurrent state (Qwen3.5 and Qwen3.8) cannot be rewound by trimming the cache, so the runtime saves that state where the user's turn ends, where generation starts and where two prompts part, and restores the nearest point instead of reading from the start (`Engine.checkpoint()`, `Engine.restore(_:)`).
 - **Separates thinking from the answer.** Text between `<think>` and `</think>` streams as `.reasoning` entries, the rest as the response. `ContextOptions.reasoningLevel` reaches the chat template as `reasoning_effort` (`.custom("off")` sets `enable_thinking` to false); whether it has an effect depends on the template.
@@ -66,6 +68,49 @@ This is the core of `CoreAISamplesKit/Sources/coreai-chat/ChatCommand.swift`, cu
 - **Handles a full context in one of two ways** (`OverflowPolicy`). `.error`, the default, throws `LanguageModelError.contextSizeExceeded` only when the prompt itself no longer fits; otherwise the reply gets what is left. `.dropOldToolOutputs` first replaces the oldest tool results with `[truncated]` (the newest two groups are kept) and then halves the newest ones, to leave room for the reply; if that is not enough, it falls back to `.error`.
 - **Samples as asked.** With no sampling options it decodes greedily. The `GenerationOptions` sampling modes `.random(top:seed:)` and `.random(probabilityThreshold:seed:)` and its `temperature` are honoured, and the same seed gives the same text.
 - **Stops and cancels cleanly.** Generation ends at the end-of-sequence token or `<|endoftext|>` (the stop token is not fed back to the model) or at `maximumResponseTokens`, and the response metadata says which (`stopReason`: `stopToken` or `maxTokens`). A reply that runs out of tokens while still thinking ends with an empty answer, not an error. After a cancelled request, the next one on the session works.
+
+## Supported requests
+
+The executor validates requests before acquiring or changing the inference state. The table covers the public request options in the macOS 27.0 SDK. The current request controls generation; settings stored on earlier prompts describe those earlier turns and are not replayed as new instructions.
+
+| Field or case | Behavior |
+|---|---|
+| `LanguageModelExecutorGenerationRequest.id` | Request identity; it does not alter rendering or sampling. |
+| `transcript` | Text instructions, prompts, reasoning, responses, tool calls and tool outputs are rendered. Unknown entry kinds are refused. |
+| `enabledToolDefinitions` | Rendered when tool calling is allowed; omitted when it is disallowed. |
+| `schema` | Refused with `unsupportedCapability(.guidedGeneration)`; request plain text instead. |
+| `generationOptions` | The fields below control this generation. |
+| `contextOptions` | The fields below control this rendering. |
+| `metadata` | Nonempty custom metadata is refused with `unsupportedGenerationGuide`; model-specific passthrough settings are not implemented. Key names, not values, appear in the error. |
+| `GenerationOptions.samplingMode` / deprecated `sampling` | The two names refer to the same setting. Omitted means greedy. |
+| `.greedy` | Selects the first maximum. |
+| `.random(top:seed:)` | Top-k sampling; the seed is used. |
+| `.random(probabilityThreshold:seed:)` | Top-p sampling; the seed is used. |
+| `temperature` | Passed to the sampler; omitted means 1. Nonpositive values select greedily. |
+| `maximumResponseTokens` | Caps the response at the remaining context space. |
+| `toolCallingMode` omitted / `.allowed` | Advertises the enabled tools without forcing a call. |
+| `.disallowed` | Omits tools from the template. |
+| `.required` | Refused with `unsupportedCapability(.guidedGeneration)` because forced tool calls require constrained decoding. |
+| Future sampling or tool-calling kinds | Refused instead of falling back to another setting. |
+| `ContextOptions.includeSchemaInPrompt` | Has no effect without a schema; a request with a schema is refused. |
+| `reasoningLevel` omitted | Uses the template's default. |
+| `.light` / `.moderate` / `.deep` | Maps to `low` / `medium` / `xhigh` template values. |
+| `.custom("off")` | Sets `enable_thinking` to false. |
+| `.custom("low")` / `.custom("medium")` / `.custom("xhigh")` | Uses the same template values as the named levels. |
+| Other custom reasoning values | Refused with `unsupportedCapability(.reasoning)` and the rejected value. |
+| `Transcript.Entry.instructions` | Preserves system text and tool definitions. |
+| `.prompt` | Sanitizes user text before rendering. |
+| `.reasoning` / `.response` | Preserves model-generated history. |
+| `.toolCalls` | Rebuilds calls and their arguments in the recorded order. |
+| `.toolOutput` | Applies context truncation, then sanitizes the remaining text. |
+| `Transcript.Segment.text` | Supported. |
+| `.structure` / `.attachment` and future segment kinds | Refused with `unsupportedTranscriptContent` before inference. |
+| `Transcript.Prompt.id` | Identifies the stored entry; not model input. |
+| `segments` | Only text is accepted. |
+| `options` / `contextOptions` / `metadata` | Stored turn information. The current request's corresponding fields are authoritative. |
+| `responseFormat` | Refused on the current prompt; historical formats do not constrain a new plain-text turn. |
+
+Reasoning strength depends on the bundle. Qwen3.8 uses the three effort values; Qwen3.5's template uses the thinking switch and does not distinguish those effort values. The runtime does not add a thinking-token budget. Custom reasoning names are limited to the four documented values so an unrecognized name is never silently forwarded.
 
 ## Repository layout
 
@@ -150,6 +195,17 @@ swift test
 COREAI_TEST_BUNDLES=/path/to/bundle-a:/path/to/bundle-b swift test
 ```
 
+The model-loading tests share one serialized suite; tokenizer-only checks remain independent. Acquire the heavy-job lock described in `CLAUDE.md` before running them. `seededSamplingRepeats` compares complete generated token sequences for top-k (40) and top-p (0.95), temperature 0.8 and seed 7, with state reuse disabled. The bundle, prompt, sampling settings and prefill segmentation must match for exact reproducibility. `COREAI_SEED_REPETITIONS` changes the default 20 repetitions; use the same test with 5 repetitions for a release candidate's larger bundle.
+
+The boundary tests render exactly 16,382, 16,383, 16,384 and 16,385 input tokens against a 16,384-token context. With either overflow policy, the first two inputs leave room for at most two and one generated tokens; the other two must throw `contextSizeExceeded` with the limit and input count. Separate histories check tool-output truncation, its metadata and irreducible overflow. State checks compare against a full reread using the eight-tick near-tie rule.
+
+`twoSessionsShareOneModel` submits 50 pairs through one model, records overlapping executor calls, checks for the other session's marker and cancels one request after its first streamed fragment in every fifth pair. It also checks recovery and the final state. `COREAI_CONCURRENCY_PAIRS=1` selects one pair for a Thread Sanitizer run. These are opt-in checks; a skipped model test does not validate a bundle.
+
+```bash
+COREAI_TEST_BUNDLES=/path/to/bundle COREAI_SEED_REPETITIONS=5 swift test --filter ModelIntegrationTests.seededSamplingRepeats
+COREAI_TEST_BUNDLES=/path/to/bundle COREAI_CONCURRENCY_PAIRS=1 swift test --sanitize=thread --filter ModelIntegrationTests.twoSessionsShareOneModel
+```
+
 ## Operational notes
 
 - **The first load prepares the model for the GPU.** Core AI keeps the prepared copy in `~/Library/Caches/coreai-cache/<OS build>/<name>/`, where `<name>` is the process name of a command-line tool (`coreai-chat`, `coreai-verify`, `swiftpm-testing-helper` for `swift test`) or the bundle ID of an app (`com.coreai-samples.DemoApp`). Later loads by the same program reuse it; another program prepares its own copy, which takes about as much disk as the model (more for an unquantized bundle). `coreai-chat --stats` shows whether the copy was reused (`cached`) and how long preparing took (`specialize_s`).
@@ -163,6 +219,8 @@ COREAI_TEST_BUNDLES=/path/to/bundle-a:/path/to/bundle-b swift test
 - Only bundles from the converter's macOS export (the `*_dynamic` folders) have been run, all of them Qwen models (Qwen3, Qwen3.5, Qwen3.8). The stop tokens, the `<think>` tags and the tool-call forms above are the ones those templates use; other model families may need more.
 - Text in, text out: a transcript segment that is not text throws `LanguageModelError.unsupportedTranscriptContent`, and there is no image or audio input.
 - No guided generation: a request with a response schema throws `LanguageModelError.unsupportedCapability`.
+- The demo uses a context limit of 16,384 tokens. Contexts beyond that limit are outside the verification coverage.
+- Use one active session per model unless the simultaneous-session checks pass for the deployed bundle and runtime.
 - Cancellation is checked before the prompt is read and between generated tokens, not while a long prompt is being read.
 - Decoding is synchronous, one token at a time, like the official `sequential` engine; the official default engine pipelines the work and decodes faster, most of all on small models (`coreai-verify speed` runs the three side by side).
 - No published bundles and no tagged release yet, and the Qwen3.5 and Qwen3.8 exports need the unmerged branch of apple/coreai-models (Quick start, step 1).
