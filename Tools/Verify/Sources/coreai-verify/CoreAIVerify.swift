@@ -47,11 +47,12 @@ struct ModelOptions: ParsableArguments {
         }
     }
 
-    func load(_ experiment: ExperimentOptions? = nil) async throws -> any LanguageModel {
+    func load(_ experiment: ExperimentOptions? = nil, reload: ReloadOptions? = nil) async throws -> any LanguageModel {
         if runtime == .own {
             return try await loadOwnModel(
-                URL(filePath: model), contextLimit: contextLimit, overflow: dropOldToolOutputs ? .dropOldToolOutputs : .error,
-                experiment: experiment)
+                URL(filePath: model), contextLimit: contextLimit,
+                overflow: dropOldToolOutputs ? .dropOldToolOutputs : .error,
+                experiment: experiment, reloadPolicy: reload?.policy ?? .init())
         }
         if verbose { CLILogger.level = 1 }
         let clock = ContinuousClock()
@@ -83,51 +84,72 @@ struct Chat: AsyncParsableCommand {
     @Flag(help: "Send each prompt in a new session instead of one shared session.")
     var freshSession = false
 
+    @Option(help: "Start a new conversation after this many turns. Zero keeps one conversation.")
+    var newConversationEvery = 0
+
     @OptionGroup var experiment: ExperimentOptions
+
+    @OptionGroup var reload: ReloadOptions
 
     func validate() throws {
         try experiment.validate(options.runtime)
+        try reload.validate(options.runtime)
+        guard newConversationEvery >= 0 else {
+            throw ValidationError("--new-conversation-every must be zero or greater.")
+        }
+        guard !freshSession || newConversationEvery == 0 else {
+            throw ValidationError("Choose either --fresh-session or --new-conversation-every.")
+        }
     }
 
     func run() async throws {
-        let model = try await options.load(experiment)
+        let model = try await options.load(experiment, reload: reload)
         let snapshot = tokenSnapshot(model)
+        let generated = generatedTokenSnapshot(model)
         var session = LanguageModelSession(model: model, instructions: instructions)
         for (index, text) in prompt.enumerated() {
-            if freshSession, index > 0 {
+            if index > 0, freshSession || (newConversationEvery > 0 && index.isMultiple(of: newConversationEvery)) {
                 session = LanguageModelSession(model: model, instructions: instructions)
             }
             let result = await stream(session, from: .now) {
                 session.streamResponse(
-                    to: text, options: GenerationOptions(maximumResponseTokens: maxTokens), contextOptions: experiment.contextOptions)
+                    to: text, options: GenerationOptions(maximumResponseTokens: maxTokens),
+                    contextOptions: experiment.contextOptions)
             }
             let response = joinedText(result.entries, where: responseSegments)
             let reasoning = joinedText(result.entries, where: reasoningSegments)
             let processed = await snapshot?()
-            try emit(TurnRecord(
-                runtime: options.runtime.rawValue,
-                turn: index + 1,
-                promptChars: text.count,
-                response: response,
-                reasoning: reasoning,
-                responseChars: response.count,
-                reasoningChars: reasoning.count,
-                stopReason: result.metadata("stopReason", as: String.self),
-                prefillTokens: result.metadata("prefillTokens", as: Int.self),
-                sharedTokens: result.metadata("sharedTokens", as: Int.self),
-                ttftS: result.ttft,
-                firstAnswerS: result.firstAnswer,
-                totalS: result.total,
-                outputTokens: result.usage.outputTotal,
-                decodeTokS: result.decodeRate,
-                snapshots: result.snapshots,
-                transcriptChanges: result.changes,
-                usage: result.usage,
-                entries: result.marks,
-                memory: .now(),
-                processedTokens: processed,
-                error: result.error
-            ))
+            let generatedTokens = result.error == nil ? await generated?() : nil
+            try emit(
+                TurnRecord(
+                    runtime: options.runtime.rawValue,
+                    turn: index + 1,
+                    promptChars: text.count,
+                    response: response,
+                    reasoning: reasoning,
+                    responseChars: response.count,
+                    reasoningChars: reasoning.count,
+                    stopReason: result.metadata("stopReason", as: String.self),
+                    prefillTokens: result.metadata("prefillTokens", as: Int.self),
+                    sharedTokens: result.metadata("sharedTokens", as: Int.self),
+                    reloadSeconds: result.metadata("reloadSeconds", as: Double.self),
+                    ttftS: result.ttft,
+                    firstAnswerS: result.firstAnswer,
+                    totalS: result.total,
+                    outputTokens: result.usage.outputTotal,
+                    decodeTokS: result.decodeRate,
+                    snapshots: result.snapshots,
+                    transcriptChanges: result.changes,
+                    usage: result.usage,
+                    entries: result.marks,
+                    memory: .now(),
+                    processedTokens: processed,
+                    generatedTokens: generatedTokens,
+                    error: result.error
+                ))
+            if experiment.checkState, result.metadata("reloadSeconds", as: Double.self) != nil {
+                try await checkState(model)
+            }
         }
         if experiment.checkState { try await checkState(model) }
     }
@@ -185,16 +207,20 @@ struct ToolRoundTrip: AsyncParsableCommand {
 
     @OptionGroup var experiment: ExperimentOptions
 
+    @OptionGroup var reload: ReloadOptions
+
     func validate() throws {
         try experiment.validate(options.runtime)
+        try reload.validate(options.runtime)
     }
 
     func run() async throws {
-        let model = try await options.load(experiment)
+        let model = try await options.load(experiment, reload: reload)
         let snapshot = tokenSnapshot(model)
         let log = ToolLog(snapshot: snapshot)
         let instructions = try instructionsFile.map { try String(contentsOfFile: $0, encoding: .utf8) }
-        let tools: [any Tool] = pages.map { [PageTool(folder: $0, log: log)] } ?? [WeatherTool(log: log), AddTool(log: log)]
+        let tools: [any Tool] =
+            pages.map { [PageTool(folder: $0, log: log)] } ?? [WeatherTool(log: log), AddTool(log: log)]
         var session = LanguageModelSession(model: model, tools: tools, instructions: instructions)
         for (index, text) in prompt.enumerated() {
             if !sameSession, index > 0 {
@@ -207,27 +233,29 @@ struct ToolRoundTrip: AsyncParsableCommand {
             }
             let (invocations, snapshots) = log.take()
             let final = await snapshot?()
-            let steps = StepRecord.split(result, runtime: self.options.runtime.rawValue, question: index + 1, snapshots: snapshots, final: final)
+            let steps = StepRecord.split(
+                result, runtime: self.options.runtime.rawValue, question: index + 1, snapshots: snapshots, final: final)
             for step in steps { try emit(step) }
-            try emit(ToolRecord(
-                question: index + 1,
-                prompt: text,
-                toolCalled: !invocations.isEmpty,
-                calls: steps.flatMap { $0.calls },
-                invocations: invocations,
-                steps: steps.count,
-                cancelled: cancel == index + 1,
-                response: joinedText(result.entries.suffix(1), where: responseSegments),
-                ttftS: result.ttft,
-                firstAnswerS: result.firstAnswer,
-                totalS: result.total,
-                transcriptChanges: result.changes,
-                usage: result.usage,
-                entries: result.marks,
-                transcript: session.transcript.map(kind),
-                memory: .now(),
-                error: result.error
-            ))
+            try emit(
+                ToolRecord(
+                    question: index + 1,
+                    prompt: text,
+                    toolCalled: !invocations.isEmpty,
+                    calls: steps.flatMap { $0.calls },
+                    invocations: invocations,
+                    steps: steps.count,
+                    cancelled: cancel == index + 1,
+                    response: joinedText(result.entries.suffix(1), where: responseSegments),
+                    ttftS: result.ttft,
+                    firstAnswerS: result.firstAnswer,
+                    totalS: result.total,
+                    transcriptChanges: result.changes,
+                    usage: result.usage,
+                    entries: result.marks,
+                    transcript: session.transcript.map(kind),
+                    memory: .now(),
+                    error: result.error
+                ))
         }
         if experiment.checkState { try await checkState(model) }
     }
@@ -259,27 +287,28 @@ struct Bench: AsyncParsableCommand {
             }
             let response = joinedText(result.entries, where: responseSegments)
             let reasoning = joinedText(result.entries, where: reasoningSegments)
-            try emit(BenchRecord(
-                runtime: options.runtime.rawValue,
-                run: run,
-                response: response,
-                reasoning: reasoning,
-                responseChars: response.count,
-                reasoningChars: reasoning.count,
-                stopReason: result.metadata("stopReason", as: String.self),
-                prefillTokens: result.metadata("prefillTokens", as: Int.self),
-                sharedTokens: result.metadata("sharedTokens", as: Int.self),
-                ttftS: result.ttft,
-                firstAnswerS: result.firstAnswer,
-                totalS: result.total,
-                outputTokens: result.usage.outputTotal,
-                decodeTokS: result.decodeRate,
-                snapshots: result.snapshots,
-                transcriptChanges: result.changes,
-                usage: result.usage,
-                memory: .now(),
-                error: result.error
-            ))
+            try emit(
+                BenchRecord(
+                    runtime: options.runtime.rawValue,
+                    run: run,
+                    response: response,
+                    reasoning: reasoning,
+                    responseChars: response.count,
+                    reasoningChars: reasoning.count,
+                    stopReason: result.metadata("stopReason", as: String.self),
+                    prefillTokens: result.metadata("prefillTokens", as: Int.self),
+                    sharedTokens: result.metadata("sharedTokens", as: Int.self),
+                    ttftS: result.ttft,
+                    firstAnswerS: result.firstAnswer,
+                    totalS: result.total,
+                    outputTokens: result.usage.outputTotal,
+                    decodeTokS: result.decodeRate,
+                    snapshots: result.snapshots,
+                    transcriptChanges: result.changes,
+                    usage: result.usage,
+                    memory: .now(),
+                    error: result.error
+                ))
         }
     }
 }
@@ -347,7 +376,8 @@ struct PageTool: Tool {
 
 final class ToolLog: Sendable {
     private let snapshot: (@Sendable () async -> [Int32])?
-    private let state = Mutex<(start: ContinuousClock.Instant, events: [Invocation], snapshots: [[Int32]])>((.now, [], []))
+    private let state = Mutex<(start: ContinuousClock.Instant, events: [Invocation], snapshots: [[Int32]])>(
+        (.now, [], []))
 
     init(snapshot: (@Sendable () async -> [Int32])?) {
         self.snapshot = snapshot
@@ -371,7 +401,9 @@ final class ToolLog: Sendable {
 
     func record(_ name: String, _ started: ContinuousClock.Instant) {
         let end = ContinuousClock.now
-        state.withLock { $0.events.append(Invocation(name: name, t: seconds(started - $0.start), endT: seconds(end - $0.start))) }
+        state.withLock {
+            $0.events.append(Invocation(name: name, t: seconds(started - $0.start), endT: seconds(end - $0.start)))
+        }
     }
 
     func take() -> (events: [Invocation], snapshots: [[Int32]]) {
@@ -441,7 +473,8 @@ func stream(
     let watch = TranscriptWatch(start: start, seen: base)
     let (armed, arm) = AsyncStream<Void>.makeStream()
     let observer = Task {
-        for await (kinds, usage) in Observations({ (session.transcript.map(kind), Usage(session.usage, since: before)) }) {
+        for await (kinds, usage) in Observations({ (session.transcript.map(kind), Usage(session.usage, since: before)) }
+        ) {
             arm.finish()
             if !watch.observe(kinds, usage: usage) { break }
         }
@@ -526,6 +559,7 @@ func emit(_ record: some Encodable) throws {
 struct Memory: Encodable {
     let rssBytes: UInt64
     let footprintBytes: UInt64
+    let graphicsFootprintBytes: UInt64
 
     static func now() -> Memory {
         var info = task_vm_info_data_t()
@@ -535,8 +569,11 @@ struct Memory: Encodable {
                 task_info(mach_task_self_, task_flavor_t(TASK_VM_INFO), $0, &count)
             }
         }
-        guard result == KERN_SUCCESS else { return Memory(rssBytes: 0, footprintBytes: 0) }
-        return Memory(rssBytes: info.resident_size, footprintBytes: info.phys_footprint)
+        guard result == KERN_SUCCESS else { return Memory(rssBytes: 0, footprintBytes: 0, graphicsFootprintBytes: 0) }
+        return Memory(
+            rssBytes: info.resident_size, footprintBytes: info.phys_footprint,
+            graphicsFootprintBytes: UInt64(max(0, info.ledger_tag_graphics_footprint))
+                + UInt64(max(0, info.ledger_tag_graphics_footprint_compressed)))
     }
 }
 
@@ -595,13 +632,16 @@ struct StepRecord: Encodable {
     var stopReason: String?
     var prefillTokens: Int?
     var sharedTokens: Int?
+    var reloadSeconds: Double?
     var prefillSeconds: Double?
     var decodeSeconds: Double?
     var truncatedToolOutputs: Int?
     var reservedTokens: Int?
     var processedTokens: [Int32]?
 
-    static func split(_ result: StreamResult, runtime: String, question: Int, snapshots: [[Int32]], final: [Int32]?) -> [StepRecord] {
+    static func split(_ result: StreamResult, runtime: String, question: Int, snapshots: [[Int32]], final: [Int32]?)
+        -> [StepRecord]
+    {
         var steps: [StepRecord] = []
         var current: StepRecord?
         var boundary = 0.0
@@ -617,7 +657,11 @@ struct StepRecord: Encodable {
                 boundary = mark.t
                 continue
             }
-            var step = current ?? StepRecord(runtime: runtime, question: question, step: steps.count + 1, startS: boundary, ttftS: mark.t - boundary)
+            var step =
+                current
+                ?? StepRecord(
+                    runtime: runtime, question: question, step: steps.count + 1, startS: boundary,
+                    ttftS: mark.t - boundary)
             step.entries.append(mark.kind)
             if index < result.entries.count { step.read(result.entries[index]) }
             current = step
@@ -627,7 +671,8 @@ struct StepRecord: Encodable {
             steps.append(step)
         }
         for index in steps.indices {
-            steps[index].processedTokens = index == steps.count - 1 ? final : index < snapshots.count ? snapshots[index] : nil
+            steps[index].processedTokens =
+                index == steps.count - 1 ? final : index < snapshots.count ? snapshots[index] : nil
         }
         return steps
     }
@@ -635,9 +680,11 @@ struct StepRecord: Encodable {
     mutating func read(_ entry: Transcript.Entry) {
         var metadata: [String: GeneratedContent] = [:]
         switch entry {
-        case .reasoning(let reasoning): self.reasoning += joinedText([entry], where: reasoningSegments)
+        case .reasoning(let reasoning):
+            self.reasoning += joinedText([entry], where: reasoningSegments)
             metadata = reasoning.metadata
-        case .response(let response): self.response += joinedText([entry], where: responseSegments)
+        case .response(let response):
+            self.response += joinedText([entry], where: responseSegments)
             metadata = response.metadata
         case .toolCalls(let toolCalls):
             calls += toolCalls.map { call in
@@ -651,6 +698,7 @@ struct StepRecord: Encodable {
         stopReason = try? metadata["stopReason"]?.value(String.self)
         prefillTokens = try? metadata["prefillTokens"]?.value(Int.self)
         sharedTokens = try? metadata["sharedTokens"]?.value(Int.self)
+        reloadSeconds = try? metadata["reloadSeconds"]?.value(Double.self)
         prefillSeconds = try? metadata["prefillSeconds"]?.value(Double.self)
         decodeSeconds = try? metadata["decodeSeconds"]?.value(Double.self)
         truncatedToolOutputs = try? metadata["truncatedToolOutputs"]?.value(Int.self)
@@ -683,6 +731,7 @@ struct TurnRecord: Encodable {
     let stopReason: String?
     let prefillTokens: Int?
     let sharedTokens: Int?
+    let reloadSeconds: Double?
     let ttftS: Double?
     let firstAnswerS: Double?
     let totalS: Double
@@ -694,6 +743,7 @@ struct TurnRecord: Encodable {
     let entries: [EntryMark]
     let memory: Memory
     let processedTokens: [Int32]?
+    let generatedTokens: [Int32]?
     let error: String?
 }
 

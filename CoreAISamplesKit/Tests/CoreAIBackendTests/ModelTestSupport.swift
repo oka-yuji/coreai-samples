@@ -101,7 +101,8 @@ enum ModelTestError: Error {
 }
 
 func cancelAfterFirstFragment(
-    _ session: LanguageModelSession, prompt: String, maximumTokens: Int
+    _ session: LanguageModelSession, prompt: String, maximumTokens: Int,
+    context: ContextOptions = ModelTestSettings.context
 ) async throws -> String {
     let base = session.transcript.count
     let signal = AsyncStream<String>.makeStream(bufferingPolicy: .bufferingOldest(1))
@@ -124,7 +125,7 @@ func cancelAfterFirstFragment(
         defer { signal.continuation.finish() }
         for try await _ in session.streamResponse(
             to: prompt, options: .init(samplingMode: .greedy, maximumResponseTokens: maximumTokens),
-            contextOptions: ModelTestSettings.context)
+            contextOptions: context)
         {}
     }
     return try await withTaskCancellationHandler {
