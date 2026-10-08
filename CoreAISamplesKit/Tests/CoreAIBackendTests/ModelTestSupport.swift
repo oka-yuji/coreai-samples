@@ -1,6 +1,7 @@
 import Foundation
 import FoundationModels
 import Observation
+import Synchronization
 import Testing
 import Tokenizers
 
@@ -100,21 +101,40 @@ enum ModelTestError: Error {
     case completedBeforeCancellation
 }
 
+func responseText(in transcript: Transcript, after index: Int) -> String {
+    transcript.dropFirst(index).compactMap { entry -> String? in
+        guard case .response(let response) = entry else { return nil }
+        return response.segments.compactMap { segment -> String? in
+            if case .text(let text) = segment { return text.content }
+            return nil
+        }.joined()
+    }.joined()
+}
+
 func cancelAfterFirstFragment(
     _ session: LanguageModelSession, prompt: String, maximumTokens: Int,
-    context: ContextOptions = ModelTestSettings.context
+    context: ContextOptions = ModelTestSettings.context,
+    beforeCancellation: @Sendable (String) async throws -> Void = { _ in },
+    executionStarted: @Sendable () -> Bool = { true },
+    waitUntilFinished: @Sendable () async -> Void
 ) async throws -> String {
     let base = session.transcript.count
+    func finishExecution() async {
+        if executionStarted() {
+            await withTaskCancellationShield { await waitUntilFinished() }
+        }
+    }
     let signal = AsyncStream<String>.makeStream(bufferingPolicy: .bufferingOldest(1))
+    let observing = AsyncStream<Void>.makeStream()
     let observer = Task {
-        for await transcript in Observations({ session.transcript }) {
-            let text = transcript.dropFirst(base).compactMap { entry -> String? in
-                guard case .response(let response) = entry else { return nil }
-                return response.segments.compactMap { segment -> String? in
-                    if case .text(let text) = segment { return text.content }
-                    return nil
-                }.joined()
-            }.joined()
+        defer { observing.continuation.finish() }
+        var ready = false
+        for await text in Observations({ responseText(in: session.transcript, after: base) }) {
+            if !ready {
+                ready = true
+                observing.continuation.yield(())
+                observing.continuation.finish()
+            }
             if !text.isEmpty {
                 signal.continuation.yield(text)
                 return
@@ -123,12 +143,15 @@ func cancelAfterFirstFragment(
     }
     let consumer = Task {
         defer { signal.continuation.finish() }
+        for await _ in observing.stream { break }
+        try Task.checkCancellation()
         for try await _ in session.streamResponse(
             to: prompt, options: .init(samplingMode: .greedy, maximumResponseTokens: maximumTokens),
             contextOptions: context)
         {}
     }
     return try await withTaskCancellationHandler {
+        var finished = false
         do {
             var iterator = signal.stream.makeAsyncIterator()
             guard let fragment = await iterator.next() else {
@@ -136,19 +159,23 @@ func cancelAfterFirstFragment(
                 throw ModelTestError.noStreamFragment
             }
             guard session.isResponding else { throw ModelTestError.completedBeforeCancellation }
+            try await beforeCancellation(fragment)
             consumer.cancel()
             _ = await consumer.result
+            await finishExecution()
+            finished = true
             for await responding in Observations({ session.isResponding }) {
                 if !responding { break }
             }
             observer.cancel()
             await observer.value
             try Task.checkCancellation()
-            return fragment
+            return responseText(in: session.transcript, after: base)
         } catch {
             consumer.cancel()
             observer.cancel()
             _ = await consumer.result
+            if !finished { await finishExecution() }
             await observer.value
             throw error
         }
@@ -165,11 +192,16 @@ actor RequestOverlapProbe {
         let events: [String]
     }
 
+    private let onRegistered: @Sendable () -> Void
     private var arrivals = 0
     private var waiters: [AsyncStream<Void>.Continuation] = []
     private var delegating: Set<UUID> = []
     private var maximumDelegating = 0
     private var events: [String] = []
+
+    init(onRegistered: @escaping @Sendable () -> Void = {}) {
+        self.onRegistered = onRegistered
+    }
 
     func enter(_ id: UUID) async throws {
         arrivals += 1
@@ -177,6 +209,7 @@ actor RequestOverlapProbe {
         if arrivals > 2 { return }
         let signal = AsyncStream<Void>.makeStream()
         waiters.append(signal.continuation)
+        onRegistered()
         if arrivals == 2 {
             for waiter in waiters { waiter.finish() }
             waiters.removeAll()
@@ -233,10 +266,45 @@ struct ObservedLanguageModel<Base: LanguageModel>: LanguageModel {
     var executorConfiguration: Base.Executor.Configuration { base.executorConfiguration }
 }
 
+final class ModelCompletionLatch: Sendable {
+    private struct State {
+        var value: Bool?
+        var waiters: [AsyncStream<Bool>.Continuation] = []
+    }
+
+    private let state = Mutex(State())
+
+    func finish(cancelled: Bool) {
+        let waiters = state.withLock { state in
+            state.value = cancelled
+            let result = state.waiters
+            state.waiters.removeAll()
+            return result
+        }
+        for waiter in waiters {
+            waiter.yield(cancelled)
+            waiter.finish()
+        }
+    }
+
+    func wait() async -> Bool? {
+        let signal = AsyncStream<Bool>.makeStream()
+        let completed: Bool? = state.withLock { state -> Bool? in
+            if let value = state.value { return value }
+            state.waiters.append(signal.continuation)
+            return nil
+        }
+        if let completed { return completed }
+        var iterator = signal.stream.makeAsyncIterator()
+        return await iterator.next()
+    }
+}
+
 struct StreamingProbeModel: LanguageModel {
     enum Behavior: Sendable {
         case paired(RequestOverlapProbe)
         case waitForCancellation(AsyncStream<Bool>.Continuation)
+        case secondFragment(RequestOverlapProbe, ModelCompletionLatch)
     }
 
     struct Executor: LanguageModelExecutor {
@@ -247,13 +315,27 @@ struct StreamingProbeModel: LanguageModel {
             to request: LanguageModelExecutorGenerationRequest, model: Model,
             streamingInto channel: LanguageModelExecutorGenerationChannel
         ) async throws {
+            model.onStart()
+            let finished: AsyncStream<Bool>.Continuation?
+            switch model.behavior {
+            case .paired: finished = nil
+            case .waitForCancellation(let continuation): finished = continuation
+            case .secondFragment: finished = nil
+            }
+            defer {
+                finished?.yield(Task.isCancelled)
+                finished?.finish()
+                if case .secondFragment(_, let completion) = model.behavior {
+                    completion.finish(cancelled: Task.isCancelled)
+                }
+            }
             if case .paired(let barrier) = model.behavior { try await barrier.enter(request.id) }
             await channel.send(.response(action: .appendText("fragment", tokenCount: 1)))
-            if case .waitForCancellation(let finished) = model.behavior {
-                defer {
-                    finished.yield(Task.isCancelled)
-                    finished.finish()
-                }
+            if case .secondFragment(let gate, _) = model.behavior {
+                try await gate.enter(request.id)
+                await channel.send(.response(action: .appendText(" PELICAN", tokenCount: 1)))
+            }
+            if finished != nil {
                 let wait = AsyncStream<Void>.makeStream()
                 var iterator = wait.stream.makeAsyncIterator()
                 _ = await iterator.next()
@@ -265,5 +347,15 @@ struct StreamingProbeModel: LanguageModel {
 
     let behavior: Behavior
     let executorConfiguration = UUID()
-    let capabilities = LanguageModelCapabilities([.reasoning])
+    let capabilities: LanguageModelCapabilities
+    let onStart: @Sendable () -> Void
+
+    init(
+        behavior: Behavior, supportsReasoning: Bool = true,
+        onStart: @escaping @Sendable () -> Void = {}
+    ) {
+        self.behavior = behavior
+        capabilities = LanguageModelCapabilities(supportsReasoning ? [.reasoning] : [])
+        self.onStart = onStart
+    }
 }

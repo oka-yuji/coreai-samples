@@ -130,7 +130,8 @@ extension ModelIntegrationTests {
 
         let cancelled = LanguageModelSession(model: model)
         _ = try await cancelAfterFirstFragment(
-            cancelled, prompt: "Write a long story about a dragon.", maximumTokens: 2048)
+            cancelled, prompt: "Write a long story about a dragon.", maximumTokens: 2048,
+            waitUntilFinished: { _ = await model.processedTokens() })
         let after = try await cancelled.respond(
             to: "What is the capital of Japan? Answer with one word.",
             options: GenerationOptions(maximumResponseTokens: 512))
@@ -235,7 +236,8 @@ extension ModelIntegrationTests {
         try await resumed.respond(
             to: "My name is Taro. Remember it.", options: GenerationOptions(maximumResponseTokens: 256))
         _ = try await cancelAfterFirstFragment(
-            resumed, prompt: "Write a long story about a dragon.", maximumTokens: 2048)
+            resumed, prompt: "Write a long story about a dragon.", maximumTokens: 2048,
+            waitUntilFinished: { _ = await model.processedTokens() })
         let after = try await resumed.respond(
             to: "What is my name?", options: GenerationOptions(maximumResponseTokens: 256))
         #expect(after.usage.input.cachedTokenCount > 0, "\(after.usage)")

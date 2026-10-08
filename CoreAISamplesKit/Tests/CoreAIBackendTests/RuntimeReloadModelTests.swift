@@ -148,7 +148,9 @@ extension ModelIntegrationTests {
             messages: [["role": "user", "content": question]], tools: nil,
             additionalContext: Runtime.templateContext(ModelTestSettings.context.reasoningLevel)
         ).map(Int32.init)
-        _ = try await cancelAfterFirstFragment(cancelled, prompt: question, maximumTokens: 512)
+        _ = try await cancelAfterFirstFragment(
+            cancelled, prompt: question, maximumTokens: 512,
+            waitUntilFinished: { _ = await model.processedTokens() })
         let partial = await model.processedTokens()
         if !partial.isEmpty {
             #expect(partial.starts(with: prompt))
