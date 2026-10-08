@@ -1,5 +1,7 @@
 import Foundation
 import FoundationModels
+import Observation
+import Synchronization
 import Testing
 
 @_spi(Verification) @testable import CoreAIBackend
@@ -143,16 +145,17 @@ extension ModelIntegrationTests {
         for pair in 0..<pairs {
             let probe = RequestOverlapProbe()
             let model = ObservedLanguageModel(base: base, probe: probe)
-            let firstMarker = "ALBATROSS"
-            let secondMarker = "PELICAN"
+            let firstMarker = "QXZV9274RMT6"
+            let secondMarker = "NBKF5831WDS9"
             let first = LanguageModelSession(model: model, instructions: "Your private marker is \(firstMarker).")
             let second = LanguageModelSession(model: model, instructions: "Your private marker is \(secondMarker).")
             let cancelling = pair.isMultiple(of: 5)
+            if cancelling { first.transcriptErrorHandlingPolicy = .preserveTranscript }
             async let firstResult: String = {
                 if cancelling {
                     return try await cancelAfterFirstFragment(
                         first, prompt: "Begin with your private marker, then tell a long story about the ocean.",
-                        maximumTokens: 256)
+                        maximumTokens: 256, waitUntilFinished: { _ = await base.processedTokens() })
                 }
                 return try await first.respond(
                     to: "Write your private marker, then describe the ocean in three sentences.",
@@ -206,13 +209,12 @@ struct ModelTestSupportTests {
 
     @Test("A request cancelled while waiting at the overlap gate releases its waiter")
     func gateCancellation() async throws {
-        let probe = RequestOverlapProbe()
         let started = AsyncStream<Void>.makeStream()
-        let task = Task {
+        let probe = RequestOverlapProbe(onRegistered: {
             started.continuation.yield(())
             started.continuation.finish()
-            try await probe.enter(UUID())
-        }
+        })
+        let task = Task { try await probe.enter(UUID()) }
         for await _ in started.stream { break }
         task.cancel()
         let result = await task.result
@@ -249,10 +251,105 @@ extension ModelTestSupportTests {
         let finished = AsyncStream<Bool>.makeStream()
         let session = LanguageModelSession(
             model: StreamingProbeModel(behavior: .waitForCancellation(finished.continuation)))
-        let fragment = try await cancelAfterFirstFragment(session, prompt: "Start streaming", maximumTokens: 32)
+        session.transcriptErrorHandlingPolicy = .preserveTranscript
+        let fragment = try await cancelAfterFirstFragment(
+            session, prompt: "Start streaming", maximumTokens: 32,
+            waitUntilFinished: {
+                var iterator = finished.stream.makeAsyncIterator()
+                #expect(await iterator.next() == true)
+            })
         #expect(fragment == "fragment")
         #expect(!session.isResponding)
-        var iterator = finished.stream.makeAsyncIterator()
-        #expect(await iterator.next() == true)
     }
+
+    @Test("Cancellation racing with completion inspects the complete retained response")
+    func cancellationCollectsFinalPartial() async throws {
+        let gate = RequestOverlapProbe()
+        let completed = ModelCompletionLatch()
+        let session = LanguageModelSession(
+            model: StreamingProbeModel(behavior: .secondFragment(gate, completed)))
+        session.transcriptErrorHandlingPolicy = .preserveTranscript
+        let start = session.transcript.count
+        let result = try await cancelAfterFirstFragment(
+            session, prompt: "Emit two controlled fragments", maximumTokens: 32,
+            beforeCancellation: { first in
+                #expect(first == "fragment")
+                try await gate.enter(UUID())
+                #expect(await completed.wait() == false)
+                for await responding in Observations({ session.isResponding }) {
+                    if !responding { return }
+                }
+                throw CancellationError()
+            },
+            waitUntilFinished: { #expect(await completed.wait() == false) })
+        #expect(result == "fragment PELICAN")
+        #expect(result == responseText(in: session.transcript, after: start))
+        #expect(!session.isResponding)
+    }
+
+    @Test("A rejected request does not wait for an executor that never started")
+    func cancellationRejectsBeforeExecution() async throws {
+        let state = Mutex((started: false, waited: false))
+        let finished = AsyncStream<Bool>.makeStream()
+        let session = LanguageModelSession(
+            model: StreamingProbeModel(
+                behavior: .waitForCancellation(finished.continuation), supportsReasoning: false,
+                onStart: { state.withLock { $0.started = true } }))
+        await #expect {
+            try await cancelAfterFirstFragment(
+                session, prompt: "Reject unsupported reasoning", maximumTokens: 32,
+                executionStarted: { state.withLock { $0.started } },
+                waitUntilFinished: {
+                    state.withLock { $0.waited = true }
+                    var iterator = finished.stream.makeAsyncIterator()
+                    _ = await iterator.next()
+                })
+        } throws: { error in
+            guard case LanguageModelError.unsupportedCapability(let detail) = error else { return false }
+            return detail.capability == .reasoning
+        }
+        #expect(!state.withLock { $0.started || $0.waited })
+        #expect(!session.isResponding)
+        finished.continuation.finish()
+    }
+
+    @Test("Parent cancellation joins the executor after cancelling the response consumer")
+    func parentCancellationJoinsExecution() async throws {
+        let entered = AsyncStream<Void>.makeStream()
+        let finished = AsyncStream<Bool>.makeStream()
+        let state = Mutex((started: false, joined: false))
+        let session = LanguageModelSession(
+            model: StreamingProbeModel(
+                behavior: .waitForCancellation(finished.continuation),
+                onStart: { state.withLock { $0.started = true } }))
+        session.transcriptErrorHandlingPolicy = .preserveTranscript
+        let operation = Task {
+            try await cancelAfterFirstFragment(
+                session, prompt: "Wait for parent cancellation", maximumTokens: 32,
+                beforeCancellation: { _ in
+                    entered.continuation.yield(())
+                    entered.continuation.finish()
+                    let wait = AsyncStream<Void>.makeStream()
+                    var iterator = wait.stream.makeAsyncIterator()
+                    _ = await iterator.next()
+                    try Task.checkCancellation()
+                },
+                executionStarted: { state.withLock { $0.started } },
+                waitUntilFinished: {
+                    var iterator = finished.stream.makeAsyncIterator()
+                    let cancelled = await iterator.next()
+                    state.withLock { $0.joined = cancelled == true }
+                })
+        }
+        for await _ in entered.stream { break }
+        operation.cancel()
+        if case .failure(let error) = await operation.result {
+            #expect(error is CancellationError)
+        } else {
+            Issue.record("Parent cancellation did not end the helper")
+        }
+        #expect(state.withLock { $0.started && $0.joined })
+        #expect(!session.isResponding)
+    }
+
 }

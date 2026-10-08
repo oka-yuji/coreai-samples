@@ -320,7 +320,9 @@ extension RuntimeReloadTests {
         fixture.control.state.withLock { $0.blockNextStep = true }
         let session = LanguageModelSession(model: fixture.model)
         try await withTaskCancellationHandler {
-            _ = try await cancelAfterFirstFragment(session, prompt: "b", maximumTokens: 8, context: .init())
+            _ = try await cancelAfterFirstFragment(
+                session, prompt: "b", maximumTokens: 8, context: .init(),
+                waitUntilFinished: { _ = await fixture.model.processedTokens() })
         } onCancel: {
             fixture.control.resumeStep()
         }
