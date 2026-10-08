@@ -837,6 +837,18 @@ enum AgentSelfTest {
                 entries.compactMap { try? encoder.encode($0) }.map { String(decoding: $0, as: UTF8.self) + "\n" }
                     .joined().utf8)
         }
+        let defaultsName = "agent-defaults-" + UUID().uuidString
+        if let defaults = UserDefaults(suiteName: defaultsName) {
+            defer { defaults.removePersistentDomain(forName: defaultsName) }
+            let fresh = AgentViewModel(defaults: defaults)
+            check("m4h/defaultInstructionsAndGuard", fresh.citeFetched && fresh.citationGuard, "fresh settings")
+            fresh.citeFetched = false
+            fresh.citationGuard = false
+            let saved = AgentViewModel(defaults: defaults)
+            check("m4h/savedInstructionsAndGuard", !saved.citeFetched && !saved.citationGuard, "saved false values")
+        } else {
+            check("m4h/defaultInstructionsAndGuard", false, "could not create isolated defaults")
+        }
         let key = ["fetch_page", "https://example.com/old", ""]
         do {
             let tape = folder.appending(path: "cassette.jsonl")
@@ -1009,6 +1021,33 @@ enum AgentSelfTest {
                     && kept.contains("repaired body") && exists(notesA.appending(path: "Summary.md"))
                     && !exists(draftFolder.appending(path: "Summary.md")),
                 "\(saved1) | \(saved2) | \(saved3) drafts=\(draftsBefore) committedBefore=\(committedBefore)")
+
+            for (name, body, shouldCommit, fetch) in [
+                ("no-url", "A note without links.", true, false),
+                ("fetched-url", "See https://example.com/p1", true, true),
+                ("unfetched-url", "See https://example.org/untried", false, false),
+            ] {
+                let directory = folder.appending(path: "incomplete-" + name, directoryHint: .isDirectory)
+                let incomplete = AgentViewModel()
+                incomplete.persistsSettings = false
+                incomplete.notesFolderPath = directory.path(percentEncoded: false)
+                incomplete.guardActive = true
+                if fetch {
+                    incomplete.cassette = try ToolCassette(file: mixedTape, mode: .replay, replaysLatency: false)
+                    _ = await incomplete.toolRunner()(fetchCall("https://example.com/p1"))
+                }
+                _ = await incomplete.toolRunner()(writeCall("Incomplete", body))
+                incomplete.finishIncompleteNotes(reason: "step-limit")
+                let committed = directory.appending(path: "Incomplete.md")
+                let drafts = directory.appending(path: AgentTools.draftFolderName)
+                let held = (try? String(contentsOf: drafts.appending(path: "HELD.txt"), encoding: .utf8)) ?? ""
+                check(
+                    "m4h/incompleteNotes-" + name,
+                    incomplete.guardOutcome == "skipped" && exists(committed) == shouldCommit
+                        && (shouldCommit
+                            || (exists(drafts.appending(path: "Incomplete.md")) && held.contains("note-unfetched"))),
+                    "outcome=\(incomplete.guardOutcome ?? "nil") committed=\(exists(committed)) held=\(held)")
+            }
 
             let notesB = folder.appending(path: "notes-b", directoryHint: .isDirectory)
             let holding = AgentViewModel()
