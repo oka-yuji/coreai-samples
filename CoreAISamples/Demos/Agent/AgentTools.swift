@@ -21,7 +21,7 @@ struct AgentToolCall: Equatable, Sendable {
 struct AgentToolOutput: Sendable {
     var text: String
     var seen: [String: String] = [:]
-    /// fetch_page only: the URL the page came from after redirects. Set only when the page text was handed to the model.
+
     var finalURL: String?
 }
 
@@ -34,10 +34,8 @@ struct AgentToolSettings: Sendable {
 
     var allowFileOperations = false
 
-    /// `--tool-cassette`: web_search and fetch_page results are replayed from, or recorded to, this cassette.
     var cassette: ToolCassette?
 
-    /// `--stable-note-paths`: write_note tells the model `agent-notes/<file>.md` instead of the absolute path.
     var stableNotePaths = false
 }
 
@@ -56,7 +54,8 @@ enum AgentTools {
 
     static let names = ["web_search", "fetch_page", "write_note", "move_note"]
 
-    static let userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 "
+    static let userAgent =
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 "
         + "(KHTML, like Gecko) Version/18.0 Safari/605.1.15"
 
     static func run(_ call: AgentToolCall, settings: AgentToolSettings) async -> AgentToolOutput {
@@ -84,7 +83,8 @@ enum AgentTools {
         case "fetch_page":
             let raw = (call.value("url") ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
             guard let url = URL(string: raw), let scheme = url.scheme?.lowercased(),
-                  scheme == "http" || scheme == "https", url.host != nil else {
+                scheme == "http" || scheme == "https", url.host != nil
+            else {
                 return AgentToolOutput(text: "error: fetch_page needs an absolute http or https URL")
             }
             guard !isLocalOrPrivate(url.host()) else {
@@ -105,9 +105,10 @@ enum AgentTools {
                 return AgentToolOutput(text: "error: write_note needs a content parameter")
             }
             do {
-                return AgentToolOutput(text: savedText(
-                    try writeNote(title: title, content: content, directory: settings.notesDirectory),
-                    stable: settings.stableNotePaths))
+                return AgentToolOutput(
+                    text: savedText(
+                        try writeNote(title: title, content: content, directory: settings.notesDirectory),
+                        stable: settings.stableNotePaths))
             } catch let failure as AgentToolMessage {
                 return AgentToolOutput(text: failure.text)
             } catch {
@@ -119,9 +120,11 @@ enum AgentTools {
                     text: "error: file operations are disabled in Settings (Allow file operations)")
             }
             do {
-                return AgentToolOutput(text: "moved to " + (try moveNote(
-                    title: call.value("title") ?? "", destination: call.value("destination") ?? "",
-                    notesDirectory: settings.notesDirectory)))
+                return AgentToolOutput(
+                    text: "moved to "
+                        + (try moveNote(
+                            title: call.value("title") ?? "", destination: call.value("destination") ?? "",
+                            notesDirectory: settings.notesDirectory)))
             } catch let failure as AgentToolMessage {
                 return AgentToolOutput(text: failure.text)
             } catch {
@@ -136,7 +139,8 @@ enum AgentTools {
     static func webSearch(
         query: String, limit: Int, braveAPIKey: String
     ) async throws -> AgentToolOutput {
-        let results = braveAPIKey.isEmpty
+        let results =
+            braveAPIKey.isEmpty
             ? try await duckDuckGoResults(query: query, limit: limit)
             : try await braveResults(query: query, limit: limit, key: braveAPIKey)
         guard !results.isEmpty else { return AgentToolOutput(text: "no results for \"\(query)\"") }
@@ -166,7 +170,8 @@ enum AgentTools {
 
     private static func checkStatus(_ response: URLResponse, brave: Bool) throws {
         guard let http = response as? HTTPURLResponse,
-              let message = searchStatusError(http.statusCode, brave: brave) else { return }
+            let message = searchStatusError(http.statusCode, brave: brave)
+        else { return }
         throw AgentToolMessage(text: message)
     }
 
@@ -195,7 +200,7 @@ enum AgentTools {
         var components = URLComponents(string: "https://api.search.brave.com/res/v1/web/search")
         components?.queryItems = [
             URLQueryItem(name: "q", value: query),
-            URLQueryItem(name: "count", value: String(limit))
+            URLQueryItem(name: "count", value: String(limit)),
         ]
         guard let url = components?.url else { return [] }
         var request = get(url)
@@ -312,12 +317,14 @@ enum AgentTools {
         guard !wanted.isEmpty else { return clip(full, budget: budget) }
         let pieces = chunks(full)
         guard let selected = selectPassages(pieces, query: wanted, budget: budget) else {
-            log("[fetch_page] query \(wanted.debugDescription) matched nothing in \(pieces.count) "
-                + "chunks — returning the first \(budget) characters instead")
+            log(
+                "[fetch_page] query \(wanted.debugDescription) matched nothing in \(pieces.count) "
+                    + "chunks — returning the first \(budget) characters instead")
             return clip(full, budget: budget)
         }
-        log("[fetch_page] query \(wanted.debugDescription): \(selected.count) of \(full.count) chars "
-            + "from \(pieces.count) chunks")
+        log(
+            "[fetch_page] query \(wanted.debugDescription): \(selected.count) of \(full.count) chars "
+                + "from \(pieces.count) chunks")
         return selected
     }
 
@@ -339,9 +346,15 @@ enum AgentTools {
             }
         }
         for paragraph in text.split(separator: "\n", omittingEmptySubsequences: true) {
-            if paragraph.count <= chunkCharacters { add(String(paragraph)); continue }
+            if paragraph.count <= chunkCharacters {
+                add(String(paragraph))
+                continue
+            }
             for sentence in sentences(String(paragraph)) {
-                guard sentence.count > chunkCharacters else { add(sentence); continue }
+                guard sentence.count > chunkCharacters else {
+                    add(sentence)
+                    continue
+                }
                 flush()
                 var rest = Substring(sentence)
                 while !rest.isEmpty {
@@ -398,7 +411,10 @@ enum AgentTools {
         var terms: [String] = []
         for run in query.split(whereSeparator: { !($0.isLetter || $0.isNumber) }) {
             guard run.count >= 3 else { continue }
-            if run.allSatisfy(\.isASCII) { terms.append(String(run)); continue }
+            if run.allSatisfy(\.isASCII) {
+                terms.append(String(run))
+                continue
+            }
             let characters = Array(run)
             for start in 0...(characters.count - 3) {
                 terms.append(String(characters[start..<(start + 3)]))
@@ -417,15 +433,18 @@ enum AgentTools {
             return []
         }
         defer { sqlite3_close(db) }
-        guard sqlite3_exec(
-            db, "CREATE VIRTUAL TABLE c USING fts5(t, tokenize='trigram')", nil, nil, nil) == SQLITE_OK
+        guard
+            sqlite3_exec(
+                db, "CREATE VIRTUAL TABLE c USING fts5(t, tokenize='trigram')", nil, nil, nil) == SQLITE_OK
         else {
             log("[fetch_page] FTS5 unavailable — ranking passages by substring instead")
             return []
         }
         var insert: OpaquePointer?
-        guard sqlite3_prepare_v2(db, "INSERT INTO c(rowid, t) VALUES (?, ?)", -1, &insert, nil)
-            == SQLITE_OK else { return [] }
+        guard
+            sqlite3_prepare_v2(db, "INSERT INTO c(rowid, t) VALUES (?, ?)", -1, &insert, nil)
+                == SQLITE_OK
+        else { return [] }
         for (index, piece) in pieces.enumerated() {
             sqlite3_bind_int64(insert, 1, Int64(index))
             sqlite3_bind_text(insert, 2, piece, -1, sqliteTransient)
@@ -434,8 +453,9 @@ enum AgentTools {
         }
         sqlite3_finalize(insert)
         var select: OpaquePointer?
-        guard sqlite3_prepare_v2(
-            db, "SELECT rowid FROM c WHERE c MATCH ? ORDER BY bm25(c)", -1, &select, nil) == SQLITE_OK
+        guard
+            sqlite3_prepare_v2(
+                db, "SELECT rowid FROM c WHERE c MATCH ? ORDER BY bm25(c)", -1, &select, nil) == SQLITE_OK
         else { return [] }
         defer { sqlite3_finalize(select) }
         sqlite3_bind_text(select, 1, match, -1, sqliteTransient)
@@ -464,7 +484,6 @@ enum AgentTools {
         FileHandle.standardError.write(Data((line + "\n").utf8))
     }
 
-    /// `["a","b"]`, for log lines that list URLs or a cassette key.
     static func jsonList(_ items: [String]) -> String {
         let encoder = JSONEncoder()
         encoder.outputFormatting = .withoutEscapingSlashes
@@ -514,15 +533,18 @@ enum AgentTools {
         for name in [noteFileName(title), wanted.hasSuffix(".md") ? wanted : wanted + ".md"] {
             let url = directory.appending(path: name)
             guard comparablePath(url.deletingLastPathComponent()) == comparablePath(directory),
-                  FileManager.default.fileExists(atPath: url.path(percentEncoded: false)) else { continue }
+                FileManager.default.fileExists(atPath: url.path(percentEncoded: false))
+            else { continue }
             return url
         }
-        let existing = ((try? FileManager.default.contentsOfDirectory(
-            at: directory, includingPropertiesForKeys: [.contentModificationDateKey])) ?? [])
+        let existing =
+            ((try? FileManager.default.contentsOfDirectory(
+                at: directory, includingPropertiesForKeys: [.contentModificationDateKey])) ?? [])
             .sorted { modificationDate($0) > modificationDate($1) }
             .prefix(10).map(\.lastPathComponent)
-        throw AgentToolMessage(text: "error: no note titled \"\(wanted)\". Existing notes: "
-            + (existing.isEmpty ? "none" : existing.joined(separator: ", ")))
+        throw AgentToolMessage(
+            text: "error: no note titled \"\(wanted)\". Existing notes: "
+                + (existing.isEmpty ? "none" : existing.joined(separator: ", ")))
     }
 
     private static func modificationDate(_ url: URL) -> Date {
@@ -539,7 +561,8 @@ enum AgentTools {
     private static func destinationFolder(_ destination: String, allowedRoots: [URL]) throws -> URL {
         let text = (destination.trimmingCharacters(in: .whitespacesAndNewlines) as NSString)
             .expandingTildeInPath
-        let url = text.hasPrefix("/")
+        let url =
+            text.hasPrefix("/")
             ? URL(fileURLWithPath: text, isDirectory: true)
             : homeDirectory.appending(path: text, directoryHint: .isDirectory)
         let resolved = url.standardizedFileURL.resolvingSymlinksInPath()
@@ -570,10 +593,11 @@ enum AgentTools {
         return (heading.isEmpty || hasHeading ? "" : "# \(heading)\n\n") + content + "\n"
     }
 
-    /// `name`, or `name 2.md` … `name 99.md`, whichever is free in all of `directories`.
     static func freeName(_ name: String, in directories: [URL]) throws -> String {
         func taken(_ candidate: String) -> Bool {
-            directories.contains { FileManager.default.fileExists(atPath: $0.appending(path: candidate).path(percentEncoded: false)) }
+            directories.contains {
+                FileManager.default.fileExists(atPath: $0.appending(path: candidate).path(percentEncoded: false))
+            }
         }
         guard taken(name) else { return name }
         let base = String(name.dropLast(3))
@@ -583,25 +607,23 @@ enum AgentTools {
         return free
     }
 
-    /// The text write_note returns: the saved path, or `agent-notes/<file>` with `--stable-note-paths`.
     static func savedText(_ path: String, stable: Bool) -> String {
         "saved to " + (stable ? "agent-notes/" + (path as NSString).lastPathComponent : path)
     }
 
     static let draftFolderName = ".draft"
 
-    /// Citation guard on: notes wait in `<notes>/.draft/` until the answer and the notes pass the check. The name is
-    /// chosen as write_note would choose it in the notes folder (and kept free among the drafts); `replacing` rewrites
-    /// a draft in place (the repair turn saving the same title again).
-    static func writeDraft(title: String, content: String, notesDirectory: URL, replacing name: String? = nil) throws -> String {
+    static func writeDraft(title: String, content: String, notesDirectory: URL, replacing name: String? = nil) throws
+        -> String
+    {
         let drafts = notesDirectory.appending(path: draftFolderName, directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: drafts, withIntermediateDirectories: true)
         let chosen = try name ?? freeName(noteFileName(title), in: [notesDirectory, drafts])
-        try Data(noteBody(title: title, content: content).utf8).write(to: drafts.appending(path: chosen), options: .atomic)
+        try Data(noteBody(title: title, content: content).utf8).write(
+            to: drafts.appending(path: chosen), options: .atomic)
         return chosen
     }
 
-    /// Moves the drafts into the notes folder and returns where they landed.
     static func commitDrafts(_ names: [String], notesDirectory: URL) -> [String] {
         let drafts = notesDirectory.appending(path: draftFolderName, directoryHint: .isDirectory)
         var committed: [String] = []
@@ -617,10 +639,11 @@ enum AgentTools {
         return committed
     }
 
-    /// Leaves the drafts where they are and writes why in `<notes>/.draft/HELD.txt`.
     static func holdDrafts(_ names: [String], notesDirectory: URL, reason: String) {
-        let file = notesDirectory.appending(path: draftFolderName, directoryHint: .isDirectory).appending(path: "HELD.txt")
-        let text = (["reason: \(reason)", "held: \(Date.now.ISO8601Format())", "drafts:"] + names.map { "- \($0)" })
+        let file = notesDirectory.appending(path: draftFolderName, directoryHint: .isDirectory).appending(
+            path: "HELD.txt")
+        let text =
+            (["reason: \(reason)", "held: \(Date.now.ISO8601Format())", "drafts:"] + names.map { "- \($0)" })
             .joined(separator: "\n") + "\n"
         do {
             try Data(text.utf8).write(to: file, options: .atomic)
@@ -651,11 +674,13 @@ enum AgentTools {
             let attributes = String(match.1)
             if attributes.contains("result__a") {
                 let href = attributes.firstMatch(of: hrefPattern).map { String($0.1) } ?? ""
-                results.append(SearchResult(
-                    title: plainText(fromHTML: String(match.2)),
-                    url: resolveRedirect(href), snippet: ""))
+                results.append(
+                    SearchResult(
+                        title: plainText(fromHTML: String(match.2)),
+                        url: resolveRedirect(href), snippet: ""))
             } else if attributes.contains("result__snippet"), let last = results.indices.last,
-                      results[last].snippet.isEmpty {
+                results[last].snippet.isEmpty
+            {
                 results[last].snippet = plainText(fromHTML: String(match.2))
             }
         }
@@ -665,7 +690,8 @@ enum AgentTools {
     static func resolveRedirect(_ href: String) -> String {
         let absolute = href.hasPrefix("//") ? "https:" + href : href
         guard absolute.contains("uddg="), let components = URLComponents(string: decodeEntities(absolute)),
-              let target = components.queryItems?.first(where: { $0.name == "uddg" })?.value else {
+            let target = components.queryItems?.first(where: { $0.name == "uddg" })?.value
+        else {
             return absolute
         }
         return target
@@ -690,7 +716,7 @@ enum AgentTools {
 
     static let namedEntities = [
         "amp": "&", "lt": "<", "gt": ">", "quot": "\"", "apos": "'", "nbsp": " ", "hellip": "…",
-        "mdash": "—", "ndash": "–", "rsquo": "’", "lsquo": "‘", "ldquo": "“", "rdquo": "”"
+        "mdash": "—", "ndash": "–", "rsquo": "’", "lsquo": "‘", "ldquo": "“", "rdquo": "”",
     ]
 
     static func decodeEntities(_ text: String) -> String {
@@ -708,10 +734,6 @@ enum AgentTools {
     }
 }
 
-/// Tool results on disk (M4-g): one JSON line per web_search or fetch_page result, keyed by the tool and its arguments as
-/// the tool reads them. A key that is recorded is replayed (the first record of a key wins); an unrecorded key is fetched
-/// live and appended (`record`, `replay-or-record`) or answered with `error: cassette miss` (`replay`). write_note and
-/// move_note never go through it.
 actor ToolCassette {
     enum Mode: String, CaseIterable {
         case record, replay
@@ -756,9 +778,10 @@ actor ToolCassette {
         loaded = entries.count
     }
 
-    /// The tool name and its arguments as the tool uses them (trimmed; max_results clamped as web_search clamps it).
     static func key(for call: AgentToolCall, settings: AgentToolSettings) -> [String]? {
-        func trimmed(_ name: String) -> String { (call.value(name) ?? "").trimmingCharacters(in: .whitespacesAndNewlines) }
+        func trimmed(_ name: String) -> String {
+            (call.value(name) ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        }
         switch call.name {
         case "web_search":
             let requested = Int(trimmed("max_results"))
@@ -784,7 +807,7 @@ actor ToolCassette {
         }
         let start = ContinuousClock.now
         let output = await live()
-        guard !Task.isCancelled else { return output }  // a stopped call is not what the page returns
+        guard !Task.isCancelled else { return output }
         let ms = Int(((ContinuousClock.now - start) / .milliseconds(1)).rounded())
         let entry = Entry(
             key: key, text: output.text, seen: output.seen,
@@ -805,7 +828,8 @@ actor ToolCassette {
             line.append(0x0A)
             let path = file.path(percentEncoded: false)
             if !FileManager.default.fileExists(atPath: path) {
-                try FileManager.default.createDirectory(at: file.deletingLastPathComponent(), withIntermediateDirectories: true)
+                try FileManager.default.createDirectory(
+                    at: file.deletingLastPathComponent(), withIntermediateDirectories: true)
                 FileManager.default.createFile(atPath: path, contents: nil)
             }
             let handle = try FileHandle(forWritingTo: file)
@@ -852,7 +876,6 @@ final class AgentPageReader: NSObject, WKNavigationDelegate {
         try await read(url: url).text
     }
 
-    /// The readable text and the URL the web view ended on (after redirects).
     static func read(url: URL) async throws -> (text: String, finalURL: URL?) {
         try await AgentPageReader().text(from: url)
     }
@@ -895,17 +918,20 @@ final class AgentPageReader: NSObject, WKNavigationDelegate {
             let value = try await withCheckedThrowingContinuation {
                 (waiter: CheckedContinuation<String?, Error>) in
                 evaluation = waiter
-                view.evaluateJavaScript(Self.script, completionHandler: { [weak self] value, error in
-                    guard let self else { return }
-                    if let error {
-                        self.finishEvaluation(.failure(error))
-                    } else {
-                        self.finishEvaluation(.success(value as? String))
-                    }
-                })
+                view.evaluateJavaScript(
+                    Self.script,
+                    completionHandler: { [weak self] value, error in
+                        guard let self else { return }
+                        if let error {
+                            self.finishEvaluation(.failure(error))
+                        } else {
+                            self.finishEvaluation(.success(value as? String))
+                        }
+                    })
             }
             guard let text = value,
-                  !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            else {
                 throw AgentToolMessage(text: "fetch_page: the web view found no text")
             }
             return (text, view.url)
