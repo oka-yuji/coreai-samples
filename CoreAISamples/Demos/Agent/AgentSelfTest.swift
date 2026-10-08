@@ -516,6 +516,9 @@ enum AgentSelfTest {
             "offsets \(offsets)")
 
         await m4gChecks { name, passed, detail in check(name, passed, detail) }
+        for result in await HubDownloadSelfTest.run(offline: offline) {
+            check(result.name, result.passed, result.detail)
+        }
 
         if offline {
             out("SKIP  search/live (--offline)")
