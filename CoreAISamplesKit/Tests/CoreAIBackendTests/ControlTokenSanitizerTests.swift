@@ -7,7 +7,8 @@ import Testing
 @Suite struct ControlTokenSanitizerTests {
     private func tokenStrings() throws -> [String] {
         let file = try #require(
-            Bundle.module.url(forResource: "qwen-added-tokens", withExtension: "json", subdirectory: "Fixtures/ControlTokens"))
+            Bundle.module.url(
+                forResource: "qwen-added-tokens", withExtension: "json", subdirectory: "Fixtures/ControlTokens"))
         return try JSONDecoder().decode([String].self, from: Data(contentsOf: file))
     }
 
@@ -126,6 +127,9 @@ import Testing
         }
     }
 
+}
+
+extension ModelIntegrationTests {
     @Test(
         "The live runtime reads a sanitized prompt exactly like the corresponding ordinary prompt",
         .enabled(if: !bundlePaths.isEmpty), arguments: bundlePaths)
