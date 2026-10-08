@@ -2,7 +2,6 @@ import Foundation
 import GLiNERRuntime
 import Testing
 
-/// `contract.json` of the GL4 FP32 asset (`gliner25_multi_fp32_t256_t512`) without `model` and `revision`.
 private let contract = #"""
     {
       "functions": {
@@ -40,7 +39,6 @@ private let contract = #"""
     }
     """#
 
-/// A temporary asset folder with the contract after `edit` and `models` empty `.aimodel` folders.
 private func assetFolder(models: Int = 1, _ edit: (inout [String: [String: Any]]) -> Void = { _ in }) throws -> URL {
     let folder = FileManager.default.temporaryDirectory.appending(path: "gliner-asset-\(UUID().uuidString)")
     try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
@@ -54,7 +52,6 @@ private func assetFolder(models: Int = 1, _ edit: (inout [String: [String: Any]]
     return folder
 }
 
-/// A symbolic link to `folder`, next to it.
 private func symbolicLink(to folder: URL) throws -> URL {
     let link = folder.deletingLastPathComponent().appending(path: "gliner-asset-link-\(UUID().uuidString)")
     try FileManager.default.createSymbolicLink(at: link, withDestinationURL: folder)

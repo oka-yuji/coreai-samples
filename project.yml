@@ -61,8 +61,6 @@ targets:
         ENABLE_HARDENED_RUNTIME: "NO"
         ENABLE_APP_SANDBOX: "NO"
 
-  # Extract only, on a device: the iOS Simulator SDK has no CoreAI.framework. It shares the Extract sources with the
-  # Mac app; the files only the iPhone uses are in CoreAISamples/iOS.
   CoreAISamples-iOS:
     type: application
     platform: iOS

@@ -6,7 +6,6 @@ struct MissingResource: Error {
     let path: String
 }
 
-/// A JSON file of this target's `Resources` folder.
 func resource<Value: Decodable>(_ type: Value.Type, _ path: String) throws -> Value {
     guard let folder = Bundle.module.url(forResource: "Resources", withExtension: nil) else {
         throw MissingResource(path: path)
@@ -14,7 +13,6 @@ func resource<Value: Decodable>(_ type: Value.Type, _ path: String) throws -> Va
     return try JSONDecoder().decode(type, from: Data(contentsOf: folder.appending(path: path)))
 }
 
-/// Form U1, with the wording GL6 chose for the clause classification.
 func formU1() throws -> FormSchema { try resource(FormSchema.self, "forms/inspection_u1.json") }
 
 func correctionWords() throws -> [String] { try resource([String].self, "correction_words.json") }
@@ -36,7 +34,6 @@ func scalarRanges(of piece: String, in text: String) -> [Range<Int>] {
 
 private func decimal(_ text: String) throws -> Decimal { try #require(Decimal(string: text)) }
 
-/// `Resources/mapping_examples.json`: notes in Japanese for the tests below.
 struct MappingExamples: Decodable {
     struct NumberExample: Decodable, CustomTestStringConvertible {
         let text: String
@@ -58,7 +55,7 @@ struct MappingExamples: Decodable {
     }
 
     struct FilterExample: Decodable {
-        /// A span `piece` of field `key`, in the clause `clause`, and whether R1 keeps it.
+
         struct Candidate: Decodable {
             let key: String
             let clause: String
@@ -71,11 +68,11 @@ struct MappingExamples: Decodable {
     }
 
     let numbers: [NumberExample]
-    /// Two pressures with a correction word between them; `piece` is the word.
+
     let twoValues: Sentence
-    /// A pressure in kana; `piece` is the number.
+
     let kanaNumber: Sentence
-    /// Two clauses that end in the same word; `piece` is the word.
+
     let twoClauses: Sentence
     let cues: Cues
     let filter: FilterExample
@@ -84,7 +81,7 @@ struct MappingExamples: Decodable {
 struct FormMappingTests {
     let examples: MappingExamples
     let form: FormSchema
-    /// Keeps every candidate; the filter has its own tests.
+
     let mapper: FormMapper
 
     init() throws {
@@ -93,7 +90,6 @@ struct FormMappingTests {
         mapper = FormMapper(schema: form, correctionWords: try correctionWords(), candidateFilter: .none)
     }
 
-    /// The spans of `examples.filter`, and whether R1 keeps each, by `outcome(of:)`'s description.
     func filterSpans() throws -> (spans: [ExtractedSpan], kept: [String: Bool]) {
         let text = examples.filter.text
         var kept: [String: Bool] = [:]
@@ -107,7 +103,6 @@ struct FormMappingTests {
         return (spans, kept)
     }
 
-    /// Whether each candidate of `mapping` of `examples.filter` is kept, by field key, clause text and span range.
     func outcome(of mapping: FormMapping) -> [String: Bool] {
         let scalars = Array(examples.filter.text.unicodeScalars)
         var outcome: [String: Bool] = [:]
@@ -130,7 +125,7 @@ struct FormMappingTests {
         let old = try #require(scalarRanges(of: "0.45", in: text).first)
         let new = try #require(scalarRanges(of: "0.54MPa", in: text).first)
         let cue = try #require(scalarRanges(of: examples.twoValues.piece, in: text).first)
-        // The later value scores higher, as a correction would; the candidates still come in text order.
+
         let spans = [makeSpan(0, new, in: text, probability: 0.95), makeSpan(0, old, in: text, probability: 0.8)]
         let mapping = mapper.map(text: text, extraction: makeExtraction(spans)) { _, _ in
             Issue.record("No list field has a span to classify")
@@ -191,7 +186,7 @@ struct FormMappingTests {
         let clauseTexts = clauses.map { String(String.UnicodeScalarView(scalars[$0])) }
         let words = scalarRanges(of: examples.twoClauses.piece, in: text)
         try #require(words.count == 2)
-        // Oil leak and abnormal sound both point at both words, as in sentence 12 of the PyTorch run.
+
         let listFields = [2, 3]
         let spans = listFields.flatMap { label in words.map { makeSpan(label, $0, in: text) } }
         var calls: [(text: String, schema: GLiNERSchema)] = []
@@ -239,8 +234,7 @@ struct FormMappingTests {
         let clauseTexts = [0..<comma, (comma + 1)..<scalars.count].map { String(String.UnicodeScalarView(scalars[$0])) }
         let words = scalarRanges(of: examples.twoClauses.piece, in: text)
         try #require(words.count == 2)
-        // Oil leak has two spans in the first clause and one in the second; abnormal sound one in the second; the
-        // pressure span (a number field) is never classified.
+
         let spans = [
             makeSpan(0, words[0], in: text), makeSpan(2, 0..<comma, in: text), makeSpan(2, words[0], in: text),
             makeSpan(2, words[1], in: text), makeSpan(3, words[1], in: text),
@@ -272,8 +266,7 @@ struct FormMappingTests {
     )
     func dropsCandidatesFromAnotherFieldsClause() throws {
         let (spans, kept) = try filterSpans()
-        // The example also has a number candidate in a clause with a list field's name, and a list candidate in a
-        // clause with only a number field's name: R1 reads list fields and their names only.
+
         let mapping = FormMapper(schema: form, correctionWords: [], candidateFilter: .clauseFieldName).map(
             text: examples.filter.text, extraction: makeExtraction(spans)
         ) { _, _ in ClassificationResult(probabilities: []) }
@@ -312,7 +305,7 @@ struct FormMappingTests {
         func noClassification(_: String, _: GLiNERSchema) -> ClassificationResult {
             ClassificationResult(probabilities: [])
         }
-        // The R1 example has no equipment number: R1+N1 keeps, drops and classifies what R1 does.
+
         let (spans, kept) = try filterSpans()
         let text = examples.filter.text
         let extraction = makeExtraction(spans)
@@ -322,7 +315,6 @@ struct FormMappingTests {
             both.classificationRequests(text: text, extraction: extraction)
                 == mapper(.clauseFieldName).classificationRequests(text: text, extraction: extraction))
 
-        // An equipment number, P-3, as a pressure and as an oil leak: only the pressure candidate is dropped.
         let note = "P-3 0.5MPa x"
         let equipment = makeExtraction([
             makeSpan(0, 0..<3, in: note), makeSpan(0, 4..<10, in: note), makeSpan(2, 0..<3, in: note),

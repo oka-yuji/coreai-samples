@@ -41,13 +41,11 @@ public struct PreparedInput: Equatable, Sendable {
     public var classIndex: [Int32]
     public var classMask: [Int32]
     public var tokenCapacity: Int
-    /// Words of the text the model reads (the input plus "." when `appendedPeriod`), in Unicode scalars.
+
     public var words: [WordSpan]
     public var labelCount: Int
     public var appendedPeriod: Bool
 
-    /// Lays out `( [P] prompt ( marker label ... ) ) [SEP_TEXT] words...` the way gliner2 does,
-    /// with each piece tokenized on its own and no `[CLS]` / `[SEP]`.
     public init(
         text: String,
         schema: GLiNERSchema,

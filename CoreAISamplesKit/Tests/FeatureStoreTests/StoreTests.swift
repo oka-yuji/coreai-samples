@@ -3,13 +3,6 @@ import Testing
 
 @testable import FeatureStore
 
-// The helper types are private so that they do not clash with same-named types in the test target.
-// Their isolation is explicit, so they mean the same whether the test target's default isolation is
-// MainActor or nonisolated.
-
-/// The smallest feature for exercising the store. It can only append to a log and start, cancel, or cancel all
-/// effects. `nonisolated` is for targets whose default isolation is MainActor. Without it, the `Equatable`
-/// conformance of the nested types becomes MainActor-isolated and cannot be used for `Feature.State`.
 private nonisolated enum Probe: Feature {
     struct State: Equatable, Sendable {
         var log: [String] = []
@@ -23,7 +16,6 @@ private nonisolated enum Probe: Feature {
         case stopAllThenStart(String)
     }
 
-    /// The name of a `FakeWork` job.
     typealias Effect = String
     typealias EffectID = String
 
@@ -44,9 +36,6 @@ private nonisolated enum Probe: Feature {
     }
 }
 
-/// A hand-written fake for the effects of `Probe`. Each job stays suspended until the test completes it
-/// (it stays suspended even when cancelled, standing in for a service that ignores cancellation).
-/// What happens is reported on `events`.
 @MainActor
 private final class FakeWork {
     enum Event: Hashable, Sendable {
@@ -76,7 +65,6 @@ private final class FakeWork {
         report.yield(.finished(label))
     }
 
-    /// Finishes the job `label` and makes it send `results`.
     func complete(_ label: String, sending results: [Probe.Action] = []) {
         pending.removeValue(forKey: label)?.resume(returning: results)
     }
@@ -88,11 +76,6 @@ private final class Box<Value> {
     init(_ value: Value) { self.value = value }
 }
 
-/// One test per store guarantee. G6 (failures come back as actions) is a promise of the runner, so check it with
-/// a failure test for each effect. The suite runs on the MainActor because it drives the store synchronously.
-/// The time limit is a safety net for a broken guarantee that leaves a wait hanging (it is not used for
-/// synchronization). Exceeding it only requests task cancellation, so every wait is a `next()` on an
-/// `AsyncStream`, which returns on cancellation.
 @MainActor
 @Suite("Store: guarantees G1-G5, G7 and G8", .timeLimit(.minutes(1)))
 struct StoreTests {
@@ -103,7 +86,7 @@ struct StoreTests {
         withObservationTracking {
             _ = store.state
         } onChange: {
-            // Called synchronously in the middle of the outer send (just before the assignment).
+
             MainActor.assumeIsolated {
                 seenByObserver.value = store.state.log
                 store.send(.log("from observer"))
@@ -202,7 +185,6 @@ struct StoreTests {
         let cancelled = [await events.next(), await events.next()]
         #expect(Set(cancelled) == [.cancelled("a"), .cancelled("b")])
 
-        // Results that arrive after the store is gone go nowhere.
         work.complete("a", sending: [.log("after release")])
         work.complete("b")
         let finished = [await events.next(), await events.next()]
@@ -237,8 +219,6 @@ struct StoreTests {
         let store = Store<Probe>(initialState: .init(), run: work.run)
         var events = work.events.makeAsyncIterator()
 
-        // Send these back to back without suspending. Effects start in the order they were created,
-        // so if "a" ran, its event would arrive before "b" started.
         store.send(.start("a", id: "x"))
         store.send(.stop(id: "x"))
         store.send(.start("b"))
@@ -300,7 +280,7 @@ struct StoreTests {
         store.send(.start("a"))
         #expect(await events.next() == .started("a"))
 
-        store.send(.stopAllThenStart("b"))  // reduce returns [.cancelAll, .run("b", id: nil)]
+        store.send(.stopAllThenStart("b"))
 
         #expect(await events.next() == .cancelled("a"))
         #expect(await events.next() == .started("b"))

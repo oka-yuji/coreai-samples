@@ -204,9 +204,8 @@ private let referencePath = "work/g4_swift_out_fp32.json"
 private let hasReference = FileManager.default.fileExists(
     atPath: fixturesDirectory.appending(path: referencePath).path(percentEncoded: false))
 
-/// The output of the GL4 Swift CLI (`swift/gliner-run.swift`, FP32, GPU) on `work/g4_swift_fixtures.json`.
 private struct SwiftOutput: Decodable {
-    /// `[label, start, end, probability]`, scalar offsets of the model text.
+
     struct Span: Decodable {
         let label: String
         let start: Int
@@ -243,7 +242,6 @@ private func makeExtractor() async throws -> GLiNERExtractor {
     return GLiNERExtractor(preprocessor: GLiNERPreprocessor(tokenizer: tokenizer), model: model)
 }
 
-/// Runs the FP32 asset on the GPU: take the heavy-job lock first (CLAUDE.md).
 @Suite(
     .serialized,
     .enabled(

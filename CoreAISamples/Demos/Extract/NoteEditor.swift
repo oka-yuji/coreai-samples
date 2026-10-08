@@ -1,9 +1,6 @@
 import AppKit
 import SwiftUI
 
-/// A plain-text editor that reports the committed text, and when an input method starts and stops converting a
-/// word, so that a word still being converted never starts an extraction. `TextEditor` does not tell whether text is
-/// marked, and `NSTextView` sends no `textDidChange` while it is.
 struct NoteEditor: NSViewRepresentable {
     let text: String
     let onChange: (String) -> Void
@@ -45,7 +42,6 @@ struct NoteEditor: NSViewRepresentable {
             self.onComposing = onComposing
         }
 
-        /// Sent for committed text only: a commit replaces the marked text, so the conversion has ended.
         func textDidChange(_ notification: Notification) {
             guard let textView = notification.object as? NSTextView, !textView.hasMarkedText() else { return }
             onComposing(false)
@@ -54,8 +50,6 @@ struct NoteEditor: NSViewRepresentable {
     }
 }
 
-/// Reports whether text is marked after every change of the marked text, including a conversion cancelled with no
-/// change to the text.
 final class ComposingTextView: NSTextView {
     var onComposing: (Bool) -> Void = { _ in }
 

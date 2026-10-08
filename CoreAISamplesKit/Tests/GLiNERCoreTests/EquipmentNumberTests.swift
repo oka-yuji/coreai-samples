@@ -3,16 +3,13 @@ import Testing
 
 @testable import GLiNERCore
 
-/// `Resources/equipment_number_examples.json`: the words and the ten examples of rule N1 recorded from the lab's
-/// `data/g9_variants.json` (`n1.before`, `n1.after`, `selftest.n1`) and `data/g6b_numerals.json` (`tokens`), the data
-/// of the Python reference `g9_remedies.py`; then examples of the folding, and of where runs and markers end.
 struct EquipmentNumberExamples: Decodable {
     enum Decision: String, Decodable {
         case keep, drop
     }
 
     struct Example: Decodable, Equatable, CustomTestStringConvertible {
-        /// A note whose only span is the first `candidate` in it, of the field `field`.
+
         let text: String
         let field: String
         let candidate: String
@@ -32,7 +29,6 @@ struct EquipmentNumberExamples: Decodable {
     }
 }
 
-/// Whether `filter` keeps the candidate of `example`.
 func keeps(_ example: EquipmentNumberExamples.Example, _ filter: CandidateFilter) throws -> Bool {
     let form = try formU1()
     let label = try #require(form.fields.firstIndex { $0.key == example.field })
@@ -45,7 +41,6 @@ func keeps(_ example: EquipmentNumberExamples.Example, _ filter: CandidateFilter
     return !field.candidates.isEmpty
 }
 
-/// The lab's `models/coreai/gliner`, as `FormMappingParityTests` finds it.
 private let labDirectory = URL(
     filePath: ProcessInfo.processInfo.environment["GLINER_FIXTURES_DIR"]
         ?? NSHomeDirectory() + "/Desktop/SelfApps/CoreLLM/models/coreai/gliner")
@@ -55,7 +50,6 @@ private let hasLabFiles = [labVariantsPath, labNumeralsPath].allSatisfy {
     FileManager.default.fileExists(atPath: labDirectory.appending(path: $0).path(percentEncoded: false))
 }
 
-/// `g9_variants.json`: the markers of rule N1 and the examples of its self-test.
 private struct LabVariants: Decodable {
     struct Markers: Decodable {
         let before: [String]
@@ -70,7 +64,6 @@ private struct LabVariants: Decodable {
     let selftest: SelfTest
 }
 
-/// `g6b_numerals.json`: the numeral words.
 private struct LabNumerals: Decodable {
     let tokens: [String]
 }
@@ -80,7 +73,7 @@ struct EquipmentNumberTests {
     func readsTheRecordedWords() throws {
         let examples = try EquipmentNumberExamples.load()
         #expect(EquipmentNumberWords.bundled == examples.words)
-        // A parameterized test with no arguments is skipped, which does not fail the run.
+
         let counts: [Int] = [examples.examples.count, examples.folding.count, examples.boundaries.count]
         #expect(counts == [10, 6, 3])
     }

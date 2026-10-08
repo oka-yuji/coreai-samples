@@ -425,9 +425,6 @@ final class GUIDriver {
         }
     }
 
-    /// `--extract <asset folder>`: open the asset in the label mode, paste the example note, switch to the form
-    /// experiment, add a field, confirm two fields and export the JSON. The folder is the flag's value: AppKit reads
-    /// arguments as `-key value` pairs and opens a path left alone as a document, and then SwiftUI opens no window.
     private func runExtract(navigator: DemoNavigator, store: Store<ExtractFeature>) async {
         let examples = ExtractResources.examples
         guard let asset = LaunchArguments.value("--extract"), let example = examples.notes.first else {
@@ -520,7 +517,7 @@ final class GUIDriver {
                 guard let first = field.candidates.first, let last = field.candidates.last else { continue }
                 switch field.field.kind {
                 case .number where !confirmed.values.contains { if case .value = $0 { true } else { false } }:
-                    // As a person reading the example's correction would: the later of two values.
+
                     confirmed[field.field.key] = .value(text: last.span.text)
                 case .list where !confirmed.values.contains { if case .option = $0 { true } else { false } }:
                     guard let option = first.suggestions.first?.option else { continue }

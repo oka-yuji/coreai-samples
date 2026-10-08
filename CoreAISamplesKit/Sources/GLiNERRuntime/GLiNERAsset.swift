@@ -2,20 +2,17 @@ import Foundation
 import GLiNERCore
 
 public enum GLiNERAssetError: Error, Equatable {
-    /// The folder does not hold exactly one `.aimodel`.
+
     case modelCount(Int)
-    /// A part of `contract.json` (`functions`, `caps` or `host`) differs from what this library implements.
+
     case contractMismatch(String)
 }
 
-/// A GLiNER2.5-multi Core AI asset: a folder with `contract.json` and one `.aimodel` holding `encode_t256`,
-/// `pair_t256`, `encode_t512` and `pair_t512`. The contract must name the functions, inputs and outputs, the
-/// capacities and the host constants this library implements.
 public struct GLiNERAsset: Sendable {
     public let modelURL: URL
 
     public init(directory: URL) throws {
-        // `contentsOfDirectory(at:)` fails on a symbolic link to a folder (ENOTDIR): read the folder it points to.
+
         let directory = directory.resolvingSymlinksInPath()
         let decoder = JSONDecoder()
         decoder.keyDecodingStrategy = .convertFromSnakeCase
@@ -67,7 +64,7 @@ struct Contract: Decodable, Equatable {
     static let encodeInputs = [
         "input_ids", "attention_mask", "word_idx", "word_mask", "query_idx", "query_mask", "cls_idx", "cls_mask",
     ]
-    /// The `encode` outputs `pair` takes, in contract order.
+
     static let pairEncodeInputs = [
         "scorer_start", "scorer_end", "content_prefix", "query_proj", "start_logits", "end_logits", "inside_prefix",
         "inside_mean",

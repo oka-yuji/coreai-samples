@@ -5,8 +5,6 @@ import GLiNERCore
 import SwiftUI
 import UniformTypeIdentifiers
 
-/// Type labels, paste a note and see the spans the model returns for each label. As an experiment, map the note onto
-/// an inspection form, with suggestions for its list fields, and confirm the values.
 struct ExtractView: View {
     let store: Store<ExtractFeature>
     @State private var choosingAsset = false
@@ -195,8 +193,6 @@ struct ExtractView: View {
         }
     }
 
-    /// The note with each field's candidates in its color; the selected field's are stronger and underlined, and
-    /// correction cues are red.
     private var highlighted: AttributedString {
         let text = state.text
         var attributed = AttributedString(text)
@@ -228,7 +224,6 @@ struct ExtractView: View {
         return attributed
     }
 
-    /// The labels, or the form of the experiment.
     private var fieldsPane: some View {
         let isLabel = state.mode == .labels
         return VStack(alignment: .leading, spacing: 0) {

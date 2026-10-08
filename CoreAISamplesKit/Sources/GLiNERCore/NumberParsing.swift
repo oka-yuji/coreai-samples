@@ -1,11 +1,10 @@
 import Foundation
 
-/// The first number in a span's text and the unit written right after it.
 public struct ParsedNumber: Equatable, Sendable {
     public var value: Decimal
-    /// One of MPa, kPa, degrees Celsius, the kanji for degree, mm, %, km and L, spelled as in that list.
+
     public var unit: String?
-    /// `unit` in the form's spelling: the kanji for degree becomes degrees Celsius.
+
     public var normalizedUnit: String?
 
     public init(value: Decimal, unit: String?, normalizedUnit: String?) {
@@ -14,8 +13,6 @@ public struct ParsedNumber: Equatable, Sendable {
         self.normalizedUnit = normalizedUnit
     }
 
-    /// Reads half- or full-width digits, an optional decimal part, and a unit right after them (letters in any case).
-    /// Nil when the text has no digits: numbers in kana or kanji stay as written.
     public init?(parsing text: String) {
         let scalars = text.unicodeScalars.map(\.halfWidth)
         guard let start = scalars.firstIndex(where: \.isASCIIDigit) else { return nil }
@@ -34,7 +31,7 @@ public struct ParsedNumber: Equatable, Sendable {
 }
 
 extension Unicode.Scalar {
-    /// The ASCII form of a full-width ASCII variant (U+FF01...U+FF5E).
+
     var halfWidth: Unicode.Scalar {
         (0xFF01...0xFF5E).contains(value) ? Unicode.Scalar(value - 0xFEE0) ?? self : self
     }

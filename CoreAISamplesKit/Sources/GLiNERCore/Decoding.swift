@@ -1,9 +1,9 @@
 import Foundation
 
 public struct ExtractedSpan: Equatable, Sendable {
-    /// Index of the label in the request.
+
     public var labelIndex: Int
-    /// Range of the request text in Unicode scalars.
+
     public var scalarRange: Range<Int>
     public var text: String
     public var probability: Float
@@ -17,11 +17,11 @@ public struct ExtractedSpan: Equatable, Sendable {
 }
 
 public struct ExtractionResult: Equatable, Sendable {
-    /// Spans by label in request order; within a label by probability (highest first), then start, then end.
+
     public var spans: [ExtractedSpan]
-    /// Labels whose null probability is over 0.5. They have no spans.
+
     public var abstained: [Int]
-    /// The token capacity (T) the request ran at.
+
     public var tokenCapacity: Int
 
     public init(spans: [ExtractedSpan], abstained: [Int], tokenCapacity: Int) {
@@ -35,17 +35,6 @@ extension ExtractionResult {
     public static let threshold: Float = 0.5
     public static let abstentionThreshold: Float = 0.5
 
-    /// gliner2's `_decode_entities` with the "flat" overlap policy. A label abstains when `sigmoid(null)` is over
-    /// 0.5; otherwise candidates with `sigmoid(pair) >= 0.5` go through `resolve_overlaps`. Word ranges become
-    /// scalar ranges of `text`: a span over the period `PreparedInput` appended is cut at the end of `text`, and a
-    /// span left without a non-space scalar is dropped.
-    ///
-    /// - Parameters:
-    ///   - pairLogits: `pair_logits`, candidate slots x labels.
-    ///   - nullLogits: `null_logits` of the labels.
-    ///   - pool: The candidates `pair_logits` scored.
-    ///   - input: The prepared input of `text`.
-    ///   - text: The request text.
     public init(pairLogits: Matrix, nullLogits: [Float], pool: CandidatePool, input: PreparedInput, text: String) {
         let scalars = Array(text.unicodeScalars)
         var spans: [ExtractedSpan] = []
@@ -79,7 +68,7 @@ extension ExtractionResult {
 }
 
 public struct ClassificationResult: Equatable, Sendable {
-    /// Probabilities of the labels in request order.
+
     public var probabilities: [Float]
 
     public init(probabilities: [Float]) {
@@ -88,7 +77,7 @@ public struct ClassificationResult: Equatable, Sendable {
 }
 
 extension ClassificationResult {
-    /// The softmax of the class logits of the labels in use, at temperature 1.0.
+
     public init(logits: [Float]) {
         let largest = logits.max() ?? 0
         let exponentials = logits.map { exp($0 - largest) }
@@ -100,21 +89,17 @@ extension ClassificationResult {
 private func sigmoid(_ logit: Float) -> Float { 1 / (1 + exp(-logit)) }
 
 private struct ScoredSpan {
-    /// Python's `float` of the probability: the sums of the overlap resolution run in double precision.
+
     let score: Double
     let start: Int
     let end: Int
     let index: Int
 }
 
-/// gliner2's rank: score (highest first), then start, end and input position.
 private func ranksBefore(_ lhs: ScoredSpan, _ rhs: ScoredSpan) -> Bool {
     (-lhs.score, lhs.start, lhs.end, lhs.index) < (-rhs.score, rhs.start, rhs.end, rhs.index)
 }
 
-/// gliner2's `resolve_overlaps` with the "flat" policy: the first-ranked span of each word range, then the
-/// non-overlapping set with the largest total score (weighted interval scheduling). Ties go to the set with more
-/// spans, then to the set whose spans rank first one by one. The set comes back in rank order.
 private func resolveFlat(_ items: [ScoredSpan]) -> [ScoredSpan] {
     var seen = Set<Range<Int>>()
     let distinct = items.sorted(by: ranksBefore).filter { seen.insert($0.start..<$0.end).inserted }

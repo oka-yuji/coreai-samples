@@ -6,7 +6,6 @@ import Testing
 
 typealias Commands = [Command<ExtractEffect, ExtractFeature.EffectID>]
 
-/// A form in English: one number field and one list field.
 let testForm = FormSchema(fields: [
     FormField(key: "pressure", name: "pressure", kind: .number(unit: "MPa")),
     FormField(key: "noise", name: "noise", kind: .list(options: [FormOption(name: "ok"), FormOption(name: "ng")])),
@@ -14,10 +13,8 @@ let testForm = FormSchema(fields: [
 
 let timing = ExtractTiming(preprocess: 1, encode: 2, pair: 3, classify: 4, classifications: 1, map: 0, total: 10)
 
-/// The candidate filter a new state starts with: rules R1 and N1.
 let defaultFilter = CandidateFilter.clauseFieldNameAndEquipmentNumber
 
-/// A mapping of `text` with one candidate for each field, at `pressure` and `noise` (Unicode scalar ranges).
 func makeMapping(_ text: String, pressure: Range<Int>, noise: Range<Int>, best: String = "ok") -> FormMapping {
     let scalars = Array(text.unicodeScalars)
     func span(_ label: Int, _ range: Range<Int>) -> ExtractedSpan {
@@ -46,12 +43,10 @@ func makeMapping(_ text: String, pressure: Range<Int>, noise: Range<Int>, best: 
         corrections: [])
 }
 
-/// Reduces the actions one by one and returns the commands of each.
 func send(_ state: inout ExtractState, _ actions: ExtractAction...) -> [Commands] {
     actions.map { ExtractFeature.reduce(&state, $0) }
 }
 
-/// A state in the form mode with an open asset and no text.
 func readyState() -> ExtractState {
     var state = ExtractState(form: testForm)
     state.mode = .form
@@ -180,7 +175,7 @@ struct ExtractFeatureTests {
     )
     func exportsEachSectionApart() throws {
         var state = readyState()
-        // A character outside the BMP before the values shifts UTF-16 offsets by one.
+
         let text = "\u{1F527} pressure 0.4MPa, noise ok"
         let mapping = makeMapping(text, pressure: 11..<17, noise: 25..<27)
         _ = send(
@@ -452,7 +447,7 @@ struct ExtractFeatureTests {
         let off = send(&state, .candidateFilterChanged(.none), .extractRequested)
         #expect(off[1] == [.run(.extract(version: 2, text: text, form: testForm, filter: .none), id: .extraction)])
         #expect(state.result == nil)
-        // A result that arrives while another folder opens has no known revision.
+
         _ = send(
             &state, .assetFolderChosen(path: "/other"),
             .extractionFinished(version: 2, mapping: mapping, timing: timing))

@@ -1,7 +1,5 @@
-/// A correction word found in the text by string match. It only marks the place: which value stands is for people to
-/// decide.
 public struct CorrectionCue: Equatable, Sendable {
-    /// Range of the word in the text, in Unicode scalars.
+
     public var range: Range<Int>
     public var word: String
 
@@ -10,8 +8,6 @@ public struct CorrectionCue: Equatable, Sendable {
         self.word = word
     }
 
-    /// The words of `words` in `text`, left to right and without overlap. Where several start at the same place, the
-    /// longest is taken.
     public static func find(in text: String, words: [String]) -> [CorrectionCue] {
         let scalars = Array(text.unicodeScalars)
         let longestFirst = words.filter { !$0.isEmpty }.sorted { $0.unicodeScalars.count > $1.unicodeScalars.count }

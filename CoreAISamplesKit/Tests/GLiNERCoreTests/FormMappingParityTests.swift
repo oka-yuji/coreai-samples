@@ -7,7 +7,7 @@ private let fixturesDirectory = URL(
         ?? NSHomeDirectory() + "/Desktop/SelfApps/CoreLLM/models/coreai/gliner")
 private let preregistrationPath = "data/g1_preregistration.json"
 private let wordingVariantsPath = "data/g6_variants.json"
-/// The records of the lab checkout that `GLINER_FIXTURES_DIR` (its `models/coreai/gliner`) belongs to.
+
 private let recordsPath = "../../../docs/results/data/"
 private let baselinePath = recordsPath + "2026-10-06-coreai-gliner25-pytorch-baseline/"
 private let outputsPath = baselinePath + "e3_outputs_N_i.json"
@@ -28,7 +28,6 @@ private func load<Value: Decodable>(_ type: Value.Type, _ path: String) throws -
     try JSONDecoder().decode(type, from: Data(contentsOf: fixturesDirectory.appending(path: path)))
 }
 
-/// `g1_preregistration.json`: form U1 and the entity labels of method (i).
 private struct Preregistration: Decodable {
     struct Field: Decodable {
         let key: String
@@ -42,7 +41,6 @@ private struct Preregistration: Decodable {
         let label: String?
         let description: String?
 
-        /// `number_entities` also holds a "note", which is a string.
         init(from decoder: any Decoder) throws {
             let container = try? decoder.container(keyedBy: CodingKeys.self)
             label = try container?.decode(String.self, forKey: .label)
@@ -73,10 +71,9 @@ private struct Preregistration: Decodable {
     }
 }
 
-/// `g6_variants.json` and the choice in `g6_summary.json`: the wording of the clause classification.
 private struct WordingVariants: Decodable {
     struct Wording: Decodable {
-        /// `{name}` stands for the field's name.
+
         let task: String
         let labels: [String]
     }
@@ -103,15 +100,14 @@ private struct WordingSummary: Decodable {
     let chosen: Chosen
 }
 
-/// `e3_outputs_N_i.json`: the spans of method (i) per sentence, and the classifications PyTorch ran.
 private struct BaselineOutputs: Decodable {
     struct Sentence: Decodable {
         let number: Int
         let text: String
         let spans: [Span]
-        /// The scoring of each field from its best span; a list field's has the clause and its probabilities.
+
         let out: [String: Item?]
-        /// The clauses of the answer spans and their probabilities.
+
         let given: [String: Saved]
 
         private enum CodingKeys: String, CodingKey {
@@ -120,7 +116,6 @@ private struct BaselineOutputs: Decodable {
         }
     }
 
-    /// `[key, start, end, text, probability]`, offsets in code points.
     struct Span: Decodable {
         let key: String
         let range: Range<Int>
@@ -167,7 +162,6 @@ private struct BaselineSummary: Decodable {
     }
 }
 
-/// A row of `e3_items_N_i.tsv`: one field of one sentence, scored from the field's best span (4 decimals).
 private struct BaselineRow {
     static let header = "case\titem\texpected\tvalue\tmatch\tspan_text\tconfidence\tclause\tmax\tmargin\tprobs"
 
@@ -201,7 +195,6 @@ private func baselineRows() throws -> [BaselineRow] {
     return try lines.dropFirst().map { try #require(BaselineRow($0)) }
 }
 
-/// The rows of a GL6b table for rule R1 on dev30, each as `columns` joined by spaces.
 private func gl6bRows(_ path: String, _ columns: [String]) throws -> [String] {
     let lines = try String(contentsOf: fixturesDirectory.appending(path: path), encoding: .utf8)
         .split(separator: "\n")
@@ -222,8 +215,6 @@ private struct SavedCall: Hashable {
     let text: String
 }
 
-/// The classifications PyTorch ran with the GL1 wording (the field's name as the task, the options as labels): the
-/// clause of each list field's best span, and the clauses of the answer spans.
 private func savedClassifications(
     _ sentences: [BaselineOutputs.Sentence], _ preregistration: Preregistration
 ) -> [SavedCall: [Float]] {
@@ -244,7 +235,6 @@ private func savedClassifications(
     return saved
 }
 
-/// Form U1 with the wording GL1 used to classify the clauses: the field's name as the task, the option names as labels.
 private func gl1Wording(_ form: FormSchema) -> FormSchema {
     FormSchema(
         fields: form.fields.map { field in
@@ -255,8 +245,6 @@ private func gl1Wording(_ form: FormSchema) -> FormSchema {
         })
 }
 
-/// What differs between the mapping of a field and the PyTorch row of that field; empty when they agree. The row
-/// scores the best span, so the suggestions are compared on the candidate with the highest probability.
 private func differences(
     _ mapped: FieldMapping, _ row: BaselineRow, spans: [BaselineOutputs.Span], text: String
 ) -> [String] {
@@ -290,7 +278,6 @@ private func differences(
     return checks.filter { !$0.1 }.map(\.0)
 }
 
-/// Within the 4 decimals of the record; true when the record has no value.
 private func isClose(_ value: Float?, _ recorded: Float?) -> Bool {
     guard let recorded else { return true }
     return abs((value ?? .nan) - recorded) <= 1e-4
@@ -371,8 +358,7 @@ struct FormMappingParityTests {
                 guard case .classification(let task, let labels) = schema else {
                     return ClassificationResult(probabilities: [])
                 }
-                // PyTorch classified only the clause of the best span (and of the answer spans); other spans get
-                // zeros, and their suggestions are not compared.
+
                 let call = SavedCall(task: task, labels: labels, text: text)
                 return ClassificationResult(probabilities: saved[call] ?? Array(repeating: 0, count: labels.count))
             }
@@ -417,7 +403,7 @@ struct FormMappingParityTests {
                         "\(range.upperBound)", String(String.UnicodeScalarView(scalars[candidate.clause])),
                     ].joined(separator: " ")
                 }
-                // GL6b's judgments give what each field keeps: the candidate count and the most probable text.
+
                 let best = field.candidates.max { $0.span.probability < $1.span.probability }
                 kept.append("\(sentence.number) \(field.field.key) \(field.candidates.count) \(best?.span.text ?? "")")
             }

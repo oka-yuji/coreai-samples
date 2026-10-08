@@ -14,7 +14,6 @@ func resourceData(_ path: String) throws -> Data {
     return try Data(contentsOf: folder.appending(path: path))
 }
 
-/// `Resources/evaluation_examples.json`: five hand-made gold sentences (and one excluded) with fixed outputs.
 struct EvaluationExamples: Decodable {
     struct Suggestion: Decodable {
         let option: String
@@ -41,7 +40,6 @@ struct EvaluationExamples: Decodable {
 
     let outputs: [String: Output]
 
-    /// The fixed output of `sentence` as a mapping of `form`, as `FormMapper` would build it.
     func mapping(of sentence: GoldSentence, form: FormSchema) -> FormMapping {
         let scalars = Array(sentence.text.unicodeScalars)
         let output = outputs[sentence.id]

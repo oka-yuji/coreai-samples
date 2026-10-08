@@ -3,9 +3,6 @@ import ExtractFeature
 import Foundation
 import GLiNERCore
 
-/// `--extract-eval <gold.json> --asset <folder> --out <result.json> [--form <form.json>]
-/// [--compute-units gpu|default] [--candidate-filter r1|r1n1|none]`: maps every sentence of a gold file that is not
-/// excluded with the same service as the screen, scores the mappings and writes the report.
 enum ExtractEval {
     private static let usage =
         "usage: CoreAISamples --extract-eval <gold.json> --asset <folder> --out <result.json> [--form <form.json>] "
@@ -14,13 +11,12 @@ enum ExtractEval {
     struct Output: Encodable {
         struct Asset: Encodable {
             let path: String
-            /// The type of the model's floating-point inputs and outputs: `float32` or `float16`.
+
             let floatType: String
         }
 
-        /// A candidate the rule dropped. Positions count Unicode scalars of the sentence.
         struct Dropped: Encodable {
-            /// The sentence's `id`.
+
             let id: String
             let field: String
             let start: Int
@@ -28,7 +24,6 @@ enum ExtractEval {
             let text: String
             let probability: Float
 
-            /// Every candidate the rule dropped, in sentence, form and text order.
             static func all(in scored: [(gold: GoldSentence, mapping: FormMapping)]) -> [Dropped] {
                 scored.flatMap { sentence, mapping in
                     mapping.fields.flatMap { field in
@@ -43,35 +38,32 @@ enum ExtractEval {
             }
         }
 
-        /// The hardware model identifier: `hw.machine` on iOS, `hw.model` on macOS.
         let device: String
-        /// The OS version with its build, as `ProcessInfo.operatingSystemVersionString` gives it.
+
         let osVersion: String
-        /// `gpu` or `default`, from `--compute-units`.
+
         let computeUnits: String
         let gold: String
         let goldSHA256: String
-        /// `bundled` or the path of `--form`.
+
         let form: String
         let asset: Asset
         let revision: String?
-        /// The rule of `--candidate-filter`: `clauseFieldNameAndEquipmentNumber` (`r1n1`, rules R1 and N1, the default
-        /// and the screen's), `clauseFieldName` (`r1`, rule R1) or `none`.
+
         let candidateFilter: String
-        /// The report does not score them.
+
         let droppedCandidates: [Dropped]
         let appVersion: String
         let assetLoadSeconds: Double
         let sentences: Int
         let excluded: [String]
-        /// From the start of preprocessing to the end of the mapping, in milliseconds. `cold` is a first run on the
-        /// first sentence, before the measured runs.
+
         let timing: TimingSummary
         let report: EvaluationReport
     }
 
     static func run() -> Never {
-        // swiftlint:disable:next task_only_in_store - The headless entry point has no store; it runs once and exits.
+
         Task { @MainActor in exit(await execute()) }
         RunLoop.main.run()
         fatalError("the main run loop returned")
@@ -139,7 +131,6 @@ enum ExtractEval {
         }
     }
 
-    /// `--candidate-filter`: rules R1 and N1 without one, or nil for a value it does not know.
     private static var candidateFilter: CandidateFilter? {
         switch LaunchArguments.value("--candidate-filter") ?? "r1n1" {
         case "r1": .clauseFieldName
@@ -149,7 +140,6 @@ enum ExtractEval {
         }
     }
 
-    /// The overall and per-field scores, one line each, on stdout.
     private static func report(_ output: Output) {
         var lines = [
             "[extract-eval] sentences=\(output.sentences) excluded=\(output.excluded.count) revision=\(output.revision ?? "none")"
@@ -194,7 +184,6 @@ enum ExtractEval {
         FileHandle.standardError.write(Data((line + "\n").utf8))
     }
 
-    /// `hw.machine` on iOS; on macOS that is the CPU architecture, and `hw.model` names the Mac.
     private static var hardwareModel: String {
         #if os(iOS)
             let name = "hw.machine"
