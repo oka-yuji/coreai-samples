@@ -130,11 +130,7 @@ actor Runtime {
         to request: LanguageModelExecutorGenerationRequest,
         streamingInto channel: LanguageModelExecutorGenerationChannel
     ) async throws {
-        if request.schema != nil {
-            throw LanguageModelError.unsupportedCapability(
-                .init(capability: .guidedGeneration, debugDescription: "Guided generation is not supported."))
-        }
-        let tools = try Self.tools(request)
+        let tools = try Self.validatedTools(for: request)
         var context = Self.templateContext(request.contextOptions.reasoningLevel, variables: settings.templateVariables)
         if !tools.isEmpty { context["tools"] = Value.array(tools.map(\.spec)) }
         let contextLimit = core.engine.contextLimit
