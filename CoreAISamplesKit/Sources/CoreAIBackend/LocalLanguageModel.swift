@@ -207,6 +207,7 @@ actor Runtime {
         to request: LanguageModelExecutorGenerationRequest,
         streamingInto channel: LanguageModelExecutorGenerationChannel
     ) async throws {
+        let tools = try Self.validatedTools(for: request)
         await lock()
         beganReading = false
         lastGeneration = []
@@ -216,7 +217,6 @@ actor Runtime {
         }
         let isNewConversation = reloadState.observe(Self.reloadConversation(request.transcript))
         try Task.checkCancellation()
-        let tools = try Self.validatedTools(for: request)
         var context = Self.templateContext(request.contextOptions.reasoningLevel, variables: settings.templateVariables)
         if !tools.isEmpty { context["tools"] = Value.array(tools.map(\.spec)) }
         let reserve =
