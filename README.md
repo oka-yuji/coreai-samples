@@ -69,6 +69,49 @@ This is the core of `CoreAISamplesKit/Sources/coreai-chat/ChatCommand.swift`, cu
 - **Samples as asked.** With no sampling options it decodes greedily. The `GenerationOptions` sampling modes `.random(top:seed:)` and `.random(probabilityThreshold:seed:)` and its `temperature` are honoured, and the same seed gives the same text.
 - **Stops and cancels cleanly.** Generation ends at the end-of-sequence token or `<|endoftext|>` (the stop token is not fed back to the model) or at `maximumResponseTokens`, and the response metadata says which (`stopReason`: `stopToken` or `maxTokens`). A reply that runs out of tokens while still thinking ends with an empty answer, not an error. After a cancelled request, the next one on the session works.
 
+## Supported requests
+
+The executor validates requests before acquiring or changing the inference state. The table covers the public request options in the macOS 27.0 SDK. The current request controls generation; settings stored on earlier prompts describe those earlier turns and are not replayed as new instructions.
+
+| Field or case | Behavior |
+|---|---|
+| `LanguageModelExecutorGenerationRequest.id` | Request identity; it does not alter rendering or sampling. |
+| `transcript` | Text instructions, prompts, reasoning, responses, tool calls and tool outputs are rendered. Unknown entry kinds are refused. |
+| `enabledToolDefinitions` | Rendered when tool calling is allowed; omitted when it is disallowed. |
+| `schema` | Refused with `unsupportedCapability(.guidedGeneration)`; request plain text instead. |
+| `generationOptions` | The fields below control this generation. |
+| `contextOptions` | The fields below control this rendering. |
+| `metadata` | Nonempty custom metadata is refused with `unsupportedGenerationGuide`; model-specific passthrough settings are not implemented. Key names, not values, appear in the error. |
+| `GenerationOptions.samplingMode` / deprecated `sampling` | The two names refer to the same setting. Omitted means greedy. |
+| `.greedy` | Selects the first maximum. |
+| `.random(top:seed:)` | Top-k sampling; the seed is used. |
+| `.random(probabilityThreshold:seed:)` | Top-p sampling; the seed is used. |
+| `temperature` | Passed to the sampler; omitted means 1. Nonpositive values select greedily. |
+| `maximumResponseTokens` | Caps the response at the remaining context space. |
+| `toolCallingMode` omitted / `.allowed` | Advertises the enabled tools without forcing a call. |
+| `.disallowed` | Omits tools from the template. |
+| `.required` | Refused with `unsupportedCapability(.guidedGeneration)` because forced tool calls require constrained decoding. |
+| Future sampling or tool-calling kinds | Refused instead of falling back to another setting. |
+| `ContextOptions.includeSchemaInPrompt` | Has no effect without a schema; a request with a schema is refused. |
+| `reasoningLevel` omitted | Uses the template's default. |
+| `.light` / `.moderate` / `.deep` | Maps to `low` / `medium` / `xhigh` template values. |
+| `.custom("off")` | Sets `enable_thinking` to false. |
+| `.custom("low")` / `.custom("medium")` / `.custom("xhigh")` | Uses the same template values as the named levels. |
+| Other custom reasoning values | Refused with `unsupportedCapability(.reasoning)` and the rejected value. |
+| `Transcript.Entry.instructions` | Preserves system text and tool definitions. |
+| `.prompt` | Sanitizes user text before rendering. |
+| `.reasoning` / `.response` | Preserves model-generated history. |
+| `.toolCalls` | Rebuilds calls and their arguments in the recorded order. |
+| `.toolOutput` | Applies context truncation, then sanitizes the remaining text. |
+| `Transcript.Segment.text` | Supported. |
+| `.structure` / `.attachment` and future segment kinds | Refused with `unsupportedTranscriptContent` before inference. |
+| `Transcript.Prompt.id` | Identifies the stored entry; not model input. |
+| `segments` | Only text is accepted. |
+| `options` / `contextOptions` / `metadata` | Stored turn information. The current request's corresponding fields are authoritative. |
+| `responseFormat` | Refused on the current prompt; historical formats do not constrain a new plain-text turn. |
+
+Reasoning strength depends on the bundle. Qwen3.8 uses the three effort values; Qwen3.5's template uses the thinking switch and does not distinguish those effort values. The runtime does not add a thinking-token budget. Custom reasoning names are limited to the four documented values so an unrecognized name is never silently forwarded.
+
 ## Repository layout
 
 ```
