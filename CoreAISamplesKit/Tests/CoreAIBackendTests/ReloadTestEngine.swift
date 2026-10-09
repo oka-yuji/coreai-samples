@@ -55,6 +55,7 @@ final class ReloadTestControl: Sendable {
 
     func resumeLoad() {
         let continuation = state.withLock { state in
+            state.blockNextLoad = false
             defer { state.releaseLoad = nil }
             return state.releaseLoad
         }

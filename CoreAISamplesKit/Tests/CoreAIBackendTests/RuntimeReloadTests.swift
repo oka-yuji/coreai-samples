@@ -6,6 +6,42 @@ import Testing
 
 @Suite(.timeLimit(.minutes(1)))
 struct RuntimeReloadTests {
+    @Test("Releasing a load before registration lets the factory finish without another release")
+    func releaseBeforeLoadRegistration() async throws {
+        let folder = try tinyBundle()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let bundle = try ModelBundle(url: folder)
+        let control = ReloadTestControl()
+        control.state.withLock { $0.blockNextLoad = true }
+        control.resumeLoad()
+        try await withTaskCancellationHandler {
+            try await withThrowingTaskGroup(of: Bool.self) { group in
+                defer {
+                    control.resumeLoad()
+                    control.loading.continuation.finish()
+                }
+                group.addTask {
+                    var loading = control.loading.stream.makeAsyncIterator()
+                    _ = await loading.next()
+                    return false
+                }
+                group.addTask {
+                    _ = try await control.make(bundle, 128)
+                    return true
+                }
+                let completedWithoutAnotherRelease = try await group.next()
+                #expect(completedWithoutAnotherRelease == true)
+                control.resumeLoad()
+                control.loading.continuation.finish()
+                try await group.waitForAll()
+            }
+        } onCancel: {
+            control.resumeLoad()
+            control.loading.continuation.finish()
+        }
+        #expect(control.loads == 1)
+    }
+
     @Test("A reload releases the old engine and all saved checkpoints before calling the loader")
     func releasesResourcesBeforeLoading() async throws {
         let fixture = try await ReloadTestModel.make(policy: .init(readInterval: 1))
