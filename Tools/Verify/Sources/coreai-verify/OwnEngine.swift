@@ -66,7 +66,7 @@ struct Compare: AsyncParsableCommand {
                     split: turnBoundary ? split : nil, maxTokens: maxTokens, stop: stop)
                 record.prompt = name
                 record.text = tokenizer.decode(tokens: record.tokens.map(Int.init))
-                try emit(record)
+                try emitComparison(record)
             }
         }
         for entry in tokens {
@@ -82,7 +82,7 @@ struct Compare: AsyncParsableCommand {
                 maxTokens: maxTokens, stop: stop)
             record.prompt = name
             record.text = tokenizer.decode(tokens: record.tokens.map(Int.init))
-            try emit(record)
+            try emitComparison(record)
         }
     }
 
@@ -105,18 +105,11 @@ struct Compare: AsyncParsableCommand {
             promptTokens: input.count)
         while record.tokens.count < maxTokens, let reference = try await iterator.next() {
             let logits = own.logits()
-            let token = own.greedyToken()
             let referenceLogits = reference.logits ?? []
+            guard record.observeLogits(own: logits, official: referenceLogits) else { break }
+            let token = own.greedyToken()
             record.tokens.append(token)
             record.officialTokens.append(reference.tokenId)
-            var identical = logits.count == referenceLogits.count
-            var difference: Float = 0
-            for (a, b) in zip(logits, referenceLogits) where a.bitPattern != b.bitPattern {
-                identical = false
-                difference = max(difference, abs(Float(a) - Float(b)))
-            }
-            record.maxAbsDiff = max(record.maxAbsDiff, difference)
-            record.identicalSteps += identical ? 1 : 0
             if token != reference.tokenId {
                 record.firstMismatch = record.tokens.count - 1
                 record.mismatch = Mismatch(own: top2(logits), official: top2(referenceLogits))
@@ -580,6 +573,33 @@ struct CompareRecord: Encodable {
     var tokens: [Int32] = []
     var officialTokens: [Int32] = []
     var text = ""
+    var ownNonFiniteLogitCount = 0
+    var officialNonFiniteLogitCount = 0
+    var error: String?
+
+    mutating func observeLogits(own: [Float16], official: [Float16]) -> Bool {
+        switch LogitComparison(own: own, official: official) {
+        case .finite(let identical, let difference):
+            maxAbsDiff = max(maxAbsDiff, difference)
+            identicalSteps += identical ? 1 : 0
+            return true
+        case .nonFinite(let ownCount, let officialCount):
+            ownNonFiniteLogitCount += ownCount
+            officialNonFiniteLogitCount += officialCount
+            stop = "non-finite"
+            error = "Non-finite logits: own=\(ownNonFiniteLogitCount), official=\(officialNonFiniteLogitCount)."
+            return false
+        }
+    }
+}
+
+func emitComparison(_ record: CompareRecord) throws {
+    try emit(record)
+    if let error = record.error { throw ComparisonFailure(description: error) }
+}
+
+struct ComparisonFailure: Error, CustomStringConvertible {
+    let description: String
 }
 
 struct StateRecord: Encodable {
