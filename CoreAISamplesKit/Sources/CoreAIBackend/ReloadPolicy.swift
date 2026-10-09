@@ -3,7 +3,7 @@ extension LocalLanguageModel {
         public var readInterval: Int
         public var footprintLimitBytes: UInt64
 
-        public init(readInterval: Int = 10, footprintLimitBytes: UInt64 = 0) {
+        public init(readInterval: Int = 10, footprintLimitBytes: UInt64 = 18_000_000_000) {
             self.readInterval = readInterval
             self.footprintLimitBytes = footprintLimitBytes
         }
