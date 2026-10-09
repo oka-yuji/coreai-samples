@@ -39,7 +39,10 @@ struct WebSearchArguments {
 struct FetchPageArguments {
     @Guide(description: "The absolute http or https URL to fetch.")
     var url: String
-    @Guide(description: "What you are looking for on this page. When given, the tool returns the passages most relevant to it instead of the beginning of the page.")
+    @Guide(
+        description:
+            "What you are looking for on this page. When given, the tool returns the passages most relevant to it instead of the beginning of the page."
+    )
     var query: String?
 }
 
@@ -55,12 +58,14 @@ struct WriteNoteArguments {
 struct MoveNoteArguments {
     @Guide(description: "The title the note was saved with, or its file name.")
     var title: String
-    @Guide(description: "Target folder: Desktop, Documents, Downloads, or a path under one of them such as Desktop/notes.")
+    @Guide(
+        description: "Target folder: Desktop, Documents, Downloads, or a path under one of them such as Desktop/notes.")
     var destination: String
 }
 
 enum AgentPromptBuilder {
-    static let systemPromptBody = " Use the tools to gather facts before you answer. Keep queries short, and cite the URLs you used. You may issue up to 3 tool calls in one turn when they are independent (for example, fetching two search results at once). Dependent steps must stay in separate turns. When you have enough information, answer directly without calling a tool."
+    static let systemPromptBody =
+        " Use the tools to gather facts before you answer. Keep queries short, and cite the URLs you used. You may issue up to 3 tool calls in one turn when they are independent (for example, fetching two search results at once). Dependent steps must stay in separate turns. When you have enough information, answer directly without calling a tool."
 
     static let extraInstructions = [
         "- If a tool returns an error or empty result, state in one short sentence why it likely failed, then retry ONCE with an adjusted query or a different tool. Never repeat the exact same failing call.",
@@ -68,7 +73,6 @@ enum AgentPromptBuilder {
         "- Compare source dates with the current date: an event dated before today has already happened, so describe it in the past tense and prefer the most recent sources.",
     ]
 
-    /// `--instructions cite-fetched` (M4-g G1 and G2): two lines after the frozen three, worded as in the M4-g appendix §6.
     static let citeFetchedInstructions = [
         "- Cite only pages you actually opened with fetch_page in this task. A search-result snippet is not a source: fetch the page before you rely on it or cite it, and drop any claim you could not confirm in a fetched page.",
         "- When you quote a number from a table, check the row and column headers (date, year, unit) so the value belongs to the item you are describing.",
@@ -76,11 +80,12 @@ enum AgentPromptBuilder {
 
     static func instructions(date: String, citeFetched: Bool = false) -> String {
         "You are an agent running on this device." + systemPromptBody + "\n\n"
-            + (extraInstructions + (citeFetched ? citeFetchedInstructions : [])).joined(separator: "\n") + "\n\nCurrent date: " + date
+            + (extraInstructions + (citeFetched ? citeFetchedInstructions : [])).joined(separator: "\n")
+            + "\n\nCurrent date: " + date
     }
 
-    /// The citation guard's one repair turn, worded as in the M4-g appendix §7; the placeholder becomes the unfetched URLs.
-    static let repairPromptTemplate = "Citation check by the app: these sources were not opened with fetch_page in this task: <URL list, or \"none listed\">. Open the pages you need with fetch_page (at most 3), then answer the original question again. Keep only claims that a fetched page supports, list only fetched pages under Sources, and say \"unconfirmed\" for anything you could not confirm. If you saved a note, save it again with the same title after the same correction. Fetching a page does not by itself make a claim true."
+    static let repairPromptTemplate =
+        "Citation check by the app: these sources were not opened with fetch_page in this task: <URL list, or \"none listed\">. Open the pages you need with fetch_page (at most 3), then answer the original question again. Keep only claims that a fetched page supports, list only fetched pages under Sources, and say \"unconfirmed\" for anything you could not confirm. If you saved a note, save it again with the same title after the same correction. Fetching a page does not by itself make a claim true."
     static let repairURLPlaceholder = "<URL list, or \"none listed\">"
 
     static func repairPrompt(unfetched: [String]) -> String {
@@ -92,7 +97,6 @@ enum AgentPromptBuilder {
         dateFormatter().string(from: date)
     }
 
-    /// `--date` must read like `today()` and name the right weekday.
     static func isDateLabel(_ text: String) -> Bool {
         let formatter = dateFormatter()
         return formatter.date(from: text).map(formatter.string(from:)) == text
@@ -108,17 +112,25 @@ enum AgentPromptBuilder {
     static func tools(fileOperations: Bool, run: @escaping @Sendable (AgentToolCall) async -> String) -> [any Tool] {
         var tools: [any Tool] = [
             AgentTool<WebSearchArguments>(
-                name: "web_search", description: "Search the web and return the top results as title, url and snippet.", run: run),
+                name: "web_search", description: "Search the web and return the top results as title, url and snippet.",
+                run: run),
             AgentTool<FetchPageArguments>(
-                name: "fetch_page", description: "Fetch a web page by URL and return its readable text, truncated to a character budget.", run: run),
+                name: "fetch_page",
+                description: "Fetch a web page by URL and return its readable text, truncated to a character budget.",
+                run: run),
             AgentTool<WriteNoteArguments>(
-                name: "write_note", description: "Save a Markdown note on this device and return the file path. Keep content under about 2,000 characters.", run: run),
+                name: "write_note",
+                description:
+                    "Save a Markdown note on this device and return the file path. Keep content under about 2,000 characters.",
+                run: run),
         ]
         if fileOperations {
-            tools.append(AgentTool<MoveNoteArguments>(
-                name: "move_note",
-                description: "Move a note saved with write_note to another folder on this device and return its new path. Allowed destinations: Desktop, Documents, Downloads, or a sub-folder of one of them. Existing files are never overwritten.",
-                run: run))
+            tools.append(
+                AgentTool<MoveNoteArguments>(
+                    name: "move_note",
+                    description:
+                        "Move a note saved with write_note to another folder on this device and return its new path. Allowed destinations: Desktop, Documents, Downloads, or a sub-folder of one of them. Existing files are never overwritten.",
+                    run: run))
         }
         return tools
     }
@@ -136,7 +148,8 @@ enum AgentPromptBuilder {
             switch value.kind {
             case .null: return nil
             case .string(let text): return AgentArgument(name: key, value: text)
-            case .number(let number): return AgentArgument(name: key, value: Int(exactly: number).map(String.init) ?? String(number))
+            case .number(let number):
+                return AgentArgument(name: key, value: Int(exactly: number).map(String.init) ?? String(number))
             default: return AgentArgument(name: key, value: value.jsonString)
             }
         }
