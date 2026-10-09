@@ -100,6 +100,8 @@ Every generation appends one JSON line to `~/Library/Application Support/com.cor
 
 ## RAG
 
+Web retrieval uses the same address checks and WebView content rules as Agent page fetches, including validation before requests and redirects. A refused target is not included as a source. DNS rebinding and private addresses hidden behind subresource or JavaScript hostnames are outside these checks; App Sandbox is off.
+
 Turn on **RAG** in the Chat status bar, then pick **Web**, **Docs** or both. The app retrieves; the model never calls a tool.
 
 1. **Web**: search (DuckDuckGo, top 8; Brave Search when the Agent settings hold an API key), then read the top 5 pages in parallel and keep up to 3,000 characters of each, the part that matches the question.
@@ -121,6 +123,10 @@ $APP --selftest --model /path/to/bundle --rag "question 1|question 2" [--rag-web
 Each question prints `[rag] turn=N search N / pages N / passages N → N sources, N tokens`, one `[rag] turn=N source [k] title — url (date)` and one `[rag] turn=N passage [k] …` (the text the model saw) line per source, `[rag] turn=N note …` for each failure and `[rag] turn=N answer=…` on stderr, then its JSON line and `SELFTEST PASS` or `SELFTEST FAIL` on stdout. A question with sources passes when the model answers without an error; a question without sources passes when the reply is `資料が取得できませんでした。` and the model did not run. `--rag-docs` reads another folder instead of `~/Documents/rag/`. `$APP --gui-e2e /path/to/output --model /path/to/bundle --rag "question"` turns RAG on and answers one question on the screen, saving screenshots of the switches and of the answer with its sources and the status line.
 
 ## Agent
+
+`fetch_page` resolves its target before fetching and permits it only when every address is public. It rejects loopback, private, link-local, unspecified, shared, multicast and reserved ranges, including mapped IPv4 and legacy numeric forms. URLSession redirects are checked before following them, and a refused redirect returns the refusal message without its response body. Main-frame and subframe WebView navigations and final URLs are also checked. WebView content rules block local hostname suffixes and non-public literal addresses in subresources. These checks do not pin DNS answers to connections or inspect hostname resolution for JavaScript and other subresources, and the app runs without the App Sandbox.
+
+`--agent-selftest --offline` checks address classification, navigation decisions, redirect refusal and installed content rules. A live test can add `--fetch-redirect-test-url <public-redirect-to-loopback>` while a local listener records connections; Agent and RAG must both refuse it and the listener must receive no requests. `--fetch-capture-dir <directory>` captures three public pages for a before/after comparison.
 
 The loop belongs to Foundation Models: the screen runs `LanguageModelSession(model:tools:instructions:)` with three tools (four when **Allow file operations** is on, below) and streams the response, and Foundation Models calls the tools and generates again until the model answers. The app counts the steps (one step is one generation) by watching the transcript.
 
