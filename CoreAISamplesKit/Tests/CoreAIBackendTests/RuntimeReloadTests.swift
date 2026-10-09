@@ -290,21 +290,26 @@ extension RuntimeReloadTests {
 
 extension RuntimeReloadTests {
     @Test(
-        "Generation snapshots clear before backend validation and retain only the current partial decode on a step failure"
+        "Request-only rejection preserves the previous snapshot while a failed decode keeps only its partial generation"
     )
-    func failedRequestCannotExposeAnOlderGeneration() async throws {
+    func rejectedRequestPreservesGenerationAndPartialFailure() async throws {
         let fixture = try await ReloadTestModel.make(policy: .init(readInterval: 0))
         defer { try? FileManager.default.removeItem(at: fixture.folder) }
         fixture.control.state.withLock { $0.generationTokens = [0, 1, 3] }
         _ = try await fixture.request()
         #expect(await fixture.model.lastGeneratedTokens() == [0, 1])
+        let previousState = await fixture.model.processedState()
+        let previousEvents = fixture.control.events
         let invalid = LanguageModelExecutorGenerationRequest(
             id: UUID(), transcript: Transcript(entries: [.prompt(.init(segments: [.text(.init(content: "a"))]))]),
             enabledTools: [], generationOptions: .init(), contextOptions: .init(), metadata: ["unsupported": true])
         await #expect(throws: LanguageModelError.self) {
             try await fixture.runtime.respond(to: invalid, streamingInto: .init())
         }
-        #expect(await fixture.model.lastGeneratedTokens().isEmpty)
+        #expect(await fixture.model.lastGeneratedTokens() == [0, 1])
+        let rejectedState = await fixture.model.processedState()
+        #expect(rejectedState.tokens == previousState.tokens && rejectedState.logits == previousState.logits)
+        #expect(fixture.control.events == previousEvents)
         fixture.control.state.withLock { $0.failNextStep = true }
         await #expect(throws: ReloadTestFailure.self) { try await fixture.request("b") }
         #expect(await fixture.model.lastGeneratedTokens() == [0])
@@ -328,5 +333,71 @@ extension RuntimeReloadTests {
         }
         #expect(await fixture.model.lastGeneratedTokens() == [0])
         #expect(await fixture.model.processedTokens().isEmpty)
+    }
+}
+
+extension RuntimeReloadTests {
+    @Test("Request-only rejection neither registers a new conversation nor disturbs the existing one")
+    func rejectionPreservesConversation() async throws {
+        let fixture = try await ReloadTestModel.make(policy: .init(readInterval: 1))
+        defer { try? FileManager.default.removeItem(at: fixture.folder) }
+        let session = LanguageModelSession(model: fixture.model)
+        _ = try await session.respond(to: "a", options: .init(samplingMode: .greedy, maximumResponseTokens: 8))
+        let nextConversation = Transcript(entries: [.prompt(.init(segments: [.text(.init(content: "b"))]))])
+        let invalid = LanguageModelExecutorGenerationRequest(
+            id: UUID(), transcript: nextConversation,
+            enabledTools: [], generationOptions: .init(), contextOptions: .init(), metadata: ["unsupported": true])
+        await #expect(throws: LanguageModelError.self) {
+            try await fixture.runtime.respond(to: invalid, streamingInto: .init())
+        }
+        _ = try await session.respond(to: "b", options: .init(samplingMode: .greedy, maximumResponseTokens: 8))
+        #expect(fixture.control.loads == 1)
+        fixture.control.state.withLock {
+            $0.failNextLoad = true
+            $0.failNextRead = true
+        }
+        do {
+            try await fixture.runtime.respond(to: directReloadRequest(nextConversation), streamingInto: .init())
+            Issue.record("The accepted new conversation did not attempt a reload")
+        } catch ReloadTestFailure.load {
+            #expect(fixture.control.loads == 2)
+        } catch {
+            Issue.record("The rejected request registered its conversation: \(error)")
+        }
+    }
+
+    @Test("An invalid request is rejected while another request holds the execution lock during a read")
+    func rejectionDoesNotWaitForExecutionLock() async throws {
+        let fixture = try await ReloadTestModel.make(policy: .init(readInterval: 0))
+        defer { try? FileManager.default.removeItem(at: fixture.folder) }
+        fixture.control.state.withLock { $0.blockNextRead = true }
+        try await withTaskCancellationHandler {
+            try await withThrowingTaskGroup(of: Void.self) { group in
+                group.addTask { _ = try await fixture.request() }
+                do {
+                    var reading = fixture.control.reading.stream.makeAsyncIterator()
+                    _ = try #require(await reading.next())
+                    let previousEvents = fixture.control.events
+                    let invalid = LanguageModelExecutorGenerationRequest(
+                        id: UUID(),
+                        transcript: Transcript(entries: [.prompt(.init(segments: [.text(.init(content: "b"))]))]),
+                        enabledTools: [], generationOptions: .init(), contextOptions: .init(),
+                        metadata: ["unsupported": true])
+                    await #expect(throws: LanguageModelError.self) {
+                        try await fixture.runtime.respond(to: invalid, streamingInto: .init())
+                    }
+                    #expect(fixture.control.state.withLock { $0.releaseRead != nil })
+                    #expect(fixture.control.events == previousEvents)
+                    fixture.control.resumeRead()
+                    try await group.waitForAll()
+                } catch {
+                    group.cancelAll()
+                    fixture.control.resumeRead()
+                    throw error
+                }
+            }
+        } onCancel: {
+            fixture.control.resumeRead()
+        }
     }
 }
