@@ -87,6 +87,12 @@ struct Chat: AsyncParsableCommand {
     @Option(help: "Start a new conversation after this many turns. Zero keeps one conversation.")
     var newConversationEvery = 0
 
+    @Option(
+        help:
+            "Wait five seconds after this turn and record memory before any state check. Repeat to select turns. Own runtime only."
+    )
+    var memorySampleTurn: [Int] = []
+
     @OptionGroup var experiment: ExperimentOptions
 
     @OptionGroup var reload: ReloadOptions
@@ -99,6 +105,15 @@ struct Chat: AsyncParsableCommand {
         }
         guard !freshSession || newConversationEvery == 0 else {
             throw ValidationError("Choose either --fresh-session or --new-conversation-every.")
+        }
+        guard memorySampleTurn.isEmpty || options.runtime == .own else {
+            throw ValidationError("--memory-sample-turn requires --runtime own.")
+        }
+        guard Set(memorySampleTurn).count == memorySampleTurn.count else {
+            throw ValidationError("--memory-sample-turn values must be unique.")
+        }
+        guard memorySampleTurn.allSatisfy({ $0 > 0 && $0 <= prompt.count }) else {
+            throw ValidationError("--memory-sample-turn must refer to an existing turn, starting at one.")
         }
     }
 
@@ -147,6 +162,9 @@ struct Chat: AsyncParsableCommand {
                     generatedTokens: generatedTokens,
                     error: result.error
                 ))
+            if memorySampleTurn.contains(index + 1) {
+                try emit(try await sampleMemory(turn: index + 1, retaining: model))
+            }
             if experiment.checkState, result.metadata("reloadSeconds", as: Double.self) != nil {
                 try await checkState(model)
             }
