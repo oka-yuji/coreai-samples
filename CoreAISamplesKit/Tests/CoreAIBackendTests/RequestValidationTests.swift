@@ -134,24 +134,6 @@ import Testing
     }
 
     @Test(
-        "Rejected reasoning options leave the live engine state unchanged", .enabled(if: !bundlePaths.isEmpty),
-        arguments: bundlePaths)
-    func rejectedRequestPreservesState(path: String) async throws {
-        let model = try await LocalLanguageModel(bundle: URL(filePath: path))
-        let session = LanguageModelSession(model: model)
-        _ = try await session.respond(to: "Hello", options: .init(maximumResponseTokens: 1))
-        let before = await model.processedTokens()
-        do {
-            _ = try await session.respond(
-                to: "Another turn", contextOptions: .init(reasoningLevel: .custom("unsupported")))
-            Issue.record("The live runtime accepted an unsupported reasoning level")
-        } catch LanguageModelError.unsupportedCapability(let detail) {
-            #expect(detail.debugDescription.contains("unsupported"))
-        }
-        #expect(await model.processedTokens() == before)
-    }
-
-    @Test(
         "Real bundle templates accept the documented reasoning values and unsupported values fail before rendering",
         .enabled(if: !checkPaths.isEmpty), arguments: checkPaths)
     func checksRealTemplates(path: String) async throws {
@@ -171,5 +153,25 @@ import Testing
         } catch LanguageModelError.unsupportedCapability(let detail) {
             #expect(detail.debugDescription.contains("unsupported"))
         }
+    }
+}
+
+extension ModelIntegrationTests {
+    @Test(
+        "Rejected reasoning options leave the live engine state unchanged", .enabled(if: !bundlePaths.isEmpty),
+        arguments: bundlePaths)
+    func rejectedRequestPreservesState(path: String) async throws {
+        let model = try await LocalLanguageModel(bundle: URL(filePath: path))
+        let session = LanguageModelSession(model: model)
+        _ = try await session.respond(to: "Hello", options: .init(maximumResponseTokens: 1))
+        let before = await model.processedTokens()
+        do {
+            _ = try await session.respond(
+                to: "Another turn", contextOptions: .init(reasoningLevel: .custom("unsupported")))
+            Issue.record("The live runtime accepted an unsupported reasoning level")
+        } catch LanguageModelError.unsupportedCapability(let detail) {
+            #expect(detail.debugDescription.contains("unsupported"))
+        }
+        #expect(await model.processedTokens() == before)
     }
 }

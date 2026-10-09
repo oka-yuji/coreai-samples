@@ -14,15 +14,18 @@ let tinyMetadata = """
 
 func tinyBundle(metadata: String = tinyMetadata) throws -> URL {
     let folder = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
-    try FileManager.default.createDirectory(at: folder.appending(path: "tiny.aimodel"), withIntermediateDirectories: true)
+    try FileManager.default.createDirectory(
+        at: folder.appending(path: "tiny.aimodel"), withIntermediateDirectories: true)
     try FileManager.default.createDirectory(at: folder.appending(path: "tokenizer"), withIntermediateDirectories: true)
     try Data(metadata.utf8).write(to: folder.appending(path: "metadata.json"))
     try Data(#"{"tokenizer_class": "Qwen2Tokenizer", "eos_token": "<|im_end|>"}"#.utf8)
         .write(to: folder.appending(path: "tokenizer/tokenizer_config.json"))
-    try Data(#"""
+    try Data(
+        #"""
         {"added_tokens": [{"id": 3, "content": "<|im_end|>", "special": true}],
          "model": {"type": "BPE", "vocab": {"a": 0, "b": 1, "ab": 2}, "merges": ["a b"]}}
-        """#.utf8).write(to: folder.appending(path: "tokenizer/tokenizer.json"))
+        """#.utf8
+    ).write(to: folder.appending(path: "tokenizer/tokenizer.json"))
     return folder
 }
 
@@ -53,21 +56,32 @@ func tinyBundle(metadata: String = tinyMetadata) throws -> URL {
         (#"{"assets": {"main": "tiny.aimodel"}, "language": {}}"#, BundleError.missingField("name")),
         (#"{"name": "tiny", "assets": {}}"#, .missingField("assets.main")),
         (#"{"name": "tiny", "assets": {"main": "tiny.aimodel"}}"#, .missingField("language.vocab_size")),
-        (#"{"name": "tiny", "assets": {"main": "tiny.aimodel"}, "language": {"vocab_size": 8}}"#, .missingField("language.max_context_length")),
-        (#"{"name": "tiny", "assets": {"main": "tiny.aimodel"}, "language": {"vocab_size": 8, "max_context_length": 64, "function_map": {"main": []}}}"#,
-         .missingField("language.function_map.main")),
-        (#"{"name": "tiny", "assets": {"main": "tiny.aimodel"}, "language": {"vocab_size": 0, "max_context_length": 64, "function_map": {"main": ["main"]}}}"#,
-         .invalidValue("language.vocab_size", 0)),
+        (
+            #"{"name": "tiny", "assets": {"main": "tiny.aimodel"}, "language": {"vocab_size": 8}}"#,
+            .missingField("language.max_context_length")
+        ),
+        (
+            #"{"name": "tiny", "assets": {"main": "tiny.aimodel"}, "language": {"vocab_size": 8, "max_context_length": 64, "function_map": {"main": []}}}"#,
+            .missingField("language.function_map.main")
+        ),
+        (
+            #"{"name": "tiny", "assets": {"main": "tiny.aimodel"}, "language": {"vocab_size": 0, "max_context_length": 64, "function_map": {"main": ["main"]}}}"#,
+            .invalidValue("language.vocab_size", 0)
+        ),
     ] {
         let folder = try tinyBundle(metadata: metadata)
         defer { try? FileManager.default.removeItem(at: folder) }
         #expect(throws: error) { try ModelBundle(url: folder) }
     }
-    #expect(BundleError.missingField("language.vocab_size").localizedDescription == "metadata.json has no language.vocab_size.")
+    #expect(
+        BundleError.missingField("language.vocab_size").localizedDescription
+            == "metadata.json has no language.vocab_size.")
 
     for functionMap in ["", #", "function_map": {}"#, #", "function_map": {"main": ["main"]}"#] {
-        let folder = try tinyBundle(metadata: #"{"name": "tiny", "assets": {"main": "tiny.aimodel"}, "language": {"vocab_size": 8, "max_context_length": 64"#
-            + functionMap + "}}")
+        let folder = try tinyBundle(
+            metadata:
+                #"{"name": "tiny", "assets": {"main": "tiny.aimodel"}, "language": {"vocab_size": 8, "max_context_length": 64"#
+                + functionMap + "}}")
         defer { try? FileManager.default.removeItem(at: folder) }
         #expect(throws: Never.self) { try ModelBundle(url: folder) }
     }
@@ -97,7 +111,8 @@ func tinyBundle(metadata: String = tinyMetadata) throws -> URL {
     }
 
     let unigram = fits.appending(path: "unigram.json")
-    try Data(#"{"added_tokens": [], "model": {"type": "Unigram", "vocab": [["a", -1.0], ["b", -2.0]]}}"#.utf8).write(to: unigram)
+    try Data(#"{"added_tokens": [], "model": {"type": "Unigram", "vocab": [["a", -1.0], ["b", -2.0]]}}"#.utf8).write(
+        to: unigram)
     #expect(try ModelBundle.tokenCount(unigram) == 2)
 }
 
@@ -141,7 +156,8 @@ func contiguous(_ width: Int) -> @Sendable ([Int]) -> (strides: [Int], byteCount
 }
 
 @Test func checkpointRestoresFixedStatesAndRejectsAnOverwrittenPrefix() throws {
-    let kv = StateBuffer(name: "keyCache", scalarType: .bfloat16, sequenceDim: 1, shape: [2, 4, 3], layout: contiguous(2))
+    let kv = StateBuffer(
+        name: "keyCache", scalarType: .bfloat16, sequenceDim: 1, shape: [2, 4, 3], layout: contiguous(2))
     let fixed = StateBuffer(
         name: "recurrentStates", scalarType: .bfloat16, sequenceDim: nil, shape: [2, 6], layout: contiguous(2))
     var context = Context(buffers: [kv, fixed], capacity: 4, limit: 64)
@@ -202,7 +218,9 @@ func contiguous(_ width: Int) -> @Sendable ([Int]) -> (strides: [Int], byteCount
 
 @Test func reusePlanGoesBackToTheRightPoint() {
     typealias Stop = ReusePlan.Stop
-    var plan = ReusePlan(processed: [1, 2, 3, 9, 9], saved: [], prompt: [1, 2, 3, 4, 5], hybrid: false, afterUser: 4) { 0 }
+    var plan = ReusePlan(processed: [1, 2, 3, 9, 9], saved: [], prompt: [1, 2, 3, 4, 5], hybrid: false, afterUser: 4) {
+        0
+    }
     #expect(plan.keep == 3)
     #expect(plan.stops == [Stop(position: 5, role: .generationStart)])
 
@@ -213,20 +231,30 @@ func contiguous(_ width: Int) -> @Sendable ([Int]) -> (strides: [Int], byteCount
     #expect(plan.keep == 3)
     #expect(plan.stops.isEmpty)
 
-    plan = ReusePlan(processed: [1, 2, 3, 4, 5, 6, 7], saved: [2, 6], prompt: [1, 2, 3, 4, 9, 9, 9, 9], hybrid: true, afterUser: 6) { 0 }
+    plan = ReusePlan(
+        processed: [1, 2, 3, 4, 5, 6, 7], saved: [2, 6], prompt: [1, 2, 3, 4, 9, 9, 9, 9], hybrid: true, afterUser: 6
+    ) { 0 }
     #expect(plan.keep == 2)
     #expect(plan.stops == [Stop(position: 6, role: .afterUser), Stop(position: 8, role: .generationStart)])
 
     let preamble = (0..<300).map(Int32.init)
-    plan = ReusePlan(processed: preamble + [7, 7], saved: [302], prompt: preamble + [8, 9, 10], hybrid: true, afterUser: 302) { 300 }
+    plan = ReusePlan(
+        processed: preamble + [7, 7], saved: [302], prompt: preamble + [8, 9, 10], hybrid: true, afterUser: 302
+    ) { 300 }
     #expect(plan.keep == 0)
-    #expect(plan.stops == [
-        Stop(position: 300, role: .divergence), Stop(position: 302, role: .afterUser), Stop(position: 303, role: .generationStart),
-    ])
-    plan = ReusePlan(processed: preamble + [8, 9, 10, 11], saved: [300], prompt: preamble + [5, 6], hybrid: true, afterUser: 301) { 0 }
+    #expect(
+        plan.stops == [
+            Stop(position: 300, role: .divergence), Stop(position: 302, role: .afterUser),
+            Stop(position: 303, role: .generationStart),
+        ])
+    plan = ReusePlan(
+        processed: preamble + [8, 9, 10, 11], saved: [300], prompt: preamble + [5, 6], hybrid: true, afterUser: 301
+    ) { 0 }
     #expect(plan.keep == 300)
     #expect(plan.stops == [Stop(position: 301, role: .afterUser), Stop(position: 302, role: .generationStart)])
-    plan = ReusePlan(processed: Array(preamble[..<200]) + [7], saved: [], prompt: preamble, hybrid: true, afterUser: 299) { 0 }
+    plan = ReusePlan(
+        processed: Array(preamble[..<200]) + [7], saved: [], prompt: preamble, hybrid: true, afterUser: 299
+    ) { 0 }
     #expect(plan.keep == 0)
     #expect(plan.stops == [Stop(position: 299, role: .afterUser), Stop(position: 300, role: .generationStart)])
 
@@ -234,7 +262,9 @@ func contiguous(_ width: Int) -> @Sendable ([Int]) -> (strides: [Int], byteCount
     #expect(plan.keep == 3)
     #expect(plan.stops == [Stop(position: 4, role: .afterUser), Stop(position: 5, role: .generationStart)])
 
-    plan = ReusePlan(processed: [1, 2, 3, 4, 5, 6], saved: [3, 4], prompt: [1, 2, 3, 4], hybrid: true, afterUser: 3) { 0 }
+    plan = ReusePlan(processed: [1, 2, 3, 4, 5, 6], saved: [3, 4], prompt: [1, 2, 3, 4], hybrid: true, afterUser: 3) {
+        0
+    }
     #expect(plan.keep == 4)
     #expect(plan.stops.isEmpty)
     plan = ReusePlan(processed: [1, 2, 3, 4, 5, 6], saved: [3], prompt: [1, 2, 3, 4], hybrid: true, afterUser: 3) { 0 }
@@ -244,20 +274,26 @@ func contiguous(_ width: Int) -> @Sendable ([Int]) -> (strides: [Int], byteCount
 
 @Test func reusePlanKeepsTheQuestionBoundaryThroughToolSteps() {
     typealias Stop = ReusePlan.Stop
-    let question = Array<Int32>(1...6)
+    let question = [Int32](1...6)
     let step1 = question + [7, 8]
     let generated = step1 + [20, 21, 22]
-    var plan = ReusePlan(processed: generated, saved: [6, 8], prompt: generated + [30, 31, 32, 33], hybrid: true, afterUser: 6) { 0 }
+    var plan = ReusePlan(
+        processed: generated, saved: [6, 8], prompt: generated + [30, 31, 32, 33], hybrid: true, afterUser: 6
+    ) { 0 }
     #expect(plan.keep == generated.count)
     #expect(plan.stops == [Stop(position: 15, role: .generationStart)])
 
-    plan = ReusePlan(processed: generated, saved: [6, 8], prompt: step1 + [20, 29, 22, 30, 31], hybrid: true, afterUser: 6) { 0 }
+    plan = ReusePlan(
+        processed: generated, saved: [6, 8], prompt: step1 + [20, 29, 22, 30, 31], hybrid: true, afterUser: 6
+    ) { 0 }
     #expect(plan.shared == 9)
     #expect(plan.keep == 8)
     #expect(plan.stops == [Stop(position: 13, role: .generationStart)])
 
     let cancelled = generated + [40, 41, 42, 43, 50, 51]
-    plan = ReusePlan(processed: cancelled, saved: [6, 15], prompt: generated + [44, 45, 46], hybrid: true, afterUser: 13) { 0 }
+    plan = ReusePlan(
+        processed: cancelled, saved: [6, 15], prompt: generated + [44, 45, 46], hybrid: true, afterUser: 13
+    ) { 0 }
     #expect(plan.keep == 6)
     #expect(plan.stops == [Stop(position: 13, role: .afterUser), Stop(position: 14, role: .generationStart)])
 }
@@ -265,23 +301,36 @@ func contiguous(_ width: Int) -> @Sendable ([Int]) -> (strides: [Int], byteCount
 @Test func reusePlanSavesTheDivergenceAtTheQuestionStart() {
     typealias Stop = ReusePlan.Stop
     let preamble = (0..<300).map(Int32.init)
-    var plan = ReusePlan(processed: preamble + [5, 6, 7, 1, 1], saved: [305], prompt: preamble + [5, 6, 8, 2, 2, 2], hybrid: true, afterUser: 305) { 300 }
+    var plan = ReusePlan(
+        processed: preamble + [5, 6, 7, 1, 1], saved: [305], prompt: preamble + [5, 6, 8, 2, 2, 2], hybrid: true,
+        afterUser: 305
+    ) { 300 }
     #expect(plan.shared == 302)
     #expect(plan.keep == 0)
-    #expect(plan.stops == [
-        Stop(position: 300, role: .divergence), Stop(position: 305, role: .afterUser), Stop(position: 306, role: .generationStart),
-    ])
+    #expect(
+        plan.stops == [
+            Stop(position: 300, role: .divergence), Stop(position: 305, role: .afterUser),
+            Stop(position: 306, role: .generationStart),
+        ])
 
-    plan = ReusePlan(processed: preamble + [5, 6, 8, 2, 2, 2, 9], saved: [300, 305, 306], prompt: preamble + [5, 4, 4, 4, 4], hybrid: true, afterUser: 304) { 300 }
+    plan = ReusePlan(
+        processed: preamble + [5, 6, 8, 2, 2, 2, 9], saved: [300, 305, 306], prompt: preamble + [5, 4, 4, 4, 4],
+        hybrid: true, afterUser: 304
+    ) { 300 }
     #expect(plan.shared == 301)
     #expect(plan.keep == 300)
     #expect(plan.stops == [Stop(position: 304, role: .afterUser), Stop(position: 305, role: .generationStart)])
 
-    plan = ReusePlan(processed: Array(preamble[..<280]) + [9, 9, 9], saved: [], prompt: preamble + [5, 6], hybrid: true, afterUser: 301) { 300 }
+    plan = ReusePlan(
+        processed: Array(preamble[..<280]) + [9, 9, 9], saved: [], prompt: preamble + [5, 6], hybrid: true,
+        afterUser: 301
+    ) { 300 }
     #expect(plan.stops.first == Stop(position: 280, role: .divergence))
 
     let longer = (0..<500).map(Int32.init)
-    plan = ReusePlan(processed: longer + [7], saved: [100], prompt: longer + [8, 8], hybrid: true, afterUser: 501) { 300 }
+    plan = ReusePlan(processed: longer + [7], saved: [100], prompt: longer + [8, 8], hybrid: true, afterUser: 501) {
+        300
+    }
     #expect(plan.keep == 100)
     #expect(plan.stops == [Stop(position: 501, role: .afterUser), Stop(position: 502, role: .generationStart)])
 
@@ -303,8 +352,10 @@ func contiguous(_ width: Int) -> @Sendable ([Int]) -> (strides: [Int], byteCount
 
 @Test func spliceRestoresTheGeneratedSplitWhereTheTextIsTheSame() {
     let pieces = [
-        1: "<|im_start|>assistant\n", 2: "<|im_end|>\n<|im_start|>user\n<tool_response>\nsaved\n</tool_response><|im_end|>\n", 3: "Write a note.",
-        4: "Write it.", 5: " ", 177636: "dingu", 5205: ",", 160305: "rei", 162532: "tore-", 161546: "shingu", 247202: "taiou",
+        1: "<|im_start|>assistant\n",
+        2: "<|im_end|>\n<|im_start|>user\n<tool_response>\nsaved\n</tool_response><|im_end|>\n", 3: "Write a note.",
+        4: "Write it.", 5: " ", 177636: "dingu", 5205: ",", 160305: "rei", 162532: "tore-", 161546: "shingu",
+        247202: "taiou",
         42420: "re", 75218: "ito", 149896: "re-",
     ]
     func decode(_ tokens: [Int]) -> String { tokens.map { pieces[$0] ?? "?" }.joined() }
@@ -314,11 +365,14 @@ func contiguous(_ width: Int) -> @Sendable ([Int]) -> (strides: [Int], byteCount
     let rerendered: [Int32] = [177636, 5205, 42420, 75218, 149896, 161546, 247202]
     #expect(decode(generated.map(Int.init)) == decode(rerendered.map(Int.init)))
 
-    var result = ReusePlan.splice(question + rerendered + toolTurn, processed: question + generated, generations: [(2, generated)], decode: decode)
+    var result = ReusePlan.splice(
+        question + rerendered + toolTurn, processed: question + generated, generations: [(2, generated)], decode: decode
+    )
     #expect(result.prompt == question + generated + toolTurn)
     #expect(result.spliced == 1)
 
-    result = ReusePlan.splice(question + generated + toolTurn, processed: question + generated, generations: [(2, generated)], decode: decode)
+    result = ReusePlan.splice(
+        question + generated + toolTurn, processed: question + generated, generations: [(2, generated)], decode: decode)
     #expect(result.prompt == question + generated + toolTurn)
     #expect(result.spliced == 0)
 
@@ -327,7 +381,8 @@ func contiguous(_ width: Int) -> @Sendable ([Int]) -> (strides: [Int], byteCount
     #expect(result.prompt == spaced)
     #expect(result.spliced == 0)
 
-    result = ReusePlan.splice(question + rerendered + toolTurn, processed: [4, 1] + generated, generations: [(2, generated)], decode: decode)
+    result = ReusePlan.splice(
+        question + rerendered + toolTurn, processed: [4, 1] + generated, generations: [(2, generated)], decode: decode)
     #expect(result.prompt == question + rerendered + toolTurn)
     #expect(result.spliced == 0)
 
@@ -343,7 +398,9 @@ func contiguous(_ width: Int) -> @Sendable ([Int]) -> (strides: [Int], byteCount
 }
 
 @Test func toolOutputCutsDropTheOldestGroupsAndHalveTheLast() {
-    let groups: [[(id: String, count: Int)]] = [[("a", 3000)], [("b", 3000), ("c", 800)], [("d", 3000)], [("e", 1800), ("f", 700), ("g", 300)]]
+    let groups: [[(id: String, count: Int)]] = [
+        [("a", 3000)], [("b", 3000), ("c", 800)], [("d", 3000)], [("e", 1800), ("f", 700), ("g", 300)],
+    ]
     var cuts = ToolOutputCut.shrink(groups, [:])
     #expect(cuts == ["a": .dropped] as [String: ToolOutputCut])
     cuts = ToolOutputCut.shrink(groups, cuts ?? [:])
@@ -365,7 +422,11 @@ func contiguous(_ width: Int) -> @Sendable ([Int]) -> (strides: [Int], byteCount
     typealias Cuts = [String: ToolOutputCut]
     func text(_ content: String) -> [Transcript.Segment] { [.text(.init(content: content))] }
     func call(_ id: String) throws -> Transcript.Entry {
-        .toolCalls(.init([Transcript.ToolCall(id: id, toolName: "read_page", arguments: try GeneratedContent(json: #"{"name": "x"}"#))]))
+        .toolCalls(
+            .init([
+                Transcript.ToolCall(
+                    id: id, toolName: "read_page", arguments: try GeneratedContent(json: #"{"name": "x"}"#))
+            ]))
     }
     func page(_ id: String, _ count: Int) -> Transcript.Entry {
         .toolOutput(.init(id: id, toolName: "read_page", segments: text(String(repeating: "p", count: count))))
@@ -380,7 +441,8 @@ func contiguous(_ width: Int) -> @Sendable ([Int]) -> (strides: [Int], byteCount
     entries += [try call("c1"), page("o1", 2000), try call("c2"), page("o2", 2000), try call("c3"), page("o3", 2000)]
     #expect(entries[2].id == "o1")
 
-    var fitted = try Runtime.fit(Transcript(entries: entries), remembered: [:], limit: 5000, reserve: 1000, render: characters)
+    var fitted = try Runtime.fit(
+        Transcript(entries: entries), remembered: [:], limit: 5000, reserve: 1000, render: characters)
     var expected: Cuts = ["o1": .dropped, "o3": .prefix(1000)]
     #expect(fitted.cuts == expected)
     #expect(contents(fitted.messages) == [11, 2000, 1000])
@@ -388,17 +450,20 @@ func contiguous(_ width: Int) -> @Sendable ([Int]) -> (strides: [Int], byteCount
 
     entries += [try call("c4"), page("o4", 500)]
     let remembered = fitted.cuts.merging(["gone": ToolOutputCut.dropped]) { a, _ in a }
-    fitted = try Runtime.fit(Transcript(entries: entries), remembered: remembered, limit: 5000, reserve: 1000, render: characters)
+    fitted = try Runtime.fit(
+        Transcript(entries: entries), remembered: remembered, limit: 5000, reserve: 1000, render: characters)
     #expect(fitted.cuts == expected)
     #expect(contents(fitted.messages) == [11, 2000, 1000, 500])
 
     entries += [try call("c5"), page("o5", 4000)]
-    fitted = try Runtime.fit(Transcript(entries: entries), remembered: fitted.cuts, limit: 5000, reserve: 1000, render: characters)
+    fitted = try Runtime.fit(
+        Transcript(entries: entries), remembered: fitted.cuts, limit: 5000, reserve: 1000, render: characters)
     expected = ["o1": .dropped, "o2": .dropped, "o3": .dropped, "o5": .prefix(2000)]
     #expect(fitted.cuts == expected)
     #expect(contents(fitted.messages) == [11, 11, 11, 500, 2000])
 
-    let plain = try Runtime.fit(Transcript(entries: entries), remembered: [:], limit: 20000, reserve: nil, render: characters)
+    let plain = try Runtime.fit(
+        Transcript(entries: entries), remembered: [:], limit: 20000, reserve: nil, render: characters)
     #expect(plain.cuts.isEmpty)
     #expect(plain.prompt.count == 10517)
 }
@@ -406,7 +471,11 @@ func contiguous(_ width: Int) -> @Sendable ([Int]) -> (strides: [Int], byteCount
 @Test func fitGoesOnInWhatIsLeftAndFailsOnlyWhenThePromptDoesNotFit() throws {
     func text(_ content: String) -> [Transcript.Segment] { [.text(.init(content: content))] }
     func call(_ id: String) throws -> Transcript.Entry {
-        .toolCalls(.init([Transcript.ToolCall(id: id, toolName: "read_page", arguments: try GeneratedContent(json: #"{"name": "x"}"#))]))
+        .toolCalls(
+            .init([
+                Transcript.ToolCall(
+                    id: id, toolName: "read_page", arguments: try GeneratedContent(json: #"{"name": "x"}"#))
+            ]))
     }
     func page(_ id: String, _ count: Int) -> Transcript.Entry {
         .toolOutput(.init(id: id, toolName: "read_page", segments: text(String(repeating: "p", count: count))))
@@ -415,9 +484,11 @@ func contiguous(_ width: Int) -> @Sendable ([Int]) -> (strides: [Int], byteCount
         Array(repeating: 0, count: messages.reduce(0) { $0 + ($1["content"] as? String ?? "").count })
     }
     let settled: [Transcript.Entry] = [
-        .prompt(.init(segments: text(String(repeating: "q", count: 4000)))), try call("c1"), page("o1", 300), try call("c2"), page("o2", 300),
+        .prompt(.init(segments: text(String(repeating: "q", count: 4000)))), try call("c1"), page("o1", 300),
+        try call("c2"), page("o2", 300),
     ]
-    let fitted = try Runtime.fit(Transcript(entries: settled), remembered: [:], limit: 5000, reserve: 1000, render: characters)
+    let fitted = try Runtime.fit(
+        Transcript(entries: settled), remembered: [:], limit: 5000, reserve: 1000, render: characters)
     #expect(fitted.cuts.isEmpty)
     #expect(fitted.prompt.count == 4600)
 
@@ -435,7 +506,11 @@ func contiguous(_ width: Int) -> @Sendable ([Int]) -> (strides: [Int], byteCount
 @Test func cutMemoryStaysWithEachConversation() throws {
     func text(_ content: String) -> [Transcript.Segment] { [.text(.init(content: content))] }
     func call(_ id: String) throws -> Transcript.Entry {
-        .toolCalls(.init([Transcript.ToolCall(id: id, toolName: "read_page", arguments: try GeneratedContent(json: #"{"name": "x"}"#))]))
+        .toolCalls(
+            .init([
+                Transcript.ToolCall(
+                    id: id, toolName: "read_page", arguments: try GeneratedContent(json: #"{"name": "x"}"#))
+            ]))
     }
     func page(_ id: String, _ count: Int) -> Transcript.Entry {
         .toolOutput(.init(id: id, toolName: "read_page", segments: text(String(repeating: "p", count: count))))
@@ -444,11 +519,13 @@ func contiguous(_ width: Int) -> @Sendable ([Int]) -> (strides: [Int], byteCount
         Array(repeating: 0, count: messages.reduce(0) { $0 + ($1["content"] as? String ?? "").count })
     }
     func conversation(_ name: String) throws -> [Transcript.Entry] {
-        [.prompt(.init(segments: text("Read three pages.")))] + (try (1...3).flatMap { [try call("\(name)c\($0)"), page("\(name)o\($0)", 2000)] })
+        [.prompt(.init(segments: text("Read three pages.")))]
+            + (try (1...3).flatMap { [try call("\(name)c\($0)"), page("\(name)o\($0)", 2000)] })
     }
     var memory: [String: ToolOutputCut] = [:]
     func step(_ entries: [Transcript.Entry]) throws -> (cuts: [String: ToolOutputCut], truncated: Int) {
-        let fitted = try Runtime.fit(Transcript(entries: entries), remembered: memory, limit: 5000, reserve: 1000, render: characters)
+        let fitted = try Runtime.fit(
+            Transcript(entries: entries), remembered: memory, limit: 5000, reserve: 1000, render: characters)
         return (fitted.cuts, Runtime.remember(fitted.cuts, in: &memory))
     }
 
@@ -465,7 +542,8 @@ func contiguous(_ width: Int) -> @Sendable ([Int]) -> (strides: [Int], byteCount
     #expect(a2.truncated == 0)
     #expect(memory.count == 4)
 
-    var full = Dictionary(uniqueKeysWithValues: (0..<Runtime.rememberedCalls).map { ("old\($0)", ToolOutputCut.dropped) })
+    var full = Dictionary(
+        uniqueKeysWithValues: (0..<Runtime.rememberedCalls).map { ("old\($0)", ToolOutputCut.dropped) })
     #expect(Runtime.remember(["new": .dropped], in: &full) == 1)
     #expect(full == ["new": .dropped])
 }
@@ -476,11 +554,14 @@ func contiguous(_ width: Int) -> @Sendable ([Int]) -> (strides: [Int], byteCount
 }
 
 @Test func requiredToolCallingIsRefused() throws {
-    let add = Transcript.ToolDefinition(name: "add", description: "Add two integers.", parameters: AddArguments.generationSchema)
+    let add = Transcript.ToolDefinition(
+        name: "add", description: "Add two integers.", parameters: AddArguments.generationSchema)
     func request(_ mode: GenerationOptions.ToolCallingMode?) -> LanguageModelExecutorGenerationRequest {
         LanguageModelExecutorGenerationRequest(
-            id: UUID(), transcript: Transcript(entries: [.prompt(.init(segments: [.text(.init(content: "Add 1 and 2."))]))]),
-            enabledTools: [add], generationOptions: GenerationOptions(toolCallingMode: mode), contextOptions: ContextOptions(), metadata: [:])
+            id: UUID(),
+            transcript: Transcript(entries: [.prompt(.init(segments: [.text(.init(content: "Add 1 and 2."))]))]),
+            enabledTools: [add], generationOptions: GenerationOptions(toolCallingMode: mode),
+            contextOptions: ContextOptions(), metadata: [:])
     }
     #expect(try Runtime.tools(request(nil)).map(\.name) == ["add"])
     #expect(try Runtime.tools(request(.allowed)).map(\.name) == ["add"])
@@ -500,28 +581,56 @@ func contiguous(_ width: Int) -> @Sendable ([Int]) -> (strides: [Int], byteCount
         return chunks.flatMap { parser.feed($0) } + parser.finish()
     }
 
-    #expect(parse(["<tool_call>", "\n{\"name\": \"get_weather\", \"arguments\": {\"city\": \"Tokyo\"}}\n", "</tool_call>"])
-        == [.call(name: "get_weather", arguments: #"{"city":"Tokyo"}"#)])
-    #expect(parse([#"<tool_call>{"name": "add", "arguments": "{\"b\": 2, \"a\": 1}"}</tool_call>"#])
-        == [.call(name: "add", arguments: #"{"b":2,"a":1}"#)])
-    #expect(parse([#"<tool_call>{"name": "add", "arguments": {"b": 2, "a": 1}}</tool_call>"#])
-        == [.call(name: "add", arguments: #"{"b":2,"a":1}"#)])
-    #expect(parse([#"<tool_call>{"arguments": {"z": "a, \"b\": {c}\\", "y": [1, {"x": ":"}], "w": null}, "name": "add"}</tool_call>"#])
-        == [.call(name: "add", arguments: #"{"z":"a, \"b\": {c}\\","y":[1, {"x": ":"}],"w":null}"#)])
-    #expect(parse([#"<tool_call>{"name": "add", "arguments": 5}</tool_call>"#]) == [.text(#"<tool_call>{"name": "add", "arguments": 5}</tool_call>"#)])
-    #expect(parse(["<tool_call>\n<function=add>\n<parameter=b>\n25\n</parameter>\n<parameter=a>\n17\n</parameter>\n</function>\n</tool_call>"])
-        == [.call(name: "add", arguments: #"{"b":25,"a":17}"#)])
-    #expect(parse(["<tool_call>\n<function=get_weather>\n<parameter=city>\n42\n</parameter>\n<parameter=note>\ntrue\n</parameter>\n</function>\n</tool_call>"])
-        == [.call(name: "get_weather", arguments: #"{"city":"42","note":true}"#)])
-    #expect(parse(["<tool_call>\n<function=add>\n<parameter=a>\nseventeen\n</parameter>\n<parameter=b>\n[1, 2]\n</parameter>\n</function>\n</tool_call>"])
-        == [.call(name: "add", arguments: #"{"a":"seventeen","b":[1, 2]}"#)])
+    #expect(
+        parse(["<tool_call>", "\n{\"name\": \"get_weather\", \"arguments\": {\"city\": \"Tokyo\"}}\n", "</tool_call>"])
+            == [.call(name: "get_weather", arguments: #"{"city":"Tokyo"}"#)])
+    #expect(
+        parse([#"<tool_call>{"name": "add", "arguments": "{\"b\": 2, \"a\": 1}"}</tool_call>"#])
+            == [.call(name: "add", arguments: #"{"b":2,"a":1}"#)])
+    #expect(
+        parse([#"<tool_call>{"name": "add", "arguments": {"b": 2, "a": 1}}</tool_call>"#])
+            == [.call(name: "add", arguments: #"{"b":2,"a":1}"#)])
+    #expect(
+        parse([
+            #"<tool_call>{"arguments": {"z": "a, \"b\": {c}\\", "y": [1, {"x": ":"}], "w": null}, "name": "add"}</tool_call>"#
+        ])
+            == [.call(name: "add", arguments: #"{"z":"a, \"b\": {c}\\","y":[1, {"x": ":"}],"w":null}"#)])
+    #expect(
+        parse([#"<tool_call>{"name": "add", "arguments": 5}</tool_call>"#]) == [
+            .text(#"<tool_call>{"name": "add", "arguments": 5}</tool_call>"#)
+        ])
+    #expect(
+        parse([
+            "<tool_call>\n<function=add>\n<parameter=b>\n25\n</parameter>\n<parameter=a>\n17\n</parameter>\n</function>\n</tool_call>"
+        ])
+            == [.call(name: "add", arguments: #"{"b":25,"a":17}"#)])
+    #expect(
+        parse([
+            "<tool_call>\n<function=get_weather>\n<parameter=city>\n42\n</parameter>\n<parameter=note>\ntrue\n</parameter>\n</function>\n</tool_call>"
+        ])
+            == [.call(name: "get_weather", arguments: #"{"city":"42","note":true}"#)])
+    #expect(
+        parse([
+            "<tool_call>\n<function=add>\n<parameter=a>\nseventeen\n</parameter>\n<parameter=b>\n[1, 2]\n</parameter>\n</function>\n</tool_call>"
+        ])
+            == [.call(name: "add", arguments: #"{"a":"seventeen","b":[1, 2]}"#)])
 
-    let weather = "<tool_call>\n<function=get_weather>\n<parameter=city>\nParis\n</parameter>\n</function>\n</tool_call>"
-    let sum = "<tool_call>\n<function=add>\n<parameter=a>\n17\n</parameter>\n<parameter=b>\n25\n</parameter>\n</function>\n</tool_call>"
-    #expect(parse(["Let me check.\n\n", weather, "\n", sum])
-        == [.text("Let me check."), .call(name: "get_weather", arguments: #"{"city":"Paris"}"#), .call(name: "add", arguments: #"{"a":17,"b":25}"#)])
-    #expect(parse(["<tool", "_call>\n<function=get", "_weather>\n<parameter=city>\nTo", "kyo\n</parameter>\n</function>\n</tool", "_call>"])
-        == [.call(name: "get_weather", arguments: #"{"city":"Tokyo"}"#)])
+    let weather =
+        "<tool_call>\n<function=get_weather>\n<parameter=city>\nParis\n</parameter>\n</function>\n</tool_call>"
+    let sum =
+        "<tool_call>\n<function=add>\n<parameter=a>\n17\n</parameter>\n<parameter=b>\n25\n</parameter>\n</function>\n</tool_call>"
+    #expect(
+        parse(["Let me check.\n\n", weather, "\n", sum])
+            == [
+                .text("Let me check."), .call(name: "get_weather", arguments: #"{"city":"Paris"}"#),
+                .call(name: "add", arguments: #"{"a":17,"b":25}"#),
+            ])
+    #expect(
+        parse([
+            "<tool", "_call>\n<function=get", "_weather>\n<parameter=city>\nTo",
+            "kyo\n</parameter>\n</function>\n</tool", "_call>",
+        ])
+            == [.call(name: "get_weather", arguments: #"{"city":"Tokyo"}"#)])
 
     var parser = ToolCallParser(types: types)
     #expect(parser.feed("Paris is") == [.text("Paris is")])
@@ -529,30 +638,51 @@ func contiguous(_ width: Int) -> @Sendable ([Int]) -> (strides: [Int], byteCount
     #expect(parser.feed("b>") == [.text("\n<b>")])
     #expect(parser.finish().isEmpty)
 
-    #expect(parse(["<tool_call>\n<function=get_weather>\n<param"]) == [.text("<tool_call>\n<function=get_weather>\n<param")])
-    #expect(parse(["Hi\n", "<tool_call>\n<function=>\n</function>\n</tool_call>"]) == [.text("Hi"), .text("\n<tool_call>\n<function=>\n</function>\n</tool_call>")])
-    #expect(parse([#"<tool_call>{"name": "add", "arguments": {"a": }}</tool_call>"#]) == [.text(#"<tool_call>{"name": "add", "arguments": {"a": }}</tool_call>"#)])
-    #expect(parse([#"<tool_call>{"arguments": {"a": 1}}</tool_call>"#]) == [.text(#"<tool_call>{"arguments": {"a": 1}}</tool_call>"#)])
-    #expect(parse(["<tool_call>\n<function=add>\n<parameter=a>\n1\n</parameter>\n</tool_call>"]) == [.text("<tool_call>\n<function=add>\n<parameter=a>\n1\n</parameter>\n</tool_call>")])
+    #expect(
+        parse(["<tool_call>\n<function=get_weather>\n<param"]) == [.text("<tool_call>\n<function=get_weather>\n<param")]
+    )
+    #expect(
+        parse(["Hi\n", "<tool_call>\n<function=>\n</function>\n</tool_call>"]) == [
+            .text("Hi"), .text("\n<tool_call>\n<function=>\n</function>\n</tool_call>"),
+        ])
+    #expect(
+        parse([#"<tool_call>{"name": "add", "arguments": {"a": }}</tool_call>"#]) == [
+            .text(#"<tool_call>{"name": "add", "arguments": {"a": }}</tool_call>"#)
+        ])
+    #expect(
+        parse([#"<tool_call>{"arguments": {"a": 1}}</tool_call>"#]) == [
+            .text(#"<tool_call>{"arguments": {"a": 1}}</tool_call>"#)
+        ])
+    #expect(
+        parse(["<tool_call>\n<function=add>\n<parameter=a>\n1\n</parameter>\n</tool_call>"]) == [
+            .text("<tool_call>\n<function=add>\n<parameter=a>\n1\n</parameter>\n</tool_call>")
+        ])
 }
 
 @Test func transcriptRebuildsToolCallsAndOutputs() throws {
     func text(_ content: String) -> [Transcript.Segment] { [.text(.init(content: content))] }
-    let add = Transcript.ToolDefinition(name: "add", description: "Add two integers.", parameters: AddArguments.generationSchema)
+    let add = Transcript.ToolDefinition(
+        name: "add", description: "Add two integers.", parameters: AddArguments.generationSchema)
     let schema = ToolSchema(add)
     #expect(schema.order == ["a", "b"])
     #expect(schema.types == ["a": "integer", "b": "integer"])
-    #expect(try JSON.dumps(schema.spec) == #"{"type": "function", "function": {"name": "add", "description": "Add two integers.", "parameters": {"type": "object", "properties": {"a": {"type": "integer"}, "b": {"type": "integer"}}, "required": ["a", "b"]}}}"#)
+    #expect(
+        try JSON.dumps(schema.spec)
+            == #"{"type": "function", "function": {"name": "add", "description": "Add two integers.", "parameters": {"type": "object", "properties": {"a": {"type": "integer"}, "b": {"type": "integer"}}, "required": ["a", "b"]}}}"#
+    )
 
     let transcript = Transcript(entries: [
         .instructions(.init(segments: [], toolDefinitions: [add])),
         .prompt(.init(segments: text("What is 1 plus 2?"))),
         .reasoning(.init(segments: text("Use the tool."))),
         .response(.init(segments: text("Let me add."))),
-        .toolCalls(.init([
-            Transcript.ToolCall(id: "c1", toolName: "add", arguments: try GeneratedContent(json: #"{"b": 2, "a": 1}"#)),
-            Transcript.ToolCall(id: "c2", toolName: "add", arguments: try GeneratedContent(json: #"{"a": 3, "b": 4}"#)),
-        ])),
+        .toolCalls(
+            .init([
+                Transcript.ToolCall(
+                    id: "c1", toolName: "add", arguments: try GeneratedContent(json: #"{"b": 2, "a": 1}"#)),
+                Transcript.ToolCall(
+                    id: "c2", toolName: "add", arguments: try GeneratedContent(json: #"{"a": 3, "b": 4}"#)),
+            ])),
         .toolOutput(.init(id: "c1", toolName: "add", segments: text("3"))),
         .toolOutput(.init(id: "c2", toolName: "add", segments: text("7"))),
         .reasoning(.init(segments: text("Done."))),
@@ -561,20 +691,30 @@ func contiguous(_ width: Int) -> @Sendable ([Int]) -> (strides: [Int], byteCount
     ])
     let messages = try Runtime.messages(transcript)
     #expect(messages.map { $0["role"] as? String } == ["user", "assistant", "tool", "tool", "assistant", "user"])
-    #expect(messages.map { $0["content"] as? String } == ["What is 1 plus 2?", "Let me add.", "3", "7", "1 plus 2 is 3.", "Thanks."])
+    #expect(
+        messages.map { $0["content"] as? String } == [
+            "What is 1 plus 2?", "Let me add.", "3", "7", "1 plus 2 is 3.", "Thanks.",
+        ])
     #expect(messages[1]["reasoning_content"] as? String == "Use the tool.")
     #expect(messages[4]["reasoning_content"] as? String == "Done.")
     let calls = try #require(messages[1]["tool_calls"] as? [Value])
-    #expect(try calls.map { try JSON.dumps($0) } == [
-        #"{"type": "function", "function": {"name": "add", "arguments": {"a": 1, "b": 2}}}"#,
-        #"{"type": "function", "function": {"name": "add", "arguments": {"a": 3, "b": 4}}}"#,
-    ])
-    #expect(try JSON.dumps(Runtime.value(GeneratedContent(json: #"{"x": 2.5, "n": 17, "s": "a", "f": true, "z": null, "l": [1]}"#), order: ["n", "x"]))
+    #expect(
+        try calls.map { try JSON.dumps($0) } == [
+            #"{"type": "function", "function": {"name": "add", "arguments": {"a": 1, "b": 2}}}"#,
+            #"{"type": "function", "function": {"name": "add", "arguments": {"a": 3, "b": 4}}}"#,
+        ])
+    #expect(
+        try JSON.dumps(
+            Runtime.value(
+                GeneratedContent(json: #"{"x": 2.5, "n": 17, "s": "a", "f": true, "z": null, "l": [1]}"#),
+                order: ["n", "x"])
+        )
         .hasPrefix(#"{"n": 17, "x": 2.5, "#))
 }
 
 @Test func historyDrawsToolCallArgumentsInTheWrittenOrder() throws {
-    let add = Transcript.ToolDefinition(name: "add", description: "Add two integers.", parameters: AddArguments.generationSchema)
+    let add = Transcript.ToolDefinition(
+        name: "add", description: "Add two integers.", parameters: AddArguments.generationSchema)
     let written = [#"{"b":2,"a":1}"#, #"{"b":4,"a":3}"#].map { ToolCallParser.members($0)?.map(\.key) }
     #expect(written == [["b", "a"], ["b", "a"]])
     #expect(ToolCallParser.members("{}")?.isEmpty == true)
@@ -583,23 +723,30 @@ func contiguous(_ width: Int) -> @Sendable ([Int]) -> (strides: [Int], byteCount
     let transcript = Transcript(entries: [
         .instructions(.init(segments: [], toolDefinitions: [add])),
         .prompt(.init(segments: [.text(.init(content: "Add."))])),
-        .toolCalls(.init([
-            Transcript.ToolCall(id: "c1", toolName: "add", arguments: try GeneratedContent(json: #"{"a": 1, "b": 2}"#)),
-            Transcript.ToolCall(id: "c2", toolName: "add", arguments: try GeneratedContent(json: #"{"a": 3, "b": 4}"#)),
-            Transcript.ToolCall(id: "c3", toolName: "add", arguments: try GeneratedContent(json: #"{"a": 5, "b": 6}"#)),
-            Transcript.ToolCall(id: "c4", toolName: "add", arguments: try GeneratedContent(json: #"{"b": 8, "a": 7}"#)),
-        ])),
+        .toolCalls(
+            .init([
+                Transcript.ToolCall(
+                    id: "c1", toolName: "add", arguments: try GeneratedContent(json: #"{"a": 1, "b": 2}"#)),
+                Transcript.ToolCall(
+                    id: "c2", toolName: "add", arguments: try GeneratedContent(json: #"{"a": 3, "b": 4}"#)),
+                Transcript.ToolCall(
+                    id: "c3", toolName: "add", arguments: try GeneratedContent(json: #"{"a": 5, "b": 6}"#)),
+                Transcript.ToolCall(
+                    id: "c4", toolName: "add", arguments: try GeneratedContent(json: #"{"b": 8, "a": 7}"#)),
+            ])),
     ])
     let fitted = try Runtime.fit(
-        transcript, remembered: [:], written: ["c1": written[0] ?? [], "c2": written[1] ?? [], "c3": ["b", "b"]], limit: 10, reserve: nil
+        transcript, remembered: [:], written: ["c1": written[0] ?? [], "c2": written[1] ?? [], "c3": ["b", "b"]],
+        limit: 10, reserve: nil
     ) { _ in [0] }
     let calls = try #require(fitted.messages[1]["tool_calls"] as? [Value])
-    #expect(try calls.map { try JSON.dumps($0) } == [
-        #"{"type": "function", "function": {"name": "add", "arguments": {"b": 2, "a": 1}}}"#,
-        #"{"type": "function", "function": {"name": "add", "arguments": {"b": 4, "a": 3}}}"#,
-        #"{"type": "function", "function": {"name": "add", "arguments": {"b": 6, "a": 5}}}"#,
-        #"{"type": "function", "function": {"name": "add", "arguments": {"a": 7, "b": 8}}}"#,
-    ])
+    #expect(
+        try calls.map { try JSON.dumps($0) } == [
+            #"{"type": "function", "function": {"name": "add", "arguments": {"b": 2, "a": 1}}}"#,
+            #"{"type": "function", "function": {"name": "add", "arguments": {"b": 4, "a": 3}}}"#,
+            #"{"type": "function", "function": {"name": "add", "arguments": {"b": 6, "a": 5}}}"#,
+            #"{"type": "function", "function": {"name": "add", "arguments": {"a": 7, "b": 8}}}"#,
+        ])
 }
 
 func merged(_ parts: [ThinkParser.Part]) -> [ThinkParser.Part] {
@@ -621,7 +768,10 @@ func merged(_ parts: [ThinkParser.Part]) -> [ThinkParser.Part] {
     #expect(merged(parts + parser.finish()) == [.reasoning("Let me think.\n"), .response("Paris.")])
 
     parser = ThinkParser(reasoning: true)
-    #expect(merged(parser.feed("Hmm") + parser.feed("</think>\n\nOK") + parser.finish()) == [.reasoning("Hmm"), .response("OK")])
+    #expect(
+        merged(parser.feed("Hmm") + parser.feed("</think>\n\nOK") + parser.finish()) == [
+            .reasoning("Hmm"), .response("OK"),
+        ])
 
     parser = ThinkParser(reasoning: false)
     #expect(parser.feed("Paris") == [.response("Paris")])
@@ -634,7 +784,7 @@ func merged(_ parts: [ThinkParser.Part]) -> [ThinkParser.Part] {
 
     let pieces = [1: "<think>", 2: "x", 3: "</think>", 4: "<|im_start|>assistant\n"]
     func decode(_ tokens: [Int]) -> String { tokens.map { pieces[$0] ?? "" }.joined() }
-    let filler = Array<Int32>(repeating: 2, count: 15)
+    let filler = [Int32](repeating: 2, count: 15)
     #expect(!ThinkParser.opensReasoning(after: [1] + filler + [4], decode: decode))
     #expect(ThinkParser.opensReasoning(after: [1] + filler.dropLast() + [4], decode: decode))
     #expect(ThinkParser.opensReasoning(after: filler + filler + [4, 1, 2], decode: decode))
@@ -687,12 +837,19 @@ func merged(_ parts: [ThinkParser.Part]) -> [ThinkParser.Part] {
     let processed = (0..<300).map(Int32.init) + [5, 6, 7, 8]
     let prompt = processed + [9, 9]
     for hybrid in [true, false] {
-        let on = Runtime.plan(prompt, processed: processed, saved: [302], hybrid: hybrid, reusing: true, afterUser: 304) { 300 }
-        #expect(on == ReusePlan(processed: processed, saved: [302], prompt: prompt, hybrid: hybrid, afterUser: 304) { 300 })
+        let on = Runtime.plan(prompt, processed: processed, saved: [302], hybrid: hybrid, reusing: true, afterUser: 304)
+        { 300 }
+        #expect(
+            on == ReusePlan(processed: processed, saved: [302], prompt: prompt, hybrid: hybrid, afterUser: 304) { 300 })
         #expect(on.keep == processed.count)
-        let off = Runtime.plan(prompt, processed: processed, saved: [302], hybrid: hybrid, reusing: false, afterUser: 304) { 300 }
+        let off = Runtime.plan(
+            prompt, processed: processed, saved: [302], hybrid: hybrid, reusing: false, afterUser: 304
+        ) { 300 }
         #expect(off.keep == 0)
-        #expect(off.stops == (hybrid ? [Stop(position: 304, role: .afterUser)] : []) + [Stop(position: prompt.count, role: .generationStart)])
+        #expect(
+            off.stops == (hybrid ? [Stop(position: 304, role: .afterUser)] : []) + [
+                Stop(position: prompt.count, role: .generationStart)
+            ])
     }
 }
 
@@ -701,7 +858,8 @@ func merged(_ parts: [ThinkParser.Part]) -> [ThinkParser.Part] {
     func call(_ id: String, _ json: String) throws -> Transcript.Entry {
         .toolCalls(.init([Transcript.ToolCall(id: id, toolName: "add", arguments: try GeneratedContent(json: json))]))
     }
-    let add = Transcript.ToolDefinition(name: "add", description: "Add two integers.", parameters: AddArguments.generationSchema)
+    let add = Transcript.ToolDefinition(
+        name: "add", description: "Add two integers.", parameters: AddArguments.generationSchema)
     let transcript = Transcript(entries: [
         .instructions(.init(segments: text("Be brief."), toolDefinitions: [add])),
         .prompt(.init(segments: text("What is 1 plus 2?"))),
@@ -718,7 +876,8 @@ func merged(_ parts: [ThinkParser.Part]) -> [ThinkParser.Part] {
     func outline(_ messages: [[String: any Sendable]]) throws -> [String] {
         try messages.map { message in
             let calls = try (message["tool_calls"] as? [Value] ?? []).map { try JSON.dumps($0) }
-            return ([message["role"] as? String ?? "", message["content"] as? String ?? ""] + calls).joined(separator: "|")
+            return ([message["role"] as? String ?? "", message["content"] as? String ?? ""] + calls).joined(
+                separator: "|")
         }
     }
     let kept = try Runtime.messages(transcript)
@@ -728,16 +887,22 @@ func merged(_ parts: [ThinkParser.Part]) -> [ThinkParser.Part] {
     #expect(try outline(dropped) == outline(kept))
     #expect(try outline(kept).count == 8)
 
-    let fitted = try Runtime.fit(transcript, remembered: [:], keepsReasoning: false, limit: 10, reserve: nil) { _ in [0] }
+    let fitted = try Runtime.fit(transcript, remembered: [:], keepsReasoning: false, limit: 10, reserve: nil) { _ in [0]
+    }
     #expect(fitted.messages.allSatisfy { $0["reasoning_content"] == nil })
     let fittedDefault = try Runtime.fit(transcript, remembered: [:], limit: 10, reserve: nil) { _ in [0] }
     #expect(fittedDefault.messages.compactMap { $0["reasoning_content"] as? String }.count == 3)
 }
 
 @Test func templateVariablesReachTheRendering() async throws {
-    #expect(Runtime.templateContext(.light, variables: ["preserve_thinking": false])["reasoning_effort"] as? String == "low")
-    #expect(Runtime.templateContext(.light, variables: ["preserve_thinking": false])["preserve_thinking"] as? Bool == false)
-    #expect(Runtime.templateContext(.custom("off"), variables: ["enable_thinking": true])["enable_thinking"] as? Bool == true)
+    #expect(
+        Runtime.templateContext(.light, variables: ["preserve_thinking": false])["reasoning_effort"] as? String == "low"
+    )
+    #expect(
+        Runtime.templateContext(.light, variables: ["preserve_thinking": false])["preserve_thinking"] as? Bool == false)
+    #expect(
+        Runtime.templateContext(.custom("off"), variables: ["enable_thinking": true])["enable_thinking"] as? Bool
+            == true)
     #expect(Runtime.templateContext(nil, variables: [:]).isEmpty)
 
     let folder = try tinyBundle()
@@ -747,7 +912,8 @@ func merged(_ parts: [ThinkParser.Part]) -> [ThinkParser.Part] {
     func render(_ variables: [String: Bool]) throws -> [Int] {
         let context = Runtime.templateContext(nil, variables: variables)
         return try tokenizer.applyChatTemplate(
-            messages: [["role": "user", "content": "x"]], chatTemplate: .literal(template), addGenerationPrompt: false, truncation: false,
+            messages: [["role": "user", "content": "x"]], chatTemplate: .literal(template), addGenerationPrompt: false,
+            truncation: false,
             maxLength: nil, tools: nil, additionalContext: context.isEmpty ? nil : context)
     }
     #expect(try render([:]) == [1])
@@ -772,7 +938,9 @@ func merged(_ parts: [ThinkParser.Part]) -> [ThinkParser.Part] {
 
     let base: [Float16] = [1, 20, 3, -2, 19]
     var check = StateCheck(current: base, reread: base)
-    #expect(check.passed && check.currentTop == 1 && check.rereadTop == 1 && check.marginTicks == 64 && check.maxAbsDiff == 0)
+    #expect(
+        check.passed && check.currentTop == 1 && check.rereadTop == 1 && check.marginTicks == 64
+            && check.maxAbsDiff == 0)
     var shifted = base
     shifted[3] = 2
     check = StateCheck(current: base, reread: shifted)
@@ -804,207 +972,3 @@ func bundleOpensWithoutLoadingTheModel(path: String) async throws {
 
 let nonLanguageModelPaths = (ProcessInfo.processInfo.environment["COREAI_NONLM_BUNDLES"] ?? "")
     .split(separator: ":").map(String.init)
-
-@Test(.enabled(if: !nonLanguageModelPaths.isEmpty), arguments: nonLanguageModelPaths)
-func engineRefusesABundleThatIsNotALanguageModel(path: String) async throws {
-    let bundle = try ModelBundle(url: URL(filePath: path))
-    let width = try #require(Engine.mainOutputWidth(bundle.modelURL))
-    #expect(width != bundle.vocabSize)
-    await #expect(throws: BundleError.notLanguageModel(outputWidth: width, vocabSize: bundle.vocabSize)) {
-        try await LocalLanguageModel(bundle: URL(filePath: path))
-    }
-}
-
-@Test(.enabled(if: !bundlePaths.isEmpty), arguments: bundlePaths)
-func modelRunsAndRestores(path: String) async throws {
-    let bundle = try ModelBundle(url: URL(filePath: path))
-    #expect(Engine.mainOutputWidth(bundle.modelURL) == bundle.vocabSize)
-    let tokenizer = try await bundle.loadTokenizer()
-    let engine = try await Engine(bundle: bundle)
-    let stop = Set([tokenizer.eosTokenId].compactMap { $0.map(Int32.init) })
-    let prefix = tokenizer.encode(text: "The following is a short conversation about geography.\n").map(Int32.init)
-    let suffix = try tokenizer.applyChatTemplate(messages: [["role": "user", "content": "Name three rivers in Europe."]])
-        .map(Int32.init)
-
-    try await engine.prefill(prefix)
-    let point = engine.checkpoint()
-    #expect((point.stateBytes > 0) == engine.isHybrid)
-    let first = try await engine.generate(suffix, maxTokens: 24, stopTokens: stop)
-    try engine.restore(point)
-    let second = try await engine.generate(suffix, maxTokens: 24, stopTokens: stop)
-    #expect(first == second)
-
-    engine.reset()
-    try await engine.prefill(prefix + suffix, usePrefillFunction: false)
-    var viaMain = [engine.greedyToken()]
-    while viaMain.count < 16 {
-        try await engine.step(viaMain.last!)
-        viaMain.append(engine.greedyToken())
-    }
-    #expect(viaMain.allSatisfy { (0..<Int32(engine.vocabSize)).contains($0) })
-
-    let small = try await Engine(bundle: bundle, contextLimit: 8)
-    await #expect(throws: EngineError.contextOverflow(needed: prefix.count, limit: 8)) {
-        try await small.prefill(prefix)
-    }
-}
-
-func texts(_ session: LanguageModelSession) -> String {
-    session.transcript.map { entry -> String in
-        let (kind, segments): (String, [Transcript.Segment]) =
-            switch entry {
-            case .prompt(let prompt): ("prompt", prompt.segments)
-            case .reasoning(let reasoning): ("reasoning", reasoning.segments)
-            case .response(let response): ("response", response.segments)
-            default: ("other", [])
-            }
-        return kind + ": " + segments.map { if case .text(let text) = $0 { text.content } else { "" } }.joined()
-    }.joined(separator: "\n")
-}
-
-@Test(.enabled(if: !bundlePaths.isEmpty), arguments: bundlePaths)
-func sessionReusesStopsSamplesAndCancels(path: String) async throws {
-    let model = try await LocalLanguageModel(bundle: URL(filePath: path))
-    func stopReason(_ session: LanguageModelSession) -> String? {
-        guard case .response(let response) = session.transcript.last else { return nil }
-        return try? response.metadata["stopReason"]?.value(String.self)
-    }
-    func prefilled(_ session: LanguageModelSession) -> Int? {
-        guard case .response(let response) = session.transcript.last else { return nil }
-        return try? response.metadata["prefillTokens"]?.value(Int.self)
-    }
-
-    let session = LanguageModelSession(model: model, instructions: "You are a concise assistant.")
-    for (turn, prompt) in ["My name is Taro. Remember it.", "What is the capital of France? Answer with one word.", "What is my name?"].enumerated() {
-        let response = try await session.respond(to: prompt, options: GenerationOptions(maximumResponseTokens: 512))
-        let usage = response.usage
-        #expect(stopReason(session) == "stopToken")
-        #expect(usage.input.cachedTokenCount + (prefilled(session) ?? -1) == usage.input.totalTokenCount)
-        #expect((usage.input.cachedTokenCount > 0) == (turn > 0))
-        #expect(await model.runtime.processed.count == usage.input.totalTokenCount + usage.output.totalTokenCount)
-    }
-
-    let direct = try await LanguageModelSession(model: model).respond(
-        to: "What is the capital of France? Answer with one word.", options: GenerationOptions(maximumResponseTokens: 64),
-        contextOptions: ContextOptions(reasoningLevel: .custom("off")))
-    #expect(direct.usage.output.reasoningTokenCount == 0)
-    #expect(direct.content.contains("Paris"))
-
-    let limited = LanguageModelSession(model: model)
-    let short = try await limited.respond(to: "Explain why the sky is blue.", options: GenerationOptions(maximumResponseTokens: 8))
-    #expect(stopReason(limited) == "maxTokens")
-    #expect(short.usage.output.totalTokenCount == 8)
-    #expect(await model.runtime.processed.count == short.usage.input.totalTokenCount + 7)
-
-    func sample(_ mode: GenerationOptions.SamplingMode) async throws -> String {
-        let options = GenerationOptions(samplingMode: mode, maximumResponseTokens: 24)
-        let session = LanguageModelSession(model: model)
-        try await session.respond(to: "Write a short poem about the sea.", options: options)
-        return texts(session)
-    }
-    #expect(try await sample(.greedy) == sample(.greedy))
-    #expect(try await sample(.random(top: 40, seed: 7)) == sample(.random(top: 40, seed: 7)))
-    #expect(try await sample(.random(top: 40, seed: 7)) != sample(.random(top: 40, seed: 8)))
-    #expect(try await sample(.random(probabilityThreshold: 0.95, seed: 7)) == sample(.random(probabilityThreshold: 0.95, seed: 7)))
-    #expect(try await sample(.random(probabilityThreshold: 0.95, seed: 7)) != sample(.random(probabilityThreshold: 0.95, seed: 8)))
-
-    let cancelled = LanguageModelSession(model: model)
-    let task = Task { try await cancelled.respond(to: "Write a long story about a dragon.", options: GenerationOptions(maximumResponseTokens: 2048)) }
-    try await Task.sleep(for: .milliseconds(300))
-    task.cancel()
-    _ = try? await task.value
-    let after = try await cancelled.respond(to: "What is the capital of Japan? Answer with one word.", options: GenerationOptions(maximumResponseTokens: 512))
-    #expect(cancelled.transcript.filter { if case .prompt = $0 { true } else { false } }.count == 1)
-    #expect(stopReason(cancelled) == "stopToken")
-    #expect(!after.content.isEmpty, "\(texts(cancelled))")
-    #expect(await model.runtime.processed.count == after.usage.input.totalTokenCount + after.usage.output.totalTokenCount)
-
-    let tiny = try await LocalLanguageModel(bundle: URL(filePath: path), contextLimit: 16)
-    await #expect {
-        try await LanguageModelSession(model: tiny).respond(to: "Tell me about the history of computing in detail.")
-    } throws: { error in
-        guard case LanguageModelError.contextSizeExceeded(let exceeded) = error else { return false }
-        return exceeded.contextSize == 16 && exceeded.tokenCount > 16
-    }
-    #expect(await tiny.runtime.processed.isEmpty)
-}
-
-struct WeatherTool: Tool {
-    let name = "get_weather"
-    let description = "Get the current weather for a city."
-
-    @Generable
-    struct Arguments {
-        @Guide(description: "The city name.")
-        var city: String
-    }
-
-    func call(arguments: Arguments) async throws -> String {
-        "Sunny, 22 C in \(arguments.city)."
-    }
-}
-
-@Test(.enabled(if: !bundlePaths.isEmpty), arguments: bundlePaths)
-func sessionCallsToolsReusesAndRecovers(path: String) async throws {
-    let model = try await LocalLanguageModel(bundle: URL(filePath: path))
-    func metadata(_ session: LanguageModelSession, _ key: String) -> Int? {
-        guard case .response(let response) = session.transcript.last else { return nil }
-        return try? response.metadata[key]?.value(Int.self)
-    }
-
-    let session = LanguageModelSession(model: model, tools: [WeatherTool()])
-    try await session.respond(to: "What is the weather in Tokyo right now?", options: GenerationOptions(maximumResponseTokens: 512))
-    let calls = session.transcript.flatMap { entry -> [Transcript.ToolCall] in
-        if case .toolCalls(let calls) = entry { Array(calls) } else { [] }
-    }
-    #expect(calls.map(\.toolName) == ["get_weather"])
-    #expect(try calls.first?.arguments.value(String.self, forProperty: "city") == "Tokyo")
-    #expect(session.transcript.contains { if case .toolOutput = $0 { true } else { false } })
-    #expect(texts(session).contains("22"), "\(texts(session))")
-    let shared = try #require(metadata(session, "sharedTokens"))
-    let prefilled = try #require(metadata(session, "prefillTokens"))
-    #expect(shared > 200 && prefilled < 64, "shared \(shared) prefilled \(prefilled)")
-    #expect(metadata(session, "splicedGenerations") != nil)
-
-    let tokenizer = model.runtime.tokenizer
-    func encode(_ text: String) -> [Int32] { tokenizer.encode(text: text, addSpecialTokens: false).map(Int32.init) }
-    let parts = ["\u{30EC}\u{30A4}", "\u{30C8}\u{30EC}\u{30FC}", "\u{30B7}\u{30F3}\u{30B0}"]
-    let written = parts.flatMap(encode)
-    let rerendered = encode(parts.joined())
-    #expect(written != rerendered)
-    let restored = ReusePlan.splice([0] + rerendered + [1], processed: [0] + written, generations: [(1, written)]) { tokenizer.decode(tokens: $0) }
-    #expect(restored.prompt == [0] + written + [1] && restored.spliced == 1)
-
-    let question = "What is the capital of Japan?"
-    let allowed = try await LanguageModelSession(model: model, tools: [WeatherTool()]).respond(
-        to: question, options: GenerationOptions(maximumResponseTokens: 16, toolCallingMode: .allowed))
-    let disallowed = try await LanguageModelSession(model: model, tools: [WeatherTool()]).respond(
-        to: question, options: GenerationOptions(maximumResponseTokens: 16, toolCallingMode: .disallowed))
-    let plain = try await LanguageModelSession(model: model).respond(to: question, options: GenerationOptions(maximumResponseTokens: 16))
-    #expect(disallowed.usage.input.totalTokenCount == plain.usage.input.totalTokenCount)
-    #expect(allowed.usage.input.totalTokenCount > disallowed.usage.input.totalTokenCount + 100)
-    let processed = await model.runtime.processed
-    await #expect {
-        try await LanguageModelSession(model: model, tools: [WeatherTool()]).respond(
-            to: question, options: GenerationOptions(maximumResponseTokens: 16, toolCallingMode: .required))
-    } throws: { error in
-        guard case LanguageModelError.unsupportedCapability(let unsupported) = error else { return false }
-        return unsupported.capability == .guidedGeneration
-    }
-    #expect(await model.runtime.processed == processed)
-
-    let cut = LanguageModelSession(model: model, tools: [WeatherTool()])
-    try await cut.respond(to: "What is the weather in Tokyo right now?", options: GenerationOptions(maximumResponseTokens: 8))
-    #expect(!cut.transcript.contains { if case .toolCalls = $0 { true } else { false } })
-    guard case .response(let last) = cut.transcript.last else { Issue.record("no response entry"); return }
-    #expect(try last.metadata["stopReason"]?.value(String.self) == "maxTokens")
-
-    let resumed = LanguageModelSession(model: model, instructions: "You are a concise assistant.")
-    try await resumed.respond(to: "My name is Taro. Remember it.", options: GenerationOptions(maximumResponseTokens: 256))
-    let task = Task { try await resumed.respond(to: "Write a long story about a dragon.", options: GenerationOptions(maximumResponseTokens: 2048)) }
-    try await Task.sleep(for: .milliseconds(400))
-    task.cancel()
-    _ = try? await task.value
-    let after = try await resumed.respond(to: "What is my name?", options: GenerationOptions(maximumResponseTokens: 256))
-    #expect(after.usage.input.cachedTokenCount > 0, "\(after.usage)")
-}

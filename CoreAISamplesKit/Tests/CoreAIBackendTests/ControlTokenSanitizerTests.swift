@@ -127,6 +127,9 @@ import Testing
         }
     }
 
+}
+
+extension ModelIntegrationTests {
     @Test(
         "The live runtime reads a sanitized prompt exactly like the corresponding ordinary prompt",
         .enabled(if: !bundlePaths.isEmpty), arguments: bundlePaths)
