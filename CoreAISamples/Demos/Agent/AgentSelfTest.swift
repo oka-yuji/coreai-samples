@@ -880,6 +880,59 @@ enum AgentSelfTest {
                 "records=\(records) hits=\(hits) live=\(liveCalls) saved=\(saved.prefix(300))")
             check("m4g/cassetteReplayMiss", missed.text == ToolCassette.missText && misses == 1, missed.text)
 
+            let wildcardTape = folder.appending(path: "wildcard.jsonl")
+            let wildcardKey = ["fetch_page", "https://example.com/wild", "*"]
+            let wildcardEntry = ToolCassette.Entry(
+                key: wildcardKey, text: "wildcard", seen: [:], ok: true, finalURL: wildcardKey[1], ms: 0,
+                recorded: "test")
+            var exactEntry = wildcardEntry
+            exactEntry.key[2] = "exact"
+            exactEntry.text = "exact"
+            var searchEntry = wildcardEntry
+            searchEntry.key = ["web_search", "*", "5"]
+            try lines([wildcardEntry, exactEntry, searchEntry]).write(to: wildcardTape)
+            let wildcardPlayer = try ToolCassette(file: wildcardTape, mode: .replay, replaysLatency: false)
+            let wildcardCalls = CallCount()
+            let wildcardResult = await wildcardPlayer.output(for: ["fetch_page", wildcardKey[1], "another query"]) {
+                await wildcardCalls.add()
+                return AgentToolOutput(text: "unexpected live")
+            }
+            let exactResult = await wildcardPlayer.output(for: exactEntry.key) {
+                AgentToolOutput(text: "unexpected live")
+            }
+            let otherURL = await wildcardPlayer.output(for: [
+                "fetch_page", "https://example.com/other", "another query",
+            ]) { AgentToolOutput(text: "unexpected live") }
+            let otherTool = await wildcardPlayer.output(for: ["web_search", "another query", "5"]) {
+                AgentToolOutput(text: "unexpected live")
+            }
+            let wildcardLive = await wildcardCalls.value
+            let wildcardHits = await wildcardPlayer.hits
+            let wildcardMisses = await wildcardPlayer.misses
+            check(
+                "m4h/cassetteWildcardMatchesQuery", wildcardResult.text == "wildcard" && wildcardLive == 0,
+                wildcardResult.text)
+            check("m4h/cassetteExactBeatsWildcard", exactResult.text == "exact", exactResult.text)
+            check(
+                "m4h/cassetteWildcardStaysWithURLAndTool",
+                otherURL.text == ToolCassette.missText && otherTool.text == ToolCassette.missText && wildcardHits == 2
+                    && wildcardMisses == 2, "hits=\(wildcardHits) misses=\(wildcardMisses)")
+            for mode in [ToolCassette.Mode.record, .replayOrRecord] {
+                let outputTape = folder.appending(path: "wildcard-write-" + mode.rawValue + ".jsonl")
+                let writer = try ToolCassette(file: outputTape, mode: mode, replaysLatency: false)
+                let reserved = await writer.output(for: wildcardKey) { page }
+                let ordinaryKey = ["fetch_page", wildcardKey[1], "ordinary query"]
+                _ = await writer.output(for: ordinaryKey) { page }
+                let stored = try String(contentsOf: outputTape, encoding: .utf8).split(separator: "\n").map {
+                    try JSONDecoder().decode(ToolCassette.Entry.self, from: Data($0.utf8))
+                }
+                let recordCount = await writer.records
+                check(
+                    "m4h/cassetteNeverRecordsWildcard-" + mode.rawValue,
+                    reserved.text == page.text && stored.map(\.key) == [ordinaryKey] && recordCount == 1,
+                    "records=\(recordCount) keys=\(stored.map(\.key))")
+            }
+
             let doubled = folder.appending(path: "doubled.jsonl")
             let first = ToolCassette.Entry(
                 key: key, text: "first", seen: [:], ok: true, finalURL: "https://example.com/old", ms: 300,

@@ -794,7 +794,8 @@ actor ToolCassette {
     }
 
     func output(for key: [String], live: @Sendable () async -> AgentToolOutput) async -> AgentToolOutput {
-        if let entry = entries[key] {
+        let wildcard = key.count == 3 && key.first == "fetch_page" ? [key[0], key[1], "*"] : nil
+        if let entry = entries[key] ?? wildcard.flatMap({ entries[$0] }) {
             hits += 1
             Self.log("hit", key, entry.ms)
             if replaysLatency, entry.ms > 0 { try? await Task.sleep(for: .milliseconds(entry.ms)) }
@@ -807,7 +808,7 @@ actor ToolCassette {
         }
         let start = ContinuousClock.now
         let output = await live()
-        guard !Task.isCancelled else { return output }
+        guard !Task.isCancelled, key != wildcard else { return output }
         let ms = Int(((ContinuousClock.now - start) / .milliseconds(1)).rounded())
         let entry = Entry(
             key: key, text: output.text, seen: output.seen,
