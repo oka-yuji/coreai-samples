@@ -39,7 +39,7 @@ struct DecodingTests {
         let pool = CandidatePool(
             startLogits: zeros, endLogits: zeros, poolStart: filled(rows: 4, columns: 2, with: 0),
             poolEnd: filled(rows: 4, columns: 2, with: 0), wordCount: 3, labelCount: 3)
-        // Label 0: "b." -> "b". Label 1: "a" at exactly 0.5 is kept, "." alone is dropped. Label 2 abstains.
+
         let logits: [Range<Int32>: [Float]] = [1..<3: [3, -10, 9], 0..<1: [-0.001, 0, 9], 2..<3: [-10, 4, 9]]
         let pairLogits = Matrix(
             rows: CandidatePool.size, columns: 16,

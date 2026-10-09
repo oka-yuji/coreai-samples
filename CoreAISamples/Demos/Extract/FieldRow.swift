@@ -2,13 +2,11 @@ import ExtractFeature
 import GLiNERCore
 import SwiftUI
 
-/// One field of the form: its state, its candidates with their scores, the correction cues near them, and the
-/// person's choice. Nothing is chosen by default. A label shows its spans and their scores only.
 struct FieldRow: View {
     let field: FormField
     let isLabel: Bool
     let color: Color
-    /// The field in the current result; nil before it arrives.
+
     let mapping: FieldMapping?
     let confirmation: ExtractChoice?
     let cues: [CorrectionCue]

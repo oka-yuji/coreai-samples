@@ -4,28 +4,19 @@ import GLiNERCore
 
 public enum GLiNERModelError: Error, Equatable {
     case missingFunction(String)
-    /// An input or output differs from the contract: missing or extra, another shape, an integer that is not Int32, or
-    /// a floating-point value that is neither Float32 (FP32) nor Float16 (FP16) or not of the type of the others.
+
     case signatureMismatch(function: String, value: String)
-    /// A run returned an output that is missing or not a contiguous Float32 or Float16 array.
+
     case unreadableOutput(String)
 }
 
-/// The four Core AI functions of a GLiNER asset, specialized for the GPU unless told otherwise, with the host steps
-/// between them.
-///
-/// Requests run one at a time in arrival order. A request cancelled while it waits, or between its function calls,
-/// throws `CancellationError`; a function call in flight runs to its end.
 public actor GLiNERModel {
-    /// The type of every floating-point input and output: `.float32` in an FP32 export, `.float16` in an FP16 one. The
-    /// host computes in `Float` either way.
+
     public nonisolated let floatType: NDArray.ScalarType
     private let functions: [String: InferenceFunction]
     private var busy = false
     private var waiting: [CheckedContinuation<Void, Never>] = []
 
-    /// Specializes the model with `options` (or takes the cached specialization), checks every function against the
-    /// contract before loading any, then loads the four functions.
     public init(
         asset: GLiNERAsset, options: SpecializationOptions = SpecializationOptions(preferredComputeUnitKind: .gpu)
     ) async throws {
@@ -48,12 +39,10 @@ public actor GLiNERModel {
             functions[name] = function
         }
         self.functions = functions
-        // Every function of the contract has floating-point values, so the checks have set the type.
+
         self.floatType = floatType ?? .float32
     }
 
-    /// Encodes an entity input, picks the candidates, scores them and decodes the spans of `text`. The times exclude
-    /// the wait for earlier requests: `encode` is `encode_t<T>`, `pair` the candidates, `pair_t<T>` and decoding.
     func extract(
         _ input: PreparedInput, text: String
     ) async throws -> (result: ExtractionResult, encode: Duration, pair: Duration) {
@@ -93,7 +82,6 @@ public actor GLiNERModel {
         return (result, encodedAt - started, clock.now - encodedAt)
     }
 
-    /// Encodes a classification input and returns the softmax of its class logits.
     func classify(_ input: PreparedInput) async throws -> ClassificationResult {
         await lock()
         defer { unlock() }
@@ -116,7 +104,6 @@ public actor GLiNERModel {
         }
     }
 
-    /// Hands the lock to the next request still holding `busy`, so no request can slip in between.
     private func unlock() {
         if waiting.isEmpty { busy = false } else { waiting.removeFirst().resume() }
     }
@@ -136,7 +123,6 @@ public actor GLiNERModel {
         ]
     }
 
-    /// The values of a contiguous Float32 or Float16 array, as `Float` (`run` returns row-major contiguous arrays).
     static func floats(_ array: NDArray?, _ name: String) throws -> [Float] {
         guard let array else { throw GLiNERModelError.unreadableOutput(name) }
         let values: [Float]? =
@@ -150,7 +136,6 @@ public actor GLiNERModel {
         return values
     }
 
-    /// A `[1, rows, columns]` output without its batch axis.
     static func matrix(_ array: NDArray?, _ name: String) throws -> Matrix {
         let values = try floats(array, name)
         guard let shape = array?.shape, shape.count == 3, shape[0] == 1 else {
@@ -159,7 +144,6 @@ public actor GLiNERModel {
         return Matrix(rows: shape[1], columns: shape[2], values: values)
     }
 
-    /// `values` as an input of the model's floating-point type.
     static func array(_ values: [Float], shape: [Int], as type: NDArray.ScalarType) -> NDArray {
         type == .float16
             ? NDArray(scalars: values.map(Float16.init), shape: shape) : NDArray(scalars: values, shape: shape)
@@ -167,10 +151,8 @@ public actor GLiNERModel {
 
     private static let integerValues = Set(Contract.encodeInputs + ["cand_start", "cand_end", "cand_mask"])
 
-    /// The scalar type and shape of an input or output, as a function's descriptor gives them.
     typealias ArrayValue = (scalarType: NDArray.ScalarType, shape: [Int])
 
-    /// The values `names` lists, from `descriptor`; a value that is not an array differs from the contract.
     private static func arrays(
         _ names: [String], of function: String, _ descriptor: (String) -> InferenceValue.Descriptor?
     ) throws -> [String: ArrayValue] {
@@ -184,8 +166,6 @@ public actor GLiNERModel {
         return arrays
     }
 
-    /// Checks the function `name` against `signature` and returns the type of its floating-point values: Float32 or
-    /// Float16, one type for all of them, and `floatType` when an earlier function has set it.
     static func check(
         inputs: [String: ArrayValue], outputs: [String: ArrayValue], of name: String,
         against signature: Contract.Function, floatType: NDArray.ScalarType?
@@ -206,7 +186,6 @@ public actor GLiNERModel {
         return floatType
     }
 
-    /// The shapes of the values the host writes or reads; `nil` dimensions are not checked.
     private static func shape(of value: String, capacity: Int) -> [Int?]? {
         let labels = PreparedInput.labelCapacity
         let slots = CandidatePool.size

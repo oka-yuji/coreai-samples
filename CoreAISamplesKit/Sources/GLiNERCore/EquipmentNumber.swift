@@ -1,18 +1,13 @@
 import Foundation
 
-/// The words of rule N1, kept in `Resources/equipment_numbers.json` because they are Japanese: the markers of an
-/// equipment name around its number (such as `No.` and `P-` before it, and the words for a machine or line number
-/// after it) and the numeral words in kana and kanji.
 struct EquipmentNumberWords: Decodable, Equatable, Sendable {
-    /// Text that ends right before the numeral run of an equipment name.
+
     var before: [String]
-    /// Text that starts right after it.
+
     var after: [String]
-    /// The words that make a numeral run, besides half- and full-width digits.
+
     var numerals: [String]
 
-    /// The file ships with the package: one that is missing or broken stops the app rather than letting N1 drop
-    /// nothing.
     static let bundled: EquipmentNumberWords = {
         do {
             guard let url = Bundle.module.url(forResource: "equipment_numbers", withExtension: "json") else {
@@ -24,10 +19,6 @@ struct EquipmentNumberWords: Decodable, Equatable, Sendable {
         }
     }()
 
-    /// The numeral runs of a note and whether a marker touches each. A run goes on while digits and numeral words
-    /// follow one another (the longest word where several start at one place); anything else ends it, a `.` or its
-    /// full-width form too, while the decimal point in words is one of the numeral words. The note and the markers
-    /// are compared folded, one scalar for one, so positions do not move.
     func numeralRuns(in scalars: [Unicode.Scalar]) -> [(range: Range<Int>, marked: Bool)] {
         let words = numerals.map { Array($0.unicodeScalars) }
         var runs: [Range<Int>] = []
@@ -56,7 +47,7 @@ struct EquipmentNumberWords: Decodable, Equatable, Sendable {
 }
 
 extension Unicode.Scalar {
-    /// Rule N1's comparison form: `halfWidth` (U+FF01...U+FF5E as ASCII), then the first scalar of its lower case.
+
     fileprivate var folded: Unicode.Scalar {
         halfWidth.properties.lowercaseMapping.unicodeScalars.first ?? halfWidth
     }

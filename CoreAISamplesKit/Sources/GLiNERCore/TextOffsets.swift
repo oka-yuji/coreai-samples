@@ -1,10 +1,10 @@
 extension Unicode.Scalar {
-    /// Python's `str.isspace()`, which the reference splitter and decoder use: White_Space plus U+001C...U+001F.
+
     public var isPythonWhitespace: Bool { properties.isWhitespace || (0x1C...0x1F).contains(value) }
 }
 
 extension String {
-    /// The UTF-16 range (for `NSString` and `AttributedString`) of a range counted in Unicode scalars.
+
     public func utf16Range(fromScalarRange range: Range<Int>) -> Range<Int>? {
         guard let lower = utf16Offset(ofScalarOffset: range.lowerBound),
             let upper = utf16Offset(ofScalarOffset: range.upperBound)
@@ -12,7 +12,6 @@ extension String {
         return lower..<upper
     }
 
-    /// The scalar range of a UTF-16 range, or `nil` when a bound splits a surrogate pair.
     public func scalarRange(fromUTF16Range range: Range<Int>) -> Range<Int>? {
         guard let lower = scalarOffset(ofUTF16Offset: range.lowerBound),
             let upper = scalarOffset(ofUTF16Offset: range.upperBound)

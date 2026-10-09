@@ -4,13 +4,10 @@ import Foundation
 import GLiNERCore
 import GLiNERRuntime
 
-/// Where Core AI places the model: `--compute-units gpu` (the default) prefers the GPU, `--compute-units default`
-/// leaves the choice among the CPU, the GPU and the Neural Engine to Core AI.
 enum ComputeUnits: String {
     case gpu
     case automatic = "default"
 
-    /// The launch argument, `gpu` without one, or nil for a value it does not know.
     static var launchValue: ComputeUnits? {
         guard let value = LaunchArguments.value("--compute-units") else { return .gpu }
         return ComputeUnits(rawValue: value)
@@ -24,13 +21,11 @@ enum ComputeUnits: String {
     }
 }
 
-/// Opens a GLiNER asset folder and maps notes onto a form with it.
 @MainActor
 protocol ExtractService {
-    /// Opens `folder`: `contract.json`, one `.aimodel`, and `tokenizer.json` in `tokenizer/` or in the folder itself.
+
     func open(folder: URL) async throws -> AssetInfo
-    /// The candidates of each field of `schema` in `text` that `filter` keeps, and the time of each stage. Throws
-    /// `CancellationError` when cancelled, and then runs no further model call.
+
     func extract(text: String, schema: FormSchema, filter: CandidateFilter) async throws -> (
         mapping: FormMapping, timing: ExtractTiming
     )
@@ -48,7 +43,6 @@ enum ExtractServiceError: LocalizedError {
     }
 }
 
-/// `GLiNERExtractor` with `FormMapper`: one extraction, then one classification per clause and list field.
 @MainActor
 final class GLiNERExtractService: ExtractService {
     private let correctionWords: [String]
@@ -64,7 +58,7 @@ final class GLiNERExtractService: ExtractService {
         let clock = ContinuousClock()
         let started = clock.now
         let (extractor, revision) = try await Self.load(folder, options: computeUnits.options)
-        // Loading does not stop when cancelled: drop the result of a folder that another one has replaced.
+
         try Task.checkCancellation()
         self.extractor = extractor
         return AssetInfo(
@@ -104,7 +98,6 @@ final class GLiNERExtractService: ExtractService {
         return (mapping, timing)
     }
 
-    /// Reads the tokenizer and specializes the model off the main actor.
     @concurrent
     private static func load(_ folder: URL, options: SpecializationOptions) async throws -> (GLiNERExtractor, String?) {
         let asset = try GLiNERAsset(directory: folder)

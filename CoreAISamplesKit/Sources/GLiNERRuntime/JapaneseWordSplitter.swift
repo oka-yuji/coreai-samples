@@ -2,8 +2,7 @@ import GLiNERCore
 import NaturalLanguage
 
 public enum JapaneseWordSplitter {
-    /// `NLTokenizer` word ranges, plus one word per non-space scalar the tokenizer skips
-    /// (punctuation and symbols). Words are lower-cased; ranges count Unicode scalars.
+
     public static func words(in text: String) -> [WordSpan] {
         let tokenizer = NLTokenizer(unit: .word)
         tokenizer.setLanguage(.japanese)

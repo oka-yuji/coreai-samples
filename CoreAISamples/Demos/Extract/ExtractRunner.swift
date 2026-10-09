@@ -3,21 +3,19 @@ import Foundation
 import GLiNERCore
 import GLiNERRuntime
 
-/// Runs the effects of `ExtractFeature` for its store. Every failure comes back as an action; a cancelled effect
-/// sends nothing.
 @MainActor
 struct ExtractRunner {
-    /// The last asset folder that opened, in `UserDefaults`.
+
     static let assetFolderKey = "extractAssetFolder"
     nonisolated static var exportsFolder: URL {
         ModelStorage.root.appending(path: "extract-exports", directoryHint: .isDirectory)
     }
-    /// The app's version and build, as `metrics.jsonl` writes them, for the export and `--extract-eval`.
+
     nonisolated static var appVersion: String {
         func value(_ key: String) -> String { Bundle.main.infoDictionary?[key] as? String ?? "?" }
         return "\(value("CFBundleShortVersionString")) (\(value("CFBundleVersion")))"
     }
-    /// The note the Extract screens of the Mac and the iPhone show.
+
     static let notice =
         "Technical verification of a Core AI conversion. Zero-shot GLiNER2.5-multi did not reach the pre-registered "
         + "bar for Japanese inspection memos (outcome B3). The evaluated version is the default candidate filter, "
@@ -38,7 +36,7 @@ struct ExtractRunner {
         case .openAsset(let path):
             do {
                 var info = try await service.open(folder: URL(filePath: path, directoryHint: .isDirectory))
-                // The reducer matches the result to the request by this path; a directory URL's path ends in "/".
+
                 info.path = path
                 UserDefaults.standard.set(path, forKey: Self.assetFolderKey)
                 send(.assetOpened(info))
@@ -65,8 +63,6 @@ struct ExtractRunner {
         }
     }
 
-    /// Writes `document` to a new file in `exportsFolder`, off the main actor, and returns its path. The name carries
-    /// the time to the millisecond, so a second export does not replace the first.
     @concurrent
     static func write(_ document: ExportDocument) async throws -> String {
         let encoder = JSONEncoder()
@@ -110,13 +106,12 @@ struct ExtractRunner {
     }
 }
 
-/// The bundled examples: form U1, the correction words, example notes and labels, in Japanese, kept out of the source.
 enum ExtractResources {
     struct Examples: Decodable {
         let notes: [String]
-        /// The labels the label mode starts with.
+
         let labels: FormSchema
-        /// A field the screen check adds to the form.
+
         let extraField: FormField
     }
 
@@ -124,8 +119,6 @@ enum ExtractResources {
     static let correctionWords = load([String].self, "correction_words")
     static let examples = load(Examples.self, "extract_examples")
 
-    /// A JSON file of the app bundle. The files ship with the app, so one that is missing or broken is a build
-    /// error: stop rather than run with an empty form or no correction words.
     private static func load<Value: Decodable>(_ type: Value.Type, _ name: String) -> Value {
         do {
             guard let url = Bundle.main.url(forResource: name, withExtension: "json") else {

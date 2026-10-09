@@ -1,8 +1,6 @@
 import Foundation
 import GLiNERCore
 
-/// The JSON people export: the input, the form, the model's output, the rule's marks and people's choices, each in
-/// its own section. Positions are given in Unicode scalars (the model's) and in UTF-16 (`NSString`'s).
 public struct ExportDocument: Codable, Equatable, Sendable {
     public struct Offsets: Codable, Equatable, Sendable {
         public var start: Int
@@ -31,40 +29,39 @@ public struct ExportDocument: Codable, Equatable, Sendable {
     }
 
     public struct Candidate: Codable, Equatable, Sendable {
-        /// The span as written in the note.
+
         public var text: String
         public var position: Position
         public var probability: Float
-        /// The clause a list field's options were scored on.
+
         public var clause: Position
-        /// The number in the span of a number field, and the unit written after it.
+
         public var number: String?
         public var unit: String?
-        /// The two best options of a list field, highest first; empty in a dropped candidate.
+
         public var suggestions: [Suggestion]
     }
 
     public struct FieldOutput: Codable, Equatable, Sendable {
         public var key: String
         public var name: String
-        /// `candidate` or `notDetected`.
+
         public var state: String
         public var candidates: [Candidate]
-        /// The candidates the mapper's filter dropped. People do not see them.
+
         public var droppedCandidates: [Candidate]
     }
 
     public struct ModelOutput: Codable, Equatable, Sendable {
-        /// The version of the text and the form the output is for.
+
         public var version: Int
-        /// The probabilities are model scores; they are not calibrated.
+
         public var probabilitiesCalibrated: Bool
-        /// The rule that dropped candidates: `clauseFieldName` (rule R1), `clauseFieldNameAndEquipmentNumber` (rules R1
-        /// and N1) or `none`.
+
         public var candidateFilter: String
-        /// The `revision` in the asset's `contract.json`; nil when it is unknown.
+
         public var assetRevision: String?
-        /// The app's version and build.
+
         public var appVersion: String?
         public var fields: [FieldOutput]
         public var timing: ExtractTiming
@@ -76,7 +73,7 @@ public struct ExportDocument: Codable, Equatable, Sendable {
     }
 
     public struct RuleMarks: Codable, Equatable, Sendable {
-        /// Correction words found by string match. They mark the place only.
+
         public var correctionCues: [Cue]
     }
 
@@ -87,14 +84,14 @@ public struct ExportDocument: Codable, Equatable, Sendable {
     }
 
     public var input: Input
-    /// `labels` or `form`: what `form` holds.
+
     public var mode: String
-    /// The labels in the label mode, the form in the form mode.
+
     public var form: FormSchema
-    /// Nil before the current text and form have a result.
+
     public var model: ModelOutput?
     public var rules: RuleMarks?
-    /// People's choices, in form order.
+
     public var confirmations: [Confirmation]
 
     public init(_ state: ExtractState) {
@@ -135,7 +132,7 @@ public struct ExportDocument: Codable, Equatable, Sendable {
 }
 
 extension CandidateFilter {
-    /// The name the exports write.
+
     public var name: String {
         switch self {
         case .none: "none"

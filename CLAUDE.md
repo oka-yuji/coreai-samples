@@ -17,12 +17,26 @@
 ### 規約との差分
 
 - T7(`@Test` の表示名は日本語の 1 文): 英語の 1 文で書く。理由: 下の「公開物の規約」で、ソースに日本語を入れないため。代わりの判定: 表示名が Issue の `[test]` の文を英語にしたものか、レビューで見る。
-- T3 と `ADOPTION.md` §4(汎用 Store): `Store.swift` はアプリの target ではなく、`Feature.swift` と同じ `CoreAISamplesKit/Sources/FeatureStore`(既定分離 nonisolated。`Store` は `@MainActor` を明記している)に置く。テンプレートのコメントとテストの表示名は英語に訳し、コードはテンプレートと同じにしてある。テンプレートが変わったら、コードの差分だけを取り込む。lint の純ロジックの規則は `FeatureStore` にも掛け、import と並行処理の規則からだけ `Store.swift` を外す。代わりの判定: `swift test --package-path CoreAISamplesKit --filter StoreTests`。
+- T3 と `ADOPTION.md` §4(汎用 Store): `Store.swift` はアプリの target ではなく、`Feature.swift` と同じ `CoreAISamplesKit/Sources/FeatureStore`(既定分離 nonisolated。`Store` は `@MainActor` を明記している)に置く。テンプレートのコメントは除き、テストの表示名は英語に訳す。コメント以外のコードはテンプレートと同じに保ち、更新時も実装の差分を取り込む。lint の純ロジックの規則は `FeatureStore` にも掛け、import と並行処理の規則からだけ `Store.swift` を外す。代わりの判定: `swift test --package-path CoreAISamplesKit --filter StoreTests`。
+
+
+- A12(安全条件を隣のコメントに書く): 公開ソースにコメントを置かないため、条件と検査を下の表に記録する。`concurrency_escape` の検出は維持し、新しい宣言を自動的に許可しない。既存の宣言の基準値は `.swiftlint-baseline.json` で追跡する。変更時は新しいアクセス経路も条件を満たすか確認する。
+- lint の抑制をソースのコメントに書かない。`no_inline_swiftlint_commands` と公開ソースの監査で確認する。基準値の更新は、ruleIdentifier・ファイル・該当コード・件数を変更前と比較し、許可の追加を説明する。既存ファイル全体を新しく除外しない。
+- T1(新しい試験は Swift Testing): Agent の既定、カセット、取得先の制限、Hub の照合のアプリ統合確認は既存の `--agent-selftest` に追加できる。アプリに Swift Testing の target がないため。新しい独立した純ロジックの単体試験は Swift Testing に置く。アプリの試験 target を導入したら統合確認の移設を検討する。
+
+### 既存の並行処理の安全条件
+
+| 宣言 | 所有者と守る条件 | 確認方法 |
+|---|---|---|
+| `EngineBox` (`CoreAIBackend/LocalLanguageModel.swift`) | `Runtime` だけが箱を所有する。Engine と checkpoint の可変状態へのアクセス、状態の照合、非同期の推論は同じ Runtime の lock の内側に置き、await 中も他の依頼を入れない。初期化済みの不変な設定だけを lock の外で読む。 | `sessionReusesStopsSamplesAndCancels`、`sessionCallsToolsReusesAndRecovers`、`StateCheck` の既存の検証。GPU を読む試験は下記のロックと環境変数で実行する。 |
+| `HubDownloader` (`Demos/ModelManager/HubDownloader.swift`) | ダウンロードごとに新しいインスタンスを使う。`fileList` が session を初期化してからファイルの取得を並行化する。同じインスタンスの download / fileList を別々に同時実行しない。entries・liveTasks・didCancel と continuation の完了権の読み書きは NSLock で保護し、再開と利用者の callback は lock の外で行う。 | 呼び出し元と全 delegate / cancel 経路のレビュー。Hub の照合を変更する Issue では取消・完了・再開の自己テストも確認する。 |
+| `ProgressTracker` (`Demos/ModelManager/HubDownloader.swift`) | totalBytes と startTime は不変。completedBytes と lastReportedAt の読み書きは NSLock の内側で行い、lock の外では取り出した値だけを使う。 | add(bytes:) の全アクセスのレビューと、ダウンロードの進捗・再開の確認。 |
+| `ExtractEval.run()` の既存の Task (`Demos/Extract/ExtractEval.swift`) | ヘッドレス入口が一度だけ MainActor 上で execute を開始し、完了時に終了コードを返してプロセスを終える。UI の非同期状態管理の例外には広げない。 | `--extract-eval` の dev50 の出力を既存の基準と照合する。既存の行の抑制を baseline へ移したもので、新しい Task の許可は追加しない。 |
 
 ## 公開物の規約
 
-- コード内のコメントは英語で書く。
-- ソースに日本語の文字列を入れない。画面の表示は英語にし、例の資料は JSON の資源に置く。
+- 手書きのソース・テスト・設定には、doc コメントを含めてコメントを書かない。SwiftPM の `swift-tools-version` と shell の先頭 shebang は、ツールが解釈する宣言として保持する。
+- ソースに日本語の文字列を入れない。画面の表示は英語にし、例の資料は JSON の資源に置く。`RAGContext.swift` の `dateLabel`、`instruction(today:)`、`block(_:number:)`、`message(question:sources:)` の既存のプロンプト定数だけを例外とする。`noSourcesReply` は例外に含めない。
 - コミットと PR に `Co-Authored-By` を付けない。
 
 ## 重いジョブ

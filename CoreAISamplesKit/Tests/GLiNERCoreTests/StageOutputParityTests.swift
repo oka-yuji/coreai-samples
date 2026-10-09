@@ -11,8 +11,6 @@ private let hasFixtures = [stageOutputsPath, swiftOutputPath].allSatisfy {
     FileManager.default.fileExists(atPath: fixturesDirectory.appending(path: $0).path(percentEncoded: false))
 }
 
-/// Stage outputs of the GL4 Swift CLI, written by its copy `work/g5_stage_dump.swift`: per call, the parts of the
-/// model outputs the host reads (labels in use, boundaries up to the word count).
 private struct StageOutputs: Decodable {
     struct Span: Decodable {
         let label: Int
@@ -55,7 +53,6 @@ private struct StageOutputs: Decodable {
     let classifications: [Classification]
 }
 
-/// The output of the GL4 Swift CLI (`swift/gliner-run.swift`) on the same calls.
 private struct SwiftOutput: Decodable {
     struct Result: Decodable {
         let id: String
@@ -74,8 +71,6 @@ private func load<Value: Decodable>(_ type: Value.Type, _ path: String) throws -
     return try decoder.decode(type, from: Data(contentsOf: fixturesDirectory.appending(path: path)))
 }
 
-/// `rows` x `columns`, with the stored block at the top left and `fill` elsewhere. The model writes values the host
-/// must not read outside the block; a large `fill` makes reading them change the result.
 private func padded(_ block: [[Float]], rows: Int, columns: Int, fill: Float = 100) -> Matrix {
     Matrix(
         rows: rows, columns: columns,

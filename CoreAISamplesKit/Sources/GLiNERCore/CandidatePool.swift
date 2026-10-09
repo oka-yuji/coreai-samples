@@ -1,4 +1,3 @@
-/// A row-major matrix of `Float`: a model output without its batch axis.
 public struct Matrix: Equatable, Sendable {
     public let rows: Int
     public let columns: Int
@@ -14,13 +13,6 @@ public struct Matrix: Equatable, Sendable {
     public subscript(row: Int, column: Int) -> Float { values[row * columns + column] }
 }
 
-/// The candidate spans `pair_t<T>` scores: gliner2's `DocumentCandidatePool` at inference.
-///
-/// Boundaries up to the word count take their best start and end logits over the labels. The best 32 starts and
-/// 32 ends make 32 x 32 pairs (end after start), each with `compat = pool_start[s] . pool_end[e] / sqrt(d)`.
-/// Every label reserves its best 8 pairs by `start + end + compat`, scored 5000 + 8 ... 1; every pair also enters
-/// with `compat + best start + best end`. A key `s * (T + 1) + e` keeps its best score, and the best 192 fill the
-/// slots. Sorts break ties by position, as NumPy's stable argsort does.
 public struct CandidatePool: Equatable, Sendable {
     public static let size = 192
     public static let boundaryLimit = 32
@@ -28,21 +20,13 @@ public struct CandidatePool: Equatable, Sendable {
     public static let maskLogit: Float = -10_000
     public static let reservedScore: Float = 5_000
 
-    /// Words `starts[slot]..<ends[slot]` of each slot; 0 in an empty slot.
     public let starts: [Int32]
     public let ends: [Int32]
-    /// 1 for a candidate, 0 for an empty slot.
+
     public let mask: [Int32]
-    /// The candidate's `compat`; 0 in an empty slot.
+
     public let priors: [Float]
 
-    /// - Parameters:
-    ///   - startLogits: `start_logits`, labels x boundaries (T + 1).
-    ///   - endLogits: `end_logits`, labels x boundaries.
-    ///   - poolStart: `pool_start`, boundaries x d.
-    ///   - poolEnd: `pool_end`, boundaries x d.
-    ///   - wordCount: Words of the model text; boundaries after the last word are ignored.
-    ///   - labelCount: Labels in use; the rows after them are ignored.
     public init(
         startLogits: Matrix, endLogits: Matrix, poolStart: Matrix, poolEnd: Matrix, wordCount: Int, labelCount: Int
     ) {
@@ -101,8 +85,6 @@ public struct CandidatePool: Equatable, Sendable {
         priors = slots.map { $0.map { compat($0.start, $0.end) } ?? 0 }
     }
 
-    /// gliner2's `_deduplicate_pool`: order by score, then by key; keep the first entry of each key; fill the slots
-    /// by score. `nil` is an empty slot.
     private static func slots(_ entries: [Entry], boundaryCount: Int) -> [(start: Int, end: Int)?] {
         let keys = entries.map { $0.isValid ? $0.key : boundaryCount * boundaryCount }
         let scores = entries.map { $0.isValid ? $0.score : maskLogit }
@@ -133,7 +115,6 @@ private struct Entry {
     let isValid: Bool
 }
 
-/// Indices sorted by value, largest first; equal values keep index order (NumPy's stable argsort of -values).
 private func stableDescending(_ values: [Float]) -> [Int] {
     values.indices.sorted { values[$0] > values[$1] || (values[$0] == values[$1] && $0 < $1) }
 }

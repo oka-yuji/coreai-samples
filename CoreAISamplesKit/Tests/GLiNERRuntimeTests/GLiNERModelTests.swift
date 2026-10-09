@@ -6,7 +6,6 @@ import Testing
 
 private typealias PairArrays = (inputs: [String: GLiNERModel.ArrayValue], outputs: [String: GLiNERModel.ArrayValue])
 
-/// `pair_t256` as `coreai-build inspect` lists it for the GL4 exports, with `float` for every floating-point value.
 private func pairArrays(float: NDArray.ScalarType) -> PairArrays {
     let inputs: [String: GLiNERModel.ArrayValue] = [
         "scorer_start": (float, [1, 257, 128]), "scorer_end": (float, [1, 257, 128]),
@@ -19,7 +18,6 @@ private func pairArrays(float: NDArray.ScalarType) -> PairArrays {
     return (inputs, ["pair_logits": (float, [1, 192, 16])])
 }
 
-/// Checks `arrays` as `pair_t256`, after functions whose floating-point values were of `floatType`.
 private func checkPair(_ arrays: PairArrays, floatType: NDArray.ScalarType? = nil) throws -> NDArray.ScalarType? {
     try GLiNERModel.check(
         inputs: arrays.inputs, outputs: arrays.outputs, of: "pair_t256",
@@ -45,7 +43,6 @@ struct GLiNERModelTests {
         #expect(try checkPair(pairArrays(float: .float32)) == .float32)
         #expect(try checkPair(pairArrays(float: .float32), floatType: .float32) == .float32)
 
-        // 0.1 has no exact Float16 value, so a detour through Float16 would change it.
         let prior = GLiNERModel.array([0.1, -2], shape: [1, 2], as: .float32)
         #expect(prior.scalarType == .float32)
         #expect(try GLiNERModel.floats(prior, "cand_prior") == [0.1, -2])

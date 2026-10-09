@@ -1,25 +1,22 @@
 import Foundation
 import GLiNERCore
 
-/// What people type to add or change a form field.
 public struct FieldDraft: Equatable, Sendable {
     public enum Kind: String, CaseIterable, Sendable {
         case number
         case list
     }
 
-    /// The field being changed; nil for a new field.
     public var key: String?
     public var name: String
-    /// The entity label the model reads; empty means the name.
+
     public var modelLabel: String
     public var kind: Kind
     public var unit: String
-    /// Option names, separated by commas (ASCII or ideographic) or line breaks.
+
     public var options: String
     public var description: String
 
-    /// A draft of `field`, or an empty number field.
     public init(field: FormField? = nil) {
         key = field?.key
         name = field?.name ?? ""
@@ -41,9 +38,6 @@ public struct FieldDraft: Equatable, Sendable {
         }
     }
 
-    /// The field this draft makes in `form`, or nil when the name is empty or a list has no option (or more than the
-    /// model takes). Options that keep their name keep their model label, and a list keeps its task while the name
-    /// stays. A new field gets the first free key of `field1`, `field2`, ...
     public func field(in form: FormSchema) -> FormField? {
         let name = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !name.isEmpty else { return nil }

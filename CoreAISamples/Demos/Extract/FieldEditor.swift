@@ -2,8 +2,6 @@ import ExtractFeature
 import GLiNERCore
 import SwiftUI
 
-/// Adds a field to the form, or changes or removes one. `save` gets the new form and the field to select. For a label,
-/// only the name, which the model reads, and the description.
 struct FieldEditor: View {
     @State var draft: FieldDraft
     let form: FormSchema
@@ -63,7 +61,6 @@ struct FieldEditor: View {
         .frame(width: 440)
     }
 
-    /// The field the draft makes. The model reads a label's name, so a renamed label is read by its new name.
     private var field: FormField? {
         var draft = draft
         if isLabel { draft.modelLabel = "" }

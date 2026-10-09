@@ -4,7 +4,6 @@
     import GLiNERCore
     import SwiftUI
 
-    /// Open an asset folder from Documents, extract one note and list the spans the model returns for each label.
     struct PhoneExtractView: View {
         let store: Store<ExtractFeature>
         let assetFolders: [URL]

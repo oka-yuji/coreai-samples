@@ -1,7 +1,6 @@
 import Foundation
 import GLiNERCore
 
-/// One sentence of a gold file. Positions count Unicode scalars and the end is exclusive.
 public struct GoldSentence: Decodable, Equatable, Sendable {
     public struct Span: Decodable, Equatable, Sendable {
         public var start: Int
@@ -16,23 +15,22 @@ public struct GoldSentence: Decodable, Equatable, Sendable {
         public var explicitEmpty: Bool?
         public var statementSpan: Span?
         public var valueSpan: Span?
-        /// A number field's value, normalized ("0.5").
+
         public var value: String?
         public var unit: String?
-        /// A list field's option; nil when no option fits.
+
         public var option: String?
     }
 
     public var id: String
     public var text: String
-    /// Excluded sentences are left out of every count.
+
     public var excluded: Bool?
-    /// The field each sentence names in advance as not mentioned, counted on its own.
+
     public var mainUnmentionedField: String?
     public var features: [String]?
     public var fields: [String: Field]
 
-    /// The sentences of a gold file (a JSON array with snake-case keys).
     public static func decode(_ data: Data) throws -> [GoldSentence] {
         let decoder = JSONDecoder()
         decoder.keyDecodingStrategy = .convertFromSnakeCase
@@ -40,20 +38,6 @@ public struct GoldSentence: Decodable, Equatable, Sendable {
     }
 }
 
-/// Scores mappings against gold sentences.
-///
-/// - Mention: a field is found when one of its candidates overlaps the gold statement span, fabricated when it is not
-///   mentioned but has candidates, missed when it is mentioned without candidates, and misplaced when it is mentioned
-///   and no candidate overlaps its statement span (counted as both a false positive and a false negative).
-/// - Span match: a candidate overlaps the field's gold value span, lies in the same sentence (ended by an
-///   ideographic full stop) and overlaps no other field's value span (other than an identical one: fields that share
-///   a predicate share its span). Every matching candidate counts.
-/// - The policy takes the candidate with the highest probability (the first on a tie): its top suggestion for a
-///   list field, its number and unit (the form's unit when none is written) for a number field. The number is the
-///   one `ParsedNumber` reads, digits only; a gold value written without digits is counted in `numberWithoutDigits`.
-///   Option, top-two and number scores count mentioned fields that are not explicitly empty; a null gold option is
-///   never matched. A field agrees when the policy's value equals the gold, or when the gold is empty (not mentioned,
-///   or explicitly empty) and the field has no candidates.
 public enum ExtractEvaluation {
     public static func evaluate(_ sentences: [(gold: GoldSentence, mapping: FormMapping)]) -> EvaluationReport {
         let judged = sentences.filter { $0.gold.excluded != true }.map { judge($0.gold, $0.mapping) }
@@ -71,14 +55,12 @@ public enum ExtractEvaluation {
             sentences: judged)
     }
 
-    /// The nearest-rank percentile (0 < `fraction` <= 1) of `values`; nil when there are none.
     public static func percentile(_ values: [Double], _ fraction: Double) -> Double? {
         guard !values.isEmpty else { return nil }
         let rank = Int((fraction * Double(values.count)).rounded(.up))
         return values.sorted()[min(max(rank - 1, 0), values.count - 1)]
     }
 
-    /// The percentiles of each stage of `warm` on its own, and the first (cold) run as measured.
     public static func timing(cold: ExtractTiming?, warm: [ExtractTiming]) -> TimingSummary {
         func stages(_ fraction: Double) -> ExtractTiming? {
             func value(_ stage: (ExtractTiming) -> Double) -> Double { percentile(warm.map(stage), fraction) ?? 0 }
@@ -230,11 +212,11 @@ public enum ExtractEvaluation {
 
 public struct EvaluationReport: Encodable, Equatable, Sendable {
     public var overall: Summary
-    /// By field key.
+
     public var fields: [String: Summary]
-    /// By the gold's `features` tags: the sentences that carry the tag.
+
     public var features: [String: Summary]
-    /// Keys in the form or in the gold but not in both; they are not scored.
+
     public var unscoredFields: [String]
     public var sentences: [SentenceJudgment]
 }
@@ -274,12 +256,12 @@ public struct MentionSummary: Encodable, Equatable, Sendable {
 }
 
 public struct SpanSummary: Encodable, Equatable, Sendable {
-    /// Candidates that match a gold value span (precision), of all candidates.
+
     public var matched: Ratio
-    /// Gold value spans that a candidate matches (recall), of all gold value spans.
+
     public var found: Ratio
     public var f1: Double?
-    /// The same with identical ranges only (for reference).
+
     public var exactMatched: Ratio
     public var exactFound: Ratio
 
@@ -293,10 +275,10 @@ public struct SpanSummary: Encodable, Equatable, Sendable {
 }
 
 public struct CueSummary: Encodable, Equatable, Sendable {
-    /// Sentences the gold tags `correction`, and those of them with a cue.
+
     public var tagged: Int
     public var taggedWithCue: Int
-    /// Sentences with a cue, and those of them the gold tags `correction`.
+
     public var withCue: Int
     public var withCueTagged: Int
 }
@@ -305,38 +287,37 @@ public struct Summary: Encodable, Equatable, Sendable {
     public var sentences: Int
     public var fields: Int
     public var mention: MentionSummary
-    /// Fabricated, of the fields not mentioned.
+
     public var fabrication: Ratio
-    /// Fabricated, of the fields named as not mentioned in advance.
+
     public var mainFabrication: Ratio
-    /// Missed, of the mentioned fields.
+
     public var miss: Ratio
-    /// List fields whose policy suggestion is the gold option.
+
     public var option: Ratio
     public var optionWithCandidate: Ratio
     public var optionTopTwo: Ratio
-    /// List fields in `option` whose gold option is null ("no option fits"), and those of them the policy leaves
-    /// without an option (no candidate).
+
     public var optionNull: Ratio
-    /// Number fields whose policy number and unit are the gold's.
+
     public var number: Ratio
-    /// Number fields with any candidate of the gold number and unit.
+
     public var numberInCandidates: Ratio
-    /// Number fields in `number` whose gold value span has no digits (kana or kanji): `ParsedNumber` cannot read them.
+
     public var numberWithoutDigits: Int
     public var spans: SpanSummary
-    /// Fields that agree with the gold under the policy.
+
     public var agreement: Ratio
-    /// Sentences whose fields all agree; nil in a summary of one field.
+
     public var allFields: Ratio?
-    /// Nil in a summary of one field.
+
     public var correctionCues: CueSummary?
 }
 
 public struct TimingSummary: Encodable, Equatable, Sendable {
     public var runs: Int
     public var cold: ExtractTiming?
-    /// Each stage's own percentile, in milliseconds; the stages do not add up to `total`.
+
     public var p50: ExtractTiming?
     public var p95: ExtractTiming?
 }
@@ -346,7 +327,7 @@ public struct SentenceJudgment: Encodable, Equatable, Sendable {
     public var text: String
     public var features: [String]
     public var allFieldsAgree: Bool
-    /// The correction words the rule found.
+
     public var correctionCues: [String]
     public var correctionTagged: Bool
     public var fields: [FieldJudgment]
@@ -358,7 +339,7 @@ public struct FieldJudgment: Encodable, Equatable, Sendable {
         case fabricated
         case missed
         case misplaced
-        /// Not mentioned and no candidates.
+
         case absent
     }
 
@@ -369,7 +350,7 @@ public struct FieldJudgment: Encodable, Equatable, Sendable {
         public var probability: Float
         public var number: String?
         public var unit: String?
-        /// The two best options and their probabilities, highest first.
+
         public var suggestions: [String]
         public var matchesGoldSpan: Bool
         public var exactGoldSpan: Bool
@@ -381,20 +362,20 @@ public struct FieldJudgment: Encodable, Equatable, Sendable {
     public var mainUnmentioned: Bool
     public var mention: Mention
     public var candidates: [Candidate]
-    /// Nil without a gold value span.
+
     public var goldSpanMatched: Bool?
     public var goldSpanExact: Bool?
-    /// The gold option of a scored list field; `.some(nil)` when no option fits.
+
     public var goldOption: String??
     public var suggestion: String?
-    /// Nil outside the option score.
+
     public var optionCorrect: Bool?
     public var optionInTopTwo: Bool?
-    /// The gold number and unit of a scored number field.
+
     public var goldNumber: String?
-    /// The gold value span of a scored number field has no digits.
+
     public var goldNumberWithoutDigits: Bool?
-    /// Nil outside the number score.
+
     public var numberCorrect: Bool?
     public var numberInCandidates: Bool?
     public var agrees: Bool
