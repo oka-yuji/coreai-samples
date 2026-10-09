@@ -146,6 +146,31 @@ To try it, open `CoreAISamples.xcodeproj` and press Run. Building it from the co
 
 ## Verification
 
+Run the complete build and model-free checks from the repository root. These need an Apple silicon Mac with macOS 27 and Xcode 27 selected with `xcode-select`.
+
+```bash
+./check.sh
+```
+
+The script builds and tests `CoreAISamplesKit`, builds `Tools/Verify` and runs its CPU tests in Release, builds the macOS app in Release, and runs the Agent offline self-test. It clears inherited `COREAI_*`, `GLINER_*`, `DECIDE_*` and `CLEF_*` controls before these stages, so an unrelated model-test setting cannot start inference. The last line is `CHECK PASS` with exit code 0, or `CHECK FAIL: <stage>` with exit code 1.
+
+To add language-model checks, install Python 3 for JSON result validation and supply bundle folders separated by `:`. The first bundle is also used for the official-runtime comparison and the state check; a small bundle such as Qwen3.5-0.8B keeps this check short.
+
+```bash
+COREAI_TEST_BUNDLES=/path/to/bundle-a:/path/to/bundle-b ./check.sh
+```
+
+This adds the model-enabled tests, two fixed prompts compared against Apple's sequential engine, and two own-runtime chat turns followed by a processed-state check. Both prompts must match every generated token and every step's logits on the matching `prefill-function` path. The two `main-only` records are retained as diagnostics because they use a different prefill path; their agreement is not a pass criterion. Missing records, reported errors and a failed state check fail the script even if the verification command exits successfully. The JSON records are saved under `.build/check/`.
+
+The runtime and demo-app measurements use this environment:
+
+| Component | Measured configuration |
+|---|---|
+| macOS | 27.0, build 26A428 |
+| Xcode | 27.0, build 27A266a |
+| Mac | MacBook Pro (Mac16,6), Apple M4 Max |
+| Unified memory | 128 GiB (137,438,953,472 bytes) |
+
 `Tools/Verify` is a separate Swift package and the only place that depends on Apple's `coreai-models` package, pinned to 1.0.0; the library, the CLI and the demo app do not. Its `coreai-verify` tool drives Apple's runtime (`--runtime official`, with `--engine default` or `sequential`) and this one (`--runtime own`) and prints one JSON line per measurement. In the table, "own" is this repository's runtime.
 
 | Subcommand | What it does |
