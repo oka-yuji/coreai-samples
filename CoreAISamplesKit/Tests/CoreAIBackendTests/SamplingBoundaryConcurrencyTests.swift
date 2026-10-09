@@ -257,28 +257,64 @@ extension ModelTestSupportTests {
         #expect(!session.isResponding)
     }
 
-    @Test("Cancellation racing with completion inspects the complete retained response")
-    func cancellationCollectsFinalPartial() async throws {
-        let gate = RequestOverlapProbe()
+    @Test(
+        "Cancellation racing with completion inspects the complete retained response",
+        arguments: 0..<20)
+    func cancellationCollectsFinalPartial(iteration: Int) async throws {
+        let gate = AsyncStream<Void>.makeStream(bufferingPolicy: .bufferingOldest(1))
+        defer { gate.continuation.finish() }
         let completed = ModelCompletionLatch()
         let session = LanguageModelSession(
-            model: StreamingProbeModel(behavior: .secondFragment(gate, completed)))
+            model: StreamingProbeModel(behavior: .secondFragment(gate.stream, completed)))
         session.transcriptErrorHandlingPolicy = .preserveTranscript
         let start = session.transcript.count
         let result = try await cancelAfterFirstFragment(
-            session, prompt: "Emit two controlled fragments", maximumTokens: 32,
+            session, prompt: "Emit two controlled fragments \(iteration)", maximumTokens: 32,
             beforeCancellation: { first in
                 #expect(first == "fragment")
-                try await gate.enter(UUID())
+                gate.continuation.yield(())
+                gate.continuation.finish()
                 #expect(await completed.wait() == false)
-                for await responding in Observations({ session.isResponding }) {
-                    if !responding { return }
-                }
-                throw CancellationError()
             },
             waitUntilFinished: { #expect(await completed.wait() == false) })
         #expect(result == "fragment PELICAN")
         #expect(result == responseText(in: session.transcript, after: start))
+        #expect(!session.isResponding)
+    }
+
+    @Test("A second-fragment permit released before execution remains available")
+    func secondFragmentAcceptsEarlyPermit() async throws {
+        let gate = AsyncStream<Void>.makeStream(bufferingPolicy: .bufferingOldest(1))
+        defer { gate.continuation.finish() }
+        gate.continuation.yield(())
+        gate.continuation.finish()
+        let completed = ModelCompletionLatch()
+        let session = LanguageModelSession(
+            model: StreamingProbeModel(behavior: .secondFragment(gate.stream, completed)))
+        let response = try await session.respond(
+            to: "Use the existing permit", options: .init(samplingMode: .greedy, maximumResponseTokens: 32),
+            contextOptions: ModelTestSettings.context)
+        #expect(response.content == "fragment PELICAN")
+        #expect(await completed.wait() == false)
+        #expect(!session.isResponding)
+    }
+
+    @Test("A second-fragment gate finished without a permit does not emit the marker")
+    func secondFragmentRejectsMissingPermit() async throws {
+        let gate = AsyncStream<Void>.makeStream(bufferingPolicy: .bufferingOldest(1))
+        defer { gate.continuation.finish() }
+        gate.continuation.finish()
+        let completed = ModelCompletionLatch()
+        let session = LanguageModelSession(
+            model: StreamingProbeModel(behavior: .secondFragment(gate.stream, completed)))
+        session.transcriptErrorHandlingPolicy = .preserveTranscript
+        await #expect(throws: (any Error).self) {
+            try await session.respond(
+                to: "Do not invent a permit", options: .init(samplingMode: .greedy, maximumResponseTokens: 32),
+                contextOptions: ModelTestSettings.context)
+        }
+        #expect(await completed.wait() == false)
+        #expect(!responseText(in: session.transcript, after: 0).contains("PELICAN"))
         #expect(!session.isResponding)
     }
 

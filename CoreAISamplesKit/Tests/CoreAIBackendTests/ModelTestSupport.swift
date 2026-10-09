@@ -303,7 +303,7 @@ struct StreamingProbeModel: LanguageModel {
     enum Behavior: Sendable {
         case paired(RequestOverlapProbe)
         case waitForCancellation(AsyncStream<Bool>.Continuation)
-        case secondFragment(RequestOverlapProbe, ModelCompletionLatch)
+        case secondFragment(AsyncStream<Void>, ModelCompletionLatch)
     }
 
     struct Executor: LanguageModelExecutor {
@@ -331,7 +331,9 @@ struct StreamingProbeModel: LanguageModel {
             if case .paired(let barrier) = model.behavior { try await barrier.enter(request.id) }
             await channel.send(.response(action: .appendText("fragment", tokenCount: 1)))
             if case .secondFragment(let gate, _) = model.behavior {
-                try await gate.enter(request.id)
+                var iterator = gate.makeAsyncIterator()
+                guard await iterator.next() != nil else { throw CancellationError() }
+                try Task.checkCancellation()
                 await channel.send(.response(action: .appendText(" PELICAN", tokenCount: 1)))
             }
             if finished != nil {
