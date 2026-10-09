@@ -25,7 +25,8 @@ extension ModelIntegrationTests {
         .enabled(if: !bundlePaths.isEmpty), arguments: bundlePaths)
     func intervalWaitsForANewConversation(path: String) async throws {
         let model = try await LocalLanguageModel(
-            bundle: URL(filePath: path), contextLimit: 16_384, reloadPolicy: .init(readInterval: 2))
+            bundle: URL(filePath: path), contextLimit: 16_384,
+            reloadPolicy: .init(readInterval: 2, footprintLimitBytes: 0))
         let session = LanguageModelSession(model: model)
         for _ in 0..<5 {
             _ = try await session.respond(

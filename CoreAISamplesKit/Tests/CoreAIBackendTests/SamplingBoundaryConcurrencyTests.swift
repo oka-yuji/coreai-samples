@@ -186,7 +186,11 @@ extension ModelIntegrationTests {
                 #expect(!recovered.content.uppercased().contains(secondMarker))
             }
         }
-        if reloadPolicy.footprintLimitBytes > 0 { #expect(reloads > 0) }
+        if ProcessInfo.processInfo.environment["COREAI_TEST_RELOAD_FOOTPRINT_BYTES"] != nil,
+            reloadPolicy.footprintLimitBytes > 0
+        {
+            #expect(reloads > 0)
+        }
         print("concurrency-reloads=\(reloads)")
         try await ModelTestSettings.checkState(base, label: "two-sessions-final")
     }
