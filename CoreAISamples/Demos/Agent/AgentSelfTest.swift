@@ -520,6 +520,9 @@ enum AgentSelfTest {
         if !offline, let directory = LaunchArguments.value("--fetch-capture-dir") {
             await captureFetchPages(directory) { name, passed, detail in check(name, passed, detail) }
         }
+        for result in await HubDownloadSelfTest.run(offline: offline) {
+            check(result.name, result.passed, result.detail)
+        }
 
         if offline {
             out("SKIP  search/live (--offline)")
