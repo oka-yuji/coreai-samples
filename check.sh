@@ -29,6 +29,9 @@ swift test --package-path CoreAISamplesKit --no-parallel
 check_stage=build-verify
 printf 'CHECK RUN: %s\n' "$check_stage"
 swift build --package-path Tools/Verify -c release
+check_stage=test-verify-without-models
+printf 'CHECK RUN: %s\n' "$check_stage"
+swift test --package-path Tools/Verify -c release --no-parallel
 check_stage=build-app
 printf 'CHECK RUN: %s\n' "$check_stage"
 check_output="$check_root/.build/check"
