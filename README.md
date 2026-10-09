@@ -71,7 +71,7 @@ This is the core of `CoreAISamplesKit/Sources/coreai-chat/ChatCommand.swift`, cu
 
 The runtime reloads after ten completed read requests at the next new conversation. A request counts if prefill starts, including a failed or cancelled prefill; reuse without a read does not count. Agent tool steps and later turns remain in the same conversation. A configured process-footprint limit can also reload before the next read within a conversation.
 
-Reloading releases the engine and saved states, preserves CPU history, and reads the complete prompt into a new engine. `sharedTokens` retains the logical shared prefix, while cached input is zero and prefill covers the complete prompt. Only a request which loads a replacement records `reloadSeconds`. Reloading adds a model load; interrupting a conversation also adds a full-prompt prefill. Long histories therefore cost more to resume.
+Reloading releases the engine and saved states, preserves CPU history, and reads the complete prompt into a new engine. `sharedTokens` retains the logical shared prefix, while cached input is zero and prefill covers the complete prompt. Only a request which loads a replacement records `reloadSeconds`. Reloading adds a model load; interrupting a conversation also adds a full-prompt prefill. In the calibration run described below, periodic reloads took 4.19–4.23 seconds for 27B and 0.145–0.153 seconds for 0.8B. Forced reloads within a 15,797-token 27B conversation took 92.23–92.89 seconds to the first response entry, including the reload and full prefill. Long histories therefore cost more to resume.
 
 ## Supported requests
 
@@ -230,7 +230,7 @@ The five-second interval is a measurement convention, not a guarantee that memor
 
 Configure the library with `LocalLanguageModel.ReloadPolicy(readInterval:footprintLimitBytes:)`, passed as `reloadPolicy:` to the model initializer. An interval of zero disables periodic reloads; a footprint limit of zero disables the memory trigger.
 
-The footprint default is zero in this private draft and has not been calibrated. The release threshold must be the maximum post-turn footprint from the approved variant 27B thirty-turn run with interval ten and no threshold, multiplied by 1.5 and rounded up to a decimal GB. The measured threshold, source run and integrated reload costs must be recorded before release; it does not represent a safe memory limit for every device.
+The defaults are ten completed reads and a process-footprint trigger of 18,000,000,000 bytes (18 decimal GB). The threshold was calibrated on October 9, 2026 on an M4 Max with 128 GiB, macOS 27.0 (26A428) and Xcode 27, using the Qwen3.8-27B 4bit dynamic `gdnfp32` variant. The `M4-h36-memory-v2` run starting at 2026-10-09 13:03:12 UTC (run ID `3cc72f3295ab`) used thirty prompts, a new conversation every ten turns, context limit 16,384, up to 64 generated tokens per turn, interval ten and no footprint trigger. Its maximum of all thirty immediate post-turn footprints was 11,937,577,240 bytes; multiplying by 1.5 and rounding up to a decimal GB gives 18,000,000,000 bytes. The delayed samples were not used in that calculation. This is a measured reload trigger, not a safe memory budget for every device.
 
 ## Limitations
 

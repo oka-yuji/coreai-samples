@@ -36,9 +36,9 @@ import Testing
                 policy: .init(readInterval: 0, footprintLimitBytes: 0), isNewConversation: true, footprint: .max))
     }
 
-    @Test("The draft default enables the ten-read interval and leaves the unmeasured footprint threshold disabled")
-    func draftDefault() {
-        #expect(LocalLanguageModel.ReloadPolicy() == .init(readInterval: 10, footprintLimitBytes: 0))
+    @Test("The default enables the ten-read interval and the calibrated footprint threshold")
+    func calibratedDefault() {
+        #expect(LocalLanguageModel.ReloadPolicy() == .init(readInterval: 10, footprintLimitBytes: 18_000_000_000))
     }
 
     @Test("An initial prompt is new once even when its first request fails and the same prompt is retried")
