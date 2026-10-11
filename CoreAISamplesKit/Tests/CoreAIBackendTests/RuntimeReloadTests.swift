@@ -101,7 +101,10 @@ struct RuntimeReloadTests {
             group.cancelAll()
             group.addTask {
                 do {
-                    _ = try await fixture.request("b")
+                    try await fixture.runtime.respond(
+                        to: directReloadRequest(
+                            Transcript(entries: [.prompt(.init(segments: [.text(.init(content: "b"))]))])),
+                        streamingInto: .init())
                     return false
                 } catch { return true }
             }
