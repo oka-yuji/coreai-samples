@@ -124,25 +124,13 @@ func cancelAfterFirstFragment(
         }
     }
     let signal = AsyncStream<String>.makeStream(bufferingPolicy: .bufferingOldest(1))
-    let observing = AsyncStream<Void>.makeStream()
     let observer = Task {
-        defer { observing.continuation.finish() }
-        var ready = false
-        for await text in Observations({ responseText(in: session.transcript, after: base) }) {
-            if !ready {
-                ready = true
-                observing.continuation.yield(())
-                observing.continuation.finish()
-            }
-            if !text.isEmpty {
-                signal.continuation.yield(text)
-                return
-            }
-        }
+        await waitUntil { !responseText(in: session.transcript, after: base).isEmpty }
+        let text = responseText(in: session.transcript, after: base)
+        if !text.isEmpty { signal.continuation.yield(text) }
     }
     let consumer = Task {
         defer { signal.continuation.finish() }
-        for await _ in observing.stream { break }
         try Task.checkCancellation()
         for try await _ in session.streamResponse(
             to: prompt, options: .init(samplingMode: .greedy, maximumResponseTokens: maximumTokens),
@@ -163,9 +151,7 @@ func cancelAfterFirstFragment(
             _ = await consumer.result
             await finishExecution()
             finished = true
-            for await responding in Observations({ session.isResponding }) {
-                if !responding { break }
-            }
+            await waitUntil { !session.isResponding }
             observer.cancel()
             await observer.value
             try Task.checkCancellation()
@@ -182,6 +168,20 @@ func cancelAfterFirstFragment(
         consumer.cancel()
         observer.cancel()
         signal.continuation.finish()
+    }
+}
+
+func waitUntil(_ condition: () -> Bool) async {
+    while !Task.isCancelled {
+        let changed = AsyncStream<Void>.makeStream(bufferingPolicy: .bufferingNewest(1))
+        let satisfied = withObservationTracking(options: [.didSet]) {
+            condition()
+        } onChange: { _ in
+            changed.continuation.yield(())
+        }
+        if satisfied || condition() { return }
+        var iterator = changed.stream.makeAsyncIterator()
+        _ = await iterator.next()
     }
 }
 
