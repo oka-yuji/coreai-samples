@@ -28,7 +28,7 @@ struct ChatView: View {
                 ContentUnavailableView {
                     Label("No model loaded", systemImage: "square.and.arrow.down")
                 } description: {
-                    Text("Open a model bundle folder in Models, then load it.")
+                    Text("Choose a model from the menu above, or open a bundle folder in Models.")
                 } actions: {
                     Button("Open Models") { navigator.selection = .models }
                 }
@@ -42,10 +42,7 @@ struct ChatView: View {
         return VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 12) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(vm.modelName.isEmpty ? "No model loaded" : vm.modelName)
-                        .font(.headline)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
+                    ModelMenu()
                     if let url = vm.bundleURL {
                         Text(ModelStorage.key(url))
                             .font(.caption)
@@ -87,7 +84,9 @@ struct ChatView: View {
         .defaultScrollAnchor(.bottom)
         .overlay {
             if vm.turns.isEmpty {
-                ContentUnavailableView("New chat", systemImage: "bubble.left.and.bubble.right", description: Text("Ask anything. The reply streams in as the model writes it."))
+                ContentUnavailableView(
+                    "New chat", systemImage: "bubble.left.and.bubble.right",
+                    description: Text("Ask anything. The reply streams in as the model writes it."))
             }
         }
     }
@@ -244,13 +243,15 @@ struct LoadingView: View {
                     .font(.headline)
                     .monospacedDigit()
             }
-            Text(preparing
-                ? "The first load of a model on this Mac prepares it for the GPU. This happens once per model; later loads reuse the prepared copy."
-                : "Reading the model from disk.")
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .frame(maxWidth: 440)
+            Text(
+                preparing
+                    ? "The first load of a model on this Mac prepares it for the GPU. This happens once per model; later loads reuse the prepared copy."
+                    : "Reading the model from disk."
+            )
+            .font(.callout)
+            .foregroundStyle(.secondary)
+            .multilineTextAlignment(.center)
+            .frame(maxWidth: 440)
         }
         .padding()
         .frame(maxWidth: .infinity, maxHeight: .infinity)
