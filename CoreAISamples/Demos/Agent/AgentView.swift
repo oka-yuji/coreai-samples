@@ -42,7 +42,9 @@ struct AgentView: View {
                 ContentUnavailableView {
                     Label("No model loaded", systemImage: "square.and.arrow.down")
                 } description: {
-                    Text("The agent uses the model that Chat has loaded. Open a model bundle folder in Models, then load it.")
+                    Text(
+                        "The agent uses the model that Chat has loaded. Choose a model from the menu above, or open a bundle folder in Models."
+                    )
                 } actions: {
                     Button("Open Models") { navigator.selection = .models }
                 }
@@ -54,15 +56,15 @@ struct AgentView: View {
     private var header: some View {
         HStack(spacing: 8) {
             VStack(alignment: .leading, spacing: 2) {
-                Text(chat.modelName.isEmpty ? "No model loaded" : chat.modelName)
-                    .font(.headline)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
-                Text("web_search · fetch_page · write_note" + (agent.allowFileOperations ? " · move_note" : "") + " — search via \(agent.searchProvider)")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                    .truncationMode(.tail)
+                ModelMenu()
+                Text(
+                    "web_search · fetch_page · write_note" + (agent.allowFileOperations ? " · move_note" : "")
+                        + " — search via \(agent.searchProvider)"
+                )
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .truncationMode(.tail)
             }
             Spacer()
             Button("Copy") { agent.copyTranscript() }
@@ -143,7 +145,9 @@ struct AgentView: View {
             }
             Toggle("Allow file operations (move_note, from the next task)", isOn: $agent.allowFileOperations)
             Toggle("Citation guard", isOn: $agent.citationGuard)
-                .help("Check the answer's and the notes' URLs against the pages fetched in this task, ask the model to fix them once, and keep notes as drafts until the check passes")
+                .help(
+                    "Check the answer's and the notes' URLs against the pages fetched in this task, ask the model to fix them once, and keep notes as drafts until the check passes"
+                )
             HStack(spacing: 6) {
                 Text("Notes folder")
                 Text(agent.notesDirectory.path(percentEncoded: false))
@@ -273,11 +277,14 @@ struct AgentEntryRow: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         case .note:
-            Label("\(entry.title): \(entry.text)", systemImage: entry.warning ? "exclamationmark.triangle" : "checkmark.seal")
-                .font(.caption)
-                .foregroundStyle(entry.warning ? Color.orange : Color.secondary)
-                .textSelection(.enabled)
-                .frame(maxWidth: .infinity, alignment: .leading)
+            Label(
+                "\(entry.title): \(entry.text)",
+                systemImage: entry.warning ? "exclamationmark.triangle" : "checkmark.seal"
+            )
+            .font(.caption)
+            .foregroundStyle(entry.warning ? Color.orange : Color.secondary)
+            .textSelection(.enabled)
+            .frame(maxWidth: .infinity, alignment: .leading)
         case .toolCall:
             VStack(alignment: .leading, spacing: 4) {
                 label("Calling \(entry.title)", "wrench.and.screwdriver")

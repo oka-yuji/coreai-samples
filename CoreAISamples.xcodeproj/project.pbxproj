@@ -21,6 +21,7 @@
 		24F936C411557B9362ED1A77 /* PhoneExtractView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EF29907EAA61DD548671267 /* PhoneExtractView.swift */; };
 		2628E17B820E1C5BC4153536 /* BundleSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8608B7A795003231A4E788DF /* BundleSupport.swift */; };
 		2662B8C643C55FC8FE5CCF95 /* GLiNERCore in Frameworks */ = {isa = PBXBuildFile; productRef = D7F4CF1B6D1F3A79E0E07777 /* GLiNERCore */; };
+		324F3326B68B737B45C1CBCE /* ModelMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51FF5AB624408DE25F252FFF /* ModelMenu.swift */; };
 		330B4A9240E9871AD04245A6 /* DecideSelfTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47737423C61124F4327C174E /* DecideSelfTest.swift */; };
 		36B44880EECCFBD6D426A9E3 /* DecideResultRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F7FE685C8A7B3B5D383AC56 /* DecideResultRow.swift */; };
 		36D49B81E1D68D03832B9359 /* ExtractRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F2F07EBDAB41490EF60A529 /* ExtractRunner.swift */; };
@@ -84,6 +85,7 @@
 		47737423C61124F4327C174E /* DecideSelfTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DecideSelfTest.swift; sourceTree = "<group>"; };
 		4F02F3A778FCB93B0D8828BB /* DemoAppMain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoAppMain.swift; sourceTree = "<group>"; };
 		5071A083BC24B9B2B38CEFFB /* SelfTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelfTest.swift; sourceTree = "<group>"; };
+		51FF5AB624408DE25F252FFF /* ModelMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelMenu.swift; sourceTree = "<group>"; };
 		53F15DB3D78F006C718A6F5E /* correction_words.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = correction_words.json; sourceTree = "<group>"; };
 		57DF8A7744E8740E70B48D78 /* GUIDriver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GUIDriver.swift; sourceTree = "<group>"; };
 		598FAFD4122CCFFFB1A83FB4 /* HubDownloadSelfTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HubDownloadSelfTest.swift; sourceTree = "<group>"; };
@@ -176,6 +178,7 @@
 				09F71463DA4F2153E25B4F33 /* Catalog.swift */,
 				3A20485F7EB3740C480083D7 /* HubDownloader.swift */,
 				598FAFD4122CCFFFB1A83FB4 /* HubDownloadSelfTest.swift */,
+				51FF5AB624408DE25F252FFF /* ModelMenu.swift */,
 				B7DE5BA037505543B8869BB1 /* ModelSelectionSelfTest.swift */,
 				FAE0376EC66AACAB7D06A922 /* ModelStorage.swift */,
 				B70B30B00E918D18EE2AA983 /* ModelsView.swift */,
@@ -476,6 +479,7 @@
 				6895060850B682FA0B41235D /* HubDownloader.swift in Sources */,
 				46CBAB943E1184CC6B04C04C /* LaunchArguments.swift in Sources */,
 				C6C9A2085B4BE5EBDEB9030D /* MetricsLog.swift in Sources */,
+				324F3326B68B737B45C1CBCE /* ModelMenu.swift in Sources */,
 				8685AA2B616BA4AF220D767D /* ModelSelectionSelfTest.swift in Sources */,
 				8384E9A460827793A6125FBB /* ModelStorage.swift in Sources */,
 				C0366556B44891DDD42D78D0 /* ModelsView.swift in Sources */,
