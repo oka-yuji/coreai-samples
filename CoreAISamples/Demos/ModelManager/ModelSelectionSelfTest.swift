@@ -9,6 +9,14 @@ enum ModelSelectionSelfTest {
 
     @MainActor
     static func run(_ check: (String, Bool, String) -> Void) async {
+        let published = Catalog.models.first
+        check(
+            "catalog/qwen38-27b-4bit",
+            Catalog.models.count == 1 && published?.id == "qwen3-8-27b-4bit"
+                && published?.repo == "okayuji/Qwen3.8-27B-coreai-4bit"
+                && published?.revision == "c034c9857455a48cea715fec19eb49b3227b2458"
+                && published?.sizeBytes == 16_852_520_981,
+            "\(Catalog.models.map { "\($0.id) \($0.repo)@\($0.revision) \($0.sizeBytes)" })")
         let name = "model-selection-\(UUID().uuidString)"
         let root = FileManager.default.temporaryDirectory.appending(path: name)
         guard let defaults = UserDefaults(suiteName: name) else {
