@@ -36,16 +36,27 @@ public struct LocalLanguageModel: LanguageModel {
     public let loadStats: Engine.LoadStats
     let runtime: Runtime
 
-    public init(bundle url: URL, contextLimit: Int? = nil, overflow: OverflowPolicy = .error) async throws {
+    public init(
+        bundle url: URL, contextLimit: Int? = nil, overflow: OverflowPolicy = .error,
+        reloadPolicy: ReloadPolicy = .init()
+    ) async throws {
         try await self.init(
-            bundle: url, contextLimit: contextLimit, overflow: overflow, verification: VerificationSettings())
+            bundle: url, contextLimit: contextLimit, overflow: overflow, reloadPolicy: reloadPolicy,
+            verification: VerificationSettings())
     }
 
     @_spi(Verification) public init(
-        bundle url: URL, contextLimit: Int?, overflow: OverflowPolicy, verification: VerificationSettings
+        bundle url: URL, contextLimit: Int?, overflow: OverflowPolicy, reloadPolicy: ReloadPolicy = .init(),
+        verification: VerificationSettings
     ) async throws {
-        runtime = try await Runtime(
-            bundle: ModelBundle(url: url), contextLimit: contextLimit, overflow: overflow, settings: verification)
+        let runtime = try await Runtime(
+            bundle: ModelBundle(url: url), contextLimit: contextLimit, overflow: overflow, settings: verification,
+            reloadPolicy: reloadPolicy)
+        self.init(runtime: runtime, bundle: url)
+    }
+
+    init(runtime: Runtime, bundle url: URL) {
+        self.runtime = runtime
         capabilities = LanguageModelCapabilities(runtime.thinks ? [.reasoning, .toolCalling] : [.toolCalling])
         executorConfiguration = url
         loadStats = runtime.loadStats
@@ -63,6 +74,10 @@ public struct LocalLanguageModel: LanguageModel {
         await runtime.state()
     }
 
+    @_spi(Verification) public func lastGeneratedTokens() async -> [Int32] {
+        await runtime.generatedTokens()
+    }
+
     @_spi(Verification) public func resetAndRead(_ tokens: [Int32]) async throws -> [Float16] {
         try await runtime.resetAndRead(tokens)
     }
@@ -74,7 +89,16 @@ actor Runtime {
 
     nonisolated let loadStats: Engine.LoadStats
     nonisolated let thinks: Bool
-    private let core: EngineBox
+    private var core: EngineBox?
+    private let bundle: ModelBundle
+    private let contextLimit: Int
+    private let reloadPolicy: LocalLanguageModel.ReloadPolicy
+    private let makeEngine: @Sendable (ModelBundle, Int) async throws -> EngineBox
+    private let footprint: @Sendable () throws -> UInt64
+    private var reloadState = ReloadState()
+    private var unloadedTokens: [Int32]?
+    private var beganReading = false
+    private var lastGeneration: [Int32] = []
     nonisolated let tokenizer: any Tokenizer
     private let stopTokens: Set<Int32>
     private let sanitizer: ControlTokenSanitizer
@@ -89,14 +113,26 @@ actor Runtime {
 
     init(
         bundle: ModelBundle, contextLimit: Int?, overflow: LocalLanguageModel.OverflowPolicy,
-        settings: LocalLanguageModel.VerificationSettings
+        settings: LocalLanguageModel.VerificationSettings,
+        reloadPolicy: LocalLanguageModel.ReloadPolicy = .init(),
+        makeEngine: @escaping @Sendable (ModelBundle, Int) async throws -> EngineBox = {
+            EngineBox(try await Engine(bundle: $0, contextLimit: $1))
+        },
+        footprint: @escaping @Sendable () throws -> UInt64 = ProcessFootprint.bytes
     ) async throws {
+        guard reloadPolicy.readInterval >= 0 else { throw ReloadError.negativeInterval(reloadPolicy.readInterval) }
+        self.bundle = bundle
+        self.contextLimit = min(contextLimit ?? bundle.maxContextLength, bundle.maxContextLength)
+        self.reloadPolicy = reloadPolicy
+        self.makeEngine = makeEngine
+        self.footprint = footprint
         sanitizer = try ControlTokenSanitizer(tokens: bundle.addedTokenStrings())
         tokenizer = try await bundle.loadTokenizer()
-        core = EngineBox(try await Engine(bundle: bundle, contextLimit: contextLimit))
+        let loaded = try await makeEngine(bundle, self.contextLimit)
+        core = loaded
         self.overflow = overflow
         self.settings = settings
-        loadStats = core.engine.loadStats
+        loadStats = loaded.engine.loadStats
         thinks = tokenizer.convertTokenToId(ThinkParser.open) != nil
         stopTokens = Set(
             [tokenizer.eosTokenId, tokenizer.convertTokenToId("<|endoftext|>")].compactMap { $0.map(Int32.init) })
@@ -106,24 +142,65 @@ actor Runtime {
         get async {
             await lock()
             defer { unlock() }
-            return core.engine.tokens
+            return core?.engine.tokens ?? []
         }
     }
 
     func state() async -> (tokens: [Int32], logits: [Float16]) {
         await lock()
         defer { unlock() }
-        return (core.engine.tokens, core.engine.hasLogits ? core.engine.logits() : [])
+        return (core?.engine.tokens ?? [], core?.engine.hasLogits == true ? core?.engine.logits() ?? [] : [])
+    }
+
+    func generatedTokens() async -> [Int32] {
+        await lock()
+        defer { unlock() }
+        return lastGeneration
     }
 
     func resetAndRead(_ tokens: [Int32]) async throws -> [Float16] {
         await lock()
         defer { unlock() }
+        return try await reread(tokens, core: currentCore())
+    }
+
+    private func reread(_ tokens: [Int32], core: EngineBox) async throws -> [Float16] {
         core.engine.reset()
         checkpoints.removeAll()
-        guard !tokens.isEmpty else { return [] }
-        try await compute { try await core.engine.prefill(tokens) }
+        guard !tokens.isEmpty else {
+            unloadedTokens = nil
+            return []
+        }
+        try await compute(core: core) { try await core.engine.prefill(tokens, usePrefillFunction: true) }
+        unloadedTokens = nil
         return core.engine.logits()
+    }
+
+    private func currentCore() throws -> EngineBox {
+        guard let core else { throw EngineError.unloaded }
+        return core
+    }
+
+    private func reloadIfNeeded(isNewConversation: Bool) async throws -> Double? {
+        try Task.checkCancellation()
+        let bytes = reloadPolicy.footprintLimitBytes > 0 ? try footprint() : 0
+        guard
+            core == nil
+                || reloadState.shouldReload(
+                    policy: reloadPolicy, isNewConversation: isNewConversation, footprint: bytes)
+        else {
+            return nil
+        }
+        let start = ContinuousClock.now
+        if unloadedTokens == nil { unloadedTokens = core?.engine.tokens }
+        checkpoints.removeAll()
+        core?.engine.unload()
+        core = nil
+        core = try await withTaskCancellationShield { try await makeEngine(bundle, contextLimit) }
+        reloadState.didLoad()
+        let elapsed = (ContinuousClock.now - start) / .seconds(1)
+        try Task.checkCancellation()
+        return elapsed
     }
 
     func respond(
@@ -131,16 +208,21 @@ actor Runtime {
         streamingInto channel: LanguageModelExecutorGenerationChannel
     ) async throws {
         let tools = try Self.validatedTools(for: request)
+        await lock()
+        beganReading = false
+        lastGeneration = []
+        defer {
+            if beganReading { reloadState.completedRead() }
+            unlock()
+        }
+        let isNewConversation = reloadState.observe(Self.reloadConversation(request.transcript))
+        try Task.checkCancellation()
         var context = Self.templateContext(request.contextOptions.reasoningLevel, variables: settings.templateVariables)
         if !tools.isEmpty { context["tools"] = Value.array(tools.map(\.spec)) }
-        let contextLimit = core.engine.contextLimit
         let reserve =
             overflow == .dropOldToolOutputs
             ? min(request.generationOptions.maximumResponseTokens ?? 1024, contextLimit / 2) : nil
 
-        await lock()
-        defer { unlock() }
-        try Task.checkCancellation()
         let (messages, rendered, cuts) = try Self.fit(
             request.transcript, remembered: self.cuts, written: written, keepsReasoning: settings.keepsHistoryReasoning,
             limit: contextLimit,
@@ -156,29 +238,53 @@ actor Runtime {
                     $0 == $1
                 }.count
             } ?? 0
-        var sampler = Self.sampler(request.generationOptions)
+        let previous = unloadedTokens ?? core?.engine.tokens ?? []
+        let hasUnloadedHistory = unloadedTokens != nil
         var splicing = generations
         func splice(_ tokens: ArraySlice<Int32>) -> (prompt: [Int32], spliced: Int) {
-            ReusePlan.splice(Array(tokens), processed: core.engine.tokens, generations: splicing) {
+            ReusePlan.splice(Array(tokens), processed: previous, generations: splicing) {
                 tokenizer.decode(tokens: $0)
             }
         }
         var (prompt, spliced) = splice(rendered[...])
         if prompt.count >= contextLimit { (splicing, prompt, spliced) = ([], rendered, 0) }
+        let boundary = splice(rendered.prefix(afterUser)).prompt.count
+        let reloadSeconds = try await reloadIfNeeded(isNewConversation: isNewConversation)
+        let sharedOverride =
+            reloadSeconds != nil || hasUnloadedHistory
+            ? zip(settings.reusesState ? previous : [], prompt).prefix { $0 == $1 }.count : nil
+        try await generate(
+            request: request, channel: channel, core: currentCore(), tools: tools, messages: messages, context: context,
+            rendered: rendered, prompt: prompt, afterUser: boundary, previous: previous, splicing: splicing,
+            spliced: spliced, truncated: truncated, reloadSeconds: reloadSeconds, sharedOverride: sharedOverride)
+    }
+
+    private func generate(
+        request: LanguageModelExecutorGenerationRequest, channel: LanguageModelExecutorGenerationChannel,
+        core: EngineBox, tools: [ToolSchema], messages: [Message], context: [String: any Sendable],
+        rendered: [Int32], prompt: [Int32], afterUser: Int, previous: [Int32],
+        splicing: [(start: Int, tokens: [Int32])], spliced: Int, truncated: Int, reloadSeconds: Double?,
+        sharedOverride: Int?
+    ) async throws {
+        var sampler = Self.sampler(request.generationOptions)
+        let lastUser = messages.lastIndex { $0["role"] as? String == "user" }
         let opensReasoning = ThinkParser.opensReasoning(after: prompt) { tokenizer.decode(tokens: $0) }
         let limit = min(request.generationOptions.maximumResponseTokens ?? .max, contextLimit - prompt.count)
         let clock = ContinuousClock()
         let start = clock.now
         let before = core.engine.stats.prefillTokens
-        let plan = try await read(prompt, afterUser: splice(rendered.prefix(afterUser)).prompt.count) {
+        let plan = try await read(prompt, core: core, afterUser: afterUser) {
             guard let lastUser else { return 0 }
             var replaced = Array(messages[...lastUser])
             replaced[lastUser]["content"] = (messages[lastUser]["content"] as? String ?? "").hasPrefix("A") ? "B" : "A"
             let question = zip(try render(replaced, generationPrompt: false, context: context), rendered).prefix {
                 $0 == $1
             }.count
-            return splice(rendered.prefix(question)).prompt.count
+            return ReusePlan.splice(Array(rendered.prefix(question)), processed: previous, generations: splicing) {
+                tokenizer.decode(tokens: $0)
+            }.prompt.count
         }
+        unloadedTokens = nil
         let prefilled = core.engine.stats.prefillTokens - before
         let readEnd = clock.now
 
@@ -188,6 +294,7 @@ actor Runtime {
                 ? nil : ToolCallParser(types: Dictionary(tools.map { ($0.name, $0.types) }) { a, _ in a }))
         var generated: [Int32] = []
         defer {
+            lastGeneration = generated
             for call in output.written { written[call.id] = call.keys }
             written.removeFirst(max(0, written.count - Self.rememberedCalls))
             if !generated.isEmpty { generations.append((prompt.count, generated)) }
@@ -214,16 +321,18 @@ actor Runtime {
             let counted = wasReasoning || parser.reasoning
             if counted { reasoningTokens += 1 }
             await output.send(parts, reasoning: counted)
-            if generated.count < limit { try await compute { try await core.engine.step(token) } }
+            if generated.count < limit { try await compute(core: core) { try await core.engine.step(token) } }
         }
         await output.send(
             parser.feed(tokenizer.decode(tokens: pending)) + parser.finish(), reasoning: false, last: true)
-        let metadata: [String: any ConvertibleToGeneratedContent] = [
-            "stopReason": stopReason, "prefillTokens": prefilled, "sharedTokens": plan.shared,
+        let shared = sharedOverride ?? plan.shared
+        var metadata: [String: any ConvertibleToGeneratedContent] = [
+            "stopReason": stopReason, "prefillTokens": prefilled, "sharedTokens": shared,
             "truncatedToolOutputs": truncated,
             "reservedTokens": contextLimit - prompt.count, "splicedGenerations": spliced,
             "prefillSeconds": (readEnd - start) / .seconds(1), "decodeSeconds": (clock.now - readEnd) / .seconds(1),
         ]
+        if let reloadSeconds { metadata["reloadSeconds"] = reloadSeconds }
         if let call = output.lastCall {
             await channel.send(
                 .toolCalls(action: .toolCall(id: call.id, name: call.name, action: .updateMetadata(metadata))))
@@ -237,7 +346,9 @@ actor Runtime {
                     output: .init(totalTokenCount: generated.count, reasoningTokenCount: reasoningTokens))))
     }
 
-    private func read(_ prompt: [Int32], afterUser: Int, questionStart: () throws -> Int) async throws -> ReusePlan {
+    private func read(_ prompt: [Int32], core: EngineBox, afterUser: Int, questionStart: () throws -> Int) async throws
+        -> ReusePlan
+    {
         let plan = try Self.plan(
             prompt, processed: core.engine.tokens, saved: checkpoints.values.map(\.tokens.count),
             hybrid: core.engine.isHybrid,
@@ -255,7 +366,8 @@ actor Runtime {
         for stop in plan.stops {
             if stop.position > cursor {
                 let segment = Array(prompt[cursor..<stop.position])
-                try await compute { try await core.engine.prefill(segment) }
+                beganReading = true
+                try await compute(core: core) { try await core.engine.prefill(segment, usePrefillFunction: true) }
                 cursor = stop.position
             }
             if stop.role == .afterUser {
@@ -272,7 +384,7 @@ actor Runtime {
         return plan
     }
 
-    private func compute(_ body: () async throws -> Void) async throws {
+    private func compute(core: EngineBox, _ body: () async throws -> Void) async throws {
         do {
             try await body()
         } catch {
@@ -588,9 +700,9 @@ struct ToolSchema {
 }
 
 final class EngineBox: @unchecked Sendable {
-    let engine: Engine
+    let engine: any RuntimeEngine
 
-    init(_ engine: Engine) {
+    init(_ engine: any RuntimeEngine) {
         self.engine = engine
     }
 }
