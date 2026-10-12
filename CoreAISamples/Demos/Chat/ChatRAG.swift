@@ -115,7 +115,7 @@ enum RAGRetriever {
             .prefix(settings.pagesToRead)
             .compactMap { result -> (AgentTools.SearchResult, URL)? in
                 guard let url = URL(string: result.url), let scheme = url.scheme?.lowercased(),
-                    scheme == "http" || scheme == "https", !AgentTools.isLocalOrPrivate(url.host())
+                    scheme == "http" || scheme == "https", url.host != nil
                 else { return nil }
                 return (result, url)
             }
@@ -137,20 +137,41 @@ enum RAGRetriever {
         return read.flatMap(\.1)
     }
 
-    private static func passages(from result: AgentTools.SearchResult, url: URL, question: String, budget: Int) async
-        -> [RAGSource]?
-    {
+    static func readPage(
+        url: URL,
+        policy: AgentFetchPolicy = AgentFetchPolicy(),
+        download: @Sendable (URL) async throws -> String = AgentTools.download,
+        render: @Sendable (URL) async throws -> String = AgentPageReader.readableText
+    ) async throws -> (html: String, text: String) {
+        try await policy.validate(url)
         var html = ""
         var text = ""
         do {
-            html = try await AgentTools.download(url: url)
+            html = try await download(url)
             text = AgentTools.plainText(fromHTML: html)
+        } catch let failure as AgentToolMessage where failure.forbidsPageFallback {
+            throw failure
+        } catch is CancellationError {
+            throw CancellationError()
         } catch {
             AgentTools.log("[rag] \(url.absoluteString) direct read failed: \(error)")
         }
         if text.count < 400 {
-            guard let rendered = try? await AgentPageReader.readableText(url: url) else { return nil }
-            text = AgentTools.condense(rendered)
+            text = AgentTools.condense(try await render(url))
+        }
+        return (html, text)
+    }
+
+    private static func passages(from result: AgentTools.SearchResult, url: URL, question: String, budget: Int) async
+        -> [RAGSource]?
+    {
+        let html: String
+        let text: String
+        do {
+            (html, text) = try await readPage(url: url)
+        } catch {
+            AgentTools.log("[rag] \(url.absoluteString) read failed: \(error)")
+            return nil
         }
         guard !text.isEmpty else { return nil }
 

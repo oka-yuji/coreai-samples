@@ -516,6 +516,13 @@ enum AgentSelfTest {
             "offsets \(offsets)")
 
         await m4gChecks { name, passed, detail in check(name, passed, detail) }
+        await fetchAddressChecks(offline: offline) { name, passed, detail in check(name, passed, detail) }
+        if !offline, let directory = LaunchArguments.value("--fetch-capture-dir") {
+            await captureFetchPages(directory) { name, passed, detail in check(name, passed, detail) }
+        }
+        for result in await HubDownloadSelfTest.run(offline: offline) {
+            check(result.name, result.passed, result.detail)
+        }
 
         if offline {
             out("SKIP  search/live (--offline)")
@@ -1191,4 +1198,160 @@ enum AgentSelfTest {
           </div>
         </div>
         """
+
+    @MainActor
+    private static func fetchAddressChecks(offline: Bool, _ check: (String, Bool, String) -> Void) async {
+        guard let publicURL = URL(string: "https://public.example/page"),
+            let privateURL = URL(string: "http://127.0.0.1/private")
+        else {
+            check("fetch/addressFixtures", false, "Invalid URL fixture")
+            return
+        }
+        let mapped = [UInt8](repeating: 0, count: 10) + [255, 255, 127, 0, 0, 1]
+        for (name, addresses, permitted) in [
+            ("loopback", [[127, 0, 0, 1]], false),
+            ("private", [[10, 0, 0, 1]], false),
+            ("shared", [[100, 64, 0, 1]], false),
+            ("mapped", [mapped], false),
+            ("mixed", [[8, 8, 8, 8], [192, 168, 0, 1]], false),
+            ("public", [[8, 8, 8, 8], [1, 1, 1, 1]], true),
+            ("empty", [], false),
+        ] {
+            do {
+                try await AgentFetchPolicy(resolve: { _ in addresses }).validate(publicURL)
+                check("fetch/resolved/" + name, permitted, "Unexpectedly allowed")
+            } catch {
+                check("fetch/resolved/" + name, !permitted, "\(error)")
+            }
+        }
+        for address in ["2130706433", "0x7f.1", "0177.0.0.1", "[::ffff:7f00:1]", "localhost."] {
+            do {
+                try await AgentFetchPolicy().validate(URL(string: "http://\(address)/"))
+                check("fetch/numeric/" + address, false, "Unexpectedly allowed")
+            } catch {
+                check("fetch/numeric/" + address, true, "\(error)")
+            }
+        }
+        let cancelledScope = AgentAddressScope()
+        cancelledScope.cancel()
+        for name in ["8.8.8.8", "public.example"] {
+            do {
+                _ = try await AgentAddressResolver.resolve(name, scope: cancelledScope)
+                check("fetch/cancelledResolutionScope/" + name, false, "Unexpected success")
+            } catch is CancellationError {
+                check("fetch/cancelledResolutionScope/" + name, true, "")
+            } catch { check("fetch/cancelledResolutionScope/" + name, false, "\(error)") }
+        }
+        let policy = AgentFetchPolicy(resolve: { host in
+            host == "public.example" ? [[8, 8, 8, 8]] : [[127, 0, 0, 1]]
+        })
+        do {
+            let page = try await RAGRetriever.readPage(
+                url: publicURL, policy: policy,
+                download: { _ in throw AgentToolMessage(text: "error: HTTP 403", fatal: true) },
+                render: { _ in "Public page rendered after a direct HTTP failure." })
+            check(
+                "fetch/ragKeepsRenderFallback", page.text == "Public page rendered after a direct HTTP failure.",
+                page.text)
+        } catch { check("fetch/ragKeepsRenderFallback", false, "\(error)") }
+        do {
+            _ = try await RAGRetriever.readPage(
+                url: publicURL, policy: policy,
+                download: { _ in
+                    throw AgentToolMessage(text: AgentTools.localAddressRefusal, fatal: true, forbidsPageFallback: true)
+                },
+                render: { _ in throw AgentToolMessage(text: "error: forbidden render started") })
+            check("fetch/ragRefusalSkipsRender", false, "Unexpected success")
+        } catch let error as AgentToolMessage {
+            check("fetch/ragRefusalSkipsRender", error.text == AgentTools.localAddressRefusal, error.text)
+        } catch { check("fetch/ragRefusalSkipsRender", false, "\(error)") }
+        if let response = HTTPURLResponse(url: publicURL, statusCode: 302, httpVersion: nil, headerFields: nil) {
+            let redirects = AgentFetchRedirects(policy: policy)
+            let task = URLSession.shared.dataTask(with: publicURL)
+            let next = await redirects.urlSession(
+                .shared, task: task, willPerformHTTPRedirection: response, newRequest: URLRequest(url: privateURL))
+            var text = "redirect body"
+            do { try redirects.checkResponse() } catch let error as AgentToolMessage { text = error.text } catch {}
+            check("fetch/redirectBeforeRequest", next == nil && text == AgentTools.localAddressRefusal, text)
+        }
+        for mainFrame in [true, false] {
+            let reader = AgentPageReader(policy: policy)
+            let decision = await reader.navigationPolicy(url: privateURL, isMainFrame: mainFrame)
+            check("fetch/webNavigation/\(mainFrame ? "main" : "subframe")", decision == .cancel, "\(decision)")
+        }
+        let reader = AgentPageReader(policy: policy)
+        do {
+            _ = try await reader.configuration()
+            check("fetch/contentRulesInstalled", reader.contentRulesInstalled, "Rules were not installed")
+        } catch { check("fetch/contentRulesInstalled", false, "\(error)") }
+        for evaluation in [false, true] {
+            for outcome in ["refusal", "cancellation", "success", "before-registration"] {
+                let waiting = AgentPageReader(policy: policy)
+                let refusal = AgentToolMessage(text: AgentTools.localAddressRefusal, fatal: true)
+                if outcome == "before-registration" { waiting.abort(with: refusal) }
+                var result = "success"
+                do {
+                    if evaluation {
+                        _ = try await waiting.waitForEvaluation { complete in
+                            if outcome == "refusal" { waiting.abort(with: refusal) }
+                            if outcome == "cancellation" { waiting.abort(with: CancellationError()) }
+                            complete(.success("page"))
+                            complete(.failure(refusal))
+                            waiting.abort(with: CancellationError())
+                        }
+                    } else {
+                        try await waiting.waitForNavigation {
+                            if outcome == "refusal" { waiting.abort(with: refusal) }
+                            if outcome == "cancellation" { waiting.abort(with: CancellationError()) }
+                            waiting.finish(.success(()))
+                            waiting.finish(.failure(refusal))
+                            waiting.abort(with: CancellationError())
+                        }
+                    }
+                } catch let error as AgentToolMessage { result = error.text } catch is CancellationError {
+                    result = "cancellation"
+                } catch { result = "\(error)" }
+                let expected = outcome == "refusal" || outcome == "before-registration" ? refusal.text : outcome
+                check("fetch/continuation/\(evaluation)/\(outcome)", result == expected, result)
+            }
+        }
+        if !offline, let raw = LaunchArguments.value("--fetch-redirect-test-url"), let url = URL(string: raw) {
+            let output = await AgentTools.run(
+                AgentToolCall(name: "fetch_page", arguments: [AgentArgument(name: "url", value: raw)]),
+                settings: AgentToolSettings())
+            check("fetch/liveRedirect/agent", output.text == AgentTools.localAddressRefusal, output.text)
+            do {
+                _ = try await RAGRetriever.readPage(url: url)
+                check("fetch/liveRedirect/rag", false, "Unexpectedly allowed")
+            } catch let error as AgentToolMessage {
+                check("fetch/liveRedirect/rag", error.text == AgentTools.localAddressRefusal, error.text)
+            } catch { check("fetch/liveRedirect/rag", false, "\(error)") }
+        }
+    }
+
+    @MainActor
+    private static func captureFetchPages(_ directory: String, _ check: (String, Bool, String) -> Void) async {
+        let addresses = [
+            "https://developer.apple.com/documentation/coreml",
+            "https://en.wikipedia.org/wiki/Metal_(API)",
+            "https://www.apple.com/newsroom/2025/02/apple-debuts-iphone-16e-a-powerful-new-member-of-the-iphone-16-family/",
+        ]
+        let destination = URL(filePath: directory, directoryHint: .isDirectory)
+        do { try FileManager.default.createDirectory(at: destination, withIntermediateDirectories: true) } catch {
+            check("fetch/captureDirectory", false, "\(error)")
+            return
+        }
+        for (index, raw) in addresses.enumerated() {
+            let output = await AgentTools.run(
+                AgentToolCall(name: "fetch_page", arguments: [AgentArgument(name: "url", value: raw)]),
+                settings: AgentToolSettings(pageCharacterBudget: 1_000_000))
+            do {
+                try output.text.write(
+                    to: destination.appending(path: "page-\(index).txt"), atomically: true, encoding: .utf8)
+                check(
+                    "fetch/capture/\(index)", output.finalURL != nil && output.text.count > 400,
+                    "\(output.text.prefix(120))")
+            } catch { check("fetch/capture/\(index)", false, "\(error)") }
+        }
+    }
 }
