@@ -113,6 +113,7 @@ func responseText(in transcript: Transcript, after index: Int) -> String {
 
 func cancelAfterFirstFragment(
     _ session: LanguageModelSession, prompt: String, maximumTokens: Int,
+    context: ContextOptions = ModelTestSettings.context,
     beforeCancellation: @Sendable (String) async throws -> Void = { _ in },
     executionStarted: @Sendable () -> Bool = { true },
     waitUntilFinished: @Sendable () async -> Void
@@ -134,7 +135,7 @@ func cancelAfterFirstFragment(
         try Task.checkCancellation()
         for try await _ in session.streamResponse(
             to: prompt, options: .init(samplingMode: .greedy, maximumResponseTokens: maximumTokens),
-            contextOptions: ModelTestSettings.context)
+            contextOptions: context)
         {}
     }
     return try await withTaskCancellationHandler {

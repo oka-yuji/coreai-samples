@@ -138,8 +138,10 @@ extension ModelIntegrationTests {
         .enabled(if: !bundlePaths.isEmpty), arguments: bundlePaths)
     func twoSessionsShareOneModel(path: String) async throws {
         let pairs = try ModelTestSettings.repetitions("COREAI_CONCURRENCY_PAIRS", default: 50)
+        let reloadPolicy = try ModelTestSettings.reloadPolicy()
         let base = try await LocalLanguageModel(
-            bundle: URL(filePath: path), contextLimit: ModelTestSettings.contextLimit)
+            bundle: URL(filePath: path), contextLimit: ModelTestSettings.contextLimit, reloadPolicy: reloadPolicy)
+        var reloads = 0
         for pair in 0..<pairs {
             let probe = RequestOverlapProbe()
             let model = ObservedLanguageModel(base: base, probe: probe)
@@ -166,6 +168,7 @@ extension ModelIntegrationTests {
                 options: .init(samplingMode: .greedy, maximumResponseTokens: 96),
                 contextOptions: ModelTestSettings.context)
             let (firstText, secondResponse) = try await (firstResult, secondResult)
+            if case .response(let last) = second.transcript.last, last.metadata["reloadSeconds"] != nil { reloads += 1 }
             #expect(!firstText.isEmpty && !secondResponse.content.isEmpty)
             #expect(!firstText.uppercased().contains(secondMarker))
             #expect(!secondResponse.content.uppercased().contains(firstMarker))
@@ -183,6 +186,12 @@ extension ModelIntegrationTests {
                 #expect(!recovered.content.uppercased().contains(secondMarker))
             }
         }
+        if ProcessInfo.processInfo.environment["COREAI_TEST_RELOAD_FOOTPRINT_BYTES"] != nil,
+            reloadPolicy.footprintLimitBytes > 0
+        {
+            #expect(reloads > 0)
+        }
+        print("concurrency-reloads=\(reloads)")
         try await ModelTestSettings.checkState(base, label: "two-sessions-final")
     }
 }

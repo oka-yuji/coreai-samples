@@ -4,7 +4,7 @@ import PackageDescription
 let package = Package(
     name: "Verify",
     platforms: [
-        .macOS("27.0"),
+        .macOS("27.0")
     ],
     dependencies: [
         .package(path: "../../CoreAISamplesKit"),
@@ -15,7 +15,7 @@ let package = Package(
         .target(
             name: "ControlRuntime",
             dependencies: [
-                .product(name: "CoreAILM", package: "coreai-models"),
+                .product(name: "CoreAILM", package: "coreai-models")
             ]
         ),
         .executableTarget(
@@ -25,6 +25,18 @@ let package = Package(
                 .product(name: "CoreAIBackend", package: "CoreAISamplesKit"),
                 .product(name: "CoreAILM", package: "coreai-models"),
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
+            ]
+        ),
+        .testTarget(
+            name: "CoreAIVerifyTests",
+            dependencies: [
+                "coreai-verify",
+                .product(name: "ArgumentParser", package: "swift-argument-parser"),
+            ],
+            swiftSettings: [
+                .swiftLanguageMode(.v6),
+                .enableUpcomingFeature("NonisolatedNonsendingByDefault"),
+                .enableUpcomingFeature("InferIsolatedConformances"),
             ]
         ),
     ]
