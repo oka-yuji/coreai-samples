@@ -9,10 +9,14 @@ enum ModelSelectionSelfTest {
 
     @MainActor
     static func run(_ check: (String, Bool, String) -> Void) async {
-        let root = FileManager.default.temporaryDirectory.appending(path: "model-selection-\(UUID().uuidString)")
-        let savedFolders = ModelStorage.folders
+        let name = "model-selection-\(UUID().uuidString)"
+        let root = FileManager.default.temporaryDirectory.appending(path: name)
+        guard let defaults = UserDefaults(suiteName: name) else {
+            check("bundles/isolatedDefaults", false, "could not create isolated defaults")
+            return
+        }
         defer {
-            ModelStorage.folders = savedFolders
+            defaults.removePersistentDomain(forName: name)
             try? FileManager.default.removeItem(at: root)
         }
         do {
@@ -22,7 +26,7 @@ enum ModelSelectionSelfTest {
             .map { try bundle($0.0, modelID: $0.1, in: root) }
             let clef = try bundle("clef", modelID: "Cloudflare/clef-flash", in: root)
             let unknown = try bundle("unknown", modelID: nil, in: root)
-            await bundleChecks(qwen: qwen, clef: clef, unknown: unknown, check)
+            await bundleChecks(qwen: qwen, clef: clef, unknown: unknown, defaults: defaults, check)
         } catch {
             check("bundles/fixtures", false, "\(error)")
         }
@@ -30,17 +34,17 @@ enum ModelSelectionSelfTest {
 
     @MainActor
     private static func bundleChecks(
-        qwen: [URL], clef: URL, unknown: URL, _ check: (String, Bool, String) -> Void
+        qwen: [URL], clef: URL, unknown: URL, defaults: UserDefaults, _ check: (String, Bool, String) -> Void
     ) async {
         let accepted = qwen.filter { (try? BundleSupport.supportedBundle(at: $0)) != nil }
         check("bundles/supportedPrefixes", accepted == qwen, "accepted \(accepted.map(\.lastPathComponent))")
 
-        ModelStorage.folders = []
-        let models = ModelsViewModel()
+        let models = ModelsViewModel(defaults: defaults)
+        func stored() -> [String] { defaults.stringArray(forKey: ModelsViewModel.foldersDefaultsKey) ?? [] }
         var registered: [String] = []
         for url in qwen {
             models.open(url)
-            if models.message == nil, ModelStorage.folders.contains(ModelStorage.key(url)) {
+            if models.message == nil, stored().contains(ModelStorage.key(url)) {
                 registered.append(url.lastPathComponent)
             }
         }
@@ -53,11 +57,11 @@ enum ModelSelectionSelfTest {
             models.message = nil
             models.open(url)
             check(
-                name, models.message == reason && !ModelStorage.folders.contains(ModelStorage.key(url)),
+                name, models.message == reason && !stored().contains(ModelStorage.key(url)),
                 models.message ?? "nil")
         }
 
-        ModelStorage.folders = [ModelStorage.key(qwen[1]), ModelStorage.key(clef)]
+        defaults.set([ModelStorage.key(qwen[1]), ModelStorage.key(clef)], forKey: ModelsViewModel.foldersDefaultsKey)
         models.refresh()
         let rows = models.folders.map { "\($0.name ?? "nil")|\($0.problem ?? "nil")" }
         check(

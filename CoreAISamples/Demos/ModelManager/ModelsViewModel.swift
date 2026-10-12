@@ -46,15 +46,24 @@ final class ModelsViewModel {
         var id: String { ModelStorage.key(url) }
     }
 
+    static let foldersDefaultsKey = "localFolders"
+
     let rows: [CatalogRow]
     private(set) var folders: [Folder] = []
     private(set) var downloadedSize: Int64 = 0
     private(set) var availableSpace: Int64 = 0
     var message: String?
+    @ObservationIgnored private let defaults: UserDefaults
 
-    init() {
+    init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
         rows = Catalog.models.map { CatalogRow(model: $0) }
         refresh()
+    }
+
+    private var storedFolders: [String] {
+        get { defaults.stringArray(forKey: Self.foldersDefaultsKey) ?? [] }
+        set { defaults.set(newValue, forKey: Self.foldersDefaultsKey) }
     }
 
     func refresh() {
@@ -65,7 +74,7 @@ final class ModelsViewModel {
                 !row.isDownloaded && fileManager.fileExists(atPath: row.directory.path(percentEncoded: false))
             row.diskSize = row.isDownloaded ? ModelStorage.size(of: row.directory) : 0
         }
-        folders = ModelStorage.folders.map { path in
+        folders = storedFolders.map { path in
             let url = URL(filePath: path, directoryHint: .isDirectory)
             do {
                 let name = try BundleSupport.supportedBundle(at: url).name
@@ -90,13 +99,13 @@ final class ModelsViewModel {
             return
         }
         let key = ModelStorage.key(url)
-        if !ModelStorage.folders.contains(key) { ModelStorage.folders.append(key) }
+        if !storedFolders.contains(key) { storedFolders.append(key) }
         message = nil
         refresh()
     }
 
     func forget(_ folder: Folder) {
-        ModelStorage.folders.removeAll { $0 == folder.id }
+        storedFolders.removeAll { $0 == folder.id }
         refresh()
     }
 
