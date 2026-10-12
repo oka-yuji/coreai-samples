@@ -22,7 +22,7 @@ enum BundleSupport {
         }
         guard supportedModelIDPrefixes.contains(where: modelID.hasPrefix) else {
             throw Refusal(
-                reason: "This sample runs Qwen3, Qwen3.5 and Qwen3.8 bundles converted with publish-model. "
+                reason: "This sample runs Qwen3, Qwen3.5 and Qwen3.8 bundles made with Apple's converter. "
                     + "\(bundle.name) was converted from \(modelID).")
         }
         return bundle

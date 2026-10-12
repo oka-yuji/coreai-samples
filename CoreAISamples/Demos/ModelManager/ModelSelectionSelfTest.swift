@@ -2,7 +2,7 @@ import Foundation
 
 enum ModelSelectionSelfTest {
     static let otherFamilyReason =
-        "This sample runs Qwen3, Qwen3.5 and Qwen3.8 bundles converted with publish-model. "
+        "This sample runs Qwen3, Qwen3.5 and Qwen3.8 bundles made with Apple's converter. "
         + "clef was converted from Cloudflare/clef-flash."
     static let missingIDReason =
         "metadata.json has no source.hf_model_id, so this sample cannot tell which model family the bundle is."
