@@ -46,7 +46,7 @@ public enum RAGContext {
         sources.enumerated().map { "[\($0 + 1)] \($1.title) — \($1.url) (\($1.dateLabel))" }
     }
 
-    public static let noSourcesReply = "資料が取得できませんでした。"
+    public static let noSourcesReply = "Could not retrieve any sources."
 
     public static func pack(
         _ sources: [RAGSource], budget: Int = sourceTokenBudget, count: (String) -> Int
@@ -63,7 +63,8 @@ public enum RAGContext {
     }
 
     public static func chunks(_ text: String, size: Int = 500, overlap: Int = 100) -> [String] {
-        let units = text
+        let units =
+            text
             .split(separator: "\n", omittingEmptySubsequences: true)
             .flatMap { sentences(String($0)) }
             .flatMap { $0.count <= size ? [$0] : hardSplit($0, size: size) }
@@ -109,30 +110,35 @@ public enum RAGContext {
 
     private static let metaNames = [
         "article:published_time", "article:published", "og:published_time",
-        "datePublished", "pubdate", "date", "dc.date", "dc.date.issued"
+        "datePublished", "pubdate", "date", "dc.date", "dc.date.issued",
     ]
 
     public static func publishedDate(html: String) -> String? {
         for tag in html.matches(of: /<meta\b[^>]*>/.ignoresCase()) {
             let attributes = String(tag.0)
-            guard let name = attribute("property", in: attributes) ?? attribute("name", in: attributes)
+            guard
+                let name = attribute("property", in: attributes) ?? attribute("name", in: attributes)
                     ?? attribute("itemprop", in: attributes),
-                  metaNames.contains(where: { $0.caseInsensitiveCompare(name) == .orderedSame }),
-                  let content = attribute("content", in: attributes),
-                  let date = isoDate(in: content) else { continue }
+                metaNames.contains(where: { $0.caseInsensitiveCompare(name) == .orderedSame }),
+                let content = attribute("content", in: attributes),
+                let date = isoDate(in: content)
+            else { continue }
             return date
         }
         for tag in html.matches(of: /<time\b[^>]*>/.ignoresCase()) {
             guard let value = attribute("datetime", in: String(tag.0)),
-                  let date = isoDate(in: value) else { continue }
+                let date = isoDate(in: value)
+            else { continue }
             return date
         }
         return nil
     }
 
     static func attribute(_ name: String, in tag: String) -> String? {
-        guard let match = try? Regex("\(name)\\s*=\\s*[\"']([^\"']*)[\"']").ignoresCase()
-            .firstMatch(in: tag), let range = match[1].range else { return nil }
+        guard
+            let match = try? Regex("\(name)\\s*=\\s*[\"']([^\"']*)[\"']").ignoresCase()
+                .firstMatch(in: tag), let range = match[1].range
+        else { return nil }
         return String(tag[range])
     }
 
@@ -145,7 +151,8 @@ public enum RAGContext {
 
     private static func normalize(_ year: String, _ month: String, _ day: String) -> String? {
         guard let m = Int(month), let d = Int(day), (1...12).contains(m), (1...31).contains(d),
-              let y = Int(year), (1900...2999).contains(y) else { return nil }
+            let y = Int(year), (1900...2999).contains(y)
+        else { return nil }
         return String(format: "%04d-%02d-%02d", y, m, d)
     }
 
@@ -160,7 +167,10 @@ extension RAGContext {
         var terms: [String] = []
         for run in query.split(whereSeparator: { !($0.isLetter || $0.isNumber) }) {
             guard run.count >= 3 else { continue }
-            if run.allSatisfy(\.isASCII) { terms.append(String(run).lowercased()); continue }
+            if run.allSatisfy(\.isASCII) {
+                terms.append(String(run).lowercased())
+                continue
+            }
             let characters = Array(run)
             for start in 0...(characters.count - 3) {
                 terms.append(String(characters[start..<(start + 3)]))
@@ -203,12 +213,14 @@ public enum RAGDocuments {
     public static func load(
         directory: URL, pdfText: (URL) -> String? = { _ in nil }
     ) -> [RAGSource] {
-        let files = ((try? FileManager.default.contentsOfDirectory(
-            at: directory, includingPropertiesForKeys: nil)) ?? [])
+        let files =
+            ((try? FileManager.default.contentsOfDirectory(
+                at: directory, includingPropertiesForKeys: nil)) ?? [])
             .filter { extensions.contains($0.pathExtension.lowercased()) }
             .sorted { $0.lastPathComponent < $1.lastPathComponent }
         return files.flatMap { url -> [RAGSource] in
-            let raw = url.pathExtension.lowercased() == "pdf"
+            let raw =
+                url.pathExtension.lowercased() == "pdf"
                 ? pdfText(url) : try? String(contentsOf: url, encoding: .utf8)
             guard let raw, !raw.isEmpty else { return [] }
             let name = url.lastPathComponent
