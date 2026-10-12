@@ -523,6 +523,7 @@ enum AgentSelfTest {
         for result in await HubDownloadSelfTest.run(offline: offline) {
             check(result.name, result.passed, result.detail)
         }
+        await ModelSelectionSelfTest.run { name, passed, detail in check(name, passed, detail) }
 
         if offline {
             out("SKIP  search/live (--offline)")

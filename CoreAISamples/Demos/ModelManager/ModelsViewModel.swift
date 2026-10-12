@@ -61,15 +61,18 @@ final class ModelsViewModel {
         let fileManager = FileManager.default
         for row in rows {
             row.isDownloaded = ModelStorage.isComplete(row.directory)
-            row.hasPartial = !row.isDownloaded && fileManager.fileExists(atPath: row.directory.path(percentEncoded: false))
+            row.hasPartial =
+                !row.isDownloaded && fileManager.fileExists(atPath: row.directory.path(percentEncoded: false))
             row.diskSize = row.isDownloaded ? ModelStorage.size(of: row.directory) : 0
         }
         folders = ModelStorage.folders.map { path in
             let url = URL(filePath: path, directoryHint: .isDirectory)
             do {
-                return Folder(url: url, name: try ModelBundle(url: url).name, size: ModelStorage.size(of: url))
+                let name = try BundleSupport.supportedBundle(at: url).name
+                return Folder(url: url, name: name, size: ModelStorage.size(of: url))
             } catch {
-                return Folder(url: url, name: nil, size: ModelStorage.size(of: url), problem: error.localizedDescription)
+                return Folder(
+                    url: url, name: nil, size: ModelStorage.size(of: url), problem: error.localizedDescription)
             }
         }
         downloadedSize = ModelStorage.size(of: ModelStorage.modelsRoot)
@@ -78,7 +81,10 @@ final class ModelsViewModel {
 
     func open(_ url: URL) {
         do {
-            _ = try ModelBundle(url: url)
+            _ = try BundleSupport.supportedBundle(at: url)
+        } catch let refusal as BundleSupport.Refusal {
+            message = refusal.reason
+            return
         } catch {
             message = "\(url.lastPathComponent) is not a Core AI model bundle: \(error.localizedDescription)"
             return
@@ -118,7 +124,8 @@ final class ModelsViewModel {
         let destination = row.directory
         row.task = Task { [weak self] in
             do {
-                try await downloader.download(repoID: model.repo, revision: model.revision, to: destination) { progress in
+                try await downloader.download(repoID: model.repo, revision: model.revision, to: destination) {
+                    progress in
                     Task { @MainActor in row.apply(progress) }
                 }
                 self?.finishDownload(row, error: nil)

@@ -173,6 +173,7 @@ final class ChatViewModel {
         let clock = ContinuousClock()
         let start = clock.now
         do {
+            _ = try BundleSupport.supportedBundle(at: url)
             let model = try await LocalLanguageModel(
                 bundle: url, contextLimit: contextLimit, overflow: .dropOldToolOutputs)
             loadSeconds = (clock.now - start) / .seconds(1)

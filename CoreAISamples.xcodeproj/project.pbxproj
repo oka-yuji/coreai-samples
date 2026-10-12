@@ -19,6 +19,7 @@
 		1AF313B83B89141DAC0600E8 /* AgentViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2CF26E8719DB770CB66C8069 /* AgentViewModel.swift */; };
 		1BB835F81304063BD6595772 /* AgentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78EBA8EA1332167D20175087 /* AgentView.swift */; };
 		24F936C411557B9362ED1A77 /* PhoneExtractView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EF29907EAA61DD548671267 /* PhoneExtractView.swift */; };
+		2628E17B820E1C5BC4153536 /* BundleSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8608B7A795003231A4E788DF /* BundleSupport.swift */; };
 		2662B8C643C55FC8FE5CCF95 /* GLiNERCore in Frameworks */ = {isa = PBXBuildFile; productRef = D7F4CF1B6D1F3A79E0E07777 /* GLiNERCore */; };
 		330B4A9240E9871AD04245A6 /* DecideSelfTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47737423C61124F4327C174E /* DecideSelfTest.swift */; };
 		36B44880EECCFBD6D426A9E3 /* DecideResultRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F7FE685C8A7B3B5D383AC56 /* DecideResultRow.swift */; };
@@ -41,6 +42,7 @@
 		7965D53F9D757D1A07ACEDF0 /* ExtractEval.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82B4A55114BBA7685FCF713C /* ExtractEval.swift */; };
 		8384E9A460827793A6125FBB /* ModelStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAE0376EC66AACAB7D06A922 /* ModelStorage.swift */; };
 		850158F9C75A8B01FC7B82DE /* DemoRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3C4386FEDC295B729DF07C1 /* DemoRootView.swift */; };
+		8685AA2B616BA4AF220D767D /* ModelSelectionSelfTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7DE5BA037505543B8869BB1 /* ModelSelectionSelfTest.swift */; };
 		8892507C77E382DB2CF578B3 /* NoteEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = E12E6AFDDBD1A46129826431 /* NoteEditor.swift */; };
 		92BBCBC97CA06B7F6181E191 /* GLiNERRuntime in Frameworks */ = {isa = PBXBuildFile; productRef = E537630B97D4DA06423BFDBC /* GLiNERRuntime */; };
 		938CDAF7453AA1F4A8963427 /* GLiNERCore in Frameworks */ = {isa = PBXBuildFile; productRef = B83B007D551DD5E789EE8B58 /* GLiNERCore */; };
@@ -90,6 +92,7 @@
 		7D82BEFE1B794EC81C96DCE7 /* DecideItemEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DecideItemEditor.swift; sourceTree = "<group>"; };
 		82B4A55114BBA7685FCF713C /* ExtractEval.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtractEval.swift; sourceTree = "<group>"; };
 		82E02B690B0BB1CD93649F40 /* AgentPromptBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentPromptBuilder.swift; sourceTree = "<group>"; };
+		8608B7A795003231A4E788DF /* BundleSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BundleSupport.swift; sourceTree = "<group>"; };
 		8D03BF17879A8622C726CB22 /* AgentSelfTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentSelfTest.swift; sourceTree = "<group>"; };
 		961348DFD83CD9659D09A153 /* FieldEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FieldEditor.swift; sourceTree = "<group>"; };
 		9F2F07EBDAB41490EF60A529 /* ExtractRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtractRunner.swift; sourceTree = "<group>"; };
@@ -99,6 +102,7 @@
 		AE56C6B8743B1E3BD47CA2D4 /* ExtractView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtractView.swift; sourceTree = "<group>"; };
 		B70B30B00E918D18EE2AA983 /* ModelsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelsView.swift; sourceTree = "<group>"; };
 		B7B642EB8A461B8E42FA5D8C /* extract_examples.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = extract_examples.json; sourceTree = "<group>"; };
+		B7DE5BA037505543B8869BB1 /* ModelSelectionSelfTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelSelectionSelfTest.swift; sourceTree = "<group>"; };
 		B8E08DCE25166F4BAC3F4D6E /* decide-examples.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "decide-examples.json"; sourceTree = "<group>"; };
 		BBE9C20E195FE641300D6F57 /* PhoneDemoApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneDemoApp.swift; sourceTree = "<group>"; };
 		C8A8415903D96B5F5D18625D /* Signing.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.xcconfig; sourceTree = "<group>"; };
@@ -168,9 +172,11 @@
 		0FAB8918F2492A4A518647E0 /* ModelManager */ = {
 			isa = PBXGroup;
 			children = (
+				8608B7A795003231A4E788DF /* BundleSupport.swift */,
 				09F71463DA4F2153E25B4F33 /* Catalog.swift */,
 				3A20485F7EB3740C480083D7 /* HubDownloader.swift */,
 				598FAFD4122CCFFFB1A83FB4 /* HubDownloadSelfTest.swift */,
+				B7DE5BA037505543B8869BB1 /* ModelSelectionSelfTest.swift */,
 				FAE0376EC66AACAB7D06A922 /* ModelStorage.swift */,
 				B70B30B00E918D18EE2AA983 /* ModelsView.swift */,
 				FF57BF3874EBD013FC0468B5 /* ModelsViewModel.swift */,
@@ -447,6 +453,7 @@
 				10C3CB73F5962FA73A475272 /* AgentTools.swift in Sources */,
 				1BB835F81304063BD6595772 /* AgentView.swift in Sources */,
 				1AF313B83B89141DAC0600E8 /* AgentViewModel.swift in Sources */,
+				2628E17B820E1C5BC4153536 /* BundleSupport.swift in Sources */,
 				68268B0951BF4FFA8ADA631D /* Catalog.swift in Sources */,
 				EBD06F165F843DC318379076 /* ChatRAG.swift in Sources */,
 				DF1E8CC70C6E8893AEA03D17 /* ChatView.swift in Sources */,
@@ -469,6 +476,7 @@
 				6895060850B682FA0B41235D /* HubDownloader.swift in Sources */,
 				46CBAB943E1184CC6B04C04C /* LaunchArguments.swift in Sources */,
 				C6C9A2085B4BE5EBDEB9030D /* MetricsLog.swift in Sources */,
+				8685AA2B616BA4AF220D767D /* ModelSelectionSelfTest.swift in Sources */,
 				8384E9A460827793A6125FBB /* ModelStorage.swift in Sources */,
 				C0366556B44891DDD42D78D0 /* ModelsView.swift in Sources */,
 				AED5E118182009EE94A8A9D9 /* ModelsViewModel.swift in Sources */,
