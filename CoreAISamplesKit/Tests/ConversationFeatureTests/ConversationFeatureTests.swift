@@ -262,6 +262,7 @@ struct ConversationFeatureTests {
         arguments: [
             ([answer("a", "Part one of the answer", stop: "maxTokens")], "maxTokens", true),
             ([answer("a", "A complete answer")], "stopToken", false),
+            ([answer("a", "A complete answer")], "contextLimit", false),
             ([answer("a", "  ", stop: "maxTokens")], "maxTokens", false),
             ([answer("a", #"Saving now <tool_call>{"name": "write_note""#, stop: "maxTokens")], "maxTokens", false),
             ([answer("a", "<tool_call>{}</tool_call> and the rest", stop: "maxTokens")], "maxTokens", true),

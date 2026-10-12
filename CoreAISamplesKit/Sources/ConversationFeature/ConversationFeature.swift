@@ -80,7 +80,14 @@ public enum ConversationFeature: Feature {
             return save(state)
         case .generationEnded(let run, let stopReason):
             guard state.isActive(run) else { return [] }
-            return end(&state, Finish(stopReason: stopReason))
+            let finish = Finish(stopReason: stopReason)
+            let last = state.turns.count - 1
+            if finish == .failed, state.turns[last].failure == nil {
+                state.turns[last].failure =
+                    stopReason.map { "Generation ended with stop reason: \($0)" }
+                    ?? "Generation ended without a stop reason"
+            }
+            return end(&state, finish)
         case .generationFailed(let run, let message):
             guard state.isActive(run) else { return [] }
             state.turns[state.turns.count - 1].failure = message
