@@ -19,15 +19,23 @@ enum SelfTest {
         guard let model = LaunchArguments.value("--model"), !questions.isEmpty || file != nil,
             LaunchArguments.value("--rag-budget") == nil || ChatViewModel.launchRAGBudget != nil
         else {
-            log("usage: CoreAISamples --selftest --model <folder> (--prompts-file <file> | --rag \"question 1|question 2\" [--rag-web off] [--rag-local off] [--rag-docs <folder>] [--rag-budget 3000|6000]) [--max-tokens N] [--context-limit N]")
+            log(
+                "usage: CoreAISamples --selftest --model <folder> (--prompts-file <file> | --rag \"question 1|question 2\" [--rag-web off] [--rag-local off] [--rag-docs <folder>] [--rag-budget 3000|6000]) [--max-tokens N] [--context-limit N]"
+            )
             return finish(false)
         }
-        let prompts = questions.isEmpty
-            ? (file ?? "").components(separatedBy: "\n===PROMPT===\n").map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
+        let prompts =
+            questions.isEmpty
+            ? (file ?? "").components(separatedBy: "\n===PROMPT===\n").map {
+                $0.trimmingCharacters(in: .whitespacesAndNewlines)
+            }.filter { !$0.isEmpty }
             : questions
         let chat = ChatViewModel()
         if let maxTokens = LaunchArguments.value("--max-tokens").flatMap(Int.init) { chat.maxTokens = maxTokens }
-        if let effort = LaunchArguments.value("--effort").flatMap({ ChatViewModel.Reasoning(rawValue: $0.capitalized) }) { chat.reasoning = effort }
+        if let effort = LaunchArguments.value("--effort").flatMap({ ChatViewModel.Reasoning(rawValue: $0.capitalized) })
+        {
+            chat.reasoning = effort
+        }
         if !questions.isEmpty {
             chat.ragEnabled = true
             chat.ragWeb = !isOff(LaunchArguments.value("--rag-web"))
@@ -38,15 +46,18 @@ enum SelfTest {
             log("[selftest] load failed: \(chat.phase)")
             return finish(false)
         }
-        log(String(
-            format: "[selftest] model=%@ prompts=%d maxTokens=%d contextLimit=%d effort=%@ cached=%@ specializeSeconds=%.2f loadSeconds=%.2f",
-            chat.modelName, prompts.count, chat.maxTokens, chat.contextLimit, chat.reasoning.rawValue,
-            String(stats.cached), stats.specializeSeconds, chat.loadSeconds))
+        log(
+            String(
+                format:
+                    "[selftest] model=%@ prompts=%d maxTokens=%d contextLimit=%d effort=%@ cached=%@ specializeSeconds=%.2f loadSeconds=%.2f",
+                chat.modelName, prompts.count, chat.maxTokens, chat.contextLimit, chat.reasoning.rawValue,
+                String(stats.cached), stats.specializeSeconds, chat.loadSeconds))
         if chat.ragEnabled {
             let settings = RAGSettings.fromDefaults()
-            log("[rag] mode=on web=\(chat.ragWeb) local=\(chat.ragLocal) search=\(settings.provider) results=\(settings.searchResults) "
-                + "pages=\(settings.pagesToRead) pageBudget=\(settings.pageCharacterBudget)chars sourceBudget=\(chat.ragBudget)tok "
-                + "promptBudget=\(RAGContext.promptTokenBudget)tok today=\(RAGContext.today())")
+            log(
+                "[rag] mode=on web=\(chat.ragWeb) local=\(chat.ragLocal) search=\(settings.provider) results=\(settings.searchResults) "
+                    + "pages=\(settings.pagesToRead) pageBudget=\(settings.pageCharacterBudget)chars sourceBudget=\(chat.ragBudget)tok "
+                    + "promptBudget=\(RAGContext.promptTokenBudget)tok today=\(RAGContext.today())")
             log("[rag] documents=" + settings.documentsDirectory.path(percentEncoded: false))
         }
         let encoder = JSONEncoder()
@@ -80,13 +91,16 @@ enum SelfTest {
             FileHandle.standardOutput.write(Data("\n".utf8))
             log("[selftest] \(chat.statusLine)")
             log("[selftest] engineTokens=\(await chat.model?.processedTokens().count ?? 0)")
-            let generated = result.error == nil && ["stopToken", "maxTokens"].contains(result.stopReason) && result.outputTokens > 0
+            let generated =
+                result.error == nil && ["stopToken", "maxTokens"].contains(result.stopReason) && result.outputTokens > 0
             if !chat.ragEnabled {
                 pass = pass && generated && (result.turn == 1 || (result.cachedTokens ?? 0) > 0)
             } else if (result.sources ?? 0) > 0 {
                 pass = pass && generated && !result.answer.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             } else {
-                pass = pass && result.stopReason == "noSources" && result.answer == RAGContext.noSourcesReply && result.inputTokens == nil
+                pass =
+                    pass && result.stopReason == "noSources" && result.answer == "Could not retrieve any sources."
+                    && result.inputTokens == nil
             }
         }
         await MetricsLog.flush()
