@@ -300,8 +300,9 @@ struct ConversationFeatureTests {
         let ignored = reduce(
             &state, .stepFinished(run: 1, stats(1)),
             .transcriptChanged(run: 1, turn("Question", [answer("a", "Late answer")])),
-            .generationEnded(run: 1, stopReason: "stopToken"), .stopped(run: 1), .stopRequested)
-        #expect(ignored == [[], [], [], [], []])
+            .generationEnded(run: 1, stopReason: "stopToken"), .generationFailed(run: 1, message: "late"),
+            .stopped(run: 1), .stopRequested)
+        #expect(ignored == [[], [], [], [], [], []])
         #expect(state == before)
         #expect(reduce(&state, .toolRequested(run: 1, late)) == [refusal])
     }
@@ -354,5 +355,67 @@ struct ConversationFeatureTests {
         #expect(state.entries.map(\.text) == ["Old question", "Old answer"])
         _ = reduce(&state, .failed(id: "old", message: "disk full"))
         #expect(state.persistence == .failed("disk full"))
+    }
+
+    @Test("An unknown tool is refused with its mode in the reason, and a refused save at the last step ends the turn")
+    func refusesUnknownToolsAndASaveAtTheLimit() {
+        let chat = TurnPolicy(.chat, settings: ConversationSettings())
+        let work = TurnPolicy(.work, settings: ConversationSettings())
+        #expect(chat.refusal(for: "run_shell") == "error: run_shell is not available in chat mode")
+        #expect(work.refusal(for: "run_shell") == "error: run_shell is not available in work mode")
+
+        var working = started(.work)
+        let shell = tool("t0", "run_shell", #"{"command":"ls"}"#)
+        let reason = "error: run_shell is not available in work mode"
+        #expect(
+            reduce(&working, .toolRequested(run: 1, shell)) == [[.run(.refuseTool(shell, reason: reason), id: nil)]])
+        #expect(!working.refusedSave && working.isRunning)
+
+        var state = started(.chat)
+        let search = tool("t1", "web_search", #"{"query":"swift"}"#)
+        let note = tool("t2", "write_note", #"{"title":"Plan","content":"Draft"}"#)
+        let record = turn("Question", [calls("c1", search), output(search, "results"), calls("c2", note)])
+        _ = reduce(&state, .transcriptChanged(run: 1, record))
+        #expect(state.step == 2 && state.finalization == .lastStep)
+        let ended = reduce(&state, .toolRequested(run: 1, note))
+        #expect(
+            ended == [
+                [
+                    .run(.refuseTool(note, reason: "error: saving notes needs Work mode"), id: nil),
+                    .run(.stop(run: 1), id: .stop),
+                ]
+            ])
+        #expect(state.refusedSave && state.finalization == .cutOff && state.stopRequested)
+    }
+
+    @Test(
+        "Settings changed while idle apply to the next send, a blank prompt is ignored, and the title is the first 40 characters on one line"
+    )
+    func appliesSettingsIgnoresBlankPromptsAndTitlesTheConversation() {
+        var state = ConversationState(id: "c1", now: launch)
+        let tuned = ConversationSettings(maxSteps: 3, maxTokens: 512)
+        _ = reduce(&state, .settingsChanged(tuned))
+        #expect(state.settings == tuned)
+
+        let idle = state
+        #expect(reduce(&state, .send("  \n", mode: .work, now: launch)) == [[]])
+        #expect(state == idle)
+
+        let policy = TurnPolicy(.work, settings: tuned)
+        let commands = reduce(&state, .send("Plan the trip", mode: .work, now: launch))
+        #expect(
+            commands == [
+                [.run(.generate(run: 1, prompt: "Plan the trip", policy: policy, finalize: false), id: .generation)]
+            ]
+        )
+        #expect(policy.maxSteps == 3 && policy.maxTokens == 512 && state.turns.last?.settings == tuned)
+        _ = reduce(
+            &state, .transcriptChanged(run: 1, turn("Plan the trip", [answer("a", "Done")])),
+            .generationEnded(run: 1, stopReason: "stopToken"), .send("Another question", mode: .chat, now: launch + 60))
+        #expect(state.title == "Plan the trip")
+
+        let titled = started(.chat, prompt: "First line\nsecond line that is long enough to be cut")
+        #expect(titled.title == "First line second line that is long enou")
+        #expect(titled.title.count == 40)
     }
 }
