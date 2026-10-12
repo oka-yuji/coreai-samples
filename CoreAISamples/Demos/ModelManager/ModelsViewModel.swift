@@ -44,32 +44,50 @@ final class ModelsViewModel {
         var problem: String?
 
         var id: String { ModelStorage.key(url) }
+        var canLoad: Bool { name != nil && problem == nil }
+        var canClear: Bool { name != nil }
     }
+
+    static let foldersDefaultsKey = "localFolders"
 
     let rows: [CatalogRow]
     private(set) var folders: [Folder] = []
     private(set) var downloadedSize: Int64 = 0
     private(set) var availableSpace: Int64 = 0
     var message: String?
+    @ObservationIgnored private let defaults: UserDefaults
 
-    init() {
+    init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
         rows = Catalog.models.map { CatalogRow(model: $0) }
         refresh()
+    }
+
+    private var storedFolders: [String] {
+        get { defaults.stringArray(forKey: Self.foldersDefaultsKey) ?? [] }
+        set { defaults.set(newValue, forKey: Self.foldersDefaultsKey) }
     }
 
     func refresh() {
         let fileManager = FileManager.default
         for row in rows {
             row.isDownloaded = ModelStorage.isComplete(row.directory)
-            row.hasPartial = !row.isDownloaded && fileManager.fileExists(atPath: row.directory.path(percentEncoded: false))
+            row.hasPartial =
+                !row.isDownloaded && fileManager.fileExists(atPath: row.directory.path(percentEncoded: false))
             row.diskSize = row.isDownloaded ? ModelStorage.size(of: row.directory) : 0
         }
-        folders = ModelStorage.folders.map { path in
+        folders = storedFolders.map { path in
             let url = URL(filePath: path, directoryHint: .isDirectory)
             do {
-                return Folder(url: url, name: try ModelBundle(url: url).name, size: ModelStorage.size(of: url))
+                let name = try BundleSupport.supportedBundle(at: url).name
+                return Folder(url: url, name: name, size: ModelStorage.size(of: url))
+            } catch let refusal as BundleSupport.Refusal {
+                return Folder(
+                    url: url, name: try? ModelBundle(url: url).name, size: ModelStorage.size(of: url),
+                    problem: refusal.reason)
             } catch {
-                return Folder(url: url, name: nil, size: ModelStorage.size(of: url), problem: error.localizedDescription)
+                return Folder(
+                    url: url, name: nil, size: ModelStorage.size(of: url), problem: error.localizedDescription)
             }
         }
         downloadedSize = ModelStorage.size(of: ModelStorage.modelsRoot)
@@ -78,19 +96,22 @@ final class ModelsViewModel {
 
     func open(_ url: URL) {
         do {
-            _ = try ModelBundle(url: url)
+            _ = try BundleSupport.supportedBundle(at: url)
+        } catch let refusal as BundleSupport.Refusal {
+            message = refusal.reason
+            return
         } catch {
             message = "\(url.lastPathComponent) is not a Core AI model bundle: \(error.localizedDescription)"
             return
         }
         let key = ModelStorage.key(url)
-        if !ModelStorage.folders.contains(key) { ModelStorage.folders.append(key) }
+        if !storedFolders.contains(key) { storedFolders.append(key) }
         message = nil
         refresh()
     }
 
     func forget(_ folder: Folder) {
-        ModelStorage.folders.removeAll { $0 == folder.id }
+        storedFolders.removeAll { $0 == folder.id }
         refresh()
     }
 
@@ -118,7 +139,8 @@ final class ModelsViewModel {
         let destination = row.directory
         row.task = Task { [weak self] in
             do {
-                try await downloader.download(repoID: model.repo, revision: model.revision, to: destination) { progress in
+                try await downloader.download(repoID: model.repo, revision: model.revision, to: destination) {
+                    progress in
                     Task { @MainActor in row.apply(progress) }
                 }
                 self?.finishDownload(row, error: nil)
