@@ -100,14 +100,15 @@ final class AgentViewModel {
     static let fileOpsDefaultsKey = "agent.allowFileOps"
     static let notesFolderDefaultsKey = "agent.notesFolder"
     static let citationGuardDefaultsKey = "agent.citationGuard"
+    static let citeFetchedDefaultsKey = "agent.citeFetched"
     static let maxTokenChoices = [512, 1024, 1536, 2048, 4096, 8192]
     nonisolated static let noAnswerText = "(no answer text)"
     static let contextFullNote = "Context full — dropped the oldest tool output"
     nonisolated static let repairFetchLimitText = "error: citation repair fetch limit reached"
     static let repairFetchLimit = 3
     static let guardTitle = "Citation guard"
-    nonisolated static let verifiedLabel = "引用元取得確認"
-    nonisolated static let heldLabel = "引用元の取得を確認できませんでした"
+    nonisolated static let verifiedLabel = "Cited sources fetched"
+    nonisolated static let heldLabel = "Could not confirm that the cited sources were fetched"
 
     var persistsSettings = true
     var effort: AgentReasoningEffort { didSet { store(effort.rawValue, Self.effortDefaultsKey) } }
@@ -121,7 +122,7 @@ final class AgentViewModel {
     var input = ""
     var entries: [Entry] = []
 
-    @ObservationIgnored var citeFetched = false
+    @ObservationIgnored var citeFetched: Bool { didSet { store(citeFetched, Self.citeFetchedDefaultsKey) } }
     @ObservationIgnored var sourcesRequired: Bool?
     @ObservationIgnored var stableNotePaths = false
     @ObservationIgnored var fixedDate: String?
@@ -171,9 +172,11 @@ final class AgentViewModel {
     @ObservationIgnored private var notesWritten: [(key: String, text: String)] = []
     @ObservationIgnored private var draftNames: [String: String] = [:]
     @ObservationIgnored private var stopRequested = false
+    @ObservationIgnored private var notesCommitted = false
+    @ObservationIgnored private let defaults: UserDefaults
 
-    init() {
-        let defaults = UserDefaults.standard
+    init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
         func positive(_ key: String) -> Int? { (defaults.object(forKey: key) as? Int).flatMap { $0 > 0 ? $0 : nil } }
         effort = defaults.string(forKey: Self.effortDefaultsKey).flatMap(AgentReasoningEffort.init(rawValue:)) ?? .low
         maxIterations = positive(Self.maxStepsDefaultsKey) ?? 8
@@ -182,12 +185,13 @@ final class AgentViewModel {
         braveAPIKey = defaults.string(forKey: Self.braveKeyDefaultsKey) ?? ""
         allowFileOperations = defaults.bool(forKey: Self.fileOpsDefaultsKey)
         notesFolderPath = defaults.string(forKey: Self.notesFolderDefaultsKey) ?? ""
-        citationGuard = defaults.bool(forKey: Self.citationGuardDefaultsKey)
+        citationGuard = defaults.object(forKey: Self.citationGuardDefaultsKey) as? Bool ?? true
+        citeFetched = defaults.object(forKey: Self.citeFetchedDefaultsKey) as? Bool ?? true
     }
 
     private func store(_ value: Any, _ key: String) {
         guard persistsSettings else { return }
-        UserDefaults.standard.set(value, forKey: key)
+        defaults.set(value, forKey: key)
     }
 
     var trimmedInput: String { input.trimmingCharacters(in: .whitespacesAndNewlines) }
@@ -260,6 +264,7 @@ final class AgentViewModel {
         checks = []
         guardOutcome = nil
         guardReason = ""
+        notesCommitted = false
         answerBeforeRepair = nil
         guardedAnswer = nil
         repairTurns = 0
@@ -527,8 +532,7 @@ final class AgentViewModel {
         checks = [check]
         if guardActive {
             if outcome != "answered" {
-                guardOutcome = "skipped"
-                guardReason = outcome
+                finishIncompleteNotes(reason: outcome)
             } else if !check.violation {
                 guardOutcome = "verified"
                 guardReason = "none"
@@ -567,7 +571,9 @@ final class AgentViewModel {
                     guardedAnswer = original
                 }
             }
-            finishNotes(commit: guardOutcome == "verified" || guardOutcome == "repaired")
+            if outcome == "answered" {
+                finishNotes(commit: guardOutcome == "verified" || guardOutcome == "repaired")
+            }
             addGuardNote(session)
         }
         await saveRunMetrics()
@@ -584,10 +590,22 @@ final class AgentViewModel {
             sourcesRequired: sourcesRequired, usedWebTools: webToolCalls > 0)
     }
 
+    func finishIncompleteNotes(reason: String) {
+        let check = Self.ledgerCheck(
+            stage: "notes", answer: "", notes: notesWritten.map(\.text), ledger: ledger, attempts: fetchAttempts,
+            sourcesRequired: false, usedWebTools: false)
+        guardOutcome = "skipped"
+        guardReason =
+            check.noteCitationsUnfetched.isEmpty
+            ? reason : reason + ": note-unfetched: " + check.noteCitationsUnfetched.joined(separator: ", ")
+        finishNotes(commit: check.noteCitationsUnfetched.isEmpty)
+    }
+
     func finishNotes(commit: Bool) {
         guard !draftOrder.isEmpty else { return }
         if commit {
-            _ = AgentTools.commitDrafts(draftOrder, notesDirectory: notesDirectory)
+            notesCommitted =
+                AgentTools.commitDrafts(draftOrder, notesDirectory: notesDirectory).count == draftOrder.count
         } else {
             AgentTools.holdDrafts(
                 draftOrder, notesDirectory: notesDirectory, reason: "\(guardOutcome ?? "-"): \(guardReason)")
@@ -597,7 +615,8 @@ final class AgentViewModel {
     private func addGuardNote(_ session: LanguageModelSession) {
         guard
             let note = Self.guardNoteText(
-                outcome: guardOutcome, reason: guardReason, check: checks.last, drafts: !draftOrder.isEmpty)
+                outcome: guardOutcome, reason: guardReason, check: checks.last,
+                drafts: !draftOrder.isEmpty && !notesCommitted)
         else { return }
         let transcript = Array(session.transcript)
         extras.append(

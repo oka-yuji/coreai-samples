@@ -64,6 +64,7 @@
 		DFA0F3D009B4DB8BDD3F7377 /* FeatureStore in Frameworks */ = {isa = PBXBuildFile; productRef = 1CE1E17F70A89101A49E40D3 /* FeatureStore */; };
 		E3DA34EB5609CB1F3033BBDC /* GUIDriver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57DF8A7744E8740E70B48D78 /* GUIDriver.swift */; };
 		EBD06F165F843DC318379076 /* ChatRAG.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1063E369286C82F9F3981B8A /* ChatRAG.swift */; };
+		F683B96AA637C180E95E71A7 /* HubDownloadSelfTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 598FAFD4122CCFFFB1A83FB4 /* HubDownloadSelfTest.swift */; };
 		F8E2A64FD4FCB0220D394B60 /* LaunchArguments.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0477EBADA2061C5A4A49EFE4 /* LaunchArguments.swift */; };
 		FC6626F927F8F428880FBBC9 /* DemoAppMain.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F02F3A778FCB93B0D8828BB /* DemoAppMain.swift */; };
 /* End PBXBuildFile section */
@@ -83,6 +84,7 @@
 		5071A083BC24B9B2B38CEFFB /* SelfTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelfTest.swift; sourceTree = "<group>"; };
 		53F15DB3D78F006C718A6F5E /* correction_words.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = correction_words.json; sourceTree = "<group>"; };
 		57DF8A7744E8740E70B48D78 /* GUIDriver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GUIDriver.swift; sourceTree = "<group>"; };
+		598FAFD4122CCFFFB1A83FB4 /* HubDownloadSelfTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HubDownloadSelfTest.swift; sourceTree = "<group>"; };
 		659A8534A432DD74FD5D0E6D /* ChatViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatViewModel.swift; sourceTree = "<group>"; };
 		78EBA8EA1332167D20175087 /* AgentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentView.swift; sourceTree = "<group>"; };
 		7D82BEFE1B794EC81C96DCE7 /* DecideItemEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DecideItemEditor.swift; sourceTree = "<group>"; };
@@ -168,6 +170,7 @@
 			children = (
 				09F71463DA4F2153E25B4F33 /* Catalog.swift */,
 				3A20485F7EB3740C480083D7 /* HubDownloader.swift */,
+				598FAFD4122CCFFFB1A83FB4 /* HubDownloadSelfTest.swift */,
 				FAE0376EC66AACAB7D06A922 /* ModelStorage.swift */,
 				B70B30B00E918D18EE2AA983 /* ModelsView.swift */,
 				FF57BF3874EBD013FC0468B5 /* ModelsViewModel.swift */,
@@ -462,6 +465,7 @@
 				38D5380927AEC3918CC5F304 /* FieldEditor.swift in Sources */,
 				5BB2FFBBAE4EDB21463258C0 /* FieldRow.swift in Sources */,
 				E3DA34EB5609CB1F3033BBDC /* GUIDriver.swift in Sources */,
+				F683B96AA637C180E95E71A7 /* HubDownloadSelfTest.swift in Sources */,
 				6895060850B682FA0B41235D /* HubDownloader.swift in Sources */,
 				46CBAB943E1184CC6B04C04C /* LaunchArguments.swift in Sources */,
 				C6C9A2085B4BE5EBDEB9030D /* MetricsLog.swift in Sources */,
