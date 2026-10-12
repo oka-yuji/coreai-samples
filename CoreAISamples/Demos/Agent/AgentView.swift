@@ -56,7 +56,7 @@ struct AgentView: View {
     private var header: some View {
         HStack(spacing: 8) {
             VStack(alignment: .leading, spacing: 2) {
-                ModelMenu(agent: agent)
+                ModelMenu()
                 Text(
                     "web_search · fetch_page · write_note" + (agent.allowFileOperations ? " · move_note" : "")
                         + " — search via \(agent.searchProvider)"

@@ -109,7 +109,7 @@ final class ModelsViewModel {
         }
         return (
             rows.filter(\.isDownloaded).map { entry($0.model.name, $0.directory) },
-            folders.compactMap { folder in folder.name.map { entry($0, folder.url) } }
+            folders.filter(\.canLoad).compactMap { folder in folder.name.map { entry($0, folder.url) } }
         )
     }
 

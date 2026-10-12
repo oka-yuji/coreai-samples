@@ -5,7 +5,7 @@ struct ModelMenu: View {
     @Environment(ChatViewModel.self) private var chat
     @Environment(ModelsViewModel.self) private var models
     @Environment(DemoNavigator.self) private var navigator
-    var agent: AgentViewModel?
+    @Environment(AgentViewModel.self) private var agent
 
     var body: some View {
         let entries = models.menuEntries(current: chat.phase == .ready ? chat.bundleURL : nil)
@@ -27,12 +27,16 @@ struct ModelMenu: View {
                 .font(.headline)
                 .lineLimit(1)
                 .truncationMode(.middle)
+                .frame(maxWidth: 360, alignment: .leading)
         }
         .fixedSize()
+        .accessibilityLabel("Model")
+        .accessibilityValue(chat.modelName.isEmpty ? "No model loaded" : chat.modelName)
+        .help("Choose the model Chat and Agent use")
         .disabled(
             Self.isDisabled(
                 loading: chat.isLoading, responding: chat.isResponding, busy: chat.externallyBusy,
-                agentRunning: agent?.running == true)
+                agentRunning: agent.running)
         )
         .onReceive(NotificationCenter.default.publisher(for: NSMenu.didBeginTrackingNotification)) { _ in
             models.refresh()
