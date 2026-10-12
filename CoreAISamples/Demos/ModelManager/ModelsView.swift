@@ -95,8 +95,9 @@ struct FolderRowView: View {
                 .truncationMode(.middle)
             HStack {
                 Text(
-                    folder.name == nil
-                        ? (folder.problem ?? "Not a readable bundle") : folder.size.formatted(.byteCount(style: .file))
+                    folder.problem
+                        ?? (folder.name == nil
+                            ? "Not a readable bundle" : folder.size.formatted(.byteCount(style: .file)))
                 )
                 .lineLimit(2)
                 if let state {
@@ -105,9 +106,9 @@ struct FolderRowView: View {
                 Spacer()
                 Button("Load", action: onLoad)
                     .buttonStyle(.bordered)
-                    .disabled(busy || folder.name == nil)
+                    .disabled(busy || !folder.canLoad)
                 Button("Clear Prepared Copy", action: onClear)
-                    .disabled(busy || state != nil || folder.name == nil)
+                    .disabled(busy || state != nil || !folder.canClear)
                     .help("Remove the copy this app prepared for the GPU. The next load prepares it again.")
                 Button("Forget", action: onForget)
                     .disabled(state != nil)

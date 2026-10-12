@@ -44,6 +44,8 @@ final class ModelsViewModel {
         var problem: String?
 
         var id: String { ModelStorage.key(url) }
+        var canLoad: Bool { name != nil && problem == nil }
+        var canClear: Bool { name != nil }
     }
 
     static let foldersDefaultsKey = "localFolders"
@@ -79,6 +81,10 @@ final class ModelsViewModel {
             do {
                 let name = try BundleSupport.supportedBundle(at: url).name
                 return Folder(url: url, name: name, size: ModelStorage.size(of: url))
+            } catch let refusal as BundleSupport.Refusal {
+                return Folder(
+                    url: url, name: try? ModelBundle(url: url).name, size: ModelStorage.size(of: url),
+                    problem: refusal.reason)
             } catch {
                 return Folder(
                     url: url, name: nil, size: ModelStorage.size(of: url), problem: error.localizedDescription)

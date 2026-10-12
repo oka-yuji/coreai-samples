@@ -36,6 +36,9 @@ enum ModelSelectionSelfTest {
     private static func bundleChecks(
         qwen: [URL], clef: URL, unknown: URL, defaults: UserDefaults, _ check: (String, Bool, String) -> Void
     ) async {
+        check(
+            "bundles/foldersKeyUnchanged", ModelsViewModel.foldersDefaultsKey == "localFolders",
+            ModelsViewModel.foldersDefaultsKey)
         let accepted = qwen.filter { (try? BundleSupport.supportedBundle(at: $0)) != nil }
         check("bundles/supportedPrefixes", accepted == qwen, "accepted \(accepted.map(\.lastPathComponent))")
 
@@ -67,7 +70,8 @@ enum ModelSelectionSelfTest {
         check(
             "bundles/refreshShowsReason",
             models.folders.count == 2 && models.folders[0].name == "qwen35" && models.folders[0].problem == nil
-                && models.folders[1].name == nil && models.folders[1].problem == otherFamilyReason,
+                && models.folders[1].name != nil && models.folders[1].problem == otherFamilyReason
+                && !models.folders[1].canLoad && models.folders[1].canClear,
             "\(rows)")
 
         var refusedLoads: [String] = []
