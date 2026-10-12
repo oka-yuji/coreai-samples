@@ -48,6 +48,14 @@ final class ModelsViewModel {
         var canClear: Bool { name != nil }
     }
 
+    struct MenuEntry: Identifiable {
+        let name: String
+        let url: URL
+        let isCurrent: Bool
+
+        var id: String { ModelStorage.key(url) }
+    }
+
     static let foldersDefaultsKey = "localFolders"
 
     let rows: [CatalogRow]
@@ -57,9 +65,9 @@ final class ModelsViewModel {
     var message: String?
     @ObservationIgnored private let defaults: UserDefaults
 
-    init(defaults: UserDefaults = .standard) {
+    init(catalog: [CatalogModel] = Catalog.models, defaults: UserDefaults = .standard) {
         self.defaults = defaults
-        rows = Catalog.models.map { CatalogRow(model: $0) }
+        rows = catalog.map { CatalogRow(model: $0) }
         refresh()
     }
 
@@ -92,6 +100,17 @@ final class ModelsViewModel {
         }
         downloadedSize = ModelStorage.size(of: ModelStorage.modelsRoot)
         availableSpace = ModelStorage.availableSpace()
+    }
+
+    func menuEntries(current: URL?) -> (downloaded: [MenuEntry], onThisMac: [MenuEntry]) {
+        let currentKey = current.map(ModelStorage.key)
+        func entry(_ name: String, _ url: URL) -> MenuEntry {
+            MenuEntry(name: name, url: url, isCurrent: ModelStorage.key(url) == currentKey)
+        }
+        return (
+            rows.filter(\.isDownloaded).map { entry($0.model.name, $0.directory) },
+            folders.compactMap { folder in folder.name.map { entry($0, folder.url) } }
+        )
     }
 
     func open(_ url: URL) {
