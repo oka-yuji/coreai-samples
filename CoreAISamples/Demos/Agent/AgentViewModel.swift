@@ -5,7 +5,6 @@ import Foundation
 import FoundationModels
 import Observation
 
-/// A page fetch_page handed to the model: the URL asked for, the URL it ended on, and what the model got.
 struct FetchRecord: Codable, Sendable, Equatable {
     var url: String
     var finalURL: String
@@ -13,14 +12,11 @@ struct FetchRecord: Codable, Sendable, Equatable {
     var characters: Int
 }
 
-/// A fetch_page call and whether it handed page text to the model (the guard's record of tries, next to the ledger).
 struct FetchAttempt: Codable, Sendable, Equatable {
     var url: String
     var ok: Bool
 }
 
-/// The answer's and the notes' URLs against the pages fetched in this task (made whether or not the guard is on).
-/// citationsTotal = fetched (in the ledger) + failed (tried with fetch_page, failed) + unfetched (never tried).
 struct LedgerCheck: Codable, Sendable, Equatable {
     var stage: String
     var citationsTotal: Int
@@ -41,11 +37,13 @@ struct LedgerCheck: Codable, Sendable, Equatable {
         return parts.isEmpty ? "none" : parts.joined(separator: "+")
     }
 
-    /// Never-tried URLs of the answer, then of the notes, each once.
     var unfetched: [String] {
-        citationsUnfetched + noteCitationsUnfetched.filter { url in
-            !citationsUnfetched.contains { AgentViewModel.guardNormalized($0) == AgentViewModel.guardNormalized(url) }
-        }
+        citationsUnfetched
+            + noteCitationsUnfetched.filter { url in
+                !citationsUnfetched.contains {
+                    AgentViewModel.guardNormalized($0) == AgentViewModel.guardNormalized(url)
+                }
+            }
     }
 
     var logLine: String {
@@ -70,7 +68,8 @@ final class AgentViewModel {
         var warning = false
 
         init(
-            id: String = UUID().uuidString, kind: Kind, title: String, text: String, stats: String? = nil, live: Bool = false,
+            id: String = UUID().uuidString, kind: Kind, title: String, text: String, stats: String? = nil,
+            live: Bool = false,
             warning: Bool = false
         ) {
             self.id = id
@@ -101,14 +100,15 @@ final class AgentViewModel {
     static let fileOpsDefaultsKey = "agent.allowFileOps"
     static let notesFolderDefaultsKey = "agent.notesFolder"
     static let citationGuardDefaultsKey = "agent.citationGuard"
+    static let citeFetchedDefaultsKey = "agent.citeFetched"
     static let maxTokenChoices = [512, 1024, 1536, 2048, 4096, 8192]
     nonisolated static let noAnswerText = "(no answer text)"
     static let contextFullNote = "Context full — dropped the oldest tool output"
     nonisolated static let repairFetchLimitText = "error: citation repair fetch limit reached"
     static let repairFetchLimit = 3
     static let guardTitle = "Citation guard"
-    nonisolated static let verifiedLabel = "引用元取得確認"
-    nonisolated static let heldLabel = "引用元の取得を確認できませんでした"
+    nonisolated static let verifiedLabel = "Cited sources fetched"
+    nonisolated static let heldLabel = "Could not confirm that the cited sources were fetched"
 
     var persistsSettings = true
     var effort: AgentReasoningEffort { didSet { store(effort.rawValue, Self.effortDefaultsKey) } }
@@ -122,15 +122,13 @@ final class AgentViewModel {
     var input = ""
     var entries: [Entry] = []
 
-    // Headless options (--agent-e2e, M4-g); the screen keeps these defaults.
-    @ObservationIgnored var citeFetched = false
+    @ObservationIgnored var citeFetched: Bool { didSet { store(citeFetched, Self.citeFetchedDefaultsKey) } }
     @ObservationIgnored var sourcesRequired: Bool?
     @ObservationIgnored var stableNotePaths = false
     @ObservationIgnored var fixedDate: String?
     @ObservationIgnored var cassette: ToolCassette?
     @ObservationIgnored var deadline: Date?
 
-    // The last task's citation check and guard (read by --agent-e2e).
     @ObservationIgnored private(set) var checks: [LedgerCheck] = []
     @ObservationIgnored private(set) var guardOutcome: String?
     @ObservationIgnored private(set) var guardReason = ""
@@ -174,9 +172,11 @@ final class AgentViewModel {
     @ObservationIgnored private var notesWritten: [(key: String, text: String)] = []
     @ObservationIgnored private var draftNames: [String: String] = [:]
     @ObservationIgnored private var stopRequested = false
+    @ObservationIgnored private var notesCommitted = false
+    @ObservationIgnored private let defaults: UserDefaults
 
-    init() {
-        let defaults = UserDefaults.standard
+    init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
         func positive(_ key: String) -> Int? { (defaults.object(forKey: key) as? Int).flatMap { $0 > 0 ? $0 : nil } }
         effort = defaults.string(forKey: Self.effortDefaultsKey).flatMap(AgentReasoningEffort.init(rawValue:)) ?? .low
         maxIterations = positive(Self.maxStepsDefaultsKey) ?? 8
@@ -185,12 +185,13 @@ final class AgentViewModel {
         braveAPIKey = defaults.string(forKey: Self.braveKeyDefaultsKey) ?? ""
         allowFileOperations = defaults.bool(forKey: Self.fileOpsDefaultsKey)
         notesFolderPath = defaults.string(forKey: Self.notesFolderDefaultsKey) ?? ""
-        citationGuard = defaults.bool(forKey: Self.citationGuardDefaultsKey)
+        citationGuard = defaults.object(forKey: Self.citationGuardDefaultsKey) as? Bool ?? true
+        citeFetched = defaults.object(forKey: Self.citeFetchedDefaultsKey) as? Bool ?? true
     }
 
     private func store(_ value: Any, _ key: String) {
         guard persistsSettings else { return }
-        UserDefaults.standard.set(value, forKey: key)
+        defaults.set(value, forKey: key)
     }
 
     var trimmedInput: String { input.trimmingCharacters(in: .whitespacesAndNewlines) }
@@ -258,12 +259,12 @@ final class AgentViewModel {
         consumer?.cancel()
     }
 
-    /// Per-task state of the citation check and guard. The fetch ledger lasts for the session, like the pages seen.
     private func beginTask() {
         guardActive = citationGuard
         checks = []
         guardOutcome = nil
         guardReason = ""
+        notesCommitted = false
         answerBeforeRepair = nil
         guardedAnswer = nil
         repairTurns = 0
@@ -322,7 +323,6 @@ final class AgentViewModel {
         }
     }
 
-    /// During the repair turn, takes one of its fetch_page slots before the call starts (failures and replays count too).
     func reserveRepairFetch() -> Bool {
         guard let limit = repairFetchLimit else { return true }
         guard repairFetches < limit else { return false }
@@ -330,8 +330,6 @@ final class AgentViewModel {
         return true
     }
 
-    /// Guard on: write_note saves a draft; the repair turn saving the same title again rewrites that draft. The model
-    /// is told the path the note gets when it is committed, in the same form as with the guard off.
     func writeDraft(_ call: AgentToolCall) -> AgentToolOutput? {
         guard guardActive else { return nil }
         let title = call.value("title") ?? ""
@@ -342,11 +340,13 @@ final class AgentViewModel {
         let key = AgentTools.noteFileName(title)
         do {
             let name = try AgentTools.writeDraft(
-                title: title, content: content, notesDirectory: notesDirectory, replacing: repairing ? draftNames[key] : nil)
+                title: title, content: content, notesDirectory: notesDirectory,
+                replacing: repairing ? draftNames[key] : nil)
             draftNames[key] = name
             if !draftOrder.contains(name) { draftOrder.append(name) }
-            return AgentToolOutput(text: AgentTools.savedText(
-                notesDirectory.appending(path: name).path(percentEncoded: false), stable: stableNotePaths))
+            return AgentToolOutput(
+                text: AgentTools.savedText(
+                    notesDirectory.appending(path: name).path(percentEncoded: false), stable: stableNotePaths))
         } catch let failure as AgentToolMessage {
             return AgentToolOutput(text: failure.text)
         } catch {
@@ -365,7 +365,9 @@ final class AgentViewModel {
         if call.name == "fetch_page" {
             let page = Self.fetchRecord(call, output)
             if let page { ledger.append(page) }
-            fetchAttempts.append(FetchAttempt(url: (call.value("url") ?? "").trimmingCharacters(in: .whitespacesAndNewlines), ok: page != nil))
+            fetchAttempts.append(
+                FetchAttempt(
+                    url: (call.value("url") ?? "").trimmingCharacters(in: .whitespacesAndNewlines), ok: page != nil))
         }
         if call.name == "web_search" || call.name == "fetch_page" { webToolCalls += 1 }
         if call.name == "write_note", output.text.hasPrefix("saved to ") {
@@ -376,7 +378,7 @@ final class AgentViewModel {
                 notesWritten.append((output.text, text))
             }
         }
-        guard sessionID != nil else { return }  // the self-test drives the tools without a task
+        guard sessionID != nil else { return }
         let style = Date.ISO8601FormatStyle(includingFractionalSeconds: true)
         var record = MetricsLog.agent("agent-tool", model: modelName)
         record.agentSession = sessionID
@@ -384,7 +386,9 @@ final class AgentViewModel {
         record.agentStep = step
         record.agentEffort = effort.rawValue
         record.toolName = call.name
-        record.toolArg = (call.value("url") ?? call.value("query") ?? call.value("title")).map { String($0.prefix(200)) }
+        record.toolArg = (call.value("url") ?? call.value("query") ?? call.value("title")).map {
+            String($0.prefix(200))
+        }
         record.toolStart = start.ISO8601Format(style)
         record.toolEnd = end.ISO8601Format(style)
         record.toolSeconds = end.timeIntervalSince(start)
@@ -393,10 +397,9 @@ final class AgentViewModel {
         MetricsLog.save(record)
     }
 
-    /// Runs one prompt to its end and returns how it ended, in the words of `AgentSelfTest.e2eOutcome`. `offset` is the
-    /// number of steps the task already used (the citation guard's repair turn counts on from the answer).
     private func respond(
-        _ session: LanguageModelSession, _ prompt: String, _ options: GenerationOptions, _ context: ContextOptions, offset: Int = 0
+        _ session: LanguageModelSession, _ prompt: String, _ options: GenerationOptions, _ context: ContextOptions,
+        offset: Int = 0
     ) async -> String {
         run = Run(base: session.transcript.count, mark: session.usage, offset: offset)
         step = offset + 1
@@ -447,13 +450,17 @@ final class AgentViewModel {
         if !run.limitReached, run.groups < steps.count {
             let current = transcript[steps[run.groups].generated]
             if run.ttft == nil, !current.isEmpty { run.ttft = (ContinuousClock.now - run.stepStart) / .seconds(1) }
-            if live, let names = Self.pendingCalls(current) { statusLine = "Step \(step): running " + names.joined(separator: " + ") + "…" }
+            if live, let names = Self.pendingCalls(current) {
+                statusLine = "Step \(step): running " + names.joined(separator: " + ") + "…"
+            }
         }
         self.run = run
         rebuild(transcript, live: live)
     }
 
-    private func finish(_ transcript: [Transcript.Entry], session: LanguageModelSession, failure: (any Error)?, stopped: Bool) async -> String {
+    private func finish(
+        _ transcript: [Transcript.Entry], session: LanguageModelSession, failure: (any Error)?, stopped: Bool
+    ) async -> String {
         guard var run else { return "failed" }
         var outcome = "failed"
         let steps = Self.steps(transcript, from: run.base + 1)
@@ -461,26 +468,45 @@ final class AgentViewModel {
         let end = transcript.count
         if run.limitReached {
             hidden.formUnion(transcript[current].map(\.id))
-            extras.append((end, Entry(
-                kind: .failure, title: "Step limit reached",
-                text: "The agent used all \(maxIterations) steps without finishing. Raise the limit in Settings or ask for something narrower.")))
+            extras.append(
+                (
+                    end,
+                    Entry(
+                        kind: .failure, title: "Step limit reached",
+                        text:
+                            "The agent used all \(maxIterations) steps without finishing. Raise the limit in Settings or ask for something narrower."
+                    )
+                ))
             statusLine = "Stopped at the \(maxIterations)-step limit."
             outcome = "step-limit"
         } else if stopped {
             let partial = Self.responseText(transcript[current])
             hidden.formUnion(transcript[current].filter { if case .response = $0 { true } else { false } }.map(\.id))
-            extras.append((end, Entry(kind: .failure, title: "Stopped", text: partial.isEmpty ? "(stopped before any answer)" : partial)))
+            extras.append(
+                (
+                    end,
+                    Entry(
+                        kind: .failure, title: "Stopped",
+                        text: partial.isEmpty ? "(stopped before any answer)" : partial)
+                ))
             statusLine = "Stopped after \(step) step(s)."
             outcome = "stopped"
         } else if let failure {
             if case LanguageModelError.contextSizeExceeded(let exceeded) = failure {
-                extras.append((end, Entry(
-                    kind: .failure, title: "Context window is full",
-                    text: "The conversation needs \(exceeded.tokenCount) tokens but this bundle only has \(exceeded.contextSize). Lower the page budget or ask for something narrower.")))
+                extras.append(
+                    (
+                        end,
+                        Entry(
+                            kind: .failure, title: "Context window is full",
+                            text:
+                                "The conversation needs \(exceeded.tokenCount) tokens but this bundle only has \(exceeded.contextSize). Lower the page budget or ask for something narrower."
+                        )
+                    ))
                 statusLine = "Context overflow at step \(step)."
                 outcome = "overflow"
             } else {
-                extras.append((end, Entry(kind: .failure, title: "Generation failed", text: String(describing: failure))))
+                extras.append(
+                    (end, Entry(kind: .failure, title: "Generation failed", text: String(describing: failure))))
                 statusLine = "Failed at step \(step)."
             }
         } else {
@@ -488,22 +514,25 @@ final class AgentViewModel {
             await snapshotTokens()
             let answer = Self.responseText(transcript[current])
             let citations = answer.isEmpty ? nil : await checkCitations(answer)
-            finishStep(transcript, current, session: session, ttft: run.ttft, final: true, citations: citations, mark: &run.mark)
-            outcome = answer.isEmpty ? "failed" : lastFinishReason == "eos" ? "answered" : lastFinishReason == "cap" ? "cap" : "failed"
+            finishStep(
+                transcript, current, session: session, ttft: run.ttft, final: true, citations: citations,
+                mark: &run.mark)
+            outcome =
+                answer.isEmpty
+                ? "failed" : lastFinishReason == "eos" ? "answered" : lastFinishReason == "cap" ? "cap" : "failed"
         }
         rebuild(transcript, live: false)
         return outcome
     }
 
-    /// After the task's answer: the citation check (always), and with the guard on, one repair turn when the check
-    /// fails and the budget allows, then the notes are committed (passed) or left as drafts (held).
-    private func settle(_ session: LanguageModelSession, _ outcome: String, _ options: GenerationOptions, _ context: ContextOptions) async {
+    private func settle(
+        _ session: LanguageModelSession, _ outcome: String, _ options: GenerationOptions, _ context: ContextOptions
+    ) async {
         var check = ledgerCheck(stage: "answer")
         checks = [check]
         if guardActive {
             if outcome != "answered" {
-                guardOutcome = "skipped"
-                guardReason = outcome
+                finishIncompleteNotes(reason: outcome)
             } else if !check.violation {
                 guardOutcome = "verified"
                 guardReason = "none"
@@ -522,7 +551,8 @@ final class AgentViewModel {
                 statusLine = "Step \(step + 1) of \(maxIterations): generating…"
                 AgentTools.log("[guard] repair turn: \(check.reason)")
                 let repaired = await respond(
-                    session, AgentPromptBuilder.repairPrompt(unfetched: check.unfetched), options, context, offset: step)
+                    session, AgentPromptBuilder.repairPrompt(unfetched: check.unfetched), options, context, offset: step
+                )
                 repairFetchLimit = nil
                 repairSeconds = Date().timeIntervalSince(started)
                 repairPromptTokens = session.usage.input.totalTokenCount - before.input.totalTokenCount
@@ -535,58 +565,85 @@ final class AgentViewModel {
                     guardedAnswer = finalAnswer()
                 } else {
                     guardOutcome = "held"
-                    guardReason = repaired == "stopped" && deadline.map({ Date() >= $0 }) == true ? "deadline" : "repair-" + repaired
+                    guardReason =
+                        repaired == "stopped" && deadline.map({ Date() >= $0 }) == true
+                        ? "deadline" : "repair-" + repaired
                     guardedAnswer = original
                 }
             }
-            finishNotes(commit: guardOutcome == "verified" || guardOutcome == "repaired")
+            if outcome == "answered" {
+                finishNotes(commit: guardOutcome == "verified" || guardOutcome == "repaired")
+            }
             addGuardNote(session)
         }
         await saveRunMetrics()
     }
 
-    /// The answer --agent-e2e reports: the last answer on screen, or with the guard, the answer it settled on.
     func finalAnswer() -> String {
         guardedAnswer ?? entries.last { $0.kind == .answer }?.text ?? ""
     }
 
     private func ledgerCheck(stage: String) -> LedgerCheck {
         Self.ledgerCheck(
-            stage: stage, answer: finalAnswer(), notes: notesWritten.map(\.text), ledger: ledger, attempts: fetchAttempts,
+            stage: stage, answer: finalAnswer(), notes: notesWritten.map(\.text), ledger: ledger,
+            attempts: fetchAttempts,
             sourcesRequired: sourcesRequired, usedWebTools: webToolCalls > 0)
+    }
+
+    func finishIncompleteNotes(reason: String) {
+        let check = Self.ledgerCheck(
+            stage: "notes", answer: "", notes: notesWritten.map(\.text), ledger: ledger, attempts: fetchAttempts,
+            sourcesRequired: false, usedWebTools: false)
+        guardOutcome = "skipped"
+        guardReason =
+            check.noteCitationsUnfetched.isEmpty
+            ? reason : reason + ": note-unfetched: " + check.noteCitationsUnfetched.joined(separator: ", ")
+        finishNotes(commit: check.noteCitationsUnfetched.isEmpty)
     }
 
     func finishNotes(commit: Bool) {
         guard !draftOrder.isEmpty else { return }
         if commit {
-            _ = AgentTools.commitDrafts(draftOrder, notesDirectory: notesDirectory)
+            notesCommitted =
+                AgentTools.commitDrafts(draftOrder, notesDirectory: notesDirectory).count == draftOrder.count
         } else {
-            AgentTools.holdDrafts(draftOrder, notesDirectory: notesDirectory, reason: "\(guardOutcome ?? "-"): \(guardReason)")
+            AgentTools.holdDrafts(
+                draftOrder, notesDirectory: notesDirectory, reason: "\(guardOutcome ?? "-"): \(guardReason)")
         }
     }
 
     private func addGuardNote(_ session: LanguageModelSession) {
-        guard let note = Self.guardNoteText(outcome: guardOutcome, reason: guardReason, check: checks.last, drafts: !draftOrder.isEmpty)
+        guard
+            let note = Self.guardNoteText(
+                outcome: guardOutcome, reason: guardReason, check: checks.last,
+                drafts: !draftOrder.isEmpty && !notesCommitted)
         else { return }
         let transcript = Array(session.transcript)
-        extras.append((transcript.count, Entry(kind: .note, title: Self.guardTitle, text: note.text, warning: note.warning)))
+        extras.append(
+            (transcript.count, Entry(kind: .note, title: Self.guardTitle, text: note.text, warning: note.warning)))
         rebuild(transcript, live: false)
     }
 
-    /// The guard's note under the answer. The pass label only when every URL the answer cites was fetched (and there is
-    /// at least one); otherwise only the counts.
-    nonisolated static func guardNoteText(outcome: String?, reason: String, check: LedgerCheck?, drafts: Bool) -> (text: String, warning: Bool)? {
-        let fetched = "\(check?.citationsFetched ?? 0)/\(check?.citationsTotal ?? 0) cited URLs were fetched in this task"
+    nonisolated static func guardNoteText(outcome: String?, reason: String, check: LedgerCheck?, drafts: Bool) -> (
+        text: String, warning: Bool
+    )? {
+        let fetched =
+            "\(check?.citationsFetched ?? 0)/\(check?.citationsTotal ?? 0) cited URLs were fetched in this task"
             + ((check?.citationsFailed ?? 0) > 0 ? " · \(check?.citationsFailed ?? 0) could not be fetched" : "")
         let kept = drafts ? " · notes kept as drafts in \(AgentTools.draftFolderName)" : ""
         switch outcome {
         case "verified", "repaired":
             let allFetched = (check?.citationsFetched ?? 0) > 0 && check?.citationsFetched == check?.citationsTotal
-            return ((allFetched ? verifiedLabel + " · " : "")
-                + (outcome == "repaired" ? "after one repair turn · " : "") + fetched, false)
+            return (
+                (allFetched ? verifiedLabel + " · " : "")
+                    + (outcome == "repaired" ? "after one repair turn · " : "") + fetched, false
+            )
         case "held":
             let unfetched = check?.unfetched ?? []
-            return (heldLabel + " · " + reason + (unfetched.isEmpty ? "" : " · not fetched: " + unfetched.joined(separator: ", ")) + kept, true)
+            return (
+                heldLabel + " · " + reason
+                    + (unfetched.isEmpty ? "" : " · not fetched: " + unfetched.joined(separator: ", ")) + kept, true
+            )
         default:
             return drafts ? ("The task ended without a complete answer (\(reason))" + kept, true) : nil
         }
@@ -621,7 +678,8 @@ final class AgentViewModel {
     }
 
     private func finishStep(
-        _ transcript: [Transcript.Entry], _ range: Range<Int>, session: LanguageModelSession, ttft: Double?, final: Bool = false,
+        _ transcript: [Transcript.Entry], _ range: Range<Int>, session: LanguageModelSession, ttft: Double?,
+        final: Bool = false,
         citations: CitationCheck? = nil, mark: inout LanguageModelSession.Usage
     ) {
         let usage = session.usage
@@ -638,8 +696,12 @@ final class AgentViewModel {
         let prefill = try? metadata["prefillSeconds"]?.value(Double.self)
         let decode = try? metadata["decodeSeconds"]?.value(Double.self)
         let speed = decode.flatMap { $0 > 0 ? Double(output) / $0 : nil }
-        let calls = entries.flatMap { entry -> [String] in if case .toolCalls(let calls) = entry { calls.map(\.toolName) } else { [] } }
-        let thinking = entries.map { if case .reasoning(let reasoning) = $0 { Self.trimmed(reasoning.segments).count } else { 0 } }.reduce(0, +)
+        let calls = entries.flatMap { entry -> [String] in
+            if case .toolCalls(let calls) = entry { calls.map(\.toolName) } else { [] }
+        }
+        let thinking = entries.map {
+            if case .reasoning(let reasoning) = $0 { Self.trimmed(reasoning.segments).count } else { 0 }
+        }.reduce(0, +)
         let answer = Self.responseText(entries)
 
         var diverged = false
@@ -648,10 +710,13 @@ final class AgentViewModel {
             divergeCount += 1
             var tokens = ""
             if let before = previousTokens, let after = currentTokens, shared < min(before.count, after.count) {
-                tokens = " generated \(Array(before[max(0, shared - 2)..<min(before.count, shared + 4)]))"
+                tokens =
+                    " generated \(Array(before[max(0, shared - 2)..<min(before.count, shared + 4)]))"
                     + " re-rendered \(Array(after[max(0, shared - 2)..<min(after.count, shared + 4)]))"
             }
-            AgentTools.log("[agent] re-render diverges at step \(step): shared \(shared) < previous prompt \(previous.input) + output \(previous.output) - 1" + tokens)
+            AgentTools.log(
+                "[agent] re-render diverges at step \(step): shared \(shared) < previous prompt \(previous.input) + output \(previous.output) - 1"
+                    + tokens)
         }
         previous = (input, output)
         previousTokens = currentTokens
@@ -671,8 +736,13 @@ final class AgentViewModel {
         ].joined(separator: "  |  ")
         statusLine = line
         if truncated > 0 {
-            extras.append((range.lowerBound, Entry(
-                kind: .note, title: Self.contextFullNote, text: "\(truncated) tool output(s) shortened to fit the context window.")))
+            extras.append(
+                (
+                    range.lowerBound,
+                    Entry(
+                        kind: .note, title: Self.contextFullNote,
+                        text: "\(truncated) tool output(s) shortened to fit the context window.")
+                ))
         }
         if final, answer.isEmpty {
             let placeholder = Entry(kind: .answer, title: "Assistant", text: Self.noAnswerText)
@@ -681,11 +751,19 @@ final class AgentViewModel {
         } else if let last = Self.lastDisplayID(entries) {
             stats[last] = line
         }
-        if final, let citations { extras.append((range.upperBound, Entry(kind: .note, title: "Citations", text: citations.note))) }
+        if final, let citations {
+            extras.append((range.upperBound, Entry(kind: .note, title: "Citations", text: citations.note)))
+        }
         if final, finish == "cap" {
-            extras.append((range.upperBound, Entry(
-                kind: .failure, title: "Answer cut at the token limit (\(maxNewTokens))",
-                text: "The answer above stops where generation ran out of tokens. Raise Max tokens or ask for something shorter.")))
+            extras.append(
+                (
+                    range.upperBound,
+                    Entry(
+                        kind: .failure, title: "Answer cut at the token limit (\(maxNewTokens))",
+                        text:
+                            "The answer above stops where generation ran out of tokens. Raise Max tokens or ask for something shorter."
+                    )
+                ))
         }
 
         var record = MetricsLog.agent("message", model: modelName)
@@ -726,20 +804,27 @@ final class AgentViewModel {
                     out.append(Entry(id: entry.id, kind: .user, title: "You", text: Self.trimmed(prompt.segments)))
                 case .reasoning(let reasoning):
                     let text = Self.trimmed(reasoning.segments)
-                    if !text.isEmpty { out.append(Entry(id: entry.id, kind: .thinking, title: "Thinking", text: text, live: isLive)) }
+                    if !text.isEmpty {
+                        out.append(Entry(id: entry.id, kind: .thinking, title: "Thinking", text: text, live: isLive))
+                    }
                 case .response(let response):
                     let text = Self.trimmed(response.segments)
-                    if !text.isEmpty { out.append(Entry(id: entry.id, kind: .answer, title: "Assistant", text: text, live: isLive)) }
+                    if !text.isEmpty {
+                        out.append(Entry(id: entry.id, kind: .answer, title: "Assistant", text: text, live: isLive))
+                    }
                 case .toolCalls(let calls):
                     for call in calls {
                         let arguments = AgentPromptBuilder.arguments(call.toolName, call.arguments)
-                        out.append(Entry(
-                            id: call.id, kind: .toolCall, title: call.toolName,
-                            text: AgentToolCall(name: call.toolName, arguments: arguments).summary, live: isLive))
+                        out.append(
+                            Entry(
+                                id: call.id, kind: .toolCall, title: call.toolName,
+                                text: AgentToolCall(name: call.toolName, arguments: arguments).summary, live: isLive))
                     }
                 case .toolOutput(let output):
-                    out.append(Entry(
-                        id: "result-" + entry.id, kind: .toolResult, title: "\(output.toolName) result", text: ChatViewModel.text(output.segments)))
+                    out.append(
+                        Entry(
+                            id: "result-" + entry.id, kind: .toolResult, title: "\(output.toolName) result",
+                            text: ChatViewModel.text(output.segments)))
                 default:
                     break
                 }
@@ -750,7 +835,9 @@ final class AgentViewModel {
         entries = out
     }
 
-    private static func steps(_ transcript: [Transcript.Entry], from start: Int) -> [(generated: Range<Int>, outputs: Range<Int>?)] {
+    private static func steps(_ transcript: [Transcript.Entry], from start: Int) -> [(
+        generated: Range<Int>, outputs: Range<Int>?
+    )] {
         func isOutput(_ index: Int) -> Bool { if case .toolOutput = transcript[index] { true } else { false } }
         var steps: [(generated: Range<Int>, outputs: Range<Int>?)] = []
         var index = start
@@ -778,7 +865,9 @@ final class AgentViewModel {
 
     private static func pendingCalls(_ entries: ArraySlice<Transcript.Entry>) -> [String]? {
         guard case .toolCalls(let last)? = entries.last, !(last.last?.metadata.isEmpty ?? true) else { return nil }
-        return entries.flatMap { entry -> [String] in if case .toolCalls(let calls) = entry { calls.map(\.toolName) } else { [] } }
+        return entries.flatMap { entry -> [String] in
+            if case .toolCalls(let calls) = entry { calls.map(\.toolName) } else { [] }
+        }
     }
 
     private static func lastDisplayID(_ entries: ArraySlice<Transcript.Entry>) -> String? {
@@ -810,8 +899,9 @@ final class AgentViewModel {
             urls.isEmpty ? 0 : urls.map(\.overlap).reduce(0, +) / Double(urls.count)
         }
         var note: String {
-            String(format: "%d/%d cited URLs were retrieved in this task · mean 8-gram overlap %.2f",
-                   seenCount, total, meanOverlap)
+            String(
+                format: "%d/%d cited URLs were retrieved in this task · mean 8-gram overlap %.2f",
+                seenCount, total, meanOverlap)
         }
     }
 
@@ -831,18 +921,21 @@ final class AgentViewModel {
                 overlap = await Task.detached { Self.gramOverlap(body, clipped) }.value
             }
             check.urls.append((url, source != nil, overlap))
-            AgentTools.log(String(format: "[cite] url=%@ seen=%@ overlap=%.2f", url, source == nil ? "no" : "yes", overlap))
+            AgentTools.log(
+                String(format: "[cite] url=%@ seen=%@ overlap=%.2f", url, source == nil ? "no" : "yes", overlap))
         }
         return check
     }
 
     nonisolated static func splitSources(_ answer: String) -> (body: String, urls: [String]) {
         let lines = answer.split(separator: "\n", omittingEmptySubsequences: false)
-        guard let start = lines.lastIndex(where: { line in
-            let head = line.trimmingCharacters(in: CharacterSet(charactersIn: " \t*#-")).lowercased()
-            return head.hasPrefix("sources") || head.hasPrefix("\u{51FA}\u{5178}")
-                || head.hasPrefix("\u{53C2}\u{8003}")
-        }) else { return (answer, []) }
+        guard
+            let start = lines.lastIndex(where: { line in
+                let head = line.trimmingCharacters(in: CharacterSet(charactersIn: " \t*#-")).lowercased()
+                return head.hasPrefix("sources") || head.hasPrefix("\u{51FA}\u{5178}")
+                    || head.hasPrefix("\u{53C2}\u{8003}")
+            })
+        else { return (answer, []) }
         return (lines[..<start].joined(separator: "\n"), urls(in: lines[start...].joined(separator: "\n")))
     }
 
@@ -851,7 +944,8 @@ final class AgentViewModel {
         for match in text.matches(of: /https?:\/\/[^\s<>"'()\[\]]+/) {
             var url = String(match.0)
             while let last = url.last,
-                  ".,;:\u{3001}\u{3002}\u{00BB}\u{201D}".contains(last) { url.removeLast() }
+                ".,;:\u{3001}\u{3002}\u{00BB}\u{201D}".contains(last)
+            { url.removeLast() }
             if !url.isEmpty, !found.contains(url) { found.append(url) }
         }
         return found
@@ -863,28 +957,24 @@ final class AgentViewModel {
         return text
     }
 
-    /// Why the guard holds without a repair turn: a stop, no step left (the repair turn counts on from the answer), or the
-    /// task's deadline already passed. nil = repair.
-    nonisolated static func repairBlocker(stepsUsed: Int, maxSteps: Int, deadline: Date?, now: Date, stopped: Bool) -> String? {
+    nonisolated static func repairBlocker(stepsUsed: Int, maxSteps: Int, deadline: Date?, now: Date, stopped: Bool)
+        -> String?
+    {
         if stopped { return "stopped" }
         if stepsUsed >= maxSteps { return "no-steps-left" }
         if let deadline, now >= deadline { return "deadline" }
         return nil
     }
 
-    /// A ledger row for a fetch_page call that handed page text to the model; nil for search results and failures.
     nonisolated static func fetchRecord(_ call: AgentToolCall, _ output: AgentToolOutput) -> FetchRecord? {
         guard call.name == "fetch_page", let final = output.finalURL, !output.text.isEmpty else { return nil }
         let digest = SHA256.hash(data: Data(output.text.utf8)).map { String(format: "%02x", $0) }.joined()
         return FetchRecord(
-            url: (call.value("url") ?? "").trimmingCharacters(in: .whitespacesAndNewlines), finalURL: final, sha256: digest,
+            url: (call.value("url") ?? "").trimmingCharacters(in: .whitespacesAndNewlines), finalURL: final,
+            sha256: digest,
             characters: output.text.count)
     }
 
-    /// A URL fetch_page handed to the model is fetched; one it tried and failed on is failed (reported, not a violation);
-    /// any other is unfetched (never tried: a violation). Sources required = at least one fetched URL in the answer.
-    /// `sourcesRequired` nil = auto: required when the task called a web tool or the answer has a URL, unless every
-    /// fetch_page of the session failed (then saying nothing could be read is the right answer).
     nonisolated static func ledgerCheck(
         stage: String, answer: String, notes: [String], ledger: [FetchRecord], attempts: [FetchAttempt] = [],
         sourcesRequired: Bool?, usedWebTools: Bool
@@ -896,7 +986,8 @@ final class AgentViewModel {
         let tried = fetched.union(failed)
         let unfetched = cited.filter { !tried.contains(guardNormalized($0)) }
         var noteUnfetched: [String] = []
-        for url in notes.flatMap(guardURLs(in:)) where !tried.contains(guardNormalized(url))
+        for url in notes.flatMap(guardURLs(in:))
+        where !tried.contains(guardNormalized(url))
             && !noteUnfetched.contains(where: { guardNormalized($0) == guardNormalized(url) })
         {
             noteUnfetched.append(url)
@@ -906,12 +997,10 @@ final class AgentViewModel {
         return LedgerCheck(
             stage: stage, citationsTotal: cited.count, citationsFetched: confirmed.count,
             citationsFailed: cited.count - confirmed.count - unfetched.count, citationsUnfetched: unfetched,
-            noteCitationsUnfetched: noteUnfetched, sourcesRequired: required, sourcesMissing: required && confirmed.isEmpty)
+            noteCitationsUnfetched: noteUnfetched, sourcesRequired: required,
+            sourcesMissing: required && confirmed.isEmpty)
     }
 
-    /// The guard's URL reader (the citation note's `urls(in:)` is unchanged): a bracket that opens inside the URL may close
-    /// inside it (`…/Metal_(API)`); an unmatched closing bracket, whitespace, quotes and non-ASCII punctuation end it;
-    /// trailing `.,;:!?*` are dropped. Each URL once, by `guardNormalized`.
     nonisolated static func guardURLs(in text: String) -> [String] {
         var found: [String] = []
         var seen = Set<String>()
@@ -947,8 +1036,6 @@ final class AgentViewModel {
         return found
     }
 
-    /// The guard's URL identity: scheme and host lowercased, path and query kept as written but with their percent-escapes
-    /// decoded (`percentNormalized`), the fragment and trailing slashes dropped.
     nonisolated static func guardNormalized(_ url: String) -> String {
         var text = url
         if let hash = text.firstIndex(of: "#") { text = String(text[..<hash]) }
@@ -960,8 +1047,6 @@ final class AgentViewModel {
         return text
     }
 
-    /// Percent-escapes decoded where that keeps the meaning: `%2F`, `%3F`, `%23` and `%25` stay (with upper-case hex), and
-    /// a run of escapes that is not UTF-8 stays as written. `Metal_%28API%29` reads as `Metal_(API)`.
     nonisolated static func percentNormalized(_ text: String) -> String {
         var out = ""
         var bytes: [UInt8] = []

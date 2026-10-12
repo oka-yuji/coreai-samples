@@ -1,5 +1,9 @@
+import CFNetwork
+import Darwin
 import Foundation
+import RAGContext
 import SQLite3
+import Synchronization
 import WebKit
 
 struct AgentArgument: Equatable, Sendable {
@@ -21,7 +25,7 @@ struct AgentToolCall: Equatable, Sendable {
 struct AgentToolOutput: Sendable {
     var text: String
     var seen: [String: String] = [:]
-    /// fetch_page only: the URL the page came from after redirects. Set only when the page text was handed to the model.
+
     var finalURL: String?
 }
 
@@ -34,16 +38,15 @@ struct AgentToolSettings: Sendable {
 
     var allowFileOperations = false
 
-    /// `--tool-cassette`: web_search and fetch_page results are replayed from, or recorded to, this cassette.
     var cassette: ToolCassette?
 
-    /// `--stable-note-paths`: write_note tells the model `agent-notes/<file>.md` instead of the absolute path.
     var stableNotePaths = false
 }
 
 struct AgentToolMessage: Error, Sendable {
     var text: String
     var fatal = false
+    var forbidsPageFallback = false
 }
 
 enum AgentTools {
@@ -56,7 +59,8 @@ enum AgentTools {
 
     static let names = ["web_search", "fetch_page", "write_note", "move_note"]
 
-    static let userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 "
+    static let userAgent =
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 "
         + "(KHTML, like Gecko) Version/18.0 Safari/605.1.15"
 
     static func run(_ call: AgentToolCall, settings: AgentToolSettings) async -> AgentToolOutput {
@@ -84,11 +88,9 @@ enum AgentTools {
         case "fetch_page":
             let raw = (call.value("url") ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
             guard let url = URL(string: raw), let scheme = url.scheme?.lowercased(),
-                  scheme == "http" || scheme == "https", url.host != nil else {
+                scheme == "http" || scheme == "https", url.host != nil
+            else {
                 return AgentToolOutput(text: "error: fetch_page needs an absolute http or https URL")
-            }
-            guard !isLocalOrPrivate(url.host()) else {
-                return AgentToolOutput(text: localAddressRefusal)
             }
             do {
                 return try await fetchPage(
@@ -105,9 +107,10 @@ enum AgentTools {
                 return AgentToolOutput(text: "error: write_note needs a content parameter")
             }
             do {
-                return AgentToolOutput(text: savedText(
-                    try writeNote(title: title, content: content, directory: settings.notesDirectory),
-                    stable: settings.stableNotePaths))
+                return AgentToolOutput(
+                    text: savedText(
+                        try writeNote(title: title, content: content, directory: settings.notesDirectory),
+                        stable: settings.stableNotePaths))
             } catch let failure as AgentToolMessage {
                 return AgentToolOutput(text: failure.text)
             } catch {
@@ -119,9 +122,11 @@ enum AgentTools {
                     text: "error: file operations are disabled in Settings (Allow file operations)")
             }
             do {
-                return AgentToolOutput(text: "moved to " + (try moveNote(
-                    title: call.value("title") ?? "", destination: call.value("destination") ?? "",
-                    notesDirectory: settings.notesDirectory)))
+                return AgentToolOutput(
+                    text: "moved to "
+                        + (try moveNote(
+                            title: call.value("title") ?? "", destination: call.value("destination") ?? "",
+                            notesDirectory: settings.notesDirectory)))
             } catch let failure as AgentToolMessage {
                 return AgentToolOutput(text: failure.text)
             } catch {
@@ -136,7 +141,8 @@ enum AgentTools {
     static func webSearch(
         query: String, limit: Int, braveAPIKey: String
     ) async throws -> AgentToolOutput {
-        let results = braveAPIKey.isEmpty
+        let results =
+            braveAPIKey.isEmpty
             ? try await duckDuckGoResults(query: query, limit: limit)
             : try await braveResults(query: query, limit: limit, key: braveAPIKey)
         guard !results.isEmpty else { return AgentToolOutput(text: "no results for \"\(query)\"") }
@@ -166,7 +172,8 @@ enum AgentTools {
 
     private static func checkStatus(_ response: URLResponse, brave: Bool) throws {
         guard let http = response as? HTTPURLResponse,
-              let message = searchStatusError(http.statusCode, brave: brave) else { return }
+            let message = searchStatusError(http.statusCode, brave: brave)
+        else { return }
         throw AgentToolMessage(text: message)
     }
 
@@ -195,7 +202,7 @@ enum AgentTools {
         var components = URLComponents(string: "https://api.search.brave.com/res/v1/web/search")
         components?.queryItems = [
             URLQueryItem(name: "q", value: query),
-            URLQueryItem(name: "count", value: String(limit))
+            URLQueryItem(name: "count", value: String(limit)),
         ]
         guard let url = components?.url else { return [] }
         var request = get(url)
@@ -218,26 +225,8 @@ enum AgentTools {
 
     static let readableContentTypes = ["text/html", "text/plain", "application/xhtml+xml"]
 
-    static func isLocalOrPrivate(_ host: String?) -> Bool {
-        guard var bare = host?.lowercased(), !bare.isEmpty else { return true }
-        if bare.hasPrefix("["), bare.hasSuffix("]") { bare = String(bare.dropFirst().dropLast()) }
-        if bare.contains(":") {
-            return bare == "::1" || bare == "::" || bare.hasPrefix("fe80:")
-                || bare.hasPrefix("fc") || bare.hasPrefix("fd")
-        }
-        if bare == "localhost" || bare.hasSuffix(".localhost") || bare.hasSuffix(".local") { return true }
-        let parts = bare.split(separator: ".", omittingEmptySubsequences: false)
-        guard parts.count == 4 else { return false }
-        let octets = parts.compactMap { Int($0) }
-        guard octets.count == 4, octets.allSatisfy({ (0...255).contains($0) }) else { return false }
-        switch (octets[0], octets[1]) {
-        case (0, _), (127, _), (10, _), (192, 168), (169, 254): return true
-        case (172, 16...31): return true
-        default: return false
-        }
-    }
-
     static func fetchPage(url: URL, budget: Int, query: String = "") async throws -> AgentToolOutput {
+        try await AgentFetchPolicy().validate(url)
         var full: String
         var final: URL?
         do {
@@ -265,13 +254,22 @@ enum AgentTools {
     }
 
     static func downloadPage(url: URL) async throws -> (text: String, finalURL: URL?) {
-        let (stream, response) = try await URLSession.shared.bytes(for: get(url))
+        let policy = AgentFetchPolicy()
+        try await policy.validate(url)
+        let redirects = AgentFetchRedirects(policy: policy)
+        let stream: URLSession.AsyncBytes
+        let response: URLResponse
+        do {
+            (stream, response) = try await URLSession.shared.bytes(for: get(url), delegate: redirects)
+        } catch {
+            throw redirects.failure ?? error
+        }
+        defer { stream.task.cancel() }
+        try redirects.checkResponse()
+        try await policy.validate(response.url)
         if let http = response as? HTTPURLResponse, http.statusCode >= 400 {
             throw AgentToolMessage(
                 text: "error: HTTP \(http.statusCode) for \(url.absoluteString)", fatal: true)
-        }
-        guard !isLocalOrPrivate(response.url?.host()) else {
-            throw AgentToolMessage(text: localAddressRefusal, fatal: true)
         }
         let type = (response.mimeType ?? "").lowercased()
         guard readableContentTypes.contains(type) else {
@@ -312,12 +310,14 @@ enum AgentTools {
         guard !wanted.isEmpty else { return clip(full, budget: budget) }
         let pieces = chunks(full)
         guard let selected = selectPassages(pieces, query: wanted, budget: budget) else {
-            log("[fetch_page] query \(wanted.debugDescription) matched nothing in \(pieces.count) "
-                + "chunks — returning the first \(budget) characters instead")
+            log(
+                "[fetch_page] query \(wanted.debugDescription) matched nothing in \(pieces.count) "
+                    + "chunks — returning the first \(budget) characters instead")
             return clip(full, budget: budget)
         }
-        log("[fetch_page] query \(wanted.debugDescription): \(selected.count) of \(full.count) chars "
-            + "from \(pieces.count) chunks")
+        log(
+            "[fetch_page] query \(wanted.debugDescription): \(selected.count) of \(full.count) chars "
+                + "from \(pieces.count) chunks")
         return selected
     }
 
@@ -339,9 +339,15 @@ enum AgentTools {
             }
         }
         for paragraph in text.split(separator: "\n", omittingEmptySubsequences: true) {
-            if paragraph.count <= chunkCharacters { add(String(paragraph)); continue }
+            if paragraph.count <= chunkCharacters {
+                add(String(paragraph))
+                continue
+            }
             for sentence in sentences(String(paragraph)) {
-                guard sentence.count > chunkCharacters else { add(sentence); continue }
+                guard sentence.count > chunkCharacters else {
+                    add(sentence)
+                    continue
+                }
                 flush()
                 var rest = Substring(sentence)
                 while !rest.isEmpty {
@@ -398,7 +404,10 @@ enum AgentTools {
         var terms: [String] = []
         for run in query.split(whereSeparator: { !($0.isLetter || $0.isNumber) }) {
             guard run.count >= 3 else { continue }
-            if run.allSatisfy(\.isASCII) { terms.append(String(run)); continue }
+            if run.allSatisfy(\.isASCII) {
+                terms.append(String(run))
+                continue
+            }
             let characters = Array(run)
             for start in 0...(characters.count - 3) {
                 terms.append(String(characters[start..<(start + 3)]))
@@ -417,15 +426,18 @@ enum AgentTools {
             return []
         }
         defer { sqlite3_close(db) }
-        guard sqlite3_exec(
-            db, "CREATE VIRTUAL TABLE c USING fts5(t, tokenize='trigram')", nil, nil, nil) == SQLITE_OK
+        guard
+            sqlite3_exec(
+                db, "CREATE VIRTUAL TABLE c USING fts5(t, tokenize='trigram')", nil, nil, nil) == SQLITE_OK
         else {
             log("[fetch_page] FTS5 unavailable — ranking passages by substring instead")
             return []
         }
         var insert: OpaquePointer?
-        guard sqlite3_prepare_v2(db, "INSERT INTO c(rowid, t) VALUES (?, ?)", -1, &insert, nil)
-            == SQLITE_OK else { return [] }
+        guard
+            sqlite3_prepare_v2(db, "INSERT INTO c(rowid, t) VALUES (?, ?)", -1, &insert, nil)
+                == SQLITE_OK
+        else { return [] }
         for (index, piece) in pieces.enumerated() {
             sqlite3_bind_int64(insert, 1, Int64(index))
             sqlite3_bind_text(insert, 2, piece, -1, sqliteTransient)
@@ -434,8 +446,9 @@ enum AgentTools {
         }
         sqlite3_finalize(insert)
         var select: OpaquePointer?
-        guard sqlite3_prepare_v2(
-            db, "SELECT rowid FROM c WHERE c MATCH ? ORDER BY bm25(c)", -1, &select, nil) == SQLITE_OK
+        guard
+            sqlite3_prepare_v2(
+                db, "SELECT rowid FROM c WHERE c MATCH ? ORDER BY bm25(c)", -1, &select, nil) == SQLITE_OK
         else { return [] }
         defer { sqlite3_finalize(select) }
         sqlite3_bind_text(select, 1, match, -1, sqliteTransient)
@@ -464,7 +477,6 @@ enum AgentTools {
         FileHandle.standardError.write(Data((line + "\n").utf8))
     }
 
-    /// `["a","b"]`, for log lines that list URLs or a cassette key.
     static func jsonList(_ items: [String]) -> String {
         let encoder = JSONEncoder()
         encoder.outputFormatting = .withoutEscapingSlashes
@@ -514,15 +526,18 @@ enum AgentTools {
         for name in [noteFileName(title), wanted.hasSuffix(".md") ? wanted : wanted + ".md"] {
             let url = directory.appending(path: name)
             guard comparablePath(url.deletingLastPathComponent()) == comparablePath(directory),
-                  FileManager.default.fileExists(atPath: url.path(percentEncoded: false)) else { continue }
+                FileManager.default.fileExists(atPath: url.path(percentEncoded: false))
+            else { continue }
             return url
         }
-        let existing = ((try? FileManager.default.contentsOfDirectory(
-            at: directory, includingPropertiesForKeys: [.contentModificationDateKey])) ?? [])
+        let existing =
+            ((try? FileManager.default.contentsOfDirectory(
+                at: directory, includingPropertiesForKeys: [.contentModificationDateKey])) ?? [])
             .sorted { modificationDate($0) > modificationDate($1) }
             .prefix(10).map(\.lastPathComponent)
-        throw AgentToolMessage(text: "error: no note titled \"\(wanted)\". Existing notes: "
-            + (existing.isEmpty ? "none" : existing.joined(separator: ", ")))
+        throw AgentToolMessage(
+            text: "error: no note titled \"\(wanted)\". Existing notes: "
+                + (existing.isEmpty ? "none" : existing.joined(separator: ", ")))
     }
 
     private static func modificationDate(_ url: URL) -> Date {
@@ -539,7 +554,8 @@ enum AgentTools {
     private static func destinationFolder(_ destination: String, allowedRoots: [URL]) throws -> URL {
         let text = (destination.trimmingCharacters(in: .whitespacesAndNewlines) as NSString)
             .expandingTildeInPath
-        let url = text.hasPrefix("/")
+        let url =
+            text.hasPrefix("/")
             ? URL(fileURLWithPath: text, isDirectory: true)
             : homeDirectory.appending(path: text, directoryHint: .isDirectory)
         let resolved = url.standardizedFileURL.resolvingSymlinksInPath()
@@ -570,10 +586,11 @@ enum AgentTools {
         return (heading.isEmpty || hasHeading ? "" : "# \(heading)\n\n") + content + "\n"
     }
 
-    /// `name`, or `name 2.md` … `name 99.md`, whichever is free in all of `directories`.
     static func freeName(_ name: String, in directories: [URL]) throws -> String {
         func taken(_ candidate: String) -> Bool {
-            directories.contains { FileManager.default.fileExists(atPath: $0.appending(path: candidate).path(percentEncoded: false)) }
+            directories.contains {
+                FileManager.default.fileExists(atPath: $0.appending(path: candidate).path(percentEncoded: false))
+            }
         }
         guard taken(name) else { return name }
         let base = String(name.dropLast(3))
@@ -583,25 +600,23 @@ enum AgentTools {
         return free
     }
 
-    /// The text write_note returns: the saved path, or `agent-notes/<file>` with `--stable-note-paths`.
     static func savedText(_ path: String, stable: Bool) -> String {
         "saved to " + (stable ? "agent-notes/" + (path as NSString).lastPathComponent : path)
     }
 
     static let draftFolderName = ".draft"
 
-    /// Citation guard on: notes wait in `<notes>/.draft/` until the answer and the notes pass the check. The name is
-    /// chosen as write_note would choose it in the notes folder (and kept free among the drafts); `replacing` rewrites
-    /// a draft in place (the repair turn saving the same title again).
-    static func writeDraft(title: String, content: String, notesDirectory: URL, replacing name: String? = nil) throws -> String {
+    static func writeDraft(title: String, content: String, notesDirectory: URL, replacing name: String? = nil) throws
+        -> String
+    {
         let drafts = notesDirectory.appending(path: draftFolderName, directoryHint: .isDirectory)
         try FileManager.default.createDirectory(at: drafts, withIntermediateDirectories: true)
         let chosen = try name ?? freeName(noteFileName(title), in: [notesDirectory, drafts])
-        try Data(noteBody(title: title, content: content).utf8).write(to: drafts.appending(path: chosen), options: .atomic)
+        try Data(noteBody(title: title, content: content).utf8).write(
+            to: drafts.appending(path: chosen), options: .atomic)
         return chosen
     }
 
-    /// Moves the drafts into the notes folder and returns where they landed.
     static func commitDrafts(_ names: [String], notesDirectory: URL) -> [String] {
         let drafts = notesDirectory.appending(path: draftFolderName, directoryHint: .isDirectory)
         var committed: [String] = []
@@ -617,10 +632,11 @@ enum AgentTools {
         return committed
     }
 
-    /// Leaves the drafts where they are and writes why in `<notes>/.draft/HELD.txt`.
     static func holdDrafts(_ names: [String], notesDirectory: URL, reason: String) {
-        let file = notesDirectory.appending(path: draftFolderName, directoryHint: .isDirectory).appending(path: "HELD.txt")
-        let text = (["reason: \(reason)", "held: \(Date.now.ISO8601Format())", "drafts:"] + names.map { "- \($0)" })
+        let file = notesDirectory.appending(path: draftFolderName, directoryHint: .isDirectory).appending(
+            path: "HELD.txt")
+        let text =
+            (["reason: \(reason)", "held: \(Date.now.ISO8601Format())", "drafts:"] + names.map { "- \($0)" })
             .joined(separator: "\n") + "\n"
         do {
             try Data(text.utf8).write(to: file, options: .atomic)
@@ -651,11 +667,13 @@ enum AgentTools {
             let attributes = String(match.1)
             if attributes.contains("result__a") {
                 let href = attributes.firstMatch(of: hrefPattern).map { String($0.1) } ?? ""
-                results.append(SearchResult(
-                    title: plainText(fromHTML: String(match.2)),
-                    url: resolveRedirect(href), snippet: ""))
+                results.append(
+                    SearchResult(
+                        title: plainText(fromHTML: String(match.2)),
+                        url: resolveRedirect(href), snippet: ""))
             } else if attributes.contains("result__snippet"), let last = results.indices.last,
-                      results[last].snippet.isEmpty {
+                results[last].snippet.isEmpty
+            {
                 results[last].snippet = plainText(fromHTML: String(match.2))
             }
         }
@@ -665,7 +683,8 @@ enum AgentTools {
     static func resolveRedirect(_ href: String) -> String {
         let absolute = href.hasPrefix("//") ? "https:" + href : href
         guard absolute.contains("uddg="), let components = URLComponents(string: decodeEntities(absolute)),
-              let target = components.queryItems?.first(where: { $0.name == "uddg" })?.value else {
+            let target = components.queryItems?.first(where: { $0.name == "uddg" })?.value
+        else {
             return absolute
         }
         return target
@@ -690,7 +709,7 @@ enum AgentTools {
 
     static let namedEntities = [
         "amp": "&", "lt": "<", "gt": ">", "quot": "\"", "apos": "'", "nbsp": " ", "hellip": "…",
-        "mdash": "—", "ndash": "–", "rsquo": "’", "lsquo": "‘", "ldquo": "“", "rdquo": "”"
+        "mdash": "—", "ndash": "–", "rsquo": "’", "lsquo": "‘", "ldquo": "“", "rdquo": "”",
     ]
 
     static func decodeEntities(_ text: String) -> String {
@@ -708,10 +727,6 @@ enum AgentTools {
     }
 }
 
-/// Tool results on disk (M4-g): one JSON line per web_search or fetch_page result, keyed by the tool and its arguments as
-/// the tool reads them. A key that is recorded is replayed (the first record of a key wins); an unrecorded key is fetched
-/// live and appended (`record`, `replay-or-record`) or answered with `error: cassette miss` (`replay`). write_note and
-/// move_note never go through it.
 actor ToolCassette {
     enum Mode: String, CaseIterable {
         case record, replay
@@ -756,9 +771,10 @@ actor ToolCassette {
         loaded = entries.count
     }
 
-    /// The tool name and its arguments as the tool uses them (trimmed; max_results clamped as web_search clamps it).
     static func key(for call: AgentToolCall, settings: AgentToolSettings) -> [String]? {
-        func trimmed(_ name: String) -> String { (call.value(name) ?? "").trimmingCharacters(in: .whitespacesAndNewlines) }
+        func trimmed(_ name: String) -> String {
+            (call.value(name) ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        }
         switch call.name {
         case "web_search":
             let requested = Int(trimmed("max_results"))
@@ -771,7 +787,8 @@ actor ToolCassette {
     }
 
     func output(for key: [String], live: @Sendable () async -> AgentToolOutput) async -> AgentToolOutput {
-        if let entry = entries[key] {
+        let wildcard = key.count == 3 && key.first == "fetch_page" ? [key[0], key[1], "*"] : nil
+        if let entry = entries[key] ?? wildcard.flatMap({ entries[$0] }) {
             hits += 1
             Self.log("hit", key, entry.ms)
             if replaysLatency, entry.ms > 0 { try? await Task.sleep(for: .milliseconds(entry.ms)) }
@@ -784,7 +801,7 @@ actor ToolCassette {
         }
         let start = ContinuousClock.now
         let output = await live()
-        guard !Task.isCancelled else { return output }  // a stopped call is not what the page returns
+        guard !Task.isCancelled, key != wildcard else { return output }
         let ms = Int(((ContinuousClock.now - start) / .milliseconds(1)).rounded())
         let entry = Entry(
             key: key, text: output.text, seen: output.seen,
@@ -805,7 +822,8 @@ actor ToolCassette {
             line.append(0x0A)
             let path = file.path(percentEncoded: false)
             if !FileManager.default.fileExists(atPath: path) {
-                try FileManager.default.createDirectory(at: file.deletingLastPathComponent(), withIntermediateDirectories: true)
+                try FileManager.default.createDirectory(
+                    at: file.deletingLastPathComponent(), withIntermediateDirectories: true)
                 FileManager.default.createFile(atPath: path, contents: nil)
             }
             let handle = try FileHandle(forWritingTo: file)
@@ -847,28 +865,51 @@ final class AgentPageReader: NSObject, WKNavigationDelegate {
     private var evaluation: CheckedContinuation<String?, Error>?
     private var view: WKWebView?
     private var statusFailure: AgentToolMessage?
+    private let policy: AgentFetchPolicy
+    private let resolutions = AgentAddressScope()
+    private(set) var contentRulesInstalled = false
+    private var stopped = false
+
+    init(policy: AgentFetchPolicy = AgentFetchPolicy()) {
+        self.policy = policy
+    }
+
+    func configuration() async throws -> WKWebViewConfiguration {
+        let configuration = WKWebViewConfiguration()
+        configuration.websiteDataStore = .nonPersistent()
+        let rules = try await WKContentRuleListStore.default().compileContentRuleList(
+            forIdentifier: "AgentPublicFetchTargets", encodedContentRuleList: FetchAddressPolicy.contentRules())
+        guard let rules else {
+            throw AgentToolMessage(text: "error: could not install page address restrictions", fatal: true)
+        }
+        configuration.userContentController.add(rules)
+        contentRulesInstalled = true
+        return configuration
+    }
 
     static func readableText(url: URL) async throws -> String {
         try await read(url: url).text
     }
 
-    /// The readable text and the URL the web view ended on (after redirects).
     static func read(url: URL) async throws -> (text: String, finalURL: URL?) {
         try await AgentPageReader().text(from: url)
     }
 
     private func text(from url: URL) async throws -> (text: String, finalURL: URL?) {
-        let configuration = WKWebViewConfiguration()
-        configuration.websiteDataStore = .nonPersistent()
+        try await policy.validate(url, scope: resolutions)
+        let configuration = try await configuration()
+        try Task.checkCancellation()
         let view = WKWebView(
             frame: CGRect(x: 0, y: 0, width: 1280, height: 900), configuration: configuration)
         self.view = view
         view.navigationDelegate = self
         view.customUserAgent = AgentTools.userAgent
         defer {
+            resolutions.cancel()
             view.stopLoading()
             view.navigationDelegate = nil
             self.view = nil
+            stopped = true
         }
 
         let watchdog = Task { [weak self] in
@@ -880,32 +921,30 @@ final class AgentPageReader: NSObject, WKNavigationDelegate {
 
         return try await withTaskCancellationHandler {
             do {
-                try await withCheckedThrowingContinuation { (waiter: CheckedContinuation<Void, Error>) in
-                    navigation = waiter
+                try await waitForNavigation {
                     view.load(URLRequest(url: url, timeoutInterval: Self.timeout))
                 }
             } catch {
                 throw statusFailure ?? error
             }
             if let statusFailure { throw statusFailure }
-            if let final = view.url, AgentTools.isLocalOrPrivate(final.host()) {
-                throw AgentToolMessage(text: AgentTools.localAddressRefusal, fatal: true)
-            }
+            try await policy.validate(view.url, scope: resolutions)
             try await Task.sleep(for: Self.settle)
-            let value = try await withCheckedThrowingContinuation {
-                (waiter: CheckedContinuation<String?, Error>) in
-                evaluation = waiter
-                view.evaluateJavaScript(Self.script, completionHandler: { [weak self] value, error in
-                    guard let self else { return }
-                    if let error {
-                        self.finishEvaluation(.failure(error))
-                    } else {
-                        self.finishEvaluation(.success(value as? String))
-                    }
-                })
+            if let statusFailure { throw statusFailure }
+            try Task.checkCancellation()
+            let value = try await waitForEvaluation { complete in
+                view.evaluateJavaScript(Self.script) { value, error in
+                    if let error { complete(.failure(error)) } else { complete(.success(value as? String)) }
+                }
             }
+            if let statusFailure { throw statusFailure }
+            try Task.checkCancellation()
+            try await policy.validate(view.url, scope: resolutions)
+            if let statusFailure { throw statusFailure }
+            try Task.checkCancellation()
             guard let text = value,
-                  !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            else {
                 throw AgentToolMessage(text: "fetch_page: the web view found no text")
             }
             return (text, view.url)
@@ -914,13 +953,40 @@ final class AgentPageReader: NSObject, WKNavigationDelegate {
         }
     }
 
-    private func abort(with error: Error) {
+    func waitForNavigation(_ start: () -> Void) async throws {
+        try await withCheckedThrowingContinuation { waiter in
+            navigation = waiter
+            if stopped || Task.isCancelled {
+                abort(with: statusFailure ?? CancellationError())
+            } else {
+                start()
+            }
+        }
+    }
+
+    func waitForEvaluation(_ start: (@escaping @MainActor (Result<String?, Error>) -> Void) -> Void) async throws
+        -> String?
+    {
+        try await withCheckedThrowingContinuation { waiter in
+            evaluation = waiter
+            if stopped || Task.isCancelled {
+                abort(with: statusFailure ?? CancellationError())
+            } else {
+                start { [weak self] result in self?.finishEvaluation(result) }
+            }
+        }
+    }
+
+    func abort(with error: Error) {
+        stopped = true
+        resolutions.cancel()
+        if statusFailure == nil, let failure = error as? AgentToolMessage { statusFailure = failure }
         view?.stopLoading()
         finish(.failure(error))
         finishEvaluation(.failure(error))
     }
 
-    private func finish(_ result: Result<Void, Error>) {
+    func finish(_ result: Result<Void, Error>) {
         guard let waiter = navigation else { return }
         navigation = nil
         waiter.resume(with: result)
@@ -930,6 +996,25 @@ final class AgentPageReader: NSObject, WKNavigationDelegate {
         guard let waiter = evaluation else { return }
         evaluation = nil
         waiter.resume(with: result)
+    }
+
+    func navigationPolicy(url: URL?, isMainFrame: Bool) async -> WKNavigationActionPolicy {
+        guard !stopped else { return .cancel }
+        if !isMainFrame, url?.absoluteString == "about:blank" { return .allow }
+        do {
+            try await policy.validate(url, scope: resolutions)
+            return stopped ? .cancel : .allow
+        } catch {
+            abort(with: error)
+            return .cancel
+        }
+    }
+
+    func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction) async
+        -> WKNavigationActionPolicy
+    {
+        await navigationPolicy(
+            url: navigationAction.request.url, isMainFrame: navigationAction.targetFrame?.isMainFrame ?? true)
     }
 
     func webView(
@@ -960,5 +1045,239 @@ final class AgentPageReader: NSObject, WKNavigationDelegate {
         _ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error
     ) {
         finish(.failure(error))
+    }
+}
+
+struct AgentFetchPolicy: Sendable {
+    typealias Resolver = @Sendable (String) async throws -> [[UInt8]]
+
+    let resolve: Resolver?
+
+    init(resolve: Resolver? = nil) {
+        self.resolve = resolve
+    }
+
+    func validate(_ url: URL?, task: URLSessionTask? = nil, scope: AgentAddressScope? = nil) async throws {
+        try Task.checkCancellation()
+        guard let url, let scheme = url.scheme?.lowercased(), scheme == "http" || scheme == "https",
+            var host = url.host(percentEncoded: false), !host.isEmpty
+        else {
+            throw AgentToolMessage(
+                text: "error: fetch_page needs an absolute http or https URL", fatal: true, forbidsPageFallback: true)
+        }
+        if host.hasPrefix("["), host.hasSuffix("]") { host = String(host.dropFirst().dropLast()) }
+        guard !FetchAddressPolicy.isLocalName(host) else {
+            throw AgentToolMessage(text: AgentTools.localAddressRefusal, fatal: true, forbidsPageFallback: true)
+        }
+        let addresses: [[UInt8]]
+        if let resolve {
+            addresses = try await resolve(host)
+        } else {
+            addresses = try await AgentAddressResolver.resolve(host, task: task, scope: scope)
+        }
+        try Task.checkCancellation()
+        guard !addresses.isEmpty else {
+            throw AgentToolMessage(text: "error: could not resolve page host", fatal: true, forbidsPageFallback: true)
+        }
+        guard FetchAddressPolicy.permits(addresses) else {
+            throw AgentToolMessage(text: AgentTools.localAddressRefusal, fatal: true, forbidsPageFallback: true)
+        }
+    }
+}
+
+@MainActor
+final class AgentAddressScope {
+    private var active: [ObjectIdentifier: AgentAddressResolver] = [:]
+    private var cancelled = false
+
+    func check() throws {
+        guard !cancelled else { throw CancellationError() }
+    }
+
+    func insert(_ resolver: AgentAddressResolver) throws {
+        try check()
+        active[ObjectIdentifier(resolver)] = resolver
+    }
+
+    func remove(_ resolver: AgentAddressResolver) {
+        active[ObjectIdentifier(resolver)] = nil
+    }
+
+    func cancel() {
+        cancelled = true
+        let pending = Array(active.values)
+        active.removeAll()
+        for resolver in pending { resolver.cancel() }
+    }
+}
+
+@MainActor
+final class AgentAddressResolver {
+    private var host: CFHost?
+    private var cancelled = false
+    private var observation: NSKeyValueObservation?
+    private var continuation: CheckedContinuation<[[UInt8]], Error>?
+
+    static func resolve(_ name: String, task: URLSessionTask? = nil, scope: AgentAddressScope? = nil) async throws
+        -> [[UInt8]]
+    {
+        try Task.checkCancellation()
+        try scope?.check()
+        var address = in_addr()
+        if inet_aton(name, &address) == 1 {
+            return [withUnsafeBytes(of: &address) { Array($0) }]
+        }
+        let resolver = AgentAddressResolver()
+        try scope?.insert(resolver)
+        defer { scope?.remove(resolver) }
+        return try await resolver.addresses(for: name, task: task)
+    }
+
+    func cancel() {
+        cancelled = true
+        finish(.failure(CancellationError()))
+    }
+
+    private func addresses(for name: String, task: URLSessionTask?) async throws -> [[UInt8]] {
+        guard !cancelled else { throw CancellationError() }
+        if task?.state == .canceling || task?.state == .completed { throw CancellationError() }
+        observation = task?.observe(\.state, options: [.initial, .new]) { [weak self] task, _ in
+            if task.state == .canceling || task.state == .completed {
+                DispatchQueue.main.async { [weak self] in self?.cancel() }
+            }
+        }
+        defer {
+            observation?.invalidate()
+            observation = nil
+        }
+        let addresses: [[UInt8]] = try await withTaskCancellationHandler {
+            try Task.checkCancellation()
+            if task?.state == .canceling || task?.state == .completed { throw CancellationError() }
+            return try await withCheckedThrowingContinuation { waiter in
+                continuation = waiter
+                guard !cancelled else {
+                    finish(.failure(CancellationError()))
+                    return
+                }
+                let host = CFHostCreateWithName(nil, name as CFString).takeRetainedValue()
+                self.host = host
+                var context = CFHostClientContext(
+                    version: 0, info: Unmanaged.passUnretained(self).toOpaque(),
+                    retain: nil, release: nil, copyDescription: nil)
+                let registered = CFHostSetClient(
+                    host,
+                    { _, _, error, info in
+                        guard let info else { return }
+                        let resolver = Unmanaged<AgentAddressResolver>.fromOpaque(info).takeUnretainedValue()
+                        MainActor.assumeIsolated {
+                            resolver.completed(error: error?.pointee)
+                        }
+                    }, &context)
+                guard registered else {
+                    finish(
+                        .failure(
+                            AgentToolMessage(
+                                text: "error: could not resolve page host", fatal: true, forbidsPageFallback: true)))
+                    return
+                }
+                CFHostScheduleWithRunLoop(host, CFRunLoopGetMain(), CFRunLoopMode.commonModes.rawValue)
+                var error = CFStreamError()
+                if !CFHostStartInfoResolution(host, .addresses, &error) {
+                    finish(
+                        .failure(
+                            AgentToolMessage(
+                                text: "error: could not resolve page host", fatal: true, forbidsPageFallback: true)))
+                }
+            }
+        } onCancel: {
+            DispatchQueue.main.async { self.cancel() }
+        }
+        try Task.checkCancellation()
+        guard !cancelled else { throw CancellationError() }
+        if task?.state == .canceling || task?.state == .completed { throw CancellationError() }
+        return addresses
+    }
+
+    private func completed(error: CFStreamError?) {
+        guard let host, (error?.error ?? 0) == 0 else {
+            finish(
+                .failure(
+                    AgentToolMessage(text: "error: could not resolve page host", fatal: true, forbidsPageFallback: true)
+                ))
+            return
+        }
+        var resolved: DarwinBoolean = false
+        guard let values = CFHostGetAddressing(host, &resolved)?.takeUnretainedValue() as? [Data], resolved.boolValue
+        else {
+            finish(
+                .failure(
+                    AgentToolMessage(text: "error: could not resolve page host", fatal: true, forbidsPageFallback: true)
+                ))
+            return
+        }
+        let addresses = values.compactMap { data -> [UInt8]? in
+            data.withUnsafeBytes { bytes in
+                guard bytes.count >= MemoryLayout<sockaddr>.size else { return nil }
+                let family = bytes.loadUnaligned(as: sockaddr.self).sa_family
+                if family == AF_INET, bytes.count >= MemoryLayout<sockaddr_in>.size {
+                    var address = bytes.loadUnaligned(as: sockaddr_in.self).sin_addr
+                    return withUnsafeBytes(of: &address) { Array($0) }
+                }
+                if family == AF_INET6, bytes.count >= MemoryLayout<sockaddr_in6>.size {
+                    var address = bytes.loadUnaligned(as: sockaddr_in6.self).sin6_addr
+                    return withUnsafeBytes(of: &address) { Array($0) }
+                }
+                return nil
+            }
+        }
+        finish(.success(addresses))
+    }
+
+    private func finish(_ result: Result<[[UInt8]], Error>) {
+        guard let waiter = continuation else { return }
+        continuation = nil
+        observation?.invalidate()
+        observation = nil
+        if let host {
+            CFHostSetClient(host, nil, nil)
+            CFHostCancelInfoResolution(host, .addresses)
+            CFHostUnscheduleFromRunLoop(host, CFRunLoopGetMain(), CFRunLoopMode.commonModes.rawValue)
+            self.host = nil
+        }
+        waiter.resume(with: result)
+    }
+}
+
+final class AgentFetchRedirects: NSObject, URLSessionTaskDelegate, Sendable {
+    private let policy: AgentFetchPolicy
+    private let refusal = Mutex<AgentToolMessage?>(nil)
+
+    init(policy: AgentFetchPolicy = AgentFetchPolicy()) {
+        self.policy = policy
+    }
+
+    var failure: AgentToolMessage? { refusal.withLock { $0 } }
+
+    func checkResponse() throws {
+        if let failure { throw failure }
+    }
+
+    func urlSession(
+        _ session: URLSession, task: URLSessionTask, willPerformHTTPRedirection response: HTTPURLResponse,
+        newRequest request: URLRequest
+    ) async -> URLRequest? {
+        do {
+            guard task.state != .canceling && task.state != .completed else { throw CancellationError() }
+            try await policy.validate(request.url, task: task)
+            try Task.checkCancellation()
+            guard task.state != .canceling && task.state != .completed else { throw CancellationError() }
+            return request
+        } catch {
+            let failure =
+                (error as? AgentToolMessage)
+                ?? AgentToolMessage(text: "error: fetch_page was cancelled", fatal: true, forbidsPageFallback: true)
+            refusal.withLock { $0 = failure }
+            return nil
+        }
     }
 }

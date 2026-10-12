@@ -59,6 +59,8 @@ This is the core of `CoreAISamplesKit/Sources/coreai-chat/ChatCommand.swift`, cu
 
 ## What the runtime does
 
+- **Keeps input text from inserting control tokens.** Literal strings listed in the bundle's `added_tokens` are removed from user prompts (including RAG sources) and tool results before rendering. Removal also handles nested markers and markers formed by joining the remaining text. System instructions and model-generated history are unchanged. Text without those strings is preserved.
+
 - **Reuses what it has already read.** Each request is compared with the tokens the engine already holds, and only the part after the first difference is read again (in hybrid models, from the nearest saved point; next item): across the turns of a conversation and across the steps of a tool loop. The reused count is reported as `cachedTokenCount` in the session's usage. Sessions created from the same `LocalLanguageModel` share one engine, and their requests run one at a time.
 - **Returns to a saved point in hybrid models.** Bundles with fixed-size recurrent state (Qwen3.5 and Qwen3.8) cannot be rewound by trimming the cache, so the runtime saves that state where the user's turn ends, where generation starts and where two prompts part, and restores the nearest point instead of reading from the start (`Engine.checkpoint()`, `Engine.restore(_:)`).
 - **Separates thinking from the answer.** Text between `<think>` and `</think>` streams as `.reasoning` entries, the rest as the response. `ContextOptions.reasoningLevel` reaches the chat template as `reasoning_effort` (`.custom("off")` sets `enable_thinking` to false); whether it has an effect depends on the template.
@@ -66,6 +68,53 @@ This is the core of `CoreAISamplesKit/Sources/coreai-chat/ChatCommand.swift`, cu
 - **Handles a full context in one of two ways** (`OverflowPolicy`). `.error`, the default, throws `LanguageModelError.contextSizeExceeded` only when the prompt itself no longer fits; otherwise the reply gets what is left. `.dropOldToolOutputs` first replaces the oldest tool results with `[truncated]` (the newest two groups are kept) and then halves the newest ones, to leave room for the reply; if that is not enough, it falls back to `.error`.
 - **Samples as asked.** With no sampling options it decodes greedily. The `GenerationOptions` sampling modes `.random(top:seed:)` and `.random(probabilityThreshold:seed:)` and its `temperature` are honoured, and the same seed gives the same text.
 - **Stops and cancels cleanly.** Generation ends at the end-of-sequence token or `<|endoftext|>` (the stop token is not fed back to the model) or at `maximumResponseTokens`, and the response metadata says which (`stopReason`: `stopToken` or `maxTokens`). A reply that runs out of tokens while still thinking ends with an empty answer, not an error. After a cancelled request, the next one on the session works.
+
+The runtime reloads after ten completed read requests at the next new conversation. A request counts if prefill starts, including a failed or cancelled prefill; reuse without a read does not count. Agent tool steps and later turns remain in the same conversation. A configured process-footprint limit can also reload before the next read within a conversation.
+
+Reloading releases the engine and saved states, preserves CPU history, and reads the complete prompt into a new engine. `sharedTokens` retains the logical shared prefix, while cached input is zero and prefill covers the complete prompt. Only a request which loads a replacement records `reloadSeconds`. Reloading adds a model load; interrupting a conversation also adds a full-prompt prefill. In the calibration run described below, periodic reloads took 4.19–4.23 seconds for 27B and 0.145–0.153 seconds for 0.8B. Forced reloads within a 15,797-token 27B conversation took 92.23–92.89 seconds to the first response entry, including the reload and full prefill. Long histories therefore cost more to resume.
+
+## Supported requests
+
+The executor validates requests before acquiring or changing the inference state. The table covers the public request options in the macOS 27.0 SDK. The current request controls generation; settings stored on earlier prompts describe those earlier turns and are not replayed as new instructions.
+
+| Field or case | Behavior |
+|---|---|
+| `LanguageModelExecutorGenerationRequest.id` | Request identity; it does not alter rendering or sampling. |
+| `transcript` | Text instructions, prompts, reasoning, responses, tool calls and tool outputs are rendered. Unknown entry kinds are refused. |
+| `enabledToolDefinitions` | Rendered when tool calling is allowed; omitted when it is disallowed. |
+| `schema` | Refused with `unsupportedCapability(.guidedGeneration)`; request plain text instead. |
+| `generationOptions` | The fields below control this generation. |
+| `contextOptions` | The fields below control this rendering. |
+| `metadata` | Nonempty custom metadata is refused with `unsupportedGenerationGuide`; model-specific passthrough settings are not implemented. Key names, not values, appear in the error. |
+| `GenerationOptions.samplingMode` / deprecated `sampling` | The two names refer to the same setting. Omitted means greedy. |
+| `.greedy` | Selects the first maximum. |
+| `.random(top:seed:)` | Top-k sampling; the seed is used. |
+| `.random(probabilityThreshold:seed:)` | Top-p sampling; the seed is used. |
+| `temperature` | Passed to the sampler; omitted means 1. Nonpositive values select greedily. |
+| `maximumResponseTokens` | Caps the response at the remaining context space. |
+| `toolCallingMode` omitted / `.allowed` | Advertises the enabled tools without forcing a call. |
+| `.disallowed` | Omits tools from the template. |
+| `.required` | Refused with `unsupportedCapability(.guidedGeneration)` because forced tool calls require constrained decoding. |
+| Future sampling or tool-calling kinds | Refused instead of falling back to another setting. |
+| `ContextOptions.includeSchemaInPrompt` | Has no effect without a schema; a request with a schema is refused. |
+| `reasoningLevel` omitted | Uses the template's default. |
+| `.light` / `.moderate` / `.deep` | Maps to `low` / `medium` / `xhigh` template values. |
+| `.custom("off")` | Sets `enable_thinking` to false. |
+| `.custom("low")` / `.custom("medium")` / `.custom("xhigh")` | Uses the same template values as the named levels. |
+| Other custom reasoning values | Refused with `unsupportedCapability(.reasoning)` and the rejected value. |
+| `Transcript.Entry.instructions` | Preserves system text and tool definitions. |
+| `.prompt` | Sanitizes user text before rendering. |
+| `.reasoning` / `.response` | Preserves model-generated history. |
+| `.toolCalls` | Rebuilds calls and their arguments in the recorded order. |
+| `.toolOutput` | Applies context truncation, then sanitizes the remaining text. |
+| `Transcript.Segment.text` | Supported. |
+| `.structure` / `.attachment` and future segment kinds | Refused with `unsupportedTranscriptContent` before inference. |
+| `Transcript.Prompt.id` | Identifies the stored entry; not model input. |
+| `segments` | Only text is accepted. |
+| `options` / `contextOptions` / `metadata` | Stored turn information. The current request's corresponding fields are authoritative. |
+| `responseFormat` | Refused on the current prompt; historical formats do not constrain a new plain-text turn. |
+
+Reasoning strength depends on the bundle. Qwen3.8 uses the three effort values; Qwen3.5's template uses the thinking switch and does not distinguish those effort values. The runtime does not add a thinking-token budget. Custom reasoning names are limited to the four documented values so an unrecognized name is never silently forwarded.
 
 ## Repository layout
 
@@ -97,6 +146,31 @@ To try it, open `CoreAISamples.xcodeproj` and press Run. Building it from the co
 
 ## Verification
 
+Run the complete build and model-free checks from the repository root. These need an Apple silicon Mac with macOS 27 and Xcode 27 selected with `xcode-select`.
+
+```bash
+./check.sh
+```
+
+The script builds and tests `CoreAISamplesKit`, builds `Tools/Verify` and runs its CPU tests in Release, builds the macOS app in Release, and runs the Agent offline self-test. It clears inherited `COREAI_*`, `GLINER_*`, `DECIDE_*` and `CLEF_*` controls before these stages, so an unrelated model-test setting cannot start inference. The last line is `CHECK PASS` with exit code 0, or `CHECK FAIL: <stage>` with exit code 1.
+
+To add language-model checks, install Python 3 for JSON result validation and supply bundle folders separated by `:`. The first bundle is also used for the official-runtime comparison and the state check; a small bundle such as Qwen3.5-0.8B keeps this check short.
+
+```bash
+COREAI_TEST_BUNDLES=/path/to/bundle-a:/path/to/bundle-b ./check.sh
+```
+
+This adds the model-enabled tests, two fixed prompts compared against Apple's sequential engine, and two own-runtime chat turns followed by a processed-state check. Both prompts must match every generated token and every step's logits on the matching `prefill-function` path. The two `main-only` records are retained as diagnostics because they use a different prefill path; their agreement is not a pass criterion. Missing records, reported errors and a failed state check fail the script even if the verification command exits successfully. The JSON records are saved under `.build/check/`.
+
+The runtime and demo-app measurements use this environment:
+
+| Component | Measured configuration |
+|---|---|
+| macOS | 27.0, build 26A428 |
+| Xcode | 27.0, build 27A266a |
+| Mac | MacBook Pro (Mac16,6), Apple M4 Max |
+| Unified memory | 128 GiB (137,438,953,472 bytes) |
+
 `Tools/Verify` is a separate Swift package and the only place that depends on Apple's `coreai-models` package, pinned to 1.0.0; the library, the CLI and the demo app do not. Its `coreai-verify` tool drives Apple's runtime (`--runtime official`, with `--engine default` or `sequential`) and this one (`--runtime own`) and prints one JSON line per measurement. In the table, "own" is this repository's runtime.
 
 | Subcommand | What it does |
@@ -125,17 +199,49 @@ swift test
 COREAI_TEST_BUNDLES=/path/to/bundle-a:/path/to/bundle-b swift test
 ```
 
+The model-loading tests share one serialized suite; tokenizer-only checks remain independent. Acquire the heavy-job lock described in `CLAUDE.md` before running them. `seededSamplingRepeats` compares complete generated token sequences for top-k (40) and top-p (0.95), temperature 0.8 and seed 7, with state reuse disabled. The bundle, prompt, sampling settings and prefill segmentation must match for exact reproducibility. `COREAI_SEED_REPETITIONS` changes the default 20 repetitions; use the same test with 5 repetitions for a release candidate's larger bundle.
+
+The boundary tests render exactly 16,382, 16,383, 16,384 and 16,385 input tokens against a 16,384-token context. With either overflow policy, the first two inputs leave room for at most two and one generated tokens; the other two must throw `contextSizeExceeded` with the limit and input count. Separate histories check tool-output truncation, its metadata and irreducible overflow. State checks compare against a full reread using the eight-tick near-tie rule.
+
+`twoSessionsShareOneModel` submits 50 pairs through one model, records overlapping executor calls, checks for the other session's marker and cancels one request after its first streamed fragment in every fifth pair. It also checks recovery and the final state. `COREAI_CONCURRENCY_PAIRS=1` selects one pair for a Thread Sanitizer run. These are opt-in checks; a skipped model test does not validate a bundle.
+
+```bash
+COREAI_TEST_BUNDLES=/path/to/bundle COREAI_SEED_REPETITIONS=5 swift test --filter ModelIntegrationTests.seededSamplingRepeats
+COREAI_TEST_BUNDLES=/path/to/bundle COREAI_CONCURRENCY_PAIRS=1 swift test --sanitize=thread --filter ModelIntegrationTests.twoSessionsShareOneModel
+```
+
+The own runtime's `chat` and `tools` commands accept `--reload-interval` and `--reload-footprint-bytes`; zero disables the respective trigger. `chat --new-conversation-every 10` starts a new session after every ten prompts. Own-runtime chat records include `generated_tokens`, the complete sampled output IDs without the stop token, including the last unprocessed ID at a response limit. Failed CLI turns omit this field. The Verification SPI returns the last request admitted to execution after request-only validation: empty before decoding, complete on success, and the current partial samples on decode failure or cancellation. Request-only validation failures are rejected before the execution lock and leave the previous snapshot, processed state and conversation tracking unchanged. Framework rejection before the executor runs also leaves the snapshot unchanged. Turn and tool-step records include `reload_seconds` when present, and memory records include graphics footprint bytes (the graphics footprint ledger plus its compressed ledger). `chat --check-state` checks each reloaded turn and the final state.
+
+```bash
+COREAI_TEST_BUNDLES=/path/to/bundle swift test --filter ModelIntegrationTests
+COREAI_TEST_BUNDLES=/path/to/bundle COREAI_TEST_RELOAD_INTERVAL=0 COREAI_TEST_RELOAD_FOOTPRINT_BYTES=1 swift test --filter ModelIntegrationTests.twoSessionsShareOneModel
+```
+
+The low-threshold concurrency run requires at least one observed reload. Model-enabled results are required in addition to the CPU policy and fake-engine tests.
+
+For a memory-growth measurement, add `--memory-sample-turn 10 --memory-sample-turn 20 --memory-sample-turn 30` to an own-runtime `chat` command with thirty prompts. The option is off by default. At each selected turn, the original immediate `turn` record is emitted first; the same model is then kept alive without further inference for five seconds, followed by a separate `memory-sample` record with the turn number, `wait_seconds`, actual `elapsed_seconds` through the memory capture, and the usual memory fields. Any requested state check runs afterward, including the final check. Duplicate or nonexistent turn numbers are rejected before loading.
+
+The five-second interval is a measurement convention, not a guarantee that memory has stabilized or reclamation has completed on every device. Keep the immediate values and peak alongside the delayed samples. The footprint threshold calibration still uses the maximum immediate post-turn footprint, multiplied by 1.5 and rounded up to a decimal GB. CPU-only checks for the observation option and its wait/capture behavior run with `swift test --package-path Tools/Verify`.
+
 ## Operational notes
 
 - **The first load prepares the model for the GPU.** Core AI keeps the prepared copy in `~/Library/Caches/coreai-cache/<OS build>/<name>/`, where `<name>` is the process name of a command-line tool (`coreai-chat`, `coreai-verify`, `swiftpm-testing-helper` for `swift test`) or the bundle ID of an app (`com.coreai-samples.DemoApp`). Later loads by the same program reuse it; another program prepares its own copy, which takes about as much disk as the model (more for an unquantized bundle). `coreai-chat --stats` shows whether the copy was reused (`cached`) and how long preparing took (`specialize_s`).
 - **To remove a prepared copy**, call `Engine.deleteSpecializationCache(bundle:)`, which removes the calling program's copy of that bundle, use **Clear Prepared Copy** in the demo app's Models screen (`--clear-prepared` in its screen check), or delete the folder.
 
+Configure the library with `LocalLanguageModel.ReloadPolicy(readInterval:footprintLimitBytes:)`, passed as `reloadPolicy:` to the model initializer. An interval of zero disables periodic reloads; a footprint limit of zero disables the memory trigger.
+
+The defaults are ten completed reads and a process-footprint trigger of 18,000,000,000 bytes (18 decimal GB). The threshold was calibrated on October 9, 2026 on an M4 Max with 128 GiB, macOS 27.0 (26A428) and Xcode 27, using the Qwen3.8-27B 4bit dynamic `gdnfp32` variant. The `M4-h36-memory-v2` run starting at 2026-10-09 13:03:12 UTC (run ID `3cc72f3295ab`) used thirty prompts, a new conversation every ten turns, context limit 16,384, up to 64 generated tokens per turn, interval ten and no footprint trigger. Its maximum of all thirty immediate post-turn footprints was 11,937,577,240 bytes; multiplying by 1.5 and rounding up to a decimal GB gives 18,000,000,000 bytes. The delayed samples were not used in that calculation. This is a measured reload trigger, not a safe memory budget for every device.
+
 ## Limitations
+
+- Agent page fetches and Web RAG require every resolved address to be public. They refuse loopback, private, link-local, unspecified, shared, multicast and reserved addresses, including IPv4-mapped IPv6 and legacy numeric IPv4 forms. Checks run before the first request, every URLSession redirect, every main-frame or subframe WebView navigation, and on the final URL; WebView content rules also block local names and non-public literal addresses in subresources. Failed resolution refuses the fetch. DNS rebinding between validation and connection remains possible, as do JavaScript or subresource requests to names that resolve to private addresses. The app runs without the App Sandbox.
 
 - Run on macOS only (Apple silicon, macOS 27.0). `CoreAISamplesKit/Package.swift` declares iOS 27, but nothing has been run on iOS. The demo app's iPhone target (`CoreAISamples-iOS`, Extract only, see [docs/demo-app.md](docs/demo-app.md#extract-on-iphone)) builds but has not been run on a device yet.
 - Only bundles from the converter's macOS export (the `*_dynamic` folders) have been run, all of them Qwen models (Qwen3, Qwen3.5, Qwen3.8). The stop tokens, the `<think>` tags and the tool-call forms above are the ones those templates use; other model families may need more.
 - Text in, text out: a transcript segment that is not text throws `LanguageModelError.unsupportedTranscriptContent`, and there is no image or audio input.
 - No guided generation: a request with a response schema throws `LanguageModelError.unsupportedCapability`.
+- The demo uses a context limit of 16,384 tokens. Contexts beyond that limit are outside the verification coverage.
+- Use one active session per model unless the simultaneous-session checks pass for the deployed bundle and runtime.
 - Cancellation is checked before the prompt is read and between generated tokens, not while a long prompt is being read.
 - Decoding is synchronous, one token at a time, like the official `sequential` engine; the official default engine pipelines the work and decodes faster, most of all on small models (`coreai-verify speed` runs the three side by side).
 - No published bundles and no tagged release yet, and the Qwen3.5 and Qwen3.8 exports need the unmerged branch of apple/coreai-models (Quick start, step 1).

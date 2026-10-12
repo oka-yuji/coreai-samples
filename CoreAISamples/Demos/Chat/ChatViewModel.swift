@@ -91,9 +91,10 @@ final class ChatViewModel {
     @ObservationIgnored private var firstEntryAt: ContinuousClock.Instant?
     @ObservationIgnored private var run = 0
 
-    /// `--rag-budget 3000|6000`; nil when the flag is absent or not one of the choices.
     nonisolated static var launchRAGBudget: Int? {
-        LaunchArguments.value("--rag-budget").flatMap(Int.init).flatMap { RAGSettings.budgetChoices.contains($0) ? $0 : nil }
+        LaunchArguments.value("--rag-budget").flatMap(Int.init).flatMap {
+            RAGSettings.budgetChoices.contains($0) ? $0 : nil
+        }
     }
 
     var isLoading: Bool { if case .loading = phase { true } else { false } }
@@ -172,13 +173,17 @@ final class ChatViewModel {
         let clock = ContinuousClock()
         let start = clock.now
         do {
-            let model = try await LocalLanguageModel(bundle: url, contextLimit: contextLimit, overflow: .dropOldToolOutputs)
+            let model = try await LocalLanguageModel(
+                bundle: url, contextLimit: contextLimit, overflow: .dropOldToolOutputs)
             loadSeconds = (clock.now - start) / .seconds(1)
             self.model = model
             ModelStorage.prepared.insert(key)
-            loadNote = model.loadStats.cached
+            loadNote =
+                model.loadStats.cached
                 ? String(format: "Loaded in %.1f s", loadSeconds)
-                : String(format: "Prepared for this Mac in %.1f s, loaded in %.1f s", model.loadStats.specializeSeconds, loadSeconds)
+                : String(
+                    format: "Prepared for this Mac in %.1f s, loaded in %.1f s", model.loadStats.specializeSeconds,
+                    loadSeconds)
             phase = .ready
             newChat()
         } catch {
@@ -226,20 +231,23 @@ final class ChatViewModel {
     }
 
     private func respondFromSources(
-        _ model: LocalLanguageModel, _ question: String, _ settings: RAGSettings, _ options: GenerationOptions, _ context: ContextOptions
+        _ model: LocalLanguageModel, _ question: String, _ settings: RAGSettings, _ options: GenerationOptions,
+        _ context: ContextOptions
     ) async {
         ragTurns.append((Self.turns(entries).count, Turn(id: UUID().uuidString, prompt: question)))
         retrieving = true
         let today = RAGContext.today()
         let retrieval = await RAGRetriever.gather(question: question, settings: settings, count: model.countTokens)
-        let promptTokens = model.countTokens(RAGContext.prompt(question: question, sources: retrieval.sources, today: today))
+        let promptTokens = model.countTokens(
+            RAGContext.prompt(question: question, sources: retrieval.sources, today: today))
         retrieving = false
         self.retrieval = retrieval
         ragTurns[ragTurns.count - 1].turn.notes = retrieval.notes
         ragTurns[ragTurns.count - 1].turn.sources = retrieval.citations
         for note in retrieval.notes { AgentTools.log("[rag] " + note) }
         var stats = GenerationStats(
-            turn: ragTurns.count, sources: retrieval.sources.count, sourceTokens: retrieval.sourceTokens, retrievalSeconds: retrieval.seconds)
+            turn: ragTurns.count, sources: retrieval.sources.count, sourceTokens: retrieval.sourceTokens,
+            retrievalSeconds: retrieval.seconds)
         guard !Task.isCancelled, !retrieval.sources.isEmpty else {
             if Task.isCancelled {
                 stats.stopReason = "cancelled"
@@ -256,7 +264,8 @@ final class ChatViewModel {
         stats.ragPromptTokens = promptTokens
         let session = LanguageModelSession(model: model, instructions: RAGContext.instruction(today: today))
         session.transcriptErrorHandlingPolicy = .preserveTranscript
-        await respond(session, RAGContext.message(question: question, sources: retrieval.sources), options, context, rag: stats)
+        await respond(
+            session, RAGContext.message(question: question, sources: retrieval.sources), options, context, rag: stats)
     }
 
     private func show(_ transcript: Transcript, rag: Bool) {
@@ -270,7 +279,8 @@ final class ChatViewModel {
     }
 
     private func respond(
-        _ session: LanguageModelSession, _ prompt: String, _ options: GenerationOptions, _ context: ContextOptions, rag: GenerationStats? = nil
+        _ session: LanguageModelSession, _ prompt: String, _ options: GenerationOptions, _ context: ContextOptions,
+        rag: GenerationStats? = nil
     ) async {
         run += 1
         let id = run
@@ -304,7 +314,8 @@ final class ChatViewModel {
         let after = session.usage
         var stats = rag ?? GenerationStats()
         if rag == nil { stats.turn = session.transcript.count { if case .prompt = $0 { true } else { false } } }
-        stats.answer = added.map { if case .response(let response) = $0 { Self.text(response.segments) } else { "" } }.joined()
+        stats.answer = added.map { if case .response(let response) = $0 { Self.text(response.segments) } else { "" } }
+            .joined()
         stats.outputTokens = after.output.totalTokenCount - before.output.totalTokenCount
         stats.ttftSeconds = firstEntryAt.map { ($0 - start) / .seconds(1) }
         if stopped {
@@ -313,7 +324,8 @@ final class ChatViewModel {
             if case LanguageModelError.contextSizeExceeded(let exceeded) = failure {
                 stats.stopReason = "contextSizeExceeded"
                 contextFull = true
-                contextNotice = "The context window is full: this chat needs \(exceeded.tokenCount) tokens and the limit is \(exceeded.contextSize). Start a New Chat to continue."
+                contextNotice =
+                    "The context window is full: this chat needs \(exceeded.tokenCount) tokens and the limit is \(exceeded.contextSize). Start a New Chat to continue."
             } else {
                 stats.stopReason = "error"
                 stats.error = failure.localizedDescription
@@ -332,7 +344,8 @@ final class ChatViewModel {
             if stats.stopReason == "maxTokens", let reserved = try? metadata["reservedTokens"]?.value(Int.self),
                 reserved < options.maximumResponseTokens ?? .max
             {
-                contextNotice = "The reply stopped at the end of the context window (\(reserved) tokens were left for it). Start a New Chat if the next message does not fit."
+                contextNotice =
+                    "The reply stopped at the end of the context window (\(reserved) tokens were left for it). Start a New Chat if the next message does not fit."
             }
         }
         last = stats

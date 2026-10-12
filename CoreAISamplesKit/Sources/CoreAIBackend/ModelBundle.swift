@@ -34,13 +34,21 @@ public struct ModelBundle: Sendable {
             FileManager.default.fileExists(atPath: url.appending(path: path).path(percentEncoded: false))
         }
         guard exists("metadata.json") else { throw BundleError.missingFile("metadata.json") }
-        let metadata = try JSONDecoder().decode(Metadata.self, from: Data(contentsOf: url.appending(path: "metadata.json")))
+        let metadata = try JSONDecoder().decode(
+            Metadata.self, from: Data(contentsOf: url.appending(path: "metadata.json")))
         guard let name = metadata.name else { throw BundleError.missingField("name") }
         guard let main = metadata.assets?.main else { throw BundleError.missingField("assets.main") }
-        guard let vocabSize = metadata.language?.vocabSize else { throw BundleError.missingField("language.vocab_size") }
-        guard let maxContextLength = metadata.language?.maxContextLength else { throw BundleError.missingField("language.max_context_length") }
-        guard metadata.language?.functionMap?["main"]?.isEmpty != true else { throw BundleError.missingField("language.function_map.main") }
-        for (key, value) in [("language.vocab_size", vocabSize), ("language.max_context_length", maxContextLength)] where value <= 0 {
+        guard let vocabSize = metadata.language?.vocabSize else {
+            throw BundleError.missingField("language.vocab_size")
+        }
+        guard let maxContextLength = metadata.language?.maxContextLength else {
+            throw BundleError.missingField("language.max_context_length")
+        }
+        guard metadata.language?.functionMap?["main"]?.isEmpty != true else {
+            throw BundleError.missingField("language.function_map.main")
+        }
+        for (key, value) in [("language.vocab_size", vocabSize), ("language.max_context_length", maxContextLength)]
+        where value <= 0 {
             throw BundleError.invalidValue(key, value)
         }
         for path in [main, "tokenizer/tokenizer.json"] where !exists(path) {
@@ -60,6 +68,23 @@ public struct ModelBundle: Sendable {
         let tokens = try await count
         guard tokens <= vocabSize else { throw BundleError.vocabularyMismatch(tokenizer: tokens, metadata: vocabSize) }
         return tokenizer
+    }
+
+    func addedTokenStrings() throws -> [String] {
+        let data = try Data(contentsOf: tokenizerURL.appending(path: "tokenizer.json"))
+        return try JSONDecoder().decode(TokenizerMetadata.self, from: data).addedTokens?.map(\.content) ?? []
+    }
+
+    private struct TokenizerMetadata: Decodable {
+        struct Token: Decodable {
+            let content: String
+        }
+
+        let addedTokens: [Token]?
+
+        enum CodingKeys: String, CodingKey {
+            case addedTokens = "added_tokens"
+        }
     }
 
     static func tokenCount(_ url: URL) throws -> Int {

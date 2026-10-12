@@ -13,7 +13,6 @@ struct RAGSettings: Sendable {
     var sourceTokenBudget = RAGContext.sourceTokenBudget
     var documentsDirectory: URL = RAGRetriever.defaultDocumentsDirectory()
 
-    /// The source budgets Chat offers (tokens). The first is the default.
     static let budgetChoices = [3_000, 6_000]
 
     var provider: String { braveAPIKey.isEmpty ? "DuckDuckGo" : "Brave" }
@@ -52,7 +51,8 @@ enum RAGRetriever {
         return url
     }
 
-    static func gather(question: String, settings: RAGSettings, count: @Sendable (String) -> Int) async -> RAGRetrieval {
+    static func gather(question: String, settings: RAGSettings, count: @Sendable (String) -> Int) async -> RAGRetrieval
+    {
         let start = ContinuousClock.now
         var out = RAGRetrieval()
         var candidates: [RAGSource] = []
@@ -60,7 +60,9 @@ enum RAGRetriever {
         if settings.local {
             let local = RAGDocuments.load(directory: settings.documentsDirectory) { PDFDocument(url: $0)?.string }
             if local.isEmpty {
-                out.notes.append("Documents: no readable .txt, .md or .pdf file in \(settings.documentsDirectory.path(percentEncoded: false))")
+                out.notes.append(
+                    "Documents: no readable .txt, .md or .pdf file in \(settings.documentsDirectory.path(percentEncoded: false))"
+                )
             }
             candidates += local
         }
@@ -72,7 +74,8 @@ enum RAGRetriever {
         out.candidates = candidates.count
         let fixed = count(RAGContext.prompt(question: question, sources: [], today: RAGContext.today()))
         out.sources = RAGContext.select(
-            candidates, question: question, budget: min(settings.sourceTokenBudget, RAGContext.promptTokenBudget - fixed),
+            candidates, question: question,
+            budget: min(settings.sourceTokenBudget, RAGContext.promptTokenBudget - fixed),
             count: count, rank: bestRanking)
         out.sourceTokens = out.sources.map { count(RAGContext.measuredBlock($0)) }.reduce(0, +)
         out.seconds = (ContinuousClock.now - start) / .seconds(1)
@@ -84,12 +87,16 @@ enum RAGRetriever {
         return ranked.isEmpty ? RAGContext.rank(passages, query: query) : ranked
     }
 
-    private static func webCandidates(question: String, settings: RAGSettings, into out: inout RAGRetrieval) async -> [RAGSource] {
+    private static func webCandidates(question: String, settings: RAGSettings, into out: inout RAGRetrieval) async
+        -> [RAGSource]
+    {
         let results: [AgentTools.SearchResult]
         do {
-            results = settings.braveAPIKey.isEmpty
+            results =
+                settings.braveAPIKey.isEmpty
                 ? try await AgentTools.duckDuckGoResults(query: question, limit: settings.searchResults)
-                : try await AgentTools.braveResults(query: question, limit: settings.searchResults, key: settings.braveAPIKey)
+                : try await AgentTools.braveResults(
+                    query: question, limit: settings.searchResults, key: settings.braveAPIKey)
         } catch let failure as AgentToolMessage {
             out.notes.append("Web search: \(failure.text)")
             return []
@@ -103,11 +110,12 @@ enum RAGRetriever {
             return []
         }
 
-        let wanted = results
+        let wanted =
+            results
             .prefix(settings.pagesToRead)
             .compactMap { result -> (AgentTools.SearchResult, URL)? in
                 guard let url = URL(string: result.url), let scheme = url.scheme?.lowercased(),
-                    scheme == "http" || scheme == "https", !AgentTools.isLocalOrPrivate(url.host())
+                    scheme == "http" || scheme == "https", url.host != nil
                 else { return nil }
                 return (result, url)
             }
@@ -129,22 +137,46 @@ enum RAGRetriever {
         return read.flatMap(\.1)
     }
 
-    private static func passages(from result: AgentTools.SearchResult, url: URL, question: String, budget: Int) async -> [RAGSource]? {
+    static func readPage(
+        url: URL,
+        policy: AgentFetchPolicy = AgentFetchPolicy(),
+        download: @Sendable (URL) async throws -> String = AgentTools.download,
+        render: @Sendable (URL) async throws -> String = AgentPageReader.readableText
+    ) async throws -> (html: String, text: String) {
+        try await policy.validate(url)
         var html = ""
         var text = ""
         do {
-            html = try await AgentTools.download(url: url)
+            html = try await download(url)
             text = AgentTools.plainText(fromHTML: html)
+        } catch let failure as AgentToolMessage where failure.forbidsPageFallback {
+            throw failure
+        } catch is CancellationError {
+            throw CancellationError()
         } catch {
             AgentTools.log("[rag] \(url.absoluteString) direct read failed: \(error)")
         }
         if text.count < 400 {
-            guard let rendered = try? await AgentPageReader.readableText(url: url) else { return nil }
-            text = AgentTools.condense(rendered)
+            text = AgentTools.condense(try await render(url))
+        }
+        return (html, text)
+    }
+
+    private static func passages(from result: AgentTools.SearchResult, url: URL, question: String, budget: Int) async
+        -> [RAGSource]?
+    {
+        let html: String
+        let text: String
+        do {
+            (html, text) = try await readPage(url: url)
+        } catch {
+            AgentTools.log("[rag] \(url.absoluteString) read failed: \(error)")
+            return nil
         }
         guard !text.isEmpty else { return nil }
 
-        let date = RAGContext.publishedDate(html: html)
+        let date =
+            RAGContext.publishedDate(html: html)
             ?? RAGContext.isoDate(in: result.snippet)
             ?? RAGContext.isoDate(in: String(text.prefix(600)))
             ?? ""
