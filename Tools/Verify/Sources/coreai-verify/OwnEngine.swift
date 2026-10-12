@@ -14,7 +14,8 @@ let rewindQuestions = [
 
 struct Compare: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
-        abstract: "Feed the same tokens to the own engine and the official sequential engine; compare greedy tokens and logits."
+        abstract:
+            "Feed the same tokens to the own engine and the official sequential engine; compare greedy tokens and logits."
     )
 
     @Option(help: "Model bundle folder.")
@@ -23,7 +24,10 @@ struct Compare: AsyncParsableCommand {
     @Option(help: "A prompt as name=text. Repeat to send several.")
     var prompt: [String] = []
 
-    @Option(help: "Prompt tokens as name=path, path being a JSON array of token IDs; append @n to prefill the own engine in two parts split at n.")
+    @Option(
+        help:
+            "Prompt tokens as name=path, path being a JSON array of token IDs; append @n to prefill the own engine in two parts split at n."
+    )
     var tokens: [String] = []
 
     @Option(help: "Maximum generated tokens per prompt.")
@@ -32,7 +36,10 @@ struct Compare: AsyncParsableCommand {
     @Option(help: "Text file sent as the system message before each prompt.")
     var system: String?
 
-    @Flag(help: "Prefill the own engine in two parts split at the end of the user turn, as the own runtime does for hybrid models.")
+    @Flag(
+        help:
+            "Prefill the own engine in two parts split at the end of the user turn, as the own runtime does for hybrid models."
+    )
     var turnBoundary = false
 
     func run() async throws {
@@ -71,7 +78,8 @@ struct Compare: AsyncParsableCommand {
             own.reset()
             try await official.reset(to: 0)
             var record = try await lockstep(
-                own: own, official: official, input: input, usePrefillFunction: true, split: split, maxTokens: maxTokens, stop: stop)
+                own: own, official: official, input: input, usePrefillFunction: true, split: split,
+                maxTokens: maxTokens, stop: stop)
             record.prompt = name
             record.text = tokenizer.decode(tokens: record.tokens.map(Int.init))
             try emit(record)
@@ -128,7 +136,8 @@ struct Compare: AsyncParsableCommand {
 
 struct Rewind: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
-        abstract: "Save a point after a shared preamble, generate, restore, and generate again; time a full re-read for comparison."
+        abstract:
+            "Save a point after a shared preamble, generate, restore, and generate again; time a full re-read for comparison."
     )
 
     @Option(help: "Model bundle folder.")
@@ -137,7 +146,10 @@ struct Rewind: AsyncParsableCommand {
     @Option(help: "Text file sent as the system message: the shared preamble.")
     var preamble: String
 
-    @Option(help: "A user question that follows the preamble. Repeat to send two or more; the shared tokens form the saved point.")
+    @Option(
+        help:
+            "A user question that follows the preamble. Repeat to send two or more; the shared tokens form the saved point."
+    )
     var question: [String] = rewindQuestions
 
     @Option(help: "Tokens generated after each question (stop tokens are ignored).")
@@ -164,10 +176,11 @@ struct Rewind: AsyncParsableCommand {
         try await engine.prefill(prefix)
         let saveStart = clock.now
         let point = engine.checkpoint()
-        try emit(PointRecord(
-            prefixTokens: prefix.count, prefillS: engine.stats.prefillSeconds,
-            saveS: (clock.now - saveStart) / .seconds(1), stateBytes: point.stateBytes, hybrid: engine.isHybrid,
-            kvCapacity: engine.kvCapacity, memory: .now()))
+        try emit(
+            PointRecord(
+                prefixTokens: prefix.count, prefillS: engine.stats.prefillSeconds,
+                saveS: (clock.now - saveStart) / .seconds(1), stateBytes: point.stateBytes, hybrid: engine.isHybrid,
+                kvCapacity: engine.kvCapacity, memory: .now()))
 
         var first: [[Int32]] = Array(repeating: [], count: inputs.count)
         for trial in 1...trials {
@@ -176,13 +189,15 @@ struct Rewind: AsyncParsableCommand {
                 try engine.restore(point)
                 let restore = (clock.now - restoreStart) / .seconds(1)
                 engine.stats = .init()
-                let output = try await engine.generate(Array(input[prefix.count...]), maxTokens: maxTokens, stopTokens: [])
+                let output = try await engine.generate(
+                    Array(input[prefix.count...]), maxTokens: maxTokens, stopTokens: [])
                 if trial == 1 { first[index] = output }
-                try emit(RewindRecord(
-                    kind: "restore", trial: trial, question: index, restoreS: restore,
-                    inputTokens: input.count - prefix.count, prefillS: engine.stats.prefillSeconds,
-                    matchesFirst: output == first[index], tokens: output,
-                    text: tokenizer.decode(tokens: output.map(Int.init))))
+                try emit(
+                    RewindRecord(
+                        kind: "restore", trial: trial, question: index, restoreS: restore,
+                        inputTokens: input.count - prefix.count, prefillS: engine.stats.prefillSeconds,
+                        matchesFirst: output == first[index], tokens: output,
+                        text: tokenizer.decode(tokens: output.map(Int.init))))
             }
         }
         for (index, input) in inputs.enumerated() {
@@ -190,18 +205,22 @@ struct Rewind: AsyncParsableCommand {
             try await engine.prefill(prefix)
             engine.stats = .init()
             let output = try await engine.generate(Array(input[prefix.count...]), maxTokens: maxTokens, stopTokens: [])
-            try emit(RewindRecord(
-                kind: "fresh", trial: 1, question: index, restoreS: nil, inputTokens: input.count - prefix.count,
-                prefillS: engine.stats.prefillSeconds, matchesFirst: output == first[index], tokens: output, text: nil))
+            try emit(
+                RewindRecord(
+                    kind: "fresh", trial: 1, question: index, restoreS: nil, inputTokens: input.count - prefix.count,
+                    prefillS: engine.stats.prefillSeconds, matchesFirst: output == first[index], tokens: output,
+                    text: nil))
         }
         for trial in 1...trials {
             for (index, input) in inputs.enumerated() {
                 engine.reset()
                 engine.stats = .init()
                 let output = try await engine.generate(input, maxTokens: maxTokens, stopTokens: [])
-                try emit(RewindRecord(
-                    kind: "full", trial: trial, question: index, restoreS: nil, inputTokens: input.count,
-                    prefillS: engine.stats.prefillSeconds, matchesFirst: output == first[index], tokens: output, text: nil))
+                try emit(
+                    RewindRecord(
+                        kind: "full", trial: trial, question: index, restoreS: nil, inputTokens: input.count,
+                        prefillS: engine.stats.prefillSeconds, matchesFirst: output == first[index], tokens: output,
+                        text: nil))
             }
         }
     }
@@ -209,7 +228,8 @@ struct Rewind: AsyncParsableCommand {
 
 struct Speed: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
-        abstract: "Alternate the own engine, the official sequential engine, and the official default engine, one process each."
+        abstract:
+            "Alternate the own engine, the official sequential engine, and the official default engine, one process each."
     )
 
     @Option(help: "Model bundle folder.")
@@ -256,13 +276,14 @@ struct Speed: AsyncParsableCommand {
         let own = records.filter { $0.engine == "own" }
         for name in engine {
             let runs = records.filter { $0.engine == name }
-            try emit(SpeedSummary(
-                engine: name,
-                decodeTokS: median(runs.map(\.decodeTokS)),
-                prefillTokS: median(runs.map(\.prefillTokS)),
-                peakRssBytes: runs.map(\.peakRssBytes).max() ?? 0,
-                ownDecodeRatio: median(own.map(\.decodeTokS)) / median(runs.map(\.decodeTokS)),
-                ownPrefillRatio: median(own.map(\.prefillTokS)) / median(runs.map(\.prefillTokS))))
+            try emit(
+                SpeedSummary(
+                    engine: name,
+                    decodeTokS: median(runs.map(\.decodeTokS)),
+                    prefillTokS: median(runs.map(\.prefillTokS)),
+                    peakRssBytes: runs.map(\.peakRssBytes).max() ?? 0,
+                    ownDecodeRatio: median(own.map(\.decodeTokS)) / median(runs.map(\.decodeTokS)),
+                    ownPrefillRatio: median(own.map(\.prefillTokS)) / median(runs.map(\.prefillTokS))))
         }
     }
 
@@ -320,15 +341,18 @@ struct SpeedRun: AsyncParsableCommand {
         }
         var usage = rusage()
         getrusage(RUSAGE_SELF, &usage)
-        try emit(SpeedRecord(
-            engine: engine, round: round, loadS: (loadEnd - loadStart) / .seconds(1), promptTokens: input.count,
-            prefillS: (first - start) / .seconds(1), prefillTokS: Double(input.count) / ((first - start) / .seconds(1)),
-            decodeTokens: maxTokens, decodeS: (last - first) / .seconds(1),
-            decodeTokS: Double(maxTokens - 1) / ((last - first) / .seconds(1)),
-            peakRssBytes: UInt64(usage.ru_maxrss), rssBytes: Memory.now().rssBytes))
+        try emit(
+            SpeedRecord(
+                engine: engine, round: round, loadS: (loadEnd - loadStart) / .seconds(1), promptTokens: input.count,
+                prefillS: (first - start) / .seconds(1),
+                prefillTokS: Double(input.count) / ((first - start) / .seconds(1)),
+                decodeTokens: maxTokens, decodeS: (last - first) / .seconds(1),
+                decodeTokS: Double(maxTokens - 1) / ((last - first) / .seconds(1)),
+                peakRssBytes: UInt64(usage.ru_maxrss), rssBytes: Memory.now().rssBytes))
     }
 
-    func drain(_ engine: some InferenceEngine, _ input: [Int32], _ count: Int, _ onToken: (Int32) -> Void) async throws {
+    func drain(_ engine: some InferenceEngine, _ input: [Int32], _ count: Int, _ onToken: (Int32) -> Void) async throws
+    {
         let sequence = try await engine.generate(
             with: input, samplingConfiguration: .greedy, inferenceOptions: InferenceOptions(maxTokens: count))
         for try await output in sequence { onToken(output.tokenId) }
@@ -355,16 +379,23 @@ struct ExperimentOptions: ParsableArguments {
     @Option(help: "Reuse the processed state across requests: on (the default) or off. Own runtime only.")
     var reuse: OnOff?
 
-    @Option(help: "Reasoning of earlier assistant entries in the rebuilt history: keep (the default) or drop. Own runtime only.")
+    @Option(
+        help:
+            "Reasoning of earlier assistant entries in the rebuilt history: keep (the default) or drop. Own runtime only."
+    )
     var historyReasoning: HistoryReasoning?
 
-    @Option(help: "An extra chat template variable as name=true or name=false. Repeat to set several. Own runtime only.")
+    @Option(
+        help: "An extra chat template variable as name=true or name=false. Repeat to set several. Own runtime only.")
     var templateVar: [String] = []
 
     @Option(help: "Reasoning level of every request: default, low or off. Own runtime only.")
     var reasoning: ReasoningChoice?
 
-    @Flag(help: "After the last prompt, read the processed tokens again from a reset engine and compare the next-token logits. Own runtime only.")
+    @Flag(
+        help:
+            "After the last prompt, read the processed tokens again from a reset engine and compare the next-token logits. Own runtime only."
+    )
     var checkState = false
 
     func validate() throws {
@@ -374,8 +405,12 @@ struct ExperimentOptions: ParsableArguments {
     }
 
     func validate(_ runtime: RuntimeKind) throws {
-        if runtime != .own, reuse != nil || historyReasoning != nil || !templateVar.isEmpty || reasoning != nil || checkState {
-            throw ValidationError("--reuse, --history-reasoning, --template-var, --reasoning and --check-state apply to --runtime own only.")
+        if runtime != .own,
+            reuse != nil || historyReasoning != nil || !templateVar.isEmpty || reasoning != nil || checkState
+        {
+            throw ValidationError(
+                "--reuse, --history-reasoning, --template-var, --reasoning and --check-state apply to --runtime own only."
+            )
         }
     }
 
@@ -403,21 +438,27 @@ struct ExperimentOptions: ParsableArguments {
 }
 
 func loadOwnModel(
-    _ url: URL, contextLimit: Int?, overflow: LocalLanguageModel.OverflowPolicy, experiment: ExperimentOptions?
+    _ url: URL, contextLimit: Int?, overflow: LocalLanguageModel.OverflowPolicy, experiment: ExperimentOptions?,
+    reloadPolicy: LocalLanguageModel.ReloadPolicy
 ) async throws -> any LanguageModel {
     let clock = ContinuousClock()
     let start = clock.now
     let model = try await LocalLanguageModel(
-        bundle: url, contextLimit: contextLimit, overflow: overflow, verification: experiment?.settings ?? .init())
-    try emit(OwnModelLoadRecord(
-        cached: model.loadStats.cached, specializeS: model.loadStats.specializeSeconds,
-        initS: (clock.now - start) / .seconds(1), memory: .now()))
+        bundle: url, contextLimit: contextLimit, overflow: overflow, reloadPolicy: reloadPolicy,
+        verification: experiment?.settings ?? .init())
+    try emit(
+        OwnModelLoadRecord(
+            cached: model.loadStats.cached, specializeS: model.loadStats.specializeSeconds,
+            initS: (clock.now - start) / .seconds(1), memory: .now()))
     return model
 }
 
 func checkState(_ model: any LanguageModel) async throws {
     guard let own = model as? LocalLanguageModel else { return }
     let (tokens, logits) = await own.processedState()
+    guard !tokens.isEmpty, logits.count > 1 else {
+        throw ValidationError("The own runtime has no processed state to verify.")
+    }
     guard !logits.isEmpty else {
         try emit(StateRecord(tokens: tokens.count, error: "No logits for the processed tokens."))
         return
@@ -425,9 +466,17 @@ func checkState(_ model: any LanguageModel) async throws {
     let start = ContinuousClock.now
     let reread = try await own.resetAndRead(tokens)
     let check = StateCheck(current: logits, reread: reread)
-    try emit(StateRecord(
-        tokens: tokens.count, current: top2(logits), reread: top2(reread), sameTop: check.currentTop == check.rereadTop,
-        marginTicks: check.marginTicks, maxAbsDiff: check.maxAbsDiff, pass: check.passed, rereadS: (ContinuousClock.now - start) / .seconds(1)))
+    try emit(
+        StateRecord(
+            tokens: tokens.count, current: top2(logits), reread: top2(reread),
+            sameTop: check.currentTop == check.rereadTop,
+            marginTicks: check.marginTicks, maxAbsDiff: check.maxAbsDiff, pass: check.passed,
+            rereadS: (ContinuousClock.now - start) / .seconds(1)))
+}
+
+func generatedTokenSnapshot(_ model: any LanguageModel) -> (@Sendable () async -> [Int32])? {
+    guard let own = model as? LocalLanguageModel else { return nil }
+    return { await own.lastGeneratedTokens() }
 }
 
 func tokenSnapshot(_ model: any LanguageModel) -> (@Sendable () async -> [Int32])? {
@@ -439,17 +488,22 @@ func loadOwn(_ url: URL) async throws -> (any Tokenizer, CoreAIBackend.Engine) {
     let bundle = try ModelBundle(url: url)
     let tokenizer = try await bundle.loadTokenizer()
     let engine = try await CoreAIBackend.Engine(bundle: bundle)
-    try emit(OwnLoadRecord(
-        cached: engine.loadStats.cached, specializeS: engine.loadStats.specializeSeconds,
-        loadS: engine.loadStats.totalSeconds, prefillFunction: engine.hasPrefillFunction, hybrid: engine.isHybrid,
-        contextLimit: engine.contextLimit, memory: .now()))
+    try emit(
+        OwnLoadRecord(
+            cached: engine.loadStats.cached, specializeS: engine.loadStats.specializeSeconds,
+            loadS: engine.loadStats.totalSeconds, prefillFunction: engine.hasPrefillFunction, hybrid: engine.isHybrid,
+            contextLimit: engine.contextLimit, memory: .now()))
     return (tokenizer, engine)
 }
 
-func chatInput(_ tokenizer: any Tokenizer, system: String? = nil, user: String, generationPrompt: Bool = true) throws -> [Int32] {
-    let messages: [Message] = (system.map { [["role": "system", "content": $0]] } ?? []) + [["role": "user", "content": user]]
+func chatInput(_ tokenizer: any Tokenizer, system: String? = nil, user: String, generationPrompt: Bool = true) throws
+    -> [Int32]
+{
+    let messages: [Message] =
+        (system.map { [["role": "system", "content": $0]] } ?? []) + [["role": "user", "content": user]]
     return try tokenizer.applyChatTemplate(
-        messages: messages, chatTemplate: nil, addGenerationPrompt: generationPrompt, truncation: false, maxLength: nil, tools: nil,
+        messages: messages, chatTemplate: nil, addGenerationPrompt: generationPrompt, truncation: false, maxLength: nil,
+        tools: nil,
         additionalContext: nil
     ).map(Int32.init)
 }
