@@ -1,28 +1,50 @@
 # Core AI Samples
 
-Swift code for running open language models such as Qwen on a Mac with Apple's Core AI framework: a runtime library, a command-line chat, a demo app and a verification tool.
-The runtime reads the model bundles made by Apple's converter in [apple/coreai-models](https://github.com/apple/coreai-models) and works as a Foundation Models `LanguageModel`, so an app talks to it through an ordinary `LanguageModelSession`.
+Can you make a recipe with what is in your fridge? This Swift app reads a fridge photo, lets you check the proposed ingredients, and compares your inventory with a recipe URL. It also includes document checklists, local chat, agents and runtime verification tools.
 
-> **Status:** not released yet. No model bundle has been published, so you convert one yourself (step 1 below). The first release is planned to be Qwen3.8 27B (4-bit) for macOS.
+The **Recipes** demo uses Apple's on-device model for the photo, **Clef-Flash 9B through Core AI** for recipe requirements and equipment, and Swift code for quantities. **Decide** uses the same Clef bundle to score a document against editable questions. Both expose the model's uncalibrated probabilities.
 
 ## Who this is for
 
-- **For** Swift developers who want an open model inside a Mac app through the Foundation Models API, with the runtime's source at hand.
+- **For** Swift developers who want to try local recipe checks or document decisions, inspect the scores, and reuse the code.
+- **For** developers integrating open language-generation models through Foundation Models; Chat and Agent use a separate runtime and bundle.
 - **For** anyone who wants to check such a runtime against Apple's own: `Tools/Verify` compares the two token by token.
-- **Not for**, yet: iOS apps, or ready-made model downloads (none are published). For macOS 26 / iOS 26, see [coreml-llm-samples](https://github.com/oka-yuji/coreml-llm-samples).
+- **Not for** using Clef as a chat model or treating a model probability as a measured chance of correctness.
 
-Requirements: an Apple silicon Mac with macOS 27, and Xcode 27 with the Metal Toolchain component. `CoreAISamplesKit/Package.swift` also declares iOS 27, but nothing has been run on iOS.
+Requirements: an Apple silicon Mac with macOS 27 and Xcode 27 with the Metal Toolchain component. Recipes photo reading also needs Apple Intelligence with vision available on the Mac. Clef was measured on M4 Max 128 GB; a minimum-memory configuration has not been established. Clef and the Recipes demo have not been verified on iOS.
 
-## Quick start
+## Quick start: Recipes or Decide
+
+Install the [Hugging Face CLI](https://huggingface.co/docs/huggingface_hub/guides/cli), then get the app and decision bundle:
+
+```sh
+git clone https://github.com/oka-yuji/coreai-samples.git
+cd coreai-samples
+hf download okayuji/clef-flash-9b-coreai-decide --local-dir ./models/clef-flash-9b-decide-v1
+```
+
+Open `CoreAISamples.xcodeproj`, choose the **CoreAISamples** scheme and **My Mac**, set the Run build configuration to **Release**, and run. The **EN / JP** control at the top right switches all six Mac screens.
+
+In **Recipes**, choose **Open Clef-Flash bundle** and select `models/clef-flash-9b-decide-v1`. Try **Examples → Three-egg omelette**, review the suggested egg as `1 pcs`, confirm it, then **Check recipe**. The recipe needs three eggs, so the confirmed inventory is two short. Follow the [Recipes walkthrough](docs/recipes-demo.md) for all five bundled photos and recipe URLs. Photos and inventory stay on the Mac; fetching a recipe URL needs an internet connection.
+
+In **Decide**, open the same bundle, choose **Examples → Maintenance agreement**, then **Run checklist**. Edit a question and run again to reuse the document. The [Decide guide](docs/decide.md) covers review, JSON export and the Swift API.
+
+| Decision bundle | Guide | Download |
+|---|---|---|
+| Clef-Flash 9B, text only, uint4 backbone and fp16 head | [English](docs/clef-flash.md) · [日本語](docs/clef-flash.ja.md) | [Hugging Face](https://huggingface.co/okayuji/clef-flash-9b-coreai-decide) |
+
+## Language-model quick start
+
+Chat and Agent use language-generation bundles made by Apple's converter in [apple/coreai-models](https://github.com/apple/coreai-models). Their runtime works as a Foundation Models `LanguageModel`, so an app talks to it through an ordinary `LanguageModelSession`. Convert a separate language-generation bundle for these screens.
 
 **1. Make a bundle** with Apple's converter. Setup (it uses `uv`) and the supported models are in [its models README](https://github.com/apple/coreai-models/blob/1.0.0/models/README.md). This is the command used here for Qwen3-0.6B:
 
 ```bash
 git clone https://github.com/apple/coreai-models.git && cd coreai-models && git checkout 1.0.0
-uv run coreai.llm.export Qwen/Qwen3-0.6B --output-dir ~/coreai-bundles   # writes ~/coreai-bundles/qwen3_0_6b_4bit_dynamic
+uv run coreai.llm.export Qwen/Qwen3-0.6B --output-dir ~/coreai-bundles
 ```
 
-The runtime has been run with that bundle, with bundles of Qwen3.5-0.8B and Qwen3.5-9B, and with Qwen3.8-27B in 4-bit and 8-bit. The Qwen3.5 and Qwen3.8 exports come from [pull request #321](https://github.com/apple/coreai-models/pull/321) of apple/coreai-models, which is still open (checked 2026-10-03), so they are not in the 1.0.0 tag.
+This writes `~/coreai-bundles/qwen3_0_6b_4bit_dynamic`. The runtime has been run with that bundle, with Qwen3.5-0.8B and Qwen3.5-9B, and with Qwen3.8-27B in 4-bit and 8-bit. Those Qwen3.5 and Qwen3.8 exports used the converter revision from [pull request #321](https://github.com/apple/coreai-models/pull/321), rather than the 1.0.0 tag.
 
 **2. Chat** from the `CoreAISamplesKit` folder:
 
@@ -51,11 +73,11 @@ for try await snapshot in session.streamResponse(
     to: "What is the capital of France? Answer with one word.",
     options: GenerationOptions(maximumResponseTokens: 1024)
 ) {
-    print(snapshot.content)  // the whole answer so far, growing with each snapshot
+    print(snapshot.content)
 }
 ```
 
-This is the core of `CoreAISamplesKit/Sources/coreai-chat/ChatCommand.swift`, cut down to the calls that matter; the CLI sends one turn per `--prompt` to the same session and prints only the new part of each snapshot. The thinking arrives as `.reasoning` entries in `session.transcript`, the token counts in `session.usage`, and the stop reason in the response metadata (`stopReason`). `LocalLanguageModel(bundle:contextLimit:overflow:)` also takes a context limit and an `OverflowPolicy` (below). The demo app and `Tools/Verify` use `CoreAIBackend` from the `CoreAISamplesKit` package in this repository as a local path dependency; there is no tagged release to depend on yet. Adding this repository's URL in Xcode's Add Package Dependencies is not supported, because the package lives in a folder of the repository. To use it in your own app, clone the repository, add the `CoreAISamplesKit` folder as a local package (File > Add Package Dependencies > Add Local) and link `CoreAIBackend`; updates come through the clone.
+This is the core of `CoreAISamplesKit/Sources/coreai-chat/ChatCommand.swift`, cut down to the calls that matter; each snapshot contains the whole answer so far. The CLI sends one turn per `--prompt` to the same session and prints only the new part. The thinking arrives as `.reasoning` entries in `session.transcript`, the token counts in `session.usage`, and the stop reason in the response metadata (`stopReason`). `LocalLanguageModel(bundle:contextLimit:overflow:)` also takes a context limit and an `OverflowPolicy` (below). The demo app and `Tools/Verify` use `CoreAIBackend` from the `CoreAISamplesKit` package in this repository as a local path dependency. Adding this repository's URL in Xcode's Add Package Dependencies is not supported, because the package lives in a folder of the repository. To use it in your own app, clone the repository, add the `CoreAISamplesKit` folder as a local package (File > Add Package Dependencies > Add Local) and link `CoreAIBackend`; updates come through the clone.
 
 ## What the runtime does
 
@@ -120,7 +142,7 @@ Reasoning strength depends on the bundle. Qwen3.8 uses the three effort values; 
 
 ```
 CoreAISamples.xcodeproj  the demo app project: open it and press Run
-CoreAISamples/           macOS SwiftUI demo app: Models, Chat (with RAG), Agent, Extract
+CoreAISamples/           macOS SwiftUI demo app: Models, Chat (with RAG), Agent, Decide, Recipes, Extract
 CoreAISamplesKit/        the Swift package the app is built on
   Sources/CoreAIBackend/ the runtime: Engine (Core AI calls), LocalLanguageModel (Foundation Models), ModelBundle (metadata.json)
   Sources/RAGContext/    passages, ranking, token budget, prompt and dates for answers from retrieved sources; a document-folder reader
@@ -140,6 +162,8 @@ LICENSE                  MIT, for the code
 - **Models** opens a bundle folder on this Mac, loads it, and clears the copy prepared for the GPU.
 - **Chat** streams the reply and the thinking, and with RAG answers from web pages and local documents with numbered sources.
 - **Agent** searches the web, reads pages and saves notes through the Foundation Models tool loop.
+- **Decide** scores a document against editable choices with Clef-Flash, reuses the document, and keeps human confirmation separate from model candidates.
+- **Recipes** checks a recipe against reviewed fridge inventory and kitchen equipment. Five synthetic photos and their recipe URLs are bundled, and developer details show the actual decision scores and timings.
 - **Extract** shows the spans GLiNER2.5-multi (Core AI, FP32) finds in a text for the labels you type, with their scores; mapping an inspection memo onto a form with option suggestions is kept as an experiment. Technical verification of a Core AI conversion. Zero-shot GLiNER2.5-multi did not reach the pre-registered bar for Japanese inspection memos (outcome B3). The evaluated version is the default candidate filter, R1 + N1: on a second sealed set of 200 memos, fabricated candidates 13/200, primary-span precision 0.788, recall 0.822 (the first evaluation, rule R1 on the first sealed set: 9/199, 0.791, 0.874). Suggestions are uncalibrated scores.
 
 The demo app runs Qwen3, Qwen3.5 and Qwen3.8 bundles only. When you open or load a bundle folder, it reads `source.hf_model_id` from the bundle's `metadata.json` and refuses the bundle, with the reason on the Models screen or in Chat, if the field is missing or does not start with one of `BundleSupport.supportedModelIDPrefixes` in `CoreAISamples/Demos/ModelManager/BundleSupport.swift`. The stop tokens, the `<think>` tags and the tool-call forms the runtime handles are the Qwen ones (see Limitations), so a bundle of another family can load and still answer with broken text. To try another family, add the start of its Hugging Face model ID, such as `"google/gemma-"`, to that list and change the refusal message next to it.
@@ -239,14 +263,14 @@ The defaults are ten completed reads and a process-footprint trigger of 18,000,0
 - Agent page fetches and Web RAG require every resolved address to be public. They refuse loopback, private, link-local, unspecified, shared, multicast and reserved addresses, including IPv4-mapped IPv6 and legacy numeric IPv4 forms. Checks run before the first request, every URLSession redirect, every main-frame or subframe WebView navigation, and on the final URL; WebView content rules also block local names and non-public literal addresses in subresources. Failed resolution refuses the fetch. DNS rebinding between validation and connection remains possible, as do JavaScript or subresource requests to names that resolve to private addresses. The app runs without the App Sandbox.
 
 - Run on macOS only (Apple silicon, macOS 27.0). `CoreAISamplesKit/Package.swift` declares iOS 27, but nothing has been run on iOS. The demo app's iPhone target (`CoreAISamples-iOS`, Extract only, see [docs/demo-app.md](docs/demo-app.md#extract-on-iphone)) builds but has not been run on a device yet.
-- Only bundles from the converter's macOS export (the `*_dynamic` folders) have been run, all of them Qwen models (Qwen3, Qwen3.5, Qwen3.8). The stop tokens, the `<think>` tags and the tool-call forms above are the ones those templates use; other model families may need more.
-- Text in, text out: a transcript segment that is not text throws `LanguageModelError.unsupportedTranscriptContent`, and there is no image or audio input.
+- The language-generation runtime has been run with the converter's macOS exports (`*_dynamic` folders) for Qwen3, Qwen3.5 and Qwen3.8. The stop tokens, the `<think>` tags and the tool-call forms above are the ones those templates use; other model families may need more. Clef uses the separate `DecisionModel` API.
+- The language-generation runtime accepts text: a transcript segment that is not text throws `LanguageModelError.unsupportedTranscriptContent`. Recipes uses a separate Apple on-device model for its photo input; the Clef bundle itself is text only.
 - No guided generation: a request with a response schema throws `LanguageModelError.unsupportedCapability`.
 - The demo uses a context limit of 16,384 tokens. Contexts beyond that limit are outside the verification coverage.
 - Use one active session per model unless the simultaneous-session checks pass for the deployed bundle and runtime.
 - Cancellation is checked before the prompt is read and between generated tokens, not while a long prompt is being read.
 - Decoding is synchronous, one token at a time, like the official `sequential` engine; the official default engine pipelines the work and decodes faster, most of all on small models (`coreai-verify speed` runs the three side by side).
-- No published bundles and no tagged release yet, and the Qwen3.5 and Qwen3.8 exports need the unmerged branch of apple/coreai-models (Quick start, step 1).
+- The distributed Clef bundle works with Decide and Recipes. Chat and Agent require separate language-generation bundles. The converter revision used for the Qwen3.5 and Qwen3.8 measurements is linked in their quick start above.
 
 ## Related
 
