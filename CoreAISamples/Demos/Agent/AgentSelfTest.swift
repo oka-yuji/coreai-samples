@@ -850,11 +850,19 @@ enum AgentSelfTest {
         let defaultsName = "agent-defaults-" + UUID().uuidString
         if let defaults = UserDefaults(suiteName: defaultsName) {
             defer { defaults.removePersistentDomain(forName: defaultsName) }
-            func flagged(_ value: String) -> Bool {
-                let agent = AgentViewModel(defaults: defaults)
-                agent.persistsSettings = false
-                _ = try? applyM4GOptions(to: agent, arguments: ["--citation-guard", value])
-                return agent.citationGuard
+            var flagMismatches: [String] = []
+            func checkFlags(over saved: Bool?) {
+                for value in ["on", "off"] {
+                    let agent = AgentViewModel(defaults: defaults)
+                    agent.persistsSettings = false
+                    _ = try? applyM4GOptions(to: agent, arguments: ["--citation-guard", value])
+                    let stored = defaults.object(forKey: AgentViewModel.citationGuardDefaultsKey) as? Bool
+                    if agent.citationGuard != (value == "on") || stored != saved {
+                        flagMismatches.append(
+                            "\(value) over \(saved.map { "saved \($0)" } ?? "no setting"): "
+                                + "guard \(agent.citationGuard), stored \(stored.map { "\($0)" } ?? "nil")")
+                    }
+                }
             }
             let fresh = AgentViewModel(defaults: defaults)
             check(
@@ -862,24 +870,20 @@ enum AgentSelfTest {
                 fresh.citeFetched && !fresh.citationGuard
                     && defaults.object(forKey: AgentViewModel.citationGuardDefaultsKey) == nil,
                 "fresh settings: citeFetched=\(fresh.citeFetched) citationGuard=\(fresh.citationGuard)")
-            let onOverFresh = flagged("on")
+            checkFlags(over: nil)
             fresh.citationGuard = true
             let savedOn = AgentViewModel(defaults: defaults).citationGuard
-            let offOverSavedOn = flagged("off")
-            let keptOn = AgentViewModel(defaults: defaults).citationGuard
+            checkFlags(over: true)
             fresh.citeFetched = false
             fresh.citationGuard = false
             let saved = AgentViewModel(defaults: defaults)
-            let onOverSavedOff = flagged("on")
-            let keptOff = !AgentViewModel(defaults: defaults).citationGuard
+            checkFlags(over: false)
             check(
                 "m4h/savedInstructionsAndGuard", savedOn && !saved.citeFetched && !saved.citationGuard,
                 "saved on read back as \(savedOn), then saved off")
             check(
-                "e2e/citationGuardFlagOverridesSettings",
-                onOverFresh && !offOverSavedOn && onOverSavedOff && keptOn && keptOff,
-                "on over fresh=\(onOverFresh) off over saved on=\(!offOverSavedOn) on over saved off=\(onOverSavedOff) "
-                    + "saved values kept=\(keptOn && keptOff)")
+                "e2e/citationGuardFlagOverridesSettings", flagMismatches.isEmpty,
+                flagMismatches.joined(separator: "; "))
         } else {
             check("m4h/defaultInstructionsAndGuard", false, "could not create isolated defaults")
         }
