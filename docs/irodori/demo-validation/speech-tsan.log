@@ -1,0 +1,39 @@
+Building for debugging...
+[Computing dependencies]
+[Provisioning 2 / 66]
+[1 / 4]
+[20 / 21] GLiNERRuntimeTests-product
+[21 / 24] SpeechRuntime
+[22 / 25] SpeechRuntime
+[28 / 30] SpeechRuntime
+[32 / 41] SpeechRuntimeTests-product
+[34 / 43] SpeechRuntimeTests-product
+[38 / 42] SpeechRuntimeTests-product
+[40 / 42] SpeechRuntimeTests-product
+Build complete! (1.94秒)
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Suite AudioPlaybackTests started.
+􀟈  Suite SpeechServiceTests started.
+􀟈  Test "Synchronous completion and a refused start both resolve exactly once" started.
+􀟈  Test "Store cancellation ignores a late generation and keeps restart blocked until stop completes" started.
+􀟈  Test "Cancellation ends playback without a delegate callback" started.
+􀟈  Test "Late callbacks from stopped audio cannot finish newer playback" started.
+􀟈  Test "Runner reports outcomes with their session and suppresses cancelled results" started.
+􀟈  Test "Only successful model validation persists a path and generation forwards text and seed" started.
+􀟈  Test "A cancelled caller does not create or start a player" started.
+􀟈  Test "Service stop ends playback immediately and awaits runtime release" started.
+􀟈  Test "Cancelled stop finishes cleanup without delivering an obsolete acknowledgement" started.
+􁁛  Test "Synchronous completion and a refused start both resolve exactly once" passed after 0.001 seconds.
+􁁛  Test "A cancelled caller does not create or start a player" passed after 0.005 seconds.
+􁁛  Test "Runner reports outcomes with their session and suppresses cancelled results" passed after 0.005 seconds.
+􁁛  Test "Cancelled stop finishes cleanup without delivering an obsolete acknowledgement" passed after 0.005 seconds.
+􁁛  Test "Store cancellation ignores a late generation and keeps restart blocked until stop completes" passed after 0.005 seconds.
+􁁛  Test "Cancellation ends playback without a delegate callback" passed after 0.005 seconds.
+􁁛  Test "Only successful model validation persists a path and generation forwards text and seed" passed after 0.006 seconds.
+􁁛  Test "Late callbacks from stopped audio cannot finish newer playback" passed after 0.006 seconds.
+􁁛  Test "Service stop ends playback immediately and awaits runtime release" passed after 0.006 seconds.
+􁁛  Suite AudioPlaybackTests passed after 0.006 seconds.
+􁁛  Suite SpeechServiceTests passed after 0.006 seconds.
+􁁛  Test run with 9 tests in 2 suites passed after 0.006 seconds.

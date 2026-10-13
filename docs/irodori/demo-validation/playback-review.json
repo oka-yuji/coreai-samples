@@ -1,0 +1,162 @@
+{
+  "summary": "未解消の確定指摘なし。R92-1は修正前に再現し、修正後の独立Release CPU 31件で解消を確認。",
+  "complete": true,
+  "repo": "/Users/okayuuji/Desktop/SelfApps/_wt/coreai-samples-92-speech",
+  "base_sha": "45936ba8f50e9d59182dae5d5948c232ba218fee",
+  "head_sha": "45936ba8f50e9d59182dae5d5948c232ba218fee",
+  "final_state_token": "153f12a9de9220e6c6da3ab9ede9aa082515b4c2ca949ca419e10dece138668b",
+  "state_check": "unchanged=true",
+  "candidateLedger": [
+    {
+      "id": "R92-1",
+      "classification": "confirmed",
+      "maximum_severity": "P3",
+      "current_status": "fixed",
+      "location": "CoreAISamplesKit/Sources/SpeechRuntime/SpeechRunner.swift:38-41",
+      "condition": "service.stop()待機中にRunnerのTaskを取り消し、後始末のgateを開く。",
+      "before": "停止後に取消を検査せずsend(.stopped(session))した。現Store.deliverのtoken検査が画面への反映を防いでいた。",
+      "reproduction": "初回snapshotとSHAが同じ旧Runnerで、独立試験が[.stopped(42)]を観測。親の新回帰試験も同時に失敗。",
+      "resolution": "await service.stop()を維持し、その後のTask.checkCancellationで取消済み通知を抑制。",
+      "evidenceHistory": [
+        "before-source-proof.json",
+        "before-tests.log",
+        "before-tests-readable.log",
+        "after-tests.log",
+        "after-source-proof.json"
+      ]
+    },
+    {
+      "id": "R92-2",
+      "classification": "rejected",
+      "hypothesis": "旧callbackや待機中の取消Dispatchが新しい再生を止める。",
+      "reason": "ticket/generation一致を検査してからcontinuationを取り出す。直接再現で、新再生開始後に旧取消Dispatchを処理しても新deviceは停止されなかった。",
+      "location": "CoreAISamplesKit/Sources/SpeechRuntime/AudioPlayback.swift:43-58,65-72"
+    },
+    {
+      "id": "R92-3",
+      "classification": "rejected",
+      "hypothesis": "decode失敗、明示stop、重複callbackでcontinuationを二重に解決する。",
+      "reason": "continuationとdeviceを先にnilにし、completionを解除してstop後にresumeする。同期成功、開始拒否、重複失敗callbackをCPU確認。",
+      "location": "CoreAISamplesKit/Sources/SpeechRuntime/AudioPlayback.swift:65-72"
+    },
+    {
+      "id": "R92-4",
+      "classification": "rejected",
+      "hypothesis": "Store解放で再生Taskが循環保持され停止しない。",
+      "reason": "StoreはTask内でweakに参照され、isolated deinitがcancelAllする。serviceを別に保持したままStoreを破棄するCPU試験で、Store解放とdevice.stop一回を確認。",
+      "location": "CoreAISamplesKit/Sources/FeatureStore/Store.swift:23,65-70"
+    },
+    {
+      "id": "R92-5",
+      "classification": "rejected",
+      "hypothesis": "画面離脱・停止中に生成を再開でき、古い完了が反映される。",
+      "reason": "endedでsessionを更新しcancelAllとstopを発行。presented/phaseのガード、Storeのtoken検査、Runnerの取消確認で古い結果を捨て、stoppedまでは再開できない。",
+      "location": "CoreAISamplesKit/Sources/SpeechFeature/SpeechFeature.swift:89-104,156-164"
+    }
+  ],
+  "confirmed_unresolved": [],
+  "plausible": [],
+  "unverified": [
+    {
+      "id": "U6",
+      "scope": "実Core AIモデル生成、実AVAudioPlayerのデバイス/割込み動作、GUI操作・試聴",
+      "reason": "GPU枠終了と明示禁止。ユーザー受入確認として保持。"
+    }
+  ],
+  "coverage": {
+    "full_read": [
+      "AudioPlayback.swift",
+      "LiveSpeechService.swift",
+      "SpeechRunner.swift",
+      "AudioPlaybackTests.swift",
+      "SpeechServiceTests.swift",
+      "SpeechFeature.swift",
+      "SpeechFeatureTests.swift"
+    ],
+    "direct_contracts": [
+      "FeatureStore/Store.swift",
+      "FeatureStore/Feature.swift",
+      "SpeechRuntime/IrodoriRuntime.swift",
+      "SpeechRuntime/SpeechBoundary.swift",
+      "SpeechRuntimeTests/RuntimeTestSupport.swift"
+    ],
+    "wiring_and_lifetime": [
+      "SpeechAssembly.swift",
+      "SpeechView.swift",
+      "SpeechModelButton.swift",
+      "SpeechExport.swift",
+      "DemoRootView.swift",
+      "ModelsView.swift integration diff"
+    ],
+    "settings": [
+      "CoreAISamplesKit/Package.swift",
+      "project.yml Swift settings/dependencies",
+      "project.pbxproj relevant target settings",
+      "CLAUDE.md"
+    ],
+    "not_audit_scope": [
+      "Visual design, accessibility completeness, external audio hardware, Vendor internals, unrelated application features"
+    ]
+  },
+  "verificationHistory": [
+    {
+      "type": "independent CPU",
+      "phase": "before",
+      "configuration": "Swift 6.4 / Swift 6 / Release / NonisolatedNonsendingByDefault + InferIsolatedConformances / native build system / debug info disabled",
+      "tests": 31,
+      "result": "2 expected failures: independent cancelled-stop test and parent regression against the original Runner; remaining tests pass",
+      "log": "/tmp/irodori-app92-playback-review/before-tests.log"
+    },
+    {
+      "type": "independent CPU",
+      "phase": "after",
+      "tests": 31,
+      "result": "PASS",
+      "log": "/tmp/irodori-app92-playback-review/after-tests.log",
+      "source_match": "/tmp/irodori-app92-playback-review/after-source-proof.json"
+    },
+    {
+      "type": "parent evidence inspected",
+      "tests": "Speech 27, Audio/Service TSan 9, Xcode Release build",
+      "result": "PASS logs inspected, not independently rerun",
+      "logs": [
+        "/tmp/irodori-samples92-speech-final.log",
+        "/tmp/irodori-samples92-tsan-final.log",
+        "/tmp/irodori-samples92-xcode-final.log"
+      ]
+    }
+  ],
+  "cpu_constraints": "COREAI_/DECIDE_/GLINER_/CLEF_ environment variables removed; sources and build products isolated in /tmp; fake playback devices only; no model inference, GUI launch, signals, repository source edits, or git changes by reviewer.",
+  "failures": [
+    {
+      "kind": "log decoding",
+      "resolved": true,
+      "detail": "Combined SwiftPM/test output contained interleaved UTF-8 bytes; original raw log retained and decoded with replacement to inspect test failures. Test result itself was the expected regression failure."
+    }
+  ],
+  "stateDrift": {
+    "changed_sources": [
+      "SpeechRunner.swift",
+      "SpeechServiceTests.swift"
+    ],
+    "rule_diff_added": "CLAUDE.md",
+    "resolution": "Final source and regression test reread; isolated copy matches 23 current source/test/resource files; final scope unchanged."
+  },
+  "pendingTasks": [],
+  "deferredTasks": [
+    {
+      "instruction": "U6としてアプリでモデル生成・再生・停止・画面離脱・試聴を確認する。",
+      "reason": "ユーザー担当、GPU/GUIを使う独立実行は禁止。"
+    }
+  ],
+  "guide_addition_candidates": [
+    "- 2026-10-13 macOS 27 SDKのAVAudioPlayer.stopは同期停止と音声ハードウェア解放中のブロックを明記する。完了delegateが呼ばれないというヘッダの明記は割込み停止の場合なので、明示stop一般の保証へ広げない。 [SDK] AVFAudio.framework/Headers/AVAudioPlayer.h:56-58,129-130。"
+  ],
+  "stats": {
+    "final_scope_files": 16,
+    "resolved_confirmed": 1,
+    "unresolved_confirmed": 0,
+    "plausible": 0,
+    "independent_after_tests": 31
+  }
+}

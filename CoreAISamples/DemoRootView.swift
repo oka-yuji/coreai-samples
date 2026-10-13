@@ -2,6 +2,7 @@ import DecideFeature
 import ExtractFeature
 import FeatureStore
 import Observation
+import SpeechFeature
 import SwiftUI
 
 enum Demo: String, CaseIterable, Identifiable {
@@ -9,6 +10,7 @@ enum Demo: String, CaseIterable, Identifiable {
     case agent
     case decide
     case extract
+    case speech
     case models
 
     var id: String { rawValue }
@@ -19,6 +21,7 @@ enum Demo: String, CaseIterable, Identifiable {
         case .agent: "Agent"
         case .decide: "Decide"
         case .extract: "Extract"
+        case .speech: "Speech"
         case .models: "Models"
         }
     }
@@ -29,6 +32,7 @@ enum Demo: String, CaseIterable, Identifiable {
         case .agent: "Search the web and run multi-step tasks with tool calls"
         case .decide: "Check a document against an editable checklist"
         case .extract: "Technical verification: type labels and see the spans GLiNER finds in a text"
+        case .speech: "Generate and play speech from text with Irodori"
         case .models: "Get, open and prepare model bundles"
         }
     }
@@ -39,6 +43,7 @@ enum Demo: String, CaseIterable, Identifiable {
         case .agent: "sparkles"
         case .decide: "checklist"
         case .extract: "text.magnifyingglass"
+        case .speech: "waveform"
         case .models: "square.and.arrow.down"
         }
     }
@@ -56,6 +61,7 @@ struct DemoRootView: View {
     @State private var agent = AgentViewModel()
     @State private var models = ModelsViewModel()
     @State private var decide = DecideAssembly.makeStore()
+    @State private var speech = SpeechAssembly.makeStore()
     @State private var extract = Store<ExtractFeature>(
         initialState: ExtractState(
             form: ExtractResources.form, labels: ExtractResources.examples.labels,
@@ -90,6 +96,7 @@ struct DemoRootView: View {
             case .agent?: AgentView()
             case .decide?: DecideView(store: decide)
             case .extract?: ExtractView(store: extract)
+            case .speech?: SpeechView(store: speech)
             case .models?: ModelsView()
             case nil: ContentUnavailableView("Select a demo", systemImage: "square.grid.2x2")
             }
@@ -99,6 +106,7 @@ struct DemoRootView: View {
         .environment(agent)
         .environment(models)
         .environment(decide)
+        .environment(speech)
         .task {
             GUIDriver.shared.attach(navigator: navigator, chat: chat, agent: agent, models: models, extract: extract)
         }

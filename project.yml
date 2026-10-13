@@ -29,7 +29,18 @@ targets:
     deploymentTarget: "27.0"
     sources:
       - path: CoreAISamples
+    preBuildScripts:
+      - name: Build Irodori input library
+        script: '"$SRCROOT/Tools/Irodori/build-inputs.sh"'
+        shell: /bin/bash
+        basedOnDependencyAnalysis: false
     dependencies:
+      - package: CoreAISamplesKit
+        product: SpeechCore
+      - package: CoreAISamplesKit
+        product: SpeechFeature
+      - package: CoreAISamplesKit
+        product: SpeechRuntime
       - package: CoreAISamplesKit
         product: CoreAIBackend
       - package: CoreAISamplesKit

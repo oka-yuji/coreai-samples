@@ -1,0 +1,101 @@
+import FeatureStore
+import Foundation
+import SpeechCore
+import SpeechFeature
+import Testing
+@testable import SpeechRuntime
+
+@MainActor
+private final class ReviewPlaybackDevice: PlaybackDevice {
+    var completion: ((Bool) -> Void)?
+    var didStart: (() -> Void)?
+    var stopCount = 0
+    func play() -> Bool { didStart?(); return true }
+    func stop() { stopCount += 1 }
+}
+
+@MainActor
+@Suite(.timeLimit(.minutes(1)))
+struct ReviewPlaybackTests {
+    @Test("A cancelled stop finishes cleanup without sending an outcome")
+    func cancelledStopDoesNotSend() async throws {
+        let service = FakeSpeechService()
+        let runner = SpeechRunner(service: service)
+        var actions: [SpeechAction] = []
+        let task = Task { await runner.run(.stop(42)) { actions.append($0) } }
+        defer { service.stopGate.open(); task.cancel() }
+        try await service.stopping.wait()
+        task.cancel()
+        service.stopGate.open()
+        await task.value
+        #expect(actions.isEmpty)
+    }
+
+    @Test("An older queued cancellation cannot stop a newer playback continuation")
+    func delayedCancellation() async throws {
+        let first = FakePlaybackDevice()
+        let second = ReviewPlaybackDevice()
+        var count = 0
+        let playback = AudioPlayback { _ in
+            count += 1
+            return count == 1 ? first : second
+        }
+        let old = Task { try await playback.play(Data()) }
+        defer { playback.stop(); old.cancel() }
+        try await first.started.wait()
+        let callback = try #require(first.completion)
+        callback(true)
+        old.cancel()
+        var observedStopCount: Int?
+        second.didStart = {
+            DispatchQueue.main.async {
+                observedStopCount = second.stopCount
+                second.completion?(true)
+            }
+        }
+        try await playback.play(Data())
+        _ = try? await old.value
+        #expect(observedStopCount == 0)
+        #expect(first.stopCount == 1 && second.stopCount == 1)
+    }
+
+    @Test("An active decode error followed by duplicate callbacks resolves only once")
+    func duplicateDecodeFailure() async throws {
+        let device = FakePlaybackDevice()
+        let playback = AudioPlayback { _ in device }
+        let task = Task { try await playback.play(Data()) }
+        defer { playback.stop(); task.cancel() }
+        try await device.started.wait()
+        let callback = try #require(device.completion)
+        callback(false)
+        callback(false)
+        callback(true)
+        playback.stop()
+        await #expect(throws: SpeechError.playbackFailed) { try await task.value }
+        #expect(device.stopCount == 1 && device.completion == nil)
+    }
+
+    @Test("Dropping the Store cancels a suspended playback even while its service remains retained")
+    func storeDeallocationStopsPlayback() async throws {
+        let device = FakePlaybackDevice()
+        let playback = AudioPlayback { _ in device }
+        let service = LiveSpeechService(engine: FakeSpeechEngine(), playback: playback, defaults: .standard)
+        let runner = SpeechRunner(service: service)
+        let finished = TestSignal()
+        var state = SpeechState()
+        state.presented = true
+        state.audio = SpeechAudio(wav: Data([1]), audioSeconds: 1, elapsedSeconds: 1, normalizedText: "x")
+        var store: Store<SpeechFeature>? = Store(initialState: state) { effect, send in
+            await runner.run(effect, send: send)
+            finished.fire()
+        }
+        weak var observed = store
+        defer { playback.stop(); store = nil }
+        store?.send(.play)
+        try await device.started.wait()
+        store = nil
+        #expect(observed == nil)
+        try await finished.wait()
+        #expect(device.stopCount == 1 && device.completion == nil)
+    }
+}

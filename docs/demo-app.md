@@ -7,8 +7,11 @@
 - **Agent**: searches the web, reads pages, saves notes and answers with a `Sources:` section, on the model that Chat has loaded. See [Agent](#agent) below.
 - **Extract**: a technical verification of a Core AI conversion. Type labels and GLiNER2.5-multi (Core AI, FP32) marks the spans it finds for each in a text, with their scores; mapping an inspection memo onto a form with option suggestions is kept as an experiment. The result exports as JSON. See [Extract](#extract) below.
 
+- **Speech**: open the pinned Irodori FP32 folder, generate from text and seed, play/stop and save a WAV. Actual app/GPU/audio acceptance remains pending. See [Irodori Speech](irodori/demo.md).
+
 ## Requirements
 
+- Rust/Cargo for the Mac speech input adapter; the Xcode pre-build phase builds it automatically.
 - [XcodeGen](https://github.com/yonaskolb/XcodeGen), only to regenerate the demo app's project
 
 ## Build and run
