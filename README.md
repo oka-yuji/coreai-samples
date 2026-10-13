@@ -7,7 +7,7 @@ The **Recipes** demo uses Apple's on-device model for the photo, **Clef-Flash 9B
 ## Who this is for
 
 - **For** Swift developers who want to try local recipe checks or document decisions, inspect the scores, and reuse the code.
-- **For** developers integrating open language-generation models through Foundation Models; Chat and Agent use a separate runtime and bundle.
+- **For** developers integrating open language-generation models through Foundation Models; Chat uses a separate runtime and bundle.
 - **For** anyone who wants to check such a runtime against Apple's own: `Tools/Verify` compares the two token by token.
 - **Not for** using Clef as a chat model or treating a model probability as a measured chance of correctness.
 
@@ -35,7 +35,7 @@ In **Decide**, open the same bundle, choose **Examples → Maintenance agreement
 
 ## Language-model quick start
 
-Chat and Agent use language-generation bundles made by Apple's converter in [apple/coreai-models](https://github.com/apple/coreai-models). Their runtime works as a Foundation Models `LanguageModel`, so an app talks to it through an ordinary `LanguageModelSession`. Convert a separate language-generation bundle for these screens.
+Chat uses language-generation bundles made by Apple's converter in [apple/coreai-models](https://github.com/apple/coreai-models). Their runtime works as a Foundation Models `LanguageModel`, so an app talks to it through an ordinary `LanguageModelSession`. Convert a separate language-generation bundle for this screen.
 
 **1. Make a bundle** with Apple's converter. Setup (it uses `uv`) and the supported models are in [its models README](https://github.com/apple/coreai-models/blob/1.0.0/models/README.md). This is the command used here for Qwen3-0.6B:
 
@@ -142,7 +142,7 @@ Reasoning strength depends on the bundle. Qwen3.8 uses the three effort values; 
 
 ```
 CoreAISamples.xcodeproj  the demo app project: open it and press Run
-CoreAISamples/           macOS SwiftUI demo app: Models, Chat (with RAG), Agent, Decide, Recipes, Extract
+CoreAISamples/           macOS SwiftUI demo app: Models, Chat (Chat and Work, with RAG), Decide, Recipes, Extract
 CoreAISamplesKit/        the Swift package the app is built on
   Sources/CoreAIBackend/ the runtime: Engine (Core AI calls), LocalLanguageModel (Foundation Models), ModelBundle (metadata.json)
   Sources/RAGContext/    passages, ranking, token budget, prompt and dates for answers from retrieved sources; a document-folder reader
@@ -160,8 +160,7 @@ LICENSE                  MIT, for the code
 `CoreAISamples` is a macOS SwiftUI app built on this repository's `CoreAIBackend` and `RAGContext`, without the official `coreai-models` package.
 
 - **Models** opens a bundle folder on this Mac, loads it, and clears the copy prepared for the GPU.
-- **Chat** streams the reply and the thinking, and with RAG answers from web pages and local documents with numbered sources.
-- **Agent** searches the web, reads pages and saves notes through the Foundation Models tool loop.
+- **Chat** is one conversation with a Chat | Work picker: Chat answers and searches the web when it needs facts, Work searches, reads pages and saves notes through the Foundation Models tool loop, and with RAG the app answers from web pages and local documents with numbered sources.
 - **Decide** scores a document against editable choices with Clef-Flash, reuses the document, and keeps human confirmation separate from model candidates.
 - **Recipes** checks a recipe against reviewed fridge inventory and kitchen equipment. Five synthetic photos and their recipe URLs are bundled, and developer details show the actual decision scores and timings.
 - **Extract** turns official Apple/Microsoft product descriptions or pasted text into up to four source-linked specification cards. Open a candidate to inspect its original conditions; multiple configurations and missing fields stay visible. The existing label and inspection-memo experiment remains under **Extraction lab**, and its B3 finding is unchanged. Product extraction is a separate use case; see the [specification and verification status](docs/specs/product-comparison-demo.md).
@@ -270,7 +269,7 @@ The defaults are ten completed reads and a process-footprint trigger of 18,000,0
 - Use one active session per model unless the simultaneous-session checks pass for the deployed bundle and runtime.
 - Cancellation is checked before the prompt is read and between generated tokens, not while a long prompt is being read.
 - Decoding is synchronous, one token at a time, like the official `sequential` engine; the official default engine pipelines the work and decodes faster, most of all on small models (`coreai-verify speed` runs the three side by side).
-- The distributed Clef bundle works with Decide and Recipes. Chat and Agent require separate language-generation bundles. The converter revision used for the Qwen3.5 and Qwen3.8 measurements is linked in their quick start above.
+- The distributed Clef bundle works with Decide and Recipes. Chat requires a separate language-generation bundle. The converter revision used for the Qwen3.5 and Qwen3.8 measurements is linked in their quick start above.
 
 ## Related
 
