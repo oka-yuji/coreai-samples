@@ -187,16 +187,19 @@ public struct RecipeCheckRow: Sendable, Equatable, Codable, Identifiable {
 }
 
 public struct RecipeReport: Sendable, Equatable, Codable {
+    public static let reviewThreshold: Float = 0.6
+
     public let rows: [RecipeCheckRow]
     public let equipment: KitchenStatus
     public let equipmentProbability: Float
     public let seconds: Double
     public let reusedTokens: Int
     public let modelVersion: String
+    public let diagnostics: RecipeDiagnostics?
 
     public init(
         rows: [RecipeCheckRow], equipment: KitchenStatus, equipmentProbability: Float,
-        seconds: Double, reusedTokens: Int, modelVersion: String
+        seconds: Double, reusedTokens: Int, modelVersion: String, diagnostics: RecipeDiagnostics? = nil
     ) {
         self.rows = rows
         self.equipment = equipment
@@ -204,6 +207,7 @@ public struct RecipeReport: Sendable, Equatable, Codable {
         self.seconds = seconds
         self.reusedTokens = reusedTokens
         self.modelVersion = modelVersion
+        self.diagnostics = diagnostics
     }
 
     public var hasShortage: Bool {
@@ -211,9 +215,9 @@ public struct RecipeReport: Sendable, Equatable, Codable {
     }
 
     public var needsReview: Bool {
-        equipment == .unknown || equipmentProbability < 0.6
+        equipment == .unknown || equipmentProbability < Self.reviewThreshold
             || rows.contains {
-                $0.decision == .uncertain || $0.requirement == .uncertain || $0.probability < 0.6
+                $0.decision == .uncertain || $0.requirement == .uncertain || $0.probability < Self.reviewThreshold
                     || ($0.decision == .have && $0.amount == .unknown)
             }
     }

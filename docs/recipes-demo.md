@@ -5,8 +5,8 @@ This Mac demo reads a fridge photograph, proposes ingredients for you to review,
 ## Start
 
 1. Open `CoreAISamples.xcodeproj`, choose **CoreAISamples / My Mac**, and Run. This requires macOS 27, Xcode 27 and Apple Intelligence with vision available on the Mac.
-2. Select **Recipes** in the sidebar.
-3. Use **Open Clef-Flash bundle** to choose the `clef-flash-9b-decide-v1` folder. A successful selection is remembered. `COREAI_DECISION_BUNDLE` can also supply the path when launching the app.
+2. Select **Recipes** in the sidebar. The **EN / JP** control at the top right changes the interface immediately on all six Mac screens and remembers the choice. Original recipe text and model-generated content keep their source language.
+3. The model card above the workflow always names `clef-flash-9b-decide-v1`. Use **Open Clef-Flash bundle** to choose that folder. It shows loading and loaded states; **Retry saved bundle** retries a remembered path when no model is loaded. A successful selection is remembered. `COREAI_DECISION_BUNDLE` can also supply the path when launching the app.
 4. Choose **Examples → Three-egg omelette**. This reads the bundled one-egg photo and fetches its recipe. **Open photo** accepts your own image instead.
 5. Check the proposed ingredient names and amounts. For the egg, confirm that the amount is `1 pcs`, then check its confirmation box. You can add pantry ingredients using **Add** beside a recipe ingredient and enter their amounts.
 6. Click **Check recipe**. For this recipe's original two servings, one confirmed egg leaves **Short by 2.00 pcs**. Other ingredients and equipment can remain unchecked; they are shown as needing review.
@@ -33,6 +33,19 @@ The five supplied images are bundled, so importing them separately is optional. 
 | Tomato & mozzarella | [Caprese](https://www.kikkoman.co.jp/homecook/search/recipe/00001454/) | The opaque container does not confirm mozzarella. Leave full-inventory confirmation off until its contents have been checked. |
 
 The recipe is not scaled to a different number of servings. For controlled checks of equipment or a single shortage, explicitly enter and confirm the remaining required ingredients; do not infer them from the photograph.
+
+## Inspect the decision
+
+Expand **Developer details** at the top of the recipe column. It separates four stages:
+
+- **Photo:** Apple's `SystemLanguageModel.default` proposes ingredients on this Mac. The panel shows actual photo-processing time and candidate count.
+- **URL:** The parser extracts the source ingredients and cooking steps. These counts come from the loaded recipe.
+- **Clef:** The decision model classifies ingredient requirements and kitchen equipment. After checking a recipe, the panel shows the result's model and version, input tokens, reused document tokens and check time. Select an ingredient or equipment question to inspect every returned choice, probability, logit and selected result; expand the question to read its original instructions.
+- **Code:** Confirmed inventory names and quantities are matched in code. The ordinary result shows missing ingredients and calculated shortages. The panel displays the same `0.60` review threshold used by the report, alongside the other unknown-status conditions.
+
+Check time includes document preparation and result mapping, but excludes the explicit bundle-opening step and queueing. Internal runtime preparation during the check is included. Input tokens include the recipe and all questions. Reuse is zero on the first check and can increase when you change only kitchen equipment and check the same recipe again. Choice probabilities are normalized over the offered choices; they are not calibrated accuracy or evidence that an ingredient is in the photograph.
+
+Opening the panel, selecting a question or changing EN/JP does not run the model again. Check that the recorded time and scores stay the same after switching languages. Editing actual inventory data still clears its confirmation and invalidates the old report.
 
 ## Boundaries
 
