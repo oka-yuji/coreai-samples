@@ -41,6 +41,7 @@ final class ConversationRunner {
         run: Int, prompt: String, policy: TurnPolicy, finalize: Bool, send: (ConversationAction) -> Void
     ) async {
         chat.externallyBusy = true
+        defer { if !citationGuard.repairPending { chat.externallyBusy = false } }
         let repair = citationGuard.repairPending
         if !repair {
             let guarding = policy.mode == .work && policy.citationGuard
@@ -51,7 +52,6 @@ final class ConversationRunner {
             run: run, prompt: prompt, policy: policy, finalize: finalize, repair: repair, send: send)
         guard policy.mode == .work else {
             send(end.action(run))
-            chat.externallyBusy = false
             return
         }
         let verdict = citationGuard.settle(
@@ -66,7 +66,6 @@ final class ConversationRunner {
             }
             await citationGuard.saveRunMetrics(session: session)
             send(end.action(run))
-            chat.externallyBusy = false
         }
     }
 
