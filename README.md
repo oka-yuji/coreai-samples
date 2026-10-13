@@ -1,19 +1,113 @@
 # Core AI Samples
 
-Can you make a recipe with what is in your fridge? This Swift app reads a fridge photo, lets you check the proposed ingredients, and compares your inventory with a recipe URL. It also includes document checklists, local chat, agents and runtime verification tools.
+[日本語](README.ja.md)
 
-The **Recipes** demo uses Apple's on-device model for the photo, **Clef-Flash 9B through Core AI** for recipe requirements and equipment, and Swift code for quantities. **Decide** uses the same Clef bundle to score a document against editable questions. Both expose the model's uncalibrated probabilities.
+Swift samples that run open models on a Mac through Apple's Core AI and Foundation Models. **Chat** and **Agent** run Qwen3.8 27B; the agent searches the web, reads pages and saves notes. **Recipes** compares a fridge photo's ingredients with a recipe URL and **Decide** scores a document against an editable checklist, both with Clef-Flash 9B. **Extract** shows the spans GLiNER2.5-multi finds in a text. `Tools/Verify` compares this repository's runtime with Apple's own, token by token.
 
 ## Who this is for
 
+- **For** Swift developers who want a 27B chat model and a web-browsing agent running locally on a Mac through `LanguageModelSession`, with the measurements behind them.
 - **For** Swift developers who want to try local recipe checks or document decisions, inspect the scores, and reuse the code.
-- **For** developers integrating open language-generation models through Foundation Models; Chat and Agent use a separate runtime and bundle.
+- **For** developers integrating open language-generation models through Foundation Models; Chat and Agent use a separate runtime and bundle from Recipes and Decide.
 - **For** anyone who wants to check such a runtime against Apple's own: `Tools/Verify` compares the two token by token.
-- **Not for** using Clef as a chat model or treating a model probability as a measured chance of correctness.
+- **Not for** iPhone or iPad, contexts beyond the demo's 16,384 tokens, using Clef as a chat model, or treating a model probability as a measured chance of correctness.
 
-Requirements: an Apple silicon Mac with macOS 27 and Xcode 27 with the Metal Toolchain component. Recipes photo reading also needs Apple Intelligence with vision available on the Mac. Clef was measured on M4 Max 128 GB; a minimum-memory configuration has not been established. Clef and the Recipes demo have not been verified on iOS.
+Requirements: an Apple silicon Mac with macOS 27 and Xcode 27 with the Metal Toolchain component. Qwen3.8 27B takes 16.85 GB to download plus a prepared copy of about the same size for each program that loads it, and its process reached 34.2 GB (31.9 GiB) of resident memory while loading; it was measured on an M4 Max with 128 GiB, and a minimum-memory configuration has not been established. Recipes photo reading also needs Apple Intelligence with vision available on the Mac. Clef was measured on an M4 Max with 128 GiB; a minimum-memory configuration has not been established. Clef and the Recipes demo have not been verified on iOS.
+
+## Models
+
+| Bundle | Used by | Download | Guide |
+|---|---|---|---|
+| Qwen3.8 27B, 4-bit, text only | Chat, Agent, `coreai-chat` | [Hugging Face](https://huggingface.co/okayuji/Qwen3.8-27B-coreai-4bit) | [Quick start](#quick-start-chat-and-agent-with-qwen38-27b) below |
+| Clef-Flash 9B, text only, uint4 backbone and fp16 head | Recipes, Decide | [Hugging Face](https://huggingface.co/okayuji/clef-flash-9b-coreai-decide) | [English](docs/clef-flash.md) · [日本語](docs/clef-flash.ja.md) |
+
+## Quick start: Chat and Agent with Qwen3.8 27B
+
+Install the [Hugging Face CLI](https://huggingface.co/docs/huggingface_hub/guides/cli), then get the app and the bundle (12 files, 16.85 GB):
+
+```sh
+git clone https://github.com/oka-yuji/coreai-samples.git
+cd coreai-samples
+hf download okayuji/Qwen3.8-27B-coreai-4bit --revision c034c9857455a48cea715fec19eb49b3227b2458 \
+  --local-dir ./models/qwen3.8-27b-coreai-4bit
+```
+
+Open `CoreAISamples.xcodeproj`, choose the **CoreAISamples** scheme and **My Mac**, and run; the scheme builds Release. In **Models**, choose **Open Folder…**, select `models/qwen3.8-27b-coreai-4bit` and press **Load**. The first load prepares the model for the GPU, which took 82.8 s on an M4 Max; later loads took 3.6–10.3 s. Then talk to it in **Chat**, or give **Agent** a task that needs the web. **Models** can also download the same pinned revision itself: **Download** next to *Qwen3.8 27B (4bit)* checks every file against the Hub.
+
+From the command line, in the `CoreAISamplesKit` folder:
+
+```sh
+cd CoreAISamplesKit
+swift build -c release
+.build/release/coreai-chat --model ../models/qwen3.8-27b-coreai-4bit --max-tokens 2048 --stats \
+  --prompt "What is the capital of France? Answer with one word."
+```
+
+The model thinks before it answers: the thinking prints under `[reasoning]` and the answer under `[response]`, and `--stats` reports the load and each turn on stderr.
+
+| The bundle | |
+|---|---|
+| Repository and revision | [`okayuji/Qwen3.8-27B-coreai-4bit`](https://huggingface.co/okayuji/Qwen3.8-27B-coreai-4bit) at `c034c9857455a48cea715fec19eb49b3227b2458`, the revision the app's Catalog pins |
+| Size | 12 files, 16,852,520,981 bytes (16.85 GB, 15.70 GiB); the model file `main.mlirb` is 16,839,684,298 bytes |
+| Source | [`Qwen/Qwen3.8-27B`](https://huggingface.co/Qwen/Qwen3.8-27B) at revision `1d4bf0f2ff6012fd82039f2fa52739d0dd7c60c0`, text only (the vision encoder is not included) |
+| Conversion | Apple's converter at commit `36e9350` of [pull request #321](https://github.com/apple/coreai-models/pull/321), which is not part of the 1.0.0 tag; preset `qwen3_5_cfg` (4-bit weights, bfloat16 compute) with the gated-delta state update computed in fp32; macOS export with dynamic shapes |
+| Tokenizer | `tokenizer/tokenizer.json` is the original Qwen3.8-27B file, in place of the copy the converter re-saved; on the 2,257 strings used in the measurements, Swift produced the same token IDs with either file |
+| Memory | the process reached 33.8 GB (31.5 GiB) of resident memory when loading from the prepared copy and 34.2 GB (31.9 GiB) at the first load; 16.0–16.7 GiB stayed resident during Agent steps |
+| Platform | macOS 27 on Apple silicon, GPU; not iPhone or iPad |
+
+### Sample output
+
+An Agent task in the app's headless driver (`--agent-e2e`), reasoning off, on the live web, October 12, 2026. This run used `--instructions cite-fetched --citation-guard on`; the app's default is the same instructions with the guard off. The answer and the two notes under it are verbatim:
+
+```
+Read https://developer.apple.com/documentation/createml and list three key points.
+```
+
+```
+Here are three key points from Apple's Create ML documentation:
+
+1. **Train custom ML models on your Mac with familiar tools.** Create ML lets you use Swift and macOS playgrounds to create and train machine learning models locally. You train a model by showing it representative samples (e.g., many images of dogs to recognize dogs), then test it on unseen data and evaluate performance before integrating it into your app via Core ML.
+
+2. **Broad model types are supported.** The framework covers image models (image classifier, object detector, hand pose classifier), video models (action classifier, hand action classifier, style transfer), text models (text classifier, word tagger, word embedding, gazetteer), sound classifiers, motion/activity classifiers, and tabular models (classifiers, regressors, recommenders).
+
+3. **It leverages Apple's built-in ML infrastructure.** Because Create ML builds on the machine learning infrastructure used in Apple products like Photos and Siri, your image classification and natural language models are smaller and train much faster. It also provides built-in tools for evaluating model accuracy (metrics for classifiers, regressors, word taggers, recommenders, and object detectors) and controlling training sessions (MLJob, MLTrainingSession, checkpoints).
+
+**Platform availability:** iOS 15.0+, iPadOS 15.0+, Mac Catalyst 15.0+, macOS 10.14+, tvOS 16.0+, visionOS 1.0+.
+
+Sources:
+https://developer.apple.com/documentation/createml
+--- note Citations
+1/1 cited URLs were retrieved in this task · mean 8-gram overlap 0.38
+--- note Citation guard
+Cited sources fetched · 1/1 cited URLs were fetched in this task
+```
+
+The agent called `fetch_page` once (6.3 s, 5,993 characters) and answered in the second step. The whole task took 33.3 s after a 4.5 s load from the prepared copy.
+
+| Step | Prompt tokens | Reused | Generated | First token | Decode |
+|---|---|---|---|---|---|
+| 1 (tool call) | 877 | 0 | 34 | 7.97 s | 23.8 tok/s |
+| 2 (answer) | 2,189 | 911 | 317 | 4.95 s | 23.0 tok/s |
+
+### Key numbers
+
+MacBook Pro (Mac16,6) with an M4 Max and 128 GiB, macOS 27.0 (26A428), the bundle above, greedy decoding, one model process at a time, October 11–12, 2026. The runtime and the Agent code were the same as in this repository; the Agent's instructions and citation guard were set by the flags shown.
+
+| Measurement | Result | Conditions |
+|---|---|---|
+| Decode speed | 22.74 tok/s, median of 144 generation steps | Agent, 12 frozen tasks × 4 rounds (48 runs) on the live web, `--instructions frozen --citation-guard off`, reasoning low (36 runs) and off (12) |
+| Time to first token | 5.54 s to read the prompt, 6.46 s to the first text on screen (medians of the same steps) | the same 48 runs |
+| Agent tasks | 48/48 passed the frozen grader, 48/48 on answer quality; no unintended re-render, no run that failed to stop | the same 48 runs |
+| Agent with the citation guard on | 41/42 tasks achieved and 1 held; the guard verified 35, repaired 6 and held 1; decode 22.90 tok/s, first token 5.33 s / 6.46 s (151 steps) | 21 tasks × reasoning low and off on the live web, `--instructions cite-fetched --citation-guard on` |
+| Load | 82.8 s the first time, including preparation for the GPU; 3.6–10.3 s afterwards (median 4.7 s, 48 runs) | the app |
+| Resident memory | 33.8 GB (31.5 GiB) peak per process from the prepared copy, 34.2 GB (31.9 GiB) at the first load; 16.0–16.7 GiB during Agent steps | `/usr/bin/time -l` and the app's `metrics.jsonl` |
+| RAG | first text on screen after 15.53 s (median of 3) with 2,950 source tokens, 3,120 input tokens in all | the app's `--selftest --rag`, 3,000-token source budget, local documents only |
+
+The default Agent settings (cite-fetched instructions, guard off) have not been measured with this bundle. Correctness checks, including agreement with a reference implementation, are under [Verification](#verification); constraints are under [Limitations](#limitations).
 
 ## Quick start: Recipes or Decide
+
+Can you make a recipe with what is in your fridge? **Recipes** reads a fridge photo, lets you check the proposed ingredients, and compares your inventory with a recipe URL. It uses Apple's on-device model for the photo, **Clef-Flash 9B through Core AI** for recipe requirements and equipment, and Swift code for quantities. **Decide** uses the same Clef bundle to score a document against editable questions. Both expose the model's uncalibrated probabilities.
 
 Install the [Hugging Face CLI](https://huggingface.co/docs/huggingface_hub/guides/cli), then get the app and decision bundle:
 
@@ -29,13 +123,9 @@ In **Recipes**, choose **Open Clef-Flash bundle** and select `models/clef-flash-
 
 In **Decide**, open the same bundle, choose **Examples → Maintenance agreement**, then **Run checklist**. Edit a question and run again to reuse the document. The [Decide guide](docs/decide.md) covers review, JSON export and the Swift API.
 
-| Decision bundle | Guide | Download |
-|---|---|---|
-| Clef-Flash 9B, text only, uint4 backbone and fp16 head | [English](docs/clef-flash.md) · [日本語](docs/clef-flash.ja.md) | [Hugging Face](https://huggingface.co/okayuji/clef-flash-9b-coreai-decide) |
+## Convert your own bundle
 
-## Language-model quick start
-
-Chat and Agent use language-generation bundles made by Apple's converter in [apple/coreai-models](https://github.com/apple/coreai-models). Their runtime works as a Foundation Models `LanguageModel`, so an app talks to it through an ordinary `LanguageModelSession`. Convert a separate language-generation bundle for these screens.
+Chat and Agent also run other language-generation bundles made by Apple's converter in [apple/coreai-models](https://github.com/apple/coreai-models). Their runtime works as a Foundation Models `LanguageModel`, so an app talks to it through an ordinary `LanguageModelSession`.
 
 **1. Make a bundle** with Apple's converter. Setup (it uses `uv`) and the supported models are in [its models README](https://github.com/apple/coreai-models/blob/1.0.0/models/README.md). This is the command used here for Qwen3-0.6B:
 
@@ -161,7 +251,7 @@ LICENSE                  MIT, for the code
 
 - **Models** opens a bundle folder on this Mac, loads it, and clears the copy prepared for the GPU. Its catalog lists Qwen3.8 27B (4bit) for download. The catalog's memory figure, ~21 GiB while loading, is one reading of the app's resident memory taken while it loaded that bundle (20.66 GiB) on the Mac in the measurement table below; it is neither the peak nor a minimum memory requirement.
 - **Chat** streams the reply and the thinking, and with RAG answers from web pages and local documents with numbered sources.
-- **Agent** searches the web, reads pages and saves notes through the Foundation Models tool loop.
+- **Agent** searches the web, reads pages and saves notes through the Foundation Models tool loop. Its instructions ask it to cite only pages it opened with `fetch_page`. The **Citation guard** setting, off by default, checks the cited URLs against the pages fetched in the task and asks for one repair turn when they do not match ([details](docs/demo-app.md#citation-guard)).
 - **Decide** scores a document against editable choices with Clef-Flash, reuses the document, and keeps human confirmation separate from model candidates.
 - **Recipes** checks a recipe against reviewed fridge inventory and kitchen equipment. Five synthetic photos and their recipe URLs are bundled, and developer details show the actual decision scores and timings.
 - **Extract** shows the spans GLiNER2.5-multi (Core AI, FP32) finds in a text for the labels you type, with their scores; mapping an inspection memo onto a form with option suggestions is kept as an experiment. Technical verification of a Core AI conversion. Zero-shot GLiNER2.5-multi did not reach the pre-registered bar for Japanese inspection memos (outcome B3). The evaluated version is the default candidate filter, R1 + N1: on a second sealed set of 200 memos, fabricated candidates 13/200, primary-span precision 0.788, recall 0.822 (the first evaluation, rule R1 on the first sealed set: 9/199, 0.791, 0.874). Suggestions are uncalibrated scores.
@@ -249,10 +339,22 @@ For a memory-growth measurement, add `--memory-sample-turn 10 --memory-sample-tu
 
 The five-second interval is a measurement convention, not a guarantee that memory has stabilized or reclamation has completed on every device. Keep the immediate values and peak alongside the delayed samples. The footprint threshold calibration still uses the maximum immediate post-turn footprint, multiplied by 1.5 and rounded up to a decimal GB. CPU-only checks for the observation option and its wait/capture behavior run with `swift test --package-path Tools/Verify`.
 
+### Qwen3.8 27B bundle
+
+These checks used the bundle in [Models](#models) in the environment above, on October 11–12, 2026.
+
+- **Same output as Apple's runtime.** `coreai-verify compare --max-tokens 1024` with four prompts (Japanese, English, code, and a long generation) produced the same token at every step as Apple's sequential engine on the matching `prefill-function` path, 43, 41, 293 and 1,024 steps, with a maximum logit difference of 0 and no non-finite values. Both runtimes ran the same converted bundle, so this checks the runtime, not the conversion.
+- **Agreement with the original weights did not meet the bar set before measuring.** The reference was PyTorch running the same 4-bit weights in fp32 on the CPU. On 40 inputs not used before (Japanese, English, Hindi, Thai and code; prose, and chat renders shaped like Agent and RAG prompts), 512 positions each, Core AI ranked the reference's top token first at 99.21% of 20,480 positions, and the probability given to the actual next token differed by 0.002435 on average, 0.02796 at the 99th percentile and 0.778 at most; 182 positions (0.8887%) differed by more than 0.03, 26 of them with a different top token. No value was NaN or infinite. The mean and the top-1 rate met their criteria (at most 0.01, at least 99%); the 99th percentile (at most 0.02), the share above 0.03 (at most 0.5%, keeping the top token at each) and the maximum (at most 0.0875) did not. The larger differences sit in English prose and in the Agent- and RAG-shaped renders, at copied URLs, version numbers and the probability of ending a message; Japanese, Hindi and Thai prose had 1 position above 0.03 in 9,216. Core AI's probabilities also depend on how the prompt is split into calls: reading 10 of these inputs in 128-token calls instead of one 512-token call changed the top token at 77 of 5,120 positions. Greedy generation continued from 31 outlying positions stayed coherent in the assistant's own turns, while 4–5 continuations of pasted source text went wrong: a stray Latin letter in Japanese text, broken code, an end of message inside code. The quality loss from quantizing the original bfloat16 model was not measured.
+- **Task results are a separate check.** The 48/48 Agent runs and the guard-on runs in [Key numbers](#key-numbers) measure finished tasks; they do not show numerical agreement with the original model. Two graders (the same AI model with the same written guide, not independent people) read the 48 frozen-instruction answers against the text the agent had received: 22 supported, 15 partly supported, 11 not supported, 48 meeting the request. Ten of the 11 unsupported answers relied on search snippets without opening a page.
+- **State and sampling.** The processed-state check passed in all 9 checked tool-loop runs with this bundle, and seeded top-k and top-p sampling repeated the same tokens 5 of 5 times, with a different seed changing them.
+
 ## Operational notes
 
 - **The first load prepares the model for the GPU.** Core AI keeps the prepared copy in `~/Library/Caches/coreai-cache/<OS build>/<name>/`, where `<name>` is the process name of a command-line tool (`coreai-chat`, `coreai-verify`, `swiftpm-testing-helper` for `swift test`) or the bundle ID of an app (`com.coreai-samples.DemoApp`). Later loads by the same program reuse it; another program prepares its own copy, which takes about as much disk as the model (more for an unquantized bundle). `coreai-chat --stats` shows whether the copy was reused (`cached`) and how long preparing took (`specialize_s`).
 - **To remove a prepared copy**, call `Engine.deleteSpecializationCache(bundle:)`, which removes the calling program's copy of that bundle, use **Clear Prepared Copy** in the demo app's Models screen (`--clear-prepared` in its screen check), or delete the folder.
+- **Qwen3.8 27B, first load.** The app prepared the bundle in 82.84 s and finished loading in 86.87 s the first time; loads from the prepared copy took 3.6–10.3 s (October 11, 2026). `coreai-chat` makes its own prepared copy of 16.86 GB (15.70 GiB), which took 105.6 s while other builds kept the Mac busy (1-minute load average 20–29).
+- **Slow downloads.** If `hf download` stays below 1 MB/s, raising hf-xet's download concurrency helped in one measurement: with `HF_XET_CLIENT_AC_INITIAL_DOWNLOAD_CONCURRENCY=32 HF_XET_CLIENT_AC_MIN_DOWNLOAD_CONCURRENCY=32`, this bundle downloaded at 18.91 MB/s (891 s), where the default settings had run at 0.2–0.5 MB/s (hf-xet 1.5.2, huggingface_hub 0.36.2, October 11, 2026).
+- **Long sessions.** In 100 consecutive new conversations through `coreai-verify chat` with Qwen3.8 27B (up to 256 tokens each), decode speed stayed at 20.11–21.62 tok/s from the 41st conversation on, down from 22.33–23.31 tok/s in the first ten, except for the first question after each reload. Resident memory grew 0.28% from the 10th to the 100th conversation, and each periodic reload took 4.31–4.77 s. The cause of the slowdown has not been identified.
 
 Configure the library with `LocalLanguageModel.ReloadPolicy(readInterval:footprintLimitBytes:)`, passed as `reloadPolicy:` to the model initializer. An interval of zero disables periodic reloads; a footprint limit of zero disables the memory trigger.
 
@@ -270,7 +372,16 @@ The defaults are ten completed reads and a process-footprint trigger of 18,000,0
 - Use one active session per model unless the simultaneous-session checks pass for the deployed bundle and runtime.
 - Cancellation is checked before the prompt is read and between generated tokens, not while a long prompt is being read.
 - Decoding is synchronous, one token at a time, like the official `sequential` engine; the official default engine pipelines the work and decodes faster, most of all on small models (`coreai-verify speed` runs the three side by side).
-- The distributed Clef bundle works with Decide and Recipes. Chat and Agent require separate language-generation bundles. The converter revision used for the Qwen3.5 and Qwen3.8 measurements is linked in their quick start above.
+- The distributed Clef bundle works with Decide and Recipes. Chat and Agent require separate language-generation bundles. The converter revision used for the Qwen3.5 and Qwen3.8 measurements is linked in [Convert your own bundle](#convert-your-own-bundle); it comes from a pull request that is not part of the 1.0.0 tag.
+- The Qwen3.8 27B conversion did not meet the agreement criteria fixed before it was measured ([Verification](#qwen38-27b-bundle)): at a small share of positions, Core AI's probabilities differ from the same weights in PyTorch, most of all in English prose and in chat-rendered tool results and sources.
+- Under an Agent answer, the **Citations** note counts a cited URL as retrieved when it appeared in the task's search results or in a fetched page, so `4/4 cited URLs were retrieved in this task` was shown for a task that opened no page. The citation guard checks against the pages `fetch_page` delivered instead.
+- The citation guard, off by default, checks that the cited pages were fetched in the task, not that the answer agrees with them. URLs whose fetch failed are reported only as a count. Characters that follow a URL without a space, such as Japanese text, are read as part of that URL.
+- With the guard on, 1 of 42 live-web runs ended held: the repaired answer stopped at the token limit, so the app kept the answer from before the repair turn, which cites a page that was not fetched, with a note saying so. The check fixed beforehand for making the guard the default allowed no such run, so the default is off.
+- `fetch_page` fails with `error: fetch_page needs an absolute http or https URL` on some pages whose embedded frames, often advertisements, navigate to a non-web address, even when the page URL is correct (4 of the 48 frozen benchmark runs).
+- The Agent can follow instructions written in a page it reads. Of 10 runs over 5 pages written to test this (citation guard on), 2 saved a note a page asked for; none fetched the URL a page asked for or wrote outside the notes folder. The tools write only into the notes folder unless **Allow file operations** is on, which adds `move_note`.
+- `move_note` also accepts the notes folder as a destination, while its description to the model and its error message name only Desktop, Documents and Downloads.
+- When **Max steps** is reached, the Agent stops with "Step limit reached" and leaves no answer.
+- Not measured with Qwen3.8 27B: the default Agent settings (cite-fetched instructions, guard off), Macs other than an M4 Max with 128 GiB, macOS builds other than 27.0 (26A428), and contexts beyond 16,384 tokens.
 
 ## Related
 
@@ -278,4 +389,4 @@ The defaults are ten completed reads and a process-footprint trigger of 18,000,0
 
 ## License
 
-Code: MIT — see [LICENSE](LICENSE). Model weights are distributed separately under their own licenses.
+Code: MIT — see [LICENSE](LICENSE). Model weights are distributed separately under their own licenses: the Qwen3.8 27B and Clef-Flash 9B bundles keep the Apache License 2.0 of their source models, and each Hugging Face repository includes the `LICENSE` and a `NOTICE.md` that lists the changes.
