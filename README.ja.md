@@ -249,14 +249,14 @@ LICENSE                  コードの MIT ライセンス
 
 `CoreAISamples` は、このリポジトリの `CoreAIBackend` と `RAGContext` で作った macOS の SwiftUI アプリで、公式の `coreai-models` パッケージは使いません。
 
-- **Models** は、この Mac にあるバンドルのフォルダを開いて読み込み、GPU 向けに準備したコピーを消します。
+- **Models** は、この Mac にあるバンドルのフォルダを開いて読み込み、GPU 向けに準備したコピーを消します。カタログには、ダウンロードできる Qwen3.8 27B (4bit) が載っています。カタログのメモリの値「~21 GiB while loading」(日本語表示では「約21 GiB（読み込み時）」)は、下の計測の表の Mac でそのバンドルを読み込んでいる最中に 1 回読み取ったアプリの常駐メモリ(20.66 GiB)で、ピークでも最小のメモリ要件でもありません。
 - **Chat** は応答と思考をストリーミングで表示し、RAG を on にすると Web のページとローカルの文書から、番号つきの出典で答えます。
 - **Agent** は Foundation Models のツールのループで Web を検索し、ページを読み、メモを保存します。指示は、`fetch_page` で開いたページだけを引用するよう求めます。**Citation guard**(日本語表示では「引用URLの確認」)の設定は既定で off で、on にすると、引用した URL をその課題で取得したページと照合し、合わなければ 1 回だけ直させます([詳細](docs/demo-app.md#citation-guard))。
 - **Decide** は Clef-Flash で文書を編集できる選択肢で採点し、文書を使い回し、人の確定とモデルの候補を分けて扱います。
 - **Recipes** は、確認した冷蔵庫の在庫と台所の道具でレシピを照合します。合成した写真 5 枚とそのレシピの URL を同梱し、開発者向けの詳細に実際の判定のスコアと時間を表示します。
 - **Extract** は、入力したラベルについて GLiNER2.5-multi(Core AI、FP32)がテキストの中に見つけた区間とスコアを表示します。点検メモを選択肢の提案つきで帳票に対応付ける機能は、実験として残しています。Core AI の変換の技術検証です。ゼロショットの GLiNER2.5-multi は、日本語の点検メモに対して事前に決めた基準に届きませんでした(結果 B3)。評価した版は既定の候補のフィルター R1 + N1 で、2 つ目の独立した評価集合 200 件で、捏造の候補 13/200、主要な区間の適合率 0.788、再現率 0.822 でした(最初の評価、1 つ目の評価集合での規則 R1: 9/199、0.791、0.874)。提案のスコアは校正していません。
 
-デモアプリが動かすのは Qwen3、Qwen3.5、Qwen3.8 のバンドルだけです。バンドルのフォルダを開くか読み込むときに、バンドルの `metadata.json` の `source.hf_model_id` を読み、その項目が無いか、`CoreAISamples/Demos/ModelManager/BundleSupport.swift` の `BundleSupport.supportedModelIDPrefixes` のどれかで始まらなければ、Models の画面か Chat に理由を出して断ります。ランタイムが扱う停止のトークン、`<think>` のタグ、ツールの呼び出しの形は Qwen のもの(制限を参照)なので、ほかの系統のバンドルは読み込めても崩れた文で答えることがあります。ほかの系統を試すには、`"google/gemma-"` のようにその Hugging Face のモデル ID の先頭をその一覧に足し、隣の断りの文を変えます。
+デモアプリの Chat と Agent が扱うのは Qwen3、Qwen3.5、Qwen3.8 のバンドルです。`CoreAISamples/Demos/ModelManager/BundleSupport.swift` の `BundleSupport.supportedModelIDPrefixes` に、`"google/gemma-"` のようなほかの系統の Hugging Face のモデル ID の先頭を足すと、アプリはその系統のバンドルを開けるようになりますが、動くようにはなりません。ランタイムが扱う停止のトークン、`<think>` のタグ、ツールの呼び出しの形は Qwen のまま(制限を参照)なので、そのようなバンドルは読み込めても崩れた文で答えることがあります。系統の確認はこの一覧だけです。バンドルのフォルダを開くか読み込むときに、アプリはバンドルの `metadata.json` の `source.hf_model_id` を読み、その項目が無いか、どの先頭でも始まらなければ、Models の画面か Chat に理由を出して断ります。バンドルがどう変換されたかは確かめません。
 
 試すには、`CoreAISamples.xcodeproj` を開いて Run を押します。コマンドラインでのビルド、ヘッドレスの自己テスト、画面の確認、ログは [docs/demo-app.md](docs/demo-app.md) にあります。
 
