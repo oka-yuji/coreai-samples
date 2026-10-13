@@ -91,6 +91,8 @@ struct ProductCardView: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(Text("Show source for \(strings.text(field.title))"))
+        .accessibilityValue(
+            values.isEmpty ? Text("Not found in this text") : Text(verbatim: distinct.joined(separator: ", ")))
     }
 }
 
