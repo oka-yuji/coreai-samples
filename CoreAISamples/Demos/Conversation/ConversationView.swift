@@ -28,7 +28,7 @@ struct ConversationView: View {
                 ContentUnavailableView {
                     Label("Could not open the model", systemImage: "exclamationmark.triangle")
                 } description: {
-                    Text(message)
+                    RuntimeMessageText(message)
                 } actions: {
                     Button("Open Models") { navigator.selection = .models }
                 }
@@ -42,7 +42,7 @@ struct ConversationView: View {
                 }
             }
         }
-        .navigationTitle("Chat")
+        .demoNavigationTitle("Chat")
     }
 
     private var header: some View {
@@ -103,7 +103,7 @@ struct ConversationView: View {
             if host.state.isRunning || chat.isResponding {
                 ProgressView().controlSize(.small)
             }
-            Text(statusText)
+            RuntimeMessageText(statusText)
                 .font(.caption.monospacedDigit())
                 .foregroundStyle(chat.ragIsOn && chat.last?.error != nil ? Color.red : Color.secondary)
                 .lineLimit(2)
@@ -184,7 +184,7 @@ struct ConversationEntryRow: View {
                 statsCaption
             } label: {
                 HStack(spacing: 4) {
-                    Text(entry.kind == .toolCall ? "Calling \(entry.title)" : entry.title)
+                    title
                     Text("(\(entry.text.count) chars)").foregroundStyle(.secondary)
                     if entry.live { ProgressView().controlSize(.mini) }
                 }
@@ -213,8 +213,13 @@ struct ConversationEntryRow: View {
             .frame(maxWidth: .infinity, alignment: .leading)
         case .failure:
             VStack(alignment: .leading, spacing: 2) {
-                label(entry.title, "exclamationmark.triangle")
-                    .foregroundStyle(.orange)
+                Label {
+                    RuntimeMessageText(entry.title)
+                } icon: {
+                    Image(systemName: "exclamationmark.triangle")
+                }
+                .font(.caption)
+                .foregroundStyle(.orange)
                 Text(entry.text)
                     .font(.callout)
                     .foregroundStyle(.secondary)
@@ -223,7 +228,7 @@ struct ConversationEntryRow: View {
             .frame(maxWidth: .infinity, alignment: .leading)
         case .note:
             Label(
-                "\(entry.title): \(entry.text)",
+                "Note (original): \(entry.title): \(entry.text)",
                 systemImage: entry.warning ? "exclamationmark.triangle" : "checkmark.seal"
             )
             .font(.caption)
@@ -250,7 +255,7 @@ struct ConversationEntryRow: View {
     @ViewBuilder
     private var statsCaption: some View {
         if let stats = entry.stats {
-            Text(stats)
+            RuntimeMessageText(stats)
                 .font(.system(.caption2, design: .monospaced))
                 .foregroundStyle(.tertiary)
         }
@@ -263,7 +268,7 @@ struct ConversationEntryRow: View {
             } label: {
                 HStack(spacing: 4) {
                     Image(systemName: expanded ? "chevron.down" : "chevron.right")
-                    Text(entry.title)
+                    title
                     Text("(\(entry.text.count) chars)").foregroundStyle(.secondary)
                     if entry.live { ProgressView().controlSize(.mini) }
                 }
@@ -279,12 +284,21 @@ struct ConversationEntryRow: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
+    @ViewBuilder
+    private var title: some View {
+        switch entry.kind {
+        case .toolCall: Text("Calling \(entry.title)")
+        case .thinking: Text("Thinking")
+        default: Text("Tool result (original): \(entry.title)")
+        }
+    }
+
     private var preview: String {
         let flat = entry.text.replacingOccurrences(of: "\n", with: " ")
         return flat.count > 300 ? String(flat.prefix(300)) + "…" : flat
     }
 
-    private func label(_ text: String, _ systemImage: String) -> some View {
+    private func label(_ text: LocalizedStringKey, _ systemImage: String) -> some View {
         Label(text, systemImage: systemImage)
             .font(.caption)
             .foregroundStyle(.secondary)
@@ -345,7 +359,7 @@ struct ThinkingView: View {
                 if live {
                     ProgressView().controlSize(.small)
                 }
-                Text(live ? "Thinking" : "Thoughts")
+                Text(LocalizedStringKey(live ? "Thinking" : "Thoughts"))
                     .fontWeight(.medium)
                 if !expanded {
                     Text(text.split(whereSeparator: \.isNewline).last.map(String.init) ?? "")
@@ -366,19 +380,23 @@ struct LoadingView: View {
     let name: String
     let preparing: Bool
     let since: Date
+    @Environment(\.locale) private var locale
 
     var body: some View {
         VStack(spacing: 12) {
             ProgressView()
             TimelineView(.periodic(from: since, by: 1)) { context in
-                Text("\(preparing ? "Preparing" : "Loading") \(name)… \(Int(context.date.timeIntervalSince(since))) s")
-                    .font(.headline)
-                    .monospacedDigit()
+                Text(
+                    "\(DemoStrings(locale: locale).text(preparing ? "Preparing" : "Loading")) \(name)… \(Int(context.date.timeIntervalSince(since))) s"
+                )
+                .font(.headline)
+                .monospacedDigit()
             }
             Text(
-                preparing
-                    ? "The first load of a model on this Mac prepares it for the GPU. This happens once per model; later loads reuse the prepared copy."
-                    : "Reading the model from disk."
+                LocalizedStringKey(
+                    preparing
+                        ? "The first load of a model on this Mac prepares it for the GPU. This happens once per model; later loads reuse the prepared copy."
+                        : "Reading the model from disk.")
             )
             .font(.callout)
             .foregroundStyle(.secondary)

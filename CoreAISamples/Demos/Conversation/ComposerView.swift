@@ -14,7 +14,7 @@ struct ComposerView: View {
             if let notice {
                 HStack(spacing: 8) {
                     Image(systemName: "exclamationmark.circle")
-                    Text(notice)
+                    RuntimeMessageText(notice)
                     Spacer(minLength: 0)
                     if host.contextFull || chat.contextFull {
                         Button("New", action: host.startNew)

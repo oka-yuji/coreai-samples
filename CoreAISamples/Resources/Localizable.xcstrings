@@ -400,6 +400,7 @@
       }
     },
     "Agent settings" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ja" : {
           "stringUnit" : {
@@ -409,7 +410,18 @@
         }
       }
     },
+    "Allow file operations (move_note, from the next conversation)" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ファイル操作を許可（move_note、次の会話から）"
+          }
+        }
+      }
+    },
     "Allow file operations (move_note, from the next task)" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ja" : {
           "stringUnit" : {
@@ -479,7 +491,18 @@
         }
       }
     },
+    "Ask again in Work mode, which can save notes" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "メモを保存できる作業モードで質問し直します"
+          }
+        }
+      }
+    },
     "Ask anything. The reply streams in as the model writes it." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ja" : {
           "stringUnit" : {
@@ -626,7 +649,6 @@
       }
     },
     "Chat" : {
-      "extractionState" : "stale",
       "localizations" : {
         "ja" : {
           "stringUnit" : {
@@ -636,7 +658,18 @@
         }
       }
     },
+    "Chat answers and searches the web when it needs facts. Work runs multi-step research and saves notes." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "チャットは質問に答え、事実の確認が必要なときはWebを検索します。作業は複数の手順で調べ、メモを保存します。"
+          }
+        }
+      }
+    },
     "Chat is replying on this model. The agent can start when it finishes." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ja" : {
           "stringUnit" : {
@@ -700,6 +733,7 @@
       }
     },
     "Check the answer's and the notes' URLs against the pages fetched in this task, ask the model to fix them once, and keep notes as drafts until the check passes" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ja" : {
           "stringUnit" : {
@@ -828,6 +862,16 @@
         }
       }
     },
+    "Choose a model from the menu above, or open a bundle folder in Models." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "上のメニューからモデルを選ぶか、モデル管理でモデルフォルダを開いてください。"
+          }
+        }
+      }
+    },
     "Choose a photograph smaller than 20 MB." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -846,6 +890,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "通常の画像ファイルを選んでください。"
+          }
+        }
+      }
+    },
+    "Choose the model the conversation uses" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "会話で使うモデルを選択"
           }
         }
       }
@@ -1048,6 +1102,36 @@
         }
       }
     },
+    "Continue in Work" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "作業で続ける"
+          }
+        }
+      }
+    },
+    "Conversation settings" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "会話の設定"
+          }
+        }
+      }
+    },
+    "Conversation. Searches the web when it needs facts." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "会話します。事実の確認が必要なときはWebを検索します。"
+          }
+        }
+      }
+    },
     "Cook with what you have" : {
       "localizations" : {
         "ja" : {
@@ -1079,7 +1163,18 @@
         }
       }
     },
+    "Copy the conversation as Markdown" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "会話をMarkdownでコピー"
+          }
+        }
+      }
+    },
     "Copy the whole transcript as Markdown" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ja" : {
           "stringUnit" : {
@@ -1160,6 +1255,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "既定に戻す"
+          }
+        }
+      }
+    },
+    "Default (Chat 2048, Work 4096)" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "既定（チャット2048、作業4096）"
           }
         }
       }
@@ -1308,6 +1413,16 @@
         }
       }
     },
+    "Downloaded" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ダウンロード済み"
+          }
+        }
+      }
+    },
     "Downloaded models" : {
       "localizations" : {
         "ja" : {
@@ -1359,6 +1474,17 @@
         }
       }
     },
+    "Ended at the step limit" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最大ステップ数で終了しました"
+          }
+        }
+      }
+    },
     "Evaluating the checklist…" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1381,6 +1507,7 @@
       }
     },
     "Example prompts (original):" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ja" : {
           "stringUnit" : {
@@ -1671,6 +1798,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "読み込む…"
+          }
+        }
+      }
+    },
+    "In Work, check the answer's and the notes' URLs against the pages fetched in this conversation, ask the model to fix them once, and keep notes as drafts until the check passes" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "作業では、回答・メモのURLをこの会話で取得したページと照合し、必要なら1回修正を求めます。確認が通るまではメモを下書きにします。"
           }
         }
       }
@@ -2006,7 +2143,28 @@
         }
       }
     },
+    "Manage Models…" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデル管理…"
+          }
+        }
+      }
+    },
+    "Max steps (Work): %lld" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最大ステップ数（作業）: %lld"
+          }
+        }
+      }
+    },
     "Max steps: %lld" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ja" : {
           "stringUnit" : {
@@ -2064,6 +2222,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "食材が不足"
+          }
+        }
+      }
+    },
+    "Mode" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モード"
+          }
+        }
+      }
+    },
+    "Model" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデル"
           }
         }
       }
@@ -2152,6 +2330,16 @@
         }
       }
     },
+    "Multi-step research and notes." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "複数の手順で調べ、メモを保存します。"
+          }
+        }
+      }
+    },
     "Name" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2163,7 +2351,18 @@
         }
       }
     },
+    "New" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新規"
+          }
+        }
+      }
+    },
     "New Chat" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ja" : {
           "stringUnit" : {
@@ -2174,6 +2373,7 @@
       }
     },
     "New Task" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ja" : {
           "stringUnit" : {
@@ -2184,11 +2384,22 @@
       }
     },
     "New chat" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "新しいチャット"
+          }
+        }
+      }
+    },
+    "New conversation" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新しい会話"
           }
         }
       }
@@ -2240,6 +2451,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "モデル未読込"
+          }
+        }
+      }
+    },
+    "No models yet" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルはまだありません"
           }
         }
       }
@@ -2516,6 +2737,7 @@
       }
     },
     "Open a model bundle folder in Models, then load it." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ja" : {
           "stringUnit" : {
@@ -3378,6 +3600,16 @@
         }
       }
     },
+    "Start a new conversation" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新しい会話を始める"
+          }
+        }
+      }
+    },
     "Start with a fridge photo" : {
       "localizations" : {
         "ja" : {
@@ -3438,6 +3670,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "現在の処理を停止しています…"
+          }
+        }
+      }
+    },
+    "Stopping…" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "停止しています…"
           }
         }
       }
@@ -3516,7 +3758,19 @@
         }
       }
     },
+    "Talk, search the web and run multi-step tasks on a local model" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ローカルモデルと会話し、Web検索や複数手順のタスクを実行"
+          }
+        }
+      }
+    },
     "Task" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ja" : {
           "stringUnit" : {
@@ -3549,6 +3803,7 @@
       }
     },
     "The agent is running a task on this model. Chat can send when it finishes." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ja" : {
           "stringUnit" : {
@@ -3559,6 +3814,7 @@
       }
     },
     "The agent uses the model that Chat has loaded. Open a model bundle folder in Models, then load it." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ja" : {
           "stringUnit" : {
@@ -3574,6 +3830,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "確認項目が変更されました。再判定すると結果を更新できます。"
+          }
+        }
+      }
+    },
+    "The context window is full. Start a new conversation to continue." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コンテキストの上限に達しました。続けるには新しい会話を始めてください。"
           }
         }
       }
@@ -3987,6 +4254,17 @@
         }
       }
     },
+    "Where Work saves its notes" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "作業モードでメモを保存するフォルダ"
+          }
+        }
+      }
+    },
     "Where the agent saves its notes" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3994,6 +4272,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "エージェントがメモを保存するフォルダ"
+          }
+        }
+      }
+    },
+    "Work" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "作業"
           }
         }
       }

@@ -2,6 +2,7 @@ import AppKit
 import SwiftUI
 
 struct ConversationSettingsView: View {
+    @Environment(\.locale) private var locale
     @Environment(ChatViewModel.self) private var chat
     @Environment(ConversationHost.self) private var host
 
@@ -9,7 +10,7 @@ struct ConversationSettingsView: View {
         @Bindable var preferences = host.preferences
         return VStack(alignment: .leading, spacing: 8) {
             Picker("Reasoning effort", selection: $preferences.effort) {
-                ForEach(AgentReasoningEffort.allCases) { Text($0.label).tag($0) }
+                ForEach(AgentReasoningEffort.allCases) { Text(LocalizedStringKey($0.label)).tag($0) }
             }
             .pickerStyle(.segmented)
             .frame(maxWidth: 320)
@@ -73,8 +74,8 @@ struct ConversationSettingsView: View {
         panel.canChooseDirectories = true
         panel.canChooseFiles = false
         panel.canCreateDirectories = true
-        panel.prompt = "Choose"
-        panel.message = "Where Work saves its notes"
+        panel.prompt = DemoStrings(locale: locale).text("Choose")
+        panel.message = DemoStrings(locale: locale).text("Where Work saves its notes")
         panel.directoryURL = host.preferences.notesDirectory
         guard panel.runModal() == .OK, let url = panel.url else { return }
         host.preferences.notesFolderPath = url.path(percentEncoded: false)

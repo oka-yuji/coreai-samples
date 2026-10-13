@@ -10,6 +10,7 @@ struct ModelMenu: View {
 
     var body: some View {
         let entries = models.menuEntries(current: chat.phase == .ready ? chat.bundleURL : nil)
+        let name = chat.modelName.isEmpty ? Text("No model loaded") : Text(verbatim: chat.modelName)
         Menu {
             if entries.downloaded.isEmpty && entries.onThisMac.isEmpty {
                 Button("No models yet") {}
@@ -24,7 +25,7 @@ struct ModelMenu: View {
             Divider()
             Button("Manage Models…") { navigator.selection = .models }
         } label: {
-            Text(chat.modelName.isEmpty ? "No model loaded" : chat.modelName)
+            name
                 .font(.headline)
                 .lineLimit(1)
                 .truncationMode(.middle)
@@ -32,7 +33,7 @@ struct ModelMenu: View {
         }
         .fixedSize()
         .accessibilityLabel("Model")
-        .accessibilityValue(chat.modelName.isEmpty ? "No model loaded" : chat.modelName)
+        .accessibilityValue(name)
         .help("Choose the model the conversation uses")
         .disabled(
             Self.isDisabled(
