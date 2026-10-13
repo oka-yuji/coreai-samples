@@ -52,14 +52,11 @@ struct ConversationStatusTests {
                 .generationEnded(run: 1, stopReason: stopReason))
             return state
         }
-        #expect(
-            ended("maxTokens", reserved: 300).contextEndNotice
-                == "The reply stopped at the end of the context window (300 tokens were left for it). Start a new conversation if the next message does not fit."
-        )
-        #expect(ended("maxTokens", reserved: 9_000).contextEndNotice == nil)
-        #expect(ended("maxTokens", reserved: nil).contextEndNotice == nil)
-        #expect(ended("stopToken", reserved: 300).contextEndNotice == nil)
-        #expect(started(.work).contextEndNotice == nil)
+        #expect(ended("maxTokens", reserved: 300).contextEndReserved == 300)
+        #expect(ended("maxTokens", reserved: 9_000).contextEndReserved == nil)
+        #expect(ended("maxTokens", reserved: nil).contextEndReserved == nil)
+        #expect(ended("stopToken", reserved: 300).contextEndReserved == nil)
+        #expect(started(.work).contextEndReserved == nil)
     }
 
     @Test("A refused save is cleared by the next send, and a token limit set in the settings applies to Chat too")
@@ -125,5 +122,30 @@ struct ConversationStatusTests {
         #expect(TurnPolicy(.work, settings: ConversationSettings()).citationGuard)
         #expect(!TurnPolicy(.work, settings: ConversationSettings(citationGuard: false)).citationGuard)
         #expect(!TurnPolicy(.chat, settings: ConversationSettings(citationGuard: true)).citationGuard)
+    }
+
+    @Test(
+        "A stop followed by a generation end or a failure, and a step-limit cut followed by an end, still close the turn"
+    )
+    func stopsAndCutsCloseTheTurnWhateverEndArrives() {
+        var ended = started(.work)
+        _ = reduce(&ended, .stopRequested, .generationEnded(run: 1, stopReason: "stopToken"))
+        #expect(!ended.isRunning && !ended.stopRequested)
+        _ = reduce(&ended, .send("Next", mode: .work, now: launch))
+        #expect(ended.isRunning)
+
+        let search = tool("t1", "web_search", #"{"query":"swift"}"#)
+        let fetch = tool("t2", "fetch_page", #"{"url":"https://swift.org"}"#)
+        var cut = started(.chat)
+        let record = turn(
+            "Question", [calls("c1", search), output(search, "Results"), calls("c2", fetch), output(fetch, "Page")])
+        _ = reduce(&cut, .transcriptChanged(run: 1, record), .generationEnded(run: 1, stopReason: "stopToken"))
+        #expect(!cut.isRunning && cut.finalization == .cutOff)
+        #expect(cut.entries.last?.title == "Ended at the step limit")
+        #expect(cut.statusLine == "Stopped at the 2-step limit.")
+
+        var failed = started(.work)
+        _ = reduce(&failed, .stopRequested, .generationFailed(run: 1, message: "boom"))
+        #expect(!failed.isRunning && !failed.stopRequested && failed.entries.last?.title == "Generation failed")
     }
 }

@@ -252,13 +252,12 @@ extension ConversationState {
         return turn.steps.last?.line ?? ""
     }
 
-    public var contextEndNotice: String? {
+    public var contextEndReserved: Int? {
         guard !isRunning, let turn = turns.last, turn.finish == .cap else { return nil }
         let reserved = transcript.entries.reversed().lazy.compactMap { entry -> Int? in
             if case .response(_, _, let metadata) = entry { metadata?.reservedTokens } else { nil }
         }.first
         guard let reserved, reserved < turn.policy.maxTokens else { return nil }
-        return
-            "The reply stopped at the end of the context window (\(reserved) tokens were left for it). Start a new conversation if the next message does not fit."
+        return reserved
     }
 }

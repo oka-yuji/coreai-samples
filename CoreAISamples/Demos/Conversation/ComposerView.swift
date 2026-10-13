@@ -13,11 +13,20 @@ struct ComposerView: View {
             if let notice {
                 HStack(spacing: 8) {
                     Image(systemName: "exclamationmark.circle")
-                    RuntimeMessageText(notice)
+                    notice
                     Spacer(minLength: 0)
                     if host.contextFull {
                         Button("New", action: host.startNew)
                     }
+                }
+                .font(.callout)
+                .foregroundStyle(.orange)
+            }
+            if case .failed(let detail) = state.persistence {
+                Label {
+                    Text("The conversation could not be saved: \(detail)")
+                } icon: {
+                    Image(systemName: "exclamationmark.triangle")
                 }
                 .font(.callout)
                 .foregroundStyle(.orange)
@@ -80,13 +89,19 @@ struct ComposerView: View {
         .padding(10)
     }
 
-    private var notice: String? {
-        if chat.contextFull, let notice = chat.contextNotice { return notice }
-        if host.contextFull { return "The context window is full. Start a new conversation to continue." }
-        if chat.ragIsOn, let notice = chat.contextNotice { return notice }
-        if let notice = host.state.contextEndNotice { return notice }
-        if case .failed(let message) = host.state.persistence { return message }
-        return nil
+    private var notice: Text? {
+        if chat.contextFull, case .full(let needed, let limit)? = chat.contextNotice {
+            return Text(
+                "The context window is full: this question needs \(needed) tokens and the limit is \(limit). Start a new conversation to continue."
+            )
+        }
+        if host.contextFull { return Text("The context window is full. Start a new conversation to continue.") }
+        var reserved = host.state.contextEndReserved
+        if chat.ragIsOn, case .end(let value)? = chat.contextNotice { reserved = value }
+        guard let reserved else { return nil }
+        return Text(
+            "The reply stopped at the end of the context window (\(reserved) tokens were left for it). Start a new conversation if the next message does not fit."
+        )
     }
 
     private func submit() {

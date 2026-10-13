@@ -142,18 +142,9 @@ final class ConversationSession {
     func request(_ call: AgentToolCall) -> ToolCallRecord? {
         guard let session, let sink else { return nil }
         let transcript = Array(session.transcript)
-        var found: ToolCallRecord?
-        search: for entry in transcript.dropFirst(base).reversed() {
-            guard case .toolCalls(let calls) = entry else { continue }
-            for item in calls
-            where !claimed.contains(item.id) && item.toolName == call.name
-                && AgentPromptBuilder.arguments(item.toolName, item.arguments) == call.arguments
-            {
-                found = ToolCallRecord(id: item.id, name: item.toolName, arguments: item.arguments.jsonString)
-                break search
-            }
-        }
-        let record = found ?? ToolCallRecord(id: UUID().uuidString, name: call.name, arguments: Self.json(call))
+        let record =
+            Self.match(call, in: transcript.dropFirst(base), claimed: claimed)
+            ?? ToolCallRecord(id: UUID().uuidString, name: call.name, arguments: Self.json(call))
         claimed.insert(record.id)
         let converted = Self.record(transcript)
         let done =
@@ -163,6 +154,21 @@ final class ConversationSession {
         if !stopRequested, offset + done + 1 >= maxSteps { limitReached = true }
         sink.yield(.actions([.transcriptChanged(run: run, converted), .toolRequested(run: run, record)]))
         return record
+    }
+
+    static func match(_ call: AgentToolCall, in entries: ArraySlice<Transcript.Entry>, claimed: Set<String>)
+        -> ToolCallRecord?
+    {
+        for entry in entries.reversed() {
+            guard case .toolCalls(let calls) = entry else { continue }
+            for item in calls
+            where !claimed.contains(item.id) && item.toolName == call.name
+                && AgentPromptBuilder.arguments(item.toolName, item.arguments) == call.arguments
+            {
+                return ToolCallRecord(id: item.id, name: item.toolName, arguments: item.arguments.jsonString)
+            }
+        }
+        return nil
     }
 
     func snapshotTokens() async {
@@ -243,6 +249,9 @@ final class ConversationSession {
         let current = completed < steps.count ? steps[completed].generated : transcript.count..<transcript.count
         let partial = Self.responseText(transcript[min(base, transcript.count)...])
         if stopped {
+            if limitReached, completed < steps.count, !steps[completed].generated.isEmpty {
+                send(.stepFinished(run: run, finishStep(transcript, steps[completed].generated)))
+            }
             return TurnEnd(kind: .stopped, outcome: limitReached ? "step-limit" : "stopped", answer: partial)
         }
         if let failure {

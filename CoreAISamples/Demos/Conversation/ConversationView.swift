@@ -1,5 +1,6 @@
 import AppKit
 import ConversationFeature
+import RAGContext
 import SwiftUI
 
 struct ConversationView: View {
@@ -350,7 +351,7 @@ struct ConversationEntryRow: View {
     private var title: some View {
         switch entry.kind {
         case .toolCall: Text("Calling \(entry.title)")
-        case .thinking: Text("Thinking")
+        case .thinking: Text(LocalizedStringKey(entry.live ? "Thinking" : "Thoughts"))
         default: Text("Tool result (original): \(entry.title)")
         }
     }
@@ -389,11 +390,17 @@ struct TurnView: View {
                 ThinkingView(text: turn.reasoning, live: live && turn.response.isEmpty)
             }
             if !turn.response.isEmpty || (live && turn.reasoning.isEmpty) {
-                Text(turn.response.isEmpty ? "…" : turn.response)
-                    .textSelection(.enabled)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(10)
-                    .background(.quaternary.opacity(0.5), in: .rect(cornerRadius: 10))
+                Group {
+                    if turn.response == RAGContext.noSourcesReply {
+                        Text("Could not retrieve any sources.")
+                    } else {
+                        Text(turn.response.isEmpty ? "…" : turn.response)
+                    }
+                }
+                .textSelection(.enabled)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(10)
+                .background(.quaternary.opacity(0.5), in: .rect(cornerRadius: 10))
             }
             if !turn.notes.isEmpty || !turn.sources.isEmpty {
                 RAGSourceFooter(notes: turn.notes, sources: turn.sources)

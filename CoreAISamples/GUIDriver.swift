@@ -338,6 +338,7 @@ final class GUIDriver {
     private func runConversation(host: ConversationHost) async {
         host.preferences.notesFolderPath = outDir.appending(path: "notes").path(percentEncoded: false)
         var previous: StepStats?
+        var previousFirst: StepStats?
         let strictReuse = host.chat.modelName.hasPrefix("qwen3_8")
         func turn(_ mode: ConversationMode, _ text: String) async -> (done: Bool, reused: Bool, reuse: String) {
             host.store.send(.modeChanged(mode))
@@ -347,18 +348,23 @@ final class GUIDriver {
             let turns = host.state.turns
             let steps = sent < turns.count ? turns[sent].steps.sorted { $0.step < $1.step } : []
             let diverged = host.runner.session.divergeCount - divergedBefore
-            defer { previous = turns.last?.steps.max { $0.step < $1.step } ?? previous }
+            defer {
+                previous = turns.last?.steps.max { $0.step < $1.step } ?? previous
+                previousFirst = turns.last?.steps.min { $0.step < $1.step } ?? previousFirst
+            }
             guard let first = steps.first else { return (done, false, "steps=0") }
             let repairs = turns.count - sent - 1
-            guard let previous else {
+            guard let previous, let previousFirst else {
                 return (done, true, "reused=\(first.reusedTokens) steps=\(steps.count) repairs=\(repairs)")
             }
             let expected = previous.promptTokens + previous.generatedTokens
             let kept = first.reusedTokens >= expected - 1
+            let continued = first.reusedTokens >= previousFirst.promptTokens - 16
             return (
-                done, !strictReuse || (kept && diverged == 0),
+                done, strictReuse ? kept && diverged == 0 : continued,
                 "reused=\(first.reusedTokens) previousPromptPlusOutput=\(expected) gap=\(expected - first.reusedTokens) "
-                    + "steps=\(steps.count) repairs=\(repairs) diverges=\(diverged) strictReuse=\(strictReuse)"
+                    + "previousFirstPrompt=\(previousFirst.promptTokens) steps=\(steps.count) repairs=\(repairs) "
+                    + "diverges=\(diverged) strictReuse=\(strictReuse)"
             )
         }
         func lookups() -> Int {
@@ -398,6 +404,7 @@ final class GUIDriver {
         await step(7, "conversation-save-refused", "Chat: saving a note is refused and Continue in Work is offered") {
             host.startNew()
             previous = nil
+            previousFirst = nil
             let result = await turn(
                 .chat, "Use write_note to save a note titled Shopping list with the content: eggs, milk.")
             let refused = host.state.entries.contains {
@@ -532,7 +539,7 @@ final class GUIDriver {
                 NSRect(x: visible.minX + 40, y: visible.maxY - height, width: 1_200, height: height), display: true)
         }
 
-        await step(4, "rag-switches", "RAG: the RAG, Web and Docs switches are on in the status bar") {
+        await step(4, "rag-switches", "RAG: the status bar shows RAG with Web and Docs") {
             chat.ragEnabled = true
             chat.ragWeb = !SelfTest.isOff(LaunchArguments.value("--rag-web"))
             chat.ragLocal = !SelfTest.isOff(LaunchArguments.value("--rag-local"))

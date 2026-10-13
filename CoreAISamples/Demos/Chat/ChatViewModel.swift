@@ -66,7 +66,12 @@ final class ChatViewModel {
     private(set) var loadSeconds = 0.0
     private(set) var isResponding = false
     private(set) var last: GenerationStats?
-    private(set) var contextNotice: String?
+    enum ContextNotice: Equatable {
+        case full(needed: Int, limit: Int)
+        case end(reserved: Int)
+    }
+
+    private(set) var contextNotice: ContextNotice?
     private(set) var contextFull = false
     private(set) var retrieving = false
     private(set) var retrieval: RAGRetrieval?
@@ -286,8 +291,7 @@ final class ChatViewModel {
             if case LanguageModelError.contextSizeExceeded(let exceeded) = failure {
                 stats.stopReason = "contextSizeExceeded"
                 contextFull = true
-                contextNotice =
-                    "The context window is full: this question needs \(exceeded.tokenCount) tokens and the limit is \(exceeded.contextSize). Start a new conversation to continue."
+                contextNotice = .full(needed: exceeded.tokenCount, limit: exceeded.contextSize)
             } else {
                 stats.stopReason = "error"
                 stats.error = failure.localizedDescription
@@ -306,8 +310,7 @@ final class ChatViewModel {
             if stats.stopReason == "maxTokens", let reserved = try? metadata["reservedTokens"]?.value(Int.self),
                 reserved < options.maximumResponseTokens ?? .max
             {
-                contextNotice =
-                    "The reply stopped at the end of the context window (\(reserved) tokens were left for it). Start a new conversation if the next message does not fit."
+                contextNotice = .end(reserved: reserved)
             }
         }
         last = stats

@@ -1277,6 +1277,16 @@
         }
       }
     },
+    "Could not retrieve any sources." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "資料を取得できませんでした。"
+          }
+        }
+      }
+    },
     "Cutting Board" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4005,6 +4015,26 @@
         }
       }
     },
+    "The context window is full: this question needs %lld tokens and the limit is %lld. Start a new conversation to continue." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コンテキストの上限に達しました。この質問には%lldトークンが必要で、上限は%lldです。続けるには新しい会話を始めてください。"
+          }
+        }
+      }
+    },
+    "The conversation could not be saved: %@" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "会話を保存できませんでした。詳細（原文）: %@"
+          }
+        }
+      }
+    },
     "The decision model returned an incomplete recipe check." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4159,6 +4189,16 @@
         }
       }
     },
+    "The reply stopped at the end of the context window (%lld tokens were left for it). Start a new conversation if the next message does not fit." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "回答がコンテキストの上限で止まりました（残りは%lldトークンでした）。次のメッセージが収まらない場合は、新しい会話を始めてください。"
+          }
+        }
+      }
+    },
     "The selected file is not a supported photograph." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4203,6 +4243,7 @@
       }
     },
     "Thinking" : {
+      "extractionState" : "manual",
       "localizations" : {
         "ja" : {
           "stringUnit" : {

@@ -82,8 +82,7 @@ final class ConversationRunner {
             return .saved(id: snapshot.id)
         } catch {
             AgentTools.log("[conversation] transcript save failed: \(error)")
-            let message = "The conversation could not be saved: \(error.localizedDescription)"
-            return .failed(id: snapshot.id, message: message)
+            return .failed(id: snapshot.id, message: error.localizedDescription)
         }
     }
 

@@ -57,13 +57,25 @@ final class ToolRunner {
 
     private func call(_ call: AgentToolCall) async -> String {
         guard let record = session?.request(call) else { return ConversationFeature.endedRefusal }
-        switch await decision(for: record.id) {
+        let decision = await decision(for: record.id)
+        let start = Date()
+        var ran = false
+        let text = await Self.output(for: decision) {
+            ran = true
+            return await execute(call)
+        }
+        if !ran { log(call, AgentToolOutput(text: text), start: start, end: Date()) }
+        return text
+    }
+
+    static func output(for decision: Decision, run: () async -> String) async -> String {
+        switch decision {
         case .refuse(let reason):
             return reason
         case .cancelled:
             return ConversationFeature.endedRefusal
         case .run(let finalize):
-            let output = await execute(call)
+            let output = await run()
             return finalize ? ConversationFeature.finalized(output) : output
         }
     }
@@ -183,6 +195,10 @@ final class ToolRunner {
                 notesWritten.append((output.text, text))
             }
         }
+        log(call, output, start: start, end: end)
+    }
+
+    private func log(_ call: AgentToolCall, _ output: AgentToolOutput, start: Date, end: Date) {
         guard let session, session.mode == .work else { return }
         let style = Date.ISO8601FormatStyle(includingFractionalSeconds: true)
         var record = MetricsLog.agent("agent-tool", model: session.modelName)

@@ -527,11 +527,126 @@ enum AgentSelfTest {
         if case .failed(let id, let message)? = failed, id == "selftest-save" { failure = message }
         check(
             "conversation/saveTranscript",
-            saved == .saved(id: "selftest-save") && written && skipped == nil
-                && failure.hasPrefix("The conversation could not be saved"),
+            saved == .saved(id: "selftest-save") && written && skipped == nil && !failure.isEmpty
+                && !failure.hasPrefix("The conversation could not be saved"),
             "saved=\(String(describing: saved)) written=\(written) "
                 + "skipped=\(String(describing: skipped)) failure=\(failure)")
         try? FileManager.default.removeItem(at: transcripts)
+
+        var ran = 0
+        func page() async -> String {
+            ran += 1
+            return "page"
+        }
+        let finalizedOutput = await ToolRunner.output(for: .run(finalize: true), run: page)
+        let plainOutput = await ToolRunner.output(for: .run(finalize: false), run: page)
+        let refusedOutput = await ToolRunner.output(for: .refuse(TurnPolicy.savingRefusal), run: page)
+        let endedOutput = await ToolRunner.output(for: .cancelled, run: page)
+        check(
+            "tools/decisionOutput",
+            finalizedOutput == ConversationFeature.finalized("page") && plainOutput == "page"
+                && refusedOutput == TurnPolicy.savingRefusal && endedOutput == ConversationFeature.endedRefusal
+                && ran == 2,
+            "finalized=\(finalizedOutput) plain=\(plainOutput) refused=\(refusedOutput) "
+                + "ended=\(endedOutput) ran=\(ran)")
+
+        let mapper = ConversationRunner(
+            id: "selftest-map", chat: ChatViewModel(), preferences: ConversationPreferences(persists: false))
+        let mappedCall = ToolCallRecord(id: "map-run", name: "fetch_page", arguments: "{}")
+        let mappedNote = ToolCallRecord(id: "map-refuse", name: "write_note", arguments: "{}")
+        await mapper.run(.runTool(mappedCall, finalize: true)) { _ in }
+        await mapper.run(.refuseTool(mappedNote, reason: "no")) { _ in }
+        let mappedRun = await mapper.tools.decision(for: "map-run")
+        let mappedRefuse = await mapper.tools.decision(for: "map-refuse")
+        check(
+            "conversation/runnerMapsToolDecisions",
+            mappedRun == .run(finalize: true) && mappedRefuse == .refuse("no"),
+            "run=\(mappedRun) refuse=\(mappedRefuse)")
+
+        do {
+            let arguments = try GeneratedContent(json: #"{"url":"https://swift.org"}"#)
+            let entries: ArraySlice<Transcript.Entry> = [
+                .toolCalls(
+                    Transcript.ToolCalls([
+                        Transcript.ToolCall(id: "c1", toolName: "fetch_page", arguments: arguments),
+                        Transcript.ToolCall(id: "c2", toolName: "fetch_page", arguments: arguments),
+                    ]))
+            ]
+            let call = AgentToolCall(
+                name: "fetch_page", arguments: AgentPromptBuilder.arguments("fetch_page", arguments))
+            let first = ConversationSession.match(call, in: entries, claimed: [])
+            let second = ConversationSession.match(call, in: entries, claimed: ["c1"])
+            let none = ConversationSession.match(call, in: entries, claimed: ["c1", "c2"])
+            let other = ConversationSession.match(
+                AgentToolCall(name: "web_search", arguments: call.arguments), in: entries, claimed: [])
+            check(
+                "conversation/matchToolCalls", first?.id == "c1" && second?.id == "c2" && none == nil && other == nil,
+                "first=\(String(describing: first)) second=\(String(describing: second)) "
+                    + "none=\(String(describing: none))")
+
+            let reply = Transcript.Response(
+                id: "r1", metadata: ["stopReason": "stopToken", "decodeSeconds": 1.5, "reservedTokens": 300],
+                segments: [.text(Transcript.TextSegment(content: "Done"))])
+            let bare = Transcript.Response(id: "r2", segments: [.text(Transcript.TextSegment(content: "Plain"))])
+            let converted = ConversationSession.record([.response(reply), .response(bare)])
+            check(
+                "conversation/recordMetadata",
+                converted.entries == [
+                    .response(
+                        id: "r1", text: "Done",
+                        metadata: StepMetadata(stopReason: "stopToken", decodeSeconds: 1.5, reservedTokens: 300)),
+                    .response(id: "r2", text: "Plain", metadata: nil),
+                ], "\(converted.entries)")
+        } catch {
+            check("conversation/matchToolCalls", false, "\(error)")
+        }
+
+        func ending(_ mode: ConversationMode, _ actions: ConversationAction...) -> String {
+            var state = ConversationState(id: "outcome", now: golden)
+            _ = ConversationFeature.reduce(&state, .send("Question", mode: mode, now: golden))
+            for action in actions { _ = ConversationFeature.reduce(&state, action) }
+            let failures = state.entries.filter { $0.kind == .failure }.map { ($0.title, $0.text) }
+            let answer = state.entries.last { $0.kind == .answer }?.text ?? ""
+            let finish: String? = state.lastFinish == .eos ? "eos" : state.lastFinish == .cap ? "cap" : nil
+            return e2eOutcome(stoppedByDeadline: false, failures: failures, answer: answer, finishReason: finish)
+        }
+        func transcript(_ entries: TranscriptRecord.Entry...) -> TranscriptRecord {
+            let head: [TranscriptRecord.Entry] = [
+                .instructions(id: "i", text: "Rules"), .prompt(id: "p", text: "Question"),
+            ]
+            return TranscriptRecord(entries: head + entries)
+        }
+        let searchCall = ToolCallRecord(id: "s", name: "web_search", arguments: #"{"query":"swift"}"#)
+        let fetchCall = ToolCallRecord(id: "f", name: "fetch_page", arguments: #"{"url":"https://swift.org"}"#)
+        let stepped = StepMetadata(stopReason: "stopToken")
+        let outcomes = [
+            ending(
+                .chat,
+                .transcriptChanged(
+                    run: 1,
+                    transcript(
+                        .toolCalls(id: "c1", calls: [searchCall], metadata: stepped),
+                        .toolOutput(id: "s", name: "web_search", text: "Results"),
+                        .toolCalls(id: "c2", calls: [fetchCall], metadata: stepped),
+                        .toolOutput(id: "f", name: "fetch_page", text: "Page"))), .stopped(run: 1)),
+            ending(
+                .work,
+                .generationFailed(
+                    run: 1, message: ConversationFeature.contextFullMessage(needed: 17_000, limit: 16_384))),
+            ending(.work, .stopRequested, .stopped(run: 1)),
+            ending(
+                .work,
+                .transcriptChanged(
+                    run: 1,
+                    transcript(.response(id: "a", text: "Long", metadata: StepMetadata(stopReason: "maxTokens")))),
+                .generationEnded(run: 1, stopReason: "maxTokens")),
+            ending(
+                .work, .transcriptChanged(run: 1, transcript(.reasoning(id: "r", text: "Only thinking"))),
+                .generationEnded(run: 1, stopReason: "stopToken")),
+        ]
+        check(
+            "e2e/outcomeFromConversationRows", outcomes == ["step-limit", "overflow", "stopped", "cap", "failed"],
+            "\(outcomes)")
 
         let rows = ["a", "b", "c"].map { ConversationEntry(id: $0, kind: .user, title: "You", text: $0) }
         func rag(_ id: String, _ anchor: Int) -> ChatViewModel.Turn {
