@@ -1,0 +1,155 @@
+{
+  "scope": {
+    "base": "cf7a41be77968dc9ca598c0e807560801185459d",
+    "branch": "feat/49-recipe-services",
+    "initial": "/private/tmp/fridge-review-core-scope.json",
+    "final": "/private/tmp/fridge-review-core-audit/final-scope.json",
+    "originalSnapshots": "/private/tmp/fridge-review-core-audit/snapshot",
+    "verifiedFinalSources": "/private/tmp/fridge-review-core-audit/final"
+  },
+  "candidateLedger": [
+    {
+      "id": "RCP-01",
+      "severity": "P2",
+      "maxSeverity": "P2",
+      "status": "rejected",
+      "path": "CoreAISamplesKit/Sources/RecipeCore/RecipeTypes.swift",
+      "condition": "Optional garnish requires 4 sheets; confirmed pantry contains 1 sheet",
+      "expected": "Optional shortage must not block recipe compatibility; zero-stock optional is already allowed",
+      "actual": "assess returns have + short(3); hasShortage true and title Something is missing. Removing the partial stock returns inventory fits.",
+      "evidence": [
+        "/private/tmp/fridge-review-core-audit/probe-output.txt",
+        "RecipeAmounts.assess prioritizes presence; RecipeReport.hasShortage ignores requirement"
+      ],
+      "rebuttal": "Confirmed input and parsed matching units are valid; optional is a returned model role. This is not uncertain quantity or unconfirmed photo data.",
+      "originalStatus": "confirmed",
+      "resolution": "Optional is selected before stock matching and always has notRequired amount; partial stock no longer blocks the recipe.",
+      "verificationHistory": [
+        "/private/tmp/fridge-review-core-audit/final/probe-output.txt"
+      ]
+    },
+    {
+      "id": "RCP-02",
+      "severity": "P2",
+      "maxSeverity": "P2",
+      "status": "rejected",
+      "path": "CoreAISamplesKit/Sources/RecipeCore/RecipeParser.swift",
+      "condition": "Mixed recipeInstructions array contains supported text step plus incomplete/unsupported step (HowToStep name only)",
+      "expected": "RC-01 requires missing/partial recipe data to be explicitly rejected",
+      "actual": "Unsupported element becomes []; remaining step passes guards and missing oven step is lost from recipe.document",
+      "evidence": [
+        "/private/tmp/fridge-review-core-audit/probe-output.txt",
+        "instructions recursively flatMaps and returns [] for unsupported nodes; parse filters empty steps"
+      ],
+      "rebuttal": "The page has a single valid JSON Recipe and valid required top-level fields, so earlier guards do not reject it. Supported five pages passing does not cover mixed malformed step arrays.",
+      "originalStatus": "confirmed",
+      "resolution": "All instruction elements are parsed strictly; missing/empty steps reject the recipe; section text and child actions both retained.",
+      "verificationHistory": [
+        "/private/tmp/fridge-review-core-audit/final/probe-output.txt"
+      ]
+    },
+    {
+      "id": "RCP-03",
+      "severity": "P2",
+      "maxSeverity": "P2",
+      "status": "rejected",
+      "path": "CoreAISamplesKit/Sources/RecipeCore/RecipeAmounts.swift",
+      "condition": "Recipe requires しょうゆ; confirmed pantry name is しょうゆ味ドレッシング and amount enough",
+      "expected": "Flavor/component substring does not make a different product the required ingredient; automatic substitution excluded",
+      "actual": "Substring fallback returns soySauce; decision have, amount sufficient, inventory fits",
+      "evidence": [
+        "/private/tmp/fridge-review-core-audit/probe-output.txt",
+        "food(for:) non-ASCII substring fallback for soySauce/mirin/tsuyu"
+      ],
+      "rebuttal": "Pantry names are freeform and accepted by RecipeCheckInput.problem; confirmed only means user confirmed this named product, not equivalence to plain soy sauce.",
+      "originalStatus": "confirmed",
+      "resolution": "Substring matching removed; four actual brand names explicitly listed; unmatched aliases remain uncertain instead of proving absence.",
+      "verificationHistory": [
+        "/private/tmp/fridge-review-core-audit/final/probe-output.txt"
+      ]
+    },
+    {
+      "id": "RCP-04",
+      "severity": "P2",
+      "maxSeverity": "P2",
+      "status": "rejected",
+      "path": "CoreAISamplesKit/Sources/RecipeCore/RecipeAmounts.swift",
+      "condition": "Two required recipe rows egg 2 pcs and eggs 2 pcs; confirmed total stock eggs 2 pcs",
+      "expected": "Four pieces required in total, with two pieces unavailable",
+      "actual": "Each row independently reads all pantry stock, both sufficient and inventory fits",
+      "evidence": [
+        "/private/tmp/fridge-review-core-audit/probe-output.txt",
+        "RecipeService maps each ingredient to assess with unchanged pantry; check sums only pantry amounts",
+        "Saved live gratin recipe contains two separate salt rows, proving repeated ingredients are accepted"
+      ],
+      "rebuttal": "Quantity is known, same unit, confirmed, required, and aliases resolve to the same food. No unsupported unit, optional role or uncertainty excludes it.",
+      "originalStatus": "confirmed",
+      "resolution": "LiveRecipeService now uses assessAll; comparable quantities for required rows grouped by food and allocated in original order; independent 250-case oracle passed.",
+      "verificationHistory": [
+        "/private/tmp/fridge-review-core-audit/final/probe-output.txt"
+      ]
+    },
+    {
+      "id": "RCP-05",
+      "severity": "P2",
+      "maxSeverity": "P2",
+      "originalStatus": "confirmed",
+      "status": "rejected",
+      "path": "CoreAISamplesKit/Sources/RecipeCore/RecipeAmounts.swift",
+      "condition": "Uncertain 2 eggs before required 2 eggs with only 2 confirmed eggs",
+      "actual": "Intermediate fix consumed inventory for uncertain demand, marked required row short and needsReview false",
+      "evidenceHistory": [
+        "/private/tmp/fridge-review-core-audit/fixed/probe-output.txt"
+      ],
+      "resolution": "Only required rows consume the shared stock; uncertain shortage is unknown; report explicitly retains uncertain requirement as needsReview. Current independent probe passed.",
+      "verificationHistory": [
+        "/private/tmp/fridge-review-core-audit/final/probe-output.txt"
+      ]
+    }
+  ],
+  "confirmed": [],
+  "coverage": {
+    "RecipeAmounts.swift": "Full normalization/food identity, image count suggestion, quantities/fractions/units, confirmed-only matching and decision mapping",
+    "RecipeParser.swift": "Full allowed URL contract, HTML/JSON-LD extraction, counts/limits, method recursion, ingredient/amount split and source retention",
+    "RecipeTypes.swift": "Full DTO defaults/validation, recipe document, optional/unknown and report title/flags",
+    "recipe-vocabulary.json": "Full foods/aliases/countability/unit aliases; compared with all five saved live reports",
+    "RecipeCoreTests.swift": "Full tests and what their fake vocabulary/fixtures do not cover",
+    "RecipeService.swift": "Input/output bridge, question construction, separation of requiredness vs known inventory/quantities, answer mapping; execution owner reviewed separately"
+  },
+  "ownChecks": [
+    "Current actual core sources compiled in isolated scratch with Swift 6.4 / Swift 6 / NonisolatedNonsendingByDefault and InferIsolatedConformances",
+    "All RCP-01 through RCP-05 regressions independently confirmed resolved",
+    "250 two-row required-quantity combinations agree with total required minus total confirmed stock",
+    "Four supported exact brand aliases resolve; flavored dressing does not alias to soy sauce",
+    "Unconfirmed stock excluded, unrecognized names do not prove absence, incompatible units remain unknown",
+    "All five saved live HTML pages preserve complete ingredient lines, method steps, titles and servings after strict-parser fixes",
+    "Final source/resource hashes match executed probe copies"
+  ],
+  "parentReportedChecks": [
+    "Core 11 tests PASS",
+    "Runtime 9 tests PASS",
+    "Five real-image and five live-URL integration v2 PASS before final deterministic postprocessing fixes"
+  ],
+  "evidence": [
+    "/private/tmp/fridge-review-core-audit/probe-output.txt",
+    "/private/tmp/fridge-review-core-audit/fixed/probe-output.txt",
+    "/private/tmp/fridge-review-core-audit/final/probe-output.txt",
+    "/private/tmp/fridge-review-core-audit/source-parity.txt",
+    "/private/tmp/fridge-review-core-audit/final/parsed-five.json"
+  ],
+  "unverified": [
+    "No GPU/model run, new live fetch, full package build/lint or source edits by reviewer",
+    "Vocabulary remains an explicit alias set; arbitrary brand/spelling variants are unresolved, not automatically mapped",
+    "Quantity parser supports its numeric-prefix and listed-unit grammar; Japanese spoon-prefix expressions and incompatible units can remain unchecked",
+    "Full execution/URL-fetch/photo lifecycle is assigned to another reviewer; only data/result boundary read here"
+  ],
+  "failures": [],
+  "blockers": [],
+  "unresolvedCoverage": [],
+  "pendingTasks": [],
+  "deferredTasks": [],
+  "guideCandidates": [
+    "- 2026-10-08 Recipe の必須/省略可をモデルで判定しても、後段の数量比較を材料行だけで行うと同じ在庫の二重使用や optional/uncertain の確定不足が起きる。確定必須量を同種食材ごとに配分し、uncertain は未確認へ残す必要がある [実測] /private/tmp/fridge-review-core-audit/probe-output.txt、fixed/probe-output.txt、final/probe-output.txt（feat/49-recipe-services、初版と修正版のscopeを同ディレクトリに保持）"
+  ],
+  "complete": true
+}

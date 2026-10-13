@@ -31,15 +31,15 @@ only_rules:
 custom_rules:
 
   pure_logic_imports:
-    included: ".*/CoreAISamplesKit/Sources/(FeatureStore|GLiNERCore|ExtractFeature|DecideFeature)/.*\\.swift"
+    included: ".*/CoreAISamplesKit/Sources/(FeatureStore|GLiNERCore|ExtractFeature|DecideFeature|RecipeCore)/.*\\.swift"
     excluded: ".*/CoreAISamplesKit/Sources/FeatureStore/Store\\.swift"
-    regex: '\bimport\s+(?:(?:typealias|struct|class|enum|protocol|let|var|func)\s+)?+(?!(?:Foundation|FeatureStore|GLiNERCore|ExtractFeature|DecideFeature)\b)\w+'
+    regex: '\bimport\s+(?:(?:typealias|struct|class|enum|protocol|let|var|func)\s+)?+(?!(?:Foundation|FeatureStore|GLiNERCore|ExtractFeature|DecideFeature|RecipeCore)\b)\w+'
     match_kinds: [keyword, identifier]
     message: "Pure-logic targets may import only Foundation and other pure-logic targets (A2)."
     severity: error
 
   pure_logic_no_concurrency:
-    included: ".*/CoreAISamplesKit/Sources/(FeatureStore|GLiNERCore|ExtractFeature|DecideFeature)/.*\\.swift"
+    included: ".*/CoreAISamplesKit/Sources/(FeatureStore|GLiNERCore|ExtractFeature|DecideFeature|RecipeCore)/.*\\.swift"
     excluded: ".*/CoreAISamplesKit/Sources/FeatureStore/Store\\.swift"
     regex: '\b(async|await|actor|Task)\b'
     match_kinds: [keyword, identifier, typeidentifier]
@@ -47,7 +47,7 @@ custom_rules:
     severity: error
 
   pure_logic_no_ambient:
-    included: ".*/CoreAISamplesKit/Sources/(FeatureStore|GLiNERCore|ExtractFeature|DecideFeature)/.*\\.swift"
+    included: ".*/CoreAISamplesKit/Sources/(FeatureStore|GLiNERCore|ExtractFeature|DecideFeature|RecipeCore)/.*\\.swift"
     regex: '\bDate\(\)|\bDate\.now\b|\bUUID\(\)|\.random\(|\.randomElement\(\)|\.shuffled?\(\)|\b(Calendar|TimeZone|Locale)\.(current|autoupdatingCurrent)\b'
     match_kinds: [identifier, typeidentifier]
     message: "Pass time, randomness, identifiers and locale settings into pure logic (A3)."
