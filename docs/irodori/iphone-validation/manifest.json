@@ -70,6 +70,8 @@
   },
   "artifact_sha256": {
     "cpu-all.log": "a38bf650e8e40f3d0cc6a49f1f6a3e8b2bc44e5aca2a08edcaa4f279561b5a04",
+    "diagnostic-ReviewPhoneCheckLifetimeTests.swift.txt": "0959110fd1539f88f41b46c03a8ca97f61e9fc956b2bb9925f0bbf336c306612",
+    "diagnostic-ReviewPhoneCheckTests.swift.txt": "e96b7998e4bf3db24a8f1927dc525c525d0fe6f1d26550369a168536cd9dcf9f",
     "diagnostic-after.log": "78dead03c6ff5d4e7ee53a1047043277f263ba1eb307c85f1953f8a06297d4e6",
     "diagnostic-before.log": "8cab40344fcbf797d9fa3a2ff9d384dd6162425cf360d7f2b9ea14ec52ea7958",
     "diagnostic-review.json": "38c0378d4f1bf7033189ec509e4b79df35530c86db0f07bea1eb83fb06557d5b",
