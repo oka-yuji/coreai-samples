@@ -123,8 +123,14 @@ public struct ProductMemo: Equatable, Sendable {
         }.map { candidate in
             var lower = candidate.range.lowerBound
             var upper = candidate.range.upperBound
-            while lower > 0 && scalars[lower - 1] != "\n" { lower -= 1 }
-            while upper < scalars.count && scalars[upper] != "\n" { upper += 1 }
+            while lower > 0 {
+                if lower > 1 && scalars[lower - 1] == "\n" && scalars[lower - 2] == "\n" { break }
+                lower -= 1
+            }
+            while upper < scalars.count {
+                if upper + 1 < scalars.count && scalars[upper] == "\n" && scalars[upper + 1] == "\n" { break }
+                upper += 1
+            }
             let range = lower..<upper
             return ProductEvidence(
                 candidate: candidate, context: String(String.UnicodeScalarView(scalars[range])), contextRange: range)

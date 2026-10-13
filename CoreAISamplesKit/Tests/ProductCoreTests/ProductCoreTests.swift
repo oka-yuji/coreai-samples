@@ -61,7 +61,7 @@ struct ProductCoreTests {
                 ProductCandidate(field: .storage, range: 37..<43, text: "512 GB", probability: 0.8),
             ])
         #expect(memo.values(for: .memory).count == 1)
-        #expect(memo.values(for: .memory).first?.context == "Up to 32 GB")
+        #expect(memo.values(for: .memory).first?.context == source.text)
         #expect(memo.values(for: .storage).count == 2)
         #expect(memo.values(for: .price).isEmpty)
     }
@@ -95,4 +95,41 @@ struct ProductCoreTests {
         }
         #expect(covered.count == scalars.count)
     }
+    @Test("Hidden main and title markup never replaces visible page content")
+    func ignoresHiddenMain() throws {
+        let html = """
+            <script>let template = "<title>Fake</title><main>Fake 999 GB</main>";</script>
+            <!--<main>Invisible 512 GB</main>--><title>Visible product</title>
+            <main><h2>Memory</h2><p>16 GB</p></main>
+            """
+        let url = try #require(URL(string: "https://www.apple.com/specs"))
+        let source = try ProductPage.source(html: html, url: url, capturedAt: Date(timeIntervalSince1970: 0))
+        #expect(source.title == "Visible product")
+        #expect(source.text == "Memory\n16 GB")
+    }
+
+    @Test("Separate condition lines remain with the extracted value")
+    func keepsMultiLineConditions() throws {
+        let source = try ProductSource(
+            title: "Example", text: "Battery\nUp to\n18 hours\nVideo playback only\n\nWeight\n1 kg", url: nil,
+            capturedAt: Date(timeIntervalSince1970: 0))
+        let memo = try ProductMemo(
+            source: source,
+            candidates: [
+                ProductCandidate(field: .battery, range: 14..<22, text: "18 hours", probability: 0.8)
+            ])
+        #expect(memo.evidence.first?.context == "Battery\nUp to\n18 hours\nVideo playback only")
+    }
+
+    @Test("Canonically equivalent strings must still match the original scalar sequence")
+    func exactSourceSequence() throws {
+        let source = try ProductSource(
+            title: "Example", text: "e\u{301}", url: nil, capturedAt: Date(timeIntervalSince1970: 0))
+        #expect(throws: ProductError.invalidEvidence) {
+            try ProductMemo(
+                source: source,
+                candidates: [ProductCandidate(field: .product, range: 0..<2, text: "\u{E9}", probability: 0.8)])
+        }
+    }
+
 }

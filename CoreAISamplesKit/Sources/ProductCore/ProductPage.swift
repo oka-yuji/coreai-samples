@@ -16,13 +16,15 @@ public enum ProductPage {
     }
 
     public static func source(html: String, url: URL, capturedAt: Date) throws -> ProductSource {
-        let title = try capture(#"<title\b[^>]*>(.*?)</title\s*>"#, in: html) ?? url.host() ?? "Product page"
-        let main = try capture(#"<main\b[^>]*>(.*?)</main\s*>"#, in: html)
-        let body = try capture(#"<body\b[^>]*>(.*?)</body\s*>"#, in: html)
-        var text = main ?? body ?? html
-        text = try replace(#"<!--.*?-->"#, in: text, with: " ")
-        text = try replace(#"<(script|style|noscript|svg|nav|footer)\b[^>]*>.*?</\1\s*>"#, in: text, with: " ")
-        text = try replace(#"<(?:br|/p|/div|/h[1-6]|/li|/tr|/table|/section)\b[^>]*>"#, in: text, with: "\n")
+        var document = try replace(#"<!--.*?-->"#, in: html, with: " ")
+        document = try replace(#"<(script|style|noscript|svg|nav|footer)\b[^>]*>.*?</\1\s*>"#, in: document, with: " ")
+        let title = try capture(#"<title\b[^>]*>(.*?)</title\s*>"#, in: document) ?? url.host() ?? "Product page"
+        let main = try capture(#"<main\b[^>]*>(.*?)</main\s*>"#, in: document)
+        let body = try capture(#"<body\b[^>]*>(.*?)</body\s*>"#, in: document)
+        var text = main ?? body ?? document
+        text = try replace(#"[\r\n\t]+"#, in: text, with: " ")
+        text = try replace(#"<(?:h[1-6]|section)\b[^>]*>|</section\s*>"#, in: text, with: "\n\n")
+        text = try replace(#"<(?:br|/p|/div|/h[1-6]|/li|/tr|/table)\b[^>]*>"#, in: text, with: "\n")
         text = try replace(#"<[^>]*>"#, in: text, with: " ")
         return try ProductSource(
             title: clean(decode(title)), text: clean(decode(text)), url: url, capturedAt: capturedAt)
@@ -44,9 +46,13 @@ public enum ProductPage {
     }
 
     private static func clean(_ text: String) -> String {
-        text.replacingOccurrences(of: "\u{FEFF}", with: "").replacingOccurrences(of: "\u{200B}", with: "")
-            .split(separator: "\n").map { $0.split(whereSeparator: \.isWhitespace).joined(separator: " ") }
-            .filter { !$0.isEmpty }.joined(separator: "\n")
+        let text = text.replacingOccurrences(of: "\u{FEFF}", with: "").replacingOccurrences(of: "\u{200B}", with: "")
+        var lines: [String] = []
+        for line in text.components(separatedBy: "\n") {
+            let line = line.split(whereSeparator: \.isWhitespace).joined(separator: " ")
+            if !line.isEmpty || lines.last?.isEmpty == false { lines.append(line) }
+        }
+        return lines.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     private static func decode(_ text: String) -> String {
