@@ -24,5 +24,14 @@
     "CoreAISamplesKit/Tests/SpeechRuntimeTests/SpeechServiceTests.swift": "162b04158e3300204bf618cbd2828884609f0840b52828f9fb267995d7a42d4c",
     "Tools/Irodori/build-inputs.sh": "a7877267adef9f820b44e82cf6d6951f35ed450b6f32f7cad9f4ffbcbdd2582f",
     "Vendor/IrodoriInputKit/Package.swift": "d4ae65a2ac93bd0710033469fe8b0cb82a9850a4461ecec611e82aeff81f8228"
+  },
+  "review": {
+    "independent_audio_cpu_tests": 41,
+    "fixed": [
+      "R94-1/P2"
+    ],
+    "unresolved_confirmed": 0,
+    "plausible": 0,
+    "device_checks_pending": true
   }
 }

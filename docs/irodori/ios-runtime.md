@@ -33,3 +33,10 @@ SDK evidence: iPhoneOS27.0 AVAudioSession.h lines 247–290 describes blocking `
 CPU tests cover input compatibility, model lifetime, playback/session errors, immediate and late interruptions, cancellation during activation and waiting for deactivation. The physical-device SDK link probe checks the real Swift API and arm64 Rust archive without executing a model. Native archive inspection distinguishes Mach-O platform 1 (Mac) from platform 2 (iOS); the resulting framework requires iOS 27.0.
 
 The iPhone model's specialization, output fidelity, latency, footprint and audible playback require the subsequent device run. A successful cross-build does not establish those results. The actual connected device's OS must be checked before installation; the development tools initially reported 26.6.1 while the user reported updating to 27.
+
+
+## Acceptance evidence
+
+P1–P4 of #94 are covered by the [validation artifacts](ios-runtime-validation/manifest.json): 34 CPU tests, 16 Thread Sanitizer tests, iPhoneOS arm64 framework link, Mac Release app build, strict lint and format. The native-build review found no unresolved issues. The independent audio review found R94-1 (synchronous MainActor activation), which was corrected using the SDK27 asynchronous APIs; its final independent CPU harness passed 41 tests. There are no unresolved confirmed or plausible findings. Real audio-session notifications, playback and Irodori inference remain #95 device checks, not results established by these fake-based tests.
+
+The retained original estimate was 240–410 source/configuration lines and 5–8 provisional SP. The implementation reuses the existing player and runtime while adding an explicit asynchronous session owner. Review caused the synchronous activation draft to be replaced; the final start/cancel/cleanup contract is reflected above. The next integration step is #95, with the real-device OS/connectivity checked separately from successful cross-compilation.

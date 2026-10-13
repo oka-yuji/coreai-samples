@@ -1,0 +1,161 @@
+{
+  "summary": "未解消の確定指摘なし。R94-1（MainActorでの同期audio session activation）は非同期SDK APIへの変更で解消。最終版の独立Release CPU41件PASS。",
+  "complete": true,
+  "repo": "/Users/okayuuji/Desktop/SelfApps/_wt/coreai-samples-94-ios-runtime",
+  "base_sha": "043cf1f2439bcf2912673530d5a9dfd673c3b3e5",
+  "head_sha": "4dd2b4b9e73582007c33ed7d46fdd365db44b430",
+  "state_token": "166b85483d7e450d1137954c00c0f6ffb4fb4f7bc5ab37fae9810d9e5c62dd00",
+  "state_check": "unchanged=true",
+  "candidateLedger": [
+    {
+      "id": "R94-1",
+      "classification": "confirmed",
+      "maximum_severity": "P2",
+      "current_status": "fixed",
+      "kind": "A9とSDK契約に基づくblocking境界の欠陥",
+      "before_location": "同期版PlaybackSession.swift:54",
+      "condition": "iPhoneで再生を始めるとMainActor上のPhonePlaybackSession.startが同期setActive(true)を呼ぶ。",
+      "evidence": "iOS27 AVAudioSession.h:247-249はactivationが同期blockingであり、long blockが問題になるthreadでの呼出しを避けるよう記載。実機のフリーズ時間は計測していない。",
+      "resolution": "PhonePlaybackSessionDeviceはactivate/deactivate completion APIを使い、ManagedPlaybackSessionが開始/停止と古い完了の所有を管理。AudioPlaybackはdeactivation完了までcontinuation/busyを保持し、LiveSpeechServiceがstopAndWaitをawait。",
+      "current_locations": [
+        "CoreAISamplesKit/Sources/SpeechRuntime/PhonePlaybackSessionDevice.swift:36-55",
+        "CoreAISamplesKit/Sources/SpeechRuntime/PlaybackSession.swift:30-76",
+        "CoreAISamplesKit/Sources/SpeechRuntime/AudioPlayback.swift:90-112",
+        "CoreAISamplesKit/Sources/SpeechRuntime/LiveSpeechService.swift:31-33"
+      ],
+      "evidenceHistory": [
+        "synchronous-snapshot/Sources/SpeechRuntime/PlaybackSession.swift",
+        "cpu-synchronous-tests.log",
+        "cpu-asynchronous-tests.log",
+        "source-proof.json"
+      ]
+    },
+    {
+      "id": "R94-2",
+      "classification": "rejected",
+      "hypothesis": "activation完了callbackが先に処理され、Task取消後に音声が始まる。",
+      "resolution": "onCancelが同期的にMutexの取消flagを立て、ready callbackが元Taskとは独立にflagを読む。取消Dispatchより先にreadyを実行するCPU試験でdevice.playが0回。",
+      "location": "CoreAISamplesKit/Sources/SpeechRuntime/AudioPlayback.swift:54,67-83"
+    },
+    {
+      "id": "R94-3",
+      "classification": "rejected",
+      "hypothesis": "古いactivation/deactivation completionやobserver callbackが新再生を止める。",
+      "resolution": "ManagedPlaybackSessionとAudioPlayback双方のgeneration/phase検査を確認。古いready/final completionを新activation中と新deactivation中に呼ぶCPU試験、および既存の旧interruption試験を通過。",
+      "locations": [
+        "CoreAISamplesKit/Sources/SpeechRuntime/PlaybackSession.swift:38-42,66-70",
+        "CoreAISamplesKit/Sources/SpeechRuntime/AudioPlayback.swift:65-68,97-105"
+      ]
+    },
+    {
+      "id": "R94-4",
+      "classification": "rejected",
+      "hypothesis": "cleanupが完了する前にcontinuationを解決して新再生/Runtime解放へ進む。",
+      "resolution": "device.stop→session.stop(deactivation完了)→resumeの順を検証。cleanup中のplayはbusy、Serviceはsession cleanup後にRuntime.releaseへ進む。"
+    },
+    {
+      "id": "R94-5",
+      "classification": "rejected",
+      "hypothesis": "外部割込みのCancellationErrorをTask取消と同じに捨て、画面がplayingのままになる。",
+      "resolution": "RunnerはまずTask.isCancelledで操作取消を除外し、外部playのCancellationErrorだけplaybackInterruptedを送る。Storeを跨いだCPU試験で外部割込みはidle、Task取消はstoppedまでstoppingを保持。"
+    }
+  ],
+  "confirmed_unresolved": [],
+  "plausible": [],
+  "coverage": {
+    "full_read": [
+      "PlaybackSession.swift",
+      "PhonePlaybackSessionDevice.swift",
+      "AudioPlayback.swift",
+      "LiveSpeechService.swift",
+      "SpeechRunner.swift",
+      "SpeechFeatureのplaybackInterruptedと既存session/phaseガード",
+      "PlaybackSessionTests.swift",
+      "ManagedPlaybackSessionTests.swift",
+      "AudioPlaybackTests.swift",
+      "SpeechServiceTests.swift"
+    ],
+    "direct_contracts": [
+      "FeatureStore/Store.swift",
+      "SpeechRuntime/SpeechBoundary.swift",
+      "IrodoriRuntime.release",
+      "SpeechRuntimeTests/RuntimeTestSupport.swift",
+      "Package.swiftのSwift6とupcoming features"
+    ],
+    "sdk": [
+      "iPhoneOS27.0 SDK AVAudioSession.h activation/deactivation宣言",
+      "AVAudioSessionTypes.h new inactivity通知と旧InterruptionTypeのdeprecated指定",
+      "AVAudioPlayer.h synchronous stopとdelegateの契約"
+    ],
+    "limited": [
+      "PhonePlaybackSessionDeviceの実SDK呼出しはコード/宣言/親のdevice SDKリンクを確認。Mac CPU試験では実AVAudioSessionは動かない。"
+    ],
+    "outside_scope": [
+      "モデル数値/メモリ性能、Vendor内部、iPhoneアプリUI、実音声・実機・GPU"
+    ]
+  },
+  "verificationHistory": [
+    {
+      "type": "independent CPU baseline",
+      "configuration": "Release / Swift6 / NonisolatedNonsendingByDefault + InferIsolatedConformances / native build / no debug info",
+      "tests": 35,
+      "result": "PASS",
+      "log": "/tmp/irodori-ios94-playback-review/cpu-synchronous-tests.log"
+    },
+    {
+      "type": "independent CPU final",
+      "tests": 41,
+      "result": "PASS",
+      "details": "親34件＋独立7件。仮想session/deviceのみ。取消中activation、失敗、再入、停止順、外部割込み、旧完了、busy、service release順。",
+      "log": "/tmp/irodori-ios94-playback-review/cpu-asynchronous-tests.log",
+      "source_proof": "/tmp/irodori-ios94-playback-review/source-proof.json"
+    },
+    {
+      "type": "parent logs inspected",
+      "result": "PASS",
+      "coverage": "CPU34件、TSan16件、iPhoneOS framework link、Mac regression build。独立再実行ではない。",
+      "logs": [
+        "/tmp/irodori-ios94-cpu-async.log",
+        "/tmp/irodori-ios94-tsan-final.log",
+        "/tmp/irodori-ios94-iphone-link-async.log",
+        "/tmp/irodori-ios94-mac-build-final.log"
+      ]
+    }
+  ],
+  "unverified": [
+    {
+      "id": "U95",
+      "scope": "実AVAudioSession activation/deactivationの成功・失敗と遅延、OS割込み/ルート変更/media resetの実配送、実AVAudioPlayer、iPhoneモデル生成・試聴",
+      "reason": "実機/実音声/GPU操作は禁止され、親の後続#95で確認する範囲。deactivation失敗時は実装がログを残して待機を完了するが、実OSのinactive状態まではCPUで確認していない。"
+    }
+  ],
+  "stateDrift": {
+    "scope_expanded_for_fix": [
+      "PhonePlaybackSessionDevice.swift",
+      "LiveSpeechService.swift",
+      "ManagedPlaybackSessionTests.swift"
+    ],
+    "changes": "親による新通知API/登録順修正および非同期化を再読。親が4dd2b4b9へcommitしたためHEADとlayersは変わったが、独立試験copy27ファイルは最終sourceと同一。",
+    "final_scope": "/tmp/irodori-ios94-playback-scope-final.json"
+  },
+  "constraints": "COREAI_/DECIDE_/GLINER_/CLEF_の環境を除去。編集は/tmpのみ。モデル推論、実音声、iPhone/GUI操作、プロセスsignal、他worktree変更、git変更は実施していない。",
+  "failures": [],
+  "pendingTasks": [],
+  "deferredTasks": [
+    {
+      "instruction": "#95で実機のactivation/deactivation、割込み、抜き差し、media reset、再生/停止/再開を確認。",
+      "reason": "本レビューは明示的にCPU/SDK読解へ限定。"
+    }
+  ],
+  "guide_addition_candidates": [
+    "- 2026-10-13 iOS27 SDKにはAVAudioSessionの非同期activate/deactivate completion APIがある。同期setActiveはblockingと明記されるため、MainActor上の再生開始/終了では非同期境界を使い、cleanup完了まで次の開始を拒否する。 [SDK][実測] AVAudioSession.h:247-290、coreai-samples #94 PhonePlaybackSessionDevice/ManagedPlaybackSession、/tmp/irodori-ios94-playback-review/cpu-asynchronous-tests.log。",
+    "- 2026-10-13 非同期activationのready callbackが取消Dispatchより先に処理されても、onCancelで同期的に立てた取消flagと世代検査によりdevice.playを0回にできた。callback内のTask状態に元Taskの取消判定を任せない。 [実測] Swift6.4/macOS27のfake session検証、ReviewManagedSessionTests.readyBeforeCancellationDispatch。"
+  ],
+  "stats": {
+    "final_scope_files": 12,
+    "resolved_confirmed": 1,
+    "unresolved_confirmed": 0,
+    "plausible": 0,
+    "final_independent_cpu_tests": 41
+  }
+}
