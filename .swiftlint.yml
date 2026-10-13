@@ -1,5 +1,6 @@
 included:
   - CoreAISamples
+  - SpeechPhone
   - CoreAISamplesKit/Sources
   - CoreAISamplesKit/Tests
   - Vendor/IrodoriInputKit/Sources

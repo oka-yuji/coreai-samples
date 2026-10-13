@@ -61,3 +61,6 @@
 - `SpeechFeature` owns session and save-panel tickets. `Store` owns task cancellation; `SpeechRunner`/`LiveSpeechService` join runtime release before acknowledging stop. `AudioPlayback` resolves its continuation after synchronous stop instead of waiting for a delegate completion callback. CPU tests use fake devices.
 
 - For a physical iPhone, install `aarch64-apple-ios` with rustup and run `Tools/Irodori/build-inputs.sh iphoneos`. Mac and iOS archives stay separate. Simulator support is not provided. iOS audio activation/deactivation uses the asynchronous SDK27 API; stop acknowledgement waits for deactivation. External audio interruption is distinct from Task cancellation.
+
+- `SpeechPhone` is a separate iOS 27 target/bundle ID. `SpeechLibraryFeature` and `SpeechCheckFeature` also use the shared Store; neither starts model inference on ordinary launch. `--speech-check-run` explicitly selects diagnostics. Device checks must use the requested iPhone, protect existing model/output directories, and record OS/connectivity separately from host build success.
+- For Phone changes, also build the signed `SpeechPhone` product and inspect the actual Info.plist for both file-sharing keys, plus the memory entitlement. The source settings alone are not evidence that the generated app contains those keys.

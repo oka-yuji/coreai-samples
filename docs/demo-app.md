@@ -1,4 +1,4 @@
-# Demo app (macOS, and Extract on iPhone)
+# Demo apps (macOS, Extract and Speech on iPhone)
 
 `CoreAISamples` (`CoreAISamples.xcodeproj` and the `CoreAISamples` folder at the repository root) is a SwiftUI app that runs a local model bundle through Foundation Models with the runtime in this repository (`CoreAIBackend`). It does not use the official `coreai-models` package.
 
@@ -28,6 +28,10 @@ The app is signed ad hoc and runs without the App Sandbox. To sign with your tea
 
 The first load of a model prepares it for the GPU (about 21 s for Qwen3.5-9B on an M4 Max); later loads reuse the prepared copy in `~/Library/Caches/coreai-cache/<OS build>/com.coreai-samples.DemoApp/`.
 
+
+## Speech on iPhone
+
+The separate `SpeechPhone` scheme builds **Irodori Speech** for iOS 27 physical devices. It opens the pinned FP32 folder from its Documents directory and provides text/seed input, generation, playback/stop and WAV export. The signed build is ready; actual device installation and inference remain pending connection recovery. See [iPhone setup and checks](irodori/iphone.md). The existing Extract app retains its own bundle ID.
 
 ## Extract on iPhone
 
