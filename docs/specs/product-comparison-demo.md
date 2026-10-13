@@ -32,7 +32,7 @@ The existing label/inspection UI remains under **Extraction lab**. Its headless 
 
 ## Verification
 
-Code snapshot: A `0153016`; B `9b8a542`. Xcode 27.0 / Swift 6.4.0.34.1, macOS 27.0. Evidence is in the local scratch directory `/private/tmp/gliner-product-cards-20261014/` and the private knowledge record `projects/coreai-samples/gliner-product-cards-20261014/実装と検証.md`.
+Code snapshot: A `0153016`; B `9b8a542`, accessibility fix `ccf505a`. Xcode 27.0 / Swift 6.4.0.34.1, macOS 27.0. Evidence is in the local scratch directory `/private/tmp/gliner-product-cards-20261014/` and the private knowledge record `projects/coreai-samples/gliner-product-cards-20261014/実装と検証.md`.
 
 | Acceptance | Evidence and current result |
 |---|---|
@@ -41,7 +41,7 @@ Code snapshot: A `0153016`; B `9b8a542`. Xcode 27.0 / Swift 6.4.0.34.1, macOS 27
 | U4 build/regression | Full default SwiftPM run passed; model-dependent tests remained disabled. Mac and generic iOS Release builds passed. SwiftLint: zero violations. swift-format: 18 changed Swift files passed. Existing headless entry routing retained by source inspection. |
 | U5 source acquisition | Native `--product-source-check` passed for two official pages and their pasted text. MacBook Air: 9,864 scalars; Surface Laptop 5: 8,038. Both reports have `modelRan: false`. |
 | U5 inference | Pending permission to close the already-running app before the required process check and heavy-job lock. Source retrieval and fabricated preview cards do not substitute for model inference. |
-| U6 | Agent checked two aligned cards, Japanese source context, English/Japanese switching and missing price on Mac. User confirmation remains pending. iPhone hardware rendering/inference is unverified. |
+| U6 | Agent checked two aligned cards, Japanese source context, English/Japanese switching and missing price on Mac. The final build exposes raw values and localized missing text through accessibility values. VoiceOver audio and narrow-window layout were not verified. User confirmation remains pending. iPhone hardware rendering/inference is unverified. |
 
 The source-only and model paths are explicit:
 
@@ -56,6 +56,6 @@ The second command reads the model and requires the process check and heavy-job 
 
 ## Remaining acceptance and next work
 
-Finish independent UI review, real-model integration, and user confirmation of the changed screen. Do not mark the whole feature accepted until those results are recorded. The original inspection-memo M1 run is not automatically resumed for this new topic. Preserve its data and failed S0 evidence; any later training needs a product-specific data/evaluation decision. No PR, main merge, model publication or purchase is included.
+Independent source/UI reviews and correction checks are complete: four HTML/context findings and one accessibility finding were fixed. Remaining acceptance is real-model integration and user confirmation of the changed screen. Do not mark the whole feature accepted until those results are recorded. The original inspection-memo M1 run is not automatically resumed for this new topic. Preserve its data and failed S0 evidence; any later training needs a product-specific data/evaluation decision. No PR, main merge, model publication or purchase is included.
 
 The original estimates remain 8 SP for #97 and 8–13 SP for #98, provisional against EX-8 v1. The observed HTML/evidence review fixes are implementation rework, not a change to quality thresholds. Reusable lesson: validate the source before judging extraction, and test conditions on adjacent lines as well as exact spans.
