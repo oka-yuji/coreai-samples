@@ -84,6 +84,16 @@ public enum Finalization: String, Codable, Sendable {
     case normal, lastStep, cutOff
 }
 
+public enum TurnKind: String, Codable, Sendable {
+    case normal, repair
+}
+
+public struct TurnNote: Codable, Equatable, Sendable {
+    public var title: String
+    public var text: String
+    public var warning: Bool
+}
+
 public enum Persistence: Equatable, Sendable {
     case unsaved
     case saved
@@ -138,6 +148,9 @@ public struct ConversationTurn: Codable, Equatable, Sendable {
     public var finish = Finish.none
     public var finalization = Finalization.normal
     public var failure: String?
+    public var kind = TurnKind.normal
+    public var offset = 0
+    public var notes: [TurnNote] = []
 
     public var policy: TurnPolicy {
         TurnPolicy(mode, settings: settings)

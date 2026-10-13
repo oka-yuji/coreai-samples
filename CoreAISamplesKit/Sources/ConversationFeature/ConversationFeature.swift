@@ -5,8 +5,10 @@ public enum ConversationAction: Equatable, Sendable {
     case modeChanged(ConversationMode)
     case settingsChanged(ConversationSettings)
     case send(String, mode: ConversationMode, now: Date)
+    case sendRepair(String, now: Date)
     case transcriptChanged(run: Int, TranscriptRecord)
     case toolRequested(run: Int, ToolCallRecord)
+    case guardNote(run: Int, title: String, text: String, warning: Bool)
     case stepFinished(run: Int, StepStats)
     case generationEnded(run: Int, stopReason: String?)
     case generationFailed(run: Int, message: String)
@@ -68,12 +70,18 @@ public enum ConversationFeature: Feature {
             return []
         case .send(let text, let mode, let now):
             return send(&state, text, mode: mode, now: now)
+        case .sendRepair(let text, let now):
+            return sendRepair(&state, text, now: now)
         case .transcriptChanged(let run, let transcript):
             guard state.isActive(run) else { return [] }
             state.transcript = transcript
             return countSteps(&state)
         case .toolRequested(let run, let call):
             return decide(&state, call, run: run)
+        case .guardNote(let run, let title, let text, let warning):
+            guard run == state.runID, !state.turns.isEmpty else { return [] }
+            state.turns[state.turns.count - 1].notes.append(TurnNote(title: title, text: text, warning: warning))
+            return save(state)
         case .stepFinished(let run, let stats):
             guard state.isActive(run) else { return [] }
             state.turns[state.turns.count - 1].steps.append(stats)
@@ -123,23 +131,41 @@ public enum ConversationFeature: Feature {
     ) -> [Command] {
         let prompt = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !state.isRunning, !state.isRestoring, !prompt.isEmpty else { return [] }
-        var turn = ConversationTurn(
-            prompt: prompt, mode: mode, settings: state.settings, start: state.transcript.entries.count)
-        let policy = turn.policy
-        let finalize = policy.maxSteps <= 1
-        if finalize { turn.finalization = .lastStep }
         if state.title.isEmpty {
             state.title = String(prompt.split(whereSeparator: \.isNewline).joined(separator: " ").prefix(40))
         }
         state.mode = mode
+        state.refusedSave = false
+        let turn = ConversationTurn(
+            prompt: prompt, mode: mode, settings: state.settings, start: state.transcript.entries.count)
+        return start(&state, turn, now: now)
+    }
+
+    private static func sendRepair(_ state: inout ConversationState, _ text: String, now: Date) -> [Command] {
+        let prompt = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !state.isRunning, !state.isRestoring, !prompt.isEmpty, let last = state.turns.last, last.mode == .work
+        else { return [] }
+        var turn = ConversationTurn(
+            prompt: prompt, mode: .work, settings: last.settings, start: state.transcript.entries.count)
+        turn.kind = .repair
+        turn.offset = state.step
+        return start(&state, turn, now: now)
+    }
+
+    private static func start(_ state: inout ConversationState, _ turn: ConversationTurn, now: Date) -> [Command] {
+        var turn = turn
+        let policy = turn.policy
+        let finalize = policy.maxSteps - turn.offset <= 1
+        if finalize { turn.finalization = .lastStep }
         state.turns.append(turn)
         state.updatedAt = now
         state.runID += 1
         state.isRunning = true
         state.stopRequested = false
-        state.refusedSave = false
-        state.step = 1
-        return [.run(.generate(run: state.runID, prompt: prompt, policy: policy, finalize: finalize), id: .generation)]
+        state.step = turn.offset + 1
+        return [
+            .run(.generate(run: state.runID, prompt: turn.prompt, policy: policy, finalize: finalize), id: .generation)
+        ]
     }
 
     private static func countSteps(_ state: inout ConversationState) -> [Command] {
@@ -148,7 +174,8 @@ public enum ConversationFeature: Feature {
         guard let prompt = entries.indices.dropFirst(state.turns[last].start).first(where: { entries[$0].isPrompt })
         else { return [] }
         state.turns[last].start = prompt
-        state.step = state.transcript.steps(from: prompt + 1).prefix { $0.outputs != nil }.count + 1
+        state.step =
+            state.turns[last].offset + state.transcript.steps(from: prompt + 1).prefix { $0.outputs != nil }.count + 1
         let limit = state.turns[last].policy.maxSteps
         if state.step > limit { return cutOff(&state) }
         if state.step == limit, state.turns[last].finalization == .normal {

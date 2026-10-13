@@ -49,7 +49,8 @@ extension ConversationEntry {
         let answered = turn.finish != Finish.none && turn.finish != .stopped && turn.failure == nil && !cut
         var out = [ConversationEntry(id: "turn-\(number)", kind: .user, title: "You", text: turn.prompt)]
         var partial: String?
-        for (index, step) in steps.enumerated() where !cut || index < policy.maxSteps {
+        let allowed = policy.maxSteps - turn.offset
+        for (index, step) in steps.enumerated() where !cut || index < allowed {
             let trailing = index == steps.count - 1 && step.outputs == nil
             let generated = records[step.generated]
             let answer = generated.compactMap(\.response).joined().trimmingCharacters(in: .whitespacesAndNewlines)
@@ -65,7 +66,7 @@ extension ConversationEntry {
                 partial = answer
                 shown.removeAll { $0.kind == .answer }
             }
-            let line = turn.steps.first { $0.step == index + 1 }?.line
+            let line = turn.steps.first { $0.step == turn.offset + index + 1 }?.line
             if trailing, answered, answer.isEmpty {
                 shown.append(
                     ConversationEntry(
@@ -78,7 +79,7 @@ extension ConversationEntry {
         }
         if cut {
             let range = min(turn.start + 1, end)..<end
-            let limit = steps.indices.contains(policy.maxSteps - 1) ? steps[policy.maxSteps - 1] : nil
+            let limit = steps.indices.contains(allowed - 1) ? steps[allowed - 1] : nil
             out.append(
                 ConversationEntry(
                     id: "limit-\(number)", kind: .failure, title: limitTitle,
@@ -98,6 +99,10 @@ extension ConversationEntry {
                     text:
                         "The answer above stops where generation ran out of tokens. Raise Max tokens or ask for something shorter."
                 ))
+        }
+        out += turn.notes.enumerated().map { index, note in
+            ConversationEntry(
+                id: "note-\(number)-\(index)", kind: .note, title: note.title, text: note.text, warning: note.warning)
         }
         if policy.collapsesSteps {
             for index in out.indices where [.thinking, .toolCall, .toolResult].contains(out[index].kind) {
