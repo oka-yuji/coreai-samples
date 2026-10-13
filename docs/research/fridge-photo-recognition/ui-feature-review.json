@@ -1,0 +1,140 @@
+{
+  "scope": {
+    "base": "5ce5e01a8292d4ce77cdcdbdd44af3c2ee90f50a",
+    "branch": "feat/50-recipe-demo",
+    "initial": "/private/tmp/fridge-ui-review-scope.json",
+    "assigned": "/private/tmp/fridge-ui-feature-audit/assigned-scope.json",
+    "stateToken": "cdd5643f254d8f98e7cffb1f900d515fea2d4523c4eb616cf2deb0cd24ebf88d",
+    "unchanged": true,
+    "previousAssignedScope": "/private/tmp/fridge-ui-feature-audit/assigned-scope.json",
+    "final": "/private/tmp/fridge-ui-final-scope.json",
+    "verificationNote": "Root reported latest full scope unchanged; reviewer independently confirmed current RecipeFeature/RecipeRunner bytes match executed final probe copies. No code changes after this verification; root is editing docs only."
+  },
+  "candidateLedger": [
+    {
+      "id": "R50-S01",
+      "maxSeverity": "P2",
+      "status": "rejected",
+      "path": "CoreAISamplesKit/Sources/RecipeFeature/RecipeFeature.swift",
+      "location": "setURL / recipeLoaded",
+      "condition": "Confirmed enough for recipe A survives another URL or changed-content recipe B with greater demand",
+      "expected": "Recipe-bound adequacy confirmation expires; measured numeric inventory remains factual",
+      "actual": "1-egg→3-egg recipe switch leaves enough confirmed, complete and canCheck true; Core returns sufficient without a new confirmation",
+      "evidence": [
+        "/private/tmp/fridge-ui-feature-audit/initial-probe-output.txt",
+        "docs/specs/fridge-recipe-demo.md amount contract",
+        "RecipeView amount/confirmation help"
+      ],
+      "rebuttal": "Clearing report/revision alone does not clear the prior contextual input fact; reachable by URL-only changes with same photo/pantry",
+      "parentResponse": "Fix implemented and independently verified; original failing evidence retained.",
+      "regressionConditions": [
+        "changed URL",
+        "same URL and changed recipe quantities",
+        "numeric inventory remains confirmed",
+        "enough text retained",
+        "identical recipe reload keeps confirmation",
+        "trim/case-insensitive ENOUGH"
+      ],
+      "originalStatus": "confirmed",
+      "resolution": "Fixed: expireRecipeAmounts clears only confirmed, trimmed/case-insensitive enough values on URL change, changed recipe content and example switch; text is retained, numeric confirmations and unchanged recipe reloads are preserved.",
+      "verificationHistory": [
+        "/private/tmp/fridge-ui-feature-audit/final/reducer-output.txt",
+        "RecipeFeatureTests.recipeRelativeAmounts",
+        "/private/tmp/fridge-ui-review-tests.log"
+      ]
+    },
+    {
+      "id": "R50-S02",
+      "maxSeverity": "P2",
+      "status": "rejected",
+      "path": "CoreAISamplesKit/Sources/RecipeFeature/RecipeFeature.swift",
+      "location": "appeared / ended / stop",
+      "condition": "Stop→ended→appeared before idle barrier completion",
+      "actual": "Reopen changes phase to idle and canCheck true",
+      "evidence": [
+        "/private/tmp/fridge-ui-feature-audit/initial-probe-output.txt"
+      ],
+      "rebuttal": "LiveRecipeService acquire still serializes the actual resource operation, so GPU overlap/data race was not demonstrated. RF interpretation for preventing requests across close/reopen needs owner resolution; not promoted to confirmed.",
+      "originalStatus": "plausible",
+      "ownerResolution": "Owner adopted stop-gate continuity across navigation. The original finding was plausible about UI contract only; no GPU overlap was ever claimed.",
+      "resolution": "Fixed: ended records needsIdleBarrier; appeared stays stopping and runs a fresh waitForIdle; only current stopped clears the gate. Repeated close/reopen and stale stopped actions independently verified.",
+      "verificationHistory": [
+        "/private/tmp/fridge-ui-feature-audit/final/reducer-output.txt",
+        "RecipeFeatureTests.reopenedStopBarrier",
+        "RecipeRunnerTests.stopBarrier(reopen: false/true)",
+        "/private/tmp/fridge-ui-review-tests.log"
+      ]
+    },
+    {
+      "id": "R50-R01",
+      "status": "rejected",
+      "condition": "Inspect→fetch chaining cancels the currently delivering inspect task",
+      "rebuttal": "Service released before success action; new Store operation gets a new token and an unstructured Task. SE-0304 makes the Task independent of parent cancellation; old task removal does not remove the new token."
+    },
+    {
+      "id": "R50-R02",
+      "status": "rejected",
+      "condition": "Canonically equivalent name edit ignored by String equality",
+      "rebuttal": "Current Core matching uses compatible canonical equality and confirmed inventory names are not sent to Clef. No current decision/token discrepancy from this guard."
+    }
+  ],
+  "confirmed": [],
+  "plausible": [],
+  "coverage": {
+    "RecipeFeature.swift": "Full state/action/effect/reducer including confirmation, all invalidation, session/revision, Stop, ended and reopen",
+    "RecipeFeatureTests.swift": "Full initial tests and added recipe-relative confirmation/stop-reopen regressions read; corresponding supplied test log audited.",
+    "RecipeRunner.swift": "Moved to public RecipeRuntime type; injected saveModelPath, identical service/action routing and post-await cancellation inspected; moved real source independently executed with protocol-only stub and fake.",
+    "FeatureStore.swift": "Unchanged baseline source and documented G2/G3/G7 read; full scheduling build not rerun due macro sandbox",
+    "RecipeService.swift": "Core49 baseline queue/cancellation/idle barrier and Core assessAll boundary read; no new modifications",
+    "RecipeAssembly/RecipeSelfTest": "Assembly injects actual preference saving; headless uses default no-op persistence. Both instantiate the same public Runner/Service. Old app-local Runner removed and project references cleaned.",
+    "Package.swift": "RecipeRuntime now depends on RecipeFeature; graph remains acyclic (Runtime→Feature→Core/FeatureStore). Test dependencies and unchanged Swift 6 Approachable settings verified.",
+    "RecipeRunnerTests.swift": "Full success/failure/CancellationError cases plus actual Store/Runner delayed-cancellation and retry tests for both ordinary stop and close/reopen; log audited."
+  },
+  "ownChecks": [
+    "Actual RecipeFeature + current Core isolated reducer probe reproduced R50-S01 and UI state of R50-S02",
+    "Actual RecipeRunner probe: five typed successes, four tagged failures, canceled late success suppressed",
+    "Runner protocol dependency replaced with a hand-written fake; preferences replaced by in-memory sink, no real UserDefaults write",
+    "Source review confirms default Photo PantryItem is unconfirmed, complete-inventory consent guard and confirmed-only Core filtering",
+    "New assigned Swift files have no actual comments/CJK; URL literals excluded from comment scan",
+    "Final reducer probe independently passed URL/content/example expiration, ENOUGH normalization, numeric preservation, identical reload and both stop/reopen sequences",
+    "Moved public Runner probe independently passed five successes/four failures, late canceled check/load suppression and injected persistence only after successful load",
+    "Inspected final ordinary-test/lint/format/Release logs; zero lint violations, 22 formatted Swift files and BUILD SUCCEEDED observed"
+  ],
+  "parentReportedChecks": [
+    "RecipeFeatureTests 8 tests PASS (log inspected)",
+    "RecipeRunnerTests 3 tests including both reopen cases PASS (log inspected)",
+    "Final ordinary tests PASS; strict lint 0; swift-format 22 files PASS; Mac Release BUILD SUCCEEDED (logs inspected)"
+  ],
+  "unverified": [
+    "No reviewer GPU/model run or app launch",
+    "Own standalone Observation-enabled Store build remained restricted by macro sandbox; coverage gap addressed by inspection of parent actual Store/Runner controlled tests and logs, not claimed as an own run",
+    "Manual GUI acceptance remains separate and pending user launch confirmation after root-reported automatic approval rejection; source review is complete",
+    "Photo binaries/individual UI files are assigned to other reviewer"
+  ],
+  "failures": [
+    {
+      "status": "coverage_recovered",
+      "detail": "Historical isolated Store macro sandbox failure retained. Final actual Store/Runner controlled tests were added, source-read and log-audited; own reducer and moved Runner probes independently pass."
+    },
+    {
+      "status": "recovered",
+      "detail": "Initial plain // scan hit URL literals; code-aware anchored comment/CJK scan returned no matches."
+    }
+  ],
+  "guideCandidates": [
+    "- 2026-10-09 在庫の amount=enough は数量測定値ではなく現在のレシピへの十分性の確認であり、URLやレシピ内容が変わった後も confirmed を保持すると新しい必要量を比較せず sufficient にしてしまうため、数値在庫とは別に確認の寿命を持たせる必要がある [実測] /private/tmp/fridge-ui-feature-audit/initial-probe-output.txt、RecipeFeature初版scope /private/tmp/fridge-ui-review-scope.json"
+  ],
+  "blockers": [],
+  "unresolvedCoverage": [],
+  "pendingTasks": [],
+  "deferredTasks": [],
+  "complete": true,
+  "validationLogs": [
+    "/private/tmp/fridge-ui-review-tests.log",
+    "/private/tmp/fridge-all-tests-final.log",
+    "/private/tmp/fridge-final-lint.log",
+    "/private/tmp/fridge-final-format.log",
+    "/private/tmp/fridge-app-build-final.log"
+  ],
+  "finalAudit": "R50-S01 and R50-S02 resolved; no remaining confirmed or plausible findings in assigned partition. Original evidence/status history preserved."
+}

@@ -1,0 +1,88 @@
+{
+  "date": "2026-10-09",
+  "sourceCommit": "64e138b7f01443116b11b860386d6b6fa6fa4f3b",
+  "implementationCommit": "ffef761",
+  "binarySHA256": "0eefed1e4cbc823febef7a2fb3ede28482f8caeb377c599895f6ae8450c74993",
+  "method": "Native app interaction and accessibility/screenshot observation through CUA",
+  "environment": "macOS 27.0 (26A428), M4 Max, Release build, clef-flash-9b-decide-v1",
+  "userAuthorizedAppLaunch": true,
+  "launch": {
+    "finderOpenSucceeded": true,
+    "initialAccessibilityReadTimedOut": true,
+    "laterAppResponsiveWithoutCodeChanges": true,
+    "permissionDialogCause": "Not established",
+    "osPermissionSettingsChangedByAgent": false,
+    "note": "UserNotificationCenter was inaccessible to the tool. It was not accessed by another route. The app subsequently presented its ordinary Chat screen; no further OS-dialog action was needed."
+  },
+  "cases": [
+    {
+      "id": "03-omelette",
+      "entry": "Examples menu",
+      "photoNames": ["broccoli", "egg"],
+      "photoSuggestedEggAmount": "1 pcs",
+      "confirmedInput": "Only egg: 1 pcs; other ingredients and complete inventory initially unconfirmed",
+      "recipeURL": "https://www.kikkoman.co.jp/homecook/search/recipe/00004002/",
+      "observedResult": "Recipe: 3個; Have ingredient; Short by 2.00 pcs",
+      "displayedSeconds": 2.77,
+      "editCheck": "Changing egg to 3 pcs cleared its confirmation, removed the old report and disabled Check recipe",
+      "repeatedAtEnd": "Selecting the one-egg example again and confirming it reproduced Short by 2.00 pcs",
+      "screenshotViewed": true
+    },
+    {
+      "id": "04-gratin",
+      "entry": "Examples menu",
+      "photoNames": ["milk", "cheese", "mushrooms", "onion", "broccoli", "meat"],
+      "reviewedInput": "Renamed meat to chicken thigh and confirmed the list; unknown amounts and unseen pantry items stayed unknown",
+      "recipeURL": "https://www.kikkoman.co.jp/homecook/search/recipe/00004825/",
+      "initialKitchen": "Nine listed basic tools available; oven and toaster unavailable",
+      "initialResult": "Check your kitchen equipment; Required equipment is missing",
+      "initialDisplayedSeconds": 4.50,
+      "changedKitchen": "Toaster available; oven still unavailable",
+      "editClearedReport": true,
+      "changedResult": "The stated equipment is available; A few things still need checking",
+      "changedDisplayedSeconds": 2.77,
+      "reusedDocumentTokens": 403,
+      "note": "Equipment became sufficient; remaining ingredient and amount uncertainty was not claimed resolved"
+    },
+    {
+      "id": "05-caprese",
+      "entry": "Examples menu",
+      "photoNames": ["tomato", "leafy herbs"],
+      "confirmedInput": "Only tomato: 1 pcs; complete inventory unconfirmed",
+      "recipeURL": "https://www.kikkoman.co.jp/homecook/search/recipe/00001454/",
+      "observedResult": "モッツァレラチーズ: Check ingredient; A few things still need checking",
+      "containerBecameCheeseInventory": false,
+      "displayedSeconds": 2.73
+    },
+    {
+      "id": "02-ginger-pork",
+      "entry": "Examples menu",
+      "rawPhotoNames": ["onion", "carrot", "zucchini", "meat"],
+      "humanCorrections": ["zucchini to cucumber", "meat to pork"],
+      "scriptedExtraInventory": "Added the recipe's oil, soy sauce and mirin through Add, entered enough, then confirmed the list and complete inventory without ginger",
+      "recipeURL": "https://www.kikkoman.co.jp/homecook/search/recipe/00056818/",
+      "observedResult": "おろししょうが: Missing ingredient; Something is missing",
+      "displayedSeconds": 3.19,
+      "note": "Pork weight remained Amount not checked; the added seasonings are explicit test input, not photo recognition"
+    },
+    {
+      "id": "01-oyakodon",
+      "entry": "Open photo file picker, then typed URL and Read",
+      "photoNames": ["eggs", "onion", "chicken", "herbs"],
+      "photoSuggestedEggAmount": "3 pcs",
+      "reviewedInput": "Confirmed the visible names; set onion to 1 pcs; left complete inventory unconfirmed",
+      "recipeURL": "https://www.kikkoman.co.jp/homecook/search/recipe/00006446/",
+      "observedResult": "Eggs and onion: Amount checked; rice, concentrated seasoning and water: Check ingredient; A few things still need checking",
+      "displayedSeconds": 3.07,
+      "note": "This GUI case preserved unseen ingredients as unknown. The fully supplied scripted inventory case is covered by the separate live headless test."
+    }
+  ],
+  "navigation": "Chat opened with No model loaded; returning to Recipes retained the egg shortage result and enabled Check recipe",
+  "stopCoverage": {
+    "guiCancellationObserved": false,
+    "reason": "The decision finished before the UI observation exposed Stop; a rapid double-click did not establish cancellation either",
+    "verifiedBy": "RecipeRunnerTests.stopBarrier with actual Store/Runner and controlled completion, including closing/reopening, plus RecipeServiceTests"
+  },
+  "acceptanceBoundary": "Agent GUI verification, not user manual acceptance. Synthetic photos and explicit test inventory do not establish real-fridge recognition accuracy.",
+  "cleanup": "App exited via Quit; process exit verified and this task's GPU lock released"
+}
