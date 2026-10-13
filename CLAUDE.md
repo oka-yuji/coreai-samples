@@ -8,6 +8,7 @@
   ```sh
   swiftlint lint --config .swiftlint.yml --baseline .swiftlint-baseline.json --strict --no-cache
   python3 Tools/Format/check_format.py --base origin/main
+  ./Tools/Irodori/build-inputs.sh
   swift test --package-path CoreAISamplesKit
   xcodebuild -project CoreAISamples.xcodeproj -scheme CoreAISamples -configuration Release -destination 'platform=macOS' build
   ```
@@ -51,3 +52,9 @@
   20 文書のメモリ試験は `DECIDE_MEMORY_TEST=1` を追加する。測定の JSON は `DECIDE_METRICS_DIR=/path/to/output` で保存できる。
   `COREAI_TEST_BUNDLES` は言語モデル用だけに使い、両変数を同時に設定しない。
 - 同じ文書で質問数を変えるメモリ検査は `DECIDE_SHAPE_MEMORY=1` と `--filter DecisionInferenceTests.questionSizeMemory`。headless の文書再利用経路は `--decide-json input.json output.json --reuse-document`。
+
+## Irodori runtime
+
+- The Mac speech runtime uses the pinned Rust input adapter in `Vendor/IrodoriInputKit`. Build it with `Tools/Irodori/build-inputs.sh` before package tests. These operations do not execute Core AI models.
+- `SpeechCore` is a pure-logic target. `SpeechRuntime` owns a single in-flight operation and holds its busy gate across suspension. A release waits for that operation to finish; it does not clear a newer pipeline after resuming.
+- Test display names and source follow the existing English-only/no-comments rules. Model generation and listening in the app are user acceptance checks for this change.

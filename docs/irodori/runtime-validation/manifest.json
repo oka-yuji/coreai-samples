@@ -1,0 +1,33 @@
+{
+  "base": "12a59551750b8b3e902ea7bafa7a258fbd1f2671",
+  "product_source_lines": 1031,
+  "source_sha256": {
+    "CoreAISamplesKit/Sources/SpeechCore/SpeechTypes.swift": "f2fed740259f373e933182b53d3e6b11956f466d6e2056c469963a83f3b5cec4",
+    "CoreAISamplesKit/Sources/SpeechCore/AudioContract.swift": "6326047bfc3e6e31eb00ddb5f22476f0e05dc5585b617fba410a75172a67a7ea",
+    "CoreAISamplesKit/Sources/SpeechRuntime/IrodoriStage.swift": "93c373ed1091f57e35a58e3091e5ed547b8f0f86337f1fceefb45cf62beaad18",
+    "CoreAISamplesKit/Sources/SpeechRuntime/SpeechBundle.swift": "d58097fec301ffabe34bb23dbf20a83e117e47eb47a1f3df19955c37189ec574",
+    "CoreAISamplesKit/Sources/SpeechRuntime/IrodoriPipeline.swift": "37645bb4f336ce1bb19ebf7c8e2a6f10aa3ccf86cfb2d4bceebe7202747a99e3",
+    "CoreAISamplesKit/Sources/SpeechRuntime/SpeechBoundary.swift": "4dad3545b63175f0fe0a51604646b5f646c406a14558ae53aa9cb483004b3e99",
+    "CoreAISamplesKit/Sources/SpeechRuntime/IrodoriRuntime.swift": "a7efde4d77d297558f884079cf4c0c7e4c3386e55aedab4f4f95fd7d555942c8",
+    "Vendor/IrodoriInputKit/Sources/IrodoriTokenizers/IrodoriTokenizer.swift": "18f5910a53d83dba3cd1f8f1239a9a690287328acdc2c7bc6dbb73802c4c266b",
+    "Vendor/IrodoriInputKit/Sources/IrodoriTokenizers/IrodoriText.swift": "beae7c608becae0c63cfc3f4e66c9bb90307be9acf0fad81882831dbf7fe5c2b",
+    "Vendor/IrodoriInputKit/Sources/IrodoriTokenizers/PinnedNormalization.swift": "a24f7aa0387145695a93bfa94bd27d5e8d89856d62703f97c9706019126a62d5",
+    "Vendor/IrodoriInputKit/Sources/CTokenizers/shim.c": "c7814c94decbd928a244564ec87875436afdce517544c895e2ef6bbf94ae3840",
+    "Vendor/IrodoriInputKit/Sources/CTokenizers/include/irodori_tokenizers.h": "53db41ca247413a500e2aef00d5aa8aad9d523d1ea6b04d64b6bf342a574bde5",
+    "Vendor/IrodoriInputKit/Sources/IrodoriInputLogic/IrodoriNoise.swift": "2e24ae03a214ea67bc755826a99b9c03810e734475d8bcaf852113d3308676f5",
+    "Vendor/IrodoriInputKit/Sources/IrodoriInputLogic/IrodoriInputError.swift": "92c4835b35101f73bf55462a4448824625971a319562093c98968a6aa969c1c5",
+    "Vendor/IrodoriInputKit/Sources/IrodoriInputLogic/IrodoriTextInput.swift": "ca8a01380bd5f01ef42c0d4ac60bccfe19abc7e3c170fe02dced533a950464af",
+    "Vendor/IrodoriInputKit/rust/src/lib.rs": "ac87475b1d8f7c8995dde0e259a745360c3e482acf1bb846c717829947a302c1",
+    "Vendor/IrodoriInputKit/rust/src/normalization.rs": "c130d0bcfd92cf110ed84bf4dce78d305b47d827cc1fcdba1771170b04992046",
+    "Tools/Irodori/prepare-bundle.py": "96bac45220c6aea2b35bcbd0e010e81290305e49b78cd0bc7609d8132e1c48c6",
+    "Tools/Irodori/build-inputs.sh": "8c48368dff64d8b09d6bce9f71ef1fcfa7609f4a84cedb8a8aead54541b75602"
+  },
+  "cpu_tests": {
+    "debug": 11,
+    "release": 11,
+    "independent_release": 14,
+    "bundle_preparation": 3
+  },
+  "gpu_run": false,
+  "human_app_acceptance": "pending per user request"
+}

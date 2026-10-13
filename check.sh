@@ -20,6 +20,9 @@ if [[ -n "$check_models" ]]; then
     done
     command -v python3 >/dev/null
 fi
+check_stage=build-irodori-inputs
+printf 'CHECK RUN: %s\n' "$check_stage"
+./Tools/Irodori/build-inputs.sh
 check_stage=build-kit
 printf 'CHECK RUN: %s\n' "$check_stage"
 swift build --package-path CoreAISamplesKit

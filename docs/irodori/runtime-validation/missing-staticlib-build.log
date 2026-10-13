@@ -1,0 +1,24 @@
+warning: /Users/okayuuji/Library/org.swift.swiftpm/configuration is not accessible or not writable, disabling user-level cache features.
+warning: /Users/okayuuji/Library/org.swift.swiftpm/security is not accessible or not writable, disabling user-level cache features.
+Building for debugging...
+[0/9] Write Consumer-entitlement.plist
+[0/9] Write sources
+[4/9] Write swift-version--58304C5D6DBC2206.txt
+[5/9] Compiling CTokenizers shim.c
+[7/13] Compiling IrodoriInputLogic IrodoriNoise.swift
+[8/13] Compiling IrodoriInputLogic IrodoriInputError.swift
+[9/13] Emitting module IrodoriInputLogic
+[10/13] Compiling IrodoriInputLogic IrodoriTextInput.swift
+[11/17] Compiling IrodoriTokenizers PinnedNormalization.swift
+[12/17] Compiling IrodoriTokenizers IrodoriTokenizer.swift
+[13/17] Compiling IrodoriTokenizers IrodoriText.swift
+[14/17] Emitting module IrodoriTokenizers
+[15/19] Emitting module Consumer
+[16/19] Compiling Consumer main.swift
+[16/19] Write Objects.LinkFileList
+error: link command failed with exit code 1 (use -v to see invocation)
+ld: warning: search path '/private/tmp/irodori-vendor91-review/IrodoriInputKit/rust/target/release' not found
+ld: library 'irodori_tokenizers' not found
+clang: error: linker command failed with exit code 1 (use -v to see invocation)
+[17/19] Linking Consumer
+warning: '--build-system native' has been deprecated and will be removed in a future release; please report an issue at https://github.com/swiftlang/swift-package-manager/issues if you are unable to adopt the default build system.

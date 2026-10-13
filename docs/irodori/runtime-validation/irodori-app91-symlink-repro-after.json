@@ -1,0 +1,8 @@
+{
+  "prepare_returned_success": true,
+  "output_file": "/tmp/irodori-app91-symlink-fixed-cjoasf6y/bundle/artifacts/example.aimodel/main.mlirb",
+  "output_is_symlink": false,
+  "relative_symlink_materialized": true,
+  "sha_matches_after_source_change": true,
+  "staging_removed": true
+}
