@@ -16,8 +16,9 @@ public enum ProductPage {
     }
 
     public static func source(html: String, url: URL, capturedAt: Date) throws -> ProductSource {
-        var document = try replace(#"<!--.*?-->"#, in: html, with: " ")
-        document = try replace(#"<(script|style|noscript|svg|nav|footer)\b[^>]*>.*?</\1\s*>"#, in: document, with: " ")
+        var document = try replace(
+            #"<!--.*?-->|<(script|style)\b[^>]*>.*?</\1\s*>"#, in: html, with: " ")
+        document = try removingHiddenSections(from: document)
         let title = try capture(#"<title\b[^>]*>(.*?)</title\s*>"#, in: document) ?? url.host() ?? "Product page"
         let main = try capture(#"<main\b[^>]*>(.*?)</main\s*>"#, in: document)
         let body = try capture(#"<body\b[^>]*>(.*?)</body\s*>"#, in: document)
@@ -28,6 +29,29 @@ public enum ProductPage {
         text = try replace(#"<[^>]*>"#, in: text, with: " ")
         return try ProductSource(
             title: clean(decode(title)), text: clean(decode(text)), url: url, capturedAt: capturedAt)
+    }
+
+    private static func removingHiddenSections(from text: String) throws -> String {
+        let tags = try expression(#"<(\/?)(template|nav|footer|noscript|svg)\b[^>]*>"#)
+        var stack: [String] = []
+        var cursor = text.startIndex
+        var result = ""
+        for match in tags.matches(in: text, range: NSRange(text.startIndex..., in: text)) {
+            guard let range = Range(match.range, in: text), let nameRange = Range(match.range(at: 2), in: text)
+            else { continue }
+            let name = text[nameRange].lowercased()
+            let closing = match.range(at: 1).length > 0
+            if stack.isEmpty { result += text[cursor..<range.lowerBound] }
+            if closing {
+                if let index = stack.lastIndex(of: name) { stack.removeSubrange(index...) }
+            } else {
+                stack.append(name)
+            }
+            if stack.isEmpty { result += " " }
+            cursor = range.upperBound
+        }
+        if stack.isEmpty { result += text[cursor...] }
+        return result
     }
 
     private static func expression(_ pattern: String) throws -> NSRegularExpression {

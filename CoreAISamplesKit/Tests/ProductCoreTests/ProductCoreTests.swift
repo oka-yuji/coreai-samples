@@ -132,4 +132,28 @@ struct ProductCoreTests {
         }
     }
 
+    @Test("Comment delimiters inside scripts cannot swallow visible document content")
+    func commentInsideScript() throws {
+        let html =
+            #"<script>const start = "<!--";</script><title>Visible product</title><main>Memory 16 GB</main><!-- actual comment -->"#
+        let source = try ProductPage.source(
+            html: html, url: #require(URL(string: "https://www.apple.com/specs")),
+            capturedAt: Date(timeIntervalSince1970: 0))
+        #expect(source.title == "Visible product")
+        #expect(source.text == "Memory 16 GB")
+    }
+
+    @Test("Nested inert templates are excluded before choosing the visible main element")
+    func nestedTemplates() throws {
+        let html = """
+            <template><template><main>Hidden 999 GB</main></template><main>Hidden 512 GB</main></template>
+            <!--<script>Comment script</script>--><title>Visible product</title><main>Memory 16 GB</main>
+            """
+        let source = try ProductPage.source(
+            html: html, url: #require(URL(string: "https://www.apple.com/specs")),
+            capturedAt: Date(timeIntervalSince1970: 0))
+        #expect(source.title == "Visible product")
+        #expect(source.text == "Memory 16 GB")
+    }
+
 }
