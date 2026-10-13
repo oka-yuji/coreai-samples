@@ -18,6 +18,22 @@ struct GenerationStats: Encodable, Sendable {
     var sourceTokens: Int?
     var ragPromptTokens: Int?
     var retrievalSeconds: Double?
+
+    var statusLine: String {
+        if let error { return "Error: \(error)" }
+        var parts: [String] = []
+        if let ttftSeconds { parts.append(String(format: "TTFT %.2f s", ttftSeconds)) }
+        if let tokensPerSecond { parts.append(String(format: "%.1f tok/s", tokensPerSecond)) }
+        if let inputTokens { parts.append("input \(inputTokens)") }
+        if let cachedTokens { parts.append("reused \(cachedTokens)") }
+        parts.append("output \(outputTokens)")
+        parts.append(stopReason == "cancelled" ? "stopped" : stopReason)
+        if let sources { parts.append("sources \(sources)") }
+        if let sourceTokens { parts.append("source tok \(sourceTokens)") }
+        if let ragPromptTokens { parts.append("prompt(rag) \(ragPromptTokens) tok") }
+        if let retrievalSeconds { parts.append(String(format: "retrieval %.1fs", retrievalSeconds)) }
+        return parts.joined(separator: "  |  ")
+    }
 }
 
 @MainActor
@@ -39,7 +55,6 @@ final class ChatViewModel {
         var sources: [String] = []
     }
 
-    static let maxTokenChoices = [256, 512, 1024, 2048, 4096, 8192]
     static let defaultContextLimit = 16_384
 
     private(set) var phase = Phase.empty
@@ -48,14 +63,13 @@ final class ChatViewModel {
     private(set) var loadNote = ""
     private(set) var loadStarted = Date.now
     private(set) var loadSeconds = 0.0
-    private(set) var entries: [Transcript.Entry] = []
     private(set) var isResponding = false
     private(set) var last: GenerationStats?
     private(set) var contextNotice: String?
     private(set) var contextFull = false
     private(set) var retrieving = false
     private(set) var retrieval: RAGRetrieval?
-    private(set) var ragTurns: [(after: Int, turn: Turn)] = []
+    private(set) var ragTurns: [Turn] = []
     var input = ""
     var externallyBusy = false
     var reasoning = AgentReasoningEffort.medium
@@ -68,7 +82,6 @@ final class ChatViewModel {
 
     @ObservationIgnored private(set) var model: LocalLanguageModel?
     @ObservationIgnored private(set) var generation: Task<Void, Never>?
-    @ObservationIgnored private var session: LanguageModelSession?
     @ObservationIgnored private var consumer: Task<(any Error)?, Never>?
     @ObservationIgnored private var firstEntryAt: ContinuousClock.Instant?
     @ObservationIgnored private var run = 0
@@ -84,12 +97,6 @@ final class ChatViewModel {
     var canSend: Bool { phase == .ready && !isResponding && !externallyBusy && !contextFull && !trimmedInput.isEmpty }
     var loadStats: Engine.LoadStats? { model?.loadStats }
     var ragIsOn: Bool { ragEnabled && (ragWeb || ragLocal) }
-
-    var turns: [Turn] {
-        var turns = Self.turns(entries)
-        for rag in ragTurns.reversed() { turns.insert(rag.turn, at: min(rag.after, turns.count)) }
-        return turns
-    }
 
     static func turns(_ entries: some Sequence<Transcript.Entry>) -> [Turn] {
         var turns: [Turn] = []
@@ -108,22 +115,7 @@ final class ChatViewModel {
         return turns
     }
 
-    var statusLine: String {
-        guard let last else { return loadNote }
-        if let error = last.error { return "Error: \(error)" }
-        var parts: [String] = []
-        if let ttft = last.ttftSeconds { parts.append(String(format: "TTFT %.2f s", ttft)) }
-        if let speed = last.tokensPerSecond { parts.append(String(format: "%.1f tok/s", speed)) }
-        if let input = last.inputTokens { parts.append("input \(input)") }
-        if let cached = last.cachedTokens { parts.append("reused \(cached)") }
-        parts.append("output \(last.outputTokens)")
-        parts.append(last.stopReason == "cancelled" ? "stopped" : last.stopReason)
-        if let sources = last.sources { parts.append("sources \(sources)") }
-        if let tokens = last.sourceTokens { parts.append("source tok \(tokens)") }
-        if let tokens = last.ragPromptTokens { parts.append("prompt(rag) \(tokens) tok") }
-        if let seconds = last.retrievalSeconds { parts.append(String(format: "retrieval %.1fs", seconds)) }
-        return parts.joined(separator: "  |  ")
-    }
+    var statusLine: String { last?.statusLine ?? loadNote }
 
     func isUsing(_ url: URL) -> Bool {
         phase != .empty && bundleURL.map(ModelStorage.key) == ModelStorage.key(url)
@@ -142,8 +134,6 @@ final class ChatViewModel {
         guard !isLoading, !isResponding, !externallyBusy else { return }
         let key = ModelStorage.key(url)
         model = nil
-        session = nil
-        entries = []
         ragTurns = []
         last = nil
         contextNotice = nil
@@ -168,7 +158,6 @@ final class ChatViewModel {
                     format: "Prepared for this Mac in %.1f s, loaded in %.1f s", model.loadStats.specializeSeconds,
                     loadSeconds)
             phase = .ready
-            newChat()
         } catch {
             phase = .failed(error.localizedDescription)
         }
@@ -182,39 +171,25 @@ final class ChatViewModel {
         contextFull = false
     }
 
-    func newChat() {
-        guard let model, !isResponding else { return }
-        let session = LanguageModelSession(model: model)
-        session.transcriptErrorHandlingPolicy = .preserveTranscript
-        self.session = session
-        entries = []
-        ragTurns = []
-        retrieval = nil
-        last = nil
-        contextNotice = nil
-        contextFull = false
-    }
-
     @discardableResult
     func send() -> Bool {
-        guard canSend, let session, let model else { return false }
-        let prompt = trimmedInput
-        input = ""
-        last = nil
-        contextNotice = nil
-        isResponding = true
-        let options = GenerationOptions(maximumResponseTokens: maxTokens)
-        let context = ContextOptions(reasoningLevel: reasoning.level)
+        guard canSend, let model else { return false }
         if ragIsOn {
+            let prompt = trimmedInput
+            input = ""
+            last = nil
+            contextNotice = nil
+            isResponding = true
+            let options = GenerationOptions(maximumResponseTokens: maxTokens)
+            let context = ContextOptions(reasoningLevel: reasoning.level)
             var settings = RAGSettings.fromDefaults()
             settings.web = ragWeb
             settings.local = ragLocal
             settings.sourceTokenBudget = ragBudget
             generation = Task { await respondFromSources(model, prompt, settings, options, context) }
-        } else {
-            generation = Task { await respond(session, prompt, options, context) }
+            return true
         }
-        return true
+        return false
     }
 
     func stop() {
@@ -225,7 +200,7 @@ final class ChatViewModel {
         _ model: LocalLanguageModel, _ question: String, _ settings: RAGSettings, _ options: GenerationOptions,
         _ context: ContextOptions
     ) async {
-        ragTurns.append((Self.turns(entries).count, Turn(id: UUID().uuidString, prompt: question)))
+        ragTurns.append(Turn(id: UUID().uuidString, prompt: question))
         retrieving = true
         let today = RAGContext.today()
         let retrieval = await RAGRetriever.gather(question: question, settings: settings, count: model.countTokens)
@@ -233,8 +208,8 @@ final class ChatViewModel {
             RAGContext.prompt(question: question, sources: retrieval.sources, today: today))
         retrieving = false
         self.retrieval = retrieval
-        ragTurns[ragTurns.count - 1].turn.notes = retrieval.notes
-        ragTurns[ragTurns.count - 1].turn.sources = retrieval.citations
+        ragTurns[ragTurns.count - 1].notes = retrieval.notes
+        ragTurns[ragTurns.count - 1].sources = retrieval.citations
         for note in retrieval.notes { AgentTools.log("[rag] " + note) }
         var stats = GenerationStats(
             turn: ragTurns.count, sources: retrieval.sources.count, sourceTokens: retrieval.sourceTokens,
@@ -245,7 +220,7 @@ final class ChatViewModel {
             } else {
                 stats.stopReason = "noSources"
                 stats.answer = RAGContext.noSourcesReply
-                ragTurns[ragTurns.count - 1].turn.response = RAGContext.noSourcesReply
+                ragTurns[ragTurns.count - 1].response = RAGContext.noSourcesReply
             }
             last = stats
             generation = nil
@@ -259,19 +234,15 @@ final class ChatViewModel {
             session, RAGContext.message(question: question, sources: retrieval.sources), options, context, rag: stats)
     }
 
-    private func show(_ transcript: Transcript, rag: Bool) {
-        guard rag else {
-            entries = Array(transcript)
-            return
-        }
+    private func show(_ transcript: Transcript) {
         guard let live = Self.turns(transcript).last, !ragTurns.isEmpty else { return }
-        ragTurns[ragTurns.count - 1].turn.reasoning = live.reasoning
-        ragTurns[ragTurns.count - 1].turn.response = live.response
+        ragTurns[ragTurns.count - 1].reasoning = live.reasoning
+        ragTurns[ragTurns.count - 1].response = live.response
     }
 
     private func respond(
         _ session: LanguageModelSession, _ prompt: String, _ options: GenerationOptions, _ context: ContextOptions,
-        rag: GenerationStats? = nil
+        rag: GenerationStats
     ) async {
         run += 1
         let id = run
@@ -283,7 +254,7 @@ final class ChatViewModel {
             for await transcript in Observations({ session.transcript }) {
                 guard let self, self.run == id, self.isResponding else { return }
                 if self.firstEntryAt == nil, transcript.count > base + 1 { self.firstEntryAt = .now }
-                self.show(transcript, rag: rag != nil)
+                self.show(transcript)
             }
         }
         let consumer = Task { () -> (any Error)? in
@@ -299,12 +270,11 @@ final class ChatViewModel {
         let stopped = consumer.isCancelled
         while session.isResponding { try? await Task.sleep(for: .milliseconds(10)) }
         observer.cancel()
-        show(session.transcript, rag: rag != nil)
+        show(session.transcript)
 
         let added = session.transcript.dropFirst(base)
         let after = session.usage
-        var stats = rag ?? GenerationStats()
-        if rag == nil { stats.turn = session.transcript.count { if case .prompt = $0 { true } else { false } } }
+        var stats = rag
         stats.answer = added.map { if case .response(let response) = $0 { Self.text(response.segments) } else { "" } }
             .joined()
         stats.outputTokens = after.output.totalTokenCount - before.output.totalTokenCount
@@ -316,7 +286,7 @@ final class ChatViewModel {
                 stats.stopReason = "contextSizeExceeded"
                 contextFull = true
                 contextNotice =
-                    "The context window is full: this chat needs \(exceeded.tokenCount) tokens and the limit is \(exceeded.contextSize). Start a New Chat to continue."
+                    "The context window is full: this question needs \(exceeded.tokenCount) tokens and the limit is \(exceeded.contextSize). Start a new conversation to continue."
             } else {
                 stats.stopReason = "error"
                 stats.error = failure.localizedDescription
@@ -336,7 +306,7 @@ final class ChatViewModel {
                 reserved < options.maximumResponseTokens ?? .max
             {
                 contextNotice =
-                    "The reply stopped at the end of the context window (\(reserved) tokens were left for it). Start a New Chat if the next message does not fit."
+                    "The reply stopped at the end of the context window (\(reserved) tokens were left for it). Start a new conversation if the next message does not fit."
             }
         }
         last = stats

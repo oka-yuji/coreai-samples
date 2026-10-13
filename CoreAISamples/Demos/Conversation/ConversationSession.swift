@@ -299,7 +299,7 @@ final class ConversationSession {
         let answer = Self.responseText(entries)
 
         var diverged = false
-        if let previous, let shared, shared < previous.input + previous.output - 1 {
+        if mode == .work, let previous, let shared, shared < previous.input + previous.output - 1 {
             diverged = true
             divergeCount += 1
             var tokens = ""

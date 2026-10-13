@@ -76,12 +76,12 @@ struct ConversationView: View {
 
     private var timeline: some View {
         ScrollView {
-            LazyVStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: 10) {
                 ForEach(host.state.entries) { entry in
                     ConversationEntryRow(entry: entry)
                 }
-                ForEach(chat.ragTurns.map(\.turn)) { turn in
-                    TurnView(turn: turn, live: chat.isResponding && turn.id == chat.ragTurns.last?.turn.id)
+                ForEach(chat.ragTurns) { turn in
+                    TurnView(turn: turn, live: chat.isResponding && turn.id == chat.ragTurns.last?.id)
                 }
             }
             .padding(12)

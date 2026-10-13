@@ -30,7 +30,7 @@ final class ToolRunner {
     private(set) var draftOrder: [String] = []
     private(set) var webToolCalls = 0
     private var draftNames: [String: String] = [:]
-    private let preferences: ConversationPreferences
+    let preferences: ConversationPreferences
     private nonisolated let slots = Mutex<[String: Slot]>([:])
 
     init(preferences: ConversationPreferences) {

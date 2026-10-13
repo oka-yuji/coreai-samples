@@ -14,7 +14,7 @@ final class ConversationRunner {
     init(id: String, chat: ChatViewModel, preferences: ConversationPreferences) {
         let tools = ToolRunner(preferences: preferences)
         session = ConversationSession(id: id, chat: chat, preferences: preferences, tools: tools)
-        citationGuard = CitationGuard(preferences: preferences, tools: tools)
+        citationGuard = CitationGuard(tools: tools)
         tools.session = session
         self.tools = tools
         self.chat = chat
@@ -64,9 +64,9 @@ final class ConversationRunner {
             if let note {
                 send(.guardNote(run: run, title: CitationGuard.title, text: note.text, warning: note.warning))
             }
+            await citationGuard.saveRunMetrics(session: session)
             send(end.action(run))
             chat.externallyBusy = false
-            await citationGuard.saveRunMetrics(session: session)
         }
     }
 

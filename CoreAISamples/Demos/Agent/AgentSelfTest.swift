@@ -1,3 +1,4 @@
+import ConversationFeature
 import CryptoKit
 import Foundation
 import FoundationModels
@@ -14,7 +15,7 @@ enum AgentSelfTest {
     static func runEndToEnd() -> Never {
         let effort: AgentReasoningEffort
         if let requested = LaunchArguments.value("--effort") {
-            guard let parsed = AgentReasoningEffort(rawValue: requested) else {
+            guard let parsed = AgentReasoningEffort(argument: requested) else {
                 out("agent-e2e: unknown effort '\(requested)' (off|low|medium|xhigh)")
                 exit(2)
             }
@@ -38,11 +39,10 @@ enum AgentSelfTest {
             out("agent-e2e: --model <bundle> and --task \"…\" are required")
             return 2
         }
-        let agent = AgentViewModel()
-        agent.persistsSettings = false
+        let preferences = ConversationPreferences(persists: false)
         let m4g: String?
         do {
-            m4g = try applyM4GOptions(to: agent)
+            m4g = try applyM4GOptions(to: preferences)
         } catch {
             out("agent-e2e: " + ((error as? AgentToolMessage)?.text ?? "\(error)"))
             return 2
@@ -61,83 +61,87 @@ enum AgentSelfTest {
                 format: "[e2e] prepared: cached=%@ specializeSeconds=%.2f contextLimit=%d", String(stats.cached),
                 stats.specializeSeconds,
                 chat.contextLimit))
-        agent.effort = effort
-        if let steps = LaunchArguments.value("--max-steps").flatMap({ Int($0) }) { agent.maxIterations = steps }
-        if let tokens = LaunchArguments.value("--max-tokens").flatMap({ Int($0) }) { agent.maxNewTokens = tokens }
+        preferences.effort = effort
+        if let steps = LaunchArguments.value("--max-steps").flatMap({ Int($0) }) { preferences.maxSteps = steps }
+        if let tokens = LaunchArguments.value("--max-tokens").flatMap({ Int($0) }) { preferences.maxTokens = tokens }
         if let budget = LaunchArguments.value("--page-budget").flatMap({ Int($0) }) {
-            agent.pageCharacterBudget = budget
+            preferences.pageBudget = budget
         }
-        agent.allowFileOperations = LaunchArguments.flag("--file-ops")
-        if let notes = LaunchArguments.value("--notes-dir") { agent.notesFolderPath = notes }
+        preferences.fileOperations = LaunchArguments.flag("--file-ops")
+        if let notes = LaunchArguments.value("--notes-dir") { preferences.notesFolderPath = notes }
+        let policy = TurnPolicy(.work, settings: preferences.settings)
         out(
-            "[e2e] effort=\(agent.effort.rawValue) steps=\(agent.maxIterations) tokens=\(agent.maxNewTokens) "
-                + "pageBudget=\(agent.pageCharacterBudget) search=\(agent.searchProvider) date=\(agent.fixedDate ?? AgentPromptBuilder.today()) "
-                + "fileOps=\(agent.allowFileOperations) notesDir=\(agent.notesDirectory.path(percentEncoded: false))")
+            "[e2e] effort=\(preferences.effort.rawValue) steps=\(policy.maxSteps) tokens=\(policy.maxTokens) "
+                + "pageBudget=\(preferences.pageBudget) search=\(preferences.searchProvider) "
+                + "date=\(preferences.fixedDate ?? AgentPromptBuilder.today()) "
+                + "fileOps=\(preferences.fileOperations) notesDir=\(preferences.notesDirectory.path(percentEncoded: false))"
+        )
         if let m4g { out("[e2e] m4g: \(m4g)") }
         out("[e2e] task: \(task)")
-        agent.input = task
+        let host = ConversationHost(chat: chat, preferences: preferences)
         let started = Date()
-        agent.deadline = started.addingTimeInterval(deadline)
-        guard agent.send(chat: chat) else {
+        preferences.deadline = started.addingTimeInterval(deadline)
+        guard host.send(task, mode: .work) else {
             out("agent-e2e: the agent refused to start")
             return 1
         }
         var printed: Set<String> = []
+        var stated: Set<String> = []
         var status = ""
         var stoppedByDeadline = false
         func printSettledEntries() {
-            for entry in agent.entries where !entry.live && !printed.contains(entry.id) {
-                printed.insert(entry.id)
-                out("--- \(entry.kind) \(entry.title)\n\(entry.text)")
-                if let stats = entry.stats {
+            for entry in host.state.entries where !entry.live {
+                if printed.insert(entry.id).inserted { out("--- \(entry.kind) \(entry.title)\n\(entry.text)") }
+                if let stats = entry.stats, stated.insert(entry.id).inserted {
                     status = stats
                     out("[e2e] \(stats)")
                 }
             }
         }
-        while agent.running {
+        while host.state.isRunning {
             try? await Task.sleep(for: .milliseconds(500))
             printSettledEntries()
-            if agent.statusLine != status {
-                status = agent.statusLine
+            if host.state.statusLine != status {
+                status = host.state.statusLine
                 out("[e2e] \(status)")
             }
-            if Date().timeIntervalSince(started) > deadline {
+            if !stoppedByDeadline, Date().timeIntervalSince(started) > deadline {
                 out("[e2e] deadline of \(Int(deadline))s reached — stopping")
                 stoppedByDeadline = true
-                agent.stop()
-                break
+                host.stop()
             }
         }
-        while agent.running { try? await Task.sleep(for: .milliseconds(500)) }
         printSettledEntries()
-        let failureTitles = agent.entries.filter { $0.kind == .failure }.map(\.title)
+        let entries = host.state.entries
+        let failures = entries.filter { $0.kind == .failure }
         out(
             String(
                 format: "[e2e] %.1fs  toolCalls=%d  entries=%d  failures=%d", Date().timeIntervalSince(started),
-                agent.entries.filter { $0.kind == .toolCall }.count, agent.entries.count, failureTitles.count))
-        out("[e2e] status: \(agent.statusLine)")
-        let answer = agent.finalAnswer()
-        if let before = agent.answerBeforeRepair {
+                entries.filter { $0.kind == .toolCall }.count, entries.count, failures.count))
+        out("[e2e] status: \(host.state.statusLine)")
+        let session = host.runner.session
+        let citationGuard = host.runner.citationGuard
+        let answer = citationGuard.finalAnswer(entries)
+        if let before = citationGuard.answerBeforeRepair {
             out("[e2e] answer before repair (\(before.count) chars):\n\(before)")
         }
         out("[e2e] final answer (\(answer.count) chars):\n\(answer)")
         let outcome = e2eOutcome(
-            stoppedByDeadline: stoppedByDeadline, failureTitles: failureTitles, answer: answer,
-            finishReason: agent.lastFinishReason,
-            held: agent.guardOutcome == heldOutcome)
+            stoppedByDeadline: stoppedByDeadline, failures: failures.map { ($0.title, $0.text) }, answer: answer,
+            finishReason: session.lastFinish, held: citationGuard.outcome == heldOutcome)
         out("[e2e] outcome: \(outcome)")
-        for check in agent.checks { out(check.logLine) }
-        if let guardOutcome = agent.guardOutcome {
+        for check in citationGuard.checks { out(check.logLine) }
+        if let guardOutcome = citationGuard.outcome {
             out(
                 String(
                     format:
                         "[guard] outcome=%@ reason=%@ repair_turns=%d repair_fetches=%d repair_seconds=%.1f repair_prompt_tokens=%d "
                         + "repair_generated_tokens=%d drafts=%d",
-                    guardOutcome, agent.guardReason, agent.repairTurns, agent.repairFetches, agent.repairSeconds ?? 0,
-                    agent.repairPromptTokens ?? 0, agent.repairGeneratedTokens ?? 0, agent.draftOrder.count))
+                    guardOutcome, citationGuard.reason, citationGuard.repairTurns, host.runner.tools.repairFetches,
+                    citationGuard.repairSeconds ?? 0, citationGuard.repairPromptTokens ?? 0,
+                    citationGuard.repairGeneratedTokens ?? 0, host.runner.tools.draftOrder.count))
         }
-        if let cassette = agent.cassette {
+        if let cassette = preferences.cassette {
             out(
                 "[cassette] summary hits=\(await cassette.hits) misses=\(await cassette.misses) records=\(await cassette.records)"
             )
@@ -145,12 +149,12 @@ enum AgentSelfTest {
         let completed = outcome == answeredOutcome || outcome == heldOutcome
         out(
             (completed ? "AGENT E2E COMPLETED" : "AGENT E2E INCOMPLETE")
-                + "  diverges=\(agent.divergeCount)  capSteps=\(agent.capSteps)")
+                + "  diverges=\(session.divergeCount)  capSteps=\(session.capSteps)")
         return completed ? 0 : 1
     }
 
     @MainActor
-    private static func applyM4GOptions(to agent: AgentViewModel) throws -> String? {
+    private static func applyM4GOptions(to preferences: ConversationPreferences) throws -> String? {
         func choice(_ name: String, _ allowed: [String]) throws -> String? {
             guard let value = LaunchArguments.value(name) else { return nil }
             guard allowed.contains(value) else {
@@ -160,15 +164,15 @@ enum AgentSelfTest {
         }
         var given: [String] = []
         if let value = try choice("--instructions", ["frozen", "cite-fetched"]) {
-            agent.citeFetched = value == "cite-fetched"
+            preferences.citeFetched = value == "cite-fetched"
             given.append("instructions=\(value)")
         }
         if let value = try choice("--citation-guard", ["on", "off"]) {
-            agent.citationGuard = value == "on"
+            preferences.citationGuard = value == "on"
             given.append("citationGuard=\(value)")
         }
         if let value = try choice("--sources-required", ["yes", "no", "auto"]) {
-            agent.sourcesRequired = value == "auto" ? nil : value == "yes"
+            preferences.sourcesRequired = value == "auto" ? nil : value == "yes"
             given.append("sourcesRequired=\(value)")
         }
         if let value = LaunchArguments.value("--date") {
@@ -178,11 +182,11 @@ enum AgentSelfTest {
                         "--date must read like \"\(AgentPromptBuilder.today())\" with the right weekday, not '\(value)'"
                 )
             }
-            agent.fixedDate = value
+            preferences.fixedDate = value
             given.append("date=\(value)")
         }
         if LaunchArguments.flag("--stable-note-paths") {
-            agent.stableNotePaths = true
+            preferences.stableNotePaths = true
             given.append("stableNotePaths=true")
         }
         let latency = try choice("--cassette-latency", ["replay", "none"])
@@ -195,7 +199,7 @@ enum AgentSelfTest {
                     text: "--tool-cassette <path> and --cassette-mode record|replay|replay-or-record go together")
             }
             let cassette = try ToolCassette(file: URL(filePath: path), mode: mode, replaysLatency: latency != "none")
-            agent.cassette = cassette
+            preferences.cassette = cassette
             given.append(
                 "cassette=\(path) mode=\(mode.rawValue) latency=\(latency ?? "replay") entries=\(cassette.loaded)")
         } else if latency != nil {
@@ -208,15 +212,20 @@ enum AgentSelfTest {
     static let heldOutcome = "held"
 
     static func e2eOutcome(
-        stoppedByDeadline: Bool, failureTitles: [String], answer: String, finishReason: String?, held: Bool = false
+        stoppedByDeadline: Bool, failures: [(title: String, text: String)], answer: String, finishReason: String?,
+        held: Bool = false
     ) -> String {
         if held { return heldOutcome }
         if stoppedByDeadline { return "stopped" }
-        if let title = failureTitles.first {
-            if title.hasPrefix("Context window is full") { return "overflow" }
-            if title.hasPrefix("Step limit reached") { return "step-limit" }
-            if title.hasPrefix("Answer cut at the token limit") { return "cap" }
-            if title.hasPrefix("Stopped") { return "stopped" }
+        if let failure = failures.first {
+            if failure.title.hasPrefix("Ended at the step limit") { return "step-limit" }
+            if failure.title.hasPrefix("Generation failed"),
+                failure.text.hasPrefix(ConversationSession.contextFullPrefix)
+            {
+                return "overflow"
+            }
+            if failure.title.hasPrefix("Answer cut at the token limit") { return "cap" }
+            if failure.title.hasPrefix("Stopped") { return "stopped" }
             return "failed"
         }
         if answer.isEmpty || answer == CitationGuard.noAnswerText { return "failed" }
@@ -455,32 +464,23 @@ enum AgentSelfTest {
         check("notes/moveRefused", refusals.allSatisfy { $0.hasPrefix("error:") }, refusals.joined(separator: " | "))
         try? FileManager.default.removeItem(at: movesIn)
 
-        let capTitle = "Answer cut at the token limit (1536)"
+        let capTitle = "Answer cut at the token limit (4096)"
+        let overflow = ConversationSession.contextFullPrefix + ": the conversation needs 17000 tokens"
+        func verdict(_ failures: [(String, String)], answer: String = "done", finish: String? = "eos") -> String {
+            e2eOutcome(stoppedByDeadline: false, failures: failures, answer: answer, finishReason: finish)
+        }
         check(
             "e2e/outcomeVerdict",
-            e2eOutcome(stoppedByDeadline: false, failureTitles: [], answer: "done", finishReason: "eos") == "answered"
-                && e2eOutcome(stoppedByDeadline: true, failureTitles: [], answer: "done", finishReason: "eos")
-                    == "stopped"
-                && e2eOutcome(
-                    stoppedByDeadline: false, failureTitles: [], answer: CitationGuard.noAnswerText,
-                    finishReason: "eos") == "failed"
-                && e2eOutcome(stoppedByDeadline: false, failureTitles: [], answer: "done", finishReason: "cap")
-                    == "failed"
-                && e2eOutcome(stoppedByDeadline: false, failureTitles: [], answer: "done", finishReason: nil)
-                    == "failed"
-                && e2eOutcome(
-                    stoppedByDeadline: false, failureTitles: ["Step limit reached"], answer: "done", finishReason: "eos"
-                ) == "step-limit"
-                && e2eOutcome(
-                    stoppedByDeadline: false, failureTitles: ["Context window is full"], answer: "done",
-                    finishReason: "eos") == "overflow"
-                && e2eOutcome(stoppedByDeadline: false, failureTitles: [capTitle], answer: "done", finishReason: "cap")
-                    == "cap"
-                && e2eOutcome(stoppedByDeadline: false, failureTitles: ["Stopped"], answer: "", finishReason: nil)
-                    == "stopped"
-                && e2eOutcome(
-                    stoppedByDeadline: false, failureTitles: ["Generation failed"], answer: "done", finishReason: "eos")
-                    == "failed",
+            verdict([]) == "answered"
+                && e2eOutcome(stoppedByDeadline: true, failures: [], answer: "done", finishReason: "eos") == "stopped"
+                && verdict([], answer: CitationGuard.noAnswerText) == "failed"
+                && verdict([], finish: "cap") == "failed"
+                && verdict([], finish: nil) == "failed"
+                && verdict([("Ended at the step limit", "The turn reached its 8-step limit")]) == "step-limit"
+                && verdict([("Generation failed", overflow)]) == "overflow"
+                && verdict([(capTitle, "The answer above stops")], finish: "cap") == "cap"
+                && verdict([("Stopped", "(stopped before any answer)")], answer: "", finish: nil) == "stopped"
+                && verdict([("Generation failed", "The model could not run")]) == "failed",
             "verdict table changed")
 
         let userText = "who ships Core ML bundles?"
@@ -488,19 +488,30 @@ enum AgentSelfTest {
         let callText = "query: Core ML bundles"
         let resultText = "1. Result\n```\nfenced block inside the tool result\n```\ntail line"
         let answerText = "Apple ships them."
-        let statsText = "step 1  |  TTFT 0.50s  |  12.3 tok/s"
         let noteText = "1/1 cited URLs were retrieved in this task"
-        let agent = AgentViewModel()
-        agent.persistsSettings = false
-        agent.entries = [
-            .init(kind: .user, title: "You", text: userText),
-            .init(kind: .thinking, title: "Thinking", text: thinkText),
-            .init(kind: .toolCall, title: "web_search", text: callText),
-            .init(kind: .toolResult, title: "web_search result", text: resultText),
-            .init(kind: .answer, title: "Assistant", text: answerText, stats: statsText),
-            .init(kind: .note, title: "Citations", text: noteText),
-        ]
-        let markdown = agent.transcriptMarkdown()
+        let stats = StepStats(
+            step: 2, ttftSeconds: 0.5, tokensPerSecond: 12.3, promptTokens: 900, reusedTokens: 850, generatedTokens: 20,
+            toolCalls: 0, finish: "eos")
+        let statsText = stats.line
+        let lookup = ToolCallRecord(id: "call-1", name: "web_search", arguments: #"{"query":"Core ML bundles"}"#)
+        var transcript = ConversationState(id: "selftest", now: .distantPast)
+        for action: ConversationAction in [
+            .send(userText, mode: .work, now: .distantPast),
+            .transcriptChanged(
+                run: 1,
+                TranscriptRecord(entries: [
+                    .instructions(id: "i", text: "Rules"), .prompt(id: "p", text: userText),
+                    .reasoning(id: "r", text: thinkText), .toolCalls(id: "t", calls: [lookup], metadata: nil),
+                    .toolOutput(id: "call-1", name: "web_search", text: resultText),
+                    .response(id: "a", text: answerText, metadata: StepMetadata(stopReason: "stopToken")),
+                ])),
+            .stepFinished(run: 1, stats),
+            .guardNote(run: 1, title: CitationGuard.citationsTitle, text: noteText, warning: false),
+            .generationEnded(run: 1, stopReason: "stopToken"),
+        ] {
+            _ = ConversationFeature.reduce(&transcript, action)
+        }
+        let markdown = ConversationSnapshot(transcript).markdown()
         let offsets = [userText, thinkText, callText, resultText, answerText, noteText].map {
             markdown.range(of: $0).map { markdown.distance(from: markdown.startIndex, to: $0.lowerBound) }
         }
@@ -816,10 +827,9 @@ enum AgentSelfTest {
         check(
             "e2e/heldVerdict",
             e2eOutcome(
-                stoppedByDeadline: true, failureTitles: ["Stopped"], answer: "done", finishReason: "eos", held: true)
+                stoppedByDeadline: true, failures: [("Stopped", "")], answer: "done", finishReason: "eos", held: true)
                 == "held"
-                && e2eOutcome(
-                    stoppedByDeadline: false, failureTitles: [], answer: "done", finishReason: "eos", held: false)
+                && e2eOutcome(stoppedByDeadline: false, failures: [], answer: "done", finishReason: "eos", held: false)
                     == "answered",
             "")
         let now = Date()
@@ -850,14 +860,22 @@ enum AgentSelfTest {
         let defaultsName = "agent-defaults-" + UUID().uuidString
         if let defaults = UserDefaults(suiteName: defaultsName) {
             defer { defaults.removePersistentDomain(forName: defaultsName) }
-            let fresh = AgentViewModel(defaults: defaults)
+            let fresh = ConversationPreferences(defaults: defaults)
             check("m4h/defaultInstructionsAndGuard", fresh.citeFetched && fresh.citationGuard, "fresh settings")
             fresh.citeFetched = false
             fresh.citationGuard = false
-            let saved = AgentViewModel(defaults: defaults)
+            let saved = ConversationPreferences(defaults: defaults)
             check("m4h/savedInstructionsAndGuard", !saved.citeFetched && !saved.citationGuard, "saved false values")
         } else {
             check("m4h/defaultInstructionsAndGuard", false, "could not create isolated defaults")
+        }
+        func toolRunner(_ directory: URL, cassette: ToolCassette? = nil, guarding: Bool = false) -> ToolRunner {
+            let preferences = ConversationPreferences(persists: false)
+            preferences.notesFolderPath = directory.path(percentEncoded: false)
+            preferences.cassette = cassette
+            let runner = ToolRunner(preferences: preferences)
+            runner.guardActive = guarding
+            return runner
         }
         let key = ["fetch_page", "https://example.com/old", ""]
         do {
@@ -1008,20 +1026,17 @@ enum AgentSelfTest {
                         finalURL: "https://example.com/p\($0)", ms: 0, recorded: "t")
                 }
             ).write(to: four)
-            let repairing = AgentViewModel()
-            repairing.persistsSettings = false
-            repairing.notesFolderPath = folder.path(percentEncoded: false)
-            repairing.cassette = try ToolCassette(file: four, mode: .replay, replaysLatency: false)
+            let fourTape = try ToolCassette(file: four, mode: .replay, replaysLatency: false)
+            let repairing = toolRunner(folder, cassette: fourTape)
             repairing.repairFetchLimit = ToolRunner.repairFetchLimit
-            let runner = repairing.toolRunner()
             let calls = (1...4).map { fetchCall("https://example.com/p\($0)") }
             let results = await withTaskGroup(of: String.self) { group in
-                for call in calls { group.addTask { await runner(call) } }
+                for call in calls { group.addTask { await repairing.execute(call) } }
                 var out: [String] = []
                 for await result in group { out.append(result) }
                 return out
             }
-            let fourHits = await repairing.cassette?.hits ?? -1
+            let fourHits = await fourTape.hits
             check(
                 "m4g/repairFetchLimitInParallel",
                 results.count { $0 == ToolRunner.repairFetchLimitText } == 1
@@ -1040,13 +1055,10 @@ enum AgentSelfTest {
                     key: ["fetch_page", "https://example.com/p1", ""], text: "page 1", seen: [:], ok: true,
                     finalURL: "https://example.com/p1", ms: 0, recorded: "t"),
             ]).write(to: mixedTape)
-            let trying = AgentViewModel()
-            trying.persistsSettings = false
-            trying.notesFolderPath = folder.path(percentEncoded: false)
-            trying.cassette = try ToolCassette(file: mixedTape, mode: .replay, replaysLatency: false)
-            let tryRunner = trying.toolRunner()
-            _ = await tryRunner(fetchCall("https://example.invalid/gone"))
-            _ = await tryRunner(fetchCall("https://example.com/p1"))
+            let trying = toolRunner(
+                folder, cassette: try ToolCassette(file: mixedTape, mode: .replay, replaysLatency: false))
+            _ = await trying.execute(fetchCall("https://example.invalid/gone"))
+            _ = await trying.execute(fetchCall("https://example.com/p1"))
             check(
                 "m4g/fetchAttemptsRecordFailures",
                 trying.fetchAttempts == [
@@ -1056,15 +1068,11 @@ enum AgentSelfTest {
                 "attempts=\(trying.fetchAttempts) ledger=\(trying.ledger.map(\.url))")
 
             let notesA = folder.appending(path: "notes-a", directoryHint: .isDirectory)
-            let drafting = AgentViewModel()
-            drafting.persistsSettings = false
-            drafting.notesFolderPath = notesA.path(percentEncoded: false)
-            drafting.guardActive = true
-            let draftRunner = drafting.toolRunner()
-            let saved1 = await draftRunner(writeCall("Summary", "first body"))
-            let saved2 = await draftRunner(writeCall("Summary", "second body"))
+            let drafting = toolRunner(notesA, guarding: true)
+            let saved1 = await drafting.execute(writeCall("Summary", "first body"))
+            let saved2 = await drafting.execute(writeCall("Summary", "second body"))
             drafting.repairFetchLimit = ToolRunner.repairFetchLimit
-            let saved3 = await draftRunner(writeCall("Summary", "repaired body"))
+            let saved3 = await drafting.execute(writeCall("Summary", "repaired body"))
             drafting.repairFetchLimit = nil
             let draftFolder = notesA.appending(path: AgentTools.draftFolderName, directoryHint: .isDirectory)
             let draftsBefore =
@@ -1073,7 +1081,7 @@ enum AgentSelfTest {
             let committedBefore =
                 ((try? FileManager.default.contentsOfDirectory(atPath: notesA.path(percentEncoded: false))) ?? [])
                 .filter { $0 != AgentTools.draftFolderName }
-            drafting.finishNotes(commit: true)
+            CitationGuard(tools: drafting).finishNotes(commit: true)
             let kept = (try? String(contentsOf: notesA.appending(path: "Summary 2.md"), encoding: .utf8)) ?? ""
             check(
                 "m4g/draftsCommitOnPass",
@@ -1091,34 +1099,29 @@ enum AgentSelfTest {
                 ("unfetched-url", "See https://example.org/untried", false, false),
             ] {
                 let directory = folder.appending(path: "incomplete-" + name, directoryHint: .isDirectory)
-                let incomplete = AgentViewModel()
-                incomplete.persistsSettings = false
-                incomplete.notesFolderPath = directory.path(percentEncoded: false)
-                incomplete.guardActive = true
-                if fetch {
-                    incomplete.cassette = try ToolCassette(file: mixedTape, mode: .replay, replaysLatency: false)
-                    _ = await incomplete.toolRunner()(fetchCall("https://example.com/p1"))
-                }
-                _ = await incomplete.toolRunner()(writeCall("Incomplete", body))
-                incomplete.finishIncompleteNotes(reason: "step-limit")
+                let incomplete = toolRunner(
+                    directory,
+                    cassette: fetch ? try ToolCassette(file: mixedTape, mode: .replay, replaysLatency: false) : nil,
+                    guarding: true)
+                if fetch { _ = await incomplete.execute(fetchCall("https://example.com/p1")) }
+                _ = await incomplete.execute(writeCall("Incomplete", body))
+                let finishing = CitationGuard(tools: incomplete)
+                finishing.finishIncompleteNotes(reason: "step-limit")
                 let committed = directory.appending(path: "Incomplete.md")
                 let drafts = directory.appending(path: AgentTools.draftFolderName)
                 let held = (try? String(contentsOf: drafts.appending(path: "HELD.txt"), encoding: .utf8)) ?? ""
                 check(
                     "m4h/incompleteNotes-" + name,
-                    incomplete.guardOutcome == "skipped" && exists(committed) == shouldCommit
+                    finishing.outcome == "skipped" && exists(committed) == shouldCommit
                         && (shouldCommit
                             || (exists(drafts.appending(path: "Incomplete.md")) && held.contains("note-unfetched"))),
-                    "outcome=\(incomplete.guardOutcome ?? "nil") committed=\(exists(committed)) held=\(held)")
+                    "outcome=\(finishing.outcome ?? "nil") committed=\(exists(committed)) held=\(held)")
             }
 
             let notesB = folder.appending(path: "notes-b", directoryHint: .isDirectory)
-            let holding = AgentViewModel()
-            holding.persistsSettings = false
-            holding.notesFolderPath = notesB.path(percentEncoded: false)
-            holding.guardActive = true
-            _ = await holding.toolRunner()(writeCall("Held note", "body"))
-            holding.finishNotes(commit: false)
+            let holding = toolRunner(notesB, guarding: true)
+            _ = await holding.execute(writeCall("Held note", "body"))
+            CitationGuard(tools: holding).finishNotes(commit: false)
             let held =
                 (try? String(
                     contentsOf: notesB.appending(path: AgentTools.draftFolderName).appending(path: "HELD.txt"),

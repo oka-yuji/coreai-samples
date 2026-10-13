@@ -1,3 +1,4 @@
+import ConversationFeature
 import Foundation
 import RAGContext
 
@@ -20,7 +21,7 @@ enum SelfTest {
             LaunchArguments.value("--rag-budget") == nil || ChatViewModel.launchRAGBudget != nil
         else {
             log(
-                "usage: CoreAISamples --selftest --model <folder> (--prompts-file <file> | --rag \"question 1|question 2\" [--rag-web off] [--rag-local off] [--rag-docs <folder>] [--rag-budget 3000|6000]) [--max-tokens N] [--context-limit N]"
+                "usage: CoreAISamples --selftest --model <folder> (--prompts-file <file> | --rag \"question 1|question 2\" [--rag-web off] [--rag-local off] [--rag-docs <folder>] [--rag-budget 3000|6000]) [--max-tokens N] [--context-limit N] [--effort off|low|medium|xhigh]"
             )
             return finish(false)
         }
@@ -31,10 +32,9 @@ enum SelfTest {
             }.filter { !$0.isEmpty }
             : questions
         let chat = ChatViewModel()
-        if let maxTokens = LaunchArguments.value("--max-tokens").flatMap(Int.init) { chat.maxTokens = maxTokens }
-        if let effort = LaunchArguments.value("--effort").flatMap(AgentReasoningEffort.init(argument:)) {
-            chat.reasoning = effort
-        }
+        let preferences = ConversationPreferences(persists: false)
+        preferences.effort = LaunchArguments.value("--effort").flatMap(AgentReasoningEffort.init(argument:)) ?? .medium
+        if let maxTokens = LaunchArguments.value("--max-tokens").flatMap(Int.init) { preferences.maxTokens = maxTokens }
         if !questions.isEmpty {
             chat.ragEnabled = true
             chat.ragWeb = !isOff(LaunchArguments.value("--rag-web"))
@@ -45,12 +45,14 @@ enum SelfTest {
             log("[selftest] load failed: \(chat.phase)")
             return finish(false)
         }
+        let host = ConversationHost(chat: chat, preferences: preferences)
         log(
             String(
                 format:
                     "[selftest] model=%@ prompts=%d maxTokens=%d contextLimit=%d effort=%@ cached=%@ specializeSeconds=%.2f loadSeconds=%.2f",
-                chat.modelName, prompts.count, chat.maxTokens, chat.contextLimit, chat.reasoning.label,
-                String(stats.cached), stats.specializeSeconds, chat.loadSeconds))
+                chat.modelName, prompts.count, TurnPolicy(.chat, settings: preferences.settings).maxTokens,
+                chat.contextLimit, preferences.effort.label, String(stats.cached), stats.specializeSeconds,
+                chat.loadSeconds))
         if chat.ragEnabled {
             let settings = RAGSettings.fromDefaults()
             log(
@@ -64,13 +66,13 @@ enum SelfTest {
         var pass = !prompts.isEmpty
         for (index, prompt) in prompts.enumerated() {
             chat.input = prompt
-            guard chat.send() else {
-                log("[selftest] send refused: phase=\(chat.phase) contextFull=\(chat.contextFull)")
+            guard host.submit() else {
+                log("[selftest] send refused: phase=\(chat.phase) contextFull=\(host.contextFull || chat.contextFull)")
                 pass = false
                 break
             }
-            await chat.generation?.value
-            guard let result = chat.last else {
+            while host.state.isRunning || chat.isResponding { try? await Task.sleep(for: .milliseconds(20)) }
+            guard let result = chat.ragEnabled ? chat.last : host.runner.session.lastGeneration else {
                 pass = false
                 break
             }
@@ -82,13 +84,13 @@ enum SelfTest {
                 for (number, source) in retrieval.sources.enumerated() {
                     log("[rag] turn=\(index) passage [\(number + 1)] \(source.text.replacing("\n", with: "\\n"))")
                 }
-                let thinking = chat.turns.last?.reasoning ?? ""
+                let thinking = chat.ragTurns.last?.reasoning ?? ""
                 log("[rag] turn=\(index) thinking (\(thinking.count) chars)=\(thinking.replacing("\n", with: "\\n"))")
                 log("[rag] turn=\(index) answer=\(result.answer.replacing("\n", with: " "))")
             }
             FileHandle.standardOutput.write((try? encoder.encode(result)) ?? Data())
             FileHandle.standardOutput.write(Data("\n".utf8))
-            log("[selftest] \(chat.statusLine)")
+            log("[selftest] \(result.statusLine)")
             log("[selftest] engineTokens=\(await chat.model?.processedTokens().count ?? 0)")
             let generated =
                 result.error == nil && ["stopToken", "maxTokens"].contains(result.stopReason) && result.outputTokens > 0

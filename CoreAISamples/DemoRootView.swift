@@ -46,18 +46,11 @@ enum Demo: String, CaseIterable, Identifiable {
     }
 }
 
-@MainActor
-@Observable
-final class DemoNavigator {
-    var selection: Demo? = .chat
-}
-
 struct DemoRootView: View {
     @AppStorage(DemoLanguage.preferenceKey) private var languageCode = DemoLanguage.initialCode
     @State private var navigator = DemoNavigator()
     @State private var chat: ChatViewModel
     @State private var host: ConversationHost
-    @State private var agent = AgentViewModel()
     @State private var models = ModelsViewModel()
     @State private var decide = DecideAssembly.makeStore()
     @State private var recipes = RecipeAssembly.makeStore()
@@ -135,7 +128,7 @@ struct DemoRootView: View {
         .environment(\.locale, (DemoLanguage(rawValue: languageCode) ?? .english).locale)
         .onChange(of: chat.loadStarted) { host.startNew() }
         .task {
-            GUIDriver.shared.attach(navigator: navigator, chat: chat, agent: agent, models: models, extract: extract)
+            await GUIDriver.shared.start(navigator: navigator, chat: chat, host: host, models: models, extract: extract)
         }
     }
 }

@@ -80,7 +80,6 @@ final class CitationGuard {
     nonisolated static let heldLabel = "Could not confirm that the cited sources were fetched"
     static let citationSourceLimit = 200_000
 
-    private let preferences: ConversationPreferences
     private let tools: ToolRunner
     private(set) var active = false
     private(set) var checks: [LedgerCheck] = []
@@ -97,10 +96,11 @@ final class CitationGuard {
     private var repairUsage: LanguageModelSession.Usage?
     private var notesCommitted = false
 
-    init(preferences: ConversationPreferences, tools: ToolRunner) {
-        self.preferences = preferences
+    init(tools: ToolRunner) {
         self.tools = tools
     }
+
+    private var preferences: ConversationPreferences { tools.preferences }
 
     func begin(active: Bool) {
         self.active = active
