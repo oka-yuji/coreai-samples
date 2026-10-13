@@ -30,24 +30,6 @@ final class ChatViewModel {
         case failed(String)
     }
 
-    enum Reasoning: String, CaseIterable, Identifiable {
-        case off = "Off"
-        case low = "Low"
-        case medium = "Medium"
-        case high = "High"
-
-        var id: String { rawValue }
-
-        var level: ContextOptions.ReasoningLevel {
-            switch self {
-            case .off: .custom("off")
-            case .low: .light
-            case .medium: .moderate
-            case .high: .deep
-            }
-        }
-    }
-
     struct Turn: Identifiable {
         let id: String
         let prompt: String
@@ -76,7 +58,7 @@ final class ChatViewModel {
     private(set) var ragTurns: [(after: Int, turn: Turn)] = []
     var input = ""
     var externallyBusy = false
-    var reasoning = Reasoning.medium
+    var reasoning = AgentReasoningEffort.medium
     var maxTokens = 2048
     var ragEnabled = false
     var ragWeb = true
@@ -190,6 +172,14 @@ final class ChatViewModel {
         } catch {
             phase = .failed(error.localizedDescription)
         }
+    }
+
+    func resetRAG() {
+        ragTurns = []
+        retrieval = nil
+        last = nil
+        contextNotice = nil
+        contextFull = false
     }
 
     func newChat() {

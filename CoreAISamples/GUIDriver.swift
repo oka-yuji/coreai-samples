@@ -171,8 +171,7 @@ final class GUIDriver {
         }
         let url = URL(filePath: path, directoryHint: .isDirectory)
         if let tokens = LaunchArguments.value("--max-tokens").flatMap(Int.init) { chat.maxTokens = tokens }
-        if let effort = LaunchArguments.value("--effort").flatMap({ ChatViewModel.Reasoning(rawValue: $0.capitalized) })
-        {
+        if let effort = LaunchArguments.value("--effort").flatMap(AgentReasoningEffort.init(argument:)) {
             chat.reasoning = effort
         }
         NSApp.activate()

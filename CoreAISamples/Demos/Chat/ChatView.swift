@@ -57,7 +57,7 @@ struct ChatView: View {
             }
             HStack(spacing: 20) {
                 Picker("Reasoning effort", selection: $vm.reasoning) {
-                    ForEach(ChatViewModel.Reasoning.allCases) { Text(LocalizedStringKey($0.rawValue)).tag($0) }
+                    ForEach(AgentReasoningEffort.allCases) { Text(LocalizedStringKey($0.label)).tag($0) }
                 }
                 .pickerStyle(.segmented)
                 .fixedSize()

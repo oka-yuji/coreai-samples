@@ -32,8 +32,7 @@ enum SelfTest {
             : questions
         let chat = ChatViewModel()
         if let maxTokens = LaunchArguments.value("--max-tokens").flatMap(Int.init) { chat.maxTokens = maxTokens }
-        if let effort = LaunchArguments.value("--effort").flatMap({ ChatViewModel.Reasoning(rawValue: $0.capitalized) })
-        {
+        if let effort = LaunchArguments.value("--effort").flatMap(AgentReasoningEffort.init(argument:)) {
             chat.reasoning = effort
         }
         if !questions.isEmpty {
@@ -50,7 +49,7 @@ enum SelfTest {
             String(
                 format:
                     "[selftest] model=%@ prompts=%d maxTokens=%d contextLimit=%d effort=%@ cached=%@ specializeSeconds=%.2f loadSeconds=%.2f",
-                chat.modelName, prompts.count, chat.maxTokens, chat.contextLimit, chat.reasoning.rawValue,
+                chat.modelName, prompts.count, chat.maxTokens, chat.contextLimit, chat.reasoning.label,
                 String(stats.cached), stats.specializeSeconds, chat.loadSeconds))
         if chat.ragEnabled {
             let settings = RAGSettings.fromDefaults()

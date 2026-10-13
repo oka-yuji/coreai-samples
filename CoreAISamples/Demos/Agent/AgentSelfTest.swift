@@ -219,7 +219,7 @@ enum AgentSelfTest {
             if title.hasPrefix("Stopped") { return "stopped" }
             return "failed"
         }
-        if answer.isEmpty || answer == AgentViewModel.noAnswerText { return "failed" }
+        if answer.isEmpty || answer == CitationGuard.noAnswerText { return "failed" }
         return finishReason == "eos" ? answeredOutcome : "failed"
     }
 
@@ -320,16 +320,16 @@ enum AgentSelfTest {
                 && AgentTools.pageText(longPageFixture, query: "?!()", budget: budget) == head,
             "terms=\(AgentTools.matchTerms(hostileQuery))")
 
-        let overlapping = AgentViewModel.gramOverlap("abcdefghij", "zz abcdefghi zz")
-        let disjoint = AgentViewModel.gramOverlap("abcdefghij", "0123456789")
+        let overlapping = CitationGuard.gramOverlap("abcdefghij", "zz abcdefghi zz")
+        let disjoint = CitationGuard.gramOverlap("abcdefghij", "0123456789")
         let answer = "Core ML runs on device.\n\nSources:\nhttps://example.com/read\n- https://example.org/never-opened"
-        let split = AgentViewModel.splitSources(answer)
+        let split = CitationGuard.splitSources(answer)
         check(
             "cite/overlapAndUnseenURL",
             abs(overlapping - 2.0 / 3.0) < 1e-9 && disjoint == 0
                 && split.urls == ["https://example.com/read", "https://example.org/never-opened"]
                 && split.body == "Core ML runs on device.\n"
-                && AgentViewModel.normalized("https://Example.com/read/") == "https://example.com/read",
+                && CitationGuard.normalized("https://Example.com/read/") == "https://example.com/read",
             "overlap=\(overlapping) disjoint=\(disjoint) urls=\(split.urls) body=\(split.body.debugDescription)")
 
         let stripped = AgentTools.plainText(fromHTML: htmlFixture)
@@ -462,7 +462,7 @@ enum AgentSelfTest {
                 && e2eOutcome(stoppedByDeadline: true, failureTitles: [], answer: "done", finishReason: "eos")
                     == "stopped"
                 && e2eOutcome(
-                    stoppedByDeadline: false, failureTitles: [], answer: AgentViewModel.noAnswerText,
+                    stoppedByDeadline: false, failureTitles: [], answer: CitationGuard.noAnswerText,
                     finishReason: "eos") == "failed"
                 && e2eOutcome(stoppedByDeadline: false, failureTitles: [], answer: "done", finishReason: "cap")
                     == "failed"
@@ -586,7 +586,9 @@ enum AgentSelfTest {
             "m4g/citeFetchedInstructions",
             cited
                 == frozen.replacingOccurrences(
-                    of: "\n\nCurrent date: ", with: "\n" + added.joined(separator: "\n") + "\n\nCurrent date: ")
+                    of: "\n\nCurrent date: ",
+                    with: "\n" + (added + AgentPromptBuilder.conversationInstructions).joined(separator: "\n")
+                        + "\n\nCurrent date: ")
                 && (added + [AgentPromptBuilder.repairPromptTemplate]).map(sha256) == appendixSHA256,
             cited.debugDescription)
         let twoURLs = AgentPromptBuilder.repairPrompt(unfetched: ["https://a.example/x", "https://b.example/y"])
@@ -627,27 +629,27 @@ enum AgentSelfTest {
             ("HTTPS://Example.com/Path?Q=1#frag", ["HTTPS://Example.com/Path?Q=1#frag"]),
             ("no link, just https:// and text", []),
         ]
-        let misread = readings.filter { AgentViewModel.guardURLs(in: $0.0) != $0.1 }
+        let misread = readings.filter { CitationGuard.guardURLs(in: $0.0) != $0.1 }
         check(
             "m4g/guardURLReader",
             misread.isEmpty
-                && AgentViewModel.urls(in: "https://ja.wikipedia.org/wiki/Metal_(API)") == [
+                && CitationGuard.urls(in: "https://ja.wikipedia.org/wiki/Metal_(API)") == [
                     "https://ja.wikipedia.org/wiki/Metal_"
                 ],
-            misread.map { "\($0.0.debugDescription) -> \(AgentViewModel.guardURLs(in: $0.0))" }.joined(separator: " | ")
+            misread.map { "\($0.0.debugDescription) -> \(CitationGuard.guardURLs(in: $0.0))" }.joined(separator: " | ")
         )
         check(
             "m4g/guardNormalized",
-            AgentViewModel.guardNormalized("HTTPS://Example.COM/Path/To/?Q=A#frag")
+            CitationGuard.guardNormalized("HTTPS://Example.COM/Path/To/?Q=A#frag")
                 == "https://example.com/Path/To/?Q=A"
-                && AgentViewModel.guardNormalized("https://example.com/Path/") == "https://example.com/Path"
-                && AgentViewModel.guardNormalized("https://example.com/") == "https://example.com"
-                && AgentViewModel.guardNormalized("https://example.com/path")
-                    != AgentViewModel.guardNormalized("https://example.com/Path")
-                && AgentViewModel.normalized("https://Example.com/Path/") == "https://example.com/path",
-            AgentViewModel.guardNormalized("HTTPS://Example.COM/Path/To/?Q=A#frag"))
+                && CitationGuard.guardNormalized("https://example.com/Path/") == "https://example.com/Path"
+                && CitationGuard.guardNormalized("https://example.com/") == "https://example.com"
+                && CitationGuard.guardNormalized("https://example.com/path")
+                    != CitationGuard.guardNormalized("https://example.com/Path")
+                && CitationGuard.normalized("https://Example.com/Path/") == "https://example.com/path",
+            CitationGuard.guardNormalized("HTTPS://Example.COM/Path/To/?Q=A#frag"))
         func same(_ a: String, _ b: String) -> Bool {
-            AgentViewModel.guardNormalized(a) == AgentViewModel.guardNormalized(b)
+            CitationGuard.guardNormalized(a) == CitationGuard.guardNormalized(b)
         }
         check(
             "m4g/guardPercentEscapes",
@@ -660,10 +662,10 @@ enum AgentSelfTest {
                 && same("https://example.com/a%2fb", "https://example.com/a%2Fb")
                 && !same("https://example.com/a%3Fb", "https://example.com/a?b")
                 && !same("https://example.com/a%23b", "https://example.com/a")
-                && AgentViewModel.guardNormalized("https://example.com/100%25") == "https://example.com/100%25"
-                && AgentViewModel.guardNormalized("https://example.com/%E3%82x%zz") == "https://example.com/%E3%82x%zz",
-            AgentViewModel.guardNormalized("https://ja.wikipedia.org/wiki/Metal_%28API%29") + " | "
-                + AgentViewModel.guardNormalized("https://example.com/%E3%82x%zz"))
+                && CitationGuard.guardNormalized("https://example.com/100%25") == "https://example.com/100%25"
+                && CitationGuard.guardNormalized("https://example.com/%E3%82x%zz") == "https://example.com/%E3%82x%zz",
+            CitationGuard.guardNormalized("https://ja.wikipedia.org/wiki/Metal_%28API%29") + " | "
+                + CitationGuard.guardNormalized("https://example.com/%E3%82x%zz"))
 
         func fetchCall(_ url: String) -> AgentToolCall {
             AgentToolCall(name: "fetch_page", arguments: [AgentArgument(name: "url", value: url)])
@@ -675,18 +677,18 @@ enum AgentSelfTest {
         }
         let page = AgentToolOutput(
             text: "page text", seen: ["https://example.com/old": "full page text"], finalURL: "https://example.com/new")
-        let record = AgentViewModel.fetchRecord(fetchCall("https://example.com/old"), page)
+        let record = CitationGuard.fetchRecord(fetchCall("https://example.com/old"), page)
         check(
             "m4g/ledgerOnlyFetchedPages",
-            AgentViewModel.fetchRecord(
+            CitationGuard.fetchRecord(
                 AgentToolCall(name: "web_search", arguments: [AgentArgument(name: "query", value: "q")]),
                 AgentToolOutput(
                     text: "1. A\n   https://example.com/snippet\n   s", seen: ["https://example.com/snippet": "A\ns"]))
                 == nil
-                && AgentViewModel.fetchRecord(
+                && CitationGuard.fetchRecord(
                     fetchCall("https://example.com/gone"),
                     AgentToolOutput(text: "error: HTTP 404 for https://example.com/gone")) == nil
-                && AgentViewModel.fetchRecord(
+                && CitationGuard.fetchRecord(
                     fetchCall("https://example.com/empty"),
                     AgentToolOutput(text: "", finalURL: "https://example.com/empty")) == nil
                 && record
@@ -696,7 +698,7 @@ enum AgentSelfTest {
             String(describing: record))
         let ledger = [record].compactMap { $0 }
         func verdict(_ answer: String, notes: [String] = [], required: Bool? = true, web: Bool = true) -> LedgerCheck {
-            AgentViewModel.ledgerCheck(
+            CitationGuard.ledgerCheck(
                 stage: "t", answer: answer, notes: notes, ledger: ledger, sourcesRequired: required, usedWebTools: web)
         }
         let redirect = verdict("A.\n\nSources:\nhttps://example.com/new\nhttps://Example.com/old/#top")
@@ -733,7 +735,7 @@ enum AgentSelfTest {
         func tried(
             _ answer: String, required: Bool?, ledger: [FetchRecord] = ledger, attempts: [FetchAttempt] = attempts
         ) -> LedgerCheck {
-            AgentViewModel.ledgerCheck(
+            CitationGuard.ledgerCheck(
                 stage: "t", answer: answer, notes: [], ledger: ledger, attempts: attempts, sourcesRequired: required,
                 usedWebTools: true)
         }
@@ -760,7 +762,7 @@ enum AgentSelfTest {
                 && mixed.citationsUnfetched == ["https://example.org/never"] && !mixed.sourcesMissing
                 && failedOnlyWithAPage.sourcesRequired && failedOnlyWithAPage.sourcesMissing,
             [reportedNo, reportedAuto, reportedYes, mixed, failedOnlyWithAPage].map(\.logLine).joined(separator: " | "))
-        let percentCited = AgentViewModel.ledgerCheck(
+        let percentCited = CitationGuard.ledgerCheck(
             stage: "t", answer: "Sources:\nhttps://ja.wikipedia.org/wiki/Metal_%28API%29", notes: [],
             ledger: [
                 FetchRecord(
@@ -773,12 +775,12 @@ enum AgentSelfTest {
             "m4g/percentEscapedCitationIsFetched", !percentCited.violation && percentCited.citationsFetched == 1,
             percentCited.logLine)
         let noteOf = { (outcome: String, check: LedgerCheck) in
-            AgentViewModel.guardNoteText(outcome: outcome, reason: "none", check: check, drafts: false)
+            CitationGuard.guardNoteText(outcome: outcome, reason: "none", check: check, drafts: false)
         }
         let countsOnly = noteOf("verified", reportedNo)
         let labelled = noteOf("verified", passed)
         let repairedCounts = noteOf("repaired", reportedNo)
-        let heldNote = AgentViewModel.guardNoteText(outcome: "held", reason: "re-violation", check: mixed, drafts: true)
+        let heldNote = CitationGuard.guardNoteText(outcome: "held", reason: "re-violation", check: mixed, drafts: true)
         func counts(_ total: Int, _ fetched: Int, _ failed: Int) -> LedgerCheck {
             LedgerCheck(
                 stage: "t", citationsTotal: total, citationsFetched: fetched, citationsFailed: failed,
@@ -795,18 +797,18 @@ enum AgentSelfTest {
                 && countsOnly?.warning == false
                 && partly?.text == "3/4 cited URLs were fetched in this task · 1 could not be fetched"
                 && partly?.warning == false
-                && allThree?.text == "\(AgentViewModel.verifiedLabel) · 3/3 cited URLs were fetched in this task"
+                && allThree?.text == "\(CitationGuard.verifiedLabel) · 3/3 cited URLs were fetched in this task"
                 && repairedAll?.text
-                    == "\(AgentViewModel.verifiedLabel) · after one repair turn · 3/3 cited URLs were fetched in this task"
+                    == "\(CitationGuard.verifiedLabel) · after one repair turn · 3/3 cited URLs were fetched in this task"
                 && repairedPartly?.text
                     == "after one repair turn · 3/4 cited URLs were fetched in this task · 1 could not be fetched"
-                && labelled?.text == "\(AgentViewModel.verifiedLabel) · 1/1 cited URLs were fetched in this task"
+                && labelled?.text == "\(CitationGuard.verifiedLabel) · 1/1 cited URLs were fetched in this task"
                 && repairedCounts?.text
                     == "after one repair turn · 0/1 cited URLs were fetched in this task · 1 could not be fetched"
                 && heldNote?.text.hasPrefix(
-                    "\(AgentViewModel.heldLabel) · re-violation · not fetched: https://example.org/never") == true
+                    "\(CitationGuard.heldLabel) · re-violation · not fetched: https://example.org/never") == true
                 && heldNote?.warning == true
-                && AgentViewModel.guardNoteText(outcome: "skipped", reason: "cap", check: nil, drafts: false) == nil,
+                && CitationGuard.guardNoteText(outcome: "skipped", reason: "cap", check: nil, drafts: false) == nil,
             [countsOnly, labelled, repairedCounts, heldNote, partly, allThree, repairedAll, repairedPartly].map {
                 $0?.text ?? "nil"
             }
@@ -823,14 +825,14 @@ enum AgentSelfTest {
         let now = Date()
         check(
             "m4g/repairBudgetBlockers",
-            AgentViewModel.repairBlocker(stepsUsed: 8, maxSteps: 8, deadline: nil, now: now, stopped: false)
+            CitationGuard.repairBlocker(stepsUsed: 8, maxSteps: 8, deadline: nil, now: now, stopped: false)
                 == "no-steps-left"
-                && AgentViewModel.repairBlocker(
+                && CitationGuard.repairBlocker(
                     stepsUsed: 4, maxSteps: 8, deadline: now.addingTimeInterval(-1), now: now, stopped: false)
                     == "deadline"
-                && AgentViewModel.repairBlocker(
+                && CitationGuard.repairBlocker(
                     stepsUsed: 7, maxSteps: 8, deadline: now.addingTimeInterval(60), now: now, stopped: false) == nil
-                && AgentViewModel.repairBlocker(stepsUsed: 4, maxSteps: 8, deadline: nil, now: now, stopped: true)
+                && CitationGuard.repairBlocker(stepsUsed: 4, maxSteps: 8, deadline: nil, now: now, stopped: true)
                     == "stopped",
             "")
 
@@ -1010,7 +1012,7 @@ enum AgentSelfTest {
             repairing.persistsSettings = false
             repairing.notesFolderPath = folder.path(percentEncoded: false)
             repairing.cassette = try ToolCassette(file: four, mode: .replay, replaysLatency: false)
-            repairing.repairFetchLimit = AgentViewModel.repairFetchLimit
+            repairing.repairFetchLimit = ToolRunner.repairFetchLimit
             let runner = repairing.toolRunner()
             let calls = (1...4).map { fetchCall("https://example.com/p\($0)") }
             let results = await withTaskGroup(of: String.self) { group in
@@ -1022,7 +1024,7 @@ enum AgentSelfTest {
             let fourHits = await repairing.cassette?.hits ?? -1
             check(
                 "m4g/repairFetchLimitInParallel",
-                results.count { $0 == AgentViewModel.repairFetchLimitText } == 1
+                results.count { $0 == ToolRunner.repairFetchLimitText } == 1
                     && results.count { $0.hasPrefix("page ") } == 3
                     && repairing.repairFetches == 3 && fourHits == 3 && repairing.ledger.count == 3
                     && repairing.fetchAttempts.count == 4 && repairing.fetchAttempts.count { $0.ok } == 3,
@@ -1061,7 +1063,7 @@ enum AgentSelfTest {
             let draftRunner = drafting.toolRunner()
             let saved1 = await draftRunner(writeCall("Summary", "first body"))
             let saved2 = await draftRunner(writeCall("Summary", "second body"))
-            drafting.repairFetchLimit = AgentViewModel.repairFetchLimit
+            drafting.repairFetchLimit = ToolRunner.repairFetchLimit
             let saved3 = await draftRunner(writeCall("Summary", "repaired body"))
             drafting.repairFetchLimit = nil
             let draftFolder = notesA.appending(path: AgentTools.draftFolderName, directoryHint: .isDirectory)

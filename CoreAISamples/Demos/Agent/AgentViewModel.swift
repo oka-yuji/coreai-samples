@@ -5,55 +5,6 @@ import Foundation
 import FoundationModels
 import Observation
 
-struct FetchRecord: Codable, Sendable, Equatable {
-    var url: String
-    var finalURL: String
-    var sha256: String
-    var characters: Int
-}
-
-struct FetchAttempt: Codable, Sendable, Equatable {
-    var url: String
-    var ok: Bool
-}
-
-struct LedgerCheck: Codable, Sendable, Equatable {
-    var stage: String
-    var citationsTotal: Int
-    var citationsFetched: Int
-    var citationsFailed: Int
-    var citationsUnfetched: [String]
-    var noteCitationsUnfetched: [String]
-    var sourcesRequired: Bool
-    var sourcesMissing: Bool
-
-    var violation: Bool { !citationsUnfetched.isEmpty || !noteCitationsUnfetched.isEmpty || sourcesMissing }
-
-    var reason: String {
-        let parts = [
-            (!citationsUnfetched.isEmpty, "unfetched"), (!noteCitationsUnfetched.isEmpty, "note-unfetched"),
-            (sourcesMissing, "sources-missing"),
-        ].filter(\.0).map(\.1)
-        return parts.isEmpty ? "none" : parts.joined(separator: "+")
-    }
-
-    var unfetched: [String] {
-        citationsUnfetched
-            + noteCitationsUnfetched.filter { url in
-                !citationsUnfetched.contains {
-                    AgentViewModel.guardNormalized($0) == AgentViewModel.guardNormalized(url)
-                }
-            }
-    }
-
-    var logLine: String {
-        "[guard] check stage=\(stage) citations_total=\(citationsTotal) citations_fetched=\(citationsFetched) "
-            + "citations_failed=\(citationsFailed) citations_unfetched=\(AgentTools.jsonList(citationsUnfetched)) "
-            + "note_citations_unfetched=\(AgentTools.jsonList(noteCitationsUnfetched)) "
-            + "sources_required=\(sourcesRequired ? "yes" : "no") sources_missing=\(sourcesMissing)"
-    }
-}
-
 @MainActor
 @Observable
 final class AgentViewModel {
@@ -102,13 +53,8 @@ final class AgentViewModel {
     static let citationGuardDefaultsKey = "agent.citationGuard"
     static let citeFetchedDefaultsKey = "agent.citeFetched"
     static let maxTokenChoices = [512, 1024, 1536, 2048, 4096, 8192]
-    nonisolated static let noAnswerText = "(no answer text)"
     static let contextFullNote = "Context full — dropped the oldest tool output"
-    nonisolated static let repairFetchLimitText = "error: citation repair fetch limit reached"
-    static let repairFetchLimit = 3
     static let guardTitle = "Citation guard"
-    nonisolated static let verifiedLabel = "Cited sources fetched"
-    nonisolated static let heldLabel = "Could not confirm that the cited sources were fetched"
 
     var persistsSettings = true
     var effort: AgentReasoningEffort { didSet { store(effort.rawValue, Self.effortDefaultsKey) } }
@@ -312,7 +258,7 @@ final class AgentViewModel {
             let start = Date()
             let output: AgentToolOutput
             if call.name == "fetch_page", await self?.reserveRepairFetch() == false {
-                output = AgentToolOutput(text: AgentViewModel.repairFetchLimitText)
+                output = AgentToolOutput(text: ToolRunner.repairFetchLimitText)
             } else if call.name == "write_note", let draft = await self?.writeDraft(call) {
                 output = draft
             } else {
@@ -363,7 +309,7 @@ final class AgentViewModel {
     private func recordTool(_ call: AgentToolCall, _ output: AgentToolOutput, start: Date, end: Date) {
         seenPages.merge(output.seen) { _, new in new }
         if call.name == "fetch_page" {
-            let page = Self.fetchRecord(call, output)
+            let page = CitationGuard.fetchRecord(call, output)
             if let page { ledger.append(page) }
             fetchAttempts.append(
                 FetchAttempt(
@@ -513,7 +459,7 @@ final class AgentViewModel {
             rebuild(transcript, live: false)
             await snapshotTokens()
             let answer = Self.responseText(transcript[current])
-            let citations = answer.isEmpty ? nil : await checkCitations(answer)
+            let citations = answer.isEmpty ? nil : await CitationGuard.checkCitations(answer, pages: seenPages)
             finishStep(
                 transcript, current, session: session, ttft: run.ttft, final: true, citations: citations,
                 mark: &run.mark)
@@ -536,7 +482,7 @@ final class AgentViewModel {
             } else if !check.violation {
                 guardOutcome = "verified"
                 guardReason = "none"
-            } else if let blocker = Self.repairBlocker(
+            } else if let blocker = CitationGuard.repairBlocker(
                 stepsUsed: step, maxSteps: maxIterations, deadline: deadline, now: Date(), stopped: stopRequested)
             {
                 guardOutcome = "held"
@@ -545,7 +491,7 @@ final class AgentViewModel {
                 let original = finalAnswer()
                 answerBeforeRepair = original
                 repairTurns = 1
-                repairFetchLimit = Self.repairFetchLimit
+                repairFetchLimit = ToolRunner.repairFetchLimit
                 let started = Date()
                 let before = session.usage
                 statusLine = "Step \(step + 1) of \(maxIterations): generating…"
@@ -584,14 +530,14 @@ final class AgentViewModel {
     }
 
     private func ledgerCheck(stage: String) -> LedgerCheck {
-        Self.ledgerCheck(
+        CitationGuard.ledgerCheck(
             stage: stage, answer: finalAnswer(), notes: notesWritten.map(\.text), ledger: ledger,
             attempts: fetchAttempts,
             sourcesRequired: sourcesRequired, usedWebTools: webToolCalls > 0)
     }
 
     func finishIncompleteNotes(reason: String) {
-        let check = Self.ledgerCheck(
+        let check = CitationGuard.ledgerCheck(
             stage: "notes", answer: "", notes: notesWritten.map(\.text), ledger: ledger, attempts: fetchAttempts,
             sourcesRequired: false, usedWebTools: false)
         guardOutcome = "skipped"
@@ -614,7 +560,7 @@ final class AgentViewModel {
 
     private func addGuardNote(_ session: LanguageModelSession) {
         guard
-            let note = Self.guardNoteText(
+            let note = CitationGuard.guardNoteText(
                 outcome: guardOutcome, reason: guardReason, check: checks.last,
                 drafts: !draftOrder.isEmpty && !notesCommitted)
         else { return }
@@ -622,31 +568,6 @@ final class AgentViewModel {
         extras.append(
             (transcript.count, Entry(kind: .note, title: Self.guardTitle, text: note.text, warning: note.warning)))
         rebuild(transcript, live: false)
-    }
-
-    nonisolated static func guardNoteText(outcome: String?, reason: String, check: LedgerCheck?, drafts: Bool) -> (
-        text: String, warning: Bool
-    )? {
-        let fetched =
-            "\(check?.citationsFetched ?? 0)/\(check?.citationsTotal ?? 0) cited URLs were fetched in this task"
-            + ((check?.citationsFailed ?? 0) > 0 ? " · \(check?.citationsFailed ?? 0) could not be fetched" : "")
-        let kept = drafts ? " · notes kept as drafts in \(AgentTools.draftFolderName)" : ""
-        switch outcome {
-        case "verified", "repaired":
-            let allFetched = (check?.citationsFetched ?? 0) > 0 && check?.citationsFetched == check?.citationsTotal
-            return (
-                (allFetched ? verifiedLabel + " · " : "")
-                    + (outcome == "repaired" ? "after one repair turn · " : "") + fetched, false
-            )
-        case "held":
-            let unfetched = check?.unfetched ?? []
-            return (
-                heldLabel + " · " + reason
-                    + (unfetched.isEmpty ? "" : " · not fetched: " + unfetched.joined(separator: ", ")) + kept, true
-            )
-        default:
-            return drafts ? ("The task ended without a complete answer (\(reason))" + kept, true) : nil
-        }
     }
 
     private func saveRunMetrics() async {
@@ -745,7 +666,7 @@ final class AgentViewModel {
                 ))
         }
         if final, answer.isEmpty {
-            let placeholder = Entry(kind: .answer, title: "Assistant", text: Self.noAnswerText)
+            let placeholder = Entry(kind: .answer, title: "Assistant", text: CitationGuard.noAnswerText)
             extras.append((range.upperBound, placeholder))
             stats[placeholder.id] = line
         } else if let last = Self.lastDisplayID(entries) {
@@ -889,208 +810,6 @@ final class AgentViewModel {
 
     private static func trimmed(_ segments: [Transcript.Segment]) -> String {
         ChatViewModel.text(segments).trimmingCharacters(in: .whitespacesAndNewlines)
-    }
-
-    struct CitationCheck {
-        var urls: [(url: String, seen: Bool, overlap: Double)] = []
-        var total: Int { urls.count }
-        var seenCount: Int { urls.count { $0.seen } }
-        var meanOverlap: Double {
-            urls.isEmpty ? 0 : urls.map(\.overlap).reduce(0, +) / Double(urls.count)
-        }
-        var note: String {
-            String(
-                format: "%d/%d cited URLs were retrieved in this task · mean 8-gram overlap %.2f",
-                seenCount, total, meanOverlap)
-        }
-    }
-
-    nonisolated static let citationSourceLimit = 200_000
-
-    private func checkCitations(_ answer: String) async -> CitationCheck? {
-        let (body, urls) = Self.splitSources(answer)
-        guard !urls.isEmpty else { return nil }
-        var lookup: [String: String] = [:]
-        for (url, text) in seenPages { lookup[Self.normalized(url)] = text }
-        var check = CitationCheck()
-        for url in urls {
-            let source = lookup[Self.normalized(url)]
-            var overlap = 0.0
-            if let source {
-                let clipped = String(source.prefix(Self.citationSourceLimit))
-                overlap = await Task.detached { Self.gramOverlap(body, clipped) }.value
-            }
-            check.urls.append((url, source != nil, overlap))
-            AgentTools.log(
-                String(format: "[cite] url=%@ seen=%@ overlap=%.2f", url, source == nil ? "no" : "yes", overlap))
-        }
-        return check
-    }
-
-    nonisolated static func splitSources(_ answer: String) -> (body: String, urls: [String]) {
-        let lines = answer.split(separator: "\n", omittingEmptySubsequences: false)
-        guard
-            let start = lines.lastIndex(where: { line in
-                let head = line.trimmingCharacters(in: CharacterSet(charactersIn: " \t*#-")).lowercased()
-                return head.hasPrefix("sources") || head.hasPrefix("\u{51FA}\u{5178}")
-                    || head.hasPrefix("\u{53C2}\u{8003}")
-            })
-        else { return (answer, []) }
-        return (lines[..<start].joined(separator: "\n"), urls(in: lines[start...].joined(separator: "\n")))
-    }
-
-    nonisolated static func urls(in text: String) -> [String] {
-        var found: [String] = []
-        for match in text.matches(of: /https?:\/\/[^\s<>"'()\[\]]+/) {
-            var url = String(match.0)
-            while let last = url.last,
-                ".,;:\u{3001}\u{3002}\u{00BB}\u{201D}".contains(last)
-            { url.removeLast() }
-            if !url.isEmpty, !found.contains(url) { found.append(url) }
-        }
-        return found
-    }
-
-    nonisolated static func normalized(_ url: String) -> String {
-        var text = url.lowercased()
-        while text.hasSuffix("/") { text.removeLast() }
-        return text
-    }
-
-    nonisolated static func repairBlocker(stepsUsed: Int, maxSteps: Int, deadline: Date?, now: Date, stopped: Bool)
-        -> String?
-    {
-        if stopped { return "stopped" }
-        if stepsUsed >= maxSteps { return "no-steps-left" }
-        if let deadline, now >= deadline { return "deadline" }
-        return nil
-    }
-
-    nonisolated static func fetchRecord(_ call: AgentToolCall, _ output: AgentToolOutput) -> FetchRecord? {
-        guard call.name == "fetch_page", let final = output.finalURL, !output.text.isEmpty else { return nil }
-        let digest = SHA256.hash(data: Data(output.text.utf8)).map { String(format: "%02x", $0) }.joined()
-        return FetchRecord(
-            url: (call.value("url") ?? "").trimmingCharacters(in: .whitespacesAndNewlines), finalURL: final,
-            sha256: digest,
-            characters: output.text.count)
-    }
-
-    nonisolated static func ledgerCheck(
-        stage: String, answer: String, notes: [String], ledger: [FetchRecord], attempts: [FetchAttempt] = [],
-        sourcesRequired: Bool?, usedWebTools: Bool
-    ) -> LedgerCheck {
-        let fetched = Set(ledger.flatMap { [guardNormalized($0.url), guardNormalized($0.finalURL)] })
-        let failed = Set(attempts.filter { !$0.ok }.map { guardNormalized($0.url) }).subtracting(fetched)
-        let cited = guardURLs(in: answer)
-        let confirmed = cited.filter { fetched.contains(guardNormalized($0)) }
-        let tried = fetched.union(failed)
-        let unfetched = cited.filter { !tried.contains(guardNormalized($0)) }
-        var noteUnfetched: [String] = []
-        for url in notes.flatMap(guardURLs(in:))
-        where !tried.contains(guardNormalized(url))
-            && !noteUnfetched.contains(where: { guardNormalized($0) == guardNormalized(url) })
-        {
-            noteUnfetched.append(url)
-        }
-        let everyTryFailed = !attempts.isEmpty && attempts.allSatisfy { !$0.ok }
-        let required = sourcesRequired ?? ((usedWebTools || !cited.isEmpty) && !everyTryFailed)
-        return LedgerCheck(
-            stage: stage, citationsTotal: cited.count, citationsFetched: confirmed.count,
-            citationsFailed: cited.count - confirmed.count - unfetched.count, citationsUnfetched: unfetched,
-            noteCitationsUnfetched: noteUnfetched, sourcesRequired: required,
-            sourcesMissing: required && confirmed.isEmpty)
-    }
-
-    nonisolated static func guardURLs(in text: String) -> [String] {
-        var found: [String] = []
-        var seen = Set<String>()
-        var rest = text[...]
-        while let hit = rest.firstMatch(of: /https?:\/\//.ignoresCase()) {
-            var url = String(hit.output)
-            var open: [Character] = []
-            var cursor = hit.range.upperBound
-            scan: while cursor < rest.endIndex {
-                let character = rest[cursor]
-                if character.isWhitespace || "<>\"'`{}|\\^".contains(character)
-                    || (!character.isASCII && (character.isPunctuation || character.isSymbol))
-                {
-                    break
-                }
-                switch character {
-                case "(", "[":
-                    open.append(character)
-                case ")", "]":
-                    guard open.last == (character == ")" ? "(" : "[") else { break scan }
-                    open.removeLast()
-                default:
-                    break
-                }
-                url.append(character)
-                cursor = rest.index(after: cursor)
-            }
-            rest = rest[cursor...]
-            while let last = url.last, ".,;:!?*([".contains(last) { url.removeLast() }
-            guard url.count > hit.output.count, seen.insert(guardNormalized(url)).inserted else { continue }
-            found.append(url)
-        }
-        return found
-    }
-
-    nonisolated static func guardNormalized(_ url: String) -> String {
-        var text = url
-        if let hash = text.firstIndex(of: "#") { text = String(text[..<hash]) }
-        if let scheme = text.range(of: "://") {
-            let authorityEnd = text[scheme.upperBound...].firstIndex { "/?".contains($0) } ?? text.endIndex
-            text = text[..<authorityEnd].lowercased() + percentNormalized(String(text[authorityEnd...]))
-        }
-        while text.hasSuffix("/"), !text.hasSuffix("://") { text.removeLast() }
-        return text
-    }
-
-    nonisolated static func percentNormalized(_ text: String) -> String {
-        var out = ""
-        var bytes: [UInt8] = []
-        var written = ""
-        func flush() {
-            if !bytes.isEmpty { out += String(bytes: bytes, encoding: .utf8) ?? written }
-            bytes = []
-            written = ""
-        }
-        var index = text.startIndex
-        while index < text.endIndex {
-            if text[index] == "%", let end = text.index(index, offsetBy: 3, limitedBy: text.endIndex),
-                let byte = UInt8(text[text.index(after: index)..<end], radix: 16),
-                text[text.index(after: index)..<end].allSatisfy(\.isHexDigit)
-            {
-                let escape = String(text[index..<end])
-                if [0x2F, 0x3F, 0x23, 0x25].contains(byte) {
-                    flush()
-                    out += escape.uppercased()
-                } else {
-                    bytes.append(byte)
-                    written += escape
-                }
-                index = end
-            } else {
-                flush()
-                out.append(text[index])
-                index = text.index(after: index)
-            }
-        }
-        flush()
-        return out
-    }
-
-    nonisolated static func gramOverlap(_ body: String, _ source: String, size: Int = 8) -> Double {
-        func grams(_ text: String) -> [String] {
-            let characters = Array(text.lowercased().filter { !$0.isWhitespace })
-            guard characters.count >= size else { return [] }
-            return (0...(characters.count - size)).map { String(characters[$0..<($0 + size)]) }
-        }
-        let needles = grams(body)
-        guard !needles.isEmpty else { return 0 }
-        let haystack = Set(grams(source))
-        return Double(needles.count { haystack.contains($0) }) / Double(needles.count)
     }
 }
 

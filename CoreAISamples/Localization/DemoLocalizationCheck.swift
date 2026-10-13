@@ -8,7 +8,6 @@ enum DemoLocalizationCheck {
     static func run() {
         do {
             var keys = Demo.allCases.flatMap { [$0.title, $0.summary] }
-            keys += ChatViewModel.Reasoning.allCases.map(\.rawValue)
             keys += AgentReasoningEffort.allCases.map(\.label)
             keys += DecideQuestionKind.allCases.map(\.title)
             keys += try RecipeAssembly.examples().map(\.title)

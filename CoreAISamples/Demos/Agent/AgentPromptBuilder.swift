@@ -7,6 +7,11 @@ enum AgentReasoningEffort: String, CaseIterable, Identifiable, Sendable {
     var id: String { rawValue }
     var label: String { self == .xhigh ? "Xhigh" : rawValue.capitalized }
 
+    init?(argument: String) {
+        let value = argument.lowercased()
+        self.init(rawValue: value == "high" ? "xhigh" : value)
+    }
+
     var level: ContextOptions.ReasoningLevel {
         switch self {
         case .off: .custom("off")
@@ -78,9 +83,15 @@ enum AgentPromptBuilder {
         "- When you quote a number from a table, check the row and column headers (date, year, unit) so the value belongs to the item you are describing.",
     ]
 
+    static let conversationInstructions = [
+        "- Use the tools only when the question needs current or external facts. For conversation, translation or editing, answer directly.",
+        "- If a tool is not available in the current mode, say so in one sentence and answer with what you have.",
+    ]
+
     static func instructions(date: String, citeFetched: Bool = false) -> String {
         "You are an agent running on this device." + systemPromptBody + "\n\n"
-            + (extraInstructions + (citeFetched ? citeFetchedInstructions : [])).joined(separator: "\n")
+            + (extraInstructions + (citeFetched ? citeFetchedInstructions + conversationInstructions : []))
+            .joined(separator: "\n")
             + "\n\nCurrent date: " + date
     }
 
