@@ -4,7 +4,15 @@ This Mac demo reads a fridge photograph, proposes ingredients for you to review,
 
 ## Start
 
-1. Open `CoreAISamples.xcodeproj`, choose **CoreAISamples / My Mac**, and Run. This requires macOS 27, Xcode 27 and Apple Intelligence with vision available on the Mac.
+Download the [Clef-Flash decision bundle](https://huggingface.co/okayuji/clef-flash-9b-coreai-decide) from the repository root with the [Hugging Face CLI](https://huggingface.co/docs/huggingface_hub/guides/cli):
+
+```sh
+hf download okayuji/clef-flash-9b-coreai-decide --local-dir ./models/clef-flash-9b-decide-v1
+```
+
+The model payload is 7,278,548,313 bytes, with small documentation and example files in addition. The [English model guide](clef-flash.md) and [日本語ガイド](clef-flash.ja.md) describe the measured environment, limits and license. Use this bundle with Recipes or Decide through `DecisionModel`.
+
+1. Open `CoreAISamples.xcodeproj`, choose the **CoreAISamples** scheme and **My Mac**, set the Run build configuration to **Release**, and Run. This requires macOS 27, Xcode 27 and Apple Intelligence with vision available on the Mac.
 2. Select **Recipes** in the sidebar. The **EN / JP** control at the top right changes the interface immediately on all six Mac screens and remembers the choice. Original recipe text and model-generated content keep their source language.
 3. The model card above the workflow always names `clef-flash-9b-decide-v1`. Use **Open Clef-Flash bundle** to choose that folder. It shows loading and loaded states; **Retry saved bundle** retries a remembered path when no model is loaded. A successful selection is remembered. `COREAI_DECISION_BUNDLE` can also supply the path when launching the app.
 4. Choose **Examples → Three-egg omelette**. This reads the bundled one-egg photo and fetches its recipe. **Open photo** accepts your own image instead.
@@ -12,6 +20,8 @@ This Mac demo reads a fridge photograph, proposes ingredients for you to review,
 6. Click **Check recipe**. For this recipe's original two servings, one confirmed egg leaves **Short by 2.00 pcs**. Other ingredients and equipment can remain unchecked; they are shown as needing review.
 
 The five supplied images are bundled, so importing them separately is optional. Example selection always runs photo recognition and fetches the live page. There are no canned recognition results or offline recipe fallbacks.
+
+The downloaded Clef model does not read the photo. Apple's on-device model proposes the foods, Clef reads the recipe text to classify requirements and equipment, and Swift code compares confirmed quantities. Downloading the model and fetching recipe URLs need internet access. Photo recognition and decision inference run on the Mac, without sending the photo or inventory to the recipe site.
 
 ## Review amounts and equipment
 
