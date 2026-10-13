@@ -74,27 +74,29 @@ struct ConversationView: View {
         .padding(10)
     }
 
+    @ViewBuilder
     private var timeline: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 10) {
-                ForEach(host.state.entries) { entry in
-                    ConversationEntryRow(entry: entry)
+        if host.state.entries.isEmpty && chat.ragTurns.isEmpty {
+            ContentUnavailableView(
+                "New conversation", systemImage: "bubble.left.and.bubble.right",
+                description: Text(
+                    "Chat answers and searches the web when it needs facts. Work runs multi-step research and saves notes."
+                )
+            )
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 10) {
+                    ForEach(host.state.entries) { entry in
+                        ConversationEntryRow(entry: entry)
+                    }
+                    ForEach(chat.ragTurns) { turn in
+                        TurnView(turn: turn, live: chat.isResponding && turn.id == chat.ragTurns.last?.id)
+                    }
                 }
-                ForEach(chat.ragTurns) { turn in
-                    TurnView(turn: turn, live: chat.isResponding && turn.id == chat.ragTurns.last?.id)
-                }
+                .padding(12)
             }
-            .padding(12)
-        }
-        .defaultScrollAnchor(.bottom)
-        .overlay {
-            if host.state.entries.isEmpty && chat.ragTurns.isEmpty {
-                ContentUnavailableView(
-                    "New conversation", systemImage: "bubble.left.and.bubble.right",
-                    description: Text(
-                        "Chat answers and searches the web when it needs facts. Work runs multi-step research and saves notes."
-                    ))
-            }
+            .defaultScrollAnchor(.bottom)
         }
     }
 
