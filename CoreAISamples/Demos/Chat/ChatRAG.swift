@@ -221,9 +221,13 @@ struct RAGSourceFooter: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
             ForEach(notes, id: \.self) { line in
-                Label(line, systemImage: "exclamationmark.triangle")
-                    .font(.caption2)
-                    .foregroundStyle(.orange)
+                Label {
+                    RuntimeMessageText(line)
+                } icon: {
+                    Image(systemName: "exclamationmark.triangle")
+                }
+                .font(.caption2)
+                .foregroundStyle(.orange)
             }
             if !sources.isEmpty {
                 Text("Sources")

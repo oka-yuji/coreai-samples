@@ -1,0 +1,114 @@
+{
+  "scope": {
+    "base": "603acae1cfbe4a2304990373ff4ba2832e700bec",
+    "branch": "feat/52-demo-languages",
+    "initial": "/private/tmp/fridge-language-data-scope.json",
+    "final": "/private/tmp/fridge-language-data-final-scope.json",
+    "unchanged": true,
+    "stateToken": "a739b26867b66d7fde913acea736bbb67cef91840c754f2ab4a0869c6d171f72"
+  },
+  "candidateLedger": [
+    {
+      "id": "L52-D01",
+      "maxSeverity": "P2",
+      "originalStatus": "confirmed",
+      "status": "rejected",
+      "path": "CoreAISamples/Resources/Ingredients.xcstrings",
+      "condition": "General photo/user ingredient labels such as mushroom, vegetable oil or shiso are displayed in Japanese",
+      "actualBefore": "Generic mushroom(s) became specific マッシュルーム, vegetable oil became サラダ油, shiso/perilla leaves became 青じそ",
+      "evidenceHistory": [
+        "Initial catalog snapshot under /private/tmp/fridge-language-data-audit/snapshot",
+        "PhotoInspector guide requires general labels when exact type is uncertain"
+      ],
+      "resolution": "Generic Japanese labels now remain generic; reverse mappings preserve specific button mushroom/salad oil/green shiso. chicken vs chicken thigh remains distinct.",
+      "verificationHistory": [
+        "/private/tmp/fridge-language-data-audit/final/lookup-output.txt",
+        "24 targeted compiled-bundle checks including both language directions"
+      ]
+    },
+    {
+      "id": "L52-D02",
+      "maxSeverity": "P2",
+      "originalStatus": "confirmed",
+      "status": "rejected",
+      "path": "CoreAISamples/Resources/Localizable.xcstrings",
+      "condition": "Extract fixed technical notice and cached-model Loading… status are passed as dynamic localization keys",
+      "actualBefore": "Both exact keys absent, so Japanese UI displayed English app-authored text",
+      "evidenceHistory": [
+        "ExtractView Label(LocalizedStringKey(ExtractRunner.notice))",
+        "ModelsView localized state from ChatViewModel.state(of:)",
+        "Initial catalog snapshot"
+      ],
+      "resolution": "Full notice and Loading… now registered with JA translations. Notice preserves B3, R1 + N1, 200, 13/200, 0.788 and 0.822.",
+      "verificationHistory": [
+        "/private/tmp/fridge-language-data-audit/final/lookup-output.txt",
+        "Compiled bundle returned expected EN and JA strings"
+      ]
+    },
+    {
+      "id": "L52-D03",
+      "maxSeverity": "P2",
+      "originalStatus": "confirmed",
+      "status": "rejected",
+      "path": "CoreAISamplesKit/Sources/RecipeFeature/RecipeFeature.swift",
+      "condition": "Same Binding snapshot receives successive human edits onion then its original translated display 卵 before reconstruction",
+      "actualBefore": "Second write discarded because it equaled previousDisplay; raw name remained onion",
+      "evidenceHistory": [
+        "/private/tmp/fridge-language-data-audit/binding-output.txt",
+        "/private/tmp/fridge-language-data-audit/main.swift"
+      ],
+      "rebuttal": "Binding captures the item snapshot and may receive multiple writes; no synchronous View reconstruction guarantee can make previous display alone a valid state-equality check. Actual GUI frequency was not claimed.",
+      "resolution": "Action carries originalSource; returning to previous display maps back to exact original raw name, then existing setName compares current state. Display-only writes remain no-op; actual edits retain existing invalidation rules.",
+      "verificationHistory": [
+        "/private/tmp/fridge-language-data-audit/final/binding-output.txt",
+        "RecipeFeatureTests.consecutiveDisplayedEdits and translatedNameDoesNotEditInventory"
+      ]
+    }
+  ],
+  "confirmed": [],
+  "plausible": [],
+  "coverage": {
+    "RecipeFeature editDisplayedName": "Full change and interaction with busy/closed gates, setName invalidation, source preservation and consecutive edits",
+    "RecipeFeatureTests": "Both new display/no-op and consecutive-write tests read; existing state rules reused from #50",
+    "RecipeView ingredient Binding": "Actual closure data flow reviewed; captured item raw source now carried with display; amount Binding remains raw",
+    "Ingredients.xcstrings": "All 102 entries read semantically, with generic/specific pairs and four modified reverse labels rechecked; all Core vocabulary aliases have catalog keys",
+    "Localizable.xcstrings": "All original entries plus final added/changed values read; source-English omissions, 13 nontranslatable entries, EN plural one/other variants and placeholder argument correspondence considered",
+    "DemoStrings": "Lookup key normalization, explicit locale and unknown-name fallback checked; global language owner/all other View call sites belong to other reviewer"
+  },
+  "ownChecks": [
+    "Initial catalogs: 336 Localizable + 102 Ingredients translatable keys, JA omissions 0, placeholder mismatches 0; source=en implicit values and plural variants handled",
+    "Original real SwiftUI.Binding + real reducer reproduced dropped consecutive write without app launch",
+    "Fixed real Binding/reducer preserves raw eggs and confirmation for display-only updates, restores raw eggs after consecutive edits and leaves actual edits unconfirmed with revision 2",
+    "24 targeted lookups against compiled CoreAISamples.app bundle matched EN/JA semantic fixes and dynamic notice/Loading… keys",
+    "Unknown original spelling survived explicit en→ja→en bundle lookups",
+    "Final reducer bytes match independently executed probe"
+  ],
+  "parentReportedChecks": [
+    "Final catalogs: 456 translatable keys, EN/JA omissions 0, 912 compiled-bundle lookups match",
+    "Runtime keys derived from real data expanded from 51 to 54 with no omissions",
+    "RecipeFeature 10 tests including consecutive-write regression PASS; all ordinary tests PASS",
+    "Strict lint 0; diff swift-format 35 files PASS"
+  ],
+  "evidence": [
+    "/private/tmp/fridge-language-data-audit/catalog-audit.json",
+    "/private/tmp/fridge-language-data-audit/binding-output.txt",
+    "/private/tmp/fridge-language-data-audit/final/binding-output.txt",
+    "/private/tmp/fridge-language-data-audit/final/lookup-output.txt",
+    "/private/tmp/fridge-language-data-audit/final/lookups.json"
+  ],
+  "unverified": [
+    "No GPU or app launch by reviewer; actual focus/IME behavior and six-screen live language switching are root combined GUI verification",
+    "No independent full package/build rerun; root owns final checks",
+    "Root reported complete 912-lookup sweep; reviewer independently executed the 24 targeted semantic/dynamic-key cases, not that full sweep",
+    "Other View call-site coverage and global preference persistence assigned to other reviewer"
+  ],
+  "failures": [],
+  "blockers": [],
+  "unresolvedCoverage": [],
+  "pendingTasks": [],
+  "deferredTasks": [],
+  "guideCandidates": [
+    "- 2026-10-09 モデル候補の表示翻訳を編集可能なBindingへ出す場合、前の表示値だけを無変更判定に使うと同じBindingへの連続編集で元の表示への復帰を捨てる。元raw値も保持し、復帰をrawへ戻して現在値と比較すると、表示切替による入力・確認状態の変更を防ぎつつ人の編集を保持できる [実測] /private/tmp/fridge-language-data-audit/binding-output.txt・final/binding-output.txt（Swift 6 / CPU Binding probe、GUI頻度未検証）"
+  ],
+  "complete": true
+}
