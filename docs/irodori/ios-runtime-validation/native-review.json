@@ -1,0 +1,112 @@
+{
+  "repo": "/Users/okayuuji/Desktop/SelfApps/_wt/coreai-samples-94-ios-runtime",
+  "base": "043cf1f2439bcf2912673530d5a9dfd673c3b3e5",
+  "scope": "Uncommitted and untracked changes, physical iPhone platform/build/Stage/Pipeline contract",
+  "confirmed": [],
+  "plausible": [],
+  "candidateLedger": [
+    {
+      "id": "P94-01",
+      "status": "rejected",
+      "concern": "Wrong native archive is linked on iOS",
+      "evidence": [
+        "Vendor/IrodoriInputKit/Package.swift:22-26 separates macOS/iOS -L directories",
+        "Final iphone probe command targets arm64-apple-ios27.0 and searches only aarch64-apple-ios/release for this archive",
+        "otool archive members: Mac platform1; device platform2 or LC_VERSION_MIN_IPHONEOS",
+        "Final framework exports all seven _iro_* C ABI symbols"
+      ]
+    },
+    {
+      "id": "P94-02",
+      "status": "rejected",
+      "concern": "Core AI declarations used by runtime are absent in iOS SDK",
+      "evidence": [
+        "iPhoneOS27.0.sdk System/Library/SubFrameworks/CoreAIDelegates.framework declares specialize, SpecializationOptions and expectFrequentReshapes available iOS27",
+        "CoreAIRuntime.swiftinterface declares AIModel, function descriptors and InferenceFunction.run",
+        "Parent final iphone framework probe BUILD SUCCEEDED"
+      ]
+    },
+    {
+      "id": "P94-03",
+      "status": "rejected",
+      "concern": "Platform split changes verified Mac numerical path or options",
+      "evidence": [
+        "IrodoriStage.swift:25-28 retains GPU preference and EFR true whenever onPhone=false",
+        "Pipeline arithmetic and frame/noise/token layout unchanged from base",
+        "IrodoriNoise.swift and IrodoriTextInput.swift byte-identical to base"
+      ]
+    },
+    {
+      "id": "P94-04",
+      "status": "rejected",
+      "concern": "Static/dynamic iOS stages receive reversed EFR options",
+      "evidence": [
+        "Asset manifest order is text, duration, DiT, codec",
+        "Pipeline.swift:16-19 requires four assets and sets dynamicShape at index>=2",
+        "Stage.swift:27 applies false to phone static stages and true to dynamic stages",
+        "Parent CPU stageOptions test passed"
+      ]
+    },
+    {
+      "id": "P94-05",
+      "status": "rejected",
+      "concern": "Build script ignores explicit platform or iPhone SDK settings",
+      "evidence": [
+        "CPU stub-dispatch: default Mac has no Rust target override",
+        "PLATFORM_NAME=iphoneos sends aarch64-apple-ios plus SDKROOT=iPhoneOS27.0.sdk and IPHONEOS_DEPLOYMENT_TARGET=27.0",
+        "Explicit macosx argument overrides inherited iphoneos",
+        "bash -n passed"
+      ]
+    },
+    {
+      "id": "P94-06",
+      "status": "limitation",
+      "concern": "Simulator/Catalyst support",
+      "evidence": [
+        "build-inputs.sh explicitly rejects iphonesimulator",
+        "SwiftPM .iOS condition is not a separate device/simulator archive selection",
+        "This review covers the requested physical-iPhone target; simulator/catalyst compatibility is not claimed"
+      ]
+    },
+    {
+      "id": "P94-07",
+      "status": "unverified",
+      "concern": "Physical device OS, model specialization and numerical/memory behavior",
+      "evidence": [
+        "No device/app/model invocation performed",
+        "Core AI deployment requires iOS27; device OS confirmation remains with parent",
+        "Mac noise fixture results are not proof of identical iPhone libm output",
+        "Device specialization, dynamic shapes, memory and waveform validation remain #95 work"
+      ]
+    }
+  ],
+  "independentChecks": [
+    "Script dispatch with Cargo stub in tmp",
+    "bash syntax",
+    "Mach-O archive platform metadata",
+    "Final framework minimum OS and C ABI symbols",
+    "SDK declaration and source comparison"
+  ],
+  "parentEvidence": [
+    "/tmp/irodori-ios94-cpu.log: 22+7+2=31 tests pass",
+    "/tmp/irodori-ios94-iphone-link-final.log: BUILD SUCCEEDED; only AppIntents metadata skip warning"
+  ],
+  "coverage": [
+    "Vendor/IrodoriInputKit/Package.swift",
+    "CoreAISamplesKit/Package.swift",
+    "Tools/Irodori/build-inputs.sh",
+    "SpeechRuntime platform guards",
+    "IrodoriStage.swift full",
+    "IrodoriPipeline.swift full",
+    "SpeechBundle asset order",
+    "iOS CoreAI SDK declarations and framework link command"
+  ],
+  "notAudited": [
+    "Playback session behavior/notification handling, beyond platform guard and compile result",
+    "Actual iPhone behavior and model execution",
+    "Simulator/Catalyst"
+  ],
+  "guideCandidates": [
+    "- 2026-10-13 Rust tokenizers0.22.2/unicode-normalization0.1.22のaarch64-apple-ios static libraryをiOS27向けSwift SpeechRuntime frameworkへリンクでき、生成frameworkのLC_BUILD_VERSIONはIOS/minos27.0、7個のC ABIシンボルも含まれた。モデル実行やiPhone数値一致を確認した結果ではない。[実測] coreai-samples #94、/tmp/irodori-ios94-iphone-link-final.log、/tmp/irodori-runtime94-review/iphone-framework.json"
+  ]
+}

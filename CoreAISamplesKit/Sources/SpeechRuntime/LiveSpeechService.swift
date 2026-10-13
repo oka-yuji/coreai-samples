@@ -1,4 +1,4 @@
-#if os(macOS)
+#if os(macOS) || os(iOS)
     import Foundation
     import SpeechCore
 
@@ -29,7 +29,7 @@
         }
         public func play(_ data: Data) async throws { try await playback.play(data) }
         public func stop() async {
-            playback.stop()
+            await playback.stopAndWait()
             await engine.release()
         }
     }

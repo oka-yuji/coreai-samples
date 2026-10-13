@@ -40,8 +40,10 @@ let package = Package(
             name: "SpeechRuntime",
             dependencies: [
                 "SpeechCore", "SpeechFeature",
-                .product(name: "IrodoriInputLogic", package: "IrodoriInputKit", condition: .when(platforms: [.macOS])),
-                .product(name: "IrodoriTokenizers", package: "IrodoriInputKit", condition: .when(platforms: [.macOS])),
+                .product(
+                    name: "IrodoriInputLogic", package: "IrodoriInputKit", condition: .when(platforms: [.macOS, .iOS])),
+                .product(
+                    name: "IrodoriTokenizers", package: "IrodoriInputKit", condition: .when(platforms: [.macOS, .iOS])),
             ], resources: [.process("Resources")], swiftSettings: speechSettings),
         .testTarget(name: "SpeechCoreTests", dependencies: ["SpeechCore"], swiftSettings: speechSettings),
         .testTarget(

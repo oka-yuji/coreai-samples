@@ -35,6 +35,7 @@ final class FakeSpeechService: SpeechService {
     let stopping = TestSignal()
     let stopGate = TestGate()
     var shouldFail = false
+    var interruptPlayback = false
     let audio = SpeechAudio(wav: Data([1]), audioSeconds: 1, elapsedSeconds: 2, normalizedText: "Test")
     func open(path: String) -> SpeechModel { SpeechModel(name: "Fixture", directory: URL(filePath: path)) }
     func generate(text: String, seed: UInt64) async throws -> SpeechAudio {
@@ -44,6 +45,7 @@ final class FakeSpeechService: SpeechService {
         return audio
     }
     func play(_ data: Data) throws {
+        if interruptPlayback { throw CancellationError() }
         if shouldFail { throw SpeechError.playbackFailed }
     }
     func stop() async {
