@@ -53,6 +53,7 @@ final class ChatViewModel {
         var response = ""
         var notes: [String] = []
         var sources: [String] = []
+        var anchor = 0
     }
 
     static let defaultContextLimit = 16_384
@@ -172,7 +173,7 @@ final class ChatViewModel {
     }
 
     @discardableResult
-    func send() -> Bool {
+    func send(anchor: Int = 0) -> Bool {
         guard canSend, let model else { return false }
         if ragIsOn {
             let prompt = trimmedInput
@@ -186,6 +187,7 @@ final class ChatViewModel {
             settings.web = ragWeb
             settings.local = ragLocal
             settings.sourceTokenBudget = ragBudget
+            ragTurns.append(Turn(id: UUID().uuidString, prompt: prompt, anchor: anchor))
             generation = Task { await respondFromSources(model, prompt, settings, options, context) }
             return true
         }
@@ -200,7 +202,6 @@ final class ChatViewModel {
         _ model: LocalLanguageModel, _ question: String, _ settings: RAGSettings, _ options: GenerationOptions,
         _ context: ContextOptions
     ) async {
-        ragTurns.append(Turn(id: UUID().uuidString, prompt: question))
         retrieving = true
         let today = RAGContext.today()
         let retrieval = await RAGRetriever.gather(question: question, settings: settings, count: model.countTokens)

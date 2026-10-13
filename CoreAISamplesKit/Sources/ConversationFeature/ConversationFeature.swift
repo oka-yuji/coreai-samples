@@ -38,6 +38,7 @@ public enum ConversationFeature: Feature {
 
     public static let finalizationNote = "remaining tool budget: 0 — answer now with what you have"
     public static let endedRefusal = "error: the turn ended before this tool ran"
+    public static let contextFullPrefix = "Context window is full"
 
     public static func finalized(_ text: String) -> String {
         text + "\n\n" + finalizationNote

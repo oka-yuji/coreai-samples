@@ -93,9 +93,7 @@ final class ConversationHost {
 
     var state: ConversationState { store.state }
 
-    var contextFull: Bool {
-        store.state.turns.last?.failure?.hasPrefix(ConversationSession.contextFullPrefix) == true
-    }
+    var contextFull: Bool { chat.contextFull || store.state.contextFull }
 
     var canSend: Bool {
         chat.phase == .ready && !store.state.isRunning && !chat.isResponding && !chat.externallyBusy && !contextFull
@@ -114,7 +112,7 @@ final class ConversationHost {
         if chat.ragIsOn {
             chat.reasoning = preferences.effort
             chat.maxTokens = TurnPolicy(.chat, settings: preferences.settings).maxTokens
-            return chat.send()
+            return chat.send(anchor: store.state.entries.count)
         }
         let text = chat.trimmedInput
         chat.input = ""
@@ -129,7 +127,7 @@ final class ConversationHost {
     }
 
     func continueInWork() {
-        guard store.state.refusedSave, !store.state.isRunning else { return }
+        guard store.state.refusedSave, !store.state.isRunning, !contextFull else { return }
         send(Self.continuePrompt, mode: .work)
     }
 

@@ -228,3 +228,37 @@ public struct ConversationState: Equatable, Sendable {
         persistence = .saved
     }
 }
+
+extension ConversationState {
+    public var contextFull: Bool {
+        turns.last?.failure?.hasPrefix(ConversationFeature.contextFullPrefix) == true
+    }
+
+    public var statusLine: String {
+        guard let turn = turns.last else { return "" }
+        let limit = turn.policy.maxSteps
+        if isRunning {
+            if stopRequested { return "Stopping…" }
+            if case .toolCalls(_, let calls, let metadata)? = transcript.entries.last, metadata != nil,
+                transcript.entries.count > turn.start + 1
+            {
+                return "Step \(step): running " + calls.map(\.name).joined(separator: " + ") + "…"
+            }
+            return "Step \(step) of \(limit): generating…"
+        }
+        if turn.finalization == .cutOff { return "Stopped at the \(limit)-step limit." }
+        if turn.finish == .stopped { return "Stopped after \(step) step(s)." }
+        if turn.failure != nil { return contextFull ? "Context overflow at step \(step)." : "Failed at step \(step)." }
+        return turn.steps.last?.line ?? ""
+    }
+
+    public var contextEndNotice: String? {
+        guard !isRunning, let turn = turns.last, turn.finish == .cap else { return nil }
+        let reserved = transcript.entries.reversed().lazy.compactMap { entry -> Int? in
+            if case .response(_, _, let metadata) = entry { metadata?.reservedTokens } else { nil }
+        }.first
+        guard let reserved, reserved < turn.policy.maxTokens else { return nil }
+        return
+            "The reply stopped at the end of the context window (\(reserved) tokens were left for it). Start a new conversation if the next message does not fit."
+    }
+}

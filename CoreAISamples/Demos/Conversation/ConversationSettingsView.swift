@@ -20,6 +20,7 @@ struct ConversationSettingsView: View {
                     .frame(width: 190, alignment: .leading)
                 Slider(value: sliderBinding($preferences.maxSteps), in: 1...16, step: 1)
                     .frame(maxWidth: 320)
+                    .accessibilityLabel("Max steps (Work)")
             }
             HStack(spacing: 8) {
                 Text("Page budget: \(preferences.pageBudget) chars")
@@ -27,6 +28,7 @@ struct ConversationSettingsView: View {
                     .frame(width: 190, alignment: .leading)
                 Slider(value: sliderBinding($preferences.pageBudget), in: 500...20_000, step: 500)
                     .frame(maxWidth: 320)
+                    .accessibilityLabel("Page budget")
             }
             Picker("Max tokens", selection: $preferences.maxTokens) {
                 Text("Default (Chat 2048, Work 4096)").tag(Int?.none)
@@ -35,9 +37,13 @@ struct ConversationSettingsView: View {
             .fixedSize()
             HStack(spacing: 6) {
                 Text("Brave Search API key")
-                SecureField("optional — empty uses DuckDuckGo", text: $preferences.braveAPIKey)
-                    .textFieldStyle(.roundedBorder)
-                    .frame(maxWidth: 280)
+                SecureField(
+                    "Brave Search API key", text: $preferences.braveAPIKey,
+                    prompt: Text("optional — empty uses DuckDuckGo")
+                )
+                .labelsHidden()
+                .textFieldStyle(.roundedBorder)
+                .frame(maxWidth: 280)
             }
             Toggle(
                 "Allow file operations (move_note, from the next conversation)", isOn: $preferences.fileOperations)

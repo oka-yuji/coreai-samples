@@ -2153,6 +2153,16 @@
         }
       }
     },
+    "Max steps (Work)" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最大ステップ数（作業）"
+          }
+        }
+      }
+    },
     "Max steps (Work): %lld" : {
       "localizations" : {
         "ja" : {
@@ -2869,6 +2879,16 @@
         }
       }
     },
+    "Page budget" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ページ取得上限"
+          }
+        }
+      }
+    },
     "Page budget: %lld chars" : {
       "localizations" : {
         "ja" : {
@@ -3575,6 +3595,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@%@不足"
+          }
+        }
+      }
+    },
+    "Show or hide the conversation settings" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "会話の設定を表示または非表示にします"
           }
         }
       }

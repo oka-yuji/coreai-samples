@@ -98,8 +98,10 @@ enum AgentSelfTest {
                 }
             }
         }
+        var busyGaps = 0
         while host.state.isRunning {
             try? await Task.sleep(for: .milliseconds(500))
+            if host.state.isRunning && !chat.externallyBusy { busyGaps += 1 }
             printSettledEntries()
             if host.state.statusLine != status {
                 status = host.state.statusLine
@@ -146,7 +148,8 @@ enum AgentSelfTest {
                 "[cassette] summary hits=\(await cassette.hits) misses=\(await cassette.misses) records=\(await cassette.records)"
             )
         }
-        let completed = outcome == answeredOutcome || outcome == heldOutcome
+        out("[e2e] busy gaps: \(busyGaps)")
+        let completed = (outcome == answeredOutcome || outcome == heldOutcome) && busyGaps == 0
         out(
             (completed ? "AGENT E2E COMPLETED" : "AGENT E2E INCOMPLETE")
                 + "  diverges=\(session.divergeCount)  capSteps=\(session.capSteps)")
@@ -220,7 +223,7 @@ enum AgentSelfTest {
         if let failure = failures.first {
             if failure.title.hasPrefix("Ended at the step limit") { return "step-limit" }
             if failure.title.hasPrefix("Generation failed"),
-                failure.text.hasPrefix(ConversationSession.contextFullPrefix)
+                failure.text.hasPrefix(ConversationFeature.contextFullPrefix)
             {
                 return "overflow"
             }
@@ -464,8 +467,74 @@ enum AgentSelfTest {
         check("notes/moveRefused", refusals.allSatisfy { $0.hasPrefix("error:") }, refusals.joined(separator: " | "))
         try? FileManager.default.removeItem(at: movesIn)
 
+        check(
+            "prompt/effortArgument",
+            ["High", "OFF", "Low", "xhigh", "deep"].map(AgentReasoningEffort.init(argument:))
+                == [.xhigh, .off, .low, .xhigh, nil])
+
+        let runner = ToolRunner(preferences: ConversationPreferences(persists: false))
+        func waitFor(_ count: Int) async {
+            var tries = 0
+            while runner.waitingCount < count, tries < 1_000 {
+                tries += 1
+                await Task.yield()
+            }
+        }
+        runner.resolve("early", .refuse("no"))
+        let early = await runner.decision(for: "early")
+        let late = await withTaskGroup(of: ToolRunner.Decision.self) { group in
+            group.addTask { await runner.decision(for: "late") }
+            await waitFor(1)
+            runner.resolve("late", .run(finalize: true))
+            return await group.next() ?? .cancelled
+        }
+        let cancelled = await withTaskGroup(of: ToolRunner.Decision.self) { group in
+            group.addTask { await runner.decision(for: "gone") }
+            await waitFor(1)
+            group.cancelAll()
+            return await group.next() ?? .run(finalize: false)
+        }
+        let drained = await withTaskGroup(of: ToolRunner.Decision.self) { group in
+            group.addTask { await runner.decision(for: "first") }
+            group.addTask { await runner.decision(for: "second") }
+            await waitFor(2)
+            runner.drain()
+            var all: [ToolRunner.Decision] = []
+            for await decision in group { all.append(decision) }
+            return all
+        }
+        check(
+            "tools/permissionHandshake",
+            early == .refuse("no") && late == .run(finalize: true) && cancelled == .cancelled
+                && drained == [.cancelled, .cancelled] && runner.waitingCount == 0,
+            "early=\(early) late=\(late) cancelled=\(cancelled) drained=\(drained) waiting=\(runner.waitingCount)")
+
+        let transcripts = FileManager.default.temporaryDirectory.appending(
+            path: "agent-selftest-transcripts-\(ProcessInfo.processInfo.processIdentifier)",
+            directoryHint: .isDirectory)
+        try? FileManager.default.createDirectory(at: transcripts, withIntermediateDirectories: true)
+        let blocker = transcripts.appending(path: "blocker")
+        try? Data().write(to: blocker)
+        var running = ConversationState(id: "selftest-running", now: golden)
+        running.isRunning = true
+        let finished = ConversationSnapshot(ConversationState(id: "selftest-save", now: golden))
+        let saved = ConversationRunner.write(finished, to: transcripts)
+        let skipped = ConversationRunner.write(ConversationSnapshot(running), to: transcripts)
+        let failed = ConversationRunner.write(finished, to: blocker.appending(path: "below"))
+        let written = FileManager.default.fileExists(
+            atPath: transcripts.appending(path: "selftest-save.md").path(percentEncoded: false))
+        var failure = ""
+        if case .failed(let id, let message)? = failed, id == "selftest-save" { failure = message }
+        check(
+            "conversation/saveTranscript",
+            saved == .saved(id: "selftest-save") && written && skipped == nil
+                && failure.hasPrefix("The conversation could not be saved"),
+            "saved=\(String(describing: saved)) written=\(written) "
+                + "skipped=\(String(describing: skipped)) failure=\(failure)")
+        try? FileManager.default.removeItem(at: transcripts)
+
         let capTitle = "Answer cut at the token limit (4096)"
-        let overflow = ConversationSession.contextFullPrefix + ": the conversation needs 17000 tokens"
+        let overflow = ConversationFeature.contextFullPrefix + ": the conversation needs 17000 tokens"
         func verdict(_ failures: [(String, String)], answer: String = "done", finish: String? = "eos") -> String {
             e2eOutcome(stoppedByDeadline: false, failures: failures, answer: answer, finishReason: finish)
         }

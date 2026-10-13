@@ -4,7 +4,6 @@ import SwiftUI
 struct ComposerView: View {
     @Environment(ChatViewModel.self) private var chat
     @Environment(ConversationHost.self) private var host
-    @FocusState private var focused: Bool
 
     var body: some View {
         @Bindable var chat = chat
@@ -16,14 +15,14 @@ struct ComposerView: View {
                     Image(systemName: "exclamationmark.circle")
                     RuntimeMessageText(notice)
                     Spacer(minLength: 0)
-                    if host.contextFull || chat.contextFull {
+                    if host.contextFull {
                         Button("New", action: host.startNew)
                     }
                 }
                 .font(.callout)
                 .foregroundStyle(.orange)
             }
-            if state.refusedSave && !state.isRunning {
+            if state.refusedSave && !state.isRunning && !host.contextFull {
                 Button("Continue in Work", systemImage: "arrow.right.circle", action: host.continueInWork)
                     .help("Ask again in Work mode, which can save notes")
             }
@@ -50,7 +49,6 @@ struct ComposerView: View {
                     .padding(8)
                     .background(.background, in: .rect(cornerRadius: 8))
                     .overlay(RoundedRectangle(cornerRadius: 8).stroke(.separator))
-                    .focused($focused)
                     .disabled(host.contextFull)
                     .onSubmit(submit)
                 if running {
@@ -80,14 +78,16 @@ struct ComposerView: View {
     }
 
     private var notice: String? {
+        if chat.contextFull, let notice = chat.contextNotice { return notice }
         if host.contextFull { return "The context window is full. Start a new conversation to continue." }
         if chat.ragIsOn, let notice = chat.contextNotice { return notice }
-        return host.state.contextEndNotice
+        if let notice = host.state.contextEndNotice { return notice }
+        if case .failed(let message) = host.state.persistence { return message }
+        return nil
     }
 
     private func submit() {
         guard host.canSend else { return }
-        focused = false
         host.submit()
     }
 }

@@ -33,8 +33,6 @@ final class ConversationSession {
         case ended((any Error)?)
     }
 
-    nonisolated static let contextFullPrefix = "Context window is full"
-
     let id: String
     private(set) var modelName = ""
     private(set) var mode = ConversationMode.chat
@@ -252,7 +250,7 @@ final class ConversationSession {
                 return TurnEnd(kind: .failed(String(describing: failure)), outcome: "failed", answer: partial)
             }
             let message =
-                "\(Self.contextFullPrefix): the conversation needs \(exceeded.tokenCount) tokens and the limit is "
+                "\(ConversationFeature.contextFullPrefix): the conversation needs \(exceeded.tokenCount) tokens and the limit is "
                 + "\(exceeded.contextSize). Start a new conversation, lower the page budget or ask for something narrower."
             return TurnEnd(kind: .failed(message), outcome: "overflow", answer: partial)
         }

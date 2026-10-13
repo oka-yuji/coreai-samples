@@ -64,12 +64,12 @@ struct ConversationView: View {
             Button("Copy", systemImage: "doc.on.doc", action: copy)
                 .disabled(host.state.entries.isEmpty)
                 .help("Copy the conversation as Markdown")
-            Button {
-                showSettings.toggle()
-            } label: {
-                Image(systemName: "gearshape")
+            Toggle(isOn: $showSettings) {
+                Label("Conversation settings", systemImage: "gearshape")
             }
-            .accessibilityLabel("Conversation settings")
+            .toggleStyle(.button)
+            .labelStyle(.iconOnly)
+            .help("Show or hide the conversation settings")
         }
         .padding(10)
     }
@@ -87,11 +87,13 @@ struct ConversationView: View {
         } else {
             ScrollView {
                 VStack(alignment: .leading, spacing: 10) {
-                    ForEach(host.state.entries) { entry in
-                        ConversationEntryRow(entry: entry)
-                    }
-                    ForEach(chat.ragTurns) { turn in
-                        TurnView(turn: turn, live: chat.isResponding && turn.id == chat.ragTurns.last?.id)
+                    ForEach(TimelineItem.merge(host.state.entries, chat.ragTurns)) { item in
+                        switch item {
+                        case .entry(let entry):
+                            ConversationEntryRow(entry: entry)
+                        case .rag(let turn):
+                            TurnView(turn: turn, live: chat.isResponding && turn.id == chat.ragTurns.last?.id)
+                        }
                     }
                 }
                 .padding(12)
@@ -138,36 +140,28 @@ struct ConversationView: View {
     }
 }
 
-extension ConversationState {
-    var statusLine: String {
-        guard let turn = turns.last else { return "" }
-        let limit = turn.policy.maxSteps
-        if isRunning {
-            if stopRequested { return "Stopping…" }
-            if case .toolCalls(_, let calls, let metadata)? = transcript.entries.last, metadata != nil,
-                transcript.entries.count > turn.start + 1
-            {
-                return "Step \(step): running " + calls.map(\.name).joined(separator: " + ") + "…"
-            }
-            return "Step \(step) of \(limit): generating…"
+enum TimelineItem: Identifiable {
+    case entry(ConversationEntry)
+    case rag(ChatViewModel.Turn)
+
+    var id: String {
+        switch self {
+        case .entry(let entry): entry.id
+        case .rag(let turn): "rag-" + turn.id
         }
-        if turn.finalization == .cutOff { return "Stopped at the \(limit)-step limit." }
-        if turn.finish == .stopped { return "Stopped after \(step) step(s)." }
-        if let failure = turn.failure {
-            return failure.hasPrefix(ConversationSession.contextFullPrefix)
-                ? "Context overflow at step \(step)." : "Failed at step \(step)."
-        }
-        return turn.steps.last?.line ?? ""
     }
 
-    var contextEndNotice: String? {
-        guard !isRunning, let turn = turns.last, turn.finish == .cap else { return nil }
-        let reserved = transcript.entries.reversed().lazy.compactMap { entry -> Int? in
-            if case .response(_, _, let metadata) = entry { metadata?.reservedTokens } else { nil }
-        }.first
-        guard let reserved, reserved < turn.policy.maxTokens else { return nil }
-        return
-            "The reply stopped at the end of the context window (\(reserved) tokens were left for it). Start a new conversation if the next message does not fit."
+    static func merge(_ entries: [ConversationEntry], _ rag: [ChatViewModel.Turn]) -> [TimelineItem] {
+        var items: [TimelineItem] = []
+        var next = 0
+        for (index, entry) in entries.enumerated() {
+            while next < rag.count, rag[next].anchor <= index {
+                items.append(.rag(rag[next]))
+                next += 1
+            }
+            items.append(.entry(entry))
+        }
+        return items + rag[next...].map(TimelineItem.rag)
     }
 }
 

@@ -70,16 +70,20 @@ final class ConversationRunner {
     }
 
     private func save(_ snapshot: ConversationSnapshot, send: (ConversationAction) -> Void) {
-        guard snapshot.status == .completed else { return }
-        let directory = Self.transcriptsDirectory()
+        if let action = Self.write(snapshot, to: Self.transcriptsDirectory()) { send(action) }
+    }
+
+    static func write(_ snapshot: ConversationSnapshot, to directory: URL) -> ConversationAction? {
+        guard snapshot.status == .completed else { return nil }
         do {
             try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
             try Data(snapshot.markdown().utf8).write(
                 to: directory.appending(path: "\(snapshot.id).md"), options: .atomic)
-            send(.saved(id: snapshot.id))
+            return .saved(id: snapshot.id)
         } catch {
-            send(
-                .failed(id: snapshot.id, message: "The conversation could not be saved: \(error.localizedDescription)"))
+            AgentTools.log("[conversation] transcript save failed: \(error)")
+            let message = "The conversation could not be saved: \(error.localizedDescription)"
+            return .failed(id: snapshot.id, message: message)
         }
     }
 

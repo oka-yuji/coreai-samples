@@ -5,7 +5,7 @@ import Synchronization
 
 @MainActor
 final class ToolRunner {
-    enum Decision: Sendable {
+    enum Decision: Equatable, Sendable {
         case run(finalize: Bool)
         case refuse(String)
         case cancelled
@@ -68,7 +68,7 @@ final class ToolRunner {
         }
     }
 
-    nonisolated private func decision(for id: String) async -> Decision {
+    nonisolated func decision(for id: String) async -> Decision {
         await withTaskCancellationHandler {
             await withCheckedContinuation { continuation in
                 let early: Decision? = slots.withLock { slots in
@@ -100,6 +100,10 @@ final class ToolRunner {
             }
         }
         waiting?.resume(returning: decision)
+    }
+
+    nonisolated var waitingCount: Int {
+        slots.withLock { slots in slots.values.count { if case .waiting = $0 { true } else { false } } }
     }
 
     func drain() {
