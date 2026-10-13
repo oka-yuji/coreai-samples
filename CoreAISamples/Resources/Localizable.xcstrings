@@ -828,6 +828,16 @@
         }
       }
     },
+    "Choose a model from the menu above, or open a bundle folder in Models." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "上のメニューからモデルを選ぶか、モデル管理でモデルのフォルダを開いてください。"
+          }
+        }
+      }
+    },
     "Choose a photograph smaller than 20 MB." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -846,6 +856,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "通常の画像ファイルを選んでください。"
+          }
+        }
+      }
+    },
+    "Choose the model Chat and Agent use" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "チャットとエージェントで使うモデルを選びます"
           }
         }
       }
@@ -1304,6 +1324,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "ダウンロード"
+          }
+        }
+      }
+    },
+    "Downloaded" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ダウンロード済み"
           }
         }
       }
@@ -2006,6 +2036,16 @@
         }
       }
     },
+    "Manage Models…" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデル管理…"
+          }
+        }
+      }
+    },
     "Max steps: %lld" : {
       "localizations" : {
         "ja" : {
@@ -2064,6 +2104,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "食材が不足"
+          }
+        }
+      }
+    },
+    "Model" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデル"
           }
         }
       }
@@ -2240,6 +2290,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "モデル未読込"
+          }
+        }
+      }
+    },
+    "No models yet" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルがまだありません"
           }
         }
       }
@@ -3558,6 +3618,16 @@
         }
       }
     },
+    "The agent uses the model that Chat has loaded. Choose a model from the menu above, or open a bundle folder in Models." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "エージェントはチャットと同じモデルを使います。上のメニューからモデルを選ぶか、モデル管理でモデルのフォルダを開いてください。"
+          }
+        }
+      }
+    },
     "The agent uses the model that Chat has loaded. Open a model bundle folder in Models, then load it." : {
       "localizations" : {
         "ja" : {
@@ -4107,6 +4177,17 @@
         }
       }
     },
+    "macOS 27, Apple silicon" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS 27、Appleシリコン"
+          }
+        }
+      }
+    },
     "ml" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4243,6 +4324,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "未確認"
+          }
+        }
+      }
+    },
+    "~21 GiB while loading" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "約21 GiB（読み込み時）"
           }
         }
       }

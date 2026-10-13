@@ -136,7 +136,7 @@ struct CatalogRowView: View {
             Text(row.model.name)
                 .fontWeight(.medium)
             Text(
-                "\(row.model.repo)  ·  \(row.model.sizeBytes.formatted(.byteCount(style: .file)))  ·  memory \(row.model.memory)  ·  \(row.model.platforms)"
+                "\(row.model.repo)  ·  \(row.model.sizeBytes.formatted(.byteCount(style: .file)))  ·  memory \(Text(LocalizedStringKey(row.model.memory)))  ·  \(Text(LocalizedStringKey(row.model.platforms)))"
             )
             .font(.caption)
             .foregroundStyle(.secondary)
