@@ -27,7 +27,7 @@ struct ComposerView: View {
                 Button("Continue in Work", systemImage: "arrow.right.circle", action: host.continueInWork)
                     .help("Ask again in Work mode, which can save notes")
             }
-            HStack(spacing: 10) {
+            VStack(alignment: .leading, spacing: 4) {
                 Picker("Mode", selection: Binding(get: { state.mode }, set: { host.store.send(.modeChanged($0)) })) {
                     Text("Chat").tag(ConversationMode.chat)
                     Text("Work").tag(ConversationMode.work)
