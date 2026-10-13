@@ -2,12 +2,14 @@ import DecideFeature
 import ExtractFeature
 import FeatureStore
 import Observation
+import RecipeFeature
 import SwiftUI
 
 enum Demo: String, CaseIterable, Identifiable {
     case chat
     case agent
     case decide
+    case recipes
     case extract
     case models
 
@@ -18,6 +20,7 @@ enum Demo: String, CaseIterable, Identifiable {
         case .chat: "Chat"
         case .agent: "Agent"
         case .decide: "Decide"
+        case .recipes: "Recipes"
         case .extract: "Extract"
         case .models: "Models"
         }
@@ -28,6 +31,7 @@ enum Demo: String, CaseIterable, Identifiable {
         case .chat: "Talk to a local model through Foundation Models"
         case .agent: "Search the web and run multi-step tasks with tool calls"
         case .decide: "Check a document against an editable checklist"
+        case .recipes: "Can you make this recipe with what you have?"
         case .extract: "Technical verification: type labels and see the spans GLiNER finds in a text"
         case .models: "Get, open and prepare model bundles"
         }
@@ -38,6 +42,7 @@ enum Demo: String, CaseIterable, Identifiable {
         case .chat: "bubble.left.and.bubble.right"
         case .agent: "sparkles"
         case .decide: "checklist"
+        case .recipes: "carrot"
         case .extract: "text.magnifyingglass"
         case .models: "square.and.arrow.down"
         }
@@ -56,6 +61,7 @@ struct DemoRootView: View {
     @State private var agent = AgentViewModel()
     @State private var models = ModelsViewModel()
     @State private var decide = DecideAssembly.makeStore()
+    @State private var recipes = RecipeAssembly.makeStore()
     @State private var extract = Store<ExtractFeature>(
         initialState: ExtractState(
             form: ExtractResources.form, labels: ExtractResources.examples.labels,
@@ -89,6 +95,7 @@ struct DemoRootView: View {
             case .chat?: ChatView()
             case .agent?: AgentView()
             case .decide?: DecideView(store: decide)
+            case .recipes?: RecipeView(store: recipes)
             case .extract?: ExtractView(store: extract)
             case .models?: ModelsView()
             case nil: ContentUnavailableView("Select a demo", systemImage: "square.grid.2x2")

@@ -30,4 +30,24 @@ Acquire CoreLLM/.locks/heavy-job and ensure no other model process is running. U
 RECIPE_MODEL_TEST=1 FRIDGE_PHOTOS_DIR=/path/to/five-images COREAI_DECISION_BUNDLE=/path/to/bundle RECIPE_METRICS_DIR=/tmp/recipe-evidence swift test --package-path CoreAISamplesKit -c release --filter RecipeIntegrationTests
 ```
 
-Ordinary `swift test --package-path CoreAISamplesKit` skips this live integration test. The Recipes UI and its same-Store headless check are documented with Issue 50 when implemented.
+Ordinary `swift test --package-path CoreAISamplesKit` skips this live integration test. The Recipes screen and same-Store headless command are described in [the demo guide](../recipes-demo.md).
+
+## Store, runner and screen verification
+
+The built app's `--recipe-e2e` command passed all five real-photo/live-URL scenarios and the toaster alternative. Raw photo suggestions are recorded separately from explicitly scripted reviewed inventory in `five-store-cases.json`. This functional run preceded the final review fixes for `enough` confirmations across recipe changes and the reopen idle barrier; the photo/model/parser/quantity paths were unchanged by those fixes. The final actual Store/runner tests cover their affected transitions, success, failure and late cancellation.
+
+Full ordinary tests, strict lint, format checks and the Mac Release build passed. Source hashes and the exact evidence boundary are in `ui-verification.json`. The initial GUI attempt was unfinished: a fresh GUI process waited in the existing ModelsViewModel's registered-model metadata read. A Finder open/foreground action was rejected by automatic approval review as requiring runtime confirmation. No security settings were changed, the pending test process was ended and the GPU lock released. This does not establish a TCC cause or a Recipes failure; it is recorded separately from the passing headless scenario. User manual acceptance remains pending.
+
+The initial screen review identified a gap in controlled runner coverage. The final runner lives in RecipeRuntime with injected persistence; RecipeRunnerTests exercise all successes and failures plus cancellation and reopening through the actual Store. The final independent review (`ui-feature-review.json`) retains the original amount/barrier findings and their resolution evidence, with no remaining confirmed or plausible findings in its assigned scope.
+
+The final dedicated clone (`coreai-samples-decide`, branch `feat/50-recipe-demo`) passed the ordinary strict SwiftLint command with its unchanged baseline (115 files), changed-source formatting (22 files) and its own Release build. All 22 recorded Swift source hashes matched the tested files. The learned photo/decision boundaries were also organized into Core AI guide chapter 12 on `docs/fridge-recipe-findings` (`ddfe416`); that documentation branch has been pushed without a PR or merge.
+
+## GUI verification after launch approval (2026-10-09)
+
+The user authorized opening the built app. The initial accessibility read still timed out, but the app subsequently showed its ordinary Chat screen without code or security-setting changes. The earlier wait does not establish a TCC cause. The tool could not access UserNotificationCenter; that restriction was respected, and the Recipes checks proceeded in the now-responsive app.
+
+All five provided photographs went through the screen to a live recipe check. Four used Examples; the rice-bowl photograph used Open photo and a typed recipe URL. Observed outcomes included two eggs short, missing ginger after explicit inventory review, missing oven/toaster followed by an available toaster alternative, and mozzarella remaining unknown behind the opaque container. Ingredient and equipment edits removed stale results. Returning from Chat preserved the current Recipes result. The final egg-shortage view was visually inspected. `gui-approved-verification.json` identifies the build, binary hash, actions, inputs and results.
+
+The photo model proposed zucchini for the intended cucumbers in the ginger-pork image. Its generic meat label also required review. Both names were editable before confirmation. Oil, soy sauce and mirin were explicitly added as scripted test inventory; they were not detected in the image. The rice-bowl GUI case kept unseen rice/seasoning/water unknown, while the separately recorded headless case covers a fully supplied scripted inventory. These are different checks and neither proves perfect photo recognition.
+
+The fast live check finished before an accessible Stop control could be acted on. A rapid double-click did not establish cancellation either. Stop/idle-barrier behavior is therefore supported by the controlled actual Store/Runner and Service tests, not claimed as directly observed GUI cancellation. The app was quit after verification and the GPU lock released. User manual acceptance, PR creation and merging remain separate from this agent verification.

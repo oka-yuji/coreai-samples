@@ -46,6 +46,12 @@ targets:
         product: DecideFeature
       - package: CoreAISamplesKit
         product: DecideRuntime
+      - package: CoreAISamplesKit
+        product: RecipeCore
+      - package: CoreAISamplesKit
+        product: RecipeRuntime
+      - package: CoreAISamplesKit
+        product: RecipeFeature
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.coreai-samples.DemoApp

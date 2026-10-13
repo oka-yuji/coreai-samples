@@ -24,6 +24,7 @@ let package = Package(
         .library(name: "DecideRuntime", targets: ["DecideRuntime"]),
         .library(name: "RecipeCore", targets: ["RecipeCore"]),
         .library(name: "RecipeRuntime", targets: ["RecipeRuntime"]),
+        .library(name: "RecipeFeature", targets: ["RecipeFeature"]),
     ],
     dependencies: [
         .package(url: "https://github.com/huggingface/swift-transformers", from: "1.3.4"),
@@ -41,7 +42,10 @@ let package = Package(
         .target(name: "RAGContext"),
         .target(name: "RecipeCore", swiftSettings: approachableConcurrency),
         .target(
-            name: "RecipeRuntime", dependencies: ["RecipeCore", "CoreAIBackend"], resources: [.process("Resources")],
+            name: "RecipeFeature", dependencies: ["FeatureStore", "RecipeCore"], swiftSettings: approachableConcurrency),
+        .target(
+            name: "RecipeRuntime", dependencies: ["RecipeCore", "RecipeFeature", "CoreAIBackend"],
+            resources: [.process("Resources")],
             swiftSettings: approachableConcurrency
         ),
         .target(name: "DecideFeature", dependencies: ["FeatureStore"], swiftSettings: approachableConcurrency),
@@ -80,7 +84,10 @@ let package = Package(
         .testTarget(name: "RAGContextTests", dependencies: ["RAGContext"]),
         .testTarget(name: "RecipeCoreTests", dependencies: ["RecipeCore"], swiftSettings: approachableConcurrency),
         .testTarget(
-            name: "RecipeRuntimeTests", dependencies: ["RecipeRuntime", "RecipeCore"],
+            name: "RecipeFeatureTests", dependencies: ["RecipeFeature", "RecipeCore", "FeatureStore"],
+            swiftSettings: approachableConcurrency),
+        .testTarget(
+            name: "RecipeRuntimeTests", dependencies: ["RecipeRuntime", "RecipeCore", "RecipeFeature", "FeatureStore"],
             resources: [.process("Resources")],
             swiftSettings: approachableConcurrency
         ),
