@@ -150,9 +150,11 @@ enum AgentSelfTest {
     }
 
     @MainActor
-    private static func applyM4GOptions(to agent: AgentViewModel) throws -> String? {
+    private static func applyM4GOptions(
+        to agent: AgentViewModel, arguments: [String] = CommandLine.arguments
+    ) throws -> String? {
         func choice(_ name: String, _ allowed: [String]) throws -> String? {
-            guard let value = LaunchArguments.value(name) else { return nil }
+            guard let value = LaunchArguments.value(name, in: arguments) else { return nil }
             guard allowed.contains(value) else {
                 throw AgentToolMessage(text: "\(name) must be \(allowed.joined(separator: "|")), not '\(value)'")
             }
@@ -171,7 +173,7 @@ enum AgentSelfTest {
             agent.sourcesRequired = value == "auto" ? nil : value == "yes"
             given.append("sourcesRequired=\(value)")
         }
-        if let value = LaunchArguments.value("--date") {
+        if let value = LaunchArguments.value("--date", in: arguments) {
             guard AgentPromptBuilder.isDateLabel(value) else {
                 throw AgentToolMessage(
                     text:
@@ -181,14 +183,14 @@ enum AgentSelfTest {
             agent.fixedDate = value
             given.append("date=\(value)")
         }
-        if LaunchArguments.flag("--stable-note-paths") {
+        if LaunchArguments.flag("--stable-note-paths", in: arguments) {
             agent.stableNotePaths = true
             given.append("stableNotePaths=true")
         }
         let latency = try choice("--cassette-latency", ["replay", "none"])
         let mode = try choice("--cassette-mode", ToolCassette.Mode.allCases.map(\.rawValue)).flatMap(
             ToolCassette.Mode.init(rawValue:))
-        let path = LaunchArguments.value("--tool-cassette")
+        let path = LaunchArguments.value("--tool-cassette", in: arguments)
         if path != nil || mode != nil {
             guard let path, let mode else {
                 throw AgentToolMessage(
@@ -848,12 +850,36 @@ enum AgentSelfTest {
         let defaultsName = "agent-defaults-" + UUID().uuidString
         if let defaults = UserDefaults(suiteName: defaultsName) {
             defer { defaults.removePersistentDomain(forName: defaultsName) }
+            func flagged(_ value: String) -> Bool {
+                let agent = AgentViewModel(defaults: defaults)
+                agent.persistsSettings = false
+                _ = try? applyM4GOptions(to: agent, arguments: ["--citation-guard", value])
+                return agent.citationGuard
+            }
             let fresh = AgentViewModel(defaults: defaults)
-            check("m4h/defaultInstructionsAndGuard", fresh.citeFetched && fresh.citationGuard, "fresh settings")
+            check(
+                "m4h/defaultInstructionsAndGuard",
+                fresh.citeFetched && !fresh.citationGuard
+                    && defaults.object(forKey: AgentViewModel.citationGuardDefaultsKey) == nil,
+                "fresh settings: citeFetched=\(fresh.citeFetched) citationGuard=\(fresh.citationGuard)")
+            let onOverFresh = flagged("on")
+            fresh.citationGuard = true
+            let savedOn = AgentViewModel(defaults: defaults).citationGuard
+            let offOverSavedOn = flagged("off")
+            let keptOn = AgentViewModel(defaults: defaults).citationGuard
             fresh.citeFetched = false
             fresh.citationGuard = false
             let saved = AgentViewModel(defaults: defaults)
-            check("m4h/savedInstructionsAndGuard", !saved.citeFetched && !saved.citationGuard, "saved false values")
+            let onOverSavedOff = flagged("on")
+            let keptOff = !AgentViewModel(defaults: defaults).citationGuard
+            check(
+                "m4h/savedInstructionsAndGuard", savedOn && !saved.citeFetched && !saved.citationGuard,
+                "saved on read back as \(savedOn), then saved off")
+            check(
+                "e2e/citationGuardFlagOverridesSettings",
+                onOverFresh && !offOverSavedOn && onOverSavedOff && keptOn && keptOff,
+                "on over fresh=\(onOverFresh) off over saved on=\(!offOverSavedOn) on over saved off=\(onOverSavedOff) "
+                    + "saved values kept=\(keptOn && keptOff)")
         } else {
             check("m4h/defaultInstructionsAndGuard", false, "could not create isolated defaults")
         }
