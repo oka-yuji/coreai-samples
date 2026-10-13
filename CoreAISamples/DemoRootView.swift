@@ -8,7 +8,6 @@ import SwiftUI
 
 enum Demo: String, CaseIterable, Identifiable {
     case chat
-    case agent
     case decide
     case recipes
     case extract
@@ -19,7 +18,6 @@ enum Demo: String, CaseIterable, Identifiable {
     var title: String {
         switch self {
         case .chat: "Chat"
-        case .agent: "Agent"
         case .decide: "Decide"
         case .recipes: "Recipes"
         case .extract: "Extract"
@@ -29,8 +27,7 @@ enum Demo: String, CaseIterable, Identifiable {
 
     var summary: String {
         switch self {
-        case .chat: "Talk to a local model through Foundation Models"
-        case .agent: "Search the web and run multi-step tasks with tool calls"
+        case .chat: "Talk, search the web and run multi-step tasks on a local model"
         case .decide: "Check a document against an editable checklist"
         case .recipes: "Can you make this recipe with what you have?"
         case .extract: "Compare product specifications from official descriptions"
@@ -41,7 +38,6 @@ enum Demo: String, CaseIterable, Identifiable {
     var systemImage: String {
         switch self {
         case .chat: "bubble.left.and.bubble.right"
-        case .agent: "sparkles"
         case .decide: "checklist"
         case .recipes: "carrot"
         case .extract: "text.magnifyingglass"
@@ -59,7 +55,8 @@ final class DemoNavigator {
 struct DemoRootView: View {
     @AppStorage(DemoLanguage.preferenceKey) private var languageCode = DemoLanguage.initialCode
     @State private var navigator = DemoNavigator()
-    @State private var chat = ChatViewModel()
+    @State private var chat: ChatViewModel
+    @State private var host: ConversationHost
     @State private var agent = AgentViewModel()
     @State private var models = ModelsViewModel()
     @State private var decide = DecideAssembly.makeStore()
@@ -72,6 +69,12 @@ struct DemoRootView: View {
             lastAssetPath: UserDefaults.standard.string(forKey: ExtractRunner.assetFolderKey),
             appVersion: ExtractRunner.appVersion),
         run: ExtractRunner(service: GLiNERExtractService(correctionWords: ExtractResources.correctionWords)).run)
+
+    init() {
+        let chat = ChatViewModel()
+        _chat = State(initialValue: chat)
+        _host = State(initialValue: ConversationHost(chat: chat))
+    }
 
     var body: some View {
         @Bindable var navigator = navigator
@@ -96,8 +99,7 @@ struct DemoRootView: View {
             .navigationSplitViewColumnWidth(min: 200, ideal: 240)
         } detail: {
             switch navigator.selection {
-            case .chat?: ChatView()
-            case .agent?: AgentView()
+            case .chat?: ConversationView()
             case .decide?: DecideView(store: decide)
             case .recipes?: RecipeView(store: recipes)
             case .extract?:
@@ -119,7 +121,7 @@ struct DemoRootView: View {
         }
         .environment(navigator)
         .environment(chat)
-        .environment(agent)
+        .environment(host)
         .environment(models)
         .environment(decide)
         .toolbar {
@@ -131,6 +133,7 @@ struct DemoRootView: View {
             }
         }
         .environment(\.locale, (DemoLanguage(rawValue: languageCode) ?? .english).locale)
+        .onChange(of: chat.loadStarted) { host.startNew() }
         .task {
             GUIDriver.shared.attach(navigator: navigator, chat: chat, agent: agent, models: models, extract: extract)
         }

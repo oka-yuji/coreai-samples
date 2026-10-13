@@ -33,7 +33,7 @@ final class ConversationSession {
         case ended((any Error)?)
     }
 
-    static let contextFullPrefix = "Context window is full"
+    nonisolated static let contextFullPrefix = "Context window is full"
 
     let id: String
     private(set) var modelName = ""

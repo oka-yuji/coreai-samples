@@ -323,7 +323,7 @@ final class GUIDriver {
         )
 
         await step(4, "agent-task", "Agent: the task is sent and the first step streams") {
-            navigator.selection = .agent
+            navigator.selection = .chat
             await self.settle()
             agent.input = Self.agentTask
             guard agent.send(chat: chat) else { return (false, "send refused") }

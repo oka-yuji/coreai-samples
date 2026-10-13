@@ -142,38 +142,39 @@ enum ModelSelectionSelfTest {
             "menu/emptyWithoutCandidates", empty.downloaded.isEmpty && empty.onThisMac.isEmpty,
             "\(describe(empty.downloaded)) \(describe(empty.onThisMac))")
 
-        let agent = AgentViewModel()
-        agent.persistsSettings = false
-        let earlier = AgentViewModel.Entry(kind: .user, title: "You", text: "earlier task")
-        agent.entries = [earlier]
+        let preferences = ConversationPreferences(defaults: defaults, persists: false)
         let idle = ChatViewModel()
+        let kept = ConversationHost(chat: idle, preferences: preferences)
+        let earlier = kept.store
         let current = ModelsViewModel.MenuEntry(name: "qwen35", url: qwen[1], isCurrent: true)
-        await ModelMenu.choose(current, chat: idle, agent: agent)
+        await ModelMenu.choose(current, chat: idle, host: kept)
         check(
             "menu/chooseCurrentDoesNothing",
-            idle.phase == .empty && idle.bundleURL == nil && agent.entries.map(\.id) == [earlier.id],
-            "\(idle.phase) agentEntries=\(agent.entries.count)")
+            idle.phase == .empty && idle.bundleURL == nil && kept.store === earlier,
+            "\(idle.phase) newConversation=\(kept.store !== earlier)")
 
         let chat = ChatViewModel()
+        let host = ConversationHost(chat: chat, preferences: preferences)
+        let previous = host.store
         let before = chat.loadStarted
         let other = ModelsViewModel.MenuEntry(name: "qwen3", url: qwen[0], isCurrent: false)
-        await ModelMenu.choose(other, chat: chat, agent: agent)
+        await ModelMenu.choose(other, chat: chat, host: host)
         var reachedRuntime = false
         if case .failed(let message) = chat.phase {
             reachedRuntime = message != otherFamilyReason && message != missingIDReason
         }
         check(
             "menu/chooseStartsLoadAndNewConversation",
-            chat.bundleURL == qwen[0] && chat.loadStarted > before && chat.entries.isEmpty && agent.entries.isEmpty
-                && reachedRuntime,
-            "\(chat.phase) agentEntries=\(agent.entries.count)")
+            chat.bundleURL == qwen[0] && chat.loadStarted > before && host.store !== previous
+                && host.state.entries.isEmpty && reachedRuntime,
+            "\(chat.phase) newConversation=\(host.store !== previous)")
 
         let states = [
             (false, false, false, false), (true, false, false, false), (false, true, false, false),
             (false, false, true, false), (false, false, false, true),
         ]
         let disabled = states.map {
-            ModelMenu.isDisabled(loading: $0.0, responding: $0.1, busy: $0.2, agentRunning: $0.3)
+            ModelMenu.isDisabled(loading: $0.0, responding: $0.1, busy: $0.2, running: $0.3)
         }
         check("menu/disabledWhileBusy", disabled == [false, true, true, true, true], "\(disabled)")
     }
