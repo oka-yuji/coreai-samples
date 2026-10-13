@@ -28,7 +28,7 @@ Install the [Hugging Face CLI](https://huggingface.co/docs/huggingface_hub/guide
 ```sh
 git clone https://github.com/oka-yuji/coreai-samples.git
 cd coreai-samples
-hf download okayuji/Qwen3.8-27B-coreai-4bit --revision c034c9857455a48cea715fec19eb49b3227b2458 \
+hf download okayuji/Qwen3.8-27B-coreai-4bit --revision 29eb83f8a51dc5998552ec70bfe21d5be962c319 \
   --local-dir ./models/qwen3.8-27b-coreai-4bit
 ```
 
@@ -47,8 +47,8 @@ The model thinks before it answers: the thinking prints under `[reasoning]` and 
 
 | The bundle | |
 |---|---|
-| Repository and revision | [`okayuji/Qwen3.8-27B-coreai-4bit`](https://huggingface.co/okayuji/Qwen3.8-27B-coreai-4bit) at `c034c9857455a48cea715fec19eb49b3227b2458`, the revision the app's Catalog pins |
-| Size | 12 files, 16,852,520,981 bytes (16.85 GB, 15.70 GiB); the model file `main.mlirb` is 16,839,684,298 bytes |
+| Repository and revision | [`okayuji/Qwen3.8-27B-coreai-4bit`](https://huggingface.co/okayuji/Qwen3.8-27B-coreai-4bit) at `29eb83f8a51dc5998552ec70bfe21d5be962c319`, the revision the app's Catalog pins; its tag is `v1.0.0` |
+| Size | 12 files, 16,852,543,842 bytes (16.85 GB, 15.70 GiB); the model file `main.mlirb` is 16,839,684,298 bytes |
 | Source | [`Qwen/Qwen3.8-27B`](https://huggingface.co/Qwen/Qwen3.8-27B) at revision `1d4bf0f2ff6012fd82039f2fa52739d0dd7c60c0`, text only (the vision encoder is not included) |
 | Conversion | Apple's converter at commit `36e9350` of [pull request #321](https://github.com/apple/coreai-models/pull/321), which is not part of the 1.0.0 tag; preset `qwen3_5_cfg` (4-bit weights, bfloat16 compute) with the gated-delta state update computed in fp32; macOS export with dynamic shapes |
 | Tokenizer | `tokenizer/tokenizer.json` is the original Qwen3.8-27B file, in place of the copy the converter re-saved; on the 2,257 strings used in the measurements, Swift produced the same token IDs with either file |
@@ -249,7 +249,7 @@ LICENSE                  MIT, for the code
 
 `CoreAISamples` is a macOS SwiftUI app built on this repository's `CoreAIBackend` and `RAGContext`, without the official `coreai-models` package.
 
-- **Models** opens a bundle folder on this Mac, loads it, and clears the copy prepared for the GPU. Its catalog lists Qwen3.8 27B (4bit) for download. The catalog's memory figure, ~21 GiB while loading, is one reading of the app's resident memory taken while it loaded that bundle (20.66 GiB) on the Mac in the measurement table below; it is neither the peak nor a minimum memory requirement.
+- **Models** opens a bundle folder on this Mac, loads it, and clears the copy prepared for the GPU. Its catalog lists Qwen3.8 27B (4bit) for download. The catalog's memory figure, ~32 GiB peak RSS while loading, is the peak resident memory of the app process while it loaded that bundle on the Mac in the measurement table below, measured with `/usr/bin/time -l`: 31.51 GiB from the prepared copy (median of 48 loads) and 31.88 GiB at the first load. It is not a minimum memory requirement.
 - **Chat** streams the reply and the thinking, and with RAG answers from web pages and local documents with numbered sources.
 - **Agent** searches the web, reads pages and saves notes through the Foundation Models tool loop. Its instructions ask it to cite only pages it opened with `fetch_page`. The **Citation guard** setting, off by default, checks the cited URLs against the pages fetched in the task and asks for one repair turn when they do not match ([details](docs/demo-app.md#citation-guard)).
 - **Decide** scores a document against editable choices with Clef-Flash, reuses the document, and keeps human confirmation separate from model candidates.
