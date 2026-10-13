@@ -159,6 +159,40 @@ struct RecipeFeatureTests {
         #expect(state.canCheck && !state.needsIdleBarrier)
     }
 
+    @Test("Changing a displayed ingredient translation keeps the source inventory and its confirmation")
+    func translatedNameDoesNotEditInventory() throws {
+        var state = try makeState()
+        state.pantry = [PantryItem(id: 0, name: "eggs", amount: "1 pcs", confirmed: true)]
+        state.inventoryComplete = true
+        state.report = report
+        let before = state
+        _ = RecipeFeature.reduce(
+            &state, .editDisplayedName(0, "localized eggs", previousDisplay: "localized eggs", originalSource: "eggs"))
+        #expect(state == before)
+        _ = RecipeFeature.reduce(&state, .editDisplayedName(0, "eggs", previousDisplay: "eggs", originalSource: "eggs"))
+        #expect(state == before)
+        _ = RecipeFeature.reduce(
+            &state, .editDisplayedName(0, "onion", previousDisplay: "localized eggs", originalSource: "eggs"))
+        #expect(state.pantry[0].name == "onion")
+        #expect(!state.pantry[0].confirmed && !state.inventoryComplete)
+        #expect(state.report == nil)
+        #expect(state.revision == before.revision + 1)
+    }
+
+    @Test("Two edits through one displayed-name snapshot can return to the original ingredient")
+    func consecutiveDisplayedEdits() throws {
+        var state = try makeState()
+        state.pantry = [PantryItem(id: 0, name: "eggs", amount: "1 pcs", confirmed: true)]
+        state.inventoryComplete = true
+        _ = RecipeFeature.reduce(
+            &state, .editDisplayedName(0, "onion", previousDisplay: "localized eggs", originalSource: "eggs"))
+        _ = RecipeFeature.reduce(
+            &state, .editDisplayedName(0, "localized eggs", previousDisplay: "localized eggs", originalSource: "eggs"))
+        #expect(state.pantry[0].name == "eggs")
+        #expect(!state.pantry[0].confirmed && !state.inventoryComplete)
+        #expect(state.revision == 2)
+    }
+
     private func makeState() throws -> RecipeState {
         let vocabulary = try JSONDecoder().decode(
             FoodVocabulary.self,

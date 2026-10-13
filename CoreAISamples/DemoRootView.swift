@@ -56,6 +56,7 @@ final class DemoNavigator {
 }
 
 struct DemoRootView: View {
+    @AppStorage(DemoLanguage.preferenceKey) private var languageCode = DemoLanguage.initialCode
     @State private var navigator = DemoNavigator()
     @State private var chat = ChatViewModel()
     @State private var agent = AgentViewModel()
@@ -77,8 +78,8 @@ struct DemoRootView: View {
                     NavigationLink(value: demo) {
                         Label {
                             VStack(alignment: .leading, spacing: 2) {
-                                Text(demo.title)
-                                Text(demo.summary)
+                                Text(LocalizedStringKey(demo.title))
+                                Text(LocalizedStringKey(demo.summary))
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }
@@ -88,7 +89,7 @@ struct DemoRootView: View {
                     }
                 }
             }
-            .navigationTitle("Demos")
+            .demoNavigationTitle("Demos")
             .navigationSplitViewColumnWidth(min: 200, ideal: 240)
         } detail: {
             switch navigator.selection {
@@ -106,6 +107,15 @@ struct DemoRootView: View {
         .environment(agent)
         .environment(models)
         .environment(decide)
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                DemoLanguagePicker(
+                    code: Binding(
+                        get: { (DemoLanguage(rawValue: languageCode) ?? .english).rawValue },
+                        set: { languageCode = $0 }))
+            }
+        }
+        .environment(\.locale, (DemoLanguage(rawValue: languageCode) ?? .english).locale)
         .task {
             GUIDriver.shared.attach(navigator: navigator, chat: chat, agent: agent, models: models, extract: extract)
         }

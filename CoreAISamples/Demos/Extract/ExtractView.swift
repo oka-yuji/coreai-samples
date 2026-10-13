@@ -22,7 +22,7 @@ struct ExtractView: View {
                 fieldsPane.frame(minWidth: 380, idealWidth: 520, maxWidth: .infinity, maxHeight: .infinity)
             }
         }
-        .navigationTitle("Extract")
+        .demoNavigationTitle("Extract")
         .fileImporter(isPresented: $choosingAsset, allowedContentTypes: [.folder]) { result in
             if case .success(let url) = result {
                 store.send(.assetFolderChosen(path: url.path(percentEncoded: false)))
@@ -75,7 +75,7 @@ struct ExtractView: View {
                 }
                 Spacer()
             }
-            Label(ExtractRunner.notice, systemImage: "info.circle")
+            Label(LocalizedStringKey(ExtractRunner.notice), systemImage: "info.circle")
                 .font(.caption)
                 .foregroundStyle(.secondary)
             HStack(spacing: 10) {
@@ -100,8 +100,8 @@ struct ExtractView: View {
             }
         case .ready(let info):
             let seconds = info.loadSeconds.formatted(.number.precision(.fractionLength(1)))
-            let revision = info.revision.map { " · revision \($0.prefix(7))" } ?? ""
-            Text(verbatim: "\(URL(filePath: info.path).lastPathComponent) · loaded in \(seconds) s\(revision)")
+            Text("\(URL(filePath: info.path).lastPathComponent) · loaded in \(seconds) s")
+            if let revision = info.revision { Text("Revision: \(String(revision.prefix(7)))") }
         case .failed(_, let message):
             Text("Could not open the asset: \(message)").foregroundStyle(.red)
         }
@@ -112,16 +112,18 @@ struct ExtractView: View {
         case .extracting:
             Text("Extracting…").foregroundStyle(.secondary)
         case .failed(let message):
-            Text(message).foregroundStyle(.red)
+            RuntimeMessageText(message).foregroundStyle(.red)
         case .ready, .idle:
             if let timing = state.result?.timing {
-                Text(ExtractRunner.describe(timing)).monospacedDigit().foregroundStyle(.secondary)
+                RuntimeMessageText(ExtractRunner.describe(timing)).monospacedDigit().foregroundStyle(.secondary)
             } else if state.schema.fields.isEmpty {
-                Text(state.mode == .labels ? "Add a label to extract." : "Add a field to extract.")
+                Text(LocalizedStringKey(state.mode == .labels ? "Add a label to extract." : "Add a field to extract."))
                     .foregroundStyle(.secondary)
             } else if case .ready = state.asset {
-                Text(state.text.isEmpty ? "Paste or type a note." : "Waiting for the text to settle…")
-                    .foregroundStyle(.secondary)
+                Text(
+                    LocalizedStringKey(state.text.isEmpty ? "Paste or type a note." : "Waiting for the text to settle…")
+                )
+                .foregroundStyle(.secondary)
             } else {
                 Text("Open an asset folder to extract.").foregroundStyle(.secondary)
             }
@@ -228,13 +230,13 @@ struct ExtractView: View {
         let isLabel = state.mode == .labels
         return VStack(alignment: .leading, spacing: 0) {
             HStack {
-                Text(isLabel ? "Labels" : "Form").font(.headline)
+                Text(LocalizedStringKey(isLabel ? "Labels" : "Form")).font(.headline)
                 Spacer()
                 if !isLabel {
                     Button("Reset Form") { store.send(.fieldsChanged(ExtractResources.form)) }
                         .disabled(state.form == ExtractResources.form)
                 }
-                Button(isLabel ? "Add Label" : "Add Field") { draft = FieldDraft() }
+                Button(LocalizedStringKey(isLabel ? "Add Label" : "Add Field")) { draft = FieldDraft() }
                     .disabled(state.schema.fields.count >= PreparedInput.labelCapacity)
             }
             .padding(14)

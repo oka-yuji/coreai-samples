@@ -39,7 +39,9 @@
 		4762743C0165B4A8B11BE7AD /* SelfTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5071A083BC24B9B2B38CEFFB /* SelfTest.swift */; };
 		476D7C52423E5B95CA0721FF /* 02-ginger-pork.png in Resources */ = {isa = PBXBuildFile; fileRef = AF62F056E1C7BDA459C4655A /* 02-ginger-pork.png */; };
 		47C1121E79FF382599A3305A /* RecipeRuntime in Frameworks */ = {isa = PBXBuildFile; productRef = 222E4F56EA3ED389F2A14199 /* RecipeRuntime */; };
+		539CB73E2E63F221AAB10CF9 /* Ingredients.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 7A89987BFF1C553FC444E064 /* Ingredients.xcstrings */; };
 		5BB2FFBBAE4EDB21463258C0 /* FieldRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0FA10BA3A84CA3A77540D03F /* FieldRow.swift */; };
+		609364C3007FA6891D207909 /* DemoLocalizationCheck.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33CBF7CF8C3F96D9CF47735D /* DemoLocalizationCheck.swift */; };
 		632D59E653DF203EA31B56EC /* DecideFeature in Frameworks */ = {isa = PBXBuildFile; productRef = 11F2E4B5D8E1F715551A223B /* DecideFeature */; };
 		64A6593F4520BA61E49D6E14 /* ChatViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 659A8534A432DD74FD5D0E6D /* ChatViewModel.swift */; };
 		65288D55935FB06FB5E6382D /* DecideRuntime in Frameworks */ = {isa = PBXBuildFile; productRef = D4430673A05B3681BE4C973C /* DecideRuntime */; };
@@ -56,7 +58,9 @@
 		92BBCBC97CA06B7F6181E191 /* GLiNERRuntime in Frameworks */ = {isa = PBXBuildFile; productRef = E537630B97D4DA06423BFDBC /* GLiNERRuntime */; };
 		938CDAF7453AA1F4A8963427 /* GLiNERCore in Frameworks */ = {isa = PBXBuildFile; productRef = B83B007D551DD5E789EE8B58 /* GLiNERCore */; };
 		A6BDC0269DA3DFDE8D9CB2DA /* ExtractFeature in Frameworks */ = {isa = PBXBuildFile; productRef = AE6C6F087D50FB3366C2364A /* ExtractFeature */; };
+		A90A0A3217552E5A011F8275 /* DemoLanguage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44BCC8CC19AB6344E09262EB /* DemoLanguage.swift */; };
 		A9AEB14652B17A4BE269655C /* PhoneDemoApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBE9C20E195FE641300D6F57 /* PhoneDemoApp.swift */; };
+		AA552FE64D9C0294E62619B4 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C8BB1C51D3BFC85B5F047FD0 /* Localizable.xcstrings */; };
 		AADF788380143B8F7BA565F6 /* DecideView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E36A6DC6BC5A449F3092E6AF /* DecideView.swift */; };
 		AED5E118182009EE94A8A9D9 /* ModelsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF57BF3874EBD013FC0468B5 /* ModelsViewModel.swift */; };
 		AF294872BD74B3144756EE6D /* ExtractEval.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82B4A55114BBA7685FCF713C /* ExtractEval.swift */; };
@@ -99,9 +103,11 @@
 		202F76ABB95872C729E618CE /* 01-oyakodon.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "01-oyakodon.png"; sourceTree = "<group>"; };
 		267994EECDFD90E4FA239230 /* DecideCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DecideCommand.swift; sourceTree = "<group>"; };
 		2CF26E8719DB770CB66C8069 /* AgentViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentViewModel.swift; sourceTree = "<group>"; };
+		33CBF7CF8C3F96D9CF47735D /* DemoLocalizationCheck.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoLocalizationCheck.swift; sourceTree = "<group>"; };
 		35AEFA86A5545B593DC7ADE0 /* AgentTools.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentTools.swift; sourceTree = "<group>"; };
 		3A20485F7EB3740C480083D7 /* HubDownloader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HubDownloader.swift; sourceTree = "<group>"; };
 		40FBC139C9FDEC515A5F909A /* 05-caprese.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "05-caprese.png"; sourceTree = "<group>"; };
+		44BCC8CC19AB6344E09262EB /* DemoLanguage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoLanguage.swift; sourceTree = "<group>"; };
 		47737423C61124F4327C174E /* DecideSelfTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DecideSelfTest.swift; sourceTree = "<group>"; };
 		4F02F3A778FCB93B0D8828BB /* DemoAppMain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoAppMain.swift; sourceTree = "<group>"; };
 		5071A083BC24B9B2B38CEFFB /* SelfTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelfTest.swift; sourceTree = "<group>"; };
@@ -112,6 +118,7 @@
 		659A8534A432DD74FD5D0E6D /* ChatViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatViewModel.swift; sourceTree = "<group>"; };
 		6E9B8152E4CC1BA675751CB5 /* recipe-examples.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "recipe-examples.json"; sourceTree = "<group>"; };
 		78EBA8EA1332167D20175087 /* AgentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentView.swift; sourceTree = "<group>"; };
+		7A89987BFF1C553FC444E064 /* Ingredients.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Ingredients.xcstrings; sourceTree = "<group>"; };
 		7D82BEFE1B794EC81C96DCE7 /* DecideItemEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DecideItemEditor.swift; sourceTree = "<group>"; };
 		82B4A55114BBA7685FCF713C /* ExtractEval.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtractEval.swift; sourceTree = "<group>"; };
 		82E02B690B0BB1CD93649F40 /* AgentPromptBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentPromptBuilder.swift; sourceTree = "<group>"; };
@@ -130,6 +137,7 @@
 		B8E08DCE25166F4BAC3F4D6E /* decide-examples.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "decide-examples.json"; sourceTree = "<group>"; };
 		BBE9C20E195FE641300D6F57 /* PhoneDemoApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneDemoApp.swift; sourceTree = "<group>"; };
 		C8A8415903D96B5F5D18625D /* Signing.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.xcconfig; sourceTree = "<group>"; };
+		C8BB1C51D3BFC85B5F047FD0 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		CB2168189614CA94670A5D5A /* inspection_u1.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = inspection_u1.json; sourceTree = "<group>"; };
 		D7900E92556E3B5D90842513 /* Local.xcconfig.template */ = {isa = PBXFileReference; path = Local.xcconfig.template; sourceTree = "<group>"; };
 		E12E6AFDDBD1A46129826431 /* NoteEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteEditor.swift; sourceTree = "<group>"; };
@@ -259,6 +267,15 @@
 			path = Chat;
 			sourceTree = "<group>";
 		};
+		5F7AC3AD3F7D185FB88C6235 /* Localization */ = {
+			isa = PBXGroup;
+			children = (
+				44BCC8CC19AB6344E09262EB /* DemoLanguage.swift */,
+				33CBF7CF8C3F96D9CF47735D /* DemoLocalizationCheck.swift */,
+			);
+			path = Localization;
+			sourceTree = "<group>";
+		};
 		69ED8C983B130F6587AB3973 /* Packages */ = {
 			isa = PBXGroup;
 			children = (
@@ -277,6 +294,7 @@
 				F417EC4866A0F58AB8F72380 /* MetricsLog.swift */,
 				008855CE995F7BA32D722E90 /* Demos */,
 				E1FF09FDCFF94F36D65C1B48 /* iOS */,
+				5F7AC3AD3F7D185FB88C6235 /* Localization */,
 				88E5CD583B41B8DD70C0D6AA /* Resources */,
 			);
 			path = CoreAISamples;
@@ -285,6 +303,8 @@
 		88E5CD583B41B8DD70C0D6AA /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				7A89987BFF1C553FC444E064 /* Ingredients.xcstrings */,
+				C8BB1C51D3BFC85B5F047FD0 /* Localizable.xcstrings */,
 				EE45ED4482519A42E99B5454 /* Recipes */,
 			);
 			path = Resources;
@@ -454,6 +474,7 @@
 			knownRegions = (
 				Base,
 				en,
+				ja,
 			);
 			mainGroup = D65A97AB872B8957BBE8D6BC;
 			minimizedProjectReferenceProxies = 1;
@@ -481,6 +502,8 @@
 				FEAA664820CCCE1913D6E3C6 /* 03-omelette.png in Resources */,
 				9204AE93B39B2786CB7D0ADC /* 04-gratin.png in Resources */,
 				370E8D93FDF286C8C9D0FBBC /* 05-caprese.png in Resources */,
+				539CB73E2E63F221AAB10CF9 /* Ingredients.xcstrings in Resources */,
+				AA552FE64D9C0294E62619B4 /* Localizable.xcstrings in Resources */,
 				3E29EDC926A94A2EA5D7F2CC /* correction_words.json in Resources */,
 				C7B525EAFB60DA91E0F7AEE0 /* decide-examples.json in Resources */,
 				38D7F8092F55465199800A0D /* extract_examples.json in Resources */,
@@ -536,6 +559,8 @@
 				330B4A9240E9871AD04245A6 /* DecideSelfTest.swift in Sources */,
 				AADF788380143B8F7BA565F6 /* DecideView.swift in Sources */,
 				FC6626F927F8F428880FBBC9 /* DemoAppMain.swift in Sources */,
+				A90A0A3217552E5A011F8275 /* DemoLanguage.swift in Sources */,
+				609364C3007FA6891D207909 /* DemoLocalizationCheck.swift in Sources */,
 				850158F9C75A8B01FC7B82DE /* DemoRootView.swift in Sources */,
 				AF294872BD74B3144756EE6D /* ExtractEval.swift in Sources */,
 				36D49B81E1D68D03832B9359 /* ExtractRunner.swift in Sources */,
@@ -753,6 +778,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = "com.coreai-samples.DemoApp";
 				PRODUCT_NAME = CoreAISamples;
 				SDKROOT = macosx;
+				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 6.0;
 			};
 			name = Debug;
@@ -778,6 +804,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = "com.coreai-samples.DemoApp";
 				PRODUCT_NAME = CoreAISamples;
 				SDKROOT = macosx;
+				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 6.0;
 			};
 			name = Release;

@@ -13,6 +13,10 @@ struct DemoApp: App {
 @main
 enum DemoAppMain {
     static func main() async {
+        if LaunchArguments.flag("--check-localization") {
+            DemoLocalizationCheck.run()
+            return
+        }
         if let directory = LaunchArguments.value("--recipe-e2e") {
             await RecipeSelfTest.run(directory: directory)
             return

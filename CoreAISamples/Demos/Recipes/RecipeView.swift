@@ -7,8 +7,10 @@ import UniformTypeIdentifiers
 
 struct RecipeView: View {
     let store: Store<RecipeFeature>
+    @Environment(\.locale) private var locale
     @State private var importingPhoto = false
     @State private var importingModel = false
+    private var strings: DemoStrings { DemoStrings(locale: locale) }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -41,7 +43,7 @@ struct RecipeView: View {
             Divider()
             footer
         }
-        .navigationTitle("Recipes")
+        .demoNavigationTitle("Recipes")
         .onAppear { store.send(.appeared) }
         .onDisappear { store.send(.ended) }
         .fileImporter(isPresented: $importingPhoto, allowedContentTypes: [.image]) { result in
@@ -80,7 +82,7 @@ struct RecipeView: View {
                 Spacer()
                 Menu("Examples") {
                     ForEach(store.state.examples) { example in
-                        Button(example.title) { store.send(.selectExample(example)) }
+                        Button(LocalizedStringKey(example.title)) { store.send(.selectExample(example)) }
                     }
                 }
                 .fixedSize()
@@ -90,7 +92,7 @@ struct RecipeView: View {
             Group {
                 if let photo = store.state.photo, let image = NSImage(data: photo.image) {
                     Image(nsImage: image).resizable().scaledToFit()
-                        .accessibilityLabel("Selected fridge photo: " + photo.filename)
+                        .accessibilityLabel(Text("Selected fridge photo: \(photo.filename)"))
                 } else {
                     VStack(spacing: 10) {
                         Image(systemName: "refrigerator").font(.system(size: 44, weight: .light))
@@ -107,9 +109,9 @@ struct RecipeView: View {
                 Text("Photo suggestions are not confirmed inventory.")
                     .font(.caption).foregroundStyle(.secondary)
                 if !photo.checks.isEmpty {
-                    DisclosureGroup("Things the photo cannot confirm") {
+                    DisclosureGroup("Photo model notes (original)") {
                         ForEach(Array(photo.checks.enumerated()), id: \.offset) { _, text in
-                            Text(text).font(.caption).frame(maxWidth: .infinity, alignment: .leading)
+                            Text(verbatim: text).font(.caption).frame(maxWidth: .infinity, alignment: .leading)
                                 .padding(.vertical, 3)
                         }
                     }
@@ -131,7 +133,7 @@ struct RecipeView: View {
             ForEach(store.state.pantry) { item in
                 HStack(spacing: 8) {
                     Toggle(
-                        "Confirm " + item.name,
+                        "Confirm \(strings.ingredient(item.name))",
                         isOn: Binding(
                             get: { item.confirmed }, set: { store.send(.confirm(item.id, $0)) })
                     )
@@ -140,17 +142,25 @@ struct RecipeView: View {
                     TextField(
                         "Ingredient",
                         text: Binding(
-                            get: { item.name }, set: { store.send(.setName(item.id, $0)) })
+                            get: { strings.ingredient(item.name) },
+                            set: {
+                                store.send(
+                                    .editDisplayedName(
+                                        item.id, $0, previousDisplay: strings.ingredient(item.name),
+                                        originalSource: item.name))
+                            })
                     )
-                    .accessibilityLabel("Ingredient name \(item.id)")
+                    .accessibilityLabel(Text("Ingredient name \(item.id)"))
                     TextField(
                         "Amount",
                         text: Binding(
                             get: { item.amount }, set: { store.send(.setAmount(item.id, $0)) })
                     )
-                    .frame(width: 85).accessibilityLabel("Amount for " + item.name)
-                    Button("Remove " + item.name, systemImage: "minus.circle") { store.send(.removeItem(item.id)) }
-                        .labelStyle(.iconOnly).buttonStyle(.plain).foregroundStyle(.secondary)
+                    .frame(width: 85).accessibilityLabel(Text("Amount for \(strings.ingredient(item.name))"))
+                    Button("Remove \(strings.ingredient(item.name))", systemImage: "minus.circle") {
+                        store.send(.removeItem(item.id))
+                    }
+                    .labelStyle(.iconOnly).buttonStyle(.plain).foregroundStyle(.secondary)
                 }
             }
             Text(
@@ -177,15 +187,15 @@ struct RecipeView: View {
             VStack(spacing: 8) {
                 ForEach(store.state.kitchen) { item in
                     HStack {
-                        Text(item.name.capitalized).frame(maxWidth: .infinity, alignment: .leading)
+                        Text(LocalizedStringKey(item.name.capitalized)).frame(maxWidth: .infinity, alignment: .leading)
                         Picker(
-                            item.name,
+                            LocalizedStringKey(item.name.capitalized),
                             selection: Binding(
                                 get: { item.status }, set: { store.send(.setKitchen(item.name, $0)) }
                             )
                         ) {
                             ForEach(KitchenStatus.allCases, id: \.self) { status in
-                                Text(status.title).tag(status)
+                                Text(LocalizedStringKey(status.title)).tag(status)
                             }
                         }
                         .labelsHidden().frame(width: 140)
@@ -199,7 +209,7 @@ struct RecipeView: View {
 
     private var recipeSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("4. Recipe to check").font(.headline)
+            Text("4. Recipe to check (original)").font(.headline)
             HStack {
                 TextField(
                     "Paste a Kikkoman recipe URL",
@@ -215,25 +225,25 @@ struct RecipeView: View {
                 .font(.caption).foregroundStyle(.secondary)
             if let recipe = store.state.recipe {
                 VStack(alignment: .leading, spacing: 10) {
-                    Text(recipe.title).font(.title3.bold()).textSelection(.enabled)
+                    Text(verbatim: recipe.title).font(.title3.bold()).textSelection(.enabled)
                     HStack {
-                        Text("Servings: " + recipe.servings).foregroundStyle(.secondary)
+                        Text("Servings: \(recipe.servings)").foregroundStyle(.secondary)
                         Spacer()
                         if let url = URL(string: recipe.source) { Link("Original recipe", destination: url) }
                     }
                     Divider()
                     ForEach(recipe.ingredients) { ingredient in
                         HStack(alignment: .firstTextBaseline) {
-                            Text(ingredient.name).frame(maxWidth: .infinity, alignment: .leading)
-                            Text(ingredient.amount).foregroundStyle(.secondary)
+                            Text(verbatim: ingredient.name).frame(maxWidth: .infinity, alignment: .leading)
+                            Text(verbatim: ingredient.amount).foregroundStyle(.secondary)
                             Button("Add") { store.send(.addRecipeIngredient(ingredient)) }
                                 .help("Add this ingredient to your inventory for review.")
                                 .disabled(store.state.busy || store.state.pantry.count >= 32)
                         }
                     }
-                    DisclosureGroup("Read the method") {
+                    DisclosureGroup("Read the method (original)") {
                         ForEach(Array(recipe.steps.enumerated()), id: \.offset) { index, step in
-                            Text("\(index + 1). " + step).font(.callout)
+                            Text(verbatim: "\(index + 1). " + step).font(.callout)
                                 .frame(maxWidth: .infinity, alignment: .leading).padding(.vertical, 5)
                         }
                     }
@@ -248,15 +258,23 @@ struct RecipeView: View {
     private var footer: some View {
         VStack(alignment: .leading, spacing: 6) {
             if let message = store.state.message {
-                Label(message, systemImage: "info.circle").font(.callout).textSelection(.enabled)
+                Label {
+                    RuntimeMessageText(message)
+                } icon: {
+                    Image(systemName: "info.circle")
+                }
+                .font(.callout).textSelection(.enabled)
             }
             if let problem = store.state.input?.problem {
-                Text(problem).font(.caption).foregroundStyle(.orange)
+                Text(LocalizedStringKey(problem)).font(.caption).foregroundStyle(.orange)
             }
             HStack {
-                Text(phaseTitle).font(.caption).foregroundStyle(.secondary)
+                phaseLabel.font(.caption).foregroundStyle(.secondary)
                 Spacer()
-                Button(store.state.modelName == nil ? "Open Clef-Flash bundle" : "Change decision model") {
+                Button(
+                    LocalizedStringKey(
+                        store.state.modelName == nil ? "Open Clef-Flash bundle" : "Change decision model")
+                ) {
                     importingModel = true
                 }
                 .disabled(store.state.busy)
@@ -265,17 +283,20 @@ struct RecipeView: View {
         .padding(.horizontal, 20).padding(.vertical, 10)
     }
 
-    private var phaseTitle: String {
+    @ViewBuilder
+    private var phaseLabel: some View {
         switch store.state.phase {
-        case .analyzing: "Reading the photo on this Mac..."
-        case .fetching: "Reading the recipe URL..."
-        case .loading: "Opening the decision model..."
-        case .checking: "Checking recipe requirements and equipment..."
-        case .stopping: "Waiting for the current operation to stop..."
+        case .analyzing: Text("Reading the photo on this Mac...")
+        case .fetching: Text("Reading the recipe URL...")
+        case .loading: Text("Opening the decision model...")
+        case .checking: Text("Checking recipe requirements and equipment...")
+        case .stopping: Text("Waiting for the current operation to stop...")
         default:
-            store.state.modelName == nil
-                ? "Photos stay on this Mac. Open a decision bundle to check recipes."
-                : "On-device photo reading + " + (store.state.modelName ?? "Clef-Flash")
+            if let name = store.state.modelName {
+                Text("On-device photo reading + \(name)")
+            } else {
+                Text("Photos stay on this Mac. Open a decision bundle to check recipes.")
+            }
         }
     }
 

@@ -38,7 +38,7 @@
 ## 公開物の規約
 
 - 手書きのソース・テスト・設定には、doc コメントを含めてコメントを書かない。SwiftPM の `swift-tools-version` と shell の先頭 shebang は、ツールが解釈する宣言として保持する。
-- ソースに日本語の文字列を入れない。画面の表示は英語にし、例の資料は JSON の資源に置く。`RAGContext.swift` の `dateLabel`、`instruction(today:)`、`block(_:number:)`、`message(question:sources:)` の既存のプロンプト定数だけを例外とする。`noSourcesReply` は例外に含めない。
+- ソースに日本語の文字列を入れない。画面の日英翻訳はString Catalog、例の資料は JSON の資源に置く。`RAGContext.swift` の `dateLabel`、`instruction(today:)`、`block(_:number:)`、`message(question:sources:)` の既存のプロンプト定数だけを例外とする。`noSourcesReply` は例外に含めない。表示言語の切替で入力やモデルのプロンプトを変更しない(2026-10-09のユーザー指定)。
 - コミットと PR に `Co-Authored-By` を付けない。
 
 ## 重いジョブ

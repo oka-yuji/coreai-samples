@@ -73,6 +73,7 @@ public enum RecipeAction: Sendable, Equatable {
     case addItem
     case addRecipeIngredient(RecipeIngredient)
     case setName(Int, String)
+    case editDisplayedName(Int, String, previousDisplay: String, originalSource: String)
     case setAmount(Int, String)
     case confirm(Int, Bool)
     case confirmListedItems
@@ -239,6 +240,8 @@ public enum RecipeFeature: Feature {
             state.nextItemID += 1
             state.inventoryComplete = false
             invalidate(&state)
+        case .editDisplayedName(let id, let value, let previousDisplay, let originalSource):
+            return reduce(&state, .setName(id, value == previousDisplay ? originalSource : value))
         case .setName(let id, let value):
             guard let index = state.pantry.firstIndex(where: { $0.id == id }), state.pantry[index].name != value else {
                 return []
