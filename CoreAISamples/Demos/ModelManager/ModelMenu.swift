@@ -23,7 +23,7 @@ struct ModelMenu: View {
             Divider()
             Button("Manage Models…") { navigator.selection = .models }
         } label: {
-            Text(chat.modelName.isEmpty ? "No model loaded" : chat.modelName)
+            modelLabel
                 .font(.headline)
                 .lineLimit(1)
                 .truncationMode(.middle)
@@ -31,7 +31,7 @@ struct ModelMenu: View {
         }
         .fixedSize()
         .accessibilityLabel("Model")
-        .accessibilityValue(chat.modelName.isEmpty ? "No model loaded" : chat.modelName)
+        .accessibilityValue(modelLabel)
         .help("Choose the model Chat and Agent use")
         .disabled(
             Self.isDisabled(
@@ -41,6 +41,10 @@ struct ModelMenu: View {
         .onReceive(NotificationCenter.default.publisher(for: NSMenu.didBeginTrackingNotification)) { _ in
             models.refresh()
         }
+    }
+
+    private var modelLabel: Text {
+        chat.modelName.isEmpty ? Text("No model loaded") : Text(verbatim: chat.modelName)
     }
 
     private func choices(_ entries: [ModelsViewModel.MenuEntry]) -> some View {
