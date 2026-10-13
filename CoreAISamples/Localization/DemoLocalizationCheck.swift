@@ -22,6 +22,7 @@ enum DemoLocalizationCheck {
             keys += [ExtractRunner.notice, "Loaded", "Loading…", "Stopped.", "No match", "On hold"]
             keys += KitchenStatus.allCases.map(\.rawValue)
             keys += ["Kitchen equipment", "Open Clef-Flash bundle", "Change decision model"]
+            keys += ["none", "Docs"]
             var failures: [String] = []
             for key in Set(keys).sorted() {
                 let translated = Bundle.main.localizedString(

@@ -84,10 +84,12 @@ final class ConversationHost {
     let preferences: ConversationPreferences
     private(set) var store: ConversationStore
     @ObservationIgnored private(set) var runner: ConversationRunner
+    @ObservationIgnored private var modelLoad: Date
 
     init(chat: ChatViewModel, preferences: ConversationPreferences = ConversationPreferences()) {
         self.chat = chat
         self.preferences = preferences
+        modelLoad = chat.loadStarted
         (store, runner) = Self.make(chat: chat, preferences: preferences, mode: .chat)
     }
 
@@ -100,14 +102,25 @@ final class ConversationHost {
             && !chat.trimmedInput.isEmpty
     }
 
+    var canContinueInWork: Bool {
+        store.state.refusedSave && !store.state.isRunning && !contextFull && chat.phase == .ready
+            && !chat.isResponding && !chat.externallyBusy
+    }
+
     func startNew() {
         guard !store.state.isRunning, !chat.isResponding else { return }
         chat.resetRAG()
+        modelLoad = chat.loadStarted
         (store, runner) = Self.make(chat: chat, preferences: preferences, mode: store.state.mode)
+    }
+
+    func refreshIfModelChanged() {
+        if chat.loadStarted != modelLoad { startNew() }
     }
 
     @discardableResult
     func submit() -> Bool {
+        refreshIfModelChanged()
         guard canSend else { return false }
         if chat.ragIsOn {
             chat.reasoning = preferences.effort
@@ -121,13 +134,14 @@ final class ConversationHost {
 
     @discardableResult
     func send(_ text: String, mode: ConversationMode) -> Bool {
+        refreshIfModelChanged()
         store.send(.settingsChanged(preferences.settings))
         store.send(.send(text, mode: mode, now: Date()))
         return store.state.isRunning
     }
 
     func continueInWork() {
-        guard store.state.refusedSave, !store.state.isRunning, !contextFull else { return }
+        guard canContinueInWork else { return }
         send(Self.continuePrompt, mode: .work)
     }
 

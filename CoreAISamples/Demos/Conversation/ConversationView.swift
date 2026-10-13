@@ -6,6 +6,7 @@ struct ConversationView: View {
     @Environment(ChatViewModel.self) private var chat
     @Environment(ConversationHost.self) private var host
     @Environment(DemoNavigator.self) private var navigator
+    @Environment(\.locale) private var locale
     @State private var showSettings = false
 
     var body: some View {
@@ -70,6 +71,7 @@ struct ConversationView: View {
             .toggleStyle(.button)
             .labelStyle(.iconOnly)
             .help("Show or hide the conversation settings")
+            .disabled(chat.phase != .ready)
         }
         .padding(10)
     }
@@ -115,16 +117,23 @@ struct ConversationView: View {
                 .textSelection(.enabled)
             Spacer()
             if chat.ragIsOn {
-                Label(
-                    "RAG" + (chat.ragWeb ? " · Web" : "") + (chat.ragLocal ? " · Docs" : ""),
-                    systemImage: "books.vertical"
-                )
+                Label {
+                    Text(verbatim: ragLabel)
+                } icon: {
+                    Image(systemName: "books.vertical")
+                }
                 .font(.caption)
                 .foregroundStyle(.secondary)
             }
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 6)
+    }
+
+    private var ragLabel: String {
+        let strings = DemoStrings(locale: locale)
+        return (["RAG"] + (chat.ragWeb ? [strings.text("Web")] : []) + (chat.ragLocal ? [strings.text("Docs")] : []))
+            .joined(separator: " · ")
     }
 
     private var statusText: String {
@@ -167,6 +176,7 @@ enum TimelineItem: Identifiable {
 
 struct ConversationEntryRow: View {
     let entry: ConversationEntry
+    @Environment(\.locale) private var locale
     @State private var expanded = false
 
     var body: some View {
@@ -203,20 +213,23 @@ struct ConversationEntryRow: View {
         case .answer:
             VStack(alignment: .leading, spacing: 2) {
                 label("Assistant", "sparkles")
-                Text(entry.text).textSelection(.enabled)
+                Group {
+                    if entry.detail == .noAnswer { Text("(no answer text)") } else { Text(entry.text) }
+                }
+                .textSelection(.enabled)
                 statsCaption
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         case .failure:
             VStack(alignment: .leading, spacing: 2) {
                 Label {
-                    RuntimeMessageText(entry.title)
+                    failureTitle
                 } icon: {
                     Image(systemName: "exclamationmark.triangle")
                 }
                 .font(.caption)
                 .foregroundStyle(.orange)
-                Text(entry.text)
+                failureBody
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .textSelection(.enabled)
@@ -249,6 +262,58 @@ struct ConversationEntryRow: View {
     }
 
     @ViewBuilder
+    private var failureTitle: some View {
+        if case .tokenLimit(let limit)? = entry.detail {
+            Text("Answer cut at the token limit (\(limit))")
+        } else {
+            RuntimeMessageText(entry.title)
+        }
+    }
+
+    @ViewBuilder
+    private var failureBody: some View {
+        switch entry.detail {
+        case .stepLimit(let steps, let fetched, let saved, let open)?:
+            VStack(alignment: .leading, spacing: 2) {
+                Text("The turn reached its \(steps)-step limit before a final answer.")
+                Text("Fetched: \(list(fetched))")
+                Text("Saved notes: \(list(saved))")
+                Text("Still open: \(list(open))")
+            }
+        case .stopped(partial: false)?:
+            Text("(stopped before any answer)")
+        case .tokenLimit?:
+            Text(
+                "The answer above stops where generation ran out of tokens. Raise Max tokens or ask for something shorter."
+            )
+        case .failure?:
+            failureMessage
+        default:
+            Text(entry.text)
+        }
+    }
+
+    @ViewBuilder
+    private var failureMessage: some View {
+        let prefix = ConversationFeature.stopReasonPrefix
+        if let numbers = ConversationFeature.contextFullNumbers(entry.text) {
+            Text(
+                "The context window is full: the conversation needs \(numbers.needed) tokens and the limit is \(numbers.limit). Start a new conversation, lower the page budget or ask for something narrower."
+            )
+        } else if entry.text == ConversationFeature.endedWithoutStopReason {
+            Text("Generation ended without a stop reason")
+        } else if entry.text.hasPrefix(prefix) {
+            Text("Generation ended with stop reason: \(String(entry.text.dropFirst(prefix.count)))")
+        } else {
+            RuntimeMessageText(entry.text)
+        }
+    }
+
+    private func list(_ items: [String]) -> String {
+        items.isEmpty ? DemoStrings(locale: locale).text("none") : items.joined(separator: ", ")
+    }
+
+    @ViewBuilder
     private var statsCaption: some View {
         if let stats = entry.stats {
             RuntimeMessageText(stats)
@@ -271,6 +336,7 @@ struct ConversationEntryRow: View {
                 .font(.caption)
             }
             .buttonStyle(.plain)
+            .accessibilityValue(expanded ? Text("Expanded") : Text("Collapsed"))
             Text(expanded ? entry.text : preview)
                 .font(.system(.caption, design: .monospaced))
                 .foregroundStyle(.secondary)

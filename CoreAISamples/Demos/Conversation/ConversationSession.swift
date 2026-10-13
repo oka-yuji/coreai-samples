@@ -249,9 +249,8 @@ final class ConversationSession {
             guard case LanguageModelError.contextSizeExceeded(let exceeded) = failure else {
                 return TurnEnd(kind: .failed(String(describing: failure)), outcome: "failed", answer: partial)
             }
-            let message =
-                "\(ConversationFeature.contextFullPrefix): the conversation needs \(exceeded.tokenCount) tokens and the limit is "
-                + "\(exceeded.contextSize). Start a new conversation, lower the page budget or ask for something narrower."
+            let message = ConversationFeature.contextFullMessage(
+                needed: exceeded.tokenCount, limit: exceeded.contextSize)
             return TurnEnd(kind: .failed(message), outcome: "overflow", answer: partial)
         }
         await snapshotTokens()
@@ -374,9 +373,17 @@ final class ConversationSession {
             stats.inputTokens = (after?.input.totalTokenCount ?? 0) - (turnMark?.input.totalTokenCount ?? 0)
             stats.cachedTokens = (after?.input.cachedTokenCount ?? 0) - (turnMark?.input.cachedTokenCount ?? 0)
             stats.stopReason = (try? metadata["stopReason"]?.value(String.self)) ?? "unknown"
-            if let decode = try? metadata["decodeSeconds"]?.value(Double.self), decode > 0 {
-                stats.tokensPerSecond = Double(stats.outputTokens) / decode
+            func seconds(_ metadata: [String: GeneratedContent]?) -> Double {
+                (try? metadata?["decodeSeconds"]?.value(Double.self)) ?? 0
             }
+            let decode = added.reduce(0.0) { total, entry in
+                switch entry {
+                case .response(let response): total + seconds(response.metadata)
+                case .toolCalls(let calls): total + seconds(calls.last?.metadata)
+                default: total
+                }
+            }
+            if decode > 0 { stats.tokensPerSecond = Double(stats.outputTokens) / decode }
         }
         return stats
     }

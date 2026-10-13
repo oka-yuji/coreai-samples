@@ -178,6 +178,26 @@
         }
       }
     },
+    "(no answer text)" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "（回答の本文がありません）"
+          }
+        }
+      }
+    },
+    "(stopped before any answer)" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "（回答の前に停止しました）"
+          }
+        }
+      }
+    },
     "1 span" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -481,12 +501,32 @@
         }
       }
     },
+    "Answer cut at the token limit (%lld)" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最大トークン数で回答が途切れました（%lld）"
+          }
+        }
+      }
+    },
     "Answer type" : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "回答形式"
+          }
+        }
+      }
+    },
+    "Answers from the collected sources in one reply." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "集めた資料をもとに1回で答えます。"
           }
         }
       }
@@ -962,6 +1002,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "コード → 在庫の照合・数量の計算"
+          }
+        }
+      }
+    },
+    "Collapsed" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "閉じています"
           }
         }
       }
@@ -1527,6 +1577,16 @@
         }
       }
     },
+    "Expanded" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "開いています"
+          }
+        }
+      }
+    },
     "Expected score" : {
       "localizations" : {
         "ja" : {
@@ -1584,6 +1644,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "抽出中…"
+          }
+        }
+      }
+    },
+    "Fetched: %@" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "取得したページ: %@"
           }
         }
       }
@@ -1648,6 +1718,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "生成中…"
+          }
+        }
+      }
+    },
+    "Generation ended with stop reason: %@" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "停止理由「%@」で生成が終わりました"
+          }
+        }
+      }
+    },
+    "Generation ended without a stop reason" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "停止理由がないまま生成が終わりました"
           }
         }
       }
@@ -3510,6 +3600,16 @@
         }
       }
     },
+    "Saved notes: %@" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保存したメモ: %@"
+          }
+        }
+      }
+    },
     "Score" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3657,6 +3757,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "最大ステップ数に達しました"
+          }
+        }
+      }
+    },
+    "Still open: %@" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未完了: %@"
           }
         }
       }
@@ -3854,6 +3964,16 @@
         }
       }
     },
+    "The answer above stops where generation ran out of tokens. Raise Max tokens or ask for something shorter." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "上の回答は、生成できるトークンが尽きたところで途切れています。最大トークン数を上げるか、短い回答を求めてください。"
+          }
+        }
+      }
+    },
     "The checklist changed. Run it again to update these results." : {
       "localizations" : {
         "ja" : {
@@ -3871,6 +3991,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "コンテキストの上限に達しました。続けるには新しい会話を始めてください。"
+          }
+        }
+      }
+    },
+    "The context window is full: the conversation needs %lld tokens and the limit is %lld. Start a new conversation, lower the page budget or ask for something narrower." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コンテキストの上限に達しました。この会話には%lldトークンが必要で、上限は%lldです。新しい会話を始めるか、ページ取得上限を下げるか、範囲を絞って依頼してください。"
           }
         }
       }
@@ -4047,6 +4177,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "レシピに必要な器具が揃っています"
+          }
+        }
+      }
+    },
+    "The turn reached its %lld-step limit before a final answer." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最終的な回答の前に、このターンは最大%lldステップに達しました。"
           }
         }
       }
@@ -4432,6 +4572,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "ml"
+          }
+        }
+      }
+    },
+    "none" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "なし"
           }
         }
       }

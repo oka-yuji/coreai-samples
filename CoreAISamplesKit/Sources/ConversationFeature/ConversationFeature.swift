@@ -39,6 +39,23 @@ public enum ConversationFeature: Feature {
     public static let finalizationNote = "remaining tool budget: 0 — answer now with what you have"
     public static let endedRefusal = "error: the turn ended before this tool ran"
     public static let contextFullPrefix = "Context window is full"
+    public static let endedWithoutStopReason = "Generation ended without a stop reason"
+    public static let stopReasonPrefix = "Generation ended with stop reason: "
+
+    public static func contextFullMessage(needed: Int, limit: Int) -> String {
+        "\(contextFullPrefix): the conversation needs \(needed) tokens and the limit is \(limit). "
+            + "Start a new conversation, lower the page budget or ask for something narrower."
+    }
+
+    public static func contextFullNumbers(_ message: String) -> (needed: Int, limit: Int)? {
+        let words = message.split(separator: " ")
+        guard message.hasPrefix(contextFullPrefix), let needs = words.firstIndex(of: "needs"),
+            let limit = words.lastIndex(of: "is"), needs + 1 < words.count, limit + 1 < words.count,
+            let needed = Int(words[needs + 1]),
+            let value = Int(words[limit + 1].trimmingCharacters(in: .punctuationCharacters))
+        else { return nil }
+        return (needed, value)
+    }
 
     public static func finalized(_ text: String) -> String {
         text + "\n\n" + finalizationNote
@@ -93,8 +110,7 @@ public enum ConversationFeature: Feature {
             let last = state.turns.count - 1
             if finish == .failed, state.turns[last].failure == nil {
                 state.turns[last].failure =
-                    stopReason.map { "Generation ended with stop reason: \($0)" }
-                    ?? "Generation ended without a stop reason"
+                    stopReason.map { stopReasonPrefix + $0 } ?? endedWithoutStopReason
             }
             return end(&state, finish)
         case .generationFailed(let run, let message):

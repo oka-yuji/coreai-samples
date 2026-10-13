@@ -533,6 +533,17 @@ enum AgentSelfTest {
                 + "skipped=\(String(describing: skipped)) failure=\(failure)")
         try? FileManager.default.removeItem(at: transcripts)
 
+        let rows = ["a", "b", "c"].map { ConversationEntry(id: $0, kind: .user, title: "You", text: $0) }
+        func rag(_ id: String, _ anchor: Int) -> ChatViewModel.Turn {
+            ChatViewModel.Turn(id: id, prompt: id, anchor: anchor)
+        }
+        let merged = TimelineItem.merge(rows, [rag("r0", 0), rag("r2a", 2), rag("r2b", 2), rag("r9", 9)]).map(\.id)
+        let alone = TimelineItem.merge([], [rag("r", 0)]).map(\.id) + TimelineItem.merge(rows, []).map(\.id)
+        check(
+            "timeline/ragTurnsWhereSent",
+            merged == ["rag-r0", "a", "b", "rag-r2a", "rag-r2b", "c", "rag-r9"] && alone == ["rag-r", "a", "b", "c"],
+            "\(merged) \(alone)")
+
         let capTitle = "Answer cut at the token limit (4096)"
         let overflow = ConversationFeature.contextFullPrefix + ": the conversation needs 17000 tokens"
         func verdict(_ failures: [(String, String)], answer: String = "done", finish: String? = "eos") -> String {

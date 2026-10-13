@@ -75,4 +75,55 @@ struct ConversationStatusTests {
         #expect(TurnPolicy(.chat, settings: tuned).maxTokens == 1_536)
         #expect(TurnPolicy(.chat, settings: ConversationSettings()).maxTokens == 2_048)
     }
+
+    @Test("Rows the app writes carry a detail the screen can translate, while their text stays in English")
+    func appRowsCarryADetail() {
+        let search = tool("t1", "web_search", #"{"query":"swift"}"#)
+        let fetch = tool("t2", "fetch_page", #"{"url":"https://swift.org"}"#)
+        var limited = started(.chat)
+        let record = turn(
+            "Question", [calls("c1", search), output(search, "Results"), calls("c2", fetch), output(fetch, "Page")])
+        _ = reduce(&limited, .transcriptChanged(run: 1, record), .stopped(run: 1))
+        let limit = limited.entries.last
+        #expect(
+            limit?.detail == .stepLimit(steps: 2, fetched: ["https://swift.org"], saved: [], open: [])
+                && limit?.text
+                    == "The turn reached its 2-step limit before a final answer.\nFetched: https://swift.org\n"
+                    + "Saved notes: none\nStill open: none"
+        )
+
+        var partial = started(.work)
+        _ = reduce(
+            &partial, .transcriptChanged(run: 1, turn("Question", [answer("a", "Half an")])), .stopRequested,
+            .stopped(run: 1))
+        #expect(partial.entries.last?.detail == .stopped(partial: true) && partial.entries.last?.text == "Half an")
+        var empty = started(.work)
+        _ = reduce(&empty, .stopRequested, .stopped(run: 1))
+        #expect(
+            empty.entries.last?.detail == .stopped(partial: false)
+                && empty.entries.last?.text == "(stopped before any answer)")
+
+        var cut = started(.work)
+        _ = reduce(
+            &cut, .transcriptChanged(run: 1, turn("Question", [answer("a", "Long", stop: "maxTokens")])),
+            .generationEnded(run: 1, stopReason: "maxTokens"))
+        #expect(cut.entries.last?.detail == .tokenLimit(4_096))
+    }
+
+    @Test("The context-full message is written and read back in one place, and other messages give no numbers")
+    func contextFullMessageRoundTrips() {
+        let message = ConversationFeature.contextFullMessage(needed: 17_000, limit: 16_384)
+        #expect(message.hasPrefix(ConversationFeature.contextFullPrefix))
+        let numbers = ConversationFeature.contextFullNumbers(message)
+        #expect(numbers?.needed == 17_000 && numbers?.limit == 16_384)
+        #expect(ConversationFeature.contextFullNumbers("boom") == nil)
+        #expect(ConversationFeature.contextFullNumbers(ConversationFeature.contextFullPrefix + ": too long") == nil)
+    }
+
+    @Test("The citation guard follows the setting in Work and is always off in Chat")
+    func citationGuardFollowsTheMode() {
+        #expect(TurnPolicy(.work, settings: ConversationSettings()).citationGuard)
+        #expect(!TurnPolicy(.work, settings: ConversationSettings(citationGuard: false)).citationGuard)
+        #expect(!TurnPolicy(.chat, settings: ConversationSettings(citationGuard: true)).citationGuard)
+    }
 }

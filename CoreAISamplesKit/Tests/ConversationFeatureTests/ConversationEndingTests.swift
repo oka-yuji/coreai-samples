@@ -13,7 +13,7 @@ struct ConversationEndingTests {
             state.entries.last
                 == ConversationEntry(
                     id: "failed-0", kind: .failure, title: "Generation failed",
-                    text: "Generation ended without a stop reason"))
+                    text: "Generation ended without a stop reason", detail: .failure))
         #expect(!ConversationFeature.continueEligibility(state))
 
         var unknown = started(.chat)
@@ -35,7 +35,8 @@ struct ConversationEndingTests {
         #expect(
             state.entries.last
                 == ConversationEntry(
-                    id: "failed-0", kind: .failure, title: "Generation failed", text: "context overflow"))
+                    id: "failed-0", kind: .failure, title: "Generation failed", text: "context overflow",
+                    detail: .failure))
 
         let ended = state
         #expect(reduce(&state, .generationFailed(run: 1, message: "late")) == [[]])
@@ -104,7 +105,8 @@ struct ConversationEndingTests {
         _ = reduce(&answered, .transcriptChanged(run: 1, thinking), .generationEnded(run: 1, stopReason: "stopToken"))
         #expect(
             answered.entries.last
-                == ConversationEntry(id: "answer-0", kind: .answer, title: "Assistant", text: "(no answer text)"))
+                == ConversationEntry(
+                    id: "answer-0", kind: .answer, title: "Assistant", text: "(no answer text)", detail: .noAnswer))
         #expect(answered.entries.last?.stats == nil)
 
         var stopped = started(.chat)

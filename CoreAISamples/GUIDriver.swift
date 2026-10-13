@@ -338,18 +338,31 @@ final class GUIDriver {
     private func runConversation(host: ConversationHost) async {
         host.preferences.notesFolderPath = outDir.appending(path: "notes").path(percentEncoded: false)
         var previous: StepStats?
-        func turn(_ mode: ConversationMode, _ text: String) async -> (done: Bool, reuse: String) {
+        let strictReuse = host.chat.modelName.hasPrefix("qwen3_8")
+        func turn(_ mode: ConversationMode, _ text: String) async -> (done: Bool, reused: Bool, reuse: String) {
             host.store.send(.modeChanged(mode))
+            let sent = host.state.turns.count
+            let divergedBefore = host.runner.session.divergeCount
             let done = await ask(host, text)
-            let steps = host.state.turns.last?.steps.sorted { $0.step < $1.step } ?? []
-            defer { previous = steps.last ?? previous }
-            guard let first = steps.first else { return (done, "steps=0") }
-            guard let previous else { return (done, "reused=\(first.reusedTokens) steps=\(steps.count)") }
+            let turns = host.state.turns
+            let steps = sent < turns.count ? turns[sent].steps.sorted { $0.step < $1.step } : []
+            let diverged = host.runner.session.divergeCount - divergedBefore
+            defer { previous = turns.last?.steps.max { $0.step < $1.step } ?? previous }
+            guard let first = steps.first else { return (done, false, "steps=0") }
+            let repairs = turns.count - sent - 1
+            guard let previous else {
+                return (done, true, "reused=\(first.reusedTokens) steps=\(steps.count) repairs=\(repairs)")
+            }
             let expected = previous.promptTokens + previous.generatedTokens
+            let kept = first.reusedTokens >= expected - 1
             return (
-                done,
-                "reused=\(first.reusedTokens) previousPromptPlusOutput=\(expected) gap=\(expected - first.reusedTokens) steps=\(steps.count)"
+                done, !strictReuse || (kept && diverged == 0),
+                "reused=\(first.reusedTokens) previousPromptPlusOutput=\(expected) gap=\(expected - first.reusedTokens) "
+                    + "steps=\(steps.count) repairs=\(repairs) diverges=\(diverged) strictReuse=\(strictReuse)"
             )
+        }
+        func lookups() -> Int {
+            host.state.entries.count { $0.kind == .toolCall && ["web_search", "fetch_page"].contains($0.title) }
         }
         func ended(_ mode: ConversationMode) -> Bool {
             guard let last = host.state.turns.last else { return false }
@@ -358,16 +371,18 @@ final class GUIDriver {
 
         await step(4, "conversation-chat", "Chat: a question is answered in the conversation") {
             let result = await turn(.chat, "In one sentence, what is a context window in a language model?")
-            return (result.done && ended(.chat), result.reuse + " status=\(host.state.statusLine)")
+            return (result.done && result.reused && ended(.chat), result.reuse + " status=\(host.state.statusLine)")
         }
 
         await step(5, "conversation-work", "Work: research and a note continue the same conversation") {
+            let before = lookups()
             let result = await turn(
                 .work, "Search the web for what Apple's MLX framework is and save a two-line note titled MLX summary.")
             let calls = host.state.entries.filter { $0.kind == .toolCall }.map(\.title)
+            let notes = host.runner.tools.notesWritten.map(\.key)
             return (
-                result.done && ended(.work),
-                result.reuse + " calls=\(calls) guard=\(host.runner.citationGuard.outcome ?? "none")"
+                result.done && result.reused && ended(.work) && lookups() > before && !notes.isEmpty,
+                result.reuse + " calls=\(calls) notes=\(notes) guard=\(host.runner.citationGuard.outcome ?? "none")"
             )
         }
 
@@ -375,7 +390,7 @@ final class GUIDriver {
             let result = await turn(.chat, "Thanks. In one sentence, what did you just look up?")
             let prompts = host.state.entries.filter { $0.kind == .user }.count
             return (
-                result.done && ended(.chat) && prompts >= 3,
+                result.done && result.reused && ended(.chat) && prompts >= 3,
                 result.reuse + " userEntries=\(prompts) turns=\(host.state.turns.map(\.mode.rawValue))"
             )
         }

@@ -169,6 +169,17 @@ enum ModelSelectionSelfTest {
                 && host.state.entries.isEmpty && reachedRuntime,
             "\(chat.phase) newConversation=\(host.store !== previous)")
 
+        let direct = ChatViewModel()
+        let directHost = ConversationHost(chat: direct, preferences: preferences)
+        let original = directHost.store
+        await direct.load(qwen[0])
+        directHost.refreshIfModelChanged()
+        check(
+            "menu/modelsScreenLoadStartsNewConversation",
+            directHost.store !== original && directHost.state.modelID == direct.modelName,
+            "newConversation=\(directHost.store !== original) modelID=\(directHost.state.modelID) "
+                + "model=\(direct.modelName)")
+
         let states = [
             (false, false, false, false), (true, false, false, false), (false, true, false, false),
             (false, false, true, false), (false, false, false, true),

@@ -25,6 +25,7 @@ struct ComposerView: View {
             if state.refusedSave && !state.isRunning && !host.contextFull {
                 Button("Continue in Work", systemImage: "arrow.right.circle", action: host.continueInWork)
                     .help("Ask again in Work mode, which can save notes")
+                    .disabled(!host.canContinueInWork)
             }
             VStack(alignment: .leading, spacing: 4) {
                 Picker("Mode", selection: Binding(get: { state.mode }, set: { host.store.send(.modeChanged($0)) })) {
@@ -34,10 +35,12 @@ struct ComposerView: View {
                 .pickerStyle(.segmented)
                 .labelsHidden()
                 .fixedSize()
-                .disabled(running)
+                .disabled(running || chat.ragIsOn)
                 Text(
-                    state.mode == .chat
-                        ? "Conversation. Searches the web when it needs facts." : "Multi-step research and notes."
+                    chat.ragIsOn
+                        ? "Answers from the collected sources in one reply."
+                        : state.mode == .chat
+                            ? "Conversation. Searches the web when it needs facts." : "Multi-step research and notes."
                 )
                 .font(.caption)
                 .foregroundStyle(.secondary)

@@ -126,7 +126,7 @@ struct DemoRootView: View {
             }
         }
         .environment(\.locale, (DemoLanguage(rawValue: languageCode) ?? .english).locale)
-        .onChange(of: chat.loadStarted) { host.startNew() }
+        .onChange(of: chat.loadStarted) { host.refreshIfModelChanged() }
         .task {
             await GUIDriver.shared.start(navigator: navigator, chat: chat, host: host, models: models, extract: extract)
         }

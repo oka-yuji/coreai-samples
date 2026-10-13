@@ -18,7 +18,9 @@ enum SelfTest {
         let questions = LaunchArguments.value("--rag").map { $0.split(separator: "|").map(String.init) } ?? []
         let file = LaunchArguments.value("--prompts-file").flatMap { try? String(contentsOfFile: $0, encoding: .utf8) }
         guard let model = LaunchArguments.value("--model"), !questions.isEmpty || file != nil,
-            LaunchArguments.value("--rag-budget") == nil || ChatViewModel.launchRAGBudget != nil
+            LaunchArguments.value("--rag-budget") == nil || ChatViewModel.launchRAGBudget != nil,
+            questions.isEmpty || !isOff(LaunchArguments.value("--rag-web"))
+                || !isOff(LaunchArguments.value("--rag-local"))
         else {
             log(
                 "usage: CoreAISamples --selftest --model <folder> (--prompts-file <file> | --rag \"question 1|question 2\" [--rag-web off] [--rag-local off] [--rag-docs <folder>] [--rag-budget 3000|6000]) [--max-tokens N] [--context-limit N] [--effort off|low|medium|xhigh]"
@@ -73,6 +75,9 @@ enum SelfTest {
             }
             while host.state.isRunning || chat.isResponding { try? await Task.sleep(for: .milliseconds(20)) }
             guard let result = chat.ragEnabled ? chat.last : host.runner.session.lastGeneration else {
+                log(
+                    "[selftest] no result: ragIsOn=\(chat.ragIsOn) running=\(host.state.isRunning) "
+                        + "failure=\(host.state.turns.last?.failure ?? "none")")
                 pass = false
                 break
             }
