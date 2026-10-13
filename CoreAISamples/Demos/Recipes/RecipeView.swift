@@ -15,6 +15,9 @@ struct RecipeView: View {
     var body: some View {
         VStack(spacing: 0) {
             header
+            RecipeModelView(
+                state: store.state, open: { importingModel = true },
+                retry: { store.send(.openModel(store.state.modelPath)) })
             Divider()
             HSplitView {
                 ScrollView {
@@ -28,6 +31,7 @@ struct RecipeView: View {
                 .frame(minWidth: 310, idealWidth: 380)
                 ScrollView {
                     VStack(alignment: .leading, spacing: 18) {
+                        RecipeInspectorView(state: store.state)
                         recipeSection
                         if let report = store.state.report {
                             RecipeReportView(report: report)
@@ -271,13 +275,6 @@ struct RecipeView: View {
             HStack {
                 phaseLabel.font(.caption).foregroundStyle(.secondary)
                 Spacer()
-                Button(
-                    LocalizedStringKey(
-                        store.state.modelName == nil ? "Open Clef-Flash bundle" : "Change decision model")
-                ) {
-                    importingModel = true
-                }
-                .disabled(store.state.busy)
             }
         }
         .padding(.horizontal, 20).padding(.vertical, 10)

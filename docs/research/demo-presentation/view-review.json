@@ -1,0 +1,269 @@
+{
+  "task": "Issue #53 independent model-readiness / Recipe diagnostics view review",
+  "reviewer": "/root/review_decide2",
+  "repo": "/private/tmp/fridge-presentation",
+  "branch": "feat/53-recipe-inspection",
+  "baseSha": "899fdcde7707cdaf812a9f4276bc4696afa8e50f",
+  "headSha": "899fdcde7707cdaf812a9f4276bc4696afa8e50f",
+  "initialScope": "/private/tmp/fridge-inspector-view-scope.json",
+  "scope": "/private/tmp/fridge-inspector-view-partition-scope.json",
+  "stateToken": "a2de573d018124860c43f0f110941c50a09426e0375cc9b270e41626e9605497",
+  "snapshotTime": "2026-10-09T13:38:51.099789+09:00",
+  "contractSources": [
+    "/private/tmp/recipe-diagnostics-issue.md",
+    "docs/specs/demo-presentation.md"
+  ],
+  "rulesSources": [
+    "/Users/okayuuji/.codex/skills/self-review-branch/SKILL.md",
+    "/Users/okayuuji/.codex/skills/review/SKILL.md",
+    "/Users/okayuuji/.codex/skills/review/references/swift-review.md",
+    "CLAUDE.md",
+    "/Users/okayuuji/claude-config/conventions/swift/architecture.md",
+    "/Users/okayuuji/claude-config/conventions/swift/testing.md"
+  ],
+  "primaryReferences": [
+    "/Users/okayuuji/Desktop/ナレッジ/coreai-guide/README.md",
+    "/Users/okayuuji/Desktop/ナレッジ/coreai-guide/guide/12-custom-head-models.md (要点・ルール・落とし穴; normalization versus calibration)",
+    "/Users/okayuuji/src/swiftlang/hig/disclosure-controls.md",
+    "/Users/okayuuji/src/swiftlang/swift-evolution/proposals/0166-swift-archival-serialization.md (decodeIfPresent boundary)",
+    "Installed MacOSX27.0 SwiftUI/Foundation declarations and #52 CPU overload probe reused for localization semantics"
+  ],
+  "environment": {
+    "compiler": "Apple Swift 6.4 / SDK macOS 27.0 from prior task in same checkout environment",
+    "languageMode": "Swift 6",
+    "deploymentTarget": "macOS 27.0",
+    "limitations": "No compiler/build/model/app/GUI execution allowed in this task."
+  },
+  "confirmed": [],
+  "plausible": [],
+  "unverifiedCandidates": [],
+  "candidateLedger": [
+    {
+      "id": "F53-VR01",
+      "status": "rejected",
+      "title": "新しいモデル表示が実際のロード状態とずれる",
+      "evidence": [
+        "RecipeModelView.phase .loading/.stopping are explicit; default uses modelName for loaded/unloaded. Expected bundle ID is always displayed.",
+        "Existing .openModel clears modelName/report before loading; .modelLoaded is session+phase guarded; failure/stop retain nil after a failed load. A stop of another operation retains an already-loaded model.",
+        "Open and saved-path retry are explicit closures; both are disabled while busy. No auto-retry logic was added."
+      ]
+    },
+    {
+      "id": "F53-VR02",
+      "status": "rejected",
+      "title": "診断の開閉・質問選択・言語切替が再推論する",
+      "evidence": [
+        "Only RecipeInspectorView.expanded/questionID are modified by controls. No Store/Service, .task, .onChange or .onAppear is present in that View.",
+        "Inspector is unconditionally inserted at a stable position; #53 changes no DemoRootView Store ownership or language identity. RecipeView lifecycle hooks are unchanged.",
+        "This source finding does not establish real GUI focus/IME or SwiftUI presentation behavior; manual acceptance remains unverified."
+      ]
+    },
+    {
+      "id": "F53-VR03",
+      "status": "rejected",
+      "title": "動的翻訳キーが任意の原文選択肢を誤翻訳する",
+      "evidence": [
+        "LiveRecipeService.questions uses only required/uncertain/optional and available/unavailable/unknown option IDs. All six raw keys have Japanese catalog entries.",
+        "Original instructions, question ID, model IDs/version and source recipe data use verbatim/String data paths. Ingredient labels use the existing explicit Ingredients lookup.",
+        "No report-import UI was found; arbitrary external diagnostic DTO values are outside the reachable app path."
+      ]
+    },
+    {
+      "id": "F53-VR04",
+      "status": "rejected",
+      "title": "旧結果の診断が現在の別入力へ付く、または未記録値が捏造される",
+      "evidence": [
+        "RecipeReport.diagnostics is optional and legacy absence shows Choice scores were not recorded for this result, without invented score/token defaults.",
+        "Existing input edits, photo/recipe success and openModel invalidate report. checked requires matching session+revision+phase.",
+        "A rerun of unchanged input retains the previous successful report during work or cancellation, consistent with the prior result-retention contract; result diagnostics remain part of the same report value."
+      ]
+    },
+    {
+      "id": "F53-VR05",
+      "status": "rejected",
+      "title": "分布の並びから誤った勝者を表示する",
+      "evidence": [
+        "Service report validates answer/question IDs and maps each returned distribution in its returned order. selected is copied from answer.top.",
+        "Inspector checkmark compares option.option to question.selected rather than assuming the first row wins. The test fixture deliberately uses equal probabilities with selected differing from first returned option.",
+        "Progress/number/logit are direct option fields with display-only rounding; no probabilities or inventory values are recalculated by the View."
+      ]
+    },
+    {
+      "id": "F53-VR06",
+      "status": "rejected",
+      "title": "表示する要確認基準が実判定と異なる",
+      "evidence": [
+        "Both RecipeReport.needsReview and the Inspector reference the same reviewThreshold=0.6 constant. The prior strict less-than comparison and unknown-state checks remain unchanged.",
+        "The UI explicitly states the probabilities are normalized and uncalibrated, distinguishes model requirement/equipment scoring from code stock/quantity computation."
+      ]
+    }
+  ],
+  "coverage": [
+    {
+      "path": "CoreAISamples/Demos/Recipes/RecipeModelView.swift",
+      "scope": "full file; unloaded/loading/stopping/loaded branches, explicit open/retry actions, busy disabling",
+      "sha256": "ef275226edbad4bb2d37b01f5d84941fc5d2ea27da6d4c65312459fd933f7231"
+    },
+    {
+      "path": "CoreAISamples/Demos/Recipes/RecipeInspectorView.swift",
+      "scope": "full file; local State ownership, all stages, actual score projection, question selection fallback, nil diagnostics, raw data and locale formatting",
+      "sha256": "ffed9f779d5f8eeef6ab2b21126a6637a53d05d0e00ba1909428a9e382f24770"
+    },
+    {
+      "path": "CoreAISamples/Demos/Recipes/RecipeView.swift",
+      "scope": "full relevant integration; inserted model/inspector views, existing body identity, lifecycle/actions, input and result placement",
+      "sha256": "4697f3ae110fc87375e813ee05aaab219503566128254b492464734e442d19cc"
+    },
+    {
+      "path": "CoreAISamples/Demos/Recipes/RecipeReportView.swift",
+      "scope": "full file and removed diagnostics; deterministic row decisions, amount display and summary",
+      "sha256": "c350393192ecf07737e4159035072e735562d10f2799ec2b14c721683e88511b"
+    },
+    {
+      "path": "CoreAISamples/Localization/DemoLocalizationCheck.swift",
+      "scope": "delta and dynamic raw option/status keys",
+      "sha256": "c138cd1c84f86ae728704bbf3c4e72127a0db5671af7bab4b6f536c8d1d76b1f"
+    },
+    {
+      "path": "CoreAISamples/Resources/Localizable.xcstrings",
+      "scope": "47 new/related display keys, Japanese values and formatting placeholders; full catalog not independently audited",
+      "sha256": "376794abcf199130eaad370f4686d486f892a01f6978250ada22f616621835e7"
+    },
+    {
+      "path": "CoreAISamplesKit/Sources/RecipeCore/RecipeDiagnostics.swift",
+      "scope": "full DTO definitions, optional diagnostic boundary and IDs",
+      "sha256": "0ee52cd67bca5729ba6c3d6f1b5d0bdfe632f26760ee88a27a571bae1b092f41"
+    },
+    {
+      "path": "CoreAISamplesKit/Sources/RecipeCore/RecipeTypes.swift",
+      "scope": "RecipeReport delta and needsReview/hasShortage/title contracts",
+      "sha256": "52147df55d373a483c45835245c862bdf25befe9a66a1136653a1703875a0811"
+    },
+    {
+      "path": "CoreAISamplesKit/Sources/RecipeRuntime/RecipeService.swift",
+      "scope": "check/report/questions paths, duration boundary, actual distribution copy, fixed option ID provenance",
+      "sha256": "ea1a45af5a55a74f371bd155cda9518a5487708906e57b55879820f682fb9671"
+    },
+    {
+      "path": "CoreAISamplesKit/Sources/RecipeFeature/RecipeFeature.swift",
+      "scope": "full existing reducer; model/read/stop/closed transitions, report invalidation and session/revision guards",
+      "sha256": "6ed86100690d09c146b010d650c12c1e1a2639e125c609b1ab189038d9aa3a1b"
+    },
+    {
+      "path": "CoreAISamplesKit/Sources/RecipeRuntime/RecipeRunner.swift",
+      "scope": "read-only existing effect routing and explicit load/check result guards",
+      "sha256": "1f633c37f2d53987775e465b587254f32aa297c26ae6782195bb9231e7bf469b"
+    },
+    {
+      "path": "CoreAISamplesKit/Tests/RecipeRuntimeTests/RecipeDiagnosticsTests.swift",
+      "scope": "test source only; order/winner/ties/probabilities/logits, ID mismatch, old JSON and threshold boundaries; final additions: report JSON round-trip and separate ingredient/equipment threshold checks read",
+      "sha256": "dc65686e6449a35c272fe0dfaa8d1f4629db62da87e3dc39d4a913d6fe143b4a"
+    },
+    {
+      "path": "CoreAISamples/Demos/Recipes/RecipeAssembly.swift",
+      "scope": "saved path initialization/persistence and fixed resource boundary",
+      "sha256": "8ea889ded640981cd0a30b7af656220dee013d85b7bbf5614fc3bee75a8b8dc1"
+    },
+    {
+      "path": "CoreAISamples.xcodeproj/project.pbxproj",
+      "scope": "new view file membership in Mac Sources phase",
+      "sha256": "dcef827429ba7f7a1582a93f04c463b33f18687df4a641273ee2ed94e14dcd30"
+    },
+    {
+      "path": "docs/specs/demo-presentation.md",
+      "scope": "local specification and #52/#53 contract",
+      "sha256": "11661f2bf80a291cae95fc5d02fef2aa2a47a9fa3f93ec671321abc9066fbdae"
+    },
+    {
+      "path": "docs/recipes-demo.md",
+      "scope": "#53 documentation delta and consistency with source; live/GUI verification still not claimed by this reviewer",
+      "sha256": "e9e60ad0128fd53a30dbd6156860e1521270986619985113a4efe508dcd554ec"
+    }
+  ],
+  "verificationHistory": [
+    {
+      "kind": "read-only source and provenance tracing",
+      "result": "No reachable correctness issue found in assigned view partition."
+    },
+    {
+      "kind": "read-only catalog parse",
+      "result": "47 new/related keys have Japanese values; no placeholder mismatch in that set.",
+      "evidence": "/private/tmp/fridge-inspector-view-catalog-audit.json"
+    },
+    {
+      "kind": "test source inspection",
+      "result": "Relevant data-projection/backwards-decoding/threshold assertions exist; not executed by this reviewer."
+    }
+  ],
+  "acceptanceCoverage": {
+    "INSPECT-01": "source state mapping/open/retry inspected; GUI/manual still unverified",
+    "INSPECT-02": "source projection/DTO/nil fallback and test source inspected; executing tests delegated to root",
+    "INSPECT-03": "same constant and existing cancellation/input invalidation contracts inspected",
+    "INSPECT-04": "actual model execution not permitted for this reviewer",
+    "INSPECT-05": "source action/identity and 47 catalog keys inspected; GUI switching/retention not observed",
+    "INSPECT-06": "no build/lint/tests run by this reviewer; no unmeasured values inserted by reviewed display paths"
+  },
+  "unresolvedCoverage": [
+    "No GUI presentation/layout/click/focus/IME, EN↔JP live switch, current-result retention or cancellation interaction was exercised.",
+    "No model inference, actual egg-shortage/equipment-change/reuse metrics or GPU behavior was observed.",
+    "No build, lint or test command executed; tests were read only.",
+    "Runtime service/DTO were followed for view value provenance; this view partition is not a replacement for the separately assigned deep runtime review.",
+    "RecipeSelfTest changes were not independently reviewed in depth; root owns model-integration execution.",
+    "Full compiled localization/catalog extraction check belongs to root; this review checks the relevant source keys and raw catalog values."
+  ],
+  "failures": [
+    {
+      "kind": "initial scope check drift",
+      "recovered": true,
+      "detail": "Only Localizable.xcstrings changed during review. Refreshed scope and rechecked the 47 relevant keys and placeholders."
+    },
+    {
+      "kind": "second scope drift",
+      "recovered": true,
+      "detail": "Only recipe guide and presentation specification changed. Read deltas; no new source or acceptance behavior difference. The specification now records root-executed checks and pending GUI/live verification."
+    },
+    {
+      "kind": "third scope drift",
+      "recovered": true,
+      "detail": "Only RecipeDiagnosticsTests changed; final additions for JSON round-trip and independent equipment threshold were read. No View/runtime source changed."
+    }
+  ],
+  "unparsedCandidates": [],
+  "pendingTasks": [],
+  "deferredTasks": [],
+  "excluded": [],
+  "blockers": [],
+  "stats": {
+    "confirmed": 0,
+    "rejectedHypotheses": 6,
+    "catalogKeysChecked": 47
+  },
+  "complete": true,
+  "completionScope": "Independent read-only view partition, including issue contract reconciliation; manual/runtime acceptance remains explicitly unverified.",
+  "guideAppendCandidates": [],
+  "scopeHistory": [
+    {
+      "scope": "/private/tmp/fridge-inspector-view-final-scope.json",
+      "stateToken": "557c4b3c101da6ad055aa4f33d6df29c9579b7c0a8152065880e75beda6abba4",
+      "changedAfter": [
+        "docs/recipes-demo.md",
+        "docs/specs/demo-presentation.md"
+      ]
+    },
+    {
+      "scope": "/private/tmp/fridge-inspector-view-current-scope.json",
+      "stateToken": "7b5ad88714de5054727db1316dccf53d8028eac0224b73d7bbdda21b58d5e6ec",
+      "changedAfter": [
+        "CoreAISamplesKit/Tests/RecipeRuntimeTests/RecipeDiagnosticsTests.swift"
+      ]
+    }
+  ],
+  "latestGlobalScope": "/private/tmp/fridge-inspector-view-latest-global-scope.json",
+  "latestGlobalStateToken": "8a956482f41b68ad25918aba4291fcb3f432779c04c227661a5561f8e5177df2",
+  "scopeNote": "Final stable source partition includes assigned Views/catalog and direct diagnostics dependencies; global snapshot is also recorded. Root is concurrently updating docs/tests.",
+  "lastScopeCheck": {
+    "scope": "/private/tmp/fridge-inspector-view-partition-scope.json",
+    "stateToken": "a2de573d018124860c43f0f110941c50a09426e0375cc9b270e41626e9605497",
+    "unchanged": true
+  }
+}

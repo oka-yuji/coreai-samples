@@ -49,6 +49,7 @@
 		68268B0951BF4FFA8ADA631D /* Catalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09F71463DA4F2153E25B4F33 /* Catalog.swift */; };
 		6895060850B682FA0B41235D /* HubDownloader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A20485F7EB3740C480083D7 /* HubDownloader.swift */; };
 		6DC89743479937677DB58337 /* ExtractService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7E148DB501CB7AAE81691D6 /* ExtractService.swift */; };
+		70AF18D9E3D418DAEB7227A1 /* RecipeModelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C788E9F664AA9590A13BF66C /* RecipeModelView.swift */; };
 		7965D53F9D757D1A07ACEDF0 /* ExtractEval.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82B4A55114BBA7685FCF713C /* ExtractEval.swift */; };
 		8384E9A460827793A6125FBB /* ModelStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAE0376EC66AACAB7D06A922 /* ModelStorage.swift */; };
 		850158F9C75A8B01FC7B82DE /* DemoRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3C4386FEDC295B729DF07C1 /* DemoRootView.swift */; };
@@ -87,6 +88,7 @@
 		F8E2A64FD4FCB0220D394B60 /* LaunchArguments.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0477EBADA2061C5A4A49EFE4 /* LaunchArguments.swift */; };
 		FC6626F927F8F428880FBBC9 /* DemoAppMain.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F02F3A778FCB93B0D8828BB /* DemoAppMain.swift */; };
 		FEAA664820CCCE1913D6E3C6 /* 03-omelette.png in Resources */ = {isa = PBXBuildFile; fileRef = 1FE6487E7AFD8DA556478B25 /* 03-omelette.png */; };
+		FFF3C06A390062F289948187 /* RecipeInspectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA2674A4B3DE025177BD4654 /* RecipeInspectorView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -136,10 +138,12 @@
 		B7DE5BA037505543B8869BB1 /* ModelSelectionSelfTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelSelectionSelfTest.swift; sourceTree = "<group>"; };
 		B8E08DCE25166F4BAC3F4D6E /* decide-examples.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "decide-examples.json"; sourceTree = "<group>"; };
 		BBE9C20E195FE641300D6F57 /* PhoneDemoApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneDemoApp.swift; sourceTree = "<group>"; };
+		C788E9F664AA9590A13BF66C /* RecipeModelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipeModelView.swift; sourceTree = "<group>"; };
 		C8A8415903D96B5F5D18625D /* Signing.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.xcconfig; sourceTree = "<group>"; };
 		C8BB1C51D3BFC85B5F047FD0 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		CB2168189614CA94670A5D5A /* inspection_u1.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = inspection_u1.json; sourceTree = "<group>"; };
 		D7900E92556E3B5D90842513 /* Local.xcconfig.template */ = {isa = PBXFileReference; path = Local.xcconfig.template; sourceTree = "<group>"; };
+		DA2674A4B3DE025177BD4654 /* RecipeInspectorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipeInspectorView.swift; sourceTree = "<group>"; };
 		E12E6AFDDBD1A46129826431 /* NoteEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteEditor.swift; sourceTree = "<group>"; };
 		E36A6DC6BC5A449F3092E6AF /* DecideView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DecideView.swift; sourceTree = "<group>"; };
 		E3B992FFD4E283E0DF813628 /* CoreAISamplesKit */ = {isa = PBXFileReference; lastKnownFileType = folder; name = CoreAISamplesKit; path = CoreAISamplesKit; sourceTree = SOURCE_ROOT; };
@@ -334,6 +338,8 @@
 			isa = PBXGroup;
 			children = (
 				0A091709225A19A17E295027 /* RecipeAssembly.swift */,
+				DA2674A4B3DE025177BD4654 /* RecipeInspectorView.swift */,
+				C788E9F664AA9590A13BF66C /* RecipeModelView.swift */,
 				089288E87CC0246B5A387A0A /* RecipeReportView.swift */,
 				F4262D7DF18D84C8A9A1C348 /* RecipeSelfTest.swift */,
 				1BAA92853DA68C9FDF5D1827 /* RecipeView.swift */,
@@ -582,6 +588,8 @@
 				D3AF8DDC5BDE9DF6BCF24CD8 /* PhoneDemoApp.swift in Sources */,
 				B1DD58EA8D2DFB52E3157842 /* PhoneExtractView.swift in Sources */,
 				040CEE6FAC4B1743BB677ADA /* RecipeAssembly.swift in Sources */,
+				FFF3C06A390062F289948187 /* RecipeInspectorView.swift in Sources */,
+				70AF18D9E3D418DAEB7227A1 /* RecipeModelView.swift in Sources */,
 				E0253D8F538049F975CEA0F7 /* RecipeReportView.swift in Sources */,
 				E8B2AF719FFA02EDB295B7E7 /* RecipeSelfTest.swift in Sources */,
 				3DF638F111A1931F5E7F2DB4 /* RecipeView.swift in Sources */,

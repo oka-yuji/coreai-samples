@@ -21,6 +21,8 @@ enum DemoLocalizationCheck {
             keys += [IngredientDecision.have, .missing, .uncertain, .optional].map(\.title)
             keys += [RecipeRequirement.required, .optional, .uncertain].map(\.rawValue)
             keys += [ExtractRunner.notice, "Loaded", "Loading…", "Stopped.", "No match", "On hold"]
+            keys += KitchenStatus.allCases.map(\.rawValue)
+            keys += ["Kitchen equipment", "Open Clef-Flash bundle", "Change decision model"]
             var failures: [String] = []
             for key in Set(keys).sorted() {
                 let translated = Bundle.main.localizedString(

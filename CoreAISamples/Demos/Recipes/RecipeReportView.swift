@@ -24,21 +24,11 @@ struct RecipeReportView: View {
                         amountLabel(row.amount).foregroundStyle(row.amount.isShort ? .orange : .secondary)
                     }
                     .font(.callout)
-                    Text(
-                        "Requirement: \(strings.text(row.requirement.rawValue)) · Model score \(strings.number(Double(row.probability), fractionDigits: 2...2))"
-                    )
-                    .font(.caption2).foregroundStyle(.secondary)
                 }
                 Divider()
             }
             Label(LocalizedStringKey(equipmentTitle), systemImage: "oven")
                 .foregroundStyle(report.equipment == .unavailable ? .orange : .primary)
-            Text("Model scores are uncalibrated. Confirm unclear requirements in the original recipe.")
-                .font(.caption).foregroundStyle(.secondary)
-            Text(
-                "\(strings.number(report.seconds, fractionDigits: 2...2)) s · \(report.reusedTokens) reused document tokens"
-            )
-            .font(.caption2.monospacedDigit()).foregroundStyle(.tertiary)
         }
         .padding(16)
         .background(summaryColor.opacity(0.07), in: RoundedRectangle(cornerRadius: 12))

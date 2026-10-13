@@ -53,6 +53,7 @@ enum RecipeSelfTest {
             guard let report = store.state.report else {
                 throw RecipeError.invalid(store.state.message ?? "No recipe report.")
             }
+            try verifyDiagnostics(report, recipe: recipe)
             records.append(
                 Record(
                     id: example.id, source: recipe.source, suggestions: photo.ingredients, photoChecks: photo.checks,
@@ -79,6 +80,7 @@ enum RecipeSelfTest {
                 guard let updated = store.state.report else {
                     throw RecipeError.invalid("No toaster alternative result.")
                 }
+                try verifyDiagnostics(updated, recipe: recipe)
                 try write(updated, to: directory.appendingPathComponent("toaster-store-case.json"))
                 try require(
                     updated.equipment == .available && updated.reusedTokens > 0,
@@ -112,6 +114,21 @@ enum RecipeSelfTest {
 
     private static func require(_ condition: Bool, _ message: String) throws {
         if !condition { throw RecipeError.invalid(message) }
+    }
+
+    private static func verifyDiagnostics(_ report: RecipeReport, recipe: Recipe) throws {
+        guard let diagnostics = report.diagnostics else { throw RecipeError.invalid("Missing diagnostics.") }
+        let ids = recipe.ingredients.map { "ingredient_\($0.id)" } + ["equipment"]
+        try require(diagnostics.inputTokens > 0 && diagnostics.questions.map(\.id) == ids, "Missing question metrics.")
+        try require(!diagnostics.model.isEmpty, "Missing result model.")
+        for question in diagnostics.questions {
+            try require(question.options.count == 3, "Expected three returned choices.")
+            try require(question.options.contains { $0.option == question.selected }, "Missing selected choice.")
+            try require(
+                question.options.allSatisfy { $0.probability.isFinite && $0.logit.isFinite }, "Invalid choice metrics.")
+            try require(
+                abs(question.options.reduce(Float(0)) { $0 + $1.probability } - 1) < 0.0001, "Invalid distribution.")
+        }
     }
 
     private static func write(_ value: some Encodable, to url: URL) throws {

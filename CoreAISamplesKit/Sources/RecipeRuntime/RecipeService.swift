@@ -115,7 +115,15 @@ public final class LiveRecipeService: RecipeService {
             result = try await model.decide(DecisionRequest(state: document, questions: questions))
         }
         try Task.checkCancellation()
+        return try report(result, for: input, questions: questions, started: started, reused: reused)
+    }
+
+    func report(
+        _ result: DecisionResult, for input: RecipeCheckInput, questions: [DecisionQuestion],
+        started: ContinuousClock.Instant, reused: Bool
+    ) throws -> RecipeReport {
         guard result.answers.count == input.recipe.ingredients.count + 1,
+            result.answers.map(\.id) == questions.map(\.id),
             let equipmentAnswer = result.answers.last,
             let equipment = KitchenStatus(rawValue: equipmentAnswer.top)
         else { throw RecipeError.invalid("The decision model returned an incomplete recipe check.") }
@@ -130,11 +138,21 @@ public final class LiveRecipeService: RecipeService {
             input.recipe.ingredients, requirements: requirements,
             probabilities: ingredientAnswers.map(\.maximumProbability), pantry: input.pantry,
             complete: input.inventoryComplete)
+        let diagnostics = RecipeDiagnostics(
+            model: result.model, inputTokens: result.inputTokens,
+            questions: zip(questions, result.answers).map { question, answer in
+                RecipeQuestionDiagnostic(
+                    id: answer.id, instructions: question.instructions, selected: answer.top,
+                    options: answer.distribution.map {
+                        RecipeOptionDiagnostic(option: $0.option, probability: $0.probability, logit: $0.logit)
+                    })
+            })
         let duration = started.duration(to: .now).components
         return RecipeReport(
             rows: rows, equipment: equipment, equipmentProbability: equipmentAnswer.maximumProbability,
             seconds: Double(duration.seconds) + Double(duration.attoseconds) / 1e18,
-            reusedTokens: reused ? result.reusedTokens : 0, modelVersion: result.modelVersion)
+            reusedTokens: reused ? result.reusedTokens : 0, modelVersion: result.modelVersion,
+            diagnostics: diagnostics)
     }
 
     static func questions(_ input: RecipeCheckInput) -> [DecisionQuestion] {
