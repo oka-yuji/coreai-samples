@@ -20,7 +20,13 @@
     "Vendor/IrodoriInputKit/rust/src/lib.rs": "ac87475b1d8f7c8995dde0e259a745360c3e482acf1bb846c717829947a302c1",
     "Vendor/IrodoriInputKit/rust/src/normalization.rs": "c130d0bcfd92cf110ed84bf4dce78d305b47d827cc1fcdba1771170b04992046",
     "Tools/Irodori/prepare-bundle.py": "96bac45220c6aea2b35bcbd0e010e81290305e49b78cd0bc7609d8132e1c48c6",
-    "Tools/Irodori/build-inputs.sh": "8c48368dff64d8b09d6bce9f71ef1fcfa7609f4a84cedb8a8aead54541b75602"
+    "Tools/Irodori/build-inputs.sh": "8c48368dff64d8b09d6bce9f71ef1fcfa7609f4a84cedb8a8aead54541b75602",
+    "CoreAISamplesKit/Package.swift": "393f54754344c7815c65d42e3ac038930cafaa73748916faf6e9c0ce06728693",
+    "Vendor/IrodoriInputKit/Package.swift": "83c63fe06e30cb1977a8b98f1ae7ec1a21f68afc1ee8ea7075036ed81dde7221",
+    "Vendor/IrodoriInputKit/rust/Cargo.toml": "20e2964d71c082547001a0ffb2cd26af7d1f067a5e3c35718687db7ef035f3a0",
+    "Vendor/IrodoriInputKit/rust/Cargo.lock": "30d55d520d5714d1870bfd3404408a38e2e7d141a50811c619afdb7737919e6d",
+    "CoreAISamplesKit/Sources/SpeechRuntime/Resources/irodori-assets.json": "1b4ff5f33143fc89b539e29638bf97dc544c1f5e5aa7c9459014901f3676d7d7",
+    "check.sh": "c9d2dc93b3fee336c2799788d47f7ff152338790fbbda87226d0d59818f6fa12"
   },
   "cpu_tests": {
     "debug": 11,
