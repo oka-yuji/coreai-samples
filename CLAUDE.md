@@ -43,7 +43,7 @@
 
 ## 重いジョブ
 
-- モデルを読むジョブ(変換、計測、モデルを読むテスト、デモアプリでモデルを動かすこと)は、`mkdir ~/Desktop/SelfApps/CoreLLM/.locks/heavy-job` でロックを取ってから始める。中に `owner.txt`(セッション名、ジョブ名、開始時刻、見込み時間)を置く。取る前に、モデルを動かすプロセス(`coreai-chat`、`coreai-verify`、デモアプリなど)が残っていないことを `pgrep` で確かめる。`mkdir` が失敗したら、持ち主のジョブが終わるまで待つ。終わったら外す(名前を `heavy-job-done-<ジョブ名>-<日時>` に変える)。
+- モデルを読むジョブ(変換、計測、モデルを読むテスト、デモアプリでモデルを動かすこと)は、`mkdir -p ~/Library/Caches/coreai-samples && mkdir ~/Library/Caches/coreai-samples/heavy-job` でロックを取ってから始める。中に `owner.txt`(セッション名、ジョブ名、開始時刻、見込み時間)を置く。取る前に、モデルを動かすプロセス(`coreai-chat`、`coreai-verify`、デモアプリなど)が残っていないことを `pgrep` で確かめる。`mkdir` が失敗したら、持ち主のジョブが終わるまで待つ。終わったら外す(名前を `heavy-job-done-<ジョブ名>-<日時>` に変える)。
 - GPU を使う統合テストは `.enabled(if:)` で既定の実行から外す。`swift test` だけでは、モデルを読むテストは動かない。動かすのは、バンドルのフォルダを `:` 区切りで渡したときだけ(このときはロックを取る): `COREAI_TEST_BUNDLES=/path/to/bundle-a:/path/to/bundle-b swift test --package-path CoreAISamplesKit`
 
 - Decide の統合テストは言語モデル用と混ぜず、GPU ロックの下で専用の変数と filter を使う:
@@ -51,3 +51,14 @@
   20 文書のメモリ試験は `DECIDE_MEMORY_TEST=1` を追加する。測定の JSON は `DECIDE_METRICS_DIR=/path/to/output` で保存できる。
   `COREAI_TEST_BUNDLES` は言語モデル用だけに使い、両変数を同時に設定しない。
 - 同じ文書で質問数を変えるメモリ検査は `DECIDE_SHAPE_MEMORY=1` と `--filter DecisionInferenceTests.questionSizeMemory`。headless の文書再利用経路は `--decide-json input.json output.json --reuse-document`。
+
+
+## 変換の保守（2026-10-15）
+
+- Core AIの今後の開発・変換ツールの正本はこのリポジトリ。CoreLLMは過去の記録として保管し、新しいコード・計測を追加しない。
+- 変換の保守用入口は `python3 -m Tools.Conversion.local setup`、`plan`、`run`。手順は `Tools/Conversion/README.md`。一般向けの安定APIや全モデル対応を約束する製品ではない。
+- 個人用の設定・依存ツール・モデル・生ログ・実行キャッシュは `.local/conversion/` に置き、Gitへ追加しない。共通処理とテストは履歴管理する。モデルの重みは従来どおり別配布する。
+- 変換と参照計算は上記と同じ機械内のheavy-jobロックを使う。`COREAI_HEAVY_JOB_LOCK`で変更する場合は、このMacで動く全モデルジョブの取得先をそろえる。移行前から動いているジョブの終了を確認してから新しい場所を使い、既存ロックを削除・奪取しない。
+- GLiNERの任意fixture試験は `GLINER_FIXTURES_DIR` で参照データの場所を指定できる。既定は `~/Library/Caches/coreai-samples/reference/models/coreai/gliner`。以前のラボを自動検索しない。fixture内の相対パスで参照する `reference/docs/results/` の構造も保つ。
+- 公開用の数値記録は `python3 -m Tools.Conversion.summary <report.json>` で抽出し、公開前に内容を確認する。生のreport・manifest・process.logには環境変数・コマンド・入力本文が入り得るため、そのままコミットしない。
+- 変換コードを変更した場合は専用環境で `python -m unittest discover -s Tools/Conversion/tests -v` も実行する。NumPy未導入でスキップされた数値試験を合格として扱わない。
