@@ -1141,6 +1141,16 @@
         }
       }
     },
+    "Context overflow at step %lld." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ステップ%lldでコンテキストの上限を超えました。"
+          }
+        }
+      }
+    },
     "Context window is full" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1654,6 +1664,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "抽出中…"
+          }
+        }
+      }
+    },
+    "Failed at step %lld." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ステップ%lldで失敗しました。"
           }
         }
       }
@@ -3760,6 +3780,26 @@
         }
       }
     },
+    "Step %lld of %lld: generating…" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ステップ%lld/%lld: 生成中…"
+          }
+        }
+      }
+    },
+    "Step %lld: running %@…" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ステップ%lld: %@を実行中…"
+          }
+        }
+      }
+    },
     "Step limit reached" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3798,6 +3838,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "停止しました"
+          }
+        }
+      }
+    },
+    "Stopped after %lld step(s)." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lldステップで停止しました。"
+          }
+        }
+      }
+    },
+    "Stopped at the %lld-step limit." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最大%lldステップで停止しました。"
           }
         }
       }

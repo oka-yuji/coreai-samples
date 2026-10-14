@@ -182,8 +182,15 @@ final class GUIDriver {
         }
         let url = URL(filePath: path, directoryHint: .isDirectory)
         let preferences = host.preferences
-        preferences.persists = false
-        preferences.effort = LaunchArguments.value("--effort").flatMap(AgentReasoningEffort.init(argument:)) ?? .medium
+        preferences.resetForHeadless()
+        let effort = LaunchArguments.value("--effort")
+        if let effort, AgentReasoningEffort(argument: effort) == nil {
+            note("unknown effort '\(effort)': use off, low, medium or xhigh")
+            await finish(metricsBefore: metricsBefore)
+            return
+        }
+        preferences.effort = effort.flatMap(AgentReasoningEffort.init(argument:)) ?? .medium
+        note("effort=\(preferences.effort.rawValue) settings=defaults (the app's saved settings are not used)")
         if let tokens = LaunchArguments.value("--max-tokens").flatMap(Int.init) { preferences.maxTokens = tokens }
         NSApp.activate()
         _ = await wait(seconds: 30) { self.window() != nil }
@@ -432,8 +439,14 @@ final class GUIDriver {
         ) {
             host.store.send(.modeChanged(.work))
             host.chat.input = Self.stopTask
+            let mark = host.state.entries.count
+            @MainActor func written() -> Bool {
+                host.state.entries.dropFirst(mark).contains {
+                    [.thinking, .toolCall, .answer].contains($0.kind) && $0.text.count > 20
+                }
+            }
             guard host.submit() else { return (false, "send refused") }
-            let grew = await wait(seconds: 180) { (host.state.entries.last?.text.count ?? 0) > 20 }
+            let grew = await wait(seconds: 180) { written() }
             host.chat.input = "Another question"
             host.store.send(.modeChanged(.chat))
             let locked = host.state.isRunning && !host.canSend && host.state.mode == .work
@@ -443,11 +456,12 @@ final class GUIDriver {
             let seconds = (ContinuousClock.now - started) / .seconds(1)
             host.chat.input = ""
             let stopped = host.state.entries.last { $0.kind == .failure && $0.title == "Stopped" }
+            let kept = written() || stopped?.detail == .stopped(partial: true)
             return (
-                grew && locked && halted && stopped != nil,
+                grew && locked && halted && stopped != nil && kept,
                 String(
-                    format: "grew=%@ locked=%@ halted=%@ seconds=%.3f stopped=%@", String(grew), String(locked),
-                    String(halted), seconds, Self.head(stopped?.text ?? "none", 200))
+                    format: "grew=%@ locked=%@ halted=%@ kept=%@ seconds=%.3f stopped=%@", String(grew),
+                    String(locked), String(halted), String(kept), seconds, Self.head(stopped?.text ?? "none", 200))
             )
         }
     }

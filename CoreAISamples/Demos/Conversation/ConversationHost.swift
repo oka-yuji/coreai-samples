@@ -49,6 +49,18 @@ final class ConversationPreferences {
         citeFetched = defaults.object(forKey: Self.citeFetchedKey) as? Bool ?? true
     }
 
+    func resetForHeadless() {
+        persists = false
+        maxSteps = 8
+        maxTokens = nil
+        pageBudget = 10_000
+        braveAPIKey = ""
+        fileOperations = false
+        notesFolderPath = ""
+        citationGuard = true
+        citeFetched = true
+    }
+
     private func store(_ value: Any?, _ key: String) {
         guard persists else { return }
         if let value { defaults.set(value, forKey: key) } else { defaults.removeObject(forKey: key) }

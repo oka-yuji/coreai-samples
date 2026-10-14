@@ -110,7 +110,7 @@ struct ConversationView: View {
             if host.state.isRunning || chat.isResponding {
                 ProgressView().controlSize(.small)
             }
-            RuntimeMessageText(statusText)
+            statusView
                 .font(.caption.monospacedDigit())
                 .foregroundStyle(chat.ragIsOn && chat.last?.error != nil ? Color.red : Color.secondary)
                 .lineLimit(2)
@@ -137,11 +137,26 @@ struct ConversationView: View {
             .joined(separator: " · ")
     }
 
-    private var statusText: String {
-        if chat.isResponding { return chat.retrieving ? "Collecting sources…" : "Generating…" }
-        if chat.ragIsOn, chat.last != nil { return chat.statusLine }
-        let line = host.state.statusLine
-        return line.isEmpty ? chat.loadNote : line
+    @ViewBuilder
+    private var statusView: some View {
+        if chat.isResponding {
+            Text(chat.retrieving ? "Collecting sources…" : "Generating…")
+        } else if chat.ragIsOn, chat.last != nil {
+            RuntimeMessageText(chat.statusLine)
+        } else if let status = host.state.status {
+            switch status {
+            case .generating(let step, let limit): Text("Step \(step) of \(limit): generating…")
+            case .running(let step, let tools): Text("Step \(step): running \(tools.joined(separator: " + "))…")
+            case .stopping: Text("Stopping…")
+            case .cutOff(let limit): Text("Stopped at the \(limit)-step limit.")
+            case .stopped(let steps): Text("Stopped after \(steps) step(s).")
+            case .failed(let step): Text("Failed at step \(step).")
+            case .overflow(let step): Text("Context overflow at step \(step).")
+            case .finished(let stats): RuntimeMessageText(stats.line)
+            }
+        } else {
+            RuntimeMessageText(chat.loadNote)
+        }
     }
 
     private func copy() {

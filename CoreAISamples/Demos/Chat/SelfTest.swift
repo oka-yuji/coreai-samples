@@ -20,7 +20,8 @@ enum SelfTest {
         guard let model = LaunchArguments.value("--model"), !questions.isEmpty || file != nil,
             LaunchArguments.value("--rag-budget") == nil || ChatViewModel.launchRAGBudget != nil,
             questions.isEmpty || !isOff(LaunchArguments.value("--rag-web"))
-                || !isOff(LaunchArguments.value("--rag-local"))
+                || !isOff(LaunchArguments.value("--rag-local")),
+            LaunchArguments.value("--effort").map({ AgentReasoningEffort(argument: $0) != nil }) ?? true
         else {
             log(
                 "usage: CoreAISamples --selftest --model <folder> (--prompts-file <file> | --rag \"question 1|question 2\" [--rag-web off] [--rag-local off] [--rag-docs <folder>] [--rag-budget 3000|6000]) [--max-tokens N] [--context-limit N] [--effort off|low|medium|xhigh]"
@@ -35,6 +36,7 @@ enum SelfTest {
             : questions
         let chat = ChatViewModel()
         let preferences = ConversationPreferences(persists: false)
+        preferences.resetForHeadless()
         preferences.effort = LaunchArguments.value("--effort").flatMap(AgentReasoningEffort.init(argument:)) ?? .medium
         if let maxTokens = LaunchArguments.value("--max-tokens").flatMap(Int.init) { preferences.maxTokens = maxTokens }
         if !questions.isEmpty {

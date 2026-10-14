@@ -148,4 +148,44 @@ struct ConversationStatusTests {
         _ = reduce(&failed, .stopRequested, .generationFailed(run: 1, message: "boom"))
         #expect(!failed.isRunning && !failed.stopRequested && failed.entries.last?.title == "Generation failed")
     }
+
+    @Test("The status is a value the screen can translate, and its English line is what the headless runs print")
+    func statusIsAValue() {
+        var state = started(.work)
+        #expect(state.status == .generating(step: 1, limit: 8) && state.statusLine == "Step 1 of 8: generating…")
+        let search = tool("t1", "web_search", #"{"query":"swift"}"#)
+        _ = reduce(&state, .transcriptChanged(run: 1, turn("Question", [calls("c1", search)])))
+        #expect(state.status == .running(step: 1, tools: ["web_search"]))
+        var failed = started(.work)
+        _ = reduce(&failed, .generationFailed(run: 1, message: "boom"))
+        #expect(failed.status == .failed(step: 1) && failed.status?.line == "Failed at step 1.")
+        #expect(ConversationState(id: "empty", now: launch).status == nil)
+    }
+
+    @Test(
+        "Only the record being generated is live, tool outputs never are, nothing is after the turn, and Chat folds results"
+    )
+    func liveAndCollapsedRows() {
+        var state = started(.work)
+        let partial = turn(
+            "Question", [.reasoning(id: "r", text: "Plan"), .response(id: "a", text: "Partial", metadata: nil)])
+        _ = reduce(&state, .transcriptChanged(run: 1, partial))
+        #expect(state.entries.map(\.live) == [false, false, true])
+
+        let search = tool("t1", "web_search", #"{"query":"swift"}"#)
+        var calling = started(.work)
+        _ = reduce(&calling, .transcriptChanged(run: 1, turn("Question", [calls("c1", search)])))
+        #expect(calling.entries.last?.kind == .toolCall && calling.entries.last?.live == true)
+        let answered = turn("Question", [calls("c1", search), output(search, "Hits")])
+        _ = reduce(&calling, .transcriptChanged(run: 1, answered))
+        #expect(calling.entries.last?.kind == .toolResult && calling.entries.last?.live == false)
+
+        _ = reduce(&state, .generationEnded(run: 1, stopReason: "stopToken"))
+        #expect(state.entries.allSatisfy { !$0.live })
+
+        var chat = started(.chat)
+        _ = reduce(&chat, .transcriptChanged(run: 1, turn("Question", [calls("c1", search), output(search, "Hits")])))
+        let results = chat.entries.filter { $0.kind == .toolResult }
+        #expect(!results.isEmpty && results.allSatisfy { $0.collapsed })
+    }
 }

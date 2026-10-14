@@ -234,23 +234,25 @@ extension ConversationState {
         turns.last?.failure?.hasPrefix(ConversationFeature.contextFullPrefix) == true
     }
 
-    public var statusLine: String {
-        guard let turn = turns.last else { return "" }
+    public var status: ConversationStatus? {
+        guard let turn = turns.last else { return nil }
         let limit = turn.policy.maxSteps
         if isRunning {
-            if stopRequested { return "Stopping…" }
+            if stopRequested { return .stopping }
             if case .toolCalls(_, let calls, let metadata)? = transcript.entries.last, metadata != nil,
                 transcript.entries.count > turn.start + 1
             {
-                return "Step \(step): running " + calls.map(\.name).joined(separator: " + ") + "…"
+                return .running(step: step, tools: calls.map(\.name))
             }
-            return "Step \(step) of \(limit): generating…"
+            return .generating(step: step, limit: limit)
         }
-        if turn.finalization == .cutOff { return "Stopped at the \(limit)-step limit." }
-        if turn.finish == .stopped { return "Stopped after \(step) step(s)." }
-        if turn.failure != nil { return contextFull ? "Context overflow at step \(step)." : "Failed at step \(step)." }
-        return turn.steps.last?.line ?? ""
+        if turn.finalization == .cutOff { return .cutOff(limit: limit) }
+        if turn.finish == .stopped { return .stopped(steps: step) }
+        if turn.failure != nil { return contextFull ? .overflow(step: step) : .failed(step: step) }
+        return turn.steps.last.map(ConversationStatus.finished)
     }
+
+    public var statusLine: String { status?.line ?? "" }
 
     public var contextEndReserved: Int? {
         guard !isRunning, let turn = turns.last, turn.finish == .cap else { return nil }
@@ -259,5 +261,29 @@ extension ConversationState {
         }.first
         guard let reserved, reserved < turn.policy.maxTokens else { return nil }
         return reserved
+    }
+}
+
+public enum ConversationStatus: Equatable, Sendable {
+    case generating(step: Int, limit: Int)
+    case running(step: Int, tools: [String])
+    case stopping
+    case cutOff(limit: Int)
+    case stopped(steps: Int)
+    case failed(step: Int)
+    case overflow(step: Int)
+    case finished(StepStats)
+
+    public var line: String {
+        switch self {
+        case .generating(let step, let limit): "Step \(step) of \(limit): generating…"
+        case .running(let step, let tools): "Step \(step): running " + tools.joined(separator: " + ") + "…"
+        case .stopping: "Stopping…"
+        case .cutOff(let limit): "Stopped at the \(limit)-step limit."
+        case .stopped(let steps): "Stopped after \(steps) step(s)."
+        case .failed(let step): "Failed at step \(step)."
+        case .overflow(let step): "Context overflow at step \(step)."
+        case .finished(let stats): stats.line
+        }
     }
 }

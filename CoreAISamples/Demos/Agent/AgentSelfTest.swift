@@ -503,6 +503,26 @@ enum AgentSelfTest {
             for await decision in group { all.append(decision) }
             return all
         }
+        let precancelled = await withTaskGroup(of: ToolRunner.Decision.self) { group in
+            group.addTask {
+                withUnsafeCurrentTask { $0?.cancel() }
+                return await runner.decision(for: "precancelled")
+            }
+            return await group.next() ?? .run(finalize: false)
+        }
+        let raced = await withTaskGroup(of: ToolRunner.Decision.self) { group in
+            group.addTask { await runner.decision(for: "raced") }
+            await waitFor(1)
+            runner.resolve("raced", .run(finalize: false))
+            group.cancelAll()
+            var all: [ToolRunner.Decision] = []
+            for await decision in group { all.append(decision) }
+            return all
+        }
+        check(
+            "tools/permissionHandshakeCancellation",
+            precancelled == .cancelled && raced.count == 1 && runner.waitingCount == 0,
+            "precancelled=\(precancelled) raced=\(raced) waiting=\(runner.waitingCount)")
         check(
             "tools/permissionHandshake",
             early == .refuse("no") && late == .run(finalize: true) && cancelled == .cancelled
