@@ -4355,6 +4355,586 @@
         }
       },
       "shouldTranslate" : false
+    },
+    "Compare product specifications from official descriptions" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "公式の商品説明からスペックを比較"
+          }
+        }
+      }
+    },
+    "Product notes" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "スペックメモ"
+          }
+        }
+      }
+    },
+    "Compare product descriptions" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "商品説明を比較"
+          }
+        }
+      }
+    },
+    "Bring the specs together. Keep the source within reach." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "スペックを並べて、根拠の原文をすぐ確認。"
+          }
+        }
+      }
+    },
+    "%lld / %lld cards" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld / %lld 枚"
+          }
+        }
+      }
+    },
+    "Preview data — no model has run" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "プレビュー用データ（モデルは未実行）"
+          }
+        }
+      }
+    },
+    "Choose a GLiNER model folder to begin" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GLiNERのモデルフォルダを選択してください"
+          }
+        }
+      }
+    },
+    "Model folder" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルフォルダ"
+          }
+        }
+      }
+    },
+    "Description source" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "商品説明の入力方法"
+          }
+        }
+      }
+    },
+    "Official page" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "公式ページ"
+          }
+        }
+      }
+    },
+    "Paste description" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "説明を貼り付け"
+          }
+        }
+      }
+    },
+    "Apple or Microsoft product URL" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AppleまたはMicrosoftの商品ページURL"
+          }
+        }
+      }
+    },
+    "Try a page:" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ページの例："
+          }
+        }
+      }
+    },
+    "MacBook Air" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MacBook Air"
+          }
+        }
+      }
+    },
+    "Surface Laptop 5" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Surface Laptop 5"
+          }
+        }
+      }
+    },
+    "Product name (optional)" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "商品名（任意）"
+          }
+        }
+      }
+    },
+    "Product description" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "商品説明"
+          }
+        }
+      }
+    },
+    "Paste the product description, including any options and conditions." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選択肢や条件を含めて商品説明を貼り付けてください。"
+          }
+        }
+      }
+    },
+    "Create comparison card" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "比較カードを作成"
+          }
+        }
+      }
+    },
+    "Reading the product description…" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "商品説明を取得中…"
+          }
+        }
+      }
+    },
+    "Finding specifications on this device…" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このデバイスでスペックを抽出中…"
+          }
+        }
+      }
+    },
+    "Finishing the current request…" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "現在の処理の終了を待っています…"
+          }
+        }
+      }
+    },
+    "Could not create this card" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カードを作成できませんでした"
+          }
+        }
+      }
+    },
+    "Paste the description instead" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "説明文の貼り付けに切り替える"
+          }
+        }
+      }
+    },
+    "Start with two products" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "まずは2つの商品から"
+          }
+        }
+      }
+    },
+    "Add a page or paste a description. Cards line up by specification so you can compare them." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ページを追加するか、説明を貼り付けてください。同じ項目を揃えたカードで比較できます。"
+          }
+        }
+      }
+    },
+    "Values mentioned on each page" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "各ページに記載された候補"
+          }
+        }
+      }
+    },
+    "A page may list several configurations. Open a value to check its original context." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "複数の構成を含むページがあります。値を開くと前後の条件や原文を確認できます。"
+          }
+        }
+      }
+    },
+    "Read imported text" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "取得した本文を確認"
+          }
+        }
+      }
+    },
+    "Add a product" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "商品を追加"
+          }
+        }
+      }
+    },
+    "Remove product card" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カードを削除"
+          }
+        }
+      }
+    },
+    "Pasted description" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "貼り付けた説明"
+          }
+        }
+      }
+    },
+    "Read source text" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "原文を確認"
+          }
+        }
+      }
+    },
+    "Untitled product" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "名称未設定の商品"
+          }
+        }
+      }
+    },
+    "Product" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "製品"
+          }
+        }
+      }
+    },
+    "Chip / processor" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "チップ・プロセッサー"
+          }
+        }
+      }
+    },
+    "Memory" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "メモリ"
+          }
+        }
+      }
+    },
+    "Display" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "画面"
+          }
+        }
+      }
+    },
+    "Weight" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重量"
+          }
+        }
+      }
+    },
+    "Battery life" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "バッテリー駆動時間"
+          }
+        }
+      }
+    },
+    "Price" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "価格"
+          }
+        }
+      }
+    },
+    "Not found in this text" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この本文からは見つかりませんでした"
+          }
+        }
+      }
+    },
+    "%lld values · check configurations" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "候補 %lld 件・構成を確認"
+          }
+        }
+      }
+    },
+    "Open the original context" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前後の条件と原文を確認"
+          }
+        }
+      }
+    },
+    "Show source for %@" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@の根拠を表示"
+          }
+        }
+      }
+    },
+    "Captured %@" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "取得日時：%@"
+          }
+        }
+      }
+    },
+    "No value was found for this field. The original text is shown below." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この項目の値は抽出されませんでした。以下で原文を確認できます。"
+          }
+        }
+      }
+    },
+    "Full source text" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "原文の全文"
+          }
+        }
+      }
+    },
+    "Source and conditions" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "出典と条件"
+          }
+        }
+      }
+    },
+    "Extraction lab" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "抽出の検証画面"
+          }
+        }
+      }
+    },
+    "Done" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "完了"
+          }
+        }
+      }
+    },
+    "No readable product description was found. Paste the description to continue." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "読み取れる商品説明が見つかりませんでした。説明文を貼り付けてください。"
+          }
+        }
+      }
+    },
+    "Use an HTTPS product page from Apple or Microsoft, or paste a description." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AppleまたはMicrosoftのHTTPS商品ページを指定するか、説明文を貼り付けてください。"
+          }
+        }
+      }
+    },
+    "An extracted value did not match its source text. Please try again." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "抽出結果と原文が一致しませんでした。再度お試しください。"
+          }
+        }
+      }
+    },
+    "This page is too large. Paste the product description instead." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ページのサイズが大きすぎます。商品説明の部分を貼り付けてください。"
+          }
+        }
+      }
+    },
+    "This URL does not contain an HTML or text page. Paste the description instead." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "HTMLやテキスト形式のページではありません。商品説明を貼り付けてください。"
+          }
+        }
+      }
+    },
+    "The previous extraction is finishing. Please try again shortly." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前の抽出処理が終了するまで少し待ってからお試しください。"
+          }
+        }
+      }
+    },
+    "The product extraction configuration could not be loaded." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "商品情報の抽出設定を読み込めませんでした。"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"
