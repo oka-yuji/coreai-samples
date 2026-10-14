@@ -9,7 +9,7 @@ struct ConversationView: View {
     @Environment(DemoNavigator.self) private var navigator
     @Environment(\.locale) private var locale
     @State private var showSettings = false
-    private static let timelineEnd = "timeline-end"
+    @State private var timelinePosition = ScrollPosition(edge: .bottom)
 
     var body: some View {
         VStack(spacing: 0) {
@@ -89,33 +89,27 @@ struct ConversationView: View {
             )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
-            ScrollViewReader { proxy in
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 0) {
-                        VStack(alignment: .leading, spacing: 10) {
-                            ForEach(TimelineItem.merge(host.state.entries, chat.ragTurns)) { item in
-                                switch item {
-                                case .entry(let entry):
-                                    ConversationEntryRow(entry: entry)
-                                case .rag(let turn):
-                                    TurnView(turn: turn, live: chat.isResponding && turn.id == chat.ragTurns.last?.id)
-                                }
-                            }
+            ScrollView {
+                VStack(alignment: .leading, spacing: 10) {
+                    ForEach(TimelineItem.merge(host.state.entries, chat.ragTurns)) { item in
+                        switch item {
+                        case .entry(let entry):
+                            ConversationEntryRow(entry: entry)
+                        case .rag(let turn):
+                            TurnView(turn: turn, live: chat.isResponding && turn.id == chat.ragTurns.last?.id)
                         }
-                        .padding(12)
-                        Color.clear.frame(height: 1).id(Self.timelineEnd)
                     }
                 }
-                .defaultScrollAnchor(.bottom)
-                .onScrollGeometryChange(for: TimelineFit.self) { geometry in
-                    TimelineFit(
-                        height: geometry.containerSize.height,
-                        atBottom: geometry.visibleRect.maxY >= geometry.contentSize.height - 16)
-                } action: { old, new in
-                    if new.height < old.height, old.atBottom {
-                        proxy.scrollTo(Self.timelineEnd, anchor: .bottom)
-                    }
-                }
+                .padding(12)
+            }
+            .scrollPosition($timelinePosition)
+            .defaultScrollAnchor(.bottom)
+            .onScrollGeometryChange(for: TimelineFit.self) { geometry in
+                TimelineFit(
+                    height: geometry.containerSize.height,
+                    atBottom: geometry.visibleRect.maxY >= geometry.contentSize.height - 16)
+            } action: { old, new in
+                if new.height < old.height, old.atBottom { timelinePosition.scrollTo(edge: .bottom) }
             }
         }
     }
