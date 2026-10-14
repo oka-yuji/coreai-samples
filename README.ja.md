@@ -28,7 +28,7 @@ Apple の Core AI と Foundation Models で、オープンなモデルを Mac �
 ```sh
 git clone https://github.com/oka-yuji/coreai-samples.git
 cd coreai-samples
-hf download okayuji/Qwen3.8-27B-coreai-4bit --revision 29eb83f8a51dc5998552ec70bfe21d5be962c319 \
+hf download okayuji/Qwen3.8-27B-coreai-4bit --revision 8e24aebe036eae577d4a3bd019ba728a73358318 \
   --local-dir ./models/qwen3.8-27b-coreai-4bit
 ```
 
@@ -47,8 +47,8 @@ swift build -c release
 
 | バンドル | |
 |---|---|
-| リポジトリと revision | [`okayuji/Qwen3.8-27B-coreai-4bit`](https://huggingface.co/okayuji/Qwen3.8-27B-coreai-4bit) の `29eb83f8a51dc5998552ec70bfe21d5be962c319`(アプリの Catalog が固定している revision。tag は `v1.0.0`) |
-| 大きさ | 12 ファイル、16,852,543,842 バイト(16.85 GB、15.70 GiB)。モデル本体の `main.mlirb` は 16,839,684,298 バイト |
+| リポジトリと revision | [`okayuji/Qwen3.8-27B-coreai-4bit`](https://huggingface.co/okayuji/Qwen3.8-27B-coreai-4bit) の `8e24aebe036eae577d4a3bd019ba728a73358318`(アプリの Catalog が固定している revision。tag は `v1.0.0`) |
+| 大きさ | 12 ファイル、16,852,543,780 バイト(16.85 GB、15.70 GiB)。モデル本体の `main.mlirb` は 16,839,684,298 バイト |
 | 元のモデル | [`Qwen/Qwen3.8-27B`](https://huggingface.co/Qwen/Qwen3.8-27B) の revision `1d4bf0f2ff6012fd82039f2fa52739d0dd7c60c0`。テキストのみ(画像のエンコーダは含まない) |
 | 変換 | Apple の変換器の [pull request #321](https://github.com/apple/coreai-models/pull/321) の commit `36e9350`(1.0.0 のタグには含まれない)。preset `qwen3_5_cfg`(重みは 4 ビット、計算は bfloat16)で、gated delta の状態の更新だけ fp32 で計算する。macOS 向けの動的形状の書き出し |
 | トークナイザ | `tokenizer/tokenizer.json` は元の Qwen3.8-27B のファイルで、変換器が保存し直したものと差し替えた。計測に使った 2,257 件の文字列では、どちらのファイルでも Swift のトークン ID は同じだった |

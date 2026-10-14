@@ -14,7 +14,7 @@ enum Catalog {
     static let models: [CatalogModel] = [
         CatalogModel(
             id: "qwen3-8-27b-4bit", name: "Qwen3.8 27B (4bit)", repo: "okayuji/Qwen3.8-27B-coreai-4bit",
-            revision: "29eb83f8a51dc5998552ec70bfe21d5be962c319", sizeBytes: 16_852_543_842,
+            revision: "8e24aebe036eae577d4a3bd019ba728a73358318", sizeBytes: 16_852_543_780,
             memory: "~32 GiB peak RSS while loading",
             platforms: "macOS 27, Apple silicon")
     ]

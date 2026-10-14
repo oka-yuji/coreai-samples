@@ -28,7 +28,7 @@ Install the [Hugging Face CLI](https://huggingface.co/docs/huggingface_hub/guide
 ```sh
 git clone https://github.com/oka-yuji/coreai-samples.git
 cd coreai-samples
-hf download okayuji/Qwen3.8-27B-coreai-4bit --revision 29eb83f8a51dc5998552ec70bfe21d5be962c319 \
+hf download okayuji/Qwen3.8-27B-coreai-4bit --revision 8e24aebe036eae577d4a3bd019ba728a73358318 \
   --local-dir ./models/qwen3.8-27b-coreai-4bit
 ```
 
@@ -47,8 +47,8 @@ The model thinks before it answers: the thinking prints under `[reasoning]` and 
 
 | The bundle | |
 |---|---|
-| Repository and revision | [`okayuji/Qwen3.8-27B-coreai-4bit`](https://huggingface.co/okayuji/Qwen3.8-27B-coreai-4bit) at `29eb83f8a51dc5998552ec70bfe21d5be962c319`, the revision the app's Catalog pins; its tag is `v1.0.0` |
-| Size | 12 files, 16,852,543,842 bytes (16.85 GB, 15.70 GiB); the model file `main.mlirb` is 16,839,684,298 bytes |
+| Repository and revision | [`okayuji/Qwen3.8-27B-coreai-4bit`](https://huggingface.co/okayuji/Qwen3.8-27B-coreai-4bit) at `8e24aebe036eae577d4a3bd019ba728a73358318`, the revision the app's Catalog pins; its tag is `v1.0.0` |
+| Size | 12 files, 16,852,543,780 bytes (16.85 GB, 15.70 GiB); the model file `main.mlirb` is 16,839,684,298 bytes |
 | Source | [`Qwen/Qwen3.8-27B`](https://huggingface.co/Qwen/Qwen3.8-27B) at revision `1d4bf0f2ff6012fd82039f2fa52739d0dd7c60c0`, text only (the vision encoder is not included) |
 | Conversion | Apple's converter at commit `36e9350` of [pull request #321](https://github.com/apple/coreai-models/pull/321), which is not part of the 1.0.0 tag; preset `qwen3_5_cfg` (4-bit weights, bfloat16 compute) with the gated-delta state update computed in fp32; macOS export with dynamic shapes |
 | Tokenizer | `tokenizer/tokenizer.json` is the original Qwen3.8-27B file, in place of the copy the converter re-saved; on the 2,257 strings used in the measurements, Swift produced the same token IDs with either file |
