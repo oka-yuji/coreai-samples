@@ -102,7 +102,9 @@ enum SelfTest {
             let generated =
                 result.error == nil && ["stopToken", "maxTokens"].contains(result.stopReason) && result.outputTokens > 0
             if !chat.ragEnabled {
-                pass = pass && generated && (result.turn == 1 || (result.cachedTokens ?? 0) > 0)
+                log("[selftest] sessionTurn=\(result.turn) expected=\(index + 1)")
+                let continued = result.turn == index + 1 && (result.turn == 1 || (result.cachedTokens ?? 0) > 0)
+                pass = pass && generated && continued
             } else if (result.sources ?? 0) > 0 {
                 pass = pass && generated && !result.answer.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             } else {

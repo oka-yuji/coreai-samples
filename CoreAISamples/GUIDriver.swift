@@ -390,7 +390,9 @@ final class GUIDriver {
         await step(5, "conversation-work", "Work: research and a note continue the same conversation") {
             let before = lookups()
             let result = await turn(
-                .work, "Search the web for what Apple's MLX framework is and save a two-line note titled MLX summary.")
+                .work,
+                "Use web_search to find what Apple's MLX framework is, then use write_note to save a two-line note titled MLX summary."
+            )
             let calls = host.state.entries.filter { $0.kind == .toolCall }.map(\.title)
             let notes = host.runner.tools.notesWritten.map(\.key)
             return (
@@ -426,6 +428,8 @@ final class GUIDriver {
         await step(8, "conversation-continue", "Continue in Work saves the note in the same conversation") {
             host.continueInWork()
             let done = await wait(seconds: 900) { !host.state.isRunning }
+            previous = host.state.turns.last?.steps.max { $0.step < $1.step } ?? previous
+            previousFirst = host.state.turns.last?.steps.min { $0.step < $1.step } ?? previousFirst
             let notes = host.runner.tools.notesWritten.map(\.key)
             return (
                 done && host.state.turns.last?.mode == .work && !notes.isEmpty,
@@ -457,11 +461,24 @@ final class GUIDriver {
             host.chat.input = ""
             let stopped = host.state.entries.last { $0.kind == .failure && $0.title == "Stopped" }
             let kept = written() || stopped?.detail == .stopped(partial: true)
+            previous = host.state.turns.last?.steps.max { $0.step < $1.step } ?? previous
+            previousFirst = host.state.turns.last?.steps.min { $0.step < $1.step } ?? previousFirst
             return (
                 grew && locked && halted && stopped != nil && kept,
                 String(
                     format: "grew=%@ locked=%@ halted=%@ kept=%@ seconds=%.3f stopped=%@", String(grew),
                     String(locked), String(halted), String(kept), seconds, Self.head(stopped?.text ?? "none", 200))
+            )
+        }
+
+        await step(10, "conversation-after-stop", "After Stop, the same conversation takes the next turn") {
+            let id = host.state.id
+            let before = host.state.turns.count
+            let result = await turn(.chat, "In one sentence, what is Core ML?")
+            let same = host.state.id == id
+            return (
+                result.done && ended(.chat) && same && host.state.turns.count == before + 1,
+                result.reuse + " sameConversation=\(same) turns=\(before)->\(host.state.turns.count)"
             )
         }
     }

@@ -1084,6 +1084,35 @@ enum AgentSelfTest {
         } else {
             check("m4h/defaultInstructionsAndGuard", false, "could not create isolated defaults")
         }
+        let headlessName = "conversation-headless-" + UUID().uuidString
+        if let stored = UserDefaults(suiteName: headlessName) {
+            defer { stored.removePersistentDomain(forName: headlessName) }
+            let values: [String: Any] = [
+                ConversationPreferences.effortKey: "high", ConversationPreferences.maxStepsKey: 3,
+                ConversationPreferences.maxTokensKey: 2_048, ConversationPreferences.pageBudgetKey: 4_000,
+                ConversationPreferences.braveKeyKey: "key", ConversationPreferences.fileOpsKey: true,
+                ConversationPreferences.notesFolderKey: "/tmp/notes", ConversationPreferences.citationGuardKey: false,
+                ConversationPreferences.citeFetchedKey: false,
+            ]
+            for (key, value) in values { stored.set(value, forKey: key) }
+            let headless = ConversationPreferences(defaults: stored)
+            let loaded =
+                headless.maxSteps == 3 && headless.maxTokens == 2_048 && headless.pageBudget == 4_000
+                && headless.braveAPIKey == "key" && headless.fileOperations && headless.notesFolderPath == "/tmp/notes"
+                && !headless.citationGuard && !headless.citeFetched
+            headless.resetForHeadless()
+            headless.effort = .medium
+            let reset =
+                !headless.persists && headless.maxSteps == 8 && headless.maxTokens == nil
+                && headless.pageBudget == 10_000 && headless.braveAPIKey.isEmpty && !headless.fileOperations
+                && headless.notesFolderPath.isEmpty && headless.citationGuard && headless.citeFetched
+            let kept = values.allSatisfy { (stored.object(forKey: $0.key) as? NSObject)?.isEqual($0.value) == true }
+            check(
+                "conversation/headlessDefaults", loaded && reset && kept,
+                "loaded=\(loaded) reset=\(reset) kept=\(kept)")
+        } else {
+            check("conversation/headlessDefaults", false, "could not create isolated defaults")
+        }
         func toolRunner(_ directory: URL, cassette: ToolCassette? = nil, guarding: Bool = false) -> ToolRunner {
             let preferences = ConversationPreferences(persists: false)
             preferences.notesFolderPath = directory.path(percentEncoded: false)
@@ -1259,6 +1288,43 @@ enum AgentSelfTest {
                     && repairing.repairFetches == 3 && fourHits == 3 && repairing.ledger.count == 3
                     && repairing.fetchAttempts.count == 4 && repairing.fetchAttempts.count { $0.ok } == 3,
                 "\(results) reserved=\(repairing.repairFetches) hits=\(fourHits) attempts=\(repairing.fetchAttempts)")
+
+            let settling = toolRunner(
+                folder, cassette: try ToolCassette(file: four, mode: .replay, replaysLatency: false))
+            _ = await settling.execute(fetchCall("https://example.com/p1"))
+            let citing = CitationGuard(tools: settling)
+            func answer(_ page: Int) -> TurnEnd {
+                TurnEnd(
+                    kind: .ended(stopReason: "stopToken"), outcome: TurnEnd.answered,
+                    answer: "See https://example.com/p\(page)")
+            }
+            func asksRepair(_ end: TurnEnd, step: Int = 1) -> Bool {
+                if case .repair = citing.settle(end, step: step, maxSteps: 8, stopped: false, usage: nil) {
+                    true
+                } else {
+                    false
+                }
+            }
+            citing.begin(active: true)
+            let verified = !asksRepair(answer(1)) && citing.outcome == "verified"
+            citing.begin(active: true)
+            let asked = asksRepair(answer(2)) && citing.repairPending
+            _ = await settling.execute(fetchCall("https://example.com/p2"))
+            let repaired =
+                asked && !asksRepair(answer(2), step: 2) && !citing.repairPending && citing.outcome == "repaired"
+            citing.begin(active: true)
+            let reviolated =
+                asksRepair(answer(3)) && !asksRepair(answer(3), step: 2) && citing.outcome == "held"
+                && citing.reason == "re-violation"
+            citing.begin(active: true)
+            let interrupted =
+                asksRepair(answer(4)) && !asksRepair(TurnEnd(kind: .stopped, outcome: "stopped", answer: ""), step: 2)
+                && citing.outcome == "held" && citing.reason == "repair-stopped"
+                && citing.guardedAnswer == answer(4).answer
+            check(
+                "m4g/guardSettlesRepairTurns", verified && repaired && reviolated && interrupted,
+                "verified=\(verified) repaired=\(repaired) reviolated=\(reviolated) interrupted=\(interrupted)"
+                    + " outcome=\(citing.outcome ?? "-") reason=\(citing.reason)")
 
             let mixedTape = folder.appending(path: "mixed.jsonl")
             try lines([
