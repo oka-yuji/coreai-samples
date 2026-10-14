@@ -88,20 +88,32 @@ struct ConversationView: View {
             )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 10) {
-                    ForEach(TimelineItem.merge(host.state.entries, chat.ragTurns)) { item in
-                        switch item {
-                        case .entry(let entry):
-                            ConversationEntryRow(entry: entry)
-                        case .rag(let turn):
-                            TurnView(turn: turn, live: chat.isResponding && turn.id == chat.ragTurns.last?.id)
+            let items = TimelineItem.merge(host.state.entries, chat.ragTurns)
+            ScrollViewReader { proxy in
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 10) {
+                        ForEach(items) { item in
+                            switch item {
+                            case .entry(let entry):
+                                ConversationEntryRow(entry: entry)
+                            case .rag(let turn):
+                                TurnView(turn: turn, live: chat.isResponding && turn.id == chat.ragTurns.last?.id)
+                            }
                         }
                     }
+                    .padding(12)
                 }
-                .padding(12)
+                .defaultScrollAnchor(.bottom)
+                .onScrollGeometryChange(for: TimelineFit.self) { geometry in
+                    TimelineFit(
+                        height: geometry.containerSize.height,
+                        atBottom: geometry.visibleRect.maxY >= geometry.contentSize.height - 16)
+                } action: { old, new in
+                    if new.height < old.height, old.atBottom, let last = items.last?.id {
+                        proxy.scrollTo(last, anchor: .bottom)
+                    }
+                }
             }
-            .defaultScrollAnchor(.bottom)
         }
     }
 
@@ -163,6 +175,11 @@ struct ConversationView: View {
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(ConversationSnapshot(host.state).markdown(), forType: .string)
     }
+}
+
+private struct TimelineFit: Equatable {
+    var height: CGFloat
+    var atBottom: Bool
 }
 
 enum TimelineItem: Identifiable {
