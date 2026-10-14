@@ -4,7 +4,7 @@ import Testing
 
 private let fixturesDirectory = URL(
     filePath: ProcessInfo.processInfo.environment["GLINER_FIXTURES_DIR"]
-        ?? NSHomeDirectory() + "/Desktop/SelfApps/CoreLLM/models/coreai/gliner")
+        ?? NSHomeDirectory() + "/Library/Caches/coreai-samples/reference/models/coreai/gliner")
 private let stageOutputsPath = "fixtures/g5_stage_outputs/stage_outputs_fp32.json"
 private let swiftOutputPath = "work/g4_swift_out_fp32.json"
 private let hasFixtures = [stageOutputsPath, swiftOutputPath].allSatisfy {

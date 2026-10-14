@@ -1,0 +1,136 @@
+import argparse
+import os
+from pathlib import Path
+import subprocess
+import sys
+
+from .adapters.pinned import load_contract
+from .recipe import ENVIRONMENT
+from .storage import PipelineError, directory_lock, read_json, write_json
+
+
+ROOT = Path(__file__).resolve().parents[2]
+TOOL = Path(__file__).resolve().parent
+UPSTREAM = "https://github.com/apple/coreai-models.git"
+
+
+def default_lock():
+    override = os.environ.get("COREAI_HEAVY_JOB_LOCK")
+    return Path(override).expanduser() if override else Path.home() / "Library/Caches/coreai-samples/heavy-job"
+
+
+def recipe_path(name):
+    path = TOOL / "recipes" / name / "recipe.json"
+    if Path(name).name != name or not path.is_file():
+        raise PipelineError("Select a recipe directory from Tools/Conversion/recipes")
+    return path
+
+
+def default_snapshot(contract):
+    home = Path(os.environ.get("HF_HOME", Path.home() / ".cache/huggingface"))
+    hub = Path(os.environ.get("HF_HUB_CACHE", home / "hub"))
+    return hub / ("models--" + contract["model_id"].replace("/", "--")) / "snapshots" / contract["revision"]
+
+
+def command(*args, **kwargs):
+    environment = {key: os.environ[key] for key in ENVIRONMENT if key in os.environ}
+    environment.update({"PYTHONNOUSERSITE": "1", "PYTHONDONTWRITEBYTECODE": "1"})
+    environment.update(kwargs.pop("env", {}))
+    kwargs["env"] = environment
+    return subprocess.run([str(arg) for arg in args], check=True, **kwargs)
+
+
+def check_checkout(path, revision):
+    if path.is_symlink():
+        raise PipelineError("Use a dedicated checkout, not a symlink")
+    origin = command("git", "-C", path, "remote", "get-url", "origin", capture_output=True, text=True).stdout.strip()
+    head = command("git", "-C", path, "rev-parse", "HEAD", capture_output=True, text=True).stdout.strip()
+    dirty = command("git", "-C", path, "status", "--porcelain", "--untracked-files=no",
+                    capture_output=True, text=True).stdout.strip()
+    if origin != UPSTREAM or head != revision or dirty:
+        raise PipelineError("Existing exporter must be a clean checkout of the recipe's public revision")
+
+
+def check_workspace_paths(workspace, upstream):
+    for path in (upstream, upstream / ".venv", upstream / ".build"):
+        if path.is_symlink() or not path.resolve().is_relative_to(workspace.resolve()):
+            raise PipelineError("Exporter, Python and build directories must belong to this workspace")
+
+
+def setup(workspace, recipe, snapshot, lock=None):
+    contract_path = recipe.parent / "model.json"
+    contract = read_json(contract_path)
+    snapshot = (snapshot or default_snapshot(contract)).expanduser().resolve()
+    if not snapshot.is_dir():
+        raise PipelineError(
+            f"Download the pinned input first: hf download {contract['model_id']} --revision {contract['revision']}"
+        )
+    load_contract(contract_path, snapshot)
+    upstream = workspace / "upstream/coreai-models"
+    check_workspace_paths(workspace, upstream)
+    with directory_lock(workspace / "setup.lock", {"operation": "setup"}), \
+            directory_lock(lock or default_lock(), {"operation": "conversion-setup"}):
+        if not upstream.exists():
+            upstream.parent.mkdir(parents=True, exist_ok=True)
+            command("git", "clone", "--no-checkout", "--", UPSTREAM, upstream)
+            command("git", "-C", upstream, "checkout", "--detach", contract["upstream_revision"])
+        check_checkout(upstream, contract["upstream_revision"])
+        command("uv", "sync", "--project", upstream, "--frozen", "--no-dev", "--package", "coreai-models",
+                "--python", "3.11", env={"UV_PROJECT_ENVIRONMENT": str(upstream / ".venv")})
+        command("swift", "build", "--package-path", upstream, "-c", "release", "--product", "llm-runner",
+                "--disable-automatic-resolution")
+        check_checkout(upstream, contract["upstream_revision"])
+        python = upstream / ".venv/bin/python"
+        runner = upstream / ".build/release/llm-runner"
+        if not python.is_file() or not runner.is_file():
+            raise PipelineError("Setup did not produce the Python environment and Swift runner")
+        bindings = workspace / f"{recipe.parent.name}.paths.json"
+        write_json(bindings, {"upstream": str(upstream), "snapshot": str(snapshot)})
+        print(f"Local bindings: {bindings}")
+
+
+def pipeline_command(action, recipe, workspace, lock, refresh):
+    bindings = workspace / f"{recipe.parent.name}.paths.json"
+    if not bindings.is_file():
+        raise PipelineError("Run setup for this workspace and recipe first")
+    result = [sys.executable, "-m", "Tools.Conversion", action, str(recipe), "--bindings", str(bindings)]
+    if action == "run":
+        result += ["--work-dir", str(workspace / "work" / recipe.parent.name), "--lock-dir", str(lock)]
+        if refresh:
+            result.append("--refresh")
+    elif refresh:
+        raise PipelineError("--refresh is only available for run")
+    return result
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Prepare and use the maintainer's local conversion workspace.")
+    parser.add_argument("action", choices=("setup", "plan", "run"))
+    parser.add_argument("--recipe", default="qwen3_06b")
+    parser.add_argument("--workspace", type=Path, default=ROOT / ".local/conversion")
+    parser.add_argument("--snapshot", type=Path)
+    parser.add_argument("--lock-dir", type=Path, default=default_lock())
+    parser.add_argument("--refresh", action="store_true")
+    args = parser.parse_args()
+    try:
+        recipe = recipe_path(args.recipe)
+        workspace = args.workspace.expanduser().resolve()
+        if args.action == "setup":
+            if args.refresh:
+                raise PipelineError("--refresh is only available for run")
+            setup(workspace, recipe, args.snapshot, args.lock_dir.expanduser().absolute())
+            return 0
+        if args.snapshot:
+            raise PipelineError("--snapshot belongs to setup")
+        executable = pipeline_command(args.action, recipe, workspace, args.lock_dir.expanduser().absolute(), args.refresh)
+        os.chdir(ROOT)
+        os.execv(sys.executable, executable)
+    except (PipelineError, OSError, ValueError, subprocess.CalledProcessError) as error:
+        print(f"Conversion workspace error: {error}", file=sys.stderr)
+        return 1
+    except KeyboardInterrupt:
+        return 130
+
+
+if __name__ == "__main__":
+    sys.exit(main())

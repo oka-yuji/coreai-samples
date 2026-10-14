@@ -1,0 +1,5 @@
+[
+  {"id": "english", "text": "The capital of France is Paris.", "generate": 4},
+  {"id": "japanese", "text": "日本の首都は東京です。", "generate": 4},
+  {"id": "chat_stop", "messages": [{"role": "user", "content": "Reply with only the number: 1+1=?"}], "generate": 8}
+]

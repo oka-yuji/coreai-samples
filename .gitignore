@@ -8,6 +8,11 @@ models/
 *.aimodelc
 *.safetensors
 
+.local/
+.venv/
+__pycache__/
+*.pyc
+
 # Xcode
 DerivedData/
 xcuserdata/
