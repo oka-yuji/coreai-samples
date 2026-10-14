@@ -9,6 +9,7 @@ struct ConversationView: View {
     @Environment(DemoNavigator.self) private var navigator
     @Environment(\.locale) private var locale
     @State private var showSettings = false
+    private static let timelineEnd = "timeline-end"
 
     var body: some View {
         VStack(spacing: 0) {
@@ -88,20 +89,22 @@ struct ConversationView: View {
             )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
-            let items = TimelineItem.merge(host.state.entries, chat.ragTurns)
             ScrollViewReader { proxy in
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 10) {
-                        ForEach(items) { item in
-                            switch item {
-                            case .entry(let entry):
-                                ConversationEntryRow(entry: entry)
-                            case .rag(let turn):
-                                TurnView(turn: turn, live: chat.isResponding && turn.id == chat.ragTurns.last?.id)
+                    VStack(alignment: .leading, spacing: 0) {
+                        VStack(alignment: .leading, spacing: 10) {
+                            ForEach(TimelineItem.merge(host.state.entries, chat.ragTurns)) { item in
+                                switch item {
+                                case .entry(let entry):
+                                    ConversationEntryRow(entry: entry)
+                                case .rag(let turn):
+                                    TurnView(turn: turn, live: chat.isResponding && turn.id == chat.ragTurns.last?.id)
+                                }
                             }
                         }
+                        .padding(12)
+                        Color.clear.frame(height: 1).id(Self.timelineEnd)
                     }
-                    .padding(12)
                 }
                 .defaultScrollAnchor(.bottom)
                 .onScrollGeometryChange(for: TimelineFit.self) { geometry in
@@ -109,8 +112,8 @@ struct ConversationView: View {
                         height: geometry.containerSize.height,
                         atBottom: geometry.visibleRect.maxY >= geometry.contentSize.height - 16)
                 } action: { old, new in
-                    if new.height < old.height, old.atBottom, let last = items.last?.id {
-                        proxy.scrollTo(last, anchor: .bottom)
+                    if new.height < old.height, old.atBottom {
+                        proxy.scrollTo(Self.timelineEnd, anchor: .bottom)
                     }
                 }
             }
@@ -161,7 +164,12 @@ struct ConversationView: View {
             case .running(let step, let tools): Text("Step \(step): running \(tools.joined(separator: " + "))…")
             case .stopping: Text("Stopping…")
             case .cutOff(let limit): Text("Stopped at the \(limit)-step limit.")
-            case .stopped(let steps): Text("Stopped after \(steps) step(s).")
+            case .stopped(let steps):
+                if host.state.turns.last?.mode == .chat, let stopped = host.runner.session.lastGeneration {
+                    RuntimeMessageText(stopped.statusLine)
+                } else {
+                    Text("Stopped after \(steps) step(s).")
+                }
             case .failed(let step): Text("Failed at step \(step).")
             case .overflow(let step): Text("Context overflow at step \(step).")
             case .finished(let stats): RuntimeMessageText(stats.line)

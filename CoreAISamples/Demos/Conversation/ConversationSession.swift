@@ -249,10 +249,8 @@ final class ConversationSession {
         let current = completed < steps.count ? steps[completed].generated : transcript.count..<transcript.count
         let partial = Self.responseText(transcript[min(base, transcript.count)...])
         if stopped {
-            if completed < steps.count, !steps[completed].generated.isEmpty {
-                let stats = finishStep(
-                    transcript, steps[completed].generated, stopped: !limitReached, logs: limitReached)
-                send(.stepFinished(run: run, stats))
+            if limitReached, completed < steps.count, !steps[completed].generated.isEmpty {
+                send(.stepFinished(run: run, finishStep(transcript, steps[completed].generated)))
             }
             return TurnEnd(kind: .stopped, outcome: limitReached ? "step-limit" : "stopped", answer: partial)
         }
@@ -282,8 +280,7 @@ final class ConversationSession {
     }
 
     private func finishStep(
-        _ transcript: [Transcript.Entry], _ range: Range<Int>, citations: CitationCheck? = nil, stopped: Bool = false,
-        logs: Bool = true
+        _ transcript: [Transcript.Entry], _ range: Range<Int>, citations: CitationCheck? = nil
     ) -> StepStats {
         let usage = session?.usage ?? stepMark
         let input = (usage?.input.totalTokenCount ?? 0) - (stepMark?.input.totalTokenCount ?? 0)
@@ -293,8 +290,7 @@ final class ConversationSession {
         let entries = transcript[range]
         let metadata = Self.metadata(entries)
         let stopReason = (try? metadata["stopReason"]?.value(String.self)) ?? "unknown"
-        let finish =
-            stopped ? "stopped" : stopReason == "stopToken" ? "eos" : stopReason == "maxTokens" ? "cap" : stopReason
+        let finish = stopReason == "stopToken" ? "eos" : stopReason == "maxTokens" ? "cap" : stopReason
         let shared = try? metadata["sharedTokens"]?.value(Int.self)
         let truncated = (try? metadata["truncatedToolOutputs"]?.value(Int.self)) ?? 0
         let prefill = try? metadata["prefillSeconds"]?.value(Double.self)
@@ -328,7 +324,7 @@ final class ConversationSession {
         if finish == "cap" { capSteps += 1 }
         lastFinish = finish
 
-        if mode == .work, logs {
+        if mode == .work {
             var record = MetricsLog.agent("message", model: modelName)
             record.agentSession = id
             record.agentTurn = turnIndex
