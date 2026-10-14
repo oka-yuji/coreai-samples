@@ -41,6 +41,12 @@ targets:
       - package: CoreAISamplesKit
         product: FeatureStore
       - package: CoreAISamplesKit
+        product: ProductCore
+      - package: CoreAISamplesKit
+        product: ProductRuntime
+      - package: CoreAISamplesKit
+        product: ProductFeature
+      - package: CoreAISamplesKit
         product: ExtractFeature
       - package: CoreAISamplesKit
         product: GLiNERCore
@@ -77,6 +83,10 @@ targets:
     platform: iOS
     deploymentTarget: "27.0"
     sources:
+      - path: CoreAISamples/Demos/Products
+      - path: CoreAISamples/Localization/DemoLanguage.swift
+      - path: CoreAISamples/Resources/Localizable.xcstrings
+      - path: CoreAISamples/Resources/product-preview.json
       - path: CoreAISamples/iOS
       - path: CoreAISamples/LaunchArguments.swift
       - path: CoreAISamples/Demos/ModelManager/ModelStorage.swift
@@ -89,6 +99,12 @@ targets:
     dependencies:
       - package: CoreAISamplesKit
         product: FeatureStore
+      - package: CoreAISamplesKit
+        product: ProductCore
+      - package: CoreAISamplesKit
+        product: ProductRuntime
+      - package: CoreAISamplesKit
+        product: ProductFeature
       - package: CoreAISamplesKit
         product: ExtractFeature
       - package: CoreAISamplesKit
