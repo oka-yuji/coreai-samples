@@ -1,0 +1,17 @@
+[
+  {
+    "id": "ja_food",
+    "text": "トマトと白いチーズが並んでいる写真",
+    "expected": "05-caprese.png"
+  },
+  {
+    "id": "ja_eggs",
+    "text": "卵が入っている冷蔵庫",
+    "expected": "03-omelette.png"
+  },
+  {
+    "id": "en_food",
+    "text": "Tomatoes and white cheese",
+    "expected": "05-caprese.png"
+  }
+]
