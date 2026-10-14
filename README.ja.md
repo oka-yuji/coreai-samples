@@ -19,7 +19,7 @@ Apple の Core AI と Foundation Models で、オープンなモデルを Mac �
 | バンドル | 使う画面・ツール | ダウンロード | 説明 |
 |---|---|---|---|
 | Qwen3.8 27B、4 ビット、テキストのみ | Chat、Agent、`coreai-chat` | [Hugging Face](https://huggingface.co/okayuji/Qwen3.8-27B-coreai-4bit) | 次の節のクイックスタート |
-| Clef-Flash 9B、テキストのみ、uint4 のバックボーンと fp16 のヘッド | Recipes、Decide | [Hugging Face](https://huggingface.co/okayuji/clef-flash-9b-coreai-decide) | [English](docs/clef-flash.md) · [日本語](docs/clef-flash.ja.md) |
+| Clef-Flash 9B、テキストのみ、uint4 のバックボーンと fp16 のヘッド | Recipes、Decide | [Hugging Face](https://huggingface.co/okayuji/clef-flash-9b-coreai-decide)(アクセス権が必要) | [English](docs/clef-flash.md) · [日本語](docs/clef-flash.ja.md) |
 
 ## クイックスタート: Qwen3.8 27B で Chat と Agent
 
@@ -109,7 +109,7 @@ Agent の既定の設定(cite-fetched の指示、ガード off)は、このバ�
 
 冷蔵庫にあるもので、このレシピは作れるか。**Recipes** は冷蔵庫の写真を読み、提案された食材を利用者が確認してから、その在庫をレシピの URL と照らし合わせます。写真には Apple の端末上のモデルを、レシピの必要な食材と道具には **Core AI で動く Clef-Flash 9B** を、数量には Swift のコードを使います。**Decide** は同じ Clef のバンドルで、文書を編集できる質問で採点します。どちらもモデルの校正していない確率を表示します。
 
-[Hugging Face CLI](https://huggingface.co/docs/huggingface_hub/guides/cli) を入れて、アプリと判定のバンドルを取得します。
+**別に配布している Clef のバンドルへのアクセス権が必要です。** 下の `hf download` は、そのリポジトリへのアクセス権がある Hugging Face のアカウントでだけ動きます。[Hugging Face CLI](https://huggingface.co/docs/huggingface_hub/guides/cli) を入れて、アプリと判定のバンドルを取得します。
 
 ```sh
 git clone https://github.com/oka-yuji/coreai-samples.git
@@ -373,7 +373,7 @@ COREAI_TEST_BUNDLES=/path/to/bundle COREAI_TEST_RELOAD_INTERVAL=0 COREAI_TEST_RE
 - 配る先のバンドルとランタイムで同時のセッションの確認が通らない限り、1 つのモデルで同時に使うセッションは 1 つにします。
 - 取り消しを確かめるのは、プロンプトを読む前と、生成したトークンの間です。長いプロンプトを読んでいる途中では確かめません。
 - デコードは公式の `sequential` エンジンと同じく、1 トークンずつの同期です。公式の既定のエンジンは処理をパイプラインにして、特に小さいモデルで速くデコードします(`coreai-verify speed` で 3 つを並べて比べられます)。
-- 配布している Clef のバンドルは Decide と Recipes で使います。Chat と Agent には別の言語生成のバンドルが要ります。Qwen3.5 と Qwen3.8 の計測に使った変換器の版は[自分でバンドルを変換する](#自分でバンドルを変換する)にリンクがあり、1.0.0 のタグに含まれない pull request のものです。
+- 別に配布している Clef のバンドル(取得にはアクセス権が必要)は Decide と Recipes で使います。Chat と Agent には別の言語生成のバンドルが要ります。Qwen3.5 と Qwen3.8 の計測に使った変換器の版は[自分でバンドルを変換する](#自分でバンドルを変換する)にリンクがあり、1.0.0 のタグに含まれない pull request のものです。
 - Qwen3.8 27B の変換は、測る前に置いた一致の基準を満たしませんでした([検証](#qwen38-27b-のバンドル))。わずかな割合の位置で、Core AI の確率が PyTorch の同じ重みと違い、特に英語の本文と、チャットに描画したツールの結果や資料で違います。
 - Agent の回答の下の **Citations** の注記は、引用した URL が課題の検索結果か取得したページに出ていれば「取得した」と数えます。そのため、ページを 1 つも開かなかった課題で `4/4 cited URLs were retrieved in this task` と出たことがあります。引用ガードは、代わりに `fetch_page` が渡したページと照合します。
 - 引用ガード(既定は off)が確かめるのは、引用したページをその課題で取得したことで、回答がページの内容と合っていることではありません。取得に失敗した URL は件数だけで示します。URL の直後に空白なしで続く文字(日本語の文など)は、その URL の一部として読みます。

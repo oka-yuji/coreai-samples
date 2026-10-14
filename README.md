@@ -19,7 +19,7 @@ Requirements: an Apple silicon Mac with macOS 27 and Xcode 27 with the Metal Too
 | Bundle | Used by | Download | Guide |
 |---|---|---|---|
 | Qwen3.8 27B, 4-bit, text only | Chat, Agent, `coreai-chat` | [Hugging Face](https://huggingface.co/okayuji/Qwen3.8-27B-coreai-4bit) | [Quick start](#quick-start-chat-and-agent-with-qwen38-27b) below |
-| Clef-Flash 9B, text only, uint4 backbone and fp16 head | Recipes, Decide | [Hugging Face](https://huggingface.co/okayuji/clef-flash-9b-coreai-decide) | [English](docs/clef-flash.md) · [日本語](docs/clef-flash.ja.md) |
+| Clef-Flash 9B, text only, uint4 backbone and fp16 head | Recipes, Decide | [Hugging Face](https://huggingface.co/okayuji/clef-flash-9b-coreai-decide) (requires access) | [English](docs/clef-flash.md) · [日本語](docs/clef-flash.ja.md) |
 
 ## Quick start: Chat and Agent with Qwen3.8 27B
 
@@ -109,7 +109,7 @@ The default Agent settings (cite-fetched instructions, guard off) have not been 
 
 Can you make a recipe with what is in your fridge? **Recipes** reads a fridge photo, lets you check the proposed ingredients, and compares your inventory with a recipe URL. It uses Apple's on-device model for the photo, **Clef-Flash 9B through Core AI** for recipe requirements and equipment, and Swift code for quantities. **Decide** uses the same Clef bundle to score a document against editable questions. Both expose the model's uncalibrated probabilities.
 
-Install the [Hugging Face CLI](https://huggingface.co/docs/huggingface_hub/guides/cli), then get the app and decision bundle:
+**Requires access to the separately distributed Clef bundle.** The `hf download` line below works only with a Hugging Face account that has access to that repository. Install the [Hugging Face CLI](https://huggingface.co/docs/huggingface_hub/guides/cli), then get the app and decision bundle:
 
 ```sh
 git clone https://github.com/oka-yuji/coreai-samples.git
@@ -373,7 +373,7 @@ The defaults are ten completed reads and a process-footprint trigger of 18,000,0
 - Use one active session per model unless the simultaneous-session checks pass for the deployed bundle and runtime.
 - Cancellation is checked before the prompt is read and between generated tokens, not while a long prompt is being read.
 - Decoding is synchronous, one token at a time, like the official `sequential` engine; the official default engine pipelines the work and decodes faster, most of all on small models (`coreai-verify speed` runs the three side by side).
-- The distributed Clef bundle works with Decide and Recipes. Chat and Agent require separate language-generation bundles. The converter revision used for the Qwen3.5 and Qwen3.8 measurements is linked in [Convert your own bundle](#convert-your-own-bundle); it comes from a pull request that is not part of the 1.0.0 tag.
+- The separately distributed Clef bundle (downloading it requires access) works with Decide and Recipes. Chat and Agent require separate language-generation bundles. The converter revision used for the Qwen3.5 and Qwen3.8 measurements is linked in [Convert your own bundle](#convert-your-own-bundle); it comes from a pull request that is not part of the 1.0.0 tag.
 - The Qwen3.8 27B conversion did not meet the agreement criteria fixed before it was measured ([Verification](#qwen38-27b-bundle)): at a small share of positions, Core AI's probabilities differ from the same weights in PyTorch, most of all in English prose and in chat-rendered tool results and sources.
 - Under an Agent answer, the **Citations** note counts a cited URL as retrieved when it appeared in the task's search results or in a fetched page, so `4/4 cited URLs were retrieved in this task` was shown for a task that opened no page. The citation guard checks against the pages `fetch_page` delivered instead.
 - The citation guard, off by default, checks that the cited pages were fetched in the task, not that the answer agrees with them. URLs whose fetch failed are reported only as a count. Characters that follow a URL without a space, such as Japanese text, are read as part of that URL.
