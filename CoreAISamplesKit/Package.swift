@@ -13,6 +13,9 @@ let package = Package(
         .iOS("27.0"),
     ],
     products: [
+        .library(name: "EmbeddingCore", targets: ["EmbeddingCore"]),
+        .library(name: "EmbeddingRuntime", targets: ["EmbeddingRuntime"]),
+        .executable(name: "embedding-verify", targets: ["embedding-verify"]),
         .library(name: "CoreAIBackend", targets: ["CoreAIBackend"]),
         .library(name: "ProductFeature", targets: ["ProductFeature"]),
         .library(name: "ProductCore", targets: ["ProductCore"]),
@@ -34,6 +37,21 @@ let package = Package(
         .package(url: "https://github.com/huggingface/swift-jinja.git", from: "2.5.1"),
     ],
     targets: [
+        .target(name: "EmbeddingCore", swiftSettings: approachableConcurrency),
+        .target(
+            name: "EmbeddingRuntime",
+            dependencies: [
+                "EmbeddingCore", .product(name: "Hub", package: "swift-transformers"),
+                .product(name: "Tokenizers", package: "swift-transformers"),
+            ], swiftSettings: approachableConcurrency),
+        .executableTarget(
+            name: "embedding-verify", dependencies: ["EmbeddingCore", "EmbeddingRuntime"],
+            swiftSettings: approachableConcurrency),
+        .testTarget(
+            name: "EmbeddingCoreTests", dependencies: ["EmbeddingCore"], swiftSettings: approachableConcurrency),
+        .testTarget(
+            name: "EmbeddingRuntimeTests", dependencies: ["EmbeddingCore", "EmbeddingRuntime"],
+            resources: [.copy("Fixtures")], swiftSettings: approachableConcurrency),
         .target(
             name: "CoreAIBackend",
             dependencies: [
