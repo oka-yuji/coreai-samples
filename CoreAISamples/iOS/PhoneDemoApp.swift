@@ -2,6 +2,7 @@
     import ExtractFeature
     import FeatureStore
     import Foundation
+    import ProductFeature
     import SwiftUI
     import UIKit
 
@@ -11,6 +12,9 @@
 
         private let assetFolders: [URL]
         @State private var extract: Store<ExtractFeature>
+        @State private var products = ProductAssembly.makeStore()
+        @State private var showingExtractionLab = false
+        @AppStorage(DemoLanguage.preferenceKey) private var languageCode = DemoLanguage.initialCode
 
         init() {
             let documents = URL.documentsDirectory
@@ -36,7 +40,17 @@
                 if LaunchArguments.value("--extract-eval") != nil {
                     PhoneEvalView()
                 } else {
-                    PhoneExtractView(store: extract, assetFolders: assetFolders, computeUnits: computeUnits)
+                    NavigationStack {
+                        ProductComparisonView(store: products, assetFolders: assetFolders)
+                            .toolbar {
+                                DemoLanguagePicker(code: $languageCode)
+                                Button("Extraction lab") { showingExtractionLab = true }
+                            }
+                            .sheet(isPresented: $showingExtractionLab) {
+                                PhoneExtractView(store: extract, assetFolders: assetFolders, computeUnits: computeUnits)
+                            }
+                    }
+                    .environment(\.locale, (DemoLanguage(rawValue: languageCode) ?? .english).locale)
                 }
             }
         }
