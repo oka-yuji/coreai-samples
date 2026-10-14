@@ -89,10 +89,10 @@ $APP --selftest --model /path/to/bundle --prompts-file prompts.txt [--max-tokens
 ## Screen check
 
 ```bash
-$APP --gui-e2e /path/to/output --model /path/to/bundle [--clear-prepared] [--context-limit 1024] [--max-tokens N]
+$APP --gui-e2e /path/to/output --model /path/to/bundle [--context-limit 1024] [--max-tokens N] [--clear-prepared]
 ```
 
-The app opens the bundle in Models, loads it, chats one turn, starts a long reply, stops it and starts a new chat, saving a screenshot after each step with `results.json`, `driver.log` and the metrics rows of the run. `--clear-prepared` removes the prepared copy first, so the load shows the preparing state. With `--context-limit`, it then keeps chatting until the context window is full.
+The app opens the bundle in Models, loads it, chats one turn, starts a long reply, stops it and starts a new chat, saving a screenshot after each step with `results.json`, `driver.log` and the metrics rows of the run. `--clear-prepared` removes the prepared copy first, so the load shows the preparing state. With `--context-limit`, it then keeps chatting until the context window is full. Put options without a value, such as `--clear-prepared` and `--agent`, after the options that take one: on October 14, 2026, `--clear-prepared` placed before `--max-tokens 2048` left the app without a window and the check never started, while the same options with `--clear-prepared` last ran to the end.
 
 ## Metrics
 
