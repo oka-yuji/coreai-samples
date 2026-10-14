@@ -4328,13 +4328,13 @@
         }
       }
     },
-    "~21 GiB while loading" : {
+    "~32 GiB peak RSS while loading" : {
       "extractionState" : "manual",
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "約21 GiB（読み込み時）"
+            "value" : "約32 GiB（読み込み時のピークRSS）"
           }
         }
       }

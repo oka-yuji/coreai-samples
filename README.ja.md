@@ -28,7 +28,7 @@ Apple の Core AI と Foundation Models で、オープンなモデルを Mac �
 ```sh
 git clone https://github.com/oka-yuji/coreai-samples.git
 cd coreai-samples
-hf download okayuji/Qwen3.8-27B-coreai-4bit --revision c034c9857455a48cea715fec19eb49b3227b2458 \
+hf download okayuji/Qwen3.8-27B-coreai-4bit --revision 8e24aebe036eae577d4a3bd019ba728a73358318 \
   --local-dir ./models/qwen3.8-27b-coreai-4bit
 ```
 
@@ -47,8 +47,8 @@ swift build -c release
 
 | バンドル | |
 |---|---|
-| リポジトリと revision | [`okayuji/Qwen3.8-27B-coreai-4bit`](https://huggingface.co/okayuji/Qwen3.8-27B-coreai-4bit) の `c034c9857455a48cea715fec19eb49b3227b2458`(アプリの Catalog が固定している revision) |
-| 大きさ | 12 ファイル、16,852,520,981 バイト(16.85 GB、15.70 GiB)。モデル本体の `main.mlirb` は 16,839,684,298 バイト |
+| リポジトリと revision | [`okayuji/Qwen3.8-27B-coreai-4bit`](https://huggingface.co/okayuji/Qwen3.8-27B-coreai-4bit) の `8e24aebe036eae577d4a3bd019ba728a73358318`(アプリの Catalog が固定している revision。tag は `v1.0.0`) |
+| 大きさ | 12 ファイル、16,852,543,780 バイト(16.85 GB、15.70 GiB)。モデル本体の `main.mlirb` は 16,839,684,298 バイト |
 | 元のモデル | [`Qwen/Qwen3.8-27B`](https://huggingface.co/Qwen/Qwen3.8-27B) の revision `1d4bf0f2ff6012fd82039f2fa52739d0dd7c60c0`。テキストのみ(画像のエンコーダは含まない) |
 | 変換 | Apple の変換器の [pull request #321](https://github.com/apple/coreai-models/pull/321) の commit `36e9350`(1.0.0 のタグには含まれない)。preset `qwen3_5_cfg`(重みは 4 ビット、計算は bfloat16)で、gated delta の状態の更新だけ fp32 で計算する。macOS 向けの動的形状の書き出し |
 | トークナイザ | `tokenizer/tokenizer.json` は元の Qwen3.8-27B のファイルで、変換器が保存し直したものと差し替えた。計測に使った 2,257 件の文字列では、どちらのファイルでも Swift のトークン ID は同じだった |
@@ -249,7 +249,7 @@ LICENSE                  コードの MIT ライセンス
 
 `CoreAISamples` は、このリポジトリの `CoreAIBackend` と `RAGContext` で作った macOS の SwiftUI アプリで、公式の `coreai-models` パッケージは使いません。
 
-- **Models** は、この Mac にあるバンドルのフォルダを開いて読み込み、GPU 向けに準備したコピーを消します。カタログには、ダウンロードできる Qwen3.8 27B (4bit) が載っています。カタログのメモリの値「~21 GiB while loading」(日本語表示では「約21 GiB（読み込み時）」)は、下の計測の表の Mac でそのバンドルを読み込んでいる最中に 1 回読み取ったアプリの常駐メモリ(20.66 GiB)で、ピークでも最小のメモリ要件でもありません。
+- **Models** は、この Mac にあるバンドルのフォルダを開いて読み込み、GPU 向けに準備したコピーを消します。カタログには、ダウンロードできる Qwen3.8 27B (4bit) が載っています。カタログのメモリの値「~32 GiB peak RSS while loading」(日本語表示では「約32 GiB（読み込み時のピークRSS）」)は、下の計測の表の Mac でそのバンドルを読み込んだときのアプリのプロセスの常駐メモリのピークで、`/usr/bin/time -l` で測りました(準備済みのコピーから 31.51 GiB、48 回の中央値。初回 31.88 GiB)。最小のメモリ要件ではありません。
 - **Chat** は応答と思考をストリーミングで表示し、RAG を on にすると Web のページとローカルの文書から、番号つきの出典で答えます。
 - **Agent** は Foundation Models のツールのループで Web を検索し、ページを読み、メモを保存します。指示は、`fetch_page` で開いたページだけを引用するよう求めます。**Citation guard**(日本語表示では「引用URLの確認」)の設定は既定で off で、on にすると、引用した URL をその課題で取得したページと照合し、合わなければ 1 回だけ直させます([詳細](docs/demo-app.md#citation-guard))。
 - **Decide** は Clef-Flash で文書を編集できる選択肢で採点し、文書を使い回し、人の確定とモデルの候補を分けて扱います。
