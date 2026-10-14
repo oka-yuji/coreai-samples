@@ -29,7 +29,14 @@ struct VerificationRecord: Encodable {
 
 @main
 enum Verify {
-    static func main() async throws {
+    static func main() async {
+        do { try await run() } catch {
+            FileHandle.standardError.write(Data("Verification failed: \(error)\n".utf8))
+            exit(1)
+        }
+    }
+
+    static func run() async throws {
         guard CommandLine.arguments.count >= 4 else {
             throw EmbeddingError.invalidBundle("Usage: embedding-verify BUNDLE PLAN OUTPUT [--preprocess]")
         }

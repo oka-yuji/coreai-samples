@@ -32,13 +32,12 @@ public struct EmbeddingBundle: Sendable {
         }
         for name in ["text.aimodel", "vision.aimodel"] {
             let asset = root.appending(path: name)
-            guard
-                let enumerator = FileManager.default.enumerator(
-                    at: asset, includingPropertiesForKeys: [.isRegularFileKey])
+            guard let enumerator = FileManager.default.enumerator(atPath: asset.path)
             else { throw EmbeddingError.invalidBundle("Missing asset: " + name) }
-            for case let file as URL in enumerator {
+            for case let child as String in enumerator {
+                let file = try Self.containedFile(name + "/" + child, root: root)
                 if try file.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile == true {
-                    let relative = String(file.path.dropFirst(root.path.count + 1))
+                    let relative = name + "/" + child
                     guard manifest.files[relative] != nil else {
                         throw EmbeddingError.invalidBundle("Unlisted asset file: " + relative)
                     }

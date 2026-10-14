@@ -16,7 +16,13 @@ public enum EmbeddingImageReader {
             let image = CGImageSourceCreateImageAtIndex(source, 0, nil)
         else { throw EmbeddingError.invalidImage }
         let colorSpace = CGColorSpaceCreateDeviceRGB()
-        guard let untagged = image.copy(colorSpace: colorSpace) else { throw EmbeddingError.invalidImage }
+        let untagged: CGImage
+        if image.colorSpace?.model == .rgb {
+            guard let copy = image.copy(colorSpace: colorSpace) else { throw EmbeddingError.invalidImage }
+            untagged = copy
+        } else {
+            untagged = image
+        }
         var rgba = [UInt8](repeating: 0, count: width * height * 4)
         let drawn = rgba.withUnsafeMutableBytes { bytes -> Bool in
             guard
