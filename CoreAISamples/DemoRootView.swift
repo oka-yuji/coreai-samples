@@ -2,6 +2,7 @@ import DecideFeature
 import ExtractFeature
 import FeatureStore
 import Observation
+import ProductFeature
 import RecipeFeature
 import SwiftUI
 
@@ -32,7 +33,7 @@ enum Demo: String, CaseIterable, Identifiable {
         case .agent: "Search the web and run multi-step tasks with tool calls"
         case .decide: "Check a document against an editable checklist"
         case .recipes: "Can you make this recipe with what you have?"
-        case .extract: "Technical verification: type labels and see the spans GLiNER finds in a text"
+        case .extract: "Compare product specifications from official descriptions"
         case .models: "Get, open and prepare model bundles"
         }
     }
@@ -63,6 +64,8 @@ struct DemoRootView: View {
     @State private var models = ModelsViewModel()
     @State private var decide = DecideAssembly.makeStore()
     @State private var recipes = RecipeAssembly.makeStore()
+    @State private var products = ProductAssembly.makeStore()
+    @State private var showingExtractionLab = false
     @State private var extract = Store<ExtractFeature>(
         initialState: ExtractState(
             form: ExtractResources.form, labels: ExtractResources.examples.labels,
@@ -97,7 +100,19 @@ struct DemoRootView: View {
             case .agent?: AgentView()
             case .decide?: DecideView(store: decide)
             case .recipes?: RecipeView(store: recipes)
-            case .extract?: ExtractView(store: extract)
+            case .extract?:
+                if LaunchArguments.value("--gui-e2e") != nil && LaunchArguments.value("--extract") != nil {
+                    ExtractView(store: extract)
+                } else {
+                    ProductComparisonView(store: products)
+                        .toolbar { Button("Extraction lab") { showingExtractionLab = true } }
+                        .sheet(isPresented: $showingExtractionLab) {
+                            NavigationStack {
+                                ExtractView(store: extract).toolbar { Button("Done") { showingExtractionLab = false } }
+                            }
+                            .frame(minWidth: 820, minHeight: 640)
+                        }
+                }
             case .models?: ModelsView()
             case nil: ContentUnavailableView("Select a demo", systemImage: "square.grid.2x2")
             }
