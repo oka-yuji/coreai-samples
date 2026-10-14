@@ -40,7 +40,7 @@ Code snapshot: A `0153016`; B `9b8a542`, accessibility fix `ccf505a`. Xcode 27.0
 | U1–U3 state, snapshot, error/retry | ProductFeature 8 tests passed; real runner exercised with a stub service. Real model integration is separate below. |
 | U4 build/regression | Full default SwiftPM run passed; model-dependent tests remained disabled. Mac and generic iOS Release builds passed. SwiftLint: zero violations. swift-format: 18 changed Swift files passed. Existing headless entry routing retained by source inspection. |
 | U5 source acquisition | Native `--product-source-check` passed for two official pages and their pasted text. MacBook Air: 9,864 scalars; Surface Laptop 5: 8,038. Both reports have `modelRan: false`. |
-| U5 inference | Pending permission to close the already-running app before the required process check and heavy-job lock. Source retrieval and fabricated preview cards do not substitute for model inference. |
+| U5 inference | Deferred to post-merge validation at the user's explicit request. Source retrieval and fabricated preview cards do not substitute for model inference. |
 | U6 | Agent checked two aligned cards, Japanese source context, English/Japanese switching and missing price on Mac. The final build exposes raw values and localized missing text through accessibility values. VoiceOver audio and narrow-window layout were not verified. User confirmation remains pending. iPhone hardware rendering/inference is unverified. |
 
 The source-only and model paths are explicit:
@@ -56,6 +56,6 @@ The second command reads the model and requires the process check and heavy-job 
 
 ## Remaining acceptance and next work
 
-Independent source/UI reviews and correction checks are complete: four HTML/context findings and one accessibility finding were fixed. Remaining acceptance is real-model integration and user confirmation of the changed screen. Do not mark the whole feature accepted until those results are recorded. The original inspection-memo M1 run is not automatically resumed for this new topic. Preserve its data and failed S0 evidence; any later training needs a product-specific data/evaluation decision. No PR, main merge, model publication or purchase is included.
+Independent source/UI reviews and correction checks are complete: four HTML/context findings and one accessibility finding were fixed. Remaining acceptance is real-model integration and user confirmation of the changed screen. Do not mark the whole feature accepted until those results are recorded. The original inspection-memo M1 run is not automatically resumed for this new topic. Preserve its data and failed S0 evidence; any later training needs a product-specific data/evaluation decision. On 2026-10-14 the user explicitly requested PR creation and merging to main before their later validation. Keep P5/U5 and U6 open; merging does not establish model quality or complete acceptance. Model publication and purchases remain outside this change.
 
 The original estimates remain 8 SP for #97 and 8–13 SP for #98, provisional against EX-8 v1. The observed HTML/evidence review fixes are implementation rework, not a change to quality thresholds. Reusable lesson: validate the source before judging extraction, and test conditions on adjacent lines as well as exact spans.
