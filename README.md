@@ -2,7 +2,7 @@
 
 [日本語](README.ja.md)
 
-Swift samples that run open models on a Mac through Apple's Core AI and Foundation Models. **Chat** and **Agent** run Qwen3.8 27B; the agent searches the web, reads pages and saves notes. **Recipes** compares a fridge photo's ingredients with a recipe URL and **Decide** scores a document against an editable checklist, both with Clef-Flash 9B. **Extract** shows the spans GLiNER2.5-multi finds in a text. `Tools/Verify` compares this repository's runtime with Apple's own, token by token.
+Swift samples that run open models on a Mac through Apple's Core AI and Foundation Models. **Chat** and **Agent** run Qwen3.8 27B; the agent searches the web, reads pages and saves notes. **Recipes** compares a fridge photo's ingredients with a recipe URL and **Decide** scores a document against an editable checklist, both with Clef-Flash 9B. **Extract** turns product descriptions into source-linked specification cards with GLiNER2.5-multi. `Tools/Verify` compares this repository's runtime with Apple's own, token by token.
 
 ## Who this is for
 
