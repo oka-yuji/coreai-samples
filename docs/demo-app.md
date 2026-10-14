@@ -5,7 +5,7 @@
 - **Models**: open a bundle folder on this Mac (the app remembers it), load it, and clear the copy the app prepared for the GPU. The Hugging Face download catalog lists Qwen3.8 27B (4bit). Downloads require a pinned 40-character commit revision. Every file is checked against the Hub listing: SHA-256 for LFS files, and git blob SHA-1 (including the `blob <size>\0` header) for other files. A missing checksum or mismatched download fails the operation. Restarting resumes by file: only files whose size and checksum match are skipped; partial or corrupt files are downloaded again. The completion marker is written only after all files pass.
 - **Chat**: a `LanguageModelSession` on `LocalLanguageModel`. Replies stream, thinking streams into a collapsed section, and the status line shows the time to the first token, the speed, the input, reused and output tokens, and why the reply stopped. With **RAG** on, the app first collects sources from the web and from `~/Documents/rag/` and the model answers from them with numbered citations. See [RAG](#rag) below.
 - **Agent**: searches the web, reads pages, saves notes and answers with a `Sources:` section, on the model that Chat has loaded. See [Agent](#agent) below.
-- **Extract**: a technical verification of a Core AI conversion. Type labels and GLiNER2.5-multi (Core AI, FP32) marks the spans it finds for each in a text, with their scores; mapping an inspection memo onto a form with option suggestions is kept as an experiment. The result exports as JSON. See [Extract](#extract) below.
+- **Extract**: add an Apple/Microsoft product URL or paste a description, then compare up to four source-linked specification cards. Values remain candidates from the page, including multiple configurations; missing fields are left empty. The earlier label/inspection experiment remains under **Extraction lab**. See [Extract](#extract) and the [product demo specification](specs/product-comparison-demo.md).
 
 ## Requirements
 
@@ -28,7 +28,7 @@ The first load of a model prepares it for the GPU (about 21 s for Qwen3.5-9B on 
 
 ## Extract on iPhone
 
-`CoreAISamples-iOS` is an iPhone app with [Extract](#extract) only: a screen that extracts one note, and the headless `--extract-eval`. Chat, Agent and Models stay on the Mac. The bundle ID is `com.coreai-samples.DemoApp.ios` and it needs iOS 27.0. It runs on a device only: the iOS Simulator SDK (`iPhoneSimulator27.0.sdk`) has no `CoreAI.framework`, so a simulator build stops at `Unable to resolve module dependency: 'CoreAI'`. The Extract service, runner, headless evaluation and bundled JSON files are the Mac app's; the entry point and the screen are in `CoreAISamples/iOS/`. It has not been run on a device yet.
+`CoreAISamples-iOS` is an iPhone app with [Extract](#extract) only: the product comparison screen, the earlier note screen under **Extraction lab**, and the headless `--extract-eval`. Chat, Agent and Models stay on the Mac. The bundle ID is `com.coreai-samples.DemoApp.ios` and it needs iOS 27.0. It runs on a device only: the iOS Simulator SDK (`iPhoneSimulator27.0.sdk`) has no `CoreAI.framework`, so a simulator build stops at `Unable to resolve module dependency: 'CoreAI'`. The Extract service, runner, headless evaluation and bundled JSON files are the Mac app's; the entry point and the screen are in `CoreAISamples/iOS/`. It has not been run on a device yet.
 
 **Build and install.** Without a team, the device build is left unsigned: it shows that the app compiles, but it cannot be installed.
 
@@ -61,7 +61,7 @@ xcrun devicectl device copy to --device <UDID> --domain-type appDataContainer --
 - Copy before you launch the app, and let the copy finish: a model read while its files are still arriving has been reported to leave a broken entry in the specialization cache.
 - Leave out `--remove-existing-content true`, which has been reported to empty the whole data container.
 
-**The screen** shows the same note as the Mac's Extract screen and lists the folders in Documents that hold a `contract.json`, as they were at launch; relaunch the app after copying another one. Tap a folder to open it (no folder can be tapped while one opens): the status shows the load time and the `revision`. Edit the note (the first example is filled in) and press **Extract**, which extracts again even when the note has not changed: each example label of `extract_examples.json` lists the spans the model returns for it, as written in the note, with their scores, and a line shows the time of each stage. The labels cannot be edited here, and the form experiment is on the Mac only. The model is specialized for the GPU; launch with `--compute-units default` to let Core AI place it (the footer shows which).
+**The product screen** shares the Mac comparison UI and lets you choose a model from the asset folders in Documents. The changed product flow has not been verified on iPhone hardware. **Extraction lab** shows the same note as the Mac's earlier Extract screen and lists the folders in Documents that hold a `contract.json`, as they were at launch; relaunch the app after copying another one. Tap a folder to open it (no folder can be tapped while one opens): the status shows the load time and the `revision`. Edit the note (the first example is filled in) and press **Extract**, which extracts again even when the note has not changed: each example label of `extract_examples.json` lists the spans the model returns for it, as written in the note, with their scores, and a line shows the time of each stage. The labels cannot be edited here, and the form experiment is on the Mac only. The model is specialized for the GPU; launch with `--compute-units default` to let Core AI place it (the footer shows which).
 
 **Headless evaluation.** Launch with the arguments the Mac takes (see [Extract](#extract)). Relative paths are read in Documents: the app makes Documents its working directory. The app keeps the screen from locking during the run; unlock the iPhone before you launch, and keep the app in the foreground, since an app in the background cannot use the GPU. The app exits when the run ends, which ends `--console`, and stdout and stderr come back through it as on the Mac.
 
@@ -178,6 +178,16 @@ With **Citation guard** on, the app checks the sources of the answer before it a
 When a guarded task ends without an answer, notes with no URLs or only URLs whose retrieval was attempted are saved. Notes with an untried URL remain drafts with the reason in `HELD.txt`; the guard result stays `skipped`.
 
 ## Extract
+
+**Product notes** is the default screen. Choose a GLiNER folder, use **Add a product**, select **Official page** or **Paste description**, and create a card. Add a second description to compare the same rows. Open any value to inspect its paragraph, complete captured text, source URL and date. A page can contain multiple configurations, so values are not combined into an invented SKU. No candidate means “not found by the extractor”, not proof that the product lacks the attribute. Cards are not saved between launches.
+
+The URL reader supports the exact Apple/Microsoft hosts listed in the [specification](specs/product-comparison-demo.md), validates redirects, and reads UTF-8 HTML/text up to 2 MiB and 12,000 readable scalars. It does not execute website JavaScript. If a page refuses the request, paste its description instead. The sample Surface link is explicitly **Surface Laptop 5**; it is a useful specification page, not the newest-model claim. Price and availability are only captured mentions, not live purchase quotes.
+
+Mac and iOS Release builds and native fetching of the two sample pages have passed. New product extraction quality is not established by the earlier inspection evaluation. See the specification for current integration/acceptance status. `--product-preview` opens fictional cards marked as a no-model layout preview; `--product-source-check <directory>` checks actual source acquisition; `--product-e2e <directory> --extract <folder>` runs the model through the real Store/Runner/Service after taking the required heavy-job lock.
+
+### Extraction lab
+
+The toolbar opens the preserved labels/inspection screen. The following evaluation and headless documentation describe that lab.
 
 > Technical verification of a Core AI conversion. Zero-shot GLiNER2.5-multi did not reach the pre-registered bar for Japanese inspection memos (outcome B3). The evaluated version is the default candidate filter, R1 + N1: on a second sealed set of 200 memos, fabricated candidates 13/200, primary-span precision 0.788, recall 0.822. Suggestions are uncalibrated scores.
 
