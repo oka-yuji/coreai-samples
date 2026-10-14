@@ -14,6 +14,8 @@ let package = Package(
     ],
     products: [
         .library(name: "CoreAIBackend", targets: ["CoreAIBackend"]),
+        .library(name: "ProductCore", targets: ["ProductCore"]),
+        .library(name: "ProductRuntime", targets: ["ProductRuntime"]),
         .library(name: "GLiNERCore", targets: ["GLiNERCore"]),
         .library(name: "GLiNERRuntime", targets: ["GLiNERRuntime"]),
         .library(name: "RAGContext", targets: ["RAGContext"]),
@@ -40,6 +42,14 @@ let package = Package(
             resources: [.process("Resources")]
         ),
         .target(name: "RAGContext"),
+        .target(name: "ProductCore", swiftSettings: approachableConcurrency),
+        .target(
+            name: "ProductRuntime", dependencies: ["ProductCore", "GLiNERCore", "GLiNERRuntime"],
+            resources: [.process("Resources")], swiftSettings: approachableConcurrency),
+        .testTarget(name: "ProductCoreTests", dependencies: ["ProductCore"], swiftSettings: approachableConcurrency),
+        .testTarget(
+            name: "ProductRuntimeTests", dependencies: ["ProductRuntime", "ProductCore"],
+            swiftSettings: approachableConcurrency),
         .target(name: "RecipeCore", swiftSettings: approachableConcurrency),
         .target(
             name: "RecipeFeature", dependencies: ["FeatureStore", "RecipeCore"], swiftSettings: approachableConcurrency),

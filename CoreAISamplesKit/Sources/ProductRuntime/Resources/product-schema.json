@@ -1,0 +1,10 @@
+[
+  {"field":"product","label":"製品名","description":"ノートパソコンの製品名とモデル名"},
+  {"field":"processor","label":"プロセッサー","description":"CPUやチップの名称"},
+  {"field":"memory","label":"メモリ容量","description":"RAMやユニファイドメモリの容量。メモリ帯域幅ではない"},
+  {"field":"storage","label":"ストレージ容量","description":"SSDや内蔵ストレージの容量"},
+  {"field":"display","label":"ディスプレイ","description":"内蔵画面のサイズや解像度"},
+  {"field":"weight","label":"重量","description":"本体の重さ"},
+  {"field":"battery","label":"バッテリー駆動時間","description":"バッテリーで動作できる時間と条件"},
+  {"field":"price","label":"価格","description":"製品の販売価格。最大やからなどの条件を含む"}
+]
