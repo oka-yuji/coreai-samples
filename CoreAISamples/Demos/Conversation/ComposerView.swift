@@ -90,9 +90,9 @@ struct ComposerView: View {
     }
 
     private var notice: Text? {
-        if chat.contextFull, case .full(let needed, let limit)? = chat.contextNotice {
+        if chat.ragIsOn, chat.contextFull, case .full(let needed, let limit)? = chat.contextNotice {
             return Text(
-                "The context window is full: this question needs \(needed) tokens and the limit is \(limit). Start a new conversation to continue."
+                "The context window is full: this question needs \(needed) tokens and the limit is \(limit). Pick a smaller Sources budget in the settings or ask a shorter question."
             )
         }
         if host.contextFull { return Text("The context window is full. Start a new conversation to continue.") }

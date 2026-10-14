@@ -126,7 +126,7 @@ final class ConversationSession {
         progress(transcript).forEach(send)
         let end = await finish(transcript, failure: failure, stopped: stopped, send: send)
         if mode == .chat {
-            let stats = generationStats(transcript, failure: failure, stopped: stopped)
+            let stats = generationStats(transcript, failure: failure, stopped: stopped, limit: limitReached)
             lastGeneration = stats
             MetricsLog.generation(model: modelName, stats: stats)
         }
@@ -249,8 +249,10 @@ final class ConversationSession {
         let current = completed < steps.count ? steps[completed].generated : transcript.count..<transcript.count
         let partial = Self.responseText(transcript[min(base, transcript.count)...])
         if stopped {
-            if limitReached, completed < steps.count, !steps[completed].generated.isEmpty {
-                send(.stepFinished(run: run, finishStep(transcript, steps[completed].generated)))
+            if completed < steps.count, !steps[completed].generated.isEmpty {
+                let stats = finishStep(
+                    transcript, steps[completed].generated, stopped: !limitReached, logs: limitReached)
+                send(.stepFinished(run: run, stats))
             }
             return TurnEnd(kind: .stopped, outcome: limitReached ? "step-limit" : "stopped", answer: partial)
         }
@@ -280,7 +282,8 @@ final class ConversationSession {
     }
 
     private func finishStep(
-        _ transcript: [Transcript.Entry], _ range: Range<Int>, citations: CitationCheck? = nil
+        _ transcript: [Transcript.Entry], _ range: Range<Int>, citations: CitationCheck? = nil, stopped: Bool = false,
+        logs: Bool = true
     ) -> StepStats {
         let usage = session?.usage ?? stepMark
         let input = (usage?.input.totalTokenCount ?? 0) - (stepMark?.input.totalTokenCount ?? 0)
@@ -290,7 +293,8 @@ final class ConversationSession {
         let entries = transcript[range]
         let metadata = Self.metadata(entries)
         let stopReason = (try? metadata["stopReason"]?.value(String.self)) ?? "unknown"
-        let finish = stopReason == "stopToken" ? "eos" : stopReason == "maxTokens" ? "cap" : stopReason
+        let finish =
+            stopped ? "stopped" : stopReason == "stopToken" ? "eos" : stopReason == "maxTokens" ? "cap" : stopReason
         let shared = try? metadata["sharedTokens"]?.value(Int.self)
         let truncated = (try? metadata["truncatedToolOutputs"]?.value(Int.self)) ?? 0
         let prefill = try? metadata["prefillSeconds"]?.value(Double.self)
@@ -324,7 +328,7 @@ final class ConversationSession {
         if finish == "cap" { capSteps += 1 }
         lastFinish = finish
 
-        if mode == .work {
+        if mode == .work, logs {
             var record = MetricsLog.agent("message", model: modelName)
             record.agentSession = id
             record.agentTurn = turnIndex
@@ -354,9 +358,9 @@ final class ConversationSession {
             generatedTokens: output, toolCalls: calls.count, finish: finish)
     }
 
-    private func generationStats(_ transcript: [Transcript.Entry], failure: (any Error)?, stopped: Bool)
-        -> GenerationStats
-    {
+    private func generationStats(
+        _ transcript: [Transcript.Entry], failure: (any Error)?, stopped: Bool, limit: Bool
+    ) -> GenerationStats {
         let added = transcript.dropFirst(base)
         let after = session?.usage
         var stats = GenerationStats()
@@ -366,7 +370,7 @@ final class ConversationSession {
         stats.outputTokens = (after?.output.totalTokenCount ?? 0) - (turnMark?.output.totalTokenCount ?? 0)
         stats.ttftSeconds = firstEntryAt.map { ($0 - started) / .seconds(1) }
         if stopped {
-            stats.stopReason = "cancelled"
+            stats.stopReason = limit ? "stepLimit" : "cancelled"
         } else if let failure {
             if case LanguageModelError.contextSizeExceeded = failure {
                 stats.stopReason = "contextSizeExceeded"

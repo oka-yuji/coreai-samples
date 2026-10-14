@@ -95,7 +95,7 @@ The app opens the bundle in Models, loads it, asks one question in Chat mode, st
 
 ## Metrics
 
-Every Chat turn and every RAG answer appends one JSON line to `~/Library/Application Support/com.coreai-samples.DemoApp/metrics.jsonl`: the model, the turn, the input, reused and output tokens, the time to the first token, the speed, the stop reason, the resident memory and the app build. RAG answers also carry `sources`, `sourceTokens`, `ragPromptTokens` and `retrievalSeconds`. Work turns write `message`, `agent-tool` and `agent-run` lines instead ([Chat and Work](#chat-and-work)).
+Every Chat turn and every RAG answer appends one JSON line to `~/Library/Application Support/com.coreai-samples.DemoApp/metrics.jsonl`: the model, the turn, the input, reused and output tokens, the time to the first token, the speed, the stop reason, the resident memory and the app build. A Chat turn ended by **Stop** records the stop reason `cancelled`, and one cut at the step limit records `stepLimit`. RAG answers also carry `sources`, `sourceTokens`, `ragPromptTokens` and `retrievalSeconds`. Work turns write `message`, `agent-tool` and `agent-run` lines instead ([Chat and Work](#chat-and-work)).
 
 ## RAG
 

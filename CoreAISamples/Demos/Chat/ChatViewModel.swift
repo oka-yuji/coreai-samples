@@ -100,7 +100,7 @@ final class ChatViewModel {
 
     var isLoading: Bool { if case .loading = phase { true } else { false } }
     var trimmedInput: String { input.trimmingCharacters(in: .whitespacesAndNewlines) }
-    var canSend: Bool { phase == .ready && !isResponding && !externallyBusy && !contextFull && !trimmedInput.isEmpty }
+    var canSend: Bool { phase == .ready && !isResponding && !externallyBusy && !trimmedInput.isEmpty }
     var loadStats: Engine.LoadStats? { model?.loadStats }
     var ragIsOn: Bool { ragEnabled && (ragWeb || ragLocal) }
 
@@ -185,6 +185,7 @@ final class ChatViewModel {
             input = ""
             last = nil
             contextNotice = nil
+            contextFull = false
             isResponding = true
             let options = GenerationOptions(maximumResponseTokens: maxTokens)
             let context = ContextOptions(reasoningLevel: reasoning.level)

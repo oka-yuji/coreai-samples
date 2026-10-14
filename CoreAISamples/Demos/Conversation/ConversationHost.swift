@@ -107,7 +107,7 @@ final class ConversationHost {
 
     var state: ConversationState { store.state }
 
-    var contextFull: Bool { chat.contextFull || store.state.contextFull }
+    var contextFull: Bool { store.state.contextFull }
 
     var canSend: Bool {
         chat.phase == .ready && !store.state.isRunning && !chat.isResponding && !chat.externallyBusy && !contextFull

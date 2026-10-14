@@ -3844,6 +3844,24 @@
     },
     "Stopped after %lld step(s)." : {
       "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Stopped after %lld step."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Stopped after %lld steps."
+                }
+              }
+            }
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
@@ -4075,7 +4093,18 @@
         }
       }
     },
+    "The context window is full: this question needs %lld tokens and the limit is %lld. Pick a smaller Sources budget in the settings or ask a shorter question." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コンテキストの上限に達しました。この質問には%lldトークンが必要で、上限は%lldです。設定の「参照元」で小さい値を選ぶか、質問を短くしてください。"
+          }
+        }
+      }
+    },
     "The context window is full: this question needs %lld tokens and the limit is %lld. Start a new conversation to continue." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ja" : {
           "stringUnit" : {
