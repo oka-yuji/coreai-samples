@@ -1,0 +1,268 @@
+{
+  "version": 1,
+  "name": "embeddinggemma2_text_vision",
+  "description": "Pinned S128/vision70 safe FP16 conversion and native Swift input verification.",
+  "variables": {
+    "images": "$repo/CoreAISamples/Resources/Recipes",
+    "adapters": "$repo/Tools/Conversion/adapters/embeddinggemma2",
+    "fixture": "$recipe_dir/fixtures.json"
+  },
+  "python": "$python",
+  "environment": {
+    "HF_HUB_OFFLINE": "1",
+    "TRANSFORMERS_OFFLINE": "1",
+    "TOKENIZERS_PARALLELISM": "false",
+    "OMP_NUM_THREADS": "4",
+    "MKL_NUM_THREADS": "4"
+  },
+  "steps": [
+    {
+      "id": "prepare",
+      "role": "prepare",
+      "command": [
+        "$python",
+        "-m",
+        "Tools.Conversion.adapters.embeddinggemma2.prepare",
+        "--contract",
+        "$recipe_dir/model.json",
+        "--snapshot",
+        "$snapshot",
+        "--build",
+        "$native_build",
+        "--runner",
+        "$runner",
+        "--out",
+        "$out"
+      ],
+      "cwd": "$repo",
+      "inputs": [
+        "$adapters/prepare.py",
+        "$repo/Tools/Conversion/adapters/pinned.py",
+        "$recipe_dir/model.json",
+        "$recipe_dir/pyproject.toml",
+        "$recipe_dir/uv.lock",
+        "$native_build",
+        "$runner",
+        "$repo/CoreAISamplesKit/Package.swift",
+        "$repo/CoreAISamplesKit/Package.resolved",
+        "$repo/CoreAISamplesKit/Sources/EmbeddingCore",
+        "$repo/CoreAISamplesKit/Sources/EmbeddingRuntime",
+        "$repo/CoreAISamplesKit/Sources/embedding-verify",
+        "$snapshot"
+      ],
+      "outputs": [
+        "ready.json"
+      ],
+      "depends": [],
+      "heavy": false,
+      "cache": false,
+      "timeout_s": 1200,
+      "min_free_bytes": 8000000000,
+      "checks": [
+        {
+          "file": "ready.json",
+          "key": [
+            "ready"
+          ],
+          "equals": true
+        }
+      ]
+    },
+    {
+      "id": "reference",
+      "role": "reference",
+      "command": [
+        "$python",
+        "-m",
+        "Tools.Conversion.adapters.embeddinggemma2.reference",
+        "--source",
+        "$snapshot",
+        "--images",
+        "$images",
+        "--fixtures",
+        "$fixture",
+        "--output",
+        "$out/reference"
+      ],
+      "cwd": "$repo",
+      "inputs": [
+        "$adapters/reference.py",
+        "$adapters/contracts.py",
+        "$snapshot",
+        "$fixture",
+        "$images"
+      ],
+      "outputs": [
+        "reference"
+      ],
+      "depends": [
+        "prepare"
+      ],
+      "heavy": true,
+      "cache": true,
+      "timeout_s": 1200,
+      "min_free_bytes": 8000000000
+    },
+    {
+      "id": "text_export",
+      "role": "export",
+      "command": [
+        "$python",
+        "-m",
+        "Tools.Conversion.adapters.embeddinggemma2.convert",
+        "--source",
+        "$snapshot",
+        "--reference",
+        "$reference/reference",
+        "--kind",
+        "text",
+        "--precision",
+        "fp16_safe",
+        "--output",
+        "$out/model"
+      ],
+      "cwd": "$repo",
+      "inputs": [
+        "$adapters/convert.py",
+        "$adapters/model_wrappers.py",
+        "$adapters/contracts.py",
+        "$snapshot"
+      ],
+      "outputs": [
+        "model"
+      ],
+      "depends": [
+        "reference"
+      ],
+      "heavy": true,
+      "cache": true,
+      "timeout_s": 1200,
+      "min_free_bytes": 8000000000
+    },
+    {
+      "id": "vision_export",
+      "role": "export",
+      "command": [
+        "$python",
+        "-m",
+        "Tools.Conversion.adapters.embeddinggemma2.convert",
+        "--source",
+        "$snapshot",
+        "--reference",
+        "$reference/reference",
+        "--kind",
+        "vision",
+        "--precision",
+        "fp16_safe",
+        "--output",
+        "$out/model"
+      ],
+      "cwd": "$repo",
+      "inputs": [
+        "$adapters/convert.py",
+        "$adapters/model_wrappers.py",
+        "$adapters/contracts.py",
+        "$snapshot"
+      ],
+      "outputs": [
+        "model"
+      ],
+      "depends": [
+        "reference"
+      ],
+      "heavy": true,
+      "cache": true,
+      "timeout_s": 1200,
+      "min_free_bytes": 8000000000
+    },
+    {
+      "id": "bundle",
+      "role": "prepare",
+      "command": [
+        "$python",
+        "-m",
+        "Tools.Embedding.package_bundle",
+        "$out/bundle",
+        "--source",
+        "$snapshot",
+        "--reference",
+        "$reference/reference",
+        "--text",
+        "$text_export/model",
+        "--vision",
+        "$vision_export/model"
+      ],
+      "cwd": "$repo",
+      "inputs": [
+        "$repo/Tools/Embedding/package_bundle.py",
+        "$repo/Tools/Embedding/Licenses/Apache-2.0.txt",
+        "$snapshot",
+        "$recipe_dir/model.json"
+      ],
+      "outputs": [
+        "bundle"
+      ],
+      "depends": [
+        "reference",
+        "text_export",
+        "vision_export"
+      ],
+      "heavy": true,
+      "cache": true,
+      "timeout_s": 1200,
+      "min_free_bytes": 8000000000
+    },
+    {
+      "id": "verify",
+      "role": "verify",
+      "command": [
+        "$python",
+        "-m",
+        "Tools.Conversion.adapters.embeddinggemma2.verify",
+        "--reference",
+        "$reference/reference",
+        "--bundle",
+        "$bundle/bundle",
+        "--runner",
+        "$runner",
+        "--out",
+        "$out"
+      ],
+      "cwd": "$repo",
+      "inputs": [
+        "$adapters/verify.py",
+        "$adapters/contracts.py",
+        "$runner"
+      ],
+      "outputs": [
+        "comparison.json",
+        "vectors.json",
+        "plan.json"
+      ],
+      "depends": [
+        "reference",
+        "bundle"
+      ],
+      "heavy": true,
+      "cache": true,
+      "timeout_s": 1200,
+      "min_free_bytes": 8000000000,
+      "checks": [
+        {
+          "file": "comparison.json",
+          "key": [
+            "passed"
+          ],
+          "equals": true
+        },
+        {
+          "file": "comparison.json",
+          "key": [
+            "count"
+          ],
+          "equals": 20
+        }
+      ]
+    }
+  ]
+}

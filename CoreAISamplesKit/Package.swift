@@ -15,6 +15,8 @@ let package = Package(
     products: [
         .library(name: "TruckInspectionCore", targets: ["TruckInspectionCore"]),
         .library(name: "TruckInspectionRuntime", targets: ["TruckInspectionRuntime"]),
+        .library(name: "ImageSearchFeature", targets: ["ImageSearchFeature"]),
+        .library(name: "ImageSearchRuntime", targets: ["ImageSearchRuntime"]),
         .library(name: "EmbeddingCore", targets: ["EmbeddingCore"]),
         .library(name: "EmbeddingRuntime", targets: ["EmbeddingRuntime"]),
         .executable(name: "embedding-verify", targets: ["embedding-verify"]),
@@ -41,11 +43,18 @@ let package = Package(
     targets: [
         .target(name: "TruckInspectionCore", swiftSettings: approachableConcurrency),
         .target(
-            name: "TruckInspectionRuntime", dependencies: ["TruckInspectionCore"],
-            resources: [.process("Resources")], swiftSettings: approachableConcurrency),
+            name: "TruckInspectionRuntime", dependencies: ["TruckInspectionCore"], resources: [.process("Resources")],
+            swiftSettings: approachableConcurrency),
         .testTarget(
             name: "TruckInspectionCoreTests", dependencies: ["TruckInspectionCore", "TruckInspectionRuntime"],
             resources: [.process("Resources")], swiftSettings: approachableConcurrency),
+        .target(name: "ImageSearchFeature", dependencies: ["FeatureStore"], swiftSettings: approachableConcurrency),
+        .target(
+            name: "ImageSearchRuntime", dependencies: ["ImageSearchFeature", "EmbeddingCore", "EmbeddingRuntime"],
+            swiftSettings: approachableConcurrency),
+        .testTarget(
+            name: "ImageSearchTests", dependencies: ["ImageSearchFeature", "ImageSearchRuntime", "FeatureStore"],
+            swiftSettings: approachableConcurrency),
         .target(name: "EmbeddingCore", swiftSettings: approachableConcurrency),
         .target(
             name: "EmbeddingRuntime",

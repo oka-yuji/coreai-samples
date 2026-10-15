@@ -17,6 +17,11 @@ struct DemoApp: App {
 @main
 enum DemoAppMain {
     static func main() async {
+        if let directory = LaunchArguments.value("--image-search-eval"),
+            let folder = LaunchArguments.value("--embedding-bundle")
+        {
+            exit(await ImageSearchSelfTest.run(directory: URL(filePath: directory), folder: URL(filePath: folder)))
+        }
         if LaunchArguments.flag("--check-localization") {
             DemoLocalizationCheck.run()
             return
