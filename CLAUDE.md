@@ -52,6 +52,7 @@
   `COREAI_TEST_BUNDLES` は言語モデル用だけに使い、両変数を同時に設定しない。
 - 同じ文書で質問数を変えるメモリ検査は `DECIDE_SHAPE_MEMORY=1` と `--filter DecisionInferenceTests.questionSizeMemory`。headless の文書再利用経路は `--decide-json input.json output.json --reuse-document`。
 
+- EmbeddingGemma 2のCPU検査は既定の`swift test`に含む。`EG2_TOKENIZER=/path/to/bundle`を渡すと参照12入力のtoken列も照合する（モデルは読まない）。実モデルを読む`embedding-verify`と画像検索デモは共有ロック下で動かす。入力契約とコマンドは`docs/embeddinggemma2.md`。
 
 ## 変換の保守（2026-10-15）
 
