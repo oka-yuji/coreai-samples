@@ -6,20 +6,33 @@ import TruckInspectionFeature
 import TruckInspectionRuntime
 
 struct InspectionFeatureTests {
-    @Test("Truck model selection excludes unrelated assets in the shared Documents folder")
+    @Test("Truck model selection accepts the GLiNER contract without model metadata and excludes other assets")
     func modelFamilies() throws {
         let root = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: root) }
         let gliner = root.appending(path: "gliner")
+        let named = root.appending(path: "named")
+        let nameOnly = root.appending(path: "name-only")
         let embedding = root.appending(path: "embedding")
         let broken = root.appending(path: "broken")
-        for folder in [gliner, embedding, broken] {
+        for folder in [gliner, named, nameOnly, embedding, broken] {
             try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         }
-        try Data(#"{"model":"fastino/gliner2.5-multi-v1"}"#.utf8).write(to: gliner.appending(path: "contract.json"))
+        let fixture = try #require(Bundle.module.url(forResource: "gliner-contract", withExtension: "json"))
+        let data = try Data(contentsOf: fixture)
+        try data.write(to: gliner.appending(path: "contract.json"))
+        var contract = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        contract["model"] = "fastino/gliner2.5-multi-v1"
+        try JSONSerialization.data(withJSONObject: contract).write(to: named.appending(path: "contract.json"))
+        for folder in [gliner, named] {
+            try FileManager.default.createDirectory(
+                at: folder.appending(path: "model.aimodel"), withIntermediateDirectories: true)
+        }
+        try Data(#"{"model":"fastino/gliner2.5-multi-v1"}"#.utf8).write(to: nameOnly.appending(path: "contract.json"))
         try Data(#"{"model":"google/embeddinggemma2"}"#.utf8).write(to: embedding.appending(path: "contract.json"))
         try Data("invalid".utf8).write(to: broken.appending(path: "contract.json"))
-        #expect(InspectionCatalogLoader.modelFolders(in: [embedding, broken, gliner]) == [gliner])
+        #expect(
+            InspectionCatalogLoader.modelFolders(in: [embedding, broken, nameOnly, gliner, named]) == [gliner, named])
     }
 
     private func state(model: Bool = false) throws -> InspectionState {
