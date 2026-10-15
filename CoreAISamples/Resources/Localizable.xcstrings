@@ -4936,6 +4936,389 @@
         }
       }
     },
+    "Image search" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "画像検索"
+          }
+        }
+      }
+    },
+    "Find selected images with your own words" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選んだ画像を自分の言葉で探す"
+          }
+        }
+      }
+    },
+    "Describe an image to find" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "探したい画像の特徴を入力"
+          }
+        }
+      }
+    },
+    "Open model folder…" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルフォルダを開く…"
+          }
+        }
+      }
+    },
+    "Reload selected model" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選択したモデルを再読込"
+          }
+        }
+      }
+    },
+    "Model ready" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデル準備完了"
+          }
+        }
+      }
+    },
+    "Open model" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルを開く"
+          }
+        }
+      }
+    },
+    "Choose images…" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "画像を選ぶ…"
+          }
+        }
+      }
+    },
+    "Use sample images" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "サンプル画像を使う"
+          }
+        }
+      }
+    },
+    "Preparing the model…" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルを準備中…"
+          }
+        }
+      }
+    },
+    "Indexing images: %lld of %lld" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "画像を索引化中：%1$lld / %2$lld枚"
+          }
+        }
+      }
+    },
+    "Searching selected images…" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選んだ画像を検索中…"
+          }
+        }
+      }
+    },
+    "Search stays on this device." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "検索はこの端末内で完結します。"
+          }
+        }
+      }
+    },
+    "Indexing: %@ s" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "索引作成：%@秒"
+          }
+        }
+      }
+    },
+    "Search: %@ s" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "検索：%@秒"
+          }
+        }
+      }
+    },
+    "Find images with your own words" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自分の言葉で画像を探す"
+          }
+        }
+      }
+    },
+    "Open the model, then choose the images you want to search." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルを開き、検索したい画像を選んでください。"
+          }
+        }
+      }
+    },
+    "Selected images" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選択した画像"
+          }
+        }
+      }
+    },
+    "Search results" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "検索結果"
+          }
+        }
+      }
+    },
+    "%lld images" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld枚"
+          }
+        }
+      }
+    },
+    "Similarity" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "類似度"
+          }
+        }
+      }
+    },
+    "Open original: %@" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "元画像を開く：%@"
+          }
+        }
+      }
+    },
+    "The original image could not be opened." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "元画像を開けませんでした。"
+          }
+        }
+      }
+    },
+    "Choose up to 50 images at a time." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一度に選べる画像は50枚までです。"
+          }
+        }
+      }
+    },
+    "The selected files could not be opened." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選択したファイルを開けませんでした。"
+          }
+        }
+      }
+    },
+    "Shorten your search. This model accepts up to 128 tokens." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "検索文を短くしてください。このモデルは128トークンまで対応しています。"
+          }
+        }
+      }
+    },
+    "Use an opaque, still image with no more than 40 million pixels." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "透過のない4,000万画素以下の静止画を選んでください。"
+          }
+        }
+      }
+    },
+    "This model folder is incomplete or incompatible. Open a valid EmbeddingGemma 2 bundle." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルフォルダが不完全か、非対応です。対応するEmbeddingGemma 2バンドルを開いてください。"
+          }
+        }
+      }
+    },
+    "The operation failed. Try again or reopen the model folder." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "処理に失敗しました。再試行するか、モデルフォルダを開き直してください。"
+          }
+        }
+      }
+    },
+    "Search" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "検索"
+          }
+        }
+      }
+    },
+    "Details" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "詳細"
+          }
+        }
+      }
+    },
+    "Stopping…" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "停止中…"
+          }
+        }
+      }
+    },
+    "EmbeddingGemma 2" : {
+      "shouldTranslate" : false
+    },
+    "Checking image search…" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "画像検索を検証中…"
+          }
+        }
+      }
+    },
+    "Example searches" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "検索例"
+          }
+        }
+      }
+    },
+    "No close matches" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "十分に近い候補がありません"
+          }
+        }
+      }
+    },
+    "Show all candidates" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "すべての候補を表示"
+          }
+        }
+      }
+    },
+    "Similarity compares meaning; it is not a probability." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "類似度は意味の近さで、正解の確率ではありません。"
+          }
+        }
+      }
+    },
+    "Try different wording, choose more images, or show all candidates." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "言葉を変えるか、画像を追加するか、すべての候補を表示してください。"
+          }
+        }
+      }
+    },
     "%lld of %lld recorded" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5255,17 +5638,6 @@
         }
       }
     },
-    "Preparing the model…" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "モデルを準備しています…"
-          }
-        }
-      }
-    },
     "Ready" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5317,17 +5689,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "点検入力を始める"
-          }
-        }
-      }
-    },
-    "Stopping…" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "停止しています…"
           }
         }
       }

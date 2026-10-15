@@ -1,0 +1,138 @@
+[
+  {
+    "id" : "ja_tools",
+    "passed" : true,
+    "seconds" : 0.00045075,
+    "tokensMatch" : true
+  },
+  {
+    "id" : "ja_food",
+    "passed" : true,
+    "seconds" : 0.000214584,
+    "tokensMatch" : true
+  },
+  {
+    "id" : "ja_eggs",
+    "passed" : true,
+    "seconds" : 0.000188208,
+    "tokensMatch" : true
+  },
+  {
+    "id" : "ja_negation",
+    "passed" : true,
+    "seconds" : 0.000189708,
+    "tokensMatch" : true
+  },
+  {
+    "id" : "ja_numbers",
+    "passed" : true,
+    "seconds" : 0.000185042,
+    "tokensMatch" : true
+  },
+  {
+    "id" : "en_tools",
+    "passed" : true,
+    "seconds" : 0.000249709,
+    "tokensMatch" : true
+  },
+  {
+    "id" : "en_food",
+    "passed" : true,
+    "seconds" : 0.000234666,
+    "tokensMatch" : true
+  },
+  {
+    "id" : "en_unicode",
+    "passed" : true,
+    "seconds" : 0.000219334,
+    "tokensMatch" : true
+  },
+  {
+    "id" : "ja_document",
+    "passed" : true,
+    "seconds" : 0.000199875,
+    "tokensMatch" : true
+  },
+  {
+    "id" : "en_document",
+    "passed" : true,
+    "seconds" : 0.000294792,
+    "tokensMatch" : true
+  },
+  {
+    "id" : "ja_short",
+    "passed" : true,
+    "seconds" : 0.000153917,
+    "tokensMatch" : true
+  },
+  {
+    "id" : "empty_content",
+    "passed" : true,
+    "seconds" : 0.000136166,
+    "tokensMatch" : true
+  },
+  {
+    "id" : "01-oyakodon",
+    "passed" : true,
+    "pixelMaxDifference" : 0.003921628,
+    "pixelMeanDifference" : 1.4751271600958215e-05,
+    "seconds" : 1.970388125,
+    "tokensMatch" : true
+  },
+  {
+    "id" : "02-ginger-pork",
+    "passed" : true,
+    "pixelMaxDifference" : 0.003921628,
+    "pixelMeanDifference" : 1.5286207827369845e-05,
+    "seconds" : 1.974874041,
+    "tokensMatch" : true
+  },
+  {
+    "id" : "03-omelette",
+    "passed" : true,
+    "pixelMaxDifference" : 0.003921628,
+    "pixelMeanDifference" : 1.3584139135976633e-05,
+    "seconds" : 1.971377166,
+    "tokensMatch" : true
+  },
+  {
+    "id" : "04-gratin",
+    "passed" : true,
+    "pixelMaxDifference" : 0.003921628,
+    "pixelMeanDifference" : 1.3000570655253434e-05,
+    "seconds" : 1.987777667,
+    "tokensMatch" : true
+  },
+  {
+    "id" : "05-caprese",
+    "passed" : true,
+    "pixelMaxDifference" : 0.003921628,
+    "pixelMeanDifference" : 1.4637799677315844e-05,
+    "seconds" : 1.966168584,
+    "tokensMatch" : true
+  },
+  {
+    "id" : "gradient_square",
+    "passed" : true,
+    "pixelMaxDifference" : 0,
+    "pixelMeanDifference" : 0,
+    "seconds" : 0.44883275,
+    "tokensMatch" : true
+  },
+  {
+    "id" : "gradient_wide",
+    "passed" : true,
+    "pixelMaxDifference" : 0,
+    "pixelMeanDifference" : 0,
+    "seconds" : 0.453809958,
+    "tokensMatch" : true
+  },
+  {
+    "id" : "gradient_tall",
+    "passed" : true,
+    "pixelMaxDifference" : 0,
+    "pixelMeanDifference" : 0,
+    "seconds" : 0.611117,
+    "tokensMatch" : true
+  }
+]

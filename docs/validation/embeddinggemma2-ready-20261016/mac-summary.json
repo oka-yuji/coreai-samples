@@ -1,0 +1,14 @@
+{
+  "heldOutCorrect": 5,
+  "heldOutQueries": 6,
+  "images": 5,
+  "indexingSeconds": 0.76569325,
+  "minimumSimilarity": 0.67,
+  "originalRead": true,
+  "os": "バージョン27.0（ビルド26A428）",
+  "passed": true,
+  "queries": 9,
+  "queuedStopAndRetry": true,
+  "relevanceCorrect": 8,
+  "relevanceScope": "Fixed examples; reported separately from numerical and interaction checks"
+}

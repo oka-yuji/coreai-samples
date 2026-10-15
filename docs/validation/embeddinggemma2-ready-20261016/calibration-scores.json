@@ -1,0 +1,152 @@
+[
+  {
+    "id": "cal_tomato",
+    "matches": [
+      {
+        "id": "05-caprese.png",
+        "similarity": 0.7652786799838792
+      },
+      {
+        "id": "04-gratin.png",
+        "similarity": 0.7270237807610578
+      },
+      {
+        "id": "03-omelette.png",
+        "similarity": 0.7008002596724846
+      },
+      {
+        "id": "02-ginger-pork.png",
+        "similarity": 0.6960818387150107
+      },
+      {
+        "id": "01-oyakodon.png",
+        "similarity": 0.6903160733735302
+      }
+    ]
+  },
+  {
+    "id": "cal_egg",
+    "matches": [
+      {
+        "id": "03-omelette.png",
+        "similarity": 0.7504983504957332
+      },
+      {
+        "id": "01-oyakodon.png",
+        "similarity": 0.7273287996638121
+      },
+      {
+        "id": "04-gratin.png",
+        "similarity": 0.7140627440469658
+      },
+      {
+        "id": "02-ginger-pork.png",
+        "similarity": 0.7013671831336615
+      },
+      {
+        "id": "05-caprese.png",
+        "similarity": 0.7011533398264421
+      }
+    ]
+  },
+  {
+    "id": "cal_milk",
+    "matches": [
+      {
+        "id": "04-gratin.png",
+        "similarity": 0.7692169495374606
+      },
+      {
+        "id": "01-oyakodon.png",
+        "similarity": 0.6843954290258929
+      },
+      {
+        "id": "05-caprese.png",
+        "similarity": 0.6835013278175777
+      },
+      {
+        "id": "03-omelette.png",
+        "similarity": 0.6801807539939722
+      },
+      {
+        "id": "02-ginger-pork.png",
+        "similarity": 0.6757748477463602
+      }
+    ]
+  },
+  {
+    "id": "cal_ski",
+    "matches": [
+      {
+        "id": "04-gratin.png",
+        "similarity": 0.5894985894918433
+      },
+      {
+        "id": "03-omelette.png",
+        "similarity": 0.5611218003125849
+      },
+      {
+        "id": "02-ginger-pork.png",
+        "similarity": 0.5606888901127559
+      },
+      {
+        "id": "01-oyakodon.png",
+        "similarity": 0.5500912626379497
+      },
+      {
+        "id": "05-caprese.png",
+        "similarity": 0.5311325883263567
+      }
+    ]
+  },
+  {
+    "id": "cal_tram",
+    "matches": [
+      {
+        "id": "04-gratin.png",
+        "similarity": 0.5422052182080753
+      },
+      {
+        "id": "02-ginger-pork.png",
+        "similarity": 0.5384383292220856
+      },
+      {
+        "id": "03-omelette.png",
+        "similarity": 0.527656106346753
+      },
+      {
+        "id": "05-caprese.png",
+        "similarity": 0.5178069097920225
+      },
+      {
+        "id": "01-oyakodon.png",
+        "similarity": 0.5146286205169887
+      }
+    ]
+  },
+  {
+    "id": "cal_yacht",
+    "matches": [
+      {
+        "id": "01-oyakodon.png",
+        "similarity": 0.5746314313992824
+      },
+      {
+        "id": "02-ginger-pork.png",
+        "similarity": 0.5733899612628289
+      },
+      {
+        "id": "03-omelette.png",
+        "similarity": 0.5626033462469627
+      },
+      {
+        "id": "05-caprese.png",
+        "similarity": 0.5585052653065162
+      },
+      {
+        "id": "04-gratin.png",
+        "similarity": 0.5512750781068257
+      }
+    ]
+  }
+]

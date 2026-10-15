@@ -1,0 +1,57 @@
+{
+  "schema": "coreai-conversion-summary/1",
+  "status": "completed",
+  "verification": "passed",
+  "scope": "Fixed-input conversion check; not model production qualification.",
+  "stages": [
+    {
+      "index": 0,
+      "role": "prepare",
+      "status": "executed",
+      "prepare_s": 0.5207690000534058,
+      "execute_s": 0.6683598747476935,
+      "total_s": 3.0733098327182233
+    },
+    {
+      "index": 1,
+      "role": "reference",
+      "status": "executed",
+      "prepare_s": 0.5310248336754739,
+      "execute_s": 10.242770333308727,
+      "total_s": 13.14380137482658
+    },
+    {
+      "index": 2,
+      "role": "export",
+      "status": "executed",
+      "prepare_s": 0.5709111671894789,
+      "execute_s": 16.929606416728348,
+      "total_s": 19.92620679177344
+    },
+    {
+      "index": 3,
+      "role": "export",
+      "status": "executed",
+      "prepare_s": 0.5686217499896884,
+      "execute_s": 17.44902391685173,
+      "total_s": 20.373104790691286
+    },
+    {
+      "index": 4,
+      "role": "prepare",
+      "status": "executed",
+      "prepare_s": 0.5389624582603574,
+      "execute_s": 0.657924750354141,
+      "total_s": 3.9756379583850503
+    },
+    {
+      "index": 5,
+      "role": "verify",
+      "status": "executed",
+      "prepare_s": 0.004185209050774574,
+      "execute_s": 6.415983584243804,
+      "total_s": 8.438160916790366
+    }
+  ],
+  "elapsed_s": 71.76548237539828
+}
