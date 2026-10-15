@@ -28,6 +28,7 @@
 		2628E17B820E1C5BC4153536 /* BundleSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8608B7A795003231A4E788DF /* BundleSupport.swift */; };
 		2662B8C643C55FC8FE5CCF95 /* ProductRuntime in Frameworks */ = {isa = PBXBuildFile; productRef = 141CEB564582543BE6AF4A63 /* ProductRuntime */; };
 		28BFB0B60BC709ED2FE59D70 /* ProductRuntime in Frameworks */ = {isa = PBXBuildFile; productRef = 2884F21A0C7E36501C877794 /* ProductRuntime */; };
+		3150B586410104EB00827A21 /* InspectionAudioCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 148BF4ADF94AA3ECAAB30DB9 /* InspectionAudioCapture.swift */; };
 		324F3326B68B737B45C1CBCE /* ModelMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51FF5AB624408DE25F252FFF /* ModelMenu.swift */; };
 		330B4A9240E9871AD04245A6 /* DecideSelfTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47737423C61124F4327C174E /* DecideSelfTest.swift */; };
 		36B44880EECCFBD6D426A9E3 /* DecideResultRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F7FE685C8A7B3B5D383AC56 /* DecideResultRow.swift */; };
@@ -46,9 +47,11 @@
 		4762743C0165B4A8B11BE7AD /* SelfTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5071A083BC24B9B2B38CEFFB /* SelfTest.swift */; };
 		476D7C52423E5B95CA0721FF /* 02-ginger-pork.png in Resources */ = {isa = PBXBuildFile; fileRef = AF62F056E1C7BDA459C4655A /* 02-ginger-pork.png */; };
 		47C1121E79FF382599A3305A /* DecideFeature in Frameworks */ = {isa = PBXBuildFile; productRef = 11F2E4B5D8E1F715551A223B /* DecideFeature */; };
+		4EE266A37C7A87197ED9560B /* InspectionSpeaker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9042E52315E369A6C16890CE /* InspectionSpeaker.swift */; };
 		53457362944F93F90F86E445 /* ProductComparisonView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E435AB7F872EB64CEE46E3CC /* ProductComparisonView.swift */; };
 		539CB73E2E63F221AAB10CF9 /* Ingredients.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 7A89987BFF1C553FC444E064 /* Ingredients.xcstrings */; };
 		54B5909D79374D80C9ED8EED /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C8BB1C51D3BFC85B5F047FD0 /* Localizable.xcstrings */; };
+		597F3DF95BB4286B1230C370 /* InspectionRecognition.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5752BFE3276EAB49C2ADF091 /* InspectionRecognition.swift */; };
 		5BB2FFBBAE4EDB21463258C0 /* FieldRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0FA10BA3A84CA3A77540D03F /* FieldRow.swift */; };
 		609364C3007FA6891D207909 /* DemoLocalizationCheck.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33CBF7CF8C3F96D9CF47735D /* DemoLocalizationCheck.swift */; };
 		632D59E653DF203EA31B56EC /* ExtractFeature in Frameworks */ = {isa = PBXBuildFile; productRef = 383F71353F8B8246DEA9AC41 /* ExtractFeature */; };
@@ -59,6 +62,7 @@
 		68268B0951BF4FFA8ADA631D /* Catalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09F71463DA4F2153E25B4F33 /* Catalog.swift */; };
 		6895060850B682FA0B41235D /* HubDownloader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A20485F7EB3740C480083D7 /* HubDownloader.swift */; };
 		6B7D2FE8B9E0C9E52256FF43 /* ProductSelfTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3894AF084CBEF8DB456B11BB /* ProductSelfTest.swift */; };
+		6C76B33D12B95B500FFBC49B /* InspectionRecognition.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5752BFE3276EAB49C2ADF091 /* InspectionRecognition.swift */; };
 		6DC89743479937677DB58337 /* ExtractService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7E148DB501CB7AAE81691D6 /* ExtractService.swift */; };
 		70AF18D9E3D418DAEB7227A1 /* RecipeModelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C788E9F664AA9590A13BF66C /* RecipeModelView.swift */; };
 		78B4DEB1E00D44F7CF558AB7 /* ProductCore in Frameworks */ = {isa = PBXBuildFile; productRef = BE72404135FB541BA1D53995 /* ProductCore */; };
@@ -75,15 +79,19 @@
 		9B1870B687EC16E0F42E912F /* ProductAssembly.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F204E06B5FCFA512B91A646 /* ProductAssembly.swift */; };
 		9D7698B415D1356A7BF0FFFB /* ProductCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04E9B33538ECE4A7CBD2D9B0 /* ProductCardView.swift */; };
 		9D802D5BD64548A531688576 /* ExtractFeature in Frameworks */ = {isa = PBXBuildFile; productRef = AE6C6F087D50FB3366C2364A /* ExtractFeature */; };
+		A2D050A52E4424CB0AAC080C /* LiveInspectionSpeech.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F27640F8151AC5D099163D9 /* LiveInspectionSpeech.swift */; };
 		A3BA3BD55ABC5946F3A68CBD /* ProductFeature in Frameworks */ = {isa = PBXBuildFile; productRef = 433A6D8FC9BDE6DE7AD6EEB3 /* ProductFeature */; };
 		A6BDC0269DA3DFDE8D9CB2DA /* TruckInspectionFeature in Frameworks */ = {isa = PBXBuildFile; productRef = E11B9510FB5B5B6C957FA110 /* TruckInspectionFeature */; };
 		A90A0A3217552E5A011F8275 /* DemoLanguage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44BCC8CC19AB6344E09262EB /* DemoLanguage.swift */; };
 		A9AEB14652B17A4BE269655C /* PhoneDemoApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBE9C20E195FE641300D6F57 /* PhoneDemoApp.swift */; };
 		AA552FE64D9C0294E62619B4 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C8BB1C51D3BFC85B5F047FD0 /* Localizable.xcstrings */; };
 		AADF788380143B8F7BA565F6 /* DecideView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E36A6DC6BC5A449F3092E6AF /* DecideView.swift */; };
+		AB671210127EDAC44A951CFB /* InspectionAudioCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 148BF4ADF94AA3ECAAB30DB9 /* InspectionAudioCapture.swift */; };
+		ABE183289E65E843CA8C91EE /* LiveInspectionSpeech.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F27640F8151AC5D099163D9 /* LiveInspectionSpeech.swift */; };
 		AED5E118182009EE94A8A9D9 /* ModelsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF57BF3874EBD013FC0468B5 /* ModelsViewModel.swift */; };
 		AF294872BD74B3144756EE6D /* ExtractEval.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82B4A55114BBA7685FCF713C /* ExtractEval.swift */; };
 		B1DD58EA8D2DFB52E3157842 /* PhoneExtractView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EF29907EAA61DD548671267 /* PhoneExtractView.swift */; };
+		B62247B1FC9C52A67DD7AFA2 /* InspectionSpeaker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9042E52315E369A6C16890CE /* InspectionSpeaker.swift */; };
 		BB8E7BC8719150928F11C961 /* CoreAIBackend in Frameworks */ = {isa = PBXBuildFile; productRef = BB75233E9B636D569E934C46 /* CoreAIBackend */; };
 		BE5297A9C5729D047A6B0A4D /* GLiNERCore in Frameworks */ = {isa = PBXBuildFile; productRef = B83B007D551DD5E789EE8B58 /* GLiNERCore */; };
 		C0366556B44891DDD42D78D0 /* ModelsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B70B30B00E918D18EE2AA983 /* ModelsView.swift */; };
@@ -124,6 +132,7 @@
 		0A091709225A19A17E295027 /* RecipeAssembly.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipeAssembly.swift; sourceTree = "<group>"; };
 		0FA10BA3A84CA3A77540D03F /* FieldRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FieldRow.swift; sourceTree = "<group>"; };
 		1063E369286C82F9F3981B8A /* ChatRAG.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatRAG.swift; sourceTree = "<group>"; };
+		148BF4ADF94AA3ECAAB30DB9 /* InspectionAudioCapture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InspectionAudioCapture.swift; sourceTree = "<group>"; };
 		1BAA92853DA68C9FDF5D1827 /* RecipeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipeView.swift; sourceTree = "<group>"; };
 		1EF29907EAA61DD548671267 /* PhoneExtractView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneExtractView.swift; sourceTree = "<group>"; };
 		1F204E06B5FCFA512B91A646 /* ProductAssembly.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProductAssembly.swift; sourceTree = "<group>"; };
@@ -132,6 +141,7 @@
 		23AE6DC74C5AC0E32B8BDEF8 /* TruckInspectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TruckInspectionView.swift; sourceTree = "<group>"; };
 		267994EECDFD90E4FA239230 /* DecideCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DecideCommand.swift; sourceTree = "<group>"; };
 		2CF26E8719DB770CB66C8069 /* AgentViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentViewModel.swift; sourceTree = "<group>"; };
+		2F27640F8151AC5D099163D9 /* LiveInspectionSpeech.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveInspectionSpeech.swift; sourceTree = "<group>"; };
 		33CBF7CF8C3F96D9CF47735D /* DemoLocalizationCheck.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoLocalizationCheck.swift; sourceTree = "<group>"; };
 		35AEFA86A5545B593DC7ADE0 /* AgentTools.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentTools.swift; sourceTree = "<group>"; };
 		3894AF084CBEF8DB456B11BB /* ProductSelfTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProductSelfTest.swift; sourceTree = "<group>"; };
@@ -144,6 +154,7 @@
 		5071A083BC24B9B2B38CEFFB /* SelfTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelfTest.swift; sourceTree = "<group>"; };
 		51FF5AB624408DE25F252FFF /* ModelMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelMenu.swift; sourceTree = "<group>"; };
 		53F15DB3D78F006C718A6F5E /* correction_words.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = correction_words.json; sourceTree = "<group>"; };
+		5752BFE3276EAB49C2ADF091 /* InspectionRecognition.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InspectionRecognition.swift; sourceTree = "<group>"; };
 		57DF8A7744E8740E70B48D78 /* GUIDriver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GUIDriver.swift; sourceTree = "<group>"; };
 		598FAFD4122CCFFFB1A83FB4 /* HubDownloadSelfTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HubDownloadSelfTest.swift; sourceTree = "<group>"; };
 		659A8534A432DD74FD5D0E6D /* ChatViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatViewModel.swift; sourceTree = "<group>"; };
@@ -155,6 +166,7 @@
 		82E02B690B0BB1CD93649F40 /* AgentPromptBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentPromptBuilder.swift; sourceTree = "<group>"; };
 		8608B7A795003231A4E788DF /* BundleSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BundleSupport.swift; sourceTree = "<group>"; };
 		8D03BF17879A8622C726CB22 /* AgentSelfTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentSelfTest.swift; sourceTree = "<group>"; };
+		9042E52315E369A6C16890CE /* InspectionSpeaker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InspectionSpeaker.swift; sourceTree = "<group>"; };
 		961348DFD83CD9659D09A153 /* FieldEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FieldEditor.swift; sourceTree = "<group>"; };
 		9F2F07EBDAB41490EF60A529 /* ExtractRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtractRunner.swift; sourceTree = "<group>"; };
 		9F7FE685C8A7B3B5D383AC56 /* DecideResultRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DecideResultRow.swift; sourceTree = "<group>"; };
@@ -443,6 +455,10 @@
 		E1FF09FDCFF94F36D65C1B48 /* iOS */ = {
 			isa = PBXGroup;
 			children = (
+				148BF4ADF94AA3ECAAB30DB9 /* InspectionAudioCapture.swift */,
+				5752BFE3276EAB49C2ADF091 /* InspectionRecognition.swift */,
+				9042E52315E369A6C16890CE /* InspectionSpeaker.swift */,
+				2F27640F8151AC5D099163D9 /* LiveInspectionSpeech.swift */,
 				BBE9C20E195FE641300D6F57 /* PhoneDemoApp.swift */,
 				1EF29907EAA61DD548671267 /* PhoneExtractView.swift */,
 				DCBAA551F86D44CD24D4787C /* TruckInspectionAssembly.swift */,
@@ -614,7 +630,11 @@
 				7965D53F9D757D1A07ACEDF0 /* ExtractEval.swift in Sources */,
 				16CC300A10504F414B0E428B /* ExtractRunner.swift in Sources */,
 				6DC89743479937677DB58337 /* ExtractService.swift in Sources */,
+				3150B586410104EB00827A21 /* InspectionAudioCapture.swift in Sources */,
+				6C76B33D12B95B500FFBC49B /* InspectionRecognition.swift in Sources */,
+				4EE266A37C7A87197ED9560B /* InspectionSpeaker.swift in Sources */,
 				F8E2A64FD4FCB0220D394B60 /* LaunchArguments.swift in Sources */,
+				A2D050A52E4424CB0AAC080C /* LiveInspectionSpeech.swift in Sources */,
 				3952BB6FAB3547BC9A583CC3 /* ModelStorage.swift in Sources */,
 				A9AEB14652B17A4BE269655C /* PhoneDemoApp.swift in Sources */,
 				24F936C411557B9362ED1A77 /* PhoneExtractView.swift in Sources */,
@@ -658,7 +678,11 @@
 				E3DA34EB5609CB1F3033BBDC /* GUIDriver.swift in Sources */,
 				F683B96AA637C180E95E71A7 /* HubDownloadSelfTest.swift in Sources */,
 				6895060850B682FA0B41235D /* HubDownloader.swift in Sources */,
+				AB671210127EDAC44A951CFB /* InspectionAudioCapture.swift in Sources */,
+				597F3DF95BB4286B1230C370 /* InspectionRecognition.swift in Sources */,
+				B62247B1FC9C52A67DD7AFA2 /* InspectionSpeaker.swift in Sources */,
 				46CBAB943E1184CC6B04C04C /* LaunchArguments.swift in Sources */,
+				ABE183289E65E843CA8C91EE /* LiveInspectionSpeech.swift in Sources */,
 				C6C9A2085B4BE5EBDEB9030D /* MetricsLog.swift in Sources */,
 				324F3326B68B737B45C1CBCE /* ModelMenu.swift in Sources */,
 				8685AA2B616BA4AF220D767D /* ModelSelectionSelfTest.swift in Sources */,
@@ -752,6 +776,8 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Core AI Demos";
 				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Use the microphone to enter truck inspection results by voice.";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Recognize Japanese inspection answers on this device.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIFileSharingEnabled = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -840,6 +866,8 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Core AI Demos";
 				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Use the microphone to enter truck inspection results by voice.";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Recognize Japanese inspection answers on this device.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIFileSharingEnabled = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

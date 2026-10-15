@@ -49,8 +49,13 @@
                         ProductComparisonView(store: products, assetFolders: assetFolders)
                             .toolbar {
                                 DemoLanguagePicker(code: $languageCode)
-                                Button("Truck inspection") { showingTruckInspection = true }
-                                Button("Extraction lab") { showingExtractionLab = true }
+                                Menu {
+                                    Button("Truck inspection") { showingTruckInspection = true }
+                                    Button("Extraction lab") { showingExtractionLab = true }
+                                } label: {
+                                    Label("Demos", systemImage: "square.grid.2x2")
+                                }
+                                .labelStyle(.iconOnly)
                             }
                             .sheet(isPresented: $showingExtractionLab) {
                                 PhoneExtractView(store: extract, assetFolders: assetFolders, computeUnits: computeUnits)

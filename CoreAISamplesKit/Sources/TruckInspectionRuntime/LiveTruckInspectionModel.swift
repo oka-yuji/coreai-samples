@@ -25,7 +25,8 @@ public final class LiveTruckInspectionModel: TruckInspectionModelService {
         extractor = loaded
         return InspectionModelInfo(
             folder: folder, revision: revision, milliseconds: (clock.now - started) / .milliseconds(1),
-            computePreference: automaticPlacement ? "default" : "gpu")
+            computePreference: automaticPlacement ? "default" : "gpu",
+            floatType: String(describing: loaded.model.floatType))
     }
 
     public func classify(

@@ -5408,6 +5408,193 @@
           }
         }
       }
+    },
+    "Start Japanese voice input" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "日本語の音声入力を始める"
+          }
+        }
+      }
+    },
+    "Use answer buttons" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "タップ回答に切り替える"
+          }
+        }
+      }
+    },
+    "Checking voice permissions…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音声の権限を確認しています…"
+          }
+        }
+      }
+    },
+    "Reading the question…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "読み上げています…"
+          }
+        }
+      }
+    },
+    "Listening for confirmation" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "確認の回答を聞いています"
+          }
+        }
+      }
+    },
+    "Listening for your answer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "回答を聞いています"
+          }
+        }
+      }
+    },
+    "Prepare a model before starting voice input. Tap answers are available now." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音声入力にはモデルの準備が必要です。タップ回答はすぐに使えます。"
+          }
+        }
+      }
+    },
+    "Speech playback did not finish. Continue with the answer buttons." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "読み上げが完了しませんでした。ボタンで回答を続けてください。"
+          }
+        }
+      }
+    },
+    "No answer was recognized. Continue with the answer buttons." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "回答を聞き取れませんでした。ボタンで回答を続けてください。"
+          }
+        }
+      }
+    },
+    "Voice input is unavailable. Check permissions and Japanese on-device recognition, or use the answer buttons." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音声入力を利用できません。権限と日本語の端末内認識を確認するか、ボタンで回答してください。"
+          }
+        }
+      }
+    },
+    "Continue with the answer buttons." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ボタンで回答を続けてください。"
+          }
+        }
+      }
+    },
+    "The result is still unconfirmed. Answer this item with the buttons." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "結果は未確認です。この項目をボタンで回答してください。"
+          }
+        }
+      }
+    },
+    "Measure 20 classifications" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "推論を20回計測"
+          }
+        }
+      }
+    },
+    "Median: %@ ms" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "中央値：%@ ms"
+          }
+        }
+      }
+    },
+    "p95: %@ ms" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "p95：%@ ms"
+          }
+        }
+      }
+    },
+    "Measuring classification speed…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "推論速度を計測しています…"
+          }
+        }
+      }
+    },
+    "Speaking…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "読み上げています…"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

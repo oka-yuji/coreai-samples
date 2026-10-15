@@ -21,7 +21,9 @@
                     introduction
                     configuration
                     controls
-                    if state.phase == .answering || state.phase == .classifying || state.phase == .confirming {
+                    if state.phase == .answering || state.phase == .classifying || state.phase == .confirming
+                        || state.phase == .speaking || state.phase == .listening
+                    {
                         question
                     }
                     if !state.message.isEmpty {
@@ -46,7 +48,7 @@
                 .task { store.send(.appeared) }
                 .onDisappear { store.send(.closed) }
                 .onChange(of: scenePhase) { _, phase in
-                    if phase != .active { store.send(.stop) }
+                    if phase == .background { store.send(.stop) }
                 }
                 .confirmationDialog("Clear this inspection record?", isPresented: $resetting) {
                     Button("Start a new record", role: .destructive) { store.send(.reset) }
@@ -107,13 +109,23 @@
                     Text("Review the results below, including items needing attention and items not inspected.")
                         .font(.caption)
                 } else if state.canConfigure {
-                    Button(state.records.isEmpty ? "Start inspection" : "Continue inspection") { store.send(.start) }
+                    Button("Start Japanese voice input") { store.send(.voice(.start)) }
                         .buttonStyle(.borderedProminent).controlSize(.large)
+                        .disabled(state.modelInfo == nil)
+                    Button(state.records.isEmpty ? "Start inspection" : "Continue inspection") { store.send(.start) }
+                        .buttonStyle(.bordered).controlSize(.large)
                 } else if state.busy {
                     HStack {
                         ProgressView()
                         Text(LocalizedStringKey(phaseTitle))
                     }
+                }
+                if state.voiceActive {
+                    Label(
+                        LocalizedStringKey(phaseTitle),
+                        systemImage: state.phase == .listening ? "mic.fill" : "speaker.wave.2.fill")
+                    if !state.partialText.isEmpty { Text(verbatim: state.partialText).font(.body) }
+                    Button("Use answer buttons") { store.send(.voice(.useButtons)) }
                 }
                 if state.phase != .idle && state.phase != .completed {
                     Button("Stop", role: .cancel) { store.send(.stop) }
@@ -136,7 +148,9 @@
                         Label("Check timing depends on distance and operating conditions.", systemImage: "calendar")
                             .font(.caption)
                     }
-                    if state.phase == .confirming, let pending = state.pending {
+                    if state.phase == .confirming || (state.voiceActive && state.voicePrompt == .confirmation),
+                        let pending = state.pending
+                    {
                         Text(verbatim: state.draft).font(.body)
                         Text(verbatim: state.catalog.confirmation(for: item, status: pending.status))
                             .font(.headline)
@@ -145,6 +159,7 @@
                             Button("Answer again") { store.send(.confirm(false)) }.buttonStyle(.bordered)
                         }
                         .controlSize(.large)
+                        .disabled(state.phase != .confirming)
                     } else {
                         LazyVGrid(columns: [GridItem(.adaptive(minimum: 130))], spacing: 12) {
                             ForEach(state.catalog.choices, id: \.status) { choice in
@@ -224,7 +239,18 @@
                     } else {
                         Text("Tap answers work without a model.")
                     }
+                    Button("Measure 20 classifications") { store.send(.measure) }
+                        .disabled(!state.canConfigure || state.modelInfo == nil)
+                    if let measurement = state.measurement {
+                        Text(
+                            "Median: \(measurement.medianMilliseconds.formatted(.number.precision(.fractionLength(1)).locale(locale))) ms"
+                        )
+                        Text(
+                            "p95: \(measurement.p95Milliseconds.formatted(.number.precision(.fractionLength(1)).locale(locale))) ms"
+                        )
+                    }
                     Text(LocalizedStringKey(phaseTitle)).font(.caption)
+                    if !state.voiceDiagnostics.isEmpty { Text(verbatim: state.voiceDiagnostics).font(.caption) }
                     ForEach(Array(state.events.suffix(8).enumerated()), id: \.offset) { _, event in
                         Text(verbatim: event).font(.caption2).textSelection(.enabled)
                     }
@@ -242,6 +268,11 @@
             case .confirming: "Waiting for confirmation"
             case .completed: "All answers recorded"
             case .stopping: "Stopping…"
+            case .measuring: "Measuring classification speed…"
+            case .authorizing: "Checking voice permissions…"
+            case .speaking: "Speaking…"
+            case .listening:
+                state.voicePrompt == .confirmation ? "Listening for confirmation" : "Listening for your answer"
             }
         }
     }

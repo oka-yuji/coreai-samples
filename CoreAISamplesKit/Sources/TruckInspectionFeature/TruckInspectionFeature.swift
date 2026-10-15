@@ -4,6 +4,9 @@ import TruckInspectionCore
 
 public enum InspectionAction: Sendable {
     case appeared, closed, start, stop, reset
+    case voice(InspectionVoiceAction)
+    case measure
+    case measured(Int, InspectionMeasurement)
     case profileChanged(TruckProfile)
     case modelChosen(URL)
     case modelLoaded(Int, InspectionModelInfo)
@@ -19,6 +22,8 @@ public enum InspectionAction: Sendable {
 }
 
 public enum InspectionEffect: Equatable, Sendable {
+    case voice(Int, InspectionVoiceEffect)
+    case measure(Int, String, InspectionItem, InspectionCatalog)
     case prepare(Int, URL)
     case classify(Int, String, InspectionItem, InspectionCatalog)
     case stop(Int, unload: Bool)
@@ -33,6 +38,26 @@ public enum TruckInspectionFeature: Feature {
 
     public static func reduce(_ state: inout State, _ action: Action) -> Commands {
         switch action {
+        case .voice(let voice): return voiceReduce(&state, voice)
+        case .measure:
+            guard state.canConfigure, state.modelInfo != nil,
+                let item = state.items.first(where: { $0.id == "tire_pressure" }),
+                let text = item.aliases[InspectionStatus.attention.rawValue]?.first
+            else { return [] }
+            state.generation += 1
+            state.measurement = nil
+            state.message = ""
+            state.measurementReturnPhase = state.phase
+            state.phase = .measuring
+            return [.run(.measure(state.generation, text, item, state.catalog), id: .operation)]
+        case .measured(let id, let result):
+            guard state.active, id == state.generation, state.phase == .measuring else { return [] }
+            state.measurement = result
+            state.phase = state.measurementReturnPhase
+            state.note(
+                "benchmark: runs=20 warmupMs=\(result.warmupMilliseconds) medianMs=\(result.medianMilliseconds) p95Ms=\(result.p95Milliseconds)"
+            )
+            return []
         case .appeared:
             state.active = true
             if state.phase == .stopping {
@@ -54,7 +79,8 @@ public enum TruckInspectionFeature: Feature {
             state.modelInfo = info
             state.phase = .idle
             state.note(
-                "timing: load=\(info.milliseconds)ms revision=\(info.revision) preference=\(info.computePreference)")
+                "timing: load=\(info.milliseconds)ms revision=\(info.revision) preference=\(info.computePreference) floatType=\(info.floatType)"
+            )
             return []
         case .profileChanged(let profile):
             guard state.canConfigure, state.profile != profile else { return [] }
@@ -81,23 +107,28 @@ public enum TruckInspectionFeature: Feature {
         case .choose(let status):
             guard state.canAnswer else { return [] }
             state.draft = state.catalog.title(for: status)
-            record(&state, candidate: InspectionCandidate(status: status, method: .button), confirmed: false)
-            return []
+            return record(&state, candidate: InspectionCandidate(status: status, method: .button), confirmed: false)
         case .classified(let id, let candidate, let milliseconds):
             guard state.active, id == state.generation, state.phase == .classifying else { return [] }
             state.pending = candidate
             state.pendingMilliseconds = milliseconds
             state.phase = .confirming
             state.note("timing: classify=\(milliseconds)ms score=\(candidate.score ?? 0)")
+            if state.voiceActive, let item = state.currentItem {
+                return speak(
+                    &state, text: state.catalog.confirmation(for: item, status: candidate.status), prompt: .confirmation
+                )
+            }
             return []
         case .confirm(let accepted):
             guard state.active, state.phase == .confirming, let pending = state.pending else { return [] }
             if accepted {
-                record(&state, candidate: pending, confirmed: true)
+                return record(&state, candidate: pending, confirmed: true)
             } else {
                 state.pending = nil
                 state.phase = .answering
                 state.message = "Please answer this item again."
+                if state.voiceActive { return ask(&state, retry: true) }
             }
             return []
         case .edit(let id):
@@ -114,7 +145,7 @@ public enum TruckInspectionFeature: Feature {
             return stop(&state, unload: false)
         case .stopped(let id, let unloaded):
             guard id == state.generation, state.phase == .stopping else { return [] }
-            state.phase = .idle
+            state.phase = state.active ? state.resumeAfterStop : .idle
             if unloaded { state.modelInfo = nil }
             let reload = state.reloadAfterStop
             state.reloadAfterStop = false
@@ -124,11 +155,14 @@ public enum TruckInspectionFeature: Feature {
             return []
         case .failed(let id, let error):
             guard state.active, id == state.generation,
-                state.phase == .preparing || state.phase == .classifying
+                state.phase == .preparing || state.phase == .classifying || state.phase == .measuring
             else { return [] }
-            state.phase = state.phase == .preparing ? .idle : .answering
+            state.phase =
+                state.phase == .measuring
+                ? state.measurementReturnPhase : (state.phase == .preparing ? .idle : .answering)
             state.message = "The operation failed. Check the diagnostics or use the answer buttons."
             state.note("error: \(error)")
+            if state.voiceActive { return voiceFallback(&state, message: state.message) }
             return []
         case .diagnostic(let id, let text):
             guard state.active, id == state.generation else { return [] }
@@ -137,20 +171,20 @@ public enum TruckInspectionFeature: Feature {
         }
     }
 
-    private static func prepare(_ state: inout State, folder: URL) -> Commands {
+    static func prepare(_ state: inout State, folder: URL) -> Commands {
         state.generation += 1
         state.modelFolder = folder
         state.modelInfo = nil
+        state.measurement = nil
         state.phase = .preparing
         state.message = ""
         return [.run(.prepare(state.generation, folder), id: .operation)]
     }
 
-    private static func submit(_ state: inout State, item: InspectionItem) -> Commands {
+    static func submit(_ state: inout State, item: InspectionItem) -> Commands {
         do {
             if let exact = try InspectionRules.exactAnswer(state.draft, item: item, catalog: state.catalog) {
-                record(&state, candidate: exact, confirmed: false)
-                return []
+                return record(&state, candidate: exact, confirmed: false)
             }
         } catch {
             state.message =
@@ -168,21 +202,30 @@ public enum TruckInspectionFeature: Feature {
         return [.run(.classify(state.generation, state.draft, item, state.catalog), id: .operation)]
     }
 
-    private static func record(_ state: inout State, candidate: InspectionCandidate, confirmed: Bool) {
-        guard let item = state.currentItem else { return }
+    static func record(_ state: inout State, candidate: InspectionCandidate, confirmed: Bool) -> Commands {
+        guard let item = state.currentItem else { return [] }
         state.records[item.id] = InspectionRecord(
             itemID: item.id, title: item.title, answer: state.draft, candidate: candidate,
-            confirmed: confirmed, milliseconds: candidate.method == .model ? state.pendingMilliseconds : 0)
+            confirmed: confirmed, milliseconds: candidate.method == .model ? state.pendingMilliseconds : 0,
+            turnMilliseconds: state.voiceActive
+                ? state.turnStartedAt.map { max(0, state.clockSeconds - $0) * 1000 } : nil)
         state.note(
             "decided: \(item.id)=\(candidate.status.rawValue) via=\(candidate.method.rawValue) confirmed=\(confirmed)")
         state.pending = nil
         state.pendingMilliseconds = 0
         state.draft = ""
         state.message = ""
+        if state.voiceActive {
+            if let start = state.turnStartedAt { state.note("timing: turn=\(max(0, state.clockSeconds - start))s") }
+            return speak(
+                &state, text: state.catalog.acknowledgment(for: item, status: candidate.status), prompt: .acknowledgment
+            )
+        }
         next(&state)
+        return []
     }
 
-    private static func next(_ state: inout State) {
+    static func next(_ state: inout State) {
         if let next = state.items.firstIndex(where: { state.records[$0.id] == nil }) {
             state.index = next
             state.phase = .answering
@@ -192,7 +235,7 @@ public enum TruckInspectionFeature: Feature {
         }
     }
 
-    private static func reset(_ state: inout State) {
+    static func reset(_ state: inout State) {
         state.generation += 1
         state.records.removeAll()
         state.events.removeAll()
@@ -201,9 +244,13 @@ public enum TruckInspectionFeature: Feature {
         state.draft = ""
         state.message = ""
         state.phase = .idle
+        state.partialText = ""
+        state.turnStartedAt = nil
     }
 
-    private static func stop(_ state: inout State, unload: Bool) -> Commands {
+    static func stop(_ state: inout State, unload: Bool, resume: State.Phase = .idle) -> Commands {
+        state.voiceActive = false
+        state.resumeAfterStop = resume
         state.generation += 1
         state.pending = nil
         state.phase = .stopping
