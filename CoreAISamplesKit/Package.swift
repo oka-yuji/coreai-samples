@@ -13,6 +13,8 @@ let package = Package(
         .iOS("27.0"),
     ],
     products: [
+        .library(name: "TruckInspectionCore", targets: ["TruckInspectionCore"]),
+        .library(name: "TruckInspectionRuntime", targets: ["TruckInspectionRuntime"]),
         .library(name: "EmbeddingCore", targets: ["EmbeddingCore"]),
         .library(name: "EmbeddingRuntime", targets: ["EmbeddingRuntime"]),
         .executable(name: "embedding-verify", targets: ["embedding-verify"]),
@@ -37,6 +39,13 @@ let package = Package(
         .package(url: "https://github.com/huggingface/swift-jinja.git", from: "2.5.1"),
     ],
     targets: [
+        .target(name: "TruckInspectionCore", swiftSettings: approachableConcurrency),
+        .target(
+            name: "TruckInspectionRuntime", dependencies: ["TruckInspectionCore"],
+            resources: [.process("Resources")], swiftSettings: approachableConcurrency),
+        .testTarget(
+            name: "TruckInspectionCoreTests", dependencies: ["TruckInspectionCore", "TruckInspectionRuntime"],
+            resources: [.process("Resources")], swiftSettings: approachableConcurrency),
         .target(name: "EmbeddingCore", swiftSettings: approachableConcurrency),
         .target(
             name: "EmbeddingRuntime",
