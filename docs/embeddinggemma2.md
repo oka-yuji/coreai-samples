@@ -4,13 +4,15 @@ The runtime accepts a local text/vision bundle, raw text, and opaque images deco
 
 ## Prepare the local bundle
 
-Use the Python environment from the conversion experiment, with NumPy installed:
+Use the [EmbeddingGemma 2 conversion recipe](../Tools/Conversion/recipes/embeddinggemma2/README.md) from this repository. It prepares an independent environment and runs reference generation, safe FP16 text/vision export, packaging and twenty native-input comparisons:
 
 ```sh
-python Tools/Embedding/package_bundle.py /path/to/embeddinggemma2-20261014 /path/to/new-bundle
+python3 -m Tools.Conversion.local setup --recipe embeddinggemma2
+python3 -m Tools.Conversion.local plan --recipe embeddinggemma2
+python3 -m Tools.Conversion.local run --recipe embeddinggemma2
 ```
 
-The output contains the two safe FP16 assets, the original tokenizer, an exact BF16 representation of the unscaled vocabulary embeddings, the original model card, license references, and SHA256 checksums. The original assets are unchanged. Accept the source model's Gemma terms before acquiring or distributing weights.
+Download the pinned source first as described in the recipe. Require a completed run with passed verification, then use the bundle stage's artifact directory. Weights and raw reports stay under ignored `.local`. The output retains the source card's Apache-2.0 notice and license text. CoreLLM and the old `package_bundle.py ASSETS OUTPUT` interface are no longer used.
 
 ## Runtime contract
 

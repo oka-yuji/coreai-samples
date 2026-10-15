@@ -60,6 +60,8 @@ def check_workspace_paths(workspace, upstream):
 def setup(workspace, recipe, snapshot, lock=None):
     contract_path = recipe.parent / "model.json"
     contract = read_json(contract_path)
+    if contract.get("model_type") == "embedding_gemma2":
+        return setup_embedding(workspace, recipe, snapshot, lock)
     snapshot = (snapshot or default_snapshot(contract)).expanduser().resolve()
     if not snapshot.is_dir():
         raise PipelineError(
@@ -86,6 +88,39 @@ def setup(workspace, recipe, snapshot, lock=None):
             raise PipelineError("Setup did not produce the Python environment and Swift runner")
         bindings = workspace / f"{recipe.parent.name}.paths.json"
         write_json(bindings, {"upstream": str(upstream), "snapshot": str(snapshot)})
+        print(f"Local bindings: {bindings}")
+
+
+def setup_embedding(workspace, recipe, snapshot, lock):
+    from .adapters.embeddinggemma2.prepare import environment_inputs, native_sources, validate_source
+    from .adapters.pinned import apple_toolchain, sha256
+    contract = read_json(recipe.parent / "model.json")
+    copied = workspace / "inputs/embeddinggemma2" / contract["revision"]
+    snapshot = (snapshot or (copied if copied.is_dir() else default_snapshot(contract))).expanduser().resolve()
+    validate_source(snapshot, contract)
+    profile = workspace / "embeddinggemma2"
+    check_workspace_paths(workspace, profile)
+    with directory_lock(workspace / "setup.lock", {"operation": "setup"}), \
+            directory_lock(lock or default_lock(), {"operation": "embedding-setup"}):
+        profile.mkdir(parents=True, exist_ok=True)
+        environment = environment_inputs(recipe.parent)
+        command("uv", "sync", "--project", recipe.parent, "--frozen", "--no-dev", "--python", "3.11",
+                env={"UV_PROJECT_ENVIRONMENT": str(profile / ".venv")})
+        command(profile / ".venv/bin/python", "-c",
+                "from transformers import AutoProcessor, EmbeddingGemma2Model; import coreai_torch; import coreai.runtime")
+        sources = native_sources(ROOT)
+        toolchain = apple_toolchain()
+        command("swift", "build", "--package-path", ROOT / "CoreAISamplesKit", "--scratch-path", profile / ".build",
+                "-c", "release", "--product", "embedding-verify", "--disable-automatic-resolution")
+        runner = profile / ".build/release/embedding-verify"
+        if sources != native_sources(ROOT) or toolchain != apple_toolchain() or environment != environment_inputs(recipe.parent):
+            raise PipelineError("Native inputs changed during setup; retry after edits finish")
+        stamp = profile / "native-build.json"
+        write_json(stamp, {"sources": sources, "toolchain": toolchain, "runner_sha256": sha256(runner),
+                           "environment_inputs": environment})
+        bindings = workspace / "embeddinggemma2.paths.json"
+        write_json(bindings, {"python": str(profile / ".venv/bin/python"), "snapshot": str(snapshot),
+                              "runner": str(runner), "native_build": str(stamp)})
         print(f"Local bindings: {bindings}")
 
 
