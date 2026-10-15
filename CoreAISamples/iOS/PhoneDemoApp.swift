@@ -5,6 +5,7 @@
     import ProductFeature
     import SwiftUI
     import UIKit
+    import TruckInspectionFeature
 
     @main
     struct PhoneDemoApp: App {
@@ -14,6 +15,8 @@
         @State private var extract: Store<ExtractFeature>
         @State private var products = ProductAssembly.makeStore()
         @State private var showingExtractionLab = false
+        @State private var showingTruckInspection = CommandLine.arguments.contains("--truck-inspection")
+        @State private var truck: Result<Store<TruckInspectionFeature>, any Error>
         @AppStorage(DemoLanguage.preferenceKey) private var languageCode = DemoLanguage.initialCode
 
         init() {
@@ -33,6 +36,8 @@
                 initialValue: Store(
                     initialState: ExtractState(form: ExtractResources.form, labels: ExtractResources.examples.labels),
                     run: ExtractRunner(service: service).run))
+            let folders = assetFolders
+            _truck = State(initialValue: Result { try TruckInspectionAssembly.makeStore(assetFolders: folders) })
         }
 
         var body: some Scene {
@@ -44,10 +49,22 @@
                         ProductComparisonView(store: products, assetFolders: assetFolders)
                             .toolbar {
                                 DemoLanguagePicker(code: $languageCode)
+                                Button("Truck inspection") { showingTruckInspection = true }
                                 Button("Extraction lab") { showingExtractionLab = true }
                             }
                             .sheet(isPresented: $showingExtractionLab) {
                                 PhoneExtractView(store: extract, assetFolders: assetFolders, computeUnits: computeUnits)
+                            }
+                            .sheet(isPresented: $showingTruckInspection) {
+                                switch truck {
+                                case .success(let store):
+                                    TruckInspectionView(store: store, assetFolders: assetFolders)
+                                case .failure(let error):
+                                    ContentUnavailableView(
+                                        "Could not load the inspection questions",
+                                        systemImage: "exclamationmark.triangle",
+                                        description: Text(verbatim: String(describing: error)))
+                                }
                             }
                     }
                     .environment(\.locale, (DemoLanguage(rawValue: languageCode) ?? .english).locale)
