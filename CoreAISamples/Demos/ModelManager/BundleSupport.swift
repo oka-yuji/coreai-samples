@@ -22,8 +22,8 @@ enum BundleSupport {
         }
         guard supportedModelIDPrefixes.contains(where: modelID.hasPrefix) else {
             throw Refusal(
-                reason: "This sample runs Qwen3, Qwen3.5 and Qwen3.8 bundles made with Apple's converter. "
-                    + "\(bundle.name) was converted from \(modelID).")
+                reason: "This sample's Chat and Agent handle Qwen3, Qwen3.5 and Qwen3.8 bundles. "
+                    + "\(bundle.name) was converted from \(modelID), which this sample does not handle.")
         }
         return bundle
     }
