@@ -45,6 +45,35 @@ struct ImageSearchTests {
         #expect(state.canSearch)
     }
 
+    @Test("A completed search with weak candidates is distinct from the initial gallery and can reveal all candidates")
+    func weakMatches() {
+        var state = ready()
+        _ = ImageSearchFeature.reduce(&state, .search)
+        let weak = ImageSearchMatch(photo: photo, similarity: 0.5)
+        _ = ImageSearchFeature.reduce(&state, .searched(1, [weak], 0.1))
+        #expect(state.hasSearched)
+        #expect(state.displayedMatches.isEmpty)
+        _ = ImageSearchFeature.reduce(&state, .showAllCandidates(true))
+        #expect(state.displayedMatches == [weak])
+        _ = ImageSearchFeature.reduce(&state, .index([photo.url]))
+        #expect(!state.hasSearched && !state.showsAllCandidates)
+        #expect(state.matches.isEmpty)
+    }
+
+    @Test("The fixed relevance cutoff retains its boundary and cancelled searches do not show an empty success")
+    func relevanceBoundaryAndCancellation() {
+        var state = ready()
+        _ = ImageSearchFeature.reduce(&state, .search)
+        let boundary = ImageSearchMatch(photo: photo, similarity: ImageSearchState.minimumSimilarity)
+        _ = ImageSearchFeature.reduce(&state, .searched(1, [boundary], 0.1))
+        #expect(state.displayedMatches == [boundary])
+        _ = ImageSearchFeature.reduce(&state, .search)
+        _ = ImageSearchFeature.reduce(&state, .stop)
+        _ = ImageSearchFeature.reduce(&state, .searched(2, [], 0.1))
+        _ = ImageSearchFeature.reduce(&state, .stopped(3))
+        #expect(!state.hasSearched && state.matches.isEmpty)
+    }
+
     @Test("Stop rejects late success and failure until the runtime becomes idle")
     func stop() {
         var state = ready()

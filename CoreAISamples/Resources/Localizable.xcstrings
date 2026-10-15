@@ -5268,6 +5268,56 @@
           }
         }
       }
+    },
+    "Example searches" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "検索例"
+          }
+        }
+      }
+    },
+    "No close matches" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "十分に近い候補がありません"
+          }
+        }
+      }
+    },
+    "Show all candidates" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "すべての候補を表示"
+          }
+        }
+      }
+    },
+    "Similarity compares meaning; it is not a probability." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "類似度は意味の近さで、正解の確率ではありません。"
+          }
+        }
+      }
+    },
+    "Try different wording, choose more images, or show all candidates." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "言葉を変えるか、画像を追加するか、すべての候補を表示してください。"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

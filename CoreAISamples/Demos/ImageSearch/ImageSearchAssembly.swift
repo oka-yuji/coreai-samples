@@ -7,6 +7,18 @@ import SwiftUI
 
 @MainActor
 enum ImageSearchAssembly {
+    struct Query: Decodable, Identifiable {
+        let id: String
+        let text: String
+    }
+
+    static var queries: [Query] {
+        guard let url = Bundle.main.url(forResource: "image-search-queries", withExtension: "json"),
+            let data = try? Data(contentsOf: url), let queries = try? JSONDecoder().decode([Query].self, from: data)
+        else { return [] }
+        return queries
+    }
+
     static func makeStore() -> Store<ImageSearchFeature> {
         let prepared = URL.documentsDirectory.appending(path: "embeddinggemma2")
         let folder =

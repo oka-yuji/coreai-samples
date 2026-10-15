@@ -15,7 +15,8 @@ enum ImageSearchSelfTest {
     private struct Query: Decodable {
         let id: String
         let text: String
-        let expected: String
+        let expected: String?
+        let evaluationOnly: Bool?
     }
 
     private struct Match: Encodable {
@@ -28,6 +29,10 @@ enum ImageSearchSelfTest {
         let query: String
         let seconds: Double?
         let matches: [Match]
+        let displayed: [String]
+        let expected: String?
+        let relevantResult: Bool
+        let evaluationOnly: Bool
     }
 
     static func run(directory: URL, folder: URL) async -> Int32 {
@@ -67,23 +72,32 @@ enum ImageSearchSelfTest {
             store.send(.setQuery(query.text))
             store.send(.search)
             try await harness.settle()
-            try require(store.state.matches.first?.photo.url.lastPathComponent == query.expected, state: store.state)
+            try require(store.state.hasSearched, state: store.state)
+            let relevant = store.state.displayedMatches.first?.photo.url.lastPathComponent == query.expected
+            if query.evaluationOnly != true { try require(relevant, state: store.state) }
             records.append(
                 Record(
                     id: query.id, query: query.text, seconds: store.state.seconds,
                     matches: store.state.matches.map {
                         Match(image: $0.photo.url.lastPathComponent, similarity: $0.similarity)
-                    }))
+                    }, displayed: store.state.displayedMatches.map { $0.photo.url.lastPathComponent },
+                    expected: query.expected, relevantResult: relevant, evaluationOnly: query.evaluationOnly == true))
             if query.id == "ja_food" {
                 try snapshot(store: store, width: 1_040, height: 760, to: directory.appending(path: "gallery-ja.png"))
                 try snapshot(
                     store: store, width: 390, height: 844, to: directory.appending(path: "gallery-compact-ja.png"))
             }
-            guard let first = store.state.matches.first?.photo else { throw failure("Missing original image") }
-            store.send(.select(first))
-            try require(
-                store.state.selection == first && ImageSearchAssembly.original(first.url) != nil, state: store.state)
-            store.send(.select(nil))
+            if let first = store.state.displayedMatches.first?.photo {
+                store.send(.select(first))
+                try require(
+                    store.state.selection == first && ImageSearchAssembly.original(first.url) != nil, state: store.state
+                )
+                store.send(.select(nil))
+            } else {
+                store.send(.showAllCandidates(true))
+                try require(store.state.displayedMatches.count == 5, state: store.state)
+                store.send(.showAllCandidates(false))
+            }
         }
         store.send(.search)
         store.send(.stop)
@@ -103,6 +117,11 @@ enum ImageSearchSelfTest {
             "passed": true, "images": 5, "queries": records.count,
             "indexingSeconds": indexingSeconds, "queuedStopAndRetry": true, "originalRead": true,
             "os": ProcessInfo.processInfo.operatingSystemVersionString,
+            "relevanceCorrect": records.filter(\.relevantResult).count,
+            "heldOutQueries": records.filter(\.evaluationOnly).count,
+            "heldOutCorrect": records.filter { $0.evaluationOnly && $0.relevantResult }.count,
+            "minimumSimilarity": ImageSearchState.minimumSimilarity,
+            "relevanceScope": "Fixed examples; reported separately from numerical and interaction checks",
         ]
         try JSONSerialization.data(withJSONObject: summary, options: [.prettyPrinted, .sortedKeys])
             .write(to: directory.appending(path: "summary.json"), options: .atomic)

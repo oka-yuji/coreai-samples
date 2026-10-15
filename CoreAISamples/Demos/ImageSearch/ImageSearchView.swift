@@ -73,6 +73,17 @@ struct ImageSearchView: View {
             }
             .padding(10)
             .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 10))
+            Menu("Example searches") {
+                ForEach(ImageSearchAssembly.queries) { query in
+                    Button {
+                        store.send(.setQuery(query.text))
+                    } label: {
+                        Text(verbatim: query.text)
+                    }
+                }
+            }
+            .disabled(state.isBusy)
+            .accessibilityIdentifier("image-search-examples")
             status
         }
     }
@@ -125,7 +136,7 @@ struct ImageSearchView: View {
                 Spacer()
                 if let seconds = state.seconds {
                     let value = DemoStrings(locale: locale).number(seconds, fractionDigits: 2...2)
-                    if state.matches.isEmpty { Text("Indexing: \(value) s") } else { Text("Search: \(value) s") }
+                    if state.hasSearched { Text("Search: \(value) s") } else { Text("Indexing: \(value) s") }
                 }
             }
         }
@@ -145,7 +156,7 @@ struct ImageSearchView: View {
     private var gallery: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack(alignment: .firstTextBaseline) {
-                if state.matches.isEmpty {
+                if !state.hasSearched {
                     Text("Selected images").font(.title2.bold())
                 } else {
                     VStack(alignment: .leading, spacing: 4) {
@@ -154,13 +165,30 @@ struct ImageSearchView: View {
                     }
                 }
                 Spacer()
-                Text("\(state.photos.count) images").font(.subheadline).foregroundStyle(.secondary)
+                let count = state.hasSearched ? state.displayedMatches.count : state.photos.count
+                Text("\(count) images").font(.subheadline).foregroundStyle(.secondary)
+            }
+            if state.hasSearched {
+                Toggle(
+                    "Show all candidates",
+                    isOn: Binding(get: { state.showsAllCandidates }, set: { store.send(.showAllCandidates($0)) })
+                )
+                .accessibilityIdentifier("image-search-all-candidates")
+                Text("Similarity compares meaning; it is not a probability.")
+                    .font(.caption).foregroundStyle(.secondary)
+                if state.displayedMatches.isEmpty {
+                    ContentUnavailableView(
+                        "No close matches", systemImage: "magnifyingglass",
+                        description: Text("Try different wording, choose more images, or show all candidates.")
+                    )
+                    .accessibilityIdentifier("image-search-no-matches")
+                }
             }
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 200, maximum: 360), spacing: 16)], spacing: 20) {
-                if state.matches.isEmpty {
+                if !state.hasSearched {
                     ForEach(state.photos) { photo in tile(photo, similarity: nil) }
                 } else {
-                    ForEach(state.matches) { match in tile(match.photo, similarity: match.similarity) }
+                    ForEach(state.displayedMatches) { match in tile(match.photo, similarity: match.similarity) }
                 }
             }
         }

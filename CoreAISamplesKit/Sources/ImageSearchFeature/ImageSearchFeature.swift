@@ -35,6 +35,7 @@ public enum ImageSearchPhase: Equatable, Sendable {
 }
 
 public struct ImageSearchState: Equatable, Sendable {
+    public static let minimumSimilarity = 0.67
     public var modelFolder: URL?
     public var query = ""
     public var submittedQuery = ""
@@ -42,6 +43,8 @@ public struct ImageSearchState: Equatable, Sendable {
     public var ready = false
     public var photos: [SearchPhoto] = []
     public var matches: [ImageSearchMatch] = []
+    public var hasSearched = false
+    public var showsAllCandidates = false
     public var completed = 0
     public var total = 0
     public var seconds: Double?
@@ -51,6 +54,9 @@ public struct ImageSearchState: Equatable, Sendable {
 
     public init(modelFolder: URL? = nil) { self.modelFolder = modelFolder }
     public var isBusy: Bool { phase != .idle }
+    public var displayedMatches: [ImageSearchMatch] {
+        showsAllCandidates ? matches : matches.filter { $0.similarity >= Self.minimumSimilarity }
+    }
     public var canSearch: Bool {
         ready && !photos.isEmpty && !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !isBusy
     }
@@ -71,6 +77,7 @@ public enum ImageSearchAction: Sendable {
     case failed(Int, ImageSearchFailure)
     case selectionFailed(String)
     case select(SearchPhoto?)
+    case showAllCandidates(Bool)
 }
 
 public enum ImageSearchEffect: Equatable, Sendable {
@@ -98,6 +105,8 @@ public enum ImageSearchFeature: Feature {
             state.ready = false
             state.photos = []
             state.matches = []
+            state.hasSearched = false
+            state.showsAllCandidates = false
             state.selection = nil
             start(&state, phase: .loading)
             return [.run(.load(state.session, folder), id: .work)]
@@ -115,6 +124,8 @@ public enum ImageSearchFeature: Feature {
             let unique = urls.filter { seen.insert($0).inserted }
             state.photos = []
             state.matches = []
+            state.hasSearched = false
+            state.showsAllCandidates = false
             state.selection = nil
             state.completed = 0
             state.total = unique.count
@@ -132,11 +143,14 @@ public enum ImageSearchFeature: Feature {
             guard state.canSearch else { return [] }
             state.submittedQuery = state.query
             state.matches = []
+            state.hasSearched = false
+            state.showsAllCandidates = false
             start(&state, phase: .searching)
             return [.run(.search(state.session, state.submittedQuery), id: .work)]
         case .searched(let id, let matches, let seconds):
             guard id == state.session, state.phase == .searching else { return [] }
             state.matches = matches
+            state.hasSearched = true
             state.seconds = seconds
             state.phase = .idle
         case .stop:
@@ -152,6 +166,8 @@ public enum ImageSearchFeature: Feature {
             state.ready = false
             state.photos = []
             state.matches = []
+            state.hasSearched = false
+            state.showsAllCandidates = false
             state.selection = nil
             state.phase = .stopping
             return [.cancelAll, .run(.close(state.session), id: .control)]
@@ -163,6 +179,7 @@ public enum ImageSearchFeature: Feature {
             guard !state.isBusy else { return [] }
             state.failure = ImageSearchFailure(message: "The selected files could not be opened.", detail: detail)
         case .select(let photo): state.selection = photo
+        case .showAllCandidates(let value): state.showsAllCandidates = value
         }
         return []
     }

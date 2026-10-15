@@ -2,7 +2,7 @@
 
 Search selected images in Japanese or English, then open the original image. The demo includes five sample images, a local model folder picker, image selection, indexing progress, search results, and Stop. Text and image preprocessing run in Swift.
 
-The complete implementation is on `feat/113-embeddinggemma2-gallery`, based on `feat/112-embeddinggemma2-runtime`. Tracking: [runtime #112](https://github.com/oka-yuji/coreai-samples/issues/112), [demo #113](https://github.com/oka-yuji/coreai-samples/issues/113).
+Use `main` for the demo. Tracking: [runtime #112](https://github.com/oka-yuji/coreai-samples/issues/112), [demo #113](https://github.com/oka-yuji/coreai-samples/issues/113).
 
 ## Run the demo
 
@@ -20,19 +20,23 @@ CoreAISamples.app/Contents/MacOS/CoreAISamples --image-search --embedding-bundle
 
 For iPhone, use the `CoreAISamples-iOS` scheme and your local signing configuration. The device must run iOS 27 or later, have Developer Mode enabled, and be unlocked for installation. The simulator cannot run Core AI. Copy the bundle to the app's Documents directory as `embeddinggemma2`; the model menu then offers **Reload selected model**. File Sharing is enabled so the folder can also be transferred through Finder. Model detection does not automatically load or execute it.
 
-The iPhone 17 Pro connected during this work runs iOS 27.0.1. A signed Release build succeeded, but installation was blocked by the device lock (`CoreDevice error 10003`), so no iPhone inference result is claimed.
+The prepared development app and bundle have been installed on iPhone 17 Pro / iOS 27.0.1. Open **Image search → Open model → Reload selected model → Use sample images**. Choose an **Example search**, then **Search**. The app does not include model weights in Git or download them automatically.
 
-The runtime accepts a local text/vision bundle, raw text, and opaque images decoded by ImageIO. It uses the same S128 / vision70 contract as the CoreLLM #27 conversion. Audio is not included. macOS 27 and iOS 27 are required; Core AI is unavailable in the iOS simulator.
+The runtime accepts a local text/vision bundle, raw text, and opaque images decoded by ImageIO. It uses the fixed S128 / vision70 conversion contract. Audio is not included. macOS 27 and iOS 27 are required; Core AI is unavailable in the iOS simulator.
 
-## Prepare the local bundle
+## Local bundle
 
-Use the Python environment from the conversion experiment, with NumPy installed:
+The locally prepared bundle is at `.local/conversion/bundles/embeddinggemma2` in the sample repository. The app accepts a verified bundle at any chosen location. It contains safe FP16 text/vision assets, the original tokenizer, an exact BF16 vocabulary table, the unmodified model card, license notices, and SHA256 checksums. The pinned source model card identifies Apache-2.0. This work does not publish weights.
 
-```sh
-python Tools/Embedding/package_bundle.py /path/to/embeddinggemma2-20261014 /path/to/new-bundle
-```
+The common conversion workflow is tracked in [#130](https://github.com/oka-yuji/coreai-samples/pull/130). CoreLLM is retired; new conversion environments, inputs and reports belong to this repository's ignored `.local` workspace.
 
-The output contains the two safe FP16 assets, the original tokenizer, an exact BF16 representation of the unscaled vocabulary embeddings, the original model card, license references, and SHA256 checksums. The original assets are unchanged. Accept the source model's Gemma terms before acquiring or distributing weights.
+## Search examples and limitations
+
+Use **Example searches** to fill the query, then press **Search**. For the sample gallery, try `袋に入った細切りチーズと牛乳`, `肉と玉ねぎの近くに人参ときゅうりがある`, or `駅に停まっている青い列車`. The last query has no relevant sample image. Selecting an example does not automatically run a search, and switching the interface language keeps the query unchanged.
+
+The default view hides scores below 0.67. **Show all candidates** reveals the complete ranking, including weak matches. This threshold was chosen on six calibration examples and frozen before six separate evaluation queries. The held-out result is **5/6**, including three correctly empty results. `トマトと白いチーズでカプレーゼを作れそうな写真` ranks the correct image first but scores about 0.660, so the default view hides it. The threshold and failed example are retained. The five refrigerator images do not establish a universal relevance threshold; similarity is not a probability.
+
+You can choose up to 50 images. The index is held in memory and discarded when the model or selection changes or the screen closes. This is image retrieval, not OCR, image description generation, or an audio/video demo.
 
 ## Runtime contract
 
@@ -58,9 +62,9 @@ Model validation must run under the repository's shared heavy-job lock. `Tools/E
 
 All twelve native text token sequences match and all eight image token counts match. Pixel differences are at most 1/255 for the five recipe images and zero for the three synthetic gradients. Native Swift preprocessing plus safe FP16 inference passed all twenty reference inputs on the M4 Max: minimum cosine 0.999483553, maximum absolute difference 0.004896015, maximum norm difference 0.000413965.
 
-The app's Store → runner → service → Core AI path passed five-image indexing, three searches, reading the original, cancellation before dispatch, and retry. A separate controlled CPU test covers cancellation while a service is still running. Cancellation during an actual GPU invocation has not been measured. Japanese gallery rendering was checked at 1040×760 and 390×844 points using an AppKit host. These are rendered view snapshots, not automated mouse or touch tests; the computer-use connection was unavailable.
+The app's Store → runner → service → Core AI path passed five-image indexing, the original three strict retrieval cases, reading the original, cancellation before dispatch, and retry. Six additional query results are reported separately as search-quality evidence; a numerical/interaction pass does not mean all six matched. A separate controlled CPU test covers cancellation while a service is still running. Cancellation during an actual GPU invocation has not been measured. Japanese gallery rendering was checked at 1040×760 and 390×844 points using an AppKit host. The original snapshots were rendered view checks. The October 16 follow-up also exercised the Mac model picker, search, original-image sheet, weak-result toggle, examples, and language switch through the real UI. iPhone touch acceptance remains for the user on main.
 
-The evidence and acceptance mapping are in [the validation report](validation/embeddinggemma2-native-20261015.md).
+The current evidence and acceptance mapping are in [the device and search report](validation/embeddinggemma2-ready-20261016.md); [the original runtime report](validation/embeddinggemma2-native-20261015.md) preserves the initial measurement conditions.
 
 The application integration check uses a new output directory and the original FP32 reference fixtures:
 

@@ -1,5 +1,7 @@
 # EmbeddingGemma 2 native demo validation
 
+Historical record: the iPhone and interactive UI limitations below were revisited in [the October 16 report](embeddinggemma2-ready-20261016.md).
+
 2026-10-15. Runtime issue #112 and demo issue #113. The implementation is complete for native text/image input, local image search, and signed Mac/iOS builds. Device execution and the user's manual acceptance remain open.
 
 ## Measured results
