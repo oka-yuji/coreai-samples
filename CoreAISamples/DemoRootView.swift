@@ -1,6 +1,7 @@
 import DecideFeature
 import ExtractFeature
 import FeatureStore
+import ImageSearchFeature
 import Observation
 import ProductFeature
 import RecipeFeature
@@ -11,6 +12,7 @@ enum Demo: String, CaseIterable, Identifiable {
     case agent
     case decide
     case recipes
+    case imageSearch
     case extract
     case models
 
@@ -22,6 +24,7 @@ enum Demo: String, CaseIterable, Identifiable {
         case .agent: "Agent"
         case .decide: "Decide"
         case .recipes: "Recipes"
+        case .imageSearch: "Image search"
         case .extract: "Extract"
         case .models: "Models"
         }
@@ -33,6 +36,7 @@ enum Demo: String, CaseIterable, Identifiable {
         case .agent: "Search the web and run multi-step tasks with tool calls"
         case .decide: "Check a document against an editable checklist"
         case .recipes: "Can you make this recipe with what you have?"
+        case .imageSearch: "Find selected images with your own words"
         case .extract: "Compare product specifications from official descriptions"
         case .models: "Get, open and prepare model bundles"
         }
@@ -44,6 +48,7 @@ enum Demo: String, CaseIterable, Identifiable {
         case .agent: "sparkles"
         case .decide: "checklist"
         case .recipes: "carrot"
+        case .imageSearch: "photo.badge.magnifyingglass"
         case .extract: "text.magnifyingglass"
         case .models: "square.and.arrow.down"
         }
@@ -53,7 +58,7 @@ enum Demo: String, CaseIterable, Identifiable {
 @MainActor
 @Observable
 final class DemoNavigator {
-    var selection: Demo? = .chat
+    var selection: Demo? = CommandLine.arguments.contains("--image-search") ? .imageSearch : .chat
 }
 
 struct DemoRootView: View {
@@ -65,6 +70,7 @@ struct DemoRootView: View {
     @State private var decide = DecideAssembly.makeStore()
     @State private var recipes = RecipeAssembly.makeStore()
     @State private var products = ProductAssembly.makeStore()
+    @State private var imageSearch = ImageSearchAssembly.makeStore()
     @State private var showingExtractionLab = false
     @State private var extract = Store<ExtractFeature>(
         initialState: ExtractState(
@@ -100,6 +106,7 @@ struct DemoRootView: View {
             case .agent?: AgentView()
             case .decide?: DecideView(store: decide)
             case .recipes?: RecipeView(store: recipes)
+            case .imageSearch?: ImageSearchView(store: imageSearch)
             case .extract?:
                 if LaunchArguments.value("--gui-e2e") != nil && LaunchArguments.value("--extract") != nil {
                     ExtractView(store: extract)
