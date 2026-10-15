@@ -1,0 +1,9 @@
+{
+  "threshold": 0.67,
+  "rule": "Round the midpoint of the lowest correct calibration top score and highest unrelated calibration top score to two decimals.",
+  "minimumRelevant": 0.7504983504957332,
+  "maximumUnrelated": 0.5894985894918433,
+  "calibrationCount": 6,
+  "evaluationSha256": "b3b82783304b1b5cb1311d1685eede7f5c61616972dccaaa1424d0cb5a8d3fce",
+  "scope": "Five sample refrigerator images. Threshold fixed before held-out scoring; not a calibrated probability or universal relevance guarantee."
+}

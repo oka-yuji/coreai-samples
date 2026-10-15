@@ -35,6 +35,14 @@ targets:
       - path: CoreAISamples
     dependencies:
       - package: CoreAISamplesKit
+        product: EmbeddingCore
+      - package: CoreAISamplesKit
+        product: EmbeddingRuntime
+      - package: CoreAISamplesKit
+        product: ImageSearchFeature
+      - package: CoreAISamplesKit
+        product: ImageSearchRuntime
+      - package: CoreAISamplesKit
         product: CoreAIBackend
       - package: CoreAISamplesKit
         product: RAGContext
@@ -83,10 +91,15 @@ targets:
     platform: iOS
     deploymentTarget: "27.0"
     sources:
+      - path: CoreAISamples/Demos/ImageSearch
+      - path: CoreAISamples/Resources/Recipes
       - path: CoreAISamples/Demos/Products
       - path: CoreAISamples/Localization/DemoLanguage.swift
       - path: CoreAISamples/Resources/Localizable.xcstrings
       - path: CoreAISamples/Resources/product-preview.json
+      - path: CoreAISamples/Resources/image-search-queries.json
+      - path: CoreAISamples/Resources/image-search-reference.json
+      - path: CoreAISamples/Resources/EmbeddingValidation
       - path: CoreAISamples/iOS
       - path: CoreAISamples/LaunchArguments.swift
       - path: CoreAISamples/Demos/ModelManager/ModelStorage.swift
@@ -97,6 +110,14 @@ targets:
           - FieldRow.swift
           - NoteEditor.swift
     dependencies:
+      - package: CoreAISamplesKit
+        product: EmbeddingCore
+      - package: CoreAISamplesKit
+        product: EmbeddingRuntime
+      - package: CoreAISamplesKit
+        product: ImageSearchFeature
+      - package: CoreAISamplesKit
+        product: ImageSearchRuntime
       - package: CoreAISamplesKit
         product: FeatureStore
       - package: CoreAISamplesKit
@@ -122,6 +143,8 @@ targets:
         GENERATE_INFOPLIST_FILE: "YES"
         INFOPLIST_KEY_CFBundleDisplayName: Core AI Demos
         INFOPLIST_KEY_UILaunchScreen_Generation: "YES"
+        INFOPLIST_KEY_UIFileSharingEnabled: "YES"
+        INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace: "YES"
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: "YES"
 
 schemes:

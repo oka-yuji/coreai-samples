@@ -2,6 +2,7 @@
     import ExtractFeature
     import FeatureStore
     import Foundation
+    import ImageSearchFeature
     import ProductFeature
     import SwiftUI
     import UIKit
@@ -13,6 +14,8 @@
         private let assetFolders: [URL]
         @State private var extract: Store<ExtractFeature>
         @State private var products = ProductAssembly.makeStore()
+        @State private var imageSearch = ImageSearchAssembly.makeStore()
+        @State private var showingImageSearch = LaunchArguments.flag("--image-search")
         @State private var showingExtractionLab = false
         @AppStorage(DemoLanguage.preferenceKey) private var languageCode = DemoLanguage.initialCode
 
@@ -37,7 +40,9 @@
 
         var body: some Scene {
             WindowGroup {
-                if LaunchArguments.value("--extract-eval") != nil {
+                if LaunchArguments.flag("--image-search-eval") {
+                    PhoneImageSearchEvalView()
+                } else if LaunchArguments.value("--extract-eval") != nil {
                     PhoneEvalView()
                 } else {
                     NavigationStack {
@@ -45,9 +50,16 @@
                             .toolbar {
                                 DemoLanguagePicker(code: $languageCode)
                                 Button("Extraction lab") { showingExtractionLab = true }
+                                Button("Image search") { showingImageSearch = true }
                             }
                             .sheet(isPresented: $showingExtractionLab) {
                                 PhoneExtractView(store: extract, assetFolders: assetFolders, computeUnits: computeUnits)
+                            }
+                            .sheet(isPresented: $showingImageSearch) {
+                                NavigationStack {
+                                    ImageSearchView(store: imageSearch)
+                                        .toolbar { Button("Done") { showingImageSearch = false } }
+                                }
                             }
                     }
                     .environment(\.locale, (DemoLanguage(rawValue: languageCode) ?? .english).locale)
@@ -62,6 +74,21 @@
                 .task {
                     UIApplication.shared.isIdleTimerDisabled = true
                     exit(await ExtractEval.execute())
+                }
+        }
+    }
+
+    struct PhoneImageSearchEvalView: View {
+        var body: some View {
+            ProgressView("Checking image search…")
+                .task {
+                    UIApplication.shared.isIdleTimerDisabled = true
+                    let documents = URL.documentsDirectory
+                    let run = LaunchArguments.value("--image-search-eval") ?? "latest"
+                    exit(
+                        await ImageSearchSelfTest.run(
+                            directory: documents.appending(path: "embeddinggemma2-eval-" + run),
+                            folder: documents.appending(path: "embeddinggemma2")))
                 }
         }
     }

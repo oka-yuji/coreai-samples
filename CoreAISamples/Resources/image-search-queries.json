@@ -1,0 +1,53 @@
+[
+  {
+    "id": "ja_food",
+    "text": "トマトと白いチーズが並んでいる写真",
+    "expected": "05-caprese.png"
+  },
+  {
+    "id": "ja_eggs",
+    "text": "卵が入っている冷蔵庫",
+    "expected": "03-omelette.png"
+  },
+  {
+    "id": "en_food",
+    "text": "Tomatoes and white cheese",
+    "expected": "05-caprese.png"
+  },
+  {
+    "id": "val_caprese",
+    "text": "トマトと白いチーズでカプレーゼを作れそうな写真",
+    "expected": "05-caprese.png",
+    "evaluationOnly": true
+  },
+  {
+    "id": "val_milk",
+    "text": "袋に入った細切りチーズと牛乳",
+    "expected": "04-gratin.png",
+    "evaluationOnly": true
+  },
+  {
+    "id": "val_cucumber",
+    "text": "肉と玉ねぎの近くに人参ときゅうりがある",
+    "expected": "02-ginger-pork.png",
+    "evaluationOnly": true
+  },
+  {
+    "id": "val_dog",
+    "text": "砂浜でボールを追いかける犬",
+    "expected": null,
+    "evaluationOnly": true
+  },
+  {
+    "id": "val_toolbox",
+    "text": "机の上にある赤い工具箱",
+    "expected": null,
+    "evaluationOnly": true
+  },
+  {
+    "id": "val_train",
+    "text": "駅に停まっている青い列車",
+    "expected": null,
+    "evaluationOnly": true
+  }
+]
