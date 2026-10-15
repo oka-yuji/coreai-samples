@@ -81,7 +81,7 @@ struct ProductCoreTests {
 
     @Test("Chunk ranges cover Unicode scalars and make progress with overlap")
     func scalarChunks() throws {
-        let text = "a🧭b\n" + String(repeating: "abc ", count: 300)
+        let text = "a\u{1F9ED}b\n" + String(repeating: "abc ", count: 300)
         let scalars = Array(text.unicodeScalars)
         var covered = Set<Int>()
         var start = 0

@@ -4,7 +4,7 @@ import Testing
 
 private let fixturesDirectory = URL(
     filePath: ProcessInfo.processInfo.environment["GLINER_FIXTURES_DIR"]
-        ?? NSHomeDirectory() + "/Desktop/SelfApps/CoreLLM/models/coreai/gliner")
+        ?? NSHomeDirectory() + "/Library/Caches/coreai-samples/reference/models/coreai/gliner")
 private let preregistrationPath = "data/g1_preregistration.json"
 private let wordingVariantsPath = "data/g6_variants.json"
 

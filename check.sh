@@ -40,6 +40,11 @@ xcodebuild -project CoreAISamples.xcodeproj -scheme CoreAISamples -configuration
 check_stage=agent-offline
 printf 'CHECK RUN: %s\n' "$check_stage"
 "$check_output/DerivedData/Build/Products/Release/CoreAISamples.app/Contents/MacOS/CoreAISamples" --agent-selftest --offline
+check_stage=localization
+printf 'CHECK RUN: %s\n' "$check_stage"
+python3 Tools/Localization/check-source-keys.py "$check_output/DerivedData"
+python3 Tools/Localization/check-catalogs.py
+"$check_output/DerivedData/Build/Products/Release/CoreAISamples.app/Contents/MacOS/CoreAISamples" --check-localization
 validate_records() {
     python3 - "$1" "$2" <<'PY'
 import json

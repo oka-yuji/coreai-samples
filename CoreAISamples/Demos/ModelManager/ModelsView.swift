@@ -7,6 +7,7 @@ struct ModelsView: View {
     @Environment(ModelsViewModel.self) private var vm
     @Environment(Store<DecideFeature>.self) private var decide
     @Environment(ChatViewModel.self) private var chat
+    @Environment(AgentViewModel.self) private var agent
     @Environment(DemoNavigator.self) private var navigator
     @State private var importing = false
     @State private var pendingDelete: CatalogRow?
@@ -72,7 +73,7 @@ struct ModelsView: View {
 
     private func load(_ url: URL) {
         navigator.selection = .chat
-        Task { await chat.load(url) }
+        Task { await ModelSwitch.choose(url, chat: chat, agent: agent) }
     }
 }
 
@@ -135,7 +136,7 @@ struct CatalogRowView: View {
             Text(row.model.name)
                 .fontWeight(.medium)
             Text(
-                "\(row.model.repo)  ·  \(row.model.sizeBytes.formatted(.byteCount(style: .file)))  ·  memory \(row.model.memory)  ·  \(row.model.platforms)"
+                "\(row.model.repo)  ·  \(row.model.sizeBytes.formatted(.byteCount(style: .file)))  ·  memory \(Text(LocalizedStringKey(row.model.memory)))  ·  \(Text(LocalizedStringKey(row.model.platforms)))"
             )
             .font(.caption)
             .foregroundStyle(.secondary)

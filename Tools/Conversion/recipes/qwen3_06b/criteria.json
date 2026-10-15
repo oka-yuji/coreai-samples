@@ -1,0 +1,4 @@
+{
+  "near_tie_probability_margin": 0.01,
+  "max_probability_error": 0.03
+}
