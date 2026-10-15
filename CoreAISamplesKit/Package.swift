@@ -48,7 +48,7 @@ let package = Package(
         .testTarget(
             name: "TruckInspectionFeatureTests",
             dependencies: ["TruckInspectionCore", "TruckInspectionFeature", "TruckInspectionRuntime", "FeatureStore"],
-            swiftSettings: approachableConcurrency),
+            resources: [.process("Resources")], swiftSettings: approachableConcurrency),
         .target(name: "TruckInspectionCore", swiftSettings: approachableConcurrency),
         .target(
             name: "TruckInspectionRuntime",

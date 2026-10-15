@@ -1,15 +1,10 @@
 import Foundation
+import GLiNERRuntime
 import TruckInspectionCore
 
 public enum InspectionCatalogLoader {
     public static func modelFolders(in candidates: [URL]) -> [URL] {
-        struct Identity: Decodable { let model: String }
-        return candidates.filter { folder in
-            guard let data = try? Data(contentsOf: folder.appending(path: "contract.json")),
-                let identity = try? JSONDecoder().decode(Identity.self, from: data)
-            else { return false }
-            return identity.model.lowercased().contains("gliner")
-        }
+        candidates.filter { (try? GLiNERAsset(directory: $0)) != nil }
     }
 
     public static func load() throws -> InspectionCatalog {
