@@ -28,7 +28,15 @@ The runtime accepts a local text/vision bundle, raw text, and opaque images deco
 
 The locally prepared bundle is at `.local/conversion/bundles/embeddinggemma2` in the sample repository. The app accepts a verified bundle at any chosen location. It contains safe FP16 text/vision assets, the original tokenizer, an exact BF16 vocabulary table, the unmodified model card, license notices, and SHA256 checksums. The pinned source model card identifies Apache-2.0. This work does not publish weights.
 
-The common conversion workflow is tracked in [#130](https://github.com/oka-yuji/coreai-samples/pull/130). CoreLLM is retired; new conversion environments, inputs and reports belong to this repository's ignored `.local` workspace.
+Use the [EmbeddingGemma 2 conversion recipe](../Tools/Conversion/recipes/embeddinggemma2/README.md) to reproduce the bundle in an independent environment. Download the pinned source as described there, then run from this repository:
+
+```sh
+python3 -m Tools.Conversion.local setup --recipe embeddinggemma2
+python3 -m Tools.Conversion.local plan --recipe embeddinggemma2
+python3 -m Tools.Conversion.local run --recipe embeddinggemma2
+```
+
+Require a completed report with passed verification, then select the bundle stage's artifact directory. The convenience copy above is not automatically replaced by later runs. CoreLLM and the old `package_bundle.py ASSETS OUTPUT` experiment interface are retired; new environments, inputs and reports belong to this repository's ignored `.local` workspace.
 
 ## Search examples and limitations
 
