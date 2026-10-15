@@ -1,0 +1,14 @@
+{
+  "heldOutCorrect": 5,
+  "heldOutQueries": 6,
+  "images": 5,
+  "indexingSeconds": 0.895115834,
+  "minimumSimilarity": 0.67,
+  "originalRead": true,
+  "os": "Version 27.0.1 (Build 24A446)",
+  "passed": true,
+  "queries": 9,
+  "queuedStopAndRetry": true,
+  "relevanceCorrect": 8,
+  "relevanceScope": "Fixed examples; reported separately from numerical and interaction checks"
+}

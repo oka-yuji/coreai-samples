@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "scope": "Five bundled refrigerator images; calibration and held-out queries were separated before scoring.",
+  "calibration": [
+    {"id": "cal_tomato", "text": "トマトの横に白いチーズがある冷蔵庫", "expected": "05-caprese.png"},
+    {"id": "cal_egg", "text": "一個の卵とヨーグルトがある冷蔵庫", "expected": "03-omelette.png"},
+    {"id": "cal_milk", "text": "牛乳と袋入りのチーズがある冷蔵庫", "expected": "04-gratin.png"},
+    {"id": "cal_ski", "text": "雪山を滑るスキーヤー", "expected": null},
+    {"id": "cal_tram", "text": "夜の繁華街を走る路面電車", "expected": null},
+    {"id": "cal_yacht", "text": "湖に浮かぶヨット", "expected": null}
+  ],
+  "validation": [
+    {"id": "val_caprese", "text": "トマトと白いチーズでカプレーゼを作れそうな写真", "expected": "05-caprese.png"},
+    {"id": "val_milk", "text": "袋に入った細切りチーズと牛乳", "expected": "04-gratin.png"},
+    {"id": "val_cucumber", "text": "肉と玉ねぎの近くに人参ときゅうりがある", "expected": "02-ginger-pork.png"},
+    {"id": "val_dog", "text": "砂浜でボールを追いかける犬", "expected": null},
+    {"id": "val_toolbox", "text": "机の上にある赤い工具箱", "expected": null},
+    {"id": "val_train", "text": "駅に停まっている青い列車", "expected": null}
+  ]
+}

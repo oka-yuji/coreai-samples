@@ -212,3 +212,5 @@ The [pinned Qwen3-0.6B recipe](recipes/qwen3_06b/README.md) connects source-revi
 checks, the FP32 reference, an official FP16 export and Swift numerical checks.
 Its [relocation record](../../docs/conversion-maintenance.md) records the checks and their limits. It is a bounded
 integration example and does not replace a model's production qualification.
+
+The [EmbeddingGemma 2 recipe](recipes/embeddinggemma2/README.md) uses a separate frozen environment for text/vision conversion, source and native-build stamps, and twenty raw-input fidelity checks. Select it with `--recipe embeddinggemma2` on setup/plan/run. Its export stages deliberately depend on the FP32 reference used for wrapper verification.

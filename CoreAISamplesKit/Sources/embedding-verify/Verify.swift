@@ -37,6 +37,10 @@ enum Verify {
     }
 
     static func run() async throws {
+        if CommandLine.arguments.dropFirst().first == "--search" {
+            try await SearchCheck.run(CommandLine.arguments)
+            return
+        }
         guard CommandLine.arguments.count >= 4 else {
             throw EmbeddingError.invalidBundle("Usage: embedding-verify BUNDLE PLAN OUTPUT [--preprocess]")
         }

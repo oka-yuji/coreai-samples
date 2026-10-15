@@ -6,6 +6,10 @@
 
     @MainActor
     enum TruckInspectionAssembly {
+        static func modelFolders(_ candidates: [URL]) -> [URL] {
+            InspectionCatalogLoader.modelFolders(in: candidates)
+        }
+
         static func makeStore(assetFolders: [URL]) throws -> Store<TruckInspectionFeature> {
             let catalog = try InspectionCatalogLoader.load()
             let model = LiveTruckInspectionModel(

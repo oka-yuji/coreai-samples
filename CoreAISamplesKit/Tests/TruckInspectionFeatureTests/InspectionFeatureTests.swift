@@ -6,6 +6,22 @@ import TruckInspectionFeature
 import TruckInspectionRuntime
 
 struct InspectionFeatureTests {
+    @Test("Truck model selection excludes unrelated assets in the shared Documents folder")
+    func modelFamilies() throws {
+        let root = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let gliner = root.appending(path: "gliner")
+        let embedding = root.appending(path: "embedding")
+        let broken = root.appending(path: "broken")
+        for folder in [gliner, embedding, broken] {
+            try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        }
+        try Data(#"{"model":"fastino/gliner2.5-multi-v1"}"#.utf8).write(to: gliner.appending(path: "contract.json"))
+        try Data(#"{"model":"google/embeddinggemma2"}"#.utf8).write(to: embedding.appending(path: "contract.json"))
+        try Data("invalid".utf8).write(to: broken.appending(path: "contract.json"))
+        #expect(InspectionCatalogLoader.modelFolders(in: [embedding, broken, gliner]) == [gliner])
+    }
+
     private func state(model: Bool = false) throws -> InspectionState {
         var state = InspectionState(catalog: try InspectionCatalogLoader.load())
         state.active = true
