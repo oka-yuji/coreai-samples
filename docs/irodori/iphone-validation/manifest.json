@@ -1,0 +1,87 @@
+{
+  "base": "0894efabd9b793efc9db0a57b581db93966a6511",
+  "date": "2026-10-13",
+  "source_sha256": {
+    ".swiftlint.yml": "24f878257e020f39a741ebb9d287334dfbe7d1273e631c71d49763c4a384f6cf",
+    "Config/SpeechPhone.entitlements": "dabc1022a74cd640bb7f9289374084ebabadc8f7d62f62ea10fde65c0a6d0a82",
+    "CoreAISamples.xcodeproj/project.pbxproj": "b4fdcc609f944b292840971c42b5181861b4c58da8ff152ebf853abb5645bf77",
+    "CoreAISamples.xcodeproj/xcshareddata/xcschemes/SpeechPhone.xcscheme": "89e2691513bc07218eea75d6dc9b75b68ec3cd5e800d9049991818479e2d3d33",
+    "CoreAISamplesKit/Sources/SpeechFeature/SpeechCheckFeature.swift": "9a1562c5fd4957f6bfdd76e958b57e1ba9303b86c4b09901b5123d9d34dec49c",
+    "CoreAISamplesKit/Sources/SpeechFeature/SpeechLibraryFeature.swift": "0c91814feeadc2d51c5188387e9ec179371fd338126a0e2ef119ba23094fca51",
+    "CoreAISamplesKit/Sources/SpeechRuntime/LivePhoneCheckEnvironment.swift": "427674a77c032241661bac061eb727f2c14e3402bfa01a78eeb4614b94027aed",
+    "CoreAISamplesKit/Sources/SpeechRuntime/PhoneSpeechCheck.swift": "bdf6595d4f24d9d1e4f17495187e86d53f298d236ed2522f24ee71004bd90c52",
+    "CoreAISamplesKit/Sources/SpeechRuntime/SpeechCheckFiles.swift": "0184682af994ac41aa8c913f495c40c4fec7b16b5506e02546b8af37480150d8",
+    "CoreAISamplesKit/Sources/SpeechRuntime/SpeechCheckRunner.swift": "13ae87b9ed8c716f3a5b8c58ada3703d543e9bc01553ece631f69dc340d62f2d",
+    "CoreAISamplesKit/Sources/SpeechRuntime/SpeechLibrary.swift": "f8d556db232d964980c2c0eaafdacef9fe8d0b4a1a2913e2f64ed9ed0dcdc1b6",
+    "CoreAISamplesKit/Tests/SpeechFeatureTests/SpeechPhoneFeatureTests.swift": "1a3f2c5c12c059ac2ce19636e9b23fdf5d40114c565a1307e47e754fc5bed516",
+    "CoreAISamplesKit/Tests/SpeechRuntimeTests/PhoneSpeechCheckTests.swift": "28944ba18c3f596e185cc8ec9cb2a841b19de9542937e11fa3b6e85987a4ff77",
+    "CoreAISamplesKit/Tests/SpeechRuntimeTests/SpeechLibraryTests.swift": "ea9708f7e2496c61148a8b123d1254b581e4e8819c7934c3b9269b841245d695",
+    "CoreAISamplesKit/Tests/SpeechRuntimeTests/SpeechPhoneTestSupport.swift": "e172c731754340d79f382fbe3062db45620922bc1a66c48a52215f952a9c9396",
+    "SpeechPhone/Info.plist": "5f1d031c939ba66e6294b9f34829955a959b93bc4ce3d5dfd3b9009f76948de0",
+    "SpeechPhone/SpeechCheckView.swift": "c22d74cbe489b664c29e27998eac753944acf6ca4b7ca97665f035893190fb69",
+    "SpeechPhone/SpeechPhoneApp.swift": "507c230e4d979ab39be98211672a1e6ce047bb3c837c9e2cec26c3d406e7d5bf",
+    "SpeechPhone/SpeechPhoneView.swift": "e9b5f3eb36b60e9cfa8f589ca718230f221f0d64a1c09eb82f7f83de0b792ef0",
+    "project.yml": "de14aecac722efaa0faf958ca4ccc6225b040e4086022c54ee800b88231b28c5"
+  },
+  "app_executable_sha256": "319f5d46862b0d69dc63840fe9235e70860562f4220d913a1fc20c1f583b76d7",
+  "bundle_info": {
+    "CFBundleIdentifier": "com.coreai-samples.SpeechPhone",
+    "MinimumOSVersion": "27.0",
+    "UIFileSharingEnabled": true,
+    "LSSupportsOpeningDocumentsInPlace": true
+  },
+  "checks": {
+    "speech_cpu_tests": 46,
+    "full_cpu_exit": 0,
+    "diagnostic_tsan_tests": 9,
+    "independent_diagnostic_release_tests": 52,
+    "independent_ui_tests": 8,
+    "signed_ios_build_exit": 0,
+    "mac_build_exit": 0,
+    "extract_ios_build_exit": 0,
+    "lint_violations": 0,
+    "format_files": 14,
+    "codesign_verify_host_exit": 0,
+    "increased_memory_limit": true
+  },
+  "device": {
+    "installed": false,
+    "model_executed": false,
+    "audio_executed": false,
+    "install_error_domain": "com.apple.dt.CoreDeviceError",
+    "install_error_code": 4016,
+    "tunnel_state": "unavailable",
+    "ddi_services_available": false,
+    "last_connection_utc": "2026-10-13T03:55:00Z",
+    "last_reported_os": "26.6.1",
+    "reported_os_is_cached_not_current_verification": true
+  },
+  "review": {
+    "fixed": [
+      "P95-01/P2: file-sharing plist",
+      "R95-1/P2: model/output namespace collision"
+    ],
+    "unresolved_confirmed": 0,
+    "plausible": 0,
+    "manual_pending": [
+      "M4 device execution",
+      "M5 user acceptance"
+    ]
+  },
+  "artifact_sha256": {
+    "cpu-all.log": "a38bf650e8e40f3d0cc6a49f1f6a3e8b2bc44e5aca2a08edcaa4f279561b5a04",
+    "diagnostic-ReviewPhoneCheckLifetimeTests.swift.txt": "0959110fd1539f88f41b46c03a8ca97f61e9fc956b2bb9925f0bbf336c306612",
+    "diagnostic-ReviewPhoneCheckTests.swift.txt": "e96b7998e4bf3db24a8f1927dc525c525d0fe6f1d26550369a168536cd9dcf9f",
+    "diagnostic-after.log": "78dead03c6ff5d4e7ee53a1047043277f263ba1eb307c85f1953f8a06297d4e6",
+    "diagnostic-before.log": "8cab40344fcbf797d9fa3a2ff9d384dd6162425cf360d7f2b9ea14ec52ea7958",
+    "diagnostic-review.json": "38c0378d4f1bf7033189ec509e4b79df35530c86db0f07bea1eb83fb06557d5b",
+    "extract-build.log": "f7b71ae91d0d08527dd2f9d08c49542019fc4a712576897907abadca8b4fbc7e",
+    "format.log": "54d6694718f8bd768607d15c0fc7970b71f554ad89f4a646e2c6ed0d24ad584b",
+    "lint.log": "d100aa6b14bceb0d8b8f6c0099003a08efb2223dad915243f139dcdd2cfce838",
+    "mac-build.log": "fa0b11729557df3b3b4f7b6485d3505ea5d1de56d83177a8718ae471b0daae5b",
+    "signed-build.log": "1208c8e921a50ec74db7b89aec0dc947ff4256e555781a5e2ebd9606601599c1",
+    "tsan.log": "e4a6453b42518ce2804bd139b51aaae3f01b0ec177ff9046c83f3e2a485fc450",
+    "ui-review.json": "3ac45fc44b1aa5d36bc17ac9cb94fb16dec6e7e10340c773293d4cda9693e1ee",
+    "ui-review.md": "b90b2be6b8305aa39d12fea69b7679c38c770ff46e7df39d45a701c5969bf0ef"
+  }
+}

@@ -6,6 +6,8 @@ let approachableConcurrency: [SwiftSetting] = [
     .enableUpcomingFeature("InferIsolatedConformances"),
 ]
 
+let speechSettings: [SwiftSetting] = [.swiftLanguageMode(.v6)] + approachableConcurrency
+
 let package = Package(
     name: "CoreAISamplesKit",
     platforms: [
@@ -13,6 +15,9 @@ let package = Package(
         .iOS("27.0"),
     ],
     products: [
+        .library(name: "SpeechCore", targets: ["SpeechCore"]),
+        .library(name: "SpeechFeature", targets: ["SpeechFeature"]),
+        .library(name: "SpeechRuntime", targets: ["SpeechRuntime"]),
         .library(name: "TruckInspectionFeature", targets: ["TruckInspectionFeature"]),
         .library(name: "TruckInspectionCore", targets: ["TruckInspectionCore"]),
         .library(name: "TruckInspectionRuntime", targets: ["TruckInspectionRuntime"]),
@@ -39,10 +44,33 @@ let package = Package(
         .library(name: "ConversationFeature", targets: ["ConversationFeature"]),
     ],
     dependencies: [
+        .package(path: "../Vendor/IrodoriInputKit"),
         .package(url: "https://github.com/huggingface/swift-transformers", from: "1.3.4"),
         .package(url: "https://github.com/huggingface/swift-jinja.git", from: "2.5.1"),
     ],
     targets: [
+        .target(name: "SpeechCore", swiftSettings: speechSettings),
+        .target(name: "SpeechFeature", dependencies: ["SpeechCore", "FeatureStore"], swiftSettings: speechSettings),
+        .target(
+            name: "SpeechRuntime",
+            dependencies: [
+                "SpeechCore", "SpeechFeature",
+                .product(
+                    name: "IrodoriInputLogic", package: "IrodoriInputKit", condition: .when(platforms: [.macOS, .iOS])),
+                .product(
+                    name: "IrodoriTokenizers", package: "IrodoriInputKit", condition: .when(platforms: [.macOS, .iOS])),
+            ], resources: [.process("Resources")], swiftSettings: speechSettings),
+        .testTarget(name: "SpeechCoreTests", dependencies: ["SpeechCore"], swiftSettings: speechSettings),
+        .testTarget(
+            name: "SpeechFeatureTests", dependencies: ["SpeechCore", "SpeechFeature", "FeatureStore"],
+            swiftSettings: speechSettings),
+        .testTarget(
+            name: "SpeechRuntimeTests",
+            dependencies: [
+                "SpeechRuntime", "SpeechCore", "SpeechFeature", "FeatureStore",
+                .product(name: "IrodoriInputLogic", package: "IrodoriInputKit"),
+                .product(name: "IrodoriTokenizers", package: "IrodoriInputKit"),
+            ], resources: [.copy("Resources")], swiftSettings: speechSettings),
         .target(
             name: "TruckInspectionFeature", dependencies: ["TruckInspectionCore", "FeatureStore"],
             swiftSettings: approachableConcurrency),

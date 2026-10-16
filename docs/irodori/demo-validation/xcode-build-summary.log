@@ -1,0 +1,4 @@
+note: Run script build phase 'Build Irodori input library' will be run during every build because the option to run the script phase "Based on dependency analysis" is unchecked. (in target 'CoreAISamples' from project 'CoreAISamples')
+    Finished `release` profile [optimized] target(s) in 0.03s
+2026-10-13 11:52:03.609 appintentsmetadataprocessor[34267:87105255] warning: Metadata extraction skipped, no AppIntents.framework dependency found
+** BUILD SUCCEEDED **

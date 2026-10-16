@@ -1,0 +1,183 @@
+{
+  "summary": "未解消の確定指摘なし。R95-1（結果保存先と同名のモデル配下への出力追加）をbeforeで再現し、修正後52件の独立Release CPU試験で解消を確認。",
+  "complete": true,
+  "repo": "/Users/okayuuji/Desktop/SelfApps/_wt/coreai-samples-95-iphone",
+  "base_sha": "0894efabd9b793efc9db0a57b581db93966a6511",
+  "head_sha": "0894efabd9b793efc9db0a57b581db93966a6511",
+  "state_token": "f61a1092db47a4b893648515eb2b6ac118a3f21f63dd1f3738611673e6402e93",
+  "state_check": "unchanged=true",
+  "candidateLedger": [
+    {
+      "id": "R95-1",
+      "classification": "confirmed",
+      "maximum_severity": "P2",
+      "current_status": "fixed",
+      "before_locations": [
+        "PhoneSpeechCheck.swift:86",
+        "SpeechCheckFiles.swift:18-42"
+      ],
+      "condition": "Documents/SpeechChecks自体が有効なモデルフォルダである場合（診断引数もSpeechChecks、大小文字違い、またはalias）。",
+      "before": "runID予約が先にモデル配下へ新規ディレクトリを作り、そこへWAV/report/statusを追加できた。モデル必須ファイルの上書きではなく、元モデルディレクトリ内容への変更。",
+      "reproduction": "初回scopeとSHA一致の3ソースを使用。fakeモデルserviceと実ファイル操作で、元内容[\"irodori.json\"]が[\"irodori.json\",\"reserved-name\"]となった。49件中この1件のみ失敗。",
+      "resolution": "reserveがmkdir前に予約ルートのirodori.jsonを検査して拒否。modelFolderも予約名の大小文字違いとalias解決後の予約名を拒否。",
+      "current_locations": [
+        "CoreAISamplesKit/Sources/SpeechRuntime/SpeechCheckFiles.swift:23-27",
+        "CoreAISamplesKit/Sources/SpeechRuntime/SpeechCheckFiles.swift:39-50"
+      ],
+      "evidenceHistory": [
+        "before-source-proof.json",
+        "before-tests.log",
+        "before-snapshot/Sources/SpeechRuntime/SpeechCheckFiles.swift",
+        "after-tests.log",
+        "after-source-proof.json"
+      ]
+    },
+    {
+      "id": "R95-2",
+      "classification": "rejected",
+      "hypothesis": "複数のstopのうち一つが完了すると、残る古いstopが新規runへ作用する。",
+      "resolution": "stopping counterがstop受付からrun終了待機完了まで保持される。二つのstopを異なるgateで完了させ、一つだけ終わった時点のrunがbusyで拒否されることを確認。",
+      "location": "CoreAISamplesKit/Sources/SpeechRuntime/PhoneSpeechCheck.swift:139-143"
+    },
+    {
+      "id": "R95-3",
+      "classification": "rejected",
+      "hypothesis": "WAV/report衝突が既存内容を書き換えたり、保存失敗が端末環境を戻さずに終わる。",
+      "resolution": "withoutOverwritingの実ファイル検証、report書込み直前の衝突注入で旧bytesを保持しstatus.failed、environment.endを一回呼ぶことを確認。",
+      "locations": [
+        "CoreAISamplesKit/Sources/SpeechRuntime/SpeechCheckFiles.swift:52-62",
+        "CoreAISamplesKit/Sources/SpeechRuntime/PhoneSpeechCheck.swift:87-88,133-136"
+      ]
+    },
+    {
+      "id": "R95-4",
+      "classification": "rejected",
+      "hypothesis": "外部Audio CancellationErrorがTask取消と一緒に捨てられ、診断画面がrunningに残る。",
+      "resolution": "RunnerはTask.isCancelledを先に検査し、非取消TaskからのCancellationErrorを外部割込みのfailedへ変換する。Store session/phaseでも旧progress/完了を排除。",
+      "location": "CoreAISamplesKit/Sources/SpeechRuntime/SpeechCheckRunner.swift:18-31"
+    },
+    {
+      "id": "R95-5",
+      "classification": "rejected",
+      "hypothesis": "既存runやsymlink出力rootの拒否後に、元データまたはモデル/環境を変更する。",
+      "resolution": "既存run、case collision、出力root symlink、Documents外model aliasをCPUで拒否確認。既存run拒否時はbegin/end/open/stopすべて0回。"
+    }
+  ],
+  "confirmed_unresolved": [],
+  "plausible": [],
+  "coverage": {
+    "full_read": [
+      "PhoneSpeechCheck.swift",
+      "LivePhoneCheckEnvironment.swift",
+      "SpeechCheckFiles.swift",
+      "SpeechCheckRunner.swift",
+      "SpeechCheckFeature.swift",
+      "PhoneSpeechCheckTests.swift",
+      "SpeechPhoneTestSupport.swift",
+      "SpeechPhoneFeatureTests.swift",
+      "SpeechCheckFiles関連のSpeechLibraryTests.swift"
+    ],
+    "integration_read": [
+      "SpeechCheckView.swiftのonAppear/onDisappear/background処理",
+      "SpeechPhoneApp.swiftのStore所有と明示的診断引数",
+      "既存FeatureStore/Store.swift、LiveSpeechService.stop、IrodoriRuntime.release"
+    ],
+    "sdk_verified": [
+      "iPhoneOS27 usr/include/os/proc.h: os_proc_available_memoryの意味とmacOS unavailable",
+      "iPhoneOS27 mach/task_info.h: phys_footprint/ledger_phys_footprint_peakの型",
+      "UIKit UIApplication.idleTimerDisabled、UIDevice batteryMonitoringEnabled/batteryState/systemVersion"
+    ],
+    "limited": [
+      "LivePhoneCheckEnvironmentのUIKitと実OS読出しはSDK/ソース確認。CPU検証はfake環境。実iPhoneの設定復元・メモリ値を実測していない。"
+    ],
+    "outside_scope": [
+      "モデルの数値品質・聴取、実機配備、実OSバージョンの確定、ライブラリUI全体、署名設定の全監査"
+    ]
+  },
+  "verificationHistory": [
+    {
+      "type": "independent CPU before",
+      "tests": 49,
+      "result": "48 pass / R95-1 only fails",
+      "log": "/tmp/irodori-ios95-check-review/before-tests.log"
+    },
+    {
+      "type": "review fixture failure",
+      "result": "追加の複数stop fakeがawait後に共有callsを再読し、誤ったgateへ待機。Production由来ではない。",
+      "log": "/tmp/irodori-ios95-check-review/after-tests-fixture-timeout.log"
+    },
+    {
+      "type": "independent CPU final",
+      "configuration": "Swift6.4 / Swift6 / Release / 両upcoming features / native build / debug infoなし",
+      "tests": 52,
+      "result": "PASS",
+      "log": "/tmp/irodori-ios95-check-review/after-tests.log",
+      "source_match": {
+        "current_source_count": 38,
+        "all_tested_copy_sources_match": true,
+        "mismatches": [],
+        "changed_existing_scope": [
+          "CoreAISamplesKit/Sources/SpeechRuntime/SpeechCheckFiles.swift"
+        ],
+        "added_scope": [
+          "CoreAISamplesKit/Tests/SpeechRuntimeTests/SpeechLibraryTests.swift",
+          "SpeechPhone/SpeechPhoneApp.swift"
+        ],
+        "head_sha": "0894efabd9b793efc9db0a57b581db93966a6511",
+        "stateToken": "f61a1092db47a4b893648515eb2b6ac118a3f21f63dd1f3738611673e6402e93"
+      }
+    },
+    {
+      "type": "parent evidence inspected",
+      "result": "署名iPhoneOS Release build成功ログを確認。独立build/launchではない。",
+      "log": "/tmp/irodori-ios95-signed-build.log"
+    }
+  ],
+  "unverified": [
+    {
+      "id": "M5",
+      "scope": "実機の途中Stop操作、全発話再生/聴取合否、実GPU生成、端末設定の実際の復元、実メモリ/熱/電源状態",
+      "reason": "ユーザー担当。実機/GUI/GPU操作は禁止。"
+    },
+    {
+      "id": "device-os",
+      "scope": "OSツール表示26.6.1とユーザー認識27の不一致",
+      "reason": "親が確認中で、このレビューから端末の実OSを確定していない。"
+    }
+  ],
+  "failures": [
+    {
+      "kind": "test fixture timeout",
+      "resolved": true,
+      "detail": "fakeの呼出し番号をawait前に固定し、二つのstop開始順をsignalで制御し、timeout取消時にgateを開くhandlerを付けた。再検証52件PASS。"
+    },
+    {
+      "kind": "test cleanup permission",
+      "resolved": true,
+      "detail": "sandbox内のpsはEPERM。read-only識別をauto-review許可で実行し、PID97414/UID501/専用test bundle pathを再確認して自身のCPU helperだけにSIGTERM。他セッション、アプリ、モデルプロセスは非操作。"
+    }
+  ],
+  "stateDrift": {
+    "details": "親によるSpeechCheckFiles修正と回帰テストを再読・再実行。最終scopeとtested copyを照合。",
+    "proof": "/tmp/irodori-ios95-check-review/after-source-proof.json",
+    "scope": "/tmp/irodori-ios95-check-scope-final.json"
+  },
+  "constraints": "実機/GUI/GPU操作、リポジトリ変更、git変更、他worktree変更はなし。CPU試験は/tmpへ隔離しCOREAI_/DECIDE_/GLINER_/CLEF_環境を除去。自分の待機したCPU helperの後始末のみ上記のとおり実施。",
+  "pendingTasks": [],
+  "deferredTasks": [
+    {
+      "instruction": "M5をユーザーが実機で確認し、端末OS不一致の調査結果を受入証拠へ対応付ける。",
+      "reason": "本レビューの許可範囲外。"
+    }
+  ],
+  "guide_addition_candidates": [
+    "- 2026-10-13 診断保存先とモデル入力が同じDocuments配下にある場合、予約名SpeechChecksにモデルを置くと既存ファイルを上書きしなくても元モデル配下へ結果を追加できた。mkdir前のmodel marker拒否と、大小文字・alias解決後を含む予約名拒否で防いだ。 [実測] coreai-samples #95、/tmp/irodori-ios95-check-review/before-tests.log・after-tests.log。"
+  ],
+  "stats": {
+    "final_scope_files": 11,
+    "resolved_confirmed": 1,
+    "unresolved_confirmed": 0,
+    "plausible": 0,
+    "final_independent_tests": 52
+  }
+}

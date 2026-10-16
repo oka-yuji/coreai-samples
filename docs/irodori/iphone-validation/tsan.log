@@ -1,0 +1,196 @@
+Fetching https://github.com/ibireme/yyjson.git from cache
+Fetching https://github.com/apple/swift-asn1.git from cache
+Fetching https://github.com/huggingface/swift-huggingface.git from cache
+Fetching https://github.com/apple/swift-collections.git from cache
+Fetching https://github.com/huggingface/swift-jinja.git from cache
+Fetching https://github.com/huggingface/swift-transformers from cache
+Fetching https://github.com/mattt/EventSource.git from cache
+Fetching https://github.com/apple/swift-crypto.git from cache
+Fetched https://github.com/mattt/EventSource.git from cache (1.55s)
+Fetched https://github.com/apple/swift-collections.git from cache (1.60s)
+Fetched https://github.com/apple/swift-asn1.git from cache (1.61s)
+Fetched https://github.com/apple/swift-crypto.git from cache (1.61s)
+Fetched https://github.com/ibireme/yyjson.git from cache (1.62s)
+Fetched https://github.com/huggingface/swift-jinja.git from cache (1.63s)
+Fetched https://github.com/huggingface/swift-huggingface.git from cache (1.64s)
+Fetched https://github.com/huggingface/swift-transformers from cache (1.67s)
+Computing version for https://github.com/huggingface/swift-jinja.git
+Computed https://github.com/huggingface/swift-jinja.git at 2.5.1 (1.73s)
+Computing version for https://github.com/huggingface/swift-transformers
+Computed https://github.com/huggingface/swift-transformers at 1.3.4 (0.05s)
+Computing version for https://github.com/apple/swift-collections.git
+Computed https://github.com/apple/swift-collections.git at 1.7.1 (0.04s)
+Computing version for https://github.com/ibireme/yyjson.git
+Computed https://github.com/ibireme/yyjson.git at 0.12.0 (0.04s)
+Computing version for https://github.com/apple/swift-crypto.git
+Computed https://github.com/apple/swift-crypto.git at 4.5.2 (0.04s)
+Computing version for https://github.com/huggingface/swift-huggingface.git
+Computed https://github.com/huggingface/swift-huggingface.git at 0.12.0 (0.06s)
+Computing version for https://github.com/apple/swift-asn1.git
+Computed https://github.com/apple/swift-asn1.git at 1.7.3 (0.04s)
+Computing version for https://github.com/mattt/EventSource.git
+Computed https://github.com/mattt/EventSource.git at 1.5.1 (0.05s)
+Creating working copy for https://github.com/apple/swift-asn1.git
+Working copy of https://github.com/apple/swift-asn1.git resolved at 1.7.3
+Creating working copy for https://github.com/apple/swift-crypto.git
+Working copy of https://github.com/apple/swift-crypto.git resolved at 4.5.2
+Creating working copy for https://github.com/mattt/EventSource.git
+Working copy of https://github.com/mattt/EventSource.git resolved at 1.5.1
+Creating working copy for https://github.com/huggingface/swift-huggingface.git
+Working copy of https://github.com/huggingface/swift-huggingface.git resolved at 0.12.0
+Creating working copy for https://github.com/huggingface/swift-jinja.git
+Working copy of https://github.com/huggingface/swift-jinja.git resolved at 2.5.1
+Creating working copy for https://github.com/apple/swift-collections.git
+Working copy of https://github.com/apple/swift-collections.git resolved at 1.7.1
+Creating working copy for https://github.com/huggingface/swift-transformers
+Working copy of https://github.com/huggingface/swift-transformers resolved at 1.3.4
+Creating working copy for https://github.com/ibireme/yyjson.git
+Working copy of https://github.com/ibireme/yyjson.git resolved at 0.12.0
+Building for debugging...
+[Computing dependencies]
+[Pre-planning 1 / 1619]
+[Planning deferred tasks]
+[355 / 791]
+[396 / 791]
+[411 / 807]
+[432 / 837] InternalCollectionsUtilities
+[438 / 854]
+[451 / 926]
+[463 / 946] CTokenizers
+[478 / 947]
+[496 / 964]
+[504 / 964] OrderedCollections
+[513 / 964]
+[526 / 965]
+[537 / 965] OrderedCollections
+[557 / 970]
+[558 / 970]
+[565 / 994]
+[572 / 994] FeatureStoreTests-product
+[578 / 994]
+[595 / 994] SpeechCore
+[626 / 994] SpeechCore
+[641 / 994]
+[651 / 994] GLiNERCore
+[654 / 994] Jinja
+[658 / 994] GLiNERCore
+[676 / 994] FeatureStoreTests-product
+[681 / 994] RAGContext
+[690 / 994] Crypto
+[699 / 994] IrodoriInputLogic
+[729 / 1000] Crypto
+[739 / 1001] DecideFeature
+[741 / 1001]
+[746 / 1002] Jinja
+[751 / 1006]
+[757 / 1006] SpeechFeature-product
+[762 / 1010] ExtractFeature
+[779 / 1033] SpeechFeature
+[803 / 1080] IrodoriTokenizers
+[821 / 1080] DecideFeatureTests-product
+[838 / 1080]
+[845 / 1080] GLiNERCoreTests-product
+[860 / 1082] SpeechFeatureTests-product
+[865 / 1082] SpeechCoreTests-product
+[868 / 1082]
+[874 / 1086] ExtractFeature
+[887 / 1087] GLiNERCoreTests-product
+[897 / 1116]
+[908 / 1116] HuggingFace
+[914 / 1121]
+[919 / 1121]
+[926 / 1121] SpeechRuntime
+[937 / 1121] SpeechRuntime
+[940 / 1121] SpeechRuntimeTests-product
+[946 / 1121] SpeechRuntime
+[951 / 1121] GLiNERCoreTests-product
+[954 / 1121] ExtractFeatureTests-product
+[960 / 1121] SpeechRuntimeTests-product
+[972 / 1121] HuggingFace
+[986 / 1122] SpeechRuntimeTests-product
+[986 / 1122] HuggingFace
+[993 / 1124] SpeechRuntimeTests-product
+[1006 / 1136] SpeechRuntimeTests-product
+[1021 / 1210]
+[1026 / 1210]
+[1036 / 1210]
+[1038 / 1210]
+[1044 / 1210]
+[1052 / 1210]
+[1059 / 1210]
+[1067 / 1210]
+[1069 / 1210]
+[1072 / 1210]
+[1073 / 1210]
+[1086 / 1210]
+[1087 / 1210]
+[1091 / 1210]
+[1099 / 1210] Hub
+[1106 / 1211] Hub
+[1106 / 1211] Tokenizers
+[1119 / 1224] Tokenizers
+[1125 / 1224] GLiNERRuntime
+[1127 / 1226] Tokenizers
+[1128 / 1226] GLiNERRuntime
+[1136 / 1255]
+[1143 / 1255] GLiNERRuntime
+[1151 / 1255] GLiNERRuntime
+[1167 / 1255] CoreAIBackend
+[1179 / 1256] GLiNERRuntimeTests-product
+[1179 / 1256] CoreAIBackend
+[1191 / 1258] CoreAIBackend
+[1196 / 1263] GLiNERRuntimeTests-product
+[1208 / 1268] CoreAIBackend
+[1227 / 1269] coreai-chat-product
+[1240 / 1270] CoreAIBackendTests-product
+[1255 / 1288] CoreAIBackendTests-product
+[1258 / 1288] CoreAIBackendTests-product
+[1259 / 1292] DecideRuntimeTests-product
+[1262 / 1292] CoreAIBackendTests-product
+/Users/okayuuji/Desktop/SelfApps/_wt/coreai-samples-95-iphone/CoreAISamplesKit/Tests/CoreAIBackendTests/ReloadTestEngine.swift:107:23: warning: result of call to 'withLock' is unused [#NoUsage]
+105 |         self.control = control
+106 |         self.contextLimit = contextLimit
+107 |         control.state.withLock { $0.liveEngines.insert(id) }
+    |                       `- warning: result of call to 'withLock' is unused [#NoUsage]
+108 |     }
+109 | 
+
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
+[1267 / 1292] DecideRuntimeTests-product
+[1269 / 1292]
+[1273 / 1292] GLiNERRuntimeTests-product
+[1275 / 1292] CoreAIBackendTests-product
+[1275 / 1292] DecideRuntimeTests-product
+[1277 / 1292] CoreAIBackendTests-product
+[1286 / 1292] CoreAIBackendTests-product
+[1288 / 1292] CoreAIBackendTests-product
+Build complete! (19.91秒)
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Suite PhoneSpeechCheckTests started.
+􀟈  Suite SpeechLibraryTests started.
+􀟈  Test "The check saves three independent samples, playback evidence and resource snapshots" started.
+􀟈  Test "Missing check examples fail before loading a model and restore the environment" started.
+􀟈  Test "An external audio interruption ends the diagnostic instead of leaving it running" started.
+􀟈  Test "A model named like the check output folder is never modified by diagnostics" started.
+􀟈  Test "Stop waits for a cancelled check to finish cleanup and refuses a new check meanwhile" started.
+􀟈  Test "Check output refuses unsafe names, existing runs and duplicate files" started.
+􀟈  Test "Only visible local directories with a model marker are listed in stable order" started.
+􀟈  Test "Open, generation and playback failures release resources and write failure status" started.
+􀟈  Test "The folder runner reports failures and suppresses results after cancellation" started.
+􀟈  Test case passing 1 argument stage → "generate" to "Open, generation and playback failures release resources and write failure status" started.
+􀟈  Test case passing 1 argument stage → "play" to "Open, generation and playback failures release resources and write failure status" started.
+􀟈  Test case passing 1 argument stage → "open" to "Open, generation and playback failures release resources and write failure status" started.
+􁁛  Test "The folder runner reports failures and suppresses results after cancellation" passed after 0.003 seconds.
+􁁛  Test "A model named like the check output folder is never modified by diagnostics" passed after 0.004 seconds.
+􁁛  Test "Missing check examples fail before loading a model and restore the environment" passed after 0.005 seconds.
+􁁛  Test "Stop waits for a cancelled check to finish cleanup and refuses a new check meanwhile" passed after 0.010 seconds.
+􁁛  Test "Only visible local directories with a model marker are listed in stable order" passed after 0.010 seconds.
+􁁛  Test "An external audio interruption ends the diagnostic instead of leaving it running" passed after 0.011 seconds.
+􁁛  Test "The check saves three independent samples, playback evidence and resource snapshots" passed after 0.012 seconds.
+􁁛  Test "Open, generation and playback failures release resources and write failure status" with 3 test cases passed after 0.013 seconds.
+􁁛  Suite PhoneSpeechCheckTests passed after 0.013 seconds.
+􁁛  Test "Check output refuses unsafe names, existing runs and duplicate files" passed after 0.025 seconds.
+􁁛  Suite SpeechLibraryTests passed after 0.025 seconds.
+􁁛  Test run with 9 tests in 2 suites passed after 0.025 seconds.

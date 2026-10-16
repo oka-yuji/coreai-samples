@@ -148,7 +148,7 @@ swift build -c release
 
 Each `--prompt` is one turn of the same conversation. When the model thinks, the thinking prints under `[reasoning]` and the answer under `[response]`. `--stats` writes JSON lines to stderr: one for the load (`cached`, `specialize_s`, `load_s`) and one per turn, where `cached_tokens` is the part of the prompt reused from earlier turns.
 
-**3. Run the demo app.** Open `CoreAISamples.xcodeproj` in Xcode, choose the `CoreAISamples` scheme and `My Mac`, and press Run. Xcode resolves the package dependencies the first time. The `CoreAISamples` scheme runs a Release build, and `CoreAISamples-Debug` runs a Debug build for debugging. In the app, **Models** opens the bundle folder from step 1.
+**3. Run the demo app.** Install Rust/Cargo for the speech input adapter (Xcode builds it automatically). Open `CoreAISamples.xcodeproj` in Xcode, choose the `CoreAISamples` scheme and `My Mac`, and press Run. Xcode resolves the package dependencies the first time. The `CoreAISamples` scheme runs a Release build, and `CoreAISamples-Debug` runs a Debug build for debugging. In the app, **Models** opens the bundle folder from step 1. The separate [Speech screen](docs/irodori/demo.md) accepts the local Irodori FP32 folder for text-to-speech; its app/GPU/audio acceptance is pending. An [iPhone speech app](docs/irodori/iphone.md) also builds for iOS 27; device execution remains pending.
 
 ## Use it from Swift
 

@@ -1,0 +1,13 @@
+{
+  "framework_build_version": "/private/tmp/irodori-runtime94-probe/build/Build/Products/Release-iphoneos/IrodoriRuntimeProbe.framework/IrodoriRuntimeProbe:\nLoad command 10\n      cmd LC_BUILD_VERSION\n  cmdsize 32\n platform IOS\n    minos 27.0\n      sdk 27.0\n   ntools 1\n     tool LD\n  version 27037.1\n",
+  "irodori_symbols": [
+    "000000000007101c T _iro_bytes_free",
+    "000000000006cd3c T _iro_error_free",
+    "000000000007103c T _iro_nfkc",
+    "000000000006cd6c T _iro_tokenizer_create",
+    "000000000006d040 T _iro_tokenizer_destroy",
+    "000000000006d090 T _iro_tokenizer_encode",
+    "000000000006d470 T _iro_tokens_free"
+  ],
+  "framework_sha256": "f96ddca2be6fa54049fa730fd519da1c943bb32369f3a4d349de3908e43ddf81"
+}

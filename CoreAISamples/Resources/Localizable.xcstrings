@@ -5972,6 +5972,26 @@
         }
       }
     },
+    "Speech" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音声生成"
+          }
+        }
+      }
+    },
+    "Generate and play speech from text with Irodori" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Irodoriで文章から音声を生成・再生"
+          }
+        }
+      }
+    },
     "(no answer text)" : {
       "localizations" : {
         "ja" : {

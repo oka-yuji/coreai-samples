@@ -1,4 +1,4 @@
-# Demo app (macOS, and Extract on iPhone)
+# Demo apps (macOS, Extract and Speech on iPhone)
 
 `CoreAISamples` (`CoreAISamples.xcodeproj` and the `CoreAISamples` folder at the repository root) is a SwiftUI app that runs a local model bundle through Foundation Models with the runtime in this repository (`CoreAIBackend`). It does not use the official `coreai-models` package.
 
@@ -6,8 +6,13 @@
 - **Chat**: one conversation on `LocalLanguageModel` with a **Chat | Work** picker above the message field. Chat answers and searches the web when it needs facts; Work runs multi-step research, reads pages and saves notes, and answers with a `Sources:` section. Both modes continue the same `LanguageModelSession`. Replies and thinking stream, and every finished step shows the time to the first token, the speed, the prompt, reused and generated tokens and why it stopped. A Chat reply stopped with **Stop** shows the time to the first token and the tokens generated so far in the status bar; the runtime reports a step's prompt tokens only when the step finishes. With **RAG** on, the app first collects sources from the web and from `~/Documents/rag/` and the model answers from them with numbered citations. See [Chat and Work](#chat-and-work) and [RAG](#rag) below.
 - **Extract**: add an Apple/Microsoft product URL or paste a description, then compare up to four source-linked specification cards. Values remain candidates from the page, including multiple configurations; missing fields are left empty. The earlier label/inspection experiment remains under **Extraction lab**. See [Extract](#extract) and the [product demo specification](specs/product-comparison-demo.md).
 
+- **Speech**: open the pinned Irodori FP32 folder, generate from text and seed, play/stop and save a WAV. Actual app/GPU/audio acceptance remains pending. See [Irodori Speech](irodori/demo.md).
+
+
+
 ## Requirements
 
+- Rust/Cargo for the Mac speech input adapter; the Xcode pre-build phase builds it automatically.
 - [XcodeGen](https://github.com/yonaskolb/XcodeGen), only to regenerate the demo app's project
 
 ## Build and run
@@ -24,6 +29,10 @@ The app is signed ad hoc and runs without the App Sandbox. To sign with your tea
 
 The first load of a model prepares it for the GPU (20.72 s for Qwen3.5-9B on October 3, 2026, and 82.84 s for the Qwen3.8 27B 4-bit bundle on October 11, 2026, both on an M4 Max with macOS 27.0 (26A428)); later loads reuse the prepared copy in `~/Library/Caches/coreai-cache/<OS build>/com.coreai-samples.DemoApp/`.
 
+
+## Speech on iPhone
+
+The separate `SpeechPhone` scheme builds **Irodori Speech** for iOS 27 physical devices. It opens the pinned FP32 folder from its Documents directory and provides text/seed input, generation, playback/stop and WAV export. The signed build is ready; actual device installation and inference remain pending connection recovery. See [iPhone setup and checks](irodori/iphone.md). The existing Extract app retains its own bundle ID.
 
 ## Extract on iPhone
 

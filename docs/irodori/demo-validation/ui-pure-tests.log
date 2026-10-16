@@ -1,0 +1,45 @@
+warning: /Users/okayuuji/Library/org.swift.swiftpm/configuration is not accessible or not writable, disabling user-level cache features.
+warning: /Users/okayuuji/Library/org.swift.swiftpm/security is not accessible or not writable, disabling user-level cache features.
+Building for debugging...
+[0/9] /tmp/irodori-speech92-review/build/arm64-apple-macosx/debug/PureReviewPackageTests.derived/runner.swift
+[1/9] Write sources
+[6/9] Write swift-version--58304C5D6DBC2206.txt
+[8/15] Compiling FeatureStore Store.swift
+[9/15] Emitting module FeatureStore
+[10/15] Compiling FeatureStore Feature.swift
+[11/15] Emitting module SpeechCore
+[12/15] Compiling SpeechCore SpeechTypes.swift
+[13/15] Compiling SpeechCore AudioContract.swift
+[14/17] Compiling SpeechFeature SpeechFeature.swift
+[15/17] Emitting module SpeechFeature
+[16/19] Compiling SpeechFeatureTests SpeechFeatureTests.swift
+[17/19] Emitting module SpeechFeatureTests
+[18/21] Emitting module PureReviewPackageTests
+[19/21] Compiling PureReviewPackageTests runner.swift
+[19/21] Write Objects.LinkFileList
+[20/21] Linking PureReviewPackageTests
+Build complete! (4.65s)
+warning: '--build-system native' has been deprecated and will be removed in a future release; please report an issue at https://github.com/swiftlang/swift-package-manager/issues if you are unable to adopt the default build system.
+Test Suite 'All tests' started at 2026-10-13 11:49:25.618.
+Test Suite 'All tests' passed at 2026-10-13 11:49:25.618.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Suite SpeechFeatureTests started.
+􀟈  Test "Model selection and opening failures have separate sessions" started.
+􀟈  Test "Generation requires a model, nonempty text, a valid seed and an idle screen" started.
+􀟈  Test "Leaving and returning waits for release before allowing another operation" started.
+􀟈  Test "Dismissed save panels accept their result until a new session invalidates them" started.
+􀟈  Test "An old save completion cannot dismiss a newer panel" started.
+􀟈  Test "Stop waits for acknowledgement and rejects old generation results" started.
+􀟈  Test "Playback failure retains the audio while edits invalidate it" started.
+􁁛  Test "Generation requires a model, nonempty text, a valid seed and an idle screen" passed after 0.001 seconds.
+􁁛  Test "An old save completion cannot dismiss a newer panel" passed after 0.001 seconds.
+􁁛  Test "Playback failure retains the audio while edits invalidate it" passed after 0.001 seconds.
+􁁛  Test "Model selection and opening failures have separate sessions" passed after 0.001 seconds.
+􁁛  Test "Leaving and returning waits for release before allowing another operation" passed after 0.001 seconds.
+􁁛  Test "Stop waits for acknowledgement and rejects old generation results" passed after 0.001 seconds.
+􁁛  Test "Dismissed save panels accept their result until a new session invalidates them" passed after 0.001 seconds.
+􁁛  Suite SpeechFeatureTests passed after 0.001 seconds.
+􁁛  Test run with 7 tests in 1 suite passed after 0.001 seconds.

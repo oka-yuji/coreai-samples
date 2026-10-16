@@ -1,0 +1,92 @@
+import Foundation
+import IrodoriInputLogic
+import SpeechCore
+import Testing
+@testable import SpeechRuntime
+
+private struct FailingPreparation: SpeechPipeline {
+    let base: any SpeechPipeline
+    @concurrent func prepare(_ input: IrodoriTextInput) async throws -> any SpeechContext { throw SpeechError.invalidDuration }
+    @concurrent func generate(_ context: any SpeechContext, seed: UInt64) async throws -> [Float] { try await base.generate(context, seed: seed) }
+}
+
+private struct NonfinitePipeline: SpeechPipeline {
+    let base: any SpeechPipeline
+    @concurrent func prepare(_ input: IrodoriTextInput) async throws -> any SpeechContext { try await base.prepare(input) }
+    @concurrent func generate(_ context: any SpeechContext, seed: UInt64) async throws -> [Float] { [Float](repeating: .nan, count: context.frames * 1920) }
+}
+
+@Suite(.timeLimit(.minutes(1)))
+struct ReviewAdditionalTests {
+    @Test("Release waits during a cancelled pipeline factory and the next request recovers")
+    func cancelledFactory() async throws {
+        let driver = TestDriver()
+        let factoryStarted = TestSignal()
+        let factoryGate = TestGate()
+        let releaseStarted = TestSignal()
+        var deps = testDependencies(driver, releasing: releaseStarted)
+        deps.pipeline = { _ in
+            let base = await driver.makePipeline()
+            if await driver.factoryCount == 1 { factoryStarted.fire(); await factoryGate.wait() }
+            return base
+        }
+        let runtime = IrodoriRuntime(dependencies: deps)
+        _ = try await runtime.open(URL(filePath: "/review"))
+        try await withThrowingTaskGroup(of: String.self) { group in
+            defer { factoryGate.open() }
+            group.addTask {
+                do { _ = try await runtime.generate(text: "13", seed: 1); return "completed" }
+                catch is CancellationError { return "cancelled" }
+            }
+            try await factoryStarted.wait()
+            group.addTask { await runtime.release(); return "released" }
+            try await releaseStarted.wait()
+            await #expect(throws: SpeechError.busy) { try await runtime.open(URL(filePath: "/second")) }
+            #expect(!driver.log.snapshot().contains("pipeline-ended"))
+            group.cancelAll()
+            factoryGate.open()
+            var outcomes = Set<String>()
+            for try await outcome in group { outcomes.insert(outcome) }
+            #expect(outcomes == ["cancelled", "released"])
+        }
+        _ = try await runtime.generate(text: "13", seed: 2)
+        #expect(await driver.factoryCount == 2)
+        await runtime.release()
+    }
+
+    @Test("A preparation failure releases its pipeline and a later generation succeeds")
+    func preparationRecovery() async throws {
+        let driver = TestDriver()
+        var deps = testDependencies(driver)
+        deps.pipeline = { _ in
+            let base = await driver.makePipeline()
+            if await driver.factoryCount == 1 { return FailingPreparation(base: base) }
+            return base
+        }
+        let runtime = IrodoriRuntime(dependencies: deps)
+        _ = try await runtime.open(URL(filePath: "/review"))
+        await #expect(throws: SpeechError.invalidDuration) { try await runtime.generate(text: "13", seed: 1) }
+        #expect(driver.log.snapshot().last == "pipeline-ended")
+        _ = try await runtime.generate(text: "13", seed: 2)
+        #expect(await driver.factoryCount == 2)
+        await runtime.release()
+    }
+
+    @Test("A nonfinite PCM result is rejected and does not poison the next generation")
+    func pcmRecovery() async throws {
+        let driver = TestDriver()
+        var deps = testDependencies(driver)
+        deps.pipeline = { _ in
+            let base = await driver.makePipeline()
+            if await driver.factoryCount == 1 { return NonfinitePipeline(base: base) }
+            return base
+        }
+        let runtime = IrodoriRuntime(dependencies: deps)
+        _ = try await runtime.open(URL(filePath: "/review"))
+        await #expect(throws: SpeechError.invalidSamples) { try await runtime.generate(text: "13", seed: 1) }
+        #expect(driver.log.snapshot().last == "pipeline-ended")
+        _ = try await runtime.generate(text: "13", seed: 2)
+        #expect(await driver.factoryCount == 2)
+        await runtime.release()
+    }
+}

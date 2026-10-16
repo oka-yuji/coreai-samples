@@ -1,0 +1,7 @@
+{
+  "prepare_returned_success": true,
+  "output_file": "/tmp/irodori-app91-symlink-7rwz9ny4/bundle/artifacts/example.aimodel/main.mlirb",
+  "output_is_symlink": true,
+  "output_target": "/private/tmp/irodori-app91-symlink-7rwz9ny4/weights-blob",
+  "sha_matches": true
+}

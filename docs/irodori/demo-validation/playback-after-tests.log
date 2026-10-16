@@ -1,0 +1,99 @@
+[0/1] Planning build
+Building for production...
+[0/4] Write sources
+[2/4] Write swift-version--58304C5D6DBC2206.txt
+[4/5] Compiling SpeechRuntime AudioPlayback.swift
+[5/6] Compiling SpeechRuntimeTests AudioPlaybackTests.swift
+/private/tmp/irodori-app92-playback-review/Tests/SpeechRuntimeTests/ReviewPlaybackTests.swift:92:18: warning: weak variable 'observed' was never mutated; consider changing to 'let' constant [#VariableNeverMutated::WeakMutability]
+ 90 |             finished.fire()
+ 91 |         }
+ 92 |         weak var observed = store
+    |                  `- warning: weak variable 'observed' was never mutated; consider changing to 'let' constant [#VariableNeverMutated::WeakMutability]
+ 93 |         defer { playback.stop(); store = nil }
+ 94 |         store?.send(.play)
+
+[#VariableNeverMutated]: <https://docs.swift.org/compiler/documentation/diagnostics/variable-never-mutated>
+[#WeakMutability]: <https://docs.swift.org/compiler/documentation/diagnostics/weak-mutability>
+[5/7] Write Objects.LinkFileList
+[6/7] Linking SpeechReviewPackageTests
+Build complete! (2.79s)
+Test Suite 'All tests' started at 2026-10-13 11:54:00.249.
+Test Suite 'All tests' passed at 2026-10-13 11:54:00.249.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Test "Float WAV preserves the sample bits and format fields" started.
+􀟈  Suite ReviewPlaybackTests started.
+􀟈  Test "Pinned normalization matches the Unicode reference corpus" started.
+􀟈  Test "Unsupported bundle metadata and changed files are rejected" started.
+􀟈  Suite IrodoriRuntimeTests started.
+􀟈  Suite SpeechFeatureTests started.
+􀟈  Suite SpeechServiceTests started.
+􀟈  Test "An active decode error followed by duplicate callbacks resolves only once" started.
+􀟈  Test "Noise and token layout retain the verified input contract" started.
+􀟈  Test "All pinned noise shapes and seeds match the CPU reference" started.
+􀟈  Test "The frame policy handles periodic and shape changes" started.
+􀟈  Suite AudioPlaybackTests started.
+􀟈  Test "An older queued cancellation cannot stop a newer playback continuation" started.
+􀟈  Test "Dropping the Store cancels a suspended playback even while its service remains retained" started.
+􀟈  Test "The sixty-first completed request reloads every model" started.
+􀟈  Test "A failed generation drops the models and a later request can recover" started.
+􀟈  Test "A cancelled stop finishes cleanup without sending an outcome" started.
+􀟈  Test "Generation requires a model, nonempty text, a valid seed and an idle screen" started.
+􀟈  Test "Model selection and opening failures have separate sessions" started.
+􀟈  Test "Stop waits for acknowledgement and rejects old generation results" started.
+􀟈  Test "Service stop ends playback immediately and awaits runtime release" started.
+􀟈  Test "Opening a model performs no inference and invalid text never loads a pipeline" started.
+􀟈  Test "Cancellation keeps release waiting for an uncooperative operation to finish" started.
+􀟈  Test "Repeated generation reuses models and shape changes release the old context first" started.
+􀟈  Test "An old save completion cannot dismiss a newer panel" started.
+􀟈  Test "Dismissed save panels accept their result until a new session invalidates them" started.
+􀟈  Test "Leaving and returning waits for release before allowing another operation" started.
+􀟈  Test "Runner reports outcomes with their session and suppresses cancelled results" started.
+􀟈  Test "Cancelled stop finishes cleanup without delivering an obsolete acknowledgement" started.
+􀟈  Test "Only successful model validation persists a path and generation forwards text and seed" started.
+􀟈  Test "Playback failure retains the audio while edits invalidate it" started.
+􀟈  Test "Store cancellation ignores a late generation and keeps restart blocked until stop completes" started.
+􀟈  Test "Cancellation ends playback without a delegate callback" started.
+􀟈  Test "Synchronous completion and a refused start both resolve exactly once" started.
+􀟈  Test "A cancelled caller does not create or start a player" started.
+􀟈  Test "Late callbacks from stopped audio cannot finish newer playback" started.
+􁁛  Test "The frame policy handles periodic and shape changes" passed after 0.001 seconds.
+􁁛  Test "Noise and token layout retain the verified input contract" passed after 0.001 seconds.
+􁁛  Test "An old save completion cannot dismiss a newer panel" passed after 0.001 seconds.
+􁁛  Test "Generation requires a model, nonempty text, a valid seed and an idle screen" passed after 0.001 seconds.
+􁁛  Test "Leaving and returning waits for release before allowing another operation" passed after 0.001 seconds.
+􁁛  Test "Stop waits for acknowledgement and rejects old generation results" passed after 0.001 seconds.
+􁁛  Test "Playback failure retains the audio while edits invalidate it" passed after 0.001 seconds.
+􁁛  Test "Model selection and opening failures have separate sessions" passed after 0warning: '--build-system native' has been deprecated and will be removed in a future release; please report an issue at https://github.com/swiftlang/swift-package-manager/issues if you are unable to adopt the default build system.
+.001 seconds.
+􁁛  Test "Dismissed save panels accept their result until a new session invalidates them" passed after 0.001 seconds.
+􁁛  Test "Float WAV preserves the sample bits and format fields" passed after 0.001 seconds.
+􁁛  Test "Opening a model performs no inference and invalid text never loads a pipeline" passed after 0.001 seconds.
+􁁛  Suite SpeechFeatureTests passed after 0.001 seconds.
+􁁛  Test "Synchronous completion and a refused start both resolve exactly once" passed after 0.001 seconds.
+􁁛  Test "A failed generation drops the models and a later request can recover" passed after 0.001 seconds.
+􁁛  Test "Cancellation keeps release waiting for an uncooperative operation to finish" passed after 0.001 seconds.
+􁁛  Test "Repeated generation reuses models and shape changes release the old context first" passed after 0.001 seconds.
+􁁛  Test "An active decode error followed by duplicate callbacks resolves only once" passed after 0.003 seconds.
+􁁛  Test "A cancelled stop finishes cleanup without sending an outcome" passed after 0.003 seconds.
+􁁛  Test "A cancelled caller does not create or start a player" passed after 0.003 seconds.
+􁁛  Test "Dropping the Store cancels a suspended playback even while its service remains retained" passed after 0.003 seconds.
+􁁛  Test "An older queued cancellation cannot stop a newer playback continuation" passed after 0.003 seconds.
+􁁛  Test "Cancelled stop finishes cleanup without delivering an obsolete acknowledgement" passed after 0.003 seconds.
+􁁛  Test "Runner reports outcomes with their session and suppresses cancelled results" passed after 0.003 seconds.
+􁁛  Suite ReviewPlaybackTests passed after 0.003 seconds.
+􁁛  Test "Store cancellation ignores a late generation and keeps restart blocked until stop completes" passed after 0.003 seconds.
+􁁛  Test "Only successful model validation persists a path and generation forwards text and seed" passed after 0.003 seconds.
+􁁛  Test "Cancellation ends playback without a delegate callback" passed after 0.003 seconds.
+􁁛  Test "Service stop ends playback immediately and awaits runtime release" passed after 0.003 seconds.
+􁁛  Test "Late callbacks from stopped audio cannot finish newer playback" passed after 0.003 seconds.
+􁁛  Suite SpeechServiceTests passed after 0.004 seconds.
+􁁛  Suite AudioPlaybackTests passed after 0.004 seconds.
+􁁛  Test "Unsupported bundle metadata and changed files are rejected" passed after 0.005 seconds.
+􁁛  Test "Pinned normalization matches the Unicode reference corpus" passed after 0.007 seconds.
+􁁛  Test "All pinned noise shapes and seeds match the CPU reference" passed after 0.007 seconds.
+􁁛  Test "The sixty-first completed request reloads every model" passed after 0.018 seconds.
+􁁛  Suite IrodoriRuntimeTests passed after 0.018 seconds.
+􁁛  Test run with 31 tests in 5 suites passed after 0.018 seconds.
