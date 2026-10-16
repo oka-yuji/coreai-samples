@@ -15,6 +15,7 @@ let package = Package(
         .iOS("27.0"),
     ],
     products: [
+        .library(name: "ObjectFinderFeature", targets: ["ObjectFinderFeature"]),
         .library(name: "ObjectFinderCore", targets: ["ObjectFinderCore"]),
         .library(name: "ObjectFinderRuntime", targets: ["ObjectFinderRuntime"]),
         .executable(name: "object-finder-check", targets: ["object-finder-check"]),
@@ -53,16 +54,23 @@ let package = Package(
         .package(url: "https://github.com/huggingface/swift-jinja.git", from: "2.5.1"),
     ],
     targets: [
+        .target(
+            name: "ObjectFinderFeature", dependencies: ["ObjectFinderCore", "FeatureStore"],
+            swiftSettings: speechSettings),
         .target(name: "ObjectFinderCore", swiftSettings: speechSettings),
         .target(
-            name: "ObjectFinderRuntime", dependencies: ["ObjectFinderCore", "EmbeddingCore", "EmbeddingRuntime"],
+            name: "ObjectFinderRuntime",
+            dependencies: ["ObjectFinderCore", "ObjectFinderFeature", "EmbeddingCore", "EmbeddingRuntime"],
             swiftSettings: speechSettings),
         .executableTarget(
             name: "object-finder-check", dependencies: ["ObjectFinderCore", "ObjectFinderRuntime"],
             swiftSettings: speechSettings),
         .testTarget(
             name: "ObjectFinderTests",
-            dependencies: ["ObjectFinderCore", "ObjectFinderRuntime", "EmbeddingCore", "EmbeddingRuntime"],
+            dependencies: [
+                "ObjectFinderCore", "ObjectFinderFeature", "ObjectFinderRuntime", "FeatureStore", "EmbeddingCore",
+                "EmbeddingRuntime",
+            ],
             swiftSettings: speechSettings),
         .target(name: "SpeechCore", swiftSettings: speechSettings),
         .target(name: "SpeechFeature", dependencies: ["SpeechCore", "FeatureStore"], swiftSettings: speechSettings),

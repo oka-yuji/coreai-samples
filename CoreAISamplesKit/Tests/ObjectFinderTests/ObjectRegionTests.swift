@@ -5,6 +5,23 @@ import Testing
 struct ObjectRegionTests {
     private let left = ObjectRegion(x: 0.1, y: 0.2, width: 0.3, height: 0.4)
 
+    @Test("Looking down at a table preserves the last valid camera orientation")
+    func flatOrientation() {
+        var orientation = ObjectCameraOrientation()
+        orientation.update(.flat)
+        #expect(orientation.angle == 90)
+        orientation.update(.landscapeLeft)
+        orientation.update(.flat)
+        #expect(orientation.angle == 0)
+        orientation.update(.landscapeRight)
+        orientation.update(.flat)
+        #expect(orientation.angle == 180)
+        orientation.update(.portraitUpsideDown)
+        #expect(orientation.angle == 270)
+        orientation.update(.portrait)
+        #expect(orientation.angle == 90)
+    }
+
     @Test("Invalid, non-finite and out-of-frame regions cannot become visible matches")
     func invalidRegions() {
         let invalid = [

@@ -184,6 +184,12 @@
 		FE2EDA123266ADA0B858BEFC /* GLiNERRuntime in Frameworks */ = {isa = PBXBuildFile; productRef = E537630B97D4DA06423BFDBC /* GLiNERRuntime */; };
 		FEAA664820CCCE1913D6E3C6 /* 03-omelette.png in Resources */ = {isa = PBXBuildFile; fileRef = 1FE6487E7AFD8DA556478B25 /* 03-omelette.png */; };
 		FFF3C06A390062F289948187 /* RecipeInspectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA2674A4B3DE025177BD4654 /* RecipeInspectorView.swift */; };
+		2B5A68B361716189473B97AA /* ObjectFinderView.swift */ = {isa = PBXBuildFile; fileRef = 419F27C0EAC4B36EC3E58C4A /* ObjectFinderView.swift */; };
+		1D8FEF281EADF5CFCA4B58E1 /* object-finder-examples.json */ = {isa = PBXBuildFile; fileRef = 9044E606AA23493EE50E29D7 /* object-finder-examples.json */; };
+		2CEAC2B5136E02E088EBDC5E /* InfoPlist.xcstrings */ = {isa = PBXBuildFile; fileRef = E7CDB79723C00419457408EC /* InfoPlist.xcstrings */; };
+		5C4D2A540B8DE256A9F54FAA /* ObjectFinderCore */ = {isa = PBXBuildFile; productRef = 5582B5BACD5A672D2019F68A /* ObjectFinderCore */; };
+		FEE71D3B7337E96B95066D48 /* ObjectFinderFeature */ = {isa = PBXBuildFile; productRef = 40D487FEBE7C50F9D958ACAF /* ObjectFinderFeature */; };
+		F69E93097FFF33F9D4340204 /* ObjectFinderRuntime */ = {isa = PBXBuildFile; productRef = 724C40563AA752ECA2D21DF3 /* ObjectFinderRuntime */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -291,6 +297,9 @@
 		F8A445C0F98E7EF55960E4EB /* ConversationArchiveSelfTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationArchiveSelfTest.swift; sourceTree = "<group>"; };
 		FAE0376EC66AACAB7D06A922 /* ModelStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelStorage.swift; sourceTree = "<group>"; };
 		FF57BF3874EBD013FC0468B5 /* ModelsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelsViewModel.swift; sourceTree = "<group>"; };
+		419F27C0EAC4B36EC3E58C4A /* ObjectFinderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ObjectFinderView.swift"; sourceTree = "<group>"; };
+		9044E606AA23493EE50E29D7 /* object-finder-examples.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "object-finder-examples.json"; sourceTree = "<group>"; };
+		E7CDB79723C00419457408EC /* InfoPlist.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = "InfoPlist.xcstrings"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -339,6 +348,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F69E93097FFF33F9D4340204 /* ObjectFinderRuntime */,
+				FEE71D3B7337E96B95066D48 /* ObjectFinderFeature */,
+				5C4D2A540B8DE256A9F54FAA /* ObjectFinderCore */,
 				415BA358AC23880B2C050C4F /* TruckInspectionCore in Frameworks */,
 				A6BDC0269DA3DFDE8D9CB2DA /* TruckInspectionFeature in Frameworks */,
 				938CDAF7453AA1F4A8963427 /* TruckInspectionRuntime in Frameworks */,
@@ -543,6 +555,8 @@
 		88E5CD583B41B8DD70C0D6AA /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				E7CDB79723C00419457408EC /* InfoPlist.xcstrings */,
+				9044E606AA23493EE50E29D7 /* object-finder-examples.json */,
 				3CEF3EC20960BAA18E3E9597 /* image-search-queries.json */,
 				97A66460729265871B0AEACF /* image-search-reference.json */,
 				7A89987BFF1C553FC444E064 /* Ingredients.xcstrings */,
@@ -652,6 +666,7 @@
 		E1FF09FDCFF94F36D65C1B48 /* iOS */ = {
 			isa = PBXGroup;
 			children = (
+				419F27C0EAC4B36EC3E58C4A /* ObjectFinderView.swift */,
 				148BF4ADF94AA3ECAAB30DB9 /* InspectionAudioCapture.swift */,
 				5752BFE3276EAB49C2ADF091 /* InspectionRecognition.swift */,
 				9042E52315E369A6C16890CE /* InspectionSpeaker.swift */,
@@ -718,6 +733,9 @@
 			);
 			name = "CoreAISamples-iOS";
 			packageProductDependencies = (
+				724C40563AA752ECA2D21DF3 /* ObjectFinderRuntime */,
+				40D487FEBE7C50F9D958ACAF /* ObjectFinderFeature */,
+				5582B5BACD5A672D2019F68A /* ObjectFinderCore */,
 				9A63E199B15D68E147DE18FB /* TruckInspectionCore */,
 				E11B9510FB5B5B6C957FA110 /* TruckInspectionFeature */,
 				131E2F2E07B05178D004FD0F /* TruckInspectionRuntime */,
@@ -856,6 +874,8 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				2CEAC2B5136E02E088EBDC5E /* InfoPlist.xcstrings */,
+				1D8FEF281EADF5CFCA4B58E1 /* object-finder-examples.json */,
 				C37696C0F188E175BE371467 /* 01-oyakodon.png in Resources */,
 				9489BEB70AF382E6332F8D2D /* 02-ginger-pork.png in Resources */,
 				91D6B7DDBEB329E6182572EB /* 03-omelette.png in Resources */,
@@ -942,6 +962,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				2B5A68B361716189473B97AA /* ObjectFinderView.swift */,
 				E6C358B0F0D88C9BD828C1A3 /* DemoLanguage.swift in Sources */,
 				7965D53F9D757D1A07ACEDF0 /* ExtractEval.swift in Sources */,
 				16CC300A10504F414B0E428B /* ExtractRunner.swift in Sources */,
@@ -1111,6 +1132,7 @@
 		4C500488F07D7EC58CA7289B /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				INFOPLIST_KEY_NSCameraUsageDescription = "Find the objects you name using on-device image analysis.";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -1229,6 +1251,7 @@
 		94E110BD10964211A0CDE77A /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				INFOPLIST_KEY_NSCameraUsageDescription = "Find the objects you name using on-device image analysis.";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -1545,6 +1568,9 @@
 			isa = XCSwiftPackageProductDependency;
 			productName = SpeechFeature;
 		};
+		5582B5BACD5A672D2019F68A /* ObjectFinderCore */ = {isa = XCSwiftPackageProductDependency; productName = ObjectFinderCore; };
+		40D487FEBE7C50F9D958ACAF /* ObjectFinderFeature */ = {isa = XCSwiftPackageProductDependency; productName = ObjectFinderFeature; };
+		724C40563AA752ECA2D21DF3 /* ObjectFinderRuntime */ = {isa = XCSwiftPackageProductDependency; productName = ObjectFinderRuntime; };
 /* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = CE9B9124D58243D80FA6F623 /* Project object */;
