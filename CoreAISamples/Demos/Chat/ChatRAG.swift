@@ -1,3 +1,4 @@
+import ConversationFeature
 import Foundation
 import PDFKit
 import RAGContext
@@ -37,7 +38,16 @@ struct RAGRetrieval: Sendable {
     var sourceTokens = 0
     var seconds: Double = 0
 
-    var citations: [String] { RAGContext.citations(sources) }
+    func conversationSources() throws -> [ConversationSource] {
+        try sources.map { source in
+            guard let version = source.version, let offset = source.offset, let document = source.document else {
+                throw ConversationSources.Failure.invalid
+            }
+            return ConversationSource(
+                document: document, version: version, title: source.title, date: source.date,
+                passages: [SourcePassage(offset: offset, text: source.text)])
+        }
+    }
 
     var summary: String {
         "search \(searchResults) / pages \(pagesRead) / passages \(candidates) → \(sources.count) sources, \(sourceTokens) tokens"
@@ -51,11 +61,13 @@ enum RAGRetriever {
         return url
     }
 
-    static func gather(question: String, settings: RAGSettings, count: @Sendable (String) -> Int) async -> RAGRetrieval
+    @concurrent static func gather(question: String, settings: RAGSettings, count: @Sendable (String) -> Int) async
+        -> RAGRetrieval
     {
         let start = ContinuousClock.now
         var out = RAGRetrieval()
         var candidates: [RAGSource] = []
+        guard !Task.isCancelled else { return out }
 
         if settings.local {
             let local = RAGDocuments.load(directory: settings.documentsDirectory) { PDFDocument(url: $0)?.string }
@@ -67,10 +79,12 @@ enum RAGRetriever {
             candidates += local
         }
 
+        guard !Task.isCancelled else { return out }
         if settings.web {
             candidates += await webCandidates(question: question, settings: settings, into: &out)
         }
 
+        guard !Task.isCancelled else { return out }
         out.candidates = candidates.count
         let fixed = count(RAGContext.prompt(question: question, sources: [], today: RAGContext.today()))
         out.sources = RAGContext.select(
@@ -180,11 +194,10 @@ enum RAGRetriever {
             ?? RAGContext.isoDate(in: result.snippet)
             ?? RAGContext.isoDate(in: String(text.prefix(600)))
             ?? ""
-        let relevant = AgentTools.pageText(text, query: question, budget: budget)
         let title = result.title.isEmpty ? (url.host() ?? url.absoluteString) : result.title
-        return RAGContext.chunks(relevant).map {
-            RAGSource(title: title, url: url.absoluteString, date: date, text: $0)
-        }
+        let candidates = RAGContext.documentSources(title: title, url: url.absoluteString, date: date, text: text)
+        return RAGContext.select(
+            candidates, question: question, budget: budget, count: { $0.count }, rank: bestRanking)
     }
 }
 
@@ -211,36 +224,5 @@ struct RAGControls: View {
         .font(.caption)
         .disabled(vm.isResponding)
         .fixedSize()
-    }
-}
-
-struct RAGSourceFooter: View {
-    let notes: [String]
-    let sources: [String]
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            ForEach(notes, id: \.self) { line in
-                Label {
-                    RuntimeMessageText(line)
-                } icon: {
-                    Image(systemName: "exclamationmark.triangle")
-                }
-                .font(.caption2)
-                .foregroundStyle(.orange)
-            }
-            if !sources.isEmpty {
-                Text("Sources")
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(.secondary)
-                ForEach(sources, id: \.self) { line in
-                    Text(line)
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-            }
-        }
-        .textSelection(.enabled)
     }
 }

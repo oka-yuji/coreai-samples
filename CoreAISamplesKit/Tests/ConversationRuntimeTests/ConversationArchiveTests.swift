@@ -5,6 +5,25 @@ import Testing
 
 struct ConversationArchiveTests {
     private let writer = UUID()
+    @Test("Source identities and passages survive archive restore and missing source IDs are refused")
+    func sourceArchive() async throws {
+        let directory = folder()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        var snapshot = sample()
+        var sources = ConversationSources()
+        let ids = try sources.register([
+            ConversationSource(
+                document: "file:///manual", version: String(repeating: "a", count: 64), title: "Manual",
+                passages: [SourcePassage(offset: 30, text: "Selected passage")])
+        ])
+        snapshot.evidence = ConversationEvidence(sources: sources)
+        snapshot.turns[0].sourceIDs = ids
+        let archive = ConversationArchive(directory: directory)
+        try await archive.save(snapshot, expectedRevision: 0, writer: writer)
+        #expect(try await archive.load(id: snapshot.id) == .snapshot(snapshot))
+        snapshot.turns[0].sourceIDs = ["S2"]
+        #expect(throws: ConversationArchive.Failure.self) { try ConversationArchive.validate(snapshot) }
+    }
     @Test("A new archive instance restores every saved turn and the matching Markdown export")
     func roundTrip() async throws {
         let directory = folder()

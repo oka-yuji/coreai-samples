@@ -71,29 +71,37 @@ enum SelfTest {
         for (index, prompt) in prompts.enumerated() {
             chat.input = prompt
             guard host.submit() else {
-                log("[selftest] send refused: phase=\(chat.phase) contextFull=\(host.contextFull || chat.contextFull)")
+                log("[selftest] send refused: phase=\(chat.phase) contextFull=\(host.contextFull)")
                 pass = false
                 break
             }
             while host.state.isRunning || host.state.isSaving || chat.isResponding {
                 try? await Task.sleep(for: .milliseconds(20))
             }
-            guard let result = chat.ragEnabled ? chat.last : host.runner.session.lastGeneration else {
+            guard let result = host.runner.lastGeneration else {
                 log(
                     "[selftest] no result: ragIsOn=\(chat.ragIsOn) running=\(host.state.isRunning) "
                         + "failure=\(host.state.turns.last?.failure ?? "none")")
                 pass = false
                 break
             }
-            if chat.ragEnabled, let retrieval = chat.retrieval {
+            if chat.ragEnabled, let retrieval = host.runner.lastRetrieval {
                 log("[rag] turn=\(index) question=\(prompt)")
                 log("[rag] turn=\(index) \(retrieval.summary)")
                 for line in retrieval.notes { log("[rag] turn=\(index) note \(line)") }
-                for line in retrieval.citations { log("[rag] turn=\(index) source \(line)") }
-                for (number, source) in retrieval.sources.enumerated() {
-                    log("[rag] turn=\(index) passage [\(number + 1)] \(source.text.replacing("\n", with: "\\n"))")
+                for line in host.runner.tools.sources.citations(host.state.turns.last?.sourceIDs ?? []) {
+                    log("[rag] turn=\(index) source \(line)")
                 }
-                let thinking = chat.ragTurns.last?.reasoning ?? ""
+                for source in retrieval.sources {
+                    let id =
+                        host.runner.tools.sources.records.first {
+                            $0.document == source.document && $0.version == source.version
+                        }?.id ?? "unknown"
+                    log(
+                        "[rag] turn=\(index) passage [\(id)] chars=\(source.offset ?? 0) text=\(source.text.replacing("\n", with: "\\n"))"
+                    )
+                }
+                let thinking = host.state.entries.last(where: { $0.kind == .thinking })?.text ?? ""
                 log("[rag] turn=\(index) thinking (\(thinking.count) chars)=\(thinking.replacing("\n", with: "\\n"))")
                 log("[rag] turn=\(index) answer=\(result.answer.replacing("\n", with: " "))")
             }
@@ -108,7 +116,9 @@ enum SelfTest {
                 let continued = result.turn == index + 1 && (result.turn == 1 || (result.cachedTokens ?? 0) > 0)
                 pass = pass && generated && continued
             } else if (result.sources ?? 0) > 0 {
-                pass = pass && generated && !result.answer.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                pass =
+                    pass && generated && !result.answer.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                    && host.runner.citationGuard.checks.last?.local?.violation == false
             } else {
                 pass =
                     pass && result.stopReason == "noSources" && result.answer == "Could not retrieve any sources."

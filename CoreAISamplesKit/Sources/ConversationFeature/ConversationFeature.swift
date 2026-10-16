@@ -6,6 +6,8 @@ public enum ConversationAction: Equatable, Sendable {
     case modeChanged(ConversationMode)
     case settingsChanged(ConversationSettings)
     case send(String, mode: ConversationMode, now: Date)
+    case sendSources(String, ConversationSourceRequest, now: Date)
+    case sourcesCollected(run: Int, ids: [String], evidence: ConversationEvidence, lines: [String])
     case sendRepair(String, now: Date)
     case continueRequested(now: Date)
     case transcriptChanged(run: Int, TranscriptRecord)
@@ -106,6 +108,19 @@ public enum ConversationFeature: Feature {
             return []
         case .send(let text, let mode, let now):
             return send(&state, text, mode: mode, now: now)
+        case .sendSources(let text, let request, let now):
+            guard request.web || request.local, [3_000, 6_000].contains(request.budget) else { return [] }
+            return send(&state, text, mode: .chat, now: now, sourceRequest: request)
+        case .sourcesCollected(let run, let ids, let evidence, let lines):
+            guard state.isActive(run), !state.stopRequested else { return [] }
+            state.isRetrieving = false
+            state.turns[state.turns.count - 1].sourceIDs = ids
+            state.evidence = evidence
+            if !lines.isEmpty {
+                state.turns[state.turns.count - 1].notes.append(
+                    TurnNote(title: "Sources", text: lines.joined(separator: "\n"), warning: false))
+            }
+            return []
         case .sendRepair(let text, let now):
             return sendRepair(&state, text, now: now)
         case .continueRequested(let now):
@@ -114,6 +129,7 @@ public enum ConversationFeature: Feature {
                 prompt: continuationPrompt, mode: previous.mode, settings: previous.settings,
                 start: state.transcript.entries.count)
             turn.kind = .continuation
+            turn.sourceIDs = previous.sourceIDs
             return start(&state, turn, now: now)
         case .transcriptChanged(let run, let transcript):
             guard state.isActive(run) else { return [] }
@@ -282,7 +298,8 @@ public enum ConversationFeature: Feature {
     }
 
     private static func send(
-        _ state: inout ConversationState, _ text: String, mode: ConversationMode, now: Date
+        _ state: inout ConversationState, _ text: String, mode: ConversationMode, now: Date,
+        sourceRequest: ConversationSourceRequest? = nil
     ) -> [Command] {
         let prompt = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !state.isRunning, !state.isRestoring, !state.isTerminating, !state.library.isMutating,
@@ -293,8 +310,9 @@ public enum ConversationFeature: Feature {
         }
         state.mode = mode
         state.refusedSave = false
-        let turn = ConversationTurn(
+        var turn = ConversationTurn(
             prompt: prompt, mode: mode, settings: state.settings, start: state.transcript.entries.count)
+        turn.sourceRequest = sourceRequest
         return start(&state, turn, now: now)
     }
 
@@ -308,6 +326,7 @@ public enum ConversationFeature: Feature {
         var turn = ConversationTurn(
             prompt: prompt, mode: .work, settings: last.settings, start: state.transcript.entries.count)
         turn.kind = .repair
+        turn.sourceIDs = last.sourceIDs
         turn.offset = state.step
         return start(&state, turn, now: now)
     }
@@ -328,6 +347,7 @@ public enum ConversationFeature: Feature {
         state.updatedAt = now
         state.runID += 1
         state.isRunning = true
+        state.isRetrieving = policy.sourceRequest != nil
         state.stopRequested = false
         state.step = turn.offset + 1
         return [
@@ -375,6 +395,7 @@ public enum ConversationFeature: Feature {
     private static func end(_ state: inout ConversationState, _ finish: Finish) -> [Command] {
         state.turns[state.turns.count - 1].finish = finish
         state.isRunning = false
+        state.isRetrieving = false
         state.stopRequested = false
         state.preparation = nil
         return save(&state)

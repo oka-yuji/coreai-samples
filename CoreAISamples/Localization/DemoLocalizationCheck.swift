@@ -31,6 +31,12 @@ enum DemoLocalizationCheck {
             keys += [
                 "Conversations", "Tools", "Rename…", "Delete…", "Move to Trash", "Markdown export is not up to date.",
             ]
+            keys += [
+                "Source citations", "The answer did not cite any supplied source.",
+                "Source IDs match the supplied passages. Claim support has not been checked.",
+                "Notes kept as drafts.", "The question and sources exceed the RAG prompt budget.",
+                "The saved source record is inconsistent.",
+            ]
             keys += Catalog.models.flatMap { [$0.memory, $0.platforms] }
             var failures: [String] = []
             for key in Set(keys).sorted() {

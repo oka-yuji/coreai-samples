@@ -134,7 +134,7 @@ struct ConversationView: View {
 
     @ViewBuilder
     private var timeline: some View {
-        if host.state.entries.isEmpty && chat.ragTurns.isEmpty {
+        if host.state.entries.isEmpty {
             ContentUnavailableView(
                 "New conversation", systemImage: "bubble.left.and.bubble.right",
                 description: Text(
@@ -145,13 +145,8 @@ struct ConversationView: View {
         } else {
             ScrollView {
                 VStack(alignment: .leading, spacing: 10) {
-                    ForEach(TimelineItem.merge(host.state.entries, chat.ragTurns)) { item in
-                        switch item {
-                        case .entry(let entry):
-                            ConversationEntryRow(entry: entry)
-                        case .rag(let turn):
-                            TurnView(turn: turn, live: chat.isResponding && turn.id == chat.ragTurns.last?.id)
-                        }
+                    ForEach(host.state.entries) { entry in
+                        ConversationEntryRow(entry: entry)
                     }
                 }
                 .padding(12)
@@ -175,7 +170,7 @@ struct ConversationView: View {
             }
             statusView
                 .font(.caption.monospacedDigit())
-                .foregroundStyle(chat.ragIsOn && chat.last?.error != nil ? Color.red : Color.secondary)
+                .foregroundStyle(Color.secondary)
                 .lineLimit(2)
                 .truncationMode(.tail)
                 .textSelection(.enabled)
@@ -206,10 +201,8 @@ struct ConversationView: View {
             Text("Stopping…")
         } else if let preparation = host.state.preparation {
             Text("Preparing conversation… \(preparation.processed) / \(preparation.total) tokens")
-        } else if chat.isResponding {
-            Text(chat.retrieving ? "Collecting sources…" : "Generating…")
-        } else if chat.ragIsOn, chat.last != nil {
-            RuntimeMessageText(chat.statusLine)
+        } else if host.state.isRetrieving {
+            Text("Collecting sources…")
         } else if let status = host.state.status {
             switch status {
             case .generating(let step, let limit): Text("Step \(step) of \(limit): generating…")
@@ -241,31 +234,6 @@ struct ConversationView: View {
 private struct TimelineFit: Equatable {
     var height: CGFloat
     var atBottom: Bool
-}
-
-enum TimelineItem: Identifiable {
-    case entry(ConversationEntry)
-    case rag(ChatViewModel.Turn)
-
-    var id: String {
-        switch self {
-        case .entry(let entry): entry.id
-        case .rag(let turn): "rag-" + turn.id
-        }
-    }
-
-    static func merge(_ entries: [ConversationEntry], _ rag: [ChatViewModel.Turn]) -> [TimelineItem] {
-        var items: [TimelineItem] = []
-        var next = 0
-        for (index, entry) in entries.enumerated() {
-            while next < rag.count, rag[next].anchor <= index {
-                items.append(.rag(rag[next]))
-                next += 1
-            }
-            items.append(.entry(entry))
-        }
-        return items + rag[next...].map(TimelineItem.rag)
-    }
 }
 
 struct ConversationEntryRow: View {
@@ -330,14 +298,35 @@ struct ConversationEntryRow: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         case .note:
-            Label(
-                "Note (original): \(entry.title): \(entry.text)",
-                systemImage: entry.warning ? "exclamationmark.triangle" : "checkmark.seal"
-            )
-            .font(.caption)
-            .foregroundStyle(entry.warning ? Color.orange : Color.secondary)
-            .textSelection(.enabled)
-            .frame(maxWidth: .infinity, alignment: .leading)
+            if entry.title == "Sources" || entry.title == "Source citations" {
+                VStack(alignment: .leading, spacing: 3) {
+                    Label(
+                        LocalizedStringKey(entry.title),
+                        systemImage: entry.warning ? "exclamationmark.triangle" : "books.vertical")
+                    ForEach(Array(entry.text.components(separatedBy: "\n").enumerated()), id: \.offset) { _, line in
+                        if line.hasPrefix("Unavailable source IDs: ") {
+                            Text("Unavailable source IDs: \(String(line.dropFirst("Unavailable source IDs: ".count)))")
+                        } else if entry.title == "Source citations" {
+                            RuntimeMessageText(line)
+                        } else {
+                            Text(verbatim: line)
+                        }
+                    }
+                }
+                .font(.caption)
+                .foregroundStyle(entry.warning ? Color.orange : Color.secondary)
+                .textSelection(.enabled)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            } else {
+                Label(
+                    "Note (original): \(entry.title): \(entry.text)",
+                    systemImage: entry.warning ? "exclamationmark.triangle" : "checkmark.seal"
+                )
+                .font(.caption)
+                .foregroundStyle(entry.warning ? Color.orange : Color.secondary)
+                .textSelection(.enabled)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
         case .toolCall:
             VStack(alignment: .leading, spacing: 4) {
                 label("Calling \(entry.title)", "wrench.and.screwdriver")
@@ -470,83 +459,6 @@ struct ConversationEntryRow: View {
         Label(text, systemImage: systemImage)
             .font(.caption)
             .foregroundStyle(.secondary)
-    }
-}
-
-struct TurnView: View {
-    let turn: ChatViewModel.Turn
-    let live: Bool
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("You")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
-            Text(turn.prompt)
-                .textSelection(.enabled)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(10)
-                .background(Color.accentColor.opacity(0.12), in: .rect(cornerRadius: 10))
-            Text("Assistant")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
-                .padding(.top, 4)
-            if !turn.reasoning.isEmpty {
-                ThinkingView(text: turn.reasoning, live: live && turn.response.isEmpty)
-            }
-            if !turn.response.isEmpty || (live && turn.reasoning.isEmpty) {
-                Group {
-                    if turn.response == RAGContext.noSourcesReply {
-                        Text("Could not retrieve any sources.")
-                    } else {
-                        Text(turn.response.isEmpty ? "…" : turn.response)
-                    }
-                }
-                .textSelection(.enabled)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(10)
-                .background(.quaternary.opacity(0.5), in: .rect(cornerRadius: 10))
-            }
-            if !turn.notes.isEmpty || !turn.sources.isEmpty {
-                RAGSourceFooter(notes: turn.notes, sources: turn.sources)
-                    .padding(.horizontal, 10)
-            }
-        }
-    }
-}
-
-struct ThinkingView: View {
-    let text: String
-    let live: Bool
-    @State private var expanded = false
-
-    var body: some View {
-        DisclosureGroup(isExpanded: $expanded) {
-            Text(text)
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .textSelection(.enabled)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.top, 4)
-        } label: {
-            HStack(spacing: 6) {
-                if live {
-                    ProgressView().controlSize(.small)
-                }
-                Text(LocalizedStringKey(live ? "Thinking" : "Thoughts"))
-                    .fontWeight(.medium)
-                if !expanded {
-                    Text(text.split(whereSeparator: \.isNewline).last.map(String.init) ?? "")
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                        .truncationMode(.head)
-                }
-            }
-            .font(.callout)
-        }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 6)
-        .background(.quaternary.opacity(0.3), in: .rect(cornerRadius: 10))
     }
 }
 

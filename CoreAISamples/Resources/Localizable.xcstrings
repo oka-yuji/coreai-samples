@@ -6823,6 +6823,76 @@
           }
         }
       }
+    },
+    "Notes kept as drafts." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ノートは下書きとして残しています。"
+          }
+        }
+      }
+    },
+    "Source IDs match the supplied passages. Claim support has not been checked." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "出典 ID は提示した資料と一致しています。主張が資料に裏付けられているかは未確認です。"
+          }
+        }
+      }
+    },
+    "Source citations" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "資料の引用"
+          }
+        }
+      }
+    },
+    "The answer did not cite any supplied source." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "回答に、提示した資料の引用がありません。"
+          }
+        }
+      }
+    },
+    "The question and sources exceed the RAG prompt budget." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "質問と資料が RAG の入力上限を超えています。"
+          }
+        }
+      }
+    },
+    "The saved source record is inconsistent." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保存された出典情報に不整合があります。"
+          }
+        }
+      }
+    },
+    "Unavailable source IDs: %@" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "会話に提示されていない出典 ID: %@"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

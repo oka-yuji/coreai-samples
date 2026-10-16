@@ -616,22 +616,52 @@ final class GUIDriver {
             )
         }
 
-        await step(
-            5, "rag-answer", "RAG: the answer, its numbered sources and the status line, with no turn added to the chat"
-        ) {
+        await step(5, "rag-answer", "RAG: the answer and stable source IDs are added to this conversation") {
+            let before = host.state.turns.count
             let done = await self.ask(host, question)
-            let turn = chat.ragTurns.last
-            let sources = turn?.sources ?? []
-            let pass =
-                done && chat.last?.error == nil && !sources.isEmpty && !(turn?.response ?? "").isEmpty
-                && host.state.entries.isEmpty
-                && chat.statusLine.contains("prompt(rag)")
+            let ids = host.state.turns.last?.sourceIDs ?? []
+            let stats = host.runner.lastGeneration
+            let answer = stats?.answer ?? ""
             return (
-                pass,
-                "status=\(chat.statusLine) chatEntries=\(host.state.entries.count) sources=\(sources.count) notes=\(turn?.notes ?? []) "
-                    + "first=\(sources.first ?? "none") answer=\(Self.head(turn?.response ?? "", 600))"
+                done
+                    && Self.ragReplyPassed(
+                        stats, turn: host.state.turns.last, check: host.runner.citationGuard.checks.last?.local)
+                    && !ids.isEmpty && !answer.isEmpty
+                    && host.state.turns.count == before + 1
+                    && host.runner.citationGuard.checks.last?.local?.violation == false
+                    && ids.allSatisfy { id in host.runner.tools.sources.records.contains { $0.id == id } },
+                "status=\(stats?.statusLine ?? "none") turns=\(host.state.turns.count) sources=\(ids) answer=\(Self.head(answer, 600))"
             )
         }
+        await step(6, "rag-followup", "A normal follow-up reuses the same supplied source IDs") {
+            guard let id = host.state.turns.last?.sourceIDs?.first else { return (false, "No supplied source") }
+            let before = host.state.turns.count
+            let sources = host.runner.tools.sources
+            chat.ragEnabled = false
+            let done = await self.ask(
+                host,
+                "Using only source [\(id)] already supplied in our conversation, restate its main point and cite [\(id)]. Do not fetch new sources."
+            )
+            let stats = host.runner.lastGeneration
+            let answer = stats?.answer ?? ""
+            return (
+                done
+                    && Self.ragReplyPassed(
+                        stats, turn: host.state.turns.last, check: host.runner.citationGuard.checks.last?.local)
+                    && host.state.turns.count == before + 1 && answer.contains("[\(id)]")
+                    && host.runner.tools.sources == sources && host.runner.lastRetrieval == nil,
+                "turns=\(host.state.turns.count) source=\(id) answer=\(Self.head(answer, 600))"
+            )
+        }
+    }
+
+    static func ragReplyPassed(
+        _ stats: GenerationStats?, turn: ConversationTurn?, check: SourceCitationCheck?
+    ) -> Bool {
+        guard let stats, let turn, turn.failure == nil, [.eos, .cap].contains(turn.finish) else { return false }
+        return stats.error == nil && stats.outputTokens > 0
+            && ["stopToken", "maxTokens"].contains(stats.stopReason)
+            && !stats.answer.isEmpty && check?.violation == false
     }
 
     private func runExtract(navigator: DemoNavigator, store: Store<ExtractFeature>) async {

@@ -46,6 +46,7 @@ final class ConversationSession {
     private(set) var lastFinish: String?
     private(set) var lastGeneration: GenerationStats?
     private(set) var stopRequested = false
+    private(set) var didSendPrompt = false
     private(set) var currentDate: String?
 
     private let chat: ChatViewModel
@@ -89,11 +90,24 @@ final class ConversationSession {
     func prepareRun(_ run: Int) {
         if self.run != run { stopRequested = false }
         self.run = run
+        lastGeneration = nil
+        lastFinish = nil
+        didSendPrompt = false
+    }
+
+    func prepareSources(run: Int, send: (ConversationAction) -> Void) -> Bool {
+        guard let session = prepare() else { return false }
+        send(
+            .modelPrepared(
+                run: run, name: modelName, location: chat.bundleURL?.path ?? "",
+                instructions: instructionsVersion, tools: toolsVersion))
+        send(.transcriptChanged(run: run, Self.record(Array(session.transcript))))
+        return true
     }
 
     func generate(
         run: Int, prompt: String, policy: TurnPolicy, finalize: Bool, repair: Bool,
-        send: (ConversationAction) -> Void
+        sourceStats: GenerationStats? = nil, send: (ConversationAction) -> Void
     ) async -> TurnEnd {
         if run == self.run && stopRequested { return TurnEnd(kind: .stopped, outcome: "stopped", answer: "") }
         guard let session = prepare() else {
@@ -156,10 +170,17 @@ final class ConversationSession {
         while session.isResponding, !Task.isCancelled { try? await Task.sleep(for: .milliseconds(10)) }
         tools.drain()
         let transcript = Array(session.transcript)
+        didSendPrompt = self.prompt(in: transcript) != nil
         progress(transcript).forEach(send)
         let end = await finish(transcript, failure: failure, stopped: stopped, send: send)
         if mode == .chat {
-            let stats = generationStats(transcript, failure: failure, stopped: stopped, limit: limitReached)
+            var stats = generationStats(transcript, failure: failure, stopped: stopped, limit: limitReached)
+            if let sourceStats {
+                stats.sources = sourceStats.sources
+                stats.sourceTokens = sourceStats.sourceTokens
+                stats.ragPromptTokens = sourceStats.ragPromptTokens
+                stats.retrievalSeconds = sourceStats.retrievalSeconds
+            }
             lastGeneration = stats
             MetricsLog.generation(model: modelName, stats: stats)
         }
@@ -220,6 +241,7 @@ final class ConversationSession {
         self.id = id
         run = 0
         stopRequested = false
+        didSendPrompt = false
         session = nil
         model = nil
         restoredTranscript = nil
@@ -247,7 +269,9 @@ final class ConversationSession {
         let versions = [AgentTools.legacyNames, AgentTools.names].map {
             $0.dropLast(fileOperations ? 0 : 1).joined(separator: ",")
         }
-        guard ["cite-fetched", "frozen", "cite-fetched-v2", "frozen-v2"].contains(snapshot.instructionsVersion),
+        guard
+            ["cite-fetched", "frozen", "cite-fetched-v2", "frozen-v2", "cite-fetched-v3", "frozen-v3"].contains(
+                snapshot.instructionsVersion),
             versions.contains(snapshot.toolsVersion)
         else { throw ConversationArchive.Failure.invalidSnapshot }
         let transcript = try ConversationTranscript.restore(
@@ -290,7 +314,7 @@ final class ConversationSession {
                 transcript: transcript)
             restoredTranscript = nil
         } else {
-            instructionsVersion = preferences.citeFetched ? "cite-fetched-v2" : "frozen-v2"
+            instructionsVersion = preferences.citeFetched ? "cite-fetched-v3" : "frozen-v3"
             toolsVersion = AgentTools.names.dropLast(preferences.fileOperations ? 0 : 1).joined(separator: ",")
             session = LanguageModelSession(
                 model: model, tools: tools.tools(fileOperations: preferences.fileOperations),
