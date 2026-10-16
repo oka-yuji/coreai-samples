@@ -5,6 +5,7 @@ import ImageSearchFeature
 import Observation
 import ProductFeature
 import RecipeFeature
+import SpeechFeature
 import SwiftUI
 
 enum Demo: String, CaseIterable, Identifiable {
@@ -14,6 +15,7 @@ enum Demo: String, CaseIterable, Identifiable {
     case recipes
     case imageSearch
     case extract
+    case speech
     case models
 
     var id: String { rawValue }
@@ -26,6 +28,7 @@ enum Demo: String, CaseIterable, Identifiable {
         case .recipes: "Recipes"
         case .imageSearch: "Image search"
         case .extract: "Extract"
+        case .speech: "Speech"
         case .models: "Models"
         }
     }
@@ -38,6 +41,7 @@ enum Demo: String, CaseIterable, Identifiable {
         case .recipes: "Can you make this recipe with what you have?"
         case .imageSearch: "Find selected images with your own words"
         case .extract: "Compare product specifications from official descriptions"
+        case .speech: "Generate and play speech from text with Irodori"
         case .models: "Get, open and prepare model bundles"
         }
     }
@@ -50,6 +54,7 @@ enum Demo: String, CaseIterable, Identifiable {
         case .recipes: "carrot"
         case .imageSearch: "photo.badge.magnifyingglass"
         case .extract: "text.magnifyingglass"
+        case .speech: "waveform"
         case .models: "square.and.arrow.down"
         }
     }
@@ -71,6 +76,7 @@ struct DemoRootView: View {
     @State private var recipes = RecipeAssembly.makeStore()
     @State private var products = ProductAssembly.makeStore()
     @State private var imageSearch = ImageSearchAssembly.makeStore()
+    @State private var speech = SpeechAssembly.makeStore()
     @State private var showingExtractionLab = false
     @State private var extract = Store<ExtractFeature>(
         initialState: ExtractState(
@@ -120,6 +126,7 @@ struct DemoRootView: View {
                             .frame(minWidth: 820, minHeight: 640)
                         }
                 }
+            case .speech?: SpeechView(store: speech)
             case .models?: ModelsView()
             case nil: ContentUnavailableView("Select a demo", systemImage: "square.grid.2x2")
             }
@@ -129,6 +136,7 @@ struct DemoRootView: View {
         .environment(agent)
         .environment(models)
         .environment(decide)
+        .environment(speech)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 DemoLanguagePicker(

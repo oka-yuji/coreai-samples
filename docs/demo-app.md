@@ -7,8 +7,11 @@
 - **Agent**: searches the web, reads pages, saves notes and answers with a `Sources:` section, on the model that Chat has loaded. See [Agent](#agent) below.
 - **Extract**: add an Apple/Microsoft product URL or paste a description, then compare up to four source-linked specification cards. Values remain candidates from the page, including multiple configurations; missing fields are left empty. The earlier label/inspection experiment remains under **Extraction lab**. See [Extract](#extract) and the [product demo specification](specs/product-comparison-demo.md).
 
+- **Speech**: open the pinned Irodori FP32 folder, generate from text and seed, play/stop and save a WAV. Actual app/GPU/audio acceptance remains pending. See [Irodori Speech](irodori/demo.md).
+
 ## Requirements
 
+- Rust/Cargo for the Mac speech input adapter; the Xcode pre-build phase builds it automatically.
 - [XcodeGen](https://github.com/yonaskolb/XcodeGen), only to regenerate the demo app's project
 
 ## Build and run

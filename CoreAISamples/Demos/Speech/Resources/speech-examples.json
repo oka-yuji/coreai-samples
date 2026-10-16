@@ -1,0 +1,17 @@
+[
+  {
+    "id": "greeting",
+    "title": "Greeting",
+    "text": "こんにちは。これは音声合成のテストです。"
+  },
+  {
+    "id": "announcement",
+    "title": "Announcement",
+    "text": "本日の点検は終了しました。異常はありません。"
+  },
+  {
+    "id": "instructions",
+    "title": "Instructions",
+    "text": "はじめに電源を切ります。次に安全を確認します。最後に作業内容を記録してください。"
+  }
+]

@@ -1,0 +1,12 @@
+macro expansion #expect:1:1: error: the compiler is unable to type-check this expression in reasonable time; try breaking up the expression into distinct sub-expressions
+`- /Users/okayuuji/Desktop/SelfApps/_wt/coreai-samples-91-irodori/CoreAISamplesKit/Tests/SpeechRuntimeTests/IrodoriRuntimeTests.swift:29:55: note: expanded code originates here
+ 27 |         let first = try await runtime.generate(text: "13", seed: 1708)
+ 28 |         #expect(first.audioSeconds == 0.52)
+ 29 |         #expect(first.wav.count == 58 + 13 * 1920 * 4)
+    |         `- note: in expansion of macro 'expect' here
+    +--- macro expansion #expect ---------------------------------------
+    |1 | Testing.__checkBinaryOperation(first.wav.count,{ $0 == $1() },58 + 13 * 1920 * 4,expression: .__fromBinaryOperation(.__fromSyntaxNode("first.wav.count"),"==",.__fromSyntaxNode("58 + 13 * 1920 * 4")),comments: [],isRequired: false,sourceLocation: Testing.SourceLocation.__here()).__expected()
+    |  | `- error: the compiler is unable to type-check this expression in reasonable time; try breaking up the expression into distinct sub-expressions
+    +-------------------------------------------------------------------
+ 30 |         _ = try await runtime.generate(text: "13", seed: 1709)
+ 31 |         #expect(await driver.factoryCount == 1)
