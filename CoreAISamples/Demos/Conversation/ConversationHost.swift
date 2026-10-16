@@ -121,21 +121,66 @@ final class ConversationHost {
 
     var canSend: Bool {
         chat.phase == .ready && !store.state.isRunning && !chat.isResponding && !chat.externallyBusy && !contextFull
-            && !state.isSaving && !state.isRestoring && !state.isTerminating && state.readOnlyMarkdown == nil
+            && !state.isSaving && !state.isRestoring && !state.isTerminating && !state.library.isMutating
+            && matchesConversationModel && state.readOnlyMarkdown == nil
             && !chat.trimmedInput.isEmpty
     }
 
     var canContinueInWork: Bool {
-        store.state.refusedSave && store.state.canLeave && !contextFull && chat.phase == .ready
+        store.state.refusedSave && store.state.canLeave && matchesConversationModel && !contextFull
+            && chat.phase == .ready
             && !chat.isResponding && !chat.externallyBusy
     }
 
-    func startNew() {
+    func startNew() { resetConversation(persistSelection: true) }
+
+    private func resetConversation(persistSelection: Bool) {
         guard state.canLeave, !chat.isResponding else { return }
         chat.resetRAG()
         modelLoad = chat.loadStarted
+        var library = state.library
+        library.loading = nil
+        library.pendingDelete = nil
         (store, runner) = Self.make(
-            chat: chat, preferences: preferences, mode: store.state.mode, archive: archive, termination: termination)
+            chat: chat, preferences: preferences, mode: store.state.mode, archive: archive, termination: termination,
+            library: library)
+        if persistSelection { store.send(.library(.selectNew)) }
+    }
+
+    var matchesConversationModel: Bool {
+        guard !state.turns.isEmpty else { return true }
+        guard let saved = state.modelLocation, let url = chat.bundleURL else { return false }
+        return ModelStorage.key(URL(filePath: saved)) == ModelStorage.key(url)
+    }
+
+    var canManageHistory: Bool { state.canLeave && !chat.isLoading && !chat.isResponding && !chat.externallyBusy }
+
+    func openConversation(_ id: String) -> Bool {
+        guard canManageHistory else { return false }
+        chat.resetRAG()
+        store.send(.restoreRequested(id: id))
+        return state.isRestoring
+    }
+
+    func renameConversation(_ id: String, title: String) {
+        guard canManageHistory else { return }
+        store.send(.library(.renameRequested(id: id, title: title, now: Date())))
+    }
+
+    func retryConversationExport() {
+        guard canManageHistory else { return }
+        store.send(.library(.retryExport))
+    }
+
+    func requestDeleteConversation(_ id: String) {
+        guard canManageHistory else { return }
+        store.send(.library(.deleteRequested(id: id)))
+    }
+
+    func confirmDeleteConversation() {
+        guard canManageHistory else { return }
+        let now = Date()
+        store.send(.library(.deleteConfirmed(replacementID: Self.newID(now), now: now)))
     }
 
     func refreshIfModelChanged() {
@@ -145,7 +190,7 @@ final class ConversationHost {
         {
             modelLoad = chat.loadStarted
         } else {
-            startNew()
+            resetConversation(persistSelection: false)
         }
     }
 
@@ -154,7 +199,7 @@ final class ConversationHost {
         if !runner.session.awaitingRestoredModel
             || state.modelLocation.map({ ModelStorage.key(URL(filePath: $0)) }) != ModelStorage.key(url)
         {
-            startNew()
+            resetConversation(persistSelection: false)
         }
         return true
     }
@@ -193,6 +238,7 @@ final class ConversationHost {
     @discardableResult
     func send(_ text: String, mode: ConversationMode) -> Bool {
         refreshIfModelChanged()
+        guard chat.phase == .ready, matchesConversationModel, !state.library.isMutating else { return false }
         store.send(.settingsChanged(preferences.settings))
         store.send(.send(text, mode: mode, now: Date()))
         return store.state.isRunning
@@ -209,7 +255,8 @@ final class ConversationHost {
 
     private static func make(
         chat: ChatViewModel, preferences: ConversationPreferences, mode: ConversationMode,
-        archive: ConversationArchive, termination: @escaping (Bool) -> Void
+        archive: ConversationArchive, termination: @escaping (Bool) -> Void,
+        library: ConversationLibraryState = ConversationLibraryState()
     )
         -> (ConversationStore, ConversationRunner)
     {
@@ -217,10 +264,11 @@ final class ConversationHost {
         let id = newID(now)
         let runner = ConversationRunner(
             id: id, chat: chat, preferences: preferences, archive: archive, termination: termination)
-        let state = ConversationState(
+        var state = ConversationState(
             id: id, now: now, mode: mode, settings: preferences.settings, modelID: chat.modelName,
             instructionsVersion: preferences.citeFetched ? "cite-fetched" : "frozen",
             toolsVersion: (AgentTools.names.dropLast(preferences.fileOperations ? 0 : 1)).joined(separator: ","))
+        state.library = library
         return (ConversationStore(initialState: state, run: runner.run), runner)
     }
 

@@ -145,6 +145,9 @@ final class GUIDriver {
     }
 
     private func ask(_ host: ConversationHost, _ text: String, timeout: Double = 900) async -> Bool {
+        guard await wait(seconds: 10, until: { !host.state.library.isMutating && !host.state.isRestoring }) else {
+            return false
+        }
         host.chat.input = text
         guard host.submit() else {
             note(
@@ -479,6 +482,38 @@ final class GUIDriver {
             return (
                 result.done && ended(.chat) && same && host.state.turns.count == before + 1,
                 result.reuse + " sameConversation=\(same) turns=\(before)->\(host.state.turns.count)"
+            )
+        }
+
+        var savedID = ""
+        let marker = "BLUE-NOTE-80"
+        await step(11, "new-conversation", "New opens an empty conversation and preserves the previous one") {
+            let previousID = host.state.id
+            host.startNew()
+            let settled = await wait(seconds: 10) { !host.state.library.isMutating }
+            let empty = host.state.turns.isEmpty && host.state.entries.isEmpty && host.state.id != previousID
+            host.store.send(.modeChanged(.chat))
+            let done = await ask(host, "Remember this marker for later: \(marker). Reply with the marker only.")
+            savedID = host.state.id
+            return (
+                settled && empty && done && host.state.library.items.contains { $0.id == previousID },
+                "empty=\(empty) saved=\(savedID)"
+            )
+        }
+        await step(12, "switch-conversation", "Selecting saved history continues the selected conversation") {
+            host.startNew()
+            _ = await wait(seconds: 10) { !host.state.library.isMutating }
+            let other = await ask(host, "Reply with OK.")
+            let otherID = host.state.id
+            guard host.openConversation(savedID) else { return (false, "open refused") }
+            let opened = await wait(seconds: 10) { !host.state.isRestoring }
+            let restored =
+                host.state.id == savedID && host.state.turns.count == 1 && host.state.turns[0].prompt.contains(marker)
+            let done = await ask(host, "What marker did I ask you to remember? Reply with the marker only.")
+            let answer = host.state.entries.last { $0.kind == .answer }?.text ?? ""
+            return (
+                other && opened && restored && done && answer.contains(marker)
+                    && host.state.library.items.contains { $0.id == otherID }, "restored=\(restored) answer=\(answer)"
             )
         }
     }

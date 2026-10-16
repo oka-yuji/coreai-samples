@@ -204,6 +204,26 @@ final class ConversationSession {
         sink?.yield(.actions([.evidenceChanged(run: run, evidence)]))
     }
 
+    func reset(id: String) {
+        self.id = id
+        session = nil
+        model = nil
+        restoredTranscript = nil
+        restoredModelLocation = nil
+        restoredTools = ""
+        needsPreparation = false
+        currentDate = nil
+        turnIndex = 0
+        modelName = ""
+        lastGeneration = nil
+        lastFinish = nil
+        previous = nil
+        previousTokens = nil
+        currentTokens = nil
+        divergeCount = 0
+        capSteps = 0
+    }
+
     func adoptID(_ id: String) { self.id = id }
 
     func restore(_ snapshot: ConversationSnapshot) throws -> ConversationSnapshot {
@@ -213,12 +233,8 @@ final class ConversationSession {
         else { throw ConversationArchive.Failure.invalidSnapshot }
         let transcript = try ConversationTranscript.restore(
             snapshot.transcript, tools: tools.tools(fileOperations: snapshot.toolsVersion.contains("move_note")))
-        session = nil
-        model = nil
-        previous = nil
-        previousTokens = nil
+        reset(id: snapshot.id)
         restoredTranscript = transcript
-        id = snapshot.id
         restoredTools = snapshot.toolsVersion
         restoredModelLocation = snapshot.modelLocation
         modelName = snapshot.modelID

@@ -68,10 +68,37 @@ enum ConversationArchiveSelfTest {
             check(
                 "conversation/matchingModelKeepsRestoredHistory",
                 matched && host.store === store && host.state.id == "restored", "id=\(host.state.id)")
+            host.store.send(.library(.refresh))
+            for await loading in Observations({ host.state.library.loading }) where loading == nil { break }
+            host.renameConversation("restored", title: "Renamed archive")
+            for await mutating in Observations({ host.state.library.isMutating }) where !mutating { break }
+            let renamed = try await archive.load(id: "restored")
+            let title: String
+            if case .snapshot(let snapshot) = renamed { title = snapshot.title } else { title = "" }
+            check(
+                "conversation/sidebarRename",
+                host.state.title == "Renamed archive" && title == "Renamed archive"
+                    && host.state.archiveRevision == snapshot.revision + 1, "title=\(title)")
+            host.startNew()
+            for await mutating in Observations({ host.state.library.isMutating }) where !mutating { break }
+            let empty = host.state.turns.isEmpty && host.state.entries.isEmpty
+            let opened = host.openConversation("restored")
+            for await restoring in Observations({ host.state.isRestoring }) where !restoring { break }
+            check(
+                "conversation/sidebarNewAndSwitch",
+                empty && opened && host.state.id == "restored"
+                    && host.state.title == "Renamed archive" && host.state.entries.count == 2, "id=\(host.state.id)")
+            _ = host.openConversation("missing")
+            for await restoring in Observations({ host.state.isRestoring }) where !restoring { break }
+            check(
+                "conversation/missingHistoryPreservesSelection",
+                host.state.id == "restored" && host.canManageHistory
+                    && host.state.library.error != nil, "id=\(host.state.id)")
+            let reopenedStore = host.store
             let different = host.prepareModelSwitch(to: URL(filePath: "/tmp/conversation-app-test-other"))
             check(
                 "conversation/differentModelStartsNewWithoutDeletingHistory",
-                different && host.store !== store
+                different && host.store !== reopenedStore
                     && host.state.entries.isEmpty
                     && FileManager.default.fileExists(atPath: directory.appending(path: "restored.json").path),
                 "id=\(host.state.id)")

@@ -26,7 +26,9 @@ public actor ConversationArchive {
         self.directory = directory
     }
 
-    public func save(_ snapshot: ConversationSnapshot, expectedRevision: Int, writer: UUID) throws {
+    public func save(
+        _ snapshot: ConversationSnapshot, expectedRevision: Int, writer: UUID, selectAfterSave: Bool = false
+    ) throws {
         try Self.validate(snapshot)
         let json = try path(snapshot.id, extension: "json")
         let markdown = try path(snapshot.id, extension: "md")
@@ -46,6 +48,7 @@ public actor ConversationArchive {
         try encoder.encode(snapshot).write(to: json, options: .atomic)
         writers[snapshot.id] = (writer, snapshot.revision)
         try Data(snapshot.markdown().utf8).write(to: markdown, options: .atomic)
+        if selectAfterSave { try select(id: snapshot.id) }
     }
 
     public func load(id: String) throws -> ArchivedConversation {
@@ -68,6 +71,12 @@ public actor ConversationArchive {
 
     public func latest() throws -> ArchivedConversation? {
         guard FileManager.default.fileExists(atPath: directory.path) else { return nil }
+        let selection = directory.appending(path: ".selection")
+        if FileManager.default.fileExists(atPath: selection.path) {
+            let id = try JSONDecoder().decode(String?.self, from: Data(contentsOf: selection))
+            guard let id else { return nil }
+            if FileManager.default.fileExists(atPath: try path(id, extension: "json").path) { return try load(id: id) }
+        }
         let files = try FileManager.default.contentsOfDirectory(
             at: directory, includingPropertiesForKeys: [.contentModificationDateKey, .isRegularFileKey])
         let candidates = try files.filter { $0.pathExtension == "json" }.map { url in
@@ -92,7 +101,7 @@ public actor ConversationArchive {
         return .readOnly(id: id, markdown: text, reason: reason)
     }
 
-    private func path(_ id: String, extension suffix: String) throws -> URL {
+    func path(_ id: String, extension suffix: String) throws -> URL {
         guard !id.isEmpty, id.count <= 128,
             id.unicodeScalars.allSatisfy({
                 CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "-_")).contains($0)

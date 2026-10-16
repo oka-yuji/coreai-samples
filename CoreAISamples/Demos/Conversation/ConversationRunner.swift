@@ -34,6 +34,8 @@ final class ConversationRunner {
 
     func run(_ effect: ConversationEffect, _ send: (ConversationAction) -> Void) async {
         switch effect {
+        case .library(let effect):
+            await runLibrary(effect, send: send)
         case .generate(let run, let prompt, let policy, let finalize):
             await generate(run: run, prompt: prompt, policy: policy, finalize: finalize, send: send)
         case .runTool(let call, let finalize):
@@ -48,17 +50,16 @@ final class ConversationRunner {
             do {
                 let archived = try await archive.load(id: id)
                 guard !Task.isCancelled else { return }
-                switch install(archived) {
-                case .snapshot(let snapshot): send(.restored(snapshot))
-                case .readOnly(_, _, let reason): send(.failed(id: id, message: reason))
-                }
-            } catch { send(.failed(id: id, message: error.localizedDescription)) }
+                try await archive.select(id: id)
+                guard !Task.isCancelled else { return }
+                send(.archiveRestored(id: id, install(archived)))
+            } catch { send(.restoreFailed(id: id, message: error.localizedDescription)) }
         case .restoreLatest:
             do {
                 let archived = try await archive.latest()
                 guard !Task.isCancelled else { return }
                 send(.latestRestored(archived.map(install)))
-            } catch { send(.failed(id: session.id, message: error.localizedDescription)) }
+            } catch { send(.restoreFailed(id: nil, message: error.localizedDescription)) }
         case .cancelRepair:
             citationGuard.cancelRepair()
             chat.externallyBusy = false
@@ -102,7 +103,11 @@ final class ConversationRunner {
 
     private func save(_ snapshot: ConversationSnapshot, send: (ConversationAction) -> Void) async {
         do {
-            try await archive.save(snapshot, expectedRevision: savedRevisions[snapshot.id] ?? 0, writer: writer)
+            let firstSave = savedRevisions[snapshot.id] == nil
+            session.adoptID(snapshot.id)
+            try await archive.save(
+                snapshot, expectedRevision: savedRevisions[snapshot.id] ?? 0, writer: writer,
+                selectAfterSave: firstSave)
             savedRevisions[snapshot.id] = max(savedRevisions[snapshot.id] ?? 0, snapshot.revision)
             session.adoptID(snapshot.id)
             send(.archiveSaved(id: snapshot.id, revision: snapshot.revision))
@@ -112,7 +117,14 @@ final class ConversationRunner {
     }
 
     private func install(_ archived: ArchivedConversation) -> ArchivedConversation {
-        guard case .snapshot(let snapshot) = archived else { return archived }
+        guard case .snapshot(let snapshot) = archived else {
+            if case .readOnly(let id, _, _) = archived {
+                session.reset(id: id)
+                tools.restoreEvidence(ConversationEvidence())
+                citationGuard.begin(active: false)
+            }
+            return archived
+        }
         do {
             let restored = try session.restore(snapshot)
             savedRevisions[snapshot.id] = snapshot.revision
@@ -120,6 +132,47 @@ final class ConversationRunner {
             return .snapshot(restored)
         } catch {
             return .readOnly(id: snapshot.id, markdown: snapshot.markdown(), reason: error.localizedDescription)
+        }
+    }
+
+    private func runLibrary(_ effect: ConversationLibraryEffect, send: (ConversationAction) -> Void) async {
+        let ticket: Int
+        switch effect {
+        case .list(let value), .rename(let value, _, _, _, _), .trash(let value, _, _, _, _), .selectNew(let value),
+            .repairExport(let value, _):
+            ticket = value
+        }
+        do {
+            switch effect {
+            case .list:
+                send(.library(.loaded(ticket: ticket, try await archive.list())))
+            case .rename(_, let id, let title, let expected, let now):
+                let renamed = try await archive.rename(
+                    id: id, title: title, expectedRevision: expected, now: now, writer: writer)
+                let snapshot = renamed.snapshot
+                if id == session.id { savedRevisions[id] = snapshot.revision }
+                send(.library(.renamed(ticket: ticket, snapshot, warning: renamed.exportError)))
+            case .trash(_, let id, let expected, let replacementID, let now):
+                _ = try await archive.trash(id: id, expectedRevision: expected)
+                var warning: String?
+                if id == session.id {
+                    session.reset(id: replacementID)
+                    tools.restoreEvidence(ConversationEvidence())
+                    citationGuard.begin(active: false)
+                    do { try await archive.select(id: nil) } catch { warning = error.localizedDescription }
+                }
+                send(
+                    .library(.deleted(ticket: ticket, id: id, replacementID: replacementID, now: now, warning: warning))
+                )
+            case .repairExport(_, let id):
+                try await archive.repairExport(id: id)
+                send(.library(.exportRepaired(ticket: ticket)))
+            case .selectNew:
+                try await archive.select(id: nil)
+                send(.library(.selected(ticket: ticket)))
+            }
+        } catch {
+            send(.library(.failed(ticket: ticket, message: error.localizedDescription)))
         }
     }
 

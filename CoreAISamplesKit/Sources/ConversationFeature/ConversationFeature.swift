@@ -2,6 +2,7 @@ import FeatureStore
 import Foundation
 
 public enum ConversationAction: Equatable, Sendable {
+    case library(ConversationLibraryAction)
     case modeChanged(ConversationMode)
     case settingsChanged(ConversationSettings)
     case send(String, mode: ConversationMode, now: Date)
@@ -27,11 +28,14 @@ public enum ConversationAction: Equatable, Sendable {
     case stopped(run: Int)
     case restoreRequested(id: String)
     case restored(ConversationSnapshot)
+    case restoreFailed(id: String?, message: String)
+    case archiveRestored(id: String, ArchivedConversation)
     case saved(id: String)
     case failed(id: String, message: String)
 }
 
 public enum ConversationEffect: Equatable, Sendable {
+    case library(ConversationLibraryEffect)
     case generate(run: Int, prompt: String, policy: TurnPolicy, finalize: Bool)
     case runTool(ToolCallRecord, finalize: Bool)
     case refuseTool(ToolCallRecord, reason: String)
@@ -45,7 +49,7 @@ public enum ConversationEffect: Equatable, Sendable {
 
 public enum ConversationFeature: Feature {
     public enum EffectID: Hashable, Sendable {
-        case generation, stop, save, restore
+        case generation, stop, save, restore, libraryList, libraryMutation
     }
 
     public typealias Command = FeatureStore.Command<ConversationEffect, EffectID>
@@ -94,6 +98,7 @@ public enum ConversationFeature: Feature {
 
     private static func apply(_ state: inout ConversationState, _ action: ConversationAction) -> [Command] {
         switch action {
+        case .library(let action): return ConversationLibrary.reduce(&state, action)
         case .modeChanged(let mode):
             if !state.isRunning { state.mode = mode }
             return []
@@ -153,18 +158,48 @@ public enum ConversationFeature: Feature {
             return end(&state, .stopped)
         case .restoreRequested(let id):
             guard state.canLeave || (state.isRestoring && !state.isTerminating) else { return [] }
+            if !state.isRestoring { state.restoreBase = state.persistence }
             state.persistence = .restoring(id: id)
             return [.run(.restore(id: id), id: .restore)]
+        case .restoreFailed(let id, let message):
+            guard
+                (id == nil && state.persistence == .restoringLatest)
+                    || id.map({ state.persistence == .restoring(id: $0) }) == true
+            else { return [] }
+            state.persistence = state.restoreBase ?? .unsaved
+            state.restoreBase = nil
+            state.library.error = message
+            return finishRestore(&state)
+        case .archiveRestored(let id, let archived):
+            guard state.persistence == .restoring(id: id) else { return [] }
+            state.restoreBase = nil
+            switch archived {
+            case .snapshot(let snapshot): state.load(snapshot)
+            case .readOnly(let id, let markdown, let reason):
+                state.id = id
+                state.title = state.library.items.first(where: { $0.id == id })?.title ?? id
+                state.turns = []
+                state.transcript = TranscriptRecord()
+                state.evidence = ConversationEvidence()
+                state.modelLocation = nil
+                state.modelID = ""
+                state.archiveRevision = 0
+                state.readOnlyMarkdown = markdown
+                state.persistence = .failed(reason)
+            }
+            return finishRestore(&state)
         case .restored(let snapshot):
             guard !state.isRunning, state.persistence == .restoring(id: snapshot.id) else { return [] }
             state.load(snapshot)
-            return []
+            return finishRestore(&state)
         case .restoreLatestRequested:
             guard state.canLeave, state.turns.isEmpty else { return [] }
+            state.restoreBase = state.persistence
             state.persistence = .restoringLatest
             return [.run(.restoreLatest, id: .restore)]
         case .latestRestored(let archived):
             guard state.persistence == .restoringLatest else { return [] }
+            state.restoreBase = nil
             switch archived {
             case .snapshot(let snapshot): state.load(snapshot)
             case .readOnly(let id, let markdown, let reason):
@@ -173,10 +208,17 @@ public enum ConversationFeature: Feature {
                 state.persistence = .failed(reason)
             case nil: state.persistence = .unsaved
             }
-            return []
+            if state.isTerminating { return finishRestore(&state) }
+            return ConversationLibrary.reduce(&state, .refresh)
         case .archiveSaved(let id, let revision):
             guard id == state.id, state.persistence == .saving(revision: revision) else { return [] }
             state.persistence = .saved
+            state.library.loading = nil
+            if state.library.exportRetryID == id {
+                state.library.exportRetryID = nil
+                state.library.error = nil
+            }
+            state.library.upsert(ConversationSummary(ConversationSnapshot(state)))
             return state.isTerminating && !state.isRunning ? [.run(.terminationReady(true), id: nil)] : []
         case .archiveFailed(let id, let revision, let message):
             guard id == state.id, state.persistence == .saving(revision: revision) else { return [] }
@@ -204,7 +246,7 @@ public enum ConversationFeature: Feature {
                 state.stopRequested = true
                 return [.run(.stop(run: state.runID), id: .stop)]
             }
-            if state.isSaving { return [] }
+            if state.isSaving || state.isRestoring || state.library.isMutating { return [] }
             if state.turns.isEmpty || state.readOnlyMarkdown != nil || state.persistence == .saved {
                 return [.run(.terminationReady(true), id: nil)]
             }
@@ -225,11 +267,18 @@ public enum ConversationFeature: Feature {
         }
     }
 
+    private static func finishRestore(_ state: inout ConversationState) -> [Command] {
+        guard state.isTerminating else { return [] }
+        state.isTerminating = false
+        return apply(&state, .terminationRequested)
+    }
+
     private static func send(
         _ state: inout ConversationState, _ text: String, mode: ConversationMode, now: Date
     ) -> [Command] {
         let prompt = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !state.isRunning, !state.isRestoring, !state.isTerminating, state.readOnlyMarkdown == nil, !prompt.isEmpty
+        guard !state.isRunning, !state.isRestoring, !state.isTerminating, !state.library.isMutating,
+            state.readOnlyMarkdown == nil, !prompt.isEmpty
         else { return [] }
         if state.title.isEmpty {
             state.title = String(prompt.split(whereSeparator: \.isNewline).joined(separator: " ").prefix(40))
@@ -244,7 +293,8 @@ public enum ConversationFeature: Feature {
     private static func sendRepair(_ state: inout ConversationState, _ text: String, now: Date) -> [Command] {
         if state.isTerminating { return [.run(.cancelRepair, id: nil)] }
         let prompt = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !state.isRunning, !state.isRestoring, !state.isTerminating, state.readOnlyMarkdown == nil,
+        guard !state.isRunning, !state.isRestoring, !state.isTerminating, !state.library.isMutating,
+            state.readOnlyMarkdown == nil,
             !prompt.isEmpty, let last = state.turns.last, last.mode == .work
         else { return [] }
         var turn = ConversationTurn(

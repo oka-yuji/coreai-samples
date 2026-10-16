@@ -32,6 +32,7 @@
 		2293B9C30A43246A68E373DF /* ConversationSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 378D1F9C36D034DD475F1B25 /* ConversationSettingsView.swift */; };
 		238E18CF61DE285944BBC2AA /* speech-examples.json in Resources */ = {isa = PBXBuildFile; fileRef = 06CD13346BDB37EF62D8AA2C /* speech-examples.json */; };
 		24F936C411557B9362ED1A77 /* PhoneExtractView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EF29907EAA61DD548671267 /* PhoneExtractView.swift */; };
+		256EA98A19B81D8E3B527DB7 /* ConversationSidebar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FE1AAADA7D78400722AF4AA /* ConversationSidebar.swift */; };
 		2628E17B820E1C5BC4153536 /* BundleSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8608B7A795003231A4E788DF /* BundleSupport.swift */; };
 		2662B8C643C55FC8FE5CCF95 /* EmbeddingRuntime in Frameworks */ = {isa = PBXBuildFile; productRef = 1F2A5864A4527D5326DB4138 /* EmbeddingRuntime */; };
 		28BFB0B60BC709ED2FE59D70 /* ImageSearchFeature in Frameworks */ = {isa = PBXBuildFile; productRef = 225233E72E98FD6A9739DC18 /* ImageSearchFeature */; };
@@ -232,6 +233,7 @@
 		598FAFD4122CCFFFB1A83FB4 /* HubDownloadSelfTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HubDownloadSelfTest.swift; sourceTree = "<group>"; };
 		5A2C5EAEEB7350DFE72B4B81 /* SpeechCheckView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechCheckView.swift; sourceTree = "<group>"; };
 		5B01769CA25F5F41CFA1E93F /* CitationGuard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CitationGuard.swift; sourceTree = "<group>"; };
+		5FE1AAADA7D78400722AF4AA /* ConversationSidebar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationSidebar.swift; sourceTree = "<group>"; };
 		659A8534A432DD74FD5D0E6D /* ChatViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatViewModel.swift; sourceTree = "<group>"; };
 		681B6A08183C9B3A3DE51E58 /* gradient_tall.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = gradient_tall.png; sourceTree = "<group>"; };
 		69CD3BEEBD95887645565C8C /* ConversationLifetime.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationLifetime.swift; sourceTree = "<group>"; };
@@ -403,6 +405,7 @@
 				52A987B79D37ED0DE3A71B01 /* ConversationRunner.swift */,
 				4EB6B5C0D4EEB1350D728A30 /* ConversationSession.swift */,
 				378D1F9C36D034DD475F1B25 /* ConversationSettingsView.swift */,
+				5FE1AAADA7D78400722AF4AA /* ConversationSidebar.swift */,
 				1C1F34FF7ED5E8185A8FE414 /* ConversationView.swift */,
 				6D299F487F2C50A979C20F46 /* ToolRunner.swift */,
 			);
@@ -973,6 +976,7 @@
 				CD9F6FE2A7F350083BD57D86 /* ConversationRunner.swift in Sources */,
 				D9159780662C018DF61DC9B4 /* ConversationSession.swift in Sources */,
 				2293B9C30A43246A68E373DF /* ConversationSettingsView.swift in Sources */,
+				256EA98A19B81D8E3B527DB7 /* ConversationSidebar.swift in Sources */,
 				F5D867174EF7AF9B63281176 /* ConversationView.swift in Sources */,
 				CE555FF49300C4C703DAFDA7 /* DecideCommand.swift in Sources */,
 				C0A05F932CA6C2ECFFEFDDD8 /* DecideItemEditor.swift in Sources */,

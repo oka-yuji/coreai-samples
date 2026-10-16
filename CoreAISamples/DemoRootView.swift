@@ -59,6 +59,7 @@ enum Demo: String, CaseIterable, Identifiable {
 struct DemoRootView: View {
     private let lifetime: ConversationLifetime
     @State private var windowID: UUID
+    @Environment(\.scenePhase) private var scenePhase
 
     @AppStorage(DemoLanguage.preferenceKey) private var languageCode = DemoLanguage.initialCode
     @State private var navigator = DemoNavigator()
@@ -90,24 +91,7 @@ struct DemoRootView: View {
     var body: some View {
         @Bindable var navigator = navigator
         NavigationSplitView {
-            List(selection: $navigator.selection) {
-                ForEach(Demo.allCases) { demo in
-                    NavigationLink(value: demo) {
-                        Label {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(LocalizedStringKey(demo.title))
-                                Text(LocalizedStringKey(demo.summary))
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                        } icon: {
-                            Image(systemName: demo.systemImage)
-                        }
-                    }
-                }
-            }
-            .demoNavigationTitle("Demos")
-            .navigationSplitViewColumnWidth(min: 200, ideal: 240)
+            ConversationSidebar()
         } detail: {
             switch navigator.selection {
             case .chat?: ConversationView()
@@ -149,9 +133,14 @@ struct DemoRootView: View {
         .environment(\.locale, (DemoLanguage(rawValue: languageCode) ?? .english).locale)
         .onAppear {
             lifetime.register(windowID, host: host)
-            if LaunchArguments.value("--gui-e2e") == nil { host.store.send(.restoreLatestRequested) }
+            if LaunchArguments.value("--gui-e2e") == nil {
+                host.store.send(.restoreLatestRequested)
+            } else {
+                host.store.send(.library(.refresh))
+            }
         }
         .onDisappear { lifetime.close(windowID) }
+        .onChange(of: scenePhase) { if scenePhase == .active { host.store.send(.library(.refresh)) } }
         .onChange(of: host.state.id) { host.restorePreferences() }
         .onChange(of: chat.loadStarted) { host.refreshIfModelChanged() }
         .task {
