@@ -1,0 +1,865 @@
+Building for debugging...
+[Computing dependencies]
+[Provisioning 6 / 66]
+[1 / 6] yyjson
+[15 / 16] GLiNERCoreTests-product
+[21 / 31] SpeechRuntime
+[23 / 33] SpeechRuntime
+[32 / 41] SpeechRuntimeTests-product
+[34 / 43] SpeechRuntimeTests-product
+[40 / 42] SpeechRuntimeTests-product
+Build complete! (2.15秒)
+Test Suite 'All tests' started at 2026-10-13 14:07:37.882.
+Test Suite 'All tests' passed at 2026-10-13 14:07:37.883.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'All tests' started at 2026-10-13 14:07:37.956.
+Test Suite 'All tests' passed at 2026-10-13 14:07:37.957.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'All tests' started at 2026-10-13 14:07:38.031.
+Test Suite 'All tests' passed at 2026-10-13 14:07:38.032.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'All tests' started at 2026-10-13 14:07:38.109.
+Test Suite 'All tests' passed at 2026-10-13 14:07:38.110.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'All tests' started at 2026-10-13 14:07:38.263.
+Test Suite 'All tests' passed at 2026-10-13 14:07:38.263.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'All tests' started at 2026-10-13 14:07:38.340.
+Test Suite 'All tests' passed at 2026-10-13 14:07:38.341.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'All tests' started at 2026-10-13 14:07:38.416.
+Test Suite 'All tests' passed at 2026-10-13 14:07:38.417.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'All tests' started at 2026-10-13 14:07:38.492.
+Test Suite 'All tests' passed at 2026-10-13 14:07:38.493.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'All tests' started at 2026-10-13 14:07:38.600.
+Test Suite 'All tests' passed at 2026-10-13 14:07:38.601.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'All tests' started at 2026-10-13 14:07:38.676.
+Test Suite 'All tests' passed at 2026-10-13 14:07:38.677.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'All tests' started at 2026-10-13 14:07:38.786.
+Test Suite 'All tests' passed at 2026-10-13 14:07:38.787.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Suite SpeechLibraryTests started.
+􀟈  Suite PlaybackSessionTests started.
+􀟈  Test "All pinned noise shapes and seeds match the CPU reference" started.
+􀟈  Suite IrodoriRuntimeTests started.
+􀟈  Test "Unsupported bundle metadata and changed files are rejected" started.
+􀟈  Test "Pinned normalization matches the Unicode reference corpus" started.
+􀟈  Test "Noise and token layout retain the verified input contract" started.
+􀟈  Suite SpeechServiceTests started.
+􀟈  Test "A failed generation drops the models and a later request can recover" started.
+􀟈  Suite AudioPlaybackTests started.
+􀟈  Suite ManagedPlaybackSessionTests started.
+􀟈  Test "Only visible local directories with a model marker are listed in stable order" started.
+􀟈  Test "The folder runner reports failures and suppresses results after cancellation" started.
+􀟈  Suite PhoneSpeechCheckTests started.
+􀟈  Test "A model named like the check output folder is never modified by diagnostics" started.
+􀟈  Test "Check output refuses unsafe names, existing runs and duplicate files" started.
+􀟈  Test "Repeated generation reuses models and shape changes release the old context first" started.
+􀟈  Test "An external interruption returns the current speech screen to an idle state" started.
+􀟈  Test "Opening a model performs no inference and invalid text never loads a pipeline" started.
+􀟈  Test "Session setup failure and immediate interruption never start a player" started.
+􀟈  Test "Cancellation keeps release waiting for an uncooperative operation to finish" started.
+􀟈  Test "Static phone stages avoid reshape specialization while Mac keeps its verified settings" started.
+􀟈  Test "A past session interruption cannot stop a subsequent player" started.
+􀟈  Test "Late callbacks from stopped audio cannot finish newer playback" started.
+􀟈  Test "A cancelled caller does not create or start a player" started.
+􀟈  Test "Cancellation ends playback without a delegate callback" started.
+􀟈  Test "Synchronous completion and a refused start both resolve exactly once" started.
+􀟈  Test "Runner reports outcomes with their session and suppresses cancelled results" started.
+􀟈  Test "Stopping during activation waits for activation and deactivation without starting audio" started.
+􀟈  Test "A failed activation completes stop waiters without requesting deactivation" started.
+􀟈  Test "The sixty-first completed request reloads every model" started.
+􀟈  Test "Playback completion does not release its caller before session deactivation finishes" started.
+􀟈  Test "Stop waits for a cancelled check to finish cleanup and refuses a new check meanwhile" started.
+􀟈  Test "Only successful model validation persists a path and generation forwards text and seed" started.
+􀟈  Test "Open, generation and playback failures release resources and write failure status" started.
+􀟈  Test "Missing check examples fail before loading a model and restore the environment" started.
+􀟈  Test "An external audio interruption ends the diagnostic instead of leaving it running" started.
+􀟈  Test "Store cancellation ignores a late generation and keeps restart blocked until stop completes" started.
+􀟈  Test "Service stop ends playback immediately and awaits runtime release" started.
+􀟈  Test "Cancelled stop finishes cleanup without delivering an obsolete acknowledgement" started.
+􀟈  Test "The check saves three independent samples, playback evidence and resource snapshots" started.
+􀟈  Test case passing 1 argument stage → "open" to "Open, generation and playback failures release resources and write failure status" started.
+􀟈  Test case passing 1 argument stage → "generate" to "Open, generation and playback failures release resources and write failure status" started.
+􀟈  Test case passing 1 argument stage → "play" to "Open, generation and playback failures release resources and write failure status" started.
+􁁛  Test "An external interruption returns the current speech screen to an idle state" passed after 0.001 seconds.
+􁁛  Test "Opening a model performs no inference and invalid text never loads a pipeline" passed after 0.001 seconds.
+􁁛  Test "Noise and token layout retain the verified input contract" passed after 0.001 seconds.
+􁁛  Test "A model named like the check output folder is never modified by diagnostics" passed after 0.002 seconds.
+􁁛  Test "Synchronous completion and a refused start both resolve exactly once" passed after 0.003 seconds.
+􁁛  Test "A failed generation drops the models and a later request can recover" passed after 0.003 seconds.
+􁁛  Test "Cancellation keeps release waiting for an uncooperative operation to finish" passed after 0.003 seconds.
+􁁛  Test "Only visible local directories with a model marker are listed in stable order" passed after 0.007 seconds.
+􁁛  Test "Unsupported bundle metadata and changed files are rejected" passed after 0.007 seconds.
+􁁛  Test "Static phone stages avoid reshape specialization while Mac keeps its verified settings" passed after 0.007 seconds.
+􁁛  Test "Session setup failure and immediate interruption never start a player" passed after 0.007 seconds.
+􁁛  Test "A cancelled caller does not create or start a player" passed after 0.007 seconds.
+􁁛  Test "Runner reports outcomes with their session and suppresses cancelled results" passed after 0.007 seconds.
+􁁛  Test "Cancelled stop finishes cleanup without delivering an obsolete acknowledgement" passed after 0.007 seconds.
+􁁛  Test "The folder runner reports failures and suppresses results after cancellation" passed after 0.008 seconds.
+􁁛  Test "A failed activation completes stop waiters without requesting deactivation" passed after 0.007 seconds.
+􁁛  Test "Missing check examples fail before loading a model and restore the environment" passed after 0.008 seconds.
+􁁛  Test "Playback completion does not release its caller before session deactivation finishes" passed after 0.008 seconds.
+􁁛  Test "Store cancellation ignores a late generation and keeps restart blocked until stop completes" passed after 0.008 seconds.
+􁁛  Test "Cancellation ends playback without a delegate callback" passed after 0.009 seconds.
+􁁛  Test "Stopping during activation waits for activation and deactivation without starting audio" passed after 0.009 seconds.
+􁁛  Suite ManagedPlaybackSessionTests passed after 0.009 seconds.
+􁁛  Test "Late callbacks from stopped audio cannot finish newer playback" passed after 0.009 seconds.
+􁁛  Test "Only successful model validation persists a path and generation forwards text and seed" passed after 0.009 seconds.
+􁁛  Suite AudioPlaybackTests passed after 0.009 seconds.
+􁁛  Test "A past session interruption cannot stop a subsequent player" passed after 0.009 seconds.
+􁁛  Suite PlaybackSessionTests passed after 0.009 seconds.
+􁁛  Test "Service stop ends playback immediately and awaits runtime release" passed after 0.009 seconds.
+􁁛  Suite SpeechServiceTests passed after 0.009 seconds.
+􁁛  Test "Check output refuses unsafe names, existing runs and duplicate files" passed after 0.010 seconds.
+􁁛  Suite SpeechLibraryTests passed after 0.010 seconds.
+􁁛  Test "Repeated generation reuses models and shape changes release the old context first" passed after 0.011 seconds.
+􁁛  Test "Pinned normalization matches the Unicode reference corpus" passed after 0.012 seconds.
+􁁛  Test "Stop waits for a cancelled check to finish cleanup and refuses a new check meanwhile" passed after 0.012 seconds.
+􁁛  Test "Open, generation and playback failures release resources and write failure status" with 3 test cases passed after 0.012 seconds.
+􁁛  Test "An external audio interruption ends the diagnostic instead of leaving it running" passed after 0.013 seconds.
+􁁛  Test "The check saves three independent samples, playback evidence and resource snapshots" passed after 0.014 seconds.
+􁁛  Suite PhoneSpeechCheckTests passed after 0.014 seconds.
+􁁛  Test "All pinned noise shapes and seeds match the CPU reference" passed after 0.082 seconds.
+􁁛  Test "The sixty-first completed request reloads every model" passed after 0.152 seconds.
+􁁛  Suite IrodoriRuntimeTests passed after 0.152 seconds.
+􁁛  Test run with 34 tests in 7 suites passed after 0.152 seconds.
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Suite SpeechFeatureTests started.
+􀟈  Suite SpeechPhoneFeatureTests started.
+􀟈  Test "Dismissed save panels accept their result until a new session invalidates them" started.
+􀟈  Test "An old save completion cannot dismiss a newer panel" started.
+􀟈  Test "Current check success and failure finish the diagnostic screen" started.
+􀟈  Test "A device check runs once and ignores progress from a stopped session" started.
+􀟈  Test "Stop waits for acknowledgement and rejects old generation results" started.
+􀟈  Test "Playback failure retains the audio while edits invalidate it" started.
+􀟈  Test "Refreshing or leaving invalidates older folder listings" started.
+􀟈  Test "Leaving and returning waits for release before allowing another operation" started.
+􀟈  Test "Model selection and opening failures have separate sessions" started.
+􀟈  Test "Generation requires a model, nonempty text, a valid seed and an idle screen" started.
+􁁛  Test "Current check success and failure finish the diagnostic screen" passed after 0.001 seconds.
+􁁛  Test "A device check runs once and ignores progress from a stopped session" passed after 0.001 seconds.
+􁁛  Test "Refreshing or leaving invalidates older folder listings" passed after 0.001 seconds.
+􁁛  Suite SpeechPhoneFeatureTests passed after 0.001 seconds.
+􁁛  Test "An old save completion cannot dismiss a newer panel" passed after 0.001 seconds.
+􁁛  Test "Dismissed save panels accept their result until a new session invalidates them" passed after 0.001 seconds.
+􁁛  Test "Leaving and returning waits for release before allowing another operation" passed after 0.001 seconds.
+􁁛  Test "Generation requires a model, nonempty text, a valid seed and an idle screen" passed after 0.001 seconds.
+􁁛  Test "Stop waits for acknowledgement and rejects old generation results" passed after 0.001 seconds.
+􁁛  Test "Playback failure retains the audio while edits invalidate it" passed after 0.001 seconds.
+􁁛  Test "Model selection and opening failures have separate sessions" passed after 0.001 seconds.
+􁁛  Suite SpeechFeatureTests passed after 0.001 seconds.
+􁁛  Test run with 10 tests in 2 suites passed after 0.001 seconds.
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Test "Float WAV preserves the sample bits and format fields" started.
+􀟈  Test "The frame policy handles periodic and shape changes" started.
+􁁛  Test "Float WAV preserves the sample bits and format fields" passed after 0.001 seconds.
+􁁛  Test "The frame policy handles periodic and shape changes" passed after 0.001 seconds.
+􁁛  Test run with 2 tests in 0 suites passed after 0.001 seconds.
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Suite "RAG context" started.
+􀟈  Suite FetchAddressPolicyTests started.
+􀟈  Test "an empty document yields no passages" started.
+􀟈  Test "the splitter keeps pieces under the size and overlaps them" started.
+􀟈  Test "dates in search snippets are normalised" started.
+􀟈  Test "the published date comes from the meta tag, the time tag, then the text" started.
+􀟈  Test "packing never exceeds the token budget and keeps the best first" started.
+􀟈  Test "two Japanese documents are indexed and the right one comes back" started.
+􀟈  Test "a question that matches nothing still returns passages, just unranked" started.
+􀟈  Test "the prompt numbers the sources and the citations match those numbers" started.
+􀟈  Test "a single passage larger than the budget is dropped, not truncated into the prompt" started.
+􀟈  Test "Local hostname suffixes are refused with case and trailing dots" started.
+􀟈  Test "a paragraph with no sentence breaks is cut at the size" started.
+􀟈  Test "Subresource filters match local literals without blocking ordinary public URLs" started.
+􀟈  Test "Non-public IPv4 ranges are refused" started.
+􀟈  Test "Public IPv4 boundary addresses remain allowed" started.
+􀟈  Test "Non-public IPv6 and mapped IPv4 addresses are refused" started.
+􀟈  Test "the instruction is byte-identical between turns so the KV prefix is reused" started.
+􀟈  Test "Every resolved address must be public and resolution must not be empty" started.
+􀟈  Test case passing 1 argument address → [0, 0, 0, 0] to "Non-public IPv4 ranges are refused" started.
+􀟈  Test case passing 1 argument address → [1, 0, 0, 0] to "Public IPv4 boundary addresses remain allowed" started.
+􀟈  Test case passing 1 argument address → [10, 0, 0, 1] to "Non-public IPv4 ranges are refused" started.
+􀟈  Test case passing 1 argument address → [127, 1, 2, 3] to "Non-public IPv4 ranges are refused" started.
+􀟈  Test case passing 1 argument address → [100, 63, 255, 255] to "Public IPv4 boundary addresses remain allowed" started.
+􀟈  Test case passing 1 argument address → [169, 254, 1, 1] to "Non-public IPv4 ranges are refused" started.
+􀟈  Test case passing 1 argument address → [100, 128, 0, 0] to "Public IPv4 boundary addresses remain allowed" started.
+􀟈  Test case passing 1 argument address → [172, 16, 0, 0] to "Non-public IPv4 ranges are refused" started.
+􀟈  Test case passing 1 argument address → [172, 31, 255, 255] to "Non-public IPv4 ranges are refused" started.
+􀟈  Test case passing 1 argument address → [192, 168, 1, 1] to "Non-public IPv4 ranges are refused" started.
+􀟈  Test case passing 1 argument address → [172, 15, 255, 255] to "Public IPv4 boundary addresses remain allowed" started.
+􀟈  Test case passing 1 argument address → [0, 255, 255, 255] to "Non-public IPv4 ranges are refused" started.
+􀟈  Test case passing 1 argument address → [169, 253, 255, 255] to "Public IPv4 boundary addresses remain allowed" started.
+􀟈  Test case passing 1 argument address → [8, 8, 8, 8] to "Public IPv4 boundary addresses remain allowed" started.
+􀟈  Test case passing 1 argument address → [100, 64, 0, 0] to "Non-public IPv4 ranges are refused" started.
+􀟈  Test case passing 1 argument address → [169, 255, 0, 0] to "Public IPv4 boundary addresses remain allowed" started.
+􀟈  Test case passing 1 argument address → [172, 32, 0, 0] to "Public IPv4 boundary addresses remain allowed" started.
+􀟈  Test case passing 1 argument address → [224, 0, 0, 0] to "Non-public IPv4 ranges are refused" started.
+􀟈  Test case passing 1 argument address → [239, 255, 255, 255] to "Non-public IPv4 ranges are refused" started.
+􀟈  Test case passing 1 argument address → [223, 255, 255, 255] to "Public IPv4 boundary addresses remain allowed" started.
+􀟈  Test case passing 1 argument address → [255, 255, 255, 255] to "Non-public IPv4 ranges are refused" started.
+􀟈  Test case passing 1 argument address → [192, 167, 255, 255] to "Public IPv4 boundary addresses remain allowed" started.
+􀟈  Test case passing 1 argument address → [240, 0, 0, 0] to "Non-public IPv4 ranges are refused" started.
+􁁛  Test "a single passage larger than the budget is dropped, not truncated into the prompt" passed after 0.001 seconds.
+􁁛  Test "a paragraph with no sentence breaks is cut at the size" passed after 0.001 seconds.
+􁁛  Test "the prompt numbers the sources and the citations match those numbers" passed after 0.001 seconds.
+􁁛  Test "Non-public IPv6 and mapped IPv4 addresses are refused" passed after 0.001 seconds.
+􁁛  Test "a question that matches nothing still returns passages, just unranked" passed after 0.001 seconds.
+􁁛  Test "the instruction is byte-identical between turns so the KV prefix is reused" passed after 0.001 seconds.
+􁁛  Test "Local hostname suffixes are refused with case and trailing dots" passed after 0.001 seconds.
+􁁛  Test "the splitter keeps pieces under the size and overlaps them" passed after 0.001 seconds.
+􁁛  Test "packing never exceeds the token budget and keeps the best first" passed after 0.001 seconds.
+􁁛  Test "an empty document yields no passages" passed after 0.001 seconds.
+􀟈  Test case passing 1 argument address → [192, 169, 0, 0] to "Public IPv4 boundary addresses remain allowed" started.
+􁁛  Test "Every resolved address must be public and resolution must not be empty" passed after 0.001 seconds.
+􀟈  Test case passing 1 argument address → [100, 127, 255, 255] to "Non-public IPv4 ranges are refused" started.
+􁁛  Test "Non-public IPv4 ranges are refused" with 14 test cases passed after 0.001 seconds.
+􁁛  Test "dates in search snippets are normalised" passed after 0.001 seconds.
+􁁛  Test "Public IPv4 boundary addresses remain allowed" with 11 test cases passed after 0.001 seconds.
+􁁛  Test "the published date comes from the meta tag, the time tag, then the text" passed after 0.001 seconds.
+􁁛  Test "two Japanese documents are indexed and the right one comes back" passed after 0.002 seconds.
+􁁛  Suite "RAG context" passed after 0.002 seconds.
+􁁛  Test "Subresource filters match local literals without blocking ordinary public URLs" passed after 0.005 seconds.
+􁁛  Suite FetchAddressPolicyTests passed after 0.005 seconds.
+􁁛  Test run with 17 tests in 2 suites passed after 0.005 seconds.
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀙟  Suite InferenceParityTests skipped: "set GLINER_ASSET_DIR (contract.json and the FP32 .aimodel) and GLINER_TOKENIZER_DIR"
+􀟈  Suite FixtureParityTests started.
+􀟈  Suite GLiNERModelTests started.
+􀟈  Suite GLiNERAssetTests started.
+􀙟  Test "The tokenizer matches the fixture input_ids in all 60 cases of 30 sentences x method (i)" skipped: "set GLINER_TOKENIZER_DIR to the folder with tokenizer.json"
+􀙟  Test "Spans and probabilities through Core AI match the reference in 160/160 calls within 1e-4" skipped: "set GLINER_ASSET_DIR (contract.json and the FP32 .aimodel) and GLINER_TOKENIZER_DIR"
+􀟈  Test "The word splitter matches the words and offsets of fixture N in all 30 sentences" started.
+􀟈  Test "Floating values of two types, in one function or after another function's, are a signature mismatch" started.
+􀙟  Test "The layout and the word/query/cls index arrays and masks match the GL4 Swift fixtures at both T=256 and 512" skipped: "set GLINER_TOKENIZER_DIR to the folder with tokenizer.json"
+􀟈  Test "A function whose floating values are Float16 passes the signature check and its outputs are read as Float" started.
+􀟈  Test "A function whose floating values are neither Float32 nor Float16 is a signature mismatch" started.
+􀟈  Test "The asset accepts the GL4 contract and finds its one .aimodel" started.
+􀟈  Test "A directory URL that is a symbolic link to the asset folder opens the same model as the folder itself" started.
+􀟈  Test "A function whose floating values are Float32 still passes, and its values are written and read as Float32" started.
+􀟈  Test "A symbolic link whose target has no aimodel is reported as a model count of zero" started.
+􀙟  Test "Class probabilities through Core AI match the reference in 258/258 calls within 1e-5" skipped: "set GLINER_ASSET_DIR (contract.json and the FP32 .aimodel) and GLINER_TOKENIZER_DIR"
+􀟈  Test case passing 1 argument type → .float64 to "A function whose floating values are neither Float32 nor Float16 is a signature mismatch" started.
+􀟈  Test "A contract that differs from the implementation, or a folder without exactly one .aimodel, is refused" started.
+􀟈  Test case passing 1 argument type → .bfloat16 to "A function whose floating values are neither Float32 nor Float16 is a signature mismatch" started.
+􁁛  Test "A function whose floating values are neither Float32 nor Float16 is a signature mismatch" with 2 test cases passed after 0.001 seconds.
+􁁛  Test "Floating values of two types, in one function or after another function's, are a signature mismatch" passed after 0.001 seconds.
+􁁛  Test "The asset accepts the GL4 contract and finds its one .aimodel" passed after 0.002 seconds.
+􁁛  Test "A symbolic link whose target has no aimodel is reported as a model count of zero" passed after 0.002 seconds.
+􁁛  Test "A directory URL that is a symbolic link to the asset folder opens the same model as the folder itself" passed after 0.003 seconds.
+􁁛  Test "A function whose floating values are Float32 still passes, and its values are written and read as Float32" passed after 0.004 seconds.
+􁁛  Test "A function whose floating values are Float16 passes the signature check and its outputs are read as Float" passed after 0.004 seconds.
+􁁛  Suite GLiNERModelTests passed after 0.004 seconds.
+􁁛  Test "A contract that differs from the implementation, or a folder without exactly one .aimodel, is refused" passed after 0.004 seconds.
+􁁛  Suite GLiNERAssetTests passed after 0.004 seconds.
+􁁛  Test "The word splitter matches the words and offsets of fixture N in all 30 sentences" passed after 0.013 seconds.
+􁁛  Suite FixtureParityTests passed after 0.013 seconds.
+􁁛  Test run with 13 tests in 4 suites passed after 0.013 seconds.
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Suite StageOutputParityTests started.
+􀟈  Suite PreparedInputTests started.
+􀟈  Suite DecodingTests started.
+􀟈  Suite FormMappingParityTests started.
+􀟈  Suite EquipmentNumberTests started.
+􀟈  Suite FormMappingTests started.
+􀟈  Test "Candidate selection matches the candidate set and order of the GL4 Swift fixtures in all 160 calls" started.
+􀟈  Test "Scalar and UTF-16 offsets convert back and forth on text with characters outside the BMP" started.
+􀟈  Test "The trailing period rule holds, text over 256 tokens moves to 512, and text over 512 tokens is an error" started.
+􀟈  Test "The classification softmax matches the reference probabilities within 1e-5 in all 258 calls" started.
+􀟈  Test "Decoding (threshold, abstention, overlap resolution, character offsets) matches the reference in all 160 calls" started.
+􀟈  Test "Applying R1 to the saved dev30 outputs drops the same candidates as the GL6b list (its dev30 rows)" started.
+􀟈  Test "Entities route [E] to query and classification routes [L] to cls, with each description after its label" started.
+􀟈  Test "Labels and descriptions built from form U1 (6 fields) are the same strings as PyTorch method (i)" started.
+􀟈  Test "The trailing period rule holds, text over 256 tokens moves to 512, and text over 512 tokens is an error" started.
+􀟈  Test "Scalar and UTF-16 offsets convert back and forth on text with characters outside the BMP" started.
+􀟈  Test "With the candidate filter .none, mapping the saved extraction and classification outputs (30 sentences) gives the candidates and suggestions of PyTorch e3_items_N_i.tsv for every field in all 30 sentences" started.
+􀟈  Test "The pool ignores labels and boundaries outside the input and reserves each label's best pairs in order" started.
+􀟈  Test "More than 16 labels is an error" started.
+􀟈  Test "Spans over the appended period are cut or dropped, and only a null probability over 0.5 abstains" started.
+􀟈  Test "The trailing period rule holds, text over 256 tokens moves to 512, and text over 512 tokens is an error" started.
+􀟈  Test "Rule N1's markers, numeral words and ten examples are the ones in the lab's g9_variants.json and g6b_numerals.json" started.
+􀟈  Test case passing 2 arguments text → "abc", appended → true to "The trailing period rule holds, text over 256 tokens moves to 512, and text over 512 tokens is an error" started.
+􀟈  Test case passing 2 arguments text → "abc.", appended → false to "The trailing period rule holds, text over 256 tokens moves to 512, and text over 512 tokens is an error" started.
+􀟈  Test case passing 2 arguments text → "abc!", appended → false to "The trailing period rule holds, text over 256 tokens moves to 512, and text over 512 tokens is an error" started.
+􀟈  Test "Rule N1 compares full-width letters, digits and punctuation as half-width lower case without moving positions" started.
+􀟈  Test case passing 1 argument text → "a😀b𠮷c" to "Scalar and UTF-16 offsets convert back and forth on text with characters outside the BMP" started.
+􀟈  Test "Rule N1 reads the equipment markers and numeral words recorded from the Python reference" started.
+􀟈  Test "Form U1 classifies the clauses with the wording GL6 chose: the status wording for abnormal sound and vibration, the oil wording for oil leak, the field name and options for next action" started.
+􀟈  Test "Rule N1 reads the longest numeral word, ends a run at a decimal point, and takes a marker only right next to the run" started.
+􀟈  Test case passing 2 arguments text → "abc?", appended → false to "The trailing period rule holds, text over 256 tokens moves to 512, and text over 512 tokens is an error" started.
+􀟈  Test case passing 1 argument text → "👨‍👩‍👧" to "Scalar and UTF-16 offsets convert back and forth on text with characters outside the BMP" started.
+􀟈  Test "Rule N1 drops a number candidate whose every digit run is attached to an equipment marker and keeps one with a plain run" started.
+􀟈  Test case passing 1 argument text → "é𝄞." to "Scalar and UTF-16 offsets convert back and forth on text with characters outside the BMP" started.
+􀟈  Test case passing 2 arguments text → "", appended → true to "The trailing period rule holds, text over 256 tokens moves to 512, and text over 512 tokens is an error" started.
+􀟈  Test case passing 2 arguments text → "abc。", appended → true to "The trailing period rule holds, text over 256 tokens moves to 512, and text over 512 tokens is an error" started.
+􀟈  Test "A candidate in a clause with its own field name is kept, one in a clause with only another field's name is dropped, and one in a clause without field names is kept (hand-made example)" started.
+􀟈  Test case passing 2 arguments text → "abc ", appended → true to "The trailing period rule holds, text over 256 tokens moves to 512, and text over 512 tokens is an error" started.
+􀟈  Test case passing 2 arguments text → "abc.́", appended → true to "The trailing period rule holds, text over 256 tokens moves to 512, and text over 512 tokens is an error" started.
+􀟈  Test "Correction words are found left to right without overlap, the longest where several start at one place" started.
+􀟈  Test "The classification requests are the clause and schema pairs map asks for, once each in the order first asked, and map gives the same result from their looked-up answers" started.
+􀟈  Test "Each span of a list field is a candidate whose suggestions are the two best options of its clause, by option name" started.
+􀟈  Test "Number parsing turns 0.45MPa, 72 with the kanji for degree, full-width 0.5MPa and 72 with the degree Celsius sign into a number and a unit, and a number in kana stays a candidate as written" started.
+􀟈  Test case passing 2 arguments letters → 246, capacity → 256 to "The trailing period rule holds, text over 256 tokens moves to 512, and text over 512 tokens is an error" started.
+􀟈  Test case passing 2 arguments letters → 247, capacity → 512 to "The trailing period rule holds, text over 256 tokens moves to 512, and text over 512 tokens is an error" started.
+􀟈  Test "The clause of a dropped candidate is not classified, and the filter .none keeps every candidate" started.
+􀟈  Test "Rule R1+N1 leaves list fields to rule R1 and keeps every number candidate of .none and .clauseFieldName" started.
+􀟈  Test "A field without spans is not detected, both values stay as candidates in a sentence with two, and a sentence with a correction word gets a cue" started.
+􀟈  Test case passing 2 arguments letters → 502, capacity → 512 to "The trailing period rule holds, text over 256 tokens moves to 512, and text over 512 tokens is an error" started.
+􀟈  Test "Number parsing turns 0.45MPa, 72 with the kanji for degree, full-width 0.5MPa and 72 with the degree Celsius sign into a number and a unit, and a number in kana stays a candidate as written" started.
+􁁛  Test "Scalar and UTF-16 offsets convert back and forth on text with characters outside the BMP" passed after 0.001 seconds.
+􀟈  Test case passing 1 argument example → full-width upper-case NO and full stop fold to no. to "Rule N1 compares full-width letters, digits and punctuation as half-width lower case without moving positions" started.
+􀟈  Test case passing 1 argument example → letters match in any case to "Rule N1 compares full-width letters, digits and punctuation as half-width lower case without moving positions" started.
+􀟈  Test case passing 1 argument example → full-width number sign folds to # to "Rule N1 compares full-width letters, digits and punctuation as half-width lower case without moving positions" started.
+􀟈  Test case passing 1 argument example → the long vowel mark is outside U+FF01-FF5E and does not fold to a hyphen to "Rule N1 compares full-width letters, digits and punctuation as half-width lower case without moving positions" started.
+􀟈  Test case passing 1 argument example → a letter whose lower case is two scalars folds to the first, so P- stays right before 3 to "Rule N1 compares full-width letters, digits and punctuation as half-width lower case without moving positions" started.
+􀟈  Test case passing 1 argument example → the degree sign stays one scalar, so P- stays right before 3 to "Rule N1 compares full-width letters, digits and punctuation as half-width lower case without moving positions" started.
+􀟈  Test case passing 1 argument example → the longest numeral word is the run, so 号 comes right after it to "Rule N1 reads the longest numeral word, ends a run at a decimal point, and takes a marker only right next to the run" started.
+􀟈  Test case passing 1 argument example → a decimal point ends a run, so 5 has no marker to "Rule N1 reads the longest numeral word, ends a run at a decimal point, and takes a marker only right next to the run" started.
+􀟈  Test case passing 1 argument example → 号機 comes later in the note, not right after 40 to "Rule N1 reads the longest numeral word, ends a run at a decimal point, and takes a marker only right next to the run" started.
+􁁛  Test "Scalar and UTF-16 offsets convert back and forth on text with characters outside the BMP" with 3 test cases passed after 0.003 seconds.
+􀟈  Test case passing 1 argument example → P- right before to "Rule N1 drops a number candidate whose every digit run is attached to an equipment marker and keeps one with a plain run" started.
+􀟈  Test case passing 1 argument example → no marker to "Rule N1 drops a number candidate whose every digit run is attached to an equipment marker and keeps one with a plain run" started.
+􁁛  Test "The trailing period rule holds, text over 256 tokens moves to 512, and text over 512 tokens is an error" with 8 test cases passed after 0.003 seconds.
+􀟈  Test case passing 1 argument example → 号機 right after to "Rule N1 drops a number candidate whose every digit run is attached to an equipment marker and keeps one with a plain run" started.
+􀟈  Test case passing 1 argument example → No. right before to "Rule N1 drops a number candidate whose every digit run is attached to an equipment marker and keeps one with a plain run" started.
+􀟈  Test case passing 1 argument example → kanji numeral, 第 before and 系統 after to "Rule N1 drops a number candidate whose every digit run is attached to an equipment marker and keeps one with a plain run" started.
+􀟈  Test case passing 1 argument example → 38 has no marker to "Rule N1 drops a number candidate whose every digit run is attached to an equipment marker and keeps one with a plain run" started.
+􀟈  Test case passing 1 argument example → full-width P and hyphen fold to P- to "Rule N1 drops a number candidate whose every digit run is attached to an equipment marker and keeps one with a plain run" started.
+􀟈  Test case passing 1 argument example → 階 is not a marker to "Rule N1 drops a number candidate whose every digit run is attached to an equipment marker and keeps one with a plain run" started.
+􀟈  Test case passing 1 argument example → kanji numeral, 号 after to "Rule N1 drops a number candidate whose every digit run is attached to an equipment marker and keeps one with a plain run" started.
+􀟈  Test case passing 1 argument example → no numeral run to "Rule N1 drops a number candidate whose every digit run is attached to an equipment marker and keeps one with a plain run" started.
+􁁛  Test "Entities route [E] to query and classification routes [L] to cls, with each description after its label" passed after 0.003 seconds.
+􀟈  Test case passing 1 argument example → 0.45MPa to "Number parsing turns 0.45MPa, 72 with the kanji for degree, full-width 0.5MPa and 72 with the degree Celsius sign into a number and a unit, and a number in kana stays a candidate as written" started.
+􀟈  Test case passing 1 argument example → ０．５ＭＰａ to "Number parsing turns 0.45MPa, 72 with the kanji for degree, full-width 0.5MPa and 72 with the degree Celsius sign into a number and a unit, and a number in kana stays a candidate as written" started.
+􀟈  Test case passing 1 argument example → 72度 to "Number parsing turns 0.45MPa, 72 with the kanji for degree, full-width 0.5MPa and 72 with the degree Celsius sign into a number and a unit, and a number in kana stays a candidate as written" started.
+􀟈  Test case passing 1 argument example → 72℃ to "Number parsing turns 0.45MPa, 72 with the kanji for degree, full-width 0.5MPa and 72 with the degree Celsius sign into a number and a unit, and a number in kana stays a candidate as written" started.
+􀟈  Test case passing 1 argument example → 圧力0.45 to "Number parsing turns 0.45MPa, 72 with the kanji for degree, full-width 0.5MPa and 72 with the degree Celsius sign into a number and a unit, and a number in kana stays a candidate as written" started.
+􀟈  Test case passing 1 argument example → ８６ｋｍ to "Number parsing turns 0.45MPa, 72 with the kanji for degree, full-width 0.5MPa and 72 with the degree Celsius sign into a number and a unit, and a number in kana stays a candidate as written" started.
+􀟈  Test case passing 1 argument example → れいてんよんご to "Number parsing turns 0.45MPa, 72 with the kanji for degree, full-width 0.5MPa and 72 with the degree Celsius sign into a number and a unit, and a number in kana stays a candidate as written" started.
+􀟈  Test case passing 1 argument example → 七十二度 to "Number parsing turns 0.45MPa, 72 with the kanji for degree, full-width 0.5MPa and 72 with the degree Celsius sign into a number and a unit, and a number in kana stays a candidate as written" started.
+􁁛  Test "More than 16 labels is an error" passed after 0.004 seconds.
+􁁛  Test "The trailing period rule holds, text over 256 tokens moves to 512, and text over 512 tokens is an error" passed after 0.004 seconds.
+􁁛  Test "Labels and descriptions built from form U1 (6 fields) are the same strings as PyTorch method (i)" passed after 0.004 seconds.
+􁁛  Test "The trailing period rule holds, text over 256 tokens moves to 512, and text over 512 tokens is an error" with 3 test cases passed after 0.004 seconds.
+􁁛  Test "The pool ignores labels and boundaries outside the input and reserves each label's best pairs in order" passed after 0.004 seconds.
+􁁛  Test "Rule N1 reads the equipment markers and numeral words recorded from the Python reference" passed after 0.004 seconds.
+􁁛  Test "Spans over the appended period are cut or dropped, and only a null probability over 0.5 abstains" passed after 0.004 seconds.
+􁁛  Test "Rule N1 compares full-width letters, digits and punctuation as half-width lower case without moving positions" with 6 test cases passed after 0.004 seconds.
+􁁛  Test "Rule N1 reads the longest numeral word, ends a run at a decimal point, and takes a marker only right next to the run" with 3 test cases passed after 0.004 seconds.
+􁁛  Test "Rule N1 drops a number candidate whose every digit run is attached to an equipment marker and keeps one with a plain run" with 10 test cases passed after 0.004 seconds.
+􁁛  Test "Rule N1's markers, numeral words and ten examples are the ones in the lab's g9_variants.json and g6b_numerals.json" passed after 0.004 seconds.
+􁁛  Test "Form U1 classifies the clauses with the wording GL6 chose: the status wording for abnormal sound and vibration, the oil wording for oil leak, the field name and options for next action" passed after 0.004 seconds.
+􁁛  Test "Correction words are found left to right without overlap, the longest where several start at one place" passed after 0.004 seconds.
+􁁛  Test "A candidate in a clause with its own field name is kept, one in a clause with only another field's name is dropped, and one in a clause without field names is kept (hand-made example)" passed after 0.004 seconds.
+􁁛  Suite DecodingTests passed after 0.004 seconds.
+􁁛  Suite PreparedInputTests passed after 0.004 seconds.
+􁁛  Test "Each span of a list field is a candidate whose suggestions are the two best options of its clause, by option name" passed after 0.004 seconds.
+􁁛  Suite EquipmentNumberTests passed after 0.004 seconds.
+􁁛  Test "Number parsing turns 0.45MPa, 72 with the kanji for degree, full-width 0.5MPa and 72 with the degree Celsius sign into a number and a unit, and a number in kana stays a candidate as written" with 8 test cases passed after 0.004 seconds.
+􁁛  Test "Number parsing turns 0.45MPa, 72 with the kanji for degree, full-width 0.5MPa and 72 with the degree Celsius sign into a number and a unit, and a number in kana stays a candidate as written" passed after 0.004 seconds.
+􁁛  Test "A field without spans is not detected, both values stay as candidates in a sentence with two, and a sentence with a correction word gets a cue" passed after 0.004 seconds.
+􁁛  Test "The classification requests are the clause and schema pairs map asks for, once each in the order first asked, and map gives the same result from their looked-up answers" passed after 0.004 seconds.
+􁁛  Test "The clause of a dropped candidate is not classified, and the filter .none keeps every candidate" passed after 0.004 seconds.
+􁁛  Test "With the candidate filter .none, mapping the saved extraction and classification outputs (30 sentences) gives the candidates and suggestions of PyTorch e3_items_N_i.tsv for every field in all 30 sentences" passed after 0.007 seconds.
+􁁛  Test "Rule R1+N1 leaves list fields to rule R1 and keeps every number candidate of .none and .clauseFieldName" passed after 0.008 seconds.
+􁁛  Suite FormMappingTests passed after 0.009 seconds.
+􁁛  Test "Applying R1 to the saved dev30 outputs drops the same candidates as the GL6b list (its dev30 rows)" passed after 0.028 seconds.
+􁁛  Suite FormMappingParityTests passed after 0.028 seconds.
+GLiNER softmax: 258 calls, largest probability difference 0.0
+􁁛  Test "The classification softmax matches the reference probabilities within 1e-5 in all 258 calls" passed after 0.358 seconds.
+􁁛  Test "Candidate selection matches the candidate set and order of the GL4 Swift fixtures in all 160 calls" passed after 3.296 seconds.
+􁁛  Test "Decoding (threshold, abstention, overlap resolution, character offsets) matches the reference in all 160 calls" passed after 3.370 seconds.
+􁁛  Suite StageOutputParityTests passed after 3.370 seconds.
+􁁛  Test run with 30 tests in 6 suites passed after 3.370 seconds.
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Suite "Store: guarantees G1-G5, G7 and G8" started.
+􀟈  Test "G3: Results that a replaced effect returns later are dropped" started.
+􀟈  Test "G3: Results that a cancelled effect returns later are dropped" started.
+􀟈  Test "G8: Commands are handled in the order returned, so a run after cancelAll is not cancelled" started.
+􀟈  Test "G1: An action sent during a state-change notification is processed after the current one finishes" started.
+􀟈  Test "G4: Releasing the store cancels every effect in flight" started.
+􀟈  Test "G5: A state equal to the old one after reduce is not assigned and notifies nothing" started.
+􀟈  Test "G2: A run with an id in use cancels the running effect before it starts" started.
+􀟈  Test "G1: Actions sent from effects are also processed in the order sent" started.
+􀟈  Test "G8: Results that arrive after cancelAll are dropped, and effects started later run normally" started.
+􀟈  Test "G7: An effect cancelled before it starts never runs" started.
+􀟈  Test "G7: An effect replaced under the same id before it starts never runs" started.
+􁁛  Test "G5: A state equal to the old one after reduce is not assigned and notifies nothing" passed after 0.001 seconds.
+􁁛  Test "G1: An action sent during a state-change notification is processed after the current one finishes" passed after 0.001 seconds.
+􁁛  Test "G7: An effect cancelled before it starts never runs" passed after 0.001 seconds.
+􁁛  Test "G1: Actions sent from effects are also processed in the order sent" passed after 0.001 seconds.
+􁁛  Test "G7: An effect replaced under the same id before it starts never runs" passed after 0.001 seconds.
+􁁛  Test "G3: Results that a cancelled effect returns later are dropped" passed after 0.001 seconds.
+􁁛  Test "G2: A run with an id in use cancels the running effect before it starts" passed after 0.001 seconds.
+􁁛  Test "G8: Commands are handled in the order returned, so a run after cancelAll is not cancelled" passed after 0.001 seconds.
+􁁛  Test "G4: Releasing the store cancels every effect in flight" passed after 0.001 seconds.
+􁁛  Test "G3: Results that a replaced effect returns later are dropped" passed after 0.001 seconds.
+􁁛  Test "G8: Results that arrive after cancelAll are dropped, and effects started later run normally" passed after 0.001 seconds.
+􁁛  Suite "Store: guarantees G1-G5, G7 and G8" passed after 0.001 seconds.
+􁁛  Test run with 11 tests in 1 suite passed after 0.001 seconds.
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Suite ExtractEvaluationTests started.
+􀟈  Suite ExtractFeatureTests started.
+􀟈  Test "The timing percentiles are nearest-rank over the warm runs, stage by stage" started.
+􀟈  Test "The scoring of five hand-made sentences gives the mention precision and recall, the fabrication and miss rates, the option and number scores and the span match by the rules" started.
+􀟈  Test "The export writes the candidates the filter dropped apart from the candidates people see" started.
+􀟈  Test "The scores are also given for each field and for each feature tag, and an excluded sentence counts nowhere" started.
+􀟈  Test "reduce carries neither the confirmations nor the result across a switch between the label mode and the form mode" started.
+􀟈  Test "A candidate on a value span that two fields share matches both fields, since a shared predicate is not another field's value" started.
+􀟈  Test "The initial Extract state and a FormMapper made without a filter use rule R1+N1" started.
+􀟈  Test "A field draft keeps the model wording of a field whose name stays, and a new field gets a free key" started.
+􀟈  Test "The exported JSON carries the candidate filter's name and the asset's revision, and a filter change starts over" started.
+􀟈  Test "A correction cue belongs to the fields with a candidate in its sentence" started.
+􀟈  Test "reduce shows the failure of the current extraction and of the folder being opened, and the export's outcome" started.
+􀟈  Test "reduce ignores a text or a form that did not change, and forgets a selected field that was removed" started.
+􀟈  Test "reduce opens the last asset folder when the screen appears with no asset open, and only then" started.
+􀟈  Test "reduce waits for an open asset and a non-blank text before it extracts, and drops an older folder's result" started.
+􀟈  Test "reduce, given a text change, an extraction start, an older version's result and the newer version's result in that order, drops the old result and keeps only the new one" started.
+􀟈  Test "reduce starts no extraction while an input method converts a word, stops the one under way, and waits again for the text when the conversion ends without a result" started.
+􀟈  Test "The export keeps the input, the form, the model output, the rule's marks and people's choices apart, with positions in Unicode scalars and UTF-16" started.
+􀟈  Test "In the label mode, reduce extracts nothing without a label, edits and extracts the labels and not the form with no candidate filter, and the export writes the labels and no filter" started.
+􀟈  Test "reduce keeps a confirmed field's choice when a new result of the same text and fields arrives" started.
+􀟈  Test "reduce clears people's confirmations when the text, the fields or the candidate filter change" started.
+􀟈  Test case passing 1 argument change → .textChanged("pressure 0.5MPa") to "reduce clears people's confirmations when the text, the fields or the candidate filter change" started.
+􁁛  Test "The initial Extract state and a FormMapper made without a filter use rule R1+N1" passed after 0.001 seconds.
+􁁛  Test "reduce opens the last asset folder when the screen appears with no asset open, and only then" passed after 0.001 seconds.
+􁁛  Test "reduce shows the failure of the current extraction and of the folder being opened, and the export's outcome" passed after 0.001 seconds.
+􁁛  Test "reduce ignores a text or a form that did not change, and forgets a selected field that was removed" passed after 0.001 seconds.
+􁁛  Test "reduce waits for an open asset and a non-blank text before it extracts, and drops an older folder's result" passed after 0.001 seconds.
+􁁛  Test "reduce starts no extraction while an input method converts a word, stops the one under way, and waits again for the text when the conversion ends without a result" passed after 0.001 seconds.
+􁁛  Test "reduce, given a text change, an extraction start, an older version's result and the newer version's result in that order, drops the old result and keeps only the new one" passed after 0.001 seconds.
+􁁛  Test "In the label mode, reduce extracts nothing without a label, edits and extracts the labels and not the form with no candidate filter, and the export writes the labels and no filter" passed after 0.001 seconds.
+􀟈  Test case passing 1 argument change → .fieldsChanged(GLiNERCore.FormSchema(fields: [GLiNERCore.FormField(key: "pressure", name: "pressure", modelLabel: "pressure", kind: GLiNERCore.FormField.Kind.number(unit: "MPa"), description: nil)])) to "reduce clears people's confirmations when the text, the fields or the candidate filter change" started.
+􁁛  Test "reduce carries neither the confirmations nor the result across a switch between the label mode and the form mode" passed after 0.001 seconds.
+􁁛  Test "A correction cue belongs to the fields with a candidate in its sentence" passed after 0.001 seconds.
+􁁛  Test "reduce keeps a confirmed field's choice when a new result of the same text and fields arrives" passed after 0.001 seconds.
+􀟈  Test case passing 1 argument change → .candidateFilterChanged(GLiNERCore.CandidateFilter.none) to "reduce clears people's confirmations when the text, the fields or the candidate filter change" started.
+􁁛  Test "A field draft keeps the model wording of a field whose name stays, and a new field gets a free key" passed after 0.001 seconds.
+􁁛  Test "reduce clears people's confirmations when the text, the fields or the candidate filter change" with 3 test cases passed after 0.001 seconds.
+􁁛  Test "The export writes the candidates the filter dropped apart from the candidates people see" passed after 0.001 seconds.
+􁁛  Test "The exported JSON carries the candidate filter's name and the asset's revision, and a filter change starts over" passed after 0.001 seconds.
+􁁛  Test "The export keeps the input, the form, the model output, the rule's marks and people's choices apart, with positions in Unicode scalars and UTF-16" passed after 0.001 seconds.
+􁁛  Suite ExtractFeatureTests passed after 0.001 seconds.
+􁁛  Test "The scoring of five hand-made sentences gives the mention precision and recall, the fabrication and miss rates, the option and number scores and the span match by the rules" passed after 0.006 seconds.
+􁁛  Test "The scores are also given for each field and for each feature tag, and an excluded sentence counts nowhere" passed after 0.006 seconds.
+􁁛  Test "A candidate on a value span that two fields share matches both fields, since a shared predicate is not another field's value" passed after 0.006 seconds.
+􁁛  Test "The timing percentiles are nearest-rank over the warm runs, stage by stage" passed after 0.006 seconds.
+􁁛  Suite ExtractEvaluationTests passed after 0.006 seconds.
+􁁛  Test run with 20 tests in 2 suites passed after 0.006 seconds.
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Suite DecideFilesTests started.
+􀟈  Suite DecideRunnerTests started.
+􀟈  Test "UTF-8 text and Markdown import preserves content and unsupported files are refused" started.
+􀟈  Test "Export creates an atomic JSON file at the selected local path" started.
+􀟈  Test "Service failures are reported as actions and cancellation is not shown as a failure" started.
+􀟈  Test "Every service effect returns its successful action" started.
+􀟈  Test "The store sends cancellation, waits for the service and can run again after a late completion" started.
+􀟈  Test "Export succeeds with a valid confirmation and fails without publishing invalid JSON" started.
+􁁛  Test "Service failures are reported as actions and cancellation is not shown as a failure" passed after 0.001 seconds.
+􁁛  Test "Every service effect returns its successful action" passed after 0.001 seconds.
+􁁛  Test "Export creates an atomic JSON file at the selected local path" passed after 0.001 seconds.
+􁁛  Test "Export succeeds with a valid confirmation and fails without publishing invalid JSON" passed after 0.001 seconds.
+􁁛  Test "The store sends cancellation, waits for the service and can run again after a late completion" passed after 0.001 seconds.
+􁁛  Suite DecideRunnerTests passed after 0.002 seconds.
+􁁛  Test "UTF-8 text and Markdown import preserves content and unsupported files are refused" passed after 0.005 seconds.
+􁁛  Suite DecideFilesTests passed after 0.006 seconds.
+􁁛  Test run with 6 tests in 2 suites passed after 0.006 seconds.
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Suite DecideFeatureTests started.
+􀟈  Test "Rows sort by their largest probability with checklist order as the tie breaker" started.
+􀟈  Test "Dismissed export preparation cannot reopen a dialog and repeated exports get distinct IDs" started.
+􀟈  Test "Ending the feature cancels every effect and rejects input until it appears again" started.
+􀟈  Test "Changing a checklist clears confirmations and replacement results never inherit them" started.
+􀟈  Test "Delayed export preparation, completion and cancellation cannot replace a newer export" started.
+􀟈  Test "Checklist validation rejects duplicate or unsupported items without collapsing scalar-distinct IDs" started.
+􀟈  Test "Cancelled and failed reruns preserve confirmations until a replacement result succeeds" started.
+􀟈  Test "Bundled examples load independently of an ongoing model load and never overwrite pasted text" started.
+􀟈  Test "Document edits invalidate previous results and raw Unicode edits are preserved" started.
+􀟈  Test "Stop cancels the operation, waits for resource completion and ignores late results" started.
+􀟈  Test "Loading a model leads to token counting and stale load results are ignored" started.
+􀟈  Test "Failures and stale token counts cannot overwrite newer state" started.
+􀟈  Test "JSON keeps the model candidate and the reviewer confirmation in separate fields" started.
+􀟈  Test "A delayed save completion cannot overwrite a later import failure" started.
+􀟈  Test "Saving an unchanged item or removing a missing item preserves reviewed results" started.
+􁁛  Test "Loading a model leads to token counting and stale load results are ignored" passed after 0.001 seconds.
+􁁛  Test "Dismissed export preparation cannot reopen a dialog and repeated exports get distinct IDs" passed after 0.001 seconds.
+􁁛  Test "Saving an unchanged item or removing a missing item preserves reviewed results" passed after 0.001 seconds.
+􁁛  Test "Bundled examples load independently of an ongoing model load and never overwrite pasted text" passed after 0.001 seconds.
+􁁛  Test "Ending the feature cancels every effect and rejects input until it appears again" passed after 0.001 seconds.
+􁁛  Test "Checklist validation rejects duplicate or unsupported items without collapsing scalar-distinct IDs" passed after 0.001 seconds.
+􁁛  Test "Delayed export preparation, completion and cancellation cannot replace a newer export" passed after 0.001 seconds.
+􁁛  Test "Stop cancels the operation, waits for resource completion and ignores late results" passed after 0.001 seconds.
+􁁛  Test "Cancelled and failed reruns preserve confirmations until a replacement result succeeds" passed after 0.001 seconds.
+􁁛  Test "Rows sort by their largest probability with checklist order as the tie breaker" passed after 0.001 seconds.
+􁁛  Test "A delayed save completion cannot overwrite a later import failure" passed after 0.001 seconds.
+􁁛  Test "Changing a checklist clears confirmations and replacement results never inherit them" passed after 0.001 seconds.
+􁁛  Test "Document edits invalidate previous results and raw Unicode edits are preserved" passed after 0.001 seconds.
+􁁛  Test "Failures and stale token counts cannot overwrite newer state" passed after 0.001 seconds.
+􁁛  Test "JSON keeps the model candidate and the reviewer confirmation in separate fields" passed after 0.001 seconds.
+􁁛  Suite DecideFeatureTests passed after 0.001 seconds.
+􁁛  Test run with 15 tests in 1 suite passed after 0.001 seconds.
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀙟  Suite DecisionInferenceTests skipped.
+􀟈  Suite DecisionContextPolicyTests started.
+􀟈  Suite ControlTokenSanitizerTests started.
+􀟈  Suite DecisionRendererTests started.
+􀟈  Suite RequestValidationTests started.
+􀟈  Test reusePlanKeepsTheQuestionBoundaryThroughToolSteps() started.
+􀟈  Suite ModelIntegrationTests started.
+􀟈  Test toolOutputCutsDropTheOldestGroupsAndHalveTheLast() started.
+􀟈  Suite DecisionContractTests started.
+􀟈  Test reuseOffReadsTheWholePromptFromAReset() started.
+􀟈  Test droppingHistoryReasoningKeepsTheRestOfTheHistory() started.
+􀟈  Test growingKeepsEveryRow() started.
+􀟈  Test templateVariablesReachTheRendering() started.
+􀟈  Suite ModelTestSupportTests started.
+􀟈  Test samplerHonorsModeTemperatureAndSeed() started.
+􀟈  Test transcriptRebuildsToolCallsAndOutputs() started.
+􀟈  Test readsMetadata() started.
+􀟈  Suite RuntimeReloadTests started.
+􀟈  Test readsTheLastDimensionOfAnOutputType() started.
+􀟈  Suite ReloadPolicyTests started.
+􀟈  Test requiredToolCallingIsRefused() started.
+􀙟  Test bundleOpensWithoutLoadingTheModel(path:) skipped.
+􀟈  Test bundleNamesWhatIsMissingOrWrong() started.
+􀟈  Test cutMemoryStaysWithEachConversation() started.
+􀟈  Test tokenizerMustFitTheVocabularySize() started.
+􀟈  Test transcriptKeepsReasoningForTheTemplate() started.
+􀟈  Test stateCheckPassesTheSameTopAndNearTiesOnly() started.
+􀟈  Test fitShortensToolOutputsAndRemembersByEntry() started.
+􀟈  Test reusePlanSavesTheDivergenceAtTheQuestionStart() started.
+􀟈  Test spliceRestoresTheGeneratedSplitWhereTheTextIsTheSame() started.
+􀟈  Test greedyPicksTheFirstMaximum() started.
+􀟈  Test historyDrawsToolCallArgumentsInTheWrittenOrder() started.
+􀟈  Test toolCallParserReadsBothFormats() started.
+􀟈  Test fitGoesOnInWhatIsLeftAndFailsOnlyWhenThePromptDoesNotFit() started.
+􀟈  Test reusePlanGoesBackToTheRightPoint() started.
+􀟈  Test thinkParserSeparatesReasoningFromTheAnswer() started.
+􀟈  Test growsCapacityByDoublingUpToTheLimit() started.
+􀟈  Test checkpointRestoresFixedStatesAndRejectsAnOverwrittenPrefix() started.
+􀙟  Test "Alternating small and large question sets keeps the document memory bounded" skipped.
+􀙟  Test "Ten documents match the lab probabilities and the fixed PyTorch fidelity limits" skipped.
+􀙟  Test "Alternating twenty 2K and 8K documents grows footprint by less than 0.1 GB per document" skipped.
+􀙟  Test "Document reuse matches fresh inference and reference probabilities at 2K and 8K" skipped.
+􀙟  Test "Reload failure retains the document and concurrent context creation leaves exactly one current handle" skipped.
+􀙟  Test "Cancellation after inference and rejected requests preserve the current document" skipped.
+􀟈  Test "Review marks use the larger noul probability and mark unknown choices" started.
+􀟈  Test "Changed questions include added, removed, changed candidates and changed review marks" started.
+􀟈  Test "The fixtures are the 30 lab records and 2 synthetic edge cases" started.
+􀟈  Test "Rendering the same request twice gives the same result whatever the dictionary order" started.
+􀟈  Test "Request schemas and a current prompt response format are refused without a model" started.
+􀟈  Test "Canonically equivalent identifiers with different Unicode scalars remain distinct" started.
+􀟈  Test "Exactly 16 questions with 8 options and 9,216 tokens are accepted and one more token is refused" started.
+􀟈  Test "Historical prompt settings do not override the current request and schema hints without a schema have no effect" started.
+􀙟  Test "A request over 9,216 tokens with the Clef-Flash tokenizer is refused with DecisionError" skipped.
+􀟈  Test "Structured and image transcript segments are refused before rendering" started.
+􀟈  Test "Requests with 0 or over 16 questions, 0 or over 8 options or a repeated ID are refused before tokenizing" started.
+􀙟  Test "Real bundle templates accept the documented reasoning values and unsupported values fail before rendering" skipped.
+􀟈  Test "Unknown custom reasoning levels are refused with the requested value" started.
+􀙟  Test "Tokens, spans, option IDs and question types match the Python rendering for all fixtures" skipped.
+􀟈  Test "Fragment strings, option IDs and question types match the Python rendering without a tokenizer" started.
+􀟈  Test "Custom request metadata is refused with its key names and a supported alternative" started.
+􀟈  Test "A cached document prefix produces the same tokens and spans as a complete rendering" started.
+􀟈  Test "Supported options retain their sampling and template mappings" started.
+􀟈  Test "Only user prompts and tool outputs are sanitized after tool-output truncation" started.
+􀟈  Test "Ordinary input is preserved byte for byte and empty patterns cannot loop" started.
+􀟈  Test "All added tokens are loaded regardless of the special flag" started.
+􀟈  Test "Decision bundles reject missing manifests, unsafe paths, bad contracts and corrupted hashes before specialization" started.
+􀟈  Test "Every added-token string and nested or overlapping markers are removed deterministically" started.
+􀙟  Test "The live runtime reads a sanitized prompt exactly like the corresponding ordinary prompt" skipped.
+􀙟  Test "Real tokenizers keep structural delimiters and emit no added-token IDs from sanitized input" skipped.
+􀟈  Test "SystemOne JSON preserves question order, scalar-distinct IDs and option descriptions" started.
+􀟈  Test "Malformed JSON, duplicate keys and invalid question schemas are rejected" started.
+􀟈  Test "SystemOne responses preserve tied input order and expose type-specific answers and usage" started.
+􀟈  Test "JSON arrays retain explicit question IDs and null instructions" started.
+􀟈  Test "Valid options alone determine choice, noul and score answers" started.
+􀟈  Test "Cancellation waits for a real stream fragment and awaits the cancelled operation" started.
+􀟈  Test "A second-fragment permit released before execution remains available" started.
+􀟈  Test "Parent cancellation joins the executor after cancelling the response consumer" started.
+􀟈  Test "A second-fragment gate finished without a permit does not emit the marker" started.
+􀟈  Test "BF16 lexical rows are averaged in Float and rounded to Float16" started.
+􀟈  Test "The overlap observer records both delegated requests before either completes" started.
+􀟈  Test "A rejected request does not wait for an executor that never started" started.
+􀙟  Test "Exact boundary fixtures render without loading a model" skipped.
+􀟈  Test "A request cancelled while waiting at the overlap gate releases its waiter" started.
+􀟈  Test "Cancellation racing with completion inspects the complete retained response" started.
+􀟈  Test "Trimmed history and switching to a known session cannot create another new conversation" started.
+􀟈  Test "Internal tool rounds, preserved reasoning and prior responses are conversation continuations" started.
+􀟈  Test "Ten completed reads wait for the next new conversation and a footprint limit also applies within a conversation" started.
+􀟈  Test "Token sharing, checkpoint loss and tool-output cuts cannot affect the transcript identity rule" started.
+􀟈  Test "The default enables the ten-read interval and the calibrated footprint threshold" started.
+􀟈  Test "An initial prompt is new once even when its first request fails and the same prompt is retried" started.
+􀟈  Test "Cancellation immediately after reloading preserves raw generated token splicing on retry" started.
+􀟈  Test "Cancellation during a blocked reload waits for creation and leaves the new engine available" started.
+􀟈  Test "The verification token snapshot includes the last sampled token omitted from a token-limited engine state" started.
+􀟈  Test "A request cancelled before it starts cannot reload or increment the read counter" started.
+􀟈  Test "A checkpoint hit without prefill does not increment the read interval" started.
+􀟈  Test "Request-only rejection neither registers a new conversation nor disturbs the existing one" started.
+􀟈  Test "A cancelled decode snapshot contains only its sampled tokens and no older successful result" started.
+􁁛  Test reusePlanKeepsTheQuestionBoundaryThroughToolSteps() passed after 0.003 seconds.
+􀟈  Test "Reload metadata preserves logical sharing while reading the full prompt again" started.
+􁁛  Test toolOutputCutsDropTheOldestGroupsAndHalveTheLast() passed after 0.003 seconds.
+􁁛  Test readsTheLastDimensionOfAnOutputType() passed after 0.002 seconds.
+􁁛  Test stateCheckPassesTheSameTopAndNearTiesOnly() passed after 0.002 seconds.
+􀟈  Test "A request cancelled after entering prefill counts toward the next new-conversation reload" started.
+􀟈  Test "Request-only rejection preserves the previous snapshot while a failed decode keeps only its partial generation" started.
+􀟈  Test "Read failures count toward the interval while validation and context fitting failures do not" started.
+􀟈  Test "Requests and state readers queued during a reload see only a fully created engine" started.
+􁁛  Test spliceRestoresTheGeneratedSplitWhereTheTextIsTheSame() passed after 0.003 seconds.
+􀟈  Test "A reload releases the old engine and all saved checkpoints before calling the loader" started.
+􀟈  Test "An invalid request is rejected while another request holds the execution lock during a read" started.
+􀟈  Test "Releasing a load before registration lets the factory finish without another release" started.
+􀟈  Test case passing 1 argument level → "unexpected" to "Unknown custom reasoning levels are refused with the requested value" started.
+􀟈  Test case passing 1 argument level → "" to "Unknown custom reasoning levels are refused with the requested value" started.
+􀟈  Test case passing 1 argument level → "LOW" to "Unknown custom reasoning levels are refused with the requested value" started.
+􀟈  Test "A load failure leaves empty public state and the next request retries without discarding CPU prompt history" started.
+􁁛  Test transcriptKeepsReasoningForTheTemplate() passed after 0.003 seconds.
+􀟈  Test case passing 1 argument fixture → C04 to "Fragment strings, option IDs and question types match the Python rendering without a tokenizer" started.
+􀟈  Test case passing 1 argument fixture → C15 to "Fragment strings, option IDs and question types match the Python rendering without a tokenizer" started.
+􀟈  Test case passing 1 argument fixture → I06 to "Fragment strings, option IDs and question types match the Python rendering without a tokenizer" started.
+􀟈  Test case passing 1 argument fixture → I15 to "Fragment strings, option IDs and question types match the Python rendering without a tokenizer" started.
+􀟈  Test case passing 1 argument fixture → R02 to "Fragment strings, option IDs and question types match the Python rendering without a tokenizer" started.
+􀟈  Test case passing 1 argument fixture → R05 to "Fragment strings, option IDs and question types match the Python rendering without a tokenizer" started.
+􀟈  Test case passing 1 argument fixture → R07 to "Fragment strings, option IDs and question types match the Python rendering without a tokenizer" started.
+􀟈  Test case passing 1 argument fixture → R10 to "Fragment strings, option IDs and question types match the Python rendering without a tokenizer" started.
+􀟈  Test case passing 1 argument fixture → doc2k_setA to "Fragment strings, option IDs and question types match the Python rendering without a tokenizer" started.
+􀟈  Test case passing 1 argument fixture → doc2k_setB to "Fragment strings, option IDs and question types match the Python rendering without a tokenizer" started.
+􀟈  Test case passing 1 argument fixture → doc8k_setA to "Fragment strings, option IDs and question types match the Python rendering without a tokenizer" started.
+􀟈  Test case passing 1 argument fixture → edge_empty_state to "Fragment strings, option IDs and question types match the Python rendering without a tokenizer" started.
+􀟈  Test case passing 1 argument fixture → en_invoice to "Fragment strings, option IDs and question types match the Python rendering without a tokenizer" started.
+􀟈  Test case passing 1 argument fixture → edge_escapes_and_order to "Fragment strings, option IDs and question types match the Python rendering without a tokenizer" started.
+􀟈  Test case passing 1 argument fixture → en_support to "Fragment strings, option IDs and question types match the Python rendering without a tokenizer" started.
+􀟈  Test case passing 1 argument fixture → frame_full to "Fragment strings, option IDs and question types match the Python rendering without a tokenizer" started.
+􀟈  Test case passing 1 argument fixture → preset_contract to "Fragment strings, option IDs and question types match the Python rendering without a tokenizer" started.
+􀟈  Test case passing 1 argument fixture → preset_contract_v2 to "Fragment strings, option IDs and question types match the Python rendering without a tokenizer" started.
+􀟈  Test case passing 1 argument fixture → preset_inspection to "Fragment strings, option IDs and question types match the Python rendering without a tokenizer" started.
+􀟈  Test case passing 1 argument fixture → preset_inspection_v2 to "Fragment strings, option IDs and question types match the Python rendering without a tokenizer" started.
+􀟈  Test case passing 1 argument fixture → preset_routing to "Fragment strings, option IDs and question types match the Python rendering without a tokenizer" started.
+􀟈  Test case passing 1 argument fixture → preset_routing_v2 to "Fragment strings, option IDs and question types match the Python rendering without a tokenizer" started.
+􀟈  Test case passing 1 argument fixture → s2e_ctr05_01 to "Fragment strings, option IDs and question types match the Python rendering without a tokenizer" started.
+􀟈  Test case passing 1 argument fixture → s2e_ctr05_02 to "Fragment strings, option IDs and question types match the Python rendering without a tokenizer" started.
+􀟈  Test case passing 1 argument fixture → s2e_ctr9k_02 to "Fragment strings, option IDs and question types match the Python rendering without a tokenizer" started.
+􀟈  Test case passing 1 argument fixture → s2e_ctr9k_03 to "Fragment strings, option IDs and question types match the Python rendering without a tokenizer" started.
+􀟈  Test case passing 1 argument fixture → s2e_ctr9k_01 to "Fragment strings, option IDs and question types match the Python rendering without a tokenizer" started.
+􀟈  Test case passing 1 argument fixture → s2e_ctr9k_04 to "Fragment strings, option IDs and question types match the Python rendering without a tokenizer" started.
+􀟈  Test case passing 1 argument fixture → s2e_ctr9k_05 to "Fragment strings, option IDs and question types match the Python rendering without a tokenizer" started.
+􀟈  Test case passing 1 argument fixture → s2e_inq05_01 to "Fragment strings, option IDs and question types match the Python rendering without a tokenizer" started.
+􀟈  Test case passing 1 argument fixture → s2e_inq05_02 to "Fragment strings, option IDs and question types match the Python rendering without a tokenizer" started.
+􀟈  Test case passing 1 argument fixture → s2e_ins05_01 to "Fragment strings, option IDs and question types match the Python rendering without a tokenizer" started.
+􁁛  Test reuseOffReadsTheWholePromptFromAReset() passed after 0.005 seconds.
+􀟈  Test case passing 1 argument fixture → C04 to "A cached document prefix produces the same tokens and spans as a complete rendering" started.
+􀟈  Test case passing 1 argument fixture → C15 to "A cached document prefix produces the same tokens and spans as a complete rendering" started.
+􀟈  Test case passing 1 argument fixture → I06 to "A cached document prefix produces the same tokens and spans as a complete rendering" started.
+􀟈  Test case passing 1 argument fixture → I15 to "A cached document prefix produces the same tokens and spans as a complete rendering" started.
+􀟈  Test case passing 1 argument fixture → R02 to "A cached document prefix produces the same tokens and spans as a complete rendering" started.
+􀟈  Test case passing 1 argument fixture → R05 to "A cached document prefix produces the same tokens and spans as a complete rendering" started.
+􀟈  Test case passing 1 argument fixture → R07 to "A cached document prefix produces the same tokens and spans as a complete rendering" started.
+􀟈  Test case passing 1 argument fixture → R10 to "A cached document prefix produces the same tokens and spans as a complete rendering" started.
+􀟈  Test case passing 1 argument fixture → doc2k_setA to "A cached document prefix produces the same tokens and spans as a complete rendering" started.
+􀟈  Test case passing 1 argument fixture → doc2k_setB to "A cached document prefix produces the same tokens and spans as a complete rendering" started.
+􀟈  Test case passing 1 argument fixture → doc8k_setA to "A cached document prefix produces the same tokens and spans as a complete rendering" started.
+􀟈  Test case passing 1 argument fixture → edge_empty_state to "A cached document prefix produces the same tokens and spans as a complete rendering" started.
+􀟈  Test case passing 1 argument fixture → edge_escapes_and_order to "A cached document prefix produces the same tokens and spans as a complete rendering" started.
+􀟈  Test case passing 1 argument fixture → en_invoice to "A cached document prefix produces the same tokens and spans as a complete rendering" started.
+􀟈  Test case passing 1 argument fixture → en_support to "A cached document prefix produces the same tokens and spans as a complete rendering" started.
+􀟈  Test case passing 1 argument fixture → frame_full to "A cached document prefix produces the same tokens and spans as a complete rendering" started.
+􀟈  Test case passing 1 argument fixture → preset_contract to "A cached document prefix produces the same tokens and spans as a complete rendering" started.
+􀟈  Test case passing 1 argument fixture → preset_contract_v2 to "A cached document prefix produces the same tokens and spans as a complete rendering" started.
+􀟈  Test case passing 1 argument fixture → preset_inspection to "A cached document prefix produces the same tokens and spans as a complete rendering" started.
+􀟈  Test case passing 1 argument fixture → preset_inspection_v2 to "A cached document prefix produces the same tokens and spans as a complete rendering" started.
+􀟈  Test case passing 1 argument fixture → preset_routing to "A cached document prefix produces the same tokens and spans as a complete rendering" started.
+􀟈  Test case passing 1 argument fixture → preset_routing_v2 to "A cached document prefix produces the same tokens and spans as a complete rendering" started.
+􀟈  Test case passing 1 argument fixture → s2e_ctr05_01 to "A cached document prefix produces the same tokens and spans as a complete rendering" started.
+􀟈  Test case passing 1 argument fixture → s2e_ctr05_02 to "A cached document prefix produces the same tokens and spans as a complete rendering" started.
+􀟈  Test case passing 1 argument fixture → s2e_ctr9k_01 to "A cached document prefix produces the same tokens and spans as a complete rendering" started.
+􀟈  Test case passing 1 argument fixture → s2e_ctr9k_02 to "A cached document prefix produces the same tokens and spans as a complete rendering" started.
+􀟈  Test case passing 1 argument fixture → s2e_ctr9k_03 to "A cached document prefix produces the same tokens and spans as a complete rendering" started.
+􀟈  Test case passing 1 argument fixture → s2e_ctr9k_04 to "A cached document prefix produces the same tokens and spans as a complete rendering" started.
+􀟈  Test case passing 1 argument fixture → s2e_ctr9k_05 to "A cached document prefix produces the same tokens and spans as a complete rendering" started.
+􀟈  Test case passing 1 argument fixture → s2e_inq05_01 to "A cached document prefix produces the same tokens and spans as a complete rendering" started.
+􀟈  Test case passing 1 argument fixture → s2e_inq05_02 to "A cached document prefix produces the same tokens and spans as a complete rendering" started.
+􀟈  Test case passing 1 argument fixture → s2e_ins05_01 to "A cached document prefix produces the same tokens and spans as a complete rendering" started.
+􁁛  Test reusePlanSavesTheDivergenceAtTheQuestionStart() passed after 0.007 seconds.
+􁁛  Test thinkParserSeparatesReasoningFromTheAnswer() passed after 0.007 seconds.
+􁁛  Test toolCallParserReadsBothFormats() passed after 0.007 seconds.
+􁁛  Test growsCapacityByDoublingUpToTheLimit() passed after 0.007 seconds.
+􁁛  Test growingKeepsEveryRow() passed after 0.007 seconds.
+􀟈  Test case passing 1 argument text → "{"state":"","questions":{"x":{"type":"noul"},"x":{"type":"noul"}}}" to "Malformed JSON, duplicate keys and invalid question schemas are rejected" started.
+􀟈  Test case passing 1 argument text → "{"state":"","questions":{"x":{"type":"choice","criteria":{"a":"1","a":"2"}}}}" to "Malformed JSON, duplicate keys and invalid question schemas are rejected" started.
+􀟈  Test case passing 1 argument text → "{"state":"","questions":{"x":{"type":"choice","criteria":{"a":12}}}}" to "Malformed JSON, duplicate keys and invalid question schemas are rejected" started.
+􀟈  Test case passing 1 argument text → "{"state":"","questions":{"x":{"type":"noul","criteria":{"maybe":"yes"}}}}" to "Malformed JSON, duplicate keys and invalid question schemas are rejected" started.
+􀟈  Test case passing 1 argument text → "{"state":"","questions":{"x":{"type":"unknown"}}}" to "Malformed JSON, duplicate keys and invalid question schemas are rejected" started.
+􀟈  Test case passing 1 argument text → "{"state":true,"questions":{}}" to "Malformed JSON, duplicate keys and invalid question schemas are rejected" started.
+􀟈  Test case passing 1 argument text → "{"state":"","questions":{},}" to "Malformed JSON, duplicate keys and invalid question schemas are rejected" started.
+􀟈  Test case passing 1 argument text → "{"state":"\uZZZZ","questions":{}}" to "Malformed JSON, duplicate keys and invalid question schemas are rejected" started.
+􀟈  Test case passing 1 argument text → "{"state":"","questions":{}} false" to "Malformed JSON, duplicate keys and invalid question schemas are rejected" started.
+􁁛  Test readsMetadata() passed after 0.008 seconds.
+􁁛  Test fitGoesOnInWhatIsLeftAndFailsOnlyWhenThePromptDoesNotFit() passed after 0.008 seconds.
+􀟈  Test case passing 1 argument iteration → 0 to "Cancellation racing with completion inspects the complete retained response" started.
+􀟈  Test case passing 1 argument iteration → 1 to "Cancellation racing with completion inspects the complete retained response" started.
+􀟈  Test case passing 1 argument iteration → 2 to "Cancellation racing with completion inspects the complete retained response" started.
+􀟈  Test case passing 1 argument iteration → 3 to "Cancellation racing with completion inspects the complete retained response" started.
+􀟈  Test case passing 1 argument iteration → 4 to "Cancellation racing with completion inspects the complete retained response" started.
+􁁛  Test historyDrawsToolCallArgumentsInTheWrittenOrder() passed after 0.008 seconds.
+􀟈  Test case passing 1 argument iteration → 6 to "Cancellation racing with completion inspects the complete retained response" started.
+􀟈  Test case passing 1 argument iteration → 5 to "Cancellation racing with completion inspects the complete retained response" started.
+􀟈  Test case passing 1 argument iteration → 7 to "Cancellation racing with completion inspects the complete retained response" started.
+􀟈  Test case passing 1 argument iteration → 8 to "Cancellation racing with completion inspects the complete retained response" started.
+􀟈  Test case passing 1 argument iteration → 10 to "Cancellation racing with completion inspects the complete retained response" started.
+􀟈  Test case passing 1 argument iteration → 9 to "Cancellation racing with completion inspects the complete retained response" started.
+􀟈  Test case passing 1 argument 0 to "Cancellation immediately after reloading preserves raw generated token splicing on retry" started.
+􀟈  Test case passing 1 argument iteration → 11 to "Cancellation racing with completion inspects the complete retained response" started.
+􀟈  Test case passing 1 argument iteration → 12 to "Cancellation racing with completion inspects the complete retained response" started.
+􀟈  Test case passing 1 argument 1 to "Cancellation immediately after reloading preserves raw generated token splicing on retry" started.
+􀟈  Test case passing 1 argument iteration → 13 to "Cancellation racing with completion inspects the complete retained response" started.
+􀟈  Test case passing 1 argument 1 to "Cancellation during a blocked reload waits for creation and leaves the new engine available" started.
+􀟈  Test case passing 1 argument iteration → 14 to "Cancellation racing with completion inspects the complete retained response" started.
+􀟈  Test case passing 1 argument 0 to "Cancellation during a blocked reload waits for creation and leaves the new engine available" started.
+􀟈  Test case passing 1 argument 3 to "Cancellation during a blocked reload waits for creation and leaves the new engine available" started.
+􀟈  Test case passing 1 argument 3 to "Cancellation immediately after reloading preserves raw generated token splicing on retry" started.
+􀟈  Test case passing 1 argument 2 to "Cancellation immediately after reloading preserves raw generated token splicing on retry" started.
+􀟈  Test case passing 1 argument 5 to "Cancellation immediately after reloading preserves raw generated token splicing on retry" started.
+􀟈  Test case passing 1 argument iteration → 15 to "Cancellation racing with completion inspects the complete retained response" started.
+􀟈  Test case passing 1 argument 4 to "Cancellation during a blocked reload waits for creation and leaves the new engine available" started.
+􀟈  Test case passing 1 argument iteration → 16 to "Cancellation racing with completion inspects the complete retained response" started.
+􀟈  Test case passing 1 argument iteration → 17 to "Cancellation racing with completion inspects the complete retained response" started.
+􀟈  Test case passing 1 argument 2 to "Cancellation during a blocked reload waits for creation and leaves the new engine available" started.
+􀟈  Test case passing 1 argument iteration → 18 to "Cancellation racing with completion inspects the complete retained response" started.
+􀟈  Test case passing 1 argument 6 to "Cancellation during a blocked reload waits for creation and leaves the new engine available" started.
+􀟈  Test case passing 1 argument 5 to "Cancellation during a blocked reload waits for creation and leaves the new engine available" started.
+􀟈  Test case passing 1 argument 6 to "Cancellation immediately after reloading preserves raw generated token splicing on retry" started.
+􀟈  Test case passing 1 argument 4 to "Cancellation immediately after reloading preserves raw generated token splicing on retry" started.
+􀟈  Test case passing 1 argument 9 to "Cancellation during a blocked reload waits for creation and leaves the new engine available" started.
+􀟈  Test case passing 1 argument 8 to "Cancellation immediately after reloading preserves raw generated token splicing on retry" started.
+􀟈  Test case passing 1 argument iteration → 19 to "Cancellation racing with completion inspects the complete retained response" started.
+􀟈  Test case passing 1 argument 7 to "Cancellation immediately after reloading preserves raw generated token splicing on retry" started.
+􀟈  Test case passing 1 argument 7 to "Cancellation during a blocked reload waits for creation and leaves the new engine available" started.
+􀟈  Test case passing 1 argument 9 to "Cancellation immediately after reloading preserves raw generated token splicing on retry" started.
+􁁛  Test reusePlanGoesBackToTheRightPoint() passed after 0.008 seconds.
+􁁛  Test "Changed questions include added, removed, changed candidates and changed review marks" passed after 0.007 seconds.
+􀟈  Test case passing 1 argument 8 to "Cancellation during a blocked reload waits for creation and leaves the new engine available" started.
+􁁛  Test requiredToolCallingIsRefused() passed after 0.008 seconds.
+􁁛  Test droppingHistoryReasoningKeepsTheRestOfTheHistory() passed after 0.008 seconds.
+􁁛  Test "Historical prompt settings do not override the current request and schema hints without a schema have no effect" passed after 0.007 seconds.
+􁁛  Test "Request schemas and a current prompt response format are refused without a model" passed after 0.007 seconds.
+􁁛  Test transcriptRebuildsToolCallsAndOutputs() passed after 0.008 seconds.
+􁁛  Test checkpointRestoresFixedStatesAndRejectsAnOverwrittenPrefix() passed after 0.008 seconds.
+􁁛  Test "Canonically equivalent identifiers with different Unicode scalars remain distinct" passed after 0.007 seconds.
+􁁛  Test fitShortensToolOutputsAndRemembersByEntry() passed after 0.008 seconds.
+􁁛  Test "Unknown custom reasoning levels are refused with the requested value" with 3 test cases passed after 0.007 seconds.
+􁁛  Test cutMemoryStaysWithEachConversation() passed after 0.008 seconds.
+􁁛  Test "Fragment strings, option IDs and question types match the Python rendering without a tokenizer" with 32 test cases passed after 0.007 seconds.
+􁁛  Test "Rendering the same request twice gives the same result whatever the dictionary order" passed after 0.007 seconds.
+􁁛  Test "Review marks use the larger noul probability and mark unknown choices" passed after 0.007 seconds.
+􁁛  Test "Structured and image transcript segments are refused before rendering" passed after 0.007 seconds.
+􁁛  Test "Custom request metadata is refused with its key names and a supported alternative" passed after 0.007 seconds.
+􁁛  Test "Requests with 0 or over 16 questions, 0 or over 8 options or a repeated ID are refused before tokenizing" passed after 0.007 seconds.
+􁁛  Test "Only user prompts and tool outputs are sanitized after tool-output truncation" passed after 0.007 seconds.
+􁁛  Test "Supported options retain their sampling and template mappings" passed after 0.007 seconds.
+􁁛  Test "Exactly 16 questions with 8 options and 9,216 tokens are accepted and one more token is refused" passed after 0.007 seconds.
+􁁛  Test "JSON arrays retain explicit question IDs and null instructions" passed after 0.006 seconds.
+􁁛  Test "A cached document prefix produces the same tokens and spans as a complete rendering" with 32 test cases passed after 0.007 seconds.
+􁁛  Test "Malformed JSON, duplicate keys and invalid question schemas are rejected" with 9 test cases passed after 0.006 seconds.
+􁁛  Test "Ordinary input is preserved byte for byte and empty patterns cannot loop" passed after 0.007 seconds.
+􁁛  Test "All added tokens are loaded regardless of the special flag" passed after 0.007 seconds.
+􁁛  Test "SystemOne responses preserve tied input order and expose type-specific answers and usage" passed after 0.006 seconds.
+􁁛  Test "SystemOne JSON preserves question order, scalar-distinct IDs and option descriptions" passed after 0.006 seconds.
+􁁛  Test "Valid options alone determine choice, noul and score answers" passed after 0.006 seconds.
+􁁛  Test "Trimmed history and switching to a known session cannot create another new conversation" passed after 0.006 seconds.
+􁁛  Test "Internal tool rounds, preserved reasoning and prior responses are conversation continuations" passed after 0.006 seconds.
+􁁛  Test "An initial prompt is new once even when its first request fails and the same prompt is retried" passed after 0.006 seconds.
+􁁛  Test "Ten completed reads wait for the next new conversation and a footprint limit also applies within a conversation" passed after 0.006 seconds.
+􁁛  Test "The default enables the ten-read interval and the calibrated footprint threshold" passed after 0.006 seconds.
+􁁛  Test "Token sharing, checkpoint loss and tool-output cuts cannot affect the transcript identity rule" passed after 0.012 seconds.
+􁁛  Test "BF16 lexical rows are averaged in Float and rounded to Float16" passed after 0.021 seconds.
+􁁛  Test "Every added-token string and nested or overlapping markers are removed deterministically" passed after 0.025 seconds.
+􁁛  Test "The fixtures are the 30 lab records and 2 synthetic edge cases" passed after 0.027 seconds.
+􁁛  Suite DecisionContextPolicyTests passed after 0.028 seconds.
+􁁛  Suite RequestValidationTests passed after 0.028 seconds.
+􀙟  Test "Non-language-model bundles are refused" skipped.
+􁁛  Suite ReloadPolicyTests passed after 0.028 seconds.
+􁁛  Suite ControlTokenSanitizerTests passed after 0.031 seconds.
+􁁛  Suite DecisionRendererTests passed after 0.032 seconds.
+􁁛  Test bundleNamesWhatIsMissingOrWrong() passed after 0.032 seconds.
+􁁛  Test templateVariablesReachTheRendering() passed after 0.033 seconds.
+􀙟  Test "The engine restores saved state and rejects context overflow" skipped.
+􁁛  Test "A request cancelled while waiting at the overlap gate releases its waiter" passed after 0.034 seconds.
+􁁛  Test tokenizerMustFitTheVocabularySize() passed after 0.037 seconds.
+􁁛  Test samplerHonorsModeTemperatureAndSeed() passed after 0.037 seconds.
+􀙟  Test "Sessions reuse state, honor sampling and recover after cancellation" skipped.
+􁁛  Test "A rejected request does not wait for an executor that never started" passed after 0.035 seconds.
+􁁛  Test "Releasing a load before registration lets the factory finish without another release" passed after 0.034 seconds.
+􁁛  Test "Decision bundles reject missing manifests, unsafe paths, bad contracts and corrupted hashes before specialization" passed after 0.037 seconds.
+􀙟  Test "Tool sessions preserve history and recover after cancellation" skipped.
+􁁛  Test "A second-fragment gate finished without a permit does not emit the marker" passed after 0.036 seconds.
+􁁛  Suite DecisionContractTests passed after 0.039 seconds.
+􁁛  Test "Cancellation waits for a real stream fragment and awaits the cancelled operation" passed after 0.036 seconds.
+􀙟  Test "Rejected reasoning options leave the live engine state unchanged" skipped.
+􁁛  Test "A second-fragment permit released before execution remains available" passed after 0.036 seconds.
+􁁛  Test "Parent cancellation joins the executor after cancelling the response consumer" passed after 0.037 seconds.
+􁁛  Test "The overlap observer records both delegated requests before either completes" passed after 0.037 seconds.
+􀙟  Test "An interval of two reads waits through five turns and reloads only when the next conversation starts" skipped.
+􁁛  Test "Cancellation racing with completion inspects the complete retained response" with 20 test cases passed after 0.037 seconds.
+􀙟  Test "A footprint reload preserves the complete prompt, logical sharing and next-token logits" skipped.
+􁁛  Suite ModelTestSupportTests passed after 0.040 seconds.
+􀙟  Test "Reloading before a tool-result step preserves its logical shared-token count" skipped.
+􁁛  Test "A request cancelled after entering prefill counts toward the next new-conversation reload" passed after 0.038 seconds.
+􁁛  Test "An invalid request is rejected while another request holds the execution lock during a read" passed after 0.038 seconds.
+􀙟  Test "Footprint reloads preserve EOS and token-limit state and recover after streamed cancellation" skipped.
+􀙟  Test "Seeded top-k and top-p reproduce complete generated token sequences with reuse disabled" skipped.
+􁁛  Test "A cancelled decode snapshot contains only its sampled tokens and no older successful result" passed after 0.039 seconds.
+􀙟  Test "Both overflow policies enforce all four exact 16384-token boundaries and retain valid state" skipped.
+􁁛  Test "The verification token snapshot includes the last sampled token omitted from a token-limited engine state" passed after 0.040 seconds.
+􀙟  Test "Old tool outputs shrink to reserve space and irreducible overflow preserves the previous state" skipped.
+􀙟  Test "Two sessions overlap for fifty pairs without marker leakage and recover from first-fragment cancellation" skipped.
+􁁛  Test greedyPicksTheFirstMaximum() passed after 0.043 seconds.
+􁁛  Suite ModelIntegrationTests passed after 0.044 seconds.
+􁁛  Test "Request-only rejection preserves the previous snapshot while a failed decode keeps only its partial generation" passed after 0.042 seconds.
+􁁛  Test "Reload metadata preserves logical sharing while reading the full prompt again" passed after 0.043 seconds.
+􁁛  Test "Request-only rejection neither registers a new conversation nor disturbs the existing one" passed after 0.043 seconds.
+􁁛  Test "Requests and state readers queued during a reload see only a fully created engine" passed after 0.043 seconds.
+􁁛  Test "A load failure leaves empty public state and the next request retries without discarding CPU prompt history" passed after 0.043 seconds.
+􁁛  Test "Cancellation during a blocked reload waits for creation and leaves the new engine available" with 10 test cases passed after 0.044 seconds.
+􁁛  Test "A reload releases the old engine and all saved checkpoints before calling the loader" passed after 0.044 seconds.
+􁁛  Test "A request cancelled before it starts cannot reload or increment the read counter" passed after 0.044 seconds.
+􁁛  Test "Read failures count toward the interval while validation and context fitting failures do not" passed after 0.044 seconds.
+cancelled-reload-splice expected=[0, 0, 1, 0] actual=[0, 0, 1, 0]
+cancelled-reload-splice expected=[0, 0, 1, 0] actual=[0, 0, 1, 0]
+cancelled-reload-splice expected=[0, 0, 1, 0] actual=[0, 0, 1, 0]
+cancelled-reload-splice expected=[0, 0, 1, 0] actual=[0, 0, 1, 0]
+cancelled-reload-splice expected=[0, 0, 1, 0] actual=[0, 0, 1, 0]
+cancelled-reload-splice expected=[0, 0, 1, 0] actual=[0, 0, 1, 0]
+cancelled-reload-splice expected=[0, 0, 1, 0] actual=[0, 0, 1, 0]
+cancelled-reload-splice expected=[0, 0, 1, 0] actual=[0, 0, 1, 0]
+cancelled-reload-splice expected=[0, 0, 1, 0] actual=[0, 0, 1, 0]
+cancelled-reload-splice expected=[0, 0, 1, 0] actual=[0, 0, 1, 0]
+􁁛  Test "A checkpoint hit without prefill does not increment the read interval" passed after 0.049 seconds.
+􁁛  Test "Cancellation immediately after reloading preserves raw generated token splicing on retry" with 10 test cases passed after 0.053 seconds.
+􁁛  Suite RuntimeReloadTests passed after 0.056 seconds.
+􁁛  Test run with 109 tests in 10 suites passed after 0.057 seconds.

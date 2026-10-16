@@ -16,6 +16,7 @@ configFiles:
   Release: Config/Signing.xcconfig
 
 fileGroups:
+  - SpeechPhone/Info.plist
   - Config/Local.xcconfig.template
 
 settings:
@@ -169,6 +170,49 @@ targets:
         INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace: "YES"
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: "YES"
 
+  SpeechPhone:
+    type: application
+    platform: iOS
+    deploymentTarget: "27.0"
+    sources:
+      - path: SpeechPhone
+        excludes:
+          - Info.plist
+      - path: CoreAISamples/Demos/Speech/SpeechExport.swift
+      - path: CoreAISamples/Demos/Speech/Resources/speech-examples.json
+    preBuildScripts:
+      - name: Build Irodori input library for iPhone
+        script: '"$SRCROOT/Tools/Irodori/build-inputs.sh" iphoneos'
+        shell: /bin/bash
+        basedOnDependencyAnalysis: false
+    dependencies:
+      - package: CoreAISamplesKit
+        product: SpeechCore
+      - package: CoreAISamplesKit
+        product: SpeechFeature
+      - package: CoreAISamplesKit
+        product: SpeechRuntime
+      - package: CoreAISamplesKit
+        product: FeatureStore
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.coreai-samples.SpeechPhone
+        PRODUCT_NAME: SpeechPhone
+        MARKETING_VERSION: "1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        SWIFT_VERSION: "6.0"
+        SWIFT_DEFAULT_ACTOR_ISOLATION: MainActor
+        SWIFT_UPCOMING_FEATURE_NONISOLATED_NONSENDING_BY_DEFAULT: YES
+        SWIFT_UPCOMING_FEATURE_INFER_ISOLATED_CONFORMANCES: YES
+        IPHONEOS_DEPLOYMENT_TARGET: "27.0"
+        TARGETED_DEVICE_FAMILY: "1"
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_FILE: SpeechPhone/Info.plist
+        INFOPLIST_KEY_CFBundleDisplayName: Irodori Speech
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+        CODE_SIGN_ENTITLEMENTS: Config/SpeechPhone.entitlements
+
 schemes:
   CoreAISamples:
     build:
@@ -194,6 +238,17 @@ schemes:
     build:
       targets:
         CoreAISamples-iOS: all
+    run:
+      config: Release
+    profile:
+      config: Release
+    archive:
+      config: Release
+
+  SpeechPhone:
+    build:
+      targets:
+        SpeechPhone: all
     run:
       config: Release
     profile:

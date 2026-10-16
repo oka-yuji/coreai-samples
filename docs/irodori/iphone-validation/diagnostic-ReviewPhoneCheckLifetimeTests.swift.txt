@@ -1,0 +1,75 @@
+import Foundation
+import SpeechCore
+import SpeechFeature
+import Testing
+@testable import SpeechRuntime
+
+@MainActor private final class OrderedStopService: SpeechService {
+    let firstStarted = TestSignal()
+    let secondStarted = TestSignal()
+    let firstGate = TestGate()
+    let secondGate = TestGate()
+    var calls = 0
+    func open(path: String) -> SpeechModel { SpeechModel(name: "Fake", directory: URL(filePath: path)) }
+    func generate(text: String, seed: UInt64) -> SpeechAudio { SpeechAudio(wav: Data([1]), audioSeconds: 1, elapsedSeconds: 1, normalizedText: text) }
+    func play(_ data: Data) {}
+    func stop() async {
+        calls += 1
+        let ordinal = calls
+        if ordinal == 1 { firstStarted.fire(); await firstGate.wait() }
+        if ordinal == 2 { secondStarted.fire(); await secondGate.wait() }
+    }
+}
+
+@MainActor @Suite(.timeLimit(.minutes(1)))
+struct ReviewPhoneCheckLifetimeTests {
+    let examples = [SpeechExample(id: "one", title: "One", text: "One"), SpeechExample(id: "two", title: "Two", text: "Two")]
+    @Test("Finishing one stop cannot admit a check while another stop is still pending")
+    func multipleStopsKeepGateClosed() async throws {
+        let root = try phoneTestDirectory()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let live = OrderedStopService()
+        let check = PhoneSpeechCheck(service: live, files: SpeechCheckFiles(documents: root), examples: examples, environment: FakePhoneEnvironment())
+        let firstGate = live.firstGate
+        let secondGate = live.secondGate
+        try await withTaskCancellationHandler {
+            let first = Task { await check.stop() }
+            defer { live.firstGate.open(); live.secondGate.open() }
+            try await live.firstStarted.wait()
+            let second = Task { await check.stop() }
+            try await live.secondStarted.wait()
+            live.firstGate.open()
+            await first.value
+            await #expect(throws: SpeechError.busy) { try await check.run(.init(folder: "model", runID: "premature")) { _ in } }
+            live.secondGate.open()
+            await second.value
+            _ = try await check.run(.init(folder: "model", runID: "after-stops")) { _ in }
+        } onCancel: {
+            firstGate.open()
+            secondGate.open()
+        }
+    }
+    @Test("A report collision keeps the old bytes, records failure, and restores the environment")
+    func reportFailureRestoresEnvironment() async throws {
+        let root = try phoneTestDirectory()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let live = FakeCheckSpeechService()
+        let environment = FakePhoneEnvironment()
+        let check = PhoneSpeechCheck(service: live, files: SpeechCheckFiles(documents: root), examples: examples, environment: environment)
+        let report = root.appendingPathComponent("SpeechChecks/report-collision/report.json")
+        var writeError: (any Error)?
+        await #expect(throws: (any Error).self) {
+            try await check.run(.init(folder: "model", runID: "report-collision")) { message in
+                if message.hasPrefix("Playing") {
+                    do { try Data("prior report".utf8).write(to: report, options: .withoutOverwriting) }
+                    catch { writeError = error }
+                }
+            }
+        }
+        #expect(writeError == nil)
+        #expect(try Data(contentsOf: report) == Data("prior report".utf8))
+        let status = try JSONDecoder().decode([String: String].self, from: Data(contentsOf: report.deletingLastPathComponent().appendingPathComponent("status.json")))
+        #expect(status["phase"] == "failed")
+        #expect(environment.begins == 1 && environment.ends == 1 && live.stops == 2)
+    }
+}

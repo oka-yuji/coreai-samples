@@ -31,10 +31,12 @@
 		1BAB353782013F29BE9CC155 /* GLiNERCore in Frameworks */ = {isa = PBXBuildFile; productRef = B83B007D551DD5E789EE8B58 /* GLiNERCore */; };
 		1BB835F81304063BD6595772 /* AgentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78EBA8EA1332167D20175087 /* AgentView.swift */; };
 		206C9EF25FB18034EBEF99E4 /* ProductFeature in Frameworks */ = {isa = PBXBuildFile; productRef = 433A6D8FC9BDE6DE7AD6EEB3 /* ProductFeature */; };
+		238E18CF61DE285944BBC2AA /* speech-examples.json in Resources */ = {isa = PBXBuildFile; fileRef = 06CD13346BDB37EF62D8AA2C /* speech-examples.json */; };
 		24F936C411557B9362ED1A77 /* PhoneExtractView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EF29907EAA61DD548671267 /* PhoneExtractView.swift */; };
 		2628E17B820E1C5BC4153536 /* BundleSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8608B7A795003231A4E788DF /* BundleSupport.swift */; };
 		2662B8C643C55FC8FE5CCF95 /* EmbeddingRuntime in Frameworks */ = {isa = PBXBuildFile; productRef = 1F2A5864A4527D5326DB4138 /* EmbeddingRuntime */; };
 		28BFB0B60BC709ED2FE59D70 /* ImageSearchFeature in Frameworks */ = {isa = PBXBuildFile; productRef = 225233E72E98FD6A9739DC18 /* ImageSearchFeature */; };
+		2E6C0AF6978C5A9C77DA8C10 /* FeatureStore in Frameworks */ = {isa = PBXBuildFile; productRef = F5D0FEB350D222736BF73094 /* FeatureStore */; };
 		3150B586410104EB00827A21 /* InspectionAudioCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 148BF4ADF94AA3ECAAB30DB9 /* InspectionAudioCapture.swift */; };
 		3192597C462AD731BD85F6D2 /* DecideRuntime in Frameworks */ = {isa = PBXBuildFile; productRef = D4430673A05B3681BE4C973C /* DecideRuntime */; };
 		31A6D50DBCF169F5FF01994B /* SpeechModelButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31648CD6AE87EB33511412C4 /* SpeechModelButton.swift */; };
@@ -43,11 +45,13 @@
 		36B44880EECCFBD6D426A9E3 /* DecideResultRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F7FE685C8A7B3B5D383AC56 /* DecideResultRow.swift */; };
 		36D49B81E1D68D03832B9359 /* ExtractRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F2F07EBDAB41490EF60A529 /* ExtractRunner.swift */; };
 		370E8D93FDF286C8C9D0FBBC /* 05-caprese.png in Resources */ = {isa = PBXBuildFile; fileRef = 40FBC139C9FDEC515A5F909A /* 05-caprese.png */; };
+		384C37BFDA97049CB4B8A5EB /* SpeechPhoneApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E29B37C3D0277DAF2924DD9 /* SpeechPhoneApp.swift */; };
 		38D5380927AEC3918CC5F304 /* FieldEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 961348DFD83CD9659D09A153 /* FieldEditor.swift */; };
 		38D7F8092F55465199800A0D /* extract_examples.json in Resources */ = {isa = PBXBuildFile; fileRef = B7B642EB8A461B8E42FA5D8C /* extract_examples.json */; };
 		3952BB6FAB3547BC9A583CC3 /* ModelStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAE0376EC66AACAB7D06A922 /* ModelStorage.swift */; };
 		39A395CCA00EA325783BDD74 /* RAGContext in Frameworks */ = {isa = PBXBuildFile; productRef = 5D4CC438A589DC6E4A0E248B /* RAGContext */; };
 		3BDA99F3F64DD64CB8207A0C /* DecideFeature in Frameworks */ = {isa = PBXBuildFile; productRef = 11F2E4B5D8E1F715551A223B /* DecideFeature */; };
+		3D3CD23F10150DCD39D4F6C1 /* SpeechExport.swift in Sources */ = {isa = PBXBuildFile; fileRef = D005E7D2BBBBEDDF71AD3A7B /* SpeechExport.swift */; };
 		3DF638F111A1931F5E7F2DB4 /* RecipeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1BAA92853DA68C9FDF5D1827 /* RecipeView.swift */; };
 		3E29EDC926A94A2EA5D7F2CC /* correction_words.json in Resources */ = {isa = PBXBuildFile; fileRef = 53F15DB3D78F006C718A6F5E /* correction_words.json */; };
 		3FFEF16C2AA352B33DCC89F9 /* GLiNERRuntime in Frameworks */ = {isa = PBXBuildFile; productRef = 7FF547165A24AD3DED81F05A /* GLiNERRuntime */; };
@@ -66,6 +70,7 @@
 		539CB73E2E63F221AAB10CF9 /* Ingredients.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 7A89987BFF1C553FC444E064 /* Ingredients.xcstrings */; };
 		539CF4A07C583F542B736C90 /* ImageSearchAssembly.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85E8C50CD6907046A8C5A46E /* ImageSearchAssembly.swift */; };
 		54B5909D79374D80C9ED8EED /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C8BB1C51D3BFC85B5F047FD0 /* Localizable.xcstrings */; };
+		572672F0F386BACBC4B58CF4 /* SpeechCheckView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A2C5EAEEB7350DFE72B4B81 /* SpeechCheckView.swift */; };
 		597F3DF95BB4286B1230C370 /* InspectionRecognition.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5752BFE3276EAB49C2ADF091 /* InspectionRecognition.swift */; };
 		5BB2FFBBAE4EDB21463258C0 /* FieldRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0FA10BA3A84CA3A77540D03F /* FieldRow.swift */; };
 		609364C3007FA6891D207909 /* DemoLocalizationCheck.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33CBF7CF8C3F96D9CF47735D /* DemoLocalizationCheck.swift */; };
@@ -80,11 +85,14 @@
 		6C76B33D12B95B500FFBC49B /* InspectionRecognition.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5752BFE3276EAB49C2ADF091 /* InspectionRecognition.swift */; };
 		6DC89743479937677DB58337 /* ExtractService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7E148DB501CB7AAE81691D6 /* ExtractService.swift */; };
 		70AF18D9E3D418DAEB7227A1 /* RecipeModelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C788E9F664AA9590A13BF66C /* RecipeModelView.swift */; };
+		766C81D749D564106B82F212 /* SpeechFeature in Frameworks */ = {isa = PBXBuildFile; productRef = 19A1FEA2CDEA19B780B9F1F7 /* SpeechFeature */; };
 		78B4DEB1E00D44F7CF558AB7 /* EmbeddingRuntime in Frameworks */ = {isa = PBXBuildFile; productRef = 71DC72A96FA08B77DF9E724C /* EmbeddingRuntime */; };
+		79605C6D19951918ADE37C14 /* SpeechRuntime in Frameworks */ = {isa = PBXBuildFile; productRef = 4D118B582CEBB7A2857FD224 /* SpeechRuntime */; };
 		7965D53F9D757D1A07ACEDF0 /* ExtractEval.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82B4A55114BBA7685FCF713C /* ExtractEval.swift */; };
 		7E17D3BAB58B9DE53F911FB4 /* ProductComparisonView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E435AB7F872EB64CEE46E3CC /* ProductComparisonView.swift */; };
 		809642677C1BC58905638DB9 /* gradient_square.png in Resources */ = {isa = PBXBuildFile; fileRef = 119F865DE343C77CD34AB2B7 /* gradient_square.png */; };
 		80B32F7AC625100D4F4A3B39 /* image-search-reference.json in Resources */ = {isa = PBXBuildFile; fileRef = 97A66460729265871B0AEACF /* image-search-reference.json */; };
+		80FBE434B7B5021A98F98329 /* SpeechPhoneView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD6C8107CC666E3504893A8A /* SpeechPhoneView.swift */; };
 		82D08B7EC39EAA2231DC2D5B /* ImageSearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C9556FA4EE8D4BBD0F9B226 /* ImageSearchView.swift */; };
 		8384E9A460827793A6125FBB /* ModelStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAE0376EC66AACAB7D06A922 /* ModelStorage.swift */; };
 		850158F9C75A8B01FC7B82DE /* DemoRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3C4386FEDC295B729DF07C1 /* DemoRootView.swift */; };
@@ -115,6 +123,7 @@
 		AADF788380143B8F7BA565F6 /* DecideView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E36A6DC6BC5A449F3092E6AF /* DecideView.swift */; };
 		AB671210127EDAC44A951CFB /* InspectionAudioCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 148BF4ADF94AA3ECAAB30DB9 /* InspectionAudioCapture.swift */; };
 		ABE183289E65E843CA8C91EE /* LiveInspectionSpeech.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F27640F8151AC5D099163D9 /* LiveInspectionSpeech.swift */; };
+		AC6612EC859357F114A553F8 /* SpeechCore in Frameworks */ = {isa = PBXBuildFile; productRef = DC10A36A606EF9FEF2C766B0 /* SpeechCore */; };
 		AED5E118182009EE94A8A9D9 /* ModelsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF57BF3874EBD013FC0468B5 /* ModelsViewModel.swift */; };
 		AF294872BD74B3144756EE6D /* ExtractEval.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82B4A55114BBA7685FCF713C /* ExtractEval.swift */; };
 		B1DD58EA8D2DFB52E3157842 /* PhoneExtractView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EF29907EAA61DD548671267 /* PhoneExtractView.swift */; };
@@ -198,14 +207,18 @@
 		47737423C61124F4327C174E /* DecideSelfTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DecideSelfTest.swift; sourceTree = "<group>"; };
 		4F02F3A778FCB93B0D8828BB /* DemoAppMain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoAppMain.swift; sourceTree = "<group>"; };
 		5071A083BC24B9B2B38CEFFB /* SelfTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelfTest.swift; sourceTree = "<group>"; };
+		51FC8A7B6DBC198E91615AE0 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		51FF5AB624408DE25F252FFF /* ModelMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelMenu.swift; sourceTree = "<group>"; };
 		53F15DB3D78F006C718A6F5E /* correction_words.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = correction_words.json; sourceTree = "<group>"; };
 		555173E2E133C5066E8482E1 /* ImageSearchSelfTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageSearchSelfTest.swift; sourceTree = "<group>"; };
 		5752BFE3276EAB49C2ADF091 /* InspectionRecognition.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InspectionRecognition.swift; sourceTree = "<group>"; };
 		57DF8A7744E8740E70B48D78 /* GUIDriver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GUIDriver.swift; sourceTree = "<group>"; };
+		59716F34FFA80B01FE6D9A8B /* SpeechPhone.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = SpeechPhone.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		598FAFD4122CCFFFB1A83FB4 /* HubDownloadSelfTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HubDownloadSelfTest.swift; sourceTree = "<group>"; };
+		5A2C5EAEEB7350DFE72B4B81 /* SpeechCheckView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechCheckView.swift; sourceTree = "<group>"; };
 		659A8534A432DD74FD5D0E6D /* ChatViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatViewModel.swift; sourceTree = "<group>"; };
 		681B6A08183C9B3A3DE51E58 /* gradient_tall.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = gradient_tall.png; sourceTree = "<group>"; };
+		6E29B37C3D0277DAF2924DD9 /* SpeechPhoneApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechPhoneApp.swift; sourceTree = "<group>"; };
 		6E9B8152E4CC1BA675751CB5 /* recipe-examples.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "recipe-examples.json"; sourceTree = "<group>"; };
 		78EBA8EA1332167D20175087 /* AgentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentView.swift; sourceTree = "<group>"; };
 		7A89987BFF1C553FC444E064 /* Ingredients.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Ingredients.xcstrings; sourceTree = "<group>"; };
@@ -232,6 +245,7 @@
 		B7DE5BA037505543B8869BB1 /* ModelSelectionSelfTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelSelectionSelfTest.swift; sourceTree = "<group>"; };
 		B8E08DCE25166F4BAC3F4D6E /* decide-examples.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "decide-examples.json"; sourceTree = "<group>"; };
 		BBE9C20E195FE641300D6F57 /* PhoneDemoApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneDemoApp.swift; sourceTree = "<group>"; };
+		BD6C8107CC666E3504893A8A /* SpeechPhoneView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechPhoneView.swift; sourceTree = "<group>"; };
 		C788E9F664AA9590A13BF66C /* RecipeModelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipeModelView.swift; sourceTree = "<group>"; };
 		C8A8415903D96B5F5D18625D /* Signing.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.xcconfig; sourceTree = "<group>"; };
 		C8BB1C51D3BFC85B5F047FD0 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
@@ -254,6 +268,17 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		43253ADF73D6DE9D9C751F9D /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AC6612EC859357F114A553F8 /* SpeechCore in Frameworks */,
+				766C81D749D564106B82F212 /* SpeechFeature in Frameworks */,
+				79605C6D19951918ADE37C14 /* SpeechRuntime in Frameworks */,
+				2E6C0AF6978C5A9C77DA8C10 /* FeatureStore in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		9BDD012559E18FECA2C4F17A /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -507,6 +532,17 @@
 			path = Resources;
 			sourceTree = "<group>";
 		};
+		B73AB0BAA6E8689C386196A0 /* SpeechPhone */ = {
+			isa = PBXGroup;
+			children = (
+				51FC8A7B6DBC198E91615AE0 /* Info.plist */,
+				5A2C5EAEEB7350DFE72B4B81 /* SpeechCheckView.swift */,
+				6E29B37C3D0277DAF2924DD9 /* SpeechPhoneApp.swift */,
+				BD6C8107CC666E3504893A8A /* SpeechPhoneView.swift */,
+			);
+			path = SpeechPhone;
+			sourceTree = "<group>";
+		};
 		C5C08C103D1E28F1E86016EA /* Recipes */ = {
 			isa = PBXGroup;
 			children = (
@@ -525,6 +561,7 @@
 			children = (
 				EA2345E55E00D969C54E6B75 /* CoreAISamples-iOS.app */,
 				AC4EC31CE5CEA79543AC008A /* CoreAISamples.app */,
+				59716F34FFA80B01FE6D9A8B /* SpeechPhone.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -546,6 +583,7 @@
 				2423436E171C0AB385D3D12C /* Config */,
 				801F6392E94C0020C5BA1337 /* CoreAISamples */,
 				69ED8C983B130F6587AB3973 /* Packages */,
+				B73AB0BAA6E8689C386196A0 /* SpeechPhone */,
 				C62072935E5BFE8CF35779DD /* Products */,
 			);
 			sourceTree = "<group>";
@@ -594,6 +632,30 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		8766CFAD0D20024F7A04AE09 /* SpeechPhone */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4EFDAF460ED081CDE96B6629 /* Build configuration list for PBXNativeTarget "SpeechPhone" */;
+			buildPhases = (
+				817A96AEC6B1DF4876DDE3B6 /* Build Irodori input library for iPhone */,
+				12C9BD0F7175A58B9BF00E6E /* Sources */,
+				74F00B9548F8FF69231BB0F3 /* Resources */,
+				43253ADF73D6DE9D9C751F9D /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = SpeechPhone;
+			packageProductDependencies = (
+				DC10A36A606EF9FEF2C766B0 /* SpeechCore */,
+				19A1FEA2CDEA19B780B9F1F7 /* SpeechFeature */,
+				4D118B582CEBB7A2857FD224 /* SpeechRuntime */,
+				F5D0FEB350D222736BF73094 /* FeatureStore */,
+			);
+			productName = SpeechPhone;
+			productReference = 59716F34FFA80B01FE6D9A8B /* SpeechPhone.app */;
+			productType = "com.apple.product-type.application";
+		};
 		D474FC70FAC3D033E53C49E1 /* CoreAISamples-iOS */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 7DDF96ED4CC7E03F38B3971E /* Build configuration list for PBXNativeTarget "CoreAISamples-iOS" */;
@@ -677,6 +739,9 @@
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
+					8766CFAD0D20024F7A04AE09 = {
+						ProvisioningStyle = Manual;
+					};
 					D474FC70FAC3D033E53C49E1 = {
 						ProvisioningStyle = Manual;
 					};
@@ -705,6 +770,7 @@
 			targets = (
 				EF1E58AEA5F6AFD087CF347F /* CoreAISamples */,
 				D474FC70FAC3D033E53C49E1 /* CoreAISamples-iOS */,
+				8766CFAD0D20024F7A04AE09 /* SpeechPhone */,
 			);
 		};
 /* End PBXProject section */
@@ -759,9 +825,36 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		74F00B9548F8FF69231BB0F3 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				238E18CF61DE285944BBC2AA /* speech-examples.json in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
+		817A96AEC6B1DF4876DDE3B6 /* Build Irodori input library for iPhone */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Build Irodori input library for iPhone";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/bash;
+			shellScript = "\"$SRCROOT/Tools/Irodori/build-inputs.sh\" iphoneos";
+		};
 		B50707BC477879D3E4E6A0D1 /* Build Irodori input library */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
@@ -784,6 +877,17 @@
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		12C9BD0F7175A58B9BF00E6E /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				572672F0F386BACBC4B58CF4 /* SpeechCheckView.swift in Sources */,
+				3D3CD23F10150DCD39D4F6C1 /* SpeechExport.swift in Sources */,
+				384C37BFDA97049CB4B8A5EB /* SpeechPhoneApp.swift in Sources */,
+				80FBE434B7B5021A98F98329 /* SpeechPhoneView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		852EA29714A15E4B5E69D5D7 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -1032,6 +1136,34 @@
 			};
 			name = Debug;
 		};
+		9113E2E41EA7AAA82904AD82 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Config/SpeechPhone.entitlements;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = SpeechPhone/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Irodori Speech";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.coreai-samples.SpeechPhone";
+				PRODUCT_NAME = SpeechPhone;
+				SDKROOT = iphoneos;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_UPCOMING_FEATURE_INFER_ISOLATED_CONFORMANCES = YES;
+				SWIFT_UPCOMING_FEATURE_NONISOLATED_NONSENDING_BY_DEFAULT = YES;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
 		94E110BD10964211A0CDE77A /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -1084,6 +1216,34 @@
 			};
 			name = Debug;
 		};
+		F311C35BF028961126392C66 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Config/SpeechPhone.entitlements;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = SpeechPhone/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Irodori Speech";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.coreai-samples.SpeechPhone";
+				PRODUCT_NAME = SpeechPhone;
+				SDKROOT = iphoneos;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_UPCOMING_FEATURE_INFER_ISOLATED_CONFORMANCES = YES;
+				SWIFT_UPCOMING_FEATURE_NONISOLATED_NONSENDING_BY_DEFAULT = YES;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
 		F88F1A0C9028C65F95E1B300 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -1131,6 +1291,15 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
 		};
+		4EFDAF460ED081CDE96B6629 /* Build configuration list for PBXNativeTarget "SpeechPhone" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9113E2E41EA7AAA82904AD82 /* Debug */,
+				F311C35BF028961126392C66 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
 		7DDF96ED4CC7E03F38B3971E /* Build configuration list for PBXNativeTarget "CoreAISamples-iOS" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -1161,6 +1330,10 @@
 		141CEB564582543BE6AF4A63 /* ProductRuntime */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = ProductRuntime;
+		};
+		19A1FEA2CDEA19B780B9F1F7 /* SpeechFeature */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = SpeechFeature;
 		};
 		1CE1E17F70A89101A49E40D3 /* FeatureStore */ = {
 			isa = XCSwiftPackageProductDependency;
@@ -1201,6 +1374,10 @@
 		45AC3B72DB3E4025BDD194C5 /* EmbeddingCore */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = EmbeddingCore;
+		};
+		4D118B582CEBB7A2857FD224 /* SpeechRuntime */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = SpeechRuntime;
 		};
 		5D4CC438A589DC6E4A0E248B /* RAGContext */ = {
 			isa = XCSwiftPackageProductDependency;
@@ -1274,6 +1451,10 @@
 			isa = XCSwiftPackageProductDependency;
 			productName = ImageSearchFeature;
 		};
+		DC10A36A606EF9FEF2C766B0 /* SpeechCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = SpeechCore;
+		};
 		E11B9510FB5B5B6C957FA110 /* TruckInspectionFeature */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = TruckInspectionFeature;
@@ -1285,6 +1466,10 @@
 		EF1CB2B029271CA3096FB7C2 /* SpeechRuntime */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = SpeechRuntime;
+		};
+		F5D0FEB350D222736BF73094 /* FeatureStore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = FeatureStore;
 		};
 		FE873BDE9C77CAB1DD11671A /* SpeechFeature */ = {
 			isa = XCSwiftPackageProductDependency;
