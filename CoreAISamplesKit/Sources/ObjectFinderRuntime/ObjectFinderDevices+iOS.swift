@@ -24,6 +24,7 @@
                     beginOrientation: { UIDevice.current.beginGeneratingDeviceOrientationNotifications() },
                     endOrientation: { UIDevice.current.endGeneratingDeviceOrientationNotifications() },
                     notify: { UINotificationFeedbackGenerator().notificationOccurred(.success) },
+                    requestFrame: { try await capture.requestFrame() },
                     trackCandidates: { tryFrame, candidates in
                         await capture.trackCandidates(candidates, frame: tryFrame)
                     }))

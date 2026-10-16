@@ -28,7 +28,7 @@ struct ObjectFinderFeatureTests {
         _ = ObjectFinderFeature.reduce(&state, .queryChanged(" glasses "))
         #expect(
             ObjectFinderFeature.reduce(&state, .start) == [
-                .run(.search(1, folder, "glasses", .init(session: 1, revision: 0, angle: 90)), id: .search)
+                .run(.search(1, folder, "glasses", 0.67, .init(session: 1, revision: 0, angle: 90)), id: .search)
             ])
         _ = ObjectFinderFeature.reduce(&state, .queryChanged("keys"))
         _ = ObjectFinderFeature.reduce(&state, .folderSelected(URL(filePath: "/other")))
@@ -53,7 +53,7 @@ struct ObjectFinderFeatureTests {
         #expect(state.frame == nil && state.query == " red keys ")
         #expect(
             ObjectFinderFeature.reduce(&state, .stopped(1)) == [
-                .run(.search(2, folder, "red keys", .init(session: 2, revision: 0, angle: 90)), id: .search)
+                .run(.search(2, folder, "red keys", 0.67, .init(session: 2, revision: 0, angle: 90)), id: .search)
             ])
         #expect(state.submittedQuery == "red keys" && state.phase == .starting && !state.restartAfterStop)
     }
@@ -115,7 +115,7 @@ struct ObjectFinderFeatureTests {
             _ = ObjectFinderFeature.reduce(&state, .appeared)
             #expect(
                 ObjectFinderFeature.reduce(&state, .start) == [
-                    .run(.search(2, folder, "glasses", .init(session: 2, revision: 0, angle: 90)), id: .search)
+                    .run(.search(2, folder, "glasses", 0.67, .init(session: 2, revision: 0, angle: 90)), id: .search)
                 ])
             _ = ObjectFinderFeature.reduce(&state, .analyzed(1, frame))
             #expect(state.frame == nil)
@@ -193,6 +193,7 @@ struct ObjectFinderFeatureTests {
         let stopped = AsyncStream<Void>.makeStream(bufferingPolicy: .bufferingNewest(1))
         var initial = ObjectFinderState(folder: folder)
         initial.query = "glasses"
+        initial.minimumSimilarity = 0.79
         let store = Store<ObjectFinderFeature>(initialState: initial) { effect, send in
             await runner.run(effect) { action in
                 send(action)
@@ -202,7 +203,7 @@ struct ObjectFinderFeatureTests {
         store.send(.start)
         var entered = service.entered.stream.makeAsyncIterator()
         _ = await entered.next()
-        #expect(store.state.phase == .searching)
+        #expect(store.state.phase == .searching && service.thresholds == [0.79])
         store.send(.stop)
         var stopping = service.stopping.stream.makeAsyncIterator()
         _ = await stopping.next()
@@ -214,7 +215,7 @@ struct ObjectFinderFeatureTests {
         #expect(store.state.phase == .idle && store.state.frame == nil && service.closes == 1)
         service.failure = .cameraDenied
         var failure: ObjectFinderFailure?
-        await runner.run(.search(4, folder, "keys", .init(session: 4, revision: 0, angle: 90))) { action in
+        await runner.run(.search(4, folder, "keys", 0.67, .init(session: 4, revision: 0, angle: 90))) { action in
             if case .failed(let session, let value) = action {
                 #expect(session == 4)
                 failure = value
@@ -230,15 +231,17 @@ private final class ControlledFinder: ObjectFinderService {
     let stopping = AsyncStream<Void>.makeStream(bufferingPolicy: .bufferingNewest(1))
     var failure: ObjectFinderFailure?
     var calls = 0
+    var thresholds: [Double] = []
     var closes = 0
     var continuation: CheckedContinuation<Void, Never>?
     var waiters: [CheckedContinuation<Void, Never>] = []
 
     func search(
-        folder: URL, query: String, rotation: ObjectCameraRotation, started: () -> Void,
+        folder: URL, query: String, minimumSimilarity: Double, rotation: ObjectCameraRotation, started: () -> Void,
         receive: (ObjectFinderFrame) -> Void
     ) async throws {
         calls += 1
+        thresholds.append(minimumSimilarity)
         if let failure {
             closes += 1
             throw failure

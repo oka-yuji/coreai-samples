@@ -44,11 +44,18 @@ public enum EmbeddingImageReader {
             return true
         }
         guard drawn else { throw EmbeddingError.invalidImage }
-        var rgb = [UInt8]()
-        rgb.reserveCapacity(width * height * 3)
-        for offset in stride(from: 0, to: rgba.count, by: 4) {
-            guard rgba[offset + 3] == 255 else { throw EmbeddingError.invalidImage }
-            rgb.append(contentsOf: rgba[offset..<(offset + 3)])
+        var rgb = [UInt8](repeating: 0, count: width * height * 3)
+        try rgba.withUnsafeBufferPointer { input in
+            try rgb.withUnsafeMutableBufferPointer { output in
+                for pixel in 0..<(width * height) {
+                    let source = pixel * 4
+                    guard input[source + 3] == 255 else { throw EmbeddingError.invalidImage }
+                    let destination = pixel * 3
+                    output[destination] = input[source]
+                    output[destination + 1] = input[source + 1]
+                    output[destination + 2] = input[source + 2]
+                }
+            }
         }
         return try RGBImage(width: width, height: height, pixels: rgb)
     }

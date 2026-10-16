@@ -18,7 +18,8 @@ struct LiveObjectFinderServiceTests {
         let service = LiveObjectFinderService(devices: fake.devices)
         await #expect(throws: ObjectFinderFailure.cameraDenied) {
             try await service.search(
-                folder: folder, query: "glasses", rotation: initial, started: {}, receive: { _ in })
+                folder: folder, query: "glasses", minimumSimilarity: 0.67, rotation: initial, started: {},
+                receive: { _ in })
         }
         #expect(fake.prepares == 0 && fake.angles.isEmpty && fake.closes == 1 && fake.orientationEnds == 1)
     }
@@ -30,7 +31,8 @@ struct LiveObjectFinderServiceTests {
         let service = LiveObjectFinderService(devices: fake.devices)
         let search = Task {
             try await service.search(
-                folder: folder, query: "glasses", rotation: initial, started: {}, receive: { _ in })
+                folder: folder, query: "glasses", minimumSimilarity: 0.67, rotation: initial, started: {},
+                receive: { _ in })
         }
         var entered = fake.preparing.stream.makeAsyncIterator()
         _ = await entered.next()
@@ -40,7 +42,9 @@ struct LiveObjectFinderServiceTests {
         _ = await stopping.next()
         #expect(fake.closes == 0)
         await #expect(throws: ObjectFinderError.busy) {
-            try await service.search(folder: folder, query: "keys", rotation: initial, started: {}, receive: { _ in })
+            try await service.search(
+                folder: folder, query: "keys", minimumSimilarity: 0.67, rotation: initial, started: {},
+                receive: { _ in })
         }
         fake.releasePreparation()
         await #expect(throws: CancellationError.self) { try await search.value }
@@ -57,7 +61,8 @@ struct LiveObjectFinderServiceTests {
         let service = LiveObjectFinderService(devices: fake.devices)
         let search = Task {
             try await service.search(
-                folder: folder, query: "glasses", rotation: initial, started: {}, receive: { _ in })
+                folder: folder, query: "glasses", minimumSimilarity: 0.67, rotation: initial, started: {},
+                receive: { _ in })
         }
         var entered = fake.preparing.stream.makeAsyncIterator()
         _ = await entered.next()
@@ -81,7 +86,7 @@ struct LiveObjectFinderServiceTests {
         let received = AsyncStream<ObjectFinderFrame>.makeStream(bufferingPolicy: .bufferingNewest(1))
         let search = Task {
             try await service.search(
-                folder: folder, query: "glasses", rotation: initial, started: {},
+                folder: folder, query: "glasses", minimumSimilarity: 0.67, rotation: initial, started: {},
                 receive: { received.continuation.yield($0) })
         }
         var starts = fake.started.stream.makeAsyncIterator()
@@ -111,7 +116,8 @@ struct LiveObjectFinderServiceTests {
         var frames: [ObjectFinderFrame] = []
         let search = Task {
             try await service.search(
-                folder: folder, query: "glasses", rotation: initial, started: {}, receive: { frames.append($0) })
+                folder: folder, query: "glasses", minimumSimilarity: 0.67, rotation: initial, started: {},
+                receive: { frames.append($0) })
         }
         var starts = fake.started.stream.makeAsyncIterator()
         _ = await starts.next()
@@ -137,13 +143,82 @@ struct LiveObjectFinderServiceTests {
         var received = false
         let search = Task {
             try await service.search(
-                folder: folder, query: "glasses", rotation: initial, started: {}, receive: { _ in received = true })
+                folder: folder, query: "glasses", minimumSimilarity: 0.67, rotation: initial, started: {},
+                receive: { _ in received = true })
         }
         var starts = fake.started.stream.makeAsyncIterator()
         _ = await starts.next()
         try fake.sendFrame(rotation: 90)
         await #expect(throws: ObjectFinderFailure.cameraInterrupted) { try await search.value }
         #expect(!received && fake.closes == 1)
+    }
+
+    @Test("A preparing or busy model does not request additional analysis images", .timeLimit(.minutes(1)))
+    func imageDemand() async throws {
+        let fake = FinderDevicesFake()
+        fake.blocksPreparation = true
+        fake.blocksInference = true
+        let service = LiveObjectFinderService(devices: fake.devices)
+        let search = Task {
+            try await service.search(
+                folder: folder, query: "glasses", minimumSimilarity: 0.67, rotation: initial, started: {},
+                receive: { _ in })
+        }
+        var preparation = fake.preparing.stream.makeAsyncIterator()
+        _ = await preparation.next()
+        #expect(fake.requests == 0)
+        try fake.sendFrame(rotation: 90)
+        fake.releasePreparation()
+        var inference = fake.inferring.stream.makeAsyncIterator()
+        _ = await inference.next()
+        #expect(fake.requests == 1 && fake.inferences == 1)
+        for _ in 0..<30 { try fake.sendFrame(rotation: 90) }
+        #expect(fake.requests == 1)
+        search.cancel()
+        fake.releaseInference()
+        await #expect(throws: CancellationError.self) { try await search.value }
+        #expect(fake.requests == 1 && fake.closes == 1)
+    }
+
+    @Test(
+        "Candidates below the active search threshold never reach tracking, while eligible candidates preserve their IDs and scores",
+        .timeLimit(.minutes(1)))
+    func trackingThreshold() async throws {
+        let fake = FinderDevicesFake()
+        let region = ObjectRegion(x: 0, y: 0, width: 1, height: 1)
+        let exact = ObjectCandidate(id: 7, region: region, similarity: 0.8)
+        let higher = ObjectCandidate(id: 3, region: region, similarity: 0.9)
+        fake.candidateResults = [ObjectCandidate(id: 1, region: region, similarity: 0.79), exact, higher]
+        let output = AsyncStream<ObjectFinderFrame>.makeStream(bufferingPolicy: .bufferingNewest(1))
+        let service = LiveObjectFinderService(devices: fake.devices)
+        let search = Task {
+            try await service.search(
+                folder: folder, query: "glasses", minimumSimilarity: 0.8, rotation: initial, started: {},
+                receive: { output.continuation.yield($0) })
+        }
+        var starts = fake.started.stream.makeAsyncIterator()
+        _ = await starts.next()
+        try fake.sendFrame(rotation: 90)
+        var results = output.stream.makeAsyncIterator()
+        let frame = await results.next()
+        #expect(fake.trackingInputs == [[exact, higher]] && frame?.candidates == [exact, higher])
+        search.cancel()
+        _ = await search.result
+        output.continuation.finish()
+    }
+
+    @Test("A failed image request stops capture and releases the model before reporting failure")
+    func requestFailure() async {
+        let fake = FinderDevicesFake()
+        var devices = fake.devices
+        devices.requestFrame = { throw ObjectFinderFailure.cameraInterrupted }
+        let service = LiveObjectFinderService(devices: devices)
+        await #expect(throws: ObjectFinderFailure.cameraInterrupted) {
+            try await service.search(
+                folder: folder, query: "glasses", minimumSimilarity: 0.67, rotation: initial, started: {},
+                receive: { _ in Issue.record("No frame was requested successfully") })
+        }
+        #expect(fake.inferences == 0 && fake.frames == nil && fake.closes == 1)
     }
 }
 
@@ -158,10 +233,13 @@ private final class FinderDevicesFake {
     var blocksPreparation = false
     var blocksInference = false
     var prepares = 0
+    var requests = 0
     var inferences = 0
     var closes = 0
     var orientationEnds = 0
     var angles: [Double] = []
+    var candidateResults: [ObjectCandidate] = []
+    var trackingInputs: [[ObjectCandidate]] = []
     var frames: AsyncThrowingStream<CapturedObjectFrame, any Error>.Continuation?
     private var preparation: CheckedContinuation<Void, Never>?
     private var inference: CheckedContinuation<Void, Never>?
@@ -200,10 +278,15 @@ private final class FinderDevicesFake {
                         self.inferring.continuation.yield(())
                     }
                 }
-                return []
+                return self.candidateResults
             },
             closeFinder: { self.closes += 1 },
-            beginOrientation: {}, endOrientation: { self.orientationEnds += 1 }, notify: {})
+            beginOrientation: {}, endOrientation: { self.orientationEnds += 1 }, notify: {},
+            requestFrame: { self.requests += 1 },
+            trackCandidates: { _, candidates in
+                self.trackingInputs.append(candidates)
+                return candidates
+            })
     }
 
     @discardableResult

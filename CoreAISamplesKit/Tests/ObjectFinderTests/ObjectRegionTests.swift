@@ -57,4 +57,16 @@ struct ObjectRegionTests {
         #expect(abs(left.overlap(with: left) - 1) < 0.000_000_001)
         #expect(left.overlap(with: right.region) == 0)
     }
+
+    @Test("Tracking eligibility preserves input order and overlapping matches until their current positions are known")
+    func trackingEligibility() {
+        let first = ObjectCandidate(id: 7, region: left, similarity: 0.8)
+        let second = ObjectCandidate(id: 3, region: left, similarity: 0.9)
+        let low = ObjectCandidate(id: 1, region: left, similarity: 0.7)
+        let invalid = ObjectCandidate(id: 2, region: left, similarity: .nan)
+        #expect(
+            ObjectCandidateSelection.matching([low, first, invalid, second], minimumSimilarity: 0.8) == [first, second])
+        #expect(ObjectCandidateSelection.matching([first], minimumSimilarity: .nan).isEmpty)
+        #expect(ObjectCandidateSelection.matching([first], minimumSimilarity: 2).isEmpty)
+    }
 }

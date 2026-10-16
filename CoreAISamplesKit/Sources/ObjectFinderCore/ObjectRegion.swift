@@ -41,14 +41,21 @@ public struct ObjectCandidate: Codable, Equatable, Sendable, Identifiable {
 }
 
 public enum ObjectCandidateSelection {
+    public static func matching(
+        _ candidates: [ObjectCandidate], minimumSimilarity: Double
+    ) -> [ObjectCandidate] {
+        guard minimumSimilarity.isFinite, (-1...1).contains(minimumSimilarity) else { return [] }
+        return candidates.filter {
+            $0.region.isValid && $0.similarity.isFinite
+                && (-1.000_001...1.000_001).contains($0.similarity) && $0.similarity >= minimumSimilarity
+        }
+    }
+
     public static func select(
         _ candidates: [ObjectCandidate], minimumSimilarity: Double, limit: Int = 3
     ) -> [ObjectCandidate] {
-        guard minimumSimilarity.isFinite, (-1...1).contains(minimumSimilarity), limit > 0 else { return [] }
-        let ordered = candidates.filter {
-            $0.region.isValid && $0.similarity.isFinite
-                && (-1.000_001...1.000_001).contains($0.similarity) && $0.similarity >= minimumSimilarity
-        }.sorted {
+        guard limit > 0 else { return [] }
+        let ordered = matching(candidates, minimumSimilarity: minimumSimilarity).sorted {
             $0.similarity == $1.similarity ? $0.id < $1.id : $0.similarity > $1.similarity
         }
         var selected: [ObjectCandidate] = []

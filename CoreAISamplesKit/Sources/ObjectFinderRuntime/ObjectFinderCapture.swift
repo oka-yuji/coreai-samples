@@ -6,6 +6,11 @@
     import ObjectFinderFeature
 
     actor ObjectFinderCapture {
+        private struct CameraImage: Sendable {
+            let image: CIImage
+            let capturedAt: Double
+        }
+
         nonisolated private let queue = DispatchSerialQueue(label: "ObjectFinderCapture")
         nonisolated var unownedExecutor: UnownedSerialExecutor { queue.asUnownedSerialExecutor() }
 
@@ -16,11 +21,10 @@
         private var delegate: ObjectFinderCaptureDelegate?
         private var continuation: AsyncThrowingStream<CapturedObjectFrame, any Error>.Continuation?
         private var observers: [any NSObjectProtocol] = []
-        private var lastTime = -Double.infinity
+        private var frames = ObjectAnalysisBuffer<CameraImage>()
         private var generation = 0
         private var rotation = 90.0
         private var failure: ObjectFinderFailure?
-        private var latestImage: CIImage?
         private var tracker: ObjectFinderTracker?
 
         init(preview: ObjectFinderPreview) {
@@ -35,7 +39,7 @@
             let channel = AsyncThrowingStream<CapturedObjectFrame, any Error>.makeStream(
                 bufferingPolicy: .bufferingNewest(1))
             continuation = channel.continuation
-            lastTime = -.infinity
+            frames.reset()
             failure = nil
             do {
                 let device = try configure(rotation: rotation, generation: generation)
@@ -74,10 +78,15 @@
             guard continuation != nil else { throw CancellationError() }
         }
 
+        func requestFrame() throws {
+            try checkActive()
+            if let frame = frames.request() { deliver(frame) }
+        }
+
         func stop() {
             generation += 1
             tracker = nil
-            latestImage = nil
+            frames.reset()
             preview.publish([], generation: generation, rotation: rotation)
             continuation?.finish()
             continuation = nil
@@ -142,8 +151,12 @@
             else { return [] }
             do {
                 tracker = nil
+                guard !candidates.isEmpty else {
+                    preview.publish([], generation: generation, rotation: rotation)
+                    return []
+                }
                 tracker = try ObjectFinderTracker(candidates: candidates, frame: frame)
-                return updateTracking(latestImage ?? CIImage(cgImage: frame.image))
+                return updateTracking(frames.latest?.image ?? CIImage(cgImage: frame.image))
             } catch {
                 tracker = nil
                 preview.publish([], generation: generation, rotation: rotation)
@@ -154,9 +167,11 @@
         private func updateTracking(_ image: CIImage) -> [ObjectCandidate] {
             do {
                 let candidates = try tracker?.track(image, now: ProcessInfo.processInfo.systemUptime) ?? []
+                let validUntil = (tracker?.capturedAt ?? 0) + ObjectTrackingPolicy.maximumAge
+                if candidates.isEmpty { tracker = nil }
                 preview.publish(
                     candidates, generation: generation, rotation: rotation,
-                    validUntil: (tracker?.capturedAt ?? 0) + ObjectTrackingPolicy.maximumAge)
+                    validUntil: validUntil)
                 return candidates
             } catch {
                 tracker = nil
@@ -166,26 +181,29 @@
         }
 
         private func receive(_ input: CIImage, time: Double) {
-            guard let continuation else { return }
+            guard continuation != nil, failure == nil else { return }
             let capturedAt = ProcessInfo.processInfo.systemUptime
-            latestImage = input
+            let portrait = rotation == 90 || rotation == 270
+            guard portrait == (input.extent.height > input.extent.width) else { return }
+            let requested = frames.offer(CameraImage(image: input, capturedAt: capturedAt), at: time)
             if tracker != nil { _ = updateTracking(input) }
-            guard time.isFinite, time - lastTime >= 0.15 || time < lastTime else { return }
-            lastTime = time
-            guard let image = context.createCGImage(input, from: input.extent) else {
+            if let requested { deliver(requested) }
+        }
+
+        private func deliver(_ frame: CameraImage) {
+            guard let image = context.createCGImage(frame.image, from: frame.image.extent) else {
                 fail(.operation("Could not read the camera image"))
                 return
             }
-            let portrait = rotation == 90 || rotation == 270
-            guard portrait == (image.height > image.width) else { return }
-            continuation.yield(
+            continuation?.yield(
                 CapturedObjectFrame(
                     image: image, rotation: rotation, generation: generation,
-                    capturedAt: capturedAt))
+                    capturedAt: frame.capturedAt))
         }
 
         private func fail(_ error: ObjectFinderFailure) {
             failure = error
+            frames.reset()
             tracker = nil
             preview.publish([], generation: generation, rotation: rotation)
             continuation?.finish(throwing: error)
