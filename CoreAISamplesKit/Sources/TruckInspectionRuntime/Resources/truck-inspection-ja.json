@@ -1,0 +1,546 @@
+{
+  "version": 1,
+  "title": "トラックの日常点検",
+  "notice": "点検結果の入力デモです。車両の状態や運行可否を自動診断しません。車両の装備とメーカーの点検方法に合わせて、確認した結果を記録してください。",
+  "profiles": {
+    "hydraulic": "油圧ブレーキ車（小・中型の例）",
+    "airBrake": "エアブレーキ車（大型の例）"
+  },
+  "choices": [
+    {
+      "status": "ok",
+      "title": "異常なし",
+      "modelLabel": "点検済みで異常なし",
+      "aliases": [
+        "正常",
+        "問題なし",
+        "問題ありません",
+        "大丈夫",
+        "大丈夫です",
+        "良好"
+      ]
+    },
+    {
+      "status": "attention",
+      "title": "要確認",
+      "modelLabel": "異常があり確認や整備が必要",
+      "aliases": [
+        "異常",
+        "異常あり",
+        "要整備",
+        "不良",
+        "問題があります"
+      ]
+    },
+    {
+      "status": "unchecked",
+      "title": "未点検",
+      "modelLabel": "まだ点検していない",
+      "aliases": [
+        "まだ",
+        "未確認",
+        "点検していない",
+        "見ていません",
+        "わかりません",
+        "分からない"
+      ]
+    },
+    {
+      "status": "notApplicable",
+      "title": "対象外",
+      "modelLabel": "この車両には該当する装備がない",
+      "aliases": [
+        "該当なし",
+        "装備なし",
+        "付いていません"
+      ]
+    }
+  ],
+  "vocabulary": {
+    "yes": [
+      "はい",
+      "ええ",
+      "うん",
+      "そうです",
+      "その通り",
+      "合っています",
+      "合ってます",
+      "正しいです",
+      "オーケー",
+      "OK",
+      "問題ありません",
+      "問題ない",
+      "大丈夫",
+      "大丈夫です"
+    ],
+    "no": [
+      "いいえ",
+      "いや",
+      "違います",
+      "違う",
+      "違いますね",
+      "そうではない",
+      "そうじゃない",
+      "合っていません",
+      "訂正",
+      "訂正します",
+      "間違いです",
+      "だめ"
+    ],
+    "retry": "もう一度確認します。",
+    "confirm": "{item}は、{answer}として記録します。合っていますか。",
+    "acknowledged": "{item}、{answer}で記録しました。",
+    "completed": "点検結果の入力が終わりました。記録を確認してください。"
+  },
+  "items": [
+    {
+      "id": "previous_abnormality",
+      "title": "前回の運行で気になった箇所",
+      "group": "前回の運行",
+      "question": "前回の運行で気になった箇所の点検結果を教えてください。異常なし、要確認、未点検、対象外から答えてください。",
+      "guidance": "前回の運行で異常を感じた箇所の確認結果を記録します。",
+      "modelTask": "トラックの前回の運行で気になった箇所の点検結果",
+      "profiles": [
+        "hydraulic",
+        "airBrake"
+      ],
+      "conditionBased": false,
+      "aliases": {
+        "ok": [
+          "前回の異常なし",
+          "気になるところはありません"
+        ]
+      }
+    },
+    {
+      "id": "brake_pedal",
+      "title": "ブレーキペダルの踏みしろと効き",
+      "group": "運転席",
+      "question": "ブレーキペダルの踏みしろと効きの点検結果を教えてください。異常なし、要確認、未点検、対象外から答えてください。",
+      "guidance": "車種に定められた踏みしろ・踏みごたえ・効きの確認結果を記録します。",
+      "modelTask": "トラックのブレーキペダルの踏みしろと効きの点検結果",
+      "profiles": [
+        "hydraulic"
+      ],
+      "conditionBased": false,
+      "aliases": {}
+    },
+    {
+      "id": "parking_brake",
+      "title": "駐車ブレーキの作動",
+      "group": "運転席",
+      "question": "駐車ブレーキの作動の点検結果を教えてください。異常なし、要確認、未点検、対象外から答えてください。",
+      "guidance": "レバー式・ホイールパーク式・電動式など、装備に合った確認結果を記録します。",
+      "modelTask": "トラックの駐車ブレーキの作動の点検結果",
+      "profiles": [
+        "hydraulic",
+        "airBrake"
+      ],
+      "conditionBased": false,
+      "aliases": {}
+    },
+    {
+      "id": "engine_start",
+      "title": "エンジンの始動と異音",
+      "group": "運転席",
+      "question": "エンジンの始動と異音の点検結果を教えてください。異常なし、要確認、未点検、対象外から答えてください。",
+      "guidance": "始動とアイドリング中の異音の確認結果を記録します。",
+      "modelTask": "トラックのエンジンの始動と異音の点検結果",
+      "profiles": [
+        "hydraulic",
+        "airBrake"
+      ],
+      "conditionBased": true,
+      "aliases": {
+        "ok": [
+          "異音はありません",
+          "すぐにかかりました"
+        ],
+        "attention": [
+          "異音があります",
+          "かかりにくい"
+        ]
+      }
+    },
+    {
+      "id": "engine_running",
+      "title": "エンジンの低速・加速の状態",
+      "group": "運転席",
+      "question": "エンジンの低速・加速の状態の点検結果を教えてください。異常なし、要確認、未点検、対象外から答えてください。",
+      "guidance": "アイドリングや加速時の状態について、確認した結果を記録します。",
+      "modelTask": "トラックのエンジンの低速・加速の状態の点検結果",
+      "profiles": [
+        "hydraulic",
+        "airBrake"
+      ],
+      "conditionBased": true,
+      "aliases": {}
+    },
+    {
+      "id": "washer_spray",
+      "title": "ウォッシャー液の噴射",
+      "group": "運転席",
+      "question": "ウォッシャー液の噴射の点検結果を教えてください。異常なし、要確認、未点検、対象外から答えてください。",
+      "guidance": "噴射の向きや高さの確認結果を記録します。",
+      "modelTask": "トラックのウォッシャー液の噴射の点検結果",
+      "profiles": [
+        "hydraulic",
+        "airBrake"
+      ],
+      "conditionBased": true,
+      "aliases": {
+        "attention": [
+          "出ません",
+          "液が出ません"
+        ]
+      }
+    },
+    {
+      "id": "wipers",
+      "title": "ワイパーの拭き取り",
+      "group": "運転席",
+      "question": "ワイパーの拭き取りの点検結果を教えてください。異常なし、要確認、未点検、対象外から答えてください。",
+      "guidance": "作動と拭き取り具合の確認結果を記録します。",
+      "modelTask": "トラックのワイパーの拭き取りの点検結果",
+      "profiles": [
+        "hydraulic",
+        "airBrake"
+      ],
+      "conditionBased": true,
+      "aliases": {
+        "attention": [
+          "拭き残しがあります"
+        ]
+      }
+    },
+    {
+      "id": "air_pressure",
+      "title": "ブレーキ用空気圧の上がり具合",
+      "group": "エアブレーキ",
+      "question": "ブレーキ用空気圧の上がり具合の点検結果を教えてください。異常なし、要確認、未点検、対象外から答えてください。",
+      "guidance": "空気圧の上がり方と車両の指定範囲を確認した結果を記録します。共通の圧力値は設定しません。",
+      "modelTask": "トラックのブレーキ用空気圧の上がり具合の点検結果",
+      "profiles": [
+        "airBrake"
+      ],
+      "conditionBased": false,
+      "aliases": {}
+    },
+    {
+      "id": "brake_valve",
+      "title": "ブレーキバルブの排気音",
+      "group": "エアブレーキ",
+      "question": "ブレーキバルブの排気音の点検結果を教えてください。異常なし、要確認、未点検、対象外から答えてください。",
+      "guidance": "ペダル操作時の排気音について、確認した結果を記録します。",
+      "modelTask": "トラックのブレーキバルブの排気音の点検結果",
+      "profiles": [
+        "airBrake"
+      ],
+      "conditionBased": false,
+      "aliases": {}
+    },
+    {
+      "id": "washer_fluid",
+      "title": "ウォッシャー液の量",
+      "group": "エンジンルーム",
+      "question": "ウォッシャー液の量の点検結果を教えてください。異常なし、要確認、未点検、対象外から答えてください。",
+      "guidance": "タンクの液量について確認した結果を記録します。",
+      "modelTask": "トラックのウォッシャー液の量の点検結果",
+      "profiles": [
+        "hydraulic",
+        "airBrake"
+      ],
+      "conditionBased": true,
+      "aliases": {
+        "ok": [
+          "十分あります"
+        ],
+        "attention": [
+          "少ない",
+          "不足しています"
+        ]
+      }
+    },
+    {
+      "id": "brake_fluid",
+      "title": "ブレーキ液の量",
+      "group": "エンジンルーム",
+      "question": "ブレーキ液の量の点検結果を教えてください。異常なし、要確認、未点検、対象外から答えてください。",
+      "guidance": "リザーバータンクの規定範囲を確認した結果を記録します。",
+      "modelTask": "トラックのブレーキ液の量の点検結果",
+      "profiles": [
+        "hydraulic"
+      ],
+      "conditionBased": false,
+      "aliases": {
+        "ok": [
+          "規定範囲内",
+          "適量"
+        ],
+        "attention": [
+          "少ない",
+          "不足しています"
+        ]
+      }
+    },
+    {
+      "id": "battery_fluid",
+      "title": "バッテリー液の量",
+      "group": "エンジンルーム",
+      "question": "バッテリー液の量の点検結果を教えてください。異常なし、要確認、未点検、対象外から答えてください。",
+      "guidance": "液量の点検対象となるバッテリーの確認結果を記録します。装備により対象外を選べます。",
+      "modelTask": "トラックのバッテリー液の量の点検結果",
+      "profiles": [
+        "hydraulic",
+        "airBrake"
+      ],
+      "conditionBased": true,
+      "aliases": {
+        "ok": [
+          "規定範囲内"
+        ],
+        "attention": [
+          "少ない"
+        ],
+        "notApplicable": [
+          "密閉式です"
+        ]
+      }
+    },
+    {
+      "id": "coolant",
+      "title": "冷却水の量",
+      "group": "エンジンルーム",
+      "question": "冷却水の量の点検結果を教えてください。異常なし、要確認、未点検、対象外から答えてください。",
+      "guidance": "車両の指定方法でリザーバータンクの範囲を確認した結果を記録します。",
+      "modelTask": "トラックの冷却水の量の点検結果",
+      "profiles": [
+        "hydraulic",
+        "airBrake"
+      ],
+      "conditionBased": true,
+      "aliases": {
+        "ok": [
+          "規定範囲内",
+          "適量"
+        ],
+        "attention": [
+          "少ない",
+          "水漏れがあります"
+        ]
+      }
+    },
+    {
+      "id": "engine_oil",
+      "title": "エンジンオイルの量",
+      "group": "エンジンルーム",
+      "question": "エンジンオイルの量の点検結果を教えてください。異常なし、要確認、未点検、対象外から答えてください。",
+      "guidance": "レベルゲージなど、車両の指定方法で確認した結果を記録します。",
+      "modelTask": "トラックのエンジンオイルの量の点検結果",
+      "profiles": [
+        "hydraulic",
+        "airBrake"
+      ],
+      "conditionBased": true,
+      "aliases": {
+        "ok": [
+          "規定範囲内",
+          "適量"
+        ],
+        "attention": [
+          "少ない",
+          "オイル漏れがあります"
+        ]
+      }
+    },
+    {
+      "id": "fan_belt",
+      "title": "ファンベルトの張りと損傷",
+      "group": "エンジンルーム",
+      "question": "ファンベルトの張りと損傷の点検結果を教えてください。異常なし、要確認、未点検、対象外から答えてください。",
+      "guidance": "車両の指定方法で張りと損傷を確認した結果を記録します。",
+      "modelTask": "トラックのファンベルトの張りと損傷の点検結果",
+      "profiles": [
+        "hydraulic",
+        "airBrake"
+      ],
+      "conditionBased": true,
+      "aliases": {
+        "attention": [
+          "ひびがあります",
+          "緩んでいます"
+        ]
+      }
+    },
+    {
+      "id": "lights",
+      "title": "灯火類と方向指示器",
+      "group": "車両の周囲",
+      "question": "灯火類と方向指示器の点検結果を教えてください。異常なし、要確認、未点検、対象外から答えてください。",
+      "guidance": "点灯・点滅・汚れ・損傷について確認した結果を記録します。",
+      "modelTask": "トラックの灯火類と方向指示器の点検結果",
+      "profiles": [
+        "hydraulic",
+        "airBrake"
+      ],
+      "conditionBased": false,
+      "aliases": {
+        "ok": [
+          "全部つきます"
+        ],
+        "attention": [
+          "切れています",
+          "球切れです"
+        ]
+      }
+    },
+    {
+      "id": "tire_pressure",
+      "title": "タイヤの空気圧",
+      "group": "タイヤと車輪",
+      "question": "タイヤの空気圧の点検結果を教えてください。異常なし、要確認、未点検、対象外から答えてください。",
+      "guidance": "車両・タイヤごとの指定空気圧を確認した結果を記録します。共通の圧力値は設定しません。",
+      "modelTask": "トラックのタイヤの空気圧の点検結果",
+      "profiles": [
+        "hydraulic",
+        "airBrake"
+      ],
+      "conditionBased": false,
+      "aliases": {
+        "ok": [
+          "空気圧は正常です"
+        ],
+        "attention": [
+          "空気圧が低い",
+          "空気が抜けています"
+        ]
+      }
+    },
+    {
+      "id": "wheel_mounting",
+      "title": "ホイールナットと車輪の取り付け",
+      "group": "タイヤと車輪",
+      "question": "ホイールナットと車輪の取り付けの点検結果を教えてください。異常なし、要確認、未点検、対象外から答えてください。",
+      "guidance": "大型車のナットの緩み・脱落、ボルトの異常、さび汁などの確認結果を記録します。",
+      "modelTask": "トラックのホイールナットと車輪の取り付けの点検結果",
+      "profiles": [
+        "airBrake"
+      ],
+      "conditionBased": false,
+      "aliases": {
+        "attention": [
+          "ナットが緩んでいます",
+          "さび汁があります"
+        ]
+      }
+    },
+    {
+      "id": "tire_damage",
+      "title": "タイヤの亀裂・損傷・異物",
+      "group": "タイヤと車輪",
+      "question": "タイヤの亀裂・損傷・異物の点検結果を教えてください。異常なし、要確認、未点検、対象外から答えてください。",
+      "guidance": "全周の亀裂・損傷・異物について確認した結果を記録します。",
+      "modelTask": "トラックのタイヤの亀裂・損傷・異物の点検結果",
+      "profiles": [
+        "hydraulic",
+        "airBrake"
+      ],
+      "conditionBased": false,
+      "aliases": {
+        "ok": [
+          "傷はありません"
+        ],
+        "attention": [
+          "釘が刺さっています",
+          "ひびがあります"
+        ]
+      }
+    },
+    {
+      "id": "tire_wear",
+      "title": "タイヤの異常な摩耗",
+      "group": "タイヤと車輪",
+      "question": "タイヤの異常な摩耗の点検結果を教えてください。異常なし、要確認、未点検、対象外から答えてください。",
+      "guidance": "接地面の偏った摩耗などについて確認した結果を記録します。",
+      "modelTask": "トラックのタイヤの異常な摩耗の点検結果",
+      "profiles": [
+        "hydraulic",
+        "airBrake"
+      ],
+      "conditionBased": false,
+      "aliases": {
+        "attention": [
+          "片減りしています"
+        ]
+      }
+    },
+    {
+      "id": "tire_tread",
+      "title": "タイヤの溝の深さ",
+      "group": "タイヤと車輪",
+      "question": "タイヤの溝の深さの点検結果を教えてください。異常なし、要確認、未点検、対象外から答えてください。",
+      "guidance": "溝やスリップサインについて確認した結果を記録します。",
+      "modelTask": "トラックのタイヤの溝の深さの点検結果",
+      "profiles": [
+        "hydraulic",
+        "airBrake"
+      ],
+      "conditionBased": true,
+      "aliases": {
+        "attention": [
+          "スリップサインが出ています"
+        ]
+      }
+    },
+    {
+      "id": "air_tank",
+      "title": "エアタンクの凝水",
+      "group": "エアブレーキ",
+      "question": "エアタンクの凝水の点検結果を教えてください。異常なし、要確認、未点検、対象外から答えてください。",
+      "guidance": "車両の指定方法でタンク内の水を確認した結果を記録します。",
+      "modelTask": "トラックのエアタンクの凝水の点検結果",
+      "profiles": [
+        "airBrake"
+      ],
+      "conditionBased": false,
+      "aliases": {
+        "ok": [
+          "水はありません"
+        ],
+        "attention": [
+          "水がたまっています"
+        ]
+      }
+    },
+    {
+      "id": "air_brake_travel",
+      "title": "ブレーキロッドのストロークとドラム・ライニングのすき間",
+      "group": "エアブレーキ",
+      "question": "ブレーキロッドのストロークとドラム・ライニングのすき間の点検結果を教えてください。異常なし、要確認、未点検、対象外から答えてください。",
+      "guidance": "機構と運行状況に応じた適切な時期に行う項目です。専門の方法で確認した結果を記録し、未実施は未点検とします。",
+      "modelTask": "トラックのブレーキロッドのストロークとドラム・ライニングのすき間の点検結果",
+      "profiles": [
+        "airBrake"
+      ],
+      "conditionBased": true,
+      "aliases": {}
+    }
+  ],
+  "sources": [
+    {
+      "title": "国土交通省 自動車の点検及び整備に関する手引 日常点検",
+      "url": "https://www.mlit.go.jp/jidosha/anzen/03safety/tebiki.html",
+      "checkedOn": "2026-10-15"
+    },
+    {
+      "title": "国土交通省 事業用自動車の点検整備",
+      "url": "https://www.mlit.go.jp/jidosha/anzen/03safety/inspection.html",
+      "checkedOn": "2026-10-15"
+    },
+    {
+      "title": "全日本トラック協会 点検整備ハンドブック（令和6年6月修正）",
+      "url": "https://jta.or.jp/wp-content/themes/jta_theme/pdf/anzen/kotsuanzen_ichiran/tenkenseibi_handbook202406.pdf",
+      "checkedOn": "2026-10-15"
+    }
+  ]
+}

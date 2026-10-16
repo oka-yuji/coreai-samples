@@ -13,6 +13,8 @@ let package = Package(
         .iOS("27.0"),
     ],
     products: [
+        .library(name: "TruckInspectionCore", targets: ["TruckInspectionCore"]),
+        .library(name: "TruckInspectionRuntime", targets: ["TruckInspectionRuntime"]),
         .library(name: "ImageSearchFeature", targets: ["ImageSearchFeature"]),
         .library(name: "ImageSearchRuntime", targets: ["ImageSearchRuntime"]),
         .library(name: "EmbeddingCore", targets: ["EmbeddingCore"]),
@@ -39,6 +41,13 @@ let package = Package(
         .package(url: "https://github.com/huggingface/swift-jinja.git", from: "2.5.1"),
     ],
     targets: [
+        .target(name: "TruckInspectionCore", swiftSettings: approachableConcurrency),
+        .target(
+            name: "TruckInspectionRuntime", dependencies: ["TruckInspectionCore"], resources: [.process("Resources")],
+            swiftSettings: approachableConcurrency),
+        .testTarget(
+            name: "TruckInspectionCoreTests", dependencies: ["TruckInspectionCore", "TruckInspectionRuntime"],
+            resources: [.process("Resources")], swiftSettings: approachableConcurrency),
         .target(name: "ImageSearchFeature", dependencies: ["FeatureStore"], swiftSettings: approachableConcurrency),
         .target(
             name: "ImageSearchRuntime", dependencies: ["ImageSearchFeature", "EmbeddingCore", "EmbeddingRuntime"],

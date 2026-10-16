@@ -1,0 +1,62 @@
+{
+  "answers": [
+    {
+      "item": "engine_oil",
+      "text": "　適量。",
+      "status": "ok"
+    },
+    {
+      "item": "tire_damage",
+      "text": "釘が刺さっています",
+      "status": "attention"
+    },
+    {
+      "item": "battery_fluid",
+      "text": "密閉式です",
+      "status": "notApplicable"
+    },
+    {
+      "item": "tire_pressure",
+      "text": "まだ",
+      "status": "unchecked"
+    }
+  ],
+  "unmatched": [
+    "ありません",
+    "はい",
+    "多分大丈夫だと思う",
+    "問題なしじゃない"
+  ],
+  "confirmation": [
+    {
+      "text": "はい",
+      "expected": "yes"
+    },
+    {
+      "text": "問題ありません",
+      "expected": "yes"
+    },
+    {
+      "text": "そうではない",
+      "expected": "no"
+    },
+    {
+      "text": "違います",
+      "expected": "no"
+    },
+    {
+      "text": "はい、でも違います",
+      "expected": "unknown"
+    },
+    {
+      "text": "たぶん",
+      "expected": "unknown"
+    },
+    {
+      "text": "",
+      "expected": "unknown"
+    }
+  ],
+  "partial": "未点検",
+  "final": "要確認"
+}
