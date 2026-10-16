@@ -5,12 +5,13 @@ import TruckInspectionFeature
 import TruckInspectionRuntime
 
 @MainActor
-private final class InspectionModelFake: TruckInspectionModelService {
+final class InspectionModelFake: TruckInspectionModelService {
     var failure = false
     var suspended = false
     var pending: CheckedContinuation<Void, Never>?
     var drains: [CheckedContinuation<Void, Never>] = []
     var unloads = 0
+    var classifiedTexts: [String] = []
     let started = AsyncStream<Void>.makeStream()
     let draining = AsyncStream<Void>.makeStream()
 
@@ -27,6 +28,7 @@ private final class InspectionModelFake: TruckInspectionModelService {
     }
 
     func classify(text: String, item: InspectionItem, catalog: InspectionCatalog) async throws -> InspectionCandidate {
+        classifiedTexts.append(text)
         if failure { throw InspectionError.invalidClassification }
         return InspectionCandidate(status: .attention, method: .model, score: 0.9)
     }
@@ -99,13 +101,25 @@ struct InspectionRunnerTests {
         var drains = model.draining.stream.makeAsyncIterator()
         _ = await drains.next()
         #expect(model.unloads == 0)
-        #expect(actions.isEmpty)
+        #expect(
+            actions.allSatisfy { action in
+                switch action {
+                case .diagnostic, .voice(.clock): true
+                default: false
+                }
+            })
         model.finish()
         await operation.value
         await drain.value
-        #expect(actions.count == 1)
-        guard case .stopped(2, true) = actions.first else {
-            Issue.record("Expected only cleanup completion")
+        let outcomes = actions.filter { action in
+            switch action {
+            case .diagnostic, .voice(.clock): false
+            default: true
+            }
+        }
+        #expect(outcomes.count == 1)
+        guard case .stopped(2, true) = outcomes.last else {
+            Issue.record("Expected cleanup completion")
             return
         }
         #expect(model.unloads == 1)

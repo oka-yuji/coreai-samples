@@ -43,3 +43,19 @@ The model section reports load milliseconds and the requested compute preference
 Use **Stop** before editing recorded results or changing configuration. Cleanup completes before a new operation starts. The screen releases its model when closed. Returning during cleanup waits for the old operation before preparing the model again. A rejected candidate leaves the same item unanswered. Empty or failed input preserves existing records.
 
 The inspection is kept in memory while the app runs. Share the record before terminating the app. Unanswered, not inspected, not applicable and attention-needed results remain distinct. Diagnostics retain up to 1,000 events, including `decided:` and `timing:` entries. Use **Copy or share diagnostics** and choose Copy in the system share sheet.
+
+## Japanese voice input
+
+From the Demos menu, open Truck inspection. After the model is ready, start Japanese voice input. Speech recognition and microphone permissions are requested before the first question. Recognition requires a recognizer whose actual locale is Japanese (Japan), supports on-device recognition, and is currently available. The app never requests a server fallback. An installed Japanese system voice reads the questions.
+
+Questions, answers, confirmations and acknowledgments use the same feature state as tap input. Every model suggestion is confirmed. Explicit choices are repeated before moving on. Two empty answers, two ambiguous confirmations, or two consecutive playback deadlines return to buttons without fabricating a result. Falling back during an acknowledgment selects the next unanswered item and preserves the result already recorded.
+
+The Store owns tasks. The runner waits for every cancelled operation before acknowledging stop; the audio actor owns the engine and session, and a per-listen synchronized owner keeps recognition requests and callbacks separate. The audio session is configured once per voice run. Bluetooth routing waits for the selected input and falls back to the built-in input/speaker if it cannot settle. Recording uses the iOS 27 throwing audio tap API and validates the input format first. The app stops on backgrounding, not on the inactive state used by permission dialogs.
+
+Diagnostics include permissions, selected voice, route for each listen, RMS range, partial and raw final transcripts, final resolution, decisions and timing. The **Copy or share diagnostics** action uses the system share sheet's Copy action. Physical audibility, recognition quality, Bluetooth routing and offline operation require the user's device checks.
+
+## Device measurements
+
+With a model ready and the inspection stopped, expand Model and diagnostics and choose **Measure 20 classifications**. The runner classifies the same short tire-pressure answer once to warm up and then 20 measured times. It bypasses the exact-answer shortcut and leaves inspection records unchanged. Median is the average of sorted samples 10 and 11; p95 uses nearest rank (sample 19). The warmup is reported separately. These timings are inference measurements, not correctness scores.
+
+Logs report requested compute preference, actual asset float type, revision, OS, device, thermal state and low-power mode. Memory entries distinguish resident bytes, peak resident bytes, current footprint and lifetime peak footprint. Available process memory is reported on iOS. Peaks cover the process lifetime, so use a fresh app launch for a clean run. Memory queries occur outside the timed inference interval. The runtime's actual hardware placement still needs Instruments verification.

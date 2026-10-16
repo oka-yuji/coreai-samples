@@ -16,7 +16,7 @@
                 automaticPlacement: LaunchArguments.value("--compute-units") == "default")
             return Store(
                 initialState: InspectionState(catalog: catalog, modelFolder: assetFolders.first),
-                run: TruckInspectionRunner(model: model).run)
+                run: TruckInspectionRunner(model: model, speech: LiveInspectionSpeech()).run)
         }
     }
 #endif
