@@ -23,7 +23,7 @@ struct ConversationView: View {
             } else if chat.phase == .ready || !host.state.entries.isEmpty {
                 timeline
                 Divider()
-                if chat.phase == .ready {
+                if chat.phase == .ready && host.matchesConversationModel {
                     if showSettings {
                         ConversationSettingsView()
                         Divider()
@@ -74,7 +74,9 @@ struct ConversationView: View {
     @ViewBuilder
     private var modelStatus: some View {
         switch chat.phase {
-        case .ready: EmptyView()
+        case .ready:
+            Text("Choose \(host.state.modelID) to continue this conversation.")
+                .foregroundStyle(.secondary).padding()
         case .loading(let preparing):
             LoadingView(name: chat.modelName, preparing: preparing, since: chat.loadStarted)
         case .failed(let message):
@@ -114,7 +116,7 @@ struct ConversationView: View {
             }
             Spacer()
             Button("New", systemImage: "square.and.pencil", action: host.startNew)
-                .disabled(!host.state.canLeave || chat.isResponding)
+                .disabled(!host.canManageHistory)
                 .help("Start a new conversation")
             Button("Copy", systemImage: "doc.on.doc", action: copy)
                 .disabled(host.state.entries.isEmpty && host.state.readOnlyMarkdown == nil)

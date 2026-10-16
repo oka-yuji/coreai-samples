@@ -28,6 +28,9 @@ enum DemoLocalizationCheck {
                 "Could not save the conversation", "Read-only conversation", "Opening conversation…", "Save a copy",
                 "Retry save", "Saving conversation…", "Keep app open",
             ]
+            keys += [
+                "Conversations", "Tools", "Rename…", "Delete…", "Move to Trash", "Markdown export is not up to date.",
+            ]
             keys += Catalog.models.flatMap { [$0.memory, $0.platforms] }
             var failures: [String] = []
             for key in Set(keys).sorted() {

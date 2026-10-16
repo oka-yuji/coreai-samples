@@ -180,6 +180,8 @@ public struct ConversationState: Equatable, Sendable {
     public var step = 0
     public var refusedSave = false
     public var persistence = Persistence.unsaved
+    public var restoreBase: Persistence?
+    public var library = ConversationLibraryState()
     public var archiveRevision = 0
     public var preparation: ConversationPreparation?
     public var readOnlyMarkdown: String?
@@ -223,7 +225,7 @@ public struct ConversationState: Equatable, Sendable {
     }
 
     public var canLeave: Bool {
-        guard !isRunning, !isSaving, !isRestoring, !isTerminating else { return false }
+        guard !isRunning, !isSaving, !isRestoring, !isTerminating, !library.isMutating else { return false }
         if case .failed = persistence { return turns.isEmpty || readOnlyMarkdown != nil }
         return true
     }
@@ -250,6 +252,7 @@ public struct ConversationState: Equatable, Sendable {
         step = 0
         refusedSave = false
         persistence = .saved
+        restoreBase = nil
         archiveRevision = snapshot.revision
         preparation = nil
         readOnlyMarkdown = nil
