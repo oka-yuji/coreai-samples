@@ -43,8 +43,6 @@ struct ComposerView: View {
                     .textFieldStyle(.plain)
                     .lineLimit(1...6)
                     .padding(8)
-                    .background(.background, in: .rect(cornerRadius: 8))
-                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(.separator))
                     .disabled(host.contextFull)
                     .onSubmit(submit)
                 if running {
@@ -69,6 +67,8 @@ struct ComposerView: View {
                         .disabled(!host.canSend)
                 }
             }
+            .padding(10)
+            .glassEffect(.regular, in: .rect(cornerRadius: 24))
         }
         .padding(.horizontal, 20)
         .padding(.bottom, 14)

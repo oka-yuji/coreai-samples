@@ -13,9 +13,10 @@ Scope: [Issue 143](https://github.com/oka-yuji/coreai-samples/issues/143), based
 | UI-02: short conversations start at the top, long ones remain scrollable, composer stays below | Separate `.alignment` scroll anchor; existing latest-position behavior retained; composer outside the scroll view | Implemented; real scrolling and window-resize checks pending |
 | UI-03: Chat / Work is visible before loading, with operation guards | Picker moved from the ready-only composer to the header; explicit running/restoring/terminating/read-only/RAG guards | Implemented; manual operation check pending |
 | UI-04: model, new, copy and settings have consistent upper placements; settings do not shrink the transcript | Single common new-conversation toolbar action; conversation copy/settings toolbar; scrollable settings popover | Implemented; visual acceptance pending |
-| UI-05: English/Japanese and wide/narrow windows remain usable | Twelve changed catalog keys; model label can compress; mode explanation has a vertical fallback | Catalog verified; rendering and narrow-window acceptance pending |
+| UI-05: English/Japanese and wide/narrow windows remain usable | Twelve changed catalog keys; model label can compress; mode explanation is a localized help/accessibility hint | Catalog verified; rendering and narrow-window acceptance pending |
 | UI-06: required lint, format, Rust input build, default package tests and Mac Release build | Commands below | Passed |
 | UI-07: changed catalog and offline app checks | Commands below | Passed |
+| UI-08: modes on the left, model on the right of the same row, native glass controls and readable accessibility variants | Native segmented picker, glass model menu, safe-area bars, single regular-glass composer | Implemented; visual/accessibility-settings acceptance pending |
 
 ## Automatic checks
 
@@ -88,3 +89,48 @@ does not add tests that merely inspect View syntax; existing behavior tests and
 the build cover the unchanged operation paths, with visual acceptance kept
 separate. Implementation and automatic verification are distinct from manual
 acceptance, merging and release. No unrelated improvement is included.
+
+## Follow-up after the user's first check
+
+The user's further 2026-10-16 feedback specifies the same-row placement and a
+native Liquid Glass appearance. Issue 143 v2 keeps UI-01 through UI-07 unchanged
+and adds UI-08. The [official reference comparison](../research/chat-controls-and-liquid-glass-20261016.md)
+records ChatGPT, Claude, Gemini and Apple's material guidance before applying the
+new layout. The first submitted revision is `7c76bb3`; this follow-up changes
+three presentation files and the associated documentation.
+
+The mode control remains a native segmented picker. Its description becomes a
+localized tooltip and accessibility hint. Model selection moves to the opposite
+edge of the same row, uses the native glass button style and allows long names
+to truncate. Top/bottom `safeAreaBar` regions replace fixed separators. The
+composer uses one regular-glass surface, with no opaque input background or
+nested glass buttons. Operation guards and all persistence/runtime code are
+unchanged. The original provisional 3 SP is retained.
+
+Review identified an observation gap for composer height changes: safe-area bars
+can change content insets without changing the scroll container size. The
+follow-up accounts for top/bottom insets in the available height and for the
+bottom inset in the end-of-content comparison. Scrolling to the end still
+requires that the previous position was at the end, so reading earlier content
+does not opt into following the tail. This is an adjustment based on the geometry
+contract, not a claim that a visual failure was reproduced.
+
+Two reviewers independently probed the public `ScrollGeometry` initializer
+without opening a window. At fixed container height, changing only the insets
+did not change `visibleRect.height`; replacing `containerSize.height` with that
+property alone would therefore not establish the intended inset observation.
+Those value-type probes do not reproduce the geometry supplied by a real
+ScrollView. Actual scrolling remains part of manual acceptance.
+
+Final follow-up checks passed: strict SwiftLint (287 files, zero violations),
+diff format check (five Swift files), the Rust input build, all 24 default
+SwiftPM test targets, Mac Release build, offline app self-test, 91 runtime
+localization keys and 1,500 compiled catalog lookups. Both independent reviewers
+rechecked the inset-aware expressions and found the observation gap addressed;
+no additional confirmed code finding remains. Logs for this follow-up are in
+the local temporary directory `coreai-liquid-glass-20261016-uj7yn6mn`.
+
+GUI appearance, narrow-window resizing, scroll behavior and reduced-transparency
+or increased-contrast settings still need manual confirmation. The previous
+automatic approval refusals remain in effect; no GUI operation or alternative
+screenshot route was attempted in this follow-up.

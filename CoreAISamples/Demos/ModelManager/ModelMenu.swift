@@ -26,10 +26,9 @@ struct ModelMenu: View {
             Button("Manage Models…") { navigator.selection = .models }
         } label: {
             modelLabel
-                .font(.headline)
+                .font(.body.weight(.medium))
                 .lineLimit(1)
                 .truncationMode(.middle)
-                .frame(maxWidth: 360, alignment: .leading)
         }
         .accessibilityLabel("Model")
         .accessibilityValue(modelLabel)

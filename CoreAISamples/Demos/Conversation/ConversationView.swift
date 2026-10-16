@@ -13,8 +13,6 @@ struct ConversationView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            header
-            Divider()
             archiveStatus
             if let markdown = host.state.readOnlyMarkdown {
                 ScrollView {
@@ -31,14 +29,20 @@ struct ConversationView: View {
                 } else {
                     Spacer(minLength: 0)
                 }
-                if chat.phase == .ready && host.matchesConversationModel {
-                    Divider()
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .safeAreaBar(edge: .top, spacing: 0) {
+            header
+        }
+        .safeAreaBar(edge: .bottom, spacing: 0) {
+            if host.state.readOnlyMarkdown == nil && chat.phase == .ready && host.matchesConversationModel {
+                VStack(spacing: 0) {
                     statusBar
                     ComposerView()
                 }
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .demoNavigationTitle(host.state.mode == .chat ? "Chat" : "Work")
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {
@@ -135,19 +139,16 @@ struct ConversationView: View {
     }
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            ModelMenu()
-            ViewThatFits(in: .horizontal) {
-                HStack(spacing: 12) {
-                    modePicker
-                    modeDescription
-                        .fixedSize(horizontal: true, vertical: false)
-                }
-                VStack(alignment: .leading, spacing: 6) {
-                    modePicker
-                    modeDescription
-                }
+        GlassEffectContainer(spacing: 16) {
+            HStack(spacing: 12) {
+                modePicker
+                    .layoutPriority(1)
+                Spacer(minLength: 0)
+                ModelMenu()
+                    .buttonStyle(.glass)
+                    .frame(maxWidth: 360, alignment: .trailing)
             }
+            .controlSize(.large)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 20)
@@ -165,20 +166,20 @@ struct ConversationView: View {
         .pickerStyle(.segmented)
         .labelsHidden()
         .frame(width: 180)
+        .help(modeDescription)
+        .accessibilityHint(modeDescription)
         .disabled(
             host.state.isRunning || host.state.isRestoring || host.state.isTerminating
                 || chat.isResponding || chat.ragIsOn || host.state.readOnlyMarkdown != nil)
     }
 
-    private var modeDescription: some View {
+    private var modeDescription: Text {
         Text(
             chat.ragIsOn
                 ? "Answers from the collected sources in one reply."
                 : host.state.mode == .chat
                     ? "Conversation. Searches the web when it needs facts." : "Multi-step research and notes."
         )
-        .font(.caption)
-        .foregroundStyle(.secondary)
     }
 
     @ViewBuilder
@@ -211,8 +212,10 @@ struct ConversationView: View {
             .defaultScrollAnchor(.top, for: .alignment)
             .onScrollGeometryChange(for: TimelineFit.self) { geometry in
                 TimelineFit(
-                    height: geometry.containerSize.height,
-                    atBottom: geometry.visibleRect.maxY >= geometry.contentSize.height - 16)
+                    height: max(
+                        0, geometry.containerSize.height - geometry.contentInsets.top - geometry.contentInsets.bottom),
+                    atBottom: geometry.contentOffset.y + geometry.containerSize.height - geometry.contentInsets.bottom
+                        >= geometry.contentSize.height - 16)
             } action: { old, new in
                 if new.height < old.height, old.atBottom { timelinePosition.scrollTo(edge: .bottom) }
             }
