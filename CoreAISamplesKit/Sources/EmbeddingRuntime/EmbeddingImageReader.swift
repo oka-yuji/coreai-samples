@@ -15,6 +15,15 @@ public enum EmbeddingImageReader {
             width > 0, height > 0, width <= 32_768, height <= 32_768, width * height <= 40_000_000,
             let image = CGImageSourceCreateImageAtIndex(source, 0, nil)
         else { throw EmbeddingError.invalidImage }
+        return try read(image).oriented(properties[kCGImagePropertyOrientation] as? Int ?? 1)
+    }
+
+    public static func read(_ image: CGImage) throws -> RGBImage {
+        let width = image.width
+        let height = image.height
+        guard width > 0, height > 0, width <= 32_768, height <= 32_768, width * height <= 40_000_000 else {
+            throw EmbeddingError.invalidImage
+        }
         let colorSpace = CGColorSpaceCreateDeviceRGB()
         let untagged: CGImage
         if image.colorSpace?.model == .rgb {
@@ -42,6 +51,5 @@ public enum EmbeddingImageReader {
             rgb.append(contentsOf: rgba[offset..<(offset + 3)])
         }
         return try RGBImage(width: width, height: height, pixels: rgb)
-            .oriented(properties[kCGImagePropertyOrientation] as? Int ?? 1)
     }
 }

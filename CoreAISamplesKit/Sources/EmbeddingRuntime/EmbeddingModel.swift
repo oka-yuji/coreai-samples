@@ -1,4 +1,5 @@
 import CoreAI
+import CoreGraphics
 import EmbeddingCore
 import Foundation
 
@@ -63,7 +64,17 @@ public actor EmbeddingModel {
         try begin()
         defer { busy = false }
         guard let loaded else { throw EmbeddingError.notLoaded }
-        let image = try EmbeddingImage(EmbeddingImageReader.read(imageURL))
+        return try await Self.embedImage(loaded, image: EmbeddingImage(EmbeddingImageReader.read(imageURL)))
+    }
+
+    public func encode(image: CGImage) async throws -> EmbeddingVector {
+        try begin()
+        defer { busy = false }
+        guard let loaded else { throw EmbeddingError.notLoaded }
+        return try await Self.embedImage(loaded, image: EmbeddingImage(EmbeddingImageReader.read(image)))
+    }
+
+    private static func embedImage(_ loaded: Loaded, image: EmbeddingImage) async throws -> EmbeddingVector {
         try Task.checkCancellation()
         let tokens = [2, 255_999] + Array(repeating: 258_880, count: image.softTokenCount) + [258_882, 1]
         var embeddings = try loaded.table.embeddings(for: tokens)

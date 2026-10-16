@@ -15,6 +15,9 @@ let package = Package(
         .iOS("27.0"),
     ],
     products: [
+        .library(name: "ObjectFinderCore", targets: ["ObjectFinderCore"]),
+        .library(name: "ObjectFinderRuntime", targets: ["ObjectFinderRuntime"]),
+        .executable(name: "object-finder-check", targets: ["object-finder-check"]),
         .library(name: "SpeechCore", targets: ["SpeechCore"]),
         .library(name: "SpeechFeature", targets: ["SpeechFeature"]),
         .library(name: "SpeechRuntime", targets: ["SpeechRuntime"]),
@@ -50,6 +53,17 @@ let package = Package(
         .package(url: "https://github.com/huggingface/swift-jinja.git", from: "2.5.1"),
     ],
     targets: [
+        .target(name: "ObjectFinderCore", swiftSettings: speechSettings),
+        .target(
+            name: "ObjectFinderRuntime", dependencies: ["ObjectFinderCore", "EmbeddingCore", "EmbeddingRuntime"],
+            swiftSettings: speechSettings),
+        .executableTarget(
+            name: "object-finder-check", dependencies: ["ObjectFinderCore", "ObjectFinderRuntime"],
+            swiftSettings: speechSettings),
+        .testTarget(
+            name: "ObjectFinderTests",
+            dependencies: ["ObjectFinderCore", "ObjectFinderRuntime", "EmbeddingCore", "EmbeddingRuntime"],
+            swiftSettings: speechSettings),
         .target(name: "SpeechCore", swiftSettings: speechSettings),
         .target(name: "SpeechFeature", dependencies: ["SpeechCore", "FeatureStore"], swiftSettings: speechSettings),
         .target(
