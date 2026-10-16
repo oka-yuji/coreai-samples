@@ -21,6 +21,7 @@ struct ObjectFinderDevices {
     var beginOrientation: () -> Void
     var endOrientation: () -> Void
     var notify: () -> Void
+    var requestFrame: () async throws -> Void
     var trackCandidates: (CapturedObjectFrame, [ObjectCandidate]) async -> [ObjectCandidate] = { _, candidates in
         candidates
     }

@@ -86,7 +86,7 @@ public enum ObjectFinderAction: Sendable {
 }
 
 public enum ObjectFinderEffect: Equatable, Sendable {
-    case search(Int, URL, String, ObjectCameraRotation)
+    case search(Int, URL, String, Double, ObjectCameraRotation)
     case orient(ObjectCameraRotation)
     case stop(Int)
     case notify(Int)
@@ -133,7 +133,11 @@ public enum ObjectFinderFeature: Feature {
             state.restartAfterStop = false
             clear(&state)
             state.failure = nil
-            return [.run(.search(state.session, folder, state.submittedQuery, state.cameraRotation), id: .search)]
+            return [
+                .run(
+                    .search(state.session, folder, state.submittedQuery, state.minimumSimilarity, state.cameraRotation),
+                    id: .search)
+            ]
         case .applyQuery:
             guard state.canApplyQuery else { return [] }
             state.restartAfterStop = true
