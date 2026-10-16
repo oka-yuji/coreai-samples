@@ -47,3 +47,7 @@ The app unit changed 796 source/configuration lines versus the estimated 510–7
 README, demo-app instructions, CLAUDE.md and the iPhone guide reflect the actual implementation and device wait. The next required work is M4 after connectivity recovers, followed by user M5. The development cycle, device validation, merge and publication are not marked complete. No PR, merge or release was performed.
 
 The local worktree has the existing development team configured in git-ignored `Config/Local.xcconfig` for iPhoneOS only; the Mac signing configuration is not changed.
+
+## Integration check — 2026-10-16
+
+The latest-main integration passed the complete CPU suite, strict lint, formatting, signed SpeechPhone Release build, macOS Release build and the existing CoreAISamples-iOS Release build. The generated SpeechPhone app passes codesign verification; both file-sharing keys and the increased-memory-limit entitlement are present. A fresh read of the requested iPhone reported iOS 27.0.1 with a connected tunnel and Developer Mode enabled. The earlier connection blocker is no longer the observed state. No installation, model execution, audible playback or device export was performed in this integration check; M4 and M5 remain unchecked.

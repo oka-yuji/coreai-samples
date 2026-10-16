@@ -1,8 +1,8 @@
 # Irodori Speech on iPhone
 
-`SpeechPhone` is a separate iOS 27 app, displayed as **Irodori Speech**, with bundle identifier `com.coreai-samples.SpeechPhone`. It reuses the pinned FP32 speech runtime and can coexist with the Mac demos and the existing Extract iPhone app. Its source is in the dedicated iPhone worktree/branch; opening or building it does not require switching the worktree used by another session.
+`SpeechPhone` is a separate iOS 27 app, displayed as **Irodori Speech**, with bundle identifier `com.coreai-samples.SpeechPhone`. It reuses the pinned FP32 speech runtime and can coexist with the Mac demos and the existing Extract iPhone app. Its source is in SpeechPhone, with a dedicated target and scheme alongside the Mac and existing iPhone app.
 
-The implementation, CPU checks and signed Release build are ready. **Installation and model execution on the target iPhone are still pending.** The install attempt failed with CoreDevice error 4016 (no trusted device-service connection). The last known device record reported iOS 26.6.1, but its connection timestamp predates the user's reported update to 27; it is not evidence of the phone's current OS. A fresh unlocked USB connection is needed before continuing the real-device checks.
+The integration check on October 16, 2026 passed the signed SpeechPhone Release build, Mac and existing iPhone regression builds, CPU tests, lint and format. The generated app contains both file-sharing keys and the increased-memory-limit entitlement. A fresh device-info read reported iOS 27.0.1 and a connected tunnel. Model execution, audible playback, WAV export on the device and personal listening acceptance remain unverified. The October 13 connection failure is retained in the validation record as historical evidence.
 
 ## Build and install
 
