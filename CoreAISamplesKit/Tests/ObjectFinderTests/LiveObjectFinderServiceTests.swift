@@ -23,7 +23,7 @@ struct LiveObjectFinderServiceTests {
         #expect(fake.prepares == 0 && fake.angles.isEmpty && fake.closes == 1 && fake.orientationEnds == 1)
     }
 
-    @Test("Stopping during model preparation waits for cleanup and never opens the camera", .timeLimit(.minutes(1)))
+    @Test("Stopping during model preparation stops the live camera and waits for cleanup", .timeLimit(.minutes(1)))
     func stopDuringPreparation() async throws {
         let fake = FinderDevicesFake()
         fake.blocksPreparation = true
@@ -34,6 +34,7 @@ struct LiveObjectFinderServiceTests {
         }
         var entered = fake.preparing.stream.makeAsyncIterator()
         _ = await entered.next()
+        #expect(fake.angles == [90])
         let stop = Task { await service.stop() }
         var stopping = fake.stopping.stream.makeAsyncIterator()
         _ = await stopping.next()
@@ -44,7 +45,30 @@ struct LiveObjectFinderServiceTests {
         fake.releasePreparation()
         await #expect(throws: CancellationError.self) { try await search.value }
         await stop.value
-        #expect(fake.angles.isEmpty && fake.closes == 1 && fake.orientationEnds == 1)
+        #expect(fake.angles == [90] && fake.frames == nil && fake.closes == 1 && fake.orientationEnds == 1)
+    }
+
+    @Test(
+        "A slow or suspended model does not block camera startup or the latest-frame input stream",
+        .timeLimit(.minutes(1)))
+    func previewStartsBeforeModel() async throws {
+        let fake = FinderDevicesFake()
+        fake.blocksPreparation = true
+        let service = LiveObjectFinderService(devices: fake.devices)
+        let search = Task {
+            try await service.search(
+                folder: folder, query: "glasses", rotation: initial, started: {}, receive: { _ in })
+        }
+        var entered = fake.preparing.stream.makeAsyncIterator()
+        _ = await entered.next()
+        #expect(fake.angles == [90] && fake.inferences == 0)
+        try fake.sendFrame(rotation: 90)
+        let yielded = try fake.sendFrame(rotation: 90)
+        if case .dropped? = yielded {} else { Issue.record("The camera buffer must keep only the latest frame") }
+        search.cancel()
+        fake.releasePreparation()
+        await #expect(throws: CancellationError.self) { try await search.value }
+        #expect(fake.frames == nil && fake.closes == 1)
     }
 
     @Test(
@@ -99,6 +123,27 @@ struct LiveObjectFinderServiceTests {
         fake.releaseInference()
         await #expect(throws: ObjectFinderFailure.cameraInterrupted) { try await search.value }
         #expect(frames.isEmpty && fake.inferences == 1 && fake.closes == 1)
+    }
+
+    @Test("An interruption during tracking cannot publish a new match", .timeLimit(.minutes(1)))
+    func interruptionDuringTracking() async throws {
+        let fake = FinderDevicesFake()
+        var devices = fake.devices
+        devices.trackCandidates = { _, _ in
+            fake.cameraError = .cameraInterrupted
+            return [ObjectCandidate(id: 0, region: .init(x: 0, y: 0, width: 1, height: 1), similarity: 0.9)]
+        }
+        let service = LiveObjectFinderService(devices: devices)
+        var received = false
+        let search = Task {
+            try await service.search(
+                folder: folder, query: "glasses", rotation: initial, started: {}, receive: { _ in received = true })
+        }
+        var starts = fake.started.stream.makeAsyncIterator()
+        _ = await starts.next()
+        try fake.sendFrame(rotation: 90)
+        await #expect(throws: ObjectFinderFailure.cameraInterrupted) { try await search.value }
+        #expect(!received && fake.closes == 1)
     }
 }
 
@@ -161,13 +206,16 @@ private final class FinderDevicesFake {
             beginOrientation: {}, endOrientation: { self.orientationEnds += 1 }, notify: {})
     }
 
-    func sendFrame(rotation: Double) throws {
+    @discardableResult
+    func sendFrame(rotation: Double) throws -> AsyncThrowingStream<CapturedObjectFrame, any Error>.Continuation
+        .YieldResult?
+    {
         let context = try #require(
             CGContext(
                 data: nil, width: 2, height: 2, bitsPerComponent: 8, bytesPerRow: 8,
                 space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue))
         let image = try #require(context.makeImage())
-        frames?.yield(CapturedObjectFrame(image: image, jpeg: Data([1]), rotation: rotation))
+        return frames?.yield(CapturedObjectFrame(image: image, rotation: rotation))
     }
 
     func releasePreparation() {

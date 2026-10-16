@@ -25,11 +25,11 @@ public final class LiveObjectFinderService: ObjectFinderService {
         do {
             try await devices.authorize()
             try checkStop()
-            try await devices.prepare(folder, query)
-            try checkStop()
             var rotation = configuration.rotation
             var frames = try await devices.startCamera(rotation.angle)
             var iterator = frames.makeAsyncIterator()
+            try checkStop()
+            try await devices.prepare(folder, query)
             try checkStop()
             started()
             while true {
@@ -50,12 +50,17 @@ public final class LiveObjectFinderService: ObjectFinderService {
                 try checkStop()
                 try await devices.checkCamera()
                 guard rotation == configuration.rotation, frame.rotation == rotation.angle else { continue }
+                let tracked = await devices.trackCandidates(frame, candidates)
+                try checkStop()
+                try await devices.checkCamera()
+                guard rotation == configuration.rotation else { continue }
                 let duration = (ContinuousClock.now - start).components
                 receive(
                     ObjectFinderFrame(
-                        image: frame.jpeg, candidates: candidates,
+                        candidates: tracked,
                         seconds: Double(duration.seconds) + Double(duration.attoseconds) / 1e18,
-                        rotation: frame.rotation, orientationRevision: rotation.revision))
+                        rotation: frame.rotation, orientationRevision: rotation.revision,
+                        captureGeneration: frame.generation))
             }
             try checkStop()
         } catch {

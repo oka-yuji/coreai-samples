@@ -4,8 +4,9 @@ import ObjectFinderCore
 
 struct CapturedObjectFrame: Sendable {
     let image: CGImage
-    let jpeg: Data
     let rotation: Double
+    var generation: Int = 0
+    var capturedAt: Double = 0
 }
 
 @MainActor
@@ -20,4 +21,7 @@ struct ObjectFinderDevices {
     var beginOrientation: () -> Void
     var endOrientation: () -> Void
     var notify: () -> Void
+    var trackCandidates: (CapturedObjectFrame, [ObjectCandidate]) async -> [ObjectCandidate] = { _, candidates in
+        candidates
+    }
 }

@@ -19,7 +19,7 @@
         @State private var products = ProductAssembly.makeStore()
         @State private var imageSearch = ImageSearchAssembly.makeStore()
         @State private var showingImageSearch = LaunchArguments.flag("--image-search")
-        @State private var objectFinder = ObjectFinderAssembly.makeStore()
+        @State private var objectFinder = ObjectFinderAssembly.makeSession()
         @State private var showingObjectFinder = LaunchArguments.flag("--object-finder")
         @State private var showingExtractionLab = false
         @State private var showingTruckInspection = CommandLine.arguments.contains("--truck-inspection")
@@ -91,7 +91,7 @@
                             }
                             .sheet(isPresented: $showingObjectFinder) {
                                 NavigationStack {
-                                    ObjectFinderView(store: objectFinder)
+                                    ObjectFinderView(store: objectFinder.store, preview: objectFinder.preview)
                                         .toolbar { Button("Done") { showingObjectFinder = false } }
                                 }
                             }

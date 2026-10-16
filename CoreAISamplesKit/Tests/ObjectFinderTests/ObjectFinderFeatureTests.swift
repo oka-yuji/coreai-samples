@@ -18,7 +18,7 @@ struct ObjectFinderFeatureTests {
         return state
     }
 
-    @Test("A valid target and model are required before starting and edits cannot change an active search")
+    @Test("A valid target and model are required and draft edits preserve the active target")
     func startGuards() {
         var state = ObjectFinderState()
         #expect(ObjectFinderFeature.reduce(&state, .start).isEmpty)
@@ -33,15 +33,75 @@ struct ObjectFinderFeatureTests {
         _ = ObjectFinderFeature.reduce(&state, .queryChanged("keys"))
         _ = ObjectFinderFeature.reduce(&state, .folderSelected(URL(filePath: "/other")))
         _ = ObjectFinderFeature.reduce(&state, .thresholdChanged(0.3))
-        #expect(state.query == " glasses " && state.folder == folder && state.minimumSimilarity == 0.67)
+        #expect(
+            state.query == "keys" && state.submittedQuery == "glasses" && state.folder == folder
+                && state.minimumSimilarity == 0.67)
         #expect(ObjectFinderFeature.reduce(&state, .start).isEmpty)
+    }
+
+    @Test(
+        "Editing a running search changes only the draft until the user applies it, and restart waits for resource shutdown"
+    )
+    func applyTypedQuery() {
+        var state = active()
+        _ = ObjectFinderFeature.reduce(&state, .queryChanged(" red keys "))
+        #expect(state.query == " red keys " && state.submittedQuery == "glasses" && state.canApplyQuery)
+        #expect(ObjectFinderFeature.reduce(&state, .applyQuery) == [.cancelAll, .run(.stop(1), id: .control)])
+        #expect(state.phase == .stopping && state.session == 1 && state.canStop)
+        _ = ObjectFinderFeature.reduce(&state, .queryChanged("wallet"))
+        _ = ObjectFinderFeature.reduce(&state, .analyzed(1, ObjectFinderFrame(candidates: [candidate], seconds: 0.1)))
+        #expect(state.frame == nil && state.query == " red keys ")
+        #expect(
+            ObjectFinderFeature.reduce(&state, .stopped(1)) == [
+                .run(.search(2, folder, "red keys", .init(session: 2, revision: 0, angle: 90)), id: .search)
+            ])
+        #expect(state.submittedQuery == "red keys" && state.phase == .starting && !state.restartAfterStop)
+    }
+
+    @Test("Stop, backgrounding and dismissal cancel a pending query restart and reject old-session results")
+    func cancelQueryRestart() {
+        for action in [ObjectFinderAction.stop, .backgrounded, .disappeared] {
+            var state = active()
+            _ = ObjectFinderFeature.reduce(&state, .queryChanged("keys"))
+            _ = ObjectFinderFeature.reduce(&state, .applyQuery)
+            _ = ObjectFinderFeature.reduce(&state, action)
+            #expect(!state.canStop)
+            #expect(ObjectFinderFeature.reduce(&state, .stopped(1)).isEmpty)
+            _ = ObjectFinderFeature.reduce(&state, .started(1))
+            #expect(state.phase == .idle && !state.restartAfterStop && state.frame == nil)
+        }
+    }
+
+    @Test("Rotation invalidates live boxes immediately and returning to the same angle rejects old capture updates")
+    func livePreviewFollowsFeature() {
+        var state = active()
+        var preview = ObjectPreviewGate()
+        _ = ObjectFinderFeature.reduce(
+            &state, .analyzed(1, .init(candidates: [candidate], seconds: 0.1, captureGeneration: 1)))
+        preview.expect(state.frame?.captureGeneration)
+        preview.receive([candidate], generation: 1, validUntil: 12)
+        #expect(preview.visible(at: 10) == [candidate])
+        _ = ObjectFinderFeature.reduce(&state, .poseChanged(.landscapeLeft))
+        preview.expect(state.frame?.captureGeneration)
+        preview.receive([candidate], generation: 1, validUntil: 12)
+        #expect(preview.visible(at: 10).isEmpty)
+        _ = ObjectFinderFeature.reduce(&state, .poseChanged(.portrait))
+        _ = ObjectFinderFeature.reduce(
+            &state,
+            .analyzed(1, .init(candidates: [candidate], seconds: 0.1, orientationRevision: 2, captureGeneration: 3)))
+        preview.expect(state.frame?.captureGeneration)
+        preview.receive([candidate], generation: 1, validUntil: 12)
+        #expect(preview.visible(at: 10).isEmpty)
+        preview.receive([candidate], generation: 3, validUntil: 12)
+        #expect(preview.visible(at: 10) == [candidate])
+        #expect(preview.visible(at: 13).isEmpty)
     }
 
     @Test("Stop, close and background transitions reject late results and wait for resource shutdown before restart")
     func stopAndStale() {
         for action in [ObjectFinderAction.stop, .disappeared, .backgrounded] {
             var state = active()
-            let frame = ObjectFinderFrame(image: Data([1]), candidates: [candidate], seconds: 0.3)
+            let frame = ObjectFinderFrame(candidates: [candidate], seconds: 0.3)
             _ = ObjectFinderFeature.reduce(&state, .analyzed(1, frame))
             #expect(ObjectFinderFeature.reduce(&state, action) == [.cancelAll, .run(.stop(1), id: .control)])
             _ = ObjectFinderFeature.reduce(&state, .analyzed(1, frame))
@@ -65,11 +125,11 @@ struct ObjectFinderFeatureTests {
     @Test("Stable candidates notify once while empty results, permission denial and runtime failures remain distinct")
     func notificationAndErrors() {
         var state = active()
-        let frame = ObjectFinderFrame(image: Data([1]), candidates: [candidate], seconds: 0.2)
+        let frame = ObjectFinderFrame(candidates: [candidate], seconds: 0.2)
         #expect(ObjectFinderFeature.reduce(&state, .analyzed(1, frame)).isEmpty)
         #expect(ObjectFinderFeature.reduce(&state, .analyzed(1, frame)) == [.run(.notify(1), id: .notification)])
         #expect(ObjectFinderFeature.reduce(&state, .analyzed(1, frame)).isEmpty)
-        let empty = ObjectFinderFrame(image: Data([2]), candidates: [], seconds: 0.2)
+        let empty = ObjectFinderFrame(candidates: [], seconds: 0.2)
         for _ in 0..<3 { _ = ObjectFinderFeature.reduce(&state, .analyzed(1, empty)) }
         #expect(state.matches.isEmpty && state.failure == nil && state.phase == .searching && !state.notified)
         _ = ObjectFinderFeature.reduce(&state, .failed(1, .cameraDenied))
@@ -83,14 +143,14 @@ struct ObjectFinderFeatureTests {
     @Test("Rotation clears visible boxes and rejects analysis from the previous orientation")
     func rotationDuringInference() {
         var state = active()
-        let portrait = ObjectFinderFrame(image: Data([1]), candidates: [candidate], seconds: 0.2)
+        let portrait = ObjectFinderFrame(candidates: [candidate], seconds: 0.2)
         _ = ObjectFinderFeature.reduce(&state, .analyzed(1, portrait))
         _ = ObjectFinderFeature.reduce(&state, .poseChanged(.landscapeLeft))
         #expect(state.frame == nil && state.matches.isEmpty)
         _ = ObjectFinderFeature.reduce(&state, .analyzed(1, portrait))
         #expect(state.frame == nil)
         let landscape = ObjectFinderFrame(
-            image: Data([2]), candidates: [candidate], seconds: 0.2, rotation: 0, orientationRevision: 1)
+            candidates: [candidate], seconds: 0.2, rotation: 0, orientationRevision: 1)
         _ = ObjectFinderFeature.reduce(&state, .analyzed(1, landscape))
         _ = ObjectFinderFeature.reduce(&state, .poseChanged(.flat))
         #expect(state.frame == landscape && state.matches == [candidate])
@@ -114,7 +174,7 @@ struct ObjectFinderFeatureTests {
         #expect(camera.rotation.angle == 0 && camera.rotation.revision == 1)
         _ = ObjectFinderFeature.reduce(&state, .started(1))
         let frame = ObjectFinderFrame(
-            image: Data([2]), candidates: [candidate], seconds: 0.1, rotation: camera.rotation.angle,
+            candidates: [candidate], seconds: 0.1, rotation: camera.rotation.angle,
             orientationRevision: camera.rotation.revision)
         _ = ObjectFinderFeature.reduce(&state, .analyzed(1, frame))
         #expect(state.frame == frame && state.matches == [candidate])
@@ -188,7 +248,7 @@ private final class ControlledFinder: ObjectFinderService {
             continuation = $0
             entered.continuation.yield(())
         }
-        receive(ObjectFinderFrame(image: Data([1]), candidates: [], seconds: 0))
+        receive(ObjectFinderFrame(candidates: [], seconds: 0))
         closes += 1
         let pending = waiters
         waiters = []
