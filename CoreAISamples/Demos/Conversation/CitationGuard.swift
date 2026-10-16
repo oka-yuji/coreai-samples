@@ -271,6 +271,7 @@ final class CitationGuard {
     }
 
     func saveRunMetrics(session: ConversationSession) async {
+        guard session.recordsMetrics else { return }
         var record = MetricsLog.agent("agent-run", model: session.modelName)
         record.agentSession = session.id
         record.agentTurn = session.turnIndex

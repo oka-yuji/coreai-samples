@@ -6923,6 +6923,72 @@
           }
         }
       }
+    },
+    "Max steps per reply" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1回答の最大ステップ数"
+          }
+        }
+      }
+    },
+    "Max steps per reply: %lld" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1回答の最大ステップ数: %lld"
+          }
+        }
+      }
+    },
+    "Applies to the selected mode. A final answer without tools gets one extra step at the limit." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選択中のモードに適用します。上限に達した場合、ツールを使わずに回答する処理を1回追加します。"
+          }
+        }
+      }
+    },
+    "Research limit reached. Writing the answer…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "調査の上限に達しました。回答を作成しています…"
+          }
+        }
+      }
+    },
+    "Research stopped after %lld steps. The answer uses the information already collected." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "調査は%lldステップで終了しました。回答には、ここまでに取得した情報を使います。"
+          }
+        }
+      }
+    },
+    "Research limit reached" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "調査の上限に到達"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

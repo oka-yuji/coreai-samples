@@ -381,7 +381,7 @@ COREAI_TEST_BUNDLES=/path/to/bundle COREAI_TEST_RELOAD_INTERVAL=0 COREAI_TEST_RE
 - 広告などの埋め込みのフレームが Web 以外のアドレスへ移るページでは、ページの URL が正しくても `fetch_page` が `error: fetch_page needs an absolute http or https URL` で失敗することがあります(凍結したベンチマークの 48 run のうち 4 run)。
 - Agent は、読んだページに書かれた指示に従うことがあります。これを試すために書いた 5 つのページでの 10 run(引用ガード on)のうち 2 run が、ページが求めたメモを保存しました。ページが求めた URL を取得した run、メモのフォルダの外に書いた run はありませんでした。ツールが書くのはメモのフォルダだけで、**ファイル操作を許可**(Allow file operations)を on にすると `move_note` が加わります。
 - `move_note` はメモのフォルダも移動先として受け付けますが、モデルに見せる説明とエラーの文は Desktop、Documents、Downloads しか挙げていません。
-- **最大ステップ数**(Max steps)に達すると、Agent は「Step limit reached」(日本語表示では「最大ステップ数に達しました」)で止まり、回答を残しません。
+- Chatの既定は1回答あたり16ステップ、Workは別設定で既定8ステップです。会話設定の「1回答あたりの最大ステップ数」で、選択中のモードを1〜64に調整できます。通常の質問ごとに上限を数え直します。上限に達すると、取得済み情報を使い、ツールと推論を無効にして回答を1回だけ追加生成します。停止操作と出力トークン上限は引き続き有効です。文脈不足や生成失敗の際は調査履歴と終了理由を残します。この経路はFoundation Modelsを使うCPU統合テストで検証しており、Qwen3.8 27Bでの回答品質は未計測です。[仕様と検証](docs/specs/conversation-step-budget.md)を参照してください。
 - Qwen3.8 27B で測っていないもの: Agent の既定の設定(cite-fetched の指示、ガード off)、4 ビットの量子化の前後での課題の品質、128 GiB の M4 Max 以外の Mac、macOS 27.0(26A428)以外のビルド、16,384 トークンを超える文脈。
 
 ## 関連

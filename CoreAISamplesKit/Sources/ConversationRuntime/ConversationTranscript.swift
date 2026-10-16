@@ -59,6 +59,25 @@ public enum ConversationTranscript {
         return Transcript(entries: entries)
     }
 
+    public static func closingPendingCalls(in transcript: Transcript) -> Transcript {
+        var pending: [Transcript.ToolCall] = []
+        for entry in transcript {
+            switch entry {
+            case .toolCalls(let calls): pending += Array(calls)
+            case .toolOutput(let output): pending.removeAll { $0.id == output.id }
+            default: break
+            }
+        }
+        guard !pending.isEmpty else { return transcript }
+        return Transcript(
+            entries: Array(transcript)
+                + pending.map {
+                    .toolOutput(
+                        Transcript.ToolOutput(
+                            id: $0.id, toolName: $0.toolName, segments: segments(interruptedTool, id: $0.id)))
+                })
+    }
+
     private static func segments(_ text: String, id: String) -> [Transcript.Segment] {
         [.text(Transcript.TextSegment(id: id + "-text", content: text))]
     }

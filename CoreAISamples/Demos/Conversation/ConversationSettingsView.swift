@@ -1,4 +1,5 @@
 import AppKit
+import ConversationFeature
 import SwiftUI
 
 struct ConversationSettingsView: View {
@@ -8,6 +9,9 @@ struct ConversationSettingsView: View {
 
     var body: some View {
         @Bindable var preferences = host.preferences
+        let steps = Binding(
+            get: { host.state.mode == .chat ? preferences.chatMaxSteps : preferences.maxSteps },
+            set: { if host.state.mode == .chat { preferences.chatMaxSteps = $0 } else { preferences.maxSteps = $0 } })
         return VStack(alignment: .leading, spacing: 8) {
             Picker("Reasoning effort", selection: $preferences.effort) {
                 ForEach(AgentReasoningEffort.allCases) { Text(LocalizedStringKey($0.label)).tag($0) }
@@ -15,13 +19,14 @@ struct ConversationSettingsView: View {
             .pickerStyle(.segmented)
             .frame(maxWidth: 320)
             HStack(spacing: 8) {
-                Text("Max steps (Work): \(preferences.maxSteps)")
+                Text("Max steps per reply: \(steps.wrappedValue)")
                     .monospacedDigit()
                     .frame(width: 190, alignment: .leading)
-                Slider(value: sliderBinding($preferences.maxSteps), in: 1...16, step: 1)
+                Slider(value: sliderBinding(steps), in: 1...Double(TurnPolicy.maximumSteps), step: 1)
                     .frame(maxWidth: 320)
-                    .accessibilityLabel("Max steps (Work)")
+                    .accessibilityLabel("Max steps per reply")
             }
+            .help("Applies to the selected mode. A final answer without tools gets one extra step at the limit.")
             HStack(spacing: 8) {
                 Text("Page budget: \(preferences.pageBudget) chars")
                     .monospacedDigit()

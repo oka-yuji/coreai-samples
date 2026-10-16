@@ -11,6 +11,7 @@ public struct ConversationEntry: Equatable, Identifiable, Sendable {
         case tokenLimit(Int)
         case cutToolCall(name: String?, note: Bool)
         case noAnswer
+        case researchLimit(Int)
         case failure
     }
 
@@ -84,7 +85,16 @@ extension ConversationEntry {
         let policy = turn.policy
         let records = transcript.entries
         let end = number + 1 < turns.count ? min(turns[number + 1].start, records.count) : records.count
-        let steps = transcript.steps(from: turn.start + 1, to: end)
+        let steps: [TranscriptStep]
+        if let finalStart = turn.finalAnswerStart {
+            let boundary = min(max(finalStart, turn.start), end)
+            let research = transcript.steps(from: turn.start + 1, to: boundary)
+            steps =
+                Array(research.prefix(max(0, policy.maxSteps - turn.offset - 1)))
+                + transcript.steps(from: min(boundary + 1, end), to: end)
+        } else {
+            steps = transcript.steps(from: turn.start + 1, to: end)
+        }
         let cut = turn.finalization == .cutOff
         let answered = turn.finish != Finish.none && turn.finish != .stopped && turn.failure == nil && !cut
         var out = [ConversationEntry(id: "turn-\(number)", kind: .user, title: "You", text: turn.prompt)]
@@ -101,12 +111,17 @@ extension ConversationEntry {
                         title: "Context full — dropped the oldest tool output",
                         text: "\(dropped) tool output(s) shortened to fit the context window."))
             }
-            var shown = step.generated.flatMap { entries(records[$0], live: live && $0 == records.count - 1) }
+            var shown = step.generated.flatMap { index in
+                index == turn.finalAnswerStart ? [] : entries(records[index], live: live && index == records.count - 1)
+            }
             if trailing, turn.finish == .stopped, !cut {
                 partial = answer
                 shown.removeAll { $0.kind == .answer }
             }
-            let line = turn.steps.first { $0.step == turn.offset + index + 1 }?.line
+            let stepNumber =
+                turn.finalAnswerStart.map { step.generated.lowerBound > $0 } == true
+                ? policy.maxSteps : turn.offset + index + 1
+            let line = turn.steps.first { $0.step == stepNumber }?.line
             if trailing, answered, answer.isEmpty {
                 shown.append(
                     ConversationEntry(
@@ -167,6 +182,14 @@ extension ConversationEntry {
         out += turn.notes.enumerated().map { index, note in
             ConversationEntry(
                 id: "note-\(number)-\(index)", kind: .note, title: note.title, text: note.text, warning: note.warning)
+        }
+        if turn.finalAnswerStart != nil {
+            let limit = policy.maxSteps - 1
+            out.append(
+                ConversationEntry(
+                    id: "budget-\(number)", kind: .note, title: "Research limit reached",
+                    text: "Research stopped after \(limit) steps. The answer uses the information already collected.",
+                    warning: true, detail: .researchLimit(limit)))
         }
         if policy.collapsesSteps {
             for index in out.indices where [.thinking, .toolCall, .toolResult].contains(out[index].kind) {

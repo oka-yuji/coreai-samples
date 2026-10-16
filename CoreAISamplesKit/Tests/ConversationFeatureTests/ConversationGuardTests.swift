@@ -84,7 +84,7 @@ struct ConversationGuardTests {
             ended == [
                 [
                     .run(.refuseTool(further, reason: ConversationFeature.endedRefusal), id: nil),
-                    .run(.stop(run: 2), id: .stop),
+                    .run(.stopForBudget(run: 2), id: .stop),
                 ]
             ])
         _ = reduce(&state, .stopped(run: 2))

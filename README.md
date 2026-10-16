@@ -34,6 +34,8 @@ hf download okayuji/Qwen3.8-27B-coreai-4bit --revision 8e24aebe036eae577d4a3bd01
 
 Open `CoreAISamples.xcodeproj`, choose the **CoreAISamples** scheme and **My Mac**, and run; the scheme builds Release. In **Models**, choose **Open Folder…**, select `models/qwen3.8-27b-coreai-4bit` and press **Load**. The first load took 86.87 s on an M4 Max, 82.84 s of it preparing the model for the GPU; later loads took 3.6–10.3 s. Then talk to it in **Chat**, or give **Agent** a task that needs the web. **Models** can also download the same pinned revision itself: **Download** next to *Qwen3.8 27B (4bit)* checks every file against the Hub.
 
+Chat defaults to 16 generation steps per reply; Work keeps its separate default of eight. In the conversation settings, **Max steps per reply** changes the selected mode's limit from 1 to 64. Each new question starts a fresh budget. If research exhausts it, the app makes one extra answer attempt with tools and reasoning disabled, using the information already collected. **Stop** still cancels the request. See the [budget contract and checks](docs/specs/conversation-step-budget.md).
+
 From the command line, in the `CoreAISamplesKit` folder:
 
 ```sh
@@ -380,7 +382,7 @@ The defaults are ten completed reads and a process-footprint trigger of 18,000,0
 - `fetch_page` fails with `error: fetch_page needs an absolute http or https URL` on some pages whose embedded frames, often advertisements, navigate to a non-web address, even when the page URL is correct (4 of the 48 frozen benchmark runs).
 - The Agent can follow instructions written in a page it reads. Of 10 runs over 5 pages written to test this (citation guard on), 2 saved a note a page asked for; none fetched the URL a page asked for or wrote outside the notes folder. The tools write only into the notes folder unless **Allow file operations** is on, which adds `move_note`.
 - `move_note` also accepts the notes folder as a destination, while its description to the model and its error message name only Desktop, Documents and Downloads.
-- When **Max steps** is reached, the Agent stops with "Step limit reached" and leaves no answer.
+- When the research step limit is reached, Chat and Work make one extra answer attempt without tools. The attempt uses the existing output-token limit and can still fail or exhaust the context; the app retains the research and shows the actual outcome. This path has CPU integration coverage with Foundation Models; its answer quality with Qwen3.8 27B remains unmeasured.
 - Not measured with Qwen3.8 27B: the default Agent settings (cite-fetched instructions, guard off), task quality with and without 4-bit quantization, Macs other than an M4 Max with 128 GiB, macOS builds other than 27.0 (26A428), and contexts beyond 16,384 tokens.
 
 ## Related

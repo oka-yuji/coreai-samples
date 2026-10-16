@@ -29,6 +29,8 @@ public enum ConversationAction: Equatable, Sendable {
     case terminationRequested
     case terminationCancelled
     case stopped(run: Int)
+    case budgetStopped(run: Int)
+    case finalAnswerStarted(run: Int, start: Int)
     case restoreRequested(id: String)
     case restored(ConversationSnapshot)
     case restoreFailed(id: String?, message: String)
@@ -43,6 +45,8 @@ public enum ConversationEffect: Equatable, Sendable {
     case runTool(ToolCallRecord, finalize: Bool)
     case refuseTool(ToolCallRecord, reason: String)
     case stop(run: Int)
+    case stopForBudget(run: Int)
+    case settleBudgetStop(run: Int, policy: TurnPolicy)
     case save(ConversationSnapshot)
     case restore(id: String)
     case restoreLatest
@@ -59,6 +63,8 @@ public enum ConversationFeature: Feature {
 
     public static let finalizationNote = "remaining tool budget: 0 — answer now with what you have"
     public static let endedRefusal = "error: the turn ended before this tool ran"
+    public static let budgetAnswerPrompt =
+        "The research budget is exhausted. Answer the user's last request using only the information already collected in this conversation. Do not call tools or repeat the research. State what could not be verified, and do not invent missing facts or citations."
     public static let contextFullPrefix = "Context window is full"
     public static let endedWithoutStopReason = "Generation ended without a stop reason"
     public static let stopReasonPrefix = "Generation ended with stop reason: "
@@ -130,6 +136,7 @@ public enum ConversationFeature: Feature {
                 start: state.transcript.entries.count)
             turn.kind = .continuation
             turn.sourceIDs = previous.sourceIDs
+            turn.toolsDisabled = previous.finalAnswerStart != nil || previous.toolsDisabled == true
             return start(&state, turn, now: now)
         case .transcriptChanged(let run, let transcript):
             guard state.isActive(run) else { return [] }
@@ -175,8 +182,38 @@ public enum ConversationFeature: Feature {
             return []
         case .stopRequested:
             guard state.isRunning, !state.stopRequested else { return [] }
+            if state.finalization == .cutOff { state.turns[state.turns.count - 1].finalization = .lastStep }
             state.stopRequested = true
             return [.run(.stop(run: state.runID), id: .stop)]
+        case .budgetStopped(let run):
+            guard state.isActive(run), let turn = state.turns.last else { return [] }
+            guard !state.stopRequested, !state.isTerminating, turn.finalization == .cutOff,
+                turn.finalAnswerStart == nil, !turn.policy.allowedTools.isEmpty
+            else {
+                state.runID += 1
+                state.stopRequested = true
+                return [.run(.settleBudgetStop(run: state.runID, policy: turn.policy), id: .generation)]
+            }
+            state.turns[state.turns.count - 1].finalAnswerStart = state.transcript.entries.count
+            state.turns[state.turns.count - 1].finalization = .lastStep
+            state.runID += 1
+            var policy = state.turns[state.turns.count - 1].policy
+            if policy.continuing {
+                policy.answerPrefix =
+                    state.entries.last(where: { $0.kind == .answer && $0.detail != .noAnswer })?.text ?? ""
+            }
+            state.step = policy.maxSteps
+            return [
+                .run(
+                    .generate(run: state.runID, prompt: budgetAnswerPrompt, policy: policy, finalize: false),
+                    id: .generation)
+            ]
+        case .finalAnswerStarted(let run, let start):
+            guard state.isActive(run), state.turns.last?.finalAnswerStart != nil,
+                start >= state.turns[state.turns.count - 1].start, start <= state.transcript.entries.count
+            else { return [] }
+            state.turns[state.turns.count - 1].finalAnswerStart = start
+            return []
         case .stopped(let run):
             guard state.isActive(run) else { return [] }
             return end(&state, .stopped)
@@ -333,6 +370,8 @@ public enum ConversationFeature: Feature {
 
     private static func start(_ state: inout ConversationState, _ turn: ConversationTurn, now: Date) -> [Command] {
         var turn = turn
+        turn.settings.maxSteps = max(1, min(TurnPolicy.maximumSteps, turn.settings.maxSteps))
+        turn.settings.chatMaxSteps = turn.settings.chatMaxSteps.map { max(1, min(TurnPolicy.maximumSteps, $0)) }
         var policy = turn.policy
         if policy.continuing {
             policy.answerPrefix =
@@ -341,6 +380,7 @@ public enum ConversationFeature: Feature {
                 : state.transcript.entries.last?.response ?? ""
         }
         let finalize = policy.maxSteps - turn.offset <= 1
+        turn.stepLimit = policy.maxSteps
         if finalize { turn.finalization = .lastStep }
         state.turns.append(turn)
         state.mode = turn.mode
@@ -357,6 +397,10 @@ public enum ConversationFeature: Feature {
 
     private static func countSteps(_ state: inout ConversationState) -> [Command] {
         let last = state.turns.count - 1
+        if state.turns[last].finalAnswerStart != nil {
+            state.step = state.turns[last].policy.maxSteps
+            return []
+        }
         let entries = state.transcript.entries
         guard let prompt = entries.indices.dropFirst(state.turns[last].start).first(where: { entries[$0].isPrompt })
         else { return [] }
@@ -386,10 +430,9 @@ public enum ConversationFeature: Feature {
     }
 
     private static func cutOff(_ state: inout ConversationState) -> [Command] {
-        guard !state.stopRequested else { return [] }
+        guard !state.stopRequested, state.finalization != .cutOff else { return [] }
         state.turns[state.turns.count - 1].finalization = .cutOff
-        state.stopRequested = true
-        return [.run(.stop(run: state.runID), id: .stop)]
+        return [.run(.stopForBudget(run: state.runID), id: .stop)]
     }
 
     private static func end(_ state: inout ConversationState, _ finish: Finish) -> [Command] {

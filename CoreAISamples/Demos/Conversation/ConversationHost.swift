@@ -8,6 +8,7 @@ import Observation
 final class ConversationPreferences {
     static let effortKey = "agent.reasoningEffort"
     static let maxStepsKey = "agent.maxSteps"
+    static let chatMaxStepsKey = "conversation.chatMaxSteps"
     static let maxTokensKey = "agent.maxTokens"
     static let pageBudgetKey = "agent.pageBudget"
     static let braveKeyKey = "agent.braveAPIKey"
@@ -20,6 +21,7 @@ final class ConversationPreferences {
     var persists: Bool
     var effort: AgentReasoningEffort { didSet { store(effort.rawValue, Self.effortKey) } }
     var maxSteps: Int { didSet { store(maxSteps, Self.maxStepsKey) } }
+    var chatMaxSteps: Int { didSet { store(chatMaxSteps, Self.chatMaxStepsKey) } }
     var maxTokens: Int? { didSet { store(maxTokens, Self.maxTokensKey) } }
     var pageBudget: Int { didSet { store(pageBudget, Self.pageBudgetKey) } }
     var braveAPIKey: String { didSet { store(braveAPIKey, Self.braveKeyKey) } }
@@ -41,6 +43,7 @@ final class ConversationPreferences {
         func positive(_ key: String) -> Int? { (defaults.object(forKey: key) as? Int).flatMap { $0 > 0 ? $0 : nil } }
         effort = defaults.string(forKey: Self.effortKey).flatMap(AgentReasoningEffort.init(rawValue:)) ?? .low
         maxSteps = positive(Self.maxStepsKey) ?? 8
+        chatMaxSteps = min(TurnPolicy.maximumSteps, positive(Self.chatMaxStepsKey) ?? TurnPolicy.defaultChatSteps)
         maxTokens = positive(Self.maxTokensKey)
         pageBudget = positive(Self.pageBudgetKey) ?? 10_000
         braveAPIKey = defaults.string(forKey: Self.braveKeyKey) ?? ""
@@ -53,6 +56,7 @@ final class ConversationPreferences {
     func restore(_ settings: ConversationSettings) {
         effort = AgentReasoningEffort(rawValue: settings.effort) ?? .low
         maxSteps = settings.maxSteps
+        if let steps = settings.chatMaxSteps { chatMaxSteps = max(1, min(TurnPolicy.maximumSteps, steps)) }
         maxTokens = settings.maxTokens
         pageBudget = settings.pageBudget
         citationGuard = settings.citationGuard
@@ -62,6 +66,7 @@ final class ConversationPreferences {
     func resetForHeadless() {
         persists = false
         maxSteps = 8
+        chatMaxSteps = TurnPolicy.defaultChatSteps
         maxTokens = nil
         pageBudget = 10_000
         braveAPIKey = ""
@@ -79,7 +84,8 @@ final class ConversationPreferences {
     var settings: ConversationSettings {
         ConversationSettings(
             effort: effort.rawValue, maxSteps: maxSteps, maxTokens: maxTokens, pageBudget: pageBudget,
-            fileOperations: fileOperations, citationGuard: citationGuard, notesFolder: notesFolderPath)
+            fileOperations: fileOperations, citationGuard: citationGuard, notesFolder: notesFolderPath,
+            chatMaxSteps: chatMaxSteps)
     }
 
     var searchProvider: String { braveAPIKey.isEmpty ? "DuckDuckGo" : "Brave Search API" }

@@ -61,7 +61,7 @@ struct ConversationFeatureTests {
         #expect(policy.refusal(for: "append_note") == "error: saving notes needs Work mode")
         #expect(policy.refusal(for: "move_note") == "error: saving notes needs Work mode")
 
-        var state = started(.chat)
+        var state = started(.chat, settings: ConversationSettings(chatMaxSteps: 2))
         let search = tool("t1", "web_search", #"{"query":"swift"}"#)
         let fetch = tool("t2", "fetch_page", #"{"url":"https://swift.org"}"#)
         let allowed = reduce(&state, .toolRequested(run: 1, search), .toolRequested(run: 1, fetch))
@@ -90,12 +90,12 @@ struct ConversationFeatureTests {
         #expect(tools.allSatisfy { work.refusal(for: $0) == nil })
         #expect(work.maxSteps == 8 && work.maxTokens == 4_096 && !work.collapsesSteps)
         let chat = TurnPolicy(.chat, settings: ConversationSettings())
-        #expect(chat.maxSteps == 2 && chat.maxTokens == 2_048 && chat.collapsesSteps)
+        #expect(chat.maxSteps == 16 && chat.maxTokens == 2_048 && chat.collapsesSteps)
 
         let tuned = ConversationSettings(maxSteps: 5, maxTokens: 1_536)
         let policy = TurnPolicy(.work, settings: tuned)
         #expect(policy.maxSteps == 5 && policy.maxTokens == 1_536)
-        #expect(TurnPolicy(.chat, settings: tuned).maxSteps == 2)
+        #expect(TurnPolicy(.chat, settings: tuned).maxSteps == 16)
 
         let note = tool("t1", "write_note", #"{"title":"Plan","content":"Draft"}"#)
         let record = turn("Save a plan", [.reasoning(id: "r", text: "Save it"), calls("c", note)])
@@ -186,8 +186,8 @@ struct ConversationFeatureTests {
         }
         #expect(observe(6) == [] && state.step == 1 && state.finalization == .normal)
         #expect(observe(8) == [] && state.step == 2 && state.finalization == .lastStep)
-        #expect(observe(11) == [.run(.stop(run: 1), id: .stop)])
-        #expect(state.step == 3 && state.finalization == .cutOff && state.stopRequested && state.isRunning)
+        #expect(observe(11) == [.run(.stopForBudget(run: 1), id: .stop)])
+        #expect(state.step == 3 && state.finalization == .cutOff && !state.stopRequested && state.isRunning)
         #expect(observe(12) == [])
         #expect(!state.entries.contains { $0.text == "Done" })
         #expect(state.entries.last?.title == "Ended at the step limit")
@@ -230,10 +230,10 @@ struct ConversationFeatureTests {
             ended == [
                 [
                     .run(.refuseTool(further, reason: ConversationFeature.endedRefusal), id: nil),
-                    .run(.stop(run: 1), id: .stop),
+                    .run(.stopForBudget(run: 1), id: .stop),
                 ]
             ])
-        #expect(state.finalization == .cutOff && state.stopRequested)
+        #expect(state.finalization == .cutOff && !state.stopRequested)
         let summary = try #require(state.entries.last)
         #expect(summary.kind == .failure && summary.title == "Ended at the step limit")
         #expect(
@@ -372,7 +372,7 @@ struct ConversationFeatureTests {
             reduce(&working, .toolRequested(run: 1, shell)) == [[.run(.refuseTool(shell, reason: reason), id: nil)]])
         #expect(!working.refusedSave && working.isRunning)
 
-        var state = started(.chat)
+        var state = started(.chat, settings: ConversationSettings(chatMaxSteps: 2))
         let search = tool("t1", "web_search", #"{"query":"swift"}"#)
         let note = tool("t2", "write_note", #"{"title":"Plan","content":"Draft"}"#)
         let record = turn("Question", [calls("c1", search), output(search, "results"), calls("c2", note)])
@@ -383,10 +383,10 @@ struct ConversationFeatureTests {
             ended == [
                 [
                     .run(.refuseTool(note, reason: "error: saving notes needs Work mode"), id: nil),
-                    .run(.stop(run: 1), id: .stop),
+                    .run(.stopForBudget(run: 1), id: .stop),
                 ]
             ])
-        #expect(state.refusedSave && state.finalization == .cutOff && state.stopRequested)
+        #expect(state.refusedSave && state.finalization == .cutOff && !state.stopRequested)
     }
 
     @Test(

@@ -74,3 +74,13 @@ and evaluation, including token/time bounds, cancellation and a no-answer fallba
 Execution-policy changes need their own implementation and acceptance checks;
 they are not included in the presentation-only PR 144. The associated message
 alignment request is implemented there as Issue 143 UI-09.
+
+## Implemented follow-up
+
+Issue #145 / PR #146 implements an independently configurable Chat budget
+(default 16, range 1–64), a fresh budget for each ordinary question, and one
+extra answer-only generation after a research cutoff. It preserves the same
+session, forbids tools in the extra generation, and separates explicit Stop
+from a budget stop. The diagnosis above remains the record of the old behavior.
+See the [current contract](../specs/conversation-step-budget.md) and
+[validation coverage](../validation/conversation-step-budget-20261016.md).
