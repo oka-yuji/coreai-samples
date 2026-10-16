@@ -19,6 +19,10 @@ The environment is Apple Swift 6.4, Swift 6 language mode for new package target
 
 The attached device inventory contained no connected iPhone. A signed `CoreAISamples-iOS.app` was built; it has not been installed by this work. Existing device models and data were not changed.
 
+## Integration checks
+
+The requested integration was rechecked against main `70f0e07` on 2026-10-17. The reviewed feature source is unchanged from `c88f401`; the localization merge preserves all 668 main keys plus the 21 Object finder keys. After combining the branches, the full CPU suite passed **394 tests**, strict format passed for **20 changed Swift files**, SwiftLint found **0 violations in 305 files**, and both Mac Release and signed iOS Release builds succeeded. Model inference remained excluded from these checks.
+
 ## Self-review
 
 Independent source review covered region preprocessing and coordinate contracts; actor/queue isolation and capture lifetime; state/cancellation; UI, resources, localization and target wiring. An independent follow-up checked the fixes against the original counterexamples. Model execution and user touch acceptance were not inferred from source review.
