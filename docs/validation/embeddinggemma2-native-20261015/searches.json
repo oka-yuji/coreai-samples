@@ -1,0 +1,83 @@
+[
+  {
+    "id" : "ja_food",
+    "matches" : [
+      {
+        "image" : "05-caprese.png",
+        "similarity" : 0.7035874574820885
+      },
+      {
+        "image" : "04-gratin.png",
+        "similarity" : 0.6643627471333614
+      },
+      {
+        "image" : "03-omelette.png",
+        "similarity" : 0.642658017698214
+      },
+      {
+        "image" : "02-ginger-pork.png",
+        "similarity" : 0.6375889804740115
+      },
+      {
+        "image" : "01-oyakodon.png",
+        "similarity" : 0.6324074437402611
+      }
+    ],
+    "query" : "トマトと白いチーズが並んでいる写真",
+    "seconds" : 0.015289083
+  },
+  {
+    "id" : "ja_eggs",
+    "matches" : [
+      {
+        "image" : "03-omelette.png",
+        "similarity" : 0.7676119210017373
+      },
+      {
+        "image" : "01-oyakodon.png",
+        "similarity" : 0.7629595967771882
+      },
+      {
+        "image" : "04-gratin.png",
+        "similarity" : 0.7108865933800704
+      },
+      {
+        "image" : "02-ginger-pork.png",
+        "similarity" : 0.7094634759274434
+      },
+      {
+        "image" : "05-caprese.png",
+        "similarity" : 0.7001408320682715
+      }
+    ],
+    "query" : "卵が入っている冷蔵庫",
+    "seconds" : 0.015720292
+  },
+  {
+    "id" : "en_food",
+    "matches" : [
+      {
+        "image" : "05-caprese.png",
+        "similarity" : 0.7102961155269327
+      },
+      {
+        "image" : "04-gratin.png",
+        "similarity" : 0.6654137533205716
+      },
+      {
+        "image" : "01-oyakodon.png",
+        "similarity" : 0.6567092623507285
+      },
+      {
+        "image" : "03-omelette.png",
+        "similarity" : 0.6555079040072487
+      },
+      {
+        "image" : "02-ginger-pork.png",
+        "similarity" : 0.6443450325855274
+      }
+    ],
+    "query" : "Tomatoes and white cheese",
+    "seconds" : 0.014822
+  }
+]

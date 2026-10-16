@@ -828,6 +828,16 @@
         }
       }
     },
+    "Choose a model from the menu above, or open a bundle folder in Models." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "上のメニューからモデルを選ぶか、モデル管理でモデルのフォルダを開いてください。"
+          }
+        }
+      }
+    },
     "Choose a photograph smaller than 20 MB." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -846,6 +856,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "通常の画像ファイルを選んでください。"
+          }
+        }
+      }
+    },
+    "Choose the model Chat and Agent use" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "チャットとエージェントで使うモデルを選びます"
           }
         }
       }
@@ -1304,6 +1324,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "ダウンロード"
+          }
+        }
+      }
+    },
+    "Downloaded" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ダウンロード済み"
           }
         }
       }
@@ -2006,6 +2036,16 @@
         }
       }
     },
+    "Manage Models…" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデル管理…"
+          }
+        }
+      }
+    },
     "Max steps: %lld" : {
       "localizations" : {
         "ja" : {
@@ -2064,6 +2104,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "食材が不足"
+          }
+        }
+      }
+    },
+    "Model" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデル"
           }
         }
       }
@@ -2240,6 +2290,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "モデル未読込"
+          }
+        }
+      }
+    },
+    "No models yet" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルがまだありません"
           }
         }
       }
@@ -3558,6 +3618,16 @@
         }
       }
     },
+    "The agent uses the model that Chat has loaded. Choose a model from the menu above, or open a bundle folder in Models." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "エージェントはチャットと同じモデルを使います。上のメニューからモデルを選ぶか、モデル管理でモデルのフォルダを開いてください。"
+          }
+        }
+      }
+    },
     "The agent uses the model that Chat has loaded. Open a model bundle folder in Models, then load it." : {
       "localizations" : {
         "ja" : {
@@ -4107,6 +4177,17 @@
         }
       }
     },
+    "macOS 27, Apple silicon" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS 27、Appleシリコン"
+          }
+        }
+      }
+    },
     "ml" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4243,6 +4324,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "未確認"
+          }
+        }
+      }
+    },
+    "~32 GiB peak RSS while loading" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "約32 GiB（読み込み時のピークRSS）"
           }
         }
       }
@@ -4840,6 +4932,1027 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "商品情報の抽出設定を読み込めませんでした。"
+          }
+        }
+      }
+    },
+    "Image search" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "画像検索"
+          }
+        }
+      }
+    },
+    "Find selected images with your own words" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選んだ画像を自分の言葉で探す"
+          }
+        }
+      }
+    },
+    "Describe an image to find" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "探したい画像の特徴を入力"
+          }
+        }
+      }
+    },
+    "Open model folder…" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルフォルダを開く…"
+          }
+        }
+      }
+    },
+    "Reload selected model" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選択したモデルを再読込"
+          }
+        }
+      }
+    },
+    "Model ready" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデル準備完了"
+          }
+        }
+      }
+    },
+    "Open model" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルを開く"
+          }
+        }
+      }
+    },
+    "Choose images…" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "画像を選ぶ…"
+          }
+        }
+      }
+    },
+    "Use sample images" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "サンプル画像を使う"
+          }
+        }
+      }
+    },
+    "Preparing the model…" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルを準備中…"
+          }
+        }
+      }
+    },
+    "Indexing images: %lld of %lld" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "画像を索引化中：%1$lld / %2$lld枚"
+          }
+        }
+      }
+    },
+    "Searching selected images…" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選んだ画像を検索中…"
+          }
+        }
+      }
+    },
+    "Search stays on this device." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "検索はこの端末内で完結します。"
+          }
+        }
+      }
+    },
+    "Indexing: %@ s" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "索引作成：%@秒"
+          }
+        }
+      }
+    },
+    "Search: %@ s" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "検索：%@秒"
+          }
+        }
+      }
+    },
+    "Find images with your own words" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自分の言葉で画像を探す"
+          }
+        }
+      }
+    },
+    "Open the model, then choose the images you want to search." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルを開き、検索したい画像を選んでください。"
+          }
+        }
+      }
+    },
+    "Selected images" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選択した画像"
+          }
+        }
+      }
+    },
+    "Search results" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "検索結果"
+          }
+        }
+      }
+    },
+    "%lld images" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld枚"
+          }
+        }
+      }
+    },
+    "Similarity" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "類似度"
+          }
+        }
+      }
+    },
+    "Open original: %@" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "元画像を開く：%@"
+          }
+        }
+      }
+    },
+    "The original image could not be opened." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "元画像を開けませんでした。"
+          }
+        }
+      }
+    },
+    "Choose up to 50 images at a time." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一度に選べる画像は50枚までです。"
+          }
+        }
+      }
+    },
+    "The selected files could not be opened." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選択したファイルを開けませんでした。"
+          }
+        }
+      }
+    },
+    "Shorten your search. This model accepts up to 128 tokens." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "検索文を短くしてください。このモデルは128トークンまで対応しています。"
+          }
+        }
+      }
+    },
+    "Use an opaque, still image with no more than 40 million pixels." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "透過のない4,000万画素以下の静止画を選んでください。"
+          }
+        }
+      }
+    },
+    "This model folder is incomplete or incompatible. Open a valid EmbeddingGemma 2 bundle." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルフォルダが不完全か、非対応です。対応するEmbeddingGemma 2バンドルを開いてください。"
+          }
+        }
+      }
+    },
+    "The operation failed. Try again or reopen the model folder." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "処理に失敗しました。再試行するか、モデルフォルダを開き直してください。"
+          }
+        }
+      }
+    },
+    "Search" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "検索"
+          }
+        }
+      }
+    },
+    "Details" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "詳細"
+          }
+        }
+      }
+    },
+    "Stopping…" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "停止中…"
+          }
+        }
+      }
+    },
+    "EmbeddingGemma 2" : {
+      "shouldTranslate" : false
+    },
+    "Checking image search…" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "画像検索を検証中…"
+          }
+        }
+      }
+    },
+    "Example searches" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "検索例"
+          }
+        }
+      }
+    },
+    "No close matches" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "十分に近い候補がありません"
+          }
+        }
+      }
+    },
+    "Show all candidates" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "すべての候補を表示"
+          }
+        }
+      }
+    },
+    "Similarity compares meaning; it is not a probability." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "類似度は意味の近さで、正解の確率ではありません。"
+          }
+        }
+      }
+    },
+    "Try different wording, choose more images, or show all candidates." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "言葉を変えるか、画像を追加するか、すべての候補を表示してください。"
+          }
+        }
+      }
+    },
+    "%lld of %lld recorded" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%2$lld項目中%1$lld項目を記録済み"
+          }
+        }
+      }
+    },
+    "All answers recorded" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "すべての回答を記録しました"
+          }
+        }
+      }
+    },
+    "Answer again" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "答え直す"
+          }
+        }
+      }
+    },
+    "Change vehicle profile" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "車両の装備を変更"
+          }
+        }
+      }
+    },
+    "Changing the vehicle profile clears this record." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "車両の装備を変更すると、この記録を消去します。"
+          }
+        }
+      }
+    },
+    "Check timing depends on distance and operating conditions." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "走行距離・運行状況に応じた時期に点検する項目です。"
+          }
+        }
+      }
+    },
+    "Checklist sources" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "点検項目の出典"
+          }
+        }
+      }
+    },
+    "Choose a model asset to interpret free-form answers, or use the answer buttons." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自由な言い方の判定にはモデルを選択してください。ボタンでも回答できます。"
+          }
+        }
+      }
+    },
+    "Clear this inspection record?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この点検記録を消去しますか？"
+          }
+        }
+      }
+    },
+    "Compute preference: %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "計算ユニットの指定：%@"
+          }
+        }
+      }
+    },
+    "Confirm result" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この結果で記録"
+          }
+        }
+      }
+    },
+    "Continue inspection" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "点検入力を続ける"
+          }
+        }
+      }
+    },
+    "Copy or share diagnostics" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "診断ログをコピー・共有"
+          }
+        }
+      }
+    },
+    "Could not load the inspection questions" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "点検項目を読み込めませんでした"
+          }
+        }
+      }
+    },
+    "Daily inspection results" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "日常点検の結果入力"
+          }
+        }
+      }
+    },
+    "Enter an answer first." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "回答を入力してください。"
+          }
+        }
+      }
+    },
+    "Explicit answer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "回答どおりに記録"
+          }
+        }
+      }
+    },
+    "Inspection record" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "点検記録"
+          }
+        }
+      }
+    },
+    "Interpret answer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "入力した内容を判定"
+          }
+        }
+      }
+    },
+    "Interpreting your answer…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "回答を判定しています…"
+          }
+        }
+      }
+    },
+    "Japanese questions and answers are used with either interface language." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "質問と回答は、画面の表示言語にかかわらず日本語です。"
+          }
+        }
+      }
+    },
+    "Keep the answer within 240 characters." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "回答は240文字以内にしてください。"
+          }
+        }
+      }
+    },
+    "Load: %@ ms" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "読み込み：%@ ms"
+          }
+        }
+      }
+    },
+    "Model and diagnostics" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルと診断情報"
+          }
+        }
+      }
+    },
+    "Model ready: %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデル準備済み：%@"
+          }
+        }
+      }
+    },
+    "New inspection" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新しい点検"
+          }
+        }
+      }
+    },
+    "Or type what you found" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "確認した内容を文字で入力"
+          }
+        }
+      }
+    },
+    "Place the GLiNER asset folder in this app's Documents, then reopen the app." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このアプリのDocumentsにGLiNERの資産フォルダを配置し、アプリを起動し直してください。"
+          }
+        }
+      }
+    },
+    "Please answer this item again." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この項目をもう一度答えてください。"
+          }
+        }
+      }
+    },
+    "Ready" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "準備完了"
+          }
+        }
+      }
+    },
+    "Review the results below, including items needing attention and items not inspected." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "要確認・未点検の項目も含めて、下の記録を確認してください。"
+          }
+        }
+      }
+    },
+    "Share inspection record" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "点検記録を共有"
+          }
+        }
+      }
+    },
+    "Start a new record" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新しい記録を始める"
+          }
+        }
+      }
+    },
+    "Start inspection" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "点検入力を始める"
+          }
+        }
+      }
+    },
+    "Tap answers work without a model." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルの配置前でも、ボタンで回答できます。"
+          }
+        }
+      }
+    },
+    "The operation failed. Check the diagnostics or use the answer buttons." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "処理に失敗しました。診断情報を確認するか、ボタンで回答してください。"
+          }
+        }
+      }
+    },
+    "Truck inspection" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "トラック点検"
+          }
+        }
+      }
+    },
+    "Unanswered" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未回答"
+          }
+        }
+      }
+    },
+    "Vehicle profile" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "車両の装備"
+          }
+        }
+      }
+    },
+    "Waiting for confirmation" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "確認を待っています"
+          }
+        }
+      }
+    },
+    "Waiting for your answer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "回答を待っています"
+          }
+        }
+      }
+    },
+    "Start Japanese voice input" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "日本語の音声入力を始める"
+          }
+        }
+      }
+    },
+    "Use answer buttons" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "タップ回答に切り替える"
+          }
+        }
+      }
+    },
+    "Checking voice permissions…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音声の権限を確認しています…"
+          }
+        }
+      }
+    },
+    "Reading the question…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "読み上げています…"
+          }
+        }
+      }
+    },
+    "Listening for confirmation" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "確認の回答を聞いています"
+          }
+        }
+      }
+    },
+    "Listening for your answer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "回答を聞いています"
+          }
+        }
+      }
+    },
+    "Prepare a model before starting voice input. Tap answers are available now." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音声入力にはモデルの準備が必要です。タップ回答はすぐに使えます。"
+          }
+        }
+      }
+    },
+    "Speech playback did not finish. Continue with the answer buttons." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "読み上げが完了しませんでした。ボタンで回答を続けてください。"
+          }
+        }
+      }
+    },
+    "No answer was recognized. Continue with the answer buttons." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "回答を聞き取れませんでした。ボタンで回答を続けてください。"
+          }
+        }
+      }
+    },
+    "Voice input is unavailable. Check permissions and Japanese on-device recognition, or use the answer buttons." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音声入力を利用できません。権限と日本語の端末内認識を確認するか、ボタンで回答してください。"
+          }
+        }
+      }
+    },
+    "Continue with the answer buttons." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ボタンで回答を続けてください。"
+          }
+        }
+      }
+    },
+    "The result is still unconfirmed. Answer this item with the buttons." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "結果は未確認です。この項目をボタンで回答してください。"
+          }
+        }
+      }
+    },
+    "Measure 20 classifications" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "推論を20回計測"
+          }
+        }
+      }
+    },
+    "Median: %@ ms" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "中央値：%@ ms"
+          }
+        }
+      }
+    },
+    "p95: %@ ms" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "p95：%@ ms"
+          }
+        }
+      }
+    },
+    "Measuring classification speed…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "推論速度を計測しています…"
+          }
+        }
+      }
+    },
+    "Speaking…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "読み上げています…"
           }
         }
       }

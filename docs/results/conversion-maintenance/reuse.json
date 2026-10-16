@@ -1,0 +1,50 @@
+{
+  "schema": "coreai-conversion-summary/1",
+  "status": "completed",
+  "verification": "passed",
+  "scope": "Fixed-input conversion check; not model production qualification.",
+  "stages": [
+    {
+      "index": 0,
+      "role": "prepare",
+      "status": "executed",
+      "prepare_s": 0.006070292089134455,
+      "execute_s": 0.1342534157447517,
+      "total_s": 1.8454298749566078
+    },
+    {
+      "index": 1,
+      "role": "reference",
+      "status": "reused",
+      "prepare_s": 0.5554932081140578,
+      "execute_s": 0,
+      "total_s": 0.5555217079818249
+    },
+    {
+      "index": 2,
+      "role": "export",
+      "status": "reused",
+      "prepare_s": 0.982071166858077,
+      "execute_s": 0,
+      "total_s": 0.9821082917042077
+    },
+    {
+      "index": 3,
+      "role": "verify",
+      "status": "reused",
+      "prepare_s": 0.015997042413800955,
+      "execute_s": 0,
+      "total_s": 0.016017917077988386
+    }
+  ],
+  "elapsed_s": 5.164321832824498,
+  "comparison": {
+    "passed": true,
+    "cases": 3,
+    "positions": 44,
+    "top1_matches": 44,
+    "near_tie_mismatches": 0,
+    "significant_mismatches": 0,
+    "max_probability_error": 0.004084858969318261
+  }
+}

@@ -1,0 +1,293 @@
+[
+  {
+    "displayed": [
+      "05-caprese.png"
+    ],
+    "evaluationOnly": false,
+    "expected": "05-caprese.png",
+    "id": "ja_food",
+    "matches": [
+      {
+        "image": "05-caprese.png",
+        "similarity": 0.7035906238260845
+      },
+      {
+        "image": "04-gratin.png",
+        "similarity": 0.6640914160975049
+      },
+      {
+        "image": "03-omelette.png",
+        "similarity": 0.6428856181033582
+      },
+      {
+        "image": "02-ginger-pork.png",
+        "similarity": 0.6367148908184084
+      },
+      {
+        "image": "01-oyakodon.png",
+        "similarity": 0.6326858829681685
+      }
+    ],
+    "query": "トマトと白いチーズが並んでいる写真",
+    "relevantResult": true,
+    "seconds": 0.019083958
+  },
+  {
+    "displayed": [
+      "03-omelette.png",
+      "01-oyakodon.png",
+      "04-gratin.png",
+      "02-ginger-pork.png",
+      "05-caprese.png"
+    ],
+    "evaluationOnly": false,
+    "expected": "03-omelette.png",
+    "id": "ja_eggs",
+    "matches": [
+      {
+        "image": "03-omelette.png",
+        "similarity": 0.7675571264161978
+      },
+      {
+        "image": "01-oyakodon.png",
+        "similarity": 0.7628931314751777
+      },
+      {
+        "image": "04-gratin.png",
+        "similarity": 0.7108126116658796
+      },
+      {
+        "image": "02-ginger-pork.png",
+        "similarity": 0.7092545122148332
+      },
+      {
+        "image": "05-caprese.png",
+        "similarity": 0.699884300717594
+      }
+    ],
+    "query": "卵が入っている冷蔵庫",
+    "relevantResult": true,
+    "seconds": 0.018079625
+  },
+  {
+    "displayed": [
+      "05-caprese.png"
+    ],
+    "evaluationOnly": false,
+    "expected": "05-caprese.png",
+    "id": "en_food",
+    "matches": [
+      {
+        "image": "05-caprese.png",
+        "similarity": 0.7100436581957364
+      },
+      {
+        "image": "04-gratin.png",
+        "similarity": 0.665505700644204
+      },
+      {
+        "image": "01-oyakodon.png",
+        "similarity": 0.6570309490509627
+      },
+      {
+        "image": "03-omelette.png",
+        "similarity": 0.6556920840379727
+      },
+      {
+        "image": "02-ginger-pork.png",
+        "similarity": 0.6433368984939744
+      }
+    ],
+    "query": "Tomatoes and white cheese",
+    "relevantResult": true,
+    "seconds": 0.018243333
+  },
+  {
+    "displayed": [],
+    "evaluationOnly": true,
+    "expected": "05-caprese.png",
+    "id": "val_caprese",
+    "matches": [
+      {
+        "image": "05-caprese.png",
+        "similarity": 0.6598765160399214
+      },
+      {
+        "image": "04-gratin.png",
+        "similarity": 0.6301356825438822
+      },
+      {
+        "image": "03-omelette.png",
+        "similarity": 0.6109761147528502
+      },
+      {
+        "image": "02-ginger-pork.png",
+        "similarity": 0.6063498307486849
+      },
+      {
+        "image": "01-oyakodon.png",
+        "similarity": 0.5975108219459649
+      }
+    ],
+    "query": "トマトと白いチーズでカプレーゼを作れそうな写真",
+    "relevantResult": false,
+    "seconds": 0.018676583
+  },
+  {
+    "displayed": [
+      "04-gratin.png"
+    ],
+    "evaluationOnly": true,
+    "expected": "04-gratin.png",
+    "id": "val_milk",
+    "matches": [
+      {
+        "image": "04-gratin.png",
+        "similarity": 0.7248802558818066
+      },
+      {
+        "image": "01-oyakodon.png",
+        "similarity": 0.6310711871236362
+      },
+      {
+        "image": "03-omelette.png",
+        "similarity": 0.6262511256763982
+      },
+      {
+        "image": "05-caprese.png",
+        "similarity": 0.6232810951174632
+      },
+      {
+        "image": "02-ginger-pork.png",
+        "similarity": 0.6226908207953168
+      }
+    ],
+    "query": "袋に入った細切りチーズと牛乳",
+    "relevantResult": true,
+    "seconds": 0.017770792
+  },
+  {
+    "displayed": [
+      "02-ginger-pork.png",
+      "01-oyakodon.png"
+    ],
+    "evaluationOnly": true,
+    "expected": "02-ginger-pork.png",
+    "id": "val_cucumber",
+    "matches": [
+      {
+        "image": "02-ginger-pork.png",
+        "similarity": 0.7855278359550879
+      },
+      {
+        "image": "01-oyakodon.png",
+        "similarity": 0.6958153326348949
+      },
+      {
+        "image": "04-gratin.png",
+        "similarity": 0.6693697788000365
+      },
+      {
+        "image": "03-omelette.png",
+        "similarity": 0.6288118132957327
+      },
+      {
+        "image": "05-caprese.png",
+        "similarity": 0.6217016242541099
+      }
+    ],
+    "query": "肉と玉ねぎの近くに人参ときゅうりがある",
+    "relevantResult": true,
+    "seconds": 0.018123667
+  },
+  {
+    "displayed": [],
+    "evaluationOnly": true,
+    "id": "val_dog",
+    "matches": [
+      {
+        "image": "02-ginger-pork.png",
+        "similarity": 0.5375351063229232
+      },
+      {
+        "image": "01-oyakodon.png",
+        "similarity": 0.5335193431370058
+      },
+      {
+        "image": "04-gratin.png",
+        "similarity": 0.5321754706169096
+      },
+      {
+        "image": "05-caprese.png",
+        "similarity": 0.5292819611948826
+      },
+      {
+        "image": "03-omelette.png",
+        "similarity": 0.5237894920665349
+      }
+    ],
+    "query": "砂浜でボールを追いかける犬",
+    "relevantResult": true,
+    "seconds": 0.017823625
+  },
+  {
+    "displayed": [],
+    "evaluationOnly": true,
+    "id": "val_toolbox",
+    "matches": [
+      {
+        "image": "05-caprese.png",
+        "similarity": 0.6214124285006364
+      },
+      {
+        "image": "03-omelette.png",
+        "similarity": 0.5697779607015899
+      },
+      {
+        "image": "02-ginger-pork.png",
+        "similarity": 0.5660523562734526
+      },
+      {
+        "image": "04-gratin.png",
+        "similarity": 0.5586375485648939
+      },
+      {
+        "image": "01-oyakodon.png",
+        "similarity": 0.5440621364964657
+      }
+    ],
+    "query": "机の上にある赤い工具箱",
+    "relevantResult": true,
+    "seconds": 0.018067291
+  },
+  {
+    "displayed": [],
+    "evaluationOnly": true,
+    "id": "val_train",
+    "matches": [
+      {
+        "image": "04-gratin.png",
+        "similarity": 0.5710223217306675
+      },
+      {
+        "image": "03-omelette.png",
+        "similarity": 0.5480389203538895
+      },
+      {
+        "image": "05-caprese.png",
+        "similarity": 0.5432263444557112
+      },
+      {
+        "image": "02-ginger-pork.png",
+        "similarity": 0.5416218245322172
+      },
+      {
+        "image": "01-oyakodon.png",
+        "similarity": 0.5289788976831432
+      }
+    ],
+    "query": "駅に停まっている青い列車",
+    "relevantResult": true,
+    "seconds": 0.017650584
+  }
+]
