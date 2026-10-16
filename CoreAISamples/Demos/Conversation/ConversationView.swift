@@ -264,6 +264,7 @@ struct ConversationView: View {
             Text("Collecting sources…")
         } else if let status = host.state.status {
             switch status {
+            case .finalizing: Text("Research limit reached. Writing the answer…")
             case .generating(let step, let limit): Text("Step \(step) of \(limit): generating…")
             case .running(let step, let tools): Text("Step \(step): running \(tools.joined(separator: " + "))…")
             case .stopping: Text("Stopping…")
@@ -374,7 +375,16 @@ struct ConversationEntryRow: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         case .note:
-            if entry.title == "Sources" || entry.title == "Source citations" {
+            if case .researchLimit(let steps) = entry.detail {
+                Label {
+                    Text("Research stopped after \(steps) steps. The answer uses the information already collected.")
+                } icon: {
+                    Image(systemName: "info.circle")
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            } else if entry.title == "Sources" || entry.title == "Source citations" {
                 VStack(alignment: .leading, spacing: 3) {
                     Label(
                         LocalizedStringKey(entry.title),

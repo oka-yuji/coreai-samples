@@ -536,6 +536,7 @@ enum AgentSelfTest {
         await ConversationArchiveSelfTest.run { name, passed, detail in check(name, passed, detail) }
         await ConversationNotesSelfTest.run { name, passed, detail in check(name, passed, detail) }
         await ConversationSourcesSelfTest.run { name, passed, detail in check(name, passed, detail) }
+        await ConversationBudgetSelfTest.run { name, passed, detail in check(name, passed, detail) }
 
         let transcripts = FileManager.default.temporaryDirectory.appending(
             path: "agent-selftest-transcripts-\(ProcessInfo.processInfo.processIdentifier)",
@@ -642,7 +643,7 @@ enum AgentSelfTest {
         }
 
         func ending(_ mode: ConversationMode, _ actions: ConversationAction...) -> String {
-            var state = ConversationState(id: "outcome", now: golden)
+            var state = ConversationState(id: "outcome", now: golden, settings: ConversationSettings(chatMaxSteps: 2))
             _ = ConversationFeature.reduce(&state, .send("Question", mode: mode, now: golden))
             for action in actions { _ = ConversationFeature.reduce(&state, action) }
             let failures = state.entries.filter { $0.kind == .failure }.map { ($0.title, $0.text) }
@@ -1130,6 +1131,7 @@ enum AgentSelfTest {
             defer { stored.removePersistentDomain(forName: headlessName) }
             let values: [String: Any] = [
                 ConversationPreferences.effortKey: "high", ConversationPreferences.maxStepsKey: 3,
+                ConversationPreferences.chatMaxStepsKey: 24,
                 ConversationPreferences.maxTokensKey: 2_048, ConversationPreferences.pageBudgetKey: 4_000,
                 ConversationPreferences.braveKeyKey: "key", ConversationPreferences.fileOpsKey: true,
                 ConversationPreferences.notesFolderKey: "/tmp/notes", ConversationPreferences.citationGuardKey: false,
@@ -1138,13 +1140,14 @@ enum AgentSelfTest {
             for (key, value) in values { stored.set(value, forKey: key) }
             let headless = ConversationPreferences(defaults: stored)
             let loaded =
-                headless.maxSteps == 3 && headless.maxTokens == 2_048 && headless.pageBudget == 4_000
+                headless.maxSteps == 3 && headless.chatMaxSteps == 24 && headless.maxTokens == 2_048
+                && headless.pageBudget == 4_000
                 && headless.braveAPIKey == "key" && headless.fileOperations && headless.notesFolderPath == "/tmp/notes"
                 && !headless.citationGuard && !headless.citeFetched
             headless.resetForHeadless()
             headless.effort = .medium
             let reset =
-                !headless.persists && headless.maxSteps == 8 && headless.maxTokens == nil
+                !headless.persists && headless.maxSteps == 8 && headless.chatMaxSteps == 16 && headless.maxTokens == nil
                 && headless.pageBudget == 10_000 && headless.braveAPIKey.isEmpty && !headless.fileOperations
                 && headless.notesFolderPath.isEmpty && !headless.citationGuard && headless.citeFetched
             let kept = values.allSatisfy { (stored.object(forKey: $0.key) as? NSObject)?.isEqual($0.value) == true }

@@ -39,14 +39,16 @@ final class ToolRunner {
     private(set) var sources = ConversationSources()
     private(set) var suppliedSourceIDs: Set<String> = []
     let preferences: ConversationPreferences
+    private let executor: ((AgentToolCall) async -> AgentToolOutput)?
     private nonisolated let slots = Mutex<[String: Slot]>([:])
 
-    init(preferences: ConversationPreferences) {
+    init(preferences: ConversationPreferences, executor: ((AgentToolCall) async -> AgentToolOutput)? = nil) {
         self.preferences = preferences
+        self.executor = executor
     }
 
     var notesDirectory: URL { taskNotesDirectory ?? preferences.notesDirectory }
-    var stopped: Bool { session?.stopRequested == true || Task.isCancelled }
+    var stopped: Bool { session?.isStopping == true || Task.isCancelled }
 
     var noteTextsForValidation: [String] { notesWritten.map(\.text) + notePartsByID.values.flatMap { $0 } }
 
@@ -116,7 +118,7 @@ final class ToolRunner {
 
     func prepareContinuation() async throws {
         for id in noteIDs {
-            if session?.stopRequested == true { return }
+            if session?.isStopping == true { return }
             let note = try await AgentTools.notes.read(noteID: id, directory: notesDirectory)
             recordNote(note, replacingTitle: false)
         }
@@ -226,6 +228,8 @@ final class ToolRunner {
         let output: AgentToolOutput
         if call.name == "fetch_page", !reserveRepairFetch() {
             output = AgentToolOutput(text: Self.repairFetchLimitText)
+        } else if let executor {
+            output = await executor(call)
         } else {
             output = await AgentTools.run(call, settings: settings)
         }
@@ -281,7 +285,7 @@ final class ToolRunner {
     }
 
     private func log(_ call: AgentToolCall, _ output: AgentToolOutput, start: Date, end: Date) {
-        guard let session, session.mode == .work else { return }
+        guard let session, session.mode == .work, session.recordsMetrics else { return }
         let style = Date.ISO8601FormatStyle(includingFractionalSeconds: true)
         var record = MetricsLog.agent("agent-tool", model: session.modelName)
         record.agentSession = session.id

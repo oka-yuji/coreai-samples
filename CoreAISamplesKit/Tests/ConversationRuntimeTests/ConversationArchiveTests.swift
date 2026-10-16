@@ -5,6 +5,32 @@ import Testing
 
 struct ConversationArchiveTests {
     private let writer = UUID()
+
+    @Test("Final-answer markers and disabled-tool continuations survive save and invalid marker positions are rejected")
+    func finalAnswerArchive() async throws {
+        let directory = folder()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        var snapshot = sample()
+        snapshot.transcript.entries += [
+            .prompt(id: "final", text: ConversationFeature.budgetAnswerPrompt),
+            .response(id: "summary", text: "Final answer", metadata: StepMetadata(stopReason: "stopToken")),
+        ]
+        snapshot.turns[0].finalAnswerStart = 3
+        let archive = ConversationArchive(directory: directory)
+        try await archive.save(snapshot, expectedRevision: 0, writer: writer)
+        #expect(try await archive.load(id: snapshot.id) == .snapshot(snapshot))
+        #expect(!snapshot.markdown().contains(ConversationFeature.budgetAnswerPrompt))
+        var continuation = snapshot
+        continuation.turns[0].toolsDisabled = true
+        let decoded = try JSONDecoder().decode(ConversationSnapshot.self, from: JSONEncoder().encode(continuation))
+        #expect(decoded.turns[0].policy.allowedTools.isEmpty)
+        for marker in [-1, 2, 6] {
+            var invalid = snapshot
+            invalid.turns[0].finalAnswerStart = marker
+            #expect(throws: ConversationArchive.Failure.self) { try ConversationArchive.validate(invalid) }
+        }
+    }
+
     @Test("Source identities and passages survive archive restore and missing source IDs are refused")
     func sourceArchive() async throws {
         let directory = folder()

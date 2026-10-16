@@ -8,6 +8,43 @@ import Testing
 @Suite(.timeLimit(.minutes(1)))
 struct ConversationTranscriptTests {
     @Test(
+        "Budget finalization closes pending calls without replay and sends a tool-disabled request with the same history"
+    )
+    func finalAnswerWithoutReplay() async throws {
+        let observed = ArchiveProbe()
+        let tool = ArchiveTool(probe: observed)
+        let original = Transcript(entries: [
+            .instructions(
+                Transcript.Instructions(
+                    id: "i", segments: [.text(Transcript.TextSegment(id: "it", content: "Use the existing facts."))],
+                    toolDefinitions: [Transcript.ToolDefinition(tool: tool)])),
+            .prompt(
+                Transcript.Prompt(id: "p", segments: [.text(Transcript.TextSegment(id: "pt", content: "Research"))])),
+            .toolCalls(
+                Transcript.ToolCalls(
+                    id: "calls",
+                    [
+                        Transcript.ToolCall(
+                            id: "pending", toolName: tool.name,
+                            arguments: try GeneratedContent(json: #"{"text":"blue"}"#))
+                    ])),
+        ])
+        let session = LanguageModelSession(model: ArchiveModel(probe: observed), tools: [tool], transcript: original)
+        session.transcript = ConversationTranscript.closingPendingCalls(in: session.transcript)
+        let closed = session.transcript
+        #expect(closed.count == original.count + 1)
+        #expect(closed.prefix(original.count).map(\.id) == original.map(\.id))
+        #expect(ConversationTranscript.closingPendingCalls(in: closed).map(\.id) == closed.map(\.id))
+        let response = try await session.respond(
+            to: ConversationFeature.budgetAnswerPrompt,
+            options: GenerationOptions(maximumResponseTokens: 128, toolCallingMode: .disallowed))
+        #expect(response.content == "Continued")
+        let values = observed.values.withLock { $0 }
+        #expect(values.toolCalls == 0 && values.toolMode == .disallowed)
+        #expect(values.transcript?.prefix(closed.count).map(\.id) == closed.map(\.id))
+    }
+
+    @Test(
         "A restored Foundation Models session receives old turns and never replays historical tool calls",
         arguments: [true, false])
     func continueWithoutReplay(hasOutput: Bool) async throws {
@@ -81,6 +118,7 @@ private final class ArchiveProbe: Sendable {
     struct Values: Sendable {
         var toolCalls = 0
         var transcript: Transcript?
+        var toolMode: GenerationOptions.ToolCallingMode.Kind?
     }
     let values = Mutex(Values())
 }
@@ -110,7 +148,10 @@ private struct ArchiveModel: LanguageModel {
             to request: LanguageModelExecutorGenerationRequest, model: Model,
             streamingInto channel: LanguageModelExecutorGenerationChannel
         ) async throws {
-            model.probe.values.withLock { $0.transcript = request.transcript }
+            model.probe.values.withLock {
+                $0.transcript = request.transcript
+                $0.toolMode = request.generationOptions.toolCallingMode?.kind
+            }
             await channel.send(.response(action: .appendText("Continued", tokenCount: 1)))
         }
     }

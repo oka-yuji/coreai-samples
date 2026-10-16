@@ -2,6 +2,7 @@ import ConversationFeature
 import ConversationRuntime
 import FeatureStore
 import Foundation
+import FoundationModels
 import RAGContext
 
 typealias ConversationStore = Store<ConversationFeature>
@@ -26,10 +27,14 @@ final class ConversationRunner {
     init(
         id: String, chat: ChatViewModel, preferences: ConversationPreferences,
         archive: ConversationArchive = ConversationRunner.defaultArchive,
-        termination: @escaping (Bool) -> Void = { _ in }
+        termination: @escaping (Bool) -> Void = { _ in },
+        sessionFactory: ((ToolRunner) -> LanguageModelSession)? = nil, recordsMetrics: Bool = true,
+        toolExecutor: ((AgentToolCall) async -> AgentToolOutput)? = nil
     ) {
-        let tools = ToolRunner(preferences: preferences)
-        session = ConversationSession(id: id, chat: chat, preferences: preferences, tools: tools)
+        let tools = ToolRunner(preferences: preferences, executor: toolExecutor)
+        session = ConversationSession(
+            id: id, chat: chat, preferences: preferences, tools: tools,
+            nativeSession: sessionFactory?(tools), recordsMetrics: recordsMetrics)
         citationGuard = CitationGuard(tools: tools)
         tools.session = session
         self.tools = tools
@@ -54,6 +59,27 @@ final class ConversationRunner {
                 retrievalStop?.yield(())
                 retrievalStop?.finish()
             }
+        case .stopForBudget(let run):
+            session.stopForBudget(run: run)
+        case .settleBudgetStop(let run, let policy):
+            chat.externallyBusy = true
+            let verdict = await citationGuard.settle(
+                TurnEnd(kind: .stopped, outcome: "step-limit", answer: ""), step: session.step,
+                maxSteps: policy.maxSteps, stopped: true, usage: session.usage)
+            switch verdict {
+            case .done(let note):
+                if let note {
+                    send(
+                        .guardNote(
+                            run: run, title: policy.citationGuard ? CitationGuard.title : "Notes",
+                            text: note.text, warning: note.warning))
+                }
+            case .repair:
+                await citationGuard.cancelRepair()
+            }
+            if policy.mode == .work { await citationGuard.saveRunMetrics(session: session) }
+            chat.externallyBusy = false
+            send(.stopped(run: run))
         case .save(let snapshot):
             await save(snapshot, send: send)
         case .restore(let id):
@@ -85,7 +111,7 @@ final class ConversationRunner {
         chat.externallyBusy = true
         defer { if !citationGuard.repairPending { chat.externallyBusy = false } }
         let repair = citationGuard.repairPending
-        if !repair {
+        if !repair && !policy.answerOnly {
             let guarding = policy.mode == .work && policy.citationGuard
             tools.beginTask(guardActive: guarding, continuing: policy.continuing)
             citationGuard.begin(
@@ -157,7 +183,7 @@ final class ConversationRunner {
                 return
             }
         }
-        if policy.continuing {
+        if policy.continuing && !policy.answerOnly {
             do { try await tools.prepareContinuation() } catch {
                 send(.guardNote(run: run, title: "Notes", text: error.localizedDescription, warning: true))
             }
@@ -169,6 +195,10 @@ final class ConversationRunner {
         sourceResult = nil
         if session.didSendPrompt { tools.markSourcesSupplied(sourceIDs) }
         send(.evidenceChanged(run: run, tools.evidence))
+        if end.outcome == "step-limit" {
+            send(.budgetStopped(run: run))
+            return
+        }
         var checked = end
         checked.answer = policy.answerPrefix + end.answer
         let verdict = await citationGuard.settle(
