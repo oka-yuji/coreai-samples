@@ -1,6 +1,6 @@
 # Object finder validation
 
-2026-10-17 JST. Plan v1; issues #147, #149 and #150. This record is not final acceptance: static-photo inference has not run, and the user will perform iPhone touch acceptance after integration.
+2026-10-17 JST. Plan v1; issues #147, #149 and #150. The user explicitly requested integration into main now to begin device testing. Static-photo inference and iPhone touch acceptance remain unverified; their pending status is retained after integration.
 
 ## Recorded checks
 
@@ -40,4 +40,4 @@ Static checks are prepared using two public eyeglass photos and the existing fiv
 - Calibration positive: [Eyeglass on the table, Nihar Gogoi](https://commons.wikimedia.org/wiki/File:Eyeglass_on_the_table_(India,_2016).jpg).
 - Held-out positive: [Purple tortoiseshell glasses](https://commons.wikimedia.org/wiki/File:Stylish_purple_tortoiseshell_glasses_resting_on_a_wooden_table_surrounded_by_blurred_objects_in_a_cozy_setting.jpg).
 
-The shared-model rule requires the already-running Mac demo to finish before the validation job starts. The user was asked whether that app may be closed. No model-validation success or merge is claimed while this gate is pending.
+The shared-model rule prevented the prepared Mac validation job from running alongside the existing demo. On 2026-10-17 the user explicitly requested merging now for their own device test. F4/C6 therefore remain pending follow-up checks rather than a blocker to this requested integration; their original conditions are not marked passed. C7/C8 remain the user's device acceptance. No static-photo or physical-camera success is inferred from the source review or build results.
