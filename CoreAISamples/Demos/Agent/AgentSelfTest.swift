@@ -553,6 +553,18 @@ enum AgentSelfTest {
                 && !failure.hasPrefix("The conversation could not be saved"),
             "saved=\(String(describing: saved)) written=\(written) "
                 + "skipped=\(String(describing: skipped)) failure=\(failure)")
+        let sameTimeIDs = (0..<2).map { _ in ConversationHost.newID(golden) }
+        let sameTimeSaves = sameTimeIDs.map { id in
+            ConversationRunner.write(ConversationSnapshot(ConversationState(id: id, now: golden)), to: transcripts)
+                == .saved(id: id)
+        }
+        check(
+            "conversation/sameTimeConversationsKeepSeparateFiles",
+            Set(sameTimeIDs).count == 2 && sameTimeSaves.allSatisfy { $0 }
+                && sameTimeIDs.allSatisfy {
+                    FileManager.default.fileExists(atPath: transcripts.appending(path: "\($0).md").path)
+                },
+            "ids=\(sameTimeIDs)")
         try? FileManager.default.removeItem(at: transcripts)
 
         var ran = 0

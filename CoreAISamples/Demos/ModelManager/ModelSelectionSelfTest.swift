@@ -206,7 +206,8 @@ enum ModelSelectionSelfTest {
             "switch/resetsConversationThenLoads",
             switched && moment.conversationChanged == true && host.state.entries.isEmpty && chat.bundleURL == qwen[0]
                 && chat.loadStarted > before && reachedRuntime,
-            "switched=\(switched) conversationChangedAtLoad=\(moment.conversationChanged.map(String.init) ?? "nil") \(chat.phase)")
+            "switched=\(switched) conversationChangedAtLoad=\(moment.conversationChanged.map(String.init) ?? "nil") \(chat.phase)"
+        )
     }
 
     static func bundle(_ name: String, modelID: String?, in root: URL) throws -> URL {
