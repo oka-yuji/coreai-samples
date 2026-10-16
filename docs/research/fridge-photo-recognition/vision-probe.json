@@ -1,0 +1,4017 @@
+[
+  {
+    "file" : "01-oyakodon.png",
+    "regions" : [
+      {
+        "labels" : [
+          {
+            "confidence" : 0.73242735862731934,
+            "id" : "appliance"
+          },
+          {
+            "confidence" : 0.73242735862731934,
+            "id" : "machine"
+          },
+          {
+            "confidence" : 0.732421875,
+            "id" : "refrigerator"
+          },
+          {
+            "confidence" : 0.27958592772483826,
+            "id" : "food"
+          },
+          {
+            "confidence" : 0.27952441573143005,
+            "id" : "vegetable"
+          },
+          {
+            "confidence" : 0.26171875,
+            "id" : "onion"
+          },
+          {
+            "confidence" : 0.19140625,
+            "id" : "pumpkin"
+          },
+          {
+            "confidence" : 0.091064453125,
+            "id" : "lettuce"
+          },
+          {
+            "confidence" : 0.07943437248468399,
+            "id" : "structure"
+          },
+          {
+            "confidence" : 0.079345703125,
+            "id" : "cabinet"
+          },
+          {
+            "confidence" : 0.079345703125,
+            "id" : "furniture"
+          },
+          {
+            "confidence" : 0.076120808720588684,
+            "id" : "container"
+          },
+          {
+            "confidence" : 0.073486328125,
+            "id" : "bottle"
+          },
+          {
+            "confidence" : 0.056640625,
+            "id" : "dishwasher"
+          },
+          {
+            "confidence" : 0.05224609375,
+            "id" : "garlic"
+          }
+        ],
+        "region" : [
+          0,
+          0,
+          1,
+          1
+        ]
+      },
+      {
+        "labels" : [
+          {
+            "confidence" : 0.6592484712600708,
+            "id" : "food"
+          },
+          {
+            "confidence" : 0.61950832605361938,
+            "id" : "vegetable"
+          },
+          {
+            "confidence" : 0.619140625,
+            "id" : "onion"
+          },
+          {
+            "confidence" : 0.59449887275695801,
+            "id" : "container"
+          },
+          {
+            "confidence" : 0.59423828125,
+            "id" : "bottle"
+          },
+          {
+            "confidence" : 0.46994304656982422,
+            "id" : "herb"
+          },
+          {
+            "confidence" : 0.46994304656982422,
+            "id" : "seasonings"
+          },
+          {
+            "confidence" : 0.46923828125,
+            "id" : "cilantro"
+          },
+          {
+            "confidence" : 0.134521484375,
+            "id" : "garlic"
+          },
+          {
+            "confidence" : 0.125732421875,
+            "id" : "jar"
+          },
+          {
+            "confidence" : 0.12382658571004868,
+            "id" : "appliance"
+          },
+          {
+            "confidence" : 0.12382658571004868,
+            "id" : "machine"
+          },
+          {
+            "confidence" : 0.123779296875,
+            "id" : "refrigerator"
+          },
+          {
+            "confidence" : 0.088134765625,
+            "id" : "pumpkin"
+          },
+          {
+            "confidence" : 0.072744384407997131,
+            "id" : "structure"
+          }
+        ],
+        "region" : [
+          0.1788330078125,
+          0.17041015625,
+          0.7567138671875,
+          0.567138671875
+        ]
+      },
+      {
+        "labels" : [
+          {
+            "confidence" : 0.25146502256393433,
+            "id" : "appliance"
+          },
+          {
+            "confidence" : 0.25146502256393433,
+            "id" : "machine"
+          },
+          {
+            "confidence" : 0.25146484375,
+            "id" : "refrigerator"
+          },
+          {
+            "confidence" : 0.044023893773555756,
+            "id" : "material"
+          },
+          {
+            "confidence" : 0.02978515625,
+            "id" : "raw_glass"
+          },
+          {
+            "confidence" : 0.011263892985880375,
+            "id" : "food"
+          },
+          {
+            "confidence" : 0.010968993417918682,
+            "id" : "meat"
+          },
+          {
+            "confidence" : 0.00927734375,
+            "id" : "bacon"
+          },
+          {
+            "confidence" : 0.009033203125,
+            "id" : "ham"
+          },
+          {
+            "confidence" : 0.0085732517763972282,
+            "id" : "oven"
+          },
+          {
+            "confidence" : 0.008544921875,
+            "id" : "dishwasher"
+          },
+          {
+            "confidence" : 0.008544921875,
+            "id" : "kitchen_oven"
+          },
+          {
+            "confidence" : 0.0075384089723229408,
+            "id" : "structure"
+          },
+          {
+            "confidence" : 0.006591796875,
+            "id" : "textile"
+          },
+          {
+            "confidence" : 0.00634765625,
+            "id" : "wood_processed"
+          }
+        ],
+        "region" : [
+          0,
+          0,
+          0.5,
+          0.40000000000000002
+        ]
+      },
+      {
+        "labels" : [
+          {
+            "confidence" : 0.076447397470474243,
+            "id" : "material"
+          },
+          {
+            "confidence" : 0.0537109375,
+            "id" : "raw_glass"
+          },
+          {
+            "confidence" : 0.053092088550329208,
+            "id" : "food"
+          },
+          {
+            "confidence" : 0.052905857563018799,
+            "id" : "meat"
+          },
+          {
+            "confidence" : 0.017847316339612007,
+            "id" : "dessert"
+          },
+          {
+            "confidence" : 0.017822265625,
+            "id" : "frozen_dessert"
+          },
+          {
+            "confidence" : 0.017822265625,
+            "id" : "ice_cream"
+          },
+          {
+            "confidence" : 0.017578125,
+            "id" : "ham"
+          },
+          {
+            "confidence" : 0.01705048605799675,
+            "id" : "utensil"
+          },
+          {
+            "confidence" : 0.017045482993125916,
+            "id" : "tableware"
+          },
+          {
+            "confidence" : 0.011474609375,
+            "id" : "bowl"
+          },
+          {
+            "confidence" : 0.010090133175253868,
+            "id" : "structure"
+          },
+          {
+            "confidence" : 0.010009765625,
+            "id" : "wood_processed"
+          },
+          {
+            "confidence" : 0.0094282021746039391,
+            "id" : "machine"
+          },
+          {
+            "confidence" : 0.0094281658530235291,
+            "id" : "appliance"
+          }
+        ],
+        "region" : [
+          0.25,
+          0,
+          0.5,
+          0.40000000000000002
+        ]
+      },
+      {
+        "labels" : [
+          {
+            "confidence" : 0.23285889625549316,
+            "id" : "appliance"
+          },
+          {
+            "confidence" : 0.23285889625549316,
+            "id" : "machine"
+          },
+          {
+            "confidence" : 0.232666015625,
+            "id" : "refrigerator"
+          },
+          {
+            "confidence" : 0.059868179261684418,
+            "id" : "material"
+          },
+          {
+            "confidence" : 0.054195728152990341,
+            "id" : "structure"
+          },
+          {
+            "confidence" : 0.051537860184907913,
+            "id" : "oven"
+          },
+          {
+            "confidence" : 0.05126953125,
+            "id" : "kitchen_oven"
+          },
+          {
+            "confidence" : 0.050537120550870895,
+            "id" : "furniture"
+          },
+          {
+            "confidence" : 0.050537109375,
+            "id" : "cabinet"
+          },
+          {
+            "confidence" : 0.04052734375,
+            "id" : "dishwasher"
+          },
+          {
+            "confidence" : 0.0380859375,
+            "id" : "wood_processed"
+          },
+          {
+            "confidence" : 0.03466796875,
+            "id" : "raw_glass"
+          },
+          {
+            "confidence" : 0.028815556317567825,
+            "id" : "food"
+          },
+          {
+            "confidence" : 0.028808614239096642,
+            "id" : "dessert"
+          },
+          {
+            "confidence" : 0.02880859375,
+            "id" : "frozen_dessert"
+          }
+        ],
+        "region" : [
+          0.5,
+          0,
+          0.5,
+          0.40000000000000002
+        ]
+      },
+      {
+        "labels" : [
+          {
+            "confidence" : 0.42977550625801086,
+            "id" : "food"
+          },
+          {
+            "confidence" : 0.42977550625801086,
+            "id" : "vegetable"
+          },
+          {
+            "confidence" : 0.388671875,
+            "id" : "onion"
+          },
+          {
+            "confidence" : 0.327880859375,
+            "id" : "pumpkin"
+          },
+          {
+            "confidence" : 0.088136836886405945,
+            "id" : "structure"
+          },
+          {
+            "confidence" : 0.087890759110450745,
+            "id" : "furniture"
+          },
+          {
+            "confidence" : 0.087890625,
+            "id" : "cabinet"
+          },
+          {
+            "confidence" : 0.071988806128501892,
+            "id" : "material"
+          },
+          {
+            "confidence" : 0.07177734375,
+            "id" : "raw_glass"
+          },
+          {
+            "confidence" : 0.052626024931669235,
+            "id" : "appliance"
+          },
+          {
+            "confidence" : 0.052626024931669235,
+            "id" : "machine"
+          },
+          {
+            "confidence" : 0.05126953125,
+            "id" : "refrigerator"
+          },
+          {
+            "confidence" : 0.03874550387263298,
+            "id" : "interior_room"
+          },
+          {
+            "confidence" : 0.03874550387263298,
+            "id" : "kitchen"
+          },
+          {
+            "confidence" : 0.0380859375,
+            "id" : "garlic"
+          }
+        ],
+        "region" : [
+          0,
+          0.29999999999999999,
+          0.5,
+          0.40000000000000002
+        ]
+      },
+      {
+        "labels" : [
+          {
+            "confidence" : 0.47146600484848022,
+            "id" : "food"
+          },
+          {
+            "confidence" : 0.4209568202495575,
+            "id" : "vegetable"
+          },
+          {
+            "confidence" : 0.407958984375,
+            "id" : "pumpkin"
+          },
+          {
+            "confidence" : 0.36925330758094788,
+            "id" : "herb"
+          },
+          {
+            "confidence" : 0.36925330758094788,
+            "id" : "seasonings"
+          },
+          {
+            "confidence" : 0.369140625,
+            "id" : "cilantro"
+          },
+          {
+            "confidence" : 0.248291015625,
+            "id" : "onion"
+          },
+          {
+            "confidence" : 0.11144153773784637,
+            "id" : "interior_room"
+          },
+          {
+            "confidence" : 0.11144153028726578,
+            "id" : "kitchen"
+          },
+          {
+            "confidence" : 0.10888671875,
+            "id" : "kitchen_sink"
+          },
+          {
+            "confidence" : 0.078205913305282593,
+            "id" : "structure"
+          },
+          {
+            "confidence" : 0.076660536229610443,
+            "id" : "furniture"
+          },
+          {
+            "confidence" : 0.07666015625,
+            "id" : "cabinet"
+          },
+          {
+            "confidence" : 0.05859375,
+            "id" : "kitchen_countertop"
+          },
+          {
+            "confidence" : 0.045999526977539062,
+            "id" : "material"
+          }
+        ],
+        "region" : [
+          0.25,
+          0.29999999999999999,
+          0.5,
+          0.40000000000000002
+        ]
+      },
+      {
+        "labels" : [
+          {
+            "confidence" : 0.7270658016204834,
+            "id" : "container"
+          },
+          {
+            "confidence" : 0.72705078125,
+            "id" : "bottle"
+          },
+          {
+            "confidence" : 0.21327732503414154,
+            "id" : "appliance"
+          },
+          {
+            "confidence" : 0.21327732503414154,
+            "id" : "machine"
+          },
+          {
+            "confidence" : 0.213134765625,
+            "id" : "refrigerator"
+          },
+          {
+            "confidence" : 0.17465345561504364,
+            "id" : "food"
+          },
+          {
+            "confidence" : 0.16726888716220856,
+            "id" : "seasonings"
+          },
+          {
+            "confidence" : 0.16726124286651611,
+            "id" : "herb"
+          },
+          {
+            "confidence" : 0.167236328125,
+            "id" : "cilantro"
+          },
+          {
+            "confidence" : 0.10903088748455048,
+            "id" : "interior_room"
+          },
+          {
+            "confidence" : 0.10903087258338928,
+            "id" : "kitchen"
+          },
+          {
+            "confidence" : 0.10648562014102936,
+            "id" : "vegetable"
+          },
+          {
+            "confidence" : 0.1064453125,
+            "id" : "kitchen_sink"
+          },
+          {
+            "confidence" : 0.09130859375,
+            "id" : "lettuce"
+          },
+          {
+            "confidence" : 0.084516100585460663,
+            "id" : "structure"
+          }
+        ],
+        "region" : [
+          0.5,
+          0.29999999999999999,
+          0.5,
+          0.40000000000000002
+        ]
+      },
+      {
+        "labels" : [
+          {
+            "confidence" : 0.3203129768371582,
+            "id" : "food"
+          },
+          {
+            "confidence" : 0.32031279802322388,
+            "id" : "vegetable"
+          },
+          {
+            "confidence" : 0.3203125,
+            "id" : "pumpkin"
+          },
+          {
+            "confidence" : 0.1298593282699585,
+            "id" : "machine"
+          },
+          {
+            "confidence" : 0.12985928356647491,
+            "id" : "appliance"
+          },
+          {
+            "confidence" : 0.12890625,
+            "id" : "refrigerator"
+          },
+          {
+            "confidence" : 0.059148713946342468,
+            "id" : "structure"
+          },
+          {
+            "confidence" : 0.052001953125,
+            "id" : "dishwasher"
+          },
+          {
+            "confidence" : 0.051026094704866409,
+            "id" : "furniture"
+          },
+          {
+            "confidence" : 0.051025390625,
+            "id" : "cabinet"
+          },
+          {
+            "confidence" : 0.04833984375,
+            "id" : "wood_processed"
+          },
+          {
+            "confidence" : 0.04197431355714798,
+            "id" : "utensil"
+          },
+          {
+            "confidence" : 0.041959881782531738,
+            "id" : "tableware"
+          },
+          {
+            "confidence" : 0.041015625,
+            "id" : "drinking_glass"
+          },
+          {
+            "confidence" : 0.034843761473894119,
+            "id" : "material"
+          }
+        ],
+        "region" : [
+          0,
+          0.59999999999999998,
+          0.5,
+          0.40000000000000002
+        ]
+      },
+      {
+        "labels" : [
+          {
+            "confidence" : 0.15796409547328949,
+            "id" : "plant"
+          },
+          {
+            "confidence" : 0.157958984375,
+            "id" : "foliage"
+          },
+          {
+            "confidence" : 0.1405060738325119,
+            "id" : "food"
+          },
+          {
+            "confidence" : 0.14042441546916962,
+            "id" : "vegetable"
+          },
+          {
+            "confidence" : 0.13623046875,
+            "id" : "pumpkin"
+          },
+          {
+            "confidence" : 0.11375205963850021,
+            "id" : "structure"
+          },
+          {
+            "confidence" : 0.11365431547164917,
+            "id" : "utensil"
+          },
+          {
+            "confidence" : 0.11364870518445969,
+            "id" : "tableware"
+          },
+          {
+            "confidence" : 0.11279296875,
+            "id" : "wood_processed"
+          },
+          {
+            "confidence" : 0.112548828125,
+            "id" : "drinking_glass"
+          },
+          {
+            "confidence" : 0.08154296875,
+            "id" : "onion"
+          },
+          {
+            "confidence" : 0.04931640625,
+            "id" : "bowl"
+          },
+          {
+            "confidence" : 0.048594329506158829,
+            "id" : "furniture"
+          },
+          {
+            "confidence" : 0.048583984375,
+            "id" : "cabinet"
+          },
+          {
+            "confidence" : 0.040038485080003738,
+            "id" : "material"
+          }
+        ],
+        "region" : [
+          0.25,
+          0.59999999999999998,
+          0.5,
+          0.40000000000000002
+        ]
+      },
+      {
+        "labels" : [
+          {
+            "confidence" : 0.27124744653701782,
+            "id" : "plant"
+          },
+          {
+            "confidence" : 0.271240234375,
+            "id" : "foliage"
+          },
+          {
+            "confidence" : 0.20220813155174255,
+            "id" : "structure"
+          },
+          {
+            "confidence" : 0.2021489292383194,
+            "id" : "furniture"
+          },
+          {
+            "confidence" : 0.2021484375,
+            "id" : "cabinet"
+          },
+          {
+            "confidence" : 0.096507817506790161,
+            "id" : "appliance"
+          },
+          {
+            "confidence" : 0.096507817506790161,
+            "id" : "machine"
+          },
+          {
+            "confidence" : 0.096435546875,
+            "id" : "refrigerator"
+          },
+          {
+            "confidence" : 0.070366375148296356,
+            "id" : "material"
+          },
+          {
+            "confidence" : 0.068359375,
+            "id" : "raw_glass"
+          },
+          {
+            "confidence" : 0.058615919202566147,
+            "id" : "utensil"
+          },
+          {
+            "confidence" : 0.058615848422050476,
+            "id" : "tableware"
+          },
+          {
+            "confidence" : 0.05859375,
+            "id" : "drinking_glass"
+          },
+          {
+            "confidence" : 0.057006262242794037,
+            "id" : "interior_room"
+          },
+          {
+            "confidence" : 0.057006031274795532,
+            "id" : "kitchen"
+          }
+        ],
+        "region" : [
+          0.5,
+          0.59999999999999998,
+          0.5,
+          0.40000000000000002
+        ]
+      }
+    ]
+  },
+  {
+    "file" : "02-ginger-pork.png",
+    "regions" : [
+      {
+        "labels" : [
+          {
+            "confidence" : 0.744651198387146,
+            "id" : "appliance"
+          },
+          {
+            "confidence" : 0.744651198387146,
+            "id" : "machine"
+          },
+          {
+            "confidence" : 0.74462890625,
+            "id" : "refrigerator"
+          },
+          {
+            "confidence" : 0.34638687968254089,
+            "id" : "food"
+          },
+          {
+            "confidence" : 0.34638586640357971,
+            "id" : "vegetable"
+          },
+          {
+            "confidence" : 0.341552734375,
+            "id" : "carrot"
+          },
+          {
+            "confidence" : 0.18663249909877777,
+            "id" : "structure"
+          },
+          {
+            "confidence" : 0.185546875,
+            "id" : "cabinet"
+          },
+          {
+            "confidence" : 0.185546875,
+            "id" : "furniture"
+          },
+          {
+            "confidence" : 0.151611328125,
+            "id" : "onion"
+          },
+          {
+            "confidence" : 0.127685546875,
+            "id" : "cucumber"
+          },
+          {
+            "confidence" : 0.081833206117153168,
+            "id" : "oven"
+          },
+          {
+            "confidence" : 0.081787109375,
+            "id" : "kitchen_oven"
+          },
+          {
+            "confidence" : 0.07275390625,
+            "id" : "wood_processed"
+          },
+          {
+            "confidence" : 0.051513671875,
+            "id" : "dishwasher"
+          }
+        ],
+        "region" : [
+          0,
+          0,
+          1,
+          1
+        ]
+      },
+      {
+        "labels" : [
+          {
+            "confidence" : 0.44326445460319519,
+            "id" : "food"
+          },
+          {
+            "confidence" : 0.44314184784889221,
+            "id" : "vegetable"
+          },
+          {
+            "confidence" : 0.429931640625,
+            "id" : "carrot"
+          },
+          {
+            "confidence" : 0.226318359375,
+            "id" : "cucumber"
+          },
+          {
+            "confidence" : 0.20654296875,
+            "id" : "onion"
+          },
+          {
+            "confidence" : 0.12061706930398941,
+            "id" : "appliance"
+          },
+          {
+            "confidence" : 0.12061706930398941,
+            "id" : "machine"
+          },
+          {
+            "confidence" : 0.12060546875,
+            "id" : "refrigerator"
+          },
+          {
+            "confidence" : 0.096435546875,
+            "id" : "zucchini"
+          },
+          {
+            "confidence" : 0.081619985401630402,
+            "id" : "meat"
+          },
+          {
+            "confidence" : 0.081298828125,
+            "id" : "beef"
+          },
+          {
+            "confidence" : 0.071533203125,
+            "id" : "garlic"
+          },
+          {
+            "confidence" : 0.034941036254167557,
+            "id" : "structure"
+          },
+          {
+            "confidence" : 0.03466796875,
+            "id" : "wood_processed"
+          },
+          {
+            "confidence" : 0.028739938512444496,
+            "id" : "material"
+          }
+        ],
+        "region" : [
+          0.08880615234375,
+          0.2392578125,
+          0.81549072265625,
+          0.48681640625
+        ]
+      },
+      {
+        "labels" : [
+          {
+            "confidence" : 0.53525930643081665,
+            "id" : "appliance"
+          },
+          {
+            "confidence" : 0.53525930643081665,
+            "id" : "machine"
+          },
+          {
+            "confidence" : 0.53515625,
+            "id" : "refrigerator"
+          },
+          {
+            "confidence" : 0.091078087687492371,
+            "id" : "oven"
+          },
+          {
+            "confidence" : 0.091064453125,
+            "id" : "kitchen_oven"
+          },
+          {
+            "confidence" : 0.042786072939634323,
+            "id" : "material"
+          },
+          {
+            "confidence" : 0.039982832968235016,
+            "id" : "structure"
+          },
+          {
+            "confidence" : 0.038574319332838058,
+            "id" : "furniture"
+          },
+          {
+            "confidence" : 0.03857421875,
+            "id" : "cabinet"
+          },
+          {
+            "confidence" : 0.037841796875,
+            "id" : "raw_glass"
+          },
+          {
+            "confidence" : 0.024169921875,
+            "id" : "wood_processed"
+          },
+          {
+            "confidence" : 0.01416015625,
+            "id" : "microwave"
+          },
+          {
+            "confidence" : 0.013254697434604168,
+            "id" : "food"
+          },
+          {
+            "confidence" : 0.013249080628156662,
+            "id" : "meat"
+          },
+          {
+            "confidence" : 0.012451171875,
+            "id" : "bacon"
+          }
+        ],
+        "region" : [
+          0,
+          0,
+          0.5,
+          0.40000000000000002
+        ]
+      },
+      {
+        "labels" : [
+          {
+            "confidence" : 0.065829358994960785,
+            "id" : "material"
+          },
+          {
+            "confidence" : 0.06084023043513298,
+            "id" : "structure"
+          },
+          {
+            "confidence" : 0.060791015625,
+            "id" : "wood_processed"
+          },
+          {
+            "confidence" : 0.0340280681848526,
+            "id" : "interior_room"
+          },
+          {
+            "confidence" : 0.034027554094791412,
+            "id" : "kitchen"
+          },
+          {
+            "confidence" : 0.03369140625,
+            "id" : "kitchen_sink"
+          },
+          {
+            "confidence" : 0.021740693598985672,
+            "id" : "machine"
+          },
+          {
+            "confidence" : 0.021740429103374481,
+            "id" : "appliance"
+          },
+          {
+            "confidence" : 0.020263671875,
+            "id" : "raw_glass"
+          },
+          {
+            "confidence" : 0.019781202077865601,
+            "id" : "optical_equipment"
+          },
+          {
+            "confidence" : 0.019775390625,
+            "id" : "eyeglasses"
+          },
+          {
+            "confidence" : 0.0185546875,
+            "id" : "refrigerator"
+          },
+          {
+            "confidence" : 0.017822265625,
+            "id" : "stove"
+          },
+          {
+            "confidence" : 0.01578073762357235,
+            "id" : "utensil"
+          },
+          {
+            "confidence" : 0.014478526078164577,
+            "id" : "furniture"
+          }
+        ],
+        "region" : [
+          0.25,
+          0,
+          0.5,
+          0.40000000000000002
+        ]
+      },
+      {
+        "labels" : [
+          {
+            "confidence" : 0.51513892412185669,
+            "id" : "appliance"
+          },
+          {
+            "confidence" : 0.51513892412185669,
+            "id" : "machine"
+          },
+          {
+            "confidence" : 0.51513671875,
+            "id" : "refrigerator"
+          },
+          {
+            "confidence" : 0.033271491527557373,
+            "id" : "people"
+          },
+          {
+            "confidence" : 0.032855655997991562,
+            "id" : "oven"
+          },
+          {
+            "confidence" : 0.03271484375,
+            "id" : "kitchen_oven"
+          },
+          {
+            "confidence" : 0.029136640951037407,
+            "id" : "structure"
+          },
+          {
+            "confidence" : 0.029052883386611938,
+            "id" : "furniture"
+          },
+          {
+            "confidence" : 0.029052734375,
+            "id" : "cabinet"
+          },
+          {
+            "confidence" : 0.025107216089963913,
+            "id" : "material"
+          },
+          {
+            "confidence" : 0.016845703125,
+            "id" : "raw_glass"
+          },
+          {
+            "confidence" : 0.015625,
+            "id" : "stove"
+          },
+          {
+            "confidence" : 0.015380859375,
+            "id" : "dishwasher"
+          },
+          {
+            "confidence" : 0.012616395018994808,
+            "id" : "container"
+          },
+          {
+            "confidence" : 0.01229417510330677,
+            "id" : "utensil"
+          }
+        ],
+        "region" : [
+          0.5,
+          0,
+          0.5,
+          0.40000000000000002
+        ]
+      },
+      {
+        "labels" : [
+          {
+            "confidence" : 0.28552797436714172,
+            "id" : "food"
+          },
+          {
+            "confidence" : 0.28380811214447021,
+            "id" : "vegetable"
+          },
+          {
+            "confidence" : 0.283447265625,
+            "id" : "onion"
+          },
+          {
+            "confidence" : 0.11242140084505081,
+            "id" : "meat"
+          },
+          {
+            "confidence" : 0.11181640625,
+            "id" : "beef"
+          },
+          {
+            "confidence" : 0.082875944674015045,
+            "id" : "structure"
+          },
+          {
+            "confidence" : 0.082763671875,
+            "id" : "wood_processed"
+          },
+          {
+            "confidence" : 0.075204677879810333,
+            "id" : "material"
+          },
+          {
+            "confidence" : 0.07421875,
+            "id" : "raw_glass"
+          },
+          {
+            "confidence" : 0.071044921875,
+            "id" : "pumpkin"
+          },
+          {
+            "confidence" : 0.07086181640625,
+            "id" : "appliance"
+          },
+          {
+            "confidence" : 0.07086181640625,
+            "id" : "machine"
+          },
+          {
+            "confidence" : 0.07080078125,
+            "id" : "refrigerator"
+          },
+          {
+            "confidence" : 0.04638671875,
+            "id" : "carrot"
+          },
+          {
+            "confidence" : 0.041748046875,
+            "id" : "garlic"
+          }
+        ],
+        "region" : [
+          0,
+          0.29999999999999999,
+          0.5,
+          0.40000000000000002
+        ]
+      },
+      {
+        "labels" : [
+          {
+            "confidence" : 0.68741118907928467,
+            "id" : "food"
+          },
+          {
+            "confidence" : 0.68717581033706665,
+            "id" : "vegetable"
+          },
+          {
+            "confidence" : 0.654296875,
+            "id" : "carrot"
+          },
+          {
+            "confidence" : 0.468017578125,
+            "id" : "cucumber"
+          },
+          {
+            "confidence" : 0.23901370167732239,
+            "id" : "structure"
+          },
+          {
+            "confidence" : 0.239013671875,
+            "id" : "wood_processed"
+          },
+          {
+            "confidence" : 0.15185546875,
+            "id" : "zucchini"
+          },
+          {
+            "confidence" : 0.14082024991512299,
+            "id" : "meat"
+          },
+          {
+            "confidence" : 0.140625,
+            "id" : "beef"
+          },
+          {
+            "confidence" : 0.10791015625,
+            "id" : "onion"
+          },
+          {
+            "confidence" : 0.049072265625,
+            "id" : "leek"
+          },
+          {
+            "confidence" : 0.041602857410907745,
+            "id" : "utensil"
+          },
+          {
+            "confidence" : 0.036880739033222198,
+            "id" : "tableware"
+          },
+          {
+            "confidence" : 0.036376953125,
+            "id" : "bowl"
+          },
+          {
+            "confidence" : 0.03271484375,
+            "id" : "cutting_board"
+          }
+        ],
+        "region" : [
+          0.25,
+          0.29999999999999999,
+          0.5,
+          0.40000000000000002
+        ]
+      },
+      {
+        "labels" : [
+          {
+            "confidence" : 0.45385760068893433,
+            "id" : "appliance"
+          },
+          {
+            "confidence" : 0.45385760068893433,
+            "id" : "machine"
+          },
+          {
+            "confidence" : 0.453857421875,
+            "id" : "refrigerator"
+          },
+          {
+            "confidence" : 0.38519981503486633,
+            "id" : "food"
+          },
+          {
+            "confidence" : 0.38519901037216187,
+            "id" : "vegetable"
+          },
+          {
+            "confidence" : 0.334228515625,
+            "id" : "carrot"
+          },
+          {
+            "confidence" : 0.3134765625,
+            "id" : "cucumber"
+          },
+          {
+            "confidence" : 0.03369140625,
+            "id" : "zucchini"
+          },
+          {
+            "confidence" : 0.030990621075034142,
+            "id" : "container"
+          },
+          {
+            "confidence" : 0.027587890625,
+            "id" : "jar"
+          },
+          {
+            "confidence" : 0.024169921875,
+            "id" : "bottle"
+          },
+          {
+            "confidence" : 0.020752117037773132,
+            "id" : "seasonings"
+          },
+          {
+            "confidence" : 0.020751953125,
+            "id" : "condiment"
+          },
+          {
+            "confidence" : 0.020751953125,
+            "id" : "pickle"
+          },
+          {
+            "confidence" : 0.018588189035654068,
+            "id" : "structure"
+          }
+        ],
+        "region" : [
+          0.5,
+          0.29999999999999999,
+          0.5,
+          0.40000000000000002
+        ]
+      },
+      {
+        "labels" : [
+          {
+            "confidence" : 0.71888840198516846,
+            "id" : "food"
+          },
+          {
+            "confidence" : 0.71888840198516846,
+            "id" : "vegetable"
+          },
+          {
+            "confidence" : 0.716796875,
+            "id" : "pumpkin"
+          },
+          {
+            "confidence" : 0.41056942939758301,
+            "id" : "structure"
+          },
+          {
+            "confidence" : 0.40917971730232239,
+            "id" : "furniture"
+          },
+          {
+            "confidence" : 0.4091796875,
+            "id" : "cabinet"
+          },
+          {
+            "confidence" : 0.254638671875,
+            "id" : "onion"
+          },
+          {
+            "confidence" : 0.140869140625,
+            "id" : "wood_processed"
+          },
+          {
+            "confidence" : 0.11844141781330109,
+            "id" : "appliance"
+          },
+          {
+            "confidence" : 0.11844141781330109,
+            "id" : "machine"
+          },
+          {
+            "confidence" : 0.117919921875,
+            "id" : "refrigerator"
+          },
+          {
+            "confidence" : 0.088376894593238831,
+            "id" : "interior_room"
+          },
+          {
+            "confidence" : 0.088376805186271667,
+            "id" : "kitchen"
+          },
+          {
+            "confidence" : 0.087890625,
+            "id" : "kitchen_countertop"
+          },
+          {
+            "confidence" : 0.038484252989292145,
+            "id" : "oven"
+          }
+        ],
+        "region" : [
+          0,
+          0.59999999999999998,
+          0.5,
+          0.40000000000000002
+        ]
+      },
+      {
+        "labels" : [
+          {
+            "confidence" : 0.5153154730796814,
+            "id" : "food"
+          },
+          {
+            "confidence" : 0.5153154730796814,
+            "id" : "vegetable"
+          },
+          {
+            "confidence" : 0.513671875,
+            "id" : "carrot"
+          },
+          {
+            "confidence" : 0.35200047492980957,
+            "id" : "structure"
+          },
+          {
+            "confidence" : 0.31396484375,
+            "id" : "cabinet"
+          },
+          {
+            "confidence" : 0.31396484375,
+            "id" : "furniture"
+          },
+          {
+            "confidence" : 0.274658203125,
+            "id" : "wood_processed"
+          },
+          {
+            "confidence" : 0.1494140625,
+            "id" : "pumpkin"
+          },
+          {
+            "confidence" : 0.14599609375,
+            "id" : "cucumber"
+          },
+          {
+            "confidence" : 0.12451393157243729,
+            "id" : "interior_room"
+          },
+          {
+            "confidence" : 0.12451393157243729,
+            "id" : "kitchen"
+          },
+          {
+            "confidence" : 0.123291015625,
+            "id" : "kitchen_countertop"
+          },
+          {
+            "confidence" : 0.10970993340015411,
+            "id" : "appliance"
+          },
+          {
+            "confidence" : 0.10970993340015411,
+            "id" : "machine"
+          },
+          {
+            "confidence" : 0.09998302161693573,
+            "id" : "oven"
+          }
+        ],
+        "region" : [
+          0.25,
+          0.59999999999999998,
+          0.5,
+          0.40000000000000002
+        ]
+      },
+      {
+        "labels" : [
+          {
+            "confidence" : 0.6271514892578125,
+            "id" : "appliance"
+          },
+          {
+            "confidence" : 0.6271514892578125,
+            "id" : "machine"
+          },
+          {
+            "confidence" : 0.626953125,
+            "id" : "refrigerator"
+          },
+          {
+            "confidence" : 0.3559582531452179,
+            "id" : "structure"
+          },
+          {
+            "confidence" : 0.35595703125,
+            "id" : "cabinet"
+          },
+          {
+            "confidence" : 0.35595703125,
+            "id" : "furniture"
+          },
+          {
+            "confidence" : 0.2900066077709198,
+            "id" : "food"
+          },
+          {
+            "confidence" : 0.29000657796859741,
+            "id" : "vegetable"
+          },
+          {
+            "confidence" : 0.2626953125,
+            "id" : "carrot"
+          },
+          {
+            "confidence" : 0.219482421875,
+            "id" : "cucumber"
+          },
+          {
+            "confidence" : 0.17687280476093292,
+            "id" : "interior_room"
+          },
+          {
+            "confidence" : 0.17687109112739563,
+            "id" : "kitchen"
+          },
+          {
+            "confidence" : 0.164794921875,
+            "id" : "kitchen_sink"
+          },
+          {
+            "confidence" : 0.112060546875,
+            "id" : "kitchen_countertop"
+          },
+          {
+            "confidence" : 0.109130859375,
+            "id" : "dishwasher"
+          }
+        ],
+        "region" : [
+          0.5,
+          0.59999999999999998,
+          0.5,
+          0.40000000000000002
+        ]
+      }
+    ]
+  },
+  {
+    "file" : "03-omelette.png",
+    "regions" : [
+      {
+        "labels" : [
+          {
+            "confidence" : 0.75781327486038208,
+            "id" : "food"
+          },
+          {
+            "confidence" : 0.75781327486038208,
+            "id" : "vegetable"
+          },
+          {
+            "confidence" : 0.7578125,
+            "id" : "broccoli"
+          },
+          {
+            "confidence" : 0.336467444896698,
+            "id" : "appliance"
+          },
+          {
+            "confidence" : 0.336467444896698,
+            "id" : "machine"
+          },
+          {
+            "confidence" : 0.33642578125,
+            "id" : "refrigerator"
+          },
+          {
+            "confidence" : 0.062528066337108612,
+            "id" : "structure"
+          },
+          {
+            "confidence" : 0.060546990483999252,
+            "id" : "furniture"
+          },
+          {
+            "confidence" : 0.060546875,
+            "id" : "cabinet"
+          },
+          {
+            "confidence" : 0.060395441949367523,
+            "id" : "utensil"
+          },
+          {
+            "confidence" : 0.060393713414669037,
+            "id" : "tableware"
+          },
+          {
+            "confidence" : 0.06005859375,
+            "id" : "bowl"
+          },
+          {
+            "confidence" : 0.045898530632257462,
+            "id" : "oven"
+          },
+          {
+            "confidence" : 0.0458984375,
+            "id" : "kitchen_oven"
+          },
+          {
+            "confidence" : 0.041974030435085297,
+            "id" : "material"
+          }
+        ],
+        "region" : [
+          0,
+          0,
+          1,
+          1
+        ]
+      },
+      {
+        "labels" : [
+          {
+            "confidence" : 0.86376953125,
+            "id" : "broccoli"
+          },
+          {
+            "confidence" : 0.86376953125,
+            "id" : "food"
+          },
+          {
+            "confidence" : 0.86376953125,
+            "id" : "vegetable"
+          },
+          {
+            "confidence" : 0.23959901928901672,
+            "id" : "tableware"
+          },
+          {
+            "confidence" : 0.23959901928901672,
+            "id" : "utensil"
+          },
+          {
+            "confidence" : 0.234130859375,
+            "id" : "drinking_glass"
+          },
+          {
+            "confidence" : 0.120849609375,
+            "id" : "bowl"
+          },
+          {
+            "confidence" : 0.093017578125,
+            "id" : "cup"
+          },
+          {
+            "confidence" : 0.076469160616397858,
+            "id" : "material"
+          },
+          {
+            "confidence" : 0.076416015625,
+            "id" : "raw_glass"
+          },
+          {
+            "confidence" : 0.047411523759365082,
+            "id" : "container"
+          },
+          {
+            "confidence" : 0.04736328125,
+            "id" : "carton"
+          },
+          {
+            "confidence" : 0.046641450375318527,
+            "id" : "structure"
+          },
+          {
+            "confidence" : 0.04638671875,
+            "id" : "wood_processed"
+          },
+          {
+            "confidence" : 0.039306640625,
+            "id" : "plate"
+          }
+        ],
+        "region" : [
+          0.2144775390625,
+          0.15185546875,
+          0.4925537109375,
+          0.681640625
+        ]
+      },
+      {
+        "labels" : [
+          {
+            "confidence" : 0.14205873012542725,
+            "id" : "appliance"
+          },
+          {
+            "confidence" : 0.14205873012542725,
+            "id" : "machine"
+          },
+          {
+            "confidence" : 0.133544921875,
+            "id" : "refrigerator"
+          },
+          {
+            "confidence" : 0.0966796875,
+            "id" : "dishwasher"
+          },
+          {
+            "confidence" : 0.095365054905414581,
+            "id" : "utensil"
+          },
+          {
+            "confidence" : 0.095284849405288696,
+            "id" : "tableware"
+          },
+          {
+            "confidence" : 0.094970703125,
+            "id" : "bowl"
+          },
+          {
+            "confidence" : 0.08938896656036377,
+            "id" : "food"
+          },
+          {
+            "confidence" : 0.089388079941272736,
+            "id" : "egg"
+          },
+          {
+            "confidence" : 0.089111328125,
+            "id" : "yolk"
+          },
+          {
+            "confidence" : 0.036623492836952209,
+            "id" : "oven"
+          },
+          {
+            "confidence" : 0.03662109375,
+            "id" : "kitchen_oven"
+          },
+          {
+            "confidence" : 0.0322265625,
+            "id" : "spoon"
+          },
+          {
+            "confidence" : 0.031158536672592163,
+            "id" : "material"
+          },
+          {
+            "confidence" : 0.02978515625,
+            "id" : "celebration"
+          }
+        ],
+        "region" : [
+          0,
+          0,
+          0.5,
+          0.40000000000000002
+        ]
+      },
+      {
+        "labels" : [
+          {
+            "confidence" : 0.17637300491333008,
+            "id" : "food"
+          },
+          {
+            "confidence" : 0.17637299001216888,
+            "id" : "egg"
+          },
+          {
+            "confidence" : 0.17626953125,
+            "id" : "yolk"
+          },
+          {
+            "confidence" : 0.059355974197387695,
+            "id" : "utensil"
+          },
+          {
+            "confidence" : 0.059121660888195038,
+            "id" : "tableware"
+          },
+          {
+            "confidence" : 0.05908203125,
+            "id" : "bowl"
+          },
+          {
+            "confidence" : 0.038818359375,
+            "id" : "celebration"
+          },
+          {
+            "confidence" : 0.038818359375,
+            "id" : "easter_egg"
+          },
+          {
+            "confidence" : 0.03299553319811821,
+            "id" : "material"
+          },
+          {
+            "confidence" : 0.030518345534801483,
+            "id" : "container"
+          },
+          {
+            "confidence" : 0.030517578125,
+            "id" : "carton"
+          },
+          {
+            "confidence" : 0.029296875,
+            "id" : "raw_glass"
+          },
+          {
+            "confidence" : 0.02099609375,
+            "id" : "whisk"
+          },
+          {
+            "confidence" : 0.012451171875,
+            "id" : "spoon"
+          },
+          {
+            "confidence" : 0.01074310764670372,
+            "id" : "liquid"
+          }
+        ],
+        "region" : [
+          0.25,
+          0,
+          0.5,
+          0.40000000000000002
+        ]
+      },
+      {
+        "labels" : [
+          {
+            "confidence" : 0.12798762321472168,
+            "id" : "material"
+          },
+          {
+            "confidence" : 0.12109375,
+            "id" : "raw_glass"
+          },
+          {
+            "confidence" : 0.03803948312997818,
+            "id" : "utensil"
+          },
+          {
+            "confidence" : 0.038036901503801346,
+            "id" : "tableware"
+          },
+          {
+            "confidence" : 0.035969626158475876,
+            "id" : "machine"
+          },
+          {
+            "confidence" : 0.035969603806734085,
+            "id" : "appliance"
+          },
+          {
+            "confidence" : 0.03564453125,
+            "id" : "drinking_glass"
+          },
+          {
+            "confidence" : 0.035026796162128448,
+            "id" : "structure"
+          },
+          {
+            "confidence" : 0.03174050897359848,
+            "id" : "oven"
+          },
+          {
+            "confidence" : 0.03173828125,
+            "id" : "kitchen_oven"
+          },
+          {
+            "confidence" : 0.03076179139316082,
+            "id" : "furniture"
+          },
+          {
+            "confidence" : 0.03076171875,
+            "id" : "cabinet"
+          },
+          {
+            "confidence" : 0.027852963656187057,
+            "id" : "conveyance"
+          },
+          {
+            "confidence" : 0.02783203125,
+            "id" : "escalator"
+          },
+          {
+            "confidence" : 0.02734375,
+            "id" : "refrigerator"
+          }
+        ],
+        "region" : [
+          0.5,
+          0,
+          0.5,
+          0.40000000000000002
+        ]
+      },
+      {
+        "labels" : [
+          {
+            "confidence" : 0.11791305989027023,
+            "id" : "machine"
+          },
+          {
+            "confidence" : 0.11791303753852844,
+            "id" : "appliance"
+          },
+          {
+            "confidence" : 0.117431640625,
+            "id" : "refrigerator"
+          },
+          {
+            "confidence" : 0.090828798711299896,
+            "id" : "material"
+          },
+          {
+            "confidence" : 0.090087890625,
+            "id" : "raw_glass"
+          },
+          {
+            "confidence" : 0.073761358857154846,
+            "id" : "plant"
+          },
+          {
+            "confidence" : 0.068603515625,
+            "id" : "foliage"
+          },
+          {
+            "confidence" : 0.05224609375,
+            "id" : "decorative_plant"
+          },
+          {
+            "confidence" : 0.051458705216646194,
+            "id" : "structure"
+          },
+          {
+            "confidence" : 0.050048828125,
+            "id" : "wood_processed"
+          },
+          {
+            "confidence" : 0.04052734375,
+            "id" : "dishwasher"
+          },
+          {
+            "confidence" : 0.036657508462667465,
+            "id" : "food"
+          },
+          {
+            "confidence" : 0.036643046885728836,
+            "id" : "vegetable"
+          },
+          {
+            "confidence" : 0.03662109375,
+            "id" : "broccoli"
+          },
+          {
+            "confidence" : 0.028322292491793633,
+            "id" : "furniture"
+          }
+        ],
+        "region" : [
+          0,
+          0.29999999999999999,
+          0.5,
+          0.40000000000000002
+        ]
+      },
+      {
+        "labels" : [
+          {
+            "confidence" : 0.14448048174381256,
+            "id" : "plant"
+          },
+          {
+            "confidence" : 0.144287109375,
+            "id" : "foliage"
+          },
+          {
+            "confidence" : 0.13658316433429718,
+            "id" : "utensil"
+          },
+          {
+            "confidence" : 0.13658291101455688,
+            "id" : "tableware"
+          },
+          {
+            "confidence" : 0.136474609375,
+            "id" : "drinking_glass"
+          },
+          {
+            "confidence" : 0.11043763905763626,
+            "id" : "structure"
+          },
+          {
+            "confidence" : 0.110107421875,
+            "id" : "wood_processed"
+          },
+          {
+            "confidence" : 0.062795564532279968,
+            "id" : "material"
+          },
+          {
+            "confidence" : 0.062744140625,
+            "id" : "raw_glass"
+          },
+          {
+            "confidence" : 0.0390625,
+            "id" : "decorative_plant"
+          },
+          {
+            "confidence" : 0.03564453125,
+            "id" : "terrarium"
+          },
+          {
+            "confidence" : 0.0322265625,
+            "id" : "bowl"
+          },
+          {
+            "confidence" : 0.023168729618191719,
+            "id" : "machine"
+          },
+          {
+            "confidence" : 0.023168722167611122,
+            "id" : "appliance"
+          },
+          {
+            "confidence" : 0.02294921875,
+            "id" : "dishwasher"
+          }
+        ],
+        "region" : [
+          0.25,
+          0.29999999999999999,
+          0.5,
+          0.40000000000000002
+        ]
+      },
+      {
+        "labels" : [
+          {
+            "confidence" : 0.16269627213478088,
+            "id" : "material"
+          },
+          {
+            "confidence" : 0.160400390625,
+            "id" : "raw_glass"
+          },
+          {
+            "confidence" : 0.1393774151802063,
+            "id" : "utensil"
+          },
+          {
+            "confidence" : 0.13937677443027496,
+            "id" : "tableware"
+          },
+          {
+            "confidence" : 0.138916015625,
+            "id" : "drinking_glass"
+          },
+          {
+            "confidence" : 0.12272199988365173,
+            "id" : "structure"
+          },
+          {
+            "confidence" : 0.12182626873254776,
+            "id" : "furniture"
+          },
+          {
+            "confidence" : 0.121826171875,
+            "id" : "cabinet"
+          },
+          {
+            "confidence" : 0.091007024049758911,
+            "id" : "appliance"
+          },
+          {
+            "confidence" : 0.091007024049758911,
+            "id" : "machine"
+          },
+          {
+            "confidence" : 0.083661079406738281,
+            "id" : "interior_room"
+          },
+          {
+            "confidence" : 0.083661071956157684,
+            "id" : "kitchen"
+          },
+          {
+            "confidence" : 0.079834312200546265,
+            "id" : "oven"
+          },
+          {
+            "confidence" : 0.079833984375,
+            "id" : "kitchen_oven"
+          },
+          {
+            "confidence" : 0.07666015625,
+            "id" : "kitchen_sink"
+          }
+        ],
+        "region" : [
+          0.5,
+          0.29999999999999999,
+          0.5,
+          0.40000000000000002
+        ]
+      },
+      {
+        "labels" : [
+          {
+            "confidence" : 0.974609375,
+            "id" : "broccoli"
+          },
+          {
+            "confidence" : 0.974609375,
+            "id" : "food"
+          },
+          {
+            "confidence" : 0.974609375,
+            "id" : "vegetable"
+          },
+          {
+            "confidence" : 0.039621699601411819,
+            "id" : "material"
+          },
+          {
+            "confidence" : 0.03955078125,
+            "id" : "raw_glass"
+          },
+          {
+            "confidence" : 0.032885059714317322,
+            "id" : "structure"
+          },
+          {
+            "confidence" : 0.028320569545030594,
+            "id" : "furniture"
+          },
+          {
+            "confidence" : 0.0283203125,
+            "id" : "cabinet"
+          },
+          {
+            "confidence" : 0.0263671875,
+            "id" : "wood_processed"
+          },
+          {
+            "confidence" : 0.019784171134233475,
+            "id" : "appliance"
+          },
+          {
+            "confidence" : 0.019784171134233475,
+            "id" : "machine"
+          },
+          {
+            "confidence" : 0.019775390625,
+            "id" : "refrigerator"
+          },
+          {
+            "confidence" : 0.014346414245665073,
+            "id" : "conveyance"
+          },
+          {
+            "confidence" : 0.014345176517963409,
+            "id" : "portal"
+          },
+          {
+            "confidence" : 0.013671875,
+            "id" : "door"
+          }
+        ],
+        "region" : [
+          0,
+          0.59999999999999998,
+          0.5,
+          0.40000000000000002
+        ]
+      },
+      {
+        "labels" : [
+          {
+            "confidence" : 0.9716796875,
+            "id" : "broccoli"
+          },
+          {
+            "confidence" : 0.9716796875,
+            "id" : "food"
+          },
+          {
+            "confidence" : 0.9716796875,
+            "id" : "vegetable"
+          },
+          {
+            "confidence" : 0.076927341520786285,
+            "id" : "utensil"
+          },
+          {
+            "confidence" : 0.076927296817302704,
+            "id" : "tableware"
+          },
+          {
+            "confidence" : 0.0751953125,
+            "id" : "cup"
+          },
+          {
+            "confidence" : 0.04150390625,
+            "id" : "bowl"
+          },
+          {
+            "confidence" : 0.029401605948805809,
+            "id" : "structure"
+          },
+          {
+            "confidence" : 0.029296875,
+            "id" : "wood_processed"
+          },
+          {
+            "confidence" : 0.016845703125,
+            "id" : "plate"
+          },
+          {
+            "confidence" : 0.014179841615259647,
+            "id" : "material"
+          },
+          {
+            "confidence" : 0.013427734375,
+            "id" : "raw_glass"
+          },
+          {
+            "confidence" : 0.0097939940169453621,
+            "id" : "furniture"
+          },
+          {
+            "confidence" : 0.009765625,
+            "id" : "table"
+          },
+          {
+            "confidence" : 0.00927734375,
+            "id" : "textile"
+          }
+        ],
+        "region" : [
+          0.25,
+          0.59999999999999998,
+          0.5,
+          0.40000000000000002
+        ]
+      },
+      {
+        "labels" : [
+          {
+            "confidence" : 0.38139238953590393,
+            "id" : "utensil"
+          },
+          {
+            "confidence" : 0.38139235973358154,
+            "id" : "tableware"
+          },
+          {
+            "confidence" : 0.38134765625,
+            "id" : "cup"
+          },
+          {
+            "confidence" : 0.31158620119094849,
+            "id" : "structure"
+          },
+          {
+            "confidence" : 0.31152346730232239,
+            "id" : "furniture"
+          },
+          {
+            "confidence" : 0.3115234375,
+            "id" : "cabinet"
+          },
+          {
+            "confidence" : 0.217041015625,
+            "id" : "toilet_seat"
+          },
+          {
+            "confidence" : 0.217041015625,
+            "id" : "tool"
+          },
+          {
+            "confidence" : 0.056396484375,
+            "id" : "mug"
+          },
+          {
+            "confidence" : 0.050687815994024277,
+            "id" : "machine"
+          },
+          {
+            "confidence" : 0.050687812268733978,
+            "id" : "appliance"
+          },
+          {
+            "confidence" : 0.050537109375,
+            "id" : "refrigerator"
+          },
+          {
+            "confidence" : 0.047119140625,
+            "id" : "wood_processed"
+          },
+          {
+            "confidence" : 0.044142372906208038,
+            "id" : "interior_room"
+          },
+          {
+            "confidence" : 0.041347242891788483,
+            "id" : "bathroom"
+          }
+        ],
+        "region" : [
+          0.5,
+          0.59999999999999998,
+          0.5,
+          0.40000000000000002
+        ]
+      }
+    ]
+  },
+  {
+    "file" : "04-gratin.png",
+    "regions" : [
+      {
+        "labels" : [
+          {
+            "confidence" : 0.67685467004776001,
+            "id" : "food"
+          },
+          {
+            "confidence" : 0.67681938409805298,
+            "id" : "vegetable"
+          },
+          {
+            "confidence" : 0.609375,
+            "id" : "broccoli"
+          },
+          {
+            "confidence" : 0.50634765625,
+            "id" : "onion"
+          },
+          {
+            "confidence" : 0.37060546875,
+            "id" : "pumpkin"
+          },
+          {
+            "confidence" : 0.21093766391277313,
+            "id" : "appliance"
+          },
+          {
+            "confidence" : 0.21093766391277313,
+            "id" : "machine"
+          },
+          {
+            "confidence" : 0.2109375,
+            "id" : "refrigerator"
+          },
+          {
+            "confidence" : 0.1220933273434639,
+            "id" : "material"
+          },
+          {
+            "confidence" : 0.1220703125,
+            "id" : "raw_glass"
+          },
+          {
+            "confidence" : 0.10890195518732071,
+            "id" : "container"
+          },
+          {
+            "confidence" : 0.10888671875,
+            "id" : "carton"
+          },
+          {
+            "confidence" : 0.098876953125,
+            "id" : "carrot"
+          },
+          {
+            "confidence" : 0.072998046875,
+            "id" : "cheese"
+          },
+          {
+            "confidence" : 0.06591796875,
+            "id" : "pasta"
+          }
+        ],
+        "region" : [
+          0,
+          0,
+          1,
+          1
+        ]
+      },
+      {
+        "labels" : [
+          {
+            "confidence" : 0.87980782985687256,
+            "id" : "food"
+          },
+          {
+            "confidence" : 0.87976902723312378,
+            "id" : "vegetable"
+          },
+          {
+            "confidence" : 0.85986328125,
+            "id" : "broccoli"
+          },
+          {
+            "confidence" : 0.5751953125,
+            "id" : "onion"
+          },
+          {
+            "confidence" : 0.277099609375,
+            "id" : "pumpkin"
+          },
+          {
+            "confidence" : 0.15576171875,
+            "id" : "carrot"
+          },
+          {
+            "confidence" : 0.112060546875,
+            "id" : "mushroom"
+          },
+          {
+            "confidence" : 0.10791015625,
+            "id" : "pasta"
+          },
+          {
+            "confidence" : 0.10645344853401184,
+            "id" : "appliance"
+          },
+          {
+            "confidence" : 0.10645344853401184,
+            "id" : "machine"
+          },
+          {
+            "confidence" : 0.1064453125,
+            "id" : "refrigerator"
+          },
+          {
+            "confidence" : 0.09326171875,
+            "id" : "cheese"
+          },
+          {
+            "confidence" : 0.092529296875,
+            "id" : "garlic"
+          },
+          {
+            "confidence" : 0.091552734375,
+            "id" : "potato"
+          },
+          {
+            "confidence" : 0.0849609375,
+            "id" : "spaghetti"
+          }
+        ],
+        "region" : [
+          0.09893798828125,
+          0.1064453125,
+          0.81512451171875,
+          0.7880859375
+        ]
+      },
+      {
+        "labels" : [
+          {
+            "confidence" : 0.14618974924087524,
+            "id" : "appliance"
+          },
+          {
+            "confidence" : 0.14618974924087524,
+            "id" : "machine"
+          },
+          {
+            "confidence" : 0.14599609375,
+            "id" : "refrigerator"
+          },
+          {
+            "confidence" : 0.12039284408092499,
+            "id" : "food"
+          },
+          {
+            "confidence" : 0.12036164104938507,
+            "id" : "dessert"
+          },
+          {
+            "confidence" : 0.120361328125,
+            "id" : "frozen_dessert"
+          },
+          {
+            "confidence" : 0.120361328125,
+            "id" : "ice_cream"
+          },
+          {
+            "confidence" : 0.044111791998147964,
+            "id" : "material"
+          },
+          {
+            "confidence" : 0.04345703125,
+            "id" : "raw_glass"
+          },
+          {
+            "confidence" : 0.039288129657506943,
+            "id" : "oven"
+          },
+          {
+            "confidence" : 0.0390625,
+            "id" : "kitchen_oven"
+          },
+          {
+            "confidence" : 0.021508898586034775,
+            "id" : "meat"
+          },
+          {
+            "confidence" : 0.021149054169654846,
+            "id" : "utensil"
+          },
+          {
+            "confidence" : 0.021148307248950005,
+            "id" : "tableware"
+          },
+          {
+            "confidence" : 0.020135089755058289,
+            "id" : "structure"
+          }
+        ],
+        "region" : [
+          0,
+          0,
+          0.5,
+          0.40000000000000002
+        ]
+      },
+      {
+        "labels" : [
+          {
+            "confidence" : 0.14605344831943512,
+            "id" : "material"
+          },
+          {
+            "confidence" : 0.14599609375,
+            "id" : "raw_glass"
+          },
+          {
+            "confidence" : 0.033909820020198822,
+            "id" : "food"
+          },
+          {
+            "confidence" : 0.030805511400103569,
+            "id" : "meat"
+          },
+          {
+            "confidence" : 0.025419427081942558,
+            "id" : "dessert"
+          },
+          {
+            "confidence" : 0.025390625,
+            "id" : "frozen_dessert"
+          },
+          {
+            "confidence" : 0.025390625,
+            "id" : "ice_cream"
+          },
+          {
+            "confidence" : 0.015499812550842762,
+            "id" : "utensil"
+          },
+          {
+            "confidence" : 0.015497080981731415,
+            "id" : "tableware"
+          },
+          {
+            "confidence" : 0.013250351883471012,
+            "id" : "machine"
+          },
+          {
+            "confidence" : 0.01325034536421299,
+            "id" : "appliance"
+          },
+          {
+            "confidence" : 0.01318359375,
+            "id" : "refrigerator"
+          },
+          {
+            "confidence" : 0.011246167123317719,
+            "id" : "structure"
+          },
+          {
+            "confidence" : 0.01123046875,
+            "id" : "wood_processed"
+          },
+          {
+            "confidence" : 0.0087890625,
+            "id" : "bowl"
+          }
+        ],
+        "region" : [
+          0.25,
+          0,
+          0.5,
+          0.40000000000000002
+        ]
+      },
+      {
+        "labels" : [
+          {
+            "confidence" : 0.16018998622894287,
+            "id" : "appliance"
+          },
+          {
+            "confidence" : 0.16018998622894287,
+            "id" : "machine"
+          },
+          {
+            "confidence" : 0.149169921875,
+            "id" : "refrigerator"
+          },
+          {
+            "confidence" : 0.11303966492414474,
+            "id" : "oven"
+          },
+          {
+            "confidence" : 0.113037109375,
+            "id" : "kitchen_oven"
+          },
+          {
+            "confidence" : 0.047374449670314789,
+            "id" : "plant"
+          },
+          {
+            "confidence" : 0.04736328125,
+            "id" : "foliage"
+          },
+          {
+            "confidence" : 0.033991638571023941,
+            "id" : "material"
+          },
+          {
+            "confidence" : 0.033935546875,
+            "id" : "raw_glass"
+          },
+          {
+            "confidence" : 0.0221837367862463,
+            "id" : "structure"
+          },
+          {
+            "confidence" : 0.021972658112645149,
+            "id" : "furniture"
+          },
+          {
+            "confidence" : 0.02197265625,
+            "id" : "cabinet"
+          },
+          {
+            "confidence" : 0.01953125,
+            "id" : "dishwasher"
+          },
+          {
+            "confidence" : 0.014894035644829273,
+            "id" : "utensil"
+          },
+          {
+            "confidence" : 0.014890760183334351,
+            "id" : "tableware"
+          }
+        ],
+        "region" : [
+          0.5,
+          0,
+          0.5,
+          0.40000000000000002
+        ]
+      },
+      {
+        "labels" : [
+          {
+            "confidence" : 0.87060558795928955,
+            "id" : "food"
+          },
+          {
+            "confidence" : 0.87060558795928955,
+            "id" : "vegetable"
+          },
+          {
+            "confidence" : 0.87060546875,
+            "id" : "onion"
+          },
+          {
+            "confidence" : 0.13356335461139679,
+            "id" : "material"
+          },
+          {
+            "confidence" : 0.133544921875,
+            "id" : "raw_glass"
+          },
+          {
+            "confidence" : 0.0302734375,
+            "id" : "garlic"
+          },
+          {
+            "confidence" : 0.026880471035838127,
+            "id" : "machine"
+          },
+          {
+            "confidence" : 0.026880457997322083,
+            "id" : "appliance"
+          },
+          {
+            "confidence" : 0.02685546875,
+            "id" : "refrigerator"
+          },
+          {
+            "confidence" : 0.021466325968503952,
+            "id" : "structure"
+          },
+          {
+            "confidence" : 0.020280731841921806,
+            "id" : "furniture"
+          },
+          {
+            "confidence" : 0.020263671875,
+            "id" : "cabinet"
+          },
+          {
+            "confidence" : 0.01953125,
+            "id" : "textile"
+          },
+          {
+            "confidence" : 0.017475144937634468,
+            "id" : "utensil"
+          },
+          {
+            "confidence" : 0.01747286319732666,
+            "id" : "tableware"
+          }
+        ],
+        "region" : [
+          0,
+          0.29999999999999999,
+          0.5,
+          0.40000000000000002
+        ]
+      },
+      {
+        "labels" : [
+          {
+            "confidence" : 0.60458093881607056,
+            "id" : "food"
+          },
+          {
+            "confidence" : 0.60457921028137207,
+            "id" : "vegetable"
+          },
+          {
+            "confidence" : 0.57568359375,
+            "id" : "onion"
+          },
+          {
+            "confidence" : 0.32373046875,
+            "id" : "broccoli"
+          },
+          {
+            "confidence" : 0.31103515625,
+            "id" : "pumpkin"
+          },
+          {
+            "confidence" : 0.2587890625,
+            "id" : "potato"
+          },
+          {
+            "confidence" : 0.205078125,
+            "id" : "carrot"
+          },
+          {
+            "confidence" : 0.12427660822868347,
+            "id" : "material"
+          },
+          {
+            "confidence" : 0.124267578125,
+            "id" : "raw_glass"
+          },
+          {
+            "confidence" : 0.051025390625,
+            "id" : "garlic"
+          },
+          {
+            "confidence" : 0.03889181837439537,
+            "id" : "utensil"
+          },
+          {
+            "confidence" : 0.038838326930999756,
+            "id" : "tableware"
+          },
+          {
+            "confidence" : 0.038818359375,
+            "id" : "bowl"
+          },
+          {
+            "confidence" : 0.0361328125,
+            "id" : "cauliflower"
+          },
+          {
+            "confidence" : 0.034686863422393799,
+            "id" : "structure"
+          }
+        ],
+        "region" : [
+          0.25,
+          0.29999999999999999,
+          0.5,
+          0.40000000000000002
+        ]
+      },
+      {
+        "labels" : [
+          {
+            "confidence" : 0.95463240146636963,
+            "id" : "food"
+          },
+          {
+            "confidence" : 0.95463240146636963,
+            "id" : "vegetable"
+          },
+          {
+            "confidence" : 0.95458984375,
+            "id" : "broccoli"
+          },
+          {
+            "confidence" : 0.1513671875,
+            "id" : "cauliflower"
+          },
+          {
+            "confidence" : 0.136474609375,
+            "id" : "potato"
+          },
+          {
+            "confidence" : 0.088384918868541718,
+            "id" : "material"
+          },
+          {
+            "confidence" : 0.08837890625,
+            "id" : "raw_glass"
+          },
+          {
+            "confidence" : 0.026402633637189865,
+            "id" : "utensil"
+          },
+          {
+            "confidence" : 0.02640160545706749,
+            "id" : "tableware"
+          },
+          {
+            "confidence" : 0.02587890625,
+            "id" : "bowl"
+          },
+          {
+            "confidence" : 0.020751953125,
+            "id" : "carrot"
+          },
+          {
+            "confidence" : 0.01904296875,
+            "id" : "mushroom"
+          },
+          {
+            "confidence" : 0.0185546875,
+            "id" : "onion"
+          },
+          {
+            "confidence" : 0.0146484375,
+            "id" : "pasta"
+          },
+          {
+            "confidence" : 0.014194190502166748,
+            "id" : "structure"
+          }
+        ],
+        "region" : [
+          0.5,
+          0.29999999999999999,
+          0.5,
+          0.40000000000000002
+        ]
+      },
+      {
+        "labels" : [
+          {
+            "confidence" : 0.21801775693893433,
+            "id" : "appliance"
+          },
+          {
+            "confidence" : 0.21801775693893433,
+            "id" : "machine"
+          },
+          {
+            "confidence" : 0.218017578125,
+            "id" : "refrigerator"
+          },
+          {
+            "confidence" : 0.12407860904932022,
+            "id" : "container"
+          },
+          {
+            "confidence" : 0.120361328125,
+            "id" : "carton"
+          },
+          {
+            "confidence" : 0.072021484375,
+            "id" : "bottle"
+          },
+          {
+            "confidence" : 0.03952769935131073,
+            "id" : "material"
+          },
+          {
+            "confidence" : 0.039306640625,
+            "id" : "raw_glass"
+          },
+          {
+            "confidence" : 0.038727320730686188,
+            "id" : "structure"
+          },
+          {
+            "confidence" : 0.037599477916955948,
+            "id" : "sign"
+          },
+          {
+            "confidence" : 0.026213960722088814,
+            "id" : "document"
+          },
+          {
+            "confidence" : 0.022216796875,
+            "id" : "cardboard_box"
+          },
+          {
+            "confidence" : 0.013427734375,
+            "id" : "housewares"
+          },
+          {
+            "confidence" : 0.012292039580643177,
+            "id" : "conveyance"
+          },
+          {
+            "confidence" : 0.012204375118017197,
+            "id" : "portal"
+          }
+        ],
+        "region" : [
+          0,
+          0.59999999999999998,
+          0.5,
+          0.40000000000000002
+        ]
+      },
+      {
+        "labels" : [
+          {
+            "confidence" : 0.20389491319656372,
+            "id" : "food"
+          },
+          {
+            "confidence" : 0.202880859375,
+            "id" : "pasta"
+          },
+          {
+            "confidence" : 0.1067260280251503,
+            "id" : "container"
+          },
+          {
+            "confidence" : 0.106689453125,
+            "id" : "carton"
+          },
+          {
+            "confidence" : 0.06982421875,
+            "id" : "cheese"
+          },
+          {
+            "confidence" : 0.056640625,
+            "id" : "spaghetti"
+          },
+          {
+            "confidence" : 0.043212916702032089,
+            "id" : "machine"
+          },
+          {
+            "confidence" : 0.043212909251451492,
+            "id" : "appliance"
+          },
+          {
+            "confidence" : 0.043212890625,
+            "id" : "refrigerator"
+          },
+          {
+            "confidence" : 0.042198505252599716,
+            "id" : "structure"
+          },
+          {
+            "confidence" : 0.041503958404064178,
+            "id" : "sign"
+          },
+          {
+            "confidence" : 0.035239573568105698,
+            "id" : "utensil"
+          },
+          {
+            "confidence" : 0.035238157957792282,
+            "id" : "tableware"
+          },
+          {
+            "confidence" : 0.031005859375,
+            "id" : "drinking_glass"
+          },
+          {
+            "confidence" : 0.02392578125,
+            "id" : "plate"
+          }
+        ],
+        "region" : [
+          0.25,
+          0.59999999999999998,
+          0.5,
+          0.40000000000000002
+        ]
+      },
+      {
+        "labels" : [
+          {
+            "confidence" : 0.30924221873283386,
+            "id" : "food"
+          },
+          {
+            "confidence" : 0.307373046875,
+            "id" : "pasta"
+          },
+          {
+            "confidence" : 0.12500441074371338,
+            "id" : "appliance"
+          },
+          {
+            "confidence" : 0.12500441074371338,
+            "id" : "machine"
+          },
+          {
+            "confidence" : 0.125,
+            "id" : "refrigerator"
+          },
+          {
+            "confidence" : 0.121826171875,
+            "id" : "cheese"
+          },
+          {
+            "confidence" : 0.031267907470464706,
+            "id" : "container"
+          },
+          {
+            "confidence" : 0.03125,
+            "id" : "carton"
+          },
+          {
+            "confidence" : 0.029052734375,
+            "id" : "spaghetti"
+          },
+          {
+            "confidence" : 0.025218024849891663,
+            "id" : "structure"
+          },
+          {
+            "confidence" : 0.024894842877984047,
+            "id" : "utensil"
+          },
+          {
+            "confidence" : 0.024886738508939743,
+            "id" : "tableware"
+          },
+          {
+            "confidence" : 0.0244140625,
+            "id" : "bowl"
+          },
+          {
+            "confidence" : 0.022705575451254845,
+            "id" : "furniture"
+          },
+          {
+            "confidence" : 0.022705078125,
+            "id" : "cabinet"
+          }
+        ],
+        "region" : [
+          0.5,
+          0.59999999999999998,
+          0.5,
+          0.40000000000000002
+        ]
+      }
+    ]
+  },
+  {
+    "file" : "05-caprese.png",
+    "regions" : [
+      {
+        "labels" : [
+          {
+            "confidence" : 0.86230719089508057,
+            "id" : "appliance"
+          },
+          {
+            "confidence" : 0.86230719089508057,
+            "id" : "machine"
+          },
+          {
+            "confidence" : 0.8623046875,
+            "id" : "refrigerator"
+          },
+          {
+            "confidence" : 0.41821488738059998,
+            "id" : "food"
+          },
+          {
+            "confidence" : 0.418214350938797,
+            "id" : "vegetable"
+          },
+          {
+            "confidence" : 0.418212890625,
+            "id" : "tomato"
+          },
+          {
+            "confidence" : 0.15289270877838135,
+            "id" : "structure"
+          },
+          {
+            "confidence" : 0.15283203125,
+            "id" : "cabinet"
+          },
+          {
+            "confidence" : 0.15283203125,
+            "id" : "furniture"
+          },
+          {
+            "confidence" : 0.0556640625,
+            "id" : "dishwasher"
+          },
+          {
+            "confidence" : 0.046710807830095291,
+            "id" : "oven"
+          },
+          {
+            "confidence" : 0.046630859375,
+            "id" : "kitchen_oven"
+          },
+          {
+            "confidence" : 0.035090573132038116,
+            "id" : "interior_room"
+          },
+          {
+            "confidence" : 0.035090498626232147,
+            "id" : "kitchen"
+          },
+          {
+            "confidence" : 0.034423828125,
+            "id" : "kitchen_room"
+          }
+        ],
+        "region" : [
+          0,
+          0,
+          1,
+          1
+        ]
+      },
+      {
+        "labels" : [
+          {
+            "confidence" : 0.25844696164131165,
+            "id" : "material"
+          },
+          {
+            "confidence" : 0.25830078125,
+            "id" : "raw_glass"
+          },
+          {
+            "confidence" : 0.086975537240505219,
+            "id" : "appliance"
+          },
+          {
+            "confidence" : 0.086975537240505219,
+            "id" : "machine"
+          },
+          {
+            "confidence" : 0.0869140625,
+            "id" : "refrigerator"
+          },
+          {
+            "confidence" : 0.033889401704072952,
+            "id" : "structure"
+          },
+          {
+            "confidence" : 0.032226644456386566,
+            "id" : "furniture"
+          },
+          {
+            "confidence" : 0.0322265625,
+            "id" : "cabinet"
+          },
+          {
+            "confidence" : 0.021484375,
+            "id" : "wood_processed"
+          },
+          {
+            "confidence" : 0.020031927153468132,
+            "id" : "oven"
+          },
+          {
+            "confidence" : 0.02001953125,
+            "id" : "kitchen_oven"
+          },
+          {
+            "confidence" : 0.012027093209326267,
+            "id" : "conveyance"
+          },
+          {
+            "confidence" : 0.01132948137819767,
+            "id" : "portal"
+          },
+          {
+            "confidence" : 0.01123046875,
+            "id" : "window"
+          },
+          {
+            "confidence" : 0.010986328125,
+            "id" : "textile"
+          }
+        ],
+        "region" : [
+          0.084228515625,
+          0.04052734375,
+          0.3115234375,
+          0.30712890625
+        ]
+      },
+      {
+        "labels" : [
+          {
+            "confidence" : 0.6499369740486145,
+            "id" : "food"
+          },
+          {
+            "confidence" : 0.64988434314727783,
+            "id" : "vegetable"
+          },
+          {
+            "confidence" : 0.6494140625,
+            "id" : "tomato"
+          },
+          {
+            "confidence" : 0.23559705913066864,
+            "id" : "material"
+          },
+          {
+            "confidence" : 0.235595703125,
+            "id" : "raw_glass"
+          },
+          {
+            "confidence" : 0.154052734375,
+            "id" : "lettuce"
+          },
+          {
+            "confidence" : 0.091068491339683533,
+            "id" : "fruit"
+          },
+          {
+            "confidence" : 0.091064453125,
+            "id" : "apple"
+          },
+          {
+            "confidence" : 0.08935546875,
+            "id" : "bell_pepper"
+          },
+          {
+            "confidence" : 0.08935546875,
+            "id" : "pepper_veggie"
+          },
+          {
+            "confidence" : 0.060309883207082748,
+            "id" : "appliance"
+          },
+          {
+            "confidence" : 0.060309883207082748,
+            "id" : "machine"
+          },
+          {
+            "confidence" : 0.060302734375,
+            "id" : "refrigerator"
+          },
+          {
+            "confidence" : 0.035406965762376785,
+            "id" : "seasonings"
+          },
+          {
+            "confidence" : 0.035406962037086487,
+            "id" : "herb"
+          }
+        ],
+        "region" : [
+          0.1319580078125,
+          0.37451171875,
+          0.5072021484375,
+          0.239501953125
+        ]
+      },
+      {
+        "labels" : [
+          {
+            "confidence" : 0.26859697699546814,
+            "id" : "material"
+          },
+          {
+            "confidence" : 0.26806640625,
+            "id" : "raw_glass"
+          },
+          {
+            "confidence" : 0.15187737345695496,
+            "id" : "container"
+          },
+          {
+            "confidence" : 0.15185546875,
+            "id" : "trash_can"
+          },
+          {
+            "confidence" : 0.111083984375,
+            "id" : "toilet_seat"
+          },
+          {
+            "confidence" : 0.111083984375,
+            "id" : "tool"
+          },
+          {
+            "confidence" : 0.092081725597381592,
+            "id" : "machine"
+          },
+          {
+            "confidence" : 0.09208168089389801,
+            "id" : "appliance"
+          },
+          {
+            "confidence" : 0.092041015625,
+            "id" : "refrigerator"
+          },
+          {
+            "confidence" : 0.052417822182178497,
+            "id" : "utensil"
+          },
+          {
+            "confidence" : 0.052417684346437454,
+            "id" : "tableware"
+          },
+          {
+            "confidence" : 0.052001953125,
+            "id" : "cup"
+          },
+          {
+            "confidence" : 0.046582300215959549,
+            "id" : "structure"
+          },
+          {
+            "confidence" : 0.046391807496547699,
+            "id" : "furniture"
+          },
+          {
+            "confidence" : 0.04638671875,
+            "id" : "cabinet"
+          }
+        ],
+        "region" : [
+          0.748046875,
+          0.21484375,
+          0.23388671875,
+          0.344482421875
+        ]
+      },
+      {
+        "labels" : [
+          {
+            "confidence" : 0.27768278121948242,
+            "id" : "appliance"
+          },
+          {
+            "confidence" : 0.27768278121948242,
+            "id" : "machine"
+          },
+          {
+            "confidence" : 0.27587890625,
+            "id" : "refrigerator"
+          },
+          {
+            "confidence" : 0.1113298237323761,
+            "id" : "oven"
+          },
+          {
+            "confidence" : 0.111328125,
+            "id" : "kitchen_oven"
+          },
+          {
+            "confidence" : 0.095711752772331238,
+            "id" : "structure"
+          },
+          {
+            "confidence" : 0.095703125,
+            "id" : "cabinet"
+          },
+          {
+            "confidence" : 0.095703125,
+            "id" : "furniture"
+          },
+          {
+            "confidence" : 0.062714055180549622,
+            "id" : "material"
+          },
+          {
+            "confidence" : 0.050537109375,
+            "id" : "raw_glass"
+          },
+          {
+            "confidence" : 0.0205078125,
+            "id" : "stove"
+          },
+          {
+            "confidence" : 0.018252590671181679,
+            "id" : "interior_room"
+          },
+          {
+            "confidence" : 0.018252501264214516,
+            "id" : "kitchen"
+          },
+          {
+            "confidence" : 0.017333984375,
+            "id" : "dishwasher"
+          },
+          {
+            "confidence" : 0.015625,
+            "id" : "kitchen_countertop"
+          }
+        ],
+        "region" : [
+          0,
+          0,
+          0.5,
+          0.40000000000000002
+        ]
+      },
+      {
+        "labels" : [
+          {
+            "confidence" : 0.26833322644233704,
+            "id" : "material"
+          },
+          {
+            "confidence" : 0.12939453125,
+            "id" : "raw_glass"
+          },
+          {
+            "confidence" : 0.036379959434270859,
+            "id" : "utensil"
+          },
+          {
+            "confidence" : 0.036379948258399963,
+            "id" : "tableware"
+          },
+          {
+            "confidence" : 0.036376953125,
+            "id" : "drinking_glass"
+          },
+          {
+            "confidence" : 0.033939260989427567,
+            "id" : "structure"
+          },
+          {
+            "confidence" : 0.032958984375,
+            "id" : "wood_processed"
+          },
+          {
+            "confidence" : 0.018594508990645409,
+            "id" : "art"
+          },
+          {
+            "confidence" : 0.018554691225290298,
+            "id" : "decoration"
+          },
+          {
+            "confidence" : 0.0185546875,
+            "id" : "frame"
+          },
+          {
+            "confidence" : 0.016708983108401299,
+            "id" : "conveyance"
+          },
+          {
+            "confidence" : 0.0166015625,
+            "id" : "escalator"
+          },
+          {
+            "confidence" : 0.01513671875,
+            "id" : "fence"
+          },
+          {
+            "confidence" : 0.012951409444212914,
+            "id" : "people"
+          },
+          {
+            "confidence" : 0.012939453125,
+            "id" : "adult"
+          }
+        ],
+        "region" : [
+          0.25,
+          0,
+          0.5,
+          0.40000000000000002
+        ]
+      },
+      {
+        "labels" : [
+          {
+            "confidence" : 0.20111225545406342,
+            "id" : "material"
+          },
+          {
+            "confidence" : 0.142578125,
+            "id" : "raw_glass"
+          },
+          {
+            "confidence" : 0.08182787150144577,
+            "id" : "machine"
+          },
+          {
+            "confidence" : 0.081827864050865173,
+            "id" : "appliance"
+          },
+          {
+            "confidence" : 0.081787109375,
+            "id" : "refrigerator"
+          },
+          {
+            "confidence" : 0.03183484822511673,
+            "id" : "interior_room"
+          },
+          {
+            "confidence" : 0.031627438962459564,
+            "id" : "kitchen"
+          },
+          {
+            "confidence" : 0.031005859375,
+            "id" : "kitchen_sink"
+          },
+          {
+            "confidence" : 0.027621634304523468,
+            "id" : "structure"
+          },
+          {
+            "confidence" : 0.027343893423676491,
+            "id" : "furniture"
+          },
+          {
+            "confidence" : 0.02734375,
+            "id" : "cabinet"
+          },
+          {
+            "confidence" : 0.016872281208634377,
+            "id" : "oven"
+          },
+          {
+            "confidence" : 0.016845703125,
+            "id" : "kitchen_oven"
+          },
+          {
+            "confidence" : 0.0166015625,
+            "id" : "kitchen_faucet"
+          },
+          {
+            "confidence" : 0.012758562341332436,
+            "id" : "bathroom"
+          }
+        ],
+        "region" : [
+          0.5,
+          0,
+          0.5,
+          0.40000000000000002
+        ]
+      },
+      {
+        "labels" : [
+          {
+            "confidence" : 0.68088090419769287,
+            "id" : "food"
+          },
+          {
+            "confidence" : 0.68087947368621826,
+            "id" : "vegetable"
+          },
+          {
+            "confidence" : 0.6806640625,
+            "id" : "tomato"
+          },
+          {
+            "confidence" : 0.406810462474823,
+            "id" : "appliance"
+          },
+          {
+            "confidence" : 0.406810462474823,
+            "id" : "machine"
+          },
+          {
+            "confidence" : 0.406494140625,
+            "id" : "refrigerator"
+          },
+          {
+            "confidence" : 0.16877318918704987,
+            "id" : "material"
+          },
+          {
+            "confidence" : 0.168701171875,
+            "id" : "raw_glass"
+          },
+          {
+            "confidence" : 0.12841796875,
+            "id" : "lettuce"
+          },
+          {
+            "confidence" : 0.09775533527135849,
+            "id" : "utensil"
+          },
+          {
+            "confidence" : 0.097749732434749603,
+            "id" : "tableware"
+          },
+          {
+            "confidence" : 0.0966796875,
+            "id" : "bowl"
+          },
+          {
+            "confidence" : 0.095992423593997955,
+            "id" : "structure"
+          },
+          {
+            "confidence" : 0.095703661441802979,
+            "id" : "furniture"
+          },
+          {
+            "confidence" : 0.095703125,
+            "id" : "cabinet"
+          }
+        ],
+        "region" : [
+          0,
+          0.29999999999999999,
+          0.5,
+          0.40000000000000002
+        ]
+      },
+      {
+        "labels" : [
+          {
+            "confidence" : 0.53335016965866089,
+            "id" : "food"
+          },
+          {
+            "confidence" : 0.53334254026412964,
+            "id" : "vegetable"
+          },
+          {
+            "confidence" : 0.463623046875,
+            "id" : "tomato"
+          },
+          {
+            "confidence" : 0.436767578125,
+            "id" : "lettuce"
+          },
+          {
+            "confidence" : 0.14698867499828339,
+            "id" : "utensil"
+          },
+          {
+            "confidence" : 0.14698852598667145,
+            "id" : "tableware"
+          },
+          {
+            "confidence" : 0.14501953125,
+            "id" : "bowl"
+          },
+          {
+            "confidence" : 0.086823113262653351,
+            "id" : "appliance"
+          },
+          {
+            "confidence" : 0.086823113262653351,
+            "id" : "machine"
+          },
+          {
+            "confidence" : 0.081787109375,
+            "id" : "blender"
+          },
+          {
+            "confidence" : 0.078602276742458344,
+            "id" : "structure"
+          },
+          {
+            "confidence" : 0.076416015625,
+            "id" : "wood_processed"
+          },
+          {
+            "confidence" : 0.06591796875,
+            "id" : "cup"
+          },
+          {
+            "confidence" : 0.05810546875,
+            "id" : "refrigerator"
+          },
+          {
+            "confidence" : 0.054269693791866302,
+            "id" : "container"
+          }
+        ],
+        "region" : [
+          0.25,
+          0.29999999999999999,
+          0.5,
+          0.40000000000000002
+        ]
+      },
+      {
+        "labels" : [
+          {
+            "confidence" : 0.3916015625,
+            "id" : "toilet_seat"
+          },
+          {
+            "confidence" : 0.3916015625,
+            "id" : "tool"
+          },
+          {
+            "confidence" : 0.10579103231430054,
+            "id" : "plant"
+          },
+          {
+            "confidence" : 0.105712890625,
+            "id" : "foliage"
+          },
+          {
+            "confidence" : 0.051122579723596573,
+            "id" : "structure"
+          },
+          {
+            "confidence" : 0.050293240696191788,
+            "id" : "furniture"
+          },
+          {
+            "confidence" : 0.05029296875,
+            "id" : "cabinet"
+          },
+          {
+            "confidence" : 0.048177082091569901,
+            "id" : "material"
+          },
+          {
+            "confidence" : 0.046888232231140137,
+            "id" : "machine"
+          },
+          {
+            "confidence" : 0.046888228505849838,
+            "id" : "appliance"
+          },
+          {
+            "confidence" : 0.046875,
+            "id" : "refrigerator"
+          },
+          {
+            "confidence" : 0.045654296875,
+            "id" : "raw_glass"
+          },
+          {
+            "confidence" : 0.04439321905374527,
+            "id" : "interior_room"
+          },
+          {
+            "confidence" : 0.044385742396116257,
+            "id" : "bathroom"
+          },
+          {
+            "confidence" : 0.043701171875,
+            "id" : "washbasin"
+          }
+        ],
+        "region" : [
+          0.5,
+          0.29999999999999999,
+          0.5,
+          0.40000000000000002
+        ]
+      },
+      {
+        "labels" : [
+          {
+            "confidence" : 0.61917209625244141,
+            "id" : "structure"
+          },
+          {
+            "confidence" : 0.619140625,
+            "id" : "cabinet"
+          },
+          {
+            "confidence" : 0.619140625,
+            "id" : "furniture"
+          },
+          {
+            "confidence" : 0.30156236886978149,
+            "id" : "appliance"
+          },
+          {
+            "confidence" : 0.30156236886978149,
+            "id" : "machine"
+          },
+          {
+            "confidence" : 0.301025390625,
+            "id" : "refrigerator"
+          },
+          {
+            "confidence" : 0.083372525870800018,
+            "id" : "oven"
+          },
+          {
+            "confidence" : 0.0830078125,
+            "id" : "kitchen_oven"
+          },
+          {
+            "confidence" : 0.080332286655902863,
+            "id" : "material"
+          },
+          {
+            "confidence" : 0.073974609375,
+            "id" : "raw_glass"
+          },
+          {
+            "confidence" : 0.07373046875,
+            "id" : "wood_processed"
+          },
+          {
+            "confidence" : 0.068911127746105194,
+            "id" : "interior_room"
+          },
+          {
+            "confidence" : 0.065467074513435364,
+            "id" : "kitchen"
+          },
+          {
+            "confidence" : 0.056884765625,
+            "id" : "dishwasher"
+          },
+          {
+            "confidence" : 0.0537109375,
+            "id" : "kitchen_countertop"
+          }
+        ],
+        "region" : [
+          0,
+          0.59999999999999998,
+          0.5,
+          0.40000000000000002
+        ]
+      },
+      {
+        "labels" : [
+          {
+            "confidence" : 0.53076452016830444,
+            "id" : "structure"
+          },
+          {
+            "confidence" : 0.53076171875,
+            "id" : "cabinet"
+          },
+          {
+            "confidence" : 0.53076171875,
+            "id" : "furniture"
+          },
+          {
+            "confidence" : 0.13433060050010681,
+            "id" : "appliance"
+          },
+          {
+            "confidence" : 0.13433060050010681,
+            "id" : "machine"
+          },
+          {
+            "confidence" : 0.11474609375,
+            "id" : "refrigerator"
+          },
+          {
+            "confidence" : 0.11017388850450516,
+            "id" : "oven"
+          },
+          {
+            "confidence" : 0.110107421875,
+            "id" : "kitchen_oven"
+          },
+          {
+            "confidence" : 0.074803158640861511,
+            "id" : "interior_room"
+          },
+          {
+            "confidence" : 0.074796520173549652,
+            "id" : "kitchen"
+          },
+          {
+            "confidence" : 0.07041410356760025,
+            "id" : "material"
+          },
+          {
+            "confidence" : 0.065185546875,
+            "id" : "kitchen_countertop"
+          },
+          {
+            "confidence" : 0.058349609375,
+            "id" : "kitchen_sink"
+          },
+          {
+            "confidence" : 0.044921875,
+            "id" : "dishwasher"
+          },
+          {
+            "confidence" : 0.03662109375,
+            "id" : "wood_processed"
+          }
+        ],
+        "region" : [
+          0.25,
+          0.59999999999999998,
+          0.5,
+          0.40000000000000002
+        ]
+      },
+      {
+        "labels" : [
+          {
+            "confidence" : 0.18558427691459656,
+            "id" : "structure"
+          },
+          {
+            "confidence" : 0.17361362278461456,
+            "id" : "furniture"
+          },
+          {
+            "confidence" : 0.173583984375,
+            "id" : "cabinet"
+          },
+          {
+            "confidence" : 0.12640279531478882,
+            "id" : "conveyance"
+          },
+          {
+            "confidence" : 0.12638658285140991,
+            "id" : "portal"
+          },
+          {
+            "confidence" : 0.125732421875,
+            "id" : "window"
+          },
+          {
+            "confidence" : 0.12379752099514008,
+            "id" : "material"
+          },
+          {
+            "confidence" : 0.120361328125,
+            "id" : "raw_glass"
+          },
+          {
+            "confidence" : 0.066650390625,
+            "id" : "wood_processed"
+          },
+          {
+            "confidence" : 0.059097230434417725,
+            "id" : "machine"
+          },
+          {
+            "confidence" : 0.059097152203321457,
+            "id" : "appliance"
+          },
+          {
+            "confidence" : 0.05908203125,
+            "id" : "refrigerator"
+          },
+          {
+            "confidence" : 0.0478515625,
+            "id" : "door"
+          },
+          {
+            "confidence" : 0.034721244126558304,
+            "id" : "interior_room"
+          },
+          {
+            "confidence" : 0.033203125,
+            "id" : "closet"
+          }
+        ],
+        "region" : [
+          0.5,
+          0.59999999999999998,
+          0.5,
+          0.40000000000000002
+        ]
+      }
+    ]
+  }
+]

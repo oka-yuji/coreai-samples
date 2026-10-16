@@ -1,0 +1,271 @@
+{
+  "passed": true,
+  "count": 20,
+  "gate": {
+    "cosine_min": 0.999,
+    "max_abs_max": 0.01
+  },
+  "cases": [
+    {
+      "id": "ja_tools",
+      "pass": true,
+      "rows": [
+        {
+          "finite": true,
+          "norm": 0.999868210857112,
+          "cosine": 0.9999997632593635,
+          "max_abs": 8.869634950638139e-05,
+          "pass": true
+        }
+      ]
+    },
+    {
+      "id": "ja_food",
+      "pass": true,
+      "rows": [
+        {
+          "finite": true,
+          "norm": 1.0000042155424844,
+          "cosine": 0.9999996638966469,
+          "max_abs": 0.0001859217882156372,
+          "pass": true
+        }
+      ]
+    },
+    {
+      "id": "ja_eggs",
+      "pass": true,
+      "rows": [
+        {
+          "finite": true,
+          "norm": 0.9998956693001512,
+          "cosine": 0.9999997021379101,
+          "max_abs": 0.00021915377883913179,
+          "pass": true
+        }
+      ]
+    },
+    {
+      "id": "ja_negation",
+      "pass": true,
+      "rows": [
+        {
+          "finite": true,
+          "norm": 1.0000277781572562,
+          "cosine": 0.9999996713525384,
+          "max_abs": 0.00020898325958251807,
+          "pass": true
+        }
+      ]
+    },
+    {
+      "id": "ja_numbers",
+      "pass": true,
+      "rows": [
+        {
+          "finite": true,
+          "norm": 1.00012744520022,
+          "cosine": 0.9999997379925822,
+          "max_abs": 0.00012923370853423766,
+          "pass": true
+        }
+      ]
+    },
+    {
+      "id": "en_tools",
+      "pass": true,
+      "rows": [
+        {
+          "finite": true,
+          "norm": 1.0002094912134987,
+          "cosine": 0.9999997205800444,
+          "max_abs": 0.0001421145618057118,
+          "pass": true
+        }
+      ]
+    },
+    {
+      "id": "en_food",
+      "pass": true,
+      "rows": [
+        {
+          "finite": true,
+          "norm": 1.0001927734667972,
+          "cosine": 0.9999997612107144,
+          "max_abs": 0.00018339411697387842,
+          "pass": true
+        }
+      ]
+    },
+    {
+      "id": "en_unicode",
+      "pass": true,
+      "rows": [
+        {
+          "finite": true,
+          "norm": 1.0001766944574202,
+          "cosine": 0.9999995850267144,
+          "max_abs": 0.00019627497024538032,
+          "pass": true
+        }
+      ]
+    },
+    {
+      "id": "ja_document",
+      "pass": true,
+      "rows": [
+        {
+          "finite": true,
+          "norm": 0.9999056345514362,
+          "cosine": 0.9999996841432349,
+          "max_abs": 0.0001569976968383846,
+          "pass": true
+        }
+      ]
+    },
+    {
+      "id": "en_document",
+      "pass": true,
+      "rows": [
+        {
+          "finite": true,
+          "norm": 1.0002137553571686,
+          "cosine": 0.9999997317030628,
+          "max_abs": 0.00019690144401551812,
+          "pass": true
+        }
+      ]
+    },
+    {
+      "id": "ja_short",
+      "pass": true,
+      "rows": [
+        {
+          "finite": true,
+          "norm": 1.000232402366716,
+          "cosine": 0.9999998081301754,
+          "max_abs": 9.701093437194941e-05,
+          "pass": true
+        }
+      ]
+    },
+    {
+      "id": "empty_content",
+      "pass": true,
+      "rows": [
+        {
+          "finite": true,
+          "norm": 0.9995860353751413,
+          "cosine": 0.999999703845333,
+          "max_abs": 0.00027713679588320383,
+          "pass": true
+        }
+      ]
+    },
+    {
+      "id": "01-oyakodon",
+      "pass": true,
+      "rows": [
+        {
+          "finite": true,
+          "norm": 1.0000106361968284,
+          "cosine": 0.9998762985731252,
+          "max_abs": 0.001588877267049791,
+          "pass": true
+        }
+      ]
+    },
+    {
+      "id": "02-ginger-pork",
+      "pass": true,
+      "rows": [
+        {
+          "finite": true,
+          "norm": 1.000187162913305,
+          "cosine": 0.9998684590877917,
+          "max_abs": 0.0019283481332874296,
+          "pass": true
+        }
+      ]
+    },
+    {
+      "id": "03-omelette",
+      "pass": true,
+      "rows": [
+        {
+          "finite": true,
+          "norm": 1.0003400948635188,
+          "cosine": 0.9999827170423858,
+          "max_abs": 0.0007512644402046173,
+          "pass": true
+        }
+      ]
+    },
+    {
+      "id": "04-gratin",
+      "pass": true,
+      "rows": [
+        {
+          "finite": true,
+          "norm": 1.0003134696633824,
+          "cosine": 0.9999693715156982,
+          "max_abs": 0.0010769926284999853,
+          "pass": true
+        }
+      ]
+    },
+    {
+      "id": "05-caprese",
+      "pass": true,
+      "rows": [
+        {
+          "finite": true,
+          "norm": 1.0000028714482054,
+          "cosine": 0.9994835530367162,
+          "max_abs": 0.004896015139755249,
+          "pass": true
+        }
+      ]
+    },
+    {
+      "id": "gradient_square",
+      "pass": true,
+      "rows": [
+        {
+          "finite": true,
+          "norm": 1.0002391812461273,
+          "cosine": 0.9998661144930953,
+          "max_abs": 0.0019464405010795605,
+          "pass": true
+        }
+      ]
+    },
+    {
+      "id": "gradient_wide",
+      "pass": true,
+      "rows": [
+        {
+          "finite": true,
+          "norm": 1.0004113647457904,
+          "cosine": 0.9999782729272071,
+          "max_abs": 0.0008552599723014864,
+          "pass": true
+        }
+      ]
+    },
+    {
+      "id": "gradient_tall",
+      "pass": true,
+      "rows": [
+        {
+          "finite": true,
+          "norm": 0.9998886169268066,
+          "cosine": 0.9999678738053205,
+          "max_abs": 0.0009219997075185782,
+          "pass": true
+        }
+      ]
+    }
+  ],
+  "scope": "Fixed text/image S128/vision70 native-input fidelity; no general search-quality certification."
+}

@@ -1,0 +1,115 @@
+[
+  {
+    "file" : "01-oyakodon.png",
+    "foods" : [
+      {
+        "count" : 3,
+        "name" : "eggs"
+      },
+      {
+        "count" : null,
+        "name" : "onion"
+      },
+      {
+        "count" : null,
+        "name" : "cilantro"
+      }
+    ],
+    "needsCheck" : [
+      "meat: chicken",
+      "herbs: cilantro"
+    ],
+    "seconds" : 2.0823618750000001
+  },
+  {
+    "file" : "02-ginger-pork.png",
+    "foods" : [
+      {
+        "count" : 1,
+        "name" : "onion"
+      },
+      {
+        "count" : 1,
+        "name" : "carrot"
+      },
+      {
+        "count" : 3,
+        "name" : "cucumber"
+      },
+      {
+        "count" : 1,
+        "name" : "pork"
+      }
+    ],
+    "needsCheck" : [
+      "meat - pork",
+      "herb variety - leafy herbs"
+    ],
+    "seconds" : 1.958304125
+  },
+  {
+    "file" : "03-omelette.png",
+    "foods" : [
+      {
+        "count" : 1,
+        "name" : "Broccoli"
+      },
+      {
+        "count" : 1,
+        "name" : "Egg"
+      }
+    ],
+    "needsCheck" : [
+      "Clear plastic container with egg compartments - contents unknown",
+      "Clear plastic container - contents unknown"
+    ],
+    "seconds" : 1.7607485409999999
+  },
+  {
+    "file" : "04-gratin.png",
+    "foods" : [
+      {
+        "count" : 1,
+        "name" : "milk"
+      },
+      {
+        "count" : 1,
+        "name" : "cheese"
+      },
+      {
+        "count" : 1,
+        "name" : "onion"
+      },
+      {
+        "count" : 4,
+        "name" : "mushrooms"
+      },
+      {
+        "count" : 1,
+        "name" : "broccoli"
+      },
+      {
+        "count" : 2,
+        "name" : "meat"
+      }
+    ],
+    "needsCheck" : [
+      "cheese",
+      "meat"
+    ],
+    "seconds" : 2.1776745420000001
+  },
+  {
+    "file" : "05-caprese.png",
+    "foods" : [
+      {
+        "count" : 1,
+        "name" : "tomato"
+      }
+    ],
+    "needsCheck" : [
+      "leaves"
+    ],
+    "seconds" : 1.168774
+  }
+]

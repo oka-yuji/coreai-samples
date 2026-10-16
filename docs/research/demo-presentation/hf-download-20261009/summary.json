@@ -1,0 +1,141 @@
+{
+  "schema": "recipe-inspection-hf-verification/1",
+  "date": "2026-10-09",
+  "status": "passed",
+  "codeCommit": "8f7fcf873bed6cc241675636bb51e7cfa666438a",
+  "appSHA256": "430250eae1632b45f4aef8625bd2d19dcaded896ba66e7ce9c552656124cd4d6",
+  "hfRepo": "okayuji/clef-flash-9b-coreai-decide",
+  "hfRevision": "58e654c86485b29a47fef820226977742ff6868a",
+  "manifestSHA256": "67f69d5bd401104fd594ba74d94622882341c138be6149132d68f9857def852d",
+  "environment": {
+    "chip": "M4 Max",
+    "memoryBytes": 137438953472,
+    "os": "macOS 27.0 (26A428)",
+    "xcode": "27.0 (27A266a)",
+    "swift": "6.4",
+    "architecture": "arm64",
+    "configuration": "Release",
+    "computeUnit": "GPU preferred",
+    "expectFrequentReshapes": true,
+    "cacheCondition": "Existing cache retained; cold/warm classification not measured."
+  },
+  "canonicalRecord": {
+    "repo": "oka-yuji/CoreLLM",
+    "commit": "f8a9a492",
+    "path": "docs/results/2026-10-09-coreai-clef-flash-hf-download-verification.md"
+  },
+  "jobs": [
+    {
+      "name": "recipe",
+      "startedUTC": "2026-10-09T14:22:47.910442+00:00",
+      "endedUTC": "2026-10-09T14:23:28.541849+00:00",
+      "exitCode": 0,
+      "status": "passed",
+      "processWallSeconds": 40.63087887503207
+    },
+    {
+      "name": "maintenance",
+      "startedUTC": "2026-10-09T14:23:28.640300+00:00",
+      "endedUTC": "2026-10-09T14:23:37.352565+00:00",
+      "exitCode": 0,
+      "status": "passed",
+      "processWallSeconds": 8.712135500041768
+    }
+  ],
+  "recipe": {
+    "file": "five-store-cases.json",
+    "cases": [
+      {
+        "id": "01-oyakodon",
+        "photoSeconds": 2.586130208,
+        "seconds": 2.94187425,
+        "inputTokens": 1446,
+        "reusedTokens": 0,
+        "equipment": "available",
+        "diagnosticQuestionCount": 8
+      },
+      {
+        "id": "02-ginger-pork",
+        "photoSeconds": 1.993983708,
+        "seconds": 2.983230959,
+        "inputTokens": 1490,
+        "reusedTokens": 0,
+        "equipment": "available",
+        "diagnosticQuestionCount": 8
+      },
+      {
+        "id": "03-omelette",
+        "photoSeconds": 1.675771708,
+        "seconds": 2.596698167,
+        "inputTokens": 1103,
+        "reusedTokens": 0,
+        "equipment": "available",
+        "diagnosticQuestionCount": 5
+      },
+      {
+        "id": "04-gratin",
+        "photoSeconds": 2.573597875,
+        "seconds": 4.230246833,
+        "inputTokens": 2611,
+        "reusedTokens": 0,
+        "equipment": "unavailable",
+        "diagnosticQuestionCount": 15
+      },
+      {
+        "id": "05-caprese",
+        "photoSeconds": 2.035094292,
+        "seconds": 2.596144125,
+        "inputTokens": 1109,
+        "reusedTokens": 0,
+        "equipment": "available",
+        "diagnosticQuestionCount": 6
+      }
+    ],
+    "expectedOutcomes": {
+      "01-oyakodon": "ingredients satisfied",
+      "02-ginger-pork": "ginger missing",
+      "03-omelette": "short by 2 pcs",
+      "04-gratin": "equipment unavailable",
+      "05-caprese": "mozzarella uncertain"
+    },
+    "inventorySource": "Explicitly scripted and confirmed test inputs; photo suggestions were not treated as confirmed inventory."
+  },
+  "equipmentChange": {
+    "seconds": 2.656651875,
+    "inputTokens": 2611,
+    "reusedTokens": 403,
+    "equipment": "available",
+    "file": "toaster-store-case.json",
+    "diagnosticQuestionCount": 15
+  },
+  "maintenance": {
+    "questions": 5,
+    "options": 17,
+    "usage": {
+      "input_tokens": 2645,
+      "output_tokens": 0
+    },
+    "elapsedSeconds": 4.234886334,
+    "maximumProbabilityDifference": 0.0,
+    "maximumLogitDifference": 0.0,
+    "topOptionsMatch": true,
+    "answersExactlyMatch": true,
+    "probabilityTolerance": 0.001,
+    "responseSHA256": "b4b5df5f33b9602cb255383c4c014ba0da0a34c6e4a1617aa60306d44961da29",
+    "referenceSHA256": "dc813dd0b18aa3bdf220b6b432c520f499621e8d9cf738b347a5e677878d12a9",
+    "file": "maintenance-response.json"
+  },
+  "timingDefinitions": {
+    "processWallSeconds": "Executable start through exit, including bundle checks/opening, all scenario work and output writing.",
+    "recipeSeconds": "After service queue and model validation, including document/context/runtime preparation, inference and result mapping; explicit bundle opening and service queueing excluded.",
+    "maintenanceElapsedSeconds": "DecisionModel.decide entry through rendered input, runtime preparation/load, inference and result construction; explicit DecisionModel.load before decide excluded."
+  },
+  "artifactSHA256": {
+    "five-store-cases.json": "eaa3f3324b225ea00e51be0acd5a23d9f282bbf46d89cd325d47e2ffd2dd7459",
+    "maintenance-response.json": "b4b5df5f33b9602cb255383c4c014ba0da0a34c6e4a1617aa60306d44961da29",
+    "toaster-store-case.json": "a543c488fbb9dcb1142da281942b89490786e1d2164fe447eb0d81d2cb07e0f3"
+  },
+  "scope": "One functional run of each command with the downloaded copy and unchanged expectations. All six Recipe reports contain actual diagnostics. This record does not establish performance percentiles, general recipe accuracy or user manual GUI acceptance.",
+  "history": "Earlier app-close approval and shared-GPU start waits remain historical records. The automated verification completed and its lock was released; these waits are not the current start blocker.",
+  "manualBoundary": "Loaded/loading/retry/cancellation GUI, photo/report language-switch retention, narrow-window and marked-text checks remain distinct from this automated run."
+}

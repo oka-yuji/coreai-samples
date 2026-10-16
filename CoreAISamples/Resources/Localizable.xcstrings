@@ -1,0 +1,5982 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "%@  ·  %@  ·  memory %@  ·  %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@  ·  %2$@  ·  memory %3$@  ·  %4$@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@  ·  %@  ·  メモリ %@  ·  %@"
+          }
+        }
+      }
+    },
+    "%@ %@… %lld s" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ %2$@… %3$lld s"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ %@… %lld秒"
+          }
+        }
+      }
+    },
+    "%@ / %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ / %2$@"
+          }
+        }
+      },
+      "shouldTranslate" : false
+    },
+    "%@ s · %lld reused document tokens" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ s · %2$lld reused document tokens"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@秒 · 文書の%lldトークンを再利用"
+          }
+        }
+      }
+    },
+    "%@ tok" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@トークン"
+          }
+        }
+      }
+    },
+    "%@ · loaded in %@ s" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · 読込 %@秒"
+          }
+        }
+      }
+    },
+    "%@ — search via %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ — 検索: %@"
+          }
+        }
+      }
+    },
+    "%@/s" : {
+      "shouldTranslate" : false
+    },
+    "%@: %@" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@: %2$@"
+          }
+        }
+      },
+      "shouldTranslate" : false
+    },
+    "%lld" : {
+      "shouldTranslate" : false
+    },
+    "%lld / %lld input tokens" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld / %2$lld input tokens"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "入力トークン: %lld / %lld"
+          }
+        }
+      }
+    },
+    "%lld / 16" : {
+      "shouldTranslate" : false
+    },
+    "%lld spans" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld span"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld spans"
+                }
+              }
+            }
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld件の抽出区間"
+          }
+        }
+      }
+    },
+    "%lld tokens reused" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lldトークンを再利用"
+          }
+        }
+      }
+    },
+    "(%lld chars)" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "（%lld文字）"
+          }
+        }
+      }
+    },
+    "1 span" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1件の抽出区間"
+          }
+        }
+      }
+    },
+    "1. Your fridge" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1. 冷蔵庫の写真"
+          }
+        }
+      }
+    },
+    "2. Review your inventory" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "2. 食材の在庫を確認"
+          }
+        }
+      }
+    },
+    "3. Check kitchen equipment" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "3. 調理器具を確認"
+          }
+        }
+      }
+    },
+    "4. Recipe to check" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "4. 確認するレシピ"
+          }
+        }
+      }
+    },
+    "4. Recipe to check (original)" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "4. 確認するレシピ（原文）"
+          }
+        }
+      }
+    },
+    "A few things still need checking" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "まだ確認が必要な点があります"
+          }
+        }
+      }
+    },
+    "A photo, a recipe, and an inventory you have checked." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "写真とレシピを、確認済みの在庫と照らし合わせます。"
+          }
+        }
+      }
+    },
+    "A recipe step has no readable instruction text." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "作り方の一部に、読み取れる説明がありません。"
+          }
+        }
+      }
+    },
+    "A score below this threshold, an uncertain requirement, or unknown equipment, stock, or amount needs review." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "閾値未満のスコア、必須性が不明な材料、未確認の器具・在庫・数量は再確認が必要です。"
+          }
+        }
+      }
+    },
+    "Add" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "追加"
+          }
+        }
+      }
+    },
+    "Add %@" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@を追加"
+          }
+        }
+      }
+    },
+    "Add Field" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "項目を追加"
+          }
+        }
+      }
+    },
+    "Add Label" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ラベルを追加"
+          }
+        }
+      }
+    },
+    "Add a document first." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "先に文書を追加してください。"
+          }
+        }
+      }
+    },
+    "Add a field to extract." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "抽出する項目を追加してください。"
+          }
+        }
+      }
+    },
+    "Add a label to extract." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "抽出するラベルを追加してください。"
+          }
+        }
+      }
+    },
+    "Add item" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "項目を追加"
+          }
+        }
+      }
+    },
+    "Add option" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選択肢を追加"
+          }
+        }
+      }
+    },
+    "Add this ingredient to your inventory for review." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この食材を在庫に追加し、内容を確認します。"
+          }
+        }
+      }
+    },
+    "Agent" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "エージェント"
+          }
+        }
+      }
+    },
+    "Agent settings" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "エージェントの設定"
+          }
+        }
+      }
+    },
+    "Allow file operations (move_note, from the next task)" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ファイル操作を許可（move_note、次のタスクから）"
+          }
+        }
+      }
+    },
+    "Allowed options" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選べる回答"
+          }
+        }
+      }
+    },
+    "Amount" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "数量"
+          }
+        }
+      }
+    },
+    "Amount checked" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "数量確認済み"
+          }
+        }
+      }
+    },
+    "Amount for %@" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@の数量"
+          }
+        }
+      }
+    },
+    "Amount not checked" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "数量は未確認"
+          }
+        }
+      }
+    },
+    "Answer type" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "回答形式"
+          }
+        }
+      }
+    },
+    "Ask anything. The reply streams in as the model writes it." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "質問を入力してください。生成された回答を順次表示します。"
+          }
+        }
+      }
+    },
+    "Ask for something that needs the web:" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Webの情報が必要な質問を入力してください。"
+          }
+        }
+      }
+    },
+    "Assistant" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アシスタント"
+          }
+        }
+      }
+    },
+    "Bowl" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ボウル"
+          }
+        }
+      }
+    },
+    "Brave Search API key" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brave SearchのAPIキー"
+          }
+        }
+      }
+    },
+    "Calling %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@を呼び出し中"
+          }
+        }
+      }
+    },
+    "Can you make this recipe with what you have?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "今ある食材で、このレシピを作れる？"
+          }
+        }
+      }
+    },
+    "Cancel" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "キャンセル"
+          }
+        }
+      }
+    },
+    "Candidate" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "候補"
+          }
+        }
+      }
+    },
+    "Candidate (%lld)" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "候補（%lld件）"
+          }
+        }
+      }
+    },
+    "Candidate filter" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "候補フィルター"
+          }
+        }
+      }
+    },
+    "Catalog" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデル一覧"
+          }
+        }
+      }
+    },
+    "Change decision model" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "判定モデルを変更"
+          }
+        }
+      }
+    },
+    "Changed" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "変更あり"
+          }
+        }
+      }
+    },
+    "Chat" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "チャット"
+          }
+        }
+      }
+    },
+    "Chat is replying on this model. The agent can start when it finishes." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このモデルはチャットの回答を生成中です。終了後にエージェントを開始できます。"
+          }
+        }
+      }
+    },
+    "Check a document against an editable checklist" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "編集できる確認項目で文書の条件を判定"
+          }
+        }
+      }
+    },
+    "Check a recipe to see the returned scores." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "レシピを判定すると、返されたスコアを確認できます。"
+          }
+        }
+      }
+    },
+    "Check ingredient" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "食材を要確認"
+          }
+        }
+      }
+    },
+    "Check names and amounts. Add pantry staples and anything outside the photo." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "食材名と数量を確認し、調味料や写真に写っていない在庫も追加してください。"
+          }
+        }
+      }
+    },
+    "Check recipe" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "レシピを判定"
+          }
+        }
+      }
+    },
+    "Check the answer's and the notes' URLs against the pages fetched in this task, ask the model to fix them once, and keep notes as drafts until the check passes" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "回答・メモのURLを取得したページと照合し、必要なら1回修正を求めます。確認が通るまではメモを下書きにします。"
+          }
+        }
+      }
+    },
+    "Check the required equipment" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "必要な調理器具を確認してください"
+          }
+        }
+      }
+    },
+    "Check time includes document preparation and result mapping; excludes opening the selected bundle and queueing." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "判定時間には本文の準備と結果の変換を含みます。選択したバンドルを開く処理と順番待ちは含みません。"
+          }
+        }
+      }
+    },
+    "Check your kitchen equipment" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "調理器具を確認してください"
+          }
+        }
+      }
+    },
+    "Checking recipe requirements and equipment..." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "レシピの材料条件と調理器具を判定しています…"
+          }
+        }
+      }
+    },
+    "Checklist" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "確認項目"
+          }
+        }
+      }
+    },
+    "Checklist item identifiers must be unique." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "確認項目のIDが重複しています。"
+          }
+        }
+      }
+    },
+    "Chicken & egg rice bowl" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "親子丼"
+          }
+        }
+      }
+    },
+    "Choice" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選択式"
+          }
+        }
+      }
+    },
+    "Choice scores were not recorded for this result." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この結果には選択肢のスコアが記録されていません。"
+          }
+        }
+      }
+    },
+    "Choose" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選択"
+          }
+        }
+      }
+    },
+    "Choose a local photograph." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このMacにある写真を選んでください。"
+          }
+        }
+      }
+    },
+    "Choose a model from the menu above, or open a bundle folder in Models." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "上のメニューからモデルを選ぶか、モデル管理でモデルのフォルダを開いてください。"
+          }
+        }
+      }
+    },
+    "Choose a photograph smaller than 20 MB." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "20 MB未満の写真を選んでください。"
+          }
+        }
+      }
+    },
+    "Choose a regular image file." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "通常の画像ファイルを選んでください。"
+          }
+        }
+      }
+    },
+    "Choose the model Chat and Agent use" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "チャットとエージェントで使うモデルを選びます"
+          }
+        }
+      }
+    },
+    "Choose…" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選択…"
+          }
+        }
+      }
+    },
+    "Citation guard" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "引用URLの確認"
+          }
+        }
+      }
+    },
+    "Clear" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "解除"
+          }
+        }
+      }
+    },
+    "Clear Prepared Copy" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "準備済みキャッシュを削除"
+          }
+        }
+      }
+    },
+    "Clef → requirements and equipment" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clef → 材料の必須性・調理器具"
+          }
+        }
+      }
+    },
+    "Code → stock and quantity checks" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コード → 在庫の照合・数量の計算"
+          }
+        }
+      }
+    },
+    "Collecting sources…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "参照元を取得中…"
+          }
+        }
+      }
+    },
+    "Comma-separated" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カンマ区切り"
+          }
+        }
+      }
+    },
+    "Compare previous result" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前回の結果と比較"
+          }
+        }
+      }
+    },
+    "Confirm" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "確定"
+          }
+        }
+      }
+    },
+    "Confirm %@" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@を確認済みにする"
+          }
+        }
+      }
+    },
+    "Confirm every inventory item before marking the inventory complete." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在庫全体の確認を付ける前に、すべての食材を確認してください。"
+          }
+        }
+      }
+    },
+    "Confirm listed items" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一覧の食材を確認済みにする"
+          }
+        }
+      }
+    },
+    "Confirm or remove every inventory item first." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "先にすべての食材を確認するか、不要な行を削除してください。"
+          }
+        }
+      }
+    },
+    "Confirmed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "確認済み"
+          }
+        }
+      }
+    },
+    "Confirmed by reviewer" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "人による確認"
+          }
+        }
+      }
+    },
+    "Confirmed names and amounts are matched in code. Shortages are calculated, not generated by the model." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "確認済みの食材名と数量をコードで照合します。不足量はモデルに生成させず計算します。"
+          }
+        }
+      }
+    },
+    "Confirmed: %@" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "確認済み: %@"
+          }
+        }
+      }
+    },
+    "Context window is full" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コンテキストの上限に達しました"
+          }
+        }
+      }
+    },
+    "Cook with what you have" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "今ある食材で作れる？"
+          }
+        }
+      }
+    },
+    "Cooking steps" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "作り方の手順数"
+          }
+        }
+      }
+    },
+    "Copy" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コピー"
+          }
+        }
+      }
+    },
+    "Copy the whole transcript as Markdown" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "会話全体をMarkdownでコピー"
+          }
+        }
+      }
+    },
+    "Core AI Demos" : {
+      "shouldTranslate" : false
+    },
+    "Correction cue (rule)" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "訂正の手掛かり（ルール）"
+          }
+        }
+      }
+    },
+    "Correction cue (rule): %@" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "訂正の手掛かり（ルール）: %@"
+          }
+        }
+      }
+    },
+    "Could not open the asset: %@" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデル資産を開けませんでした。詳細（原文）: %@"
+          }
+        }
+      }
+    },
+    "Could not open the model" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルを開けませんでした"
+          }
+        }
+      }
+    },
+    "Cutting Board" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "まな板"
+          }
+        }
+      }
+    },
+    "Decide" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "条件判定"
+          }
+        }
+      }
+    },
+    "Default" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "既定に戻す"
+          }
+        }
+      }
+    },
+    "Delete" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "削除"
+          }
+        }
+      }
+    },
+    "Delete this model?" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このモデルを削除しますか？"
+          }
+        }
+      }
+    },
+    "Demos" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "デモ"
+          }
+        }
+      }
+    },
+    "Description" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "説明"
+          }
+        }
+      }
+    },
+    "Details (original): %@" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "詳細（原文）: %@"
+          }
+        }
+      }
+    },
+    "Developer details" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "開発者向けの処理詳細"
+          }
+        }
+      }
+    },
+    "Disk available" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ディスクの空き容量"
+          }
+        }
+      }
+    },
+    "Do not have it" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ない"
+          }
+        }
+      }
+    },
+    "Docs" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "文書"
+          }
+        }
+      }
+    },
+    "Document" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "文書"
+          }
+        }
+      }
+    },
+    "Document checklist" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "文書の条件を確認"
+          }
+        }
+      }
+    },
+    "Document search results" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "文書内の検索結果"
+          }
+        }
+      }
+    },
+    "Document text" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "文書本文"
+          }
+        }
+      }
+    },
+    "Download" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ダウンロード"
+          }
+        }
+      }
+    },
+    "Downloaded" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ダウンロード済み"
+          }
+        }
+      }
+    },
+    "Downloaded models" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ダウンロード済みモデル"
+          }
+        }
+      }
+    },
+    "Edit" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "編集"
+          }
+        }
+      }
+    },
+    "Edit %@" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@を編集"
+          }
+        }
+      }
+    },
+    "Edit checklist item" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "確認項目を編集"
+          }
+        }
+      }
+    },
+    "Electrical maintenance log" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "電気設備の点検記録"
+          }
+        }
+      }
+    },
+    "Evaluating the checklist…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "確認項目を判定しています…"
+          }
+        }
+      }
+    },
+    "Evidence" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "根拠"
+          }
+        }
+      }
+    },
+    "Example prompts (original):" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "入力例（原文）:"
+          }
+        }
+      }
+    },
+    "Examples" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "サンプル"
+          }
+        }
+      }
+    },
+    "Expected score" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "期待スコア"
+          }
+        }
+      }
+    },
+    "Experiment: inspection form" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "実験: 点検フォーム"
+          }
+        }
+      }
+    },
+    "Export JSON" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "JSONを書き出す"
+          }
+        }
+      }
+    },
+    "Export failed: %@" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "書き出せませんでした: %@"
+          }
+        }
+      }
+    },
+    "Extract" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "情報抽出"
+          }
+        }
+      }
+    },
+    "Extracting…" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "抽出中…"
+          }
+        }
+      }
+    },
+    "Fetches the source page; extracts ingredients and cooking steps." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "元のページを取得し、材料と作り方を取り出します。"
+          }
+        }
+      }
+    },
+    "Find in document" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "文書内を検索"
+          }
+        }
+      }
+    },
+    "Forget" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一覧から外す"
+          }
+        }
+      }
+    },
+    "Form" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フォーム"
+          }
+        }
+      }
+    },
+    "Frying Pan" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フライパン"
+          }
+        }
+      }
+    },
+    "Generating…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "生成中…"
+          }
+        }
+      }
+    },
+    "Generation failed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "生成に失敗しました"
+          }
+        }
+      }
+    },
+    "Get, open and prepare model bundles" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルの取得・読込・準備"
+          }
+        }
+      }
+    },
+    "Ginger pork" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "豚肉のしょうが焼き"
+          }
+        }
+      }
+    },
+    "Give each choice a unique, nonempty option ID." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選択肢には空でない固有のIDを付けてください。"
+          }
+        }
+      }
+    },
+    "Give each inventory item a name, or remove the empty item." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "各食材に名前を付けるか、空の行を削除してください。"
+          }
+        }
+      }
+    },
+    "Give each item a unique name." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "確認項目にはそれぞれ異なる名前を付けてください。"
+          }
+        }
+      }
+    },
+    "Have ingredient" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "食材あり"
+          }
+        }
+      }
+    },
+    "Have it" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ある"
+          }
+        }
+      }
+    },
+    "Heatproof Dish" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "耐熱皿"
+          }
+        }
+      }
+    },
+    "High" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "高"
+          }
+        }
+      }
+    },
+    "How many tokens of sources go into the prompt" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "プロンプトに含める資料のトークン数"
+          }
+        }
+      }
+    },
+    "I have checked the complete inventory, including items outside this photo." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "写真に写っていないものも含め、在庫全体を確認しました。"
+          }
+        }
+      }
+    },
+    "I have checked this ingredient and its amount." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この食材と数量を確認しました。"
+          }
+        }
+      }
+    },
+    "Import…" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "読み込む…"
+          }
+        }
+      }
+    },
+    "Ingredient" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "食材名"
+          }
+        }
+      }
+    },
+    "Ingredient name %lld" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "食材名 %lld"
+          }
+        }
+      }
+    },
+    "Initial read %@ s" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "初回読込 %@秒"
+          }
+        }
+      }
+    },
+    "Input token count pending" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "入力トークン数を確認中"
+          }
+        }
+      }
+    },
+    "Input tokens" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "入力トークン数"
+          }
+        }
+      }
+    },
+    "Input tokens cover the recipe and all questions. Reuse is zero on the first check." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "入力はレシピと全質問の合計です。初回の判定では再利用は0です。"
+          }
+        }
+      }
+    },
+    "Inspect question" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "確認する質問"
+          }
+        }
+      }
+    },
+    "Instructions" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "判定の指示"
+          }
+        }
+      }
+    },
+    "Interface language" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "表示言語"
+          }
+        }
+      }
+    },
+    "Item name" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "項目名"
+          }
+        }
+      }
+    },
+    "Keep at most 32 inventory items." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在庫の食材は32件以内にしてください。"
+          }
+        }
+      }
+    },
+    "Kitchen equipment" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "調理器具"
+          }
+        }
+      }
+    },
+    "Knife" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "包丁"
+          }
+        }
+      }
+    },
+    "Label" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ラベル"
+          }
+        }
+      }
+    },
+    "Label for the model" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルへ渡すラベル"
+          }
+        }
+      }
+    },
+    "Labels" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ラベル"
+          }
+        }
+      }
+    },
+    "Leave this unchecked when unseen ingredients are still unknown." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "写真の外の在庫が不明な場合は、チェックを外しておいてください。"
+          }
+        }
+      }
+    },
+    "List" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選択肢"
+          }
+        }
+      }
+    },
+    "List: %@" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選択肢: %@"
+          }
+        }
+      }
+    },
+    "Load" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "読み込む"
+          }
+        }
+      }
+    },
+    "Loaded" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "読込済み"
+          }
+        }
+      }
+    },
+    "Loaded: %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "読込済み: %@"
+          }
+        }
+      }
+    },
+    "Loading" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "読込中"
+          }
+        }
+      }
+    },
+    "Loading example documents…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "サンプル文書を読み込んでいます…"
+          }
+        }
+      }
+    },
+    "Loading the decision model..." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "判定モデルを読み込んでいます…"
+          }
+        }
+      }
+    },
+    "Loading…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "読込中…"
+          }
+        }
+      }
+    },
+    "Logit: %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "logit: %@"
+          }
+        }
+      }
+    },
+    "Low" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "低"
+          }
+        }
+      }
+    },
+    "Lowest probability first" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "スコアが低い順"
+          }
+        }
+      }
+    },
+    "MPa" : {
+      "shouldTranslate" : false
+    },
+    "Macaroni gratin" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "マカロニグラタン"
+          }
+        }
+      }
+    },
+    "Maintenance agreement" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保守契約"
+          }
+        }
+      }
+    },
+    "Manage Models…" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデル管理…"
+          }
+        }
+      }
+    },
+    "Max steps: %lld" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最大ステップ数: %lld"
+          }
+        }
+      }
+    },
+    "Max tokens" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最大トークン数"
+          }
+        }
+      }
+    },
+    "Meaning" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "意味"
+          }
+        }
+      }
+    },
+    "Medium" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "標準"
+          }
+        }
+      }
+    },
+    "Message" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "メッセージ"
+          }
+        }
+      }
+    },
+    "Missing ingredient" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "食材が不足"
+          }
+        }
+      }
+    },
+    "Model" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデル"
+          }
+        }
+      }
+    },
+    "Model candidate" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルの候補"
+          }
+        }
+      }
+    },
+    "Model probability (uncalibrated)" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルの確率（未校正）"
+          }
+        }
+      }
+    },
+    "Model question (original)" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルへの質問（原文）"
+          }
+        }
+      }
+    },
+    "Model scores are uncalibrated. Confirm unclear requirements in the original recipe." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルのスコアは未校正です。曖昧な条件はレシピ原文で確認してください。"
+          }
+        }
+      }
+    },
+    "Model version" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルのバージョン"
+          }
+        }
+      }
+    },
+    "Models" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデル管理"
+          }
+        }
+      }
+    },
+    "Move down" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下へ移動"
+          }
+        }
+      }
+    },
+    "Move up" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "上へ移動"
+          }
+        }
+      }
+    },
+    "Name" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "名前"
+          }
+        }
+      }
+    },
+    "New Chat" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新しいチャット"
+          }
+        }
+      }
+    },
+    "New Task" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新しいタスク"
+          }
+        }
+      }
+    },
+    "New chat" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新しいチャット"
+          }
+        }
+      }
+    },
+    "No asset folder" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデル資産が未選択です"
+          }
+        }
+      }
+    },
+    "No decisions yet" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "まだ判定していません"
+          }
+        }
+      }
+    },
+    "No match" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "該当なし"
+          }
+        }
+      }
+    },
+    "No matching option" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "該当する選択肢なし"
+          }
+        }
+      }
+    },
+    "No model loaded" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデル未読込"
+          }
+        }
+      }
+    },
+    "No models yet" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルがまだありません"
+          }
+        }
+      }
+    },
+    "No photo result yet." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "写真はまだ解析していません。"
+          }
+        }
+      }
+    },
+    "No published Core AI models yet. Open a bundle folder on this Mac below." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "公開済みのCore AIモデルはまだありません。このMacにあるモデルフォルダを開いてください。"
+          }
+        }
+      }
+    },
+    "No recipe loaded yet." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "レシピはまだ読み込んでいません。"
+          }
+        }
+      }
+    },
+    "None" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "なし"
+          }
+        }
+      }
+    },
+    "None of these" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "どれにも該当しない"
+          }
+        }
+      }
+    },
+    "Not a readable bundle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "読み込めるモデルフォルダではありません"
+          }
+        }
+      }
+    },
+    "Not checked" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未確認"
+          }
+        }
+      }
+    },
+    "Not detected" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未検出"
+          }
+        }
+      }
+    },
+    "Not downloaded" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未ダウンロード"
+          }
+        }
+      }
+    },
+    "Not loaded. Open a bundle to enable recipe checks." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未読込です。モデルのフォルダを選ぶと判定できます。"
+          }
+        }
+      }
+    },
+    "Note" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "メモ"
+          }
+        }
+      }
+    },
+    "Note (original): %@: %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "記録（原文）: %@: %@"
+          }
+        }
+      }
+    },
+    "Notes folder" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "メモの保存先"
+          }
+        }
+      }
+    },
+    "Number" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "数値"
+          }
+        }
+      }
+    },
+    "Number (%@)" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "数値（%@）"
+          }
+        }
+      }
+    },
+    "Off" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "オフ"
+          }
+        }
+      }
+    },
+    "Omelette Pan" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "卵焼き器"
+          }
+        }
+      }
+    },
+    "On hold" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "確認待ち"
+          }
+        }
+      }
+    },
+    "On this Mac" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このMacにあるモデル"
+          }
+        }
+      }
+    },
+    "On-device photo reading + %@" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "写真はオンデバイス処理 + %@"
+          }
+        }
+      }
+    },
+    "Open Asset Folder…" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデル資産フォルダを開く…"
+          }
+        }
+      }
+    },
+    "Open Clef-Flash bundle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clef-Flashのフォルダを選択"
+          }
+        }
+      }
+    },
+    "Open Folder…" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フォルダを開く…"
+          }
+        }
+      }
+    },
+    "Open Models" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデル管理を開く"
+          }
+        }
+      }
+    },
+    "Open a Clef-Flash decision bundle first." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "先にClef-Flashの判定モデルを読み込んでください。"
+          }
+        }
+      }
+    },
+    "Open a Clef-Flash decision bundle to begin." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clef-Flashの判定モデルフォルダを開いてください。"
+          }
+        }
+      }
+    },
+    "Open a model bundle folder in Models, then load it." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデル管理でフォルダを選び、モデルを読み込んでください。"
+          }
+        }
+      }
+    },
+    "Open an asset folder to extract." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデル資産フォルダを開くと抽出できます。"
+          }
+        }
+      }
+    },
+    "Open decision bundle…" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "判定モデルのフォルダを開く…"
+          }
+        }
+      }
+    },
+    "Open photo" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "写真を開く"
+          }
+        }
+      }
+    },
+    "Opening %@…" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@を開いています…"
+          }
+        }
+      }
+    },
+    "Opening and preparing the decision model…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "判定モデルを読み込み、準備しています…"
+          }
+        }
+      }
+    },
+    "Opening the decision model..." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "判定モデルを読み込んでいます…"
+          }
+        }
+      }
+    },
+    "Option ID" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選択肢ID"
+          }
+        }
+      }
+    },
+    "Optional" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "任意"
+          }
+        }
+      }
+    },
+    "Options" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選択肢"
+          }
+        }
+      }
+    },
+    "Or try one of the five generated examples." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "5枚の生成画像サンプルでも試せます。"
+          }
+        }
+      }
+    },
+    "Original recipe" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "元のレシピ"
+          }
+        }
+      }
+    },
+    "Oven" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "オーブン"
+          }
+        }
+      }
+    },
+    "Page budget: %lld chars" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ページ取得上限: %lld文字"
+          }
+        }
+      }
+    },
+    "Partly downloaded" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一部ダウンロード済み"
+          }
+        }
+      }
+    },
+    "Paste Example" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "入力例を貼り付け"
+          }
+        }
+      }
+    },
+    "Paste a Kikkoman recipe URL" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "キッコーマンのレシピURLを貼り付け"
+          }
+        }
+      }
+    },
+    "Paste or type a note." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "メモを入力するか貼り付けてください。"
+          }
+        }
+      }
+    },
+    "Pause" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一時停止"
+          }
+        }
+      }
+    },
+    "Photo model notes (original)" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "写真モデルの確認メモ（原文）"
+          }
+        }
+      }
+    },
+    "Photo processing" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "写真の処理時間"
+          }
+        }
+      }
+    },
+    "Photo recognition needs Apple Intelligence with image support on this Mac." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "写真の読取には、このMacで画像に対応したApple Intelligenceが必要です。"
+          }
+        }
+      }
+    },
+    "Photo suggestions are not confirmed inventory." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "写真の候補は、まだ確認済みの在庫ではありません。"
+          }
+        }
+      }
+    },
+    "Photo → ingredient suggestions" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "写真 → 食材の候補"
+          }
+        }
+      }
+    },
+    "Photos stay on this Mac. Open a decision bundle to check recipes." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "写真はこのMacで処理します。レシピの判定には、判定モデルを読み込んでください。"
+          }
+        }
+      }
+    },
+    "Preparing" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "準備中"
+          }
+        }
+      }
+    },
+    "Preparing…" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "準備中…"
+          }
+        }
+      }
+    },
+    "Previous candidate: %@" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前回の候補: %@"
+          }
+        }
+      }
+    },
+    "Probabilities are normalized across these choices and are not calibrated confidence." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "確率はこの選択肢の間で正規化した値です。正解率として校正された信頼度ではありません。"
+          }
+        }
+      }
+    },
+    "Questions" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "質問数"
+          }
+        }
+      }
+    },
+    "R1 (clauseFieldName)" : {
+      "shouldTranslate" : false
+    },
+    "R1+N1 (clauseFieldNameAndEquipmentNumber)" : {
+      "shouldTranslate" : false
+    },
+    "RAG" : {
+      "shouldTranslate" : false
+    },
+    "Read" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "読み込む"
+          }
+        }
+      }
+    },
+    "Read again" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "読み直す"
+          }
+        }
+      }
+    },
+    "Read the complete document again to compare with reuse." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "文書全体を読み直し、再利用した場合と比較します。"
+          }
+        }
+      }
+    },
+    "Read the method" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "作り方を読む"
+          }
+        }
+      }
+    },
+    "Read the method (original)" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "作り方を読む（原文）"
+          }
+        }
+      }
+    },
+    "Reading the document…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "文書を読み込んでいます…"
+          }
+        }
+      }
+    },
+    "Reading the model from disk." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ディスクからモデルを読み込んでいます。"
+          }
+        }
+      }
+    },
+    "Reading the photo on this Mac..." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このMacで写真を読み取っています…"
+          }
+        }
+      }
+    },
+    "Reading the recipe URL..." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "レシピのURLを読み込んでいます…"
+          }
+        }
+      }
+    },
+    "Ready." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "準備完了。"
+          }
+        }
+      }
+    },
+    "Reasoning effort" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "推論の強さ"
+          }
+        }
+      }
+    },
+    "Recipe check" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "レシピの判定時間"
+          }
+        }
+      }
+    },
+    "Recipe decision model" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "レシピを判定するモデル"
+          }
+        }
+      }
+    },
+    "Recipe ingredients" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "レシピの材料数"
+          }
+        }
+      }
+    },
+    "Recipe: %@" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "必要量（原文）: %@"
+          }
+        }
+      }
+    },
+    "Recipes" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "レシピ判定"
+          }
+        }
+      }
+    },
+    "Recomputed all items" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "全項目を再計算"
+          }
+        }
+      }
+    },
+    "Remove" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "削除"
+          }
+        }
+      }
+    },
+    "Remove %@" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@を削除"
+          }
+        }
+      }
+    },
+    "Remove option" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選択肢を削除"
+          }
+        }
+      }
+    },
+    "Remove the copy this app prepared for the GPU. The next load prepares it again." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このアプリがGPU向けに準備したキャッシュを削除します。次回の読込時に作り直します。"
+          }
+        }
+      }
+    },
+    "Required equipment is missing" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "必要な調理器具がありません"
+          }
+        }
+      }
+    },
+    "Requirement: %@ · Model score %@" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Requirement: %1$@ · Model score %2$@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "必要性: %@ · モデルスコア %@"
+          }
+        }
+      }
+    },
+    "Reset Form" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フォームをリセット"
+          }
+        }
+      }
+    },
+    "Result model" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "実際に判定したモデル"
+          }
+        }
+      }
+    },
+    "Results" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "結果"
+          }
+        }
+      }
+    },
+    "Resume" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "再開"
+          }
+        }
+      }
+    },
+    "Retry saved bundle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前回のフォルダから再読込"
+          }
+        }
+      }
+    },
+    "Reused %@ s" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "再利用時 %@秒"
+          }
+        }
+      }
+    },
+    "Reused document tokens" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "再利用した本文のトークン数"
+          }
+        }
+      }
+    },
+    "Review first" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "優先して確認"
+          }
+        }
+      }
+    },
+    "Review threshold: %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "再確認するスコアの閾値: %@"
+          }
+        }
+      }
+    },
+    "Review your inventory, then check this recipe." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在庫を確認してから、レシピを判定してください。"
+          }
+        }
+      }
+    },
+    "Revision: %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "リビジョン: %@"
+          }
+        }
+      }
+    },
+    "Run checklist" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "条件を判定"
+          }
+        }
+      }
+    },
+    "Run the checklist to compare model candidates with the source document." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "条件を判定し、モデルの候補を文書原文と比較します。"
+          }
+        }
+      }
+    },
+    "Runs on this Mac. Suggestions require a person's confirmation." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このMacで実行します。候補は人が確認してから在庫に反映します。"
+          }
+        }
+      }
+    },
+    "Same as the name" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "名前と同じ"
+          }
+        }
+      }
+    },
+    "Saucepan" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "鍋"
+          }
+        }
+      }
+    },
+    "Save" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保存"
+          }
+        }
+      }
+    },
+    "Saved %@" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保存先: %@"
+          }
+        }
+      }
+    },
+    "Score" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "スコア"
+          }
+        }
+      }
+    },
+    "Search the web and run multi-step tasks with tool calls" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Web検索やツールで複数手順のタスクを実行"
+          }
+        }
+      }
+    },
+    "Select a demo" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "デモを選択してください"
+          }
+        }
+      }
+    },
+    "Selected choice" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "採用された選択肢"
+          }
+        }
+      }
+    },
+    "Selected fridge photo: %@" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選択中の冷蔵庫写真: %@"
+          }
+        }
+      }
+    },
+    "Send" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "送信"
+          }
+        }
+      }
+    },
+    "Servings: %@" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "分量: %@"
+          }
+        }
+      }
+    },
+    "Short by %@ %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Short by %1$@ %2$@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@%@不足"
+          }
+        }
+      }
+    },
+    "Something is missing" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "足りないものがあります"
+          }
+        }
+      }
+    },
+    "Sources" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "参照元"
+          }
+        }
+      }
+    },
+    "Start with a fridge photo" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "冷蔵庫の写真を選んでください"
+          }
+        }
+      }
+    },
+    "Step limit reached" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最大ステップ数に達しました"
+          }
+        }
+      }
+    },
+    "Stop" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "停止"
+          }
+        }
+      }
+    },
+    "Stopped" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "停止しました"
+          }
+        }
+      }
+    },
+    "Stopped." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "停止しました。"
+          }
+        }
+      }
+    },
+    "Stopping the current operation…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "現在の処理を停止しています…"
+          }
+        }
+      }
+    },
+    "Storage" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ストレージ"
+          }
+        }
+      }
+    },
+    "Stove" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コンロ"
+          }
+        }
+      }
+    },
+    "Strainer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ざる"
+          }
+        }
+      }
+    },
+    "Suggested ingredients" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "食材の候補数"
+          }
+        }
+      }
+    },
+    "Supports public kikkoman.co.jp recipe pages. Reading the URL requires internet." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "公開されているキッコーマンのレシピに対応しています。URLの読込にはインターネット接続が必要です。"
+          }
+        }
+      }
+    },
+    "Switch between English and Japanese" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "英語と日本語を切り替えます"
+          }
+        }
+      }
+    },
+    "Talk to a local model through Foundation Models" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Foundation Models経由でローカルモデルと会話"
+          }
+        }
+      }
+    },
+    "Task" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "タスク"
+          }
+        }
+      }
+    },
+    "Technical verification of a Core AI conversion. Zero-shot GLiNER2.5-multi did not reach the pre-registered bar for Japanese inspection memos (outcome B3). The evaluated version is the default candidate filter, R1 + N1: on a second sealed set of 200 memos, fabricated candidates 13/200, primary-span precision 0.788, recall 0.822. Suggestions are uncalibrated scores." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Core AIへの変換を検証する技術デモです。ゼロショットのGLiNER2.5-multiは、日本語の点検メモに対する事前基準を満たしませんでした（結果B3）。評価した既定フィルターはR1 + N1です。2つ目の独立した評価集合200件では、捏造候補13/200、主要区間の適合率0.788、再現率0.822でした。候補のスコアは未校正です。"
+          }
+        }
+      }
+    },
+    "Technical verification: type labels and see the spans GLiNER finds in a text" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "技術検証: GLiNERでラベルに合う文章を抽出"
+          }
+        }
+      }
+    },
+    "The agent is running a task on this model. Chat can send when it finishes." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このモデルはエージェントで使用中です。終了後にチャットを送信できます。"
+          }
+        }
+      }
+    },
+    "The agent uses the model that Chat has loaded. Choose a model from the menu above, or open a bundle folder in Models." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "エージェントはチャットと同じモデルを使います。上のメニューからモデルを選ぶか、モデル管理でモデルのフォルダを開いてください。"
+          }
+        }
+      }
+    },
+    "The agent uses the model that Chat has loaded. Open a model bundle folder in Models, then load it." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "エージェントはチャットと同じモデルを使います。モデル管理でフォルダを選び、読み込んでください。"
+          }
+        }
+      }
+    },
+    "The checklist changed. Run it again to update these results." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "確認項目が変更されました。再判定すると結果を更新できます。"
+          }
+        }
+      }
+    },
+    "The decision model returned an incomplete recipe check." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルのレシピ判定結果が不足しています。"
+          }
+        }
+      }
+    },
+    "The decision model returned an unknown ingredient status." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルが未知の材料状態を返しました。"
+          }
+        }
+      }
+    },
+    "The first load of a model on this Mac prepares it for the GPU. This happens once per model; later loads reuse the prepared copy." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このMacで初めて読み込むモデルは、GPU用の準備を行います。次回以降は準備済みのキャッシュを再利用します。"
+          }
+        }
+      }
+    },
+    "The ingredient vocabulary is missing." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "食材の語彙データが見つかりません。"
+          }
+        }
+      }
+    },
+    "The model scores fixed choices. It does not count your stock." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルは決められた選択肢を採点します。在庫の数量は計算しません。"
+          }
+        }
+      }
+    },
+    "The photo returned too many items. Try a closer photograph." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "写真の候補が多すぎます。近くから撮った写真で試してください。"
+          }
+        }
+      }
+    },
+    "The recipe context could not be created." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "レシピの文書コンテキストを作成できませんでした。"
+          }
+        }
+      }
+    },
+    "The recipe ingredients or method could not be read completely." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "材料または作り方を完全に読み取れませんでした。"
+          }
+        }
+      }
+    },
+    "The recipe interpretation is incomplete." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "レシピの解釈結果が不足しています。"
+          }
+        }
+      }
+    },
+    "The recipe page is not UTF-8 text." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "レシピのページがUTF-8のテキストではありません。"
+          }
+        }
+      }
+    },
+    "The recipe page is too large." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "レシピのページサイズが上限を超えています。"
+          }
+        }
+      }
+    },
+    "The recipe page redirected too many times." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "レシピのページで転送が繰り返されました。"
+          }
+        }
+      }
+    },
+    "The recipe redirect is missing its destination." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "レシピの転送先が指定されていません。"
+          }
+        }
+      }
+    },
+    "The recipe server did not return an HTTP response." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "レシピのサーバーからHTTP応答がありませんでした。"
+          }
+        }
+      }
+    },
+    "The selected file is not a supported photograph." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このファイルは対応している写真形式ではありません。"
+          }
+        }
+      }
+    },
+    "The stated equipment is available" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "レシピに必要な器具が揃っています"
+          }
+        }
+      }
+    },
+    "Things the photo cannot confirm" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "写真だけでは分からないこと"
+          }
+        }
+      }
+    },
+    "Thinking" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "推論中"
+          }
+        }
+      }
+    },
+    "This page must contain one recipe with 1 to 14 ingredients and a method." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "材料が1〜14件で、作り方を含むレシピが1つあるページを指定してください。"
+          }
+        }
+      }
+    },
+    "This removes the downloaded files and the prepared copy from this Mac." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ダウンロードしたファイルと準備済みキャッシュを、このMacから削除します。"
+          }
+        }
+      }
+    },
+    "Thoughts" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "推論の記録"
+          }
+        }
+      }
+    },
+    "Three-egg omelette" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "卵3個の卵焼き"
+          }
+        }
+      }
+    },
+    "Toaster" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "トースター"
+          }
+        }
+      }
+    },
+    "Token count is available after opening a model." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルを読み込むとトークン数を確認できます。"
+          }
+        }
+      }
+    },
+    "Tomato & mozzarella" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "トマトとモッツァレラ"
+          }
+        }
+      }
+    },
+    "Tool result (original): %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ツールの結果（原文）: %@"
+          }
+        }
+      }
+    },
+    "Type" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "種類"
+          }
+        }
+      }
+    },
+    "URL → recipe text" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "URL → レシピの本文"
+          }
+        }
+      }
+    },
+    "Unit" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "単位"
+          }
+        }
+      }
+    },
+    "Unverified" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未確認"
+          }
+        }
+      }
+    },
+    "Use a Kikkoman recipe URL, such as one of the five examples." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "5つのサンプルのような、キッコーマンのレシピURLを指定してください。"
+          }
+        }
+      }
+    },
+    "Use between 1 and 16 checklist items." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "確認項目は1〜16件にしてください。"
+          }
+        }
+      }
+    },
+    "Use between 1 and 8 options per item." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "各項目の選択肢は1〜8件にしてください。"
+          }
+        }
+      }
+    },
+    "Use short ingredient names and amounts." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "食材名と数量は短く入力してください。"
+          }
+        }
+      }
+    },
+    "Use the recipe's units (for example, 1 pcs or 150 g), or enter enough for the whole recipe. Editing an item clears its confirmation." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "数量はレシピと同じ単位（例: 1 pcs、150 g）で入力します。レシピ全体に十分あると確認した場合は enough と入力できます。編集すると確認チェックが外れます。"
+          }
+        }
+      }
+    },
+    "Waiting for the current operation to stop..." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "現在の処理が停止するのを待っています…"
+          }
+        }
+      }
+    },
+    "Waiting for the text to settle…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "入力の確定を待っています…"
+          }
+        }
+      }
+    },
+    "Web" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Web"
+          }
+        }
+      }
+    },
+    "Where the agent saves its notes" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "エージェントがメモを保存するフォルダ"
+          }
+        }
+      }
+    },
+    "Xhigh" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "非常に高い"
+          }
+        }
+      }
+    },
+    "Yes or no" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "はい／いいえ"
+          }
+        }
+      }
+    },
+    "Yes-or-no items need two options." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "はい／いいえ形式には2つの選択肢が必要です。"
+          }
+        }
+      }
+    },
+    "You" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "あなた"
+          }
+        }
+      }
+    },
+    "Your confirmed inventory fits this recipe" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "確認済みの在庫で材料条件が揃っています"
+          }
+        }
+      }
+    },
+    "available" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用可能"
+          }
+        }
+      }
+    },
+    "bowls" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "杯分"
+          }
+        }
+      }
+    },
+    "cans" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "缶"
+          }
+        }
+      }
+    },
+    "cups" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カップ"
+          }
+        }
+      }
+    },
+    "g" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "g"
+          }
+        }
+      }
+    },
+    "macOS 27, Apple silicon" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS 27、Appleシリコン"
+          }
+        }
+      }
+    },
+    "ml" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ml"
+          }
+        }
+      }
+    },
+    "optional" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "省略可"
+          }
+        }
+      }
+    },
+    "optional — empty uses DuckDuckGo" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "任意。空欄の場合はDuckDuckGoを使います"
+          }
+        }
+      }
+    },
+    "pcs" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "個"
+          }
+        }
+      }
+    },
+    "required" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "必須"
+          }
+        }
+      }
+    },
+    "score (uncalibrated)" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "スコア（未校正）"
+          }
+        }
+      }
+    },
+    "sheets" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "枚"
+          }
+        }
+      }
+    },
+    "span %@" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "区間スコア %@"
+          }
+        }
+      }
+    },
+    "tbsp" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "大さじ"
+          }
+        }
+      }
+    },
+    "tsp" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "小さじ"
+          }
+        }
+      }
+    },
+    "unavailable" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用不可"
+          }
+        }
+      }
+    },
+    "uncertain" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不明"
+          }
+        }
+      }
+    },
+    "unknown" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未確認"
+          }
+        }
+      }
+    },
+    "~32 GiB peak RSS while loading" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "約32 GiB（読み込み時のピークRSS）"
+          }
+        }
+      }
+    },
+    "—" : {
+      "shouldTranslate" : false
+    },
+    "“%@”" : {
+      "shouldTranslate" : false
+    },
+    "→ %@ %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "→ %1$@ %2$@"
+          }
+        }
+      },
+      "shouldTranslate" : false
+    },
+    "Compare product specifications from official descriptions" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "公式の商品説明からスペックを比較"
+          }
+        }
+      }
+    },
+    "Product notes" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "スペックメモ"
+          }
+        }
+      }
+    },
+    "Compare product descriptions" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "商品説明を比較"
+          }
+        }
+      }
+    },
+    "Bring the specs together. Keep the source within reach." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "スペックを並べて、根拠の原文をすぐ確認。"
+          }
+        }
+      }
+    },
+    "%lld / %lld cards" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld / %lld 枚"
+          }
+        }
+      }
+    },
+    "Preview data — no model has run" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "プレビュー用データ（モデルは未実行）"
+          }
+        }
+      }
+    },
+    "Choose a GLiNER model folder to begin" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "GLiNERのモデルフォルダを選択してください"
+          }
+        }
+      }
+    },
+    "Model folder" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルフォルダ"
+          }
+        }
+      }
+    },
+    "Description source" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "商品説明の入力方法"
+          }
+        }
+      }
+    },
+    "Official page" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "公式ページ"
+          }
+        }
+      }
+    },
+    "Paste description" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "説明を貼り付け"
+          }
+        }
+      }
+    },
+    "Apple or Microsoft product URL" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AppleまたはMicrosoftの商品ページURL"
+          }
+        }
+      }
+    },
+    "Try a page:" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ページの例："
+          }
+        }
+      }
+    },
+    "MacBook Air" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MacBook Air"
+          }
+        }
+      }
+    },
+    "Surface Laptop 5" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Surface Laptop 5"
+          }
+        }
+      }
+    },
+    "Product name (optional)" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "商品名（任意）"
+          }
+        }
+      }
+    },
+    "Product description" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "商品説明"
+          }
+        }
+      }
+    },
+    "Paste the product description, including any options and conditions." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選択肢や条件を含めて商品説明を貼り付けてください。"
+          }
+        }
+      }
+    },
+    "Create comparison card" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "比較カードを作成"
+          }
+        }
+      }
+    },
+    "Reading the product description…" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "商品説明を取得中…"
+          }
+        }
+      }
+    },
+    "Finding specifications on this device…" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このデバイスでスペックを抽出中…"
+          }
+        }
+      }
+    },
+    "Finishing the current request…" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "現在の処理の終了を待っています…"
+          }
+        }
+      }
+    },
+    "Could not create this card" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カードを作成できませんでした"
+          }
+        }
+      }
+    },
+    "Paste the description instead" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "説明文の貼り付けに切り替える"
+          }
+        }
+      }
+    },
+    "Start with two products" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "まずは2つの商品から"
+          }
+        }
+      }
+    },
+    "Add a page or paste a description. Cards line up by specification so you can compare them." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ページを追加するか、説明を貼り付けてください。同じ項目を揃えたカードで比較できます。"
+          }
+        }
+      }
+    },
+    "Values mentioned on each page" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "各ページに記載された候補"
+          }
+        }
+      }
+    },
+    "A page may list several configurations. Open a value to check its original context." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "複数の構成を含むページがあります。値を開くと前後の条件や原文を確認できます。"
+          }
+        }
+      }
+    },
+    "Read imported text" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "取得した本文を確認"
+          }
+        }
+      }
+    },
+    "Add a product" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "商品を追加"
+          }
+        }
+      }
+    },
+    "Remove product card" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カードを削除"
+          }
+        }
+      }
+    },
+    "Pasted description" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "貼り付けた説明"
+          }
+        }
+      }
+    },
+    "Read source text" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "原文を確認"
+          }
+        }
+      }
+    },
+    "Untitled product" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "名称未設定の商品"
+          }
+        }
+      }
+    },
+    "Product" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "製品"
+          }
+        }
+      }
+    },
+    "Chip / processor" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "チップ・プロセッサー"
+          }
+        }
+      }
+    },
+    "Memory" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "メモリ"
+          }
+        }
+      }
+    },
+    "Display" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "画面"
+          }
+        }
+      }
+    },
+    "Weight" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重量"
+          }
+        }
+      }
+    },
+    "Battery life" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "バッテリー駆動時間"
+          }
+        }
+      }
+    },
+    "Price" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "価格"
+          }
+        }
+      }
+    },
+    "Not found in this text" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この本文からは見つかりませんでした"
+          }
+        }
+      }
+    },
+    "%lld values · check configurations" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "候補 %lld 件・構成を確認"
+          }
+        }
+      }
+    },
+    "Open the original context" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前後の条件と原文を確認"
+          }
+        }
+      }
+    },
+    "Show source for %@" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@の根拠を表示"
+          }
+        }
+      }
+    },
+    "Captured %@" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "取得日時：%@"
+          }
+        }
+      }
+    },
+    "No value was found for this field. The original text is shown below." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この項目の値は抽出されませんでした。以下で原文を確認できます。"
+          }
+        }
+      }
+    },
+    "Full source text" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "原文の全文"
+          }
+        }
+      }
+    },
+    "Source and conditions" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "出典と条件"
+          }
+        }
+      }
+    },
+    "Extraction lab" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "抽出の検証画面"
+          }
+        }
+      }
+    },
+    "Done" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "完了"
+          }
+        }
+      }
+    },
+    "No readable product description was found. Paste the description to continue." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "読み取れる商品説明が見つかりませんでした。説明文を貼り付けてください。"
+          }
+        }
+      }
+    },
+    "Use an HTTPS product page from Apple or Microsoft, or paste a description." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AppleまたはMicrosoftのHTTPS商品ページを指定するか、説明文を貼り付けてください。"
+          }
+        }
+      }
+    },
+    "An extracted value did not match its source text. Please try again." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "抽出結果と原文が一致しませんでした。再度お試しください。"
+          }
+        }
+      }
+    },
+    "This page is too large. Paste the product description instead." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ページのサイズが大きすぎます。商品説明の部分を貼り付けてください。"
+          }
+        }
+      }
+    },
+    "This URL does not contain an HTML or text page. Paste the description instead." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "HTMLやテキスト形式のページではありません。商品説明を貼り付けてください。"
+          }
+        }
+      }
+    },
+    "The previous extraction is finishing. Please try again shortly." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前の抽出処理が終了するまで少し待ってからお試しください。"
+          }
+        }
+      }
+    },
+    "The product extraction configuration could not be loaded." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "商品情報の抽出設定を読み込めませんでした。"
+          }
+        }
+      }
+    },
+    "Image search" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "画像検索"
+          }
+        }
+      }
+    },
+    "Find selected images with your own words" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選んだ画像を自分の言葉で探す"
+          }
+        }
+      }
+    },
+    "Describe an image to find" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "探したい画像の特徴を入力"
+          }
+        }
+      }
+    },
+    "Open model folder…" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルフォルダを開く…"
+          }
+        }
+      }
+    },
+    "Reload selected model" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選択したモデルを再読込"
+          }
+        }
+      }
+    },
+    "Model ready" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデル準備完了"
+          }
+        }
+      }
+    },
+    "Open model" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルを開く"
+          }
+        }
+      }
+    },
+    "Choose images…" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "画像を選ぶ…"
+          }
+        }
+      }
+    },
+    "Use sample images" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "サンプル画像を使う"
+          }
+        }
+      }
+    },
+    "Preparing the model…" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルを準備中…"
+          }
+        }
+      }
+    },
+    "Indexing images: %lld of %lld" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "画像を索引化中：%1$lld / %2$lld枚"
+          }
+        }
+      }
+    },
+    "Searching selected images…" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選んだ画像を検索中…"
+          }
+        }
+      }
+    },
+    "Search stays on this device." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "検索はこの端末内で完結します。"
+          }
+        }
+      }
+    },
+    "Indexing: %@ s" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "索引作成：%@秒"
+          }
+        }
+      }
+    },
+    "Search: %@ s" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "検索：%@秒"
+          }
+        }
+      }
+    },
+    "Find images with your own words" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自分の言葉で画像を探す"
+          }
+        }
+      }
+    },
+    "Open the model, then choose the images you want to search." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルを開き、検索したい画像を選んでください。"
+          }
+        }
+      }
+    },
+    "Selected images" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選択した画像"
+          }
+        }
+      }
+    },
+    "Search results" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "検索結果"
+          }
+        }
+      }
+    },
+    "%lld images" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld枚"
+          }
+        }
+      }
+    },
+    "Similarity" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "類似度"
+          }
+        }
+      }
+    },
+    "Open original: %@" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "元画像を開く：%@"
+          }
+        }
+      }
+    },
+    "The original image could not be opened." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "元画像を開けませんでした。"
+          }
+        }
+      }
+    },
+    "Choose up to 50 images at a time." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一度に選べる画像は50枚までです。"
+          }
+        }
+      }
+    },
+    "The selected files could not be opened." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選択したファイルを開けませんでした。"
+          }
+        }
+      }
+    },
+    "Shorten your search. This model accepts up to 128 tokens." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "検索文を短くしてください。このモデルは128トークンまで対応しています。"
+          }
+        }
+      }
+    },
+    "Use an opaque, still image with no more than 40 million pixels." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "透過のない4,000万画素以下の静止画を選んでください。"
+          }
+        }
+      }
+    },
+    "This model folder is incomplete or incompatible. Open a valid EmbeddingGemma 2 bundle." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルフォルダが不完全か、非対応です。対応するEmbeddingGemma 2バンドルを開いてください。"
+          }
+        }
+      }
+    },
+    "The operation failed. Try again or reopen the model folder." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "処理に失敗しました。再試行するか、モデルフォルダを開き直してください。"
+          }
+        }
+      }
+    },
+    "Search" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "検索"
+          }
+        }
+      }
+    },
+    "Details" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "詳細"
+          }
+        }
+      }
+    },
+    "Stopping…" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "停止中…"
+          }
+        }
+      }
+    },
+    "EmbeddingGemma 2" : {
+      "shouldTranslate" : false
+    },
+    "Checking image search…" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "画像検索を検証中…"
+          }
+        }
+      }
+    },
+    "Example searches" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "検索例"
+          }
+        }
+      }
+    },
+    "No close matches" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "十分に近い候補がありません"
+          }
+        }
+      }
+    },
+    "Show all candidates" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "すべての候補を表示"
+          }
+        }
+      }
+    },
+    "Similarity compares meaning; it is not a probability." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "類似度は意味の近さで、正解の確率ではありません。"
+          }
+        }
+      }
+    },
+    "Try different wording, choose more images, or show all candidates." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "言葉を変えるか、画像を追加するか、すべての候補を表示してください。"
+          }
+        }
+      }
+    },
+    "%lld of %lld recorded" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%2$lld項目中%1$lld項目を記録済み"
+          }
+        }
+      }
+    },
+    "All answers recorded" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "すべての回答を記録しました"
+          }
+        }
+      }
+    },
+    "Answer again" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "答え直す"
+          }
+        }
+      }
+    },
+    "Change vehicle profile" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "車両の装備を変更"
+          }
+        }
+      }
+    },
+    "Changing the vehicle profile clears this record." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "車両の装備を変更すると、この記録を消去します。"
+          }
+        }
+      }
+    },
+    "Check timing depends on distance and operating conditions." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "走行距離・運行状況に応じた時期に点検する項目です。"
+          }
+        }
+      }
+    },
+    "Checklist sources" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "点検項目の出典"
+          }
+        }
+      }
+    },
+    "Choose a model asset to interpret free-form answers, or use the answer buttons." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自由な言い方の判定にはモデルを選択してください。ボタンでも回答できます。"
+          }
+        }
+      }
+    },
+    "Clear this inspection record?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この点検記録を消去しますか？"
+          }
+        }
+      }
+    },
+    "Compute preference: %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "計算ユニットの指定：%@"
+          }
+        }
+      }
+    },
+    "Confirm result" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この結果で記録"
+          }
+        }
+      }
+    },
+    "Continue inspection" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "点検入力を続ける"
+          }
+        }
+      }
+    },
+    "Copy or share diagnostics" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "診断ログをコピー・共有"
+          }
+        }
+      }
+    },
+    "Could not load the inspection questions" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "点検項目を読み込めませんでした"
+          }
+        }
+      }
+    },
+    "Daily inspection results" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "日常点検の結果入力"
+          }
+        }
+      }
+    },
+    "Enter an answer first." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "回答を入力してください。"
+          }
+        }
+      }
+    },
+    "Explicit answer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "回答どおりに記録"
+          }
+        }
+      }
+    },
+    "Inspection record" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "点検記録"
+          }
+        }
+      }
+    },
+    "Interpret answer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "入力した内容を判定"
+          }
+        }
+      }
+    },
+    "Interpreting your answer…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "回答を判定しています…"
+          }
+        }
+      }
+    },
+    "Japanese questions and answers are used with either interface language." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "質問と回答は、画面の表示言語にかかわらず日本語です。"
+          }
+        }
+      }
+    },
+    "Keep the answer within 240 characters." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "回答は240文字以内にしてください。"
+          }
+        }
+      }
+    },
+    "Load: %@ ms" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "読み込み：%@ ms"
+          }
+        }
+      }
+    },
+    "Model and diagnostics" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルと診断情報"
+          }
+        }
+      }
+    },
+    "Model ready: %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデル準備済み：%@"
+          }
+        }
+      }
+    },
+    "New inspection" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新しい点検"
+          }
+        }
+      }
+    },
+    "Or type what you found" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "確認した内容を文字で入力"
+          }
+        }
+      }
+    },
+    "Place the GLiNER asset folder in this app's Documents, then reopen the app." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このアプリのDocumentsにGLiNERの資産フォルダを配置し、アプリを起動し直してください。"
+          }
+        }
+      }
+    },
+    "Please answer this item again." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この項目をもう一度答えてください。"
+          }
+        }
+      }
+    },
+    "Ready" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "準備完了"
+          }
+        }
+      }
+    },
+    "Review the results below, including items needing attention and items not inspected." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "要確認・未点検の項目も含めて、下の記録を確認してください。"
+          }
+        }
+      }
+    },
+    "Share inspection record" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "点検記録を共有"
+          }
+        }
+      }
+    },
+    "Start a new record" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新しい記録を始める"
+          }
+        }
+      }
+    },
+    "Start inspection" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "点検入力を始める"
+          }
+        }
+      }
+    },
+    "Tap answers work without a model." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルの配置前でも、ボタンで回答できます。"
+          }
+        }
+      }
+    },
+    "The operation failed. Check the diagnostics or use the answer buttons." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "処理に失敗しました。診断情報を確認するか、ボタンで回答してください。"
+          }
+        }
+      }
+    },
+    "Truck inspection" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "トラック点検"
+          }
+        }
+      }
+    },
+    "Unanswered" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未回答"
+          }
+        }
+      }
+    },
+    "Vehicle profile" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "車両の装備"
+          }
+        }
+      }
+    },
+    "Waiting for confirmation" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "確認を待っています"
+          }
+        }
+      }
+    },
+    "Waiting for your answer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "回答を待っています"
+          }
+        }
+      }
+    },
+    "Start Japanese voice input" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "日本語の音声入力を始める"
+          }
+        }
+      }
+    },
+    "Use answer buttons" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "タップ回答に切り替える"
+          }
+        }
+      }
+    },
+    "Checking voice permissions…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音声の権限を確認しています…"
+          }
+        }
+      }
+    },
+    "Reading the question…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "読み上げています…"
+          }
+        }
+      }
+    },
+    "Listening for confirmation" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "確認の回答を聞いています"
+          }
+        }
+      }
+    },
+    "Listening for your answer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "回答を聞いています"
+          }
+        }
+      }
+    },
+    "Prepare a model before starting voice input. Tap answers are available now." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音声入力にはモデルの準備が必要です。タップ回答はすぐに使えます。"
+          }
+        }
+      }
+    },
+    "Speech playback did not finish. Continue with the answer buttons." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "読み上げが完了しませんでした。ボタンで回答を続けてください。"
+          }
+        }
+      }
+    },
+    "No answer was recognized. Continue with the answer buttons." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "回答を聞き取れませんでした。ボタンで回答を続けてください。"
+          }
+        }
+      }
+    },
+    "Voice input is unavailable. Check permissions and Japanese on-device recognition, or use the answer buttons." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音声入力を利用できません。権限と日本語の端末内認識を確認するか、ボタンで回答してください。"
+          }
+        }
+      }
+    },
+    "Continue with the answer buttons." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ボタンで回答を続けてください。"
+          }
+        }
+      }
+    },
+    "The result is still unconfirmed. Answer this item with the buttons." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "結果は未確認です。この項目をボタンで回答してください。"
+          }
+        }
+      }
+    },
+    "Measure 20 classifications" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "推論を20回計測"
+          }
+        }
+      }
+    },
+    "Median: %@ ms" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "中央値：%@ ms"
+          }
+        }
+      }
+    },
+    "p95: %@ ms" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "p95：%@ ms"
+          }
+        }
+      }
+    },
+    "Measuring classification speed…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "推論速度を計測しています…"
+          }
+        }
+      }
+    },
+    "Speaking…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "読み上げています…"
+          }
+        }
+      }
+    },
+    "Speech" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音声生成"
+          }
+        }
+      }
+    },
+    "Generate and play speech from text with Irodori" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Irodoriで文章から音声を生成・再生"
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

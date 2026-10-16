@@ -18,15 +18,16 @@ struct NoteEditor: NSViewRepresentable {
         textView.isAutomaticQuoteSubstitutionEnabled = false
         textView.isAutomaticDashSubstitutionEnabled = false
         textView.string = text
-        textView.setAccessibilityLabel("Note")
+        textView.setAccessibilityLabel(DemoStrings(locale: context.environment.locale).text("Note"))
         return scrollView
     }
 
     func updateNSView(_ scrollView: NSScrollView, context: Context) {
         context.coordinator.onChange = onChange
         context.coordinator.onComposing = onComposing
-        guard let textView = scrollView.documentView as? NSTextView, !textView.hasMarkedText(), textView.string != text
-        else { return }
+        guard let textView = scrollView.documentView as? NSTextView else { return }
+        textView.setAccessibilityLabel(DemoStrings(locale: context.environment.locale).text("Note"))
+        guard !textView.hasMarkedText(), textView.string != text else { return }
         textView.string = text
     }
 

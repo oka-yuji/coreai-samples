@@ -1,0 +1,32 @@
+{
+  "date": "2026-10-09",
+  "languageBase": "ca8a947",
+  "applicationId": "com.coreai-samples.LanguagePreview",
+  "purpose": "Separate preferences; original user demo kept running without ending its session. No model/photo inference launched.",
+  "guiPassed": [
+    "Chat, Agent, Decide, Recipes, Extract and Models switched EN/JP with one trailing toolbar control.",
+    "navigationTitle had remained in initial Japanese; explicit Text(verbatim:) lookup fixed this, observed across six screens.",
+    "EN persisted across ending an empty preview and relaunching it.",
+    "Recipes shows clef-flash-9b-decide-v1 and unloaded status even before opening a bundle.",
+    "Focused confirmed eggs / 1 pcs survived EN to JP to EN with checkbox still checked and translated name.",
+    "Actual edit from eggs to onion cleared confirmation, leaving amount unchanged.",
+    "The live omelette URL was fetched without model inference: source title, four ingredients and ten steps persisted across language switching.",
+    "Inspector stays expanded while language changes; EN/JP visible text verified by screenshots. Missing photo/decision measurements remain absent.",
+    "Test inventory and URL were removed; the empty preview was closed. Original user app was untouched.",
+    "Final follow-up: Japanese Chat control says reasoning effort rather than a running-state label; the native Extract editor accessibility label changes between Note and its Japanese translation.",
+    "Japanese preference also persisted across preview relaunch; the final empty preview was closed."
+  ],
+  "notVerified": [
+    "New-build live decision diagnostics, photo/result retention and loading/retry/cancellation GUI: waiting for permission to close original model app; no concurrent GPU/model run attempted.",
+    "Marked-text IME composition; only focused-field switching and actual name edit were tested.",
+    "Narrow-window resizing: attempted drag did not resize the preview; no narrow-window pass claimed.",
+    "Agent settings popover did not appear through the attempted accessibility click; initial screen language verified only."
+  ],
+  "toolCaveat": "Some aggregated selectable-text AX nodes retained prior language although screenshots showed correct translated text; visible text verified separately.",
+  "approvalBlock": {
+    "action": "Quit original CoreAISamples app",
+    "reason": "Automatic approval review rejected potential loss of nontrivial unsaved inventory/photo state.",
+    "question": "User asked whether original app may close with recorded items restored; no answer yet."
+  },
+  "manualAcceptance": "User-owned checkboxes are not marked by agent verification."
+}

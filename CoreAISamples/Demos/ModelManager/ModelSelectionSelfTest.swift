@@ -1,9 +1,10 @@
 import Foundation
+import Observation
 
 enum ModelSelectionSelfTest {
     static let otherFamilyReason =
-        "This sample runs Qwen3, Qwen3.5 and Qwen3.8 bundles made with Apple's converter. "
-        + "clef was converted from Cloudflare/clef-flash."
+        "This sample's Chat and Agent handle Qwen3, Qwen3.5 and Qwen3.8 bundles. "
+        + "clef was converted from Cloudflare/clef-flash, which this sample does not handle."
     static let missingIDReason =
         "metadata.json has no source.hf_model_id, so this sample cannot tell which model family the bundle is."
 
@@ -14,8 +15,8 @@ enum ModelSelectionSelfTest {
             "catalog/qwen38-27b-4bit",
             Catalog.models.count == 1 && published?.id == "qwen3-8-27b-4bit"
                 && published?.repo == "okayuji/Qwen3.8-27B-coreai-4bit"
-                && published?.revision == "c034c9857455a48cea715fec19eb49b3227b2458"
-                && published?.sizeBytes == 16_852_520_981,
+                && published?.revision == "8e24aebe036eae577d4a3bd019ba728a73358318"
+                && published?.sizeBytes == 16_852_543_780,
             "\(Catalog.models.map { "\($0.id) \($0.repo)@\($0.revision) \($0.sizeBytes)" })")
         let name = "model-selection-\(UUID().uuidString)"
         let root = FileManager.default.temporaryDirectory.appending(path: name)
@@ -142,32 +143,6 @@ enum ModelSelectionSelfTest {
             "menu/emptyWithoutCandidates", empty.downloaded.isEmpty && empty.onThisMac.isEmpty,
             "\(describe(empty.downloaded)) \(describe(empty.onThisMac))")
 
-        let agent = AgentViewModel()
-        agent.persistsSettings = false
-        let earlier = AgentViewModel.Entry(kind: .user, title: "You", text: "earlier task")
-        agent.entries = [earlier]
-        let idle = ChatViewModel()
-        let current = ModelsViewModel.MenuEntry(name: "qwen35", url: qwen[1], isCurrent: true)
-        await ModelMenu.choose(current, chat: idle, agent: agent)
-        check(
-            "menu/chooseCurrentDoesNothing",
-            idle.phase == .empty && idle.bundleURL == nil && agent.entries.map(\.id) == [earlier.id],
-            "\(idle.phase) agentEntries=\(agent.entries.count)")
-
-        let chat = ChatViewModel()
-        let before = chat.loadStarted
-        let other = ModelsViewModel.MenuEntry(name: "qwen3", url: qwen[0], isCurrent: false)
-        await ModelMenu.choose(other, chat: chat, agent: agent)
-        var reachedRuntime = false
-        if case .failed(let message) = chat.phase {
-            reachedRuntime = message != otherFamilyReason && message != missingIDReason
-        }
-        check(
-            "menu/chooseStartsLoadAndNewConversation",
-            chat.bundleURL == qwen[0] && chat.loadStarted > before && chat.entries.isEmpty && agent.entries.isEmpty
-                && reachedRuntime,
-            "\(chat.phase) agentEntries=\(agent.entries.count)")
-
         let states = [
             (false, false, false, false), (true, false, false, false), (false, true, false, false),
             (false, false, true, false), (false, false, false, true),
@@ -176,6 +151,62 @@ enum ModelSelectionSelfTest {
             ModelMenu.isDisabled(loading: $0.0, responding: $0.1, busy: $0.2, agentRunning: $0.3)
         }
         check("menu/disabledWhileBusy", disabled == [false, true, true, true, true], "\(disabled)")
+        await switchChecks(qwen: qwen, stale: byFolder.onThisMac[0], check)
+    }
+
+    @MainActor
+    private static func switchChecks(
+        qwen: [URL], stale: ModelsViewModel.MenuEntry, _ check: (String, Bool, String) -> Void
+    ) async {
+        let agent = AgentViewModel()
+        agent.persistsSettings = false
+        let earlier = AgentViewModel.Entry(kind: .user, title: "You", text: "earlier task")
+        agent.entries = [earlier]
+
+        let busy = ChatViewModel()
+        busy.externallyBusy = true
+        let refused = await ModelSwitch.choose(qwen[0], chat: busy, agent: agent)
+        check(
+            "switch/refusesWhileBusy",
+            !refused && busy.phase == .empty && busy.bundleURL == nil && agent.entries.map(\.id) == [earlier.id],
+            "switched=\(refused) \(busy.phase) agentEntries=\(agent.entries.count)")
+
+        let path = ModelStorage.key(qwen[1])
+        let same = [qwen[1], URL(filePath: path, directoryHint: .notDirectory), URL(filePath: path + "/./")].map {
+            ModelSwitch.isLoaded($0, phase: .ready, current: qwen[1])
+        }
+        let notLoaded = [
+            ModelSwitch.isLoaded(qwen[1], phase: .loading(preparing: false), current: qwen[1]),
+            ModelSwitch.isLoaded(qwen[1], phase: .failed("failed"), current: qwen[1]),
+            ModelSwitch.isLoaded(qwen[0], phase: .ready, current: qwen[1]),
+        ]
+        let idle = ChatViewModel()
+        let reloaded = await ModelSwitch.choose(stale.url, chat: idle, agent: agent)
+        check(
+            "switch/currentModelIsCheckedAtRun",
+            same == [true, true, true] && notLoaded == [false, false, false] && stale.isCurrent && reloaded
+                && idle.bundleURL == stale.url,
+            "same=\(same) notLoaded=\(notLoaded) staleSnapshotReloaded=\(reloaded)")
+
+        agent.entries = [earlier]
+        let chat = ChatViewModel()
+        let before = chat.loadStarted
+        let moment = LoadMoment()
+        withObservationTracking {
+            _ = chat.phase
+        } onChange: {
+            MainActor.assumeIsolated { moment.agentEntries = agent.entries.count }
+        }
+        let switched = await ModelSwitch.choose(qwen[0], chat: chat, agent: agent)
+        var reachedRuntime = false
+        if case .failed(let message) = chat.phase {
+            reachedRuntime = message != otherFamilyReason && message != missingIDReason
+        }
+        check(
+            "switch/resetsAgentThenLoads",
+            switched && moment.agentEntries == 0 && agent.entries.isEmpty && chat.bundleURL == qwen[0]
+                && chat.loadStarted > before && reachedRuntime,
+            "switched=\(switched) agentEntriesAtLoad=\(moment.agentEntries.map(String.init) ?? "nil") \(chat.phase)")
     }
 
     static func bundle(_ name: String, modelID: String?, in root: URL) throws -> URL {
@@ -192,4 +223,9 @@ enum ModelSelectionSelfTest {
         try JSONSerialization.data(withJSONObject: metadata).write(to: url.appending(path: "metadata.json"))
         return url
     }
+}
+
+@MainActor
+private final class LoadMoment {
+    var agentEntries: Int?
 }

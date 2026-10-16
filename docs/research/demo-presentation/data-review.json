@@ -1,0 +1,267 @@
+{
+  "schemaVersion": 1,
+  "review": "Issue 53 independent diagnostic-data review",
+  "repo": "/private/tmp/fridge-presentation",
+  "branch": "feat/53-recipe-inspection",
+  "baseSha": "899fdcde7707cdaf812a9f4276bc4696afa8e50f",
+  "headSha": "899fdcde7707cdaf812a9f4276bc4696afa8e50f",
+  "snapshot": "working tree including untracked files",
+  "reviewedAt": "2026-10-09T04:43:35.763610+00:00",
+  "scopeFile": "/private/tmp/fridge-inspector-data-scope.json",
+  "stateToken": "abc76e2e90ff80e78fc06a919ebea8c3b3a046e225406a4649d8d43afe6146a5",
+  "scopeUnchanged": true,
+  "complete": true,
+  "completionMeaning": "Assigned read-only source/data review complete; live-model and GUI acceptance are separate and not claimed.",
+  "skills": [
+    "/Users/okayuuji/.codex/skills/review/SKILL.md",
+    "/Users/okayuuji/.codex/skills/self-review-branch/SKILL.md"
+  ],
+  "environment": {
+    "compiler": "Apple Swift 6.4 (swiftlang-6.4.0.34.1 clang-2100.3.34.1)",
+    "sdk": "macOS 27.0",
+    "languageMode": "Swift 6",
+    "recipeTargets": "default nonisolated; NonisolatedNonsendingByDefault and InferIsolatedConformances",
+    "concurrency": "LiveRecipeService and RecipeRunner are explicitly MainActor; projection is synchronous and adds no suspension points."
+  },
+  "confirmed": [],
+  "plausible": [],
+  "unverified": [],
+  "resolved": [
+    "I53-D01"
+  ],
+  "candidateLedger": [
+    {
+      "id": "I53-D01",
+      "title": "Check-time label had an overbroad model-loading exclusion",
+      "maxSeverity": "P3",
+      "status": "resolved",
+      "location": "CoreAISamples/Demos/Recipes/RecipeInspectorView.swift:71",
+      "evidenceHistory": [
+        {
+          "status": "plausible",
+          "evidence": "The original label said excludes model loading. RecipeService starts its clock before DecisionModel.context and context.decide; context creation and reusable-runtime preparation may load internal runtime assets. Explicit loadModel and Service queueing are excluded."
+        },
+        {
+          "status": "resolved",
+          "evidence": "Current Inspector says excludes opening the selected bundle and queueing. docs/recipes-demo.md explicitly states internal runtime preparation during the check is included. The timer boundary and numeric implementation are unchanged."
+        }
+      ],
+      "resolution": "Source and user-facing explanation now agree; this was a wording ambiguity, not a measured-value defect."
+    },
+    {
+      "id": "I53-D02",
+      "title": "Projection could recompute a different tied winner",
+      "maxSeverity": "P2",
+      "status": "rejected",
+      "evidence": "RecipeService copies answer.top directly and maps answer.distribution without sorting, normalization or precision conversion. DecisionAnswer.choice.top returns the stored selected ID. The proposed regression test uses equal optional/required scores with stored required winner. Raw Float bit patterns survive the independent Codable probe."
+    },
+    {
+      "id": "I53-D03",
+      "title": "Optional diagnostic addition could reject previously saved reports",
+      "maxSeverity": "P2",
+      "status": "rejected",
+      "evidence": "diagnostics is optional without a synthesized constant default; synthesized decoding accepts absent/null. Independent Swift 6 CPU execution decoded both absent and null diagnostics with populated quantity-shortage rows. Constructor default nil preserves existing source calls."
+    },
+    {
+      "id": "I53-D04",
+      "title": "Question comparison could misattach an answer after order or count drift",
+      "maxSeverity": "P2",
+      "status": "rejected",
+      "evidence": "The service checks answer count and ordered ID equality before zip. Questions originate from ASCII ingredient_<Int> IDs plus equipment, so canonical-equivalent Unicode keys are not reachable here. The new mismatch test reverses answers and expects rejection."
+    },
+    {
+      "id": "I53-D05",
+      "title": "New details could change review, quantity or cancellation semantics",
+      "maxSeverity": "P2",
+      "status": "rejected",
+      "evidence": "The threshold is the same Float literal 0.6 and the exact prior strict comparison. FoodVocabulary.assessAll and its arguments are unchanged. Service acquire/defer release and pre/post-await cancellation checks remain unchanged; synchronous DTO construction adds no task owner or await; Runner checks cancellation before sending checked, and Feature session/revision gates remain unchanged. CPU probe independently verified both threshold boundaries, unknown amount/equipment, required egg shortage and optional notRequired."
+    }
+  ],
+  "coverage": [
+    {
+      "path": "CoreAISamplesKit/Sources/RecipeCore/RecipeDiagnostics.swift",
+      "scope": "entire new file",
+      "verified": [
+        "raw immutable DTOs",
+        "array order",
+        "Float scores/logits",
+        "stored selected ID",
+        "Codable identity"
+      ]
+    },
+    {
+      "path": "CoreAISamplesKit/Sources/RecipeCore/RecipeTypes.swift",
+      "scope": "entire file with base diff",
+      "verified": [
+        "optional JSON compatibility",
+        "old init call compatibility",
+        "unchanged strict 0.6 rule",
+        "unknown requirement/quantity/equipment and shortage rules"
+      ]
+    },
+    {
+      "path": "CoreAISamplesKit/Sources/RecipeRuntime/RecipeService.swift",
+      "scope": "entire file with base diff",
+      "verified": [
+        "DecisionResult-to-diagnostics mapping",
+        "question order/count guard",
+        "inputTokens/model/version mapping",
+        "fresh vs reused token accounting",
+        "time boundary",
+        "unchanged cancellation and queue ownership"
+      ]
+    },
+    {
+      "path": "CoreAISamplesKit/Tests/RecipeRuntimeTests/RecipeDiagnosticsTests.swift",
+      "scope": "entire new test file",
+      "verified": [
+        "tie/order/probability/logit projection assertions",
+        "independent ingredient/equipment threshold tests",
+        "legacy and roundtrip assertions",
+        "mismatched ID rejection"
+      ]
+    },
+    {
+      "path": "CoreAISamples/Demos/Recipes/RecipeSelfTest.swift",
+      "scope": "entire file and changed validation paths",
+      "verified": [
+        "both initial and equipment-update report diagnostics validated",
+        "same report emitted into JSON",
+        "finite three-choice distributions and IDs",
+        "existing egg shortage/reuse assertions retained"
+      ]
+    },
+    {
+      "path": "CoreAISamples/Demos/Recipes/RecipeInspectorView.swift",
+      "scope": "supporting data/metric display contract; visual/accessibility review belongs to other reviewer",
+      "verified": [
+        "model/input/reuse/seconds values",
+        "raw option order and selected mark",
+        "rounding confined to display",
+        "timing explanation fixed",
+        "uncalibrated labels",
+        "actual shared threshold referenced"
+      ]
+    }
+  ],
+  "verificationHistory": [
+    {
+      "method": "static",
+      "result": "PASS",
+      "detail": "Base/current diffs plus full service/types/DTO/tests/selftest and backend/Runner consumers inspected."
+    },
+    {
+      "method": "isolated CPU compile/run",
+      "result": "PASS",
+      "command": "xcrun swiftc -parse-as-library -swift-version 6 -enable-upcoming-feature NonisolatedNonsendingByDefault -enable-upcoming-feature InferIsolatedConformances with actual RecipeDiagnostics.swift, RecipeTypes.swift, RecipeAmounts.swift and scratch Probe.swift",
+      "evidence": "/private/tmp/fridge-inspector-data-audit/probe-output.txt",
+      "checks": [
+        "populated legacy absent and null diagnostics",
+        "exact Float probability/logit bit patterns and stored selected tie JSON roundtrip",
+        "independent ingredient and equipment strict threshold boundary",
+        "unknown amount and equipment",
+        "egg 1/3 shortage remains two pcs",
+        "optional amount never becomes shortage"
+      ]
+    },
+    {
+      "method": "scope recheck",
+      "result": "PASS",
+      "detail": "review_scope.py --check returned unchanged:true for assigned six-file snapshot."
+    },
+    {
+      "method": "repository tests",
+      "result": "not independently run",
+      "detail": "Parent owns ordinary suite/build/lint, controlled Runner tests and live-model verification; no shared .build or models accessed by this review."
+    }
+  ],
+  "failures": [
+    {
+      "phase": "scratch probe compilation",
+      "resolved": true,
+      "detail": "Initial harness placed a throwing decode inside precondition autoclosure. Decode was moved into a local before assertion; subsequent actual-source compile/run passed. No repository code was changed."
+    }
+  ],
+  "unresolvedCoverage": [
+    {
+      "scope": "INSPECT-04 actual model outputs and numeric display comparison",
+      "owner": "root",
+      "status": "not run by this reviewer",
+      "reason": "Explicit no-model/GPU constraint"
+    },
+    {
+      "scope": "INSPECT-01/05 GUI loading/retry, language switching, collapsed details and visual score matching",
+      "owner": "root/UI reviewer",
+      "status": "not run by this reviewer",
+      "reason": "Explicit no-GUI constraint"
+    },
+    {
+      "scope": "Package-wide tests, lint, format and Release build",
+      "owner": "root",
+      "status": "not independently executed",
+      "reason": "Avoid shared build and duplicate verification; this review compiled only actual pure core sources in scratch."
+    }
+  ],
+  "pendingTasks": [],
+  "deferredTasks": [],
+  "excluded": [],
+  "blockers": [],
+  "primaryReferences": [
+    "/Users/okayuuji/src/swiftlang/swift-evolution/proposals/0166-swift-archival-serialization.md (KeyedDecodingContainerProtocol.decodeIfPresent)",
+    "/Users/okayuuji/src/swiftlang/swift-evolution/proposals/0306-actors.md (previously verified reentrancy contract)",
+    "/Users/okayuuji/src/swiftlang/swift-testing/Sources/Testing/Testing.docc (previously verified Testing expectations/error handling)",
+    "/Users/okayuuji/Desktop/ナレッジ/coreai-guide/guide/11-performance-and-verification.md (timing definitions)",
+    "/Users/okayuuji/Desktop/ナレッジ/coreai-guide/guide/12-custom-head-models.md",
+    "/Users/okayuuji/Desktop/ナレッジ/coreai-guide/guide/26-swift-for-coreai.md",
+    "/Users/okayuuji/Desktop/ナレッジ/coreai-guide/guide/27-model-adaptation.md"
+  ],
+  "guideCandidates": [],
+  "guideCandidatesNote": "追記候補なし。時間の境界を明記する原則は既存ガイド第11章にあり、今回の個別アプリ契約は仕様書とdocs/recipes-demo.mdに反映済み。",
+  "stats": {
+    "assignedFiles": 6,
+    "confirmedOpen": 0,
+    "plausibleOpen": 0,
+    "resolved": 1,
+    "rejected": 4,
+    "cpuProbePassed": 1
+  },
+  "files": [
+    {
+      "path": "CoreAISamples/Demos/Recipes/RecipeInspectorView.swift",
+      "sha256": "a3b5f77129ca91de3421369e1b56b4fbea4edde0d734fffc01ade10a8acfe006",
+      "lines": 162
+    },
+    {
+      "path": "CoreAISamples/Demos/Recipes/RecipeSelfTest.swift",
+      "sha256": "bd8d9f28a2051daf842afb88a46fb4fe13fe9369fcf556e729f23a663289c1d1",
+      "lines": 184
+    },
+    {
+      "path": "CoreAISamplesKit/Sources/RecipeCore/RecipeDiagnostics.swift",
+      "sha256": "0ee52cd67bca5729ba6c3d6f1b5d0bdfe632f26760ee88a27a571bae1b092f41",
+      "lines": 38
+    },
+    {
+      "path": "CoreAISamplesKit/Sources/RecipeCore/RecipeTypes.swift",
+      "sha256": "52147df55d373a483c45835245c862bdf25befe9a66a1136653a1703875a0811",
+      "lines": 231
+    },
+    {
+      "path": "CoreAISamplesKit/Sources/RecipeRuntime/RecipeService.swift",
+      "sha256": "ea1a45af5a55a74f371bd155cda9518a5487708906e57b55879820f682fb9671",
+      "lines": 205
+    },
+    {
+      "path": "CoreAISamplesKit/Tests/RecipeRuntimeTests/RecipeDiagnosticsTests.swift",
+      "sha256": "dc65686e6449a35c272fe0dfaa8d1f4629db62da87e3dc39d4a913d6fe143b4a",
+      "lines": 115
+    }
+  ],
+  "supportingSnapshots": {
+    "CoreAISamplesKit/Sources/RecipeRuntime/RecipeRunner.swift": "1f633c37f2d53987775e465b587254f32aa297c26ae6782195bb9231e7bf469b",
+    "CoreAISamplesKit/Sources/RecipeCore/RecipeAmounts.swift": "501811287b05e33472be9d92b1bed6e2c4b9522df57755d86aa843f89830f5bf",
+    "CoreAISamplesKit/Package.swift": "3b397516c13bae4225fe91f8c4f77cd00ee365e7ceba462817e20cfab97a4c47",
+    "docs/recipes-demo.md": "61a70e4ae9ca276fa1567d10637fd0f1a120b33800e3484a61a62b746ca66466",
+    "docs/specs/demo-presentation.md": "11661f2bf80a291cae95fc5d02fef2aa2a47a9fa3f93ec671321abc9066fbdae"
+  }
+}
