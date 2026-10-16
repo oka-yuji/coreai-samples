@@ -50,6 +50,15 @@ final class ConversationPreferences {
         citeFetched = defaults.object(forKey: Self.citeFetchedKey) as? Bool ?? true
     }
 
+    func restore(_ settings: ConversationSettings) {
+        effort = AgentReasoningEffort(rawValue: settings.effort) ?? .low
+        maxSteps = settings.maxSteps
+        maxTokens = settings.maxTokens
+        pageBudget = settings.pageBudget
+        citationGuard = settings.citationGuard
+        notesFolderPath = settings.notesFolder
+    }
+
     func resetForHeadless() {
         persists = false
         maxSteps = 8
@@ -211,14 +220,7 @@ final class ConversationHost {
 
     func restorePreferences() {
         guard state.archiveRevision > 0, !state.isRestoring else { return }
-        let settings = state.settings
-        preferences.effort = AgentReasoningEffort(rawValue: settings.effort) ?? .low
-        preferences.maxSteps = settings.maxSteps
-        preferences.maxTokens = settings.maxTokens
-        preferences.pageBudget = settings.pageBudget
-        preferences.fileOperations = settings.fileOperations
-        preferences.citationGuard = settings.citationGuard
-        preferences.notesFolderPath = settings.notesFolder
+        preferences.restore(state.settings)
     }
 
     @discardableResult
@@ -244,6 +246,16 @@ final class ConversationHost {
         return store.state.isRunning
     }
 
+    var canContinueAnswer: Bool {
+        state.canLeave && matchesConversationModel && chat.phase == .ready && !chat.isResponding
+            && !chat.externallyBusy && !chat.ragIsOn && ConversationFeature.continueEligibility(state)
+    }
+
+    func continueAnswer() {
+        guard canContinueAnswer else { return }
+        store.send(.continueRequested(now: Date()))
+    }
+
     func continueInWork() {
         guard canContinueInWork else { return }
         send(Self.continuePrompt, mode: .work)
@@ -266,7 +278,7 @@ final class ConversationHost {
             id: id, chat: chat, preferences: preferences, archive: archive, termination: termination)
         var state = ConversationState(
             id: id, now: now, mode: mode, settings: preferences.settings, modelID: chat.modelName,
-            instructionsVersion: preferences.citeFetched ? "cite-fetched" : "frozen",
+            instructionsVersion: preferences.citeFetched ? "cite-fetched-v2" : "frozen-v2",
             toolsVersion: (AgentTools.names.dropLast(preferences.fileOperations ? 0 : 1)).joined(separator: ","))
         state.library = library
         return (ConversationStore(initialState: state, run: runner.run), runner)

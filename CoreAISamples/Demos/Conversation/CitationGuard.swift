@@ -95,6 +95,7 @@ final class CitationGuard {
     private var repairStarted: Date?
     private var repairUsage: LanguageModelSession.Usage?
     private var notesCommitted = false
+    private var noteWarnings: [String] = []
 
     init(tools: ToolRunner) {
         self.tools = tools
@@ -117,17 +118,27 @@ final class CitationGuard {
         repairStarted = nil
         repairUsage = nil
         notesCommitted = false
+        noteWarnings = []
     }
 
     func settle(_ end: TurnEnd, step: Int, maxSteps: Int, stopped: Bool, usage: LanguageModelSession.Usage?)
-        -> Verdict
+        async -> Verdict
     {
-        if repairPending { return settleRepair(end, usage: usage) }
+        if repairPending { return await settleRepair(end, stopped: stopped, usage: usage) }
         let check = ledgerCheck(stage: "answer", answer: end.answer)
         checks = [check]
-        guard active else { return .done(note: nil) }
-        if end.outcome != TurnEnd.answered {
-            finishIncompleteNotes(reason: end.outcome)
+        guard active else {
+            if end.outcome != TurnEnd.answered || stopped {
+                outcome = "skipped"
+                reason = stopped ? "stopped" : end.outcome
+            }
+            await finishNotes(commit: end.outcome == TurnEnd.answered && !stopped)
+            return .done(note: note())
+        }
+        if stopped || tools.stopped {
+            await finishIncompleteNotes(reason: "stopped")
+        } else if end.outcome != TurnEnd.answered {
+            await finishIncompleteNotes(reason: end.outcome)
         } else if !check.violation {
             outcome = "verified"
             reason = "none"
@@ -146,18 +157,18 @@ final class CitationGuard {
             AgentTools.log("[guard] repair turn: \(check.reason)")
             return .repair(AgentPromptBuilder.repairPrompt(unfetched: check.unfetched))
         }
-        if end.outcome == TurnEnd.answered { finishNotes(commit: outcome == "verified") }
+        if end.outcome == TurnEnd.answered { await finishNotes(commit: outcome == "verified") }
         return .done(note: note())
     }
 
-    func cancelRepair() {
+    func cancelRepair() async {
         guard repairPending else { return }
         repairPending = false
         tools.repairFetchLimit = nil
-        finishIncompleteNotes(reason: "stopped")
+        await finishIncompleteNotes(reason: "stopped")
     }
 
-    private func settleRepair(_ end: TurnEnd, usage: LanguageModelSession.Usage?) -> Verdict {
+    private func settleRepair(_ end: TurnEnd, stopped: Bool, usage: LanguageModelSession.Usage?) async -> Verdict {
         repairPending = false
         tools.repairFetchLimit = nil
         repairSeconds = repairStarted.map { Date().timeIntervalSince($0) }
@@ -165,7 +176,11 @@ final class CitationGuard {
             repairPromptTokens = usage.input.totalTokenCount - before.input.totalTokenCount
             repairGeneratedTokens = usage.output.totalTokenCount - before.output.totalTokenCount
         }
-        if end.outcome == TurnEnd.answered {
+        if stopped || tools.stopped {
+            outcome = "held"
+            reason = "stopped"
+            guardedAnswer = answerBeforeRepair
+        } else if end.outcome == TurnEnd.answered {
             let check = ledgerCheck(stage: "repaired", answer: end.answer)
             checks.append(check)
             outcome = check.violation ? "held" : "repaired"
@@ -178,7 +193,7 @@ final class CitationGuard {
                 ? "deadline" : "repair-" + end.outcome
             guardedAnswer = answerBeforeRepair
         }
-        finishNotes(commit: outcome == "repaired")
+        await finishNotes(commit: outcome == "repaired")
         return .done(note: note())
     }
 
@@ -188,38 +203,45 @@ final class CitationGuard {
 
     private func ledgerCheck(stage: String, answer: String) -> LedgerCheck {
         Self.ledgerCheck(
-            stage: stage, answer: answer, notes: tools.notesWritten.map(\.text), ledger: tools.ledger,
+            stage: stage, answer: answer, notes: tools.noteTextsForValidation, ledger: tools.ledger,
             attempts: tools.fetchAttempts, sourcesRequired: preferences.sourcesRequired,
             usedWebTools: tools.webToolCalls > 0)
     }
 
-    func finishIncompleteNotes(reason: String) {
+    func finishIncompleteNotes(reason: String) async {
         let check = Self.ledgerCheck(
-            stage: "notes", answer: "", notes: tools.notesWritten.map(\.text), ledger: tools.ledger,
+            stage: "notes", answer: "", notes: tools.noteTextsForValidation, ledger: tools.ledger,
             attempts: tools.fetchAttempts, sourcesRequired: false, usedWebTools: false)
         outcome = "skipped"
         self.reason =
             check.noteCitationsUnfetched.isEmpty
             ? reason : reason + ": note-unfetched: " + check.noteCitationsUnfetched.joined(separator: ", ")
-        finishNotes(commit: check.noteCitationsUnfetched.isEmpty)
+        await finishNotes(commit: false)
     }
 
-    func finishNotes(commit: Bool) {
-        let drafts = tools.draftOrder
-        guard !drafts.isEmpty else { return }
-        if commit {
-            notesCommitted =
-                AgentTools.commitDrafts(drafts, notesDirectory: tools.notesDirectory).count == drafts.count
-        } else {
-            AgentTools.holdDrafts(
-                drafts, notesDirectory: tools.notesDirectory, reason: "\(outcome ?? "-"): \(reason)")
+    func finishNotes(commit: Bool) async {
+        guard !tools.draftOrder.isEmpty else { return }
+        do {
+            noteWarnings = try await tools.finishNotes(commit: commit, reason: "\(outcome ?? "-"): \(reason)")
+            notesCommitted = commit
+        } catch is CancellationError {
+            outcome = "held"
+            reason = "stopped"
+            notesCommitted = false
+            _ = try? await tools.finishNotes(commit: false, reason: reason)
+        } catch {
+            outcome = "held"
+            reason = "note-save-failed: " + error.localizedDescription
+            notesCommitted = false
         }
     }
 
     private func note() -> (text: String, warning: Bool)? {
-        Self.guardNoteText(
+        let message = Self.guardNoteText(
             outcome: outcome, reason: reason, check: checks.last,
             drafts: !tools.draftOrder.isEmpty && !notesCommitted)
+        guard !noteWarnings.isEmpty else { return message }
+        return (([message?.text].compactMap { $0 } + noteWarnings).joined(separator: "\n"), true)
     }
 
     func saveRunMetrics(session: ConversationSession) async {
@@ -228,7 +250,7 @@ final class CitationGuard {
         record.agentTurn = session.turnIndex
         record.agentStep = session.step
         record.agentEffort = session.effort
-        record.agentInstructions = preferences.citeFetched ? "cite-fetched" : "frozen"
+        record.agentInstructions = session.instructionsVersion
         record.citationGuard = active
         record.ledgerChecks = checks
         record.fetchLedger = tools.ledger

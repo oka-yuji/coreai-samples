@@ -56,7 +56,7 @@ public actor ConversationArchive {
         let data = try Data(contentsOf: json)
         do {
             let header = try JSONDecoder().decode(Header.self, from: data)
-            guard header.formatVersion == ConversationSnapshot.currentFormatVersion else {
+            guard ConversationSnapshot.supports(version: header.formatVersion) else {
                 return try readOnly(id: id, reason: "This conversation uses a newer or unsupported file format.")
             }
             let snapshot = try JSONDecoder().decode(ConversationSnapshot.self, from: data)
@@ -117,7 +117,7 @@ public actor ConversationArchive {
     }
 
     public static func validate(_ snapshot: ConversationSnapshot) throws {
-        guard snapshot.formatVersion == ConversationSnapshot.currentFormatVersion, snapshot.revision >= 0,
+        guard ConversationSnapshot.supports(version: snapshot.formatVersion), snapshot.revision >= 0,
             snapshot.revision < 1_000_000_000,
             snapshot.createdAt.timeIntervalSince1970.isFinite, snapshot.updatedAt.timeIntervalSince1970.isFinite,
             snapshot.turns.allSatisfy({

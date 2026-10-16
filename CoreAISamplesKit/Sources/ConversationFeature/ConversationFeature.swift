@@ -7,6 +7,7 @@ public enum ConversationAction: Equatable, Sendable {
     case settingsChanged(ConversationSettings)
     case send(String, mode: ConversationMode, now: Date)
     case sendRepair(String, now: Date)
+    case continueRequested(now: Date)
     case transcriptChanged(run: Int, TranscriptRecord)
     case toolRequested(run: Int, ToolCallRecord)
     case guardNote(run: Int, title: String, text: String, warning: Bool)
@@ -15,7 +16,7 @@ public enum ConversationAction: Equatable, Sendable {
     case generationFailed(run: Int, message: String)
     case evidenceChanged(run: Int, ConversationEvidence)
     case preparationChanged(run: Int, processed: Int, total: Int)
-    case modelPrepared(run: Int, name: String, location: String)
+    case modelPrepared(run: Int, name: String, location: String, instructions: String, tools: String)
     case stopRequested
     case restoreLatestRequested
     case latestRestored(ArchivedConversation?)
@@ -86,14 +87,12 @@ public enum ConversationFeature: Feature {
     }
 
     public static func continueEligibility(_ state: ConversationState) -> Bool {
-        guard !state.isRunning, let turn = state.turns.last, turn.finish == .cap else { return false }
-        let entries = state.transcript.entries.dropFirst(turn.start + 1)
-        guard let last = entries.last, !last.isReasoning,
-            let answer = entries.compactMap(\.response).last?.trimmingCharacters(in: .whitespacesAndNewlines),
-            !answer.isEmpty
+        guard !state.isRunning, !state.contextFull, state.contextEndReserved == nil,
+            let turn = state.turns.last, turn.finish == .cap,
+            case .response(_, let text, _) = state.transcript.entries.last
         else { return false }
-        guard let open = answer.range(of: "<tool_call>", options: .backwards) else { return true }
-        return answer[open.upperBound...].contains("</tool_call>")
+        let answer = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        return !answer.isEmpty && IncompleteToolCall.find(in: answer) == nil && !hasOpenThinking(answer)
     }
 
     private static func apply(_ state: inout ConversationState, _ action: ConversationAction) -> [Command] {
@@ -109,6 +108,13 @@ public enum ConversationFeature: Feature {
             return send(&state, text, mode: mode, now: now)
         case .sendRepair(let text, let now):
             return sendRepair(&state, text, now: now)
+        case .continueRequested(let now):
+            guard state.canLeave, continueEligibility(state), let previous = state.turns.last else { return [] }
+            var turn = ConversationTurn(
+                prompt: continuationPrompt, mode: previous.mode, settings: previous.settings,
+                start: state.transcript.entries.count)
+            turn.kind = .continuation
+            return start(&state, turn, now: now)
         case .transcriptChanged(let run, let transcript):
             guard state.isActive(run) else { return [] }
             state.transcript = transcript
@@ -140,10 +146,12 @@ public enum ConversationFeature: Feature {
             guard state.isActive(run) else { return [] }
             state.evidence = evidence
             return []
-        case .modelPrepared(let run, let name, let location):
+        case .modelPrepared(let run, let name, let location, let instructions, let tools):
             guard state.isActive(run) else { return [] }
             state.modelID = name
             state.modelLocation = location
+            state.instructionsVersion = instructions
+            state.toolsVersion = tools
             return []
         case .preparationChanged(let run, let processed, let total):
             guard state.isActive(run), !state.stopRequested, total > 0 else { return [] }
@@ -306,10 +314,17 @@ public enum ConversationFeature: Feature {
 
     private static func start(_ state: inout ConversationState, _ turn: ConversationTurn, now: Date) -> [Command] {
         var turn = turn
-        let policy = turn.policy
+        var policy = turn.policy
+        if policy.continuing {
+            policy.answerPrefix =
+                state.turns.last?.kind == .continuation
+                ? state.entries.last(where: { $0.kind == .answer })?.text ?? ""
+                : state.transcript.entries.last?.response ?? ""
+        }
         let finalize = policy.maxSteps - turn.offset <= 1
         if finalize { turn.finalization = .lastStep }
         state.turns.append(turn)
+        state.mode = turn.mode
         state.updatedAt = now
         state.runID += 1
         state.isRunning = true

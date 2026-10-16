@@ -29,7 +29,7 @@ public struct ConversationSettings: Codable, Equatable, Sendable {
 }
 
 public struct TurnPolicy: Equatable, Sendable {
-    public static let tools: Set<String> = ["web_search", "fetch_page", "write_note", "move_note"]
+    public static let tools: Set<String> = ["web_search", "fetch_page", "write_note", "append_note", "move_note"]
     public static let savingRefusal = "error: saving notes needs Work mode"
 
     public var mode: ConversationMode
@@ -40,6 +40,8 @@ public struct TurnPolicy: Equatable, Sendable {
     public var maxTokens: Int
     public var citationGuard: Bool
     public var collapsesSteps: Bool
+    public var continuing = false
+    public var answerPrefix = ""
 
     public init(_ mode: ConversationMode, settings: ConversationSettings) {
         self.mode = mode
@@ -47,7 +49,9 @@ public struct TurnPolicy: Equatable, Sendable {
         switch mode {
         case .chat:
             allowedTools = ["web_search", "fetch_page"]
-            refusedTools = ["write_note": Self.savingRefusal, "move_note": Self.savingRefusal]
+            refusedTools = [
+                "write_note": Self.savingRefusal, "append_note": Self.savingRefusal, "move_note": Self.savingRefusal,
+            ]
             maxSteps = 2
             maxTokens = settings.maxTokens ?? 2_048
             citationGuard = false
@@ -85,7 +89,7 @@ public enum Finalization: String, Codable, Sendable {
 }
 
 public enum TurnKind: String, Codable, Sendable {
-    case normal, repair
+    case normal, repair, continuation
 }
 
 public struct TurnNote: Codable, Equatable, Sendable {
@@ -155,7 +159,9 @@ public struct ConversationTurn: Codable, Equatable, Sendable {
     public var notes: [TurnNote] = []
 
     public var policy: TurnPolicy {
-        TurnPolicy(mode, settings: settings)
+        var policy = TurnPolicy(mode, settings: settings)
+        policy.continuing = kind == .continuation
+        return policy
     }
 }
 

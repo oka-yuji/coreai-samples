@@ -74,7 +74,8 @@ public struct StepMetadata: Codable, Equatable, Sendable {
 public struct ToolCallRecord: Codable, Equatable, Sendable {
     static let argumentOrder = [
         "web_search": ["query", "max_results"], "fetch_page": ["url", "query"],
-        "write_note": ["title", "content"], "move_note": ["title", "destination"],
+        "write_note": ["title", "content"], "append_note": ["note_id", "part", "content"],
+        "move_note": ["title", "destination"],
     ]
 
     public var id: String

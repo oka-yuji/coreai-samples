@@ -61,7 +61,7 @@ final class ConversationRunner {
                 send(.latestRestored(archived.map(install)))
             } catch { send(.restoreFailed(id: nil, message: error.localizedDescription)) }
         case .cancelRepair:
-            citationGuard.cancelRepair()
+            await citationGuard.cancelRepair()
             chat.externallyBusy = false
         case .terminationReady(let success):
             termination(success)
@@ -71,14 +71,21 @@ final class ConversationRunner {
     private func generate(
         run: Int, prompt: String, policy: TurnPolicy, finalize: Bool, send: (ConversationAction) -> Void
     ) async {
+        session.prepareRun(run)
         chat.externallyBusy = true
         defer { if !citationGuard.repairPending { chat.externallyBusy = false } }
         let repair = citationGuard.repairPending
         if !repair {
             let guarding = policy.mode == .work && policy.citationGuard
-            tools.beginTask(guardActive: guarding)
+            tools.beginTask(guardActive: guarding, continuing: policy.continuing)
             citationGuard.begin(active: guarding)
         }
+        if policy.continuing {
+            do { try await tools.prepareContinuation() } catch {
+                send(.guardNote(run: run, title: "Notes", text: error.localizedDescription, warning: true))
+            }
+        }
+        send(.evidenceChanged(run: run, tools.evidence))
         let end = await session.generate(
             run: run, prompt: prompt, policy: policy, finalize: finalize, repair: repair, send: send)
         send(.evidenceChanged(run: run, tools.evidence))
@@ -86,15 +93,21 @@ final class ConversationRunner {
             send(end.action(run))
             return
         }
-        let verdict = citationGuard.settle(
-            end, step: session.step, maxSteps: policy.maxSteps, stopped: session.stopRequested, usage: session.usage)
+        var checked = end
+        checked.answer = policy.answerPrefix + end.answer
+        let verdict = await citationGuard.settle(
+            checked, step: session.step, maxSteps: policy.maxSteps, stopped: session.stopRequested, usage: session.usage
+        )
         switch verdict {
         case .repair(let prompt):
             send(end.action(run))
             send(.sendRepair(prompt, now: Date()))
         case .done(let note):
             if let note {
-                send(.guardNote(run: run, title: CitationGuard.title, text: note.text, warning: note.warning))
+                send(
+                    .guardNote(
+                        run: run, title: policy.citationGuard ? CitationGuard.title : "Notes", text: note.text,
+                        warning: note.warning))
             }
             await citationGuard.saveRunMetrics(session: session)
             send(end.action(run))
@@ -127,8 +140,11 @@ final class ConversationRunner {
         }
         do {
             let restored = try session.restore(snapshot)
+            if let settings = snapshot.turns.last?.settings { tools.preferences.restore(settings) }
+            tools.preferences.citeFetched = snapshot.instructionsVersion.hasPrefix("cite-fetched")
             savedRevisions[snapshot.id] = snapshot.revision
-            tools.restoreEvidence(snapshot.evidence ?? ConversationEvidence())
+            tools.restoreEvidence(
+                snapshot.evidence ?? ConversationEvidence(), notesDirectory: tools.preferences.notesDirectory)
             return .snapshot(restored)
         } catch {
             return .readOnly(id: snapshot.id, markdown: snapshot.markdown(), reason: error.localizedDescription)

@@ -1,4 +1,5 @@
 import CFNetwork
+import ConversationRuntime
 import Darwin
 import Foundation
 import RAGContext
@@ -27,6 +28,7 @@ struct AgentToolOutput: Sendable {
     var seen: [String: String] = [:]
 
     var finalURL: String?
+    var note: NoteReceipt?
 }
 
 struct AgentToolSettings: Sendable {
@@ -57,7 +59,9 @@ enum AgentTools {
         var snippet: String
     }
 
-    static let names = ["web_search", "fetch_page", "write_note", "move_note"]
+    static let legacyNames = ["web_search", "fetch_page", "write_note", "move_note"]
+    static let names = ["web_search", "fetch_page", "write_note", "append_note", "move_note"]
+    static let notes = ConversationNotes()
 
     static let userAgent =
         "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 "
@@ -102,40 +106,62 @@ enum AgentTools {
             }
         case "write_note":
             let title = call.value("title") ?? ""
-            let content = call.value("content") ?? ""
-            guard !content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-                return AgentToolOutput(text: "error: write_note needs a content parameter")
+            do {
+                let note = try await notes.write(
+                    title: title, fileName: noteFileName(title),
+                    content: call.value("content") ?? "", directory: settings.notesDirectory,
+                    stableID: settings.stableNotePaths)
+                return noteOutput(note, stable: settings.stableNotePaths)
+            } catch { return AgentToolOutput(text: "error: write_note — " + error.localizedDescription) }
+        case "append_note":
+            guard let id = call.value("note_id"), let part = call.value("part").flatMap(Int.init) else {
+                return AgentToolOutput(text: "error: append_note needs note_id, part and content")
             }
             do {
-                return AgentToolOutput(
-                    text: savedText(
-                        try writeNote(title: title, content: content, directory: settings.notesDirectory),
-                        stable: settings.stableNotePaths))
-            } catch let failure as AgentToolMessage {
-                return AgentToolOutput(text: failure.text)
-            } catch {
-                return AgentToolOutput(text: "error: write_note failed (\(error))")
-            }
+                let note = try await notes.append(
+                    noteID: id, part: part, content: call.value("content") ?? "",
+                    directory: settings.notesDirectory)
+                return noteOutput(note, stable: settings.stableNotePaths)
+            } catch { return AgentToolOutput(text: "error: append_note — " + error.localizedDescription) }
         case "move_note":
             guard settings.allowFileOperations else {
                 return AgentToolOutput(
                     text: "error: file operations are disabled in Settings (Allow file operations)")
             }
             do {
-                return AgentToolOutput(
-                    text: "moved to "
-                        + (try moveNote(
-                            title: call.value("title") ?? "", destination: call.value("destination") ?? "",
-                            notesDirectory: settings.notesDirectory)))
+                let title = call.value("title") ?? ""
+                let roots = defaultFileRoots(notesDirectory: settings.notesDirectory)
+                let destination = try destinationFolder(call.value("destination") ?? "", allowedRoots: roots)
+                if let managed = try await notes.matching(
+                    fileNames: [noteFileName(title), title], directory: settings.notesDirectory)
+                {
+                    let result = try await notes.move(
+                        noteID: managed.id, destination: destination, allowedRoots: roots,
+                        directory: settings.notesDirectory)
+                    return AgentToolOutput(
+                        text: result.warning.map { "error: " + $0 } ?? "moved to " + result.note.path.path,
+                        note: result.note)
+                }
+                let path = try moveNote(
+                    title: title, destination: call.value("destination") ?? "", notesDirectory: settings.notesDirectory)
+                return AgentToolOutput(text: "moved to " + path)
             } catch let failure as AgentToolMessage {
                 return AgentToolOutput(text: failure.text)
             } catch {
-                return AgentToolOutput(text: "error: move_note failed (\(error))")
+                return AgentToolOutput(text: "error: move_note failed — " + error.localizedDescription)
             }
         default:
             return AgentToolOutput(
                 text: "error: unknown tool \"\(call.name)\". Available tools: \(names.joined(separator: ", "))")
         }
+    }
+
+    static func noteOutput(_ note: NoteReceipt, stable: Bool) -> AgentToolOutput {
+        AgentToolOutput(
+            text: savedText(note.path.path, stable: stable) + "\nnote_id: " + note.id
+                + "\npart: \(note.part) of 4" + (note.duplicate ? " (already saved)" : "")
+                + (note.draft ? "\nstatus: Draft" : "")
+                + (note.warning.map { "\nwarning: " + $0 } ?? ""), note: note)
     }
 
     static func webSearch(

@@ -357,7 +357,9 @@ struct ConversationEntryRow: View {
 
     @ViewBuilder
     private var failureTitle: some View {
-        if case .tokenLimit(let limit)? = entry.detail {
+        if case .cutToolCall(_, let note)? = entry.detail {
+            Text(LocalizedStringKey(note ? "Note was not saved" : "Tool call was not executed"))
+        } else if case .tokenLimit(let limit)? = entry.detail {
             Text("Answer cut at the token limit (\(limit))")
         } else {
             RuntimeMessageText(entry.title)
@@ -376,6 +378,16 @@ struct ConversationEntryRow: View {
             }
         case .stopped(partial: false)?:
             Text("(stopped before any answer)")
+        case .cutToolCall(let name, let note)?:
+            if note, name == "write_note" {
+                Text("The write_note call was cut at the token limit; the note was not saved.")
+            } else if note {
+                Text(
+                    "The append_note call was cut at the token limit; the new part was not saved. Earlier parts are preserved."
+                )
+            } else {
+                Text("The tool call was cut at the token limit and was not executed.")
+            }
         case .tokenLimit?:
             Text(
                 "The answer above stops where generation ran out of tokens. Raise Max tokens or ask for something shorter."

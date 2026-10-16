@@ -28,10 +28,17 @@ public struct ConversationEvidence: Codable, Equatable, Sendable {
     public var pages: [Page]
     public var attempts: [Attempt]
     public var seen: [String: String]
+    public var noteIDs: [String]?
+    public var taskWebCalls: Int?
 
-    public init(pages: [Page] = [], attempts: [Attempt] = [], seen: [String: String] = [:]) {
+    public init(
+        pages: [Page] = [], attempts: [Attempt] = [], seen: [String: String] = [:], noteIDs: [String] = [],
+        taskWebCalls: Int? = nil
+    ) {
         self.pages = pages
         self.attempts = attempts
         self.seen = seen
+        self.noteIDs = noteIDs.isEmpty ? nil : noteIDs
+        self.taskWebCalls = taskWebCalls
     }
 }

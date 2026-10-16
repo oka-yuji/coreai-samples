@@ -33,7 +33,7 @@ extension ConversationArchive {
                     ConversationSummary(
                         id: id, title: header.title, updatedAt: header.updatedAt,
                         mode: header.turns.last?.mode,
-                        revision: header.formatVersion == ConversationSnapshot.currentFormatVersion
+                        revision: ConversationSnapshot.supports(version: header.formatVersion)
                             ? header.revision : nil))
             } else {
                 let date =

@@ -12,8 +12,9 @@ enum ConversationArchiveSelfTest {
             let archive = ConversationArchive(directory: directory)
             let now = Date(timeIntervalSince1970: 1_700_000_000)
             var state = ConversationState(
-                id: "restored", now: now, settings: ConversationSettings(maxTokens: 512), modelID: "saved-model",
-                instructionsVersion: "cite-fetched", toolsVersion: "web_search,fetch_page,write_note")
+                id: "restored", now: now, settings: ConversationSettings(maxTokens: 512, fileOperations: true),
+                modelID: "saved-model",
+                instructionsVersion: "cite-fetched", toolsVersion: "web_search,fetch_page,write_note,move_note")
             state.modelLocation = "/tmp/conversation-app-test-model"
             _ = ConversationFeature.reduce(&state, .send("Remember blue", mode: .work, now: now))
             _ = ConversationFeature.reduce(
@@ -30,17 +31,29 @@ enum ConversationArchiveSelfTest {
                         url: "https://example.com/old", finalURL: "https://example.com/new", sha256: "digest",
                         characters: 4)
                 ],
-                attempts: [.init(url: "https://example.com/old", ok: true)], seen: ["https://example.com/old": "Blue"])
+                attempts: [.init(url: "https://example.com/old", ok: true)], seen: ["https://example.com/old": "Blue"],
+                taskWebCalls: 1)
             _ = ConversationFeature.reduce(&state, .generationEnded(run: 1, stopReason: "stopToken"))
             let snapshot = ConversationSnapshot(state)
             try await archive.save(snapshot, expectedRevision: 0, writer: UUID())
+            let stoppedRunner = ConversationRunner(
+                id: "before-generation", chat: ChatViewModel(), preferences: ConversationPreferences(persists: false),
+                archive: archive)
+            stoppedRunner.session.stop(run: 1)
+            stoppedRunner.session.prepareRun(1)
+            let stopped = await stoppedRunner.session.generate(
+                run: 1, prompt: "Never generate", policy: TurnPolicy(.chat, settings: ConversationSettings()),
+                finalize: false, repair: false
+            ) { _ in }
+            check(
+                "conversation/stopBeforeGeneration",
+                stopped.outcome == "stopped" && stoppedRunner.session.stopRequested, "outcome=\(stopped.outcome)")
             let preferences = ConversationPreferences(persists: false)
             preferences.resetForHeadless()
             preferences.braveAPIKey = "not-part-of-the-archive"
             let host = ConversationHost(chat: ChatViewModel(), preferences: preferences, archive: archive)
             host.store.send(.restoreLatestRequested)
             for await restoring in Observations({ host.state.isRestoring }) where !restoring { break }
-            host.restorePreferences()
             check(
                 "conversation/startupWithoutModel",
                 host.chat.phase == .empty && host.state.id == "restored" && host.state.entries.count == 2
@@ -48,11 +61,12 @@ enum ConversationArchiveSelfTest {
                 "phase=\(host.chat.phase) entries=\(host.state.entries.count)")
             check(
                 "conversation/restoreSettingsAndEvidence",
-                preferences.maxTokens == 512 && preferences.braveAPIKey == "not-part-of-the-archive"
+                preferences.maxTokens == 512 && !preferences.fileOperations
+                    && preferences.braveAPIKey == "not-part-of-the-archive"
                     && host.runner.tools.evidence == state.evidence,
                 "tokens=\(String(describing: preferences.maxTokens)) pages=\(host.runner.tools.ledger.count)")
             host.runner.citationGuard.begin(active: true)
-            _ = host.runner.citationGuard.settle(
+            _ = await host.runner.citationGuard.settle(
                 TurnEnd(
                     kind: .ended(stopReason: "stopToken"), outcome: TurnEnd.answered,
                     answer: "https://example.org/missing"),
