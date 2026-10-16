@@ -3,6 +3,7 @@
     import FeatureStore
     import Foundation
     import ImageSearchFeature
+    import ObjectFinderFeature
     import ProductFeature
     import SwiftUI
     import UIKit
@@ -18,6 +19,8 @@
         @State private var products = ProductAssembly.makeStore()
         @State private var imageSearch = ImageSearchAssembly.makeStore()
         @State private var showingImageSearch = LaunchArguments.flag("--image-search")
+        @State private var objectFinder = ObjectFinderAssembly.makeStore()
+        @State private var showingObjectFinder = LaunchArguments.flag("--object-finder")
         @State private var showingExtractionLab = false
         @State private var showingTruckInspection = CommandLine.arguments.contains("--truck-inspection")
         @State private var truck: Result<Store<TruckInspectionFeature>, any Error>
@@ -60,6 +63,7 @@
                                     Button("Truck inspection") { showingTruckInspection = true }
                                     Button("Extraction lab") { showingExtractionLab = true }
                                     Button("Image search") { showingImageSearch = true }
+                                    Button("Object finder") { showingObjectFinder = true }
                                 } label: {
                                     Label("Demos", systemImage: "square.grid.2x2")
                                 }
@@ -83,6 +87,12 @@
                                 NavigationStack {
                                     ImageSearchView(store: imageSearch)
                                         .toolbar { Button("Done") { showingImageSearch = false } }
+                                }
+                            }
+                            .sheet(isPresented: $showingObjectFinder) {
+                                NavigationStack {
+                                    ObjectFinderView(store: objectFinder)
+                                        .toolbar { Button("Done") { showingObjectFinder = false } }
                                 }
                             }
                     }

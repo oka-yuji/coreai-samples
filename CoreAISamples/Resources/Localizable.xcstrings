@@ -1,6 +1,237 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "Object finder" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "探し物カメラ"
+          }
+        }
+      }
+    },
+    "Name an object, then point your camera around the room." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "探したい物の名前を入力し、カメラを周囲に向けてください。"
+          }
+        }
+      }
+    },
+    "What are you looking for?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "何を探しますか？"
+          }
+        }
+      }
+    },
+    "Search settings" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "検索設定"
+          }
+        }
+      }
+    },
+    "Change model folder…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルフォルダを変更…"
+          }
+        }
+      }
+    },
+    "Match threshold" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "照合のしきい値"
+          }
+        }
+      }
+    },
+    "Higher values show fewer candidates. Similarity is not a probability." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "値を上げると候補を絞り込めます。類似度は確率ではありません。"
+          }
+        }
+      }
+    },
+    "Images are analyzed on this iPhone and are not saved. Small or obscured objects may be missed." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "画像はこの iPhone 内で解析し、保存しません。小さい物や隠れた物は見つからないことがあります。"
+          }
+        }
+      }
+    },
+    "Start searching" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "探し始める"
+          }
+        }
+      }
+    },
+    "Analyzed camera image" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "解析したカメラ画像"
+          }
+        }
+      }
+    },
+    "Find things around you" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "身の回りの物を探す"
+          }
+        }
+      }
+    },
+    "The camera opens when you start searching." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "探し始めるとカメラが起動します。"
+          }
+        }
+      }
+    },
+    "Preparing the search…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "検索を準備中…"
+          }
+        }
+      }
+    },
+    "Searching…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "探索中…"
+          }
+        }
+      }
+    },
+    "Possible match" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "候補が見つかりました"
+          }
+        }
+      }
+    },
+    "The image and boxes update together after each analysis." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "解析が終わるたびに画像と候補の枠を更新します。"
+          }
+        }
+      }
+    },
+    "Allow camera access in Settings to find objects." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "物を探すには、設定でカメラへのアクセスを許可してください。"
+          }
+        }
+      }
+    },
+    "Open Settings" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "設定を開く"
+          }
+        }
+      }
+    },
+    "The rear camera is unavailable." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "背面カメラを利用できません。"
+          }
+        }
+      }
+    },
+    "The camera was interrupted. Start again when it is available." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カメラが中断されました。利用できる状態で、もう一度開始してください。"
+          }
+        }
+      }
+    },
+    "Could not start or continue the search." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "検索を開始または続行できませんでした。"
+          }
+        }
+      }
+    },
     "%@  ·  %@  ·  memory %@  ·  %@" : {
       "localizations" : {
         "en" : {

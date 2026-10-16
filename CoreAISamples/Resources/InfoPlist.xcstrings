@@ -1,0 +1,13 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "NSCameraUsageDescription" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {"stringUnit" : {"state" : "translated", "value" : "Find the objects you name using on-device image analysis."}},
+        "ja" : {"stringUnit" : {"state" : "translated", "value" : "入力した名前の物を探すため、カメラ画像を端末内で解析します。画像は保存・送信しません。"}}
+      }
+    }
+  },
+  "version" : "1.0"
+}
