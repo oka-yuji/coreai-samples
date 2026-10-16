@@ -1,0 +1,62 @@
+import Foundation
+import SpeechCore
+import SpeechFeature
+import Testing
+@testable import SpeechRuntime
+
+@MainActor @Suite(.timeLimit(.minutes(1)))
+struct ReviewPhoneCheckTests {
+    let examples = [SpeechExample(id: "one", title: "One", text: "One"), SpeechExample(id: "two", title: "Two", text: "Two")]
+    @Test("A model placed at the diagnostic output root is never modified by a check")
+    func sourceDirectoryPreserved() async throws {
+        let root = try phoneTestDirectory()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let model = root.appendingPathComponent("SpeechChecks", isDirectory: true)
+        try FileManager.default.createDirectory(at: model, withIntermediateDirectories: true)
+        try Data("source marker".utf8).write(to: model.appendingPathComponent("irodori.json"))
+        let before = try FileManager.default.contentsOfDirectory(atPath: model.path).sorted()
+        let check = PhoneSpeechCheck(service: FakeCheckSpeechService(), files: SpeechCheckFiles(documents: root), examples: examples, environment: FakePhoneEnvironment())
+        do { _ = try await check.run(.init(folder: "SpeechChecks", runID: "reserved-name")) { _ in } } catch {}
+        let after = try FileManager.default.contentsOfDirectory(atPath: model.path).sorted()
+        #expect(after == before)
+        #expect(try Data(contentsOf: model.appendingPathComponent("irodori.json")) == Data("source marker".utf8))
+    }
+    @Test("Output reservation refuses case collisions and preserves both report and WAV bytes")
+    func reportProtection() async throws {
+        let root = try phoneTestDirectory()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let files = SpeechCheckFiles(documents: root)
+        let folder = try await files.reserve("Run")
+        try await files.writeReport(Data("first report".utf8))
+        try await files.writeWAV(Data([1, 2, 3]), index: 0)
+        await #expect(throws: (any Error).self) { try await files.writeReport(Data("replacement".utf8)) }
+        await #expect(throws: (any Error).self) { try await files.writeWAV(Data([4]), index: 0) }
+        #expect(try Data(contentsOf: folder.appendingPathComponent("report.json")) == Data("first report".utf8))
+        #expect(try Data(contentsOf: folder.appendingPathComponent("sample-0.wav")) == Data([1, 2, 3]))
+        await #expect(throws: (any Error).self) { try await files.reserve("run") }
+    }
+    @Test("Symlink output roots and model paths outside Documents are rejected without writes")
+    func symlinkBoundaries() async throws {
+        let root = try phoneTestDirectory()
+        let outside = try phoneTestDirectory()
+        defer { try? FileManager.default.removeItem(at: root); try? FileManager.default.removeItem(at: outside) }
+        try FileManager.default.createSymbolicLink(at: root.appendingPathComponent("SpeechChecks"), withDestinationURL: outside)
+        try FileManager.default.createSymbolicLink(at: root.appendingPathComponent("model"), withDestinationURL: outside)
+        let files = SpeechCheckFiles(documents: root)
+        await #expect(throws: (any Error).self) { try await files.reserve("run") }
+        await #expect(throws: (any Error).self) { try await files.modelFolder("model") }
+        #expect(try FileManager.default.contentsOfDirectory(atPath: outside.path).isEmpty)
+    }
+    @Test("A reused run ID fails before changing the phone environment or model service")
+    func existingRunDoesNotBegin() async throws {
+        let root = try phoneTestDirectory()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let output = root.appendingPathComponent("SpeechChecks/existing", isDirectory: true)
+        try FileManager.default.createDirectory(at: output, withIntermediateDirectories: true)
+        let live = FakeCheckSpeechService()
+        let environment = FakePhoneEnvironment()
+        let check = PhoneSpeechCheck(service: live, files: SpeechCheckFiles(documents: root), examples: examples, environment: environment)
+        await #expect(throws: (any Error).self) { try await check.run(.init(folder: "model", runID: "existing")) { _ in } }
+        #expect(environment.begins == 0 && environment.ends == 0 && live.opens == 0 && live.stops == 0)
+    }
+}

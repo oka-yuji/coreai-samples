@@ -8,7 +8,7 @@ Swift samples that run open models on a Mac through Apple's Core AI and Foundati
 
 - **For** Swift developers who want a 27B chat model and a web-browsing agent running locally on a Mac through `LanguageModelSession`, with the measurements behind them.
 - **For** Swift developers who want to try local recipe checks or document decisions, inspect the scores, and reuse the code.
-- **For** developers integrating open language-generation models through Foundation Models; Chat and Agent use a separate runtime and bundle from Recipes and Decide.
+- **For** developers integrating open language-generation models through Foundation Models; Chat and Work use a separate runtime and bundle from Recipes and Decide.
 - **For** anyone who wants to check such a runtime against Apple's own: `Tools/Verify` compares the two token by token.
 - **Not for** iPhone or iPad, contexts beyond the demo's 16,384 tokens, using Clef as a chat model, or treating a model probability as a measured chance of correctness.
 
@@ -21,7 +21,7 @@ Requirements: an Apple silicon Mac with macOS 27 and Xcode 27 with the Metal Too
 | Qwen3.8 27B, 4-bit, text only | Chat, Agent, `coreai-chat` | [Hugging Face](https://huggingface.co/okayuji/Qwen3.8-27B-coreai-4bit) | [Quick start](#quick-start-chat-and-agent-with-qwen38-27b) below |
 | Clef-Flash 9B, text only, uint4 backbone and fp16 head | Recipes, Decide | [Hugging Face](https://huggingface.co/okayuji/clef-flash-9b-coreai-decide) (requires access) | [English](docs/clef-flash.md) · [日本語](docs/clef-flash.ja.md) |
 
-## Quick start: Chat and Agent with Qwen3.8 27B
+## Quick start: Chat and Work with Qwen3.8 27B
 
 Install the [Hugging Face CLI](https://huggingface.co/docs/huggingface_hub/guides/cli), then get the app and the bundle (12 files, 16.85 GB):
 
@@ -117,7 +117,7 @@ cd coreai-samples
 hf download okayuji/clef-flash-9b-coreai-decide --local-dir ./models/clef-flash-9b-decide-v1
 ```
 
-Open `CoreAISamples.xcodeproj`, choose the **CoreAISamples** scheme and **My Mac**, set the Run build configuration to **Release**, and run. The **EN / JP** control at the top right switches all six Mac screens.
+Open `CoreAISamples.xcodeproj`, choose the **CoreAISamples** scheme and **My Mac**, set the Run build configuration to **Release**, and run. The **EN / JP** control at the top right switches every Mac screen.
 
 In **Recipes**, choose **Open Clef-Flash bundle** and select `models/clef-flash-9b-decide-v1`. Try **Examples → Three-egg omelette**, review the suggested egg as `1 pcs`, confirm it, then **Check recipe**. The recipe needs three eggs, so the confirmed inventory is two short. Follow the [Recipes walkthrough](docs/recipes-demo.md) for all five bundled photos and recipe URLs. Photos and inventory stay on the Mac; fetching a recipe URL needs an internet connection.
 
@@ -125,7 +125,7 @@ In **Decide**, open the same bundle, choose **Examples → Maintenance agreement
 
 ## Convert your own bundle
 
-Chat and Agent also run other language-generation bundles made by Apple's converter in [apple/coreai-models](https://github.com/apple/coreai-models). Their runtime works as a Foundation Models `LanguageModel`, so an app talks to it through an ordinary `LanguageModelSession`.
+Chat and Work also run other language-generation bundles made by Apple's converter in [apple/coreai-models](https://github.com/apple/coreai-models). Their runtime works as a Foundation Models `LanguageModel`, so an app talks to it through an ordinary `LanguageModelSession`.
 
 **1. Make a bundle** with Apple's converter. Setup (it uses `uv`) and the supported models are in [its models README](https://github.com/apple/coreai-models/blob/1.0.0/models/README.md). This is the command used here for Qwen3-0.6B:
 
@@ -148,7 +148,7 @@ swift build -c release
 
 Each `--prompt` is one turn of the same conversation. When the model thinks, the thinking prints under `[reasoning]` and the answer under `[response]`. `--stats` writes JSON lines to stderr: one for the load (`cached`, `specialize_s`, `load_s`) and one per turn, where `cached_tokens` is the part of the prompt reused from earlier turns.
 
-**3. Run the demo app.** Open `CoreAISamples.xcodeproj` in Xcode, choose the `CoreAISamples` scheme and `My Mac`, and press Run. Xcode resolves the package dependencies the first time. The `CoreAISamples` scheme runs a Release build, and `CoreAISamples-Debug` runs a Debug build for debugging. In the app, **Models** opens the bundle folder from step 1.
+**3. Run the demo app.** Install Rust/Cargo for the speech input adapter (Xcode builds it automatically). Open `CoreAISamples.xcodeproj` in Xcode, choose the `CoreAISamples` scheme and `My Mac`, and press Run. Xcode resolves the package dependencies the first time. The `CoreAISamples` scheme runs a Release build, and `CoreAISamples-Debug` runs a Debug build for debugging. In the app, **Models** opens the bundle folder from step 1. The separate [Speech screen](docs/irodori/demo.md) accepts the local Irodori FP32 folder for text-to-speech; its app/GPU/audio acceptance is pending. An [iPhone speech app](docs/irodori/iphone.md) also builds for iOS 27; device execution remains pending.
 
 ## Use it from Swift
 
@@ -232,7 +232,7 @@ Reasoning strength depends on the bundle. Qwen3.8 uses the three effort values; 
 
 ```
 CoreAISamples.xcodeproj  the demo app project: open it and press Run
-CoreAISamples/           macOS SwiftUI demo app: Models, Chat (with RAG), Agent, Decide, Recipes, Extract
+CoreAISamples/           macOS SwiftUI demo app: Models, Chat (Chat and Work, with RAG), Decide, Recipes, Extract
 CoreAISamplesKit/        the Swift package the app is built on
   Sources/CoreAIBackend/ the runtime: Engine (Core AI calls), LocalLanguageModel (Foundation Models), ModelBundle (metadata.json)
   Sources/RAGContext/    passages, ranking, token budget, prompt and dates for answers from retrieved sources; a document-folder reader
@@ -250,13 +250,12 @@ LICENSE                  MIT, for the code
 `CoreAISamples` is a macOS SwiftUI app built on this repository's `CoreAIBackend` and `RAGContext`, without the official `coreai-models` package.
 
 - **Models** opens a bundle folder on this Mac, loads it, and clears the copy prepared for the GPU. Its catalog lists Qwen3.8 27B (4bit) for download. The catalog's memory figure, ~32 GiB peak RSS while loading, is the peak resident memory of the app process while it loaded that bundle on the Mac in the measurement table below, measured with `/usr/bin/time -l`: 31.51 GiB from the prepared copy (median of 48 loads) and 31.88 GiB at the first load. It is not a minimum memory requirement.
-- **Chat** streams the reply and the thinking, and with RAG answers from web pages and local documents with numbered sources.
-- **Agent** searches the web, reads pages and saves notes through the Foundation Models tool loop. Its instructions ask it to cite only pages it opened with `fetch_page`. The **Citation guard** setting, off by default, checks the cited URLs against the pages fetched in the task and asks for one repair turn when they do not match ([details](docs/demo-app.md#citation-guard)).
+- **Chat** is one conversation with a Chat | Work picker: Chat answers and searches the web when it needs facts, Work searches, reads pages and saves notes through the Foundation Models tool loop, and with RAG the app answers from web pages and local documents with persistent source IDs such as `[S1]` in the same conversation. Saved conversations reopen with their source ledger. Its citation guard is off by default and can check fetched sources before accepting an answer.
 - **Decide** scores a document against editable choices with Clef-Flash, reuses the document, and keeps human confirmation separate from model candidates.
 - **Recipes** checks a recipe against reviewed fridge inventory and kitchen equipment. Five synthetic photos and their recipe URLs are bundled, and developer details show the actual decision scores and timings.
 - **Extract** turns official Apple/Microsoft product descriptions or pasted text into up to four source-linked specification cards. Open a candidate to inspect its original conditions; multiple configurations and missing fields stay visible. The existing label and inspection-memo experiment remains under **Extraction lab**, and its B3 finding is unchanged. Product extraction is a separate use case; see the [specification and verification status](docs/specs/product-comparison-demo.md).
 
-The demo app's Chat and Agent handle Qwen3, Qwen3.5 and Qwen3.8 bundles. Adding another family's Hugging Face model ID prefix, such as `"google/gemma-"`, to `BundleSupport.supportedModelIDPrefixes` in `CoreAISamples/Demos/ModelManager/BundleSupport.swift` lets the app open that family's bundles but does not make them work: the stop tokens, the `<think>` tags and the tool-call forms the runtime handles stay the Qwen ones (see Limitations), so such a bundle can load and still answer with broken text. The list is the only family check. When you open or load a bundle folder, the app reads `source.hf_model_id` from the bundle's `metadata.json` and refuses the bundle, with the reason on the Models screen or in Chat, if the field is missing or does not start with one of the prefixes. It does not check how the bundle was converted.
+The demo app's Chat and Work handle Qwen3, Qwen3.5 and Qwen3.8 bundles. Adding another family's Hugging Face model ID prefix, such as `"google/gemma-"`, to `BundleSupport.supportedModelIDPrefixes` in `CoreAISamples/Demos/ModelManager/BundleSupport.swift` lets the app open that family's bundles but does not make them work: the stop tokens, the `<think>` tags and the tool-call forms the runtime handles stay the Qwen ones (see Limitations), so such a bundle can load and still answer with broken text. The list is the only family check. When you open or load a bundle folder, the app reads `source.hf_model_id` from the bundle's `metadata.json` and refuses the bundle, with the reason on the Models screen or in Chat, if the field is missing or does not start with one of the prefixes. It does not check how the bundle was converted.
 
 To try it, open `CoreAISamples.xcodeproj` and press Run. Building it from the command line, the headless self-tests, the screen checks and the logs are in [docs/demo-app.md](docs/demo-app.md).
 
@@ -373,7 +372,7 @@ The defaults are ten completed reads and a process-footprint trigger of 18,000,0
 - Use one active session per model unless the simultaneous-session checks pass for the deployed bundle and runtime.
 - Cancellation is checked before the prompt is read and between generated tokens, not while a long prompt is being read.
 - Decoding is synchronous, one token at a time, like the official `sequential` engine; the official default engine pipelines the work and decodes faster, most of all on small models (`coreai-verify speed` runs the three side by side).
-- The separately distributed Clef bundle (downloading it requires access) works with Decide and Recipes. Chat and Agent require separate language-generation bundles. The converter revision used for the Qwen3.5 and Qwen3.8 measurements is linked in [Convert your own bundle](#convert-your-own-bundle); it comes from a pull request that is not part of the 1.0.0 tag.
+- The separately distributed Clef bundle (downloading it requires access) works with Decide and Recipes. Chat and Work require separate language-generation bundles. The converter revision used for the Qwen3.5 and Qwen3.8 measurements is linked in [Convert your own bundle](#convert-your-own-bundle); it comes from a pull request that is not part of the 1.0.0 tag.
 - The Qwen3.8 27B conversion did not meet the agreement criteria fixed before it was measured ([Verification](#qwen38-27b-bundle)): at a small share of positions, Core AI's probabilities differ from the same weights in PyTorch, most of all in English prose and in chat-rendered tool results and sources.
 - Under an Agent answer, the **Citations** note counts a cited URL as retrieved when it appeared in the task's search results or in a fetched page, so `4/4 cited URLs were retrieved in this task` was shown for a task that opened no page. The citation guard checks against the pages `fetch_page` delivered instead.
 - The citation guard, off by default, checks that the cited pages were fetched in the task, not that the answer agrees with them. URLs whose fetch failed are reported only as a count. Characters that follow a URL without a space, such as Japanese text, are read as part of that URL.

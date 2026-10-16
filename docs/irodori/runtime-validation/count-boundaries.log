@@ -1,0 +1,5 @@
+count=1 original=1 valid=2
+count=254 original=254 valid=255
+count=255 original=255 valid=256
+count=256 original=256 valid=256
+count=300 original=300 valid=256

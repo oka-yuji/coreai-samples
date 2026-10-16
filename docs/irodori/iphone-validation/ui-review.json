@@ -1,0 +1,128 @@
+{
+  "repo": "/Users/okayuuji/Desktop/SelfApps/_wt/coreai-samples-95-iphone",
+  "base": "0894efabd9b793efc9db0a57b581db93966a6511",
+  "candidateLedger": [
+    {
+      "id": "P95-01",
+      "status": "resolved",
+      "severity": "P2",
+      "location": "project.yml:148 (initial configuration)",
+      "title": "UIFileSharingEnabled is missing from the generated signed application plist",
+      "evidence": [
+        "Initial Info.plist has LSSupportsOpeningDocumentsInPlace=true but no UIFileSharingEnabled",
+        "Initial plist SHA256 b76fdf3f802421e0c2155440e02efa92404a953b6a5c98abccce9deea600359c",
+        "Build log exports INFOPLIST_KEY_UIFileSharingEnabled=YES despite missing generated key",
+        "Parent independently confirmed and plans dedicated Info.plist plus rebuild"
+      ],
+      "impact": "The promised Files/Documents model-copy route lacks its required file-sharing declaration",
+      "source": "https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/LaunchServicesKeys.html",
+      "resolution": "Dedicated SpeechPhone/Info.plist declares both true; project.yml and generated target point to it; signed-final build succeeded; generated application plist contains both true. Before/after observations are preserved.",
+      "evidenceHistory": [
+        "Initial confirmed P2 preserved",
+        "Parent independently reproduced",
+        "Final application plist validated after signed-final build"
+      ]
+    },
+    {
+      "id": "P95-02",
+      "status": "rejected",
+      "title": "Normal launch automatically performs inference",
+      "evidence": [
+        "SpeechPhoneApp.swift:14-17 selects diagnostics only when checkRequest exists",
+        "SpeechPhoneAssembly.checkRequest requires --speech-check-run value",
+        "Normal onAppear only marks SpeechFeature appeared and loads folder listing",
+        "LiveSpeechService and PhoneSpeechCheck initialization does not open a model or begin checks"
+      ]
+    },
+    {
+      "id": "P95-03",
+      "status": "rejected",
+      "title": "Old folder listings and diagnostic progress overwrite newer state",
+      "evidence": [
+        "SpeechLibraryFeature checks presented and session; ended increments session and cancels all",
+        "SpeechCheckFeature checks session and phase, starts only once",
+        "Isolated CPU feature/library tests passed"
+      ]
+    },
+    {
+      "id": "P95-04",
+      "status": "rejected",
+      "title": "Background transition leaves UI accepting another generation",
+      "evidence": [
+        "SpeechPhoneView.swift:117-120 sends ended on disappearance/background and appeared on active",
+        "Existing SpeechFeature stopping gate remains until resource release acknowledgement",
+        "SpeechCheckView stops on background and never automatically restarts completed/stopped check"
+      ]
+    },
+    {
+      "id": "P95-05",
+      "status": "rejected",
+      "title": "New target changes existing Mac/Extract settings or sources",
+      "evidence": [
+        "Parsed base/current pbxproj: both existing targets have identical phases, products and settings",
+        "SpeechPhone has distinct com.coreai-samples.SpeechPhone ID, iPhone family, iOS27 minimum and its own scheme",
+        "Effective compiler flags show Swift6, MainActor, both upcoming features"
+      ]
+    },
+    {
+      "id": "P95-06",
+      "status": "rejected",
+      "title": "Signed app lacks requested memory entitlement",
+      "evidence": [
+        "Source entitlements, generated xcent, Mach-O embedded XML and provisioning profile XML all contain increased-memory-limit=true",
+        "Application identifier matches SpeechPhone in signature and profile"
+      ],
+      "limit": "This does not establish OS acceptance or trust-chain validity"
+    },
+    {
+      "id": "P95-07",
+      "status": "rejected",
+      "title": "A dangling symbolic link blocks otherwise valid model listing",
+      "evidence": [
+        "Independent CPU test with valid model directory and dangling link passed; symlink was skipped"
+      ]
+    }
+  ],
+  "confirmedRemaining": [],
+  "coverage": [
+    "SpeechPhone three Swift files and assembly",
+    "SpeechLibraryFeature and SpeechCheckFeature",
+    "SpeechLibrary and its CPU tests",
+    "SpeechPhoneFeatureTests",
+    "project.yml/generated pbxproj/scheme/.swiftlint.yml/entitlements",
+    "Shared SpeechExport and service/diagnostic initialization paths read for call-chain verification"
+  ],
+  "independentTests": "8 CPU tests passed after final file-safety fix: 3 feature, 4 library/files, 1 dangling-link regression, in isolated tmp package without CoreAI",
+  "unverified": [
+    "Actual device OS and installation",
+    "Files model transfer and native WAV export UI",
+    "GPU specialization/memory/numerical results and playback",
+    "Trust-chain verification: sandbox codesign reports CSSMERR_TP_NOT_TRUSTED and security CMS decoding fails; embedded content was inspected structurally"
+  ],
+  "guideCandidates": [
+    "- 2026-10-13 Xcode27のSpeechPhoneではINFOPLIST_KEY_UIFileSharingEnabled=YESでも生成Info.plistにキーが出ず、Files公開に必要な両キーが揃わなかった。専用Info.plistにUIFileSharingEnabledとLSSupportsOpeningDocumentsInPlaceをtrueで書き、INFOPLIST_FILEで指定すると署名Release生成物にも両方trueで入った。[実測][公式] coreai-samples #95、/tmp/irodori-phone95-review/sharing-{initial,fixed}-observation.json、Apple InfoPlistKeyReference LaunchServicesKeys"
+  ],
+  "additionalReviewedChange": "Parent added SpeechChecks/model namespace collision guard and modelOutputCollision test; inspected and included in final independent CPU run.",
+  "final_source_sha256": {
+    ".swiftlint.yml": "24f878257e020f39a741ebb9d287334dfbe7d1273e631c71d49763c4a384f6cf",
+    "Config/SpeechPhone.entitlements": "dabc1022a74cd640bb7f9289374084ebabadc8f7d62f62ea10fde65c0a6d0a82",
+    "CoreAISamples.xcodeproj/project.pbxproj": "b4fdcc609f944b292840971c42b5181861b4c58da8ff152ebf853abb5645bf77",
+    "CoreAISamples.xcodeproj/xcshareddata/xcschemes/SpeechPhone.xcscheme": "89e2691513bc07218eea75d6dc9b75b68ec3cd5e800d9049991818479e2d3d33",
+    "CoreAISamplesKit/Sources/SpeechFeature/SpeechCheckFeature.swift": "9a1562c5fd4957f6bfdd76e958b57e1ba9303b86c4b09901b5123d9d34dec49c",
+    "CoreAISamplesKit/Sources/SpeechFeature/SpeechLibraryFeature.swift": "0c91814feeadc2d51c5188387e9ec179371fd338126a0e2ef119ba23094fca51",
+    "CoreAISamplesKit/Sources/SpeechRuntime/LivePhoneCheckEnvironment.swift": "427674a77c032241661bac061eb727f2c14e3402bfa01a78eeb4614b94027aed",
+    "CoreAISamplesKit/Sources/SpeechRuntime/PhoneSpeechCheck.swift": "bdf6595d4f24d9d1e4f17495187e86d53f298d236ed2522f24ee71004bd90c52",
+    "CoreAISamplesKit/Sources/SpeechRuntime/SpeechCheckFiles.swift": "0184682af994ac41aa8c913f495c40c4fec7b16b5506e02546b8af37480150d8",
+    "CoreAISamplesKit/Sources/SpeechRuntime/SpeechCheckRunner.swift": "13ae87b9ed8c716f3a5b8c58ada3703d543e9bc01553ece631f69dc340d62f2d",
+    "CoreAISamplesKit/Sources/SpeechRuntime/SpeechLibrary.swift": "f8d556db232d964980c2c0eaafdacef9fe8d0b4a1a2913e2f64ed9ed0dcdc1b6",
+    "CoreAISamplesKit/Tests/SpeechFeatureTests/SpeechPhoneFeatureTests.swift": "1a3f2c5c12c059ac2ce19636e9b23fdf5d40114c565a1307e47e754fc5bed516",
+    "CoreAISamplesKit/Tests/SpeechRuntimeTests/PhoneSpeechCheckTests.swift": "28944ba18c3f596e185cc8ec9cb2a841b19de9542937e11fa3b6e85987a4ff77",
+    "CoreAISamplesKit/Tests/SpeechRuntimeTests/SpeechLibraryTests.swift": "ea9708f7e2496c61148a8b123d1254b581e4e8819c7934c3b9269b841245d695",
+    "CoreAISamplesKit/Tests/SpeechRuntimeTests/SpeechPhoneTestSupport.swift": "e172c731754340d79f382fbe3062db45620922bc1a66c48a52215f952a9c9396",
+    "SpeechPhone/SpeechCheckView.swift": "c22d74cbe489b664c29e27998eac753944acf6ca4b7ca97665f035893190fb69",
+    "SpeechPhone/SpeechPhoneApp.swift": "507c230e4d979ab39be98211672a1e6ce047bb3c837c9e2cec26c3d406e7d5bf",
+    "SpeechPhone/SpeechPhoneView.swift": "e9b5f3eb36b60e9cfa8f589ca718230f221f0d64a1c09eb82f7f83de0b792ef0",
+    "project.yml": "de14aecac722efaa0faf958ca4ccc6225b040e4086022c54ee800b88231b28c5",
+    "SpeechPhone/Info.plist": "5f1d031c939ba66e6294b9f34829955a959b93bc4ce3d5dfd3b9009f76948de0"
+  }
+}

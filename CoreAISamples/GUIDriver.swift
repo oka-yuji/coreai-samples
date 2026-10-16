@@ -1,4 +1,5 @@
 import AppKit
+import ConversationFeature
 import ExtractFeature
 import FeatureStore
 import Foundation
@@ -29,15 +30,15 @@ final class GUIDriver {
     private var maxStall = 0.0
     private var extract: Store<ExtractFeature>?
 
-    func attach(
-        navigator: DemoNavigator, chat: ChatViewModel, agent: AgentViewModel, models: ModelsViewModel,
+    func start(
+        navigator: DemoNavigator, chat: ChatViewModel, host: ConversationHost, models: ModelsViewModel,
         extract: Store<ExtractFeature>
-    ) {
+    ) async {
         guard let path = LaunchArguments.value("--gui-e2e"), !attached else { return }
         attached = true
         self.extract = extract
         outDir = URL(filePath: path, directoryHint: .isDirectory)
-        Task { await run(navigator: navigator, chat: chat, agent: agent, models: models) }
+        await run(navigator: navigator, chat: chat, host: host, models: models)
     }
 
     private func note(_ text: String) {
@@ -143,16 +144,29 @@ final class GUIDriver {
                 format: "step %d %@ %@ %.1fs %@", index, slug, pass ? "PASS" : "FAIL", seconds, Self.head(detail, 600)))
     }
 
-    private func ask(_ chat: ChatViewModel, _ text: String, timeout: Double = 900) async -> Bool {
-        chat.input = text
-        guard chat.send() else {
-            note("send refused: phase=\(chat.phase) responding=\(chat.isResponding) contextFull=\(chat.contextFull)")
+    private func ask(_ host: ConversationHost, _ text: String, timeout: Double = 900) async -> Bool {
+        guard await wait(seconds: 10, until: { !host.state.library.isMutating && !host.state.isRestoring }) else {
             return false
         }
-        return await wait(seconds: timeout) { !chat.isResponding }
+        host.chat.input = text
+        guard host.submit() else {
+            note(
+                "send refused: phase=\(host.chat.phase) running=\(host.state.isRunning) contextFull=\(host.contextFull)"
+            )
+            return false
+        }
+        return await wait(seconds: timeout) { !host.state.isRunning && !host.state.isSaving && !host.chat.isResponding }
     }
 
-    private func run(navigator: DemoNavigator, chat: ChatViewModel, agent: AgentViewModel, models: ModelsViewModel)
+    private static func turnText(_ host: ConversationHost) -> (thinking: Int, answer: Int) {
+        let turn = host.state.entries.reversed().prefix { $0.kind != .user }
+        let thinking = turn.filter { $0.kind == .thinking }.map(\.text.count).reduce(0, +)
+        let answer = turn.filter { $0.kind == .answer || ($0.kind == .failure && $0.title == "Stopped") }
+            .map(\.text.count).reduce(0, +)
+        return (thinking, answer)
+    }
+
+    private func run(navigator: DemoNavigator, chat: ChatViewModel, host: ConversationHost, models: ModelsViewModel)
         async
     {
         try? FileManager.default.createDirectory(at: outDir, withIntermediateDirectories: true)
@@ -170,11 +184,17 @@ final class GUIDriver {
             return
         }
         let url = URL(filePath: path, directoryHint: .isDirectory)
-        if let tokens = LaunchArguments.value("--max-tokens").flatMap(Int.init) { chat.maxTokens = tokens }
-        if let effort = LaunchArguments.value("--effort").flatMap({ ChatViewModel.Reasoning(rawValue: $0.capitalized) })
-        {
-            chat.reasoning = effort
+        let preferences = host.preferences
+        preferences.resetForHeadless()
+        let effort = LaunchArguments.value("--effort")
+        if let effort, AgentReasoningEffort(argument: effort) == nil {
+            note("unknown effort '\(effort)': use off, low, medium or xhigh")
+            await finish(metricsBefore: metricsBefore)
+            return
         }
+        preferences.effort = effort.flatMap(AgentReasoningEffort.init(argument:)) ?? .medium
+        note("effort=\(preferences.effort.rawValue) settings=defaults (the app's saved settings are not used)")
+        if let tokens = LaunchArguments.value("--max-tokens").flatMap(Int.init) { preferences.maxTokens = tokens }
         NSApp.activate()
         _ = await wait(seconds: 30) { self.window() != nil }
         await settle()
@@ -233,81 +253,91 @@ final class GUIDriver {
         }
 
         if LaunchArguments.flag("--agent") {
-            await runAgent(navigator: navigator, chat: chat, agent: agent)
+            await runAgent(navigator: navigator, host: host)
+            await finish(metricsBefore: metricsBefore)
+            return
+        }
+
+        if LaunchArguments.flag("--conversation") {
+            await runConversation(host: host)
             await finish(metricsBefore: metricsBefore)
             return
         }
 
         if let question = LaunchArguments.value("--rag") {
-            await runRAG(chat: chat, question: question)
+            await runRAG(host: host, question: question)
             await finish(metricsBefore: metricsBefore)
             return
         }
 
         await step(4, "chat", "One turn streams to the end and the status line shows the numbers") {
-            let done = await self.ask(chat, "Explain in two sentences what a context window is in a language model.")
-            let last = chat.last
+            let done = await self.ask(host, "Explain in two sentences what a context window is in a language model.")
+            let last = host.runner.session.lastGeneration
             let pass =
                 done && last?.error == nil && (last?.outputTokens ?? 0) > 0
                 && ["stopToken", "maxTokens"].contains(last?.stopReason ?? "")
             return (
                 pass,
-                "status=\(chat.statusLine) thoughtChars=\(chat.turns.last?.reasoning.count ?? 0) answer=\(Self.head(last?.answer ?? ""))"
+                "status=\(last?.statusLine ?? "none") thoughtChars=\(Self.turnText(host).thinking) answer=\(Self.head(last?.answer ?? ""))"
             )
         }
 
         await step(5, "generating", "A long reply is streaming") {
             chat.input =
                 "Write a detailed essay of at least 1500 words about the history of computing, from the abacus to modern AI. Use multiple sections with headings."
-            guard chat.send() else { return (false, "send refused") }
+            guard host.submit() else { return (false, "send refused") }
             let grew = await self.wait(seconds: 300) {
-                guard let turn = chat.turns.last, chat.turns.count == 2 else { return false }
-                return turn.reasoning.count + turn.response.count > 300
+                guard host.state.turns.count == 2 else { return false }
+                let text = Self.turnText(host)
+                return text.thinking + text.answer > 300
             }
-            let turn = chat.turns.last
+            let text = Self.turnText(host)
             return (
-                grew && chat.isResponding,
-                "responding=\(chat.isResponding) thoughtChars=\(turn?.reasoning.count ?? 0) answerChars=\(turn?.response.count ?? 0)"
+                grew && host.state.isRunning,
+                "running=\(host.state.isRunning) thoughtChars=\(text.thinking) answerChars=\(text.answer)"
             )
         }
 
         await step(6, "stopped", "Stop ends the reply within three seconds and keeps what was written") {
             let started = ContinuousClock.now
-            chat.stop()
-            let halted = await self.wait(seconds: 3) { !chat.isResponding }
+            host.stop()
+            let halted = await self.wait(seconds: 3) { !host.state.isRunning && !host.state.isSaving }
             let seconds = (ContinuousClock.now - started) / .seconds(1)
-            let turn = chat.turns.last
-            let kept = (turn?.reasoning.count ?? 0) + (turn?.response.count ?? 0)
+            let text = Self.turnText(host)
+            let last = host.runner.session.lastGeneration
             return (
-                halted && chat.last?.stopReason == "cancelled" && kept > 0,
+                halted && last?.stopReason == "cancelled" && text.thinking + text.answer > 0,
                 String(
-                    format: "halted=%@ seconds=%.3f keptChars=%d status=%@", String(halted), seconds, kept,
-                    chat.statusLine)
+                    format: "halted=%@ seconds=%.3f keptChars=%d status=%@", String(halted), seconds,
+                    text.thinking + text.answer, last?.statusLine ?? "none")
             )
         }
 
-        await step(7, "new-chat", "New Chat starts an empty conversation") {
-            chat.newChat()
+        await step(7, "new-chat", "New starts an empty conversation") {
+            host.startNew()
             await self.settle()
             return (
-                chat.entries.isEmpty && chat.last == nil && chat.phase == .ready,
-                "entries=\(chat.entries.count) phase=\(chat.phase) status=\(chat.statusLine)"
+                host.state.entries.isEmpty && host.runner.session.lastGeneration == nil && chat.phase == .ready,
+                "entries=\(host.state.entries.count) phase=\(chat.phase) status=\(host.state.statusLine)"
             )
         }
 
         if LaunchArguments.value("--context-limit") != nil {
             await step(8, "context-full", "A long chat with a small context limit ends with a notice, not an error") {
                 var sent = 0
-                while !chat.contextFull, sent < 40 {
+                while !host.contextFull, sent < 40 {
                     sent += 1
                     guard
-                        await self.ask(chat, "Tell me one more fact about the history of computing, in about 80 words.")
+                        await self.ask(host, "Tell me one more fact about the history of computing, in about 80 words.")
                     else { break }
-                    self.note("context turn \(sent): \(chat.statusLine) notice=\(chat.contextNotice ?? "none")")
+                    self.note(
+                        "context turn \(sent): \(host.runner.session.lastGeneration?.statusLine ?? "none") "
+                            + "notice=\(host.state.turns.last?.failure ?? "none")")
                 }
+                let last = host.runner.session.lastGeneration
                 return (
-                    chat.contextFull && chat.contextNotice != nil && chat.phase == .ready && chat.last?.error == nil,
-                    "turns=\(sent) contextFull=\(chat.contextFull) notice=\(chat.contextNotice ?? "none") stop=\(chat.last?.stopReason ?? "none")"
+                    host.contextFull && chat.phase == .ready && last?.error == nil,
+                    "turns=\(sent) contextFull=\(host.contextFull) notice=\(host.state.turns.last?.failure ?? "none") stop=\(last?.stopReason ?? "none")"
                 )
             }
         }
@@ -315,88 +345,267 @@ final class GUIDriver {
         await finish(metricsBefore: metricsBefore)
     }
 
-    private func runAgent(navigator: DemoNavigator, chat: ChatViewModel, agent: AgentViewModel) async {
-        agent.persistsSettings = false
-        agent.effort = .low
-        note(
-            "agent effort=\(agent.effort.rawValue) steps=\(agent.maxIterations) tokens=\(agent.maxNewTokens) "
-                + "budget=\(agent.pageCharacterBudget) search=\(agent.searchProvider) fileOps=\(agent.allowFileOperations)"
-        )
-
-        await step(4, "agent-task", "Agent: the task is sent and the first step streams") {
-            navigator.selection = .agent
-            await self.settle()
-            agent.input = Self.agentTask
-            guard agent.send(chat: chat) else { return (false, "send refused") }
-            if let id = agent.sessionID { self.sessions.append(id) }
-            let streaming = await self.wait(seconds: 120) { agent.entries.contains { $0.kind != .user } }
+    private func runConversation(host: ConversationHost) async {
+        host.preferences.notesFolderPath = outDir.appending(path: "notes").path(percentEncoded: false)
+        var previous: StepStats?
+        var previousFirst: StepStats?
+        let strictReuse = host.chat.modelName.hasPrefix("qwen3_8")
+        func turn(_ mode: ConversationMode, _ text: String) async -> (done: Bool, reused: Bool, reuse: String) {
+            host.store.send(.modeChanged(mode))
+            let sent = host.state.turns.count
+            let divergedBefore = host.runner.session.divergeCount
+            let done = await ask(host, text)
+            let turns = host.state.turns
+            let steps = sent < turns.count ? turns[sent].steps.sorted { $0.step < $1.step } : []
+            let diverged = host.runner.session.divergeCount - divergedBefore
+            defer {
+                previous = turns.last?.steps.max { $0.step < $1.step } ?? previous
+                previousFirst = turns.last?.steps.min { $0.step < $1.step } ?? previousFirst
+            }
+            guard let first = steps.first else { return (done, false, "steps=0") }
+            let repairs = turns.count - sent - 1
+            guard let previous, let previousFirst else {
+                return (done, true, "reused=\(first.reusedTokens) steps=\(steps.count) repairs=\(repairs)")
+            }
+            let expected = previous.promptTokens + previous.generatedTokens
+            let kept = first.reusedTokens >= expected - 1
+            let continued = first.reusedTokens >= previousFirst.promptTokens - 16
             return (
-                streaming && agent.running,
-                "running=\(agent.running) kinds=\(agent.entries.map { "\($0.kind)" }) status=\(agent.statusLine)"
+                done, strictReuse ? kept && diverged == 0 : continued,
+                "reused=\(first.reusedTokens) previousPromptPlusOutput=\(expected) gap=\(expected - first.reusedTokens) "
+                    + "previousFirstPrompt=\(previousFirst.promptTokens) steps=\(steps.count) repairs=\(repairs) "
+                    + "diverges=\(diverged) strictReuse=\(strictReuse)"
+            )
+        }
+        func lookups() -> Int {
+            host.state.entries.count { $0.kind == .toolCall && ["web_search", "fetch_page"].contains($0.title) }
+        }
+        func ended(_ mode: ConversationMode) -> Bool {
+            guard let last = host.state.turns.last else { return false }
+            return last.mode == mode && !host.state.isRunning && last.failure == nil
+        }
+
+        await step(4, "conversation-chat", "Chat: a question is answered in the conversation") {
+            let result = await turn(.chat, "In one sentence, what is a context window in a language model?")
+            return (result.done && result.reused && ended(.chat), result.reuse + " status=\(host.state.statusLine)")
+        }
+
+        await step(5, "conversation-work", "Work: research and a note continue the same conversation") {
+            let before = lookups()
+            let result = await turn(
+                .work,
+                "Use web_search to find what Apple's MLX framework is, then use write_note to save a two-line note titled MLX summary."
+            )
+            let calls = host.state.entries.filter { $0.kind == .toolCall }.map(\.title)
+            let notes = host.runner.tools.notesWritten.map(\.key)
+            return (
+                result.done && result.reused && ended(.work) && lookups() > before && !notes.isEmpty,
+                result.reuse + " calls=\(calls) notes=\(notes) guard=\(host.runner.citationGuard.outcome ?? "none")"
             )
         }
 
-        await step(5, "agent-tools", "Agent: tool calls and their results are listed") {
-            let listed = await self.wait(seconds: 600) {
-                agent.entries.contains { $0.kind == .toolCall } && agent.entries.contains { $0.kind == .toolResult }
-            }
-            let calls = agent.entries.filter { $0.kind == .toolCall }.map { "\($0.title) {\(Self.head($0.text, 120))}" }
-            let results = agent.entries.filter { $0.kind == .toolResult }.map { "\($0.title) \($0.text.count) chars" }
-            return (listed, "calls=\(calls) results=\(results) status=\(agent.statusLine)")
+        await step(6, "conversation-chat-again", "Chat: a follow-up question continues the same timeline") {
+            let result = await turn(.chat, "Thanks. In one sentence, what did you just look up?")
+            let prompts = host.state.entries.filter { $0.kind == .user }.count
+            return (
+                result.done && result.reused && ended(.chat) && prompts >= 3,
+                result.reuse + " userEntries=\(prompts) turns=\(host.state.turns.map(\.mode.rawValue))"
+            )
         }
 
-        await step(6, "agent-answer", "Agent: the answer ends with Sources and every step has its numbers") {
-            let done = await self.wait(seconds: 900) { !agent.running }
-            let answer = agent.entries.last { $0.kind == .answer }?.text ?? ""
-            let stats = agent.entries.compactMap(\.stats)
+        await step(7, "conversation-save-refused", "Chat: saving a note is refused and Continue in Work is offered") {
+            host.startNew()
+            previous = nil
+            previousFirst = nil
+            let result = await turn(
+                .chat, "Use write_note to save a note titled Shopping list with the content: eggs, milk.")
+            let refused = host.state.entries.contains {
+                $0.kind == .toolResult && $0.text.hasPrefix(TurnPolicy.savingRefusal)
+            }
             return (
-                done && answer.contains("Sources") && agent.lastFinishReason == "eos" && !stats.isEmpty,
-                "finished=\(done) sources=\(answer.contains("Sources")) finish=\(agent.lastFinishReason ?? "none") "
+                result.done && host.state.refusedSave && refused,
+                "refusedSave=\(host.state.refusedSave) refusalShown=\(refused) " + result.reuse
+            )
+        }
+
+        await step(8, "conversation-continue", "Continue in Work saves the note in the same conversation") {
+            host.continueInWork()
+            let done = await wait(seconds: 900) { !host.state.isRunning && !host.state.isSaving }
+            previous = host.state.turns.last?.steps.max { $0.step < $1.step } ?? previous
+            previousFirst = host.state.turns.last?.steps.min { $0.step < $1.step } ?? previousFirst
+            let notes = host.runner.tools.notesWritten.map(\.key)
+            return (
+                done && host.state.turns.last?.mode == .work && !notes.isEmpty,
+                "mode=\(host.state.turns.last?.mode.rawValue ?? "none") notes=\(notes) guard=\(host.runner.citationGuard.outcome ?? "none")"
+            )
+        }
+
+        await step(
+            9, "conversation-running",
+            "While a turn runs the mode and Send are locked, and Stop ends it within three seconds"
+        ) {
+            host.store.send(.modeChanged(.work))
+            host.chat.input = Self.stopTask
+            let mark = host.state.entries.count
+            @MainActor func written() -> Bool {
+                host.state.entries.dropFirst(mark).contains {
+                    [.thinking, .toolCall, .answer].contains($0.kind) && $0.text.count > 20
+                }
+            }
+            guard host.submit() else { return (false, "send refused") }
+            let grew = await wait(seconds: 180) { written() }
+            host.chat.input = "Another question"
+            host.store.send(.modeChanged(.chat))
+            let locked = host.state.isRunning && !host.canSend && host.state.mode == .work
+            let started = ContinuousClock.now
+            host.stop()
+            let halted = await wait(seconds: 3) { !host.state.isRunning && !host.state.isSaving }
+            let seconds = (ContinuousClock.now - started) / .seconds(1)
+            host.chat.input = ""
+            let stopped = host.state.entries.last { $0.kind == .failure && $0.title == "Stopped" }
+            let kept = written() || stopped?.detail == .stopped(partial: true)
+            previous = host.state.turns.last?.steps.max { $0.step < $1.step } ?? previous
+            previousFirst = host.state.turns.last?.steps.min { $0.step < $1.step } ?? previousFirst
+            return (
+                grew && locked && halted && stopped != nil && kept,
+                String(
+                    format: "grew=%@ locked=%@ halted=%@ kept=%@ seconds=%.3f stopped=%@", String(grew),
+                    String(locked), String(halted), String(kept), seconds, Self.head(stopped?.text ?? "none", 200))
+            )
+        }
+
+        await step(10, "conversation-after-stop", "After Stop, the same conversation takes the next turn") {
+            let id = host.state.id
+            let before = host.state.turns.count
+            let result = await turn(.chat, "In one sentence, what is Core ML?")
+            let same = host.state.id == id
+            return (
+                result.done && ended(.chat) && same && host.state.turns.count == before + 1,
+                result.reuse + " sameConversation=\(same) turns=\(before)->\(host.state.turns.count)"
+            )
+        }
+
+        var savedID = ""
+        let marker = "BLUE-NOTE-80"
+        await step(11, "new-conversation", "New opens an empty conversation and preserves the previous one") {
+            let previousID = host.state.id
+            host.startNew()
+            let settled = await wait(seconds: 10) { !host.state.library.isMutating }
+            let empty = host.state.turns.isEmpty && host.state.entries.isEmpty && host.state.id != previousID
+            host.store.send(.modeChanged(.chat))
+            let done = await ask(host, "Remember this marker for later: \(marker). Reply with the marker only.")
+            savedID = host.state.id
+            return (
+                settled && empty && done && host.state.library.items.contains { $0.id == previousID },
+                "empty=\(empty) saved=\(savedID)"
+            )
+        }
+        await step(12, "switch-conversation", "Selecting saved history continues the selected conversation") {
+            host.startNew()
+            _ = await wait(seconds: 10) { !host.state.library.isMutating }
+            let other = await ask(host, "Reply with OK.")
+            let otherID = host.state.id
+            guard host.openConversation(savedID) else { return (false, "open refused") }
+            let opened = await wait(seconds: 10) { !host.state.isRestoring }
+            let restored =
+                host.state.id == savedID && host.state.turns.count == 1 && host.state.turns[0].prompt.contains(marker)
+            let done = await ask(host, "What marker did I ask you to remember? Reply with the marker only.")
+            let answer = host.state.entries.last { $0.kind == .answer }?.text ?? ""
+            return (
+                other && opened && restored && done && answer.contains(marker)
+                    && host.state.library.items.contains { $0.id == otherID }, "restored=\(restored) answer=\(answer)"
+            )
+        }
+    }
+
+    private func runAgent(navigator: DemoNavigator, host: ConversationHost) async {
+        let preferences = host.preferences
+        preferences.effort = .low
+        let policy = TurnPolicy(.work, settings: preferences.settings)
+        note(
+            "agent effort=\(preferences.effort.rawValue) steps=\(policy.maxSteps) tokens=\(policy.maxTokens) "
+                + "budget=\(preferences.pageBudget) search=\(preferences.searchProvider) fileOps=\(preferences.fileOperations)"
+        )
+
+        await step(4, "agent-task", "Work: the task is sent and the first step streams") {
+            navigator.selection = .chat
+            await self.settle()
+            host.store.send(.modeChanged(.work))
+            host.chat.input = Self.agentTask
+            guard host.submit() else { return (false, "send refused") }
+            self.sessions.append(host.state.id)
+            let streaming = await self.wait(seconds: 120) { host.state.entries.contains { $0.kind != .user } }
+            return (
+                streaming && host.state.isRunning,
+                "running=\(host.state.isRunning) kinds=\(host.state.entries.map { "\($0.kind)" }) status=\(host.state.statusLine)"
+            )
+        }
+
+        await step(5, "agent-tools", "Work: tool calls and their results are listed") {
+            let listed = await self.wait(seconds: 600) {
+                host.state.entries.contains { $0.kind == .toolCall }
+                    && host.state.entries.contains { $0.kind == .toolResult }
+            }
+            let entries = host.state.entries
+            let calls = entries.filter { $0.kind == .toolCall }.map { "\($0.title) {\(Self.head($0.text, 120))}" }
+            let results = entries.filter { $0.kind == .toolResult }.map { "\($0.title) \($0.text.count) chars" }
+            return (listed, "calls=\(calls) results=\(results) status=\(host.state.statusLine)")
+        }
+
+        await step(6, "agent-answer", "Work: the answer ends with Sources and every step has its numbers") {
+            let done = await self.wait(seconds: 900) { !host.state.isRunning && !host.state.isSaving }
+            let answer = host.state.entries.last { $0.kind == .answer }?.text ?? ""
+            let stats = host.state.entries.compactMap(\.stats)
+            let finish = host.runner.session.lastFinish
+            return (
+                done && answer.contains("Sources") && finish == "eos" && !stats.isEmpty,
+                "finished=\(done) sources=\(answer.contains("Sources")) finish=\(finish ?? "none") "
                     + "stats=\(stats.joined(separator: " ;; ")) answer=\(Self.head(answer, 800))"
             )
         }
 
-        await step(7, "agent-stop", "Agent: Stop halts a running task within three seconds and keeps what was written")
-        {
-            let mark = agent.entries.count
-            agent.input = Self.stopTask
-            guard agent.send(chat: chat) else { return (false, "send refused") }
+        await step(7, "agent-stop", "Work: Stop halts a running task within three seconds and keeps what was written") {
+            let mark = host.state.entries.count
+            host.chat.input = Self.stopTask
+            guard host.submit() else { return (false, "send refused") }
             let grew = await self.wait(seconds: 180) {
-                agent.entries.count > mark + 1 && (agent.entries.last?.text.count ?? 0) > 20
+                host.state.entries.count > mark + 1 && (host.state.entries.last?.text.count ?? 0) > 20
             }
             let started = ContinuousClock.now
-            agent.stop()
-            let halted = await self.wait(seconds: 3) { !agent.running }
+            host.stop()
+            let halted = await self.wait(seconds: 3) { !host.state.isRunning && !host.state.isSaving }
             let seconds = (ContinuousClock.now - started) / .seconds(1)
-            _ = await self.wait(seconds: 120) { !agent.running }
-            let stopped = agent.entries.last { $0.kind == .failure && $0.title == "Stopped" }
+            _ = await self.wait(seconds: 120) { !host.state.isRunning && !host.state.isSaving }
+            let stopped = host.state.entries.last { $0.kind == .failure && $0.title == "Stopped" }
             return (
                 grew && halted && stopped != nil,
                 String(
                     format: "grew=%@ halted=%@ seconds=%.3f stopped=%@ status=%@", String(grew), String(halted),
                     seconds,
-                    Self.head(stopped?.text ?? "none", 200), agent.statusLine)
+                    Self.head(stopped?.text ?? "none", 200), host.state.statusLine)
             )
         }
 
-        await step(8, "agent-new-task", "Agent: New Task clears the transcript") {
-            agent.reset()
+        await step(8, "agent-new-task", "Work: New clears the conversation") {
+            let previous = host.state.id
+            host.startNew()
             await self.settle()
             return (
-                agent.entries.isEmpty && agent.sessionID == nil && !agent.running,
-                "entries=\(agent.entries.count) session=\(agent.sessionID ?? "none") status=\(agent.statusLine)"
+                host.state.entries.isEmpty && !host.state.isRunning && host.state.mode == .work,
+                "entries=\(host.state.entries.count) previous=\(previous) mode=\(host.state.mode) status=\(host.state.statusLine)"
             )
         }
     }
 
-    private func runRAG(chat: ChatViewModel, question: String) async {
+    private func runRAG(host: ConversationHost, question: String) async {
+        let chat = host.chat
         if let window = window(), let visible = window.screen?.visibleFrame {
             let height = min(1_300, visible.height)
             window.setFrame(
                 NSRect(x: visible.minX + 40, y: visible.maxY - height, width: 1_200, height: height), display: true)
         }
 
-        await step(4, "rag-switches", "RAG: the RAG, Web and Docs switches are on in the status bar") {
+        await step(4, "rag-switches", "RAG: the status bar shows RAG with Web and Docs") {
             chat.ragEnabled = true
             chat.ragWeb = !SelfTest.isOff(LaunchArguments.value("--rag-web"))
             chat.ragLocal = !SelfTest.isOff(LaunchArguments.value("--rag-local"))
@@ -407,22 +616,52 @@ final class GUIDriver {
             )
         }
 
-        await step(
-            5, "rag-answer", "RAG: the answer, its numbered sources and the status line, with no turn added to the chat"
-        ) {
-            let done = await self.ask(chat, question)
-            let turn = chat.turns.last
-            let sources = turn?.sources ?? []
-            let pass =
-                done && chat.last?.error == nil && !sources.isEmpty && !(turn?.response ?? "").isEmpty
-                && chat.entries.isEmpty
-                && chat.statusLine.contains("prompt(rag)")
+        await step(5, "rag-answer", "RAG: the answer and stable source IDs are added to this conversation") {
+            let before = host.state.turns.count
+            let done = await self.ask(host, question)
+            let ids = host.state.turns.last?.sourceIDs ?? []
+            let stats = host.runner.lastGeneration
+            let answer = stats?.answer ?? ""
             return (
-                pass,
-                "status=\(chat.statusLine) chatEntries=\(chat.entries.count) sources=\(sources.count) notes=\(turn?.notes ?? []) "
-                    + "first=\(sources.first ?? "none") answer=\(Self.head(turn?.response ?? "", 600))"
+                done
+                    && Self.ragReplyPassed(
+                        stats, turn: host.state.turns.last, check: host.runner.citationGuard.checks.last?.local)
+                    && !ids.isEmpty && !answer.isEmpty
+                    && host.state.turns.count == before + 1
+                    && host.runner.citationGuard.checks.last?.local?.violation == false
+                    && ids.allSatisfy { id in host.runner.tools.sources.records.contains { $0.id == id } },
+                "status=\(stats?.statusLine ?? "none") turns=\(host.state.turns.count) sources=\(ids) answer=\(Self.head(answer, 600))"
             )
         }
+        await step(6, "rag-followup", "A normal follow-up reuses the same supplied source IDs") {
+            guard let id = host.state.turns.last?.sourceIDs?.first else { return (false, "No supplied source") }
+            let before = host.state.turns.count
+            let sources = host.runner.tools.sources
+            chat.ragEnabled = false
+            let done = await self.ask(
+                host,
+                "Using only source [\(id)] already supplied in our conversation, restate its main point and cite [\(id)]. Do not fetch new sources."
+            )
+            let stats = host.runner.lastGeneration
+            let answer = stats?.answer ?? ""
+            return (
+                done
+                    && Self.ragReplyPassed(
+                        stats, turn: host.state.turns.last, check: host.runner.citationGuard.checks.last?.local)
+                    && host.state.turns.count == before + 1 && answer.contains("[\(id)]")
+                    && host.runner.tools.sources == sources && host.runner.lastRetrieval == nil,
+                "turns=\(host.state.turns.count) source=\(id) answer=\(Self.head(answer, 600))"
+            )
+        }
+    }
+
+    static func ragReplyPassed(
+        _ stats: GenerationStats?, turn: ConversationTurn?, check: SourceCitationCheck?
+    ) -> Bool {
+        guard let stats, let turn, turn.failure == nil, [.eos, .cap].contains(turn.finish) else { return false }
+        return stats.error == nil && stats.outputTokens > 0
+            && ["stopToken", "maxTokens"].contains(stats.stopReason)
+            && !stats.answer.isEmpty && check?.violation == false
     }
 
     private func runExtract(navigator: DemoNavigator, store: Store<ExtractFeature>) async {
@@ -552,7 +791,7 @@ final class GUIDriver {
 
     private func finish(metricsBefore: Int) async {
         for id in sessions {
-            let source = AgentViewModel.transcriptsDirectory().appending(path: "\(id).md")
+            let source = ConversationRunner.conversationsDirectory().appending(path: "\(id).md")
             do {
                 try FileManager.default.copyItem(at: source, to: outDir.appending(path: "transcript-\(id).md"))
             } catch {

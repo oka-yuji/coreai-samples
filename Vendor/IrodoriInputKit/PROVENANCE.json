@@ -1,0 +1,12 @@
+{
+  "source_revision": "4b187d2ececd368c86bbaf2b0099592220776bc5",
+  "irodori_revision": "89f9d8fbd4d51ea019867ee1197725ede1df13c5",
+  "tokenizers": "0.22.2",
+  "unicode_normalization": "0.1.22",
+  "unicode_version": "15.0.0",
+  "changes": [
+    "remove package-only checker and tests",
+    "remove source comments under public-source convention",
+    "expose original token count to reject truncation"
+  ]
+}

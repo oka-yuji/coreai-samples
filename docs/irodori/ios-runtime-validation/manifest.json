@@ -1,0 +1,37 @@
+{
+  "base": "043cf1f2439bcf2912673530d5a9dfd673c3b3e5",
+  "cpu_tests": 34,
+  "tsan_tests": 16,
+  "iphone_sdk_link_exit": 0,
+  "mac_build_exit": 0,
+  "gpu_inference": false,
+  "source_sha256": {
+    "CoreAISamplesKit/Package.swift": "e580a298e65fe9fe4b0fc94e53bd36654f401d2ec2a4cceb5885bbe812456a75",
+    "CoreAISamplesKit/Sources/SpeechFeature/SpeechFeature.swift": "4ac523cf4dc57a67993fce6a37a7f7ae285fc69eb8812869a073f779f6d5882c",
+    "CoreAISamplesKit/Sources/SpeechRuntime/AudioPlayback.swift": "56a6edff44bb2842775137672152ff9e7f419717e6263b7b64256128d07adcf8",
+    "CoreAISamplesKit/Sources/SpeechRuntime/IrodoriPipeline.swift": "c3191d39c4f3fdbd396dbc16931ceeaaa543401fda394a110f750ebf22416162",
+    "CoreAISamplesKit/Sources/SpeechRuntime/IrodoriRuntime.swift": "34b7004100a476d56e699d2220ed585e705882a8752ae725e6e392a62265bd69",
+    "CoreAISamplesKit/Sources/SpeechRuntime/IrodoriStage.swift": "6aa0c4e228c5a6d13542f2cbdff14fc9e552aaecc15219d44954b2ccbfd582c2",
+    "CoreAISamplesKit/Sources/SpeechRuntime/LiveSpeechService.swift": "1873fd7ed419577d9adc2c6191886fca430c16c79ee39898a8289a3d01354260",
+    "CoreAISamplesKit/Sources/SpeechRuntime/PhonePlaybackSessionDevice.swift": "af2537d7fc1d0eb17ba427deb96571c78b21929045cd47f10c29da567f21a64a",
+    "CoreAISamplesKit/Sources/SpeechRuntime/PlaybackSession.swift": "5af11d231a840c2ea97b112b38d7266dbfb951b97f810523aaaa2ba527d49fd2",
+    "CoreAISamplesKit/Sources/SpeechRuntime/SpeechBoundary.swift": "68aa9b14116d74bc3194034c059604ff7cb7d8a13b4ee4d82e9af45d0d0dd896",
+    "CoreAISamplesKit/Sources/SpeechRuntime/SpeechBundle.swift": "ebdb41eb3c3a45907a363a5db9e4f1ee56d2c2b5c07b062260e5d3355113ff3c",
+    "CoreAISamplesKit/Sources/SpeechRuntime/SpeechRunner.swift": "6752dc7489f1a97425d1a3c9b4eeadaf13690ad49daff34a66d3dce03f479e55",
+    "CoreAISamplesKit/Tests/SpeechRuntimeTests/AudioPlaybackTests.swift": "3a6866dbc3c6cc5103960d1ec0b65ccf78c322a40d217a9ab43702052b4162bd",
+    "CoreAISamplesKit/Tests/SpeechRuntimeTests/ManagedPlaybackSessionTests.swift": "ba4ce9ed507526716dcc859597832a7cafdf0fb28eae2e23da54fc641c0a12d1",
+    "CoreAISamplesKit/Tests/SpeechRuntimeTests/PlaybackSessionTests.swift": "1a4b0c23a471279447672dda658176400495429aeaac68e99718fbdc9e225ca3",
+    "CoreAISamplesKit/Tests/SpeechRuntimeTests/SpeechServiceTests.swift": "162b04158e3300204bf618cbd2828884609f0840b52828f9fb267995d7a42d4c",
+    "Tools/Irodori/build-inputs.sh": "a7877267adef9f820b44e82cf6d6951f35ed450b6f32f7cad9f4ffbcbdd2582f",
+    "Vendor/IrodoriInputKit/Package.swift": "d4ae65a2ac93bd0710033469fe8b0cb82a9850a4461ecec611e82aeff81f8228"
+  },
+  "review": {
+    "independent_audio_cpu_tests": 41,
+    "fixed": [
+      "R94-1/P2"
+    ],
+    "unresolved_confirmed": 0,
+    "plausible": 0,
+    "device_checks_pending": true
+  }
+}

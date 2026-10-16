@@ -8,7 +8,6 @@ enum DemoLocalizationCheck {
     static func run() {
         do {
             var keys = Demo.allCases.flatMap { [$0.title, $0.summary] }
-            keys += ChatViewModel.Reasoning.allCases.map(\.rawValue)
             keys += AgentReasoningEffort.allCases.map(\.label)
             keys += DecideQuestionKind.allCases.map(\.title)
             keys += try RecipeAssembly.examples().map(\.title)
@@ -23,6 +22,21 @@ enum DemoLocalizationCheck {
             keys += [ExtractRunner.notice, "Loaded", "Loading…", "Stopped.", "No match", "On hold"]
             keys += KitchenStatus.allCases.map(\.rawValue)
             keys += ["Kitchen equipment", "Open Clef-Flash bundle", "Change decision model"]
+            keys += ["none", "Docs", "Thinking", "Thoughts", "Stopping…"]
+            keys += ["Ended at the step limit", "Stopped", "Generation failed", "Where Work saves its notes"]
+            keys += [
+                "Could not save the conversation", "Read-only conversation", "Opening conversation…", "Save a copy",
+                "Retry save", "Saving conversation…", "Keep app open",
+            ]
+            keys += [
+                "Conversations", "Tools", "Rename…", "Delete…", "Move to Trash", "Markdown export is not up to date.",
+            ]
+            keys += [
+                "Source citations", "The answer did not cite any supplied source.",
+                "Source IDs match the supplied passages. Claim support has not been checked.",
+                "Notes kept as drafts.", "The question and sources exceed the RAG prompt budget.",
+                "The saved source record is inconsistent.",
+            ]
             keys += Catalog.models.flatMap { [$0.memory, $0.platforms] }
             var failures: [String] = []
             for key in Set(keys).sorted() {

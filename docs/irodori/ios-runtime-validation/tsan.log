@@ -1,0 +1,62 @@
+Building for debugging...
+[Computing dependencies]
+[Pre-planning 1 / 1619]
+[Planning deferred tasks]
+[1 / 4]
+[9 / 12] CoreAIBackendTests-product
+[13 / 15] DecideFeatureTests-product
+[29 / 32] GLiNERCoreTests-product
+[44 / 45] SpeechFeatureTests-product
+[47 / 50] SpeechRuntime
+[48 / 51] SpeechRuntime
+[59 / 63] SpeechRuntime
+[61 / 63] SpeechRuntime
+[68 / 77] SpeechRuntimeTests-product
+[77 / 86] SpeechRuntimeTests-product
+[81 / 85] SpeechRuntimeTests-product
+[83 / 85] SpeechRuntimeTests-product
+Build complete! (11.96秒)
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Suite ManagedPlaybackSessionTests started.
+􀟈  Suite SpeechServiceTests started.
+􀟈  Suite AudioPlaybackTests started.
+􀟈  Suite PlaybackSessionTests started.
+􀟈  Test "A cancelled caller does not create or start a player" started.
+􀟈  Test "Playback completion does not release its caller before session deactivation finishes" started.
+􀟈  Test "Cancelled stop finishes cleanup without delivering an obsolete acknowledgement" started.
+􀟈  Test "Stopping during activation waits for activation and deactivation without starting audio" started.
+􀟈  Test "A failed activation completes stop waiters without requesting deactivation" started.
+􀟈  Test "Only successful model validation persists a path and generation forwards text and seed" started.
+􀟈  Test "Synchronous completion and a refused start both resolve exactly once" started.
+􀟈  Test "Service stop ends playback immediately and awaits runtime release" started.
+􀟈  Test "Session setup failure and immediate interruption never start a player" started.
+􀟈  Test "Cancellation ends playback without a delegate callback" started.
+􀟈  Test "A past session interruption cannot stop a subsequent player" started.
+􀟈  Test "Store cancellation ignores a late generation and keeps restart blocked until stop completes" started.
+􀟈  Test "Runner reports outcomes with their session and suppresses cancelled results" started.
+􀟈  Test "Static phone stages avoid reshape specialization while Mac keeps its verified settings" started.
+􀟈  Test "Late callbacks from stopped audio cannot finish newer playback" started.
+􀟈  Test "An external interruption returns the current speech screen to an idle state" started.
+􁁛  Test "An external interruption returns the current speech screen to an idle state" passed after 0.001 seconds.
+􁁛  Test "Synchronous completion and a refused start both resolve exactly once" passed after 0.002 seconds.
+􁁛  Test "Session setup failure and immediate interruption never start a player" passed after 0.006 seconds.
+􁁛  Test "Static phone stages avoid reshape specialization while Mac keeps its verified settings" passed after 0.006 seconds.
+􁁛  Test "A cancelled caller does not create or start a player" passed after 0.006 seconds.
+􁁛  Test "Cancelled stop finishes cleanup without delivering an obsolete acknowledgement" passed after 0.006 seconds.
+􁁛  Test "Runner reports outcomes with their session and suppresses cancelled results" passed after 0.006 seconds.
+􁁛  Test "A failed activation completes stop waiters without requesting deactivation" passed after 0.006 seconds.
+􁁛  Test "Playback completion does not release its caller before session deactivation finishes" passed after 0.007 seconds.
+􁁛  Test "Only successful model validation persists a path and generation forwards text and seed" passed after 0.007 seconds.
+􁁛  Test "Store cancellation ignores a late generation and keeps restart blocked until stop completes" passed after 0.007 seconds.
+􁁛  Test "Cancellation ends playback without a delegate callback" passed after 0.007 seconds.
+􁁛  Test "Stopping during activation waits for activation and deactivation without starting audio" passed after 0.007 seconds.
+􁁛  Test "A past session interruption cannot stop a subsequent player" passed after 0.007 seconds.
+􁁛  Suite ManagedPlaybackSessionTests passed after 0.007 seconds.
+􁁛  Test "Service stop ends playback immediately and awaits runtime release" passed after 0.007 seconds.
+􁁛  Test "Late callbacks from stopped audio cannot finish newer playback" passed after 0.007 seconds.
+􁁛  Suite PlaybackSessionTests passed after 0.007 seconds.
+􁁛  Suite SpeechServiceTests passed after 0.007 seconds.
+􁁛  Suite AudioPlaybackTests passed after 0.007 seconds.
+􁁛  Test run with 16 tests in 4 suites passed after 0.008 seconds.

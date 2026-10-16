@@ -133,22 +133,31 @@ public final class Engine {
     }
 
     public func prefill(_ input: [Int32], usePrefillFunction: Bool = true) async throws {
+        try await prefill(input, usePrefillFunction: usePrefillFunction, onProgress: { _ in })
+    }
+
+    public func prefill(
+        _ input: [Int32], usePrefillFunction: Bool, onProgress: @Sendable (Int) -> Void
+    ) async throws {
         precondition(!input.isEmpty)
         guard let main else { throw EngineError.unloaded }
         try context.checkRoom(input.count)
         let start = ContinuousClock.now
         var rest = input[...]
+        onProgress(0)
         if let prefillFunction, usePrefillFunction {
             while rest.count > 1 {
                 let chunk = rest.prefix(min(Self.prefillChunkSize, rest.count - 1))
                 try await forward(prefillFunction, chunk, logits: false)
                 rest = rest.dropFirst(chunk.count)
+                onProgress(input.count - rest.count)
             }
         }
         while !rest.isEmpty {
             let chunk = rest.prefix(Self.prefillChunkSize)
             try await forward(main, chunk, logits: true)
             rest = rest.dropFirst(chunk.count)
+            onProgress(input.count - rest.count)
         }
         stats.prefillTokens += input.count
         stats.prefillSeconds += (ContinuousClock.now - start) / .seconds(1)
@@ -240,12 +249,14 @@ public final class Engine {
         var stateViews = InferenceFunction.MutableViews()
         for index in context.buffers.indices {
             let name = context.buffers[index].name
-            stateViews.insert(unsafe _overrideLifetime(context.buffers[index].array.mutableRawView(), borrowing: self), for: name)
+            stateViews.insert(
+                unsafe _overrideLifetime(context.buffers[index].array.mutableRawView(), borrowing: self), for: name)
         }
         var outputViews = InferenceFunction.MutableViews()
         if logits {
             if logitsRows != chunk.count {
-                logitsArray = NDArray(descriptor: logitsDescriptor.resolvingDynamicDimensions([1, chunk.count, vocabSize]))
+                logitsArray = NDArray(
+                    descriptor: logitsDescriptor.resolvingDynamicDimensions([1, chunk.count, vocabSize]))
                 logitsRows = chunk.count
             }
             outputViews.insert(unsafe _overrideLifetime(logitsArray.mutableRawView(), borrowing: self), for: logitsName)

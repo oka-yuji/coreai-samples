@@ -1,0 +1,73 @@
+{
+  "base": "45936ba8f50e9d59182dae5d5948c232ba218fee",
+  "date": "2026-10-13",
+  "environment": "macOS 27.0 (26A428), Xcode 27.0 (27A266a), Swift 6.4, arm64 M4 Max",
+  "model_inference_executed": false,
+  "gui_executed": false,
+  "real_audio_playback_executed": false,
+  "source_sha256": {
+    ".swiftlint.yml": "8a344f08fb3a6880e3b2f745504a1528bc33d6f89559fa11293a174a5615517d",
+    "CoreAISamples.xcodeproj/project.pbxproj": "5a135a0222c89b4c758e52203786ebce36d8cddd43770b99734a8932365b0a55",
+    "CoreAISamples/DemoRootView.swift": "72531a227af2626e315ed7ffad64abd7ad598939bd5fdbbab2983c8234c11b96",
+    "CoreAISamples/Demos/ModelManager/ModelsView.swift": "35327df9a3d03ffe4b3a71f706e93d03e89c42ffe860a202f68efccedfce16a7",
+    "CoreAISamples/Demos/Speech/Resources/speech-examples.json": "ba41cab5d5a5ad8a854187b1fa40765695745accb699d5eaf7fde7775faba256",
+    "CoreAISamples/Demos/Speech/SpeechAssembly.swift": "0b2dbb323914e9088e9e761dcd519a635d54c4e5ab9abe7fb00c24a0b9b9a943",
+    "CoreAISamples/Demos/Speech/SpeechExport.swift": "793b3fd10ae5196fbbb78f7d31d51cfd737a8e889f91f05dcb37a54faee40f69",
+    "CoreAISamples/Demos/Speech/SpeechModelButton.swift": "20c779f0c5ff4fa5c9c8cf0be733333401be5bcaf4386b1ca1ed80ea911d804d",
+    "CoreAISamples/Demos/Speech/SpeechView.swift": "52525611e8a8f235ed4a87a2125c661025e6ef3c0f640210f8f490f13d765c05",
+    "CoreAISamplesKit/Package.swift": "b3b7591fa6fdca6138db7c49489ba51cf03025892f53e552bb71d52f5e949ddf",
+    "CoreAISamplesKit/Sources/SpeechFeature/SpeechFeature.swift": "12eb204f48be3d192c3d5d9631128ec6061852609ab714e7303ff0e76283d787",
+    "CoreAISamplesKit/Sources/SpeechRuntime/AudioPlayback.swift": "bb1903ed43d316712c07706e341f4f4f5114dba8c212c84330cf6cc9a21f16c9",
+    "CoreAISamplesKit/Sources/SpeechRuntime/LiveSpeechService.swift": "8ac4e52f6725b6e811f4b1413e44e7058f1fc0accf003c59ce0f57334cf545f8",
+    "CoreAISamplesKit/Sources/SpeechRuntime/SpeechRunner.swift": "df2682dc8ea7421775c023db49aa7bcb79e8e68d0aa174a05a2c1753b287dadc",
+    "CoreAISamplesKit/Tests/SpeechFeatureTests/SpeechFeatureTests.swift": "5ec93c698b6b16e992c49abc00d18903e2bee839dc3427970f44bc1d27061561",
+    "CoreAISamplesKit/Tests/SpeechRuntimeTests/AudioPlaybackTests.swift": "1ba225e8ec3e8dab8b7583e15589168eea713213168ee359afb64bd4ab627512",
+    "CoreAISamplesKit/Tests/SpeechRuntimeTests/SpeechServiceTests.swift": "6fcdbcd53d4f5bd2d1fe5798d73741caff21318912f0ee9a380c59eff5d8149b",
+    "project.yml": "968f2df3d96a6cce1bc3f5567b4d0f15910945632e9f1b08a1f7f2007375792a"
+  },
+  "app_executable_sha256": "8d8101a947060ec825f41ee2cf91076b3ee55484fea5d05306abb58fc5da7322",
+  "model_bundle": "sampler-irodori-fp32",
+  "model_artifact_bytes": 3368343098,
+  "tokenizer_sha256": "6a0734cf21c802169defaffe719bc2ef12bb9d0be37e54b61ed27aa89394723d",
+  "checks": {
+    "speech_cpu_tests": 27,
+    "all_package_cpu_exit": 0,
+    "audio_service_tsan_tests": 9,
+    "swiftlint_violations": 0,
+    "swift_format_files": 14,
+    "xcode_release_exit": 0,
+    "codesign_verify_exit": 0,
+    "bundled_examples": 3,
+    "independent_release_cpu_tests": 31,
+    "independent_pure_feature_tests": 7
+  },
+  "log_sha256": {
+    "all-cpu.log": "b2dbaae7c45301299f4a7fdf1c39559d6712781d7ad036b9125914fd0cf92ebf",
+    "independent-playback-tests.swift.txt": "055c569ad1bbb88bb06329b22c67f5cb1a683940cba0b7ad7deeaf51d71ecd97",
+    "playback-after-source-proof.json": "73147bfb76c1e652a6cbf464f92fe2a00b09b9c0634471f81e61a8d6cf5c13da",
+    "playback-after-tests.log": "dca5e2ee35f4b94d861b0679321ae9af3839786f0a00c5d08d74f4613622ccf3",
+    "playback-before-source-proof.json": "91f62d2b877dd184da5f2cbbd8b2d092246d997dccfae2bb5dbb3679790fdf73",
+    "playback-before-tests-readable.log": "6f22f967f36162c4278742a6ccf3afade0eef35721285118a9e8d70d6a180664",
+    "playback-before-tests.log": "1eff08701b9cc952fb632d74c8c6353b61e4e039de5477c38dd7dd8e88662576",
+    "playback-review.json": "86ea27dc8b7352270f8e2640db0e73c50ae22cb5f36bb1408cab88685240ff80",
+    "runtime-initial-typecheck.log": "23f5cedcf44d7a2660cffe43ef997f037302d5856523791f2a49868029f3206f",
+    "speech-cpu.log": "c83bd344428ad2a69bdc0aba68384373daddc1fe0e6814309fe44403a2da301d",
+    "speech-tsan.log": "b3f7151ebf48e456e59d90b22b2a38397bfbc8da2a60189a1daadb19c3a7bb87",
+    "swift-format.log": "54d6694718f8bd768607d15c0fc7970b71f554ad89f4a646e2c6ed0d24ad584b",
+    "swiftlint.log": "49f648a046a3a3b0339eec62cc1245e12f3e0c876bbf1a9c3b8b49dcdef0d45e",
+    "ui-pure-tests.log": "a9e343a3b6411cb59b52ad142dae3d59f650d1ac661b2b9b58a8322ecc530df4",
+    "ui-review.json": "121b53ef59957a9bbd02eec2a99cb24798e118782bc6d7c9ac9d5ed893084304",
+    "ui-review.md": "ea23f70e277dd9cf6bae860e129165056291bf0fd8bbaf0562d3b1984bf8ccbb",
+    "xcode-build-summary.log": "8dc6900acfef486ca1312c86157488cbf64077c5a80804b077499f797a9bfc86"
+  },
+  "review": {
+    "unresolved_confirmed": 0,
+    "plausible": 0,
+    "fixed": [
+      "R92-1"
+    ],
+    "manual_pending": [
+      "U6"
+    ]
+  }
+}

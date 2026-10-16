@@ -1,3 +1,4 @@
+import ConversationFeature
 import Foundation
 import RAGContext
 
@@ -17,10 +18,13 @@ enum SelfTest {
         let questions = LaunchArguments.value("--rag").map { $0.split(separator: "|").map(String.init) } ?? []
         let file = LaunchArguments.value("--prompts-file").flatMap { try? String(contentsOfFile: $0, encoding: .utf8) }
         guard let model = LaunchArguments.value("--model"), !questions.isEmpty || file != nil,
-            LaunchArguments.value("--rag-budget") == nil || ChatViewModel.launchRAGBudget != nil
+            LaunchArguments.value("--rag-budget") == nil || ChatViewModel.launchRAGBudget != nil,
+            questions.isEmpty || !isOff(LaunchArguments.value("--rag-web"))
+                || !isOff(LaunchArguments.value("--rag-local")),
+            LaunchArguments.value("--effort").map({ AgentReasoningEffort(argument: $0) != nil }) ?? true
         else {
             log(
-                "usage: CoreAISamples --selftest --model <folder> (--prompts-file <file> | --rag \"question 1|question 2\" [--rag-web off] [--rag-local off] [--rag-docs <folder>] [--rag-budget 3000|6000]) [--max-tokens N] [--context-limit N]"
+                "usage: CoreAISamples --selftest --model <folder> (--prompts-file <file> | --rag \"question 1|question 2\" [--rag-web off] [--rag-local off] [--rag-docs <folder>] [--rag-budget 3000|6000]) [--max-tokens N] [--context-limit N] [--effort off|low|medium|xhigh]"
             )
             return finish(false)
         }
@@ -31,11 +35,10 @@ enum SelfTest {
             }.filter { !$0.isEmpty }
             : questions
         let chat = ChatViewModel()
-        if let maxTokens = LaunchArguments.value("--max-tokens").flatMap(Int.init) { chat.maxTokens = maxTokens }
-        if let effort = LaunchArguments.value("--effort").flatMap({ ChatViewModel.Reasoning(rawValue: $0.capitalized) })
-        {
-            chat.reasoning = effort
-        }
+        let preferences = ConversationPreferences(persists: false)
+        preferences.resetForHeadless()
+        preferences.effort = LaunchArguments.value("--effort").flatMap(AgentReasoningEffort.init(argument:)) ?? .medium
+        if let maxTokens = LaunchArguments.value("--max-tokens").flatMap(Int.init) { preferences.maxTokens = maxTokens }
         if !questions.isEmpty {
             chat.ragEnabled = true
             chat.ragWeb = !isOff(LaunchArguments.value("--rag-web"))
@@ -46,12 +49,14 @@ enum SelfTest {
             log("[selftest] load failed: \(chat.phase)")
             return finish(false)
         }
+        let host = ConversationHost(chat: chat, preferences: preferences)
         log(
             String(
                 format:
                     "[selftest] model=%@ prompts=%d maxTokens=%d contextLimit=%d effort=%@ cached=%@ specializeSeconds=%.2f loadSeconds=%.2f",
-                chat.modelName, prompts.count, chat.maxTokens, chat.contextLimit, chat.reasoning.rawValue,
-                String(stats.cached), stats.specializeSeconds, chat.loadSeconds))
+                chat.modelName, prompts.count, TurnPolicy(.chat, settings: preferences.settings).maxTokens,
+                chat.contextLimit, preferences.effort.label, String(stats.cached), stats.specializeSeconds,
+                chat.loadSeconds))
         if chat.ragEnabled {
             let settings = RAGSettings.fromDefaults()
             log(
@@ -65,38 +70,55 @@ enum SelfTest {
         var pass = !prompts.isEmpty
         for (index, prompt) in prompts.enumerated() {
             chat.input = prompt
-            guard chat.send() else {
-                log("[selftest] send refused: phase=\(chat.phase) contextFull=\(chat.contextFull)")
+            guard host.submit() else {
+                log("[selftest] send refused: phase=\(chat.phase) contextFull=\(host.contextFull)")
                 pass = false
                 break
             }
-            await chat.generation?.value
-            guard let result = chat.last else {
+            while host.state.isRunning || host.state.isSaving || chat.isResponding {
+                try? await Task.sleep(for: .milliseconds(20))
+            }
+            guard let result = host.runner.lastGeneration else {
+                log(
+                    "[selftest] no result: ragIsOn=\(chat.ragIsOn) running=\(host.state.isRunning) "
+                        + "failure=\(host.state.turns.last?.failure ?? "none")")
                 pass = false
                 break
             }
-            if chat.ragEnabled, let retrieval = chat.retrieval {
+            if chat.ragEnabled, let retrieval = host.runner.lastRetrieval {
                 log("[rag] turn=\(index) question=\(prompt)")
                 log("[rag] turn=\(index) \(retrieval.summary)")
                 for line in retrieval.notes { log("[rag] turn=\(index) note \(line)") }
-                for line in retrieval.citations { log("[rag] turn=\(index) source \(line)") }
-                for (number, source) in retrieval.sources.enumerated() {
-                    log("[rag] turn=\(index) passage [\(number + 1)] \(source.text.replacing("\n", with: "\\n"))")
+                for line in host.runner.tools.sources.citations(host.state.turns.last?.sourceIDs ?? []) {
+                    log("[rag] turn=\(index) source \(line)")
                 }
-                let thinking = chat.turns.last?.reasoning ?? ""
+                for source in retrieval.sources {
+                    let id =
+                        host.runner.tools.sources.records.first {
+                            $0.document == source.document && $0.version == source.version
+                        }?.id ?? "unknown"
+                    log(
+                        "[rag] turn=\(index) passage [\(id)] chars=\(source.offset ?? 0) text=\(source.text.replacing("\n", with: "\\n"))"
+                    )
+                }
+                let thinking = host.state.entries.last(where: { $0.kind == .thinking })?.text ?? ""
                 log("[rag] turn=\(index) thinking (\(thinking.count) chars)=\(thinking.replacing("\n", with: "\\n"))")
                 log("[rag] turn=\(index) answer=\(result.answer.replacing("\n", with: " "))")
             }
             FileHandle.standardOutput.write((try? encoder.encode(result)) ?? Data())
             FileHandle.standardOutput.write(Data("\n".utf8))
-            log("[selftest] \(chat.statusLine)")
+            log("[selftest] \(result.statusLine)")
             log("[selftest] engineTokens=\(await chat.model?.processedTokens().count ?? 0)")
             let generated =
                 result.error == nil && ["stopToken", "maxTokens"].contains(result.stopReason) && result.outputTokens > 0
             if !chat.ragEnabled {
-                pass = pass && generated && (result.turn == 1 || (result.cachedTokens ?? 0) > 0)
+                log("[selftest] sessionTurn=\(result.turn) expected=\(index + 1)")
+                let continued = result.turn == index + 1 && (result.turn == 1 || (result.cachedTokens ?? 0) > 0)
+                pass = pass && generated && continued
             } else if (result.sources ?? 0) > 0 {
-                pass = pass && generated && !result.answer.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                pass =
+                    pass && generated && !result.answer.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                    && host.runner.citationGuard.checks.last?.local?.violation == false
             } else {
                 pass =
                     pass && result.stopReason == "noSources" && result.answer == "Could not retrieve any sources."

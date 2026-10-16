@@ -148,28 +148,26 @@ enum ModelSelectionSelfTest {
             (false, false, true, false), (false, false, false, true),
         ]
         let disabled = states.map {
-            ModelMenu.isDisabled(loading: $0.0, responding: $0.1, busy: $0.2, agentRunning: $0.3)
+            ModelMenu.isDisabled(loading: $0.0, responding: $0.1, busy: $0.2, running: $0.3)
         }
         check("menu/disabledWhileBusy", disabled == [false, true, true, true, true], "\(disabled)")
-        await switchChecks(qwen: qwen, stale: byFolder.onThisMac[0], check)
+        await switchChecks(qwen: qwen, stale: byFolder.onThisMac[0], defaults: defaults, check)
     }
 
     @MainActor
     private static func switchChecks(
-        qwen: [URL], stale: ModelsViewModel.MenuEntry, _ check: (String, Bool, String) -> Void
+        qwen: [URL], stale: ModelsViewModel.MenuEntry, defaults: UserDefaults, _ check: (String, Bool, String) -> Void
     ) async {
-        let agent = AgentViewModel()
-        agent.persistsSettings = false
-        let earlier = AgentViewModel.Entry(kind: .user, title: "You", text: "earlier task")
-        agent.entries = [earlier]
-
+        let preferences = ConversationPreferences(defaults: defaults, persists: false)
         let busy = ChatViewModel()
+        let busyHost = ConversationHost(chat: busy, preferences: preferences)
+        let busyStore = busyHost.store
         busy.externallyBusy = true
-        let refused = await ModelSwitch.choose(qwen[0], chat: busy, agent: agent)
+        let refused = await ModelSwitch.choose(qwen[0], chat: busy, host: busyHost)
         check(
             "switch/refusesWhileBusy",
-            !refused && busy.phase == .empty && busy.bundleURL == nil && agent.entries.map(\.id) == [earlier.id],
-            "switched=\(refused) \(busy.phase) agentEntries=\(agent.entries.count)")
+            !refused && busy.phase == .empty && busy.bundleURL == nil && busyHost.store === busyStore,
+            "switched=\(refused) \(busy.phase)")
 
         let path = ModelStorage.key(qwen[1])
         let same = [qwen[1], URL(filePath: path, directoryHint: .notDirectory), URL(filePath: path + "/./")].map {
@@ -181,32 +179,35 @@ enum ModelSelectionSelfTest {
             ModelSwitch.isLoaded(qwen[0], phase: .ready, current: qwen[1]),
         ]
         let idle = ChatViewModel()
-        let reloaded = await ModelSwitch.choose(stale.url, chat: idle, agent: agent)
+        let idleHost = ConversationHost(chat: idle, preferences: preferences)
+        let reloaded = await ModelSwitch.choose(stale.url, chat: idle, host: idleHost)
         check(
             "switch/currentModelIsCheckedAtRun",
             same == [true, true, true] && notLoaded == [false, false, false] && stale.isCurrent && reloaded
                 && idle.bundleURL == stale.url,
             "same=\(same) notLoaded=\(notLoaded) staleSnapshotReloaded=\(reloaded)")
 
-        agent.entries = [earlier]
         let chat = ChatViewModel()
+        let host = ConversationHost(chat: chat, preferences: preferences)
+        let previous = host.store
         let before = chat.loadStarted
         let moment = LoadMoment()
         withObservationTracking {
             _ = chat.phase
         } onChange: {
-            MainActor.assumeIsolated { moment.agentEntries = agent.entries.count }
+            MainActor.assumeIsolated { moment.conversationChanged = host.store !== previous }
         }
-        let switched = await ModelSwitch.choose(qwen[0], chat: chat, agent: agent)
+        let switched = await ModelSwitch.choose(qwen[0], chat: chat, host: host)
         var reachedRuntime = false
         if case .failed(let message) = chat.phase {
             reachedRuntime = message != otherFamilyReason && message != missingIDReason
         }
         check(
-            "switch/resetsAgentThenLoads",
-            switched && moment.agentEntries == 0 && agent.entries.isEmpty && chat.bundleURL == qwen[0]
+            "switch/resetsConversationThenLoads",
+            switched && moment.conversationChanged == true && host.state.entries.isEmpty && chat.bundleURL == qwen[0]
                 && chat.loadStarted > before && reachedRuntime,
-            "switched=\(switched) agentEntriesAtLoad=\(moment.agentEntries.map(String.init) ?? "nil") \(chat.phase)")
+            "switched=\(switched) conversationChangedAtLoad=\(moment.conversationChanged.map(String.init) ?? "nil") \(chat.phase)"
+        )
     }
 
     static func bundle(_ name: String, modelID: String?, in root: URL) throws -> URL {
@@ -227,5 +228,5 @@ enum ModelSelectionSelfTest {
 
 @MainActor
 private final class LoadMoment {
-    var agentEntries: Int?
+    var conversationChanged: Bool?
 }

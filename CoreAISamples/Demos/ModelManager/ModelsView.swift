@@ -1,13 +1,15 @@
 import DecideFeature
 import FeatureStore
+import SpeechFeature
 import SwiftUI
 import UniformTypeIdentifiers
 
 struct ModelsView: View {
     @Environment(ModelsViewModel.self) private var vm
     @Environment(Store<DecideFeature>.self) private var decide
+    @Environment(Store<SpeechFeature>.self) private var speech
     @Environment(ChatViewModel.self) private var chat
-    @Environment(AgentViewModel.self) private var agent
+    @Environment(ConversationHost.self) private var host
     @Environment(DemoNavigator.self) private var navigator
     @State private var importing = false
     @State private var pendingDelete: CatalogRow?
@@ -41,6 +43,7 @@ struct ModelsView: View {
                 }
                 Button("Open Folder…", systemImage: "folder") { importing = true }
                 DecideModelButton(store: decide)
+                SpeechModelButton(store: speech)
                 if let message = vm.message {
                     RuntimeMessageText(message)
                         .font(.callout)
@@ -73,7 +76,7 @@ struct ModelsView: View {
 
     private func load(_ url: URL) {
         navigator.selection = .chat
-        Task { await ModelSwitch.choose(url, chat: chat, agent: agent) }
+        Task { await ModelSwitch.choose(url, chat: chat, host: host) }
     }
 }
 

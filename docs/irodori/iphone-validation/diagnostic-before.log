@@ -1,0 +1,156 @@
+Building for production...
+[0/17] /tmp/irodori-ios95-check-review/build/arm64-apple-macosx/release/SpeechReviewPackageTests.derived/runner.swift
+[1/17] Write sources
+[7/17] Copying irodori-assets.json
+[7/17] Write sources
+[12/17] Copying Resources
+[13/17] Write swift-version--58304C5D6DBC2206.txt
+[14/17] Compiling CTokenizers shim.c
+[16/20] Compiling FeatureStore Feature.swift
+[17/20] Compiling SpeechCore AudioContract.swift
+[18/20] Compiling IrodoriInputLogic IrodoriInputError.swift
+[19/23] Compiling SpeechFeature SpeechCheckFeature.swift
+[20/23] Compiling IrodoriTokenizers IrodoriText.swift
+[21/25] Compiling SpeechCoreTests AudioContractTests.swift
+[22/25] Compiling SpeechFeatureTests SpeechFeatureTests.swift
+[23/25] Compiling SpeechRuntime AudioPlayback.swift
+[24/26] Compiling SpeechRuntimeTests AudioPlaybackTests.swift
+[25/27] Compiling SpeechReviewPackageTests runner.swift
+[25/27] Write Objects.LinkFileList
+[26/27] Linking SpeechReviewPackageTests
+Build complete! (11.00s)
+Test Suite 'All tests' started at 2026-10-13 14:01:21.380.
+Test Suite 'All tests' passed at 2026-10-13 14:01:21.381.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Suite SpeechPhoneFeatureTests started.
+􀟈  Test "The frame policy handles periodic and shape changes" started.
+􀟈  Test "Float WAV preserves the sample bits and format fields" started.
+􀟈  Suite PhoneSpeechCheckTests started.
+􀟈  Suite SpeechServiceTests started.
+􀟈  Suite SpeechFeatureTests started.
+􀟈  Suite SpeechLibraryTests started.
+􀟈  Suite AudioPlaybackTests started.
+􀟈  Suite PlaybackSessionTests started.
+􀟈  Suite IrodoriRuntimeTests started.
+􀟈  Test "All pinned noise shapes and seeds match the CPU reference" started.
+􀟈  Suite ReviewPhoneCheckTests started.
+􀟈  Suite ManagedPlaybackSessionTests started.
+􀟈  Test "Open, generation and playback failures release resources and write failure status" started.
+􀟈  Test "Store cancellation ignores a late generation and keeps restart blocked until stop completes" started.
+􀟈  Test "Refreshing or leaving invalidates older folder listings" started.
+􀟈  Test "Current check success and failure finish the diagnostic screen" started.
+􀟈  Test "Synchronous completion and a refused start both resolve exactly once" started.
+􀟈  Test "Unsupported bundle metadata and changed files are rejected" started.
+􀟈  Test "Only successful model validation persists a path and generation forwards text and seed" started.
+􀟈  Test "Noise and token layout retain the verified input contract" started.
+􀟈  Test "A device check runs once and ignores progress from a stopped session" started.
+􀟈  Test "A cancelled caller does not create or start a player" started.
+􀟈  Test "Stop waits for acknowledgement and rejects old generation results" started.
+􀟈  Test "Cancellation ends playback without a delegate callback" started.
+􀟈  Test "Pinned normalization matches the Unicode reference corpus" started.
+􀟈  Test "Stop waits for a cancelled check to finish cleanup and refuses a new check meanwhile" started.
+􀟈  Test "Model selection and opening failures have separate sessions" started.
+􀟈  Test "Playback failure retains the audio while edits invalidate it" started.
+􀟈  Test "Check output refuses unsafe names, existing runs and duplicate files" started.
+􀟈  Test "The check saves three independent samples, playback evidence and resource snapshots" started.
+􀟈  Test "Dismissed save panels accept their result until a new session invalidates them" started.
+􀟈  Test "Only visible local directories with a model marker are listed in stable order" started.
+􀟈  Test "An old save completion cannot dismiss a newer panel" started.
+􀟈  Test "Service stop ends playback immediately and awaits runtime release" started.
+􀟈  Test "Cancelled stop finishes cleanup without delivering an obsolete acknowledgement" started.
+􀟈  Test "Generation requires a model, nonempty text, a valid seed and an idle screen" started.
+􀟈  Test "Runner reports outcomes with their session and suppresses cancelled results" started.
+􀟈  Test "An external audio interruption ends the diagnostic instead of leaving it running" started.
+􀟈  Test "A past session interruption cannot stop a subsequent player" started.
+􀟈  Test "The folder runner reports failures and suppresses results after cancellation" started.
+􀟈  Test "Leaving and returning waits for release before allowing another operation" started.
+􀟈  Test case passing 1 argument stage → "generate" to "Open, generation and playback failures release resources and write failure status" started.
+􀟈  Test "Session setup failure and immediate interruption never start a player" started.
+􀟈  Test "An external interruption returns the current speech screen to an idle state" started.
+􀟈  Test case passing 1 argument stage → "play" to "Open, generation and playback failures release resources and write failure status" started.
+􀟈  Test case passing 1 argument stage → "open" to "Open, generation and playback failures release resources and write failure status" started.
+􀟈  Test "Opening a model performs no inference and invalid text never loads a pipeline" started.
+􀟈  Test "Missing check examples fail before loading a model and restore the environment" started.
+􀟈  Test "Static phone stages avoid reshape specialization while Mac keeps its verified settings" started.
+􀟈  Test "The sixty-first completed request reloads every model" started.
+􀟈  Test "A failed generation drops the models and a later request can recover" started.
+􀟈  Test "Repeated generation reuses models and shape changes release the old context first" started.
+􀟈  Test "Cancellation keeps release waiting for an uncooperative operation to finish" started.
+􀟈  Test "Output reservation refuses case collisions and preserves both report and WAV bytes" started.
+􀟈  Test "A reused run ID fails before changing the phone environment or model service" started.
+􀟈  Test "A model placed at the diagnostic output root is never modified by a check" started.
+􀟈  Test "Late callbacks from stopped audio cannot finish newer playback" started.
+􀟈  Test "Stopping during activation waits for activation and deactivation without starting audio" started.
+􁁛  Test "Float WAV preserves the sample bits and format fields" passed after 0.001 seconds.
+􀟈  Test "A failed activation completes stop waiters without requesting deactivation" started.
+􀟈  Test "Playback completion does not release its caller before session deactivation finishes" started.
+􁁛  Test "The frame policy handles periodic and shape changes" passed after 0.001 seconds.
+􁁛  Test "Refreshing or leaving invalidates older folder listings" passed after 0.001 seconds.
+􁁛  Test "A device check runs once and ignores progress from a stopped session" passed after 0.001 seconds.
+􀟈  Test "Symlink output roots and model paths outside Documents are rejected without writes" started.
+􁁛  Test "Stop waits for acknowledgement and rejects old generation results" passed after 0.001 seconds.
+􁁛  Test "Playback failure retains the audio while edits invalidate it" passed after 0.001 seconds.
+􁁛  Test "Noise and token layout retain the verified input contract" passed after 0.001 seconds.
+􁁛  Test "Current check success and failure finish the diagnostic screen" passed after 0.001 seconds.
+􁁛  Test "Leaving and returning waits for release before allowing another operation" passed after 0.001 seconds.
+􁁛  Test "Generation requires a model, nonempty text, a valid seed and an idle screen" passed after 0.001 seconds.
+􁁛  Test "An old save completion cannot dismiss a newer panel" passed after 0.001 seconds.
+􁁛  Test "Model selection and opening failures have separate sessions" passed after 0.001 seconds.
+􁁛  Test "Dismissed save panels accept their result until a new session invalidates them" passed after 0.001 seconds.
+􁁛  Suite SpeechPhoneFeatureTests passed after 0.001 seconds.
+􁁛  Suite SpeechFeatureTests passed after 0.001 seconds.
+􁁛  Test "Opening a model performs no inference and invalid text never loads a pipeline" passed after 0.001 seconds.
+􁁛  Test "A failed generation drops the models and a later request can recover" passed after 0.001 seconds.
+􁁛  Test "Cancellation keeps release waiting for an uncooperative operation to finish" passed after 0.001 seconds.
+􁁛  Test "Repeated generation reuses models and shape changes release the old context first" passed after 0.001 seconds.
+􁁛  Test "An external interruption returns the current speech screen to an idle state" passed after 0.005 seconds.
+􁁛  Test "Synchronous completion and a refused start both resolve exactly once" passed after 0.005 seconds.
+􁁛  Test "Only visible local directories with a model marker are listed in stable order" passed after 0.006 seconds.
+􁁛  Test "Unsupported bundle metadata and changed files are rejected" passed after 0.006 seconds.
+􁁛  Test "Pinned normalization matches the Unicode reference corpus" passed after 0.008 seconds.
+􁁛  Test "All pinned noise shapes and seeds match the CPU reference" passed after 0.008 seconds.
+􁁛  Test "Session setup failure and immediate interruption never start a player" passed after 0.010 seconds.
+􁁛  Test "Static phone stages avoid reshape specialization while Mac keeps its verified settings" passed after 0.010 seconds.
+􁁛  Test "A reused run ID fails before changing the phone environment or model service" passed after 0.011 seconds.
+􁁛  Test "A cancelled caller does not create or start a player" passed after 0.011 seconds.
+􁁛  Test "Cancelled stop finishes cleanup without delivering an obsolete acknowledgement" passed after 0.011 seconds.
+􁁛  Test "Runner reports outcomes with their session and suppresses cancelled results" passed after 0.011 seconds.
+􁁛  Test "Missing check examples fail before loading a model and restore the environment" passed after 0.012 seconds.
+􁁛  Test "The sixty-first completed request reloads every model" passed after 0.019 seconds.
+􁁛  Suite IrodoriRuntimeTests passed after 0.019 seconds.
+􁁛  Test "Check output refuses unsafe names, existing runs and duplicate files" passed after 0.117 seconds.
+􁁛  Test "Only successful model validation persists a path and generation forwards text and seed" passed after 0.117 seconds.
+􁁛  Test "A failed activation completes stop waiters without requesting deactivation" passed after 0.116 seconds.
+􁁛  Test "Symlink output roots and model paths outside Documents are rejected without writes" passed after 0.117 seconds.
+􁁛  Test "The folder runner reports failures and suppresses results after cancellation" passed after 0.117 seconds.
+􁁛  Test "Store cancellation ignores a late generation and keeps restart blocked until stop completes" passed after 0.117 seconds.
+􁁛  Test "Playback completion does not release its caller before session deactivation finishes" passed after 0.117 seconds.
+􁁛  Suite SpeechLibraryTests passed after 0.118 seconds.
+􁁛  Test "Stopping during activation waits for activation and deactivation without starting audio" passed after 0.117 seconds.
+􁁛  Suite ManagedPlaybackSessionTests passed after 0.118 seconds.
+􁁛  Test "Cancellation ends playback without a delegate callback" passed after 0.117 seconds.
+􁁛  Test "A past session interruption cannot stop a subsequent player" passed after 0.118 seconds.
+􁁛  Test "Service stop ends playback immediately and awaits runtime release" passed after 0.119 seconds.
+􁁛  Test "Late callbacks from stopped audio cannot finish newer playback" passed after 0.119 seconds.
+􁁛  Suite SpeechServiceTests passed after 0.119 seconds.
+􁁛  Suite PlaybackSessionTests passed after 0.119 seconds.
+􁁛  Suite AudioPlaybackTests passed after 0.119 seconds.
+􁁛  Test "Output reservation refuses case collisions and preserves both report and WAV bytes" passed after 0.119 seconds.
+􁁛  Test "Stop waits for a cancelled check to finish cleanup and refuses a new check meanwhile" passed after 0.125 seconds.
+􁁛  Test "The check saves three independent samples, playback evidence and resource snapshots" passed after 0.129 seconds.
+􁁛  Test "An external audio interruption ends the diagnostic instead of leaving it running" passed after 0.129 seconds.
+􀢄  Test "A model placed at the diagnostic output root is never modified by a check" recorded an issue at ReviewPhoneCheckTests.swift:21:9: Expectation failed: after == before
+􀄵  after == before → false
+􀄵    after → ["irodori.json", "reserved-name"]
+􀄵    before → ["irodori.json"]
+􀢄  Test "A model placed at the diagnostic output root is never modified by a check" failed after 0.130 seconds with 1 issue.
+􀢄  Suite ReviewPhoneCheckTests failed after 0.130 seconds with 1 issue.
+􁁛  Test "Open, generation and playback failures release resources and write failure status" with 3 test cases passed after 0.131 seconds.
+􁁛  Suite PhoneSpeechCheckTests passed after 0.131 seconds.
+􀢄  Test run with 49 tests in 10 suites failed after 0.131 seconds with 1 issue.
+Note: Some test tarwarning: '--build-system native' has been deprecated and will be removed in a future release; please report an issue at https://github.com/swiftlang/swift-package-manager/issues if you are unable to adopt the default build system.
+gets reported failures:
+  - SpeechReviewPackageTests (Swift Testing)

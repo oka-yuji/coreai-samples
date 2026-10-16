@@ -1,0 +1,120 @@
+Building for production...
+[0/17] /tmp/irodori-app92-playback-review/build/arm64-apple-macosx/release/SpeechReviewPackageTests.derived/runner.swift
+[1/17] Write sources
+[10/17] Copying irodori-assets.json
+[12/17] Copying Resources
+[13/17] Compiling CTokenizers shim.c
+[14/17] Write swift-version--58304C5D6DBC2206.txt
+[16/20] Compiling FeatureStore Feature.swift
+[17/20] Compiling IrodoriInputLogic IrodoriInputError.swift
+[18/20] Compiling SpeechCore AudioContract.swift
+[19/23] Compiling SpeechFeature SpeechFeature.swift
+[20/24] Compiling IrodoriTokenizers IrodoriText.swift
+[21/25] Compiling SpeechFeatureTests SpeechFeatureTests.swift
+[22/25] Compiling SpeechCoreTests AudioContractTests.swift
+[23/25] Compiling SpeechRuntime AudioPlayback.swift
+[24/26] Compiling SpeechRuntimeTests AudioPlaybackTests.swift
+/private/tmp/irodori-app92-playback-review/Tests/SpeechRuntimeTests/ReviewPlaybackTests.swift:92:18: warning: weak variable 'observed' was never mutated; consider changing to 'let' constant [#VariableNeverMutated::WeakMutability]
+ 90 |             finished.fire()
+ 91 |         }
+ 92 |         weak var observed = store
+    |                  `- warning: weak variable 'observed' was never mutated; consider changing to 'let' constant [#VariableNeverMutated::WeakMutability]
+ 93 |         defer { playback.stop(); store = nil }
+ 94 |         store?.send(.play)
+
+[#VariableNeverMutated]: <https://docs.swift.org/compiler/documentation/diagnostics/variable-never-mutated>
+[#WeakMutability]: <https://docs.swift.org/compiler/documentation/diagnostics/weak-mutability>
+[25/27] Compiling SpeechReviewPackageTests runner.swift
+[25/27] Write Objects.LinkFileList
+[26/27] Linking SpeechReviewPackageTests
+Build complete! (9.27s)
+Test Suite 'All tests' started at 2026-10-13 11:52:27.071.
+Test Suite 'All tests' passed at 2026-10-13 11:52:27.072.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Suite ReviewPlaybackTests started.
+􀟈  Suite AudioPlaybackTests started.
+􀟈  Suite SpeechServiceTests started.
+􀟈  Suite SpeechFeatureTests started.
+􀟈  Suite IrodoriRuntimeTests started.
+􀟈  Test "The frame policy handles periodic and shape changes" started.
+􀟈  Test "Pinned normalization matches the Unicode reference corpus" started.
+􀟈  Test "Unsupported bundle metadata and changed files are rejected" started.
+􀟈  Test "Float WAV preserves the sample bits and format fields" started.
+􀟈  Test "Noise and token layout retain the verified input contract" started.
+􀟈  Test "All pinned noise shapes and seeds match the CPU reference" started.
+􀟈  Test "An older queued cancellation cannot stop a newer playback continuation" started.
+􀟈  Test "A cancelled stop finishes cleanup without sending an outcome" started.
+􀟈  Test "Late callbacks from stopped audio cannot finish newer playback" started.
+􀟈  Test "Cancellation ends playback without a delegate callback" started.
+􀟈  Test "Dropping the Store cancels a suspended playback even while its service remains retained" started.
+􀟈  Test "An active decode error followed by duplicate callbacks resolves only once" started.
+􀟈  Test "Only successful model validation persists a path and generation forwards text and seed" started.
+􀟈  Test "Service stop ends playback immediately and awaits runtime release" started.
+􀟈  Test "A cancelled caller does not create or start a player" started.
+􀟈  Test "Dismissed save panels accept their result until a new session invalidates them" started.
+􀟈  Test "An old save completion cannot dismiss a newer panel" started.
+􀟈  Test "Generation requires a model, nonempty text, a valid seed and an idle screen" started.
+􀟈  Test "Runner reports outcomes with their session and suppresses cancelled results" started.
+􀟈  Test "Leaving and returning waits for release before allowing another operation" started.
+􀟈  Test "Playback failure retains the audio while edits invalidate it" started.
+􀟈  Test "Cancelled stop finishes cleanup without delivering an obsolete acknowledgement" started.
+􀟈  Test "The sixty-first completed request reloads every model" started.
+􀟈  Test "Store cancellation ignores a late generation and keeps restart blocked until stop completes" started.
+􀟈  Test "Cancellation keeps release waiting for an uncooperative operation to finish" started.
+􀟈  Test "Repeated generation reuses models and shape changes release the old context first" started.
+􀟈  Test "Opening a model performs no inference and invalid text never loads a pipeline" started.
+􀟈  Test "A failed generation drops the models and a later request can recover" started.
+􀟈  Test "Stop waits for acknowledgement and rejects old generation results" started.
+􀟈  Test "Model selection and opening failures have separate sessions" started.
+􀟈  Test "Synchronous completion and a refused start both resolve exactly once" started.
+􁁛  Test "Float WAV preserves the sample bits and format fields" passed after 0.001 seconds.
+􁁛  Test "Stop waits for acknowledgement and rejects old generation results" passed after 0.001 seconds.
+􁁛  Test "An old save completion cannot dismiss a newer panel" passed after 0.001 seconds.
+􁁛  Test "Dismissed save panels accept their result until a new session invalidates them" passed after 0.001 seconds.
+􁁛  Test "The frame policy handles periodic and shape changes" passed after 0.001 seconds.
+􁁛  Test "Model selection and opening failures have separate sessions" passed after 0.001 seconds.
+􁁛  Test "Noise and token layout retain the verified input contract" passed after 0.001 seconds.
+􁁛  Test "Playback failure retains the audio while edits invalidate it" passed after 0.001 seconds.
+�warning: '--build-system native' has been deprecated and will be removed in a future release; please report an issue at https://github.com/swiftlang/swift-package-manager/issues if you are unable to adopt the default build system.
+�  Test "Generation requires a model, nonempty text, a valid seed and an idle screen" passed after 0.001 seconds.
+􁁛  Test "Leaving and returning waits for release before allowing another operation" passed after 0.001 seconds.
+􁁛  Suite SpeechFeatureTests passed after 0.001 seconds.
+􁁛  Test "Opening a model performs no inference and invalid text never loads a pipeline" passed after 0.001 seconds.
+􁁛  Test "A failed generation drops the models and a later request can recover" passed after 0.001 seconds.
+􁁛  Test "Cancellation keeps release waiting for an uncooperative operation to finish" passed after 0.001 seconds.
+􁁛  Test "Repeated generation reuses models and shape changes release the old context first" passed after 0.001 seconds.
+􁁛  Test "Synchronous completion and a refused start both resolve exactly once" passed after 0.004 seconds.
+􁁛  Test "A cancelled caller does not create or start a player" passed after 0.004 seconds.
+􁁛  Test "An older queued cancellation cannot stop a newer playback continuation" passed after 0.004 seconds.
+􀢄  Test "A cancelled stop finishes cleanup without sending an outcome" recorded an issue at ReviewPlaybackTests.swift:31:9: Expectation failed: actions.isEmpty
+􀄵  actions.isEmpty → false
+􀄵    actions → [SpeechFeature.SpeechAction.stopped(42)]
+􀄵    isEmpty → false
+􀢄  Test "A cancelled stop finishes cleanup without sending an outcome" failed after 0.004 seconds with 1 issue.
+􀢄  Test "Cancelled stop finishes cleanup without delivering an obsolete acknowledgement" recorded an issue at SpeechServiceTests.swift:149:9: Expectation failed: completed && actions.isEmpty
+􀄵  completed && actions.isEmpty → false
+􀄵    completed → true
+􀄵    actions.isEmpty → false
+􀢄  Test "Cancelled stop finishes cleanup without delivering an obsolete acknowledgement" failed after 0.004 seconds with 1 issue.
+􁁛  Test "An active decode error followed by duplicate callbacks resolves only once" passed after 0.004 seconds.
+􁁛  Test "Dropping the Store cancels a suspended playback even while its service remains retained" passed after 0.004 seconds.
+􁁛  Test "Runner reports outcomes with their session and suppresses cancelled results" passed after 0.004 seconds.
+􀢄  Suite ReviewPlaybackTests failed after 0.004 seconds with 1 issue.
+􁁛  Test "Only successful model validation persists a path and generation forwards text and seed" passed after 0.004 seconds.
+􁁛  Test "Store cancellation ignores a late generation and keeps restart blocked until stop completes" passed after 0.004 seconds.
+􁁛  Test "Cancellation ends playback without a delegate callback" passed after 0.005 seconds.
+􁁛  Test "Late callbacks from stopped audio cannot finish newer playback" passed after 0.005 seconds.
+􁁛  Test "Service stop ends playback immediately and awaits runtime release" passed after 0.005 seconds.
+􁁛  Suite AudioPlaybackTests passed after 0.005 seconds.
+􀢄  Suite SpeechServiceTests failed after 0.005 seconds with 1 issue.
+􁁛  Test "Unsupported bundle metadata and changed files are rejected" passed after 0.006 seconds.
+􁁛  Test "Pinned normalization matches the Unicode reference corpus" passed after 0.008 seconds.
+􁁛  Test "All pinned noise shapes and seeds match the CPU reference" passed after 0.008 seconds.
+􁁛  Test "The sixty-first completed request reloads every model" passed after 0.020 seconds.
+􁁛  Suite IrodoriRuntimeTests passed after 0.020 seconds.
+􀢄  Test run with 31 tests in 5 suites failed after 0.020 seconds with 2 issues.
+Note: Some test targets reported failures:
+  - SpeechReviewPackageTests (Swift Testing)

@@ -407,7 +407,8 @@
             "value" : "エージェントの設定"
           }
         }
-      }
+      },
+      "extractionState" : "stale"
     },
     "Allow file operations (move_note, from the next task)" : {
       "localizations" : {
@@ -417,7 +418,8 @@
             "value" : "ファイル操作を許可（move_note、次のタスクから）"
           }
         }
-      }
+      },
+      "extractionState" : "stale"
     },
     "Allowed options" : {
       "localizations" : {
@@ -487,7 +489,8 @@
             "value" : "質問を入力してください。生成された回答を順次表示します。"
           }
         }
-      }
+      },
+      "extractionState" : "stale"
     },
     "Ask for something that needs the web:" : {
       "extractionState" : "manual",
@@ -626,7 +629,6 @@
       }
     },
     "Chat" : {
-      "extractionState" : "stale",
       "localizations" : {
         "ja" : {
           "stringUnit" : {
@@ -644,7 +646,8 @@
             "value" : "このモデルはチャットの回答を生成中です。終了後にエージェントを開始できます。"
           }
         }
-      }
+      },
+      "extractionState" : "stale"
     },
     "Check a document against an editable checklist" : {
       "extractionState" : "manual",
@@ -707,7 +710,8 @@
             "value" : "回答・メモのURLを取得したページと照合し、必要なら1回修正を求めます。確認が通るまではメモを下書きにします。"
           }
         }
-      }
+      },
+      "extractionState" : "stale"
     },
     "Check the required equipment" : {
       "extractionState" : "manual",
@@ -1107,7 +1111,8 @@
             "value" : "会話全体をMarkdownでコピー"
           }
         }
-      }
+      },
+      "extractionState" : "stale"
     },
     "Core AI Demos" : {
       "shouldTranslate" : false
@@ -1418,7 +1423,8 @@
             "value" : "入力例（原文）:"
           }
         }
-      }
+      },
+      "extractionState" : "stale"
     },
     "Examples" : {
       "localizations" : {
@@ -2054,7 +2060,8 @@
             "value" : "最大ステップ数: %lld"
           }
         }
-      }
+      },
+      "extractionState" : "stale"
     },
     "Max tokens" : {
       "localizations" : {
@@ -2221,7 +2228,8 @@
             "value" : "新しいチャット"
           }
         }
-      }
+      },
+      "extractionState" : "stale"
     },
     "New Task" : {
       "localizations" : {
@@ -2231,7 +2239,8 @@
             "value" : "新しいタスク"
           }
         }
-      }
+      },
+      "extractionState" : "stale"
     },
     "New chat" : {
       "localizations" : {
@@ -2241,7 +2250,8 @@
             "value" : "新しいチャット"
           }
         }
-      }
+      },
+      "extractionState" : "stale"
     },
     "No asset folder" : {
       "localizations" : {
@@ -2583,7 +2593,8 @@
             "value" : "モデル管理でフォルダを選び、モデルを読み込んでください。"
           }
         }
-      }
+      },
+      "extractionState" : "stale"
     },
     "Open an asset folder to extract." : {
       "localizations" : {
@@ -3584,7 +3595,8 @@
             "value" : "タスク"
           }
         }
-      }
+      },
+      "extractionState" : "stale"
     },
     "Technical verification of a Core AI conversion. Zero-shot GLiNER2.5-multi did not reach the pre-registered bar for Japanese inspection memos (outcome B3). The evaluated version is the default candidate filter, R1 + N1: on a second sealed set of 200 memos, fabricated candidates 13/200, primary-span precision 0.788, recall 0.822. Suggestions are uncalibrated scores." : {
       "extractionState" : "manual",
@@ -3616,7 +3628,8 @@
             "value" : "このモデルはエージェントで使用中です。終了後にチャットを送信できます。"
           }
         }
-      }
+      },
+      "extractionState" : "stale"
     },
     "The agent uses the model that Chat has loaded. Choose a model from the menu above, or open a bundle folder in Models." : {
       "localizations" : {
@@ -3636,7 +3649,8 @@
             "value" : "エージェントはチャットと同じモデルを使います。モデル管理でフォルダを選び、読み込んでください。"
           }
         }
-      }
+      },
+      "extractionState" : "stale"
     },
     "The checklist changed. Run it again to update these results." : {
       "localizations" : {
@@ -3843,7 +3857,8 @@
             "value" : "推論中"
           }
         }
-      }
+      },
+      "extractionState" : "manual"
     },
     "This page must contain one recipe with 1 to 14 ingredients and a method." : {
       "extractionState" : "manual",
@@ -5953,6 +5968,928 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "読み上げています…"
+          }
+        }
+      }
+    },
+    "Speech" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音声生成"
+          }
+        }
+      }
+    },
+    "Generate and play speech from text with Irodori" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Irodoriで文章から音声を生成・再生"
+          }
+        }
+      }
+    },
+    "(no answer text)" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "（回答の本文がありません）"
+          }
+        }
+      }
+    },
+    "(stopped before any answer)" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "（回答の前に停止しました）"
+          }
+        }
+      }
+    },
+    "Allow file operations (move_note, from the next conversation)" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ファイル操作を許可（move_note、次の会話から）"
+          }
+        }
+      }
+    },
+    "Answer cut at the token limit (%lld)" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最大トークン数で回答が途切れました（%lld）"
+          }
+        }
+      }
+    },
+    "Answers from the collected sources in one reply." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "集めた資料をもとに1回で答えます。"
+          }
+        }
+      }
+    },
+    "Ask again in Work mode, which can save notes" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "メモを保存できる作業モードで質問し直します"
+          }
+        }
+      }
+    },
+    "Chat answers and searches the web when it needs facts. Work runs multi-step research and saves notes." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "チャットは質問に答え、事実の確認が必要なときはWebを検索します。作業は複数の手順で調べ、メモを保存します。"
+          }
+        }
+      }
+    },
+    "Choose the model the conversation uses" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "会話で使うモデルを選択"
+          }
+        }
+      }
+    },
+    "Collapsed" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "閉じています"
+          }
+        }
+      }
+    },
+    "Context overflow at step %lld." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ステップ%lldでコンテキストの上限を超えました。"
+          }
+        }
+      }
+    },
+    "Continue in Work" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "作業で続ける"
+          }
+        }
+      }
+    },
+    "Conversation settings" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "会話の設定"
+          }
+        }
+      }
+    },
+    "Conversation. Searches the web when it needs facts." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "会話します。事実の確認が必要なときはWebを検索します。"
+          }
+        }
+      }
+    },
+    "Copy the conversation as Markdown" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "会話をMarkdownでコピー"
+          }
+        }
+      }
+    },
+    "Could not retrieve any sources." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "資料を取得できませんでした。"
+          }
+        }
+      }
+    },
+    "Default (Chat 2048, Work 4096)" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "既定（チャット2048、作業4096）"
+          }
+        }
+      }
+    },
+    "Ended at the step limit" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最大ステップ数で終了しました"
+          }
+        }
+      }
+    },
+    "Expanded" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "開いています"
+          }
+        }
+      }
+    },
+    "Failed at step %lld." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ステップ%lldで失敗しました。"
+          }
+        }
+      }
+    },
+    "Fetched: %@" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "取得したページ: %@"
+          }
+        }
+      }
+    },
+    "Generation ended with stop reason: %@" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "停止理由「%@」で生成が終わりました"
+          }
+        }
+      }
+    },
+    "Generation ended without a stop reason" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "停止理由がないまま生成が終わりました"
+          }
+        }
+      }
+    },
+    "In Work, check the answer's and the notes' URLs against the pages fetched in this conversation, ask the model to fix them once, and keep notes as drafts until the check passes" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "作業では、回答・メモのURLをこの会話で取得したページと照合し、必要なら1回修正を求めます。確認が通るまではメモを下書きにします。"
+          }
+        }
+      }
+    },
+    "Max steps (Work)" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最大ステップ数（作業）"
+          }
+        }
+      }
+    },
+    "Max steps (Work): %lld" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最大ステップ数（作業）: %lld"
+          }
+        }
+      }
+    },
+    "Mode" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モード"
+          }
+        }
+      }
+    },
+    "Multi-step research and notes." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "複数の手順で調べ、メモを保存します。"
+          }
+        }
+      }
+    },
+    "New" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新規"
+          }
+        }
+      }
+    },
+    "New conversation" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新しい会話"
+          }
+        }
+      }
+    },
+    "Page budget" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ページ取得上限"
+          }
+        }
+      }
+    },
+    "Saved notes: %@" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保存したメモ: %@"
+          }
+        }
+      }
+    },
+    "Show or hide the conversation settings" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "会話の設定を表示または非表示にします"
+          }
+        }
+      }
+    },
+    "Start a new conversation" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新しい会話を始める"
+          }
+        }
+      }
+    },
+    "Step %lld of %lld: generating…" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ステップ%lld/%lld: 生成中…"
+          }
+        }
+      }
+    },
+    "Step %lld: running %@…" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ステップ%lld: %@を実行中…"
+          }
+        }
+      }
+    },
+    "Still open: %@" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未完了: %@"
+          }
+        }
+      }
+    },
+    "Stopped after %lld step(s)." : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Stopped after %lld step."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "Stopped after %lld steps."
+                }
+              }
+            }
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lldステップで停止しました。"
+          }
+        }
+      }
+    },
+    "Stopped at the %lld-step limit." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最大%lldステップで停止しました。"
+          }
+        }
+      }
+    },
+    "Talk, search the web and run multi-step tasks on a local model" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ローカルモデルと会話し、Web検索や複数手順のタスクを実行"
+          }
+        }
+      }
+    },
+    "The answer above stops where generation ran out of tokens. Raise Max tokens or ask for something shorter." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "上の回答は、生成できるトークンが尽きたところで途切れています。最大トークン数を上げるか、短い回答を求めてください。"
+          }
+        }
+      }
+    },
+    "The context window is full. Start a new conversation to continue." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コンテキストの上限に達しました。続けるには新しい会話を始めてください。"
+          }
+        }
+      }
+    },
+    "The context window is full: the conversation needs %lld tokens and the limit is %lld. Start a new conversation, lower the page budget or ask for something narrower." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コンテキストの上限に達しました。この会話には%lldトークンが必要で、上限は%lldです。新しい会話を始めるか、ページ取得上限を下げるか、範囲を絞って依頼してください。"
+          }
+        }
+      }
+    },
+    "The context window is full: this question needs %lld tokens and the limit is %lld. Pick a smaller Sources budget in the settings or ask a shorter question." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コンテキストの上限に達しました。この質問には%lldトークンが必要で、上限は%lldです。設定の「参照元」で小さい値を選ぶか、質問を短くしてください。"
+          }
+        }
+      }
+    },
+    "The context window is full: this question needs %lld tokens and the limit is %lld. Start a new conversation to continue." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コンテキストの上限に達しました。この質問には%lldトークンが必要で、上限は%lldです。続けるには新しい会話を始めてください。"
+          }
+        }
+      }
+    },
+    "The conversation could not be saved: %@" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "会話を保存できませんでした。詳細（原文）: %@"
+          }
+        }
+      }
+    },
+    "The reply stopped at the end of the context window (%lld tokens were left for it). Start a new conversation if the next message does not fit." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "回答がコンテキストの上限で止まりました（残りは%lldトークンでした）。次のメッセージが収まらない場合は、新しい会話を始めてください。"
+          }
+        }
+      }
+    },
+    "The turn reached its %lld-step limit before a final answer." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最終的な回答の前に、このターンは最大%lldステップに達しました。"
+          }
+        }
+      }
+    },
+    "Where Work saves its notes" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "作業モードでメモを保存するフォルダ"
+          }
+        }
+      }
+    },
+    "Work" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "作業"
+          }
+        }
+      }
+    },
+    "none" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "なし"
+          }
+        }
+      }
+    },
+    "Choose %@ to continue this conversation." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この会話を続けるには %@ を選択してください。"
+          }
+        }
+      }
+    },
+    "Could not save the conversation" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "会話を保存できませんでした"
+          }
+        }
+      }
+    },
+    "Keep app open" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アプリを開いたままにする"
+          }
+        }
+      }
+    },
+    "Opening conversation…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "会話を開いています…"
+          }
+        }
+      }
+    },
+    "Preparing conversation… %lld / %lld tokens" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "会話を準備しています… %lld / %lld トークン"
+          }
+        }
+      }
+    },
+    "Read-only conversation" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "読み取り専用の会話"
+          }
+        }
+      }
+    },
+    "Retry save" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保存を再試行"
+          }
+        }
+      }
+    },
+    "Save a copy" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コピーを保存"
+          }
+        }
+      }
+    },
+    "Saving conversation…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "会話を保存しています…"
+          }
+        }
+      }
+    },
+    "The app is still open. You can save a separate copy, or fix the save error and try quitting again." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アプリは開いたままです。別のコピーを保存するか、保存エラーの原因を解消して終了を再試行できます。"
+          }
+        }
+      }
+    },
+    "Conversations" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "会話"
+          }
+        }
+      }
+    },
+    "Tools" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ツール"
+          }
+        }
+      }
+    },
+    "Rename…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "名前を変更…"
+          }
+        }
+      }
+    },
+    "Delete…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "削除…"
+          }
+        }
+      }
+    },
+    "Could not update conversations" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "会話一覧を更新できませんでした"
+          }
+        }
+      }
+    },
+    "Refresh" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "更新"
+          }
+        }
+      }
+    },
+    "Rename conversation" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "会話の名前を変更"
+          }
+        }
+      }
+    },
+    "Delete conversation?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "会話を削除しますか？"
+          }
+        }
+      }
+    },
+    "Move to Trash" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ゴミ箱に移動"
+          }
+        }
+      }
+    },
+    "The conversation and its Markdown export will be moved to the Trash." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "会話とMarkdownの書き出しファイルをゴミ箱に移動します。"
+          }
+        }
+      }
+    },
+    "Markdown export is not up to date." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Markdownの書き出しを更新する必要があります。"
+          }
+        }
+      }
+    },
+    "Continue answer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "続きを生成"
+          }
+        }
+      }
+    },
+    "Generate the rest as a new turn without repeating the answer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新しい発言として、回答を繰り返さずに続きを生成します"
+          }
+        }
+      }
+    },
+    "Note was not saved" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ノートは保存されていません"
+          }
+        }
+      }
+    },
+    "Tool call was not executed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ツール呼び出しは実行されていません"
+          }
+        }
+      }
+    },
+    "The write_note call was cut at the token limit; the note was not saved." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "write_note の呼び出しがトークン上限で途切れたため、ノートは保存されていません。"
+          }
+        }
+      }
+    },
+    "The append_note call was cut at the token limit; the new part was not saved. Earlier parts are preserved." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "append_note の呼び出しがトークン上限で途切れたため、新しい部分は保存されていません。それ以前の部分は残っています。"
+          }
+        }
+      }
+    },
+    "The tool call was cut at the token limit and was not executed." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ツール呼び出しがトークン上限で途切れたため、実行されていません。"
+          }
+        }
+      }
+    },
+    "Notes kept as drafts." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ノートは下書きとして残しています。"
+          }
+        }
+      }
+    },
+    "Source IDs match the supplied passages. Claim support has not been checked." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "出典 ID は提示した資料と一致しています。主張が資料に裏付けられているかは未確認です。"
+          }
+        }
+      }
+    },
+    "Source citations" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "資料の引用"
+          }
+        }
+      }
+    },
+    "The answer did not cite any supplied source." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "回答に、提示した資料の引用がありません。"
+          }
+        }
+      }
+    },
+    "The question and sources exceed the RAG prompt budget." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "質問と資料が RAG の入力上限を超えています。"
+          }
+        }
+      }
+    },
+    "The saved source record is inconsistent." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保存された出典情報に不整合があります。"
+          }
+        }
+      }
+    },
+    "Unavailable source IDs: %@" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "会話に提示されていない出典 ID: %@"
           }
         }
       }

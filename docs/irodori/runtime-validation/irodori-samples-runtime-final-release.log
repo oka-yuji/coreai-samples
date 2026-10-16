@@ -1,0 +1,88 @@
+Building for production...
+[Computing dependencies]
+[Provisioning 5 / 63]
+[23 / 116]
+[38 / 125] FeatureStore
+[49 / 132] FeatureStore
+[54 / 134] SpeechCore
+[59 / 126] IrodoriInputLogic
+[64 / 130] InternalCollectionsUtilities
+[73 / 135] HuggingFace
+[75 / 136] RAGContext
+[82 / 135] SpeechRuntime
+[84 / 136] DecideFeature
+[87 / 132] SpeechRuntime
+[94 / 142] SpeechRuntimeTests-product
+[96 / 143] OrderedCollections
+[101 / 146] yyjson
+[102 / 146] GLiNERCore
+[107 / 148] SpeechRuntimeTests-product
+[110 / 146] SpeechRuntimeTests-product
+[112 / 146] SpeechRuntimeTests-product
+[112 / 144] ExtractFeature
+[115 / 140] HuggingFace
+[117 / 136] Jinja
+[120 / 138] Hub
+[123 / 140] Hub
+[126 / 142] Tokenizers
+[128 / 143] Tokenizers
+[132 / 150] GLiNERRuntime
+[136 / 153] GLiNERRuntime
+[144 / 164] GLiNERRuntimeTests-product
+[146 / 165] GLiNERRuntimeTests-product
+[149 / 163] GLiNERRuntimeTests-product
+[151 / 163] GLiNERRuntimeTests-product
+[158 / 168] CoreAIBackend
+[164 / 176] DecideRuntime
+[168 / 179] coreai-chat-product
+[170 / 179] DecideRuntime
+[178 / 190] coreai-chat-product
+[180 / 191] DecideRuntimeTests-product
+[183 / 190] DecideRuntimeTests-product
+[185 / 190] DecideRuntimeTests-product
+/Users/okayuuji/Desktop/SelfApps/_wt/coreai-samples-91-irodori/CoreAISamplesKit/Tests/CoreAIBackendTests/ReloadTestEngine.swift:107:23: warning: result of call to 'withLock' is unused [#NoUsage]
+105 |         self.control = control
+106 |         self.contextLimit = contextLimit
+107 |         control.state.withLock { $0.liveEngines.insert(id) }
+    |                       `- warning: result of call to 'withLock' is unused [#NoUsage]
+108 |     }
+109 | 
+
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
+[191 / 200] CoreAIBackendTests-product
+[194 / 198] CoreAIBackendTests-product
+[196 / 198] CoreAIBackendTests-product
+[197 / 197] coreai-chat-product
+Build complete! (37.27秒)
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Suite IrodoriRuntimeTests started.
+􀟈  Test "All pinned noise shapes and seeds match the CPU reference" started.
+􀟈  Test "Unsupported bundle metadata and changed files are rejected" started.
+􀟈  Test "Pinned normalization matches the Unicode reference corpus" started.
+􀟈  Test "Noise and token layout retain the verified input contract" started.
+􀟈  Test "Opening a model performs no inference and invalid text never loads a pipeline" started.
+􀟈  Test "The sixty-first completed request reloads every model" started.
+􀟈  Test "Repeated generation reuses models and shape changes release the old context first" started.
+􀟈  Test "A failed generation drops the models and a later request can recover" started.
+􀟈  Test "Cancellation keeps release waiting for an uncooperative operation to finish" started.
+􁁛  Test "Noise and token layout retain the verified input contract" passed after 0.001 seconds.
+􁁛  Test "Opening a model performs no inference and invalid text never loads a pipeline" passed after 0.001 seconds.
+􁁛  Test "A failed generation drops the models and a later request can recover" passed after 0.001 seconds.
+􁁛  Test "Cancellation keeps release waiting for an uncooperative operation to finish" passed after 0.001 seconds.
+􁁛  Test "Repeated generation reuses models and shape changes release the old context first" passed after 0.001 seconds.
+􁁛  Test "Unsupported bundle metadata and changed files are rejected" passed after 0.004 seconds.
+􁁛  Test "Pinned normalization matches the Unicode reference corpus" passed after 0.006 seconds.
+􁁛  Test "All pinned noise shapes and seeds match the CPU reference" passed after 0.007 seconds.
+􁁛  Test "The sixty-first completed request reloads every model" passed after 0.018 seconds.
+􁁛  Suite IrodoriRuntimeTests passed after 0.018 seconds.
+􁁛  Test run with 9 tests in 1 suite passed after 0.019 seconds.
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Test "The frame policy handles periodic and shape changes" started.
+􀟈  Test "Float WAV preserves the sample bits and format fields" started.
+􁁛  Test "Float WAV preserves the sample bits and format fields" passed after 0.001 seconds.
+􁁛  Test "The frame policy handles periodic and shape changes" passed after 0.001 seconds.
+􁁛  Test run with 2 tests in 0 suites passed after 0.001 seconds.

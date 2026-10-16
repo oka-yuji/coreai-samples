@@ -1,0 +1,119 @@
+{
+  "repo": "/Users/okayuuji/Desktop/SelfApps/_wt/coreai-samples-92-speech",
+  "base": "45936ba8f50e9d59182dae5d5948c232ba218fee",
+  "mode": "working tree including untracked on branch",
+  "confirmed": [],
+  "plausible": [],
+  "candidateLedger": [
+    {
+      "id": "UI-01",
+      "status": "rejected",
+      "concern": "Old asynchronous generation/open/playback results overwrite the current session",
+      "evidence": [
+        "SpeechFeature.swift:114-155 checks session and phase",
+        "Store.swift:80-82 rejects removed task tokens",
+        "SpeechFeatureTests.stopGeneration/modelSelection/playbackAndFailure passed in isolated CPU package"
+      ]
+    },
+    {
+      "id": "UI-02",
+      "status": "rejected",
+      "concern": "Stop or leaving the screen permits restart before resource release",
+      "evidence": [
+        "SpeechFeature.swift:99-104,156-164 holds stopping until matching acknowledgement",
+        "SpeechRunner.swift:38-41 awaits service.stop then checks cancellation",
+        "LiveSpeechService.swift:31-33 stops playback and awaits engine.release",
+        "screenLifetime and stopGeneration CPU tests passed"
+      ]
+    },
+    {
+      "id": "UI-03",
+      "status": "rejected",
+      "concern": "An old save completion mutates or dismisses the newer export",
+      "evidence": [
+        "SpeechFeature.swift:165-175 verifies export ticket and session",
+        "SpeechExport.swift:19-44 captures immutable ticket/data",
+        "SpeechView.swift:115-116 keys presenter identity by ticket.id",
+        "exportSessions/exportTickets CPU tests passed"
+      ]
+    },
+    {
+      "id": "UI-04",
+      "status": "rejected",
+      "concern": "Persisted model folder starts automatic loading at app/screen startup",
+      "evidence": [
+        "SpeechAssembly.swift:18-23 constructs service and initial lastPath only",
+        "SpeechFeature.swift:97-98 appeared sends no effect",
+        "SpeechView.swift:17-19 provides explicit Open last model button"
+      ]
+    },
+    {
+      "id": "UI-05",
+      "status": "rejected",
+      "concern": "New Speech sources/resources/products leak into iOS or replace old Mac dependencies",
+      "evidence": [
+        "project.yml Mac target only receives Speech products and preBuildScript",
+        "Parsed base/current pbxproj: Mac adds four Swift files, one JSON, three products; no existing products removed",
+        "Parsed iOS target sources/resources/products unchanged"
+      ]
+    },
+    {
+      "id": "UI-06",
+      "status": "rejected",
+      "concern": "File importer URL requires missing sandbox security-scope handling on this target",
+      "evidence": [
+        "project.yml:73 and generated Mac build settings set ENABLE_APP_SANDBOX=NO",
+        "Not a guarantee for a future sandboxed/iOS target"
+      ]
+    },
+    {
+      "id": "U6",
+      "status": "unverified",
+      "concern": "Actual model generation, playback, panels, keyboard/focus and visual layout",
+      "evidence": [
+        "Explicitly delegated to user acceptance; no app/model/GUI execution permitted or performed"
+      ]
+    }
+  ],
+  "coverage": {
+    "primary": [
+      "CoreAISamplesKit/Sources/SpeechFeature/SpeechFeature.swift",
+      "CoreAISamplesKit/Tests/SpeechFeatureTests/SpeechFeatureTests.swift",
+      "CoreAISamples/Demos/Speech/*",
+      "CoreAISamples/DemoRootView.swift",
+      "CoreAISamples/Demos/ModelManager/ModelsView.swift",
+      "CoreAISamplesKit/Package.swift",
+      ".swiftlint.yml",
+      "project.yml",
+      "CoreAISamples.xcodeproj/project.pbxproj"
+    ],
+    "boundary_reads": [
+      "FeatureStore/Feature.swift",
+      "FeatureStore/Store.swift",
+      "SpeechRuntime/SpeechRunner.swift",
+      "SpeechRuntime/LiveSpeechService.swift",
+      "SpeechRuntime/AudioPlayback.swift",
+      "SpeechRuntimeTests/SpeechServiceTests.swift"
+    ],
+    "not_independently_executed": [
+      "Full application build",
+      "Full package tests",
+      "Real player/save panels",
+      "GPU inference"
+    ],
+    "parent_evidence_inspected": [
+      "/tmp/irodori-samples92-speech-final.log: Speech CPU 27 tests passed",
+      "/tmp/irodori-samples92-tsan-final.log: 9 tests passed",
+      "/tmp/irodori-samples92-xcode-final.log: BUILD SUCCEEDED",
+      "/tmp/irodori-samples92-lint-final.log: 0 violations",
+      "/tmp/irodori-samples92-format-final.log: changed Swift format check passed"
+    ],
+    "self_execution": [
+      "Isolated PureReview package: Swift 6, two upcoming features, macOS27; 7 SpeechFeature tests passed"
+    ],
+    "later_change": "Parent added cancellation check after awaited stop and cancelledStop regression test; source read and final parent CPU/TSan/build logs inspected. Independent isolated test run remains the 7 pure feature tests."
+  },
+  "guideCandidates": [],
+  "reviewCompleteForAssignedSourceScope": true,
+  "acceptanceComplete": false
+}

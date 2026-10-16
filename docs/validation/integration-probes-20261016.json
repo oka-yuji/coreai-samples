@@ -1,0 +1,49 @@
+{
+  "environment": "Swift 6.4, Swift 6 language mode, Xcode 27.0, SDK 27; model-free probes",
+  "candidate": "ec75ddf503595ce1f6bf0c52ec7d760ee877f6f0",
+  "step_order": [
+    {
+      "kind": "metrics-order",
+      "label": "old",
+      "sha": "e37e936dc4a6ee2e5a39d0fcd1faa795d4aee68c",
+      "sourceSHA256": "1e8ec7646a308ac3af761bc5b3bc3deccf1d0324c4762a4723123e977ff357cc",
+      "exit": 0,
+      "output": "observeFirst=true completed=1 stepActions=[1, 2] metricsSteps=[1, 2]\nobserveFirst=false completed=0 stepActions=[1] metricsSteps=[1]\n"
+    },
+    {
+      "kind": "metrics-order",
+      "label": "new",
+      "sha": "076fca4631225ca2eaff973b790932b9a667916d",
+      "sourceSHA256": "a0c892a372986a2aed7ac1d495a8c5e8cc38bce9f20efbaa0cb7c6aeff237105",
+      "exit": 0,
+      "output": "observeFirst=true completed=1 stepActions=[1, 2] metricsSteps=[1, 2]\nobserveFirst=false completed=1 stepActions=[1, 2] metricsSteps=[1, 2]\n"
+    }
+  ],
+  "conversation_id_collision": [
+    {
+      "kind": "id-collision",
+      "label": "old",
+      "sha": "e37e936dc4a6ee2e5a39d0fcd1faa795d4aee68c",
+      "newIDSourceSHA256": "063f83a94671239beb4fa19244bca8cdfa11f4f0e9bbbd8e7c6c2517632bdf4b",
+      "writeSourceSHA256": "bc0f1877246154944564da18765bee99ca309b29d075794ce4ac4611a4e6f4fd",
+      "exit": 0,
+      "output": "id1=20260529-052640 id2=20260529-052640 equal=true\nfirstKept=false secondKept=true files=1\n"
+    },
+    {
+      "kind": "id-collision",
+      "label": "new",
+      "sha": "076fca4631225ca2eaff973b790932b9a667916d",
+      "newIDSourceSHA256": "9d877cb612e9bc41d17fc89bb4cf22c12c62296e73015dadc4225ea41609bffa",
+      "writeSourceSHA256": "bc0f1877246154944564da18765bee99ca309b29d075794ce4ac4611a4e6f4fd",
+      "exit": 0,
+      "output": "id1=20260529-052640-3cd4f749-e43e-4664-8e46-0c12e70ffe4f id2=20260529-052640-31baf8b9-b232-4999-ae75-4465410d0a79 equal=false\nfirstKept=true secondKept=true files=2\n"
+    }
+  ],
+  "iphone_product": {
+    "CFBundleIdentifier": "com.coreai-samples.SpeechPhone",
+    "MinimumOSVersion": "27.0",
+    "UIFileSharingEnabled": true,
+    "LSSupportsOpeningDocumentsInPlace": true,
+    "increased_memory_limit": true
+  }
+}
