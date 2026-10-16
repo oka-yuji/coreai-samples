@@ -67,8 +67,9 @@
 
 ## Irodori runtime
 
-- The Mac speech runtime uses the pinned Rust input adapter in `Vendor/IrodoriInputKit`. Build it with `Tools/Irodori/build-inputs.sh` before package tests. These operations do not execute Core AI models.
+- The Mac and iOS 27 speech runtime uses the pinned Rust input adapter in `Vendor/IrodoriInputKit`. Build it with `Tools/Irodori/build-inputs.sh` before package tests. These operations do not execute Core AI models.
 - `SpeechCore` and `SpeechFeature` are pure-logic targets. `SpeechRuntime` owns a single in-flight operation and holds its busy gate across suspension. A release waits for that operation to finish; it does not clear a newer pipeline after resuming.
 - Test display names and source follow the existing English-only/no-comments rules. Model generation and listening in the app are user acceptance checks for this change.
-
 - `SpeechFeature` owns session and save-panel tickets. `Store` owns task cancellation; `SpeechRunner`/`LiveSpeechService` join runtime release before acknowledging stop. `AudioPlayback` resolves its continuation after synchronous stop instead of waiting for a delegate completion callback. CPU tests use fake devices.
+
+- For a physical iPhone, install `aarch64-apple-ios` with rustup and run `Tools/Irodori/build-inputs.sh iphoneos`. Mac and iOS archives stay separate. Simulator support is not provided. iOS audio activation/deactivation uses the asynchronous SDK27 API; stop acknowledgement waits for deactivation. External audio interruption is distinct from Task cancellation.

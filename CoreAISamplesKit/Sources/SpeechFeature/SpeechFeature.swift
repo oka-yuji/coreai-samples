@@ -63,6 +63,7 @@ public enum SpeechAction: Equatable, Sendable {
     case failed(Int, String)
     case play, stop
     case playbackFinished(Int)
+    case playbackInterrupted(Int)
     case stopped(Int)
     case prepareExport
     case exportDismissed(SpeechExportTicket)
@@ -153,6 +154,10 @@ public enum SpeechFeature: Feature {
             guard state.session == session, state.phase == .playing else { return [] }
             state.phase = .idle
             state.message = "Playback finished."
+        case .playbackInterrupted(let session):
+            guard state.session == session, state.phase == .playing else { return [] }
+            state.phase = .idle
+            state.message = "Playback interrupted. You can play the audio again."
         case .stop:
             guard state.busy, state.phase != .stopping else { return [] }
             state.session += 1

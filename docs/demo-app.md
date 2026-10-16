@@ -9,6 +9,7 @@
 
 - **Speech**: open the pinned Irodori FP32 folder, generate from text and seed, play/stop and save a WAV. Actual app/GPU/audio acceptance remains pending. See [Irodori Speech](irodori/demo.md).
 
+
 ## Requirements
 
 - Rust/Cargo for the Mac speech input adapter; the Xcode pre-build phase builds it automatically.

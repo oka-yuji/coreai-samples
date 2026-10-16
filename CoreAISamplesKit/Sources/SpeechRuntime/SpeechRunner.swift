@@ -1,4 +1,4 @@
-#if os(macOS)
+#if os(macOS) || os(iOS)
     import Foundation
     import SpeechCore
     import SpeechFeature
@@ -41,7 +41,10 @@
                     send(.stopped(session))
                 }
             } catch {
-                if !Task.isCancelled && !(error is CancellationError) {
+                guard !Task.isCancelled else { return }
+                if error is CancellationError {
+                    if case .play = effect { send(.playbackInterrupted(session)) }
+                } else {
                     send(.failed(session, error.localizedDescription))
                 }
             }

@@ -9,7 +9,7 @@ let settings: [SwiftSetting] = [
     .enableUpcomingFeature("InferIsolatedConformances"),
 ]
 let package = Package(
-    name: "IrodoriInputKit", platforms: [.macOS("27.0")],
+    name: "IrodoriInputKit", platforms: [.macOS("27.0"), .iOS("27.0")],
     products: [
         .library(name: "IrodoriInputLogic", targets: ["IrodoriInputLogic"]),
         .library(name: "IrodoriTokenizers", targets: ["IrodoriTokenizers"]),
@@ -19,7 +19,11 @@ let package = Package(
         .target(
             name: "CTokenizers", publicHeadersPath: "include",
             linkerSettings: [
-                .unsafeFlags(["-L", root.appendingPathComponent("rust/target/release").path]),
+                .unsafeFlags(
+                    ["-L", root.appendingPathComponent("rust/target/release").path], .when(platforms: [.macOS])),
+                .unsafeFlags(
+                    ["-L", root.appendingPathComponent("rust/target/aarch64-apple-ios/release").path],
+                    .when(platforms: [.iOS])),
                 .linkedLibrary("irodori_tokenizers"), .linkedLibrary("c++"),
             ]),
         .target(

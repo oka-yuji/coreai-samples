@@ -10,8 +10,10 @@ final class FakePlaybackDevice: PlaybackDevice {
     var playResult = true
     var immediateCompletion: Bool?
     var stopCount = 0
+    var playCount = 0
     let started = TestSignal()
     func play() -> Bool {
+        playCount += 1
         started.fire()
         if let immediateCompletion { completion?(immediateCompletion) }
         return playResult

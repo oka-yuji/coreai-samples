@@ -1,4 +1,4 @@
-#if os(macOS)
+#if os(macOS) || os(iOS)
     import CoreAI
     import Foundation
     import IrodoriInputLogic
@@ -15,7 +15,9 @@
         init(assets: [URL]) async throws {
             guard assets.count == 4 else { throw SpeechError.invalidAsset("Expected four model components") }
             var values: [Stage] = []
-            for asset in assets { values.append(try await Stage(url: asset)) }
+            for (index, asset) in assets.enumerated() {
+                values.append(try await Stage(url: asset, dynamicShape: index >= 2))
+            }
             stages = values
         }
         @concurrent

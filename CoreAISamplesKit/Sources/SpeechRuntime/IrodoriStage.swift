@@ -1,4 +1,4 @@
-#if os(macOS)
+#if os(macOS) || os(iOS)
     import CoreAI
     import Foundation
     import SpeechCore
@@ -6,10 +6,14 @@
     struct Stage: Sendable {
         let model: AIModel
         let function: InferenceFunction
-        init(url: URL) async throws {
+        init(url: URL, dynamicShape: Bool) async throws {
             try Task.checkCancellation()
-            var options = SpecializationOptions(preferredComputeUnitKind: .gpu)
-            options.expectFrequentReshapes = true
+            #if os(iOS)
+                let onPhone = true
+            #else
+                let onPhone = false
+            #endif
+            let options = Self.options(dynamicShape: dynamicShape, onPhone: onPhone)
             model = try await AIModel.specialize(contentsOf: url, options: options)
             try Task.checkCancellation()
             guard let descriptor = model.functionDescriptor(for: "predict"), descriptor.stateNames.isEmpty,
@@ -17,6 +21,11 @@
                 let function = try model.loadFunction(named: "predict")
             else { throw SpeechError.invalidAsset("Unsupported predict/output/state contract") }
             self.function = function
+        }
+        static func options(dynamicShape: Bool, onPhone: Bool) -> SpecializationOptions {
+            var result = SpecializationOptions(preferredComputeUnitKind: .gpu)
+            result.expectFrequentReshapes = !onPhone || dynamicShape
+            return result
         }
         @concurrent
         func run(_ inputs: [String: NDArray]) async throws -> NDArray {
