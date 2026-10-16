@@ -7,7 +7,7 @@ the subsequent record-only commit adds this document and the probe results.
 | PR | Unit | Integration checks |
 | --- | --- | --- |
 | #133 | Conversation logic | Full CPU suite, strict lint, format, Mac Release; export regression |
-| #134 | Chat and Work screen | Full CPU suite, strict lint, format, Mac Release, offline app self-test, localization |
+| #134 | Chat and Work screen | Full CPU suite, strict lint, format, Mac Release, online/offline app self-tests, localization |
 | #135 | Mac speech runtime | Rust Release, full CPU suite, lint, format, Mac Release, three bundle-preparation tests |
 | #136 | Mac Speech screen | Full CPU suite, lint, format, Mac Release, navigation localization |
 | #137 | iOS speech runtime | Full CPU suite, lint, format, Mac Release, iPhoneOS Rust build and final dynamic-framework link |
@@ -15,7 +15,7 @@ the subsequent record-only commit adds this document and the probe results.
 
 The final combined tree passed the full default SwiftPM test command, strict
 SwiftLint with zero violations, the format checker, Mac Release build,
-`--agent-selftest --offline`, and `--check-localization` with 72 runtime keys and
+`--agent-selftest` both with and without `--offline`, and `--check-localization` with 72 runtime keys and
 zero missing Japanese translations. The catalog has 624 keys; its existing 622
 entries retain their meanings and the Speech navigation adds two.
 
