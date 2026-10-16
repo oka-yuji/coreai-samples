@@ -37,7 +37,7 @@ struct LiveObjectFinderServiceTests {
         var entered = fake.preparing.stream.makeAsyncIterator()
         _ = await entered.next()
         #expect(fake.angles == [90])
-        let stop = Task { await service.stop() }
+        let stop = Task { try await service.stop(session: 1, retainingModel: false) }
         var stopping = fake.stopping.stream.makeAsyncIterator()
         _ = await stopping.next()
         #expect(fake.closes == 0)
@@ -48,7 +48,7 @@ struct LiveObjectFinderServiceTests {
         }
         fake.releasePreparation()
         await #expect(throws: CancellationError.self) { try await search.value }
-        await stop.value
+        try await stop.value
         #expect(fake.angles == [90] && fake.frames == nil && fake.closes == 1 && fake.orientationEnds == 1)
     }
 
@@ -223,19 +223,27 @@ struct LiveObjectFinderServiceTests {
 }
 
 @MainActor
-private final class FinderDevicesFake {
+final class FinderDevicesFake {
     let preparing = AsyncStream<Void>.makeStream(bufferingPolicy: .bufferingNewest(1))
     let stopping = AsyncStream<Void>.makeStream(bufferingPolicy: .bufferingNewest(1))
     let started = AsyncStream<Void>.makeStream(bufferingPolicy: .bufferingNewest(1))
     let inferring = AsyncStream<Void>.makeStream(bufferingPolicy: .bufferingNewest(1))
+    let releasing = AsyncStream<Void>.makeStream(bufferingPolicy: .bufferingNewest(1))
     var authorizationError: ObjectFinderFailure?
     var cameraError: ObjectFinderFailure?
     var blocksPreparation = false
     var blocksInference = false
+    var blocksRelease = false
+    var releaseError: ObjectFinderFailure?
+    var preparationError: ObjectFinderFailure?
+    var inferenceError: ObjectFinderFailure?
+    var cancelInference = false
     var prepares = 0
     var requests = 0
     var inferences = 0
     var closes = 0
+    var cameraStops = 0
+    var closeCancellation: [Bool] = []
     var orientationEnds = 0
     var angles: [Double] = []
     var candidateResults: [ObjectCandidate] = []
@@ -243,6 +251,7 @@ private final class FinderDevicesFake {
     var frames: AsyncThrowingStream<CapturedObjectFrame, any Error>.Continuation?
     private var preparation: CheckedContinuation<Void, Never>?
     private var inference: CheckedContinuation<Void, Never>?
+    private var release: CheckedContinuation<Void, Never>?
 
     var devices: ObjectFinderDevices {
         ObjectFinderDevices(
@@ -255,6 +264,7 @@ private final class FinderDevicesFake {
                         self.preparing.continuation.yield(())
                     }
                 }
+                if let error = self.preparationError { throw error }
             },
             startCamera: { angle in
                 self.angles.append(angle)
@@ -265,6 +275,7 @@ private final class FinderDevicesFake {
                 return channel.stream
             },
             stopCamera: {
+                self.cameraStops += 1
                 self.frames?.finish()
                 self.frames = nil
                 self.stopping.continuation.yield(())
@@ -278,9 +289,21 @@ private final class FinderDevicesFake {
                         self.inferring.continuation.yield(())
                     }
                 }
+                if let error = self.inferenceError { throw error }
+                if self.cancelInference { throw CancellationError() }
                 return self.candidateResults
             },
-            closeFinder: { self.closes += 1 },
+            closeFinder: {
+                self.closes += 1
+                self.closeCancellation.append(Task.isCancelled)
+                if self.blocksRelease {
+                    await withCheckedContinuation {
+                        self.release = $0
+                        self.releasing.continuation.yield(())
+                    }
+                }
+                if let error = self.releaseError { throw error }
+            },
             beginOrientation: {}, endOrientation: { self.orientationEnds += 1 }, notify: {},
             requestFrame: { self.requests += 1 },
             trackCandidates: { _, candidates in
@@ -311,5 +334,11 @@ private final class FinderDevicesFake {
         blocksInference = false
         inference?.resume()
         inference = nil
+    }
+
+    func releaseFinder() {
+        blocksRelease = false
+        release?.resume()
+        release = nil
     }
 }

@@ -82,13 +82,14 @@ public enum ObjectFinderAction: Sendable {
     case started(Int)
     case analyzed(Int, ObjectFinderFrame)
     case failed(Int, ObjectFinderFailure)
+    case stopFailed(Int, ObjectFinderFailure)
     case stopped(Int)
 }
 
 public enum ObjectFinderEffect: Equatable, Sendable {
     case search(Int, URL, String, Double, ObjectCameraRotation)
     case orient(ObjectCameraRotation)
-    case stop(Int)
+    case stop(Int, retainingModel: Bool)
     case notify(Int)
 }
 
@@ -143,7 +144,7 @@ public enum ObjectFinderFeature: Feature {
             state.restartAfterStop = true
             state.phase = .stopping
             clear(&state)
-            return [.cancelAll, .run(.stop(state.session), id: .control)]
+            return [.cancel(.notification), .run(.stop(state.session, retainingModel: true), id: .control)]
         case .started(let session):
             guard state.session == session, state.phase == .starting, state.presented else { return [] }
             state.phase = .searching
@@ -173,16 +174,26 @@ public enum ObjectFinderFeature: Feature {
             state.restartAfterStop = false
             clear(&state)
             state.failure = failure
+        case .stopFailed(let session, let failure):
+            guard state.session == session, state.phase == .stopping else { return [] }
+            state.phase = .idle
+            state.restartAfterStop = false
+            clear(&state)
+            state.failure = failure
         case .stop, .backgrounded, .disappeared:
+            let cancelsReplacement = state.restartAfterStop
             state.restartAfterStop = false
             if case .disappeared = action { state.presented = false }
             clear(&state)
             guard state.phase != .idle, state.phase != .stopping else {
                 if state.phase == .idle { return [.cancelAll] }
+                if cancelsReplacement {
+                    return [.cancelAll, .run(.stop(state.session, retainingModel: false), id: .control)]
+                }
                 return []
             }
             state.phase = .stopping
-            return [.cancelAll, .run(.stop(state.session), id: .control)]
+            return [.cancelAll, .run(.stop(state.session, retainingModel: false), id: .control)]
         case .stopped(let session):
             guard state.session == session, state.phase == .stopping else { return [] }
             state.phase = .idle
