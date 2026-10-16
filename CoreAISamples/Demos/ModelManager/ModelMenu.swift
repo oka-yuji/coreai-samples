@@ -23,7 +23,7 @@ struct ModelMenu: View {
             Divider()
             Button("Manage Models…") { navigator.selection = .models }
         } label: {
-            Text(chat.modelName.isEmpty ? "No model loaded" : chat.modelName)
+            modelLabel
                 .font(.headline)
                 .lineLimit(1)
                 .truncationMode(.middle)
@@ -31,7 +31,7 @@ struct ModelMenu: View {
         }
         .fixedSize()
         .accessibilityLabel("Model")
-        .accessibilityValue(chat.modelName.isEmpty ? "No model loaded" : chat.modelName)
+        .accessibilityValue(modelLabel)
         .help("Choose the model Chat and Agent use")
         .disabled(
             Self.isDisabled(
@@ -43,23 +43,40 @@ struct ModelMenu: View {
         }
     }
 
+    private var modelLabel: Text {
+        chat.modelName.isEmpty ? Text("No model loaded") : Text(verbatim: chat.modelName)
+    }
+
     private func choices(_ entries: [ModelsViewModel.MenuEntry]) -> some View {
         ForEach(entries) { entry in
             Toggle(
                 entry.name,
                 isOn: Binding(
                     get: { entry.isCurrent },
-                    set: { _ in Task { await Self.choose(entry, chat: chat, agent: agent) } }))
+                    set: { _ in Task { await ModelSwitch.choose(entry.url, chat: chat, agent: agent) } }))
         }
     }
 
     static func isDisabled(loading: Bool, responding: Bool, busy: Bool, agentRunning: Bool) -> Bool {
         loading || responding || busy || agentRunning
     }
+}
 
-    static func choose(_ entry: ModelsViewModel.MenuEntry, chat: ChatViewModel, agent: AgentViewModel?) async {
-        guard !entry.isCurrent else { return }
-        agent?.reset()
-        await chat.load(entry.url)
+@MainActor
+enum ModelSwitch {
+    static func choose(_ url: URL, chat: ChatViewModel, agent: AgentViewModel) async -> Bool {
+        guard
+            !ModelMenu.isDisabled(
+                loading: chat.isLoading, responding: chat.isResponding, busy: chat.externallyBusy,
+                agentRunning: agent.running),
+            !isLoaded(url, phase: chat.phase, current: chat.bundleURL)
+        else { return false }
+        agent.reset()
+        await chat.load(url)
+        return true
+    }
+
+    static func isLoaded(_ url: URL, phase: ChatViewModel.Phase, current: URL?) -> Bool {
+        phase == .ready && current.map(ModelStorage.key) == ModelStorage.key(url)
     }
 }

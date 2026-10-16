@@ -1,0 +1,107 @@
+[
+  {
+    "file" : "01-oyakodon.png",
+    "foods" : [
+      {
+        "count" : 3,
+        "name" : "eggs"
+      },
+      {
+        "count" : null,
+        "name" : "onion"
+      },
+      {
+        "count" : null,
+        "name" : "cilantro"
+      }
+    ],
+    "needsCheck" : [
+      "bottle"
+    ],
+    "seconds" : 2.1521670830000001
+  },
+  {
+    "file" : "02-ginger-pork.png",
+    "foods" : [
+      {
+        "count" : 1,
+        "name" : "onion"
+      },
+      {
+        "count" : 1,
+        "name" : "carrot"
+      },
+      {
+        "count" : 3,
+        "name" : "cucumber"
+      }
+    ],
+    "needsCheck" : [
+      "container with meat"
+    ],
+    "seconds" : 1.6066606669999999
+  },
+  {
+    "file" : "03-omelette.png",
+    "foods" : [
+      {
+        "count" : 1,
+        "name" : "Broccoli"
+      },
+      {
+        "count" : 1,
+        "name" : "Egg"
+      }
+    ],
+    "needsCheck" : [
+      "Container with unclear contents"
+    ],
+    "seconds" : 1.4214848339999999
+  },
+  {
+    "file" : "04-gratin.png",
+    "foods" : [
+      {
+        "count" : 1,
+        "name" : "milk"
+      },
+      {
+        "count" : 1,
+        "name" : "cheese"
+      },
+      {
+        "count" : 1,
+        "name" : "onion"
+      },
+      {
+        "count" : 4,
+        "name" : "mushrooms"
+      },
+      {
+        "count" : 1,
+        "name" : "broccoli"
+      }
+    ],
+    "needsCheck" : [
+      "milk container",
+      "cheese container",
+      "mushrooms container",
+      "chicken container"
+    ],
+    "seconds" : 2.0914969999999999
+  },
+  {
+    "file" : "05-caprese.png",
+    "foods" : [
+      {
+        "count" : 1,
+        "name" : "tomato"
+      }
+    ],
+    "needsCheck" : [
+      "bagged leaves",
+      "white container"
+    ],
+    "seconds" : 1.3442118750000001
+  }
+]

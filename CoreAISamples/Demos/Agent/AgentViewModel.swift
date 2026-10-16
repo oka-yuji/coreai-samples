@@ -185,7 +185,7 @@ final class AgentViewModel {
         braveAPIKey = defaults.string(forKey: Self.braveKeyDefaultsKey) ?? ""
         allowFileOperations = defaults.bool(forKey: Self.fileOpsDefaultsKey)
         notesFolderPath = defaults.string(forKey: Self.notesFolderDefaultsKey) ?? ""
-        citationGuard = defaults.object(forKey: Self.citationGuardDefaultsKey) as? Bool ?? true
+        citationGuard = defaults.object(forKey: Self.citationGuardDefaultsKey) as? Bool ?? false
         citeFetched = defaults.object(forKey: Self.citeFetchedDefaultsKey) as? Bool ?? true
     }
 

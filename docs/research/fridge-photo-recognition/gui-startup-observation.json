@@ -1,0 +1,47 @@
+{
+  "task": "Observe existing validation app startup blockage",
+  "requestedApp": "/private/tmp/fridge-build/Build/Products/Release/CoreAISamples.app",
+  "parentReportedPID": 83158,
+  "pidIndependentlyVerified": false,
+  "observations": [
+    {
+      "action": "cua.rewriteDocumentation",
+      "status": "success",
+      "seconds": 3.9293
+    },
+    {
+      "action": "getApp Finder",
+      "status": "success",
+      "seconds": 3.4217,
+      "window": "Downloads"
+    },
+    {
+      "action": "Finder Go To Folder",
+      "status": "success",
+      "path": "/private/tmp/fridge-build/Build/Products/Release/",
+      "visibleItem": "CoreAISamples.app"
+    },
+    {
+      "action": "Finder item open on CoreAISamples.app",
+      "status": "auto-review-rejected",
+      "executed": false,
+      "reason": "Local-build unrecognized software execution requires action-time confirmation."
+    },
+    {
+      "action": "cua.getState readonly inventory",
+      "status": "success",
+      "seconds": 1.6888,
+      "app": "Core AI Demos",
+      "bundleID": "com.coreai-samples.DemoApp",
+      "isRunning": true
+    }
+  ],
+  "conclusions": {
+    "cuaLongTimeoutReproduced": false,
+    "appFrontingCompleted": false,
+    "permissionDialogPresence": "not determined",
+    "TCCCause": "not determined"
+  },
+  "remaining": "Obtain action-time confirmation for the rejected app-open/fronting action before retrying execution.",
+  "changes": "No permission/settings changes, no process termination, no separate model job, no retry via another execution method."
+}

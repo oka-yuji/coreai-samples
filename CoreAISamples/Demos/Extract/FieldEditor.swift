@@ -8,14 +8,17 @@ struct FieldEditor: View {
     let isLabel: Bool
     let save: (FormSchema, String?) -> Void
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.locale) private var locale
 
-    private var noun: String { isLabel ? "Label" : "Field" }
+    private var noun: String { DemoStrings(locale: locale).text(isLabel ? "Label" : "Field") }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text(draft.key == nil ? "Add \(noun)" : "Edit \(noun)").font(.title3.bold())
+            Group {
+                if draft.key == nil { Text("Add \(noun)") } else { Text("Edit \(noun)") }
+            }.font(.title3.bold())
             Form {
-                TextField(isLabel ? "Label" : "Name", text: $draft.name)
+                TextField(LocalizedStringKey(isLabel ? "Label" : "Name"), text: $draft.name)
                 if !isLabel {
                     TextField("Label for the model", text: $draft.modelLabel, prompt: Text("Same as the name"))
                     Picker("Type", selection: $draft.kind) {

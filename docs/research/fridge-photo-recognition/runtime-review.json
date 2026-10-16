@@ -1,0 +1,186 @@
+{
+  "scopeFile": "/private/tmp/fridge-runtime-review/final-scope.json",
+  "baseSha": "cf7a41be77968dc9ca598c0e807560801185459d",
+  "headSha": "cf7a41be77968dc9ca598c0e807560801185459d",
+  "stateToken": "d2bed9f353690b24427e2ade650ee69724866e6d5da87c6570e04c37f55d7726",
+  "unchangedAtFinalCheck": true,
+  "reviewedFiles": [
+    {
+      "path": "CoreAISamplesKit/Package.swift",
+      "sha256": "6e69ae32075857263532dfe2b04bc3cb1fc57e5f3cea9d21c6019664d7e4b951"
+    },
+    {
+      "path": "CoreAISamplesKit/Sources/RecipeRuntime/PhotoInspector.swift",
+      "sha256": "2ccef714c67bbbd42f534ad2acf8d0f2139b8a8168e2c38a160f607b24c527e2"
+    },
+    {
+      "path": "CoreAISamplesKit/Sources/RecipeRuntime/RecipeFetcher.swift",
+      "sha256": "feb356f6e16c2337f1af8310f0cb50de858f7575b28c8e1c66ebd8cfc196a744"
+    },
+    {
+      "path": "CoreAISamplesKit/Sources/RecipeRuntime/RecipeResources.swift",
+      "sha256": "0f7c8d7c7dfe485f8a0f6c4ffcb66d9a64ae8dbc833cfcbe85f1263465cdb223"
+    },
+    {
+      "path": "CoreAISamplesKit/Sources/RecipeRuntime/RecipeService.swift",
+      "sha256": "308449e46eb2d9b0df51c693d3e4e271e08232befd5fb5f683c0054ef5d6e243"
+    },
+    {
+      "path": "CoreAISamplesKit/Sources/RecipeRuntime/Resources/recipe-vocabulary.json",
+      "sha256": "edf1692ed6caadacb36af545656167b822f46bef635784c13e43aef4f156a60d"
+    },
+    {
+      "path": "CoreAISamplesKit/Tests/RecipeRuntimeTests/RecipeIntegrationTests.swift",
+      "sha256": "e0a46a1ec8c3040b06650d8e6775ad768954d4c96c694c183bb4c7ed89d4c5d1"
+    },
+    {
+      "path": "CoreAISamplesKit/Tests/RecipeRuntimeTests/RecipeRuntimeTests.swift",
+      "sha256": "78ee1c3383752846344dbe54f175fc60ed8a9524044ff567a47c23183c3c9660"
+    },
+    {
+      "path": "CoreAISamplesKit/Tests/RecipeRuntimeTests/RecipeServiceTests.swift",
+      "sha256": "66f96dfe84a2359965deeff4da31485f2e3ad4e7d27f865e1809f36663947a49"
+    },
+    {
+      "path": "CoreAISamplesKit/Tests/RecipeRuntimeTests/Resources/alias-cases.json",
+      "sha256": "769fb5161787353f2f5388825d0dac64e7ab14f176e82db93191709a97953b96"
+    }
+  ],
+  "candidateLedger": [
+    {
+      "id": "F49-R01",
+      "severity": "P2",
+      "status": "resolved",
+      "originalStatus": "confirmed",
+      "path": "CoreAISamplesKit/Sources/RecipeRuntime/RecipeFetcher.swift",
+      "line": 20,
+      "finding": "Delegate-backed URLSession was not invalidated when the HTTP client owner went away.",
+      "trigger": "Release a RecipeFetcher/LiveRecipeService instance, e.g. repeated window/service lifetimes.",
+      "evidenceHistory": [
+        "OriginalRecipeHTTPClientinit creates delegate-backed ephemeral URLSession, no teardown",
+        "SDK NSURLSession.h:163/248 explicitly requires invalidate to break retained delegate/session lifetime",
+        "SessionLifetimeProbe: owner scope exit leaves weakdelegate alive; invalidateAndCancel releases it"
+      ],
+      "resolutions": [
+        "CurrentRecipeHTTPClientdeinit calls session.invalidateAndCancel",
+        "No session/model client reference crosses the photo/inventory DTO boundary"
+      ],
+      "evidence": "/private/tmp/fridge-runtime-review/session-output.txt"
+    },
+    {
+      "id": "F49-C01",
+      "severity": "P2",
+      "status": "resolved",
+      "originalStatus": "plausible-code-path",
+      "path": "CoreAISamplesKit/Sources/RecipeRuntime/RecipeService.swift",
+      "line": 65,
+      "finding": "loadModel committedmodel and returned after a final actor await without a cancellation check.",
+      "evidenceHistory": [
+        "Original: awaitDecisionModel.load ->checkCancellation ->model=loaded ->returnawaitloaded.bundle.name",
+        "SE0306 permits interleaving atcross-actorawait; SE0304 requires explicitcooperativechecks"
+      ],
+      "resolutions": [
+        "Current: fetch name withawait, thencheckCancellation, commitmodel,returnname",
+        "Newcontextcreation similarly useslocalcreated,checkCancellation,thencommits context/documentKey"
+      ],
+      "limits": "No GPU timing reproduction; reviewed control-flow closure of cancellation window."
+    },
+    {
+      "id": "F49-R02",
+      "severity": "P2",
+      "status": "rejected",
+      "originalStatus": "unverified",
+      "finding": "Earlysize failure orTaskcancel mightleave URLSession.AsyncBytes transfer alive afterHTTPgetreturns.",
+      "evidenceHistory": [
+        "ActualRecipeHTTPClientgetbody copied tosandbox; only URLSessionprotocolClasses andobservation hooks added",
+        "URLProtocolprovides responseandbytes withno real network",
+        "Content-Length>2MB andstreamedbody>2MB eachthrowRecipeError; URLSessiongetAllTasksreturns[]",
+        "Cancelafterheaders yieldsCancellationError andgetAllTasks[]; stopLoadingobserved",
+        "Oneprobe sawstopLoadingcallbackaftertaskcollectionbecameempty; no lingeringactiveURLSessiontaskfound"
+      ],
+      "resolutions": [
+        "Foundation asyncbytes cancellation/sequence teardown handled tested exits; absenceofexplicitbytes.task.cancelisnotraised asbug"
+      ],
+      "evidence": [
+        "/private/tmp/fridge-runtime-review/http-output2.txt",
+        "/private/tmp/fridge-runtime-review/http-output3.txt"
+      ]
+    },
+    {
+      "id": "F49-P01",
+      "severity": "P1",
+      "status": "rejected",
+      "finding": "Image orpantrydata couldbe sent torecipehost orPCC",
+      "resolutions": [
+        "PhotoInspectorconstructs SystemLanguageModel.defaultexplicitly andpassesCGImageviaSDK27Attachment",
+        "NoPrivateCloudComputeLanguageModelorremoteimagetransportintarget",
+        "RecipeFetcher accepts onlyvalidated URL string; URLRequesthasGET andAcceptheader, no body/inventory/image",
+        "Clef receives recipe andkitchen questions locally; confirmedpantry identity/amountstay inRecipeCore"
+      ]
+    },
+    {
+      "id": "F49-Q01",
+      "severity": "P1",
+      "status": "rejected",
+      "finding": "Confirmedinventoryquantities couldbe substituted bymodeloutput",
+      "resolutions": [
+        "Clefquestion onlydecidesrequired/optional/uncertain plus equipment",
+        "Runtimepassesactualconfirmedpantry intoRecipeCoreassessAll",
+        "N+1answer guardanddropLast separatestheequipmentanswerfromNingredientrequirements",
+        "Probabilityandrequirementarrayspreserve recipeorderandcount; amountvaluesarenotreadfrommodeloutput"
+      ]
+    }
+  ],
+  "coverage": {
+    "PhotoInspector.swift": "full; localmodelavailability/capabilities,Generabletypes,ImageIOthumbnail/orientation,Data/CGImagelifetimes,boundedregularfileinput,cancellation,unconfirmedphotoDTO",
+    "RecipeFetcher.swift": "full; fixedURLvalidationboundary,manualredirects,GETprivacy,status/UTF8/bodylimit,timeout,URLSessionownership andactualasyncbytesexitprobes",
+    "RecipeResources.swift": "full bundledJSONdecode andresourcewiring",
+    "RecipeService.swift": "full; MainActorgate,waitForIdle,awaitcancellation,model/contextownership,UTF8documentkey,questionbudgetfallback,typedanswerconversion andassessAllintegration",
+    "recipe-vocabulary.json": "full semanticmapping inventory; current29foods/9units have no cross-ownerduplicatealiases; explicitbrand changeschecked",
+    "Tests": "allRecipeRuntimeTests/ServiceTests/IntegrationTests andaliasfixture; integrationmeasurementsread; testsdo notauto-confirmphotocandidates",
+    "Package.swift": "newproducts,nonisolatedSwift6targets withupcomingfeatures,resourcecopy/testdependencies",
+    "boundary-only": "RecipeURL andRecipeParserinput bounds,RecipeCheckInput/RecipeReport contracts,assessAll shape/callmapping; deepRecipeCoreauditbelongsotherreviewer"
+  },
+  "verification": {
+    "own": [
+      "Swift6.4/Swift6mode+NonisolatedNonsendingByDefault/InferIsolatedConformances isolatedprobes",
+      "RealURLSession/URLProtocol earlyheaderlimit/streamlimit/cancel probes withoutnetwork",
+      "Delegateweaklifetime probe withandwithoutinvalidate",
+      "SDK27FoundationModelsSystemLanguageModel andAttachment(CGImage)declarationschecked",
+      "Parentfive-casesJSON:allprobabilitiesfiniteand0..1;5records explicitlymarkscriptedreviewedinventory",
+      "Finalscopecheck unchanged; noGPU/source/shared.buildwrites"
+    ],
+    "parentReported": [
+      "Initial14CPUtest-equivalentsandfivephotos/fiveliveURLs passed",
+      "Integrationv2log:onefiveCases test passed37.111seconds",
+      "PostfixCPUregressionpassed",
+      "Recipe new-source lint0; whole-repositorylint39baselineitemsbeinginvestigated"
+    ]
+  },
+  "unverified": [
+    "No independent GPU/imageinference orliveURL fetch performed",
+    "Newest assessAll/alias corrections areCPUverified byparent; priorfive-casesmetricspre-datethosecorrections",
+    "Extremepixeldimension/corruptimage stress,URLSession OSauthentication/DNS/proxy variations notexercised",
+    "LoadModel cancellationtimingnotinjected atrealCoreAIactorboundary",
+    "FullUIanddeepRecipeCoreoutsideassignedpartition",
+    "Whole-repositorylintbaseline issue is parent-owned and not declared resolved"
+  ],
+  "failures": [
+    {
+      "step": "InitialURLProtocolheader-sizefixture",
+      "status": "recovered",
+      "detail": "Sentonly1bodybyte withlargeContent-Length, awaiteduntilrequesttimeout ratherthanreachingintendedheaderguard; updatedfixtureto64KiB andheaderguard/releaseprobecompleted."
+    },
+    {
+      "step": "Processinventoryread",
+      "status": "resolved-by-coordination",
+      "detail": "pgrep unavailable/sysmon error; parent explicitly confirmedbuild/testidle beforeisolatedcompilation."
+    }
+  ],
+  "guideCandidates": [
+    "- 2026-10-08 delegate付きURLSessionは所有者のスコープ終了だけではdelegateを解放せず、invalidateAndCancelで解放された。RecipeFetcherのようなactor所有の通信資源もdeinitでinvalidateする [SDK][実測] MacOSX27.0.sdk Foundation/NSURLSession.h:163・248、/private/tmp/fridge-runtime-review/session-output.txt",
+    "- 2026-10-08 macOS27のURLSession.AsyncBytesは、2MBのContent-Length超過・実body超過で読取を抜けた場合とヘッダ受領後のTask取消で、get復帰時のURLSession task一覧が空だった [実測] /private/tmp/fridge-runtime-review/http-output2.txt・http-output3.txt（URLProtocol内製応答、実ネットワーク未使用）"
+  ],
+  "complete": true,
+  "newUnresolvedConfirmedFindings": []
+}

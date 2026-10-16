@@ -18,7 +18,18 @@ let package = Package(
         .library(name: "SpeechCore", targets: ["SpeechCore"]),
         .library(name: "SpeechFeature", targets: ["SpeechFeature"]),
         .library(name: "SpeechRuntime", targets: ["SpeechRuntime"]),
+        .library(name: "TruckInspectionFeature", targets: ["TruckInspectionFeature"]),
+        .library(name: "TruckInspectionCore", targets: ["TruckInspectionCore"]),
+        .library(name: "TruckInspectionRuntime", targets: ["TruckInspectionRuntime"]),
+        .library(name: "ImageSearchFeature", targets: ["ImageSearchFeature"]),
+        .library(name: "ImageSearchRuntime", targets: ["ImageSearchRuntime"]),
+        .library(name: "EmbeddingCore", targets: ["EmbeddingCore"]),
+        .library(name: "EmbeddingRuntime", targets: ["EmbeddingRuntime"]),
+        .executable(name: "embedding-verify", targets: ["embedding-verify"]),
         .library(name: "CoreAIBackend", targets: ["CoreAIBackend"]),
+        .library(name: "ProductFeature", targets: ["ProductFeature"]),
+        .library(name: "ProductCore", targets: ["ProductCore"]),
+        .library(name: "ProductRuntime", targets: ["ProductRuntime"]),
         .library(name: "GLiNERCore", targets: ["GLiNERCore"]),
         .library(name: "GLiNERRuntime", targets: ["GLiNERRuntime"]),
         .library(name: "RAGContext", targets: ["RAGContext"]),
@@ -27,6 +38,10 @@ let package = Package(
         .library(name: "ExtractFeature", targets: ["ExtractFeature"]),
         .library(name: "DecideFeature", targets: ["DecideFeature"]),
         .library(name: "DecideRuntime", targets: ["DecideRuntime"]),
+        .library(name: "RecipeCore", targets: ["RecipeCore"]),
+        .library(name: "RecipeRuntime", targets: ["RecipeRuntime"]),
+        .library(name: "RecipeFeature", targets: ["RecipeFeature"]),
+        .library(name: "ConversationFeature", targets: ["ConversationFeature"]),
     ],
     dependencies: [
         .package(path: "../Vendor/IrodoriInputKit"),
@@ -55,6 +70,44 @@ let package = Package(
                 .product(name: "IrodoriTokenizers", package: "IrodoriInputKit"),
             ], resources: [.copy("Resources")], swiftSettings: speechSettings),
         .target(
+            name: "TruckInspectionFeature", dependencies: ["TruckInspectionCore", "FeatureStore"],
+            swiftSettings: approachableConcurrency),
+        .testTarget(
+            name: "TruckInspectionFeatureTests",
+            dependencies: ["TruckInspectionCore", "TruckInspectionFeature", "TruckInspectionRuntime", "FeatureStore"],
+            resources: [.process("Resources")], swiftSettings: approachableConcurrency),
+        .target(name: "TruckInspectionCore", swiftSettings: approachableConcurrency),
+        .target(
+            name: "TruckInspectionRuntime",
+            dependencies: ["TruckInspectionCore", "TruckInspectionFeature", "GLiNERRuntime"],
+            resources: [.process("Resources")],
+            swiftSettings: approachableConcurrency),
+        .testTarget(
+            name: "TruckInspectionCoreTests", dependencies: ["TruckInspectionCore", "TruckInspectionRuntime"],
+            resources: [.process("Resources")], swiftSettings: approachableConcurrency),
+        .target(name: "ImageSearchFeature", dependencies: ["FeatureStore"], swiftSettings: approachableConcurrency),
+        .target(
+            name: "ImageSearchRuntime", dependencies: ["ImageSearchFeature", "EmbeddingCore", "EmbeddingRuntime"],
+            swiftSettings: approachableConcurrency),
+        .testTarget(
+            name: "ImageSearchTests", dependencies: ["ImageSearchFeature", "ImageSearchRuntime", "FeatureStore"],
+            swiftSettings: approachableConcurrency),
+        .target(name: "EmbeddingCore", swiftSettings: approachableConcurrency),
+        .target(
+            name: "EmbeddingRuntime",
+            dependencies: [
+                "EmbeddingCore", .product(name: "Hub", package: "swift-transformers"),
+                .product(name: "Tokenizers", package: "swift-transformers"),
+            ], swiftSettings: approachableConcurrency),
+        .executableTarget(
+            name: "embedding-verify", dependencies: ["EmbeddingCore", "EmbeddingRuntime"],
+            swiftSettings: approachableConcurrency),
+        .testTarget(
+            name: "EmbeddingCoreTests", dependencies: ["EmbeddingCore"], swiftSettings: approachableConcurrency),
+        .testTarget(
+            name: "EmbeddingRuntimeTests", dependencies: ["EmbeddingCore", "EmbeddingRuntime"],
+            resources: [.copy("Fixtures")], swiftSettings: approachableConcurrency),
+        .target(
             name: "CoreAIBackend",
             dependencies: [
                 .product(name: "Tokenizers", package: "swift-transformers"),
@@ -63,12 +116,35 @@ let package = Package(
             resources: [.process("Resources")]
         ),
         .target(name: "RAGContext"),
+        .target(
+            name: "ProductFeature", dependencies: ["ProductCore", "FeatureStore"],
+            swiftSettings: approachableConcurrency),
+        .testTarget(
+            name: "ProductFeatureTests", dependencies: ["ProductFeature", "ProductCore", "ProductRuntime"],
+            swiftSettings: approachableConcurrency),
+        .target(name: "ProductCore", swiftSettings: approachableConcurrency),
+        .target(
+            name: "ProductRuntime", dependencies: ["ProductCore", "ProductFeature", "GLiNERCore", "GLiNERRuntime"],
+            resources: [.process("Resources")], swiftSettings: approachableConcurrency),
+        .testTarget(name: "ProductCoreTests", dependencies: ["ProductCore"], swiftSettings: approachableConcurrency),
+        .testTarget(
+            name: "ProductRuntimeTests", dependencies: ["ProductRuntime", "ProductCore"],
+            swiftSettings: approachableConcurrency),
+        .target(name: "RecipeCore", swiftSettings: approachableConcurrency),
+        .target(
+            name: "RecipeFeature", dependencies: ["FeatureStore", "RecipeCore"], swiftSettings: approachableConcurrency),
+        .target(
+            name: "RecipeRuntime", dependencies: ["RecipeCore", "RecipeFeature", "CoreAIBackend"],
+            resources: [.process("Resources")],
+            swiftSettings: approachableConcurrency
+        ),
         .target(name: "DecideFeature", dependencies: ["FeatureStore"], swiftSettings: approachableConcurrency),
         .target(
             name: "DecideRuntime", dependencies: ["DecideFeature", "CoreAIBackend"],
             swiftSettings: approachableConcurrency
         ),
         .target(name: "FeatureStore", swiftSettings: approachableConcurrency),
+        .target(name: "ConversationFeature", dependencies: ["FeatureStore"], swiftSettings: approachableConcurrency),
         .target(name: "GLiNERCore", resources: [.process("Resources")], swiftSettings: approachableConcurrency),
         .target(
             name: "ExtractFeature",
@@ -97,6 +173,15 @@ let package = Package(
             resources: [.copy("Fixtures")]
         ),
         .testTarget(name: "RAGContextTests", dependencies: ["RAGContext"]),
+        .testTarget(name: "RecipeCoreTests", dependencies: ["RecipeCore"], swiftSettings: approachableConcurrency),
+        .testTarget(
+            name: "RecipeFeatureTests", dependencies: ["RecipeFeature", "RecipeCore", "FeatureStore"],
+            swiftSettings: approachableConcurrency),
+        .testTarget(
+            name: "RecipeRuntimeTests", dependencies: ["RecipeRuntime", "RecipeCore", "RecipeFeature", "FeatureStore"],
+            resources: [.process("Resources")],
+            swiftSettings: approachableConcurrency
+        ),
         .testTarget(
             name: "DecideFeatureTests", dependencies: ["DecideFeature", "FeatureStore"],
             swiftSettings: approachableConcurrency
@@ -106,6 +191,10 @@ let package = Package(
             swiftSettings: approachableConcurrency
         ),
         .testTarget(name: "FeatureStoreTests", dependencies: ["FeatureStore"], swiftSettings: approachableConcurrency),
+        .testTarget(
+            name: "ConversationFeatureTests", dependencies: ["ConversationFeature", "FeatureStore"],
+            swiftSettings: approachableConcurrency
+        ),
         .testTarget(
             name: "GLiNERCoreTests",
             dependencies: ["GLiNERCore"],

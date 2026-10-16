@@ -2,6 +2,7 @@ import AppKit
 import SwiftUI
 
 struct AgentView: View {
+    @Environment(\.locale) private var locale
     @Environment(ChatViewModel.self) private var chat
     @Environment(DemoNavigator.self) private var navigator
     @Environment(AgentViewModel.self) private var agent
@@ -34,7 +35,7 @@ struct AgentView: View {
                 ContentUnavailableView {
                     Label("Could not open the model", systemImage: "exclamationmark.triangle")
                 } description: {
-                    Text(message)
+                    RuntimeMessageText(message)
                 } actions: {
                     Button("Open Models") { navigator.selection = .models }
                 }
@@ -50,7 +51,7 @@ struct AgentView: View {
                 }
             }
         }
-        .navigationTitle("Agent")
+        .demoNavigationTitle("Agent")
     }
 
     private var header: some View {
@@ -58,8 +59,7 @@ struct AgentView: View {
             VStack(alignment: .leading, spacing: 2) {
                 ModelMenu()
                 Text(
-                    "web_search · fetch_page · write_note" + (agent.allowFileOperations ? " · move_note" : "")
-                        + " — search via \(agent.searchProvider)"
+                    "\("web_search · fetch_page · write_note" + (agent.allowFileOperations ? " · move_note" : "")) — search via \(agent.searchProvider)"
                 )
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -97,7 +97,7 @@ struct AgentView: View {
 
     private var placeholder: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("Ask for something that needs the web:")
+            Text("Example prompts (original):")
                 .font(.callout)
                 .foregroundStyle(.secondary)
             ForEach(Self.examples, id: \.self) { example in
@@ -115,7 +115,7 @@ struct AgentView: View {
         @Bindable var agent = agent
         return VStack(alignment: .leading, spacing: 8) {
             Picker("Reasoning effort", selection: $agent.effort) {
-                ForEach(AgentReasoningEffort.allCases) { Text($0.label).tag($0) }
+                ForEach(AgentReasoningEffort.allCases) { Text(LocalizedStringKey($0.label)).tag($0) }
             }
             .pickerStyle(.segmented)
             .frame(maxWidth: 320)
@@ -176,8 +176,8 @@ struct AgentView: View {
         panel.canChooseDirectories = true
         panel.canChooseFiles = false
         panel.canCreateDirectories = true
-        panel.prompt = "Choose"
-        panel.message = "Where the agent saves its notes"
+        panel.prompt = DemoStrings(locale: locale).text("Choose")
+        panel.message = DemoStrings(locale: locale).text("Where the agent saves its notes")
         panel.directoryURL = agent.notesDirectory
         guard panel.runModal() == .OK, let url = panel.url else { return }
         agent.notesFolderPath = url.path(percentEncoded: false)
@@ -186,7 +186,7 @@ struct AgentView: View {
     private var status: some View {
         HStack(spacing: 8) {
             if agent.running { ProgressView().controlSize(.small) }
-            Text(agent.statusLine.isEmpty ? "Ready." : agent.statusLine)
+            RuntimeMessageText(agent.statusLine.isEmpty ? "Ready." : agent.statusLine)
                 .font(.caption.monospacedDigit())
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
@@ -268,8 +268,13 @@ struct AgentEntryRow: View {
             .frame(maxWidth: .infinity, alignment: .leading)
         case .failure:
             VStack(alignment: .leading, spacing: 2) {
-                label(entry.title, "exclamationmark.triangle")
-                    .foregroundStyle(.orange)
+                Label {
+                    RuntimeMessageText(entry.title)
+                } icon: {
+                    Image(systemName: "exclamationmark.triangle")
+                }
+                .font(.caption)
+                .foregroundStyle(.orange)
                 Text(entry.text)
                     .font(.callout)
                     .foregroundStyle(.secondary)
@@ -278,7 +283,7 @@ struct AgentEntryRow: View {
             .frame(maxWidth: .infinity, alignment: .leading)
         case .note:
             Label(
-                "\(entry.title): \(entry.text)",
+                "Note (original): \(entry.title): \(entry.text)",
                 systemImage: entry.warning ? "exclamationmark.triangle" : "checkmark.seal"
             )
             .font(.caption)
@@ -305,7 +310,7 @@ struct AgentEntryRow: View {
     @ViewBuilder
     private var statsCaption: some View {
         if let stats = entry.stats {
-            Text(stats)
+            RuntimeMessageText(stats)
                 .font(.system(.caption2, design: .monospaced))
                 .foregroundStyle(.tertiary)
         }
@@ -318,7 +323,11 @@ struct AgentEntryRow: View {
             } label: {
                 HStack(spacing: 4) {
                     Image(systemName: expanded ? "chevron.down" : "chevron.right")
-                    Text(entry.title)
+                    if entry.kind == .thinking {
+                        Text("Thinking")
+                    } else {
+                        Text("Tool result (original): \(entry.title)")
+                    }
                     Text("(\(entry.text.count) chars)").foregroundStyle(.secondary)
                     if entry.live { ProgressView().controlSize(.mini) }
                 }
@@ -339,7 +348,7 @@ struct AgentEntryRow: View {
         return flat.count > 300 ? String(flat.prefix(300)) + "…" : flat
     }
 
-    private func label(_ text: String, _ systemImage: String) -> some View {
+    private func label(_ text: LocalizedStringKey, _ systemImage: String) -> some View {
         Label(text, systemImage: systemImage)
             .font(.caption)
             .foregroundStyle(.secondary)
