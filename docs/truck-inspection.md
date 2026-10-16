@@ -33,3 +33,13 @@ An empty final speech result uses the last nonempty partial result. The listenin
 ## Verification ownership
 
 The implementation work is tracked by issues #120, #121 and #122 under #123. The current user's 2026-10-15 instruction changes the earlier six-field equipment handoff into this truck demo and assigns iPhone validation to the user. Device speed, memory, model accuracy, offline speech availability and Bluetooth operation remain unverified until the user's runs are recorded.
+
+## iPhone screen
+
+Open **Truck inspection** in the iPhone app, or launch it with `--truck-inspection`. Choose the equipment profile before starting. Answer buttons work without a model. A free-form answer outside the exact vocabulary needs a model folder in Documents: `contract.json`, one `.aimodel`, and `tokenizer.json` either at the top level or under `tokenizer/`. The app enumerates folders at launch, so relaunch after copying one. The model section lists the available folders; the first is prepared when the screen opens.
+
+The model section reports load milliseconds and the requested compute preference. The app default is GPU; `--compute-units default` requests automatic placement. This label is not evidence of the hardware actually used. Inspect Core AI Instruments on the device to verify execution placement.
+
+Use **Stop** before editing recorded results or changing configuration. Cleanup completes before a new operation starts. The screen releases its model when closed. Returning during cleanup waits for the old operation before preparing the model again. A rejected candidate leaves the same item unanswered. Empty or failed input preserves existing records.
+
+The inspection is kept in memory while the app runs. Share the record before terminating the app. Unanswered, not inspected, not applicable and attention-needed results remain distinct. Diagnostics retain up to 1,000 events, including `decided:` and `timing:` entries. Use **Copy or share diagnostics** and choose Copy in the system share sheet.

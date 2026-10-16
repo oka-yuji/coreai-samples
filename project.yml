@@ -89,6 +89,10 @@ targets:
   CoreAISamples-iOS:
     type: application
     platform: iOS
+    info:
+      path: Config/Info-iOS.plist
+      properties:
+        UIFileSharingEnabled: true
     deploymentTarget: "27.0"
     sources:
       - path: CoreAISamples/Demos/ImageSearch
@@ -110,6 +114,12 @@ targets:
           - FieldRow.swift
           - NoteEditor.swift
     dependencies:
+      - package: CoreAISamplesKit
+        product: TruckInspectionCore
+      - package: CoreAISamplesKit
+        product: TruckInspectionFeature
+      - package: CoreAISamplesKit
+        product: TruckInspectionRuntime
       - package: CoreAISamplesKit
         product: EmbeddingCore
       - package: CoreAISamplesKit
@@ -143,7 +153,6 @@ targets:
         GENERATE_INFOPLIST_FILE: "YES"
         INFOPLIST_KEY_CFBundleDisplayName: Core AI Demos
         INFOPLIST_KEY_UILaunchScreen_Generation: "YES"
-        INFOPLIST_KEY_UIFileSharingEnabled: "YES"
         INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace: "YES"
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: "YES"
 

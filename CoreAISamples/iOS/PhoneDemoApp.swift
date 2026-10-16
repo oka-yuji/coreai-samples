@@ -6,17 +6,21 @@
     import ProductFeature
     import SwiftUI
     import UIKit
+    import TruckInspectionFeature
 
     @main
     struct PhoneDemoApp: App {
         private let computeUnits: ComputeUnits
 
         private let assetFolders: [URL]
+        private let truckAssetFolders: [URL]
         @State private var extract: Store<ExtractFeature>
         @State private var products = ProductAssembly.makeStore()
         @State private var imageSearch = ImageSearchAssembly.makeStore()
         @State private var showingImageSearch = LaunchArguments.flag("--image-search")
         @State private var showingExtractionLab = false
+        @State private var showingTruckInspection = CommandLine.arguments.contains("--truck-inspection")
+        @State private var truck: Result<Store<TruckInspectionFeature>, any Error>
         @AppStorage(DemoLanguage.preferenceKey) private var languageCode = DemoLanguage.initialCode
 
         init() {
@@ -36,6 +40,9 @@
                 initialValue: Store(
                     initialState: ExtractState(form: ExtractResources.form, labels: ExtractResources.examples.labels),
                     run: ExtractRunner(service: service).run))
+            let folders = TruckInspectionAssembly.modelFolders(assetFolders)
+            truckAssetFolders = folders
+            _truck = State(initialValue: Result { try TruckInspectionAssembly.makeStore(assetFolders: folders) })
         }
 
         var body: some Scene {
@@ -49,11 +56,28 @@
                         ProductComparisonView(store: products, assetFolders: assetFolders)
                             .toolbar {
                                 DemoLanguagePicker(code: $languageCode)
-                                Button("Extraction lab") { showingExtractionLab = true }
-                                Button("Image search") { showingImageSearch = true }
+                                Menu {
+                                    Button("Truck inspection") { showingTruckInspection = true }
+                                    Button("Extraction lab") { showingExtractionLab = true }
+                                    Button("Image search") { showingImageSearch = true }
+                                } label: {
+                                    Label("Demos", systemImage: "square.grid.2x2")
+                                }
+                                .labelStyle(.iconOnly)
                             }
                             .sheet(isPresented: $showingExtractionLab) {
                                 PhoneExtractView(store: extract, assetFolders: assetFolders, computeUnits: computeUnits)
+                            }
+                            .sheet(isPresented: $showingTruckInspection) {
+                                switch truck {
+                                case .success(let store):
+                                    TruckInspectionView(store: store, assetFolders: truckAssetFolders)
+                                case .failure(let error):
+                                    ContentUnavailableView(
+                                        "Could not load the inspection questions",
+                                        systemImage: "exclamationmark.triangle",
+                                        description: Text(verbatim: String(describing: error)))
+                                }
                             }
                             .sheet(isPresented: $showingImageSearch) {
                                 NavigationStack {

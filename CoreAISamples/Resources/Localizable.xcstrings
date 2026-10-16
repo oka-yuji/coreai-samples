@@ -5318,6 +5318,457 @@
           }
         }
       }
+    },
+    "%lld of %lld recorded" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%2$lld項目中%1$lld項目を記録済み"
+          }
+        }
+      }
+    },
+    "All answers recorded" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "すべての回答を記録しました"
+          }
+        }
+      }
+    },
+    "Answer again" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "答え直す"
+          }
+        }
+      }
+    },
+    "Change vehicle profile" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "車両の装備を変更"
+          }
+        }
+      }
+    },
+    "Changing the vehicle profile clears this record." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "車両の装備を変更すると、この記録を消去します。"
+          }
+        }
+      }
+    },
+    "Check timing depends on distance and operating conditions." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "走行距離・運行状況に応じた時期に点検する項目です。"
+          }
+        }
+      }
+    },
+    "Checklist sources" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "点検項目の出典"
+          }
+        }
+      }
+    },
+    "Choose a model asset to interpret free-form answers, or use the answer buttons." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自由な言い方の判定にはモデルを選択してください。ボタンでも回答できます。"
+          }
+        }
+      }
+    },
+    "Clear this inspection record?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この点検記録を消去しますか？"
+          }
+        }
+      }
+    },
+    "Compute preference: %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "計算ユニットの指定：%@"
+          }
+        }
+      }
+    },
+    "Confirm result" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この結果で記録"
+          }
+        }
+      }
+    },
+    "Continue inspection" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "点検入力を続ける"
+          }
+        }
+      }
+    },
+    "Copy or share diagnostics" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "診断ログをコピー・共有"
+          }
+        }
+      }
+    },
+    "Could not load the inspection questions" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "点検項目を読み込めませんでした"
+          }
+        }
+      }
+    },
+    "Daily inspection results" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "日常点検の結果入力"
+          }
+        }
+      }
+    },
+    "Enter an answer first." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "回答を入力してください。"
+          }
+        }
+      }
+    },
+    "Explicit answer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "回答どおりに記録"
+          }
+        }
+      }
+    },
+    "Inspection record" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "点検記録"
+          }
+        }
+      }
+    },
+    "Interpret answer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "入力した内容を判定"
+          }
+        }
+      }
+    },
+    "Interpreting your answer…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "回答を判定しています…"
+          }
+        }
+      }
+    },
+    "Japanese questions and answers are used with either interface language." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "質問と回答は、画面の表示言語にかかわらず日本語です。"
+          }
+        }
+      }
+    },
+    "Keep the answer within 240 characters." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "回答は240文字以内にしてください。"
+          }
+        }
+      }
+    },
+    "Load: %@ ms" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "読み込み：%@ ms"
+          }
+        }
+      }
+    },
+    "Model and diagnostics" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルと診断情報"
+          }
+        }
+      }
+    },
+    "Model ready: %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデル準備済み：%@"
+          }
+        }
+      }
+    },
+    "New inspection" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新しい点検"
+          }
+        }
+      }
+    },
+    "Or type what you found" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "確認した内容を文字で入力"
+          }
+        }
+      }
+    },
+    "Place the GLiNER asset folder in this app's Documents, then reopen the app." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このアプリのDocumentsにGLiNERの資産フォルダを配置し、アプリを起動し直してください。"
+          }
+        }
+      }
+    },
+    "Please answer this item again." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この項目をもう一度答えてください。"
+          }
+        }
+      }
+    },
+    "Ready" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "準備完了"
+          }
+        }
+      }
+    },
+    "Review the results below, including items needing attention and items not inspected." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "要確認・未点検の項目も含めて、下の記録を確認してください。"
+          }
+        }
+      }
+    },
+    "Share inspection record" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "点検記録を共有"
+          }
+        }
+      }
+    },
+    "Start a new record" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新しい記録を始める"
+          }
+        }
+      }
+    },
+    "Start inspection" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "点検入力を始める"
+          }
+        }
+      }
+    },
+    "Tap answers work without a model." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルの配置前でも、ボタンで回答できます。"
+          }
+        }
+      }
+    },
+    "The operation failed. Check the diagnostics or use the answer buttons." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "処理に失敗しました。診断情報を確認するか、ボタンで回答してください。"
+          }
+        }
+      }
+    },
+    "Truck inspection" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "トラック点検"
+          }
+        }
+      }
+    },
+    "Unanswered" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未回答"
+          }
+        }
+      }
+    },
+    "Vehicle profile" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "車両の装備"
+          }
+        }
+      }
+    },
+    "Waiting for confirmation" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "確認を待っています"
+          }
+        }
+      }
+    },
+    "Waiting for your answer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "回答を待っています"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"
