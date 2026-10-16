@@ -17,6 +17,7 @@ Scope: [Issue 143](https://github.com/oka-yuji/coreai-samples/issues/143), based
 | UI-06: required lint, format, Rust input build, default package tests and Mac Release build | Commands below | Passed |
 | UI-07: changed catalog and offline app checks | Commands below | Passed |
 | UI-08: modes on the left, model on the right of the same row, native glass controls and readable accessibility variants | Native segmented picker, glass model menu, safe-area bars, single regular-glass composer | Implemented; visual/accessibility-settings acceptance pending |
+| UI-09: user messages on the right and assistant answers on the left, with readable roles in long/narrow/localized content | Distinct alignment, role labels and background styles; wrapped selectable text with opposite-side spacing | Implemented; visual acceptance pending |
 
 ## Automatic checks
 
@@ -134,3 +135,24 @@ GUI appearance, narrow-window resizing, scroll behavior and reduced-transparency
 or increased-contrast settings still need manual confirmation. The previous
 automatic approval refusals remain in effect; no GUI operation or alternative
 screenshot route was attempted in this follow-up.
+
+## Message role follow-up
+
+Issue 143 v3 adds UI-09 after the user found questions and answers difficult to
+distinguish. User bubbles now align right, assistant bubbles left. The changes
+only affect the two message row variants; text, identity, history, operation
+guards and execution policy remain unchanged. No catalog keys are added.
+The user's existing private step-limit logs were inspected separately; the
+[sanitized diagnosis](../research/chat-step-limit-20261016.md) records the fixed
+two-step Chat budget and proposed improvements without copying the transcript.
+
+The message-row revision passes strict SwiftLint, diff formatting, the Rust
+input build, all 24 default SwiftPM test targets, Mac Release build, offline app
+self-test, 91 runtime localization keys and 1,500 compiled catalog lookups.
+The independent UI review found no confirmed code defect. A second reviewer
+checked the diagnosis against the policy, counter reset, tool rejection and
+saved metadata; the report distinguishes the stopped follow-up from a completed
+answer and the proposed continuation from the existing note-save action.
+Logs are in the local temporary directory
+`coreai-chat-feedback-20261016-865i4mm_`. GUI checks remain pending under the
+previous approval refusal; no model was rerun for the diagnosis.

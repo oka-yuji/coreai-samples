@@ -326,19 +326,36 @@ struct ConversationEntryRow: View {
     private var row: some View {
         switch entry.kind {
         case .user:
-            VStack(alignment: .leading, spacing: 2) {
-                label("You", "person")
-                Text(entry.text).textSelection(.enabled)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-        case .answer:
-            VStack(alignment: .leading, spacing: 2) {
-                label("Assistant", "sparkles")
-                Group {
-                    if entry.detail == .noAnswer { Text("(no answer text)") } else { Text(entry.text) }
+            HStack(alignment: .top, spacing: 0) {
+                Spacer(minLength: 48)
+                VStack(alignment: .trailing, spacing: 6) {
+                    label("You", "person")
+                    Text(entry.text)
+                        .textSelection(.enabled)
+                        .multilineTextAlignment(.leading)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(12)
+                        .background(Color.accentColor.opacity(0.12), in: .rect(cornerRadius: 16))
                 }
-                .textSelection(.enabled)
-                statsCaption
+                .frame(maxWidth: 640, alignment: .trailing)
+            }
+            .frame(maxWidth: .infinity, alignment: .trailing)
+        case .answer:
+            HStack(alignment: .top, spacing: 0) {
+                VStack(alignment: .leading, spacing: 6) {
+                    label("Assistant", "sparkles")
+                    Group {
+                        if entry.detail == .noAnswer { Text("(no answer text)") } else { Text(entry.text) }
+                    }
+                    .textSelection(.enabled)
+                    .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(12)
+                    .background(.quaternary.opacity(0.35), in: .rect(cornerRadius: 16))
+                    statsCaption
+                }
+                .frame(maxWidth: 720, alignment: .leading)
+                Spacer(minLength: 48)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         case .failure:
