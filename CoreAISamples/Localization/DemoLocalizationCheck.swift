@@ -24,6 +24,10 @@ enum DemoLocalizationCheck {
             keys += ["Kitchen equipment", "Open Clef-Flash bundle", "Change decision model"]
             keys += ["none", "Docs", "Thinking", "Thoughts", "Stopping…"]
             keys += ["Ended at the step limit", "Stopped", "Generation failed", "Where Work saves its notes"]
+            keys += [
+                "Could not save the conversation", "Read-only conversation", "Opening conversation…", "Save a copy",
+                "Retry save", "Saving conversation…", "Keep app open",
+            ]
             keys += Catalog.models.flatMap { [$0.memory, $0.platforms] }
             var failures: [String] = []
             for key in Set(keys).sorted() {

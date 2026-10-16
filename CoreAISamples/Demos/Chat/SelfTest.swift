@@ -75,7 +75,9 @@ enum SelfTest {
                 pass = false
                 break
             }
-            while host.state.isRunning || chat.isResponding { try? await Task.sleep(for: .milliseconds(20)) }
+            while host.state.isRunning || host.state.isSaving || chat.isResponding {
+                try? await Task.sleep(for: .milliseconds(20))
+            }
             guard let result = chat.ragEnabled ? chat.last : host.runner.session.lastGeneration else {
                 log(
                     "[selftest] no result: ragIsOn=\(chat.ragIsOn) running=\(host.state.isRunning) "

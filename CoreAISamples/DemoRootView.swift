@@ -57,6 +57,9 @@ enum Demo: String, CaseIterable, Identifiable {
 }
 
 struct DemoRootView: View {
+    private let lifetime: ConversationLifetime
+    @State private var windowID: UUID
+
     @AppStorage(DemoLanguage.preferenceKey) private var languageCode = DemoLanguage.initialCode
     @State private var navigator = DemoNavigator()
     @State private var chat: ChatViewModel
@@ -75,10 +78,13 @@ struct DemoRootView: View {
             appVersion: ExtractRunner.appVersion),
         run: ExtractRunner(service: GLiNERExtractService(correctionWords: ExtractResources.correctionWords)).run)
 
-    init() {
+    init(lifetime: ConversationLifetime) {
+        self.lifetime = lifetime
+        let id = UUID()
+        _windowID = State(initialValue: id)
         let chat = ChatViewModel()
         _chat = State(initialValue: chat)
-        _host = State(initialValue: ConversationHost(chat: chat))
+        _host = State(initialValue: ConversationHost(chat: chat, termination: { lifetime.finished(id, success: $0) }))
     }
 
     var body: some View {
@@ -141,6 +147,12 @@ struct DemoRootView: View {
             }
         }
         .environment(\.locale, (DemoLanguage(rawValue: languageCode) ?? .english).locale)
+        .onAppear {
+            lifetime.register(windowID, host: host)
+            if LaunchArguments.value("--gui-e2e") == nil { host.store.send(.restoreLatestRequested) }
+        }
+        .onDisappear { lifetime.close(windowID) }
+        .onChange(of: host.state.id) { host.restorePreferences() }
         .onChange(of: chat.loadStarted) { host.refreshIfModelChanged() }
         .task {
             await GUIDriver.shared.start(navigator: navigator, chat: chat, host: host, models: models, extract: extract)

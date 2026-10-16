@@ -6515,6 +6515,116 @@
           }
         }
       }
+    },
+    "Choose %@ to continue this conversation." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この会話を続けるには %@ を選択してください。"
+          }
+        }
+      }
+    },
+    "Could not save the conversation" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "会話を保存できませんでした"
+          }
+        }
+      }
+    },
+    "Keep app open" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アプリを開いたままにする"
+          }
+        }
+      }
+    },
+    "Opening conversation…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "会話を開いています…"
+          }
+        }
+      }
+    },
+    "Preparing conversation… %lld / %lld tokens" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "会話を準備しています… %lld / %lld トークン"
+          }
+        }
+      }
+    },
+    "Read-only conversation" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "読み取り専用の会話"
+          }
+        }
+      }
+    },
+    "Retry save" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保存を再試行"
+          }
+        }
+      }
+    },
+    "Save a copy" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コピーを保存"
+          }
+        }
+      }
+    },
+    "Saving conversation…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "会話を保存しています…"
+          }
+        }
+      }
+    },
+    "The app is still open. You can save a separate copy, or fix the save error and try quitting again." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アプリは開いたままです。別のコピーを保存するか、保存エラーの原因を解消して終了を再試行できます。"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

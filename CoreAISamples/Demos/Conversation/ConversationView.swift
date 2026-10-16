@@ -15,37 +15,89 @@ struct ConversationView: View {
         VStack(spacing: 0) {
             header
             Divider()
-            switch chat.phase {
-            case .ready:
+            archiveStatus
+            if let markdown = host.state.readOnlyMarkdown {
+                ScrollView {
+                    Text(markdown).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading).padding()
+                }
+            } else if chat.phase == .ready || !host.state.entries.isEmpty {
                 timeline
                 Divider()
-                if showSettings {
-                    ConversationSettingsView()
-                    Divider()
+                if chat.phase == .ready {
+                    if showSettings {
+                        ConversationSettingsView()
+                        Divider()
+                    }
+                    statusBar
+                    ComposerView()
+                } else {
+                    modelStatus
+                        .frame(maxHeight: 160)
                 }
-                statusBar
-                ComposerView()
-            case .loading(let preparing):
-                LoadingView(name: chat.modelName, preparing: preparing, since: chat.loadStarted)
-            case .failed(let message):
-                ContentUnavailableView {
-                    Label("Could not open the model", systemImage: "exclamationmark.triangle")
-                } description: {
-                    RuntimeMessageText(message)
-                } actions: {
-                    Button("Open Models") { navigator.selection = .models }
-                }
-            case .empty:
-                ContentUnavailableView {
-                    Label("No model loaded", systemImage: "square.and.arrow.down")
-                } description: {
-                    Text("Choose a model from the menu above, or open a bundle folder in Models.")
-                } actions: {
-                    Button("Open Models") { navigator.selection = .models }
-                }
+            } else {
+                modelStatus
             }
         }
         .demoNavigationTitle("Chat")
+    }
+
+    @ViewBuilder
+    private var archiveStatus: some View {
+        if host.state.isRestoring {
+            HStack {
+                ProgressView().controlSize(.small)
+                Text("Opening conversation…")
+            }.padding(8)
+        } else if case .failed(let message) = host.state.persistence {
+            HStack {
+                Image(systemName: "exclamationmark.triangle")
+                VStack(alignment: .leading) {
+                    Text(
+                        LocalizedStringKey(
+                            host.state.readOnlyMarkdown == nil
+                                ? "Could not save the conversation" : "Read-only conversation"))
+                    Text(message).font(.caption).textSelection(.enabled)
+                }
+                Spacer()
+                if host.state.readOnlyMarkdown == nil, !host.state.turns.isEmpty {
+                    Button("Retry save") { host.store.send(.retrySave) }
+                    Button("Save a copy", action: host.saveCopy)
+                }
+            }
+            .padding(8)
+            .background(Color.orange.opacity(0.1))
+        } else if host.state.isSaving {
+            Text("Saving conversation…").font(.caption).padding(4)
+        }
+    }
+
+    @ViewBuilder
+    private var modelStatus: some View {
+        switch chat.phase {
+        case .ready: EmptyView()
+        case .loading(let preparing):
+            LoadingView(name: chat.modelName, preparing: preparing, since: chat.loadStarted)
+        case .failed(let message):
+            ContentUnavailableView {
+                Label("Could not open the model", systemImage: "exclamationmark.triangle")
+            } description: {
+                RuntimeMessageText(message)
+            } actions: {
+                Button("Open Models") { navigator.selection = .models }
+            }
+        case .empty:
+            ContentUnavailableView {
+                Label("No model loaded", systemImage: "square.and.arrow.down")
+            } description: {
+                if !host.state.modelID.isEmpty {
+                    Text("Choose \(host.state.modelID) to continue this conversation.")
+                } else {
+                    Text("Choose a model from the menu above, or open a bundle folder in Models.")
+                }
+            } actions: {
+                Button("Open Models") { navigator.selection = .models }
+            }
+        }
     }
 
     private var header: some View {
@@ -62,10 +114,10 @@ struct ConversationView: View {
             }
             Spacer()
             Button("New", systemImage: "square.and.pencil", action: host.startNew)
-                .disabled(chat.phase != .ready || host.state.isRunning || chat.isResponding)
+                .disabled(!host.state.canLeave || chat.isResponding)
                 .help("Start a new conversation")
             Button("Copy", systemImage: "doc.on.doc", action: copy)
-                .disabled(host.state.entries.isEmpty)
+                .disabled(host.state.entries.isEmpty && host.state.readOnlyMarkdown == nil)
                 .help("Copy the conversation as Markdown")
             Toggle(isOn: $showSettings) {
                 Label("Conversation settings", systemImage: "gearshape")
@@ -148,7 +200,11 @@ struct ConversationView: View {
 
     @ViewBuilder
     private var statusView: some View {
-        if chat.isResponding {
+        if host.state.stopRequested {
+            Text("Stopping…")
+        } else if let preparation = host.state.preparation {
+            Text("Preparing conversation… \(preparation.processed) / \(preparation.total) tokens")
+        } else if chat.isResponding {
             Text(chat.retrieving ? "Collecting sources…" : "Generating…")
         } else if chat.ragIsOn, chat.last != nil {
             RuntimeMessageText(chat.statusLine)
@@ -175,7 +231,8 @@ struct ConversationView: View {
 
     private func copy() {
         NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(ConversationSnapshot(host.state).markdown(), forType: .string)
+        NSPasteboard.general.setString(
+            host.state.readOnlyMarkdown ?? ConversationSnapshot(host.state).markdown(), forType: .string)
     }
 }
 

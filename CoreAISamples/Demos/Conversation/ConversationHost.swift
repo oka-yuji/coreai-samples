@@ -1,4 +1,5 @@
 import ConversationFeature
+import ConversationRuntime
 import Foundation
 import Observation
 
@@ -97,12 +98,21 @@ final class ConversationHost {
     private(set) var store: ConversationStore
     @ObservationIgnored private(set) var runner: ConversationRunner
     @ObservationIgnored private var modelLoad: Date
+    @ObservationIgnored private let archive: ConversationArchive
+    @ObservationIgnored private let termination: (Bool) -> Void
 
-    init(chat: ChatViewModel, preferences: ConversationPreferences = ConversationPreferences()) {
+    init(
+        chat: ChatViewModel, preferences: ConversationPreferences = ConversationPreferences(),
+        archive: ConversationArchive = ConversationRunner.defaultArchive,
+        termination: @escaping (Bool) -> Void = { _ in }
+    ) {
         self.chat = chat
+        self.termination = termination
+        self.archive = archive
         self.preferences = preferences
         modelLoad = chat.loadStarted
-        (store, runner) = Self.make(chat: chat, preferences: preferences, mode: .chat)
+        (store, runner) = Self.make(
+            chat: chat, preferences: preferences, mode: .chat, archive: archive, termination: termination)
     }
 
     var state: ConversationState { store.state }
@@ -111,23 +121,59 @@ final class ConversationHost {
 
     var canSend: Bool {
         chat.phase == .ready && !store.state.isRunning && !chat.isResponding && !chat.externallyBusy && !contextFull
+            && !state.isSaving && !state.isRestoring && !state.isTerminating && state.readOnlyMarkdown == nil
             && !chat.trimmedInput.isEmpty
     }
 
     var canContinueInWork: Bool {
-        store.state.refusedSave && !store.state.isRunning && !contextFull && chat.phase == .ready
+        store.state.refusedSave && store.state.canLeave && !contextFull && chat.phase == .ready
             && !chat.isResponding && !chat.externallyBusy
     }
 
     func startNew() {
-        guard !store.state.isRunning, !chat.isResponding else { return }
+        guard state.canLeave, !chat.isResponding else { return }
         chat.resetRAG()
         modelLoad = chat.loadStarted
-        (store, runner) = Self.make(chat: chat, preferences: preferences, mode: store.state.mode)
+        (store, runner) = Self.make(
+            chat: chat, preferences: preferences, mode: store.state.mode, archive: archive, termination: termination)
     }
 
     func refreshIfModelChanged() {
-        if chat.loadStarted != modelLoad { startNew() }
+        guard chat.loadStarted != modelLoad else { return }
+        if runner.session.awaitingRestoredModel, let saved = state.modelLocation, let url = chat.bundleURL,
+            ModelStorage.key(URL(filePath: saved)) == ModelStorage.key(url)
+        {
+            modelLoad = chat.loadStarted
+        } else {
+            startNew()
+        }
+    }
+
+    func prepareModelSwitch(to url: URL) -> Bool {
+        guard state.canLeave else { return false }
+        if !runner.session.awaitingRestoredModel
+            || state.modelLocation.map({ ModelStorage.key(URL(filePath: $0)) }) != ModelStorage.key(url)
+        {
+            startNew()
+        }
+        return true
+    }
+
+    func saveCopy() {
+        let now = Date()
+        store.send(.saveCopyRequested(id: Self.newID(now), now: now))
+    }
+
+    func restorePreferences() {
+        guard state.archiveRevision > 0, !state.isRestoring else { return }
+        let settings = state.settings
+        preferences.effort = AgentReasoningEffort(rawValue: settings.effort) ?? .low
+        preferences.maxSteps = settings.maxSteps
+        preferences.maxTokens = settings.maxTokens
+        preferences.pageBudget = settings.pageBudget
+        preferences.fileOperations = settings.fileOperations
+        preferences.citationGuard = settings.citationGuard
+        preferences.notesFolderPath = settings.notesFolder
     }
 
     @discardableResult
@@ -161,12 +207,16 @@ final class ConversationHost {
         if chat.isResponding { chat.stop() } else { store.send(.stopRequested) }
     }
 
-    private static func make(chat: ChatViewModel, preferences: ConversationPreferences, mode: ConversationMode)
+    private static func make(
+        chat: ChatViewModel, preferences: ConversationPreferences, mode: ConversationMode,
+        archive: ConversationArchive, termination: @escaping (Bool) -> Void
+    )
         -> (ConversationStore, ConversationRunner)
     {
         let now = Date()
         let id = newID(now)
-        let runner = ConversationRunner(id: id, chat: chat, preferences: preferences)
+        let runner = ConversationRunner(
+            id: id, chat: chat, preferences: preferences, archive: archive, termination: termination)
         let state = ConversationState(
             id: id, now: now, mode: mode, settings: preferences.settings, modelID: chat.modelName,
             instructionsVersion: preferences.citeFetched ? "cite-fetched" : "frozen",

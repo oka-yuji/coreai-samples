@@ -99,7 +99,7 @@ enum AgentSelfTest {
             }
         }
         var busyGaps = 0
-        while host.state.isRunning {
+        while host.state.isRunning || host.state.isSaving {
             try? await Task.sleep(for: .milliseconds(500))
             if host.state.isRunning && !chat.externallyBusy { busyGaps += 1 }
             printSettledEntries()
@@ -530,6 +530,8 @@ enum AgentSelfTest {
             early == .refuse("no") && late == .run(finalize: true) && cancelled == .cancelled
                 && drained == [.cancelled, .cancelled] && runner.waitingCount == 0,
             "early=\(early) late=\(late) cancelled=\(cancelled) drained=\(drained) waiting=\(runner.waitingCount)")
+
+        await ConversationArchiveSelfTest.run { name, passed, detail in check(name, passed, detail) }
 
         let transcripts = FileManager.default.temporaryDirectory.appending(
             path: "agent-selftest-transcripts-\(ProcessInfo.processInfo.processIdentifier)",

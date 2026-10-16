@@ -97,7 +97,9 @@ public struct TurnNote: Codable, Equatable, Sendable {
 public enum Persistence: Equatable, Sendable {
     case unsaved
     case saved
+    case saving(revision: Int)
     case restoring(id: String)
+    case restoringLatest
     case failed(String)
 }
 
@@ -163,11 +165,13 @@ public struct ConversationState: Equatable, Sendable {
     public var mode: ConversationMode
     public var settings: ConversationSettings
     public var modelID: String
+    public var modelLocation: String?
     public var instructionsVersion: String
     public var toolsVersion: String
     public var createdAt: Date
     public var updatedAt: Date
     public var transcript = TranscriptRecord()
+    public var evidence = ConversationEvidence()
     public var turns: [ConversationTurn] = []
     public var entries: [ConversationEntry] = []
     public var isRunning = false
@@ -176,6 +180,10 @@ public struct ConversationState: Equatable, Sendable {
     public var step = 0
     public var refusedSave = false
     public var persistence = Persistence.unsaved
+    public var archiveRevision = 0
+    public var preparation: ConversationPreparation?
+    public var readOnlyMarkdown: String?
+    public var isTerminating = false
 
     public init(
         id: String, now: Date, mode: ConversationMode = .chat, settings: ConversationSettings = ConversationSettings(),
@@ -203,8 +211,21 @@ public struct ConversationState: Equatable, Sendable {
         turns.last?.finish ?? Finish.none
     }
 
-    var isRestoring: Bool {
-        if case .restoring = persistence { true } else { false }
+    public var isRestoring: Bool {
+        switch persistence {
+        case .restoring, .restoringLatest: true
+        default: false
+        }
+    }
+
+    public var isSaving: Bool {
+        if case .saving = persistence { true } else { false }
+    }
+
+    public var canLeave: Bool {
+        guard !isRunning, !isSaving, !isRestoring, !isTerminating else { return false }
+        if case .failed = persistence { return turns.isEmpty || readOnlyMarkdown != nil }
+        return true
     }
 
     func isActive(_ run: Int) -> Bool {
@@ -217,15 +238,36 @@ public struct ConversationState: Equatable, Sendable {
         createdAt = snapshot.createdAt
         updatedAt = snapshot.updatedAt
         modelID = snapshot.modelID
+        modelLocation = snapshot.modelLocation
         instructionsVersion = snapshot.instructionsVersion
         toolsVersion = snapshot.toolsVersion
         transcript = snapshot.transcript
+        evidence = snapshot.evidence ?? ConversationEvidence()
         turns = snapshot.turns
         if let last = turns.indices.last, turns[last].finish == Finish.none { turns[last].finish = .stopped }
         mode = turns.last?.mode ?? mode
+        settings = turns.last?.settings ?? settings
         step = 0
         refusedSave = false
         persistence = .saved
+        archiveRevision = snapshot.revision
+        preparation = nil
+        readOnlyMarkdown = nil
+    }
+}
+
+public enum ArchivedConversation: Equatable, Sendable {
+    case snapshot(ConversationSnapshot)
+    case readOnly(id: String, markdown: String, reason: String)
+}
+
+public struct ConversationPreparation: Equatable, Sendable {
+    public var processed: Int
+    public var total: Int
+
+    public init(processed: Int, total: Int) {
+        self.processed = processed
+        self.total = total
     }
 }
 

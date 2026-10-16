@@ -152,7 +152,7 @@ final class GUIDriver {
             )
             return false
         }
-        return await wait(seconds: timeout) { !host.state.isRunning && !host.chat.isResponding }
+        return await wait(seconds: timeout) { !host.state.isRunning && !host.state.isSaving && !host.chat.isResponding }
     }
 
     private static func turnText(_ host: ConversationHost) -> (thinking: Int, answer: Int) {
@@ -298,7 +298,7 @@ final class GUIDriver {
         await step(6, "stopped", "Stop ends the reply within three seconds and keeps what was written") {
             let started = ContinuousClock.now
             host.stop()
-            let halted = await self.wait(seconds: 3) { !host.state.isRunning }
+            let halted = await self.wait(seconds: 3) { !host.state.isRunning && !host.state.isSaving }
             let seconds = (ContinuousClock.now - started) / .seconds(1)
             let text = Self.turnText(host)
             let last = host.runner.session.lastGeneration
@@ -427,7 +427,7 @@ final class GUIDriver {
 
         await step(8, "conversation-continue", "Continue in Work saves the note in the same conversation") {
             host.continueInWork()
-            let done = await wait(seconds: 900) { !host.state.isRunning }
+            let done = await wait(seconds: 900) { !host.state.isRunning && !host.state.isSaving }
             previous = host.state.turns.last?.steps.max { $0.step < $1.step } ?? previous
             previousFirst = host.state.turns.last?.steps.min { $0.step < $1.step } ?? previousFirst
             let notes = host.runner.tools.notesWritten.map(\.key)
@@ -456,7 +456,7 @@ final class GUIDriver {
             let locked = host.state.isRunning && !host.canSend && host.state.mode == .work
             let started = ContinuousClock.now
             host.stop()
-            let halted = await wait(seconds: 3) { !host.state.isRunning }
+            let halted = await wait(seconds: 3) { !host.state.isRunning && !host.state.isSaving }
             let seconds = (ContinuousClock.now - started) / .seconds(1)
             host.chat.input = ""
             let stopped = host.state.entries.last { $0.kind == .failure && $0.title == "Stopped" }
@@ -518,7 +518,7 @@ final class GUIDriver {
         }
 
         await step(6, "agent-answer", "Work: the answer ends with Sources and every step has its numbers") {
-            let done = await self.wait(seconds: 900) { !host.state.isRunning }
+            let done = await self.wait(seconds: 900) { !host.state.isRunning && !host.state.isSaving }
             let answer = host.state.entries.last { $0.kind == .answer }?.text ?? ""
             let stats = host.state.entries.compactMap(\.stats)
             let finish = host.runner.session.lastFinish
@@ -538,9 +538,9 @@ final class GUIDriver {
             }
             let started = ContinuousClock.now
             host.stop()
-            let halted = await self.wait(seconds: 3) { !host.state.isRunning }
+            let halted = await self.wait(seconds: 3) { !host.state.isRunning && !host.state.isSaving }
             let seconds = (ContinuousClock.now - started) / .seconds(1)
-            _ = await self.wait(seconds: 120) { !host.state.isRunning }
+            _ = await self.wait(seconds: 120) { !host.state.isRunning && !host.state.isSaving }
             let stopped = host.state.entries.last { $0.kind == .failure && $0.title == "Stopped" }
             return (
                 grew && halted && stopped != nil,
@@ -726,7 +726,7 @@ final class GUIDriver {
 
     private func finish(metricsBefore: Int) async {
         for id in sessions {
-            let source = ConversationRunner.transcriptsDirectory().appending(path: "\(id).md")
+            let source = ConversationRunner.conversationsDirectory().appending(path: "\(id).md")
             do {
                 try FileManager.default.copyItem(at: source, to: outDir.appending(path: "transcript-\(id).md"))
             } catch {

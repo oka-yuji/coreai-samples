@@ -26,6 +26,9 @@ public struct ConversationSnapshot: Codable, Equatable, Sendable {
     public var transcript: TranscriptRecord
     public var status: Status
     public var metrics: Metrics
+    public var revision: Int = 0
+    public var modelLocation: String?
+    public var evidence: ConversationEvidence?
 
     public init(_ state: ConversationState) {
         let steps = state.turns.flatMap(\.steps)
@@ -35,11 +38,15 @@ public struct ConversationSnapshot: Codable, Equatable, Sendable {
         createdAt = state.createdAt
         updatedAt = state.updatedAt
         modelID = state.modelID
+        modelLocation = state.modelLocation
         instructionsVersion = state.instructionsVersion
         toolsVersion = state.toolsVersion
         turns = state.turns
         transcript = state.transcript
-        status = state.isRunning ? .interrupted : .completed
+        status =
+            state.isRunning || state.lastFinish == .stopped || state.lastFinish == .failed ? .interrupted : .completed
+        revision = state.archiveRevision
+        evidence = state.evidence
         metrics = Metrics(
             steps: steps.count, promptTokens: steps.map(\.promptTokens).reduce(0, +),
             reusedTokens: steps.map(\.reusedTokens).reduce(0, +),

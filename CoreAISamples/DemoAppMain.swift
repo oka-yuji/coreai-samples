@@ -2,12 +2,13 @@ import Foundation
 import SwiftUI
 
 struct DemoApp: App {
+    @NSApplicationDelegateAdaptor(ConversationLifetime.self) private var lifetime
     var body: some Scene {
         WindowGroup("Core AI Demos") {
             if LaunchArguments.flag("--product-preview") {
                 ProductPreviewRoot()
             } else {
-                DemoRootView()
+                DemoRootView(lifetime: lifetime)
             }
         }
         .defaultSize(width: 1040, height: 720)

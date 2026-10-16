@@ -291,7 +291,7 @@ struct ConversationFeatureTests {
         #expect(state.finalization == .normal)
 
         let saved = try #require(snapshot(ConversationFeature.reduce(&state, .stopped(run: 1))))
-        #expect(saved.status == .completed && saved.turns.last?.finish == .stopped)
+        #expect(saved.status == .interrupted && saved.turns.last?.finish == .stopped)
         #expect(!state.isRunning && !state.stopRequested && state.lastFinish == .stopped)
         #expect(state.entries.map(\.title) == ["You", "Thinking", "Stopped"])
         #expect(state.entries.last?.text == "Half an")
