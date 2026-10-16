@@ -15,14 +15,6 @@ struct ConversationSidebar: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            Button("New conversation", systemImage: "square.and.pencil") {
-                host.startNew()
-                navigator.selection = .chat
-            }
-            .buttonStyle(.bordered)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(10)
-            .disabled(!host.canManageHistory)
             List(selection: selection) {
                 Section("Conversations") {
                     if host.state.turns.isEmpty && host.state.readOnlyMarkdown == nil {

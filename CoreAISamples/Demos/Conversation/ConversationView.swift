@@ -20,25 +20,51 @@ struct ConversationView: View {
                 ScrollView {
                     Text(markdown).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading).padding()
                 }
-            } else if chat.phase == .ready || !host.state.entries.isEmpty {
-                timeline
-                Divider()
+            } else {
+                if chat.phase != .ready || !host.matchesConversationModel {
+                    modelStatus
+                        .padding(20)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                if chat.phase == .ready || !host.state.entries.isEmpty {
+                    timeline
+                } else {
+                    Spacer(minLength: 0)
+                }
                 if chat.phase == .ready && host.matchesConversationModel {
-                    if showSettings {
-                        ConversationSettingsView()
-                        Divider()
-                    }
+                    Divider()
                     statusBar
                     ComposerView()
-                } else {
-                    modelStatus
-                        .frame(maxHeight: 160)
                 }
-            } else {
-                modelStatus
             }
         }
-        .demoNavigationTitle("Chat")
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .demoNavigationTitle(host.state.mode == .chat ? "Chat" : "Work")
+        .toolbar {
+            ToolbarItemGroup(placement: .primaryAction) {
+                Button("Copy conversation", systemImage: "doc.on.doc", action: copy)
+                    .disabled(host.state.entries.isEmpty && host.state.readOnlyMarkdown == nil)
+                    .help("Copy the conversation as Markdown")
+                Button("Conversation settings", systemImage: "gearshape") { showSettings.toggle() }
+                    .help("Conversation settings")
+                    .disabled(chat.phase != .ready || host.state.readOnlyMarkdown != nil || host.state.isRestoring)
+                    .popover(isPresented: $showSettings, arrowEdge: .bottom) {
+                        VStack(alignment: .leading, spacing: 0) {
+                            HStack {
+                                Text("Conversation settings").font(.headline)
+                                Spacer()
+                                Button("Done") { showSettings = false }
+                            }
+                            .padding(16)
+                            Divider()
+                            ScrollView { ConversationSettingsView() }
+                                .frame(maxHeight: 520)
+                        }
+                        .frame(width: 560)
+                    }
+            }
+        }
+        .onChange(of: host.state.id) { showSettings = false }
     }
 
     @ViewBuilder
@@ -75,84 +101,114 @@ struct ConversationView: View {
     private var modelStatus: some View {
         switch chat.phase {
         case .ready:
-            Text("Choose \(host.state.modelID) to continue this conversation.")
-                .foregroundStyle(.secondary).padding()
+            VStack(alignment: .leading, spacing: 10) {
+                Label("Choose the conversation model", systemImage: "arrow.triangle.2.circlepath")
+                    .font(.headline)
+                Text("Choose \(host.state.modelID) to continue this conversation.")
+                    .foregroundStyle(.secondary)
+                Button("Open Models") { navigator.selection = .models }
+            }
         case .loading(let preparing):
             LoadingView(name: chat.modelName, preparing: preparing, since: chat.loadStarted)
         case .failed(let message):
-            ContentUnavailableView {
+            VStack(alignment: .leading, spacing: 10) {
                 Label("Could not open the model", systemImage: "exclamationmark.triangle")
-            } description: {
-                RuntimeMessageText(message)
-            } actions: {
+                    .font(.headline)
+                RuntimeMessageText(message).foregroundStyle(.secondary).textSelection(.enabled)
                 Button("Open Models") { navigator.selection = .models }
             }
         case .empty:
-            ContentUnavailableView {
+            VStack(alignment: .leading, spacing: 10) {
                 Label("No model loaded", systemImage: "square.and.arrow.down")
-            } description: {
-                if !host.state.modelID.isEmpty {
-                    Text("Choose \(host.state.modelID) to continue this conversation.")
-                } else {
-                    Text("Choose a model from the menu above, or open a bundle folder in Models.")
+                    .font(.headline)
+                Group {
+                    if !host.state.modelID.isEmpty {
+                        Text("Choose \(host.state.modelID) to continue this conversation.")
+                    } else {
+                        Text("Choose a model from the menu above, or open a bundle folder in Models.")
+                    }
                 }
-            } actions: {
+                .foregroundStyle(.secondary)
                 Button("Open Models") { navigator.selection = .models }
             }
         }
     }
 
     private var header: some View {
-        HStack(spacing: 8) {
-            VStack(alignment: .leading, spacing: 2) {
-                ModelMenu()
-                if let url = chat.bundleURL {
-                    Text(ModelStorage.key(url))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
+        VStack(alignment: .leading, spacing: 10) {
+            ModelMenu()
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 12) {
+                    modePicker
+                    modeDescription
+                        .fixedSize(horizontal: true, vertical: false)
+                }
+                VStack(alignment: .leading, spacing: 6) {
+                    modePicker
+                    modeDescription
                 }
             }
-            Spacer()
-            Button("New", systemImage: "square.and.pencil", action: host.startNew)
-                .disabled(!host.canManageHistory)
-                .help("Start a new conversation")
-            Button("Copy", systemImage: "doc.on.doc", action: copy)
-                .disabled(host.state.entries.isEmpty && host.state.readOnlyMarkdown == nil)
-                .help("Copy the conversation as Markdown")
-            Toggle(isOn: $showSettings) {
-                Label("Conversation settings", systemImage: "gearshape")
-            }
-            .toggleStyle(.button)
-            .labelStyle(.iconOnly)
-            .help("Show or hide the conversation settings")
-            .disabled(chat.phase != .ready)
         }
-        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 20)
+        .padding(.vertical, 12)
+    }
+
+    private var modePicker: some View {
+        Picker(
+            "Mode",
+            selection: Binding(get: { host.state.mode }, set: { host.store.send(.modeChanged($0)) })
+        ) {
+            Text("Chat").tag(ConversationMode.chat)
+            Text("Work").tag(ConversationMode.work)
+        }
+        .pickerStyle(.segmented)
+        .labelsHidden()
+        .frame(width: 180)
+        .disabled(
+            host.state.isRunning || host.state.isRestoring || host.state.isTerminating
+                || chat.isResponding || chat.ragIsOn || host.state.readOnlyMarkdown != nil)
+    }
+
+    private var modeDescription: some View {
+        Text(
+            chat.ragIsOn
+                ? "Answers from the collected sources in one reply."
+                : host.state.mode == .chat
+                    ? "Conversation. Searches the web when it needs facts." : "Multi-step research and notes."
+        )
+        .font(.caption)
+        .foregroundStyle(.secondary)
     }
 
     @ViewBuilder
     private var timeline: some View {
         if host.state.entries.isEmpty {
-            ContentUnavailableView(
-                "New conversation", systemImage: "bubble.left.and.bubble.right",
-                description: Text(
-                    "Chat answers and searches the web when it needs facts. Work runs multi-step research and saves notes."
-                )
-            )
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("New conversation").font(.title2.weight(.semibold))
+                    Text(
+                        "Chat answers and searches the web when it needs facts. Work runs multi-step research and saves notes."
+                    )
+                    .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(20)
+            }
+            .frame(maxHeight: .infinity, alignment: .top)
         } else {
             ScrollView {
-                VStack(alignment: .leading, spacing: 10) {
+                VStack(alignment: .leading, spacing: 18) {
                     ForEach(host.state.entries) { entry in
                         ConversationEntryRow(entry: entry)
                     }
                 }
-                .padding(12)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(20)
             }
             .scrollPosition($timelinePosition)
             .defaultScrollAnchor(.bottom)
+            .defaultScrollAnchor(.top, for: .alignment)
             .onScrollGeometryChange(for: TimelineFit.self) { geometry in
                 TimelineFit(
                     height: geometry.containerSize.height,
@@ -185,7 +241,7 @@ struct ConversationView: View {
                 .foregroundStyle(.secondary)
             }
         }
-        .padding(.horizontal, 12)
+        .padding(.horizontal, 20)
         .padding(.vertical, 6)
     }
 
@@ -469,14 +525,16 @@ struct LoadingView: View {
     @Environment(\.locale) private var locale
 
     var body: some View {
-        VStack(spacing: 12) {
-            ProgressView()
-            TimelineView(.periodic(from: since, by: 1)) { context in
-                Text(
-                    "\(DemoStrings(locale: locale).text(preparing ? "Preparing" : "Loading")) \(name)… \(Int(context.date.timeIntervalSince(since))) s"
-                )
-                .font(.headline)
-                .monospacedDigit()
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 10) {
+                ProgressView().controlSize(.small)
+                TimelineView(.periodic(from: since, by: 1)) { context in
+                    Text(
+                        "\(DemoStrings(locale: locale).text(preparing ? "Preparing" : "Loading")) \(name)… \(Int(context.date.timeIntervalSince(since))) s"
+                    )
+                    .font(.headline)
+                    .monospacedDigit()
+                }
             }
             Text(
                 LocalizedStringKey(
@@ -486,10 +544,8 @@ struct LoadingView: View {
             )
             .font(.callout)
             .foregroundStyle(.secondary)
-            .multilineTextAlignment(.center)
-            .frame(maxWidth: 440)
+            .frame(maxWidth: 560, alignment: .leading)
         }
-        .padding()
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }

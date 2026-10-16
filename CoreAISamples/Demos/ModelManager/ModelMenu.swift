@@ -31,7 +31,6 @@ struct ModelMenu: View {
                 .truncationMode(.middle)
                 .frame(maxWidth: 360, alignment: .leading)
         }
-        .fixedSize()
         .accessibilityLabel("Model")
         .accessibilityValue(modelLabel)
         .help("Choose the model the conversation uses")
@@ -51,7 +50,7 @@ struct ModelMenu: View {
     }
 
     private var modelLabel: Text {
-        chat.modelName.isEmpty ? Text("No model loaded") : Text(verbatim: chat.modelName)
+        chat.modelName.isEmpty ? Text("Choose model") : Text(verbatim: chat.modelName)
     }
 
     private func choices(_ entries: [ModelsViewModel.MenuEntry]) -> some View {

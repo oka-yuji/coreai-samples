@@ -52,3 +52,13 @@ The following paragraph described the earlier verification boundary before the d
 > Live-model diagnostics, loaded/loading/retry/cancellation GUI and retention of an actual photo/report are not claimed as verified on this version. Automatic approval review rejected quitting the user's original app because it contains unsaved inventory/photo state. The user was asked whether it may close with the recorded entries restored; no response has been received. No simultaneous model/GPU job was started. User manual acceptance remains pending; the feature cycle is not complete, merged or released.
 
 [Issue 78](https://github.com/oka-yuji/coreai-samples/issues/78) merges the Agent screen into Chat as its Work mode. The conversation screen, its settings and its notices use the same language control and catalog. `--gui-e2e --conversation` passed 9/9 in Japanese and in English (`-demoInterfaceLanguage en`) on the 0.8B bundle; the canonical record is the private lab's `2026-10-13-coreai-chat-work-unification`.
+
+## Conversation layout
+
+[Issue 143](https://github.com/oka-yuji/coreai-samples/issues/143) follows the user's 2026-10-16 feedback on the built Mac app. The conversation uses a top-aligned reading area and a bottom composer. An empty conversation, model loading, load failure and the unloaded-model action begin at the leading edge below the header. Short transcripts align to the top; long transcripts retain the latest-position behavior and scrolling to earlier messages.
+
+The header keeps the model menu and the Chat / Work mode control visible before a model is loaded. Work is a mode of the current conversation, with a consistent Japanese transliteration in the picker, sidebar and settings. Mode changes use the existing Store action and remain unavailable during a running/restoring operation, in a read-only archive and while RAG is enabled. The description wraps below the picker when the window cannot fit both on one line.
+
+The common window toolbar owns the new-conversation button so it is available when the sidebar is hidden or another demo is selected. The conversation toolbar owns copy and settings. Settings open in a scrollable popover instead of reducing the transcript's available height. Existing model/history operation guards, generation, persistence and copy-as-Markdown behavior remain owned by their current components.
+
+The acceptance conditions and the build-fix dependency are in Issue 143. Validation is recorded in [the layout evidence](../validation/conversation-layout-20261016.md). Earlier GUI evidence above predates this layout and does not verify its appearance.
