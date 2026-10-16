@@ -43,6 +43,7 @@
             failure = nil
             do {
                 let device = try configure(rotation: rotation, generation: generation)
+                try configurePixelFormat(device)
                 try Self.configureFrameRate(device)
                 for name in [AVCaptureSession.wasInterruptedNotification, AVCaptureSession.runtimeErrorNotification] {
                     let token = NotificationCenter.default.addObserver(forName: name, object: session, queue: nil) {
@@ -115,7 +116,7 @@
             session.addInput(input)
             session.addOutput(output)
             output.alwaysDiscardsLateVideoFrames = true
-            output.videoSettings = [kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA]
+            output.videoSettings = [:]
             let delegate = ObjectFinderCaptureDelegate { [weak self] image, time in
                 self?.assumeIsolated { capture in
                     guard capture.generation == generation else { return }
@@ -126,6 +127,17 @@
             output.setSampleBufferDelegate(delegate, queue: queue)
             setRotation(rotation)
             return device
+        }
+
+        private func configurePixelFormat(_ device: AVCaptureDevice) throws {
+            let native = ObjectCameraPixelFormat(
+                pixelType: CMFormatDescriptionGetMediaSubType(device.activeFormat.formatDescription))
+            let supported = Set(
+                output.availableVideoPixelFormatTypes.compactMap(ObjectCameraPixelFormat.init(pixelType:)))
+            guard let selected = ObjectCameraPixelFormat.select(native: native, supported: supported) else {
+                throw ObjectFinderFailure.operation("No compatible camera pixel format")
+            }
+            output.videoSettings = [kCVPixelBufferPixelFormatTypeKey as String: selected.pixelType]
         }
 
         private static func configureFrameRate(_ device: AVCaptureDevice) throws {
@@ -191,7 +203,11 @@
         }
 
         private func deliver(_ frame: CameraImage) {
-            guard let image = context.createCGImage(frame.image, from: frame.image.extent) else {
+            guard
+                let image = context.createCGImage(
+                    frame.image, from: frame.image.extent, format: .RGBA8,
+                    colorSpace: CGColorSpace(name: CGColorSpace.sRGB), deferred: false)
+            else {
                 fail(.operation("Could not read the camera image"))
                 return
             }
@@ -207,6 +223,25 @@
             tracker = nil
             preview.publish([], generation: generation, rotation: rotation)
             continuation?.finish(throwing: error)
+        }
+    }
+
+    extension ObjectCameraPixelFormat {
+        init?(pixelType: OSType) {
+            switch pixelType {
+            case kCVPixelFormatType_32BGRA: self = .bgra
+            case kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange: self = .yuvVideoRange
+            case kCVPixelFormatType_420YpCbCr8BiPlanarFullRange: self = .yuvFullRange
+            default: return nil
+            }
+        }
+
+        var pixelType: OSType {
+            switch self {
+            case .bgra: kCVPixelFormatType_32BGRA
+            case .yuvVideoRange: kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange
+            case .yuvFullRange: kCVPixelFormatType_420YpCbCr8BiPlanarFullRange
+            }
         }
     }
 
