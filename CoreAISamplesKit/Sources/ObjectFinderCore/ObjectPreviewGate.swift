@@ -25,4 +25,8 @@ public struct ObjectPreviewGate: Equatable, Sendable {
         }
         return candidates
     }
+
+    public func expiration(at time: Double) -> Double? {
+        visible(at: time).isEmpty ? nil : validUntil
+    }
 }
