@@ -1,0 +1,227 @@
+{
+  "issue": "https://github.com/oka-yuji/coreai-samples/issues/55",
+  "date": "2026-10-09",
+  "base": "8f7fcf873bed6cc241675636bb51e7cfa666438a",
+  "scope": "Publication documentation, three English display/reply constants, and mechanical formatting of those two Swift files.",
+  "acceptance": {
+    "PUB-01": {
+      "status": "passed",
+      "evidence": "README plus English/Japanese Clef guides contain the same HF id, requirements, download and Recipes/Decide setup; 23 local Markdown links resolve."
+    },
+    "PUB-02": {
+      "status": "passed",
+      "evidence": "Numbers and limitations matched against fixed HF revision 58e654c86485b29a47fef820226977742ff6868a; separate photo/model/arithmetic roles and network requirements are explicit."
+    },
+    "PUB-03": {
+      "status": "passed",
+      "evidence": "Applying only the three authorized string substitutions to the base and then swift-format produces the final two files exactly. Other literal/regex tokens and parsed AST are unchanged apart from source positions and optional semicolons. The original condition and formatting clarification remain in the issue."
+    },
+    "PUB-04": {
+      "status": "passed",
+      "evidence": "No new Swift comment or CJK token. Ordinary package tests and the Mac Release build pass; no prior cleanup branch was copied. Existing source comments are left for their separate cleanup dependency."
+    },
+    "PUB-05": {
+      "status": "passed for this unit",
+      "evidence": "Checks, initial failures and recovery are separated below. Publication visibility and final integration belong to the release coordinator."
+    }
+  },
+  "environment": {
+    "compiler": "Apple Swift 6.4 (swiftlang-6.4.0.34.1)",
+    "sdk": "macOS 27.0",
+    "configuration": "Release app; ordinary package tests; signing disabled for build validation",
+    "model_execution": false
+  },
+  "checks": [
+    {
+      "name": "ordinary package tests",
+      "command": "swift test --package-path CoreAISamplesKit -j 4",
+      "exit": 0,
+      "note": "COREAI_TEST_BUNDLES and COREAI_DECISION_BUNDLE removed from the process environment; dedicated scratch directory."
+    },
+    {
+      "name": "Mac Release build",
+      "command": "xcodebuild -project CoreAISamples.xcodeproj -scheme CoreAISamples -configuration Release -destination 'platform=macOS' CODE_SIGNING_ALLOWED=NO build",
+      "exit": 0,
+      "note": "Dedicated DerivedData directory; no application window or model opened."
+    },
+    {
+      "name": "changed-file formatter",
+      "command": "check-format.py --base 8f7fcf8",
+      "exit": 0,
+      "files": 2
+    },
+    {
+      "name": "strict SwiftLint",
+      "exit": 0,
+      "files": 121,
+      "note": "The original temporary-worktree command reports 39 existing baseline entries because its file-prefix resolution differs. The successful rerun uses exactly the same 39 entries with only location.file prefixed by the temporary checkout path. No rule, source text, severity or exception count changed; the repository baseline was not edited."
+    },
+    {
+      "name": "Agent offline self-test",
+      "command": "CoreAISamples --agent-selftest --offline",
+      "exit": 0,
+      "result": "AGENT SELFTEST PASS",
+      "skipped": [
+        "search/live",
+        "html/webView"
+      ]
+    },
+    {
+      "name": "relative documentation links",
+      "checked": 23,
+      "missing": 0
+    },
+    {
+      "name": "working-tree whitespace",
+      "command": "git diff --check",
+      "exit": 0
+    },
+    {
+      "name": "standard strict SwiftLint in stable checkout",
+      "command": "swiftlint lint --config .swiftlint.yml --baseline .swiftlint-baseline.json --strict --no-cache",
+      "exit": 0,
+      "files": 121,
+      "violations": 0,
+      "note": "Detached worktree of db3f473 under /Users, original repository baseline unchanged."
+    },
+    {
+      "name": "standard formatter against origin/main",
+      "command": "check-format.py --base origin/main",
+      "exit": 0,
+      "files": 42,
+      "note": "Same stable checkout and repository formatter configuration."
+    }
+  ],
+  "source_constraints": {
+    "base": "8f7fcf873bed6cc241675636bb51e7cfa666438a",
+    "source_checks": [
+      {
+        "path": "CoreAISamples/Demos/Agent/AgentViewModel.swift",
+        "after_sha256": "f0f1afae289e0f2988b900a1744a4488feaa899530f1e03c024b72a0e41df8f5",
+        "equals_format_of_three_literal_substitutions": true,
+        "other_literal_tokens_unchanged": true,
+        "regex_tokens_unchanged": true,
+        "comments_unchanged": true,
+        "ast_equal_ignoring_source_positions_and_optional_semicolons": true
+      },
+      {
+        "path": "CoreAISamplesKit/Sources/RAGContext/RAGContext.swift",
+        "after_sha256": "8dc03fb6c0c56a6e4761e80cceebf98343b002e942282be067a83487df02ce1c",
+        "equals_format_of_three_literal_substitutions": true,
+        "other_literal_tokens_unchanged": true,
+        "regex_tokens_unchanged": true,
+        "comments_unchanged": true,
+        "ast_equal_ignoring_source_positions_and_optional_semicolons": true
+      }
+    ],
+    "semantic_changes": "Three approved display/reply string constants only",
+    "formatting": "swift-format on the two changed files; no formatter config or exception changed",
+    "rag_cjk_lines": 8,
+    "rag_cjk_characters": 139,
+    "cjk_definition": "[　-〿぀-ヿ㐀-鿿]",
+    "new_swift_comments": 0,
+    "new_swift_cjk": 0,
+    "other_semantic_swift_differences": 0
+  },
+  "documents": {
+    "relative_links_checked": 23,
+    "missing_relative_links": [],
+    "cards": [
+      {
+        "file": "docs/clef-flash.md",
+        "required_ids_and_recorded_values_match": true,
+        "sha256": "1d12d0c4334e60b37886206293c95ad0e993de4d9f7c09f3c83b4abf7d50e58a"
+      },
+      {
+        "file": "docs/clef-flash.ja.md",
+        "required_ids_and_recorded_values_match": true,
+        "sha256": "94c686153f7e8e09a7c431fb9ebd7cc84af7890514b05279258703dd3a870449"
+      }
+    ],
+    "values_source": "HF revision 58e654c86485b29a47fef820226977742ff6868a README.md and VERIFICATION.md, copied raw verification records",
+    "existing_payload_bytes": 7278548313,
+    "hf_repo": "okayuji/clef-flash-9b-coreai-decide",
+    "public_visibility_and_main_urls": "pending orchestrator publication/integration; not claimed checked here",
+    "new_live_performance_values": false
+  },
+  "log_hashes": [
+    {
+      "name": "swift-test-after-format.log",
+      "sha256": "41319f2efaaf6aa691f79f69f575034b7949529723eeb70b6b999787f163990e"
+    },
+    {
+      "name": "release-build-after-format.log",
+      "sha256": "804943f564a9aaffc50b5ec5b1237bb7dc7720c6781b6e19b19fc8c94b8d5c47"
+    },
+    {
+      "name": "format-issue55-after.log",
+      "sha256": "de9e84ba04c2940e08b97c6db9a12b8aeb617fe94034b05d70ba71ad6ea6141d"
+    },
+    {
+      "name": "lint-path-normalized-after.log",
+      "sha256": "2f26fa982aab29799dcec0344107f5630aa0e2b419322afde899de0cab7d184f"
+    },
+    {
+      "name": "agent-offline.log",
+      "sha256": "6e285fcd22b0c5eaeea26c9d4fe1076619a8ffc7912ce9f48131c73c0a7e61ea"
+    },
+    {
+      "name": "lint-stable-pr.log",
+      "sha256": "c326e9a4c2ba2d0dc3cfa0b6c073f6ed605fdddbc5cbba9d7154e24afc8a7b61"
+    },
+    {
+      "name": "format-stable-pr-main.log",
+      "sha256": "70f952a3331ba14467eae496d26f4719c7bfd07dbcb3dae1e08531d256148a7d"
+    }
+  ],
+  "review": {
+    "reviewer": "Independent release coordinator",
+    "result": "Recorded numbers, three-constant scope and absence of functional changes confirmed. The iOS requirement statement was narrowed to Clef and Recipes. Pure formatting was then mechanically checked against the same source contract. No unresolved code finding.",
+    "final_independent_source_check": "The release coordinator independently reproduced the expected three-constant substitutions plus formatting and matched both final source files at db3f473; the final document review passed."
+  },
+  "initial_failures": [
+    {
+      "check": "formatter before mechanical formatting",
+      "AgentViewModel_diagnostics": 84,
+      "RAGContext_diagnostics": 22,
+      "introduced_by_this_issue": 0,
+      "resolution": "Format the two touched files; preserve the three-constant semantic scope. Final changed-file formatter passes."
+    },
+    {
+      "check": "strict lint using relative baseline in temporary checkout",
+      "existing_diagnostics": 39,
+      "resolution": "A path-only copy first confirmed the same existing exceptions. A subsequent stable /Users worktree of db3f473 passed the original standard baseline command with zero violations; no repository baseline edit was needed."
+    }
+  ],
+  "change_accounting": {
+    "swift_added": 194,
+    "swift_deleted": 84,
+    "semantic_literal_replacements": 3,
+    "semantic_added_deleted_lines": 6,
+    "remaining_swift_added_deleted_lines_are_formatting": 272,
+    "original_code_estimate_added_deleted_lines": 6,
+    "original_document_estimate": "250–450 added/deleted lines",
+    "original_sp": 3,
+    "sp_state": "provisional; unchanged"
+  },
+  "reflection": "Even a three-string update brings the touched files under the existing strict formatter. Recording original diagnostics and comparing formatted expected source, literal tokens and parsed AST separates mechanical cleanup from runtime changes.",
+  "spec_alignment": "README, Recipes/Decide setup, bilingual model guides and the documented no-sources/citation labels match the implemented scope. No Recipe/DecisionModel behavior or RAG prompt contract changed.",
+  "next": {
+    "owner": "release coordinator",
+    "remaining": [
+      "Integrate dependencies in the approved order and rerun the standard checks on that checkout.",
+      "Complete the final HF download execution and unauthenticated GitHub/HF link checks as part of publication."
+    ],
+    "outside_scope": "No inference features or new performance claims were added."
+  },
+  "published_or_merged_by_this_unit": false,
+  "pr_gate": {
+    "base": "feat/53-recipe-inspection",
+    "base_commit": "8f7fcf873bed6cc241675636bb51e7cfa666438a",
+    "source_commit": "db3f473d0ea0fae95eeecf6d098b39fc8f04101c",
+    "owned_paths": 9,
+    "staged_unrelated_changes": 0,
+    "unit_checks": "passed",
+    "integration_boundary": "The common release integration and predecessor model verification are tracked separately; this record does not claim their completion."
+  }
+}

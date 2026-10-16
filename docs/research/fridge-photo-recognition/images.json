@@ -1,0 +1,27 @@
+[
+  {
+    "id": "05-caprese",
+    "file": "05-caprese.png",
+    "sha256": "d99ffd52791f0ed31659183b6eb119d613b837cfa302ade5ef5e9f530a771653"
+  },
+  {
+    "id": "04-gratin",
+    "file": "04-gratin.png",
+    "sha256": "1c3b15e0e93c5f8bf6cc9e6495bf2bdfd0aaf75a3c0aef0eddcb3a2b28ed2c72"
+  },
+  {
+    "id": "03-omelette",
+    "file": "03-omelette.png",
+    "sha256": "c9812442f3e597641db29fda480a791dc03ffea7712df2cbf36be2196275d7af"
+  },
+  {
+    "id": "02-ginger-pork",
+    "file": "02-ginger-pork.png",
+    "sha256": "483740588c1bdce459d58d080e61bfd2b524d85cbe968596d08f313f6e9c8146"
+  },
+  {
+    "id": "01-oyakodon",
+    "file": "01-oyakodon.png",
+    "sha256": "8b25408f1c823213d2f84255372dd2b4e3cb6105545caa0aa520d401e09d8f65"
+  }
+]

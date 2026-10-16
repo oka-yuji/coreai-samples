@@ -20,7 +20,7 @@ struct ChatView: View {
                 ContentUnavailableView {
                     Label("Could not open the model", systemImage: "exclamationmark.triangle")
                 } description: {
-                    Text(message)
+                    RuntimeMessageText(message)
                 } actions: {
                     Button("Open Models") { navigator.selection = .models }
                 }
@@ -34,7 +34,7 @@ struct ChatView: View {
                 }
             }
         }
-        .navigationTitle("Chat")
+        .demoNavigationTitle("Chat")
     }
 
     private var header: some View {
@@ -56,8 +56,8 @@ struct ChatView: View {
                     .disabled(vm.phase != .ready || vm.isResponding)
             }
             HStack(spacing: 20) {
-                Picker("Thinking", selection: $vm.reasoning) {
-                    ForEach(ChatViewModel.Reasoning.allCases) { Text($0.rawValue).tag($0) }
+                Picker("Reasoning effort", selection: $vm.reasoning) {
+                    ForEach(ChatViewModel.Reasoning.allCases) { Text(LocalizedStringKey($0.rawValue)).tag($0) }
                 }
                 .pickerStyle(.segmented)
                 .fixedSize()
@@ -96,12 +96,14 @@ struct ChatView: View {
             if vm.isResponding {
                 ProgressView().controlSize(.small)
             }
-            Text(vm.isResponding ? (vm.retrieving ? "Collecting sources…" : "Generating…") : vm.statusLine)
-                .font(.caption.monospacedDigit())
-                .foregroundStyle(vm.last?.error == nil ? Color.secondary : Color.red)
-                .lineLimit(2)
-                .truncationMode(.tail)
-                .textSelection(.enabled)
+            RuntimeMessageText(
+                vm.isResponding ? (vm.retrieving ? "Collecting sources…" : "Generating…") : vm.statusLine
+            )
+            .font(.caption.monospacedDigit())
+            .foregroundStyle(vm.last?.error == nil ? Color.secondary : Color.red)
+            .lineLimit(2)
+            .truncationMode(.tail)
+            .textSelection(.enabled)
             Spacer()
             RAGControls()
         }
@@ -115,7 +117,7 @@ struct ChatView: View {
             if let notice = vm.contextNotice {
                 HStack(spacing: 8) {
                     Image(systemName: "exclamationmark.circle")
-                    Text(notice)
+                    RuntimeMessageText(notice)
                     Spacer(minLength: 0)
                     if vm.contextFull {
                         Button("New Chat", action: vm.newChat)
@@ -213,7 +215,7 @@ struct ThinkingView: View {
                 if live {
                     ProgressView().controlSize(.small)
                 }
-                Text(live ? "Thinking" : "Thoughts")
+                Text(LocalizedStringKey(live ? "Thinking" : "Thoughts"))
                     .fontWeight(.medium)
                 if !expanded {
                     Text(text.split(whereSeparator: \.isNewline).last.map(String.init) ?? "")
@@ -234,19 +236,23 @@ struct LoadingView: View {
     let name: String
     let preparing: Bool
     let since: Date
+    @Environment(\.locale) private var locale
 
     var body: some View {
         VStack(spacing: 12) {
             ProgressView()
             TimelineView(.periodic(from: since, by: 1)) { context in
-                Text("\(preparing ? "Preparing" : "Loading") \(name)… \(Int(context.date.timeIntervalSince(since))) s")
-                    .font(.headline)
-                    .monospacedDigit()
+                Text(
+                    "\(DemoStrings(locale: locale).text(preparing ? "Preparing" : "Loading")) \(name)… \(Int(context.date.timeIntervalSince(since))) s"
+                )
+                .font(.headline)
+                .monospacedDigit()
             }
             Text(
-                preparing
-                    ? "The first load of a model on this Mac prepares it for the GPU. This happens once per model; later loads reuse the prepared copy."
-                    : "Reading the model from disk."
+                LocalizedStringKey(
+                    preparing
+                        ? "The first load of a model on this Mac prepares it for the GPU. This happens once per model; later loads reuse the prepared copy."
+                        : "Reading the model from disk.")
             )
             .font(.callout)
             .foregroundStyle(.secondary)

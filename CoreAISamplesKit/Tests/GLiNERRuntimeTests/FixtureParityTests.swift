@@ -5,7 +5,8 @@ import Testing
 
 private let environment = ProcessInfo.processInfo.environment
 private let fixturesDirectory = URL(
-    filePath: environment["GLINER_FIXTURES_DIR"] ?? NSHomeDirectory() + "/Desktop/SelfApps/CoreLLM/models/coreai/gliner"
+    filePath: environment["GLINER_FIXTURES_DIR"]
+        ?? NSHomeDirectory() + "/Library/Caches/coreai-samples/reference/models/coreai/gliner"
 )
 private let tokenizerDirectory = environment["GLINER_TOKENIZER_DIR"].map { URL(filePath: $0) }
 private let fixtureFiles = [

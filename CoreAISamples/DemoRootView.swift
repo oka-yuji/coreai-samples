@@ -1,13 +1,18 @@
 import DecideFeature
 import ExtractFeature
 import FeatureStore
+import ImageSearchFeature
 import Observation
+import ProductFeature
+import RecipeFeature
 import SwiftUI
 
 enum Demo: String, CaseIterable, Identifiable {
     case chat
     case agent
     case decide
+    case recipes
+    case imageSearch
     case extract
     case models
 
@@ -18,6 +23,8 @@ enum Demo: String, CaseIterable, Identifiable {
         case .chat: "Chat"
         case .agent: "Agent"
         case .decide: "Decide"
+        case .recipes: "Recipes"
+        case .imageSearch: "Image search"
         case .extract: "Extract"
         case .models: "Models"
         }
@@ -28,7 +35,9 @@ enum Demo: String, CaseIterable, Identifiable {
         case .chat: "Talk to a local model through Foundation Models"
         case .agent: "Search the web and run multi-step tasks with tool calls"
         case .decide: "Check a document against an editable checklist"
-        case .extract: "Technical verification: type labels and see the spans GLiNER finds in a text"
+        case .recipes: "Can you make this recipe with what you have?"
+        case .imageSearch: "Find selected images with your own words"
+        case .extract: "Compare product specifications from official descriptions"
         case .models: "Get, open and prepare model bundles"
         }
     }
@@ -38,6 +47,8 @@ enum Demo: String, CaseIterable, Identifiable {
         case .chat: "bubble.left.and.bubble.right"
         case .agent: "sparkles"
         case .decide: "checklist"
+        case .recipes: "carrot"
+        case .imageSearch: "photo.badge.magnifyingglass"
         case .extract: "text.magnifyingglass"
         case .models: "square.and.arrow.down"
         }
@@ -47,15 +58,20 @@ enum Demo: String, CaseIterable, Identifiable {
 @MainActor
 @Observable
 final class DemoNavigator {
-    var selection: Demo? = .chat
+    var selection: Demo? = CommandLine.arguments.contains("--image-search") ? .imageSearch : .chat
 }
 
 struct DemoRootView: View {
+    @AppStorage(DemoLanguage.preferenceKey) private var languageCode = DemoLanguage.initialCode
     @State private var navigator = DemoNavigator()
     @State private var chat = ChatViewModel()
     @State private var agent = AgentViewModel()
     @State private var models = ModelsViewModel()
     @State private var decide = DecideAssembly.makeStore()
+    @State private var recipes = RecipeAssembly.makeStore()
+    @State private var products = ProductAssembly.makeStore()
+    @State private var imageSearch = ImageSearchAssembly.makeStore()
+    @State private var showingExtractionLab = false
     @State private var extract = Store<ExtractFeature>(
         initialState: ExtractState(
             form: ExtractResources.form, labels: ExtractResources.examples.labels,
@@ -71,8 +87,8 @@ struct DemoRootView: View {
                     NavigationLink(value: demo) {
                         Label {
                             VStack(alignment: .leading, spacing: 2) {
-                                Text(demo.title)
-                                Text(demo.summary)
+                                Text(LocalizedStringKey(demo.title))
+                                Text(LocalizedStringKey(demo.summary))
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }
@@ -82,14 +98,28 @@ struct DemoRootView: View {
                     }
                 }
             }
-            .navigationTitle("Demos")
+            .demoNavigationTitle("Demos")
             .navigationSplitViewColumnWidth(min: 200, ideal: 240)
         } detail: {
             switch navigator.selection {
             case .chat?: ChatView()
             case .agent?: AgentView()
             case .decide?: DecideView(store: decide)
-            case .extract?: ExtractView(store: extract)
+            case .recipes?: RecipeView(store: recipes)
+            case .imageSearch?: ImageSearchView(store: imageSearch)
+            case .extract?:
+                if LaunchArguments.value("--gui-e2e") != nil && LaunchArguments.value("--extract") != nil {
+                    ExtractView(store: extract)
+                } else {
+                    ProductComparisonView(store: products)
+                        .toolbar { Button("Extraction lab") { showingExtractionLab = true } }
+                        .sheet(isPresented: $showingExtractionLab) {
+                            NavigationStack {
+                                ExtractView(store: extract).toolbar { Button("Done") { showingExtractionLab = false } }
+                            }
+                            .frame(minWidth: 820, minHeight: 640)
+                        }
+                }
             case .models?: ModelsView()
             case nil: ContentUnavailableView("Select a demo", systemImage: "square.grid.2x2")
             }
@@ -99,6 +129,15 @@ struct DemoRootView: View {
         .environment(agent)
         .environment(models)
         .environment(decide)
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                DemoLanguagePicker(
+                    code: Binding(
+                        get: { (DemoLanguage(rawValue: languageCode) ?? .english).rawValue },
+                        set: { languageCode = $0 }))
+            }
+        }
+        .environment(\.locale, (DemoLanguage(rawValue: languageCode) ?? .english).locale)
         .task {
             GUIDriver.shared.attach(navigator: navigator, chat: chat, agent: agent, models: models, extract: extract)
         }

@@ -1,0 +1,214 @@
+{
+  "scopeFile": "/private/tmp/fridge-ui-review-scope.json",
+  "baseSha": "5ce5e01a8292d4ce77cdcdbdd44af3c2ee90f50a",
+  "headSha": "5ce5e01a8292d4ce77cdcdbdd44af3c2ee90f50a",
+  "stateToken": "ebe7879c79fbe524241d91770279e53572716a6f675bc4f7b4688bf7ecab653b",
+  "reviewedFiles": [
+    {
+      "path": "CoreAISamples.xcodeproj/project.pbxproj",
+      "sha256": "0c26b54dca36545edd99f8e24ef28625309afd3bb0a1c5868c52ffd7d631d0fb"
+    },
+    {
+      "path": "CoreAISamples/DemoAppMain.swift",
+      "sha256": "49ece7fd883bd630cfdc5a51d225d81b45ffa1ccaf914826a5f3e0a61c63d5e0"
+    },
+    {
+      "path": "CoreAISamples/DemoRootView.swift",
+      "sha256": "029e0a076b0b7e058bfe32d01ef661cd5b2f9bee4121ba353ffbf6a94e70f10d"
+    },
+    {
+      "path": "CoreAISamples/Demos/Recipes/RecipeAssembly.swift",
+      "sha256": "c8e651618a2b19d4b6037a6679cb976224dc4da5bfe4afc187df7a754b00f9bb"
+    },
+    {
+      "path": "CoreAISamples/Demos/Recipes/RecipeReportView.swift",
+      "sha256": "4860070ba789df077fe4c1f151d2e655ef4b1ba1b85ffd46c174ad116ae8413c"
+    },
+    {
+      "path": "CoreAISamples/Demos/Recipes/RecipeRunner.swift",
+      "sha256": "2e562d5d4641f1f62abb4990c256a5c9d1ba19d46319d7b187a68f965e5892b1"
+    },
+    {
+      "path": "CoreAISamples/Demos/Recipes/RecipeSelfTest.swift",
+      "sha256": "de12573364b3f9e0efd54dcdf5a7f5d46a3b91cc58918a8917d01675a02c3868"
+    },
+    {
+      "path": "CoreAISamples/Demos/Recipes/RecipeView.swift",
+      "sha256": "4d912d550c0125dbd32a667e3fc2e156b070463f7896f5ba30cc259c94938542"
+    },
+    {
+      "path": "CoreAISamples/Resources/Recipes/recipe-examples.json",
+      "sha256": "a0464546078ee27b095f122f677e6be099c551294e11b43cbf7612fc71586e8a"
+    },
+    {
+      "path": "project.yml",
+      "sha256": "0e6b990a787308c5e2015401e232ab56711353ade3cddc0984b93371a3d1f309"
+    }
+  ],
+  "assetAudit": [
+    {
+      "path": "CoreAISamples/Resources/Recipes/01-oyakodon.png",
+      "bytes": 2268817,
+      "width": 1086,
+      "height": 1448,
+      "sha256": "8b25408f1c823213d2f84255372dd2b4e3cb6105545caa0aa520d401e09d8f65",
+      "matchesProvidedImage": true
+    },
+    {
+      "path": "CoreAISamples/Resources/Recipes/02-ginger-pork.png",
+      "bytes": 2382299,
+      "width": 1086,
+      "height": 1448,
+      "sha256": "483740588c1bdce459d58d080e61bfd2b524d85cbe968596d08f313f6e9c8146",
+      "matchesProvidedImage": true
+    },
+    {
+      "path": "CoreAISamples/Resources/Recipes/03-omelette.png",
+      "bytes": 2371369,
+      "width": 1086,
+      "height": 1448,
+      "sha256": "c9812442f3e597641db29fda480a791dc03ffea7712df2cbf36be2196275d7af",
+      "matchesProvidedImage": true
+    },
+    {
+      "path": "CoreAISamples/Resources/Recipes/04-gratin.png",
+      "bytes": 2282029,
+      "width": 1086,
+      "height": 1448,
+      "sha256": "1c3b15e0e93c5f8bf6cc9e6495bf2bdfd0aaf75a3c0aef0eddcb3a2b28ed2c72",
+      "matchesProvidedImage": true
+    },
+    {
+      "path": "CoreAISamples/Resources/Recipes/05-caprese.png",
+      "bytes": 2336699,
+      "width": 1086,
+      "height": 1448,
+      "sha256": "d99ffd52791f0ed31659183b6eb119d613b837cfa302ade5ef5e9f530a771653",
+      "matchesProvidedImage": true
+    }
+  ],
+  "candidateLedger": [
+    {
+      "id": "F50-T01",
+      "severity": "P2",
+      "status": "unverified-coverage",
+      "path": "CoreAISamples/Demos/Recipes/RecipeRunner.swift",
+      "line": 14,
+      "summary": "Runner success/failure/cancellation mapping is not directly covered by controlled tests",
+      "evidence": [
+        "RecipeFeatureTests exercise reducer only",
+        "RecipeServiceTests coverLiveServicebarrier only",
+        "RecipeSelfTest traversesRunner successfulinspect/fetch/load/check; nocontrolledfailed/canceledRunnercases",
+        "ConventiontestingT3 requires execution-layer successandfailurechecks"
+      ],
+      "rebuttal": [
+        "AllRunnerbranches read consistently, withpost-awaitTaskcheck beforepublishing",
+        "Noactualincorrectactionmappingidentified",
+        "Rootmay supplyfurtherApp-sideRunnerchecks orGUIfailureevidence"
+      ],
+      "classification": "Coverage gap, not confirmed runtime bug."
+    },
+    {
+      "id": "F50-R01",
+      "severity": "P1",
+      "status": "rejected",
+      "summary": "Photo examples may be replaced by filename-based stock or automatically confirmed",
+      "evidence": [
+        "RecipeAssembly mapsresourcename toactualURL only",
+        "Runner calls realRecipeService.inspect",
+        "PhotoLoadedcreatesPantryItemdefaultconfirmed=false",
+        "UI hasexplicitcheckbox/bulkconfirmcontrols anddisclaimer",
+        "SelfTest first assertsunconfirmedphotoresults,then separately writes scriptedReviewedInventory"
+      ],
+      "rebuttal": "Nofilename/hash-derivedrecognitionreturn orautomaticconfirmation pathfound."
+    },
+    {
+      "id": "F50-R02",
+      "severity": "P2",
+      "status": "rejected",
+      "summary": "Ingredient quantities or stockconfidence are mislabeled as Clef requirement probability",
+      "evidence": [
+        "RecipeReportView hasdistinct ingredient.decision,Recipe amount,AmountCheck.title",
+        "Score label explicitlystates Requirement:<enum> andModel score",
+        "Globaluncalibratednotice shown",
+        "Kitchenstatuses separate fromingredientquantityrows andCore report.needsReview governs nonsuccesssummary"
+      ],
+      "rebuttal": "Knownstock/quantityfacts andmodelinterpretation aredisplayed asdistinct fields; no numericconversioninView."
+    },
+    {
+      "id": "F50-R03",
+      "severity": "P1",
+      "status": "rejected",
+      "summary": "Late Runnercompletion afterStop/closeoverwrites newinput/results",
+      "evidence": [
+        "Runner checksCancellation afterServiceawait",
+        "Store canceled-effect tokensdropdeliveries",
+        "Feature validates session/revision/phase; ended cancelsall,appeareddoesnotreuseoldsession",
+        "waitForIdle runner awaitsactualServicebarrier beforestopped action"
+      ],
+      "rebuttal": "No unguarded asynchronousresultpublication found inassignedRunner flow. NativefileImportercompletiontiming remainsGUIcoverageonly."
+    },
+    {
+      "id": "F50-R04",
+      "severity": "P1",
+      "status": "rejected",
+      "summary": "Resource/project wiring omitsphotos orbreaksexisting/iOSdemo dependencies",
+      "evidence": [
+        "plutilparse confirmsall5RecipeSwiftfiles onceinMacSources",
+        "All5PNGplusrecipe-examples.json onceinMacResources",
+        "RecipeCore/Runtime/Feature productslinkedonlytoMacapp",
+        "iOS targethasnoRecipeproducts/files",
+        "AssemblyBundle.mainstems matchresourcefilenames",
+        "All5fullPNGhashes matchprovidedmanifest"
+      ],
+      "rebuttal": "Staticproject/resource wiringconsistent. ActualReleasebuild andinstalledbundleresolution root-owned."
+    }
+  ],
+  "confirmedFindings": [],
+  "coverage": {
+    "RecipeView.swift": "full:body,photo/inventory/kitchen/URL/modelcontrols,importcallback,appear/disappear,formbindings,busyguards,labels,sourceLink",
+    "RecipeReportView.swift": "full:stock/quantity/requirement/probabilityseparation,summary/color/text,equipment,uncalibratednotice",
+    "RecipeAssembly.swift": "full:resourcefailurefallback,env/defaultmodelpath,examplenames/URLs",
+    "RecipeRunner.swift": "full:alleffects,Taskcancellation,erroractions,securityscope,modelpathpersistence,stopbarrier",
+    "RecipeSelfTest.swift": "full:realflow,scriptedreviewexplicitness,5caseassertions,records,failureexit,semaphore-stylecompletionharness",
+    "DemoRootView/DemoAppMain": "owndiff:sidebar/store/viewselection,recipe-e2ebranchbeforeGUIlaunch;otherdemoexecutionpathsretained",
+    "project.yml/pbxproj": "owndiffandstructuredplutilvalidation;Mac-onlyproducts/sources/resources",
+    "binaries": "Excludedbyreview_scope2MBlimit; independentlyreadfullhash/PNGdimensionsandmatchedprovidedmanifest. Visualsceneinspectionroot-owned.",
+    "RecipeFeature": "Boundary/callsite readtointerpretUIactions; deepreducerreviewassignedseparately"
+  },
+  "checks": [
+    "Readonlyfullsource reviewwithappSwift6andSDK27settings",
+    "HIGlocalimages/textfields/lists-tables/accessibility/buttons consulted",
+    "All5PNGhashesmatchprovided originals,1086x1448 each",
+    "NoCJKorcommentdelimiters in5newRecipesSwiftfiles",
+    "Projectparsedwithplutil;nosource/resource duplicateentries",
+    "Initialscope unchanged atcheck;largebinarysha256empty-hashplaceholderhandledviaindependentassethashes"
+  ],
+  "knownSignals": {
+    "parentReported": [
+      "AllCPUtestspass"
+    ],
+    "pending": [
+      "MacReleasebuildwasinprogressatassignment",
+      "Liveheadless5caseandGUIverificationroot-only"
+    ]
+  },
+  "unresolvedCoverage": [
+    "ControlledRecipeRunnerfailure/cancellationtests(F50-T01)",
+    "Actualwindowgeometry,narrowwindow,VoiceOver,keyboardnavigation,nativefileimporterinteraction",
+    "RealModel/Photo/GPUorheadlessrunnotexecutedbyreviewer"
+  ],
+  "pendingTasks": [
+    {
+      "instruction": "RootshouldverifyRunnerfailed/cancelledsuccesssuppression andwaitForIdleactionwithcontrollable service fake or equivalentApp-side test.",
+      "reason": "RunnernotpresentinSPMCPUtests;read-onlyreviewdoesnotmodifytargets."
+    },
+    {
+      "instruction": "RootshouldfinishReleasebuildandactualRF01/RF04/RF05GUI/headlessverification.",
+      "reason": "Reviewerexplicitlyprohibitedfrommodel/GPU/appstartup."
+    }
+  ],
+  "failures": [],
+  "complete": true,
+  "guideCandidates": "No new Core AI guide candidates."
+}

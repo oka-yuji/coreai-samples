@@ -7,6 +7,7 @@ struct ModelsView: View {
     @Environment(ModelsViewModel.self) private var vm
     @Environment(Store<DecideFeature>.self) private var decide
     @Environment(ChatViewModel.self) private var chat
+    @Environment(AgentViewModel.self) private var agent
     @Environment(DemoNavigator.self) private var navigator
     @State private var importing = false
     @State private var pendingDelete: CatalogRow?
@@ -41,7 +42,7 @@ struct ModelsView: View {
                 Button("Open Folder…", systemImage: "folder") { importing = true }
                 DecideModelButton(store: decide)
                 if let message = vm.message {
-                    Text(message)
+                    RuntimeMessageText(message)
                         .font(.callout)
                         .foregroundStyle(.secondary)
                 }
@@ -51,7 +52,7 @@ struct ModelsView: View {
                 LabeledContent("Disk available", value: vm.availableSpace.formatted(.byteCount(style: .file)))
             }
         }
-        .navigationTitle("Models")
+        .demoNavigationTitle("Models")
         .onAppear { vm.refresh() }
         .fileImporter(isPresented: $importing, allowedContentTypes: [.folder]) { result in
             if case .success(let url) = result { vm.open(url) }
@@ -72,7 +73,7 @@ struct ModelsView: View {
 
     private func load(_ url: URL) {
         navigator.selection = .chat
-        Task { await chat.load(url) }
+        Task { await ModelSwitch.choose(url, chat: chat, agent: agent) }
     }
 }
 
@@ -94,14 +95,16 @@ struct FolderRowView: View {
                 .lineLimit(1)
                 .truncationMode(.middle)
             HStack {
-                Text(
-                    folder.problem
-                        ?? (folder.name == nil
-                            ? "Not a readable bundle" : folder.size.formatted(.byteCount(style: .file)))
-                )
+                Group {
+                    if folder.problem != nil || folder.name == nil {
+                        RuntimeMessageText(folder.problem ?? "Not a readable bundle")
+                    } else {
+                        Text(folder.size.formatted(.byteCount(style: .file)))
+                    }
+                }
                 .lineLimit(2)
                 if let state {
-                    Text(state).foregroundStyle(.green)
+                    Text(LocalizedStringKey(state)).foregroundStyle(.green)
                 }
                 Spacer()
                 Button("Load", action: onLoad)
@@ -133,7 +136,7 @@ struct CatalogRowView: View {
             Text(row.model.name)
                 .fontWeight(.medium)
             Text(
-                "\(row.model.repo)  ·  \(row.model.sizeBytes.formatted(.byteCount(style: .file)))  ·  memory \(row.model.memory)  ·  \(row.model.platforms)"
+                "\(row.model.repo)  ·  \(row.model.sizeBytes.formatted(.byteCount(style: .file)))  ·  memory \(Text(LocalizedStringKey(row.model.memory)))  ·  \(Text(LocalizedStringKey(row.model.platforms)))"
             )
             .font(.caption)
             .foregroundStyle(.secondary)
@@ -168,19 +171,23 @@ struct CatalogRowView: View {
                 .font(.caption)
             } else {
                 HStack {
-                    Text(row.hasPartial ? "Partly downloaded" : "Not downloaded")
+                    Text(LocalizedStringKey(row.hasPartial ? "Partly downloaded" : "Not downloaded"))
                         .foregroundStyle(.secondary)
                     Spacer()
-                    Button(row.hasPartial ? "Resume" : "Download", action: onDownload)
+                    Button(LocalizedStringKey(row.hasPartial ? "Resume" : "Download"), action: onDownload)
                         .buttonStyle(.bordered)
                 }
                 .font(.caption)
             }
             if let error = row.error, !row.isDownloading {
-                Label(error, systemImage: "exclamationmark.triangle.fill")
-                    .font(.caption)
-                    .foregroundStyle(.red)
-                    .lineLimit(2)
+                Label {
+                    RuntimeMessageText(error)
+                } icon: {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                }
+                .font(.caption)
+                .foregroundStyle(.red)
+                .lineLimit(2)
             }
         }
         .controlSize(.small)

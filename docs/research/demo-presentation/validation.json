@@ -1,0 +1,149 @@
+{
+  "date": "2026-10-09",
+  "scope": "Issues 52 and 53 combined implementation; automatic and HF downloaded-copy functional checks passed; user manual GUI acceptance remains separate",
+  "base": "603acae",
+  "languageHead": "ca8a947",
+  "inspectionBranch": "feat/53-recipe-inspection",
+  "sourceHashes": {
+    "CoreAISamples.xcodeproj/project.pbxproj": "dcef827429ba7f7a1582a93f04c463b33f18687df4a641273ee2ed94e14dcd30",
+    "CoreAISamples/DemoAppMain.swift": "2b7de00b4c119bc48431d848cbd195c4abad7dea01cec3d4f67ead1440f1ed24",
+    "CoreAISamples/DemoRootView.swift": "01ca44f69263cd4ce2f09abf5613201f9de26bfe3b5cff68e9b42c2d5758dddf",
+    "CoreAISamples/Demos/Agent/AgentView.swift": "fa3ed590ee4f9ef65b78e6f7e483bd55e9abe6a6dfc5703a1aeffe4dda97d98c",
+    "CoreAISamples/Demos/Chat/ChatRAG.swift": "1e79888730fdd8fb6a6d82f5c7cab25f31c95a5b3e068f205776a1d8632ae862",
+    "CoreAISamples/Demos/Chat/ChatView.swift": "3e9aad62a2d4102f5a990ed30434225df4cf62cc3ebf3cd6769ee3fea0d6999f",
+    "CoreAISamples/Demos/Decide/DecideItemEditor.swift": "2324a189c8e67c16c282f47c871cd1649731c7ba6a76d3da22e7b0d26fa4a15d",
+    "CoreAISamples/Demos/Decide/DecideResultRow.swift": "2790854bf9c09ae2d820dbfce3c2707185ce46fd6535171f93d353c65d3d467e",
+    "CoreAISamples/Demos/Decide/DecideView.swift": "f1081d857210dd5fda99934c6aeeeecbf719973c5a58b0cdd1e359cb92672b7c",
+    "CoreAISamples/Demos/Extract/ExtractView.swift": "24e7056c14318ca7e44092e11a455b77eb1e39b5562c616baae6f975fa65395e",
+    "CoreAISamples/Demos/Extract/FieldEditor.swift": "f926e81b888fbc5def85a63e5327a86a2bf77a90945b9bf7989c6e3bd84b50d4",
+    "CoreAISamples/Demos/Extract/FieldRow.swift": "1482e0e9513224e324d5278bd8b5a2bb47ed93320c9c11456ca7889b0d143c68",
+    "CoreAISamples/Demos/Extract/NoteEditor.swift": "351012c18072ee733428d37b9b2af8916e211f22b310aeb98cadc7f22c203f59",
+    "CoreAISamples/Demos/ModelManager/ModelsView.swift": "f16a68024f8660a42b39aae626370d539acb849bc6fb5079d75817e4cdcb9584",
+    "CoreAISamples/Demos/Recipes/RecipeInspectorView.swift": "a3b5f77129ca91de3421369e1b56b4fbea4edde0d734fffc01ade10a8acfe006",
+    "CoreAISamples/Demos/Recipes/RecipeModelView.swift": "ef275226edbad4bb2d37b01f5d84941fc5d2ea27da6d4c65312459fd933f7231",
+    "CoreAISamples/Demos/Recipes/RecipeReportView.swift": "c350393192ecf07737e4159035072e735562d10f2799ec2b14c721683e88511b",
+    "CoreAISamples/Demos/Recipes/RecipeSelfTest.swift": "bd8d9f28a2051daf842afb88a46fb4fe13fe9369fcf556e729f23a663289c1d1",
+    "CoreAISamples/Demos/Recipes/RecipeView.swift": "6569d11c3fbf86cb5b99b9a7c9ce5ec3ade9786b001daef1b9eafa7e9642741d",
+    "CoreAISamples/Localization/DemoLanguage.swift": "c4bf14d22c24726548751d61dbbc59a1cd00666d7d92f052b5222a4509ded820",
+    "CoreAISamples/Localization/DemoLocalizationCheck.swift": "c138cd1c84f86ae728704bbf3c4e72127a0db5671af7bab4b6f536c8d1d76b1f",
+    "CoreAISamples/Resources/Ingredients.xcstrings": "b66fa717f741a98a6d584105e1a1e317c2986ee1cc105ca2a28f5e15055d2559",
+    "CoreAISamples/Resources/Localizable.xcstrings": "c9ede6e97008c8a3dbb9487ccdc4ce8ccbdf799063f0fd9c42c72a3301464f3f",
+    "CoreAISamplesKit/Sources/RecipeCore/RecipeDiagnostics.swift": "0ee52cd67bca5729ba6c3d6f1b5d0bdfe632f26760ee88a27a571bae1b092f41",
+    "CoreAISamplesKit/Sources/RecipeCore/RecipeTypes.swift": "52147df55d373a483c45835245c862bdf25befe9a66a1136653a1703875a0811",
+    "CoreAISamplesKit/Sources/RecipeFeature/RecipeFeature.swift": "6ed86100690d09c146b010d650c12c1e1a2639e125c609b1ab189038d9aa3a1b",
+    "CoreAISamplesKit/Sources/RecipeRuntime/RecipeService.swift": "ea1a45af5a55a74f371bd155cda9518a5487708906e57b55879820f682fb9671",
+    "CoreAISamplesKit/Tests/RecipeFeatureTests/RecipeFeatureTests.swift": "c7e495207eb03df16f3b5438a9cafa2883ed515946e0915a2a7bd69e40fe399b",
+    "CoreAISamplesKit/Tests/RecipeRuntimeTests/RecipeDiagnosticsTests.swift": "dc65686e6449a35c272fe0dfaa8d1f4629db62da87e3dc39d4a913d6fe143b4a",
+    "Tools/Localization/check-bundle.swift": "31e36e619e0087175f2624b7bac3b31e34c660696dc94d3edebf2a1ff7c7695a",
+    "project.yml": "f8e536aa2872f5a3626fc4e2ebc0e970484e5b8bdffa551f01e1aa8803ccedca"
+  },
+  "checks": {
+    "ordinarySwiftTests": {
+      "status": "pass",
+      "log": "/private/tmp/fridge-inspector-tests.log",
+      "note": "Model-gated suites not executed in ordinary run."
+    },
+    "projectionFollowupTests": {
+      "status": "pass",
+      "tests": 4,
+      "log": "/private/tmp/fridge-inspector-projection-tests.log"
+    },
+    "strictLint": {
+      "status": "pass",
+      "files": 121,
+      "violations": 0,
+      "log": "/private/tmp/fridge-inspector-lint-final.log",
+      "note": "Temporary worktree uses relocated existing baseline; stable checkout uses repository baseline.",
+      "stableCheckout": {
+        "status": "pass",
+        "command": "swiftlint lint --config .swiftlint.yml --baseline .swiftlint-baseline.json --strict --no-cache",
+        "files": 121,
+        "violations": 0,
+        "log": "/private/tmp/fridge-stable-lint.log"
+      }
+    },
+    "swiftFormat": {
+      "status": "pass",
+      "log": "/private/tmp/fridge-inspector-format-final.log"
+    },
+    "releaseBuild": {
+      "status": "pass",
+      "appId": "com.coreai-samples.DemoApp",
+      "log": "/private/tmp/fridge-inspector-final-build.log"
+    },
+    "catalogCoverage": {
+      "status": "pass",
+      "languages": [
+        "en",
+        "ja"
+      ],
+      "translationTargets": 497,
+      "compiledLookups": 994,
+      "failedLookups": 0,
+      "runtimeUIKeys": 60,
+      "missingRuntimeUIKeys": 0
+    },
+    "addedSwiftComments": 0,
+    "addedSwiftCJK": 0,
+    "hfDownloadedCopy": {
+      "status": "pass",
+      "codeCommit": "8f7fcf873bed6cc241675636bb51e7cfa666438a",
+      "appSHA256": "430250eae1632b45f4aef8625bd2d19dcaded896ba66e7ce9c552656124cd4d6",
+      "hfRevision": "58e654c86485b29a47fef820226977742ff6868a",
+      "record": "hf-download-20261009/summary.json",
+      "executedUTC": {
+        "from": "2026-10-09T14:22:47.910442+00:00",
+        "through": "2026-10-09T14:23:37.352565+00:00"
+      },
+      "recipeReports": 6,
+      "maintenanceQuestions": 5,
+      "maintenanceOptions": 17,
+      "maintenanceMaximumProbabilityDifference": 0,
+      "maintenanceMaximumLogitDifference": 0,
+      "canonicalRecord": {
+        "repo": "oka-yuji/CoreLLM",
+        "commit": "f8a9a492",
+        "path": "docs/results/2026-10-09-coreai-clef-flash-hf-download-verification.md"
+      }
+    }
+  },
+  "acceptance": {
+    "L10N-01 v1": "Agent GUI verified six screen switch/navigation and persisted EN across preview relaunch; user manual pending.",
+    "L10N-02 v1": "PASS catalog targets, placeholders, compiled lookups, runtime keys.",
+    "L10N-03 v1": "Focused confirmed stock and live fetched recipe preserved. Loaded model/photo/report switching is pending.",
+    "L10N-04 v1": "PASS reducer regressions; GUI real edit clears confirmation while language switch does not.",
+    "L10N-05 v1": "Original recipe distinguished. Narrow-window/IME not verified. User manual pending.",
+    "L10N-06 v1": "PASS ordinary tests, lint, format, Mac Release build and source boundary checks.",
+    "INSPECT-01 v1": "Unloaded model name visible in EN/JP. Loaded/loading/retry/cancellation GUI pending.",
+    "INSPECT-02 v1": "PASS raw projection including tied winner, ID order, legacy/null and roundtrip.",
+    "INSPECT-03 v1": "PASS strict threshold for ingredient and equipment; unknown conditions, quantity math and cancellation ownership unchanged.",
+    "INSPECT-04 v1": "PASS on unchanged source 8f7fcf8 using the HF downloaded copy: five recipe cases plus toaster change have diagnostics; eggs short by 2 pcs; unavailable equipment becomes available with 403 reused tokens. Maintenance answers and all 17 option probabilities/logits match the published reference. See hf-download-20261009/summary.json.",
+    "INSPECT-05 v1": "Inspector no-result/count/threshold stages translated and retained when expanded. Actual decision score display pending.",
+    "INSPECT-06 v1": "PASS automatic repository checks; unavailable measurements omitted."
+  },
+  "independentReviews": [
+    "view-review.json",
+    "data-review.json",
+    "navigation-review.json"
+  ],
+  "guiRecord": "gui-verification.json",
+  "guideBranches": {
+    "branch": "docs/fridge-recipe-findings",
+    "bindingPitfall": "efff1ba",
+    "navigationTitle": "c4ce9a2"
+  },
+  "completion": "Implementation, automatic repository checks and HF downloaded-copy functional verification are complete for code 8f7fcf8. User-owned manual and remaining GUI checks stay outstanding. Merge and publication status are tracked separately.",
+  "inspectionCode": "9424799",
+  "history": [
+    {
+      "state": "before HF downloaded-copy execution",
+      "codeCommit": "8f7fcf873bed6cc241675636bb51e7cfa666438a",
+      "scope": "Issues 52 and 53 combined implementation; pending live-model and user acceptance",
+      "INSPECT-04 v1": "Pending: no new model run while original user app remains open.",
+      "completion": "Implementation and automatic checks complete; combined live-model verification and user manual acceptance are outstanding. No PR/merge/release.",
+      "startWaitStatus": "Historical app-close refusal and GPU wait; no longer the blocker after the successful automated execution below."
+    }
+  ],
+  "executedCodeCommit": "8f7fcf873bed6cc241675636bb51e7cfa666438a",
+  "followupScope": "Documentation and sanitized evidence only; sourceHashes, code, prompts and thresholds unchanged."
+}

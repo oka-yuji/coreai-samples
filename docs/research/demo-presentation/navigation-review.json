@@ -1,0 +1,127 @@
+{
+  "task": "#52 navigation-title follow-up; identity and Store ownership review only",
+  "reviewer": "/root/review_decide2",
+  "repo": "/private/tmp/fridge-presentation",
+  "mode": "commit",
+  "baseSha": "899fdcde7707cdaf812a9f4276bc4696afa8e50f",
+  "headSha": "6cb491d64392e210bde9e1253b4dd472349fee3c",
+  "scope": "/private/tmp/fridge-navigation-review-scope.json",
+  "stateToken": "26efcec609d825f383c8a994621c0a1e39ce4e1f92c377312eab78e2b2b922d7",
+  "snapshotTime": "2026-10-09T15:30:00.624488+09:00",
+  "confirmed": [],
+  "plausible": [],
+  "unverifiedCandidates": [],
+  "candidateLedger": [
+    {
+      "id": "F52-NR01",
+      "status": "rejected",
+      "title": "言語切替時のStore/VM再作成",
+      "evidence": [
+        "DemoRootViewのNavigator、Chat/Agent/Models VM、Decide/Recipes/Extract Storeの@State所有・初期化は差分なし。",
+        "DemoNavigationTitleは固定型のViewModifierで、bodyは常に同じcontent.navigationTitle(Text(...))を返す。localeに応じたView型分岐や.id追加はない。",
+        "呼出7か所は既存navigationTitleへの定数リテラルを同名のdemoNavigationTitleへ置換しただけ。"
+      ]
+    },
+    {
+      "id": "F52-NR02",
+      "status": "rejected",
+      "title": "タイトル変更が再推論/入力編集/取消を起こす",
+      "evidence": [
+        "新modifierの依存はkeyとEnvironment.localeだけ。Store、Action、Task、onChange、onAppear/onDisappear、Binding書込みはない。",
+        "既存の各画面の生命周期ハンドラー、Storeへの参照、Rootの言語設定とtaskは変更されていない。"
+      ]
+    },
+    {
+      "id": "F52-NR03",
+      "status": "rejected",
+      "title": "翻訳済みタイトルが再度翻訳キーとして処理される",
+      "evidence": [
+        "DemoStrings(locale:locale).text(key)の結果をText(verbatim:)へ渡すため、選択localeのlookup結果が原文Stringとしてタイトルに渡される。",
+        "MacOSX27.0 SDK SwiftUI.swiftinterface:24615にnavigationTitle(Text)の宣言を確認。7つの入力はいずれも既存の固定UIキー。"
+      ]
+    }
+  ],
+  "coverage": [
+    {
+      "path": "CoreAISamples/DemoRootView.swift",
+      "ref": "6cb491d64392e210bde9e1253b4dd472349fee3c",
+      "sha256": "01ca44f69263cd4ce2f09abf5613201f9de26bfe3b5cff68e9b42c2d5758dddf",
+      "scope": "commit diff; new modifier full body and Root state ownership read"
+    },
+    {
+      "path": "CoreAISamples/Demos/Agent/AgentView.swift",
+      "ref": "6cb491d64392e210bde9e1253b4dd472349fee3c",
+      "sha256": "fa3ed590ee4f9ef65b78e6f7e483bd55e9abe6a6dfc5703a1aeffe4dda97d98c",
+      "scope": "commit diff; new modifier full body and Root state ownership read"
+    },
+    {
+      "path": "CoreAISamples/Demos/Chat/ChatView.swift",
+      "ref": "6cb491d64392e210bde9e1253b4dd472349fee3c",
+      "sha256": "39af4f18f47d4dcd0155c7f43adc719c0656ed7879270e2c462dc90e5a3927b5",
+      "scope": "commit diff; new modifier full body and Root state ownership read"
+    },
+    {
+      "path": "CoreAISamples/Demos/Decide/DecideView.swift",
+      "ref": "6cb491d64392e210bde9e1253b4dd472349fee3c",
+      "sha256": "f1081d857210dd5fda99934c6aeeeecbf719973c5a58b0cdd1e359cb92672b7c",
+      "scope": "commit diff; new modifier full body and Root state ownership read"
+    },
+    {
+      "path": "CoreAISamples/Demos/Extract/ExtractView.swift",
+      "ref": "6cb491d64392e210bde9e1253b4dd472349fee3c",
+      "sha256": "24e7056c14318ca7e44092e11a455b77eb1e39b5562c616baae6f975fa65395e",
+      "scope": "commit diff; new modifier full body and Root state ownership read"
+    },
+    {
+      "path": "CoreAISamples/Demos/ModelManager/ModelsView.swift",
+      "ref": "6cb491d64392e210bde9e1253b4dd472349fee3c",
+      "sha256": "f16a68024f8660a42b39aae626370d539acb849bc6fb5079d75817e4cdcb9584",
+      "scope": "commit diff; new modifier full body and Root state ownership read"
+    },
+    {
+      "path": "CoreAISamples/Demos/Recipes/RecipeView.swift",
+      "ref": "6cb491d64392e210bde9e1253b4dd472349fee3c",
+      "sha256": "c3c961f84cbc3754bbaf8aa033c93d5a18be35f5970e4d68f0d3ba79c1c3175e",
+      "scope": "commit diff; new modifier full body and Root state ownership read"
+    },
+    {
+      "path": "CoreAISamples/Localization/DemoLanguage.swift",
+      "ref": "6cb491d64392e210bde9e1253b4dd472349fee3c",
+      "sha256": "c4bf14d22c24726548751d61dbbc59a1cd00666d7d92f052b5222a4509ded820",
+      "scope": "commit diff; new modifier full body and Root state ownership read"
+    }
+  ],
+  "validation": [
+    {
+      "kind": "commit boundary",
+      "result": "6cb491d parent is exactly 899fdcd; working tree/#53 changes excluded."
+    },
+    {
+      "kind": "source trace",
+      "result": "No Store recreation or new inference/action path introduced."
+    },
+    {
+      "kind": "SDK declaration",
+      "result": "Text-taking navigationTitle overload exists in installed macOS27 SDK."
+    }
+  ],
+  "unresolvedCoverage": [
+    "GUI title refresh, actual SwiftUI lifecycle callbacks and live preservation of inputs/results were not exercised; root owns GUI verification.",
+    "No build/compiler/app/GPU execution; source-only narrow follow-up review.",
+    "#53 rebased working-tree implementation is excluded from this committed #52 delta."
+  ],
+  "failures": [],
+  "unparsedCandidates": [],
+  "pendingTasks": [],
+  "deferredTasks": [],
+  "excluded": [],
+  "blockers": [],
+  "complete": true,
+  "completionScope": "Requested Store/identity safety of the committed navigation-title delta.",
+  "stats": {
+    "confirmed": 0,
+    "rejectedHypotheses": 3,
+    "files": 8
+  },
+  "guideAppendCandidates": []
+}

@@ -1,0 +1,745 @@
+{
+  "task": "Issue #52 localization: independent Mac view review",
+  "reviewer": "/root/review_decide2",
+  "repo": "/private/tmp/fridge-presentation",
+  "branch": "feat/52-demo-languages",
+  "baseSha": "603acae1cfbe4a2304990373ff4ba2832e700bec",
+  "headSha": "603acae1cfbe4a2304990373ff4ba2832e700bec",
+  "scope": "/private/tmp/fridge-language-view-fix-scope.json",
+  "initialScope": "/private/tmp/fridge-language-view-scope.json",
+  "stateToken": "6128eb5e13c2a2346abcf6f54afa3a09800ef54f93e3fb82f8ec8fdebcd75035",
+  "snapshotTime": "2026-10-09T13:17:19.713897+09:00",
+  "environment": {
+    "compiler": "Apple Swift 6.4 (swiftlang-6.4.0.34.1)",
+    "languageMode": "6.0",
+    "SDK": "MacOSX27.0.sdk",
+    "deploymentTarget": "macOS 27.0",
+    "target": "CoreAISamples",
+    "buildSettings": "project.yml / pbxproj read; no xcodebuild executed by this reviewer",
+    "probe": "swiftc -swift-version 6 -target arm64-apple-macos27.0; scratch module cache; no AppKit/SwiftUI application launched"
+  },
+  "candidateLedger": [
+    {
+      "id": "F52-V01",
+      "status": "resolved",
+      "severity": "P2",
+      "maxSeverity": "P2",
+      "title": "Agentのアプリ所有ラベルがStringのまま表示される",
+      "locations": [
+        {
+          "path": "CoreAISamples/Demos/Agent/AgentView.swift",
+          "line": 337,
+          "needle": "private func label(_ text:"
+        },
+        {
+          "path": "CoreAISamples/Demos/Agent/AgentView.swift",
+          "line": 316,
+          "needle": "Text(entry.title)"
+        },
+        {
+          "path": "CoreAISamples/Demos/Agent/AgentView.swift",
+          "line": 63,
+          "needle": "Text(\"web_search"
+        }
+      ],
+      "condition": "JP選択後にAgentのuser/answer/thinking/toolCallを表示する。headerは常時。",
+      "evidence": [
+        "label(\"You\"), label(\"Assistant\"), label(\"Calling ...\")はString引数になりLabel(String)を呼ぶ。You/AssistantのJA訳はCatalogにあるが参照されない。",
+        "Thinkingのentry.titleもText(String)。headerのsearch viaはString連結。",
+        "scratch output: LABEL VARIABLEのtitle.storage=verbatim、LABEL KEYはLocalizedTextStorage。"
+      ],
+      "rebuttal": "本文やtool名は原文データだが、発言者/Thinking/Calling/search viaはアプリUI。固定ラベルだけ局所的に翻訳できるため原文保持契約による例外ではない。",
+      "suggestedFix": "kind別の固定ラベル/書式をローカライズし、本文・tool名は補間された原文として保持する。",
+      "evidenceHistory": [
+        {
+          "stateToken": "9a6755bbad440ce5719ac155a404b0d90f534517e5bbd17d9626581c280ac311",
+          "status": "confirmed",
+          "basis": "independent source/catalog inspection; SDK and scratch CPU probe where relevant"
+        },
+        {
+          "stateToken": "6128eb5e13c2a2346abcf6f54afa3a09800ef54f93e3fb82f8ec8fdebcd75035",
+          "status": "resolved",
+          "evidenceId": "F52-V01-FIX1",
+          "basis": [
+            "AgentEntryRow.label now accepts LocalizedStringKey; literal You/Assistant and Calling interpolation use that overload. Thinking has a literal key; toolResult/note have original-data headings. Runtime failure titles/stats use RuntimeMessageText.",
+            "Agent header is now a localized %@ — search via %@ format; tool IDs/provider remain String arguments. Chat/Agent input, response and reasoning Text(String) paths are unchanged."
+          ]
+        }
+      ],
+      "resolution": {
+        "kind": "fixed",
+        "stateToken": "6128eb5e13c2a2346abcf6f54afa3a09800ef54f93e3fb82f8ec8fdebcd75035",
+        "evidenceIds": [
+          "F52-V01-FIX1"
+        ],
+        "evidence": [
+          "AgentEntryRow.label now accepts LocalizedStringKey; literal You/Assistant and Calling interpolation use that overload. Thinking has a literal key; toolResult/note have original-data headings. Runtime failure titles/stats use RuntimeMessageText.",
+          "Agent header is now a localized %@ — search via %@ format; tool IDs/provider remain String arguments. Chat/Agent input, response and reasoning Text(String) paths are unchanged."
+        ],
+        "validation": "Independent current source/catalog reinspection; parent Release/test success logs read. No app/GUI/GPU execution by this reviewer."
+      }
+    },
+    {
+      "id": "F52-V02",
+      "status": "resolved",
+      "severity": "P2",
+      "maxSeverity": "P2",
+      "title": "Extractの確認状態の補間内に英語が残る",
+      "locations": [
+        {
+          "path": "CoreAISamples/Demos/Extract/FieldRow.swift",
+          "line": 75,
+          "needle": "Text(\"Confirmed:"
+        },
+        {
+          "path": "CoreAISamples/Demos/Extract/FieldRow.swift",
+          "line": 139,
+          "needle": "static func describe("
+        }
+      ],
+      "condition": "JPでフィールドをOn holdまたはNo matching option/None of theseとして確定する。",
+      "evidence": [
+        "Self.describe(.hold)=\"On hold\"、.noMatch=\"No match\"。Confirmed: %@だけがJAになり補間値は英語。",
+        "scratch CONFIRMED INTERPOLATIONはkey=Confirmed: %@、argumentのvalue=On hold。"
+      ],
+      "rebuttal": "On holdのJAキーが存在しても補間引数は再ローカライズされない。.option/.valueはユーザー原文なのでdescribe全体のLSK化は別の誤翻訳を起こす。",
+      "suggestedFix": ".hold/.noMatchだけUI側で翻訳し、.option/.valueはraw Stringを返す。",
+      "evidenceHistory": [
+        {
+          "stateToken": "9a6755bbad440ce5719ac155a404b0d90f534517e5bbd17d9626581c280ac311",
+          "status": "confirmed",
+          "basis": "independent source/catalog inspection; SDK and scratch CPU probe where relevant"
+        },
+        {
+          "stateToken": "6128eb5e13c2a2346abcf6f54afa3a09800ef54f93e3fb82f8ec8fdebcd75035",
+          "status": "resolved",
+          "evidenceId": "F52-V02-FIX1",
+          "basis": [
+            "FieldRow.confirmedText looks up only .noMatch and .hold using the current environment locale. .option(name) and .value(text) return raw values, including values equal to known keys such as On hold.",
+            "Both No match and On hold Japanese entries exist; Confirmed: %@ remains a localized format with the already-selected raw/translated argument."
+          ]
+        }
+      ],
+      "resolution": {
+        "kind": "fixed",
+        "stateToken": "6128eb5e13c2a2346abcf6f54afa3a09800ef54f93e3fb82f8ec8fdebcd75035",
+        "evidenceIds": [
+          "F52-V02-FIX1"
+        ],
+        "evidence": [
+          "FieldRow.confirmedText looks up only .noMatch and .hold using the current environment locale. .option(name) and .value(text) return raw values, including values equal to known keys such as On hold.",
+          "Both No match and On hold Japanese entries exist; Confirmed: %@ remains a localized format with the already-selected raw/translated argument."
+        ],
+        "validation": "Independent current source/catalog reinspection; parent Release/test success logs read. No app/GUI/GPU execution by this reviewer."
+      }
+    },
+    {
+      "id": "F52-V03",
+      "status": "resolved",
+      "severity": "P2",
+      "maxSeverity": "P2",
+      "title": "一部の診断文字列で原文表示の識別が抜ける",
+      "locations": [
+        {
+          "path": "CoreAISamples/Demos/ModelManager/ModelsView.swift",
+          "line": 99,
+          "needle": "? (folder.problem"
+        },
+        {
+          "path": "CoreAISamples/Demos/Extract/ExtractView.swift",
+          "line": 106,
+          "needle": "Text(verbatim:"
+        },
+        {
+          "path": "CoreAISamples/Demos/Extract/ExtractView.swift",
+          "line": 120,
+          "needle": "Text(ExtractRunner.describe(timing))"
+        },
+        {
+          "path": "CoreAISamples/Demos/Chat/ChatRAG.swift",
+          "line": 192,
+          "needle": "Label(line, systemImage:"
+        }
+      ],
+      "condition": "JPで登録済みフォルダが読めない状態、Extractモデル読込/抽出完了後、RAGの読み込み診断が発生する。",
+      "evidence": [
+        "ModelsViewModel.refreshのcatchが保存するerror.localizedDescriptionをFolderRowViewがText(String)で表示する。",
+        "Extract readyはloaded in/revisionをText(verbatim:)で連結、timingはpreprocess/encode/...をText(String)に渡す。",
+        "RAGSourceFooter.notesはRAGRetrieverが作る診断文字列をLabel(String)で表示する。"
+      ],
+      "rebuttal": "ランタイム診断そのものの全面翻訳は契約上不要だが、docs/specs/demo-presentation.mdは未認識メッセージをoriginal detailsと識別する。RuntimeMessageTextへの移行が他箇所にはあるため、この枝だけでは満たさない。",
+      "suggestedFix": "アプリ所有の短い書式は翻訳するか、診断・技術詳細を原文と識別する。モデル本文は翻訳しない。",
+      "evidenceHistory": [
+        {
+          "stateToken": "9a6755bbad440ce5719ac155a404b0d90f534517e5bbd17d9626581c280ac311",
+          "status": "confirmed",
+          "basis": "independent source/catalog inspection; SDK and scratch CPU probe where relevant"
+        },
+        {
+          "stateToken": "6128eb5e13c2a2346abcf6f54afa3a09800ef54f93e3fb82f8ec8fdebcd75035",
+          "status": "resolved",
+          "evidenceId": "F52-V03-FIX1",
+          "basis": [
+            "FolderRowView now separates errors through RuntimeMessageText from byte-count text.",
+            "Extract loaded-in and Revision are localized format literals, with raw filename/revision arguments. Timing uses RuntimeMessageText.",
+            "RAGSourceFooter diagnostic notes use RuntimeMessageText; actual sources and body data remain raw."
+          ]
+        }
+      ],
+      "resolution": {
+        "kind": "fixed",
+        "stateToken": "6128eb5e13c2a2346abcf6f54afa3a09800ef54f93e3fb82f8ec8fdebcd75035",
+        "evidenceIds": [
+          "F52-V03-FIX1"
+        ],
+        "evidence": [
+          "FolderRowView now separates errors through RuntimeMessageText from byte-count text.",
+          "Extract loaded-in and Revision are localized format literals, with raw filename/revision arguments. Timing uses RuntimeMessageText.",
+          "RAGSourceFooter diagnostic notes use RuntimeMessageText; actual sources and body data remain raw."
+        ],
+        "validation": "Independent current source/catalog reinspection; parent Release/test success logs read. No app/GUI/GPU execution by this reviewer."
+      }
+    },
+    {
+      "id": "F52-V04",
+      "status": "resolved",
+      "severity": "P3",
+      "maxSeverity": "P3",
+      "title": "Agentのフォルダ選択ダイアログが英語固定",
+      "locations": [
+        {
+          "path": "CoreAISamples/Demos/Agent/AgentView.swift",
+          "line": 177,
+          "needle": "panel.prompt ="
+        },
+        {
+          "path": "CoreAISamples/Demos/Agent/AgentView.swift",
+          "line": 178,
+          "needle": "panel.message ="
+        }
+      ],
+      "condition": "JPでAgent settingsのNotes folder → Chooseを開く。",
+      "evidence": [
+        "NSOpenPanel.promptにChoose、messageにWhere the agent saves its notesを直接代入。Catalogにも両キーなし。"
+      ],
+      "rebuttal": "SwiftUI environment.localeはAppKitの任意Stringプロパティを翻訳しない。OS標準ボタンとは別にアプリがこの2値を指定している。",
+      "suggestedFix": "選択localeによるDemoStringsまたは同等の明示lookupを行う。",
+      "evidenceHistory": [
+        {
+          "stateToken": "9a6755bbad440ce5719ac155a404b0d90f534517e5bbd17d9626581c280ac311",
+          "status": "confirmed",
+          "basis": "independent source/catalog inspection; SDK and scratch CPU probe where relevant"
+        },
+        {
+          "stateToken": "6128eb5e13c2a2346abcf6f54afa3a09800ef54f93e3fb82f8ec8fdebcd75035",
+          "status": "resolved",
+          "evidenceId": "F52-V04-FIX1",
+          "basis": [
+            "AgentView reads Environment.locale; NSOpenPanel.prompt/message now use DemoStrings(locale: locale).text. Choose and Where the agent saves its notes have Japanese entries."
+          ]
+        }
+      ],
+      "resolution": {
+        "kind": "fixed",
+        "stateToken": "6128eb5e13c2a2346abcf6f54afa3a09800ef54f93e3fb82f8ec8fdebcd75035",
+        "evidenceIds": [
+          "F52-V04-FIX1"
+        ],
+        "evidence": [
+          "AgentView reads Environment.locale; NSOpenPanel.prompt/message now use DemoStrings(locale: locale).text. Choose and Where the agent saves its notes have Japanese entries."
+        ],
+        "validation": "Independent current source/catalog reinspection; parent Release/test success logs read. No app/GUI/GPU execution by this reviewer."
+      }
+    },
+    {
+      "id": "F52-V05",
+      "status": "resolved",
+      "severity": "P3",
+      "maxSeverity": "P3",
+      "title": "Decideの編集アクセシビリティラベルが英語固定",
+      "locations": [
+        {
+          "path": "CoreAISamples/Demos/Decide/DecideView.swift",
+          "line": 161,
+          "needle": ".accessibilityLabel(\"Edit \" +"
+        }
+      ],
+      "condition": "JPでチェックリストの編集アイコンをVoiceOver等で読む。",
+      "evidence": [
+        "Edit + item.keyのString連結によりカタログキーEdit %@が使われない。",
+        "scratch EDIT CONCATENATIONでTextのstorage=verbatim。"
+      ],
+      "rebuttal": "item.keyは原文のまま補間し、操作名だけをローカライズできる。CatalogにはEdit %@のJA訳が既にある。",
+      "suggestedFix": "LocalizedStringKeyのリテラル補間を使う。",
+      "evidenceHistory": [
+        {
+          "stateToken": "9a6755bbad440ce5719ac155a404b0d90f534517e5bbd17d9626581c280ac311",
+          "status": "confirmed",
+          "basis": "independent source/catalog inspection; SDK and scratch CPU probe where relevant"
+        },
+        {
+          "stateToken": "6128eb5e13c2a2346abcf6f54afa3a09800ef54f93e3fb82f8ec8fdebcd75035",
+          "status": "resolved",
+          "evidenceId": "F52-V05-FIX1",
+          "basis": [
+            "Decide edit accessibility now uses Text(\"Edit \\(item.key)\") so the catalog format Edit %@ applies while item.key remains an argument."
+          ]
+        }
+      ],
+      "resolution": {
+        "kind": "fixed",
+        "stateToken": "6128eb5e13c2a2346abcf6f54afa3a09800ef54f93e3fb82f8ec8fdebcd75035",
+        "evidenceIds": [
+          "F52-V05-FIX1"
+        ],
+        "evidence": [
+          "Decide edit accessibility now uses Text(\"Edit \\(item.key)\") so the catalog format Edit %@ applies while item.key remains an argument."
+        ],
+        "validation": "Independent current source/catalog reinspection; parent Release/test success logs read. No app/GUI/GPU execution by this reviewer."
+      }
+    },
+    {
+      "id": "F52-V06",
+      "status": "resolved",
+      "severity": "P2",
+      "maxSeverity": "P2",
+      "title": "実行時に指定する4種の翻訳キーがCatalogにない",
+      "locations": [
+        {
+          "path": "CoreAISamples/Demos/Decide/DecideView.swift",
+          "line": 86,
+          "needle": "Button(LocalizedStringKey(example.title))"
+        },
+        {
+          "path": "CoreAISamples/Demos/Agent/AgentView.swift",
+          "line": 118,
+          "needle": "ForEach(AgentReasoningEffort.allCases)"
+        },
+        {
+          "path": "CoreAISamples/Demos/Extract/ExtractView.swift",
+          "line": 80,
+          "needle": "Label(LocalizedStringKey(ExtractRunner.notice)"
+        }
+      ],
+      "condition": "JPでDecide Examplesメニュー、Agent Reasoning effort、Extract上部の注意文を表示する。",
+      "evidence": [
+        "Localizable.xcstringsにMaintenance agreementとElectrical maintenance logが無い（Decideの同梱JSONのtitle全2件）。",
+        "AgentReasoningEffort.labelが返すXhighが無い。",
+        "ExtractRunner.noticeは4つのStringを結合した全文がキーになるが、その完全一致キーが無い。"
+      ],
+      "rebuttal": "Recipes例5件/厨房11項目/他reasoning値/要件/主要量単位はすべてキーが存在する。対象の4種もLSKを明示しておりUIとして翻訳する設計になっている。",
+      "suggestedFix": "実際の完全一致キーを手動登録し、有限値・同梱リソース由来キーもcoverage検査に含める。",
+      "evidenceHistory": [
+        {
+          "stateToken": "9a6755bbad440ce5719ac155a404b0d90f534517e5bbd17d9626581c280ac311",
+          "status": "confirmed",
+          "basis": "independent source/catalog inspection; SDK and scratch CPU probe where relevant"
+        },
+        {
+          "stateToken": "6128eb5e13c2a2346abcf6f54afa3a09800ef54f93e3fb82f8ec8fdebcd75035",
+          "status": "resolved",
+          "evidenceId": "F52-V06-FIX1",
+          "basis": [
+            "Direct JSON lookup confirms Japanese entries for both Decide example titles, Xhigh and the exact concatenated ExtractRunner.notice. Loading… is also present.",
+            "New DemoLocalizationCheck builds keys from actual Demo enums, Chat/Agent reasoning enums, both bundled example lists, kitchen/status/requirement enums and ExtractRunner.notice. Parent reports 51 unique runtime keys and zero missing translations.",
+            "The added check is routed before DemoApp.main by --check-localization; inspection found no Model/Store creation or GPU invocation in the check."
+          ]
+        }
+      ],
+      "resolution": {
+        "kind": "fixed",
+        "stateToken": "6128eb5e13c2a2346abcf6f54afa3a09800ef54f93e3fb82f8ec8fdebcd75035",
+        "evidenceIds": [
+          "F52-V06-FIX1"
+        ],
+        "evidence": [
+          "Direct JSON lookup confirms Japanese entries for both Decide example titles, Xhigh and the exact concatenated ExtractRunner.notice. Loading… is also present.",
+          "New DemoLocalizationCheck builds keys from actual Demo enums, Chat/Agent reasoning enums, both bundled example lists, kitchen/status/requirement enums and ExtractRunner.notice. Parent reports 51 unique runtime keys and zero missing translations.",
+          "The added check is routed before DemoApp.main by --check-localization; inspection found no Model/Store creation or GPU invocation in the check."
+        ],
+        "validation": "Independent current source/catalog reinspection; parent Release/test success logs read. No app/GUI/GPU execution by this reviewer."
+      }
+    },
+    {
+      "id": "F52-VR01",
+      "status": "rejected",
+      "title": "Models Preparing条件式の翻訳漏れ",
+      "evidence": [
+        "Text(speed > 0 ? interpolated-literal : Preparing-literal)はSwift 6/SDK27でLocalizedTextStorageを選ぶ。scratch outputのTERNARY INTERPOLATIONにkey=Preparing…が記録されている。"
+      ]
+    },
+    {
+      "id": "F52-VR02",
+      "status": "rejected",
+      "title": "新しいLSK(variable)が入力・モデル結果を翻訳する疑い",
+      "evidence": [
+        "監査した明示LSK値はenum/status、固定厨房名、同梱例のUIタイトルに限定。Chat/Agent本文、Decideの文書・選択肢・結果、Extract原文、レシピ原文/ファイル名はString/AttributedString/verbatim/書式引数のまま。"
+      ]
+    },
+    {
+      "id": "F52-VR03",
+      "status": "rejected",
+      "title": "言語切替がStoreを再生成するソース上の経路",
+      "evidence": [
+        "RootのVM/Store所有は既存@State。languageCodeはAppStorageとenvironment.localeにのみ使われ、.id(language)、.task(id:language)、言語変更Action送信はない。既存exportの.id(ticket)は別用途。",
+        "GUIでの実際のidentity/IME/フォーカスは未確認であり、この否定はコード経路に限定する。"
+      ]
+    },
+    {
+      "id": "F52-VR04",
+      "status": "rejected",
+      "title": "1 spansの英語単複退行",
+      "evidence": [
+        "Localizable.xcstringsの%lld spansにはen plural.one=%lld span、other=%lld spansがある。"
+      ]
+    }
+  ],
+  "confirmed": [],
+  "rejected": [
+    "F52-VR01",
+    "F52-VR02",
+    "F52-VR03",
+    "F52-VR04"
+  ],
+  "coverage": [
+    {
+      "path": "CoreAISamples/Localization/DemoLanguage.swift",
+      "scope": "initial full-file review plus current fix delta and data-preservation recheck",
+      "sha256": "f05adc480326469ace7f37e2daa17897ad5860476b1cad6aafe127936a9054ad"
+    },
+    {
+      "path": "CoreAISamples/DemoRootView.swift",
+      "scope": "initial full-file review plus current fix delta and data-preservation recheck",
+      "sha256": "a5abeff64308030c21c113a9378dcb91700b85fb8f0a449ab8f6fbee4b10da82"
+    },
+    {
+      "path": "CoreAISamples/Demos/Agent/AgentView.swift",
+      "scope": "initial full-file review plus current fix delta and data-preservation recheck",
+      "sha256": "e6d9a0e13cb7f0fb302359a22322c0b6031f098219d286659317c5780df76a01"
+    },
+    {
+      "path": "CoreAISamples/Demos/Chat/ChatView.swift",
+      "scope": "initial full-file review plus current fix delta and data-preservation recheck",
+      "sha256": "e201dd561ce3ffee019ab5e63949fc1b6546332b7d9675e381ab007f303a4d3a"
+    },
+    {
+      "path": "CoreAISamples/Demos/Decide/DecideItemEditor.swift",
+      "scope": "initial full-file review plus current fix delta and data-preservation recheck",
+      "sha256": "2324a189c8e67c16c282f47c871cd1649731c7ba6a76d3da22e7b0d26fa4a15d"
+    },
+    {
+      "path": "CoreAISamples/Demos/Decide/DecideResultRow.swift",
+      "scope": "initial full-file review plus current fix delta and data-preservation recheck",
+      "sha256": "2790854bf9c09ae2d820dbfce3c2707185ce46fd6535171f93d353c65d3d467e"
+    },
+    {
+      "path": "CoreAISamples/Demos/Decide/DecideView.swift",
+      "scope": "initial full-file review plus current fix delta and data-preservation recheck",
+      "sha256": "aa3c496abc06b8ac2760bf9085521e3712f145977aa420c213d5746e66c3b97d"
+    },
+    {
+      "path": "CoreAISamples/Demos/Extract/ExtractView.swift",
+      "scope": "initial full-file review plus current fix delta and data-preservation recheck",
+      "sha256": "584be0760ae1227d0061054dd05ab3f3993ee5c0dc9ae6d70f1c38ba71a678db"
+    },
+    {
+      "path": "CoreAISamples/Demos/Extract/FieldEditor.swift",
+      "scope": "initial full-file review plus current fix delta and data-preservation recheck",
+      "sha256": "f926e81b888fbc5def85a63e5327a86a2bf77a90945b9bf7989c6e3bd84b50d4"
+    },
+    {
+      "path": "CoreAISamples/Demos/Extract/FieldRow.swift",
+      "scope": "initial full-file review plus current fix delta and data-preservation recheck",
+      "sha256": "1482e0e9513224e324d5278bd8b5a2bb47ed93320c9c11456ca7889b0d143c68"
+    },
+    {
+      "path": "CoreAISamples/Demos/ModelManager/ModelsView.swift",
+      "scope": "initial full-file review plus current fix delta and data-preservation recheck",
+      "sha256": "2f3ca8c18cc87daa265af5bedec3415ff64eb3fed7d842856c13fda9d45c3ad5"
+    },
+    {
+      "path": "CoreAISamples/Demos/Recipes/RecipeReportView.swift",
+      "scope": "initial full-file review plus current fix delta and data-preservation recheck",
+      "sha256": "7b8a6af9613cef602f9a5557346b76139dbbab834421cdfbb8a3cd022f6a867c"
+    },
+    {
+      "path": "CoreAISamples/Demos/Recipes/RecipeView.swift",
+      "scope": "initial full-file review plus current fix delta and data-preservation recheck",
+      "sha256": "125ac60a13aa3deee1bade8d367a422baf80ab68b5439a2af1346a579a37aafb"
+    },
+    {
+      "path": "CoreAISamples/Demos/Chat/ChatRAG.swift",
+      "scope": "current localization changes and direct call paths",
+      "sha256": "1aadfb4b815b9af369396576b493bf7ec8e21dedc81d512885dcc5b65c6f5e99"
+    },
+    {
+      "path": "CoreAISamples/Localization/DemoLocalizationCheck.swift",
+      "scope": "current localization changes and direct call paths",
+      "sha256": "a804113ac8f7c4706e1ef7002bcc21e344cbe4e262dc71dcfc54d08eeef207ca"
+    },
+    {
+      "path": "CoreAISamples/DemoAppMain.swift",
+      "scope": "current localization changes and direct call paths",
+      "sha256": "2b7de00b4c119bc48431d848cbd195c4abad7dea01cec3d4f67ead1440f1ed24"
+    }
+  ],
+  "additionalReadOnlyCoverage": [
+    "DemoAppMain root identity",
+    "ChatRAG view controls/source footer",
+    "ChatViewModel.state/statusLine and AgentViewModel Entry projections",
+    "AgentReasoningEffort.label",
+    "ExtractRunner.notice/describe",
+    "ModelsViewModel.refresh",
+    "Decide/Recipe fixed example titles",
+    "RecipeCore title/requirements/units/kitchen name sources",
+    "selected Localizable/Ingredients callsite keys"
+  ],
+  "validation": [
+    {
+      "kind": "independent CPU compiler probe",
+      "result": "PASS",
+      "source": "/private/tmp/fridge-language-view-probe/main.swift",
+      "output": "/private/tmp/fridge-language-view-probe/output.txt"
+    },
+    {
+      "kind": "selected Catalog finite-key lookup",
+      "result": "4 dynamic display keys missing, reported F52-V06; enum/kitchen/unit other checked values present"
+    },
+    {
+      "kind": "fix acceptance source/catalog check",
+      "result": "All six confirmed findings resolved; all newly required keys present; no additional issue confirmed",
+      "stateToken": "6128eb5e13c2a2346abcf6f54afa3a09800ef54f93e3fb82f8ec8fdebcd75035"
+    },
+    {
+      "kind": "parent-executed validation evidence",
+      "independentlyExecuted": false,
+      "readLogs": [
+        "/private/tmp/fridge-language-review-build.log",
+        "/private/tmp/fridge-language-all-tests.log"
+      ],
+      "observedResult": "Release BUILD SUCCEEDED; 11 Swift Testing runs report PASS; no compiler error found",
+      "parentReportedCatalogResult": "912 compiled lookups match; 51 actual runtime keys, zero missing Japanese translations"
+    }
+  ],
+  "unresolvedCoverage": [
+    "Full compiled Catalog checks are parent-executed; source/check wiring and relevant translated entries were independently inspected.",
+    "GUI/GPU/application execution is prohibited for this reviewer. Live six-screen switching, persistence relaunch, current-result retention, focused TextField/IME and native-panel presentation were not observed.",
+    "RecipeFeature pure editing reducer and tests belong to the other review partition. The updated RecipeView originalSource binding was read for boundary preservation; this report does not replace that logic review.",
+    "Tools/Localization scripts belong to the root partition. DemoLocalizationCheck Swift runtime-key collection and early CLI routing were reviewed here."
+  ],
+  "failures": [
+    {
+      "kind": "initial scope check changed",
+      "recovered": true,
+      "detail": "Only Localizable.xcstrings plus two Tools/Localization scripts changed; source View hashes unchanged. Refreshed scope and rechecked relevant keys."
+    },
+    {
+      "kind": "read path misses",
+      "recovered": true,
+      "detail": "Initial guessed RAG/recipe resource paths were absent; rg --files located ChatRAG.swift and CoreAISamples/Resources/Recipes. No source segment omitted due to those misses."
+    }
+  ],
+  "unparsedCandidates": [],
+  "pendingTasks": [],
+  "deferredTasks": [],
+  "excluded": [],
+  "blockers": [],
+  "complete": true,
+  "completionScope": "Independent Mac-view source partition and six-finding fix acceptance complete, with explicit GUI/runtime and other-partition exclusions.",
+  "stats": {
+    "confirmed": 0,
+    "resolved": 6,
+    "rejected": 4
+  },
+  "guideAppendCandidates": [],
+  "reviewRounds": [
+    {
+      "round": 1,
+      "kind": "initial independent exploration",
+      "scope": "/private/tmp/fridge-language-view-final-scope.json",
+      "stateToken": "9a6755bbad440ce5719ac155a404b0d90f534517e5bbd17d9626581c280ac311",
+      "confirmed": [
+        "F52-V01",
+        "F52-V02",
+        "F52-V03",
+        "F52-V04",
+        "F52-V05",
+        "F52-V06"
+      ],
+      "coverage": [
+        {
+          "path": "CoreAISamples/Localization/DemoLanguage.swift",
+          "scope": "initial full-file review plus current fix delta and data-preservation recheck",
+          "sha256": "f05adc480326469ace7f37e2daa17897ad5860476b1cad6aafe127936a9054ad"
+        },
+        {
+          "path": "CoreAISamples/DemoRootView.swift",
+          "scope": "initial full-file review plus current fix delta and data-preservation recheck",
+          "sha256": "a5abeff64308030c21c113a9378dcb91700b85fb8f0a449ab8f6fbee4b10da82"
+        },
+        {
+          "path": "CoreAISamples/Demos/Agent/AgentView.swift",
+          "scope": "initial full-file review plus current fix delta and data-preservation recheck",
+          "sha256": "e6d9a0e13cb7f0fb302359a22322c0b6031f098219d286659317c5780df76a01"
+        },
+        {
+          "path": "CoreAISamples/Demos/Chat/ChatView.swift",
+          "scope": "initial full-file review plus current fix delta and data-preservation recheck",
+          "sha256": "e201dd561ce3ffee019ab5e63949fc1b6546332b7d9675e381ab007f303a4d3a"
+        },
+        {
+          "path": "CoreAISamples/Demos/Decide/DecideItemEditor.swift",
+          "scope": "initial full-file review plus current fix delta and data-preservation recheck",
+          "sha256": "2324a189c8e67c16c282f47c871cd1649731c7ba6a76d3da22e7b0d26fa4a15d"
+        },
+        {
+          "path": "CoreAISamples/Demos/Decide/DecideResultRow.swift",
+          "scope": "initial full-file review plus current fix delta and data-preservation recheck",
+          "sha256": "2790854bf9c09ae2d820dbfce3c2707185ce46fd6535171f93d353c65d3d467e"
+        },
+        {
+          "path": "CoreAISamples/Demos/Decide/DecideView.swift",
+          "scope": "initial full-file review plus current fix delta and data-preservation recheck",
+          "sha256": "aa3c496abc06b8ac2760bf9085521e3712f145977aa420c213d5746e66c3b97d"
+        },
+        {
+          "path": "CoreAISamples/Demos/Extract/ExtractView.swift",
+          "scope": "initial full-file review plus current fix delta and data-preservation recheck",
+          "sha256": "584be0760ae1227d0061054dd05ab3f3993ee5c0dc9ae6d70f1c38ba71a678db"
+        },
+        {
+          "path": "CoreAISamples/Demos/Extract/FieldEditor.swift",
+          "scope": "initial full-file review plus current fix delta and data-preservation recheck",
+          "sha256": "f926e81b888fbc5def85a63e5327a86a2bf77a90945b9bf7989c6e3bd84b50d4"
+        },
+        {
+          "path": "CoreAISamples/Demos/Extract/FieldRow.swift",
+          "scope": "initial full-file review plus current fix delta and data-preservation recheck",
+          "sha256": "1482e0e9513224e324d5278bd8b5a2bb47ed93320c9c11456ca7889b0d143c68"
+        },
+        {
+          "path": "CoreAISamples/Demos/ModelManager/ModelsView.swift",
+          "scope": "initial full-file review plus current fix delta and data-preservation recheck",
+          "sha256": "2f3ca8c18cc87daa265af5bedec3415ff64eb3fed7d842856c13fda9d45c3ad5"
+        },
+        {
+          "path": "CoreAISamples/Demos/Recipes/RecipeReportView.swift",
+          "scope": "initial full-file review plus current fix delta and data-preservation recheck",
+          "sha256": "7b8a6af9613cef602f9a5557346b76139dbbab834421cdfbb8a3cd022f6a867c"
+        },
+        {
+          "path": "CoreAISamples/Demos/Recipes/RecipeView.swift",
+          "scope": "initial full-file review plus current fix delta and data-preservation recheck",
+          "sha256": "125ac60a13aa3deee1bade8d367a422baf80ab68b5439a2af1346a579a37aafb"
+        },
+        {
+          "path": "CoreAISamples/Demos/Chat/ChatRAG.swift",
+          "scope": "current localization changes and direct call paths",
+          "sha256": "1aadfb4b815b9af369396576b493bf7ec8e21dedc81d512885dcc5b65c6f5e99"
+        },
+        {
+          "path": "CoreAISamples/Localization/DemoLocalizationCheck.swift",
+          "scope": "current localization changes and direct call paths",
+          "sha256": "a804113ac8f7c4706e1ef7002bcc21e344cbe4e262dc71dcfc54d08eeef207ca"
+        },
+        {
+          "path": "CoreAISamples/DemoAppMain.swift",
+          "scope": "current localization changes and direct call paths",
+          "sha256": "2b7de00b4c119bc48431d848cbd195c4abad7dea01cec3d4f67ead1440f1ed24"
+        }
+      ],
+      "validation": [
+        {
+          "kind": "independent CPU compiler probe",
+          "result": "PASS",
+          "source": "/private/tmp/fridge-language-view-probe/main.swift",
+          "output": "/private/tmp/fridge-language-view-probe/output.txt"
+        },
+        {
+          "kind": "selected Catalog finite-key lookup",
+          "result": "4 dynamic display keys missing, reported F52-V06; enum/kitchen/unit other checked values present"
+        },
+        {
+          "kind": "fix acceptance source/catalog check",
+          "result": "All six confirmed findings resolved; all newly required keys present; no additional issue confirmed",
+          "stateToken": "6128eb5e13c2a2346abcf6f54afa3a09800ef54f93e3fb82f8ec8fdebcd75035"
+        },
+        {
+          "kind": "parent-executed validation evidence",
+          "independentlyExecuted": false,
+          "readLogs": [
+            "/private/tmp/fridge-language-review-build.log",
+            "/private/tmp/fridge-language-all-tests.log"
+          ],
+          "observedResult": "Release BUILD SUCCEEDED; 11 Swift Testing runs report PASS; no compiler error found",
+          "parentReportedCatalogResult": "912 compiled lookups match; 51 actual runtime keys, zero missing Japanese translations"
+        }
+      ]
+    },
+    {
+      "round": 2,
+      "kind": "independent fix acceptance",
+      "scope": "/private/tmp/fridge-language-view-fix-scope.json",
+      "stateToken": "6128eb5e13c2a2346abcf6f54afa3a09800ef54f93e3fb82f8ec8fdebcd75035",
+      "resolved": [
+        "F52-V01",
+        "F52-V02",
+        "F52-V03",
+        "F52-V04",
+        "F52-V05",
+        "F52-V06"
+      ],
+      "newConfirmed": []
+    }
+  ],
+  "resolved": [
+    "F52-V01",
+    "F52-V02",
+    "F52-V03",
+    "F52-V04",
+    "F52-V05",
+    "F52-V06"
+  ],
+  "resolutions": [
+    {
+      "candidateId": "F52-V01",
+      "evidenceId": "F52-V01-FIX1",
+      "kind": "fixed",
+      "stateToken": "6128eb5e13c2a2346abcf6f54afa3a09800ef54f93e3fb82f8ec8fdebcd75035"
+    },
+    {
+      "candidateId": "F52-V02",
+      "evidenceId": "F52-V02-FIX1",
+      "kind": "fixed",
+      "stateToken": "6128eb5e13c2a2346abcf6f54afa3a09800ef54f93e3fb82f8ec8fdebcd75035"
+    },
+    {
+      "candidateId": "F52-V03",
+      "evidenceId": "F52-V03-FIX1",
+      "kind": "fixed",
+      "stateToken": "6128eb5e13c2a2346abcf6f54afa3a09800ef54f93e3fb82f8ec8fdebcd75035"
+    },
+    {
+      "candidateId": "F52-V04",
+      "evidenceId": "F52-V04-FIX1",
+      "kind": "fixed",
+      "stateToken": "6128eb5e13c2a2346abcf6f54afa3a09800ef54f93e3fb82f8ec8fdebcd75035"
+    },
+    {
+      "candidateId": "F52-V05",
+      "evidenceId": "F52-V05-FIX1",
+      "kind": "fixed",
+      "stateToken": "6128eb5e13c2a2346abcf6f54afa3a09800ef54f93e3fb82f8ec8fdebcd75035"
+    },
+    {
+      "candidateId": "F52-V06",
+      "evidenceId": "F52-V06-FIX1",
+      "kind": "fixed",
+      "stateToken": "6128eb5e13c2a2346abcf6f54afa3a09800ef54f93e3fb82f8ec8fdebcd75035"
+    }
+  ],
+  "lastScopeCheck": {
+    "unchanged": true,
+    "stateToken": "6128eb5e13c2a2346abcf6f54afa3a09800ef54f93e3fb82f8ec8fdebcd75035"
+  }
+}

@@ -15,7 +15,7 @@ struct DecideItemEditor: View {
                     .lineLimit(2...5)
                 Picker("Answer type", selection: $item.kind) {
                     ForEach(DecideQuestionKind.allCases, id: \.self) { kind in
-                        Text(kind.title).tag(kind)
+                        Text(LocalizedStringKey(kind.title)).tag(kind)
                     }
                 }
                 .onChange(of: item.kind) { _, kind in
@@ -69,7 +69,7 @@ struct DecideItemEditor: View {
                 }
                 .disabled(item.options.count >= 8)
             }
-            if let problem { Text(problem).font(.caption).foregroundStyle(.orange) }
+            if let problem { RuntimeMessageText(problem).font(.caption).foregroundStyle(.orange) }
             HStack {
                 Spacer()
                 Button("Cancel") { dismiss() }.keyboardShortcut(.cancelAction)

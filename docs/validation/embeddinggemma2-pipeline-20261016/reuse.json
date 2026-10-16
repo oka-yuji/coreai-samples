@@ -1,0 +1,57 @@
+{
+  "schema": "coreai-conversion-summary/1",
+  "status": "completed",
+  "verification": "passed",
+  "scope": "Fixed-input conversion check; not model production qualification.",
+  "stages": [
+    {
+      "index": 0,
+      "role": "prepare",
+      "status": "executed",
+      "prepare_s": 0.5280935419723392,
+      "execute_s": 0.6551455003209412,
+      "total_s": 3.0916537092998624
+    },
+    {
+      "index": 1,
+      "role": "reference",
+      "status": "reused",
+      "prepare_s": 0.7309936252422631,
+      "execute_s": 0,
+      "total_s": 0.7310376251116395
+    },
+    {
+      "index": 2,
+      "role": "export",
+      "status": "reused",
+      "prepare_s": 0.6166325001977384,
+      "execute_s": 0,
+      "total_s": 0.616666458081454
+    },
+    {
+      "index": 3,
+      "role": "export",
+      "status": "reused",
+      "prepare_s": 0.63699866598472,
+      "execute_s": 0,
+      "total_s": 0.6370350406505167
+    },
+    {
+      "index": 4,
+      "role": "prepare",
+      "status": "reused",
+      "prepare_s": 0.8391173337586224,
+      "execute_s": 0,
+      "total_s": 0.8391537498682737
+    },
+    {
+      "index": 5,
+      "role": "verify",
+      "status": "reused",
+      "prepare_s": 0.005237124860286713,
+      "execute_s": 0,
+      "total_s": 0.005247917026281357
+    }
+  ],
+  "elapsed_s": 7.379427624866366
+}

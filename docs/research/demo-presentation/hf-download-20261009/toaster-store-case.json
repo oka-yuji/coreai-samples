@@ -1,0 +1,569 @@
+{
+  "diagnostics" : {
+    "inputTokens" : 2611,
+    "model" : "clef-flash-9b-decide-v1",
+    "questions" : [
+      {
+        "id" : "ingredient_0",
+        "instructions" : "Is 鶏もも肉 required by this recipe, or does the recipe permit omitting it? An optional garnish served only if desired can be omitted. Do not decide based on someone's inventory or invent changes to the recipe.",
+        "options" : [
+          {
+            "logit" : -3.1816406,
+            "option" : "optional",
+            "probability" : 0.045865815
+          },
+          {
+            "logit" : -0.24560547,
+            "option" : "required",
+            "probability" : 0.8641576
+          },
+          {
+            "logit" : -2.5078125,
+            "option" : "uncertain",
+            "probability" : 0.08997647
+          }
+        ],
+        "selected" : "required"
+      },
+      {
+        "id" : "ingredient_1",
+        "instructions" : "Is 玉ねぎ required by this recipe, or does the recipe permit omitting it? An optional garnish served only if desired can be omitted. Do not decide based on someone's inventory or invent changes to the recipe.",
+        "options" : [
+          {
+            "logit" : -3.2402344,
+            "option" : "optional",
+            "probability" : 0.04454929
+          },
+          {
+            "logit" : -0.30932617,
+            "option" : "required",
+            "probability" : 0.8350607
+          },
+          {
+            "logit" : -2.2460938,
+            "option" : "uncertain",
+            "probability" : 0.12039004
+          }
+        ],
+        "selected" : "required"
+      },
+      {
+        "id" : "ingredient_2",
+        "instructions" : "Is マッシュルーム required by this recipe, or does the recipe permit omitting it? An optional garnish served only if desired can be omitted. Do not decide based on someone's inventory or invent changes to the recipe.",
+        "options" : [
+          {
+            "logit" : -2.296875,
+            "option" : "optional",
+            "probability" : 0.15020078
+          },
+          {
+            "logit" : -1.4208984,
+            "option" : "required",
+            "probability" : 0.360665
+          },
+          {
+            "logit" : -1.1162109,
+            "option" : "uncertain",
+            "probability" : 0.48913428
+          }
+        ],
+        "selected" : "uncertain"
+      },
+      {
+        "id" : "ingredient_3",
+        "instructions" : "Is ブロッコリー required by this recipe, or does the recipe permit omitting it? An optional garnish served only if desired can be omitted. Do not decide based on someone's inventory or invent changes to the recipe.",
+        "options" : [
+          {
+            "logit" : -2.1699219,
+            "option" : "optional",
+            "probability" : 0.19339804
+          },
+          {
+            "logit" : -1.6347656,
+            "option" : "required",
+            "probability" : 0.33026874
+          },
+          {
+            "logit" : -1.2685547,
+            "option" : "uncertain",
+            "probability" : 0.4763332
+          }
+        ],
+        "selected" : "uncertain"
+      },
+      {
+        "id" : "ingredient_4",
+        "instructions" : "Is マカロニ required by this recipe, or does the recipe permit omitting it? An optional garnish served only if desired can be omitted. Do not decide based on someone's inventory or invent changes to the recipe.",
+        "options" : [
+          {
+            "logit" : -3.5136719,
+            "option" : "optional",
+            "probability" : 0.029083828
+          },
+          {
+            "logit" : -0.038604736,
+            "option" : "required",
+            "probability" : 0.9394076
+          },
+          {
+            "logit" : -3.4335938,
+            "option" : "uncertain",
+            "probability" : 0.0315086
+          }
+        ],
+        "selected" : "required"
+      },
+      {
+        "id" : "ingredient_5",
+        "instructions" : "Is 塩 required by this recipe, or does the recipe permit omitting it? An optional garnish served only if desired can be omitted. Do not decide based on someone's inventory or invent changes to the recipe.",
+        "options" : [
+          {
+            "logit" : -2.28125,
+            "option" : "optional",
+            "probability" : 0.19676434
+          },
+          {
+            "logit" : -1.3291016,
+            "option" : "required",
+            "probability" : 0.5098697
+          },
+          {
+            "logit" : -1.8818359,
+            "option" : "uncertain",
+            "probability" : 0.29336596
+          }
+        ],
+        "selected" : "required"
+      },
+      {
+        "id" : "ingredient_6",
+        "instructions" : "Is サラダ油 required by this recipe, or does the recipe permit omitting it? An optional garnish served only if desired can be omitted. Do not decide based on someone's inventory or invent changes to the recipe.",
+        "options" : [
+          {
+            "logit" : -1.859375,
+            "option" : "optional",
+            "probability" : 0.22429685
+          },
+          {
+            "logit" : -1.1337891,
+            "option" : "required",
+            "probability" : 0.46338415
+          },
+          {
+            "logit" : -1.5283203,
+            "option" : "uncertain",
+            "probability" : 0.312319
+          }
+        ],
+        "selected" : "required"
+      },
+      {
+        "id" : "ingredient_7",
+        "instructions" : "Is 塩 required by this recipe, or does the recipe permit omitting it? An optional garnish served only if desired can be omitted. Do not decide based on someone's inventory or invent changes to the recipe.",
+        "options" : [
+          {
+            "logit" : -1.953125,
+            "option" : "optional",
+            "probability" : 0.18895432
+          },
+          {
+            "logit" : -1.1894531,
+            "option" : "required",
+            "probability" : 0.40552282
+          },
+          {
+            "logit" : -1.1894531,
+            "option" : "uncertain",
+            "probability" : 0.40552282
+          }
+        ],
+        "selected" : "required"
+      },
+      {
+        "id" : "ingredient_8",
+        "instructions" : "Is こしょう required by this recipe, or does the recipe permit omitting it? An optional garnish served only if desired can be omitted. Do not decide based on someone's inventory or invent changes to the recipe.",
+        "options" : [
+          {
+            "logit" : -1.2138672,
+            "option" : "optional",
+            "probability" : 0.5216991
+          },
+          {
+            "logit" : -2.8515625,
+            "option" : "required",
+            "probability" : 0.10143271
+          },
+          {
+            "logit" : -1.5390625,
+            "option" : "uncertain",
+            "probability" : 0.37686822
+          }
+        ],
+        "selected" : "optional"
+      },
+      {
+        "id" : "ingredient_9",
+        "instructions" : "Is キッコーマン特選丸大豆しょうゆ required by this recipe, or does the recipe permit omitting it? An optional garnish served only if desired can be omitted. Do not decide based on someone's inventory or invent changes to the recipe.",
+        "options" : [
+          {
+            "logit" : -0.97216797,
+            "option" : "optional",
+            "probability" : 0.56883764
+          },
+          {
+            "logit" : -2.4453125,
+            "option" : "required",
+            "probability" : 0.13037965
+          },
+          {
+            "logit" : -1.609375,
+            "option" : "uncertain",
+            "probability" : 0.30078268
+          }
+        ],
+        "selected" : "optional"
+      },
+      {
+        "id" : "ingredient_10",
+        "instructions" : "Is ホワイトソース required by this recipe, or does the recipe permit omitting it? An optional garnish served only if desired can be omitted. Do not decide based on someone's inventory or invent changes to the recipe.",
+        "options" : [
+          {
+            "logit" : -3.0351562,
+            "option" : "optional",
+            "probability" : 0.047478545
+          },
+          {
+            "logit" : -0.08380127,
+            "option" : "required",
+            "probability" : 0.9083529
+          },
+          {
+            "logit" : -3.1074219,
+            "option" : "uncertain",
+            "probability" : 0.04416852
+          }
+        ],
+        "selected" : "required"
+      },
+      {
+        "id" : "ingredient_11",
+        "instructions" : "Is 牛乳 required by this recipe, or does the recipe permit omitting it? An optional garnish served only if desired can be omitted. Do not decide based on someone's inventory or invent changes to the recipe.",
+        "options" : [
+          {
+            "logit" : -2.2792969,
+            "option" : "optional",
+            "probability" : 0.16192698
+          },
+          {
+            "logit" : -0.88134766,
+            "option" : "required",
+            "probability" : 0.65530103
+          },
+          {
+            "logit" : -2.1582031,
+            "option" : "uncertain",
+            "probability" : 0.18277195
+          }
+        ],
+        "selected" : "required"
+      },
+      {
+        "id" : "ingredient_12",
+        "instructions" : "Is ピザ用チーズ required by this recipe, or does the recipe permit omitting it? An optional garnish served only if desired can be omitted. Do not decide based on someone's inventory or invent changes to the recipe.",
+        "options" : [
+          {
+            "logit" : -2.2578125,
+            "option" : "optional",
+            "probability" : 0.17866907
+          },
+          {
+            "logit" : -1.1044922,
+            "option" : "required",
+            "probability" : 0.56614804
+          },
+          {
+            "logit" : -1.9013672,
+            "option" : "uncertain",
+            "probability" : 0.2551829
+          }
+        ],
+        "selected" : "required"
+      },
+      {
+        "id" : "ingredient_13",
+        "instructions" : "Is パン粉 required by this recipe, or does the recipe permit omitting it? An optional garnish served only if desired can be omitted. Do not decide based on someone's inventory or invent changes to the recipe.",
+        "options" : [
+          {
+            "logit" : -1.8837891,
+            "option" : "optional",
+            "probability" : 0.30916595
+          },
+          {
+            "logit" : -1.78125,
+            "option" : "required",
+            "probability" : 0.34254986
+          },
+          {
+            "logit" : -1.7646484,
+            "option" : "uncertain",
+            "probability" : 0.34828418
+          }
+        ],
+        "selected" : "uncertain"
+      },
+      {
+        "id" : "equipment",
+        "instructions" : "Can the recipe's stated method be followed with this kitchen? stove: available, saucepan: available, frying pan: available, omelette pan: available, knife: available, cutting board: available, bowl: available, strainer: available, heatproof dish: available, oven: unavailable, toaster: available. Unlisted equipment is unknown. Respect alternatives: if an oven OR toaster is allowed, either available appliance is sufficient. Do not invent a different cooking method.",
+        "options" : [
+          {
+            "logit" : -0.75146484,
+            "option" : "available",
+            "probability" : 0.8958504
+          },
+          {
+            "logit" : -3.6445312,
+            "option" : "unavailable",
+            "probability" : 0.049635537
+          },
+          {
+            "logit" : -3.5507812,
+            "option" : "unknown",
+            "probability" : 0.054513972
+          }
+        ],
+        "selected" : "available"
+      }
+    ]
+  },
+  "equipment" : "available",
+  "equipmentProbability" : 0.8958504,
+  "modelVersion" : "67f69d5bd401104fd594ba74d94622882341c138be6149132d68f9857def852d",
+  "reusedTokens" : 403,
+  "rows" : [
+    {
+      "amount" : {
+        "sufficient" : {
+
+        }
+      },
+      "decision" : "have",
+      "id" : 0,
+      "ingredient" : {
+        "amount" : "1\/2枚",
+        "id" : 0,
+        "name" : "鶏もも肉"
+      },
+      "probability" : 0.8641576,
+      "requirement" : "required"
+    },
+    {
+      "amount" : {
+        "sufficient" : {
+
+        }
+      },
+      "decision" : "have",
+      "id" : 1,
+      "ingredient" : {
+        "amount" : "1\/4個",
+        "id" : 1,
+        "name" : "玉ねぎ"
+      },
+      "probability" : 0.8350607,
+      "requirement" : "required"
+    },
+    {
+      "amount" : {
+        "sufficient" : {
+
+        }
+      },
+      "decision" : "have",
+      "id" : 2,
+      "ingredient" : {
+        "amount" : "4個（30g）",
+        "id" : 2,
+        "name" : "マッシュルーム"
+      },
+      "probability" : 0.48913428,
+      "requirement" : "uncertain"
+    },
+    {
+      "amount" : {
+        "sufficient" : {
+
+        }
+      },
+      "decision" : "have",
+      "id" : 3,
+      "ingredient" : {
+        "amount" : "50g",
+        "id" : 3,
+        "name" : "ブロッコリー"
+      },
+      "probability" : 0.4763332,
+      "requirement" : "uncertain"
+    },
+    {
+      "amount" : {
+        "sufficient" : {
+
+        }
+      },
+      "decision" : "have",
+      "id" : 4,
+      "ingredient" : {
+        "amount" : "60g",
+        "id" : 4,
+        "name" : "マカロニ"
+      },
+      "probability" : 0.9394076,
+      "requirement" : "required"
+    },
+    {
+      "amount" : {
+        "sufficient" : {
+
+        }
+      },
+      "decision" : "have",
+      "id" : 5,
+      "ingredient" : {
+        "amount" : "適量",
+        "id" : 5,
+        "name" : "塩"
+      },
+      "probability" : 0.5098697,
+      "requirement" : "required"
+    },
+    {
+      "amount" : {
+        "sufficient" : {
+
+        }
+      },
+      "decision" : "have",
+      "id" : 6,
+      "ingredient" : {
+        "amount" : "大さじ1",
+        "id" : 6,
+        "name" : "サラダ油"
+      },
+      "probability" : 0.46338415,
+      "requirement" : "required"
+    },
+    {
+      "amount" : {
+        "sufficient" : {
+
+        }
+      },
+      "decision" : "have",
+      "id" : 7,
+      "ingredient" : {
+        "amount" : "少々",
+        "id" : 7,
+        "name" : "塩"
+      },
+      "probability" : 0.40552282,
+      "requirement" : "required"
+    },
+    {
+      "amount" : {
+        "notRequired" : {
+
+        }
+      },
+      "decision" : "optional",
+      "id" : 8,
+      "ingredient" : {
+        "amount" : "少々",
+        "id" : 8,
+        "name" : "こしょう"
+      },
+      "probability" : 0.5216991,
+      "requirement" : "optional"
+    },
+    {
+      "amount" : {
+        "notRequired" : {
+
+        }
+      },
+      "decision" : "optional",
+      "id" : 9,
+      "ingredient" : {
+        "amount" : "小さじ1",
+        "id" : 9,
+        "name" : "キッコーマン特選丸大豆しょうゆ"
+      },
+      "probability" : 0.56883764,
+      "requirement" : "optional"
+    },
+    {
+      "amount" : {
+        "sufficient" : {
+
+        }
+      },
+      "decision" : "have",
+      "id" : 10,
+      "ingredient" : {
+        "amount" : "1\/2缶（145g）",
+        "id" : 10,
+        "name" : "ホワイトソース"
+      },
+      "probability" : 0.9083529,
+      "requirement" : "required"
+    },
+    {
+      "amount" : {
+        "sufficient" : {
+
+        }
+      },
+      "decision" : "have",
+      "id" : 11,
+      "ingredient" : {
+        "amount" : "3\/4カップ",
+        "id" : 11,
+        "name" : "牛乳"
+      },
+      "probability" : 0.65530103,
+      "requirement" : "required"
+    },
+    {
+      "amount" : {
+        "sufficient" : {
+
+        }
+      },
+      "decision" : "have",
+      "id" : 12,
+      "ingredient" : {
+        "amount" : "30g",
+        "id" : 12,
+        "name" : "ピザ用チーズ"
+      },
+      "probability" : 0.56614804,
+      "requirement" : "required"
+    },
+    {
+      "amount" : {
+        "sufficient" : {
+
+        }
+      },
+      "decision" : "have",
+      "id" : 13,
+      "ingredient" : {
+        "amount" : "大さじ1",
+        "id" : 13,
+        "name" : "パン粉"
+      },
+      "probability" : 0.34828418,
+      "requirement" : "uncertain"
+    }
+  ],
+  "seconds" : 2.656651875
+}
