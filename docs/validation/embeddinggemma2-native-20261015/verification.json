@@ -1,0 +1,174 @@
+{
+  "date": "2026-10-15",
+  "platform": "macOS 27.0 (26A428), M4 Max 128 GB",
+  "swift": "6.4, Swift 6 mode",
+  "sourceRevision": "914f7f89142e33e77833254d9c9b90c3cef7303b",
+  "precision": "fp16-safe-s128-v70",
+  "count": 20,
+  "minimumCosine": 0.9994835530367157,
+  "maximumDifference": 0.004896015139755249,
+  "maximumNormDifference": 0.0004139646248585427,
+  "gate": {
+    "cosineMin": 0.999,
+    "maxDifferenceMax": 0.01,
+    "normDifferenceMax": 0.001
+  },
+  "independentRecalculation": [
+    {
+      "id": "ja_tools",
+      "cosine": 0.9999997632593635,
+      "maxDifference": 8.869634950638139e-05,
+      "normDifference": 0.00013178914288813903
+    },
+    {
+      "id": "ja_food",
+      "cosine": 0.9999996638966469,
+      "maxDifference": 0.0001859217882156372,
+      "normDifference": 4.215542484198309e-06
+    },
+    {
+      "id": "ja_eggs",
+      "cosine": 0.99999970213791,
+      "maxDifference": 0.00021915377883913179,
+      "normDifference": 0.00010433069984894239
+    },
+    {
+      "id": "ja_negation",
+      "cosine": 0.9999996713525384,
+      "maxDifference": 0.00020898325958251807,
+      "normDifference": 2.7778157256186375e-05
+    },
+    {
+      "id": "ja_numbers",
+      "cosine": 0.999999737992582,
+      "maxDifference": 0.00012923370853423766,
+      "normDifference": 0.00012744520022001105
+    },
+    {
+      "id": "en_tools",
+      "cosine": 0.9999997205800442,
+      "maxDifference": 0.0001421145618057118,
+      "normDifference": 0.00020949121349866928
+    },
+    {
+      "id": "en_food",
+      "cosine": 0.9999997612107142,
+      "maxDifference": 0.00018339411697387842,
+      "normDifference": 0.00019277346679724694
+    },
+    {
+      "id": "en_unicode",
+      "cosine": 0.9999995850267139,
+      "maxDifference": 0.00019627497024538032,
+      "normDifference": 0.00017669445742041212
+    },
+    {
+      "id": "ja_document",
+      "cosine": 0.9999996841432348,
+      "maxDifference": 0.0001569976968383846,
+      "normDifference": 9.436544856378237e-05
+    },
+    {
+      "id": "en_document",
+      "cosine": 0.9999997317030623,
+      "maxDifference": 0.00019690144401551812,
+      "normDifference": 0.00021375535716861016
+    },
+    {
+      "id": "ja_short",
+      "cosine": 0.999999808130175,
+      "maxDifference": 9.701093437194941e-05,
+      "normDifference": 0.00023240236671595582
+    },
+    {
+      "id": "empty_content",
+      "cosine": 0.9999997038453329,
+      "maxDifference": 0.00027713679588320383,
+      "normDifference": 0.0004139646248585427
+    },
+    {
+      "id": "01-oyakodon",
+      "cosine": 0.9998762985731247,
+      "maxDifference": 0.001588877267049791,
+      "normDifference": 1.0636196828395228e-05
+    },
+    {
+      "id": "02-ginger-pork",
+      "cosine": 0.9998684590877917,
+      "maxDifference": 0.0019283481332874296,
+      "normDifference": 0.00018716291330500567
+    },
+    {
+      "id": "03-omelette",
+      "cosine": 0.9999827170423858,
+      "maxDifference": 0.0007512644402046173,
+      "normDifference": 0.00034009486351860296
+    },
+    {
+      "id": "04-gratin",
+      "cosine": 0.9999693715156984,
+      "maxDifference": 0.0010769926284999853,
+      "normDifference": 0.0003134696633824152
+    },
+    {
+      "id": "05-caprese",
+      "cosine": 0.9994835530367157,
+      "maxDifference": 0.004896015139755249,
+      "normDifference": 2.871448205432614e-06
+    },
+    {
+      "id": "gradient_square",
+      "cosine": 0.999866114493095,
+      "maxDifference": 0.0019464405010795605,
+      "normDifference": 0.00023918124612731795
+    },
+    {
+      "id": "gradient_wide",
+      "cosine": 0.9999782729272069,
+      "maxDifference": 0.0008552599723014864,
+      "normDifference": 0.00041136474579039906
+    },
+    {
+      "id": "gradient_tall",
+      "cosine": 0.9999678738053202,
+      "maxDifference": 0.0009219997075185782,
+      "normDifference": 0.00011138307319336072
+    }
+  ],
+  "iphone": {
+    "os": "27.0.1",
+    "model": "iPhone 17 Pro",
+    "signedBuild": true,
+    "installed": false,
+    "inferenceVerified": false,
+    "blocker": "CoreDevice 10003: device locked"
+  },
+  "gui": {
+    "renderedViews": true,
+    "interactiveMouseOrTouch": false,
+    "blocker": "Computer-use native pipe startup failed"
+  },
+  "checks": {
+    "cpuTestsExit": 0,
+    "macReleaseBuildExit": 0,
+    "iosSignedReleaseBuildExit": 0,
+    "newSwiftFormatExit": 0,
+    "lintWithPathNormalizedExistingBaselineExit": 0
+  },
+  "sourceHashes": {
+    "CoreAISamplesKit/Sources/EmbeddingCore/BicubicResize.swift": "817c19fd1b20e9ddf5fbd6547408d1466b5e10d3ffa807797cc08eca64168ab0",
+    "CoreAISamplesKit/Sources/EmbeddingCore/EmbeddingImage.swift": "bc422261943d21c1b7ce075a04844691997a431a9885397466a1d6f3c0cfb9c5",
+    "CoreAISamplesKit/Sources/EmbeddingCore/EmbeddingVector.swift": "2937ca69bfe6cc9eb93d7967a1f0bee76d31184d4d95e94a2756cd87e49a0ca2",
+    "CoreAISamplesKit/Sources/EmbeddingRuntime/EmbeddingBundle.swift": "760a0b39506bd30a13d42796ef56a69f2662d946658679d7cc6ec410499f0d23",
+    "CoreAISamplesKit/Sources/EmbeddingRuntime/EmbeddingImageReader.swift": "35284a516aeb865d464a440ab9a2fa49f8c6861a83fb3dcb38a75e0272346076",
+    "CoreAISamplesKit/Sources/EmbeddingRuntime/EmbeddingModel.swift": "a3643d0850ff773f2507beb17df9ed50c4ba5e59e7bed1a5f2bf37bc2a71b200",
+    "CoreAISamplesKit/Sources/EmbeddingRuntime/EmbeddingTokenizer.swift": "80f60a78646b9058464b013e3e9849e4d0e84d0450c3779f6961dcfdc8683fcd",
+    "CoreAISamplesKit/Sources/ImageSearchFeature/ImageSearchFeature.swift": "8f19ff61a1700f1d8e8f51a7350ec0f7d58d0ea7b4db9d6da3b032d441ef2d6f",
+    "CoreAISamplesKit/Sources/ImageSearchRuntime/ImageSearchRunner.swift": "b922e4694fdb284a133efd377ee7f01e4f972bb3e126655798532733c6effecb",
+    "CoreAISamplesKit/Sources/ImageSearchRuntime/ImageSearchService.swift": "9a5607b1c599305e8a7a9447d75022853805f0bc46b318687097a726e446cf72",
+    "CoreAISamples/Demos/ImageSearch/ImageSearchAssembly.swift": "06b6aa65bb5c0d3264ed6462d19ea016d662972201f4d0fb6ad534702f4da319",
+    "CoreAISamples/Demos/ImageSearch/ImageSearchSelfTest.swift": "fcdd4ac0dbd0f6ebbddb3642bfbdb314393b8f8bcc83d1c2f48deec4762298ff",
+    "CoreAISamples/Demos/ImageSearch/ImageSearchVectorCheck.swift": "6d24d3c21828c9c2ac46ec9f5325c0707b8cbd123bec2c9e362ab52b68dfc631",
+    "CoreAISamples/Demos/ImageSearch/ImageSearchView.swift": "e4d2a286035a7deffa82bf4a4a5acb272905632640f2b2fe47f91f5ab67224a6"
+  }
+}

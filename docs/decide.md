@@ -4,6 +4,14 @@ Decide runs a converted Clef-Flash 9B model locally through Core AI. Supply a do
 
 ## Open the demo
 
+Download the [Clef-Flash 9B Core AI bundle](https://huggingface.co/okayuji/clef-flash-9b-coreai-decide) with the Hugging Face CLI:
+
+```sh
+hf download okayuji/clef-flash-9b-coreai-decide --local-dir ./models/clef-flash-9b-decide-v1
+```
+
+The model guide is available in [English](clef-flash.md) and [日本語](clef-flash.ja.md). The download needs internet access; document decisions run locally after the bundle is available.
+
 Use macOS 27 and Xcode 27 on an Apple silicon Mac. Open `CoreAISamples.xcodeproj`, select the `CoreAISamples` scheme and **My Mac**, and run. The scheme uses Release. Select **Decide**, then **Open decision bundle…** and choose the directory containing `decision.json`. The same button is available in **Models**. Model weights are separate from this repository.
 
 The supported bundle is `clef-flash-9b-decide-v1`: a uint4 backbone with fp32 gated-delta updates, a separate fp16 decision head, BF16 lexical embeddings and a tokenizer. Loading checks the manifest, the required files and all entries in `SHA256SUMS` before specializing the models.

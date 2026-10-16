@@ -36,7 +36,7 @@ struct DecideView: View {
             status
         }
         .padding(20)
-        .navigationTitle("Decide")
+        .demoNavigationTitle("Decide")
         .onAppear { store.send(.appeared) }
         .onDisappear { store.send(.ended) }
         .fileImporter(isPresented: $importingDocument, allowedContentTypes: [.plainText, .text]) { result in
@@ -65,8 +65,14 @@ struct DecideView: View {
         HStack(alignment: .top, spacing: 16) {
             VStack(alignment: .leading, spacing: 4) {
                 Text("Document checklist").font(.title2.bold())
-                Text(store.state.model?.name ?? "Open a Clef-Flash decision bundle to begin.")
-                    .font(.callout).foregroundStyle(.secondary).textSelection(.enabled)
+                Group {
+                    if let name = store.state.model?.name {
+                        Text(verbatim: name)
+                    } else {
+                        Text("Open a Clef-Flash decision bundle to begin.")
+                    }
+                }
+                .font(.callout).foregroundStyle(.secondary).textSelection(.enabled)
             }
             Spacer()
             DecideModelButton(store: store)
@@ -80,7 +86,7 @@ struct DecideView: View {
                 Spacer()
                 Menu("Examples") {
                     ForEach(store.state.examples) { example in
-                        Button(example.title) {
+                        Button(LocalizedStringKey(example.title)) {
                             search = ""
                             store.send(.replaceInput(example.input))
                         }
@@ -123,9 +129,9 @@ struct DecideView: View {
             .background(.background)
             .clipShape(RoundedRectangle(cornerRadius: 8))
             .overlay(RoundedRectangle(cornerRadius: 8).stroke(.quaternary))
-            Text(tokenLabel).font(.caption).foregroundStyle(.secondary)
+            tokenLabel.font(.caption).foregroundStyle(.secondary)
             if let problem = store.state.countError ?? store.state.input.problem, !store.state.input.document.isEmpty {
-                Text(problem).font(.caption).foregroundStyle(.orange)
+                RuntimeMessageText(problem).font(.caption).foregroundStyle(.orange)
             }
         }
         .padding(.trailing, 12)
@@ -147,7 +153,7 @@ struct DecideView: View {
                         HStack {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(item.key).lineLimit(1)
-                                Text(item.kind.title).font(.caption).foregroundStyle(.secondary)
+                                Text(LocalizedStringKey(item.kind.title)).font(.caption).foregroundStyle(.secondary)
                             }
                             Spacer()
                             Button("Move up", systemImage: "chevron.up") { store.send(.moveItem(item.id, -1)) }
@@ -155,7 +161,7 @@ struct DecideView: View {
                             Button("Move down", systemImage: "chevron.down") { store.send(.moveItem(item.id, 1)) }
                                 .disabled(store.state.input.items.last?.id == item.id)
                             Button("Edit", systemImage: "pencil") { editing = item }
-                                .accessibilityLabel("Edit " + item.key)
+                                .accessibilityLabel(Text("Edit \(item.key)"))
                                 .accessibilityIdentifier("decide.edit.\(item.id)")
                             Button("Remove", systemImage: "minus.circle") { store.send(.removeItem(item.id)) }
                         }
@@ -234,9 +240,9 @@ struct DecideView: View {
         HStack {
             if store.state.busy || store.state.loadingExamples {
                 ProgressView().controlSize(.small)
-                Text(phaseLabel).font(.callout)
+                Text(LocalizedStringKey(phaseLabel)).font(.callout)
             } else if let message = store.state.message {
-                Text(message).font(.callout).textSelection(.enabled)
+                RuntimeMessageText(message).font(.callout).textSelection(.enabled)
             }
             Spacer()
             if let initial = store.state.initialSeconds {
@@ -252,12 +258,15 @@ struct DecideView: View {
         .font(.caption).foregroundStyle(.secondary)
     }
 
-    private var tokenLabel: String {
-        guard let tokens = store.state.inputTokens else {
-            return store.state.model == nil
-                ? "Token count is available after opening a model." : "Input token count pending"
+    @ViewBuilder
+    private var tokenLabel: some View {
+        if let tokens = store.state.inputTokens {
+            Text("\(tokens) / \(store.state.model?.tokenLimit ?? 9_216) input tokens")
+        } else if store.state.model == nil {
+            Text("Token count is available after opening a model.")
+        } else {
+            Text("Input token count pending")
         }
-        return "\(tokens.formatted()) / \((store.state.model?.tokenLimit ?? 9_216).formatted()) input tokens"
     }
 
     private var phaseLabel: String {

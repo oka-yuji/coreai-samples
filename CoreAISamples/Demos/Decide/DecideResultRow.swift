@@ -19,7 +19,7 @@ struct DecideResultRow: View {
                     Label("Review first", systemImage: "magnifyingglass")
                         .font(.caption.bold()).foregroundStyle(.orange)
                 }
-                Text(confirmation == nil ? "Unverified" : "Confirmed")
+                Text(LocalizedStringKey(confirmation == nil ? "Unverified" : "Confirmed"))
                     .font(.caption).foregroundStyle(confirmation == nil ? Color.secondary : Color.green)
             }
             LabeledContent("Model candidate") {

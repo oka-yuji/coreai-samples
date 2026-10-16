@@ -1,0 +1,20 @@
+[project]
+name = "coreai-samples-embeddinggemma2"
+version = "0.1.0"
+requires-python = ">=3.11,<3.12"
+dependencies = [
+  "coreai-core==1.0.0b3",
+  "coreai-opt==0.3.0",
+  "coreai-torch==0.4.3",
+  "huggingface-hub==2.2.0",
+  "numpy==2.3.5",
+  "Pillow==12.2.0",
+  "safetensors==0.8.0",
+  "torch==2.9.0",
+  "torchao==0.17.0",
+  "torchvision==0.24.0",
+  "transformers==5.19.0"
+]
+
+[tool.uv]
+prerelease = "allow"

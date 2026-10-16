@@ -1,0 +1,64 @@
+{
+  "texts": [
+    [
+      "ja_tools",
+      "SearchQuery",
+      "赤い工具箱が写っている写真"
+    ],
+    [
+      "ja_food",
+      "SearchQuery",
+      "トマトと白いチーズが並んでいる写真"
+    ],
+    [
+      "ja_eggs",
+      "SearchQuery",
+      "卵が入っている冷蔵庫"
+    ],
+    [
+      "ja_negation",
+      "SearchQuery",
+      "肉が写っていない写真"
+    ],
+    [
+      "ja_numbers",
+      "SearchQuery",
+      "卵が三つ、牛乳が一本あります。"
+    ],
+    [
+      "en_tools",
+      "SearchQuery",
+      "A photo of a red toolbox"
+    ],
+    [
+      "en_food",
+      "SearchQuery",
+      "Tomatoes and white cheese"
+    ],
+    [
+      "en_unicode",
+      "Document",
+      "Café, café, 日本語、ภาษาไทย。"
+    ],
+    [
+      "ja_document",
+      "Document",
+      "点検前に電源を切り、配管の接続部を確認してください。"
+    ],
+    [
+      "en_document",
+      "Document",
+      "Turn off the power before checking the pipe connection."
+    ],
+    [
+      "ja_short",
+      "SearchQuery",
+      "猫"
+    ],
+    [
+      "empty_content",
+      "Document",
+      ""
+    ]
+  ]
+}

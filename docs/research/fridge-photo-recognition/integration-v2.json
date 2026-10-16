@@ -1,0 +1,768 @@
+[
+  {
+    "case" : "01-oyakodon",
+    "photoChecks" : [
+      "check meat for uncertainty",
+      "check herbs for uncertainty"
+    ],
+    "photoSeconds" : 2.390713667,
+    "photoSuggestions" : [
+      {
+        "name" : "eggs",
+        "visibleCount" : 3
+      },
+      {
+        "name" : "onion"
+      },
+      {
+        "name" : "chicken",
+        "visibleCount" : 1
+      },
+      {
+        "name" : "herbs"
+      }
+    ],
+    "report" : {
+      "equipment" : "available",
+      "equipmentProbability" : 0.92270803000000001,
+      "modelVersion" : "67f69d5bd401104fd594ba74d94622882341c138be6149132d68f9857def852d",
+      "reusedTokens" : 0,
+      "rows" : [
+        {
+          "amount" : {
+            "sufficient" : {
+
+            }
+          },
+          "decision" : "have",
+          "id" : 0,
+          "ingredient" : {
+            "amount" : "150g",
+            "id" : 0,
+            "name" : "鶏もも肉"
+          },
+          "probability" : 0.94376415000000002,
+          "requirement" : "required"
+        },
+        {
+          "amount" : {
+            "sufficient" : {
+
+            }
+          },
+          "decision" : "have",
+          "id" : 1,
+          "ingredient" : {
+            "amount" : "1\/4個",
+            "id" : 1,
+            "name" : "玉ねぎ"
+          },
+          "probability" : 0.75786114000000004,
+          "requirement" : "required"
+        },
+        {
+          "amount" : {
+            "sufficient" : {
+
+            }
+          },
+          "decision" : "have",
+          "id" : 2,
+          "ingredient" : {
+            "amount" : "3個",
+            "id" : 2,
+            "name" : "卵"
+          },
+          "probability" : 0.94030800000000003,
+          "requirement" : "required"
+        },
+        {
+          "amount" : {
+            "sufficient" : {
+
+            }
+          },
+          "decision" : "have",
+          "id" : 3,
+          "ingredient" : {
+            "amount" : "適宜",
+            "id" : 3,
+            "name" : "三つ葉"
+          },
+          "probability" : 0.74625814000000001,
+          "requirement" : "optional"
+        },
+        {
+          "amount" : {
+            "sufficient" : {
+
+            }
+          },
+          "decision" : "have",
+          "id" : 4,
+          "ingredient" : {
+            "amount" : "2杯分",
+            "id" : 4,
+            "name" : "ご飯"
+          },
+          "probability" : 0.86176646000000001,
+          "requirement" : "required"
+        },
+        {
+          "amount" : {
+            "sufficient" : {
+
+            }
+          },
+          "decision" : "have",
+          "id" : 5,
+          "ingredient" : {
+            "amount" : "50ml",
+            "id" : 5,
+            "name" : "キッコーマン濃いだし本つゆ(濃縮4倍)"
+          },
+          "probability" : 0.83426630000000002,
+          "requirement" : "required"
+        },
+        {
+          "amount" : {
+            "sufficient" : {
+
+            }
+          },
+          "decision" : "have",
+          "id" : 6,
+          "ingredient" : {
+            "amount" : "150ml",
+            "id" : 6,
+            "name" : "水"
+          },
+          "probability" : 0.65407150000000003,
+          "requirement" : "required"
+        }
+      ],
+      "seconds" : 3.1045977499999999
+    },
+    "reviewedInventoryIsScriptedTestInput" : true,
+    "source" : "https:\/\/www.kikkoman.co.jp\/homecook\/search\/recipe\/00006446\/"
+  },
+  {
+    "case" : "02-ginger-pork",
+    "photoChecks" : [
+      "check meat for species"
+    ],
+    "photoSeconds" : 1.9874015,
+    "photoSuggestions" : [
+      {
+        "name" : "onion",
+        "visibleCount" : 1
+      },
+      {
+        "name" : "carrot",
+        "visibleCount" : 1
+      },
+      {
+        "name" : "zucchini",
+        "visibleCount" : 3
+      },
+      {
+        "name" : "meat",
+        "visibleCount" : 1
+      }
+    ],
+    "report" : {
+      "equipment" : "available",
+      "equipmentProbability" : 0.90874224999999997,
+      "modelVersion" : "67f69d5bd401104fd594ba74d94622882341c138be6149132d68f9857def852d",
+      "reusedTokens" : 0,
+      "rows" : [
+        {
+          "amount" : {
+            "sufficient" : {
+
+            }
+          },
+          "decision" : "have",
+          "id" : 0,
+          "ingredient" : {
+            "amount" : "200g",
+            "id" : 0,
+            "name" : "豚肩ロース肉"
+          },
+          "probability" : 0.93792759999999997,
+          "requirement" : "required"
+        },
+        {
+          "amount" : {
+            "sufficient" : {
+
+            }
+          },
+          "decision" : "have",
+          "id" : 1,
+          "ingredient" : {
+            "amount" : "1\/4個",
+            "id" : 1,
+            "name" : "玉ねぎ"
+          },
+          "probability" : 0.75439935999999996,
+          "requirement" : "required"
+        },
+        {
+          "amount" : {
+            "sufficient" : {
+
+            }
+          },
+          "decision" : "have",
+          "id" : 2,
+          "ingredient" : {
+            "amount" : "大さじ1\/2",
+            "id" : 2,
+            "name" : "サラダ油"
+          },
+          "probability" : 0.54253739999999995,
+          "requirement" : "required"
+        },
+        {
+          "amount" : {
+            "notRequired" : {
+
+            }
+          },
+          "decision" : "optional",
+          "id" : 3,
+          "ingredient" : {
+            "amount" : "適宜",
+            "id" : 3,
+            "name" : "キャベツ"
+          },
+          "probability" : 0.90081935999999996,
+          "requirement" : "optional"
+        },
+        {
+          "amount" : {
+            "sufficient" : {
+
+            }
+          },
+          "decision" : "have",
+          "id" : 4,
+          "ingredient" : {
+            "amount" : "大さじ1と1\/2",
+            "id" : 4,
+            "name" : "キッコーマンいつでも新鮮しぼりたて生しょうゆ"
+          },
+          "probability" : 0.58260769999999995,
+          "requirement" : "required"
+        },
+        {
+          "amount" : {
+            "sufficient" : {
+
+            }
+          },
+          "decision" : "have",
+          "id" : 5,
+          "ingredient" : {
+            "amount" : "大さじ1と1\/2",
+            "id" : 5,
+            "name" : "マンジョウ米麹こだわり仕込み本みりん"
+          },
+          "probability" : 0.72377305999999997,
+          "requirement" : "required"
+        },
+        {
+          "amount" : {
+            "notRequired" : {
+
+            }
+          },
+          "decision" : "missing",
+          "id" : 6,
+          "ingredient" : {
+            "amount" : "小さじ2程度（10g）",
+            "id" : 6,
+            "name" : "おろししょうが"
+          },
+          "probability" : 0.85188997,
+          "requirement" : "required"
+        }
+      ],
+      "seconds" : 3.2804899590000001
+    },
+    "reviewedInventoryIsScriptedTestInput" : true,
+    "source" : "https:\/\/www.kikkoman.co.jp\/homecook\/search\/recipe\/00056818\/"
+  },
+  {
+    "case" : "03-omelette",
+    "photoChecks" : [
+      "check clear packaging for eggs",
+      "check opaque container for unknown contents"
+    ],
+    "photoSeconds" : 1.643466833,
+    "photoSuggestions" : [
+      {
+        "name" : "broccoli",
+        "visibleCount" : 1
+      },
+      {
+        "name" : "egg",
+        "visibleCount" : 1
+      }
+    ],
+    "report" : {
+      "equipment" : "available",
+      "equipmentProbability" : 0.78622985000000001,
+      "modelVersion" : "67f69d5bd401104fd594ba74d94622882341c138be6149132d68f9857def852d",
+      "reusedTokens" : 0,
+      "rows" : [
+        {
+          "amount" : {
+            "short" : {
+              "_0" : 2,
+              "_1" : "pcs"
+            }
+          },
+          "decision" : "have",
+          "id" : 0,
+          "ingredient" : {
+            "amount" : "3個",
+            "id" : 0,
+            "name" : "卵"
+          },
+          "probability" : 0.97564700000000004,
+          "requirement" : "required"
+        },
+        {
+          "amount" : {
+            "sufficient" : {
+
+            }
+          },
+          "decision" : "have",
+          "id" : 1,
+          "ingredient" : {
+            "amount" : "小さじ2",
+            "id" : 1,
+            "name" : "サラダ油"
+          },
+          "probability" : 0.70114080000000001,
+          "requirement" : "required"
+        },
+        {
+          "amount" : {
+            "sufficient" : {
+
+            }
+          },
+          "decision" : "have",
+          "id" : 2,
+          "ingredient" : {
+            "amount" : "大さじ1\/2",
+            "id" : 2,
+            "name" : "キッコーマンいつでも新鮮しぼりたて生しょうゆ"
+          },
+          "probability" : 0.40526985999999998,
+          "requirement" : "uncertain"
+        },
+        {
+          "amount" : {
+            "sufficient" : {
+
+            }
+          },
+          "decision" : "have",
+          "id" : 3,
+          "ingredient" : {
+            "amount" : "大さじ1",
+            "id" : 3,
+            "name" : "砂糖"
+          },
+          "probability" : 0.5982307,
+          "requirement" : "required"
+        }
+      ],
+      "seconds" : 2.8213102499999998
+    },
+    "reviewedInventoryIsScriptedTestInput" : true,
+    "source" : "https:\/\/www.kikkoman.co.jp\/homecook\/search\/recipe\/00004002\/"
+  },
+  {
+    "case" : "04-gratin",
+    "photoChecks" : [
+      "check opaque container for meat species uncertainty",
+      "check clear packaging for cheese variety uncertainty"
+    ],
+    "photoSeconds" : 2.590404833,
+    "photoSuggestions" : [
+      {
+        "name" : "milk",
+        "visibleCount" : 1
+      },
+      {
+        "name" : "cheese",
+        "visibleCount" : 1
+      },
+      {
+        "name" : "mushrooms",
+        "visibleCount" : 4
+      },
+      {
+        "name" : "onion",
+        "visibleCount" : 1
+      },
+      {
+        "name" : "broccoli",
+        "visibleCount" : 1
+      },
+      {
+        "name" : "meat",
+        "visibleCount" : 2
+      }
+    ],
+    "report" : {
+      "equipment" : "unavailable",
+      "equipmentProbability" : 0.5683433,
+      "modelVersion" : "67f69d5bd401104fd594ba74d94622882341c138be6149132d68f9857def852d",
+      "reusedTokens" : 0,
+      "rows" : [
+        {
+          "amount" : {
+            "sufficient" : {
+
+            }
+          },
+          "decision" : "have",
+          "id" : 0,
+          "ingredient" : {
+            "amount" : "1\/2枚",
+            "id" : 0,
+            "name" : "鶏もも肉"
+          },
+          "probability" : 0.88145465000000001,
+          "requirement" : "required"
+        },
+        {
+          "amount" : {
+            "sufficient" : {
+
+            }
+          },
+          "decision" : "have",
+          "id" : 1,
+          "ingredient" : {
+            "amount" : "1\/4個",
+            "id" : 1,
+            "name" : "玉ねぎ"
+          },
+          "probability" : 0.85326964000000005,
+          "requirement" : "required"
+        },
+        {
+          "amount" : {
+            "sufficient" : {
+
+            }
+          },
+          "decision" : "have",
+          "id" : 2,
+          "ingredient" : {
+            "amount" : "4個（30g）",
+            "id" : 2,
+            "name" : "マッシュルーム"
+          },
+          "probability" : 0.48545634999999998,
+          "requirement" : "uncertain"
+        },
+        {
+          "amount" : {
+            "sufficient" : {
+
+            }
+          },
+          "decision" : "have",
+          "id" : 3,
+          "ingredient" : {
+            "amount" : "50g",
+            "id" : 3,
+            "name" : "ブロッコリー"
+          },
+          "probability" : 0.47365013,
+          "requirement" : "uncertain"
+        },
+        {
+          "amount" : {
+            "sufficient" : {
+
+            }
+          },
+          "decision" : "have",
+          "id" : 4,
+          "ingredient" : {
+            "amount" : "60g",
+            "id" : 4,
+            "name" : "マカロニ"
+          },
+          "probability" : 0.9499438,
+          "requirement" : "required"
+        },
+        {
+          "amount" : {
+            "sufficient" : {
+
+            }
+          },
+          "decision" : "have",
+          "id" : 5,
+          "ingredient" : {
+            "amount" : "適量",
+            "id" : 5,
+            "name" : "塩"
+          },
+          "probability" : 0.53428350000000002,
+          "requirement" : "required"
+        },
+        {
+          "amount" : {
+            "sufficient" : {
+
+            }
+          },
+          "decision" : "have",
+          "id" : 6,
+          "ingredient" : {
+            "amount" : "大さじ1",
+            "id" : 6,
+            "name" : "サラダ油"
+          },
+          "probability" : 0.48483267000000002,
+          "requirement" : "required"
+        },
+        {
+          "amount" : {
+            "sufficient" : {
+
+            }
+          },
+          "decision" : "have",
+          "id" : 7,
+          "ingredient" : {
+            "amount" : "少々",
+            "id" : 7,
+            "name" : "塩"
+          },
+          "probability" : 0.42295700000000003,
+          "requirement" : "required"
+        },
+        {
+          "amount" : {
+            "sufficient" : {
+
+            }
+          },
+          "decision" : "have",
+          "id" : 8,
+          "ingredient" : {
+            "amount" : "少々",
+            "id" : 8,
+            "name" : "こしょう"
+          },
+          "probability" : 0.51621382999999998,
+          "requirement" : "optional"
+        },
+        {
+          "amount" : {
+            "sufficient" : {
+
+            }
+          },
+          "decision" : "have",
+          "id" : 9,
+          "ingredient" : {
+            "amount" : "小さじ1",
+            "id" : 9,
+            "name" : "キッコーマン特選丸大豆しょうゆ"
+          },
+          "probability" : 0.56411045999999998,
+          "requirement" : "optional"
+        },
+        {
+          "amount" : {
+            "sufficient" : {
+
+            }
+          },
+          "decision" : "have",
+          "id" : 10,
+          "ingredient" : {
+            "amount" : "1\/2缶（145g）",
+            "id" : 10,
+            "name" : "ホワイトソース"
+          },
+          "probability" : 0.92153585000000005,
+          "requirement" : "required"
+        },
+        {
+          "amount" : {
+            "sufficient" : {
+
+            }
+          },
+          "decision" : "have",
+          "id" : 11,
+          "ingredient" : {
+            "amount" : "3\/4カップ",
+            "id" : 11,
+            "name" : "牛乳"
+          },
+          "probability" : 0.68534910000000004,
+          "requirement" : "required"
+        },
+        {
+          "amount" : {
+            "sufficient" : {
+
+            }
+          },
+          "decision" : "have",
+          "id" : 12,
+          "ingredient" : {
+            "amount" : "30g",
+            "id" : 12,
+            "name" : "ピザ用チーズ"
+          },
+          "probability" : 0.59340190000000004,
+          "requirement" : "required"
+        },
+        {
+          "amount" : {
+            "sufficient" : {
+
+            }
+          },
+          "decision" : "have",
+          "id" : 13,
+          "ingredient" : {
+            "amount" : "大さじ1",
+            "id" : 13,
+            "name" : "パン粉"
+          },
+          "probability" : 0.35892993000000001,
+          "requirement" : "required"
+        }
+      ],
+      "seconds" : 4.6342834169999998
+    },
+    "reviewedInventoryIsScriptedTestInput" : true,
+    "source" : "https:\/\/www.kikkoman.co.jp\/homecook\/search\/recipe\/00004825\/"
+  },
+  {
+    "case" : "05-caprese",
+    "photoChecks" : [
+      "check transparent packaging for leafy herbs"
+    ],
+    "photoSeconds" : 2.0709735419999999,
+    "photoSuggestions" : [
+      {
+        "name" : "tomato",
+        "visibleCount" : 1
+      },
+      {
+        "name" : "leafy herbs",
+        "visibleCount" : 1
+      }
+    ],
+    "report" : {
+      "equipment" : "available",
+      "equipmentProbability" : 0.87855755999999996,
+      "modelVersion" : "67f69d5bd401104fd594ba74d94622882341c138be6149132d68f9857def852d",
+      "reusedTokens" : 0,
+      "rows" : [
+        {
+          "amount" : {
+            "sufficient" : {
+
+            }
+          },
+          "decision" : "have",
+          "id" : 0,
+          "ingredient" : {
+            "amount" : "1\/2個",
+            "id" : 0,
+            "name" : "トマト"
+          },
+          "probability" : 0.93232250000000005,
+          "requirement" : "required"
+        },
+        {
+          "amount" : {
+            "notRequired" : {
+
+            }
+          },
+          "decision" : "uncertain",
+          "id" : 1,
+          "ingredient" : {
+            "amount" : "1\/2個",
+            "id" : 1,
+            "name" : "モッツァレラチーズ"
+          },
+          "probability" : 0.88231044999999997,
+          "requirement" : "required"
+        },
+        {
+          "amount" : {
+            "sufficient" : {
+
+            }
+          },
+          "decision" : "have",
+          "id" : 2,
+          "ingredient" : {
+            "amount" : "1枚",
+            "id" : 2,
+            "name" : "青じそ"
+          },
+          "probability" : 0.69207759999999996,
+          "requirement" : "required"
+        },
+        {
+          "amount" : {
+            "sufficient" : {
+
+            }
+          },
+          "decision" : "have",
+          "id" : 3,
+          "ingredient" : {
+            "amount" : "大さじ1\/4",
+            "id" : 3,
+            "name" : "キッコーマンいつでも新鮮しぼりたて生しょうゆ"
+          },
+          "probability" : 0.60657910000000004,
+          "requirement" : "required"
+        },
+        {
+          "amount" : {
+            "sufficient" : {
+
+            }
+          },
+          "decision" : "have",
+          "id" : 4,
+          "ingredient" : {
+            "amount" : "大さじ1\/2",
+            "id" : 4,
+            "name" : "オリーブオイル"
+          },
+          "probability" : 0.83990556000000005,
+          "requirement" : "required"
+        }
+      ],
+      "seconds" : 2.8789462079999999
+    },
+    "reviewedInventoryIsScriptedTestInput" : true,
+    "source" : "https:\/\/www.kikkoman.co.jp\/homecook\/search\/recipe\/00001454\/"
+  }
+]

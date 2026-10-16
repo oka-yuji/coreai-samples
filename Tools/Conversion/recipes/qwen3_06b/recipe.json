@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "name": "qwen3_06b_fp16_smoke",
+  "description": "Pinned Qwen3 FP16 export and original FP32 reference, followed by Swift raw-token smoke verification.",
+  "variables": {
+    "python": "$upstream/.venv/bin/python",
+    "runner": "$upstream/.build/release/llm-runner",
+    "adapters": "$repo/Tools/Conversion/adapters",
+    "fixture": "$recipe_dir/fixtures.json",
+    "criteria": "$recipe_dir/criteria.json"
+  },
+  "python": "$python",
+  "environment": {
+    "HF_HUB_OFFLINE": "1",
+    "TRANSFORMERS_OFFLINE": "1",
+    "TOKENIZERS_PARALLELISM": "false",
+    "OMP_NUM_THREADS": "4",
+    "MKL_NUM_THREADS": "4"
+  },
+  "steps": [
+    {
+      "id": "prepare",
+      "role": "prepare",
+      "command": ["$python", "$adapters/pinned.py", "--contract", "$recipe_dir/model.json", "--snapshot", "$snapshot", "--upstream", "$upstream", "--out", "$out"],
+      "inputs": ["$adapters/pinned.py", "$recipe_dir/model.json", "$snapshot/config.json", "$snapshot/tokenizer.json", "$snapshot/tokenizer_config.json"],
+      "outputs": ["ready.json"],
+      "checks": [{"file": "ready.json", "key": ["ready"], "equals": true}],
+      "cache": false,
+      "timeout_s": 30
+    },
+    {
+      "id": "reference",
+      "role": "reference",
+      "depends": ["prepare"],
+      "command": ["$python", "$adapters/reference_llm.py", "--contract", "$recipe_dir/model.json", "--snapshot", "$snapshot", "--fixture", "$fixture", "--out", "$out"],
+      "inputs": ["$adapters/reference_llm.py", "$adapters/pinned.py", "$recipe_dir/model.json", "$fixture", "$snapshot"],
+      "outputs": ["reference.json", "english.npy", "japanese.npy", "chat_stop.npy", "english.tokens.json", "japanese.tokens.json", "chat_stop.tokens.json"],
+      "heavy": true,
+      "timeout_s": 600,
+      "min_free_bytes": 5000000000
+    },
+    {
+      "id": "export",
+      "role": "export",
+      "depends": ["prepare"],
+      "command": ["$python", "$adapters/export_llm.py", "--contract", "$recipe_dir/model.json", "--snapshot", "$snapshot", "--upstream", "$upstream", "--out", "$out"],
+      "inputs": ["$adapters/export_llm.py", "$adapters/pinned.py", "$recipe_dir/model.json", "$snapshot", "$upstream/python/src", "$upstream/models/qwen3"],
+      "outputs": ["qwen3_06b_fp16", "provenance.json"],
+      "heavy": true,
+      "timeout_s": 600,
+      "min_free_bytes": 8000000000
+    },
+    {
+      "id": "verify",
+      "role": "verify",
+      "depends": ["reference", "export"],
+      "command": ["$python", "$adapters/verify_llm.py", "--reference", "$reference", "--bundle", "$export/qwen3_06b_fp16", "--runner", "$runner", "--criteria", "$criteria", "--out", "$out"],
+      "inputs": ["$adapters/verify_llm.py", "$adapters/pinned.py", "$criteria", "$runner"],
+      "outputs": ["comparison.json", "swift"],
+      "checks": [{"file": "comparison.json", "key": ["passed"], "equals": true}],
+      "heavy": true,
+      "timeout_s": 1000,
+      "min_free_bytes": 5000000000
+    }
+  ]
+}

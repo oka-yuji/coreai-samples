@@ -1,0 +1,319 @@
+{
+  "foods": [
+    {
+      "id": "chicken",
+      "aliases": [
+        "chicken",
+        "chicken thigh",
+        "chicken thighs",
+        "chicken meat",
+        "鶏もも肉",
+        "鶏肉"
+      ],
+      "countable": false
+    },
+    {
+      "id": "pork",
+      "aliases": [
+        "pork",
+        "pork slices",
+        "pork shoulder",
+        "豚肩ロース肉",
+        "豚ロース肉",
+        "豚肉"
+      ],
+      "countable": false
+    },
+    {
+      "id": "mozzarella",
+      "aliases": [
+        "mozzarella",
+        "mozzarella cheese",
+        "モッツァレラチーズ"
+      ],
+      "countable": false
+    },
+    {
+      "id": "shreddedCheese",
+      "aliases": [
+        "cheese",
+        "shredded cheese",
+        "pizza cheese",
+        "ピザ用チーズ"
+      ],
+      "countable": false
+    },
+    {
+      "id": "egg",
+      "aliases": [
+        "egg",
+        "eggs",
+        "卵",
+        "玉子"
+      ],
+      "countable": true
+    },
+    {
+      "id": "onion",
+      "aliases": [
+        "onion",
+        "onions",
+        "玉ねぎ",
+        "たまねぎ"
+      ],
+      "countable": true
+    },
+    {
+      "id": "tomato",
+      "aliases": [
+        "tomato",
+        "tomatoes",
+        "トマト"
+      ],
+      "countable": true
+    },
+    {
+      "id": "carrot",
+      "aliases": [
+        "carrot",
+        "carrots",
+        "にんじん",
+        "人参"
+      ],
+      "countable": true
+    },
+    {
+      "id": "cucumber",
+      "aliases": [
+        "cucumber",
+        "cucumbers",
+        "きゅうり"
+      ],
+      "countable": true
+    },
+    {
+      "id": "broccoli",
+      "aliases": [
+        "broccoli",
+        "ブロッコリー"
+      ],
+      "countable": false
+    },
+    {
+      "id": "mushroom",
+      "aliases": [
+        "mushroom",
+        "mushrooms",
+        "マッシュルーム"
+      ],
+      "countable": true
+    },
+    {
+      "id": "milk",
+      "aliases": [
+        "milk",
+        "牛乳"
+      ],
+      "countable": false
+    },
+    {
+      "id": "mitsuba",
+      "aliases": [
+        "mitsuba",
+        "Japanese parsley",
+        "三つ葉"
+      ],
+      "countable": false
+    },
+    {
+      "id": "shiso",
+      "aliases": [
+        "shiso",
+        "shiso leaves",
+        "perilla leaves",
+        "青じそ",
+        "大葉"
+      ],
+      "countable": false
+    },
+    {
+      "id": "ginger",
+      "aliases": [
+        "ginger",
+        "grated ginger",
+        "おろししょうが",
+        "しょうが",
+        "生姜"
+      ],
+      "countable": false
+    },
+    {
+      "id": "cookedRice",
+      "aliases": [
+        "cooked rice",
+        "ご飯"
+      ],
+      "countable": false
+    },
+    {
+      "id": "soySauce",
+      "aliases": [
+        "soy sauce",
+        "しょうゆ",
+        "醤油",
+        "キッコーマンいつでも新鮮しぼりたて生しょうゆ",
+        "キッコーマン特選丸大豆しょうゆ"
+      ],
+      "countable": false
+    },
+    {
+      "id": "mirin",
+      "aliases": [
+        "mirin",
+        "本みりん",
+        "みりん",
+        "マンジョウ米麹こだわり仕込み本みりん"
+      ],
+      "countable": false
+    },
+    {
+      "id": "tsuyu",
+      "aliases": [
+        "4x concentrated tsuyu",
+        "concentrated tsuyu",
+        "本つゆ",
+        "キッコーマン濃いだし本つゆ(濃縮4倍)"
+      ],
+      "countable": false
+    },
+    {
+      "id": "oil",
+      "aliases": [
+        "vegetable oil",
+        "salad oil",
+        "サラダ油"
+      ],
+      "countable": false
+    },
+    {
+      "id": "oliveOil",
+      "aliases": [
+        "olive oil",
+        "オリーブオイル"
+      ],
+      "countable": false
+    },
+    {
+      "id": "sugar",
+      "aliases": [
+        "sugar",
+        "砂糖"
+      ],
+      "countable": false
+    },
+    {
+      "id": "salt",
+      "aliases": [
+        "salt",
+        "塩"
+      ],
+      "countable": false
+    },
+    {
+      "id": "pepper",
+      "aliases": [
+        "pepper",
+        "black pepper",
+        "こしょう"
+      ],
+      "countable": false
+    },
+    {
+      "id": "water",
+      "aliases": [
+        "water",
+        "水"
+      ],
+      "countable": false
+    },
+    {
+      "id": "macaroni",
+      "aliases": [
+        "macaroni",
+        "マカロニ"
+      ],
+      "countable": false
+    },
+    {
+      "id": "whiteSauce",
+      "aliases": [
+        "white sauce",
+        "ホワイトソース"
+      ],
+      "countable": false
+    },
+    {
+      "id": "breadcrumbs",
+      "aliases": [
+        "breadcrumbs",
+        "bread crumbs",
+        "パン粉"
+      ],
+      "countable": false
+    },
+    {
+      "id": "cabbage",
+      "aliases": [
+        "cabbage",
+        "キャベツ"
+      ],
+      "countable": false
+    }
+  ],
+  "units": {
+    "pcs": [
+      "pcs",
+      "pc",
+      "piece",
+      "pieces",
+      "個"
+    ],
+    "g": [
+      "g",
+      "grams",
+      "gram",
+      "ｇ"
+    ],
+    "ml": [
+      "ml",
+      "milliliters",
+      "ミリリットル"
+    ],
+    "cups": [
+      "cups",
+      "cup",
+      "カップ"
+    ],
+    "sheets": [
+      "sheets",
+      "sheet",
+      "枚"
+    ],
+    "bowls": [
+      "bowls",
+      "bowl",
+      "杯分"
+    ],
+    "cans": [
+      "cans",
+      "can",
+      "缶"
+    ],
+    "tbsp": [
+      "tbsp"
+    ],
+    "tsp": [
+      "tsp"
+    ]
+  }
+}

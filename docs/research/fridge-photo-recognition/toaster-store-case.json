@@ -1,0 +1,233 @@
+{
+  "equipment" : "available",
+  "equipmentProbability" : 0.8958504,
+  "modelVersion" : "67f69d5bd401104fd594ba74d94622882341c138be6149132d68f9857def852d",
+  "reusedTokens" : 403,
+  "rows" : [
+    {
+      "amount" : {
+        "sufficient" : {
+
+        }
+      },
+      "decision" : "have",
+      "id" : 0,
+      "ingredient" : {
+        "amount" : "1\/2枚",
+        "id" : 0,
+        "name" : "鶏もも肉"
+      },
+      "probability" : 0.8641576,
+      "requirement" : "required"
+    },
+    {
+      "amount" : {
+        "sufficient" : {
+
+        }
+      },
+      "decision" : "have",
+      "id" : 1,
+      "ingredient" : {
+        "amount" : "1\/4個",
+        "id" : 1,
+        "name" : "玉ねぎ"
+      },
+      "probability" : 0.8350607,
+      "requirement" : "required"
+    },
+    {
+      "amount" : {
+        "sufficient" : {
+
+        }
+      },
+      "decision" : "have",
+      "id" : 2,
+      "ingredient" : {
+        "amount" : "4個（30g）",
+        "id" : 2,
+        "name" : "マッシュルーム"
+      },
+      "probability" : 0.48913428,
+      "requirement" : "uncertain"
+    },
+    {
+      "amount" : {
+        "sufficient" : {
+
+        }
+      },
+      "decision" : "have",
+      "id" : 3,
+      "ingredient" : {
+        "amount" : "50g",
+        "id" : 3,
+        "name" : "ブロッコリー"
+      },
+      "probability" : 0.4763332,
+      "requirement" : "uncertain"
+    },
+    {
+      "amount" : {
+        "sufficient" : {
+
+        }
+      },
+      "decision" : "have",
+      "id" : 4,
+      "ingredient" : {
+        "amount" : "60g",
+        "id" : 4,
+        "name" : "マカロニ"
+      },
+      "probability" : 0.9394076,
+      "requirement" : "required"
+    },
+    {
+      "amount" : {
+        "sufficient" : {
+
+        }
+      },
+      "decision" : "have",
+      "id" : 5,
+      "ingredient" : {
+        "amount" : "適量",
+        "id" : 5,
+        "name" : "塩"
+      },
+      "probability" : 0.5098697,
+      "requirement" : "required"
+    },
+    {
+      "amount" : {
+        "sufficient" : {
+
+        }
+      },
+      "decision" : "have",
+      "id" : 6,
+      "ingredient" : {
+        "amount" : "大さじ1",
+        "id" : 6,
+        "name" : "サラダ油"
+      },
+      "probability" : 0.46338415,
+      "requirement" : "required"
+    },
+    {
+      "amount" : {
+        "sufficient" : {
+
+        }
+      },
+      "decision" : "have",
+      "id" : 7,
+      "ingredient" : {
+        "amount" : "少々",
+        "id" : 7,
+        "name" : "塩"
+      },
+      "probability" : 0.40552282,
+      "requirement" : "required"
+    },
+    {
+      "amount" : {
+        "notRequired" : {
+
+        }
+      },
+      "decision" : "optional",
+      "id" : 8,
+      "ingredient" : {
+        "amount" : "少々",
+        "id" : 8,
+        "name" : "こしょう"
+      },
+      "probability" : 0.5216991,
+      "requirement" : "optional"
+    },
+    {
+      "amount" : {
+        "notRequired" : {
+
+        }
+      },
+      "decision" : "optional",
+      "id" : 9,
+      "ingredient" : {
+        "amount" : "小さじ1",
+        "id" : 9,
+        "name" : "キッコーマン特選丸大豆しょうゆ"
+      },
+      "probability" : 0.56883764,
+      "requirement" : "optional"
+    },
+    {
+      "amount" : {
+        "sufficient" : {
+
+        }
+      },
+      "decision" : "have",
+      "id" : 10,
+      "ingredient" : {
+        "amount" : "1\/2缶（145g）",
+        "id" : 10,
+        "name" : "ホワイトソース"
+      },
+      "probability" : 0.9083529,
+      "requirement" : "required"
+    },
+    {
+      "amount" : {
+        "sufficient" : {
+
+        }
+      },
+      "decision" : "have",
+      "id" : 11,
+      "ingredient" : {
+        "amount" : "3\/4カップ",
+        "id" : 11,
+        "name" : "牛乳"
+      },
+      "probability" : 0.65530103,
+      "requirement" : "required"
+    },
+    {
+      "amount" : {
+        "sufficient" : {
+
+        }
+      },
+      "decision" : "have",
+      "id" : 12,
+      "ingredient" : {
+        "amount" : "30g",
+        "id" : 12,
+        "name" : "ピザ用チーズ"
+      },
+      "probability" : 0.56614804,
+      "requirement" : "required"
+    },
+    {
+      "amount" : {
+        "sufficient" : {
+
+        }
+      },
+      "decision" : "have",
+      "id" : 13,
+      "ingredient" : {
+        "amount" : "大さじ1",
+        "id" : 13,
+        "name" : "パン粉"
+      },
+      "probability" : 0.34828418,
+      "requirement" : "uncertain"
+    }
+  ],
+  "seconds" : 2.859200375
+}
