@@ -65,6 +65,9 @@ final class ConversationSession {
     private var completed = 0
     private var maxSteps = 0
     private var limitReached = false
+    private var budgetStopping = false
+    let recordsMetrics: Bool
+    var isStopping: Bool { stopRequested || budgetStopping }
     private var claimed: Set<String> = []
     private var turnMark: LanguageModelSession.Usage?
     private var stepMark: LanguageModelSession.Usage?
@@ -76,11 +79,17 @@ final class ConversationSession {
     private var previousTokens: [Int32]?
     private var currentTokens: [Int32]?
 
-    init(id: String, chat: ChatViewModel, preferences: ConversationPreferences, tools: ToolRunner) {
+    init(
+        id: String, chat: ChatViewModel, preferences: ConversationPreferences, tools: ToolRunner,
+        nativeSession: LanguageModelSession? = nil, recordsMetrics: Bool = true
+    ) {
         self.id = id
         self.chat = chat
         self.preferences = preferences
         self.tools = tools
+        self.session = nativeSession
+        self.recordsMetrics = recordsMetrics
+        nativeSession?.transcriptErrorHandlingPolicy = .preserveTranscript
     }
 
     var step: Int { offset + completed + 1 }
@@ -88,7 +97,10 @@ final class ConversationSession {
     var awaitingRestoredModel: Bool { restoredTranscript != nil && session == nil }
 
     func prepareRun(_ run: Int) {
-        if self.run != run { stopRequested = false }
+        if self.run != run {
+            stopRequested = false
+            budgetStopping = false
+        }
         self.run = run
         lastGeneration = nil
         lastFinish = nil
@@ -113,15 +125,23 @@ final class ConversationSession {
         guard let session = prepare() else {
             return TurnEnd(kind: .failed("No model is loaded."), outcome: "failed", answer: "")
         }
+        if policy.answerOnly {
+            session.transcript = ConversationTranscript.closingPendingCalls(in: session.transcript)
+            send(.transcriptChanged(run: run, Self.record(Array(session.transcript))))
+            send(.finalAnswerStarted(run: run, start: session.transcript.count))
+        }
         send(
             .modelPrepared(
                 run: run, name: modelName, location: chat.bundleURL?.path ?? "",
                 instructions: instructionsVersion, tools: toolsVersion))
         begin(run: run, policy: policy, repair: repair, session: session)
         let text = finalize ? ConversationFeature.finalized(prompt) : prompt
-        let options = GenerationOptions(maximumResponseTokens: policy.maxTokens)
+        let options = GenerationOptions(
+            maximumResponseTokens: policy.maxTokens,
+            toolCallingMode: policy.allowedTools.isEmpty ? .disallowed : .allowed)
         let context = ContextOptions(
-            reasoningLevel: (AgentReasoningEffort(rawValue: policy.settings.effort) ?? .low).level)
+            reasoningLevel: (policy.answerOnly ? .off : AgentReasoningEffort(rawValue: policy.settings.effort) ?? .low)
+                .level)
         let (events, sink) = AsyncStream.makeStream(of: Event.self)
         self.sink = sink
         let preparation = needsPreparation ? model?.preparationUpdates() : nil
@@ -174,7 +194,8 @@ final class ConversationSession {
         progress(transcript).forEach(send)
         let end = await finish(transcript, failure: failure, stopped: stopped, send: send)
         if mode == .chat {
-            var stats = generationStats(transcript, failure: failure, stopped: stopped, limit: limitReached)
+            var stats = generationStats(
+                transcript, failure: failure, stopped: stopped || limitReached, limit: limitReached)
             if let sourceStats {
                 stats.sources = sourceStats.sources
                 stats.sourceTokens = sourceStats.sourceTokens
@@ -182,7 +203,7 @@ final class ConversationSession {
                 stats.retrievalSeconds = sourceStats.retrievalSeconds
             }
             lastGeneration = stats
-            MetricsLog.generation(model: modelName, stats: stats)
+            if recordsMetrics { MetricsLog.generation(model: modelName, stats: stats) }
         }
         return end
     }
@@ -191,6 +212,13 @@ final class ConversationSession {
         guard run >= self.run else { return }
         self.run = run
         stopRequested = true
+        sink?.yield(.stop)
+    }
+
+    func stopForBudget(run: Int) {
+        guard run == self.run else { return }
+        budgetStopping = true
+        limitReached = true
         sink?.yield(.stop)
     }
 
@@ -241,6 +269,7 @@ final class ConversationSession {
         self.id = id
         run = 0
         stopRequested = false
+        budgetStopping = false
         didSendPrompt = false
         session = nil
         model = nil
@@ -296,6 +325,13 @@ final class ConversationSession {
                 ? restored.transcript.entries.firstIndex(where: { $0.id == snapshot.transcript.entries[start].id })
                     ?? start
                 : restored.transcript.entries.count
+            if let answerStart = snapshot.turns[index].finalAnswerStart {
+                restored.turns[index].finalAnswerStart =
+                    answerStart < snapshot.transcript.entries.count
+                    ? restored.transcript.entries.firstIndex(where: {
+                        $0.id == snapshot.transcript.entries[answerStart].id
+                    }) ?? answerStart : restored.transcript.entries.count
+            }
         }
         return restored
     }
@@ -331,13 +367,14 @@ final class ConversationSession {
     private func begin(run: Int, policy: TurnPolicy, repair: Bool, session: LanguageModelSession) {
         self.run = run
         mode = policy.mode
-        effort = policy.settings.effort
+        effort = policy.answerOnly ? AgentReasoningEffort.off.rawValue : policy.settings.effort
         maxSteps = policy.maxSteps
-        offset = repair ? step : 0
-        if !repair { turnIndex += 1 }
+        offset = policy.answerOnly ? policy.maxSteps - 1 : repair ? step : 0
+        if !repair && !policy.answerOnly { turnIndex += 1 }
         base = session.transcript.count
         completed = 0
         limitReached = false
+        budgetStopping = false
         stopRequested = false
         claimed = []
         turnMark = session.usage
@@ -384,7 +421,7 @@ final class ConversationSession {
         let steps = prompt(in: transcript).map { Self.record(transcript).steps(from: $0 + 1) } ?? []
         let current = completed < steps.count ? steps[completed].generated : transcript.count..<transcript.count
         let partial = Self.responseText(transcript[min(base, transcript.count)...])
-        if stopped {
+        if stopped || limitReached {
             if limitReached, completed < steps.count, !steps[completed].generated.isEmpty {
                 send(.stepFinished(run: run, finishStep(transcript, steps[completed].generated)))
             }
@@ -460,7 +497,7 @@ final class ConversationSession {
         if finish == "cap" { capSteps += 1 }
         lastFinish = finish
 
-        if mode == .work {
+        if mode == .work && recordsMetrics {
             var record = MetricsLog.agent("message", model: modelName)
             record.agentSession = id
             record.agentTurn = turnIndex

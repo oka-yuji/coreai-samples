@@ -124,6 +124,14 @@ struct DemoRootView: View {
         .environment(speech)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
+                Button("New conversation", systemImage: "square.and.pencil") {
+                    host.startNew()
+                    navigator.selection = .chat
+                }
+                .disabled(!host.canManageHistory)
+                .help("Start a new conversation")
+            }
+            ToolbarItem(placement: .primaryAction) {
                 DemoLanguagePicker(
                     code: Binding(
                         get: { (DemoLanguage(rawValue: languageCode) ?? .english).rawValue },

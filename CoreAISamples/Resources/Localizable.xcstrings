@@ -232,6 +232,36 @@
         }
       }
     },
+    "Copy conversation" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "会話をコピー"
+          }
+        }
+      }
+    },
+    "Choose the conversation model" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この会話のモデルを選択"
+          }
+        }
+      }
+    },
+    "Choose model" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルを選択"
+          }
+        }
+      }
+    },
     "%@  ·  %@  ·  memory %@  ·  %@" : {
       "localizations" : {
         "en" : {
@@ -6278,7 +6308,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "メモを保存できる作業モードで質問し直します"
+            "value" : "メモを保存できるワークモードで質問し直します"
           }
         }
       }
@@ -6288,7 +6318,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "チャットは質問に答え、事実の確認が必要なときはWebを検索します。作業は複数の手順で調べ、メモを保存します。"
+            "value" : "チャットは質問に答え、事実の確認が必要なときはWebを検索します。ワークは複数の手順で調べ、メモを保存します。"
           }
         }
       }
@@ -6328,7 +6358,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "作業で続ける"
+            "value" : "ワークで続ける"
           }
         }
       }
@@ -6378,7 +6408,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "既定（チャット2048、作業4096）"
+            "value" : "既定（チャット2048、ワーク4096）"
           }
         }
       }
@@ -6449,7 +6479,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "作業では、回答・メモのURLをこの会話で取得したページと照合し、必要なら1回修正を求めます。確認が通るまではメモを下書きにします。"
+            "value" : "ワークでは、回答・メモのURLをこの会話で取得したページと照合し、必要なら1回修正を求めます。確認が通るまではメモを下書きにします。"
           }
         }
       }
@@ -6459,7 +6489,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "最大ステップ数（作業）"
+            "value" : "最大ステップ数（ワーク）"
           }
         }
       }
@@ -6469,7 +6499,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "最大ステップ数（作業）: %lld"
+            "value" : "最大ステップ数（ワーク）: %lld"
           }
         }
       }
@@ -6721,7 +6751,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "作業モードでメモを保存するフォルダ"
+            "value" : "ワークモードでメモを保存するフォルダ"
           }
         }
       }
@@ -6731,7 +6761,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "作業"
+            "value" : "ワーク"
           }
         }
       }
@@ -7121,6 +7151,72 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "会話に提示されていない出典 ID: %@"
+          }
+        }
+      }
+    },
+    "Max steps per reply" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1回答の最大ステップ数"
+          }
+        }
+      }
+    },
+    "Max steps per reply: %lld" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1回答の最大ステップ数: %lld"
+          }
+        }
+      }
+    },
+    "Applies to the selected mode. A final answer without tools gets one extra step at the limit." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選択中のモードに適用します。上限に達した場合、ツールを使わずに回答する処理を1回追加します。"
+          }
+        }
+      }
+    },
+    "Research limit reached. Writing the answer…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "調査の上限に達しました。回答を作成しています…"
+          }
+        }
+      }
+    },
+    "Research stopped after %lld steps. The answer uses the information already collected." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "調査は%lldステップで終了しました。回答には、ここまでに取得した情報を使います。"
+          }
+        }
+      }
+    },
+    "Research limit reached" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "調査の上限に到達"
           }
         }
       }

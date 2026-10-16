@@ -9,3 +9,6 @@ crate-type = ["staticlib"]
 [dependencies]
 tokenizers = { version = "=0.22.2", default-features = false, features = ["onig"] }
 unicode-normalization = "=0.1.22"
+
+[profile.release.build-override]
+strip = "none"

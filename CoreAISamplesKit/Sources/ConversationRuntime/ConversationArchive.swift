@@ -133,12 +133,23 @@ public actor ConversationArchive {
                 $0.start >= 0 && $0.start <= snapshot.transcript.entries.count && $0.offset >= 0
                     && $0.offset <= 1_000_000
                     && $0.settings.maxSteps > 0 && $0.settings.maxSteps <= 1_000_000
+                    && ($0.settings.chatMaxSteps.map { (1...TurnPolicy.maximumSteps).contains($0) } ?? true)
+                    && ($0.stepLimit.map { (1...TurnPolicy.maximumSteps).contains($0) } ?? true)
                     && ($0.settings.maxTokens ?? 1) > 0 && ($0.settings.maxTokens ?? 1) <= 1_000_000
             }),
             snapshot.turns.map(\.start) == snapshot.turns.map(\.start).sorted(),
             snapshot.turns.reduce(0, { $0 + $1.steps.count }) <= 1_000_000,
             snapshot.turns.allSatisfy({ $0.steps.allSatisfy(Self.validStats) })
         else { throw Failure.invalidSnapshot }
+        for (index, turn) in snapshot.turns.enumerated() {
+            guard let start = turn.finalAnswerStart else { continue }
+            let end =
+                index + 1 < snapshot.turns.count ? snapshot.turns[index + 1].start : snapshot.transcript.entries.count
+            guard start >= turn.start, start <= end else { throw Failure.invalidSnapshot }
+            if start < end {
+                guard case .prompt = snapshot.transcript.entries[start] else { throw Failure.invalidSnapshot }
+            }
+        }
     }
     private static func validStats(_ stats: StepStats) -> Bool {
         [stats.step, stats.promptTokens, stats.reusedTokens, stats.generatedTokens, stats.toolCalls].allSatisfy {

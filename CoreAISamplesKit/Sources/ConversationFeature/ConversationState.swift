@@ -8,6 +8,7 @@ public enum ConversationMode: String, Codable, Sendable, CaseIterable {
 public struct ConversationSettings: Codable, Equatable, Sendable {
     public var effort: String
     public var maxSteps: Int
+    public var chatMaxSteps: Int?
     public var maxTokens: Int?
     public var pageBudget: Int
     public var fileOperations: Bool
@@ -16,10 +17,11 @@ public struct ConversationSettings: Codable, Equatable, Sendable {
 
     public init(
         effort: String = "low", maxSteps: Int = 8, maxTokens: Int? = nil, pageBudget: Int = 10_000,
-        fileOperations: Bool = false, citationGuard: Bool = true, notesFolder: String = ""
+        fileOperations: Bool = false, citationGuard: Bool = true, notesFolder: String = "", chatMaxSteps: Int? = nil
     ) {
         self.effort = effort
         self.maxSteps = maxSteps
+        self.chatMaxSteps = chatMaxSteps
         self.maxTokens = maxTokens
         self.pageBudget = pageBudget
         self.fileOperations = fileOperations
@@ -29,6 +31,8 @@ public struct ConversationSettings: Codable, Equatable, Sendable {
 }
 
 public struct TurnPolicy: Equatable, Sendable {
+    public static let defaultChatSteps = 16
+    public static let maximumSteps = 64
     public static let tools: Set<String> = ["web_search", "fetch_page", "write_note", "append_note", "move_note"]
     public static let savingRefusal = "error: saving notes needs Work mode"
 
@@ -41,6 +45,7 @@ public struct TurnPolicy: Equatable, Sendable {
     public var citationGuard: Bool
     public var collapsesSteps: Bool
     public var continuing = false
+    public var answerOnly = false
     public var answerPrefix = ""
     public var sourceRequest: ConversationSourceRequest?
     public var sourceIDs: [String]?
@@ -54,14 +59,14 @@ public struct TurnPolicy: Equatable, Sendable {
             refusedTools = [
                 "write_note": Self.savingRefusal, "append_note": Self.savingRefusal, "move_note": Self.savingRefusal,
             ]
-            maxSteps = 2
+            maxSteps = max(1, min(Self.maximumSteps, settings.chatMaxSteps ?? Self.defaultChatSteps))
             maxTokens = settings.maxTokens ?? 2_048
             citationGuard = false
             collapsesSteps = true
         case .work:
             allowedTools = Self.tools
             refusedTools = [:]
-            maxSteps = settings.maxSteps
+            maxSteps = max(1, min(Self.maximumSteps, settings.maxSteps))
             maxTokens = settings.maxTokens ?? 4_096
             citationGuard = settings.citationGuard
             collapsesSteps = false
@@ -161,15 +166,33 @@ public struct ConversationTurn: Codable, Equatable, Sendable {
     public var notes: [TurnNote] = []
     public var sourceRequest: ConversationSourceRequest?
     public var sourceIDs: [String]?
+    public var stepLimit: Int?
+    public var finalAnswerStart: Int?
+    public var toolsDisabled: Bool?
+
+    public init(prompt: String, mode: ConversationMode, settings: ConversationSettings, start: Int) {
+        self.prompt = prompt
+        self.mode = mode
+        self.settings = settings
+        self.start = start
+        stepLimit = TurnPolicy(mode, settings: settings).maxSteps
+    }
 
     public var policy: TurnPolicy {
         var policy = TurnPolicy(mode, settings: settings)
+        policy.maxSteps = stepLimit ?? (mode == .chat ? 2 : settings.maxSteps)
         policy.continuing = kind == .continuation
         policy.sourceRequest = sourceRequest
         policy.sourceIDs = sourceIDs
-        if sourceRequest != nil || sourceIDs != nil {
+        if sourceRequest != nil || sourceIDs != nil || toolsDisabled == true {
             policy.allowedTools = []
             policy.maxSteps = 1
+        }
+        if toolsDisabled == true { policy.settings.effort = "off" }
+        if finalAnswerStart != nil {
+            policy.answerOnly = true
+            policy.allowedTools = []
+            policy.maxSteps += 1
         }
         return policy
     }
@@ -301,6 +324,7 @@ extension ConversationState {
         let limit = turn.policy.maxSteps
         if isRunning {
             if stopRequested { return .stopping }
+            if turn.finalAnswerStart != nil || turn.finalization == .cutOff { return .finalizing }
             if case .toolCalls(_, let calls, let metadata)? = transcript.entries.last, metadata != nil,
                 transcript.entries.count > turn.start + 1
             {
@@ -327,6 +351,7 @@ extension ConversationState {
 }
 
 public enum ConversationStatus: Equatable, Sendable {
+    case finalizing
     case generating(step: Int, limit: Int)
     case running(step: Int, tools: [String])
     case stopping
@@ -338,6 +363,7 @@ public enum ConversationStatus: Equatable, Sendable {
 
     public var line: String {
         switch self {
+        case .finalizing: "Research limit reached. Writing the answer…"
         case .generating(let step, let limit): "Step \(step) of \(limit): generating…"
         case .running(let step, let tools): "Step \(step): running " + tools.joined(separator: " + ") + "…"
         case .stopping: "Stopping…"

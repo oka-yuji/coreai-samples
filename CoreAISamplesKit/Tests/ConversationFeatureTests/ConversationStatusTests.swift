@@ -20,7 +20,7 @@ struct ConversationStatusTests {
         #expect(running.statusLine == "Stopped after 1 step(s).")
 
         let fetch = tool("t2", "fetch_page", #"{"url":"https://swift.org"}"#)
-        var limited = started(.chat)
+        var limited = started(.chat, settings: ConversationSettings(chatMaxSteps: 2))
         let record = turn(
             "Question", [calls("c1", search), output(search, "Results"), calls("c2", fetch), output(fetch, "Page")])
         _ = reduce(&limited, .transcriptChanged(run: 1, record), .stopped(run: 1))
@@ -78,7 +78,7 @@ struct ConversationStatusTests {
     func appRowsCarryADetail() {
         let search = tool("t1", "web_search", #"{"query":"swift"}"#)
         let fetch = tool("t2", "fetch_page", #"{"url":"https://swift.org"}"#)
-        var limited = started(.chat)
+        var limited = started(.chat, settings: ConversationSettings(chatMaxSteps: 2))
         let record = turn(
             "Question", [calls("c1", search), output(search, "Results"), calls("c2", fetch), output(fetch, "Page")])
         _ = reduce(&limited, .transcriptChanged(run: 1, record), .stopped(run: 1))
@@ -137,7 +137,7 @@ struct ConversationStatusTests {
 
         let search = tool("t1", "web_search", #"{"query":"swift"}"#)
         let fetch = tool("t2", "fetch_page", #"{"url":"https://swift.org"}"#)
-        var cut = started(.chat)
+        var cut = started(.chat, settings: ConversationSettings(chatMaxSteps: 2))
         let record = turn(
             "Question", [calls("c1", search), output(search, "Results"), calls("c2", fetch), output(fetch, "Page")])
         _ = reduce(&cut, .transcriptChanged(run: 1, record), .generationEnded(run: 1, stopReason: "stopToken"))
