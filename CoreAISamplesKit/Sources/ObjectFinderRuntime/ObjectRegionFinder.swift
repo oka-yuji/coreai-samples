@@ -19,6 +19,7 @@ public actor ObjectRegionFinder {
     private let embedding: RegionEmbeddingOperations
     private let propose: @Sendable (CGImage) throws -> [ObjectRegion]
     private var query: EmbeddingVector?
+    private var preparedFolder: URL?
     private var busy = false
 
     public init() {
@@ -41,15 +42,20 @@ public actor ObjectRegionFinder {
         defer { busy = false }
         query = nil
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { throw ObjectFinderError.emptyQuery }
         do {
-            try await embedding.load(folder)
-            try Task.checkCancellation()
+            guard !trimmed.isEmpty else { throw ObjectFinderError.emptyQuery }
+            if preparedFolder != folder {
+                preparedFolder = nil
+                try await embedding.load(folder)
+                try Task.checkCancellation()
+                preparedFolder = folder
+            }
             let vector = try await embedding.text(trimmed)
             try Task.checkCancellation()
             query = vector
         } catch {
-            try await embedding.close()
+            preparedFolder = nil
+            try await withTaskCancellationShield { try await embedding.close() }
             throw error
         }
     }
@@ -78,7 +84,8 @@ public actor ObjectRegionFinder {
         busy = true
         defer { busy = false }
         query = nil
-        try await embedding.close()
+        preparedFolder = nil
+        try await withTaskCancellationShield { try await embedding.close() }
     }
 
     private func begin() throws {

@@ -1,0 +1,18 @@
+# Object finder target-replacement reuse
+
+2026-10-17. Issue #161, PR #162, base `450dd48`. Previously each applied target change closed the model and loaded the same bundle again. The finder now retains a successfully prepared model between target replacements and encodes the new text. This reduces two same-folder preparations from two loads to one; it is an operation-count comparison, not a measured iPhone latency or memory improvement.
+
+A replacement requests retention before joining the old operation. Retention is allowed only after successful preparation or inference, never after an encoder failure or cancellation. A normal Stop, background, dismissal or Cancel change revokes retention and joins cleanup. Release remains busy across suspension. Session checks reject stale stops and searches stopped before they began. A cancelled control cannot acknowledge stop; cleanup failures use a separate action from old search failures. Cancellation shields protect the required asynchronous cleanup without introducing another task owner.
+
+| Condition | Evidence |
+|---|---|
+| R1 | `modelReuse` changes the query result while retaining one load, then verifies reload after close and a different folder. `emptyReplacementQuery` checks failure cleanup and reload after an empty replacement; `cancelReusedQuery` clears the cache and observes non-cancelled cleanup after text-encoder cancellation. |
+| R2 | `retentionAndRelease`, `cancelDuringInference` and the real Store/Runner/Service/Finder `replacementIntegration` verify retention and final release. `cancellationIntegration` covers Stop, background and dismissal before the replacement control starts. |
+| R3 | `releaseGateAndSessions` rejects overlap during release and stale search/stop requests; `stopBeforeStart` prevents a queued stopped session from acquiring resources. |
+| R4 | `failures`, `ordinaryReleaseFailure`, `encoderFailure` (operation error and cancellation) and `releaseFailureIntegration` verify cleanup and error delivery. Existing feature tests continue rejecting late search errors during stop. |
+| R5 | 492 CPU tests passed / 32 conditional skips (524 discovered), including 48 ObjectFinder tests. Strict format passed for 9 changed Swift files, SwiftLint found 0 violations in 318 files, and Mac Release / signed iOS Release / signature verification passed. Independent lifecycle and integration review checked all changed Swift files; the empty-query cleanup finding was reproduced and fixed. |
+| R6 | Physical iPhone target changes, sustained capture performance and lifecycle behavior remain a user device check. |
+
+Swift 6.4 / Swift 6 / SDK27; the package retains its existing isolation settings. SE-0504 and the SDK's `withTaskCancellationShield` declaration were checked. Tests use controlled streams and continuations, without sleeping, loading models or opening a camera. During development, accepting ordinary search failures while stopping broke the existing stale-result test; separate stop failures fixed it without weakening the expectation. Review also found that an empty replacement bypassed cache cleanup at the public Finder API; the new regression test failed two assertions before moving validation inside the cleanup boundary, and then passed.
+
+Local evidence is in ignored `.local/object-finder-next/reuse-full-tests-final.log`, `reuse-{format,lint}-final.log` and `reuse-{ios,mac}-reviewed.log`. This change leaves model weights, image preprocessing, similarity thresholds and the latest-frame camera contract unchanged. The provisional 8 SP estimate remains unchanged; integration and failure-path tests are counted separately from production changes. The behavior reference is updated in `docs/object-finder.md`.

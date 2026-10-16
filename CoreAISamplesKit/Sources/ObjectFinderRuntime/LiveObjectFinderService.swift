@@ -7,6 +7,11 @@ public final class LiveObjectFinderService: ObjectFinderService {
     private let devices: ObjectFinderDevices
     private var busy = false
     private var stopRequested = false
+    private var currentSession = 0
+    private var stoppedSession = 0
+    private var retainOnStop = false
+    private var retainedFinder = false
+    private var cleanupFailure: (any Error)?
     private var waiters: [CheckedContinuation<Void, Never>] = []
     private var configuration = ObjectCameraConfiguration()
 
@@ -16,12 +21,19 @@ public final class LiveObjectFinderService: ObjectFinderService {
         folder: URL, query: String, minimumSimilarity: Double, rotation: ObjectCameraRotation, started: () -> Void,
         receive: (ObjectFinderFrame) -> Void
     ) async throws {
+        try Task.checkCancellation()
         guard !busy else { throw ObjectFinderError.busy }
+        guard rotation.session > stoppedSession else { throw CancellationError() }
+        currentSession = rotation.session
         busy = true
         stopRequested = false
+        retainOnStop = false
+        retainedFinder = false
+        cleanupFailure = nil
         configuration.update(rotation)
         devices.beginOrientation()
         var failure: (any Error)?
+        var reusable = false
         do {
             try await devices.authorize()
             try checkStop()
@@ -30,6 +42,7 @@ public final class LiveObjectFinderService: ObjectFinderService {
             var iterator = frames.makeAsyncIterator()
             try checkStop()
             try await devices.prepare(folder, query)
+            reusable = true
             try checkStop()
             started()
             while true {
@@ -48,7 +61,9 @@ public final class LiveObjectFinderService: ObjectFinderService {
                 try await devices.checkCamera()
                 guard rotation == configuration.rotation, frame.rotation == rotation.angle else { continue }
                 let start = ContinuousClock.now
+                reusable = false
                 let candidates = try await devices.candidates(frame.image)
+                reusable = true
                 try checkStop()
                 try await devices.checkCamera()
                 guard rotation == configuration.rotation, frame.rotation == rotation.angle else { continue }
@@ -69,21 +84,45 @@ public final class LiveObjectFinderService: ObjectFinderService {
         } catch {
             failure = error
         }
-        await devices.stopCamera()
-        do { try await devices.closeFinder() } catch { failure = failure ?? error }
-        devices.endOrientation()
-        busy = false
-        let pending = waiters
-        waiters = []
-        for waiter in pending { waiter.resume() }
+        await withTaskCancellationShield {
+            await devices.stopCamera()
+            if stopRequested, retainOnStop, reusable, failure is CancellationError {
+                retainedFinder = true
+            } else {
+                do { try await devices.closeFinder() } catch {
+                    cleanupFailure = error
+                    failure = failure ?? error
+                }
+            }
+            devices.endOrientation()
+            finish()
+        }
         if let failure { throw failure }
     }
 
-    public func stop() async {
+    public func stop(session: Int, retainingModel: Bool) async throws {
+        guard session >= currentSession else { return }
+        currentSession = session
+        stoppedSession = max(stoppedSession, session)
+        if !stopRequested { retainOnStop = retainingModel }
+        if !retainingModel { retainOnStop = false }
         stopRequested = true
-        await devices.stopCamera()
+        await withTaskCancellationShield { await devices.stopCamera() }
+        guard session == currentSession else { return }
         if busy {
             await withCheckedContinuation { waiters.append($0) }
+        }
+        guard session == currentSession else { return }
+        if let cleanupFailure { throw cleanupFailure }
+        guard !retainingModel, retainedFinder else { return }
+        busy = true
+        retainedFinder = false
+        defer { finish() }
+        do {
+            try await withTaskCancellationShield { try await devices.closeFinder() }
+        } catch {
+            cleanupFailure = error
+            throw error
         }
     }
 
@@ -101,4 +140,10 @@ public final class LiveObjectFinderService: ObjectFinderService {
         if stopRequested { throw CancellationError() }
     }
 
+    private func finish() {
+        busy = false
+        let pending = waiters
+        waiters = []
+        for waiter in pending { waiter.resume() }
+    }
 }

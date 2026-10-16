@@ -8,7 +8,7 @@ public protocol ObjectFinderService {
         folder: URL, query: String, minimumSimilarity: Double, rotation: ObjectCameraRotation, started: () -> Void,
         receive: (ObjectFinderFrame) -> Void
     ) async throws
-    func stop() async
+    func stop(session: Int, retainingModel: Bool) async throws
     func notify()
     func setRotation(_ rotation: ObjectCameraRotation)
 }
@@ -20,6 +20,7 @@ public struct ObjectFinderRunner {
 
     @MainActor
     public func run(_ effect: ObjectFinderEffect, send: (ObjectFinderAction) -> Void) async {
+        guard !Task.isCancelled else { return }
         switch effect {
         case .search(let session, let folder, let query, let minimumSimilarity, let rotation):
             do {
@@ -34,9 +35,14 @@ public struct ObjectFinderRunner {
                 guard !Task.isCancelled else { return }
                 send(.failed(session, error as? ObjectFinderFailure ?? .operation(String(describing: error))))
             }
-        case .stop(let session):
-            await service.stop()
-            send(.stopped(session))
+        case .stop(let session, let retainingModel):
+            do {
+                try await service.stop(session: session, retainingModel: retainingModel)
+                if !Task.isCancelled { send(.stopped(session)) }
+            } catch {
+                guard !Task.isCancelled else { return }
+                send(.stopFailed(session, error as? ObjectFinderFailure ?? .operation(String(describing: error))))
+            }
         case .notify:
             guard !Task.isCancelled else { return }
             service.notify()

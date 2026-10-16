@@ -40,13 +40,16 @@ struct ObjectFinderFeatureTests {
     }
 
     @Test(
-        "Editing a running search changes only the draft until the user applies it, and restart waits for resource shutdown"
+        "Editing a running search changes only the draft until it is applied, and replacement waits for the old operation"
     )
     func applyTypedQuery() {
         var state = active()
         _ = ObjectFinderFeature.reduce(&state, .queryChanged(" red keys "))
         #expect(state.query == " red keys " && state.submittedQuery == "glasses" && state.canApplyQuery)
-        #expect(ObjectFinderFeature.reduce(&state, .applyQuery) == [.cancelAll, .run(.stop(1), id: .control)])
+        #expect(
+            ObjectFinderFeature.reduce(&state, .applyQuery) == [
+                .cancel(.notification), .run(.stop(1, retainingModel: true), id: .control),
+            ])
         #expect(state.phase == .stopping && state.session == 1 && state.canStop)
         _ = ObjectFinderFeature.reduce(&state, .queryChanged("wallet"))
         _ = ObjectFinderFeature.reduce(&state, .analyzed(1, ObjectFinderFrame(candidates: [candidate], seconds: 0.1)))
@@ -64,12 +67,24 @@ struct ObjectFinderFeatureTests {
             var state = active()
             _ = ObjectFinderFeature.reduce(&state, .queryChanged("keys"))
             _ = ObjectFinderFeature.reduce(&state, .applyQuery)
-            _ = ObjectFinderFeature.reduce(&state, action)
+            #expect(
+                ObjectFinderFeature.reduce(&state, action)
+                    == [.cancelAll, .run(.stop(1, retainingModel: false), id: .control)])
             #expect(!state.canStop)
             #expect(ObjectFinderFeature.reduce(&state, .stopped(1)).isEmpty)
             _ = ObjectFinderFeature.reduce(&state, .started(1))
             #expect(state.phase == .idle && !state.restartAfterStop && state.frame == nil)
         }
+    }
+
+    @Test("A release failure cancels the replacement instead of restarting with uncertain resources")
+    func replacementFailure() {
+        var state = active()
+        _ = ObjectFinderFeature.reduce(&state, .queryChanged("keys"))
+        _ = ObjectFinderFeature.reduce(&state, .applyQuery)
+        _ = ObjectFinderFeature.reduce(&state, .stopFailed(1, .operation("release failed")))
+        #expect(state.phase == .idle && !state.restartAfterStop && state.failure == .operation("release failed"))
+        #expect(ObjectFinderFeature.reduce(&state, .stopped(1)).isEmpty)
     }
 
     @Test("Rotation invalidates live boxes immediately and returning to the same angle rejects old capture updates")
@@ -103,7 +118,10 @@ struct ObjectFinderFeatureTests {
             var state = active()
             let frame = ObjectFinderFrame(candidates: [candidate], seconds: 0.3)
             _ = ObjectFinderFeature.reduce(&state, .analyzed(1, frame))
-            #expect(ObjectFinderFeature.reduce(&state, action) == [.cancelAll, .run(.stop(1), id: .control)])
+            #expect(
+                ObjectFinderFeature.reduce(&state, action) == [
+                    .cancelAll, .run(.stop(1, retainingModel: false), id: .control),
+                ])
             _ = ObjectFinderFeature.reduce(&state, .analyzed(1, frame))
             _ = ObjectFinderFeature.reduce(&state, .failed(1, .cameraDenied))
             _ = ObjectFinderFeature.reduce(&state, .started(1))
@@ -259,7 +277,7 @@ private final class ControlledFinder: ObjectFinderService {
         try Task.checkCancellation()
     }
 
-    func stop() async {
+    func stop(session: Int, retainingModel: Bool) async throws {
         if continuation != nil {
             await withCheckedContinuation {
                 waiters.append($0)
