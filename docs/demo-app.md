@@ -130,7 +130,7 @@ One conversation holds both modes. The picker above the message field, **Chat | 
 | Tools | `web_search` and `fetch_page` run; `write_note` and `move_note` are refused before they run with `error: saving notes needs Work mode` | all run |
 | Steps | 2 | **Max steps** (default 8) |
 | Tokens per step | 2,048 | 4,096 |
-| Citation guard | off | the setting (default on) |
+| Citation guard | off | the setting (default off) |
 | Thinking and tool steps | collapsed | expanded |
 
 - A step is one generation. With a limit of N steps the model may run tools in N − 1 of them and must answer in the last: the tool results of step N − 1 end with `remaining tool budget: 0 — answer now with what you have`, and a further tool call is refused (`error: the turn ended before this tool ran`) and ends the turn with "Ended at the step limit" and what it fetched, saved and left open.
