@@ -1,5 +1,6 @@
 import ConversationFeature
 import ConversationRuntime
+import CryptoKit
 import Foundation
 import FoundationModels
 import Synchronization
@@ -35,6 +36,8 @@ final class ToolRunner {
     private var noteReceipts: [String: NoteReceipt] = [:]
     private var noteIDsByTitle: [String: String] = [:]
     private var taskNotesDirectory: URL?
+    private(set) var sources = ConversationSources()
+    private(set) var suppliedSourceIDs: Set<String> = []
     let preferences: ConversationPreferences
     private nonisolated let slots = Mutex<[String: Slot]>([:])
 
@@ -53,10 +56,12 @@ final class ToolRunner {
                 .init(url: $0.url, finalURL: $0.finalURL, sha256: $0.sha256, characters: $0.characters)
             },
             attempts: fetchAttempts.map { .init(url: $0.url, ok: $0.ok) }, seen: seenPages, noteIDs: noteIDs,
-            taskWebCalls: webToolCalls)
+            taskWebCalls: webToolCalls, sources: sources.records.isEmpty ? nil : sources)
     }
 
-    func restoreEvidence(_ evidence: ConversationEvidence, notesDirectory: URL? = nil) {
+    func restoreEvidence(
+        _ evidence: ConversationEvidence, notesDirectory: URL? = nil, suppliedSourceIDs: Set<String> = []
+    ) {
         ledger = evidence.pages.map {
             FetchRecord(url: $0.url, finalURL: $0.finalURL, sha256: $0.sha256, characters: $0.characters)
         }
@@ -70,6 +75,27 @@ final class ToolRunner {
         noteReceipts = [:]
         taskNotesDirectory = notesDirectory
         webToolCalls = evidence.taskWebCalls ?? evidence.attempts.count
+        sources = evidence.sources ?? ConversationSources()
+        self.suppliedSourceIDs = suppliedSourceIDs
+    }
+
+    func markSourcesSupplied(_ ids: [String]) { suppliedSourceIDs.formUnion(ids) }
+
+    func registerSources(_ records: [ConversationSource]) throws -> [String] {
+        let ids = try sources.register(records)
+        let groups = Dictionary(grouping: records) { $0.document + "\n" + $0.version }
+        for key in groups.keys.sorted() {
+            guard let group = groups[key], let source = group.first,
+                ["http", "https"].contains(URL(string: source.document)?.scheme?.lowercased())
+            else { continue }
+            let text = group.flatMap(\.passages).map(\.text).joined(separator: "\n\n")
+            let hash = SHA256.hash(data: Data(text.utf8)).map { String(format: "%02x", $0) }.joined()
+            ledger.append(
+                FetchRecord(
+                    url: source.document, finalURL: source.document, sha256: hash, characters: text.count))
+            seenPages[source.document] = text
+        }
+        return ids
     }
 
     func beginTask(guardActive: Bool, continuing: Bool = false) {

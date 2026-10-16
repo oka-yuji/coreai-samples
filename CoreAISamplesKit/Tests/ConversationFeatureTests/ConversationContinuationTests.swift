@@ -64,7 +64,9 @@ struct ConversationContinuationTests {
 
     @Test("Old archive versions stay supported and unknown future versions stay unsupported")
     func versions() {
-        #expect(ConversationSnapshot.supports(version: 1) && ConversationSnapshot.supports(version: 2))
-        #expect(!ConversationSnapshot.supports(version: 0) && !ConversationSnapshot.supports(version: 3))
+        #expect(
+            ConversationSnapshot.supports(version: 1) && ConversationSnapshot.supports(version: 2)
+                && ConversationSnapshot.supports(version: 3))
+        #expect(!ConversationSnapshot.supports(version: 0) && !ConversationSnapshot.supports(version: 4))
     }
 }

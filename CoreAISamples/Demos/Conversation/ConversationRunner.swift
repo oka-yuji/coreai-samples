@@ -2,6 +2,7 @@ import ConversationFeature
 import ConversationRuntime
 import FeatureStore
 import Foundation
+import RAGContext
 
 typealias ConversationStore = Store<ConversationFeature>
 
@@ -16,6 +17,11 @@ final class ConversationRunner {
     private let termination: (Bool) -> Void
     private let writer = UUID()
     private var savedRevisions: [String: Int] = [:]
+    private var retrievingRun: Int?
+    private var retrievalStop: AsyncStream<Void>.Continuation?
+    private(set) var lastRetrieval: RAGRetrieval?
+    private var sourceResult: GenerationStats?
+    var lastGeneration: GenerationStats? { sourceResult ?? session.lastGeneration }
 
     init(
         id: String, chat: ChatViewModel, preferences: ConversationPreferences,
@@ -44,6 +50,10 @@ final class ConversationRunner {
             tools.resolve(call.id, .refuse(reason))
         case .stop(let run):
             session.stop(run: run)
+            if retrievingRun == run {
+                retrievalStop?.yield(())
+                retrievalStop?.finish()
+            }
         case .save(let snapshot):
             await save(snapshot, send: send)
         case .restore(let id):
@@ -78,7 +88,74 @@ final class ConversationRunner {
         if !repair {
             let guarding = policy.mode == .work && policy.citationGuard
             tools.beginTask(guardActive: guarding, continuing: policy.continuing)
-            citationGuard.begin(active: guarding)
+            citationGuard.begin(
+                active: guarding, suppliedSourcesRequired: policy.sourceRequest != nil || policy.sourceIDs != nil)
+            lastRetrieval = nil
+            sourceResult = nil
+        }
+        var prompt = prompt
+        var sourceIDs: [String] = []
+        if let request = policy.sourceRequest {
+            guard let model = chat.model, session.prepareSources(run: run, send: send) else {
+                send(.generationFailed(run: run, message: "No model is loaded."))
+                return
+            }
+            var settings = RAGSettings.fromDefaults()
+            settings.web = request.web
+            settings.local = request.local
+            settings.sourceTokenBudget = request.budget
+            settings.braveAPIKey = tools.preferences.braveAPIKey
+            let question = prompt
+            let capturedSettings = settings
+            let retrieval = await collectSources(run: run) {
+                await RAGRetriever.gather(question: question, settings: capturedSettings, count: model.countTokens)
+            }
+            guard !session.stopRequested, !Task.isCancelled, let retrieval else {
+                sourceResult = GenerationStats(stopReason: "cancelled", sources: 0)
+                send(.stopped(run: run))
+                return
+            }
+            lastRetrieval = retrieval
+            for note in retrieval.notes {
+                send(.guardNote(run: run, title: "Sources", text: note, warning: true))
+            }
+            guard !retrieval.sources.isEmpty else {
+                sourceResult = GenerationStats(
+                    answer: RAGContext.noSourcesReply, stopReason: "noSources",
+                    sources: 0, sourceTokens: 0, retrievalSeconds: retrieval.seconds)
+                send(.generationFailed(run: run, message: RAGContext.noSourcesReply))
+                return
+            }
+            do {
+                guard
+                    let prepared = try tools.sources.prepare(
+                        question: prompt, sources: retrieval.conversationSources(), today: RAGContext.today(),
+                        budget: RAGContext.promptTokenBudget,
+                        count: { model.countTokens(ConversationFeature.finalized($0)) })
+                else {
+                    let message = "The question and sources exceed the RAG prompt budget."
+                    sourceResult = GenerationStats(error: message, sources: 0, retrievalSeconds: retrieval.seconds)
+                    send(.generationFailed(run: run, message: message))
+                    return
+                }
+                let ids = try tools.registerSources(prepared.sources)
+                sourceIDs = ids
+                send(
+                    .sourcesCollected(
+                        run: run, ids: ids, evidence: tools.evidence,
+                        lines: tools.sources.citations(ids)))
+                prompt = prepared.prompt
+                lastRetrieval?.sources = Array(retrieval.sources.prefix(prepared.sources.count))
+                let sourceTokens = lastRetrieval?.sources.map { model.countTokens(RAGContext.measuredBlock($0)) }
+                    .reduce(0, +)
+                lastRetrieval?.sourceTokens = sourceTokens ?? 0
+                sourceResult = GenerationStats(
+                    sources: ids.count, sourceTokens: sourceTokens,
+                    ragPromptTokens: prepared.tokens, retrievalSeconds: retrieval.seconds)
+            } catch {
+                send(.generationFailed(run: run, message: error.localizedDescription))
+                return
+            }
         }
         if policy.continuing {
             do { try await tools.prepareContinuation() } catch {
@@ -87,12 +164,11 @@ final class ConversationRunner {
         }
         send(.evidenceChanged(run: run, tools.evidence))
         let end = await session.generate(
-            run: run, prompt: prompt, policy: policy, finalize: finalize, repair: repair, send: send)
+            run: run, prompt: prompt, policy: policy, finalize: finalize, repair: repair,
+            sourceStats: sourceResult, send: send)
+        sourceResult = nil
+        if session.didSendPrompt { tools.markSourcesSupplied(sourceIDs) }
         send(.evidenceChanged(run: run, tools.evidence))
-        guard policy.mode == .work else {
-            send(end.action(run))
-            return
-        }
         var checked = end
         checked.answer = policy.answerPrefix + end.answer
         let verdict = await citationGuard.settle(
@@ -106,11 +182,36 @@ final class ConversationRunner {
             if let note {
                 send(
                     .guardNote(
-                        run: run, title: policy.citationGuard ? CitationGuard.title : "Notes", text: note.text,
+                        run: run,
+                        title: policy.citationGuard
+                            ? CitationGuard.title
+                            : citationGuard.checks.last?.local != nil ? "Source citations" : "Notes", text: note.text,
                         warning: note.warning))
             }
-            await citationGuard.saveRunMetrics(session: session)
+            if policy.mode == .work { await citationGuard.saveRunMetrics(session: session) }
             send(end.action(run))
+        }
+    }
+
+    func collectSources(run: Int, gather: @escaping @Sendable () async -> RAGRetrieval) async -> RAGRetrieval? {
+        guard !session.stopRequested, !Task.isCancelled else { return nil }
+        let (stops, stop) = AsyncStream<Void>.makeStream()
+        retrievalStop = stop
+        retrievingRun = run
+        defer {
+            retrievalStop = nil
+            retrievingRun = nil
+            stop.finish()
+        }
+        return await withTaskGroup(of: RAGRetrieval?.self) { group in
+            group.addTask { await gather() }
+            group.addTask {
+                for await _ in stops { return nil }
+                return nil
+            }
+            let result = await group.next() ?? nil
+            group.cancelAll()
+            return result
         }
     }
 
@@ -130,6 +231,8 @@ final class ConversationRunner {
     }
 
     private func install(_ archived: ArchivedConversation) -> ArchivedConversation {
+        lastRetrieval = nil
+        sourceResult = nil
         guard case .snapshot(let snapshot) = archived else {
             if case .readOnly(let id, _, _) = archived {
                 session.reset(id: id)
@@ -144,7 +247,8 @@ final class ConversationRunner {
             tools.preferences.citeFetched = snapshot.instructionsVersion.hasPrefix("cite-fetched")
             savedRevisions[snapshot.id] = snapshot.revision
             tools.restoreEvidence(
-                snapshot.evidence ?? ConversationEvidence(), notesDirectory: tools.preferences.notesDirectory)
+                snapshot.evidence ?? ConversationEvidence(), notesDirectory: tools.preferences.notesDirectory,
+                suppliedSourceIDs: snapshot.suppliedSourceIDs)
             return .snapshot(restored)
         } catch {
             return .readOnly(id: snapshot.id, markdown: snapshot.markdown(), reason: error.localizedDescription)

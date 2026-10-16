@@ -24,13 +24,17 @@ struct LedgerCheck: Codable, Sendable, Equatable {
     var noteCitationsUnfetched: [String]
     var sourcesRequired: Bool
     var sourcesMissing: Bool
+    var local: SourceCitationCheck?
 
-    var violation: Bool { !citationsUnfetched.isEmpty || !noteCitationsUnfetched.isEmpty || sourcesMissing }
+    var violation: Bool {
+        !citationsUnfetched.isEmpty || !noteCitationsUnfetched.isEmpty || sourcesMissing || local?.violation == true
+    }
 
     var reason: String {
         let parts = [
             (!citationsUnfetched.isEmpty, "unfetched"), (!noteCitationsUnfetched.isEmpty, "note-unfetched"),
             (sourcesMissing, "sources-missing"),
+            (local?.violation == true, "source-ids"),
         ].filter(\.0).map(\.1)
         return parts.isEmpty ? "none" : parts.joined(separator: "+")
     }
@@ -96,6 +100,7 @@ final class CitationGuard {
     private var repairUsage: LanguageModelSession.Usage?
     private var notesCommitted = false
     private var noteWarnings: [String] = []
+    private var suppliedSourcesRequired = false
 
     init(tools: ToolRunner) {
         self.tools = tools
@@ -103,8 +108,9 @@ final class CitationGuard {
 
     private var preferences: ConversationPreferences { tools.preferences }
 
-    func begin(active: Bool) {
+    func begin(active: Bool, suppliedSourcesRequired: Bool = false) {
         self.active = active
+        self.suppliedSourcesRequired = suppliedSourcesRequired
         checks = []
         outcome = nil
         reason = ""
@@ -127,6 +133,12 @@ final class CitationGuard {
         if repairPending { return await settleRepair(end, stopped: stopped, usage: usage) }
         let check = ledgerCheck(stage: "answer", answer: end.answer)
         checks = [check]
+        if let local = check.local, local.violation, end.outcome == TurnEnd.answered {
+            outcome = "held"
+            reason = local.message
+            await finishNotes(commit: false)
+            return .done(note: note())
+        }
         guard active else {
             if end.outcome != TurnEnd.answered || stopped {
                 outcome = "skipped"
@@ -202,10 +214,15 @@ final class CitationGuard {
     }
 
     private func ledgerCheck(stage: String, answer: String) -> LedgerCheck {
-        Self.ledgerCheck(
+        var check = Self.ledgerCheck(
             stage: stage, answer: answer, notes: tools.noteTextsForValidation, ledger: tools.ledger,
             attempts: tools.fetchAttempts, sourcesRequired: preferences.sourcesRequired,
             usedWebTools: tools.webToolCalls > 0)
+        let local = tools.sources.check(
+            answer: answer, notes: tools.noteTextsForValidation, required: suppliedSourcesRequired,
+            suppliedIDs: tools.suppliedSourceIDs)
+        if suppliedSourcesRequired || !local.cited.isEmpty { check.local = local }
+        return check
     }
 
     func finishIncompleteNotes(reason: String) async {
@@ -237,11 +254,20 @@ final class CitationGuard {
     }
 
     private func note() -> (text: String, warning: Bool)? {
+        if let local = checks.last?.local, local.violation {
+            let drafts = tools.draftOrder.isEmpty ? [] : ["Notes kept as drafts."]
+            return (([local.message] + drafts + noteWarnings).joined(separator: "\n"), true)
+        }
         let message = Self.guardNoteText(
             outcome: outcome, reason: reason, check: checks.last,
             drafts: !tools.draftOrder.isEmpty && !notesCommitted)
-        guard !noteWarnings.isEmpty else { return message }
-        return (([message?.text].compactMap { $0 } + noteWarnings).joined(separator: "\n"), true)
+        var additions = noteWarnings
+        if let local = checks.last?.local { additions.append(local.message) }
+        guard !additions.isEmpty else { return message }
+        return (
+            ([message?.text].compactMap { $0 } + additions).joined(separator: "\n"),
+            message?.warning == true || !noteWarnings.isEmpty || checks.last?.local?.violation == true
+        )
     }
 
     func saveRunMetrics(session: ConversationSession) async {

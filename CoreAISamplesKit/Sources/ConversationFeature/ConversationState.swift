@@ -42,6 +42,8 @@ public struct TurnPolicy: Equatable, Sendable {
     public var collapsesSteps: Bool
     public var continuing = false
     public var answerPrefix = ""
+    public var sourceRequest: ConversationSourceRequest?
+    public var sourceIDs: [String]?
 
     public init(_ mode: ConversationMode, settings: ConversationSettings) {
         self.mode = mode
@@ -157,10 +159,18 @@ public struct ConversationTurn: Codable, Equatable, Sendable {
     public var kind = TurnKind.normal
     public var offset = 0
     public var notes: [TurnNote] = []
+    public var sourceRequest: ConversationSourceRequest?
+    public var sourceIDs: [String]?
 
     public var policy: TurnPolicy {
         var policy = TurnPolicy(mode, settings: settings)
         policy.continuing = kind == .continuation
+        policy.sourceRequest = sourceRequest
+        policy.sourceIDs = sourceIDs
+        if sourceRequest != nil || sourceIDs != nil {
+            policy.allowedTools = []
+            policy.maxSteps = 1
+        }
         return policy
     }
 }
@@ -178,6 +188,7 @@ public struct ConversationState: Equatable, Sendable {
     public var updatedAt: Date
     public var transcript = TranscriptRecord()
     public var evidence = ConversationEvidence()
+    public var isRetrieving = false
     public var turns: [ConversationTurn] = []
     public var entries: [ConversationEntry] = []
     public var isRunning = false

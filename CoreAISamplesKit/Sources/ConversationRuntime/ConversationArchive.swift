@@ -117,6 +117,15 @@ public actor ConversationArchive {
     }
 
     public static func validate(_ snapshot: ConversationSnapshot) throws {
+        let sources = snapshot.evidence?.sources ?? ConversationSources()
+        try sources.validate()
+        let sourceIDs = Set(sources.records.map(\.id))
+        guard
+            snapshot.turns.allSatisfy({ turn in
+                (turn.sourceIDs ?? []).allSatisfy(sourceIDs.contains)
+                    && (turn.sourceRequest.map { [3_000, 6_000].contains($0.budget) && ($0.web || $0.local) } ?? true)
+            })
+        else { throw Failure.invalidSnapshot }
         guard ConversationSnapshot.supports(version: snapshot.formatVersion), snapshot.revision >= 0,
             snapshot.revision < 1_000_000_000,
             snapshot.createdAt.timeIntervalSince1970.isFinite, snapshot.updatedAt.timeIntervalSince1970.isFinite,

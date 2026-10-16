@@ -145,7 +145,6 @@ final class ConversationHost {
 
     private func resetConversation(persistSelection: Bool) {
         guard state.canLeave, !chat.isResponding else { return }
-        chat.resetRAG()
         modelLoad = chat.loadStarted
         var library = state.library
         library.loading = nil
@@ -166,7 +165,6 @@ final class ConversationHost {
 
     func openConversation(_ id: String) -> Bool {
         guard canManageHistory else { return false }
-        chat.resetRAG()
         store.send(.restoreRequested(id: id))
         return state.isRestoring
     }
@@ -228,9 +226,14 @@ final class ConversationHost {
         refreshIfModelChanged()
         guard canSend else { return false }
         if chat.ragIsOn {
-            chat.reasoning = preferences.effort
-            chat.maxTokens = TurnPolicy(.chat, settings: preferences.settings).maxTokens
-            return chat.send(anchor: store.state.entries.count)
+            let text = chat.trimmedInput
+            chat.input = ""
+            store.send(.settingsChanged(preferences.settings))
+            store.send(
+                .sendSources(
+                    text, ConversationSourceRequest(web: chat.ragWeb, local: chat.ragLocal, budget: chat.ragBudget),
+                    now: Date()))
+            return state.isRunning
         }
         let text = chat.trimmedInput
         chat.input = ""
@@ -248,7 +251,7 @@ final class ConversationHost {
 
     var canContinueAnswer: Bool {
         state.canLeave && matchesConversationModel && chat.phase == .ready && !chat.isResponding
-            && !chat.externallyBusy && !chat.ragIsOn && ConversationFeature.continueEligibility(state)
+            && !chat.externallyBusy && ConversationFeature.continueEligibility(state)
     }
 
     func continueAnswer() {
@@ -262,7 +265,7 @@ final class ConversationHost {
     }
 
     func stop() {
-        if chat.isResponding { chat.stop() } else { store.send(.stopRequested) }
+        store.send(.stopRequested)
     }
 
     private static func make(
@@ -278,7 +281,7 @@ final class ConversationHost {
             id: id, chat: chat, preferences: preferences, archive: archive, termination: termination)
         var state = ConversationState(
             id: id, now: now, mode: mode, settings: preferences.settings, modelID: chat.modelName,
-            instructionsVersion: preferences.citeFetched ? "cite-fetched-v2" : "frozen-v2",
+            instructionsVersion: preferences.citeFetched ? "cite-fetched-v3" : "frozen-v3",
             toolsVersion: (AgentTools.names.dropLast(preferences.fileOperations ? 0 : 1)).joined(separator: ","))
         state.library = library
         return (ConversationStore(initialState: state, run: runner.run), runner)

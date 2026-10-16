@@ -1,3 +1,4 @@
+import CryptoKit
 import Foundation
 
 public struct RAGSource: Sendable, Equatable {
@@ -5,6 +6,9 @@ public struct RAGSource: Sendable, Equatable {
     public var url: String
     public var date: String
     public var text: String
+    public var document: String?
+    public var version: String?
+    public var offset: Int?
 
     public init(title: String, url: String, date: String = "", text: String) {
         self.title = title
@@ -19,6 +23,27 @@ public struct RAGSource: Sendable, Equatable {
 public enum RAGContext {
     public static let sourceTokenBudget = 3_000
     public static let promptTokenBudget = 8_000
+
+    public static func documentSources(
+        title: String, url: String, document: String? = nil, date: String = "", text: String
+    ) -> [RAGSource] {
+        let version = SHA256.hash(data: Data(text.utf8)).map { String(format: "%02x", $0) }.joined()
+        var result: [RAGSource] = []
+        var start = text.startIndex
+        var offset = 0
+        while start < text.endIndex {
+            let end = text.index(start, offsetBy: 500, limitedBy: text.endIndex) ?? text.endIndex
+            var source = RAGSource(title: title, url: url, date: date, text: String(text[start..<end]))
+            source.document = document ?? url
+            source.version = version
+            source.offset = offset
+            result.append(source)
+            if end == text.endIndex { break }
+            start = text.index(start, offsetBy: 400)
+            offset += 400
+        }
+        return result
+    }
 
     public static func instruction(today: String) -> String {
         """
@@ -219,15 +244,15 @@ public enum RAGDocuments {
             .filter { extensions.contains($0.pathExtension.lowercased()) }
             .sorted { $0.lastPathComponent < $1.lastPathComponent }
         return files.flatMap { url -> [RAGSource] in
+            guard !Task.isCancelled else { return [] }
             let raw =
                 url.pathExtension.lowercased() == "pdf"
                 ? pdfText(url) : try? String(contentsOf: url, encoding: .utf8)
             guard let raw, !raw.isEmpty else { return [] }
             let name = url.lastPathComponent
             let date = RAGContext.isoDate(in: String(raw.prefix(400))) ?? ""
-            return RAGContext.chunks(raw).map {
-                RAGSource(title: name, url: name, date: date, text: $0)
-            }
+            return RAGContext.documentSources(
+                title: name, url: name, document: url.standardizedFileURL.absoluteString, date: date, text: raw)
         }
     }
 }

@@ -31,7 +31,7 @@ struct ComposerView: View {
                 .font(.callout)
                 .foregroundStyle(.orange)
             }
-            if ConversationFeature.continueEligibility(state), !chat.ragIsOn {
+            if ConversationFeature.continueEligibility(state) {
                 Button("Continue answer", systemImage: "arrow.turn.down.right", action: host.continueAnswer)
                     .help("Generate the rest as a new turn without repeating the answer")
                     .disabled(!host.canContinueAnswer)
@@ -95,15 +95,8 @@ struct ComposerView: View {
     }
 
     private var notice: Text? {
-        if chat.ragIsOn, chat.contextFull, case .full(let needed, let limit)? = chat.contextNotice {
-            return Text(
-                "The context window is full: this question needs \(needed) tokens and the limit is \(limit). Pick a smaller Sources budget in the settings or ask a shorter question."
-            )
-        }
         if host.contextFull { return Text("The context window is full. Start a new conversation to continue.") }
-        var reserved = host.state.contextEndReserved
-        if chat.ragIsOn, case .end(let value)? = chat.contextNotice { reserved = value }
-        guard let reserved else { return nil }
+        guard let reserved = host.state.contextEndReserved else { return nil }
         return Text(
             "The reply stopped at the end of the context window (\(reserved) tokens were left for it). Start a new conversation if the next message does not fit."
         )

@@ -1,6 +1,5 @@
 import CoreAIBackend
 import Foundation
-import FoundationModels
 import Observation
 import RAGContext
 
@@ -46,16 +45,6 @@ final class ChatViewModel {
         case failed(String)
     }
 
-    struct Turn: Identifiable {
-        let id: String
-        let prompt: String
-        var reasoning = ""
-        var response = ""
-        var notes: [String] = []
-        var sources: [String] = []
-        var anchor = 0
-    }
-
     static let defaultContextLimit = 16_384
 
     private(set) var phase = Phase.empty
@@ -64,22 +53,9 @@ final class ChatViewModel {
     private(set) var loadNote = ""
     private(set) var loadStarted = Date.now
     private(set) var loadSeconds = 0.0
-    private(set) var isResponding = false
-    private(set) var last: GenerationStats?
-    enum ContextNotice: Equatable {
-        case full(needed: Int, limit: Int)
-        case end(reserved: Int)
-    }
-
-    private(set) var contextNotice: ContextNotice?
-    private(set) var contextFull = false
-    private(set) var retrieving = false
-    private(set) var retrieval: RAGRetrieval?
-    private(set) var ragTurns: [Turn] = []
+    var isResponding: Bool { externallyBusy }
     var input = ""
     var externallyBusy = false
-    var reasoning = AgentReasoningEffort.medium
-    var maxTokens = 2048
     var ragEnabled = false
     var ragWeb = true
     var ragLocal = true
@@ -87,11 +63,6 @@ final class ChatViewModel {
     let contextLimit = LaunchArguments.value("--context-limit").flatMap(Int.init) ?? ChatViewModel.defaultContextLimit
 
     @ObservationIgnored private(set) var model: LocalLanguageModel?
-    @ObservationIgnored private(set) var generation: Task<Void, Never>?
-    @ObservationIgnored private var consumer: Task<(any Error)?, Never>?
-    @ObservationIgnored private var firstEntryAt: ContinuousClock.Instant?
-    @ObservationIgnored private var run = 0
-
     nonisolated static var launchRAGBudget: Int? {
         LaunchArguments.value("--rag-budget").flatMap(Int.init).flatMap {
             RAGSettings.budgetChoices.contains($0) ? $0 : nil
@@ -103,25 +74,6 @@ final class ChatViewModel {
     var canSend: Bool { phase == .ready && !isResponding && !externallyBusy && !trimmedInput.isEmpty }
     var loadStats: Engine.LoadStats? { model?.loadStats }
     var ragIsOn: Bool { ragEnabled && (ragWeb || ragLocal) }
-
-    static func turns(_ entries: some Sequence<Transcript.Entry>) -> [Turn] {
-        var turns: [Turn] = []
-        for entry in entries {
-            switch entry {
-            case .prompt(let prompt):
-                turns.append(Turn(id: entry.id, prompt: Self.text(prompt.segments)))
-            case .reasoning(let reasoning) where !turns.isEmpty:
-                turns[turns.count - 1].reasoning += Self.text(reasoning.segments)
-            case .response(let response) where !turns.isEmpty:
-                turns[turns.count - 1].response += Self.text(response.segments)
-            default:
-                break
-            }
-        }
-        return turns
-    }
-
-    var statusLine: String { last?.statusLine ?? loadNote }
 
     func isUsing(_ url: URL) -> Bool {
         phase != .empty && bundleURL.map(ModelStorage.key) == ModelStorage.key(url)
@@ -140,10 +92,6 @@ final class ChatViewModel {
         guard !isLoading, !isResponding, !externallyBusy else { return }
         let key = ModelStorage.key(url)
         model = nil
-        ragTurns = []
-        last = nil
-        contextNotice = nil
-        contextFull = false
         bundleURL = url
         modelName = (try? ModelBundle(url: url).name) ?? url.lastPathComponent
         loadStarted = .now
@@ -169,159 +117,4 @@ final class ChatViewModel {
         }
     }
 
-    func resetRAG() {
-        ragTurns = []
-        retrieval = nil
-        last = nil
-        contextNotice = nil
-        contextFull = false
-    }
-
-    @discardableResult
-    func send(anchor: Int = 0) -> Bool {
-        guard canSend, let model else { return false }
-        if ragIsOn {
-            let prompt = trimmedInput
-            input = ""
-            last = nil
-            contextNotice = nil
-            contextFull = false
-            isResponding = true
-            let options = GenerationOptions(maximumResponseTokens: maxTokens)
-            let context = ContextOptions(reasoningLevel: reasoning.level)
-            var settings = RAGSettings.fromDefaults()
-            settings.web = ragWeb
-            settings.local = ragLocal
-            settings.sourceTokenBudget = ragBudget
-            ragTurns.append(Turn(id: UUID().uuidString, prompt: prompt, anchor: anchor))
-            generation = Task { await respondFromSources(model, prompt, settings, options, context) }
-            return true
-        }
-        return false
-    }
-
-    func stop() {
-        if retrieving { generation?.cancel() } else { consumer?.cancel() }
-    }
-
-    private func respondFromSources(
-        _ model: LocalLanguageModel, _ question: String, _ settings: RAGSettings, _ options: GenerationOptions,
-        _ context: ContextOptions
-    ) async {
-        retrieving = true
-        let today = RAGContext.today()
-        let retrieval = await RAGRetriever.gather(question: question, settings: settings, count: model.countTokens)
-        let promptTokens = model.countTokens(
-            RAGContext.prompt(question: question, sources: retrieval.sources, today: today))
-        retrieving = false
-        self.retrieval = retrieval
-        ragTurns[ragTurns.count - 1].notes = retrieval.notes
-        ragTurns[ragTurns.count - 1].sources = retrieval.citations
-        for note in retrieval.notes { AgentTools.log("[rag] " + note) }
-        var stats = GenerationStats(
-            turn: ragTurns.count, sources: retrieval.sources.count, sourceTokens: retrieval.sourceTokens,
-            retrievalSeconds: retrieval.seconds)
-        guard !Task.isCancelled, !retrieval.sources.isEmpty else {
-            if Task.isCancelled {
-                stats.stopReason = "cancelled"
-            } else {
-                stats.stopReason = "noSources"
-                stats.answer = RAGContext.noSourcesReply
-                ragTurns[ragTurns.count - 1].response = RAGContext.noSourcesReply
-            }
-            last = stats
-            generation = nil
-            isResponding = false
-            return
-        }
-        stats.ragPromptTokens = promptTokens
-        let session = LanguageModelSession(model: model, instructions: RAGContext.instruction(today: today))
-        session.transcriptErrorHandlingPolicy = .preserveTranscript
-        await respond(
-            session, RAGContext.message(question: question, sources: retrieval.sources), options, context, rag: stats)
-    }
-
-    private func show(_ transcript: Transcript) {
-        guard let live = Self.turns(transcript).last, !ragTurns.isEmpty else { return }
-        ragTurns[ragTurns.count - 1].reasoning = live.reasoning
-        ragTurns[ragTurns.count - 1].response = live.response
-    }
-
-    private func respond(
-        _ session: LanguageModelSession, _ prompt: String, _ options: GenerationOptions, _ context: ContextOptions,
-        rag: GenerationStats
-    ) async {
-        run += 1
-        let id = run
-        let base = session.transcript.count
-        let before = session.usage
-        let start = ContinuousClock.now
-        firstEntryAt = nil
-        let observer = Task { [weak self] in
-            for await transcript in Observations({ session.transcript }) {
-                guard let self, self.run == id, self.isResponding else { return }
-                if self.firstEntryAt == nil, transcript.count > base + 1 { self.firstEntryAt = .now }
-                self.show(transcript)
-            }
-        }
-        let consumer = Task { () -> (any Error)? in
-            do {
-                for try await _ in session.streamResponse(to: prompt, options: options, contextOptions: context) {}
-                return nil
-            } catch {
-                return error
-            }
-        }
-        self.consumer = consumer
-        let failure = await consumer.value
-        let stopped = consumer.isCancelled
-        while session.isResponding { try? await Task.sleep(for: .milliseconds(10)) }
-        observer.cancel()
-        show(session.transcript)
-
-        let added = session.transcript.dropFirst(base)
-        let after = session.usage
-        var stats = rag
-        stats.answer = added.map { if case .response(let response) = $0 { Self.text(response.segments) } else { "" } }
-            .joined()
-        stats.outputTokens = after.output.totalTokenCount - before.output.totalTokenCount
-        stats.ttftSeconds = firstEntryAt.map { ($0 - start) / .seconds(1) }
-        if stopped {
-            stats.stopReason = "cancelled"
-        } else if let failure {
-            if case LanguageModelError.contextSizeExceeded(let exceeded) = failure {
-                stats.stopReason = "contextSizeExceeded"
-                contextFull = true
-                contextNotice = .full(needed: exceeded.tokenCount, limit: exceeded.contextSize)
-            } else {
-                stats.stopReason = "error"
-                stats.error = failure.localizedDescription
-            }
-        } else {
-            var metadata: [String: GeneratedContent] = [:]
-            if case .response(let response)? = added.last(where: { if case .response = $0 { true } else { false } }) {
-                metadata = response.metadata
-            }
-            stats.inputTokens = after.input.totalTokenCount - before.input.totalTokenCount
-            stats.cachedTokens = after.input.cachedTokenCount - before.input.cachedTokenCount
-            stats.stopReason = (try? metadata["stopReason"]?.value(String.self)) ?? "unknown"
-            if let decode = try? metadata["decodeSeconds"]?.value(Double.self), decode > 0 {
-                stats.tokensPerSecond = Double(stats.outputTokens) / decode
-            }
-            if stats.stopReason == "maxTokens", let reserved = try? metadata["reservedTokens"]?.value(Int.self),
-                reserved < options.maximumResponseTokens ?? .max
-            {
-                contextNotice = .end(reserved: reserved)
-            }
-        }
-        last = stats
-        MetricsLog.generation(model: modelName, stats: stats)
-        self.consumer = nil
-        generation = nil
-        isResponding = false
-    }
-
-    static func text(_ segments: [Transcript.Segment]) -> String {
-        segments.map { if case .text(let text) = $0 { text.content } else { "" } }.joined()
-    }
 }
