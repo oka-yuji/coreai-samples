@@ -1,6 +1,83 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "Cancel change" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "変更を取り消す"
+          }
+        }
+      }
+    },
+    "Object to find" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "探したい物"
+          }
+        }
+      }
+    },
+    "Type any object name" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "物の名前を自由に入力"
+          }
+        }
+      }
+    },
+    "Fill an example" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "例を入力"
+          }
+        }
+      }
+    },
+    "Search this text" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この言葉で探す"
+          }
+        }
+      }
+    },
+    "Live camera preview" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カメラのライブ映像"
+          }
+        }
+      }
+    },
+    "The camera stays live while matches update." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "映像を表示しながら候補を更新します。"
+          }
+        }
+      }
+    },
     "Object finder" : {
       "extractionState" : "manual",
       "localizations" : {

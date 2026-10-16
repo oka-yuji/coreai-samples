@@ -12,20 +12,21 @@ public enum ObjectFinderFailure: Error, Equatable, Sendable {
 }
 
 public struct ObjectFinderFrame: Equatable, Sendable {
-    public let image: Data
     public let candidates: [ObjectCandidate]
     public let seconds: Double
     public let rotation: Double
     public let orientationRevision: Int
+    public let captureGeneration: Int
 
     public init(
-        image: Data, candidates: [ObjectCandidate], seconds: Double, rotation: Double = 90, orientationRevision: Int = 0
+        candidates: [ObjectCandidate], seconds: Double, rotation: Double = 90, orientationRevision: Int = 0,
+        captureGeneration: Int = 0
     ) {
-        self.image = image
         self.candidates = candidates
         self.seconds = seconds
         self.rotation = rotation
         self.orientationRevision = orientationRevision
+        self.captureGeneration = captureGeneration
     }
 }
 
@@ -45,6 +46,7 @@ public struct ObjectFinderState: Equatable, Sendable {
     public var notified = false
     public var orientation = ObjectCameraOrientation()
     public var orientationRevision = 0
+    public var restartAfterStop = false
 
     public var cameraRotation: ObjectCameraRotation {
         ObjectCameraRotation(session: session, revision: orientationRevision, angle: orientation.angle)
@@ -53,8 +55,20 @@ public struct ObjectFinderState: Equatable, Sendable {
     public init(folder: URL? = nil) { self.folder = folder }
 
     public var canStart: Bool {
-        presented && phase == .idle && folder != nil && !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            && query.utf8.count <= 512
+        presented && phase == .idle && folder != nil && validDraft
+    }
+
+    public var canApplyQuery: Bool {
+        presented && (phase == .starting || phase == .searching) && folder != nil && validDraft
+            && query.trimmingCharacters(in: .whitespacesAndNewlines) != submittedQuery
+    }
+
+    public var canStop: Bool {
+        phase == .starting || phase == .searching || (phase == .stopping && restartAfterStop)
+    }
+
+    private var validDraft: Bool {
+        !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && query.utf8.count <= 512
     }
 }
 
@@ -64,7 +78,7 @@ public enum ObjectFinderAction: Sendable {
     case thresholdChanged(Double)
     case inputFailed(String)
     case poseChanged(ObjectCameraPose)
-    case start, stop, disappeared, appeared, backgrounded
+    case start, applyQuery, stop, disappeared, appeared, backgrounded
     case started(Int)
     case analyzed(Int, ObjectFinderFrame)
     case failed(Int, ObjectFinderFailure)
@@ -89,7 +103,7 @@ public enum ObjectFinderFeature: Feature {
     public static func reduce(_ state: inout State, _ action: Action) -> [Command<Effect, EffectID>] {
         switch action {
         case .queryChanged(let query):
-            if state.phase == .idle { state.query = query }
+            if state.phase != .stopping { state.query = query }
         case .folderSelected(let folder):
             if state.phase == .idle {
                 state.folder = folder
@@ -116,9 +130,16 @@ public enum ObjectFinderFeature: Feature {
             state.session += 1
             state.submittedQuery = state.query.trimmingCharacters(in: .whitespacesAndNewlines)
             state.phase = .starting
+            state.restartAfterStop = false
             clear(&state)
             state.failure = nil
             return [.run(.search(state.session, folder, state.submittedQuery, state.cameraRotation), id: .search)]
+        case .applyQuery:
+            guard state.canApplyQuery else { return [] }
+            state.restartAfterStop = true
+            state.phase = .stopping
+            clear(&state)
+            return [.cancelAll, .run(.stop(state.session), id: .control)]
         case .started(let session):
             guard state.session == session, state.phase == .starting, state.presented else { return [] }
             state.phase = .searching
@@ -145,9 +166,11 @@ public enum ObjectFinderFeature: Feature {
         case .failed(let session, let failure):
             guard state.session == session, state.phase == .starting || state.phase == .searching else { return [] }
             state.phase = .idle
+            state.restartAfterStop = false
             clear(&state)
             state.failure = failure
         case .stop, .backgrounded, .disappeared:
+            state.restartAfterStop = false
             if case .disappeared = action { state.presented = false }
             clear(&state)
             guard state.phase != .idle, state.phase != .stopping else {
@@ -159,6 +182,10 @@ public enum ObjectFinderFeature: Feature {
         case .stopped(let session):
             guard state.session == session, state.phase == .stopping else { return [] }
             state.phase = .idle
+            if state.restartAfterStop {
+                state.restartAfterStop = false
+                return reduce(&state, .start)
+            }
         case .appeared:
             state.presented = true
         }

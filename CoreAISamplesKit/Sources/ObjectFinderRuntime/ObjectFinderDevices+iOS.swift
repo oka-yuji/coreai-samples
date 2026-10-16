@@ -5,21 +5,28 @@
     import UIKit
 
     extension LiveObjectFinderService {
-        public convenience init() {
-            let capture = ObjectFinderCapture()
+        public convenience init(preview: ObjectFinderPreview) {
+            let capture = ObjectFinderCapture(preview: preview)
             let finder = ObjectRegionFinder()
             self.init(
                 devices: ObjectFinderDevices(
                     authorize: Self.authorizeCamera,
                     prepare: { try await finder.prepare(folder: $0, query: $1) },
-                    startCamera: { try await capture.start(rotation: $0) },
+                    startCamera: {
+                        let frames = try await capture.start(rotation: $0)
+                        preview.connected()
+                        return frames
+                    },
                     stopCamera: { await capture.stop() },
                     checkCamera: { try await capture.checkActive() },
                     candidates: { try await finder.candidates(in: $0) },
                     closeFinder: { try await finder.close() },
                     beginOrientation: { UIDevice.current.beginGeneratingDeviceOrientationNotifications() },
                     endOrientation: { UIDevice.current.endGeneratingDeviceOrientationNotifications() },
-                    notify: { UINotificationFeedbackGenerator().notificationOccurred(.success) }))
+                    notify: { UINotificationFeedbackGenerator().notificationOccurred(.success) },
+                    trackCandidates: { tryFrame, candidates in
+                        await capture.trackCandidates(candidates, frame: tryFrame)
+                    }))
         }
 
         private static func authorizeCamera() async throws {

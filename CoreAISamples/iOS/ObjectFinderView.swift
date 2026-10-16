@@ -10,15 +10,22 @@
 
     @MainActor
     enum ObjectFinderAssembly {
-        static func makeStore() -> Store<ObjectFinderFeature> {
+        struct Session {
+            let store: Store<ObjectFinderFeature>
+            let preview: ObjectFinderPreview
+        }
+
+        static func makeSession() -> Session {
             let prepared = URL.documentsDirectory.appending(path: "embeddinggemma2")
             let folder =
                 LaunchArguments.value("--embedding-bundle").map { URL(filePath: $0) }
                 ?? (FileManager.default.fileExists(atPath: prepared.appending(path: "embedding-manifest.json").path)
                     ? prepared : nil)
-            return Store(
+            let preview = ObjectFinderPreview()
+            let store = Store<ObjectFinderFeature>(
                 initialState: ObjectFinderState(folder: folder),
-                run: ObjectFinderRunner(service: LiveObjectFinderService()).run)
+                run: ObjectFinderRunner(service: LiveObjectFinderService(preview: preview)).run)
+            return Session(store: store, preview: preview)
         }
 
         static var examples: [String] {
@@ -31,6 +38,7 @@
 
     struct ObjectFinderView: View {
         let store: Store<ObjectFinderFeature>
+        let preview: ObjectFinderPreview
         @State private var choosesModel = false
         @FocusState private var editingQuery: Bool
         @Environment(\.scenePhase) private var scenePhase
@@ -41,29 +49,39 @@
                 VStack(alignment: .leading, spacing: 18) {
                     Text("Name an object, then point your camera around the room.")
                         .foregroundStyle(.secondary)
-                    HStack {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("Object to find").font(.headline)
                         TextField(
-                            "What are you looking for?",
+                            "Type any object name",
                             text: Binding(get: { store.state.query }, set: { store.send(.queryChanged($0)) })
                         )
-                        .textFieldStyle(.roundedBorder)
+                        .textFieldStyle(.plain)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .padding(12)
+                        .frame(maxWidth: .infinity, minHeight: 48, alignment: .leading)
+                        .background(.background, in: RoundedRectangle(cornerRadius: 12))
+                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(.secondary.opacity(0.5)))
                         .focused($editingQuery)
                         .submitLabel(.search)
                         .onSubmit(start)
+                        .accessibilityIdentifier("object-finder-query")
+                        .accessibilityLabel("Object to find")
+                        .disabled(store.state.phase == .stopping)
                         Menu {
                             ForEach(ObjectFinderAssembly.examples, id: \.self) { text in
                                 Button {
                                     store.send(.queryChanged(text))
+                                    editingQuery = true
                                 } label: {
                                     Text(verbatim: text)
                                 }
                             }
                         } label: {
-                            Label("Examples", systemImage: "text.badge.plus")
+                            Label("Fill an example", systemImage: "text.badge.plus")
                         }
-                        .labelStyle(.iconOnly)
+                        .disabled(store.state.phase == .stopping)
                     }
-                    .disabled(store.state.phase != .idle)
                     controls
                     cameraImage
                     status
@@ -130,8 +148,20 @@
                     Button("Start searching", systemImage: "viewfinder", action: start)
                         .buttonStyle(.borderedProminent).disabled(!store.state.canStart)
                 } else {
-                    Button("Stop", systemImage: "stop.fill") { store.send(.stop) }
-                        .buttonStyle(.borderedProminent).disabled(store.state.phase == .stopping)
+                    Button {
+                        store.send(.stop)
+                    } label: {
+                        if store.state.restartAfterStop {
+                            Text("Cancel change")
+                        } else {
+                            Label("Stop", systemImage: "stop.fill")
+                        }
+                    }
+                    .buttonStyle(.borderedProminent).disabled(!store.state.canStop)
+                }
+                if store.state.canApplyQuery {
+                    Button("Search this text", systemImage: "arrow.clockwise", action: start)
+                        .buttonStyle(.bordered)
                 }
                 if store.state.folder == nil {
                     Button("Open model folder…", systemImage: "folder") { choosesModel = true }
@@ -140,37 +170,26 @@
             }
         }
 
-        @ViewBuilder
         private var cameraImage: some View {
-            if let data = store.state.frame?.image, let image = UIImage(data: data) {
-                Image(uiImage: image).resizable().aspectRatio(contentMode: .fit)
-                    .overlay {
-                        GeometryReader { geometry in
-                            ForEach(store.state.matches) { candidate in
-                                let box = candidate.region
-                                RoundedRectangle(cornerRadius: 8)
-                                    .stroke(.yellow, lineWidth: 3)
-                                    .frame(
-                                        width: geometry.size.width * box.width,
-                                        height: geometry.size.height * box.height
-                                    )
-                                    .position(
-                                        x: geometry.size.width * (box.x + box.width / 2),
-                                        y: geometry.size.height * (box.y + box.height / 2))
-                            }
-                        }
-                        .accessibilityHidden(true)
-                    }
-                    .accessibilityLabel("Analyzed camera image")
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
-            } else {
-                ContentUnavailableView(
-                    "Find things around you", systemImage: "viewfinder",
-                    description: Text("The camera opens when you start searching.")
-                )
-                .frame(maxWidth: .infinity, minHeight: 240)
-                .background(.quaternary, in: RoundedRectangle(cornerRadius: 16))
+            ObjectFinderLivePreview(
+                source: preview, minimumSimilarity: store.state.minimumSimilarity,
+                expectedGeneration: store.state.phase == .searching ? store.state.frame?.captureGeneration : nil,
+                rotation: store.state.orientation.angle
+            )
+            .frame(height: 360)
+            .background(.black)
+            .overlay {
+                if store.state.phase == .idle || store.state.phase == .stopping {
+                    ContentUnavailableView(
+                        "Find things around you", systemImage: "viewfinder",
+                        description: Text("The camera opens when you start searching.")
+                    )
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(.background)
+                }
             }
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .accessibilityLabel("Live camera preview")
         }
 
         @ViewBuilder
@@ -179,11 +198,9 @@
             case .starting: ProgressView("Preparing the search…")
             case .stopping: ProgressView("Stopping…")
             case .searching:
-                Label(
-                    store.state.matches.isEmpty ? "Searching…" : "Possible match",
-                    systemImage: store.state.matches.isEmpty ? "viewfinder" : "checkmark.circle")
+                Label("Searching…", systemImage: "viewfinder")
                 Text(verbatim: store.state.submittedQuery).font(.headline)
-                Text("The image and boxes update together after each analysis.").font(.caption).foregroundStyle(
+                Text("The camera stays live while matches update.").font(.caption).foregroundStyle(
                     .secondary)
             case .idle: EmptyView()
             }
@@ -210,7 +227,7 @@
 
         private func start() {
             editingQuery = false
-            store.send(.start)
+            store.send(store.state.phase == .idle ? .start : .applyQuery)
         }
 
         private func updateOrientation() {
@@ -223,6 +240,72 @@
             default: pose = .flat
             }
             store.send(.poseChanged(pose))
+        }
+    }
+    private struct ObjectFinderLivePreview: UIViewRepresentable {
+        let source: ObjectFinderPreview
+        let minimumSimilarity: Double
+        let expectedGeneration: Int?
+        let rotation: Double
+
+        func makeUIView(context: Context) -> PreviewView { PreviewView(source: source) }
+
+        func updateUIView(_ view: PreviewView, context: Context) {
+            view.minimumSimilarity = minimumSimilarity
+            view.expectedGeneration = expectedGeneration
+            view.rotation = rotation
+            view.applyPreviewState()
+            view.setNeedsLayout()
+        }
+
+        static func dismantleUIView(_ view: PreviewView, coordinator: ()) {
+            view.invalidateTicker()
+        }
+
+        final class PreviewView: UIView {
+            let source: ObjectFinderPreview
+            var minimumSimilarity = 0.67
+            var expectedGeneration: Int?
+            var rotation = 90.0
+            private var displayLink: CADisplayLink?
+
+            init(source: ObjectFinderPreview) {
+                self.source = source
+                super.init(frame: .zero)
+                source.attach(to: layer)
+                let ticker = PreviewTicker(source: source)
+                let link = CADisplayLink(target: ticker, selector: #selector(PreviewTicker.tick))
+                link.preferredFrameRateRange = CAFrameRateRange(minimum: 30, maximum: 30, preferred: 30)
+                link.add(to: .main, forMode: .common)
+                displayLink = link
+            }
+
+            required init?(coder: NSCoder) { nil }
+
+            isolated deinit { displayLink?.invalidate() }
+
+            func invalidateTicker() {
+                displayLink?.invalidate()
+                displayLink = nil
+            }
+
+            override func layoutSubviews() {
+                super.layoutSubviews()
+                applyPreviewState()
+            }
+
+            func applyPreviewState() {
+                source.layout(
+                    in: bounds, minimumSimilarity: minimumSimilarity, expectedGeneration: expectedGeneration,
+                    rotation: rotation)
+            }
+        }
+
+        @MainActor
+        private final class PreviewTicker: NSObject {
+            weak var source: ObjectFinderPreview?
+            init(source: ObjectFinderPreview) { self.source = source }
+            @objc func tick() { source?.expire() }
         }
     }
 #endif
