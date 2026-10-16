@@ -5,7 +5,9 @@ struct ModelMenu: View {
     @Environment(ChatViewModel.self) private var chat
     @Environment(ModelsViewModel.self) private var models
     @Environment(DemoNavigator.self) private var navigator
-    @Environment(AgentViewModel.self) private var agent
+    @Environment(ConversationHost.self) private var host
+
+    @State private var chosen: ModelsViewModel.MenuEntry?
 
     var body: some View {
         let entries = models.menuEntries(current: chat.phase == .ready ? chat.bundleURL : nil)
@@ -32,14 +34,19 @@ struct ModelMenu: View {
         .fixedSize()
         .accessibilityLabel("Model")
         .accessibilityValue(modelLabel)
-        .help("Choose the model Chat and Agent use")
+        .help("Choose the model the conversation uses")
         .disabled(
             Self.isDisabled(
                 loading: chat.isLoading, responding: chat.isResponding, busy: chat.externallyBusy,
-                agentRunning: agent.running)
+                running: host.state.isRunning)
         )
         .onReceive(NotificationCenter.default.publisher(for: NSMenu.didBeginTrackingNotification)) { _ in
             models.refresh()
+        }
+        .task(id: chosen?.id) {
+            guard let entry = chosen else { return }
+            await ModelSwitch.choose(entry.url, chat: chat, host: host)
+            chosen = nil
         }
     }
 
@@ -53,25 +60,25 @@ struct ModelMenu: View {
                 entry.name,
                 isOn: Binding(
                     get: { entry.isCurrent },
-                    set: { _ in Task { await ModelSwitch.choose(entry.url, chat: chat, agent: agent) } }))
+                    set: { _ in chosen = entry }))
         }
     }
 
-    static func isDisabled(loading: Bool, responding: Bool, busy: Bool, agentRunning: Bool) -> Bool {
-        loading || responding || busy || agentRunning
+    static func isDisabled(loading: Bool, responding: Bool, busy: Bool, running: Bool) -> Bool {
+        loading || responding || busy || running
     }
 }
 
 @MainActor
 enum ModelSwitch {
-    static func choose(_ url: URL, chat: ChatViewModel, agent: AgentViewModel) async -> Bool {
+    static func choose(_ url: URL, chat: ChatViewModel, host: ConversationHost) async -> Bool {
         guard
             !ModelMenu.isDisabled(
                 loading: chat.isLoading, responding: chat.isResponding, busy: chat.externallyBusy,
-                agentRunning: agent.running),
+                running: host.state.isRunning),
             !isLoaded(url, phase: chat.phase, current: chat.bundleURL)
         else { return false }
-        agent.reset()
+        host.startNew()
         await chat.load(url)
         return true
     }

@@ -84,6 +84,16 @@ public enum Finalization: String, Codable, Sendable {
     case normal, lastStep, cutOff
 }
 
+public enum TurnKind: String, Codable, Sendable {
+    case normal, repair
+}
+
+public struct TurnNote: Codable, Equatable, Sendable {
+    public var title: String
+    public var text: String
+    public var warning: Bool
+}
+
 public enum Persistence: Equatable, Sendable {
     case unsaved
     case saved
@@ -138,6 +148,9 @@ public struct ConversationTurn: Codable, Equatable, Sendable {
     public var finish = Finish.none
     public var finalization = Finalization.normal
     public var failure: String?
+    public var kind = TurnKind.normal
+    public var offset = 0
+    public var notes: [TurnNote] = []
 
     public var policy: TurnPolicy {
         TurnPolicy(mode, settings: settings)
@@ -213,5 +226,64 @@ public struct ConversationState: Equatable, Sendable {
         step = 0
         refusedSave = false
         persistence = .saved
+    }
+}
+
+extension ConversationState {
+    public var contextFull: Bool {
+        turns.last?.failure?.hasPrefix(ConversationFeature.contextFullPrefix) == true
+    }
+
+    public var status: ConversationStatus? {
+        guard let turn = turns.last else { return nil }
+        let limit = turn.policy.maxSteps
+        if isRunning {
+            if stopRequested { return .stopping }
+            if case .toolCalls(_, let calls, let metadata)? = transcript.entries.last, metadata != nil,
+                transcript.entries.count > turn.start + 1
+            {
+                return .running(step: step, tools: calls.map(\.name))
+            }
+            return .generating(step: step, limit: limit)
+        }
+        if turn.finalization == .cutOff { return .cutOff(limit: limit) }
+        if turn.finish == .stopped { return .stopped(steps: step) }
+        if turn.failure != nil { return contextFull ? .overflow(step: step) : .failed(step: step) }
+        return turn.steps.last.map(ConversationStatus.finished)
+    }
+
+    public var statusLine: String { status?.line ?? "" }
+
+    public var contextEndReserved: Int? {
+        guard !isRunning, let turn = turns.last, turn.finish == .cap else { return nil }
+        let reserved = transcript.entries.reversed().lazy.compactMap { entry -> Int? in
+            if case .response(_, _, let metadata) = entry { metadata?.reservedTokens } else { nil }
+        }.first
+        guard let reserved, reserved < turn.policy.maxTokens else { return nil }
+        return reserved
+    }
+}
+
+public enum ConversationStatus: Equatable, Sendable {
+    case generating(step: Int, limit: Int)
+    case running(step: Int, tools: [String])
+    case stopping
+    case cutOff(limit: Int)
+    case stopped(steps: Int)
+    case failed(step: Int)
+    case overflow(step: Int)
+    case finished(StepStats)
+
+    public var line: String {
+        switch self {
+        case .generating(let step, let limit): "Step \(step) of \(limit): generating…"
+        case .running(let step, let tools): "Step \(step): running " + tools.joined(separator: " + ") + "…"
+        case .stopping: "Stopping…"
+        case .cutOff(let limit): "Stopped at the \(limit)-step limit."
+        case .stopped(let steps): "Stopped after \(steps) step(s)."
+        case .failed(let step): "Failed at step \(step)."
+        case .overflow(let step): "Context overflow at step \(step)."
+        case .finished(let stats): stats.line
+        }
     }
 }

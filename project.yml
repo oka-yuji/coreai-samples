@@ -82,6 +82,8 @@ targets:
         product: RecipeRuntime
       - package: CoreAISamplesKit
         product: RecipeFeature
+      - package: CoreAISamplesKit
+        product: ConversationFeature
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.coreai-samples.DemoApp

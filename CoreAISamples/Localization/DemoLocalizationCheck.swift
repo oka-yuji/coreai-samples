@@ -8,7 +8,6 @@ enum DemoLocalizationCheck {
     static func run() {
         do {
             var keys = Demo.allCases.flatMap { [$0.title, $0.summary] }
-            keys += ChatViewModel.Reasoning.allCases.map(\.rawValue)
             keys += AgentReasoningEffort.allCases.map(\.label)
             keys += DecideQuestionKind.allCases.map(\.title)
             keys += try RecipeAssembly.examples().map(\.title)
@@ -23,6 +22,8 @@ enum DemoLocalizationCheck {
             keys += [ExtractRunner.notice, "Loaded", "Loading…", "Stopped.", "No match", "On hold"]
             keys += KitchenStatus.allCases.map(\.rawValue)
             keys += ["Kitchen equipment", "Open Clef-Flash bundle", "Change decision model"]
+            keys += ["none", "Docs", "Thinking", "Thoughts", "Stopping…"]
+            keys += ["Ended at the step limit", "Stopped", "Generation failed", "Where Work saves its notes"]
             keys += Catalog.models.flatMap { [$0.memory, $0.platforms] }
             var failures: [String] = []
             for key in Set(keys).sorted() {

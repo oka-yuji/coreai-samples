@@ -250,13 +250,13 @@ LICENSE                  コードの MIT ライセンス
 `CoreAISamples` は、このリポジトリの `CoreAIBackend` と `RAGContext` で作った macOS の SwiftUI アプリで、公式の `coreai-models` パッケージは使いません。
 
 - **Models** は、この Mac にあるバンドルのフォルダを開いて読み込み、GPU 向けに準備したコピーを消します。カタログには、ダウンロードできる Qwen3.8 27B (4bit) が載っています。カタログのメモリの値「~32 GiB peak RSS while loading」(日本語表示では「約32 GiB（読み込み時のピークRSS）」)は、下の計測の表の Mac でそのバンドルを読み込んだときのアプリのプロセスの常駐メモリのピークで、`/usr/bin/time -l` で測りました(準備済みのコピーから 31.51 GiB、48 回の中央値。初回 31.88 GiB)。最小のメモリ要件ではありません。
-- **Chat** は応答と思考をストリーミングで表示し、RAG を on にすると Web のページとローカルの文書から、番号つきの出典で答えます。
-- **Agent** は Foundation Models のツールのループで Web を検索し、ページを読み、メモを保存します。指示は、`fetch_page` で開いたページだけを引用するよう求めます。**Citation guard**(日本語表示では「引用URLの確認」)の設定は既定で off で、on にすると、引用した URL をその課題で取得したページと照合し、合わなければ 1 回だけ直させます([詳細](docs/demo-app.md#citation-guard))。
+- **Chat** は一つの会話の中で Chat / Work を切り替えます。Chat は会話や必要な検索、Work は複数手順の調査とメモ保存を行い、同じセッションを継続します。応答と思考はストリーミングで表示します。RAG を on にした質問は別セッションで資料から回答し、通常の会話履歴には加わりません。
+- **Work** は Foundation Models のツールのループで Web を検索し、ページを読み、メモを保存します。指示は、`fetch_page` で開いたページだけを引用するよう求めます。**Citation guard**(日本語表示では「引用URLの確認」)の設定は既定で off で、on にすると、引用した URL をその課題で取得したページと照合し、合わなければ 1 回だけ直させます([詳細](docs/demo-app.md#citation-guard))。
 - **Decide** は Clef-Flash で文書を編集できる選択肢で採点し、文書を使い回し、人の確定とモデルの候補を分けて扱います。
 - **Recipes** は、確認した冷蔵庫の在庫と台所の道具でレシピを照合します。合成した写真 5 枚とそのレシピの URL を同梱し、開発者向けの詳細に実際の判定のスコアと時間を表示します。
 - **Extract** は、Apple と Microsoft の公式の商品説明か、貼り付けたテキストから、出典つきのスペックのカードを最大 4 枚作ります。候補を開くと、元の条件を確かめられます。複数の構成や、見つからなかった項目も、そのまま表示します。これまでのラベルと点検メモの実験は **Extraction lab**(日本語表示では「抽出の検証画面」)に残しており、その B3 の結果は変わりません。商品の抽出は別の用途です。[仕様と検証の状況](docs/specs/product-comparison-demo.md)を参照してください。
 
-デモアプリの Chat と Agent が扱うのは Qwen3、Qwen3.5、Qwen3.8 のバンドルです。`CoreAISamples/Demos/ModelManager/BundleSupport.swift` の `BundleSupport.supportedModelIDPrefixes` に、`"google/gemma-"` のようなほかの系統の Hugging Face のモデル ID の先頭を足すと、アプリはその系統のバンドルを開けるようになりますが、動くようにはなりません。ランタイムが扱う停止のトークン、`<think>` のタグ、ツールの呼び出しの形は Qwen のまま(制限を参照)なので、そのようなバンドルは読み込めても崩れた文で答えることがあります。系統の確認はこの一覧だけです。バンドルのフォルダを開くか読み込むときに、アプリはバンドルの `metadata.json` の `source.hf_model_id` を読み、その項目が無いか、どの先頭でも始まらなければ、Models の画面か Chat に理由を出して断ります。バンドルがどう変換されたかは確かめません。
+デモアプリの Chat と Work が扱うのは Qwen3、Qwen3.5、Qwen3.8 のバンドルです。`CoreAISamples/Demos/ModelManager/BundleSupport.swift` の `BundleSupport.supportedModelIDPrefixes` に、`"google/gemma-"` のようなほかの系統の Hugging Face のモデル ID の先頭を足すと、アプリはその系統のバンドルを開けるようになりますが、動くようにはなりません。ランタイムが扱う停止のトークン、`<think>` のタグ、ツールの呼び出しの形は Qwen のまま(制限を参照)なので、そのようなバンドルは読み込めても崩れた文で答えることがあります。系統の確認はこの一覧だけです。バンドルのフォルダを開くか読み込むときに、アプリはバンドルの `metadata.json` の `source.hf_model_id` を読み、その項目が無いか、どの先頭でも始まらなければ、Models の画面か Chat に理由を出して断ります。バンドルがどう変換されたかは確かめません。
 
 試すには、`CoreAISamples.xcodeproj` を開いて Run を押します。コマンドラインでのビルド、ヘッドレスの自己テスト、画面の確認、ログは [docs/demo-app.md](docs/demo-app.md) にあります。
 

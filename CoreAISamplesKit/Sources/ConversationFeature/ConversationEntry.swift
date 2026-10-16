@@ -5,6 +5,14 @@ public struct ConversationEntry: Equatable, Identifiable, Sendable {
         case user, thinking, answer, toolCall, toolResult, note, failure
     }
 
+    public enum Detail: Equatable, Sendable {
+        case stepLimit(steps: Int, fetched: [String], saved: [String], open: [String])
+        case stopped(partial: Bool)
+        case tokenLimit(Int)
+        case noAnswer
+        case failure
+    }
+
     public var id: String
     public var kind: Kind
     public var title: String
@@ -13,10 +21,11 @@ public struct ConversationEntry: Equatable, Identifiable, Sendable {
     public var stats: String?
     public var warning: Bool
     public var collapsed: Bool
+    public var detail: Detail?
 
     public init(
         id: String, kind: Kind, title: String, text: String, live: Bool = false, stats: String? = nil,
-        warning: Bool = false, collapsed: Bool = false
+        warning: Bool = false, collapsed: Bool = false, detail: Detail? = nil
     ) {
         self.id = id
         self.kind = kind
@@ -26,6 +35,7 @@ public struct ConversationEntry: Equatable, Identifiable, Sendable {
         self.stats = stats
         self.warning = warning
         self.collapsed = collapsed
+        self.detail = detail
     }
 }
 
@@ -49,7 +59,8 @@ extension ConversationEntry {
         let answered = turn.finish != Finish.none && turn.finish != .stopped && turn.failure == nil && !cut
         var out = [ConversationEntry(id: "turn-\(number)", kind: .user, title: "You", text: turn.prompt)]
         var partial: String?
-        for (index, step) in steps.enumerated() where !cut || index < policy.maxSteps {
+        let allowed = policy.maxSteps - turn.offset
+        for (index, step) in steps.enumerated() where !cut || index < allowed {
             let trailing = index == steps.count - 1 && step.outputs == nil
             let generated = records[step.generated]
             let answer = generated.compactMap(\.response).joined().trimmingCharacters(in: .whitespacesAndNewlines)
@@ -65,11 +76,12 @@ extension ConversationEntry {
                 partial = answer
                 shown.removeAll { $0.kind == .answer }
             }
-            let line = turn.steps.first { $0.step == index + 1 }?.line
+            let line = turn.steps.first { $0.step == turn.offset + index + 1 }?.line
             if trailing, answered, answer.isEmpty {
                 shown.append(
                     ConversationEntry(
-                        id: "answer-\(number)", kind: .answer, title: "Assistant", text: noAnswerText, stats: line))
+                        id: "answer-\(number)", kind: .answer, title: "Assistant", text: noAnswerText, stats: line,
+                        detail: .noAnswer))
             } else if !shown.isEmpty {
                 shown[shown.count - 1].stats = line
             }
@@ -78,26 +90,37 @@ extension ConversationEntry {
         }
         if cut {
             let range = min(turn.start + 1, end)..<end
-            let limit = steps.indices.contains(policy.maxSteps - 1) ? steps[policy.maxSteps - 1] : nil
+            let limit = steps.indices.contains(allowed - 1) ? steps[allowed - 1] : nil
+            let summary = limitSummary(records, turn: range, last: limit)
+            let detail = Detail.stepLimit(
+                steps: policy.maxSteps, fetched: summary.fetched, saved: summary.saved, open: summary.open)
             out.append(
                 ConversationEntry(
-                    id: "limit-\(number)", kind: .failure, title: limitTitle,
-                    text: limitSummary(records, turn: range, last: limit, steps: policy.maxSteps)))
+                    id: "limit-\(number)", kind: .failure, title: limitTitle, text: limitText(detail), detail: detail))
         } else if turn.finish == .stopped {
-            let text = partial.flatMap { $0.isEmpty ? nil : $0 } ?? "(stopped before any answer)"
-            out.append(ConversationEntry(id: "stopped-\(number)", kind: .failure, title: "Stopped", text: text))
+            let answer = partial.flatMap { $0.isEmpty ? nil : $0 }
+            out.append(
+                ConversationEntry(
+                    id: "stopped-\(number)", kind: .failure, title: "Stopped",
+                    text: answer ?? "(stopped before any answer)", detail: .stopped(partial: answer != nil)))
         }
         if let failure = turn.failure {
             out.append(
-                ConversationEntry(id: "failed-\(number)", kind: .failure, title: "Generation failed", text: failure))
+                ConversationEntry(
+                    id: "failed-\(number)", kind: .failure, title: "Generation failed", text: failure,
+                    detail: .failure))
         }
         if answered, turn.finish == .cap {
             out.append(
                 ConversationEntry(
                     id: "cap-\(number)", kind: .failure, title: "Answer cut at the token limit (\(policy.maxTokens))",
                     text:
-                        "The answer above stops where generation ran out of tokens. Raise Max tokens or ask for something shorter."
-                ))
+                        "The answer above stops where generation ran out of tokens. Raise Max tokens or ask for something shorter.",
+                    detail: .tokenLimit(policy.maxTokens)))
+        }
+        out += turn.notes.enumerated().map { index, note in
+            ConversationEntry(
+                id: "note-\(number)-\(index)", kind: .note, title: note.title, text: note.text, warning: note.warning)
         }
         if policy.collapsesSteps {
             for index in out.indices where [.thinking, .toolCall, .toolResult].contains(out[index].kind) {
@@ -131,26 +154,34 @@ extension ConversationEntry {
     }
 
     private static func limitSummary(
-        _ records: [TranscriptRecord.Entry], turn range: Range<Int>, last step: TranscriptStep?, steps limit: Int
-    ) -> String {
+        _ records: [TranscriptRecord.Entry], turn range: Range<Int>, last step: TranscriptStep?
+    ) -> (fetched: [String], saved: [String], open: [String]) {
         var outputs: [String: String] = [:]
         for case .toolOutput(let id, _, let text) in records[range] { outputs[id] = text }
         func done(_ call: ToolCallRecord) -> Bool {
             outputs[call.id].map { !$0.hasPrefix("error:") } ?? false
         }
-        func list(_ items: [String]) -> String {
+        func unique(_ items: [String]) -> [String] {
             var seen = Set<String>()
-            let unique = items.filter { seen.insert($0).inserted }
-            return unique.isEmpty ? "none" : unique.joined(separator: ", ")
+            return items.filter { seen.insert($0).inserted }
         }
         let finished = records[range].flatMap(\.calls).filter(done)
         let open = step.map { records[$0.generated].flatMap(\.calls).filter { !done($0) } } ?? []
+        return (
+            unique(finished.filter { $0.name == "fetch_page" }.compactMap { $0.value("url") }),
+            unique(finished.filter { $0.name == "write_note" }.compactMap { $0.value("title") }),
+            unique(open.map { ([$0.name] + $0.argumentLines.prefix(1).map(\.value)).joined(separator: " ") })
+        )
+    }
+
+    private static func limitText(_ detail: Detail) -> String {
+        guard case .stepLimit(let steps, let fetched, let saved, let open) = detail else { return "" }
+        func list(_ items: [String]) -> String { items.isEmpty ? "none" : items.joined(separator: ", ") }
         return [
-            "The turn reached its \(limit)-step limit before a final answer.",
-            "Fetched: " + list(finished.filter { $0.name == "fetch_page" }.compactMap { $0.value("url") }),
-            "Saved notes: " + list(finished.filter { $0.name == "write_note" }.compactMap { $0.value("title") }),
-            "Still open: "
-                + list(open.map { ([$0.name] + $0.argumentLines.prefix(1).map(\.value)).joined(separator: " ") }),
+            "The turn reached its \(steps)-step limit before a final answer.",
+            "Fetched: " + list(fetched),
+            "Saved notes: " + list(saved),
+            "Still open: " + list(open),
         ].joined(separator: "\n")
     }
 

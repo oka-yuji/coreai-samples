@@ -4,7 +4,7 @@ The user's 2026-10-09 feedback requests a consistent EN/JP control, String Catal
 
 ## Scope and contracts
 
-- Mac Chat, Agent, Decide, Recipes, Extract, Models and the sidebar share one trailing toolbar language control. The preference is persisted. Selecting a language updates presentation without rebuilding Stores or re-running inference.
+- Mac Chat (Chat and Work), Decide, Recipes, Extract, Models and the sidebar share one trailing toolbar language control. The preference is persisted. Selecting a language updates presentation without rebuilding Stores or re-running inference.
 - English remains the code and protocol language. Japanese translations live in String Catalog resources. The previous English-only UI convention is superseded by the user's explicit request.
 - The app's Localizable catalog holds controls, statuses and explanations. The Ingredients catalog holds known ingredient display names, preserving distinctions such as chicken versus chicken thigh. Unknown labels fall back to their original spelling.
 - Recipe source text, documents, chat/agent responses, filenames and identifiers remain original data. Unrecognized runtime messages are identified as original details. Localization does not rewrite the recipe, prompts, options or confirmed inventory.
@@ -50,3 +50,5 @@ The same Store/Runner/Service five-example scenario and changed-toaster result n
 The following paragraph described the earlier verification boundary before the downloaded-copy execution. It is retained as history and does not describe the current start status:
 
 > Live-model diagnostics, loaded/loading/retry/cancellation GUI and retention of an actual photo/report are not claimed as verified on this version. Automatic approval review rejected quitting the user's original app because it contains unsaved inventory/photo state. The user was asked whether it may close with the recorded entries restored; no response has been received. No simultaneous model/GPU job was started. User manual acceptance remains pending; the feature cycle is not complete, merged or released.
+
+[Issue 78](https://github.com/oka-yuji/coreai-samples/issues/78) merges the Agent screen into Chat as its Work mode. The conversation screen, its settings and its notices use the same language control and catalog. `--gui-e2e --conversation` passed 9/9 in Japanese and in English (`-demoInterfaceLanguage en`) on the 0.8B bundle; the canonical record is the private lab's `2026-10-13-coreai-chat-work-unification`.

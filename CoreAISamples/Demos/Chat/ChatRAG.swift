@@ -20,7 +20,7 @@ struct RAGSettings: Sendable {
     @MainActor
     static func fromDefaults() -> RAGSettings {
         var settings = RAGSettings()
-        settings.braveAPIKey = UserDefaults.standard.string(forKey: AgentViewModel.braveKeyDefaultsKey) ?? ""
+        settings.braveAPIKey = UserDefaults.standard.string(forKey: ConversationPreferences.braveKeyKey) ?? ""
         if let path = LaunchArguments.value("--rag-docs") {
             settings.documentsDirectory = URL(filePath: path, directoryHint: .isDirectory)
         }
