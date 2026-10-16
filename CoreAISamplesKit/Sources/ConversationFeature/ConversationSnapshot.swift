@@ -47,7 +47,11 @@ public struct ConversationSnapshot: Codable, Equatable, Sendable {
     }
 
     public func markdown() -> String {
-        func fence(_ text: String) -> String { "````\n\(text)\n````" }
+        func fence(_ text: String) -> String {
+            let longestRun = text.split(whereSeparator: { $0 != "`" }).map(\.count).max() ?? 0
+            let delimiter = String(repeating: "`", count: max(4, longestRun + 1))
+            return "\(delimiter)\n\(text)\n\(delimiter)"
+        }
         var lines = [
             "# Conversation",
             "",
