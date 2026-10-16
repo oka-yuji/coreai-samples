@@ -8,6 +8,7 @@
   ```sh
   swiftlint lint --config .swiftlint.yml --baseline .swiftlint-baseline.json --strict --no-cache
   python3 Tools/Format/check_format.py --base origin/main
+  ./Tools/Irodori/build-inputs.sh
   swift test --package-path CoreAISamplesKit
   xcodebuild -project CoreAISamples.xcodeproj -scheme CoreAISamples -configuration Release -destination 'platform=macOS' build
   ```
@@ -63,3 +64,9 @@
 - GLiNERの任意fixture試験は `GLINER_FIXTURES_DIR` で参照データの場所を指定できる。既定は `~/Library/Caches/coreai-samples/reference/models/coreai/gliner`。以前のラボを自動検索しない。fixture内の相対パスで参照する `reference/docs/results/` の構造も保つ。
 - 公開用の数値記録は `python3 -m Tools.Conversion.summary <report.json>` で抽出し、公開前に内容を確認する。生のreport・manifest・process.logには環境変数・コマンド・入力本文が入り得るため、そのままコミットしない。
 - 変換コードを変更した場合は専用環境で `python -m unittest discover -s Tools/Conversion/tests -v` も実行する。NumPy未導入でスキップされた数値試験を合格として扱わない。
+
+## Irodori runtime
+
+- The Mac speech runtime uses the pinned Rust input adapter in `Vendor/IrodoriInputKit`. Build it with `Tools/Irodori/build-inputs.sh` before package tests. These operations do not execute Core AI models.
+- `SpeechCore` is a pure-logic target. `SpeechRuntime` owns a single in-flight operation and holds its busy gate across suspension. A release waits for that operation to finish; it does not clear a newer pipeline after resuming.
+- Test display names and source follow the existing English-only/no-comments rules. Model generation and listening in the app are user acceptance checks for this change.

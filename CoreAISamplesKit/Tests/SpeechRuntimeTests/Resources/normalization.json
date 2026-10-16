@@ -1,0 +1,1134 @@
+[
+  {
+    "input": "♥️",
+    "output": "♡️"
+  },
+  {
+    "input": "●️",
+    "output": "○️"
+  },
+  {
+    "input": "[n]́",
+    "output": "́"
+  },
+  {
+    "input": "…́",
+    "output": "…́"
+  },
+  {
+    "input": "～️",
+    "output": "ー️"
+  },
+  {
+    "input": "𜳖",
+    "output": "𜳖"
+  },
+  {
+    "input": "これは♥️です。",
+    "output": "これは♡️です。"
+  },
+  {
+    "input": "\t",
+    "output": ""
+  },
+  {
+    "input": "前\t後",
+    "output": "前後"
+  },
+  {
+    "input": "「\t」",
+    "output": ""
+  },
+  {
+    "input": "\t́",
+    "output": "́"
+  },
+  {
+    "input": "前\t́後",
+    "output": "前́後"
+  },
+  {
+    "input": "「\t́」",
+    "output": "́"
+  },
+  {
+    "input": "\t️",
+    "output": "️"
+  },
+  {
+    "input": "前\t️後",
+    "output": "前️後"
+  },
+  {
+    "input": "「\t️」",
+    "output": "️"
+  },
+  {
+    "input": "\ţ̈",
+    "output": "̧̈"
+  },
+  {
+    "input": "前\ţ̈後",
+    "output": "前̧̈後"
+  },
+  {
+    "input": "「\ţ̈」",
+    "output": "̧̈"
+  },
+  {
+    "input": "[n]",
+    "output": ""
+  },
+  {
+    "input": "前[n]後",
+    "output": "前後"
+  },
+  {
+    "input": "「[n]」",
+    "output": ""
+  },
+  {
+    "input": "前[n]́後",
+    "output": "前́後"
+  },
+  {
+    "input": "「[n]́」",
+    "output": "́"
+  },
+  {
+    "input": "[n]️",
+    "output": "️"
+  },
+  {
+    "input": "前[n]️後",
+    "output": "前️後"
+  },
+  {
+    "input": "「[n]️」",
+    "output": "️"
+  },
+  {
+    "input": "[n]̧̈",
+    "output": "̧̈"
+  },
+  {
+    "input": "前[n]̧̈後",
+    "output": "前̧̈後"
+  },
+  {
+    "input": "「[n]̧̈」",
+    "output": "̧̈"
+  },
+  {
+    "input": "\\[n\\]",
+    "output": ""
+  },
+  {
+    "input": "前\\[n\\]後",
+    "output": "前後"
+  },
+  {
+    "input": "「\\[n\\]」",
+    "output": ""
+  },
+  {
+    "input": "\\[n\\]́",
+    "output": "́"
+  },
+  {
+    "input": "前\\[n\\]́後",
+    "output": "前́後"
+  },
+  {
+    "input": "「\\[n\\]́」",
+    "output": "́"
+  },
+  {
+    "input": "\\[n\\]️",
+    "output": "️"
+  },
+  {
+    "input": "前\\[n\\]️後",
+    "output": "前️後"
+  },
+  {
+    "input": "「\\[n\\]️」",
+    "output": "️"
+  },
+  {
+    "input": "\\[n\\]̧̈",
+    "output": "̧̈"
+  },
+  {
+    "input": "前\\[n\\]̧̈後",
+    "output": "前̧̈後"
+  },
+  {
+    "input": "「\\[n\\]̧̈」",
+    "output": "̧̈"
+  },
+  {
+    "input": "　",
+    "output": ""
+  },
+  {
+    "input": "前　後",
+    "output": "前後"
+  },
+  {
+    "input": "「　」",
+    "output": ""
+  },
+  {
+    "input": "　́",
+    "output": "́"
+  },
+  {
+    "input": "前　́後",
+    "output": "前́後"
+  },
+  {
+    "input": "「　́」",
+    "output": "́"
+  },
+  {
+    "input": "　️",
+    "output": "️"
+  },
+  {
+    "input": "前　️後",
+    "output": "前️後"
+  },
+  {
+    "input": "「　️」",
+    "output": "️"
+  },
+  {
+    "input": "　̧̈",
+    "output": "̧̈"
+  },
+  {
+    "input": "前　̧̈後",
+    "output": "前̧̈後"
+  },
+  {
+    "input": "「　̧̈」",
+    "output": "̧̈"
+  },
+  {
+    "input": "？",
+    "output": "?"
+  },
+  {
+    "input": "前？後",
+    "output": "前?後"
+  },
+  {
+    "input": "「？」",
+    "output": "?"
+  },
+  {
+    "input": "？́",
+    "output": "?́"
+  },
+  {
+    "input": "前？́後",
+    "output": "前?́後"
+  },
+  {
+    "input": "「？́」",
+    "output": "?́"
+  },
+  {
+    "input": "？️",
+    "output": "?️"
+  },
+  {
+    "input": "前？️後",
+    "output": "前?️後"
+  },
+  {
+    "input": "「？️」",
+    "output": "?️"
+  },
+  {
+    "input": "？̧̈",
+    "output": "?̧̈"
+  },
+  {
+    "input": "前？̧̈後",
+    "output": "前?̧̈後"
+  },
+  {
+    "input": "「？̧̈」",
+    "output": "?̧̈"
+  },
+  {
+    "input": "！",
+    "output": "!"
+  },
+  {
+    "input": "前！後",
+    "output": "前!後"
+  },
+  {
+    "input": "「！」",
+    "output": "!"
+  },
+  {
+    "input": "！́",
+    "output": "!́"
+  },
+  {
+    "input": "前！́後",
+    "output": "前!́後"
+  },
+  {
+    "input": "「！́」",
+    "output": "!́"
+  },
+  {
+    "input": "！️",
+    "output": "!️"
+  },
+  {
+    "input": "前！️後",
+    "output": "前!️後"
+  },
+  {
+    "input": "「！️」",
+    "output": "!️"
+  },
+  {
+    "input": "！̧̈",
+    "output": "!̧̈"
+  },
+  {
+    "input": "前！̧̈後",
+    "output": "前!̧̈後"
+  },
+  {
+    "input": "「！̧̈」",
+    "output": "!̧̈"
+  },
+  {
+    "input": "♥",
+    "output": "♡"
+  },
+  {
+    "input": "前♥後",
+    "output": "前♡後"
+  },
+  {
+    "input": "「♥」",
+    "output": "♡"
+  },
+  {
+    "input": "♥́",
+    "output": "♡́"
+  },
+  {
+    "input": "前♥́後",
+    "output": "前♡́後"
+  },
+  {
+    "input": "「♥́」",
+    "output": "♡́"
+  },
+  {
+    "input": "前♥️後",
+    "output": "前♡️後"
+  },
+  {
+    "input": "「♥️」",
+    "output": "♡️"
+  },
+  {
+    "input": "♥̧̈",
+    "output": "♡̧̈"
+  },
+  {
+    "input": "前♥̧̈後",
+    "output": "前♡̧̈後"
+  },
+  {
+    "input": "「♥̧̈」",
+    "output": "♡̧̈"
+  },
+  {
+    "input": "●",
+    "output": "○"
+  },
+  {
+    "input": "前●後",
+    "output": "前○後"
+  },
+  {
+    "input": "「●」",
+    "output": "○"
+  },
+  {
+    "input": "●́",
+    "output": "○́"
+  },
+  {
+    "input": "前●́後",
+    "output": "前○́後"
+  },
+  {
+    "input": "「●́」",
+    "output": "○́"
+  },
+  {
+    "input": "前●️後",
+    "output": "前○️後"
+  },
+  {
+    "input": "「●️」",
+    "output": "○️"
+  },
+  {
+    "input": "●̧̈",
+    "output": "○̧̈"
+  },
+  {
+    "input": "前●̧̈後",
+    "output": "前○̧̈後"
+  },
+  {
+    "input": "「●̧̈」",
+    "output": "○̧̈"
+  },
+  {
+    "input": "◯",
+    "output": "○"
+  },
+  {
+    "input": "前◯後",
+    "output": "前○後"
+  },
+  {
+    "input": "「◯」",
+    "output": "○"
+  },
+  {
+    "input": "◯́",
+    "output": "○́"
+  },
+  {
+    "input": "前◯́後",
+    "output": "前○́後"
+  },
+  {
+    "input": "「◯́」",
+    "output": "○́"
+  },
+  {
+    "input": "◯️",
+    "output": "○️"
+  },
+  {
+    "input": "前◯️後",
+    "output": "前○️後"
+  },
+  {
+    "input": "「◯️」",
+    "output": "○️"
+  },
+  {
+    "input": "◯̧̈",
+    "output": "○̧̈"
+  },
+  {
+    "input": "前◯̧̈後",
+    "output": "前○̧̈後"
+  },
+  {
+    "input": "「◯̧̈」",
+    "output": "○̧̈"
+  },
+  {
+    "input": "〇",
+    "output": "○"
+  },
+  {
+    "input": "前〇後",
+    "output": "前○後"
+  },
+  {
+    "input": "「〇」",
+    "output": "○"
+  },
+  {
+    "input": "〇́",
+    "output": "○́"
+  },
+  {
+    "input": "前〇́後",
+    "output": "前○́後"
+  },
+  {
+    "input": "「〇́」",
+    "output": "○́"
+  },
+  {
+    "input": "〇️",
+    "output": "○️"
+  },
+  {
+    "input": "前〇️後",
+    "output": "前○️後"
+  },
+  {
+    "input": "「〇️」",
+    "output": "○️"
+  },
+  {
+    "input": "〇̧̈",
+    "output": "○̧̈"
+  },
+  {
+    "input": "前〇̧̈後",
+    "output": "前○̧̈後"
+  },
+  {
+    "input": "「〇̧̈」",
+    "output": "○̧̈"
+  },
+  {
+    "input": "～",
+    "output": "ー"
+  },
+  {
+    "input": "前～後",
+    "output": "前ー後"
+  },
+  {
+    "input": "「～」",
+    "output": "ー"
+  },
+  {
+    "input": "～́",
+    "output": "ー́"
+  },
+  {
+    "input": "前～́後",
+    "output": "前ー́後"
+  },
+  {
+    "input": "「～́」",
+    "output": "ー́"
+  },
+  {
+    "input": "前～️後",
+    "output": "前ー️後"
+  },
+  {
+    "input": "「～️」",
+    "output": "ー️"
+  },
+  {
+    "input": "～̧̈",
+    "output": "ー̧̈"
+  },
+  {
+    "input": "前～̧̈後",
+    "output": "前ー̧̈後"
+  },
+  {
+    "input": "「～̧̈」",
+    "output": "ー̧̈"
+  },
+  {
+    "input": "〜",
+    "output": "ー"
+  },
+  {
+    "input": "前〜後",
+    "output": "前ー後"
+  },
+  {
+    "input": "「〜」",
+    "output": "ー"
+  },
+  {
+    "input": "〜́",
+    "output": "ー́"
+  },
+  {
+    "input": "前〜́後",
+    "output": "前ー́後"
+  },
+  {
+    "input": "「〜́」",
+    "output": "ー́"
+  },
+  {
+    "input": "〜️",
+    "output": "ー️"
+  },
+  {
+    "input": "前〜️後",
+    "output": "前ー️後"
+  },
+  {
+    "input": "「〜️」",
+    "output": "ー️"
+  },
+  {
+    "input": "〜̧̈",
+    "output": "ー̧̈"
+  },
+  {
+    "input": "前〜̧̈後",
+    "output": "前ー̧̈後"
+  },
+  {
+    "input": "「〜̧̈」",
+    "output": "ー̧̈"
+  },
+  {
+    "input": "…",
+    "output": "…"
+  },
+  {
+    "input": "前…後",
+    "output": "前…後"
+  },
+  {
+    "input": "「…」",
+    "output": "…"
+  },
+  {
+    "input": "前…́後",
+    "output": "前…́後"
+  },
+  {
+    "input": "「…́」",
+    "output": "…́"
+  },
+  {
+    "input": "…️",
+    "output": "…️"
+  },
+  {
+    "input": "前…️後",
+    "output": "前…️後"
+  },
+  {
+    "input": "「…️」",
+    "output": "…️"
+  },
+  {
+    "input": "…̧̈",
+    "output": "…̧̈"
+  },
+  {
+    "input": "前…̧̈後",
+    "output": "前…̧̈後"
+  },
+  {
+    "input": "「…̧̈」",
+    "output": "…̧̈"
+  },
+  {
+    "input": "..",
+    "output": "…"
+  },
+  {
+    "input": "前..後",
+    "output": "前…後"
+  },
+  {
+    "input": "「..」",
+    "output": "…"
+  },
+  {
+    "input": "..́",
+    "output": "…́"
+  },
+  {
+    "input": "前..́後",
+    "output": "前…́後"
+  },
+  {
+    "input": "「..́」",
+    "output": "…́"
+  },
+  {
+    "input": "..️",
+    "output": "…️"
+  },
+  {
+    "input": "前..️後",
+    "output": "前…️後"
+  },
+  {
+    "input": "「..️」",
+    "output": "…️"
+  },
+  {
+    "input": "..̧̈",
+    "output": "…̧̈"
+  },
+  {
+    "input": "前..̧̈後",
+    "output": "前…̧̈後"
+  },
+  {
+    "input": "「..̧̈」",
+    "output": "…̧̈"
+  },
+  {
+    "input": "...",
+    "output": "…"
+  },
+  {
+    "input": "前...後",
+    "output": "前…後"
+  },
+  {
+    "input": "「...」",
+    "output": "…"
+  },
+  {
+    "input": "...́",
+    "output": "…́"
+  },
+  {
+    "input": "前...́後",
+    "output": "前…́後"
+  },
+  {
+    "input": "「...́」",
+    "output": "…́"
+  },
+  {
+    "input": "...️",
+    "output": "…️"
+  },
+  {
+    "input": "前...️後",
+    "output": "前…️後"
+  },
+  {
+    "input": "「...️」",
+    "output": "…️"
+  },
+  {
+    "input": "...̧̈",
+    "output": "…̧̈"
+  },
+  {
+    "input": "前...̧̈後",
+    "output": "前…̧̈後"
+  },
+  {
+    "input": "「...̧̈」",
+    "output": "…̧̈"
+  },
+  {
+    "input": "……",
+    "output": "……"
+  },
+  {
+    "input": "前……後",
+    "output": "前……後"
+  },
+  {
+    "input": "「……」",
+    "output": "……"
+  },
+  {
+    "input": "……́",
+    "output": "……́"
+  },
+  {
+    "input": "前……́後",
+    "output": "前……́後"
+  },
+  {
+    "input": "「……́」",
+    "output": "……́"
+  },
+  {
+    "input": "……️",
+    "output": "……️"
+  },
+  {
+    "input": "前……️後",
+    "output": "前……️後"
+  },
+  {
+    "input": "「……️」",
+    "output": "……️"
+  },
+  {
+    "input": "……̧̈",
+    "output": "……̧̈"
+  },
+  {
+    "input": "前……̧̈後",
+    "output": "前……̧̈後"
+  },
+  {
+    "input": "「……̧̈」",
+    "output": "……̧̈"
+  },
+  {
+    "input": "………",
+    "output": "……"
+  },
+  {
+    "input": "前………後",
+    "output": "前……後"
+  },
+  {
+    "input": "「………」",
+    "output": "……"
+  },
+  {
+    "input": "………́",
+    "output": "……́"
+  },
+  {
+    "input": "前………́後",
+    "output": "前……́後"
+  },
+  {
+    "input": "「………́」",
+    "output": "……́"
+  },
+  {
+    "input": "………️",
+    "output": "……️"
+  },
+  {
+    "input": "前………️後",
+    "output": "前……️後"
+  },
+  {
+    "input": "「………️」",
+    "output": "……️"
+  },
+  {
+    "input": "………̧̈",
+    "output": "……̧̈"
+  },
+  {
+    "input": "前………̧̈後",
+    "output": "前……̧̈後"
+  },
+  {
+    "input": "「………̧̈」",
+    "output": "……̧̈"
+  },
+  {
+    "input": "①",
+    "output": ""
+  },
+  {
+    "input": "前①後",
+    "output": "前後"
+  },
+  {
+    "input": "「①」",
+    "output": ""
+  },
+  {
+    "input": "①́",
+    "output": "́"
+  },
+  {
+    "input": "前①́後",
+    "output": "前́後"
+  },
+  {
+    "input": "「①́」",
+    "output": "́"
+  },
+  {
+    "input": "①️",
+    "output": "️"
+  },
+  {
+    "input": "前①️後",
+    "output": "前️後"
+  },
+  {
+    "input": "「①️」",
+    "output": "️"
+  },
+  {
+    "input": "①̧̈",
+    "output": "̧̈"
+  },
+  {
+    "input": "前①̧̈後",
+    "output": "前̧̈後"
+  },
+  {
+    "input": "「①̧̈」",
+    "output": "̧̈"
+  },
+  {
+    "input": "−",
+    "output": ""
+  },
+  {
+    "input": "前−後",
+    "output": "前後"
+  },
+  {
+    "input": "「−」",
+    "output": ""
+  },
+  {
+    "input": "−́",
+    "output": "́"
+  },
+  {
+    "input": "前−́後",
+    "output": "前́後"
+  },
+  {
+    "input": "「−́」",
+    "output": "́"
+  },
+  {
+    "input": "−️",
+    "output": "️"
+  },
+  {
+    "input": "前−️後",
+    "output": "前️後"
+  },
+  {
+    "input": "「−️」",
+    "output": "️"
+  },
+  {
+    "input": "−̧̈",
+    "output": "̧̈"
+  },
+  {
+    "input": "前−̧̈後",
+    "output": "前̧̈後"
+  },
+  {
+    "input": "「−̧̈」",
+    "output": "̧̈"
+  },
+  {
+    "input": "é",
+    "output": "é"
+  },
+  {
+    "input": "前é後",
+    "output": "前é後"
+  },
+  {
+    "input": "「é」",
+    "output": "é"
+  },
+  {
+    "input": "é́",
+    "output": "é́"
+  },
+  {
+    "input": "前é́後",
+    "output": "前é́後"
+  },
+  {
+    "input": "「é́」",
+    "output": "é́"
+  },
+  {
+    "input": "é️",
+    "output": "é️"
+  },
+  {
+    "input": "前é️後",
+    "output": "前é️後"
+  },
+  {
+    "input": "「é️」",
+    "output": "é️"
+  },
+  {
+    "input": "ȩ́̈",
+    "output": "ȩ́̈"
+  },
+  {
+    "input": "前ȩ́̈後",
+    "output": "前ȩ́̈後"
+  },
+  {
+    "input": "「ȩ́̈」",
+    "output": "ȩ́̈"
+  },
+  {
+    "input": "é",
+    "output": "é"
+  },
+  {
+    "input": "前é後",
+    "output": "前é後"
+  },
+  {
+    "input": "「é」",
+    "output": "é"
+  },
+  {
+    "input": "é́",
+    "output": "é́"
+  },
+  {
+    "input": "前é́後",
+    "output": "前é́後"
+  },
+  {
+    "input": "「é́」",
+    "output": "é́"
+  },
+  {
+    "input": "é️",
+    "output": "é️"
+  },
+  {
+    "input": "前é️後",
+    "output": "前é️後"
+  },
+  {
+    "input": "「é️」",
+    "output": "é️"
+  },
+  {
+    "input": "ȩ́̈",
+    "output": "ȩ́̈"
+  },
+  {
+    "input": "前ȩ́̈後",
+    "output": "前ȩ́̈後"
+  },
+  {
+    "input": "「ȩ́̈」",
+    "output": "ȩ́̈"
+  },
+  {
+    "input": "가",
+    "output": "가"
+  },
+  {
+    "input": "前가後",
+    "output": "前가後"
+  },
+  {
+    "input": "「가」",
+    "output": "가"
+  },
+  {
+    "input": "가́",
+    "output": "가́"
+  },
+  {
+    "input": "前가́後",
+    "output": "前가́後"
+  },
+  {
+    "input": "「가́」",
+    "output": "가́"
+  },
+  {
+    "input": "가️",
+    "output": "가️"
+  },
+  {
+    "input": "前가️後",
+    "output": "前가️後"
+  },
+  {
+    "input": "「가️」",
+    "output": "가️"
+  },
+  {
+    "input": "가̧̈",
+    "output": "가̧̈"
+  },
+  {
+    "input": "前가̧̈後",
+    "output": "前가̧̈後"
+  },
+  {
+    "input": "「가̧̈」",
+    "output": "가̧̈"
+  },
+  {
+    "input": "가",
+    "output": "가"
+  },
+  {
+    "input": "前가後",
+    "output": "前가後"
+  },
+  {
+    "input": "「가」",
+    "output": "가"
+  },
+  {
+    "input": "가́",
+    "output": "가́"
+  },
+  {
+    "input": "前가́後",
+    "output": "前가́後"
+  },
+  {
+    "input": "「가́」",
+    "output": "가́"
+  },
+  {
+    "input": "가️",
+    "output": "가️"
+  },
+  {
+    "input": "前가️後",
+    "output": "前가️後"
+  },
+  {
+    "input": "「가️」",
+    "output": "가️"
+  },
+  {
+    "input": "가̧̈",
+    "output": "가̧̈"
+  },
+  {
+    "input": "前가̧̈後",
+    "output": "前가̧̈後"
+  },
+  {
+    "input": "「가̧̈」",
+    "output": "가̧̈"
+  },
+  {
+    "input": "𜳠",
+    "output": "𜳠"
+  },
+  {
+    "input": "𞀰",
+    "output": "а"
+  },
+  {
+    "input": "𞀱",
+    "output": "б"
+  },
+  {
+    "input": "𞂏",
+    "output": "𞂏"
+  },
+  {
+    "input": "􏿿",
+    "output": "􏿿"
+  }
+]

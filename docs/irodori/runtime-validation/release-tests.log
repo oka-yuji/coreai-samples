@@ -1,0 +1,57 @@
+Building for production...
+[0/14] /tmp/irodori-app91-cpu-review/build-native/arm64-apple-macosx/release/SpeechReviewPackageTests.derived/runner.swift
+[1/14] Copying irodori-assets.json
+[1/14] Write sources
+[9/14] Copying Resources
+[10/14] Compiling CTokenizers shim.c
+[11/14] Write swift-version--58304C5D6DBC2206.txt
+[13/16] Compiling IrodoriInputLogic IrodoriInputError.swift
+[14/17] Compiling SpeechCore AudioContract.swift
+[15/18] Compiling IrodoriTokenizers IrodoriText.swift
+[16/19] Compiling SpeechRuntime IrodoriPipeline.swift
+[17/20] Compiling SpeechCoreTests AudioContractTests.swift
+[18/20] Compiling SpeechRuntimeTests InputContractTests.swift
+[19/21] Compiling SpeechReviewPackageTests runner.swift
+[19/21] Write Objects.LinkFileList
+[20/21] Linking SpeechReviewPackageTests
+Build complete! (6.60s)
+warning: '--build-system native' has been deprecated and will be removed in a future release; please report an issue at https://github.com/swiftlang/swift-package-manager/issues if you are unable to adopt the default build system.
+Test Suite 'All tests' started at 2026-10-13 11:06:50.759.
+Test Suite 'All tests' passed at 2026-10-13 11:06:50.760.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Test "Noise and token layout retain the verified input contract" started.
+􀟈  Test "Unsupported bundle metadata and changed files are rejected" started.
+􀟈  Test "Pinned normalization matches the Unicode reference corpus" started.
+􀟈  Suite IrodoriRuntimeTests started.
+􀟈  Test "Float WAV preserves the sample bits and format fields" started.
+􀟈  Test "The frame policy handles periodic and shape changes" started.
+􀟈  Suite ReviewAdditionalTests started.
+􀟈  Test "All pinned noise shapes and seeds match the CPU reference" started.
+􀟈  Test "A nonfinite PCM result is rejected and does not poison the next generation" started.
+􀟈  Test "A preparation failure releases its pipeline and a later generation succeeds" started.
+􀟈  Test "Repeated generation reuses models and shape changes release the old context first" started.
+􀟈  Test "The sixty-first completed request reloads every model" started.
+􀟈  Test "A failed generation drops the models and a later request can recover" started.
+􀟈  Test "Release waits during a cancelled pipeline factory and the next request recovers" started.
+􀟈  Test "Opening a model performs no inference and invalid text never loads a pipeline" started.
+􀟈  Test "Cancellation keeps release waiting for an uncooperative operation to finish" started.
+􁁛  Test "Noise and token layout retain the verified input contract" passed after 0.001 seconds.
+􁁛  Test "The frame policy handles periodic and shape changes" passed after 0.001 seconds.
+􁁛  Test "Float WAV preserves the sample bits and format fields" passed after 0.001 seconds.
+􁁛  Test "Opening a model performs no inference and invalid text never loads a pipeline" passed after 0.001 seconds.
+􁁛  Test "A nonfinite PCM result is rejected and does not poison the next generation" passed after 0.001 seconds.
+􁁛  Test "A failed generation drops the models and a later request can recover" passed after 0.001 seconds.
+􁁛  Test "Release waits during a cancelled pipeline factory and the next request recovers" passed after 0.001 seconds.
+􁁛  Test "Repeated generation reuses models and shape changes release the old context first" passed after 0.001 seconds.
+􁁛  Test "A preparation failure releases its pipeline and a later generation succeeds" passed after 0.002 seconds.
+􁁛  Suite ReviewAdditionalTests passed after 0.002 seconds.
+􁁛  Test "Cancellation keeps release waiting for an uncooperative operation to finish" passed after 0.002 seconds.
+􁁛  Test "Unsupported bundle metadata and changed files are rejected" passed after 0.006 seconds.
+􁁛  Test "Pinned normalization matches the Unicode reference corpus" passed after 0.008 seconds.
+􁁛  Test "All pinned noise shapes and seeds match the CPU reference" passed after 0.009 seconds.
+􁁛  Test "The sixty-first completed request reloads every model" passed after 0.019 seconds.
+􁁛  Suite IrodoriRuntimeTests passed after 0.019 seconds.
+􁁛  Test run with 14 tests in 2 suites passed after 0.019 seconds.
