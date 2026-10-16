@@ -157,9 +157,11 @@ enum AgentSelfTest {
     }
 
     @MainActor
-    private static func applyM4GOptions(to preferences: ConversationPreferences) throws -> String? {
+    private static func applyM4GOptions(
+        to preferences: ConversationPreferences, arguments: [String] = CommandLine.arguments
+    ) throws -> String? {
         func choice(_ name: String, _ allowed: [String]) throws -> String? {
-            guard let value = LaunchArguments.value(name) else { return nil }
+            guard let value = LaunchArguments.value(name, in: arguments) else { return nil }
             guard allowed.contains(value) else {
                 throw AgentToolMessage(text: "\(name) must be \(allowed.joined(separator: "|")), not '\(value)'")
             }
@@ -178,7 +180,7 @@ enum AgentSelfTest {
             preferences.sourcesRequired = value == "auto" ? nil : value == "yes"
             given.append("sourcesRequired=\(value)")
         }
-        if let value = LaunchArguments.value("--date") {
+        if let value = LaunchArguments.value("--date", in: arguments) {
             guard AgentPromptBuilder.isDateLabel(value) else {
                 throw AgentToolMessage(
                     text:
@@ -188,14 +190,14 @@ enum AgentSelfTest {
             preferences.fixedDate = value
             given.append("date=\(value)")
         }
-        if LaunchArguments.flag("--stable-note-paths") {
+        if LaunchArguments.flag("--stable-note-paths", in: arguments) {
             preferences.stableNotePaths = true
             given.append("stableNotePaths=true")
         }
         let latency = try choice("--cassette-latency", ["replay", "none"])
         let mode = try choice("--cassette-mode", ToolCassette.Mode.allCases.map(\.rawValue)).flatMap(
             ToolCassette.Mode.init(rawValue:))
-        let path = LaunchArguments.value("--tool-cassette")
+        let path = LaunchArguments.value("--tool-cassette", in: arguments)
         if path != nil || mode != nil {
             guard let path, let mode else {
                 throw AgentToolMessage(
@@ -1075,12 +1077,40 @@ enum AgentSelfTest {
         let defaultsName = "agent-defaults-" + UUID().uuidString
         if let defaults = UserDefaults(suiteName: defaultsName) {
             defer { defaults.removePersistentDomain(forName: defaultsName) }
+            var flagMismatches: [String] = []
+            func checkFlags(over saved: Bool?) {
+                for value in ["on", "off"] {
+                    let agent = ConversationPreferences(defaults: defaults)
+                    agent.persists = false
+                    _ = try? applyM4GOptions(to: agent, arguments: ["--citation-guard", value])
+                    let stored = defaults.object(forKey: ConversationPreferences.citationGuardKey) as? Bool
+                    if agent.citationGuard != (value == "on") || stored != saved {
+                        flagMismatches.append(
+                            "\(value) over \(saved.map { "saved \($0)" } ?? "no setting"): "
+                                + "guard \(agent.citationGuard), stored \(stored.map { "\($0)" } ?? "nil")")
+                    }
+                }
+            }
             let fresh = ConversationPreferences(defaults: defaults)
-            check("m4h/defaultInstructionsAndGuard", fresh.citeFetched && fresh.citationGuard, "fresh settings")
+            check(
+                "m4h/defaultInstructionsAndGuard",
+                fresh.citeFetched && !fresh.citationGuard
+                    && defaults.object(forKey: ConversationPreferences.citationGuardKey) == nil,
+                "fresh settings: citeFetched=\(fresh.citeFetched) citationGuard=\(fresh.citationGuard)")
+            checkFlags(over: nil)
+            fresh.citationGuard = true
+            let savedOn = ConversationPreferences(defaults: defaults).citationGuard
+            checkFlags(over: true)
             fresh.citeFetched = false
             fresh.citationGuard = false
             let saved = ConversationPreferences(defaults: defaults)
-            check("m4h/savedInstructionsAndGuard", !saved.citeFetched && !saved.citationGuard, "saved false values")
+            checkFlags(over: false)
+            check(
+                "m4h/savedInstructionsAndGuard", savedOn && !saved.citeFetched && !saved.citationGuard,
+                "saved on read back as \(savedOn), then saved off")
+            check(
+                "e2e/citationGuardFlagOverridesSettings", flagMismatches.isEmpty,
+                flagMismatches.joined(separator: "; "))
         } else {
             check("m4h/defaultInstructionsAndGuard", false, "could not create isolated defaults")
         }
@@ -1105,7 +1135,7 @@ enum AgentSelfTest {
             let reset =
                 !headless.persists && headless.maxSteps == 8 && headless.maxTokens == nil
                 && headless.pageBudget == 10_000 && headless.braveAPIKey.isEmpty && !headless.fileOperations
-                && headless.notesFolderPath.isEmpty && headless.citationGuard && headless.citeFetched
+                && headless.notesFolderPath.isEmpty && !headless.citationGuard && headless.citeFetched
             let kept = values.allSatisfy { (stored.object(forKey: $0.key) as? NSObject)?.isEqual($0.value) == true }
             check(
                 "conversation/headlessDefaults", loaded && reset && kept,

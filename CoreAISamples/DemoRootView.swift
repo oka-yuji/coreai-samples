@@ -1,6 +1,7 @@
 import DecideFeature
 import ExtractFeature
 import FeatureStore
+import ImageSearchFeature
 import Observation
 import ProductFeature
 import RecipeFeature
@@ -10,6 +11,7 @@ enum Demo: String, CaseIterable, Identifiable {
     case chat
     case decide
     case recipes
+    case imageSearch
     case extract
     case models
 
@@ -20,6 +22,7 @@ enum Demo: String, CaseIterable, Identifiable {
         case .chat: "Chat"
         case .decide: "Decide"
         case .recipes: "Recipes"
+        case .imageSearch: "Image search"
         case .extract: "Extract"
         case .models: "Models"
         }
@@ -30,6 +33,7 @@ enum Demo: String, CaseIterable, Identifiable {
         case .chat: "Talk, search the web and run multi-step tasks on a local model"
         case .decide: "Check a document against an editable checklist"
         case .recipes: "Can you make this recipe with what you have?"
+        case .imageSearch: "Find selected images with your own words"
         case .extract: "Compare product specifications from official descriptions"
         case .models: "Get, open and prepare model bundles"
         }
@@ -40,6 +44,7 @@ enum Demo: String, CaseIterable, Identifiable {
         case .chat: "bubble.left.and.bubble.right"
         case .decide: "checklist"
         case .recipes: "carrot"
+        case .imageSearch: "photo.badge.magnifyingglass"
         case .extract: "text.magnifyingglass"
         case .models: "square.and.arrow.down"
         }
@@ -55,6 +60,7 @@ struct DemoRootView: View {
     @State private var decide = DecideAssembly.makeStore()
     @State private var recipes = RecipeAssembly.makeStore()
     @State private var products = ProductAssembly.makeStore()
+    @State private var imageSearch = ImageSearchAssembly.makeStore()
     @State private var showingExtractionLab = false
     @State private var extract = Store<ExtractFeature>(
         initialState: ExtractState(
@@ -95,6 +101,7 @@ struct DemoRootView: View {
             case .chat?: ConversationView()
             case .decide?: DecideView(store: decide)
             case .recipes?: RecipeView(store: recipes)
+            case .imageSearch?: ImageSearchView(store: imageSearch)
             case .extract?:
                 if LaunchArguments.value("--gui-e2e") != nil && LaunchArguments.value("--extract") != nil {
                     ExtractView(store: extract)

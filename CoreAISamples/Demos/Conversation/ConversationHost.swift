@@ -45,7 +45,7 @@ final class ConversationPreferences {
         braveAPIKey = defaults.string(forKey: Self.braveKeyKey) ?? ""
         fileOperations = defaults.bool(forKey: Self.fileOpsKey)
         notesFolderPath = defaults.string(forKey: Self.notesFolderKey) ?? ""
-        citationGuard = defaults.object(forKey: Self.citationGuardKey) as? Bool ?? true
+        citationGuard = defaults.object(forKey: Self.citationGuardKey) as? Bool ?? false
         citeFetched = defaults.object(forKey: Self.citeFetchedKey) as? Bool ?? true
     }
 
@@ -57,7 +57,7 @@ final class ConversationPreferences {
         braveAPIKey = ""
         fileOperations = false
         notesFolderPath = ""
-        citationGuard = true
+        citationGuard = false
         citeFetched = true
     }
 
@@ -178,6 +178,6 @@ final class ConversationHost {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.dateFormat = "yyyyMMdd-HHmmss"
-        return formatter.string(from: date)
+        return formatter.string(from: date) + "-" + UUID().uuidString.lowercased()
     }
 }

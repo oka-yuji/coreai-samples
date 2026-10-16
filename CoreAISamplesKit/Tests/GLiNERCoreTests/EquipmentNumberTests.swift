@@ -43,7 +43,7 @@ func keeps(_ example: EquipmentNumberExamples.Example, _ filter: CandidateFilter
 
 private let labDirectory = URL(
     filePath: ProcessInfo.processInfo.environment["GLINER_FIXTURES_DIR"]
-        ?? NSHomeDirectory() + "/Desktop/SelfApps/CoreLLM/models/coreai/gliner")
+        ?? NSHomeDirectory() + "/Library/Caches/coreai-samples/reference/models/coreai/gliner")
 private let labVariantsPath = "data/g9_variants.json"
 private let labNumeralsPath = "data/g6b_numerals.json"
 private let hasLabFiles = [labVariantsPath, labNumeralsPath].allSatisfy {

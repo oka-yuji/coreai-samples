@@ -151,8 +151,9 @@ final class ConversationSession {
             prompt(in: transcript).map {
                 converted.steps(from: $0 + 1).prefix { $0.outputs != nil }.count
             } ?? 0
+        let actions = progress(transcript)
         if !stopRequested, offset + done + 1 >= maxSteps { limitReached = true }
-        sink.yield(.actions([.transcriptChanged(run: run, converted), .toolRequested(run: run, record)]))
+        sink.yield(.actions(actions + [.toolRequested(run: run, record)]))
         return record
     }
 

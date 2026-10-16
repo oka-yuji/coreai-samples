@@ -3,5 +3,5 @@ import Observation
 @MainActor
 @Observable
 final class DemoNavigator {
-    var selection: Demo? = .chat
+    var selection: Demo? = CommandLine.arguments.contains("--image-search") ? .imageSearch : .chat
 }

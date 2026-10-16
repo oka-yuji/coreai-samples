@@ -24,6 +24,7 @@ enum DemoLocalizationCheck {
             keys += ["Kitchen equipment", "Open Clef-Flash bundle", "Change decision model"]
             keys += ["none", "Docs", "Thinking", "Thoughts", "Stopping…"]
             keys += ["Ended at the step limit", "Stopped", "Generation failed", "Where Work saves its notes"]
+            keys += Catalog.models.flatMap { [$0.memory, $0.platforms] }
             var failures: [String] = []
             for key in Set(keys).sorted() {
                 let translated = Bundle.main.localizedString(

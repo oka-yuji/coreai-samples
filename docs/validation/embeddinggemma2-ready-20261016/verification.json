@@ -1,0 +1,286 @@
+{
+  "mac": [
+    {
+      "cosine": 0.9999997632588569,
+      "id": "ja_tools",
+      "maxDifference": 8.869916e-05,
+      "passed": true
+    },
+    {
+      "cosine": 0.9999996638985409,
+      "id": "ja_food",
+      "maxDifference": 0.00018592179,
+      "passed": true
+    },
+    {
+      "cosine": 0.9999997021349755,
+      "id": "ja_eggs",
+      "maxDifference": 0.00021916628,
+      "passed": true
+    },
+    {
+      "cosine": 0.9999996713545108,
+      "id": "ja_negation",
+      "maxDifference": 0.00020897388,
+      "passed": true
+    },
+    {
+      "cosine": 0.9999997379921448,
+      "id": "ja_numbers",
+      "maxDifference": 0.00012923777,
+      "passed": true
+    },
+    {
+      "cosine": 0.9999997205823292,
+      "id": "en_tools",
+      "maxDifference": 0.00014211237,
+      "passed": true
+    },
+    {
+      "cosine": 0.999999761209333,
+      "id": "en_food",
+      "maxDifference": 0.00018340349,
+      "passed": true
+    },
+    {
+      "cosine": 0.9999995850266793,
+      "id": "en_unicode",
+      "maxDifference": 0.0001962781,
+      "passed": true
+    },
+    {
+      "cosine": 0.9999996841422772,
+      "id": "ja_document",
+      "maxDifference": 0.00015699863,
+      "passed": true
+    },
+    {
+      "cosine": 0.9999997317018692,
+      "id": "en_document",
+      "maxDifference": 0.00019690394,
+      "passed": true
+    },
+    {
+      "cosine": 0.9999998081323169,
+      "id": "ja_short",
+      "maxDifference": 9.700656e-05,
+      "passed": true
+    },
+    {
+      "cosine": 0.9999997038472695,
+      "id": "empty_content",
+      "maxDifference": 0.0002771318,
+      "passed": true
+    },
+    {
+      "cosine": 0.9998762985847329,
+      "id": "01-oyakodon",
+      "maxDifference": 0.0015888773,
+      "passed": true
+    },
+    {
+      "cosine": 0.9998684591060225,
+      "id": "02-ginger-pork",
+      "maxDifference": 0.0019283481,
+      "passed": true
+    },
+    {
+      "cosine": 0.9999827170411772,
+      "id": "03-omelette",
+      "maxDifference": 0.0007512644,
+      "passed": true
+    },
+    {
+      "cosine": 0.9999693715143785,
+      "id": "04-gratin",
+      "maxDifference": 0.0010769926,
+      "passed": true
+    },
+    {
+      "cosine": 0.9994835530134252,
+      "id": "05-caprese",
+      "maxDifference": 0.004896015,
+      "passed": true
+    },
+    {
+      "cosine": 0.999866114488607,
+      "id": "gradient_square",
+      "maxDifference": 0.0019464418,
+      "passed": true
+    },
+    {
+      "cosine": 0.9999782729324034,
+      "id": "gradient_wide",
+      "maxDifference": 0.0008552596,
+      "passed": true
+    },
+    {
+      "cosine": 0.9999678738051968,
+      "id": "gradient_tall",
+      "maxDifference": 0.00092200004,
+      "passed": true
+    }
+  ],
+  "macMaximumNormDeviation": 0.00041396462485832064,
+  "iphone": [
+    {
+      "cosine": 0.9999997292377845,
+      "id": "ja_tools",
+      "maxDifference": 0.00013423711,
+      "passed": true
+    },
+    {
+      "cosine": 0.9999996745820444,
+      "id": "ja_food",
+      "maxDifference": 0.00020310283,
+      "passed": true
+    },
+    {
+      "cosine": 0.9999998170490754,
+      "id": "ja_eggs",
+      "maxDifference": 0.00012780726,
+      "passed": true
+    },
+    {
+      "cosine": 0.999999554216493,
+      "id": "ja_negation",
+      "maxDifference": 0.00020897388,
+      "passed": true
+    },
+    {
+      "cosine": 0.99999973194007,
+      "id": "ja_numbers",
+      "maxDifference": 0.000172019,
+      "passed": true
+    },
+    {
+      "cosine": 0.9999997413477083,
+      "id": "en_tools",
+      "maxDifference": 0.00013151765,
+      "passed": true
+    },
+    {
+      "cosine": 0.9999996382271856,
+      "id": "en_food",
+      "maxDifference": 0.00018340349,
+      "passed": true
+    },
+    {
+      "cosine": 0.9999997171049065,
+      "id": "en_unicode",
+      "maxDifference": 0.0001962781,
+      "passed": true
+    },
+    {
+      "cosine": 0.9999996679687879,
+      "id": "ja_document",
+      "maxDifference": 0.00015699863,
+      "passed": true
+    },
+    {
+      "cosine": 0.9999996600994273,
+      "id": "en_document",
+      "maxDifference": 0.00019690394,
+      "passed": true
+    },
+    {
+      "cosine": 0.9999997892444272,
+      "id": "ja_short",
+      "maxDifference": 0.00017312169,
+      "passed": true
+    },
+    {
+      "cosine": 0.9999995826267715,
+      "id": "empty_content",
+      "maxDifference": 0.00023716688,
+      "passed": true
+    },
+    {
+      "cosine": 0.99988894112326,
+      "id": "01-oyakodon",
+      "maxDifference": 0.0017002895,
+      "passed": true
+    },
+    {
+      "cosine": 0.9999174138907546,
+      "id": "02-ginger-pork",
+      "maxDifference": 0.0014484487,
+      "passed": true
+    },
+    {
+      "cosine": 0.9999827748844962,
+      "id": "03-omelette",
+      "maxDifference": 0.0007512644,
+      "passed": true
+    },
+    {
+      "cosine": 0.9999430462476046,
+      "id": "04-gratin",
+      "maxDifference": 0.001588162,
+      "passed": true
+    },
+    {
+      "cosine": 0.999489424615147,
+      "id": "05-caprese",
+      "maxDifference": 0.0047892034,
+      "passed": true
+    },
+    {
+      "cosine": 0.9998467560681034,
+      "id": "gradient_square",
+      "maxDifference": 0.002007477,
+      "passed": true
+    },
+    {
+      "cosine": 0.9999771809156788,
+      "id": "gradient_wide",
+      "maxDifference": 0.00085585937,
+      "passed": true
+    },
+    {
+      "cosine": 0.9999644708617591,
+      "id": "gradient_tall",
+      "maxDifference": 0.0010298123,
+      "passed": true
+    }
+  ],
+  "iphoneMaximumNormDeviation": 0.00038892739661533504,
+  "bundleManifestSha256": "1a1122d998d8af9ce83c789771fe7f5f6946e181ca87572104d0a95892e65c04",
+  "bundleManifest": {
+    "format": 1,
+    "revision": "914f7f89142e33e77833254d9c9b90c3cef7303b",
+    "precision": "fp16-safe-s128-v70",
+    "files": {
+      "LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+      "MODEL_LICENSE.txt": "d0fa0ee7cc36c8418c95f92f1f1d4a5bbba43a69f0009bba0765b4544297d9f9",
+      "README.md": "b677a0ee2818c36f091b65fd3d9b4baea9f04d53b02b49cae916c74bf9682037",
+      "text.aimodel/main.hash": "733a0bebd7dea5501ae2c521dde8e47c448cbba80740dd2c60f452f157015ca1",
+      "text.aimodel/main.mlirb": "6c33980ae6f10887d10210d4b0f7a18804cdc18ea737e38de898ae7eafdc1a25",
+      "text.aimodel/metadata.json": "9688fbfe65a79b4992b2e98f70fc74150b836c012105fc906bad01e1636e7c07",
+      "token_embeddings.bf16": "56ebbdbfd706c827f3fae1d97aa39135c7ddc0f1e6d9b12f8565f84bbfbda877",
+      "tokenizer.json": "4d777ef5bdc1aa36227abdfb77c3e49e7b9c892d16e1b6bda41c393504828be4",
+      "tokenizer_config.json": "17bd5d6e9364ca49a534e1502076593317c298d4a663623091ed45388f004874",
+      "vision.aimodel/main.hash": "8569d81f837a44694b01fc6c57c4847e6a4c906ee041178d8a502735ed77252d",
+      "vision.aimodel/main.mlirb": "1840476dffb4aba3c53b7dde394ed314cf0d88d7d9e0f7e4eebfede90a046f87",
+      "vision.aimodel/metadata.json": "d033bac7a486e70dfe87029e295ec97e5e4278cfc5005ee533631cf73ee410c4"
+    }
+  },
+  "threshold": 0.67,
+  "sourceHashes": {
+    "CoreAISamples/Demos/ImageSearch/ImageSearchAssembly.swift": "a90b18d537f0f4f0ebd2a11944bad9892a91c5f522914a4a8d2d8c8a2e2e1a24",
+    "CoreAISamples/Demos/ImageSearch/ImageSearchSelfTest.swift": "325f472506d0b9a473c75cf0af6bfa189a320deee23e8c26db1bbe35f2cf263c",
+    "CoreAISamples/Demos/ImageSearch/ImageSearchVectorCheck.swift": "6d24d3c21828c9c2ac46ec9f5325c0707b8cbd123bec2c9e362ab52b68dfc631",
+    "CoreAISamples/Demos/ImageSearch/ImageSearchView.swift": "7a08387b505d26d40b1e4919b695a2d0cb89f6f61630a5dd365f51c58c1a22ed",
+    "CoreAISamplesKit/Sources/ImageSearchFeature/ImageSearchFeature.swift": "c9f5646db8ae98ff9a321e82390d4ebb358cc6a0104cf5ea37b2fa003ba09a2f",
+    "CoreAISamplesKit/Sources/ImageSearchRuntime/ImageSearchRunner.swift": "b922e4694fdb284a133efd377ee7f01e4f972bb3e126655798532733c6effecb",
+    "CoreAISamplesKit/Sources/ImageSearchRuntime/ImageSearchService.swift": "9a5607b1c599305e8a7a9447d75022853805f0bc46b318687097a726e446cf72",
+    "CoreAISamplesKit/Sources/EmbeddingRuntime/EmbeddingBundle.swift": "760a0b39506bd30a13d42796ef56a69f2662d946658679d7cc6ec410499f0d23",
+    "CoreAISamplesKit/Sources/EmbeddingRuntime/EmbeddingImageReader.swift": "35284a516aeb865d464a440ab9a2fa49f8c6861a83fb3dcb38a75e0272346076",
+    "CoreAISamplesKit/Sources/EmbeddingRuntime/EmbeddingModel.swift": "a3643d0850ff773f2507beb17df9ed50c4ba5e59e7bed1a5f2bf37bc2a71b200",
+    "CoreAISamplesKit/Sources/EmbeddingRuntime/EmbeddingTokenizer.swift": "80f60a78646b9058464b013e3e9849e4d0e84d0450c3779f6961dcfdc8683fcd",
+    "CoreAISamplesKit/Sources/EmbeddingCore/BicubicResize.swift": "817c19fd1b20e9ddf5fbd6547408d1466b5e10d3ffa807797cc08eca64168ab0",
+    "CoreAISamplesKit/Sources/EmbeddingCore/EmbeddingImage.swift": "bc422261943d21c1b7ce075a04844691997a431a9885397466a1d6f3c0cfb9c5",
+    "CoreAISamplesKit/Sources/EmbeddingCore/EmbeddingVector.swift": "2937ca69bfe6cc9eb93d7967a1f0bee76d31184d4d95e94a2756cd87e49a0ca2"
+  },
+  "scope": "Fixed numerical cases and sample gallery only; user touch acceptance pending."
+}

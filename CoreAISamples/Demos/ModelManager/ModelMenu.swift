@@ -6,11 +6,11 @@ struct ModelMenu: View {
     @Environment(ModelsViewModel.self) private var models
     @Environment(DemoNavigator.self) private var navigator
     @Environment(ConversationHost.self) private var host
+
     @State private var chosen: ModelsViewModel.MenuEntry?
 
     var body: some View {
         let entries = models.menuEntries(current: chat.phase == .ready ? chat.bundleURL : nil)
-        let name = chat.modelName.isEmpty ? Text("No model loaded") : Text(verbatim: chat.modelName)
         Menu {
             if entries.downloaded.isEmpty && entries.onThisMac.isEmpty {
                 Button("No models yet") {}
@@ -25,7 +25,7 @@ struct ModelMenu: View {
             Divider()
             Button("Manage Models…") { navigator.selection = .models }
         } label: {
-            name
+            modelLabel
                 .font(.headline)
                 .lineLimit(1)
                 .truncationMode(.middle)
@@ -33,7 +33,7 @@ struct ModelMenu: View {
         }
         .fixedSize()
         .accessibilityLabel("Model")
-        .accessibilityValue(name)
+        .accessibilityValue(modelLabel)
         .help("Choose the model the conversation uses")
         .disabled(
             Self.isDisabled(
@@ -45,9 +45,13 @@ struct ModelMenu: View {
         }
         .task(id: chosen?.id) {
             guard let entry = chosen else { return }
-            await Self.choose(entry, chat: chat, host: host)
+            await ModelSwitch.choose(entry.url, chat: chat, host: host)
             chosen = nil
         }
+    }
+
+    private var modelLabel: Text {
+        chat.modelName.isEmpty ? Text("No model loaded") : Text(verbatim: chat.modelName)
     }
 
     private func choices(_ entries: [ModelsViewModel.MenuEntry]) -> some View {
@@ -63,10 +67,23 @@ struct ModelMenu: View {
     static func isDisabled(loading: Bool, responding: Bool, busy: Bool, running: Bool) -> Bool {
         loading || responding || busy || running
     }
+}
 
-    static func choose(_ entry: ModelsViewModel.MenuEntry, chat: ChatViewModel, host: ConversationHost?) async {
-        guard !entry.isCurrent else { return }
-        host?.startNew()
-        await chat.load(entry.url)
+@MainActor
+enum ModelSwitch {
+    static func choose(_ url: URL, chat: ChatViewModel, host: ConversationHost) async -> Bool {
+        guard
+            !ModelMenu.isDisabled(
+                loading: chat.isLoading, responding: chat.isResponding, busy: chat.externallyBusy,
+                running: host.state.isRunning),
+            !isLoaded(url, phase: chat.phase, current: chat.bundleURL)
+        else { return false }
+        host.startNew()
+        await chat.load(url)
+        return true
+    }
+
+    static func isLoaded(_ url: URL, phase: ChatViewModel.Phase, current: URL?) -> Bool {
+        phase == .ready && current.map(ModelStorage.key) == ModelStorage.key(url)
     }
 }
