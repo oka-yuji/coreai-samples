@@ -3,6 +3,29 @@ import Foundation
 import Testing
 
 struct ConversationSnapshotTests {
+    @Test("Markdown exports preserve fenced blocks inside reasoning and tool results")
+    func exportsNestedFences() throws {
+        var state = ConversationState(
+            id: "nested", now: launch, modelID: "model", instructionsVersion: "i1", toolsVersion: "t1")
+        let embedded = "before\n````\n## Embedded heading\n````\nafter"
+        let search = tool("nested-tool", "web_search", #"{"query":"example","max_results":1}"#)
+        _ = reduce(&state, .send("Read this", mode: .work, now: launch))
+        _ = reduce(
+            &state,
+            .transcriptChanged(
+                run: 1,
+                TranscriptRecord(entries: [
+                    .prompt(id: "p", text: "Read this"), .reasoning(id: "r", text: embedded),
+                    calls("c", search), output(search, embedded), answer("a", "Done"),
+                ])),
+            .generationEnded(run: 1, stopReason: "stopToken"))
+
+        let markdown = ConversationSnapshot(state).markdown()
+        let enclosed = "`````\n" + embedded + "\n`````"
+        #expect(markdown.components(separatedBy: enclosed).count == 3)
+        #expect(markdown.contains("## Assistant\n\nDone"))
+    }
+
     @Test("A snapshot encodes and decodes to an equal value, and its Markdown export lists every turn in order")
     func roundTripsAndExportsEveryTurn() throws {
         var state = ConversationState(
