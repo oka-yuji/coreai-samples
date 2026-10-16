@@ -259,7 +259,7 @@
         }
 
         static func dismantleUIView(_ view: PreviewView, coordinator: ()) {
-            view.invalidateTicker()
+            view.source.detach(from: view.layer)
         }
 
         final class PreviewView: UIView {
@@ -267,27 +267,14 @@
             var minimumSimilarity = 0.67
             var expectedGeneration: Int?
             var rotation = 90.0
-            private var displayLink: CADisplayLink?
 
             init(source: ObjectFinderPreview) {
                 self.source = source
                 super.init(frame: .zero)
                 source.attach(to: layer)
-                let ticker = PreviewTicker(source: source)
-                let link = CADisplayLink(target: ticker, selector: #selector(PreviewTicker.tick))
-                link.preferredFrameRateRange = CAFrameRateRange(minimum: 30, maximum: 30, preferred: 30)
-                link.add(to: .main, forMode: .common)
-                displayLink = link
             }
 
             required init?(coder: NSCoder) { nil }
-
-            isolated deinit { displayLink?.invalidate() }
-
-            func invalidateTicker() {
-                displayLink?.invalidate()
-                displayLink = nil
-            }
 
             override func layoutSubviews() {
                 super.layoutSubviews()
@@ -301,11 +288,5 @@
             }
         }
 
-        @MainActor
-        private final class PreviewTicker: NSObject {
-            weak var source: ObjectFinderPreview?
-            init(source: ObjectFinderPreview) { self.source = source }
-            @objc func tick() { source?.expire() }
-        }
     }
 #endif

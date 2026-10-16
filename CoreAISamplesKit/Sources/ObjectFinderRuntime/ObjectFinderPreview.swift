@@ -13,6 +13,8 @@
         @MainActor private var lastDrawn: [ObjectCandidate] = []
         @MainActor private var lastBounds = CGRect.null
         @MainActor private var lastRotation = Double.nan
+        @MainActor private var expiryTimer: Timer?
+        @MainActor private var expiryDeadline: Double?
 
         @MainActor
         public init() {
@@ -28,6 +30,14 @@
 
         @MainActor
         public func attach(to parent: CALayer) { parent.addSublayer(layer) }
+
+        @MainActor
+        public func detach(from parent: CALayer) {
+            guard layer.superlayer === parent else { return }
+            gate.expect(nil)
+            redraw()
+            layer.removeFromSuperlayer()
+        }
 
         @MainActor
         func connected() {
@@ -53,11 +63,6 @@
         }
 
         @MainActor
-        public func expire() {
-            redraw()
-        }
-
-        @MainActor
         public func layout(in bounds: CGRect, minimumSimilarity: Double, expectedGeneration: Int?, rotation: Double) {
             CATransaction.begin()
             CATransaction.setDisableActions(true)
@@ -74,8 +79,10 @@
 
         @MainActor
         private func redraw() {
-            let candidates = gate.visible(at: ProcessInfo.processInfo.systemUptime)
+            let now = ProcessInfo.processInfo.systemUptime
+            let candidates = gate.visible(at: now)
             let selected = ObjectCandidateSelection.select(candidates, minimumSimilarity: minimumSimilarity)
+            scheduleExpiry(selected.isEmpty || layer.superlayer == nil ? nil : gate.expiration(at: now), now: now)
             guard selected != lastDrawn || layer.bounds != lastBounds || rotation != lastRotation else { return }
             lastDrawn = selected
             lastBounds = layer.bounds
@@ -94,6 +101,34 @@
             CATransaction.setDisableActions(true)
             boxes.path = path.cgPath
             CATransaction.commit()
+        }
+
+        @MainActor
+        private func scheduleExpiry(_ deadline: Double?, now: Double) {
+            guard deadline != expiryDeadline else { return }
+            expiryTimer?.invalidate()
+            expiryTimer = nil
+            expiryDeadline = deadline
+            guard let deadline else { return }
+            let timer = Timer(
+                timeInterval: max(0.001, deadline - now + 0.001), target: ExpiryTarget(preview: self),
+                selector: #selector(ExpiryTarget.fire(_:)), userInfo: nil, repeats: false)
+            expiryTimer = timer
+            RunLoop.main.add(timer, forMode: .common)
+        }
+
+        @MainActor
+        private final class ExpiryTarget: NSObject {
+            weak var preview: ObjectFinderPreview?
+
+            init(preview: ObjectFinderPreview) { self.preview = preview }
+
+            @objc func fire(_ timer: Timer) {
+                guard let preview, preview.expiryTimer === timer else { return }
+                preview.expiryTimer = nil
+                preview.expiryDeadline = nil
+                preview.redraw()
+            }
         }
     }
 #endif
