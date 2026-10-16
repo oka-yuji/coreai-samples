@@ -36,6 +36,7 @@ let package = Package(
         .library(name: "RecipeCore", targets: ["RecipeCore"]),
         .library(name: "RecipeRuntime", targets: ["RecipeRuntime"]),
         .library(name: "RecipeFeature", targets: ["RecipeFeature"]),
+        .library(name: "ConversationFeature", targets: ["ConversationFeature"]),
     ],
     dependencies: [
         .package(url: "https://github.com/huggingface/swift-transformers", from: "1.3.4"),
@@ -117,6 +118,7 @@ let package = Package(
             swiftSettings: approachableConcurrency
         ),
         .target(name: "FeatureStore", swiftSettings: approachableConcurrency),
+        .target(name: "ConversationFeature", dependencies: ["FeatureStore"], swiftSettings: approachableConcurrency),
         .target(name: "GLiNERCore", resources: [.process("Resources")], swiftSettings: approachableConcurrency),
         .target(
             name: "ExtractFeature",
@@ -163,6 +165,10 @@ let package = Package(
             swiftSettings: approachableConcurrency
         ),
         .testTarget(name: "FeatureStoreTests", dependencies: ["FeatureStore"], swiftSettings: approachableConcurrency),
+        .testTarget(
+            name: "ConversationFeatureTests", dependencies: ["ConversationFeature", "FeatureStore"],
+            swiftSettings: approachableConcurrency
+        ),
         .testTarget(
             name: "GLiNERCoreTests",
             dependencies: ["GLiNERCore"],
