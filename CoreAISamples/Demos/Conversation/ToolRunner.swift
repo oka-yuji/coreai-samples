@@ -39,6 +39,22 @@ final class ToolRunner {
 
     var notesDirectory: URL { preferences.notesDirectory }
 
+    var evidence: ConversationEvidence {
+        ConversationEvidence(
+            pages: ledger.map {
+                .init(url: $0.url, finalURL: $0.finalURL, sha256: $0.sha256, characters: $0.characters)
+            },
+            attempts: fetchAttempts.map { .init(url: $0.url, ok: $0.ok) }, seen: seenPages)
+    }
+
+    func restoreEvidence(_ evidence: ConversationEvidence) {
+        ledger = evidence.pages.map {
+            FetchRecord(url: $0.url, finalURL: $0.finalURL, sha256: $0.sha256, characters: $0.characters)
+        }
+        fetchAttempts = evidence.attempts.map { FetchAttempt(url: $0.url, ok: $0.ok) }
+        seenPages = evidence.seen
+    }
+
     func beginTask(guardActive: Bool) {
         self.guardActive = guardActive
         repairFetchLimit = nil
@@ -195,6 +211,7 @@ final class ToolRunner {
                 notesWritten.append((output.text, text))
             }
         }
+        session?.updateEvidence(evidence)
         log(call, output, start: start, end: end)
     }
 

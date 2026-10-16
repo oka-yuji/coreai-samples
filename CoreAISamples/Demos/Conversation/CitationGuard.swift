@@ -150,6 +150,13 @@ final class CitationGuard {
         return .done(note: note())
     }
 
+    func cancelRepair() {
+        guard repairPending else { return }
+        repairPending = false
+        tools.repairFetchLimit = nil
+        finishIncompleteNotes(reason: "stopped")
+    }
+
     private func settleRepair(_ end: TurnEnd, usage: LanguageModelSession.Usage?) -> Verdict {
         repairPending = false
         tools.repairFetchLimit = nil

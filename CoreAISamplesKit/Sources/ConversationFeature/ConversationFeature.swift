@@ -12,7 +12,18 @@ public enum ConversationAction: Equatable, Sendable {
     case stepFinished(run: Int, StepStats)
     case generationEnded(run: Int, stopReason: String?)
     case generationFailed(run: Int, message: String)
+    case evidenceChanged(run: Int, ConversationEvidence)
+    case preparationChanged(run: Int, processed: Int, total: Int)
+    case modelPrepared(run: Int, name: String, location: String)
     case stopRequested
+    case restoreLatestRequested
+    case latestRestored(ArchivedConversation?)
+    case archiveSaved(id: String, revision: Int)
+    case archiveFailed(id: String, revision: Int, message: String)
+    case retrySave
+    case saveCopyRequested(id: String, now: Date)
+    case terminationRequested
+    case terminationCancelled
     case stopped(run: Int)
     case restoreRequested(id: String)
     case restored(ConversationSnapshot)
@@ -27,6 +38,9 @@ public enum ConversationEffect: Equatable, Sendable {
     case stop(run: Int)
     case save(ConversationSnapshot)
     case restore(id: String)
+    case restoreLatest
+    case terminationReady(Bool)
+    case cancelRepair
 }
 
 public enum ConversationFeature: Feature {
@@ -99,11 +113,11 @@ public enum ConversationFeature: Feature {
         case .guardNote(let run, let title, let text, let warning):
             guard run == state.runID, !state.turns.isEmpty else { return [] }
             state.turns[state.turns.count - 1].notes.append(TurnNote(title: title, text: text, warning: warning))
-            return save(state)
+            return save(&state)
         case .stepFinished(let run, let stats):
             guard state.isActive(run) else { return [] }
             state.turns[state.turns.count - 1].steps.append(stats)
-            return save(state)
+            return save(&state)
         case .generationEnded(let run, let stopReason):
             guard state.isActive(run) else { return [] }
             let finish = Finish(stopReason: stopReason)
@@ -117,6 +131,19 @@ public enum ConversationFeature: Feature {
             guard state.isActive(run) else { return [] }
             state.turns[state.turns.count - 1].failure = message
             return end(&state, .failed)
+        case .evidenceChanged(let run, let evidence):
+            guard state.isActive(run) else { return [] }
+            state.evidence = evidence
+            return []
+        case .modelPrepared(let run, let name, let location):
+            guard state.isActive(run) else { return [] }
+            state.modelID = name
+            state.modelLocation = location
+            return []
+        case .preparationChanged(let run, let processed, let total):
+            guard state.isActive(run), !state.stopRequested, total > 0 else { return [] }
+            state.preparation = processed < total ? ConversationPreparation(processed: processed, total: total) : nil
+            return []
         case .stopRequested:
             guard state.isRunning, !state.stopRequested else { return [] }
             state.stopRequested = true
@@ -125,18 +152,73 @@ public enum ConversationFeature: Feature {
             guard state.isActive(run) else { return [] }
             return end(&state, .stopped)
         case .restoreRequested(let id):
-            guard !state.isRunning else { return [] }
+            guard state.canLeave || (state.isRestoring && !state.isTerminating) else { return [] }
             state.persistence = .restoring(id: id)
             return [.run(.restore(id: id), id: .restore)]
         case .restored(let snapshot):
             guard !state.isRunning, state.persistence == .restoring(id: snapshot.id) else { return [] }
             state.load(snapshot)
             return []
+        case .restoreLatestRequested:
+            guard state.canLeave, state.turns.isEmpty else { return [] }
+            state.persistence = .restoringLatest
+            return [.run(.restoreLatest, id: .restore)]
+        case .latestRestored(let archived):
+            guard state.persistence == .restoringLatest else { return [] }
+            switch archived {
+            case .snapshot(let snapshot): state.load(snapshot)
+            case .readOnly(let id, let markdown, let reason):
+                state.id = id
+                state.readOnlyMarkdown = markdown
+                state.persistence = .failed(reason)
+            case nil: state.persistence = .unsaved
+            }
+            return []
+        case .archiveSaved(let id, let revision):
+            guard id == state.id, state.persistence == .saving(revision: revision) else { return [] }
+            state.persistence = .saved
+            return state.isTerminating && !state.isRunning ? [.run(.terminationReady(true), id: nil)] : []
+        case .archiveFailed(let id, let revision, let message):
+            guard id == state.id, state.persistence == .saving(revision: revision) else { return [] }
+            state.persistence = .failed(message)
+            return state.isTerminating && !state.isRunning ? [.run(.terminationReady(false), id: nil)] : []
+        case .retrySave:
+            guard !state.isRunning, !state.isRestoring, state.readOnlyMarkdown == nil, !state.turns.isEmpty else {
+                return []
+            }
+            return save(&state)
+        case .saveCopyRequested(let id, let now):
+            guard case .failed = state.persistence, !state.isRunning, state.readOnlyMarkdown == nil,
+                !state.turns.isEmpty, !id.isEmpty, id != state.id
+            else { return [] }
+            state.id = id
+            state.createdAt = now
+            state.updatedAt = now
+            state.archiveRevision = 0
+            return save(&state)
+        case .terminationRequested:
+            guard !state.isTerminating else { return [] }
+            state.isTerminating = true
+            if state.isRunning {
+                guard !state.stopRequested else { return [] }
+                state.stopRequested = true
+                return [.run(.stop(run: state.runID), id: .stop)]
+            }
+            if state.isSaving { return [] }
+            if state.turns.isEmpty || state.readOnlyMarkdown != nil || state.persistence == .saved {
+                return [.run(.terminationReady(true), id: nil)]
+            }
+            return save(&state)
+        case .terminationCancelled:
+            state.isTerminating = false
+            return []
         case .saved(let id):
             if id == state.id, !state.isRestoring { state.persistence = .saved }
             return []
         case .failed(let id, let message):
-            if state.persistence == .restoring(id: id) || (id == state.id && !state.isRestoring) {
+            if (state.persistence == .restoring(id: id) || state.persistence == .restoringLatest)
+                || (id == state.id && !state.isRestoring)
+            {
                 state.persistence = .failed(message)
             }
             return []
@@ -147,7 +229,8 @@ public enum ConversationFeature: Feature {
         _ state: inout ConversationState, _ text: String, mode: ConversationMode, now: Date
     ) -> [Command] {
         let prompt = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !state.isRunning, !state.isRestoring, !prompt.isEmpty else { return [] }
+        guard !state.isRunning, !state.isRestoring, !state.isTerminating, state.readOnlyMarkdown == nil, !prompt.isEmpty
+        else { return [] }
         if state.title.isEmpty {
             state.title = String(prompt.split(whereSeparator: \.isNewline).joined(separator: " ").prefix(40))
         }
@@ -159,8 +242,10 @@ public enum ConversationFeature: Feature {
     }
 
     private static func sendRepair(_ state: inout ConversationState, _ text: String, now: Date) -> [Command] {
+        if state.isTerminating { return [.run(.cancelRepair, id: nil)] }
         let prompt = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !state.isRunning, !state.isRestoring, !prompt.isEmpty, let last = state.turns.last, last.mode == .work
+        guard !state.isRunning, !state.isRestoring, !state.isTerminating, state.readOnlyMarkdown == nil,
+            !prompt.isEmpty, let last = state.turns.last, last.mode == .work
         else { return [] }
         var turn = ConversationTurn(
             prompt: prompt, mode: .work, settings: last.settings, start: state.transcript.entries.count)
@@ -226,10 +311,13 @@ public enum ConversationFeature: Feature {
         state.turns[state.turns.count - 1].finish = finish
         state.isRunning = false
         state.stopRequested = false
-        return save(state)
+        state.preparation = nil
+        return save(&state)
     }
 
-    private static func save(_ state: ConversationState) -> [Command] {
-        [.run(.save(ConversationSnapshot(state)), id: .save)]
+    private static func save(_ state: inout ConversationState) -> [Command] {
+        state.archiveRevision += 1
+        state.persistence = .saving(revision: state.archiveRevision)
+        return [.run(.save(ConversationSnapshot(state)), id: .save)]
     }
 }

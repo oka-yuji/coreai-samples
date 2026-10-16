@@ -1,4 +1,5 @@
 import ConversationFeature
+import ConversationRuntime
 import FeatureStore
 import Foundation
 
@@ -6,18 +7,29 @@ typealias ConversationStore = Store<ConversationFeature>
 
 @MainActor
 final class ConversationRunner {
+    static let defaultArchive = ConversationArchive(directory: conversationsDirectory())
     let session: ConversationSession
     let tools: ToolRunner
     let citationGuard: CitationGuard
     private let chat: ChatViewModel
+    private let archive: ConversationArchive
+    private let termination: (Bool) -> Void
+    private let writer = UUID()
+    private var savedRevisions: [String: Int] = [:]
 
-    init(id: String, chat: ChatViewModel, preferences: ConversationPreferences) {
+    init(
+        id: String, chat: ChatViewModel, preferences: ConversationPreferences,
+        archive: ConversationArchive = ConversationRunner.defaultArchive,
+        termination: @escaping (Bool) -> Void = { _ in }
+    ) {
         let tools = ToolRunner(preferences: preferences)
         session = ConversationSession(id: id, chat: chat, preferences: preferences, tools: tools)
         citationGuard = CitationGuard(tools: tools)
         tools.session = session
         self.tools = tools
         self.chat = chat
+        self.archive = archive
+        self.termination = termination
     }
 
     func run(_ effect: ConversationEffect, _ send: (ConversationAction) -> Void) async {
@@ -31,9 +43,27 @@ final class ConversationRunner {
         case .stop(let run):
             session.stop(run: run)
         case .save(let snapshot):
-            save(snapshot, send: send)
+            await save(snapshot, send: send)
         case .restore(let id):
-            send(.failed(id: id, message: "Opening a saved conversation is not available yet."))
+            do {
+                let archived = try await archive.load(id: id)
+                guard !Task.isCancelled else { return }
+                switch install(archived) {
+                case .snapshot(let snapshot): send(.restored(snapshot))
+                case .readOnly(_, _, let reason): send(.failed(id: id, message: reason))
+                }
+            } catch { send(.failed(id: id, message: error.localizedDescription)) }
+        case .restoreLatest:
+            do {
+                let archived = try await archive.latest()
+                guard !Task.isCancelled else { return }
+                send(.latestRestored(archived.map(install)))
+            } catch { send(.failed(id: session.id, message: error.localizedDescription)) }
+        case .cancelRepair:
+            citationGuard.cancelRepair()
+            chat.externallyBusy = false
+        case .terminationReady(let success):
+            termination(success)
         }
     }
 
@@ -50,6 +80,7 @@ final class ConversationRunner {
         }
         let end = await session.generate(
             run: run, prompt: prompt, policy: policy, finalize: finalize, repair: repair, send: send)
+        send(.evidenceChanged(run: run, tools.evidence))
         guard policy.mode == .work else {
             send(end.action(run))
             return
@@ -69,8 +100,31 @@ final class ConversationRunner {
         }
     }
 
-    private func save(_ snapshot: ConversationSnapshot, send: (ConversationAction) -> Void) {
-        if let action = Self.write(snapshot, to: Self.transcriptsDirectory()) { send(action) }
+    private func save(_ snapshot: ConversationSnapshot, send: (ConversationAction) -> Void) async {
+        do {
+            try await archive.save(snapshot, expectedRevision: savedRevisions[snapshot.id] ?? 0, writer: writer)
+            savedRevisions[snapshot.id] = max(savedRevisions[snapshot.id] ?? 0, snapshot.revision)
+            session.adoptID(snapshot.id)
+            send(.archiveSaved(id: snapshot.id, revision: snapshot.revision))
+        } catch {
+            send(.archiveFailed(id: snapshot.id, revision: snapshot.revision, message: error.localizedDescription))
+        }
+    }
+
+    private func install(_ archived: ArchivedConversation) -> ArchivedConversation {
+        guard case .snapshot(let snapshot) = archived else { return archived }
+        do {
+            let restored = try session.restore(snapshot)
+            savedRevisions[snapshot.id] = snapshot.revision
+            tools.restoreEvidence(snapshot.evidence ?? ConversationEvidence())
+            return .snapshot(restored)
+        } catch {
+            return .readOnly(id: snapshot.id, markdown: snapshot.markdown(), reason: error.localizedDescription)
+        }
+    }
+
+    static func conversationsDirectory() -> URL {
+        ModelStorage.root.appending(path: "conversations", directoryHint: .isDirectory)
     }
 
     static func write(_ snapshot: ConversationSnapshot, to directory: URL) -> ConversationAction? {

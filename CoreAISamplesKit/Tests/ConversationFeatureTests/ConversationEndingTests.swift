@@ -29,7 +29,7 @@ struct ConversationEndingTests {
         let failed = reduce(
             &state, .transcriptChanged(run: 1, record), .generationFailed(run: 1, message: "context overflow"))
         let saved = try #require(snapshot(failed[1]))
-        #expect(saved.status == .completed && saved.turns.last?.finish == .failed)
+        #expect(saved.status == .interrupted && saved.turns.last?.finish == .failed)
         #expect(saved.turns.last?.failure == "context overflow")
         #expect(!state.isRunning && state.lastFinish == .failed)
         #expect(

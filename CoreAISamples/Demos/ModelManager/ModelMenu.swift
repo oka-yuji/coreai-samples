@@ -38,7 +38,7 @@ struct ModelMenu: View {
         .disabled(
             Self.isDisabled(
                 loading: chat.isLoading, responding: chat.isResponding, busy: chat.externallyBusy,
-                running: host.state.isRunning)
+                running: !host.state.canLeave)
         )
         .onReceive(NotificationCenter.default.publisher(for: NSMenu.didBeginTrackingNotification)) { _ in
             models.refresh()
@@ -78,7 +78,7 @@ enum ModelSwitch {
                 running: host.state.isRunning),
             !isLoaded(url, phase: chat.phase, current: chat.bundleURL)
         else { return false }
-        host.startNew()
+        guard host.prepareModelSwitch(to: url) else { return false }
         await chat.load(url)
         return true
     }

@@ -11,7 +11,20 @@ protocol RuntimeEngine: AnyObject {
     func reset()
     func unload()
     func prefill(_ input: [Int32], usePrefillFunction: Bool) async throws
+    func prefill(
+        _ input: [Int32], usePrefillFunction: Bool, onProgress: @Sendable (Int) -> Void
+    ) async throws
     func step(_ token: Int32) async throws
+}
+
+extension RuntimeEngine {
+    func prefill(
+        _ input: [Int32], usePrefillFunction: Bool, onProgress: @Sendable (Int) -> Void
+    ) async throws {
+        onProgress(0)
+        try await prefill(input, usePrefillFunction: usePrefillFunction)
+        onProgress(input.count)
+    }
 }
 
 extension Engine: RuntimeEngine {}

@@ -1,4 +1,5 @@
 import ConversationFeature
+import ConversationRuntime
 import CoreAIBackend
 import Foundation
 import FoundationModels
@@ -33,7 +34,7 @@ final class ConversationSession {
         case ended((any Error)?)
     }
 
-    let id: String
+    private(set) var id: String
     private(set) var modelName = ""
     private(set) var mode = ConversationMode.chat
     private(set) var effort = AgentReasoningEffort.low.rawValue
@@ -49,6 +50,10 @@ final class ConversationSession {
     private let preferences: ConversationPreferences
     private let tools: ToolRunner
     private var session: LanguageModelSession?
+    private var restoredTranscript: Transcript?
+    private var restoredTools = ""
+    private var needsPreparation = false
+    private(set) var restoredModelLocation: String?
     private var model: LocalLanguageModel?
     private var sink: AsyncStream<Event>.Continuation?
     private var run = 0
@@ -77,6 +82,7 @@ final class ConversationSession {
 
     var step: Int { offset + completed + 1 }
     var usage: LanguageModelSession.Usage? { session?.usage }
+    var awaitingRestoredModel: Bool { restoredTranscript != nil && session == nil }
 
     func generate(
         run: Int, prompt: String, policy: TurnPolicy, finalize: Bool, repair: Bool,
@@ -85,6 +91,7 @@ final class ConversationSession {
         guard let session = prepare() else {
             return TurnEnd(kind: .failed("No model is loaded."), outcome: "failed", answer: "")
         }
+        send(.modelPrepared(run: run, name: modelName, location: chat.bundleURL?.path ?? ""))
         begin(run: run, policy: policy, repair: repair, session: session)
         let text = finalize ? ConversationFeature.finalized(prompt) : prompt
         let options = GenerationOptions(maximumResponseTokens: policy.maxTokens)
@@ -92,10 +99,25 @@ final class ConversationSession {
             reasoningLevel: (AgentReasoningEffort(rawValue: policy.settings.effort) ?? .low).level)
         let (events, sink) = AsyncStream.makeStream(of: Event.self)
         self.sink = sink
+        let preparation = needsPreparation ? model?.preparationUpdates() : nil
+        let transcriptID = session.transcript.first?.id
+        needsPreparation = false
         var failure: (any Error)?
         var stopped = false
         await withTaskGroup(of: Void.self) { group in
             group.addTask { [weak self] in await self?.observe(session) }
+            if let preparation {
+                group.addTask {
+                    for await progress in preparation where progress.transcriptID == transcriptID {
+                        sink.yield(
+                            .actions([
+                                .preparationChanged(
+                                    run: run, processed: progress.processedTokens, total: progress.totalTokens)
+                            ]))
+                        if progress.processedTokens >= progress.totalTokens { break }
+                    }
+                }
+            }
             group.addTask {
                 do {
                     for try await _ in session.streamResponse(to: text, options: options, contextOptions: context) {}
@@ -178,13 +200,58 @@ final class ConversationSession {
         currentTokens = await model.processedTokens()
     }
 
+    func updateEvidence(_ evidence: ConversationEvidence) {
+        sink?.yield(.actions([.evidenceChanged(run: run, evidence)]))
+    }
+
+    func adoptID(_ id: String) { self.id = id }
+
+    func restore(_ snapshot: ConversationSnapshot) throws -> ConversationSnapshot {
+        guard ["cite-fetched", "frozen"].contains(snapshot.instructionsVersion),
+            snapshot.toolsVersion
+                == AgentTools.names.dropLast(snapshot.toolsVersion.contains("move_note") ? 0 : 1).joined(separator: ",")
+        else { throw ConversationArchive.Failure.invalidSnapshot }
+        let transcript = try ConversationTranscript.restore(
+            snapshot.transcript, tools: tools.tools(fileOperations: snapshot.toolsVersion.contains("move_note")))
+        session = nil
+        model = nil
+        previous = nil
+        previousTokens = nil
+        restoredTranscript = transcript
+        id = snapshot.id
+        restoredTools = snapshot.toolsVersion
+        restoredModelLocation = snapshot.modelLocation
+        modelName = snapshot.modelID
+        turnIndex = snapshot.turns.count
+        needsPreparation = true
+        var restored = snapshot
+        restored.transcript = Self.record(Array(transcript))
+        for index in restored.turns.indices {
+            let start = snapshot.turns[index].start
+            restored.turns[index].start =
+                start < snapshot.transcript.entries.count
+                ? restored.transcript.entries.firstIndex(where: { $0.id == snapshot.transcript.entries[start].id })
+                    ?? start
+                : restored.transcript.entries.count
+        }
+        return restored
+    }
+
     private func prepare() -> LanguageModelSession? {
         if let session { return session }
         guard let model = chat.model else { return nil }
         let date = preferences.fixedDate ?? AgentPromptBuilder.today()
-        let session = LanguageModelSession(
-            model: model, tools: tools.tools(fileOperations: preferences.fileOperations),
-            instructions: AgentPromptBuilder.instructions(date: date, citeFetched: preferences.citeFetched))
+        let session: LanguageModelSession
+        if let transcript = restoredTranscript {
+            session = LanguageModelSession(
+                model: model, tools: tools.tools(fileOperations: restoredTools.contains("move_note")),
+                transcript: transcript)
+            restoredTranscript = nil
+        } else {
+            session = LanguageModelSession(
+                model: model, tools: tools.tools(fileOperations: preferences.fileOperations),
+                instructions: AgentPromptBuilder.instructions(date: date, citeFetched: preferences.citeFetched))
+        }
         session.transcriptErrorHandlingPolicy = .preserveTranscript
         self.session = session
         self.model = model

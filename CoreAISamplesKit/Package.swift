@@ -42,6 +42,7 @@ let package = Package(
         .library(name: "RecipeRuntime", targets: ["RecipeRuntime"]),
         .library(name: "RecipeFeature", targets: ["RecipeFeature"]),
         .library(name: "ConversationFeature", targets: ["ConversationFeature"]),
+        .library(name: "ConversationRuntime", targets: ["ConversationRuntime"]),
     ],
     dependencies: [
         .package(path: "../Vendor/IrodoriInputKit"),
@@ -147,6 +148,13 @@ let package = Package(
         ),
         .target(name: "FeatureStore", swiftSettings: approachableConcurrency),
         .target(name: "ConversationFeature", dependencies: ["FeatureStore"], swiftSettings: approachableConcurrency),
+        .target(
+            name: "ConversationRuntime", dependencies: ["ConversationFeature"],
+            swiftSettings: [.swiftLanguageMode(.v6)] + approachableConcurrency),
+        .testTarget(
+            name: "ConversationRuntimeTests",
+            dependencies: ["ConversationRuntime", "ConversationFeature", "FeatureStore"],
+            swiftSettings: [.swiftLanguageMode(.v6)] + approachableConcurrency),
         .target(name: "GLiNERCore", resources: [.process("Resources")], swiftSettings: approachableConcurrency),
         .target(
             name: "ExtractFeature",

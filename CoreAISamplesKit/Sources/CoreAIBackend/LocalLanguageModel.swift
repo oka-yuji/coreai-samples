@@ -66,6 +66,10 @@ public struct LocalLanguageModel: LanguageModel {
         await runtime.processed
     }
 
+    public func preparationUpdates() -> AsyncStream<PreparationProgress> {
+        runtime.preparationProgress.stream()
+    }
+
     public func countTokens(_ text: String) -> Int {
         runtime.tokenizer.encode(text: text, addSpecialTokens: false).count
     }
@@ -88,6 +92,7 @@ actor Runtime {
     static let rememberedGenerations = 32
 
     nonisolated let loadStats: Engine.LoadStats
+    nonisolated let preparationProgress = PreparationProgressHub()
     nonisolated let thinks: Bool
     private var core: EngineBox?
     private let bundle: ModelBundle
@@ -273,17 +278,29 @@ actor Runtime {
         let clock = ContinuousClock()
         let start = clock.now
         let before = core.engine.stats.prefillTokens
-        let plan = try await read(prompt, core: core, afterUser: afterUser) {
-            guard let lastUser else { return 0 }
-            var replaced = Array(messages[...lastUser])
-            replaced[lastUser]["content"] = (messages[lastUser]["content"] as? String ?? "").hasPrefix("A") ? "B" : "A"
-            let question = zip(try render(replaced, generationPrompt: false, context: context), rendered).prefix {
-                $0 == $1
-            }.count
-            return ReusePlan.splice(Array(rendered.prefix(question)), processed: previous, generations: splicing) {
-                tokenizer.decode(tokens: $0)
-            }.prompt.count
-        }
+        let hub = preparationProgress
+        let transcriptID = request.transcript.first?.id ?? request.id.uuidString
+        let requestID = request.id
+        let plan = try await read(
+            prompt, core: core, afterUser: afterUser,
+            progress: { processed, total in
+                hub.publish(
+                    PreparationProgress(
+                        requestID: requestID, transcriptID: transcriptID,
+                        processedTokens: processed, totalTokens: total))
+            },
+            questionStart: {
+                guard let lastUser else { return 0 }
+                var replaced = Array(messages[...lastUser])
+                replaced[lastUser]["content"] =
+                    (messages[lastUser]["content"] as? String ?? "").hasPrefix("A") ? "B" : "A"
+                let question = zip(try render(replaced, generationPrompt: false, context: context), rendered).prefix {
+                    $0 == $1
+                }.count
+                return ReusePlan.splice(Array(rendered.prefix(question)), processed: previous, generations: splicing) {
+                    tokenizer.decode(tokens: $0)
+                }.prompt.count
+            })
         unloadedTokens = nil
         let prefilled = core.engine.stats.prefillTokens - before
         let readEnd = clock.now
@@ -346,7 +363,10 @@ actor Runtime {
                     output: .init(totalTokenCount: generated.count, reasoningTokenCount: reasoningTokens))))
     }
 
-    private func read(_ prompt: [Int32], core: EngineBox, afterUser: Int, questionStart: () throws -> Int) async throws
+    private func read(
+        _ prompt: [Int32], core: EngineBox, afterUser: Int,
+        progress: @Sendable (Int, Int) -> Void, questionStart: () throws -> Int
+    ) async throws
         -> ReusePlan
     {
         let plan = try Self.plan(
@@ -363,11 +383,18 @@ actor Runtime {
                 Engine.Checkpoint(tokens: Array(core.engine.tokens.prefix(plan.keep)), fixedStates: []))
         }
         var cursor = plan.keep
+        let total = prompt.count
+        progress(cursor, total)
         for stop in plan.stops {
             if stop.position > cursor {
                 let segment = Array(prompt[cursor..<stop.position])
+                let start = cursor
                 beganReading = true
-                try await compute(core: core) { try await core.engine.prefill(segment, usePrefillFunction: true) }
+                try await compute(core: core) {
+                    try await core.engine.prefill(segment, usePrefillFunction: true) {
+                        progress(start + $0, total)
+                    }
+                }
                 cursor = stop.position
             }
             if stop.role == .afterUser {
