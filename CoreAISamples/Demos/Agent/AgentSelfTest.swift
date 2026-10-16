@@ -261,10 +261,12 @@ enum AgentSelfTest {
             instructions.hasPrefix(
                 "You are an agent running on this device. Use the tools to gather facts before you answer.")
                 && instructions.contains("answer directly without calling a tool.\n\n- If a tool returns an error")
-                && instructions.components(separatedBy: "\n- ").count == 4
+                && instructions.components(separatedBy: "\n- ").count == 8
                 && instructions.contains("end the answer with a \"Sources:\" section")
                 && instructions.hasSuffix(
-                    "past tense and prefer the most recent sources.\n\nCurrent date: " + goldenDate),
+                    "ask for a follow-up task when a new note needs moving.\n\nCurrent date: " + goldenDate)
+                && instructions.contains("append parts 2 to 4 with append_note")
+                && instructions.contains("Keep the final answer to about 3000 characters"),
             instructions.debugDescription)
 
         let run: @Sendable (AgentToolCall) async -> String = { call in
@@ -280,8 +282,8 @@ enum AgentSelfTest {
         let properties = search?["properties"] as? [String: [String: Any]]
         check(
             "tools/definitions",
-            plain.map(\.name) == ["web_search", "fetch_page", "write_note"]
-                && withFiles.map(\.name) == ["web_search", "fetch_page", "write_note", "move_note"]
+            plain.map(\.name) == ["web_search", "fetch_page", "write_note", "append_note"]
+                && withFiles.map(\.name) == ["web_search", "fetch_page", "write_note", "append_note", "move_note"]
                 && plain.first?.description == "Search the web and return the top results as title, url and snippet."
                 && search?["required"] as? [String] == ["query"]
                 && search?["x-order"] as? [String] == ["query", "max_results"]
@@ -532,6 +534,7 @@ enum AgentSelfTest {
             "early=\(early) late=\(late) cancelled=\(cancelled) drained=\(drained) waiting=\(runner.waitingCount)")
 
         await ConversationArchiveSelfTest.run { name, passed, detail in check(name, passed, detail) }
+        await ConversationNotesSelfTest.run { name, passed, detail in check(name, passed, detail) }
 
         let transcripts = FileManager.default.temporaryDirectory.appending(
             path: "agent-selftest-transcripts-\(ProcessInfo.processInfo.processIdentifier)",
@@ -819,8 +822,10 @@ enum AgentSelfTest {
     @MainActor
     private static func m4gChecks(_ check: (String, Bool, String) -> Void) async {
         let frozen = AgentPromptBuilder.instructions(date: goldenDate)
+        let noteInstructions = "\n" + AgentPromptBuilder.noteInstructions.joined(separator: "\n")
+        let legacy = frozen.replacingOccurrences(of: noteInstructions, with: "")
         check(
-            "m4g/frozenInstructionsUnchanged", sha256(frozen) == frozenInstructionsSHA256 && frozen.utf8.count == 986,
+            "m4g/frozenInstructionsUnchanged", sha256(legacy) == frozenInstructionsSHA256 && legacy.utf8.count == 986,
             sha256(frozen))
         let cited = AgentPromptBuilder.instructions(date: goldenDate, citeFetched: true)
         let added = AgentPromptBuilder.citeFetchedInstructions
@@ -828,9 +833,10 @@ enum AgentSelfTest {
             "m4g/citeFetchedInstructions",
             cited
                 == frozen.replacingOccurrences(
-                    of: "\n\nCurrent date: ",
-                    with: "\n" + (added + AgentPromptBuilder.conversationInstructions).joined(separator: "\n")
-                        + "\n\nCurrent date: ")
+                    of: noteInstructions,
+                    with: "\n"
+                        + (added + AgentPromptBuilder.conversationInstructions + AgentPromptBuilder.noteInstructions)
+                        .joined(separator: "\n"))
                 && (added + [AgentPromptBuilder.repairPromptTemplate]).map(sha256) == appendixSHA256,
             cited.debugDescription)
         let twoURLs = AgentPromptBuilder.repairPrompt(unfetched: ["https://a.example/x", "https://b.example/y"])
@@ -1298,12 +1304,15 @@ enum AgentSelfTest {
                 "m4g/cassetteAtToolEntry",
                 viaRun.text == "page text" && viaRun.finalURL == "https://example.com/new" && wiredHits == 1
                     && wiredMisses == 0
-                    && plainNote.text.hasPrefix("saved to ") && exists(folder.appending(path: "Wired.md")),
+                    && plainNote.text.hasPrefix("saved to ")
+                    && plainNote.note.map { exists($0.path) && $0.draft } == true,
                 "\(viaRun.text) hits=\(wiredHits) misses=\(wiredMisses) note=\(plainNote.text)")
             check(
                 "m4g/stableNotePaths",
-                stableNote.text == "saved to agent-notes/Stable.md" && exists(folder.appending(path: "Stable.md"))
-                    && plainNote.text == "saved to " + folder.appending(path: "Wired.md").path(percentEncoded: false),
+                stableNote.text.hasPrefix("saved to agent-notes/Stable.md\nnote_id: ")
+                    && stableNote.note.map { exists($0.path) && stableNote.text.contains($0.id) } == true
+                    && !stableNote.text.contains(folder.path)
+                    && plainNote.note.map { plainNote.text.hasPrefix("saved to " + $0.path.path + "\n") } == true,
                 stableNote.text + " | " + plainNote.text)
 
             let four = folder.appending(path: "four.jsonl")
@@ -1342,28 +1351,32 @@ enum AgentSelfTest {
                     kind: .ended(stopReason: "stopToken"), outcome: TurnEnd.answered,
                     answer: "See https://example.com/p\(page)")
             }
-            func asksRepair(_ end: TurnEnd, step: Int = 1) -> Bool {
-                if case .repair = citing.settle(end, step: step, maxSteps: 8, stopped: false, usage: nil) {
+            func asksRepair(_ end: TurnEnd, step: Int = 1) async -> Bool {
+                if case .repair = await citing.settle(end, step: step, maxSteps: 8, stopped: false, usage: nil) {
                     true
                 } else {
                     false
                 }
             }
             citing.begin(active: true)
-            let verified = !asksRepair(answer(1)) && citing.outcome == "verified"
+            let verifyRepair = await asksRepair(answer(1))
+            let verified = !verifyRepair && citing.outcome == "verified"
             citing.begin(active: true)
-            let asked = asksRepair(answer(2)) && citing.repairPending
+            let asked = await asksRepair(answer(2))
+            let pending = citing.repairPending
             _ = await settling.execute(fetchCall("https://example.com/p2"))
-            let repaired =
-                asked && !asksRepair(answer(2), step: 2) && !citing.repairPending && citing.outcome == "repaired"
+            let secondRepair = await asksRepair(answer(2), step: 2)
+            let repaired = asked && pending && !secondRepair && !citing.repairPending && citing.outcome == "repaired"
             citing.begin(active: true)
+            let thirdRepair = await asksRepair(answer(3))
+            let reviolatedRepair = await asksRepair(answer(3), step: 2)
             let reviolated =
-                asksRepair(answer(3)) && !asksRepair(answer(3), step: 2) && citing.outcome == "held"
-                && citing.reason == "re-violation"
+                thirdRepair && !reviolatedRepair && citing.outcome == "held" && citing.reason == "re-violation"
             citing.begin(active: true)
+            let fourthRepair = await asksRepair(answer(4))
+            let stoppedRepair = await asksRepair(TurnEnd(kind: .stopped, outcome: "stopped", answer: ""), step: 2)
             let interrupted =
-                asksRepair(answer(4)) && !asksRepair(TurnEnd(kind: .stopped, outcome: "stopped", answer: ""), step: 2)
-                && citing.outcome == "held" && citing.reason == "repair-stopped"
+                fourthRepair && !stoppedRepair && citing.outcome == "held" && citing.reason == "repair-stopped"
                 && citing.guardedAnswer == answer(4).answer
             check(
                 "m4g/guardSettlesRepairTurns", verified && repaired && reviolated && interrupted,
@@ -1399,29 +1412,34 @@ enum AgentSelfTest {
             drafting.repairFetchLimit = ToolRunner.repairFetchLimit
             let saved3 = await drafting.execute(writeCall("Summary", "repaired body"))
             drafting.repairFetchLimit = nil
-            let draftFolder = notesA.appending(path: AgentTools.draftFolderName, directoryHint: .isDirectory)
-            let draftsBefore =
-                ((try? FileManager.default.contentsOfDirectory(atPath: draftFolder.path(percentEncoded: false))) ?? [])
-                .sorted()
+            let pendingIDs = drafting.draftOrder
+            var before: [String] = []
+            for id in pendingIDs {
+                before.append(try await AgentTools.notes.read(noteID: id, directory: notesA).content)
+            }
             let committedBefore =
-                ((try? FileManager.default.contentsOfDirectory(atPath: notesA.path(percentEncoded: false))) ?? [])
-                .filter { $0 != AgentTools.draftFolderName }
-            CitationGuard(tools: drafting).finishNotes(commit: true)
-            let kept = (try? String(contentsOf: notesA.appending(path: "Summary 2.md"), encoding: .utf8)) ?? ""
+                ((try? FileManager.default.contentsOfDirectory(at: notesA, includingPropertiesForKeys: nil)) ?? [])
+                .filter { $0.pathExtension == "md" }
+            await CitationGuard(tools: drafting).finishNotes(commit: true)
+            var published = true
+            var after: [String] = []
+            for id in pendingIDs {
+                let note = try await AgentTools.notes.read(noteID: id, directory: notesA)
+                published = published && !note.draft && exists(note.path)
+                after.append(try String(contentsOf: note.path, encoding: .utf8))
+            }
             check(
                 "m4g/draftsCommitOnPass",
-                saved1 == "saved to " + notesA.appending(path: "Summary.md").path(percentEncoded: false)
-                    && saved2 == "saved to " + notesA.appending(path: "Summary 2.md").path(percentEncoded: false)
-                    && saved3 == saved2
-                    && draftsBefore == ["Summary 2.md", "Summary.md"] && committedBefore.isEmpty
-                    && kept.contains("repaired body") && exists(notesA.appending(path: "Summary.md"))
-                    && !exists(draftFolder.appending(path: "Summary.md")),
-                "\(saved1) | \(saved2) | \(saved3) drafts=\(draftsBefore) committedBefore=\(committedBefore)")
+                saved1.contains("note_id: ") && saved2.contains("note_id: ")
+                    && saved3.contains("note_id: ") && saved3 != saved2 && before == ["first body", "repaired body"]
+                    && committedBefore.isEmpty && published && after.count == 2
+                    && after[0].contains("first body") && after[1].contains("repaired body"),
+                "before=\(before) published=\(published) after=\(after)")
 
-            for (name, body, shouldCommit, fetch) in [
-                ("no-url", "A note without links.", true, false),
-                ("fetched-url", "See https://example.com/p1", true, true),
-                ("unfetched-url", "See https://example.org/untried", false, false),
+            for (name, body, fetch) in [
+                ("no-url", "A note without links.", false),
+                ("fetched-url", "See https://example.com/p1", true),
+                ("unfetched-url", "See https://example.org/untried", false),
             ] {
                 let directory = folder.appending(path: "incomplete-" + name, directoryHint: .isDirectory)
                 let incomplete = toolRunner(
@@ -1431,22 +1449,22 @@ enum AgentSelfTest {
                 if fetch { _ = await incomplete.execute(fetchCall("https://example.com/p1")) }
                 _ = await incomplete.execute(writeCall("Incomplete", body))
                 let finishing = CitationGuard(tools: incomplete)
-                finishing.finishIncompleteNotes(reason: "step-limit")
+                await finishing.finishIncompleteNotes(reason: "step-limit")
                 let committed = directory.appending(path: "Incomplete.md")
                 let drafts = directory.appending(path: AgentTools.draftFolderName)
                 let held = (try? String(contentsOf: drafts.appending(path: "HELD.txt"), encoding: .utf8)) ?? ""
                 check(
                     "m4h/incompleteNotes-" + name,
-                    finishing.outcome == "skipped" && exists(committed) == shouldCommit
-                        && (shouldCommit
-                            || (exists(drafts.appending(path: "Incomplete.md")) && held.contains("note-unfetched"))),
+                    finishing.outcome == "skipped" && !exists(committed) && incomplete.draftOrder.count == 1
+                        && held.contains("step-limit") && held.contains("/Incomplete.md")
+                        && (name != "unfetched-url" || held.contains("note-unfetched")),
                     "outcome=\(finishing.outcome ?? "nil") committed=\(exists(committed)) held=\(held)")
             }
 
             let notesB = folder.appending(path: "notes-b", directoryHint: .isDirectory)
             let holding = toolRunner(notesB, guarding: true)
             _ = await holding.execute(writeCall("Held note", "body"))
-            CitationGuard(tools: holding).finishNotes(commit: false)
+            await CitationGuard(tools: holding).finishNotes(commit: false)
             let held =
                 (try? String(
                     contentsOf: notesB.appending(path: AgentTools.draftFolderName).appending(path: "HELD.txt"),
@@ -1454,8 +1472,7 @@ enum AgentSelfTest {
             check(
                 "m4g/draftsHeldNotCommitted",
                 !exists(notesB.appending(path: "Held note.md"))
-                    && exists(notesB.appending(path: AgentTools.draftFolderName).appending(path: "Held note.md"))
-                    && held.contains("reason: ") && held.contains("- Held note.md"),
+                    && holding.draftOrder.count == 1 && held.contains("reason: ") && held.contains("/Held note.md"),
                 held)
         } catch {
             check("m4g/cassette", false, "\(error)")

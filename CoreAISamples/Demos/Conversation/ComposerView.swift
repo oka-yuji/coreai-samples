@@ -31,6 +31,11 @@ struct ComposerView: View {
                 .font(.callout)
                 .foregroundStyle(.orange)
             }
+            if ConversationFeature.continueEligibility(state), !chat.ragIsOn {
+                Button("Continue answer", systemImage: "arrow.turn.down.right", action: host.continueAnswer)
+                    .help("Generate the rest as a new turn without repeating the answer")
+                    .disabled(!host.canContinueAnswer)
+            }
             if state.refusedSave && !state.isRunning && !host.contextFull {
                 Button("Continue in Work", systemImage: "arrow.right.circle", action: host.continueInWork)
                     .help("Ask again in Work mode, which can save notes")

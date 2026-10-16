@@ -36,6 +36,8 @@ final class ConversationSession {
 
     private(set) var id: String
     private(set) var modelName = ""
+    private(set) var instructionsVersion = ""
+    private(set) var toolsVersion = ""
     private(set) var mode = ConversationMode.chat
     private(set) var effort = AgentReasoningEffort.low.rawValue
     private(set) var turnIndex = 0
@@ -84,14 +86,23 @@ final class ConversationSession {
     var usage: LanguageModelSession.Usage? { session?.usage }
     var awaitingRestoredModel: Bool { restoredTranscript != nil && session == nil }
 
+    func prepareRun(_ run: Int) {
+        if self.run != run { stopRequested = false }
+        self.run = run
+    }
+
     func generate(
         run: Int, prompt: String, policy: TurnPolicy, finalize: Bool, repair: Bool,
         send: (ConversationAction) -> Void
     ) async -> TurnEnd {
+        if run == self.run && stopRequested { return TurnEnd(kind: .stopped, outcome: "stopped", answer: "") }
         guard let session = prepare() else {
             return TurnEnd(kind: .failed("No model is loaded."), outcome: "failed", answer: "")
         }
-        send(.modelPrepared(run: run, name: modelName, location: chat.bundleURL?.path ?? ""))
+        send(
+            .modelPrepared(
+                run: run, name: modelName, location: chat.bundleURL?.path ?? "",
+                instructions: instructionsVersion, tools: toolsVersion))
         begin(run: run, policy: policy, repair: repair, session: session)
         let text = finalize ? ConversationFeature.finalized(prompt) : prompt
         let options = GenerationOptions(maximumResponseTokens: policy.maxTokens)
@@ -156,7 +167,8 @@ final class ConversationSession {
     }
 
     func stop(run: Int) {
-        guard run == self.run else { return }
+        guard run >= self.run else { return }
+        self.run = run
         stopRequested = true
         sink?.yield(.stop)
     }
@@ -206,6 +218,8 @@ final class ConversationSession {
 
     func reset(id: String) {
         self.id = id
+        run = 0
+        stopRequested = false
         session = nil
         model = nil
         restoredTranscript = nil
@@ -215,6 +229,8 @@ final class ConversationSession {
         currentDate = nil
         turnIndex = 0
         modelName = ""
+        instructionsVersion = ""
+        toolsVersion = ""
         lastGeneration = nil
         lastFinish = nil
         previous = nil
@@ -227,17 +243,24 @@ final class ConversationSession {
     func adoptID(_ id: String) { self.id = id }
 
     func restore(_ snapshot: ConversationSnapshot) throws -> ConversationSnapshot {
-        guard ["cite-fetched", "frozen"].contains(snapshot.instructionsVersion),
-            snapshot.toolsVersion
-                == AgentTools.names.dropLast(snapshot.toolsVersion.contains("move_note") ? 0 : 1).joined(separator: ",")
+        let fileOperations = snapshot.toolsVersion.contains("move_note")
+        let versions = [AgentTools.legacyNames, AgentTools.names].map {
+            $0.dropLast(fileOperations ? 0 : 1).joined(separator: ",")
+        }
+        guard ["cite-fetched", "frozen", "cite-fetched-v2", "frozen-v2"].contains(snapshot.instructionsVersion),
+            versions.contains(snapshot.toolsVersion)
         else { throw ConversationArchive.Failure.invalidSnapshot }
         let transcript = try ConversationTranscript.restore(
-            snapshot.transcript, tools: tools.tools(fileOperations: snapshot.toolsVersion.contains("move_note")))
+            snapshot.transcript,
+            tools: tools.tools(
+                fileOperations: fileOperations, splitNotes: snapshot.toolsVersion.contains("append_note")))
         reset(id: snapshot.id)
         restoredTranscript = transcript
         restoredTools = snapshot.toolsVersion
         restoredModelLocation = snapshot.modelLocation
         modelName = snapshot.modelID
+        instructionsVersion = snapshot.instructionsVersion
+        toolsVersion = snapshot.toolsVersion
         turnIndex = snapshot.turns.count
         needsPreparation = true
         var restored = snapshot
@@ -260,10 +283,15 @@ final class ConversationSession {
         let session: LanguageModelSession
         if let transcript = restoredTranscript {
             session = LanguageModelSession(
-                model: model, tools: tools.tools(fileOperations: restoredTools.contains("move_note")),
+                model: model,
+                tools: tools.tools(
+                    fileOperations: restoredTools.contains("move_note"),
+                    splitNotes: restoredTools.contains("append_note")),
                 transcript: transcript)
             restoredTranscript = nil
         } else {
+            instructionsVersion = preferences.citeFetched ? "cite-fetched-v2" : "frozen-v2"
+            toolsVersion = AgentTools.names.dropLast(preferences.fileOperations ? 0 : 1).joined(separator: ",")
             session = LanguageModelSession(
                 model: model, tools: tools.tools(fileOperations: preferences.fileOperations),
                 instructions: AgentPromptBuilder.instructions(date: date, citeFetched: preferences.citeFetched))

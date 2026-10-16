@@ -1,3 +1,4 @@
+import ConversationRuntime
 import Foundation
 import FoundationModels
 
@@ -88,9 +89,17 @@ enum AgentPromptBuilder {
         "- If a tool is not available in the current mode, say so in one sentence and answer with what you have.",
     ]
 
+    static let noteInstructions = [
+        "- For a long note, save part 1 with write_note, then append parts 2 to 4 with append_note using its note_id. Aim for 1500 characters per part; never exceed 2000. Send dependent parts separately and wait for each result.",
+        "- Keep citation numbers consistent across note parts. Use Markdown [n](URL) links or [n]: URL definitions, and cite the fetched sources in each part that uses them.",
+        "- Keep the final answer to about 3000 characters. If a note part fails, explain that it was not saved; never claim an unfinished note is complete.",
+        "- New notes stay in Draft until the task completes. move_note can move only notes from a completed task; ask for a follow-up task when a new note needs moving.",
+    ]
+
     static func instructions(date: String, citeFetched: Bool = false) -> String {
         "You are an agent running on this device." + systemPromptBody + "\n\n"
-            + (extraInstructions + (citeFetched ? citeFetchedInstructions + conversationInstructions : []))
+            + (extraInstructions + (citeFetched ? citeFetchedInstructions + conversationInstructions : [])
+            + noteInstructions)
             .joined(separator: "\n")
             + "\n\nCurrent date: " + date
     }
@@ -120,7 +129,9 @@ enum AgentPromptBuilder {
         return formatter
     }
 
-    static func tools(fileOperations: Bool, run: @escaping @Sendable (AgentToolCall) async -> String) -> [any Tool] {
+    static func tools(
+        fileOperations: Bool, splitNotes: Bool = true, run: @escaping @Sendable (AgentToolCall) async -> String
+    ) -> [any Tool] {
         var tools: [any Tool] = [
             AgentTool<WebSearchArguments>(
                 name: "web_search", description: "Search the web and return the top results as title, url and snippet.",
@@ -132,9 +143,19 @@ enum AgentPromptBuilder {
             AgentTool<WriteNoteArguments>(
                 name: "write_note",
                 description:
-                    "Save a Markdown note on this device and return the file path. Keep content under about 2,000 characters.",
+                    splitNotes
+                    ? "Save part 1 of a Markdown note as a durable draft and return its note_id and path. Aim for 1500 characters; at most 2000. Use append_note for parts 2 to 4. The app publishes the note when the turn completes."
+                    : "Save a Markdown note on this device and return the file path. Keep content under about 2,000 characters.",
                 run: run),
         ]
+        if splitNotes {
+            tools.append(
+                AgentTool<AppendNoteArguments>(
+                    name: "append_note",
+                    description:
+                        "Append the next part to a note_id from write_note. At most 4 parts, each up to 2000 characters. An identical retry is safe; missing or changed parts are refused.",
+                    run: run))
+        }
         if fileOperations {
             tools.append(
                 AgentTool<MoveNoteArguments>(
@@ -148,7 +169,8 @@ enum AgentPromptBuilder {
 
     static let argumentOrder = [
         "web_search": ["query", "max_results"], "fetch_page": ["url", "query"],
-        "write_note": ["title", "content"], "move_note": ["title", "destination"],
+        "write_note": ["title", "content"], "append_note": ["note_id", "part", "content"],
+        "move_note": ["title", "destination"],
     ]
 
     static func arguments(_ tool: String, _ content: GeneratedContent) -> [AgentArgument] {

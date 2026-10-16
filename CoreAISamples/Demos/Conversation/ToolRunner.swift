@@ -1,4 +1,5 @@
 import ConversationFeature
+import ConversationRuntime
 import Foundation
 import FoundationModels
 import Synchronization
@@ -29,7 +30,11 @@ final class ToolRunner {
     private(set) var notesWritten: [(key: String, text: String)] = []
     private(set) var draftOrder: [String] = []
     private(set) var webToolCalls = 0
-    private var draftNames: [String: String] = [:]
+    private var noteIDs: [String] = []
+    private var notePartsByID: [String: [String]] = [:]
+    private var noteReceipts: [String: NoteReceipt] = [:]
+    private var noteIDsByTitle: [String: String] = [:]
+    private var taskNotesDirectory: URL?
     let preferences: ConversationPreferences
     private nonisolated let slots = Mutex<[String: Slot]>([:])
 
@@ -37,36 +42,78 @@ final class ToolRunner {
         self.preferences = preferences
     }
 
-    var notesDirectory: URL { preferences.notesDirectory }
+    var notesDirectory: URL { taskNotesDirectory ?? preferences.notesDirectory }
+    var stopped: Bool { session?.stopRequested == true || Task.isCancelled }
+
+    var noteTextsForValidation: [String] { notesWritten.map(\.text) + notePartsByID.values.flatMap { $0 } }
 
     var evidence: ConversationEvidence {
         ConversationEvidence(
             pages: ledger.map {
                 .init(url: $0.url, finalURL: $0.finalURL, sha256: $0.sha256, characters: $0.characters)
             },
-            attempts: fetchAttempts.map { .init(url: $0.url, ok: $0.ok) }, seen: seenPages)
+            attempts: fetchAttempts.map { .init(url: $0.url, ok: $0.ok) }, seen: seenPages, noteIDs: noteIDs,
+            taskWebCalls: webToolCalls)
     }
 
-    func restoreEvidence(_ evidence: ConversationEvidence) {
+    func restoreEvidence(_ evidence: ConversationEvidence, notesDirectory: URL? = nil) {
         ledger = evidence.pages.map {
             FetchRecord(url: $0.url, finalURL: $0.finalURL, sha256: $0.sha256, characters: $0.characters)
         }
         fetchAttempts = evidence.attempts.map { FetchAttempt(url: $0.url, ok: $0.ok) }
         seenPages = evidence.seen
+        noteIDs = evidence.noteIDs ?? []
+        notesWritten = []
+        draftOrder = []
+        noteIDsByTitle = [:]
+        notePartsByID = [:]
+        noteReceipts = [:]
+        taskNotesDirectory = notesDirectory
+        webToolCalls = evidence.taskWebCalls ?? evidence.attempts.count
     }
 
-    func beginTask(guardActive: Bool) {
+    func beginTask(guardActive: Bool, continuing: Bool = false) {
         self.guardActive = guardActive
         repairFetchLimit = nil
         repairFetches = 0
-        webToolCalls = 0
-        notesWritten = []
-        draftNames = [:]
-        draftOrder = []
+        if !continuing {
+            webToolCalls = 0
+            notesWritten = []
+            noteIDs = []
+            noteIDsByTitle = [:]
+            notePartsByID = [:]
+            noteReceipts = [:]
+            draftOrder = []
+            taskNotesDirectory = preferences.notesDirectory
+        }
     }
 
-    func tools(fileOperations: Bool) -> [any Tool] {
-        AgentPromptBuilder.tools(fileOperations: fileOperations) { [weak self] call in
+    func prepareContinuation() async throws {
+        for id in noteIDs {
+            if session?.stopRequested == true { return }
+            let note = try await AgentTools.notes.read(noteID: id, directory: notesDirectory)
+            recordNote(note, replacingTitle: false)
+        }
+    }
+
+    func finishNotes(commit: Bool, reason: String) async throws -> [String] {
+        guard commit else {
+            try await AgentTools.notes.hold(noteIDs: draftOrder, reason: reason, directory: notesDirectory)
+            return []
+        }
+        var warnings: [String] = []
+        for id in noteIDs {
+            guard !stopped else { throw CancellationError() }
+            guard let checked = noteReceipts[id] else { throw NoteStorageError.missing }
+            let note = try await AgentTools.notes.publish(checked, directory: notesDirectory)
+            recordNote(note, replacingTitle: false)
+            if let warning = note.warning { warnings.append(warning) }
+        }
+        return warnings
+    }
+
+    func tools(fileOperations: Bool, splitNotes: Bool = true) -> [any Tool] {
+        AgentPromptBuilder.tools(fileOperations: fileOperations, splitNotes: splitNotes) { [weak self] call in
             await self?.call(call) ?? ConversationFeature.endedRefusal
         }
     }
@@ -146,14 +193,13 @@ final class ToolRunner {
     }
 
     func execute(_ call: AgentToolCall) async -> String {
-        let settings = preferences.toolSettings
+        var settings = preferences.toolSettings
+        settings.notesDirectory = notesDirectory
         await session?.snapshotTokens()
         let start = Date()
         let output: AgentToolOutput
         if call.name == "fetch_page", !reserveRepairFetch() {
             output = AgentToolOutput(text: Self.repairFetchLimitText)
-        } else if call.name == "write_note", let draft = writeDraft(call) {
-            output = draft
         } else {
             output = await AgentTools.run(call, settings: settings)
         }
@@ -168,29 +214,27 @@ final class ToolRunner {
         return true
     }
 
-    private func writeDraft(_ call: AgentToolCall) -> AgentToolOutput? {
-        guard guardActive else { return nil }
-        let title = call.value("title") ?? ""
-        let content = call.value("content") ?? ""
-        guard !content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            return AgentToolOutput(text: "error: write_note needs a content parameter")
+    private func recordNote(_ note: NoteReceipt, replacingTitle: Bool) {
+        let title = AgentTools.noteFileName(note.title)
+        if replacingTitle, let previous = noteIDsByTitle[title], previous != note.id {
+            noteIDs.removeAll { $0 == previous }
+            notePartsByID[previous] = nil
+            noteReceipts[previous] = nil
+            notesWritten.removeAll { $0.key == previous }
+            draftOrder.removeAll { $0 == previous }
         }
-        let key = AgentTools.noteFileName(title)
-        do {
-            let name = try AgentTools.writeDraft(
-                title: title, content: content, notesDirectory: notesDirectory,
-                replacing: repairFetchLimit != nil ? draftNames[key] : nil)
-            draftNames[key] = name
-            if !draftOrder.contains(name) { draftOrder.append(name) }
-            return AgentToolOutput(
-                text: AgentTools.savedText(
-                    notesDirectory.appending(path: name).path(percentEncoded: false),
-                    stable: preferences.stableNotePaths))
-        } catch let failure as AgentToolMessage {
-            return AgentToolOutput(text: failure.text)
-        } catch {
-            return AgentToolOutput(text: "error: write_note failed (\(error))")
+        noteIDsByTitle[title] = note.id
+        notePartsByID[note.id] = note.parts
+        noteReceipts[note.id] = note
+        if !noteIDs.contains(note.id) { noteIDs.append(note.id) }
+        let text = note.title + "\n" + note.content
+        if let index = notesWritten.firstIndex(where: { $0.key == note.id }) {
+            notesWritten[index].text = text
+        } else {
+            notesWritten.append((note.id, text))
         }
+        draftOrder.removeAll { $0 == note.id }
+        if note.draft { draftOrder.append(note.id) }
     }
 
     private func record(_ call: AgentToolCall, _ output: AgentToolOutput, start: Date, end: Date) {
@@ -203,13 +247,8 @@ final class ToolRunner {
                     url: (call.value("url") ?? "").trimmingCharacters(in: .whitespacesAndNewlines), ok: page != nil))
         }
         if call.name == "web_search" || call.name == "fetch_page" { webToolCalls += 1 }
-        if call.name == "write_note", output.text.hasPrefix("saved to ") {
-            let text = (call.value("title") ?? "") + "\n" + (call.value("content") ?? "")
-            if let index = notesWritten.firstIndex(where: { $0.key == output.text }) {
-                notesWritten[index].text = text
-            } else {
-                notesWritten.append((output.text, text))
-            }
+        if let note = output.note {
+            recordNote(note, replacingTitle: call.name == "write_note" && repairFetchLimit != nil)
         }
         session?.updateEvidence(evidence)
         log(call, output, start: start, end: end)

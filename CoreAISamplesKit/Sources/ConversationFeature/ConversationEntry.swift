@@ -9,6 +9,7 @@ public struct ConversationEntry: Equatable, Identifiable, Sendable {
         case stepLimit(steps: Int, fetched: [String], saved: [String], open: [String])
         case stopped(partial: Bool)
         case tokenLimit(Int)
+        case cutToolCall(name: String?, note: Bool)
         case noAnswer
         case failure
     }
@@ -43,8 +44,37 @@ extension ConversationEntry {
     static let noAnswerText = "(no answer text)"
     static let limitTitle = "Ended at the step limit"
 
-    static func render(_ transcript: TranscriptRecord, _ turns: [ConversationTurn], live: Bool) -> [ConversationEntry] {
-        turns.indices.flatMap { render(turn: $0, of: turns, in: transcript, live: live) }
+    static func render(
+        _ transcript: TranscriptRecord, _ turns: [ConversationTurn], live: Bool,
+        mergeContinuations: Bool = true
+    ) -> [ConversationEntry] {
+        var output: [ConversationEntry] = []
+        for number in turns.indices {
+            let rows = render(turn: number, of: turns, in: transcript, live: live)
+            guard mergeContinuations, turns[number].kind == .continuation,
+                let previous = output.lastIndex(where: { $0.kind == .answer && $0.detail != .noAnswer })
+            else {
+                output += rows
+                continue
+            }
+            var answer = output.remove(at: previous)
+            if number > 0, turns[number - 1].kind != .continuation {
+                answer.text = transcript.entries.first(where: { $0.id == answer.id })?.response ?? answer.text
+            }
+            output.removeAll { $0.id == "cap-\(number - 1)" }
+            let additions = rows.filter { $0.kind == .answer && $0.detail != .noAnswer }
+            for addition in additions {
+                answer.text += transcript.entries.first(where: { $0.id == addition.id })?.response ?? addition.text
+                answer.live = addition.live
+                if let stats = addition.stats {
+                    answer.stats = [answer.stats, stats].compactMap { $0 }.joined(separator: "\n")
+                }
+            }
+            output += rows.filter { [.thinking, .toolCall, .toolResult].contains($0.kind) }
+            output.append(answer)
+            output += rows.filter { [.failure, .note].contains($0.kind) }
+        }
+        return output
     }
 
     private static func render(
@@ -111,12 +141,28 @@ extension ConversationEntry {
                     detail: .failure))
         }
         if answered, turn.finish == .cap {
-            out.append(
-                ConversationEntry(
-                    id: "cap-\(number)", kind: .failure, title: "Answer cut at the token limit (\(policy.maxTokens))",
-                    text:
-                        "The answer above stops where generation ran out of tokens. Raise Max tokens or ask for something shorter.",
-                    detail: .tokenLimit(policy.maxTokens)))
+            let lastText = records[min(turn.start + 1, end)..<end].compactMap(\.response).last ?? ""
+            if let cut = IncompleteToolCall.find(in: lastText) {
+                let tool = cut.name ?? "tool"
+                out.append(
+                    ConversationEntry(
+                        id: "cap-\(number)", kind: .failure,
+                        title: cut.isNote ? "Note was not saved" : "Tool call was not executed",
+                        text: cut.isNote
+                            ? (tool == "write_note"
+                                ? "The write_note call was cut at the token limit; the note was not saved."
+                                : "The append_note call was cut at the token limit; the new part was not saved. Earlier parts are preserved.")
+                            : "The tool call was cut at the token limit and was not executed.",
+                        detail: .cutToolCall(name: cut.name, note: cut.isNote)))
+            } else {
+                out.append(
+                    ConversationEntry(
+                        id: "cap-\(number)", kind: .failure,
+                        title: "Answer cut at the token limit (\(policy.maxTokens))",
+                        text:
+                            "The answer above stops where generation ran out of tokens. Raise Max tokens or ask for something shorter.",
+                        detail: .tokenLimit(policy.maxTokens)))
+            }
         }
         out += turn.notes.enumerated().map { index, note in
             ConversationEntry(

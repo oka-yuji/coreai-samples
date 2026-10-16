@@ -58,6 +58,7 @@ struct ConversationFeatureTests {
         #expect(policy.allowedTools == ["web_search", "fetch_page"])
         #expect(["web_search", "fetch_page"].map(policy.refusal(for:)) == [nil, nil])
         #expect(policy.refusal(for: "write_note") == "error: saving notes needs Work mode")
+        #expect(policy.refusal(for: "append_note") == "error: saving notes needs Work mode")
         #expect(policy.refusal(for: "move_note") == "error: saving notes needs Work mode")
 
         var state = started(.chat)
@@ -83,7 +84,7 @@ struct ConversationFeatureTests {
 
     @Test("Work mode allows every tool and keeps the step limit, the token limit and the expanded display")
     func workAllowsEveryTool() {
-        let tools = ["web_search", "fetch_page", "write_note", "move_note"]
+        let tools = ["web_search", "fetch_page", "write_note", "append_note", "move_note"]
         let work = TurnPolicy(.work, settings: ConversationSettings())
         #expect(work.allowedTools == Set(tools) && work.refusedTools.isEmpty)
         #expect(tools.allSatisfy { work.refusal(for: $0) == nil })

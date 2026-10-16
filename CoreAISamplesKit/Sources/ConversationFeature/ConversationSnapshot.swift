@@ -12,7 +12,9 @@ public struct ConversationSnapshot: Codable, Equatable, Sendable {
         public var generatedTokens: Int
     }
 
-    public static let currentFormatVersion = 1
+    public static let currentFormatVersion = 2
+
+    public static func supports(version: Int) -> Bool { (1...currentFormatVersion).contains(version) }
 
     public var formatVersion: Int
     public var id: String
@@ -70,7 +72,7 @@ public struct ConversationSnapshot: Codable, Equatable, Sendable {
             "- status: \(status.rawValue)",
             "",
         ]
-        for entry in ConversationEntry.render(transcript, turns, live: false) {
+        for entry in ConversationEntry.render(transcript, turns, live: false, mergeContinuations: false) {
             switch entry.kind {
             case .user:
                 lines += ["## You", "", entry.text, ""]

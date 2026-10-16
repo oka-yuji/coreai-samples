@@ -62,7 +62,9 @@ struct ConversationSnapshotTests {
 
         let saved = try #require(snapshot(last[2]))
         #expect(saved == ConversationSnapshot(state))
-        #expect(saved.formatVersion == 1 && saved.status == .completed && saved.updatedAt == launch + 120)
+        #expect(
+            saved.formatVersion == ConversationSnapshot.currentFormatVersion && saved.status == .completed
+                && saved.updatedAt == launch + 120)
         #expect(saved.turns.map(\.mode) == [.chat, .work, .chat] && saved.turns.map(\.start) == [1, 4, 10])
         #expect(saved.metrics.steps == 5 && saved.metrics.promptTokens == 800 && saved.metrics.generatedTokens == 150)
         let data = try JSONEncoder().encode(saved)

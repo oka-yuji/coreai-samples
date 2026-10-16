@@ -53,6 +53,7 @@ struct ConversationStatusTests {
             return state
         }
         #expect(ended("maxTokens", reserved: 300).contextEndReserved == 300)
+        #expect(!ConversationFeature.continueEligibility(ended("maxTokens", reserved: 300)))
         #expect(ended("maxTokens", reserved: 9_000).contextEndReserved == nil)
         #expect(ended("maxTokens", reserved: nil).contextEndReserved == nil)
         #expect(ended("stopToken", reserved: 300).contextEndReserved == nil)
