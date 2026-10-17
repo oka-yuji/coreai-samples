@@ -67,7 +67,6 @@ The subsequent message-legibility feedback adds distinct message lanes: user mes
 
 The acceptance conditions and the build-fix dependency are in Issue 143. Validation is recorded in [the layout evidence](../validation/conversation-layout-20261016.md). Earlier GUI evidence above predates this layout and does not verify its appearance.
 
-
 ## Model names in demo titles
 
 The user's 2026-10-17 request, tracked in Issue 164 and PR 163, makes the model the primary title of each demo. The display contract is:
@@ -80,7 +79,7 @@ The user's 2026-10-17 request, tracked in Issue 164 and PR 163, makes the model 
 | Image search and camera object finding | EmbeddingGemma 2 |
 | Mac and iPhone speech generation | Irodori |
 
-Model names share one nontranslatable String Catalog key each. A feature-name key must not be retained as an alias translated to a model name. Titles no longer in use are removed; Chat/Work modes and functional action labels retain their original localized meaning.
+Navigation titles and persistent page headings use the same model name; the workflow remains a subordinate heading or explanation. Model names share one nontranslatable String Catalog key each. A feature-name key must not be retained as an alias translated to a model name. Titles no longer in use are removed; Chat/Work modes and functional action labels retain their original localized meaning.
 
 The Mac sidebar's existing descriptions distinguish multiple demos using the same model. The iPhone Demos menu groups actions under model-name sections, retaining separate image-search/camera and inspection/extraction actions. Model management, app/sidebar headings, diagnostic screens, editing sheets, photo filenames and user-authored conversation titles remain named for their own context. Recipes still uses Apple's on-device Foundation Models for photos and Clef for decisions; the primary title identifies the decision model.
 

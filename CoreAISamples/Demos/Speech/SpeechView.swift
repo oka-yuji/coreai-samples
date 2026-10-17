@@ -9,7 +9,8 @@ struct SpeechView: View {
         VStack(alignment: .leading, spacing: 18) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 5) {
-                    Text("Text to speech").font(.title2.bold())
+                    Text("Irodori").font(.title2.bold())
+                    Text("Text to speech").font(.headline)
                     Text(store.state.model?.name ?? "Open an Irodori model folder to begin.")
                         .font(.callout).foregroundStyle(.secondary).textSelection(.enabled)
                 }

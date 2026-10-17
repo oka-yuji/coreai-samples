@@ -61,7 +61,8 @@ struct ProductComparisonView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Compare product descriptions").font(.title2.bold())
+                    Text("GLiNER2.5-multi").font(.title2.bold())
+                    Text("Compare product descriptions").font(.headline)
                     Text("Bring the specs together. Keep the source within reach.")
                         .font(.callout).foregroundStyle(.secondary)
                 }

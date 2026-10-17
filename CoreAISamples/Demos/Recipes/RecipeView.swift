@@ -61,7 +61,8 @@ struct RecipeView: View {
     private var header: some View {
         HStack(spacing: 16) {
             VStack(alignment: .leading, spacing: 4) {
-                Text("Cook with what you have").font(.title2.bold())
+                Text("Clef-Flash 9B").font(.title2.bold())
+                Text("Cook with what you have").font(.headline)
                 Text("A photo, a recipe, and an inventory you have checked.")
                     .font(.callout).foregroundStyle(.secondary)
             }

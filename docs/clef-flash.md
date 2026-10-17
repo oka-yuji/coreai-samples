@@ -16,10 +16,10 @@ From this repository's root, use the [Hugging Face CLI](https://huggingface.co/d
 hf download okayuji/clef-flash-9b-coreai-decide --local-dir ./models/clef-flash-9b-decide-v1
 ```
 
-Open `CoreAISamples.xcodeproj`, choose the **CoreAISamples** scheme and **My Mac**, set the Run build configuration to **Release**, and run. In **Decide** or **Recipes**, open `models/clef-flash-9b-decide-v1`, the folder containing `decision.json`.
+Open `CoreAISamples.xcodeproj`, choose the **CoreAISamples** scheme and **My Mac**, set the Run build configuration to **Release**, and run. In either **Clef-Flash 9B** sidebar entry (document checklist or recipe checks), open `models/clef-flash-9b-decide-v1`, the folder containing `decision.json`.
 
-- **Decide:** choose **Examples → Maintenance agreement → Run checklist**. Edit questions and run again to reuse the document. See the [Decide guide](decide.md).
-- **Recipes:** choose a bundled fridge example, review the ingredient names and amounts, confirm them, and **Check recipe**. See the [five-photo walkthrough](recipes-demo.md).
+- **Document checklist:** choose **Examples → Maintenance agreement → Run checklist**. Edit questions and run again to reuse the document. See the [Decide guide](decide.md).
+- **Recipe checks:** choose a bundled fridge example, review the ingredient names and amounts, confirm them, and **Check recipe**. See the [five-photo walkthrough](recipes-demo.md).
 
 The built app also runs the recorded request without opening a window. Set `DECIDE_APP` to its executable:
 
