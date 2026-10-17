@@ -36,7 +36,7 @@ The implementation work is tracked by issues #120, #121 and #122 under #123. The
 
 ## iPhone screen
 
-Open **Truck inspection** in the iPhone app, or launch it with `--truck-inspection`. Choose the equipment profile before starting. Answer buttons work without a model. A free-form answer outside the exact vocabulary needs a model folder in Documents: `contract.json`, one `.aimodel`, and `tokenizer.json` either at the top level or under `tokenizer/`. The app enumerates folders at launch, so relaunch after copying one. The model section lists the available folders; the first is prepared when the screen opens.
+Open **Truck inspection** under the **GLiNER2.5-multi** section of the iPhone app's Demos menu, or launch it with `--truck-inspection`. Choose the equipment profile before starting. Answer buttons work without a model. A free-form answer outside the exact vocabulary needs a model folder in Documents: `contract.json`, one `.aimodel`, and `tokenizer.json` either at the top level or under `tokenizer/`. The app enumerates folders at launch, so relaunch after copying one. The model section lists the available folders; the first is prepared when the screen opens.
 
 The model section reports load milliseconds and the requested compute preference. The app default is GPU; `--compute-units default` requests automatic placement. This label is not evidence of the hardware actually used. Inspect Core AI Instruments on the device to verify execution placement.
 
@@ -46,7 +46,7 @@ The inspection is kept in memory while the app runs. Share the record before ter
 
 ## Japanese voice input
 
-From the Demos menu, open Truck inspection. After the model is ready, start Japanese voice input. Speech recognition and microphone permissions are requested before the first question. Recognition requires a recognizer whose actual locale is Japanese (Japan), supports on-device recognition, and is currently available. The app never requests a server fallback. An installed Japanese system voice reads the questions.
+From the Demos menu, open **GLiNER2.5-multi → Truck inspection**. After the model is ready, start Japanese voice input. Speech recognition and microphone permissions are requested before the first question. Recognition requires a recognizer whose actual locale is Japanese (Japan), supports on-device recognition, and is currently available. The app never requests a server fallback. An installed Japanese system voice reads the questions.
 
 Questions, answers, confirmations and acknowledgments use the same feature state as tap input. Every model suggestion is confirmed. Explicit choices are repeated before moving on. Two empty answers, two ambiguous confirmations, or two consecutive playback deadlines return to buttons without fabricating a result. Falling back during an acknowledgment selects the next unanswered item and preserves the result already recorded.
 

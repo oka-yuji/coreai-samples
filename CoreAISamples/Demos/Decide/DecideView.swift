@@ -36,7 +36,7 @@ struct DecideView: View {
             status
         }
         .padding(20)
-        .demoNavigationTitle("Decide")
+        .demoNavigationTitle("Clef-Flash 9B")
         .onAppear { store.send(.appeared) }
         .onDisappear { store.send(.ended) }
         .fileImporter(isPresented: $importingDocument, allowedContentTypes: [.plainText, .text]) { result in

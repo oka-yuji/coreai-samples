@@ -43,7 +43,7 @@ struct ConversationView: View {
                 }
             }
         }
-        .demoNavigationTitle(host.state.mode == .chat ? "Chat" : "Work")
+        .navigationTitle(modelTitle)
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {
                 Button("Copy conversation", systemImage: "doc.on.doc", action: copy)
@@ -69,6 +69,11 @@ struct ConversationView: View {
             }
         }
         .onChange(of: host.state.id) { showSettings = false }
+    }
+
+    private var modelTitle: Text {
+        let name = host.state.modelID.isEmpty ? chat.modelName : host.state.modelID
+        return Text(verbatim: name.isEmpty ? DemoStrings(locale: locale).text("Choose model") : name)
     }
 
     @ViewBuilder

@@ -39,7 +39,7 @@
                         Text("Checklist sources")
                     }
                 }
-                .navigationTitle("Truck inspection")
+                .navigationTitle("GLiNER2.5-multi")
                 .toolbar {
                     ToolbarItem(placement: .confirmationAction) {
                         Button("Done") { dismiss() }

@@ -1,6 +1,6 @@
 # Irodori Speech on iPhone
 
-`SpeechPhone` is a separate iOS 27 app, displayed as **Irodori Speech**, with bundle identifier `com.coreai-samples.SpeechPhone`. It reuses the pinned FP32 speech runtime and can coexist with the Mac demos and the existing Extract iPhone app. Its source is in SpeechPhone, with a dedicated target and scheme alongside the Mac and existing iPhone app.
+`SpeechPhone` is a separate iOS 27 app, displayed as **Irodori Speech**, with bundle identifier `com.coreai-samples.SpeechPhone`. Its demo screen is titled **Irodori**. It reuses the pinned FP32 speech runtime and can coexist with the Mac demos and the existing Extract iPhone app. Its source is in SpeechPhone, with a dedicated target and scheme alongside the Mac and existing iPhone app.
 
 The integration check on October 16, 2026 passed the signed SpeechPhone Release build, Mac and existing iPhone regression builds, CPU tests, lint and format. The generated app contains both file-sharing keys and the increased-memory-limit entitlement. A fresh device-info read reported iOS 27.0.1 and a connected tunnel. Model execution, audible playback, WAV export on the device and personal listening acceptance remain unverified. The October 13 connection failure is retained in the validation record as historical evidence.
 

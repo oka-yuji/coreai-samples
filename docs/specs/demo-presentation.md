@@ -66,3 +66,22 @@ The user's second review on 2026-10-16 specifies the same-row placement and Liqu
 The subsequent message-legibility feedback adds distinct message lanes: user messages align to the trailing edge with an accent-tinted bubble, and assistant answers align to the leading edge with a neutral bubble. Both retain visible role labels, selectable text, wrapping and bounded line width. The layout reserves space on the opposite side even in a narrow window. Thinking, tool activity and failure notices retain their existing labels. The [step-limit investigation](../research/chat-step-limit-20261016.md) is separate from this presentation contract and does not change generation policy.
 
 The acceptance conditions and the build-fix dependency are in Issue 143. Validation is recorded in [the layout evidence](../validation/conversation-layout-20261016.md). Earlier GUI evidence above predates this layout and does not verify its appearance.
+
+
+## Model names in demo titles
+
+The user's 2026-10-17 request, tracked in Issue 164 and PR 163, makes the model the primary title of each demo. The display contract is:
+
+| Demo | Primary title |
+| --- | --- |
+| Conversation (Chat and Work) | Saved conversation model name; otherwise the selected model name; Choose model if neither is known |
+| Document checklist and recipe checks | Clef-Flash 9B |
+| Product comparisons, extraction lab and truck inspection | GLiNER2.5-multi |
+| Image search and camera object finding | EmbeddingGemma 2 |
+| Mac and iPhone speech generation | Irodori |
+
+Model names share one nontranslatable String Catalog key each. A feature-name key must not be retained as an alias translated to a model name. Titles no longer in use are removed; Chat/Work modes and functional action labels retain their original localized meaning.
+
+The Mac sidebar's existing descriptions distinguish multiple demos using the same model. The iPhone Demos menu groups actions under model-name sections, retaining separate image-search/camera and inspection/extraction actions. Model management, app/sidebar headings, diagnostic screens, editing sheets, photo filenames and user-authored conversation titles remain named for their own context. Recipes still uses Apple's on-device Foundation Models for photos and Clef for decisions; the primary title identifies the decision model.
+
+The change is presentation only: demo IDs, launch arguments, input, state ownership, model loading and saved data are unchanged. The proposed model-first navigation redesign in the separate draft is not part of this change. Verification uses source/reference and duplicate-key audits, compiled catalog lookups in English/Japanese, the runtime localization check, repository lint/tests, and builds of all three app targets. Live inference and iPhone visual acceptance are separate from these checks.

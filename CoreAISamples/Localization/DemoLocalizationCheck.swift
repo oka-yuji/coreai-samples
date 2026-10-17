@@ -7,7 +7,11 @@ import RecipeFeature
 enum DemoLocalizationCheck {
     static func run() {
         do {
-            var keys = Demo.allCases.flatMap { [$0.title, $0.summary] }
+            let modelNames = Set(Demo.allCases.filter { $0 != .chat && $0 != .models }.map(\.title))
+            var keys = Demo.allCases.map(\.summary) + [Demo.chat.title, Demo.models.title]
+            keys += [
+                "Chat", "Work", "Image search", "Truck inspection", "Extraction lab", "Find objects with the camera",
+            ]
             keys += AgentReasoningEffort.allCases.map(\.label)
             keys += DecideQuestionKind.allCases.map(\.title)
             keys += try RecipeAssembly.examples().map(\.title)
@@ -39,6 +43,13 @@ enum DemoLocalizationCheck {
             ]
             keys += Catalog.models.flatMap { [$0.memory, $0.platforms] }
             var failures: [String] = []
+            for name in modelNames.sorted() {
+                for language in ["en", "ja"] {
+                    let displayed = Bundle.main.localizedString(
+                        forKey: name, value: nil, table: nil, localizations: [Locale.Language(identifier: language)])
+                    if displayed != name { failures.append("\(language): \(name)") }
+                }
+            }
             for key in Set(keys).sorted() {
                 let translated = Bundle.main.localizedString(
                     forKey: key, value: nil, table: nil, localizations: [Locale.Language(identifier: "ja")])

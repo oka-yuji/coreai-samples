@@ -106,7 +106,7 @@ struct SpeechPhoneView: View {
                 }
             }
             .scrollDismissesKeyboard(.interactively)
-            .navigationTitle("Irodori Speech")
+            .navigationTitle("Irodori")
             .toolbar {
                 ToolbarItemGroup(placement: .keyboard) {
                     Spacer()

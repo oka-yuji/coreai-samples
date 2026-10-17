@@ -47,7 +47,7 @@ struct RecipeView: View {
             Divider()
             footer
         }
-        .demoNavigationTitle("Recipes")
+        .demoNavigationTitle("Clef-Flash 9B")
         .onAppear { store.send(.appeared) }
         .onDisappear { store.send(.ended) }
         .fileImporter(isPresented: $importingPhoto, allowedContentTypes: [.image]) { result in

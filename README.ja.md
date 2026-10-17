@@ -4,6 +4,8 @@
 
 Apple の Core AI と Foundation Models で、オープンなモデルを Mac 上で動かす Swift のサンプルです。**Chat** と **Agent** は Qwen3.8 27B で動き、Agent は Web を検索し、ページを読み、メモを保存します。**Recipes** は冷蔵庫の写真の食材とレシピの URL を照らし合わせ、**Decide** は文書を編集できるチェックリストで採点します。この 2 つは Clef-Flash 9B を使います。**Extract** は GLiNER2.5-multi で商品説明から出典つきのスペックのカードを作ります。`Tools/Verify` は、このリポジトリのランタイムと Apple のランタイムをトークン単位で比べます。
 
+デモの主タイトルは **Clef-Flash 9B**、**GLiNER2.5-multi**、**EmbeddingGemma 2**、**Irodori** に統一しています。会話には選択中または保存済みのモデル名を表示します。同じモデルの複数デモは、サイドバーの説明やiPhoneメニューのモデル別セクションで区別します。ChatとWorkは会話のモード名です。
+
 ## 対象読者
 
 - **向いている**: Mac 上で 27B のチャットモデルと Web を閲覧するエージェントを `LanguageModelSession` からローカルに動かし、その裏づけの計測も確かめたい Swift 開発者。
@@ -32,7 +34,7 @@ hf download okayuji/Qwen3.8-27B-coreai-4bit --revision 8e24aebe036eae577d4a3bd01
   --local-dir ./models/qwen3.8-27b-coreai-4bit
 ```
 
-`CoreAISamples.xcodeproj` を開き、**CoreAISamples** スキームと **My Mac** を選んで実行します(このスキームは Release でビルドします)。**モデル管理**(Models)で **フォルダを開く…**(Open Folder…)を選び、`models/qwen3.8-27b-coreai-4bit` を選んで **読み込む**(Load)を押します。初回の読み込みは M4 Max で 86.87 秒かかり、そのうち 82.84 秒が GPU 向けの準備でした。2 回目以降は 3.6〜10.3 秒でした。あとは **チャット**(Chat)で話しかけるか、**エージェント**(Agent)に Web が要る課題を渡します。**モデル管理**から同じ固定の revision を直接ダウンロードすることもできます。*Qwen3.8 27B (4bit)* の横の **ダウンロード**(Download)は、すべてのファイルを Hub の値と照合します。画面の表示は右上の **EN / JP** で切り替えられます。
+`CoreAISamples.xcodeproj` を開き、**CoreAISamples** スキームと **My Mac** を選んで実行します(このスキームは Release でビルドします)。**モデル管理**(Models)で **フォルダを開く…**(Open Folder…)を選び、`models/qwen3.8-27b-coreai-4bit` を選んで **読み込む**(Load)を押します。初回の読み込みは M4 Max で 86.87 秒かかり、そのうち 82.84 秒が GPU 向けの準備でした。2 回目以降は 3.6〜10.3 秒でした。会話のタイトルにはモデル名を表示します。**チャット**(Chat)モードで話しかけるか、**ワーク**(Work)モードにWebが要る課題を渡します。**モデル管理**から同じ固定の revision を直接ダウンロードすることもできます。*Qwen3.8 27B (4bit)* の横の **ダウンロード**(Download)は、すべてのファイルを Hub の値と照合します。画面の表示は右上の **EN / JP** で切り替えられます。
 
 コマンドラインでは、`CoreAISamplesKit` フォルダで次を実行します。
 
@@ -119,9 +121,9 @@ hf download okayuji/clef-flash-9b-coreai-decide --local-dir ./models/clef-flash-
 
 `CoreAISamples.xcodeproj` を開き、**CoreAISamples** スキームと **My Mac** を選び、実行の構成を **Release** にして実行します。右上の **EN / JP** で、Mac の 6 つの画面の表示がすべて切り替わります。
 
-**レシピ判定**(Recipes)で **Clef-Flashのフォルダを選択**(Open Clef-Flash bundle)を選び、`models/clef-flash-9b-decide-v1` を選びます。**サンプル → 卵3個の卵焼き**(Examples → Three-egg omelette)を選び、提案された卵の数量を `1 pcs` にして確定し、**レシピを判定**(Check recipe)を押します。レシピには卵が 3 個要るので、確定した在庫では 2 個足りません。同梱の 5 枚の写真とレシピの URL は [Recipes の手順](docs/recipes-demo.md)にあります。写真と在庫は Mac から出ません。レシピの URL の取得にはインターネット接続が要ります。
+サイドバーでレシピの説明が付いた **Clef-Flash 9B** を開き、**Clef-Flashのフォルダを選択**(Open Clef-Flash bundle)を選び、`models/clef-flash-9b-decide-v1` を選びます。**サンプル → 卵3個の卵焼き**(Examples → Three-egg omelette)を選び、提案された卵の数量を `1 pcs` にして確定し、**レシピを判定**(Check recipe)を押します。レシピには卵が 3 個要るので、確定した在庫では 2 個足りません。同梱の 5 枚の写真とレシピの URL は [Recipes の手順](docs/recipes-demo.md)にあります。写真と在庫は Mac から出ません。レシピの URL の取得にはインターネット接続が要ります。
 
-**条件判定**(Decide)で同じバンドルを開き、**サンプル → 保守契約**(Examples → Maintenance agreement)を選んで **条件を判定**(Run checklist)を押します。質問を編集してもう一度実行すると、文書を使い回します。確認の付け方、JSON の書き出し、Swift の API は [Decide の説明](docs/decide.md)にあります。
+サイドバーで文書チェックリストの説明が付いた **Clef-Flash 9B** を開き、同じバンドルを選んで、**サンプル → 保守契約**(Examples → Maintenance agreement)を選んで **条件を判定**(Run checklist)を押します。質問を編集してもう一度実行すると、文書を使い回します。確認の付け方、JSON の書き出し、Swift の API は [Decide の説明](docs/decide.md)にあります。
 
 ## 自分でバンドルを変換する
 

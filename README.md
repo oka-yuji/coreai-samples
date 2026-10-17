@@ -4,6 +4,8 @@
 
 Swift samples that run open models on a Mac through Apple's Core AI and Foundation Models. **Chat** and **Agent** run Qwen3.8 27B; the agent searches the web, reads pages and saves notes. **Recipes** compares a fridge photo's ingredients with a recipe URL and **Decide** scores a document against an editable checklist, both with Clef-Flash 9B. **Extract** turns product descriptions into source-linked specification cards with GLiNER2.5-multi. `Tools/Verify` compares this repository's runtime with Apple's own, token by token.
 
+Demo titles use model names: **Clef-Flash 9B**, **GLiNER2.5-multi**, **EmbeddingGemma 2**, and **Irodori**. The conversation title shows its selected or saved model. Sidebar descriptions and the iPhone menu's model sections distinguish each model's demos; Chat and Work remain conversation modes.
+
 ## Who this is for
 
 - **For** Swift developers who want a 27B chat model and a web-browsing agent running locally on a Mac through `LanguageModelSession`, with the measurements behind them.
@@ -32,7 +34,7 @@ hf download okayuji/Qwen3.8-27B-coreai-4bit --revision 8e24aebe036eae577d4a3bd01
   --local-dir ./models/qwen3.8-27b-coreai-4bit
 ```
 
-Open `CoreAISamples.xcodeproj`, choose the **CoreAISamples** scheme and **My Mac**, and run; the scheme builds Release. In **Models**, choose **Open Folder…**, select `models/qwen3.8-27b-coreai-4bit` and press **Load**. The first load took 86.87 s on an M4 Max, 82.84 s of it preparing the model for the GPU; later loads took 3.6–10.3 s. Then talk to it in **Chat**, or give **Agent** a task that needs the web. **Models** can also download the same pinned revision itself: **Download** next to *Qwen3.8 27B (4bit)* checks every file against the Hub.
+Open `CoreAISamples.xcodeproj`, choose the **CoreAISamples** scheme and **My Mac**, and run; the scheme builds Release. In **Models**, choose **Open Folder…**, select `models/qwen3.8-27b-coreai-4bit` and press **Load**. The first load took 86.87 s on an M4 Max, 82.84 s of it preparing the model for the GPU; later loads took 3.6–10.3 s. The conversation title shows the model name; use **Chat** mode for conversation or **Work** mode for a task that needs the web. **Models** can also download the same pinned revision itself: **Download** next to *Qwen3.8 27B (4bit)* checks every file against the Hub.
 
 Chat defaults to 16 generation steps per reply; Work keeps its separate default of eight. In the conversation settings, **Max steps per reply** changes the selected mode's limit from 1 to 64. Each new question starts a fresh budget. If research exhausts it, the app makes one extra answer attempt with tools and reasoning disabled, using the information already collected. **Stop** still cancels the request. See the [budget contract and checks](docs/specs/conversation-step-budget.md).
 
@@ -121,9 +123,9 @@ hf download okayuji/clef-flash-9b-coreai-decide --local-dir ./models/clef-flash-
 
 Open `CoreAISamples.xcodeproj`, choose the **CoreAISamples** scheme and **My Mac**, set the Run build configuration to **Release**, and run. The **EN / JP** control at the top right switches every Mac screen.
 
-In **Recipes**, choose **Open Clef-Flash bundle** and select `models/clef-flash-9b-decide-v1`. Try **Examples → Three-egg omelette**, review the suggested egg as `1 pcs`, confirm it, then **Check recipe**. The recipe needs three eggs, so the confirmed inventory is two short. Follow the [Recipes walkthrough](docs/recipes-demo.md) for all five bundled photos and recipe URLs. Photos and inventory stay on the Mac; fetching a recipe URL needs an internet connection.
+In the **Clef-Flash 9B** sidebar entry for recipe checks, choose **Open Clef-Flash bundle** and select `models/clef-flash-9b-decide-v1`. Try **Examples → Three-egg omelette**, review the suggested egg as `1 pcs`, confirm it, then **Check recipe**. The recipe needs three eggs, so the confirmed inventory is two short. Follow the [Recipes walkthrough](docs/recipes-demo.md) for all five bundled photos and recipe URLs. Photos and inventory stay on the Mac; fetching a recipe URL needs an internet connection.
 
-In **Decide**, open the same bundle, choose **Examples → Maintenance agreement**, then **Run checklist**. Edit a question and run again to reuse the document. The [Decide guide](docs/decide.md) covers review, JSON export and the Swift API.
+In the **Clef-Flash 9B** sidebar entry for document checklists, open the same bundle, choose **Examples → Maintenance agreement**, then **Run checklist**. Edit a question and run again to reuse the document. The [Decide guide](docs/decide.md) covers review, JSON export and the Swift API.
 
 ## Convert your own bundle
 

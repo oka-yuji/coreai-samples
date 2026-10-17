@@ -4,7 +4,7 @@ Specification v1, 2026-10-14. The user selected “product descriptions to speci
 
 ## Behavior
 
-Extract opens **Product notes** on Mac and iPhone. **Add a product** accepts an official HTTPS URL or pasted description, and creates one card from the captured page/text. A model folder must be selected first. Cards are kept in memory, up to four, with the same attribute order: chip/processor, memory, storage, display, weight, battery life and price. The page title or supplied title identifies the card; the model's product span is a fallback.
+The product comparison demo is titled **GLiNER2.5-multi** on Mac and iPhone. The Mac sidebar description identifies the product comparison workflow. **Add a product** accepts an official HTTPS URL or pasted description, and creates one card from the captured page/text. A model folder must be selected first. Cards are kept in memory, up to four, with the same attribute order: chip/processor, memory, storage, display, weight, battery life and price. The page title or supplied title identifies the card; the model's product span is a fallback.
 
 A card represents values mentioned on a page. It is not a single purchasable configuration: a page can describe several screen sizes, processor options, amounts and prices. Multiple values remain candidates. An empty field means no candidate was found, which can also be a model miss. The app does not infer missing values, normalize currencies, compare superiority or buy anything.
 

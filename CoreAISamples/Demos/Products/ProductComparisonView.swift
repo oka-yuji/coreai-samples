@@ -54,7 +54,7 @@ struct ProductComparisonView: View {
             if newCount > oldCount { addingProduct = false }
         }
         .sheet(item: $inspection) { ProductSourceView(inspection: $0) }
-        .demoNavigationTitle("Product notes")
+        .demoNavigationTitle("GLiNER2.5-multi")
     }
 
     private var header: some View {

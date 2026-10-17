@@ -53,7 +53,7 @@
                         }
                     }
                 }
-                .navigationTitle("Extract")
+                .navigationTitle("GLiNER2.5-multi")
             }
         }
 

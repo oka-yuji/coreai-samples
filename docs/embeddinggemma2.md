@@ -7,7 +7,7 @@ Use `main` for the demo. Tracking: [runtime #112](https://github.com/oka-yuji/co
 ## Run the demo
 
 1. Prepare the bundle below, or use the locally prepared bundle from the validation work.
-2. Build and run `CoreAISamples` in Xcode on macOS 27. Select **Image search** in the sidebar.
+2. Build and run `CoreAISamples` in Xcode on macOS 27. Select **EmbeddingGemma 2** in the sidebar.
 3. Choose **Open model → Open model folder…** and select the bundle directory.
 4. Choose **Use sample images** or **Choose images…**. Wait for indexing to finish.
 5. Describe an image and select **Search**. Select a result to open its original.
@@ -20,7 +20,7 @@ CoreAISamples.app/Contents/MacOS/CoreAISamples --image-search --embedding-bundle
 
 For iPhone, use the `CoreAISamples-iOS` scheme and your local signing configuration. The device must run iOS 27 or later, have Developer Mode enabled, and be unlocked for installation. The simulator cannot run Core AI. Copy the bundle to the app's Documents directory as `embeddinggemma2`; the model menu then offers **Reload selected model**. File Sharing is enabled so the folder can also be transferred through Finder. Model detection does not automatically load or execute it.
 
-The prepared development app and bundle have been installed on iPhone 17 Pro / iOS 27.0.1. Open **Image search → Open model → Reload selected model → Use sample images**. Choose an **Example search**, then **Search**. The app does not include model weights in Git or download them automatically.
+The prepared development app and bundle have been installed on iPhone 17 Pro / iOS 27.0.1. In the Demos menu, choose **Image search** under **EmbeddingGemma 2**, then **Open model → Reload selected model → Use sample images**. The same model section also offers **Find objects with the camera**. Choose an **Example search**, then **Search**. The app does not include model weights in Git or download them automatically.
 
 The runtime accepts a local text/vision bundle, raw text, and opaque images decoded by ImageIO. It uses the fixed S128 / vision70 conversion contract. Audio is not included. macOS 27 and iOS 27 are required; Core AI is unavailable in the iOS simulator.
 

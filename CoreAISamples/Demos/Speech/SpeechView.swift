@@ -108,7 +108,7 @@ struct SpeechView: View {
             .frame(minHeight: 24)
         }
         .padding(20)
-        .navigationTitle("Speech")
+        .navigationTitle("Irodori")
         .onAppear { store.send(.appeared) }
         .onDisappear { store.send(.ended) }
         .background {
