@@ -81,10 +81,16 @@
     "Object finder" : {
       "extractionState" : "manual",
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "EmbeddingGemma2"
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "探し物カメラ"
+            "value" : "EmbeddingGemma2"
           }
         }
       }
