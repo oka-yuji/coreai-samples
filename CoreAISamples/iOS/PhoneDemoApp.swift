@@ -63,7 +63,7 @@
                                     Button("Truck inspection") { showingTruckInspection = true }
                                     Button("Extraction lab") { showingExtractionLab = true }
                                     Button("Image search") { showingImageSearch = true }
-                                    Button("Object finder") { showingObjectFinder = true }
+                                    Button("EmbeddingGemma 2") { showingObjectFinder = true }
                                 } label: {
                                     Label("Demos", systemImage: "square.grid.2x2")
                                 }
