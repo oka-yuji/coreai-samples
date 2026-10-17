@@ -1,0 +1,374 @@
+{
+  "version": 1,
+  "name": "qwen3_tts_17b_fp32",
+  "variables": {
+    "adapters": "$repo/Tools/Conversion/adapters/qwen3_tts"
+  },
+  "python": "$python",
+  "environment": {
+    "HF_HUB_OFFLINE": "1",
+    "TRANSFORMERS_OFFLINE": "1",
+    "TOKENIZERS_PARALLELISM": "false",
+    "OMP_NUM_THREADS": "4",
+    "MKL_NUM_THREADS": "4",
+    "USE_OS_COREAI": "1"
+  },
+  "steps": [
+    {
+      "id": "reference",
+      "role": "reference",
+      "command": [
+        "$python",
+        "-m",
+        "Tools.Conversion.adapters.qwen3_tts.reference",
+        "--snapshot",
+        "$snapshot",
+        "--contract",
+        "$recipe_dir/model.json",
+        "--upstream",
+        "$upstream",
+        "--fixtures",
+        "$recipe_dir/fixtures.json",
+        "--output",
+        "$out/reference"
+      ],
+      "cwd": "$repo",
+      "inputs": [
+        "$adapters",
+        "$recipe_dir/model.json",
+        "$recipe_dir/fixtures.json",
+        "$recipe_dir/requirements.lock",
+        "$snapshot",
+        "$upstream/qwen_tts",
+        "$upstream/pyproject.toml"
+      ],
+      "outputs": [
+        "reference/reference.json",
+        "reference/tensors"
+      ],
+      "heavy": true,
+      "timeout_s": 5400,
+      "min_free_bytes": 24000000000,
+      "checks": [
+        {
+          "file": "reference/reference.json",
+          "key": [
+            "complete"
+          ],
+          "equals": true
+        }
+      ]
+    },
+    {
+      "id": "projection_export",
+      "role": "export",
+      "depends": [
+        "reference"
+      ],
+      "command": [
+        "$python",
+        "-m",
+        "Tools.Conversion.adapters.qwen3_tts.convert",
+        "--snapshot",
+        "$snapshot",
+        "--contract",
+        "$recipe_dir/model.json",
+        "--upstream",
+        "$upstream",
+        "--reference",
+        "$reference/reference",
+        "--kind",
+        "projection",
+        "--output",
+        "$out/export"
+      ],
+      "cwd": "$repo",
+      "inputs": [
+        "$adapters",
+        "$recipe_dir/model.json",
+        "$recipe_dir/fixtures.json",
+        "$recipe_dir/requirements.lock",
+        "$snapshot",
+        "$upstream/qwen_tts",
+        "$upstream/pyproject.toml"
+      ],
+      "outputs": [
+        "export/export.json",
+        "export/projection.aimodel"
+      ],
+      "heavy": true,
+      "timeout_s": 1800,
+      "min_free_bytes": 24000000000,
+      "checks": [
+        {
+          "file": "export/export.json",
+          "key": [
+            "complete"
+          ],
+          "equals": true
+        }
+      ]
+    },
+    {
+      "id": "talker_export",
+      "role": "export",
+      "depends": [
+        "reference"
+      ],
+      "command": [
+        "$python",
+        "-m",
+        "Tools.Conversion.adapters.qwen3_tts.convert",
+        "--snapshot",
+        "$snapshot",
+        "--contract",
+        "$recipe_dir/model.json",
+        "--upstream",
+        "$upstream",
+        "--reference",
+        "$reference/reference",
+        "--kind",
+        "talker",
+        "--output",
+        "$out/export"
+      ],
+      "cwd": "$repo",
+      "inputs": [
+        "$adapters",
+        "$recipe_dir/model.json",
+        "$recipe_dir/fixtures.json",
+        "$recipe_dir/requirements.lock",
+        "$snapshot",
+        "$upstream/qwen_tts",
+        "$upstream/pyproject.toml"
+      ],
+      "outputs": [
+        "export/export.json",
+        "export/talker.aimodel"
+      ],
+      "heavy": true,
+      "timeout_s": 1800,
+      "min_free_bytes": 24000000000,
+      "checks": [
+        {
+          "file": "export/export.json",
+          "key": [
+            "complete"
+          ],
+          "equals": true
+        }
+      ]
+    },
+    {
+      "id": "predictor_export",
+      "role": "export",
+      "depends": [
+        "reference"
+      ],
+      "command": [
+        "$python",
+        "-m",
+        "Tools.Conversion.adapters.qwen3_tts.convert",
+        "--snapshot",
+        "$snapshot",
+        "--contract",
+        "$recipe_dir/model.json",
+        "--upstream",
+        "$upstream",
+        "--reference",
+        "$reference/reference",
+        "--kind",
+        "predictor",
+        "--output",
+        "$out/export"
+      ],
+      "cwd": "$repo",
+      "inputs": [
+        "$adapters",
+        "$recipe_dir/model.json",
+        "$recipe_dir/fixtures.json",
+        "$recipe_dir/requirements.lock",
+        "$snapshot",
+        "$upstream/qwen_tts",
+        "$upstream/pyproject.toml"
+      ],
+      "outputs": [
+        "export/export.json",
+        "export/predictor.aimodel"
+      ],
+      "heavy": true,
+      "timeout_s": 1800,
+      "min_free_bytes": 24000000000,
+      "checks": [
+        {
+          "file": "export/export.json",
+          "key": [
+            "complete"
+          ],
+          "equals": true
+        }
+      ]
+    },
+    {
+      "id": "codec_export",
+      "role": "export",
+      "depends": [
+        "reference"
+      ],
+      "command": [
+        "$python",
+        "-m",
+        "Tools.Conversion.adapters.qwen3_tts.convert",
+        "--snapshot",
+        "$snapshot",
+        "--contract",
+        "$recipe_dir/model.json",
+        "--upstream",
+        "$upstream",
+        "--reference",
+        "$reference/reference",
+        "--kind",
+        "codec",
+        "--output",
+        "$out/export"
+      ],
+      "cwd": "$repo",
+      "inputs": [
+        "$adapters",
+        "$recipe_dir/model.json",
+        "$recipe_dir/fixtures.json",
+        "$recipe_dir/requirements.lock",
+        "$snapshot",
+        "$upstream/qwen_tts",
+        "$upstream/pyproject.toml"
+      ],
+      "outputs": [
+        "export/export.json",
+        "export/codec.aimodel"
+      ],
+      "heavy": true,
+      "timeout_s": 1800,
+      "min_free_bytes": 24000000000,
+      "checks": [
+        {
+          "file": "export/export.json",
+          "key": [
+            "complete"
+          ],
+          "equals": true
+        }
+      ]
+    },
+    {
+      "id": "verify",
+      "role": "verify",
+      "depends": [
+        "reference",
+        "projection_export",
+        "talker_export",
+        "predictor_export",
+        "codec_export"
+      ],
+      "command": [
+        "$python",
+        "-m",
+        "Tools.Conversion.adapters.qwen3_tts.verify",
+        "--reference",
+        "$reference/reference",
+        "--export",
+        "$projection_export/export",
+        "--export",
+        "$talker_export/export",
+        "--export",
+        "$predictor_export/export",
+        "--export",
+        "$codec_export/export",
+        "--output",
+        "$out/verification"
+      ],
+      "cwd": "$repo",
+      "inputs": [
+        "$adapters",
+        "$recipe_dir/model.json"
+      ],
+      "outputs": [
+        "verification/comparison.json"
+      ],
+      "heavy": true,
+      "timeout_s": 2400,
+      "min_free_bytes": 24000000000,
+      "checks": [
+        {
+          "file": "verification/comparison.json",
+          "key": [
+            "passed"
+          ],
+          "equals": true
+        }
+      ]
+    },
+    {
+      "id": "synthesize",
+      "role": "verify",
+      "depends": [
+        "reference",
+        "projection_export",
+        "talker_export",
+        "predictor_export",
+        "codec_export",
+        "verify"
+      ],
+      "command": [
+        "$python",
+        "-m",
+        "Tools.Conversion.adapters.qwen3_tts.synthesize",
+        "--snapshot",
+        "$snapshot",
+        "--contract",
+        "$recipe_dir/model.json",
+        "--upstream",
+        "$upstream",
+        "--export",
+        "$projection_export/export",
+        "--export",
+        "$talker_export/export",
+        "--export",
+        "$predictor_export/export",
+        "--export",
+        "$codec_export/export",
+        "--fixtures",
+        "$recipe_dir/fixtures.json",
+        "--output",
+        "$out/audio"
+      ],
+      "cwd": "$repo",
+      "inputs": [
+        "$adapters",
+        "$recipe_dir/model.json",
+        "$recipe_dir/fixtures.json",
+        "$recipe_dir/requirements.lock",
+        "$snapshot",
+        "$upstream/qwen_tts",
+        "$upstream/pyproject.toml"
+      ],
+      "outputs": [
+        "audio/generation.json",
+        "audio/greeting.wav",
+        "audio/instruction.wav",
+        "audio/reading.wav"
+      ],
+      "heavy": true,
+      "timeout_s": 3600,
+      "min_free_bytes": 24000000000,
+      "checks": [
+        {
+          "file": "audio/generation.json",
+          "key": [
+            "passed"
+          ],
+          "equals": true
+        }
+      ]
+    }
+  ]
+}
