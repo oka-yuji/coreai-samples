@@ -214,3 +214,7 @@ Its [relocation record](../../docs/conversion-maintenance.md) records the checks
 integration example and does not replace a model's production qualification.
 
 The [EmbeddingGemma 2 recipe](recipes/embeddinggemma2/README.md) uses a separate frozen environment for text/vision conversion, source and native-build stamps, and twenty raw-input fidelity checks. Select it with `--recipe embeddinggemma2` on setup/plan/run. Its export stages deliberately depend on the FP32 reference used for wrapper verification.
+
+The [Magpie TTS v2607 recipe](recipes/magpie/README.md) defines an FP32 macOS research
+profile with four Core AI components, pinned NeMo references and Japanese audio
+checks. It uses the generic plan/run commands with explicit local bindings.

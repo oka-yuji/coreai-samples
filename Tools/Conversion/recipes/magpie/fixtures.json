@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "seed": 42,
+  "speaker": 4,
+  "max_decoder_frames": 240,
+  "temperature": 0.6,
+  "topk": 80,
+  "cfg_scale": 2.5,
+  "fixtures": [
+    {"id": "greeting", "text": "こんにちは。今日はよい天気ですね。", "language": "ja"},
+    {"id": "instruction", "text": "確認が終わりました。次の作業を始めます。", "language": "ja"},
+    {"id": "reading", "text": "この道をまっすぐ進み、右に曲がってください。", "language": "ja"}
+  ]
+}

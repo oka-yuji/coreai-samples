@@ -1,0 +1,462 @@
+{
+  "version": 1,
+  "name": "magpie_v2607_fp32",
+  "description": "Pinned Magpie v2607 stateless FP32 export, original NeMo fidelity checks, and Japanese speech research profile.",
+  "variables": {
+    "adapters": "$repo/Tools/Conversion/adapters/magpie"
+  },
+  "python": "$python",
+  "environment": {
+    "HF_HUB_OFFLINE": "1",
+    "TRANSFORMERS_OFFLINE": "1",
+    "TOKENIZERS_PARALLELISM": "false",
+    "OMP_NUM_THREADS": "4",
+    "MKL_NUM_THREADS": "4",
+    "WANDB_MODE": "disabled",
+    "USE_OS_COREAI": "1",
+    "OPEN_JTALK_DICT_DIR": "$jtalk_dictionary"
+  },
+  "steps": [
+    {
+      "id": "prepare",
+      "role": "prepare",
+      "command": [
+        "$python",
+        "-m",
+        "Tools.Conversion.adapters.magpie.artifacts",
+        "--contract",
+        "$recipe_dir/model.json",
+        "--model",
+        "$model",
+        "--codec",
+        "$codec",
+        "--output",
+        "$out/source"
+      ],
+      "cwd": "$repo",
+      "inputs": [
+        "$adapters",
+        "$recipe_dir/model.json",
+        "$recipe_dir/requirements.lock",
+        "$model",
+        "$codec",
+        "$tokenizer",
+        "$nemo/nemo",
+        "$nemo/pyproject.toml",
+        "$jtalk_dictionary"
+      ],
+      "outputs": [
+        "source/source.json"
+      ],
+      "heavy": true,
+      "timeout_s": 600,
+      "min_free_bytes": 12000000000,
+      "checks": [
+        {
+          "file": "source/source.json",
+          "key": [
+            "complete"
+          ],
+          "equals": true
+        }
+      ]
+    },
+    {
+      "id": "reference",
+      "role": "reference",
+      "depends": [
+        "prepare"
+      ],
+      "command": [
+        "$python",
+        "-m",
+        "Tools.Conversion.adapters.magpie.reference",
+        "--model",
+        "$model",
+        "--codec",
+        "$codec",
+        "--tokenizer",
+        "$tokenizer",
+        "--contract",
+        "$recipe_dir/model.json",
+        "--nemo",
+        "$nemo",
+        "--fixtures",
+        "$recipe_dir/fixtures.json",
+        "--output",
+        "$out/reference"
+      ],
+      "cwd": "$repo",
+      "inputs": [
+        "$adapters",
+        "$recipe_dir/model.json",
+        "$recipe_dir/requirements.lock",
+        "$model",
+        "$codec",
+        "$tokenizer",
+        "$nemo/nemo",
+        "$nemo/pyproject.toml",
+        "$jtalk_dictionary",
+        "$recipe_dir/fixtures.json"
+      ],
+      "outputs": [
+        "reference/reference.json",
+        "reference/tensors"
+      ],
+      "heavy": true,
+      "timeout_s": 5400,
+      "min_free_bytes": 12000000000,
+      "checks": [
+        {
+          "file": "reference/reference.json",
+          "key": [
+            "complete"
+          ],
+          "equals": true
+        }
+      ]
+    },
+    {
+      "id": "encoder_export",
+      "role": "export",
+      "depends": [
+        "reference"
+      ],
+      "command": [
+        "$python",
+        "-m",
+        "Tools.Conversion.adapters.magpie.convert",
+        "--model",
+        "$model",
+        "--codec",
+        "$codec",
+        "--tokenizer",
+        "$tokenizer",
+        "--contract",
+        "$recipe_dir/model.json",
+        "--nemo",
+        "$nemo",
+        "--reference",
+        "$reference/reference",
+        "--kind",
+        "encoder",
+        "--output",
+        "$out/export"
+      ],
+      "cwd": "$repo",
+      "inputs": [
+        "$adapters",
+        "$recipe_dir/model.json",
+        "$recipe_dir/requirements.lock",
+        "$model",
+        "$codec",
+        "$tokenizer",
+        "$nemo/nemo",
+        "$nemo/pyproject.toml",
+        "$jtalk_dictionary"
+      ],
+      "outputs": [
+        "export/export.json",
+        "export/encoder.aimodel"
+      ],
+      "heavy": true,
+      "timeout_s": 1800,
+      "min_free_bytes": 12000000000,
+      "checks": [
+        {
+          "file": "export/export.json",
+          "key": [
+            "complete"
+          ],
+          "equals": true
+        }
+      ]
+    },
+    {
+      "id": "decoder_export",
+      "role": "export",
+      "depends": [
+        "reference"
+      ],
+      "command": [
+        "$python",
+        "-m",
+        "Tools.Conversion.adapters.magpie.convert",
+        "--model",
+        "$model",
+        "--codec",
+        "$codec",
+        "--tokenizer",
+        "$tokenizer",
+        "--contract",
+        "$recipe_dir/model.json",
+        "--nemo",
+        "$nemo",
+        "--reference",
+        "$reference/reference",
+        "--kind",
+        "decoder",
+        "--output",
+        "$out/export"
+      ],
+      "cwd": "$repo",
+      "inputs": [
+        "$adapters",
+        "$recipe_dir/model.json",
+        "$recipe_dir/requirements.lock",
+        "$model",
+        "$codec",
+        "$tokenizer",
+        "$nemo/nemo",
+        "$nemo/pyproject.toml",
+        "$jtalk_dictionary"
+      ],
+      "outputs": [
+        "export/export.json",
+        "export/decoder.aimodel"
+      ],
+      "heavy": true,
+      "timeout_s": 1800,
+      "min_free_bytes": 12000000000,
+      "checks": [
+        {
+          "file": "export/export.json",
+          "key": [
+            "complete"
+          ],
+          "equals": true
+        }
+      ]
+    },
+    {
+      "id": "local_export",
+      "role": "export",
+      "depends": [
+        "reference"
+      ],
+      "command": [
+        "$python",
+        "-m",
+        "Tools.Conversion.adapters.magpie.convert",
+        "--model",
+        "$model",
+        "--codec",
+        "$codec",
+        "--tokenizer",
+        "$tokenizer",
+        "--contract",
+        "$recipe_dir/model.json",
+        "--nemo",
+        "$nemo",
+        "--reference",
+        "$reference/reference",
+        "--kind",
+        "local",
+        "--output",
+        "$out/export"
+      ],
+      "cwd": "$repo",
+      "inputs": [
+        "$adapters",
+        "$recipe_dir/model.json",
+        "$recipe_dir/requirements.lock",
+        "$model",
+        "$codec",
+        "$tokenizer",
+        "$nemo/nemo",
+        "$nemo/pyproject.toml",
+        "$jtalk_dictionary"
+      ],
+      "outputs": [
+        "export/export.json",
+        "export/local.aimodel"
+      ],
+      "heavy": true,
+      "timeout_s": 1800,
+      "min_free_bytes": 12000000000,
+      "checks": [
+        {
+          "file": "export/export.json",
+          "key": [
+            "complete"
+          ],
+          "equals": true
+        }
+      ]
+    },
+    {
+      "id": "codec_export",
+      "role": "export",
+      "depends": [
+        "reference"
+      ],
+      "command": [
+        "$python",
+        "-m",
+        "Tools.Conversion.adapters.magpie.convert",
+        "--model",
+        "$model",
+        "--codec",
+        "$codec",
+        "--tokenizer",
+        "$tokenizer",
+        "--contract",
+        "$recipe_dir/model.json",
+        "--nemo",
+        "$nemo",
+        "--reference",
+        "$reference/reference",
+        "--kind",
+        "codec",
+        "--output",
+        "$out/export"
+      ],
+      "cwd": "$repo",
+      "inputs": [
+        "$adapters",
+        "$recipe_dir/model.json",
+        "$recipe_dir/requirements.lock",
+        "$model",
+        "$codec",
+        "$tokenizer",
+        "$nemo/nemo",
+        "$nemo/pyproject.toml",
+        "$jtalk_dictionary"
+      ],
+      "outputs": [
+        "export/export.json",
+        "export/codec.aimodel"
+      ],
+      "heavy": true,
+      "timeout_s": 1800,
+      "min_free_bytes": 12000000000,
+      "checks": [
+        {
+          "file": "export/export.json",
+          "key": [
+            "complete"
+          ],
+          "equals": true
+        }
+      ]
+    },
+    {
+      "id": "verify",
+      "role": "verify",
+      "depends": [
+        "reference",
+        "encoder_export",
+        "decoder_export",
+        "local_export",
+        "codec_export"
+      ],
+      "command": [
+        "$python",
+        "-m",
+        "Tools.Conversion.adapters.magpie.verify",
+        "--reference",
+        "$reference/reference",
+        "--export",
+        "$encoder_export/export",
+        "--export",
+        "$decoder_export/export",
+        "--export",
+        "$local_export/export",
+        "--export",
+        "$codec_export/export",
+        "--output",
+        "$out/verification"
+      ],
+      "cwd": "$repo",
+      "inputs": [
+        "$adapters",
+        "$recipe_dir/model.json"
+      ],
+      "outputs": [
+        "verification/comparison.json"
+      ],
+      "heavy": true,
+      "timeout_s": 2400,
+      "min_free_bytes": 8000000000,
+      "checks": [
+        {
+          "file": "verification/comparison.json",
+          "key": [
+            "passed"
+          ],
+          "equals": true
+        }
+      ]
+    },
+    {
+      "id": "synthesize",
+      "role": "verify",
+      "depends": [
+        "reference",
+        "encoder_export",
+        "decoder_export",
+        "local_export",
+        "codec_export",
+        "verify"
+      ],
+      "command": [
+        "$python",
+        "-m",
+        "Tools.Conversion.adapters.magpie.synthesize",
+        "--model",
+        "$model",
+        "--codec",
+        "$codec",
+        "--tokenizer",
+        "$tokenizer",
+        "--contract",
+        "$recipe_dir/model.json",
+        "--nemo",
+        "$nemo",
+        "--export",
+        "$encoder_export/export",
+        "--export",
+        "$decoder_export/export",
+        "--export",
+        "$local_export/export",
+        "--export",
+        "$codec_export/export",
+        "--fixtures",
+        "$recipe_dir/fixtures.json",
+        "--output",
+        "$out/audio"
+      ],
+      "cwd": "$repo",
+      "inputs": [
+        "$adapters",
+        "$recipe_dir/model.json",
+        "$recipe_dir/requirements.lock",
+        "$model",
+        "$codec",
+        "$tokenizer",
+        "$nemo/nemo",
+        "$nemo/pyproject.toml",
+        "$jtalk_dictionary",
+        "$recipe_dir/fixtures.json"
+      ],
+      "outputs": [
+        "audio/generation.json",
+        "audio/greeting.wav",
+        "audio/instruction.wav",
+        "audio/reading.wav"
+      ],
+      "heavy": true,
+      "timeout_s": 3600,
+      "min_free_bytes": 8000000000,
+      "checks": [
+        {
+          "file": "audio/generation.json",
+          "key": [
+            "passed"
+          ],
+          "equals": true
+        }
+      ]
+    }
+  ]
+}
