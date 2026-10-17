@@ -36,7 +36,7 @@ struct DecideView: View {
             status
         }
         .padding(20)
-        .demoNavigationTitle("Decide")
+        .demoNavigationTitle("Clef-Flash 9B")
         .onAppear { store.send(.appeared) }
         .onDisappear { store.send(.ended) }
         .fileImporter(isPresented: $importingDocument, allowedContentTypes: [.plainText, .text]) { result in
@@ -64,7 +64,8 @@ struct DecideView: View {
     private var header: some View {
         HStack(alignment: .top, spacing: 16) {
             VStack(alignment: .leading, spacing: 4) {
-                Text("Document checklist").font(.title2.bold())
+                Text("Clef-Flash 9B").font(.title2.bold())
+                Text("Document checklist").font(.headline)
                 Group {
                     if let name = store.state.model?.name {
                         Text(verbatim: name)

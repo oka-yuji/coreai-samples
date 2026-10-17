@@ -78,17 +78,6 @@
         }
       }
     },
-    "Object finder" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "探し物カメラ"
-          }
-        }
-      }
-    },
     "Name an object, then point your camera around the room." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1502,17 +1491,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "まな板"
-          }
-        }
-      }
-    },
-    "Decide" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "条件判定"
           }
         }
       }
@@ -3400,17 +3378,6 @@
         }
       }
     },
-    "Recipes" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "レシピ判定"
-          }
-        }
-      }
-    },
     "Recomputed all items" : {
       "localizations" : {
         "ja" : {
@@ -4719,16 +4686,6 @@
         }
       }
     },
-    "Product notes" : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "スペックメモ"
-          }
-        }
-      }
-    },
     "Compare product descriptions" : {
       "localizations" : {
         "ja" : {
@@ -5609,6 +5566,26 @@
         }
       }
     },
+    "Clef-Flash 9B" : {
+      "shouldTranslate" : false
+    },
+    "GLiNER2.5-multi" : {
+      "shouldTranslate" : false
+    },
+    "Irodori" : {
+      "shouldTranslate" : false
+    },
+    "Find objects with the camera" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カメラで物を探す"
+          }
+        }
+      }
+    },
     "EmbeddingGemma 2" : {
       "shouldTranslate" : false
     },
@@ -6306,16 +6283,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "読み上げています…"
-          }
-        }
-      }
-    },
-    "Speech" : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "音声生成"
           }
         }
       }

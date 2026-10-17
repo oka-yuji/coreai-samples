@@ -22,7 +22,7 @@ struct ExtractView: View {
                 fieldsPane.frame(minWidth: 380, idealWidth: 520, maxWidth: .infinity, maxHeight: .infinity)
             }
         }
-        .demoNavigationTitle("Extract")
+        .demoNavigationTitle("GLiNER2.5-multi")
         .fileImporter(isPresented: $choosingAsset, allowedContentTypes: [.folder]) { result in
             if case .success(let url) = result {
                 store.send(.assetFolderChosen(path: url.path(percentEncoded: false)))

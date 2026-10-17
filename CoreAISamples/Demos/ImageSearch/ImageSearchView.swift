@@ -25,7 +25,7 @@ struct ImageSearchView: View {
                 .padding()
             }
         }
-        .demoNavigationTitle("Image search")
+        .demoNavigationTitle("EmbeddingGemma 2")
         .fileImporter(isPresented: $choosingModel, allowedContentTypes: [.folder]) { result in
             switch result {
             case .success(let url): store.send(.load(url))

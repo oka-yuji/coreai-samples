@@ -16,10 +16,10 @@
 hf download okayuji/clef-flash-9b-coreai-decide --local-dir ./models/clef-flash-9b-decide-v1
 ```
 
-`CoreAISamples.xcodeproj` を開き、schemeは **CoreAISamples**、実行先は **My Mac**、Runのbuild configurationは **Release** にして実行します。**Decide** または **Recipes** で、`decision.json` が入った `models/clef-flash-9b-decide-v1` フォルダを開きます。画面右上の **EN / JP** で表示言語を切り替えられます。
+`CoreAISamples.xcodeproj` を開き、schemeは **CoreAISamples**、実行先は **My Mac**、Runのbuild configurationは **Release** にして実行します。サイドバーの **Clef-Flash 9B**（文書チェックリストまたはレシピの説明が付いた項目）で、`decision.json` が入った `models/clef-flash-9b-decide-v1` フォルダを開きます。画面右上の **EN / JP** で表示言語を切り替えられます。
 
-- **Decide:** 「サンプル」から保守契約を選び、チェックリストを実行します。質問を編集して再実行すると文書を再利用します。[操作とAPIの手順](decide.md)があります。
-- **Recipes:** 同梱の冷蔵庫サンプルを選び、食材名と数量を確認・確定してからレシピを判定します。[写真5枚とURLの手順](recipes-demo.md)を参照してください。
+- **文書チェックリスト:** 「サンプル」から保守契約を選び、チェックリストを実行します。質問を編集して再実行すると文書を再利用します。[操作とAPIの手順](decide.md)があります。
+- **レシピ判定:** 同梱の冷蔵庫サンプルを選び、食材名と数量を確認・確定してからレシピを判定します。[写真5枚とURLの手順](recipes-demo.md)を参照してください。
 
 ビルドしたアプリは、ウィンドウを開かずに記録済みの入力も実行できます。`DECIDE_APP` にアプリの実行ファイルを指定します。
 

@@ -21,12 +21,12 @@ enum Demo: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .chat: "Chat"
-        case .decide: "Decide"
-        case .recipes: "Recipes"
-        case .imageSearch: "Image search"
-        case .extract: "Extract"
-        case .speech: "Speech"
+        case .chat: "Choose model"
+        case .decide: "Clef-Flash 9B"
+        case .recipes: "Clef-Flash 9B"
+        case .imageSearch: "EmbeddingGemma 2"
+        case .extract: "GLiNER2.5-multi"
+        case .speech: "Irodori"
         case .models: "Models"
         }
     }

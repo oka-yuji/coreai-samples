@@ -47,7 +47,7 @@ struct RecipeView: View {
             Divider()
             footer
         }
-        .demoNavigationTitle("Recipes")
+        .demoNavigationTitle("Clef-Flash 9B")
         .onAppear { store.send(.appeared) }
         .onDisappear { store.send(.ended) }
         .fileImporter(isPresented: $importingPhoto, allowedContentTypes: [.image]) { result in
@@ -61,7 +61,8 @@ struct RecipeView: View {
     private var header: some View {
         HStack(spacing: 16) {
             VStack(alignment: .leading, spacing: 4) {
-                Text("Cook with what you have").font(.title2.bold())
+                Text("Clef-Flash 9B").font(.title2.bold())
+                Text("Cook with what you have").font(.headline)
                 Text("A photo, a recipe, and an inventory you have checked.")
                     .font(.callout).foregroundStyle(.secondary)
             }

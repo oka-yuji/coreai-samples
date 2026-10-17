@@ -60,10 +60,14 @@
                             .toolbar {
                                 DemoLanguagePicker(code: $languageCode)
                                 Menu {
-                                    Button("Truck inspection") { showingTruckInspection = true }
-                                    Button("Extraction lab") { showingExtractionLab = true }
-                                    Button("Image search") { showingImageSearch = true }
-                                    Button("Object finder") { showingObjectFinder = true }
+                                    Section("GLiNER2.5-multi") {
+                                        Button("Truck inspection") { showingTruckInspection = true }
+                                        Button("Extraction lab") { showingExtractionLab = true }
+                                    }
+                                    Section("EmbeddingGemma 2") {
+                                        Button("Image search") { showingImageSearch = true }
+                                        Button("Find objects with the camera") { showingObjectFinder = true }
+                                    }
                                 } label: {
                                     Label("Demos", systemImage: "square.grid.2x2")
                                 }

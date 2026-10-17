@@ -8,7 +8,7 @@ Tracking: [image regions #147](https://github.com/oka-yuji/coreai-samples/issues
 
 1. Use an iPhone running iOS 27 or later and the `CoreAISamples-iOS` scheme with local signing configured.
 2. Prepare the [EmbeddingGemma 2 bundle](embeddinggemma2.md) and copy it to the app's `Documents/embeddinggemma2` directory. A bundle already used by Image search can be reused. Alternatively choose its folder in Search settings.
-3. Open **Demos → Object finder**, type a target in **Object to find**, and select **Start searching**. **Fill an example** optionally fills the same editable field.
+3. Open **Demos → EmbeddingGemma 2 → Find objects with the camera**, type a target in **Object to find**, and select **Start searching**. **Fill an example** optionally fills the same editable field.
 4. Grant camera permission. A native camera preview starts before the model finishes preparing. Capture is configured for 30 fps; preview display does not wait for model inference. Sustained frame rate on the user's device remains a manual check.
 5. Matching candidates receive boxes that Vision tracks between model results. A stable candidate produces one short haptic. **Stop** releases the camera and model before another search can start.
 6. To change the target during a search, edit the field and tap **Search this text**, or use the keyboard's search key. Edits remain a draft until applied. The old operation and camera stop before the new target starts; a successfully prepared model is reused for the same folder. **Cancel change** cancels a pending restart and releases the model.

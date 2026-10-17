@@ -122,7 +122,7 @@
                 }
                 .padding()
             }
-            .navigationTitle("Object finder")
+            .navigationTitle("EmbeddingGemma 2")
             .fileImporter(isPresented: $choosesModel, allowedContentTypes: [.folder]) { result in
                 switch result {
                 case .success(let url): store.send(.folderSelected(url))
