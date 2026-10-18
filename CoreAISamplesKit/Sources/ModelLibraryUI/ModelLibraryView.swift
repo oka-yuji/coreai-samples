@@ -43,13 +43,15 @@
                     .toolbar {
                         if let leadingToolbar {
                             ToolbarItem(placement: .topBarLeading) { leadingToolbar }
+                                .sharedBackgroundVisibility(.hidden)
                         }
                         DefaultToolbarItem(kind: .search, placement: .bottomBar)
-                        ToolbarItem(placement: .topBarTrailing) {
+                        ToolbarSpacer(.fixed, placement: .bottomBar)
+                        ToolbarItem(placement: .bottomBar) {
                             Button {
                                 showsAbout = true
                             } label: {
-                                Image(systemName: "info.circle")
+                                Image(systemName: "info")
                             }
                             .frame(minWidth: 44, minHeight: 44)
                             .accessibilityLabel(libraryText("About this app"))
@@ -67,6 +69,7 @@
                         libraryText("You can read each demo before downloading its model.").foregroundStyle(.secondary)
                     }
                     .padding()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                     .navigationTitle(libraryText("About this app"))
                     .toolbar {
                         ToolbarItem(placement: .confirmationAction) {
