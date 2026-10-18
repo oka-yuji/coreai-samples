@@ -20,6 +20,7 @@ let package = Package(
         .library(name: "ModelLibraryFeature", targets: ["ModelLibraryFeature"]),
         .library(name: "ModelLibraryStorage", targets: ["ModelLibraryStorage"]),
         .library(name: "ModelLibraryTransfer", targets: ["ModelLibraryTransfer"]),
+        .library(name: "ModelLibraryRuntime", targets: ["ModelLibraryRuntime"]),
         .library(name: "ObjectFinderFeature", targets: ["ObjectFinderFeature"]),
         .library(name: "ObjectFinderCore", targets: ["ObjectFinderCore"]),
         .library(name: "ObjectFinderRuntime", targets: ["ObjectFinderRuntime"]),
@@ -80,6 +81,18 @@ let package = Package(
             name: "ModelLibraryTransferTests",
             dependencies: ["ModelLibraryTransfer", "ModelLibraryStorage", "ModelLibraryFeature", "FeatureStore"],
             swiftSettings: speechSettings),
+        .target(
+            name: "ModelLibraryRuntime",
+            dependencies: [
+                "ModelLibraryFeature", "ModelLibraryStorage", "ModelLibraryTransfer", "ModelLibraryUI", "FeatureStore",
+            ], resources: [.process("Resources")],
+            swiftSettings: speechSettings + [.defaultIsolation(MainActor.self)]),
+        .testTarget(
+            name: "ModelLibraryRuntimeTests",
+            dependencies: [
+                "ModelLibraryRuntime", "ModelLibraryFeature", "ModelLibraryStorage", "ModelLibraryTransfer",
+                "FeatureStore",
+            ], swiftSettings: speechSettings),
         .target(
             name: "ObjectFinderFeature", dependencies: ["ObjectFinderCore", "FeatureStore"],
             swiftSettings: speechSettings),

@@ -170,6 +170,12 @@ targets:
         product: ModelLibraryUI
       - package: CoreAISamplesKit
         product: ModelLibraryFeature
+      - package: CoreAISamplesKit
+        product: ModelLibraryStorage
+      - package: CoreAISamplesKit
+        product: ModelLibraryTransfer
+      - package: CoreAISamplesKit
+        product: ModelLibraryRuntime
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.coreai-samples.DemoApp.ios

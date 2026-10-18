@@ -6,6 +6,7 @@ public enum ModelLibraryAction: Sendable {
     case queryChanged(String)
     case openDemo(DemoSelection)
     case closeDemo
+    case suspendDemo
     case selectArtifact(modelID: String, artifactID: String)
     case capabilityChanged(DemoCapability, CapabilityState)
     case inspected(String, LibraryTicket, ValidatedModelResource?)
@@ -60,6 +61,10 @@ public enum ModelLibraryFeature: Feature {
             return navigate(&state, to: .demo(selection))
         case .closeDemo:
             return navigate(&state, to: .library)
+        case .suspendDemo:
+            guard state.pendingDestination == nil, let session = state.session else { return [] }
+            state.failure = nil
+            return stop(&state, session, then: .demo(session.selection))
         case .selectArtifact(let modelID, let artifactID):
             return select(&state, artifactID: artifactID, for: modelID)
         case .capabilityChanged(let capability, let value):

@@ -276,6 +276,38 @@ struct ModelLibraryTests {
         #expect(state.session == nil)
     }
 
+    @Test("A background suspension stops the running demo through the stop barrier and keeps its selection")
+    func suspension() throws {
+        var state = try installedState()
+        _ = reduce(&state, .openDemo(first))
+        let session = try #require(state.session)
+        let commands = reduce(&state, .suspendDemo)
+        let request = try #require(state.stopRequestID)
+        #expect(commands == [.run(.stopDemo(session, request), id: .demo)])
+        #expect(state.selection == first && state.pendingDestination == .demo(first))
+        #expect(!state.permits(session.id, selection: first))
+        let stopping = state
+        for action in [ModelLibraryAction.suspendDemo, .closeDemo, .openDemo(second), .retryDemoStop] {
+            #expect(reduce(&state, action).isEmpty)
+        }
+        #expect(state == stopping)
+        #expect(reduce(&state, .demoStopped(session.id, request)).isEmpty)
+        let resumed = try #require(state.session)
+        #expect(state.selection == first && resumed.selection == first && resumed.id != session.id)
+        #expect(state.pendingDestination == nil && state.stopRequestID == nil)
+        #expect(reduce(&state, .capabilityChanged(.camera, .available)).isEmpty)
+        #expect(state.session == resumed)
+    }
+
+    @Test("A suspension without a running demo issues nothing and keeps the browsing state")
+    func suspensionWhileBrowsing() throws {
+        var state = libraryState(try catalog())
+        _ = reduce(&state, .openDemo(second))
+        let browsing = state
+        #expect(reduce(&state, .suspendDemo).isEmpty)
+        #expect(state == browsing)
+    }
+
     @Test("Deleting a model requires a released session and retains its demo definitions")
     func deletion() throws {
         var state = try installedState()
