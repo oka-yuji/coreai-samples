@@ -46,8 +46,10 @@ enum ConversationBudgetSelfTest {
                         finalURL: call.name == "fetch_page" ? url : nil)
                 })
             let updates = AsyncStream<ConversationState>.makeStream()
+            var settings = preferences.settings
+            settings.webSearchEnabled = true
             let store = ConversationStore(
-                initialState: ConversationState(id: "budget", now: Date(), settings: preferences.settings)
+                initialState: ConversationState(id: "budget", now: Date(), settings: settings)
             ) { effect, send in
                 await runner.run(effect) { action in
                     send(action)

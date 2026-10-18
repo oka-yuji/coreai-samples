@@ -74,6 +74,7 @@ final class ChatViewModel {
     var canSend: Bool { phase == .ready && !isResponding && !externallyBusy && !trimmedInput.isEmpty }
     var loadStats: Engine.LoadStats? { model?.loadStats }
     var ragIsOn: Bool { ragEnabled && (ragWeb || ragLocal) }
+    var hasValidSourceSelection: Bool { !ragEnabled || ragWeb || ragLocal }
 
     func isUsing(_ url: URL) -> Bool {
         phase != .empty && bundleURL.map(ModelStorage.key) == ModelStorage.key(url)

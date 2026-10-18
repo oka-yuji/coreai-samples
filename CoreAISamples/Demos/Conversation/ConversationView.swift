@@ -175,15 +175,14 @@ struct ConversationView: View {
         .accessibilityHint(modeDescription)
         .disabled(
             host.state.isRunning || host.state.isRestoring || host.state.isTerminating
-                || chat.isResponding || chat.ragIsOn || host.state.readOnlyMarkdown != nil)
+                || chat.isResponding || host.state.readOnlyMarkdown != nil)
     }
 
     private var modeDescription: Text {
         Text(
-            chat.ragIsOn
-                ? "Answers from the collected sources in one reply."
-                : host.state.mode == .chat
-                    ? "Conversation. Searches the web when it needs facts." : "Multi-step research and notes."
+            host.state.mode == .chat
+                ? "Conversation and answers. Search follows your source settings."
+                : "Multi-step tasks and notes. Search follows your source settings."
         )
     }
 
@@ -255,7 +254,9 @@ struct ConversationView: View {
 
     private var ragLabel: String {
         let strings = DemoStrings(locale: locale)
-        return (["RAG"] + (chat.ragWeb ? [strings.text("Web")] : []) + (chat.ragLocal ? [strings.text("Docs")] : []))
+        return
+            ([strings.text("Sources")] + (chat.ragWeb ? [strings.text("Web")] : [])
+            + (chat.ragLocal ? [strings.text("Docs")] : []))
             .joined(separator: " · ")
     }
 
