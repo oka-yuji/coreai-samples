@@ -168,6 +168,8 @@ targets:
         product: GLiNERRuntime
       - package: CoreAISamplesKit
         product: ModelLibraryUI
+      - package: CoreAISamplesKit
+        product: ModelLibraryFeature
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.coreai-samples.DemoApp.ios

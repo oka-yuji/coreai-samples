@@ -380,6 +380,39 @@
           }
         }
       }
+    },
+    "Demo descriptions are available. Downloads and execution are not available in this build." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "デモの説明を確認できます。このビルドではダウンロードと実行はまだ利用できません。"
+          }
+        }
+      }
+    },
+    "Demo execution is not connected in this build." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このビルドでは、デモの実行機能はまだ接続されていません。"
+          }
+        }
+      }
+    },
+    "Description only" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "説明のみ"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

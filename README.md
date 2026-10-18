@@ -6,7 +6,7 @@
 
 [Feature-screen design review (HTML, Japanese)](docs/designs/function-screens.html)
 
-[Native SwiftUI preview and integration status](Examples/ModelLibraryPreview/README.md) — the shared iOS UI is implemented separately; the production app entry point is not yet switched.
+[Native SwiftUI preview and integration status](Examples/ModelLibraryPreview/README.md) — the iOS app now opens Models on ordinary launch. Its five demo descriptions are available; model downloads and execution remain unconnected.
 
 Swift samples that run open models on a Mac through Apple's Core AI and Foundation Models. **Chat** and **Agent** run Qwen3.8 27B; the agent searches the web, reads pages and saves notes. **Recipes** compares a fridge photo's ingredients with a recipe URL and **Decide** scores a document against an editable checklist, both with Clef-Flash 9B. **Extract** turns product descriptions into source-linked specification cards with GLiNER2.5-multi. `Tools/Verify` compares this repository's runtime with Apple's own, token by token.
 

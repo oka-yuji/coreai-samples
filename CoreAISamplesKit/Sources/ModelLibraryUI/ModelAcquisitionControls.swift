@@ -11,6 +11,17 @@
         private var installation: ModelInstallation { store.state.installations[model.id] ?? ModelInstallation() }
 
         var body: some View {
+            if model.artifact.download == nil {
+                Image(systemName: "info.circle")
+                    .foregroundStyle(.secondary)
+                    .frame(minWidth: 44, minHeight: 44)
+                    .accessibilityLabel(libraryText("Description only"))
+            } else {
+                acquisition
+            }
+        }
+
+        private var acquisition: some View {
             HStack(spacing: 4) {
                 switch installation.phase {
                 case .missing, .failed:

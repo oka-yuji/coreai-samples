@@ -70,7 +70,7 @@ enum ExtractEval {
     }
 
     @MainActor
-    static func execute() async -> Int32 {
+    static func execute(relativeTo directory: URL? = nil) async -> Int32 {
         guard let goldPath = LaunchArguments.value("--extract-eval"), let assetPath = LaunchArguments.value("--asset"),
             let outPath = LaunchArguments.value("--out"), let computeUnits = ComputeUnits.launchValue,
             let filter = candidateFilter
@@ -79,12 +79,13 @@ enum ExtractEval {
             return 2
         }
         do {
-            let goldData = try Data(contentsOf: URL(filePath: goldPath))
+            let goldData = try Data(contentsOf: URL(filePath: goldPath, relativeTo: directory))
             let gold = try GoldSentence.decode(goldData)
             let formPath = LaunchArguments.value("--form")
             let form =
                 try formPath.map {
-                    try JSONDecoder().decode(FormSchema.self, from: Data(contentsOf: URL(filePath: $0)))
+                    try JSONDecoder().decode(
+                        FormSchema.self, from: Data(contentsOf: URL(filePath: $0, relativeTo: directory)))
                 }
                 ?? ExtractResources.form
             let sentences = gold.filter { $0.excluded != true }
@@ -94,7 +95,8 @@ enum ExtractEval {
             }
             let service = GLiNERExtractService(
                 correctionWords: ExtractResources.correctionWords, computeUnits: computeUnits)
-            let asset = try await service.open(folder: URL(filePath: assetPath, directoryHint: .isDirectory))
+            let asset = try await service.open(
+                folder: URL(filePath: assetPath, directoryHint: .isDirectory, relativeTo: directory))
             log(
                 "[extract-eval] asset \(asset.path) revision \(asset.revision ?? "none") loaded in \(asset.loadSeconds) s"
                     + " floatType \(asset.floatType) computeUnits \(computeUnits.rawValue) device \(hardwareModel)"
@@ -121,7 +123,7 @@ enum ExtractEval {
                 timing: ExtractEvaluation.timing(cold: cold, warm: warm), report: ExtractEvaluation.evaluate(scored))
             let encoder = JSONEncoder()
             encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
-            try encoder.encode(output).write(to: URL(filePath: outPath), options: .atomic)
+            try encoder.encode(output).write(to: URL(filePath: outPath, relativeTo: directory), options: .atomic)
             report(output)
             FileHandle.standardOutput.write(Data("EXTRACT EVAL DONE \(outPath)\n".utf8))
             return 0

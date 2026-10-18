@@ -85,11 +85,12 @@ public struct DemoDescriptor: ModelDemoDefinition, Codable, Equatable, Identifia
     public let explanation: [DemoExplanation]
     public let platforms: Set<LibraryPlatform>
     public let visibility: CatalogVisibility
+    public let searchTerms: [String]?
 
     public init(
         id: String, title: String, systemImage: String, summary: String,
         explanation: [DemoExplanation] = [], platforms: Set<LibraryPlatform>,
-        visibility: CatalogVisibility = .published
+        visibility: CatalogVisibility = .published, searchTerms: [String]? = nil
     ) {
         self.id = id
         self.title = title
@@ -98,6 +99,7 @@ public struct DemoDescriptor: ModelDemoDefinition, Codable, Equatable, Identifia
         self.explanation = explanation
         self.platforms = platforms
         self.visibility = visibility
+        self.searchTerms = searchTerms
     }
 }
 
@@ -225,7 +227,8 @@ public struct ModelCatalog: Equatable, Sendable {
                 else { return nil }
                 guard
                     query.isEmpty || modelMatches
-                        || [demo.title, demo.summary].contains(where: { $0.lowercased().contains(query) })
+                        || ([demo.title, demo.summary] + (demo.searchTerms ?? []))
+                            .contains(where: { $0.lowercased().contains(query) })
                 else { return nil }
                 return demo
             }
