@@ -2,6 +2,8 @@
 
 2026-10-18 JST. Issue #198 (parent #199), PR #209. This record checks the ordinary `CoreAISamples-iOS` assembly, with the real runner, the catalog and the five demo providers, from acquisition through every demo. Automated results and device checks are kept apart. A build or a fake-based test does not stand in for a device check, and nothing below that is marked pending has been performed.
 
+Update 2026-10-19: #210 (PR #212) adopted the published distributions. [Distribution adoption](#distribution-adoption-210) records the definitions, their tests, and the acquisition on the Mac and the iPhone. The target table below still describes the #198 tree.
+
 ## Target
 
 | Item | Value |
@@ -51,25 +53,60 @@ The app's own five adapters are not in these tests, because they are iOS app typ
 
 Not run, because they need a model, a device or the network: `--extract-eval` with an asset, including the iPhone's Documents-relative paths (the resolution is `ExtractEval.execute(relativeTo:)` in the app and has no automated test); `--image-search-eval`; `--selftest`; `--product-e2e`; `--product-source-check`; `--recipe-e2e`; `--decide-e2e`; the Hub self-tests; the model-gated package tests (`COREAI_TEST_BUNDLES`, `COREAI_DECISION_BUNDLE`, `EG2_TOKENIZER`, `GLINER_*`); and the iPhone `--model-library-selftest`.
 
+## Distribution adoption (#210)
+
+2026-10-19 JST, PR #212 on main `6499acd`. `IOSDemoCatalog` pins the definitions from the publication. [`distribution.json`](ios-models-distribution-20261019/distribution.json) is the copy that the tests compare with the catalog; the repositories are public and anonymously downloadable.
+
+| Artifact | Distribution | Root | Files | Bytes | Upstream |
+|---|---|---|---:|---:|---|
+| `gliner2.5-multi-fp32-t256-t512` (FP32) | `okayuji/gliner2.5-multi-coreai-fp32@043e738f3a91222ec013b2d80e240e34abb46bdb` | repository root | 8 | 1,247,733,386 | `fastino/gliner2.5-multi-v1@2ca71aafb3446d9014e1c55c7ff51c9bc7209c47` |
+| `embeddinggemma2-fp16-safe-s128-v70` (FP16, default) | `okayuji/embeddinggemma-2-coreai@daab6dbfbae1610a87d9f181458419e3ea5ce682` | `fp16` | 13 | 913,677,333 | `google/embeddinggemma-2@914f7f89142e33e77833254d9c9b90c3cef7303b` |
+| `embeddinggemma2-int4-int8-ptq-s128-v70` (INT4/INT8 PTQ) | `okayuji/embeddinggemma-2-coreai@daab6dbfbae1610a87d9f181458419e3ea5ce682` | `int4-int8` | 16 | 341,880,041 | `google/embeddinggemma-2@914f7f89142e33e77833254d9c9b90c3cef7303b` |
+
+### Automated checks
+
+| Check | Result |
+|---|---|
+| ADOPT-01 | `IOSDemoLaunchTests` "ADOPT-01 The iOS catalog presents two models and five demos whose artifacts carry the published distribution definitions with every file, size, checksum and upstream" and `ManagedModelStoreTests` "ADOPT-01 The managed store resolves the contract of every artifact in the iOS catalog" pass |
+| ADOPT-02 | `ModelLibraryAssemblyTests` "E2E-01 ADOPT-02 The app assembly connects one provider to each demo of the iOS catalog, passes the download request of every published artifact to the transfer with its catalog definition, and creates no session or provider work before the acquisition completes" and "ADOPT-02 The self-test with an acquisition target requests each catalog artifact in turn through the app assembly and fails with the route, defined bytes and inspection of every failed transfer" pass |
+| Acquisition routes | "The self-test acquisition downloads a missing artifact, keeps an installed one and migrates a matching folder through the library store, with sizes equal to the definitions, the validated identity and a ready inspection" passes |
+| Broken on purpose | A changed checksum in the catalog failed ADOPT-01; downloads that were not awaited one at a time failed both self-test acquisition tests; swapped route labels failed the routes test. The sources were restored afterwards |
+| PR commands | Strict lint 0 violations in 382 files; format PASS (10 changed Swift files); `./Tools/Irodori/build-inputs.sh` exit 0; `swift test` 688 tests, 0 failed (the skipped suites need model bundles, fixtures or environment variables); macOS Release and signed iPhoneOS Release BUILD SUCCEEDED; native preview simulator build BUILD SUCCEEDED; `check-catalogs.py` 0 errors |
+
+No test connects to the network: every `ArtifactTransfer` in the tests uses an injected file loader.
+
+### Acquisition
+
+`--model-library-selftest selftest.json --acquire all` loads no model. The transfer requests each listed file anonymously over HTTPS; the resolve URLs answer with redirects, which it follows. Mac: Apple M4 Max, macOS 27.0 (26A428), Xcode 27.0 (27A266a). iPhone: iPhone 17 Pro (iPhone18,1), iOS 27.0.1 (24A446), installed with `devicectl device install app` and launched with `devicectl device process launch --console`.
+
+| Run | Artifact | Route | Defined bytes | Measured bytes | Seconds | State | Inspection |
+|---|---|---|---:|---:|---:|---|---|
+| Mac | GLiNER2.5-multi FP32 | download | 1,247,733,386 | 1,247,733,386 | 53.6 | ready | ready |
+| Mac | EmbeddingGemma 2 FP16 | download | 913,677,333 | 913,677,333 | 37.6 | ready | ready |
+| Mac | EmbeddingGemma 2 INT4/INT8 PTQ | download | 341,880,041 | 341,880,041 | 15.9 | ready | ready |
+| iPhone | GLiNER2.5-multi FP32 | download | 1,247,733,386 | 1,247,733,386 | 38.1 | ready | ready |
+| iPhone | EmbeddingGemma 2 FP16 | migration | 913,677,333 | 913,677,333 | — | ready | ready |
+| iPhone | EmbeddingGemma 2 INT4/INT8 PTQ | migration | 341,880,041 | 341,880,041 | — | ready | ready |
+
+- Mac ([report](ios-models-distribution-20261019/selftest-macos.json)): exit 0 in 109.1 s, refresh 0.0 s, managed root `~/Library/Application Support/com.coreai-samples.DemoApp/ModelLibrary` (kept, 2.5 GB). Hashing the 37 installed files afterwards with an independent script matched every size and SHA-256 of `distribution.json`, with no other file. A second run with `--model-library-selftest=selftest.json --acquire=all` ([report](ios-models-distribution-20261019/selftest-macos-rerun.json)) reported all three as `installed`, requested nothing and took 4.5 s.
+- iPhone ([report](ios-models-distribution-20261019/selftest-iphone.json)): exit 0 in 42.4 s. The refresh (2.0 s) migrated both EmbeddingGemma 2 variants from the existing `Documents/embeddinggemma2` and `Documents/embeddinggemma2-int4-int8`; GLiNER2.5-multi had no legacy folder and was downloaded. The 47 entries of those Documents folders kept their sizes and modification times, and the managed root holds exactly the listed files. The report also shows no failures, the five registered demos matching the catalog, camera and network `available`, microphone and speech recognition `undetermined`, and the managed root excluded from backups.
+
 ## Device checks
 
-Status: **not performed**. The restart conditions are:
-
-- **Distribution published**: #188 adopted, the catalog updated with the adopted repositories and revisions in a separate change, and the files downloadable.
-- **User**: the user's own check on the target iPhone.
+Status: the iPhone self-test with the acquisition was performed on 2026-10-19 (above). The other checks are **not performed**. The distribution is published (#210), so they wait only for the user's own check on the target iPhone.
 
 | ID | Check | Status | Restart condition |
 |---|---|---|---|
-| Self-test | `--model-library-selftest` on the iPhone: no failures, the five registered demos match the catalog, the capability states as granted, and the managed root exists and is excluded from backups | Not performed | User (possible now) |
-| E2E-03 | Acquisition, inspection, all five demos, switching while work runs, recovery from a failed stop, deletion and relaunch, with the artifact in use and the release of resources confirmed | Not performed | Distribution published, user |
-| E2E-04 | Legacy assets and saved data kept; variants, publication conditions, corruption, interruption, lack of space and denied permissions never turned into a successful run | Not performed | Distribution published, user |
-| E2E-05 | MF-09 and MF-12 to MF-17 on the device: language, descriptions, search, text size and VoiceOver keep data and operability | Not performed | User. The description-only screens can be checked now; inputs and results need a published distribution |
-| DL-07 | First download, cancel, retry, completion, relaunch and deletion; spoken state, size and progress; originals kept | Not performed | Distribution published, user |
-| COMPARE-05 | Models, comparison demo, real extraction, comparison, back and reopen, without choosing the model again | Not performed | Distribution published, user |
-| EXTRACT-05 | Models, extraction, input, run, result, back and reopen; the artifact used, spans and scores against the existing baseline | Not performed | Distribution published, user |
-| INSPECT-06 | Text and voice inspection, confirmation and sharing; back, interruption and reopen while recording or speaking; no audio resource running afterwards | Not performed | Distribution published, user |
-| IMAGE-06 | Models, add images, index, search, original image, back and reopen, for each adopted variant against the existing reference conditions | Not performed | Distribution published, user |
-| CAMERA-06 | Models, words, start, change of words, rotation, back, re-entry and a camera interruption; no capture, inference or notification after leaving | Not performed | Distribution published, user |
+| Self-test | `--model-library-selftest` on the iPhone: no failures, the five registered demos match the catalog, the capability states as granted, and the managed root exists and is excluded from backups | Performed 2026-10-19 with `--acquire all` ([Distribution adoption](#distribution-adoption-210)) | — |
+| E2E-03 | Acquisition, inspection, all five demos, switching while work runs, recovery from a failed stop, deletion and relaunch, with the artifact in use and the release of resources confirmed | Not performed. Acquisition and inspection through the self-test are recorded above | User |
+| E2E-04 | Legacy assets and saved data kept; variants, publication conditions, corruption, interruption, lack of space and denied permissions never turned into a successful run | Not performed | User |
+| E2E-05 | MF-09 and MF-12 to MF-17 on the device: language, descriptions, search, text size and VoiceOver keep data and operability | Not performed | User |
+| DL-07 | First download, cancel, retry, completion, relaunch and deletion; spoken state, size and progress; originals kept | Not performed | User |
+| COMPARE-05 | Models, comparison demo, real extraction, comparison, back and reopen, without choosing the model again | Not performed | User |
+| EXTRACT-05 | Models, extraction, input, run, result, back and reopen; the artifact used, spans and scores against the existing baseline | Not performed | User |
+| INSPECT-06 | Text and voice inspection, confirmation and sharing; back, interruption and reopen while recording or speaking; no audio resource running afterwards | Not performed | User |
+| IMAGE-06 | Models, add images, index, search, original image, back and reopen, for each adopted variant against the existing reference conditions | Not performed | User |
+| CAMERA-06 | Models, words, start, change of words, rotation, back, re-entry and a camera interruption; no capture, inference or notification after leaving | Not performed | User |
 
 ### Procedure
 
@@ -83,7 +120,7 @@ xcrun devicectl device copy from --device <UDID> --domain-type appDataContainer 
   --source Documents/selftest.json --destination ./selftest.json
 ```
 
-Then launch normally. Before a distribution is published, the description-only parts of E2E-05 apply: EN and JP, opening and closing descriptions, search with clear, cancel and no results, returning with the query and position kept, Dynamic Type at the largest sizes, 44 × 44 point targets and VoiceOver names, values and order. After a distribution is published, follow the child checks above with the heavy-job lock (`CLAUDE.md`) and record each run. Also watch the points the child reviews left open:
+Add `--acquire all` (or one artifact ID) to download the catalog's artifacts through the library store; the report records each route, size, time and inspection. Then launch normally and follow the child checks above with the heavy-job lock (`CLAUDE.md`), recording each run. E2E-05 covers EN and JP, opening and closing descriptions, search with clear, cancel and no results, returning with the query and position kept, Dynamic Type at the largest sizes, 44 × 44 point targets and VoiceOver names, values and order. Also watch the points the child reviews left open:
 
 - Comparison: after background, foreground and adding a card, the content appears again for the new session (the lease and reactivation depend on it).
 - Inspection: the end of the OS recognition task, audio session interruptions, and a share sheet opened from the demo while Models shows the stopping state.
@@ -98,4 +135,6 @@ Add one row per run. Do not record tokens, personal inputs, photos or audio, or 
 
 | Date | Commit | Catalog and distribution revision | Upstream revision | OS and device | Operation | Result | Notes |
 |---|---|---|---|---|---|---|---|
-| | | | | | | | |
+| 2026-10-19 | PR #212 on `6499acd` | `gliner2.5-multi/gliner2.5-multi-fp32-t256-t512@043e738`, `embeddinggemma2/embeddinggemma2-fp16-safe-s128-v70@daab6db`, `embeddinggemma2/embeddinggemma2-int4-int8-ptq-s128-v70@daab6db` | `2ca71aa` (GLiNER2.5-multi), `914f7f8` (EmbeddingGemma 2) | macOS 27.0 (26A428), Apple M4 Max | `--model-library-selftest selftest.json --acquire all` | PASS | Three downloads, 109.1 s |
+| 2026-10-19 | PR #212 on `6499acd` | Same | Same | macOS 27.0 (26A428), Apple M4 Max | `--model-library-selftest=selftest.json --acquire=all` | PASS | All `installed`, nothing requested, 4.5 s |
+| 2026-10-19 | PR #212 on `6499acd` | Same | Same | iOS 27.0.1 (24A446), iPhone 17 Pro | `--model-library-selftest selftest.json --acquire all` | PASS | GLiNER2.5-multi downloaded; both EmbeddingGemma 2 variants migrated; legacy folders unchanged; 42.4 s |

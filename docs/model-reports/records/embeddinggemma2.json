@@ -13,12 +13,13 @@
     "en": "Image search, camera object search",
     "ja": "画像検索・カメラで物探し"
   },
-  "release": "in_progress",
+  "release": "released",
   "release_note": {
-    "en": "public release / iOS adoption",
-    "ja": "公開準備／iOS採用"
+    "en": "iOS device acceptance pending",
+    "ja": "iOSの実機確認待ち"
   },
   "download": "https://huggingface.co/okayuji/embeddinggemma-2-coreai",
+  "public_access_evidence": "docs/validation/ios-models-integration-20261018.md#acquisition",
   "pages": {
     "en": "docs/embeddinggemma2.md",
     "ja": "docs/model-reports/embeddinggemma2.ja.md"
@@ -59,11 +60,12 @@
       "evidence": [
         "fp16-phone",
         "ios-models",
-        "ptq"
+        "ptq",
+        "ios-acquisition"
       ],
       "note": {
-        "en": "Older FP16 diagnostic passed. Current Models entry and PTQ device inference remain pending.",
-        "ja": "旧FP16診断は成功。現行Models入口とPTQの実機推論は確認待ち。"
+        "en": "Older FP16 diagnostic passed. The current Models route acquires and validates the published FP16 and PTQ bundles (self-test on iPhone 17 Pro, no model loaded); demo execution there and PTQ device inference remain pending.",
+        "ja": "旧FP16診断は成功。現行Models経路は公開済みのFP16とPTQを取得・検査する（iPhone 17 Proの自己テスト、モデルは読み込まない）。同経路でのデモ実行とPTQの実機推論は確認待ち。"
       }
     }
   },
@@ -234,6 +236,34 @@
       "power": null,
       "thermal": null,
       "model_executed": true,
+      "plan_sha256": null
+    },
+    "ios-acquisition": {
+      "url": "docs/validation/ios-models-integration-20261018.md#acquisition",
+      "level": "diagnostic",
+      "outcome": "passed",
+      "record_type": "legacy",
+      "date": "2026-10-19",
+      "platform": "ios",
+      "device": "iPhone 17 Pro",
+      "os": "iOS 27.0.1 (24A446)",
+      "toolchain": "Xcode 27.0 (27A266a)",
+      "variant": "safe FP16 S128 / vision70; INT4/INT8 PTQ",
+      "backend": null,
+      "route": "Models self-test (--acquire all)",
+      "source_revision": "914f7f89142e33e77833254d9c9b90c3cef7303b",
+      "artifact_revision": "daab6dbfbae1610a87d9f181458419e3ea5ce682",
+      "code_revision": null,
+      "workload": {
+        "en": "The library refresh migrated both variants (13 and 16 listed files; 913,677,333 B and 341,880,041 B) from the existing Documents folders after size and SHA-256 checks, then inspected them; no model loaded.",
+        "ja": "ライブラリの更新で、既存のDocumentsの2フォルダから両変換版（定義の13・16ファイル、913,677,333 B・341,880,041 B）を大きさとSHA-256の照合後に移行し、検査した。モデルは読み込まない。"
+      },
+      "batch_size": null,
+      "concurrency": null,
+      "warmups": null,
+      "power": null,
+      "thermal": null,
+      "model_executed": false,
       "plan_sha256": null
     }
   },

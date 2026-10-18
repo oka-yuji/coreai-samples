@@ -13,12 +13,13 @@
     "en": "Product extraction, inspection memos",
     "ja": "商品情報の抽出・点検メモ"
   },
-  "release": "in_progress",
+  "release": "released",
   "release_note": {
-    "en": "public release / iOS adoption",
-    "ja": "公開準備／iOS採用"
+    "en": "iOS device acceptance pending",
+    "ja": "iOSの実機確認待ち"
   },
   "download": "https://huggingface.co/okayuji/gliner2.5-multi-coreai-fp32",
+  "public_access_evidence": "docs/validation/ios-models-integration-20261018.md#acquisition",
   "pages": {
     "en": "docs/model-reports/gliner25.md",
     "ja": "docs/model-reports/gliner25.ja.md"
@@ -55,11 +56,12 @@
       "state": "pending",
       "variants": [],
       "evidence": [
-        "ios-models"
+        "ios-models",
+        "ios-acquisition"
       ],
       "note": {
-        "en": "Current Models route awaits real assets and device acceptance.",
-        "ja": "現行Models経路は実資産の採用と実機確認待ち。"
+        "en": "The current Models route downloads and validates the published bundle (self-test on iPhone 17 Pro, no model loaded); demo execution awaits device acceptance.",
+        "ja": "現行Models経路は公開バンドルを取得・検査する（iPhone 17 Proの自己テスト、モデルは読み込まない）。デモの実行は実機確認待ち。"
       }
     }
   },
@@ -114,6 +116,34 @@
       },
       "batch_size": 1,
       "concurrency": 1,
+      "warmups": null,
+      "power": null,
+      "thermal": null,
+      "model_executed": false,
+      "plan_sha256": null
+    },
+    "ios-acquisition": {
+      "url": "docs/validation/ios-models-integration-20261018.md#acquisition",
+      "level": "diagnostic",
+      "outcome": "passed",
+      "record_type": "legacy",
+      "date": "2026-10-19",
+      "platform": "ios",
+      "device": "iPhone 17 Pro",
+      "os": "iOS 27.0.1 (24A446)",
+      "toolchain": "Xcode 27.0 (27A266a)",
+      "variant": "FP32",
+      "backend": null,
+      "route": "Models self-test (--acquire all)",
+      "source_revision": "2ca71aafb3446d9014e1c55c7ff51c9bc7209c47",
+      "artifact_revision": "043e738f3a91222ec013b2d80e240e34abb46bdb",
+      "code_revision": null,
+      "workload": {
+        "en": "Anonymous HTTPS download of the 8 listed files (1,247,733,386 B), then promotion and inspection through the library store, in 38.1 s; no model loaded.",
+        "ja": "定義の8ファイル（1,247,733,386 B）を匿名HTTPSで取得し、ライブラリのstoreで登録・検査した（38.1秒）。モデルは読み込まない。"
+      },
+      "batch_size": null,
+      "concurrency": null,
       "warmups": null,
       "power": null,
       "thermal": null,

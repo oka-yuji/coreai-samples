@@ -1,0 +1,111 @@
+{
+  "acquisition" : {
+    "artifacts" : [
+      {
+        "artifactID" : "gliner2.5-multi-fp32-t256-t512",
+        "definedBytes" : 1247733386,
+        "identity" : {
+          "artifactID" : "gliner2.5-multi-fp32-t256-t512",
+          "contract" : "gliner-gl4-fp32-t256-t512",
+          "modelID" : "gliner2.5-multi",
+          "revision" : "043e738f3a91222ec013b2d80e240e34abb46bdb",
+          "upstreamRevision" : "2ca71aafb3446d9014e1c55c7ff51c9bc7209c47"
+        },
+        "inspection" : "ready",
+        "measuredBytes" : 1247733386,
+        "modelID" : "gliner2.5-multi",
+        "revision" : "043e738f3a91222ec013b2d80e240e34abb46bdb",
+        "route" : "download",
+        "seconds" : 53.6,
+        "state" : "ready"
+      },
+      {
+        "artifactID" : "embeddinggemma2-fp16-safe-s128-v70",
+        "definedBytes" : 913677333,
+        "identity" : {
+          "artifactID" : "embeddinggemma2-fp16-safe-s128-v70",
+          "contract" : "embeddinggemma2-fp16-safe-s128-v70",
+          "modelID" : "embeddinggemma2",
+          "revision" : "daab6dbfbae1610a87d9f181458419e3ea5ce682",
+          "upstreamRevision" : "914f7f89142e33e77833254d9c9b90c3cef7303b"
+        },
+        "inspection" : "ready",
+        "measuredBytes" : 913677333,
+        "modelID" : "embeddinggemma2",
+        "revision" : "daab6dbfbae1610a87d9f181458419e3ea5ce682",
+        "route" : "download",
+        "seconds" : 37.6,
+        "state" : "ready"
+      },
+      {
+        "artifactID" : "embeddinggemma2-int4-int8-ptq-s128-v70",
+        "definedBytes" : 341880041,
+        "identity" : {
+          "artifactID" : "embeddinggemma2-int4-int8-ptq-s128-v70",
+          "contract" : "embeddinggemma2-int4-int8-ptq-s128-v70",
+          "modelID" : "embeddinggemma2",
+          "revision" : "daab6dbfbae1610a87d9f181458419e3ea5ce682",
+          "upstreamRevision" : "914f7f89142e33e77833254d9c9b90c3cef7303b"
+        },
+        "inspection" : "ready",
+        "measuredBytes" : 341880041,
+        "modelID" : "embeddinggemma2",
+        "revision" : "daab6dbfbae1610a87d9f181458419e3ea5ce682",
+        "route" : "download",
+        "seconds" : 15.9,
+        "state" : "ready"
+      }
+    ],
+    "refreshSeconds" : 0,
+    "target" : "all"
+  },
+  "artifacts" : [
+    {
+      "artifactID" : "gliner2.5-multi-fp32-t256-t512",
+      "contract" : "gliner-gl4-fp32-t256-t512",
+      "distribution" : "okayuji/gliner2.5-multi-coreai-fp32@043e738f3a91222ec013b2d80e240e34abb46bdb",
+      "files" : 8,
+      "inspection" : "missing",
+      "modelID" : "gliner2.5-multi",
+      "upstreamRevision" : "2ca71aafb3446d9014e1c55c7ff51c9bc7209c47"
+    },
+    {
+      "artifactID" : "embeddinggemma2-fp16-safe-s128-v70",
+      "contract" : "embeddinggemma2-fp16-safe-s128-v70",
+      "distribution" : "okayuji/embeddinggemma-2-coreai@daab6dbfbae1610a87d9f181458419e3ea5ce682",
+      "files" : 13,
+      "inspection" : "missing",
+      "modelID" : "embeddinggemma2",
+      "upstreamRevision" : "914f7f89142e33e77833254d9c9b90c3cef7303b"
+    },
+    {
+      "artifactID" : "embeddinggemma2-int4-int8-ptq-s128-v70",
+      "contract" : "embeddinggemma2-int4-int8-ptq-s128-v70",
+      "distribution" : "okayuji/embeddinggemma-2-coreai@daab6dbfbae1610a87d9f181458419e3ea5ce682",
+      "files" : 16,
+      "inspection" : "missing",
+      "modelID" : "embeddinggemma2",
+      "upstreamRevision" : "914f7f89142e33e77833254d9c9b90c3cef7303b"
+    }
+  ],
+  "catalogDemos" : [
+    "comparison",
+    "extraction",
+    "image-search",
+    "inspection",
+    "object-finder"
+  ],
+  "catalogValidated" : true,
+  "failures" : [
+
+  ],
+  "platform" : "macOS",
+  "scope" : "Catalog and store checks only. The demo adapters and capability states belong to the iOS app. Acquisition of all through the library store.",
+  "store" : {
+    "excludedFromBackup" : false,
+    "exists" : true,
+    "path" : "~/Library/Application Support/com.coreai-samples.DemoApp/ModelLibrary"
+  },
+  "visibleDemos" : 5,
+  "visibleModels" : 2
+}

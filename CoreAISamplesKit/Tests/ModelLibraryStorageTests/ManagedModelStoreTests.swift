@@ -5,6 +5,23 @@ import Testing
 @testable import ModelLibraryStorage
 
 struct ManagedModelStoreTests {
+    @Test("ADOPT-01 The managed store resolves the contract of every artifact in the iOS catalog")
+    func catalogContracts() async throws {
+        let fixture = StoreFixture()
+        defer { fixture.remove() }
+        let store = fixture.store()
+        let catalog = try IOSDemoCatalog.make()
+        #expect(catalog.models.flatMap(\.artifacts).count == 3)
+        for model in catalog.models {
+            for artifact in model.artifacts {
+                let revision = try #require(artifact.download?.revision)
+                let staging = try await store.stagingDirectory(for: model, artifact: artifact)
+                #expect(Array(staging.pathComponents.suffix(3)) == ["staging", artifact.id, revision])
+                #expect(try await store.inspect(model: model, artifact: artifact).isMissing)
+            }
+        }
+    }
+
     @Test("STORE-01 Intact GLiNER and Embedding fixtures are the only bundles returned as validated resources")
     func acceptsIntactFixtures() async throws {
         let fixture = StoreFixture()

@@ -42,11 +42,11 @@
             assembly.runner.abandon(owner: library.state.owner)
         }
 
-        static func runSelfTest() async -> Int32 {
+        static func runSelfTest(acquire target: String? = nil) async -> Int32 {
             guard let output = LaunchArguments.value("--model-library-selftest") else { return 2 }
             return await ModelLibrarySelfTest.run(
                 output: URL(filePath: output, relativeTo: .documentsDirectory), root: root,
-                registry: assembly.registry, capabilities: capabilities())
+                registry: assembly.registry, capabilities: capabilities(), acquire: target, assembly: assembly)
         }
 
         static func capabilities() -> [DemoCapability: CapabilityState] {

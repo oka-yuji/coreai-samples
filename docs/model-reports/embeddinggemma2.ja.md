@@ -18,7 +18,7 @@
 | OS | 状態 | 確認した範囲・残る確認 | 根拠 |
 |---|---|---|---|
 | macos | ✅ | FP16のローカル画像検索UIの記録。PTQのカメラ受入を含まない。 | [E1](../validation/embeddinggemma2-ready-20261016.md) |
-| ios | △ | 旧FP16診断は成功。現行Models入口とPTQの実機推論は確認待ち。 | [E2](../validation/embeddinggemma2-ready-20261016.md) · [E4](../validation/ios-models-integration-20261018.md#device-checks) · [E3](../validation/embeddinggemma2-int4-int8-20261018.md) |
+| ios | △ | 旧FP16診断は成功。現行Models経路は公開済みのFP16とPTQを取得・検査する（iPhone 17 Proの自己テスト、モデルは読み込まない）。同経路でのデモ実行とPTQの実機推論は確認待ち。 | [E2](../validation/embeddinggemma2-ready-20261016.md) · [E4](../validation/ios-models-integration-20261018.md#device-checks) · [E3](../validation/embeddinggemma2-int4-int8-20261018.md) · [E7](../validation/ios-models-integration-20261018.md#acquisition) |
 
 ### 性能と品質
 
@@ -64,6 +64,7 @@
 | [E4](../validation/ios-models-integration-20261018.md#device-checks) | 2026-10-18 / legacy / plan | iPhone 17 Pro / iOS 27.0.1 (24A446) / Xcode 27.0 (27A266a) | 根拠に記載された固定入力を参照。 · variant=FP16 / PTQ; backend=Core AI; GPU preferred; route=plan; batch_size=1; concurrency=1; 未記録: source_revision, artifact_revision, code_revision, warmups, power, thermal, plan_sha256 |
 | [E5](../validation/embeddinggemma2-ready-20261016.md) | 2026-10-16 / legacy / diagnostic | M4 Max 128 GiB / macOS 27.0 (26A428) / Xcode 27.0 (27A266a) | 冷蔵庫画像5枚・未使用クエリ6件、768次元、閾値0.67。ローカルフォルダの画像検索UI。 · variant=safe FP16 S128 / vision70; backend=Core AI; GPU preferred; route=held-out retrieval quality evaluation; source_revision=914f7f89142e33e77833254d9c9b90c3cef7303b; batch_size=1; concurrency=1; 未記録: artifact_revision, code_revision, warmups, power, thermal, plan_sha256 |
 | [E6](../validation/embeddinggemma2-int4-int8-20261018.md) | 2026-10-18 / legacy / diagnostic | M4 Max 128 GiB / macOS 27.0 (26A428) / Xcode 27.0 (27A266a) | 同じPTQの20ベクトル照合。元精度からの品質劣化を保持。iPhoneはロックで実行できなかった。 · variant=INT4 text / INT8 vision PTQ; backend=Core AI; GPU preferred; route=held-out retrieval quality evaluation; source_revision=914f7f89142e33e77833254d9c9b90c3cef7303b; artifact_revision=7c37ea823af7a4028ec3757e124b53fe8e16a75c99c46d24ca0a7007cca55b85; code_revision=71fb61afd24e1fc5324f57a1abc02744d07ae09c; batch_size=1; concurrency=1; 未記録: warmups, power, thermal, plan_sha256 |
+| [E7](../validation/ios-models-integration-20261018.md#acquisition) | 2026-10-19 / legacy / diagnostic | iPhone 17 Pro / iOS 27.0.1 (24A446) / Xcode 27.0 (27A266a) | ライブラリの更新で、既存のDocumentsの2フォルダから両変換版（定義の13・16ファイル、913,677,333 B・341,880,041 B）を大きさとSHA-256の照合後に移行し、検査した。モデルは読み込まない。 · variant=safe FP16 S128 / vision70; INT4/INT8 PTQ; route=Models self-test (--acquire all); source_revision=914f7f89142e33e77833254d9c9b90c3cef7303b; artifact_revision=daab6dbfbae1610a87d9f181458419e3ea5ce682; 未記録: backend, code_revision, batch_size, concurrency, warmups, power, thermal, plan_sha256 |
 
 ### 導入・制限・進捗
 

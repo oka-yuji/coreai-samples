@@ -5,6 +5,22 @@ import Testing
 
 @testable import ModelLibraryFeature
 
+private struct Distribution: Decodable {
+    struct Artifact: Decodable {
+        let modelID: String
+        let artifactID: String
+        let repository: String
+        let revision: String
+        let root: String
+        let upstream: ModelUpstream
+        let files: [ModelArtifactFile]
+        let sizeBytes: Int64
+    }
+
+    let artifacts: [Artifact]
+    let totalBytes: Int64
+}
+
 struct IOSDemoLaunchTests {
     @Test(
         "Ordinary launch opens Models and explicit diagnostics preserve their destinations",
@@ -21,6 +37,13 @@ struct IOSDemoLaunchTests {
             (["app", "--model-library-selftest=report.json"], .modelLibrarySelfTest),
             (["app", "--extract-eval", "fixture", "--model-library-selftest", "report.json"], .extractionEvaluation),
             (["app", "--model-library-selftest", "report.json", "--legacy-demos"], .modelLibrarySelfTest),
+            (["app", "--model-library-selftest", "report.json", "--acquire", "all"], .modelLibraryAcquisition("all")),
+            (["app", "--model-library-selftest=report.json", "--acquire=fp16"], .modelLibraryAcquisition("fp16")),
+            (["app", "--acquire", "all", "--model-library-selftest", "report.json"], .modelLibraryAcquisition("all")),
+            (["app", "--model-library-selftest", "report.json", "--acquire"], .modelLibrarySelfTest),
+            (["app", "--acquire", "all"], .models),
+            (["app", "--model-library-selftest", "--acquire", "all"], .modelLibraryAcquisition("all")),
+            (["app", "--extract-eval", "e", "--model-library-selftest", "r", "--acquire", "a"], .extractionEvaluation),
             (["app", "--image-search"], .legacyDemos),
             (["app", "--object-finder"], .legacyDemos),
             (["app", "--truck-inspection"], .legacyDemos),
@@ -30,7 +53,9 @@ struct IOSDemoLaunchTests {
         #expect(IOSDemoLaunch.resolve(arguments: arguments) == expected)
     }
 
-    @Test("The iOS catalog presents two models and five demos without pretending their downloads are configured")
+    @Test(
+        "ADOPT-01 The iOS catalog presents two models and five demos whose artifacts carry the published distribution definitions with every file, size, checksum and upstream"
+    )
     func catalog() throws {
         let catalog = try IOSDemoCatalog.make()
         let sections = catalog.sections(platform: .iOS, audience: .release)
@@ -39,11 +64,40 @@ struct IOSDemoLaunchTests {
             sections.map { $0.demos.map(\.id) } == [
                 ["comparison", "extraction", "inspection"], ["image-search", "object-finder"],
             ])
+        #expect(sections.map { $0.artifacts.map(\.title) } == [["FP32"], ["FP16", "INT4/INT8 PTQ"]])
         #expect(
-            catalog.models.flatMap(\.artifacts).allSatisfy {
-                $0.download == nil && $0.sizeBytes == nil && $0.files.isEmpty && $0.upstream == nil
-            })
+            catalog.models.map(\.defaultArtifactID) == [
+                "gliner2.5-multi-fp32-t256-t512", "embeddinggemma2-fp16-safe-s128-v70",
+            ])
         #expect(catalog.sections(platform: .macOS, audience: .release).isEmpty)
+
+        let url = try #require(
+            Bundle.module.url(forResource: "distribution", withExtension: "json", subdirectory: "Resources"))
+        let published = try JSONDecoder().decode(Distribution.self, from: Data(contentsOf: url))
+        let artifacts = catalog.models.flatMap(\.artifacts)
+        #expect(artifacts.map(\.id).sorted() == published.artifacts.map(\.artifactID).sorted())
+        let contracts = [
+            "gliner2.5-multi-fp32-t256-t512": "gliner-gl4-fp32-t256-t512",
+            "embeddinggemma2-fp16-safe-s128-v70": "embeddinggemma2-fp16-safe-s128-v70",
+            "embeddinggemma2-int4-int8-ptq-s128-v70": "embeddinggemma2-int4-int8-ptq-s128-v70",
+        ]
+        for definition in published.artifacts {
+            let model = try #require(catalog.model(containing: definition.artifactID))
+            let artifact = try #require(model.artifact(definition.artifactID))
+            #expect(model.id == definition.modelID)
+            #expect(artifact.contract == contracts[artifact.id])
+            #expect(
+                artifact.download
+                    == ModelDownload(
+                        repository: definition.repository, revision: definition.revision, root: definition.root))
+            #expect(artifact.download?.isValid == true)
+            #expect(artifact.upstream == definition.upstream)
+            #expect(artifact.files.sorted { $0.path < $1.path } == definition.files.sorted { $0.path < $1.path })
+            #expect(artifact.sizeBytes == definition.sizeBytes)
+            #expect(definition.sizeBytes == definition.files.reduce(0) { $0 + $1.bytes })
+            #expect(artifact.visibility == .published && artifact.platforms == [.iOS])
+        }
+        #expect(published.totalBytes == artifacts.reduce(0) { $0 + ($1.sizeBytes ?? 0) })
     }
 
     @Test("A translated demo search retains its model while filtering unrelated demos")
@@ -65,7 +119,9 @@ struct IOSDemoLaunchTests {
     }
 
     @MainActor
-    @Test("Browsing all production demo descriptions never creates an executable session")
+    @Test(
+        "Browsing all production demos and requesting their downloads through the browsing runner never creates a session"
+    )
     func browseWithoutResources() throws {
         let catalog = try IOSDemoCatalog.make()
         var state = ModelLibraryState(catalog: catalog, environment: LibraryEnvironment(platform: .iOS), owner: UUID())
@@ -77,15 +133,26 @@ struct IOSDemoLaunchTests {
             }
         }
         for section in state.sections {
-            for demo in section.demos {
+            for (index, demo) in section.demos.enumerated() {
                 let selection = DemoSelection(modelID: section.id, demoID: demo.id)
                 #expect(ModelLibraryFeature.reduce(&state, .openDemo(selection)).isEmpty)
                 #expect(state.selection == selection)
                 #expect(state.session == nil)
-                #expect(state.access(to: selection) == .preview(.missing))
+                #expect(state.access(to: selection) == .preview(index == 0 ? .missing : .failed))
                 let artifactID = section.model.defaultArtifactID
-                #expect(ModelLibraryFeature.reduce(&state, .downloadRequested(artifactID)).isEmpty)
+                let commands = ModelLibraryFeature.reduce(&state, .downloadRequested(artifactID))
+                let artifact = try #require(section.model.artifact(artifactID))
+                let request = try #require(state.installations[artifactID]?.requestID)
+                #expect(commands == [.run(.download(section.model, artifact, request), id: .resource(artifactID))])
+                for command in commands {
+                    if case .run(let effect, _) = command {
+                        ModelLibraryBrowsingRunner.run(effect) { action in
+                            #expect(ModelLibraryFeature.reduce(&state, action).isEmpty)
+                        }
+                    }
+                }
                 #expect(state.installations[artifactID]?.failure == .downloadNotConfigured)
+                #expect(state.installations[artifactID]?.phase == .failed && state.session == nil)
                 #expect(ModelLibraryFeature.reduce(&state, .closeDemo).isEmpty)
                 #expect(state.selection == nil)
             }
