@@ -1,0 +1,36 @@
+name: ModelLibraryPreview
+options:
+  deploymentTarget:
+    iOS: "27.0"
+packages:
+  CoreAISamplesKit:
+    path: ../../CoreAISamplesKit
+targets:
+  ModelLibraryPreview:
+    type: application
+    platform: iOS
+    info:
+      path: Info.plist
+      properties:
+        CFBundleDisplayName: Model Library Preview
+        CFBundleAllowMixedLocalizations: true
+        UILaunchScreen: {}
+    sources:
+      - path: PreviewApp.swift
+      - path: PreviewDemo.swift
+    dependencies:
+      - package: CoreAISamplesKit
+        product: ModelLibraryUI
+      - package: CoreAISamplesKit
+        product: ModelLibraryFeature
+      - package: CoreAISamplesKit
+        product: FeatureStore
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.coreai-samples.ModelLibraryPreview
+        SWIFT_VERSION: "6.0"
+        SWIFT_DEFAULT_ACTOR_ISOLATION: MainActor
+        SWIFT_UPCOMING_FEATURE_NONISOLATED_NONSENDING_BY_DEFAULT: YES
+        SWIFT_UPCOMING_FEATURE_INFER_ISOLATED_CONFORMANCES: YES
+        TARGETED_DEVICE_FAMILY: "1,2"
+        CODE_SIGNING_ALLOWED: NO

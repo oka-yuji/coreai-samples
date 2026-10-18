@@ -4,6 +4,7 @@ included:
   - CoreAISamplesKit/Sources
   - CoreAISamplesKit/Tests
   - Vendor/IrodoriInputKit/Sources
+  - Examples/ModelLibraryPreview
 
 excluded:
   - .build
