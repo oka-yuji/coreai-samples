@@ -75,9 +75,10 @@ public enum IOSDemoCatalog {
                 searchTerms: searchTerms["embeddinggemma2"] ?? [],
                 artifacts: [unconfigured("embeddinggemma2-unconfigured")],
                 defaultArtifactID: "embeddinggemma2-unconfigured", platforms: [.iOS],
-                demos: ["image-search", "object-finder"].map {
-                    ModelDemoLink(demoID: $0, platforms: [.iOS])
-                }),
+                demos: [
+                    ModelDemoLink(demoID: "image-search", platforms: [.iOS]),
+                    ModelDemoLink(demoID: "object-finder", platforms: [.iOS], requiredCapabilities: [.camera]),
+                ]),
         ]
         return try ModelCatalog(models: models, demos: demos)
     }

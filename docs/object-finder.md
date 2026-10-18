@@ -2,20 +2,26 @@
 
 Enter an object name, start the camera, and look for matching regions. Japanese examples include eyeglasses, keys, a wallet and a mug. The demo reuses the local EmbeddingGemma 2 text/vision bundle. Camera images stay in memory and are not saved or sent to a server.
 
-Tracking: [image regions #147](https://github.com/oka-yuji/coreai-samples/issues/147), [camera #149](https://github.com/oka-yuji/coreai-samples/issues/149), [live preview and typed targets #153](https://github.com/oka-yuji/coreai-samples/issues/153), [acceptance #150](https://github.com/oka-yuji/coreai-samples/issues/150).
+Tracking: [image regions #147](https://github.com/oka-yuji/coreai-samples/issues/147), [camera #149](https://github.com/oka-yuji/coreai-samples/issues/149), [live preview and typed targets #153](https://github.com/oka-yuji/coreai-samples/issues/153), [acceptance #150](https://github.com/oka-yuji/coreai-samples/issues/150), [Models connection #197](https://github.com/oka-yuji/coreai-samples/issues/197).
 
 ## Run on iPhone
 
 1. Use an iPhone running iOS 27 or later and the `CoreAISamples-iOS` scheme with local signing configured.
 2. Prepare the [EmbeddingGemma 2 bundle](embeddinggemma2.md) and copy it to the app's `Documents/embeddinggemma2` directory. A bundle already used by Image search can be reused. Alternatively choose its folder in Search settings.
-3. Open **Demos → EmbeddingGemma 2 → Find objects with the camera**, type a target in **Object to find**, and select **Start searching**. **Fill an example** optionally fills the same editable field.
+3. Launch with `--object-finder`, or with `--legacy-demos` and open **Demos → EmbeddingGemma 2 → Find objects with the camera**. Type a target in **Object to find**, and select **Start searching**. **Fill an example** optionally fills the same editable field.
 4. Grant camera permission. A native camera preview starts before the model finishes preparing. Capture is configured for 30 fps; preview display does not wait for model inference. Sustained frame rate on the user's device remains a manual check.
 5. Matching candidates receive boxes that Vision tracks between model results. A stable candidate produces one short haptic. **Stop** releases the camera and model before another search can start.
 6. To change the target during a search, edit the field and tap **Search this text**, or use the keyboard's search key. Edits remain a draft until applied. The old operation and camera stop before the new target starts; a successfully prepared model is reused for the same folder. **Cancel change** cancels a pending restart and releases the model.
 
-The `--object-finder` launch argument opens the screen. `--embedding-bundle /path/to/bundle` selects a local bundle without starting inference. Model weights are not included in the app or downloaded automatically. Core AI cannot run in the iOS simulator.
+`--embedding-bundle /path/to/bundle` selects a local bundle without starting inference. Model weights are not included in the app or downloaded automatically. Core AI cannot run in the iOS simulator.
 
 Camera permission denial shows a Settings link. Leaving the screen or moving the app to the background stops the search. A camera interruption produces an error with an explicit retry. Camera rotation clears old results and restarts capture in the new orientation.
+
+## From Models
+
+The normal launch opens **Models**. **EmbeddingGemma 2 → Camera search demo** uses the variant that the library installed and validated, so the demo has no folder selection. The demo requires the camera: when the camera is denied or unsupported, the model stays listed and the library shows that the demo is unavailable; an undetermined permission is requested only by **Start searching**. Reading the description, a missing or stopping model, typing, rotation and late callbacks do not open the camera. The current catalog has no download source for this model, so this path cannot run on a device until its distribution is configured.
+
+Applying a new target inside the demo keeps the prepared model, as above. Going back, moving the app to the background, changing the variant or closing the scene stops capture, inference and haptics and releases the model before the library continues. A failed release keeps **Start searching** unavailable and shows the error; **Stop** in the demo or **Retry stopping** in Models tries the release again. The target text, the applied target and the match threshold are kept. The live preview, boxes and haptic state are not. A different variant uses a new camera session and model with the kept inputs and waits for an explicit Start.
 
 ## What the boxes mean
 
@@ -35,6 +41,9 @@ Candidates below the selected similarity threshold are hidden; an empty result i
 - Tracking receives only valid candidates meeting the active search threshold. Candidate IDs, scores and order are preserved; overlap suppression still uses the tracked positions. An empty candidate set clears the tracker and boxes.
 - The native preview layer and box drawing belong to the MainActor. Preview orientation follows the current UI pose immediately, independently of an in-flight model call. Boxes require the Feature's expected capture generation and expire even if capture callbacks stop. A one-shot timer is scheduled only for visible candidates with a deadline; stopped and empty previews do not poll for expiry. No JPEG encoding or decoding is used for preview display.
 - Editing the target changes only the draft. Applying it requests a stop and waits for the old operation to finish. The finder reuses its prepared model for the same folder and encodes the new text. Model-operation failure or cancellation discards retention; a different folder or a completed close requires another load. Updating model files in place during a search is not a supported reload mechanism.
+- `ObjectFinderDemoSessions` in `ObjectFinderRuntime` holds the Models adapter's runtimes; the app adapter only returns its Store and preview as content. It keeps one Store, preview and runner for each model and demo, bound to the session's validated folder, and each rebinding of the same resource replaces the session ticket and gate it checks. A different validated resource gets a new Store, preview and service; only the target text, applied target, threshold and session counter carry over. The managed Feature ignores folder selection.
+- The runner checks the library's execution gate before each search and haptic. With a closed gate, a search sends `notPermitted` without requesting permission, starting capture or loading the model, and a haptic is skipped.
+- The adapter's stop sends Stop, awaits the service's full release directly and then acknowledges the Feature. A failure reaches the Feature as a stop failure, also when the Feature was already idle (such as after an interruption whose cleanup failed), and reaches the library as an English `LocalizedError`. The Feature rejects Start until a retried stop is acknowledged. A later stop retries a failed close; a stop that waited for running work reports that work's outcome. The release completes even when the calling task is cancelled. A late stop for a session other than the one shown leaves a search that the shown session is running untouched.
 - The service stops the camera on every search exit. Only a target-replacement stop may retain a successfully prepared model until the next search. Stop, backgrounding, dismissal and cancelling a replacement revoke retention and wait for model cleanup. Cleanup failure has a separate stop-failure action so an old search failure cannot unlock a pending stop. The runner suppresses cancelled control acknowledgments, and stops carry a session so old requests cannot stop a newer search.
 
 ## Verification
@@ -45,6 +54,8 @@ CPU checks do not open a camera or load model weights:
 ./Tools/Irodori/build-inputs.sh
 swift test --package-path CoreAISamplesKit --filter ObjectFinder
 ```
+
+`ObjectFinderManagedTests` covers the Models path with the real Store, runner, service and finder over fake devices and a fake encoder: explicit Start and the gate, target reuse versus release, back, background, interruption, release failure and retry, kept inputs and a variant change. `ObjectFinderDemoSessionsTests` injects a recording service into `ObjectFinderDemoSessions` and covers closed and newest gates, a resource replacement, awaited and failed stops, a stop for an older session and kept inputs. The Models flow on a device remains a manual check.
 
 Static-photo checking uses the same region inference as the camera, under the shared heavy-job lock:
 

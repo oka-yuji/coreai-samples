@@ -7,8 +7,12 @@ public enum ObjectFinderPhase: Equatable, Sendable {
 }
 
 public enum ObjectFinderFailure: Error, Equatable, Sendable {
-    case cameraDenied, cameraUnavailable, cameraInterrupted
+    case cameraDenied, cameraUnavailable, cameraInterrupted, notPermitted
     case operation(String)
+}
+
+public enum ObjectFinderExecution: Equatable, Sendable {
+    case standalone, managed
 }
 
 public struct ObjectFinderFrame: Equatable, Sendable {
@@ -31,6 +35,7 @@ public struct ObjectFinderFrame: Equatable, Sendable {
 }
 
 public struct ObjectFinderState: Equatable, Sendable {
+    public let execution: ObjectFinderExecution
     public var folder: URL?
     public var query = ""
     public var submittedQuery = ""
@@ -47,15 +52,30 @@ public struct ObjectFinderState: Equatable, Sendable {
     public var orientation = ObjectCameraOrientation()
     public var orientationRevision = 0
     public var restartAfterStop = false
+    public var releasePending = false
 
     public var cameraRotation: ObjectCameraRotation {
         ObjectCameraRotation(session: session, revision: orientationRevision, angle: orientation.angle)
     }
 
-    public init(folder: URL? = nil) { self.folder = folder }
+    public init(folder: URL? = nil, execution: ObjectFinderExecution = .standalone) {
+        self.folder = folder
+        self.execution = execution
+    }
+
+    public static func managed(folder: URL, retaining previous: Self? = nil) -> Self {
+        var state = Self(folder: folder, execution: .managed)
+        if let previous {
+            state.query = previous.query
+            state.submittedQuery = previous.submittedQuery
+            state.minimumSimilarity = previous.minimumSimilarity
+            state.session = previous.session
+        }
+        return state
+    }
 
     public var canStart: Bool {
-        presented && phase == .idle && folder != nil && validDraft
+        presented && phase == .idle && folder != nil && validDraft && !releasePending
     }
 
     public var canApplyQuery: Bool {
@@ -65,6 +85,7 @@ public struct ObjectFinderState: Equatable, Sendable {
 
     public var canStop: Bool {
         phase == .starting || phase == .searching || (phase == .stopping && restartAfterStop)
+            || (phase == .idle && releasePending)
     }
 
     private var validDraft: Bool {
@@ -106,7 +127,7 @@ public enum ObjectFinderFeature: Feature {
         case .queryChanged(let query):
             if state.phase != .stopping { state.query = query }
         case .folderSelected(let folder):
-            if state.phase == .idle {
+            if state.phase == .idle, !state.releasePending, state.execution == .standalone {
                 state.folder = folder
                 state.failure = nil
             }
@@ -175,9 +196,10 @@ public enum ObjectFinderFeature: Feature {
             clear(&state)
             state.failure = failure
         case .stopFailed(let session, let failure):
-            guard state.session == session, state.phase == .stopping else { return [] }
+            guard state.session == session, state.phase == .stopping || state.phase == .idle else { return [] }
             state.phase = .idle
             state.restartAfterStop = false
+            state.releasePending = true
             clear(&state)
             state.failure = failure
         case .stop, .backgrounded, .disappeared:
@@ -186,7 +208,12 @@ public enum ObjectFinderFeature: Feature {
             if case .disappeared = action { state.presented = false }
             clear(&state)
             guard state.phase != .idle, state.phase != .stopping else {
-                if state.phase == .idle { return [.cancelAll] }
+                if state.phase == .idle {
+                    guard state.releasePending else { return [.cancelAll] }
+                    state.phase = .stopping
+                    state.failure = nil
+                    return [.cancelAll, .run(.stop(state.session, retainingModel: false), id: .control)]
+                }
                 if cancelsReplacement {
                     return [.cancelAll, .run(.stop(state.session, retainingModel: false), id: .control)]
                 }
@@ -197,6 +224,7 @@ public enum ObjectFinderFeature: Feature {
         case .stopped(let session):
             guard state.session == session, state.phase == .stopping else { return [] }
             state.phase = .idle
+            state.releasePending = false
             if state.restartAfterStop {
                 state.restartAfterStop = false
                 return reduce(&state, .start)

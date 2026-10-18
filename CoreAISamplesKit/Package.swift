@@ -100,7 +100,10 @@ let package = Package(
         .target(name: "ObjectFinderCore", swiftSettings: speechSettings),
         .target(
             name: "ObjectFinderRuntime",
-            dependencies: ["ObjectFinderCore", "ObjectFinderFeature", "EmbeddingCore", "EmbeddingRuntime"],
+            dependencies: [
+                "ObjectFinderCore", "ObjectFinderFeature", "EmbeddingCore", "EmbeddingRuntime", "FeatureStore",
+                "ModelLibraryFeature",
+            ],
             swiftSettings: speechSettings),
         .executableTarget(
             name: "object-finder-check", dependencies: ["ObjectFinderCore", "ObjectFinderRuntime"],
@@ -109,7 +112,7 @@ let package = Package(
             name: "ObjectFinderTests",
             dependencies: [
                 "ObjectFinderCore", "ObjectFinderFeature", "ObjectFinderRuntime", "FeatureStore", "EmbeddingCore",
-                "EmbeddingRuntime",
+                "EmbeddingRuntime", "ModelLibraryFeature",
             ],
             swiftSettings: speechSettings),
         .target(name: "SpeechCore", swiftSettings: speechSettings),

@@ -23,6 +23,7 @@
             registry.register(ExtractionAdapter())
             registry.register(InspectionAdapter())
             registry.register(ImageSearchAdapter())
+            registry.register(ObjectFinderAdapter())
             return registry
         }()
         private static let runner = ModelLibraryRunner(
