@@ -10,7 +10,7 @@ A card represents values mentioned on a page. It is not a single purchasable con
 
 Each candidate must exactly match its Unicode-scalar range in the captured text, including the UTF-8 sequence. A value opens its containing paragraph, full captured text, final URL when present, and capture time. Qualifiers and configuration context remain in that source; a short extracted span alone is not a confirmed specification. The source URL is an external link, not a continuously refreshed value.
 
-The input is a snapshot at submission. Editing it, changing the model, stopping or leaving cancels the current operation; generation checks reject late output. A canceled model operation may finish cooperatively, so another request waits for the service to become idle. Errors retain earlier cards and the draft for retry. Removing a card only removes that card. Language selection changes interface text, not input, model labels or source content.
+The input is a snapshot at submission. Editing it, changing the model, stopping or leaving cancels the current operation; generation checks reject late output. A canceled model operation may finish cooperatively, so another request waits for the service to become idle. Leaving also releases the loaded model after that wait; the next card loads it again. Errors retain earlier cards and the draft for retry. Removing a card only removes that card. Language selection changes interface text, not input, model labels or source content.
 
 ## Boundaries
 
@@ -26,7 +26,20 @@ The input is a snapshot at submission. Editing it, changing the model, stopping 
 
 `ProductCore` owns URL checks, HTML-to-text processing, chunk ranges and evidence validation. It has no model, I/O or asynchronous state. `ProductFeature` owns the draft, cards, phases, generation and commands. SwiftUI only presents that state and sends actions.
 
-`ProductRunner` calls `ProductService` on MainActor. `LiveProductService` serializes source and extraction operations and exposes a drain for cancellation. `ProductPageClient` handles bounded HTTP requests; `ProductExtractor` owns the cached GLiNER resource and refuses overlapping inference. The generic `Store` is the task/cancellation owner. Mac and iOS share this implementation.
+`ProductRunner` calls `ProductService` on MainActor. `LiveProductService` serializes source and extraction operations and exposes a drain for cancellation and a release. `ProductPageClient` handles bounded HTTP requests; `ProductExtractor` owns the cached GLiNER resource, refuses overlapping inference, and drops it on release. The generic `Store` is the task/cancellation owner. Mac and iOS share this implementation.
+
+`closed` cancels all work and runs a release drain in both modes: the runner waits until the service is idle and then releases the extractor and its folder. The security scope is held only during each extraction call. The phase stays `stopping`, so new work is refused, until the matching `released`; `releaseFailed` shows the failure and allows a retry. Editing the draft, changing the folder and Stop only wait for idle and keep the model.
+
+## iOS Models integration
+
+Issue [#193](https://github.com/oka-yuji/coreai-samples/issues/193) connects the demo to the iPhone Models library (`docs/model-library-contracts.md`, Runtime). The demo uses the GLiNER artifact selected in Models; it has no folder picker there.
+
+- `ProductComparisonAdapter` (demo ID `comparison`) is registered in `IOSModelLibraryAssembly`. It keeps one Store per model and demo selection, bound to the session's validated resource directory, and reuses it while the artifact identity (model, artifact, contract and revision) is unchanged. Another identity gets a new Store and service that keep the draft, cards and card numbers. The preview shows the kept draft and cards, or a disabled entry form, without creating a Store.
+- `ProductComparisonContent` holds the entry form, status, card count, cards and source sheet, without a navigation stack, vertical scroll view, title or model picker. The Mac and `--legacy-demos` `ProductComparisonView` composes the same parts with its header, folder picker and add sheet.
+- The managed `ProductState(folder:resourceIdentity:keeping:)` ignores `modelChosen`. Each card records `modelID/artifactID@revision`, which the card shows.
+- The managed runner checks the session's current `DemoExecutionGate` immediately before a page fetch and before extraction. A closed gate produces the ordinary failure without calling the service.
+- The adapter's `stop(_:)` sends `closed` and awaits `ProductRunner.release()`. It completes when its task is cancelled; a release failure is returned to the library as a failed stop. Stopping keeps the draft, cards and sources, including after the model is deleted. Content appearance only reactivates the Store.
+- The comparison link declares `network` as an optional capability; it never blocks execution. URL rules and limits are unchanged.
 
 The existing label/inspection UI remains under **Extraction lab**. Its headless `--extract-eval` and Mac `--gui-e2e ... --extract ...` routes remain separate; their success does not validate product extraction. B3 inspection-memo findings and the stopped M1 training decision remain unchanged.
 
@@ -53,6 +66,8 @@ open /path/to/CoreAISamples.app --args --product-preview
 ```
 
 The second command reads the model and requires the process check and heavy-job lock in `CLAUDE.md`. It drives the real Store/Runner/Service through two URLs and pasted text, then checks that a rejected URL preserves prior cards and allows retry. The diagnostic output includes text hashes, sources and raw candidates. It is an integration check, not an independently labeled quality benchmark. Keep complete third-party descriptions in private/local evidence, not in distributed fixtures. `--product-preview` is explicitly fictional and performs no model inference.
+
+#193 adds CPU tests with fake services: the managed context and closed gate, stop and re-entry during a fetch or extraction (the release follows the end of the work and late results are rejected), retention across release and a new artifact identity, the release drain ordering and failures, and the live service's release during a page read. They do not load a model. COMPARE-05 (Models → comparison → real extraction → back → reopen on an iPhone) is a user check and is not yet recorded.
 
 ## Remaining acceptance and next work
 

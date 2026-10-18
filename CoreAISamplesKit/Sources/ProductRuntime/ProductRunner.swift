@@ -7,16 +7,19 @@ public protocol ProductService {
     func source(draft: ProductDraft, capturedAt: Date) async throws -> ProductSource
     func extract(source: ProductSource, folder: URL) async throws -> ProductMemo
     func waitForIdle() async
+    func release() async throws
 }
 
 @MainActor
 public final class LiveProductService: ProductService {
-    private let page = ProductPageClient()
+    private let page: ProductPageClient
     private let model = ProductExtractor()
     private var busy = false
     private var waiting: [CheckedContinuation<Void, Never>] = []
 
-    public init() {}
+    public init() { page = ProductPageClient() }
+
+    init(page: ProductPageClient) { self.page = page }
 
     public func source(draft: ProductDraft, capturedAt: Date) async throws -> ProductSource {
         try begin()
@@ -37,6 +40,11 @@ public final class LiveProductService: ProductService {
         if busy { await withCheckedContinuation { waiting.append($0) } }
     }
 
+    public func release() async throws {
+        guard !busy else { throw ProductError.busy }
+        try await model.release()
+    }
+
     private func begin() throws {
         guard !busy else { throw ProductError.busy }
         busy = true
@@ -50,23 +58,30 @@ public final class LiveProductService: ProductService {
     }
 }
 
+struct ProductExecutionClosed: LocalizedError {
+    var errorDescription: String? { "The selected model is not ready yet. Please try again shortly." }
+}
+
 @MainActor
 public struct ProductRunner {
     private let service: any ProductService
-    public init(service: any ProductService) { self.service = service }
+    private let permits: @MainActor () -> Bool
+
+    public init(service: any ProductService, permits: @escaping @MainActor () -> Bool = { true }) {
+        self.service = service
+        self.permits = permits
+    }
 
     public func run(_ effect: ProductEffect, send: (ProductAction) -> Void) async {
-        let id: Int
-        switch effect {
-        case .load(let value, _, _), .extract(let value, _, _), .waitForIdle(let value): id = value
-        }
         do {
             switch effect {
             case .load(let id, let draft, let date):
+                guard permits() else { throw ProductExecutionClosed() }
                 let source = try await service.source(draft: draft, capturedAt: date)
                 try Task.checkCancellation()
                 send(.sourceLoaded(id, source))
             case .extract(let id, let source, let folder):
+                guard permits() else { throw ProductExecutionClosed() }
                 let memo = try await service.extract(source: source, folder: folder)
                 try Task.checkCancellation()
                 send(.extracted(id, memo))
@@ -74,9 +89,23 @@ public struct ProductRunner {
                 await service.waitForIdle()
                 try Task.checkCancellation()
                 send(.stopped(id))
+            case .release(let id):
+                try await release()
+                try Task.checkCancellation()
+                send(.released(id))
             }
         } catch {
-            if !Task.isCancelled && !(error is CancellationError) { send(.failed(id, error.localizedDescription)) }
+            guard !Task.isCancelled, !(error is CancellationError) else { return }
+            switch effect {
+            case .load(let id, _, _), .extract(let id, _, _), .waitForIdle(let id):
+                send(.failed(id, error.localizedDescription))
+            case .release(let id): send(.releaseFailed(id, error.localizedDescription))
+            }
         }
+    }
+
+    public func release() async throws {
+        await service.waitForIdle()
+        try await service.release()
     }
 }

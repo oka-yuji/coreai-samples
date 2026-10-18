@@ -16,9 +16,11 @@ public struct ProductDraft: Equatable, Sendable {
 public struct ProductCard: Identifiable, Equatable, Sendable {
     public let id: Int
     public let memo: ProductMemo
-    public init(id: Int, memo: ProductMemo) {
+    public let resourceIdentity: String?
+    public init(id: Int, memo: ProductMemo, resourceIdentity: String? = nil) {
         self.id = id
         self.memo = memo
+        self.resourceIdentity = resourceIdentity
     }
 }
 
@@ -31,13 +33,29 @@ public struct ProductState: Equatable, Sendable {
     public var draft = ProductDraft()
     public var cards: [ProductCard] = []
     public var modelFolder: URL?
+    public let resourceIdentity: String?
     public var importedSource: ProductSource?
     public var phase = Phase.idle
     public var generation = 0
     public var active = true
     public var preview = false
 
-    public init(modelFolder: URL? = nil) { self.modelFolder = modelFolder }
+    public init(modelFolder: URL? = nil) {
+        self.modelFolder = modelFolder
+        resourceIdentity = nil
+    }
+
+    public init(folder: URL, resourceIdentity: String, keeping previous: ProductState? = nil) {
+        modelFolder = folder
+        self.resourceIdentity = resourceIdentity
+        if let previous {
+            draft = previous.draft
+            cards = previous.cards
+            generation = previous.generation
+        }
+    }
+
+    public var managed: Bool { resourceIdentity != nil }
     public var busy: Bool {
         switch phase {
         case .importing, .extracting, .stopping: true
@@ -60,12 +78,15 @@ public enum ProductAction: Sendable {
     case remove(Int)
     case stop, appeared, closed
     case stopped(Int)
+    case released(Int)
+    case releaseFailed(Int, String)
 }
 
 public enum ProductEffect: Equatable, Sendable {
     case load(Int, ProductDraft, Date)
     case extract(Int, ProductSource, URL)
     case waitForIdle(Int)
+    case release(Int)
 }
 
 public enum ProductFeature: Feature {
@@ -81,6 +102,7 @@ public enum ProductFeature: Feature {
             state.importedSource = nil
             return stop(&state)
         case .modelChosen(let url):
+            guard !state.managed else { return [] }
             state.modelFolder = url
             return stop(&state)
         case .submit(let date):
@@ -100,7 +122,7 @@ public enum ProductFeature: Feature {
             guard state.active, id == state.generation, state.phase == .extracting,
                 state.cards.count < ProductState.cardLimit
             else { return [] }
-            state.cards.append(ProductCard(id: id, memo: memo))
+            state.cards.append(ProductCard(id: id, memo: memo, resourceIdentity: state.resourceIdentity))
             state.phase = .idle
             state.importedSource = nil
             state.draft = ProductDraft(mode: state.draft.mode)
@@ -127,13 +149,19 @@ public enum ProductFeature: Feature {
             state.active = false
             state.generation += 1
             state.importedSource = nil
-            if state.busy {
-                state.phase = .stopping
-                return [.cancelAll, .run(.waitForIdle(state.generation), id: .drain)]
-            }
-            state.phase = .idle
-            return [.cancelAll]
+            state.phase = .stopping
+            return [.cancelAll, .run(.release(state.generation), id: .drain)]
+        case .released(let id):
+            finishRelease(&state, id, as: .idle)
+            return []
+        case .releaseFailed(let id, let message):
+            finishRelease(&state, id, as: .failed(message))
+            return []
         }
+    }
+
+    private static func finishRelease(_ state: inout ProductState, _ id: Int, as phase: ProductState.Phase) {
+        if id == state.generation, state.phase == .stopping { state.phase = phase }
     }
 
     private static func stop(_ state: inout ProductState) -> [Command<ProductEffect, EffectID>] {

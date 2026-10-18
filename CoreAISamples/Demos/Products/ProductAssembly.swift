@@ -5,6 +5,10 @@ import ProductFeature
 import ProductRuntime
 import SwiftUI
 
+#if os(iOS)
+    import ModelLibraryFeature
+#endif
+
 @MainActor
 enum ProductAssembly {
     static func makeStore() -> Store<ProductFeature> {
@@ -19,6 +23,19 @@ enum ProductAssembly {
         return Store(
             initialState: ProductState(modelFolder: folder), run: ProductRunner(service: LiveProductService()).run)
     }
+
+    #if os(iOS)
+        static func makeManagedStore(
+            resource: ValidatedModelResource, keeping previous: ProductState?,
+            permits: @escaping @MainActor () -> Bool
+        ) -> (store: Store<ProductFeature>, runner: ProductRunner) {
+            let runner = ProductRunner(service: LiveProductService(), permits: permits)
+            let state = ProductState(
+                folder: resource.directory,
+                resourceIdentity: "\(resource.modelID)/\(resource.artifactID)@\(resource.revision)", keeping: previous)
+            return (Store(initialState: state, run: runner.run), runner)
+        }
+    #endif
 
     static func previewStore() -> Store<ProductFeature> {
         var state = ProductState()
