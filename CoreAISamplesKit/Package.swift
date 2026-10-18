@@ -46,6 +46,7 @@ let package = Package(
         .executable(name: "coreai-chat", targets: ["coreai-chat"]),
         .library(name: "FeatureStore", targets: ["FeatureStore"]),
         .library(name: "ExtractFeature", targets: ["ExtractFeature"]),
+        .library(name: "ExtractRuntime", targets: ["ExtractRuntime"]),
         .library(name: "DecideFeature", targets: ["DecideFeature"]),
         .library(name: "DecideRuntime", targets: ["DecideRuntime"]),
         .library(name: "RecipeCore", targets: ["RecipeCore"]),
@@ -226,6 +227,9 @@ let package = Package(
             swiftSettings: approachableConcurrency
         ),
         .target(
+            name: "ExtractRuntime", dependencies: ["ExtractFeature", "GLiNERCore"],
+            swiftSettings: approachableConcurrency),
+        .target(
             name: "GLiNERRuntime",
             dependencies: [
                 "GLiNERCore",
@@ -277,7 +281,7 @@ let package = Package(
         ),
         .testTarget(
             name: "ExtractFeatureTests",
-            dependencies: ["ExtractFeature", "FeatureStore", "GLiNERCore"],
+            dependencies: ["ExtractFeature", "ExtractRuntime", "FeatureStore", "GLiNERCore"],
             resources: [.copy("Resources")],
             swiftSettings: approachableConcurrency
         ),

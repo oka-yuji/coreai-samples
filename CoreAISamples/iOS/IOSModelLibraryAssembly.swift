@@ -20,6 +20,7 @@
         private static let registry: ModelDemoAdapterRegistry = {
             let registry = ModelDemoAdapterRegistry()
             registry.register(ProductComparisonAdapter())
+            registry.register(ExtractionAdapter())
             return registry
         }()
         private static let runner = ModelLibraryRunner(

@@ -1,7 +1,6 @@
 #if os(iOS)
     import ExtractFeature
     import FeatureStore
-    import GLiNERCore
     import SwiftUI
 
     struct PhoneExtractView: View {
@@ -37,20 +36,8 @@
                     } footer: {
                         Text("Compute units: \(computeUnits.rawValue)")
                     }
-                    Section("Note") {
-                        TextField("Type or paste a note", text: $text, axis: .vertical)
-                            .lineLimit(3...8)
-                        Button("Extract") {
-                            store.send(.textChanged(text))
-                            store.send(.extractRequested)
-                        }
-                        .disabled(text.allSatisfy(\.isWhitespace))
-                        runStatus
-                    }
-                    if let mapping = state.result?.mapping {
-                        Section("Labels") {
-                            ForEach(mapping.fields, id: \.field.key, content: labelRow)
-                        }
+                    Section {
+                        PhoneExtractContent(state: state, text: $text, send: store.send)
                     }
                 }
                 .navigationTitle("GLiNER2.5-multi")
@@ -73,34 +60,6 @@
                 Text(verbatim: "\(URL(filePath: info.path).lastPathComponent) · loaded in \(seconds) s\(revision)")
             case .failed(_, let message):
                 Text("Could not open the asset: \(message)").foregroundStyle(.red)
-            }
-        }
-
-        @ViewBuilder private var runStatus: some View {
-            switch state.phase {
-            case .extracting:
-                Text("Extracting…").foregroundStyle(.secondary)
-            case .failed(let message):
-                Text(message).foregroundStyle(.red)
-            case .ready, .idle:
-                if let timing = state.result?.timing {
-                    Text(ExtractRunner.describe(timing)).font(.caption).monospacedDigit().foregroundStyle(.secondary)
-                }
-            }
-        }
-
-        private func labelRow(_ label: FieldMapping) -> some View {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(label.field.name).font(.headline)
-                if label.candidates.isEmpty {
-                    Text("Not detected").foregroundStyle(.secondary)
-                }
-                ForEach(Array(label.candidates.enumerated()), id: \.offset) { _, candidate in
-                    Text(
-                        "\u{201C}\(candidate.span.text)\u{201D} span "
-                            + candidate.span.probability.formatted(.number.precision(.fractionLength(2)))
-                    )
-                }
             }
         }
     }

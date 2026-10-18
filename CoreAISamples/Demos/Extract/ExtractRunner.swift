@@ -1,4 +1,5 @@
 import ExtractFeature
+import ExtractRuntime
 import Foundation
 import GLiNERCore
 import GLiNERRuntime
@@ -22,7 +23,7 @@ struct ExtractRunner {
         + "R1 + N1: on a second sealed set of 200 memos, fabricated candidates 13/200, primary-span precision 0.788, "
         + "recall 0.822. Suggestions are uncalibrated scores."
 
-    let service: any ExtractService
+    let service: any ExtractServicing
 
     func run(_ effect: ExtractEffect, send: (ExtractAction) -> Void) async {
         switch effect {
@@ -60,6 +61,8 @@ struct ExtractRunner {
             } catch {
                 send(.exportFailed(Self.describe(error)))
             }
+        case .release:
+            return
         }
     }
 

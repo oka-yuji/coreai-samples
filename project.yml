@@ -86,6 +86,8 @@ targets:
         product: ConversationFeature
       - package: CoreAISamplesKit
         product: ConversationRuntime
+      - package: CoreAISamplesKit
+        product: ExtractRuntime
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.coreai-samples.DemoApp
@@ -176,6 +178,8 @@ targets:
         product: ModelLibraryTransfer
       - package: CoreAISamplesKit
         product: ModelLibraryRuntime
+      - package: CoreAISamplesKit
+        product: ExtractRuntime
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.coreai-samples.DemoApp.ios
