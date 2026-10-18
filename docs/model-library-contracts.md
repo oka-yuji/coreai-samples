@@ -42,9 +42,38 @@ The existing generic `Store` owns tasks. The application supplies one runner tha
 
 Demo data remains owned by its feature. The library retains definitions, the selected destination, and the selected variants across transfer and stop failures. It never deletes input, history, or generated results. Keeping those values when a demo runner releases runtime resources is the integration's responsibility.
 
+## Storage
+
+`ModelLibraryStorage` provides `ManagedModelStore`, an actor that owns the managed model area. The application passes `Application Support/<bundle ID>/ModelLibrary` as the root; it is connected to the app in #192. Hashing, copying, and enumeration run on the actor, never on the main actor, and check cancellation between files and between 1 MiB reads.
+
+| Path under the root | Contents |
+|---|---|
+| `artifacts/<artifact ID>/<distribution revision>/` | Verified bundles, laid out by the definition's relative file paths. Revisions are separate directories. |
+| `staging/<artifact ID>/<distribution revision>/` | Incomplete files of that revision. `stagingDirectory(for:artifact:)` always returns this directory, creating it when needed and keeping the files already in it. One transfer per artifact runs at a time. |
+| `trash/<UUID>` | A replaced or deleted bundle while it is removed. |
+| `ledger.json` | Format 1. One entry per artifact and revision: model ID, artifact ID, contract, distribution revision, upstream revision, size, installation time, and generation. It is written to a temporary file and renamed atomically. |
+
+`inspect(model:artifact:)` returns `.missing` without reading files when the distribution is absent or unpinned. Otherwise it compares the artifact directory with the pinned definition, whether or not the ledger lists it. Every listed file must be a regular file with the listed size and SHA-256. Any other file or directory, a symbolic link, and an empty, absolute, `.` or `..` path component are rejected. The contract check follows:
+
+- `gliner-gl4-*`: the definition includes `tokenizer/tokenizer.json` or `tokenizer.json`, `GLiNERAsset(directory:)` succeeds, and the `model` and `revision` in `contract.json` equal the upstream.
+- `embeddinggemma2-fp16-safe-s128-v70` and `embeddinggemma2-int4-int8-ptq-s128-v70`: `EmbeddingBundle(directory:)` succeeds with the matching precision profile, and the manifest revision equals the upstream revision.
+- Any other contract is rejected.
+
+A passing bundle updates its ledger entry and returns `.ready`. The resource's `revision` is the distribution revision, and `upstreamRevision` is the upstream revision. A failing bundle returns `.invalid` with the original error (`ManagedModelStoreError`, `GLiNERAssetError`, `EmbeddingError`, or a file system error), including when only the ledger lists it. A ledger entry alone never makes a resource ready. Inspection and promotion ignore a ledger that cannot be decoded and replace it on their next write; deletion refuses it with `ledgerCorrupted`. Inspection does not connect to the distribution or load Core AI. Cancellation is thrown, not reported as an invalid bundle.
+
+`promote(staging:model:artifact:)` accepts only the revision's staging directory or a directory below it. It runs the inspection checks, so an unlisted file such as a leftover partial download is rejected. It then moves an existing bundle of the same revision to the trash, moves the staging directory into place, records a new generation, and removes the trash and anything left in the staging directory. If a move or the ledger write fails, the directory returns to staging, the previous bundle returns from the trash, and the error is thrown. Other revisions are never touched. A process exit between the two moves leaves that revision missing rather than ready; its previous bundle remains in the trash until the next promotion or deletion removes it.
+
+`migrate(candidates:model:artifact:)` requires every listed file of a candidate folder to be a regular file with the listed size and SHA-256, and rejects a symbolic link anywhere in the folder. Unlisted files, such as `SHA256SUMS`, verification records, another `.aimodel`, or `.DS_Store`, are ignored and never copied. A candidate with a missing or changed file, a symbolic link, or an unsafe path is `undetermined` and is not registered. For a matching candidate, a capacity check runs first; the staging directory is then emptied, only the listed files are copied (never moved), and the copy is promoted, so the contract checks run on exactly the listed files. Failures are reported as `failed` and remove the copy; a capacity failure leaves the staging directory unchanged. Once the artifact is ready, the remaining candidates and later runs are `skipped`, so repeated runs create no duplicates. Originals are never modified or deleted, and `promote` refuses a folder outside the staging area.
+
+`lease(identity:owner:)` returns a `ResourceLease`. `release()` is idempotent, and `activeLeases(identity:)` counts the remaining leases. Deleting or promoting a leased identity fails with `inUse`. `delete(identity:)` also requires a ledger entry with the same model, artifact, contract, and distribution revision (`notInstalled` otherwise). It removes the ledger entry, moves the bundle to the trash and deletes it, deletes that revision's staging area, and returns the bytes of those files, which `deletionSize(identity:)` reports beforehand. A failure after the ledger entry is removed is thrown. The next inspection verifies what remains: a moved or partially removed bundle is missing or invalid, and only a complete bundle that still passes every check becomes ready again. Deletion never touches other revisions, other artifacts, legacy originals, inputs, saved results, or the Core AI specialization cache.
+
+Every ledger write that registers a bundle receives a larger generation, which never decreases while the process runs. The ledger stores the generation of each entry; leases exist only in memory. `ValidatedModelResource` has no generation field, so `generation(of:)` exposes the recorded value for the execution check in #192.
+
 ## Verification boundary
 
 Issue #171 covers the original pure-logic contract. Issue #189 adds variants, file sets, revision identity, tickets, the environment, capabilities, and adapter connection. The tests cover catalog intersections, search ownership, inspection versus execution, identity and revision mismatches, pinned distributions, progress, stale and foreign completions, cancellation, deletion, variant changes, and stop/retry ordering. A shared-demo fixture and a ten-demo fixture use the same registration path. GPU inference and real model distribution are outside these tests.
+
+Issue #190 adds `ModelLibraryStorageTests`, which build small GLiNER and EmbeddingGemma 2 fixtures (both precision profiles) in temporary directories, with definitions pinned to their actual SHA-256 values. They cover acceptance and rejection, interrupted and cancelled operations, capacity and ledger failures, migration, leases, deletion, and external replacement without downloading files or loading models.
 
 The test fixtures use `owner/fixture` with fixed revisions and checksums. They are test inputs, not real distributions. `IOSDemoCatalog` remains unconfigured, without files or revisions, until the distribution definitions are adopted.
 

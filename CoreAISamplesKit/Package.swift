@@ -18,6 +18,7 @@ let package = Package(
     products: [
         .library(name: "ModelLibraryUI", targets: ["ModelLibraryUI"]),
         .library(name: "ModelLibraryFeature", targets: ["ModelLibraryFeature"]),
+        .library(name: "ModelLibraryStorage", targets: ["ModelLibraryStorage"]),
         .library(name: "ObjectFinderFeature", targets: ["ObjectFinderFeature"]),
         .library(name: "ObjectFinderCore", targets: ["ObjectFinderCore"]),
         .library(name: "ObjectFinderRuntime", targets: ["ObjectFinderRuntime"]),
@@ -63,6 +64,13 @@ let package = Package(
         .target(name: "ModelLibraryFeature", dependencies: ["FeatureStore"], swiftSettings: speechSettings),
         .testTarget(
             name: "ModelLibraryTests", dependencies: ["ModelLibraryFeature", "ModelLibraryUI", "FeatureStore"],
+            swiftSettings: speechSettings),
+        .target(
+            name: "ModelLibraryStorage", dependencies: ["ModelLibraryFeature", "GLiNERRuntime", "EmbeddingRuntime"],
+            swiftSettings: speechSettings),
+        .testTarget(
+            name: "ModelLibraryStorageTests",
+            dependencies: ["ModelLibraryStorage", "ModelLibraryFeature", "GLiNERRuntime", "EmbeddingCore"],
             swiftSettings: speechSettings),
         .target(
             name: "ObjectFinderFeature", dependencies: ["ObjectFinderCore", "FeatureStore"],
