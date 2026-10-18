@@ -20,7 +20,7 @@ struct ConversationBudgetTests {
     @Test("Chat can search, fetch a page and answer, then starts the next question with a fresh budget")
     func searchFetchAnswer() {
         let now = Date(timeIntervalSince1970: 100)
-        var state = ConversationState(id: "budget", now: now)
+        var state = ConversationState(id: "budget", now: now, settings: ConversationSettings(webSearchEnabled: true))
         _ = ConversationFeature.reduce(&state, .send("Find the release date", mode: .chat, now: now))
         let search = ToolCallRecord(id: "search", name: "web_search", arguments: "{}")
         let fetch = ToolCallRecord(id: "fetch", name: "fetch_page", arguments: "{}")
@@ -169,7 +169,8 @@ struct ConversationBudgetTests {
         }
         #expect(continuation.allowedTools.isEmpty && continuation.maxSteps == 1)
 
-        var work = ConversationState(id: "prefix", now: now, settings: ConversationSettings(maxSteps: 1))
+        var work = ConversationState(
+            id: "prefix", now: now, settings: ConversationSettings(maxSteps: 1, webSearchEnabled: true))
         _ = ConversationFeature.reduce(&work, .send("Research", mode: .work, now: now))
         let prefix = "Unverified https://unfetched.example/item "
         let record = TranscriptRecord(entries: [
@@ -201,7 +202,8 @@ struct ConversationBudgetTests {
     }
 
     private func cutOff() -> ConversationState {
-        var state = ConversationState(id: "budget", now: now, settings: ConversationSettings(chatMaxSteps: 1))
+        var state = ConversationState(
+            id: "budget", now: now, settings: ConversationSettings(chatMaxSteps: 1, webSearchEnabled: true))
         _ = ConversationFeature.reduce(&state, .send("Research", mode: .chat, now: now))
         let call = ToolCallRecord(id: "t", name: "web_search", arguments: "{}")
         let transcript = TranscriptRecord(entries: [

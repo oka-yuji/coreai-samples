@@ -43,7 +43,7 @@ struct ConversationGuardTests {
         var busy = started(.work)
         #expect(reduce(&busy, .sendRepair("Fix the sources", now: launch)) == [[]])
 
-        let settings = ConversationSettings(maxSteps: 4)
+        let settings = ConversationSettings(maxSteps: 4, webSearchEnabled: true)
         var state = started(.work, settings: settings, prompt: "Research")
         let search = tool("t1", "web_search", #"{"query":"swift"}"#)
         var entries: [TranscriptRecord.Entry] = [

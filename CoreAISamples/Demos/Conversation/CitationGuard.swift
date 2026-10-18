@@ -221,6 +221,9 @@ final class CitationGuard {
         let local = tools.sources.check(
             answer: answer, notes: tools.noteTextsForValidation, required: suppliedSourcesRequired,
             suppliedIDs: tools.suppliedSourceIDs)
+        if preferences.sourcesRequired == nil, suppliedSourcesRequired, !local.violation, !local.cited.isEmpty {
+            check.sourcesMissing = false
+        }
         if suppliedSourcesRequired || !local.cited.isEmpty { check.local = local }
         return check
     }
