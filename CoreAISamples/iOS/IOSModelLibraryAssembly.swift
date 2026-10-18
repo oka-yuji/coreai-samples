@@ -21,6 +21,7 @@
             let registry = ModelDemoAdapterRegistry()
             registry.register(ProductComparisonAdapter())
             registry.register(ExtractionAdapter())
+            registry.register(InspectionAdapter())
             return registry
         }()
         private static let runner = ModelLibraryRunner(

@@ -6,9 +6,27 @@ public enum InspectionPrompt: Equatable, Sendable {
     case question, confirmation, acknowledgment, completion
 }
 
+public enum InspectionVoiceLimit: String, CaseIterable, Equatable, Sendable {
+    case microphoneDenied, speechRecognitionDenied, recognitionUnavailable, voiceUnavailable
+
+    public var message: String {
+        switch self {
+        case .microphoneDenied:
+            "Voice input needs microphone access. Allow it in Settings, or type or tap your answers."
+        case .speechRecognitionDenied:
+            "Voice input needs speech recognition access. Allow it in Settings, or type or tap your answers."
+        case .recognitionUnavailable:
+            "Japanese on-device speech recognition is unavailable on this device. Type or tap your answers."
+        case .voiceUnavailable:
+            "No Japanese voice is installed to read the questions. Type or tap your answers."
+        }
+    }
+}
+
 public enum InspectionVoiceAction: Sendable {
     case start, useButtons
     case prepared(Int, String)
+    case limited(Int, InspectionVoiceLimit)
     case spoken(Int, timedOut: Bool)
     case heard(Int, String)
     case partial(Int, String)
@@ -26,8 +44,9 @@ extension TruckInspectionFeature {
     static func voiceReduce(_ state: inout State, _ action: InspectionVoiceAction) -> Commands {
         switch action {
         case .start:
-            guard state.canConfigure else { return [] }
+            guard state.canConfigure, state.voiceLimit == nil else { return [] }
             guard state.modelInfo != nil else {
+                if let commands = prepareFirst(&state, .voice) { return commands }
                 state.message = "Prepare a model before starting voice input. Tap answers are available now."
                 return []
             }
@@ -46,6 +65,11 @@ extension TruckInspectionFeature {
             state.note(diagnostics)
             next(&state)
             return ask(&state)
+        case .limited(let id, let limit):
+            guard valid(state, id: id, phase: .authorizing) else { return [] }
+            state.voiceLimit = limit
+            state.note("voice-limit: \(limit.rawValue)")
+            return voiceFallback(&state, message: "")
         case .spoken(let id, let timedOut):
             guard valid(state, id: id, phase: .speaking) else { return [] }
             if timedOut {

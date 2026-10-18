@@ -156,6 +156,50 @@ struct InspectionVoiceTests {
         #expect(!state.voiceActive)
     }
 
+    @Test(
+        "INSPECT-02: Show the reason for a missing voice permission or capability, restrict only the affected operations, and keep typed inspection while the model is available",
+        arguments: InspectionVoiceLimit.allCases)
+    func voiceLimit(limit: InspectionVoiceLimit) throws {
+        let folder = URL(filePath: "/library/artifacts/gliner/revision")
+        var state = InspectionState(
+            catalog: try InspectionCatalogLoader.load(), modelFolder: folder, execution: .managed,
+            artifact: "gliner2.5-multi/variant@revision")
+        _ = TruckInspectionFeature.reduce(&state, .appeared)
+        state.modelInfo = InspectionModelInfo(
+            folder: folder, revision: "test", milliseconds: 1, computePreference: "gpu")
+        #expect(state.canStartVoice)
+        _ = TruckInspectionFeature.reduce(&state, .voice(.start))
+        #expect(state.phase == .authorizing)
+        #expect(TruckInspectionFeature.reduce(&state, .voice(.limited(state.generation - 1, limit))).isEmpty)
+        #expect(state.voiceLimit == nil)
+        _ = TruckInspectionFeature.reduce(&state, .voice(.limited(state.generation, limit)))
+        #expect(state.voiceLimit == limit)
+        #expect(!limit.message.isEmpty)
+        #expect(!state.voiceActive)
+        #expect(state.phase == .stopping)
+        _ = TruckInspectionFeature.reduce(&state, .stopped(state.generation, unloaded: false))
+        #expect(state.canAnswer)
+        #expect(state.records.isEmpty)
+        _ = TruckInspectionFeature.reduce(&state, .choose(.ok))
+        #expect(state.records.count == 1)
+        let item = try #require(state.currentItem)
+        _ = TruckInspectionFeature.reduce(&state, .draftChanged("A new rattling sound"))
+        #expect(
+            TruckInspectionFeature.reduce(&state, .submit) == [
+                .run(.classify(state.generation, "A new rattling sound", item, state.catalog), id: .operation)
+            ])
+        _ = TruckInspectionFeature.reduce(&state, .stop)
+        _ = TruckInspectionFeature.reduce(&state, .stopped(state.generation, unloaded: false))
+        #expect(state.canConfigure)
+        #expect(state.canMeasure)
+        #expect(!state.canStartVoice)
+        #expect(TruckInspectionFeature.reduce(&state, .voice(.start)).isEmpty)
+        #expect(state.voiceLimit == limit)
+        _ = TruckInspectionFeature.reduce(&state, .appeared)
+        #expect(state.voiceLimit == nil)
+        #expect(state.canStartVoice)
+    }
+
     @Test("An acknowledgment fallback continues at the next unanswered item", arguments: [true, false])
     func acknowledgmentFallback(useButtons: Bool) throws {
         var state = try prepared()

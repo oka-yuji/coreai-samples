@@ -13,6 +13,7 @@
         private var tapInstalled = false
         private var routeID: String?
         private var sessionGeneration = 0
+        private var activated = false
 
         func configure() async throws -> String {
             try Task.checkCancellation()
@@ -20,6 +21,7 @@
             let generation = sessionGeneration
             let session = AVAudioSession.sharedInstance()
             try session.setCategory(.playAndRecord, mode: .default, options: [.allowBluetoothHFP, .duckOthers])
+            activated = true
             try session.setActive(true)
             let bluetooth = session.availableInputs?.first {
                 $0.portType == .bluetoothHFP || $0.portType == .bluetoothLE
@@ -119,14 +121,13 @@
             engine.reset()
         }
 
-        func stopSession() -> String? {
+        func stopSession() throws {
             sessionGeneration += 1
             finish()
             routeID = nil
-            do {
-                try AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
-                return nil
-            } catch { return String(describing: error) }
+            guard activated else { return }
+            try AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+            activated = false
         }
 
         private func waitForRoute(_ uid: String, generation: Int) async throws -> Bool {

@@ -18,6 +18,7 @@ public enum InspectionAction: Sendable {
     case edit(String)
     case failed(Int, String)
     case stopped(Int, unloaded: Bool)
+    case stopFailed(Int, String)
     case diagnostic(Int, String)
 }
 
@@ -40,10 +41,10 @@ public enum TruckInspectionFeature: Feature {
         switch action {
         case .voice(let voice): return voiceReduce(&state, voice)
         case .measure:
-            guard state.canConfigure, state.modelInfo != nil,
-                let item = state.items.first(where: { $0.id == "tire_pressure" }),
+            guard state.canConfigure, let item = state.items.first(where: { $0.id == "tire_pressure" }),
                 let text = item.aliases[InspectionStatus.attention.rawValue]?.first
             else { return [] }
+            guard state.modelInfo != nil else { return prepareFirst(&state, .measure) ?? [] }
             state.generation += 1
             state.measurement = nil
             state.message = ""
@@ -60,6 +61,8 @@ public enum TruckInspectionFeature: Feature {
             return []
         case .appeared:
             state.active = true
+            state.voiceLimit = nil
+            guard state.execution == .standalone else { return [] }
             if state.phase == .stopping {
                 state.reloadAfterStop = true
                 return []
@@ -67,21 +70,23 @@ public enum TruckInspectionFeature: Feature {
             guard state.phase == .idle, state.modelInfo == nil, let folder = state.modelFolder else { return [] }
             return prepare(&state, folder: folder)
         case .closed:
-            guard state.active else { return [] }
+            guard state.active || state.phase == .stopFailed else { return [] }
             state.active = false
             state.reloadAfterStop = false
             return stop(&state, unload: true)
         case .modelChosen(let folder):
-            guard state.canConfigure else { return [] }
+            guard state.execution == .standalone, state.canConfigure else { return [] }
             return prepare(&state, folder: folder)
         case .modelLoaded(let id, let info):
             guard state.active, id == state.generation, state.phase == .preparing else { return [] }
             state.modelInfo = info
-            state.phase = .idle
+            state.phase = state.requestPhase
             state.note(
                 "timing: load=\(info.milliseconds)ms revision=\(info.revision) preference=\(info.computePreference) floatType=\(info.floatType)"
             )
-            return []
+            guard let request = state.request else { return [] }
+            state.request = nil
+            return resume(&state, request)
         case .profileChanged(let profile):
             guard state.canConfigure, state.profile != profile else { return [] }
             state.profile = profile
@@ -89,6 +94,7 @@ public enum TruckInspectionFeature: Feature {
             return []
         case .start:
             guard state.canConfigure else { return [] }
+            if let commands = prepareFirst(&state, .start) { return commands }
             state.message = ""
             next(&state)
             return []
@@ -153,15 +159,24 @@ public enum TruckInspectionFeature: Feature {
                 return prepare(&state, folder: folder)
             }
             return []
+        case .stopFailed(let id, let error):
+            guard id == state.generation, state.phase == .stopping else { return [] }
+            state.phase = .stopFailed
+            state.message = "Voice input or the model did not stop. Use Stop to try again."
+            state.note("stop-error: \(error)")
+            return []
         case .failed(let id, let error):
             guard state.active, id == state.generation,
                 state.phase == .preparing || state.phase == .classifying || state.phase == .measuring
             else { return [] }
+            let request = state.request
+            state.request = nil
             state.phase =
                 state.phase == .measuring
-                ? state.measurementReturnPhase : (state.phase == .preparing ? .idle : .answering)
+                ? state.measurementReturnPhase : (state.phase == .preparing ? state.requestPhase : .answering)
             state.message = "The operation failed. Check the diagnostics or use the answer buttons."
             state.note("error: \(error)")
+            if request == .start { next(&state) }
             if state.voiceActive { return voiceFallback(&state, message: state.message) }
             return []
         case .diagnostic(let id, let text):
@@ -178,6 +193,8 @@ public enum TruckInspectionFeature: Feature {
         state.measurement = nil
         state.phase = .preparing
         state.message = ""
+        state.request = nil
+        state.requestPhase = .idle
         return [.run(.prepare(state.generation, folder), id: .operation)]
     }
 
@@ -193,6 +210,7 @@ public enum TruckInspectionFeature: Feature {
             return []
         }
         guard state.modelInfo != nil else {
+            if let commands = prepareFirst(&state, .submit) { return commands }
             state.message = "Choose a model asset to interpret free-form answers, or use the answer buttons."
             return []
         }
@@ -208,7 +226,8 @@ public enum TruckInspectionFeature: Feature {
             itemID: item.id, title: item.title, answer: state.draft, candidate: candidate,
             confirmed: confirmed, milliseconds: candidate.method == .model ? state.pendingMilliseconds : 0,
             turnMilliseconds: state.voiceActive
-                ? state.turnStartedAt.map { max(0, state.clockSeconds - $0) * 1000 } : nil)
+                ? state.turnStartedAt.map { max(0, state.clockSeconds - $0) * 1000 } : nil,
+            artifact: candidate.method == .model ? state.artifact : nil)
         state.note(
             "decided: \(item.id)=\(candidate.status.rawValue) via=\(candidate.method.rawValue) confirmed=\(confirmed)")
         state.pending = nil
@@ -253,7 +272,28 @@ public enum TruckInspectionFeature: Feature {
         state.resumeAfterStop = resume
         state.generation += 1
         state.pending = nil
+        state.request = nil
         state.phase = .stopping
         return [.cancelAll, .run(.stop(state.generation, unload: unload), id: .drain)]
+    }
+}
+
+extension TruckInspectionFeature {
+    static func prepareFirst(_ state: inout State, _ request: State.Request) -> Commands? {
+        guard state.preparesOnRequest, state.modelInfo == nil, let folder = state.modelFolder else { return nil }
+        let phase = state.phase
+        let commands = prepare(&state, folder: folder)
+        state.request = request
+        state.requestPhase = phase
+        return commands
+    }
+
+    static func resume(_ state: inout State, _ request: State.Request) -> Commands {
+        switch request {
+        case .start: reduce(&state, .start)
+        case .submit: reduce(&state, .submit)
+        case .measure: reduce(&state, .measure)
+        case .voice: reduce(&state, .voice(.start))
+        }
     }
 }
