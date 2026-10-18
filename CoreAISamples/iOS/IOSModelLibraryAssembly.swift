@@ -11,38 +11,27 @@
 
     @MainActor
     enum IOSModelLibraryAssembly {
-        struct Library {
-            let store: Store<ModelLibraryFeature>
-            let rendering: ModelLibraryRendering
-        }
-
-        private static let store = ManagedModelStore(root: ModelStorage.root.appending(path: "ModelLibrary"))
-        private static let registry: ModelDemoAdapterRegistry = {
-            let registry = ModelDemoAdapterRegistry()
-            registry.register(ProductComparisonAdapter())
-            registry.register(ExtractionAdapter())
-            registry.register(InspectionAdapter())
-            registry.register(ImageSearchAdapter())
-            registry.register(ObjectFinderAdapter())
-            return registry
+        static let adapters: [any ModelDemoAdapter] = [
+            ProductComparisonAdapter(), ExtractionAdapter(), InspectionAdapter(), ImageSearchAdapter(),
+            ObjectFinderAdapter(),
+        ]
+        private static let root: URL = {
+            let root = ModelStorage.root.appending(path: "ModelLibrary")
+            try? FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+            ModelStorage.excludeFromBackup(root)
+            return root
         }()
-        private static let runner = ModelLibraryRunner(
-            resources: ModelLibraryResourceRunner(
-                store: store, transfer: ArtifactTransfer(), migrationCandidates: legacyFolders),
-            registry: registry, store: store)
+        private static let assembly = ModelLibraryAssembly(
+            adapters: adapters, store: ManagedModelStore(root: root), transfer: ArtifactTransfer(),
+            migrationCandidates: legacyFolders)
 
-        static func make(catalog: ModelCatalog) -> Library {
-            let environment = LibraryEnvironment(
-                platform: .iOS, connectedDemos: registry.connectedDemos, capabilities: capabilities())
-            let library = Store<ModelLibraryFeature>(
-                initialState: ModelLibraryState(catalog: catalog, environment: environment, owner: UUID()),
-                run: runner.run)
-            return Library(
-                store: library, rendering: ModelLibraryRendering(registry: registry, runner: runner, library: library))
+        static func make(catalog: ModelCatalog) -> ModelLibraryAssembly.Library {
+            precondition(adapters.map(\.demoID).sorted() == catalog.demos.map(\.id).sorted())
+            return assembly.makeLibrary(catalog: catalog, capabilities: capabilities(), owner: UUID())
         }
 
         static func enter(_ phase: ScenePhase, library: Store<ModelLibraryFeature>) {
-            if phase == .active { runner.retryAbandoned() }
+            if phase == .active { assembly.runner.retryAbandoned() }
             for action in ModelLibraryRendering.actions(entering: phase, capabilities: capabilities()) {
                 library.send(action)
             }
@@ -50,7 +39,14 @@
 
         static func close(_ library: Store<ModelLibraryFeature>) {
             library.send(.suspendDemo)
-            runner.abandon(owner: library.state.owner)
+            assembly.runner.abandon(owner: library.state.owner)
+        }
+
+        static func runSelfTest() async -> Int32 {
+            guard let output = LaunchArguments.value("--model-library-selftest") else { return 2 }
+            return await ModelLibrarySelfTest.run(
+                output: URL(filePath: output, relativeTo: .documentsDirectory), root: root,
+                registry: assembly.registry, capabilities: capabilities())
         }
 
         static func capabilities() -> [DemoCapability: CapabilityState] {

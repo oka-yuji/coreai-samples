@@ -8,7 +8,7 @@
     struct PhoneModelLibraryScreen: View {
         @AppStorage(DemoLanguage.preferenceKey) private var languageCode = DemoLanguage.initialCode
         @Environment(\.scenePhase) private var scenePhase
-        @State private var library: Result<IOSModelLibraryAssembly.Library, any Error>
+        @State private var library: Result<ModelLibraryAssembly.Library, any Error>
 
         init() {
             _library = State(

@@ -6,7 +6,7 @@
 
 [機能画面のデザイン確認一覧（HTML）](docs/designs/function-screens.html)
 
-[ネイティブSwiftUIプレビューと確認手順](Examples/ModelLibraryPreview/README.md)：通常のiOSアプリもModelsから起動します。5つのデモ説明を閲覧でき、モデルのダウンロード・実行はまだ未接続です。
+[ネイティブSwiftUIプレビューと確認手順](Examples/ModelLibraryPreview/README.md)：通常のiOSアプリもModelsから起動し、5つのデモはそれぞれの実行部に接続済みです。モデルの配布定義を採用するまでは各デモの説明だけを表示し、ダウンロードと実行はできません。
 
 Apple の Core AI と Foundation Models で、オープンなモデルを Mac 上で動かす Swift のサンプルです。**Chat** と **Agent** は Qwen3.8 27B で動き、Agent は Web を検索し、ページを読み、メモを保存します。**Recipes** は冷蔵庫の写真の食材とレシピの URL を照らし合わせ、**Decide** は文書を編集できるチェックリストで採点します。この 2 つは Clef-Flash 9B を使います。**Extract** は GLiNER2.5-multi で商品説明から出典つきのスペックのカードを作ります。`Tools/Verify` は、このリポジトリのランタイムと Apple のランタイムをトークン単位で比べます。
 
@@ -373,7 +373,7 @@ COREAI_TEST_BUNDLES=/path/to/bundle COREAI_TEST_RELOAD_INTERVAL=0 COREAI_TEST_RE
 
 - Agent のページの取得と Web の RAG は、名前を解決したすべてのアドレスが公開のものでなければ取得しません。ループバック、私的、リンクローカル、未指定、共有、マルチキャスト、予約のアドレスを、IPv4 を写した IPv6 や古い数値の IPv4 の書き方も含めて断ります。検査は、最初の依頼の前、URLSession のリダイレクトのたび、WebView の主フレームと副フレームのナビゲーションのたび、最後の URL で行い、WebView の content rules もサブリソースのローカルの名前と公開でない数値のアドレスを止めます。名前を解決できなければ取得を断ります。検査と接続の間の DNS rebinding と、私的なアドレスに解決される名前への JavaScript やサブリソースの依頼は、防げません。アプリは App Sandbox なしで動きます。
 
-- macOS だけで動きます(Apple シリコン、macOS 27.0)。`CoreAISamplesKit/Package.swift` は iOS 27 を宣言していますが、iOS では何も動かしていません。デモアプリの iPhone のターゲット(`CoreAISamples-iOS`、Extract だけ。[docs/demo-app.md](docs/demo-app.md#extract-on-iphone) を参照)はビルドできますが、まだ実機で動かしていません。
+- macOS だけで動きます(Apple シリコン、macOS 27.0)。`CoreAISamplesKit/Package.swift` は iOS 27 を宣言していますが、iOS では何も動かしていません。デモアプリの iPhone のターゲット(`CoreAISamples-iOS`、Models から起動。[docs/demo-app.md](docs/demo-app.md#iphone-app) を参照)はビルドできますが、Models の経路はまだ実機で確かめていません。
 - 言語生成のランタイムは、変換器の macOS 向けの書き出し(`*_dynamic` のフォルダ)の Qwen3、Qwen3.5、Qwen3.8 で動かしました。上の停止のトークン、`<think>` のタグ、ツールの呼び出しの形は、それらのテンプレートが使うものです。ほかの系統のモデルにはさらに対応が要ることがあります。Clef は別の `DecisionModel` の API を使います。
 - 言語生成のランタイムはテキストを受け付けます。テキストでない transcript のセグメントは `LanguageModelError.unsupportedTranscriptContent` を投げます。Recipes の写真の入力には Apple の別の端末上のモデルを使い、Clef のバンドル自体はテキストだけです。
 - guided generation はありません。応答の schema のある依頼は `LanguageModelError.unsupportedCapability` を投げます。
