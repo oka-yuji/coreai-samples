@@ -366,4 +366,44 @@ struct ManagedExtractTests {
         #expect(again.asset == .none && again.phase == .idle && again.labels == testForm)
         #expect(send(&again, .extractRequested) == [[.run(.openAsset(path: path), id: .asset)]])
     }
+
+    @Test(
+        "EXTRACT-03 An edit that is never extracted keeps the shown result and its artifact through a stop and a new session's binding"
+    )
+    func editKeepsShownResult() {
+        var state = managedState()
+        _ = send(
+            &state, .extractRequested, .assetOpened(loaded),
+            .extractionFinished(version: 0, mapping: fakeMapping, timing: timing))
+        let shown = state.result
+        let draft = "pressure 0.6MPa, noise ng"
+        #expect(send(&state, .textChanged(draft)) == [[.cancel(.extraction)]])
+        #expect(state.result == shown && state.resourceIdentity == boundIdentity && state.version == 1)
+        _ = send(&state, .closed, .released)
+        let resumed = state.managed(
+            path: "/library/artifacts/gliner-fp16/r2", identity: "gliner2.5-multi/gliner-fp16@r2")
+        #expect(resumed.text == draft && resumed.result == shown && resumed.resourceIdentity == boundIdentity)
+        #expect(resumed.version == 1 && resumed.phase == .idle && resumed.asset == .none)
+    }
+
+    @Test(
+        "EXTRACT-03 An explicit request for an edited note clears the older result before it runs, so a failure shows no stale result, while a request for the unchanged note keeps its result"
+    )
+    func requestReplacesShownResult() {
+        var state = managedState()
+        _ = send(
+            &state, .extractRequested, .assetOpened(loaded),
+            .extractionFinished(version: 0, mapping: fakeMapping, timing: timing), .textChanged("pressure 0.6MPa"))
+        #expect(state.result?.version == 0)
+        #expect(send(&state, .extractRequested) == [[extraction(1, "pressure 0.6MPa")]])
+        #expect(state.result == nil && state.resourceIdentity == nil && state.phase == .extracting(version: 1))
+        _ = send(&state, .extractionFailed(version: 1, message: "The note is too long"))
+        #expect(state.result == nil && state.phase == .failed("The note is too long"))
+
+        _ = send(&state, .extractRequested, .extractionFinished(version: 1, mapping: fakeMapping, timing: timing))
+        let current = state.result
+        #expect(current?.version == 1)
+        _ = send(&state, .extractRequested, .extractionFailed(version: 1, message: "busy"))
+        #expect(state.result == current && state.resourceIdentity == boundIdentity && state.phase == .failed("busy"))
+    }
 }

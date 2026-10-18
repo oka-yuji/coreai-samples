@@ -108,11 +108,11 @@ public enum ExtractFeature: Feature {
 
     private static func startVersion(_ state: inout ExtractState) -> [Command<ExtractEffect, EffectID>] {
         state.version += 1
-        state.result = nil
-        state.resourceIdentity = nil
-        state.confirmations = [:]
         state.phase = .idle
-        return [state.isManaged ? .cancel(.extraction) : .run(.settle, id: .extraction)]
+        guard !state.isManaged else { return [.cancel(.extraction)] }
+        state.result = nil
+        state.confirmations = [:]
+        return [.run(.settle, id: .extraction)]
     }
 
     private static func extract(_ state: inout ExtractState) -> [Command<ExtractEffect, EffectID>] {
@@ -121,6 +121,11 @@ public enum ExtractFeature: Feature {
             return [.cancel(.extraction)]
         }
         if case .managed(let path, _) = state.execution {
+            if let result = state.result, result.version != state.version {
+                state.result = nil
+                state.resourceIdentity = nil
+                state.confirmations = [:]
+            }
             switch state.asset {
             case .ready:
                 break
