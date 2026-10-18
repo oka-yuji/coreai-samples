@@ -15,6 +15,7 @@ let package = Package(
         .iOS("27.0"),
     ],
     products: [
+        .library(name: "ModelLibraryFeature", targets: ["ModelLibraryFeature"]),
         .library(name: "ObjectFinderFeature", targets: ["ObjectFinderFeature"]),
         .library(name: "ObjectFinderCore", targets: ["ObjectFinderCore"]),
         .library(name: "ObjectFinderRuntime", targets: ["ObjectFinderRuntime"]),
@@ -54,6 +55,10 @@ let package = Package(
         .package(url: "https://github.com/huggingface/swift-jinja.git", from: "2.5.1"),
     ],
     targets: [
+        .target(name: "ModelLibraryFeature", dependencies: ["FeatureStore"], swiftSettings: speechSettings),
+        .testTarget(
+            name: "ModelLibraryTests", dependencies: ["ModelLibraryFeature", "FeatureStore"],
+            swiftSettings: speechSettings),
         .target(
             name: "ObjectFinderFeature", dependencies: ["ObjectFinderCore", "FeatureStore"],
             swiftSettings: speechSettings),
