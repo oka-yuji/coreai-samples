@@ -151,6 +151,7 @@ public struct ModelLibraryState: Equatable, Sendable {
     public internal(set) var session: ModelDemoSession?
     public internal(set) var pendingDestination: ModelDestination?
     public internal(set) var pendingArtifact: String?
+    public internal(set) var pendingLoss: String?
     public internal(set) var stopRequestID: LibraryTicket?
     public internal(set) var failure: ModelLibraryFailure?
     var nextID = 0
