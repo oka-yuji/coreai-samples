@@ -10,6 +10,16 @@ from Tools.Conversion.storage import PipelineError
 
 
 class EmbeddingQuantizationTests(unittest.TestCase):
+    def test_device_success_requires_the_requested_profile_and_bundle_identity(self):
+        from Tools.Embedding.verify_device import validate_results
+        vectors = [{"passed": True}] * 20
+        expected = "int4-int8-ptq-s128-v70"
+        for summary in ({"passed": True}, {"passed": True, "precision": "fp16-safe-s128-v70", "manifestSHA256": "a"},
+                        {"passed": True, "precision": expected, "manifestSHA256": "old"}):
+            with self.assertRaises(RuntimeError):
+                validate_results(expected, "a", summary, vectors)
+        validate_results(expected, "a", {"passed": True, "precision": expected, "manifestSHA256": "a"}, vectors)
+
     def test_signed_nibble_order_and_row_scales_are_preserved(self):
         original = np.array([[7, -7, 0, 1], [-2, 2, 14, -14], [0, 0, 0, 0]], dtype=np.float32)
         packed, scales = quantize_table(original)

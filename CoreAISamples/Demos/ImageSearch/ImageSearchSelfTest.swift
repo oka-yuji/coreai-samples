@@ -1,3 +1,4 @@
+import CryptoKit
 import EmbeddingRuntime
 import FeatureStore
 import Foundation
@@ -55,6 +56,8 @@ enum ImageSearchSelfTest {
 
     private static func perform(directory: URL, folder: URL) async throws {
         let precision = try EmbeddingBundle(directory: folder).precision
+        let manifestSHA256 = SHA256.hash(data: try Data(contentsOf: folder.appending(path: "embedding-manifest.json")))
+            .map { String(format: "%02x", $0) }.joined()
         let quantized = precision == "int4-int8-ptq-s128-v70"
         let harness = ImageSearchScenarioHarness()
         let store = harness.store
@@ -119,6 +122,7 @@ enum ImageSearchSelfTest {
         let summary: [String: Any] = [
             "passed": true, "images": 5, "queries": records.count,
             "precision": precision,
+            "manifestSHA256": manifestSHA256,
             "vectorReference": quantized ? "Matched PTQ" : "Original FP32",
             "originalExamplesPassed": records.filter { !$0.evaluationOnly }.allSatisfy(\.relevantResult),
             "indexingSeconds": indexingSeconds, "queuedStopAndRetry": true, "originalRead": true,

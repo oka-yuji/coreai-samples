@@ -1,4 +1,5 @@
 import argparse
+import hashlib
 import json
 from pathlib import Path
 import subprocess
@@ -8,6 +9,13 @@ import uuid
 def run(command, timeout=300):
     print("Running:", " ".join(command), flush=True)
     subprocess.run(command, check=True, timeout=timeout)
+
+
+def validate_results(precision, manifest_sha256, summary, vectors):
+    if summary.get("precision") != precision or summary.get("manifestSHA256") != manifest_sha256:
+        raise RuntimeError("The device did not verify the requested bundle; rebuild the app and copy the bundle again")
+    if summary.get("passed") is not True or len(vectors) != 20 or not all(row.get("passed") is True for row in vectors):
+        raise RuntimeError("Device validation failed; retained outputs")
 
 
 def main():
@@ -21,12 +29,14 @@ def main():
     args.output.mkdir(parents=True, exist_ok=False)
     identifier = "com.coreai-samples.DemoApp.ios"
     manifest = json.loads((args.bundle / "embedding-manifest.json").read_text())
+    manifest_sha256 = hashlib.sha256((args.bundle / "embedding-manifest.json").read_bytes()).hexdigest()
     quantized = manifest["precision"] == "int4-int8-ptq-s128-v70"
     if manifest["precision"] not in ("fp16-safe-s128-v70", "int4-int8-ptq-s128-v70"):
         raise ValueError("Unsupported embedding profile")
     folder = "embeddinggemma2-int4-int8" if quantized else "embeddinggemma2"
     run_tag = args.run + "-" + uuid.uuid4().hex
-    (args.output / "invocation.json").write_text(json.dumps({"run": run_tag}) + "\n")
+    (args.output / "invocation.json").write_text(json.dumps(
+        {"run": run_tag, "precision": manifest["precision"], "manifestSHA256": manifest_sha256}) + "\n")
     device = ["--device", args.device]
     run(["xcrun", "devicectl", "device", "install", "app", *device, str(args.app),
          "--json-output", str(args.output / "install.json")])
@@ -50,9 +60,10 @@ def main():
          "--domain-identifier", identifier])
     summary = json.loads((args.output / "report/summary.json").read_text())
     vectors = json.loads((args.output / "report/vectors.json").read_text())
-    if (args.output / "report/failure.txt").exists() or result or not summary["passed"] or len(vectors) != 20 or not all(row["passed"] for row in vectors):
+    if (args.output / "report/failure.txt").exists() or result:
         raise RuntimeError("Device validation failed; retained outputs")
-    print(json.dumps({"passed": True, "vectors": len(vectors),
+    validate_results(manifest["precision"], manifest_sha256, summary, vectors)
+    print(json.dumps({"passed": True, "precision": manifest["precision"], "vectors": len(vectors),
                       "minimumCosine": min(row["cosine"] for row in vectors),
                       "maximumDifference": max(row["maxDifference"] for row in vectors)}, indent=2), flush=True)
 
