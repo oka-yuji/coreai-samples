@@ -21,7 +21,9 @@
                         terms[model.id] = translations.map { $0.text(model.category) }
                     }
                     let catalog = try IOSDemoCatalog.make(searchTerms: terms)
-                    return Store(initialState: ModelLibraryState(catalog: catalog, platform: .iOS)) { effect, send in
+                    let state = ModelLibraryState(
+                        catalog: catalog, environment: LibraryEnvironment(platform: .iOS), owner: UUID())
+                    return Store(initialState: state) { effect, send in
                         ModelLibraryBrowsingRunner.run(effect, send: send)
                     }
                 })

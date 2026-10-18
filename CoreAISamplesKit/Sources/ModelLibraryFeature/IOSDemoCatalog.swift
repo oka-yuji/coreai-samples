@@ -61,20 +61,24 @@ public enum IOSDemoCatalog {
             LibraryModel(
                 id: "gliner2.5-multi", name: "GLiNER2.5-multi", category: "Information Extraction",
                 searchTerms: searchTerms["gliner2.5-multi"] ?? [],
-                artifact: ModelArtifact(id: "gliner2.5-multi-unconfigured", contract: "unconfigured"),
-                platforms: [.iOS],
+                artifacts: [unconfigured("gliner2.5-multi-unconfigured")],
+                defaultArtifactID: "gliner2.5-multi-unconfigured", platforms: [.iOS],
                 demos: ["comparison", "extraction", "inspection"].map {
                     ModelDemoLink(demoID: $0, platforms: [.iOS])
                 }),
             LibraryModel(
                 id: "embeddinggemma2", name: "EmbeddingGemma 2", category: "Multimodal Embedding",
                 searchTerms: searchTerms["embeddinggemma2"] ?? [],
-                artifact: ModelArtifact(id: "embeddinggemma2-unconfigured", contract: "unconfigured"),
-                platforms: [.iOS],
+                artifacts: [unconfigured("embeddinggemma2-unconfigured")],
+                defaultArtifactID: "embeddinggemma2-unconfigured", platforms: [.iOS],
                 demos: ["image-search", "object-finder"].map {
                     ModelDemoLink(demoID: $0, platforms: [.iOS])
                 }),
         ]
         return try ModelCatalog(models: models, demos: demos)
+    }
+
+    private static func unconfigured(_ id: String) -> ModelArtifact {
+        ModelArtifact(id: id, title: "Unconfigured", contract: "unconfigured", platforms: [.iOS])
     }
 }

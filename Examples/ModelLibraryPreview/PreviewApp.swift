@@ -15,8 +15,11 @@ struct ModelLibraryPreviewApp: App {
             let driver = PreviewDriver(catalog: catalog)
             _driver = State(initialValue: driver)
             _renderer = State(initialValue: PreviewRenderer(catalog: catalog))
+            let environment = LibraryEnvironment(platform: .iOS, connectedDemos: Set(catalog.demos.map(\.id)))
             _store = State(
-                initialValue: Store(initialState: ModelLibraryState(catalog: catalog, platform: .iOS), run: driver.run))
+                initialValue: Store(
+                    initialState: ModelLibraryState(catalog: catalog, environment: environment, owner: UUID()),
+                    run: driver.run))
         } catch { preconditionFailure(String(describing: error)) }
     }
 
@@ -43,31 +46,31 @@ struct ModelLibraryPreviewApp: App {
 @MainActor
 final class PreviewDriver {
     let catalog: ModelCatalog
-    private var installed: Set<String> = ["sample-text"]
+    private var installed: Set<String> = ["sample-text-fp32"]
     private var pending: [String: CheckedContinuation<URL, any Error>] = [:]
 
     init(catalog: ModelCatalog) { self.catalog = catalog }
 
     func run(_ effect: ModelLibraryEffect, send: (ModelLibraryAction) -> Void) async {
         switch effect {
-        case .inspect(let model, let request):
-            send(.inspected(model.id, request, installed.contains(model.id) ? resource(model) : nil))
-        case .download(let model, let request):
+        case .inspect(let model, let artifact, let request):
+            send(.inspected(artifact.id, request, installed.contains(artifact.id) ? resource(model, artifact) : nil))
+        case .download(_, let artifact, let request):
             do {
-                let folder = try await withCheckedThrowingContinuation { pending[model.id] = $0 }
+                let folder = try await withCheckedThrowingContinuation { pending[artifact.id] = $0 }
                 try Task.checkCancellation()
-                send(.downloaded(model.id, request, folder))
+                send(.downloaded(artifact.id, request, folder))
             } catch {
-                if !Task.isCancelled { send(.failed(model.id, request, .operation("Preview transfer failure"))) }
+                if !Task.isCancelled { send(.failed(artifact.id, request, .operation("Preview transfer failure"))) }
             }
-        case .validate(let model, let request, _):
-            send(.validated(model.id, request, resource(model)))
-        case .stopTransfer(let modelID, let request):
-            pending.removeValue(forKey: modelID)?.resume(throwing: CancellationError())
-            send(.transferStopped(modelID, request))
+        case .validate(let model, let artifact, let request, _):
+            send(.validated(artifact.id, request, resource(model, artifact)))
+        case .stopTransfer(let artifactID, let request):
+            pending.removeValue(forKey: artifactID)?.resume(throwing: CancellationError())
+            send(.transferStopped(artifactID, request))
         case .delete(let resource, let request):
-            installed.remove(resource.modelID)
-            send(.deleted(resource.modelID, request))
+            installed.remove(resource.artifactID)
+            send(.deleted(resource.artifactID, request))
         case .stopDemo(let session, let request):
             send(.demoStopped(session.id, request))
         }
@@ -88,10 +91,11 @@ final class PreviewDriver {
         for continuation in pending.values { continuation.resume(throwing: CancellationError()) }
     }
 
-    private func resource(_ model: LibraryModel) -> ValidatedModelResource {
+    private func resource(_ model: LibraryModel, _ artifact: ModelArtifact) -> ValidatedModelResource {
         ValidatedModelResource(
-            modelID: model.id, artifactID: model.artifact.id, contract: model.artifact.contract,
-            directory: URL(filePath: "/preview/" + model.id), sizeBytes: 1_000)
+            modelID: model.id, artifactID: artifact.id, contract: artifact.contract,
+            revision: artifact.download?.revision ?? "", upstreamRevision: artifact.upstream?.revision,
+            directory: URL(filePath: "/preview/" + artifact.id), sizeBytes: 1_000)
     }
 }
 
@@ -104,14 +108,20 @@ private enum PreviewCatalog {
                 explanation: [DemoExplanation(title: "Preview", text: "This sample never loads real model files.")],
                 platforms: [.iOS])
         }
-        let models = ["sample-text", "sample-image"].map { id in
-            LibraryModel(
+        let models = [("sample-text", ["FP32"]), ("sample-image", ["FP16", "INT8"])].map { id, variants in
+            let artifacts = variants.map { title in
+                ModelArtifact(
+                    id: id + "-" + title.lowercased(), title: title, contract: "preview-v1", platforms: [.iOS],
+                    sizeBytes: 1_000,
+                    download: ModelDownload(repository: "preview/model", revision: String(repeating: "a", count: 40)),
+                    files: [
+                        ModelArtifactFile(path: "model.bin", bytes: 1_000, sha256: String(repeating: "0", count: 64))
+                    ])
+            }
+            return LibraryModel(
                 id: id, name: id == "sample-text" ? "Sample text model" : "Sample image model",
                 category: id == "sample-text" ? "Information Extraction" : "Embedding",
-                artifact: ModelArtifact(
-                    id: id + "-artifact", contract: "preview-v1", sizeBytes: 1_000,
-                    download: ModelDownload(repository: "preview/model", revision: String(repeating: "a", count: 40))),
-                platforms: [.iOS],
+                artifacts: artifacts, defaultArtifactID: id + "-" + variants[0].lowercased(), platforms: [.iOS],
                 demos: demos.map { ModelDemoLink(demoID: $0.id, platforms: [.iOS]) })
         }
         return try ModelCatalog(models: models, demos: demos)

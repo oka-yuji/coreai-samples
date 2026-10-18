@@ -9,7 +9,7 @@ xcodegen generate --spec Examples/ModelLibraryPreview/project.yml
 open Examples/ModelLibraryPreview/ModelLibraryPreview.xcodeproj
 ```
 
-Select an iOS 27 simulator and run. The sample text model starts installed; the sample image model starts missing. Use **Transfer controls** to complete or fail a pending simulated download. Cancel, delete, reopen, search, and switch among ten sample demos. The controls inside a missing model's demo remain disabled. Each model/demo pair retains its sample input and result while the preview app runs. The preview's fixture controls are intentionally English; the reusable UI has English and Japanese resources.
+Select an iOS 27 simulator and run. The sample text model starts installed; the sample image model starts missing and has FP16 and INT8 variants, which you can switch in Model information. Use **Transfer controls** to complete or fail a pending simulated download. Cancel, delete, reopen, search, and switch among ten sample demos. The controls inside a missing model's demo remain disabled. Each model/demo pair retains its sample input and result while the preview app runs. The preview's fixture controls are intentionally English; the reusable UI has English and Japanese resources.
 
 Check the following manually:
 

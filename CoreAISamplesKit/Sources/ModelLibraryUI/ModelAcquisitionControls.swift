@@ -6,27 +6,25 @@
     struct ModelAcquisitionControls: View {
         let store: Store<ModelLibraryFeature>
         let model: LibraryModel
-        let requestDeletion: () -> Void
-
-        private var installation: ModelInstallation { store.state.installations[model.id] ?? ModelInstallation() }
+        let requestDeletion: (ModelArtifact) -> Void
 
         var body: some View {
-            if model.artifact.download == nil {
+            if let artifact = store.state.selectedArtifact(for: model.id), artifact.download != nil {
+                acquisition(artifact, installation: store.state.installations[artifact.id] ?? ModelInstallation())
+            } else {
                 Image(systemName: "info.circle")
                     .foregroundStyle(.secondary)
                     .frame(minWidth: 44, minHeight: 44)
                     .accessibilityLabel(libraryText("Description only"))
-            } else {
-                acquisition
             }
         }
 
-        private var acquisition: some View {
+        private func acquisition(_ artifact: ModelArtifact, installation: ModelInstallation) -> some View {
             HStack(spacing: 4) {
                 switch installation.phase {
                 case .missing, .failed:
                     Button {
-                        store.send(.downloadRequested(model.id))
+                        store.send(.downloadRequested(artifact.id))
                     } label: {
                         Image(systemName: installation.phase == .failed ? "arrow.clockwise" : "arrow.down.circle")
                             .frame(minWidth: 44, minHeight: 44)
@@ -39,7 +37,9 @@
                 case .ready:
                     Image(systemName: "checkmark").foregroundStyle(.secondary)
                         .accessibilityLabel(libraryText("Downloaded"))
-                    Button(action: requestDeletion) {
+                    Button {
+                        requestDeletion(artifact)
+                    } label: {
                         Image(systemName: "trash")
                             .frame(minWidth: 44, minHeight: 44)
                             .contentShape(Rectangle())
@@ -59,7 +59,7 @@
                     }
                     .frame(width: 30)
                     Button {
-                        store.send(.cancelRequested(model.id))
+                        store.send(.cancelRequested(artifact.id))
                     } label: {
                         Image(systemName: "xmark")
                             .frame(minWidth: 44, minHeight: 44)
@@ -69,7 +69,7 @@
                 case .inspecting, .validating:
                     ProgressView().accessibilityLabel(libraryText("Checking model"))
                     Button {
-                        store.send(.cancelRequested(model.id))
+                        store.send(.cancelRequested(artifact.id))
                     } label: {
                         Image(systemName: "xmark")
                             .frame(minWidth: 44, minHeight: 44)
