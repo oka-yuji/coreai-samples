@@ -1,0 +1,92 @@
+{
+  "id": "teleocr",
+  "kind": "ocr",
+  "name": {
+    "en": "TeleOCR",
+    "ja": "TeleOCR"
+  },
+  "use": {
+    "en": "Document OCR",
+    "ja": "文書OCR"
+  },
+  "overview": {
+    "en": "Document OCR",
+    "ja": "文書OCR"
+  },
+  "release": "planned",
+  "release_note": {
+    "en": "investigation",
+    "ja": "調査"
+  },
+  "download": null,
+  "pages": {
+    "en": "docs/model-reports/teleocr.md",
+    "ja": "docs/model-reports/teleocr.ja.md"
+  },
+  "links": [
+    {
+      "title": {
+        "en": "#178",
+        "ja": "#178"
+      },
+      "url": "https://github.com/oka-yuji/coreai-samples/issues/178"
+    }
+  ],
+  "support": {
+    "macos": {
+      "state": "unavailable",
+      "variants": [],
+      "evidence": [],
+      "note": {
+        "en": "Native demo is not provided for this platform.",
+        "ja": "このOSのネイティブデモは未提供です。"
+      }
+    },
+    "ios": {
+      "state": "unavailable",
+      "variants": [],
+      "evidence": [],
+      "note": {
+        "en": "Native demo is not provided for this platform.",
+        "ja": "このOSのネイティブデモは未提供です。"
+      }
+    }
+  },
+  "evidence": {},
+  "measurements": [],
+  "omissions": {},
+  "checks": {
+    "fidelity": {
+      "state": "not_measured",
+      "evidence": [],
+      "note": {
+        "en": "No completed check for this scope under the common protocol.",
+        "ja": "この範囲の共通プロトコルによる確認は未実施です。"
+      }
+    },
+    "quality": {
+      "state": "not_measured",
+      "evidence": [],
+      "note": {
+        "en": "No completed check for this scope under the common protocol.",
+        "ja": "この範囲の共通プロトコルによる確認は未実施です。"
+      }
+    },
+    "stability": {
+      "state": "not_measured",
+      "evidence": [],
+      "note": {
+        "en": "No completed check for this scope under the common protocol.",
+        "ja": "この範囲の共通プロトコルによる確認は未実施です。"
+      }
+    },
+    "cancellation": {
+      "state": "not_measured",
+      "evidence": [],
+      "note": {
+        "en": "No completed check for this scope under the common protocol.",
+        "ja": "この範囲の共通プロトコルによる確認は未実施です。"
+      }
+    }
+  }
+}

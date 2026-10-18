@@ -1,0 +1,92 @@
+{
+  "id": "ltx25",
+  "kind": "video",
+  "name": {
+    "en": "LTX 2.5",
+    "ja": "LTX 2.5"
+  },
+  "use": {
+    "en": "Video generation",
+    "ja": "動画生成"
+  },
+  "overview": {
+    "en": "Video generation",
+    "ja": "動画生成"
+  },
+  "release": "planned",
+  "release_note": {
+    "en": "investigation",
+    "ja": "調査"
+  },
+  "download": null,
+  "pages": {
+    "en": "docs/model-reports/ltx25.md",
+    "ja": "docs/model-reports/ltx25.ja.md"
+  },
+  "links": [
+    {
+      "title": {
+        "en": "#181",
+        "ja": "#181"
+      },
+      "url": "https://github.com/oka-yuji/coreai-samples/issues/181"
+    }
+  ],
+  "support": {
+    "macos": {
+      "state": "unavailable",
+      "variants": [],
+      "evidence": [],
+      "note": {
+        "en": "Native demo is not provided for this platform.",
+        "ja": "このOSのネイティブデモは未提供です。"
+      }
+    },
+    "ios": {
+      "state": "unavailable",
+      "variants": [],
+      "evidence": [],
+      "note": {
+        "en": "Native demo is not provided for this platform.",
+        "ja": "このOSのネイティブデモは未提供です。"
+      }
+    }
+  },
+  "evidence": {},
+  "measurements": [],
+  "omissions": {},
+  "checks": {
+    "fidelity": {
+      "state": "not_measured",
+      "evidence": [],
+      "note": {
+        "en": "No completed check for this scope under the common protocol.",
+        "ja": "この範囲の共通プロトコルによる確認は未実施です。"
+      }
+    },
+    "quality": {
+      "state": "not_measured",
+      "evidence": [],
+      "note": {
+        "en": "No completed check for this scope under the common protocol.",
+        "ja": "この範囲の共通プロトコルによる確認は未実施です。"
+      }
+    },
+    "stability": {
+      "state": "not_measured",
+      "evidence": [],
+      "note": {
+        "en": "No completed check for this scope under the common protocol.",
+        "ja": "この範囲の共通プロトコルによる確認は未実施です。"
+      }
+    },
+    "cancellation": {
+      "state": "not_measured",
+      "evidence": [],
+      "note": {
+        "en": "No completed check for this scope under the common protocol.",
+        "ja": "この範囲の共通プロトコルによる確認は未実施です。"
+      }
+    }
+  }
+}

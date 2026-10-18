@@ -1,0 +1,160 @@
+{
+  "id": "gliner25",
+  "kind": "extraction",
+  "name": {
+    "en": "GLiNER2.5-multi · FP32",
+    "ja": "GLiNER2.5-multi · FP32"
+  },
+  "use": {
+    "en": "Product extraction, inspection memos",
+    "ja": "商品情報の抽出・点検メモ"
+  },
+  "overview": {
+    "en": "Product extraction, inspection memos",
+    "ja": "商品情報の抽出・点検メモ"
+  },
+  "release": "in_progress",
+  "release_note": {
+    "en": "public release / iOS adoption",
+    "ja": "公開準備／iOS採用"
+  },
+  "download": "https://huggingface.co/okayuji/gliner2.5-multi-coreai-fp32",
+  "pages": {
+    "en": "docs/model-reports/gliner25.md",
+    "ja": "docs/model-reports/gliner25.ja.md"
+  },
+  "links": [
+    {
+      "title": {
+        "en": "Product demo",
+        "ja": "商品抽出デモ"
+      },
+      "url": "docs/specs/product-comparison-demo.md"
+    },
+    {
+      "title": {
+        "en": "#210",
+        "ja": "#210"
+      },
+      "url": "https://github.com/oka-yuji/coreai-samples/issues/210"
+    }
+  ],
+  "support": {
+    "macos": {
+      "state": "pending",
+      "variants": [],
+      "evidence": [
+        "product"
+      ],
+      "note": {
+        "en": "Product demo implemented; the linked record defers real-model integration.",
+        "ja": "商品デモは実装済み。記録上、実モデルでの結合確認は保留。"
+      }
+    },
+    "ios": {
+      "state": "pending",
+      "variants": [],
+      "evidence": [
+        "ios-models"
+      ],
+      "note": {
+        "en": "Current Models route awaits real assets and device acceptance.",
+        "ja": "現行Models経路は実資産の採用と実機確認待ち。"
+      }
+    }
+  },
+  "evidence": {
+    "product": {
+      "url": "docs/specs/product-comparison-demo.md#remaining-acceptance-and-next-work",
+      "level": "plan",
+      "outcome": "not_measured",
+      "record_type": "legacy",
+      "date": "2026-10-14",
+      "platform": "macos",
+      "device": "M4 Max 128 GiB",
+      "os": "macOS 27.0 (26A428)",
+      "toolchain": "Xcode 27.0 (27A266a)",
+      "variant": "FP32",
+      "backend": "Core AI; GPU preferred",
+      "route": "plan",
+      "source_revision": null,
+      "artifact_revision": null,
+      "code_revision": null,
+      "workload": {
+        "en": "Product comparison real-model integration deferred; source-only and fictional preview results excluded.",
+        "ja": "商品比較の実モデル結合は保留。取得のみ・架空プレビューの結果は除外。"
+      },
+      "batch_size": 1,
+      "concurrency": 1,
+      "warmups": null,
+      "power": null,
+      "thermal": null,
+      "model_executed": false,
+      "plan_sha256": null
+    },
+    "ios-models": {
+      "url": "docs/validation/ios-models-integration-20261018.md#device-checks",
+      "level": "plan",
+      "outcome": "not_measured",
+      "record_type": "legacy",
+      "date": "2026-10-18",
+      "platform": "ios",
+      "device": "iPhone 17 Pro",
+      "os": "iOS 27.0.1 (24A446)",
+      "toolchain": "Xcode 27.0 (27A266a)",
+      "variant": "FP32",
+      "backend": "Core AI; GPU preferred",
+      "route": "plan",
+      "source_revision": null,
+      "artifact_revision": null,
+      "code_revision": null,
+      "workload": {
+        "en": "See fixed cases in the evidence.",
+        "ja": "根拠に記載された固定入力を参照。"
+      },
+      "batch_size": 1,
+      "concurrency": 1,
+      "warmups": null,
+      "power": null,
+      "thermal": null,
+      "model_executed": false,
+      "plan_sha256": null
+    }
+  },
+  "measurements": [],
+  "omissions": {},
+  "checks": {
+    "fidelity": {
+      "state": "not_measured",
+      "evidence": [],
+      "note": {
+        "en": "No completed check for this scope under the common protocol.",
+        "ja": "この範囲の共通プロトコルによる確認は未実施です。"
+      }
+    },
+    "quality": {
+      "state": "not_measured",
+      "evidence": [],
+      "note": {
+        "en": "No completed check for this scope under the common protocol.",
+        "ja": "この範囲の共通プロトコルによる確認は未実施です。"
+      }
+    },
+    "stability": {
+      "state": "not_measured",
+      "evidence": [],
+      "note": {
+        "en": "No completed check for this scope under the common protocol.",
+        "ja": "この範囲の共通プロトコルによる確認は未実施です。"
+      }
+    },
+    "cancellation": {
+      "state": "not_measured",
+      "evidence": [],
+      "note": {
+        "en": "No completed check for this scope under the common protocol.",
+        "ja": "この範囲の共通プロトコルによる確認は未実施です。"
+      }
+    }
+  }
+}

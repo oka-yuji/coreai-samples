@@ -10,6 +10,64 @@ Requirements: Apple silicon, macOS 27, Xcode 27 with Metal Toolchain, GPU execut
 
 Before building the app, complete the [common setup](../README.md#get-started), including Rust/Cargo.
 
+
+<!-- model-report:start -->
+<a id="model-report"></a>
+
+## Evaluation summary
+
+[Measurement protocol](benchmarking.md) · [Source record](model-reports/records/clef-flash.json)
+
+Results below retain their original dates and workloads. Different rows may use different runs; they are not a controlled comparison. Legacy records explicitly retain unrecorded conditions. Missing values are not zero or a pass.
+
+### Demo support
+
+| Platform | State | Verified scope / remaining work | Evidence |
+|---|---|---|---|
+| macos | ✅ | Decide native app JSON path verified; Recipes photo behavior has separate requirements. | [E1](clef-flash.md#recorded-result) |
+| ios | — | Native demo is not provided for this platform. | — |
+
+### Performance and quality
+
+| Metric | Result | Statistic / samples | Scope and evidence |
+|---|---|---|---|
+| Bundle / payload size | 7,278,548,313 B | single; n=1 | [E3](clef-flash.md#input-and-files) · 15 model payload files; documentation/examples are additional. |
+| Prepared cache size | Not recorded here | — | No value in this common record; inspect historical evidence before scheduling new measurement. |
+| First load, including specialization | Not recorded here | — | No value in this common record; inspect historical evidence before scheduling new measurement. |
+| Load from prepared cache | Not recorded here | — | No value in this common record; inspect historical evidence before scheduling new measurement. |
+| Request / pipeline completion time | 4.27701879 s | single; n=1 | [E1](clef-flash.md#recorded-result) · Fixed workload in the linked evidence. |
+| Peak RSS | Not recorded here | — | No value in this common record; inspect historical evidence before scheduling new measurement. |
+| Peak physical footprint | Not recorded here | — | No value in this common record; inspect historical evidence before scheduling new measurement. |
+| Resident memory during inference | Not recorded here | — | No value in this common record; inspect historical evidence before scheduling new measurement. |
+| Memory after release minus baseline | Not recorded here | — | No value in this common record; inspect historical evidence before scheduling new measurement. |
+| Task success fraction | Not recorded here | — | No value in this common record; inspect historical evidence before scheduling new measurement. |
+| Reference error (definition in evidence) | 0.01669393 error | max; n=40 | [E2](clef-flash.md#verified-scope-and-limits) · Maximum probability difference from same-uint4 PyTorch FP32; 40/40 top options agree. |
+| Stop acknowledgement time | Not recorded here | — | No value in this common record; inspect historical evidence before scheduling new measurement. |
+| Reused-document request time | 0.775898292 s | single; n=1 | [E1](clef-flash.md#recorded-result) · Fixed workload in the linked evidence. |
+| Reused-document request time | 0.846601958 s | p95; n=20 | [E2](clef-flash.md#verified-scope-and-limits) · Different workload: fixed 8K document / 4 questions. Not a same-request speedup ratio. |
+
+### Verification coverage
+
+| Check | State | Scope / remaining work | Evidence |
+|---|---|---|---|
+| Conversion / reference fidelity | Passed (stated scope) | Recorded fixed-document same-quantized-weight comparisons; calibration/general accuracy not established. | [E2](clef-flash.md#verified-scope-and-limits) |
+| Task quality | Not measured | No completed check for this scope under the common protocol. | — |
+| Repeated use / resource release | Not measured | No completed check for this scope under the common protocol. | — |
+| Stop / retry / recovery | Not measured | No completed check for this scope under the common protocol. | — |
+
+### Evidence and conditions
+
+| Evidence | Date / record / route level | Device / OS / tools | Workload and recorded conditions |
+|---|---|---|---|
+| [E1](clef-flash.md#recorded-result) | 2026-10-08 / legacy / native_app | M4 Max 128 GiB / macOS 27.0 (26A428) / Xcode 27.0 (27A266a) | One Japanese maintenance request, 5 questions, 2,645 input tokens; changed-question reuse is a separate request. · variant=uint4 backbone / FP16 head; backend=Core AI; GPU preferred; route=macOS app --decide-json; source_revision=17f0b0ad64efb65d273590632833508766b2aae6; artifact_revision=58e654c86485b29a47fef820226977742ff6868a; batch_size=1; concurrency=1; unrecorded: code_revision, warmups, power, thermal, plan_sha256 |
+| [E2](clef-flash.md#verified-scope-and-limits) | 2026-10-08 / legacy / diagnostic | M4 Max 128 GiB / macOS 27.0 (26A428) / Xcode 27.0 (27A266a) | 10 fixed documents / 40 options; separate 8K four-question document, 20 reuse calls. · variant=uint4 backbone / FP16 head; backend=Core AI; GPU preferred; route=diagnostic; batch_size=1; concurrency=1; unrecorded: source_revision, artifact_revision, code_revision, warmups, power, thermal, plan_sha256 |
+| [E3](clef-flash.md#input-and-files) | 2026-10-09 / legacy / conversion | M4 Max 128 GiB / macOS 27.0 (26A428) / Xcode 27.0 (27A266a) | See fixed cases in the evidence. · variant=uint4 backbone / FP16 head; backend=Core AI; GPU preferred; route=conversion; batch_size=1; concurrency=1; unrecorded: source_revision, artifact_revision, code_revision, warmups, power, thermal, plan_sha256 |
+
+### Setup, limitations and progress
+
+- [Recipes and Decide](clef-flash.md)
+<!-- model-report:end -->
+
 ## Quick start
 
 Can you make a recipe with what is in your fridge? **Recipes** reads a fridge photo, lets you check the proposed ingredients, and compares your inventory with a recipe URL. It uses Apple's on-device model for the photo, **Clef-Flash 9B through Core AI** for recipe requirements and equipment, and Swift code for quantities. **Decide** uses the same Clef bundle to score a document against editable questions. Both expose the model's uncalibrated probabilities.

@@ -8,25 +8,29 @@ Start with a model below. Each guide covers setup, supported devices, measuremen
 
 ## Models and roadmap
 
-Last checked: **2026-10-19**. **Released** means a converted bundle is publicly downloadable; **In progress** includes conversion, verification and release preparation; **Planned** means agreed work has not started. Entries marked *investigation* are feasibility studies, not a commitment to release or device support.
+**Released** means a converted bundle is publicly downloadable; **In progress** includes conversion, verification and release preparation; **Planned** means agreed work has not started. Entries marked *investigation* are feasibility studies, not a commitment to release or device support.
 
 The four linked Hugging Face repositories currently contain **private bundles** and require access. None is anonymously downloadable at this checkpoint. A completed conversion or merged app implementation alone does not count as a public release. Model-specific guides and issues record the verified scope.
 
-| Model / bundle | Use | Status | Download | Guide / progress |
-|---|---|---|---|---|
-| Qwen3.8 27B · 4-bit, text | Chat, Work, `coreai-chat` · macOS | In progress · private bundle | [Access required](https://huggingface.co/okayuji/Qwen3.8-27B-coreai-4bit) | [Chat and Work](docs/qwen3.8-27b.md) |
-| Clef-Flash 9B · uint4 + fp16 head, text | Recipes, Decide · macOS | In progress · private bundle | [Access required](https://huggingface.co/okayuji/clef-flash-9b-coreai-decide) | [Recipes and Decide](docs/clef-flash.md) |
-| GLiNER2.5-multi · FP32 | Product extraction, inspection memos | In progress · public release / iOS adoption | [Access required](https://huggingface.co/okayuji/gliner2.5-multi-coreai-fp32) | [Product demo](docs/specs/product-comparison-demo.md) · [#210](https://github.com/oka-yuji/coreai-samples/issues/210) |
-| EmbeddingGemma 2 · FP16 / INT4-INT8 PTQ | Image search, camera object search | In progress · public release / iOS adoption | [Access required](https://huggingface.co/okayuji/embeddinggemma-2-coreai) | [Search guide](docs/embeddinggemma2.md) · [#210](https://github.com/oka-yuji/coreai-samples/issues/210) |
-| Irodori · FP32 | Speech generation and playback | In progress · app/device acceptance | — | [Mac](docs/irodori/demo.md) · [iPhone](docs/irodori/iphone.md) · [#93](https://github.com/oka-yuji/coreai-samples/issues/93) |
-| Qwen Image 2.1 Turbo · macOS FP32 | Image generation and editing | In progress · Mac conversion verified; mobile planned | — | [Conversion](Tools/Conversion/recipes/qwen_image21/README.md) · [Mobile plan #222](https://github.com/oka-yuji/coreai-samples/issues/222) |
-| Magpie TTS Multilingual v2607 | Speech generation | In progress · conversion and verification | — | [#165](https://github.com/oka-yuji/coreai-samples/issues/165) · [PR #166](https://github.com/oka-yuji/coreai-samples/pull/166) |
-| Qwen3-TTS CustomVoice · 0.6B | Speech generation | In progress · conversion and verification | — | [#167](https://github.com/oka-yuji/coreai-samples/issues/167) · [PR #168](https://github.com/oka-yuji/coreai-samples/pull/168) |
-| Qwen3-TTS CustomVoice · 1.7B | Speech generation | In progress · conversion and verification | — | [#169](https://github.com/oka-yuji/coreai-samples/issues/169) · [PR #170](https://github.com/oka-yuji/coreai-samples/pull/170) |
-| TeleOCR | Document OCR | Planned · investigation | — | [#178](https://github.com/oka-yuji/coreai-samples/issues/178) |
-| MiniCPM-V 4.7 1B | Image/video understanding | Planned · investigation | — | [#179](https://github.com/oka-yuji/coreai-samples/issues/179) |
-| Depth Anything 3 Small | Depth and camera pose | Planned · investigation | — | [#180](https://github.com/oka-yuji/coreai-samples/issues/180) |
-| LTX 2.5 | Video generation | Planned · investigation | — | [#181](https://github.com/oka-yuji/coreai-samples/issues/181) |
+<!-- model-catalog:start -->
+Checked: **2026-10-19**. ✅ = recorded native-app execution on that OS for the variant/route in the guide; △ = implementation, older diagnostic evidence or acceptance pending; — = no native demo. A mark is separate from bundle publication, conversion success and full production qualification.
+
+| Model / bundle | Use | macOS | iOS | Status | Download | Guide |
+|---|---|---|---|---|---|---|
+| Qwen3.8 27B · 4-bit, text | Chat, Work, `coreai-chat` | [✅](docs/qwen3.8-27b.md#model-report) | [—](docs/qwen3.8-27b.md#model-report) | In progress · private bundle | [Access required](https://huggingface.co/okayuji/Qwen3.8-27B-coreai-4bit) | [Guide / results](docs/qwen3.8-27b.md) |
+| Clef-Flash 9B · uint4 + fp16 head, text | Recipes, Decide | [✅](docs/clef-flash.md#model-report) | [—](docs/clef-flash.md#model-report) | In progress · private bundle | [Access required](https://huggingface.co/okayuji/clef-flash-9b-coreai-decide) | [Guide / results](docs/clef-flash.md) |
+| GLiNER2.5-multi · FP32 | Product extraction, inspection memos | [△](docs/model-reports/gliner25.md#model-report) | [△](docs/model-reports/gliner25.md#model-report) | In progress · public release / iOS adoption | [Access required](https://huggingface.co/okayuji/gliner2.5-multi-coreai-fp32) | [Guide / results](docs/model-reports/gliner25.md) |
+| EmbeddingGemma 2 · FP16 / INT4-INT8 PTQ | Image search, camera object search | [✅](docs/embeddinggemma2.md#model-report) | [△](docs/embeddinggemma2.md#model-report) | In progress · public release / iOS adoption | [Access required](https://huggingface.co/okayuji/embeddinggemma-2-coreai) | [Guide / results](docs/embeddinggemma2.md) |
+| Irodori · FP32 | Speech generation and playback | [△](docs/model-reports/irodori.md#model-report) | [△](docs/model-reports/irodori.md#model-report) | In progress · app/device acceptance | — | [Guide / results](docs/model-reports/irodori.md) |
+| Qwen Image 2.1 Turbo · macOS FP32 | Image generation and editing | [—](docs/model-reports/qwen-image21.md#model-report) | [—](docs/model-reports/qwen-image21.md#model-report) | In progress · Mac conversion verified; mobile planned | — | [Guide / results](docs/model-reports/qwen-image21.md) |
+| Magpie TTS Multilingual v2607 | Speech generation | [—](docs/model-reports/magpie-tts.md#model-report) | [—](docs/model-reports/magpie-tts.md#model-report) | In progress · conversion and verification | — | [Guide / results](docs/model-reports/magpie-tts.md) |
+| Qwen3-TTS CustomVoice · 0.6B | Speech generation | [—](docs/model-reports/qwen3-tts-06b.md#model-report) | [—](docs/model-reports/qwen3-tts-06b.md#model-report) | In progress · conversion and verification | — | [Guide / results](docs/model-reports/qwen3-tts-06b.md) |
+| Qwen3-TTS CustomVoice · 1.7B | Speech generation | [—](docs/model-reports/qwen3-tts-17b.md#model-report) | [—](docs/model-reports/qwen3-tts-17b.md#model-report) | In progress · conversion and verification | — | [Guide / results](docs/model-reports/qwen3-tts-17b.md) |
+| TeleOCR | Document OCR | [—](docs/model-reports/teleocr.md#model-report) | [—](docs/model-reports/teleocr.md#model-report) | Planned · investigation | — | [Guide / results](docs/model-reports/teleocr.md) |
+| MiniCPM-V 4.7 1B | Image/video understanding | [—](docs/model-reports/minicpm-v47.md#model-report) | [—](docs/model-reports/minicpm-v47.md#model-report) | Planned · investigation | — | [Guide / results](docs/model-reports/minicpm-v47.md) |
+| Depth Anything 3 Small | Depth and camera pose | [—](docs/model-reports/depth-anything3.md#model-report) | [—](docs/model-reports/depth-anything3.md#model-report) | Planned · investigation | — | [Guide / results](docs/model-reports/depth-anything3.md) |
+| LTX 2.5 | Video generation | [—](docs/model-reports/ltx25.md#model-report) | [—](docs/model-reports/ltx25.md#model-report) | Planned · investigation | — | [Guide / results](docs/model-reports/ltx25.md) |
+<!-- model-catalog:end -->
 
 The iOS app opens **Models**, with five demos connected to their providers. Their model distribution definitions are being adopted in [#210](https://github.com/oka-yuji/coreai-samples/issues/210); until that lands, the normal Models route shows descriptions without download or execution. See the [integration status](docs/validation/ios-models-integration-20261018.md). Local diagnostic runs and a bundle's public release are separate milestones.
 
@@ -39,11 +43,13 @@ git clone https://github.com/oka-yuji/coreai-samples.git
 cd coreai-samples
 ```
 
-Install Rust/Cargo for the speech input adapter. Open `CoreAISamples.xcodeproj`, choose **CoreAISamples** and **My Mac**, then run. The scheme builds Release; **CoreAISamples-Debug** is available for debugging. Follow a model's guide to obtain and select its bundle. Weights are separate from this repository, and private bundles require an authorized Hugging Face account.
+Install Rust/Cargo for the speech input adapter and Python 3.9+ for repository checks. Open `CoreAISamples.xcodeproj`, choose **CoreAISamples** and **My Mac**, then run. The scheme builds Release; **CoreAISamples-Debug** is available for debugging. Follow a model's guide to obtain and select its bundle. Weights are separate from this repository, and private bundles require an authorized Hugging Face account.
 
 For an iPhone build, signing, or the separate speech app, follow the [app setup guide](docs/demo-app.md#iphone-app). A successful build does not establish that every model works on that device.
 
 ## Developer guides
+
+- [Common model evaluation and reporting](docs/benchmarking.md): metrics, measurement plans, evidence records and generated tables.
 
 - [Swift API and language-generation runtime](docs/runtime.md): converting your own bundle, CLI, supported requests, cache and context behavior, and repository layout.
 - [Verification and measurements](docs/verification.md): build/test commands, runtime comparisons and the conditions behind results.

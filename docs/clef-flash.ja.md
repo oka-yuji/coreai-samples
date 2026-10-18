@@ -10,6 +10,64 @@
 
 アプリをビルドする前に、Rust/Cargoを含む[共通の準備](../README.ja.md#はじめる)を済ませてください。
 
+
+<!-- model-report:start -->
+<a id="model-report"></a>
+
+## 共通の検証サマリー
+
+[計測プロトコル](benchmarking.ja.md) · [元の記録](model-reports/records/clef-flash.json)
+
+元の測定日・入力条件を保持しています。行ごとに異なるrunを使う場合があり、条件をそろえた速度比較ではありません。旧記録で不足する条件も明示します。未計測はゼロや合格を意味しません。
+
+### デモ対応
+
+| OS | 状態 | 確認した範囲・残る確認 | 根拠 |
+|---|---|---|---|
+| macos | ✅ | Decideの実アプリJSON経路を確認。Recipesの写真認識は別の要件。 | [E1](clef-flash.md#recorded-result) |
+| ios | — | このOSのネイティブデモは未提供です。 | — |
+
+### 性能と品質
+
+| 指標 | 結果 | 集計・件数 | 条件と根拠 |
+|---|---|---|---|
+| バンドル・資産容量 | 7,278,548,313 B | single; n=1 | [E3](clef-flash.md#input-and-files) · モデル資産15ファイル。文書・サンプルは別。 |
+| 特殊化キャッシュ容量 | この記録では未収録 | — | 共通記録に値がありません。再計測の前に過去の根拠も確認してください。 |
+| 初回ロード（特殊化を含む） | この記録では未収録 | — | 共通記録に値がありません。再計測の前に過去の根拠も確認してください。 |
+| 特殊化済みキャッシュからのロード | この記録では未収録 | — | 共通記録に値がありません。再計測の前に過去の根拠も確認してください。 |
+| 要求・パイプライン完了時間 | 4.27701879 s | single; n=1 | [E1](clef-flash.md#recorded-result) · リンク先の固定条件による結果。 |
+| ピークRSS | この記録では未収録 | — | 共通記録に値がありません。再計測の前に過去の根拠も確認してください。 |
+| ピークphysical footprint | この記録では未収録 | — | 共通記録に値がありません。再計測の前に過去の根拠も確認してください。 |
+| 推論中の常駐メモリ | この記録では未収録 | — | 共通記録に値がありません。再計測の前に過去の根拠も確認してください。 |
+| 解放後メモリの基準との差 | この記録では未収録 | — | 共通記録に値がありません。再計測の前に過去の根拠も確認してください。 |
+| 課題達成率 | この記録では未収録 | — | 共通記録に値がありません。再計測の前に過去の根拠も確認してください。 |
+| 参照との誤差（定義は根拠参照） | 0.01669393 error | max; n=40 | [E2](clef-flash.md#verified-scope-and-limits) · 同一uint4のPyTorch FP32との最大確率差。top選択肢は40/40一致。 |
+| 停止受付から完了までの時間 | この記録では未収録 | — | 共通記録に値がありません。再計測の前に過去の根拠も確認してください。 |
+| 文書再利用時の完了時間 | 0.775898292 s | single; n=1 | [E1](clef-flash.md#recorded-result) · リンク先の固定条件による結果。 |
+| 文書再利用時の完了時間 | 0.846601958 s | p95; n=20 | [E2](clef-flash.md#verified-scope-and-limits) · 別の条件：固定8K文書・4質問。同一依頼の高速化率ではない。 |
+
+### 検証した範囲
+
+| 確認項目 | 状態 | 対象範囲・残る確認 | 根拠 |
+|---|---|---|---|
+| 変換・参照との一致 | 合格（記載範囲） | 記録した固定文書で同一量子化重みと照合。確率校正や一般精度の証明ではない。 | [E2](clef-flash.md#verified-scope-and-limits) |
+| 用途の品質 | 未計測 | この範囲の共通プロトコルによる確認は未実施です。 | — |
+| 連続利用・資源解放 | 未計測 | この範囲の共通プロトコルによる確認は未実施です。 | — |
+| 停止・再試行・回復 | 未計測 | この範囲の共通プロトコルによる確認は未実施です。 | — |
+
+### 根拠と測定条件
+
+| 根拠 | 日付・記録区分・経路 | 機種・OS・ツール | 入力と記録済みの条件 |
+|---|---|---|---|
+| [E1](clef-flash.md#recorded-result) | 2026-10-08 / legacy / native_app | M4 Max 128 GiB / macOS 27.0 (26A428) / Xcode 27.0 (27A266a) | 日本語の保守契約1件、5質問、2,645入力トークン。質問変更の文書再利用は別の依頼。 · variant=uint4 backbone / FP16 head; backend=Core AI; GPU preferred; route=macOS app --decide-json; source_revision=17f0b0ad64efb65d273590632833508766b2aae6; artifact_revision=58e654c86485b29a47fef820226977742ff6868a; batch_size=1; concurrency=1; 未記録: code_revision, warmups, power, thermal, plan_sha256 |
+| [E2](clef-flash.md#verified-scope-and-limits) | 2026-10-08 / legacy / diagnostic | M4 Max 128 GiB / macOS 27.0 (26A428) / Xcode 27.0 (27A266a) | 固定10文書・40選択肢。別条件で8K文書・4質問、再利用20回。 · variant=uint4 backbone / FP16 head; backend=Core AI; GPU preferred; route=diagnostic; batch_size=1; concurrency=1; 未記録: source_revision, artifact_revision, code_revision, warmups, power, thermal, plan_sha256 |
+| [E3](clef-flash.md#input-and-files) | 2026-10-09 / legacy / conversion | M4 Max 128 GiB / macOS 27.0 (26A428) / Xcode 27.0 (27A266a) | 根拠に記載された固定入力を参照。 · variant=uint4 backbone / FP16 head; backend=Core AI; GPU preferred; route=conversion; batch_size=1; concurrency=1; 未記録: source_revision, artifact_revision, code_revision, warmups, power, thermal, plan_sha256 |
+
+### 導入・制限・進捗
+
+- [RecipesとDecide](clef-flash.md)
+<!-- model-report:end -->
+
 ## クイックスタート
 
 冷蔵庫にあるもので、このレシピは作れるか。**Recipes** は冷蔵庫の写真を読み、提案された食材を利用者が確認してから、その在庫をレシピの URL と照らし合わせます。写真には Apple の端末上のモデルを、レシピの必要な食材と道具には **Core AI で動く Clef-Flash 9B** を、数量には Swift のコードを使います。**Decide** は同じ Clef のバンドルで、文書を編集できる質問で採点します。どちらもモデルの校正していない確率を表示します。
