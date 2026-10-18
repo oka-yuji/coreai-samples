@@ -10,7 +10,7 @@ AppleのCore AIとFoundation Modelsでオープンモデルを動かすSwiftサ�
 
 **公開済み（Released）**は変換バンドルを一般に取得できる状態、**着手中（In progress）**は変換・検証・公開準備を進めている状態、**対応予定（Planned）**は合意済みで未着手の作業です。「調査」と記したものは実現性の確認予定で、リリースや端末対応の確約ではありません。
 
-リンクしているHugging Faceの4件には現在**非公開のバンドル**があり、取得にはアクセス権が必要です。この確認時点で匿名取得できるものはありません。変換の完了やアプリ実装のマージだけでは公開済みとせず、確認した範囲を各ガイドとIssueに記載します。
+GLiNER2.5-multiとEmbeddingGemma 2のリポジトリは公開済みで、匿名で取得できます。Qwen3.8 27BとClef-Flash 9Bのリポジトリには現在も**非公開のバンドル**があり、取得にはアクセス権が必要です。変換の完了やアプリ実装のマージだけでは公開済みとせず、確認した範囲を各ガイドとIssueに記載します。
 
 <!-- model-catalog:start -->
 確認日: **2026-10-19**. ✅＝該当OSの実機アプリで実行した記録あり（対象の変換版・経路は詳細参照）、△＝実装・旧診断の記録のみ／確認待ち、—＝ネイティブデモ未提供。配布公開、変換成功、本番品質の検収とは別の状態です。
@@ -19,8 +19,8 @@ AppleのCore AIとFoundation Modelsでオープンモデルを動かすSwiftサ�
 |---|---|---|---|---|---|---|
 | Qwen3.8 27B · 4ビット、テキスト | Chat・Work・`coreai-chat` | [✅](docs/qwen3.8-27b.ja.md#model-report) | [—](docs/qwen3.8-27b.ja.md#model-report) | 着手中 · バンドル非公開 | [アクセス権が必要](https://huggingface.co/okayuji/Qwen3.8-27B-coreai-4bit) | [ガイド・結果](docs/qwen3.8-27b.ja.md) |
 | Clef-Flash 9B · uint4＋fp16ヘッド、テキスト | Recipes・Decide | [✅](docs/clef-flash.ja.md#model-report) | [—](docs/clef-flash.ja.md#model-report) | 着手中 · バンドル非公開 | [アクセス権が必要](https://huggingface.co/okayuji/clef-flash-9b-coreai-decide) | [ガイド・結果](docs/clef-flash.ja.md) |
-| GLiNER2.5-multi · FP32 | 商品情報の抽出・点検メモ | [△](docs/model-reports/gliner25.ja.md#model-report) | [△](docs/model-reports/gliner25.ja.md#model-report) | 着手中 · 公開準備／iOS採用 | [アクセス権が必要](https://huggingface.co/okayuji/gliner2.5-multi-coreai-fp32) | [ガイド・結果](docs/model-reports/gliner25.ja.md) |
-| EmbeddingGemma 2 · FP16／INT4-INT8 PTQ | 画像検索・カメラで物探し | [✅](docs/model-reports/embeddinggemma2.ja.md#model-report) | [△](docs/model-reports/embeddinggemma2.ja.md#model-report) | 着手中 · 公開準備／iOS採用 | [アクセス権が必要](https://huggingface.co/okayuji/embeddinggemma-2-coreai) | [ガイド・結果](docs/model-reports/embeddinggemma2.ja.md) |
+| GLiNER2.5-multi · FP32 | 商品情報の抽出・点検メモ | [△](docs/model-reports/gliner25.ja.md#model-report) | [△](docs/model-reports/gliner25.ja.md#model-report) | 公開済み · iOSの実機確認待ち | [Hugging Face](https://huggingface.co/okayuji/gliner2.5-multi-coreai-fp32) | [ガイド・結果](docs/model-reports/gliner25.ja.md) |
+| EmbeddingGemma 2 · FP16／INT4-INT8 PTQ | 画像検索・カメラで物探し | [✅](docs/model-reports/embeddinggemma2.ja.md#model-report) | [△](docs/model-reports/embeddinggemma2.ja.md#model-report) | 公開済み · iOSの実機確認待ち | [Hugging Face](https://huggingface.co/okayuji/embeddinggemma-2-coreai) | [ガイド・結果](docs/model-reports/embeddinggemma2.ja.md) |
 | Irodori · FP32 | 音声の生成・再生 | [△](docs/model-reports/irodori.ja.md#model-report) | [△](docs/model-reports/irodori.ja.md#model-report) | 着手中 · アプリ／実機の確認 | — | [ガイド・結果](docs/model-reports/irodori.ja.md) |
 | Qwen Image 2.1 Turbo · macOS FP32 | 画像の生成・編集 | [—](docs/model-reports/qwen-image21.ja.md#model-report) | [—](docs/model-reports/qwen-image21.ja.md#model-report) | 着手中 · Mac変換検証済み／モバイル予定 | — | [ガイド・結果](docs/model-reports/qwen-image21.ja.md) |
 | Magpie TTS Multilingual v2607 | 音声生成 | [—](docs/model-reports/magpie-tts.ja.md#model-report) | [—](docs/model-reports/magpie-tts.ja.md#model-report) | 着手中 · 変換と検証 | — | [ガイド・結果](docs/model-reports/magpie-tts.ja.md) |
@@ -32,7 +32,7 @@ AppleのCore AIとFoundation Modelsでオープンモデルを動かすSwiftサ�
 | LTX 2.5 | 動画生成 | [—](docs/model-reports/ltx25.ja.md#model-report) | [—](docs/model-reports/ltx25.ja.md#model-report) | 対応予定 · 調査 | — | [ガイド・結果](docs/model-reports/ltx25.ja.md) |
 <!-- model-catalog:end -->
 
-iOSアプリは通常起動で**Models**を開き、5つのデモを各providerへ接続しています。モデル配布定義の採用は [#210](https://github.com/oka-yuji/coreai-samples/issues/210) で進行中で、mainへ反映されるまでは通常のModels経路で説明だけを表示し、取得・実行はできません。[統合状況](docs/validation/ios-models-integration-20261018.md)を参照してください。ローカルの診断実行とバンドルの一般公開は別の到達点です。
+iOSアプリは通常起動で**Models**を開き、5つのデモを各providerへ接続しています。Modelsは固定した版のGLiNER2.5-multi FP32と、EmbeddingGemma 2のFP16（既定）またはINT4/INT8 PTQのバンドルをHugging Faceから匿名で取得し、全ファイルの大きさとSHA-256を確かめてからデモを実行します（[#210](https://github.com/oka-yuji/coreai-samples/issues/210)）。[統合状況](docs/validation/ios-models-integration-20261018.md)を参照してください。iPhoneでの5つのデモの実行は本人確認として残っています。ローカルの診断実行とバンドルの一般公開は別の到達点です。
 
 ## はじめる
 
@@ -63,4 +63,4 @@ iPhone向けのビルド・署名、別アプリの音声デモは[アプリの�
 
 ## ライセンス
 
-コードはMITです。[LICENSE](LICENSE)を参照してください。モデルの重みにはそれぞれのライセンスが適用され、各ガイドとバンドルのライセンス・告知ファイルで確認できます。Qwen3.8 27BとClef-Flash 9Bは元モデルのApache License 2.0を引き継ぎ、各Hugging Faceリポジトリに `LICENSE` と `NOTICE.md` があります。
+コードはMITです。[LICENSE](LICENSE)を参照してください。モデルの重みにはそれぞれのライセンスが適用され、各ガイドとバンドルのライセンス・告知ファイルで確認できます。Qwen3.8 27BとClef-Flash 9Bは元モデルのApache License 2.0を引き継ぎ、各Hugging Faceリポジトリに `LICENSE` と `NOTICE.md` があります。GLiNER2.5-multiとEmbeddingGemma 2も元モデルのApache License 2.0を引き継ぎ、各バンドルに `LICENSE` と、`THIRD_PARTY_NOTICES.md`（GLiNER2.5-multi。エンコーダーとトークナイザーのmDeBERTaのMITライセンス表記を含む）または `MODEL_LICENSE.txt`（EmbeddingGemma 2）があります。

@@ -67,7 +67,7 @@ let package = Package(
         .target(name: "ModelLibraryFeature", dependencies: ["FeatureStore"], swiftSettings: speechSettings),
         .testTarget(
             name: "ModelLibraryTests", dependencies: ["ModelLibraryFeature", "ModelLibraryUI", "FeatureStore"],
-            swiftSettings: speechSettings),
+            resources: [.copy("Resources")], swiftSettings: speechSettings),
         .target(
             name: "ModelLibraryStorage", dependencies: ["ModelLibraryFeature", "GLiNERRuntime", "EmbeddingRuntime"],
             swiftSettings: speechSettings),

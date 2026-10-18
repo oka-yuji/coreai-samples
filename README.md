@@ -10,7 +10,7 @@ Start with a model below. Each guide covers setup, supported devices, measuremen
 
 **Released** means a converted bundle is publicly downloadable; **In progress** includes conversion, verification and release preparation; **Planned** means agreed work has not started. Entries marked *investigation* are feasibility studies, not a commitment to release or device support.
 
-The four linked Hugging Face repositories currently contain **private bundles** and require access. None is anonymously downloadable at this checkpoint. A completed conversion or merged app implementation alone does not count as a public release. Model-specific guides and issues record the verified scope.
+The GLiNER2.5-multi and EmbeddingGemma 2 repositories are public and anonymously downloadable. The Qwen3.8 27B and Clef-Flash 9B repositories still contain **private bundles** and require access. A completed conversion or merged app implementation alone does not count as a public release. Model-specific guides and issues record the verified scope.
 
 <!-- model-catalog:start -->
 Checked: **2026-10-19**. ✅ = recorded native-app execution on that OS for the variant/route in the guide; △ = implementation, older diagnostic evidence or acceptance pending; — = no native demo. A mark is separate from bundle publication, conversion success and full production qualification.
@@ -19,8 +19,8 @@ Checked: **2026-10-19**. ✅ = recorded native-app execution on that OS for the 
 |---|---|---|---|---|---|---|
 | Qwen3.8 27B · 4-bit, text | Chat, Work, `coreai-chat` | [✅](docs/qwen3.8-27b.md#model-report) | [—](docs/qwen3.8-27b.md#model-report) | In progress · private bundle | [Access required](https://huggingface.co/okayuji/Qwen3.8-27B-coreai-4bit) | [Guide / results](docs/qwen3.8-27b.md) |
 | Clef-Flash 9B · uint4 + fp16 head, text | Recipes, Decide | [✅](docs/clef-flash.md#model-report) | [—](docs/clef-flash.md#model-report) | In progress · private bundle | [Access required](https://huggingface.co/okayuji/clef-flash-9b-coreai-decide) | [Guide / results](docs/clef-flash.md) |
-| GLiNER2.5-multi · FP32 | Product extraction, inspection memos | [△](docs/model-reports/gliner25.md#model-report) | [△](docs/model-reports/gliner25.md#model-report) | In progress · public release / iOS adoption | [Access required](https://huggingface.co/okayuji/gliner2.5-multi-coreai-fp32) | [Guide / results](docs/model-reports/gliner25.md) |
-| EmbeddingGemma 2 · FP16 / INT4-INT8 PTQ | Image search, camera object search | [✅](docs/embeddinggemma2.md#model-report) | [△](docs/embeddinggemma2.md#model-report) | In progress · public release / iOS adoption | [Access required](https://huggingface.co/okayuji/embeddinggemma-2-coreai) | [Guide / results](docs/embeddinggemma2.md) |
+| GLiNER2.5-multi · FP32 | Product extraction, inspection memos | [△](docs/model-reports/gliner25.md#model-report) | [△](docs/model-reports/gliner25.md#model-report) | Released · iOS device acceptance pending | [Hugging Face](https://huggingface.co/okayuji/gliner2.5-multi-coreai-fp32) | [Guide / results](docs/model-reports/gliner25.md) |
+| EmbeddingGemma 2 · FP16 / INT4-INT8 PTQ | Image search, camera object search | [✅](docs/embeddinggemma2.md#model-report) | [△](docs/embeddinggemma2.md#model-report) | Released · iOS device acceptance pending | [Hugging Face](https://huggingface.co/okayuji/embeddinggemma-2-coreai) | [Guide / results](docs/embeddinggemma2.md) |
 | Irodori · FP32 | Speech generation and playback | [△](docs/model-reports/irodori.md#model-report) | [△](docs/model-reports/irodori.md#model-report) | In progress · app/device acceptance | — | [Guide / results](docs/model-reports/irodori.md) |
 | Qwen Image 2.1 Turbo · macOS FP32 | Image generation and editing | [—](docs/model-reports/qwen-image21.md#model-report) | [—](docs/model-reports/qwen-image21.md#model-report) | In progress · Mac conversion verified; mobile planned | — | [Guide / results](docs/model-reports/qwen-image21.md) |
 | Magpie TTS Multilingual v2607 | Speech generation | [—](docs/model-reports/magpie-tts.md#model-report) | [—](docs/model-reports/magpie-tts.md#model-report) | In progress · conversion and verification | — | [Guide / results](docs/model-reports/magpie-tts.md) |
@@ -32,7 +32,7 @@ Checked: **2026-10-19**. ✅ = recorded native-app execution on that OS for the 
 | LTX 2.5 | Video generation | [—](docs/model-reports/ltx25.md#model-report) | [—](docs/model-reports/ltx25.md#model-report) | Planned · investigation | — | [Guide / results](docs/model-reports/ltx25.md) |
 <!-- model-catalog:end -->
 
-The iOS app opens **Models**, with five demos connected to their providers. Their model distribution definitions are being adopted in [#210](https://github.com/oka-yuji/coreai-samples/issues/210); until that lands, the normal Models route shows descriptions without download or execution. See the [integration status](docs/validation/ios-models-integration-20261018.md). Local diagnostic runs and a bundle's public release are separate milestones.
+The iOS app opens **Models**, with five demos connected to their providers. Models downloads the pinned GLiNER2.5-multi FP32 bundle and the EmbeddingGemma 2 FP16 (default) or INT4/INT8 PTQ bundle anonymously from Hugging Face, and a demo runs only after every file's size and SHA-256 has been checked ([#210](https://github.com/oka-yuji/coreai-samples/issues/210)). See the [integration status](docs/validation/ios-models-integration-20261018.md); running the five demos on an iPhone remains a user check. Local diagnostic runs and a bundle's public release are separate milestones.
 
 ## Get started
 
@@ -63,4 +63,4 @@ For an iPhone build, signing, or the separate speech app, follow the [app setup 
 
 ## License
 
-Code: MIT — see [LICENSE](LICENSE). Model weights have their own licenses; use each guide and bundle's license/notice files. Qwen3.8 27B and Clef-Flash 9B retain their source models' Apache License 2.0, with `LICENSE` and `NOTICE.md` in the respective Hugging Face repositories.
+Code: MIT — see [LICENSE](LICENSE). Model weights have their own licenses; use each guide and bundle's license/notice files. Qwen3.8 27B and Clef-Flash 9B retain their source models' Apache License 2.0, with `LICENSE` and `NOTICE.md` in the respective Hugging Face repositories. GLiNER2.5-multi and EmbeddingGemma 2 retain their source models' Apache License 2.0; each bundle includes `LICENSE`, with `THIRD_PARTY_NOTICES.md` (GLiNER2.5-multi, including the MIT notice of its mDeBERTa encoder and tokenizer) or `MODEL_LICENSE.txt` (EmbeddingGemma 2).

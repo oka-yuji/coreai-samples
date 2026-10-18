@@ -18,7 +18,7 @@
 | OS | 状態 | 確認した範囲・残る確認 | 根拠 |
 |---|---|---|---|
 | macos | △ | 商品デモは実装済み。記録上、実モデルでの結合確認は保留。 | [E1](../specs/product-comparison-demo.md#remaining-acceptance-and-next-work) |
-| ios | △ | 現行Models経路は実資産の採用と実機確認待ち。 | [E2](../validation/ios-models-integration-20261018.md#device-checks) |
+| ios | △ | 現行Models経路は公開バンドルを取得・検査する（iPhone 17 Proの自己テスト、モデルは読み込まない）。デモの実行は実機確認待ち。 | [E2](../validation/ios-models-integration-20261018.md#device-checks) · [E3](../validation/ios-models-integration-20261018.md#acquisition) |
 
 ### 性能と品質
 
@@ -55,6 +55,7 @@
 |---|---|---|---|
 | [E1](../specs/product-comparison-demo.md#remaining-acceptance-and-next-work) | 2026-10-14 / legacy / plan | M4 Max 128 GiB / macOS 27.0 (26A428) / Xcode 27.0 (27A266a) | 商品比較の実モデル結合は保留。取得のみ・架空プレビューの結果は除外。 · variant=FP32; backend=Core AI; GPU preferred; route=plan; batch_size=1; concurrency=1; 未記録: source_revision, artifact_revision, code_revision, warmups, power, thermal, plan_sha256 |
 | [E2](../validation/ios-models-integration-20261018.md#device-checks) | 2026-10-18 / legacy / plan | iPhone 17 Pro / iOS 27.0.1 (24A446) / Xcode 27.0 (27A266a) | 根拠に記載された固定入力を参照。 · variant=FP32; backend=Core AI; GPU preferred; route=plan; batch_size=1; concurrency=1; 未記録: source_revision, artifact_revision, code_revision, warmups, power, thermal, plan_sha256 |
+| [E3](../validation/ios-models-integration-20261018.md#acquisition) | 2026-10-19 / legacy / diagnostic | iPhone 17 Pro / iOS 27.0.1 (24A446) / Xcode 27.0 (27A266a) | 定義の8ファイル（1,247,733,386 B）を匿名HTTPSで取得し、ライブラリのstoreで登録・検査した（38.1秒）。モデルは読み込まない。 · variant=FP32; route=Models self-test (--acquire all); source_revision=2ca71aafb3446d9014e1c55c7ff51c9bc7209c47; artifact_revision=043e738f3a91222ec013b2d80e240e34abb46bdb; 未記録: backend, code_revision, batch_size, concurrency, warmups, power, thermal, plan_sha256 |
 
 ### 導入・制限・進捗
 

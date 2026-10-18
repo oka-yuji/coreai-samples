@@ -27,7 +27,8 @@ enum DemoAppMain {
         if let output = LaunchArguments.value("--model-library-selftest") {
             exit(
                 await ModelLibrarySelfTest.run(
-                    output: URL(filePath: output), root: ModelStorage.root.appending(path: "ModelLibrary")))
+                    output: URL(filePath: output), root: ModelStorage.root.appending(path: "ModelLibrary"),
+                    acquire: LaunchArguments.value("--acquire")))
         }
         if LaunchArguments.flag("--check-localization") {
             DemoLocalizationCheck.run()

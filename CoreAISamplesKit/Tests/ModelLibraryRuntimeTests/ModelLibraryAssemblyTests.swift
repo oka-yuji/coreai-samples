@@ -8,11 +8,17 @@ import Testing
 @testable import ModelLibraryFeature
 @testable import ModelLibraryRuntime
 
-private final class RequestCount: Sendable {
-    private let value = Mutex(0)
+private final class Requests: Sendable {
+    private let value = Mutex<[String]>([])
 
-    func increment() { value.withLock { $0 += 1 } }
-    var count: Int { value.withLock { $0 } }
+    func record(_ request: URLRequest) { value.withLock { $0.append(request.url?.absoluteString ?? "") } }
+    var urls: [String] { value.withLock { $0 } }
+}
+
+private func addresses(_ artifact: ModelArtifact) -> Set<String> {
+    guard let download = artifact.download else { return [] }
+    let base = "https://huggingface.co/\(download.repository)/resolve/\(download.revision)/"
+    return Set(artifact.files.map { base + (download.root.isEmpty ? "" : download.root + "/") + $0.path })
 }
 
 @MainActor
@@ -21,7 +27,7 @@ private final class AppAssembly {
     let root: URL
     let legacy: [URL]
     let labels: OwnerLabels
-    let requests: RequestCount
+    let requests: Requests
     let catalog: ModelCatalog
     let events: AsyncStream<String>
     let adapters: [String: FakeAdapter]
@@ -48,11 +54,11 @@ private final class AppAssembly {
         let fakes = catalog.demos.map { FakeAdapter($0.id, label: labels, sink: sink) }
         adapters = Dictionary(uniqueKeysWithValues: fakes.map { ($0.demoID, $0) })
         store = ManagedModelStore(root: root, availableCapacity: { _ in .max })
-        let requests = RequestCount()
+        let requests = Requests()
         self.requests = requests
         let transfer = ArtifactTransfer(
-            fileLoader: { _, _ in
-                requests.increment()
+            fileLoader: { request, _ in
+                requests.record(request)
                 throw URLError(.notConnectedToInternet)
             }, availableCapacity: { _ in .max })
         assembly = ModelLibraryAssembly(
@@ -90,9 +96,9 @@ private func wait(_ library: Store<ModelLibraryFeature>, until condition: (Model
 @Suite(.timeLimit(.minutes(1)))
 struct ModelLibraryAssemblyTests {
     @Test(
-        "E2E-01 The app assembly connects one provider to each demo of the iOS catalog, and browsing, refreshing and download requests for its unconfigured artifacts create no session, call no provider and leave legacy folders unchanged"
+        "E2E-01 ADOPT-02 The app assembly connects one provider to each demo of the iOS catalog, passes the download request of every published artifact to the transfer with its catalog definition, and creates no session or provider work before the acquisition completes"
     )
-    func unconfiguredArtifacts() async throws {
+    func publishedArtifacts() async throws {
         let app = try AppAssembly()
         defer { app.close() }
         let library = app.library.store
@@ -103,7 +109,7 @@ struct ModelLibraryAssemblyTests {
         let legacy = try app.legacyFiles()
         library.send(.refresh)
         await wait(library) { !$0.installations.values.contains(where: \.phase.isBusy) }
-        #expect(library.state.installations.count == 2)
+        #expect(library.state.installations.count == 3)
         #expect(library.state.installations.values.allSatisfy { $0 == ModelInstallation() })
 
         var opened: [DemoSelection] = []
@@ -115,23 +121,44 @@ struct ModelLibraryAssemblyTests {
                 _ = app.library.rendering.preview(for: selection)
                 #expect(library.state == shown && shown.selection == selection && shown.session == nil)
                 #expect(shown.access(to: selection) == .preview(.missing))
-                let artifactID = section.model.defaultArtifactID
-                library.send(.downloadRequested(artifactID))
-                #expect(library.state.installations[artifactID]?.failure == .downloadNotConfigured)
-                #expect(library.state.installations[artifactID]?.phase == .missing && library.state.session == nil)
                 library.send(.closeDemo)
                 opened.append(selection)
             }
         }
         #expect(opened.map(\.demoID) == registeredDemos)
+
+        var requested = 0
+        for model in app.catalog.models {
+            let selection = DemoSelection(modelID: model.id, demoID: try #require(model.demos.first).demoID)
+            for artifact in model.artifacts {
+                library.send(.selectArtifact(modelID: model.id, artifactID: artifact.id))
+                library.send(.openDemo(selection))
+                library.send(.downloadRequested(artifact.id))
+                #expect(library.state.installations[artifact.id]?.phase == .downloading(nil))
+                #expect(
+                    library.state.session == nil && library.state.access(to: selection) == .preview(.downloading(nil)))
+                await wait(library) { $0.installations[artifact.id]?.phase == .failed }
+                #expect(library.state.session == nil && library.state.access(to: selection) == .preview(.failed))
+                guard case .operation(let message)? = library.state.installations[artifact.id]?.failure else {
+                    Issue.record("A failed transfer must be reported as an operation failure")
+                    continue
+                }
+                #expect(message.hasPrefix("The connection was interrupted while downloading "))
+                let urls = app.requests.urls.dropFirst(requested)
+                requested += urls.count
+                #expect(!urls.isEmpty && Set(urls).isSubset(of: addresses(artifact)))
+                library.send(.closeDemo)
+            }
+        }
         for selection in opened {
             let adapter = try app.adapter(selection.demoID)
             #expect(adapter.previews == [selection] && adapter.contents.isEmpty && adapter.stops.isEmpty)
             #expect(adapter.executions.isEmpty && adapter.loads == 0 && adapter.rejections == 0)
         }
-        #expect(app.requests.count == 0)
         #expect(try app.legacyFiles() == legacy)
-        #expect(!FileManager.default.fileExists(atPath: app.root.path(percentEncoded: false)))
+        for name in ["artifacts", "ledger.json"] {
+            #expect(!FileManager.default.fileExists(atPath: app.root.appending(path: name).path(percentEncoded: false)))
+        }
     }
 
     @Test(
@@ -254,7 +281,7 @@ struct ModelLibraryAssemblyTests {
     }
 
     @Test(
-        "The model library self-test reports the iOS catalog, its five providers, the capability states and missing unconfigured artifacts, fails when a catalog demo has no provider, and leaves the iOS-only checks out without a registry"
+        "The model library self-test reports the iOS catalog, its five providers, the capability states and missing published artifacts, fails when a catalog demo has no provider, and leaves the iOS-only checks out without a registry"
     )
     func selfTest() async throws {
         let app = try AppAssembly()
@@ -276,11 +303,14 @@ struct ModelLibraryAssemblyTests {
         #expect(passed["capabilities"] as? [String: String] == ["camera": "denied", "network": "available"])
         #expect(passed["visibleModels"] as? Int == 2 && passed["visibleDemos"] as? Int == 5)
         let artifacts = try #require(passed["artifacts"] as? [[String: Any]])
+        let defined = app.catalog.models.flatMap(\.artifacts)
+        #expect(artifacts.map { $0["artifactID"] as? String } == defined.map(\.id))
         #expect(
-            artifacts.map { $0["artifactID"] as? String } == [
-                "gliner2.5-multi-unconfigured", "embeddinggemma2-unconfigured",
-            ])
-        #expect(artifacts.allSatisfy { $0["inspection"] as? String == "missing" && $0["distribution"] == nil })
+            artifacts.map { $0["distribution"] as? String }
+                == defined.map { $0.download.map { "\($0.repository)@\($0.revision)" } })
+        #expect(artifacts.map { $0["files"] as? Int } == defined.map(\.files.count))
+        #expect(artifacts.allSatisfy { $0["inspection"] as? String == "missing" })
+        #expect(passed["acquisition"] == nil)
         #expect((passed["store"] as? [String: Any])?["exists"] as? Bool == false)
         #expect(!FileManager.default.fileExists(atPath: app.root.path(percentEncoded: false)))
 
@@ -296,5 +326,84 @@ struct ModelLibraryAssemblyTests {
         #expect(catalogOnly["registry"] == nil && catalogOnly["capabilities"] == nil)
         #expect((catalogOnly["scope"] as? String)?.hasPrefix("Catalog and store checks only") == true)
         #expect(app.adapters.values.allSatisfy { $0.previews.isEmpty && $0.contents.isEmpty && $0.stops.isEmpty })
+    }
+
+    @Test(
+        "ADOPT-02 The self-test with an acquisition target requests each catalog artifact in turn through the app assembly and fails with the route, defined bytes and inspection of every failed transfer"
+    )
+    func selfTestAcquisitionFailures() async throws {
+        let app = try AppAssembly()
+        defer { app.close() }
+        let output = app.base.appending(path: "selftest.json")
+        let status = await ModelLibrarySelfTest.run(
+            output: output, root: app.root, registry: app.assembly.registry, capabilities: [:], acquire: "all",
+            assembly: app.assembly)
+        #expect(status == 1)
+        let report = try #require(JSONSerialization.jsonObject(with: Data(contentsOf: output)) as? [String: Any])
+        let acquisition = try #require(report["acquisition"] as? [String: Any])
+        #expect(acquisition["target"] as? String == "all")
+        let results = try #require(acquisition["artifacts"] as? [[String: Any]])
+        let artifacts = app.catalog.models.flatMap(\.artifacts)
+        #expect(results.map { $0["artifactID"] as? String } == artifacts.map(\.id))
+        for (result, artifact) in zip(results, artifacts) {
+            #expect(result["route"] as? String == "download" && result["state"] as? String == "failed")
+            #expect(result["revision"] as? String == artifact.download?.revision)
+            #expect(result["inspection"] as? String == "missing")
+            #expect(result["definedBytes"] as? Int64 == artifact.sizeBytes)
+            #expect(result["measuredBytes"] == nil && result["identity"] == nil)
+            #expect(
+                (result["failure"] as? String)?.contains("The connection was interrupted while downloading") == true)
+        }
+        #expect((report["failures"] as? [String])?.count == artifacts.count)
+        let owners = app.requests.urls.compactMap { url in artifacts.firstIndex { addresses($0).contains(url) } }
+        #expect(owners.count == app.requests.urls.count)
+        #expect(owners == owners.sorted() && Set(owners) == Set(artifacts.indices))
+        #expect(app.adapters.values.allSatisfy { $0.previews.isEmpty && $0.contents.isEmpty && $0.executions.isEmpty })
+    }
+
+    @Test(
+        "The self-test acquisition downloads a missing artifact, keeps an installed one and migrates a matching folder through the library store, with sizes equal to the definitions, the validated identity and a ready inspection"
+    )
+    func selfTestAcquisitionRoutes() async throws {
+        let harness = try RuntimeHarness()
+        defer { harness.close() }
+        let root = harness.base.appending(path: "ModelLibrary")
+        let assembly = ModelLibraryAssembly(adapters: [], store: harness.store, transfer: harness.transfer)
+        let first = try await ModelLibrarySelfTest.check(
+            catalog: harness.catalog, root: root, registry: nil, capabilities: nil, acquire: "text-fp16",
+            assembly: assembly)
+        #expect(first.failures.isEmpty && first.acquisition?.artifacts.count == 1)
+        let downloaded = try #require(first.acquisition?.artifacts.first)
+        #expect(downloaded.route == "download" && downloaded.state == "ready" && downloaded.inspection == "ready")
+        #expect(downloaded.definedBytes > 0 && downloaded.measuredBytes == downloaded.definedBytes)
+        #expect(downloaded.identity?.artifactID == "text-fp16" && downloaded.identity?.revision == distributionRevision)
+        #expect(downloaded.identity?.upstreamRevision == upstreamRevision)
+        #expect(downloaded.seconds != nil && downloaded.failure == nil)
+
+        let legacy = harness.base.appending(path: "Documents/legacy")
+        try FileManager.default.createDirectory(
+            at: legacy.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try FileManager.default.copyItem(
+            at: root.appending(path: "artifacts/text-fp16/" + distributionRevision), to: legacy)
+        let migrating = ModelLibraryAssembly(
+            adapters: [], store: harness.store, transfer: harness.transfer, migrationCandidates: { [legacy] })
+        let second = try await ModelLibrarySelfTest.check(
+            catalog: harness.catalog, root: root, registry: nil, capabilities: nil, acquire: "all",
+            assembly: migrating)
+        let results = try #require(second.acquisition?.artifacts)
+        #expect(second.failures.isEmpty)
+        #expect(results.map(\.artifactID) == ["text-fp16", "text-int4", "image-fp16"])
+        #expect(results.map(\.route) == ["installed", "migration", "migration"])
+        #expect(
+            results.allSatisfy {
+                $0.state == "ready" && $0.inspection == "ready" && $0.measuredBytes == $0.definedBytes
+                    && $0.seconds == nil
+            })
+
+        let unknown = try await ModelLibrarySelfTest.check(
+            catalog: harness.catalog, root: root, registry: nil, capabilities: nil, acquire: "absent",
+            assembly: assembly)
+        #expect(unknown.failures == ["acquire: absent names no catalog artifact"])
+        #expect(unknown.acquisition?.artifacts.isEmpty == true)
     }
 }

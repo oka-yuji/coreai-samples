@@ -18,7 +18,7 @@ Results below retain their original dates and workloads. Different rows may use 
 | Platform | State | Verified scope / remaining work | Evidence |
 |---|---|---|---|
 | macos | △ | Product demo implemented; the linked record defers real-model integration. | [E1](../specs/product-comparison-demo.md#remaining-acceptance-and-next-work) |
-| ios | △ | Current Models route awaits real assets and device acceptance. | [E2](../validation/ios-models-integration-20261018.md#device-checks) |
+| ios | △ | The current Models route downloads and validates the published bundle (self-test on iPhone 17 Pro, no model loaded); demo execution awaits device acceptance. | [E2](../validation/ios-models-integration-20261018.md#device-checks) · [E3](../validation/ios-models-integration-20261018.md#acquisition) |
 
 ### Performance and quality
 
@@ -55,6 +55,7 @@ Results below retain their original dates and workloads. Different rows may use 
 |---|---|---|---|
 | [E1](../specs/product-comparison-demo.md#remaining-acceptance-and-next-work) | 2026-10-14 / legacy / plan | M4 Max 128 GiB / macOS 27.0 (26A428) / Xcode 27.0 (27A266a) | Product comparison real-model integration deferred; source-only and fictional preview results excluded. · variant=FP32; backend=Core AI; GPU preferred; route=plan; batch_size=1; concurrency=1; unrecorded: source_revision, artifact_revision, code_revision, warmups, power, thermal, plan_sha256 |
 | [E2](../validation/ios-models-integration-20261018.md#device-checks) | 2026-10-18 / legacy / plan | iPhone 17 Pro / iOS 27.0.1 (24A446) / Xcode 27.0 (27A266a) | See fixed cases in the evidence. · variant=FP32; backend=Core AI; GPU preferred; route=plan; batch_size=1; concurrency=1; unrecorded: source_revision, artifact_revision, code_revision, warmups, power, thermal, plan_sha256 |
+| [E3](../validation/ios-models-integration-20261018.md#acquisition) | 2026-10-19 / legacy / diagnostic | iPhone 17 Pro / iOS 27.0.1 (24A446) / Xcode 27.0 (27A266a) | Anonymous HTTPS download of the 8 listed files (1,247,733,386 B), then promotion and inspection through the library store, in 38.1 s; no model loaded. · variant=FP32; route=Models self-test (--acquire all); source_revision=2ca71aafb3446d9014e1c55c7ff51c9bc7209c47; artifact_revision=043e738f3a91222ec013b2d80e240e34abb46bdb; unrecorded: backend, code_revision, batch_size, concurrency, warmups, power, thermal, plan_sha256 |
 
 ### Setup, limitations and progress
 
