@@ -1,6 +1,6 @@
 # Clef-Flash 9B for Core AI
 
-[日本語](clef-flash.ja.md) · [Download on Hugging Face](https://huggingface.co/okayuji/clef-flash-9b-coreai-decide)
+[Home](../README.md) · [日本語](clef-flash.ja.md) · [Download on Hugging Face](https://huggingface.co/okayuji/clef-flash-9b-coreai-decide)
 
 Give a document and a checklist of allowed answers. This model returns a probability for every answer and can reuse the document while you edit the checklist. The app uses it in **Decide** and **Recipes**.
 
@@ -8,18 +8,25 @@ Give a document and a checklist of allowed answers. This model returns a probabi
 
 Requirements: Apple silicon, macOS 27, Xcode 27 with Metal Toolchain, GPU execution. Tested on M4 Max 128 GB. A minimum-memory configuration has not been established. Recipes photo reading additionally needs Apple Intelligence with vision available on the Mac.
 
+Before building the app, complete the [common setup](../README.md#get-started), including Rust/Cargo.
+
 ## Quick start
 
-From this repository's root, use the [Hugging Face CLI](https://huggingface.co/docs/huggingface_hub/guides/cli):
+Can you make a recipe with what is in your fridge? **Recipes** reads a fridge photo, lets you check the proposed ingredients, and compares your inventory with a recipe URL. It uses Apple's on-device model for the photo, **Clef-Flash 9B through Core AI** for recipe requirements and equipment, and Swift code for quantities. **Decide** uses the same Clef bundle to score a document against editable questions. Both expose the model's uncalibrated probabilities.
+
+**Requires access to the separately distributed Clef bundle.** The `hf download` line below works only with a Hugging Face account that has access to that repository. Install the [Hugging Face CLI](https://huggingface.co/docs/huggingface_hub/guides/cli), sign in with `hf auth login` using that account, then get the app and decision bundle. Select the folder containing `decision.json` when opening the bundle:
 
 ```sh
+git clone https://github.com/oka-yuji/coreai-samples.git
+cd coreai-samples
 hf download okayuji/clef-flash-9b-coreai-decide --local-dir ./models/clef-flash-9b-decide-v1
 ```
 
-Open `CoreAISamples.xcodeproj`, choose the **CoreAISamples** scheme and **My Mac**, set the Run build configuration to **Release**, and run. In either **Clef-Flash 9B** sidebar entry (document checklist or recipe checks), open `models/clef-flash-9b-decide-v1`, the folder containing `decision.json`.
+Open `CoreAISamples.xcodeproj`, choose the **CoreAISamples** scheme and **My Mac**, set the Run build configuration to **Release**, and run. The **EN / JP** control at the top right switches every Mac screen.
 
-- **Document checklist:** choose **Examples → Maintenance agreement → Run checklist**. Edit questions and run again to reuse the document. See the [Decide guide](decide.md).
-- **Recipe checks:** choose a bundled fridge example, review the ingredient names and amounts, confirm them, and **Check recipe**. See the [five-photo walkthrough](recipes-demo.md).
+In the **Clef-Flash 9B** sidebar entry for recipe checks, choose **Open Clef-Flash bundle** and select `models/clef-flash-9b-decide-v1`. Try **Examples → Three-egg omelette**, review the suggested egg as `1 pcs`, confirm it, then **Check recipe**. The recipe needs three eggs, so the confirmed inventory is two short. Follow the [Recipes walkthrough](recipes-demo.md) for all five bundled photos and recipe URLs. Photos and inventory stay on the Mac; fetching a recipe URL needs an internet connection.
+
+In the **Clef-Flash 9B** sidebar entry for document checklists, open the same bundle, choose **Examples → Maintenance agreement**, then **Run checklist**. Edit a question and run again to reuse the document. The [Decide guide](decide.md) covers review, JSON export and the Swift API.
 
 The built app also runs the recorded request without opening a window. Set `DECIDE_APP` to its executable:
 
