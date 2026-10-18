@@ -2,17 +2,40 @@ import EmbeddingCore
 import Foundation
 import ImageSearchFeature
 
+public struct ImageSearchReleaseError: LocalizedError, Equatable, Sendable {
+    public let detail: String
+    public init(detail: String) { self.detail = detail }
+    public var errorDescription: String? { "Image search could not release its model. Try stopping again." }
+}
+
 @MainActor
-public struct ImageSearchRunner {
+public final class ImageSearchRunner {
     private let service: any ImageSearchService
-    public init(service: any ImageSearchService) { self.service = service }
+    private let isPermitted: @MainActor () -> Bool
+    private var releasing: [CheckedContinuation<ImageSearchReleaseError?, Never>]?
+
+    public init(service: any ImageSearchService, isPermitted: @escaping @MainActor () -> Bool = { true }) {
+        self.service = service
+        self.isPermitted = isPermitted
+    }
 
     public func run(_ effect: ImageSearchEffect, send: (ImageSearchAction) -> Void) async {
         let id: Int
         switch effect {
-        case .load(let value, _), .index(let value, _), .search(let value, _), .waitForIdle(let value),
-            .close(let value):
+        case .waitForIdle(let value):
+            await service.waitForIdle()
+            if !Task.isCancelled { send(.stopped(value)) }
+            return
+        case .close(let value):
+            let failure = await released()
+            if !Task.isCancelled { send(failure.map { .closeFailed(value, $0.detail) } ?? .stopped(value)) }
+            return
+        case .load(let value, _), .index(let value, _), .search(let value, _):
             id = value
+        }
+        guard isPermitted() else {
+            send(.failed(id, ImageSearchFailure(message: "The selected model is not available right now. Try again.")))
+            return
         }
         let start = ContinuousClock.now
         do {
@@ -31,18 +54,31 @@ public struct ImageSearchRunner {
                 let matches = try await service.search(query)
                 try Task.checkCancellation()
                 send(.searched(id, matches, Self.seconds(since: start)))
-            case .waitForIdle(let id):
-                await service.waitForIdle()
-                try Task.checkCancellation()
-                send(.stopped(id))
-            case .close(let id):
-                try await service.close()
-                try Task.checkCancellation()
-                send(.stopped(id))
+            case .waitForIdle, .close:
+                return
             }
         } catch {
             if !Task.isCancelled && !(error is CancellationError) { send(.failed(id, Self.failure(error))) }
         }
+    }
+
+    public func release() async throws {
+        if let failure = await released() { throw failure }
+    }
+
+    private func released() async -> ImageSearchReleaseError? {
+        if releasing != nil { return await withCheckedContinuation { releasing?.append($0) } }
+        releasing = []
+        var failure: ImageSearchReleaseError?
+        do {
+            try await service.close()
+        } catch {
+            failure = ImageSearchReleaseError(detail: String(describing: error))
+        }
+        let waiters = releasing ?? []
+        releasing = nil
+        for waiter in waiters { waiter.resume(returning: failure) }
+        return failure
     }
 
     private static func seconds(since start: ContinuousClock.Instant) -> Double {
@@ -57,6 +93,8 @@ public struct ImageSearchRunner {
         case EmbeddingError.invalidImage: message = "Use an opaque, still image with no more than 40 million pixels."
         case EmbeddingError.invalidBundle:
             message = "This model folder is incomplete or incompatible. Open a valid EmbeddingGemma 2 bundle."
+        case let error as CocoaError where error.code == .fileReadNoSuchFile:
+            message = "Some images can no longer be opened. Choose the images again."
         default: message = "The operation failed. Try again or reopen the model folder."
         }
         return ImageSearchFailure(message: message, detail: String(describing: error))

@@ -13,9 +13,11 @@
 		040CEE6FAC4B1743BB677ADA /* RecipeAssembly.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A091709225A19A17E295027 /* RecipeAssembly.swift */; };
 		041131BFE038F104C3C8E80E /* TruckInspectionAssembly.swift in Sources */ = {isa = PBXBuildFile; fileRef = DCBAA551F86D44CD24D4787C /* TruckInspectionAssembly.swift */; };
 		05EB991A945647B6D99889BE /* SpeechFeature in Frameworks */ = {isa = PBXBuildFile; productRef = FE873BDE9C77CAB1DD11671A /* SpeechFeature */; };
+		06DD84DFDD94EE92CD45FFC2 /* ImageSearchAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA059A17CCB6E4DEDC2808B9 /* ImageSearchAdapter.swift */; };
 		0822636365EA463C430DE5DD /* inspection_u1.json in Resources */ = {isa = PBXBuildFile; fileRef = CB2168189614CA94670A5D5A /* inspection_u1.json */; };
 		08E8266852834334CFC5828A /* ConversationSourcesSelfTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 101755802CD17A377B6C22CE /* ConversationSourcesSelfTest.swift */; };
 		0B0DADEEAD55B0B2E751058D /* TruckInspectionCore in Frameworks */ = {isa = PBXBuildFile; productRef = 9A63E199B15D68E147DE18FB /* TruckInspectionCore */; };
+		0BEC7586C44E9D3468813B7F /* ImageSearchAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA059A17CCB6E4DEDC2808B9 /* ImageSearchAdapter.swift */; };
 		0F1480EDCB4BD979E6558780 /* gradient_wide.png in Resources */ = {isa = PBXBuildFile; fileRef = B2670AD6272F2619F7294871 /* gradient_wide.png */; };
 		0FAC84239B7A7C23902B0480 /* ExtractFeature in Frameworks */ = {isa = PBXBuildFile; productRef = 383F71353F8B8246DEA9AC41 /* ExtractFeature */; };
 		10C3CB73F5962FA73A475272 /* AgentTools.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35AEFA86A5545B593DC7ADE0 /* AgentTools.swift */; };
@@ -159,6 +161,7 @@
 		AF294872BD74B3144756EE6D /* ExtractEval.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82B4A55114BBA7685FCF713C /* ExtractEval.swift */; };
 		B0F6928D3790DB8F41EC90AE /* ProductComparisonAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B1FA83AF87E30C17EC28488 /* ProductComparisonAdapter.swift */; };
 		B1DD58EA8D2DFB52E3157842 /* PhoneExtractView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EF29907EAA61DD548671267 /* PhoneExtractView.swift */; };
+		B3981D94A10DB479FED7A58C /* ImageSearchContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD846F3F9802B8FB51FBC96A /* ImageSearchContent.swift */; };
 		B62247B1FC9C52A67DD7AFA2 /* InspectionSpeaker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9042E52315E369A6C16890CE /* InspectionSpeaker.swift */; };
 		B6E6CA2DA418633553FF400B /* SpeechAssembly.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EF067F2F1108F44E0873891 /* SpeechAssembly.swift */; };
 		B7CA6BBDF59AF0DE6461871B /* ComposerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8DF2AB7669E5A655B829AA2A /* ComposerView.swift */; };
@@ -203,6 +206,7 @@
 		EA6EA15C27A2452E25470CAF /* ConversationBudgetSelfTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C9D606E59C375EB20C9B214 /* ConversationBudgetSelfTest.swift */; };
 		EBC2196A2344ED1096E95E1B /* ImageSearchVectorCheck.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3D65A0C17724B4972F0D163 /* ImageSearchVectorCheck.swift */; };
 		EBD06F165F843DC318379076 /* ChatRAG.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1063E369286C82F9F3981B8A /* ChatRAG.swift */; };
+		F0507562C028CFA66E675271 /* ImageSearchContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD846F3F9802B8FB51FBC96A /* ImageSearchContent.swift */; };
 		F05A89528822F6762EC19F0B /* RecipeCore in Frameworks */ = {isa = PBXBuildFile; productRef = 894B26DCB067A6439ED00616 /* RecipeCore */; };
 		F1101368EE7D54AD1319058F /* 05-caprese.png in Resources */ = {isa = PBXBuildFile; fileRef = 40FBC139C9FDEC515A5F909A /* 05-caprese.png */; };
 		F2D2A747C80FF9DC77A7F51A /* GLiNERRuntime in Frameworks */ = {isa = PBXBuildFile; productRef = 7FF547165A24AD3DED81F05A /* GLiNERRuntime */; };
@@ -320,6 +324,7 @@
 		C788E9F664AA9590A13BF66C /* RecipeModelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipeModelView.swift; sourceTree = "<group>"; };
 		C8A8415903D96B5F5D18625D /* Signing.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.xcconfig; sourceTree = "<group>"; };
 		C8BB1C51D3BFC85B5F047FD0 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
+		CA059A17CCB6E4DEDC2808B9 /* ImageSearchAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageSearchAdapter.swift; sourceTree = "<group>"; };
 		CB2168189614CA94670A5D5A /* inspection_u1.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = inspection_u1.json; sourceTree = "<group>"; };
 		D005E7D2BBBBEDDF71AD3A7B /* SpeechExport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechExport.swift; sourceTree = "<group>"; };
 		D7900E92556E3B5D90842513 /* Local.xcconfig.template */ = {isa = PBXFileReference; path = Local.xcconfig.template; sourceTree = "<group>"; };
@@ -338,6 +343,7 @@
 		F8A445C0F98E7EF55960E4EB /* ConversationArchiveSelfTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationArchiveSelfTest.swift; sourceTree = "<group>"; };
 		FAE0376EC66AACAB7D06A922 /* ModelStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelStorage.swift; sourceTree = "<group>"; };
 		FC2BBE5005A691ADE3B0A298 /* InspectionAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InspectionAdapter.swift; sourceTree = "<group>"; };
+		FD846F3F9802B8FB51FBC96A /* ImageSearchContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageSearchContent.swift; sourceTree = "<group>"; };
 		FF57BF3874EBD013FC0468B5 /* ModelsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelsViewModel.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -680,6 +686,7 @@
 			isa = PBXGroup;
 			children = (
 				85E8C50CD6907046A8C5A46E /* ImageSearchAssembly.swift */,
+				FD846F3F9802B8FB51FBC96A /* ImageSearchContent.swift */,
 				555173E2E133C5066E8482E1 /* ImageSearchSelfTest.swift */,
 				A3D65A0C17724B4972F0D163 /* ImageSearchVectorCheck.swift */,
 				3C9556FA4EE8D4BBD0F9B226 /* ImageSearchView.swift */,
@@ -691,6 +698,7 @@
 			isa = PBXGroup;
 			children = (
 				7EA2799CC1E5E8999D2B1BF2 /* ExtractionAdapter.swift */,
+				CA059A17CCB6E4DEDC2808B9 /* ImageSearchAdapter.swift */,
 				FC2BBE5005A691ADE3B0A298 /* InspectionAdapter.swift */,
 				2B1FA83AF87E30C17EC28488 /* ProductComparisonAdapter.swift */,
 			);
@@ -1041,7 +1049,9 @@
 				6DC89743479937677DB58337 /* ExtractService.swift in Sources */,
 				2CD107EA0CB22CDA042BCAF9 /* ExtractionAdapter.swift in Sources */,
 				34B8E68145C72B1FE4CCD28B /* IOSModelLibraryAssembly.swift in Sources */,
+				06DD84DFDD94EE92CD45FFC2 /* ImageSearchAdapter.swift in Sources */,
 				905D910D6EE5ADB3BDC0C185 /* ImageSearchAssembly.swift in Sources */,
+				F0507562C028CFA66E675271 /* ImageSearchContent.swift in Sources */,
 				DC1579D87D040882926DA62A /* ImageSearchSelfTest.swift in Sources */,
 				EBC2196A2344ED1096E95E1B /* ImageSearchVectorCheck.swift in Sources */,
 				82D08B7EC39EAA2231DC2D5B /* ImageSearchView.swift in Sources */,
@@ -1115,7 +1125,9 @@
 				F683B96AA637C180E95E71A7 /* HubDownloadSelfTest.swift in Sources */,
 				6895060850B682FA0B41235D /* HubDownloader.swift in Sources */,
 				CBD514AF16595650B2E201CF /* IOSModelLibraryAssembly.swift in Sources */,
+				0BEC7586C44E9D3468813B7F /* ImageSearchAdapter.swift in Sources */,
 				539CF4A07C583F542B736C90 /* ImageSearchAssembly.swift in Sources */,
+				B3981D94A10DB479FED7A58C /* ImageSearchContent.swift in Sources */,
 				BF2A48F1993C91C4541D02DC /* ImageSearchSelfTest.swift in Sources */,
 				4275FA1D00228F5E93B7A9D0 /* ImageSearchVectorCheck.swift in Sources */,
 				C6C10226B8B96DCF6BEF7F7C /* ImageSearchView.swift in Sources */,

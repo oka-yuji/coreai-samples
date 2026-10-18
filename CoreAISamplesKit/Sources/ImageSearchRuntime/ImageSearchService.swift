@@ -35,6 +35,9 @@ public final class LiveImageSearchService: ImageSearchService {
         defer { finish() }
         guard !urls.isEmpty, urls.count <= 50 else { throw EmbeddingError.invalidImage }
         indexed = []
+        if let missing = urls.first(where: { !Self.isReadable($0) }) {
+            throw CocoaError(.fileReadNoSuchFile, userInfo: [NSURLErrorKey: missing])
+        }
         var prepared: [(photo: SearchPhoto, vector: EmbeddingVector)] = []
         for url in urls {
             try Task.checkCancellation()
@@ -59,16 +62,15 @@ public final class LiveImageSearchService: ImageSearchService {
     }
 
     public func waitForIdle() async {
-        if busy { await withCheckedContinuation { waiting.append($0) } }
+        while busy { await withCheckedContinuation { waiting.append($0) } }
     }
 
     public func close() async throws {
         await waitForIdle()
-        try Task.checkCancellation()
-        try begin()
+        busy = true
         defer { finish() }
-        try await model.unload()
         indexed = []
+        try await model.unload()
     }
 
     private func begin() throws {
@@ -82,6 +84,12 @@ public final class LiveImageSearchService: ImageSearchService {
         let continuations = waiting
         waiting = []
         for continuation in continuations { continuation.resume() }
+    }
+
+    private static func isReadable(_ url: URL) -> Bool {
+        let accessed = url.startAccessingSecurityScopedResource()
+        defer { if accessed { url.stopAccessingSecurityScopedResource() } }
+        return FileManager.default.isReadableFile(atPath: url.path(percentEncoded: false))
     }
 
     private static func thumbnail(_ url: URL) throws -> Data {
