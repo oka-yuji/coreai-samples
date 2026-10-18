@@ -301,15 +301,8 @@ public actor ManagedModelStore {
     }
 
     private func size(of directory: URL) -> Int64 {
-        guard itemType(directory) == .typeDirectory,
-            let entries = FileManager.default.enumerator(atPath: directory.path)
-        else { return 0 }
-        var total: Int64 = 0
-        while entries.nextObject() != nil {
-            guard entries.fileAttributes?[.type] as? FileAttributeType == .typeRegular else { continue }
-            total += (entries.fileAttributes?[.size] as? NSNumber)?.int64Value ?? 0
-        }
-        return total
+        guard itemType(directory) == .typeDirectory, let found = try? entries(in: directory) else { return 0 }
+        return found.filter { $0.mode == S_IFREG }.reduce(0) { $0 + $1.size }
     }
 }
 
@@ -355,6 +348,41 @@ private func family(_ artifact: ModelArtifact) throws -> ContractFamily {
     }
 }
 
+private struct DirectoryEntry {
+    let path: String
+    let mode: mode_t
+    let size: Int64
+}
+
+private func entries(in directory: URL) throws -> [DirectoryEntry] {
+    var found: [DirectoryEntry] = []
+    var pending = [""]
+    while let folder = pending.popLast() {
+        try Task.checkCancellation()
+        let base = folder.isEmpty ? directory.path : directory.path + "/" + folder
+        let unreadable = ManagedModelStoreError.unreadableDirectory(folder.isEmpty ? "." : folder)
+        guard let handle = opendir(base) else { throw unreadable }
+        defer { closedir(handle) }
+        while true {
+            errno = 0
+            guard let entry = readdir(handle) else {
+                if errno != 0 { throw unreadable }
+                break
+            }
+            let name = withUnsafeBytes(of: entry.pointee.d_name) {
+                String(decoding: $0.prefix(Int(entry.pointee.d_namlen)), as: UTF8.self)
+            }
+            guard name != ".", name != ".." else { continue }
+            var info = stat()
+            guard lstat(base + "/" + name, &info) == 0 else { throw unreadable }
+            let path = folder.isEmpty ? name : folder + "/" + name
+            found.append(DirectoryEntry(path: path, mode: info.st_mode & S_IFMT, size: Int64(info.st_size)))
+            if info.st_mode & S_IFMT == S_IFDIR { pending.append(path) }
+        }
+    }
+    return found
+}
+
 private func scanEntries(_ directory: URL, _ artifact: ModelArtifact, allowingExtraneous: Bool) throws {
     let paths = Set(artifact.files.map(\.path))
     let folders = Set(
@@ -362,30 +390,13 @@ private func scanEntries(_ directory: URL, _ artifact: ModelArtifact, allowingEx
             let parts = file.path.split(separator: "/")
             return parts.indices.dropLast().map { parts[...$0].joined(separator: "/") }
         })
-    var unreadable: URL?
-    guard
-        let entries = FileManager.default.enumerator(
-            at: directory, includingPropertiesForKeys: [.fileResourceTypeKey], options: .producesRelativePathURLs,
-            errorHandler: { url, _ in
-                unreadable = url
-                return false
-            })
-    else { throw ManagedModelStoreError.unreadableDirectory(".") }
-    while let url = entries.nextObject() as? URL {
-        try Task.checkCancellation()
-        let path = url.relativePath
-        let type = try url.resourceValues(forKeys: [.fileResourceTypeKey]).fileResourceType
-        if type == .symbolicLink { throw ManagedModelStoreError.symbolicLink }
+    for entry in try entries(in: directory) {
+        if entry.mode == S_IFLNK { throw ManagedModelStoreError.symbolicLink }
         guard
             allowingExtraneous
-                || (type == .regular ? paths.contains(path) : type == .directory && folders.contains(path))
-        else { throw ManagedModelStoreError.unexpectedFile(path) }
-    }
-    if let unreadable {
-        let base = directory.resolvingSymlinksInPath().standardizedFileURL.path + "/"
-        let path = unreadable.resolvingSymlinksInPath().standardizedFileURL.path
-        throw ManagedModelStoreError.unreadableDirectory(
-            path.hasPrefix(base) ? String(path.dropFirst(base.count)) : ".")
+                || (entry.mode == S_IFREG
+                    ? paths.contains(entry.path) : entry.mode == S_IFDIR && folders.contains(entry.path))
+        else { throw ManagedModelStoreError.unexpectedFile(entry.path) }
     }
 }
 

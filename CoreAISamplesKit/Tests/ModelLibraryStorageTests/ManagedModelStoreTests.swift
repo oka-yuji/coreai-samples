@@ -188,7 +188,8 @@ struct ManagedModelStoreTests {
         let unlisted = [
             "SHA256SUMS": Data("sums".utf8), "verification/parity.json": Data("{}".utf8),
             ".DS_Store": Data("finder".utf8), "README.md": Data("readme".utf8),
-            "fp16.aimodel/metadata.json": Data("{}".utf8),
+            "fp16.aimodel/metadata.json": Data("{}".utf8), "._README.md": Data("sidecar".utf8),
+            "x.aimodel/._main.mlirb": Data("sidecar".utf8),
         ]
         try fixture.write(gliner.files.merging(unlisted) { $1 }, to: bundled)
         try fixture.write(gliner.files.filter { $0.key != "tokenizer/tokenizer.json" }, to: partial)
@@ -216,6 +217,10 @@ struct ManagedModelStoreTests {
         #expect(
             Set(fixture.contents(migrated.directory).filter { $0.value != "directory" }.keys)
                 == Set(gliner.files.keys))
+        for sidecar in ["._README.md", "x.aimodel/._main.mlirb"] {
+            #expect(FileManager.default.fileExists(atPath: bundled.appending(path: sidecar).path))
+            #expect(!FileManager.default.fileExists(atPath: migrated.directory.appending(path: sidecar).path))
+        }
 
         let second = await store.migrate([unknown, legacy, bundled], gliner)
         #expect(second.outcomes.count == 3 && second.outcomes.values.allSatisfy(\.isSkipped))

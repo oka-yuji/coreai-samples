@@ -80,6 +80,29 @@ struct ManagedModelStoreBoundaryTests {
         #expect(readable.resource == nil && readable.reason != nil)
     }
 
+    @Test("STORE-01 Unlisted files with AppleDouble names are rejected in bundles and staging")
+    func appleDoubleNames() async throws {
+        let fixture = StoreFixture()
+        defer { fixture.remove() }
+        let store = fixture.store()
+        let sample = try Sample.gliner()
+        let installed = try await fixture.install(sample, into: store)
+        for name in ["._unexpected", "x.aimodel/._unexpected"] {
+            let extra = installed.directory.appending(path: name)
+            try Data("unlisted".utf8).write(to: extra)
+            #expect(try await store.inspect(sample).reason == describe(ManagedModelStoreError.unexpectedFile(name)))
+            try FileManager.default.removeItem(at: extra)
+        }
+        #expect(try await store.inspect(sample).resource == installed)
+
+        let staging = try await store.staging(sample)
+        try fixture.write(sample.files.merging(["._unexpected": Data("unlisted".utf8)]) { $1 }, to: staging)
+        await #expect(throws: ManagedModelStoreError.unexpectedFile("._unexpected")) {
+            try await store.promote(staging, sample)
+        }
+        #expect(try await store.inspect(sample).resource == installed)
+    }
+
     @Test("STORE-03 A candidate inside the managed area is reported as undetermined and left unchanged")
     func candidatesInsideTheStore() async throws {
         let fixture = StoreFixture()
