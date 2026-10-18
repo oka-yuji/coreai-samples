@@ -10,11 +10,13 @@ let speechSettings: [SwiftSetting] = [.swiftLanguageMode(.v6)] + approachableCon
 
 let package = Package(
     name: "CoreAISamplesKit",
+    defaultLocalization: "en",
     platforms: [
         .macOS("27.0"),
         .iOS("27.0"),
     ],
     products: [
+        .library(name: "ModelLibraryUI", targets: ["ModelLibraryUI"]),
         .library(name: "ModelLibraryFeature", targets: ["ModelLibraryFeature"]),
         .library(name: "ObjectFinderFeature", targets: ["ObjectFinderFeature"]),
         .library(name: "ObjectFinderCore", targets: ["ObjectFinderCore"]),
@@ -55,6 +57,9 @@ let package = Package(
         .package(url: "https://github.com/huggingface/swift-jinja.git", from: "2.5.1"),
     ],
     targets: [
+        .target(
+            name: "ModelLibraryUI", dependencies: ["ModelLibraryFeature", "FeatureStore"],
+            resources: [.process("Resources")], swiftSettings: speechSettings + [.defaultIsolation(MainActor.self)]),
         .target(name: "ModelLibraryFeature", dependencies: ["FeatureStore"], swiftSettings: speechSettings),
         .testTarget(
             name: "ModelLibraryTests", dependencies: ["ModelLibraryFeature", "FeatureStore"],
