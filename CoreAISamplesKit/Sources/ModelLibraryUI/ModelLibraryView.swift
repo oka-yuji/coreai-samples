@@ -13,8 +13,7 @@
         private let store: Store<ModelLibraryFeature>
         private let renderer: Renderer
         private let leadingToolbar: AnyView?
-        @Environment(\.locale) private var locale
-        @State private var deletion: (model: LibraryModel, artifact: ModelArtifact)?
+        @State private var deletion: ModelDeletionRequest?
         @State private var showsAbout = false
         @ScaledMetric(relativeTo: .body) private var tileWidth = 88
 
@@ -81,35 +80,7 @@
                 }
                 .presentationDetents([.medium, .large])
             }
-            .alert(
-                libraryText("Delete this model?"),
-                isPresented: Binding(get: { deletion != nil }, set: { if !$0 { deletion = nil } }),
-                presenting: deletion
-            ) { request in
-                Button(role: .cancel) {
-                    deletion = nil
-                } label: {
-                    libraryText("Cancel")
-                }
-                Button(role: .destructive) {
-                    store.send(.deleteRequested(request.artifact.id))
-                    deletion = nil
-                } label: {
-                    libraryText("Delete")
-                }
-            } message: { request in
-                Text(verbatim: deletionMessage(request.model, request.artifact))
-            }
-        }
-
-        private func deletionMessage(_ model: LibraryModel, _ artifact: ModelArtifact) -> String {
-            let explanation = String(
-                localized: "Only model files are removed. Your inputs and saved results remain.", bundle: .module,
-                locale: locale)
-            let name = store.state.artifacts(for: model.id).count > 1 ? model.name + " · " + artifact.title : model.name
-            let size = store.state.installations[artifact.id]?.resource?.sizeBytes
-                .formatted(.byteCount(style: .file))
-            return [name, explanation, size].compactMap { $0 }.joined(separator: "\n\n")
+            .modelDeletionAlert(store: store, deletion: $deletion)
         }
 
         private var models: some View {
@@ -153,7 +124,9 @@
                         Text(verbatim: classification(section.model)).font(.footnote).foregroundStyle(.secondary)
                     }
                     Spacer(minLength: 8)
-                    ModelAcquisitionControls(store: store, model: section.model) { deletion = (section.model, $0) }
+                    ModelAcquisitionControls(store: store, model: section.model) {
+                        deletion = ModelDeletionRequest(model: section.model, artifact: $0)
+                    }
                 }
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: tileWidth), spacing: 16)], spacing: 20) {
                     ForEach(section.demos) { demo in

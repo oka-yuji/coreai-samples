@@ -107,6 +107,57 @@
         }
     }
 
+    struct ModelDeletionRequest {
+        let model: LibraryModel
+        let artifact: ModelArtifact
+    }
+
+    private struct ModelDeletionAlert: ViewModifier {
+        let store: Store<ModelLibraryFeature>
+        @Binding var deletion: ModelDeletionRequest?
+        @Environment(\.locale) private var locale
+
+        func body(content: Content) -> some View {
+            content.alert(
+                libraryText("Delete this model?"),
+                isPresented: Binding(get: { deletion != nil }, set: { if !$0 { deletion = nil } }),
+                presenting: deletion
+            ) { request in
+                Button(role: .cancel) {
+                    deletion = nil
+                } label: {
+                    libraryText("Cancel")
+                }
+                Button(role: .destructive) {
+                    store.send(.deleteRequested(request.artifact.id))
+                    deletion = nil
+                } label: {
+                    libraryText("Delete")
+                }
+            } message: { request in
+                Text(verbatim: message(request.model, request.artifact))
+            }
+        }
+
+        private func message(_ model: LibraryModel, _ artifact: ModelArtifact) -> String {
+            let explanation = String(
+                localized: "Only model files are removed. Your inputs and saved results remain.", bundle: .module,
+                locale: locale)
+            let name = store.state.artifacts(for: model.id).count > 1 ? model.name + " · " + artifact.title : model.name
+            let size = store.state.installations[artifact.id]?.resource?.sizeBytes
+                .formatted(.byteCount(style: .file))
+            return [name, explanation, size].compactMap { $0 }.joined(separator: "\n\n")
+        }
+    }
+
+    extension View {
+        func modelDeletionAlert(
+            store: Store<ModelLibraryFeature>, deletion: Binding<ModelDeletionRequest?>
+        ) -> some View {
+            modifier(ModelDeletionAlert(store: store, deletion: deletion))
+        }
+    }
+
     func libraryText(_ key: String) -> Text {
         Text(LocalizedStringKey(key), bundle: .module)
     }

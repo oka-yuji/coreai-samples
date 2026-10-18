@@ -9,6 +9,7 @@
         let selection: DemoSelection
         @State private var explanationExpanded = false
         @State private var showingModel = false
+        @State private var deletion: ModelDeletionRequest?
 
         private var model: LibraryModel? { store.state.catalog.model(selection.modelID) }
         private var demo: DemoDescriptor? { store.state.catalog.demo(selection.demoID) }
@@ -53,6 +54,7 @@
                         }
                     }
                     .sheet(isPresented: $showingModel) { modelInformation(model) }
+                    .modelDeletionAlert(store: store, deletion: $deletion)
                 } else {
                     ContentUnavailableView {
                         libraryText("Demo unavailable")
@@ -96,7 +98,9 @@
                                 : "Demo execution is not connected in this build."
                         )
                         .font(.callout)
-                        ModelAcquisitionControls(store: store, model: model) { _ in }
+                        ModelAcquisitionControls(store: store, model: model) {
+                            deletion = ModelDeletionRequest(model: model, artifact: $0)
+                        }
                     }
                     if let artifact, let failure = store.state.installations[artifact.id]?.failure {
                         LibraryFailureView(failure: failure)
