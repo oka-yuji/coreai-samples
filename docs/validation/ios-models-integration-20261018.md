@@ -17,9 +17,9 @@
 | Check | Command | Result |
 |---|---|---|
 | Strict lint | `swiftlint lint --config .swiftlint.yml --baseline .swiftlint-baseline.json --strict --no-cache` | 0 violations in 381 files |
-| Format | `python3 Tools/Format/check_format.py --base origin/main` | PASS (9 changed Swift files) |
+| Format | `python3 Tools/Format/check_format.py --base origin/main` | PASS (10 changed Swift files) |
 | Irodori inputs | `./Tools/Irodori/build-inputs.sh` | exit 0 |
-| CPU tests | `swift test --package-path CoreAISamplesKit` | 681 tests: 649 passed, 32 skipped, 0 failed. The skipped tests need model bundles, fixtures or environment variables (`CLAUDE.md`, heavy jobs) |
+| CPU tests | `swift test --package-path CoreAISamplesKit` | 682 tests: 650 passed, 32 skipped, 0 failed. The skipped tests need model bundles, fixtures or environment variables (`CLAUDE.md`, heavy jobs) |
 | macOS Release | `xcodebuild -project CoreAISamples.xcodeproj -scheme CoreAISamples -configuration Release -destination 'platform=macOS' build` | BUILD SUCCEEDED |
 | iPhoneOS Release | `xcodebuild -project CoreAISamples.xcodeproj -scheme CoreAISamples-iOS -configuration Release -destination 'generic/platform=iOS' build` | BUILD SUCCEEDED, signed with the local development team |
 | Native preview | `xcodegen generate --spec Examples/ModelLibraryPreview/project.yml`, then a simulator build of `ModelLibraryPreview` | BUILD SUCCEEDED (build only; the preview was not driven) |
@@ -29,9 +29,10 @@ E2E-01 is covered by `ModelLibraryAssemblyTests` in `ModelLibraryRuntimeTests`, 
 
 - "E2E-01 The app assembly connects one provider to each demo of the iOS catalog, and browsing, refreshing and download requests for its unconfigured artifacts create no session, call no provider and leave legacy folders unchanged"
 - "E2E-01 Direct operations of the app assembly with another owner's ticket, an artifact that was never acquired, or a session that is stopping or stopped take no lease and start no provider work"
+- "E2E-01 With an acquired artifact the app assembly rejects another owner's ticket and operations during or after a stop while a valid session still runs" (the same assembly over the downloaded fixture artifact of `RuntimeHarness`)
 - "The model library self-test reports the iOS catalog, its five providers, the capability states and missing unconfigured artifacts, fails when a catalog demo has no provider, and leaves the iOS-only checks out without a registry"
 
-Each test failed when its behavior was broken on purpose: one adapter left unregistered, an empty connected-demo set, a lease kept for an identity that is not installed, a self-test that ignores a registry mismatch, and the self-test destination checked before the evaluations (`IOSDemoLaunchTests`). The sources were restored afterwards.
+Each test failed when its behavior was broken on purpose: one adapter left unregistered, an empty connected-demo set, a lease kept for an identity that is not installed, a self-test that ignores a registry mismatch, and the self-test destination checked before the evaluations (`IOSDemoLaunchTests`). The acquired-artifact test alone failed when `permits` ignored the session ticket, when `access(to:)` ignored a pending stop, and when a released session could take a lease again; the tests with unconfigured artifacts still passed in those cases. The sources were restored afterwards.
 
 The app's own five adapters are not in these tests, because they are iOS app types. `IOSModelLibraryAssembly.make(catalog:)` stops the app when the adapters and the catalog demos differ, and `--model-library-selftest` reports the registered demos on the device (pending below).
 

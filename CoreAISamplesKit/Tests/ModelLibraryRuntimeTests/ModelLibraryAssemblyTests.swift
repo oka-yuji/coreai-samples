@@ -82,11 +82,8 @@ private final class AppAssembly {
 }
 
 @MainActor
-private func settle(_ library: Store<ModelLibraryFeature>) async {
-    for await state in Observations({ library.state })
-    where !state.installations.values.contains(where: \.phase.isBusy) {
-        return
-    }
+private func wait(_ library: Store<ModelLibraryFeature>, until condition: (ModelLibraryState) -> Bool) async {
+    for await state in Observations({ library.state }) where condition(state) { return }
 }
 
 @MainActor
@@ -105,7 +102,7 @@ struct ModelLibraryAssemblyTests {
         #expect(library.state.environment.connectedDemos == demoIDs)
         let legacy = try app.legacyFiles()
         library.send(.refresh)
-        await settle(library)
+        await wait(library) { !$0.installations.values.contains(where: \.phase.isBusy) }
         #expect(library.state.installations.count == 2)
         #expect(library.state.installations.values.allSatisfy { $0 == ModelInstallation() })
 
@@ -192,6 +189,68 @@ struct ModelLibraryAssemblyTests {
             app.adapters.values.filter { $0 !== adapter }.allSatisfy {
                 $0.previews.isEmpty && $0.contents.isEmpty && $0.stops.isEmpty && $0.executions.isEmpty
             })
+    }
+
+    @Test(
+        "E2E-01 With an acquired artifact the app assembly rejects another owner's ticket and operations during or after a stop while a valid session still runs"
+    )
+    func acquiredArtifact() async throws {
+        let harness = try RuntimeHarness()
+        defer { harness.close() }
+        let assembly = ModelLibraryAssembly(
+            adapters: Array(harness.adapters.values), store: harness.store, transfer: harness.transfer)
+        let owner = UUID()
+        harness.labels.names[owner] = "A"
+        let library = assembly.makeLibrary(catalog: harness.catalog, capabilities: [:], owner: owner)
+        let store = library.store
+        let runner = assembly.runner
+        let compare = try #require(harness.adapters["comparison"])
+        let extract = try #require(harness.adapters["extraction"])
+        var events = harness.events.makeAsyncIterator()
+        func show(_ session: ModelDemoSession) async {
+            _ = library.rendering.content(for: session)
+            runner.provide(session)
+            await runner.prepare(session)
+        }
+
+        store.send(.downloadRequested("text-fp16"))
+        await wait(store) { $0.installations["text-fp16"]?.phase == .ready }
+        store.send(.openDemo(DemoSelection.comparison))
+        let first = try #require(store.state.session)
+        await show(first)
+        #expect(compare.start(DemoSelection.comparison, input: "valid"))
+        #expect(await harness.leases(first) == 1)
+
+        let foreign = ModelDemoSession(
+            id: LibraryTicket(owner: UUID(), number: first.id.number), selection: first.selection,
+            resource: first.resource)
+        #expect(!store.state.permits(foreign.id, selection: foreign.selection))
+        _ = compare.content(for: foreign, gate: runner.gate(for: foreign, in: store))
+        #expect(!compare.start(DemoSelection.comparison, input: "another owner"))
+        await show(first)
+        #expect(compare.start(DemoSelection.comparison, input: "still valid"))
+
+        let firstGate = try #require(compare.gate(for: DemoSelection.comparison))
+        compare.holdsStop = true
+        store.send(.openDemo(DemoSelection.extraction))
+        try await next(&events, "A stopping comparison")
+        #expect(store.state.session == first && store.state.access(to: DemoSelection.comparison) == .stopping)
+        #expect(!firstGate.isPermitted())
+        await show(first)
+        #expect(!compare.start(DemoSelection.comparison, input: "while stopping"))
+        #expect(await harness.leases(first) == 1)
+
+        compare.releaseStops()
+        await wait(store) { $0.session?.selection == DemoSelection.extraction }
+        let second = try #require(store.state.session)
+        await show(second)
+        #expect(!firstGate.isPermitted() && !store.state.permits(first.id, selection: first.selection))
+        await show(first)
+        #expect(!compare.start(DemoSelection.comparison, input: "after the stop"))
+        #expect(extract.start(DemoSelection.extraction, input: "next session"))
+        #expect(await harness.leases(second) == 1)
+        #expect(compare.executions == [first, first] && compare.stops == [first] && compare.rejections == 3)
+        #expect(extract.executions == [second] && extract.rejections == 0)
     }
 
     @Test(
