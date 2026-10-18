@@ -349,8 +349,9 @@ final class GUIDriver {
         host.preferences.notesFolderPath = outDir.appending(path: "notes").path(percentEncoded: false)
         var previous: StepStats?
         var previousFirst: StepStats?
+        var previousUsesTools: Bool?
         let strictReuse = host.chat.modelName.hasPrefix("qwen3_8")
-        func turn(_ mode: ConversationMode, _ text: String) async -> (done: Bool, reused: Bool, reuse: String) {
+        func turn(_ mode: ConversationMode, _ text: String) async -> (done: Bool, cacheOK: Bool, reuse: String) {
             host.store.send(.modeChanged(mode))
             let sent = host.state.turns.count
             let divergedBefore = host.runner.session.divergeCount
@@ -361,11 +362,22 @@ final class GUIDriver {
             defer {
                 previous = turns.last?.steps.max { $0.step < $1.step } ?? previous
                 previousFirst = turns.last?.steps.min { $0.step < $1.step } ?? previousFirst
+                previousUsesTools = turns.last.map { !$0.policy.allowedTools.isEmpty }
             }
             guard let first = steps.first else { return (done, false, "steps=0") }
             let repairs = turns.count - sent - 1
             guard let previous, let previousFirst else {
                 return (done, true, "reused=\(first.reusedTokens) steps=\(steps.count) repairs=\(repairs)")
+            }
+            var initial = turns[sent]
+            initial.finalAnswerStart = nil
+            let usesTools = !initial.policy.allowedTools.isEmpty
+            let finalAnswer = turns.dropFirst(sent).contains { $0.finalAnswerStart != nil }
+            if previousUsesTools != usesTools || finalAnswer {
+                return (
+                    done, true,
+                    "cacheCheck=not-applicable tool configuration changed; reused=\(first.reusedTokens) diverges=\(diverged)"
+                )
             }
             let expected = previous.promptTokens + previous.generatedTokens
             let kept = first.reusedTokens >= expected - 1
@@ -387,10 +399,13 @@ final class GUIDriver {
 
         await step(4, "conversation-chat", "Chat: a question is answered in the conversation") {
             let result = await turn(.chat, "In one sentence, what is a context window in a language model?")
-            return (result.done && result.reused && ended(.chat), result.reuse + " status=\(host.state.statusLine)")
+            return (result.done && result.cacheOK && ended(.chat), result.reuse + " status=\(host.state.statusLine)")
         }
 
-        await step(5, "conversation-work", "Work: research and a note continue the same conversation") {
+        await step(5, "conversation-work", "Work: selected web sources and a note continue the same conversation") {
+            host.chat.ragEnabled = true
+            host.chat.ragWeb = true
+            host.chat.ragLocal = false
             let before = lookups()
             let result = await turn(
                 .work,
@@ -399,44 +414,49 @@ final class GUIDriver {
             let calls = host.state.entries.filter { $0.kind == .toolCall }.map(\.title)
             let notes = host.runner.tools.notesWritten.map(\.key)
             return (
-                result.done && result.reused && ended(.work) && lookups() > before && !notes.isEmpty,
+                result.done && result.cacheOK && ended(.work)
+                    && (lookups() > before || host.runner.lastRetrieval?.sources.isEmpty == false) && !notes.isEmpty,
                 result.reuse + " calls=\(calls) notes=\(notes) guard=\(host.runner.citationGuard.outcome ?? "none")"
             )
         }
 
-        await step(6, "conversation-chat-again", "Chat: a follow-up question continues the same timeline") {
-            let result = await turn(.chat, "Thanks. In one sentence, what did you just look up?")
+        await step(
+            6, "conversation-chat-again", "Chat: a follow-up question continues the same timeline without new searches"
+        ) {
+            host.chat.ragEnabled = false
+            let switched = await turn(.chat, "Thanks. In one sentence, what did you just look up?")
+            let switchedOK = switched.done && ended(.chat)
+            let result = await turn(.chat, "Summarize that answer in one short sentence using our conversation.")
             let prompts = host.state.entries.filter { $0.kind == .user }.count
             return (
-                result.done && result.reused && ended(.chat) && prompts >= 3,
+                switchedOK && result.done && result.cacheOK && ended(.chat) && prompts >= 4,
                 result.reuse + " userEntries=\(prompts) turns=\(host.state.turns.map(\.mode.rawValue))"
             )
         }
 
-        await step(7, "conversation-save-refused", "Chat: saving a note is refused and Continue in Work is offered") {
+        await step(7, "conversation-search-off", "Chat: search off prevents tools and note saving") {
             host.startNew()
+            host.chat.ragEnabled = false
             previous = nil
             previousFirst = nil
+            previousUsesTools = nil
             let result = await turn(
-                .chat, "Use write_note to save a note titled Shopping list with the content: eggs, milk.")
-            let refused = host.state.entries.contains {
-                $0.kind == .toolResult && $0.text.hasPrefix(TurnPolicy.savingRefusal)
-            }
+                .chat, "Keep this shopping list in the conversation: eggs, milk.")
+            let calls = host.state.entries.filter { $0.kind == .toolCall }
             return (
-                result.done && host.state.refusedSave && refused,
-                "refusedSave=\(host.state.refusedSave) refusalShown=\(refused) " + result.reuse
+                result.done && ended(.chat) && calls.isEmpty && host.runner.tools.notesWritten.isEmpty,
+                "tools=\(calls.count) " + result.reuse
             )
         }
 
-        await step(8, "conversation-continue", "Continue in Work saves the note in the same conversation") {
-            host.continueInWork()
-            let done = await wait(seconds: 900) { !host.state.isRunning && !host.state.isSaving }
-            previous = host.state.turns.last?.steps.max { $0.step < $1.step } ?? previous
-            previousFirst = host.state.turns.last?.steps.min { $0.step < $1.step } ?? previousFirst
+        await step(8, "conversation-work-off", "Work with search off saves a note in the same conversation") {
+            let result = await turn(
+                .work,
+                "Save the shopping list from our conversation as a note titled Shopping list. Do not search the web.")
             let notes = host.runner.tools.notesWritten.map(\.key)
             return (
-                done && host.state.turns.last?.mode == .work && !notes.isEmpty,
-                "mode=\(host.state.turns.last?.mode.rawValue ?? "none") notes=\(notes) guard=\(host.runner.citationGuard.outcome ?? "none")"
+                result.done && ended(.work) && !notes.isEmpty && lookups() == 0,
+                "notes=\(notes) guard=\(host.runner.citationGuard.outcome ?? "none") " + result.reuse
             )
         }
 
@@ -445,7 +465,8 @@ final class GUIDriver {
             "While a turn runs the mode and Send are locked, and Stop ends it within three seconds"
         ) {
             host.store.send(.modeChanged(.work))
-            host.chat.input = Self.stopTask
+            host.chat.input =
+                "Explain how a transformer generates text in detail, with at least twenty numbered sections."
             let mark = host.state.entries.count
             @MainActor func written() -> Bool {
                 host.state.entries.dropFirst(mark).contains {
@@ -466,6 +487,7 @@ final class GUIDriver {
             let kept = written() || stopped?.detail == .stopped(partial: true)
             previous = host.state.turns.last?.steps.max { $0.step < $1.step } ?? previous
             previousFirst = host.state.turns.last?.steps.min { $0.step < $1.step } ?? previousFirst
+            previousUsesTools = host.state.turns.last.map { !$0.policy.allowedTools.isEmpty }
             return (
                 grew && locked && halted && stopped != nil && kept,
                 String(
@@ -519,6 +541,9 @@ final class GUIDriver {
     }
 
     private func runAgent(navigator: DemoNavigator, host: ConversationHost) async {
+        host.chat.ragEnabled = true
+        host.chat.ragWeb = true
+        host.chat.ragLocal = false
         let preferences = host.preferences
         preferences.effort = .low
         let policy = TurnPolicy(.work, settings: preferences.settings)

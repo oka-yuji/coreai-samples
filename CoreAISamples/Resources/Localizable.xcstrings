@@ -7264,6 +7264,76 @@
           }
         }
       }
+    },
+    "Choose Web or Docs to use sources." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "WebまたはDocsを選んでください。"
+          }
+        }
+      }
+    },
+    "Conversation and answers. Search follows your source settings." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "会話と質問への回答。検索は資料の設定に従います。"
+          }
+        }
+      }
+    },
+    "Multi-step tasks and notes. Search follows your source settings." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "複数手順のタスクとメモ保存。検索は資料の設定に従います。"
+          }
+        }
+      }
+    },
+    "Off: answer from the model and conversation without new searches. On: retrieve the selected sources before answering. Work can still save notes." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OFF: 新しく検索せず、モデルの知識と会話履歴から回答します。ON: 選択した資料を先に取得します。ワークではどちらの設定でもメモを保存できます。"
+          }
+        }
+      }
+    },
+    "Search .txt, .md and .pdf files in ~/Documents/rag." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "~/Documents/rag/ の .txt・.md・.pdf ファイルを検索します。"
+          }
+        }
+      }
+    },
+    "Search and sources" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "検索・資料を使う"
+          }
+        }
+      }
+    },
+    "Source budget" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "資料の量"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"
