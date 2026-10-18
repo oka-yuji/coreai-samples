@@ -10,6 +10,7 @@ public enum ManagedModelStoreError: Error, Equatable {
     case symbolicLink
     case missingFile(String)
     case unexpectedFile(String)
+    case unreadableDirectory(String)
     case sizeMismatch(String)
     case checksumMismatch(String)
     case contractMismatch(String)
@@ -208,6 +209,11 @@ public actor ManagedModelStore {
     private var ledgerURL: URL { root.appending(path: "ledger.json") }
 
     private func copy(_ candidate: URL, model: LibraryModel, artifact: ModelArtifact) -> MigrationOutcome {
+        let base = root.resolvingSymlinksInPath().standardizedFileURL.path
+        let source = candidate.resolvingSymlinksInPath().standardizedFileURL.path
+        guard source != base, !source.hasPrefix(base + "/") else {
+            return .undetermined(ManagedModelStoreError.pathEscape)
+        }
         do {
             _ = try definition(model, artifact)
             try verifyFiles(candidate, artifact, allowingExtraneous: true)
@@ -274,8 +280,17 @@ public actor ManagedModelStore {
     private func location(_ area: String, _ artifactID: String, _ revision: String) throws -> URL {
         guard [artifactID, revision].allSatisfy({ !$0.isEmpty && $0 != "." && $0 != ".." && !$0.contains("/") })
         else { throw ManagedModelStoreError.pathEscape }
-        return root.appending(path: area).appending(path: artifactID)
-            .appending(path: revision, directoryHint: .isDirectory)
+        let base = root.resolvingSymlinksInPath().standardizedFileURL.path + "/"
+        var url = root
+        for name in [area, artifactID, revision] {
+            url.append(path: name, directoryHint: .isDirectory)
+            guard let type = itemType(url) else { continue }
+            if type == .typeSymbolicLink { throw ManagedModelStoreError.symbolicLink }
+            guard url.resolvingSymlinksInPath().standardizedFileURL.path.hasPrefix(base) else {
+                throw ManagedModelStoreError.pathEscape
+            }
+        }
+        return url
     }
 
     private func trashItem() throws -> URL {
@@ -340,25 +355,45 @@ private func family(_ artifact: ModelArtifact) throws -> ContractFamily {
     }
 }
 
-private func verifyFiles(_ directory: URL, _ artifact: ModelArtifact, allowingExtraneous: Bool = false) throws {
-    let manager = FileManager.default
+private func scanEntries(_ directory: URL, _ artifact: ModelArtifact, allowingExtraneous: Bool) throws {
     let paths = Set(artifact.files.map(\.path))
     let folders = Set(
         artifact.files.flatMap { file in
             let parts = file.path.split(separator: "/")
             return parts.indices.dropLast().map { parts[...$0].joined(separator: "/") }
         })
+    var unreadable: URL?
+    guard
+        let entries = FileManager.default.enumerator(
+            at: directory, includingPropertiesForKeys: [.fileResourceTypeKey], options: .producesRelativePathURLs,
+            errorHandler: { url, _ in
+                unreadable = url
+                return false
+            })
+    else { throw ManagedModelStoreError.unreadableDirectory(".") }
+    while let url = entries.nextObject() as? URL {
+        try Task.checkCancellation()
+        let path = url.relativePath
+        let type = try url.resourceValues(forKeys: [.fileResourceTypeKey]).fileResourceType
+        if type == .symbolicLink { throw ManagedModelStoreError.symbolicLink }
+        guard
+            allowingExtraneous
+                || (type == .regular ? paths.contains(path) : type == .directory && folders.contains(path))
+        else { throw ManagedModelStoreError.unexpectedFile(path) }
+    }
+    if let unreadable {
+        let base = directory.resolvingSymlinksInPath().standardizedFileURL.path + "/"
+        let path = unreadable.resolvingSymlinksInPath().standardizedFileURL.path
+        throw ManagedModelStoreError.unreadableDirectory(
+            path.hasPrefix(base) ? String(path.dropFirst(base.count)) : ".")
+    }
+}
+
+private func verifyFiles(_ directory: URL, _ artifact: ModelArtifact, allowingExtraneous: Bool = false) throws {
+    let manager = FileManager.default
     if itemType(directory) == .typeSymbolicLink { throw ManagedModelStoreError.symbolicLink }
-    if let entries = manager.enumerator(atPath: directory.path) {
-        while let path = entries.nextObject() as? String {
-            try Task.checkCancellation()
-            let type = entries.fileAttributes?[.type] as? FileAttributeType
-            if type == .typeSymbolicLink { throw ManagedModelStoreError.symbolicLink }
-            guard
-                allowingExtraneous
-                    || (type == .typeRegular ? paths.contains(path) : type == .typeDirectory && folders.contains(path))
-            else { throw ManagedModelStoreError.unexpectedFile(path) }
-        }
+    if itemType(directory) == .typeDirectory {
+        try scanEntries(directory, artifact, allowingExtraneous: allowingExtraneous)
     }
     let files = artifact.files.sorted { $0.path < $1.path }
     for file in files {
