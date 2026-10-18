@@ -34,12 +34,7 @@
                     leadingToolbar: AnyView(DemoLanguagePicker(code: $languageCode))
                 )
                 .environment(\.locale, (DemoLanguage(rawValue: languageCode) ?? .english).locale)
-                .onChange(of: scenePhase) { _, phase in
-                    let capabilities = IOSModelLibraryAssembly.capabilities()
-                    for action in ModelLibraryRendering.actions(entering: phase, capabilities: capabilities) {
-                        library.store.send(action)
-                    }
-                }
+                .onChange(of: scenePhase) { _, phase in IOSModelLibraryAssembly.enter(phase, library: library.store) }
                 .onDisappear { IOSModelLibraryAssembly.close(library.store) }
             case .failure:
                 ContentUnavailableView("Could not open Models", systemImage: "exclamationmark.triangle")

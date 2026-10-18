@@ -176,6 +176,99 @@ struct ModelLibraryLifecycleTests {
         #expect(await harness.leases(session) == 0)
     }
 
+    @Test("SESSION-05 A transient stop failure after a scene is released is retried until the lease is released")
+    func abandonedStopRetried() async throws {
+        let harness = try RuntimeHarness()
+        defer { harness.close() }
+        var scene: LibraryScene? = harness.scene("A")
+        let second = harness.scene("B")
+        var events = harness.events.makeAsyncIterator()
+        let adapter = try #require(harness.adapters["image-search"])
+        try await scene?.download("image-fp16", &events)
+        second.library.send(.refresh)
+        try await next(&events, "B inspect", "B inspect", "B inspect")
+        scene?.library.send(.openDemo(DemoSelection.imageSearch))
+        let session = try #require(try await scene?.show())
+        #expect(adapter.start(DemoSelection.imageSearch, input: "active"))
+        adapter.stopFailures = ["Transient cleanup failure"]
+        weak let library = scene?.library
+        scene?.library.send(.suspendDemo)
+        harness.runner.abandon(owner: session.id.owner)
+        scene = nil
+        #expect(library == nil)
+        try await next(&events, "A stopping image-search", "A stopping image-search")
+        await harness.runner.reattempt()
+        #expect(adapter.stops == [session, session])
+        #expect(await harness.leases(session) == 0)
+        second.library.send(.deleteRequested("image-fp16"))
+        try await next(&events, "B delete")
+        #expect(second.library.state.installations["image-fp16"] == ModelInstallation())
+    }
+
+    @Test(
+        "SESSION-05 A stop that keeps failing after a scene is released keeps the lease until a later retry succeeds"
+    )
+    func abandonedStopKeptUntilRetry() async throws {
+        let harness = try RuntimeHarness()
+        defer { harness.close() }
+        var scene: LibraryScene? = harness.scene("A")
+        let second = harness.scene("B")
+        var events = harness.events.makeAsyncIterator()
+        let adapter = try #require(harness.adapters["image-search"])
+        try await scene?.download("image-fp16", &events)
+        second.library.send(.refresh)
+        try await next(&events, "B inspect", "B inspect", "B inspect")
+        scene?.library.send(.openDemo(DemoSelection.imageSearch))
+        let session = try #require(try await scene?.show())
+        adapter.stopFailures = Array(repeating: "Still busy", count: 5)
+        scene?.library.send(.suspendDemo)
+        harness.runner.abandon(owner: session.id.owner)
+        scene = nil
+        let attempt = "A stopping image-search"
+        try await next(&events, attempt, attempt, attempt, attempt)
+        #expect(await harness.leases(session) == 1)
+        second.library.send(.deleteRequested("image-fp16"))
+        try await next(&events, "B delete")
+        #expect(second.library.state.installations["image-fp16"]?.failure == .modelInUse)
+
+        second.library.send(.refresh)
+        try await next(&events, "B inspect", "B inspect", "B inspect")
+        second.library.send(.openDemo(DemoSelection.imageSearch))
+        let other = try #require(second.library.state.session)
+        _ = second.rendering.content(for: other)
+        await second.runner.prepare(other)
+        try await next(&events, attempt)
+        #expect(adapter.stops.count == 5 && adapter.stopFailures.isEmpty)
+        harness.runner.retryAbandoned()
+        try await next(&events, attempt)
+        await harness.runner.reattempt()
+        #expect(adapter.stops == Array(repeating: session, count: 6))
+        #expect(await harness.leases(session) == 1)
+        second.library.send(.closeDemo)
+        try await next(&events, "B stopping image-search", "B stopDemo")
+        #expect(await harness.leases(other) == 0)
+        second.library.send(.deleteRequested("image-fp16"))
+        try await next(&events, "B delete")
+        #expect(second.library.state.installations["image-fp16"] == ModelInstallation())
+    }
+
+    @Test("SESSION-02 A provision that arrives after its owner was abandoned takes no lease")
+    func provisionAfterAbandonment() async throws {
+        let harness = try RuntimeHarness()
+        defer { harness.close() }
+        let scene = harness.scene("A")
+        var events = harness.events.makeAsyncIterator()
+        try await scene.download("image-fp16", &events)
+        scene.library.send(.openDemo(DemoSelection.imageSearch))
+        let session = try #require(scene.library.state.session)
+        await harness.runner.release(owner: session.id.owner)
+        _ = scene.rendering.content(for: session)
+        scene.runner.provide(session)
+        await scene.runner.prepare(session)
+        #expect(await harness.leases(session) == 0)
+        #expect(!harness.runner.gate(for: session, in: scene.library).isPermitted())
+    }
+
     @Test(
         "SESSION-06 Five registered fake adapters share the host and the operation gate, and an unregistered demo stays browse-only"
     )

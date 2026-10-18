@@ -18,7 +18,9 @@ public final class ModelLibraryRunner {
     private let resources: ModelLibraryResourceRunner
     private let registry: ModelDemoAdapterRegistry
     private let store: ManagedModelStore
+    private let retryDelays: [Duration]
     private var leases: [LibraryTicket: (session: ModelDemoSession, lease: Lease)] = [:]
+    private var abandoned: [LibraryTicket: ModelDemoSession] = [:]
     private var stopping: [LibraryTicket: [CheckedContinuation<String?, Never>]] = [:]
     private var releasedThrough: [UUID: Int] = [:]
     private var libraries: [UUID: LibraryReference] = [:]
@@ -26,13 +28,18 @@ public final class ModelLibraryRunner {
         switch job {
         case .prepare(let session): await self?.prepare(session)
         case .abandon(let owner): await self?.release(owner: owner)
+        case .retry: await self?.reattempt()
         }
     }
 
-    public init(resources: ModelLibraryResourceRunner, registry: ModelDemoAdapterRegistry, store: ManagedModelStore) {
+    public init(
+        resources: ModelLibraryResourceRunner, registry: ModelDemoAdapterRegistry, store: ManagedModelStore,
+        retryDelays: [Duration] = [.seconds(1), .seconds(2), .seconds(4)]
+    ) {
         self.resources = resources
         self.registry = registry
         self.store = store
+        self.retryDelays = retryDelays
     }
 
     public func run(_ effect: ModelLibraryEffect, send: (ModelLibraryAction) -> Void) async {
@@ -40,6 +47,7 @@ public final class ModelLibraryRunner {
             await resources.run(effect, send: send)
             return
         }
+        retryAbandoned()
         if let failure = await stop(session) {
             send(.demoStopFailed(session.id, ticket, failure))
         } else {
@@ -49,6 +57,11 @@ public final class ModelLibraryRunner {
 
     public func abandon(owner: UUID) {
         work.send(.abandon(owner))
+    }
+
+    public func retryAbandoned() {
+        guard !abandoned.isEmpty else { return }
+        work.send(.retry)
     }
 
     func gate(for session: ModelDemoSession, in library: Store<ModelLibraryFeature>) -> DemoExecutionGate {
@@ -64,6 +77,7 @@ public final class ModelLibraryRunner {
     }
 
     func prepare(_ session: ModelDemoSession) async {
+        retryAbandoned()
         guard session.id.number > releasedThrough[session.id.owner, default: 0] else { return }
         switch leases[session.id]?.lease {
         case .acquiring: return await withCheckedContinuation { wait(for: session.id, $0) }
@@ -84,8 +98,19 @@ public final class ModelLibraryRunner {
 
     func release(owner: UUID) async {
         libraries[owner] = nil
+        releasedThrough[owner] = .max
         for session in leases.values.map(\.session) where session.id.owner == owner {
-            _ = await stop(session)
+            abandoned[session.id] = session
+        }
+        for delay in [.zero] + retryDelays where !abandoned.isEmpty {
+            if delay > .zero { try? await Task.sleep(for: delay) }
+            await reattempt()
+        }
+    }
+
+    func reattempt() async {
+        for session in abandoned.values {
+            if await stop(session) == nil { abandoned[session.id] = nil }
         }
     }
 
@@ -125,6 +150,7 @@ nonisolated enum DemoRuntimeWork: Feature {
     enum Job: Equatable, Sendable {
         case prepare(ModelDemoSession)
         case abandon(UUID)
+        case retry
     }
 
     struct State: Equatable, Sendable {}

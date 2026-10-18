@@ -7,6 +7,7 @@
     import ModelLibraryStorage
     import ModelLibraryTransfer
     import Speech
+    import SwiftUI
 
     @MainActor
     enum IOSModelLibraryAssembly {
@@ -30,6 +31,13 @@
                 run: runner.run)
             return Library(
                 store: library, rendering: ModelLibraryRendering(registry: registry, runner: runner, library: library))
+        }
+
+        static func enter(_ phase: ScenePhase, library: Store<ModelLibraryFeature>) {
+            if phase == .active { runner.retryAbandoned() }
+            for action in ModelLibraryRendering.actions(entering: phase, capabilities: capabilities()) {
+                library.send(action)
+            }
         }
 
         static func close(_ library: Store<ModelLibraryFeature>) {

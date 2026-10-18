@@ -268,7 +268,8 @@ final class RuntimeHarness {
             registry.register(adapter)
         }
         self.adapters = adapters
-        runner = ModelLibraryRunner(resources: resources, registry: registry, store: store)
+        runner = ModelLibraryRunner(
+            resources: resources, registry: registry, store: store, retryDelays: [.zero, .zero, .zero])
     }
 
     func scene(_ label: String, capabilities: [DemoCapability: CapabilityState] = [:]) -> LibraryScene {
