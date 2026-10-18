@@ -76,6 +76,13 @@ final class LedgerGate: Sendable {
 }
 
 @MainActor
+final class OwnerLabels {
+    var names: [UUID: String] = [:]
+
+    func callAsFunction(_ owner: UUID?) -> String { owner.flatMap { names[$0] } ?? "?" }
+}
+
+@MainActor
 final class FakeAdapter: ModelDemoAdapter {
     struct Entry {
         var input = ""
@@ -85,7 +92,7 @@ final class FakeAdapter: ModelDemoAdapter {
     }
 
     let demoID: String
-    private let label: String
+    private let label: OwnerLabels
     private let sink: AsyncStream<String>.Continuation
     private(set) var entries: [DemoSelection: Entry] = [:]
     private(set) var previews: [DemoSelection] = []
@@ -100,7 +107,7 @@ final class FakeAdapter: ModelDemoAdapter {
     private var heldStops: [CheckedContinuation<Void, Never>] = []
     private var heldSaves: [CheckedContinuation<Void, Never>] = []
 
-    init(_ demoID: String, label: String, sink: AsyncStream<String>.Continuation) {
+    init(_ demoID: String, label: OwnerLabels, sink: AsyncStream<String>.Continuation) {
         self.demoID = demoID
         self.label = label
         self.sink = sink
@@ -137,14 +144,14 @@ final class FakeAdapter: ModelDemoAdapter {
 
     func save(_ selection: DemoSelection) async {
         let result = entries[selection]?.results.last ?? ""
-        sink.yield(label + " saving " + demoID)
+        sink.yield(label(entries[selection]?.gate?.session.id.owner) + " saving " + demoID)
         await withCheckedContinuation { heldSaves.append($0) }
         saved.append(result)
     }
 
     func stop(_ session: ModelDemoSession) async throws {
         stops.append(session)
-        sink.yield(label + " stopping " + demoID)
+        sink.yield(label(session.id.owner) + " stopping " + demoID)
         if holdsStop { await withCheckedContinuation { heldStops.append($0) } }
         if !stopFailures.isEmpty { throw StopFailure(message: stopFailures.removeFirst()) }
         if entries[session.selection]?.runtime == session.id { entries[session.selection]?.runtime = nil }
@@ -166,23 +173,17 @@ final class FakeAdapter: ModelDemoAdapter {
 @MainActor
 final class LibraryScene {
     let owner = UUID()
-    let registry = ModelDemoAdapterRegistry()
-    let runner: ModelLibraryRunner
     let library: Store<ModelLibraryFeature>
     let rendering: ModelLibraryRendering
     private let label: String
-    private(set) var adapters: [String: FakeAdapter] = [:]
+    private let harness: RuntimeHarness
 
     init(_ label: String, harness: RuntimeHarness, capabilities: [DemoCapability: CapabilityState]) {
         self.label = label
-        for demoID in registeredDemos {
-            let adapter = FakeAdapter(demoID, label: label, sink: harness.sink)
-            adapters[demoID] = adapter
-            registry.register(adapter)
-        }
-        let runner = ModelLibraryRunner(resources: harness.resources, registry: registry, store: harness.store)
+        self.harness = harness
+        let runner = harness.runner
         let environment = LibraryEnvironment(
-            platform: .iOS, connectedDemos: registry.connectedDemos, capabilities: capabilities)
+            platform: .iOS, connectedDemos: harness.registry.connectedDemos, capabilities: capabilities)
         let sink = harness.sink
         library = Store(
             initialState: ModelLibraryState(catalog: harness.catalog, environment: environment, owner: owner)
@@ -190,9 +191,13 @@ final class LibraryScene {
             await runner.run(effect, send: send)
             sink.yield(label + " " + String("\(effect)".prefix { $0 != "(" }))
         }
-        self.runner = runner
-        rendering = ModelLibraryRendering(registry: registry, runner: runner, library: library)
+        rendering = ModelLibraryRendering(registry: harness.registry, runner: runner, library: library)
+        harness.labels.names[owner] = label
     }
+
+    var runner: ModelLibraryRunner { harness.runner }
+    var registry: ModelDemoAdapterRegistry { harness.registry }
+    var adapters: [String: FakeAdapter] { harness.adapters }
 
     func adapter(_ demoID: String) throws -> FakeAdapter { try #require(adapters[demoID]) }
 
@@ -210,13 +215,6 @@ final class LibraryScene {
         await runner.prepare(session)
         return session
     }
-
-    func finish() {
-        for adapter in adapters.values {
-            adapter.releaseStops()
-            adapter.completeSaves()
-        }
-    }
 }
 
 @MainActor
@@ -228,7 +226,10 @@ final class RuntimeHarness {
     let events: AsyncStream<String>
     let sink: AsyncStream<String>.Continuation
     let ledger: LedgerGate
-    private var scenes: [LibraryScene] = []
+    let labels = OwnerLabels()
+    let registry = ModelDemoAdapterRegistry()
+    let adapters: [String: FakeAdapter]
+    let runner: ModelLibraryRunner
 
     init() throws {
         var files: [String: Data] = [:]
@@ -260,12 +261,18 @@ final class RuntimeHarness {
             root: base.appending(path: "ModelLibrary"), writeLedger: ledger.write, availableCapacity: { _ in .max })
         resources = ModelLibraryResourceRunner(store: store, transfer: transfer)
         catalog = try Self.catalog(files)
+        var adapters: [String: FakeAdapter] = [:]
+        for demoID in registeredDemos {
+            let adapter = FakeAdapter(demoID, label: labels, sink: sink)
+            adapters[demoID] = adapter
+            registry.register(adapter)
+        }
+        self.adapters = adapters
+        runner = ModelLibraryRunner(resources: resources, registry: registry, store: store)
     }
 
     func scene(_ label: String, capabilities: [DemoCapability: CapabilityState] = [:]) -> LibraryScene {
-        let scene = LibraryScene(label, harness: self, capabilities: capabilities)
-        scenes.append(scene)
-        return scene
+        LibraryScene(label, harness: self, capabilities: capabilities)
     }
 
     func leases(_ session: ModelDemoSession) async -> Int {
@@ -274,7 +281,10 @@ final class RuntimeHarness {
 
     func close() {
         ledger.release()
-        for scene in scenes { scene.finish() }
+        for adapter in adapters.values {
+            adapter.releaseStops()
+            adapter.completeSaves()
+        }
         try? FileManager.default.removeItem(at: base)
     }
 

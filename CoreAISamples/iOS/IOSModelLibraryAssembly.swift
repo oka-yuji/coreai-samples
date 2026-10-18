@@ -16,12 +16,13 @@
         }
 
         private static let store = ManagedModelStore(root: ModelStorage.root.appending(path: "ModelLibrary"))
-        private static let resources = ModelLibraryResourceRunner(
-            store: store, transfer: ArtifactTransfer(), migrationCandidates: legacyFolders)
+        private static let registry = ModelDemoAdapterRegistry()
+        private static let runner = ModelLibraryRunner(
+            resources: ModelLibraryResourceRunner(
+                store: store, transfer: ArtifactTransfer(), migrationCandidates: legacyFolders),
+            registry: registry, store: store)
 
         static func make(catalog: ModelCatalog) -> Library {
-            let registry = ModelDemoAdapterRegistry()
-            let runner = ModelLibraryRunner(resources: resources, registry: registry, store: store)
             let environment = LibraryEnvironment(
                 platform: .iOS, connectedDemos: registry.connectedDemos, capabilities: capabilities())
             let library = Store<ModelLibraryFeature>(
@@ -29,6 +30,11 @@
                 run: runner.run)
             return Library(
                 store: library, rendering: ModelLibraryRendering(registry: registry, runner: runner, library: library))
+        }
+
+        static func close(_ library: Store<ModelLibraryFeature>) {
+            library.send(.suspendDemo)
+            runner.abandon(owner: library.state.owner)
         }
 
         static func capabilities() -> [DemoCapability: CapabilityState] {

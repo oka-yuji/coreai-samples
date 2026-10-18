@@ -308,6 +308,49 @@ struct ModelLibraryTests {
         #expect(state == browsing)
     }
 
+    @Test("A lost resource stops its demo and returns the selected demo to its download state")
+    func lostResource() throws {
+        var state = try installedState()
+        _ = reduce(&state, .openDemo(first))
+        let session = try #require(state.session)
+        let commands = reduce(&state, .resourceLost(artifactID: "artifact", session: session.id))
+        let request = try #require(state.stopRequestID)
+        #expect(commands == [.run(.stopDemo(session, request), id: .demo)])
+        #expect(state.pendingLoss == "artifact" && state.pendingDestination == .demo(first))
+        #expect(!state.permits(session.id, selection: first))
+        #expect(reduce(&state, .demoStopped(session.id, request)).isEmpty)
+        #expect(state.installations["artifact"] == ModelInstallation())
+        #expect(state.session == nil && state.selection == first && state.pendingLoss == nil)
+        #expect(state.access(to: first) == .preview(.missing))
+        #expect(reduce(&state, .downloadRequested("artifact")).count == 1)
+    }
+
+    @Test("A lost resource reported while a stop is pending waits for that stop, and stale reports change nothing")
+    func lostResourceDuringStop() throws {
+        var state = try installedState()
+        _ = reduce(&state, .openDemo(first))
+        let session = try #require(state.session)
+        let running = state
+        for action in [
+            ModelLibraryAction.resourceLost(artifactID: "other", session: session.id),
+            .resourceLost(artifactID: "artifact", session: ticket(session.id.number + 1)),
+        ] {
+            #expect(reduce(&state, action).isEmpty)
+        }
+        #expect(state == running)
+        _ = reduce(&state, .closeDemo)
+        let request = try #require(state.stopRequestID)
+        #expect(reduce(&state, .resourceLost(artifactID: "artifact", session: session.id)).isEmpty)
+        #expect(state.pendingLoss == "artifact" && state.stopRequestID == request)
+        _ = reduce(&state, .demoStopFailed(session.id, request, "Still busy"))
+        #expect(state.installations["artifact"]?.phase == .ready && state.pendingLoss == "artifact")
+        _ = reduce(&state, .retryDemoStop)
+        let retry = try #require(state.stopRequestID)
+        _ = reduce(&state, .demoStopped(session.id, retry))
+        #expect(state.installations["artifact"] == ModelInstallation() && state.selection == nil)
+        #expect(state.pendingLoss == nil && state.session == nil)
+    }
+
     @Test("Deleting a model requires a released session and retains its demo definitions")
     func deletion() throws {
         var state = try installedState()

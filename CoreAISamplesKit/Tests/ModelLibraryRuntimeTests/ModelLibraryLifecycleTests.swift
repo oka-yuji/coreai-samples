@@ -57,7 +57,7 @@ struct ModelLibraryLifecycleTests {
     }
 
     @Test(
-        "SESSION-05 Conflicting owners keep their own sessions and leases, and a resource deleted by another owner is never executed"
+        "SESSION-05 Conflicting owners keep their own sessions and leases until each owner has stopped its demo"
     )
     func owners() async throws {
         let harness = try RuntimeHarness()
@@ -89,17 +89,91 @@ struct ModelLibraryLifecycleTests {
         second.library.send(.deleteRequested("image-fp16"))
         try await next(&events, "B delete")
         #expect(second.library.state.installations["image-fp16"] == ModelInstallation())
+        #expect(await harness.leases(shared) == 0)
+        #expect(await harness.store.generation(of: shared.identity) == nil)
+    }
 
+    @Test(
+        "SESSION-02 A resource deleted by another owner before the lease stops the demo and returns it to the download state on the same screen"
+    )
+    func lostResource() async throws {
+        let harness = try RuntimeHarness()
+        defer { harness.close() }
+        let first = harness.scene("A")
+        let second = harness.scene("B")
+        var events = harness.events.makeAsyncIterator()
+        let adapter = try first.adapter("image-search")
+        try await first.download("image-fp16", &events)
+        second.library.send(.refresh)
+        try await next(&events, "B inspect", "B inspect", "B inspect")
+        second.library.send(.deleteRequested("image-fp16"))
+        try await next(&events, "B delete")
         first.library.send(.openDemo(DemoSelection.imageSearch))
         let stale = try await first.show()
-        let adapter = try first.adapter("image-search")
-        #expect(stale.identity == shared.identity && !adapter.start(DemoSelection.imageSearch, input: "deleted"))
-        #expect(await harness.leases(stale) == 0)
-        first.library.send(.closeDemo)
         try await next(&events, "A stopping image-search", "A stopDemo")
-        first.library.send(.refresh)
-        try await next(&events, "A inspect", "A inspect", "A inspect")
-        #expect(first.library.state.installations["image-fp16"]?.phase == .missing)
+        let library = first.library.state
+        #expect(library.session == nil && library.selection == DemoSelection.imageSearch)
+        #expect(library.installations["image-fp16"] == ModelInstallation())
+        #expect(library.access(to: DemoSelection.imageSearch) == .preview(.missing))
+        #expect(!adapter.start(DemoSelection.imageSearch, input: "deleted") && adapter.stops == [stale])
+        #expect(await harness.leases(stale) == 0)
+
+        try await first.download("image-fp16", &events)
+        let restored = try await first.show()
+        #expect(restored.id != stale.id && restored.identity == stale.identity)
+        #expect(adapter.start(DemoSelection.imageSearch, input: "restored"))
+        #expect(adapter.executions == [restored])
+        #expect(await harness.leases(restored) == 1)
+    }
+
+    @Test("SESSION-02 An explicit start is rejected until the session's lease has been verified")
+    func startWaitsForLease() async throws {
+        let harness = try RuntimeHarness()
+        defer { harness.close() }
+        let scene = harness.scene("A")
+        var events = harness.events.makeAsyncIterator()
+        let adapter = try scene.adapter("comparison")
+        try await scene.download("text-fp16", &events)
+        harness.ledger.hold()
+        scene.library.send(.downloadRequested("image-fp16"))
+        try await next(&events, "A download", "ledger")
+        scene.library.send(.openDemo(DemoSelection.comparison))
+        let session = try #require(scene.library.state.session)
+        _ = scene.rendering.content(for: session)
+        scene.runner.provide(session)
+        await Task.yield()
+        #expect(!adapter.start(DemoSelection.comparison, input: "before the lease"))
+        harness.ledger.release()
+        try await next(&events, "A validate")
+        await scene.runner.prepare(session)
+        #expect(adapter.start(DemoSelection.comparison, input: "after the lease"))
+        #expect(adapter.executions == [session] && adapter.rejections == 1)
+    }
+
+    @Test("SESSION-05 A scene whose library store is released still stops its demo once and releases the lease")
+    func abandonedScene() async throws {
+        let harness = try RuntimeHarness()
+        defer { harness.close() }
+        var scene: LibraryScene? = harness.scene("A")
+        var events = harness.events.makeAsyncIterator()
+        let adapter = try #require(harness.adapters["image-search"])
+        try await scene?.download("image-fp16", &events)
+        scene?.library.send(.openDemo(DemoSelection.imageSearch))
+        let session = try #require(try await scene?.show())
+        #expect(adapter.start(DemoSelection.imageSearch, input: "kept"))
+        #expect(await harness.leases(session) == 1)
+        adapter.holdsStop = true
+        weak let library = scene?.library
+        scene?.library.send(.suspendDemo)
+        harness.runner.abandon(owner: session.id.owner)
+        scene = nil
+        #expect(library == nil)
+        try await next(&events, "A stopping image-search")
+        adapter.releaseStops()
+        await harness.runner.release(owner: session.id.owner)
+        #expect(adapter.stops == [session] && adapter.entries[DemoSelection.imageSearch]?.runtime == nil)
+        #expect(adapter.entries[DemoSelection.imageSearch]?.input == "kept")
+        #expect(await harness.leases(session) == 0)
     }
 
     @Test(

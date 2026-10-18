@@ -5,20 +5,28 @@ import ModelLibraryStorage
 import ModelLibraryTransfer
 
 public final class ModelLibraryRunner {
-    private enum Hold {
+    private enum Lease {
         case acquiring([CheckedContinuation<Void, Never>])
-        case leased(ResourceLease)
+        case held(ResourceLease)
         case revoked
+    }
+
+    private struct LibraryReference {
+        weak var store: Store<ModelLibraryFeature>?
     }
 
     private let resources: ModelLibraryResourceRunner
     private let registry: ModelDemoAdapterRegistry
     private let store: ManagedModelStore
-    private var holds: [LibraryTicket: Hold] = [:]
+    private var leases: [LibraryTicket: (session: ModelDemoSession, lease: Lease)] = [:]
     private var stopping: [LibraryTicket: [CheckedContinuation<String?, Never>]] = [:]
     private var releasedThrough: [UUID: Int] = [:]
-    private lazy var provisions = Store<DemoProvision>(initialState: DemoProvision.State()) { [weak self] session, _ in
-        await self?.prepare(session)
+    private var libraries: [UUID: LibraryReference] = [:]
+    private lazy var work = Store<DemoRuntimeWork>(initialState: DemoRuntimeWork.State()) { [weak self] job, _ in
+        switch job {
+        case .prepare(let session): await self?.prepare(session)
+        case .abandon(let owner): await self?.release(owner: owner)
+        }
     }
 
     public init(resources: ModelLibraryResourceRunner, registry: ModelDemoAdapterRegistry, store: ManagedModelStore) {
@@ -39,40 +47,55 @@ public final class ModelLibraryRunner {
         }
     }
 
+    public func abandon(owner: UUID) {
+        work.send(.abandon(owner))
+    }
+
     func gate(for session: ModelDemoSession, in library: Store<ModelLibraryFeature>) -> DemoExecutionGate {
-        DemoExecutionGate(session: session) { [weak self, weak library] in
+        libraries[session.id.owner] = LibraryReference(store: library)
+        return DemoExecutionGate(session: session) { [weak self, weak library] in
             guard let self, let library else { return false }
-            return library.state.permits(session.id, selection: session.selection) && !isRevoked(session)
+            return library.state.permits(session.id, selection: session.selection) && isLeased(session)
         }
     }
 
     func provide(_ session: ModelDemoSession) {
-        provisions.send(session)
+        work.send(.prepare(session))
     }
 
     func prepare(_ session: ModelDemoSession) async {
         guard session.id.number > releasedThrough[session.id.owner, default: 0] else { return }
-        switch holds[session.id] {
+        switch leases[session.id]?.lease {
         case .acquiring: return await withCheckedContinuation { wait(for: session.id, $0) }
-        case .leased, .revoked: return
-        case nil: holds[session.id] = .acquiring([])
+        case .held, .revoked: return
+        case nil: leases[session.id] = (session, .acquiring([]))
         }
         let lease = await store.lease(identity: session.identity, owner: session.id.owner)
         let installed = await store.generation(of: session.identity) != nil
         if !installed { await lease.release() }
         let waiting: [CheckedContinuation<Void, Never>] =
-            if case .acquiring(let waiting) = holds[session.id] { waiting } else { [] }
-        holds[session.id] = installed ? .leased(lease) : .revoked
+            if case .acquiring(let waiting)? = leases[session.id]?.lease { waiting } else { [] }
+        leases[session.id] = (session, installed ? .held(lease) : .revoked)
         for continuation in waiting { continuation.resume() }
+        guard !installed else { return }
+        libraries[session.id.owner]?.store?.send(
+            .resourceLost(artifactID: session.resource.artifactID, session: session.id))
     }
 
-    private func isRevoked(_ session: ModelDemoSession) -> Bool {
-        if case .revoked = holds[session.id] { true } else { false }
+    func release(owner: UUID) async {
+        libraries[owner] = nil
+        for session in leases.values.map(\.session) where session.id.owner == owner {
+            _ = await stop(session)
+        }
+    }
+
+    private func isLeased(_ session: ModelDemoSession) -> Bool {
+        if case .held? = leases[session.id]?.lease { true } else { false }
     }
 
     private func wait(for id: LibraryTicket, _ continuation: CheckedContinuation<Void, Never>) {
-        guard case .acquiring(let waiting) = holds[id] else { return continuation.resume() }
-        holds[id] = .acquiring(waiting + [continuation])
+        guard let entry = leases[id], case .acquiring(let waiting) = entry.lease else { return continuation.resume() }
+        leases[id] = (entry.session, .acquiring(waiting + [continuation]))
     }
 
     private func stop(_ session: ModelDemoSession) async -> String? {
@@ -91,17 +114,22 @@ public final class ModelLibraryRunner {
         } catch {
             return error.localizedDescription
         }
-        if case .acquiring = holds[session.id] { await withCheckedContinuation { wait(for: session.id, $0) } }
+        if case .acquiring? = leases[session.id]?.lease { await withCheckedContinuation { wait(for: session.id, $0) } }
         releasedThrough[session.id.owner] = max(releasedThrough[session.id.owner, default: 0], session.id.number)
-        if case .leased(let lease) = holds.removeValue(forKey: session.id) { await lease.release() }
+        if case .held(let lease)? = leases.removeValue(forKey: session.id)?.lease { await lease.release() }
         return nil
     }
 }
 
-nonisolated enum DemoProvision: Feature {
+nonisolated enum DemoRuntimeWork: Feature {
+    enum Job: Equatable, Sendable {
+        case prepare(ModelDemoSession)
+        case abandon(UUID)
+    }
+
     struct State: Equatable, Sendable {}
 
-    static func reduce(_ state: inout State, _ action: ModelDemoSession) -> [Command<ModelDemoSession, LibraryTicket>] {
-        [.run(action, id: action.id)]
+    static func reduce(_ state: inout State, _ action: Job) -> [Command<Job, Never>] {
+        [.run(action, id: nil)]
     }
 }

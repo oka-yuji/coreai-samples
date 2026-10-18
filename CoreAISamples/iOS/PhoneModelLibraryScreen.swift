@@ -40,7 +40,7 @@
                         library.store.send(action)
                     }
                 }
-                .onDisappear { library.store.send(.suspendDemo) }
+                .onDisappear { IOSModelLibraryAssembly.close(library.store) }
             case .failure:
                 ContentUnavailableView("Could not open Models", systemImage: "exclamationmark.triangle")
             }
