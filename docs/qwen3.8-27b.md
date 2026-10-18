@@ -10,6 +10,68 @@ Requirements: Apple silicon Mac, macOS 27, and Xcode 27 with the Metal Toolchain
 
 Before building the app, complete the [common setup](../README.md#get-started), including Rust/Cargo.
 
+
+<!-- model-report:start -->
+<a id="model-report"></a>
+
+## Evaluation summary
+
+[Measurement protocol](benchmarking.md) · [Source record](model-reports/records/qwen38-27b.json)
+
+Results below retain their original dates and workloads. Different rows may use different runs; they are not a controlled comparison. Legacy records explicitly retain unrecorded conditions. Missing values are not zero or a pass.
+
+### Demo support
+
+| Platform | State | Verified scope / remaining work | Evidence |
+|---|---|---|---|
+| macos | ✅ | Recorded Mac app Chat/Work route, 4-bit text bundle; broader quality remains limited. | [E1](qwen3.8-27b.md#key-numbers) |
+| ios | — | This 27B bundle is not an iPhone/iPad demo. | — |
+
+### Performance and quality
+
+| Metric | Result | Statistic / samples | Scope and evidence |
+|---|---|---|---|
+| Bundle / payload size | 16,852,543,780 B | single; n=1 | [E3](qwen3.8-27b.md#bundle) · Fixed workload in the linked evidence. |
+| Prepared cache size | 16.86 GB | single; n=1 | [E4](qwen3.8-27b.md#operational-notes) · Rounded CLI prepared-copy size; each executable prepares its own copy. |
+| First load, including specialization | 86.87 s | single; n=1 | [E1](qwen3.8-27b.md#key-numbers) · One first app load; includes 82.84 s of specialization. |
+| Load from prepared cache | 4.7 s | median; n=48 | [E1](qwen3.8-27b.md#key-numbers) · Prepared-cache app loads; observed range 3.6–10.3 s. |
+| Request / pipeline completion time | Not recorded here | — | No value in this common record; inspect historical evidence before scheduling new measurement. |
+| Peak RSS | 34.2 GB | single; n=1 | [E1](qwen3.8-27b.md#key-numbers) · Rounded first-load process RSS; not a minimum device RAM requirement. |
+| Peak physical footprint | Not recorded here | — | No value in this common record; inspect historical evidence before scheduling new measurement. |
+| Resident memory during inference | 16 GiB | min; n=unrecorded | [E1](qwen3.8-27b.md#key-numbers) · Reported resident-memory range during Agent steps; original sample count not stated. |
+| Resident memory during inference | 16.7 GiB | max; n=unrecorded | [E1](qwen3.8-27b.md#key-numbers) · Reported resident-memory range during Agent steps; original sample count not stated. |
+| Memory after release minus baseline | Not recorded here | — | No value in this common record; inspect historical evidence before scheduling new measurement. |
+| Task success fraction | 1 ratio | aggregate; n=48 | [E1](qwen3.8-27b.md#key-numbers) · 48/48 frozen-grader task successes; separate support audit: 22 supported, 15 partly, 11 unsupported. |
+| Reference error (definition in evidence) | 0.778 error | max; n=20480 | [E2](qwen3.8-27b.md#verification) · Maximum next-token probability difference; predeclared maximum 0.0875 was not met. |
+| Stop acknowledgement time | Not recorded here | — | No value in this common record; inspect historical evidence before scheduling new measurement. |
+| Time to first output token (TTFT) | Not recorded here | — | No value in this common record; inspect historical evidence before scheduling new measurement. |
+| Time to first visible text | 6.46 s | median; n=144 | [E1](qwen3.8-27b.md#key-numbers) · First displayed text per generation step, including reasoning; not first final answer. |
+| Time to first answer after reasoning | Not recorded here | — | No value in this common record; inspect historical evidence before scheduling new measurement. |
+| Decode throughput | 22.74 tokens/s | median; n=144 | [E1](qwen3.8-27b.md#key-numbers) · Fixed workload in the linked evidence. |
+
+### Verification coverage
+
+| Check | State | Scope / remaining work | Evidence |
+|---|---|---|---|
+| Conversion / reference fidelity | Failed (stated criterion) | Some original-weight agreement criteria failed; same-bundle runtime agreement is a separate pass. | [E2](qwen3.8-27b.md#verification) |
+| Task quality | Not measured | No completed check for this scope under the common protocol. | — |
+| Repeated use / resource release | Not measured | No completed check for this scope under the common protocol. | — |
+| Stop / retry / recovery | Not measured | No completed check for this scope under the common protocol. | — |
+
+### Evidence and conditions
+
+| Evidence | Date / record / route level | Device / OS / tools | Workload and recorded conditions |
+|---|---|---|---|
+| [E1](qwen3.8-27b.md#key-numbers) | 2026-10-12 / legacy / native_app | M4 Max 128 GiB / macOS 27.0 (26A428) / Xcode 27.0 (27A266a) | 12 frozen live-web Agent tasks × 4 rounds; 48 runs / 144 generation steps; greedy; reasoning low/off; cite-fetched default not measured. Recorded measurement window: 2026-10-11–12. · variant=4-bit text; backend=Core AI; GPU preferred; route=macOS app --agent-e2e; source_revision=1d4bf0f2ff6012fd82039f2fa52739d0dd7c60c0; artifact_revision=8e24aebe036eae577d4a3bd019ba728a73358318; batch_size=1; concurrency=1; unrecorded: code_revision, warmups, power, thermal, plan_sha256 |
+| [E2](qwen3.8-27b.md#verification) | 2026-10-12 / legacy / diagnostic | M4 Max 128 GiB / macOS 27.0 (26A428) / Xcode 27.0 (27A266a) | 40 held-out inputs × 512 positions; same 4-bit weights in CPU PyTorch FP32 vs Core AI. Recorded measurement window: 2026-10-07–12. · variant=4-bit text; backend=Core AI; GPU preferred; route=diagnostic; batch_size=1; concurrency=1; unrecorded: source_revision, artifact_revision, code_revision, warmups, power, thermal, plan_sha256 |
+| [E3](qwen3.8-27b.md#bundle) | 2026-10-12 / legacy / conversion | M4 Max 128 GiB / macOS 27.0 (26A428) / Xcode 27.0 (27A266a) | See fixed cases in the evidence. · variant=4-bit text; backend=Core AI; GPU preferred; route=conversion; batch_size=1; concurrency=1; unrecorded: source_revision, artifact_revision, code_revision, warmups, power, thermal, plan_sha256 |
+| [E4](qwen3.8-27b.md#operational-notes) | 2026-10-12 / legacy / diagnostic | M4 Max 128 GiB / macOS 27.0 (26A428) / Xcode 27.0 (27A266a) | First CLI preparation while other builds ran (load average 20–29); separate prepared copy from the app. · variant=4-bit text; backend=Core AI; GPU preferred; route=coreai-chat first preparation; source_revision=1d4bf0f2ff6012fd82039f2fa52739d0dd7c60c0; artifact_revision=8e24aebe036eae577d4a3bd019ba728a73358318; batch_size=1; concurrency=1; unrecorded: code_revision, warmups, power, thermal, plan_sha256 |
+
+### Setup, limitations and progress
+
+- [Chat and Work](qwen3.8-27b.md)
+<!-- model-report:end -->
+
 ## Quick start
 
 Install the [Hugging Face CLI](https://huggingface.co/docs/huggingface_hub/guides/cli), then get the app and the bundle (12 files, 16.85 GB):

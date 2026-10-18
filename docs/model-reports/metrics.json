@@ -1,0 +1,600 @@
+{
+  "version": 1,
+  "common": [
+    "bundle_bytes",
+    "prepared_bytes",
+    "first_load_s",
+    "warm_load_s",
+    "latency_s",
+    "peak_rss_bytes",
+    "peak_footprint_bytes",
+    "resident_bytes",
+    "residual_bytes",
+    "task_success",
+    "reference_error",
+    "cancel_s"
+  ],
+  "profiles": {
+    "llm": [
+      "ttft_s",
+      "first_text_s",
+      "first_answer_s",
+      "decode_tps"
+    ],
+    "decision": [
+      "reuse_latency_s"
+    ],
+    "extraction": [
+      "precision",
+      "recall",
+      "f1"
+    ],
+    "embedding": [
+      "index_s",
+      "query_s",
+      "recall_at_k",
+      "ndcg_at_k",
+      "reference_cosine"
+    ],
+    "tts": [
+      "first_audio_s",
+      "rtf",
+      "cer",
+      "human_score"
+    ],
+    "image": [
+      "clip_score",
+      "human_score"
+    ],
+    "ocr": [
+      "cer",
+      "wer",
+      "layout_f1"
+    ],
+    "vlm": [
+      "ttft_s",
+      "first_text_s",
+      "decode_tps"
+    ],
+    "depth": [
+      "abs_rel",
+      "depth_rmse",
+      "delta1"
+    ],
+    "video": [
+      "generation_fps",
+      "human_score"
+    ]
+  },
+  "metrics": {
+    "bundle_bytes": {
+      "label": {
+        "en": "Bundle / payload size",
+        "ja": "バンドル・資産容量"
+      },
+      "units": [
+        "B",
+        "GB",
+        "GiB"
+      ],
+      "min": 0
+    },
+    "prepared_bytes": {
+      "label": {
+        "en": "Prepared cache size",
+        "ja": "特殊化キャッシュ容量"
+      },
+      "units": [
+        "B",
+        "GB",
+        "GiB"
+      ],
+      "min": 0
+    },
+    "peak_rss_bytes": {
+      "label": {
+        "en": "Peak RSS",
+        "ja": "ピークRSS"
+      },
+      "units": [
+        "B",
+        "GB",
+        "GiB"
+      ],
+      "min": 0
+    },
+    "peak_footprint_bytes": {
+      "label": {
+        "en": "Peak physical footprint",
+        "ja": "ピークphysical footprint"
+      },
+      "units": [
+        "B",
+        "GB",
+        "GiB"
+      ],
+      "min": 0
+    },
+    "resident_bytes": {
+      "label": {
+        "en": "Resident memory during inference",
+        "ja": "推論中の常駐メモリ"
+      },
+      "units": [
+        "B",
+        "GB",
+        "GiB"
+      ],
+      "min": 0
+    },
+    "residual_bytes": {
+      "label": {
+        "en": "Memory after release minus baseline",
+        "ja": "解放後メモリの基準との差"
+      },
+      "units": [
+        "B",
+        "GB",
+        "GiB"
+      ]
+    },
+    "first_load_s": {
+      "label": {
+        "en": "First load, including specialization",
+        "ja": "初回ロード（特殊化を含む）"
+      },
+      "units": [
+        "s"
+      ],
+      "min": 0
+    },
+    "warm_load_s": {
+      "label": {
+        "en": "Load from prepared cache",
+        "ja": "特殊化済みキャッシュからのロード"
+      },
+      "units": [
+        "s"
+      ],
+      "min": 0
+    },
+    "latency_s": {
+      "label": {
+        "en": "Request / pipeline completion time",
+        "ja": "要求・パイプライン完了時間"
+      },
+      "units": [
+        "s"
+      ],
+      "min": 0
+    },
+    "reuse_latency_s": {
+      "label": {
+        "en": "Reused-document request time",
+        "ja": "文書再利用時の完了時間"
+      },
+      "units": [
+        "s"
+      ],
+      "min": 0
+    },
+    "first_text_s": {
+      "label": {
+        "en": "Time to first visible text",
+        "ja": "最初の表示文字までの時間"
+      },
+      "units": [
+        "s"
+      ],
+      "min": 0
+    },
+    "first_answer_s": {
+      "label": {
+        "en": "Time to first answer after reasoning",
+        "ja": "思考後の回答開始までの時間"
+      },
+      "units": [
+        "s"
+      ],
+      "min": 0
+    },
+    "index_s": {
+      "label": {
+        "en": "Index construction time",
+        "ja": "索引の構築時間"
+      },
+      "units": [
+        "s"
+      ],
+      "min": 0
+    },
+    "query_s": {
+      "label": {
+        "en": "Search query time",
+        "ja": "検索クエリ時間"
+      },
+      "units": [
+        "s"
+      ],
+      "min": 0
+    },
+    "first_audio_s": {
+      "label": {
+        "en": "Time to first playable audio",
+        "ja": "再生可能な最初の音声までの時間"
+      },
+      "units": [
+        "s"
+      ],
+      "min": 0
+    },
+    "cancel_s": {
+      "label": {
+        "en": "Stop acknowledgement time",
+        "ja": "停止受付から完了までの時間"
+      },
+      "units": [
+        "s"
+      ],
+      "min": 0
+    },
+    "decode_tps": {
+      "label": {
+        "en": "Decode throughput",
+        "ja": "デコード速度"
+      },
+      "units": [
+        "tokens/s"
+      ],
+      "min": 0
+    },
+    "rtf": {
+      "label": {
+        "en": "Real-time factor (generation / audio duration)",
+        "ja": "RTF（生成時間／音声長）"
+      },
+      "units": [
+        "ratio"
+      ],
+      "min": 0
+    },
+    "reference_error": {
+      "label": {
+        "en": "Reference error (definition in evidence)",
+        "ja": "参照との誤差（定義は根拠参照）"
+      },
+      "units": [
+        "error"
+      ],
+      "min": 0
+    },
+    "reference_cosine": {
+      "label": {
+        "en": "Reference cosine similarity",
+        "ja": "参照とのcosine類似度"
+      },
+      "units": [
+        "cosine"
+      ],
+      "min": -1,
+      "max": 1
+    },
+    "task_success": {
+      "label": {
+        "en": "Task success fraction",
+        "ja": "課題達成率"
+      },
+      "units": [
+        "ratio"
+      ],
+      "min": 0,
+      "max": 1
+    },
+    "reference_top1": {
+      "label": {
+        "en": "Reference top-1 agreement",
+        "ja": "参照とのtop-1一致率"
+      },
+      "units": [
+        "ratio"
+      ],
+      "min": 0,
+      "max": 1
+    },
+    "precision": {
+      "label": {
+        "en": "Precision",
+        "ja": "適合率Precision"
+      },
+      "units": [
+        "ratio"
+      ],
+      "min": 0,
+      "max": 1
+    },
+    "recall": {
+      "label": {
+        "en": "Recall",
+        "ja": "再現率Recall"
+      },
+      "units": [
+        "ratio"
+      ],
+      "min": 0,
+      "max": 1
+    },
+    "f1": {
+      "label": {
+        "en": "F1",
+        "ja": "F1"
+      },
+      "units": [
+        "ratio"
+      ],
+      "min": 0,
+      "max": 1
+    },
+    "recall_at_k": {
+      "label": {
+        "en": "Recall@k",
+        "ja": "Recall@k"
+      },
+      "units": [
+        "ratio"
+      ],
+      "min": 0,
+      "max": 1
+    },
+    "ndcg_at_k": {
+      "label": {
+        "en": "nDCG@k",
+        "ja": "nDCG@k"
+      },
+      "units": [
+        "ratio"
+      ],
+      "min": 0,
+      "max": 1
+    },
+    "delta1": {
+      "label": {
+        "en": "Depth delta1",
+        "ja": "深度delta1"
+      },
+      "units": [
+        "ratio"
+      ],
+      "min": 0,
+      "max": 1
+    },
+    "layout_f1": {
+      "label": {
+        "en": "Layout / structure F1",
+        "ja": "レイアウト・構造F1"
+      },
+      "units": [
+        "ratio"
+      ],
+      "min": 0,
+      "max": 1
+    },
+    "cer": {
+      "label": {
+        "en": "Character error rate",
+        "ja": "文字誤り率CER"
+      },
+      "units": [
+        "ratio"
+      ],
+      "min": 0
+    },
+    "wer": {
+      "label": {
+        "en": "Word error rate",
+        "ja": "単語誤り率WER"
+      },
+      "units": [
+        "ratio"
+      ],
+      "min": 0
+    },
+    "human_score": {
+      "label": {
+        "en": "Human quality score (rubric required)",
+        "ja": "人による品質評点（採点基準を固定）"
+      },
+      "units": [
+        "score"
+      ],
+      "min": 0
+    },
+    "clip_score": {
+      "label": {
+        "en": "Image/text CLIP score",
+        "ja": "画像と文章のCLIP score"
+      },
+      "units": [
+        "score"
+      ],
+      "min": 0
+    },
+    "abs_rel": {
+      "label": {
+        "en": "Depth absolute relative error",
+        "ja": "深度AbsRel"
+      },
+      "units": [
+        "ratio"
+      ],
+      "min": 0
+    },
+    "depth_rmse": {
+      "label": {
+        "en": "Depth RMSE (aligned scale required)",
+        "ja": "深度RMSE（スケール条件を固定）"
+      },
+      "units": [
+        "m"
+      ],
+      "min": 0
+    },
+    "generation_fps": {
+      "label": {
+        "en": "Generated frames per second",
+        "ja": "動画の生成速度"
+      },
+      "units": [
+        "frames/s"
+      ],
+      "min": 0
+    },
+    "ttft_s": {
+      "label": {
+        "en": "Time to first output token (TTFT)",
+        "ja": "最初の出力トークンまでの時間（TTFT）"
+      },
+      "units": [
+        "s"
+      ],
+      "min": 0
+    },
+    "itl_s": {
+      "label": {
+        "en": "Inter-token latency (ITL)",
+        "ja": "トークン間の遅延（ITL）"
+      },
+      "units": [
+        "s"
+      ],
+      "min": 0
+    }
+  },
+  "text": {
+    "en": {
+      "checked": "Checked:",
+      "legend": "✅ = recorded native-app execution on that OS for the variant/route in the guide; △ = implementation, older diagnostic evidence or acceptance pending; — = no native demo. A mark is separate from bundle publication, conversion success and full production qualification.",
+      "guide": "Guide / results",
+      "download": "Hugging Face",
+      "restricted": "Access required",
+      "released": "Released",
+      "in_progress": "In progress",
+      "planned": "Planned",
+      "catalog_headers": [
+        "Model / bundle",
+        "Use",
+        "macOS",
+        "iOS",
+        "Status",
+        "Download",
+        "Guide"
+      ],
+      "summary": "Evaluation summary",
+      "protocol": "Measurement protocol",
+      "record": "Source record",
+      "historical": "Results below retain their original dates and workloads. Different rows may use different runs; they are not a controlled comparison. Legacy records explicitly retain unrecorded conditions. Missing values are not zero or a pass.",
+      "demo": "Demo support",
+      "performance": "Performance and quality",
+      "validation": "Verification coverage",
+      "conditions": "Evidence and conditions",
+      "details": "Setup, limitations and progress",
+      "support_headers": [
+        "Platform",
+        "State",
+        "Verified scope / remaining work",
+        "Evidence"
+      ],
+      "metric_headers": [
+        "Metric",
+        "Result",
+        "Statistic / samples",
+        "Scope and evidence"
+      ],
+      "check_headers": [
+        "Check",
+        "State",
+        "Scope / remaining work",
+        "Evidence"
+      ],
+      "evidence_headers": [
+        "Evidence",
+        "Date / record / route level",
+        "Device / OS / tools",
+        "Workload and recorded conditions"
+      ],
+      "missing": "No value in this common record; inspect historical evidence before scheduling new measurement.",
+      "unrecorded": "unrecorded",
+      "passed": "Passed (stated scope)",
+      "failed": "Failed (stated criterion)",
+      "not_measured": "Not measured",
+      "not_applicable": "Not applicable",
+      "fidelity": "Conversion / reference fidelity",
+      "quality": "Task quality",
+      "stability": "Repeated use / resource release",
+      "cancellation": "Stop / retry / recovery",
+      "not_recorded": "Not recorded here"
+    },
+    "ja": {
+      "checked": "確認日:",
+      "legend": "✅＝該当OSの実機アプリで実行した記録あり（対象の変換版・経路は詳細参照）、△＝実装・旧診断の記録のみ／確認待ち、—＝ネイティブデモ未提供。配布公開、変換成功、本番品質の検収とは別の状態です。",
+      "guide": "ガイド・結果",
+      "download": "Hugging Face",
+      "restricted": "アクセス権が必要",
+      "released": "公開済み",
+      "in_progress": "着手中",
+      "planned": "対応予定",
+      "catalog_headers": [
+        "モデル・バンドル",
+        "用途",
+        "macOS",
+        "iOS",
+        "状態",
+        "ダウンロード",
+        "ガイド"
+      ],
+      "summary": "共通の検証サマリー",
+      "protocol": "計測プロトコル",
+      "record": "元の記録",
+      "historical": "元の測定日・入力条件を保持しています。行ごとに異なるrunを使う場合があり、条件をそろえた速度比較ではありません。旧記録で不足する条件も明示します。未計測はゼロや合格を意味しません。",
+      "demo": "デモ対応",
+      "performance": "性能と品質",
+      "validation": "検証した範囲",
+      "conditions": "根拠と測定条件",
+      "details": "導入・制限・進捗",
+      "support_headers": [
+        "OS",
+        "状態",
+        "確認した範囲・残る確認",
+        "根拠"
+      ],
+      "metric_headers": [
+        "指標",
+        "結果",
+        "集計・件数",
+        "条件と根拠"
+      ],
+      "check_headers": [
+        "確認項目",
+        "状態",
+        "対象範囲・残る確認",
+        "根拠"
+      ],
+      "evidence_headers": [
+        "根拠",
+        "日付・記録区分・経路",
+        "機種・OS・ツール",
+        "入力と記録済みの条件"
+      ],
+      "missing": "共通記録に値がありません。再計測の前に過去の根拠も確認してください。",
+      "unrecorded": "未記録",
+      "passed": "合格（記載範囲）",
+      "failed": "不合格（記載基準）",
+      "not_measured": "未計測",
+      "not_applicable": "対象外",
+      "fidelity": "変換・参照との一致",
+      "quality": "用途の品質",
+      "stability": "連続利用・資源解放",
+      "cancellation": "停止・再試行・回復",
+      "not_recorded": "この記録では未収録"
+    }
+  }
+}

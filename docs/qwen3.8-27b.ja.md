@@ -10,6 +10,68 @@ Qwen3.8 27Bの4ビット・テキスト専用バンドルを使い、Macで会�
 
 アプリをビルドする前に、Rust/Cargoを含む[共通の準備](../README.ja.md#はじめる)を済ませてください。
 
+
+<!-- model-report:start -->
+<a id="model-report"></a>
+
+## 共通の検証サマリー
+
+[計測プロトコル](benchmarking.ja.md) · [元の記録](model-reports/records/qwen38-27b.json)
+
+元の測定日・入力条件を保持しています。行ごとに異なるrunを使う場合があり、条件をそろえた速度比較ではありません。旧記録で不足する条件も明示します。未計測はゼロや合格を意味しません。
+
+### デモ対応
+
+| OS | 状態 | 確認した範囲・残る確認 | 根拠 |
+|---|---|---|---|
+| macos | ✅ | MacアプリのChat/Work経路、4ビット・テキスト版の記録。品質上の制限は別記。 | [E1](qwen3.8-27b.md#key-numbers) |
+| ios | — | この27BバンドルのiPhone/iPadデモは未提供。 | — |
+
+### 性能と品質
+
+| 指標 | 結果 | 集計・件数 | 条件と根拠 |
+|---|---|---|---|
+| バンドル・資産容量 | 16,852,543,780 B | single; n=1 | [E3](qwen3.8-27b.md#bundle) · リンク先の固定条件による結果。 |
+| 特殊化キャッシュ容量 | 16.86 GB | single; n=1 | [E4](qwen3.8-27b.md#operational-notes) · CLI用の特殊化コピーの丸め値。実行ファイルごとに別コピーを作る。 |
+| 初回ロード（特殊化を含む） | 86.87 s | single; n=1 | [E1](qwen3.8-27b.md#key-numbers) · アプリの初回1回。特殊化82.84秒を含む。 |
+| 特殊化済みキャッシュからのロード | 4.7 s | median; n=48 | [E1](qwen3.8-27b.md#key-numbers) · 準備済みキャッシュからのアプリロード。範囲3.6〜10.3秒。 |
+| 要求・パイプライン完了時間 | この記録では未収録 | — | 共通記録に値がありません。再計測の前に過去の根拠も確認してください。 |
+| ピークRSS | 34.2 GB | single; n=1 | [E1](qwen3.8-27b.md#key-numbers) · 初回ロード時のプロセスRSSの丸め値。端末の最低RAM要件ではない。 |
+| ピークphysical footprint | この記録では未収録 | — | 共通記録に値がありません。再計測の前に過去の根拠も確認してください。 |
+| 推論中の常駐メモリ | 16 GiB | min; n=未記録 | [E1](qwen3.8-27b.md#key-numbers) · Agentステップ中の常駐メモリ範囲。元の記録に標本数の明記なし。 |
+| 推論中の常駐メモリ | 16.7 GiB | max; n=未記録 | [E1](qwen3.8-27b.md#key-numbers) · Agentステップ中の常駐メモリ範囲。元の記録に標本数の明記なし。 |
+| 解放後メモリの基準との差 | この記録では未収録 | — | 共通記録に値がありません。再計測の前に過去の根拠も確認してください。 |
+| 課題達成率 | 1 ratio | aggregate; n=48 | [E1](qwen3.8-27b.md#key-numbers) · 固定graderの課題達成48/48。根拠の別監査は支持22・一部支持15・不支持11。 |
+| 参照との誤差（定義は根拠参照） | 0.778 error | max; n=20480 | [E2](qwen3.8-27b.md#verification) · 次トークン確率の最大差。事前上限0.0875を満たしていない。 |
+| 停止受付から完了までの時間 | この記録では未収録 | — | 共通記録に値がありません。再計測の前に過去の根拠も確認してください。 |
+| 最初の出力トークンまでの時間（TTFT） | この記録では未収録 | — | 共通記録に値がありません。再計測の前に過去の根拠も確認してください。 |
+| 最初の表示文字までの時間 | 6.46 s | median; n=144 | [E1](qwen3.8-27b.md#key-numbers) · 生成ステップごとの最初の表示文字。思考を含み、最終回答の開始時間とは異なる。 |
+| 思考後の回答開始までの時間 | この記録では未収録 | — | 共通記録に値がありません。再計測の前に過去の根拠も確認してください。 |
+| デコード速度 | 22.74 tokens/s | median; n=144 | [E1](qwen3.8-27b.md#key-numbers) · リンク先の固定条件による結果。 |
+
+### 検証した範囲
+
+| 確認項目 | 状態 | 対象範囲・残る確認 | 根拠 |
+|---|---|---|---|
+| 変換・参照との一致 | 不合格（記載基準） | 元重みとの一致基準の一部が未達。同一バンドルのランタイム一致の合格とは別。 | [E2](qwen3.8-27b.md#verification) |
+| 用途の品質 | 未計測 | この範囲の共通プロトコルによる確認は未実施です。 | — |
+| 連続利用・資源解放 | 未計測 | この範囲の共通プロトコルによる確認は未実施です。 | — |
+| 停止・再試行・回復 | 未計測 | この範囲の共通プロトコルによる確認は未実施です。 | — |
+
+### 根拠と測定条件
+
+| 根拠 | 日付・記録区分・経路 | 機種・OS・ツール | 入力と記録済みの条件 |
+|---|---|---|---|
+| [E1](qwen3.8-27b.md#key-numbers) | 2026-10-12 / legacy / native_app | M4 Max 128 GiB / macOS 27.0 (26A428) / Xcode 27.0 (27A266a) | 凍結12課題×4周の生きたWeb評価。48 run・144生成ステップ、greedy、思考low/off。現行既定のcite-fetchedは未計測。 元記録の計測期間：2026-10-11–12。 · variant=4-bit text; backend=Core AI; GPU preferred; route=macOS app --agent-e2e; source_revision=1d4bf0f2ff6012fd82039f2fa52739d0dd7c60c0; artifact_revision=8e24aebe036eae577d4a3bd019ba728a73358318; batch_size=1; concurrency=1; 未記録: code_revision, warmups, power, thermal, plan_sha256 |
+| [E2](qwen3.8-27b.md#verification) | 2026-10-12 / legacy / diagnostic | M4 Max 128 GiB / macOS 27.0 (26A428) / Xcode 27.0 (27A266a) | 未使用40入力×512位置。同じ4ビット重みのCPU PyTorch FP32とCore AIを比較。 元記録の計測期間：2026-10-07–12。 · variant=4-bit text; backend=Core AI; GPU preferred; route=diagnostic; batch_size=1; concurrency=1; 未記録: source_revision, artifact_revision, code_revision, warmups, power, thermal, plan_sha256 |
+| [E3](qwen3.8-27b.md#bundle) | 2026-10-12 / legacy / conversion | M4 Max 128 GiB / macOS 27.0 (26A428) / Xcode 27.0 (27A266a) | 根拠に記載された固定入力を参照。 · variant=4-bit text; backend=Core AI; GPU preferred; route=conversion; batch_size=1; concurrency=1; 未記録: source_revision, artifact_revision, code_revision, warmups, power, thermal, plan_sha256 |
+| [E4](qwen3.8-27b.md#operational-notes) | 2026-10-12 / legacy / diagnostic | M4 Max 128 GiB / macOS 27.0 (26A428) / Xcode 27.0 (27A266a) | 他のビルドが動いていた時のCLI初回準備（load average 20〜29）。アプリとは別の特殊化コピー。 · variant=4-bit text; backend=Core AI; GPU preferred; route=coreai-chat first preparation; source_revision=1d4bf0f2ff6012fd82039f2fa52739d0dd7c60c0; artifact_revision=8e24aebe036eae577d4a3bd019ba728a73358318; batch_size=1; concurrency=1; 未記録: code_revision, warmups, power, thermal, plan_sha256 |
+
+### 導入・制限・進捗
+
+- [ChatとWork](qwen3.8-27b.md)
+<!-- model-report:end -->
+
 ## クイックスタート
 
 [Hugging Face CLI](https://huggingface.co/docs/huggingface_hub/guides/cli) を入れて、アプリとバンドル(12 ファイル、16.85 GB)を取得します。

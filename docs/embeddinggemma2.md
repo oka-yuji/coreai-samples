@@ -1,8 +1,79 @@
 # EmbeddingGemma 2 local image search
 
+[日本語](model-reports/embeddinggemma2.ja.md) · [Home](../README.md)
+
 Search selected images in Japanese or English, then open the original image. The demo includes five sample images, a local model folder picker, image selection, indexing progress, search results, and Stop. Text and image preprocessing run in Swift.
 
 Use `main` for the demo. Tracking: [runtime #112](https://github.com/oka-yuji/coreai-samples/issues/112), [demo #113](https://github.com/oka-yuji/coreai-samples/issues/113).
+
+
+<!-- model-report:start -->
+<a id="model-report"></a>
+
+## Evaluation summary
+
+[Measurement protocol](benchmarking.md) · [Source record](model-reports/records/embeddinggemma2.json)
+
+Results below retain their original dates and workloads. Different rows may use different runs; they are not a controlled comparison. Legacy records explicitly retain unrecorded conditions. Missing values are not zero or a pass.
+
+### Demo support
+
+| Platform | State | Verified scope / remaining work | Evidence |
+|---|---|---|---|
+| macos | ✅ | FP16 local-folder image-search UI recorded; this mark does not cover PTQ camera acceptance. | [E1](validation/embeddinggemma2-ready-20261016.md) |
+| ios | △ | Older FP16 diagnostic passed. Current Models entry and PTQ device inference remain pending. | [E2](validation/embeddinggemma2-ready-20261016.md) · [E4](validation/ios-models-integration-20261018.md#device-checks) · [E3](validation/embeddinggemma2-int4-int8-20261018.md) |
+
+### Performance and quality
+
+| Metric | Result | Statistic / samples | Scope and evidence |
+|---|---|---|---|
+| Bundle / payload size | 913,677,333 B | single; n=1 | [E3](validation/embeddinggemma2-int4-int8-20261018.md) · FP16 bundle; includes tokenizer and notices. |
+| Bundle / payload size | 341,880,041 B | single; n=1 | [E3](validation/embeddinggemma2-int4-int8-20261018.md) · PTQ bundle; includes tokenizer and notices. |
+| Prepared cache size | Not recorded here | — | No value in this common record; inspect historical evidence before scheduling new measurement. |
+| First load, including specialization | Not recorded here | — | No value in this common record; inspect historical evidence before scheduling new measurement. |
+| Load from prepared cache | Not recorded here | — | No value in this common record; inspect historical evidence before scheduling new measurement. |
+| Request / pipeline completion time | Not recorded here | — | No value in this common record; inspect historical evidence before scheduling new measurement. |
+| Peak RSS | Not recorded here | — | No value in this common record; inspect historical evidence before scheduling new measurement. |
+| Peak physical footprint | Not recorded here | — | No value in this common record; inspect historical evidence before scheduling new measurement. |
+| Resident memory during inference | Not recorded here | — | No value in this common record; inspect historical evidence before scheduling new measurement. |
+| Memory after release minus baseline | Not recorded here | — | No value in this common record; inspect historical evidence before scheduling new measurement. |
+| Task success fraction | 0.833333333 ratio | aggregate; n=6 | [E1](validation/embeddinggemma2-ready-20261016.md) · 5/6 held-out threshold decisions. Not Recall@k or nDCG; a correct top image was hidden by the frozen threshold. |
+| Task success fraction | 0.833333333 ratio | aggregate; n=6 | [E2](validation/embeddinggemma2-ready-20261016.md) · 5/6 held-out threshold decisions. Not Recall@k or nDCG; a correct top image was hidden by the frozen threshold. |
+| Reference error (definition in evidence) | Not recorded here | — | No value in this common record; inspect historical evidence before scheduling new measurement. |
+| Stop acknowledgement time | Not recorded here | — | No value in this common record; inspect historical evidence before scheduling new measurement. |
+| Index construction time | 0.76569325 s | single; n=1 | [E1](validation/embeddinggemma2-ready-20261016.md) · One five-image indexing request; legacy route, not a controlled Mac/iPhone comparison. |
+| Index construction time | 0.895115834 s | single; n=1 | [E2](validation/embeddinggemma2-ready-20261016.md) · One five-image indexing request; legacy route, not a controlled Mac/iPhone comparison. |
+| Search query time | Not recorded here | — | No value in this common record; inspect historical evidence before scheduling new measurement. |
+| Recall@k | Not recorded here | — | No value in this common record; inspect historical evidence before scheduling new measurement. |
+| nDCG@k | Not recorded here | — | No value in this common record; inspect historical evidence before scheduling new measurement. |
+| Reference cosine similarity | 0.999483553 cosine | min; n=20 | [E1](validation/embeddinggemma2-ready-20261016.md) · 20 raw text/image inputs against original FP32. |
+
+### Verification coverage
+
+| Check | State | Scope / remaining work | Evidence |
+|---|---|---|---|
+| Conversion / reference fidelity | Passed (stated scope) | FP16 and matched-PTQ checks pass only their pinned numerical contracts; PTQ versus original precision is separate. | [E1](validation/embeddinggemma2-ready-20261016.md) · [E3](validation/embeddinggemma2-int4-int8-20261018.md) |
+| Task quality | Failed (stated criterion) | Held-out false negative remains; PTQ loses original examples. Thresholds were not lowered to pass. | [E5](validation/embeddinggemma2-ready-20261016.md) · [E6](validation/embeddinggemma2-int4-int8-20261018.md) |
+| Repeated use / resource release | Not measured | No completed check for this scope under the common protocol. | — |
+| Stop / retry / recovery | Passed (stated scope) | Legacy image indexing stop/queued retry, not current Models lifecycle or camera interruption. | [E1](validation/embeddinggemma2-ready-20261016.md) · [E2](validation/embeddinggemma2-ready-20261016.md) |
+
+### Evidence and conditions
+
+| Evidence | Date / record / route level | Device / OS / tools | Workload and recorded conditions |
+|---|---|---|---|
+| [E1](validation/embeddinggemma2-ready-20261016.md) | 2026-10-16 / legacy / native_app | M4 Max 128 GiB / macOS 27.0 (26A428) / Xcode 27.0 (27A266a) | 5 refrigerator images, 6 held-out queries; 768D, threshold 0.67; local-folder image-search UI. · variant=safe FP16 S128 / vision70; backend=Core AI; GPU preferred; route=macOS local-folder image search; source_revision=914f7f89142e33e77833254d9c9b90c3cef7303b; batch_size=1; concurrency=1; unrecorded: artifact_revision, code_revision, warmups, power, thermal, plan_sha256 |
+| [E2](validation/embeddinggemma2-ready-20261016.md) | 2026-10-16 / legacy / diagnostic | iPhone 17 Pro / iOS 27.0.1 (24A446) / Xcode 27.0 (27A266a) | Older signed app diagnostic: 5 images and 6 held-out queries. This is not the current Models entry. · variant=safe FP16 S128 / vision70; backend=Core AI; GPU preferred; route=diagnostic; batch_size=1; concurrency=1; unrecorded: source_revision, artifact_revision, code_revision, warmups, power, thermal, plan_sha256 |
+| [E3](validation/embeddinggemma2-int4-int8-20261018.md) | 2026-10-18 / legacy / conversion | M4 Max 128 GiB / macOS 27.0 (26A428) / Xcode 27.0 (27A266a) | Matched-PTQ 20-vector comparison; original-precision quality degradation retained; iPhone launch was locked. · variant=INT4 text / INT8 vision PTQ; backend=Core AI; GPU preferred; route=conversion; source_revision=914f7f89142e33e77833254d9c9b90c3cef7303b; artifact_revision=7c37ea823af7a4028ec3757e124b53fe8e16a75c99c46d24ca0a7007cca55b85; code_revision=71fb61afd24e1fc5324f57a1abc02744d07ae09c; batch_size=1; concurrency=1; unrecorded: warmups, power, thermal, plan_sha256 |
+| [E4](validation/ios-models-integration-20261018.md#device-checks) | 2026-10-18 / legacy / plan | iPhone 17 Pro / iOS 27.0.1 (24A446) / Xcode 27.0 (27A266a) | See fixed cases in the evidence. · variant=FP16 / PTQ; backend=Core AI; GPU preferred; route=plan; batch_size=1; concurrency=1; unrecorded: source_revision, artifact_revision, code_revision, warmups, power, thermal, plan_sha256 |
+| [E5](validation/embeddinggemma2-ready-20261016.md) | 2026-10-16 / legacy / diagnostic | M4 Max 128 GiB / macOS 27.0 (26A428) / Xcode 27.0 (27A266a) | 5 refrigerator images, 6 held-out queries; 768D, threshold 0.67; local-folder image-search UI. · variant=safe FP16 S128 / vision70; backend=Core AI; GPU preferred; route=held-out retrieval quality evaluation; source_revision=914f7f89142e33e77833254d9c9b90c3cef7303b; batch_size=1; concurrency=1; unrecorded: artifact_revision, code_revision, warmups, power, thermal, plan_sha256 |
+| [E6](validation/embeddinggemma2-int4-int8-20261018.md) | 2026-10-18 / legacy / diagnostic | M4 Max 128 GiB / macOS 27.0 (26A428) / Xcode 27.0 (27A266a) | Matched-PTQ 20-vector comparison; original-precision quality degradation retained; iPhone launch was locked. · variant=INT4 text / INT8 vision PTQ; backend=Core AI; GPU preferred; route=held-out retrieval quality evaluation; source_revision=914f7f89142e33e77833254d9c9b90c3cef7303b; artifact_revision=7c37ea823af7a4028ec3757e124b53fe8e16a75c99c46d24ca0a7007cca55b85; code_revision=71fb61afd24e1fc5324f57a1abc02744d07ae09c; batch_size=1; concurrency=1; unrecorded: warmups, power, thermal, plan_sha256 |
+
+### Setup, limitations and progress
+
+- [Search guide](embeddinggemma2.md)
+
+- [#210](https://github.com/oka-yuji/coreai-samples/issues/210)
+<!-- model-report:end -->
 
 ## Run the demo
 

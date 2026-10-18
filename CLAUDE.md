@@ -59,6 +59,9 @@
 
 ## 変換の保守（2026-10-15）
 
+- モデル・変換版・デモ対応・検証結果を変更したら、`docs/benchmarking.ja.md` の共通プロトコルに従い `docs/model-reports/records/` の該当記録を更新する。元の測定条件と不合格・未計測を保持し、CLIや旧診断だけの成功で現行デモのOS対応を✅にしない。
+- READMEのモデル表とモデル別の共通検証表は生成する。`python3 -m Tools.ModelReports render` の後に `python3 -m Tools.ModelReports check` と `python3 -m unittest discover -s Tools/ModelReports/tests -v` を実行する。`check.sh` にも含む。生成ブロックを手で更新しない。公開の判断と本人受入は自動検査とは別に扱う。
+
 - Core AIの今後の開発・変換ツールの正本はこのリポジトリ。CoreLLMは過去の記録として保管し、新しいコード・計測を追加しない。
 - 変換の保守用入口は `python3 -m Tools.Conversion.local setup`、`plan`、`run`。手順は `Tools/Conversion/README.md`。一般向けの安定APIや全モデル対応を約束する製品ではない。
 - 個人用の設定・依存ツール・モデル・生ログ・実行キャッシュは `.local/conversion/` に置き、Gitへ追加しない。共通処理とテストは履歴管理する。モデルの重みは従来どおり別配布する。

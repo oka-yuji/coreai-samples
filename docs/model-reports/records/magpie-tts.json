@@ -1,0 +1,222 @@
+{
+  "id": "magpie-tts",
+  "kind": "tts",
+  "name": {
+    "en": "Magpie TTS Multilingual v2607",
+    "ja": "Magpie TTS Multilingual v2607"
+  },
+  "use": {
+    "en": "Speech generation",
+    "ja": "音声生成"
+  },
+  "overview": {
+    "en": "Speech generation",
+    "ja": "音声生成"
+  },
+  "release": "in_progress",
+  "release_note": {
+    "en": "conversion and verification",
+    "ja": "変換と検証"
+  },
+  "download": null,
+  "pages": {
+    "en": "docs/model-reports/magpie-tts.md",
+    "ja": "docs/model-reports/magpie-tts.ja.md"
+  },
+  "links": [
+    {
+      "title": {
+        "en": "#165",
+        "ja": "#165"
+      },
+      "url": "https://github.com/oka-yuji/coreai-samples/issues/165"
+    },
+    {
+      "title": {
+        "en": "PR #166",
+        "ja": "PR #166"
+      },
+      "url": "https://github.com/oka-yuji/coreai-samples/pull/166"
+    },
+    {
+      "title": {
+        "en": "Pinned conversion results (unmerged PR)",
+        "ja": "固定した変換結果（未マージPR）"
+      },
+      "url": "https://github.com/oka-yuji/coreai-samples/blob/dfc037a004c38dd552fe72ef99b47d6dd7a904f7/docs/validation/magpie-conversion-20261017.md"
+    }
+  ],
+  "support": {
+    "macos": {
+      "state": "unavailable",
+      "variants": [],
+      "evidence": [],
+      "note": {
+        "en": "Native demo is not provided for this platform.",
+        "ja": "このOSのネイティブデモは未提供です。"
+      }
+    },
+    "ios": {
+      "state": "unavailable",
+      "variants": [],
+      "evidence": [],
+      "note": {
+        "en": "Native demo is not provided for this platform.",
+        "ja": "このOSのネイティブデモは未提供です。"
+      }
+    }
+  },
+  "evidence": {
+    "conversion": {
+      "url": "https://github.com/oka-yuji/coreai-samples/blob/dfc037a004c38dd552fe72ef99b47d6dd7a904f7/docs/validation/magpie-conversion-20261017.md",
+      "level": "conversion",
+      "outcome": "passed",
+      "record_type": "legacy",
+      "date": "2026-10-17",
+      "platform": "macos",
+      "device": "M4 Max 128 GiB",
+      "os": "macOS 27.0 (26A428)",
+      "toolchain": "Xcode 27.0 (27A266a)",
+      "variant": "FP32 research",
+      "backend": "Core AI; GPU preferred",
+      "route": "Python Core AI conversion host",
+      "source_revision": "446bff55e1fe3d3aa29c771574e7d2b0fa322990",
+      "artifact_revision": null,
+      "code_revision": null,
+      "workload": {
+        "en": "Three Japanese fixtures in an unmerged conversion PR. Python host; source/model loads and timing boundaries follow the pinned report. No native demo.",
+        "ja": "未マージの変換PRの日本語3入力。Python host。ロードと計測区間は固定した報告に従う。ネイティブデモは未提供。"
+      },
+      "batch_size": 1,
+      "concurrency": 1,
+      "warmups": null,
+      "power": null,
+      "thermal": null,
+      "model_executed": true,
+      "plan_sha256": null
+    }
+  },
+  "measurements": [
+    {
+      "metric": "latency_s",
+      "value": 11.560112499631941,
+      "unit": "s",
+      "statistic": "single",
+      "n": 1,
+      "evidence": "conversion",
+      "note": {
+        "en": "greeting: generation call; exclude loading and saving as documented.",
+        "ja": "greeting：記録した生成呼び出し。ロード・保存を除外。"
+      }
+    },
+    {
+      "metric": "rtf",
+      "value": 3.5060035296116348,
+      "unit": "ratio",
+      "statistic": "single",
+      "n": 1,
+      "evidence": "conversion",
+      "note": {
+        "en": "greeting: derived 11.5601 s / 3.29723 audio s; excludes loading/saving.",
+        "ja": "greeting：11.5601秒／音声3.29723秒から算出。ロード・保存を除外。"
+      }
+    },
+    {
+      "metric": "latency_s",
+      "value": 9.708289500325918,
+      "unit": "s",
+      "statistic": "single",
+      "n": 1,
+      "evidence": "conversion",
+      "note": {
+        "en": "instruction: generation call; exclude loading and saving as documented.",
+        "ja": "instruction：記録した生成呼び出し。ロード・保存を除外。"
+      }
+    },
+    {
+      "metric": "rtf",
+      "value": 2.5186815639376237,
+      "unit": "ratio",
+      "statistic": "single",
+      "n": 1,
+      "evidence": "conversion",
+      "note": {
+        "en": "instruction: derived 9.70829 s / 3.85451 audio s; excludes loading/saving.",
+        "ja": "instruction：9.70829秒／音声3.85451秒から算出。ロード・保存を除外。"
+      }
+    },
+    {
+      "metric": "latency_s",
+      "value": 9.04915045807138,
+      "unit": "s",
+      "statistic": "single",
+      "n": 1,
+      "evidence": "conversion",
+      "note": {
+        "en": "reading: generation call; exclude loading and saving as documented.",
+        "ja": "reading：記録した生成呼び出し。ロード・保存を除外。"
+      }
+    },
+    {
+      "metric": "rtf",
+      "value": 2.669276642771751,
+      "unit": "ratio",
+      "statistic": "single",
+      "n": 1,
+      "evidence": "conversion",
+      "note": {
+        "en": "reading: derived 9.04915 s / 3.39011 audio s; excludes loading/saving.",
+        "ja": "reading：9.04915秒／音声3.39011秒から算出。ロード・保存を除外。"
+      }
+    },
+    {
+      "metric": "bundle_bytes",
+      "value": 1194186270,
+      "unit": "B",
+      "statistic": "single",
+      "n": 1,
+      "evidence": "conversion",
+      "note": {
+        "en": "Sum of four Core AI assets only; source embeddings, tokenizers and Python host are additional.",
+        "ja": "Core AI資産4個の合計。元のembedding・tokenizer・Python hostは別途必要。"
+      }
+    }
+  ],
+  "omissions": {},
+  "checks": {
+    "fidelity": {
+      "state": "passed",
+      "evidence": [
+        "conversion"
+      ],
+      "note": {
+        "en": "Pinned fixed-input FP32 comparisons passed; listening and publication are separate and pending.",
+        "ja": "固定入力のFP32照合は合格。試聴と公開は別項目で未完了。"
+      }
+    },
+    "quality": {
+      "state": "not_measured",
+      "evidence": [],
+      "note": {
+        "en": "No completed check for this scope under the common protocol.",
+        "ja": "この範囲の共通プロトコルによる確認は未実施です。"
+      }
+    },
+    "stability": {
+      "state": "not_measured",
+      "evidence": [],
+      "note": {
+        "en": "No completed check for this scope under the common protocol.",
+        "ja": "この範囲の共通プロトコルによる確認は未実施です。"
+      }
+    },
+    "cancellation": {
+      "state": "not_measured",
+      "evidence": [],
+      "note": {
+        "en": "No completed check for this scope under the common protocol.",
+        "ja": "この範囲の共通プロトコルによる確認は未実施です。"
+      }
+    }
+  }
+}
