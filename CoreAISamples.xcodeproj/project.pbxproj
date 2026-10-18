@@ -105,6 +105,8 @@
 		70AF18D9E3D418DAEB7227A1 /* RecipeModelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C788E9F664AA9590A13BF66C /* RecipeModelView.swift */; };
 		734D57E0658E75EE0DC17986 /* CitationGuard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B01769CA25F5F41CFA1E93F /* CitationGuard.swift */; };
 		766C81D749D564106B82F212 /* SpeechFeature in Frameworks */ = {isa = PBXBuildFile; productRef = 19A1FEA2CDEA19B780B9F1F7 /* SpeechFeature */; };
+		767FDF890BE40283A7658191 /* InspectionAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC2BBE5005A691ADE3B0A298 /* InspectionAdapter.swift */; };
+		77EA32151A87869672BB3B9E /* TruckInspectionContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = C42B3AF5F404AB36CA20D168 /* TruckInspectionContent.swift */; };
 		78B4DEB1E00D44F7CF558AB7 /* TruckInspectionFeature in Frameworks */ = {isa = PBXBuildFile; productRef = E11B9510FB5B5B6C957FA110 /* TruckInspectionFeature */; };
 		79605C6D19951918ADE37C14 /* SpeechRuntime in Frameworks */ = {isa = PBXBuildFile; productRef = 4D118B582CEBB7A2857FD224 /* SpeechRuntime */; };
 		7965D53F9D757D1A07ACEDF0 /* ExtractEval.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82B4A55114BBA7685FCF713C /* ExtractEval.swift */; };
@@ -188,6 +190,7 @@
 		DB232074896A4231DF78BCD7 /* RecipeFeature in Frameworks */ = {isa = PBXBuildFile; productRef = BEC058363C0D098E70CAB2EC /* RecipeFeature */; };
 		DC1579D87D040882926DA62A /* ImageSearchSelfTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 555173E2E133C5066E8482E1 /* ImageSearchSelfTest.swift */; };
 		DCE66D2FAF6D9FA2A497652B /* ExtractionAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7EA2799CC1E5E8999D2B1BF2 /* ExtractionAdapter.swift */; };
+		DE74F68D70A837AF63249EF6 /* TruckInspectionContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = C42B3AF5F404AB36CA20D168 /* TruckInspectionContent.swift */; };
 		DFA0F3D009B4DB8BDD3F7377 /* SpeechRuntime in Frameworks */ = {isa = PBXBuildFile; productRef = EF1CB2B029271CA3096FB7C2 /* SpeechRuntime */; };
 		E0253D8F538049F975CEA0F7 /* RecipeReportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 089288E87CC0246B5A387A0A /* RecipeReportView.swift */; };
 		E207C91A4AC542D4091A1FE9 /* ProductComparisonAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B1FA83AF87E30C17EC28488 /* ProductComparisonAdapter.swift */; };
@@ -212,6 +215,7 @@
 		F8E2A64FD4FCB0220D394B60 /* LaunchArguments.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0477EBADA2061C5A4A49EFE4 /* LaunchArguments.swift */; };
 		FC29B6DFCD29636BE27E2564 /* object-finder-examples.json in Resources */ = {isa = PBXBuildFile; fileRef = 2C50C49BB82E6F8BA570C7B2 /* object-finder-examples.json */; };
 		FC6626F927F8F428880FBBC9 /* DemoAppMain.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F02F3A778FCB93B0D8828BB /* DemoAppMain.swift */; };
+		FDBF9230A6903DAD66581552 /* InspectionAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC2BBE5005A691ADE3B0A298 /* InspectionAdapter.swift */; };
 		FE2EDA123266ADA0B858BEFC /* GLiNERRuntime in Frameworks */ = {isa = PBXBuildFile; productRef = E537630B97D4DA06423BFDBC /* GLiNERRuntime */; };
 		FEAA664820CCCE1913D6E3C6 /* 03-omelette.png in Resources */ = {isa = PBXBuildFile; fileRef = 1FE6487E7AFD8DA556478B25 /* 03-omelette.png */; };
 		FFF3C06A390062F289948187 /* RecipeInspectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA2674A4B3DE025177BD4654 /* RecipeInspectorView.swift */; };
@@ -312,6 +316,7 @@
 		B8E08DCE25166F4BAC3F4D6E /* decide-examples.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "decide-examples.json"; sourceTree = "<group>"; };
 		BBE9C20E195FE641300D6F57 /* PhoneDemoApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneDemoApp.swift; sourceTree = "<group>"; };
 		BD6C8107CC666E3504893A8A /* SpeechPhoneView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechPhoneView.swift; sourceTree = "<group>"; };
+		C42B3AF5F404AB36CA20D168 /* TruckInspectionContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TruckInspectionContent.swift; sourceTree = "<group>"; };
 		C788E9F664AA9590A13BF66C /* RecipeModelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipeModelView.swift; sourceTree = "<group>"; };
 		C8A8415903D96B5F5D18625D /* Signing.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.xcconfig; sourceTree = "<group>"; };
 		C8BB1C51D3BFC85B5F047FD0 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
@@ -332,6 +337,7 @@
 		F7E148DB501CB7AAE81691D6 /* ExtractService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtractService.swift; sourceTree = "<group>"; };
 		F8A445C0F98E7EF55960E4EB /* ConversationArchiveSelfTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationArchiveSelfTest.swift; sourceTree = "<group>"; };
 		FAE0376EC66AACAB7D06A922 /* ModelStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelStorage.swift; sourceTree = "<group>"; };
+		FC2BBE5005A691ADE3B0A298 /* InspectionAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InspectionAdapter.swift; sourceTree = "<group>"; };
 		FF57BF3874EBD013FC0468B5 /* ModelsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelsViewModel.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -685,6 +691,7 @@
 			isa = PBXGroup;
 			children = (
 				7EA2799CC1E5E8999D2B1BF2 /* ExtractionAdapter.swift */,
+				FC2BBE5005A691ADE3B0A298 /* InspectionAdapter.swift */,
 				2B1FA83AF87E30C17EC28488 /* ProductComparisonAdapter.swift */,
 			);
 			path = Adapters;
@@ -729,6 +736,7 @@
 				1282C05F8FF0AE329CA5A39C /* PhoneLegacyDemosView.swift */,
 				A014A59B7FD23A97BEB797A0 /* PhoneModelLibraryScreen.swift */,
 				DCBAA551F86D44CD24D4787C /* TruckInspectionAssembly.swift */,
+				C42B3AF5F404AB36CA20D168 /* TruckInspectionContent.swift */,
 				23AE6DC74C5AC0E32B8BDEF8 /* TruckInspectionView.swift */,
 				D426D71493ACBC7E7374C440 /* Adapters */,
 			);
@@ -1037,6 +1045,7 @@
 				DC1579D87D040882926DA62A /* ImageSearchSelfTest.swift in Sources */,
 				EBC2196A2344ED1096E95E1B /* ImageSearchVectorCheck.swift in Sources */,
 				82D08B7EC39EAA2231DC2D5B /* ImageSearchView.swift in Sources */,
+				767FDF890BE40283A7658191 /* InspectionAdapter.swift in Sources */,
 				3150B586410104EB00827A21 /* InspectionAudioCapture.swift in Sources */,
 				6C76B33D12B95B500FFBC49B /* InspectionRecognition.swift in Sources */,
 				4EE266A37C7A87197ED9560B /* InspectionSpeaker.swift in Sources */,
@@ -1055,6 +1064,7 @@
 				C51233E267091670612106BE /* ProductComparisonContent.swift in Sources */,
 				7E17D3BAB58B9DE53F911FB4 /* ProductComparisonView.swift in Sources */,
 				041131BFE038F104C3C8E80E /* TruckInspectionAssembly.swift in Sources */,
+				DE74F68D70A837AF63249EF6 /* TruckInspectionContent.swift in Sources */,
 				88A54445B24AA3A794E71605 /* TruckInspectionView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -1109,6 +1119,7 @@
 				BF2A48F1993C91C4541D02DC /* ImageSearchSelfTest.swift in Sources */,
 				4275FA1D00228F5E93B7A9D0 /* ImageSearchVectorCheck.swift in Sources */,
 				C6C10226B8B96DCF6BEF7F7C /* ImageSearchView.swift in Sources */,
+				FDBF9230A6903DAD66581552 /* InspectionAdapter.swift in Sources */,
 				AB671210127EDAC44A951CFB /* InspectionAudioCapture.swift in Sources */,
 				597F3DF95BB4286B1230C370 /* InspectionRecognition.swift in Sources */,
 				B62247B1FC9C52A67DD7AFA2 /* InspectionSpeaker.swift in Sources */,
@@ -1146,6 +1157,7 @@
 				144E14392F7E1FDBC800476D /* SpeechView.swift in Sources */,
 				84CACB21A547B2C201617E85 /* ToolRunner.swift in Sources */,
 				40D561949D3C716C66C23D0D /* TruckInspectionAssembly.swift in Sources */,
+				77EA32151A87869672BB3B9E /* TruckInspectionContent.swift in Sources */,
 				00722EE029BA88ADEAF7F50F /* TruckInspectionView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

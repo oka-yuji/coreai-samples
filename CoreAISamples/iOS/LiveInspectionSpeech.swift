@@ -11,16 +11,16 @@
 
         func prepare() async throws -> String {
             try Task.checkCancellation()
+            guard let voice = InspectionSpeaker.voice else { throw InspectionSpeechError.noJapaneseVoice }
             let authorization = await withCheckedContinuation { continuation in
                 SFSpeechRecognizer.requestAuthorization { @Sendable status in continuation.resume(returning: status) }
             }
             try Task.checkCancellation()
-            guard authorization == .authorized else { throw InspectionSpeechError.permissionDenied }
+            guard authorization == .authorized else { throw InspectionSpeechError.speechRecognitionDenied }
             let microphone = await AVAudioApplication.requestRecordPermission()
             try Task.checkCancellation()
-            guard microphone else { throw InspectionSpeechError.permissionDenied }
+            guard microphone else { throw InspectionSpeechError.microphoneDenied }
             _ = try InspectionRecognition.makeRecognizer()
-            guard let voice = InspectionSpeaker.voice else { throw InspectionSpeechError.noJapaneseVoice }
             let route = try await audio.configure()
             return "permissions: microphone=granted speech=authorized on-device=ja-JP voice=\(voice.name) | \(route)"
         }
@@ -34,9 +34,9 @@
         func endAudio() async { await audio.endAudio() }
         func finishListening() async { await audio.finish() }
 
-        func stop() async -> String? {
+        func stop() async throws {
             speaker.stop()
-            return await audio.stopSession()
+            try await audio.stopSession()
         }
     }
 #endif

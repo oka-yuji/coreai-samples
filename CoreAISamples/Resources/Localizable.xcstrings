@@ -6231,6 +6231,72 @@
         }
       }
     },
+    "Voice input needs microphone access. Allow it in Settings, or type or tap your answers." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音声入力にはマイクへのアクセスが必要です。設定で許可するか、文字入力またはボタンで回答してください。"
+          }
+        }
+      }
+    },
+    "Voice input needs speech recognition access. Allow it in Settings, or type or tap your answers." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音声入力には音声認識へのアクセスが必要です。設定で許可するか、文字入力またはボタンで回答してください。"
+          }
+        }
+      }
+    },
+    "Japanese on-device speech recognition is unavailable on this device. Type or tap your answers." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この端末では日本語の端末内音声認識を利用できません。文字入力またはボタンで回答してください。"
+          }
+        }
+      }
+    },
+    "No Japanese voice is installed to read the questions. Type or tap your answers." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "質問を読み上げる日本語の音声がインストールされていません。文字入力またはボタンで回答してください。"
+          }
+        }
+      }
+    },
+    "Voice input or the model did not stop. Use Stop to try again." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音声入力またはモデルを停止できませんでした。もう一度「停止」を押してください。"
+          }
+        }
+      }
+    },
+    "Stopping failed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "停止できませんでした"
+          }
+        }
+      }
+    },
     "Continue with the answer buttons." : {
       "extractionState" : "manual",
       "localizations" : {

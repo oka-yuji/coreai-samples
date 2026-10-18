@@ -7,33 +7,51 @@ public protocol TruckInspectionModelService {
     func prepare(folder: URL) async throws -> InspectionModelInfo
     func classify(text: String, item: InspectionItem, catalog: InspectionCatalog) async throws -> InspectionCandidate
     func waitForIdle() async
-    func unload()
+    func unload() throws
+}
+
+public struct InspectionReleaseError: LocalizedError {
+    public let reason: String
+
+    public var errorDescription: String? {
+        "The inspection demo could not stop its audio or release its model (\(reason)). Try stopping again."
+    }
+}
+
+enum InspectionGateError: Error {
+    case notPermitted
 }
 
 @MainActor
 public final class TruckInspectionRunner {
     private let model: any TruckInspectionModelService
     private let speech: (any TruckInspectionSpeechService)?
+    private let permits: @MainActor () -> Bool
     private let clock = ContinuousClock()
     private let started = ContinuousClock.now
     private var operations = 0
     private var waiting: [CheckedContinuation<Void, Never>] = []
 
-    public init(model: any TruckInspectionModelService, speech: (any TruckInspectionSpeechService)? = nil) {
+    public init(
+        model: any TruckInspectionModelService, speech: (any TruckInspectionSpeechService)? = nil,
+        permits: @escaping @MainActor () -> Bool = { true }
+    ) {
         self.model = model
         self.speech = speech
+        self.permits = permits
+    }
+
+    public func release() async throws {
+        do {
+            try await drain()
+            try model.unload()
+        } catch {
+            throw InspectionReleaseError(reason: String(describing: error))
+        }
     }
 
     public func run(_ effect: InspectionEffect, send: (InspectionAction) -> Void) async {
-        if case .stop(let id, let unload) = effect {
-            if let message = await speech?.stop() { send(.diagnostic(id, "cleanup: \(message)")) }
-            await model.waitForIdle()
-            if operations > 0 { await withCheckedContinuation { waiting.append($0) } }
-            guard !Task.isCancelled else { return }
-            if unload { model.unload() }
-            send(.stopped(id, unloaded: unload))
-            return
-        }
+        if case .stop(let id, let unload) = effect { return await stop(id, unload: unload, send: send) }
         operations += 1
         defer { finish() }
         let id: Int
@@ -48,11 +66,13 @@ public final class TruckInspectionRunner {
             case .prepare(let id, let folder):
                 send(.diagnostic(id, "environment: \(InspectionMemory.environment())"))
                 send(.diagnostic(id, "memory-before-load: \(InspectionMemory.snapshot())"))
+                try admit()
                 let info = try await model.prepare(folder: folder)
                 try Task.checkCancellation()
                 send(.diagnostic(id, "memory-after-load: \(InspectionMemory.snapshot())"))
                 send(.modelLoaded(id, info))
             case .classify(let id, let text, let item, let catalog):
+                try admit()
                 let start = clock.now
                 let candidate = try await model.classify(text: text, item: item, catalog: catalog)
                 try Task.checkCancellation()
@@ -77,9 +97,18 @@ public final class TruckInspectionRunner {
 
     private func runVoice(_ effect: InspectionVoiceEffect, id: Int, send: (InspectionAction) -> Void) async throws {
         guard let speech else { throw InspectionSpeechError.unavailable }
+        try admit()
         switch effect {
         case .prepare:
-            let diagnostics = try await speech.prepare()
+            let diagnostics: String
+            do {
+                diagnostics = try await speech.prepare()
+            } catch let error as InspectionSpeechError {
+                guard let limit = error.limit else { throw error }
+                try Task.checkCancellation()
+                send(.voice(.limited(id, limit)))
+                return
+            }
             try Task.checkCancellation()
             send(.voice(.prepared(id, diagnostics)))
         case .speak(let text):
@@ -168,6 +197,7 @@ public final class TruckInspectionRunner {
         var times: [Double] = []
         for index in 0...20 {
             try Task.checkCancellation()
+            try admit()
             let start = clock.now
             let candidate = try await model.classify(text: text, item: item, catalog: catalog)
             try Task.checkCancellation()
@@ -185,6 +215,30 @@ public final class TruckInspectionRunner {
             throw InspectionError.invalidClassification
         }
         send(.measured(id, result))
+    }
+
+    private func stop(_ id: Int, unload: Bool, send: (InspectionAction) -> Void) async {
+        do {
+            if unload { try await release() } else { try await drain() }
+        } catch {
+            guard !Task.isCancelled else { return }
+            send(.stopFailed(id, String(describing: error)))
+            return
+        }
+        guard !Task.isCancelled else { return }
+        send(.stopped(id, unloaded: unload))
+    }
+
+    private func drain() async throws {
+        var failure: (any Error)?
+        do { try await speech?.stop() } catch { failure = error }
+        await model.waitForIdle()
+        if operations > 0 { await withCheckedContinuation { waiting.append($0) } }
+        if let failure { throw failure }
+    }
+
+    private func admit() throws {
+        guard permits() else { throw InspectionGateError.notPermitted }
     }
 
     private func stamp(_ id: Int, send: (InspectionAction) -> Void) {
