@@ -120,7 +120,7 @@ struct InspectionManagedTests {
         #expect(state.phase == .stopping)
         _ = TruckInspectionFeature.reduce(&state, .stopFailed(state.generation, "deactivation failed"))
         #expect(state.phase == .stopFailed)
-        #expect(!state.message.isEmpty)
+        #expect(state.stopFailureMessage != nil)
         #expect(state.events.last == "stop-error: deactivation failed")
         let failed = state
         let item = try #require(state.items.first)
@@ -156,6 +156,37 @@ struct InspectionManagedTests {
         #expect(state.phase == .idle)
         #expect(state.modelInfo == nil)
         #expect(TruckInspectionFeature.reduce(&state, .closed).isEmpty)
+    }
+
+    @Test("INSPECT-03: A successful stop retry clears only the stop failure guidance and keeps the voice guidance")
+    func stopRetryGuidance() throws {
+        var limited = try managed()
+        limited.modelInfo = info()
+        _ = TruckInspectionFeature.reduce(&limited, .voice(.start))
+        _ = TruckInspectionFeature.reduce(&limited, .voice(.limited(limited.generation, .microphoneDenied)))
+        _ = TruckInspectionFeature.reduce(&limited, .stopFailed(limited.generation, "deactivation failed"))
+        #expect(limited.stopFailureMessage != nil)
+        #expect(limited.voiceLimit == .microphoneDenied)
+        _ = TruckInspectionFeature.reduce(&limited, .stop)
+        _ = TruckInspectionFeature.reduce(&limited, .stopped(limited.generation, unloaded: false))
+        #expect(limited.phase == .idle)
+        #expect(limited.stopFailureMessage == nil)
+        #expect(limited.message.isEmpty)
+        #expect(limited.voiceLimit == .microphoneDenied)
+
+        var fallback = try managed()
+        fallback.modelInfo = info()
+        _ = TruckInspectionFeature.reduce(&fallback, .voice(.start))
+        _ = TruckInspectionFeature.reduce(&fallback, .voice(.failed(fallback.generation, "recognizer failed")))
+        let guidance = fallback.message
+        #expect(!guidance.isEmpty)
+        _ = TruckInspectionFeature.reduce(&fallback, .stopFailed(fallback.generation, "deactivation failed"))
+        #expect(fallback.stopFailureMessage != nil)
+        #expect(fallback.message == guidance)
+        _ = TruckInspectionFeature.reduce(&fallback, .stop)
+        _ = TruckInspectionFeature.reduce(&fallback, .stopped(fallback.generation, unloaded: false))
+        #expect(fallback.stopFailureMessage == nil)
+        #expect(fallback.message == guidance)
     }
 
     @Test(

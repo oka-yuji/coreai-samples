@@ -118,6 +118,9 @@ public struct InspectionState: Equatable, Sendable {
     public var canStartVoice: Bool { canConfigure && voiceLimit == nil && (modelInfo != nil || preparesOnRequest) }
     public var canMeasure: Bool { canConfigure && (modelInfo != nil || preparesOnRequest) }
     var preparesOnRequest: Bool { execution == .managed && modelFolder != nil }
+    public var stopFailureMessage: String? {
+        phase == .stopFailed ? "Voice input or the model did not stop. Use Stop to try again." : nil
+    }
     public var orderedRecords: [InspectionRecord] { items.compactMap { records[$0.id] } }
     public var unansweredCount: Int { items.count - records.count }
 

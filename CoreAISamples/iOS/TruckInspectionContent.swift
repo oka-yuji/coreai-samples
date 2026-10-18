@@ -113,6 +113,9 @@
                     if !state.partialText.isEmpty { Text(verbatim: state.partialText).font(.body) }
                     Button("Use answer buttons") { store.send(.voice(.useButtons)) }
                 }
+                if let failure = state.stopFailureMessage {
+                    Text(LocalizedStringKey(failure)).font(.caption).foregroundStyle(.secondary)
+                }
                 if state.phase != .idle && state.phase != .completed {
                     Button("Stop", role: .cancel) { store.send(.stop) }
                         .disabled(state.phase == .stopping)

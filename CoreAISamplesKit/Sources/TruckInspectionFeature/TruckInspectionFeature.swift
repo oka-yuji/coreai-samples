@@ -162,7 +162,6 @@ public enum TruckInspectionFeature: Feature {
         case .stopFailed(let id, let error):
             guard id == state.generation, state.phase == .stopping else { return [] }
             state.phase = .stopFailed
-            state.message = "Voice input or the model did not stop. Use Stop to try again."
             state.note("stop-error: \(error)")
             return []
         case .failed(let id, let error):
