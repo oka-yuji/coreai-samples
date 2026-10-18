@@ -128,7 +128,7 @@ struct ImageSearchContent: View {
                         Text(verbatim: state.submittedQuery).foregroundStyle(.secondary)
                         if let identity = state.resultIdentity {
                             Text("Results from \(identity)")
-                                .font(.caption).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
+                                .font(.caption).foregroundStyle(.secondary).lineLimit(1).truncationMode(.tail)
                         }
                     }
                 }

@@ -15,6 +15,7 @@
         private let leadingToolbar: AnyView?
         @State private var deletion: ModelDeletionRequest?
         @State private var showsAbout = false
+        @Environment(\.locale) private var locale
         @ScaledMetric(relativeTo: .body) private var tileWidth = 88
 
         public init(store: Store<ModelLibraryFeature>, renderer: Renderer, leadingToolbar: AnyView? = nil) {
@@ -121,7 +122,8 @@
                 HStack(alignment: .firstTextBaseline) {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(verbatim: section.model.name).font(.headline)
-                        Text(verbatim: classification(section.model)).font(.footnote).foregroundStyle(.secondary)
+                        Text(verbatim: store.state.rowDetail(for: section.model, locale: locale))
+                            .font(.footnote).foregroundStyle(.secondary)
                     }
                     Spacer(minLength: 8)
                     ModelAcquisitionControls(store: store, model: section.model) {
@@ -148,14 +150,6 @@
                 Divider()
             }
             .accessibilityElement(children: .contain)
-        }
-
-        private func classification(_ model: LibraryModel) -> String {
-            let size = store.state.selectedArtifact(for: model.id).flatMap {
-                store.state.installations[$0.id]?.resource?.sizeBytes ?? $0.sizeBytes
-            }
-            return [model.classification, size.map { $0.formatted(.byteCount(style: .file)) }]
-                .compactMap { $0 }.joined(separator: " · ")
         }
     }
 

@@ -42,6 +42,10 @@
                         .padding()
                     }
                     .navigationTitle(Text(verbatim: model.name))
+                    .navigationSubtitle(
+                        store.state.variantTitle(for: model.id).map { Text("Variant: \($0)", bundle: .module) }
+                            ?? Text(verbatim: "")
+                    )
                     .toolbar {
                         ToolbarItem(placement: .topBarTrailing) {
                             Button {

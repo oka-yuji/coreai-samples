@@ -361,6 +361,16 @@
         }
       }
     },
+    "Variant: %@": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "変換版: %@"
+          }
+        }
+      }
+    },
     "You can read each demo before downloading its model.": {
       "localizations": {
         "ja": {
