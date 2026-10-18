@@ -1,6 +1,6 @@
 # iOS model library UI
 
-`ModelLibraryUI` consumes `Store<ModelLibraryFeature>` and a `ModelDemoRendering` provider. It provides the model sections, shared demo tiles, system search, model status/actions, descriptions, and model information. The existing app entry point is not switched by this component change.
+`ModelLibraryUI` consumes `Store<ModelLibraryFeature>` and a `ModelDemoRendering` provider. It provides the model sections, shared demo tiles, system search, model status/actions, descriptions, and model information. The regular iOS app opens this view on ordinary launch through `PhoneModelLibraryScreen`.
 
 The renderer has two distinct inputs. `preview(for:)` receives only a metadata selection and must create display-only content without model, camera, or audio resources. `content(for:)` receives the active validated session. The host calls it only when the library permits that session. Renderer content is embedded in the host's scrolling content and should not create a second vertically scrolling screen or another navigation stack.
 
@@ -23,3 +23,15 @@ Full navigation coverage, Dynamic Type, VoiceOver, and device behavior still req
 ## Review follow-up
 
 The review found and corrected missing deletion-alert details and a preview host localization setting. It also made the preview retain inputs/results by model and demo instead of tying them to a temporary view. XcodeGen now generates an explicit preview Info.plist with mixed localizations enabled. The remaining production work is model distribution configuration, runtime validation and stop/release adapters, and connections to the approved functional screens.
+
+## Regular iOS launch
+
+Build and run the **CoreAISamples-iOS** scheme without diagnostic arguments to open Models. `IOSDemoLaunch` selects the launch destination before constructing legacy demo stores. `IOSDemoCatalog` lists GLiNER2.5-multi (comparison, extraction, inspection) and EmbeddingGemma 2 (image search, camera search). Search aliases include the app's English and Japanese labels without rebuilding the Store when the display language changes.
+
+The catalog has no configured model distribution or managed installation. The normal app therefore displays **Description only**, hides acquisition actions, and keeps demo inputs disabled. `ModelLibraryBrowsingRunner` performs no file, network, model, microphone, or camera work and never returns an executable resource. The `unconfigured` artifact contracts are internal placeholders, not validated model formats. Existing model files in Documents are neither inspected nor removed by this route.
+
+Explicit `--image-search`, `--object-finder`, `--truck-inspection`, and `--legacy-demos` use the original demos. `--extract-eval` and `--image-search-eval` retain the evaluation routes. Extract evaluation resolves relative gold/form/asset/output paths against Documents on iOS; macOS retains its current-directory behavior. These explicit diagnostic routes are separate from ordinary Models browsing.
+
+`IOSDemoLaunchTests` covers destination precedence, catalog ownership, translated search aliases, descriptor decoding, and refusal to execute through the browsing runner. Production iPhoneOS and macOS builds and CPU regression checks accompany the startup change. Physical-device UI acceptance remains a user check after merging.
+
+An isolated iPhone 17 / iOS 27 simulator target compiled the actual `PhoneDemoApp`, `PhoneModelLibraryScreen`, `DemoLanguage`, app strings, and shared Feature/UI, with only diagnostic/legacy view types substituted. It verified ordinary Models startup, EN/JP switching, Japanese demo search, description-only controls, and returning with the search query preserved. No model or physical-device operation was part of that check.

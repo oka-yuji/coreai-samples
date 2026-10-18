@@ -6,7 +6,7 @@
 
 [機能画面のデザイン確認一覧（HTML）](docs/designs/function-screens.html)
 
-[ネイティブSwiftUIプレビューと確認手順](Examples/ModelLibraryPreview/README.md)：iOS共通UIを独立して実装中です。既存アプリの起動画面はまだ切り替えていません。
+[ネイティブSwiftUIプレビューと確認手順](Examples/ModelLibraryPreview/README.md)：通常のiOSアプリもModelsから起動します。5つのデモ説明を閲覧でき、モデルのダウンロード・実行はまだ未接続です。
 
 Apple の Core AI と Foundation Models で、オープンなモデルを Mac 上で動かす Swift のサンプルです。**Chat** と **Agent** は Qwen3.8 27B で動き、Agent は Web を検索し、ページを読み、メモを保存します。**Recipes** は冷蔵庫の写真の食材とレシピの URL を照らし合わせ、**Decide** は文書を編集できるチェックリストで採点します。この 2 つは Clef-Flash 9B を使います。**Extract** は GLiNER2.5-multi で商品説明から出典つきのスペックのカードを作ります。`Tools/Verify` は、このリポジトリのランタイムと Apple のランタイムをトークン単位で比べます。
 

@@ -7334,6 +7334,325 @@
           }
         }
       }
+    },
+    "Add up to four product descriptions from URLs or pasted text, then compare extracted specifications and their source evidence." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "URLや貼り付けた文章から最大4件の商品説明を追加し、抽出した仕様とその根拠を比較します。"
+          }
+        }
+      }
+    },
+    "Camera search demo" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カメラ探索デモ"
+          }
+        }
+      }
+    },
+    "Compare" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "比較する"
+          }
+        }
+      }
+    },
+    "Compare product specifications from source text." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "説明文から商品の仕様を抽出し、比較します。"
+          }
+        }
+      }
+    },
+    "Comparison demo" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "比較デモ"
+          }
+        }
+      }
+    },
+    "Could not open Models" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modelsを開けませんでした"
+          }
+        }
+      }
+    },
+    "Demo execution is not connected in this build." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このビルドでは、デモの実行機能はまだ接続されていません。"
+          }
+        }
+      }
+    },
+    "Enter inspection answers, review the interpreted fields, and correct them before sharing the inspection record." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "点検への回答を入力し、読み取られた項目を確認・修正してから点検記録を共有します。"
+          }
+        }
+      }
+    },
+    "Enter what you want to find and inspect matching regions in the camera preview. Matches are similarity candidates and may need human review." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "探したいものを入力し、カメラ映像の中で一致する候補領域を確認します。類似度に基づく候補なので、人による確認が必要です。"
+          }
+        }
+      }
+    },
+    "Extract structured fields and review their evidence." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "文章から項目を抽出し、根拠とともに確認します。"
+          }
+        }
+      }
+    },
+    "Extraction demo" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "抽出デモ"
+          }
+        }
+      }
+    },
+    "Find camera regions that match your words." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "入力した言葉に近い領域を、カメラ映像から探します。"
+          }
+        }
+      }
+    },
+    "Find selected images using a text query." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選んだ画像を、言葉で検索します。"
+          }
+        }
+      }
+    },
+    "How it works" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "デモの使い方"
+          }
+        }
+      }
+    },
+    "Image search demo" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "画像検索デモ"
+          }
+        }
+      }
+    },
+    "Information Extraction" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "情報抽出"
+          }
+        }
+      }
+    },
+    "Input" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "入力"
+          }
+        }
+      }
+    },
+    "Inspection answer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "点検への回答"
+          }
+        }
+      }
+    },
+    "Inspection demo" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "点検デモ"
+          }
+        }
+      }
+    },
+    "Multimodal Embedding" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "画像・テキストの埋め込み"
+          }
+        }
+      }
+    },
+    "Review truck inspection answers entered by text or voice." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "文字や音声で入力したトラックの点検回答を確認します。"
+          }
+        }
+      }
+    },
+    "Run demo" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "デモを実行"
+          }
+        }
+      }
+    },
+    "Search images" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "画像を検索"
+          }
+        }
+      }
+    },
+    "Search query" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "検索する言葉"
+          }
+        }
+      }
+    },
+    "Select images, prepare their search index, and compare the matching images for your query. Similarity scores help rank candidates." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "画像を選んで検索の準備を行い、入力した言葉に近い画像を比較します。類似度は候補の並び順を判断するための値です。"
+          }
+        }
+      }
+    },
+    "Start camera" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カメラを開始"
+          }
+        }
+      }
+    },
+    "Text to extract" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "抽出する文章"
+          }
+        }
+      }
+    },
+    "What to find" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "探したいもの"
+          }
+        }
+      }
+    },
+    "Enter a note and inspect the extracted text spans and scores for each field alongside the original text." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "文章を入力し、項目ごとに抽出された文字列とスコアを原文と照らし合わせて確認します。"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

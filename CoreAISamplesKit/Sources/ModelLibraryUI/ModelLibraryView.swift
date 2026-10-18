@@ -12,14 +12,16 @@
     public struct ModelLibraryView<Renderer: ModelDemoRendering>: View {
         private let store: Store<ModelLibraryFeature>
         private let renderer: Renderer
+        private let leadingToolbar: AnyView?
         @Environment(\.locale) private var locale
         @State private var deletion: LibraryModel?
         @State private var showsAbout = false
         @ScaledMetric(relativeTo: .body) private var tileWidth = 88
 
-        public init(store: Store<ModelLibraryFeature>, renderer: Renderer) {
+        public init(store: Store<ModelLibraryFeature>, renderer: Renderer, leadingToolbar: AnyView? = nil) {
             self.store = store
             self.renderer = renderer
+            self.leadingToolbar = leadingToolbar
         }
 
         private var navigation: Binding<[DemoSelection]> {
@@ -40,6 +42,9 @@
                     .navigationTitle(Text(verbatim: "Models"))
                     .searchable(text: query, prompt: libraryText("Search models and demos"))
                     .toolbar {
+                        if let leadingToolbar {
+                            ToolbarItem(placement: .topBarLeading) { leadingToolbar }
+                        }
                         DefaultToolbarItem(kind: .search, placement: .bottomBar)
                         ToolbarItem(placement: .topBarTrailing) {
                             Button {
@@ -111,8 +116,12 @@
                 LazyVStack(alignment: .leading, spacing: 26) {
                     VStack(alignment: .leading, spacing: 6) {
                         libraryText("Choose a demo for a model.").font(.body)
-                        libraryText("You can read each demo before downloading its model.")
-                            .font(.footnote).foregroundStyle(.secondary)
+                        libraryText(
+                            store.state.catalog.models.allSatisfy { $0.artifact.download == nil }
+                                ? "Demo descriptions are available. Downloads and execution are not available in this build."
+                                : "You can read each demo before downloading its model."
+                        )
+                        .font(.footnote).foregroundStyle(.secondary)
                     }
                     if store.state.sections.isEmpty {
                         if store.state.query.isEmpty {
