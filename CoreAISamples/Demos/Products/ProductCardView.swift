@@ -32,6 +32,10 @@ struct ProductCardView: View {
                     Label("Pasted description", systemImage: "doc.on.clipboard").font(.caption).foregroundStyle(
                         .secondary)
                 }
+                if let identity = card.resourceIdentity {
+                    Text("Extracted with \(identity)")
+                        .font(.caption2).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
+                }
             }
             .padding(18)
             .frame(maxWidth: .infinity, alignment: .leading)

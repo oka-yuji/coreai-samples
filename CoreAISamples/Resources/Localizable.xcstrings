@@ -4896,6 +4896,16 @@
         }
       }
     },
+    "Extracted with %@" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ で抽出"
+          }
+        }
+      }
+    },
     "Paste the description instead" : {
       "localizations" : {
         "ja" : {
@@ -5232,6 +5242,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "前の抽出処理が終了するまで少し待ってからお試しください。"
+          }
+        }
+      }
+    },
+    "The selected model is not ready yet. Please try again shortly." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選択したモデルの準備がまだできていません。少し待ってからお試しください。"
           }
         }
       }

@@ -64,7 +64,8 @@ public enum IOSDemoCatalog {
                 artifacts: [unconfigured("gliner2.5-multi-unconfigured")],
                 defaultArtifactID: "gliner2.5-multi-unconfigured", platforms: [.iOS],
                 demos: ["comparison", "extraction", "inspection"].map {
-                    ModelDemoLink(demoID: $0, platforms: [.iOS])
+                    ModelDemoLink(
+                        demoID: $0, platforms: [.iOS], optionalCapabilities: $0 == "comparison" ? [.network] : [])
                 }),
             LibraryModel(
                 id: "embeddinggemma2", name: "EmbeddingGemma 2", category: "Multimodal Embedding",

@@ -188,7 +188,10 @@ let package = Package(
             swiftSettings: approachableConcurrency),
         .target(name: "ProductCore", swiftSettings: approachableConcurrency),
         .target(
-            name: "ProductRuntime", dependencies: ["ProductCore", "ProductFeature", "GLiNERCore", "GLiNERRuntime"],
+            name: "ProductRuntime",
+            dependencies: [
+                "ProductCore", "ProductFeature", "GLiNERCore", "GLiNERRuntime", "ModelLibraryFeature", "FeatureStore",
+            ],
             resources: [.process("Resources")], swiftSettings: approachableConcurrency),
         .testTarget(name: "ProductCoreTests", dependencies: ["ProductCore"], swiftSettings: approachableConcurrency),
         .testTarget(

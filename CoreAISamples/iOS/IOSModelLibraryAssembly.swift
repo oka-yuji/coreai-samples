@@ -17,7 +17,11 @@
         }
 
         private static let store = ManagedModelStore(root: ModelStorage.root.appending(path: "ModelLibrary"))
-        private static let registry = ModelDemoAdapterRegistry()
+        private static let registry: ModelDemoAdapterRegistry = {
+            let registry = ModelDemoAdapterRegistry()
+            registry.register(ProductComparisonAdapter())
+            return registry
+        }()
         private static let runner = ModelLibraryRunner(
             resources: ModelLibraryResourceRunner(
                 store: store, transfer: ArtifactTransfer(), migrationCandidates: legacyFolders),
