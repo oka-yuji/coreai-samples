@@ -23,9 +23,7 @@ struct ProductSessionTests {
     }
 
     @MainActor
-    @Test(
-        "Imports and extracts only with the selected context and never calls the service for a missing, other-revision or old-session request"
-    )
+    @Test("A managed comparison ignores folder changes and its runner reaches the service only through an open gate")
     func selectedContext() async throws {
         var state = managed()
         let unchanged = state
@@ -148,12 +146,12 @@ enum ProductStage: CaseIterable, Sendable {
     case fetch, extraction
 }
 
-private struct MissingEvents: Error {
+struct MissingEvents: Error {
     let events: [String]
 }
 
 @MainActor
-private func receive(_ events: inout AsyncStream<String>.Iterator, _ wanted: String...) async throws {
+func receive(_ events: inout AsyncStream<String>.Iterator, _ wanted: String...) async throws {
     var remaining = wanted
     while !remaining.isEmpty, let event = await events.next(isolation: #isolation) {
         if let index = remaining.firstIndex(of: event) { remaining.remove(at: index) }
@@ -192,14 +190,16 @@ private final class ProductActions {
 }
 
 @MainActor
-private final class ProductServiceFake: ProductService {
+final class ProductServiceFake: ProductService {
     let events: AsyncStream<String>
     private let sink: AsyncStream<String>.Continuation
     private let holding: Bool
     private(set) var log: [String] = []
     private(set) var folders: [URL] = []
     var releaseFailure: ProductError?
+    var holdsRelease = false
     private var held: [CheckedContinuation<Void, Never>] = []
+    private var heldReleases: [CheckedContinuation<Void, Never>] = []
     private var running = 0
     private var idle: [CheckedContinuation<Void, Never>] = []
 
@@ -227,7 +227,14 @@ private final class ProductServiceFake: ProductService {
 
     func release() async throws {
         record("release")
+        if holdsRelease { await withCheckedContinuation { heldReleases.append($0) } }
         if let releaseFailure { throw releaseFailure }
+    }
+
+    func resumeReleases() {
+        let waiting = heldReleases
+        heldReleases.removeAll()
+        for continuation in waiting { continuation.resume() }
     }
 
     func resume() {
