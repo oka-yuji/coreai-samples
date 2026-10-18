@@ -1,6 +1,6 @@
 # Clef-Flash 9BをCore AIで使う
 
-[English](clef-flash.md) · [Hugging Faceからダウンロード](https://huggingface.co/okayuji/clef-flash-9b-coreai-decide)
+[トップ](../README.ja.md) · [English](clef-flash.md) · [Hugging Faceからダウンロード](https://huggingface.co/okayuji/clef-flash-9b-coreai-decide)
 
 文書と、答えの候補を決めたチェックリストを渡すと、候補ごとの確率を返します。文書を保持したまま質問を編集して再判定できます。アプリでは **Decide** と **Recipes** がこのモデルを使います。
 
@@ -8,18 +8,25 @@
 
 必要環境はApple silicon、macOS 27、Xcode 27とMetal Toolchainです。GPUで実行し、計測した機種はM4 Max 128 GBです。最低メモリ構成は未確認です。Recipesの写真認識には、Macで画像入力対応のApple Intelligenceが利用可能である必要があります。
 
-## 試す
+アプリをビルドする前に、Rust/Cargoを含む[共通の準備](../README.ja.md#はじめる)を済ませてください。
 
-リポジトリのルートで、[Hugging Face CLI](https://huggingface.co/docs/huggingface_hub/guides/cli)を使って取得します。
+## クイックスタート
+
+冷蔵庫にあるもので、このレシピは作れるか。**Recipes** は冷蔵庫の写真を読み、提案された食材を利用者が確認してから、その在庫をレシピの URL と照らし合わせます。写真には Apple の端末上のモデルを、レシピの必要な食材と道具には **Core AI で動く Clef-Flash 9B** を、数量には Swift のコードを使います。**Decide** は同じ Clef のバンドルで、文書を編集できる質問で採点します。どちらもモデルの校正していない確率を表示します。
+
+**別に配布している Clef のバンドルへのアクセス権が必要です。** 下の `hf download` は、そのリポジトリへのアクセス権がある Hugging Face のアカウントでだけ動きます。[Hugging Face CLI](https://huggingface.co/docs/huggingface_hub/guides/cli)を入れ、そのアカウントで `hf auth login` を実行してから、アプリとバンドルを取得します。バンドルを開くときは `decision.json` を含むフォルダを選びます。
 
 ```sh
+git clone https://github.com/oka-yuji/coreai-samples.git
+cd coreai-samples
 hf download okayuji/clef-flash-9b-coreai-decide --local-dir ./models/clef-flash-9b-decide-v1
 ```
 
-`CoreAISamples.xcodeproj` を開き、schemeは **CoreAISamples**、実行先は **My Mac**、Runのbuild configurationは **Release** にして実行します。サイドバーの **Clef-Flash 9B**（文書チェックリストまたはレシピの説明が付いた項目）で、`decision.json` が入った `models/clef-flash-9b-decide-v1` フォルダを開きます。画面右上の **EN / JP** で表示言語を切り替えられます。
+`CoreAISamples.xcodeproj` を開き、**CoreAISamples** スキームと **My Mac** を選び、実行の構成を **Release** にして実行します。右上の **EN / JP** で、Mac の 6 つの画面の表示がすべて切り替わります。
 
-- **文書チェックリスト:** 「サンプル」から保守契約を選び、チェックリストを実行します。質問を編集して再実行すると文書を再利用します。[操作とAPIの手順](decide.md)があります。
-- **レシピ判定:** 同梱の冷蔵庫サンプルを選び、食材名と数量を確認・確定してからレシピを判定します。[写真5枚とURLの手順](recipes-demo.md)を参照してください。
+サイドバーでレシピの説明が付いた **Clef-Flash 9B** を開き、**Clef-Flashのフォルダを選択**(Open Clef-Flash bundle)を選び、`models/clef-flash-9b-decide-v1` を選びます。**サンプル → 卵3個の卵焼き**(Examples → Three-egg omelette)を選び、提案された卵の数量を `1 pcs` にして確定し、**レシピを判定**(Check recipe)を押します。レシピには卵が 3 個要るので、確定した在庫では 2 個足りません。同梱の 5 枚の写真とレシピの URL は [Recipes の手順](recipes-demo.md)にあります。写真と在庫は Mac から出ません。レシピの URL の取得にはインターネット接続が要ります。
+
+サイドバーで文書チェックリストの説明が付いた **Clef-Flash 9B** を開き、同じバンドルを選んで、**サンプル → 保守契約**(Examples → Maintenance agreement)を選んで **条件を判定**(Run checklist)を押します。質問を編集してもう一度実行すると、文書を使い回します。確認の付け方、JSON の書き出し、Swift の API は [Decide の説明](decide.md)にあります。
 
 ビルドしたアプリは、ウィンドウを開かずに記録済みの入力も実行できます。`DECIDE_APP` にアプリの実行ファイルを指定します。
 
