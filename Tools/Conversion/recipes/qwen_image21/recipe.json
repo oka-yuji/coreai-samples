@@ -1,0 +1,539 @@
+{
+  "version": 1,
+  "name": "image_research_512_fp32",
+  "variables": {
+    "python": "$python",
+    "snapshot": "$snapshot",
+    "heavy_lock": "$heavy_lock"
+  },
+  "python": "$python",
+  "environment": {
+    "HF_HUB_OFFLINE": "1",
+    "TOKENIZERS_PARALLELISM": "false",
+    "COREAI_HEAVY_JOB_LOCK": "$heavy_lock"
+  },
+  "steps": [
+    {
+      "id": "prepare",
+      "role": "prepare",
+      "command": [
+        "$python",
+        "-m",
+        "Tools.Conversion.adapters.qwen_image21.prepare",
+        "--snapshot",
+        "$snapshot",
+        "--model",
+        "$recipe_dir/model.json",
+        "--output",
+        "$out"
+      ],
+      "inputs": [
+        "$repo/Tools/Conversion/adapters/qwen_image21/prepare.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/contracts.py",
+        "$recipe_dir/model.json",
+        "$snapshot"
+      ],
+      "outputs": [
+        "source.json"
+      ],
+      "timeout_s": 600,
+      "min_free_bytes": 60000000000,
+      "cwd": "$repo"
+    },
+    {
+      "id": "reference",
+      "role": "reference",
+      "depends": [
+        "prepare"
+      ],
+      "command": [
+        "/usr/bin/time",
+        "-l",
+        "$python",
+        "-m",
+        "Tools.Conversion.adapters.qwen_image21.reference",
+        "--snapshot",
+        "$snapshot",
+        "--output",
+        "$out",
+        "--precision",
+        "fp32",
+        "--cache",
+        "off"
+      ],
+      "inputs": [
+        "$repo/Tools/Conversion/adapters/qwen_image21/reference.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/contracts.py",
+        "$snapshot"
+      ],
+      "outputs": [
+        "reference.json",
+        "identity.json",
+        "events.json",
+        "generate",
+        "edit",
+        "edit-input.png"
+      ],
+      "heavy": true,
+      "timeout_s": 1800,
+      "min_free_bytes": 60000000000,
+      "cwd": "$repo"
+    },
+    {
+      "id": "reference_fp32_on",
+      "role": "reference",
+      "depends": [
+        "prepare"
+      ],
+      "command": [
+        "/usr/bin/time",
+        "-l",
+        "$python",
+        "-m",
+        "Tools.Conversion.adapters.qwen_image21.reference",
+        "--snapshot",
+        "$snapshot",
+        "--output",
+        "$out",
+        "--precision",
+        "fp32",
+        "--cache",
+        "on"
+      ],
+      "inputs": [
+        "$repo/Tools/Conversion/adapters/qwen_image21/reference.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/contracts.py",
+        "$snapshot"
+      ],
+      "outputs": [
+        "reference.json",
+        "identity.json",
+        "events.json",
+        "generate",
+        "edit",
+        "edit-input.png"
+      ],
+      "heavy": true,
+      "timeout_s": 1800,
+      "min_free_bytes": 60000000000,
+      "cwd": "$repo"
+    },
+    {
+      "id": "reference_bf16_on",
+      "role": "reference",
+      "depends": [
+        "prepare"
+      ],
+      "command": [
+        "/usr/bin/time",
+        "-l",
+        "$python",
+        "-m",
+        "Tools.Conversion.adapters.qwen_image21.reference",
+        "--snapshot",
+        "$snapshot",
+        "--output",
+        "$out",
+        "--precision",
+        "bf16",
+        "--cache",
+        "on"
+      ],
+      "inputs": [
+        "$repo/Tools/Conversion/adapters/qwen_image21/reference.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/contracts.py",
+        "$snapshot"
+      ],
+      "outputs": [
+        "reference.json",
+        "identity.json",
+        "events.json",
+        "generate",
+        "edit",
+        "edit-input.png"
+      ],
+      "heavy": true,
+      "timeout_s": 1800,
+      "min_free_bytes": 60000000000,
+      "cwd": "$repo"
+    },
+    {
+      "id": "vision",
+      "role": "export",
+      "depends": [
+        "prepare",
+        "reference"
+      ],
+      "command": [
+        "/usr/bin/time",
+        "-l",
+        "$python",
+        "-m",
+        "Tools.Conversion.adapters.qwen_image21.convert",
+        "--kind",
+        "vision",
+        "--snapshot",
+        "$snapshot",
+        "--reference",
+        "$reference",
+        "--output",
+        "$out"
+      ],
+      "inputs": [
+        "$repo/Tools/Conversion/adapters/qwen_image21/convert.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/contracts.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/examples.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/preprocessing.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/denoiser.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/encoders.py",
+        "$snapshot/text_encoder"
+      ],
+      "outputs": [
+        "component.json",
+        "comparison.json",
+        "vision.aimodel"
+      ],
+      "checks": [
+        {
+          "file": "comparison.json",
+          "key": [
+            "passed"
+          ],
+          "equals": true
+        }
+      ],
+      "heavy": true,
+      "timeout_s": 1800,
+      "min_free_bytes": 20000000000,
+      "cwd": "$repo"
+    },
+    {
+      "id": "text",
+      "role": "export",
+      "depends": [
+        "prepare",
+        "reference"
+      ],
+      "command": [
+        "/usr/bin/time",
+        "-l",
+        "$python",
+        "-m",
+        "Tools.Conversion.adapters.qwen_image21.convert",
+        "--kind",
+        "text",
+        "--snapshot",
+        "$snapshot",
+        "--reference",
+        "$reference",
+        "--output",
+        "$out"
+      ],
+      "inputs": [
+        "$repo/Tools/Conversion/adapters/qwen_image21/convert.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/contracts.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/examples.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/preprocessing.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/denoiser.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/encoders.py",
+        "$snapshot/text_encoder"
+      ],
+      "outputs": [
+        "component.json",
+        "comparison.json",
+        "text.aimodel"
+      ],
+      "checks": [
+        {
+          "file": "comparison.json",
+          "key": [
+            "passed"
+          ],
+          "equals": true
+        }
+      ],
+      "heavy": true,
+      "timeout_s": 1800,
+      "min_free_bytes": 50000000000,
+      "cwd": "$repo"
+    },
+    {
+      "id": "denoiser",
+      "role": "export",
+      "depends": [
+        "prepare",
+        "reference"
+      ],
+      "command": [
+        "/usr/bin/time",
+        "-l",
+        "$python",
+        "-m",
+        "Tools.Conversion.adapters.qwen_image21.convert",
+        "--kind",
+        "denoiser",
+        "--snapshot",
+        "$snapshot",
+        "--reference",
+        "$reference",
+        "--output",
+        "$out"
+      ],
+      "inputs": [
+        "$repo/Tools/Conversion/adapters/qwen_image21/convert.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/contracts.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/examples.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/preprocessing.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/denoiser.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/encoders.py",
+        "$snapshot/transformer"
+      ],
+      "outputs": [
+        "component.json",
+        "comparison.json",
+        "denoiser.aimodel"
+      ],
+      "checks": [
+        {
+          "file": "comparison.json",
+          "key": [
+            "passed"
+          ],
+          "equals": true
+        }
+      ],
+      "heavy": true,
+      "timeout_s": 1800,
+      "min_free_bytes": 50000000000,
+      "cwd": "$repo"
+    },
+    {
+      "id": "vae_encoder",
+      "role": "export",
+      "depends": [
+        "prepare",
+        "reference"
+      ],
+      "command": [
+        "/usr/bin/time",
+        "-l",
+        "$python",
+        "-m",
+        "Tools.Conversion.adapters.qwen_image21.convert",
+        "--kind",
+        "vae_encoder",
+        "--snapshot",
+        "$snapshot",
+        "--reference",
+        "$reference",
+        "--output",
+        "$out"
+      ],
+      "inputs": [
+        "$repo/Tools/Conversion/adapters/qwen_image21/convert.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/contracts.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/examples.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/preprocessing.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/denoiser.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/encoders.py",
+        "$snapshot/vae"
+      ],
+      "outputs": [
+        "component.json",
+        "comparison.json",
+        "vae_encoder.aimodel"
+      ],
+      "checks": [
+        {
+          "file": "comparison.json",
+          "key": [
+            "passed"
+          ],
+          "equals": true
+        }
+      ],
+      "heavy": true,
+      "timeout_s": 1800,
+      "min_free_bytes": 20000000000,
+      "cwd": "$repo"
+    },
+    {
+      "id": "vae_decoder",
+      "role": "export",
+      "depends": [
+        "prepare",
+        "reference"
+      ],
+      "command": [
+        "/usr/bin/time",
+        "-l",
+        "$python",
+        "-m",
+        "Tools.Conversion.adapters.qwen_image21.convert",
+        "--kind",
+        "vae_decoder",
+        "--snapshot",
+        "$snapshot",
+        "--reference",
+        "$reference",
+        "--output",
+        "$out"
+      ],
+      "inputs": [
+        "$repo/Tools/Conversion/adapters/qwen_image21/convert.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/contracts.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/examples.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/preprocessing.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/denoiser.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/encoders.py",
+        "$snapshot/vae"
+      ],
+      "outputs": [
+        "component.json",
+        "comparison.json",
+        "vae_decoder.aimodel"
+      ],
+      "checks": [
+        {
+          "file": "comparison.json",
+          "key": [
+            "passed"
+          ],
+          "equals": true
+        }
+      ],
+      "heavy": true,
+      "timeout_s": 1800,
+      "min_free_bytes": 20000000000,
+      "cwd": "$repo"
+    },
+    {
+      "id": "verify",
+      "role": "verify",
+      "depends": [
+        "reference",
+        "vision",
+        "text",
+        "denoiser",
+        "vae_encoder",
+        "vae_decoder",
+        "reference_fp32_on",
+        "reference_bf16_on"
+      ],
+      "command": [
+        "/usr/bin/time",
+        "-l",
+        "$python",
+        "-m",
+        "Tools.Conversion.adapters.qwen_image21.verify",
+        "--snapshot",
+        "$snapshot",
+        "--reference",
+        "$reference",
+        "--output",
+        "$out",
+        "--components",
+        "$vision",
+        "$text",
+        "$denoiser",
+        "$vae_encoder",
+        "$vae_decoder",
+        "--reference-on",
+        "$reference_fp32_on",
+        "--reference-bf16",
+        "$reference_bf16_on"
+      ],
+      "inputs": [
+        "$repo/Tools/Conversion/adapters/qwen_image21",
+        "$snapshot/processor",
+        "$snapshot/text_encoder/config.json",
+        "$snapshot/vae/config.json",
+        "$snapshot/scheduler"
+      ],
+      "outputs": [
+        "comparison.json",
+        "criteria.json",
+        "generate",
+        "edit",
+        "provenance.json",
+        "source-conditions.json"
+      ],
+      "checks": [
+        {
+          "file": "comparison.json",
+          "key": [
+            "passed"
+          ],
+          "equals": true
+        }
+      ],
+      "heavy": true,
+      "timeout_s": 1800,
+      "min_free_bytes": 15000000000,
+      "cwd": "$repo"
+    },
+    {
+      "id": "bundle",
+      "role": "export",
+      "depends": [
+        "prepare",
+        "verify",
+        "vision",
+        "text",
+        "denoiser",
+        "vae_encoder",
+        "vae_decoder"
+      ],
+      "command": [
+        "$python",
+        "-m",
+        "Tools.Conversion.adapters.qwen_image21.pack",
+        "--snapshot",
+        "$snapshot",
+        "--output",
+        "$out",
+        "--verification",
+        "$verify",
+        "--lock",
+        "$recipe_dir/uv.lock",
+        "--components",
+        "$vision",
+        "$text",
+        "$denoiser",
+        "$vae_encoder",
+        "$vae_decoder",
+        "--source-record",
+        "$prepare"
+      ],
+      "inputs": [
+        "$repo/Tools/Conversion/adapters/qwen_image21/pack.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/contracts.py",
+        "$recipe_dir/uv.lock",
+        "$snapshot/processor",
+        "$snapshot/text_encoder/config.json",
+        "$snapshot/vae/config.json",
+        "$snapshot/transformer/config.json",
+        "$snapshot/scheduler",
+        "$snapshot/LICENSE"
+      ],
+      "outputs": [
+        "bundle.json",
+        "LICENSE",
+        "NOTICE.txt",
+        "config",
+        "vision",
+        "text",
+        "denoiser",
+        "vae_encoder",
+        "vae_decoder",
+        "provenance.json",
+        "criteria.json",
+        "source.json",
+        "verification.json"
+      ],
+      "timeout_s": 1800,
+      "min_free_bytes": 10000000000,
+      "cwd": "$repo"
+    }
+  ]
+}

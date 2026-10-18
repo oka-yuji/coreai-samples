@@ -65,6 +65,8 @@ def setup(workspace, recipe, snapshot, lock=None):
     contract = read_json(contract_path)
     if contract.get("model_type") == "embedding_gemma2":
         return setup_embedding(workspace, recipe, snapshot, lock)
+    if contract.get("model_type") == "qwen_image21":
+        return setup_image(workspace, recipe, snapshot, lock)
     snapshot = (snapshot or default_snapshot(contract)).expanduser().resolve()
     if not snapshot.is_dir():
         raise PipelineError(
@@ -127,11 +129,42 @@ def setup_embedding(workspace, recipe, snapshot, lock):
         print(f"Local bindings: {bindings}")
 
 
+def setup_image(workspace, recipe, snapshot, lock):
+    import hashlib
+    import uuid
+
+    contract = read_json(recipe.parent / "model.json")
+    snapshot = (snapshot or default_snapshot(contract)).expanduser().resolve()
+    if not snapshot.is_dir():
+        raise PipelineError(f"Download the pinned input first: {contract['model_id']}@{contract['revision']}")
+    profile = workspace / "qwen_image21"
+    check_workspace_paths(workspace, profile)
+    environment_paths = [recipe.parent / name for name in ("pyproject.toml", "uv.lock")]
+    environment = [hashlib.sha256(path.read_bytes()).hexdigest() for path in environment_paths]
+    with directory_lock(workspace / "setup.lock", {"operation": "setup"}), \
+            directory_lock(lock or default_lock(), {"operation": "image-setup"}):
+        profile.mkdir(parents=True, exist_ok=True)
+        command("uv", "sync", "--project", recipe.parent, "--frozen", "--no-dev", "--python", "3.11",
+                env={"UV_PROJECT_ENVIRONMENT": str(profile / ".venv")})
+        python = profile / ".venv/bin/python"
+        validation = profile / "setup" / uuid.uuid4().hex
+        command(python, "-m", "Tools.Conversion.adapters.qwen_image21.prepare", "--snapshot", snapshot,
+                "--model", recipe.parent / "model.json", "--output", validation, cwd=ROOT)
+        if environment != [hashlib.sha256(path.read_bytes()).hexdigest() for path in environment_paths]:
+            raise PipelineError("Environment inputs changed during setup")
+        bindings = workspace / "qwen_image21.paths.json"
+        write_json(bindings, {"python": str(python), "snapshot": str(snapshot),
+                              "heavy_lock": str(lock or default_lock())})
+        print(f"Local bindings: {bindings}")
+
+
 def pipeline_command(action, recipe, workspace, lock, refresh):
     bindings = workspace / f"{recipe.parent.name}.paths.json"
     if not bindings.is_file():
         raise PipelineError("Run setup for this workspace and recipe first")
     result = [sys.executable, "-m", "Tools.Conversion", action, str(recipe), "--bindings", str(bindings)]
+    if recipe.parent.name == "qwen_image21":
+        result += ["--set", f"heavy_lock={lock}"]
     if action == "run":
         profile = recipe.parent.name + ("-int4-int8" if recipe.stem == "recipe-int4-int8" else "")
         result += ["--work-dir", str(workspace / "work" / profile), "--lock-dir", str(lock)]

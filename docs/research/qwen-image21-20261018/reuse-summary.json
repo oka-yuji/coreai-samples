@@ -1,0 +1,97 @@
+{
+  "schema": "coreai-conversion-summary/1",
+  "status": "completed",
+  "verification": "passed",
+  "scope": "Fixed-input conversion check; not model production qualification.",
+  "stages": [
+    {
+      "index": 0,
+      "role": "prepare",
+      "status": "reused",
+      "prepare_s": 12.748522207606584,
+      "execute_s": 0,
+      "total_s": 12.748544707894325
+    },
+    {
+      "index": 1,
+      "role": "reference",
+      "status": "reused",
+      "prepare_s": 11.891360958106816,
+      "execute_s": 0,
+      "total_s": 11.891387041192502
+    },
+    {
+      "index": 2,
+      "role": "reference",
+      "status": "reused",
+      "prepare_s": 12.420008542016149,
+      "execute_s": 0,
+      "total_s": 12.420040166936815
+    },
+    {
+      "index": 3,
+      "role": "reference",
+      "status": "reused",
+      "prepare_s": 12.377020957879722,
+      "execute_s": 0,
+      "total_s": 12.377047291956842
+    },
+    {
+      "index": 4,
+      "role": "export",
+      "status": "reused",
+      "prepare_s": 7.553523916751146,
+      "execute_s": 0,
+      "total_s": 7.553555209189653
+    },
+    {
+      "index": 5,
+      "role": "export",
+      "status": "reused",
+      "prepare_s": 18.681279833894223,
+      "execute_s": 0,
+      "total_s": 18.681313666980714
+    },
+    {
+      "index": 6,
+      "role": "export",
+      "status": "reused",
+      "prepare_s": 16.887785082682967,
+      "execute_s": 0,
+      "total_s": 16.887836082838476
+    },
+    {
+      "index": 7,
+      "role": "export",
+      "status": "reused",
+      "prepare_s": 0.3967292499728501,
+      "execute_s": 0,
+      "total_s": 0.3967516669072211
+    },
+    {
+      "index": 8,
+      "role": "export",
+      "status": "reused",
+      "prepare_s": 0.676182750146836,
+      "execute_s": 0,
+      "total_s": 0.6762135000899434
+    },
+    {
+      "index": 9,
+      "role": "verify",
+      "status": "reused",
+      "prepare_s": 0.03818000014871359,
+      "execute_s": 0,
+      "total_s": 0.03820175025612116
+    },
+    {
+      "index": 10,
+      "role": "export",
+      "status": "reused",
+      "prepare_s": 25.110993249807507,
+      "execute_s": 0,
+      "total_s": 25.111115666106343
+    }
+  ],
+  "elapsed_s": 120.81546645797789
+}
