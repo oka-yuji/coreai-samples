@@ -215,6 +215,18 @@ The URL reader supports the exact Apple/Microsoft hosts listed in the [specifica
 
 Mac and iOS Release builds and native fetching of the two sample pages have passed. New product extraction quality is not established by the earlier inspection evaluation. See the specification for current integration/acceptance status. `--product-preview` opens fictional cards marked as a no-model layout preview; `--product-source-check <directory>` checks actual source acquisition; `--product-e2e <directory> --extract <folder>` runs the model through the real Store/Runner/Service after taking the required heavy-job lock.
 
+### Extraction demo in Models
+
+On iPhone, Models connects the GLiNER2.5-multi extraction demo to the shared demo host through `CoreAISamples/iOS/Adapters/ExtractionAdapter.swift`. Its content, `PhoneExtractContent`, shows the note, **Extract**, the spans and scores for each example label of `extract_examples.json`, the processing state and, with a result, the artifact that produced it (`model/artifact@revision`). It has no folder choice, title or scroll view of its own, and no confirmation or JSON export.
+
+- Downloading or checking the model, opening the demo and reading its description extract nothing. **Extract** loads the selected artifact when it is not loaded yet, then extracts that request only; an edit while the model loads drops the request, and the model stays loaded.
+- The demo Store runs in the managed mode of `ExtractFeature`: no extraction 300 ms after an edit, no remembered folder, and no folder choice. The adapter keeps one Store per model and demo for as long as the app runs, so the note, including an edit that was never extracted, and the last result stay across going back, showing the demo again and switching between EN and JP. Neither changes the note or the labels. An edit keeps the last result on screen; **Extract** for the edited note clears it before it runs, and the new result or the failure takes its place.
+- Every load and extraction first asks the host whether the session may still run. A request from a stopped or replaced session, or for a model that is not installed, fails with "The model is not available for this demo right now." and nothing runs.
+- The host stops the demo when you go back, when the app moves to the background and before another demo or variant starts. Stopping cancels the load or extraction under way, waits for it to return, and releases the model before the host goes on. A failed release is reported to the host, which offers to retry. The next session of the same demo starts unloaded and loads its own artifact on the next **Extract**.
+- `ManagedExtractRunner` and the `ExtractServicing` boundary that `GLiNERExtractService` implements are in the `ExtractRuntime` library. `ExtractFeatureTests` checks them with a fake service: the managed reducer, the gate, failures and retries, cancellation, the release after the work under way, and the kept note and result.
+
+The catalog in this build has no GLiNER2.5-multi download, so the demo shows its description only, and it has not been run on an iPhone. The Mac lab, the iPhone **Extraction lab** and `--extract-eval` keep the standalone mode, and their behavior does not change.
+
 ### Extraction lab
 
 The toolbar opens the preserved labels/inspection screen. The following evaluation and headless documentation describe that lab.

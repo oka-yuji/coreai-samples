@@ -37,6 +37,7 @@
 		2628E17B820E1C5BC4153536 /* BundleSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8608B7A795003231A4E788DF /* BundleSupport.swift */; };
 		2662B8C643C55FC8FE5CCF95 /* EmbeddingRuntime in Frameworks */ = {isa = PBXBuildFile; productRef = 1F2A5864A4527D5326DB4138 /* EmbeddingRuntime */; };
 		28BFB0B60BC709ED2FE59D70 /* TruckInspectionRuntime in Frameworks */ = {isa = PBXBuildFile; productRef = 131E2F2E07B05178D004FD0F /* TruckInspectionRuntime */; };
+		2CD107EA0CB22CDA042BCAF9 /* ExtractionAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7EA2799CC1E5E8999D2B1BF2 /* ExtractionAdapter.swift */; };
 		2E6C0AF6978C5A9C77DA8C10 /* FeatureStore in Frameworks */ = {isa = PBXBuildFile; productRef = F5D0FEB350D222736BF73094 /* FeatureStore */; };
 		3150B586410104EB00827A21 /* InspectionAudioCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 148BF4ADF94AA3ECAAB30DB9 /* InspectionAudioCapture.swift */; };
 		3192597C462AD731BD85F6D2 /* DecideRuntime in Frameworks */ = {isa = PBXBuildFile; productRef = D4430673A05B3681BE4C973C /* DecideRuntime */; };
@@ -58,6 +59,7 @@
 		3DF638F111A1931F5E7F2DB4 /* RecipeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1BAA92853DA68C9FDF5D1827 /* RecipeView.swift */; };
 		3E29EDC926A94A2EA5D7F2CC /* correction_words.json in Resources */ = {isa = PBXBuildFile; fileRef = 53F15DB3D78F006C718A6F5E /* correction_words.json */; };
 		3FFEF16C2AA352B33DCC89F9 /* ProductFeature in Frameworks */ = {isa = PBXBuildFile; productRef = 433A6D8FC9BDE6DE7AD6EEB3 /* ProductFeature */; };
+		40712AD43DC9BE260DB46E62 /* PhoneExtractContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AB887CD5BEF34A3F73F5324 /* PhoneExtractContent.swift */; };
 		40D561949D3C716C66C23D0D /* TruckInspectionAssembly.swift in Sources */ = {isa = PBXBuildFile; fileRef = DCBAA551F86D44CD24D4787C /* TruckInspectionAssembly.swift */; };
 		415BA358AC23880B2C050C4F /* ObjectFinderRuntime in Frameworks */ = {isa = PBXBuildFile; productRef = 49AFB91FE5D3116E69481A87 /* ObjectFinderRuntime */; };
 		4275FA1D00228F5E93B7A9D0 /* ImageSearchVectorCheck.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3D65A0C17724B4972F0D163 /* ImageSearchVectorCheck.swift */; };
@@ -112,6 +114,7 @@
 		809642677C1BC58905638DB9 /* gradient_square.png in Resources */ = {isa = PBXBuildFile; fileRef = 119F865DE343C77CD34AB2B7 /* gradient_square.png */; };
 		80B32F7AC625100D4F4A3B39 /* image-search-reference.json in Resources */ = {isa = PBXBuildFile; fileRef = 97A66460729265871B0AEACF /* image-search-reference.json */; };
 		80FBE434B7B5021A98F98329 /* SpeechPhoneView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD6C8107CC666E3504893A8A /* SpeechPhoneView.swift */; };
+		81B830235D13D54FE8E9F74F /* ExtractRuntime in Frameworks */ = {isa = PBXBuildFile; productRef = FC34C7EEA9DBB693609F3C26 /* ExtractRuntime */; };
 		82D08B7EC39EAA2231DC2D5B /* ImageSearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C9556FA4EE8D4BBD0F9B226 /* ImageSearchView.swift */; };
 		8384E9A460827793A6125FBB /* ModelStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAE0376EC66AACAB7D06A922 /* ModelStorage.swift */; };
 		84CACB21A547B2C201617E85 /* ToolRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D299F487F2C50A979C20F46 /* ToolRunner.swift */; };
@@ -121,12 +124,14 @@
 		8892507C77E382DB2CF578B3 /* NoteEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = E12E6AFDDBD1A46129826431 /* NoteEditor.swift */; };
 		88A54445B24AA3A794E71605 /* TruckInspectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23AE6DC74C5AC0E32B8BDEF8 /* TruckInspectionView.swift */; };
 		8D25A7BB11F58D4AA0C00E1C /* gradient_wide.png in Resources */ = {isa = PBXBuildFile; fileRef = B2670AD6272F2619F7294871 /* gradient_wide.png */; };
+		8FC0534B15473AE46F2170A1 /* ExtractRuntime in Frameworks */ = {isa = PBXBuildFile; productRef = F0BAE9DF2726F2AF009608A6 /* ExtractRuntime */; };
 		905D910D6EE5ADB3BDC0C185 /* ImageSearchAssembly.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85E8C50CD6907046A8C5A46E /* ImageSearchAssembly.swift */; };
 		9080F4EC646AF61D5D342F6F /* image-search-queries.json in Resources */ = {isa = PBXBuildFile; fileRef = 3CEF3EC20960BAA18E3E9597 /* image-search-queries.json */; };
 		91D6B7DDBEB329E6182572EB /* 03-omelette.png in Resources */ = {isa = PBXBuildFile; fileRef = 1FE6487E7AFD8DA556478B25 /* 03-omelette.png */; };
 		91E285906D3CCEAB3C1B93A0 /* gradient_tall.png in Resources */ = {isa = PBXBuildFile; fileRef = 681B6A08183C9B3A3DE51E58 /* gradient_tall.png */; };
 		9204AE93B39B2786CB7D0ADC /* 04-gratin.png in Resources */ = {isa = PBXBuildFile; fileRef = 04B9B706979F215C4898949A /* 04-gratin.png */; };
 		92BBCBC97CA06B7F6181E191 /* ImageSearchFeature in Frameworks */ = {isa = PBXBuildFile; productRef = DBDE54E7BC95C1A902B21593 /* ImageSearchFeature */; };
+		92BC8BCD8F21E836B73E2204 /* PhoneExtractContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AB887CD5BEF34A3F73F5324 /* PhoneExtractContent.swift */; };
 		938CDAF7453AA1F4A8963427 /* ObjectFinderCore in Frameworks */ = {isa = PBXBuildFile; productRef = CA77088F7FD4CAC47AD39FB4 /* ObjectFinderCore */; };
 		9489BEB70AF382E6332F8D2D /* 02-ginger-pork.png in Resources */ = {isa = PBXBuildFile; fileRef = AF62F056E1C7BDA459C4655A /* 02-ginger-pork.png */; };
 		97A354A60ACA2DAE602CE7DE /* gradient_tall.png in Resources */ = {isa = PBXBuildFile; fileRef = 681B6A08183C9B3A3DE51E58 /* gradient_tall.png */; };
@@ -182,6 +187,7 @@
 		D9EF2BF9DB6E3B2C786B9153 /* ExtractFeature in Frameworks */ = {isa = PBXBuildFile; productRef = AE6C6F087D50FB3366C2364A /* ExtractFeature */; };
 		DB232074896A4231DF78BCD7 /* RecipeFeature in Frameworks */ = {isa = PBXBuildFile; productRef = BEC058363C0D098E70CAB2EC /* RecipeFeature */; };
 		DC1579D87D040882926DA62A /* ImageSearchSelfTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 555173E2E133C5066E8482E1 /* ImageSearchSelfTest.swift */; };
+		DCE66D2FAF6D9FA2A497652B /* ExtractionAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7EA2799CC1E5E8999D2B1BF2 /* ExtractionAdapter.swift */; };
 		DFA0F3D009B4DB8BDD3F7377 /* SpeechRuntime in Frameworks */ = {isa = PBXBuildFile; productRef = EF1CB2B029271CA3096FB7C2 /* SpeechRuntime */; };
 		E0253D8F538049F975CEA0F7 /* RecipeReportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 089288E87CC0246B5A387A0A /* RecipeReportView.swift */; };
 		E207C91A4AC542D4091A1FE9 /* ProductComparisonAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B1FA83AF87E30C17EC28488 /* ProductComparisonAdapter.swift */; };
@@ -277,7 +283,9 @@
 		6E29B37C3D0277DAF2924DD9 /* SpeechPhoneApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechPhoneApp.swift; sourceTree = "<group>"; };
 		6E9B8152E4CC1BA675751CB5 /* recipe-examples.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "recipe-examples.json"; sourceTree = "<group>"; };
 		7A89987BFF1C553FC444E064 /* Ingredients.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Ingredients.xcstrings; sourceTree = "<group>"; };
+		7AB887CD5BEF34A3F73F5324 /* PhoneExtractContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneExtractContent.swift; sourceTree = "<group>"; };
 		7D82BEFE1B794EC81C96DCE7 /* DecideItemEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DecideItemEditor.swift; sourceTree = "<group>"; };
+		7EA2799CC1E5E8999D2B1BF2 /* ExtractionAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtractionAdapter.swift; sourceTree = "<group>"; };
 		82B4A55114BBA7685FCF713C /* ExtractEval.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtractEval.swift; sourceTree = "<group>"; };
 		82E02B690B0BB1CD93649F40 /* AgentPromptBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentPromptBuilder.swift; sourceTree = "<group>"; };
 		85E8C50CD6907046A8C5A46E /* ImageSearchAssembly.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageSearchAssembly.swift; sourceTree = "<group>"; };
@@ -366,6 +374,7 @@
 				DB232074896A4231DF78BCD7 /* RecipeFeature in Frameworks */,
 				57F9A248E2D9A58257DE7B38 /* ConversationFeature in Frameworks */,
 				6A6E3397B70250B3E0311A07 /* ConversationRuntime in Frameworks */,
+				81B830235D13D54FE8E9F74F /* ExtractRuntime in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -395,6 +404,7 @@
 				45046290241DAFC8DCCDB276 /* ModelLibraryStorage in Frameworks */,
 				A96393E7180FBE7F474B1B20 /* ModelLibraryTransfer in Frameworks */,
 				6A05C4E5815FC91D14406A31 /* ModelLibraryRuntime in Frameworks */,
+				8FC0534B15473AE46F2170A1 /* ExtractRuntime in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -674,6 +684,7 @@
 		D426D71493ACBC7E7374C440 /* Adapters */ = {
 			isa = PBXGroup;
 			children = (
+				7EA2799CC1E5E8999D2B1BF2 /* ExtractionAdapter.swift */,
 				2B1FA83AF87E30C17EC28488 /* ProductComparisonAdapter.swift */,
 			);
 			path = Adapters;
@@ -713,6 +724,7 @@
 				2F27640F8151AC5D099163D9 /* LiveInspectionSpeech.swift */,
 				45CDC3B6511E848B1B0B40E6 /* ObjectFinderView.swift */,
 				BBE9C20E195FE641300D6F57 /* PhoneDemoApp.swift */,
+				7AB887CD5BEF34A3F73F5324 /* PhoneExtractContent.swift */,
 				1EF29907EAA61DD548671267 /* PhoneExtractView.swift */,
 				1282C05F8FF0AE329CA5A39C /* PhoneLegacyDemosView.swift */,
 				A014A59B7FD23A97BEB797A0 /* PhoneModelLibraryScreen.swift */,
@@ -799,6 +811,7 @@
 				1637523AB6224811A172F512 /* ModelLibraryStorage */,
 				7D282C1A74200A481D89C2C0 /* ModelLibraryTransfer */,
 				C6482EEAC9A5563B40AF6410 /* ModelLibraryRuntime */,
+				F0BAE9DF2726F2AF009608A6 /* ExtractRuntime */,
 			);
 			productName = "CoreAISamples-iOS";
 			productReference = EA2345E55E00D969C54E6B75 /* CoreAISamples-iOS.app */;
@@ -842,6 +855,7 @@
 				BEC058363C0D098E70CAB2EC /* RecipeFeature */,
 				891D81C8BBAFE7FAC28AA888 /* ConversationFeature */,
 				E4A32A0198D8486F4AD112EA /* ConversationRuntime */,
+				FC34C7EEA9DBB693609F3C26 /* ExtractRuntime */,
 			);
 			productName = CoreAISamples;
 			productReference = AC4EC31CE5CEA79543AC008A /* CoreAISamples.app */;
@@ -1017,6 +1031,7 @@
 				7965D53F9D757D1A07ACEDF0 /* ExtractEval.swift in Sources */,
 				16CC300A10504F414B0E428B /* ExtractRunner.swift in Sources */,
 				6DC89743479937677DB58337 /* ExtractService.swift in Sources */,
+				2CD107EA0CB22CDA042BCAF9 /* ExtractionAdapter.swift in Sources */,
 				34B8E68145C72B1FE4CCD28B /* IOSModelLibraryAssembly.swift in Sources */,
 				905D910D6EE5ADB3BDC0C185 /* ImageSearchAssembly.swift in Sources */,
 				DC1579D87D040882926DA62A /* ImageSearchSelfTest.swift in Sources */,
@@ -1030,6 +1045,7 @@
 				3952BB6FAB3547BC9A583CC3 /* ModelStorage.swift in Sources */,
 				F5AD4178296DC72D7277F5BE /* ObjectFinderView.swift in Sources */,
 				A9AEB14652B17A4BE269655C /* PhoneDemoApp.swift in Sources */,
+				92BC8BCD8F21E836B73E2204 /* PhoneExtractContent.swift in Sources */,
 				24F936C411557B9362ED1A77 /* PhoneExtractView.swift in Sources */,
 				3B6C7EF395690196C48669F1 /* PhoneLegacyDemosView.swift in Sources */,
 				4543833BFFD4124CC11ABDE6 /* PhoneModelLibraryScreen.swift in Sources */,
@@ -1082,6 +1098,7 @@
 				36D49B81E1D68D03832B9359 /* ExtractRunner.swift in Sources */,
 				194A39178C83D882AC647C3F /* ExtractService.swift in Sources */,
 				C2651307CE5074B3E2A328C8 /* ExtractView.swift in Sources */,
+				DCE66D2FAF6D9FA2A497652B /* ExtractionAdapter.swift in Sources */,
 				38D5380927AEC3918CC5F304 /* FieldEditor.swift in Sources */,
 				5BB2FFBBAE4EDB21463258C0 /* FieldRow.swift in Sources */,
 				E3DA34EB5609CB1F3033BBDC /* GUIDriver.swift in Sources */,
@@ -1106,6 +1123,7 @@
 				8892507C77E382DB2CF578B3 /* NoteEditor.swift in Sources */,
 				4A6895CD871A1B833B7EF5E5 /* ObjectFinderView.swift in Sources */,
 				D3AF8DDC5BDE9DF6BCF24CD8 /* PhoneDemoApp.swift in Sources */,
+				40712AD43DC9BE260DB46E62 /* PhoneExtractContent.swift in Sources */,
 				B1DD58EA8D2DFB52E3157842 /* PhoneExtractView.swift in Sources */,
 				652482AB496BE075C79A6BFB /* PhoneLegacyDemosView.swift in Sources */,
 				557F91307A72D1F0A9F0FB8D /* PhoneModelLibraryScreen.swift in Sources */,
@@ -1655,9 +1673,17 @@
 			isa = XCSwiftPackageProductDependency;
 			productName = SpeechRuntime;
 		};
+		F0BAE9DF2726F2AF009608A6 /* ExtractRuntime */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = ExtractRuntime;
+		};
 		F5D0FEB350D222736BF73094 /* FeatureStore */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = FeatureStore;
+		};
+		FC34C7EEA9DBB693609F3C26 /* ExtractRuntime */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = ExtractRuntime;
 		};
 		FE873BDE9C77CAB1DD11671A /* SpeechFeature */ = {
 			isa = XCSwiftPackageProductDependency;
