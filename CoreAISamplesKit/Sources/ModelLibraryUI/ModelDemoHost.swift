@@ -81,9 +81,17 @@
                 }
             case .preview:
                 VStack(alignment: .leading, spacing: 12) {
-                    libraryText("You can read this demo now.").font(.headline)
-                    libraryText("Download the model to enable its controls.").font(.callout)
-                    ModelAcquisitionControls(store: store, model: model, requestDeletion: {})
+                    if model.artifact.download == nil {
+                        libraryText("Description only").font(.headline)
+                        libraryText(
+                            "Demo descriptions are available. Downloads and execution are not available in this build."
+                        )
+                        .font(.callout)
+                    } else {
+                        libraryText("You can read this demo now.").font(.headline)
+                        libraryText("Download the model to enable its controls.").font(.callout)
+                        ModelAcquisitionControls(store: store, model: model, requestDeletion: {})
+                    }
                     if let failure = store.state.installations[model.id]?.failure {
                         LibraryFailureView(failure: failure)
                     }
@@ -109,10 +117,12 @@
                     } label: {
                         libraryText("Category")
                     }
-                    LabeledContent {
-                        Text(verbatim: model.artifact.contract)
-                    } label: {
-                        libraryText("Variant")
+                    if model.artifact.download != nil {
+                        LabeledContent {
+                            Text(verbatim: model.artifact.contract)
+                        } label: {
+                            libraryText("Variant")
+                        }
                     }
                     if let bytes = store.state.installations[model.id]?.resource?.sizeBytes ?? model.artifact.sizeBytes
                     {
