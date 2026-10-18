@@ -114,7 +114,9 @@ enum ImageSearchSelfTest {
         try require(store.state.matches.count == 5, state: store.state)
         store.send(.disappeared)
         try await harness.settle()
-        try require(!store.state.ready && store.state.photos.isEmpty && !store.state.isBusy, state: store.state)
+        try require(
+            !store.state.ready && !store.state.isBusy && store.state.photos.count == 5 && !store.state.hasValidIndex,
+            state: store.state)
         try await ImageSearchVectorCheck.run(folder: folder, output: directory.appending(path: "vectors.json"))
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]

@@ -18,9 +18,15 @@ You can preselect the demo and bundle at launch:
 CoreAISamples.app/Contents/MacOS/CoreAISamples --image-search --embedding-bundle /path/to/bundle
 ```
 
-For iPhone, use the `CoreAISamples-iOS` scheme and your local signing configuration. The device must run iOS 27 or later, have Developer Mode enabled, and be unlocked for installation. The simulator cannot run Core AI. Copy the bundle to the app's Documents directory as `embeddinggemma2`; the model menu then offers **Reload selected model**. File Sharing is enabled so the folder can also be transferred through Finder. Model detection does not automatically load or execute it.
+For iPhone, use the `CoreAISamples-iOS` scheme and your local signing configuration. The device must run iOS 27 or later, have Developer Mode enabled, and be unlocked for installation. The simulator cannot run Core AI. For the diagnostic launch with `--image-search` or `--legacy-demos`, copy the bundle to the app's Documents directory as `embeddinggemma2`; the model menu then offers **Reload selected model**. File Sharing is enabled so the folder can also be transferred through Finder. Model detection does not automatically load or execute it.
 
-The prepared development app and bundle have been installed on iPhone 17 Pro / iOS 27.0.1. In the Demos menu, choose **Image search** under **EmbeddingGemma 2**, then **Open model → Reload selected model → Use sample images**. The same model section also offers **Find objects with the camera**. Choose an **Example search**, then **Search**. The app does not include model weights in Git or download them automatically.
+The prepared development app and bundle have been installed on iPhone 17 Pro / iOS 27.0.1. On that diagnostic screen, open the Demos menu and choose **Image search** under **EmbeddingGemma 2**, then **Open model → Reload selected model → Use sample images**. The same model section also offers **Find objects with the camera**. Choose an **Example search**, then **Search**. The app does not include model weights in Git or download them automatically.
+
+## Run from Models on iPhone
+
+The normal iPhone launch opens **Models**. **Image search demo** under **EmbeddingGemma 2** runs with the variant selected there; it has no model folder picker or **Open model** menu. **Use sample images**, **Choose images…** or **Index again** loads the selected bundle when needed and then indexes the images as one request. Showing the description or finishing a download loads nothing. Loading, indexing, searching and opening an original image each check, immediately before they start, that the library still permits the session (selected variant and verified lease); otherwise the demo reports that the model is not available. An image selection, or a failure to open the selection, that returns after its session stopped is ignored.
+
+Going back, moving to the background and switching the variant stop the demo: they wait for indexing or search to end, then release the model and its index. **Stop** inside the demo only cancels the running index or search. The chosen images, the query and the results remain on screen. Results name the artifact that produced them (`model/artifact@revision`); a different variant never reuses the previous index, so **Index again** recomputes it from the retained images before the next search. A demo Store left from an earlier variant can no longer run, even after you return to that variant, and the next stop closes it again. The stop and the demo report the result of the same release attempt. If the release fails, the library reports a failed stop that can be retried; it is not shown as a successful stop or a download failure. Images that can no longer be opened ask you to choose them again. Until the distribution definitions are adopted, the catalog offers no download, so this route stays description-only.
 
 The runtime accepts a local text/vision bundle, raw text, and opaque images decoded by ImageIO. It uses the fixed S128 / vision70 conversion contract. Audio is not included. macOS 27 and iOS 27 are required; Core AI is unavailable in the iOS simulator.
 
@@ -44,7 +50,7 @@ Use **Example searches** to fill the query, then press **Search**. For the sampl
 
 The default view hides scores below 0.67. **Show all candidates** reveals the complete ranking, including weak matches. This threshold was chosen on six calibration examples and frozen before six separate evaluation queries. The held-out result is **5/6**, including three correctly empty results. `トマトと白いチーズでカプレーゼを作れそうな写真` ranks the correct image first but scores about 0.660, so the default view hides it. The threshold and failed example are retained. The five refrigerator images do not establish a universal relevance threshold; similarity is not a probability.
 
-You can choose up to 50 images. The index is held in memory and discarded when the model or selection changes or the screen closes. This is image retrieval, not OCR, image description generation, or an audio/video demo.
+You can choose up to 50 images. The index is held in memory and discarded when the model or selection changes or the screen closes. The selected images, the query and the results stay; search again after **Index again**, which loads the model folder first when it is not loaded. On the Mac, **Reload selected model** also keeps them; opening a different folder clears them. This is image retrieval, not OCR, image description generation, or an audio/video demo.
 
 ## Runtime contract
 
@@ -62,7 +68,7 @@ swift test --package-path CoreAISamplesKit
 EG2_TOKENIZER=/path/to/bundle swift test --package-path CoreAISamplesKit -c release --filter Embedding
 ```
 
-CPU tests do not load models. `EG2_TOKENIZER` enables the pinned twelve-text token fixture and length-limit check.
+CPU tests do not load models. `EG2_TOKENIZER` enables the pinned twelve-text token fixture and length-limit check. The Models route is covered by `ImageSearchTests` with fake services: loading only the selected artifact, closed gates and replaced artifact bindings, late image selections, retention across stop and re-entry, a standalone screen shown again, variant switches without the old index, returning to an earlier variant, late selection failures, release failures and retries, releases that complete at once, releases from cancelled tasks or before any content, cancellation during indexing, invalid images, and expired image URLs. Device acceptance remains a manual check.
 
 `embedding-verify BUNDLE PLAN OUTPUT --preprocess` checks token IDs and records pixel differences without loading models. Remove `--preprocess` for native text/image inference. The plan contains raw text/image paths and the original FP32 reference vectors. The low-precision gate is cosine ≥ 0.999, maximum absolute difference ≤ 0.01, finite values, and unit norm within 0.001. This fixed set is not a general retrieval-quality benchmark.
 

@@ -5670,6 +5670,69 @@
         }
       }
     },
+    "Index the images again to search them." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "検索するには、画像をもう一度索引化してください。"
+          }
+        }
+      }
+    },
+    "Index again" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "もう一度索引化"
+          }
+        }
+      }
+    },
+    "Results from %@" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ の結果"
+          }
+        }
+      }
+    },
+    "The selected model is not available right now. Try again." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選択したモデルは現在使用できません。もう一度お試しください。"
+          }
+        }
+      }
+    },
+    "Some images can no longer be opened. Choose the images again." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "開けなくなった画像があります。画像を選び直してください。"
+          }
+        }
+      }
+    },
+    "The model could not be released." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルを解放できませんでした。"
+          }
+        }
+      }
+    },
     "%lld of %lld recorded" : {
       "extractionState" : "manual",
       "localizations" : {

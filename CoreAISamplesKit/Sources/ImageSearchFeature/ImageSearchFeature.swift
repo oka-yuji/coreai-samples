@@ -34,9 +34,17 @@ public enum ImageSearchPhase: Equatable, Sendable {
     case idle, loading, indexing, searching, stopping
 }
 
+public enum ImageSearchExecution: Equatable, Sendable {
+    case standalone, managed
+}
+
 public struct ImageSearchState: Equatable, Sendable {
     public static let minimumSimilarity = 0.67
+    public var execution: ImageSearchExecution = .standalone
     public var modelFolder: URL?
+    public var resourceIdentity: String?
+    public var indexIdentity: String?
+    public var resultIdentity: String?
     public var query = ""
     public var submittedQuery = ""
     public var phase: ImageSearchPhase = .idle
@@ -51,14 +59,37 @@ public struct ImageSearchState: Equatable, Sendable {
     public var failure: ImageSearchFailure?
     public var session = 0
     public var selection: SearchPhoto?
+    public internal(set) var pendingIndex: [URL]?
 
     public init(modelFolder: URL? = nil) { self.modelFolder = modelFolder }
+
+    public init(managed folder: URL, identity: String, retaining previous: ImageSearchState? = nil) {
+        execution = .managed
+        modelFolder = folder
+        resourceIdentity = identity
+        guard let previous else { return }
+        session = previous.session
+        query = previous.query
+        submittedQuery = previous.submittedQuery
+        photos = previous.photos
+        matches = previous.matches
+        hasSearched = previous.hasSearched
+        showsAllCandidates = previous.showsAllCandidates
+        resultIdentity = previous.resultIdentity
+    }
+
     public var isBusy: Bool { phase != .idle }
+    public var currentIndexIdentity: String {
+        ([resourceIdentity ?? ""] + photos.map(\.url.absoluteString)).joined(separator: "\n")
+    }
+    public var hasValidIndex: Bool { ready && !photos.isEmpty && indexIdentity == currentIndexIdentity }
+    public var needsIndex: Bool { !photos.isEmpty && !hasValidIndex }
+    public var canIndex: Bool { !isBusy && modelFolder != nil }
     public var displayedMatches: [ImageSearchMatch] {
         showsAllCandidates ? matches : matches.filter { $0.similarity >= Self.minimumSimilarity }
     }
     public var canSearch: Bool {
-        ready && !photos.isEmpty && !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !isBusy
+        hasValidIndex && !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !isBusy
     }
 }
 
@@ -67,6 +98,7 @@ public enum ImageSearchAction: Sendable {
     case load(URL)
     case loaded(Int)
     case index([URL])
+    case imagesChosen(Int, [URL])
     case progress(Int, Int)
     case indexed(Int, [SearchPhoto], Double)
     case search
@@ -74,8 +106,10 @@ public enum ImageSearchAction: Sendable {
     case stop
     case stopped(Int)
     case disappeared
+    case closed
     case failed(Int, ImageSearchFailure)
-    case selectionFailed(String)
+    case closeFailed(Int, String)
+    case selectionFailed(Int, String)
     case select(SearchPhoto?)
     case showAllCandidates(Bool)
 }
@@ -100,43 +134,53 @@ public enum ImageSearchFeature: Feature {
         switch action {
         case .setQuery(let value): state.query = value
         case .load(let folder):
-            guard !state.isBusy else { return [] }
+            guard state.execution == .standalone, !state.isBusy else { return [] }
+            if folder != state.modelFolder {
+                state.photos = []
+                state.resultIdentity = nil
+                discardResults(&state)
+            }
+            state.indexIdentity = nil
             state.modelFolder = folder
             state.ready = false
-            state.photos = []
-            state.matches = []
-            state.hasSearched = false
-            state.showsAllCandidates = false
-            state.selection = nil
             start(&state, phase: .loading)
             return [.run(.load(state.session, folder), id: .work)]
         case .loaded(let id):
             guard id == state.session, state.phase == .loading else { return [] }
             state.ready = true
-            state.phase = .idle
+            guard let urls = state.pendingIndex else {
+                state.phase = .idle
+                return []
+            }
+            state.pendingIndex = nil
+            state.phase = .indexing
+            return [.run(.index(id, urls), id: .work)]
         case .index(let urls):
-            guard state.ready, !state.isBusy, !urls.isEmpty else { return [] }
+            guard state.canIndex, !urls.isEmpty else { return [] }
             guard urls.count <= 50 else {
                 state.failure = ImageSearchFailure(message: "Choose up to 50 images at a time.")
                 return []
             }
             var seen = Set<URL>()
             let unique = urls.filter { seen.insert($0).inserted }
-            state.photos = []
-            state.matches = []
-            state.hasSearched = false
-            state.showsAllCandidates = false
-            state.selection = nil
+            discardResults(&state)
             state.completed = 0
             state.total = unique.count
-            start(&state, phase: .indexing)
-            return [.run(.index(state.session, unique), id: .work)]
+            let folder = state.ready ? nil : state.modelFolder
+            start(&state, phase: folder == nil ? .indexing : .loading)
+            guard let folder else { return [.run(.index(state.session, unique), id: .work)] }
+            state.pendingIndex = unique
+            return [.run(.load(state.session, folder), id: .work)]
+        case .imagesChosen(let request, let urls):
+            guard request == state.session else { return [] }
+            return reduce(&state, .index(urls))
         case .progress(let id, let completed):
             guard id == state.session, state.phase == .indexing else { return [] }
             state.completed = min(state.total, max(0, completed))
         case .indexed(let id, let photos, let seconds):
             guard id == state.session, state.phase == .indexing else { return [] }
             state.photos = photos
+            state.indexIdentity = state.currentIndexIdentity
             state.seconds = seconds
             state.phase = .idle
         case .search:
@@ -150,6 +194,7 @@ public enum ImageSearchFeature: Feature {
         case .searched(let id, let matches, let seconds):
             guard id == state.session, state.phase == .searching else { return [] }
             state.matches = matches
+            state.resultIdentity = state.resourceIdentity
             state.hasSearched = true
             state.seconds = seconds
             state.phase = .idle
@@ -161,22 +206,24 @@ public enum ImageSearchFeature: Feature {
         case .stopped(let id):
             guard id == state.session, state.phase == .stopping else { return [] }
             state.phase = .idle
-        case .disappeared:
+        case .disappeared, .closed:
             state.session += 1
             state.ready = false
-            state.photos = []
-            state.matches = []
-            state.hasSearched = false
-            state.showsAllCandidates = false
+            state.indexIdentity = nil
             state.selection = nil
+            state.failure = nil
             state.phase = .stopping
             return [.cancelAll, .run(.close(state.session), id: .control)]
         case .failed(let id, let failure):
             guard id == state.session, state.isBusy else { return [] }
             state.failure = failure
             state.phase = .idle
-        case .selectionFailed(let detail):
-            guard !state.isBusy else { return [] }
+        case .closeFailed(let id, let detail):
+            guard id == state.session, state.phase == .stopping else { return [] }
+            state.failure = ImageSearchFailure(message: "The model could not be released.", detail: detail)
+            state.phase = .idle
+        case .selectionFailed(let request, let detail):
+            guard request == state.session, !state.isBusy else { return [] }
             state.failure = ImageSearchFailure(message: "The selected files could not be opened.", detail: detail)
         case .select(let photo): state.selection = photo
         case .showAllCandidates(let value): state.showsAllCandidates = value
@@ -184,10 +231,19 @@ public enum ImageSearchFeature: Feature {
         return []
     }
 
+    private static func discardResults(_ state: inout State) {
+        state.matches = []
+        state.hasSearched = false
+        state.showsAllCandidates = false
+        state.selection = nil
+        state.indexIdentity = nil
+    }
+
     private static func start(_ state: inout State, phase: ImageSearchPhase) {
         state.session += 1
         state.phase = phase
         state.failure = nil
         state.seconds = nil
+        state.pendingIndex = nil
     }
 }
