@@ -9,9 +9,11 @@
         let selection: DemoSelection
         @State private var explanationExpanded = false
         @State private var showingModel = false
+        @State private var deletion: ModelDeletionRequest?
 
         private var model: LibraryModel? { store.state.catalog.model(selection.modelID) }
         private var demo: DemoDescriptor? { store.state.catalog.demo(selection.demoID) }
+        private var artifact: ModelArtifact? { store.state.selectedArtifact(for: selection.modelID) }
 
         var body: some View {
             Group {
@@ -52,6 +54,7 @@
                         }
                     }
                     .sheet(isPresented: $showingModel) { modelInformation(model) }
+                    .modelDeletionAlert(store: store, deletion: $deletion)
                 } else {
                     ContentUnavailableView {
                         libraryText("Demo unavailable")
@@ -81,7 +84,7 @@
                 }
             case .preview:
                 VStack(alignment: .leading, spacing: 12) {
-                    if model.artifact.download == nil {
+                    if artifact?.download == nil {
                         libraryText("Description only").font(.headline)
                         libraryText(
                             "Demo descriptions are available. Downloads and execution are not available in this build."
@@ -89,10 +92,17 @@
                         .font(.callout)
                     } else {
                         libraryText("You can read this demo now.").font(.headline)
-                        libraryText("Download the model to enable its controls.").font(.callout)
-                        ModelAcquisitionControls(store: store, model: model, requestDeletion: {})
+                        libraryText(
+                            store.state.isConnected(selection)
+                                ? "Download the model to enable its controls."
+                                : "Demo execution is not connected in this build."
+                        )
+                        .font(.callout)
+                        ModelAcquisitionControls(store: store, model: model) {
+                            deletion = ModelDeletionRequest(model: model, artifact: $0)
+                        }
                     }
-                    if let failure = store.state.installations[model.id]?.failure {
+                    if let artifact, let failure = store.state.installations[artifact.id]?.failure {
                         LibraryFailureView(failure: failure)
                     }
                 }
@@ -110,21 +120,34 @@
         }
 
         private func modelInformation(_ model: LibraryModel) -> some View {
-            NavigationStack {
+            let artifacts = store.state.artifacts(for: model.id)
+            return NavigationStack {
                 Form {
                     LabeledContent {
                         Text(verbatim: model.classification)
                     } label: {
                         libraryText("Category")
                     }
-                    if model.artifact.download != nil {
+                    if artifacts.count > 1 || (artifact == nil && !artifacts.isEmpty) {
+                        Picker(
+                            selection: Binding(
+                                get: { store.state.selectedArtifacts[model.id] ?? "" },
+                                set: { store.send(.selectArtifact(modelID: model.id, artifactID: $0)) })
+                        ) {
+                            ForEach(artifacts, id: \.id) { Text(verbatim: $0.title).tag($0.id) }
+                        } label: {
+                            libraryText("Variant")
+                        }
+                        .disabled(store.state.pendingDestination != nil)
+                    } else if let artifact, artifact.download != nil {
                         LabeledContent {
-                            Text(verbatim: model.artifact.contract)
+                            Text(verbatim: artifact.title)
                         } label: {
                             libraryText("Variant")
                         }
                     }
-                    if let bytes = store.state.installations[model.id]?.resource?.sizeBytes ?? model.artifact.sizeBytes
+                    if let artifact,
+                        let bytes = store.state.installations[artifact.id]?.resource?.sizeBytes ?? artifact.sizeBytes
                     {
                         LabeledContent {
                             Text(verbatim: bytes.formatted(.byteCount(style: .file)))
@@ -132,7 +155,7 @@
                             libraryText("Model size")
                         }
                     }
-                    if let download = model.artifact.download {
+                    if let download = artifact?.download {
                         LabeledContent {
                             Text(verbatim: download.repository)
                         } label: {

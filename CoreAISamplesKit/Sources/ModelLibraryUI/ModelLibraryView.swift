@@ -13,8 +13,7 @@
         private let store: Store<ModelLibraryFeature>
         private let renderer: Renderer
         private let leadingToolbar: AnyView?
-        @Environment(\.locale) private var locale
-        @State private var deletion: LibraryModel?
+        @State private var deletion: ModelDeletionRequest?
         @State private var showsAbout = false
         @ScaledMetric(relativeTo: .body) private var tileWidth = 88
 
@@ -81,34 +80,7 @@
                 }
                 .presentationDetents([.medium, .large])
             }
-            .alert(
-                libraryText("Delete this model?"),
-                isPresented: Binding(get: { deletion != nil }, set: { if !$0 { deletion = nil } }),
-                presenting: deletion
-            ) { model in
-                Button(role: .cancel) {
-                    deletion = nil
-                } label: {
-                    libraryText("Cancel")
-                }
-                Button(role: .destructive) {
-                    store.send(.deleteRequested(model.id))
-                    deletion = nil
-                } label: {
-                    libraryText("Delete")
-                }
-            } message: { model in
-                Text(verbatim: deletionMessage(model))
-            }
-        }
-
-        private func deletionMessage(_ model: LibraryModel) -> String {
-            let explanation = String(
-                localized: "Only model files are removed. Your inputs and saved results remain.", bundle: .module,
-                locale: locale)
-            let size = store.state.installations[model.id]?.resource?.sizeBytes
-                .formatted(.byteCount(style: .file))
-            return [model.name, explanation, size].compactMap { $0 }.joined(separator: "\n\n")
+            .modelDeletionAlert(store: store, deletion: $deletion)
         }
 
         private var models: some View {
@@ -117,7 +89,7 @@
                     VStack(alignment: .leading, spacing: 6) {
                         libraryText("Choose a demo for a model.").font(.body)
                         libraryText(
-                            store.state.catalog.models.allSatisfy { $0.artifact.download == nil }
+                            store.state.catalog.models.flatMap(\.artifacts).allSatisfy { $0.download == nil }
                                 ? "Demo descriptions are available. Downloads and execution are not available in this build."
                                 : "You can read each demo before downloading its model."
                         )
@@ -152,7 +124,9 @@
                         Text(verbatim: classification(section.model)).font(.footnote).foregroundStyle(.secondary)
                     }
                     Spacer(minLength: 8)
-                    ModelAcquisitionControls(store: store, model: section.model) { deletion = section.model }
+                    ModelAcquisitionControls(store: store, model: section.model) {
+                        deletion = ModelDeletionRequest(model: section.model, artifact: $0)
+                    }
                 }
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: tileWidth), spacing: 16)], spacing: 20) {
                     ForEach(section.demos) { demo in
@@ -166,7 +140,9 @@
                         .accessibilityValue(Text(verbatim: section.model.name))
                     }
                 }
-                if let failure = store.state.installations[section.id]?.failure {
+                if let artifact = store.state.selectedArtifact(for: section.id),
+                    let failure = store.state.installations[artifact.id]?.failure
+                {
                     LibraryFailureView(failure: failure)
                 }
                 Divider()
@@ -175,7 +151,9 @@
         }
 
         private func classification(_ model: LibraryModel) -> String {
-            let size = store.state.installations[model.id]?.resource?.sizeBytes ?? model.artifact.sizeBytes
+            let size = store.state.selectedArtifact(for: model.id).flatMap {
+                store.state.installations[$0.id]?.resource?.sizeBytes ?? $0.sizeBytes
+            }
             return [model.classification, size.map { $0.formatted(.byteCount(style: .file)) }]
                 .compactMap { $0 }.joined(separator: " · ")
         }

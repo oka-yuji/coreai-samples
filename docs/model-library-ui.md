@@ -4,6 +4,8 @@
 
 The renderer has two distinct inputs. `preview(for:)` receives only a metadata selection and must create display-only content without model, camera, or audio resources. `content(for:)` receives the active validated session. The host calls it only when the library permits that session. Renderer content is embedded in the host's scrolling content and should not create a second vertically scrolling screen or another navigation stack.
 
+Acquisition controls, sizes, and failures use the selected variant's installation, and Model information shows a variant picker when the model has more than one visible variant or its selection is no longer visible. A demo without a connected adapter keeps its description and shows that execution is not connected. The description host uses the same deletion confirmation as Models; after deletion it stays on the demo and keeps its description and inputs.
+
 The renderer must retain each demo's input/result state across view reconstruction. It must route operations through the execution gate and let the library runner handle stop-and-release acknowledgements. A disabled SwiftUI view is not the sole execution boundary.
 
 The controller and real model runner are supplied by app integration. Published model definitions require verified distribution metadata; this component supplies no invented repositories or model revisions. Individual demo redesigns remain separate from this shared host. Dynamic demo text currently resolves through the host app bundle; app integration must supply and verify the corresponding translations and searchable labels in both English and Japanese. The synthetic preview uses English demo names.
