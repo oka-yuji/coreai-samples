@@ -34,7 +34,7 @@ struct ProductCardView: View {
                 }
                 if let identity = card.resourceIdentity {
                     Text("Extracted with \(identity)")
-                        .font(.caption2).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
+                        .font(.caption2).foregroundStyle(.secondary).lineLimit(1).truncationMode(.tail)
                 }
             }
             .padding(18)
