@@ -2,6 +2,12 @@
 
 [日本語](README.ja.md)
 
+[Model-first demo specification and design — Draft 0.7 (HTML, Japanese)](docs/specs/model-first-demo.html) describes the proposed model selection, reusable demos, and publication controls, with interactive [iOS](docs/designs/model-first-ios.html) and [macOS](docs/designs/model-first-macos.html) design proposals. The document tracks implementation status and pending app integration. Open the local HTML file in a browser for the formatted view; GitHub displays its source.
+
+[Feature-screen design review (HTML, Japanese)](docs/designs/function-screens.html)
+
+[Native SwiftUI preview and integration status](Examples/ModelLibraryPreview/README.md) — the shared iOS UI is implemented separately; the production app entry point is not yet switched.
+
 Swift samples that run open models on a Mac through Apple's Core AI and Foundation Models. **Chat** and **Agent** run Qwen3.8 27B; the agent searches the web, reads pages and saves notes. **Recipes** compares a fridge photo's ingredients with a recipe URL and **Decide** scores a document against an editable checklist, both with Clef-Flash 9B. **Extract** turns product descriptions into source-linked specification cards with GLiNER2.5-multi. `Tools/Verify` compares this repository's runtime with Apple's own, token by token.
 
 Demo titles use model names: **Clef-Flash 9B**, **GLiNER2.5-multi**, **EmbeddingGemma 2**, and **Irodori**. The conversation title shows its selected or saved model. Sidebar descriptions and the iPhone menu's model sections distinguish each model's demos; Chat and Work remain conversation modes.

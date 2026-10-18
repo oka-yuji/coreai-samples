@@ -2,6 +2,12 @@
 
 [English](README.md)
 
+[モデル選択型デモ 仕様・設計書 — Draft 0.7（HTML）](docs/specs/model-first-demo.html)：モデル一覧、共通デモUI、公開範囲の管理を整理した叩き台です。操作できる[iOSデザイン案](docs/designs/model-first-ios.html)・[macOSデザイン案](docs/designs/model-first-macos.html)を添えています。現在の実装とは区別しています。整形された文書はローカルのHTMLをブラウザで開いて閲覧できます（GitHub上ではソース表示）。
+
+[機能画面のデザイン確認一覧（HTML）](docs/designs/function-screens.html)
+
+[ネイティブSwiftUIプレビューと確認手順](Examples/ModelLibraryPreview/README.md)：iOS共通UIを独立して実装中です。既存アプリの起動画面はまだ切り替えていません。
+
 Apple の Core AI と Foundation Models で、オープンなモデルを Mac 上で動かす Swift のサンプルです。**Chat** と **Agent** は Qwen3.8 27B で動き、Agent は Web を検索し、ページを読み、メモを保存します。**Recipes** は冷蔵庫の写真の食材とレシピの URL を照らし合わせ、**Decide** は文書を編集できるチェックリストで採点します。この 2 つは Clef-Flash 9B を使います。**Extract** は GLiNER2.5-multi で商品説明から出典つきのスペックのカードを作ります。`Tools/Verify` は、このリポジトリのランタイムと Apple のランタイムをトークン単位で比べます。
 
 デモの主タイトルは **Clef-Flash 9B**、**GLiNER2.5-multi**、**EmbeddingGemma 2**、**Irodori** に統一しています。会話には選択中または保存済みのモデル名を表示します。同じモデルの複数デモは、サイドバーの説明やiPhoneメニューのモデル別セクションで区別します。ChatとWorkは会話のモード名です。
