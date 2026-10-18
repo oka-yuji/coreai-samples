@@ -74,6 +74,7 @@ public actor ArtifactTransfer {
     ) async throws {
         guard let source = artifact.download, source.isValid, model.artifact(artifact.id) == artifact,
             !artifact.files.isEmpty, Set(artifact.files.map(\.path)).count == artifact.files.count,
+            Set(artifact.files.map(\.path)).isDisjoint(with: artifact.files.map { $0.path + ".part" }),
             source.root.isEmpty || isRelative(source.root), artifact.files.allSatisfy({ isRelative($0.path) })
         else { throw ArtifactTransferError.invalidDefinition }
         let jobs = try artifact.files.map { ($0, try location(source, $0.path)) }
@@ -177,19 +178,16 @@ private func prune(_ staging: URL, keeping files: [ModelArtifactFile]) throws {
             let parts = file.path.split(separator: "/")
             return parts.indices.dropLast().map { parts[...$0].joined(separator: "/") }
         })
-    var extraneous: [String] = []
-    if let entries = FileManager.default.enumerator(atPath: staging.path) {
-        while let path = entries.nextObject() as? String {
-            try Task.checkCancellation()
-            let type = entries.fileAttributes?[.type] as? FileAttributeType
-            if type == .typeRegular ? paths.contains(path) : type == .typeDirectory && folders.contains(path) {
-                continue
-            }
-            extraneous.append(path)
-            if type == .typeDirectory { entries.skipDescendants() }
-        }
+    var removed: [String] = []
+    for path in (try? FileManager.default.subpathsOfDirectory(atPath: staging.path)) ?? [] {
+        try Task.checkCancellation()
+        guard !removed.contains(where: { path.hasPrefix($0 + "/") }) else { continue }
+        let item = staging.appending(path: path)
+        let type = (try? FileManager.default.attributesOfItem(atPath: item.path))?[.type] as? FileAttributeType
+        if type == .typeRegular ? paths.contains(path) : type == .typeDirectory && folders.contains(path) { continue }
+        try FileManager.default.removeItem(at: item)
+        removed.append(path)
     }
-    for path in extraneous { try FileManager.default.removeItem(at: staging.appending(path: path)) }
 }
 
 private func size(of url: URL) -> Int64? {

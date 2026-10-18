@@ -126,10 +126,15 @@ struct ArtifactTransferTests {
     }
 
     @Test(
-        "DL-06 Definitions with an unpinned revision or a path outside the staging area are refused before any request",
-        arguments: [("a.bin", "main"), ("../escape.bin", revision), ("dir/./a.bin", revision), ("/a.bin", revision)])
-    func refusesUnsafeDefinitions(path: String, pinned: String) async throws {
-        let sample = try Sample(files: [path: Data("x".utf8)], contract: "fixture", pinned: pinned)
+        "DL-06 Definitions with an unpinned revision, a path outside the staging area or a path that collides with a partial file are refused before any request",
+        arguments: [
+            (["a.bin"], "main"), (["../escape.bin"], revision), (["dir/./a.bin"], revision), (["/a.bin"], revision),
+            (["model.bin", "model.bin.part"], revision),
+        ])
+    func refusesUnsafeDefinitions(paths: [String], pinned: String) async throws {
+        let sample = try Sample(
+            files: Dictionary(uniqueKeysWithValues: paths.map { ($0, Data($0.utf8)) }), contract: "fixture",
+            pinned: pinned)
         let (_, sink) = AsyncStream.makeStream(of: Event.self)
         let io = FakeIO(sink: sink)
         let base = temporaryDirectory()

@@ -28,12 +28,12 @@ public final class ModelLibraryResourceRunner {
     public func run(_ effect: ModelLibraryEffect, send: (ModelLibraryAction) -> Void) async {
         switch effect {
         case .inspect(let model, let artifact, let ticket):
-            await exclusively(artifact.id, ticket, send) {
+            await exclusively(artifact.id, ticket, send) { [self] send in
                 let resource = try await inspect(model, artifact)
                 send(.inspected(artifact.id, ticket, resource))
             }
         case .download(let model, let artifact, let ticket):
-            await exclusively(artifact.id, ticket, send) {
+            await exclusively(artifact.id, ticket, send) { [self] send in
                 let staging = try await store.stagingDirectory(for: model, artifact: artifact)
                 let (updates, sink) = AsyncStream.makeStream(of: ModelTransferProgress.self)
                 async let transferred: Void = Self.relay(transfer, model, artifact, staging, sink)
@@ -42,12 +42,12 @@ public final class ModelLibraryResourceRunner {
                 send(.downloaded(artifact.id, ticket, staging))
             }
         case .validate(let model, let artifact, let ticket, let staging):
-            await exclusively(artifact.id, ticket, send, failure: validationFailure) {
+            await exclusively(artifact.id, ticket, send, failure: validationFailure) { [self] send in
                 let resource = try await store.promote(staging: staging, model: model, artifact: artifact)
                 send(.validated(artifact.id, ticket, resource))
             }
         case .delete(let resource, let ticket):
-            await exclusively(resource.artifactID, ticket, send, failure: deletionFailure) {
+            await exclusively(resource.artifactID, ticket, send, failure: deletionFailure) { [self] send in
                 _ = try await store.delete(identity: resource.identity)
                 send(.deleted(resource.artifactID, ticket))
             }
@@ -64,10 +64,13 @@ public final class ModelLibraryResourceRunner {
     private func exclusively(
         _ artifactID: String, _ ticket: LibraryTicket, _ send: (ModelLibraryAction) -> Void,
         failure: (any Error) -> ModelLibraryFailure = { .operation(describe($0)) },
-        _ operation: () async throws -> Void
+        _ operation: @escaping ((ModelLibraryAction) -> Void) async throws -> Void
     ) async {
+        func report(_ action: ModelLibraryAction) {
+            if !Task.isCancelled { send(action) }
+        }
         guard activities[artifactID] == nil else {
-            send(.failed(artifactID, ticket, .operation("transfer in progress")))
+            report(.failed(artifactID, ticket, .operation("transfer in progress")))
             return
         }
         activities[artifactID] = Activity(ticket: ticket)
@@ -75,10 +78,10 @@ public final class ModelLibraryResourceRunner {
             for joiner in activities.removeValue(forKey: artifactID)?.joiners ?? [] { joiner.resume() }
         }
         do {
-            try await operation()
+            try await operation(report)
         } catch {
-            guard !Task.isCancelled, !(error is CancellationError) else { return }
-            send(.failed(artifactID, ticket, failure(error)))
+            guard !(error is CancellationError) else { return }
+            report(.failed(artifactID, ticket, failure(error)))
         }
     }
 
@@ -92,10 +95,10 @@ public final class ModelLibraryResourceRunner {
         case .missing:
             let candidates = migrationCandidates()
             guard !candidates.isEmpty else { return nil }
-            let report = await store.migrate(candidates: candidates, model: model, artifact: artifact)
-            return report.outcomes.values.lazy.compactMap { outcome in
-                if case .migrated(let resource) = outcome { resource } else { nil }
-            }.first
+            let outcomes = await store.migrate(candidates: candidates, model: model, artifact: artifact).outcomes
+            for case .migrated(let resource)? in candidates.map({ outcomes[$0] }) { return resource }
+            for case .failed(let error)? in candidates.map({ outcomes[$0] }) { throw error }
+            return nil
         }
     }
 

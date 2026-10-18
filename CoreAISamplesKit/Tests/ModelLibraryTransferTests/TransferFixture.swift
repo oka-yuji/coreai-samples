@@ -51,18 +51,22 @@ func next(_ events: inout AsyncStream<Event>.Iterator, all wanted: [Event]) asyn
     return seen
 }
 
+func sent(_ events: [Event]) -> [Event] {
+    events.filter { if case .sent = $0 { true } else { false } }
+}
+
 func precedes(_ first: Event, _ second: Event, in events: [Event]) -> Bool {
     guard let earlier = events.firstIndex(of: first), let later = events.firstIndex(of: second) else { return false }
     return earlier < later
 }
 
 func files(in directory: URL) -> Set<String> {
-    var paths: Set<String> = []
-    guard let entries = FileManager.default.enumerator(atPath: directory.path) else { return paths }
-    while let path = entries.nextObject() as? String {
-        if entries.fileAttributes?[.type] as? FileAttributeType != .typeDirectory { paths.insert(path) }
-    }
-    return paths
+    Set(
+        ((try? FileManager.default.subpathsOfDirectory(atPath: directory.path)) ?? []).filter { path in
+            let item = directory.appending(path: path).path
+            return (try? FileManager.default.attributesOfItem(atPath: item))?[.type] as? FileAttributeType
+                != .typeDirectory
+        })
 }
 
 func write(_ files: [String: Data], to directory: URL) throws {
@@ -279,7 +283,7 @@ final class Harness {
             for (path, data) in sample.files { state.replies[sample.url(path)] = .content(data) }
         }
         let store = ManagedModelStore(
-            root: base.appending(path: "ModelLibrary"), writeLedger: io.writeLedger, availableCapacity: { _ in .max })
+            root: base.appending(path: "ModelLibrary"), writeLedger: io.writeLedger, availableCapacity: io.capacity)
         self.sample = sample
         catalog = try sample.catalog()
         self.base = base
@@ -306,7 +310,7 @@ final class Harness {
         ) { [runner, sink, weak self] effect, send in
             sink.yield(.began(name(effect)))
             await runner.run(effect) { action in
-                if !Task.isCancelled, let state = reference.store?.state {
+                if let state = reference.store?.state {
                     var next = state
                     self?.issued.append((action, ModelLibraryFeature.reduce(&next, action)))
                     sink.yield(.sent(name(action)))
