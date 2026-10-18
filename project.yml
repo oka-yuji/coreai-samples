@@ -88,6 +88,8 @@ targets:
         product: ConversationRuntime
       - package: CoreAISamplesKit
         product: ExtractRuntime
+      - package: CoreAISamplesKit
+        product: ModelLibraryRuntime
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.coreai-samples.DemoApp

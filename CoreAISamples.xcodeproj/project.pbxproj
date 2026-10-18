@@ -154,6 +154,7 @@
 		A96393E7180FBE7F474B1B20 /* ModelLibraryTransfer in Frameworks */ = {isa = PBXBuildFile; productRef = 7D282C1A74200A481D89C2C0 /* ModelLibraryTransfer */; };
 		A9AEB14652B17A4BE269655C /* PhoneDemoApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBE9C20E195FE641300D6F57 /* PhoneDemoApp.swift */; };
 		AA2C18F953C5420935626A5B /* GLiNERCore in Frameworks */ = {isa = PBXBuildFile; productRef = B83B007D551DD5E789EE8B58 /* GLiNERCore */; };
+		AA30EA965CA9062F6343273A /* ModelLibraryRuntime in Frameworks */ = {isa = PBXBuildFile; productRef = 0EA9F283E9E5FAA7D873966C /* ModelLibraryRuntime */; };
 		AA552FE64D9C0294E62619B4 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C8BB1C51D3BFC85B5F047FD0 /* Localizable.xcstrings */; };
 		AADF788380143B8F7BA565F6 /* DecideView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E36A6DC6BC5A449F3092E6AF /* DecideView.swift */; };
 		AB671210127EDAC44A951CFB /* InspectionAudioCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 148BF4ADF94AA3ECAAB30DB9 /* InspectionAudioCapture.swift */; };
@@ -393,6 +394,7 @@
 				57F9A248E2D9A58257DE7B38 /* ConversationFeature in Frameworks */,
 				6A6E3397B70250B3E0311A07 /* ConversationRuntime in Frameworks */,
 				81B830235D13D54FE8E9F74F /* ExtractRuntime in Frameworks */,
+				AA30EA965CA9062F6343273A /* ModelLibraryRuntime in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -880,6 +882,7 @@
 				891D81C8BBAFE7FAC28AA888 /* ConversationFeature */,
 				E4A32A0198D8486F4AD112EA /* ConversationRuntime */,
 				FC34C7EEA9DBB693609F3C26 /* ExtractRuntime */,
+				0EA9F283E9E5FAA7D873966C /* ModelLibraryRuntime */,
 			);
 			productName = CoreAISamples;
 			productReference = AC4EC31CE5CEA79543AC008A /* CoreAISamples.app */;
@@ -1521,6 +1524,10 @@
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		0EA9F283E9E5FAA7D873966C /* ModelLibraryRuntime */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = ModelLibraryRuntime;
+		};
 		11F2E4B5D8E1F715551A223B /* DecideFeature */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = DecideFeature;

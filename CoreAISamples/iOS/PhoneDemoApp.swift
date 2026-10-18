@@ -13,6 +13,8 @@
                     PhoneImageSearchEvalView()
                 case .extractionEvaluation:
                     PhoneEvalView()
+                case .modelLibrarySelfTest:
+                    ProgressView().task { exit(await IOSModelLibraryAssembly.runSelfTest()) }
                 case .legacyDemos:
                     PhoneLegacyDemosView()
                 }

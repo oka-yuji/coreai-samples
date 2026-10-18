@@ -222,6 +222,7 @@ final class RuntimeHarness {
     let base = FileManager.default.temporaryDirectory.appending(path: "model-runtime-\(UUID().uuidString)")
     let store: ManagedModelStore
     let resources: ModelLibraryResourceRunner
+    let transfer: ArtifactTransfer
     let catalog: ModelCatalog
     let events: AsyncStream<String>
     let sink: AsyncStream<String>.Continuation
@@ -259,6 +260,7 @@ final class RuntimeHarness {
         self.ledger = ledger
         store = ManagedModelStore(
             root: base.appending(path: "ModelLibrary"), writeLedger: ledger.write, availableCapacity: { _ in .max })
+        self.transfer = transfer
         resources = ModelLibraryResourceRunner(store: store, transfer: transfer)
         catalog = try Self.catalog(files)
         var adapters: [String: FakeAdapter] = [:]

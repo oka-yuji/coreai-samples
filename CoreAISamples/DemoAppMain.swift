@@ -1,4 +1,5 @@
 import Foundation
+import ModelLibraryRuntime
 import SwiftUI
 
 struct DemoApp: App {
@@ -22,6 +23,11 @@ enum DemoAppMain {
             let folder = LaunchArguments.value("--embedding-bundle")
         {
             exit(await ImageSearchSelfTest.run(directory: URL(filePath: directory), folder: URL(filePath: folder)))
+        }
+        if let output = LaunchArguments.value("--model-library-selftest") {
+            exit(
+                await ModelLibrarySelfTest.run(
+                    output: URL(filePath: output), root: ModelStorage.root.appending(path: "ModelLibrary")))
         }
         if LaunchArguments.flag("--check-localization") {
             DemoLocalizationCheck.run()

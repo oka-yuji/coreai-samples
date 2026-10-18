@@ -6,7 +6,7 @@
 
 [Feature-screen design review (HTML, Japanese)](docs/designs/function-screens.html)
 
-[Native SwiftUI preview and integration status](Examples/ModelLibraryPreview/README.md) — the iOS app now opens Models on ordinary launch. Its five demo descriptions are available; model downloads and execution remain unconnected.
+[Native SwiftUI preview and integration status](Examples/ModelLibraryPreview/README.md) — the iOS app opens Models on ordinary launch, and its five demos are connected to their providers. Until the model distribution definitions are adopted, each demo shows its description only, and downloads and execution stay unavailable.
 
 Swift samples that run open models on a Mac through Apple's Core AI and Foundation Models. **Chat** and **Agent** run Qwen3.8 27B; the agent searches the web, reads pages and saves notes. **Recipes** compares a fridge photo's ingredients with a recipe URL and **Decide** scores a document against an editable checklist, both with Clef-Flash 9B. **Extract** turns product descriptions into source-linked specification cards with GLiNER2.5-multi. `Tools/Verify` compares this repository's runtime with Apple's own, token by token.
 
@@ -374,7 +374,7 @@ The defaults are ten completed reads and a process-footprint trigger of 18,000,0
 
 - Agent page fetches and Web RAG require every resolved address to be public. They refuse loopback, private, link-local, unspecified, shared, multicast and reserved addresses, including IPv4-mapped IPv6 and legacy numeric IPv4 forms. Checks run before the first request, every URLSession redirect, every main-frame or subframe WebView navigation, and on the final URL; WebView content rules also block local names and non-public literal addresses in subresources. Failed resolution refuses the fetch. DNS rebinding between validation and connection remains possible, as do JavaScript or subresource requests to names that resolve to private addresses. The app runs without the App Sandbox.
 
-- Run on macOS only (Apple silicon, macOS 27.0). `CoreAISamplesKit/Package.swift` declares iOS 27, but nothing has been run on iOS. The demo app's iPhone target (`CoreAISamples-iOS`, Extract only, see [docs/demo-app.md](docs/demo-app.md#extract-on-iphone)) builds but has not been run on a device yet.
+- Run on macOS only (Apple silicon, macOS 27.0). `CoreAISamplesKit/Package.swift` declares iOS 27, but nothing has been run on iOS. The demo app's iPhone target (`CoreAISamples-iOS`, which opens Models; see [docs/demo-app.md](docs/demo-app.md#iphone-app)) builds, but its Models route has not been checked on a device yet.
 - The language-generation runtime has been run with the converter's macOS exports (`*_dynamic` folders) for Qwen3, Qwen3.5 and Qwen3.8. The stop tokens, the `<think>` tags and the tool-call forms above are the ones those templates use; other model families may need more. Clef uses the separate `DecisionModel` API.
 - The language-generation runtime accepts text: a transcript segment that is not text throws `LanguageModelError.unsupportedTranscriptContent`. Recipes uses a separate Apple on-device model for its photo input; the Clef bundle itself is text only.
 - No guided generation: a request with a response schema throws `LanguageModelError.unsupportedCapability`.

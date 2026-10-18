@@ -37,7 +37,7 @@
 <section id="current">
 <span class="number">02 / CURRENT → PROPOSED</span><h2>機能別の実装を、モデル中心の入口につなぐ</h2>
 <div class="table-wrap"><table><thead><tr><th>観点</th><th>現状のコード</th><th>提案</th></tr></thead><tbody>
-<tr><td>iOSの起動</td><td>Modelsを表示し、モデル別に5つのデモの説明を閲覧できる。実ダウンロード・実行部は未接続。</td><td>Modelsにモデル別のデモアイコンを表示し、選んだデモへ直接進む。取得前も解説を閲覧できる。</td></tr>
+<tr><td>iOSの起動</td><td>Modelsを表示し、モデル別に5つのデモの説明を閲覧できる。取得・検査・削除の経路と5デモの実行部は接続済み。配布定義が未採用のため、各デモは説明のみを表示する。</td><td>Modelsにモデル別のデモアイコンを表示し、選んだデモへ直接進む。取得前も解説を閲覧できる。</td></tr>
 <tr><td>macOSの起動</td><td>機能別サイドバー。通常はチャットを初期選択し、会話復元を要求する。</td><td>モデル一覧を入口にする。過去の会話は明示的に再開する。</td></tr>
 <tr><td>モデル選択</td><td>チャットのモデルメニューや、各機能のフォルダ選択に分散。</td><td>選択したモデル・変換成果物をデモへ渡す。デモ内は使用中モデルを表示する。</td></tr>
 <tr><td>カタログ</td><td>Catalog.modelsはQwenの配布情報1件。各デモのモデル資源は別経路で解決。</td><td>モデルと成果物、対応デモ、公開範囲を対応づける。</td></tr>
@@ -172,7 +172,9 @@
 <div class="table-wrap"><table><thead><tr><th>実装単位</th><th>現在の証拠・残り</th></tr></thead><tbody>
 <tr><td>共通契約 <a href="https://github.com/oka-yuji/coreai-samples/pull/172">PR #172</a></td><td>公開条件、取得状態、要求ID、実行ゲートと停止確認を実装。共通契約15テストと既存CPUテストを確認。実ファイルの取得・解放は後続の接続対象。</td></tr>
 <tr><td>iOS共通UI <a href="https://github.com/oka-yuji/coreai-samples/pull/174">PR #174</a></td><td>Models、検索、共通タイル、説明ホスト、取得操作を実装。実機SDKとモデルを使わないSimulatorプレビューがビルド可能。<a href="../../Examples/ModelLibraryPreview/README.md">ネイティブプレビューの手順</a>から確認できる。<a href="https://github.com/oka-yuji/coreai-samples/pull/185">PR #185</a>で通常のiOS起動をModelsへ接続。2モデル・5デモを掲載し、未接続状態は「説明のみ」と明示する。</td></tr>
-<tr><td>個別機能の実行部の接続</td><td><a href="../designs/function-screens.html">全機能のHTML案</a>を確認待ち。GLiNER／EmbeddingGemma 2の配布リポジトリと固定revision、各デモの停止・解放契約を確定して接続する。</td></tr>
+<tr><td>共通の取得・実行経路 <a href="https://github.com/oka-yuji/coreai-samples/pull/200">PR #200</a>〜<a href="https://github.com/oka-yuji/coreai-samples/pull/203">PR #203</a></td><td>変換版と実行条件のカタログ（#189）、検査済み資源の保管・移行・削除（#190）、取得・取消・再試行（#191）、開始・停止・資源解放の共通経路（#192）を実装。fixtureとfakeを使うCPU試験で確認。実配布からの取得は未確認。</td></tr>
+<tr><td>個別機能の実行部の接続 <a href="https://github.com/oka-yuji/coreai-samples/pull/204">PR #204</a>〜<a href="https://github.com/oka-yuji/coreai-samples/pull/208">PR #208</a></td><td>比較（#193）、抽出（#194）、点検（#195）、画像検索（#196）、カメラ探索（#197）を共通ホストと実行ゲートへ接続。各デモの停止・解放はfakeを使う試験で確認。GLiNER／EmbeddingGemma 2の配布定義（#188）は未採用のため、通常起動では各デモの説明のみを表示し、実取得・実行は未確認。<a href="../designs/function-screens.html">全機能のHTML案</a>は確認待ち。</td></tr>
+<tr><td>結合検証 <a href="https://github.com/oka-yuji/coreai-samples/pull/209">PR #209</a></td><td>実際のApp組立てを使う自動試験と <code>--model-library-selftest</code> を追加（#198）。実機での取得・5デモの実行・切替・削除・再起動、言語・説明・検索・文字サイズ・読み上げの確認は本人確認として未実施で、配布定義の採用と公開後に再開する。<a href="../validation/ios-models-integration-20261018.md">結合検証の記録</a>に結果と未実施項目を残す。</td></tr>
 </tbody></table></div>
 <p>旧来の診断用引数は、明示された診断モードとして通常起動と区別して維持する。製品用の履歴・画面遷移は共通の起動条件判定を通し、診断専用経路を通常ユーザー向けの抜け道にしない。</p>
 </section>
