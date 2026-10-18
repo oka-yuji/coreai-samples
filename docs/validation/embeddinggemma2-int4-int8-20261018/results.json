@@ -1,0 +1,3130 @@
+{
+  "date": "2026-10-18",
+  "base_commit": "e300a37e38dab3030a56c3baa5380041734d4901",
+  "implementation_commit": "71fb61afd24e1fc5324f57a1abc02744d07ae09c",
+  "source_revision": "914f7f89142e33e77833254d9c9b90c3cef7303b",
+  "profile": "int4-int8-ptq-s128-v70",
+  "host": "M4 Max 128 GB; macOS 27.0 (26A428); Xcode 27.0 (27A266a); Swift 6.4",
+  "bundle": {
+    "fp16_bytes": 913677333,
+    "ptq_bytes": 341880041,
+    "reduction_percent": 62.581971922466415,
+    "manifest_sha256": "7c37ea823af7a4028ec3757e124b53fe8e16a75c99c46d24ca0a7007cca55b85",
+    "files": {
+      "LICENSE": 11358,
+      "MODEL_LICENSE.txt": 549,
+      "README.md": 21730,
+      "embedding-manifest.json": 1586,
+      "quantization-quality.json": 99783,
+      "quantized-reference.json": 341671,
+      "text.aimodel/main.hash": 32,
+      "text.aimodel/main.mlirb": 72639389,
+      "text.aimodel/metadata.json": 408,
+      "token_embedding_scales.f32": 1048576,
+      "token_embeddings.int4": 67108864,
+      "tokenizer.json": 32170510,
+      "tokenizer_config.json": 1599,
+      "vision.aimodel/main.hash": 32,
+      "vision.aimodel/main.mlirb": 168433544,
+      "vision.aimodel/metadata.json": 410
+    }
+  },
+  "conversion": {
+    "run_id": "20261018T053202-c765a176",
+    "status": "completed",
+    "verification": "passed",
+    "elapsed_s": 81.56598566705361,
+    "stages": [
+      {
+        "id": "prepare",
+        "status": "executed",
+        "execute_s": 0.6568570830859244,
+        "total_s": 3.0540226250886917
+      },
+      {
+        "id": "reference",
+        "status": "executed",
+        "execute_s": 8.25399204203859,
+        "total_s": 10.954835790675133
+      },
+      {
+        "id": "quantized_reference",
+        "status": "executed",
+        "execute_s": 11.392597416881472,
+        "total_s": 14.14840624993667
+      },
+      {
+        "id": "text_export",
+        "status": "executed",
+        "execute_s": 17.51319675007835,
+        "total_s": 20.090930874925107
+      },
+      {
+        "id": "vision_export",
+        "status": "executed",
+        "execute_s": 16.94511991739273,
+        "total_s": 19.547960583120584
+      },
+      {
+        "id": "bundle",
+        "status": "executed",
+        "execute_s": 1.2590910838916898,
+        "total_s": 4.028812583070248
+      },
+      {
+        "id": "verify",
+        "status": "executed",
+        "execute_s": 6.581390041857958,
+        "total_s": 8.375989417079836
+      }
+    ],
+    "gpu_busy_seconds": null,
+    "note": "Prepared environment and input; fresh run after integrated builds. Wall time, not GPU busy time or a controlled benchmark."
+  },
+  "quantization": {
+    "quantized_elements": {
+      "text": 136708096,
+      "vision": 167706624
+    },
+    "retained_parameters": {
+      "text": [
+        {
+          "name": "text.layers.0.self_attn.q_norm.weight",
+          "shape": [
+            256
+          ]
+        },
+        {
+          "name": "text.layers.0.self_attn.k_norm.weight",
+          "shape": [
+            256
+          ]
+        },
+        {
+          "name": "text.layers.0.input_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.0.post_attention_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.0.pre_feedforward_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.0.post_feedforward_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.0.ple_block.post_per_layer_input_norm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.1.self_attn.q_norm.weight",
+          "shape": [
+            256
+          ]
+        },
+        {
+          "name": "text.layers.1.self_attn.k_norm.weight",
+          "shape": [
+            256
+          ]
+        },
+        {
+          "name": "text.layers.1.input_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.1.post_attention_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.1.pre_feedforward_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.1.post_feedforward_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.1.ple_block.post_per_layer_input_norm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.2.self_attn.q_norm.weight",
+          "shape": [
+            256
+          ]
+        },
+        {
+          "name": "text.layers.2.self_attn.k_norm.weight",
+          "shape": [
+            256
+          ]
+        },
+        {
+          "name": "text.layers.2.input_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.2.post_attention_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.2.pre_feedforward_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.2.post_feedforward_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.2.ple_block.post_per_layer_input_norm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.3.self_attn.q_norm.weight",
+          "shape": [
+            256
+          ]
+        },
+        {
+          "name": "text.layers.3.self_attn.k_norm.weight",
+          "shape": [
+            256
+          ]
+        },
+        {
+          "name": "text.layers.3.input_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.3.post_attention_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.3.pre_feedforward_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.3.post_feedforward_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.3.ple_block.post_per_layer_input_norm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.4.self_attn.q_norm.weight",
+          "shape": [
+            256
+          ]
+        },
+        {
+          "name": "text.layers.4.self_attn.k_norm.weight",
+          "shape": [
+            256
+          ]
+        },
+        {
+          "name": "text.layers.4.input_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.4.post_attention_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.4.pre_feedforward_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.4.post_feedforward_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.4.ple_block.post_per_layer_input_norm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.5.self_attn.q_norm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.5.self_attn.k_norm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.5.input_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.5.post_attention_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.5.pre_feedforward_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.5.post_feedforward_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.5.ple_block.post_per_layer_input_norm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.6.self_attn.q_norm.weight",
+          "shape": [
+            256
+          ]
+        },
+        {
+          "name": "text.layers.6.self_attn.k_norm.weight",
+          "shape": [
+            256
+          ]
+        },
+        {
+          "name": "text.layers.6.input_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.6.post_attention_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.6.pre_feedforward_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.6.post_feedforward_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.6.ple_block.post_per_layer_input_norm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.7.self_attn.q_norm.weight",
+          "shape": [
+            256
+          ]
+        },
+        {
+          "name": "text.layers.7.self_attn.k_norm.weight",
+          "shape": [
+            256
+          ]
+        },
+        {
+          "name": "text.layers.7.input_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.7.post_attention_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.7.pre_feedforward_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.7.post_feedforward_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.7.ple_block.post_per_layer_input_norm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.8.self_attn.q_norm.weight",
+          "shape": [
+            256
+          ]
+        },
+        {
+          "name": "text.layers.8.self_attn.k_norm.weight",
+          "shape": [
+            256
+          ]
+        },
+        {
+          "name": "text.layers.8.input_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.8.post_attention_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.8.pre_feedforward_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.8.post_feedforward_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.8.ple_block.post_per_layer_input_norm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.9.self_attn.q_norm.weight",
+          "shape": [
+            256
+          ]
+        },
+        {
+          "name": "text.layers.9.self_attn.k_norm.weight",
+          "shape": [
+            256
+          ]
+        },
+        {
+          "name": "text.layers.9.input_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.9.post_attention_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.9.pre_feedforward_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.9.post_feedforward_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.9.ple_block.post_per_layer_input_norm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.10.self_attn.q_norm.weight",
+          "shape": [
+            256
+          ]
+        },
+        {
+          "name": "text.layers.10.self_attn.k_norm.weight",
+          "shape": [
+            256
+          ]
+        },
+        {
+          "name": "text.layers.10.input_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.10.post_attention_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.10.pre_feedforward_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.10.post_feedforward_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.10.ple_block.post_per_layer_input_norm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.11.self_attn.q_norm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.11.self_attn.k_norm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.11.input_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.11.post_attention_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.11.pre_feedforward_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.11.post_feedforward_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.11.ple_block.post_per_layer_input_norm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.12.self_attn.q_norm.weight",
+          "shape": [
+            256
+          ]
+        },
+        {
+          "name": "text.layers.12.self_attn.k_norm.weight",
+          "shape": [
+            256
+          ]
+        },
+        {
+          "name": "text.layers.12.input_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.12.post_attention_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.12.pre_feedforward_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.12.post_feedforward_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.12.ple_block.post_per_layer_input_norm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.13.self_attn.q_norm.weight",
+          "shape": [
+            256
+          ]
+        },
+        {
+          "name": "text.layers.13.self_attn.k_norm.weight",
+          "shape": [
+            256
+          ]
+        },
+        {
+          "name": "text.layers.13.input_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.13.post_attention_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.13.pre_feedforward_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.13.post_feedforward_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.13.ple_block.post_per_layer_input_norm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.14.self_attn.q_norm.weight",
+          "shape": [
+            256
+          ]
+        },
+        {
+          "name": "text.layers.14.self_attn.k_norm.weight",
+          "shape": [
+            256
+          ]
+        },
+        {
+          "name": "text.layers.14.input_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.14.post_attention_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.14.pre_feedforward_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.14.post_feedforward_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.14.ple_block.post_per_layer_input_norm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.15.self_attn.q_norm.weight",
+          "shape": [
+            256
+          ]
+        },
+        {
+          "name": "text.layers.15.self_attn.k_norm.weight",
+          "shape": [
+            256
+          ]
+        },
+        {
+          "name": "text.layers.15.input_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.15.post_attention_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.15.pre_feedforward_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.15.post_feedforward_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.15.ple_block.post_per_layer_input_norm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.16.self_attn.q_norm.weight",
+          "shape": [
+            256
+          ]
+        },
+        {
+          "name": "text.layers.16.self_attn.k_norm.weight",
+          "shape": [
+            256
+          ]
+        },
+        {
+          "name": "text.layers.16.input_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.16.post_attention_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.16.pre_feedforward_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.16.post_feedforward_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.16.ple_block.post_per_layer_input_norm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.17.self_attn.q_norm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.17.self_attn.k_norm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.17.input_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.17.post_attention_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.17.pre_feedforward_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.17.post_feedforward_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.17.ple_block.post_per_layer_input_norm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.18.self_attn.q_norm.weight",
+          "shape": [
+            256
+          ]
+        },
+        {
+          "name": "text.layers.18.self_attn.k_norm.weight",
+          "shape": [
+            256
+          ]
+        },
+        {
+          "name": "text.layers.18.input_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.18.post_attention_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.18.pre_feedforward_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.18.post_feedforward_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.18.ple_block.post_per_layer_input_norm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.19.self_attn.q_norm.weight",
+          "shape": [
+            256
+          ]
+        },
+        {
+          "name": "text.layers.19.self_attn.k_norm.weight",
+          "shape": [
+            256
+          ]
+        },
+        {
+          "name": "text.layers.19.input_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.19.post_attention_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.19.pre_feedforward_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.19.post_feedforward_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.19.ple_block.post_per_layer_input_norm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.20.self_attn.q_norm.weight",
+          "shape": [
+            256
+          ]
+        },
+        {
+          "name": "text.layers.20.self_attn.k_norm.weight",
+          "shape": [
+            256
+          ]
+        },
+        {
+          "name": "text.layers.20.input_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.20.post_attention_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.20.pre_feedforward_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.20.post_feedforward_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.20.ple_block.post_per_layer_input_norm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.21.self_attn.q_norm.weight",
+          "shape": [
+            256
+          ]
+        },
+        {
+          "name": "text.layers.21.self_attn.k_norm.weight",
+          "shape": [
+            256
+          ]
+        },
+        {
+          "name": "text.layers.21.input_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.21.post_attention_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.21.pre_feedforward_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.21.post_feedforward_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.21.ple_block.post_per_layer_input_norm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.22.self_attn.q_norm.weight",
+          "shape": [
+            256
+          ]
+        },
+        {
+          "name": "text.layers.22.self_attn.k_norm.weight",
+          "shape": [
+            256
+          ]
+        },
+        {
+          "name": "text.layers.22.input_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.22.post_attention_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.22.pre_feedforward_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.22.post_feedforward_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.22.ple_block.post_per_layer_input_norm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.23.self_attn.q_norm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.23.self_attn.k_norm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.23.input_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.23.post_attention_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.23.pre_feedforward_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.23.post_feedforward_layernorm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.layers.23.ple_block.post_per_layer_input_norm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.norm.weight",
+          "shape": [
+            512
+          ]
+        },
+        {
+          "name": "text.ple.per_layer_projection_norm.weight",
+          "shape": [
+            512
+          ]
+        }
+      ],
+      "vision": [
+        {
+          "name": "vision.encoder.layers.0.self_attn.q_norm.weight",
+          "shape": [
+            64
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.0.self_attn.k_norm.weight",
+          "shape": [
+            64
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.0.input_layernorm.weight",
+          "shape": [
+            768
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.0.post_attention_layernorm.weight",
+          "shape": [
+            768
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.0.pre_feedforward_layernorm.weight",
+          "shape": [
+            768
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.0.post_feedforward_layernorm.weight",
+          "shape": [
+            768
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.1.self_attn.q_norm.weight",
+          "shape": [
+            64
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.1.self_attn.k_norm.weight",
+          "shape": [
+            64
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.1.input_layernorm.weight",
+          "shape": [
+            768
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.1.post_attention_layernorm.weight",
+          "shape": [
+            768
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.1.pre_feedforward_layernorm.weight",
+          "shape": [
+            768
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.1.post_feedforward_layernorm.weight",
+          "shape": [
+            768
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.2.self_attn.q_norm.weight",
+          "shape": [
+            64
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.2.self_attn.k_norm.weight",
+          "shape": [
+            64
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.2.input_layernorm.weight",
+          "shape": [
+            768
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.2.post_attention_layernorm.weight",
+          "shape": [
+            768
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.2.pre_feedforward_layernorm.weight",
+          "shape": [
+            768
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.2.post_feedforward_layernorm.weight",
+          "shape": [
+            768
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.3.self_attn.q_norm.weight",
+          "shape": [
+            64
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.3.self_attn.k_norm.weight",
+          "shape": [
+            64
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.3.input_layernorm.weight",
+          "shape": [
+            768
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.3.post_attention_layernorm.weight",
+          "shape": [
+            768
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.3.pre_feedforward_layernorm.weight",
+          "shape": [
+            768
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.3.post_feedforward_layernorm.weight",
+          "shape": [
+            768
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.4.self_attn.q_norm.weight",
+          "shape": [
+            64
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.4.self_attn.k_norm.weight",
+          "shape": [
+            64
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.4.input_layernorm.weight",
+          "shape": [
+            768
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.4.post_attention_layernorm.weight",
+          "shape": [
+            768
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.4.pre_feedforward_layernorm.weight",
+          "shape": [
+            768
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.4.post_feedforward_layernorm.weight",
+          "shape": [
+            768
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.5.self_attn.q_norm.weight",
+          "shape": [
+            64
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.5.self_attn.k_norm.weight",
+          "shape": [
+            64
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.5.input_layernorm.weight",
+          "shape": [
+            768
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.5.post_attention_layernorm.weight",
+          "shape": [
+            768
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.5.pre_feedforward_layernorm.weight",
+          "shape": [
+            768
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.5.post_feedforward_layernorm.weight",
+          "shape": [
+            768
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.6.self_attn.q_norm.weight",
+          "shape": [
+            64
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.6.self_attn.k_norm.weight",
+          "shape": [
+            64
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.6.input_layernorm.weight",
+          "shape": [
+            768
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.6.post_attention_layernorm.weight",
+          "shape": [
+            768
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.6.pre_feedforward_layernorm.weight",
+          "shape": [
+            768
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.6.post_feedforward_layernorm.weight",
+          "shape": [
+            768
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.7.self_attn.q_norm.weight",
+          "shape": [
+            64
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.7.self_attn.k_norm.weight",
+          "shape": [
+            64
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.7.input_layernorm.weight",
+          "shape": [
+            768
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.7.post_attention_layernorm.weight",
+          "shape": [
+            768
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.7.pre_feedforward_layernorm.weight",
+          "shape": [
+            768
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.7.post_feedforward_layernorm.weight",
+          "shape": [
+            768
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.8.self_attn.q_norm.weight",
+          "shape": [
+            64
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.8.self_attn.k_norm.weight",
+          "shape": [
+            64
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.8.input_layernorm.weight",
+          "shape": [
+            768
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.8.post_attention_layernorm.weight",
+          "shape": [
+            768
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.8.pre_feedforward_layernorm.weight",
+          "shape": [
+            768
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.8.post_feedforward_layernorm.weight",
+          "shape": [
+            768
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.9.self_attn.q_norm.weight",
+          "shape": [
+            64
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.9.self_attn.k_norm.weight",
+          "shape": [
+            64
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.9.input_layernorm.weight",
+          "shape": [
+            768
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.9.post_attention_layernorm.weight",
+          "shape": [
+            768
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.9.pre_feedforward_layernorm.weight",
+          "shape": [
+            768
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.9.post_feedforward_layernorm.weight",
+          "shape": [
+            768
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.10.self_attn.q_norm.weight",
+          "shape": [
+            64
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.10.self_attn.k_norm.weight",
+          "shape": [
+            64
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.10.input_layernorm.weight",
+          "shape": [
+            768
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.10.post_attention_layernorm.weight",
+          "shape": [
+            768
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.10.pre_feedforward_layernorm.weight",
+          "shape": [
+            768
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.10.post_feedforward_layernorm.weight",
+          "shape": [
+            768
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.11.self_attn.q_norm.weight",
+          "shape": [
+            64
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.11.self_attn.k_norm.weight",
+          "shape": [
+            64
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.11.input_layernorm.weight",
+          "shape": [
+            768
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.11.post_attention_layernorm.weight",
+          "shape": [
+            768
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.11.pre_feedforward_layernorm.weight",
+          "shape": [
+            768
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.11.post_feedforward_layernorm.weight",
+          "shape": [
+            768
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.12.self_attn.q_norm.weight",
+          "shape": [
+            64
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.12.self_attn.k_norm.weight",
+          "shape": [
+            64
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.12.input_layernorm.weight",
+          "shape": [
+            768
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.12.post_attention_layernorm.weight",
+          "shape": [
+            768
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.12.pre_feedforward_layernorm.weight",
+          "shape": [
+            768
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.12.post_feedforward_layernorm.weight",
+          "shape": [
+            768
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.13.self_attn.q_norm.weight",
+          "shape": [
+            64
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.13.self_attn.k_norm.weight",
+          "shape": [
+            64
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.13.input_layernorm.weight",
+          "shape": [
+            768
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.13.post_attention_layernorm.weight",
+          "shape": [
+            768
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.13.pre_feedforward_layernorm.weight",
+          "shape": [
+            768
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.13.post_feedforward_layernorm.weight",
+          "shape": [
+            768
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.14.self_attn.q_norm.weight",
+          "shape": [
+            64
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.14.self_attn.k_norm.weight",
+          "shape": [
+            64
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.14.input_layernorm.weight",
+          "shape": [
+            768
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.14.post_attention_layernorm.weight",
+          "shape": [
+            768
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.14.pre_feedforward_layernorm.weight",
+          "shape": [
+            768
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.14.post_feedforward_layernorm.weight",
+          "shape": [
+            768
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.15.self_attn.q_norm.weight",
+          "shape": [
+            64
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.15.self_attn.k_norm.weight",
+          "shape": [
+            64
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.15.input_layernorm.weight",
+          "shape": [
+            768
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.15.post_attention_layernorm.weight",
+          "shape": [
+            768
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.15.pre_feedforward_layernorm.weight",
+          "shape": [
+            768
+          ]
+        },
+        {
+          "name": "vision.encoder.layers.15.post_feedforward_layernorm.weight",
+          "shape": [
+            768
+          ]
+        }
+      ]
+    },
+    "vocabulary_elements": 134217728,
+    "top1_agree": 7,
+    "top1_count": 12
+  },
+  "native": {
+    "passed": true,
+    "count": 20,
+    "gate": {
+      "cosine_min": 0.999,
+      "max_abs_max": 0.01
+    },
+    "cases": [
+      {
+        "id": "ja_tools",
+        "pass": true,
+        "rows": [
+          {
+            "finite": true,
+            "norm": 0.9998441847630095,
+            "cosine": 0.9999996660973208,
+            "max_abs": 0.00022491750205994032,
+            "pass": true
+          }
+        ]
+      },
+      {
+        "id": "ja_food",
+        "pass": true,
+        "rows": [
+          {
+            "finite": true,
+            "norm": 1.0002280138183186,
+            "cosine": 0.9999994865119408,
+            "max_abs": 0.00039556185005190647,
+            "pass": true
+          }
+        ]
+      },
+      {
+        "id": "ja_eggs",
+        "pass": true,
+        "rows": [
+          {
+            "finite": true,
+            "norm": 0.9999841936457334,
+            "cosine": 0.9999996451059515,
+            "max_abs": 0.00020934953861237449,
+            "pass": true
+          }
+        ]
+      },
+      {
+        "id": "ja_negation",
+        "pass": true,
+        "rows": [
+          {
+            "finite": true,
+            "norm": 1.0000382922794848,
+            "cosine": 0.9999995773027343,
+            "max_abs": 0.00022064149379730225,
+            "pass": true
+          }
+        ]
+      },
+      {
+        "id": "ja_numbers",
+        "pass": true,
+        "rows": [
+          {
+            "finite": true,
+            "norm": 1.0002467757593811,
+            "cosine": 0.9999996649015709,
+            "max_abs": 0.00012488413196562465,
+            "pass": true
+          }
+        ]
+      },
+      {
+        "id": "en_tools",
+        "pass": true,
+        "rows": [
+          {
+            "finite": true,
+            "norm": 1.0002918102732938,
+            "cosine": 0.9999996595993355,
+            "max_abs": 0.00018230518104550564,
+            "pass": true
+          }
+        ]
+      },
+      {
+        "id": "en_food",
+        "pass": true,
+        "rows": [
+          {
+            "finite": true,
+            "norm": 1.000059013795096,
+            "cosine": 0.9999996388467329,
+            "max_abs": 0.00011599688873292768,
+            "pass": true
+          }
+        ]
+      },
+      {
+        "id": "en_unicode",
+        "pass": true,
+        "rows": [
+          {
+            "finite": true,
+            "norm": 1.000176029182437,
+            "cosine": 0.9999990345681949,
+            "max_abs": 0.000251711664886467,
+            "pass": true
+          }
+        ]
+      },
+      {
+        "id": "ja_document",
+        "pass": true,
+        "rows": [
+          {
+            "finite": true,
+            "norm": 1.0002777438207673,
+            "cosine": 0.9999995696001823,
+            "max_abs": 0.00018214741943362034,
+            "pass": true
+          }
+        ]
+      },
+      {
+        "id": "en_document",
+        "pass": true,
+        "rows": [
+          {
+            "finite": true,
+            "norm": 1.0003351994150966,
+            "cosine": 0.9999995558385983,
+            "max_abs": 0.00029421040161131673,
+            "pass": true
+          }
+        ]
+      },
+      {
+        "id": "ja_short",
+        "pass": true,
+        "rows": [
+          {
+            "finite": true,
+            "norm": 1.0002427382668957,
+            "cosine": 0.9999995787872453,
+            "max_abs": 0.00025479308025361247,
+            "pass": true
+          }
+        ]
+      },
+      {
+        "id": "empty_content",
+        "pass": true,
+        "rows": [
+          {
+            "finite": true,
+            "norm": 1.0002788338266575,
+            "cosine": 0.9999983087825007,
+            "max_abs": 0.00034287321907044976,
+            "pass": true
+          }
+        ]
+      },
+      {
+        "id": "01-oyakodon",
+        "pass": true,
+        "rows": [
+          {
+            "finite": true,
+            "norm": 1.0001888751338528,
+            "cosine": 0.9997775312062879,
+            "max_abs": 0.002826033152277946,
+            "pass": true
+          }
+        ]
+      },
+      {
+        "id": "02-ginger-pork",
+        "pass": true,
+        "rows": [
+          {
+            "finite": true,
+            "norm": 1.0002848161392033,
+            "cosine": 0.9997390448753352,
+            "max_abs": 0.003115608913215634,
+            "pass": true
+          }
+        ]
+      },
+      {
+        "id": "03-omelette",
+        "pass": true,
+        "rows": [
+          {
+            "finite": true,
+            "norm": 0.9999900930708291,
+            "cosine": 0.9999642591622735,
+            "max_abs": 0.000977741624691962,
+            "pass": true
+          }
+        ]
+      },
+      {
+        "id": "04-gratin",
+        "pass": true,
+        "rows": [
+          {
+            "finite": true,
+            "norm": 0.9996991861539228,
+            "cosine": 0.9998753216772823,
+            "max_abs": 0.0024213106473024845,
+            "pass": true
+          }
+        ]
+      },
+      {
+        "id": "05-caprese",
+        "pass": true,
+        "rows": [
+          {
+            "finite": true,
+            "norm": 0.9999464005486,
+            "cosine": 0.9992570081243384,
+            "max_abs": 0.0045745237699556345,
+            "pass": true
+          }
+        ]
+      },
+      {
+        "id": "gradient_square",
+        "pass": true,
+        "rows": [
+          {
+            "finite": true,
+            "norm": 0.9998461017590957,
+            "cosine": 0.9997884079235622,
+            "max_abs": 0.0021369713688659192,
+            "pass": true
+          }
+        ]
+      },
+      {
+        "id": "gradient_wide",
+        "pass": true,
+        "rows": [
+          {
+            "finite": true,
+            "norm": 0.9997631242384152,
+            "cosine": 0.999981079383928,
+            "max_abs": 0.0008393154016990631,
+            "pass": true
+          }
+        ]
+      },
+      {
+        "id": "gradient_tall",
+        "pass": true,
+        "rows": [
+          {
+            "finite": true,
+            "norm": 0.9998970023308382,
+            "cosine": 0.9999469851439876,
+            "max_abs": 0.0013709732991218568,
+            "pass": true
+          }
+        ]
+      }
+    ],
+    "scope": "Native fidelity to the PTQ reference; original-precision degradation reported separately.",
+    "precision": "int4_int8",
+    "original_precision_comparison": {
+      "passed": false,
+      "count": 20,
+      "gate": {
+        "cosine_min": 0.999,
+        "max_abs_max": 0.01
+      },
+      "cases": [
+        {
+          "id": "ja_tools",
+          "pass": false,
+          "rows": [
+            {
+              "finite": true,
+              "norm": 0.9998441847630095,
+              "cosine": 0.9728736829062928,
+              "max_abs": 0.029653708967756272,
+              "pass": false
+            }
+          ]
+        },
+        {
+          "id": "ja_food",
+          "pass": false,
+          "rows": [
+            {
+              "finite": true,
+              "norm": 1.0002280138183186,
+              "cosine": 0.9623392843634642,
+              "max_abs": 0.030738709169616713,
+              "pass": false
+            }
+          ]
+        },
+        {
+          "id": "ja_eggs",
+          "pass": false,
+          "rows": [
+            {
+              "finite": true,
+              "norm": 0.9999841936457334,
+              "cosine": 0.972537900464476,
+              "max_abs": 0.029955766970088955,
+              "pass": false
+            }
+          ]
+        },
+        {
+          "id": "ja_negation",
+          "pass": false,
+          "rows": [
+            {
+              "finite": true,
+              "norm": 1.0000382922794848,
+              "cosine": 0.96485154244176,
+              "max_abs": 0.029473894781266212,
+              "pass": false
+            }
+          ]
+        },
+        {
+          "id": "ja_numbers",
+          "pass": false,
+          "rows": [
+            {
+              "finite": true,
+              "norm": 1.0002467757593811,
+              "cosine": 0.9693231791880885,
+              "max_abs": 0.032886864629821766,
+              "pass": false
+            }
+          ]
+        },
+        {
+          "id": "en_tools",
+          "pass": false,
+          "rows": [
+            {
+              "finite": true,
+              "norm": 1.0002918102732938,
+              "cosine": 0.9701735190712155,
+              "max_abs": 0.04513901722091676,
+              "pass": false
+            }
+          ]
+        },
+        {
+          "id": "en_food",
+          "pass": false,
+          "rows": [
+            {
+              "finite": true,
+              "norm": 1.000059013795096,
+              "cosine": 0.9607795648533228,
+              "max_abs": 0.03565565372918606,
+              "pass": false
+            }
+          ]
+        },
+        {
+          "id": "en_unicode",
+          "pass": false,
+          "rows": [
+            {
+              "finite": true,
+              "norm": 1.000176029182437,
+              "cosine": 0.9512248497749157,
+              "max_abs": 0.037285497790355684,
+              "pass": false
+            }
+          ]
+        },
+        {
+          "id": "ja_document",
+          "pass": false,
+          "rows": [
+            {
+              "finite": true,
+              "norm": 1.0002777438207673,
+              "cosine": 0.9520720435925107,
+              "max_abs": 0.039431385789684296,
+              "pass": false
+            }
+          ]
+        },
+        {
+          "id": "en_document",
+          "pass": false,
+          "rows": [
+            {
+              "finite": true,
+              "norm": 1.0003351994150966,
+              "cosine": 0.9649904872775651,
+              "max_abs": 0.03268858402243614,
+              "pass": false
+            }
+          ]
+        },
+        {
+          "id": "ja_short",
+          "pass": false,
+          "rows": [
+            {
+              "finite": true,
+              "norm": 1.0002427382668957,
+              "cosine": 0.9697615730220098,
+              "max_abs": 0.03153988781486511,
+              "pass": false
+            }
+          ]
+        },
+        {
+          "id": "empty_content",
+          "pass": false,
+          "rows": [
+            {
+              "finite": true,
+              "norm": 1.0002788338266575,
+              "cosine": 0.9478644613131936,
+              "max_abs": 0.04779311677988243,
+              "pass": false
+            }
+          ]
+        },
+        {
+          "id": "01-oyakodon",
+          "pass": false,
+          "rows": [
+            {
+              "finite": true,
+              "norm": 1.0001888751338528,
+              "cosine": 0.9658511450646361,
+              "max_abs": 0.032569959750727843,
+              "pass": false
+            }
+          ]
+        },
+        {
+          "id": "02-ginger-pork",
+          "pass": false,
+          "rows": [
+            {
+              "finite": true,
+              "norm": 1.0002848161392033,
+              "cosine": 0.9619272156206176,
+              "max_abs": 0.03743826262899971,
+              "pass": false
+            }
+          ]
+        },
+        {
+          "id": "03-omelette",
+          "pass": false,
+          "rows": [
+            {
+              "finite": true,
+              "norm": 0.9999900930708291,
+              "cosine": 0.9657416091260815,
+              "max_abs": 0.03230573578839063,
+              "pass": false
+            }
+          ]
+        },
+        {
+          "id": "04-gratin",
+          "pass": false,
+          "rows": [
+            {
+              "finite": true,
+              "norm": 0.9996991861539228,
+              "cosine": 0.9541099800210131,
+              "max_abs": 0.03929557803170872,
+              "pass": false
+            }
+          ]
+        },
+        {
+          "id": "05-caprese",
+          "pass": false,
+          "rows": [
+            {
+              "finite": true,
+              "norm": 0.9999464005486,
+              "cosine": 0.9627311861488256,
+              "max_abs": 0.03259136902649498,
+              "pass": false
+            }
+          ]
+        },
+        {
+          "id": "gradient_square",
+          "pass": false,
+          "rows": [
+            {
+              "finite": true,
+              "norm": 0.9998461017590957,
+              "cosine": 0.9750488129082334,
+              "max_abs": 0.027611657155156615,
+              "pass": false
+            }
+          ]
+        },
+        {
+          "id": "gradient_wide",
+          "pass": false,
+          "rows": [
+            {
+              "finite": true,
+              "norm": 0.9997631242384152,
+              "cosine": 0.9766570651433167,
+              "max_abs": 0.03506568623953796,
+              "pass": false
+            }
+          ]
+        },
+        {
+          "id": "gradient_tall",
+          "pass": false,
+          "rows": [
+            {
+              "finite": true,
+              "norm": 0.9998970023308382,
+              "cosine": 0.9787441044299197,
+              "max_abs": 0.030684067898946288,
+              "pass": false
+            }
+          ]
+        }
+      ],
+      "scope": "Fixed text/image S128/vision70 native-input fidelity; no general search-quality certification."
+    }
+  },
+  "app_comparison": {
+    "fp16": {
+      "summary": {
+        "heldOutCorrect": 5,
+        "heldOutQueries": 6,
+        "images": 5,
+        "indexingSeconds": 0.72687775,
+        "manifestSHA256": "1a1122d998d8af9ce83c789771fe7f5f6946e181ca87572104d0a95892e65c04",
+        "minimumSimilarity": 0.67,
+        "originalExamplesPassed": true,
+        "originalRead": true,
+        "os": "バージョン27.0（ビルド26A428）",
+        "passed": true,
+        "precision": "fp16-safe-s128-v70",
+        "queries": 9,
+        "queuedStopAndRetry": true,
+        "relevanceCorrect": 8,
+        "relevanceScope": "Fixed examples; reported separately from numerical and interaction checks",
+        "vectorReference": "Original FP32"
+      },
+      "vectors": [
+        {
+          "cosine": 0.9999997632588569,
+          "id": "ja_tools",
+          "maxDifference": 8.869916e-05,
+          "passed": true
+        },
+        {
+          "cosine": 0.9999996638985409,
+          "id": "ja_food",
+          "maxDifference": 0.00018592179,
+          "passed": true
+        },
+        {
+          "cosine": 0.9999997021349755,
+          "id": "ja_eggs",
+          "maxDifference": 0.00021916628,
+          "passed": true
+        },
+        {
+          "cosine": 0.9999996713545108,
+          "id": "ja_negation",
+          "maxDifference": 0.00020897388,
+          "passed": true
+        },
+        {
+          "cosine": 0.9999997379921448,
+          "id": "ja_numbers",
+          "maxDifference": 0.00012923777,
+          "passed": true
+        },
+        {
+          "cosine": 0.9999997205823292,
+          "id": "en_tools",
+          "maxDifference": 0.00014211237,
+          "passed": true
+        },
+        {
+          "cosine": 0.999999761209333,
+          "id": "en_food",
+          "maxDifference": 0.00018340349,
+          "passed": true
+        },
+        {
+          "cosine": 0.9999995850266793,
+          "id": "en_unicode",
+          "maxDifference": 0.0001962781,
+          "passed": true
+        },
+        {
+          "cosine": 0.9999996841422772,
+          "id": "ja_document",
+          "maxDifference": 0.00015699863,
+          "passed": true
+        },
+        {
+          "cosine": 0.9999997317018692,
+          "id": "en_document",
+          "maxDifference": 0.00019690394,
+          "passed": true
+        },
+        {
+          "cosine": 0.9999998081323169,
+          "id": "ja_short",
+          "maxDifference": 9.700656e-05,
+          "passed": true
+        },
+        {
+          "cosine": 0.9999997038472695,
+          "id": "empty_content",
+          "maxDifference": 0.0002771318,
+          "passed": true
+        },
+        {
+          "cosine": 0.9998762985847329,
+          "id": "01-oyakodon",
+          "maxDifference": 0.0015888773,
+          "passed": true
+        },
+        {
+          "cosine": 0.9998684591060225,
+          "id": "02-ginger-pork",
+          "maxDifference": 0.0019283481,
+          "passed": true
+        },
+        {
+          "cosine": 0.9999827170411772,
+          "id": "03-omelette",
+          "maxDifference": 0.0007512644,
+          "passed": true
+        },
+        {
+          "cosine": 0.9999693715143785,
+          "id": "04-gratin",
+          "maxDifference": 0.0010769926,
+          "passed": true
+        },
+        {
+          "cosine": 0.9994835530134252,
+          "id": "05-caprese",
+          "maxDifference": 0.004896015,
+          "passed": true
+        },
+        {
+          "cosine": 0.999866114488607,
+          "id": "gradient_square",
+          "maxDifference": 0.0019464418,
+          "passed": true
+        },
+        {
+          "cosine": 0.9999782729324034,
+          "id": "gradient_wide",
+          "maxDifference": 0.0008552596,
+          "passed": true
+        },
+        {
+          "cosine": 0.9999678738051968,
+          "id": "gradient_tall",
+          "maxDifference": 0.00092200004,
+          "passed": true
+        }
+      ],
+      "searches": [
+        {
+          "displayed": [
+            "05-caprese.png"
+          ],
+          "evaluationOnly": false,
+          "expected": "05-caprese.png",
+          "id": "ja_food",
+          "matches": [
+            {
+              "image": "05-caprese.png",
+              "similarity": 0.7035874574820885
+            },
+            {
+              "image": "04-gratin.png",
+              "similarity": 0.6643627471333614
+            },
+            {
+              "image": "03-omelette.png",
+              "similarity": 0.642658017698214
+            },
+            {
+              "image": "02-ginger-pork.png",
+              "similarity": 0.6375889804740115
+            },
+            {
+              "image": "01-oyakodon.png",
+              "similarity": 0.6324074437402611
+            }
+          ],
+          "query": "トマトと白いチーズが並んでいる写真",
+          "relevantResult": true,
+          "seconds": 0.014907541
+        },
+        {
+          "displayed": [
+            "03-omelette.png",
+            "01-oyakodon.png",
+            "04-gratin.png",
+            "02-ginger-pork.png",
+            "05-caprese.png"
+          ],
+          "evaluationOnly": false,
+          "expected": "03-omelette.png",
+          "id": "ja_eggs",
+          "matches": [
+            {
+              "image": "03-omelette.png",
+              "similarity": 0.7676119210017373
+            },
+            {
+              "image": "01-oyakodon.png",
+              "similarity": 0.7629595967771882
+            },
+            {
+              "image": "04-gratin.png",
+              "similarity": 0.7108865933800704
+            },
+            {
+              "image": "02-ginger-pork.png",
+              "similarity": 0.7094634759274434
+            },
+            {
+              "image": "05-caprese.png",
+              "similarity": 0.7001408320682715
+            }
+          ],
+          "query": "卵が入っている冷蔵庫",
+          "relevantResult": true,
+          "seconds": 0.015602
+        },
+        {
+          "displayed": [
+            "05-caprese.png"
+          ],
+          "evaluationOnly": false,
+          "expected": "05-caprese.png",
+          "id": "en_food",
+          "matches": [
+            {
+              "image": "05-caprese.png",
+              "similarity": 0.7102961155269327
+            },
+            {
+              "image": "04-gratin.png",
+              "similarity": 0.6654137533205716
+            },
+            {
+              "image": "01-oyakodon.png",
+              "similarity": 0.6567092623507285
+            },
+            {
+              "image": "03-omelette.png",
+              "similarity": 0.6555079040072487
+            },
+            {
+              "image": "02-ginger-pork.png",
+              "similarity": 0.6443450325855274
+            }
+          ],
+          "query": "Tomatoes and white cheese",
+          "relevantResult": true,
+          "seconds": 0.014553292
+        },
+        {
+          "displayed": [],
+          "evaluationOnly": true,
+          "expected": "05-caprese.png",
+          "id": "val_caprese",
+          "matches": [
+            {
+              "image": "05-caprese.png",
+              "similarity": 0.6601083366365369
+            },
+            {
+              "image": "04-gratin.png",
+              "similarity": 0.6301260601714039
+            },
+            {
+              "image": "03-omelette.png",
+              "similarity": 0.6108831355551674
+            },
+            {
+              "image": "02-ginger-pork.png",
+              "similarity": 0.6074897955071984
+            },
+            {
+              "image": "01-oyakodon.png",
+              "similarity": 0.5972762692149172
+            }
+          ],
+          "query": "トマトと白いチーズでカプレーゼを作れそうな写真",
+          "relevantResult": false,
+          "seconds": 0.014648041
+        },
+        {
+          "displayed": [
+            "04-gratin.png"
+          ],
+          "evaluationOnly": true,
+          "expected": "04-gratin.png",
+          "id": "val_milk",
+          "matches": [
+            {
+              "image": "04-gratin.png",
+              "similarity": 0.7246575738516567
+            },
+            {
+              "image": "01-oyakodon.png",
+              "similarity": 0.6309356423495053
+            },
+            {
+              "image": "03-omelette.png",
+              "similarity": 0.6259533278662954
+            },
+            {
+              "image": "05-caprese.png",
+              "similarity": 0.6233924014098222
+            },
+            {
+              "image": "02-ginger-pork.png",
+              "similarity": 0.6229998925102761
+            }
+          ],
+          "query": "袋に入った細切りチーズと牛乳",
+          "relevantResult": true,
+          "seconds": 0.014440833
+        },
+        {
+          "displayed": [
+            "02-ginger-pork.png",
+            "01-oyakodon.png"
+          ],
+          "evaluationOnly": true,
+          "expected": "02-ginger-pork.png",
+          "id": "val_cucumber",
+          "matches": [
+            {
+              "image": "02-ginger-pork.png",
+              "similarity": 0.785610841706682
+            },
+            {
+              "image": "01-oyakodon.png",
+              "similarity": 0.6958016530922665
+            },
+            {
+              "image": "04-gratin.png",
+              "similarity": 0.669671839848152
+            },
+            {
+              "image": "03-omelette.png",
+              "similarity": 0.62884129846307
+            },
+            {
+              "image": "05-caprese.png",
+              "similarity": 0.622246916232237
+            }
+          ],
+          "query": "肉と玉ねぎの近くに人参ときゅうりがある",
+          "relevantResult": true,
+          "seconds": 0.014042959
+        },
+        {
+          "displayed": [],
+          "evaluationOnly": true,
+          "id": "val_dog",
+          "matches": [
+            {
+              "image": "02-ginger-pork.png",
+              "similarity": 0.5384821766764339
+            },
+            {
+              "image": "01-oyakodon.png",
+              "similarity": 0.533410075886641
+            },
+            {
+              "image": "04-gratin.png",
+              "similarity": 0.5324012674096986
+            },
+            {
+              "image": "05-caprese.png",
+              "similarity": 0.528907366679058
+            },
+            {
+              "image": "03-omelette.png",
+              "similarity": 0.5236045666490439
+            }
+          ],
+          "query": "砂浜でボールを追いかける犬",
+          "relevantResult": true,
+          "seconds": 0.014673042
+        },
+        {
+          "displayed": [],
+          "evaluationOnly": true,
+          "id": "val_toolbox",
+          "matches": [
+            {
+              "image": "05-caprese.png",
+              "similarity": 0.6215044847220392
+            },
+            {
+              "image": "03-omelette.png",
+              "similarity": 0.5696520470600022
+            },
+            {
+              "image": "02-ginger-pork.png",
+              "similarity": 0.5671051365931533
+            },
+            {
+              "image": "04-gratin.png",
+              "similarity": 0.5588627669577214
+            },
+            {
+              "image": "01-oyakodon.png",
+              "similarity": 0.5440683922761331
+            }
+          ],
+          "query": "机の上にある赤い工具箱",
+          "relevantResult": true,
+          "seconds": 0.014914417
+        },
+        {
+          "displayed": [],
+          "evaluationOnly": true,
+          "id": "val_train",
+          "matches": [
+            {
+              "image": "04-gratin.png",
+              "similarity": 0.5712083491347105
+            },
+            {
+              "image": "03-omelette.png",
+              "similarity": 0.5479793003735732
+            },
+            {
+              "image": "05-caprese.png",
+              "similarity": 0.5430742436747937
+            },
+            {
+              "image": "02-ginger-pork.png",
+              "similarity": 0.5420243991038344
+            },
+            {
+              "image": "01-oyakodon.png",
+              "similarity": 0.52900497672274
+            }
+          ],
+          "query": "駅に停まっている青い列車",
+          "relevantResult": true,
+          "seconds": 0.014350166
+        }
+      ]
+    },
+    "ptq": {
+      "summary": {
+        "heldOutCorrect": 5,
+        "heldOutQueries": 6,
+        "images": 5,
+        "indexingSeconds": 0.7555985,
+        "manifestSHA256": "7c37ea823af7a4028ec3757e124b53fe8e16a75c99c46d24ca0a7007cca55b85",
+        "minimumSimilarity": 0.67,
+        "originalExamplesPassed": false,
+        "originalRead": true,
+        "os": "バージョン27.0（ビルド26A428）",
+        "passed": true,
+        "precision": "int4-int8-ptq-s128-v70",
+        "queries": 9,
+        "queuedStopAndRetry": true,
+        "relevanceCorrect": 6,
+        "relevanceScope": "Fixed examples; reported separately from numerical and interaction checks",
+        "vectorReference": "Matched PTQ"
+      },
+      "vectors": [
+        {
+          "cosine": 0.9999996660976302,
+          "id": "ja_tools",
+          "maxDifference": 0.00022491813,
+          "passed": true
+        },
+        {
+          "cosine": 0.9999994865109009,
+          "id": "ja_food",
+          "maxDifference": 0.00039556623,
+          "passed": true
+        },
+        {
+          "cosine": 0.999999645107299,
+          "id": "ja_eggs",
+          "maxDifference": 0.00020934641,
+          "passed": true
+        },
+        {
+          "cosine": 0.9999995773020005,
+          "id": "ja_negation",
+          "maxDifference": 0.0002206415,
+          "passed": true
+        },
+        {
+          "cosine": 0.999999664901404,
+          "id": "ja_numbers",
+          "maxDifference": 0.00012488663,
+          "passed": true
+        },
+        {
+          "cosine": 0.9999996595986245,
+          "id": "en_tools",
+          "maxDifference": 0.0001823008,
+          "passed": true
+        },
+        {
+          "cosine": 0.9999996388466511,
+          "id": "en_food",
+          "maxDifference": 0.00011599064,
+          "passed": true
+        },
+        {
+          "cosine": 0.9999990345677551,
+          "id": "en_unicode",
+          "maxDifference": 0.00025171041,
+          "passed": true
+        },
+        {
+          "cosine": 0.9999995695986675,
+          "id": "ja_document",
+          "maxDifference": 0.0001821518,
+          "passed": true
+        },
+        {
+          "cosine": 0.9999995558395862,
+          "id": "en_document",
+          "maxDifference": 0.00029420853,
+          "passed": true
+        },
+        {
+          "cosine": 0.9999995787863839,
+          "id": "ja_short",
+          "maxDifference": 0.00025479496,
+          "passed": true
+        },
+        {
+          "cosine": 0.9999983087842103,
+          "id": "empty_content",
+          "maxDifference": 0.00034287572,
+          "passed": true
+        },
+        {
+          "cosine": 0.9997775312250871,
+          "id": "01-oyakodon",
+          "maxDifference": 0.0028260332,
+          "passed": true
+        },
+        {
+          "cosine": 0.999739044872281,
+          "id": "02-ginger-pork",
+          "maxDifference": 0.0031156093,
+          "passed": true
+        },
+        {
+          "cosine": 0.999964259160338,
+          "id": "03-omelette",
+          "maxDifference": 0.0009777416,
+          "passed": true
+        },
+        {
+          "cosine": 0.99987532168398,
+          "id": "04-gratin",
+          "maxDifference": 0.0024213106,
+          "passed": true
+        },
+        {
+          "cosine": 0.9992570081109999,
+          "id": "05-caprese",
+          "maxDifference": 0.0045745242,
+          "passed": true
+        },
+        {
+          "cosine": 0.9997884079254269,
+          "id": "gradient_square",
+          "maxDifference": 0.0021369713,
+          "passed": true
+        },
+        {
+          "cosine": 0.9999810793827419,
+          "id": "gradient_wide",
+          "maxDifference": 0.00083931535,
+          "passed": true
+        },
+        {
+          "cosine": 0.9999469851419082,
+          "id": "gradient_tall",
+          "maxDifference": 0.0013709739,
+          "passed": true
+        }
+      ],
+      "searches": [
+        {
+          "displayed": [],
+          "evaluationOnly": false,
+          "expected": "05-caprese.png",
+          "id": "ja_food",
+          "matches": [
+            {
+              "image": "05-caprese.png",
+              "similarity": 0.6688018375447451
+            },
+            {
+              "image": "04-gratin.png",
+              "similarity": 0.6214042819050529
+            },
+            {
+              "image": "01-oyakodon.png",
+              "similarity": 0.5906689771313369
+            },
+            {
+              "image": "03-omelette.png",
+              "similarity": 0.5900736174821088
+            },
+            {
+              "image": "02-ginger-pork.png",
+              "similarity": 0.5804744139911323
+            }
+          ],
+          "query": "トマトと白いチーズが並んでいる写真",
+          "relevantResult": false,
+          "seconds": 0.014190958
+        },
+        {
+          "displayed": [
+            "01-oyakodon.png",
+            "03-omelette.png",
+            "04-gratin.png",
+            "05-caprese.png",
+            "02-ginger-pork.png"
+          ],
+          "evaluationOnly": false,
+          "expected": "03-omelette.png",
+          "id": "ja_eggs",
+          "matches": [
+            {
+              "image": "01-oyakodon.png",
+              "similarity": 0.7762241267343001
+            },
+            {
+              "image": "03-omelette.png",
+              "similarity": 0.7679452092195879
+            },
+            {
+              "image": "04-gratin.png",
+              "similarity": 0.7364418041569777
+            },
+            {
+              "image": "05-caprese.png",
+              "similarity": 0.7141238728028835
+            },
+            {
+              "image": "02-ginger-pork.png",
+              "similarity": 0.704705102948746
+            }
+          ],
+          "query": "卵が入っている冷蔵庫",
+          "relevantResult": false,
+          "seconds": 0.013907209
+        },
+        {
+          "displayed": [
+            "05-caprese.png"
+          ],
+          "evaluationOnly": false,
+          "expected": "05-caprese.png",
+          "id": "en_food",
+          "matches": [
+            {
+              "image": "05-caprese.png",
+              "similarity": 0.6795355622976604
+            },
+            {
+              "image": "04-gratin.png",
+              "similarity": 0.6278663886728603
+            },
+            {
+              "image": "01-oyakodon.png",
+              "similarity": 0.6255424084119515
+            },
+            {
+              "image": "03-omelette.png",
+              "similarity": 0.603817498409867
+            },
+            {
+              "image": "02-ginger-pork.png",
+              "similarity": 0.6016359162373519
+            }
+          ],
+          "query": "Tomatoes and white cheese",
+          "relevantResult": true,
+          "seconds": 0.014557333
+        },
+        {
+          "displayed": [],
+          "evaluationOnly": true,
+          "expected": "05-caprese.png",
+          "id": "val_caprese",
+          "matches": [
+            {
+              "image": "05-caprese.png",
+              "similarity": 0.6100243354522393
+            },
+            {
+              "image": "04-gratin.png",
+              "similarity": 0.5704106528373423
+            },
+            {
+              "image": "03-omelette.png",
+              "similarity": 0.5423017548199613
+            },
+            {
+              "image": "01-oyakodon.png",
+              "similarity": 0.5332926300598717
+            },
+            {
+              "image": "02-ginger-pork.png",
+              "similarity": 0.5287510621336469
+            }
+          ],
+          "query": "トマトと白いチーズでカプレーゼを作れそうな写真",
+          "relevantResult": false,
+          "seconds": 0.01401225
+        },
+        {
+          "displayed": [
+            "04-gratin.png"
+          ],
+          "evaluationOnly": true,
+          "expected": "04-gratin.png",
+          "id": "val_milk",
+          "matches": [
+            {
+              "image": "04-gratin.png",
+              "similarity": 0.7103304803924133
+            },
+            {
+              "image": "01-oyakodon.png",
+              "similarity": 0.6109193493763639
+            },
+            {
+              "image": "03-omelette.png",
+              "similarity": 0.6043683564914304
+            },
+            {
+              "image": "05-caprese.png",
+              "similarity": 0.5978694174117708
+            },
+            {
+              "image": "02-ginger-pork.png",
+              "similarity": 0.5957957888703089
+            }
+          ],
+          "query": "袋に入った細切りチーズと牛乳",
+          "relevantResult": true,
+          "seconds": 0.013822833
+        },
+        {
+          "displayed": [
+            "02-ginger-pork.png",
+            "01-oyakodon.png"
+          ],
+          "evaluationOnly": true,
+          "expected": "02-ginger-pork.png",
+          "id": "val_cucumber",
+          "matches": [
+            {
+              "image": "02-ginger-pork.png",
+              "similarity": 0.7394771026318152
+            },
+            {
+              "image": "01-oyakodon.png",
+              "similarity": 0.6758560041998647
+            },
+            {
+              "image": "04-gratin.png",
+              "similarity": 0.6433206459255191
+            },
+            {
+              "image": "05-caprese.png",
+              "similarity": 0.6336987776084084
+            },
+            {
+              "image": "03-omelette.png",
+              "similarity": 0.6178968945956381
+            }
+          ],
+          "query": "肉と玉ねぎの近くに人参ときゅうりがある",
+          "relevantResult": true,
+          "seconds": 0.013486042
+        },
+        {
+          "displayed": [],
+          "evaluationOnly": true,
+          "id": "val_dog",
+          "matches": [
+            {
+              "image": "05-caprese.png",
+              "similarity": 0.5345176615803223
+            },
+            {
+              "image": "01-oyakodon.png",
+              "similarity": 0.5311894955133705
+            },
+            {
+              "image": "02-ginger-pork.png",
+              "similarity": 0.530484103842115
+            },
+            {
+              "image": "04-gratin.png",
+              "similarity": 0.5259238105726478
+            },
+            {
+              "image": "03-omelette.png",
+              "similarity": 0.5140035298356982
+            }
+          ],
+          "query": "砂浜でボールを追いかける犬",
+          "relevantResult": true,
+          "seconds": 0.014348291
+        },
+        {
+          "displayed": [],
+          "evaluationOnly": true,
+          "id": "val_toolbox",
+          "matches": [
+            {
+              "image": "05-caprese.png",
+              "similarity": 0.615982725838695
+            },
+            {
+              "image": "04-gratin.png",
+              "similarity": 0.5612709112778876
+            },
+            {
+              "image": "03-omelette.png",
+              "similarity": 0.5606059356948567
+            },
+            {
+              "image": "02-ginger-pork.png",
+              "similarity": 0.5567280890753424
+            },
+            {
+              "image": "01-oyakodon.png",
+              "similarity": 0.5465487277966574
+            }
+          ],
+          "query": "机の上にある赤い工具箱",
+          "relevantResult": true,
+          "seconds": 0.013477709
+        },
+        {
+          "displayed": [],
+          "evaluationOnly": true,
+          "id": "val_train",
+          "matches": [
+            {
+              "image": "04-gratin.png",
+              "similarity": 0.5343887069272446
+            },
+            {
+              "image": "01-oyakodon.png",
+              "similarity": 0.5215406264680238
+            },
+            {
+              "image": "05-caprese.png",
+              "similarity": 0.5205663102459496
+            },
+            {
+              "image": "03-omelette.png",
+              "similarity": 0.5188161094289757
+            },
+            {
+              "image": "02-ginger-pork.png",
+              "similarity": 0.5096837686671668
+            }
+          ],
+          "query": "駅に停まっている青い列車",
+          "relevantResult": true,
+          "seconds": 0.013755292
+        }
+      ]
+    }
+  },
+  "device": {
+    "family": "iPhone 17 Pro",
+    "signed_install_succeeded": true,
+    "both_bundle_manifests_match": true,
+    "native_inference": "not_run: device locked",
+    "camera_acceptance": "pending user on main",
+    "ptq_manifest_sha256": "7c37ea823af7a4028ec3757e124b53fe8e16a75c99c46d24ca0a7007cca55b85"
+  },
+  "checks": {
+    "python_tests": 79,
+    "swift_reported_tests": 551,
+    "swift_skip_lines": 35,
+    "swift_result": "success; gated model tests skipped, model verification reported separately",
+    "lint_files": 331,
+    "lint_violations": 0,
+    "swift_format_files": 14,
+    "swift_format": "pass",
+    "macos_release_build": "passed",
+    "ios_signed_release_build": "passed",
+    "self_review_confirmed_remaining": 0,
+    "self_review_fixed_p2": 1
+  }
+}

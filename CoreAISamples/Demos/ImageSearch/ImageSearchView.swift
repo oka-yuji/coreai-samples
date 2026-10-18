@@ -91,6 +91,13 @@ struct ImageSearchView: View {
     private var modelControls: some View {
         HStack(spacing: 10) {
             Menu {
+                ForEach(ImageSearchAssembly.preparedModels, id: \.self) { folder in
+                    Button {
+                        store.send(.load(folder))
+                    } label: {
+                        Text(verbatim: folder.lastPathComponent)
+                    }
+                }
                 Button("Open model folder…") { choosingModel = true }
                 if let folder = state.modelFolder {
                     Button("Reload selected model") { store.send(.load(folder)) }
@@ -103,7 +110,8 @@ struct ImageSearchView: View {
             }
             .disabled(state.isBusy)
             .accessibilityIdentifier("image-search-model")
-            Text("EmbeddingGemma 2").font(.caption).foregroundStyle(.secondary)
+            Text(verbatim: state.modelFolder?.lastPathComponent ?? "EmbeddingGemma 2")
+                .font(.caption).foregroundStyle(.secondary)
         }
     }
 

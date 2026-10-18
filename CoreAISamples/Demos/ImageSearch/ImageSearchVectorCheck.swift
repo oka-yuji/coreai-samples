@@ -25,6 +25,17 @@ enum ImageSearchVectorCheck {
             throw EmbeddingError.invalidBundle("Missing vector fixtures")
         }
         let references = try JSONDecoder().decode([Reference].self, from: Data(contentsOf: file))
+        let bundle = try EmbeddingBundle(directory: folder)
+        let quantized: [String: [Float]]
+        if bundle.precision == "int4-int8-ptq-s128-v70" {
+            quantized = try JSONDecoder().decode(
+                [String: [Float]].self, from: Data(contentsOf: folder.appending(path: "quantized-reference.json")))
+            guard quantized.count == references.count, Set(quantized.keys) == Set(references.map(\.id)) else {
+                throw EmbeddingError.invalidBundle("Quantized vector fixtures differ")
+            }
+        } else {
+            quantized = [:]
+        }
         let model = EmbeddingModel()
         try await model.load(directory: folder)
         do {
@@ -39,7 +50,7 @@ enum ImageSearchVectorCheck {
                 } else {
                     vector = try await model.encode(reference.text ?? "", role: reference.role ?? .query)
                 }
-                let original = try EmbeddingVector(reference.reference)
+                let original = try EmbeddingVector(quantized[reference.id] ?? reference.reference)
                 let cosine = vector.similarity(to: original)
                 let difference = zip(vector.values, original.values).map { abs($0 - $1) }.max() ?? 1
                 let passed = cosine >= 0.999 && difference <= 0.01

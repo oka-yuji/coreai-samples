@@ -16,7 +16,7 @@
         }
 
         static func makeSession() -> Session {
-            let prepared = URL.documentsDirectory.appending(path: "embeddinggemma2")
+            let prepared = URL.documentsDirectory.appending(path: ImageSearchAssembly.preparedFolderName)
             let folder =
                 LaunchArguments.value("--embedding-bundle").map { URL(filePath: $0) }
                 ?? (FileManager.default.fileExists(atPath: prepared.appending(path: "embedding-manifest.json").path)
@@ -88,6 +88,17 @@
                     if let failure = store.state.failure { failureView(failure) }
                     DisclosureGroup("Search settings") {
                         VStack(alignment: .leading, spacing: 10) {
+                            ForEach(ImageSearchAssembly.preparedModels, id: \.self) { folder in
+                                Button {
+                                    store.send(.folderSelected(folder))
+                                } label: {
+                                    Label {
+                                        Text(verbatim: folder.lastPathComponent)
+                                    } icon: {
+                                        Image(systemName: store.state.folder == folder ? "checkmark.circle" : "circle")
+                                    }
+                                }
+                            }
                             Button {
                                 choosesModel = true
                             } label: {

@@ -10,6 +10,7 @@ from transformers import AutoConfig, EmbeddingGemma2Model
 
 from .contracts import compare_vectors
 from .model_wrappers import TextTower, VisionTower, use_scaled_norms, use_materialized_key_values
+from .quantization import prepare_quantization
 
 
 def load_inputs(root, kind, dtype=torch.float32):
@@ -37,7 +38,7 @@ def main():
     parser.add_argument("--reference", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--kind", choices=["text", "vision"], required=True)
-    parser.add_argument("--precision", choices=["fp32", "fp16_weights", "fp16_all", "fp16_safe"], required=True)
+    parser.add_argument("--precision", choices=["fp32", "fp16_weights", "fp16_all", "fp16_safe", "int4_int8"], required=True)
     parser.add_argument("--kv-layout", choices=["native", "materialized"], default="materialized")
     args = parser.parse_args()
     if args.output.exists():
@@ -55,15 +56,25 @@ def main():
         config.vision_config = None
     model = EmbeddingGemma2Model.from_pretrained(args.source, config=config, dtype=torch.float32,
                                                 attn_implementation="eager", local_files_only=True).eval()
-    module = TextTower(model, safe_normalize=args.precision == "fp16_safe") if args.kind == "text" else VisionTower(model)
+    safe = args.precision in ("fp16_safe", "int4_int8")
+    module = TextTower(model, safe_normalize=safe) if args.kind == "text" else VisionTower(model)
     module.eval().requires_grad_(False)
-    if args.precision == "fp16_safe":
+    if safe:
         print("Scaled RMSNorms", len(use_scaled_norms(module)), flush=True)
     dtype = torch.float32
     if args.precision == "fp16_weights":
         module.half()
         dtype = torch.float16
     fixtures = [item for item in specification["fixtures"] if args.kind == "text" or "image" in item]
+    quantizer = None
+    layers = []
+    if args.precision == "int4_int8":
+        if specification.get("precision") != "int4_int8":
+            raise ValueError("Quantized exports require the matching quantized reference")
+        quantizer, module, layers = prepare_quantization(
+            module, args.kind, load_inputs(args.reference / fixtures[0]["id"], args.kind)[1])
+    elif specification.get("precision") == "int4_int8":
+        raise ValueError("A quantized reference cannot validate an unquantized export")
     records = []
     with torch.inference_mode():
         for item in fixtures:
@@ -83,7 +94,7 @@ def main():
                 records.append({"id": item["id"], "wrapper": result})
             print(json.dumps(records[-1], allow_nan=False), flush=True)
     (args.output / "wrapper-comparison.json").write_text(json.dumps(records, indent=2, allow_nan=False) + "\n")
-    if args.precision in ("fp32", "fp16_all", "fp16_safe") and args.kind == "text":
+    if args.precision in ("fp32", "fp16_all", "fp16_safe", "int4_int8") and args.kind == "text":
         if not all(record["wrapper"]["pass"] for record in records):
             raise RuntimeError("The FP32 wrapper failed the pre-conversion fidelity gate")
     import coreai_torch
@@ -91,10 +102,12 @@ def main():
     from coreai.runtime import AIModelAssetMetadata
     names, example = load_inputs(args.reference / fixtures[0]["id"], args.kind, dtype)
     started = time.perf_counter()
+    if quantizer is not None:
+        module = quantizer.finalize()
     with torch.no_grad():
         exported = torch.export.export(module, example, strict=False)
     exported = exported.run_decompositions(coreai_torch.get_decomp_table())
-    if args.precision in ("fp16_all", "fp16_safe"):
+    if args.precision in ("fp16_all", "fp16_safe", "int4_int8"):
         cast_fp32_to_fp16(exported)
         example = tuple(value.to(torch.float16) if value.is_floating_point() else value for value in example)
     print("Exported operations", len(list(exported.graph.nodes)), flush=True)
@@ -124,7 +137,8 @@ def main():
                 "fixtures_sha256": hashlib.sha256((args.reference / "fixtures.json").read_bytes()).hexdigest(),
                 "source_sha256": {name: hashlib.sha256(Path(__file__).with_name(name).read_bytes()).hexdigest()
                                   for name in ["convert.py", "model_wrappers.py"]},
-                "model_revision": args.source.name, "complete": True}
+                "model_revision": args.source.name, "complete": True,
+                "quantized_layers": layers}
     (args.output / "contract.json").write_text(json.dumps(contract, indent=2) + "\n")
     print(json.dumps(contract), flush=True)
 

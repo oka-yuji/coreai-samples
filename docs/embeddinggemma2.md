@@ -51,7 +51,7 @@ You can choose up to 50 images. The index is held in memory and discarded when t
 - Queries use `task: search result | query: `; documents use `title: none | text: `.
 - BOS/EOS and the prefix count toward 128 tokens. Longer text is rejected.
 - Images respect EXIF orientation, use RGB and antialiased separable bicubic interpolation, then form 16×16 patches and spatial 3×3 pooling groups. Transparent and animated images are rejected. Decoded images are limited to 40 million pixels.
-- Only the converted `fp16-safe-s128-v70` signature is accepted. File hashes, paths, tensor shapes, and scalar types are checked before inference.
+- The converted `fp16-safe-s128-v70` and experimental `int4-int8-ptq-s128-v70` profiles are accepted. File hashes, paths, tensor shapes, scalar types, and vocabulary table layout are checked before inference.
 - `EmbeddingModel` owns its models and vocabulary table in one actor. It rejects overlapping load/encode/unload operations. Cancellation does not allow replacement while an awaited runtime call is still returning.
 - Embeddings have 768 finite components and must be within 0.001 of unit norm. Search uses cosine similarity, not probability.
 
@@ -81,3 +81,12 @@ CoreAISamples.app/Contents/MacOS/CoreAISamples --image-search-eval /path/to/new-
 ```
 
 Run it under the shared heavy-job lock. On an unlocked iPhone, `Tools/Embedding/verify_device.py` installs the signed app, copies the bundle, launches the same application check, and retrieves the results. It uses a unique remote run directory to prevent an old success report from being reused.
+
+
+## Compare FP16 with INT4 / INT8 on iPhone
+
+The [PTQ recipe](../Tools/Conversion/recipes/embeddinggemma2/README.md#experimental-text-int4--vision-int8) produces a second bundle. Keep FP16 at `Documents/embeddinggemma2` and PTQ at `Documents/embeddinggemma2-int4-int8`. On the camera screen, stop the search, expand **Search settings**, select a folder and start again with the same text and scene. For image search, select either installed folder from **Open model**, then re-index the same images. Selection invalidates the previous model/index. FP16 stays the launch default.
+
+PTQ uses text/vocabulary INT4 and vision INT8; it is not the official QAT checkpoint. The [validation record](validation/embeddinggemma2-int4-int8-20261018.md) reports the smaller bundle and observed quality changes. Bundle size is not RAM usage, and matching the quantized reference is not evidence of unchanged retrieval quality. Keep the same threshold, images, text and camera settings when comparing.
+
+For automated checks, the PTQ bundle's hash-checked `quantized-reference.json` supplies matched numeric references while the app retains the same raw text and image fixtures. The original-reference quality differences remain in the bundled quality report. The saved five-image retrieval results use the original unchanged threshold and expected examples. The iOS self-test can select PTQ with `--image-search-eval RUN --embedding-profile int4_int8`; ordinary launch remains FP16.

@@ -18,6 +18,20 @@ struct ObjectFinderFeatureTests {
         return state
     }
 
+    @Test("A precision profile can change only after camera stop is acknowledged")
+    func switchProfileAfterStop() {
+        var state = active()
+        let target = URL(filePath: "/models/embeddinggemma2-int4-int8")
+        _ = ObjectFinderFeature.reduce(&state, .folderSelected(target))
+        #expect(state.folder == folder)
+        _ = ObjectFinderFeature.reduce(&state, .stop)
+        _ = ObjectFinderFeature.reduce(&state, .folderSelected(target))
+        #expect(state.folder == folder)
+        _ = ObjectFinderFeature.reduce(&state, .stopped(state.session))
+        _ = ObjectFinderFeature.reduce(&state, .folderSelected(target))
+        #expect(state.folder == target && state.phase == .idle)
+    }
+
     @Test("A valid target and model are required and draft edits preserve the active target")
     func startGuards() {
         var state = ObjectFinderState()
