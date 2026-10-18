@@ -46,6 +46,7 @@
 		31A6D50DBCF169F5FF01994B /* SpeechModelButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31648CD6AE87EB33511412C4 /* SpeechModelButton.swift */; };
 		324F3326B68B737B45C1CBCE /* ModelMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51FF5AB624408DE25F252FFF /* ModelMenu.swift */; };
 		330B4A9240E9871AD04245A6 /* DecideSelfTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47737423C61124F4327C174E /* DecideSelfTest.swift */; };
+		3457671FCB03949708514ED4 /* ObjectFinderContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD05FACDEDB78E3CE2E43B3E /* ObjectFinderContent.swift */; };
 		34B8E68145C72B1FE4CCD28B /* IOSModelLibraryAssembly.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44BA75E22EC287033FFDBFBB /* IOSModelLibraryAssembly.swift */; };
 		36B44880EECCFBD6D426A9E3 /* DecideResultRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F7FE685C8A7B3B5D383AC56 /* DecideResultRow.swift */; };
 		36D49B81E1D68D03832B9359 /* ExtractRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F2F07EBDAB41490EF60A529 /* ExtractRunner.swift */; };
@@ -64,6 +65,7 @@
 		40712AD43DC9BE260DB46E62 /* PhoneExtractContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AB887CD5BEF34A3F73F5324 /* PhoneExtractContent.swift */; };
 		40D561949D3C716C66C23D0D /* TruckInspectionAssembly.swift in Sources */ = {isa = PBXBuildFile; fileRef = DCBAA551F86D44CD24D4787C /* TruckInspectionAssembly.swift */; };
 		415BA358AC23880B2C050C4F /* ObjectFinderRuntime in Frameworks */ = {isa = PBXBuildFile; productRef = 49AFB91FE5D3116E69481A87 /* ObjectFinderRuntime */; };
+		41CA6F8D7C2BCD8F43A409ED /* ObjectFinderContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD05FACDEDB78E3CE2E43B3E /* ObjectFinderContent.swift */; };
 		4275FA1D00228F5E93B7A9D0 /* ImageSearchVectorCheck.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3D65A0C17724B4972F0D163 /* ImageSearchVectorCheck.swift */; };
 		45046290241DAFC8DCCDB276 /* ModelLibraryStorage in Frameworks */ = {isa = PBXBuildFile; productRef = 1637523AB6224811A172F512 /* ModelLibraryStorage */; };
 		4543833BFFD4124CC11ABDE6 /* PhoneModelLibraryScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = A014A59B7FD23A97BEB797A0 /* PhoneModelLibraryScreen.swift */; };
@@ -172,6 +174,7 @@
 		C0A05F932CA6C2ECFFEFDDD8 /* DecideItemEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D82BEFE1B794EC81C96DCE7 /* DecideItemEditor.swift */; };
 		C2651307CE5074B3E2A328C8 /* ExtractView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE56C6B8743B1E3BD47CA2D4 /* ExtractView.swift */; };
 		C37696C0F188E175BE371467 /* 01-oyakodon.png in Resources */ = {isa = PBXBuildFile; fileRef = 202F76ABB95872C729E618CE /* 01-oyakodon.png */; };
+		C4CC2A79968BA857B19F7FC2 /* ObjectFinderAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A502706EE681AE64155E3E5 /* ObjectFinderAdapter.swift */; };
 		C4FD85E4241E785445844537 /* InfoPlist.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = F180E3951683BCC6D53485FA /* InfoPlist.xcstrings */; };
 		C51233E267091670612106BE /* ProductComparisonContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35C77B9716499C0E36E1F12E /* ProductComparisonContent.swift */; };
 		C6C10226B8B96DCF6BEF7F7C /* ImageSearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C9556FA4EE8D4BBD0F9B226 /* ImageSearchView.swift */; };
@@ -187,6 +190,7 @@
 		CE31381BF8064BAFBA975AD0 /* ProductCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04E9B33538ECE4A7CBD2D9B0 /* ProductCardView.swift */; };
 		CE555FF49300C4C703DAFDA7 /* DecideCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 267994EECDFD90E4FA239230 /* DecideCommand.swift */; };
 		CF687B56E93F6A3B1087F999 /* AgentPromptBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82E02B690B0BB1CD93649F40 /* AgentPromptBuilder.swift */; };
+		D22F7C4785D0396D168404AF /* ObjectFinderAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A502706EE681AE64155E3E5 /* ObjectFinderAdapter.swift */; };
 		D3AF8DDC5BDE9DF6BCF24CD8 /* PhoneDemoApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBE9C20E195FE641300D6F57 /* PhoneDemoApp.swift */; };
 		D9159780662C018DF61DC9B4 /* ConversationSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4EB6B5C0D4EEB1350D728A30 /* ConversationSession.swift */; };
 		D9EF2BF9DB6E3B2C786B9153 /* ExtractFeature in Frameworks */ = {isa = PBXBuildFile; productRef = AE6C6F087D50FB3366C2364A /* ExtractFeature */; };
@@ -239,6 +243,7 @@
 		119F865DE343C77CD34AB2B7 /* gradient_square.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = gradient_square.png; sourceTree = "<group>"; };
 		1282C05F8FF0AE329CA5A39C /* PhoneLegacyDemosView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneLegacyDemosView.swift; sourceTree = "<group>"; };
 		148BF4ADF94AA3ECAAB30DB9 /* InspectionAudioCapture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InspectionAudioCapture.swift; sourceTree = "<group>"; };
+		1A502706EE681AE64155E3E5 /* ObjectFinderAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ObjectFinderAdapter.swift; sourceTree = "<group>"; };
 		1BAA92853DA68C9FDF5D1827 /* RecipeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipeView.swift; sourceTree = "<group>"; };
 		1C1F34FF7ED5E8185A8FE414 /* ConversationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationView.swift; sourceTree = "<group>"; };
 		1EF067F2F1108F44E0873891 /* SpeechAssembly.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechAssembly.swift; sourceTree = "<group>"; };
@@ -326,6 +331,7 @@
 		C8BB1C51D3BFC85B5F047FD0 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		CA059A17CCB6E4DEDC2808B9 /* ImageSearchAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageSearchAdapter.swift; sourceTree = "<group>"; };
 		CB2168189614CA94670A5D5A /* inspection_u1.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = inspection_u1.json; sourceTree = "<group>"; };
+		CD05FACDEDB78E3CE2E43B3E /* ObjectFinderContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ObjectFinderContent.swift; sourceTree = "<group>"; };
 		D005E7D2BBBBEDDF71AD3A7B /* SpeechExport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechExport.swift; sourceTree = "<group>"; };
 		D7900E92556E3B5D90842513 /* Local.xcconfig.template */ = {isa = PBXFileReference; path = Local.xcconfig.template; sourceTree = "<group>"; };
 		DA2674A4B3DE025177BD4654 /* RecipeInspectorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipeInspectorView.swift; sourceTree = "<group>"; };
@@ -700,6 +706,7 @@
 				7EA2799CC1E5E8999D2B1BF2 /* ExtractionAdapter.swift */,
 				CA059A17CCB6E4DEDC2808B9 /* ImageSearchAdapter.swift */,
 				FC2BBE5005A691ADE3B0A298 /* InspectionAdapter.swift */,
+				1A502706EE681AE64155E3E5 /* ObjectFinderAdapter.swift */,
 				2B1FA83AF87E30C17EC28488 /* ProductComparisonAdapter.swift */,
 			);
 			path = Adapters;
@@ -737,6 +744,7 @@
 				9042E52315E369A6C16890CE /* InspectionSpeaker.swift */,
 				44BA75E22EC287033FFDBFBB /* IOSModelLibraryAssembly.swift */,
 				2F27640F8151AC5D099163D9 /* LiveInspectionSpeech.swift */,
+				CD05FACDEDB78E3CE2E43B3E /* ObjectFinderContent.swift */,
 				45CDC3B6511E848B1B0B40E6 /* ObjectFinderView.swift */,
 				BBE9C20E195FE641300D6F57 /* PhoneDemoApp.swift */,
 				7AB887CD5BEF34A3F73F5324 /* PhoneExtractContent.swift */,
@@ -1062,6 +1070,8 @@
 				F8E2A64FD4FCB0220D394B60 /* LaunchArguments.swift in Sources */,
 				A2D050A52E4424CB0AAC080C /* LiveInspectionSpeech.swift in Sources */,
 				3952BB6FAB3547BC9A583CC3 /* ModelStorage.swift in Sources */,
+				D22F7C4785D0396D168404AF /* ObjectFinderAdapter.swift in Sources */,
+				3457671FCB03949708514ED4 /* ObjectFinderContent.swift in Sources */,
 				F5AD4178296DC72D7277F5BE /* ObjectFinderView.swift in Sources */,
 				A9AEB14652B17A4BE269655C /* PhoneDemoApp.swift in Sources */,
 				92BC8BCD8F21E836B73E2204 /* PhoneExtractContent.swift in Sources */,
@@ -1144,6 +1154,8 @@
 				C0366556B44891DDD42D78D0 /* ModelsView.swift in Sources */,
 				AED5E118182009EE94A8A9D9 /* ModelsViewModel.swift in Sources */,
 				8892507C77E382DB2CF578B3 /* NoteEditor.swift in Sources */,
+				C4CC2A79968BA857B19F7FC2 /* ObjectFinderAdapter.swift in Sources */,
+				41CA6F8D7C2BCD8F43A409ED /* ObjectFinderContent.swift in Sources */,
 				4A6895CD871A1B833B7EF5E5 /* ObjectFinderView.swift in Sources */,
 				D3AF8DDC5BDE9DF6BCF24CD8 /* PhoneDemoApp.swift in Sources */,
 				40712AD43DC9BE260DB46E62 /* PhoneExtractContent.swift in Sources */,

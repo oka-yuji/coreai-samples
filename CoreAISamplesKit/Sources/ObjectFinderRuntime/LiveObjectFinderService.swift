@@ -109,17 +109,20 @@ public final class LiveObjectFinderService: ObjectFinderService {
         stopRequested = true
         await withTaskCancellationShield { await devices.stopCamera() }
         guard session == currentSession else { return }
-        if busy {
+        var joined = false
+        while busy {
+            joined = true
             await withCheckedContinuation { waiters.append($0) }
+            guard session == currentSession else { return }
         }
-        guard session == currentSession else { return }
-        if let cleanupFailure { throw cleanupFailure }
-        guard !retainingModel, retainedFinder else { return }
+        if let cleanupFailure, joined || retainingModel { throw cleanupFailure }
+        guard !retainingModel, retainedFinder || cleanupFailure != nil else { return }
         busy = true
         retainedFinder = false
         defer { finish() }
         do {
             try await withTaskCancellationShield { try await devices.closeFinder() }
+            cleanupFailure = nil
         } catch {
             cleanupFailure = error
             throw error

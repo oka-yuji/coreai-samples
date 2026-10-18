@@ -287,6 +287,17 @@
         }
       }
     },
+    "The selected model is not ready yet. Try again." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選択したモデルの準備がまだできていません。もう一度お試しください。"
+          }
+        }
+      }
+    },
     "Could not start or continue the search." : {
       "extractionState" : "manual",
       "localizations" : {
