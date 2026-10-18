@@ -55,6 +55,47 @@ struct ManagedImageSearchTests {
         #expect(services.all[1].calls == ["load int4", "index 2"] && int4Store.state.hasValidIndex)
     }
 
+    @Test(
+        "IMAGE-01 After switching from A to B and back to A, the first A store cannot run and no binding keeps a runtime"
+    )
+    func returnToFirstArtifact() async throws {
+        let services = ServicePool(count: 4)
+        let search = ManagedImageSearch { services.next() }
+        let first = search.store(folder: fp16, identity: "fp16", isPermitted: { true })
+        first.send(.index(images))
+        await settle(first)
+        try await search.release()
+        await settle(first)
+        let middle = search.store(folder: int4, identity: "int4", isPermitted: { true })
+        try await search.release()
+        await settle(middle)
+        let last = search.store(folder: fp16, identity: "fp16", isPermitted: { true })
+        first.send(.index(images))
+        await settle(first)
+        #expect(first !== last && first.state.failure?.message == unavailable)
+        #expect(services.all[0].calls.filter { !$0.hasPrefix("close") } == ["load fp16", "index 2"])
+        last.send(.index(images))
+        await settle(last)
+        let replacement = search.store(folder: int4, identity: "int4", isPermitted: { true })
+        try await search.release()
+        await settle(replacement)
+        #expect(services.all[2].calls == ["load fp16", "index 2", "close", "closed"])
+        #expect(services.all.allSatisfy { $0.calls.last == "closed" })
+    }
+
+    @Test("IMAGE-01 A file selection failure that arrives after its session was stopped is ignored")
+    func lateSelectionFailure() {
+        var state = ImageSearchState(managed: fp16, identity: "fp16")
+        let request = state.session
+        _ = ImageSearchFeature.reduce(&state, .closed)
+        let current = state.session
+        _ = ImageSearchFeature.reduce(&state, .stopped(current))
+        _ = ImageSearchFeature.reduce(&state, .selectionFailed(request, "old callback"))
+        #expect(state.failure == nil)
+        _ = ImageSearchFeature.reduce(&state, .selectionFailed(current, "current callback"))
+        #expect(state.failure?.detail == "current callback")
+    }
+
     @Test("IMAGE-02 Stopping releases the runtime and re-entering the artifact keeps the images, query, and results")
     func retainedAcrossStop() async throws {
         let services = ServicePool(count: 1)
@@ -80,6 +121,37 @@ struct ManagedImageSearchTests {
         again.send(.index(state.photos.map(\.url)))
         await settle(again)
         #expect(again.state.hasValidIndex && services.all[0].calls.suffix(2) == ["load fp16", "index 2"])
+    }
+
+    @Test("IMAGE-02 A standalone screen shown again re-indexes its kept images by loading the same model folder first")
+    func standaloneReentry() {
+        let photos = images.map { SearchPhoto(url: $0, thumbnail: Data()) }
+        let results = [ImageSearchMatch(photo: photos[0], similarity: 0.8)]
+        var state = ImageSearchState(modelFolder: fp16)
+        state.ready = true
+        state.photos = photos
+        state.indexIdentity = state.currentIndexIdentity
+        state.query = "red box"
+        state.matches = results
+        state.hasSearched = true
+        _ = ImageSearchFeature.reduce(&state, .disappeared)
+        let closed = state.session
+        _ = ImageSearchFeature.reduce(&state, .stopped(closed))
+        #expect(state.photos == photos && state.matches == results && state.query == "red box")
+        #expect(state.canIndex && state.needsIndex && !state.canSearch)
+        var reloaded = state
+        _ = ImageSearchFeature.reduce(&reloaded, .load(fp16))
+        #expect(reloaded.photos == photos && reloaded.matches == results && !reloaded.hasValidIndex)
+        let reload = reloaded.session
+        _ = ImageSearchFeature.reduce(&reloaded, .loaded(reload))
+        #expect(reloaded.ready && !reloaded.hasValidIndex && reloaded.needsIndex)
+        _ = ImageSearchFeature.reduce(&reloaded, .load(int4))
+        #expect(reloaded.photos.isEmpty && reloaded.matches.isEmpty)
+        #expect(ImageSearchFeature.reduce(&state, .index(images)) == [.run(.load(closed + 1, fp16), id: .work)])
+        #expect(ImageSearchFeature.reduce(&state, .loaded(closed + 1)) == [.run(.index(closed + 1, images), id: .work)])
+        #expect(state.photos == photos && state.phase == .indexing)
+        _ = ImageSearchFeature.reduce(&state, .indexed(closed + 1, photos, 0.1))
+        #expect(state.hasValidIndex && state.canSearch)
     }
 
     @Test("IMAGE-03 Another artifact re-indexes the retained images itself and labels each result with its artifact")
@@ -120,7 +192,7 @@ struct ManagedImageSearchTests {
         store.send(.index(images))
         await settle(store)
         service.holdsClose = true
-        service.closeFailures = [StubError()]
+        service.failingCloses = [1]
         let stop = Task { try await search.release() }
         var closing = service.closing.stream.makeAsyncIterator()
         _ = await closing.next()
@@ -134,6 +206,21 @@ struct ManagedImageSearchTests {
         try await search.release()
         await settle(store)
         #expect(store.state.failure == nil && !store.state.isBusy && !store.state.ready)
+    }
+
+    @Test(
+        "IMAGE-04 A release that completes at once gives the stop caller and the store the same result from one close",
+        arguments: [Set([1]), Set([2])])
+    func immediateRelease(failing: Set<Int>) async {
+        let services = ServicePool(count: 1)
+        let service = services.all[0]
+        service.failingCloses = failing
+        let search = ManagedImageSearch { services.next() }
+        let store = search.store(folder: fp16, identity: "fp16", isPermitted: { true })
+        let stopFailed = (try? await search.release()) == nil
+        await settle(store)
+        #expect(service.calls.filter { $0 == "close" }.count == 1)
+        #expect(stopFailed == failing.contains(1) && (store.state.failure != nil) == stopFailed)
     }
 
     @Test("IMAGE-04 A release from a cancelled task or before any content still completes and waits for the close")
@@ -233,10 +320,11 @@ private final class ServicePool {
 private final class ScriptedSearchService: ImageSearchService {
     var calls: [String] = []
     var indexFailures: [any Error] = []
-    var closeFailures: [any Error] = []
+    var failingCloses: Set<Int> = []
     var holdsClose = false
     let closing = AsyncStream<Void>.makeStream()
     private var heldCloses: [CheckedContinuation<Void, Never>] = []
+    private var closeCount = 0
     private var indexed: [SearchPhoto] = []
 
     func load(_ folder: URL) async throws { calls.append("load " + folder.lastPathComponent) }
@@ -257,11 +345,13 @@ private final class ScriptedSearchService: ImageSearchService {
     func waitForIdle() async {}
 
     func close() async throws {
+        closeCount += 1
+        let number = closeCount
         calls.append("close")
         closing.continuation.yield(())
         if holdsClose { await withCheckedContinuation { heldCloses.append($0) } }
         calls.append("closed")
-        if !closeFailures.isEmpty { throw closeFailures.removeFirst() }
+        if failingCloses.contains(number) { throw StubError() }
     }
 
     func finishClose() {

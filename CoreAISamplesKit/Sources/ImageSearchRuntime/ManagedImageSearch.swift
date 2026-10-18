@@ -5,6 +5,7 @@ import ImageSearchFeature
 @MainActor
 public final class ManagedImageSearch {
     private struct Bound {
+        let token: Int
         let folder: URL
         let identity: String
         let store: Store<ImageSearchFeature>
@@ -13,6 +14,8 @@ public final class ManagedImageSearch {
 
     private let makeService: @MainActor () -> any ImageSearchService
     private var bound: Bound?
+    private var retired: [Bound] = []
+    private var bindings = 0
     private var permission: @MainActor () -> Bool = { false }
 
     public init(makeService: @escaping @MainActor () -> any ImageSearchService) {
@@ -26,20 +29,31 @@ public final class ManagedImageSearch {
     ) -> Store<ImageSearchFeature> {
         permission = isPermitted
         if let bound, bound.folder == folder, bound.identity == identity { return bound.store }
+        bindings += 1
+        let token = bindings
         let runner = ImageSearchRunner(service: makeService()) { [weak self] in
-            guard let self, bound?.folder == folder, bound?.identity == identity else { return false }
+            guard let self, bound?.token == token else { return false }
             return permission()
         }
         let store = Store<ImageSearchFeature>(
             initialState: ImageSearchState(managed: folder, identity: identity, retaining: bound?.store.state),
             run: runner.run)
-        bound = Bound(folder: folder, identity: identity, store: store, runner: runner)
+        if let bound { retired.append(bound) }
+        bound = Bound(token: token, folder: folder, identity: identity, store: store, runner: runner)
         return store
     }
 
     public func release() async throws {
-        guard let bound else { return }
-        bound.store.send(.closed)
-        try await bound.runner.release()
+        var failure: (any Error)?
+        for target in (bound.map { [$0] } ?? []) + retired {
+            target.store.send(.closed)
+            do {
+                try await target.runner.release(target.store.state.session)
+                retired.removeAll { $0.token == target.token }
+            } catch {
+                failure = failure ?? error
+            }
+        }
+        if let failure { throw failure }
     }
 }

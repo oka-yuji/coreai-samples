@@ -21,7 +21,7 @@ struct ImageSearchContent: View {
             result in
             switch result {
             case .success(let urls): send(.imagesChosen(imageRequest, urls))
-            case .failure(let error): send(.selectionFailed(error.localizedDescription))
+            case .failure(let error): send(.selectionFailed(imageRequest, error.localizedDescription))
             }
         }
         .sheet(item: Binding(get: { state.selection }, set: { send(.select($0)) })) { photo in

@@ -10,9 +10,14 @@ public struct ImageSearchReleaseError: LocalizedError, Equatable, Sendable {
 
 @MainActor
 public final class ImageSearchRunner {
+    private enum Closing {
+        case running(through: Int, waiters: [CheckedContinuation<ImageSearchReleaseError?, Never>])
+        case finished(through: Int, failure: ImageSearchReleaseError?)
+    }
+
     private let service: any ImageSearchService
     private let isPermitted: @MainActor () -> Bool
-    private var releasing: [CheckedContinuation<ImageSearchReleaseError?, Never>]?
+    private var closing: Closing?
 
     public init(service: any ImageSearchService, isPermitted: @escaping @MainActor () -> Bool = { true }) {
         self.service = service
@@ -27,7 +32,7 @@ public final class ImageSearchRunner {
             if !Task.isCancelled { send(.stopped(value)) }
             return
         case .close(let value):
-            let failure = await released()
+            let failure = await released(value)
             if !Task.isCancelled { send(failure.map { .closeFailed(value, $0.detail) } ?? .stopped(value)) }
             return
         case .load(let value, _), .index(let value, _), .search(let value, _):
@@ -62,21 +67,30 @@ public final class ImageSearchRunner {
         }
     }
 
-    public func release() async throws {
-        if let failure = await released() { throw failure }
+    public func release(_ request: Int) async throws {
+        if let failure = await released(request) { throw failure }
     }
 
-    private func released() async -> ImageSearchReleaseError? {
-        if releasing != nil { return await withCheckedContinuation { releasing?.append($0) } }
-        releasing = []
+    private func released(_ request: Int) async -> ImageSearchReleaseError? {
+        switch closing {
+        case .running(let through, let waiters)?:
+            return await withCheckedContinuation {
+                closing = .running(through: max(through, request), waiters: waiters + [$0])
+            }
+        case .finished(let through, let failure)? where request <= through:
+            return failure
+        case .finished?, nil:
+            break
+        }
+        closing = .running(through: request, waiters: [])
         var failure: ImageSearchReleaseError?
         do {
             try await service.close()
         } catch {
             failure = ImageSearchReleaseError(detail: String(describing: error))
         }
-        let waiters = releasing ?? []
-        releasing = nil
+        guard case .running(let through, let waiters)? = closing else { return failure }
+        closing = .finished(through: through, failure: failure)
         for waiter in waiters { waiter.resume(returning: failure) }
         return failure
     }

@@ -84,7 +84,7 @@ public struct ImageSearchState: Equatable, Sendable {
     }
     public var hasValidIndex: Bool { ready && !photos.isEmpty && indexIdentity == currentIndexIdentity }
     public var needsIndex: Bool { !photos.isEmpty && !hasValidIndex }
-    public var canIndex: Bool { !isBusy && (ready || (execution == .managed && modelFolder != nil)) }
+    public var canIndex: Bool { !isBusy && modelFolder != nil }
     public var displayedMatches: [ImageSearchMatch] {
         showsAllCandidates ? matches : matches.filter { $0.similarity >= Self.minimumSimilarity }
     }
@@ -109,7 +109,7 @@ public enum ImageSearchAction: Sendable {
     case closed
     case failed(Int, ImageSearchFailure)
     case closeFailed(Int, String)
-    case selectionFailed(String)
+    case selectionFailed(Int, String)
     case select(SearchPhoto?)
     case showAllCandidates(Bool)
 }
@@ -135,11 +135,14 @@ public enum ImageSearchFeature: Feature {
         case .setQuery(let value): state.query = value
         case .load(let folder):
             guard state.execution == .standalone, !state.isBusy else { return [] }
+            if folder != state.modelFolder {
+                state.photos = []
+                state.resultIdentity = nil
+                discardResults(&state)
+            }
+            state.indexIdentity = nil
             state.modelFolder = folder
             state.ready = false
-            state.photos = []
-            state.resultIdentity = nil
-            discardResults(&state)
             start(&state, phase: .loading)
             return [.run(.load(state.session, folder), id: .work)]
         case .loaded(let id):
@@ -219,8 +222,8 @@ public enum ImageSearchFeature: Feature {
             guard id == state.session, state.phase == .stopping else { return [] }
             state.failure = ImageSearchFailure(message: "The model could not be released.", detail: detail)
             state.phase = .idle
-        case .selectionFailed(let detail):
-            guard !state.isBusy else { return [] }
+        case .selectionFailed(let request, let detail):
+            guard request == state.session, !state.isBusy else { return [] }
             state.failure = ImageSearchFailure(message: "The selected files could not be opened.", detail: detail)
         case .select(let photo): state.selection = photo
         case .showAllCandidates(let value): state.showsAllCandidates = value

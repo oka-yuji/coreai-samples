@@ -6,6 +6,7 @@ import UniformTypeIdentifiers
 struct ImageSearchView: View {
     let store: Store<ImageSearchFeature>
     @State private var choosingModel = false
+    @State private var modelRequest = 0
 
     private var state: ImageSearchState { store.state }
 
@@ -24,7 +25,7 @@ struct ImageSearchView: View {
         .fileImporter(isPresented: $choosingModel, allowedContentTypes: [.folder]) { result in
             switch result {
             case .success(let url): store.send(.load(url))
-            case .failure(let error): store.send(.selectionFailed(error.localizedDescription))
+            case .failure(let error): store.send(.selectionFailed(modelRequest, error.localizedDescription))
             }
         }
         .onDisappear { store.send(.disappeared) }
@@ -40,7 +41,10 @@ struct ImageSearchView: View {
                         Text(verbatim: folder.lastPathComponent)
                     }
                 }
-                Button("Open model folder…") { choosingModel = true }
+                Button("Open model folder…") {
+                    modelRequest = state.session
+                    choosingModel = true
+                }
                 if let folder = state.modelFolder {
                     Button("Reload selected model") { store.send(.load(folder)) }
                 }
