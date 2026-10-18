@@ -6,15 +6,25 @@ import Testing
 
 @Suite("Embedding runtime boundaries")
 struct EmbeddingRuntimeTests {
-    @Test("Validate enumerated bundle files independently of filesystem path aliases")
-    func bundleEnumeration() throws {
+    @Test(
+        "Validate both bundle profiles independently of filesystem path aliases",
+        arguments: ["fp16-safe-s128-v70", "int4-int8-ptq-s128-v70"])
+    func bundleEnumeration(precision: String) throws {
         let root = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: root) }
-        let names = [
-            "tokenizer.json", "tokenizer_config.json", "token_embeddings.bf16", "MODEL_LICENSE.txt",
-            "text.aimodel/metadata.json", "vision.aimodel/metadata.json",
-        ]
+        let tables =
+            precision == "fp16-safe-s128-v70"
+            ? ["token_embeddings.bf16"]
+            : [
+                "token_embeddings.int4", "token_embedding_scales.f32", "quantization-quality.json",
+                "quantized-reference.json",
+            ]
+        let names =
+            [
+                "tokenizer.json", "tokenizer_config.json", "MODEL_LICENSE.txt",
+                "text.aimodel/metadata.json", "vision.aimodel/metadata.json",
+            ] + tables
         var hashes: [String: String] = [:]
         for name in names {
             let file = root.appending(path: name)
@@ -25,10 +35,19 @@ struct EmbeddingRuntimeTests {
         }
         let manifest: [String: Any] = [
             "format": 1, "revision": "914f7f89142e33e77833254d9c9b90c3cef7303b",
-            "precision": "fp16-safe-s128-v70", "files": hashes,
+            "precision": precision, "files": hashes,
         ]
         try JSONSerialization.data(withJSONObject: manifest).write(to: root.appending(path: "embedding-manifest.json"))
-        _ = try EmbeddingBundle(directory: root)
+        #expect(try EmbeddingBundle(directory: root).precision == precision)
+        var invalid = manifest
+        invalid["precision"] = "unknown"
+        try JSONSerialization.data(withJSONObject: invalid).write(to: root.appending(path: "embedding-manifest.json"))
+        #expect(throws: (any Error).self) { try EmbeddingBundle(directory: root) }
+        invalid = manifest
+        invalid["files"] = hashes.filter { $0.key != tables[0] }
+        try JSONSerialization.data(withJSONObject: invalid).write(to: root.appending(path: "embedding-manifest.json"))
+        #expect(throws: (any Error).self) { try EmbeddingBundle(directory: root) }
+        try JSONSerialization.data(withJSONObject: manifest).write(to: root.appending(path: "embedding-manifest.json"))
         _ = try EmbeddingBundle(directory: root.resolvingSymlinksInPath())
         try Data("changed".utf8).write(to: root.appending(path: "tokenizer.json"))
         #expect(throws: (any Error).self) { try EmbeddingBundle(directory: root) }

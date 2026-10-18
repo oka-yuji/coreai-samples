@@ -32,6 +32,23 @@ struct ImageSearchTests {
         #expect(ImageSearchFeature.reduce(&state, .index([photo.url])).isEmpty)
     }
 
+    @Test("Switching precision profiles clears the old index and rejects old completion")
+    func switchProfile() {
+        var state = ready()
+        state.matches = [ImageSearchMatch(photo: photo, similarity: 0.8)]
+        state.selection = photo
+        state.hasSearched = true
+        let previous = state.session
+        let target = URL(filePath: "/models/embeddinggemma2-int4-int8")
+        #expect(ImageSearchFeature.reduce(&state, .load(target)) == [.run(.load(previous + 1, target), id: .work)])
+        #expect(state.modelFolder == target && !state.ready && state.photos.isEmpty && state.matches.isEmpty)
+        #expect(state.selection == nil && !state.hasSearched)
+        #expect(ImageSearchFeature.reduce(&state, .loaded(previous)).isEmpty)
+        #expect(!state.ready)
+        _ = ImageSearchFeature.reduce(&state, .loaded(previous + 1))
+        #expect(state.ready && state.photos.isEmpty)
+    }
+
     @Test("Use a submitted query snapshot while preserving later draft edits")
     func snapshot() {
         var state = ready()

@@ -20,16 +20,23 @@ def main():
     args = parser.parse_args()
     args.output.mkdir(parents=True, exist_ok=False)
     identifier = "com.coreai-samples.DemoApp.ios"
+    manifest = json.loads((args.bundle / "embedding-manifest.json").read_text())
+    quantized = manifest["precision"] == "int4-int8-ptq-s128-v70"
+    if manifest["precision"] not in ("fp16-safe-s128-v70", "int4-int8-ptq-s128-v70"):
+        raise ValueError("Unsupported embedding profile")
+    folder = "embeddinggemma2-int4-int8" if quantized else "embeddinggemma2"
     run_tag = args.run + "-" + uuid.uuid4().hex
     (args.output / "invocation.json").write_text(json.dumps({"run": run_tag}) + "\n")
     device = ["--device", args.device]
     run(["xcrun", "devicectl", "device", "install", "app", *device, str(args.app),
          "--json-output", str(args.output / "install.json")])
     run(["xcrun", "devicectl", "device", "copy", "to", *device, "--source", str(args.bundle),
-         "--destination", "Documents/embeddinggemma2", "--domain-type", "appDataContainer",
+         "--destination", "Documents/" + folder, "--domain-type", "appDataContainer",
          "--domain-identifier", identifier], timeout=600)
     command = ["xcrun", "devicectl", "device", "process", "launch", *device,
                "--terminate-existing", "--console", identifier, "--image-search-eval", run_tag]
+    if quantized:
+        command += ["--embedding-profile", "int4_int8"]
     process = subprocess.Popen(command)
     try:
         result = process.wait(timeout=900)

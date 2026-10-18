@@ -126,7 +126,7 @@
                     exit(
                         await ImageSearchSelfTest.run(
                             directory: documents.appending(path: "embeddinggemma2-eval-" + run),
-                            folder: documents.appending(path: "embeddinggemma2")))
+                            folder: documents.appending(path: ImageSearchAssembly.preparedFolderName)))
                 }
         }
     }

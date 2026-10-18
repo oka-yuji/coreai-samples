@@ -126,7 +126,8 @@
         "$adapters/convert.py",
         "$adapters/model_wrappers.py",
         "$adapters/contracts.py",
-        "$snapshot"
+        "$snapshot",
+        "$adapters/quantization.py"
       ],
       "outputs": [
         "model"
@@ -162,7 +163,8 @@
         "$adapters/convert.py",
         "$adapters/model_wrappers.py",
         "$adapters/contracts.py",
-        "$snapshot"
+        "$snapshot",
+        "$adapters/quantization.py"
       ],
       "outputs": [
         "model"
@@ -197,7 +199,8 @@
         "$repo/Tools/Embedding/package_bundle.py",
         "$repo/Tools/Embedding/Licenses/Apache-2.0.txt",
         "$snapshot",
-        "$recipe_dir/model.json"
+        "$recipe_dir/model.json",
+        "$adapters/quantization.py"
       ],
       "outputs": [
         "bundle"

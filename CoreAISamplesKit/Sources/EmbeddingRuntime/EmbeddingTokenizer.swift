@@ -22,29 +22,3 @@ public struct EmbeddingTokenizer: Sendable {
         return tokens
     }
 }
-
-struct TokenEmbeddingTable {
-    private let data: Data
-
-    init(url: URL) throws {
-        data = try Data(contentsOf: url, options: .mappedIfSafe)
-        guard data.count == 262_144 * 512 * 2 else {
-            throw EmbeddingError.invalidBundle("Incorrect BF16 embedding table size")
-        }
-    }
-
-    func embeddings(for tokens: [Int]) throws -> [Float] {
-        guard tokens.count <= 128 else { throw EmbeddingError.tooManyTokens(tokens.count) }
-        for token in tokens where !(0..<262_144).contains(token) { throw EmbeddingError.invalidToken(token) }
-        let padded = tokens + Array(repeating: 0, count: 128 - tokens.count)
-        return data.withUnsafeBytes { bytes in
-            padded.flatMap { token in
-                (0..<512).map { column in
-                    let bits = UInt16(
-                        littleEndian: bytes.loadUnaligned(fromByteOffset: (token * 512 + column) * 2, as: UInt16.self))
-                    return Float(bitPattern: UInt32(bits) << 16) * sqrt(Float(512))
-                }
-            }
-        }
-    }
-}

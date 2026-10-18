@@ -19,8 +19,11 @@ def default_lock():
     return Path(override).expanduser() if override else Path.home() / "Library/Caches/coreai-samples/heavy-job"
 
 
-def recipe_path(name):
-    path = TOOL / "recipes" / name / "recipe.json"
+def recipe_path(name, precision="fp16_safe"):
+    if precision not in ("fp16_safe", "int4_int8") or (precision == "int4_int8" and name != "embeddinggemma2"):
+        raise PipelineError("INT4/INT8 is available only for embeddinggemma2")
+    filename = "recipe-int4-int8.json" if precision == "int4_int8" else "recipe.json"
+    path = TOOL / "recipes" / name / filename
     if Path(name).name != name or not path.is_file():
         raise PipelineError("Select a recipe directory from Tools/Conversion/recipes")
     return path
@@ -130,7 +133,8 @@ def pipeline_command(action, recipe, workspace, lock, refresh):
         raise PipelineError("Run setup for this workspace and recipe first")
     result = [sys.executable, "-m", "Tools.Conversion", action, str(recipe), "--bindings", str(bindings)]
     if action == "run":
-        result += ["--work-dir", str(workspace / "work" / recipe.parent.name), "--lock-dir", str(lock)]
+        profile = recipe.parent.name + ("-int4-int8" if recipe.stem == "recipe-int4-int8" else "")
+        result += ["--work-dir", str(workspace / "work" / profile), "--lock-dir", str(lock)]
         if refresh:
             result.append("--refresh")
     elif refresh:
@@ -142,13 +146,14 @@ def main():
     parser = argparse.ArgumentParser(description="Prepare and use the maintainer's local conversion workspace.")
     parser.add_argument("action", choices=("setup", "plan", "run"))
     parser.add_argument("--recipe", default="qwen3_06b")
+    parser.add_argument("--precision", choices=("fp16_safe", "int4_int8"), default="fp16_safe")
     parser.add_argument("--workspace", type=Path, default=ROOT / ".local/conversion")
     parser.add_argument("--snapshot", type=Path)
     parser.add_argument("--lock-dir", type=Path, default=default_lock())
     parser.add_argument("--refresh", action="store_true")
     args = parser.parse_args()
     try:
-        recipe = recipe_path(args.recipe)
+        recipe = recipe_path(args.recipe, args.precision)
         workspace = args.workspace.expanduser().resolve()
         if args.action == "setup":
             if args.refresh:

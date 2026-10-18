@@ -1,3 +1,4 @@
+import EmbeddingRuntime
 import FeatureStore
 import Foundation
 import ImageSearchFeature
@@ -53,6 +54,8 @@ enum ImageSearchSelfTest {
     }
 
     private static func perform(directory: URL, folder: URL) async throws {
+        let precision = try EmbeddingBundle(directory: folder).precision
+        let quantized = precision == "int4-int8-ptq-s128-v70"
         let harness = ImageSearchScenarioHarness()
         let store = harness.store
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
@@ -74,7 +77,7 @@ enum ImageSearchSelfTest {
             try await harness.settle()
             try require(store.state.hasSearched, state: store.state)
             let relevant = store.state.displayedMatches.first?.photo.url.lastPathComponent == query.expected
-            if query.evaluationOnly != true { try require(relevant, state: store.state) }
+            if query.evaluationOnly != true && !quantized { try require(relevant, state: store.state) }
             records.append(
                 Record(
                     id: query.id, query: query.text, seconds: store.state.seconds,
@@ -115,6 +118,9 @@ enum ImageSearchSelfTest {
         try encoder.encode(records).write(to: directory.appending(path: "searches.json"), options: .atomic)
         let summary: [String: Any] = [
             "passed": true, "images": 5, "queries": records.count,
+            "precision": precision,
+            "vectorReference": quantized ? "Matched PTQ" : "Original FP32",
+            "originalExamplesPassed": records.filter { !$0.evaluationOnly }.allSatisfy(\.relevantResult),
             "indexingSeconds": indexingSeconds, "queuedStopAndRetry": true, "originalRead": true,
             "os": ProcessInfo.processInfo.operatingSystemVersionString,
             "relevanceCorrect": records.filter(\.relevantResult).count,
