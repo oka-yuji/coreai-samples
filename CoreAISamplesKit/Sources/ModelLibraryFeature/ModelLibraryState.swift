@@ -182,6 +182,19 @@ public struct ModelLibraryState: Equatable, Sendable {
         artifacts(for: modelID).first { $0.id == selectedArtifacts[modelID] }
     }
 
+    public func variantTitle(for modelID: String) -> String? {
+        guard let artifact = selectedArtifact(for: modelID),
+            artifacts(for: modelID).count > 1 || artifact.download != nil
+        else { return nil }
+        return artifact.title
+    }
+
+    public func rowDetail(for model: LibraryModel, locale: Locale) -> String {
+        let size = selectedArtifact(for: model.id).flatMap { installations[$0.id]?.resource?.sizeBytes ?? $0.sizeBytes }
+        let formatted = size?.formatted(.byteCount(style: .file).locale(locale))
+        return [model.classification, variantTitle(for: model.id), formatted].compactMap { $0 }.joined(separator: " · ")
+    }
+
     public func isConnected(_ selection: DemoSelection) -> Bool {
         environment.connectedDemos.contains(selection.demoID)
     }
