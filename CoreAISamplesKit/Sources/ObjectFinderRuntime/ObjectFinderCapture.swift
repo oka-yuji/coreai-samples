@@ -45,7 +45,7 @@
             do {
                 let device = try configure(rotation: rotation, generation: generation)
                 try configurePixelFormat(device)
-                try Self.configureFrameRate(device)
+                try Self.configureDevice(device)
                 for name in [AVCaptureSession.wasInterruptedNotification, AVCaptureSession.runtimeErrorNotification] {
                     let token = NotificationCenter.default.addObserver(forName: name, object: session, queue: nil) {
                         [weak self] _ in
@@ -104,7 +104,12 @@
         }
 
         private func configure(rotation: Double, generation: Int) throws -> AVCaptureDevice {
-            guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back) else {
+            let types: [AVCaptureDevice.DeviceType] = [
+                .builtInTripleCamera, .builtInDualWideCamera, .builtInWideAngleCamera,
+            ]
+            guard
+                let device = types.lazy.compactMap({ AVCaptureDevice.default($0, for: .video, position: .back) }).first
+            else {
                 throw ObjectFinderFailure.cameraUnavailable
             }
             let input = try AVCaptureDeviceInput(device: device)
@@ -141,7 +146,7 @@
             output.videoSettings = [kCVPixelBufferPixelFormatTypeKey as String: selected.pixelType]
         }
 
-        private static func configureFrameRate(_ device: AVCaptureDevice) throws {
+        private static func configureDevice(_ device: AVCaptureDevice) throws {
             guard
                 device.activeFormat.videoSupportedFrameRateRanges.contains(where: {
                     $0.minFrameRate <= 30 && $0.maxFrameRate >= 30
@@ -154,6 +159,12 @@
             if device.activeFormat.isAutoVideoFrameRateSupported { device.isAutoVideoFrameRateEnabled = false }
             device.activeVideoMinFrameDuration = CMTime(value: 1, timescale: 30)
             device.activeVideoMaxFrameDuration = CMTime(value: 1, timescale: 30)
+            if let wide = device.virtualDeviceSwitchOverVideoZoomFactors.first {
+                device.videoZoomFactor = min(
+                    max(CGFloat(wide.doubleValue), device.minAvailableVideoZoomFactor),
+                    device.maxAvailableVideoZoomFactor)
+            }
+            if device.isFocusModeSupported(.continuousAutoFocus) { device.focusMode = .continuousAutoFocus }
         }
 
         func trackCandidates(_ candidates: [ObjectCandidate], frame: CapturedObjectFrame) -> [ObjectCandidate] {
