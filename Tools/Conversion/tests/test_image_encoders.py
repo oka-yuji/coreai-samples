@@ -1,6 +1,8 @@
 from contextlib import contextmanager
 from itertools import chain
 from pathlib import Path
+import builtins
+import runpy
 from tempfile import TemporaryDirectory
 import unittest
 from unittest.mock import patch
@@ -15,6 +17,7 @@ try:
         Qwen3VLVisionConfig,
     )
     from transformers.models.qwen3_vl.modeling_qwen3_vl import Qwen3VLTextModel, Qwen3VLVisionModel
+    from transformers.vision_utils import get_vision_interpolation_indices_and_weights, get_vision_position_ids
 except ImportError as error:
     DEPENDENCY_ERROR = str(error)
 else:
@@ -22,6 +25,22 @@ else:
 
 if DEPENDENCY_ERROR is None:
     from Tools.Conversion.adapters.qwen_image21 import encoders
+
+
+@unittest.skipIf(DEPENDENCY_ERROR is not None, f"Qwen image encoder dependencies unavailable: {DEPENDENCY_ERROR}")
+class ImageEncoderDependencyTests(unittest.TestCase):
+    def test_missing_vision_utilities_skips_optional_encoder_tests(self):
+        original_import = builtins.__import__
+
+        def without_vision_utilities(name, *args, **kwargs):
+            if name == "transformers.vision_utils":
+                raise ModuleNotFoundError("No module named 'transformers.vision_utils'")
+            return original_import(name, *args, **kwargs)
+
+        with patch("builtins.__import__", side_effect=without_vision_utilities):
+            namespace = runpy.run_path(str(Path(__file__)))
+        self.assertIn("transformers.vision_utils", namespace["DEPENDENCY_ERROR"])
+        self.assertTrue(namespace["ImageEncoderTests"].__unittest_skip__)
 
 
 @unittest.skipIf(DEPENDENCY_ERROR is not None, f"Qwen image encoder dependencies unavailable: {DEPENDENCY_ERROR}")

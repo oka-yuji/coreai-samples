@@ -124,3 +124,5 @@ is implied by the FP32 conversion result.
 ## Integration decision
 
 On 2026-10-19 the user explicitly requested merging PR #168 before the remaining listening check. QT8 stays unchecked; merging the implementation does not complete subjective audio acceptance or publish model weights. The original numerical results and criteria above are retained. Integration checks for the current main are recorded in the PR.
+
+The latest-main integration exposed a test-collection dependency mismatch: Transformers 4.57.3 supplies Qwen3-VL types but not `transformers.vision_utils`. The image encoder tests now check both required vision utilities before importing the adapter. A missing-API regression runs in the compatible image environment, where all 25 image tests execute and pass. The Qwen environment collects 136 conversion tests (121 pass, 15 optional-dependency skips); every skipped test is covered by the unchanged Magpie test results or that image-environment run. The Qwen numerical adapter and recorded model results are unchanged.
