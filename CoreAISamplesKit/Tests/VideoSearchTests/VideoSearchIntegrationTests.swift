@@ -53,7 +53,7 @@ struct VideoSearchIntegrationTests {
             #expect((12.0..<15.0).contains(best.moment.time), "\(id) \(best.moment.time)")
             try #require(folded.count >= 2)
             #expect(folded.count < matches.count)
-            #expect(abs(folded[0].moment.time - folded[1].moment.time) >= VideoSearchState.minimumGap)
+            #expect(abs(folded[0].moment.time - folded[1].moment.time) > VideoSearchState.minimumGap)
         }
         try await service.close()
     }

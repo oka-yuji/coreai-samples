@@ -15,7 +15,7 @@
             var state = searches[selection]?.state ?? VideoSearchState()
             state.execution = .managed
             state.video = nil
-            return AnyView(VideoSearchContent(state: state, send: { _ in }))
+            return AnyView(VideoSearchContent(state: state, send: { _ in }, isPermitted: { false }))
         }
 
         func content(for session: ModelDemoSession, gate: DemoExecutionGate) -> AnyView {
@@ -26,7 +26,7 @@
                 folder: session.resource.directory,
                 identity: "\(identity.modelID)/\(identity.artifactID)@\(identity.revision)",
                 isPermitted: gate.isPermitted)
-            return AnyView(VideoSearchStoreContent(store: store))
+            return AnyView(VideoSearchStoreContent(store: store, isPermitted: gate.isPermitted))
         }
 
         func stop(_ session: ModelDemoSession) async throws {
@@ -36,9 +36,10 @@
 
     private struct VideoSearchStoreContent: View {
         let store: Store<VideoSearchFeature>
+        let isPermitted: @MainActor @Sendable () -> Bool
 
         var body: some View {
-            VideoSearchContent(state: store.state, send: store.send)
+            VideoSearchContent(state: store.state, send: store.send, isPermitted: isPermitted)
         }
     }
 #endif

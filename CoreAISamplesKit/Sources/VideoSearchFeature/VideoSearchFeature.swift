@@ -49,10 +49,16 @@ public enum VideoSearchExecution: Equatable, Sendable {
 
 public enum VideoSampling {
     public static func times(duration: Double, interval: Double = 1, limit: Int = 300) -> [Double] {
-        guard duration.isFinite, duration > 0, interval > 0, limit > 0 else { return [] }
-        let count = max(1, Int(min(duration / interval, Double(limit))))
-        let step = duration / Double(count)
-        return (0..<count).map { (Double($0) + 0.5) * step }
+        guard duration.isFinite, duration > 0, interval.isFinite, interval > 0, limit > 0 else { return [] }
+        let intervals = max(1, (duration / interval).rounded(.up))
+        guard intervals <= Double(limit) else {
+            let step = duration / Double(limit)
+            return (0..<limit).map { (Double($0) + 0.5) * step }
+        }
+        return (0..<Int(intervals)).map { index in
+            let start = Double(index) * interval
+            return (start + min(duration, start + interval)) / 2
+        }
     }
 }
 
@@ -123,7 +129,7 @@ public struct VideoSearchState: Equatable, Sendable {
             $0.similarity == $1.similarity ? $0.moment.time < $1.moment.time : $0.similarity > $1.similarity
         }
         var kept: [VideoSearchMatch] = []
-        for match in ranked where !kept.contains(where: { abs($0.moment.time - match.moment.time) < gap }) {
+        for match in ranked where !kept.contains(where: { abs($0.moment.time - match.moment.time) <= gap }) {
             kept.append(match)
         }
         return kept

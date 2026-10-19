@@ -107,6 +107,10 @@ struct IOSDemoLaunchTests {
         #expect(matches.map(\.id) == ["gliner2.5-multi"])
         #expect(matches.first?.demos.map(\.id) == ["comparison"])
         #expect(catalog.sections(platform: .iOS, audience: .release, query: "embeddinggemma").first?.demos.count == 3)
+        let video = try IOSDemoCatalog.make(searchTerms: ["video-search": ["doga no bamen"]])
+        let found = video.sections(platform: .iOS, audience: .release, query: "doga no bamen")
+        #expect(found.map(\.id) == ["embeddinggemma2"])
+        #expect(found.first?.demos.map(\.id) == ["video-search"])
     }
 
     @Test("Demo descriptors encoded before search aliases were added still decode")

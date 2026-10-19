@@ -15,7 +15,7 @@ struct VideoSearchView: View {
             modelControls.padding().frame(maxWidth: .infinity, alignment: .leading)
             Divider()
             ScrollView {
-                VideoSearchContent(state: state, send: store.send)
+                VideoSearchContent(state: state, send: store.send, isPermitted: { true })
                     .frame(maxWidth: 1_200)
                     .frame(maxWidth: .infinity)
                     .padding()

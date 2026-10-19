@@ -10,6 +10,7 @@ import VideoSearchFeature
 struct VideoSearchContent: View {
     let state: VideoSearchState
     let send: @MainActor (VideoSearchAction) -> Void
+    let isPermitted: @MainActor () -> Bool
     @State private var player: AVPlayer?
     @State private var choosingVideo = false
     @State private var videoRequest = 0
@@ -253,7 +254,7 @@ struct VideoSearchContent: View {
     }
 
     private func play(from time: Double) {
-        guard let player else { return }
+        guard isPermitted(), let player else { return }
         player.seek(to: CMTime(seconds: time, preferredTimescale: 600), toleranceBefore: .zero, toleranceAfter: .zero)
         player.play()
     }
@@ -262,13 +263,20 @@ struct VideoSearchContent: View {
         private func importVideo() async {
             guard let item = pickedVideo else { return }
             let request = videoRequest
+            guard isPermitted() else {
+                send(.selectionFailed(request, "The selected model is not available right now. Try again."))
+                pickedVideo = nil
+                return
+            }
             do {
-                guard let file = try await item.loadTransferable(type: VideoFile.self) else {
-                    throw CocoaError(.fileReadNoSuchFile)
-                }
+                let file = try await item.loadTransferable(type: VideoFile.self)
+                guard !Task.isCancelled, pickedVideo == item else { return }
+                guard let file else { throw CocoaError(.fileReadNoSuchFile) }
                 send(.videoChosen(request, file.url))
+                VideoFile.removeCopies(keeping: [state.video, file.url])
             } catch {
-                if !(error is CancellationError) { send(.selectionFailed(request, error.localizedDescription)) }
+                guard !(error is CancellationError), !Task.isCancelled, pickedVideo == item else { return }
+                send(.selectionFailed(request, error.localizedDescription))
             }
             pickedVideo = nil
         }
@@ -277,17 +285,29 @@ struct VideoSearchContent: View {
 
 #if os(iOS)
     struct VideoFile: Transferable {
+        static let folder = URL.temporaryDirectory.appending(path: "video-search")
         let url: URL
 
         static var transferRepresentation: some TransferRepresentation {
             FileRepresentation(importedContentType: .movie) { received in
-                let folder = URL.temporaryDirectory.appending(path: "video-search")
-                try? FileManager.default.removeItem(at: folder)
                 try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
                 let copy = folder.appending(path: UUID().uuidString).appendingPathExtension(
                     received.file.pathExtension)
                 try FileManager.default.copyItem(at: received.file, to: copy)
                 return VideoFile(url: copy)
+            }
+        }
+
+        static func removeCopies(keeping kept: [URL?]) {
+            let directory = folder.resolvingSymlinksInPath().pathComponents
+            let names = Set(
+                kept.compactMap { $0 }
+                    .filter { $0.deletingLastPathComponent().resolvingSymlinksInPath().pathComponents == directory }
+                    .map(\.lastPathComponent))
+            let files =
+                (try? FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil)) ?? []
+            for file in files where !names.contains(file.lastPathComponent) {
+                try? FileManager.default.removeItem(at: file)
             }
         }
     }

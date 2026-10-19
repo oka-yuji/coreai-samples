@@ -48,6 +48,23 @@ struct VideoSearchTests {
     }
 
     @Test(
+        "VID-01 A length that is not a whole number of seconds samples the center of each full second and of the remaining part",
+        arguments: [(3.5, [0.5, 1.5, 2.5, 3.25]), (1.9, [0.5, 1.45])])
+    func samplingPartial(duration: Double, expected: [Double]) {
+        let times = VideoSampling.times(duration: duration)
+        #expect(times.count == expected.count)
+        #expect(zip(times, expected).allSatisfy { abs($0 - $1) < 1e-12 })
+    }
+
+    @Test("VID-01 An enormous length samples 300 evenly spaced finite times without overflowing")
+    func samplingEnormous() {
+        let times = VideoSampling.times(duration: 1e300)
+        #expect(times.count == 300 && times.allSatisfy(\.isFinite))
+        #expect(zip(times, times.dropFirst()).allSatisfy { $0 < $1 })
+        #expect(abs(times[0] - 1e300 / 600) <= 1e288 && times[299] < 1e300)
+    }
+
+    @Test(
         "VID-01 A zero, negative or non-finite duration samples nothing",
         arguments: [0, -1, Double.nan, .infinity, -.infinity])
     func samplingRejects(duration: Double) {
@@ -155,12 +172,18 @@ struct VideoSearchTests {
         #expect(state.failure == nil)
     }
 
-    @Test("VID-03 Neighbor suppression keeps the best frame of every three-second window and ranks unordered input")
+    @Test(
+        "VID-03 Neighbor suppression ranks the frames first and folds every frame within three seconds, including exactly three, into the better one"
+    )
     func suppression() {
         let ranked = matches([(0.9, 10), (0.85, 11), (0.8, 20), (0.5, 30)])
         #expect(VideoSearchState.suppressNeighbors(ranked, gap: 3).map(\.moment.time) == [10, 20, 30])
         let unordered = matches([(0.7, 13), (0.75, 12.5), (0.9, 10)])
-        #expect(VideoSearchState.suppressNeighbors(unordered, gap: 3).map(\.moment.time) == [10, 13])
+        #expect(VideoSearchState.suppressNeighbors(unordered, gap: 3).map(\.moment.time) == [10])
+        let boundary = matches([(0.9, 10), (0.8, 13)])
+        #expect(VideoSearchState.suppressNeighbors(boundary, gap: 3).map(\.moment.time) == [10])
+        let apart = matches([(0.9, 10), (0.8, 13.5)])
+        #expect(VideoSearchState.suppressNeighbors(apart, gap: 3).map(\.moment.time) == [10, 13.5])
         let tied = matches([(0.8, 6), (0.8, 4)])
         #expect(VideoSearchState.suppressNeighbors(tied, gap: 3).map(\.moment.time) == [4])
     }
