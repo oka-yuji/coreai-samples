@@ -115,21 +115,34 @@ struct ObjectRegionFinderTests {
     func twoStepSearch() async throws {
         let query = try EmbeddingVector([1] + Array(repeating: Float(0), count: 767))
         let base = ObjectRegion(x: 0, y: 0, width: 0.3, height: 0.3)
-        let local = ObjectRegion(x: 0.5, y: 0.5, width: 0.4, height: 0.4)
+        let baseInstance = ObjectRegion(x: 0.1, y: 0.5, width: 0.2, height: 0.2)
+        let local = [
+            ObjectRegion(x: 0.5, y: 0.5, width: 0.4, height: 0.4), ObjectRegion(x: 0, y: 0, width: 0.3, height: 0.3),
+            ObjectRegion(x: 0.6, y: 0, width: 0.3, height: 0.3), ObjectRegion(x: 0, y: 0.6, width: 0.3, height: 0.3),
+        ]
         let proposedWidths = Locked<[Int]>([])
+        let embeddings = Locked(0)
         let finder = ObjectRegionFinder(
-            embedding: .init(load: { _ in }, text: { _ in query }, image: { try Self.redness($0) }, close: {}),
+            embedding: .init(
+                load: { _ in }, text: { _ in query },
+                image: {
+                    embeddings.value.withLock { $0 += 1 }
+                    return try Self.redness($0)
+                }, close: {}),
             propose: { image in
                 proposedWidths.value.withLock { $0.append(image.width) }
-                return image.width == 10 ? [base] : [local]
-            })
+                return image.width == 10 ? [base] : [local[0], local[1]]
+            },
+            instances: { image in image.width == 10 ? [base, baseInstance] : [local[2], local[3]] })
         try await finder.prepare(folder: URL(filePath: "/unused"), query: "glasses")
         let found = try await finder.candidates(in: try patch(), mode: .twoStep)
-        let placed = local.placed(in: ObjectRegion.searchWindows[4])
-        #expect(found.map(\.region) == [base, placed])
-        #expect(abs(placed.x - 0.7) < 1e-9 && abs(placed.width - 0.24) < 1e-9)
-        #expect(found.last?.similarity == 1)
+        let window = ObjectRegion.searchWindows[4]
+        let placed = local.prefix(3).map { $0.placed(in: window) }
+        #expect(found.map(\.region) == [base, baseInstance] + placed)
+        #expect(abs(placed[0].x - 0.7) < 1e-9 && abs(placed[0].width - 0.24) < 1e-9)
+        #expect(found[2].similarity == 1)
         #expect(proposedWidths.value.withLock { $0 } == [10, 6])
+        #expect(embeddings.value.withLock { $0 } == ObjectRegion.searchWindows.count + found.count)
         #expect(!found.contains { ObjectRegion.searchWindows.contains($0.region) })
 
         let everywhere = ObjectRegionFinder(

@@ -339,16 +339,22 @@
         }
 
         private func logRow(number: Int, frame: ObjectFinderFrame) -> some View {
-            HStack(spacing: 12) {
+            let values = frame.similarities.sorted(by: >)
+            return HStack(spacing: 12) {
                 Text(verbatim: "#\(number)").foregroundStyle(.secondary)
                 Text(verbatim: milliseconds(frame.seconds))
-                ForEach(Array(frame.similarities.sorted(by: >).enumerated()), id: \.offset) { _, value in
+                ForEach(Array(values.prefix(3).enumerated()), id: \.offset) { _, value in
                     Text(value, format: .number.precision(.fractionLength(2)))
                         .fontWeight(value >= state.minimumSimilarity ? .bold : .regular)
                         .foregroundStyle(
                             value >= state.minimumSimilarity ? AnyShapeStyle(.tint) : AnyShapeStyle(.secondary))
                 }
+                if values.count > 3 {
+                    Text(verbatim: "+\(values.count - 3)").foregroundStyle(.secondary)
+                }
             }
+            .lineLimit(1)
+            .fixedSize(horizontal: true, vertical: false)
             .font(.caption.monospacedDigit())
             .accessibilityElement(children: .combine)
         }
