@@ -1,0 +1,130 @@
+{
+  "date": "2026-10-17",
+  "environment": {
+    "chip": "Apple M4 Max",
+    "memory_gib": 128,
+    "macos": "27.0 (26A428)",
+    "xcode": "27.0 (27A266a)"
+  },
+  "model": {
+    "bytes": 1470208000,
+    "filename": "magpie_tts_multilingual_357m.nemo",
+    "id": "nvidia/magpie_tts_multilingual_357m",
+    "revision": "446bff55e1fe3d3aa29c771574e7d2b0fa322990",
+    "sha256": "ec675fa8c02b9c1d5382c5c2b5a6acec6492c1e8344866c07cf3892185d18953"
+  },
+  "codec": {
+    "bytes": 425021440,
+    "filename": "nemo-nano-codec-22khz-1.89kbps-21.5fps.nemo",
+    "id": "nvidia/nemo-nano-codec-22khz-1.89kbps-21.5fps",
+    "revision": "fc00890b604aa2de298d2641ffc6c5f6caf8c4d7",
+    "sha256": "28c2518de3e3d5a2c7d9bca40a7ebc0644eb76c60b890970365325bdd8e9f099"
+  },
+  "profile": "FP32, original CPU reference; macOS Core AI with GPU preferred; one CFG pair; no KV cache",
+  "reference_run": "20261017T044502-07b610a8",
+  "verification_run": "20261017T044732-f84ac127",
+  "reuse_run": "20261017T045149-9cfbdef7",
+  "codec_weights": {
+    "state_entries": {
+      "audio_decoder": 387,
+      "audio_encoder": 291,
+      "vector_quantizer": 16
+    },
+    "strict_inference_weights": true
+  },
+  "criteria": {
+    "normalized_max_limit": 0.001,
+    "audio_cosine_min": 0.999,
+    "audio_rms_max": 0.001
+  },
+  "components": {
+    "encoder": {
+      "records": 3,
+      "asset_bytes": 429825889,
+      "max_normalized_error": 4.6603135809871486e-07,
+      "max_absolute_error": 8.106231689453125e-06,
+      "minimum_cosine": 0.9999999999994367
+    },
+    "decoder": {
+      "records": 12,
+      "asset_bytes": 481566058,
+      "max_normalized_error": 3.039836883544922e-06,
+      "max_absolute_error": 4.38690185546875e-05,
+      "minimum_cosine": 0.9999999999990535
+    },
+    "local": {
+      "records": 21,
+      "asset_bytes": 156324098,
+      "max_normalized_error": 1.5519866981723305e-06,
+      "max_absolute_error": 0.00011444091796875,
+      "minimum_cosine": 0.9999999999988547
+    },
+    "codec": {
+      "records": 3,
+      "asset_bytes": 126470225,
+      "max_normalized_error": 4.0783178698902835e-05,
+      "max_absolute_error": 2.2649765014648438e-05,
+      "minimum_cosine": 0.9999999999721703
+    }
+  },
+  "utterances": [
+    {
+      "audio_seconds": 3.297233560090703,
+      "finite": true,
+      "frames": 71,
+      "id": "greeting",
+      "output": "greeting.wav",
+      "seconds": 11.560112499631941,
+      "stop_reason": "eos"
+    },
+    {
+      "audio_seconds": 3.8545124716553287,
+      "finite": true,
+      "frames": 83,
+      "id": "instruction",
+      "output": "instruction.wav",
+      "seconds": 9.708289500325918,
+      "stop_reason": "eos"
+    },
+    {
+      "audio_seconds": 3.3901133786848074,
+      "finite": true,
+      "frames": 73,
+      "id": "reading",
+      "output": "reading.wav",
+      "seconds": 9.04915045807138,
+      "stop_reason": "eos"
+    }
+  ],
+  "free_generation_comparison": [
+    {
+      "id": "greeting",
+      "sample_rate": 22050,
+      "samples_reference": 72704,
+      "samples_coreai": 72704,
+      "max_abs": 7.3909759521484375e-06,
+      "rms": 3.194530766913866e-07,
+      "cosine": 0.999999999985767
+    },
+    {
+      "id": "instruction",
+      "sample_rate": 22050,
+      "samples_reference": 84992,
+      "samples_coreai": 84992,
+      "max_abs": 2.2649765014648438e-05,
+      "rms": 5.092818574899181e-07,
+      "cosine": 0.9999999999721703
+    },
+    {
+      "id": "reading",
+      "sample_rate": 22050,
+      "samples_reference": 74752,
+      "samples_coreai": 74752,
+      "max_abs": 5.0961971282958984e-06,
+      "rms": 2.689203289700191e-07,
+      "cosine": 0.9999999999913038
+    }
+  ],
+  "manual_listening": "pending",
+  "scope": "macOS Python research conversion; no Swift or iPhone deployment claim"
+}

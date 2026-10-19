@@ -224,6 +224,10 @@ final class ToolRunner {
         var settings = preferences.toolSettings
         settings.notesDirectory = notesDirectory
         await session?.snapshotTokens()
+        guard !stopped else { return ConversationFeature.endedRefusal }
+        if let session, !session.allowedTools.contains(call.name) {
+            return TurnPolicy.webTools.contains(call.name) ? TurnPolicy.searchRefusal : ConversationFeature.endedRefusal
+        }
         let start = Date()
         let output: AgentToolOutput
         if call.name == "fetch_page", !reserveRepairFetch() {

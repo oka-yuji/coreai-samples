@@ -1,0 +1,244 @@
+{
+  "id": "clef-flash",
+  "kind": "decision",
+  "name": {
+    "en": "Clef-Flash 9B · uint4 + fp16 head, text",
+    "ja": "Clef-Flash 9B · uint4＋fp16ヘッド、テキスト"
+  },
+  "use": {
+    "en": "Recipes, Decide",
+    "ja": "Recipes・Decide"
+  },
+  "overview": {
+    "en": "Recipes, Decide · macOS",
+    "ja": "Recipes・Decide · macOS"
+  },
+  "release": "in_progress",
+  "release_note": {
+    "en": "private bundle",
+    "ja": "バンドル非公開"
+  },
+  "download": "https://huggingface.co/okayuji/clef-flash-9b-coreai-decide",
+  "pages": {
+    "en": "docs/clef-flash.md",
+    "ja": "docs/clef-flash.ja.md"
+  },
+  "links": [
+    {
+      "title": {
+        "en": "Recipes and Decide",
+        "ja": "RecipesとDecide"
+      },
+      "url": "docs/clef-flash.md"
+    }
+  ],
+  "support": {
+    "macos": {
+      "state": "verified",
+      "variants": [
+        "uint4 backbone / FP16 head"
+      ],
+      "evidence": [
+        "app"
+      ],
+      "note": {
+        "en": "Decide native app JSON path verified; Recipes photo behavior has separate requirements.",
+        "ja": "Decideの実アプリJSON経路を確認。Recipesの写真認識は別の要件。"
+      }
+    },
+    "ios": {
+      "state": "unavailable",
+      "variants": [],
+      "evidence": [],
+      "note": {
+        "en": "Native demo is not provided for this platform.",
+        "ja": "このOSのネイティブデモは未提供です。"
+      }
+    }
+  },
+  "evidence": {
+    "app": {
+      "url": "docs/clef-flash.md#recorded-result",
+      "level": "native_app",
+      "outcome": "passed",
+      "record_type": "legacy",
+      "date": "2026-10-08",
+      "platform": "macos",
+      "device": "M4 Max 128 GiB",
+      "os": "macOS 27.0 (26A428)",
+      "toolchain": "Xcode 27.0 (27A266a)",
+      "variant": "uint4 backbone / FP16 head",
+      "backend": "Core AI; GPU preferred",
+      "route": "macOS app --decide-json",
+      "source_revision": "17f0b0ad64efb65d273590632833508766b2aae6",
+      "artifact_revision": "58e654c86485b29a47fef820226977742ff6868a",
+      "code_revision": null,
+      "workload": {
+        "en": "One Japanese maintenance request, 5 questions, 2,645 input tokens; changed-question reuse is a separate request.",
+        "ja": "日本語の保守契約1件、5質問、2,645入力トークン。質問変更の文書再利用は別の依頼。"
+      },
+      "batch_size": 1,
+      "concurrency": 1,
+      "warmups": null,
+      "power": null,
+      "thermal": null,
+      "model_executed": true,
+      "plan_sha256": null
+    },
+    "checks": {
+      "url": "docs/clef-flash.md#verified-scope-and-limits",
+      "level": "diagnostic",
+      "outcome": "passed",
+      "record_type": "legacy",
+      "date": "2026-10-08",
+      "platform": "macos",
+      "device": "M4 Max 128 GiB",
+      "os": "macOS 27.0 (26A428)",
+      "toolchain": "Xcode 27.0 (27A266a)",
+      "variant": "uint4 backbone / FP16 head",
+      "backend": "Core AI; GPU preferred",
+      "route": "diagnostic",
+      "source_revision": null,
+      "artifact_revision": null,
+      "code_revision": null,
+      "workload": {
+        "en": "10 fixed documents / 40 options; separate 8K four-question document, 20 reuse calls.",
+        "ja": "固定10文書・40選択肢。別条件で8K文書・4質問、再利用20回。"
+      },
+      "batch_size": 1,
+      "concurrency": 1,
+      "warmups": null,
+      "power": null,
+      "thermal": null,
+      "model_executed": true,
+      "plan_sha256": null
+    },
+    "bundle": {
+      "url": "docs/clef-flash.md#input-and-files",
+      "level": "conversion",
+      "outcome": "passed",
+      "record_type": "legacy",
+      "date": "2026-10-09",
+      "platform": "macos",
+      "device": "M4 Max 128 GiB",
+      "os": "macOS 27.0 (26A428)",
+      "toolchain": "Xcode 27.0 (27A266a)",
+      "variant": "uint4 backbone / FP16 head",
+      "backend": "Core AI; GPU preferred",
+      "route": "conversion",
+      "source_revision": null,
+      "artifact_revision": null,
+      "code_revision": null,
+      "workload": {
+        "en": "See fixed cases in the evidence.",
+        "ja": "根拠に記載された固定入力を参照。"
+      },
+      "batch_size": 1,
+      "concurrency": 1,
+      "warmups": null,
+      "power": null,
+      "thermal": null,
+      "model_executed": false,
+      "plan_sha256": null
+    }
+  },
+  "measurements": [
+    {
+      "metric": "bundle_bytes",
+      "value": 7278548313,
+      "unit": "B",
+      "statistic": "single",
+      "n": 1,
+      "evidence": "bundle",
+      "note": {
+        "en": "15 model payload files; documentation/examples are additional.",
+        "ja": "モデル資産15ファイル。文書・サンプルは別。"
+      }
+    },
+    {
+      "metric": "latency_s",
+      "value": 4.277018792,
+      "unit": "s",
+      "statistic": "single",
+      "n": 1,
+      "evidence": "app",
+      "note": {
+        "en": "Fixed workload in the linked evidence.",
+        "ja": "リンク先の固定条件による結果。"
+      }
+    },
+    {
+      "metric": "reuse_latency_s",
+      "value": 0.775898292,
+      "unit": "s",
+      "statistic": "single",
+      "n": 1,
+      "evidence": "app",
+      "note": {
+        "en": "Fixed workload in the linked evidence.",
+        "ja": "リンク先の固定条件による結果。"
+      }
+    },
+    {
+      "metric": "reuse_latency_s",
+      "value": 0.846601958,
+      "unit": "s",
+      "statistic": "p95",
+      "n": 20,
+      "evidence": "checks",
+      "note": {
+        "en": "Different workload: fixed 8K document / 4 questions. Not a same-request speedup ratio.",
+        "ja": "別の条件：固定8K文書・4質問。同一依頼の高速化率ではない。"
+      }
+    },
+    {
+      "metric": "reference_error",
+      "value": 0.01669393,
+      "unit": "error",
+      "statistic": "max",
+      "n": 40,
+      "evidence": "checks",
+      "note": {
+        "en": "Maximum probability difference from same-uint4 PyTorch FP32; 40/40 top options agree.",
+        "ja": "同一uint4のPyTorch FP32との最大確率差。top選択肢は40/40一致。"
+      }
+    }
+  ],
+  "omissions": {},
+  "checks": {
+    "fidelity": {
+      "state": "passed",
+      "evidence": [
+        "checks"
+      ],
+      "note": {
+        "en": "Recorded fixed-document same-quantized-weight comparisons; calibration/general accuracy not established.",
+        "ja": "記録した固定文書で同一量子化重みと照合。確率校正や一般精度の証明ではない。"
+      }
+    },
+    "quality": {
+      "state": "not_measured",
+      "evidence": [],
+      "note": {
+        "en": "No completed check for this scope under the common protocol.",
+        "ja": "この範囲の共通プロトコルによる確認は未実施です。"
+      }
+    },
+    "stability": {
+      "state": "not_measured",
+      "evidence": [],
+      "note": {
+        "en": "No completed check for this scope under the common protocol.",
+        "ja": "この範囲の共通プロトコルによる確認は未実施です。"
+      }
+    },
+    "cancellation": {
+      "state": "not_measured",
+      "evidence": [],
+      "note": {
+        "en": "No completed check for this scope under the common protocol.",
+        "ja": "この範囲の共通プロトコルによる確認は未実施です。"
+      }
+    }
+  }
+}

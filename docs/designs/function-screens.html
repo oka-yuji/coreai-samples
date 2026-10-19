@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>機能画面のデザイン確認 — Core AI Samples</title>
+<style>
+:root{color-scheme:light;--ink:#202b29;--muted:#5b6b62;--line:#d5ded5;--green:#216954}*{box-sizing:border-box}body{margin:0;background:#f3f4ef;color:var(--ink);font:16px/1.85 -apple-system,BlinkMacSystemFont,"Hiragino Sans",sans-serif}header,main,footer{max-width:1120px;margin:auto;padding:32px}h1{font-size:36px;line-height:1.35;letter-spacing:-.03em;margin:14px 0}h2{font-size:24px;margin-top:40px}h3{margin:0 0 10px;font-size:20px}p{margin:10px 0}a{color:var(--green);text-underline-offset:4px}a:focus-visible{outline:3px solid var(--green);outline-offset:5px}.kicker{font-size:12px;letter-spacing:.12em;color:var(--green)}.note{background:#e5ede2;border-left:4px solid var(--green);padding:15px 20px}.small{font-size:13px;color:var(--muted)}.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}.card{padding:24px;background:white;border:1px solid var(--line);border-radius:16px}.platform{font-size:12px;color:var(--muted);margin-bottom:8px}.card a{font-weight:600}.card p{font-size:14px}.tag{display:inline-block;padding:2px 8px;background:#fbefda;color:#765414;border-radius:5px;font-size:11px}table{border-collapse:collapse;width:100%;font-size:14px}th,td{border-bottom:1px solid var(--line);padding:12px 8px;text-align:left;vertical-align:top}.table{overflow:auto}footer{font-size:13px;border-top:1px solid var(--line)}@media(max-width:700px){header,main,footer{padding:22px}.grid{grid-template-columns:1fr}h1{font-size:29px}}
+</style>
+</head>
+<body>
+<header><div class="kicker">CORE AI SAMPLES / DESIGN REVIEW</div><h1>機能画面のデザイン確認</h1><p>承認いただいたModelsの入口に、既存のデモ機能をつなぐための画面案です。</p><p><a href="../specs/model-first-demo.html">仕様・設計書</a> · <a href="model-first-ios.html">共通iOSデザイン</a> · <a href="model-first-macos.html">共通macOSデザイン</a></p><div class="note"><strong>確認していただきたいこと</strong><br>各ページを操作し、入力の順序、結果の見せ方、補助操作の置き場をご確認ください。変更したい点は「画面名＋箇所」でまとめていただければ反映できます。</div><p class="small">各案は確認待ちです。実モデルの実行・ダウンロード・カメラ・音声・外部通信は行いません。状態切替はレビュー用、出力・数値は表示サンプルです。対象は現在実装が存在する画面とその補助状態です。</p></header>
+<main>
+<h2>iOSの機能画面</h2>
+<div class="grid">
+<article class="card"><div class="platform">GLiNER2.5-multi · iOS <span class="tag">要確認</span></div><h3>比較・抽出・トラック点検</h3><p>3画面をページ右側のレビュー用切替から確認できます。URL／貼り付けからの最大4件比較、抽出候補、点検の入力・解釈確認・音声・修正・記録共有を含みます。</p><p class="small">確認点：比較の追加シートと横比較、抽出の品質注記、点検の入力順と未取得状態。</p><a href="features/ios-extraction-demos.html">3画面の案を開く →</a></article>
+<article class="card"><div class="platform">EmbeddingGemma 2 · iOS <span class="tag">要確認</span></div><h3>画像検索</h3><p>画像追加、サンプル5枚、索引作成、検索例、結果・全候補、元画像の確認、失敗・停止を試せます。</p><p class="small">確認点：画像追加から検索までの順序、結果一覧と原画像の情報量。</p><a href="features/ios-image-search.html">画像検索の案を開く →</a></article>
+<article class="card"><div class="platform">EmbeddingGemma 2 · iOS <span class="tag">要確認</span></div><h3>カメラで物を探す</h3><p>語句入力、カメラの表示例、対象変更、しきい値、権限・中断・停止・再開を確認できます。</p><p class="small">確認点：カメラ領域と入力の比率、検索中の対象変更、詳しい調整の置き場。</p><a href="features/ios-object-finder.html">カメラの案を開く →</a></article>
+<article class="card"><div class="platform">Irodori · 独立iOSアプリ <span class="tag">要確認</span></div><h3>SpeechPhone</h3><p>現在の独立アプリの構成に沿った、モデル一覧・生成・再生・WAV保存・診断の案です。</p><p class="small">確認点：独立アプリの操作。Modelsへの統合は別の判断事項です。</p><a href="features/speechphone-ios.html">SpeechPhoneの案を開く →</a></article>
+</div>
+<h2>macOSの機能画面</h2>
+<div class="grid">
+<article class="card"><div class="platform">GLiNER2.5-multi · macOS <span class="tag">要確認</span></div><h3>比較・抽出ラボ</h3><p>比較デモと抽出ラボをMacの幅に合わせて配置。資料の追加、比較表、抽出候補の確認・修正、JSON出力まで確認できます。</p><p class="small">確認点：比較の横配置と、抽出ラボの入力・フォーム・候補の見渡しやすさ。</p><a href="features/macos-extraction-demos.html">Mac比較・抽出の案を開く →</a></article>
+<article class="card"><div class="platform">EmbeddingGemma 2 · macOS <span class="tag">要確認</span></div><h3>画像検索</h3><p>画像ライブラリ、索引の準備、検索結果、原画像をMacの画面幅で確認する案です。</p><p class="small">確認点：画像の選択と結果の関係、詳細表示の置き場。</p><a href="features/macos-image-search.html">Mac画像検索の案を開く →</a></article>
+<article class="card"><div class="platform">Qwen系 · macOS <span class="tag">要確認</span></div><h3>会話・Chat / Work</h3><p>入力と回答、Chat / Work、資料・Web設定、履歴、名称変更・削除、保存失敗、モデル不一致をまとめました。</p><p class="small">確認点：会話と設定・履歴の関係、資料の確認方法。</p><a href="features/conversation-macos.html">会話の案を開く →</a></article>
+<article class="card"><div class="platform">Clef系 · macOS <span class="tag">要確認</span></div><h3>文書の判定</h3><p>文書入力、編集可能な確認項目、判定結果、詳細値、停止・失敗を試せます。</p><p class="small">確認点：文書・チェック項目・結果の配置とスコア説明。</p><a href="features/decide-macos.html">判定の案を開く →</a></article>
+<article class="card"><div class="platform">Clef系＋画像理解 · macOS <span class="tag">要確認</span></div><h3>レシピと食材の照合</h3><p>写真・食材の確認、数量編集、設備、レシピURL、結果レポートと診断を含みます。</p><p class="small">確認点：写真認識後の本人確認、レシピ照合までの手順。</p><a href="features/recipes-macos.html">レシピの案を開く →</a></article>
+<article class="card"><div class="platform">Irodori · macOS <span class="tag">要確認</span></div><h3>音声生成</h3><p>入力文・seed、生成・停止、再生・WAV書き出し、状態と診断の案です。</p><p class="small">確認点：入力と音声の確認、保存操作と詳細情報の配置。</p><a href="features/speech-macos.html">音声生成の案を開く →</a></article>
+</div>
+<h2>モデル管理の補助画面</h2>
+<article class="card"><div class="platform">macOS <span class="tag">要確認</span></div><h3>モデル管理パネル</h3><p>部分取得の一時停止・再開、ローカル登録、準備済みコピー、容量と削除確認をまとめます。通常のモデル選択から必要なときだけ開く補助画面です。</p><a href="features/macos-model-management.html">モデル管理の案を開く →</a></article>
+<h2>画面との対応</h2><div class="table"><table><thead><tr><th>実装上の画面</th><th>対応する案</th></tr></thead><tbody><tr><td>ProductComparisonView / ExtractView / PhoneExtractView / TruckInspectionView</td><td>iOS比較・抽出・トラック点検と、macOS比較・抽出ラボの各ページ</td></tr><tr><td>ImageSearchView / ObjectFinderView</td><td>iOS／macOSの画像検索と、iOSカメラの各ページ</td></tr><tr><td>ConversationView / ConversationSettingsView / ConversationSidebar</td><td>会話ページの本体・補助パネル</td></tr><tr><td>DecideView / RecipeView / SpeechView</td><td>判定／レシピ／音声生成の各ページ</td></tr><tr><td>SpeechPhoneView / SpeechCheckView</td><td>SpeechPhoneページの本体・診断</td></tr><tr><td>モデル管理と共通の取得・実行制御</td><td>共通iOS／macOSデザインと仕様書、macOSモデル管理パネル</td></tr></tbody></table></div>
+<p class="small">未取得時の共通制御は、説明と取得操作を有効、機能の入力・実行を無効とする基盤デザインに従います。HTML確認はネイティブの実装・実機検証とは別に扱います。</p>
+</main><footer>2026-10-18 · 機能画面レビュー用 · <a href="../specs/model-first-demo.html">仕様・設計書へ戻る</a></footer>
+</body></html>

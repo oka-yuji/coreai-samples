@@ -45,8 +45,9 @@ public final class LiveTruckInspectionModel: TruckInspectionModelService {
         if busy { await withCheckedContinuation { waiting.append($0) } }
     }
 
-    public func unload() {
-        if !busy { extractor = nil }
+    public func unload() throws {
+        guard !busy else { throw InspectionError.busy }
+        extractor = nil
     }
 
     private func begin() throws {

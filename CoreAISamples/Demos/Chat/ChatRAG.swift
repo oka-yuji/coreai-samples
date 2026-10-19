@@ -206,23 +206,35 @@ struct RAGControls: View {
 
     var body: some View {
         @Bindable var vm = vm
-        return HStack(spacing: 10) {
-            Toggle("RAG", isOn: $vm.ragEnabled)
-            if vm.ragEnabled {
-                Toggle("Web", isOn: $vm.ragWeb)
-                Toggle("Docs", isOn: $vm.ragLocal)
-                Picker("Sources", selection: $vm.ragBudget) {
-                    ForEach(RAGSettings.budgetChoices, id: \.self) { Text("\($0.formatted()) tok").tag($0) }
+        return VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 10) {
+                Toggle("Search and sources", isOn: $vm.ragEnabled)
+                if vm.ragEnabled {
+                    Toggle("Web", isOn: $vm.ragWeb)
+                    Toggle("Docs", isOn: $vm.ragLocal)
+                        .help("Search .txt, .md and .pdf files in ~/Documents/rag.")
+                    Picker("Source budget", selection: $vm.ragBudget) {
+                        ForEach(RAGSettings.budgetChoices, id: \.self) { Text("\($0.formatted()) tok").tag($0) }
+                    }
+                    .pickerStyle(.menu)
+                    .fixedSize()
+                    .help("How many tokens of sources go into the prompt")
                 }
-                .pickerStyle(.menu)
-                .fixedSize()
-                .help("How many tokens of sources go into the prompt")
+            }
+            Text(
+                "Off: answer from the model and conversation without new searches. On: retrieve the selected sources before answering. Work can still save notes."
+            )
+            .foregroundStyle(.secondary)
+            .fixedSize(horizontal: false, vertical: true)
+            if !vm.hasValidSourceSelection {
+                Label("Choose Web or Docs to use sources.", systemImage: "info.circle")
+                    .foregroundStyle(.secondary)
             }
         }
         .toggleStyle(.switch)
         .controlSize(.mini)
         .font(.caption)
         .disabled(vm.isResponding)
-        .fixedSize()
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }

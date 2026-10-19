@@ -86,6 +86,10 @@ targets:
         product: ConversationFeature
       - package: CoreAISamplesKit
         product: ConversationRuntime
+      - package: CoreAISamplesKit
+        product: ExtractRuntime
+      - package: CoreAISamplesKit
+        product: ModelLibraryRuntime
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.coreai-samples.DemoApp
@@ -116,6 +120,8 @@ targets:
       - path: CoreAISamples/Demos/Products
       - path: CoreAISamples/Localization/DemoLanguage.swift
       - path: CoreAISamples/Resources/Localizable.xcstrings
+      - path: CoreAISamples/Resources/InfoPlist.xcstrings
+      - path: CoreAISamples/Resources/object-finder-examples.json
       - path: CoreAISamples/Resources/product-preview.json
       - path: CoreAISamples/Resources/image-search-queries.json
       - path: CoreAISamples/Resources/image-search-reference.json
@@ -130,6 +136,12 @@ targets:
           - FieldRow.swift
           - NoteEditor.swift
     dependencies:
+      - package: CoreAISamplesKit
+        product: ObjectFinderRuntime
+      - package: CoreAISamplesKit
+        product: ObjectFinderFeature
+      - package: CoreAISamplesKit
+        product: ObjectFinderCore
       - package: CoreAISamplesKit
         product: TruckInspectionCore
       - package: CoreAISamplesKit
@@ -158,6 +170,18 @@ targets:
         product: GLiNERCore
       - package: CoreAISamplesKit
         product: GLiNERRuntime
+      - package: CoreAISamplesKit
+        product: ModelLibraryUI
+      - package: CoreAISamplesKit
+        product: ModelLibraryFeature
+      - package: CoreAISamplesKit
+        product: ModelLibraryStorage
+      - package: CoreAISamplesKit
+        product: ModelLibraryTransfer
+      - package: CoreAISamplesKit
+        product: ModelLibraryRuntime
+      - package: CoreAISamplesKit
+        product: ExtractRuntime
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.coreai-samples.DemoApp.ios
@@ -169,6 +193,7 @@ targets:
         GENERATE_INFOPLIST_FILE: "YES"
         INFOPLIST_KEY_CFBundleDisplayName: Core AI Demos
         INFOPLIST_KEY_UILaunchScreen_Generation: "YES"
+        INFOPLIST_KEY_NSCameraUsageDescription: "Find the objects you name using on-device image analysis."
         INFOPLIST_KEY_NSMicrophoneUsageDescription: "Use the microphone to enter truck inspection results by voice."
         INFOPLIST_KEY_NSSpeechRecognitionUsageDescription: "Recognize Japanese inspection answers on this device."
         INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace: "YES"

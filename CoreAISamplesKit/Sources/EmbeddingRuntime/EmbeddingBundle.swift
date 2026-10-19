@@ -12,14 +12,25 @@ public struct EmbeddingBundle: Sendable {
 
     public let directory: URL
     public let revision: String
+    public let precision: String
 
     public init(directory: URL) throws {
         let root = directory.resolvingSymlinksInPath().standardizedFileURL
         let manifest = try JSONDecoder().decode(
             Manifest.self, from: Data(contentsOf: root.appending(path: "embedding-manifest.json")))
-        guard manifest.format == 1, manifest.precision == "fp16-safe-s128-v70",
+        let tables: [String]
+        switch manifest.precision {
+        case "fp16-safe-s128-v70": tables = ["token_embeddings.bf16"]
+        case "int4-int8-ptq-s128-v70":
+            tables = [
+                "token_embeddings.int4", "token_embedding_scales.f32", "quantization-quality.json",
+                "quantized-reference.json",
+            ]
+        default: throw EmbeddingError.invalidBundle("Unsupported precision profile")
+        }
+        guard manifest.format == 1,
             manifest.revision == "914f7f89142e33e77833254d9c9b90c3cef7303b",
-            ["tokenizer.json", "tokenizer_config.json", "token_embeddings.bf16", "MODEL_LICENSE.txt"]
+            (["tokenizer.json", "tokenizer_config.json", "MODEL_LICENSE.txt"] + tables)
                 .allSatisfy({ manifest.files[$0] != nil }),
             manifest.files.keys.contains(where: { $0.hasPrefix("text.aimodel/") }),
             manifest.files.keys.contains(where: { $0.hasPrefix("vision.aimodel/") })
@@ -46,6 +57,7 @@ public struct EmbeddingBundle: Sendable {
         }
         self.directory = root
         revision = manifest.revision
+        precision = manifest.precision
     }
 
     static func containedFile(_ path: String, root: URL) throws -> URL {

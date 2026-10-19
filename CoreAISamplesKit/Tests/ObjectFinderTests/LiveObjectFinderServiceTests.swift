@@ -238,6 +238,8 @@ final class FinderDevicesFake {
     var preparationError: ObjectFinderFailure?
     var inferenceError: ObjectFinderFailure?
     var cancelInference = false
+    var authorizations = 0
+    var notifications = 0
     var prepares = 0
     var requests = 0
     var inferences = 0
@@ -255,7 +257,10 @@ final class FinderDevicesFake {
 
     var devices: ObjectFinderDevices {
         ObjectFinderDevices(
-            authorize: { if let error = self.authorizationError { throw error } },
+            authorize: {
+                self.authorizations += 1
+                if let error = self.authorizationError { throw error }
+            },
             prepare: { _, _ in
                 self.prepares += 1
                 if self.blocksPreparation {
@@ -304,7 +309,8 @@ final class FinderDevicesFake {
                 }
                 if let error = self.releaseError { throw error }
             },
-            beginOrientation: {}, endOrientation: { self.orientationEnds += 1 }, notify: {},
+            beginOrientation: {}, endOrientation: { self.orientationEnds += 1 },
+            notify: { self.notifications += 1 },
             requestFrame: { self.requests += 1 },
             trackCandidates: { _, candidates in
                 self.trackingInputs.append(candidates)

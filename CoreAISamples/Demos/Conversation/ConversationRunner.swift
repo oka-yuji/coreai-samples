@@ -16,6 +16,8 @@ final class ConversationRunner {
     private let chat: ChatViewModel
     private let archive: ConversationArchive
     private let termination: (Bool) -> Void
+    private let sourceTokenCounter: (@Sendable (String) -> Int)?
+    private let retrieveSources: @Sendable (String, RAGSettings, @Sendable (String) -> Int) async -> RAGRetrieval
     private let writer = UUID()
     private var savedRevisions: [String: Int] = [:]
     private var retrievingRun: Int?
@@ -29,7 +31,12 @@ final class ConversationRunner {
         archive: ConversationArchive = ConversationRunner.defaultArchive,
         termination: @escaping (Bool) -> Void = { _ in },
         sessionFactory: ((ToolRunner) -> LanguageModelSession)? = nil, recordsMetrics: Bool = true,
-        toolExecutor: ((AgentToolCall) async -> AgentToolOutput)? = nil
+        toolExecutor: ((AgentToolCall) async -> AgentToolOutput)? = nil,
+        sourceTokenCounter: (@Sendable (String) -> Int)? = nil,
+        retrieveSources: @escaping @Sendable (String, RAGSettings, @Sendable (String) -> Int) async -> RAGRetrieval = {
+            question, settings, count in
+            await RAGRetriever.gather(question: question, settings: settings, count: count)
+        }
     ) {
         let tools = ToolRunner(preferences: preferences, executor: toolExecutor)
         session = ConversationSession(
@@ -41,6 +48,8 @@ final class ConversationRunner {
         self.chat = chat
         self.archive = archive
         self.termination = termination
+        self.sourceTokenCounter = sourceTokenCounter
+        self.retrieveSources = retrieveSources
     }
 
     func run(_ effect: ConversationEffect, _ send: (ConversationAction) -> Void) async {
@@ -122,7 +131,16 @@ final class ConversationRunner {
         var prompt = prompt
         var sourceIDs: [String] = []
         if let request = policy.sourceRequest {
-            guard let model = chat.model, session.prepareSources(run: run, send: send) else {
+            let count: @Sendable (String) -> Int
+            if let sourceTokenCounter {
+                count = sourceTokenCounter
+            } else if let model = chat.model {
+                count = model.countTokens
+            } else {
+                send(.generationFailed(run: run, message: "No model is loaded."))
+                return
+            }
+            guard session.prepareSources(run: run, send: send) else {
                 send(.generationFailed(run: run, message: "No model is loaded."))
                 return
             }
@@ -133,8 +151,9 @@ final class ConversationRunner {
             settings.braveAPIKey = tools.preferences.braveAPIKey
             let question = prompt
             let capturedSettings = settings
+            let retrieve = retrieveSources
             let retrieval = await collectSources(run: run) {
-                await RAGRetriever.gather(question: question, settings: capturedSettings, count: model.countTokens)
+                await retrieve(question, capturedSettings, count)
             }
             guard !session.stopRequested, !Task.isCancelled, let retrieval else {
                 sourceResult = GenerationStats(stopReason: "cancelled", sources: 0)
@@ -157,7 +176,8 @@ final class ConversationRunner {
                     let prepared = try tools.sources.prepare(
                         question: prompt, sources: retrieval.conversationSources(), today: RAGContext.today(),
                         budget: RAGContext.promptTokenBudget,
-                        count: { model.countTokens(ConversationFeature.finalized($0)) })
+                        count: { count(ConversationFeature.finalized(policy.restrictingSearch(in: $0))) },
+                        mode: policy.mode)
                 else {
                     let message = "The question and sources exceed the RAG prompt budget."
                     sourceResult = GenerationStats(error: message, sources: 0, retrievalSeconds: retrieval.seconds)
@@ -172,7 +192,7 @@ final class ConversationRunner {
                         lines: tools.sources.citations(ids)))
                 prompt = prepared.prompt
                 lastRetrieval?.sources = Array(retrieval.sources.prefix(prepared.sources.count))
-                let sourceTokens = lastRetrieval?.sources.map { model.countTokens(RAGContext.measuredBlock($0)) }
+                let sourceTokens = lastRetrieval?.sources.map { count(RAGContext.measuredBlock($0)) }
                     .reduce(0, +)
                 lastRetrieval?.sourceTokens = sourceTokens ?? 0
                 sourceResult = GenerationStats(

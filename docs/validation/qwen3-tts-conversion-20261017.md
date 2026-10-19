@@ -2,7 +2,7 @@
 
 2026-10-17. Issue #167, criteria QT1–QT8. Four FP32 Core AI components passed
 52 original-output comparisons and generated all three Japanese fixtures to EOS.
-Listening (QT8), merge and distribution remain pending.
+Listening (QT8) and distribution remain pending.
 
 The [numeric summary](qwen3-tts-conversion-20261017.json) records pinned source
 identities, criteria, asset hashes, runtime shapes and generated-audio metrics.
@@ -120,3 +120,7 @@ were recorded immediately in the Core AI guide inbox and consolidated with the
 TTS plan. Listening remains with the user. KV optimization, Swift integration,
 quantization, longer quality tests and iPhone validation are separate work; none
 is implied by the FP32 conversion result.
+
+## Integration decision
+
+On 2026-10-19 the user explicitly requested merging PR #168 before the remaining listening check. QT8 stays unchecked; merging the implementation does not complete subjective audio acceptance or publish model weights. The original numerical results and criteria above are retained. Integration checks for the current main are recorded in the PR.

@@ -88,4 +88,10 @@ public actor ProductExtractor {
         }
         return try ProductMemo(source: source, candidates: candidates)
     }
+
+    public func release() throws {
+        guard !busy else { throw ProductError.busy }
+        extractor = nil
+        loadedFolder = nil
+    }
 }
