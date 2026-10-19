@@ -64,7 +64,7 @@ public final class LiveObjectFinderService: ObjectFinderService {
                 guard rotation == configuration.rotation, frame.rotation == rotation.angle else { continue }
                 let start = ContinuousClock.now
                 let tracking =
-                    mode == .twoStep && refreshes < Self.refreshLimit ? await devices.trackedCandidates() : []
+                    mode == .twoStep && refreshes < Self.refreshLimit ? frame.tracked : []
                 reusable = false
                 let candidates =
                     tracking.isEmpty

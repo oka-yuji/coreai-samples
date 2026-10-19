@@ -194,11 +194,6 @@
             }
         }
 
-        func trackedCandidates() -> [ObjectCandidate] {
-            guard continuation != nil, failure == nil, tracker != nil else { return [] }
-            return tracked
-        }
-
         private func receive(_ input: CIImage, time: Double) {
             guard continuation != nil, failure == nil else { return }
             let capturedAt = ProcessInfo.processInfo.systemUptime
@@ -221,7 +216,7 @@
             continuation?.yield(
                 CapturedObjectFrame(
                     image: image, rotation: rotation, generation: generation,
-                    capturedAt: frame.capturedAt))
+                    capturedAt: frame.capturedAt, tracked: tracker == nil ? [] : tracked))
         }
 
         private func fail(_ error: ObjectFinderFailure) {

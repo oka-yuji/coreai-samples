@@ -31,7 +31,6 @@
                         await capture.trackCandidates(candidates, frame: tryFrame)
                     },
                     memory: Self.sampleMemory,
-                    trackedCandidates: { await capture.trackedCandidates() },
                     rescore: { try await finder.rescore($1, in: $0) }))
         }
 
