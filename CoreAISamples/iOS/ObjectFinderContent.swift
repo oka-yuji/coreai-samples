@@ -72,6 +72,15 @@
                         .accessibilityLabel("Match threshold")
                         Text("Higher values show fewer candidates. Similarity is not a probability.").font(.caption)
                             .foregroundStyle(.secondary)
+                        Picker(
+                            "Boxes shown",
+                            selection: Binding(
+                                get: { store.state.maximumBoxes }, set: { store.send(.maximumBoxesChanged($0)) })
+                        ) {
+                            ForEach(ObjectFinderState.boxLimits, id: \.self) { Text(verbatim: "\($0)").tag($0) }
+                        }
+                        .pickerStyle(.segmented)
+                        Text("Shows up to this many boxes at once.").font(.caption).foregroundStyle(.secondary)
                     }
                     .padding(.top, 8)
                     .disabled(store.state.phase != .idle)
@@ -199,6 +208,7 @@
                     VStack(spacing: 0) {
                         ObjectFinderLivePreview(
                             source: preview, minimumSimilarity: store.state.minimumSimilarity,
+                            maximumBoxes: store.state.maximumBoxes,
                             expectedGeneration: store.state.phase == .searching
                                 ? store.state.frame?.captureGeneration : nil,
                             rotation: store.state.orientation.angle
@@ -339,6 +349,7 @@
     private struct ObjectFinderLivePreview: UIViewRepresentable {
         let source: ObjectFinderPreview
         let minimumSimilarity: Double
+        let maximumBoxes: Int
         let expectedGeneration: Int?
         let rotation: Double
 
@@ -346,6 +357,7 @@
 
         func updateUIView(_ view: PreviewView, context: Context) {
             view.minimumSimilarity = minimumSimilarity
+            view.maximumBoxes = maximumBoxes
             view.expectedGeneration = expectedGeneration
             view.rotation = rotation
             view.applyPreviewState()
@@ -359,6 +371,7 @@
         final class PreviewView: UIView {
             let source: ObjectFinderPreview
             var minimumSimilarity = 0.67
+            var maximumBoxes = 3
             var expectedGeneration: Int?
             var rotation = 90.0
 
@@ -377,7 +390,8 @@
 
             func applyPreviewState() {
                 source.layout(
-                    in: bounds, minimumSimilarity: minimumSimilarity, expectedGeneration: expectedGeneration,
+                    in: bounds, minimumSimilarity: minimumSimilarity, maximumBoxes: maximumBoxes,
+                    expectedGeneration: expectedGeneration,
                     rotation: rotation)
             }
         }

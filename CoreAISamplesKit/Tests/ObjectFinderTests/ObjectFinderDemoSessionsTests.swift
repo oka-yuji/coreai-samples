@@ -166,7 +166,7 @@ struct ObjectFinderDemoSessionsTests {
     }
 
     @Test(
-        "CAMERA-04 A different validated resource gets a new Store, preview and service that keep the target and threshold, and the old runtime cannot run again"
+        "CAMERA-04 BOX-03 A different validated resource gets a new Store, preview and service that keep the target, threshold and box limit, and the old runtime cannot run again"
     )
     func replacedResource() async throws {
         let factory = RuntimeFactory()
@@ -180,6 +180,7 @@ struct ObjectFinderDemoSessionsTests {
         var oldSearching = oldService.searching.stream.makeAsyncIterator()
         old.store.send(.queryChanged("glasses"))
         old.store.send(.thresholdChanged(0.72))
+        old.store.send(.maximumBoxesChanged(1))
         old.store.send(.start)
         _ = await oldSearching.next()
         try await sessions.stop(first)
@@ -194,6 +195,7 @@ struct ObjectFinderDemoSessionsTests {
         expected.query = "glasses"
         expected.submittedQuery = "glasses"
         expected.minimumSimilarity = 0.72
+        expected.maximumBoxes = 1
         expected.session = 1
         #expect(replaced.store.state == expected && replacedService.searches.isEmpty)
         #expect(sessions.runtime(for: selection)?.store === replaced.store)
