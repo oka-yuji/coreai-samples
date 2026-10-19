@@ -58,6 +58,7 @@ public struct ObjectFinderState: Equatable, Sendable {
     public var submittedQuery = ""
     public var minimumSimilarity = 0.67
     public var maximumBoxes = 3
+    public var searchMode = ObjectSearchMode.standard
     public var phase: ObjectFinderPhase = .idle
     public var frame: ObjectFinderFrame?
     public var matches: [ObjectCandidate] = []
@@ -94,6 +95,7 @@ public struct ObjectFinderState: Equatable, Sendable {
             state.submittedQuery = previous.submittedQuery
             state.minimumSimilarity = previous.minimumSimilarity
             state.maximumBoxes = previous.maximumBoxes
+            state.searchMode = previous.searchMode
             state.session = previous.session
         }
         return state
@@ -136,6 +138,7 @@ public enum ObjectFinderAction: Sendable {
     case folderSelected(URL)
     case thresholdChanged(Double)
     case maximumBoxesChanged(Int)
+    case searchModeChanged(ObjectSearchMode)
     case inputFailed(String)
     case poseChanged(ObjectCameraPose)
     case start, applyQuery, stop, disappeared, appeared, backgrounded
@@ -147,7 +150,7 @@ public enum ObjectFinderAction: Sendable {
 }
 
 public enum ObjectFinderEffect: Equatable, Sendable {
-    case search(Int, URL, String, Double, ObjectCameraRotation)
+    case search(Int, URL, String, Double, ObjectSearchMode, ObjectCameraRotation)
     case orient(ObjectCameraRotation)
     case stop(Int, retainingModel: Bool)
     case notify(Int)
@@ -176,6 +179,8 @@ public enum ObjectFinderFeature: Feature {
             }
         case .maximumBoxesChanged(let value):
             if state.phase == .idle, State.boxLimits.contains(value) { state.maximumBoxes = value }
+        case .searchModeChanged(let mode):
+            if state.phase == .idle { state.searchMode = mode }
         case .inputFailed(let message):
             if state.phase == .idle { state.failure = .operation(message) }
         case .poseChanged(let pose):
@@ -201,7 +206,9 @@ public enum ObjectFinderFeature: Feature {
             state.peakFootprintBytes = nil
             return [
                 .run(
-                    .search(state.session, folder, state.submittedQuery, state.minimumSimilarity, state.cameraRotation),
+                    .search(
+                        state.session, folder, state.submittedQuery, state.minimumSimilarity, state.searchMode,
+                        state.cameraRotation),
                     id: .search)
             ]
         case .applyQuery:

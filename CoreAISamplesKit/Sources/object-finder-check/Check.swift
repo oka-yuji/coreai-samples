@@ -12,6 +12,7 @@ enum ObjectFinderCheck {
             let query: String
         }
         let minimumSimilarity: Double
+        let mode: ObjectSearchMode?
         let samples: [Sample]
     }
 
@@ -53,7 +54,7 @@ enum ObjectFinderCheck {
                     ] as CFDictionary)
             else { throw ObjectFinderError.invalidImage }
             let start = ContinuousClock.now
-            let candidates = try await finder.candidates(in: image)
+            let candidates = try await finder.candidates(in: image, mode: plan.mode ?? .standard)
             let duration = (ContinuousClock.now - start).components
             records.append(
                 Record(
@@ -61,8 +62,8 @@ enum ObjectFinderCheck {
                     seconds: Double(duration.seconds) + Double(duration.attoseconds) / 1e18,
                     candidates: candidates,
                     selected: ObjectCandidateSelection.select(candidates, minimumSimilarity: plan.minimumSimilarity)))
-            try await finder.close()
         }
+        try await finder.close()
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         try encoder.encode(records).write(to: output, options: .atomic)

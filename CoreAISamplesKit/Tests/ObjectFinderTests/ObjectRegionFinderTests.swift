@@ -4,10 +4,17 @@ import EmbeddingRuntime
 import Foundation
 import ImageIO
 import ObjectFinderCore
+import Synchronization
 import Testing
 import UniformTypeIdentifiers
 
 @testable import ObjectFinderRuntime
+
+private final class Locked<Value: Sendable>: Sendable {
+    let value: Mutex<Value>
+
+    init(_ value: Value) { self.value = Mutex(value) }
+}
 
 struct ObjectRegionFinderTests {
     private func image() throws -> CGImage {
@@ -56,6 +63,98 @@ struct ObjectRegionFinderTests {
         #expect(try await finder.candidates(in: frame) == [ObjectCandidate(id: 0, region: region, similarity: 1)])
         try await finder.close()
         await #expect(throws: ObjectFinderError.notPrepared) { try await finder.candidates(in: frame) }
+    }
+
+    private func patch() throws -> CGImage {
+        var pixels = [UInt8](repeating: 0, count: 10 * 10 * 4)
+        for y in 0..<10 {
+            for x in 0..<10 {
+                pixels[(y * 10 + x) * 4 + 3] = 255
+                if x >= 6 && y >= 6 { pixels[(y * 10 + x) * 4] = 255 }
+            }
+        }
+        let provider = try #require(CGDataProvider(data: Data(pixels) as CFData))
+        return try #require(
+            CGImage(
+                width: 10, height: 10, bitsPerComponent: 8, bitsPerPixel: 32, bytesPerRow: 40,
+                space: CGColorSpaceCreateDeviceRGB(),
+                bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.last.rawValue),
+                provider: provider, decode: nil, shouldInterpolate: false, intent: .defaultIntent))
+    }
+
+    private static func redness(_ image: CGImage) throws -> EmbeddingVector {
+        let pixels = try EmbeddingImageReader.read(image).pixels
+        let count = pixels.count / 3
+        let red = (0..<count).filter { pixels[$0 * 3] > 128 }.count
+        let share = Float(red) / Float(count)
+        let length = (share * share + (1 - share) * (1 - share)).squareRoot()
+        return try EmbeddingVector([share / length, (1 - share) / length] + Array(repeating: Float(0), count: 766))
+    }
+
+    @Test("TWO-01 The standard search scores only the first three objectness regions")
+    func standardSearch() async throws {
+        let query = try EmbeddingVector([1] + Array(repeating: Float(0), count: 767))
+        let regions = (0..<4).map { ObjectRegion(x: Double($0) * 0.2, y: 0, width: 0.2, height: 0.2) }
+        let instanceCalls = Locked(0)
+        let finder = ObjectRegionFinder(
+            embedding: .init(load: { _ in }, text: { _ in query }, image: { _ in query }, close: {}),
+            propose: { _ in regions },
+            instances: { _ in
+                instanceCalls.value.withLock { $0 += 1 }
+                return [.frame]
+            })
+        try await finder.prepare(folder: URL(filePath: "/unused"), query: "glasses")
+        let found = try await finder.candidates(in: try patch(), mode: .standard)
+        #expect(found.map(\.region) == Array(regions.prefix(3)))
+        #expect(instanceCalls.value.withLock { $0 } == 0)
+    }
+
+    @Test(
+        "TWO-02 The two-step search scores five windows, proposes again only inside the best partial window, places those regions back in the frame and never returns a window"
+    )
+    func twoStepSearch() async throws {
+        let query = try EmbeddingVector([1] + Array(repeating: Float(0), count: 767))
+        let base = ObjectRegion(x: 0, y: 0, width: 0.3, height: 0.3)
+        let baseInstance = ObjectRegion(x: 0.1, y: 0.5, width: 0.2, height: 0.2)
+        let local = [
+            ObjectRegion(x: 0.5, y: 0.5, width: 0.4, height: 0.4), ObjectRegion(x: 0, y: 0, width: 0.3, height: 0.3),
+            ObjectRegion(x: 0.6, y: 0, width: 0.3, height: 0.3), ObjectRegion(x: 0, y: 0.6, width: 0.3, height: 0.3),
+        ]
+        let proposedWidths = Locked<[Int]>([])
+        let embeddings = Locked(0)
+        let finder = ObjectRegionFinder(
+            embedding: .init(
+                load: { _ in }, text: { _ in query },
+                image: {
+                    embeddings.value.withLock { $0 += 1 }
+                    return try Self.redness($0)
+                }, close: {}),
+            propose: { image in
+                proposedWidths.value.withLock { $0.append(image.width) }
+                return image.width == 10 ? [base] : [local[0], local[1]]
+            },
+            instances: { image in image.width == 10 ? [base, baseInstance] : [local[2], local[3]] })
+        try await finder.prepare(folder: URL(filePath: "/unused"), query: "glasses")
+        let found = try await finder.candidates(in: try patch(), mode: .twoStep)
+        let window = ObjectRegion.searchWindows[4]
+        let placed = local.prefix(3).map { $0.placed(in: window) }
+        #expect(found.map(\.region) == [base, baseInstance] + placed)
+        #expect(abs(placed[0].x - 0.7) < 1e-9 && abs(placed[0].width - 0.24) < 1e-9)
+        #expect(found[2].similarity == 1)
+        #expect(proposedWidths.value.withLock { $0 } == [10, 6])
+        #expect(embeddings.value.withLock { $0 } == ObjectRegion.searchWindows.count + found.count)
+        #expect(!found.contains { ObjectRegion.searchWindows.contains($0.region) })
+
+        let everywhere = ObjectRegionFinder(
+            embedding: .init(load: { _ in }, text: { _ in query }, image: { _ in query }, close: {}),
+            propose: { image in
+                proposedWidths.value.withLock { $0.append(image.width) }
+                return [base]
+            })
+        proposedWidths.value.withLock { $0 = [] }
+        try await everywhere.prepare(folder: URL(filePath: "/unused"), query: "glasses")
+        #expect(try await everywhere.candidates(in: try patch(), mode: .twoStep).map(\.region) == [base])
+        #expect(proposedWidths.value.withLock { $0 } == [10])
     }
 
     @Test("A failed query clears preparation and releases the model")

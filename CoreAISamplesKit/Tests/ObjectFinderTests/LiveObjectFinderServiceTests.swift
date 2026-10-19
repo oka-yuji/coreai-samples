@@ -18,7 +18,8 @@ struct LiveObjectFinderServiceTests {
         let service = LiveObjectFinderService(devices: fake.devices)
         await #expect(throws: ObjectFinderFailure.cameraDenied) {
             try await service.search(
-                folder: folder, query: "glasses", minimumSimilarity: 0.67, rotation: initial, started: {},
+                folder: folder, query: "glasses", minimumSimilarity: 0.67, mode: .standard, rotation: initial,
+                started: {},
                 receive: { _ in })
         }
         #expect(fake.prepares == 0 && fake.angles.isEmpty && fake.closes == 1 && fake.orientationEnds == 1)
@@ -31,7 +32,8 @@ struct LiveObjectFinderServiceTests {
         let service = LiveObjectFinderService(devices: fake.devices)
         let search = Task {
             try await service.search(
-                folder: folder, query: "glasses", minimumSimilarity: 0.67, rotation: initial, started: {},
+                folder: folder, query: "glasses", minimumSimilarity: 0.67, mode: .standard, rotation: initial,
+                started: {},
                 receive: { _ in })
         }
         var entered = fake.preparing.stream.makeAsyncIterator()
@@ -43,7 +45,7 @@ struct LiveObjectFinderServiceTests {
         #expect(fake.closes == 0)
         await #expect(throws: ObjectFinderError.busy) {
             try await service.search(
-                folder: folder, query: "keys", minimumSimilarity: 0.67, rotation: initial, started: {},
+                folder: folder, query: "keys", minimumSimilarity: 0.67, mode: .standard, rotation: initial, started: {},
                 receive: { _ in })
         }
         fake.releasePreparation()
@@ -61,7 +63,8 @@ struct LiveObjectFinderServiceTests {
         let service = LiveObjectFinderService(devices: fake.devices)
         let search = Task {
             try await service.search(
-                folder: folder, query: "glasses", minimumSimilarity: 0.67, rotation: initial, started: {},
+                folder: folder, query: "glasses", minimumSimilarity: 0.67, mode: .standard, rotation: initial,
+                started: {},
                 receive: { _ in })
         }
         var entered = fake.preparing.stream.makeAsyncIterator()
@@ -86,7 +89,8 @@ struct LiveObjectFinderServiceTests {
         let received = AsyncStream<ObjectFinderFrame>.makeStream(bufferingPolicy: .bufferingNewest(1))
         let search = Task {
             try await service.search(
-                folder: folder, query: "glasses", minimumSimilarity: 0.67, rotation: initial, started: {},
+                folder: folder, query: "glasses", minimumSimilarity: 0.67, mode: .standard, rotation: initial,
+                started: {},
                 receive: { received.continuation.yield($0) })
         }
         var starts = fake.started.stream.makeAsyncIterator()
@@ -116,7 +120,8 @@ struct LiveObjectFinderServiceTests {
         var frames: [ObjectFinderFrame] = []
         let search = Task {
             try await service.search(
-                folder: folder, query: "glasses", minimumSimilarity: 0.67, rotation: initial, started: {},
+                folder: folder, query: "glasses", minimumSimilarity: 0.67, mode: .standard, rotation: initial,
+                started: {},
                 receive: { frames.append($0) })
         }
         var starts = fake.started.stream.makeAsyncIterator()
@@ -143,7 +148,8 @@ struct LiveObjectFinderServiceTests {
         var received = false
         let search = Task {
             try await service.search(
-                folder: folder, query: "glasses", minimumSimilarity: 0.67, rotation: initial, started: {},
+                folder: folder, query: "glasses", minimumSimilarity: 0.67, mode: .standard, rotation: initial,
+                started: {},
                 receive: { _ in received = true })
         }
         var starts = fake.started.stream.makeAsyncIterator()
@@ -161,7 +167,8 @@ struct LiveObjectFinderServiceTests {
         let service = LiveObjectFinderService(devices: fake.devices)
         let search = Task {
             try await service.search(
-                folder: folder, query: "glasses", minimumSimilarity: 0.67, rotation: initial, started: {},
+                folder: folder, query: "glasses", minimumSimilarity: 0.67, mode: .standard, rotation: initial,
+                started: {},
                 receive: { _ in })
         }
         var preparation = fake.preparing.stream.makeAsyncIterator()
@@ -181,7 +188,7 @@ struct LiveObjectFinderServiceTests {
     }
 
     @Test(
-        "Candidates below the active search threshold never reach tracking, while eligible candidates preserve their IDs and scores",
+        "TWO-04 Candidates below the active search threshold never reach tracking, and eligible candidates reach it in descending similarity with their IDs and scores, using the requested search method",
         .timeLimit(.minutes(1)))
     func trackingThreshold() async throws {
         let fake = FinderDevicesFake()
@@ -193,7 +200,8 @@ struct LiveObjectFinderServiceTests {
         let service = LiveObjectFinderService(devices: fake.devices)
         let search = Task {
             try await service.search(
-                folder: folder, query: "glasses", minimumSimilarity: 0.8, rotation: initial, started: {},
+                folder: folder, query: "glasses", minimumSimilarity: 0.8, mode: .twoStep, rotation: initial,
+                started: {},
                 receive: { output.continuation.yield($0) })
         }
         var starts = fake.started.stream.makeAsyncIterator()
@@ -201,7 +209,8 @@ struct LiveObjectFinderServiceTests {
         try fake.sendFrame(rotation: 90)
         var results = output.stream.makeAsyncIterator()
         let frame = await results.next()
-        #expect(fake.trackingInputs == [[exact, higher]] && frame?.candidates == [exact, higher])
+        #expect(fake.trackingInputs == [[higher, exact]] && frame?.candidates == [higher, exact])
+        #expect(fake.modes == [.twoStep])
         search.cancel()
         _ = await search.result
         output.continuation.finish()
@@ -222,7 +231,8 @@ struct LiveObjectFinderServiceTests {
         let service = LiveObjectFinderService(devices: devices)
         let search = Task {
             try await service.search(
-                folder: folder, query: "glasses", minimumSimilarity: 0.67, rotation: initial, started: {},
+                folder: folder, query: "glasses", minimumSimilarity: 0.67, mode: .standard, rotation: initial,
+                started: {},
                 receive: { output.continuation.yield($0) })
         }
         var starts = fake.started.stream.makeAsyncIterator()
@@ -245,7 +255,8 @@ struct LiveObjectFinderServiceTests {
         let service = LiveObjectFinderService(devices: devices)
         await #expect(throws: ObjectFinderFailure.cameraInterrupted) {
             try await service.search(
-                folder: folder, query: "glasses", minimumSimilarity: 0.67, rotation: initial, started: {},
+                folder: folder, query: "glasses", minimumSimilarity: 0.67, mode: .standard, rotation: initial,
+                started: {},
                 receive: { _ in Issue.record("No frame was requested successfully") })
         }
         #expect(fake.inferences == 0 && fake.frames == nil && fake.closes == 1)
@@ -279,6 +290,7 @@ final class FinderDevicesFake {
     var orientationEnds = 0
     var angles: [Double] = []
     var candidateResults: [ObjectCandidate] = []
+    var modes: [ObjectSearchMode] = []
     var trackingInputs: [[ObjectCandidate]] = []
     var frames: AsyncThrowingStream<CapturedObjectFrame, any Error>.Continuation?
     private var preparation: CheckedContinuation<Void, Never>?
@@ -316,7 +328,8 @@ final class FinderDevicesFake {
                 self.stopping.continuation.yield(())
             },
             checkCamera: { if let error = self.cameraError { throw error } },
-            candidates: { _ in
+            candidates: { _, mode in
+                self.modes.append(mode)
                 self.inferences += 1
                 if self.blocksInference {
                     await withCheckedContinuation {
