@@ -211,7 +211,11 @@
                             }
                         }
                         .accessibilityLabel("Live camera preview")
-                        ObjectFinderMetrics(state: store.state, model: model).padding()
+                        VStack(alignment: .leading, spacing: 14) {
+                            queryEditor
+                            ObjectFinderMetrics(state: store.state, model: model)
+                        }
+                        .padding()
                     }
                 }
                 .navigationTitle(Text(verbatim: store.state.submittedQuery))
@@ -220,6 +224,27 @@
                     ToolbarItem(placement: .cancellationAction) {
                         Button(role: .close) { store.send(.stop) }
                     }
+                }
+            }
+            .presentationDragIndicator(.visible)
+        }
+
+        private var queryEditor: some View {
+            HStack {
+                TextField(
+                    "Type any object name",
+                    text: Binding(get: { store.state.query }, set: { store.send(.queryChanged($0)) })
+                )
+                .textFieldStyle(.roundedBorder)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+                .submitLabel(.search)
+                .onSubmit { store.send(.applyQuery) }
+                .accessibilityLabel("Object to find")
+                .disabled(store.state.phase == .stopping)
+                if store.state.canApplyQuery {
+                    Button("Search this text", systemImage: "arrow.clockwise") { store.send(.applyQuery) }
+                        .buttonStyle(.bordered)
                 }
             }
         }
