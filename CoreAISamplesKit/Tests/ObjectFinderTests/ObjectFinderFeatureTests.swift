@@ -256,6 +256,40 @@ struct ObjectFinderFeatureTests {
         #expect(failure == .cameraDenied && service.closes == 2)
     }
 
+    @Test("BOX-01 The box limit defaults to three and changes only while stopped and within one to three")
+    func boxLimit() {
+        var state = ObjectFinderState(folder: folder)
+        #expect(state.maximumBoxes == 3)
+        #expect(ObjectFinderFeature.reduce(&state, .maximumBoxesChanged(1)).isEmpty && state.maximumBoxes == 1)
+        #expect(ObjectFinderFeature.reduce(&state, .maximumBoxesChanged(0)).isEmpty)
+        #expect(ObjectFinderFeature.reduce(&state, .maximumBoxesChanged(4)).isEmpty && state.maximumBoxes == 1)
+        state.query = "glasses"
+        _ = ObjectFinderFeature.reduce(&state, .start)
+        #expect(ObjectFinderFeature.reduce(&state, .maximumBoxesChanged(2)).isEmpty && state.maximumBoxes == 1)
+        _ = ObjectFinderFeature.reduce(&state, .started(1))
+        _ = ObjectFinderFeature.reduce(&state, .stop)
+        #expect(ObjectFinderFeature.reduce(&state, .maximumBoxesChanged(3)).isEmpty && state.maximumBoxes == 1)
+        _ = ObjectFinderFeature.reduce(&state, .stopped(1))
+        #expect(ObjectFinderFeature.reduce(&state, .maximumBoxesChanged(3)).isEmpty && state.maximumBoxes == 3)
+    }
+
+    @Test("BOX-02 Selected boxes keep the highest non-overlapping matches up to the box limit")
+    func boxLimitSelection() {
+        var state = ObjectFinderState(folder: folder)
+        _ = ObjectFinderFeature.reduce(&state, .maximumBoxesChanged(2))
+        state.query = "glasses"
+        _ = ObjectFinderFeature.reduce(&state, .start)
+        _ = ObjectFinderFeature.reduce(&state, .started(1))
+        let candidates = [
+            ObjectCandidate(id: 0, region: .init(x: 0, y: 0, width: 0.2, height: 0.2), similarity: 0.7),
+            ObjectCandidate(id: 1, region: .init(x: 0.4, y: 0, width: 0.2, height: 0.2), similarity: 0.9),
+            ObjectCandidate(id: 2, region: .init(x: 0, y: 0.5, width: 0.2, height: 0.2), similarity: 0.8),
+            ObjectCandidate(id: 3, region: .init(x: 0.5, y: 0.5, width: 0.2, height: 0.2), similarity: 0.5),
+        ]
+        _ = ObjectFinderFeature.reduce(&state, .analyzed(1, ObjectFinderFrame(candidates: candidates, seconds: 0.1)))
+        #expect(state.matches.map(\.id) == [1, 2])
+    }
+
     @Test("The camera sheet is shown only while starting, searching or replacing the query")
     func cameraSheetVisibility() {
         var state = ObjectFinderState(folder: folder)

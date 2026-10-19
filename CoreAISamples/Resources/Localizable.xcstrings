@@ -67,6 +67,28 @@
         }
       }
     },
+    "Boxes shown" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "表示する枠の数"
+          }
+        }
+      }
+    },
+    "Shows up to this many boxes at once." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一度に表示する枠の最大数です。"
+          }
+        }
+      }
+    },
     "Analysis time" : {
       "extractionState" : "manual",
       "localizations" : {

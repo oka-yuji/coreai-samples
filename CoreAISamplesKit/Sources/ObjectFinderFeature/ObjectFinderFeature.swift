@@ -57,6 +57,7 @@ public struct ObjectFinderState: Equatable, Sendable {
     public var query = ""
     public var submittedQuery = ""
     public var minimumSimilarity = 0.67
+    public var maximumBoxes = 3
     public var phase: ObjectFinderPhase = .idle
     public var frame: ObjectFinderFrame?
     public var matches: [ObjectCandidate] = []
@@ -75,6 +76,7 @@ public struct ObjectFinderState: Equatable, Sendable {
     public var peakFootprintBytes: UInt64?
 
     public static let logLimit = 20
+    public static let boxLimits = 1...3
 
     public var cameraRotation: ObjectCameraRotation {
         ObjectCameraRotation(session: session, revision: orientationRevision, angle: orientation.angle)
@@ -91,6 +93,7 @@ public struct ObjectFinderState: Equatable, Sendable {
             state.query = previous.query
             state.submittedQuery = previous.submittedQuery
             state.minimumSimilarity = previous.minimumSimilarity
+            state.maximumBoxes = previous.maximumBoxes
             state.session = previous.session
         }
         return state
@@ -132,6 +135,7 @@ public enum ObjectFinderAction: Sendable {
     case queryChanged(String)
     case folderSelected(URL)
     case thresholdChanged(Double)
+    case maximumBoxesChanged(Int)
     case inputFailed(String)
     case poseChanged(ObjectCameraPose)
     case start, applyQuery, stop, disappeared, appeared, backgrounded
@@ -170,6 +174,8 @@ public enum ObjectFinderFeature: Feature {
             if state.phase == .idle, value.isFinite, (0.3...0.9).contains(value) {
                 state.minimumSimilarity = value
             }
+        case .maximumBoxesChanged(let value):
+            if state.phase == .idle, State.boxLimits.contains(value) { state.maximumBoxes = value }
         case .inputFailed(let message):
             if state.phase == .idle { state.failure = .operation(message) }
         case .poseChanged(let pose):
@@ -219,7 +225,7 @@ public enum ObjectFinderFeature: Feature {
                 state.peakFootprintBytes = max(state.peakFootprintBytes ?? 0, footprint)
             }
             state.matches = ObjectCandidateSelection.select(
-                frame.candidates, minimumSimilarity: state.minimumSimilarity)
+                frame.candidates, minimumSimilarity: state.minimumSimilarity, limit: state.maximumBoxes)
             guard let first = state.matches.first else {
                 state.stableFrames = 0
                 state.emptyFrames += 1
