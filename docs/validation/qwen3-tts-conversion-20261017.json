@@ -1,0 +1,421 @@
+{
+  "date": "2026-10-17",
+  "issue": 167,
+  "criteria_version": "2026-10-17 QT1-QT8",
+  "source": {
+    "version": 1,
+    "model_id": "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice",
+    "revision": "85e237c12c027371202489a0ec509ded67b5e4b5",
+    "upstream_revision": "022e286b98fbec7e1e916cb940cdf532cd9f488e",
+    "files": {
+      ".gitattributes": {
+        "bytes": 1519,
+        "sha256": "11ad7efa24975ee4b0c3c3a38ed18737f0658a5f75a0a96787b576a78a023361"
+      },
+      "README.md": {
+        "bytes": 3263,
+        "sha256": "1e3adeecc7a72d6756fdb77c2847f8e994195e105b51206a7a5c049b0dfa48a8"
+      },
+      "config.json": {
+        "bytes": 4908,
+        "sha256": "81aca2b6fac304944d8acf345272d8a9a727d5fc2e2e66b222ab4729340c7455"
+      },
+      "generation_config.json": {
+        "bytes": 245,
+        "sha256": "f1b90b4513f3b34c62851049e2492d7b4c5940daf1276f89c82b8ef04127f3aa"
+      },
+      "merges.txt": {
+        "bytes": 1671839,
+        "sha256": "599bab54075088774b1733fde865d5bd747cbcc7a547c5bc12610e874e26f5e3"
+      },
+      "model.safetensors": {
+        "bytes": 1811626576,
+        "sha256": "bc3c7e785eb961179c25450d1acff03f839e0002f2f3a5aeb67b5735c0fa2adb"
+      },
+      "preprocessor_config.json": {
+        "bytes": 127,
+        "sha256": "efdde1022ea9d76928bf7a9cd53139138f5ba2e466e837f08f6105ab1af1c119"
+      },
+      "speech_tokenizer/config.json": {
+        "bytes": 2336,
+        "sha256": "ee65bb901c876664ab8707c487157aa1a6ee57c65969b28fb5ec9dc211e68167"
+      },
+      "speech_tokenizer/configuration.json": {
+        "bytes": 76,
+        "sha256": "6bc26d64eb5024b4d1dab5a52371958b429256d6c9d59787f1f5294a54e0cebd"
+      },
+      "speech_tokenizer/model.safetensors": {
+        "bytes": 682293092,
+        "sha256": "836b7b357f5ea43e889936a3709af68dfe3751881acefe4ecf0dbd30ba571258"
+      },
+      "speech_tokenizer/preprocessor_config.json": {
+        "bytes": 234,
+        "sha256": "fcb3805e597e786d4067706e602f6688524640f8d3396790e2e09b5942fcbdfb"
+      },
+      "tokenizer_config.json": {
+        "bytes": 7344,
+        "sha256": "dc3c31c3bdaedd5016382bb3cbe07323026775ad51f5a4fb564505992ae4a670"
+      },
+      "vocab.json": {
+        "bytes": 2776833,
+        "sha256": "ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910"
+      }
+    },
+    "precision": "float32",
+    "sample_rate": 24000,
+    "normalized_max_limit": 0.001,
+    "audio_cosine_min": 0.999,
+    "audio_rms_max": 0.001,
+    "execution_shapes": {
+      "talker": 512,
+      "predictor": 16
+    }
+  },
+  "environment": {
+    "machine": "M4 Max 128 GiB",
+    "os": "macOS 27.0 (26A428)",
+    "xcode": "27.0 (27A266a)",
+    "python": "3.11.9",
+    "torch": "2.9.0",
+    "transformers": "4.57.3",
+    "coreai_torch": "0.4.3",
+    "coreai_core": "1.0.0b3",
+    "coreai_opt": "0.3.0",
+    "runtime": "OS Core AI, GPU preferred"
+  },
+  "generation_specification": {
+    "fixtures": [
+      {
+        "id": "greeting",
+        "text": "こんにちは。今日はよい天気ですね。"
+      },
+      {
+        "id": "instruction",
+        "text": "確認が終わりました。次の作業を始めます。"
+      },
+      {
+        "id": "reading",
+        "text": "この道をまっすぐ進み、右に曲がってください。"
+      }
+    ],
+    "max_new_tokens": 128,
+    "sampling": {
+      "enabled": true,
+      "repetition_penalty": 1.05,
+      "temperature": 0.9,
+      "top_k": 50,
+      "top_p": 1.0
+    },
+    "seed": 42,
+    "speaker": "Ono_Anna",
+    "version": 1
+  },
+  "assets": {
+    "projection": {
+      "bytes": 25181219,
+      "files": {
+        "main.hash": {
+          "bytes": 32,
+          "sha256": "c5e0a18ae4162499a56b7571954f3565706ecb2e9352e1d905dbdac2b6d05822"
+        },
+        "main.mlirb": {
+          "bytes": 25180805,
+          "sha256": "007762076d203ef6944b7637dbfb24cf8bb5007fb2ebbaf3e2006396986019db"
+        },
+        "metadata.json": {
+          "bytes": 382,
+          "sha256": "79ed4849b995731dd991ad869309b548882d1f0dd872ff4e287f8879ec488d37"
+        }
+      }
+    },
+    "talker": {
+      "bytes": 1774998280,
+      "files": {
+        "main.hash": {
+          "bytes": 32,
+          "sha256": "8fc948024a792042dd9d5a388c9d1509f15773521798c345156e5b1f30582266"
+        },
+        "main.mlirb": {
+          "bytes": 1774997870,
+          "sha256": "7b4c56ecb7665df3419527b4d8f08588827eaa8998fd1f359a6aaa556c2494f4"
+        },
+        "metadata.json": {
+          "bytes": 378,
+          "sha256": "39e13b97efe4d45bfcc36e2f33e1604e0d180119f0a001e0906724bfd46cad98"
+        }
+      }
+    },
+    "predictor": {
+      "bytes": 440520792,
+      "files": {
+        "main.hash": {
+          "bytes": 32,
+          "sha256": "bce8e7548c04aa349ee90d7a2ac1d86ce23d6d976c80eea32c1f74d5d3864c7e"
+        },
+        "main.mlirb": {
+          "bytes": 440520379,
+          "sha256": "a30cfc66908599c0c6b4af05867cb21c1fe917010a5ddf7e189d8525fec61aa0"
+        },
+        "metadata.json": {
+          "bytes": 381,
+          "sha256": "7083f8a5b48e83b9821067c56f5ef6f04f5565ed17fad98c6f027a2da72da71b"
+        }
+      }
+    },
+    "codec": {
+      "bytes": 456253648,
+      "files": {
+        "main.hash": {
+          "bytes": 32,
+          "sha256": "45c83df9f526ce3c8fe463100dfd92de071c8964f2010db1f6b062d336a1caa4"
+        },
+        "main.mlirb": {
+          "bytes": 456253239,
+          "sha256": "ab603a34c5956b0744cb9ee5f96fcd5a9eb1aeb13db98e9c7971340871fb3ca3"
+        },
+        "metadata.json": {
+          "bytes": 377,
+          "sha256": "16758144c5a907706d69d4e99df5747695eb1e6b704f8f3ace2ae2da4c63908b"
+        }
+      }
+    }
+  },
+  "total_asset_bytes": 2696953939,
+  "fidelity": {
+    "records": 52,
+    "passed": true,
+    "components": {
+      "projection": {
+        "records": 12,
+        "max_normalized_error": 1.5633351500933394e-06,
+        "max_rms": 5.083619254954211e-08,
+        "min_cosine": 0.9999999999995769
+      },
+      "talker": {
+        "records": 16,
+        "max_normalized_error": 5.145971559430421e-06,
+        "max_rms": 4.9550340031139704e-05,
+        "min_cosine": 0.9999999999384755
+      },
+      "predictor": {
+        "records": 21,
+        "max_normalized_error": 3.5106385410635307e-06,
+        "max_rms": 5.088423424413429e-05,
+        "min_cosine": 0.999999999997045
+      },
+      "codec": {
+        "records": 3,
+        "max_normalized_error": 7.06578193897859e-06,
+        "max_rms": 8.108363026457776e-08,
+        "min_cosine": 0.9999999999966696
+      }
+    },
+    "free_generation_comparison": [
+      {
+        "id": "greeting",
+        "sample_rate": 24000,
+        "samples": 88320,
+        "sequence_equal": true,
+        "passed": true,
+        "finite": true,
+        "max_abs": 9.834766387939453e-07,
+        "normalized_max": 2.8904306075930387e-06,
+        "rms": 8.108363026457776e-08,
+        "cosine": 0.9999999999983821
+      },
+      {
+        "id": "instruction",
+        "sample_rate": 24000,
+        "samples": 213120,
+        "sequence_equal": true,
+        "passed": true,
+        "finite": true,
+        "max_abs": 4.122266545891762e-07,
+        "normalized_max": 7.06578193897859e-06,
+        "rms": 2.9673119663564217e-08,
+        "cosine": 0.9999999999966696
+      },
+      {
+        "id": "reading",
+        "sample_rate": 24000,
+        "samples": 117120,
+        "sequence_equal": true,
+        "passed": true,
+        "finite": true,
+        "max_abs": 8.493661880493164e-07,
+        "normalized_max": 2.9806885892651913e-06,
+        "rms": 7.103852880313307e-08,
+        "cosine": 0.9999999999982944
+      }
+    ]
+  },
+  "generated_utterances": [
+    {
+      "audio_seconds": 3.68,
+      "finite": true,
+      "id": "greeting",
+      "output": "greeting.wav",
+      "peak_rss_bytes": 8647114752,
+      "seconds": 4.917925582733005,
+      "stop_reason": "eos",
+      "tokens": 47
+    },
+    {
+      "audio_seconds": 8.88,
+      "finite": true,
+      "id": "instruction",
+      "output": "instruction.wav",
+      "peak_rss_bytes": 8647114752,
+      "seconds": 11.78727866569534,
+      "stop_reason": "eos",
+      "tokens": 112
+    },
+    {
+      "audio_seconds": 4.88,
+      "finite": true,
+      "id": "reading",
+      "output": "reading.wav",
+      "peak_rss_bytes": 8649900032,
+      "seconds": 6.826560708228499,
+      "stop_reason": "eos",
+      "tokens": 62
+    }
+  ],
+  "runtime_calls": {
+    "codec": {
+      "calls": 3,
+      "input_shapes": [
+        [
+          [
+            1,
+            16,
+            46
+          ]
+        ],
+        [
+          [
+            1,
+            16,
+            111
+          ]
+        ],
+        [
+          [
+            1,
+            16,
+            61
+          ]
+        ]
+      ],
+      "seconds": 0.8079855409450829
+    },
+    "predictor": {
+      "calls": 3270,
+      "input_shapes": [
+        [
+          [
+            1,
+            16,
+            1024
+          ],
+          [
+            1
+          ]
+        ]
+      ],
+      "seconds": 9.246034746058285
+    },
+    "projection": {
+      "calls": 12,
+      "input_shapes": [
+        [
+          [
+            1,
+            3,
+            2048
+          ]
+        ],
+        [
+          [
+            1,
+            1,
+            2048
+          ]
+        ],
+        [
+          [
+            1,
+            8,
+            2048
+          ]
+        ],
+        [
+          [
+            1,
+            12,
+            2048
+          ]
+        ],
+        [
+          [
+            1,
+            16,
+            2048
+          ]
+        ]
+      ],
+      "seconds": 0.04073620866984129
+    },
+    "talker": {
+      "calls": 221,
+      "input_shapes": [
+        [
+          [
+            1,
+            512,
+            1024
+          ],
+          [
+            3,
+            1,
+            512
+          ],
+          [
+            1
+          ]
+        ]
+      ],
+      "seconds": 12.185691798105836
+    }
+  },
+  "validation_run": "20261017T053101-a3ace818",
+  "reuse_run": "20261017T053431-dc5b07aa",
+  "reused_stages": 7,
+  "cpu_tests": {
+    "count": 86,
+    "skipped": 0,
+    "passed": true
+  },
+  "swift_validation": {
+    "evidence_commit": "dfc037a",
+    "reason": "Swift/build/lint inputs are identical to the already validated Magpie branch; only conversion Python and documentation differ",
+    "identical_objects": {
+      "CoreAISamples": "1b70206d9e88fe20e3eb0670a9775cd4e0a23506",
+      "CoreAISamplesKit": "91b441c7f0bca8c9030c83b2c2ff32043c38073f",
+      "CoreAISamples.xcodeproj": "0e75a9f4a6733ef37796a5614f6ea755ad803bb6",
+      "Vendor": "e757947a89ce8eb7b1a861f2b0ad1e1210c1863b",
+      "Tools/Irodori": "8eb522ff59435a6c03a453f382d9693942799463",
+      "Tools/Format": "21fd07e345e611c8679cb8544b9f4f4a0105c542",
+      ".swiftlint.yml": "4606a9e8806f9e00aa55f77068061b7ae3c2168e",
+      ".swiftlint-baseline.json": "c168f2f698e848cb3f98dc60bc13c7b88bff69dd",
+      ".swiftlint-size.yml": "24cb4ab64891e5f69e2a889f6df5996574a36f2c",
+      "CLAUDE.md": "838d1b1e3b6f64c9beed829f94856fe27caff23f"
+    }
+  },
+  "manual_listening": "pending",
+  "limits": [
+    "Three Japanese fixtures only; not a language quality or endurance evaluation",
+    "Python source host and embedding lookups remain required",
+    "Swift, iPhone, quantization and distribution are not qualified"
+  ]
+}

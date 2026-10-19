@@ -29,6 +29,10 @@ Reports contain the source run for reused stages. A reused
 measurement is never presented as a fresh measurement.
 
 
+The [Qwen3-TTS CustomVoice recipe](recipes/qwen3_tts/README.md) uses a separate
+Transformers 4.57.3 environment to export FP32 neural components and compare them
+with the original Japanese speech path. Use generic plan/run with local bindings.
+
 ## Local workspace
 
 Run from the sample repository root. Use Python 3.11+, Git, uv 0.9+, Xcode 27 with
