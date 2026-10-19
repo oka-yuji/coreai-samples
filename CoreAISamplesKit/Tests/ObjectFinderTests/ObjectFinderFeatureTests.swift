@@ -260,17 +260,17 @@ struct ObjectFinderFeatureTests {
     func boxLimit() {
         var state = ObjectFinderState(folder: folder)
         #expect(state.maximumBoxes == 3)
-        _ = ObjectFinderFeature.reduce(&state, .maximumBoxesChanged(1))
-        #expect(state.maximumBoxes == 1)
-        _ = ObjectFinderFeature.reduce(&state, .maximumBoxesChanged(0))
-        _ = ObjectFinderFeature.reduce(&state, .maximumBoxesChanged(4))
-        #expect(state.maximumBoxes == 1)
+        #expect(ObjectFinderFeature.reduce(&state, .maximumBoxesChanged(1)).isEmpty && state.maximumBoxes == 1)
+        #expect(ObjectFinderFeature.reduce(&state, .maximumBoxesChanged(0)).isEmpty)
+        #expect(ObjectFinderFeature.reduce(&state, .maximumBoxesChanged(4)).isEmpty && state.maximumBoxes == 1)
         state.query = "glasses"
         _ = ObjectFinderFeature.reduce(&state, .start)
-        _ = ObjectFinderFeature.reduce(&state, .maximumBoxesChanged(2))
+        #expect(ObjectFinderFeature.reduce(&state, .maximumBoxesChanged(2)).isEmpty && state.maximumBoxes == 1)
         _ = ObjectFinderFeature.reduce(&state, .started(1))
-        _ = ObjectFinderFeature.reduce(&state, .maximumBoxesChanged(3))
-        #expect(state.maximumBoxes == 1)
+        _ = ObjectFinderFeature.reduce(&state, .stop)
+        #expect(ObjectFinderFeature.reduce(&state, .maximumBoxesChanged(3)).isEmpty && state.maximumBoxes == 1)
+        _ = ObjectFinderFeature.reduce(&state, .stopped(1))
+        #expect(ObjectFinderFeature.reduce(&state, .maximumBoxesChanged(3)).isEmpty && state.maximumBoxes == 3)
     }
 
     @Test("BOX-02 Selected boxes keep the highest non-overlapping matches up to the box limit")
