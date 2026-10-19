@@ -67,6 +67,17 @@
         }
       }
     },
+    "Recheck" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "再確認"
+          }
+        }
+      }
+    },
     "Search method" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -221,13 +232,13 @@
         }
       }
     },
-    "Each value is the cosine similarity between the text vector and a region's image vector." : {
+    "Each value is the cosine similarity between the text vector and a region's image vector. A circular arrow marks an analysis that only rechecked the tracked boxes." : {
       "extractionState" : "manual",
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "各値は、検索語のベクトルと各領域の画像ベクトルのコサイン類似度です。"
+            "value" : "各値は、検索語のベクトルと各領域の画像ベクトルのコサイン類似度です。回転矢印の行は、追跡中の枠だけを照合し直した解析です。"
           }
         }
       }

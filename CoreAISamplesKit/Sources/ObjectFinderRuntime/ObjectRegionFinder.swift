@@ -86,6 +86,21 @@ public actor ObjectRegionFinder {
         return matches
     }
 
+    public func rescore(_ candidates: [ObjectCandidate], in image: CGImage) async throws -> [ObjectCandidate] {
+        try begin()
+        defer { busy = false }
+        guard let query else { throw ObjectFinderError.notPrepared }
+        guard image.width > 0, image.height > 0, image.width <= 4096, image.height <= 4096 else {
+            throw ObjectFinderError.invalidImage
+        }
+        var rescored: [ObjectCandidate] = []
+        for candidate in candidates where candidate.region.isValid {
+            guard let similarity = try await similarity(of: candidate.region, in: image, to: query) else { continue }
+            rescored.append(ObjectCandidate(id: candidate.id, region: candidate.region, similarity: similarity))
+        }
+        return rescored
+    }
+
     private func twoStepRegions(in image: CGImage, query: EmbeddingVector) async throws -> [ObjectRegion] {
         var regions = Array(try propose(image).prefix(3)) + (try instances(image))
         var best: (window: ObjectRegion, similarity: Double)?

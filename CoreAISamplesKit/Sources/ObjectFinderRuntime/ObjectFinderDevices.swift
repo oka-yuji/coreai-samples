@@ -8,6 +8,7 @@ struct CapturedObjectFrame: Sendable {
     let rotation: Double
     var generation: Int = 0
     var capturedAt: Double = 0
+    var tracked: [ObjectCandidate] = []
 }
 
 @MainActor
@@ -27,4 +28,5 @@ struct ObjectFinderDevices {
         candidates
     }
     var memory: () -> ObjectFinderMemory? = { nil }
+    var rescore: (CGImage, [ObjectCandidate]) async throws -> [ObjectCandidate] = { _, candidates in candidates }
 }

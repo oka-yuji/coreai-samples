@@ -26,6 +26,7 @@
         private var rotation = 90.0
         private var failure: ObjectFinderFailure?
         private var tracker: ObjectFinderTracker?
+        private var tracked: [ObjectCandidate] = []
 
         init(preview: ObjectFinderPreview) {
             self.preview = preview
@@ -181,6 +182,7 @@
                 let candidates = try tracker?.track(image, now: ProcessInfo.processInfo.systemUptime) ?? []
                 let validUntil = (tracker?.capturedAt ?? 0) + ObjectTrackingPolicy.maximumAge
                 if candidates.isEmpty { tracker = nil }
+                tracked = candidates
                 preview.publish(
                     candidates, generation: generation, rotation: rotation,
                     validUntil: validUntil)
@@ -193,7 +195,7 @@
         }
 
         private func receive(_ input: CIImage, time: Double) {
-            guard continuation != nil, failure == nil else { return }
+            guard continuation != nil, failure == nil, time.isFinite else { return }
             let capturedAt = ProcessInfo.processInfo.systemUptime
             let portrait = rotation == 90 || rotation == 270
             guard portrait == (input.extent.height > input.extent.width) else { return }
@@ -214,7 +216,7 @@
             continuation?.yield(
                 CapturedObjectFrame(
                     image: image, rotation: rotation, generation: generation,
-                    capturedAt: frame.capturedAt))
+                    capturedAt: frame.capturedAt, tracked: tracker == nil ? [] : tracked))
         }
 
         private func fail(_ error: ObjectFinderFailure) {

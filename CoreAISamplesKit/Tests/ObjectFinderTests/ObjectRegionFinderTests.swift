@@ -157,6 +157,21 @@ struct ObjectRegionFinderTests {
         #expect(proposedWidths.value.withLock { $0 } == [10])
     }
 
+    @Test("REF-04 A recheck keeps each candidate's ID and box and scores it again on the new image")
+    func recheck() async throws {
+        let query = try EmbeddingVector([1] + Array(repeating: Float(0), count: 767))
+        let finder = ObjectRegionFinder(
+            embedding: .init(load: { _ in }, text: { _ in query }, image: { try Self.redness($0) }, close: {}),
+            propose: { _ in [] })
+        let red = ObjectCandidate(id: 7, region: .init(x: 0.7, y: 0.7, width: 0.2, height: 0.2), similarity: 0.1)
+        let black = ObjectCandidate(id: 2, region: .init(x: 0, y: 0, width: 0.2, height: 0.2), similarity: 0.9)
+        await #expect(throws: ObjectFinderError.notPrepared) { try await finder.rescore([red], in: try patch()) }
+        try await finder.prepare(folder: URL(filePath: "/unused"), query: "glasses")
+        let rescored = try await finder.rescore([red, black], in: try patch())
+        #expect(rescored.map(\.id) == [7, 2] && rescored.map(\.region) == [red.region, black.region])
+        #expect(rescored.map(\.similarity) == [1, 0])
+    }
+
     @Test("A failed query clears preparation and releases the model")
     func preparationFailure() async throws {
         let fake = EncoderFake()
