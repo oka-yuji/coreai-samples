@@ -34,7 +34,10 @@ public actor EmbeddingModel {
         do {
             let bundle = try EmbeddingBundle(directory: directory)
             let tokenizer = try EmbeddingTokenizer(directory: bundle.directory)
-            let table = try TokenEmbeddingTable(url: bundle.directory.appending(path: "token_embeddings.bf16"))
+            let quantized = bundle.precision == "int4-int8-ptq-s128-v70"
+            let table = try TokenEmbeddingTable(
+                url: bundle.directory.appending(path: quantized ? "token_embeddings.int4" : "token_embeddings.bf16"),
+                scalesURL: quantized ? bundle.directory.appending(path: "token_embedding_scales.f32") : nil)
             let text = try await Self.function(bundle.directory.appending(path: "text.aimodel"), vision: false)
             try Task.checkCancellation()
             let vision = try await Self.function(bundle.directory.appending(path: "vision.aimodel"), vision: true)

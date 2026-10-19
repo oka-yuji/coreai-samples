@@ -8,27 +8,25 @@ import TruckInspectionRuntime
 final class InspectionModelFake: TruckInspectionModelService {
     var failure = false
     var suspended = false
+    var unloadFailure: InspectionError?
     var pending: CheckedContinuation<Void, Never>?
     var drains: [CheckedContinuation<Void, Never>] = []
     var unloads = 0
+    var preparedFolders: [URL] = []
     var classifiedTexts: [String] = []
     let started = AsyncStream<Void>.makeStream()
     let draining = AsyncStream<Void>.makeStream()
 
     func prepare(folder: URL) async throws -> InspectionModelInfo {
-        started.continuation.yield(())
-        if suspended { await withCheckedContinuation { pending = $0 } }
-        defer {
-            let waiting = drains
-            drains.removeAll()
-            for continuation in waiting { continuation.resume() }
-        }
+        preparedFolders.append(folder)
+        try await hold()
         if failure { throw InspectionError.invalidCatalog }
         return InspectionModelInfo(folder: folder, revision: "test", milliseconds: 5, computePreference: "gpu")
     }
 
     func classify(text: String, item: InspectionItem, catalog: InspectionCatalog) async throws -> InspectionCandidate {
         classifiedTexts.append(text)
+        try await hold()
         if failure { throw InspectionError.invalidClassification }
         return InspectionCandidate(status: .attention, method: .model, score: 0.9)
     }
@@ -38,12 +36,24 @@ final class InspectionModelFake: TruckInspectionModelService {
         if pending != nil { await withCheckedContinuation { drains.append($0) } }
     }
 
-    func unload() { unloads += 1 }
+    func unload() throws {
+        if let unloadFailure { throw unloadFailure }
+        guard pending == nil else { throw InspectionError.busy }
+        unloads += 1
+    }
 
     func finish() {
         let continuation = pending
         pending = nil
         continuation?.resume()
+    }
+
+    private func hold() async throws {
+        started.continuation.yield(())
+        if suspended { await withCheckedContinuation { pending = $0 } }
+        let waiting = drains
+        drains.removeAll()
+        for continuation in waiting { continuation.resume() }
     }
 }
 
@@ -120,6 +130,57 @@ struct InspectionRunnerTests {
         #expect(outcomes.count == 1)
         guard case .stopped(2, true) = outcomes.last else {
             Issue.record("Expected cleanup completion")
+            return
+        }
+        #expect(model.unloads == 1)
+    }
+
+    @Test("INSPECT-03: Release waits for a running classification before it unloads the idle model")
+    func releaseJoinsClassification() async throws {
+        let catalog = try InspectionCatalogLoader.load()
+        let item = try #require(catalog.items.first)
+        let model = InspectionModelFake()
+        model.suspended = true
+        let runner = TruckInspectionRunner(model: model)
+        var actions: [InspectionAction] = []
+        let operation = Task { await runner.run(.classify(1, "answer", item, catalog)) { actions.append($0) } }
+        var starts = model.started.stream.makeAsyncIterator()
+        _ = await starts.next()
+        operation.cancel()
+        var released = false
+        let release = Task {
+            try await runner.release()
+            released = true
+        }
+        var drains = model.draining.stream.makeAsyncIterator()
+        _ = await drains.next()
+        #expect(!released)
+        #expect(model.unloads == 0)
+        model.finish()
+        try await release.value
+        await operation.value
+        #expect(released)
+        #expect(model.unloads == 1)
+        #expect(!actions.contains { if case .classified = $0 { true } else { false } })
+    }
+
+    @Test("INSPECT-03: A model that cannot be unloaded reports a failed stop instead of an unloaded stop")
+    func busyUnload() async {
+        let model = InspectionModelFake()
+        model.unloadFailure = .busy
+        let runner = TruckInspectionRunner(model: model)
+        var actions: [InspectionAction] = []
+        await runner.run(.stop(1, unload: true)) { actions.append($0) }
+        guard case .stopFailed(1, _) = actions.last else {
+            Issue.record("Expected a failed stop")
+            return
+        }
+        #expect(!actions.contains { if case .stopped = $0 { true } else { false } })
+        await #expect(throws: InspectionReleaseError.self) { try await runner.release() }
+        model.unloadFailure = nil
+        await runner.run(.stop(2, unload: true)) { actions.append($0) }
+        guard case .stopped(2, true) = actions.last else {
+            Issue.record("Expected an unloaded stop after the retry")
             return
         }
         #expect(model.unloads == 1)

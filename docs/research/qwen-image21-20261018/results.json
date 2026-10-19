@@ -1,0 +1,1091 @@
+{
+  "schema": "image-research-validation/1",
+  "date": "2026-10-18",
+  "fresh_run": "20261018T070449-7da60af1",
+  "scope": "Fixed 512-square FP32 macOS research profile; not production or mobile qualification",
+  "profile": {
+    "version": 1,
+    "source": "Qwen/Qwen-Image-2.1-Turbo",
+    "revision": "fc13ba1986fcb905854dc8de2f52eee395f49b5b",
+    "diffusers_revision": "b800f828f3951c4d206e154411bcbfa693cd322e",
+    "precision": "fp32",
+    "resolution": 512,
+    "text_length": 512,
+    "joint_length": 2304,
+    "batch": 1,
+    "max_reference_images": 1,
+    "cfg": 1,
+    "prefix_cache": false,
+    "sigmas": [
+      1.0,
+      0.978453,
+      0.95418,
+      0.926626,
+      0.89508,
+      0.845148,
+      0.704534,
+      0.414568
+    ]
+  },
+  "source_identity": {
+    "versions": {
+      "torch": "2.9.0",
+      "transformers": "5.18.0",
+      "diffusers": "0.41.0.dev0",
+      "coreai-torch": "0.4.3",
+      "coreai-core": "1.0.0b3",
+      "numpy": "2.4.6"
+    },
+    "python": "3.11.9 (main, Oct 15 2025, 23:35:26) [Clang 17.0.0 (clang-1700.3.19.1)]",
+    "platform": "macOS-27.0-arm64-arm-64bit",
+    "os_build": "26A428",
+    "xcode_version": "Xcode 27.0\nBuild version 27A266a"
+  },
+  "bundle": {
+    "files_excluding_manifest": 41,
+    "bytes_excluding_manifest": 62370841163,
+    "components": {
+      "vision": 2300379082,
+      "text": 30274015333,
+      "denoiser": 28460759056,
+      "vae_encoder": 311722573,
+      "vae_decoder": 1012367920
+    }
+  },
+  "components": {
+    "vision": {
+      "passed": true,
+      "rows": [
+        {
+          "case": "edit",
+          "wrapper": [
+            {
+              "finite": true,
+              "shape": [
+                256,
+                4096
+              ],
+              "absolute_rmse": 1.2382695074082698e-05,
+              "normalized_max": 8.230399391406805e-05,
+              "normalized_rmse": 5.5076225392871385e-05,
+              "passed": true
+            },
+            {
+              "finite": true,
+              "shape": [
+                256,
+                4096
+              ],
+              "absolute_rmse": 1.650801730083611e-06,
+              "normalized_max": 4.223540463986198e-06,
+              "normalized_rmse": 5.618631467937817e-06,
+              "passed": true
+            },
+            {
+              "finite": true,
+              "shape": [
+                256,
+                4096
+              ],
+              "absolute_rmse": 4.744676440452484e-06,
+              "normalized_max": 5.357001613048738e-05,
+              "normalized_rmse": 1.5788733301542554e-05,
+              "passed": true
+            },
+            {
+              "finite": true,
+              "shape": [
+                256,
+                4096
+              ],
+              "absolute_rmse": 3.889070860161366e-06,
+              "normalized_max": 5.5446372015087996e-05,
+              "normalized_rmse": 2.0068229741115063e-05,
+              "passed": true
+            }
+          ],
+          "seconds": 0.44476854195818305,
+          "coreai": [
+            {
+              "finite": true,
+              "shape": [
+                256,
+                4096
+              ],
+              "absolute_rmse": 4.7224539015469415e-06,
+              "normalized_max": 3.4226999403335846e-05,
+              "normalized_rmse": 2.1004711327619594e-05,
+              "passed": true
+            },
+            {
+              "finite": true,
+              "shape": [
+                256,
+                4096
+              ],
+              "absolute_rmse": 7.009272691390736e-07,
+              "normalized_max": 2.1599841642303847e-06,
+              "normalized_rmse": 2.38566021548878e-06,
+              "passed": true
+            },
+            {
+              "finite": true,
+              "shape": [
+                256,
+                4096
+              ],
+              "absolute_rmse": 1.484929214230292e-06,
+              "normalized_max": 6.303109315030068e-06,
+              "normalized_rmse": 4.941359359146383e-06,
+              "passed": true
+            },
+            {
+              "finite": true,
+              "shape": [
+                256,
+                4096
+              ],
+              "absolute_rmse": 1.2848703294630613e-06,
+              "normalized_max": 1.3980118390914703e-05,
+              "normalized_rmse": 6.630137090928973e-06,
+              "passed": true
+            }
+          ]
+        }
+      ]
+    },
+    "text": {
+      "passed": true,
+      "rows": [
+        {
+          "case": "generate",
+          "wrapper": [
+            {
+              "finite": true,
+              "shape": [
+                1,
+                40,
+                4096
+              ],
+              "absolute_rmse": 0.00010562942594198652,
+              "normalized_max": 4.030344523676754e-06,
+              "normalized_rmse": 6.14121991374449e-06,
+              "passed": true
+            }
+          ],
+          "seconds": 1.22378541668877,
+          "coreai": [
+            {
+              "finite": true,
+              "shape": [
+                1,
+                40,
+                4096
+              ],
+              "absolute_rmse": 0.00010554539269398087,
+              "normalized_max": 4.269376488837154e-06,
+              "normalized_rmse": 6.136334280300336e-06,
+              "passed": true
+            }
+          ]
+        },
+        {
+          "case": "edit",
+          "wrapper": [
+            {
+              "finite": true,
+              "shape": [
+                1,
+                300,
+                4096
+              ],
+              "absolute_rmse": 0.00024598190233831614,
+              "normalized_max": 3.013130716383049e-05,
+              "normalized_rmse": 2.0816883522813347e-05,
+              "passed": true
+            }
+          ],
+          "seconds": 0.6032455828972161,
+          "coreai": [
+            {
+              "finite": true,
+              "shape": [
+                1,
+                300,
+                4096
+              ],
+              "absolute_rmse": 0.00015880137758260185,
+              "normalized_max": 6.467142612950837e-06,
+              "normalized_rmse": 1.3438995913824164e-05,
+              "passed": true
+            }
+          ]
+        }
+      ]
+    },
+    "denoiser": {
+      "passed": true,
+      "rows": [
+        {
+          "case": "generate",
+          "wrapper": [
+            {
+              "finite": true,
+              "shape": [
+                1,
+                1050,
+                64
+              ],
+              "absolute_rmse": 4.680684800976217e-06,
+              "normalized_max": 1.0330505865112775e-05,
+              "normalized_rmse": 2.669059647606375e-06,
+              "passed": true
+            }
+          ],
+          "seconds": 5.793066333979368,
+          "coreai": [
+            {
+              "finite": true,
+              "shape": [
+                1,
+                1050,
+                64
+              ],
+              "absolute_rmse": 2.397030066753757e-06,
+              "normalized_max": 5.7099523327168786e-06,
+              "normalized_rmse": 1.3668547439762064e-06,
+              "passed": true
+            }
+          ]
+        },
+        {
+          "case": "edit",
+          "wrapper": [
+            {
+              "finite": true,
+              "shape": [
+                1,
+                2078,
+                64
+              ],
+              "absolute_rmse": 2.11156653942641e-05,
+              "normalized_max": 0.00017780955649584498,
+              "normalized_rmse": 1.2299957154449353e-05,
+              "passed": true
+            }
+          ],
+          "seconds": 3.9491535830311477,
+          "coreai": [
+            {
+              "finite": true,
+              "shape": [
+                1,
+                2078,
+                64
+              ],
+              "absolute_rmse": 2.0773348487394153e-05,
+              "normalized_max": 0.00016299701914531683,
+              "normalized_rmse": 1.2100556225843633e-05,
+              "passed": true
+            }
+          ]
+        }
+      ]
+    },
+    "vae_encoder": {
+      "passed": true,
+      "rows": [
+        {
+          "case": "edit",
+          "wrapper": [
+            {
+              "finite": true,
+              "shape": [
+                1,
+                64,
+                1,
+                32,
+                32
+              ],
+              "absolute_rmse": 6.80029398822013e-06,
+              "normalized_max": 5.6450472110952594e-06,
+              "normalized_rmse": 1.2049862682959961e-06,
+              "passed": true
+            }
+          ],
+          "seconds": 0.11684624990448356,
+          "coreai": [
+            {
+              "finite": true,
+              "shape": [
+                1,
+                64,
+                1,
+                32,
+                32
+              ],
+              "absolute_rmse": 2.566206782913836e-06,
+              "normalized_max": 1.992369603915974e-06,
+              "normalized_rmse": 4.547220958940575e-07,
+              "passed": true
+            }
+          ]
+        }
+      ]
+    },
+    "vae_decoder": {
+      "passed": true,
+      "rows": [
+        {
+          "case": "generate",
+          "wrapper": [
+            {
+              "finite": true,
+              "shape": [
+                1,
+                4,
+                1,
+                512,
+                512
+              ],
+              "absolute_rmse": 4.791068965458178e-07,
+              "normalized_max": 3.773719072341919e-05,
+              "normalized_rmse": 6.02603573584576e-07,
+              "passed": true
+            }
+          ],
+          "seconds": 0.40055470867082477,
+          "coreai": [
+            {
+              "finite": true,
+              "shape": [
+                1,
+                4,
+                1,
+                512,
+                512
+              ],
+              "absolute_rmse": 9.080404799102236e-08,
+              "normalized_max": 5.759298801422119e-06,
+              "normalized_rmse": 1.142100942604623e-07,
+              "passed": true
+            }
+          ]
+        },
+        {
+          "case": "edit",
+          "wrapper": [
+            {
+              "finite": true,
+              "shape": [
+                1,
+                4,
+                1,
+                512,
+                512
+              ],
+              "absolute_rmse": 4.5356784465304384e-07,
+              "normalized_max": 4.887580871582031e-06,
+              "normalized_rmse": 4.812524924181951e-07,
+              "passed": true
+            }
+          ],
+          "seconds": 0.37387337489053607,
+          "coreai": [
+            {
+              "finite": true,
+              "shape": [
+                1,
+                4,
+                1,
+                512,
+                512
+              ],
+              "absolute_rmse": 7.847636169556185e-08,
+              "normalized_max": 1.2218952178955078e-06,
+              "normalized_rmse": 8.32663626999191e-08,
+              "passed": true
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "end_to_end": {
+    "passed": true,
+    "cases": [
+      {
+        "case": "generate",
+        "passed": true,
+        "preprocessing": {
+          "input_ids": true,
+          "attention_mask": true,
+          "mm_token_type_ids": true
+        },
+        "latent": {
+          "finite": true,
+          "shape": [
+            1,
+            1024,
+            64
+          ],
+          "absolute_rmse": 2.173534962303982e-06,
+          "normalized_max": 8.29671993510992e-06,
+          "normalized_rmse": 1.7320434976883725e-06,
+          "passed": true
+        },
+        "rgba": {
+          "finite": true,
+          "shape": [
+            1,
+            4,
+            1,
+            512,
+            512
+          ],
+          "absolute_rmse": 1.3358566293369627e-06,
+          "normalized_max": 6.940960884094238e-05,
+          "normalized_rmse": 1.6801928430560952e-06,
+          "passed": true
+        },
+        "steps": [
+          {
+            "finite": true,
+            "shape": [
+              1,
+              1024,
+              64
+            ],
+            "absolute_rmse": 3.10569857135025e-06,
+            "normalized_max": 3.6062856838211865e-06,
+            "normalized_rmse": 1.7542547659633007e-06,
+            "passed": true
+          },
+          {
+            "finite": true,
+            "shape": [
+              1,
+              1024,
+              64
+            ],
+            "absolute_rmse": 2.965489699985075e-06,
+            "normalized_max": 3.418419960771713e-06,
+            "normalized_rmse": 1.8384480679451607e-06,
+            "passed": true
+          },
+          {
+            "finite": true,
+            "shape": [
+              1,
+              1024,
+              64
+            ],
+            "absolute_rmse": 3.3453443249086167e-06,
+            "normalized_max": 5.736142804106875e-06,
+            "normalized_rmse": 2.070640126366594e-06,
+            "passed": true
+          },
+          {
+            "finite": true,
+            "shape": [
+              1,
+              1024,
+              64
+            ],
+            "absolute_rmse": 4.7868127721896666e-06,
+            "normalized_max": 5.314170777166828e-06,
+            "normalized_rmse": 2.9901144132513744e-06,
+            "passed": true
+          },
+          {
+            "finite": true,
+            "shape": [
+              1,
+              1024,
+              64
+            ],
+            "absolute_rmse": 2.9348223663091516e-06,
+            "normalized_max": 5.590693326326836e-06,
+            "normalized_rmse": 1.8426984419601437e-06,
+            "passed": true
+          },
+          {
+            "finite": true,
+            "shape": [
+              1,
+              1024,
+              64
+            ],
+            "absolute_rmse": 2.8084591004277497e-06,
+            "normalized_max": 4.1764822347377076e-06,
+            "normalized_rmse": 1.7728124905751118e-06,
+            "passed": true
+          },
+          {
+            "finite": true,
+            "shape": [
+              1,
+              1024,
+              64
+            ],
+            "absolute_rmse": 2.8662274824219403e-06,
+            "normalized_max": 8.304052494029037e-06,
+            "normalized_rmse": 1.8319343815330818e-06,
+            "passed": true
+          },
+          {
+            "finite": true,
+            "shape": [
+              1,
+              1024,
+              64
+            ],
+            "absolute_rmse": 3.4295334676485565e-06,
+            "normalized_max": 1.3681291991157822e-05,
+            "normalized_rmse": 2.298727651484336e-06,
+            "passed": true
+          }
+        ],
+        "manual_image_review": "pending"
+      },
+      {
+        "case": "edit",
+        "passed": true,
+        "preprocessing": {
+          "input_ids": true,
+          "attention_mask": true,
+          "pixel_values": true,
+          "image_grid_thw": true,
+          "mm_token_type_ids": true
+        },
+        "latent": {
+          "finite": true,
+          "shape": [
+            1,
+            1024,
+            64
+          ],
+          "absolute_rmse": 9.983330188735213e-07,
+          "normalized_max": 9.225776214875373e-07,
+          "normalized_rmse": 6.764547753108331e-07,
+          "passed": true
+        },
+        "rgba": {
+          "finite": true,
+          "shape": [
+            1,
+            4,
+            1,
+            512,
+            512
+          ],
+          "absolute_rmse": 3.954764507906954e-07,
+          "normalized_max": 1.4230608940124512e-05,
+          "normalized_rmse": 4.1961534504570526e-07,
+          "passed": true
+        },
+        "steps": [
+          {
+            "finite": true,
+            "shape": [
+              1,
+              1024,
+              64
+            ],
+            "absolute_rmse": 3.3344120125938266e-06,
+            "normalized_max": 3.641070633649375e-06,
+            "normalized_rmse": 1.5490728888464178e-06,
+            "passed": true
+          },
+          {
+            "finite": true,
+            "shape": [
+              1,
+              1024,
+              64
+            ],
+            "absolute_rmse": 2.5920817769700582e-06,
+            "normalized_max": 2.7682563767196764e-06,
+            "normalized_rmse": 1.4086826363387211e-06,
+            "passed": true
+          },
+          {
+            "finite": true,
+            "shape": [
+              1,
+              1024,
+              64
+            ],
+            "absolute_rmse": 1.8536919727055952e-06,
+            "normalized_max": 3.7755263907023715e-06,
+            "normalized_rmse": 1.0322772226466868e-06,
+            "passed": true
+          },
+          {
+            "finite": true,
+            "shape": [
+              1,
+              1024,
+              64
+            ],
+            "absolute_rmse": 1.6077986383216549e-06,
+            "normalized_max": 2.1205675665913035e-06,
+            "normalized_rmse": 9.032515215878489e-07,
+            "passed": true
+          },
+          {
+            "finite": true,
+            "shape": [
+              1,
+              1024,
+              64
+            ],
+            "absolute_rmse": 1.469604653430051e-06,
+            "normalized_max": 1.2837374966885407e-06,
+            "normalized_rmse": 8.274579737664792e-07,
+            "passed": true
+          },
+          {
+            "finite": true,
+            "shape": [
+              1,
+              1024,
+              64
+            ],
+            "absolute_rmse": 1.3565296164317894e-06,
+            "normalized_max": 1.4764921193119028e-06,
+            "normalized_rmse": 7.677332206200056e-07,
+            "passed": true
+          },
+          {
+            "finite": true,
+            "shape": [
+              1,
+              1024,
+              64
+            ],
+            "absolute_rmse": 1.375252351772289e-06,
+            "normalized_max": 1.5526866286031512e-06,
+            "normalized_rmse": 7.83035531391324e-07,
+            "passed": true
+          },
+          {
+            "finite": true,
+            "shape": [
+              1,
+              1024,
+              64
+            ],
+            "absolute_rmse": 1.7261374911839428e-06,
+            "normalized_max": 1.3147300623128265e-06,
+            "normalized_rmse": 9.983044305975894e-07,
+            "passed": true
+          }
+        ],
+        "manual_image_review": "pending"
+      }
+    ]
+  },
+  "case_metrics": {
+    "generate": {
+      "profile": {
+        "version": 1,
+        "source": "Qwen/Qwen-Image-2.1-Turbo",
+        "revision": "fc13ba1986fcb905854dc8de2f52eee395f49b5b",
+        "diffusers_revision": "b800f828f3951c4d206e154411bcbfa693cd322e",
+        "precision": "fp32",
+        "resolution": 512,
+        "text_length": 512,
+        "joint_length": 2304,
+        "batch": 1,
+        "max_reference_images": 1,
+        "cfg": 1,
+        "prefix_cache": false,
+        "sigmas": [
+          1.0,
+          0.978453,
+          0.95418,
+          0.926626,
+          0.89508,
+          0.845148,
+          0.704534,
+          0.414568
+        ]
+      },
+      "seed": 20261018,
+      "diagnostics": "tensor capture enabled",
+      "components": {
+        "text": {
+          "load_seconds": 55.955972166731954,
+          "call_seconds": [
+            0.8785299588926136
+          ],
+          "first_call_after_load": 0,
+          "subsequent_calls": []
+        },
+        "denoiser": {
+          "load_seconds": 65.76300358306617,
+          "call_seconds": [
+            3.935576209332794,
+            4.269688542000949,
+            4.42593695782125,
+            4.6661326247267425,
+            4.883056459017098,
+            5.078463832847774,
+            5.251589999999851,
+            5.435981084126979
+          ],
+          "first_call_after_load": 0,
+          "subsequent_calls": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+          ]
+        },
+        "vae_decoder": {
+          "load_seconds": 1.697800749912858,
+          "call_seconds": [
+            0.4390797088854015
+          ],
+          "first_call_after_load": 0,
+          "subsequent_calls": []
+        }
+      },
+      "seconds": 163.62556820781901,
+      "complete": true,
+      "steps": 8
+    },
+    "edit": {
+      "profile": {
+        "version": 1,
+        "source": "Qwen/Qwen-Image-2.1-Turbo",
+        "revision": "fc13ba1986fcb905854dc8de2f52eee395f49b5b",
+        "diffusers_revision": "b800f828f3951c4d206e154411bcbfa693cd322e",
+        "precision": "fp32",
+        "resolution": 512,
+        "text_length": 512,
+        "joint_length": 2304,
+        "batch": 1,
+        "max_reference_images": 1,
+        "cfg": 1,
+        "prefix_cache": false,
+        "sigmas": [
+          1.0,
+          0.978453,
+          0.95418,
+          0.926626,
+          0.89508,
+          0.845148,
+          0.704534,
+          0.414568
+        ]
+      },
+      "seed": 20261018,
+      "diagnostics": "tensor capture enabled",
+      "components": {
+        "vision": {
+          "load_seconds": 3.2292260411195457,
+          "call_seconds": [
+            0.13137891609221697
+          ],
+          "first_call_after_load": 0,
+          "subsequent_calls": []
+        },
+        "text": {
+          "load_seconds": 59.92462487472221,
+          "call_seconds": [
+            1.140932542271912
+          ],
+          "first_call_after_load": 0,
+          "subsequent_calls": []
+        },
+        "vae_encoder": {
+          "load_seconds": 0.8037160420790315,
+          "call_seconds": [
+            0.09419166622683406
+          ],
+          "first_call_after_load": 0,
+          "subsequent_calls": []
+        },
+        "denoiser": {
+          "load_seconds": 83.0724771246314,
+          "call_seconds": [
+            13.087096500210464,
+            6.029362875036895,
+            5.5848738751374185,
+            5.927911458071321,
+            5.9837362500838935,
+            6.294016000349075,
+            6.2155177081003785,
+            6.377602416090667
+          ],
+          "first_call_after_load": 0,
+          "subsequent_calls": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+          ]
+        },
+        "vae_decoder": {
+          "load_seconds": 1.736463500186801,
+          "call_seconds": [
+            0.39936737483367324
+          ],
+          "first_call_after_load": 0,
+          "subsequent_calls": []
+        }
+      },
+      "seconds": 207.24329954199493,
+      "complete": true,
+      "steps": 8
+    }
+  },
+  "process_memory_bytes": {
+    "reference": {
+      "maximum_resident_set_size": 69737005056,
+      "peak_memory_footprint": 77084025384
+    },
+    "reference_fp32_on": {
+      "maximum_resident_set_size": 69790597120,
+      "peak_memory_footprint": 77158469232
+    },
+    "reference_bf16_on": {
+      "maximum_resident_set_size": 1043611648,
+      "peak_memory_footprint": 40416888944
+    },
+    "vision": {
+      "maximum_resident_set_size": 10097033216,
+      "peak_memory_footprint": 6897080752
+    },
+    "text": {
+      "maximum_resident_set_size": 85954232320,
+      "peak_memory_footprint": 62597137448
+    },
+    "denoiser": {
+      "maximum_resident_set_size": 93923147776,
+      "peak_memory_footprint": 58407778008
+    },
+    "vae_encoder": {
+      "maximum_resident_set_size": 6721634304,
+      "peak_memory_footprint": 5766321912
+    },
+    "vae_decoder": {
+      "maximum_resident_set_size": 12499632128,
+      "peak_memory_footprint": 11546945352
+    },
+    "verify": {
+      "maximum_resident_set_size": 110662795264,
+      "peak_memory_footprint": 7751065968
+    }
+  },
+  "source_conditions": {
+    "conditions": [
+      {
+        "case": "generate",
+        "fp32_cache_on_vs_off": {
+          "latent": {
+            "finite": true,
+            "shape": [
+              1,
+              1024,
+              64
+            ],
+            "absolute_rmse": 0.0,
+            "normalized_max": 0.0,
+            "normalized_rmse": 0.0,
+            "passed": true
+          },
+          "rgba": {
+            "finite": true,
+            "shape": [
+              1,
+              4,
+              1,
+              512,
+              512
+            ],
+            "absolute_rmse": 0.0,
+            "normalized_max": 0.0,
+            "normalized_rmse": 0.0,
+            "passed": true
+          }
+        },
+        "bf16_vs_fp32_cache_on": {
+          "latent": {
+            "finite": true,
+            "shape": [
+              1,
+              1024,
+              64
+            ],
+            "absolute_rmse": 0.017243128131523806,
+            "normalized_max": 0.09002019102651516,
+            "normalized_rmse": 0.013740679804089733
+          },
+          "rgba": {
+            "finite": true,
+            "shape": [
+              1,
+              4,
+              1,
+              512,
+              512
+            ],
+            "absolute_rmse": 0.014123418203961442,
+            "normalized_max": 0.9651169180870056,
+            "normalized_rmse": 0.017763931895567516
+          }
+        }
+      },
+      {
+        "case": "edit",
+        "fp32_cache_on_vs_off": {
+          "latent": {
+            "finite": true,
+            "shape": [
+              1,
+              1024,
+              64
+            ],
+            "absolute_rmse": 0.0,
+            "normalized_max": 0.0,
+            "normalized_rmse": 0.0,
+            "passed": true
+          },
+          "rgba": {
+            "finite": true,
+            "shape": [
+              1,
+              4,
+              1,
+              512,
+              512
+            ],
+            "absolute_rmse": 0.0,
+            "normalized_max": 0.0,
+            "normalized_rmse": 0.0,
+            "passed": true
+          }
+        },
+        "bf16_vs_fp32_cache_on": {
+          "latent": {
+            "finite": true,
+            "shape": [
+              1,
+              1024,
+              64
+            ],
+            "absolute_rmse": 0.010278874767927753,
+            "normalized_max": 0.013162750408534145,
+            "normalized_rmse": 0.00696480411860209
+          },
+          "rgba": {
+            "finite": true,
+            "shape": [
+              1,
+              4,
+              1,
+              512,
+              512
+            ],
+            "absolute_rmse": 0.007853759338429979,
+            "normalized_max": 0.1187131404876709,
+            "normalized_rmse": 0.008333133181791874
+          }
+        }
+      }
+    ],
+    "precision_differences": "descriptive; not conversion-error gates"
+  },
+  "standalone": {
+    "final-latents.npy": {
+      "array_equal": true,
+      "max_abs": 0.0
+    },
+    "rgba.npy": {
+      "array_equal": true,
+      "max_abs": 0.0
+    },
+    "png_equal": true,
+    "diagnostic_pipeline_seconds": 156.0120853339322,
+    "condition": "The concurrent cache-reuse audit performed disk hashing; timing is not a clean benchmark."
+  },
+  "cache_reuse": {
+    "run": "20261018T073120-8e8a57fc",
+    "new_model_measurement": false,
+    "stages": [
+      {
+        "id": "prepare",
+        "status": "reused",
+        "origin": "20261018T070449-7da60af1"
+      },
+      {
+        "id": "reference",
+        "status": "reused",
+        "origin": "20261018T070449-7da60af1"
+      },
+      {
+        "id": "reference_fp32_on",
+        "status": "reused",
+        "origin": "20261018T070449-7da60af1"
+      },
+      {
+        "id": "reference_bf16_on",
+        "status": "reused",
+        "origin": "20261018T070449-7da60af1"
+      },
+      {
+        "id": "vision",
+        "status": "reused",
+        "origin": "20261018T070449-7da60af1"
+      },
+      {
+        "id": "text",
+        "status": "reused",
+        "origin": "20261018T070449-7da60af1"
+      },
+      {
+        "id": "denoiser",
+        "status": "reused",
+        "origin": "20261018T070449-7da60af1"
+      },
+      {
+        "id": "vae_encoder",
+        "status": "reused",
+        "origin": "20261018T070449-7da60af1"
+      },
+      {
+        "id": "vae_decoder",
+        "status": "reused",
+        "origin": "20261018T070449-7da60af1"
+      },
+      {
+        "id": "verify",
+        "status": "reused",
+        "origin": "20261018T070449-7da60af1"
+      },
+      {
+        "id": "bundle",
+        "status": "reused",
+        "origin": "20261018T070449-7da60af1"
+      }
+    ],
+    "status": "completed"
+  },
+  "manual_image_review": "pending",
+  "not_measured": [
+    "iOS and iPadOS execution",
+    "Swift host",
+    "quantization quality",
+    "sustained load and thermal behavior",
+    "cancellation while a real GPU model is running"
+  ]
+}

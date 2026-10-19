@@ -86,6 +86,14 @@ struct ProductRuntimeTests {
         }
     }
 
+    @MainActor
+    @Test("Releasing a product service that never loaded a model succeeds and can be repeated")
+    func idleRelease() async throws {
+        let service = LiveProductService()
+        try await service.release()
+        try await service.release()
+        try await ProductExtractor().release()
+    }
 }
 
 private actor ProductHTTPCalls {

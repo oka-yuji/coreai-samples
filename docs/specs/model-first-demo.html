@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Core AI Samplesをモデル選択から始めるための仕様・設計ドラフト。画面遷移、共通デモ、公開管理、受入条件を定義する。">
+<title>モデル選択型デモ 仕様・設計書 — Core AI Samples</title>
+<style>
+:root{color-scheme:light;--paper:#f6f5f1;--ink:#202b32;--muted:#586770;--line:#d8dedb;--accent:#16675e;--soft:#e8f2ee;--white:#fff;--amber:#775016}
+*{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:24px}body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.85 -apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic",sans-serif}a{color:var(--accent);text-underline-offset:4px}a:focus-visible{outline:3px solid var(--accent);outline-offset:4px}header,main,footer{max-width:1140px;margin:auto;padding:0 40px}header{padding-top:48px;padding-bottom:36px;border-bottom:1px solid var(--line)}.eyebrow{font-size:12px;letter-spacing:.16em;font-weight:700;color:var(--accent)}h1{font-size:clamp(30px,5vw,52px);line-height:1.3;letter-spacing:-.035em;margin:20px 0}h2{font-size:27px;line-height:1.5;margin:0 0 24px}h3{font-size:19px;margin:24px 0 10px}p{margin:12px 0}.lead{font-size:20px;max-width:800px}.meta{display:flex;gap:10px;flex-wrap:wrap;font-size:13px;margin-top:24px}.pill{padding:4px 12px;border:1px solid var(--line);border-radius:30px;background:white}.draft{background:#fff2d9;color:var(--amber);border-color:#ead2a6}.layout{display:grid;grid-template-columns:180px minmax(0,1fr);gap:42px;padding-top:36px}nav{position:sticky;top:24px;align-self:start;font-size:13px}nav a{display:block;padding:6px 0;text-decoration:none}section{padding:0 0 48px;margin:0 0 38px;border-bottom:1px solid var(--line)}.number{display:block;font-size:12px;color:var(--accent);letter-spacing:.12em;margin-bottom:7px}.callout{padding:18px 22px;background:var(--soft);border-left:4px solid var(--accent);margin:22px 0}.note{font-size:14px;color:var(--muted)}.table-wrap{overflow-x:auto}table{border-collapse:collapse;width:100%;font-size:14px;line-height:1.7}th,td{padding:13px 12px;text-align:left;vertical-align:top;border-bottom:1px solid var(--line)}th{background:#eaf0ed;font-weight:600}td:first-child{font-weight:600}ul,ol{padding-left:24px}li{margin:7px 0}code{font:13px/1.6 ui-monospace,SFMono-Regular,monospace;overflow-wrap:anywhere;background:#e9edea;padding:2px 4px;border-radius:3px}.flow{display:flex;align-items:stretch;gap:10px;margin:22px 0}.step{flex:1;border:1px solid var(--line);padding:16px;background:var(--white);border-radius:9px}.step small{display:block;color:var(--muted);margin-top:8px}.arrow{align-self:center;color:var(--accent)}.mock{border:1px solid #bbc9c4;border-radius:12px;background:white;overflow:hidden;margin:24px 0}.mock-top{background:#eaf0ed;padding:13px 20px;font-size:13px;display:flex;justify-content:space-between;gap:15px}.mock-body{padding:22px}.mock-title{font-size:24px;margin:0 0 6px}.cards{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:20px}.card{padding:18px;border:1px solid var(--line);border-radius:8px}.card strong{display:block}.card p{font-size:14px;margin:8px 0}.tag{display:inline-block;font-size:11px;background:var(--soft);color:var(--accent);padding:2px 8px;border-radius:5px}.mock-action{display:block;font-size:13px;color:var(--accent);margin-top:14px;font-weight:600}.diagram{padding:22px;background:#203b37;color:#f4faf7;border-radius:10px;font-size:15px;line-height:2}.diagram b{color:#bde5d6}.diagram p{margin:6px 0}details{padding:16px 0;border-bottom:1px solid var(--line)}summary{cursor:pointer;font-weight:600}footer{padding-top:10px;padding-bottom:40px;font-size:13px;color:var(--muted)}.nowrap{white-space:nowrap}
+@media(max-width:850px){header,main,footer{padding-left:22px;padding-right:22px}.layout{display:block}nav{position:static;display:flex;flex-wrap:wrap;gap:4px 16px;margin-bottom:32px}nav a{padding:2px 0}.cards{grid-template-columns:1fr}.flow{flex-direction:column}.arrow{transform:rotate(90deg)}h2{font-size:24px}th,td{min-width:130px}.mock-top{flex-wrap:wrap}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+@media print{body{background:white;font-size:11px}header,main,footer{max-width:none;padding-left:0;padding-right:0}header{padding-top:0}h1{font-size:32px}h2{font-size:22px}.layout{display:block}nav{display:none}section{padding-bottom:20px;margin-bottom:24px}.mock,.callout,tr{break-inside:avoid}.table-wrap{overflow:visible}a{color:inherit}.diagram{background:#eee;color:#111}.diagram b{color:#111}}
+</style>
+</head>
+<body>
+<header>
+<div class="eyebrow">CORE AI SAMPLES / PRODUCT &amp; ARCHITECTURE</div>
+<h1>モデル選択型デモ<br>仕様・設計書</h1>
+<p class="lead">変換したモデルごとにデモを並べ、何ができるかを知り、共通のデモUIで試す。</p>
+<div class="meta"><span class="pill draft">Draft 0.7 · iOSの起動先を接続</span><span class="pill">2026-10-18</span><span class="pill">対象：macOS / iOS</span></div>
+<p class="note">合意済みの方向：モデルを入口にする／デモUIを再利用する／HTMLをリポジトリで管理する／iOSは対応確認済みモデルごとにデモアイコンを並べ、取得前も解説を読める。ダウンロード状態と操作はモデル見出しの右側で共有する。2026-10-18に共通デザインの実装依頼を受け、共通契約とiOS UIを実装中です。個別機能のデザイン案は確認待ちです。アプリ全体の実装済み仕様・公開モデル一覧を示すものではありません。</p>
+<a href="../../README.ja.md">← README 日本語</a> · <a href="../../README.md">README English</a>
+</header>
+<main class="layout">
+<nav aria-label="目次">
+<a href="#intent">01 目的と範囲</a><a href="#current">02 現状との差分</a><a href="#experience">03 画面と導線</a><a href="#designs">↳ iOS / macOS デザイン案</a><a href="#hig">↳ HIGと標準UIへの対応</a><a href="#behavior">04 操作と状態</a><a href="#catalog">05 モデル・公開管理</a><a href="#architecture">06 責務と共通化</a><a href="#lifecycle">07 切替と保存</a><a href="#migration">08 移行方針</a><a href="#acceptance">09 受入条件</a><a href="#decisions">10 確認したい判断</a><a href="#sources">11 根拠と文書管理</a>
+</nav>
+<div>
+<section id="intent">
+<span class="number">01 / INTENT</span><h2>モデルを評価したい人の順番に合わせる</h2>
+<p>主な利用者は、変換済みモデルの動作を自分の端末で試し、用途・結果・制約を確かめたい開発者を想定する。現在の機能別ナビゲーションでは、試したいモデルに到達するまでに機能の選択やモデルの再選択が必要になる。</p>
+<div class="callout"><strong>成功の状態</strong><br>初めて開いた人が「試せるモデル」「その用途」「この端末での利用可否」を把握し、モデル別に並ぶデモを直接タップして、その説明と操作画面へ進める。提供側はモデルやデモの公開範囲を一か所の定義で調整できる。</div>
+<p>今回設計するのは、モデル一覧、モデルを引き継ぐ起動、共通デモとの接続、公開・対応条件、既存データを守る移行である。モデル変換、推論アルゴリズム、性能改善、全モデルのiOS対応、新しい配布サーバー、モデル比較ベンチマークは今回の範囲に含めない。</p>
+<p class="note">本書は設計の正本。実装の状態は下記の移行方針と各Issue／PRで追跡し、HTML承認・コードの検証・実機確認・公開を区別する。</p>
+</section>
+<section id="current">
+<span class="number">02 / CURRENT → PROPOSED</span><h2>機能別の実装を、モデル中心の入口につなぐ</h2>
+<div class="table-wrap"><table><thead><tr><th>観点</th><th>現状のコード</th><th>提案</th></tr></thead><tbody>
+<tr><td>iOSの起動</td><td>Modelsを表示し、モデル別に5つのデモの説明を閲覧できる。取得・検査・削除の経路と5デモの実行部は接続済み。公開済みの配布定義（GLiNER2.5-multi FP32、EmbeddingGemma 2 FP16・INT4/INT8 PTQ）を採用し、取得して検査を通った変換版で各デモを実行する。iPhoneでの5デモの実行は本人確認として残る。</td><td>Modelsにモデル別のデモアイコンを表示し、選んだデモへ直接進む。取得前も解説を閲覧できる。</td></tr>
+<tr><td>macOSの起動</td><td>機能別サイドバー。通常はチャットを初期選択し、会話復元を要求する。</td><td>モデル一覧を入口にする。過去の会話は明示的に再開する。</td></tr>
+<tr><td>モデル選択</td><td>チャットのモデルメニューや、各機能のフォルダ選択に分散。</td><td>選択したモデル・変換成果物をデモへ渡す。デモ内は使用中モデルを表示する。</td></tr>
+<tr><td>カタログ</td><td>Catalog.modelsはQwenの配布情報1件。各デモのモデル資源は別経路で解決。</td><td>モデルと成果物、対応デモ、公開範囲を対応づける。</td></tr>
+<tr><td>UIの再利用</td><td>チャット、抽出、画像検索、音声などの画面・実行経路が存在。</td><td>用途別UIを維持し、同じ用途の複数モデルから再利用する。</td></tr>
+</tbody></table></div>
+<p class="note">確認基準：d01b19fのナビゲーション・カタログと作業ツリーの関連コードを読解。動作試験ではない。参照先は<a href="#sources">末尾</a>に記載する。</p>
+</section>
+<section id="experience">
+<span class="number">03 / EXPERIENCE</span><h2>モデル別の一覧から、デモを直接開く</h2>
+<div id="designs" class="callout"><strong>OS別のデザイン案 · 操作できるHTML</strong>
+<p><a href="../designs/function-screens.html"><strong>機能画面のデザイン確認一覧を開く →</strong></a><br>比較・抽出・点検・画像検索・カメラ・会話・判定・レシピ・音声の案をまとめて確認する。</p>
+<p><a href="../designs/model-first-ios.html"><strong>iOS デザイン案を開く →</strong></a><br>Modelsにモデル別のセクションを作り、正方形のデモアイコンと短い名称を並べる。取得前でもデモを開き、解説を読める。モデル見出しの右側にダウンロード・進捗・取得済み・削除をアイコンで示す。</p>
+<p><a href="../designs/model-first-macos.html"><strong>macOS デザイン案を開く →</strong></a><br>左にモデル一覧を残し、右の作業領域で代表デモを使う案。今回のiOS変更をmacOSへ自動適用せず、macOSのデモ数増加への対応は別途判断する。</p>
+<p class="note">操作プレビューは実モデルを取得・実行しない。容量・導入状態・出力はサンプル。iOSの「10件の配置例」で追加する8件はレイアウト用の仮項目であり、機能追加の予定ではない。</p></div>
+<div class="flow" aria-label="Modelsからデモを開き、未取得なら解説を読み、取得後に操作する">
+<div class="step"><strong>1. Models</strong><small>モデル別のセクションからデモアイコンをタップ</small></div><span class="arrow" aria-hidden="true">→</span>
+<div class="step"><strong>2. 選んだデモ</strong><small>モデル名・デモ名・短い説明・展開できる詳細。取得前も閲覧可能</small></div><span class="arrow" aria-hidden="true">→</span>
+<div class="step"><strong>3. 操作する</strong><small>未取得なら明示操作でダウンロード。取得・検査完了後に入力・実行を有効化</small></div>
+</div>
+<h3>Modelsの構成</h3>
+<p>iOSの画面タイトルは英語の<strong>Models</strong>とする。「モデルから、試したいデモを選ぶ。」の直下に「ダウンロード前でも、デモの解説を読めます。」を置き、一覧末尾には重複表示しない。モデル名をセクションタイトルにし、分類とダウンロード容量を補助情報として添える。右側の取得操作・状態は可視テキストを付けず、未取得はダウンロード、取得中は進捗リングと取消、取得済みはチェックと削除、失敗時は再試行のアイコンで示す。状態表示のチェックと操作ボタンを区別し、読み上げ名・操作名・進捗値を付ける。</p>
+<p>モデル名の下の表記は<strong>英語の用途名 · 構造（確認済みの場合のみ） · 容量</strong>に統一する。用途はLLM、ASR、TTS、Information Extraction、Multimodal Embeddingなど、アプリが提供する変換成果物の能力を表す。MoEは用途と混ぜず、構造の情報として扱う（表記例：LLM · MoE · 16 GB。数値は書式例）。元モデルが対応していても変換成果物で扱えない用途は付けない。構造が未確認ならその項目を省略し、MoEでないことを推定してDenseと記載しない。用途・構造・容量は別のデータとして管理し、一覧とモデル情報は同じ整形処理を使う。検索は日本語の用途説明と英語の分類名の両方に対応する。</p>
+<p>各デモは共通の「正方形アイコン＋名称」コンポーネントで表示し、名称は「比較デモ」「抽出デモ」など「○○デモ」に揃える。モデルとデモの対応表から生成し、同じデモは別モデルでも同じアイコンと名称を使う。通常は3列程度で縦に折り返し、幅・文字サイズに応じて列数を変える。10件でも固定数のタブ、横スクロール、途中のデモ選択画面を追加しない。検索はモデル名とデモ名の両方を対象とし、デモ名で一致した場合もモデルの所属を残して表示する。</p>
+<p>アプリ・端末で対応確認済みの公開対象だけを掲載し、表示範囲の切替と任意ファイルの登録は設けない。未ダウンロードのデモアイコンも有効で、説明画面へ直接遷移する。モデル見出しからの取得では一覧に留まり、デモ説明画面からの取得ではそのデモ画面に留まる。どちらも完了だけでは推論を開始しない。</p>
+<h3>検索とナビゲーション</h3>
+<p>iPhoneのModelsでは、検索をコンテンツ内から下部ツールバーへ移す。標準のsearchableを使い、必要な場合はDefaultToolbarItemのsearchをbottomBarへ配置する。検索対象はモデルとデモで、入力に合わせて一覧を絞り込む。検索語のクリアと検索終了のキャンセルを用意し、0件なら検索語を含む結果なし表示を出す。検索だけのタブや中間画面は追加しない。</p>
+<p>検索欄はModelsだけに表示する。iPhone縦画面では下部を基本とし、横向き・iPadの配置やキーボード表示時の移動は標準コンポーネントの適応に従う。戻る操作では一覧の検索語・スクロール位置を保持する。検索のキャンセルは検索語を消して全件に戻し、検索開始前の位置へ戻す。</p>
+<p>Modelsとデモの大きなタイトルは、スクロール後も上部の標準タイトルで現在地を示す。iOSの上部バーにアプリ名を重複表示しない。macOSはウインドウをModelsとして識別し、サイドバーを絞り込む検索はその上部に置く。</p>
+<h3>デモ画面の構成</h3>
+<p>iOSはモデル名をタイトル、選んだデモ名をその下の見出しとして表示する。短い用途説明と、初期状態で閉じた「このデモについて」による詳細解説を置く。説明には試すこと・使い方・結果の見方を含める。固定個数のデモ切替タブは置かず、別のデモはModelsへ戻って選ぶ。</p>
+<p>未取得時も説明の開閉、画面のスクロール、戻る、モデル情報、ダウンロード関連の操作は使える。入力・例文の適用・ファイル選択・推論・カメラ・録音・再生・出力保存など、デモ機能の操作領域は共通ホストで無効化する。見た目を薄くするだけでなく、操作自体を受け付けない。モデルを取得すると利用できる旨を説明の直下に表示する。</p>
+<p>取得・検査が完了したら、その画面で操作領域を有効にする。勝手な入力送信・推論・撮影・再生は開始しない。解説の開閉、取得状態の更新で入力・結果・選択モデル／デモを消さない。既存の結果は表示用データとして保持できるが、未取得時の再実行や保存などの操作は無効にする。</p>
+</section>
+<section id="hig">
+<span class="number">DESIGN REFERENCE / HIG</span><h2>標準UIを基本にする</h2>
+<p>2026-10-18にHIGとApple公式資料を照合。以下はガイドラインをこのアプリへ適用した設計判断であり、HTMLだけでネイティブの適合性を保証するものではない。</p>
+<div class="table-wrap"><table><thead><tr><th>観点</th><th>今回の修正・実装時の契約</th><th>一次資料</th></tr></thead><tbody>
+<tr><td>検索</td><td>iPhoneでは下部の標準検索、クリア、キャンセル、入力中の絞り込み、検索語を含む0件表示。macOSはサイドバー内に作用する検索をサイドバー上部へ。</td><td><a href="https://developer.apple.com/design/human-interface-guidelines/search-fields">Search fields</a>、<a href="https://developer.apple.com/videos/play/wwdc2025/323/?time=657">SwiftUIの検索配置</a></td></tr>
+<tr><td>タイトルと戻る</td><td>NavigationStackと標準の戻る・タイトルを使用。大きなタイトルがスクロールしても現在地を失わず、戻った一覧の位置を保持する。</td><td><a href="https://developer.apple.com/design/human-interface-guidelines/toolbars">Toolbars</a></td></tr>
+<tr><td>タップ領域・アイコン</td><td>iOSの通常操作は44×44pt以上を基準とする。HTMLでは44 CSS pxを設計上の目安として表現。SF Symbolsを使う予定とし、アイコンだけの操作にも読み上げ名を付ける。</td><td><a href="https://developer.apple.com/design/human-interface-guidelines/buttons">Buttons</a></td></tr>
+<tr><td>文字とレイアウト</td><td>補助文字・アイコン下の名称を読みやすく拡大。ネイティブではシステムのテキストスタイルとDynamic Typeを使用し、200%相当でも名称や操作が欠落しない。グリッドの列数と行高を可変にする。</td><td><a href="https://developer.apple.com/design/human-interface-guidelines/typography">Typography</a>、<a href="https://developer.apple.com/design/human-interface-guidelines/accessibility">Accessibility</a></td></tr>
+<tr><td>未取得状態</td><td>操作自体を無効化し、説明・結果の文字まで一律に薄くしない。取得が必要な理由と取得ボタンを表示し、色だけで状態を示さない。</td><td><a href="https://developer.apple.com/design/human-interface-guidelines/accessibility">Accessibility</a></td></tr>
+<tr><td>進捗</td><td>既知の取得量は確定進捗、総量不明の準備は不定進捗にする。読み上げ可能な進捗値と取消操作を分け、開始・完了・取消を通知する。</td><td><a href="https://developer.apple.com/design/human-interface-guidelines/progress-indicators">Progress indicators</a></td></tr>
+<tr><td>削除確認</td><td>標準alertで対象・容量・保持するデータを簡潔に示す。削除を通常の主要操作と同じ塗りつぶしボタンにせず、取消を用意する。どちらも自動で実行される既定操作にせず、HTMLでは見出しに初期フォーカスを置く。</td><td><a href="https://developer.apple.com/design/human-interface-guidelines/alerts">Alerts</a>、<a href="https://developer.apple.com/design/human-interface-guidelines/buttons">Buttons</a></td></tr>
+<tr><td>色と素材</td><td>実装ではシステムの意味付き色を使い、明暗・コントラスト・透明度の設定へ適応する。Liquid Glassは標準ツールバー等の表示に任せ、デモアイコンや結果カードのコンテンツ層へ一律に適用しない。</td><td><a href="https://developer.apple.com/design/human-interface-guidelines/materials">Materials</a></td></tr>
+</tbody></table></div>
+<p class="note">HTMLはライト外観の操作モック。文字サイズ200%はレイアウト確認用の拡大であり、iOSのDynamic Typeそのものではない。キーボード、Liquid Glass、標準ナビゲーションのアニメーション、暗い外観、VoiceOver実機動作はネイティブで検証する。Xcode 27.0 / iOS 27 SDKで検索APIの宣言と最小アプリのビルドは確認済みだが、Simulatorの実表示は未確認。</p>
+</section>
+<section id="behavior">
+<span class="number">04 / BEHAVIOR</span><h2>選択は一度。準備と実行は区別する</h2>
+<div class="table-wrap"><table><thead><tr><th>状況・操作</th><th>期待する振る舞い</th></tr></thead><tbody>
+<tr><td>通常起動</td><td>モデル一覧を表示。前回モデルの読み込み・会話復元・カメラ起動・音声再生を自動開始しない。</td></tr>
+<tr><td>デモを選択</td><td>iOSはModelsのアイコンから指定のモデル・デモを引き継いで直接開く。未取得なら解説と無効化した操作領域を表示する。macOSはモデル選択で代表デモへ進む。入力送信・撮影・生成は利用者の明示操作で始める。</td></tr>
+<tr><td>未取得モデルをダウンロード</td><td>iOSはモデル見出しのアイコン、または未取得デモの案内から取得する。同じ成果物の状態はモデルに紐づく全デモで共有する。重複取得を開始しない。取得・検査完了後も現在の画面に留まり、デモ操作を有効にする。macOSは従来の準備画面案を維持する。</td></tr>
+<tr><td>複数の変換版がある</td><td>同じモデルの下にまとめ、現在の変換版を表示。端末向けの既定版を使う。利用者が別版を明示選択した場合は黙って置き換えない。</td></tr>
+<tr><td>未対応・未検証</td><td>iOSはアプリ・端末で対応を確認した公開対象だけを表示し、未対応・未検証モデルを載せない。公開モデル全体へ切り替えるUIは設けない。macOSの別環境向けモデルの紹介方法は引き続き検討対象。両OSとも起動時の条件検査は維持する。</td></tr>
+<tr><td>準備の取消・失敗</td><td>取消はエラー扱いにしない。iOSの取消は未取得状態に戻し、現在の一覧／デモ画面を保持する。失敗は見出しの再試行アイコンと読み上げ名、デモ画面では理由と再試行操作で示す。macOSは準備画面で再試行／別フォルダ選択を表示する。対象モデル・デモを保持し、未完了ファイルを実行可能として扱わない。</td></tr>
+<tr><td>モデルが0件</td><td>iOSは利用できるモデルがない旨を表示し、検索結果が0件なら検索をクリアできる。未対応モデルの掲載やローカル登録で補わない。macOSは対応モデルがない旨とローカル登録を表示する。空のデモへ飛ばさない。</td></tr>
+<tr><td>ローカルモデル登録</td><td>iOSは提供しない。macOSではモデル種別と成果物の契約を検査し「ローカル」に登録する。表示名だけで既知モデルや対応デモに結びつけない。不明な形式は理由を示して拒否する。</td></tr>
+</tbody></table></div>
+<p>デモの入力例・結果・用途別診断は既存仕様を引き継ぐ。表示言語の変更でモデルの入力やセッションを作り直さない。モデル情報には配布元、変換版、量子化、対応環境、確認済み条件、検証記録へのリンクを置き、未計測の数値を補わない。</p>
+</section>
+<section id="catalog">
+<span class="number">05 / CATALOG</span><h2>公開する単位を、モデルとデモに揃える</h2>
+<p>次の4つは概念上の責務。Swiftの型名や保存形式をここで固定するものではない。</p>
+<div class="table-wrap"><table><thead><tr><th>単位</th><th>管理する情報</th></tr></thead><tbody>
+<tr><td>モデル</td><td>安定したID、名称、用途、表示説明、公開範囲、変換成果物一覧。サイズや派生モデルの異なるものを同名だからと統合しない。</td></tr>
+<tr><td>変換成果物</td><td>成果物ID、revision・契約版、量子化／精度、配布元、容量、プラットフォーム、検証根拠、公開範囲。取得済みかどうかは別の端末内状態。</td></tr>
+<tr><td>デモ定義</td><td>デモID、用途別UI、必要な入力・実行機能。モデル名を埋め込まず再利用する。</td></tr>
+<tr><td>モデルとデモの対応</td><td>対応する成果物とデモ、公開範囲、端末条件、macOS等の入口に必要な代表デモ指定、補助モデル／OS機能の依存。能力名の一致だけで対応済みにしない。</td></tr>
+</tbody></table></div>
+<h3>公開範囲と利用可否を別々に判定する</h3>
+<p>公開範囲は「公開対象」「開発用」「非掲載」を提案する。通常配布用カタログには公開対象だけを含め、開発用項目は開発用の構成で追加する。公開可否の変更はカタログを変更したビルドで反映し、初版では遠隔配信による切替を導入しない。</p>
+<div class="callout"><strong>表示・起動の条件</strong><br>モデル、成果物、デモとの対応がすべて公開対象であり、端末条件・依存条件を満たすこと。起動直前にも同じ条件を検査する。画面だけ隠して、履歴や別の入口から起動できる状態にしない。</div>
+<p>モデルの公開を外せば、その配下のデモ導線も外れる。特定デモだけ準備中なら対応だけを外し、モデルのほかのデモは残す。macOSなど代表デモを使う入口では、代表デモが外れたら代わりを明示する。iOSでは各デモを直接選択するため、代表デモの有無を表示条件にしない。どの入口も有効なデモが0件なら実行先を作らない。カタログ整合性の検査で見落としを防ぐ。</p>
+<p class="note">「非掲載」はアプリで紹介・起動しないという意味。既に配布した重みや公開ソースを非公開にするものではない。配布元のアクセス権とリポジトリで公開する情報は別に管理する。</p>
+<h3>初期対応の候補</h3>
+<div class="table-wrap"><table><thead><tr><th>モデル</th><th>代表デモ案</th><th>追加デモ・制約</th></tr></thead><tbody>
+<tr><td>Qwen系</td><td>チャット</td><td>既存のChat / Workを同じ会話UIで使う。iOSへの移植は別範囲。</td></tr>
+<tr><td>GLiNER系</td><td>スペックメモ</td><td>Extraction lab、トラック点検は必要なモデル契約・設定を個別に照合する。名前だけで同一成果物とみなさない。</td></tr>
+<tr><td>EmbeddingGemma 2</td><td>画像検索</td><td>iOSのObject finder。カメラ等の依存条件を追加。</td></tr>
+<tr><td>Clef系</td><td>Decide</td><td>Recipesは補助の画像理解機能とその利用条件を明示する。</td></tr>
+<tr><td>Irodori</td><td>音声合成</td><td>macOSは既存Speech。別ターゲットSpeechPhoneの統合は未決で、今回の標準iOSアプリにあるものとみなさない。</td></tr>
+</tbody></table></div>
+<p class="note">これは接続候補であり、全件を初回公開する約束ではない。実際のモデル・成果物・プラットフォームの組合せは公開対象表として確定する。</p>
+</section>
+<section id="architecture">
+<span class="number">06 / ARCHITECTURE</span><h2>入口とモデルの解決を共通化する</h2>
+<div class="diagram"><p><b>モデル一覧・共通ヘッダー</b> → 選択と遷移を管理するStore</p><p>↓ 公開条件・端末条件・成果物の検査</p><p><b>起動コンテキスト</b> → 用途別のAssembly → 既存デモUI / Store</p><p>↓ 既存のRunner / Service</p><p><b>用途別ランタイム</b> → モデル・カメラ・音声などの資源</p></div>
+<div class="table-wrap"><table><thead><tr><th>責務</th><th>所有する状態・境界</th></tr></thead><tbody>
+<tr><td>カタログと条件判定</td><td>静的な定義と純粋な利用可否判定。ファイル確認・OS情報の収集は実行部から入力する。</td></tr>
+<tr><td>一覧・起動のStore</td><td>選択モデル／成果物／デモ、準備状態、起動要求ID、画面遷移。デモ本文の入力・結果を一括所有しない。</td></tr>
+<tr><td>モデル資源の管理</td><td>取得・登録・検査・保存先・削除。既存ModelManagerの使える処理を再利用し、用途別バンドル検査を呼び分ける。</td></tr>
+<tr><td>用途別Assembly</td><td>検査済みの起動コンテキストから既存デモを組み立てる。デモ側の固定パス・前回選択が今回の選択を上書きしない。</td></tr>
+<tr><td>既存デモのStore / Runtime</td><td>入力・生成・結果・保存・停止・資源解放を担当する。共通の言語モデル実行器に、抽出や音声の契約を無理に統合しない。</td></tr>
+</tbody></table></div>
+<p>起動コンテキストには、モデルID、成果物IDとrevision／契約識別子、デモID、検査済みのローカル資源参照、補助依存、起動要求IDを含める。UIはモデルの表示名やフォルダ名から接続先を推定しない。実際の形式は用途別の型で安全に渡す。</p>
+<h3>デモの共通契約と実行制御</h3>
+<p>以下は全デモで守る共通契約を表す。具体的なSwift型と検証範囲は<a href="../model-library-contracts.md">共通モデル契約</a>と<a href="../model-library-ui.md">iOS共通UI</a>に対応づける。</p>
+<div class="table-wrap"><table><thead><tr><th>共通境界の案</th><th>必須の契約</th></tr></thead><tbody>
+<tr><td>DemoDefinition<br>登録プロトコル</td><td>安定したデモID、名称、アイコン、短い説明、詳細説明、必要なモデル成果物・補助依存、操作画面の組み立て先を必須にする。説明とアイコンの構築だけではモデル・カメラ・音声資源を初期化しない。</td></tr>
+<tr><td>DemoTile<br>一覧の共通表示</td><td>定義からアイコンと名称を描画し、モデルID＋デモIDを送る。未取得を理由に説明への遷移を禁止しない。タイルごとに取得や実行の独自ロジックを持たせない。</td></tr>
+<tr><td>DemoAccessPolicy<br>共通の利用可否判定</td><td>公開・対応条件、必要な成果物の取得／検査、補助依存、停止中などの状態から「閲覧のみ」「準備中」「利用可能」「利用不可と理由」を返す。デモ自身に取得済みの真偽を書き換えさせない。</td></tr>
+<tr><td>DemoHost<br>説明と操作領域の共通ホスト</td><td>モデル名・説明・取得案内を常に描画し、利用可能な場合だけ操作領域を有効にする。未取得の説明表示では実行用サービスを開始しない。取得完了でも自動実行せず、閲覧位置・入力・説明の開閉を保持する。</td></tr>
+<tr><td>実行受付の共通境界</td><td>Store／実行部の入口でも同じ利用可否を確認する。無効な操作を直接送信しても、推論・ファイル選択・カメラ・録音等の副作用を発行しない。実行直前に成果物と要求IDを照合し、削除・差替え・停止の競合を拒否する。</td></tr>
+</tbody></table></div>
+<p>プロトコルへの準拠だけでは、画面外からの実行や表示時の副作用を防げない。共通ホストの無効化、実行入口の判定、資源の寿命管理を組み合わせる。説明のための閲覧コンテキストはモデル・デモのメタデータだけを持ち、検査済み資源を含む実行コンテキストとは区別する。各デモは取得状態を独自に推定せず、共通の判定結果を受け取る。</p>
+<p class="note">HTML試作では共通のデモ定義、タイル生成、利用可否判定、無効なfieldset、操作受付ガードを使う。Swift側にはModelLibraryFeatureとModelLibraryUIを追加した。実モデルの取得・検査と各デモの資源解放を接続するまでは、HTML・単体検証からアプリ全体の適合を判定しない。</p>
+<p>共通化するのは一覧、モデル表示、準備・失敗表示、遷移、同じ用途の画面。用途ごとの入力契約や評価方法は保持する。新しい非同期制御は既存のFeature / Store規約に沿わせ、Viewから取得・推論を直接呼ばない。</p>
+</section>
+<section id="lifecycle">
+<span class="number">07 / LIFECYCLE</span><h2>モデルの選択と、実行結果を混ぜない</h2>
+<ol>
+<li>別モデル／別デモへ移る要求を受けたら、現在の処理へ停止を要求する。停止中は重複した起動を受け付けない。</li>
+<li>モデル処理・カメラ・音声再生等の停止と、必要な保存・資源解放の完了を待つ。</li>
+<li>新しい起動要求IDを持つコンテキストで次のデモを開始する。前の要求の遅れた結果は反映しない。</li>
+</ol>
+<p>モデル一覧へ戻る場合も同じ終了経路を使う。入力・結果はデモとモデル成果物の組合せで区別する。初版では、同じアプリセッション内の入力・結果は元の組合せへ戻った際に復元する案とし、別モデルへは自動で引き継がない。デモを離れたらランタイム資源を解放する方針とする。</p>
+<p>起動後の永続復元は既存機能の保存契約を保つ。チャット履歴を明示的に開いた場合は、その会話に記録されたモデルへ解決する。モデル不明・未取得・非掲載なら履歴本文は閲覧でき、再開は理由付きで停止する。新しいモデルへ履歴を黙って割り当てない。</p>
+<p>移行で既存のモデルファイル、保存済み会話、生成物を削除しない。旧パス情報は契約を検査して取り込み、対応不明なら元の記録を残す。モデルの削除・登録解除はナビゲーションと別の明示操作とし、使用中の資源は削除しない。iOSの見出し右側の削除アイコンは確認を開き、対象モデルと解放する容量を示す。削除するのはモデル資源であり、デモの説明・入力・保存済み結果は残す。削除後は関係する全デモを閲覧のみへ更新し、再取得前の実行を拒否する。</p>
+<p class="note">同じモデル内でもデモ切替のたびに解放する案は、分かりやすい寿命管理を優先した初版の判断。再ロード費用は実測後に評価する。複数ウィンドウ間の資源共有方式は現状調査後に確定し、少なくとも他ウィンドウが使用中の資源を解放しない契約を守る。</p>
+</section>
+<section id="migration">
+<span class="number">08 / MIGRATION</span><h2>既存デモを一つずつ接続する</h2>
+<p>共通デザインの承認に基づき、まずiOSを対象として共通契約と共通UIを分離して実装している。以下の移行順序を維持し、未確定の公開モデル・配布先と個別機能デザインは確認後に接続する。</p>
+<ol>
+<li><strong>公開対象表とモデル契約を照合する。</strong> モデル／成果物／デモ／OSの組合せ、代表デモ、補助依存を確定。複数ウィンドウと旧履歴の解決方法を調査する。</li>
+<li><strong>一覧から1つのデモまでを接続する。</strong> 共通カタログ、条件判定、起動コンテキストを用意し、GLiNERのスペックメモなど両OSで存在する経路で入口から結果まで確認する。</li>
+<li><strong>残りの既存デモを接続する。</strong> 各デモを共通契約へ登録し、DemoHostと実行受付の利用可否判定を通す。各Assemblyで検査済み資源を受け取り、内部のモデル再選択・固定パスを置き換える。各接続で停止・再試行・選択保持を確認する。</li>
+<li><strong>履歴・診断入口・文書を整合させる。</strong> 旧データの互換性、ヘッドレスの検証引数、READMEの操作説明を更新。結合後にmacOSとiPhone実機で受入条件を確認する。</li>
+</ol>
+<div class="table-wrap"><table><thead><tr><th>実装単位</th><th>現在の証拠・残り</th></tr></thead><tbody>
+<tr><td>共通契約 <a href="https://github.com/oka-yuji/coreai-samples/pull/172">PR #172</a></td><td>公開条件、取得状態、要求ID、実行ゲートと停止確認を実装。共通契約15テストと既存CPUテストを確認。実ファイルの取得・解放は後続の接続対象。</td></tr>
+<tr><td>iOS共通UI <a href="https://github.com/oka-yuji/coreai-samples/pull/174">PR #174</a></td><td>Models、検索、共通タイル、説明ホスト、取得操作を実装。実機SDKとモデルを使わないSimulatorプレビューがビルド可能。<a href="../../Examples/ModelLibraryPreview/README.md">ネイティブプレビューの手順</a>から確認できる。<a href="https://github.com/oka-yuji/coreai-samples/pull/185">PR #185</a>で通常のiOS起動をModelsへ接続。2モデル・5デモを掲載し、未接続状態は「説明のみ」と明示する。</td></tr>
+<tr><td>共通の取得・実行経路 <a href="https://github.com/oka-yuji/coreai-samples/pull/200">PR #200</a>〜<a href="https://github.com/oka-yuji/coreai-samples/pull/203">PR #203</a></td><td>変換版と実行条件のカタログ（#189）、検査済み資源の保管・移行・削除（#190）、取得・取消・再試行（#191）、開始・停止・資源解放の共通経路（#192）を実装。fixtureとfakeを使うCPU試験で確認。実配布からの取得は未確認。</td></tr>
+<tr><td>個別機能の実行部の接続 <a href="https://github.com/oka-yuji/coreai-samples/pull/204">PR #204</a>〜<a href="https://github.com/oka-yuji/coreai-samples/pull/208">PR #208</a></td><td>比較（#193）、抽出（#194）、点検（#195）、画像検索（#196）、カメラ探索（#197）を共通ホストと実行ゲートへ接続。各デモの停止・解放はfakeを使う試験で確認。配布定義（#188）は下の #210 で採用した。<a href="../designs/function-screens.html">全機能のHTML案</a>は確認待ち。</td></tr>
+<tr><td>結合検証 <a href="https://github.com/oka-yuji/coreai-samples/pull/209">PR #209</a></td><td>実際のApp組立てを使う自動試験と <code>--model-library-selftest</code> を追加（#198）。実機での取得・5デモの実行・切替・削除・再起動、言語・説明・検索・文字サイズ・読み上げの確認は本人確認として未実施。配布定義の採用（#210）と公開により再開できる。<a href="../validation/ios-models-integration-20261018.md">結合検証の記録</a>に結果と未実施項目を残す。</td></tr>
+<tr><td>配布定義の採用 <a href="https://github.com/oka-yuji/coreai-samples/pull/212">PR #212</a></td><td>公開した配布定義（GLiNER2.5-multi FP32、EmbeddingGemma 2 FP16・INT4/INT8 PTQ）をカタログへ転記し、定義ファイルとの全項目の一致と管理ストアの契約解決を試験で確認（#210）。<code>--model-library-selftest</code> に <code>--acquire</code> を追加し、通常の取得経路でmacOSとiPhoneの匿名HTTPSによる実取得と検査を記録。5デモのiPhoneでの実行は本人確認として未実施。<a href="../validation/ios-models-integration-20261018.md">結合検証の記録</a>に結果を残す。</td></tr>
+</tbody></table></div>
+<p>旧来の診断用引数は、明示された診断モードとして通常起動と区別して維持する。製品用の履歴・画面遷移は共通の起動条件判定を通し、診断専用経路を通常ユーザー向けの抜け道にしない。</p>
+</section>
+<section id="acceptance">
+<span class="number">09 / ACCEPTANCE</span><h2>実装後に確かめる条件</h2>
+<p class="note">条件の版：MF-16・17はDraft 0.7、MF-02・11・13〜15はDraft 0.5、MF-12はDraft 0.4、MF-05はDraft 0.3、その他はDraft 0.1。アプリ全体としては全件未検収。共通契約・UI単位の検証は移行方針の各記録に分けてあり、下表全体の完了を意味しない。条件のID・原文を実装Issueと検収へ引き継ぐ。</p>
+<div class="table-wrap"><table><thead><tr><th>ID</th><th>受入条件の原文</th><th>検証方法（予定）</th></tr></thead><tbody>
+<tr><td class="nowrap">MF-01</td><td>macOSとiOSの通常起動でモデル一覧を表示し、モデル推論・会話復元・カメラ・音声再生を自動開始しない。</td><td>両OSで新規起動と再起動。画面と起動ログを照合。</td></tr>
+<tr><td>MF-02</td><td>iOSはModelsのデモアイコンから選択したモデル・デモを直接開き、macOSはモデル選択で代表デモを開く。利用可能な場合はモデルを再選択せず実行できる。</td><td>全対応組合せでアイコン／モデル選択→画面→実行のモデルID・デモIDを照合。iOSは中間の選択画面を挟まないことを確認。</td></tr>
+<tr><td>MF-03</td><td>同じデモに対応する異なるモデルは共通のデモUIを使い、実行にはそれぞれ選択した成果物を使う。</td><td>構造レビューと2モデルの注入試験。実配布対象が1件ならfakeで再利用を確認し、実モデル検証と区別。</td></tr>
+<tr><td>MF-04</td><td>モデル・成果物・デモ対応の公開設定を外すと、通常一覧と履歴からの実行が同じ規則で制限される。</td><td>公開条件の組合せ試験。代表デモ非掲載、利用可能デモ0件も検査。</td></tr>
+<tr><td>MF-05</td><td>iOSはアプリ・端末で対応確認済みの公開対象だけを表示し、表示範囲の切替と任意のローカルモデル登録を提供しない。両OSとも実行できない組合せを開始しない。</td><td>OS・検証条件・補助依存の不足を入力する判定試験と、iOSの一覧・モデル情報・起動導線の確認。</td></tr>
+<tr><td>MF-06</td><td>取得・検査の失敗や取消後も選んだモデルとデモを保持し、未完了成果物を実行せず再試行できる。</td><td>取得／ロードの失敗、取消、再試行をfakeで検証。実フォルダ不備でも表示確認。</td></tr>
+<tr><td>MF-07</td><td>モデルやデモの切替時は現在の処理の停止と資源解放を待ち、古い結果を新しい画面へ反映しない。</td><td>遅延完了・停止中の再選択の順序試験。実機の生成・カメラ・再生中の切替確認。</td></tr>
+<tr><td>MF-08</td><td>既存のモデルファイル・会話・生成物を移行で失わず、モデルを解決できない履歴を別モデルで自動再開しない。</td><td>旧データfixtureと移行前後比較。閲覧、再開拒否、元データ保持を確認。</td></tr>
+<tr><td>MF-09</td><td>表示言語を変更しても選択・入力・結果を保持し、モデル一覧とデモへの導線を読み上げとキーボードで操作できる。</td><td>EN/JP、macOSキーボード、iOS VoiceOver、文字拡大で確認。</td></tr>
+<tr><td>MF-10</td><td>選択したモデルと成果物を全デモで確認でき、既存デモの出力契約と診断用の実行経路を維持する。</td><td>各デモの既存検証を再実行し、コンテキストと表示を照合。補助モデルも確認。</td></tr>
+<tr><td>MF-11</td><td>iOSはモデル見出し右側のアイコンで未取得・進捗／取消・失敗／再試行・取得済み／削除を扱う。取得と検査が完了しても現在の一覧／デモ画面に留まり、自動でデモを実行しない。</td><td>一覧とデモ説明画面の両入口で、取得→取消→再試行→完了を確認。同じモデルの各デモへ状態が反映されることと、読み上げ名・進捗値を確認。</td></tr>
+<tr><td>MF-12</td><td>iOSのデモ画面はモデル名をタイトルにし、選択中のデモの短い説明と、初期状態で閉じた詳細説明を表示する。説明の開閉で入力・結果・モデルを変えず、デモ切替で説明が対応する内容に変わる。</td><td>GLiNER・EmbeddingGemmaの各デモで見出しと説明を照合。入力編集・結果表示の前後で詳細を開閉し、保持を確認する。</td></tr>
+<tr><td>MF-13</td><td>未取得のデモでも説明・詳細解説・モデル情報・戻る・取得操作は使える。入力・実行などの機能操作は共通で無効になり、表示や無効な操作の直接送信によってモデル・カメラ・音声等の副作用が始まらない。</td><td>未取得・取得中・失敗・削除後の各状態で全登録デモを確認。共通受付に直接操作を送り、実行部の呼出しが0件であることを検証する。</td></tr>
+<tr><td>MF-14</td><td>1モデルに10個のデモを登録しても、共通のアイコンと名称が縦に折り返され、各デモへ一覧から直接進める。検索でデモ名を指定してもモデルの所属が分かる。</td><td>10件のレイアウトfixture、狭い幅・文字拡大・キーボード／読み上げで全項目を選択。最後の項目への到達と検索後の遷移を確認。</td></tr>
+<tr><td>MF-15</td><td>iOSの削除アイコンで対象と容量を確認してからモデル資源を削除し、関係するデモを閲覧のみに戻す。説明・入力・保存済み結果を削除せず、使用中の資源は削除しない。</td><td>取消と削除確定、共有デモ間の状態反映、保存データの前後比較、使用中の削除拒否を確認。</td></tr>
+<tr><td>MF-16</td><td>iPhoneのModelsでは下部に標準検索を提供し、入力による絞り込み・クリア・キャンセル・0件表示を使える。デモへ移動して戻ると検索語と一覧位置が保持され、検索を終了すると全件へ戻る。</td><td>iPhone縦・横とキーボード表示中を実機で確認。検索結果からの遷移・戻る、検索終了、0件時の復帰を照合。HTMLでは位置と操作の近似のみを確認。</td></tr>
+<tr><td>MF-17</td><td>iOSの通常操作は44×44pt以上のタップ領域を持ち、文字を200%相当に拡大しても名称・説明・操作へ到達できる。アイコンの操作名、取得進捗、無効状態を読み上げで識別できる。</td><td>標準・大きい文字でグリッドと説明・削除確認を確認し、Accessibility InspectorとVoiceOverで操作領域・ラベル・値・順序を検証。HTMLのCSS px確認を実機検証の代わりにしない。</td></tr>
+</tbody></table></div>
+<p>検証時は対象commit、カタログ版、モデルrevision、OS・端末、操作、結果を記録する。必須ビルド・テストはリポジトリ規約に従い、モデル実行は既存のheavy-jobロック下で行う。本人の操作確認は自動試験とは別に残す。</p>
+</section>
+<section id="decisions">
+<span class="number">10 / OPEN DECISIONS</span><h2>この叩き台で確認したいこと</h2>
+<div class="table-wrap"><table><thead><tr><th>論点</th><th>今回の推奨案</th><th>確定が必要な範囲</th></tr></thead><tbody>
+<tr><td>選択後の行き先</td><td>iOSはModelsから選んだデモへ直接進み、未取得なら閲覧のみ。macOSは代表デモ。</td><td>iOSの今回案を画面で確認。macOSの多数デモへの対応は別途検討。</td></tr>
+<tr><td>公開対象</td><td>モデル・成果物・デモ対応の単位で選ぶ。</td><td>初回に掲載する具体的なモデルと変換版。現時点では未確定。</td></tr>
+<tr><td>未検証モデル</td><td>iOSは掲載しない方針に更新済み（2026-10-18）。</td><td>macOSでの紹介・開発向け導線は別途判断する。</td></tr>
+<tr><td>初期画面と履歴</td><td>毎回モデル一覧。履歴は明示的に開く。</td><td>前回画面への自動復元を将来の設定にするか。</td></tr>
+<tr><td>音声のiOS入口</td><td>初版ではSpeechPhoneを独立したまま扱う。</td><td>統合する場合の追加範囲、保存データと診断の扱い。</td></tr>
+<tr><td>切替後の状態と資源</td><td>入力・結果は組合せごとにセッション内保持、ランタイムは解放。</td><td>再ロード費用、複数ウィンドウの資源所有と保存互換性。</td></tr>
+</tbody></table></div>
+<p>これらが変われば該当する仕様・受入条件の版を更新する。今のドラフトから、全項目の実装承認や公開承認を推定しない。</p>
+</section>
+<section id="sources">
+<span class="number">11 / REFERENCES &amp; MAINTENANCE</span><h2>設計と実装を同じリポジトリで追う</h2>
+<p>この変更の仕様・設計の正本候補は <code>docs/specs/model-first-demo.html</code>。合意後は状態を更新し、実装時は受入条件に証拠へのリンクを追加する。既存の用途別仕様は引き続き各文書を正本とし、本書は入口・接続・公開管理の差分を扱う。</p>
+<ul>
+<li>入口の実装：<a href="../../CoreAISamples/iOS/PhoneDemoApp.swift">PhoneDemoApp</a>、<a href="../../CoreAISamples/DemoRootView.swift">DemoRootView</a>、<a href="../../CoreAISamples/DemoNavigator.swift">DemoNavigator</a></li>
+<li>モデル管理：<a href="../../CoreAISamples/Demos/ModelManager/Catalog.swift">Catalog</a>、<a href="../../CoreAISamples/Demos/ModelManager/ModelMenu.swift">ModelMenu</a></li>
+<li>既存の振る舞い：<a href="demo-presentation.md">表示・ローカライズ</a>、<a href="product-comparison-demo.md">スペックメモ</a>、<a href="fridge-recipe-demo.md">Recipes</a>、<a href="conversation-step-budget.md">会話のステップ予算</a></li>
+<li>用途別資源：<a href="../embeddinggemma2.md">EmbeddingGemma 2</a>、<a href="../irodori/demo.md">Speechデモ</a>、<a href="../irodori/iphone.md">SpeechPhone</a></li>
+</ul>
+<p>画面案は現行コードと2026-10-17の相談を根拠にした設計提案。Core AIのAPI追加や性能保証を前提にしない。既存検証記録の合格を、本書の変更後の合格として流用しない。</p>
+<h3>閲覧と更新</h3>
+<p>READMEの相対リンクからこのファイルへ移動できる。GitHubのファイル画面ではHTMLのソースが表示されるため、描画して読む場合はリポジトリ内のファイルをブラウザで開く。外部フォント・スクリプト・CDNは不要。ホスティングは本稿では設定しない。</p>
+<details><summary>MF-05の旧原文（Draft 0.1、Draft 0.3で改訂）</summary><p>未対応と未検証を区別して表示し、実行できない組合せを開始しない。</p><p class="note">改訂理由：2026-10-18のiOSへのフィードバックで、対応確認済みモデルだけを掲載する方針に変更したため。</p></details>
+<details><summary>MF-02・MF-11の旧原文（Draft 0.5で改訂）</summary><p class="note">MF-02はDraft 0.1、MF-11はDraft 0.3の原文。モデルカード・代表デモへの遷移から、モデル別デモランチャーと未取得時の閲覧へ変更したため改訂。</p><div class="table-wrap"><table><thead><tr><th>ID</th><th>旧原文</th><th>旧検証方法</th></tr></thead><tbody><tr><td>MF-02</td><td>準備済みモデルを選ぶと対応する代表デモが開き、デモ内でモデルを再選択せずに実行できる。</td><td>初期公開対象の全対応組合せで、モデル・成果物IDと実行結果を確認。</td></tr><tr><td>MF-11</td><td>iOSはカード内でダウンロードを開始でき、未ダウンロード・進捗・取消・失敗／再試行・ダウンロード済みを確認できる。完了後も一覧に留まり、ダウンロード済みカードをタップするとそのモデルの代表デモが開く。</td><td>一覧で取得開始→取消→再取得→完了、および失敗→再試行を確認。完了まで起動せず、完了だけでは画面遷移しないことと選択モデルを照合。</td></tr></tbody></table></div></details>
+<p class="note">変更履歴：2026-10-19 / Draft 0.7（実装状況の更新）— 配布定義の採用（#210、PR #212）を§02と§08に反映。受入条件の原文・版は維持。<br>2026-10-18 / Draft 0.7 — HIG照合によりiOSの下部検索・クリア／キャンセル・0件表示、標準ナビゲーションの現在地と戻り位置、44pt基準、文字拡大、未取得時の可読性、進捗と削除確認を更新。HTMLで表現する範囲とネイティブ検証を区別。MF-16・17を追加。<br>2026-10-18 / Draft 0.6 — 取得前の解説閲覧の注記をModelsの説明文直下へ移動。モデル補助情報を英語の用途・任意の構造・容量の順に統一し、用途とMoE等の構造を分離。受入条件の原文・版は維持。<br>2026-10-18 / Draft 0.5 — iOSをModelsのモデル別デモランチャーへ変更。未取得時は解説を閲覧でき、実行領域は共通で無効化。定義プロトコル・ホスト・実行受付の契約、削除・10件の配置例を追加。MF-02・11を更新、MF-13〜15を追加。<br>2026-10-18 / Draft 0.4 — iOSデモ画面のタイトルをモデル名へ変更。短い用途説明と展開できる詳細説明を追加し、MF-12で観測条件を定義。<br>2026-10-18 / Draft 0.3 — iOSの表示範囲切替とローカル登録を撤去。対応確認済みモデルだけを掲載し、カード内で取得・進捗・取消・再試行・完了状態を扱う。完了後は一覧に留まり、タップでデモを開く。MF-05を更新し、MF-11を追加。<br>2026-10-17 / Draft 0.2 — iOSのモデルカードとmacOSの一覧・デモ分割案を追加。操作できるHTMLへリンク。容量の意味、OS別のモデル変更導線、実行不可項目の理由表示を明記。受入条件MF-01〜10の原文・版は0.1のまま維持。<br>2026-10-17 / Draft 0.1 — 初稿。ユーザーのモデル中心の方針を反映。詳細設計・公開対象・移行契約はレビュー前。</p>
+</section>
+</div>
+</main>
+
+<footer>Core AI Samples · Model-first demo design · Draft 0.7 · <a href="#">先頭へ戻る ↑</a></footer>
+</body>
+</html>

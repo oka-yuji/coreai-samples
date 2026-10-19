@@ -12,7 +12,7 @@ public struct ConversationSnapshot: Codable, Equatable, Sendable {
         public var generatedTokens: Int
     }
 
-    public static let currentFormatVersion = 4
+    public static let currentFormatVersion = 5
 
     public static func supports(version: Int) -> Bool { (1...currentFormatVersion).contains(version) }
 

@@ -215,9 +215,19 @@ this cache folder as an input directory: overlapping inputs and work directories
 
 The maintenance contract and relocation checks are tracked in issue #118.
 
+The [Image Research 512 recipe](recipes/qwen_image21/README.md) converts
+Qwen-Image-2.1-Turbo into a fixed FP32 macOS image generation and editing profile.
+Select `--recipe qwen_image21` for its separate frozen environment and source checks.
+Its model assets retain the Qwen Research License's non-commercial research and
+evaluation restrictions. Mobile rewriting is investigated separately from Mac validation.
+
 The [pinned Qwen3-0.6B recipe](recipes/qwen3_06b/README.md) connects source-revision
 checks, the FP32 reference, an official FP16 export and Swift numerical checks.
 Its [relocation record](../../docs/conversion-maintenance.md) records the checks and their limits. It is a bounded
 integration example and does not replace a model's production qualification.
 
 The [EmbeddingGemma 2 recipe](recipes/embeddinggemma2/README.md) uses a separate frozen environment for text/vision conversion, source and native-build stamps, and twenty raw-input fidelity checks. Select it with `--recipe embeddinggemma2` on setup/plan/run. Its export stages deliberately depend on the FP32 reference used for wrapper verification.
+
+The [Magpie TTS v2607 recipe](recipes/magpie/README.md) defines an FP32 macOS research
+profile with four Core AI components, pinned NeMo references and Japanese audio
+checks. It uses the generic plan/run commands with explicit local bindings.

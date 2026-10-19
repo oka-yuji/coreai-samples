@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "precision": "float32",
+  "model": {
+    "id": "nvidia/magpie_tts_multilingual_357m",
+    "revision": "446bff55e1fe3d3aa29c771574e7d2b0fa322990",
+    "filename": "magpie_tts_multilingual_357m.nemo",
+    "bytes": 1470208000,
+    "sha256": "ec675fa8c02b9c1d5382c5c2b5a6acec6492c1e8344866c07cf3892185d18953"
+  },
+  "codec": {
+    "id": "nvidia/nemo-nano-codec-22khz-1.89kbps-21.5fps",
+    "revision": "fc00890b604aa2de298d2641ffc6c5f6caf8c4d7",
+    "filename": "nemo-nano-codec-22khz-1.89kbps-21.5fps.nemo",
+    "bytes": 425021440,
+    "sha256": "28c2518de3e3d5a2c7d9bca40a7ebc0644eb76c60b890970365325bdd8e9f099"
+  },
+  "tokenizer": {
+    "id": "google/byt5-small",
+    "revision": "68377bdc18a2ffec8a0533fef03b1c513a4dd49d"
+  },
+  "nemo_revision": "a3afbd901807bfa5b46ae386573af31dced77834",
+  "sample_rate": 22050,
+  "frame_stacking_factor": 2,
+  "codebooks": 8,
+  "codebook_size": 2016,
+  "normalized_max_limit": 0.001,
+  "audio_cosine_min": 0.999,
+  "audio_rms_max": 0.001
+}

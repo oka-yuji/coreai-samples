@@ -1,0 +1,195 @@
+{
+  "id": "qwen-image21",
+  "kind": "image",
+  "name": {
+    "en": "Qwen Image 2.1 Turbo · macOS FP32",
+    "ja": "Qwen Image 2.1 Turbo · macOS FP32"
+  },
+  "use": {
+    "en": "Image generation and editing",
+    "ja": "画像の生成・編集"
+  },
+  "overview": {
+    "en": "Image generation and editing",
+    "ja": "画像の生成・編集"
+  },
+  "release": "in_progress",
+  "release_note": {
+    "en": "Mac conversion verified; mobile planned",
+    "ja": "Mac変換検証済み／モバイル予定"
+  },
+  "download": null,
+  "pages": {
+    "en": "docs/model-reports/qwen-image21.md",
+    "ja": "docs/model-reports/qwen-image21.ja.md"
+  },
+  "links": [
+    {
+      "title": {
+        "en": "Conversion",
+        "ja": "変換手順（英語）"
+      },
+      "url": "Tools/Conversion/recipes/qwen_image21/README.md"
+    },
+    {
+      "title": {
+        "en": "Mobile plan #222",
+        "ja": "モバイル計画 #222"
+      },
+      "url": "https://github.com/oka-yuji/coreai-samples/issues/222"
+    }
+  ],
+  "support": {
+    "macos": {
+      "state": "unavailable",
+      "variants": [],
+      "evidence": [],
+      "note": {
+        "en": "Native demo is not provided for this platform.",
+        "ja": "このOSのネイティブデモは未提供です。"
+      }
+    },
+    "ios": {
+      "state": "unavailable",
+      "variants": [],
+      "evidence": [],
+      "note": {
+        "en": "Native demo is not provided for this platform.",
+        "ja": "このOSのネイティブデモは未提供です。"
+      }
+    }
+  },
+  "evidence": {
+    "pipeline": {
+      "url": "docs/research/qwen-image21-20261018/README.md",
+      "level": "conversion",
+      "outcome": "passed",
+      "record_type": "legacy",
+      "date": "2026-10-18",
+      "platform": "macos",
+      "device": "M4 Max 128 GiB",
+      "os": "macOS 27.0 (26A428)",
+      "toolchain": "Xcode 27.0 (27A266a)",
+      "variant": "FP32; cache off",
+      "backend": "Core AI; GPU preferred",
+      "route": "Python conversion / diagnostic host",
+      "source_revision": "fc13ba1986fcb905854dc8de2f52eee395f49b5b",
+      "artifact_revision": null,
+      "code_revision": null,
+      "workload": {
+        "en": "512×512 RGBA; batch1; CFG1; 8 sigma steps; generation and one-image edit. Python diagnostic host, staged loads and tensor capture.",
+        "ja": "512×512 RGBA、batch1、CFG1、8sigma。生成と参照画像1枚の編集。Python診断host、段階ロードとtensor取得を含む。"
+      },
+      "batch_size": 1,
+      "concurrency": 1,
+      "warmups": null,
+      "power": null,
+      "thermal": null,
+      "model_executed": true,
+      "plan_sha256": null
+    }
+  },
+  "measurements": [
+    {
+      "metric": "latency_s",
+      "value": 163.63,
+      "unit": "s",
+      "statistic": "single",
+      "n": 1,
+      "evidence": "pipeline",
+      "note": {
+        "en": "Generate case, including 123.42 s of component loads; not warm interactive latency.",
+        "ja": "生成1例。部品ロード123.42秒を含む。通常利用時の待ち時間ではない。"
+      }
+    },
+    {
+      "metric": "latency_s",
+      "value": 207.24,
+      "unit": "s",
+      "statistic": "single",
+      "n": 1,
+      "evidence": "pipeline",
+      "note": {
+        "en": "Edit case, including 148.77 s of loads; same diagnostic boundary.",
+        "ja": "編集1例。ロード148.77秒を含む。同じ診断区間。"
+      }
+    },
+    {
+      "metric": "peak_rss_bytes",
+      "value": 110662795264,
+      "unit": "B",
+      "statistic": "single",
+      "n": 1,
+      "evidence": "pipeline",
+      "note": {
+        "en": "Whole verification-process lifetime, including reference/diagnostic work. Not standalone app RAM.",
+        "ja": "参照・診断を含む検証プロセス全体の生涯ピーク。アプリ単独のRAMではない。"
+      }
+    },
+    {
+      "metric": "peak_footprint_bytes",
+      "value": 7751065968,
+      "unit": "B",
+      "statistic": "single",
+      "n": 1,
+      "evidence": "pipeline",
+      "note": {
+        "en": "Same verification process; different accounting from RSS, do not add them.",
+        "ja": "同じ検証プロセス。RSSとは別の指標で加算しない。"
+      }
+    },
+    {
+      "metric": "bundle_bytes",
+      "value": 62370841163,
+      "unit": "B",
+      "statistic": "single",
+      "n": 1,
+      "evidence": "pipeline",
+      "note": {
+        "en": "Logical bundle files excluding bundle.json; disk payload, not RAM or prepared-cache size.",
+        "ja": "bundle.jsonを除く論理ファイル容量。RAMや特殊化後容量ではない。"
+      },
+      "source_value": {
+        "path": "docs/research/qwen-image21-20261018/results.json",
+        "pointer": "/bundle/bytes_excluding_manifest"
+      }
+    }
+  ],
+  "omissions": {},
+  "checks": {
+    "fidelity": {
+      "state": "passed",
+      "evidence": [
+        "pipeline"
+      ],
+      "note": {
+        "en": "Two fixed FP32 generation/edit outputs and packaged replay; broader quality and mobile use unverified.",
+        "ja": "固定FP32の生成・編集2例とbundle単体再実行。一般画質やモバイルは未検証。"
+      }
+    },
+    "quality": {
+      "state": "not_measured",
+      "evidence": [],
+      "note": {
+        "en": "No completed check for this scope under the common protocol.",
+        "ja": "この範囲の共通プロトコルによる確認は未実施です。"
+      }
+    },
+    "stability": {
+      "state": "not_measured",
+      "evidence": [],
+      "note": {
+        "en": "No completed check for this scope under the common protocol.",
+        "ja": "この範囲の共通プロトコルによる確認は未実施です。"
+      }
+    },
+    "cancellation": {
+      "state": "not_measured",
+      "evidence": [],
+      "note": {
+        "en": "No completed check for this scope under the common protocol.",
+        "ja": "この範囲の共通プロトコルによる確認は未実施です。"
+      }
+    }
+  }
+}

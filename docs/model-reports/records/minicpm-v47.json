@@ -1,0 +1,92 @@
+{
+  "id": "minicpm-v47",
+  "kind": "vlm",
+  "name": {
+    "en": "MiniCPM-V 4.7 1B",
+    "ja": "MiniCPM-V 4.7 1B"
+  },
+  "use": {
+    "en": "Image/video understanding",
+    "ja": "画像・動画の理解"
+  },
+  "overview": {
+    "en": "Image/video understanding",
+    "ja": "画像・動画の理解"
+  },
+  "release": "planned",
+  "release_note": {
+    "en": "investigation",
+    "ja": "調査"
+  },
+  "download": null,
+  "pages": {
+    "en": "docs/model-reports/minicpm-v47.md",
+    "ja": "docs/model-reports/minicpm-v47.ja.md"
+  },
+  "links": [
+    {
+      "title": {
+        "en": "#179",
+        "ja": "#179"
+      },
+      "url": "https://github.com/oka-yuji/coreai-samples/issues/179"
+    }
+  ],
+  "support": {
+    "macos": {
+      "state": "unavailable",
+      "variants": [],
+      "evidence": [],
+      "note": {
+        "en": "Native demo is not provided for this platform.",
+        "ja": "このOSのネイティブデモは未提供です。"
+      }
+    },
+    "ios": {
+      "state": "unavailable",
+      "variants": [],
+      "evidence": [],
+      "note": {
+        "en": "Native demo is not provided for this platform.",
+        "ja": "このOSのネイティブデモは未提供です。"
+      }
+    }
+  },
+  "evidence": {},
+  "measurements": [],
+  "omissions": {},
+  "checks": {
+    "fidelity": {
+      "state": "not_measured",
+      "evidence": [],
+      "note": {
+        "en": "No completed check for this scope under the common protocol.",
+        "ja": "この範囲の共通プロトコルによる確認は未実施です。"
+      }
+    },
+    "quality": {
+      "state": "not_measured",
+      "evidence": [],
+      "note": {
+        "en": "No completed check for this scope under the common protocol.",
+        "ja": "この範囲の共通プロトコルによる確認は未実施です。"
+      }
+    },
+    "stability": {
+      "state": "not_measured",
+      "evidence": [],
+      "note": {
+        "en": "No completed check for this scope under the common protocol.",
+        "ja": "この範囲の共通プロトコルによる確認は未実施です。"
+      }
+    },
+    "cancellation": {
+      "state": "not_measured",
+      "evidence": [],
+      "note": {
+        "en": "No completed check for this scope under the common protocol.",
+        "ja": "この範囲の共通プロトコルによる確認は未実施です。"
+      }
+    }
+  }
+}

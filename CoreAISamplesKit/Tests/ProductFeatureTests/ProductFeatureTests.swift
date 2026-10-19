@@ -6,6 +6,10 @@ import ProductRuntime
 import Testing
 
 struct ProductFeatureTests {
+    private let stamp = Date(timeIntervalSince1970: 0)
+    private let selected = URL(filePath: "/models/selected")
+    private let identity = "gliner2.5-multi/gliner2.5-multi-fp32@0123456789abcdef0123456789abcdef01234567"
+
     private func ready() -> ProductState {
         var state = ProductState(modelFolder: URL(filePath: "/models/product"))
         state.draft.mode = .text
@@ -13,8 +17,26 @@ struct ProductFeatureTests {
         return state
     }
 
+    private func managed() -> ProductState {
+        var state = ProductState(folder: selected, resourceIdentity: identity)
+        state.draft.mode = .text
+        state.draft.text = "Memory: 16 GB"
+        return state
+    }
+
     private func source() throws -> ProductSource {
         try ProductSource(title: "Example", text: "Memory: 16 GB", url: nil, capturedAt: Date(timeIntervalSince1970: 0))
+    }
+
+    private func addCard(_ state: inout ProductState, text: String) throws {
+        var draft = state.draft
+        draft.text = text
+        _ = ProductFeature.reduce(&state, .draftChanged(draft))
+        _ = ProductFeature.reduce(&state, .submit(stamp))
+        let id = state.generation
+        let source = try ProductSource(title: "", text: text, url: nil, capturedAt: stamp)
+        _ = ProductFeature.reduce(&state, .sourceLoaded(id, source))
+        _ = ProductFeature.reduce(&state, .extracted(id, try ProductMemo(source: source, candidates: [])))
     }
 
     @Test("A submitted description is a stable snapshot and a duplicate submission is ignored")
@@ -69,13 +91,13 @@ struct ProductFeatureTests {
         _ = ProductFeature.reduce(&state, .submit(Date(timeIntervalSince1970: 0)))
         _ = ProductFeature.reduce(&state, .sourceLoaded(1, try source()))
         let commands = ProductFeature.reduce(&state, .closed)
-        #expect(commands == [.cancelAll, .run(.waitForIdle(2), id: .drain)])
+        #expect(commands == [.cancelAll, .run(.release(2), id: .drain)])
         _ = ProductFeature.reduce(&state, .appeared)
         #expect(!state.canAdd)
         let memo = try ProductMemo(source: source(), candidates: [])
         _ = ProductFeature.reduce(&state, .extracted(1, memo))
         #expect(state.cards.isEmpty)
-        _ = ProductFeature.reduce(&state, .stopped(2))
+        _ = ProductFeature.reduce(&state, .released(2))
         #expect(state.canAdd)
     }
 
@@ -111,10 +133,10 @@ struct ProductFeatureTests {
         var state = ready()
         _ = ProductFeature.reduce(&state, .submit(Date(timeIntervalSince1970: 0)))
         _ = ProductFeature.reduce(&state, .stop)
-        #expect(ProductFeature.reduce(&state, .closed) == [.cancelAll, .run(.waitForIdle(3), id: .drain)])
+        #expect(ProductFeature.reduce(&state, .closed) == [.cancelAll, .run(.release(3), id: .drain)])
         _ = ProductFeature.reduce(&state, .stopped(2))
         #expect(state.phase == .stopping)
-        _ = ProductFeature.reduce(&state, .stopped(3))
+        _ = ProductFeature.reduce(&state, .released(3))
         #expect(state.phase == .idle)
     }
 
@@ -141,6 +163,52 @@ struct ProductFeatureTests {
         }
         #expect(memo.source == source)
     }
+
+    @Test(
+        "Inputs, up to four comparison results and their sources are kept when the model is deleted or the screen is rebuilt"
+    )
+    func retention() throws {
+        var state = managed()
+        let texts = ["Memory: 8 GB", "Memory: 16 GB", "Memory: 24 GB", "Memory: 32 GB"]
+        for text in texts { try addCard(&state, text: text) }
+        var draft = state.draft
+        draft.text = "Storage: 1 TB"
+        _ = ProductFeature.reduce(&state, .draftChanged(draft))
+        let cards = state.cards
+        #expect(cards.map(\.memo.source.text) == texts)
+        #expect(cards.allSatisfy { $0.resourceIdentity == identity })
+        _ = ProductFeature.reduce(&state, .closed)
+        _ = ProductFeature.reduce(&state, .released(state.generation))
+        #expect(state.cards == cards && state.draft == draft && state.phase == .idle)
+        let other = URL(filePath: "/models/other")
+        let otherIdentity = "gliner2.5-multi/gliner2.5-multi-int8@89abcdef0123456789abcdef0123456789abcdef"
+        var rebuilt = ProductState(folder: other, resourceIdentity: otherIdentity, keeping: state)
+        #expect(rebuilt.cards == cards && rebuilt.draft == draft && rebuilt.modelFolder == other)
+        #expect(!rebuilt.canAdd)
+        _ = ProductFeature.reduce(&rebuilt, .remove(cards[0].id))
+        try addCard(&rebuilt, text: "Memory: 64 GB")
+        #expect(rebuilt.cards.map(\.resourceIdentity) == [identity, identity, identity, otherIdentity])
+        #expect(Set(rebuilt.cards.map(\.id)).count == ProductState.cardLimit)
+    }
+
+    @Test("Closing releases the model in a drain that rejects new work until its own release result arrives")
+    func releaseOrdering() {
+        var state = ready()
+        #expect(ProductFeature.reduce(&state, .closed) == [.cancelAll, .run(.release(1), id: .drain)])
+        _ = ProductFeature.reduce(&state, .appeared)
+        #expect(state.phase == .stopping && !state.canAdd)
+        #expect(ProductFeature.reduce(&state, .submit(stamp)).isEmpty)
+        _ = ProductFeature.reduce(&state, .released(0))
+        _ = ProductFeature.reduce(&state, .releaseFailed(0, "Late failure"))
+        #expect(state.phase == .stopping)
+        _ = ProductFeature.reduce(&state, .releaseFailed(1, "The model is still in use"))
+        #expect(state.phase == .failed("The model is still in use") && state.canAdd)
+        #expect(ProductFeature.reduce(&state, .closed) == [.cancelAll, .run(.release(2), id: .drain)])
+        _ = ProductFeature.reduce(&state, .released(1))
+        #expect(state.phase == .stopping)
+        _ = ProductFeature.reduce(&state, .released(2))
+        #expect(state.phase == .idle)
+    }
 }
 
 @MainActor
@@ -152,4 +220,5 @@ private final class ProductServiceStub: ProductService {
         try ProductMemo(source: source, candidates: [])
     }
     func waitForIdle() async {}
+    func release() async throws {}
 }

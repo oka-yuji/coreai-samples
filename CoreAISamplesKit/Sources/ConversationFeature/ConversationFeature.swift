@@ -116,7 +116,7 @@ public enum ConversationFeature: Feature {
             return send(&state, text, mode: mode, now: now)
         case .sendSources(let text, let request, let now):
             guard request.web || request.local, [3_000, 6_000].contains(request.budget) else { return [] }
-            return send(&state, text, mode: .chat, now: now, sourceRequest: request)
+            return send(&state, text, mode: state.mode, now: now, sourceRequest: request)
         case .sourcesCollected(let run, let ids, let evidence, let lines):
             guard state.isActive(run), !state.stopRequested else { return [] }
             state.isRetrieving = false
@@ -134,6 +134,7 @@ public enum ConversationFeature: Feature {
             var turn = ConversationTurn(
                 prompt: continuationPrompt, mode: previous.mode, settings: previous.settings,
                 start: state.transcript.entries.count)
+            if state.settings.webSearchEnabled != true { turn.settings.webSearchEnabled = false }
             turn.kind = .continuation
             turn.sourceIDs = previous.sourceIDs
             turn.toolsDisabled = previous.finalAnswerStart != nil || previous.toolsDisabled == true
@@ -349,6 +350,10 @@ public enum ConversationFeature: Feature {
         state.refusedSave = false
         var turn = ConversationTurn(
             prompt: prompt, mode: mode, settings: state.settings, start: state.transcript.entries.count)
+        if let sourceRequest {
+            turn.settings.webSearchEnabled = sourceRequest.web
+            state.settings.webSearchEnabled = sourceRequest.web
+        }
         turn.sourceRequest = sourceRequest
         return start(&state, turn, now: now)
     }
@@ -362,6 +367,7 @@ public enum ConversationFeature: Feature {
         else { return [] }
         var turn = ConversationTurn(
             prompt: prompt, mode: .work, settings: last.settings, start: state.transcript.entries.count)
+        if state.settings.webSearchEnabled != true { turn.settings.webSearchEnabled = false }
         turn.kind = .repair
         turn.sourceIDs = last.sourceIDs
         turn.offset = state.step
@@ -420,7 +426,7 @@ public enum ConversationFeature: Feature {
             return [.run(.refuseTool(call, reason: endedRefusal), id: nil)]
         }
         let refusal = policy.refusal(for: call.name)
-        if policy.refusedTools[call.name] != nil { state.refusedSave = true }
+        if refusal == TurnPolicy.savingRefusal { state.refusedSave = true }
         if state.stopRequested || state.step >= policy.maxSteps {
             return [.run(.refuseTool(call, reason: refusal ?? endedRefusal), id: nil)] + cutOff(&state)
         }

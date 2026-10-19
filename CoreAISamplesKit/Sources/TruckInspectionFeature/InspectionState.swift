@@ -27,10 +27,11 @@ public struct InspectionRecord: Codable, Equatable, Sendable {
     public let confirmed: Bool
     public let milliseconds: Double
     public let turnMilliseconds: Double?
+    public let artifact: String?
 
     public init(
         itemID: String, title: String, answer: String, candidate: InspectionCandidate,
-        confirmed: Bool, milliseconds: Double, turnMilliseconds: Double? = nil
+        confirmed: Bool, milliseconds: Double, turnMilliseconds: Double? = nil, artifact: String? = nil
     ) {
         self.itemID = itemID
         self.title = title
@@ -39,16 +40,27 @@ public struct InspectionRecord: Codable, Equatable, Sendable {
         self.confirmed = confirmed
         self.milliseconds = milliseconds
         self.turnMilliseconds = turnMilliseconds
+        self.artifact = artifact
     }
 }
 
 public struct InspectionState: Equatable, Sendable {
     public enum Phase: String, Equatable, Sendable {
-        case idle, preparing, answering, classifying, confirming, completed, stopping, authorizing, speaking, listening,
-            measuring
+        case idle, preparing, answering, classifying, confirming, completed, stopping, stopFailed, authorizing,
+            speaking, listening, measuring
+    }
+
+    public enum Execution: Equatable, Sendable {
+        case standalone, managed
+    }
+
+    enum Request: Equatable, Sendable {
+        case start, submit, measure, voice
     }
 
     public let catalog: InspectionCatalog
+    public let execution: Execution
+    public let artifact: String?
     public var profile: TruckProfile = .airBrake
     public var phase = Phase.idle
     public var active = false
@@ -76,10 +88,26 @@ public struct InspectionState: Equatable, Sendable {
     public var unclearConfirmations = 0
     public var clockSeconds: Double = 0
     public var turnStartedAt: Double?
+    public var voiceLimit: InspectionVoiceLimit?
+    var request: Request?
+    var requestPhase = Phase.idle
 
-    public init(catalog: InspectionCatalog, modelFolder: URL? = nil) {
+    public init(
+        catalog: InspectionCatalog, modelFolder: URL? = nil, execution: Execution = .standalone,
+        artifact: String? = nil
+    ) {
         self.catalog = catalog
         self.modelFolder = modelFolder
+        self.execution = execution
+        self.artifact = artifact
+    }
+
+    public mutating func retain(_ previous: InspectionState) {
+        profile = previous.profile
+        records = previous.records
+        index = previous.index
+        draft = previous.draft
+        events = previous.events
     }
 
     public var items: [InspectionItem] { catalog.items(for: profile) }
@@ -87,6 +115,12 @@ public struct InspectionState: Equatable, Sendable {
     public var canConfigure: Bool { active && (phase == .idle || phase == .completed) }
     public var canAnswer: Bool { active && phase == .answering }
     public var busy: Bool { phase == .preparing || phase == .classifying || phase == .stopping || phase == .measuring }
+    public var canStartVoice: Bool { canConfigure && voiceLimit == nil && (modelInfo != nil || preparesOnRequest) }
+    public var canMeasure: Bool { canConfigure && (modelInfo != nil || preparesOnRequest) }
+    var preparesOnRequest: Bool { execution == .managed && modelFolder != nil }
+    public var stopFailureMessage: String? {
+        phase == .stopFailed ? "Voice input or the model did not stop. Use Stop to try again." : nil
+    }
     public var orderedRecords: [InspectionRecord] { items.compactMap { records[$0.id] } }
     public var unansweredCount: Int { items.count - records.count }
 
@@ -101,6 +135,7 @@ public struct InspectionState: Equatable, Sendable {
                 let confirmation = record.confirmed ? "confirmed" : record.candidate.method.rawValue
                 lines.append("\(item.title): \(catalog.title(for: record.candidate.status)) [\(confirmation)]")
                 if !record.answer.isEmpty { lines.append("  \(record.answer)") }
+                if let artifact = record.artifact { lines.append("  model: \(artifact)") }
             } else {
                 lines.append("\(item.title): —")
             }

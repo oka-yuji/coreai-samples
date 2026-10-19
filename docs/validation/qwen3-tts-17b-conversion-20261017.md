@@ -122,3 +122,7 @@ estimate is retained independently of elapsed time. The recipe, validation recor
 TTS plan and Core AI guide describe the new variant and its limits. Listening is
 the remaining user check. Swift, iPhone, quantization, KV optimization and broader
 quality/endurance evaluation remain separate work.
+
+## Integration decision
+
+On 2026-10-19 the user explicitly requested merging PR #170 before the remaining listening check. Q17-7 stays unchecked; merging the implementation does not complete subjective audio acceptance or publish model weights. The original numerical results and criteria above are retained. Integration checks for the current main are recorded in the PR.
