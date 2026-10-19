@@ -15,22 +15,39 @@ public enum ObjectFinderExecution: Equatable, Sendable {
     case standalone, managed
 }
 
+public struct ObjectFinderMemory: Equatable, Sendable {
+    public let footprintBytes: UInt64
+    public let availableBytes: UInt64
+
+    public init(footprintBytes: UInt64, availableBytes: UInt64) {
+        self.footprintBytes = footprintBytes
+        self.availableBytes = availableBytes
+    }
+}
+
 public struct ObjectFinderFrame: Equatable, Sendable {
     public let candidates: [ObjectCandidate]
     public let seconds: Double
     public let rotation: Double
     public let orientationRevision: Int
     public let captureGeneration: Int
+    public let similarities: [Double]
+    public let capturedAt: Double
+    public let memory: ObjectFinderMemory?
 
     public init(
         candidates: [ObjectCandidate], seconds: Double, rotation: Double = 90, orientationRevision: Int = 0,
-        captureGeneration: Int = 0
+        captureGeneration: Int = 0, similarities: [Double] = [], capturedAt: Double = 0,
+        memory: ObjectFinderMemory? = nil
     ) {
         self.candidates = candidates
         self.seconds = seconds
         self.rotation = rotation
         self.orientationRevision = orientationRevision
         self.captureGeneration = captureGeneration
+        self.similarities = similarities
+        self.capturedAt = capturedAt
+        self.memory = memory
     }
 }
 
@@ -53,6 +70,11 @@ public struct ObjectFinderState: Equatable, Sendable {
     public var orientationRevision = 0
     public var restartAfterStop = false
     public var releasePending = false
+    public var log: [ObjectFinderFrame] = []
+    public var analyzedFrames = 0
+    public var peakFootprintBytes: UInt64?
+
+    public static let logLimit = 20
 
     public var cameraRotation: ObjectCameraRotation {
         ObjectCameraRotation(session: session, revision: orientationRevision, angle: orientation.angle)
@@ -81,6 +103,19 @@ public struct ObjectFinderState: Equatable, Sendable {
     public var canApplyQuery: Bool {
         presented && (phase == .starting || phase == .searching) && folder != nil && validDraft
             && query.trimmingCharacters(in: .whitespacesAndNewlines) != submittedQuery
+    }
+
+    public var showsCamera: Bool {
+        phase == .starting || phase == .searching || (phase == .stopping && restartAfterStop)
+    }
+
+    public var averageSeconds: Double? {
+        log.isEmpty ? nil : log.map(\.seconds).reduce(0, +) / Double(log.count)
+    }
+
+    public var framesPerSecond: Double? {
+        guard let newest = log.first, let oldest = log.last, newest.capturedAt > oldest.capturedAt else { return nil }
+        return Double(log.count - 1) / (newest.capturedAt - oldest.capturedAt)
     }
 
     public var canStop: Bool {
@@ -155,6 +190,9 @@ public enum ObjectFinderFeature: Feature {
             state.restartAfterStop = false
             clear(&state)
             state.failure = nil
+            state.log = []
+            state.analyzedFrames = 0
+            state.peakFootprintBytes = nil
             return [
                 .run(
                     .search(state.session, folder, state.submittedQuery, state.minimumSimilarity, state.cameraRotation),
@@ -175,6 +213,11 @@ public enum ObjectFinderFeature: Feature {
             else { return [] }
             let previous = state.matches.first
             state.frame = frame
+            state.analyzedFrames += 1
+            state.log = Array(([frame] + state.log).prefix(State.logLimit))
+            if let footprint = frame.memory?.footprintBytes {
+                state.peakFootprintBytes = max(state.peakFootprintBytes ?? 0, footprint)
+            }
             state.matches = ObjectCandidateSelection.select(
                 frame.candidates, minimumSimilarity: state.minimumSimilarity)
             guard let first = state.matches.first else {

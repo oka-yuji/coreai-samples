@@ -255,6 +255,63 @@ struct ObjectFinderFeatureTests {
         }
         #expect(failure == .cameraDenied && service.closes == 2)
     }
+
+    @Test("The camera sheet is shown only while starting, searching or replacing the query")
+    func cameraSheetVisibility() {
+        var state = ObjectFinderState(folder: folder)
+        state.query = "glasses"
+        #expect(!state.showsCamera)
+        _ = ObjectFinderFeature.reduce(&state, .start)
+        #expect(state.showsCamera)
+        _ = ObjectFinderFeature.reduce(&state, .started(1))
+        #expect(state.showsCamera)
+        _ = ObjectFinderFeature.reduce(&state, .queryChanged("keys"))
+        _ = ObjectFinderFeature.reduce(&state, .applyQuery)
+        #expect(state.phase == .stopping && state.showsCamera)
+        _ = ObjectFinderFeature.reduce(&state, .stopped(1))
+        _ = ObjectFinderFeature.reduce(&state, .started(2))
+        _ = ObjectFinderFeature.reduce(&state, .stop)
+        #expect(state.phase == .stopping && !state.showsCamera)
+        _ = ObjectFinderFeature.reduce(&state, .stopped(2))
+        #expect(state.phase == .idle && !state.showsCamera)
+        _ = ObjectFinderFeature.reduce(&state, .start)
+        _ = ObjectFinderFeature.reduce(&state, .failed(3, .cameraDenied))
+        #expect(state.phase == .idle && !state.showsCamera)
+    }
+
+    @Test("The search log keeps the latest twenty frames newest first and a new search clears it")
+    func searchLog() {
+        var state = active()
+        for index in 0..<25 {
+            _ = ObjectFinderFeature.reduce(
+                &state,
+                .analyzed(1, ObjectFinderFrame(candidates: [], seconds: Double(index), capturedAt: Double(index))))
+        }
+        #expect(state.log.count == ObjectFinderState.logLimit && state.analyzedFrames == 25)
+        #expect(state.log.first?.seconds == 24 && state.log.last?.seconds == 5)
+        _ = ObjectFinderFeature.reduce(&state, .stop)
+        _ = ObjectFinderFeature.reduce(&state, .stopped(1))
+        #expect(state.log.count == ObjectFinderState.logLimit)
+        _ = ObjectFinderFeature.reduce(&state, .start)
+        #expect(state.log.isEmpty && state.analyzedFrames == 0 && state.peakFootprintBytes == nil)
+    }
+
+    @Test("The log reports average analysis time, analyses per second and the peak memory of this search")
+    func searchMetrics() {
+        var state = active()
+        #expect(state.averageSeconds == nil && state.framesPerSecond == nil && state.peakFootprintBytes == nil)
+        let samples: [(Double, Double, UInt64)] = [(0.1, 10.0, 300), (0.3, 10.5, 500), (0.2, 11.0, 400)]
+        for (seconds, capturedAt, footprint) in samples {
+            let memory = ObjectFinderMemory(footprintBytes: footprint, availableBytes: 1_000)
+            _ = ObjectFinderFeature.reduce(
+                &state,
+                .analyzed(
+                    1, ObjectFinderFrame(candidates: [], seconds: seconds, capturedAt: capturedAt, memory: memory)))
+        }
+        #expect(abs((state.averageSeconds ?? 0) - 0.2) < 1e-9)
+        #expect(state.framesPerSecond == 2)
+        #expect(state.peakFootprintBytes == 500 && state.log.first?.memory?.footprintBytes == 400)
+    }
 }
 
 @MainActor

@@ -78,7 +78,8 @@ public final class LiveObjectFinderService: ObjectFinderService {
                         candidates: tracked,
                         seconds: Double(duration.seconds) + Double(duration.attoseconds) / 1e18,
                         rotation: frame.rotation, orientationRevision: rotation.revision,
-                        captureGeneration: frame.generation))
+                        captureGeneration: frame.generation, similarities: candidates.map(\.similarity),
+                        capturedAt: frame.capturedAt, memory: devices.memory()))
             }
             try checkStop()
         } catch {
