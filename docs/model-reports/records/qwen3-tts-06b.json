@@ -15,8 +15,8 @@
   },
   "release": "in_progress",
   "release_note": {
-    "en": "conversion and verification",
-    "ja": "変換と検証"
+    "en": "conversion verified; listening / publication pending",
+    "ja": "変換検証済み・試聴／公開待ち"
   },
   "download": null,
   "pages": {
@@ -40,10 +40,24 @@
     },
     {
       "title": {
-        "en": "Pinned conversion results (unmerged PR)",
-        "ja": "固定した変換結果（未マージPR）"
+        "en": "Pinned conversion results",
+        "ja": "固定した変換結果"
       },
       "url": "https://github.com/oka-yuji/coreai-samples/blob/999105687d50d94964e4eb518361ae4b6adcac1e/docs/validation/qwen3-tts-conversion-20261017.md"
+    },
+    {
+      "title": {
+        "en": "Conversion recipe",
+        "ja": "変換手順"
+      },
+      "url": "Tools/Conversion/recipes/qwen3_tts/README.md"
+    },
+    {
+      "title": {
+        "en": "Integration and remaining acceptance",
+        "ja": "統合と残る受入確認"
+      },
+      "url": "docs/validation/qwen3-tts-conversion-20261017.md"
     }
   ],
   "support": {
@@ -84,8 +98,8 @@
       "artifact_revision": null,
       "code_revision": null,
       "workload": {
-        "en": "Three Japanese fixtures in an unmerged conversion PR. Python host; source/model loads and timing boundaries follow the pinned report. No native demo.",
-        "ja": "未マージの変換PRの日本語3入力。Python host。ロードと計測区間は固定した報告に従う。ネイティブデモは未提供。"
+        "en": "Three Japanese fixtures in the recorded conversion snapshot. Python host; source/model loads and timing boundaries follow the pinned report. No native demo.",
+        "ja": "記録済みの変換snapshotの日本語3入力。Python host。ロードと計測区間は固定した報告に従う。ネイティブデモは未提供。"
       },
       "batch_size": 1,
       "concurrency": 1,
