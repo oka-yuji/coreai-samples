@@ -1,0 +1,22 @@
+[
+  {
+    "id": "ja_laugh",
+    "text": "人が笑っている"
+  },
+  {
+    "id": "ja_dog",
+    "text": "犬が走っている"
+  },
+  {
+    "id": "ja_food",
+    "text": "食べ物を食べている"
+  },
+  {
+    "id": "ja_car",
+    "text": "車が走っている"
+  },
+  {
+    "id": "en_sea",
+    "text": "The sea or a river"
+  }
+]

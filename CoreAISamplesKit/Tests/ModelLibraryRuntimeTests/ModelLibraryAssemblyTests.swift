@@ -281,7 +281,7 @@ struct ModelLibraryAssemblyTests {
     }
 
     @Test(
-        "The model library self-test reports the iOS catalog, its five providers, the capability states and missing published artifacts, fails when a catalog demo has no provider, and leaves the iOS-only checks out without a registry"
+        "The model library self-test reports the iOS catalog, its six providers, the capability states and missing published artifacts, fails when a catalog demo has no provider, and leaves the iOS-only checks out without a registry"
     )
     func selfTest() async throws {
         let app = try AppAssembly()
@@ -301,7 +301,7 @@ struct ModelLibraryAssemblyTests {
         #expect(registry?["connectedDemos"] as? [String] == registeredDemos.sorted())
         #expect(registry?["matchesCatalog"] as? Bool == true)
         #expect(passed["capabilities"] as? [String: String] == ["camera": "denied", "network": "available"])
-        #expect(passed["visibleModels"] as? Int == 2 && passed["visibleDemos"] as? Int == 5)
+        #expect(passed["visibleModels"] as? Int == 2 && passed["visibleDemos"] as? Int == 6)
         let artifacts = try #require(passed["artifacts"] as? [[String: Any]])
         let defined = app.catalog.models.flatMap(\.artifacts)
         #expect(artifacts.map { $0["artifactID"] as? String } == defined.map(\.id))

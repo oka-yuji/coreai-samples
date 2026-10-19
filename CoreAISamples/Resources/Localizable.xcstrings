@@ -1,6 +1,193 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "Playback is available once the model is ready." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルの準備ができると再生できます。"
+          }
+        }
+      }
+    },
+    "Video search demo" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "動画検索デモ"
+          }
+        }
+      }
+    },
+    "Find moments in a video using a text query." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "動画の中の場面を、言葉で検索します。"
+          }
+        }
+      }
+    },
+    "Choose a video, prepare its frame index, and jump to the moments that match your words. Similarity scores help rank candidates." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "動画を選んでフレームの索引を作り、入力した言葉に近い場面へ移動します。類似度は候補の並び順を判断するための値です。"
+          }
+        }
+      }
+    },
+    "Find moments in a video with your own words" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自分の言葉で動画の場面を探す"
+          }
+        }
+      }
+    },
+    "Choose video…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "動画を選ぶ…"
+          }
+        }
+      }
+    },
+    "Describe a moment to find" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "探したい場面の特徴を入力"
+          }
+        }
+      }
+    },
+    "Indexing frames: %lld of %lld" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フレームを索引化中：%1$lld / %2$lld枚"
+          }
+        }
+      }
+    },
+    "Searching the video…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "動画を検索中…"
+          }
+        }
+      }
+    },
+    "Index the video again to search it." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "検索するには、動画をもう一度索引化してください。"
+          }
+        }
+      }
+    },
+    "Play from %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@から再生"
+          }
+        }
+      }
+    },
+    "%lld moments" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld件の場面"
+          }
+        }
+      }
+    },
+    "Try different wording, lower the match threshold, or show all candidates." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "言葉を変えるか、照合のしきい値を下げるか、すべての候補を表示してください。"
+          }
+        }
+      }
+    },
+    "The default comes from the image demo and is not calibrated for video. Adjust it for your video." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "既定値は画像検索デモのもので、動画向けには調整していません。動画に合わせて変えてください。"
+          }
+        }
+      }
+    },
+    "The selected video could not be opened." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選択した動画を開けませんでした。"
+          }
+        }
+      }
+    },
+    "This video could not be read. Choose another video." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この動画を読み込めませんでした。別の動画を選んでください。"
+          }
+        }
+      }
+    },
+    "The operation failed. Try again or choose the video again." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "処理に失敗しました。再試行するか、動画を選び直してください。"
+          }
+        }
+      }
+    },
     "Cancel change" : {
       "extractionState" : "manual",
       "localizations" : {

@@ -46,6 +46,17 @@ public enum IOSDemoCatalog {
                 ],
                 platforms: [.iOS], searchTerms: searchTerms["image-search"]),
             DemoDescriptor(
+                id: "video-search", title: "Video search demo", systemImage: "film.stack",
+                summary: "Find moments in a video using a text query.",
+                explanation: [
+                    DemoExplanation(
+                        title: "How it works",
+                        text:
+                            "Choose a video, prepare its frame index, and jump to the moments that match your words. Similarity scores help rank candidates."
+                    )
+                ],
+                platforms: [.iOS], searchTerms: searchTerms["video-search"]),
+            DemoDescriptor(
                 id: "object-finder", title: "Camera search demo", systemImage: "viewfinder",
                 summary: "Find camera regions that match your words.",
                 explanation: [
@@ -75,6 +86,7 @@ public enum IOSDemoCatalog {
                 defaultArtifactID: embeddingFP16.id, platforms: [.iOS],
                 demos: [
                     ModelDemoLink(demoID: "image-search", platforms: [.iOS]),
+                    ModelDemoLink(demoID: "video-search", platforms: [.iOS]),
                     ModelDemoLink(demoID: "object-finder", platforms: [.iOS], requiredCapabilities: [.camera]),
                 ]),
         ]

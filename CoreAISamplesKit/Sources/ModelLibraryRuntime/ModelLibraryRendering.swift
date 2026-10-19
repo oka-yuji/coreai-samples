@@ -55,6 +55,7 @@ private struct DemoDescriptionPreview: View {
         case "extraction": ("Text to extract", "Extract")
         case "inspection": ("Inspection answer", "Start inspection")
         case "image-search": ("Search query", "Search images")
+        case "video-search": ("Search query", "Search video")
         case "object-finder": ("What to find", "Start camera")
         default: ("Input", "Run demo")
         }
