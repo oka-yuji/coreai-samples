@@ -58,7 +58,7 @@ Results below retain their original dates and workloads. Different rows may use 
 
 | Evidence | Date / record / route level | Device / OS / tools | Workload and recorded conditions |
 |---|---|---|---|
-| [E1](https://github.com/oka-yuji/coreai-samples/blob/dfc037a004c38dd552fe72ef99b47d6dd7a904f7/docs/validation/magpie-conversion-20261017.md) | 2026-10-17 / legacy / conversion | M4 Max 128 GiB / macOS 27.0 (26A428) / Xcode 27.0 (27A266a) | Three Japanese fixtures in an unmerged conversion PR. Python host; source/model loads and timing boundaries follow the pinned report. No native demo. · variant=FP32 research; backend=Core AI; GPU preferred; route=Python Core AI conversion host; source_revision=446bff55e1fe3d3aa29c771574e7d2b0fa322990; batch_size=1; concurrency=1; unrecorded: artifact_revision, code_revision, warmups, power, thermal, plan_sha256 |
+| [E1](https://github.com/oka-yuji/coreai-samples/blob/dfc037a004c38dd552fe72ef99b47d6dd7a904f7/docs/validation/magpie-conversion-20261017.md) | 2026-10-17 / legacy / conversion | M4 Max 128 GiB / macOS 27.0 (26A428) / Xcode 27.0 (27A266a) | Three Japanese fixtures in the recorded conversion snapshot. Python host; source/model loads and timing boundaries follow the pinned report. No native demo. · variant=FP32 research; backend=Core AI; GPU preferred; route=Python Core AI conversion host; source_revision=446bff55e1fe3d3aa29c771574e7d2b0fa322990; batch_size=1; concurrency=1; unrecorded: artifact_revision, code_revision, warmups, power, thermal, plan_sha256 |
 
 ### Setup, limitations and progress
 
@@ -66,5 +66,9 @@ Results below retain their original dates and workloads. Different rows may use 
 
 - [PR #166](https://github.com/oka-yuji/coreai-samples/pull/166)
 
-- [Pinned conversion results (unmerged PR)](https://github.com/oka-yuji/coreai-samples/blob/dfc037a004c38dd552fe72ef99b47d6dd7a904f7/docs/validation/magpie-conversion-20261017.md)
+- [Pinned conversion results](https://github.com/oka-yuji/coreai-samples/blob/dfc037a004c38dd552fe72ef99b47d6dd7a904f7/docs/validation/magpie-conversion-20261017.md)
+
+- [Conversion recipe](../../Tools/Conversion/recipes/magpie/README.md)
+
+- [Integration and remaining acceptance](../validation/magpie-conversion-20261017.md)
 <!-- model-report:end -->
