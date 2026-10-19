@@ -17,6 +17,8 @@ public final class Engine {
         public let cached: Bool
         public let specializeSeconds: Double
         public let totalSeconds: Double
+        public let requestedComputeUnit: String?
+        public let expectsFrequentReshapes: Bool?
     }
 
     public struct Stats: Sendable {
@@ -24,6 +26,7 @@ public final class Engine {
         public var prefillSeconds = 0.0
         public var decodeTokens = 0
         public var decodeSeconds = 0.0
+        public var prepareSeconds = 0.0
 
         public init() {}
     }
@@ -115,7 +118,19 @@ public final class Engine {
         self.loadStats = LoadStats(
             cached: specializeSeconds == 0,
             specializeSeconds: specializeSeconds,
-            totalSeconds: (clock.now - start) / .seconds(1))
+            totalSeconds: (clock.now - start) / .seconds(1),
+            requestedComputeUnit: Self.computeUnitName(options.preferredComputeUnitKind),
+            expectsFrequentReshapes: options.expectFrequentReshapes)
+    }
+
+    static func computeUnitName(_ kind: ComputeUnitKind?) -> String {
+        guard let kind else { return "default" }
+        switch kind {
+        case .cpu: return "cpu"
+        case .gpu: return "gpu"
+        case .neuralEngine: return "neuralEngine"
+        @unknown default: return "other"
+        }
     }
 
     static func mainOutputWidth(_ modelURL: URL) -> Int? {
@@ -240,6 +255,7 @@ public final class Engine {
     }
 
     private func forward(_ function: InferenceFunction, _ chunk: ArraySlice<Int32>, logits: Bool) async throws {
+        let prepareStart = ContinuousClock.now
         let end = context.tokens.count + chunk.count
         context.reserve(end)
         let inputs = [
@@ -262,6 +278,7 @@ public final class Engine {
             outputViews.insert(unsafe _overrideLifetime(logitsArray.mutableRawView(), borrowing: self), for: logitsName)
             logitsOffset = (chunk.count - 1) * logitsArray.strides[1]
         }
+        stats.prepareSeconds += (ContinuousClock.now - prepareStart) / .seconds(1)
         _ = try await function.run(inputs: inputs, states: stateViews, outputViews: outputViews)
         context.tokens.append(contentsOf: chunk)
         hasLogits = logits

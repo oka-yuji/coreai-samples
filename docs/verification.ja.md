@@ -81,6 +81,65 @@ COREAI_TEST_BUNDLES=/path/to/bundle COREAI_TEST_RELOAD_INTERVAL=0 COREAI_TEST_RE
 
 5 秒の間隔は計測の決まりで、どの端末でもメモリが落ち着いた、回収が終わったことを保証するものではありません。その場の値とピークも、遅らせた標本と並べて残します。footprint の閾値の較正は、引き続きターン直後のその場の footprint の最大を使い、1.5 倍して 10 進の GB に切り上げます。観測の項目と待ちと取得の振る舞いの CPU だけの確認は、`swift test --package-path Tools/Verify` で流れます。
 
+## 計測項目と境界
+
+依頼ごとの計測は、明示したときだけ行います。`chat --runtime own --measure summary` は各 `turn` の記録に `measurement` を足し、`--measure trace` はさらにサンプルごとの行を足します。既定の `--measure off` では、この項目は無く、生成、停止、エラー、メタデータ、使用量は、この指定が無いときと同じです。`tools` は `--measure` を断り、`bench` にはこの指定がありません。値は `CoreAIBackend` が採り、`coreai-verify` が出力します。Verification SPI の `lastRequestMeasurement()` は、`lastGeneratedTokens()` と同じく実行に入った最後の依頼の計測を返し、その依頼が生成の前に終わったとき(文脈あふれや読み込みの失敗など)は何も返しません。`turn` の記録は、そのターンの依頼に計測が無ければ `measurement` を持ちません。実行の前に断られた依頼では SPI に前の依頼の計測が残るので、CLI は `request_id` を前のターンのものと比べます。時間は 1 つの単調な時計で測った秒、回数は整数です。
+
+ランタイムの生成は、依頼の検査、テンプレートの描画、文脈の詰め方、読み直しの後に始まります。読み直しの時間は別に `reload_seconds` に入ります。読み込みの後の段階は切れ目なく続くので、完了した依頼では、丸めの誤差を除いて `read_seconds` と 5 つの段階の合計の和が `total_seconds` に一致します。エラーで終わった依頼では、その時に進んでいた段階の時間は `total_seconds` だけに入ります。
+
+| 項目 | 開始 → 終了 | 数える対象 | 単位 |
+|---|---|---|---|
+| `Engine.Stats.decodeSeconds` | 各 `step`: forward の開始(入力の準備を含む)→ `function.run` の後の forward の終了 | 完了した step(`decodeTokens`) | s |
+| `Engine.Stats.prepareSeconds` | prefill の各チャンクと各 step の forward: 開始 → `function.run` の直前 | forward | s |
+| メタデータの `prefillSeconds` = `read_seconds` | 生成の開始 → 読み込み(prefill または復元)の終了。読み込みが失敗したときは失敗まで | 読んだトークンの `prefilled_tokens`(メタデータの `prefillTokens`) | s |
+| メタデータの `decodeSeconds` | 読み込みの終了 → 最後の送信(drain)の終了(サンプリング、文字列化、送信、step をまとめた区間) | — | s |
+| `first_token_seconds`、`last_token_seconds` | 生成の開始 → 最初と最後の `sampler.next` が返った時点(停止のトークンのサンプルを含む) | — | s |
+| `first_send_seconds` | 生成の開始 → 1 件以上のイベントを送った最初の `output.send` が返った時点 | — | s |
+| `sample_seconds` | 前の段階の終わり(最初のサンプルでは読み込みの終わり)→ `sampler.next` が返るまで(取り消しの確認を含む) | 停止のトークンを含むサンプル | s |
+| `text_seconds` | サンプルの終わり → `tokenizer.decode` と `parser.feed` の終わり | 停止のトークン以外のサンプル | s |
+| `send_seconds` | 文字列化の終わり → `output.send` が返るまで(送るものが無い呼び出しも含む) | 送信の呼び出し | s |
+| `step_seconds` | 送信の終わり → 共有の計算で行う `engine.step` が返るまで(その入力の準備と forward を含む) | 完了した step の `steps` | s |
+| `prepare_seconds` | デコードのループの前後での `Engine.Stats.prepareSeconds` の差。`step_seconds` の一部 | step の forward | s |
+| `drain_seconds` | 最後の段階の終わり → 残りの文字列化と `output.send(last: true)` が返るまで。エラーで終わった依頼では 0 | — | s |
+| `total_seconds` | 生成の開始 → drain の終わり(メタデータを送る前)。エラーのときはエラーまで | — | s |
+| speed の `load_s` | 開始 → `Engine.init`(own)または `EngineFactory.createEngine`(official。`warmup(queryLength: 1)` はもう含まない)の終わり | — | s |
+| speed の `warmup_s` | ロードの終わり → 計測する実行の開始。own は 16 トークンの前置きのあとの 8 トークンの生成と `reset`。official は `warmup(queryLength: 1)`、8 トークンの drain、`reset(to: 0)` | — | s |
+| speed の `specialize_s`、`cached` | own の `Engine.LoadStats` の特殊化の時間。キャッシュ済みのモデルでは 0 | — | s |
+| speed の `max_tokens`、`generated_tokens` | 要求した上限(以前の `decode_tokens`)と、`onToken` または公式の出力列で実際に受け取ったトークンの数 | トークン | トークン |
+| speed の `prefill_s`、`decode_s` | 実行の開始 → 最初のトークン、最初のトークン → 最後のトークン | — | s |
+| speed の `decode_tok_s` | `(generated_tokens − 1) / decode_s`。2 トークン未満では無い | トークン | トークン/s |
+
+回数は、`prompt_tokens`、`prefilled_tokens`(この依頼でエンジンが読んだトークン。プロンプトをすべて使い回したときや、読む前に失敗したときは 0)、`sampled_tokens`(`generated_tokens` と同じ並び。停止のトークンを含まず、上限に達したときの最後の未処理のトークンを含む)、`steps`、`sends`(1 件以上のイベントを送った送信。drain を含む)です。`outcome` は `stopToken`、`maxTokens`、`cancelled`、`failed` のどれかで、後の 2 つには `error` が付きます。speed の記録の `stop_reason` は、`generated_tokens` が `max_tokens` に達したとき `maxTokens`、それ以外は `stopToken` です。ここでは自前のエンジンは停止のトークンを無視するので、上限より前に終わり得るのは公式のエンジンだけです。`trace` の行は `sampler.next` ごとに 1 行あるので、`stopToken` の依頼では `sampled_tokens + 1` 行になります。停止のトークンの行には `sample_seconds` だけがあり、後に step が無かった行には `step_seconds` がありません。
+
+[共通の記録の規約](benchmarking.ja.md)の項目には、次のように対応します。
+
+| 共通の項目 | この記録での出どころ |
+|---|---|
+| `ttft_s` | `measurement.first_send_seconds`。Foundation Models へ最初の出力を渡した時点です。`first_token_seconds` との差は、文字列化と送信の時間です。起点は生成の開始で、`turn` の記録の `ttft_s` はセッションを呼んだ時点からの全体の時間です。 |
+| `decode_tps` | `(サンプル数 − 1) / (last_token_seconds − first_token_seconds)`。サンプル数は `stopToken` では `sampled_tokens + 1`、それ以外では `sampled_tokens`(trace の行数)です。speed の実行では `decode_tok_s`。 |
+| `latency_s` | `measurement.total_seconds` |
+| `first_load_s`、`warm_load_s` | `cached` が false または true の speed の `load_s`(またはチャットの `load` の記録の `init_s`)。自前のランタイムだけです。 |
+| `peak_rss_bytes` | speed の `peak_rss_bytes`。子プロセスの生涯のピークを `getrusage` で取ったものです。 |
+| `resident_bytes` | `memory.rss_bytes`。`captured_at` の時点の標本です。 |
+
+次の項目は、これらのコマンドでは観測できないか、測っていません。
+
+| 項目 | 状態 |
+|---|---|
+| GPU の実行時間 | 採っていません。Instruments で観測したときだけ共通の記録に加えます。wall time から推定しません。 |
+| 実際の演算の配置 | 返す公開 API がありません。`observed_compute` は常に `unknown` です。own のロードと speed の記録の `requested_compute` と `expect_frequent_reshapes` は、特殊化で要求した設定にすぎません。 |
+| 公式の特殊化の時間とキャッシュの命中 | `EngineFactory` からは観測できません。official の speed の記録には `specialize_s`、`cached`、`requested_compute` がありません。キャッシュの状態は手順で固定します。 |
+| `peak_footprint_bytes` | 測っていません。`footprint_bytes` は標本で、ピークではありません。 |
+| `os_proc_available_memory` | macOS の SDK では使えないため、記録しません。 |
+
+どの `memory` にも、`status`(`ok` か `failed`)、`captured_at`(ISO 8601 の wall clock)、`unit`(`B`)があります。`error`(例: `task_info returned 5`)は失敗したときだけ、`rss_bytes`、`footprint_bytes`、`graphics_footprint_bytes` は成功したときだけ出ます。speed の記録は、`getrusage` が失敗すると `peak_rss_bytes` を出しません。まとめの記録は、成功した取得の最大とその件数 `peak_rss_runs`、速度のある実行の中央値とその件数 `decode_runs` を出します。欠けた値を 0 として数えません。
+
+`summary` は合計と回数を採ります。計測はサンプルごとに最大 4 回時計を読み、`trace` はさらに行を保存します。結果を比べる前に、同じコマンドを `--measure off` と `--measure trace` で交互に流す A/A の確認をし、`turn` の記録の `total_s` と `decode_tok_s` を比べます。
+
+```bash
+.build/release/coreai-verify chat --model <bundle> --runtime own --reasoning off --measure trace --max-tokens 32 --prompt "List three fruits, one per line."
+```
+
 ## モデル別の結果
 
 Qwen3.8 27Bの参照との照合結果と未達の基準は[モデル別の検証](qwen3.8-27b.ja.md#検証)、速度とメモリは[主な数値](qwen3.8-27b.ja.md#主な数値)にあります。ほかのモデルは[モデル一覧](../README.ja.md#モデルとロードマップ)から各ガイドを参照してください。

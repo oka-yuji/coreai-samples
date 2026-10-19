@@ -55,16 +55,18 @@ import Testing
         #expect(sample.turn == 20)
         #expect(sample.waitSeconds == 5)
         #expect(sample.elapsedSeconds >= 0)
-        let encoder = JSONEncoder()
-        encoder.keyEncodingStrategy = .convertToSnakeCase
-        let record = try #require(JSONSerialization.jsonObject(with: encoder.encode(sample)) as? [String: Any])
+        let record = try #require(
+            JSONSerialization.jsonObject(with: JSONEncoder.records.encode(sample)) as? [String: Any])
         #expect(record["record"] as? String == "memory-sample")
         #expect(record["runtime"] as? String == "own")
         #expect(record["turn"] as? Int == 20)
         #expect(record["wait_seconds"] as? Int == 5)
         #expect(record["elapsed_seconds"] as? Double == sample.elapsedSeconds)
-        let memory = try #require(record["memory"] as? [String: Int])
-        #expect(memory == ["rss_bytes": 100, "footprint_bytes": 80, "graphics_footprint_bytes": 60])
+        let memory = try #require(record["memory"] as? [String: Any])
+        #expect(memory["status"] as? String == "ok")
+        #expect(memory["rss_bytes"] as? Int == 100)
+        #expect(memory["footprint_bytes"] as? Int == 80)
+        #expect(memory["graphics_footprint_bytes"] as? Int == 60)
     }
 
     @Test("Cancellation while waiting does not capture memory")

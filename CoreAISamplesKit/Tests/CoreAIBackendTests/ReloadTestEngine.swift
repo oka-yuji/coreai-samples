@@ -98,7 +98,8 @@ final class ReloadTestEngine: RuntimeEngine {
     private(set) var stats = Engine.Stats()
     private(set) var hasLogits = false
     let isHybrid = false
-    let loadStats = Engine.LoadStats(cached: true, specializeSeconds: 0, totalSeconds: 0)
+    let loadStats = Engine.LoadStats(
+        cached: true, specializeSeconds: 0, totalSeconds: 0, requestedComputeUnit: nil, expectsFrequentReshapes: nil)
 
     init(id: Int, control: ReloadTestControl, contextLimit: Int) {
         self.id = id
@@ -216,7 +217,10 @@ struct ReloadTestModel {
     let folder: URL
     let control: ReloadTestControl
 
-    static func make(policy: LocalLanguageModel.ReloadPolicy, limit: Int = 128) async throws -> Self {
+    static func make(
+        policy: LocalLanguageModel.ReloadPolicy, limit: Int = 128,
+        settings: LocalLanguageModel.VerificationSettings = .init()
+    ) async throws -> Self {
         let folder = try tinyBundle()
         let config = [
             "tokenizer_class": "Qwen2Tokenizer", "eos_token": "<|im_end|>",
@@ -227,7 +231,7 @@ struct ReloadTestModel {
         let control = ReloadTestControl()
         let runtime = try await Runtime(
             bundle: ModelBundle(url: folder), contextLimit: limit, overflow: .error,
-            settings: .init(), reloadPolicy: policy, makeEngine: control.make, footprint: control.footprint)
+            settings: settings, reloadPolicy: policy, makeEngine: control.make, footprint: control.footprint)
         return Self(
             model: LocalLanguageModel(runtime: runtime, bundle: folder), runtime: runtime, folder: folder,
             control: control)

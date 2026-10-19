@@ -81,6 +81,65 @@ For a memory-growth measurement, add `--memory-sample-turn 10 --memory-sample-tu
 
 The five-second interval is a measurement convention, not a guarantee that memory has stabilized or reclamation has completed on every device. Keep the immediate values and peak alongside the delayed samples. The footprint threshold calibration still uses the maximum immediate post-turn footprint, multiplied by 1.5 and rounded up to a decimal GB. CPU-only checks for the observation option and its wait/capture behavior run with `swift test --package-path Tools/Verify`.
 
+## Measurement fields and boundaries
+
+The per-request measurement is opt-in. `chat --runtime own --measure summary` adds a `measurement` object to each `turn` record, and `--measure trace` also adds one row per sample. `--measure off`, the default, leaves the record without this field, and generation, stops, errors, metadata and usage are the same as without the option. `tools` rejects `--measure`, and `bench` has no such option. `CoreAIBackend` collects the values and `coreai-verify` prints them. The Verification SPI `lastRequestMeasurement()` returns the measurement of the last request admitted to execution, like `lastGeneratedTokens()`, and nothing when that request ended before generation, for example on a context overflow or a load failure. A turn record omits `measurement` when its own request has none; a request rejected before execution leaves the previous request's measurement in the SPI, so the CLI compares `request_id` with the previous turn's. Times are seconds from one monotonic clock and counts are integers.
+
+The runtime's generation starts after request validation, template rendering, context fitting and any reload, which is reported separately as `reload_seconds`. The stages after the read are contiguous: for a completed request, `read_seconds` plus the five stage totals equals `total_seconds` up to rounding. When an error ends the request, the stage in progress counts only toward `total_seconds`.
+
+| Field | Start → end | Counted | Unit |
+|---|---|---|---|
+| `Engine.Stats.decodeSeconds` | each `step`: start of its forward, input preparation included → end of the forward after `function.run` | completed steps (`decodeTokens`) | s |
+| `Engine.Stats.prepareSeconds` | each forward of a prefill chunk or a step: start → just before `function.run` | forwards | s |
+| metadata `prefillSeconds` = `read_seconds` | generation start → end of the read (prefill or restore); on a read failure, → the failure | tokens read, `prefilled_tokens` (metadata `prefillTokens`) | s |
+| metadata `decodeSeconds` | end of the read → end of the drain (sampling, text, sending and steps together) | — | s |
+| `first_token_seconds`, `last_token_seconds` | generation start → return of the first and last `sampler.next`, including the stop token's sample | — | s |
+| `first_send_seconds` | generation start → return of the first `output.send` that sent at least one event | — | s |
+| `sample_seconds` | end of the previous stage (the read for the first sample) → return of `sampler.next`, including the cancellation check | samples, including the stop token | s |
+| `text_seconds` | end of the sample → end of `tokenizer.decode` and `parser.feed` | samples other than the stop token | s |
+| `send_seconds` | end of the text → return of `output.send`, including calls with nothing to send | send calls | s |
+| `step_seconds` | end of the send → return of the shared-compute `engine.step` (includes its preparation and forward) | `steps`, completed steps | s |
+| `prepare_seconds` | change in `Engine.Stats.prepareSeconds` over the decode loop; a part of `step_seconds` | step forwards | s |
+| `drain_seconds` | end of the last stage → return of the final text conversion and `output.send(last: true)`; 0 when an error ended the request | — | s |
+| `total_seconds` | generation start → end of the drain, before the metadata is sent; on an error, → the error | — | s |
+| speed `load_s` | start → end of `Engine.init` (own) or `EngineFactory.createEngine` (official, no longer including `warmup(queryLength: 1)`) | — | s |
+| speed `warmup_s` | end of the load → start of the measured run. Own: 8 tokens after a 16-token prefix, then `reset`. Official: `warmup(queryLength: 1)`, an 8-token drain and `reset(to: 0)` | — | s |
+| speed `specialize_s`, `cached` | own `Engine.LoadStats`: specialization time, 0 for a cached model | — | s |
+| speed `max_tokens`, `generated_tokens` | requested limit (formerly `decode_tokens`); tokens actually received by `onToken` or from the official sequence | tokens | tokens |
+| speed `prefill_s`, `decode_s` | run start → first token; first token → last token | — | s |
+| speed `decode_tok_s` | `(generated_tokens − 1) / decode_s`; absent below two tokens | tokens | tokens/s |
+
+The counts are `prompt_tokens`, `prefilled_tokens` (tokens the engine read for this request; 0 if the prompt was fully reused or the read failed first), `sampled_tokens` (the same list as `generated_tokens`: no stop token, the last unprocessed token at the limit included), `steps` and `sends` (sends with at least one event, the drain included). `outcome` is `stopToken`, `maxTokens`, `cancelled` or `failed`; the last two add `error`. A speed record's `stop_reason` is `maxTokens` when `generated_tokens` reached `max_tokens` and otherwise `stopToken`; the own engine ignores stop tokens there, so only an official engine can end before the limit. A `trace` row exists for each `sampler.next`, so a `stopToken` request has `sampled_tokens + 1` rows. The stop token's row has only `sample_seconds`, and `step_seconds` is absent when no step followed.
+
+The fields map to the [common record contract](benchmarking.md) as follows.
+
+| Common metric | Source in these records |
+|---|---|
+| `ttft_s` | `measurement.first_send_seconds`, the first output handed to Foundation Models. The difference from `first_token_seconds` is the text conversion and the send. It starts at the generation start; the turn record's `ttft_s` is end to end from the session call. |
+| `decode_tps` | `(samples − 1) / (last_token_seconds − first_token_seconds)`, where `samples` is `sampled_tokens + 1` for `stopToken` and `sampled_tokens` otherwise (the number of trace rows). For speed runs, `decode_tok_s`. |
+| `latency_s` | `measurement.total_seconds` |
+| `first_load_s`, `warm_load_s` | speed `load_s` (or the chat `load` record's `init_s`) with `cached` false or true. Own runtime only. |
+| `peak_rss_bytes` | speed `peak_rss_bytes`, the child process's lifetime peak from `getrusage` |
+| `resident_bytes` | `memory.rss_bytes`, a sample at `captured_at` |
+
+These items cannot be observed or are not measured by these commands:
+
+| Item | Status |
+|---|---|
+| GPU execution time | Not collected. Add it to a common record only when observed with Instruments; do not derive it from wall time. |
+| Actual compute placement | No public API reports it. `observed_compute` is always `unknown`; `requested_compute` and `expect_frequent_reshapes` in own load and speed records are only the specialization request. |
+| Official specialization time and cache hit | Not observable through `EngineFactory`; official speed records omit `specialize_s`, `cached` and `requested_compute`. Fix the cache state by procedure. |
+| `peak_footprint_bytes` | Not measured. `footprint_bytes` is a sample, not a peak. |
+| `os_proc_available_memory` | Unavailable in the macOS SDK; not recorded. |
+
+Every `memory` object has `status` (`ok` or `failed`), `captured_at` (ISO 8601 wall clock) and `unit` (`B`). `error` (for example `task_info returned 5`) appears only on failure, and `rss_bytes`, `footprint_bytes` and `graphics_footprint_bytes` appear only on success. A speed record omits `peak_rss_bytes` when `getrusage` fails. The summary reports the maximum over successful captures with their count `peak_rss_runs`, and the median decode rate over runs that have one with their count `decode_runs`. Never count a missing value as 0.
+
+`summary` collects totals and counts. Measurement reads the clock up to four times per sample, and `trace` also stores a row. Before comparing results, run an A/A check: alternate the same command with `--measure off` and `--measure trace` and compare the turn records' `total_s` and `decode_tok_s`.
+
+```bash
+.build/release/coreai-verify chat --model <bundle> --runtime own --reasoning off --measure trace --max-tokens 32 --prompt "List three fruits, one per line."
+```
+
 ## Model-specific results
 
 Qwen3.8 27B reference comparisons and unmet criteria are in the [model verification](qwen3.8-27b.md#verification); speed and memory are in [Key numbers](qwen3.8-27b.md#key-numbers). Find other model guides in [Models and roadmap](../README.md#models-and-roadmap).

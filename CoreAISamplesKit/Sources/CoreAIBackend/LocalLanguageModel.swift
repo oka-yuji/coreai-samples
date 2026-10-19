@@ -27,6 +27,7 @@ public struct LocalLanguageModel: LanguageModel {
         public var reusesState = true
         public var keepsHistoryReasoning = true
         public var templateVariables: [String: Bool] = [:]
+        public var measurement = GenerationMeasurement.Level.off
 
         public init() {}
     }
@@ -82,6 +83,10 @@ public struct LocalLanguageModel: LanguageModel {
         await runtime.generatedTokens()
     }
 
+    @_spi(Verification) public func lastRequestMeasurement() async -> GenerationMeasurement? {
+        await runtime.measurement()
+    }
+
     @_spi(Verification) public func resetAndRead(_ tokens: [Int32]) async throws -> [Float16] {
         try await runtime.resetAndRead(tokens)
     }
@@ -104,6 +109,7 @@ actor Runtime {
     private var unloadedTokens: [Int32]?
     private var beganReading = false
     private var lastGeneration: [Int32] = []
+    private var lastMeasurement: GenerationMeasurement?
     nonisolated let tokenizer: any Tokenizer
     private let stopTokens: Set<Int32>
     private let sanitizer: ControlTokenSanitizer
@@ -163,6 +169,12 @@ actor Runtime {
         return lastGeneration
     }
 
+    func measurement() async -> GenerationMeasurement? {
+        await lock()
+        defer { unlock() }
+        return lastMeasurement
+    }
+
     func resetAndRead(_ tokens: [Int32]) async throws -> [Float16] {
         await lock()
         defer { unlock() }
@@ -216,6 +228,7 @@ actor Runtime {
         await lock()
         beganReading = false
         lastGeneration = []
+        lastMeasurement = nil
         defer {
             if beganReading { reloadState.completedRead() }
             unlock()
@@ -277,90 +290,113 @@ actor Runtime {
         let limit = min(request.generationOptions.maximumResponseTokens ?? .max, contextLimit - prompt.count)
         let clock = ContinuousClock()
         let start = clock.now
+        var probe = GenerationProbe(
+            settings.measurement, requestID: request.id, promptTokens: prompt.count, reloadSeconds: reloadSeconds,
+            start: start)
+        defer { lastMeasurement = probe?.record }
         let before = core.engine.stats.prefillTokens
         let hub = preparationProgress
         let transcriptID = request.transcript.first?.id ?? request.id.uuidString
         let requestID = request.id
-        let plan = try await read(
-            prompt, core: core, afterUser: afterUser,
-            progress: { processed, total in
-                hub.publish(
-                    PreparationProgress(
-                        requestID: requestID, transcriptID: transcriptID,
-                        processedTokens: processed, totalTokens: total))
-            },
-            questionStart: {
-                guard let lastUser else { return 0 }
-                var replaced = Array(messages[...lastUser])
-                replaced[lastUser]["content"] =
-                    (messages[lastUser]["content"] as? String ?? "").hasPrefix("A") ? "B" : "A"
-                let question = zip(try render(replaced, generationPrompt: false, context: context), rendered).prefix {
-                    $0 == $1
-                }.count
-                return ReusePlan.splice(Array(rendered.prefix(question)), processed: previous, generations: splicing) {
-                    tokenizer.decode(tokens: $0)
-                }.prompt.count
-            })
-        unloadedTokens = nil
-        let prefilled = core.engine.stats.prefillTokens - before
-        let readEnd = clock.now
-
-        var output = Output(
-            channel: channel,
-            calls: tools.isEmpty
-                ? nil : ToolCallParser(types: Dictionary(tools.map { ($0.name, $0.types) }) { a, _ in a }))
         var generated: [Int32] = []
-        defer {
-            lastGeneration = generated
-            for call in output.written { written[call.id] = call.keys }
-            written.removeFirst(max(0, written.count - Self.rememberedCalls))
-            if !generated.isEmpty { generations.append((prompt.count, generated)) }
-            generations.removeFirst(max(0, generations.count - Self.rememberedGenerations))
-        }
-        var parser = ThinkParser(reasoning: opensReasoning)
-        var pending: [Int] = []
-        var reasoningTokens = 0
-        var stopReason = "maxTokens"
-        while generated.count < limit {
-            try Task.checkCancellation()
-            let token = core.engine.withLogits { sampler.next($0) }
-            if stopTokens.contains(token) {
-                stopReason = "stopToken"
-                break
+        do {
+            let plan = try await read(
+                prompt, core: core, afterUser: afterUser,
+                progress: { processed, total in
+                    hub.publish(
+                        PreparationProgress(
+                            requestID: requestID, transcriptID: transcriptID,
+                            processedTokens: processed, totalTokens: total))
+                },
+                questionStart: {
+                    guard let lastUser else { return 0 }
+                    var replaced = Array(messages[...lastUser])
+                    replaced[lastUser]["content"] =
+                        (messages[lastUser]["content"] as? String ?? "").hasPrefix("A") ? "B" : "A"
+                    let question = zip(try render(replaced, generationPrompt: false, context: context), rendered)
+                        .prefix { $0 == $1 }.count
+                    return ReusePlan.splice(
+                        Array(rendered.prefix(question)), processed: previous, generations: splicing
+                    ) {
+                        tokenizer.decode(tokens: $0)
+                    }.prompt.count
+                })
+            unloadedTokens = nil
+            let prefilled = core.engine.stats.prefillTokens - before
+            let readEnd = clock.now
+            probe?.read(until: readEnd, prefilledTokens: prefilled, prepareSeconds: core.engine.stats.prepareSeconds)
+
+            var output = Output(
+                channel: channel,
+                calls: tools.isEmpty
+                    ? nil : ToolCallParser(types: Dictionary(tools.map { ($0.name, $0.types) }) { a, _ in a }))
+            defer {
+                lastGeneration = generated
+                for call in output.written { written[call.id] = call.keys }
+                written.removeFirst(max(0, written.count - Self.rememberedCalls))
+                if !generated.isEmpty { generations.append((prompt.count, generated)) }
+                generations.removeFirst(max(0, generations.count - Self.rememberedGenerations))
             }
-            generated.append(token)
-            pending.append(Int(token))
-            let text = tokenizer.decode(tokens: pending)
-            let complete = !text.hasSuffix("\u{FFFD}")
-            if complete { pending.removeAll() }
-            let wasReasoning = parser.reasoning
-            let parts = parser.feed(complete ? text : "")
-            let counted = wasReasoning || parser.reasoning
-            if counted { reasoningTokens += 1 }
-            await output.send(parts, reasoning: counted)
-            if generated.count < limit { try await compute(core: core) { try await core.engine.step(token) } }
-        }
-        await output.send(
-            parser.feed(tokenizer.decode(tokens: pending)) + parser.finish(), reasoning: false, last: true)
-        let shared = sharedOverride ?? plan.shared
-        var metadata: [String: any ConvertibleToGeneratedContent] = [
-            "stopReason": stopReason, "prefillTokens": prefilled, "sharedTokens": shared,
-            "truncatedToolOutputs": truncated,
-            "reservedTokens": contextLimit - prompt.count, "splicedGenerations": spliced,
-            "prefillSeconds": (readEnd - start) / .seconds(1), "decodeSeconds": (clock.now - readEnd) / .seconds(1),
-        ]
-        if let reloadSeconds { metadata["reloadSeconds"] = reloadSeconds }
-        if let call = output.lastCall {
+            var parser = ThinkParser(reasoning: opensReasoning)
+            var pending: [Int] = []
+            var reasoningTokens = 0
+            var stopReason = "maxTokens"
+            while generated.count < limit {
+                try Task.checkCancellation()
+                let token = core.engine.withLogits { sampler.next($0) }
+                probe?.sampled()
+                if stopTokens.contains(token) {
+                    stopReason = "stopToken"
+                    break
+                }
+                generated.append(token)
+                pending.append(Int(token))
+                let text = tokenizer.decode(tokens: pending)
+                let complete = !text.hasSuffix("\u{FFFD}")
+                if complete { pending.removeAll() }
+                let wasReasoning = parser.reasoning
+                let parts = parser.feed(complete ? text : "")
+                probe?.decoded()
+                let counted = wasReasoning || parser.reasoning
+                if counted { reasoningTokens += 1 }
+                let sent = await output.send(parts, reasoning: counted)
+                probe?.sent(sent)
+                if generated.count < limit {
+                    try await compute(core: core) { try await core.engine.step(token) }
+                    probe?.stepped()
+                }
+            }
+            let drained = await output.send(
+                parser.feed(tokenizer.decode(tokens: pending)) + parser.finish(), reasoning: false, last: true)
+            let end = clock.now
+            probe?.finish(
+                .init(rawValue: stopReason), drained: drained, until: end, sampledTokens: generated.count,
+                prepareSeconds: core.engine.stats.prepareSeconds)
+            let shared = sharedOverride ?? plan.shared
+            var metadata: [String: any ConvertibleToGeneratedContent] = [
+                "stopReason": stopReason, "prefillTokens": prefilled, "sharedTokens": shared,
+                "truncatedToolOutputs": truncated,
+                "reservedTokens": contextLimit - prompt.count, "splicedGenerations": spliced,
+                "prefillSeconds": (readEnd - start) / .seconds(1), "decodeSeconds": (end - readEnd) / .seconds(1),
+            ]
+            if let reloadSeconds { metadata["reloadSeconds"] = reloadSeconds }
+            if let call = output.lastCall {
+                await channel.send(
+                    .toolCalls(action: .toolCall(id: call.id, name: call.name, action: .updateMetadata(metadata))))
+            } else {
+                await channel.send(.response(action: .updateMetadata(metadata)))
+            }
             await channel.send(
-                .toolCalls(action: .toolCall(id: call.id, name: call.name, action: .updateMetadata(metadata))))
-        } else {
-            await channel.send(.response(action: .updateMetadata(metadata)))
+                .response(
+                    action: .updateUsage(
+                        input: .init(totalTokenCount: prompt.count, cachedTokenCount: plan.keep),
+                        output: .init(totalTokenCount: generated.count, reasoningTokenCount: reasoningTokens))))
+        } catch {
+            probe?.fail(
+                error, sampledTokens: generated.count, prefilledTokens: core.engine.stats.prefillTokens - before,
+                prepareSeconds: core.engine.stats.prepareSeconds)
+            throw error
         }
-        await channel.send(
-            .response(
-                action: .updateUsage(
-                    input: .init(totalTokenCount: prompt.count, cachedTokenCount: plan.keep),
-                    output: .init(totalTokenCount: generated.count, reasoningTokenCount: reasoningTokens))))
     }
 
     private func read(
@@ -645,12 +681,15 @@ struct Output {
         self.calls = calls
     }
 
-    mutating func send(_ parts: [ThinkParser.Part], reasoning: Bool, last: Bool = false) async {
+    mutating func send(_ parts: [ThinkParser.Part], reasoning: Bool, last: Bool = false) async -> Int {
         if !last { unreported += 1 }
+        var sent = 0
         var events: [ToolCallParser.Event] = []
         for part in parts {
             switch part {
-            case .reasoning(let text): await channel.send(.reasoning(action: .appendText(text, tokenCount: take())))
+            case .reasoning(let text):
+                await channel.send(.reasoning(action: .appendText(text, tokenCount: take())))
+                sent += 1
             case .response(let text): events += calls?.feed(text) ?? [.text(text)]
             }
         }
@@ -669,7 +708,11 @@ struct Output {
                 lastCall = (id, name)
             }
         }
-        if reasoning, unreported > 0 { await channel.send(.reasoning(action: .appendText("", tokenCount: take()))) }
+        if reasoning, unreported > 0 {
+            await channel.send(.reasoning(action: .appendText("", tokenCount: take())))
+            sent += 1
+        }
+        return sent + events.count
     }
 
     private mutating func take() -> Int {
