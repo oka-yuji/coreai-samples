@@ -1,6 +1,17 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "Playback is available once the model is ready." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルの準備ができると再生できます。"
+          }
+        }
+      }
+    },
     "Video search demo" : {
       "extractionState" : "manual",
       "localizations" : {

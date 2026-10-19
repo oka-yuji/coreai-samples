@@ -14,7 +14,6 @@
         func preview(for selection: DemoSelection) -> AnyView {
             var state = searches[selection]?.state ?? VideoSearchState()
             state.execution = .managed
-            state.video = nil
             return AnyView(VideoSearchContent(state: state, send: { _ in }, isPermitted: { false }))
         }
 

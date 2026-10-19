@@ -30,20 +30,14 @@ public struct VideoFrames: AsyncSequence {
     let maximumSize: CGSize
 
     public func makeAsyncIterator() -> Iterator {
-        let access = ScopedAccess(url)
-        let generator = AVAssetImageGenerator(asset: AVURLAsset(url: url))
-        generator.appliesPreferredTrackTransform = true
-        generator.maximumSize = maximumSize
-        generator.requestedTimeToleranceBefore = CMTime(seconds: 0.5, preferredTimescale: 600)
-        generator.requestedTimeToleranceAfter = CMTime(seconds: 0.5, preferredTimescale: 600)
+        let access = GeneratorAccess(url: url, maximumSize: maximumSize)
         let requests = times.map { CMTime(seconds: $0, preferredTimescale: 600) }
-        return Iterator(access: access, generator: generator, pending: requests[...])
+        return Iterator(access: access, pending: requests[...])
     }
 
     public struct Iterator: AsyncIteratorProtocol {
         static let batch = 4
-        let access: ScopedAccess
-        let generator: AVAssetImageGenerator
+        let access: GeneratorAccess
         var pending: ArraySlice<CMTime>
         var images: AVAssetImageGenerator.Images?
 
@@ -52,7 +46,7 @@ public struct VideoFrames: AsyncSequence {
                 try checkCancellation()
                 if images == nil {
                     guard !pending.isEmpty else { return nil }
-                    images = generator.images(for: Array(pending.prefix(Self.batch)))
+                    images = access.generator.images(for: Array(pending.prefix(Self.batch)))
                     pending = pending.dropFirst(Self.batch)
                 }
                 guard let element = await images?.next(isolation: #isolation) else {
@@ -67,20 +61,29 @@ public struct VideoFrames: AsyncSequence {
 
         private func checkCancellation() throws {
             guard Task.isCancelled else { return }
-            generator.cancelAllCGImageGeneration()
+            access.generator.cancelAllCGImageGeneration()
             throw CancellationError()
         }
     }
 }
 
-final class ScopedAccess {
+final class GeneratorAccess {
+    let generator: AVAssetImageGenerator
     private let url: URL
     private let accessed: Bool
 
-    init(_ url: URL) {
+    init(url: URL, maximumSize: CGSize) {
         self.url = url
         accessed = url.startAccessingSecurityScopedResource()
+        generator = AVAssetImageGenerator(asset: AVURLAsset(url: url))
+        generator.appliesPreferredTrackTransform = true
+        generator.maximumSize = maximumSize
+        generator.requestedTimeToleranceBefore = CMTime(seconds: 0.5, preferredTimescale: 600)
+        generator.requestedTimeToleranceAfter = CMTime(seconds: 0.5, preferredTimescale: 600)
     }
 
-    deinit { if accessed { url.stopAccessingSecurityScopedResource() } }
+    deinit {
+        generator.cancelAllCGImageGeneration()
+        if accessed { url.stopAccessingSecurityScopedResource() }
+    }
 }

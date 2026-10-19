@@ -12,6 +12,7 @@ struct VideoSearchContent: View {
     let send: @MainActor (VideoSearchAction) -> Void
     let isPermitted: @MainActor () -> Bool
     @State private var player: AVPlayer?
+    @State private var playerURL: URL?
     @State private var choosingVideo = false
     @State private var videoRequest = 0
     #if os(iOS)
@@ -45,8 +46,13 @@ struct VideoSearchContent: View {
                 }
             }
         #endif
-        .onChange(of: state.video, initial: true) { player = state.video.map { AVPlayer(url: $0) } }
-        .onDisappear { player?.pause() }
+        .onChange(of: state, initial: true) { connectPlayer() }
+        .onDisappear {
+            player?.pause()
+            #if os(iOS)
+                VideoFile.removeCopies(keeping: [state.video])
+            #endif
+        }
     }
 
     private var controls: some View {
@@ -148,11 +154,15 @@ struct VideoSearchContent: View {
 
     private var playback: some View {
         VStack(alignment: .leading, spacing: 12) {
-            VideoPlayer(player: player)
-                .aspectRatio(16 / 9, contentMode: .fit)
-                .frame(maxHeight: 240)
-                .frame(maxWidth: .infinity)
-                .accessibilityIdentifier("video-search-player")
+            if let player {
+                VideoPlayer(player: player)
+                    .aspectRatio(16 / 9, contentMode: .fit)
+                    .frame(maxHeight: 240)
+                    .frame(maxWidth: .infinity)
+                    .accessibilityIdentifier("video-search-player")
+            } else {
+                Text("Playback is available once the model is ready.").font(.footnote).foregroundStyle(.secondary)
+            }
             if state.hasSearched && state.duration > 0 { markers }
         }
     }
@@ -253,8 +263,24 @@ struct VideoSearchContent: View {
         Duration.seconds(time).formatted(.time(pattern: .minuteSecond(padMinuteToLength: 2)))
     }
 
+    @discardableResult
+    private func connectPlayer() -> AVPlayer? {
+        guard let video = state.video, isPermitted() else {
+            player?.pause()
+            player = nil
+            playerURL = nil
+            return nil
+        }
+        if let player, playerURL == video { return player }
+        player?.pause()
+        let connected = AVPlayer(url: video)
+        player = connected
+        playerURL = video
+        return connected
+    }
+
     private func play(from time: Double) {
-        guard isPermitted(), let player else { return }
+        guard isPermitted(), let player = connectPlayer() else { return }
         player.seek(to: CMTime(seconds: time, preferredTimescale: 600), toleranceBefore: .zero, toleranceAfter: .zero)
         player.play()
     }
@@ -268,9 +294,13 @@ struct VideoSearchContent: View {
                 pickedVideo = nil
                 return
             }
+            VideoFile.removeCopies(keeping: [state.video])
             do {
                 let file = try await item.loadTransferable(type: VideoFile.self)
-                guard !Task.isCancelled, pickedVideo == item else { return }
+                guard !Task.isCancelled, pickedVideo == item else {
+                    if let file { try? FileManager.default.removeItem(at: file.url) }
+                    return
+                }
                 guard let file else { throw CocoaError(.fileReadNoSuchFile) }
                 send(.videoChosen(request, file.url))
                 VideoFile.removeCopies(keeping: [state.video, file.url])
