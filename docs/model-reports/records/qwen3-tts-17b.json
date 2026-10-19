@@ -1,0 +1,246 @@
+{
+  "id": "qwen3-tts-17b",
+  "kind": "tts",
+  "name": {
+    "en": "Qwen3-TTS CustomVoice · 1.7B",
+    "ja": "Qwen3-TTS CustomVoice · 1.7B"
+  },
+  "use": {
+    "en": "Speech generation",
+    "ja": "音声生成"
+  },
+  "overview": {
+    "en": "Speech generation",
+    "ja": "音声生成"
+  },
+  "release": "in_progress",
+  "release_note": {
+    "en": "conversion and verification",
+    "ja": "変換と検証"
+  },
+  "download": null,
+  "pages": {
+    "en": "docs/model-reports/qwen3-tts-17b.md",
+    "ja": "docs/model-reports/qwen3-tts-17b.ja.md"
+  },
+  "links": [
+    {
+      "title": {
+        "en": "#169",
+        "ja": "#169"
+      },
+      "url": "https://github.com/oka-yuji/coreai-samples/issues/169"
+    },
+    {
+      "title": {
+        "en": "PR #170",
+        "ja": "PR #170"
+      },
+      "url": "https://github.com/oka-yuji/coreai-samples/pull/170"
+    },
+    {
+      "title": {
+        "en": "Pinned conversion results (unmerged PR)",
+        "ja": "固定した変換結果（未マージPR）"
+      },
+      "url": "https://github.com/oka-yuji/coreai-samples/blob/cd79318559ecfeb42580662b928d4feed415ea8e/docs/validation/qwen3-tts-17b-conversion-20261017.md"
+    }
+  ],
+  "support": {
+    "macos": {
+      "state": "unavailable",
+      "variants": [],
+      "evidence": [],
+      "note": {
+        "en": "Native demo is not provided for this platform.",
+        "ja": "このOSのネイティブデモは未提供です。"
+      }
+    },
+    "ios": {
+      "state": "unavailable",
+      "variants": [],
+      "evidence": [],
+      "note": {
+        "en": "Native demo is not provided for this platform.",
+        "ja": "このOSのネイティブデモは未提供です。"
+      }
+    }
+  },
+  "evidence": {
+    "conversion": {
+      "url": "https://github.com/oka-yuji/coreai-samples/blob/cd79318559ecfeb42580662b928d4feed415ea8e/docs/validation/qwen3-tts-17b-conversion-20261017.md",
+      "level": "conversion",
+      "outcome": "passed",
+      "record_type": "legacy",
+      "date": "2026-10-17",
+      "platform": "macos",
+      "device": "M4 Max 128 GiB",
+      "os": "macOS 27.0 (26A428)",
+      "toolchain": "Xcode 27.0 (27A266a)",
+      "variant": "FP32 research",
+      "backend": "Core AI; GPU preferred",
+      "route": "Python Core AI conversion host",
+      "source_revision": "0c0e3051f131929182e2c023b9537f8b1c68adfe",
+      "artifact_revision": null,
+      "code_revision": null,
+      "workload": {
+        "en": "Three Japanese fixtures in an unmerged conversion PR. Python host; source/model loads and timing boundaries follow the pinned report. No native demo.",
+        "ja": "未マージの変換PRの日本語3入力。Python host。ロードと計測区間は固定した報告に従う。ネイティブデモは未提供。"
+      },
+      "batch_size": 1,
+      "concurrency": 1,
+      "warmups": null,
+      "power": null,
+      "thermal": null,
+      "model_executed": true,
+      "plan_sha256": null
+    }
+  },
+  "measurements": [
+    {
+      "metric": "bundle_bytes",
+      "value": 6602093201,
+      "unit": "B",
+      "statistic": "single",
+      "n": 1,
+      "evidence": "conversion",
+      "note": {
+        "en": "Core AI assets only; separate source/tokenizer/host inputs required.",
+        "ja": "Core AI資産のみ。元の資産・tokenizer・hostの入力が別途必要。"
+      }
+    },
+    {
+      "metric": "latency_s",
+      "value": 11.141143999993801,
+      "unit": "s",
+      "statistic": "single",
+      "n": 1,
+      "evidence": "conversion",
+      "note": {
+        "en": "greeting: generation call; exclude loading and saving as documented.",
+        "ja": "greeting：記録した生成呼び出し。ロード・保存を除外。"
+      }
+    },
+    {
+      "metric": "rtf",
+      "value": 2.4432333333319742,
+      "unit": "ratio",
+      "statistic": "single",
+      "n": 1,
+      "evidence": "conversion",
+      "note": {
+        "en": "greeting: derived 11.1411 s / 4.56 audio s; excludes loading/saving.",
+        "ja": "greeting：11.1411秒／音声4.56秒から算出。ロード・保存を除外。"
+      }
+    },
+    {
+      "metric": "latency_s",
+      "value": 10.152436333708465,
+      "unit": "s",
+      "statistic": "single",
+      "n": 1,
+      "evidence": "conversion",
+      "note": {
+        "en": "instruction: generation call; exclude loading and saving as documented.",
+        "ja": "instruction：記録した生成呼び出し。ロード・保存を除外。"
+      }
+    },
+    {
+      "metric": "rtf",
+      "value": 2.643863628569913,
+      "unit": "ratio",
+      "statistic": "single",
+      "n": 1,
+      "evidence": "conversion",
+      "note": {
+        "en": "instruction: derived 10.1524 s / 3.84 audio s; excludes loading/saving.",
+        "ja": "instruction：10.1524秒／音声3.84秒から算出。ロード・保存を除外。"
+      }
+    },
+    {
+      "metric": "latency_s",
+      "value": 10.088553041219711,
+      "unit": "s",
+      "statistic": "single",
+      "n": 1,
+      "evidence": "conversion",
+      "note": {
+        "en": "reading: generation call; exclude loading and saving as documented.",
+        "ja": "reading：記録した生成呼び出し。ロード・保存を除外。"
+      }
+    },
+    {
+      "metric": "rtf",
+      "value": 2.741454630766226,
+      "unit": "ratio",
+      "statistic": "single",
+      "n": 1,
+      "evidence": "conversion",
+      "note": {
+        "en": "reading: derived 10.0886 s / 3.68 audio s; excludes loading/saving.",
+        "ja": "reading：10.0886秒／音声3.68秒から算出。ロード・保存を除外。"
+      }
+    },
+    {
+      "metric": "peak_rss_bytes",
+      "value": 20477050880,
+      "unit": "B",
+      "statistic": "max",
+      "n": 1,
+      "evidence": "conversion",
+      "note": {
+        "en": "One diagnostic process, lifetime peak across three utterances, with original PyTorch model also resident. Not a native-app RAM requirement.",
+        "ja": "診断1プロセス・3発話の生涯ピーク。元PyTorchモデルも常駐。ネイティブアプリのRAM要件ではない。"
+      }
+    },
+    {
+      "metric": "peak_footprint_bytes",
+      "value": 9750459472,
+      "unit": "B",
+      "statistic": "max",
+      "n": 3,
+      "evidence": "conversion",
+      "note": {
+        "en": "Largest recorded kernel-lifetime peak at three sampled checkpoints; sampling does not prove the final process maximum. PyTorch co-resident.",
+        "ja": "3地点で読んだカーネルの生涯ピークの最大値。終了までの最大値を保証せず、PyTorchも同時常駐。"
+      }
+    }
+  ],
+  "omissions": {},
+  "checks": {
+    "fidelity": {
+      "state": "passed",
+      "evidence": [
+        "conversion"
+      ],
+      "note": {
+        "en": "Pinned fixed-input FP32 comparisons passed; listening and publication are separate and pending.",
+        "ja": "固定入力のFP32照合は合格。試聴と公開は別項目で未完了。"
+      }
+    },
+    "quality": {
+      "state": "not_measured",
+      "evidence": [],
+      "note": {
+        "en": "No completed check for this scope under the common protocol.",
+        "ja": "この範囲の共通プロトコルによる確認は未実施です。"
+      }
+    },
+    "stability": {
+      "state": "not_measured",
+      "evidence": [],
+      "note": {
+        "en": "No completed check for this scope under the common protocol.",
+        "ja": "この範囲の共通プロトコルによる確認は未実施です。"
+      }
+    },
+    "cancellation": {
+      "state": "not_measured",
+      "evidence": [],
+      "note": {
+        "en": "No completed check for this scope under the common protocol.",
+        "ja": "この範囲の共通プロトコルによる確認は未実施です。"
+      }
+    }
+  }
+}

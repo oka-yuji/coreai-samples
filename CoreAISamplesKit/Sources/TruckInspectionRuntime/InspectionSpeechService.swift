@@ -1,4 +1,5 @@
 import Foundation
+import TruckInspectionFeature
 
 public enum InspectionSpeechEvent: Sendable {
     case partial(String, elapsed: Double)
@@ -10,8 +11,19 @@ public enum InspectionSpeechEvent: Sendable {
 }
 
 public enum InspectionSpeechError: Error {
-    case unavailable, permissionDenied, noJapaneseVoice, routeUnavailable, invalidAudioFormat, playbackTimedOut
+    case unavailable, microphoneDenied, speechRecognitionDenied, noJapaneseVoice, routeUnavailable, invalidAudioFormat
+    case playbackTimedOut
     case recognition(String)
+
+    var limit: InspectionVoiceLimit? {
+        switch self {
+        case .microphoneDenied: .microphoneDenied
+        case .speechRecognitionDenied: .speechRecognitionDenied
+        case .unavailable: .recognitionUnavailable
+        case .noJapaneseVoice: .voiceUnavailable
+        case .routeUnavailable, .invalidAudioFormat, .playbackTimedOut, .recognition: nil
+        }
+    }
 }
 
 @MainActor
@@ -21,5 +33,5 @@ public protocol TruckInspectionSpeechService {
     func startListening(hints: [String]) async throws -> AsyncStream<InspectionSpeechEvent>
     func endAudio() async
     func finishListening() async
-    func stop() async -> String?
+    func stop() async throws
 }

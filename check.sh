@@ -20,6 +20,10 @@ if [[ -n "$check_models" ]]; then
     done
     command -v python3 >/dev/null
 fi
+check_stage=model-reports
+printf 'CHECK RUN: %s\n' "$check_stage"
+python3 -m Tools.ModelReports check
+python3 -m unittest discover -s Tools/ModelReports/tests -v
 check_stage=build-irodori-inputs
 printf 'CHECK RUN: %s\n' "$check_stage"
 ./Tools/Irodori/build-inputs.sh

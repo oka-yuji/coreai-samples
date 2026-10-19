@@ -37,7 +37,9 @@ public enum ExtractFeature: Feature {
         case .compositionChanged(let composing):
             guard composing != state.composing else { return [] }
             state.composing = composing
-            guard composing else { return state.result == nil ? [.run(.settle, id: .extraction)] : [] }
+            guard composing else {
+                return state.result == nil && !state.isManaged ? [.run(.settle, id: .extraction)] : []
+            }
             if case .extracting = state.phase { state.phase = .idle }
             return [.cancel(.extraction)]
         case .extractRequested:
@@ -47,6 +49,7 @@ public enum ExtractFeature: Feature {
 
             let revision: String? = if case .ready(let info) = state.asset { info.revision } else { nil }
             state.result = ExtractResult(version: version, mapping: mapping, timing: timing, assetRevision: revision)
+            state.resourceIdentity = if case .managed(_, let identity) = state.execution { identity } else { nil }
             state.phase = .ready
             return []
         case .extractionFailed(let version, let message):
@@ -64,17 +67,32 @@ public enum ExtractFeature: Feature {
             state.confirmations[key] = nil
             return []
         case .appeared:
-            guard state.asset == .none, let path = state.lastAssetPath else { return [] }
+            guard !state.isManaged, state.asset == .none, let path = state.lastAssetPath else { return [] }
             return reduce(&state, .assetFolderChosen(path: path))
         case .assetFolderChosen(let path):
+            guard !state.isManaged else { return [] }
             state.asset = .opening(path: path)
             return [.run(.openAsset(path: path), id: .asset)]
         case .assetOpened(let info):
             guard state.asset == .opening(path: info.path) else { return [] }
             state.asset = .ready(info)
+            guard !state.isManaged || state.phase == .extracting(version: state.version) else { return [] }
             return extract(&state)
         case .assetFailed(let path, let message):
             guard state.asset == .opening(path: path) else { return [] }
+            state.asset = .failed(path: path, message: message)
+            if state.isManaged, case .extracting = state.phase { state.phase = .failed(message) }
+            return []
+        case .closed:
+            guard state.isManaged else { return [] }
+            if case .extracting = state.phase { state.phase = .idle }
+            return [.cancelAll, .run(.release, id: .asset)]
+        case .released:
+            guard state.isManaged else { return [] }
+            state.asset = .none
+            return []
+        case .releaseFailed(let message):
+            guard case .managed(let path, _) = state.execution else { return [] }
             state.asset = .failed(path: path, message: message)
             return []
         case .exportRequested:
@@ -90,16 +108,37 @@ public enum ExtractFeature: Feature {
 
     private static func startVersion(_ state: inout ExtractState) -> [Command<ExtractEffect, EffectID>] {
         state.version += 1
+        state.phase = .idle
+        guard !state.isManaged else { return [.cancel(.extraction)] }
         state.result = nil
         state.confirmations = [:]
-        state.phase = .idle
         return [.run(.settle, id: .extraction)]
     }
 
     private static func extract(_ state: inout ExtractState) -> [Command<ExtractEffect, EffectID>] {
-        guard case .ready = state.asset, !state.composing, !state.schema.fields.isEmpty,
-            !state.text.allSatisfy(\.isWhitespace)
-        else {
+        guard !state.composing, !state.schema.fields.isEmpty, !state.text.allSatisfy(\.isWhitespace) else {
+            state.phase = .idle
+            return [.cancel(.extraction)]
+        }
+        if case .managed(let path, _) = state.execution {
+            if let result = state.result, result.version != state.version {
+                state.result = nil
+                state.resourceIdentity = nil
+                state.confirmations = [:]
+            }
+            switch state.asset {
+            case .ready:
+                break
+            case .opening:
+                state.phase = .extracting(version: state.version)
+                return []
+            case .none, .failed:
+                state.asset = .opening(path: path)
+                state.phase = .extracting(version: state.version)
+                return [.run(.openAsset(path: path), id: .asset)]
+            }
+        }
+        guard case .ready = state.asset else {
             state.phase = .idle
             return [.cancel(.extraction)]
         }
@@ -139,6 +178,11 @@ public struct ExtractState: Equatable, Sendable {
         case form
     }
 
+    public enum Execution: Equatable, Sendable {
+        case standalone
+        case managed(path: String, identity: String)
+    }
+
     public var text = ""
 
     public var version = 0
@@ -165,6 +209,10 @@ public struct ExtractState: Equatable, Sendable {
 
     public var appVersion: String?
 
+    public var execution = Execution.standalone
+
+    public var resourceIdentity: String?
+
     public var schema: FormSchema { mode == .labels ? labels : form }
 
     public var appliedFilter: CandidateFilter { mode == .labels ? .none : candidateFilter }
@@ -179,6 +227,19 @@ public struct ExtractState: Equatable, Sendable {
         self.appVersion = appVersion
     }
 
+    var isManaged: Bool {
+        if case .managed = execution { true } else { false }
+    }
+
+    public func managed(path: String, identity: String) -> ExtractState {
+        var state = self
+        state.execution = .managed(path: path, identity: identity)
+        state.asset = .none
+        state.composing = false
+        if case .extracting = state.phase { state.phase = .idle }
+        return state
+    }
+
     public func cues(forField key: String) -> [CorrectionCue] {
         guard let mapping = result?.mapping, let field = mapping.fields.first(where: { $0.field.key == key }) else {
             return []
@@ -189,7 +250,7 @@ public struct ExtractState: Equatable, Sendable {
     }
 }
 
-public enum ExtractAction: Sendable {
+public enum ExtractAction: Equatable, Sendable {
 
     case textChanged(String)
 
@@ -213,6 +274,9 @@ public enum ExtractAction: Sendable {
     case exportRequested
     case exportFinished(path: String)
     case exportFailed(String)
+    case closed
+    case released
+    case releaseFailed(String)
 }
 
 public enum ExtractEffect: Equatable, Sendable {
@@ -224,6 +288,8 @@ public enum ExtractEffect: Equatable, Sendable {
     case extract(version: Int, text: String, form: FormSchema, filter: CandidateFilter)
 
     case export(ExportDocument)
+
+    case release
 }
 
 public struct ExtractResult: Equatable, Sendable {

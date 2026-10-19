@@ -7,6 +7,16 @@ import SwiftUI
 
 @MainActor
 enum ImageSearchAssembly {
+    static var preparedFolderName: String {
+        LaunchArguments.value("--embedding-profile") == "int4_int8" ? "embeddinggemma2-int4-int8" : "embeddinggemma2"
+    }
+
+    static var preparedModels: [URL] {
+        ["embeddinggemma2", "embeddinggemma2-int4-int8"]
+            .map { URL.documentsDirectory.appending(path: $0) }
+            .filter { FileManager.default.fileExists(atPath: $0.appending(path: "embedding-manifest.json").path) }
+    }
+
     struct Query: Decodable, Identifiable {
         let id: String
         let text: String
@@ -20,7 +30,7 @@ enum ImageSearchAssembly {
     }
 
     static func makeStore() -> Store<ImageSearchFeature> {
-        let prepared = URL.documentsDirectory.appending(path: "embeddinggemma2")
+        let prepared = URL.documentsDirectory.appending(path: preparedFolderName)
         let folder =
             LaunchArguments.value("--embedding-bundle").map { URL(filePath: $0) }
             ?? (FileManager.default.fileExists(atPath: prepared.appending(path: "embedding-manifest.json").path)

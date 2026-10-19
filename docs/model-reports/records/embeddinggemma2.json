@@ -1,0 +1,416 @@
+{
+  "id": "embeddinggemma2",
+  "kind": "embedding",
+  "name": {
+    "en": "EmbeddingGemma 2 · FP16 / INT4-INT8 PTQ",
+    "ja": "EmbeddingGemma 2 · FP16／INT4-INT8 PTQ"
+  },
+  "use": {
+    "en": "Image search, camera object search",
+    "ja": "画像検索・カメラで物探し"
+  },
+  "overview": {
+    "en": "Image search, camera object search",
+    "ja": "画像検索・カメラで物探し"
+  },
+  "release": "released",
+  "release_note": {
+    "en": "iOS device acceptance pending",
+    "ja": "iOSの実機確認待ち"
+  },
+  "download": "https://huggingface.co/okayuji/embeddinggemma-2-coreai",
+  "public_access_evidence": "docs/validation/ios-models-integration-20261018.md#acquisition",
+  "pages": {
+    "en": "docs/embeddinggemma2.md",
+    "ja": "docs/model-reports/embeddinggemma2.ja.md"
+  },
+  "links": [
+    {
+      "title": {
+        "en": "Search guide",
+        "ja": "検索ガイド（英語）"
+      },
+      "url": "docs/embeddinggemma2.md"
+    },
+    {
+      "title": {
+        "en": "#210",
+        "ja": "#210"
+      },
+      "url": "https://github.com/oka-yuji/coreai-samples/issues/210"
+    }
+  ],
+  "support": {
+    "macos": {
+      "state": "verified",
+      "variants": [
+        "safe FP16 S128 / vision70"
+      ],
+      "evidence": [
+        "fp16-mac"
+      ],
+      "note": {
+        "en": "FP16 local-folder image-search UI recorded; this mark does not cover PTQ camera acceptance.",
+        "ja": "FP16のローカル画像検索UIの記録。PTQのカメラ受入を含まない。"
+      }
+    },
+    "ios": {
+      "state": "pending",
+      "variants": [],
+      "evidence": [
+        "fp16-phone",
+        "ios-models",
+        "ptq",
+        "ios-acquisition"
+      ],
+      "note": {
+        "en": "Older FP16 diagnostic passed. The current Models route acquires and validates the published FP16 and PTQ bundles (self-test on iPhone 17 Pro, no model loaded); demo execution there and PTQ device inference remain pending.",
+        "ja": "旧FP16診断は成功。現行Models経路は公開済みのFP16とPTQを取得・検査する（iPhone 17 Proの自己テスト、モデルは読み込まない）。同経路でのデモ実行とPTQの実機推論は確認待ち。"
+      }
+    }
+  },
+  "evidence": {
+    "fp16-mac": {
+      "url": "docs/validation/embeddinggemma2-ready-20261016.md",
+      "level": "native_app",
+      "outcome": "passed",
+      "record_type": "legacy",
+      "date": "2026-10-16",
+      "platform": "macos",
+      "device": "M4 Max 128 GiB",
+      "os": "macOS 27.0 (26A428)",
+      "toolchain": "Xcode 27.0 (27A266a)",
+      "variant": "safe FP16 S128 / vision70",
+      "backend": "Core AI; GPU preferred",
+      "route": "macOS local-folder image search",
+      "source_revision": "914f7f89142e33e77833254d9c9b90c3cef7303b",
+      "artifact_revision": null,
+      "code_revision": null,
+      "workload": {
+        "en": "5 refrigerator images, 6 held-out queries; 768D, threshold 0.67; local-folder image-search UI.",
+        "ja": "冷蔵庫画像5枚・未使用クエリ6件、768次元、閾値0.67。ローカルフォルダの画像検索UI。"
+      },
+      "batch_size": 1,
+      "concurrency": 1,
+      "warmups": null,
+      "power": null,
+      "thermal": null,
+      "model_executed": true,
+      "plan_sha256": null
+    },
+    "fp16-phone": {
+      "url": "docs/validation/embeddinggemma2-ready-20261016.md",
+      "level": "diagnostic",
+      "outcome": "passed",
+      "record_type": "legacy",
+      "date": "2026-10-16",
+      "platform": "ios",
+      "device": "iPhone 17 Pro",
+      "os": "iOS 27.0.1 (24A446)",
+      "toolchain": "Xcode 27.0 (27A266a)",
+      "variant": "safe FP16 S128 / vision70",
+      "backend": "Core AI; GPU preferred",
+      "route": "diagnostic",
+      "source_revision": null,
+      "artifact_revision": null,
+      "code_revision": null,
+      "workload": {
+        "en": "Older signed app diagnostic: 5 images and 6 held-out queries. This is not the current Models entry.",
+        "ja": "旧署名アプリの診断経路：画像5枚・未使用6クエリ。現行Models入口とは別。"
+      },
+      "batch_size": 1,
+      "concurrency": 1,
+      "warmups": null,
+      "power": null,
+      "thermal": null,
+      "model_executed": true,
+      "plan_sha256": null
+    },
+    "ptq": {
+      "url": "docs/validation/embeddinggemma2-int4-int8-20261018.md",
+      "level": "conversion",
+      "outcome": "passed",
+      "record_type": "legacy",
+      "date": "2026-10-18",
+      "platform": "macos",
+      "device": "M4 Max 128 GiB",
+      "os": "macOS 27.0 (26A428)",
+      "toolchain": "Xcode 27.0 (27A266a)",
+      "variant": "INT4 text / INT8 vision PTQ",
+      "backend": "Core AI; GPU preferred",
+      "route": "conversion",
+      "source_revision": "914f7f89142e33e77833254d9c9b90c3cef7303b",
+      "artifact_revision": "7c37ea823af7a4028ec3757e124b53fe8e16a75c99c46d24ca0a7007cca55b85",
+      "code_revision": "71fb61afd24e1fc5324f57a1abc02744d07ae09c",
+      "workload": {
+        "en": "Matched-PTQ 20-vector comparison; original-precision quality degradation retained; iPhone launch was locked.",
+        "ja": "同じPTQの20ベクトル照合。元精度からの品質劣化を保持。iPhoneはロックで実行できなかった。"
+      },
+      "batch_size": 1,
+      "concurrency": 1,
+      "warmups": null,
+      "power": null,
+      "thermal": null,
+      "model_executed": true,
+      "plan_sha256": null
+    },
+    "ios-models": {
+      "url": "docs/validation/ios-models-integration-20261018.md#device-checks",
+      "level": "plan",
+      "outcome": "not_measured",
+      "record_type": "legacy",
+      "date": "2026-10-18",
+      "platform": "ios",
+      "device": "iPhone 17 Pro",
+      "os": "iOS 27.0.1 (24A446)",
+      "toolchain": "Xcode 27.0 (27A266a)",
+      "variant": "FP16 / PTQ",
+      "backend": "Core AI; GPU preferred",
+      "route": "plan",
+      "source_revision": null,
+      "artifact_revision": null,
+      "code_revision": null,
+      "workload": {
+        "en": "See fixed cases in the evidence.",
+        "ja": "根拠に記載された固定入力を参照。"
+      },
+      "batch_size": 1,
+      "concurrency": 1,
+      "warmups": null,
+      "power": null,
+      "thermal": null,
+      "model_executed": false,
+      "plan_sha256": null
+    },
+    "quality-fp16": {
+      "url": "docs/validation/embeddinggemma2-ready-20261016.md",
+      "level": "diagnostic",
+      "outcome": "failed",
+      "record_type": "legacy",
+      "date": "2026-10-16",
+      "platform": "macos",
+      "device": "M4 Max 128 GiB",
+      "os": "macOS 27.0 (26A428)",
+      "toolchain": "Xcode 27.0 (27A266a)",
+      "variant": "safe FP16 S128 / vision70",
+      "backend": "Core AI; GPU preferred",
+      "route": "held-out retrieval quality evaluation",
+      "source_revision": "914f7f89142e33e77833254d9c9b90c3cef7303b",
+      "artifact_revision": null,
+      "code_revision": null,
+      "workload": {
+        "en": "5 refrigerator images, 6 held-out queries; 768D, threshold 0.67; local-folder image-search UI.",
+        "ja": "冷蔵庫画像5枚・未使用クエリ6件、768次元、閾値0.67。ローカルフォルダの画像検索UI。"
+      },
+      "batch_size": 1,
+      "concurrency": 1,
+      "warmups": null,
+      "power": null,
+      "thermal": null,
+      "model_executed": true,
+      "plan_sha256": null
+    },
+    "quality-ptq": {
+      "url": "docs/validation/embeddinggemma2-int4-int8-20261018.md",
+      "level": "diagnostic",
+      "outcome": "failed",
+      "record_type": "legacy",
+      "date": "2026-10-18",
+      "platform": "macos",
+      "device": "M4 Max 128 GiB",
+      "os": "macOS 27.0 (26A428)",
+      "toolchain": "Xcode 27.0 (27A266a)",
+      "variant": "INT4 text / INT8 vision PTQ",
+      "backend": "Core AI; GPU preferred",
+      "route": "held-out retrieval quality evaluation",
+      "source_revision": "914f7f89142e33e77833254d9c9b90c3cef7303b",
+      "artifact_revision": "7c37ea823af7a4028ec3757e124b53fe8e16a75c99c46d24ca0a7007cca55b85",
+      "code_revision": "71fb61afd24e1fc5324f57a1abc02744d07ae09c",
+      "workload": {
+        "en": "Matched-PTQ 20-vector comparison; original-precision quality degradation retained; iPhone launch was locked.",
+        "ja": "同じPTQの20ベクトル照合。元精度からの品質劣化を保持。iPhoneはロックで実行できなかった。"
+      },
+      "batch_size": 1,
+      "concurrency": 1,
+      "warmups": null,
+      "power": null,
+      "thermal": null,
+      "model_executed": true,
+      "plan_sha256": null
+    },
+    "ios-acquisition": {
+      "url": "docs/validation/ios-models-integration-20261018.md#acquisition",
+      "level": "diagnostic",
+      "outcome": "passed",
+      "record_type": "legacy",
+      "date": "2026-10-19",
+      "platform": "ios",
+      "device": "iPhone 17 Pro",
+      "os": "iOS 27.0.1 (24A446)",
+      "toolchain": "Xcode 27.0 (27A266a)",
+      "variant": "safe FP16 S128 / vision70; INT4/INT8 PTQ",
+      "backend": null,
+      "route": "Models self-test (--acquire all)",
+      "source_revision": "914f7f89142e33e77833254d9c9b90c3cef7303b",
+      "artifact_revision": "daab6dbfbae1610a87d9f181458419e3ea5ce682",
+      "code_revision": null,
+      "workload": {
+        "en": "The library refresh migrated both variants (13 and 16 listed files; 913,677,333 B and 341,880,041 B) from the existing Documents folders after size and SHA-256 checks, then inspected them; no model loaded.",
+        "ja": "ライブラリの更新で、既存のDocumentsの2フォルダから両変換版（定義の13・16ファイル、913,677,333 B・341,880,041 B）を大きさとSHA-256の照合後に移行し、検査した。モデルは読み込まない。"
+      },
+      "batch_size": null,
+      "concurrency": null,
+      "warmups": null,
+      "power": null,
+      "thermal": null,
+      "model_executed": false,
+      "plan_sha256": null
+    }
+  },
+  "measurements": [
+    {
+      "metric": "index_s",
+      "value": 0.76569325,
+      "unit": "s",
+      "statistic": "single",
+      "n": 1,
+      "evidence": "fp16-mac",
+      "note": {
+        "en": "One five-image indexing request; legacy route, not a controlled Mac/iPhone comparison.",
+        "ja": "画像5枚の索引構築1回。旧経路であり、Mac/iPhoneの制御比較ではない。"
+      },
+      "source_value": {
+        "path": "docs/validation/embeddinggemma2-ready-20261016/mac-summary.json",
+        "pointer": "/indexingSeconds"
+      }
+    },
+    {
+      "metric": "task_success",
+      "value": 0.8333333333333334,
+      "unit": "ratio",
+      "statistic": "aggregate",
+      "n": 6,
+      "evidence": "fp16-mac",
+      "note": {
+        "en": "5/6 held-out threshold decisions. Not Recall@k or nDCG; a correct top image was hidden by the frozen threshold.",
+        "ja": "未使用6件中5件の閾値判定。Recall@k/nDCGではない。固定閾値で正しい1位画像を隠した失敗を含む。"
+      }
+    },
+    {
+      "metric": "index_s",
+      "value": 0.895115834,
+      "unit": "s",
+      "statistic": "single",
+      "n": 1,
+      "evidence": "fp16-phone",
+      "note": {
+        "en": "One five-image indexing request; legacy route, not a controlled Mac/iPhone comparison.",
+        "ja": "画像5枚の索引構築1回。旧経路であり、Mac/iPhoneの制御比較ではない。"
+      },
+      "source_value": {
+        "path": "docs/validation/embeddinggemma2-ready-20261016/iphone-summary.json",
+        "pointer": "/indexingSeconds"
+      }
+    },
+    {
+      "metric": "task_success",
+      "value": 0.8333333333333334,
+      "unit": "ratio",
+      "statistic": "aggregate",
+      "n": 6,
+      "evidence": "fp16-phone",
+      "note": {
+        "en": "5/6 held-out threshold decisions. Not Recall@k or nDCG; a correct top image was hidden by the frozen threshold.",
+        "ja": "未使用6件中5件の閾値判定。Recall@k/nDCGではない。固定閾値で正しい1位画像を隠した失敗を含む。"
+      }
+    },
+    {
+      "metric": "bundle_bytes",
+      "value": 913677333,
+      "unit": "B",
+      "statistic": "single",
+      "n": 1,
+      "evidence": "ptq",
+      "note": {
+        "en": "FP16 bundle; includes tokenizer and notices.",
+        "ja": "FP16バンドル。tokenizerと告知ファイルを含む。"
+      },
+      "source_value": {
+        "path": "docs/validation/embeddinggemma2-int4-int8-20261018/results.json",
+        "pointer": "/bundle/fp16_bytes"
+      }
+    },
+    {
+      "metric": "bundle_bytes",
+      "value": 341880041,
+      "unit": "B",
+      "statistic": "single",
+      "n": 1,
+      "evidence": "ptq",
+      "note": {
+        "en": "PTQ bundle; includes tokenizer and notices.",
+        "ja": "PTQバンドル。tokenizerと告知ファイルを含む。"
+      },
+      "source_value": {
+        "path": "docs/validation/embeddinggemma2-int4-int8-20261018/results.json",
+        "pointer": "/bundle/ptq_bytes"
+      }
+    },
+    {
+      "metric": "reference_cosine",
+      "value": 0.999483553,
+      "unit": "cosine",
+      "statistic": "min",
+      "n": 20,
+      "evidence": "fp16-mac",
+      "note": {
+        "en": "20 raw text/image inputs against original FP32.",
+        "ja": "元FP32と生テキスト・画像20入力を比較。"
+      }
+    }
+  ],
+  "omissions": {},
+  "checks": {
+    "fidelity": {
+      "state": "passed",
+      "evidence": [
+        "fp16-mac",
+        "ptq"
+      ],
+      "note": {
+        "en": "FP16 and matched-PTQ checks pass only their pinned numerical contracts; PTQ versus original precision is separate.",
+        "ja": "FP16と同一PTQの数値契約のみ合格。PTQと元精度の差は別評価。"
+      }
+    },
+    "quality": {
+      "state": "failed",
+      "evidence": [
+        "quality-fp16",
+        "quality-ptq"
+      ],
+      "note": {
+        "en": "Held-out false negative remains; PTQ loses original examples. Thresholds were not lowered to pass.",
+        "ja": "未使用入力の偽陰性を保持。PTQでは元の例も失敗し、合格のために閾値を下げていない。"
+      }
+    },
+    "stability": {
+      "state": "not_measured",
+      "evidence": [],
+      "note": {
+        "en": "No completed check for this scope under the common protocol.",
+        "ja": "この範囲の共通プロトコルによる確認は未実施です。"
+      }
+    },
+    "cancellation": {
+      "state": "passed",
+      "evidence": [
+        "fp16-mac",
+        "fp16-phone"
+      ],
+      "note": {
+        "en": "Legacy image indexing stop/queued retry, not current Models lifecycle or camera interruption.",
+        "ja": "旧画像索引経路の停止・待機後再試行。現行Modelsやカメラ割り込みの確認ではない。"
+      }
+    }
+  }
+}

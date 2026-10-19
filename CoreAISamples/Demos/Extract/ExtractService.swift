@@ -1,5 +1,6 @@
 import CoreAI
 import ExtractFeature
+import ExtractRuntime
 import Foundation
 import GLiNERCore
 import GLiNERRuntime
@@ -21,16 +22,6 @@ enum ComputeUnits: String {
     }
 }
 
-@MainActor
-protocol ExtractService {
-
-    func open(folder: URL) async throws -> AssetInfo
-
-    func extract(text: String, schema: FormSchema, filter: CandidateFilter) async throws -> (
-        mapping: FormMapping, timing: ExtractTiming
-    )
-}
-
 enum ExtractServiceError: LocalizedError {
     case noAsset
     case noTokenizer(String)
@@ -44,7 +35,7 @@ enum ExtractServiceError: LocalizedError {
 }
 
 @MainActor
-final class GLiNERExtractService: ExtractService {
+final class GLiNERExtractService: ExtractServicing {
     private let correctionWords: [String]
     private let computeUnits: ComputeUnits
     private var extractor: GLiNERExtractor?
@@ -96,6 +87,10 @@ final class GLiNERExtractService: ExtractService {
             classifications: requests.count, map: milliseconds(ended - mapStarted), total: milliseconds(ended - started)
         )
         return (mapping, timing)
+    }
+
+    func release() {
+        extractor = nil
     }
 
     @concurrent

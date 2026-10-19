@@ -138,12 +138,12 @@ final class ConversationHost {
         chat.phase == .ready && !store.state.isRunning && !chat.isResponding && !chat.externallyBusy && !contextFull
             && !state.isSaving && !state.isRestoring && !state.isTerminating && !state.library.isMutating
             && matchesConversationModel && state.readOnlyMarkdown == nil
-            && !chat.trimmedInput.isEmpty
+            && !chat.trimmedInput.isEmpty && chat.hasValidSourceSelection
     }
 
     var canContinueInWork: Bool {
         store.state.refusedSave && store.state.canLeave && matchesConversationModel && !contextFull
-            && chat.phase == .ready
+            && chat.phase == .ready && chat.hasValidSourceSelection
             && !chat.isResponding && !chat.externallyBusy
     }
 
@@ -227,41 +227,49 @@ final class ConversationHost {
         preferences.restore(state.settings)
     }
 
+    var turnSettings: ConversationSettings {
+        var settings = preferences.settings
+        settings.webSearchEnabled = chat.ragEnabled && chat.ragWeb
+        return settings
+    }
+
     @discardableResult
     func submit() -> Bool {
         refreshIfModelChanged()
         guard canSend else { return false }
-        if chat.ragIsOn {
-            let text = chat.trimmedInput
-            chat.input = ""
-            store.send(.settingsChanged(preferences.settings))
-            store.send(
-                .sendSources(
-                    text, ConversationSourceRequest(web: chat.ragWeb, local: chat.ragLocal, budget: chat.ragBudget),
-                    now: Date()))
-            return state.isRunning
-        }
         let text = chat.trimmedInput
         chat.input = ""
         return send(text, mode: store.state.mode)
     }
 
     @discardableResult
-    func send(_ text: String, mode: ConversationMode) -> Bool {
+    func send(_ text: String, mode: ConversationMode, collectSources: Bool = true) -> Bool {
         refreshIfModelChanged()
-        guard chat.phase == .ready, matchesConversationModel, !state.library.isMutating else { return false }
-        store.send(.settingsChanged(preferences.settings))
-        store.send(.send(text, mode: mode, now: Date()))
+        guard chat.phase == .ready, matchesConversationModel, !state.library.isMutating,
+            !state.isRunning, !chat.isResponding, chat.hasValidSourceSelection
+        else { return false }
+        store.send(.settingsChanged(turnSettings))
+        if chat.ragIsOn && collectSources {
+            store.send(.modeChanged(mode))
+            store.send(
+                .sendSources(
+                    text,
+                    ConversationSourceRequest(web: chat.ragWeb, local: chat.ragLocal, budget: chat.ragBudget),
+                    now: Date()))
+        } else {
+            store.send(.send(text, mode: mode, now: Date()))
+        }
         return store.state.isRunning
     }
 
     var canContinueAnswer: Bool {
         state.canLeave && matchesConversationModel && chat.phase == .ready && !chat.isResponding
-            && !chat.externallyBusy && ConversationFeature.continueEligibility(state)
+            && !chat.externallyBusy && chat.hasValidSourceSelection && ConversationFeature.continueEligibility(state)
     }
 
     func continueAnswer() {
         guard canContinueAnswer else { return }
+        store.send(.settingsChanged(turnSettings))
         store.send(.continueRequested(now: Date()))
     }
 

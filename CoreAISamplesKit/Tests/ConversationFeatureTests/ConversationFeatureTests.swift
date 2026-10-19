@@ -12,7 +12,8 @@ func reduce(_ state: inout ConversationState, _ actions: ConversationAction...) 
 }
 
 func started(
-    _ mode: ConversationMode, id: String = "c1", settings: ConversationSettings = ConversationSettings(),
+    _ mode: ConversationMode, id: String = "c1",
+    settings: ConversationSettings = ConversationSettings(webSearchEnabled: true),
     prompt: String = "Question"
 ) -> ConversationState {
     var state = ConversationState(id: id, now: launch, settings: settings)
@@ -52,16 +53,18 @@ func snapshot(_ commands: Commands) -> ConversationSnapshot? {
 }
 
 struct ConversationFeatureTests {
-    @Test("Chat mode allows web_search and fetch_page and refuses write_note and move_note with a reason")
+    @Test(
+        "With web access enabled, Chat mode allows web_search and fetch_page and refuses write_note and move_note with a reason"
+    )
     func chatAllowsLookupsAndRefusesSaving() {
-        let policy = TurnPolicy(.chat, settings: ConversationSettings())
+        let policy = TurnPolicy(.chat, settings: ConversationSettings(webSearchEnabled: true))
         #expect(policy.allowedTools == ["web_search", "fetch_page"])
         #expect(["web_search", "fetch_page"].map(policy.refusal(for:)) == [nil, nil])
         #expect(policy.refusal(for: "write_note") == "error: saving notes needs Work mode")
         #expect(policy.refusal(for: "append_note") == "error: saving notes needs Work mode")
         #expect(policy.refusal(for: "move_note") == "error: saving notes needs Work mode")
 
-        var state = started(.chat, settings: ConversationSettings(chatMaxSteps: 2))
+        var state = started(.chat, settings: ConversationSettings(chatMaxSteps: 2, webSearchEnabled: true))
         let search = tool("t1", "web_search", #"{"query":"swift"}"#)
         let fetch = tool("t2", "fetch_page", #"{"url":"https://swift.org"}"#)
         let allowed = reduce(&state, .toolRequested(run: 1, search), .toolRequested(run: 1, fetch))
@@ -82,17 +85,19 @@ struct ConversationFeatureTests {
         #expect(state.refusedSave && state.isRunning && state.finalization == .normal)
     }
 
-    @Test("Work mode allows every tool and keeps the step limit, the token limit and the expanded display")
+    @Test(
+        "With web access enabled, Work mode allows every tool and keeps the step limit, the token limit and the expanded display"
+    )
     func workAllowsEveryTool() {
         let tools = ["web_search", "fetch_page", "write_note", "append_note", "move_note"]
-        let work = TurnPolicy(.work, settings: ConversationSettings())
+        let work = TurnPolicy(.work, settings: ConversationSettings(webSearchEnabled: true))
         #expect(work.allowedTools == Set(tools) && work.refusedTools.isEmpty)
         #expect(tools.allSatisfy { work.refusal(for: $0) == nil })
         #expect(work.maxSteps == 8 && work.maxTokens == 4_096 && !work.collapsesSteps)
-        let chat = TurnPolicy(.chat, settings: ConversationSettings())
+        let chat = TurnPolicy(.chat, settings: ConversationSettings(webSearchEnabled: true))
         #expect(chat.maxSteps == 16 && chat.maxTokens == 2_048 && chat.collapsesSteps)
 
-        let tuned = ConversationSettings(maxSteps: 5, maxTokens: 1_536)
+        let tuned = ConversationSettings(maxSteps: 5, maxTokens: 1_536, webSearchEnabled: true)
         let policy = TurnPolicy(.work, settings: tuned)
         #expect(policy.maxSteps == 5 && policy.maxTokens == 1_536)
         #expect(TurnPolicy(.chat, settings: tuned).maxSteps == 16)
@@ -120,10 +125,10 @@ struct ConversationFeatureTests {
 
     @Test("The mode chosen in the composer applies to the next send and cannot change while a turn is running")
     func modeAppliesToTheNextSend() {
-        var state = ConversationState(id: "c1", now: launch)
+        var state = ConversationState(id: "c1", now: launch, settings: ConversationSettings(webSearchEnabled: true))
         _ = reduce(&state, .modeChanged(.work))
         #expect(state.mode == .work && state.lastMode == nil)
-        let work = TurnPolicy(.work, settings: ConversationSettings())
+        let work = TurnPolicy(.work, settings: ConversationSettings(webSearchEnabled: true))
         let first = reduce(&state, .send("Research this", mode: .work, now: launch))
         #expect(
             first == [
@@ -132,7 +137,7 @@ struct ConversationFeatureTests {
 
         let running = state
         let ignored = reduce(
-            &state, .modeChanged(.chat), .settingsChanged(ConversationSettings(maxSteps: 3)),
+            &state, .modeChanged(.chat), .settingsChanged(ConversationSettings(maxSteps: 3, webSearchEnabled: true)),
             .send("Another", mode: .chat, now: launch + 1))
         #expect(ignored == [[], [], []])
         #expect(state == running)
@@ -142,7 +147,7 @@ struct ConversationFeatureTests {
             .generationEnded(run: 1, stopReason: "stopToken"))
         #expect(!state.isRunning && state.lastMode == .work)
         _ = reduce(&state, .modeChanged(.chat))
-        let chat = TurnPolicy(.chat, settings: ConversationSettings())
+        let chat = TurnPolicy(.chat, settings: ConversationSettings(webSearchEnabled: true))
         let next = reduce(&state, .send("Thanks", mode: .chat, now: launch + 60))
         #expect(next == [[.run(.generate(run: 2, prompt: "Thanks", policy: chat, finalize: false), id: .generation)]])
         #expect(state.turns.map(\.mode) == [.work, .chat] && state.lastMode == .chat)
@@ -179,7 +184,7 @@ struct ConversationFeatureTests {
         #expect(record.steps(from: 6).first == TranscriptStep(generated: 6..<6, outputs: 6..<8))
         #expect(record.steps(from: 12).isEmpty && record.steps(from: 2, to: 6).count == 1)
 
-        var state = started(.work, settings: ConversationSettings(maxSteps: 2))
+        var state = started(.work, settings: ConversationSettings(maxSteps: 2, webSearchEnabled: true))
         func observe(_ count: Int) -> Commands {
             ConversationFeature.reduce(
                 &state, .transcriptChanged(run: 1, TranscriptRecord(entries: Array(record.entries.prefix(count)))))
@@ -197,7 +202,8 @@ struct ConversationFeatureTests {
         "One step before the limit, the finalization note is added to the tool output, and a further tool call ends the turn with the collected facts and the open items"
     )
     func finalizesOneStepBeforeTheLimit() throws {
-        var state = started(.work, settings: ConversationSettings(maxSteps: 3), prompt: "Compare the pages")
+        var state = started(
+            .work, settings: ConversationSettings(maxSteps: 3, webSearchEnabled: true), prompt: "Compare the pages")
         let search = tool("t1", "web_search", #"{"query":"swift releases"}"#)
         let page = tool("t2", "fetch_page", #"{"url":"https://a.example/notes"}"#)
         let note = tool("t3", "write_note", #"{"title":"Releases","content":"Summary"}"#)
@@ -249,8 +255,9 @@ struct ConversationFeatureTests {
         _ = reduce(&state, .stopped(run: 1))
         #expect(!state.isRunning && state.lastFinish == .stopped && state.entries.last == summary)
 
-        var single = ConversationState(id: "c2", now: launch, settings: ConversationSettings(maxSteps: 1))
-        let policy = TurnPolicy(.work, settings: ConversationSettings(maxSteps: 1))
+        var single = ConversationState(
+            id: "c2", now: launch, settings: ConversationSettings(maxSteps: 1, webSearchEnabled: true))
+        let policy = TurnPolicy(.work, settings: ConversationSettings(maxSteps: 1, webSearchEnabled: true))
         #expect(
             reduce(&single, .send("Answer directly", mode: .work, now: launch)) == [
                 [.run(.generate(run: 1, prompt: "Answer directly", policy: policy, finalize: true), id: .generation)]
@@ -360,8 +367,8 @@ struct ConversationFeatureTests {
 
     @Test("An unknown tool is refused with its mode in the reason, and a refused save at the last step ends the turn")
     func refusesUnknownToolsAndASaveAtTheLimit() {
-        let chat = TurnPolicy(.chat, settings: ConversationSettings())
-        let work = TurnPolicy(.work, settings: ConversationSettings())
+        let chat = TurnPolicy(.chat, settings: ConversationSettings(webSearchEnabled: true))
+        let work = TurnPolicy(.work, settings: ConversationSettings(webSearchEnabled: true))
         #expect(chat.refusal(for: "run_shell") == "error: run_shell is not available in chat mode")
         #expect(work.refusal(for: "run_shell") == "error: run_shell is not available in work mode")
 
@@ -372,7 +379,7 @@ struct ConversationFeatureTests {
             reduce(&working, .toolRequested(run: 1, shell)) == [[.run(.refuseTool(shell, reason: reason), id: nil)]])
         #expect(!working.refusedSave && working.isRunning)
 
-        var state = started(.chat, settings: ConversationSettings(chatMaxSteps: 2))
+        var state = started(.chat, settings: ConversationSettings(chatMaxSteps: 2, webSearchEnabled: true))
         let search = tool("t1", "web_search", #"{"query":"swift"}"#)
         let note = tool("t2", "write_note", #"{"title":"Plan","content":"Draft"}"#)
         let record = turn("Question", [calls("c1", search), output(search, "results"), calls("c2", note)])
@@ -393,8 +400,8 @@ struct ConversationFeatureTests {
         "Settings changed while idle apply to the next send, a blank prompt is ignored, and the title is the first 40 characters on one line"
     )
     func appliesSettingsIgnoresBlankPromptsAndTitlesTheConversation() {
-        var state = ConversationState(id: "c1", now: launch)
-        let tuned = ConversationSettings(maxSteps: 3, maxTokens: 512)
+        var state = ConversationState(id: "c1", now: launch, settings: ConversationSettings(webSearchEnabled: true))
+        let tuned = ConversationSettings(maxSteps: 3, maxTokens: 512, webSearchEnabled: true)
         _ = reduce(&state, .settingsChanged(tuned))
         #expect(state.settings == tuned)
 

@@ -14,10 +14,12 @@ public struct ConversationSettings: Codable, Equatable, Sendable {
     public var fileOperations: Bool
     public var citationGuard: Bool
     public var notesFolder: String
+    public var webSearchEnabled: Bool?
 
     public init(
         effort: String = "low", maxSteps: Int = 8, maxTokens: Int? = nil, pageBudget: Int = 10_000,
-        fileOperations: Bool = false, citationGuard: Bool = true, notesFolder: String = "", chatMaxSteps: Int? = nil
+        fileOperations: Bool = false, citationGuard: Bool = true, notesFolder: String = "", chatMaxSteps: Int? = nil,
+        webSearchEnabled: Bool? = false
     ) {
         self.effort = effort
         self.maxSteps = maxSteps
@@ -27,6 +29,7 @@ public struct ConversationSettings: Codable, Equatable, Sendable {
         self.fileOperations = fileOperations
         self.citationGuard = citationGuard
         self.notesFolder = notesFolder
+        self.webSearchEnabled = webSearchEnabled
     }
 }
 
@@ -35,6 +38,8 @@ public struct TurnPolicy: Equatable, Sendable {
     public static let maximumSteps = 64
     public static let tools: Set<String> = ["web_search", "fetch_page", "write_note", "append_note", "move_note"]
     public static let savingRefusal = "error: saving notes needs Work mode"
+    public static let searchRefusal = "error: web search and page fetching are disabled for this request"
+    public static let webTools: Set<String> = ["web_search", "fetch_page"]
 
     public var mode: ConversationMode
     public var settings: ConversationSettings
@@ -71,6 +76,17 @@ public struct TurnPolicy: Equatable, Sendable {
             citationGuard = settings.citationGuard
             collapsesSteps = false
         }
+        if settings.webSearchEnabled != true {
+            allowedTools.subtract(Self.webTools)
+            for tool in Self.webTools { refusedTools[tool] = Self.searchRefusal }
+        }
+    }
+
+    public func restrictingSearch(in prompt: String) -> String {
+        guard settings.webSearchEnabled != true else { return prompt }
+        return
+            "Web search and page fetching are disabled for this request. Do not call web_search or fetch_page. Answer from your existing knowledge, the conversation, and any already supplied sources. Do not claim to have searched or fetched new information.\n\n"
+            + prompt
     }
 
     public func refusal(for tool: String) -> String? {
@@ -184,13 +200,14 @@ public struct ConversationTurn: Codable, Equatable, Sendable {
         policy.continuing = kind == .continuation
         policy.sourceRequest = sourceRequest
         policy.sourceIDs = sourceIDs
-        if sourceRequest != nil || sourceIDs != nil || toolsDisabled == true {
+        if (mode == .chat && (sourceRequest != nil || sourceIDs != nil)) || toolsDisabled == true {
             policy.allowedTools = []
             policy.maxSteps = 1
         }
         if toolsDisabled == true { policy.settings.effort = "off" }
         if finalAnswerStart != nil {
             policy.answerOnly = true
+            policy.sourceRequest = nil
             policy.allowedTools = []
             policy.maxSteps += 1
         }

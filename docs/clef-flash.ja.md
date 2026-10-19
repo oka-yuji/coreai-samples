@@ -1,6 +1,6 @@
 # Clef-Flash 9BをCore AIで使う
 
-[English](clef-flash.md) · [Hugging Faceからダウンロード](https://huggingface.co/okayuji/clef-flash-9b-coreai-decide)
+[トップ](../README.ja.md) · [English](clef-flash.md) · [Hugging Faceからダウンロード](https://huggingface.co/okayuji/clef-flash-9b-coreai-decide)
 
 文書と、答えの候補を決めたチェックリストを渡すと、候補ごとの確率を返します。文書を保持したまま質問を編集して再判定できます。アプリでは **Decide** と **Recipes** がこのモデルを使います。
 
@@ -8,18 +8,83 @@
 
 必要環境はApple silicon、macOS 27、Xcode 27とMetal Toolchainです。GPUで実行し、計測した機種はM4 Max 128 GBです。最低メモリ構成は未確認です。Recipesの写真認識には、Macで画像入力対応のApple Intelligenceが利用可能である必要があります。
 
-## 試す
+アプリをビルドする前に、Rust/Cargoを含む[共通の準備](../README.ja.md#はじめる)を済ませてください。
 
-リポジトリのルートで、[Hugging Face CLI](https://huggingface.co/docs/huggingface_hub/guides/cli)を使って取得します。
+
+<!-- model-report:start -->
+<a id="model-report"></a>
+
+## 共通の検証サマリー
+
+[計測プロトコル](benchmarking.ja.md) · [元の記録](model-reports/records/clef-flash.json)
+
+元の測定日・入力条件を保持しています。行ごとに異なるrunを使う場合があり、条件をそろえた速度比較ではありません。旧記録で不足する条件も明示します。未計測はゼロや合格を意味しません。
+
+### デモ対応
+
+| OS | 状態 | 確認した範囲・残る確認 | 根拠 |
+|---|---|---|---|
+| macos | ✅ | Decideの実アプリJSON経路を確認。Recipesの写真認識は別の要件。 | [E1](clef-flash.md#recorded-result) |
+| ios | — | このOSのネイティブデモは未提供です。 | — |
+
+### 性能と品質
+
+| 指標 | 結果 | 集計・件数 | 条件と根拠 |
+|---|---|---|---|
+| バンドル・資産容量 | 7,278,548,313 B | single; n=1 | [E3](clef-flash.md#input-and-files) · モデル資産15ファイル。文書・サンプルは別。 |
+| 特殊化キャッシュ容量 | この記録では未収録 | — | 共通記録に値がありません。再計測の前に過去の根拠も確認してください。 |
+| 初回ロード（特殊化を含む） | この記録では未収録 | — | 共通記録に値がありません。再計測の前に過去の根拠も確認してください。 |
+| 特殊化済みキャッシュからのロード | この記録では未収録 | — | 共通記録に値がありません。再計測の前に過去の根拠も確認してください。 |
+| 要求・パイプライン完了時間 | 4.27701879 s | single; n=1 | [E1](clef-flash.md#recorded-result) · リンク先の固定条件による結果。 |
+| ピークRSS | この記録では未収録 | — | 共通記録に値がありません。再計測の前に過去の根拠も確認してください。 |
+| ピークphysical footprint | この記録では未収録 | — | 共通記録に値がありません。再計測の前に過去の根拠も確認してください。 |
+| 推論中の常駐メモリ | この記録では未収録 | — | 共通記録に値がありません。再計測の前に過去の根拠も確認してください。 |
+| 解放後メモリの基準との差 | この記録では未収録 | — | 共通記録に値がありません。再計測の前に過去の根拠も確認してください。 |
+| 課題達成率 | この記録では未収録 | — | 共通記録に値がありません。再計測の前に過去の根拠も確認してください。 |
+| 参照との誤差（定義は根拠参照） | 0.01669393 error | max; n=40 | [E2](clef-flash.md#verified-scope-and-limits) · 同一uint4のPyTorch FP32との最大確率差。top選択肢は40/40一致。 |
+| 停止受付から完了までの時間 | この記録では未収録 | — | 共通記録に値がありません。再計測の前に過去の根拠も確認してください。 |
+| 文書再利用時の完了時間 | 0.775898292 s | single; n=1 | [E1](clef-flash.md#recorded-result) · リンク先の固定条件による結果。 |
+| 文書再利用時の完了時間 | 0.846601958 s | p95; n=20 | [E2](clef-flash.md#verified-scope-and-limits) · 別の条件：固定8K文書・4質問。同一依頼の高速化率ではない。 |
+
+### 検証した範囲
+
+| 確認項目 | 状態 | 対象範囲・残る確認 | 根拠 |
+|---|---|---|---|
+| 変換・参照との一致 | 合格（記載範囲） | 記録した固定文書で同一量子化重みと照合。確率校正や一般精度の証明ではない。 | [E2](clef-flash.md#verified-scope-and-limits) |
+| 用途の品質 | 未計測 | この範囲の共通プロトコルによる確認は未実施です。 | — |
+| 連続利用・資源解放 | 未計測 | この範囲の共通プロトコルによる確認は未実施です。 | — |
+| 停止・再試行・回復 | 未計測 | この範囲の共通プロトコルによる確認は未実施です。 | — |
+
+### 根拠と測定条件
+
+| 根拠 | 日付・記録区分・経路 | 機種・OS・ツール | 入力と記録済みの条件 |
+|---|---|---|---|
+| [E1](clef-flash.md#recorded-result) | 2026-10-08 / legacy / native_app | M4 Max 128 GiB / macOS 27.0 (26A428) / Xcode 27.0 (27A266a) | 日本語の保守契約1件、5質問、2,645入力トークン。質問変更の文書再利用は別の依頼。 · variant=uint4 backbone / FP16 head; backend=Core AI; GPU preferred; route=macOS app --decide-json; source_revision=17f0b0ad64efb65d273590632833508766b2aae6; artifact_revision=58e654c86485b29a47fef820226977742ff6868a; batch_size=1; concurrency=1; 未記録: code_revision, warmups, power, thermal, plan_sha256 |
+| [E2](clef-flash.md#verified-scope-and-limits) | 2026-10-08 / legacy / diagnostic | M4 Max 128 GiB / macOS 27.0 (26A428) / Xcode 27.0 (27A266a) | 固定10文書・40選択肢。別条件で8K文書・4質問、再利用20回。 · variant=uint4 backbone / FP16 head; backend=Core AI; GPU preferred; route=diagnostic; batch_size=1; concurrency=1; 未記録: source_revision, artifact_revision, code_revision, warmups, power, thermal, plan_sha256 |
+| [E3](clef-flash.md#input-and-files) | 2026-10-09 / legacy / conversion | M4 Max 128 GiB / macOS 27.0 (26A428) / Xcode 27.0 (27A266a) | 根拠に記載された固定入力を参照。 · variant=uint4 backbone / FP16 head; backend=Core AI; GPU preferred; route=conversion; batch_size=1; concurrency=1; 未記録: source_revision, artifact_revision, code_revision, warmups, power, thermal, plan_sha256 |
+
+### 導入・制限・進捗
+
+- [RecipesとDecide](clef-flash.md)
+<!-- model-report:end -->
+
+## クイックスタート
+
+冷蔵庫にあるもので、このレシピは作れるか。**Recipes** は冷蔵庫の写真を読み、提案された食材を利用者が確認してから、その在庫をレシピの URL と照らし合わせます。写真には Apple の端末上のモデルを、レシピの必要な食材と道具には **Core AI で動く Clef-Flash 9B** を、数量には Swift のコードを使います。**Decide** は同じ Clef のバンドルで、文書を編集できる質問で採点します。どちらもモデルの校正していない確率を表示します。
+
+**別に配布している Clef のバンドルへのアクセス権が必要です。** 下の `hf download` は、そのリポジトリへのアクセス権がある Hugging Face のアカウントでだけ動きます。[Hugging Face CLI](https://huggingface.co/docs/huggingface_hub/guides/cli)を入れ、そのアカウントで `hf auth login` を実行してから、アプリとバンドルを取得します。バンドルを開くときは `decision.json` を含むフォルダを選びます。
 
 ```sh
+git clone https://github.com/oka-yuji/coreai-samples.git
+cd coreai-samples
 hf download okayuji/clef-flash-9b-coreai-decide --local-dir ./models/clef-flash-9b-decide-v1
 ```
 
-`CoreAISamples.xcodeproj` を開き、schemeは **CoreAISamples**、実行先は **My Mac**、Runのbuild configurationは **Release** にして実行します。サイドバーの **Clef-Flash 9B**（文書チェックリストまたはレシピの説明が付いた項目）で、`decision.json` が入った `models/clef-flash-9b-decide-v1` フォルダを開きます。画面右上の **EN / JP** で表示言語を切り替えられます。
+`CoreAISamples.xcodeproj` を開き、**CoreAISamples** スキームと **My Mac** を選び、実行の構成を **Release** にして実行します。右上の **EN / JP** で、Mac の 6 つの画面の表示がすべて切り替わります。
 
-- **文書チェックリスト:** 「サンプル」から保守契約を選び、チェックリストを実行します。質問を編集して再実行すると文書を再利用します。[操作とAPIの手順](decide.md)があります。
-- **レシピ判定:** 同梱の冷蔵庫サンプルを選び、食材名と数量を確認・確定してからレシピを判定します。[写真5枚とURLの手順](recipes-demo.md)を参照してください。
+サイドバーでレシピの説明が付いた **Clef-Flash 9B** を開き、**Clef-Flashのフォルダを選択**(Open Clef-Flash bundle)を選び、`models/clef-flash-9b-decide-v1` を選びます。**サンプル → 卵3個の卵焼き**(Examples → Three-egg omelette)を選び、提案された卵の数量を `1 pcs` にして確定し、**レシピを判定**(Check recipe)を押します。レシピには卵が 3 個要るので、確定した在庫では 2 個足りません。同梱の 5 枚の写真とレシピの URL は [Recipes の手順](recipes-demo.md)にあります。写真と在庫は Mac から出ません。レシピの URL の取得にはインターネット接続が要ります。
+
+サイドバーで文書チェックリストの説明が付いた **Clef-Flash 9B** を開き、同じバンドルを選んで、**サンプル → 保守契約**(Examples → Maintenance agreement)を選んで **条件を判定**(Run checklist)を押します。質問を編集してもう一度実行すると、文書を使い回します。確認の付け方、JSON の書き出し、Swift の API は [Decide の説明](decide.md)にあります。
 
 ビルドしたアプリは、ウィンドウを開かずに記録済みの入力も実行できます。`DECIDE_APP` にアプリの実行ファイルを指定します。
 

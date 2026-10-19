@@ -81,7 +81,10 @@ enum AgentSelfTest {
         let host = ConversationHost(chat: chat, preferences: preferences)
         let started = Date()
         preferences.deadline = started.addingTimeInterval(deadline)
-        guard host.send(task, mode: .work) else {
+        chat.ragEnabled = true
+        chat.ragWeb = true
+        chat.ragLocal = false
+        guard host.send(task, mode: .work, collectSources: false) else {
             out("agent-e2e: the agent refused to start")
             return 1
         }
@@ -537,6 +540,7 @@ enum AgentSelfTest {
         await ConversationNotesSelfTest.run { name, passed, detail in check(name, passed, detail) }
         await ConversationSourcesSelfTest.run { name, passed, detail in check(name, passed, detail) }
         await ConversationBudgetSelfTest.run { name, passed, detail in check(name, passed, detail) }
+        await ConversationAccessSelfTest.run { name, passed, detail in check(name, passed, detail) }
 
         let transcripts = FileManager.default.temporaryDirectory.appending(
             path: "agent-selftest-transcripts-\(ProcessInfo.processInfo.processIdentifier)",

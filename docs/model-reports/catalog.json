@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "checked_on": "2026-10-19",
+  "models": [
+    "qwen38-27b",
+    "clef-flash",
+    "gliner25",
+    "embeddinggemma2",
+    "irodori",
+    "qwen-image21",
+    "magpie-tts",
+    "qwen3-tts-06b",
+    "qwen3-tts-17b",
+    "teleocr",
+    "minicpm-v47",
+    "depth-anything3",
+    "ltx25"
+  ]
+}

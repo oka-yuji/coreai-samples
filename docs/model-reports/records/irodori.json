@@ -1,0 +1,167 @@
+{
+  "id": "irodori",
+  "kind": "tts",
+  "name": {
+    "en": "Irodori · FP32",
+    "ja": "Irodori · FP32"
+  },
+  "use": {
+    "en": "Speech generation and playback",
+    "ja": "音声の生成・再生"
+  },
+  "overview": {
+    "en": "Speech generation and playback",
+    "ja": "音声の生成・再生"
+  },
+  "release": "in_progress",
+  "release_note": {
+    "en": "app/device acceptance",
+    "ja": "アプリ／実機の確認"
+  },
+  "download": null,
+  "pages": {
+    "en": "docs/model-reports/irodori.md",
+    "ja": "docs/model-reports/irodori.ja.md"
+  },
+  "links": [
+    {
+      "title": {
+        "en": "Mac",
+        "ja": "Mac（英語）"
+      },
+      "url": "docs/irodori/demo.md"
+    },
+    {
+      "title": {
+        "en": "iPhone",
+        "ja": "iPhone（英語）"
+      },
+      "url": "docs/irodori/iphone.md"
+    },
+    {
+      "title": {
+        "en": "#93",
+        "ja": "#93"
+      },
+      "url": "https://github.com/oka-yuji/coreai-samples/issues/93"
+    }
+  ],
+  "support": {
+    "macos": {
+      "state": "pending",
+      "variants": [],
+      "evidence": [
+        "macos"
+      ],
+      "note": {
+        "en": "Runtime/UI implemented; actual app GPU generation and listening acceptance pending.",
+        "ja": "ランタイム/UIは実装済み。実アプリのGPU生成・試聴の受入は未完了。"
+      }
+    },
+    "ios": {
+      "state": "pending",
+      "variants": [],
+      "evidence": [
+        "ios"
+      ],
+      "note": {
+        "en": "Runtime/UI implemented; actual app GPU generation and listening acceptance pending.",
+        "ja": "ランタイム/UIは実装済み。実アプリのGPU生成・試聴の受入は未完了。"
+      }
+    }
+  },
+  "evidence": {
+    "macos": {
+      "url": "docs/irodori/demo.md",
+      "level": "plan",
+      "outcome": "not_measured",
+      "record_type": "legacy",
+      "date": "2026-10-19",
+      "platform": "macos",
+      "device": "M4 Max 128 GiB",
+      "os": "macOS 27.0 (26A428)",
+      "toolchain": "Xcode 27.0 (27A266a)",
+      "variant": "FP32",
+      "backend": "Core AI; GPU preferred",
+      "route": "plan",
+      "source_revision": null,
+      "artifact_revision": null,
+      "code_revision": null,
+      "workload": {
+        "en": "Native implementation and CPU/build checks; actual app generation/listening pending. Status reviewed on 2026-10-19; this is not a model-run date.",
+        "ja": "ネイティブ実装とCPU・ビルド検証。実アプリ生成と試聴は確認待ち。 状況の確認日は2026-10-19。モデル実行日ではない。"
+      },
+      "batch_size": 1,
+      "concurrency": 1,
+      "warmups": null,
+      "power": null,
+      "thermal": null,
+      "model_executed": false,
+      "plan_sha256": null
+    },
+    "ios": {
+      "url": "docs/irodori/iphone.md",
+      "level": "plan",
+      "outcome": "not_measured",
+      "record_type": "legacy",
+      "date": "2026-10-19",
+      "platform": "ios",
+      "device": "iPhone 17 Pro",
+      "os": "iOS 27.0.1 (24A446)",
+      "toolchain": "Xcode 27.0 (27A266a)",
+      "variant": "FP32",
+      "backend": "Core AI; GPU preferred",
+      "route": "plan",
+      "source_revision": null,
+      "artifact_revision": null,
+      "code_revision": null,
+      "workload": {
+        "en": "Native implementation and CPU/build checks; actual app generation/listening pending. Status reviewed on 2026-10-19; this is not a model-run date.",
+        "ja": "ネイティブ実装とCPU・ビルド検証。実アプリ生成と試聴は確認待ち。 状況の確認日は2026-10-19。モデル実行日ではない。"
+      },
+      "batch_size": 1,
+      "concurrency": 1,
+      "warmups": null,
+      "power": null,
+      "thermal": null,
+      "model_executed": false,
+      "plan_sha256": null
+    }
+  },
+  "measurements": [],
+  "omissions": {},
+  "checks": {
+    "fidelity": {
+      "state": "not_measured",
+      "evidence": [],
+      "note": {
+        "en": "No completed check for this scope under the common protocol.",
+        "ja": "この範囲の共通プロトコルによる確認は未実施です。"
+      }
+    },
+    "quality": {
+      "state": "not_measured",
+      "evidence": [],
+      "note": {
+        "en": "No completed check for this scope under the common protocol.",
+        "ja": "この範囲の共通プロトコルによる確認は未実施です。"
+      }
+    },
+    "stability": {
+      "state": "not_measured",
+      "evidence": [],
+      "note": {
+        "en": "No completed check for this scope under the common protocol.",
+        "ja": "この範囲の共通プロトコルによる確認は未実施です。"
+      }
+    },
+    "cancellation": {
+      "state": "not_measured",
+      "evidence": [],
+      "note": {
+        "en": "No completed check for this scope under the common protocol.",
+        "ja": "この範囲の共通プロトコルによる確認は未実施です。"
+      }
+    }
+  }
+}

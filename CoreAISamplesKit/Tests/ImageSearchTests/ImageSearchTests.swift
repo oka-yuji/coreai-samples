@@ -13,6 +13,7 @@ struct ImageSearchTests {
         var state = ImageSearchState(modelFolder: folder)
         state.ready = true
         state.photos = [photo]
+        state.indexIdentity = state.currentIndexIdentity
         state.query = "red box"
         return state
     }
@@ -30,6 +31,23 @@ struct ImageSearchTests {
         #expect(ImageSearchFeature.reduce(&state, .search).isEmpty)
         #expect(ImageSearchFeature.reduce(&state, .load(folder)).isEmpty)
         #expect(ImageSearchFeature.reduce(&state, .index([photo.url])).isEmpty)
+    }
+
+    @Test("Switching precision profiles clears the old index and rejects old completion")
+    func switchProfile() {
+        var state = ready()
+        state.matches = [ImageSearchMatch(photo: photo, similarity: 0.8)]
+        state.selection = photo
+        state.hasSearched = true
+        let previous = state.session
+        let target = URL(filePath: "/models/embeddinggemma2-int4-int8")
+        #expect(ImageSearchFeature.reduce(&state, .load(target)) == [.run(.load(previous + 1, target), id: .work)])
+        #expect(state.modelFolder == target && !state.ready && state.photos.isEmpty && state.matches.isEmpty)
+        #expect(state.selection == nil && !state.hasSearched)
+        #expect(ImageSearchFeature.reduce(&state, .loaded(previous)).isEmpty)
+        #expect(!state.ready)
+        _ = ImageSearchFeature.reduce(&state, .loaded(previous + 1))
+        #expect(state.ready && state.photos.isEmpty)
     }
 
     @Test("Use a submitted query snapshot while preserving later draft edits")
@@ -89,7 +107,7 @@ struct ImageSearchTests {
         #expect(state.canSearch)
     }
 
-    @Test("Closing during stop drains the matching generation and clears old model results")
+    @Test("Closing during stop drains the matching generation and keeps the images while discarding the old index")
     func closeAndReload() {
         var state = ready()
         _ = ImageSearchFeature.reduce(&state, .search)
@@ -98,7 +116,7 @@ struct ImageSearchTests {
         _ = ImageSearchFeature.reduce(&state, .stopped(2))
         #expect(state.isBusy)
         _ = ImageSearchFeature.reduce(&state, .stopped(3))
-        #expect(state.photos.isEmpty && !state.ready && !state.isBusy)
+        #expect(state.photos == [photo] && !state.ready && !state.isBusy && !state.hasValidIndex)
         _ = ImageSearchFeature.reduce(&state, .load(folder))
         _ = ImageSearchFeature.reduce(&state, .loaded(1))
         #expect(!state.ready)
@@ -114,7 +132,7 @@ struct ImageSearchTests {
                 .run(.index(1, [photo.url]), id: .work)
             ])
         _ = ImageSearchFeature.reduce(&state, .failed(1, ImageSearchFailure(message: "invalid image")))
-        #expect(!state.isBusy && state.ready && state.photos.isEmpty)
+        #expect(!state.isBusy && state.ready && state.photos == [photo] && !state.hasValidIndex)
         #expect(!ImageSearchFeature.reduce(&state, .index([photo.url])).isEmpty)
         _ = ImageSearchFeature.reduce(&state, .indexed(2, [photo], 0.5))
         #expect(state.photos == [photo] && state.failure == nil)

@@ -1,0 +1,92 @@
+{
+  "id": "depth-anything3",
+  "kind": "depth",
+  "name": {
+    "en": "Depth Anything 3 Small",
+    "ja": "Depth Anything 3 Small"
+  },
+  "use": {
+    "en": "Depth and camera pose",
+    "ja": "深度・カメラ姿勢"
+  },
+  "overview": {
+    "en": "Depth and camera pose",
+    "ja": "深度・カメラ姿勢"
+  },
+  "release": "planned",
+  "release_note": {
+    "en": "investigation",
+    "ja": "調査"
+  },
+  "download": null,
+  "pages": {
+    "en": "docs/model-reports/depth-anything3.md",
+    "ja": "docs/model-reports/depth-anything3.ja.md"
+  },
+  "links": [
+    {
+      "title": {
+        "en": "#180",
+        "ja": "#180"
+      },
+      "url": "https://github.com/oka-yuji/coreai-samples/issues/180"
+    }
+  ],
+  "support": {
+    "macos": {
+      "state": "unavailable",
+      "variants": [],
+      "evidence": [],
+      "note": {
+        "en": "Native demo is not provided for this platform.",
+        "ja": "このOSのネイティブデモは未提供です。"
+      }
+    },
+    "ios": {
+      "state": "unavailable",
+      "variants": [],
+      "evidence": [],
+      "note": {
+        "en": "Native demo is not provided for this platform.",
+        "ja": "このOSのネイティブデモは未提供です。"
+      }
+    }
+  },
+  "evidence": {},
+  "measurements": [],
+  "omissions": {},
+  "checks": {
+    "fidelity": {
+      "state": "not_measured",
+      "evidence": [],
+      "note": {
+        "en": "No completed check for this scope under the common protocol.",
+        "ja": "この範囲の共通プロトコルによる確認は未実施です。"
+      }
+    },
+    "quality": {
+      "state": "not_measured",
+      "evidence": [],
+      "note": {
+        "en": "No completed check for this scope under the common protocol.",
+        "ja": "この範囲の共通プロトコルによる確認は未実施です。"
+      }
+    },
+    "stability": {
+      "state": "not_measured",
+      "evidence": [],
+      "note": {
+        "en": "No completed check for this scope under the common protocol.",
+        "ja": "この範囲の共通プロトコルによる確認は未実施です。"
+      }
+    },
+    "cancellation": {
+      "state": "not_measured",
+      "evidence": [],
+      "note": {
+        "en": "No completed check for this scope under the common protocol.",
+        "ja": "この範囲の共通プロトコルによる確認は未実施です。"
+      }
+    }
+  }
+}

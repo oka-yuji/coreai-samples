@@ -287,6 +287,17 @@
         }
       }
     },
+    "The selected model is not ready yet. Try again." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選択したモデルの準備がまだできていません。もう一度お試しください。"
+          }
+        }
+      }
+    },
     "Could not start or continue the search." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4896,6 +4907,16 @@
         }
       }
     },
+    "Extracted with %@" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ で抽出"
+          }
+        }
+      }
+    },
     "Paste the description instead" : {
       "localizations" : {
         "ja" : {
@@ -5232,6 +5253,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "前の抽出処理が終了するまで少し待ってからお試しください。"
+          }
+        }
+      }
+    },
+    "The selected model is not ready yet. Please try again shortly." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選択したモデルの準備がまだできていません。少し待ってからお試しください。"
           }
         }
       }
@@ -5645,6 +5677,69 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "言葉を変えるか、画像を追加するか、すべての候補を表示してください。"
+          }
+        }
+      }
+    },
+    "Index the images again to search them." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "検索するには、画像をもう一度索引化してください。"
+          }
+        }
+      }
+    },
+    "Index again" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "もう一度索引化"
+          }
+        }
+      }
+    },
+    "Results from %@" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ の結果"
+          }
+        }
+      }
+    },
+    "The selected model is not available right now. Try again." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選択したモデルは現在使用できません。もう一度お試しください。"
+          }
+        }
+      }
+    },
+    "Some images can no longer be opened. Choose the images again." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "開けなくなった画像があります。画像を選び直してください。"
+          }
+        }
+      }
+    },
+    "The model could not be released." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルを解放できませんでした。"
           }
         }
       }
@@ -6206,6 +6301,72 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "音声入力を利用できません。権限と日本語の端末内認識を確認するか、ボタンで回答してください。"
+          }
+        }
+      }
+    },
+    "Voice input needs microphone access. Allow it in Settings, or type or tap your answers." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音声入力にはマイクへのアクセスが必要です。設定で許可するか、文字入力またはボタンで回答してください。"
+          }
+        }
+      }
+    },
+    "Voice input needs speech recognition access. Allow it in Settings, or type or tap your answers." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音声入力には音声認識へのアクセスが必要です。設定で許可するか、文字入力またはボタンで回答してください。"
+          }
+        }
+      }
+    },
+    "Japanese on-device speech recognition is unavailable on this device. Type or tap your answers." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この端末では日本語の端末内音声認識を利用できません。文字入力またはボタンで回答してください。"
+          }
+        }
+      }
+    },
+    "No Japanese voice is installed to read the questions. Type or tap your answers." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "質問を読み上げる日本語の音声がインストールされていません。文字入力またはボタンで回答してください。"
+          }
+        }
+      }
+    },
+    "Voice input or the model did not stop. Use Stop to try again." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音声入力またはモデルを停止できませんでした。もう一度「停止」を押してください。"
+          }
+        }
+      }
+    },
+    "Stopping failed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "停止できませんでした"
           }
         }
       }
@@ -7261,6 +7422,395 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "調査の上限に到達"
+          }
+        }
+      }
+    },
+    "Choose Web or Docs to use sources." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "WebまたはDocsを選んでください。"
+          }
+        }
+      }
+    },
+    "Conversation and answers. Search follows your source settings." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "会話と質問への回答。検索は資料の設定に従います。"
+          }
+        }
+      }
+    },
+    "Multi-step tasks and notes. Search follows your source settings." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "複数手順のタスクとメモ保存。検索は資料の設定に従います。"
+          }
+        }
+      }
+    },
+    "Off: answer from the model and conversation without new searches. On: retrieve the selected sources before answering. Work can still save notes." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OFF: 新しく検索せず、モデルの知識と会話履歴から回答します。ON: 選択した資料を先に取得します。ワークではどちらの設定でもメモを保存できます。"
+          }
+        }
+      }
+    },
+    "Search .txt, .md and .pdf files in ~/Documents/rag." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "~/Documents/rag/ の .txt・.md・.pdf ファイルを検索します。"
+          }
+        }
+      }
+    },
+    "Search and sources" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "検索・資料を使う"
+          }
+        }
+      }
+    },
+    "Source budget" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "資料の量"
+          }
+        }
+      }
+    },
+    "Add up to four product descriptions from URLs or pasted text, then compare extracted specifications and their source evidence." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "URLや貼り付けた文章から最大4件の商品説明を追加し、抽出した仕様とその根拠を比較します。"
+          }
+        }
+      }
+    },
+    "Camera search demo" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カメラ探索デモ"
+          }
+        }
+      }
+    },
+    "Compare" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "比較する"
+          }
+        }
+      }
+    },
+    "Compare product specifications from source text." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "説明文から商品の仕様を抽出し、比較します。"
+          }
+        }
+      }
+    },
+    "Comparison demo" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "比較デモ"
+          }
+        }
+      }
+    },
+    "Could not open Models" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modelsを開けませんでした"
+          }
+        }
+      }
+    },
+    "Demo execution is not connected in this build." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このビルドでは、デモの実行機能はまだ接続されていません。"
+          }
+        }
+      }
+    },
+    "Enter inspection answers, review the interpreted fields, and correct them before sharing the inspection record." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "点検への回答を入力し、読み取られた項目を確認・修正してから点検記録を共有します。"
+          }
+        }
+      }
+    },
+    "Enter what you want to find and inspect matching regions in the camera preview. Matches are similarity candidates and may need human review." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "探したいものを入力し、カメラ映像の中で一致する候補領域を確認します。類似度に基づく候補なので、人による確認が必要です。"
+          }
+        }
+      }
+    },
+    "Extract structured fields and review their evidence." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "文章から項目を抽出し、根拠とともに確認します。"
+          }
+        }
+      }
+    },
+    "Extraction demo" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "抽出デモ"
+          }
+        }
+      }
+    },
+    "Find camera regions that match your words." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "入力した言葉に近い領域を、カメラ映像から探します。"
+          }
+        }
+      }
+    },
+    "Find selected images using a text query." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選んだ画像を、言葉で検索します。"
+          }
+        }
+      }
+    },
+    "How it works" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "デモの使い方"
+          }
+        }
+      }
+    },
+    "Image search demo" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "画像検索デモ"
+          }
+        }
+      }
+    },
+    "Information Extraction" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "情報抽出"
+          }
+        }
+      }
+    },
+    "Input" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "入力"
+          }
+        }
+      }
+    },
+    "Inspection answer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "点検への回答"
+          }
+        }
+      }
+    },
+    "Inspection demo" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "点検デモ"
+          }
+        }
+      }
+    },
+    "Multimodal Embedding" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "画像・テキストの埋め込み"
+          }
+        }
+      }
+    },
+    "Review truck inspection answers entered by text or voice." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "文字や音声で入力したトラックの点検回答を確認します。"
+          }
+        }
+      }
+    },
+    "Run demo" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "デモを実行"
+          }
+        }
+      }
+    },
+    "Search images" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "画像を検索"
+          }
+        }
+      }
+    },
+    "Search query" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "検索する言葉"
+          }
+        }
+      }
+    },
+    "Select images, prepare their search index, and compare the matching images for your query. Similarity scores help rank candidates." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "画像を選んで検索の準備を行い、入力した言葉に近い画像を比較します。類似度は候補の並び順を判断するための値です。"
+          }
+        }
+      }
+    },
+    "Start camera" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カメラを開始"
+          }
+        }
+      }
+    },
+    "Text to extract" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "抽出する文章"
+          }
+        }
+      }
+    },
+    "What to find" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "探したいもの"
+          }
+        }
+      }
+    },
+    "Enter a note and inspect the extracted text spans and scores for each field alongside the original text." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "文章を入力し、項目ごとに抽出された文字列とスコアを原文と照らし合わせて確認します。"
           }
         }
       }

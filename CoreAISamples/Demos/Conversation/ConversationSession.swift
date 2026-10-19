@@ -38,6 +38,7 @@ final class ConversationSession {
     private(set) var modelName = ""
     private(set) var instructionsVersion = ""
     private(set) var toolsVersion = ""
+    private(set) var allowedTools: Set<String> = []
     private(set) var mode = ConversationMode.chat
     private(set) var effort = AgentReasoningEffort.low.rawValue
     private(set) var turnIndex = 0
@@ -134,8 +135,10 @@ final class ConversationSession {
             .modelPrepared(
                 run: run, name: modelName, location: chat.bundleURL?.path ?? "",
                 instructions: instructionsVersion, tools: toolsVersion))
+        allowedTools = policy.allowedTools
         begin(run: run, policy: policy, repair: repair, session: session)
-        let text = finalize ? ConversationFeature.finalized(prompt) : prompt
+        let restricted = policy.restrictingSearch(in: prompt)
+        let text = finalize ? ConversationFeature.finalized(restricted) : restricted
         let options = GenerationOptions(
             maximumResponseTokens: policy.maxTokens,
             toolCallingMode: policy.allowedTools.isEmpty ? .disallowed : .allowed)

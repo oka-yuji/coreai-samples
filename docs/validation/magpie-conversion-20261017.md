@@ -2,7 +2,7 @@
 
 2026-10-17. Issue #165, criteria MG1–MG8. The macOS FP32 research conversion,
 reference comparison, Core AI speech generation and repeat-run checks are complete.
-Subjective listening (MG8), merge and publication remain pending.
+Subjective listening (MG8) and publication remain pending.
 
 The source identities, exact numerical criteria and reviewed results are in
 [the numeric summary](magpie-conversion-20261017.json). Execution used M4 Max 128 GiB,
@@ -89,3 +89,7 @@ The recipe README and numeric summary describe the verified scope. New conversio
 contracts and failures were added to the Core AI guide inbox as they were found.
 The next requested model is Qwen3-TTS under #167. Magpie listening remains with the
 user; no merge or model publication was performed.
+
+## Integration decision
+
+On 2026-10-19 the user explicitly requested merging PR #166 before the remaining listening check. MG8 stays unchecked; merging the implementation does not complete subjective audio acceptance or publish model weights. The original numerical results and criteria above are retained. Integration checks for the current main are recorded in the PR.

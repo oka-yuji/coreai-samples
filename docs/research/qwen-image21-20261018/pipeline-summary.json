@@ -1,0 +1,97 @@
+{
+  "schema": "coreai-conversion-summary/1",
+  "status": "completed",
+  "verification": "passed",
+  "scope": "Fixed-input conversion check; not model production qualification.",
+  "stages": [
+    {
+      "index": 0,
+      "role": "prepare",
+      "status": "executed",
+      "prepare_s": 11.177493333816528,
+      "execute_s": 11.579982874915004,
+      "total_s": 35.49583562463522
+    },
+    {
+      "index": 1,
+      "role": "reference",
+      "status": "executed",
+      "prepare_s": 11.222827000077814,
+      "execute_s": 72.21678012469783,
+      "total_s": 99.2619552500546
+    },
+    {
+      "index": 2,
+      "role": "reference",
+      "status": "executed",
+      "prepare_s": 12.203565208241343,
+      "execute_s": 54.191943207755685,
+      "total_s": 82.24184074997902
+    },
+    {
+      "index": 3,
+      "role": "reference",
+      "status": "executed",
+      "prepare_s": 12.101471750065684,
+      "execute_s": 36.119825332891196,
+      "total_s": 61.80463850032538
+    },
+    {
+      "index": 4,
+      "role": "export",
+      "status": "executed",
+      "prepare_s": 6.5175654999911785,
+      "execute_s": 10.21509175002575,
+      "total_s": 25.31120966700837
+    },
+    {
+      "index": 5,
+      "role": "export",
+      "status": "executed",
+      "prepare_s": 6.099501917138696,
+      "execute_s": 110.7040617922321,
+      "total_s": 137.38699174998328
+    },
+    {
+      "index": 6,
+      "role": "export",
+      "status": "executed",
+      "prepare_s": 5.247897750232369,
+      "execute_s": 111.43334741611034,
+      "total_s": 136.85193316731602
+    },
+    {
+      "index": 7,
+      "role": "export",
+      "status": "executed",
+      "prepare_s": 0.27374254213646054,
+      "execute_s": 6.649403708986938,
+      "total_s": 8.785944791976362
+    },
+    {
+      "index": 8,
+      "role": "export",
+      "status": "executed",
+      "prepare_s": 0.2515389579348266,
+      "execute_s": 12.05173366703093,
+      "total_s": 14.461555624846369
+    },
+    {
+      "index": 9,
+      "role": "verify",
+      "status": "executed",
+      "prepare_s": 0.015612707938998938,
+      "execute_s": 399.2939494578168,
+      "total_s": 429.10938645806164
+    },
+    {
+      "index": 10,
+      "role": "export",
+      "status": "executed",
+      "prepare_s": 0.006807082798331976,
+      "execute_s": 47.878107000142336,
+      "total_s": 97.51018345775083
+    }
+  ],
+  "elapsed_s": 1131.5699518327601
+}

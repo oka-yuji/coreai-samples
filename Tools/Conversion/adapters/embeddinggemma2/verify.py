@@ -39,6 +39,7 @@ def main():
     parser.add_argument("--bundle", type=Path, required=True)
     parser.add_argument("--runner", type=Path, required=True)
     parser.add_argument("--out", type=Path, required=True)
+    parser.add_argument("--original-reference", type=Path)
     args = parser.parse_args()
     specification = json.loads((args.reference / "fixtures.json").read_text())
     samples = []
@@ -59,6 +60,12 @@ def main():
     plan.write_text(json.dumps({"samples": samples}, ensure_ascii=False, indent=2) + "\n")
     subprocess.run([str(args.runner), str(args.bundle), str(plan), str(output)], check=True, timeout=600)
     result = comparison(specification, args.reference, json.loads(output.read_text()))
+    result["precision"] = specification.get("precision", "fp16_safe")
+    if args.original_reference:
+        original_specification = json.loads((args.original_reference / "fixtures.json").read_text())
+        result["original_precision_comparison"] = comparison(
+            original_specification, args.original_reference, json.loads(output.read_text()))
+        result["scope"] = "Native fidelity to the PTQ reference; original-precision degradation reported separately."
     (args.out / "comparison.json").write_text(json.dumps(result, indent=2, allow_nan=False) + "\n")
     if not result["passed"]:
         raise SystemExit("The native vectors did not meet the fixed fidelity criteria")

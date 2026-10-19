@@ -1,0 +1,344 @@
+{
+  "id": "qwen38-27b",
+  "kind": "llm",
+  "name": {
+    "en": "Qwen3.8 27B · 4-bit, text",
+    "ja": "Qwen3.8 27B · 4ビット、テキスト"
+  },
+  "use": {
+    "en": "Chat, Work, `coreai-chat`",
+    "ja": "Chat・Work・`coreai-chat`"
+  },
+  "overview": {
+    "en": "Chat, Work, `coreai-chat` · macOS",
+    "ja": "Chat・Work・`coreai-chat` · macOS"
+  },
+  "release": "in_progress",
+  "release_note": {
+    "en": "private bundle",
+    "ja": "バンドル非公開"
+  },
+  "download": "https://huggingface.co/okayuji/Qwen3.8-27B-coreai-4bit",
+  "pages": {
+    "en": "docs/qwen3.8-27b.md",
+    "ja": "docs/qwen3.8-27b.ja.md"
+  },
+  "links": [
+    {
+      "title": {
+        "en": "Chat and Work",
+        "ja": "ChatとWork"
+      },
+      "url": "docs/qwen3.8-27b.md"
+    }
+  ],
+  "support": {
+    "macos": {
+      "state": "verified",
+      "variants": [
+        "4-bit text"
+      ],
+      "evidence": [
+        "app"
+      ],
+      "note": {
+        "en": "Recorded Mac app Chat/Work route, 4-bit text bundle; broader quality remains limited.",
+        "ja": "MacアプリのChat/Work経路、4ビット・テキスト版の記録。品質上の制限は別記。"
+      }
+    },
+    "ios": {
+      "state": "unavailable",
+      "variants": [],
+      "evidence": [],
+      "note": {
+        "en": "This 27B bundle is not an iPhone/iPad demo.",
+        "ja": "この27BバンドルのiPhone/iPadデモは未提供。"
+      }
+    }
+  },
+  "evidence": {
+    "app": {
+      "url": "docs/qwen3.8-27b.md#key-numbers",
+      "level": "native_app",
+      "outcome": "passed",
+      "record_type": "legacy",
+      "date": "2026-10-12",
+      "platform": "macos",
+      "device": "M4 Max 128 GiB",
+      "os": "macOS 27.0 (26A428)",
+      "toolchain": "Xcode 27.0 (27A266a)",
+      "variant": "4-bit text",
+      "backend": "Core AI; GPU preferred",
+      "route": "macOS app --agent-e2e",
+      "source_revision": "1d4bf0f2ff6012fd82039f2fa52739d0dd7c60c0",
+      "artifact_revision": "8e24aebe036eae577d4a3bd019ba728a73358318",
+      "code_revision": null,
+      "workload": {
+        "en": "12 frozen live-web Agent tasks × 4 rounds; 48 runs / 144 generation steps; greedy; reasoning low/off; cite-fetched default not measured. Recorded measurement window: 2026-10-11–12.",
+        "ja": "凍結12課題×4周の生きたWeb評価。48 run・144生成ステップ、greedy、思考low/off。現行既定のcite-fetchedは未計測。 元記録の計測期間：2026-10-11–12。"
+      },
+      "batch_size": 1,
+      "concurrency": 1,
+      "warmups": null,
+      "power": null,
+      "thermal": null,
+      "model_executed": true,
+      "plan_sha256": null
+    },
+    "fidelity": {
+      "url": "docs/qwen3.8-27b.md#verification",
+      "level": "diagnostic",
+      "outcome": "failed",
+      "record_type": "legacy",
+      "date": "2026-10-12",
+      "platform": "macos",
+      "device": "M4 Max 128 GiB",
+      "os": "macOS 27.0 (26A428)",
+      "toolchain": "Xcode 27.0 (27A266a)",
+      "variant": "4-bit text",
+      "backend": "Core AI; GPU preferred",
+      "route": "diagnostic",
+      "source_revision": null,
+      "artifact_revision": null,
+      "code_revision": null,
+      "workload": {
+        "en": "40 held-out inputs × 512 positions; same 4-bit weights in CPU PyTorch FP32 vs Core AI. Recorded measurement window: 2026-10-07–12.",
+        "ja": "未使用40入力×512位置。同じ4ビット重みのCPU PyTorch FP32とCore AIを比較。 元記録の計測期間：2026-10-07–12。"
+      },
+      "batch_size": 1,
+      "concurrency": 1,
+      "warmups": null,
+      "power": null,
+      "thermal": null,
+      "model_executed": true,
+      "plan_sha256": null
+    },
+    "bundle": {
+      "url": "docs/qwen3.8-27b.md#bundle",
+      "level": "conversion",
+      "outcome": "passed",
+      "record_type": "legacy",
+      "date": "2026-10-12",
+      "platform": "macos",
+      "device": "M4 Max 128 GiB",
+      "os": "macOS 27.0 (26A428)",
+      "toolchain": "Xcode 27.0 (27A266a)",
+      "variant": "4-bit text",
+      "backend": "Core AI; GPU preferred",
+      "route": "conversion",
+      "source_revision": null,
+      "artifact_revision": null,
+      "code_revision": null,
+      "workload": {
+        "en": "See fixed cases in the evidence.",
+        "ja": "根拠に記載された固定入力を参照。"
+      },
+      "batch_size": 1,
+      "concurrency": 1,
+      "warmups": null,
+      "power": null,
+      "thermal": null,
+      "model_executed": false,
+      "plan_sha256": null
+    },
+    "cli-cache": {
+      "url": "docs/qwen3.8-27b.md#operational-notes",
+      "level": "diagnostic",
+      "outcome": "passed",
+      "record_type": "legacy",
+      "date": "2026-10-12",
+      "platform": "macos",
+      "device": "M4 Max 128 GiB",
+      "os": "macOS 27.0 (26A428)",
+      "toolchain": "Xcode 27.0 (27A266a)",
+      "variant": "4-bit text",
+      "backend": "Core AI; GPU preferred",
+      "route": "coreai-chat first preparation",
+      "source_revision": "1d4bf0f2ff6012fd82039f2fa52739d0dd7c60c0",
+      "artifact_revision": "8e24aebe036eae577d4a3bd019ba728a73358318",
+      "code_revision": null,
+      "workload": {
+        "en": "First CLI preparation while other builds ran (load average 20–29); separate prepared copy from the app.",
+        "ja": "他のビルドが動いていた時のCLI初回準備（load average 20〜29）。アプリとは別の特殊化コピー。"
+      },
+      "batch_size": 1,
+      "concurrency": 1,
+      "warmups": null,
+      "power": null,
+      "thermal": null,
+      "model_executed": true,
+      "plan_sha256": null
+    }
+  },
+  "measurements": [
+    {
+      "metric": "bundle_bytes",
+      "value": 16852543780,
+      "unit": "B",
+      "statistic": "single",
+      "n": 1,
+      "evidence": "bundle",
+      "note": {
+        "en": "Fixed workload in the linked evidence.",
+        "ja": "リンク先の固定条件による結果。"
+      }
+    },
+    {
+      "metric": "first_load_s",
+      "value": 86.87,
+      "unit": "s",
+      "statistic": "single",
+      "n": 1,
+      "evidence": "app",
+      "note": {
+        "en": "One first app load; includes 82.84 s of specialization.",
+        "ja": "アプリの初回1回。特殊化82.84秒を含む。"
+      }
+    },
+    {
+      "metric": "warm_load_s",
+      "value": 4.7,
+      "unit": "s",
+      "statistic": "median",
+      "n": 48,
+      "evidence": "app",
+      "note": {
+        "en": "Prepared-cache app loads; observed range 3.6–10.3 s.",
+        "ja": "準備済みキャッシュからのアプリロード。範囲3.6〜10.3秒。"
+      }
+    },
+    {
+      "metric": "first_text_s",
+      "value": 6.46,
+      "unit": "s",
+      "statistic": "median",
+      "n": 144,
+      "evidence": "app",
+      "note": {
+        "en": "First displayed text per generation step, including reasoning; not first final answer.",
+        "ja": "生成ステップごとの最初の表示文字。思考を含み、最終回答の開始時間とは異なる。"
+      }
+    },
+    {
+      "metric": "decode_tps",
+      "value": 22.74,
+      "unit": "tokens/s",
+      "statistic": "median",
+      "n": 144,
+      "evidence": "app",
+      "note": {
+        "en": "Fixed workload in the linked evidence.",
+        "ja": "リンク先の固定条件による結果。"
+      }
+    },
+    {
+      "metric": "peak_rss_bytes",
+      "value": 34.2,
+      "unit": "GB",
+      "statistic": "single",
+      "n": 1,
+      "evidence": "app",
+      "note": {
+        "en": "Rounded first-load process RSS; not a minimum device RAM requirement.",
+        "ja": "初回ロード時のプロセスRSSの丸め値。端末の最低RAM要件ではない。"
+      }
+    },
+    {
+      "metric": "task_success",
+      "value": 1,
+      "unit": "ratio",
+      "statistic": "aggregate",
+      "n": 48,
+      "evidence": "app",
+      "note": {
+        "en": "48/48 frozen-grader task successes; separate support audit: 22 supported, 15 partly, 11 unsupported.",
+        "ja": "固定graderの課題達成48/48。根拠の別監査は支持22・一部支持15・不支持11。"
+      }
+    },
+    {
+      "metric": "reference_error",
+      "value": 0.778,
+      "unit": "error",
+      "statistic": "max",
+      "n": 20480,
+      "evidence": "fidelity",
+      "note": {
+        "en": "Maximum next-token probability difference; predeclared maximum 0.0875 was not met.",
+        "ja": "次トークン確率の最大差。事前上限0.0875を満たしていない。"
+      }
+    },
+    {
+      "metric": "prepared_bytes",
+      "value": 16.86,
+      "unit": "GB",
+      "statistic": "single",
+      "n": 1,
+      "evidence": "cli-cache",
+      "note": {
+        "en": "Rounded CLI prepared-copy size; each executable prepares its own copy.",
+        "ja": "CLI用の特殊化コピーの丸め値。実行ファイルごとに別コピーを作る。"
+      }
+    },
+    {
+      "metric": "resident_bytes",
+      "value": 16.0,
+      "unit": "GiB",
+      "statistic": "min",
+      "n": null,
+      "evidence": "app",
+      "note": {
+        "en": "Reported resident-memory range during Agent steps; original sample count not stated.",
+        "ja": "Agentステップ中の常駐メモリ範囲。元の記録に標本数の明記なし。"
+      }
+    },
+    {
+      "metric": "resident_bytes",
+      "value": 16.7,
+      "unit": "GiB",
+      "statistic": "max",
+      "n": null,
+      "evidence": "app",
+      "note": {
+        "en": "Reported resident-memory range during Agent steps; original sample count not stated.",
+        "ja": "Agentステップ中の常駐メモリ範囲。元の記録に標本数の明記なし。"
+      }
+    }
+  ],
+  "omissions": {},
+  "checks": {
+    "fidelity": {
+      "state": "failed",
+      "evidence": [
+        "fidelity"
+      ],
+      "note": {
+        "en": "Some original-weight agreement criteria failed; same-bundle runtime agreement is a separate pass.",
+        "ja": "元重みとの一致基準の一部が未達。同一バンドルのランタイム一致の合格とは別。"
+      }
+    },
+    "quality": {
+      "state": "not_measured",
+      "evidence": [],
+      "note": {
+        "en": "No completed check for this scope under the common protocol.",
+        "ja": "この範囲の共通プロトコルによる確認は未実施です。"
+      }
+    },
+    "stability": {
+      "state": "not_measured",
+      "evidence": [],
+      "note": {
+        "en": "No completed check for this scope under the common protocol.",
+        "ja": "この範囲の共通プロトコルによる確認は未実施です。"
+      }
+    },
+    "cancellation": {
+      "state": "not_measured",
+      "evidence": [],
+      "note": {
+        "en": "No completed check for this scope under the common protocol.",
+        "ja": "この範囲の共通プロトコルによる確認は未実施です。"
+      }
+    }
+  }
+}

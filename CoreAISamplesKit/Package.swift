@@ -10,11 +10,17 @@ let speechSettings: [SwiftSetting] = [.swiftLanguageMode(.v6)] + approachableCon
 
 let package = Package(
     name: "CoreAISamplesKit",
+    defaultLocalization: "en",
     platforms: [
         .macOS("27.0"),
         .iOS("27.0"),
     ],
     products: [
+        .library(name: "ModelLibraryUI", targets: ["ModelLibraryUI"]),
+        .library(name: "ModelLibraryFeature", targets: ["ModelLibraryFeature"]),
+        .library(name: "ModelLibraryStorage", targets: ["ModelLibraryStorage"]),
+        .library(name: "ModelLibraryTransfer", targets: ["ModelLibraryTransfer"]),
+        .library(name: "ModelLibraryRuntime", targets: ["ModelLibraryRuntime"]),
         .library(name: "ObjectFinderFeature", targets: ["ObjectFinderFeature"]),
         .library(name: "ObjectFinderCore", targets: ["ObjectFinderCore"]),
         .library(name: "ObjectFinderRuntime", targets: ["ObjectFinderRuntime"]),
@@ -40,6 +46,7 @@ let package = Package(
         .executable(name: "coreai-chat", targets: ["coreai-chat"]),
         .library(name: "FeatureStore", targets: ["FeatureStore"]),
         .library(name: "ExtractFeature", targets: ["ExtractFeature"]),
+        .library(name: "ExtractRuntime", targets: ["ExtractRuntime"]),
         .library(name: "DecideFeature", targets: ["DecideFeature"]),
         .library(name: "DecideRuntime", targets: ["DecideRuntime"]),
         .library(name: "RecipeCore", targets: ["RecipeCore"]),
@@ -55,12 +62,48 @@ let package = Package(
     ],
     targets: [
         .target(
+            name: "ModelLibraryUI", dependencies: ["ModelLibraryFeature", "FeatureStore"],
+            resources: [.process("Resources")], swiftSettings: speechSettings + [.defaultIsolation(MainActor.self)]),
+        .target(name: "ModelLibraryFeature", dependencies: ["FeatureStore"], swiftSettings: speechSettings),
+        .testTarget(
+            name: "ModelLibraryTests", dependencies: ["ModelLibraryFeature", "ModelLibraryUI", "FeatureStore"],
+            resources: [.copy("Resources")], swiftSettings: speechSettings),
+        .target(
+            name: "ModelLibraryStorage", dependencies: ["ModelLibraryFeature", "GLiNERRuntime", "EmbeddingRuntime"],
+            swiftSettings: speechSettings),
+        .testTarget(
+            name: "ModelLibraryStorageTests",
+            dependencies: ["ModelLibraryStorage", "ModelLibraryFeature", "GLiNERRuntime", "EmbeddingCore"],
+            swiftSettings: speechSettings),
+        .target(
+            name: "ModelLibraryTransfer", dependencies: ["ModelLibraryFeature", "ModelLibraryStorage", "FeatureStore"],
+            swiftSettings: speechSettings),
+        .testTarget(
+            name: "ModelLibraryTransferTests",
+            dependencies: ["ModelLibraryTransfer", "ModelLibraryStorage", "ModelLibraryFeature", "FeatureStore"],
+            swiftSettings: speechSettings),
+        .target(
+            name: "ModelLibraryRuntime",
+            dependencies: [
+                "ModelLibraryFeature", "ModelLibraryStorage", "ModelLibraryTransfer", "ModelLibraryUI", "FeatureStore",
+            ], resources: [.process("Resources")],
+            swiftSettings: speechSettings + [.defaultIsolation(MainActor.self)]),
+        .testTarget(
+            name: "ModelLibraryRuntimeTests",
+            dependencies: [
+                "ModelLibraryRuntime", "ModelLibraryFeature", "ModelLibraryStorage", "ModelLibraryTransfer",
+                "FeatureStore",
+            ], swiftSettings: speechSettings),
+        .target(
             name: "ObjectFinderFeature", dependencies: ["ObjectFinderCore", "FeatureStore"],
             swiftSettings: speechSettings),
         .target(name: "ObjectFinderCore", swiftSettings: speechSettings),
         .target(
             name: "ObjectFinderRuntime",
-            dependencies: ["ObjectFinderCore", "ObjectFinderFeature", "EmbeddingCore", "EmbeddingRuntime"],
+            dependencies: [
+                "ObjectFinderCore", "ObjectFinderFeature", "EmbeddingCore", "EmbeddingRuntime", "FeatureStore",
+                "ModelLibraryFeature",
+            ],
             swiftSettings: speechSettings),
         .executableTarget(
             name: "object-finder-check", dependencies: ["ObjectFinderCore", "ObjectFinderRuntime"],
@@ -69,7 +112,7 @@ let package = Package(
             name: "ObjectFinderTests",
             dependencies: [
                 "ObjectFinderCore", "ObjectFinderFeature", "ObjectFinderRuntime", "FeatureStore", "EmbeddingCore",
-                "EmbeddingRuntime",
+                "EmbeddingRuntime", "ModelLibraryFeature",
             ],
             swiftSettings: speechSettings),
         .target(name: "SpeechCore", swiftSettings: speechSettings),
@@ -149,7 +192,10 @@ let package = Package(
             swiftSettings: approachableConcurrency),
         .target(name: "ProductCore", swiftSettings: approachableConcurrency),
         .target(
-            name: "ProductRuntime", dependencies: ["ProductCore", "ProductFeature", "GLiNERCore", "GLiNERRuntime"],
+            name: "ProductRuntime",
+            dependencies: [
+                "ProductCore", "ProductFeature", "GLiNERCore", "GLiNERRuntime", "ModelLibraryFeature", "FeatureStore",
+            ],
             resources: [.process("Resources")], swiftSettings: approachableConcurrency),
         .testTarget(name: "ProductCoreTests", dependencies: ["ProductCore"], swiftSettings: approachableConcurrency),
         .testTarget(
@@ -183,6 +229,9 @@ let package = Package(
             dependencies: ["FeatureStore", "GLiNERCore"],
             swiftSettings: approachableConcurrency
         ),
+        .target(
+            name: "ExtractRuntime", dependencies: ["ExtractFeature", "GLiNERCore"],
+            swiftSettings: approachableConcurrency),
         .target(
             name: "GLiNERRuntime",
             dependencies: [
@@ -235,7 +284,7 @@ let package = Package(
         ),
         .testTarget(
             name: "ExtractFeatureTests",
-            dependencies: ["ExtractFeature", "FeatureStore", "GLiNERCore"],
+            dependencies: ["ExtractFeature", "ExtractRuntime", "FeatureStore", "GLiNERCore"],
             resources: [.copy("Resources")],
             swiftSettings: approachableConcurrency
         ),
