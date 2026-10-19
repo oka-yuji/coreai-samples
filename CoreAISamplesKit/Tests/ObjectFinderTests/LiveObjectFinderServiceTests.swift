@@ -207,6 +207,36 @@ struct LiveObjectFinderServiceTests {
         output.continuation.finish()
     }
 
+    @Test(
+        "Each analyzed frame reports every evaluated similarity, including those below the threshold, and a memory sample",
+        .timeLimit(.minutes(1)))
+    func frameMetrics() async throws {
+        let fake = FinderDevicesFake()
+        let region = ObjectRegion(x: 0, y: 0, width: 1, height: 1)
+        let match = ObjectCandidate(id: 1, region: region, similarity: 0.8)
+        fake.candidateResults = [ObjectCandidate(id: 0, region: region, similarity: 0.4), match]
+        let memory = ObjectFinderMemory(footprintBytes: 512, availableBytes: 2_048)
+        var devices = fake.devices
+        devices.memory = { memory }
+        let output = AsyncStream<ObjectFinderFrame>.makeStream(bufferingPolicy: .bufferingNewest(1))
+        let service = LiveObjectFinderService(devices: devices)
+        let search = Task {
+            try await service.search(
+                folder: folder, query: "glasses", minimumSimilarity: 0.67, rotation: initial, started: {},
+                receive: { output.continuation.yield($0) })
+        }
+        var starts = fake.started.stream.makeAsyncIterator()
+        _ = await starts.next()
+        try fake.sendFrame(rotation: 90, capturedAt: 42)
+        var results = output.stream.makeAsyncIterator()
+        let frame = await results.next()
+        #expect(frame?.candidates == [match] && frame?.similarities == [0.4, 0.8])
+        #expect(frame?.memory == memory && frame?.capturedAt == 42)
+        search.cancel()
+        _ = await search.result
+        output.continuation.finish()
+    }
+
     @Test("A failed image request stops capture and releases the model before reporting failure")
     func requestFailure() async {
         let fake = FinderDevicesFake()
@@ -319,7 +349,9 @@ final class FinderDevicesFake {
     }
 
     @discardableResult
-    func sendFrame(rotation: Double) throws -> AsyncThrowingStream<CapturedObjectFrame, any Error>.Continuation
+    func sendFrame(rotation: Double, capturedAt: Double = 0) throws -> AsyncThrowingStream<
+        CapturedObjectFrame, any Error
+    >.Continuation
         .YieldResult?
     {
         let context = try #require(
@@ -327,7 +359,7 @@ final class FinderDevicesFake {
                 data: nil, width: 2, height: 2, bitsPerComponent: 8, bytesPerRow: 8,
                 space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue))
         let image = try #require(context.makeImage())
-        return frames?.yield(CapturedObjectFrame(image: image, rotation: rotation))
+        return frames?.yield(CapturedObjectFrame(image: image, rotation: rotation, capturedAt: capturedAt))
     }
 
     func releasePreparation() {

@@ -1,6 +1,7 @@
 import CoreGraphics
 import Foundation
 import ObjectFinderCore
+import ObjectFinderFeature
 
 struct CapturedObjectFrame: Sendable {
     let image: CGImage
@@ -25,4 +26,5 @@ struct ObjectFinderDevices {
     var trackCandidates: (CapturedObjectFrame, [ObjectCandidate]) async -> [ObjectCandidate] = { _, candidates in
         candidates
     }
+    var memory: () -> ObjectFinderMemory? = { nil }
 }

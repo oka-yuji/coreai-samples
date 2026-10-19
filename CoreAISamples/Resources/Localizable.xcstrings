@@ -67,6 +67,105 @@
         }
       }
     },
+    "Analysis time" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "解析時間"
+          }
+        }
+      }
+    },
+    "Average %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "平均 %@"
+          }
+        }
+      }
+    },
+    "Speed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "処理速度"
+          }
+        }
+      }
+    },
+    "analyses/s" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "回/秒"
+          }
+        }
+      }
+    },
+    "Peak %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最大 %@"
+          }
+        }
+      }
+    },
+    "Available memory" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "空きメモリ"
+          }
+        }
+      }
+    },
+    "Similarity log" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "類似度のログ"
+          }
+        }
+      }
+    },
+    "Waiting for the first analysis…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最初の解析を待っています…"
+          }
+        }
+      }
+    },
+    "Each value is the cosine similarity between the text vector and a region's image vector." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "各値は、検索語のベクトルと各領域の画像ベクトルのコサイン類似度です。"
+          }
+        }
+      }
+    },
     "The camera stays live while matches update." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -173,17 +272,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "解析したカメラ画像"
-          }
-        }
-      }
-    },
-    "Find things around you" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "身の回りの物を探す"
           }
         }
       }
