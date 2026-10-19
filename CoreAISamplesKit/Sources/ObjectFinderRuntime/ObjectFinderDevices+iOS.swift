@@ -21,7 +21,7 @@
                     },
                     stopCamera: { await capture.stop() },
                     checkCamera: { try await capture.checkActive() },
-                    candidates: { try await finder.candidates(in: $0) },
+                    candidates: { try await finder.candidates(in: $0, mode: $1) },
                     closeFinder: { try await finder.close() },
                     beginOrientation: { UIDevice.current.beginGeneratingDeviceOrientationNotifications() },
                     endOrientation: { UIDevice.current.endGeneratingDeviceOrientationNotifications() },

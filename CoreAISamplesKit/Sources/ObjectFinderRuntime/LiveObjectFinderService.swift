@@ -18,8 +18,8 @@ public final class LiveObjectFinderService: ObjectFinderService {
     init(devices: ObjectFinderDevices) { self.devices = devices }
 
     public func search(
-        folder: URL, query: String, minimumSimilarity: Double, rotation: ObjectCameraRotation, started: () -> Void,
-        receive: (ObjectFinderFrame) -> Void
+        folder: URL, query: String, minimumSimilarity: Double, mode: ObjectSearchMode, rotation: ObjectCameraRotation,
+        started: () -> Void, receive: (ObjectFinderFrame) -> Void
     ) async throws {
         try Task.checkCancellation()
         guard !busy else { throw ObjectFinderError.busy }
@@ -62,12 +62,13 @@ public final class LiveObjectFinderService: ObjectFinderService {
                 guard rotation == configuration.rotation, frame.rotation == rotation.angle else { continue }
                 let start = ContinuousClock.now
                 reusable = false
-                let candidates = try await devices.candidates(frame.image)
+                let candidates = try await devices.candidates(frame.image, mode)
                 reusable = true
                 try checkStop()
                 try await devices.checkCamera()
                 guard rotation == configuration.rotation, frame.rotation == rotation.angle else { continue }
                 let matches = ObjectCandidateSelection.matching(candidates, minimumSimilarity: minimumSimilarity)
+                    .sorted { $0.similarity > $1.similarity }
                 let tracked = await devices.trackCandidates(frame, matches)
                 try checkStop()
                 try await devices.checkCamera()

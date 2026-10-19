@@ -17,7 +17,7 @@ struct ObjectFinderDevices {
     var startCamera: (Double) async throws -> AsyncThrowingStream<CapturedObjectFrame, any Error>
     var stopCamera: () async -> Void
     var checkCamera: () async throws -> Void
-    var candidates: (CGImage) async throws -> [ObjectCandidate]
+    var candidates: (CGImage, ObjectSearchMode) async throws -> [ObjectCandidate]
     var closeFinder: () async throws -> Void
     var beginOrientation: () -> Void
     var endOrientation: () -> Void

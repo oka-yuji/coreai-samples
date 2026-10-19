@@ -81,6 +81,18 @@
                         }
                         .pickerStyle(.segmented)
                         Text("Shows up to this many boxes at once.").font(.caption).foregroundStyle(.secondary)
+                        Picker(
+                            "Search method",
+                            selection: Binding(
+                                get: { store.state.searchMode }, set: { store.send(.searchModeChanged($0)) })
+                        ) {
+                            ForEach(ObjectSearchMode.allCases, id: \.self) { Text($0.title).tag($0) }
+                        }
+                        .pickerStyle(.segmented)
+                        Text(
+                            "Two-step checks five areas of the frame, then looks for objects again inside the closest area. It finds more objects, but each analysis takes longer."
+                        )
+                        .font(.caption).foregroundStyle(.secondary)
                     }
                     .padding(.top, 8)
                     .disabled(store.state.phase != .idle)
@@ -285,6 +297,10 @@
                             detail: nil)
                     }
                 }
+                LabeledContent("Search method") {
+                    Text(state.searchMode.title)
+                }
+                .font(.caption)
                 if let model {
                     LabeledContent("Model") {
                         Text(verbatim: model).font(.caption.monospaced()).lineLimit(1).truncationMode(.middle)
@@ -396,5 +412,14 @@
             }
         }
 
+    }
+
+    extension ObjectSearchMode {
+        fileprivate var title: LocalizedStringKey {
+            switch self {
+            case .standard: "Standard"
+            case .twoStep: "Two-step"
+            }
+        }
     }
 #endif

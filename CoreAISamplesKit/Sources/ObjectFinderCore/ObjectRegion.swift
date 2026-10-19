@@ -28,6 +28,27 @@ public struct ObjectRegion: Codable, Equatable, Sendable {
     }
 }
 
+public enum ObjectSearchMode: String, CaseIterable, Codable, Sendable {
+    case standard, twoStep
+}
+
+extension ObjectRegion {
+    public static let frame = ObjectRegion(x: 0, y: 0, width: 1, height: 1)
+
+    public static let searchWindows: [ObjectRegion] =
+        [frame]
+        + [(0.0, 0.0), (0.4, 0.0), (0.0, 0.4), (0.4, 0.4)].map {
+            ObjectRegion(x: $0.0, y: $0.1, width: 0.6, height: 0.6)
+        }
+
+    public func placed(in window: ObjectRegion) -> ObjectRegion {
+        let left = window.x + x * window.width
+        let top = window.y + y * window.height
+        return ObjectRegion(
+            x: left, y: top, width: min(width * window.width, 1 - left), height: min(height * window.height, 1 - top))
+    }
+}
+
 public struct ObjectCandidate: Codable, Equatable, Sendable, Identifiable {
     public let id: Int
     public let region: ObjectRegion

@@ -42,7 +42,9 @@ struct ObjectFinderFeatureTests {
         _ = ObjectFinderFeature.reduce(&state, .queryChanged(" glasses "))
         #expect(
             ObjectFinderFeature.reduce(&state, .start) == [
-                .run(.search(1, folder, "glasses", 0.67, .init(session: 1, revision: 0, angle: 90)), id: .search)
+                .run(
+                    .search(1, folder, "glasses", 0.67, .standard, .init(session: 1, revision: 0, angle: 90)),
+                    id: .search)
             ])
         _ = ObjectFinderFeature.reduce(&state, .queryChanged("keys"))
         _ = ObjectFinderFeature.reduce(&state, .folderSelected(URL(filePath: "/other")))
@@ -70,7 +72,9 @@ struct ObjectFinderFeatureTests {
         #expect(state.frame == nil && state.query == " red keys ")
         #expect(
             ObjectFinderFeature.reduce(&state, .stopped(1)) == [
-                .run(.search(2, folder, "red keys", 0.67, .init(session: 2, revision: 0, angle: 90)), id: .search)
+                .run(
+                    .search(2, folder, "red keys", 0.67, .standard, .init(session: 2, revision: 0, angle: 90)),
+                    id: .search)
             ])
         #expect(state.submittedQuery == "red keys" && state.phase == .starting && !state.restartAfterStop)
     }
@@ -147,7 +151,9 @@ struct ObjectFinderFeatureTests {
             _ = ObjectFinderFeature.reduce(&state, .appeared)
             #expect(
                 ObjectFinderFeature.reduce(&state, .start) == [
-                    .run(.search(2, folder, "glasses", 0.67, .init(session: 2, revision: 0, angle: 90)), id: .search)
+                    .run(
+                        .search(2, folder, "glasses", 0.67, .standard, .init(session: 2, revision: 0, angle: 90)),
+                        id: .search)
                 ])
             _ = ObjectFinderFeature.reduce(&state, .analyzed(1, frame))
             #expect(state.frame == nil)
@@ -247,7 +253,8 @@ struct ObjectFinderFeatureTests {
         #expect(store.state.phase == .idle && store.state.frame == nil && service.closes == 1)
         service.failure = .cameraDenied
         var failure: ObjectFinderFailure?
-        await runner.run(.search(4, folder, "keys", 0.67, .init(session: 4, revision: 0, angle: 90))) { action in
+        await runner.run(.search(4, folder, "keys", 0.67, .standard, .init(session: 4, revision: 0, angle: 90))) {
+            action in
             if case .failed(let session, let value) = action {
                 #expect(session == 4)
                 failure = value
@@ -271,6 +278,23 @@ struct ObjectFinderFeatureTests {
         #expect(ObjectFinderFeature.reduce(&state, .maximumBoxesChanged(3)).isEmpty && state.maximumBoxes == 1)
         _ = ObjectFinderFeature.reduce(&state, .stopped(1))
         #expect(ObjectFinderFeature.reduce(&state, .maximumBoxesChanged(3)).isEmpty && state.maximumBoxes == 3)
+    }
+
+    @Test("TWO-03 The search method defaults to standard, changes only while stopped and is passed to the search")
+    func searchMode() {
+        var state = ObjectFinderState(folder: folder)
+        #expect(state.searchMode == .standard)
+        #expect(
+            ObjectFinderFeature.reduce(&state, .searchModeChanged(.twoStep)).isEmpty && state.searchMode == .twoStep)
+        state.query = "glasses"
+        #expect(
+            ObjectFinderFeature.reduce(&state, .start) == [
+                .run(
+                    .search(1, folder, "glasses", 0.67, .twoStep, .init(session: 1, revision: 0, angle: 90)),
+                    id: .search)
+            ])
+        #expect(
+            ObjectFinderFeature.reduce(&state, .searchModeChanged(.standard)).isEmpty && state.searchMode == .twoStep)
     }
 
     @Test("BOX-02 Selected boxes keep the highest non-overlapping matches up to the box limit")
@@ -360,7 +384,8 @@ private final class ControlledFinder: ObjectFinderService {
     var waiters: [CheckedContinuation<Void, Never>] = []
 
     func search(
-        folder: URL, query: String, minimumSimilarity: Double, rotation: ObjectCameraRotation, started: () -> Void,
+        folder: URL, query: String, minimumSimilarity: Double, mode: ObjectSearchMode, rotation: ObjectCameraRotation,
+        started: () -> Void,
         receive: (ObjectFinderFrame) -> Void
     ) async throws {
         calls += 1

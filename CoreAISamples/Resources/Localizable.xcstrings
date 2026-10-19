@@ -67,6 +67,50 @@
         }
       }
     },
+    "Search method" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "探し方"
+          }
+        }
+      }
+    },
+    "Standard" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "標準"
+          }
+        }
+      }
+    },
+    "Two-step" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "2段階"
+          }
+        }
+      }
+    },
+    "Two-step checks five areas of the frame, then looks for objects again inside the closest area. It finds more objects, but each analysis takes longer." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "2段階は、画面の5つの範囲を照合し、いちばん近い範囲の中で物を探し直します。見つけやすくなりますが、1回の解析に時間がかかります。"
+          }
+        }
+      }
+    },
     "Boxes shown" : {
       "extractionState" : "manual",
       "localizations" : {

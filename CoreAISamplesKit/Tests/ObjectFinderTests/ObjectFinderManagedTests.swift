@@ -180,7 +180,9 @@ struct ObjectFinderManagedTests {
         #expect(state.phase == .idle && !state.releasePending && state.canStart)
         #expect(
             ObjectFinderFeature.reduce(&state, .start) == [
-                .run(.search(2, selected, "glasses", 0.67, .init(session: 2, revision: 0, angle: 90)), id: .search)
+                .run(
+                    .search(2, selected, "glasses", 0.67, .standard, .init(session: 2, revision: 0, angle: 90)),
+                    id: .search)
             ])
         _ = ObjectFinderFeature.reduce(&state, .failed(2, .cameraInterrupted))
         _ = ObjectFinderFeature.reduce(&state, .stopFailed(2, .operation("release failed")))
