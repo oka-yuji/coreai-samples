@@ -14,6 +14,7 @@ public final class LiveObjectFinderService: ObjectFinderService {
     private var cleanupFailure: (any Error)?
     private var waiters: [CheckedContinuation<Void, Never>] = []
     private var configuration = ObjectCameraConfiguration()
+    private static let refreshLimit = 3
 
     init(devices: ObjectFinderDevices) { self.devices = devices }
 
@@ -45,6 +46,7 @@ public final class LiveObjectFinderService: ObjectFinderService {
             reusable = true
             try checkStop()
             started()
+            var refreshes = 0
             while true {
                 try checkStop()
                 if rotation != configuration.rotation {
@@ -61,9 +63,14 @@ public final class LiveObjectFinderService: ObjectFinderService {
                 try await devices.checkCamera()
                 guard rotation == configuration.rotation, frame.rotation == rotation.angle else { continue }
                 let start = ContinuousClock.now
+                let tracking =
+                    mode == .twoStep && refreshes < Self.refreshLimit ? await devices.trackedCandidates() : []
                 reusable = false
-                let candidates = try await devices.candidates(frame.image, mode)
+                let candidates =
+                    tracking.isEmpty
+                    ? try await devices.candidates(frame.image, mode) : try await devices.rescore(frame.image, tracking)
                 reusable = true
+                refreshes = tracking.isEmpty ? 0 : refreshes + 1
                 try checkStop()
                 try await devices.checkCamera()
                 guard rotation == configuration.rotation, frame.rotation == rotation.angle else { continue }
@@ -80,7 +87,7 @@ public final class LiveObjectFinderService: ObjectFinderService {
                         seconds: Double(duration.seconds) + Double(duration.attoseconds) / 1e18,
                         rotation: frame.rotation, orientationRevision: rotation.revision,
                         captureGeneration: frame.generation, similarities: candidates.map(\.similarity),
-                        capturedAt: frame.capturedAt, memory: devices.memory()))
+                        capturedAt: frame.capturedAt, memory: devices.memory(), refreshed: !tracking.isEmpty))
             }
             try checkStop()
         } catch {

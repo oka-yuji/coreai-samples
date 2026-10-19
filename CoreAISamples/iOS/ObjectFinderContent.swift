@@ -321,8 +321,10 @@
                     ForEach(Array(state.log.enumerated()), id: \.offset) { offset, frame in
                         logRow(number: state.analyzedFrames - offset, frame: frame)
                     }
-                    Text("Each value is the cosine similarity between the text vector and a region's image vector.")
-                        .font(.caption2).foregroundStyle(.secondary)
+                    Text(
+                        "Each value is the cosine similarity between the text vector and a region's image vector. A circular arrow marks an analysis that only rechecked the tracked boxes."
+                    )
+                    .font(.caption2).foregroundStyle(.secondary)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -342,6 +344,8 @@
             let values = frame.similarities.sorted(by: >)
             return HStack(spacing: 12) {
                 Text(verbatim: "#\(number)").foregroundStyle(.secondary)
+                Image(systemName: "arrow.clockwise").foregroundStyle(.secondary).opacity(frame.refreshed ? 1 : 0)
+                    .accessibilityLabel(frame.refreshed ? Text("Recheck") : Text(verbatim: ""))
                 Text(verbatim: milliseconds(frame.seconds))
                 ForEach(Array(values.prefix(3).enumerated()), id: \.offset) { _, value in
                     Text(value, format: .number.precision(.fractionLength(2)))

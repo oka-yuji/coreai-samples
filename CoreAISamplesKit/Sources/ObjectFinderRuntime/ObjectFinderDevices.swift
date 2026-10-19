@@ -27,4 +27,6 @@ struct ObjectFinderDevices {
         candidates
     }
     var memory: () -> ObjectFinderMemory? = { nil }
+    var trackedCandidates: () async -> [ObjectCandidate] = { [] }
+    var rescore: (CGImage, [ObjectCandidate]) async throws -> [ObjectCandidate] = { _, candidates in candidates }
 }

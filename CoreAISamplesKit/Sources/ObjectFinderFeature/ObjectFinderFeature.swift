@@ -34,11 +34,12 @@ public struct ObjectFinderFrame: Equatable, Sendable {
     public let similarities: [Double]
     public let capturedAt: Double
     public let memory: ObjectFinderMemory?
+    public let refreshed: Bool
 
     public init(
         candidates: [ObjectCandidate], seconds: Double, rotation: Double = 90, orientationRevision: Int = 0,
         captureGeneration: Int = 0, similarities: [Double] = [], capturedAt: Double = 0,
-        memory: ObjectFinderMemory? = nil
+        memory: ObjectFinderMemory? = nil, refreshed: Bool = false
     ) {
         self.candidates = candidates
         self.seconds = seconds
@@ -48,6 +49,7 @@ public struct ObjectFinderFrame: Equatable, Sendable {
         self.similarities = similarities
         self.capturedAt = capturedAt
         self.memory = memory
+        self.refreshed = refreshed
     }
 }
 
