@@ -294,6 +294,7 @@ actor Runtime {
             settings.measurement, requestID: request.id, promptTokens: prompt.count, reloadSeconds: reloadSeconds,
             start: start)
         defer { lastMeasurement = probe?.record }
+        core.engine.measuresPreparation = probe != nil
         let before = core.engine.stats.prefillTokens
         let hub = preparationProgress
         let transcriptID = request.transcript.first?.id ?? request.id.uuidString

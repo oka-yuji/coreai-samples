@@ -296,6 +296,7 @@ struct SpeedRun: AsyncParsableCommand {
         var start = loadStart
         var loadEnd = loadStart
         var generated = 0
+        let stopReason: String
         var loadStats: CoreAIBackend.Engine.LoadStats?
         if engine == "own" {
             let own = try await CoreAIBackend.Engine(bundle: bundle)
@@ -309,20 +310,22 @@ struct SpeedRun: AsyncParsableCommand {
                 if first == loadStart { first = last }
                 generated += 1
             }
+            stopReason = SpeedRecord.ownStopReason(generated: generated, maxTokens: maxTokens)
         } else {
             let official = try await EngineFactory.createEngine(
                 bundle: LanguageModelBundle(at: url),
                 options: EngineOptions(variant: engine == "sequential" ? "coreai-sequential" : nil))
             loadEnd = clock.now
             try await official.warmup(queryLength: 1, sampling: .greedy)
-            try await drain(official, warmup, 8) { _ in }
+            _ = try await drain(official, warmup, 8) { _ in }
             try await official.reset(to: 0)
             start = clock.now
-            try await drain(official, input, maxTokens) { _ in
+            let reason = try await drain(official, input, maxTokens) { _ in
                 last = clock.now
                 if first == loadStart { first = last }
                 generated += 1
             }
+            stopReason = SpeedRecord.officialStopReason(reason)
         }
         var usage = rusage()
         let peakRssBytes: UInt64? = getrusage(RUSAGE_SELF, &usage) == 0 ? UInt64(usage.ru_maxrss) : nil
@@ -334,7 +337,7 @@ struct SpeedRun: AsyncParsableCommand {
                 warmupS: (start - loadEnd) / .seconds(1), specializeS: loadStats?.specializeSeconds,
                 cached: loadStats?.cached, promptTokens: input.count, prefillS: prefillS,
                 prefillTokS: Double(input.count) / prefillS, maxTokens: maxTokens, generatedTokens: generated,
-                stopReason: SpeedRecord.stopReason(generated: generated, maxTokens: maxTokens), decodeS: decodeS,
+                stopReason: stopReason, decodeS: decodeS,
                 decodeTokS: SpeedRecord.decodeRate(generated: generated, seconds: decodeS),
                 requestedCompute: loadStats?.requestedComputeUnit,
                 expectFrequentReshapes: loadStats?.expectsFrequentReshapes, peakRssBytes: peakRssBytes,
@@ -342,10 +345,12 @@ struct SpeedRun: AsyncParsableCommand {
     }
 
     func drain(_ engine: some InferenceEngine, _ input: [Int32], _ count: Int, _ onToken: (Int32) -> Void) async throws
+        -> StopReason?
     {
         let sequence = try await engine.generate(
             with: input, samplingConfiguration: .greedy, inferenceOptions: InferenceOptions(maxTokens: count))
         for try await output in sequence { onToken(output.tokenId) }
+        return sequence.stopReason
     }
 }
 
@@ -697,8 +702,20 @@ struct SpeedRecord: Codable {
         generated < 2 ? nil : Double(generated - 1) / seconds
     }
 
-    static func stopReason(generated: Int, maxTokens: Int) -> String {
+    static func ownStopReason(generated: Int, maxTokens: Int) -> String {
         generated < maxTokens ? "stopToken" : "maxTokens"
+    }
+
+    static func officialStopReason(_ reason: StopReason?) -> String {
+        switch reason {
+        case .maxTokens?: "maxTokens"
+        case .eos?: "stopToken"
+        case .stopSequence?: "stopSequence"
+        case .cancelled?: "cancelled"
+        case .error?: "error"
+        case nil: "unknown"
+        @unknown default: "unknown"
+        }
     }
 }
 

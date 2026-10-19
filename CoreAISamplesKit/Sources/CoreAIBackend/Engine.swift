@@ -47,6 +47,7 @@ public final class Engine {
     public let isHybrid: Bool
     public let loadStats: LoadStats
     public var stats = Stats()
+    public var measuresPreparation = false
 
     private var main: InferenceFunction?
     private var prefillFunction: InferenceFunction?
@@ -164,6 +165,7 @@ public final class Engine {
             while rest.count > 1 {
                 let chunk = rest.prefix(min(Self.prefillChunkSize, rest.count - 1))
                 try await forward(prefillFunction, chunk, logits: false)
+                stats.prefillTokens += chunk.count
                 rest = rest.dropFirst(chunk.count)
                 onProgress(input.count - rest.count)
             }
@@ -171,10 +173,10 @@ public final class Engine {
         while !rest.isEmpty {
             let chunk = rest.prefix(Self.prefillChunkSize)
             try await forward(main, chunk, logits: true)
+            stats.prefillTokens += chunk.count
             rest = rest.dropFirst(chunk.count)
             onProgress(input.count - rest.count)
         }
-        stats.prefillTokens += input.count
         stats.prefillSeconds += (ContinuousClock.now - start) / .seconds(1)
     }
 
@@ -255,7 +257,7 @@ public final class Engine {
     }
 
     private func forward(_ function: InferenceFunction, _ chunk: ArraySlice<Int32>, logits: Bool) async throws {
-        let prepareStart = ContinuousClock.now
+        let prepareStart = measuresPreparation ? ContinuousClock.now : nil
         let end = context.tokens.count + chunk.count
         context.reserve(end)
         let inputs = [
@@ -278,7 +280,7 @@ public final class Engine {
             outputViews.insert(unsafe _overrideLifetime(logitsArray.mutableRawView(), borrowing: self), for: logitsName)
             logitsOffset = (chunk.count - 1) * logitsArray.strides[1]
         }
-        stats.prepareSeconds += (ContinuousClock.now - prepareStart) / .seconds(1)
+        if let prepareStart { stats.prepareSeconds += (ContinuousClock.now - prepareStart) / .seconds(1) }
         _ = try await function.run(inputs: inputs, states: stateViews, outputViews: outputViews)
         context.tokens.append(contentsOf: chunk)
         hasLogits = logits

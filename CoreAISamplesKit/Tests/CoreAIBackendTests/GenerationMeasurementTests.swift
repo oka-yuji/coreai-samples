@@ -13,13 +13,24 @@ struct GenerationMeasurementTests {
         case cancelled
         case stepFailure
         case readFailure
+        case partialReadFailure
+
+        var prompt: String { self == .partialReadFailure ? "aa" : "a" }
+
+        var tokens: (prompt: Int, prefilled: Int) {
+            switch self {
+            case .readFailure: (1, 0)
+            case .partialReadFailure: (2, 1)
+            default: (1, 1)
+            }
+        }
 
         var outcome: GenerationMeasurement.Outcome {
             switch self {
             case .stopToken: .stopToken
             case .maxTokens: .maxTokens
             case .cancelled: .cancelled
-            case .stepFailure, .readFailure: .failed
+            case .stepFailure, .readFailure, .partialReadFailure: .failed
             }
         }
 
@@ -28,7 +39,7 @@ struct GenerationMeasurementTests {
             case .stopToken: (1, 1, 1, 2)
             case .maxTokens: (8, 7, 8, 8)
             case .cancelled, .stepFailure: (1, 0, 1, 1)
-            case .readFailure: (0, 0, 0, 0)
+            case .readFailure, .partialReadFailure: (0, 0, 0, 0)
             }
         }
 
@@ -37,7 +48,7 @@ struct GenerationMeasurementTests {
             case .stopToken, .maxTokens: nil
             case .cancelled: String(describing: CancellationError())
             case .stepFailure: String(describing: ReloadTestFailure.step)
-            case .readFailure: String(describing: ReloadTestFailure.read)
+            case .readFailure, .partialReadFailure: String(describing: ReloadTestFailure.read)
             }
         }
     }
@@ -54,6 +65,7 @@ struct GenerationMeasurementTests {
         var behavior: Behavior
         var requestID: UUID?
         var measurement: GenerationMeasurement?
+        var preparation: [String]
     }
 
     static func run(_ scenario: Scenario, level: GenerationMeasurement.Level) async throws -> Run {
@@ -68,6 +80,7 @@ struct GenerationMeasurementTests {
             case .cancelled: state.blockNextStep = true
             case .stepFailure: state.failNextStep = true
             case .readFailure: state.failNextRead = true
+            case .partialReadFailure: state.failReadAfterTokens = 1
             }
         }
         var updates = fixture.model.preparationUpdates().makeAsyncIterator()
@@ -76,7 +89,7 @@ struct GenerationMeasurementTests {
             let consumer = Task { () -> String? in
                 do {
                     for try await _ in session.streamResponse(
-                        to: "a", options: .init(samplingMode: .greedy, maximumResponseTokens: 8))
+                        to: scenario.prompt, options: .init(samplingMode: .greedy, maximumResponseTokens: 8))
                     {}
                     return nil
                 } catch {
@@ -103,7 +116,8 @@ struct GenerationMeasurementTests {
             stopReason: stopReason(in: session.transcript), error: error)
         return Run(
             behavior: behavior, requestID: await updates.next()?.requestID,
-            measurement: await fixture.model.lastRequestMeasurement())
+            measurement: await fixture.model.lastRequestMeasurement(),
+            preparation: fixture.control.events.filter { $0.hasPrefix("measures:") })
     }
 
     static func stopReason(in transcript: Transcript) -> String? {
@@ -125,8 +139,10 @@ struct GenerationMeasurementTests {
         #expect(measurement.level == level)
         #expect(measurement.outcome == scenario.outcome)
         #expect(measurement.error == scenario.error)
-        #expect(measurement.promptTokens == 1)
-        #expect(measurement.prefilledTokens == (scenario == .readFailure ? 0 : 1))
+        #expect(measurement.promptTokens == scenario.tokens.prompt)
+        #expect(measurement.prefilledTokens == scenario.tokens.prefilled)
+        #expect(measurement.readSeconds > 0)
+        #expect(!run.preparation.isEmpty && run.preparation.allSatisfy { $0 == "measures:true" })
         #expect(measurement.sampledTokens == counts.sampled)
         #expect(measurement.steps == counts.steps)
         #expect(measurement.sends == counts.sends)
@@ -153,6 +169,8 @@ struct GenerationMeasurementTests {
         let traced = try await Self.run(scenario, level: .trace)
         #expect(plain.measurement == nil)
         #expect(traced.measurement?.outcome == scenario.outcome)
+        #expect(!plain.preparation.isEmpty && plain.preparation.allSatisfy { $0 == "measures:false" })
+        #expect(!traced.preparation.isEmpty && traced.preparation.allSatisfy { $0 == "measures:true" })
         #expect(plain.behavior == traced.behavior)
         #expect(plain.behavior.generated == Array(repeating: 1, count: scenario.counts.sampled))
         #expect(

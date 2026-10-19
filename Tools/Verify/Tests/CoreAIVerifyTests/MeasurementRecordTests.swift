@@ -71,13 +71,23 @@ import Testing
         #expect(fields["observed_compute"] as? String == "unknown")
     }
 
-    @Test("The decode rate needs two generated tokens and the stop reason compares the generated count with the limit")
+    @Test("The decode rate needs two generated tokens and an own run's stop reason compares the count with the limit")
     func speedComputations() {
         #expect(SpeedRecord.decodeRate(generated: 0, seconds: 1) == nil)
         #expect(SpeedRecord.decodeRate(generated: 1, seconds: 1) == nil)
         #expect(SpeedRecord.decodeRate(generated: 11, seconds: 2) == 5)
-        #expect(SpeedRecord.stopReason(generated: 32, maxTokens: 32) == "maxTokens")
-        #expect(SpeedRecord.stopReason(generated: 5, maxTokens: 32) == "stopToken")
+        #expect(SpeedRecord.ownStopReason(generated: 32, maxTokens: 32) == "maxTokens")
+        #expect(SpeedRecord.ownStopReason(generated: 5, maxTokens: 32) == "stopToken")
+    }
+
+    @Test("An official run records the reason its iterator ended, so a limit shortened by the context stays maxTokens")
+    func officialStopReasons() {
+        #expect(SpeedRecord.officialStopReason(.maxTokens) == "maxTokens")
+        #expect(SpeedRecord.officialStopReason(.eos) == "stopToken")
+        #expect(SpeedRecord.officialStopReason(.stopSequence("</s>")) == "stopSequence")
+        #expect(SpeedRecord.officialStopReason(.cancelled) == "cancelled")
+        #expect(SpeedRecord.officialStopReason(.error) == "error")
+        #expect(SpeedRecord.officialStopReason(nil) == "unknown")
     }
 
     @Test(

@@ -90,7 +90,7 @@ COREAI_TEST_BUNDLES=/path/to/bundle COREAI_TEST_RELOAD_INTERVAL=0 COREAI_TEST_RE
 | 項目 | 開始 → 終了 | 数える対象 | 単位 |
 |---|---|---|---|
 | `Engine.Stats.decodeSeconds` | 各 `step`: forward の開始(入力の準備を含む)→ `function.run` の後の forward の終了 | 完了した step(`decodeTokens`) | s |
-| `Engine.Stats.prepareSeconds` | prefill の各チャンクと各 step の forward: 開始 → `function.run` の直前 | forward | s |
+| `Engine.Stats.prepareSeconds` | prefill の各チャンクと各 step の forward: 開始 → `function.run` の直前。`measuresPreparation` が true の間だけ加算します。ランタイムは計測する依頼でこれを on にするので、計測しない依頼ではここで時計を読みません | forward | s |
 | メタデータの `prefillSeconds` = `read_seconds` | 生成の開始 → 読み込み(prefill または復元)の終了。読み込みが失敗したときは失敗まで | 読んだトークンの `prefilled_tokens`(メタデータの `prefillTokens`) | s |
 | メタデータの `decodeSeconds` | 読み込みの終了 → 最後の送信(drain)の終了(サンプリング、文字列化、送信、step をまとめた区間) | — | s |
 | `first_token_seconds`、`last_token_seconds` | 生成の開始 → 最初と最後の `sampler.next` が返った時点(停止のトークンのサンプルを含む) | — | s |
@@ -109,7 +109,7 @@ COREAI_TEST_BUNDLES=/path/to/bundle COREAI_TEST_RELOAD_INTERVAL=0 COREAI_TEST_RE
 | speed の `prefill_s`、`decode_s` | 実行の開始 → 最初のトークン、最初のトークン → 最後のトークン | — | s |
 | speed の `decode_tok_s` | `(generated_tokens − 1) / decode_s`。2 トークン未満では無い | トークン | トークン/s |
 
-回数は、`prompt_tokens`、`prefilled_tokens`(この依頼でエンジンが読んだトークン。プロンプトをすべて使い回したときや、読む前に失敗したときは 0)、`sampled_tokens`(`generated_tokens` と同じ並び。停止のトークンを含まず、上限に達したときの最後の未処理のトークンを含む)、`steps`、`sends`(1 件以上のイベントを送った送信。drain を含む)です。`outcome` は `stopToken`、`maxTokens`、`cancelled`、`failed` のどれかで、後の 2 つには `error` が付きます。speed の記録の `stop_reason` は、`generated_tokens` が `max_tokens` に達したとき `maxTokens`、それ以外は `stopToken` です。ここでは自前のエンジンは停止のトークンを無視するので、上限より前に終わり得るのは公式のエンジンだけです。`trace` の行は `sampler.next` ごとに 1 行あるので、`stopToken` の依頼では `sampled_tokens + 1` 行になります。停止のトークンの行には `sample_seconds` だけがあり、後に step が無かった行には `step_seconds` がありません。
+回数は、`prompt_tokens`、`prefilled_tokens`(この依頼でエンジンが読んだトークン。終わったチャンクごとに数えるので、読み込みが途中で失敗しても、それまでに終わったチャンクの分は残ります。プロンプトをすべて使い回したときや、最初のチャンクの前に失敗したときは 0)、`sampled_tokens`(`generated_tokens` と同じ並び。停止のトークンを含まず、上限に達したときの最後の未処理のトークンを含む)、`steps`、`sends`(1 件以上のイベントを送った送信。drain を含む)です。`outcome` は `stopToken`、`maxTokens`、`cancelled`、`failed` のどれかで、後の 2 つには `error` が付きます。speed の記録の `stop_reason` は、自前のエンジンでは件数の規則で決めます。ここでは停止のトークンを無視するので上限で終わり、`maxTokens` になります(上限より前に終わったときは `stopToken`)。公式のエンジンでは iterator が終わった理由(`InferenceOutputSequence.stopReason`)で、`maxTokens`、`stopToken`(EOS)、`stopSequence`、`cancelled`、`error`、`unknown` のどれかです。sequential は残りの文脈に合わせて要求数を縮めるため、`max_tokens` 未満でも `maxTokens` になり得ます。`trace` の行は `sampler.next` ごとに 1 行あるので、`stopToken` の依頼では `sampled_tokens + 1` 行になります。停止のトークンの行には `sample_seconds` だけがあり、後に step が無かった行には `step_seconds` がありません。
 
 [共通の記録の規約](benchmarking.ja.md)の項目には、次のように対応します。
 
@@ -134,7 +134,7 @@ COREAI_TEST_BUNDLES=/path/to/bundle COREAI_TEST_RELOAD_INTERVAL=0 COREAI_TEST_RE
 
 どの `memory` にも、`status`(`ok` か `failed`)、`captured_at`(ISO 8601 の wall clock)、`unit`(`B`)があります。`error`(例: `task_info returned 5`)は失敗したときだけ、`rss_bytes`、`footprint_bytes`、`graphics_footprint_bytes` は成功したときだけ出ます。speed の記録は、`getrusage` が失敗すると `peak_rss_bytes` を出しません。まとめの記録は、成功した取得の最大とその件数 `peak_rss_runs`、速度のある実行の中央値とその件数 `decode_runs` を出します。欠けた値を 0 として数えません。
 
-`summary` は合計と回数を採ります。計測はサンプルごとに最大 4 回時計を読み、`trace` はさらに行を保存します。結果を比べる前に、同じコマンドを `--measure off` と `--measure trace` で交互に流す A/A の確認をし、`turn` の記録の `total_s` と `decode_tok_s` を比べます。
+`summary` は合計と回数を採ります。計測はサンプルごとに最大 6 回(ループで 4 回、step の forward で 2 回)時計を読み、`trace` はさらに行を保存します。結果を比べる前に、同じコマンドを `--measure off` と `--measure trace` で交互に流す A/A の確認をし、`turn` の記録の `total_s` と `decode_tok_s` を比べます。
 
 ```bash
 .build/release/coreai-verify chat --model <bundle> --runtime own --reasoning off --measure trace --max-tokens 32 --prompt "List three fruits, one per line."

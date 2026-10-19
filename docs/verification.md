@@ -90,7 +90,7 @@ The runtime's generation starts after request validation, template rendering, co
 | Field | Start → end | Counted | Unit |
 |---|---|---|---|
 | `Engine.Stats.decodeSeconds` | each `step`: start of its forward, input preparation included → end of the forward after `function.run` | completed steps (`decodeTokens`) | s |
-| `Engine.Stats.prepareSeconds` | each forward of a prefill chunk or a step: start → just before `function.run` | forwards | s |
+| `Engine.Stats.prepareSeconds` | each forward of a prefill chunk or a step: start → just before `function.run`. Added only while `measuresPreparation` is true; the runtime turns it on for measured requests, so an unmeasured request reads no clock here | forwards | s |
 | metadata `prefillSeconds` = `read_seconds` | generation start → end of the read (prefill or restore); on a read failure, → the failure | tokens read, `prefilled_tokens` (metadata `prefillTokens`) | s |
 | metadata `decodeSeconds` | end of the read → end of the drain (sampling, text, sending and steps together) | — | s |
 | `first_token_seconds`, `last_token_seconds` | generation start → return of the first and last `sampler.next`, including the stop token's sample | — | s |
@@ -109,7 +109,7 @@ The runtime's generation starts after request validation, template rendering, co
 | speed `prefill_s`, `decode_s` | run start → first token; first token → last token | — | s |
 | speed `decode_tok_s` | `(generated_tokens − 1) / decode_s`; absent below two tokens | tokens | tokens/s |
 
-The counts are `prompt_tokens`, `prefilled_tokens` (tokens the engine read for this request; 0 if the prompt was fully reused or the read failed first), `sampled_tokens` (the same list as `generated_tokens`: no stop token, the last unprocessed token at the limit included), `steps` and `sends` (sends with at least one event, the drain included). `outcome` is `stopToken`, `maxTokens`, `cancelled` or `failed`; the last two add `error`. A speed record's `stop_reason` is `maxTokens` when `generated_tokens` reached `max_tokens` and otherwise `stopToken`; the own engine ignores stop tokens there, so only an official engine can end before the limit. A `trace` row exists for each `sampler.next`, so a `stopToken` request has `sampled_tokens + 1` rows. The stop token's row has only `sample_seconds`, and `step_seconds` is absent when no step followed.
+The counts are `prompt_tokens`, `prefilled_tokens` (tokens the engine read for this request, counted per finished chunk, so a read that fails partway keeps the chunks before the failure; 0 if the prompt was fully reused or the read failed before any chunk), `sampled_tokens` (the same list as `generated_tokens`: no stop token, the last unprocessed token at the limit included), `steps` and `sends` (sends with at least one event, the drain included). `outcome` is `stopToken`, `maxTokens`, `cancelled` or `failed`; the last two add `error`. A speed record's `stop_reason` follows the count for the own engine, which ignores stop tokens there and so ends at the limit (`maxTokens`, or `stopToken` if it ended earlier). For an official engine it is the reason its iterator ended (`InferenceOutputSequence.stopReason`): `maxTokens`, `stopToken` (EOS), `stopSequence`, `cancelled`, `error` or `unknown`. The sequential engine shortens the requested count to the remaining context, so `maxTokens` can come with fewer than `max_tokens` tokens. A `trace` row exists for each `sampler.next`, so a `stopToken` request has `sampled_tokens + 1` rows. The stop token's row has only `sample_seconds`, and `step_seconds` is absent when no step followed.
 
 The fields map to the [common record contract](benchmarking.md) as follows.
 
@@ -134,7 +134,7 @@ These items cannot be observed or are not measured by these commands:
 
 Every `memory` object has `status` (`ok` or `failed`), `captured_at` (ISO 8601 wall clock) and `unit` (`B`). `error` (for example `task_info returned 5`) appears only on failure, and `rss_bytes`, `footprint_bytes` and `graphics_footprint_bytes` appear only on success. A speed record omits `peak_rss_bytes` when `getrusage` fails. The summary reports the maximum over successful captures with their count `peak_rss_runs`, and the median decode rate over runs that have one with their count `decode_runs`. Never count a missing value as 0.
 
-`summary` collects totals and counts. Measurement reads the clock up to four times per sample, and `trace` also stores a row. Before comparing results, run an A/A check: alternate the same command with `--measure off` and `--measure trace` and compare the turn records' `total_s` and `decode_tok_s`.
+`summary` collects totals and counts. Measurement reads the clock up to six times per sample, four in the loop and two in the step's forward, and `trace` also stores a row. Before comparing results, run an A/A check: alternate the same command with `--measure off` and `--measure trace` and compare the turn records' `total_s` and `decode_tok_s`.
 
 ```bash
 .build/release/coreai-verify chat --model <bundle> --runtime own --reasoning off --measure trace --max-tokens 32 --prompt "List three fruits, one per line."
