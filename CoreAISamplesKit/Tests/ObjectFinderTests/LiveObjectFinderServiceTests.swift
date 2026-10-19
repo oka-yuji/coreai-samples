@@ -312,7 +312,7 @@ struct LiveObjectFinderServiceTests {
     }
 
     @Test(
-        "REF-05 A recheck scores the boxes delivered with the same camera image, not boxes tracked on a later image",
+        "REF-01 A recheck scores the boxes delivered with the same camera image, not boxes tracked on a later image",
         .timeLimit(.minutes(1)))
     func recheckUsesDeliveredBoxes() async throws {
         let fake = FinderDevicesFake()

@@ -195,7 +195,7 @@
         }
 
         private func receive(_ input: CIImage, time: Double) {
-            guard continuation != nil, failure == nil else { return }
+            guard continuation != nil, failure == nil, time.isFinite else { return }
             let capturedAt = ProcessInfo.processInfo.systemUptime
             let portrait = rotation == 90 || rotation == 270
             guard portrait == (input.extent.height > input.extent.width) else { return }
