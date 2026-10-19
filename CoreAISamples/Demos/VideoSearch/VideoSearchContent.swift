@@ -47,6 +47,7 @@ struct VideoSearchContent: View {
             }
         #endif
         .onChange(of: state, initial: true) { connectPlayer() }
+        .task(id: state.video) { await connectWhenPermitted() }
         .onDisappear {
             player?.pause()
             #if os(iOS)
@@ -277,6 +278,17 @@ struct VideoSearchContent: View {
         player = connected
         playerURL = video
         return connected
+    }
+
+    private func connectWhenPermitted() async {
+        guard state.video != nil else { return }
+        for _ in 0..<50 where player == nil && !Task.isCancelled {
+            if isPermitted() {
+                connectPlayer()
+                return
+            }
+            do { try await Task.sleep(for: .milliseconds(200)) } catch { return }
+        }
     }
 
     private func play(from time: Double) {
