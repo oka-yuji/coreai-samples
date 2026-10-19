@@ -7,9 +7,11 @@ import torch
 
 from ...storage import file_hash
 from .inputs import EXECUTION_SHAPES
+from .profiles import model_profile
 
 
 def validate_source(snapshot, contract):
+    size, width = model_profile(contract)
     snapshot = Path(snapshot).resolve(strict=True)
     if snapshot.name != contract["revision"]:
         raise ValueError("Use the pinned source snapshot directory")
@@ -25,8 +27,12 @@ def validate_source(snapshot, contract):
         if not path.resolve().is_relative_to(snapshot) or file_hash(path) != expected:
             raise ValueError(f"Source identity mismatch: {name}")
     config = json.loads((snapshot / "config.json").read_text())
-    if (config.get("model_type"), config.get("tts_model_type"), config.get("tts_model_size")) != ("qwen3_tts", "custom_voice", "0b6"):
-        raise ValueError("This profile requires Qwen3-TTS 0.6B CustomVoice")
+    if (config.get("model_type"), config.get("tts_model_type"), config.get("tts_model_size")) != ("qwen3_tts", "custom_voice", size):
+        raise ValueError("The model configuration does not match the CustomVoice profile")
+    talker = config.get("talker_config", {})
+    if (talker.get("hidden_size"), talker.get("text_hidden_size"),
+        talker.get("code_predictor_config", {}).get("hidden_size")) != (width, 2048, 1024):
+        raise ValueError("The source hidden widths do not match the model profile")
     return snapshot
 
 

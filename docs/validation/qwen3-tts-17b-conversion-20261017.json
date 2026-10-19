@@ -1,0 +1,641 @@
+{
+  "run": "20261017T090123-f7c8476a",
+  "run_seconds": 168.89382833382115,
+  "passed": true,
+  "records": 52,
+  "components": {
+    "projection": {
+      "records": 12,
+      "max_normalized_error": 2.1515808908687917e-06,
+      "max_rms": 4.682419199926875e-08,
+      "min_cosine": 0.9999999999995073,
+      "asset_bytes": 33573846
+    },
+    "talker": {
+      "records": 16,
+      "max_normalized_error": 2.3177572413200085e-06,
+      "max_rms": 1.2306112601493515e-05,
+      "min_cosine": 0.9999999999651619,
+      "asset_bytes": 5663351546
+    },
+    "predictor": {
+      "records": 21,
+      "max_normalized_error": 3.4263628929467177e-06,
+      "max_rms": 4.675949180588509e-05,
+      "min_cosine": 0.9999999999953204,
+      "asset_bytes": 448914150
+    },
+    "codec": {
+      "records": 3,
+      "max_normalized_error": 8.797280522167269e-06,
+      "max_rms": 1.086266777733109e-07,
+      "min_cosine": 0.99999999999772,
+      "asset_bytes": 456253659
+    }
+  },
+  "total_asset_bytes": 6602093201,
+  "source_utterances": [
+    {
+      "audio_seconds": 4.56,
+      "calls": {
+        "codec": 1,
+        "predictor": 855,
+        "projection": 4,
+        "talker": 58
+      },
+      "frames": 57,
+      "id": "greeting",
+      "seconds": 9.035959333181381,
+      "stop_reason": "eos"
+    },
+    {
+      "audio_seconds": 3.84,
+      "calls": {
+        "codec": 1,
+        "predictor": 720,
+        "projection": 4,
+        "talker": 49
+      },
+      "frames": 48,
+      "id": "instruction",
+      "seconds": 6.235798375215381,
+      "stop_reason": "eos"
+    },
+    {
+      "audio_seconds": 3.68,
+      "calls": {
+        "codec": 1,
+        "predictor": 690,
+        "projection": 4,
+        "talker": 47
+      },
+      "frames": 46,
+      "id": "reading",
+      "seconds": 6.352606083266437,
+      "stop_reason": "eos"
+    }
+  ],
+  "generated_utterances": [
+    {
+      "audio_seconds": 4.56,
+      "finite": true,
+      "id": "greeting",
+      "output": "greeting.wav",
+      "peak_rss_bytes": 20477050880,
+      "seconds": 11.141143999993801,
+      "stop_reason": "eos",
+      "tokens": 58
+    },
+    {
+      "audio_seconds": 3.84,
+      "finite": true,
+      "id": "instruction",
+      "output": "instruction.wav",
+      "peak_rss_bytes": 20477050880,
+      "seconds": 10.152436333708465,
+      "stop_reason": "eos",
+      "tokens": 49
+    },
+    {
+      "audio_seconds": 3.68,
+      "finite": true,
+      "id": "reading",
+      "output": "reading.wav",
+      "peak_rss_bytes": 20477050880,
+      "seconds": 10.088553041219711,
+      "stop_reason": "eos",
+      "tokens": 47
+    }
+  ],
+  "runtime_calls": {
+    "codec": {
+      "calls": 3,
+      "input_shapes": [
+        [
+          [
+            1,
+            16,
+            57
+          ]
+        ],
+        [
+          [
+            1,
+            16,
+            48
+          ]
+        ],
+        [
+          [
+            1,
+            16,
+            46
+          ]
+        ]
+      ],
+      "seconds": 0.7197539173066616
+    },
+    "predictor": {
+      "calls": 2265,
+      "input_shapes": [
+        [
+          [
+            1,
+            16,
+            2048
+          ],
+          [
+            1
+          ]
+        ]
+      ],
+      "seconds": 6.584529649000615
+    },
+    "projection": {
+      "calls": 12,
+      "input_shapes": [
+        [
+          [
+            1,
+            3,
+            2048
+          ]
+        ],
+        [
+          [
+            1,
+            1,
+            2048
+          ]
+        ],
+        [
+          [
+            1,
+            8,
+            2048
+          ]
+        ],
+        [
+          [
+            1,
+            12,
+            2048
+          ]
+        ],
+        [
+          [
+            1,
+            16,
+            2048
+          ]
+        ]
+      ],
+      "seconds": 0.03967245761305094
+    },
+    "talker": {
+      "calls": 154,
+      "input_shapes": [
+        [
+          [
+            1,
+            512,
+            2048
+          ],
+          [
+            3,
+            1,
+            512
+          ],
+          [
+            1
+          ]
+        ]
+      ],
+      "seconds": 23.127848624251783
+    }
+  },
+  "free_generation_comparison": [
+    {
+      "id": "greeting",
+      "sample_rate": 24000,
+      "samples": 109440,
+      "sequence_equal": true,
+      "passed": true,
+      "finite": true,
+      "max_abs": 2.04332172870636e-06,
+      "normalized_max": 5.621776933302952e-06,
+      "rms": 1.086266777733109e-07,
+      "cosine": 0.9999999999989221
+    },
+    {
+      "id": "instruction",
+      "sample_rate": 24000,
+      "samples": 92160,
+      "sequence_equal": true,
+      "passed": true,
+      "finite": true,
+      "max_abs": 2.255546860396862e-06,
+      "normalized_max": 8.797280522167269e-06,
+      "rms": 8.163794430314707e-08,
+      "cosine": 0.9999999999987514
+    },
+    {
+      "id": "reading",
+      "sample_rate": 24000,
+      "samples": 88320,
+      "sequence_equal": true,
+      "passed": true,
+      "finite": true,
+      "max_abs": 1.0868534445762634e-06,
+      "normalized_max": 6.331243910721366e-06,
+      "rms": 7.324679119529835e-08,
+      "cosine": 0.99999999999772
+    }
+  ],
+  "footprint_samples": [
+    {
+      "time": "2026-10-17T18:03:35.434+09:00",
+      "footprint_bytes": 9313252000,
+      "kernel_peak_through_sample_bytes": 9369203360,
+      "categories": {
+        "Malloc Large": {
+          "dirty": 7742275584,
+          "swapped": 0,
+          "clean": 0,
+          "reclaimable": 0,
+          "wired": 0,
+          "regions": 291
+        },
+        "mapped file": {
+          "dirty": 682246144,
+          "swapped": 0,
+          "clean": 6612631552,
+          "reclaimable": 0,
+          "wired": 6112837632,
+          "regions": 142
+        },
+        "IOAccelerator (graphics)": {
+          "dirty": 60653568,
+          "swapped": 0,
+          "clean": 0,
+          "reclaimable": 0,
+          "wired": 59637760,
+          "regions": 84
+        },
+        "Owned physical footprint (unmapped) (graphics)": {
+          "dirty": 310378496,
+          "swapped": 0,
+          "clean": 0,
+          "reclaimable": 0,
+          "wired": 310378496,
+          "regions": 32
+        }
+      }
+    },
+    {
+      "time": "2026-10-17T18:03:45.646+09:00",
+      "footprint_bytes": 9522770832,
+      "kernel_peak_through_sample_bytes": 9583670160,
+      "categories": {
+        "Malloc Large": {
+          "dirty": 7742275584,
+          "swapped": 0,
+          "clean": 0,
+          "reclaimable": 0,
+          "wired": 0,
+          "regions": 291
+        },
+        "mapped file": {
+          "dirty": 682246144,
+          "swapped": 0,
+          "clean": 6854705152,
+          "reclaimable": 0,
+          "wired": 6602997760,
+          "regions": 151
+        },
+        "IOAccelerator (graphics)": {
+          "dirty": 233209856,
+          "swapped": 0,
+          "clean": 0,
+          "reclaimable": 0,
+          "wired": 227885056,
+          "regions": 193
+        },
+        "Owned physical footprint (unmapped) (graphics)": {
+          "dirty": 311377920,
+          "swapped": 0,
+          "clean": 0,
+          "reclaimable": 6291456,
+          "wired": 311328768,
+          "regions": 65
+        }
+      }
+    },
+    {
+      "time": "2026-10-17T18:03:55.852+09:00",
+      "footprint_bytes": 9689232464,
+      "kernel_peak_through_sample_bytes": 9750459472,
+      "categories": {
+        "Malloc Large": {
+          "dirty": 7742275584,
+          "swapped": 0,
+          "clean": 0,
+          "reclaimable": 0,
+          "wired": 0,
+          "regions": 291
+        },
+        "mapped file": {
+          "dirty": 682246144,
+          "swapped": 0,
+          "clean": 6995902464,
+          "reclaimable": 0,
+          "wired": 6836535296,
+          "regions": 155
+        },
+        "IOAccelerator (graphics)": {
+          "dirty": 375406592,
+          "swapped": 0,
+          "clean": 0,
+          "reclaimable": 0,
+          "wired": 201375744,
+          "regions": 210
+        },
+        "Owned physical footprint (unmapped) (graphics)": {
+          "dirty": 311164928,
+          "swapped": 0,
+          "clean": 0,
+          "reclaimable": 6291456,
+          "wired": 311083008,
+          "regions": 60
+        }
+      }
+    }
+  ],
+  "date": "2026-10-17",
+  "issue": 169,
+  "criteria_version": "2026-10-17 Q17-1-Q17-7",
+  "source": {
+    "version": 1,
+    "model_id": "Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice",
+    "revision": "0c0e3051f131929182e2c023b9537f8b1c68adfe",
+    "upstream_revision": "022e286b98fbec7e1e916cb940cdf532cd9f488e",
+    "files": {
+      ".gitattributes": {
+        "bytes": 1519,
+        "sha256": "11ad7efa24975ee4b0c3c3a38ed18737f0658a5f75a0a96787b576a78a023361"
+      },
+      "README.md": {
+        "bytes": 57846,
+        "sha256": "64f65e809b51cc0c35f393fbbfcc2d735c0cb3fdbbc6f3fdc4a5e6ce55e9d088"
+      },
+      "config.json": {
+        "bytes": 4908,
+        "sha256": "17a07f527a1c25ea30b4e023a184482a23d3e279d697b1dc81b1bde498d29cf9"
+      },
+      "generation_config.json": {
+        "bytes": 245,
+        "sha256": "f1b90b4513f3b34c62851049e2492d7b4c5940daf1276f89c82b8ef04127f3aa"
+      },
+      "merges.txt": {
+        "bytes": 1671839,
+        "sha256": "599bab54075088774b1733fde865d5bd747cbcc7a547c5bc12610e874e26f5e3"
+      },
+      "model.safetensors": {
+        "bytes": 3833402552,
+        "sha256": "38b1d5971bdbd982b561cccec982669a53b0537c3cf5e9bd4778ed07bb2f5137"
+      },
+      "preprocessor_config.json": {
+        "bytes": 127,
+        "sha256": "efdde1022ea9d76928bf7a9cd53139138f5ba2e466e837f08f6105ab1af1c119"
+      },
+      "speech_tokenizer/config.json": {
+        "bytes": 2336,
+        "sha256": "ee65bb901c876664ab8707c487157aa1a6ee57c65969b28fb5ec9dc211e68167"
+      },
+      "speech_tokenizer/configuration.json": {
+        "bytes": 76,
+        "sha256": "6bc26d64eb5024b4d1dab5a52371958b429256d6c9d59787f1f5294a54e0cebd"
+      },
+      "speech_tokenizer/model.safetensors": {
+        "bytes": 682293092,
+        "sha256": "836b7b357f5ea43e889936a3709af68dfe3751881acefe4ecf0dbd30ba571258"
+      },
+      "speech_tokenizer/preprocessor_config.json": {
+        "bytes": 234,
+        "sha256": "fcb3805e597e786d4067706e602f6688524640f8d3396790e2e09b5942fcbdfb"
+      },
+      "tokenizer_config.json": {
+        "bytes": 7344,
+        "sha256": "dc3c31c3bdaedd5016382bb3cbe07323026775ad51f5a4fb564505992ae4a670"
+      },
+      "vocab.json": {
+        "bytes": 2776833,
+        "sha256": "ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910"
+      }
+    },
+    "precision": "float32",
+    "sample_rate": 24000,
+    "normalized_max_limit": 0.001,
+    "audio_cosine_min": 0.999,
+    "audio_rms_max": 0.001,
+    "execution_shapes": {
+      "talker": 512,
+      "predictor": 16
+    }
+  },
+  "environment": {
+    "machine": "M4 Max 128 GiB",
+    "os": "macOS 27.0 (26A428)",
+    "xcode": "27.0 (27A266a)",
+    "python": "3.11.9",
+    "torch": "2.9.0",
+    "transformers": "4.57.3",
+    "coreai_torch": "0.4.3",
+    "coreai_core": "1.0.0b3",
+    "coreai_opt": "0.3.0",
+    "runtime": "OS Core AI, GPU preferred"
+  },
+  "specification": {
+    "version": 1,
+    "speaker": "Ono_Anna",
+    "max_new_tokens": 128,
+    "seed": 42,
+    "fixtures": [
+      {
+        "id": "greeting",
+        "text": "こんにちは。今日はよい天気ですね。"
+      },
+      {
+        "id": "instruction",
+        "text": "確認が終わりました。次の作業を始めます。"
+      },
+      {
+        "id": "reading",
+        "text": "この道をまっすぐ進み、右に曲がってください。"
+      }
+    ],
+    "sampling": {
+      "enabled": true,
+      "temperature": 0.9,
+      "top_k": 50,
+      "top_p": 1.0,
+      "repetition_penalty": 1.05
+    }
+  },
+  "reuse_run": "20261017T090757-2efbe59e",
+  "reused_stages": 7,
+  "cpu_tests": {
+    "count": 91,
+    "skipped": 0,
+    "passed": true
+  },
+  "regression_06b": {
+    "run": "20261017T090504-4bd7e786",
+    "passed": true,
+    "records": 52,
+    "max_normalized_error": 7.06578193897859e-06,
+    "generated_utterances": [
+      {
+        "audio_seconds": 3.68,
+        "finite": true,
+        "id": "greeting",
+        "output": "greeting.wav",
+        "peak_rss_bytes": 8650964992,
+        "seconds": 5.033799625001848,
+        "stop_reason": "eos",
+        "tokens": 47
+      },
+      {
+        "audio_seconds": 8.88,
+        "finite": true,
+        "id": "instruction",
+        "output": "instruction.wav",
+        "peak_rss_bytes": 8650964992,
+        "seconds": 11.696982875000685,
+        "stop_reason": "eos",
+        "tokens": 112
+      },
+      {
+        "audio_seconds": 4.88,
+        "finite": true,
+        "id": "reading",
+        "output": "reading.wav",
+        "peak_rss_bytes": 8650964992,
+        "seconds": 6.792077417019755,
+        "stop_reason": "eos",
+        "tokens": 62
+      }
+    ],
+    "comparison_to_previous_06b": [
+      {
+        "id": "greeting",
+        "waveform_equal_to_previous": true,
+        "sequence_equal_to_previous": true
+      },
+      {
+        "id": "instruction",
+        "waveform_equal_to_previous": true,
+        "sequence_equal_to_previous": true
+      },
+      {
+        "id": "reading",
+        "waveform_equal_to_previous": true,
+        "sequence_equal_to_previous": true
+      }
+    ]
+  },
+  "swift_validation": {
+    "evidence_commit": "dfc037a004c38dd552fe72ef99b47d6dd7a904f7",
+    "reason": "Swift/build/lint inputs are identical to the validated Magpie/0.6B branch; only conversion Python/configuration and documentation change",
+    "identical_objects": {
+      "CoreAISamples": "1b70206d9e88fe20e3eb0670a9775cd4e0a23506",
+      "CoreAISamplesKit": "91b441c7f0bca8c9030c83b2c2ff32043c38073f",
+      "CoreAISamples.xcodeproj": "0e75a9f4a6733ef37796a5614f6ea755ad803bb6",
+      "Vendor": "e757947a89ce8eb7b1a861f2b0ad1e1210c1863b",
+      "Tools/Irodori": "8eb522ff59435a6c03a453f382d9693942799463",
+      "Tools/Format": "21fd07e345e611c8679cb8544b9f4f4a0105c542",
+      ".swiftlint.yml": "4606a9e8806f9e00aa55f77068061b7ae3c2168e",
+      ".swiftlint-baseline.json": "c168f2f698e848cb3f98dc60bc13c7b88bff69dd",
+      ".swiftlint-size.yml": "24cb4ab64891e5f69e2a889f6df5996574a36f2c",
+      "CLAUDE.md": "838d1b1e3b6f64c9beed829f94856fe27caff23f"
+    }
+  },
+  "manual_listening": "pending",
+  "limits": [
+    "Three Japanese utterances, not a quality or endurance qualification",
+    "Source PyTorch model coexists with Core AI for retained host operations",
+    "Footprint kernel peaks cover each sample timestamp, not process exit",
+    "Footprint diagnostics were active during this synthesis run; timings are observational",
+    "Python/macOS/FP32 only; Swift, iPhone, KV caching and quantization remain separate work"
+  ],
+  "assets": {
+    "projection": {
+      "bytes": 33573846,
+      "files": {
+        "main.hash": {
+          "bytes": 32,
+          "sha256": "7628aff7a020c28abbc6149aebfe44f852f84175644fa82f6c423c978ca98d46"
+        },
+        "main.mlirb": {
+          "bytes": 33573421,
+          "sha256": "e83565115b5efa2e5f2e0cf0ae028496f8e00033080e7170bb45d289399ef7e1"
+        },
+        "metadata.json": {
+          "bytes": 393,
+          "sha256": "e07894aa6b0a5a284499d0ca301e4a32d18b5dc656a40e2e28d04c86d7d4feea"
+        }
+      }
+    },
+    "talker": {
+      "bytes": 5663351546,
+      "files": {
+        "main.hash": {
+          "bytes": 32,
+          "sha256": "9b92c6d9aed8aaa216be823b24cde986c3b1071226c55ddbf98d884a14084af4"
+        },
+        "main.mlirb": {
+          "bytes": 5663351125,
+          "sha256": "536239ab766fd5388ebbac50a11ae93b8b0cc35ab4105d1d5dec150e181a0dee"
+        },
+        "metadata.json": {
+          "bytes": 389,
+          "sha256": "dbf126188adb3ae361c5c106fae0df8b4503bac892b42f96d16d77c45db44087"
+        }
+      }
+    },
+    "predictor": {
+      "bytes": 448914150,
+      "files": {
+        "main.hash": {
+          "bytes": 32,
+          "sha256": "eaa146220fc7974759335c447c21911c8df57d02daab16b3eb5f210b5df2e97f"
+        },
+        "main.mlirb": {
+          "bytes": 448913726,
+          "sha256": "a2475efad07f92aa4fd067eebd316e6affed991339bb401455a74d6b314c8122"
+        },
+        "metadata.json": {
+          "bytes": 392,
+          "sha256": "bcedb3b35bc817cb51ea3900ed063376d8b1d6eec9146158e6278547d529b584"
+        }
+      }
+    },
+    "codec": {
+      "bytes": 456253659,
+      "files": {
+        "main.hash": {
+          "bytes": 32,
+          "sha256": "676f3cd2c5c08e2ae1985e279498f6037bf3ba0bf241d9f12814ab4418bfc7a4"
+        },
+        "main.mlirb": {
+          "bytes": 456253239,
+          "sha256": "cf7ed46f1e749bd268c0e2776b365893cfcefbfb123b67f710e2283024ecd9c7"
+        },
+        "metadata.json": {
+          "bytes": 388,
+          "sha256": "689034a31b8c150c4a4452a294aa3f6bdc2577bd87826aaed58f6ef337d458c8"
+        }
+      }
+    }
+  }
+}

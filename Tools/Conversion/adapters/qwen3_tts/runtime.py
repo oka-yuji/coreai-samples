@@ -7,9 +7,12 @@ import numpy as np
 
 from .wrappers import names
 from .inputs import EXECUTION_SHAPES, prepare_inputs
+from .profiles import model_profile
 
 
-def validate_inputs(kind, values):
+def validate_inputs(kind, values, *, talker_width=1024):
+    if talker_width not in (1024, 2048):
+        raise ValueError("Unsupported CustomVoice input width")
     values = tuple(np.asarray(value) for value in values)
     fields, _ = names(kind)
     if len(values) != len(fields) or any(not np.isfinite(value).all() for value in values):
@@ -20,14 +23,14 @@ def validate_inputs(kind, values):
             raise ValueError("Projection input must be [1, sequence, 2048], length 1 to 512")
     elif kind == "talker":
         hidden, positions = values
-        if hidden.ndim != 3 or hidden.shape[0] != 1 or hidden.shape[2] != 1024 or not 1 <= hidden.shape[1] <= 512:
-            raise ValueError("Talker input must be [1, sequence, 1024], length 1 to 512")
+        if hidden.ndim != 3 or hidden.shape[0] != 1 or hidden.shape[2] != talker_width or not 1 <= hidden.shape[1] <= 512:
+            raise ValueError(f"Talker input must be [1, sequence, {talker_width}], length 1 to 512")
         if positions.shape != (3, 1, hidden.shape[1]) or positions.dtype != np.int32 or np.any(positions < 0) or np.any(positions >= 32768):
             raise ValueError("The three position axes must match the talker sequence and supported range")
     elif kind == "predictor":
         hidden, codebook = values
-        if hidden.ndim != 3 or hidden.shape[0] != 1 or hidden.shape[2] != 1024 or not 2 <= hidden.shape[1] <= 16:
-            raise ValueError("Predictor input must be [1, sequence, 1024], length 2 to 16")
+        if hidden.ndim != 3 or hidden.shape[0] != 1 or hidden.shape[2] != talker_width or not 2 <= hidden.shape[1] <= 16:
+            raise ValueError(f"Predictor input must be [1, sequence, {talker_width}], length 2 to 16")
         if codebook.shape != (1,) or codebook.dtype != np.int32 or not 0 <= int(codebook[0]) < 15:
             raise ValueError("Predictor head index must be between 0 and 14")
         if int(codebook[0]) != hidden.shape[1] - 2:
@@ -45,6 +48,7 @@ def validate_inputs(kind, values):
 
 class CoreAIComponents:
     def __init__(self, directories, contract):
+        _, self.talker_width = model_profile(contract)
         if contract.get("execution_shapes") != EXECUTION_SHAPES:
             raise ValueError("This runtime requires the fixed decoder shape profile")
         self.runner = asyncio.Runner()
@@ -84,7 +88,7 @@ class CoreAIComponents:
     def call(self, kind, values):
         from coreai.runtime import NDArray
 
-        values = prepare_inputs(kind, validate_inputs(kind, values))
+        values = prepare_inputs(kind, validate_inputs(kind, values, talker_width=self.talker_width))
         shapes = [list(value.shape) for value in values]
         if shapes not in self.metrics[kind]["input_shapes"]:
             self.metrics[kind]["input_shapes"].append(shapes)

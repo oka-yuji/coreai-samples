@@ -1,5 +1,8 @@
 # Qwen3-TTS 0.6B CustomVoice conversion
 
+The shared adapter also supports the separate [1.7B CustomVoice recipe](../qwen3_tts_17b/README.md).
+Model identities and widths are checked independently; the 0.6B profile stays unchanged.
+
 This maintenance recipe converts four FP32 neural components for macOS Core AI:
 text projection, talker with codec head, code predictor with its fifteen heads,
 and the 12 Hz audio decoder. The pinned Qwen Python host retains the text tokenizer,

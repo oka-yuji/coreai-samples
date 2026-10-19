@@ -10,6 +10,7 @@ import numpy as np
 from Tools.Conversion.adapters.qwen3_tts.runtime import validate_inputs
 from Tools.Conversion.adapters.qwen3_tts.source import canonical_positions, compare_tensor, validate_source
 from Tools.Conversion.storage import file_hash
+from Tools.Conversion.tests.test_qwen3_tts_profiles import configuration
 
 
 class QwenTTSContractTests(unittest.TestCase):
@@ -18,8 +19,8 @@ class QwenTTSContractTests(unittest.TestCase):
             root = Path(directory) / ("a" * 40)
             root.mkdir()
             config = root / "config.json"
-            config.write_text(json.dumps({"model_type": "qwen3_tts", "tts_model_type": "custom_voice", "tts_model_size": "0b6"}))
-            contract = {"revision": root.name, "files": {"config.json": file_hash(config)}}
+            config.write_text(json.dumps(configuration("0b6", 1024)))
+            contract = {"model_id": "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice", "revision": root.name, "files": {"config.json": file_hash(config)}}
             self.assertEqual(validate_source(root, contract), root.resolve())
             config.write_text("{}")
             with self.assertRaises(ValueError):
@@ -30,8 +31,8 @@ class QwenTTSContractTests(unittest.TestCase):
             root = Path(directory) / ("a" * 40)
             root.mkdir()
             config = root / "config.json"
-            config.write_text(json.dumps({"model_type": "qwen3_tts", "tts_model_type": "custom_voice", "tts_model_size": "0b6"}))
-            contract = {"revision": root.name, "files": {"config.json": file_hash(config)}}
+            config.write_text(json.dumps(configuration("0b6", 1024)))
+            contract = {"model_id": "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice", "revision": root.name, "files": {"config.json": file_hash(config)}}
             metadata = root / ".cache/huggingface/download/model.metadata"
             metadata.parent.mkdir(parents=True)
             metadata.write_text("download metadata")
@@ -173,13 +174,26 @@ class QwenTTSWrapperTests(unittest.TestCase):
                     torch.testing.assert_close(exported.module()(codes), expected, rtol=0, atol=0)
 
     def test_host_generation_matches_native_sampling_order_and_eos(self):
+        self.assert_host_generation(self.talker)
+
+    def test_distinct_predictor_width_preserves_native_generation(self):
+        import copy
+        from qwen_tts.core.models.modeling_qwen3_tts import Qwen3TTSTalkerForConditionalGeneration
+
+        config = copy.deepcopy(self.talker.config)
+        config.code_predictor_config.hidden_size = 12
+        model = Qwen3TTSTalkerForConditionalGeneration(config).eval().requires_grad_(False)
+        model.code_predictor.small_to_mtp_projection.bias.fill_(0.4)
+        self.assert_host_generation(model)
+
+    def assert_host_generation(self, source_talker):
         import copy
         from Tools.Conversion.adapters.qwen3_tts.inputs import prepare_inputs
         from Tools.Conversion.adapters.qwen3_tts.synthesis import CoreAIBridge
         from Tools.Conversion.adapters.qwen3_tts.wrappers import CodePredictor, Talker
 
         torch = self.torch
-        talker = copy.deepcopy(self.talker)
+        talker = copy.deepcopy(source_talker)
         model = SimpleNamespace(talker=talker)
         modules = {"talker": Talker(model).eval(), "predictor": CodePredictor(model).eval()}
 
