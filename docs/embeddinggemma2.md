@@ -124,6 +124,25 @@ The default view hides scores below 0.67. **Show all candidates** reveals the co
 
 You can choose up to 50 images. The index is held in memory and discarded when the model or selection changes or the screen closes. The selected images, the query and the results stay; search again after **Index again**, which loads the model folder first when it is not loaded. On the Mac, **Reload selected model** also keeps them; opening a different folder clears them. This is image retrieval, not OCR, image description generation, or an audio/video demo.
 
+## Video moment search
+
+Find moments in a video with your own words, then play the video from the moment you select (#129). The demo samples still frames, embeds each frame with the same image encoder and preprocessing as image search, and ranks the frames against the query. Audio, motion between frames and captions are not used.
+
+- **iPhone:** in **Models**, open **Video search demo** under **EmbeddingGemma 2**. **Choose video…** opens the Photos picker, which runs outside the app, so the demo asks for no photo library permission. The chosen video is copied to the app's temporary folder; the next choice replaces the copy. Indexing loads the selected variant when needed. Going back, moving to the background and switching the variant stop the demo and release the model and its index as in image search; the video, the query, the results and the threshold stay, and **Index again** rebuilds the index.
+- **Mac:** select **Find moments in a video with your own words** under **EmbeddingGemma 2** in the sidebar, open the model folder, then choose a movie file. You can preselect the demo and bundle at launch: `CoreAISamples.app/Contents/MacOS/CoreAISamples --embedding-bundle /path/to/bundle --video-search`. Keep `--video-search` last: AppKit reads the arguments as option-value pairs, so a flag placed before `--embedding-bundle` leaves the path on its own, AppKit opens it as a document, and SwiftUI then opens no window.
+
+One frame is taken at the center of each one-second interval, up to 300 frames; a longer video is sampled at 300 evenly spaced times. Frames are decoded with the video's orientation applied, at most 640 pixels on the long side, within 0.5 seconds of the requested time, and a result shows the time of the decoded frame. Frames are requested a few at a time so that decoded frames do not pile up while the model is busy. The index is held in memory only.
+
+Results are ranked by similarity. The default view hides frames below 0.67 and folds frames within 3 seconds of a better match into it; **Show all candidates** lists every indexed frame. The 0.67 default comes from the image demo's five-image calibration and is not calibrated for video. While nothing runs, **Search settings → Match threshold** adjusts it between 0.3 and 0.9. Similarity compares meaning; it is not a probability.
+
+Validation: `swift test --package-path CoreAISamplesKit --filter VideoSearchTests` covers sampling, the order of indexing, search, stop and close, neighbor folding and the threshold, the managed gate and release, and frames read from synthetic videos (colors in order, a rotated video, cancellation, a file without a video track) without loading a model. The model check writes the five bundled images, three seconds each, into a fifteen-second video and requires the best frame for the two tomato and white cheese queries of `image-search-queries.json` to fall between 12 and 15 seconds, with neighbors folded. It loads the model, so run it under the shared heavy-job lock:
+
+```sh
+COREAI_TEST_BUNDLES=/path/to/embeddinggemma2 swift test --package-path CoreAISamplesKit -c release --filter VideoSearchIntegration
+```
+
+It runs only when a path in `COREAI_TEST_BUNDLES` contains `embedding-manifest.json`, so language-model bundles passed to the same variable skip it. Choosing, playing and searching a video on an iPhone remain user checks.
+
 ## Runtime contract
 
 - Queries use `task: search result | query: `; documents use `title: none | text: `.

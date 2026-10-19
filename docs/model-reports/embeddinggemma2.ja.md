@@ -2,7 +2,7 @@
 
 [トップ](../../README.ja.md) · [English](../embeddinggemma2.md)
 
-画像検索・カメラで物探し
+画像検索・動画の場面検索・カメラで物探し
 
 <!-- model-report:start -->
 <a id="model-report"></a>

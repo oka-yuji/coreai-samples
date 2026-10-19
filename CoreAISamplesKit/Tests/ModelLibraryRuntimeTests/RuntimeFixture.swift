@@ -12,7 +12,7 @@ import Testing
 
 let distributionRevision = "0123456789abcdef0123456789abcdef01234567"
 let upstreamRevision = "914f7f89142e33e77833254d9c9b90c3cef7303b"
-let registeredDemos = ["comparison", "extraction", "inspection", "image-search", "object-finder"]
+let registeredDemos = ["comparison", "extraction", "inspection", "image-search", "video-search", "object-finder"]
 
 extension DemoSelection {
     static let comparison = DemoSelection(modelID: "text", demoID: "comparison")
@@ -20,8 +20,9 @@ extension DemoSelection {
     static let inspection = DemoSelection(modelID: "text", demoID: "inspection")
     static let notes = DemoSelection(modelID: "text", demoID: "notes")
     static let imageSearch = DemoSelection(modelID: "image", demoID: "image-search")
+    static let videoSearch = DemoSelection(modelID: "image", demoID: "video-search")
     static let objectFinder = DemoSelection(modelID: "image", demoID: "object-finder")
-    static let registered = [comparison, extraction, inspection, imageSearch, objectFinder]
+    static let registered = [comparison, extraction, inspection, imageSearch, videoSearch, objectFinder]
 }
 
 struct MissingEvents: Error {
@@ -318,6 +319,7 @@ final class RuntimeHarness {
             defaultArtifactID: "image-fp16", platforms: [.iOS],
             demos: [
                 ModelDemoLink(demoID: "image-search", platforms: [.iOS]),
+                ModelDemoLink(demoID: "video-search", platforms: [.iOS]),
                 ModelDemoLink(demoID: "object-finder", platforms: [.iOS], requiredCapabilities: [.camera]),
             ])
         return try ModelCatalog(models: [text, image], demos: demos)
