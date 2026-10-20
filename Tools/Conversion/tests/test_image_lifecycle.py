@@ -133,6 +133,21 @@ class ImageBundleLifecycleTests(BundleFixtureTests):
 
 @unittest.skipIf(DEPENDENCY_ERROR is not None, f"Qwen image generation dependencies unavailable: {DEPENDENCY_ERROR}")
 class ImageGenerationLifecycleTests(BundleFixtureTests):
+    def test_bundle_hashing_holds_the_same_lock_as_model_execution(self):
+        lock = self.root / "locks" / "measured-job"
+        def validate_locked_bundle(bundle):
+            self.assertTrue(lock.is_dir())
+            self.assertEqual(json.loads((lock / "owner.txt").read_text())["pid"], os.getpid())
+            return validate_bundle(bundle)
+        arguments = ["generate", "--bundle", str(self.bundle), "--output", str(self.root / "output"),
+                     "--prompt", "fixture", "--lock-dir", str(lock)]
+        with patch.object(sys, "argv", arguments), \
+                patch.object(generate, "validate_bundle", side_effect=validate_locked_bundle), \
+                patch.object(generate, "generate") as run:
+            generate.main()
+        run.assert_called_once()
+        self.assertFalse(lock.exists())
+
     def test_partial_output_is_preserved_and_rejected_before_model_preparation(self):
         components = {kind: self.bundle / kind for kind in KINDS}
         for name in ("prompt.txt", "initial-noise.npy"):

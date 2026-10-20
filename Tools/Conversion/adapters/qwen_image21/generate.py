@@ -155,11 +155,6 @@ def main():
     parser.add_argument("--lock-dir", type=Path, default=Path(os.environ.get("COREAI_HEAVY_JOB_LOCK", Path.home() / "Library/Caches/coreai-samples/heavy-job")))
     args = parser.parse_args()
     recorder = PhaseRecorder()
-    with recorder.phase("prepare-hash"):
-        validate_bundle(args.bundle)
-    with recorder.phase("prepare-image-and-noise"):
-        image = Image.open(args.image).convert("RGBA") if args.image else None
-        noise = np.load(args.noise, allow_pickle=False) if args.noise else None
     def stop(signum, frame):
         raise KeyboardInterrupt
 
@@ -168,6 +163,11 @@ def main():
     os.environ["COREAI_HEAVY_JOB_LOCK"] = str(args.lock_dir)
     try:
         with directory_lock(args.lock_dir, {"session": "image-research", "job": "generate", "expected_minutes": 10}):
+            with recorder.phase("prepare-hash"):
+                validate_bundle(args.bundle)
+            with recorder.phase("prepare-image-and-noise"):
+                image = Image.open(args.image).convert("RGBA") if args.image else None
+                noise = np.load(args.noise, allow_pickle=False) if args.noise else None
             generate({kind: args.bundle / kind for kind in KINDS}, args.bundle / "config", args.output,
                      args.prompt, image, noise, args.seed, diagnostics=args.diagnostics, recorder=recorder)
     finally:
