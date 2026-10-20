@@ -1,13 +1,13 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
-    "Allow the required permission, then try again." : {
+    "Permissions changed. Retry to start this demo." : {
       "extractionState" : "manual",
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "必要なアクセスを許可してから、もう一度お試しください。"
+            "value" : "権限が変更されました。再試行してデモを開始してください。"
           }
         }
       }

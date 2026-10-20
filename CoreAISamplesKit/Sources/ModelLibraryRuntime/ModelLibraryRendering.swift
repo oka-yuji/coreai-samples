@@ -62,7 +62,7 @@ private struct DemoPreparationView: View {
                     Text("Another window is using a model.", bundle: .module).font(.headline)
                     Text("Close its demo before trying again.", bundle: .module)
                 } else {
-                    Text("Allow the required permission, then try again.", bundle: .module)
+                    Text("Permissions changed. Retry to start this demo.", bundle: .module)
                 }
                 Button {
                     library.send(.requestDemoPreparation(session.id))
