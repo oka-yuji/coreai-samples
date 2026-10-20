@@ -202,6 +202,9 @@ struct NativeGolden: Decodable {
         let replay: [Replay]
     }
 
+    let format: Int
+    let sourceRevision: String
+    let fixtureManifestSHA256: String
     let cases: [Sample]
     let scheduler: [Scheduler]
     let rotaryAbsoluteTolerance: Float
@@ -213,7 +216,18 @@ struct NativeGolden: Decodable {
     }
 
     static func load() throws -> Self {
-        try JSONDecoder().decode(Self.self, from: Data(contentsOf: resource("native-golden.json")))
+        let golden = try JSONDecoder().decode(Self.self, from: Data(contentsOf: resource("native-golden.json")))
+        let fixtureIDs = ["g", "e"].flatMap { prefix in
+            (1...15).map { prefix + String(format: "%02d", $0) }
+        }
+        let boundaries = ["wide-token", "limit-generate", "limit-edit", "over-generate", "over-edit"]
+        let expected = Set(fixtureIDs + boundaries)
+        try #require(golden.format == 1)
+        try #require(golden.sourceRevision == "fc13ba1986fcb905854dc8de2f52eee395f49b5b")
+        try #require(
+            golden.fixtureManifestSHA256 == "b26820d8a34afd01f4f2c8e1ab2b0b66d951fe38e5b0a6b79104c1f555fe3ee9")
+        try #require(golden.cases.count == expected.count && Set(golden.cases.map(\.id)) == expected)
+        return golden
     }
 
     static func floats(_ name: String) throws -> [Float] {

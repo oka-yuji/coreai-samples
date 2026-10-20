@@ -38,6 +38,8 @@ The native RNG is separately versioned as `splitmix64-boxmuller-f64-packed-v1`. 
 
 The golden suite includes 30 evaluation prompts, exact 512-token generation/edit boundaries, their 513-token failures, and a valid long whitespace input: 35 cases. It also contains source rotary values, image hashes and scheduler trajectories. Saved-noise replay uses actual FP32 source predictions, selecting the source pipeline's last 1,024 target tokens. Replaying those predictions at another host dtype tests arithmetic, not half-precision network quality.
 
+Regeneration validates the pinned source profile and all 60 fixture runs, including their file inventory and actual input hashes, before writing output. Swift tests also require the frozen source revision, fixture manifest hash and complete 35-case identity set, so a shortened suite cannot silently reduce coverage.
+
 ```sh
 swift test --package-path CoreAISamplesKit --filter ImageGeneration
 QMI_TOKENIZER=/path/to/pinned/snapshot/processor \
@@ -65,3 +67,25 @@ xcodebuild -scheme ImageGenerationRuntime -configuration Release \
 ```
 
 This is library build evidence. It does not establish device inference, full-model memory fit or end-to-end mobile image quality.
+
+## Acceptance evidence — 2026-10-21
+
+QMI practical v2 / #217, macOS 27.0 (26A428), M4 Max, Xcode 27 and Swift 6.4. The production implementation is `636a881`; the final review correction strengthens fixture validation and tests without changing that implementation.
+
+| Condition | Evidence |
+| --- | --- |
+| QMN-01 | `layoutsMatchOriginal`, `tokenizerMatchesOriginal`, `conditioningMatchesOriginal`: all 35 pinned prompt cases, source positions/masks and feature scatter |
+| QMN-02 | `ImageGenerationImageTests`: source PNG channels/orientation, both resize pass orders, white-composited VLM and straight RGBA VAE tensors; independent optimized Swift/Pillow comparison: 180 random and edge-size cases, exact bytes |
+| QMN-03 | `schedulerMatchesOriginal`, `savedNoiseReplayMatchesOriginal`, RGBA reconstruction: all eight steps at Float32/Float16/BFloat16; independent `-O` replay: 24 synthetic steps and 24 saved-prediction hashes |
+| QMN-04 | Invalid token/shape/dtype/profile/nonfinite tests; 513-token failures and the separate byte limit; native fixture generation rejects changed sources and incomplete suites before writing |
+| QMN-05 | CPU Swift suite: 15 tests passed with the real local tokenizer; full package runners reported 746 tests passed with learned-model opt-ins skipped; macOS Release app and iOS Release library builds succeeded |
+
+Strict SwiftLint reported zero violations in 409 files. The format gate passed for 13 Swift files. The locked conversion environment passed 164 tests, with 13 unrelated optional Magpie/Qwen TTS tests skipped. After the fixture guard correction, regeneration produced 18 files byte-identical to the committed goldens; the 15 Swift tests passed again.
+
+Two independent reviews covered numeric/layout/tokenizer and profile/image/I/O boundaries. One confirmed defect was fixed: a two-input subset could regenerate only seven golden cases and silently reduce coverage. The new regression covers subset, reference-profile and snapshot changes. Review also checked optimized Swift arithmetic and raw image byte order. JPEG/HEIF equivalence and iPhone decoding remain unverified.
+
+Local evidence is under `.local/validation/217/`: `all-goldens-final.log`, `full-tests.log`, `macos-build.log`, `native-ios-build-final.log`, `review-fix-swift.log`, `python-final.log`, `native-goldens-r5.log`, `swiftlint-review-fix.log` and `format-review-fix.log`. No learned weights are included in the checked-in fixture resources.
+
+The approved single-PR scope is retained: Core and Runtime are separate targets, while the token, pixel and scheduler contracts share one original-data verification boundary. Handwritten implementation is 959 changed lines (955 additions / 4 deletions), within the planned 650–1,000 range. Test code and fixture generators are separate. Merge after #215; #218 owns network integration, and #221 owns final mobile acceptance.
+
+The principal lesson is to preserve intermediate rounding, including the resize axis order and half-precision Euler products. Final Float32 comparisons alone do not establish equivalent computation. The complete-case guard now prevents future fixture regeneration from silently weakening that evidence.

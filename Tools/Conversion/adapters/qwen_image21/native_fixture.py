@@ -10,8 +10,8 @@ from diffusers import FlowMatchEulerDiscreteScheduler
 from transformers import Qwen3VLConfig
 from transformers.models.qwen3_vl.modeling_qwen3_vl import Qwen3VLModel
 
-from .contracts import SIGMAS
-from .fixtures import file_record, save_json
+from .contracts import REVISION, SIGMAS, check_profile
+from .fixtures import file_record, save_json, validate_fixture_suite
 from .preprocessing import denoiser_layout, prompt_inputs, text_inputs
 
 
@@ -21,11 +21,15 @@ def array_hash(value):
 
 def run(args):
     torch.set_num_threads(2)
+    if args.snapshot.name != REVISION:
+        raise ValueError("Unexpected source snapshot")
     reference = json.loads((args.reference / "reference.json").read_text())
     if reference.get("complete") is not True or reference.get("precision") != "fp32" or reference.get("cache") != "off":
         raise ValueError("Saved prediction replay requires the independent FP32 cache-off reference")
-    args.output.mkdir(parents=True, exist_ok=False)
+    check_profile(reference.get("target_profile"))
     definition = json.loads((args.fixtures / "fixtures.json").read_text())
+    validate_fixture_suite(args.fixtures, definition)
+    args.output.mkdir(parents=True, exist_ok=False)
     config = Qwen3VLConfig.from_pretrained(args.snapshot / "text_encoder", local_files_only=True)
     helper = SimpleNamespace(config=config)
     helper.get_vision_position_ids = MethodType(Qwen3VLModel.get_vision_position_ids, helper)
