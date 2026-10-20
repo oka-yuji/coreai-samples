@@ -140,6 +140,10 @@ public enum DemoAccess: Equatable, Sendable {
     case stopping
 }
 
+public enum DemoPreparation: Equatable, Sendable {
+    case pending, preparing, available, occupied, unavailable
+}
+
 public struct ModelLibraryState: Equatable, Sendable {
     public let catalog: ModelCatalog
     public let owner: UUID
@@ -149,6 +153,7 @@ public struct ModelLibraryState: Equatable, Sendable {
     public internal(set) var selectedArtifacts: [String: String]
     public internal(set) var selection: DemoSelection?
     public internal(set) var session: ModelDemoSession?
+    public internal(set) var demoPreparation: DemoPreparation = .pending
     public internal(set) var pendingDestination: ModelDestination?
     public internal(set) var pendingArtifact: String?
     public internal(set) var pendingLoss: String?
@@ -229,6 +234,7 @@ public struct ModelLibraryState: Equatable, Sendable {
             let resource = executableResource(for: selection)
         else { return }
         session = ModelDemoSession(id: allocateID(), selection: selection, resource: resource)
+        demoPreparation = .pending
     }
 
     private func executableResource(for selection: DemoSelection) -> ValidatedModelResource? {

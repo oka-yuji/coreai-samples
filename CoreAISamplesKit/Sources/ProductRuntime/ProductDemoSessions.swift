@@ -9,6 +9,7 @@ public final class ProductDemoSessions {
         let identity: ModelArtifactIdentity
         let store: Store<ProductFeature>
         let runner: ProductRunner
+        var session: LibraryTicket
         var permits: @MainActor () -> Bool
     }
 
@@ -24,12 +25,15 @@ public final class ProductDemoSessions {
     public func bind(_ session: ModelDemoSession, permits: @escaping @MainActor () -> Bool) -> Store<ProductFeature> {
         let selection = session.selection
         let identity = session.identity
-        if let entry = entries[selection], entry.identity == identity {
+        if let entry = entries[selection], entry.identity == identity, entry.session.owner == session.id.owner {
+            entries[selection]?.session = session.id
             entries[selection]?.permits = permits
             return entry.store
         }
         let runner = ProductRunner(service: makeService()) { [weak self] in
-            guard let entry = self?.entries[selection], entry.identity == identity else { return false }
+            guard let entry = self?.entries[selection], entry.identity == identity,
+                entry.session.owner == session.id.owner
+            else { return false }
             return entry.permits()
         }
         let state = ProductState(
@@ -37,12 +41,14 @@ public final class ProductDemoSessions {
             resourceIdentity: "\(identity.modelID)/\(identity.artifactID)@\(identity.revision)",
             keeping: entries[selection]?.store.state)
         let store = Store<ProductFeature>(initialState: state, run: runner.run)
-        entries[selection] = Entry(identity: identity, store: store, runner: runner, permits: permits)
+        entries[selection] = Entry(
+            identity: identity, store: store, runner: runner, session: session.id, permits: permits)
         return store
     }
 
     public func stop(_ session: ModelDemoSession) async throws {
-        guard let entry = entries[session.selection], entry.identity == session.identity else { return }
+        guard let entry = entries[session.selection], entry.identity == session.identity, entry.session == session.id
+        else { return }
         entry.store.send(.closed)
         try await entry.runner.release()
     }

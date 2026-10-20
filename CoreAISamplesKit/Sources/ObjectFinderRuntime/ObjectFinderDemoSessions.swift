@@ -30,14 +30,16 @@ public final class ObjectFinderDemoSessions<Preview> {
     public func bind(_ session: ModelDemoSession, permits: @escaping @MainActor () -> Bool) -> Runtime {
         let selection = session.selection
         let resource = session.resource
-        if let entry = entries[selection], entry.resource == resource {
+        if let entry = entries[selection], entry.resource == resource, entry.session.owner == session.id.owner {
             entries[selection]?.session = session.id
             entries[selection]?.permits = permits
             return entry.runtime
         }
         let made = makeRuntime()
         let runner = ObjectFinderRunner(service: made.service) { [weak self] in
-            guard let entry = self?.entries[selection], entry.resource == resource else { return false }
+            guard let entry = self?.entries[selection], entry.resource == resource,
+                entry.session.owner == session.id.owner
+            else { return false }
             return entry.permits()
         }
         let store = Store<ObjectFinderFeature>(
@@ -51,7 +53,7 @@ public final class ObjectFinderDemoSessions<Preview> {
     public func stop(_ session: ModelDemoSession) async throws {
         guard let entry = entries[session.selection] else { return }
         let store = entry.runtime.store
-        guard entry.session == session.id || store.state.phase == .idle else { return }
+        guard entry.session == session.id else { return }
         try await entry.runtime.runner.release(store.state.session, send: store.send)
     }
 }
