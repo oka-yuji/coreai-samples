@@ -6,6 +6,8 @@ from pathlib import Path
 
 from .evaluation import REVISION, SIGMAS, canonical_hash, require, validate_inventory
 
+DEFINITION_SHA256 = "fe0127bc661bebaa36f75aaeb7f1d21b5e4163c1381a8bcb1652d71efcd87303"
+
 
 def save_json(path, value):
     Path(path).write_text(json.dumps(value, indent=2, ensure_ascii=False, allow_nan=False) + "\n")
@@ -19,10 +21,12 @@ def file_record(path):
 
 
 def validate_cases(value):
+    require(isinstance(value, dict), "Invalid fixture definition")
     require(value.get("format") == 1 and value.get("id") == "qmi-quality-30x2-v1", "Unsupported fixture definition")
     require(value.get("seeds") == [20261018, 20261021], "The two seeds are frozen")
     cases = value.get("cases")
     require(isinstance(cases, list) and len(cases) == 30, "Expected all thirty inputs")
+    require(all(isinstance(case, dict) and isinstance(case.get("id"), str) for case in cases), "Invalid fixture entries")
     require(len({case["id"] for case in cases}) == 30, "Duplicate fixture id")
     for case in cases:
         require(case.get("language") in ("ja", "en") and isinstance(case.get("prompt"), str)
@@ -31,8 +35,25 @@ def validate_cases(value):
                 "Missing quality axes")
         require(case.get("reference") in (None, "circle", "objects", "person", "sign", "transparent", "gradient", "checker"),
                 "Unknown authored reference")
-    require(sum("reference" in case for case in cases) == 15, "Expected fifteen edits and fifteen generations")
-    return canonical_hash(value)
+    require(sum(case.get("reference") is not None for case in cases) == 15, "Expected fifteen edits and fifteen generations")
+    digest = canonical_hash(value)
+    require(digest == DEFINITION_SHA256, "The version-one fixture definition changed")
+    return digest
+
+
+def quality_axes():
+    path = Path(__file__).resolve().parents[2] / "recipes/qwen_image21/evaluation-cases.json"
+    value = json.loads(path.read_text())
+    validate_cases(value)
+    return {f"{case['id']}-{seed}": case["axes"] for case in value["cases"] for seed in value["seeds"]}
+
+
+def validate_suite_runs(runs):
+    require(isinstance(runs, list) and len(runs) == 60, "All sixty suite runs are required")
+    identifiers = [run.get("run_id") for run in runs]
+    require(len(set(identifiers)) == 60 and set(identifiers) == set(quality_axes()), "The frozen run identities differ")
+    for run in runs:
+        require(run["run_id"] == f"{run.get('fixture_id')}-{run.get('seed')}", "Run identity differs from its input")
 
 
 def reference_images():

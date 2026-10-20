@@ -271,7 +271,8 @@ def aggregate_runs(runs, minimum_samples=20):
 
 
 def quality_summary(reference, candidate, required_axes):
-    require(isinstance(required_axes, dict) and len(required_axes) == 60, "All sixty frozen outputs are required")
+    from .fixtures import quality_axes
+    require(required_axes == quality_axes(), "All frozen output identities and applicable axes are required")
     require(set(reference) == set(candidate) == set(required_axes), "Quality rows cannot be added or omitted")
     summaries = {}
     new_failures = []

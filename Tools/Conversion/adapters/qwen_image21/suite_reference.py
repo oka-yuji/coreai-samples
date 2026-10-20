@@ -9,7 +9,7 @@ import signal
 import time
 
 from .evaluation import IMPLEMENTATION, REVISION, SIGMAS, require, validate_inventory
-from .fixtures import file_record, save_json
+from .fixtures import DEFINITION_SHA256, file_record, save_json, validate_suite_runs
 
 
 def execute(args):
@@ -24,7 +24,9 @@ def execute(args):
     require_heavy_job()
     require(args.snapshot.name == REVISION, "Unexpected source snapshot")
     manifest = json.loads((args.fixtures / "fixtures.json").read_text())
-    require(manifest.get("source_revision") == REVISION and len(manifest["runs"]) == 60, "Incomplete frozen suite")
+    require(manifest.get("source_revision") == REVISION, "Unexpected suite source")
+    require(manifest.get("definition_sha256") == DEFINITION_SHA256, "Frozen fixture version changed")
+    validate_suite_runs(manifest["runs"])
     validate_inventory(args.fixtures, manifest["inventory"])
     args.output.mkdir(parents=True, exist_ok=False)
     expected = {run["run_id"]: run for run in manifest["runs"]}
@@ -41,14 +43,22 @@ def execute(args):
                 "versions": {name: importlib.metadata.version(name) for name in ("torch", "diffusers", "transformers")}}
     save_json(args.output / "identity.json", identity)
     outcomes = {key: {"run_id": key, "status": "not_run", "total_seconds": None} for key in expected}
-    repeats = []
+    repeats = {key: {"run_id": key, "status": "not_run"} for key in ("g01-20261018", "e01-20261018")}
     def publish():
         save_json(args.output / "summary.json", {"identity": identity, "runs": list(outcomes.values()),
-                                               "repeatability": repeats,
-                                               "complete": all(row["status"] == "completed" for row in outcomes.values())})
+                                               "repeatability": list(repeats.values()),
+                                               "complete": all(row["status"] == "completed" for row in outcomes.values())
+                                               and all(row["status"] == "completed" for row in repeats.values())})
     publish()
     started = time.monotonic()
-    pipeline = QwenImage21Pipeline.from_pretrained(args.snapshot, dtype=dtype, local_files_only=True).to(args.device)
+    try:
+        pipeline = QwenImage21Pipeline.from_pretrained(args.snapshot, dtype=dtype, local_files_only=True).to(args.device)
+    except BaseException as error:
+        identity.update(load_status="cancelled" if isinstance(error, KeyboardInterrupt) else "failed",
+                        load_error_type=type(error).__name__, load_error=str(error))
+        publish()
+        raise
+    identity["load_status"] = "completed"
     pipeline.set_progress_bar_config(disable=True)
     require(list(pipeline.config.sample_sigmas) == list(SIGMAS), "Source sampling schedule changed")
     identity["load_seconds"] = time.monotonic() - started
@@ -100,6 +110,11 @@ def execute(args):
             record = expected[key]
             try:
                 outcomes[key] = run(record, args.output / key)
+            except KeyboardInterrupt as error:
+                outcomes[key] = {"run_id": key, "status": "cancelled", "total_seconds": None,
+                                 "error_type": type(error).__name__}
+                publish()
+                raise
             except Exception as error:
                 outcomes[key] = {"run_id": key, "status": "failed", "total_seconds": None,
                                  "error_type": type(error).__name__, "error": str(error)}
@@ -112,12 +127,21 @@ def execute(args):
             if key not in selected:
                 continue
             repeat = args.output / (key + "-repeat")
-            run(expected[key], repeat)
-            rows = {name: tensor_metrics(np.load(args.output / key / name), np.load(repeat / name))
-                    for name in ["rgba.npy"] + [f"latent-{index}.npy" for index in range(8)]}
-            repeats.append({"run_id": key, "comparisons": rows})
+            try:
+                run(expected[key], repeat)
+                rows = {name: tensor_metrics(np.load(args.output / key / name), np.load(repeat / name))
+                        for name in ["rgba.npy"] + [f"latent-{index}.npy" for index in range(8)]}
+                repeats[key] = {"run_id": key, "comparisons": rows,
+                                "status": "completed" if all(row["passed"] for row in rows.values()) else "failed"}
+            except BaseException as error:
+                repeats[key] = {"run_id": key, "status": "cancelled" if isinstance(error, KeyboardInterrupt) else "failed",
+                                "error_type": type(error).__name__, "error": str(error)}
+                publish()
+                raise
             publish()
     finally:
+        pipeline.vae.decode = original_decode
+        del original_decode
         del pipeline
         gc.collect()
         if args.device == "mps":

@@ -21,11 +21,24 @@ def generate(components, config, output, prompt, image=None, noise=None, seed=20
     if diagnostics not in ("off", "trace"):
         raise ValueError("Diagnostics must be off or trace")
     recorder = recorder or PhaseRecorder()
-    started = time.perf_counter()
     output = Path(output)
     output.mkdir(parents=True, exist_ok=True)
     if any(output.iterdir()):
         raise FileExistsError("Generation requires a new output directory")
+    metrics = {"profile": PROFILE, "seed": seed, "diagnostics": diagnostics, "components": {}, "complete": False}
+    try:
+        return _generate(components, config, output, prompt, image, noise, seed, diagnostics, recorder, metrics)
+    except BaseException as error:
+        metrics.update(complete=False, status="cancelled" if isinstance(error, KeyboardInterrupt) else "failed",
+                       error_type=type(error).__name__)
+        raise
+    finally:
+        metrics["measurement"] = recorder.report()
+        write_json(output / "metrics.json", metrics)
+
+
+def _generate(components, config, output, prompt, image, noise, seed, diagnostics, recorder, metrics):
+    started = time.perf_counter()
     if set(components) != set(KINDS):
         raise ValueError("All five independently verified components are required")
     with recorder.phase("prepare"):
@@ -38,8 +51,6 @@ def generate(components, config, output, prompt, image=None, noise=None, seed=20
             np.save(path, value)
     save(output / "initial-noise.npy", noise)
     (output / "prompt.txt").write_text(prompt + "\n")
-    metrics = {"profile": PROFILE, "seed": seed, "diagnostics": diagnostics, "components": {}, "complete": False}
-
     @contextmanager
     def opened(kind):
         component = None
@@ -125,7 +136,8 @@ def generate(components, config, output, prompt, image=None, noise=None, seed=20
     pixels = np.clip(rgba[0, :, 0].transpose(1, 2, 0) / 2 + 0.5, 0, 1)
     with recorder.phase("save-image"):
         Image.fromarray((pixels * 255).round().astype(np.uint8), "RGBA").save(output / "output.png")
-    metrics.update(seconds=time.perf_counter() - started, complete=True, steps=8, measurement=recorder.report())
+    metrics.update(seconds=time.perf_counter() - started, complete=True, status="completed",
+                   steps=8, measurement=recorder.report())
     write_json(output / "metrics.json", metrics)
     return latents.numpy(), rgba
 
