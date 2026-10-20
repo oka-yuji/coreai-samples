@@ -113,7 +113,7 @@ executor は、推論の状態を取得・変更する前に依頼を検査し�
 
 ## 運用の注意
 
-- **初回の読み込みでモデルを GPU 向けに準備する。** Core AI は準備済みのコピーを `~/Library/Caches/coreai-cache/<OS build>/<name>/` に置きます。`<name>` はコマンドラインのツールならプロセスの名前(`coreai-chat`、`coreai-verify`、`swift test` なら `swiftpm-testing-helper`)、アプリならバンドル ID(`com.coreai-samples.DemoApp`)です。同じプログラムの次の読み込みはそれを使い回します。別のプログラムは自分のコピーを準備し、モデルとほぼ同じ容量のディスクを使います(量子化していないバンドルではもっと大きい)。`coreai-chat --stats` で、コピーを使い回したか(`cached`)と準備にかかった時間(`specialize_s`)が分かります。
+- **初回の読み込みでモデルを、計算ユニットの自動選択(優先する計算ユニットを指定せず、頻繁な reshape を期待する設定)で準備する。** 設定は `SpecializationOptions.default` に `expectFrequentReshapes = true` を足したものです。Core AI は準備済みのコピーを `~/Library/Caches/coreai-cache/<OS build>/<name>/` に置きます。`<name>` はコマンドラインのツールならプロセスの名前(`coreai-chat`、`coreai-verify`、`swift test` なら `swiftpm-testing-helper`)、アプリならバンドル ID(`com.coreai-samples.DemoApp`)です。同じプログラムの次の読み込みはそれを使い回します。別のプログラムは自分のコピーを準備し、モデルとほぼ同じ容量のディスクを使います(量子化していないバンドルではもっと大きい)。`coreai-chat --stats` で、コピーを使い回したか(`cached`)と準備にかかった時間(`specialize_s`)が分かります。GPU 向けに準備していた以前の版から更新した後の初回の読み込みでは、準備がもう一度走ります(再特殊化)。以前の設定で準備したコピーは、容量不足などで OS が消すか、下の方法で準備済みのコピーを消す(そのプログラムのそのバンドルの新旧両方が消えます)まで残ります。
 
 - **準備済みのコピーを消すには**、呼び出したプログラムのそのバンドルのコピーを消す `Engine.deleteSpecializationCache(bundle:)` を呼ぶか、デモアプリの Models の画面の **準備済みキャッシュを削除**(Clear Prepared Copy。画面の確認では `--clear-prepared`)を使うか、フォルダを消します。
 

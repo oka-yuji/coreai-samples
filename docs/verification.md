@@ -127,7 +127,7 @@ These items cannot be observed or are not measured by these commands:
 | Item | Status |
 |---|---|
 | GPU execution time | Not collected. Add it to a common record only when observed with Instruments; do not derive it from wall time. |
-| Actual compute placement | No public API reports it. `observed_compute` is always `unknown`; `requested_compute` and `expect_frequent_reshapes` in own load and speed records are only the specialization request. |
+| Actual compute placement | No public API reports it. `observed_compute` is always `unknown`; `requested_compute` and `expect_frequent_reshapes` in own load and speed records are only the specialization request. The own runtime requests automatic compute-unit selection, so `requested_compute` is `default` and `expect_frequent_reshapes` stays `true`. |
 | Official specialization time and cache hit | Not observable through `EngineFactory`; official speed records omit `specialize_s`, `cached` and `requested_compute`. Fix the cache state by procedure. |
 | `peak_footprint_bytes` | Not measured. `footprint_bytes` is a sample, not a peak. |
 | `os_proc_available_memory` | Unavailable in the macOS SDK; not recorded. |

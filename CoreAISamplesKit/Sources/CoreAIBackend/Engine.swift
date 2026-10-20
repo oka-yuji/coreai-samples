@@ -66,8 +66,7 @@ public final class Engine {
     public init(bundle: ModelBundle, contextLimit: Int? = nil) async throws {
         let clock = ContinuousClock()
         let start = clock.now
-        var options = SpecializationOptions(preferredComputeUnitKind: .gpu)
-        options.expectFrequentReshapes = true
+        let options = Self.specializationOptions()
         var specializeSeconds = 0.0
         let model: AIModel
         if let cached = (try? AIModelCache.default.model(for: bundle.modelURL, options: options)) ?? nil {
@@ -122,6 +121,12 @@ public final class Engine {
             totalSeconds: (clock.now - start) / .seconds(1),
             requestedComputeUnit: Self.computeUnitName(options.preferredComputeUnitKind),
             expectsFrequentReshapes: options.expectFrequentReshapes)
+    }
+
+    static func specializationOptions() -> SpecializationOptions {
+        var options = SpecializationOptions.default
+        options.expectFrequentReshapes = true
+        return options
     }
 
     static func computeUnitName(_ kind: ComputeUnitKind?) -> String {

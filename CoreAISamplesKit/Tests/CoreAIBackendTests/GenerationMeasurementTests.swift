@@ -199,4 +199,12 @@ struct GenerationMeasurementTests {
     func computeUnitNames(kind: ComputeUnitKind?, name: String) {
         #expect(Engine.computeUnitName(kind) == name)
     }
+
+    @Test("The engine specialization options have no preferred compute unit and expect frequent reshapes")
+    func specializationOptions() {
+        let options = Engine.specializationOptions()
+        #expect(options.preferredComputeUnitKind == nil)
+        #expect(options.expectFrequentReshapes)
+        #expect(options.allowedComputeUnitKinds.contains(.gpu))
+    }
 }

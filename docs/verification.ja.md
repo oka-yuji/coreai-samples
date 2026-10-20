@@ -127,7 +127,7 @@ COREAI_TEST_BUNDLES=/path/to/bundle COREAI_TEST_RELOAD_INTERVAL=0 COREAI_TEST_RE
 | 項目 | 状態 |
 |---|---|
 | GPU の実行時間 | 採っていません。Instruments で観測したときだけ共通の記録に加えます。wall time から推定しません。 |
-| 実際の演算の配置 | 返す公開 API がありません。`observed_compute` は常に `unknown` です。own のロードと speed の記録の `requested_compute` と `expect_frequent_reshapes` は、特殊化で要求した設定にすぎません。 |
+| 実際の演算の配置 | 返す公開 API がありません。`observed_compute` は常に `unknown` です。own のロードと speed の記録の `requested_compute` と `expect_frequent_reshapes` は、特殊化で要求した設定にすぎません。自前のランタイムは計算ユニットの自動選択を要求するので、`requested_compute` は `default`、`expect_frequent_reshapes` は `true` のままです。 |
 | 公式の特殊化の時間とキャッシュの命中 | `EngineFactory` からは観測できません。official の speed の記録には `specialize_s`、`cached`、`requested_compute` がありません。キャッシュの状態は手順で固定します。 |
 | `peak_footprint_bytes` | 測っていません。`footprint_bytes` は標本で、ピークではありません。 |
 | `os_proc_available_memory` | macOS の SDK では使えないため、記録しません。 |
