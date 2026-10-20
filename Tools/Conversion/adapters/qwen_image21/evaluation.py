@@ -103,6 +103,8 @@ def validate_profile(profile):
     require(workload.get("scheduler_delta_dtype") == "model-output"
             and workload.get("scheduler_product_dtype") == "model-output",
             "The scalar delta and product must preserve PyTorch source promotion")
+    require(workload.get("model_timestep_rule") == "sigma-f32-scale1000-cast-divide1000",
+            "The denoiser timestep must preserve source rounding before division")
     require(workload.get("terminal_sigma") == 0.0 and workload.get("cast_back") == "every-step-to-model-output",
             "Euler must retain the source terminal sigma and per-step cast-back")
     require(workload.get("rounding") == "nearest-ties-to-even", "Unsupported rounding policy")

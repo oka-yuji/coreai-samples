@@ -17,7 +17,7 @@ def execute(args):
     from PIL import Image
     import psutil
     import torch
-    from diffusers import QwenImage21Pipeline
+    from diffusers import AutoencoderKLQwenImage21, QwenImage21Pipeline
     from .contracts import require_heavy_job, tensor_metrics
     from .preprocessing import prompt_inputs
 
@@ -30,6 +30,7 @@ def execute(args):
     selected = list(expected) if args.run_ids is None else args.run_ids.split(",")
     require(set(selected) <= set(expected) and len(selected) == len(set(selected)), "Unknown or duplicate run id")
     dtype = {"fp32": torch.float32, "fp16": torch.float16, "bf16": torch.bfloat16}[args.precision]
+    vae_dtype = {"fp32": torch.float32, "fp16": torch.float16, "bf16": torch.bfloat16}[args.vae_precision or args.precision]
     torch.set_num_threads(10)
     identity = {"format": 1, "route": "independent-diffusers", "precision": args.precision,
                 "source_revision": REVISION, "implementation_revision": IMPLEMENTATION,
@@ -38,6 +39,12 @@ def execute(args):
                 "sigmas": SIGMAS, "prefix_kv_cache": False, "device": args.device,
                 "host": platform.platform(), "diagnostics": "trace", "scope": "reference fidelity; not clean latency",
                 "versions": {name: importlib.metadata.version(name) for name in ("torch", "diffusers", "transformers")}}
+    identity["component_dtypes"] = {"vision": str(dtype), "text": str(dtype), "denoiser": str(dtype),
+                                   "vae_encoder": str(vae_dtype), "vae_decoder": str(vae_dtype)}
+    identity["mixed_vae_boundary"] = vae_dtype != dtype
+    if vae_dtype != dtype:
+        identity["route"] = "independent-diffusers-with-explicit-vae-boundary"
+        identity["boundary_rule"] = "Canonical image to VAE dtype; source encode/normalize/pack; cast condition to prompt dtype"
     save_json(args.output / "identity.json", identity)
     outcomes = {key: {"run_id": key, "status": "not_run", "total_seconds": None} for key in expected}
     repeats = {key: {"run_id": key, "status": "not_run"} for key in ("g01-20261018", "e01-20261018")}
@@ -49,7 +56,13 @@ def execute(args):
     publish()
     started = time.monotonic()
     try:
-        pipeline = QwenImage21Pipeline.from_pretrained(args.snapshot, dtype=dtype, local_files_only=True).to(args.device)
+        overrides = {}
+        if vae_dtype != dtype:
+            overrides["vae"] = AutoencoderKLQwenImage21.from_pretrained(
+                args.snapshot / "vae", torch_dtype=vae_dtype, local_files_only=True)
+        pipeline = QwenImage21Pipeline.from_pretrained(
+            args.snapshot, dtype=dtype, local_files_only=True, **overrides).to(args.device)
+        del overrides
     except BaseException as error:
         identity.update(load_status="cancelled" if isinstance(error, KeyboardInterrupt) else "failed",
                         load_error_type=type(error).__name__, load_error=str(error))
@@ -58,6 +71,21 @@ def execute(args):
     identity["load_status"] = "completed"
     pipeline.set_progress_bar_config(disable=True)
     require(list(pipeline.config.sample_sigmas) == list(SIGMAS), "Source sampling schedule changed")
+    require(pipeline.transformer.dtype == dtype and pipeline.text_encoder.dtype == dtype and pipeline.vae.dtype == vae_dtype,
+            "Actual component dtypes differ from the reference identity")
+    original_prepare = pipeline.prepare_latents
+    if vae_dtype != dtype:
+        def prepare(images, batch_size, channels, height, width, requested_dtype, device, generator, latents=None):
+            require(batch_size == 1 and channels == 64 and (images is None or len(images) == 1),
+                    "The explicit mixed-precision boundary supports the fixed one-image profile")
+            target, _ = original_prepare(None, batch_size, channels, height, width, requested_dtype, device, generator, latents)
+            condition = None
+            if images is not None:
+                encoded = pipeline._encode_vae_image(images[0].to(device=device, dtype=vae_dtype), generator)
+                condition = pipeline._pack_latents(encoded, batch_size, channels, encoded.shape[3], encoded.shape[4])
+                condition = condition.to(requested_dtype)
+            return target, condition
+        pipeline.prepare_latents = prepare
     identity["load_seconds"] = time.monotonic() - started
     save_json(args.output / "identity.json", identity)
     active = {}
@@ -138,7 +166,9 @@ def execute(args):
             publish()
     finally:
         pipeline.vae.decode = original_decode
+        pipeline.prepare_latents = original_prepare
         del original_decode
+        del original_prepare
         del pipeline
         gc.collect()
         if args.device == "mps":
@@ -160,6 +190,7 @@ def main():
     parser.add_argument("--fixtures", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--precision", choices=("fp32", "fp16", "bf16"), required=True)
+    parser.add_argument("--vae-precision", choices=("fp32", "fp16", "bf16"))
     parser.add_argument("--device", choices=("mps", "cpu"), default="mps")
     parser.add_argument("--run-ids")
     args = parser.parse_args()

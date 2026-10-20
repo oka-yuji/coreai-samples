@@ -36,6 +36,7 @@ Reference/candidate records must match fixture ID, source revision, prompt/refer
 | `weight_encoding` | Actual representation; the dense baseline records Float32 |
 | `scheduler_compute_dtype` | Float32 Euler accumulation |
 | `scheduler_delta_dtype`, `scheduler_product_dtype` | Round the scalar delta and product in the model-output dtype before adding to the Float32 sample |
+| `model_timestep_rule` | Float32 sigma × 1000, cast to latent dtype, then divide by 1000 in that dtype before the denoiser |
 | `scheduler_output_dtype`, `cast_back` | Cast back to model-output dtype after **every** step |
 | `rounding` | Nearest, ties to even |
 | `denoiser_fp16_clip` | `[-65504,65504]`, applied by the original graph only on its FP16 path |
@@ -68,6 +69,8 @@ The version-two bundle envelope is `{"format":2,"profile":<profile v2>,"assets":
 ```
 
 Run separately for `fp16` and `bf16` when evaluating them. The command uses the pinned original pipeline, records every output/latent SHA and repeats a generation and edit for repeatability. It owns the shared lock. `--run-ids` permits a limited diagnostic run; all other rows stay `not_run` and the suite stays incomplete. This trace run is not clean latency evidence.
+
+An optional `--vae-precision fp32` loads VAE weights directly from the checkpoint at that precision. This uses an explicit boundary adapter: canonical image tensors enter the VAE at its dtype, original encode/normalization/packing runs, and condition latents return to the prompt/denoiser dtype. Decoding follows the original pipeline's VAE-dtype path. The identity records this route and all five component dtypes; it is distinct from an unmodified all-FP16 reference.
 
 | Comparison | Purpose |
 | --- | --- |
@@ -104,4 +107,8 @@ Aggregation partitions by profile/workload hash, device, OS build, route, operat
 
 ## Current evidence
 
-The 30-input/60-run fixture inventory has been generated and verified. CPU tests cover input/profile changes, fixed boundaries, alias lifetimes, load overlap, failed/missing metrics and condition-separated aggregation. Full references, new precision thresholds and clean off/on benchmarks await the shared model-job slot. Ratings remain unreviewed. QMM-03 and QMM-04 remain open.
+The 30-input/60-run fixture inventory has been generated and verified. CPU tests cover input/profile changes, fixed boundaries, alias lifetimes, load overlap, failed/missing metrics and condition-separated aggregation.
+
+The all-FP16 MPS reference completed 48 outputs, then failed on `e10-20261018` when the decoder returned nonfinite values. The remaining 11 rows remain `not_run`; this profile did not pass. A separate VAE probe reproduced nonfinite FP16 output from the saved final latent while FP32 decoded the same reconstructed input finitely. The explicit FP16-network/FP32-VAE route then completed diagnostic runs `e10-20261018` and `e11-20261018`.
+
+The full selected-precision suite, FP32 baseline suite, new precision thresholds and clean off/on benchmarks remain outstanding. Ratings are unreviewed. QMM-03 and QMM-04 remain open; neither the two repaired cases nor source image generation establishes mobile quality.

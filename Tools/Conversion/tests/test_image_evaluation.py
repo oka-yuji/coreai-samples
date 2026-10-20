@@ -22,6 +22,7 @@ def profile():
                      "operation": "generate-and-edit", "cfg": 1, "sigmas": list(SIGMAS),
                      "scheduler_compute_dtype": "float32", "scheduler_output_dtype": "float32",
                      "scheduler_delta_dtype": "model-output", "scheduler_product_dtype": "model-output",
+                     "model_timestep_rule": "sigma-f32-scale1000-cast-divide1000",
                      "terminal_sigma": 0.0, "cast_back": "every-step-to-model-output",
                      "rounding": "nearest-ties-to-even", "denoiser_fp16_clip": [-65504, 65504],
                      "zero_centered_norm_dtype": "float32",
