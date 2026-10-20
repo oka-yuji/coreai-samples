@@ -9,7 +9,7 @@ import signal
 import time
 
 from .evaluation import IMPLEMENTATION, REVISION, SIGMAS, require
-from .fixtures import file_record, save_json, validate_fixture_suite
+from .fixtures import file_record, quality_axes, save_json, validate_fixture_suite
 
 
 def execute(args):
@@ -48,11 +48,15 @@ def execute(args):
     save_json(args.output / "identity.json", identity)
     outcomes = {key: {"run_id": key, "status": "not_run", "total_seconds": None} for key in expected}
     repeats = {key: {"run_id": key, "status": "not_run"} for key in ("g01-20261018", "e01-20261018")}
+    axes = quality_axes()
     def publish():
         save_json(args.output / "summary.json", {"identity": identity, "runs": list(outcomes.values()),
                                                "repeatability": list(repeats.values()),
                                                "complete": all(row["status"] == "completed" for row in outcomes.values())
                                                and all(row["status"] == "completed" for row in repeats.values())})
+        ratings = [{"run_id": key, "status": "unreviewed", "reference_status": outcomes[key]["status"],
+                    "axes": {axis: None for axis in axes[key]}, "notes": ""} for key in expected]
+        save_json(args.output / "quality-ratings.json", {"format": 1, "ratings": ratings})
     publish()
     started = time.monotonic()
     try:
@@ -174,13 +178,6 @@ def execute(args):
         if args.device == "mps":
             torch.mps.empty_cache()
         publish()
-    quality = []
-    for record in manifest["runs"]:
-        case = json.loads((args.fixtures / record["fixture_id"] / "input.json").read_text())
-        quality.append({"run_id": record["run_id"], "status": "unreviewed",
-                        "reference_status": outcomes[record["run_id"]]["status"],
-                        "axes": {axis: None for axis in case["axes"]}, "notes": ""})
-    save_json(args.output / "quality-ratings.json", {"format": 1, "ratings": quality})
 
 
 def main():
