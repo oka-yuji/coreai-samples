@@ -4,6 +4,10 @@
 
 ## 検証
 
+Swiftの書式は `python3 Tools/Format/check_format.py --base origin/main` で検査します。
+必要なツール、対象ファイルの選び方、回帰試験は[書式検査の手順](../Tools/Format/README.md)を参照してください。
+検査処理はこのリポジトリ内で完結し、個人用の設定フォルダは必要ありません。
+
 ビルドとモデルを使わない確認の全体を、リポジトリのルートで実行します。Apple シリコンの Mac、macOS 27、`xcode-select` で選んだ Xcode 27 が要ります。
 
 ```bash

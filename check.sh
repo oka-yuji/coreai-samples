@@ -20,6 +20,9 @@ if [[ -n "$check_models" ]]; then
     done
     command -v python3 >/dev/null
 fi
+check_stage=format-tests
+printf 'CHECK RUN: %s\n' "$check_stage"
+python3 -m unittest discover -s Tools/Format/tests -v
 check_stage=model-reports
 printf 'CHECK RUN: %s\n' "$check_stage"
 python3 -m Tools.ModelReports check
