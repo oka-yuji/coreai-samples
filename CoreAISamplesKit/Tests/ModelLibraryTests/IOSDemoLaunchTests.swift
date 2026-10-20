@@ -54,7 +54,7 @@ struct IOSDemoLaunchTests {
     }
 
     @Test(
-        "ADOPT-01 The iOS catalog presents two models and five demos whose artifacts carry the published distribution definitions with every file, size, checksum and upstream"
+        "ADOPT-01 The iOS catalog presents two models and six demos whose artifacts carry the published distribution definitions with every file, size, checksum and upstream"
     )
     func catalog() throws {
         let catalog = try IOSDemoCatalog.make()
@@ -62,7 +62,7 @@ struct IOSDemoLaunchTests {
         #expect(sections.map(\.model.name) == ["GLiNER2.5-multi", "EmbeddingGemma 2"])
         #expect(
             sections.map { $0.demos.map(\.id) } == [
-                ["comparison", "extraction", "inspection"], ["image-search", "object-finder"],
+                ["comparison", "extraction", "inspection"], ["image-search", "video-search", "object-finder"],
             ])
         #expect(sections.map { $0.artifacts.map(\.title) } == [["FP32"], ["FP16", "INT4/INT8 PTQ"]])
         #expect(
@@ -106,7 +106,11 @@ struct IOSDemoLaunchTests {
         let matches = catalog.sections(platform: .iOS, audience: .release, query: "comparar")
         #expect(matches.map(\.id) == ["gliner2.5-multi"])
         #expect(matches.first?.demos.map(\.id) == ["comparison"])
-        #expect(catalog.sections(platform: .iOS, audience: .release, query: "embeddinggemma").first?.demos.count == 2)
+        #expect(catalog.sections(platform: .iOS, audience: .release, query: "embeddinggemma").first?.demos.count == 3)
+        let video = try IOSDemoCatalog.make(searchTerms: ["video-search": ["doga no bamen"]])
+        let found = video.sections(platform: .iOS, audience: .release, query: "doga no bamen")
+        #expect(found.map(\.id) == ["embeddinggemma2"])
+        #expect(found.first?.demos.map(\.id) == ["video-search"])
     }
 
     @Test("Demo descriptors encoded before search aliases were added still decode")

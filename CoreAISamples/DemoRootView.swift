@@ -7,12 +7,14 @@ import ProductFeature
 import RecipeFeature
 import SpeechFeature
 import SwiftUI
+import VideoSearchFeature
 
 enum Demo: String, CaseIterable, Identifiable {
     case chat
     case decide
     case recipes
     case imageSearch
+    case videoSearch
     case extract
     case speech
     case models
@@ -25,6 +27,7 @@ enum Demo: String, CaseIterable, Identifiable {
         case .decide: "Clef-Flash 9B"
         case .recipes: "Clef-Flash 9B"
         case .imageSearch: "EmbeddingGemma 2"
+        case .videoSearch: "EmbeddingGemma 2"
         case .extract: "GLiNER2.5-multi"
         case .speech: "Irodori"
         case .models: "Models"
@@ -37,6 +40,7 @@ enum Demo: String, CaseIterable, Identifiable {
         case .decide: "Check a document against an editable checklist"
         case .recipes: "Can you make this recipe with what you have?"
         case .imageSearch: "Find selected images with your own words"
+        case .videoSearch: "Find moments in a video with your own words"
         case .extract: "Compare product specifications from official descriptions"
         case .speech: "Generate and play speech from text with Irodori"
         case .models: "Get, open and prepare model bundles"
@@ -49,6 +53,7 @@ enum Demo: String, CaseIterable, Identifiable {
         case .decide: "checklist"
         case .recipes: "carrot"
         case .imageSearch: "photo.badge.magnifyingglass"
+        case .videoSearch: "film.stack"
         case .extract: "text.magnifyingglass"
         case .speech: "waveform"
         case .models: "square.and.arrow.down"
@@ -70,6 +75,7 @@ struct DemoRootView: View {
     @State private var recipes = RecipeAssembly.makeStore()
     @State private var products = ProductAssembly.makeStore()
     @State private var imageSearch = ImageSearchAssembly.makeStore()
+    @State private var videoSearch = VideoSearchAssembly.makeStore()
     @State private var speech = SpeechAssembly.makeStore()
     @State private var showingExtractionLab = false
     @State private var extract = Store<ExtractFeature>(
@@ -98,6 +104,7 @@ struct DemoRootView: View {
             case .decide?: DecideView(store: decide)
             case .recipes?: RecipeView(store: recipes)
             case .imageSearch?: ImageSearchView(store: imageSearch)
+            case .videoSearch?: VideoSearchView(store: videoSearch)
             case .extract?:
                 if LaunchArguments.value("--gui-e2e") != nil && LaunchArguments.value("--extract") != nil {
                     ExtractView(store: extract)

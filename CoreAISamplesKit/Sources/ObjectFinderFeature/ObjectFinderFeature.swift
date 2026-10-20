@@ -15,22 +15,41 @@ public enum ObjectFinderExecution: Equatable, Sendable {
     case standalone, managed
 }
 
+public struct ObjectFinderMemory: Equatable, Sendable {
+    public let footprintBytes: UInt64
+    public let availableBytes: UInt64
+
+    public init(footprintBytes: UInt64, availableBytes: UInt64) {
+        self.footprintBytes = footprintBytes
+        self.availableBytes = availableBytes
+    }
+}
+
 public struct ObjectFinderFrame: Equatable, Sendable {
     public let candidates: [ObjectCandidate]
     public let seconds: Double
     public let rotation: Double
     public let orientationRevision: Int
     public let captureGeneration: Int
+    public let similarities: [Double]
+    public let capturedAt: Double
+    public let memory: ObjectFinderMemory?
+    public let refreshed: Bool
 
     public init(
         candidates: [ObjectCandidate], seconds: Double, rotation: Double = 90, orientationRevision: Int = 0,
-        captureGeneration: Int = 0
+        captureGeneration: Int = 0, similarities: [Double] = [], capturedAt: Double = 0,
+        memory: ObjectFinderMemory? = nil, refreshed: Bool = false
     ) {
         self.candidates = candidates
         self.seconds = seconds
         self.rotation = rotation
         self.orientationRevision = orientationRevision
         self.captureGeneration = captureGeneration
+        self.similarities = similarities
+        self.capturedAt = capturedAt
+        self.memory = memory
+        self.refreshed = refreshed
     }
 }
 
@@ -40,6 +59,8 @@ public struct ObjectFinderState: Equatable, Sendable {
     public var query = ""
     public var submittedQuery = ""
     public var minimumSimilarity = 0.67
+    public var maximumBoxes = 3
+    public var searchMode = ObjectSearchMode.standard
     public var phase: ObjectFinderPhase = .idle
     public var frame: ObjectFinderFrame?
     public var matches: [ObjectCandidate] = []
@@ -53,6 +74,12 @@ public struct ObjectFinderState: Equatable, Sendable {
     public var orientationRevision = 0
     public var restartAfterStop = false
     public var releasePending = false
+    public var log: [ObjectFinderFrame] = []
+    public var analyzedFrames = 0
+    public var peakFootprintBytes: UInt64?
+
+    public static let logLimit = 20
+    public static let boxLimits = 1...3
 
     public var cameraRotation: ObjectCameraRotation {
         ObjectCameraRotation(session: session, revision: orientationRevision, angle: orientation.angle)
@@ -69,6 +96,8 @@ public struct ObjectFinderState: Equatable, Sendable {
             state.query = previous.query
             state.submittedQuery = previous.submittedQuery
             state.minimumSimilarity = previous.minimumSimilarity
+            state.maximumBoxes = previous.maximumBoxes
+            state.searchMode = previous.searchMode
             state.session = previous.session
         }
         return state
@@ -81,6 +110,19 @@ public struct ObjectFinderState: Equatable, Sendable {
     public var canApplyQuery: Bool {
         presented && (phase == .starting || phase == .searching) && folder != nil && validDraft
             && query.trimmingCharacters(in: .whitespacesAndNewlines) != submittedQuery
+    }
+
+    public var showsCamera: Bool {
+        phase == .starting || phase == .searching || (phase == .stopping && restartAfterStop)
+    }
+
+    public var averageSeconds: Double? {
+        log.isEmpty ? nil : log.map(\.seconds).reduce(0, +) / Double(log.count)
+    }
+
+    public var framesPerSecond: Double? {
+        guard let newest = log.first, let oldest = log.last, newest.capturedAt > oldest.capturedAt else { return nil }
+        return Double(log.count - 1) / (newest.capturedAt - oldest.capturedAt)
     }
 
     public var canStop: Bool {
@@ -97,6 +139,8 @@ public enum ObjectFinderAction: Sendable {
     case queryChanged(String)
     case folderSelected(URL)
     case thresholdChanged(Double)
+    case maximumBoxesChanged(Int)
+    case searchModeChanged(ObjectSearchMode)
     case inputFailed(String)
     case poseChanged(ObjectCameraPose)
     case start, applyQuery, stop, disappeared, appeared, backgrounded
@@ -108,7 +152,7 @@ public enum ObjectFinderAction: Sendable {
 }
 
 public enum ObjectFinderEffect: Equatable, Sendable {
-    case search(Int, URL, String, Double, ObjectCameraRotation)
+    case search(Int, URL, String, Double, ObjectSearchMode, ObjectCameraRotation)
     case orient(ObjectCameraRotation)
     case stop(Int, retainingModel: Bool)
     case notify(Int)
@@ -135,6 +179,10 @@ public enum ObjectFinderFeature: Feature {
             if state.phase == .idle, value.isFinite, (0.3...0.9).contains(value) {
                 state.minimumSimilarity = value
             }
+        case .maximumBoxesChanged(let value):
+            if state.phase == .idle, State.boxLimits.contains(value) { state.maximumBoxes = value }
+        case .searchModeChanged(let mode):
+            if state.phase == .idle { state.searchMode = mode }
         case .inputFailed(let message):
             if state.phase == .idle { state.failure = .operation(message) }
         case .poseChanged(let pose):
@@ -155,9 +203,14 @@ public enum ObjectFinderFeature: Feature {
             state.restartAfterStop = false
             clear(&state)
             state.failure = nil
+            state.log = []
+            state.analyzedFrames = 0
+            state.peakFootprintBytes = nil
             return [
                 .run(
-                    .search(state.session, folder, state.submittedQuery, state.minimumSimilarity, state.cameraRotation),
+                    .search(
+                        state.session, folder, state.submittedQuery, state.minimumSimilarity, state.searchMode,
+                        state.cameraRotation),
                     id: .search)
             ]
         case .applyQuery:
@@ -175,8 +228,13 @@ public enum ObjectFinderFeature: Feature {
             else { return [] }
             let previous = state.matches.first
             state.frame = frame
+            state.analyzedFrames += 1
+            state.log = Array(([frame] + state.log).prefix(State.logLimit))
+            if let footprint = frame.memory?.footprintBytes {
+                state.peakFootprintBytes = max(state.peakFootprintBytes ?? 0, footprint)
+            }
             state.matches = ObjectCandidateSelection.select(
-                frame.candidates, minimumSimilarity: state.minimumSimilarity)
+                frame.candidates, minimumSimilarity: state.minimumSimilarity, limit: state.maximumBoxes)
             guard let first = state.matches.first else {
                 state.stableFrames = 0
                 state.emptyFrames += 1

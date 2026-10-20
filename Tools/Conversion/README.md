@@ -33,6 +33,9 @@ The [Qwen3-TTS CustomVoice recipe](recipes/qwen3_tts/README.md) uses a separate
 Transformers 4.57.3 environment to export FP32 neural components and compare them
 with the original Japanese speech path. Use generic plan/run with local bindings.
 
+The [Qwen3-TTS 1.7B CustomVoice recipe](recipes/qwen3_tts_17b/README.md) extends the
+shared TTS adapter with a separately pinned source and output directory.
+
 ## Local workspace
 
 Run from the sample repository root. Use Python 3.11+, Git, uv 0.9+, Xcode 27 with

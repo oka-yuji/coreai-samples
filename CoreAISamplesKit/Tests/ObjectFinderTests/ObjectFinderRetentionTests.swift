@@ -14,7 +14,7 @@ struct ObjectFinderRetentionTests {
     ) -> Task<Void, any Error> {
         Task {
             try await service.search(
-                folder: folder, query: "keys", minimumSimilarity: 0.67,
+                folder: folder, query: "keys", minimumSimilarity: 0.67, mode: .standard,
                 rotation: .init(session: session, revision: 0, angle: 90), started: { ready.yield(()) },
                 receive: { _ in })
         }
@@ -60,14 +60,14 @@ struct ObjectFinderRetentionTests {
         _ = await releasing.next()
         await #expect(throws: ObjectFinderError.busy) {
             try await service.search(
-                folder: folder, query: "glasses", minimumSimilarity: 0.67,
+                folder: folder, query: "glasses", minimumSimilarity: 0.67, mode: .standard,
                 rotation: .init(session: 2, revision: 0, angle: 90), started: {}, receive: { _ in })
         }
         fake.releaseFinder()
         try await closing.value
         await #expect(throws: CancellationError.self) {
             try await service.search(
-                folder: folder, query: "old", minimumSimilarity: 0.67,
+                folder: folder, query: "old", minimumSimilarity: 0.67, mode: .standard,
                 rotation: .init(session: 1, revision: 0, angle: 90), started: {}, receive: { _ in })
         }
         let second = start(service, session: 2, ready: ready.continuation)
@@ -119,7 +119,7 @@ struct ObjectFinderRetentionTests {
         try await service.stop(session: 1, retainingModel: false)
         await #expect(throws: CancellationError.self) {
             try await service.search(
-                folder: folder, query: "keys", minimumSimilarity: 0.67,
+                folder: folder, query: "keys", minimumSimilarity: 0.67, mode: .standard,
                 rotation: .init(session: 1, revision: 0, angle: 90), started: {}, receive: { _ in })
         }
         #expect(fake.prepares == 0 && fake.angles.isEmpty)

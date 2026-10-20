@@ -18,7 +18,8 @@
         func content(for session: ModelDemoSession, gate: DemoExecutionGate) -> AnyView {
             let runtime = sessions.bind(session, permits: gate.isPermitted)
             return AnyView(
-                ObjectFinderContent(store: runtime.store, preview: runtime.preview).id(ObjectIdentifier(runtime.store)))
+                ObjectFinderContent(store: runtime.store, preview: runtime.preview, model: session.resource.artifactID)
+                    .id(ObjectIdentifier(runtime.store)))
         }
 
         func stop(_ session: ModelDemoSession) async throws {

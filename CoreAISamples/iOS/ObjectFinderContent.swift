@@ -10,6 +10,7 @@
     struct ObjectFinderContent<FolderSettings: View>: View {
         let store: Store<ObjectFinderFeature>
         let preview: ObjectFinderPreview
+        var model: String?
         var chooseFolder: (() -> Void)?
         @ViewBuilder var folderSettings: FolderSettings
         @FocusState private var editingQuery: Bool
@@ -52,7 +53,7 @@
                     .disabled(store.state.phase == .stopping)
                 }
                 controls
-                cameraImage
+                Text("The camera opens when you start searching.").font(.footnote).foregroundStyle(.secondary)
                 status
                 if let failure = store.state.failure { failureView(failure) }
                 DisclosureGroup("Search settings") {
@@ -71,6 +72,27 @@
                         .accessibilityLabel("Match threshold")
                         Text("Higher values show fewer candidates. Similarity is not a probability.").font(.caption)
                             .foregroundStyle(.secondary)
+                        Picker(
+                            "Boxes shown",
+                            selection: Binding(
+                                get: { store.state.maximumBoxes }, set: { store.send(.maximumBoxesChanged($0)) })
+                        ) {
+                            ForEach(ObjectFinderState.boxLimits, id: \.self) { Text(verbatim: "\($0)").tag($0) }
+                        }
+                        .pickerStyle(.segmented)
+                        Text("Shows up to this many boxes at once.").font(.caption).foregroundStyle(.secondary)
+                        Picker(
+                            "Search method",
+                            selection: Binding(
+                                get: { store.state.searchMode }, set: { store.send(.searchModeChanged($0)) })
+                        ) {
+                            ForEach(ObjectSearchMode.allCases, id: \.self) { Text($0.title).tag($0) }
+                        }
+                        .pickerStyle(.segmented)
+                        Text(
+                            "Two-step checks five areas of the frame, then looks for objects again inside the closest area. It finds more objects, but each analysis takes longer."
+                        )
+                        .font(.caption).foregroundStyle(.secondary)
                     }
                     .padding(.top, 8)
                     .disabled(store.state.phase != .idle)
@@ -90,6 +112,14 @@
             .onDisappear { store.send(.disappeared) }
             .onChange(of: scenePhase) { _, value in
                 if value == .background { store.send(.backgrounded) }
+            }
+            .sheet(
+                isPresented: Binding(
+                    get: { store.state.showsCamera },
+                    set: { if !$0, store.state.showsCamera { store.send(.stop) } })
+            ) {
+                ObjectFinderCameraSheet(
+                    store: store, preview: preview, model: model ?? store.state.folder?.lastPathComponent)
             }
         }
 
@@ -119,28 +149,6 @@
                 }
                 Spacer()
             }
-        }
-
-        private var cameraImage: some View {
-            ObjectFinderLivePreview(
-                source: preview, minimumSimilarity: store.state.minimumSimilarity,
-                expectedGeneration: store.state.phase == .searching ? store.state.frame?.captureGeneration : nil,
-                rotation: store.state.orientation.angle
-            )
-            .frame(height: 360)
-            .background(.black)
-            .overlay {
-                if store.state.phase == .idle || store.state.phase == .stopping {
-                    ContentUnavailableView(
-                        "Find things around you", systemImage: "viewfinder",
-                        description: Text("The camera opens when you start searching.")
-                    )
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(.background)
-                }
-            }
-            .clipShape(RoundedRectangle(cornerRadius: 16))
-            .accessibilityLabel("Live camera preview")
         }
 
         @ViewBuilder
@@ -196,14 +204,178 @@
     }
 
     extension ObjectFinderContent where FolderSettings == EmptyView {
-        init(store: Store<ObjectFinderFeature>, preview: ObjectFinderPreview) {
-            self.init(store: store, preview: preview, folderSettings: { EmptyView() })
+        init(store: Store<ObjectFinderFeature>, preview: ObjectFinderPreview, model: String? = nil) {
+            self.init(store: store, preview: preview, model: model, folderSettings: { EmptyView() })
+        }
+    }
+
+    private struct ObjectFinderCameraSheet: View {
+        let store: Store<ObjectFinderFeature>
+        let preview: ObjectFinderPreview
+        let model: String?
+
+        var body: some View {
+            NavigationStack {
+                ScrollView {
+                    VStack(spacing: 0) {
+                        ObjectFinderLivePreview(
+                            source: preview, minimumSimilarity: store.state.minimumSimilarity,
+                            maximumBoxes: store.state.maximumBoxes,
+                            expectedGeneration: store.state.phase == .searching
+                                ? store.state.frame?.captureGeneration : nil,
+                            rotation: store.state.orientation.angle
+                        )
+                        .containerRelativeFrame(.vertical) { length, _ in length * 0.55 }
+                        .background(.black)
+                        .overlay {
+                            if store.state.phase != .searching {
+                                ProgressView("Preparing the search…").tint(.white).foregroundStyle(.white)
+                            }
+                        }
+                        .accessibilityLabel("Live camera preview")
+                        VStack(alignment: .leading, spacing: 14) {
+                            queryEditor
+                            ObjectFinderMetrics(state: store.state, model: model)
+                        }
+                        .padding()
+                    }
+                }
+                .navigationTitle(Text(verbatim: store.state.submittedQuery))
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button(role: .close) { store.send(.stop) }
+                    }
+                }
+            }
+            .presentationDragIndicator(.visible)
+        }
+
+        private var queryEditor: some View {
+            HStack {
+                TextField(
+                    "Type any object name",
+                    text: Binding(get: { store.state.query }, set: { store.send(.queryChanged($0)) })
+                )
+                .textFieldStyle(.roundedBorder)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+                .submitLabel(.search)
+                .onSubmit { store.send(.applyQuery) }
+                .accessibilityLabel("Object to find")
+                .disabled(store.state.phase == .stopping)
+                if store.state.canApplyQuery {
+                    Button("Search this text", systemImage: "arrow.clockwise") { store.send(.applyQuery) }
+                        .buttonStyle(.bordered)
+                }
+            }
+        }
+    }
+
+    private struct ObjectFinderMetrics: View {
+        let state: ObjectFinderState
+        let model: String?
+
+        var body: some View {
+            VStack(alignment: .leading, spacing: 14) {
+                Grid(alignment: .topLeading, horizontalSpacing: 20, verticalSpacing: 12) {
+                    GridRow {
+                        metric(
+                            "Analysis time", value: state.log.first.map { milliseconds($0.seconds) },
+                            detail: state.averageSeconds.map { Text("Average \(milliseconds($0))") })
+                        metric(
+                            "Speed",
+                            value: state.framesPerSecond.map { $0.formatted(.number.precision(.fractionLength(1))) },
+                            detail: Text("analyses/s"))
+                    }
+                    GridRow {
+                        metric(
+                            "Memory", value: state.log.first?.memory.map { bytes($0.footprintBytes) },
+                            detail: state.peakFootprintBytes.map { Text("Peak \(bytes($0))") })
+                        metric(
+                            "Available memory", value: state.log.first?.memory.map { bytes($0.availableBytes) },
+                            detail: nil)
+                    }
+                }
+                LabeledContent("Search method") {
+                    Text(state.searchMode.title)
+                }
+                .font(.caption)
+                if let model {
+                    LabeledContent("Model") {
+                        Text(verbatim: model).font(.caption.monospaced()).lineLimit(1).truncationMode(.middle)
+                    }
+                    .font(.caption)
+                }
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack {
+                        Text("Similarity log").font(.subheadline.bold())
+                        Spacer()
+                        Text("Match threshold").font(.caption).foregroundStyle(.secondary)
+                        Text(state.minimumSimilarity, format: .number.precision(.fractionLength(2)))
+                            .font(.caption.monospacedDigit())
+                    }
+                    if state.log.isEmpty {
+                        Text("Waiting for the first analysis…").font(.caption).foregroundStyle(.secondary)
+                    }
+                    ForEach(Array(state.log.enumerated()), id: \.offset) { offset, frame in
+                        logRow(number: state.analyzedFrames - offset, frame: frame)
+                    }
+                    Text(
+                        "Each value is the cosine similarity between the text vector and a region's image vector. A circular arrow marks an analysis that only rechecked the tracked boxes."
+                    )
+                    .font(.caption2).foregroundStyle(.secondary)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+
+        private func metric(_ label: LocalizedStringKey, value: String?, detail: Text?) -> some View {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(label).font(.caption).foregroundStyle(.secondary)
+                Text(verbatim: value ?? "–").font(.title3.monospacedDigit())
+                if let detail { detail.font(.caption2).foregroundStyle(.secondary) }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityElement(children: .combine)
+        }
+
+        private func logRow(number: Int, frame: ObjectFinderFrame) -> some View {
+            let values = frame.similarities.sorted(by: >)
+            return HStack(spacing: 12) {
+                Text(verbatim: "#\(number)").foregroundStyle(.secondary)
+                Image(systemName: "arrow.clockwise").foregroundStyle(.secondary).opacity(frame.refreshed ? 1 : 0)
+                    .accessibilityLabel(frame.refreshed ? Text("Recheck") : Text(verbatim: ""))
+                Text(verbatim: milliseconds(frame.seconds))
+                ForEach(Array(values.prefix(3).enumerated()), id: \.offset) { _, value in
+                    Text(value, format: .number.precision(.fractionLength(2)))
+                        .fontWeight(value >= state.minimumSimilarity ? .bold : .regular)
+                        .foregroundStyle(
+                            value >= state.minimumSimilarity ? AnyShapeStyle(.tint) : AnyShapeStyle(.secondary))
+                }
+                if values.count > 3 {
+                    Text(verbatim: "+\(values.count - 3)").foregroundStyle(.secondary)
+                }
+            }
+            .lineLimit(1)
+            .fixedSize(horizontal: true, vertical: false)
+            .font(.caption.monospacedDigit())
+            .accessibilityElement(children: .combine)
+        }
+
+        private func milliseconds(_ seconds: Double) -> String {
+            (seconds * 1000).formatted(.number.precision(.fractionLength(0))) + " ms"
+        }
+
+        private func bytes(_ value: UInt64) -> String {
+            Int64(clamping: value).formatted(.byteCount(style: .memory))
         }
     }
 
     private struct ObjectFinderLivePreview: UIViewRepresentable {
         let source: ObjectFinderPreview
         let minimumSimilarity: Double
+        let maximumBoxes: Int
         let expectedGeneration: Int?
         let rotation: Double
 
@@ -211,6 +383,7 @@
 
         func updateUIView(_ view: PreviewView, context: Context) {
             view.minimumSimilarity = minimumSimilarity
+            view.maximumBoxes = maximumBoxes
             view.expectedGeneration = expectedGeneration
             view.rotation = rotation
             view.applyPreviewState()
@@ -224,6 +397,7 @@
         final class PreviewView: UIView {
             let source: ObjectFinderPreview
             var minimumSimilarity = 0.67
+            var maximumBoxes = 3
             var expectedGeneration: Int?
             var rotation = 90.0
 
@@ -242,10 +416,20 @@
 
             func applyPreviewState() {
                 source.layout(
-                    in: bounds, minimumSimilarity: minimumSimilarity, expectedGeneration: expectedGeneration,
+                    in: bounds, minimumSimilarity: minimumSimilarity, maximumBoxes: maximumBoxes,
+                    expectedGeneration: expectedGeneration,
                     rotation: rotation)
             }
         }
 
+    }
+
+    extension ObjectSearchMode {
+        fileprivate var title: LocalizedStringKey {
+            switch self {
+            case .standard: "Standard"
+            case .twoStep: "Two-step"
+            }
+        }
     }
 #endif

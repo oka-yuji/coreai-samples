@@ -100,6 +100,17 @@
         }
       }
     },
+    "Search video": {
+      "extractionState": "manual",
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "動画を検索"
+          }
+        }
+      }
+    },
     "Start camera": {
       "extractionState": "manual",
       "localizations": {

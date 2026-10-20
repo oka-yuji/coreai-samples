@@ -1,4 +1,5 @@
 import CoreGraphics
+import CoreVideo
 import Foundation
 import ObjectFinderCore
 import Vision
@@ -10,6 +11,37 @@ enum ObjectRegionProposer {
         return (request.results?.first?.salientObjects ?? []).prefix(3).compactMap { object in
             let box = object.boundingBox.intersection(CGRect(x: 0, y: 0, width: 1, height: 1))
             let region = ObjectRegion(x: box.minX, y: 1 - box.maxY, width: box.width, height: box.height)
+            return region.isValid ? region : nil
+        }
+    }
+
+    static func instances(in image: CGImage) throws -> [ObjectRegion] {
+        let request = VNGenerateForegroundInstanceMaskRequest()
+        try VNImageRequestHandler(cgImage: image).perform([request])
+        guard let observation = request.results?.first else { return [] }
+        let mask = observation.instanceMask
+        CVPixelBufferLockBaseAddress(mask, .readOnly)
+        defer { CVPixelBufferUnlockBaseAddress(mask, .readOnly) }
+        let width = CVPixelBufferGetWidth(mask)
+        let height = CVPixelBufferGetHeight(mask)
+        let stride = CVPixelBufferGetBytesPerRow(mask)
+        guard width > 0, height > 0, let base = CVPixelBufferGetBaseAddress(mask)?.assumingMemoryBound(to: UInt8.self)
+        else { return [] }
+        var bounds: [UInt8: (minX: Int, minY: Int, maxX: Int, maxY: Int)] = [:]
+        for row in 0..<height {
+            for column in 0..<width {
+                let label = base[row * stride + column]
+                guard label > 0 else { continue }
+                let box = bounds[label] ?? (column, row, column, row)
+                bounds[label] = (min(box.minX, column), min(box.minY, row), max(box.maxX, column), max(box.maxY, row))
+            }
+        }
+        return bounds.keys.sorted().prefix(3).compactMap { label in
+            guard let box = bounds[label] else { return nil }
+            let region = ObjectRegion(
+                x: Double(box.minX) / Double(width), y: Double(box.minY) / Double(height),
+                width: Double(box.maxX - box.minX + 1) / Double(width),
+                height: Double(box.maxY - box.minY + 1) / Double(height))
             return region.isValid ? region : nil
         }
     }

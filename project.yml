@@ -90,6 +90,11 @@ targets:
         product: ExtractRuntime
       - package: CoreAISamplesKit
         product: ModelLibraryRuntime
+      - package: CoreAISamplesKit
+        product: VideoSearchFeature
+      - package: CoreAISamplesKit
+        product: VideoSearchRuntime
+      - sdk: AVKit.framework
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.coreai-samples.DemoApp
@@ -116,6 +121,7 @@ targets:
     deploymentTarget: "27.0"
     sources:
       - path: CoreAISamples/Demos/ImageSearch
+      - path: CoreAISamples/Demos/VideoSearch
       - path: CoreAISamples/Resources/Recipes
       - path: CoreAISamples/Demos/Products
       - path: CoreAISamples/Localization/DemoLanguage.swift
@@ -124,6 +130,7 @@ targets:
       - path: CoreAISamples/Resources/object-finder-examples.json
       - path: CoreAISamples/Resources/product-preview.json
       - path: CoreAISamples/Resources/image-search-queries.json
+      - path: CoreAISamples/Resources/video-search-queries.json
       - path: CoreAISamples/Resources/image-search-reference.json
       - path: CoreAISamples/Resources/EmbeddingValidation
       - path: CoreAISamples/iOS
@@ -182,6 +189,11 @@ targets:
         product: ModelLibraryRuntime
       - package: CoreAISamplesKit
         product: ExtractRuntime
+      - package: CoreAISamplesKit
+        product: VideoSearchFeature
+      - package: CoreAISamplesKit
+        product: VideoSearchRuntime
+      - sdk: AVKit.framework
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.coreai-samples.DemoApp.ios

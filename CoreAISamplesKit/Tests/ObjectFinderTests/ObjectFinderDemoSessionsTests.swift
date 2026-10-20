@@ -21,7 +21,8 @@ private final class RecordingFinderService: ObjectFinderService {
     private var heldStops: [CheckedContinuation<Void, Never>] = []
 
     func search(
-        folder: URL, query: String, minimumSimilarity: Double, rotation: ObjectCameraRotation, started: () -> Void,
+        folder: URL, query: String, minimumSimilarity: Double, mode: ObjectSearchMode, rotation: ObjectCameraRotation,
+        started: () -> Void,
         receive: (ObjectFinderFrame) -> Void
     ) async throws {
         searches.append(folder)
@@ -166,7 +167,7 @@ struct ObjectFinderDemoSessionsTests {
     }
 
     @Test(
-        "CAMERA-04 A different validated resource gets a new Store, preview and service that keep the target and threshold, and the old runtime cannot run again"
+        "CAMERA-04 BOX-03 TWO-03 A different validated resource gets a new Store, preview and service that keep the target, threshold, box limit and search method, and the old runtime cannot run again"
     )
     func replacedResource() async throws {
         let factory = RuntimeFactory()
@@ -180,6 +181,8 @@ struct ObjectFinderDemoSessionsTests {
         var oldSearching = oldService.searching.stream.makeAsyncIterator()
         old.store.send(.queryChanged("glasses"))
         old.store.send(.thresholdChanged(0.72))
+        old.store.send(.maximumBoxesChanged(1))
+        old.store.send(.searchModeChanged(.twoStep))
         old.store.send(.start)
         _ = await oldSearching.next()
         try await sessions.stop(first)
@@ -194,12 +197,16 @@ struct ObjectFinderDemoSessionsTests {
         expected.query = "glasses"
         expected.submittedQuery = "glasses"
         expected.minimumSimilarity = 0.72
+        expected.maximumBoxes = 1
+        expected.searchMode = .twoStep
         expected.session = 1
         #expect(replaced.store.state == expected && replacedService.searches.isEmpty)
         #expect(sessions.runtime(for: selection)?.store === replaced.store)
 
         var rejected: ObjectFinderFailure?
-        await old.runner.run(.search(9, selected, "glasses", 0.72, .init(session: 9, revision: 0, angle: 90))) {
+        await old.runner.run(
+            .search(9, selected, "glasses", 0.72, .standard, .init(session: 9, revision: 0, angle: 90))
+        ) {
             if case .failed(_, let failure) = $0 { rejected = failure }
         }
         #expect(rejected == .notPermitted && oldService.searches == [selected])

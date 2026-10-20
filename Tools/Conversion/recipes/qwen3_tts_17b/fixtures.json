@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "speaker": "Ono_Anna",
+  "max_new_tokens": 128,
+  "seed": 42,
+  "fixtures": [
+    {
+      "id": "greeting",
+      "text": "こんにちは。今日はよい天気ですね。"
+    },
+    {
+      "id": "instruction",
+      "text": "確認が終わりました。次の作業を始めます。"
+    },
+    {
+      "id": "reading",
+      "text": "この道をまっすぐ進み、右に曲がってください。"
+    }
+  ],
+  "sampling": {
+    "enabled": true,
+    "temperature": 0.9,
+    "top_k": 50,
+    "top_p": 1.0,
+    "repetition_penalty": 1.05
+  }
+}

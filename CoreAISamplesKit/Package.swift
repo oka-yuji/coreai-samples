@@ -33,6 +33,8 @@ let package = Package(
         .library(name: "TruckInspectionRuntime", targets: ["TruckInspectionRuntime"]),
         .library(name: "ImageSearchFeature", targets: ["ImageSearchFeature"]),
         .library(name: "ImageSearchRuntime", targets: ["ImageSearchRuntime"]),
+        .library(name: "VideoSearchFeature", targets: ["VideoSearchFeature"]),
+        .library(name: "VideoSearchRuntime", targets: ["VideoSearchRuntime"]),
         .library(name: "EmbeddingCore", targets: ["EmbeddingCore"]),
         .library(name: "EmbeddingRuntime", targets: ["EmbeddingRuntime"]),
         .executable(name: "embedding-verify", targets: ["embedding-verify"]),
@@ -159,6 +161,14 @@ let package = Package(
             swiftSettings: approachableConcurrency),
         .testTarget(
             name: "ImageSearchTests", dependencies: ["ImageSearchFeature", "ImageSearchRuntime", "FeatureStore"],
+            swiftSettings: approachableConcurrency),
+        .target(name: "VideoSearchFeature", dependencies: ["FeatureStore"], swiftSettings: approachableConcurrency),
+        .target(
+            name: "VideoSearchRuntime",
+            dependencies: ["VideoSearchFeature", "EmbeddingCore", "EmbeddingRuntime", "FeatureStore"],
+            swiftSettings: approachableConcurrency),
+        .testTarget(
+            name: "VideoSearchTests", dependencies: ["VideoSearchFeature", "VideoSearchRuntime", "FeatureStore"],
             swiftSettings: approachableConcurrency),
         .target(name: "EmbeddingCore", swiftSettings: approachableConcurrency),
         .target(

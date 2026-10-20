@@ -6,12 +6,12 @@
     "ja": "EmbeddingGemma 2 · FP16／INT4-INT8 PTQ"
   },
   "use": {
-    "en": "Image search, camera object search",
-    "ja": "画像検索・カメラで物探し"
+    "en": "Image search, video moment search, camera object search",
+    "ja": "画像検索・動画の場面検索・カメラで物探し"
   },
   "overview": {
-    "en": "Image search, camera object search",
-    "ja": "画像検索・カメラで物探し"
+    "en": "Image search, video moment search, camera object search",
+    "ja": "画像検索・動画の場面検索・カメラで物探し"
   },
   "release": "released",
   "release_note": {

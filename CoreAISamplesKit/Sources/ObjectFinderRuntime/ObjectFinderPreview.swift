@@ -10,6 +10,7 @@
         @MainActor private var rotation = 90.0
         @MainActor private var gate = ObjectPreviewGate()
         @MainActor private var minimumSimilarity = 0.67
+        @MainActor private var maximumBoxes = 3
         @MainActor private var lastDrawn: [ObjectCandidate] = []
         @MainActor private var lastBounds = CGRect.null
         @MainActor private var lastRotation = Double.nan
@@ -63,12 +64,15 @@
         }
 
         @MainActor
-        public func layout(in bounds: CGRect, minimumSimilarity: Double, expectedGeneration: Int?, rotation: Double) {
+        public func layout(
+            in bounds: CGRect, minimumSimilarity: Double, maximumBoxes: Int, expectedGeneration: Int?, rotation: Double
+        ) {
             CATransaction.begin()
             CATransaction.setDisableActions(true)
             layer.frame = bounds
             boxes.frame = layer.bounds
             self.minimumSimilarity = minimumSimilarity
+            self.maximumBoxes = maximumBoxes
             self.rotation = rotation
             gate.expect(expectedGeneration)
             boxes.isHidden = expectedGeneration == nil
@@ -81,7 +85,8 @@
         private func redraw() {
             let now = ProcessInfo.processInfo.systemUptime
             let candidates = gate.visible(at: now)
-            let selected = ObjectCandidateSelection.select(candidates, minimumSimilarity: minimumSimilarity)
+            let selected = ObjectCandidateSelection.select(
+                candidates, minimumSimilarity: minimumSimilarity, limit: maximumBoxes)
             scheduleExpiry(selected.isEmpty || layer.superlayer == nil ? nil : gate.expiration(at: now), now: now)
             guard selected != lastDrawn || layer.bounds != lastBounds || rotation != lastRotation else { return }
             lastDrawn = selected

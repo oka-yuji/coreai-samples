@@ -13,7 +13,7 @@
     enum IOSModelLibraryAssembly {
         static let adapters: [any ModelDemoAdapter] = [
             ProductComparisonAdapter(), ExtractionAdapter(), InspectionAdapter(), ImageSearchAdapter(),
-            ObjectFinderAdapter(),
+            VideoSearchAdapter(), ObjectFinderAdapter(),
         ]
         private static let root: URL = {
             let root = ModelStorage.root.appending(path: "ModelLibrary")

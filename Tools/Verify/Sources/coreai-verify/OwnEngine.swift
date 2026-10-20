@@ -268,21 +268,8 @@ struct Speed: AsyncParsableCommand {
         }
         let own = records.filter { $0.engine == "own" }
         for name in engine {
-            let runs = records.filter { $0.engine == name }
-            try emit(
-                SpeedSummary(
-                    engine: name,
-                    decodeTokS: median(runs.map(\.decodeTokS)),
-                    prefillTokS: median(runs.map(\.prefillTokS)),
-                    peakRssBytes: runs.map(\.peakRssBytes).max() ?? 0,
-                    ownDecodeRatio: median(own.map(\.decodeTokS)) / median(runs.map(\.decodeTokS)),
-                    ownPrefillRatio: median(own.map(\.prefillTokS)) / median(runs.map(\.prefillTokS))))
+            try emit(SpeedSummary(engine: name, runs: records.filter { $0.engine == name }, own: own))
         }
-    }
-
-    func median(_ values: [Double]) -> Double {
-        let sorted = values.sorted()
-        return sorted.isEmpty ? .nan : (sorted[(sorted.count - 1) / 2] + sorted[sorted.count / 2]) / 2
     }
 }
 
@@ -308,47 +295,62 @@ struct SpeedRun: AsyncParsableCommand {
         var last = loadStart
         var start = loadStart
         var loadEnd = loadStart
+        var generated = 0
+        let stopReason: String
+        var loadStats: CoreAIBackend.Engine.LoadStats?
         if engine == "own" {
             let own = try await CoreAIBackend.Engine(bundle: bundle)
             loadEnd = clock.now
+            loadStats = own.loadStats
             _ = try await own.generate(warmup, maxTokens: 8, stopTokens: [])
             own.reset()
             start = clock.now
             _ = try await own.generate(input, maxTokens: maxTokens, stopTokens: []) { _ in
                 last = clock.now
                 if first == loadStart { first = last }
+                generated += 1
             }
+            stopReason = SpeedRecord.ownStopReason(generated: generated, maxTokens: maxTokens)
         } else {
             let official = try await EngineFactory.createEngine(
                 bundle: LanguageModelBundle(at: url),
                 options: EngineOptions(variant: engine == "sequential" ? "coreai-sequential" : nil))
-            try await official.warmup(queryLength: 1, sampling: .greedy)
             loadEnd = clock.now
-            try await drain(official, warmup, 8) { _ in }
+            try await official.warmup(queryLength: 1, sampling: .greedy)
+            _ = try await drain(official, warmup, 8) { _ in }
             try await official.reset(to: 0)
             start = clock.now
-            try await drain(official, input, maxTokens) { _ in
+            let reason = try await drain(official, input, maxTokens) { _ in
                 last = clock.now
                 if first == loadStart { first = last }
+                generated += 1
             }
+            stopReason = SpeedRecord.officialStopReason(reason)
         }
         var usage = rusage()
-        getrusage(RUSAGE_SELF, &usage)
+        let peakRssBytes: UInt64? = getrusage(RUSAGE_SELF, &usage) == 0 ? UInt64(usage.ru_maxrss) : nil
+        let prefillS = (first - start) / .seconds(1)
+        let decodeS = (last - first) / .seconds(1)
         try emit(
             SpeedRecord(
-                engine: engine, round: round, loadS: (loadEnd - loadStart) / .seconds(1), promptTokens: input.count,
-                prefillS: (first - start) / .seconds(1),
-                prefillTokS: Double(input.count) / ((first - start) / .seconds(1)),
-                decodeTokens: maxTokens, decodeS: (last - first) / .seconds(1),
-                decodeTokS: Double(maxTokens - 1) / ((last - first) / .seconds(1)),
-                peakRssBytes: UInt64(usage.ru_maxrss), rssBytes: Memory.now().rssBytes))
+                engine: engine, round: round, loadS: (loadEnd - loadStart) / .seconds(1),
+                warmupS: (start - loadEnd) / .seconds(1), specializeS: loadStats?.specializeSeconds,
+                cached: loadStats?.cached, promptTokens: input.count, prefillS: prefillS,
+                prefillTokS: Double(input.count) / prefillS, maxTokens: maxTokens, generatedTokens: generated,
+                stopReason: stopReason, decodeS: decodeS,
+                decodeTokS: SpeedRecord.decodeRate(generated: generated, seconds: decodeS),
+                requestedCompute: loadStats?.requestedComputeUnit,
+                expectFrequentReshapes: loadStats?.expectsFrequentReshapes, peakRssBytes: peakRssBytes,
+                rssBytes: Memory.now().rssBytes))
     }
 
     func drain(_ engine: some InferenceEngine, _ input: [Int32], _ count: Int, _ onToken: (Int32) -> Void) async throws
+        -> StopReason?
     {
         let sequence = try await engine.generate(
             with: input, samplingConfiguration: .greedy, inferenceOptions: InferenceOptions(maxTokens: count))
         for try await output in sequence { onToken(output.tokenId) }
+        return sequence.stopReason
     }
 }
 
@@ -366,6 +368,20 @@ enum ReasoningChoice: String, ExpressibleByArgument {
     case `default`
     case low
     case off
+}
+
+enum MeasureChoice: String, CaseIterable, ExpressibleByArgument {
+    case off
+    case summary
+    case trace
+
+    var level: GenerationMeasurement.Level {
+        switch self {
+        case .off: .off
+        case .summary: .summary
+        case .trace: .trace
+        }
+    }
 }
 
 struct ExperimentOptions: ParsableArguments {
@@ -391,6 +407,10 @@ struct ExperimentOptions: ParsableArguments {
     )
     var checkState = false
 
+    @Option(
+        help: "Per-request measurement in chat turn records: off (the default), summary or trace. Own runtime only.")
+    var measure: MeasureChoice?
+
     func validate() throws {
         if templateVar.contains(where: { Self.variable($0) == nil }) {
             throw ValidationError("--template-var takes name=true or name=false.")
@@ -400,9 +420,10 @@ struct ExperimentOptions: ParsableArguments {
     func validate(_ runtime: RuntimeKind) throws {
         if runtime != .own,
             reuse != nil || historyReasoning != nil || !templateVar.isEmpty || reasoning != nil || checkState
+                || measure != nil
         {
             throw ValidationError(
-                "--reuse, --history-reasoning, --template-var, --reasoning and --check-state apply to --runtime own only."
+                "--reuse, --history-reasoning, --template-var, --reasoning, --check-state and --measure apply to --runtime own only."
             )
         }
     }
@@ -412,6 +433,7 @@ struct ExperimentOptions: ParsableArguments {
         settings.reusesState = reuse != .off
         settings.keepsHistoryReasoning = historyReasoning != .drop
         settings.templateVariables = Dictionary(templateVar.compactMap(Self.variable)) { $1 }
+        settings.measurement = measure?.level ?? .off
         return settings
     }
 
@@ -442,7 +464,8 @@ func loadOwnModel(
     try emit(
         OwnModelLoadRecord(
             cached: model.loadStats.cached, specializeS: model.loadStats.specializeSeconds,
-            initS: (clock.now - start) / .seconds(1), memory: .now()))
+            initS: (clock.now - start) / .seconds(1), requestedCompute: model.loadStats.requestedComputeUnit,
+            expectFrequentReshapes: model.loadStats.expectsFrequentReshapes, memory: .now()))
     return model
 }
 
@@ -472,6 +495,13 @@ func generatedTokenSnapshot(_ model: any LanguageModel) -> (@Sendable () async -
     return { await own.lastGeneratedTokens() }
 }
 
+func measurementSnapshot(_ model: any LanguageModel, _ experiment: ExperimentOptions)
+    -> (@Sendable () async -> GenerationMeasurement?)?
+{
+    guard experiment.settings.measurement != .off, let own = model as? LocalLanguageModel else { return nil }
+    return { await own.lastRequestMeasurement() }
+}
+
 func tokenSnapshot(_ model: any LanguageModel) -> (@Sendable () async -> [Int32])? {
     guard let own = model as? LocalLanguageModel else { return nil }
     return { await own.processedTokens() }
@@ -485,7 +515,8 @@ func loadOwn(_ url: URL) async throws -> (any Tokenizer, CoreAIBackend.Engine) {
         OwnLoadRecord(
             cached: engine.loadStats.cached, specializeS: engine.loadStats.specializeSeconds,
             loadS: engine.loadStats.totalSeconds, prefillFunction: engine.hasPrefillFunction, hybrid: engine.isHybrid,
-            contextLimit: engine.contextLimit, memory: .now()))
+            contextLimit: engine.contextLimit, requestedCompute: engine.loadStats.requestedComputeUnit,
+            expectFrequentReshapes: engine.loadStats.expectsFrequentReshapes, memory: .now()))
     return (tokenizer, engine)
 }
 
@@ -530,6 +561,9 @@ struct OwnLoadRecord: Encodable {
     let prefillFunction: Bool
     let hybrid: Bool
     let contextLimit: Int
+    let requestedCompute: String?
+    let expectFrequentReshapes: Bool?
+    var observedCompute = "unknown"
     let memory: Memory
 }
 
@@ -539,6 +573,9 @@ struct OwnModelLoadRecord: Encodable {
     let cached: Bool
     let specializeS: Double
     let initS: Double
+    let requestedCompute: String?
+    let expectFrequentReshapes: Bool?
+    var observedCompute = "unknown"
     let memory: Memory
 }
 
@@ -644,22 +681,76 @@ struct SpeedRecord: Codable {
     let engine: String
     let round: Int
     let loadS: Double
+    let warmupS: Double
+    let specializeS: Double?
+    let cached: Bool?
     let promptTokens: Int
     let prefillS: Double
     let prefillTokS: Double
-    let decodeTokens: Int
+    let maxTokens: Int
+    let generatedTokens: Int
+    let stopReason: String
     let decodeS: Double
-    let decodeTokS: Double
-    let peakRssBytes: UInt64
-    let rssBytes: UInt64
+    let decodeTokS: Double?
+    let requestedCompute: String?
+    let expectFrequentReshapes: Bool?
+    var observedCompute = "unknown"
+    let peakRssBytes: UInt64?
+    let rssBytes: UInt64?
+
+    static func decodeRate(generated: Int, seconds: Double) -> Double? {
+        generated < 2 ? nil : Double(generated - 1) / seconds
+    }
+
+    static func ownStopReason(generated: Int, maxTokens: Int) -> String {
+        generated < maxTokens ? "stopToken" : "maxTokens"
+    }
+
+    static func officialStopReason(_ reason: StopReason?) -> String {
+        switch reason {
+        case .maxTokens?: "maxTokens"
+        case .eos?: "stopToken"
+        case .stopSequence?: "stopSequence"
+        case .cancelled?: "cancelled"
+        case .error?: "error"
+        case nil: "unknown"
+        @unknown default: "unknown"
+        }
+    }
 }
 
 struct SpeedSummary: Encodable {
     var record = "speed-summary"
     let engine: String
-    let decodeTokS: Double
-    let prefillTokS: Double
-    let peakRssBytes: UInt64
-    let ownDecodeRatio: Double
-    let ownPrefillRatio: Double
+    let decodeTokS: Double?
+    let decodeRuns: Int
+    let prefillTokS: Double?
+    let peakRssBytes: UInt64?
+    let peakRssRuns: Int
+    let ownDecodeRatio: Double?
+    let ownPrefillRatio: Double?
+}
+
+extension SpeedSummary {
+    init(engine: String, runs: [SpeedRecord], own: [SpeedRecord]) {
+        let decode = runs.compactMap(\.decodeTokS)
+        let peaks = runs.compactMap(\.peakRssBytes)
+        let decodeTokS = Self.median(decode)
+        let prefillTokS = Self.median(runs.map(\.prefillTokS))
+        self.init(
+            engine: engine, decodeTokS: decodeTokS, decodeRuns: decode.count, prefillTokS: prefillTokS,
+            peakRssBytes: peaks.max(), peakRssRuns: peaks.count,
+            ownDecodeRatio: Self.ratio(Self.median(own.compactMap(\.decodeTokS)), decodeTokS),
+            ownPrefillRatio: Self.ratio(Self.median(own.map(\.prefillTokS)), prefillTokS))
+    }
+
+    static func median(_ values: [Double]) -> Double? {
+        let sorted = values.sorted()
+        return sorted.isEmpty ? nil : (sorted[(sorted.count - 1) / 2] + sorted[sorted.count / 2]) / 2
+    }
+
+    static func ratio(_ numerator: Double?, _ denominator: Double?) -> Double? {
+        guard let numerator, let denominator else { return nil }
+        return numerator / denominator
+    }
 }

@@ -14,12 +14,13 @@ public final class LiveObjectFinderService: ObjectFinderService {
     private var cleanupFailure: (any Error)?
     private var waiters: [CheckedContinuation<Void, Never>] = []
     private var configuration = ObjectCameraConfiguration()
+    private static let refreshLimit = 3
 
     init(devices: ObjectFinderDevices) { self.devices = devices }
 
     public func search(
-        folder: URL, query: String, minimumSimilarity: Double, rotation: ObjectCameraRotation, started: () -> Void,
-        receive: (ObjectFinderFrame) -> Void
+        folder: URL, query: String, minimumSimilarity: Double, mode: ObjectSearchMode, rotation: ObjectCameraRotation,
+        started: () -> Void, receive: (ObjectFinderFrame) -> Void
     ) async throws {
         try Task.checkCancellation()
         guard !busy else { throw ObjectFinderError.busy }
@@ -45,6 +46,7 @@ public final class LiveObjectFinderService: ObjectFinderService {
             reusable = true
             try checkStop()
             started()
+            var refreshes = 0
             while true {
                 try checkStop()
                 if rotation != configuration.rotation {
@@ -61,13 +63,19 @@ public final class LiveObjectFinderService: ObjectFinderService {
                 try await devices.checkCamera()
                 guard rotation == configuration.rotation, frame.rotation == rotation.angle else { continue }
                 let start = ContinuousClock.now
+                let tracking =
+                    mode == .twoStep && refreshes < Self.refreshLimit ? frame.tracked : []
                 reusable = false
-                let candidates = try await devices.candidates(frame.image)
+                let candidates =
+                    tracking.isEmpty
+                    ? try await devices.candidates(frame.image, mode) : try await devices.rescore(frame.image, tracking)
                 reusable = true
+                refreshes = tracking.isEmpty ? 0 : refreshes + 1
                 try checkStop()
                 try await devices.checkCamera()
                 guard rotation == configuration.rotation, frame.rotation == rotation.angle else { continue }
                 let matches = ObjectCandidateSelection.matching(candidates, minimumSimilarity: minimumSimilarity)
+                    .sorted { $0.similarity > $1.similarity }
                 let tracked = await devices.trackCandidates(frame, matches)
                 try checkStop()
                 try await devices.checkCamera()
@@ -78,7 +86,8 @@ public final class LiveObjectFinderService: ObjectFinderService {
                         candidates: tracked,
                         seconds: Double(duration.seconds) + Double(duration.attoseconds) / 1e18,
                         rotation: frame.rotation, orientationRevision: rotation.revision,
-                        captureGeneration: frame.generation))
+                        captureGeneration: frame.generation, similarities: candidates.map(\.similarity),
+                        capturedAt: frame.capturedAt, memory: devices.memory(), refreshed: !tracking.isEmpty))
             }
             try checkStop()
         } catch {

@@ -58,7 +58,7 @@
 
 | 根拠 | 日付・記録区分・経路 | 機種・OS・ツール | 入力と記録済みの条件 |
 |---|---|---|---|
-| [E1](https://github.com/oka-yuji/coreai-samples/blob/cd79318559ecfeb42580662b928d4feed415ea8e/docs/validation/qwen3-tts-17b-conversion-20261017.md) | 2026-10-17 / legacy / conversion | M4 Max 128 GiB / macOS 27.0 (26A428) / Xcode 27.0 (27A266a) | 未マージの変換PRの日本語3入力。Python host。ロードと計測区間は固定した報告に従う。ネイティブデモは未提供。 · variant=FP32 research; backend=Core AI; GPU preferred; route=Python Core AI conversion host; source_revision=0c0e3051f131929182e2c023b9537f8b1c68adfe; batch_size=1; concurrency=1; 未記録: artifact_revision, code_revision, warmups, power, thermal, plan_sha256 |
+| [E1](https://github.com/oka-yuji/coreai-samples/blob/cd79318559ecfeb42580662b928d4feed415ea8e/docs/validation/qwen3-tts-17b-conversion-20261017.md) | 2026-10-17 / legacy / conversion | M4 Max 128 GiB / macOS 27.0 (26A428) / Xcode 27.0 (27A266a) | 記録済みの変換snapshotの日本語3入力。Python host。ロードと計測区間は固定した報告に従う。ネイティブデモは未提供。 · variant=FP32 research; backend=Core AI; GPU preferred; route=Python Core AI conversion host; source_revision=0c0e3051f131929182e2c023b9537f8b1c68adfe; batch_size=1; concurrency=1; 未記録: artifact_revision, code_revision, warmups, power, thermal, plan_sha256 |
 
 ### 導入・制限・進捗
 
@@ -66,5 +66,9 @@
 
 - [PR #170](https://github.com/oka-yuji/coreai-samples/pull/170)
 
-- [固定した変換結果（未マージPR）](https://github.com/oka-yuji/coreai-samples/blob/cd79318559ecfeb42580662b928d4feed415ea8e/docs/validation/qwen3-tts-17b-conversion-20261017.md)
+- [固定した変換結果](https://github.com/oka-yuji/coreai-samples/blob/cd79318559ecfeb42580662b928d4feed415ea8e/docs/validation/qwen3-tts-17b-conversion-20261017.md)
+
+- [変換手順](../../Tools/Conversion/recipes/qwen3_tts_17b/README.md)
+
+- [統合と残る受入確認](../validation/qwen3-tts-17b-conversion-20261017.md)
 <!-- model-report:end -->

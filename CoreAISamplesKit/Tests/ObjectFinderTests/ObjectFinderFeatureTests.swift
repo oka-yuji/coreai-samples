@@ -42,7 +42,9 @@ struct ObjectFinderFeatureTests {
         _ = ObjectFinderFeature.reduce(&state, .queryChanged(" glasses "))
         #expect(
             ObjectFinderFeature.reduce(&state, .start) == [
-                .run(.search(1, folder, "glasses", 0.67, .init(session: 1, revision: 0, angle: 90)), id: .search)
+                .run(
+                    .search(1, folder, "glasses", 0.67, .standard, .init(session: 1, revision: 0, angle: 90)),
+                    id: .search)
             ])
         _ = ObjectFinderFeature.reduce(&state, .queryChanged("keys"))
         _ = ObjectFinderFeature.reduce(&state, .folderSelected(URL(filePath: "/other")))
@@ -70,7 +72,9 @@ struct ObjectFinderFeatureTests {
         #expect(state.frame == nil && state.query == " red keys ")
         #expect(
             ObjectFinderFeature.reduce(&state, .stopped(1)) == [
-                .run(.search(2, folder, "red keys", 0.67, .init(session: 2, revision: 0, angle: 90)), id: .search)
+                .run(
+                    .search(2, folder, "red keys", 0.67, .standard, .init(session: 2, revision: 0, angle: 90)),
+                    id: .search)
             ])
         #expect(state.submittedQuery == "red keys" && state.phase == .starting && !state.restartAfterStop)
     }
@@ -147,7 +151,9 @@ struct ObjectFinderFeatureTests {
             _ = ObjectFinderFeature.reduce(&state, .appeared)
             #expect(
                 ObjectFinderFeature.reduce(&state, .start) == [
-                    .run(.search(2, folder, "glasses", 0.67, .init(session: 2, revision: 0, angle: 90)), id: .search)
+                    .run(
+                        .search(2, folder, "glasses", 0.67, .standard, .init(session: 2, revision: 0, angle: 90)),
+                        id: .search)
                 ])
             _ = ObjectFinderFeature.reduce(&state, .analyzed(1, frame))
             #expect(state.frame == nil)
@@ -247,13 +253,122 @@ struct ObjectFinderFeatureTests {
         #expect(store.state.phase == .idle && store.state.frame == nil && service.closes == 1)
         service.failure = .cameraDenied
         var failure: ObjectFinderFailure?
-        await runner.run(.search(4, folder, "keys", 0.67, .init(session: 4, revision: 0, angle: 90))) { action in
+        await runner.run(.search(4, folder, "keys", 0.67, .standard, .init(session: 4, revision: 0, angle: 90))) {
+            action in
             if case .failed(let session, let value) = action {
                 #expect(session == 4)
                 failure = value
             }
         }
         #expect(failure == .cameraDenied && service.closes == 2)
+    }
+
+    @Test("BOX-01 The box limit defaults to three and changes only while stopped and within one to three")
+    func boxLimit() {
+        var state = ObjectFinderState(folder: folder)
+        #expect(state.maximumBoxes == 3)
+        #expect(ObjectFinderFeature.reduce(&state, .maximumBoxesChanged(1)).isEmpty && state.maximumBoxes == 1)
+        #expect(ObjectFinderFeature.reduce(&state, .maximumBoxesChanged(0)).isEmpty)
+        #expect(ObjectFinderFeature.reduce(&state, .maximumBoxesChanged(4)).isEmpty && state.maximumBoxes == 1)
+        state.query = "glasses"
+        _ = ObjectFinderFeature.reduce(&state, .start)
+        #expect(ObjectFinderFeature.reduce(&state, .maximumBoxesChanged(2)).isEmpty && state.maximumBoxes == 1)
+        _ = ObjectFinderFeature.reduce(&state, .started(1))
+        _ = ObjectFinderFeature.reduce(&state, .stop)
+        #expect(ObjectFinderFeature.reduce(&state, .maximumBoxesChanged(3)).isEmpty && state.maximumBoxes == 1)
+        _ = ObjectFinderFeature.reduce(&state, .stopped(1))
+        #expect(ObjectFinderFeature.reduce(&state, .maximumBoxesChanged(3)).isEmpty && state.maximumBoxes == 3)
+    }
+
+    @Test("TWO-03 The search method defaults to standard, changes only while stopped and is passed to the search")
+    func searchMode() {
+        var state = ObjectFinderState(folder: folder)
+        #expect(state.searchMode == .standard)
+        #expect(
+            ObjectFinderFeature.reduce(&state, .searchModeChanged(.twoStep)).isEmpty && state.searchMode == .twoStep)
+        state.query = "glasses"
+        #expect(
+            ObjectFinderFeature.reduce(&state, .start) == [
+                .run(
+                    .search(1, folder, "glasses", 0.67, .twoStep, .init(session: 1, revision: 0, angle: 90)),
+                    id: .search)
+            ])
+        #expect(
+            ObjectFinderFeature.reduce(&state, .searchModeChanged(.standard)).isEmpty && state.searchMode == .twoStep)
+    }
+
+    @Test("BOX-02 Selected boxes keep the highest non-overlapping matches up to the box limit")
+    func boxLimitSelection() {
+        var state = ObjectFinderState(folder: folder)
+        _ = ObjectFinderFeature.reduce(&state, .maximumBoxesChanged(2))
+        state.query = "glasses"
+        _ = ObjectFinderFeature.reduce(&state, .start)
+        _ = ObjectFinderFeature.reduce(&state, .started(1))
+        let candidates = [
+            ObjectCandidate(id: 0, region: .init(x: 0, y: 0, width: 0.2, height: 0.2), similarity: 0.7),
+            ObjectCandidate(id: 1, region: .init(x: 0.4, y: 0, width: 0.2, height: 0.2), similarity: 0.9),
+            ObjectCandidate(id: 2, region: .init(x: 0, y: 0.5, width: 0.2, height: 0.2), similarity: 0.8),
+            ObjectCandidate(id: 3, region: .init(x: 0.5, y: 0.5, width: 0.2, height: 0.2), similarity: 0.5),
+        ]
+        _ = ObjectFinderFeature.reduce(&state, .analyzed(1, ObjectFinderFrame(candidates: candidates, seconds: 0.1)))
+        #expect(state.matches.map(\.id) == [1, 2])
+    }
+
+    @Test("The camera sheet is shown only while starting, searching or replacing the query")
+    func cameraSheetVisibility() {
+        var state = ObjectFinderState(folder: folder)
+        state.query = "glasses"
+        #expect(!state.showsCamera)
+        _ = ObjectFinderFeature.reduce(&state, .start)
+        #expect(state.showsCamera)
+        _ = ObjectFinderFeature.reduce(&state, .started(1))
+        #expect(state.showsCamera)
+        _ = ObjectFinderFeature.reduce(&state, .queryChanged("keys"))
+        _ = ObjectFinderFeature.reduce(&state, .applyQuery)
+        #expect(state.phase == .stopping && state.showsCamera)
+        _ = ObjectFinderFeature.reduce(&state, .stopped(1))
+        _ = ObjectFinderFeature.reduce(&state, .started(2))
+        _ = ObjectFinderFeature.reduce(&state, .stop)
+        #expect(state.phase == .stopping && !state.showsCamera)
+        _ = ObjectFinderFeature.reduce(&state, .stopped(2))
+        #expect(state.phase == .idle && !state.showsCamera)
+        _ = ObjectFinderFeature.reduce(&state, .start)
+        _ = ObjectFinderFeature.reduce(&state, .failed(3, .cameraDenied))
+        #expect(state.phase == .idle && !state.showsCamera)
+    }
+
+    @Test("The search log keeps the latest twenty frames newest first and a new search clears it")
+    func searchLog() {
+        var state = active()
+        for index in 0..<25 {
+            _ = ObjectFinderFeature.reduce(
+                &state,
+                .analyzed(1, ObjectFinderFrame(candidates: [], seconds: Double(index), capturedAt: Double(index))))
+        }
+        #expect(state.log.count == ObjectFinderState.logLimit && state.analyzedFrames == 25)
+        #expect(state.log.first?.seconds == 24 && state.log.last?.seconds == 5)
+        _ = ObjectFinderFeature.reduce(&state, .stop)
+        _ = ObjectFinderFeature.reduce(&state, .stopped(1))
+        #expect(state.log.count == ObjectFinderState.logLimit)
+        _ = ObjectFinderFeature.reduce(&state, .start)
+        #expect(state.log.isEmpty && state.analyzedFrames == 0 && state.peakFootprintBytes == nil)
+    }
+
+    @Test("The log reports average analysis time, analyses per second and the peak memory of this search")
+    func searchMetrics() {
+        var state = active()
+        #expect(state.averageSeconds == nil && state.framesPerSecond == nil && state.peakFootprintBytes == nil)
+        let samples: [(Double, Double, UInt64)] = [(0.1, 10.0, 300), (0.3, 10.5, 500), (0.2, 11.0, 400)]
+        for (seconds, capturedAt, footprint) in samples {
+            let memory = ObjectFinderMemory(footprintBytes: footprint, availableBytes: 1_000)
+            _ = ObjectFinderFeature.reduce(
+                &state,
+                .analyzed(
+                    1, ObjectFinderFrame(candidates: [], seconds: seconds, capturedAt: capturedAt, memory: memory)))
+        }
+        #expect(abs((state.averageSeconds ?? 0) - 0.2) < 1e-9)
+        #expect(state.framesPerSecond == 2)
+        #expect(state.peakFootprintBytes == 500 && state.log.first?.memory?.footprintBytes == 400)
     }
 }
 
@@ -269,7 +384,8 @@ private final class ControlledFinder: ObjectFinderService {
     var waiters: [CheckedContinuation<Void, Never>] = []
 
     func search(
-        folder: URL, query: String, minimumSimilarity: Double, rotation: ObjectCameraRotation, started: () -> Void,
+        folder: URL, query: String, minimumSimilarity: Double, mode: ObjectSearchMode, rotation: ObjectCameraRotation,
+        started: () -> Void,
         receive: (ObjectFinderFrame) -> Void
     ) async throws {
         calls += 1

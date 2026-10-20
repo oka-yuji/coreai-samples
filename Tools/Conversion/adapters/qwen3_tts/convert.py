@@ -71,7 +71,7 @@ def main():
     metadata = AIModelAssetMetadata()
     metadata.author = "Qwen Team, Alibaba Group; converted by Yuji Oka"
     metadata.license = "Apache-2.0"
-    metadata.model_description = f"Qwen3-TTS 0.6B CustomVoice {args.kind}; FP32 research profile"
+    metadata.model_description = f"{contract['model_id']} {args.kind}; FP32 research profile"
     metadata.set_custom("source_revision", contract["revision"])
     asset = args.output / f"{args.kind}.aimodel"
     program.save_asset(asset, metadata)
@@ -79,7 +79,7 @@ def main():
               "seconds": time.perf_counter() - started, "input_names": input_names, "output_names": output_names,
               "state_names": [], "reference_sha256": hashlib.sha256((args.reference / "reference.json").read_bytes()).hexdigest(),
               "source_sha256": {name: hashlib.sha256(Path(__file__).with_name(name).read_bytes()).hexdigest()
-                                for name in ("source.py", "wrappers.py", "codec.py", "inputs.py", "convert.py")}}
+                                for name in ("source.py", "profiles.py", "wrappers.py", "codec.py", "inputs.py", "convert.py")}}
     write_json(args.output / "export.json", result)
     print(json.dumps({"kind": args.kind, "seconds": result["seconds"], "complete": True}), flush=True)
 

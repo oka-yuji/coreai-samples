@@ -199,6 +199,193 @@
         }
       }
     },
+    "Playback is available once the model is ready." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルの準備ができると再生できます。"
+          }
+        }
+      }
+    },
+    "Video search demo" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "動画検索デモ"
+          }
+        }
+      }
+    },
+    "Find moments in a video using a text query." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "動画の中の場面を、言葉で検索します。"
+          }
+        }
+      }
+    },
+    "Choose a video, prepare its frame index, and jump to the moments that match your words. Similarity scores help rank candidates." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "動画を選んでフレームの索引を作り、入力した言葉に近い場面へ移動します。類似度は候補の並び順を判断するための値です。"
+          }
+        }
+      }
+    },
+    "Find moments in a video with your own words" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自分の言葉で動画の場面を探す"
+          }
+        }
+      }
+    },
+    "Choose video…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "動画を選ぶ…"
+          }
+        }
+      }
+    },
+    "Describe a moment to find" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "探したい場面の特徴を入力"
+          }
+        }
+      }
+    },
+    "Indexing frames: %lld of %lld" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フレームを索引化中：%1$lld / %2$lld枚"
+          }
+        }
+      }
+    },
+    "Searching the video…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "動画を検索中…"
+          }
+        }
+      }
+    },
+    "Index the video again to search it." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "検索するには、動画をもう一度索引化してください。"
+          }
+        }
+      }
+    },
+    "Play from %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@から再生"
+          }
+        }
+      }
+    },
+    "%lld moments" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld件の場面"
+          }
+        }
+      }
+    },
+    "Try different wording, lower the match threshold, or show all candidates." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "言葉を変えるか、照合のしきい値を下げるか、すべての候補を表示してください。"
+          }
+        }
+      }
+    },
+    "The default comes from the image demo and is not calibrated for video. Adjust it for your video." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "既定値は画像検索デモのもので、動画向けには調整していません。動画に合わせて変えてください。"
+          }
+        }
+      }
+    },
+    "The selected video could not be opened." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選択した動画を開けませんでした。"
+          }
+        }
+      }
+    },
+    "This video could not be read. Choose another video." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この動画を読み込めませんでした。別の動画を選んでください。"
+          }
+        }
+      }
+    },
+    "The operation failed. Try again or choose the video again." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "処理に失敗しました。再試行するか、動画を選び直してください。"
+          }
+        }
+      }
+    },
     "Cancel change" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -261,6 +448,182 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "カメラのライブ映像"
+          }
+        }
+      }
+    },
+    "Recheck" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "再確認"
+          }
+        }
+      }
+    },
+    "Search method" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "探し方"
+          }
+        }
+      }
+    },
+    "Standard" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "標準"
+          }
+        }
+      }
+    },
+    "Two-step" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "2段階"
+          }
+        }
+      }
+    },
+    "Two-step checks five areas of the frame, then looks for objects again inside the closest area. It finds more objects, but each analysis takes longer." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "2段階は、画面の5つの範囲を照合し、いちばん近い範囲の中で物を探し直します。見つけやすくなりますが、1回の解析に時間がかかります。"
+          }
+        }
+      }
+    },
+    "Boxes shown" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "表示する枠の数"
+          }
+        }
+      }
+    },
+    "Shows up to this many boxes at once." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一度に表示する枠の最大数です。"
+          }
+        }
+      }
+    },
+    "Analysis time" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "解析時間"
+          }
+        }
+      }
+    },
+    "Average %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "平均 %@"
+          }
+        }
+      }
+    },
+    "Speed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "処理速度"
+          }
+        }
+      }
+    },
+    "analyses/s" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "回/秒"
+          }
+        }
+      }
+    },
+    "Peak %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最大 %@"
+          }
+        }
+      }
+    },
+    "Available memory" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "空きメモリ"
+          }
+        }
+      }
+    },
+    "Similarity log" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "類似度のログ"
+          }
+        }
+      }
+    },
+    "Waiting for the first analysis…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最初の解析を待っています…"
+          }
+        }
+      }
+    },
+    "Each value is the cosine similarity between the text vector and a region's image vector. A circular arrow marks an analysis that only rechecked the tracked boxes." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "各値は、検索語のベクトルと各領域の画像ベクトルのコサイン類似度です。回転矢印の行は、追跡中の枠だけを照合し直した解析です。"
           }
         }
       }
@@ -371,17 +734,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "解析したカメラ画像"
-          }
-        }
-      }
-    },
-    "Find things around you" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "身の回りの物を探す"
           }
         }
       }
