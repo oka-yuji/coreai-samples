@@ -80,13 +80,11 @@ QMI practical v2 / #217, macOS 27.0 (26A428), M4 Max, Xcode 27 and Swift 6.4. Th
 | QMN-04 | Invalid token/shape/dtype/profile/nonfinite tests; 513-token failures and the separate byte limit; native fixture generation rejects changed sources and incomplete suites before writing |
 | QMN-05 | CPU Swift suite: 15 tests passed with the real local tokenizer; full package runners reported 746 tests passed with learned-model opt-ins skipped; macOS Release app and iOS Release library builds succeeded |
 
-Strict SwiftLint reported zero violations in 409 files. The format gate passed for 13 Swift files. The locked conversion environment passed 164 tests, with 13 unrelated optional Magpie/Qwen TTS tests skipped. After the fixture guard correction, regeneration produced 18 files byte-identical to the committed goldens; the 15 Swift tests passed again.
-
-After integrating #215 at `120143f`, the conversion suite passed 165 tests with the same 13 optional skips. That base update changes failed-reference reporting only; the Swift implementation and golden resources are unchanged.
+Strict SwiftLint reported zero violations in 409 files. The format gate passed for 13 Swift files. After integrating #215 at `0a3480f`, the locked conversion suite contained 173 tests: 160 passed and 13 unrelated optional Magpie/Qwen TTS tests were skipped. The Swift implementation and golden resources are unchanged by those evaluation-base updates. After the fixture guard correction, regeneration produced 18 files byte-identical to the committed goldens; the 15 Swift tests passed again.
 
 Two independent reviews covered numeric/layout/tokenizer and profile/image/I/O boundaries. One confirmed defect was fixed: a two-input subset could regenerate only seven golden cases and silently reduce coverage. The new regression covers subset, reference-profile and snapshot changes. Review also checked optimized Swift arithmetic and raw image byte order. JPEG/HEIF equivalence and iPhone decoding remain unverified.
 
-Local evidence is under `.local/validation/217/`: `all-goldens-final.log`, `full-tests.log`, `macos-build.log`, `native-ios-build-final.log`, `review-fix-swift.log`, `python-final.log`, `native-goldens-r5.log`, `swiftlint-review-fix.log` and `format-review-fix.log`. No learned weights are included in the checked-in fixture resources.
+Local evidence is under `.local/validation/217/`: `all-goldens-final.log`, `full-tests.log`, `macos-build.log`, `native-ios-build-final.log`, `review-fix-swift.log`, `final-storage-base-python.log`, `native-goldens-r5.log`, `swiftlint-review-fix.log` and `format-review-fix.log`. No learned weights are included in the checked-in fixture resources.
 
 The approved single-PR scope is retained: Core and Runtime are separate targets, while the token, pixel and scheduler contracts share one original-data verification boundary. Handwritten implementation is 959 changed lines (955 additions / 4 deletions), within the planned 650–1,000 range. Test code and fixture generators are separate. Merge after #215; #218 owns network integration, and #221 owns final mobile acceptance.
 
