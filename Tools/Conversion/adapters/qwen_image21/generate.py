@@ -11,10 +11,10 @@ import torch
 from diffusers import FlowMatchEulerDiscreteScheduler
 from diffusers.pipelines.qwenimage21.pipeline_qwenimage21 import calculate_shift, retrieve_timesteps
 
-from .contracts import KINDS, PROFILE, SIGMAS, read_json, validate_bundle, write_json
+from .contracts import KINDS, PROFILE, SIGMAS, read_json, validate_bundle
 from .preprocessing import denoiser_inputs, denoiser_layout, initial_noise, prompt_inputs, text_inputs
 from .runtime import Component
-from .measurement import PhaseRecorder
+from .measurement import PhaseRecorder, write_metrics
 
 
 def generate(components, config, output, prompt, image=None, noise=None, seed=20261018, *, diagnostics="trace", recorder=None):
@@ -26,15 +26,17 @@ def generate(components, config, output, prompt, image=None, noise=None, seed=20
     if any(output.iterdir()):
         raise FileExistsError("Generation requires a new output directory")
     metrics = {"profile": PROFILE, "seed": seed, "diagnostics": diagnostics, "components": {}, "complete": False}
+    failure = None
     try:
         return _generate(components, config, output, prompt, image, noise, seed, diagnostics, recorder, metrics)
     except BaseException as error:
+        failure = error
         metrics.update(complete=False, status="cancelled" if isinstance(error, KeyboardInterrupt) else "failed",
                        error_type=type(error).__name__)
         raise
     finally:
         metrics["measurement"] = recorder.report()
-        write_json(output / "metrics.json", metrics)
+        write_metrics(output / "metrics.json", metrics, preserving=failure)
 
 
 def _generate(components, config, output, prompt, image, noise, seed, diagnostics, recorder, metrics):
@@ -54,16 +56,20 @@ def _generate(components, config, output, prompt, image, noise, seed, diagnostic
     @contextmanager
     def opened(kind):
         component = None
+        failure = None
         try:
             with recorder.phase(kind + ".load-including-specialization"):
                 component = Component(components[kind])
             yield component
+        except BaseException as error:
+            failure = error
+            raise
         finally:
             if component is not None:
                 with recorder.phase(kind + ".release"):
                     component.close()
             metrics["measurement"] = recorder.report()
-            write_json(output / "metrics.json", metrics)
+            write_metrics(output / "metrics.json", metrics, preserving=failure)
 
     def call(kind, component, values):
         with recorder.phase(kind):
@@ -72,7 +78,7 @@ def _generate(components, config, output, prompt, image, noise, seed, diagnostic
     def record(kind, component):
         metrics["components"][kind] = {"load_seconds": component.load_seconds, "call_seconds": component.calls,
                                        "first_call_after_load": 0, "subsequent_calls": list(range(1, len(component.calls)))}
-        write_json(output / "metrics.json", metrics)
+        write_metrics(output / "metrics.json", metrics)
 
     features = None
     if image is not None:
@@ -138,7 +144,7 @@ def _generate(components, config, output, prompt, image, noise, seed, diagnostic
         Image.fromarray((pixels * 255).round().astype(np.uint8), "RGBA").save(output / "output.png")
     metrics.update(seconds=time.perf_counter() - started, complete=True, status="completed",
                    steps=8, measurement=recorder.report())
-    write_json(output / "metrics.json", metrics)
+    write_metrics(output / "metrics.json", metrics)
     return latents.numpy(), rgba
 
 

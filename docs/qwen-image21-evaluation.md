@@ -110,6 +110,8 @@ A newly failing output has at least one axis that was acceptable/good in the ref
 
 The existing CLI accepts `--diagnostics off` or `trace`; default trace preserves earlier captures. Off writes final PNG and scalar metadata without intermediate tensor dumps. `measurement.seconds` begins before bundle hashing in the CLI and ends after the final image is saved. Legacy `seconds` retains its narrower function boundary. Preparation, loads, inference, individual DiT steps, release and saving use monotonic intervals.
 
+The shared machine lock covers bundle hashing and input preparation as well as model execution. Metric reports replace the previous JSON atomically. If saving fails while an exception is already propagating, its note records the I/O failure without replacing the original exception. A full disk can still prevent the terminal snapshot: the last saved JSON and the process outcome must be interpreted together.
+
 Loading and first execution can include specialization. No separate specialization timer is exposed: `specialization_seconds` remains null/unavailable and load is labeled `load-including-specialization`. Subtracting timings is not a measured specialization cost.
 
 Point observations separate RSS, footprint, graphics footprint and process-lifetime kernel peak. The macOS host cannot read an iOS app budget or observe the Core AI delegate's MTLDevice allocation counter, so both remain null/unavailable. `NSProcessInfo.thermalState` records actual thermal state. These values are not summed into “RAM,” and before/after samples are not phase peaks.
@@ -117,6 +119,8 @@ Point observations separate RSS, footprint, graphics footprint and process-lifet
 `live_memory_peak` unions declared allocation lifetimes, including old/new component load overlap. `storage_id` identifies an allocation, not an asset hash. Aliases count their backing storage once; disjoint lifetimes are not added. Unknown workspace/cache/activation categories leave `planning_peak_bytes` null while preserving the known contribution.
 
 Aggregation partitions by profile/workload hash, device, OS build, route, operation, cache state, diagnostics, power and thermal state. Cache states are `uncached-cold`, `cached-cold`, `warm`, `continuous`. A group needs 20 completed samples for the sample-count flag. Quantiles use nearest-rank p50/p95 plus maximum. Failures, cancellations and unrun cases retain null completed latency and their outcome counts.
+
+The aggregate CLI input is an object with `runs` and optional `minimum_samples`, for example `{"runs":[...],"minimum_samples":20}`.
 
 ```sh
 "$QI_PYTHON" -m Tools.Conversion.adapters.qwen_image21.evaluate aggregate runs.json
@@ -133,4 +137,16 @@ The all-FP16 MPS reference completed 48 outputs, then failed on `e10-20261018` w
 
 The explicit FP16-network/FP32-VAE source suite subsequently completed all 60 runs and both required repeats. Every repeated latent step and RGBA tensor had zero observed difference. This establishes repeatability only for those two inputs and that MPS route. It does not prove image quality or cross-runtime error bounds.
 
-The full FP32 baseline suite and clean off/on benchmarks remain outstanding. Ratings are unreviewed. QMM-03 and QMM-04 remain open while that evidence is incomplete; source image generation and frozen numeric budgets do not establish mobile quality.
+The FP32 source suite also completed all 60 runs and both repeats with zero repeated latent/RGBA difference. [Recorded cohort evidence](research/qwen-image21-evaluation-20261021.json) preserves both identities and summary hashes. A0↔A1 comparisons rechecked every input pair and saved tensor hash. Final-latent normalized RMSE had median 0.001845 and maximum 0.247003; RGBA absolute RMSE had median 0.001620 and maximum 0.231370, both maxima at `g14-20261021`. These are descriptive precision differences, not conversion-gate or image-quality decisions.
+
+The first Core AI diagnostic-off baseline attempt was stopped during denoising when available disk space fell to approximately 116 MiB. Report persistence also failed with ENOSPC; the last valid snapshot ends at VAE encoder release. After process exit, approximately 8.4 GiB was available. The disk-consumption breakdown was not captured. Trace mode did not run. Neither invocation produced a completed latency sample.
+
+The saved failed/unrun rows reproduce the same aggregate through the CLI: zero completed samples and null p50/p95/maximum. Cache entries existing before launch do not prove a runtime cache hit or sufficient temporary space. A new off/on attempt needs a larger free-space margin and a live stop threshold, in new output directories.
+
+QMM-04 remains incomplete. The reference cohorts, unreviewed 60-row quality tables and numeric policy are saved; they do not establish mobile quality or performance. The conversion CPU suite contains 172 tests: 159 passed and 13 optional tests for other models were skipped.
+
+## Scope and review
+
+The initial 350–550-line estimate did not cover the full five-component tensor contract, actual input-file bindings, failure/cancellation records and dtype-specific gates. A split between contracts/fixtures/aggregation and reference/measurement runners was considered. They share the same identities, failure states and acceptance criteria; retaining one reviewed evaluation unit avoids accepting a schema separately from the real source and CLI paths that exercise it. This remains #215's original scope and 5 SP estimate; the estimate is not rewritten from line count or elapsed model time.
+
+Independent reviews covered contract, numerical, failure-state and lifecycle boundaries. Regression fixes include missing/changed quality axes, duplicate or shortened fixture sets, input-path/hash mismatches, failure tables, newly failed axes hidden by prior reference failures, preparation outside the machine lock and report I/O failures replacing a cancellation. No full quantized candidate or mobile route is accepted by this tooling-only result.

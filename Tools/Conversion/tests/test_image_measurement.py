@@ -1,4 +1,5 @@
 import copy
+import errno
 import json
 from pathlib import Path
 import unittest
@@ -7,10 +8,35 @@ from unittest.mock import patch
 
 from Tools.Conversion.adapters.qwen_image21.evaluation import quality_summary
 from Tools.Conversion.adapters.qwen_image21.fixtures import quality_axes, validate_cases, validate_suite_runs
-from Tools.Conversion.adapters.qwen_image21.measurement import PhaseRecorder
+from Tools.Conversion.adapters.qwen_image21.measurement import PhaseRecorder, write_metrics
 
 
 class ImageMeasurementTests(unittest.TestCase):
+    def test_failed_report_replacement_preserves_the_last_complete_json_and_original_error(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "metrics.json"
+            path.write_text('{"complete":false,"phase":"previous"}\n')
+            original = path.read_bytes()
+            error = KeyboardInterrupt()
+            with patch.object(Path, "replace", side_effect=OSError(errno.ENOSPC, "no space")):
+                write_metrics(path, {"complete": False, "status": "cancelled"}, preserving=error)
+                with self.assertRaises(OSError):
+                    write_metrics(path, {"complete": True})
+            self.assertEqual(path.read_bytes(), original)
+            self.assertEqual(list(Path(directory).iterdir()), [path])
+            self.assertIn("could not be saved", error.__notes__[0])
+
+    def test_report_io_failure_cannot_replace_a_generation_cancellation(self):
+        from Tools.Conversion.adapters.qwen_image21 import generate
+        from Tools.Conversion.adapters.qwen_image21.contracts import KINDS
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            with patch.object(generate, "prompt_inputs", side_effect=KeyboardInterrupt), \
+                    patch.object(Path, "replace", side_effect=OSError(errno.ENOSPC, "no space")):
+                with self.assertRaises(KeyboardInterrupt) as caught:
+                    generate.generate(dict.fromkeys(KINDS, root), root, root / "output", "fixture")
+            self.assertIn("could not be saved", caught.exception.__notes__[0])
+
     def test_failed_phase_preserves_its_interval_and_missing_memory_without_succeeding(self):
         times = iter([100, 200, 500, 700])
         recorder = PhaseRecorder(capture=lambda: {"memory": None}, clock=lambda: next(times))

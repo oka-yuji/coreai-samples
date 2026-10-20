@@ -1,0 +1,169 @@
+{
+  "format": 1,
+  "recorded_at": "2026-10-21T05:46:54.403212+09:00",
+  "source_cohorts": [
+    {
+      "artifact": ".local/validation/215/reference-fp32-v1",
+      "identity": {
+        "format": 1,
+        "route": "independent-diffusers",
+        "precision": "fp32",
+        "source_revision": "fc13ba1986fcb905854dc8de2f52eee395f49b5b",
+        "implementation_revision": "b800f828f3951c4d206e154411bcbfa693cd322e",
+        "fixtures_sha256": "b26820d8a34afd01f4f2c8e1ab2b0b66d951fe38e5b0a6b79104c1f555fe3ee9",
+        "runner_sha256": "3ca83232a49cf02b1f0cd8b1ef0829615bca86d353b48f6dca1f03f48a28812d",
+        "sigmas": [
+          1.0,
+          0.978453,
+          0.95418,
+          0.926626,
+          0.89508,
+          0.845148,
+          0.704534,
+          0.414568
+        ],
+        "prefix_kv_cache": false,
+        "device": "mps",
+        "host": "macOS-27.0-arm64-arm-64bit",
+        "diagnostics": "trace",
+        "scope": "reference fidelity; not clean latency",
+        "versions": {
+          "torch": "2.9.0",
+          "diffusers": "0.41.0.dev0",
+          "transformers": "5.18.0"
+        },
+        "component_dtypes": {
+          "vision": "torch.float32",
+          "text": "torch.float32",
+          "denoiser": "torch.float32",
+          "vae_encoder": "torch.float32",
+          "vae_decoder": "torch.float32"
+        },
+        "mixed_vae_boundary": false,
+        "load_status": "completed",
+        "load_seconds": 30.90204279171303
+      },
+      "summary": {
+        "bytes": 166482,
+        "sha256": "8e6ffd1928e6ef2a56596a3d81ff6a83e6ae56a5b849b35cdfae2a1f6378a62b"
+      },
+      "completed_runs": 60,
+      "repeats": [
+        {
+          "run_id": "g01-20261018",
+          "status": "completed",
+          "maximum_normalized_rmse": 0.0
+        },
+        {
+          "run_id": "e01-20261018",
+          "status": "completed",
+          "maximum_normalized_rmse": 0.0
+        }
+      ],
+      "quality_rows": 60,
+      "quality_status": "unreviewed"
+    },
+    {
+      "artifact": ".local/validation/215/reference-fp16-vae-fp32-v1",
+      "identity": {
+        "format": 1,
+        "route": "independent-diffusers-with-explicit-vae-boundary",
+        "precision": "fp16",
+        "source_revision": "fc13ba1986fcb905854dc8de2f52eee395f49b5b",
+        "implementation_revision": "b800f828f3951c4d206e154411bcbfa693cd322e",
+        "fixtures_sha256": "b26820d8a34afd01f4f2c8e1ab2b0b66d951fe38e5b0a6b79104c1f555fe3ee9",
+        "runner_sha256": "181edf1d44ea95ed11a78a1da4382fd20985d30ceda17c1685335d4195d39435",
+        "sigmas": [
+          1.0,
+          0.978453,
+          0.95418,
+          0.926626,
+          0.89508,
+          0.845148,
+          0.704534,
+          0.414568
+        ],
+        "prefix_kv_cache": false,
+        "device": "mps",
+        "host": "macOS-27.0-arm64-arm-64bit",
+        "diagnostics": "trace",
+        "scope": "reference fidelity; not clean latency",
+        "versions": {
+          "torch": "2.9.0",
+          "diffusers": "0.41.0.dev0",
+          "transformers": "5.18.0"
+        },
+        "component_dtypes": {
+          "vision": "torch.float16",
+          "text": "torch.float16",
+          "denoiser": "torch.float16",
+          "vae_encoder": "torch.float32",
+          "vae_decoder": "torch.float32"
+        },
+        "mixed_vae_boundary": true,
+        "boundary_rule": "Canonical image to VAE dtype; source encode/normalize/pack; cast condition to prompt dtype",
+        "load_status": "completed",
+        "load_seconds": 14.907336625270545
+      },
+      "summary": {
+        "bytes": 166647,
+        "sha256": "0b0c5b0f4a7d3b9507d8c07ab7fa13188d942ea0abc305d8d809a08e7b20f9c0"
+      },
+      "completed_runs": 60,
+      "repeats": [
+        {
+          "run_id": "g01-20261018",
+          "status": "completed",
+          "maximum_normalized_rmse": 0.0
+        },
+        {
+          "run_id": "e01-20261018",
+          "status": "completed",
+          "maximum_normalized_rmse": 0.0
+        }
+      ],
+      "quality_rows": 60,
+      "quality_status": "unreviewed"
+    }
+  ],
+  "precision_comparison": {
+    "scope": "Descriptive precision differences only; not conversion gates or image quality acceptance",
+    "file": {
+      "bytes": 169066,
+      "sha256": "de879c6369a5c619295ca2d12879bf517ffc8f563b62342089ec9b1c92b18e6e"
+    },
+    "input_pairs_matched": true,
+    "saved_tensor_hashes_matched": true,
+    "runs": 60,
+    "summary": {
+      "latent-7.npy": {
+        "metric": "normalized_rmse",
+        "median": 0.0018451495895575479,
+        "maximum": 0.24700338972168157,
+        "maximum_run_id": "g14-20261021"
+      },
+      "rgba.npy": {
+        "metric": "absolute_rmse",
+        "median": 0.0016204125071936802,
+        "maximum": 0.23137023156372058,
+        "maximum_run_id": "g14-20261021"
+      }
+    }
+  },
+  "measurement_attempt": {
+    "outcome": "interrupted-for-disk-pressure-with-report-io-failure",
+    "phase_at_interrupt": "denoiser inference (step index not persisted)",
+    "reported_exit_code": 120,
+    "completed_latency": null,
+    "trace_run": "not_run",
+    "last_valid_metrics_seconds": 73.840008958,
+    "disk_observations": {
+      "before_job_approx_GiB": 3.55,
+      "at_stop_approx_MiB": 116,
+      "after_exit_approx_GiB": 8.4
+    },
+    "scope": "Disk usage attribution was not captured. Recovery after process exit does not identify temporary files versus swap. No shared cache was deleted.",
+    "rerun_requirement": "Restore a substantial free-space margin and add a live free-space stop threshold before retrying the same input in new output directories."
+  },
+  "scope": "Reference finite-output and repeatability evidence; no mobile quality, performance or full-model fit acceptance"
+}
