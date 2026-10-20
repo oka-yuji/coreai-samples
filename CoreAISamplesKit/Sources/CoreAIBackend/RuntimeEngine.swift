@@ -2,6 +2,7 @@ protocol RuntimeEngine: AnyObject {
     var tokens: [Int32] { get }
     var stats: Engine.Stats { get }
     var loadStats: Engine.LoadStats { get }
+    var measuresPreparation: Bool { get set }
     var isHybrid: Bool { get }
     var hasLogits: Bool { get }
     func logits() -> [Float16]

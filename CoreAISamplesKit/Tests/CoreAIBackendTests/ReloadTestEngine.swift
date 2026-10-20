@@ -10,6 +10,7 @@ final class ReloadTestControl: Sendable {
         var loads = 0
         var failNextLoad = false
         var failNextRead = false
+        var failReadAfterTokens: Int?
         var failNextStep = false
         var blockNextStep = false
         var releaseStep: AsyncStream<Void>.Continuation?
@@ -97,8 +98,10 @@ final class ReloadTestEngine: RuntimeEngine {
     private(set) var tokens: [Int32] = []
     private(set) var stats = Engine.Stats()
     private(set) var hasLogits = false
+    var measuresPreparation = false
     let isHybrid = false
-    let loadStats = Engine.LoadStats(cached: true, specializeSeconds: 0, totalSeconds: 0)
+    let loadStats = Engine.LoadStats(
+        cached: true, specializeSeconds: 0, totalSeconds: 0, requestedComputeUnit: nil, expectsFrequentReshapes: nil)
 
     init(id: Int, control: ReloadTestControl, contextLimit: Int) {
         self.id = id
@@ -164,14 +167,18 @@ final class ReloadTestEngine: RuntimeEngine {
 
     func prefill(_ input: [Int32], usePrefillFunction: Bool) async throws {
         let gate = AsyncStream<Void>.makeStream()
-        let (fail, block) = control.state.withLock { state in
+        let measures = measuresPreparation
+        let (fail, block, partial) = control.state.withLock { state in
             let block = state.blockNextRead
             state.blockNextRead = false
             if block { state.releaseRead = gate.continuation }
             let fail = state.failNextRead
             state.failNextRead = false
+            let partial = state.failReadAfterTokens
+            state.failReadAfterTokens = nil
             state.events.append("read:\(id)")
-            return (fail, block)
+            state.events.append("measures:\(measures)")
+            return (fail, block, partial)
         }
         if block {
             control.reading.continuation.yield(id)
@@ -180,6 +187,11 @@ final class ReloadTestEngine: RuntimeEngine {
             try Task.checkCancellation()
         }
         if fail { throw ReloadTestFailure.read }
+        if let partial {
+            tokens += input.prefix(partial)
+            stats.prefillTokens += min(partial, input.count)
+            throw ReloadTestFailure.read
+        }
         guard tokens.count + input.count <= contextLimit else {
             throw EngineError.contextOverflow(needed: tokens.count + input.count, limit: contextLimit)
         }
@@ -216,7 +228,10 @@ struct ReloadTestModel {
     let folder: URL
     let control: ReloadTestControl
 
-    static func make(policy: LocalLanguageModel.ReloadPolicy, limit: Int = 128) async throws -> Self {
+    static func make(
+        policy: LocalLanguageModel.ReloadPolicy, limit: Int = 128,
+        settings: LocalLanguageModel.VerificationSettings = .init()
+    ) async throws -> Self {
         let folder = try tinyBundle()
         let config = [
             "tokenizer_class": "Qwen2Tokenizer", "eos_token": "<|im_end|>",
@@ -227,7 +242,7 @@ struct ReloadTestModel {
         let control = ReloadTestControl()
         let runtime = try await Runtime(
             bundle: ModelBundle(url: folder), contextLimit: limit, overflow: .error,
-            settings: .init(), reloadPolicy: policy, makeEngine: control.make, footprint: control.footprint)
+            settings: settings, reloadPolicy: policy, makeEngine: control.make, footprint: control.footprint)
         return Self(
             model: LocalLanguageModel(runtime: runtime, bundle: folder), runtime: runtime, folder: folder,
             control: control)

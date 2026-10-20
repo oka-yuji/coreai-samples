@@ -6,6 +6,8 @@ import Foundation
 import FoundationModels
 import Synchronization
 
+@_spi(Verification) import struct CoreAIBackend.GenerationMeasurement
+
 @main
 struct CoreAIVerify: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
@@ -121,6 +123,8 @@ struct Chat: AsyncParsableCommand {
         let model = try await options.load(experiment, reload: reload)
         let snapshot = tokenSnapshot(model)
         let generated = generatedTokenSnapshot(model)
+        let measured = measurementSnapshot(model, experiment)
+        var measuredID: UUID?
         var session = LanguageModelSession(model: model, instructions: instructions)
         for (index, text) in prompt.enumerated() {
             if index > 0, freshSession || (newConversationEvery > 0 && index.isMultiple(of: newConversationEvery)) {
@@ -135,6 +139,9 @@ struct Chat: AsyncParsableCommand {
             let reasoning = joinedText(result.entries, where: reasoningSegments)
             let processed = await snapshot?()
             let generatedTokens = result.error == nil ? await generated?() : nil
+            let latest = await measured?()
+            let measurement = latest?.requestID == measuredID ? nil : latest
+            measuredID = latest?.requestID ?? measuredID
             try emit(
                 TurnRecord(
                     runtime: options.runtime.rawValue,
@@ -160,6 +167,7 @@ struct Chat: AsyncParsableCommand {
                     memory: .now(),
                     processedTokens: processed,
                     generatedTokens: generatedTokens,
+                    measurement: measurement,
                     error: result.error
                 ))
             if memorySampleTurn.contains(index + 1) {
@@ -230,6 +238,7 @@ struct ToolRoundTrip: AsyncParsableCommand {
     func validate() throws {
         try experiment.validate(options.runtime)
         try reload.validate(options.runtime)
+        if experiment.measure != nil { throw ValidationError("--measure applies to chat only.") }
     }
 
     func run() async throws {
@@ -568,16 +577,27 @@ func seconds(_ duration: Duration) -> Double {
 }
 
 func emit(_ record: some Encodable) throws {
-    let encoder = JSONEncoder()
-    encoder.keyEncodingStrategy = .convertToSnakeCase
-    encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
-    FileHandle.standardOutput.write(try encoder.encode(record) + Data("\n".utf8))
+    FileHandle.standardOutput.write(try JSONEncoder.records.encode(record) + Data("\n".utf8))
+}
+
+extension JSONEncoder {
+    static var records: JSONEncoder {
+        let encoder = JSONEncoder()
+        encoder.keyEncodingStrategy = .convertToSnakeCase
+        encoder.outputFormatting = [.sortedKeys, .withoutEscapingSlashes]
+        encoder.dateEncodingStrategy = .iso8601
+        return encoder
+    }
 }
 
 struct Memory: Encodable {
-    let rssBytes: UInt64
-    let footprintBytes: UInt64
-    let graphicsFootprintBytes: UInt64
+    var status = "ok"
+    var error: String?
+    var capturedAt = Date.now
+    let unit = "B"
+    var rssBytes: UInt64?
+    var footprintBytes: UInt64?
+    var graphicsFootprintBytes: UInt64?
 
     static func now() -> Memory {
         var info = task_vm_info_data_t()
@@ -587,11 +607,15 @@ struct Memory: Encodable {
                 task_info(mach_task_self_, task_flavor_t(TASK_VM_INFO), $0, &count)
             }
         }
-        guard result == KERN_SUCCESS else { return Memory(rssBytes: 0, footprintBytes: 0, graphicsFootprintBytes: 0) }
+        guard result == KERN_SUCCESS else { return failed(code: result) }
         return Memory(
             rssBytes: info.resident_size, footprintBytes: info.phys_footprint,
             graphicsFootprintBytes: UInt64(max(0, info.ledger_tag_graphics_footprint))
                 + UInt64(max(0, info.ledger_tag_graphics_footprint_compressed)))
+    }
+
+    static func failed(code: kern_return_t) -> Memory {
+        Memory(status: "failed", error: "task_info returned \(code)")
     }
 }
 
@@ -762,6 +786,7 @@ struct TurnRecord: Encodable {
     let memory: Memory
     let processedTokens: [Int32]?
     let generatedTokens: [Int32]?
+    let measurement: GenerationMeasurement?
     let error: String?
 }
 
