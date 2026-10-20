@@ -70,6 +70,8 @@ The version-two bundle envelope is `{"format":2,"profile":<profile v2>,"assets":
 
 Run separately for `fp16` and `bf16` when evaluating them. The command uses the pinned original pipeline, records every output/latent SHA and repeats a generation and edit for repeatability. It owns the shared lock. `--run-ids` permits a limited diagnostic run; all other rows stay `not_run` and the suite stays incomplete. This trace run is not clean latency evidence.
 
+The unreviewed quality table is published with the run summary, including before loading. A load, input, decode or repeat failure therefore preserves all 60 rows and their failed/unrun reference status instead of leaving no table after an exception.
+
 An optional `--vae-precision fp32` loads VAE weights directly from the checkpoint at that precision. This uses an explicit boundary adapter: canonical image tensors enter the VAE at its dtype, original encode/normalization/packing runs, and condition latents return to the prompt/denoiser dtype. Decoding follows the original pipeline's VAE-dtype path. The identity records this route and all five component dtypes; it is distinct from an unmodified all-FP16 reference.
 
 | Comparison | Purpose |
