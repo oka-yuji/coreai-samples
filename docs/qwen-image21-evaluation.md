@@ -84,9 +84,27 @@ An optional `--vae-precision fp32` loads VAE weights directly from the checkpoin
 
 The existing FP32 gate remains normalized maximum error ≤ 0.001 and normalized RMSE ≤ 0.0001. Denominators are `max(max(abs(reference)), 1e-12)` and `max(rms(reference), 1e-12)`. Nonfinite output fails. The block probes retain their failed FP32-gate results for FP16/BF16.
 
-**New precision thresholds are not yet frozen.** Full-source repeatability and an explicit versioned threshold record are required before accepting a full quantized candidate. Block feasibility exploration is not threshold calibration or quality acceptance. #216 must not silently relax the FP32 gate or pool precision results.
+The versioned [numeric policy](../Tools/Conversion/recipes/qwen_image21/numeric-gates-v1.json) was frozen on 2026-10-21 JST, after the block feasibility probes and the mixed-precision source suite, before full quantized-candidate evaluation. Its canonical SHA is `6e3c72b9321b6cdc105f8ddf38aaea9c151ab912e2bb9c36dd57654b31d4c793`.
+
+| Component compute dtype | Normalized maximum | Normalized RMSE |
+| --- | ---: | ---: |
+| Float32 | 0.001 | 0.0001 |
+| Float16 | 0.00390625 | 0.0009765625 |
+| BFloat16 | 0.03125 | 0.0078125 |
+
+The new low-precision limits are engineering budgets of four epsilon and one epsilon. These coefficients are a design choice, not theoretical rounding bounds, per-element ULP limits or thresholds established by the pilot results. The maximum-error denominator is the maximum absolute reference value over the selected tensor region. Outliers can dominate it, so local numeric checks and final quality checks remain separate.
+
+The **final free-rollout limits are unchanged for every precision**: latent normalized RMSE ≤0.005 and decoder RGBA absolute RMSE ≤0.01. These reuse the existing output-difference budgets in `verify.py`. Both routes use the same initial noise and conditions but feed back their own preceding latent. RGBA means all four channels before clipping/compositing/byte conversion. Captures are Float32; error calculation remains Float64. A low-precision implementation can pass its component limits yet fail the final-output limits.
+
+`numeric_metrics` records the policy and metric-code hashes for one comparison. Its local `passed` value is not suite/profile verification. #216 must compare each applicable component output, each of eight fixed-input denoiser steps, and both final outputs independently for every one of the 60 runs. The policy fixes valid regions so padded rows cannot dilute comparisons. Token/index/mask/shape/sigma equality remains exact. Generation does not use vision/VAE encoder and must record that reason; editing requires both.
+
+Mixed profiles choose the budget per component: a Float32 VAE retains the Float32 limits. Same dtype alone does not establish matched weights, dequantization, normalization, clipping or scheduler behavior. Complete independent reference evidence and the separate quality gate remain required. Defining BFloat16 limits does not verify a BFloat16 profile whose source suite has not run.
+
+Previously observed FP16/BF16/W4 block failures under the old FP32 gate are retained. New acceptance requires new full-suite runs; retrospective rescoring alone cannot accept a candidate. A later failed candidate must not automatically widen these limits. Any policy change needs a new version, rationale, impact and new confirmation runs, retaining old results.
 
 Human ratings use 0 = failed, 1 = acceptable, 2 = good, null = unreviewed. Instruction, text, detail, preservation and alpha are separate applicable axes. The provisional target is ≥90% success on every applicable axis and at most two newly failing outputs among all 60. `quality_summary` preserves original failures and rejects missing rows/changed axes. Unreviewed ratings never pass; source limitations remain visible.
+
+A newly failing output has at least one axis that was acceptable/good in the reference and failed in the candidate. An existing reference failure on another axis does not hide that regression. Multiple regressed axes in one output count once toward the two-output limit, and `new_failure_axes` records which axes regressed.
 
 ## Time and memory
 
@@ -113,4 +131,6 @@ The 30-input/60-run fixture inventory has been generated and verified. CPU tests
 
 The all-FP16 MPS reference completed 48 outputs, then failed on `e10-20261018` when the decoder returned nonfinite values. The remaining 11 rows remain `not_run`; this profile did not pass. A separate VAE probe reproduced nonfinite FP16 output from the saved final latent while FP32 decoded the same reconstructed input finitely. The explicit FP16-network/FP32-VAE route then completed diagnostic runs `e10-20261018` and `e11-20261018`.
 
-The full selected-precision suite, FP32 baseline suite, new precision thresholds and clean off/on benchmarks remain outstanding. Ratings are unreviewed. QMM-03 and QMM-04 remain open; neither the two repaired cases nor source image generation establishes mobile quality.
+The explicit FP16-network/FP32-VAE source suite subsequently completed all 60 runs and both required repeats. Every repeated latent step and RGBA tensor had zero observed difference. This establishes repeatability only for those two inputs and that MPS route. It does not prove image quality or cross-runtime error bounds.
+
+The full FP32 baseline suite and clean off/on benchmarks remain outstanding. Ratings are unreviewed. QMM-03 and QMM-04 remain open while that evidence is incomplete; source image generation and frozen numeric budgets do not establish mobile quality.

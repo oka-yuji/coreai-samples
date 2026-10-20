@@ -62,6 +62,22 @@ class ImageMeasurementTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             validate_suite_runs(runs)
 
+    def test_an_existing_failure_does_not_hide_new_failures_on_other_axes(self):
+        axes = quality_axes()
+        reference = {key: {axis: 2 for axis in values} for key, values in axes.items()}
+        selected = [key for key, values in axes.items() if {"instruction", "detail"} <= set(values)][:3]
+        self.assertEqual(len(selected), 3)
+        for key in selected:
+            reference[key]["instruction"] = 0
+        candidate = copy.deepcopy(reference)
+        for key in selected:
+            candidate[key]["detail"] = 0
+        result = quality_summary(reference, candidate, axes)
+        self.assertTrue(all(row["candidate_rate"] >= 0.9 for row in result["axes"].values()))
+        self.assertEqual(result["new_failures"], selected)
+        self.assertEqual(result["new_failure_axes"], {key: ["detail"] for key in selected})
+        self.assertFalse(result["candidate_meets_provisional_target"])
+
     def test_generation_persists_failures_before_any_model_can_load(self):
         from Tools.Conversion.adapters.qwen_image21 import generate
         from Tools.Conversion.adapters.qwen_image21.contracts import KINDS
