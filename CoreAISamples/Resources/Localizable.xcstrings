@@ -1,6 +1,204 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "%@ s audio" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音声の長さ %@ 秒"
+          }
+        }
+      }
+    },
+    "48 kHz · Mono WAV" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "48 kHz・モノラルWAV"
+          }
+        }
+      }
+    },
+    "Change the seed to try another voice variation." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "シードを変えると、別の声のバリエーションを試せます。"
+          }
+        }
+      }
+    },
+    "Enter a whole-number seed from 0 to 18446744073709551615." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "0〜18446744073709551615の整数をシードに入力してください。"
+          }
+        }
+      }
+    },
+    "Generate a short passage, then play or save the result." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "短い文章から音声を生成し、再生または保存できます。"
+          }
+        }
+      }
+    },
+    "Generate speech" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音声を生成"
+          }
+        }
+      }
+    },
+    "Generated in %@ s" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "生成時間 %@ 秒"
+          }
+        }
+      }
+    },
+    "Open last model" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前回のモデルを開く"
+          }
+        }
+      }
+    },
+    "Open speech model…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音声モデルを開く…"
+          }
+        }
+      }
+    },
+    "Play" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "再生"
+          }
+        }
+      }
+    },
+    "Save WAV…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "WAVを保存…"
+          }
+        }
+      }
+    },
+    "Seed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "シード"
+          }
+        }
+      }
+    },
+    "Short passages work best. The limit is 255 tokens." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "短い文章に適しています。上限は255トークンです。"
+          }
+        }
+      }
+    },
+    "Text" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "テキスト"
+          }
+        }
+      }
+    },
+    "Text to speak" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "読み上げるテキスト"
+          }
+        }
+      }
+    },
+    "Text to speech" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "テキスト読み上げ"
+          }
+        }
+      }
+    },
+    "Text used for generation" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "生成に使用したテキスト"
+          }
+        }
+      }
+    },
+    "Title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "タイトル"
+          }
+        }
+      }
+    },
     "Playback is available once the model is ready." : {
       "extractionState" : "manual",
       "localizations" : {
