@@ -1,9 +1,33 @@
 from contextlib import contextmanager
 import ctypes
+import json
+from pathlib import Path
 import sys
+import tempfile
 import time
 
 from .evaluation import measurement
+
+
+def write_metrics(path, value, *, preserving=None):
+    temporary = None
+    try:
+        path = Path(path)
+        with tempfile.NamedTemporaryFile(mode="w", dir=path.parent, prefix=".metrics-", delete=False) as stream:
+            temporary = Path(stream.name)
+            json.dump(value, stream, indent=2, allow_nan=False)
+            stream.write("\n")
+        temporary.replace(path)
+    except OSError as error:
+        if preserving is None:
+            raise
+        preserving.add_note(f"The measurement report could not be saved: {error}")
+    finally:
+        if temporary is not None:
+            try:
+                temporary.unlink(missing_ok=True)
+            except OSError:
+                pass
 
 
 class TaskVMInfoV3(ctypes.Structure):
