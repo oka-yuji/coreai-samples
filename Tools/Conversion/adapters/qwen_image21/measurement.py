@@ -85,7 +85,8 @@ class PhaseRecorder:
         try:
             yield
         except BaseException as error:
-            row.update(status="failed", error_type=type(error).__name__)
+            row.update(status="cancelled" if isinstance(error, KeyboardInterrupt) else "failed",
+                       error_type=type(error).__name__)
             raise
         else:
             row["status"] = "completed"

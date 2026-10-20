@@ -100,6 +100,11 @@ def validate_profile(profile):
             "The saved Turbo schedule must be retained")
     require(workload.get("scheduler_compute_dtype") == "float32", "Euler accumulation must use float32")
     require(workload.get("scheduler_output_dtype") in FLOATS, "Missing per-step cast-back dtype")
+    require(workload.get("scheduler_delta_dtype") == "model-output"
+            and workload.get("scheduler_product_dtype") == "model-output",
+            "The scalar delta and product must preserve PyTorch source promotion")
+    require(workload.get("model_timestep_rule") == "sigma-f32-scale1000-cast-divide1000",
+            "The denoiser timestep must preserve source rounding before division")
     require(workload.get("terminal_sigma") == 0.0 and workload.get("cast_back") == "every-step-to-model-output",
             "Euler must retain the source terminal sigma and per-step cast-back")
     require(workload.get("rounding") == "nearest-ties-to-even", "Unsupported rounding policy")
@@ -111,13 +116,17 @@ def validate_profile(profile):
     require(isinstance(workload.get("rng_version"), str) and workload["rng_version"], "Missing RNG version")
     components = profile.get("components")
     require(isinstance(components, dict) and set(components) == COMPONENTS, "All five components are required")
+    require(all(isinstance(component, dict) for component in components.values()), "Invalid component metadata")
+    require(all(isinstance(component.get("asset"), str) for component in components.values()), "Invalid asset paths")
+    require(len({component.get("asset") for component in components.values()}) == 5, "Component assets must be distinct")
     expected = boundaries(workload["joint_capacity"])
     for kind, component in components.items():
         require(isinstance(component, dict), "Invalid component metadata")
         require(relative(component.get("asset")).suffix == ".aimodel", "Expected a Core AI asset")
         require(component.get("function") == "main" and component.get("state_names") == [], "Expected a single stateless function")
         require(component.get("compute_dtype") in FLOATS, "Missing component compute dtype")
-        require(isinstance(component.get("weight_encoding"), dict) and component["weight_encoding"].get("kind"),
+        require(isinstance(component.get("weight_encoding"), dict)
+                and isinstance(component["weight_encoding"].get("kind"), str) and component["weight_encoding"]["kind"],
                 "Missing weight encoding")
         for direction in ("inputs", "outputs"):
             tensors = component.get(direction)
@@ -136,6 +145,23 @@ def validate_profile(profile):
                 require(actual["dtype"] in FLOATS if tensor["dtype"] in FLOATS else actual["dtype"] == tensor["dtype"],
                         "A physical index or mask has the wrong dtype")
     return canonical_hash(profile)
+
+
+def validate_manifest(manifest):
+    require(isinstance(manifest, dict) and manifest.get("format") == 2, "Expected bundle format 2")
+    validate_profile(manifest["profile"])
+    assets = manifest.get("assets")
+    require(isinstance(assets, dict) and assets and "bundle.json" not in assets, "Invalid bundle inventory")
+    total = 0
+    for name, item in assets.items():
+        relative(name)
+        require(isinstance(item, dict), "Invalid file record")
+        total += integer(item.get("bytes"), "asset byte count")
+        require(total <= 2**63 - 1, "Bundle size overflows")
+        hexadecimal(item.get("sha256"), 64, "asset hash")
+    for component in manifest["profile"]["components"].values():
+        require(any(name.startswith(component["asset"] + "/") for name in assets), "Missing component asset")
+    return total
 
 
 def validate_input_pair(reference, candidate):
@@ -271,7 +297,8 @@ def aggregate_runs(runs, minimum_samples=20):
 
 
 def quality_summary(reference, candidate, required_axes):
-    require(isinstance(required_axes, dict) and len(required_axes) == 60, "All sixty frozen outputs are required")
+    from .fixtures import quality_axes
+    require(required_axes == quality_axes(), "All frozen output identities and applicable axes are required")
     require(set(reference) == set(candidate) == set(required_axes), "Quality rows cannot be added or omitted")
     summaries = {}
     new_failures = []

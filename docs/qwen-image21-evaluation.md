@@ -35,6 +35,8 @@ Reference/candidate records must match fixture ID, source revision, prompt/refer
 | `compute_dtype` | Float32, Float16 or BFloat16 per component; independent of capture and physical I/O dtype |
 | `weight_encoding` | Actual representation; the dense baseline records Float32 |
 | `scheduler_compute_dtype` | Float32 Euler accumulation |
+| `scheduler_delta_dtype`, `scheduler_product_dtype` | Round the scalar delta and product in the model-output dtype before adding to the Float32 sample |
+| `model_timestep_rule` | Float32 sigma × 1000, cast to latent dtype, then divide by 1000 in that dtype before the denoiser |
 | `scheduler_output_dtype`, `cast_back` | Cast back to model-output dtype after **every** step |
 | `rounding` | Nearest, ties to even |
 | `denoiser_fp16_clip` | `[-65504,65504]`, applied by the original graph only on its FP16 path |
@@ -43,6 +45,8 @@ Reference/candidate records must match fixture ID, source revision, prompt/refer
 | `prefix_kv_cache` | `false`; unrelated to Core AI specialization caches |
 
 `row-major` is the serialized host boundary, not an assumption about preferred NDArray strides. Native packing must honor actual descriptor strides. Indices remain Int32 and masks remain Bool when floating precision changes.
+
+Native golden testing exposed a finer scheduler rule on 2026-10-21: the source upcasts `sample`, but `dt * model_output` still follows PyTorch's scalar promotion. On PyTorch 2.9 CPU, Float16/BFloat16 delta and product rounding must precede the Float32 addition and final cast-back. This matched 20,000 values at all eight steps for both precisions; keeping the delta/product entirely Float32 did not. The plan's Float32 accumulation remains, with this required intermediate rounding made explicit. MPS full-reference checks remain pending.
 
 ```sh
 "$QI_PYTHON" -m Tools.Conversion.adapters.qwen_image21.evaluate baseline-profile \
@@ -54,6 +58,8 @@ Reference/candidate records must match fixture ID, source revision, prompt/refer
 
 The comparison profile hash uses canonical JSON SHA-256. Deployment identity instead hashes the **saved raw bytes** of `bundle.json`; that manifest is excluded from its internal asset inventory. #216 produces verified assets, and #263 pins the independently expected hash/inventory. A bundle's own `passed` field does not confer trust.
 
+The version-two bundle envelope is `{"format":2,"profile":<profile v2>,"assets":{<relative path>:{"bytes":<Int64>,"sha256":<lowercase hex>}}}`. Every component has a distinct asset directory represented in the inventory; `bundle.json` is excluded. Total sizes must fit Int64. `validate_manifest` validates the logical envelope. Filesystem completeness, links, actual bytes/SHA and Core AI descriptors require the importing storage/runtime boundary; logical validation alone is not readiness.
+
 ## Independent references and gates
 
 ```sh
@@ -63,6 +69,8 @@ The comparison profile hash uses canonical JSON SHA-256. Deployment identity ins
 ```
 
 Run separately for `fp16` and `bf16` when evaluating them. The command uses the pinned original pipeline, records every output/latent SHA and repeats a generation and edit for repeatability. It owns the shared lock. `--run-ids` permits a limited diagnostic run; all other rows stay `not_run` and the suite stays incomplete. This trace run is not clean latency evidence.
+
+An optional `--vae-precision fp32` loads VAE weights directly from the checkpoint at that precision. This uses an explicit boundary adapter: canonical image tensors enter the VAE at its dtype, original encode/normalization/packing runs, and condition latents return to the prompt/denoiser dtype. Decoding follows the original pipeline's VAE-dtype path. The identity records this route and all five component dtypes; it is distinct from an unmodified all-FP16 reference.
 
 | Comparison | Purpose |
 | --- | --- |
@@ -99,4 +107,8 @@ Aggregation partitions by profile/workload hash, device, OS build, route, operat
 
 ## Current evidence
 
-The 30-input/60-run fixture inventory has been generated and verified. CPU tests cover input/profile changes, fixed boundaries, alias lifetimes, load overlap, failed/missing metrics and condition-separated aggregation. Full references, new precision thresholds and clean off/on benchmarks await the shared model-job slot. Ratings remain unreviewed. QMM-03 and QMM-04 remain open.
+The 30-input/60-run fixture inventory has been generated and verified. CPU tests cover input/profile changes, fixed boundaries, alias lifetimes, load overlap, failed/missing metrics and condition-separated aggregation.
+
+The all-FP16 MPS reference completed 48 outputs, then failed on `e10-20261018` when the decoder returned nonfinite values. The remaining 11 rows remain `not_run`; this profile did not pass. A separate VAE probe reproduced nonfinite FP16 output from the saved final latent while FP32 decoded the same reconstructed input finitely. The explicit FP16-network/FP32-VAE route then completed diagnostic runs `e10-20261018` and `e11-20261018`.
+
+The full selected-precision suite, FP32 baseline suite, new precision thresholds and clean off/on benchmarks remain outstanding. Ratings are unreviewed. QMM-03 and QMM-04 remain open; neither the two repaired cases nor source image generation establishes mobile quality.
