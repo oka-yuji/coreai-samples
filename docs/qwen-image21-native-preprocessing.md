@@ -82,6 +82,8 @@ QMI practical v2 / #217, macOS 27.0 (26A428), M4 Max, Xcode 27 and Swift 6.4. Th
 
 Strict SwiftLint reported zero violations in 409 files. The format gate passed for 13 Swift files. The locked conversion environment passed 164 tests, with 13 unrelated optional Magpie/Qwen TTS tests skipped. After the fixture guard correction, regeneration produced 18 files byte-identical to the committed goldens; the 15 Swift tests passed again.
 
+After integrating #215 at `120143f`, the conversion suite passed 165 tests with the same 13 optional skips. That base update changes failed-reference reporting only; the Swift implementation and golden resources are unchanged.
+
 Two independent reviews covered numeric/layout/tokenizer and profile/image/I/O boundaries. One confirmed defect was fixed: a two-input subset could regenerate only seven golden cases and silently reduce coverage. The new regression covers subset, reference-profile and snapshot changes. Review also checked optimized Swift arithmetic and raw image byte order. JPEG/HEIF equivalence and iPhone decoding remain unverified.
 
 Local evidence is under `.local/validation/217/`: `all-goldens-final.log`, `full-tests.log`, `macos-build.log`, `native-ios-build-final.log`, `review-fix-swift.log`, `python-final.log`, `native-goldens-r5.log`, `swiftlint-review-fix.log` and `format-review-fix.log`. No learned weights are included in the checked-in fixture resources.
