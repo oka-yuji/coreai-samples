@@ -302,11 +302,11 @@ def quality_summary(reference, candidate, required_axes):
     require(set(reference) == set(candidate) == set(required_axes), "Quality rows cannot be added or omitted")
     summaries = {}
     new_failures = []
+    new_failure_axes = {}
     incomplete = []
     for identity, axes in required_axes.items():
         require(set(reference[identity]) == set(candidate[identity]) == set(axes), "Quality axes changed")
-        reference_passed = True
-        candidate_failed = False
+        regressions = []
         for axis in axes:
             left, right = reference[identity][axis], candidate[identity][axis]
             require(all(value is None or (type(value) is int and value in (0, 1, 2)) for value in (left, right)),
@@ -317,18 +317,19 @@ def quality_summary(reference, candidate, required_axes):
             row["reference_successes"] += int(left is not None and left >= 1)
             row["candidate_successes"] += int(right is not None and right >= 1)
             row["unreviewed"] += int(left is None or right is None)
-            reference_passed &= left is not None and left >= 1
-            candidate_failed |= right == 0
+            if left is not None and left >= 1 and right == 0:
+                regressions.append(axis)
             if left is None or right is None:
                 incomplete.append(identity + ":" + axis)
-        if reference_passed and candidate_failed:
+        if regressions:
             new_failures.append(identity)
+            new_failure_axes[identity] = regressions
     for row in summaries.values():
         row["reference_rate"] = row["reference_successes"] / row["required"]
         row["candidate_rate"] = row["candidate_successes"] / row["required"]
     return {"complete": not incomplete, "unreviewed": incomplete, "axes": summaries,
-            "new_failures": new_failures,
+            "new_failures": new_failures, "new_failure_axes": new_failure_axes,
             "reference_meets_provisional_target": not incomplete and all(row["reference_rate"] >= 0.9 for row in summaries.values()),
             "candidate_meets_provisional_target": not incomplete and len(new_failures) <= 2
             and all(row["candidate_rate"] >= 0.9 for row in summaries.values()),
-            "scope": "provisional 90% per applicable axis and at most two new failures; requires human ratings"}
+            "scope": "provisional 90% per applicable axis and at most two outputs with a newly failed axis; requires human ratings"}
