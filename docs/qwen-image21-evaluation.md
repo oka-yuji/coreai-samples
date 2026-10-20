@@ -35,6 +35,7 @@ Reference/candidate records must match fixture ID, source revision, prompt/refer
 | `compute_dtype` | Float32, Float16 or BFloat16 per component; independent of capture and physical I/O dtype |
 | `weight_encoding` | Actual representation; the dense baseline records Float32 |
 | `scheduler_compute_dtype` | Float32 Euler accumulation |
+| `scheduler_delta_dtype`, `scheduler_product_dtype` | Round the scalar delta and product in the model-output dtype before adding to the Float32 sample |
 | `scheduler_output_dtype`, `cast_back` | Cast back to model-output dtype after **every** step |
 | `rounding` | Nearest, ties to even |
 | `denoiser_fp16_clip` | `[-65504,65504]`, applied by the original graph only on its FP16 path |
@@ -43,6 +44,8 @@ Reference/candidate records must match fixture ID, source revision, prompt/refer
 | `prefix_kv_cache` | `false`; unrelated to Core AI specialization caches |
 
 `row-major` is the serialized host boundary, not an assumption about preferred NDArray strides. Native packing must honor actual descriptor strides. Indices remain Int32 and masks remain Bool when floating precision changes.
+
+Native golden testing exposed a finer scheduler rule on 2026-10-21: the source upcasts `sample`, but `dt * model_output` still follows PyTorch's scalar promotion. On PyTorch 2.9 CPU, Float16/BFloat16 delta and product rounding must precede the Float32 addition and final cast-back. This matched 20,000 values at all eight steps for both precisions; keeping the delta/product entirely Float32 did not. The plan's Float32 accumulation remains, with this required intermediate rounding made explicit. MPS full-reference checks remain pending.
 
 ```sh
 "$QI_PYTHON" -m Tools.Conversion.adapters.qwen_image21.evaluate baseline-profile \
@@ -53,6 +56,8 @@ Reference/candidate records must match fixture ID, source revision, prompt/refer
 ```
 
 The comparison profile hash uses canonical JSON SHA-256. Deployment identity instead hashes the **saved raw bytes** of `bundle.json`; that manifest is excluded from its internal asset inventory. #216 produces verified assets, and #263 pins the independently expected hash/inventory. A bundle's own `passed` field does not confer trust.
+
+The version-two bundle envelope is `{"format":2,"profile":<profile v2>,"assets":{<relative path>:{"bytes":<Int64>,"sha256":<lowercase hex>}}}`. Every component has a distinct asset directory represented in the inventory; `bundle.json` is excluded. Total sizes must fit Int64. `validate_manifest` validates the logical envelope. Filesystem completeness, links, actual bytes/SHA and Core AI descriptors require the importing storage/runtime boundary; logical validation alone is not readiness.
 
 ## Independent references and gates
 

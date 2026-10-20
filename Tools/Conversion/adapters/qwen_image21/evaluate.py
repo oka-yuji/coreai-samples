@@ -2,8 +2,8 @@ import argparse
 import json
 from pathlib import Path
 
-from .evaluation import aggregate_runs, live_memory_peak, quality_summary, validate_inventory, validate_profile
-from .fixtures import save_json
+from .evaluation import aggregate_runs, live_memory_peak, quality_summary, validate_profile
+from .fixtures import save_json, validate_fixture_suite
 from .profile import baseline_profile
 
 
@@ -26,7 +26,7 @@ def main():
         result = baseline_profile(args.bundle, args.dependency_lock)
         validate_profile(result)
     elif args.command == "inventory":
-        result = validate_inventory(args.root, json.loads(args.manifest.read_text())["inventory"])
+        result = validate_fixture_suite(args.root, json.loads(args.manifest.read_text()))
     else:
         value = json.loads(args.input.read_text())
         if args.command == "profile":

@@ -4,7 +4,7 @@ import json
 import math
 from pathlib import Path
 
-from .evaluation import REVISION, SIGMAS, canonical_hash, require, validate_inventory
+from .evaluation import REVISION, SIGMAS, canonical_hash, require, validate_input_pair, validate_inventory
 
 DEFINITION_SHA256 = "fe0127bc661bebaa36f75aaeb7f1d21b5e4163c1381a8bcb1652d71efcd87303"
 
@@ -54,6 +54,51 @@ def validate_suite_runs(runs):
     require(len(set(identifiers)) == 60 and set(identifiers) == set(quality_axes()), "The frozen run identities differ")
     for run in runs:
         require(run["run_id"] == f"{run.get('fixture_id')}-{run.get('seed')}", "Run identity differs from its input")
+        require(run.get("noise") == f"noise/{run['seed']}.npy", "Noise path differs from the frozen seed")
+
+
+def validate_fixture_suite(root, manifest):
+    import numpy as np
+    root = Path(root)
+    require(manifest.get("format") == 1 and manifest.get("id") == "qmi-quality-30x2-v1",
+            "Unexpected fixture version")
+    require(manifest.get("source_revision") == REVISION and manifest.get("definition_sha256") == DEFINITION_SHA256,
+            "Frozen fixture source or definition changed")
+    validate_suite_runs(manifest["runs"])
+    inventory = validate_inventory(root, manifest["inventory"])
+    definition_path = Path(__file__).resolve().parents[2] / "recipes/qwen_image21/evaluation-cases.json"
+    definition = json.loads(definition_path.read_text())
+    validate_cases(definition)
+    definitions = {case["id"]: case for case in definition["cases"]}
+    for run in manifest["runs"]:
+        validate_input_pair(run, run)
+        case = definitions[run["fixture_id"]]
+        directory = root / run["fixture_id"]
+        metadata = json.loads((directory / "input.json").read_text())
+        reference = "images/" + case["reference"] + ".png" if case.get("reference") else None
+        operation = "edit" if reference else "generate"
+        require(metadata.get("prompt") == case["prompt"] and metadata.get("reference") == reference
+                and metadata.get("operation") == run["operation"] == operation,
+                "The run payload differs from its frozen case")
+        require((directory / "prompt.txt").read_bytes() == case["prompt"].encode("utf-8"),
+                "Saved prompt bytes differ from the executed prompt")
+        bindings = {"prompt_sha256": directory / "prompt.txt", "noise_sha256": root / run["noise"],
+                    "layout_sha256": directory / "layout.npz"}
+        if reference:
+            bindings["reference_sha256"] = root / reference
+        for field, path in bindings.items():
+            require(file_record(path)["sha256"] == run[field], f"Run input hash differs from its actual file: {field}")
+        noise = np.load(root / run["noise"], allow_pickle=False)
+        require(noise.shape == (1, 1024, 64) and noise.dtype == np.float32 and bool(np.isfinite(noise).all()),
+                "Frozen noise shape, dtype or values changed")
+        with np.load(directory / "encoded.npz", allow_pickle=False) as encoded:
+            tokens = encoded["input_ids"]
+            require(tokens.ndim == 2 and tokens.shape[0] == 1 and 0 < tokens.shape[1] <= 512
+                    and np.issubdtype(tokens.dtype, np.integer) and bool(((tokens >= 0) & (tokens < 151936)).all()),
+                    "Frozen tokenizer shape or dtype changed")
+            require(hashlib.sha256(tokens.astype("<i4").tobytes()).hexdigest() == run["processed_tokens_sha256"],
+                    "Run tokens differ from the declared hash")
+    return {"runs": len(manifest["runs"]), "files": len(inventory), "passed": True}
 
 
 def reference_images():
@@ -157,7 +202,7 @@ def freeze(definition, snapshot, output):
                 "baseline_status": "not-run", "quality_status": "unreviewed",
                 "image_origin": cases["image_origin"], "rng_version": "torch-2.9.0-cpu-randn-packed-v1"}
     save_json(output / "fixtures.json", manifest)
-    validate_inventory(output, inventory)
+    validate_fixture_suite(output, manifest)
     return manifest
 
 

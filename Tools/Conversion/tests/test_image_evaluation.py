@@ -7,7 +7,7 @@ from pathlib import Path
 from Tools.Conversion.adapters.qwen_image21.evaluation import (
     COMPONENTS, IMPLEMENTATION, MODEL, REVISION, SIGMAS, aggregate_runs, canonical_hash,
     live_memory_peak, measurement, raw_manifest_hash, validate_input_pair,
-    validate_inventory, validate_profile,
+    validate_inventory, validate_manifest, validate_profile,
 )
 from Tools.Conversion.adapters.qwen_image21.profile import boundaries
 
@@ -21,6 +21,7 @@ def profile():
                      "maximum_references": 1, "processed_text_capacity": 512, "joint_capacity": 2304,
                      "operation": "generate-and-edit", "cfg": 1, "sigmas": list(SIGMAS),
                      "scheduler_compute_dtype": "float32", "scheduler_output_dtype": "float32",
+                     "scheduler_delta_dtype": "model-output", "scheduler_product_dtype": "model-output",
                      "terminal_sigma": 0.0, "cast_back": "every-step-to-model-output",
                      "rounding": "nearest-ties-to-even", "denoiser_fp16_clip": [-65504, 65504],
                      "zero_centered_norm_dtype": "float32",
@@ -56,7 +57,8 @@ class ProfileTests(unittest.TestCase):
         changed = copy.deepcopy(original)
         changed["components"]["text"]["inputs"][1]["dtype"] = "float16"
         self.assertNotEqual(validate_profile(original), validate_profile(changed))
-        for key, value in [("scheduler_compute_dtype", "float16"), ("sigmas", [1.0, 0.5]),
+        for key, value in [("scheduler_compute_dtype", "float16"), ("scheduler_product_dtype", "float32"),
+                           ("scheduler_delta_dtype", "float32"), ("sigmas", [1.0, 0.5]),
                            ("prefix_kv_cache", True), ("processed_text_capacity", True)]:
             with self.subTest(key=key):
                 changed = copy.deepcopy(original)
@@ -99,6 +101,23 @@ class ProfileTests(unittest.TestCase):
         self.assertNotEqual(raw_manifest_hash(b'{"a":1}'), raw_manifest_hash(b'{ "a": 1 }'))
         with self.assertRaises(ValueError):
             raw_manifest_hash({"a": 1})
+
+    def test_bundle_manifest_requires_all_assets_without_self_hash_or_path_escape(self):
+        value = {"format": 2, "profile": profile(), "assets": {
+            name + ".aimodel/main.mlirb": {"bytes": 100, "sha256": "a" * 64} for name in COMPONENTS}}
+        self.assertEqual(validate_manifest(value), 500)
+        for mutation in ("self", "missing", "overflow", "escape"):
+            changed = copy.deepcopy(value)
+            if mutation == "self":
+                changed["assets"]["bundle.json"] = {"bytes": 10, "sha256": "b" * 64}
+            elif mutation == "missing":
+                del changed["assets"]["vision.aimodel/main.mlirb"]
+            elif mutation == "overflow":
+                changed["assets"]["vision.aimodel/main.mlirb"]["bytes"] = 2**63
+            else:
+                changed["assets"]["../escape"] = {"bytes": 10, "sha256": "b" * 64}
+            with self.subTest(mutation=mutation), self.assertRaises(ValueError):
+                validate_manifest(changed)
 
     def test_comparisons_require_identical_frozen_inputs(self):
         value = {"fixture_id": "generation-01", "source_revision": REVISION, "prompt_sha256": "a" * 64,

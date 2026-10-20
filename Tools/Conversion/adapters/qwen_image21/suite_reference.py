@@ -8,8 +8,8 @@ import platform
 import signal
 import time
 
-from .evaluation import IMPLEMENTATION, REVISION, SIGMAS, require, validate_inventory
-from .fixtures import DEFINITION_SHA256, file_record, save_json, validate_suite_runs
+from .evaluation import IMPLEMENTATION, REVISION, SIGMAS, require
+from .fixtures import file_record, save_json, validate_fixture_suite
 
 
 def execute(args):
@@ -24,10 +24,7 @@ def execute(args):
     require_heavy_job()
     require(args.snapshot.name == REVISION, "Unexpected source snapshot")
     manifest = json.loads((args.fixtures / "fixtures.json").read_text())
-    require(manifest.get("source_revision") == REVISION, "Unexpected suite source")
-    require(manifest.get("definition_sha256") == DEFINITION_SHA256, "Frozen fixture version changed")
-    validate_suite_runs(manifest["runs"])
-    validate_inventory(args.fixtures, manifest["inventory"])
+    validate_fixture_suite(args.fixtures, manifest)
     args.output.mkdir(parents=True, exist_ok=False)
     expected = {run["run_id"]: run for run in manifest["runs"]}
     selected = list(expected) if args.run_ids is None else args.run_ids.split(",")

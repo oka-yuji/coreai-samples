@@ -60,6 +60,7 @@ def baseline_profile(bundle, dependency_lock):
                      "operation": "generate-and-edit", "cfg": 1, "sigmas": list(SIGMAS),
                      "terminal_sigma": 0.0, "scheduler_compute_dtype": "float32",
                      "scheduler_output_dtype": "float32", "cast_back": "every-step-to-model-output",
+                     "scheduler_delta_dtype": "model-output", "scheduler_product_dtype": "model-output",
                      "rounding": "nearest-ties-to-even", "prefix_kv_cache": False,
                      "noise_shape": [1, 1024, 64], "noise_dtype": "float32",
                      "rng_version": "torch-2.9.0-cpu-randn-packed-v1",

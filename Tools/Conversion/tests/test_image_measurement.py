@@ -50,9 +50,14 @@ class ImageMeasurementTests(unittest.TestCase):
         rows = {key: {} for key in axes}
         with self.assertRaises(ValueError):
             quality_summary(rows, rows, axes)
-        runs = [{"run_id": key, "fixture_id": key.rsplit("-", 1)[0], "seed": int(key.rsplit("-", 1)[1])}
+        runs = [{"run_id": key, "fixture_id": key.rsplit("-", 1)[0], "seed": int(key.rsplit("-", 1)[1]),
+                 "noise": f"noise/{key.rsplit('-', 1)[1]}.npy"}
                 for key in quality_axes()]
         validate_suite_runs(runs)
+        changed = copy.deepcopy(runs)
+        changed[0]["noise"] = "noise/20261021.npy"
+        with self.assertRaises(ValueError):
+            validate_suite_runs(changed)
         runs[-1] = runs[0]
         with self.assertRaises(ValueError):
             validate_suite_runs(runs)
