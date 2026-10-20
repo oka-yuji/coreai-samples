@@ -6,6 +6,7 @@ import ProductFeature
 @MainActor
 public final class ProductDemoSessions {
     private struct Entry {
+        let binding: Int
         let identity: ModelArtifactIdentity
         let store: Store<ProductFeature>
         let runner: ProductRunner
@@ -15,6 +16,7 @@ public final class ProductDemoSessions {
 
     private let makeService: @MainActor () -> any ProductService
     private var entries: [DemoSelection: Entry] = [:]
+    private var nextBinding = 0
 
     public init(makeService: @escaping @MainActor () -> any ProductService = { LiveProductService() }) {
         self.makeService = makeService
@@ -30,9 +32,11 @@ public final class ProductDemoSessions {
             entries[selection]?.permits = permits
             return entry.store
         }
+        nextBinding += 1
+        let binding = nextBinding
         let runner = ProductRunner(service: makeService()) { [weak self] in
             guard let entry = self?.entries[selection], entry.identity == identity,
-                entry.session.owner == session.id.owner
+                entry.session.owner == session.id.owner, entry.binding == binding
             else { return false }
             return entry.permits()
         }
@@ -42,7 +46,7 @@ public final class ProductDemoSessions {
             keeping: entries[selection]?.store.state)
         let store = Store<ProductFeature>(initialState: state, run: runner.run)
         entries[selection] = Entry(
-            identity: identity, store: store, runner: runner, session: session.id, permits: permits)
+            binding: binding, identity: identity, store: store, runner: runner, session: session.id, permits: permits)
         return store
     }
 

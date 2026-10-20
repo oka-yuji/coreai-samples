@@ -96,8 +96,12 @@ public final class ModelLibraryRunner {
         retryAbandoned()
         guard !Task.isCancelled, session.id.number > releasedThrough[session.id.owner, default: 0],
             stopping[session.id] == nil, let state = libraries[session.id.owner]?.store?.state,
-            state.session == session, state.permits(session.id, selection: session.selection)
+            state.session == session, state.pendingDestination == nil
         else { return }
+        guard state.permits(session.id, selection: session.selection) else {
+            publish(.permissionRequired, for: session)
+            return
+        }
         guard resident == nil || resident == session else {
             publish(.occupied, for: session)
             return

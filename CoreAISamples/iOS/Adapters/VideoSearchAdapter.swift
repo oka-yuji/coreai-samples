@@ -24,7 +24,7 @@
                 if owners[session.selection]?.owner == session.id.owner, let current = searches[session.selection] {
                     current
                 } else {
-                    ManagedVideoSearch { LiveVideoSearchService() }
+                    ManagedVideoSearch(retaining: searches[session.selection]?.state) { LiveVideoSearchService() }
                 }
             searches[session.selection] = search
             owners[session.selection] = session.id

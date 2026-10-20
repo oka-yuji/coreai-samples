@@ -12,6 +12,7 @@ public final class ObjectFinderDemoSessions<Preview> {
     }
 
     private struct Entry {
+        let binding: Int
         let resource: ValidatedModelResource
         let runtime: Runtime
         var session: LibraryTicket
@@ -20,6 +21,7 @@ public final class ObjectFinderDemoSessions<Preview> {
 
     private let makeRuntime: @MainActor () -> (preview: Preview, service: any ObjectFinderService)
     private var entries: [DemoSelection: Entry] = [:]
+    private var nextBinding = 0
 
     public init(makeRuntime: @escaping @MainActor () -> (preview: Preview, service: any ObjectFinderService)) {
         self.makeRuntime = makeRuntime
@@ -35,10 +37,12 @@ public final class ObjectFinderDemoSessions<Preview> {
             entries[selection]?.permits = permits
             return entry.runtime
         }
+        nextBinding += 1
+        let binding = nextBinding
         let made = makeRuntime()
         let runner = ObjectFinderRunner(service: made.service) { [weak self] in
             guard let entry = self?.entries[selection], entry.resource == resource,
-                entry.session.owner == session.id.owner
+                entry.session.owner == session.id.owner, entry.binding == binding
             else { return false }
             return entry.permits()
         }
@@ -46,7 +50,8 @@ public final class ObjectFinderDemoSessions<Preview> {
             initialState: .managed(folder: resource.directory, retaining: entries[selection]?.runtime.store.state),
             run: runner.run)
         let runtime = Runtime(store: store, preview: made.preview, runner: runner)
-        entries[selection] = Entry(resource: resource, runtime: runtime, session: session.id, permits: permits)
+        entries[selection] = Entry(
+            binding: binding, resource: resource, runtime: runtime, session: session.id, permits: permits)
         return runtime
     }
 

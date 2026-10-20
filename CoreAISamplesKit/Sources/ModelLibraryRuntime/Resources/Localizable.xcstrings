@@ -1,6 +1,17 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "Allow the required permission, then try again." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "必要なアクセスを許可してから、もう一度お試しください。"
+          }
+        }
+      }
+    },
     "Another window is using a model." : {
       "extractionState" : "manual",
       "localizations" : {

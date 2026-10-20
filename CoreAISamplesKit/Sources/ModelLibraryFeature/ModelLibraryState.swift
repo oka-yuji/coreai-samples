@@ -141,7 +141,7 @@ public enum DemoAccess: Equatable, Sendable {
 }
 
 public enum DemoPreparation: Equatable, Sendable {
-    case pending, preparing, available, occupied, unavailable
+    case pending, preparing, available, occupied, unavailable, permissionRequired
 }
 
 public struct ModelLibraryState: Equatable, Sendable {

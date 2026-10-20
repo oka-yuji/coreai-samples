@@ -57,9 +57,13 @@ private struct DemoPreparationView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            if library.state.demoPreparation == .occupied {
-                Text("Another window is using a model.", bundle: .module).font(.headline)
-                Text("Close its demo before trying again.", bundle: .module)
+            if [.occupied, .permissionRequired].contains(library.state.demoPreparation) {
+                if library.state.demoPreparation == .occupied {
+                    Text("Another window is using a model.", bundle: .module).font(.headline)
+                    Text("Close its demo before trying again.", bundle: .module)
+                } else {
+                    Text("Allow the required permission, then try again.", bundle: .module)
+                }
                 Button {
                     library.send(.requestDemoPreparation(session.id))
                 } label: {

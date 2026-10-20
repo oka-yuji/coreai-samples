@@ -7,6 +7,34 @@ import Testing
 @MainActor
 @Suite(.timeLimit(.minutes(1)))
 struct ModelResidencyTests {
+    @Test("The Store preparation effect recovers from a permission change before it runs")
+    func permissionChangeAndRetryUseTheStoreEffect() async throws {
+        let harness = try RuntimeHarness()
+        defer { harness.close() }
+        let scene = harness.scene("A", capabilities: [.camera: .available])
+        var events = harness.events.makeAsyncIterator()
+        try await scene.download("image-fp16", &events)
+        let library = scene.library
+        library.send(.openDemo(.objectFinder))
+        let session = try #require(library.state.session)
+        _ = scene.rendering.content(for: session)
+        library.send(.requestDemoPreparation(session.id))
+        library.send(.capabilityChanged(.camera, .denied))
+        await awaitDemoState(library) { $0.demoPreparation == .permissionRequired }
+        #expect(await harness.leases(session) == 0)
+        library.send(.capabilityChanged(.camera, .available))
+        library.send(.requestDemoPreparation(session.id))
+        await awaitDemoState(library) { $0.demoPreparation == .available }
+        _ = scene.rendering.content(for: session)
+        #expect(try scene.adapter("object-finder").start(.objectFinder, input: "after permission"))
+        let stale = LibraryTicket(owner: scene.owner, number: session.id.number - 1)
+        library.send(.demoPreparationChanged(stale, .occupied))
+        #expect(library.state.demoPreparation == .available)
+        library.send(.closeDemo)
+        try await next(&events, "A stopping object-finder", "A stopDemo")
+        #expect(await harness.leases(session) == 0)
+    }
+
     @Test("A second owner of the same demo cannot bind or stop the resident owner's runtime")
     func rejectsAnotherOwnerOfTheSameSelection() async throws {
         let harness = try RuntimeHarness()

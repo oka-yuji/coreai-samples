@@ -145,8 +145,12 @@ public enum ModelLibraryFeature: Feature {
             return stop(&state, session, then: .demo(session.selection))
         case .requestDemoPreparation(let ticket):
             guard let session = state.session, session.id == ticket, state.pendingDestination == nil,
-                state.demoPreparation == .pending || state.demoPreparation == .occupied
+                [.pending, .occupied, .permissionRequired].contains(state.demoPreparation)
             else { return [] }
+            guard state.permits(session.id, selection: session.selection) else {
+                state.demoPreparation = .permissionRequired
+                return []
+            }
             state.demoPreparation = .preparing
             return [.run(.prepareDemo(session), id: .demoPreparation)]
         case .demoPreparationChanged(let ticket, let preparation):

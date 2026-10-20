@@ -25,7 +25,7 @@
                 if owners[session.selection]?.owner == session.id.owner, let current = searches[session.selection] {
                     current
                 } else {
-                    ManagedImageSearch { LiveImageSearchService() }
+                    ManagedImageSearch(retaining: searches[session.selection]?.state) { LiveImageSearchService() }
                 }
             searches[session.selection] = search
             owners[session.selection] = session.id
