@@ -34,15 +34,15 @@ only_rules:
 custom_rules:
 
   pure_logic_imports:
-    included: ".*/CoreAISamplesKit/Sources/(ModelLibraryFeature|FeatureStore|ObjectFinderCore|ObjectFinderFeature|GLiNERCore|ExtractFeature|DecideFeature|ProductCore|ProductFeature|RecipeCore|RecipeFeature|EmbeddingCore|TruckInspectionCore|TruckInspectionFeature|ImageSearchFeature|VideoSearchFeature|ConversationFeature|SpeechCore|SpeechFeature)/.*\\.swift"
+    included: ".*/CoreAISamplesKit/Sources/(ImageGenerationCore|ModelLibraryFeature|FeatureStore|ObjectFinderCore|ObjectFinderFeature|GLiNERCore|ExtractFeature|DecideFeature|ProductCore|ProductFeature|RecipeCore|RecipeFeature|EmbeddingCore|TruckInspectionCore|TruckInspectionFeature|ImageSearchFeature|VideoSearchFeature|ConversationFeature|SpeechCore|SpeechFeature)/.*\\.swift"
     excluded: ".*/CoreAISamplesKit/Sources/FeatureStore/Store\\.swift"
-    regex: '\bimport\s+(?:(?:typealias|struct|class|enum|protocol|let|var|func)\s+)?+(?!(?:Foundation|ModelLibraryFeature|ObjectFinderCore|ModelLibraryFeature|FeatureStore|ObjectFinderCore|ObjectFinderFeature|GLiNERCore|ExtractFeature|DecideFeature|ProductCore|ProductFeature|RecipeCore|RecipeFeature|EmbeddingCore|TruckInspectionCore|TruckInspectionFeature|ImageSearchFeature|SpeechCore|SpeechFeature)\b)\w+'
+    regex: '\bimport\s+(?:(?:typealias|struct|class|enum|protocol|let|var|func)\s+)?+(?!(?:Foundation|ImageGenerationCore|ModelLibraryFeature|ObjectFinderCore|ModelLibraryFeature|FeatureStore|ObjectFinderCore|ObjectFinderFeature|GLiNERCore|ExtractFeature|DecideFeature|ProductCore|ProductFeature|RecipeCore|RecipeFeature|EmbeddingCore|TruckInspectionCore|TruckInspectionFeature|ImageSearchFeature|SpeechCore|SpeechFeature)\b)\w+'
     match_kinds: [keyword, identifier]
     message: "Pure-logic targets may import only Foundation and other pure-logic targets (A2)."
     severity: error
 
   pure_logic_no_concurrency:
-    included: ".*/CoreAISamplesKit/Sources/(ModelLibraryFeature|FeatureStore|ObjectFinderCore|ObjectFinderFeature|GLiNERCore|ExtractFeature|DecideFeature|ProductCore|ProductFeature|RecipeCore|RecipeFeature|EmbeddingCore|TruckInspectionCore|TruckInspectionFeature|ImageSearchFeature|VideoSearchFeature|ConversationFeature|SpeechCore|SpeechFeature)/.*\\.swift"
+    included: ".*/CoreAISamplesKit/Sources/(ImageGenerationCore|ModelLibraryFeature|FeatureStore|ObjectFinderCore|ObjectFinderFeature|GLiNERCore|ExtractFeature|DecideFeature|ProductCore|ProductFeature|RecipeCore|RecipeFeature|EmbeddingCore|TruckInspectionCore|TruckInspectionFeature|ImageSearchFeature|VideoSearchFeature|ConversationFeature|SpeechCore|SpeechFeature)/.*\\.swift"
     excluded: ".*/CoreAISamplesKit/Sources/FeatureStore/Store\\.swift"
     regex: '\b(async|await|actor|Task)\b'
     match_kinds: [keyword, identifier, typeidentifier]
@@ -50,7 +50,7 @@ custom_rules:
     severity: error
 
   pure_logic_no_ambient:
-    included: ".*/CoreAISamplesKit/Sources/(ModelLibraryFeature|FeatureStore|ObjectFinderCore|ObjectFinderFeature|GLiNERCore|ExtractFeature|DecideFeature|ProductCore|ProductFeature|RecipeCore|RecipeFeature|EmbeddingCore|TruckInspectionCore|TruckInspectionFeature|ImageSearchFeature|VideoSearchFeature|ConversationFeature|SpeechCore|SpeechFeature)/.*\\.swift"
+    included: ".*/CoreAISamplesKit/Sources/(ImageGenerationCore|ModelLibraryFeature|FeatureStore|ObjectFinderCore|ObjectFinderFeature|GLiNERCore|ExtractFeature|DecideFeature|ProductCore|ProductFeature|RecipeCore|RecipeFeature|EmbeddingCore|TruckInspectionCore|TruckInspectionFeature|ImageSearchFeature|VideoSearchFeature|ConversationFeature|SpeechCore|SpeechFeature)/.*\\.swift"
     regex: '\bDate\(\)|\bDate\.now\b|\bUUID\(\)|\.random\(|\.randomElement\(\)|\.shuffled?\(\)|\b(Calendar|TimeZone|Locale)\.(current|autoupdatingCurrent)\b'
     match_kinds: [identifier, typeidentifier]
     message: "Pass time, randomness, identifiers and locale settings into pure logic (A3)."
