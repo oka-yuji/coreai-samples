@@ -4,8 +4,8 @@ import Testing
 @testable import CoreAIBackend
 
 @Suite struct SamplerGoldenTests {
-    private struct Golden: Decodable {
-        struct Run: Decodable {
+    struct Golden: Decodable {
+        struct Run: Decodable, CustomTestStringConvertible {
             let logits: [String]
             let temperature: Float
             let k: Int?
@@ -13,6 +13,8 @@ import Testing
             let seed: String
             let tokens: [Int32]
             let state: String
+
+            var testDescription: String { "\(logits) t=\(temperature) k=\(k ?? 0) p=\(p ?? 0) seed=\(seed)" }
         }
 
         struct Pool: Decodable {
@@ -28,10 +30,16 @@ import Testing
         let pools: [Pool]
         let runs: [Run]
 
-        static func load() throws -> Golden {
-            let url = try #require(
-                Bundle.module.url(forResource: "sampler-golden", withExtension: "json", subdirectory: "Resources"))
+        private static let shared = Result {
+            guard
+                let url = Bundle.module.url(
+                    forResource: "sampler-golden", withExtension: "json", subdirectory: "Resources")
+            else { throw CocoaError(.fileReadNoSuchFile) }
             return try JSONDecoder().decode(Golden.self, from: Data(contentsOf: url))
+        }
+
+        static func load() throws -> Golden {
+            try shared.get()
         }
 
         func values(_ name: String) throws -> [Float16] {
@@ -48,7 +56,7 @@ import Testing
     }
 
     private func replay(_ run: Golden.Run, in golden: Golden) throws {
-        let label = "\(run.logits) t=\(run.temperature) k=\(run.k ?? 0) p=\(run.p ?? 0) seed=\(run.seed)"
+        let label = run.testDescription
         var sampler = Sampler(
             mode: Self.mode(k: run.k, p: run.p), temperature: run.temperature,
             seed: try #require(UInt64(run.seed, radix: 16)))
@@ -65,13 +73,10 @@ import Testing
     }
 
     @Test(
-        "Sequences and random consumption from fixed logits and seeds in full, top-k, and top-p match the previous implementation"
-    )
-    func sequencesMatchThePreviousImplementation() throws {
-        let golden = try Golden.load()
-        let runs = golden.runs.filter { $0.logits.count == 1 }
-        #expect(runs.count == 378)
-        for run in runs { try replay(run, in: golden) }
+        "Sequences and random consumption from fixed logits and seeds in full, top-k, and top-p match the previous implementation",
+        arguments: try Golden.load().runs.filter { $0.logits.count == 1 })
+    func sequencesMatchThePreviousImplementation(run: Golden.Run) throws {
+        try replay(run, in: Golden.load())
     }
 
     @Test(
