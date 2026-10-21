@@ -8,11 +8,8 @@ class StoredLinear(torch.nn.Module):
     def __init__(self, linear):
         super().__init__()
         self.linear = linear.to(dtype=torch.float16)
-        self.calibrating = False
 
     def forward(self, value):
-        if self.calibrating:
-            return self.linear(value.to(torch.float16)).float()
         bias = self.linear.bias.float() if self.linear.bias is not None else None
         return torch.nn.functional.linear(value.float(), self.linear.weight.float(), bias)
 
@@ -42,43 +39,46 @@ def tensor_record(value):
             "bytes": len(raw), "sha256": hashlib.sha256(raw).hexdigest()}
 
 
-def _calibration_mode(module, enabled):
-    for child in module.modules():
-        if isinstance(child, StoredLinear):
-            child.calibrating = enabled
+class LinearCalibration(torch.nn.Module):
+    def __init__(self, layers):
+        super().__init__()
+        self.layers = torch.nn.ModuleList(layers)
+
+    def forward(self, value):
+        for layer in self.layers:
+            value = layer(torch.zeros((1, layer.in_features), dtype=layer.weight.dtype, device=layer.weight.device))
+        return value
 
 
-def quantize(module, example, bits, group_size=64):
-    if bits not in (4, 8) or type(bits) is not int or group_size != 64:
-        raise ValueError("Mobile compression requires W4 or W8 with group64")
+def quantize(module, bits, group_size=64):
+    if bits not in (4, 8) or type(bits) is not int or type(group_size) is not int or group_size not in (16, 64):
+        raise ValueError("Mobile compression requires W4 or W8 with a declared group16 or group64")
     from coreai_opt.quantization import ExecutionMode, ModuleQuantizerConfig, QuantizationSpec, Quantizer, QuantizerConfig
     from coreai_opt.quantization.spec import PerBlockGranularity, QuantizationScheme
 
     names = [name for name, child in module.named_modules() if type(child) is torch.nn.Linear]
-    if not names or any(torch.nn.utils.parametrize.is_parametrized(child) for child in module.modules()):
+    if not names or "" in names or any(torch.nn.utils.parametrize.is_parametrized(child) for child in module.modules()):
         raise ValueError("Compression requires a nonempty, unparametrized Linear set")
     for name in names:
         weight = module.get_submodule(name).weight
         if weight.dtype != torch.float16 or weight.shape[1] % group_size:
-            raise ValueError("Each quantized Linear must have Float16 storage and complete group64 blocks")
+            raise ValueError("Each quantized Linear must have Float16 storage and complete declared blocks")
     spec = QuantizationSpec(dtype=torch.int4 if bits == 4 else torch.int8,
                             qscheme=QuantizationScheme.SYMMETRIC_WITH_CLIPPING,
                             granularity=PerBlockGranularity(axis=1, block_size=group_size))
     config = QuantizerConfig(global_config=None, execution_mode=ExecutionMode.EAGER)
     config.set_module_type(torch.nn.Linear, ModuleQuantizerConfig(
         op_input_spec=None, op_output_spec=None, op_state_spec={"weight": spec}))
-    _calibration_mode(module, True)
-    try:
-        quantizer = Quantizer(module, config)
-        prepared = quantizer.prepare(example)
-        if not all(torch.nn.utils.parametrize.is_parametrized(prepared.get_submodule(name), "weight") for name in names):
-            raise ValueError("Required Linear weights were not quantized")
-        finalized = quantizer.finalize()
-    finally:
-        _calibration_mode(module, False)
-    _calibration_mode(finalized, False)
-    records = [quantized_weight(finalized.get_submodule(name), name, bits, group_size)[1] for name in names]
-    return finalized, {"kind": "linear-integer", "bits": bits, "group_size": group_size, "axis": 1,
+    calibration = LinearCalibration([module.get_submodule(name) for name in names]).eval().requires_grad_(False)
+    quantizer = Quantizer(calibration, config)
+    prepared = quantizer.prepare((torch.zeros(1),))
+    if not all(torch.nn.utils.parametrize.is_parametrized(layer, "weight") for layer in prepared.layers):
+        raise ValueError("Required Linear weights were not quantized")
+    finalized = quantizer.finalize()
+    for name, layer in zip(names, finalized.layers, strict=True):
+        module.set_submodule(name, layer)
+    records = [quantized_weight(module.get_submodule(name), name, bits, group_size)[1] for name in names]
+    return module, {"kind": "linear-integer", "bits": bits, "group_size": group_size, "axis": 1,
                        "scheme": "symmetric_with_clipping", "storage_dtype": "float16",
                        "effective_weight": "round16((q-zp)*scale16)", "layers": records}
 

@@ -19,7 +19,17 @@ def default_lock():
     return Path(override).expanduser() if override else Path.home() / "Library/Caches/coreai-samples/heavy-job"
 
 
-def recipe_path(name, precision="fp16_safe"):
+def recipe_path(name, precision=None):
+    if name == "qwen_image21_mobile":
+        candidate = precision or "w4"
+        if candidate not in ("fp16", "bf16", "mixed", "w8", "w4"):
+            raise PipelineError("Select fp16, bf16, mixed, w8 or w4 for the mobile image recipe")
+        filename = "recipe.json" if candidate == "w4" else f"recipe-{candidate}.json"
+        path = TOOL / "recipes" / name / filename
+        if not path.is_file():
+            raise PipelineError("The selected mobile image recipe is unavailable")
+        return path
+    precision = precision or "fp16_safe"
     if precision not in ("fp16_safe", "int4_int8") or (precision == "int4_int8" and name != "embeddinggemma2"):
         raise PipelineError("INT4/INT8 is available only for embeddinggemma2")
     filename = "recipe-int4-int8.json" if precision == "int4_int8" else "recipe.json"
@@ -137,7 +147,7 @@ def setup_image(workspace, recipe, snapshot, lock):
     snapshot = (snapshot or default_snapshot(contract)).expanduser().resolve()
     if not snapshot.is_dir():
         raise PipelineError(f"Download the pinned input first: {contract['model_id']}@{contract['revision']}")
-    profile = workspace / "qwen_image21"
+    profile = workspace / recipe.parent.name
     check_workspace_paths(workspace, profile)
     environment_paths = [recipe.parent / name for name in ("pyproject.toml", "uv.lock")]
     environment = [hashlib.sha256(path.read_bytes()).hexdigest() for path in environment_paths]
@@ -152,7 +162,7 @@ def setup_image(workspace, recipe, snapshot, lock):
                 "--model", recipe.parent / "model.json", "--output", validation, cwd=ROOT)
         if environment != [hashlib.sha256(path.read_bytes()).hexdigest() for path in environment_paths]:
             raise PipelineError("Environment inputs changed during setup")
-        bindings = workspace / "qwen_image21.paths.json"
+        bindings = workspace / f"{recipe.parent.name}.paths.json"
         write_json(bindings, {"python": str(python), "snapshot": str(snapshot),
                               "heavy_lock": str(lock or default_lock())})
         print(f"Local bindings: {bindings}")
@@ -163,7 +173,7 @@ def pipeline_command(action, recipe, workspace, lock, refresh):
     if not bindings.is_file():
         raise PipelineError("Run setup for this workspace and recipe first")
     result = [sys.executable, "-m", "Tools.Conversion", action, str(recipe), "--bindings", str(bindings)]
-    if recipe.parent.name == "qwen_image21":
+    if recipe.parent.name in ("qwen_image21", "qwen_image21_mobile"):
         result += ["--set", f"heavy_lock={lock}"]
     if action == "run":
         profile = recipe.parent.name + ("-int4-int8" if recipe.stem == "recipe-int4-int8" else "")
@@ -179,7 +189,7 @@ def main():
     parser = argparse.ArgumentParser(description="Prepare and use the maintainer's local conversion workspace.")
     parser.add_argument("action", choices=("setup", "plan", "run"))
     parser.add_argument("--recipe", default="qwen3_06b")
-    parser.add_argument("--precision", choices=("fp16_safe", "int4_int8"), default="fp16_safe")
+    parser.add_argument("--precision", choices=("fp16_safe", "int4_int8", "fp16", "bf16", "mixed", "w8", "w4"))
     parser.add_argument("--workspace", type=Path, default=ROOT / ".local/conversion")
     parser.add_argument("--snapshot", type=Path)
     parser.add_argument("--lock-dir", type=Path, default=default_lock())

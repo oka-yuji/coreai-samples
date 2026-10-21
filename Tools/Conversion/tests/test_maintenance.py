@@ -61,6 +61,22 @@ class MaintenanceTests(unittest.TestCase):
             with self.assertRaises(PipelineError):
                 local.recipe_path(name)
 
+    def test_mobile_candidates_keep_separate_recipes_without_changing_legacy_defaults(self):
+        for name in ("qwen3_06b", "qwen_image21", "embeddinggemma2"):
+            self.assertEqual(local.recipe_path(name), local.recipe_path(name, "fp16_safe"))
+            with self.assertRaises(PipelineError):
+                local.recipe_path(name, "w4")
+        self.assertEqual(local.recipe_path("embeddinggemma2", "int4_int8").name, "recipe-int4-int8.json")
+        for candidate in ("fp16", "bf16", "mixed", "w8", "w4"):
+            path = local.recipe_path("qwen_image21_mobile", candidate)
+            self.assertEqual(path.parent.name, "qwen_image21_mobile")
+            expected = "recipe.json" if candidate == "w4" else f"recipe-{candidate}.json"
+            self.assertEqual(path.name, expected)
+        self.assertEqual(local.recipe_path("qwen_image21_mobile"), local.recipe_path("qwen_image21_mobile", "w4"))
+        for unsupported in ("fp16_safe", "int4_int8"):
+            with self.assertRaises(PipelineError):
+                local.recipe_path("qwen_image21_mobile", unsupported)
+
     def test_setup_does_not_reset_a_modified_or_wrong_checkout(self):
         revision = "a" * 40
         for origin, head, dirty in ((local.UPSTREAM, revision, " M python/export.py"),

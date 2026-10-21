@@ -1,5 +1,6 @@
 import copy
 import unittest
+from unittest.mock import patch
 
 import torch
 
@@ -21,7 +22,7 @@ class ImageQuantizationTests(unittest.TestCase):
             for mixed in (False, True):
                 with self.subTest(bits=bits, mixed=mixed):
                     model, example = self.make(mixed)
-                    finalized, record = quantize(model, example, bits)
+                    finalized, record = quantize(model, bits)
                     reference = plain_reference(finalized, record)
                     self.assertEqual(len(record["layers"]), 2)
                     self.assertFalse(any(torch.nn.utils.parametrize.is_parametrized(m) for m in reference.modules()))
@@ -36,7 +37,7 @@ class ImageQuantizationTests(unittest.TestCase):
 
     def test_missing_duplicate_and_changed_weight_identities_are_rejected(self):
         model, example = self.make(True)
-        finalized, record = quantize(model, example, 4)
+        finalized, record = quantize(model, 4)
         for kind in ("missing", "duplicate", "changed"):
             altered = copy.deepcopy(record)
             if kind == "missing":
@@ -57,24 +58,41 @@ class ImageQuantizationTests(unittest.TestCase):
         model, example = self.make(False)
         for bits, group in ((2, 64), (True, 64), (4, 32)):
             with self.subTest(bits=bits, group=group), self.assertRaises(ValueError):
-                quantize(model, example, bits, group)
+                quantize(model, bits, group)
         with self.assertRaises(ValueError):
-            quantize(torch.nn.Sequential(torch.nn.Linear(128, 8)).eval(), (torch.ones(1, 128),), 4)
+            quantize(torch.nn.Sequential(torch.nn.Linear(128, 8)).eval(), 4)
         with self.assertRaises(ValueError):
-            quantize(torch.nn.Sequential(torch.nn.Linear(96, 8)).half().eval(), (torch.ones(1, 96).half(),), 4)
-        finalized, _ = quantize(model, example, 4)
+            quantize(torch.nn.Sequential(torch.nn.Linear(96, 8)).half().eval(), 4)
+        finalized, _ = quantize(model, 4)
         with self.assertRaises(ValueError):
-            quantize(finalized, example, 4)
+            quantize(finalized, 4)
 
     def test_nonfinite_and_invalid_export_scale_never_produce_a_reference(self):
         model, example = self.make(True)
-        finalized, record = quantize(model, example, 4)
+        finalized, record = quantize(model, 4)
         for value in (0.0, -1.0, float("nan"), float("inf")):
             candidate = copy.deepcopy(finalized)
             params = candidate.get_submodule(record["layers"][0]["name"]).parametrizations.weight[0]
             params.scale.fill_(value)
             with self.subTest(scale=value), self.assertRaises(ValueError):
                 plain_reference(candidate, record)
+
+    def test_weight_only_calibration_does_not_execute_the_component_forward(self):
+        model, example = self.make(True)
+        with patch.object(model, "forward", side_effect=AssertionError("Full component execution is forbidden")) as forward:
+            finalized, record = quantize(model, 4)
+            forward.assert_not_called()
+        reference = plain_reference(finalized, record)
+        torch.testing.assert_close(reference(*example), finalized(*example), atol=0, rtol=0)
+
+    def test_vision_feed_forward_width_uses_complete_sixteen_value_groups(self):
+        torch.manual_seed(216)
+        model = store_linear_weights_in_half(torch.nn.Sequential(torch.nn.Linear(4304, 8))).eval().requires_grad_(False)
+        finalized, record = quantize(model, 8, 16)
+        self.assertEqual(record["layers"][0]["scale"]["shape"], [8, 269])
+        reference = plain_reference(finalized, record)
+        values = torch.randn(2, 4304)
+        torch.testing.assert_close(reference(values), finalized(values), atol=0, rtol=0)
 
 
 if __name__ == "__main__":
