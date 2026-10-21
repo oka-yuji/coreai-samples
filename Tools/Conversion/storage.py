@@ -8,11 +8,36 @@ import os
 from pathlib import Path
 import stat
 import signal
+import sys
 import uuid
 
 
 class PipelineError(ValueError):
     pass
+
+
+class ProcessCleanupError(PipelineError):
+    def __init__(self, primary, process_group, errors, exit_code):
+        self.primary = primary
+        self.details = {"confirmed": False, "process_group": process_group, "exit_code": exit_code,
+                        "primary": None if primary is None else f"{type(primary).__name__}: {primary}",
+                        "errors": [f"{type(error).__name__}: {error}" for error in errors]}
+        reason = self.details["primary"] or f"Command exited {exit_code}"
+        super().__init__(reason + f"; process group {process_group} cleanup is unconfirmed (child exit {exit_code}); "
+                         + "locks retained: " + "; ".join(self.details["errors"]))
+
+
+def cleanup_failure(error):
+    pending, seen = [error], set()
+    while pending:
+        current = pending.pop()
+        if current is None or id(current) in seen:
+            continue
+        seen.add(id(current))
+        if isinstance(current, ProcessCleanupError):
+            return current
+        pending.extend((current.__context__, current.__cause__))
+    return None
 
 
 def read_json(path):
@@ -131,6 +156,7 @@ def directory_lock(path, owner):
     token = uuid.uuid4().hex
     marker = path / "owner.txt"
     identity = None
+    retained = None
     try:
         with blocked_signals():
             try:
@@ -139,20 +165,52 @@ def directory_lock(path, owner):
                 raise PipelineError(f"Busy lock; inspect its owner, never steal it: {path}") from error
             identity = path.stat().st_ino
             write_json(marker, {"token": token, "pid": os.getpid(), **owner})
-        yield
+        try:
+            yield
+        except BaseException as error:
+            retained = cleanup_failure(error)
+            if retained is None:
+                raise
+            if retained is not error:
+                retained.add_note(f"Further exception during cleanup propagation: {type(error).__name__}: {error}")
+            raise retained
     finally:
-        with blocked_signals():
-            if identity is not None and marker.exists() and read_json(marker).get("token") == token:
+        retained = retained or cleanup_failure(sys.exc_info()[1])
+        with blocked_signals(preserving=retained):
+            if retained is not None:
+                try:
+                    if path.lstat().st_ino == identity and read_json(marker).get("token") == token:
+                        write_json(marker, {"token": token, "pid": os.getpid(), **owner,
+                                            "retained": True, "cleanup": retained.details})
+                    else:
+                        retained.add_note(f"Lock ownership changed before cleanup retention: {path}")
+                except BaseException as recording_error:
+                    retained.add_note(f"Could not record retained lock {path}: {recording_error}")
+            elif identity is not None and marker.exists() and path.lstat().st_ino == identity\
+                    and read_json(marker).get("token") == token:
                 marker.unlink()
                 path.rmdir()
-            elif identity is not None and not marker.exists() and path.exists() and path.stat().st_ino == identity:
+            elif identity is not None and not marker.exists() and path.exists() and path.lstat().st_ino == identity:
                 path.rmdir()
 
 
 @contextlib.contextmanager
-def blocked_signals():
+def blocked_signals(*, preserving=None):
     previous = signal.pthread_sigmask(signal.SIG_BLOCK, {signal.SIGINT, signal.SIGTERM})
+    failure = preserving
     try:
         yield
+    except BaseException as error:
+        if failure is None:
+            failure = cleanup_failure(error) or error
+        if failure is not error:
+            failure.add_note(f"Further exception inside protected cleanup: {type(error).__name__}: {error}")
+            raise failure from error
+        raise
     finally:
-        signal.pthread_sigmask(signal.SIG_SETMASK, previous)
+        try:
+            signal.pthread_sigmask(signal.SIG_SETMASK, previous)
+        except BaseException as interruption:
+            if failure is None:
+                raise
+            failure.add_note(f"Further interruption while preserving failure: {type(interruption).__name__}: {interruption}")
