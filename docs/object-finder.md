@@ -4,6 +4,10 @@ Enter an object name, start the camera, and look for matching regions. Japanese 
 
 Tracking: [image regions #147](https://github.com/oka-yuji/coreai-samples/issues/147), [camera #149](https://github.com/oka-yuji/coreai-samples/issues/149), [live preview and typed targets #153](https://github.com/oka-yuji/coreai-samples/issues/153), [acceptance #150](https://github.com/oka-yuji/coreai-samples/issues/150), [Models connection #197](https://github.com/oka-yuji/coreai-samples/issues/197).
 
+## Demo recording
+
+[Watch the camera search demo on X](https://x.com/oka_yuuji/status/2111307591586578612): change the target text to switch what the camera looks for, without additional training. The recording illustrates the interaction; model and route verification remain documented separately.
+
 ## Run on iPhone
 
 1. Use an iPhone running iOS 27 or later and the `CoreAISamples-iOS` scheme with local signing configured.
