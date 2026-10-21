@@ -96,6 +96,8 @@ public final class ModelLibraryResourceRunner {
             if !Task.isCancelled { send(.importStopped(artifact.id, ticket, resource)) }
         case .stopDemo(let session, let ticket):
             send(.demoStopFailed(session.id, ticket, "Demo execution is not connected"))
+        case .prepareDemo(let session):
+            send(.demoPreparationChanged(session.id, .unavailable))
         }
     }
 
