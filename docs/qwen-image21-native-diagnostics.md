@@ -1,6 +1,6 @@
 # Qwen Image native diagnostics
 
-The explicit `--image-generation-check <request.json>` entry executes the same native service as the generation UI. Ordinary launch continues to Models. A diagnostic launch is a separate process with one Store-owned request and no other demo adapter. It does not register an artifact in the production catalog or bypass the runtime's verified, numeric and quality checks.
+The explicit `--image-generation-check <request.json>` entry executes the same native service as the generation UI. Ordinary launch continues to Models. A diagnostic launch is a separate process with one Store-owned request and no other demo adapter. Phone scenes share that Store; the first scene owns start/stop/end actions, and another scene can only observe it. It does not register an artifact in the production catalog or bypass the runtime's verified, numeric and quality checks.
 
 On macOS, pass an absolute request path to the Release app executable. On iPhone, the request path is relative to the app's Documents directory. Install the signed CoreAISamples-iOS target with its increased-memory-limit entitlement and preserve the app's existing data container. Model jobs still require the repository's shared heavy-job lock.
 

@@ -6,6 +6,23 @@ import ModelLibraryFeature
 import Testing
 
 struct ImageDiagnosticFeatureTests {
+    @Test("A second diagnostic scene cannot start another run or stop the scene that owns the process request")
+    func sceneOwnership() {
+        let first = UUID()
+        let second = UUID()
+        let url = URL(filePath: "/tmp/request.json")
+        var state = ImageDiagnosticState()
+        #expect(ImageDiagnosticFeature.reduce(&state, .sceneAppeared(first, url)).count == 1)
+        #expect(state.sceneOwner == first)
+        #expect(ImageDiagnosticFeature.reduce(&state, .sceneAppeared(second, url)).isEmpty)
+        #expect(ImageDiagnosticFeature.reduce(&state, .sceneStopped(second)).isEmpty)
+        #expect(ImageDiagnosticFeature.reduce(&state, .sceneEnded(second)).isEmpty)
+        #expect(state.phase == .running)
+        #expect(ImageDiagnosticFeature.reduce(&state, .sceneEnded(first)).count == 2)
+        #expect(state.phase == .stopping)
+        #expect(ImageDiagnosticFeature.reduce(&state, .sceneEnded(second)).isEmpty)
+    }
+
     @Test("Only the explicit diagnostic flag selects image execution and ordinary launches remain in Models")
     func launchSelection() {
         #expect(IOSDemoLaunch.resolve(arguments: ["app"]) == .models)

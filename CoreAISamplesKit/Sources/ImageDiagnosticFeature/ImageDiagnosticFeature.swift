@@ -33,6 +33,7 @@ public struct ImageDiagnosticState: Equatable, Sendable {
     public enum Phase: Equatable, Sendable { case idle, running, stopping, cleanupFailed, finished }
     public var phase: Phase = .idle
     public var generation = 0
+    public var sceneOwner: UUID?
     public var message = "Ready"
     public var outcome: ImageDiagnosticOutcome?
     public var stopPlan: ImageDiagnosticStop?
@@ -42,6 +43,9 @@ public struct ImageDiagnosticState: Equatable, Sendable {
 
 public enum ImageDiagnosticAction: Sendable {
     case start(URL)
+    case sceneAppeared(UUID, URL)
+    case sceneStopped(UUID)
+    case sceneEnded(UUID)
     case configured(Int, ImageDiagnosticStop?)
     case progressed(Int, ImageExecutionPhase)
     case completed(Int, ImageDiagnosticOutcome)
@@ -69,6 +73,16 @@ public enum ImageDiagnosticFeature: Feature {
 
     public static func reduce(_ state: inout State, _ action: Action) -> [Command] {
         switch action {
+        case .sceneAppeared(let owner, let url):
+            guard state.phase == .idle, state.sceneOwner == nil else { return [] }
+            state.sceneOwner = owner
+            return reduce(&state, .start(url))
+        case .sceneStopped(let owner):
+            guard state.sceneOwner == owner else { return [] }
+            return reduce(&state, .stop)
+        case .sceneEnded(let owner):
+            guard state.sceneOwner == owner else { return [] }
+            return reduce(&state, .ended)
         case .start(let url):
             guard state.phase == .idle else { return [] }
             state.generation += 1

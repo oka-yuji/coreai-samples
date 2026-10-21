@@ -6,8 +6,8 @@ import SwiftUI
 
 struct ImageDiagnosticScreen: View {
     let configuration: URL
-    @State private var store = Store<ImageDiagnosticFeature>(
-        initialState: ImageDiagnosticState(), run: ImageDiagnosticRunner().run)
+    @State private var owner = UUID()
+    private let store = ImageDiagnosticPhoneAssembly.store
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
@@ -18,17 +18,23 @@ struct ImageDiagnosticScreen: View {
                 Text(verbatim: outcome.directory).textSelection(.enabled)
             }
             if [.running, .stopping].contains(store.state.phase) { ProgressView() }
-            Button("Stop") { store.send(.stop) }
-                .disabled(![.running, .cleanupFailed].contains(store.state.phase))
+            Button("Stop") { store.send(.sceneStopped(owner)) }
+                .disabled(store.state.sceneOwner != owner || ![.running, .cleanupFailed].contains(store.state.phase))
         }
         .padding()
-        .onAppear { store.send(.start(configuration)) }
-        .onDisappear { store.send(.ended) }
-        .onChange(of: scenePhase) { _, phase in if phase == .background { store.send(.stop) } }
+        .onAppear { store.send(.sceneAppeared(owner, configuration)) }
+        .onDisappear { store.send(.sceneEnded(owner)) }
+        .onChange(of: scenePhase) { _, phase in if phase == .background { store.send(.sceneStopped(owner)) } }
         .onChange(of: store.state.phase) { _, phase in
             if phase == .finished { exit(ImageDiagnosticCommand.exitCode(store.state)) }
         }
     }
+}
+
+@MainActor
+private enum ImageDiagnosticPhoneAssembly {
+    static let store = Store<ImageDiagnosticFeature>(
+        initialState: ImageDiagnosticState(), run: ImageDiagnosticRunner().run)
 }
 
 @MainActor
