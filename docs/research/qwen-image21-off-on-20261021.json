@@ -1,0 +1,2606 @@
+{
+  "format": 1,
+  "profile_sha256": "640617179b1ba660965788fd55171e0676fed9279b3d7e1944f4988b2ae0bb0c",
+  "input": {
+    "run_id": "e01-20261018",
+    "fixture_id": "e01",
+    "seed": 20261018,
+    "source_revision": "fc13ba1986fcb905854dc8de2f52eee395f49b5b",
+    "sigmas": [
+      1.0,
+      0.978453,
+      0.95418,
+      0.926626,
+      0.89508,
+      0.845148,
+      0.704534,
+      0.414568
+    ],
+    "operation": "edit",
+    "prompt_sha256": "a892b6aa21940677e2ca576f2deffef9d698dc541f5e51db5447c676df2a8e27",
+    "reference_sha256": "e68d2cb7f90e344d97857d1477bab2af00e325e0feeba28c564e0d36dcf6517a",
+    "noise": "noise/20261018.npy",
+    "noise_sha256": "40ab4cc766fc41c1732ab73fad4c85da11678376703a27c04eed42ef5ef8ee53",
+    "processed_tokens_sha256": "b171640cc53aba14baaaf02b1a3424367eef4b3e758e509b36e5c50865134604",
+    "layout_sha256": "7f884e07e18c4fd93bb6e3c0c69a7b58cfe266666360b5696c52ab5d4ab8c373"
+  },
+  "runner": {
+    "bytes": 8952,
+    "sha256": "f5b0affa497585c5adb3fc8f27d24ec5eda4ac54e85c167e8d3f308b369f2e1d"
+  },
+  "parameters": {
+    "vision": {
+      "source_parameter_elements": 576388336,
+      "fp32_payload_bytes": 2305553344,
+      "headers": [
+        {
+          "file": "text_encoder/model.safetensors",
+          "header_sha256": "f219429040fa5b4bc6bdad525a3187dd398eabb41db29d00e4e6650430831866",
+          "selected_tensors": 351
+        }
+      ]
+    },
+    "text": {
+      "source_parameter_elements": 7568401408,
+      "fp32_payload_bytes": 30273605632,
+      "headers": [
+        {
+          "file": "text_encoder/model.safetensors",
+          "header_sha256": "f219429040fa5b4bc6bdad525a3187dd398eabb41db29d00e4e6650430831866",
+          "selected_tensors": 397
+        }
+      ]
+    },
+    "denoiser": {
+      "source_parameter_elements": 7115124736,
+      "fp32_payload_bytes": 28460498944,
+      "headers": [
+        {
+          "file": "transformer/diffusion_pytorch_model-00001-of-00002.safetensors",
+          "header_sha256": "f74e521f55710f05c7f492cc1e54686923d25439e22241af107d1a11d20a6546",
+          "selected_tensors": 211
+        },
+        {
+          "file": "transformer/diffusion_pytorch_model-00002-of-00002.safetensors",
+          "header_sha256": "49cb9bb6a7774dd266f5b19a0a645ecd63d25ae4b580774aa88d0e47d1c67799",
+          "selected_tensors": 86
+        }
+      ]
+    },
+    "vae_encoder": {
+      "source_parameter_elements": 78692192,
+      "fp32_payload_bytes": 314768768,
+      "headers": [
+        {
+          "file": "vae/diffusion_pytorch_model.safetensors",
+          "header_sha256": "3084328b25f28c863b29b6464b6b8147b93df22ce27408dab0ca985f90ac5f52",
+          "selected_tensors": 104
+        }
+      ]
+    },
+    "vae_decoder": {
+      "source_parameter_elements": 259048212,
+      "fp32_payload_bytes": 1036192848,
+      "headers": [
+        {
+          "file": "vae/diffusion_pytorch_model.safetensors",
+          "header_sha256": "3084328b25f28c863b29b6464b6b8147b93df22ce27408dab0ca985f90ac5f52",
+          "selected_tensors": 134
+        }
+      ]
+    }
+  },
+  "aggregate": [
+    {
+      "group_id": "0f881108c7e094901162536ac327ce9e0d5dcdc5623b920264e11de35027d41e",
+      "conditions": {
+        "profile_sha256": "640617179b1ba660965788fd55171e0676fed9279b3d7e1944f4988b2ae0bb0c",
+        "workload_sha256": "74264fa992ac875945a24aba2f6d20a1c1ef7b3e0aaa99cea65b98c984b12a4e",
+        "device": "Mac16,6",
+        "os_build": "26A428",
+        "route": "coreai-python-fp32",
+        "operation": "edit",
+        "cache_state": "cached-cold",
+        "diagnostics": "off",
+        "power": "ac",
+        "thermal": "nominal"
+      },
+      "outcomes": {
+        "completed": 1
+      },
+      "completed_samples": 1,
+      "minimum_samples": 20,
+      "sample_requirement_met": false,
+      "percentile_method": "nearest-rank",
+      "p50_seconds": 174.8825465,
+      "p95_seconds": 174.8825465,
+      "maximum_seconds": 174.8825465
+    },
+    {
+      "group_id": "1c09d93e139e8fd8d542123fa5bcaffcbdd805e32f7d861c6c2ee5bbc54f775e",
+      "conditions": {
+        "profile_sha256": "640617179b1ba660965788fd55171e0676fed9279b3d7e1944f4988b2ae0bb0c",
+        "workload_sha256": "74264fa992ac875945a24aba2f6d20a1c1ef7b3e0aaa99cea65b98c984b12a4e",
+        "device": "Mac16,6",
+        "os_build": "26A428",
+        "route": "coreai-python-fp32",
+        "operation": "edit",
+        "cache_state": "cached-cold",
+        "diagnostics": "trace",
+        "power": "ac",
+        "thermal": "nominal"
+      },
+      "outcomes": {
+        "completed": 1
+      },
+      "completed_samples": 1,
+      "minimum_samples": 20,
+      "sample_requirement_met": false,
+      "percentile_method": "nearest-rank",
+      "p50_seconds": 193.910863167,
+      "p95_seconds": 193.910863167,
+      "maximum_seconds": 193.910863167
+    }
+  ],
+  "modes": {
+    "off": {
+      "metrics": {
+        "bytes": 86148,
+        "sha256": "9ca6862227cf0c85f76ac391b70a7293e99ea471d2452e54a2f997157cd90e38"
+      },
+      "total_seconds": 174.8825465,
+      "phases": [
+        {
+          "phase": "prepare-hash",
+          "seconds": 24.7413445
+        },
+        {
+          "phase": "prepare-image-and-noise",
+          "seconds": 0.004503208
+        },
+        {
+          "phase": "prepare",
+          "seconds": 0.343339917
+        },
+        {
+          "phase": "vision.load-including-specialization",
+          "seconds": 3.173905459
+        },
+        {
+          "phase": "vision",
+          "seconds": 0.185979333
+        },
+        {
+          "phase": "vision.release",
+          "seconds": 0.05469325
+        },
+        {
+          "phase": "text.load-including-specialization",
+          "seconds": 51.531550833
+        },
+        {
+          "phase": "text",
+          "seconds": 1.062262209
+        },
+        {
+          "phase": "text.release",
+          "seconds": 0.068434875
+        },
+        {
+          "phase": "vae_encoder.load-including-specialization",
+          "seconds": 0.507107584
+        },
+        {
+          "phase": "vae_encoder",
+          "seconds": 0.080150666
+        },
+        {
+          "phase": "vae_encoder.release",
+          "seconds": 0.052812584
+        },
+        {
+          "phase": "denoiser.load-including-specialization",
+          "seconds": 53.071487833
+        },
+        {
+          "phase": "denoiser.step-0",
+          "seconds": 4.256118292
+        },
+        {
+          "phase": "denoiser.step-1",
+          "seconds": 3.957400375
+        },
+        {
+          "phase": "denoiser.step-2",
+          "seconds": 4.323544416
+        },
+        {
+          "phase": "denoiser.step-3",
+          "seconds": 4.540239583
+        },
+        {
+          "phase": "denoiser.step-4",
+          "seconds": 4.818436042
+        },
+        {
+          "phase": "denoiser.step-5",
+          "seconds": 4.922804667
+        },
+        {
+          "phase": "denoiser.step-6",
+          "seconds": 5.293519167
+        },
+        {
+          "phase": "denoiser.step-7",
+          "seconds": 5.527248333
+        },
+        {
+          "phase": "denoiser.release",
+          "seconds": 0.061777458
+        },
+        {
+          "phase": "vae_decoder.load-including-specialization",
+          "seconds": 1.712034875
+        },
+        {
+          "phase": "vae_decoder",
+          "seconds": 0.411244708
+        },
+        {
+          "phase": "vae_decoder.release",
+          "seconds": 0.077962167
+        },
+        {
+          "phase": "save-image",
+          "seconds": 0.020390833
+        }
+      ],
+      "components": {
+        "vision": {
+          "source_weight_payload_bytes": 2305553344,
+          "physical_io_single_copy_bytes": 23068672,
+          "observations": {
+            "rss": {
+              "sample_max_bytes": 2972434432,
+              "sample_max_minus_source_weight_payload_bytes": 666881088,
+              "statuses": [
+                "ok"
+              ]
+            },
+            "footprint": {
+              "sample_max_bytes": 977014216,
+              "sample_max_minus_source_weight_payload_bytes": -1328539128,
+              "statuses": [
+                "ok"
+              ]
+            },
+            "graphics_footprint": {
+              "sample_max_bytes": 388186112,
+              "sample_max_minus_source_weight_payload_bytes": -1917367232,
+              "statuses": [
+                "ok"
+              ]
+            },
+            "kernel_lifetime_peak": {
+              "sample_max_bytes": 1018777032,
+              "sample_max_minus_source_weight_payload_bytes": -1286776312,
+              "statuses": [
+                "ok"
+              ]
+            },
+            "metal_allocated": {
+              "sample_max_bytes": null,
+              "sample_max_minus_source_weight_payload_bytes": null,
+              "statuses": [
+                "unavailable"
+              ]
+            },
+            "available_app": {
+              "sample_max_bytes": null,
+              "sample_max_minus_source_weight_payload_bytes": null,
+              "statuses": [
+                "unavailable"
+              ]
+            }
+          },
+          "release_after": {
+            "rss": {
+              "value": 2966126592,
+              "status": "ok",
+              "unit": "B",
+              "scope": "task_info point observation; not a phase peak"
+            },
+            "footprint": {
+              "value": 970493384,
+              "status": "ok",
+              "unit": "B",
+              "scope": "task_info point observation; not a phase peak"
+            },
+            "graphics_footprint": {
+              "value": 387956736,
+              "status": "ok",
+              "unit": "B",
+              "scope": "task_info point observation; not a phase peak"
+            },
+            "kernel_lifetime_peak": {
+              "value": 1018777032,
+              "status": "ok",
+              "unit": "B",
+              "scope": "kernel physical-footprint peak over this process lifetime; never reset per phase"
+            },
+            "metal_allocated": {
+              "value": null,
+              "status": "unavailable",
+              "unit": "B",
+              "scope": "Core AI Python does not expose the delegate's MTLDevice allocation counter"
+            },
+            "available_app": {
+              "value": null,
+              "status": "unavailable",
+              "unit": "B",
+              "scope": "iOS-only os_proc_available_memory; unavailable to this macOS host"
+            }
+          }
+        },
+        "text": {
+          "source_weight_payload_bytes": 30273605632,
+          "physical_io_single_copy_bytes": 42732032,
+          "observations": {
+            "rss": {
+              "sample_max_bytes": 33355005952,
+              "sample_max_minus_source_weight_payload_bytes": 3081400320,
+              "statuses": [
+                "ok"
+              ]
+            },
+            "footprint": {
+              "sample_max_bytes": 1330504736,
+              "sample_max_minus_source_weight_payload_bytes": -28943100896,
+              "statuses": [
+                "ok"
+              ]
+            },
+            "graphics_footprint": {
+              "sample_max_bytes": 626294784,
+              "sample_max_minus_source_weight_payload_bytes": -29647310848,
+              "statuses": [
+                "ok"
+              ]
+            },
+            "kernel_lifetime_peak": {
+              "sample_max_bytes": 1468032032,
+              "sample_max_minus_source_weight_payload_bytes": -28805573600,
+              "statuses": [
+                "ok"
+              ]
+            },
+            "metal_allocated": {
+              "sample_max_bytes": null,
+              "sample_max_minus_source_weight_payload_bytes": null,
+              "statuses": [
+                "unavailable"
+              ]
+            },
+            "available_app": {
+              "sample_max_bytes": null,
+              "sample_max_minus_source_weight_payload_bytes": null,
+              "statuses": [
+                "unavailable"
+              ]
+            }
+          },
+          "release_after": {
+            "rss": {
+              "value": 33320484864,
+              "status": "ok",
+              "unit": "B",
+              "scope": "task_info point observation; not a phase peak"
+            },
+            "footprint": {
+              "value": 1329669152,
+              "status": "ok",
+              "unit": "B",
+              "scope": "task_info point observation; not a phase peak"
+            },
+            "graphics_footprint": {
+              "value": 625459200,
+              "status": "ok",
+              "unit": "B",
+              "scope": "task_info point observation; not a phase peak"
+            },
+            "kernel_lifetime_peak": {
+              "value": 1468032032,
+              "status": "ok",
+              "unit": "B",
+              "scope": "kernel physical-footprint peak over this process lifetime; never reset per phase"
+            },
+            "metal_allocated": {
+              "value": null,
+              "status": "unavailable",
+              "unit": "B",
+              "scope": "Core AI Python does not expose the delegate's MTLDevice allocation counter"
+            },
+            "available_app": {
+              "value": null,
+              "status": "unavailable",
+              "unit": "B",
+              "scope": "iOS-only os_proc_available_memory; unavailable to this macOS host"
+            }
+          }
+        },
+        "denoiser": {
+          "source_weight_payload_bytes": 28460498944,
+          "physical_io_single_copy_bytes": 16013828,
+          "observations": {
+            "rss": {
+              "sample_max_bytes": 59631566848,
+              "sample_max_minus_source_weight_payload_bytes": 31171067904,
+              "statuses": [
+                "ok"
+              ]
+            },
+            "footprint": {
+              "sample_max_bytes": 2472097056,
+              "sample_max_minus_source_weight_payload_bytes": -25988401888,
+              "statuses": [
+                "ok"
+              ]
+            },
+            "graphics_footprint": {
+              "sample_max_bytes": 1701134336,
+              "sample_max_minus_source_weight_payload_bytes": -26759364608,
+              "statuses": [
+                "ok"
+              ]
+            },
+            "kernel_lifetime_peak": {
+              "sample_max_bytes": 3565352248,
+              "sample_max_minus_source_weight_payload_bytes": -24895146696,
+              "statuses": [
+                "ok"
+              ]
+            },
+            "metal_allocated": {
+              "sample_max_bytes": null,
+              "sample_max_minus_source_weight_payload_bytes": null,
+              "statuses": [
+                "unavailable"
+              ]
+            },
+            "available_app": {
+              "sample_max_bytes": null,
+              "sample_max_minus_source_weight_payload_bytes": null,
+              "statuses": [
+                "unavailable"
+              ]
+            }
+          },
+          "release_after": {
+            "rss": {
+              "value": 59615330304,
+              "status": "ok",
+              "unit": "B",
+              "scope": "task_info point observation; not a phase peak"
+            },
+            "footprint": {
+              "value": 2321347872,
+              "status": "ok",
+              "unit": "B",
+              "scope": "task_info point observation; not a phase peak"
+            },
+            "graphics_footprint": {
+              "value": 1553973248,
+              "status": "ok",
+              "unit": "B",
+              "scope": "task_info point observation; not a phase peak"
+            },
+            "kernel_lifetime_peak": {
+              "value": 3565352248,
+              "status": "ok",
+              "unit": "B",
+              "scope": "kernel physical-footprint peak over this process lifetime; never reset per phase"
+            },
+            "metal_allocated": {
+              "value": null,
+              "status": "unavailable",
+              "unit": "B",
+              "scope": "Core AI Python does not expose the delegate's MTLDevice allocation counter"
+            },
+            "available_app": {
+              "value": null,
+              "status": "unavailable",
+              "unit": "B",
+              "scope": "iOS-only os_proc_available_memory; unavailable to this macOS host"
+            }
+          }
+        },
+        "vae_encoder": {
+          "source_weight_payload_bytes": 314768768,
+          "physical_io_single_copy_bytes": 4456448,
+          "observations": {
+            "rss": {
+              "sample_max_bytes": 33674280960,
+              "sample_max_minus_source_weight_payload_bytes": 33359512192,
+              "statuses": [
+                "ok"
+              ]
+            },
+            "footprint": {
+              "sample_max_bytes": 1992041816,
+              "sample_max_minus_source_weight_payload_bytes": 1677273048,
+              "statuses": [
+                "ok"
+              ]
+            },
+            "graphics_footprint": {
+              "sample_max_bytes": 1290223616,
+              "sample_max_minus_source_weight_payload_bytes": 975454848,
+              "statuses": [
+                "ok"
+              ]
+            },
+            "kernel_lifetime_peak": {
+              "sample_max_bytes": 1992254808,
+              "sample_max_minus_source_weight_payload_bytes": 1677486040,
+              "statuses": [
+                "ok"
+              ]
+            },
+            "metal_allocated": {
+              "sample_max_bytes": null,
+              "sample_max_minus_source_weight_payload_bytes": null,
+              "statuses": [
+                "unavailable"
+              ]
+            },
+            "available_app": {
+              "sample_max_bytes": null,
+              "sample_max_minus_source_weight_payload_bytes": null,
+              "statuses": [
+                "unavailable"
+              ]
+            }
+          },
+          "release_after": {
+            "rss": {
+              "value": 33668825088,
+              "status": "ok",
+              "unit": "B",
+              "scope": "task_info point observation; not a phase peak"
+            },
+            "footprint": {
+              "value": 1860707672,
+              "status": "ok",
+              "unit": "B",
+              "scope": "task_info point observation; not a phase peak"
+            },
+            "graphics_footprint": {
+              "value": 1163083776,
+              "status": "ok",
+              "unit": "B",
+              "scope": "task_info point observation; not a phase peak"
+            },
+            "kernel_lifetime_peak": {
+              "value": 1992254808,
+              "status": "ok",
+              "unit": "B",
+              "scope": "kernel physical-footprint peak over this process lifetime; never reset per phase"
+            },
+            "metal_allocated": {
+              "value": null,
+              "status": "unavailable",
+              "unit": "B",
+              "scope": "Core AI Python does not expose the delegate's MTLDevice allocation counter"
+            },
+            "available_app": {
+              "value": null,
+              "status": "unavailable",
+              "unit": "B",
+              "scope": "iOS-only os_proc_available_memory; unavailable to this macOS host"
+            }
+          }
+        },
+        "vae_decoder": {
+          "source_weight_payload_bytes": 1036192848,
+          "physical_io_single_copy_bytes": 4456448,
+          "observations": {
+            "rss": {
+              "sample_max_bytes": 60647718912,
+              "sample_max_minus_source_weight_payload_bytes": 59611526064,
+              "statuses": [
+                "ok"
+              ]
+            },
+            "footprint": {
+              "sample_max_bytes": 5289965624,
+              "sample_max_minus_source_weight_payload_bytes": 4253772776,
+              "statuses": [
+                "ok"
+              ]
+            },
+            "graphics_footprint": {
+              "sample_max_bytes": 4511072256,
+              "sample_max_minus_source_weight_payload_bytes": 3474879408,
+              "statuses": [
+                "ok"
+              ]
+            },
+            "kernel_lifetime_peak": {
+              "sample_max_bytes": 5302270008,
+              "sample_max_minus_source_weight_payload_bytes": 4266077160,
+              "statuses": [
+                "ok"
+              ]
+            },
+            "metal_allocated": {
+              "sample_max_bytes": null,
+              "sample_max_minus_source_weight_payload_bytes": null,
+              "statuses": [
+                "unavailable"
+              ]
+            },
+            "available_app": {
+              "sample_max_bytes": null,
+              "sample_max_minus_source_weight_payload_bytes": null,
+              "statuses": [
+                "unavailable"
+              ]
+            }
+          },
+          "release_after": {
+            "rss": {
+              "value": 60646064128,
+              "status": "ok",
+              "unit": "B",
+              "scope": "task_info point observation; not a phase peak"
+            },
+            "footprint": {
+              "value": 5288097848,
+              "status": "ok",
+              "unit": "B",
+              "scope": "task_info point observation; not a phase peak"
+            },
+            "graphics_footprint": {
+              "value": 4509466624,
+              "status": "ok",
+              "unit": "B",
+              "scope": "task_info point observation; not a phase peak"
+            },
+            "kernel_lifetime_peak": {
+              "value": 5302270008,
+              "status": "ok",
+              "unit": "B",
+              "scope": "kernel physical-footprint peak over this process lifetime; never reset per phase"
+            },
+            "metal_allocated": {
+              "value": null,
+              "status": "unavailable",
+              "unit": "B",
+              "scope": "Core AI Python does not expose the delegate's MTLDevice allocation counter"
+            },
+            "available_app": {
+              "value": null,
+              "status": "unavailable",
+              "unit": "B",
+              "scope": "iOS-only os_proc_available_memory; unavailable to this macOS host"
+            }
+          }
+        }
+      },
+      "allocations": [
+        {
+          "storage_id": "vision-source-weight-scenario",
+          "backing_bytes": 2305553344,
+          "begin_ns": 3036102107301291,
+          "end_ns": 3036105522808166,
+          "category": "weights"
+        },
+        {
+          "storage_id": "vision-boundary-scenario-0",
+          "backing_bytes": 23068672,
+          "begin_ns": 3036105281483833,
+          "end_ns": 3036105467463166,
+          "category": "activations"
+        },
+        {
+          "storage_id": "text-source-weight-scenario",
+          "backing_bytes": 30273605632,
+          "begin_ns": 3036105544617375,
+          "end_ns": 3036158209390375,
+          "category": "weights"
+        },
+        {
+          "storage_id": "text-boundary-scenario-0",
+          "backing_bytes": 42732032,
+          "begin_ns": 3036157076482666,
+          "end_ns": 3036158138744875,
+          "category": "activations"
+        },
+        {
+          "storage_id": "denoiser-source-weight-scenario",
+          "backing_bytes": 28460498944,
+          "begin_ns": 3036158867916500,
+          "end_ns": 3036249665135083,
+          "category": "weights"
+        },
+        {
+          "storage_id": "denoiser-boundary-scenario-0",
+          "backing_bytes": 16013828,
+          "begin_ns": 3036211941406208,
+          "end_ns": 3036216197524500,
+          "category": "activations"
+        },
+        {
+          "storage_id": "denoiser-boundary-scenario-1",
+          "backing_bytes": 16013828,
+          "begin_ns": 3036216204859541,
+          "end_ns": 3036220162259916,
+          "category": "activations"
+        },
+        {
+          "storage_id": "denoiser-boundary-scenario-2",
+          "backing_bytes": 16013828,
+          "begin_ns": 3036220165626625,
+          "end_ns": 3036224489171041,
+          "category": "activations"
+        },
+        {
+          "storage_id": "denoiser-boundary-scenario-3",
+          "backing_bytes": 16013828,
+          "begin_ns": 3036224490169333,
+          "end_ns": 3036229030408916,
+          "category": "activations"
+        },
+        {
+          "storage_id": "denoiser-boundary-scenario-4",
+          "backing_bytes": 16013828,
+          "begin_ns": 3036229033246666,
+          "end_ns": 3036233851682708,
+          "category": "activations"
+        },
+        {
+          "storage_id": "denoiser-boundary-scenario-5",
+          "backing_bytes": 16013828,
+          "begin_ns": 3036233853002833,
+          "end_ns": 3036238775807500,
+          "category": "activations"
+        },
+        {
+          "storage_id": "denoiser-boundary-scenario-6",
+          "backing_bytes": 16013828,
+          "begin_ns": 3036238776806458,
+          "end_ns": 3036244070325625,
+          "category": "activations"
+        },
+        {
+          "storage_id": "denoiser-boundary-scenario-7",
+          "backing_bytes": 16013828,
+          "begin_ns": 3036244071190708,
+          "end_ns": 3036249598439041,
+          "category": "activations"
+        },
+        {
+          "storage_id": "vae_encoder-source-weight-scenario",
+          "backing_bytes": 314768768,
+          "begin_ns": 3036158223406166,
+          "end_ns": 3036158865214125,
+          "category": "weights"
+        },
+        {
+          "storage_id": "vae_encoder-boundary-scenario-0",
+          "backing_bytes": 4456448,
+          "begin_ns": 3036158730679500,
+          "end_ns": 3036158810830166,
+          "category": "activations"
+        },
+        {
+          "storage_id": "vae_decoder-source-weight-scenario",
+          "backing_bytes": 1036192848,
+          "begin_ns": 3036249667809791,
+          "end_ns": 3036251872064625,
+          "category": "weights"
+        },
+        {
+          "storage_id": "vae_decoder-boundary-scenario-0",
+          "backing_bytes": 4456448,
+          "begin_ns": 3036251380057375,
+          "end_ns": 3036251791302083,
+          "category": "activations"
+        }
+      ],
+      "declared_scenario": {
+        "planning_peak_bytes": null,
+        "known_live_peak_bytes": 30316337664,
+        "unmeasured_categories": [
+          "activations",
+          "application",
+          "cache",
+          "images",
+          "weights",
+          "workspace"
+        ],
+        "time_ns": 3036157076482666,
+        "categories": {
+          "activations": 42732032,
+          "application": 0,
+          "cache": 0,
+          "images": 0,
+          "weights": 30273605632,
+          "workspace": 0
+        },
+        "timeline": [
+          {
+            "time_ns": 3036102107301291,
+            "live_bytes": 2305553344,
+            "categories": {
+              "activations": 0,
+              "application": 0,
+              "cache": 0,
+              "images": 0,
+              "weights": 2305553344,
+              "workspace": 0
+            }
+          },
+          {
+            "time_ns": 3036105281483833,
+            "live_bytes": 2328622016,
+            "categories": {
+              "activations": 23068672,
+              "application": 0,
+              "cache": 0,
+              "images": 0,
+              "weights": 2305553344,
+              "workspace": 0
+            }
+          },
+          {
+            "time_ns": 3036105467463166,
+            "live_bytes": 2305553344,
+            "categories": {
+              "activations": 0,
+              "application": 0,
+              "cache": 0,
+              "images": 0,
+              "weights": 2305553344,
+              "workspace": 0
+            }
+          },
+          {
+            "time_ns": 3036105522808166,
+            "live_bytes": 0,
+            "categories": {
+              "activations": 0,
+              "application": 0,
+              "cache": 0,
+              "images": 0,
+              "weights": 0,
+              "workspace": 0
+            }
+          },
+          {
+            "time_ns": 3036105544617375,
+            "live_bytes": 30273605632,
+            "categories": {
+              "activations": 0,
+              "application": 0,
+              "cache": 0,
+              "images": 0,
+              "weights": 30273605632,
+              "workspace": 0
+            }
+          },
+          {
+            "time_ns": 3036157076482666,
+            "live_bytes": 30316337664,
+            "categories": {
+              "activations": 42732032,
+              "application": 0,
+              "cache": 0,
+              "images": 0,
+              "weights": 30273605632,
+              "workspace": 0
+            }
+          },
+          {
+            "time_ns": 3036158138744875,
+            "live_bytes": 30273605632,
+            "categories": {
+              "activations": 0,
+              "application": 0,
+              "cache": 0,
+              "images": 0,
+              "weights": 30273605632,
+              "workspace": 0
+            }
+          },
+          {
+            "time_ns": 3036158209390375,
+            "live_bytes": 0,
+            "categories": {
+              "activations": 0,
+              "application": 0,
+              "cache": 0,
+              "images": 0,
+              "weights": 0,
+              "workspace": 0
+            }
+          },
+          {
+            "time_ns": 3036158223406166,
+            "live_bytes": 314768768,
+            "categories": {
+              "activations": 0,
+              "application": 0,
+              "cache": 0,
+              "images": 0,
+              "weights": 314768768,
+              "workspace": 0
+            }
+          },
+          {
+            "time_ns": 3036158730679500,
+            "live_bytes": 319225216,
+            "categories": {
+              "activations": 4456448,
+              "application": 0,
+              "cache": 0,
+              "images": 0,
+              "weights": 314768768,
+              "workspace": 0
+            }
+          },
+          {
+            "time_ns": 3036158810830166,
+            "live_bytes": 314768768,
+            "categories": {
+              "activations": 0,
+              "application": 0,
+              "cache": 0,
+              "images": 0,
+              "weights": 314768768,
+              "workspace": 0
+            }
+          },
+          {
+            "time_ns": 3036158865214125,
+            "live_bytes": 0,
+            "categories": {
+              "activations": 0,
+              "application": 0,
+              "cache": 0,
+              "images": 0,
+              "weights": 0,
+              "workspace": 0
+            }
+          },
+          {
+            "time_ns": 3036158867916500,
+            "live_bytes": 28460498944,
+            "categories": {
+              "activations": 0,
+              "application": 0,
+              "cache": 0,
+              "images": 0,
+              "weights": 28460498944,
+              "workspace": 0
+            }
+          },
+          {
+            "time_ns": 3036211941406208,
+            "live_bytes": 28476512772,
+            "categories": {
+              "activations": 16013828,
+              "application": 0,
+              "cache": 0,
+              "images": 0,
+              "weights": 28460498944,
+              "workspace": 0
+            }
+          },
+          {
+            "time_ns": 3036216197524500,
+            "live_bytes": 28460498944,
+            "categories": {
+              "activations": 0,
+              "application": 0,
+              "cache": 0,
+              "images": 0,
+              "weights": 28460498944,
+              "workspace": 0
+            }
+          },
+          {
+            "time_ns": 3036216204859541,
+            "live_bytes": 28476512772,
+            "categories": {
+              "activations": 16013828,
+              "application": 0,
+              "cache": 0,
+              "images": 0,
+              "weights": 28460498944,
+              "workspace": 0
+            }
+          },
+          {
+            "time_ns": 3036220162259916,
+            "live_bytes": 28460498944,
+            "categories": {
+              "activations": 0,
+              "application": 0,
+              "cache": 0,
+              "images": 0,
+              "weights": 28460498944,
+              "workspace": 0
+            }
+          },
+          {
+            "time_ns": 3036220165626625,
+            "live_bytes": 28476512772,
+            "categories": {
+              "activations": 16013828,
+              "application": 0,
+              "cache": 0,
+              "images": 0,
+              "weights": 28460498944,
+              "workspace": 0
+            }
+          },
+          {
+            "time_ns": 3036224489171041,
+            "live_bytes": 28460498944,
+            "categories": {
+              "activations": 0,
+              "application": 0,
+              "cache": 0,
+              "images": 0,
+              "weights": 28460498944,
+              "workspace": 0
+            }
+          },
+          {
+            "time_ns": 3036224490169333,
+            "live_bytes": 28476512772,
+            "categories": {
+              "activations": 16013828,
+              "application": 0,
+              "cache": 0,
+              "images": 0,
+              "weights": 28460498944,
+              "workspace": 0
+            }
+          },
+          {
+            "time_ns": 3036229030408916,
+            "live_bytes": 28460498944,
+            "categories": {
+              "activations": 0,
+              "application": 0,
+              "cache": 0,
+              "images": 0,
+              "weights": 28460498944,
+              "workspace": 0
+            }
+          },
+          {
+            "time_ns": 3036229033246666,
+            "live_bytes": 28476512772,
+            "categories": {
+              "activations": 16013828,
+              "application": 0,
+              "cache": 0,
+              "images": 0,
+              "weights": 28460498944,
+              "workspace": 0
+            }
+          },
+          {
+            "time_ns": 3036233851682708,
+            "live_bytes": 28460498944,
+            "categories": {
+              "activations": 0,
+              "application": 0,
+              "cache": 0,
+              "images": 0,
+              "weights": 28460498944,
+              "workspace": 0
+            }
+          },
+          {
+            "time_ns": 3036233853002833,
+            "live_bytes": 28476512772,
+            "categories": {
+              "activations": 16013828,
+              "application": 0,
+              "cache": 0,
+              "images": 0,
+              "weights": 28460498944,
+              "workspace": 0
+            }
+          },
+          {
+            "time_ns": 3036238775807500,
+            "live_bytes": 28460498944,
+            "categories": {
+              "activations": 0,
+              "application": 0,
+              "cache": 0,
+              "images": 0,
+              "weights": 28460498944,
+              "workspace": 0
+            }
+          },
+          {
+            "time_ns": 3036238776806458,
+            "live_bytes": 28476512772,
+            "categories": {
+              "activations": 16013828,
+              "application": 0,
+              "cache": 0,
+              "images": 0,
+              "weights": 28460498944,
+              "workspace": 0
+            }
+          },
+          {
+            "time_ns": 3036244070325625,
+            "live_bytes": 28460498944,
+            "categories": {
+              "activations": 0,
+              "application": 0,
+              "cache": 0,
+              "images": 0,
+              "weights": 28460498944,
+              "workspace": 0
+            }
+          },
+          {
+            "time_ns": 3036244071190708,
+            "live_bytes": 28476512772,
+            "categories": {
+              "activations": 16013828,
+              "application": 0,
+              "cache": 0,
+              "images": 0,
+              "weights": 28460498944,
+              "workspace": 0
+            }
+          },
+          {
+            "time_ns": 3036249598439041,
+            "live_bytes": 28460498944,
+            "categories": {
+              "activations": 0,
+              "application": 0,
+              "cache": 0,
+              "images": 0,
+              "weights": 28460498944,
+              "workspace": 0
+            }
+          },
+          {
+            "time_ns": 3036249665135083,
+            "live_bytes": 0,
+            "categories": {
+              "activations": 0,
+              "application": 0,
+              "cache": 0,
+              "images": 0,
+              "weights": 0,
+              "workspace": 0
+            }
+          },
+          {
+            "time_ns": 3036249667809791,
+            "live_bytes": 1036192848,
+            "categories": {
+              "activations": 0,
+              "application": 0,
+              "cache": 0,
+              "images": 0,
+              "weights": 1036192848,
+              "workspace": 0
+            }
+          },
+          {
+            "time_ns": 3036251380057375,
+            "live_bytes": 1040649296,
+            "categories": {
+              "activations": 4456448,
+              "application": 0,
+              "cache": 0,
+              "images": 0,
+              "weights": 1036192848,
+              "workspace": 0
+            }
+          },
+          {
+            "time_ns": 3036251791302083,
+            "live_bytes": 1036192848,
+            "categories": {
+              "activations": 0,
+              "application": 0,
+              "cache": 0,
+              "images": 0,
+              "weights": 1036192848,
+              "workspace": 0
+            }
+          },
+          {
+            "time_ns": 3036251872064625,
+            "live_bytes": 0,
+            "categories": {
+              "activations": 0,
+              "application": 0,
+              "cache": 0,
+              "images": 0,
+              "weights": 0,
+              "workspace": 0
+            }
+          }
+        ],
+        "scope": "declared backing-storage lifetimes; not measured device RAM"
+      },
+      "specialization_seconds": {
+        "value": null,
+        "status": "unavailable",
+        "unit": "s",
+        "scope": "AIModel.load and first call may include specialization; not separately exposed"
+      },
+      "memory_sample_maxima": {
+        "rss": 60654567424,
+        "footprint": 5296453688,
+        "graphics_footprint": 4511072256,
+        "kernel_lifetime_peak": 5302270008,
+        "metal_allocated": null,
+        "available_app": null
+      }
+    },
+    "trace": {
+      "metrics": {
+        "bytes": 86144,
+        "sha256": "621dd646023a32272cd54d525b6599f46a2f5165da0af8a1041d62c0361cc12d"
+      },
+      "total_seconds": 193.910863167,
+      "phases": [
+        {
+          "phase": "prepare-hash",
+          "seconds": 25.001198666
+        },
+        {
+          "phase": "prepare-image-and-noise",
+          "seconds": 0.003272791
+        },
+        {
+          "phase": "prepare",
+          "seconds": 0.321616875
+        },
+        {
+          "phase": "vision.load-including-specialization",
+          "seconds": 3.018787375
+        },
+        {
+          "phase": "vision",
+          "seconds": 0.161086958
+        },
+        {
+          "phase": "vision.release",
+          "seconds": 0.0527995
+        },
+        {
+          "phase": "text.load-including-specialization",
+          "seconds": 53.772690917
+        },
+        {
+          "phase": "text",
+          "seconds": 1.103185625
+        },
+        {
+          "phase": "text.release",
+          "seconds": 0.069571084
+        },
+        {
+          "phase": "vae_encoder.load-including-specialization",
+          "seconds": 0.475249709
+        },
+        {
+          "phase": "vae_encoder",
+          "seconds": 0.100533209
+        },
+        {
+          "phase": "vae_encoder.release",
+          "seconds": 0.052526375
+        },
+        {
+          "phase": "denoiser.load-including-specialization",
+          "seconds": 57.718664792
+        },
+        {
+          "phase": "denoiser.step-0",
+          "seconds": 6.222676
+        },
+        {
+          "phase": "denoiser.step-1",
+          "seconds": 6.133443583
+        },
+        {
+          "phase": "denoiser.step-2",
+          "seconds": 6.212545875
+        },
+        {
+          "phase": "denoiser.step-3",
+          "seconds": 6.083836834
+        },
+        {
+          "phase": "denoiser.step-4",
+          "seconds": 6.241387583
+        },
+        {
+          "phase": "denoiser.step-5",
+          "seconds": 6.034540625
+        },
+        {
+          "phase": "denoiser.step-6",
+          "seconds": 6.544627458
+        },
+        {
+          "phase": "denoiser.step-7",
+          "seconds": 6.345296708
+        },
+        {
+          "phase": "denoiser.release",
+          "seconds": 0.064145084
+        },
+        {
+          "phase": "vae_decoder.load-including-specialization",
+          "seconds": 1.635427958
+        },
+        {
+          "phase": "vae_decoder",
+          "seconds": 0.391550375
+        },
+        {
+          "phase": "vae_decoder.release",
+          "seconds": 0.060880041
+        },
+        {
+          "phase": "save-image",
+          "seconds": 0.019440875
+        }
+      ],
+      "components": {
+        "vision": {
+          "source_weight_payload_bytes": 2305553344,
+          "physical_io_single_copy_bytes": 23068672,
+          "observations": {
+            "rss": {
+              "sample_max_bytes": 2966274048,
+              "sample_max_minus_source_weight_payload_bytes": 660720704,
+              "statuses": [
+                "ok"
+              ]
+            },
+            "footprint": {
+              "sample_max_bytes": 970853808,
+              "sample_max_minus_source_weight_payload_bytes": -1334699536,
+              "statuses": [
+                "ok"
+              ]
+            },
+            "graphics_footprint": {
+              "sample_max_bytes": 388186112,
+              "sample_max_minus_source_weight_payload_bytes": -1917367232,
+              "statuses": [
+                "ok"
+              ]
+            },
+            "kernel_lifetime_peak": {
+              "sample_max_bytes": 1013386672,
+              "sample_max_minus_source_weight_payload_bytes": -1292166672,
+              "statuses": [
+                "ok"
+              ]
+            },
+            "metal_allocated": {
+              "sample_max_bytes": null,
+              "sample_max_minus_source_weight_payload_bytes": null,
+              "statuses": [
+                "unavailable"
+              ]
+            },
+            "available_app": {
+              "sample_max_bytes": null,
+              "sample_max_minus_source_weight_payload_bytes": null,
+              "statuses": [
+                "unavailable"
+              ]
+            }
+          },
+          "release_after": {
+            "rss": {
+              "value": 2959949824,
+              "status": "ok",
+              "unit": "B",
+              "scope": "task_info point observation; not a phase peak"
+            },
+            "footprint": {
+              "value": 970608048,
+              "status": "ok",
+              "unit": "B",
+              "scope": "task_info point observation; not a phase peak"
+            },
+            "graphics_footprint": {
+              "value": 387956736,
+              "status": "ok",
+              "unit": "B",
+              "scope": "task_info point observation; not a phase peak"
+            },
+            "kernel_lifetime_peak": {
+              "value": 1013386672,
+              "status": "ok",
+              "unit": "B",
+              "scope": "kernel physical-footprint peak over this process lifetime; never reset per phase"
+            },
+            "metal_allocated": {
+              "value": null,
+              "status": "unavailable",
+              "unit": "B",
+              "scope": "Core AI Python does not expose the delegate's MTLDevice allocation counter"
+            },
+            "available_app": {
+              "value": null,
+              "status": "unavailable",
+              "unit": "B",
+              "scope": "iOS-only os_proc_available_memory; unavailable to this macOS host"
+            }
+          }
+        },
+        "text": {
+          "source_weight_payload_bytes": 30273605632,
+          "physical_io_single_copy_bytes": 42732032,
+          "observations": {
+            "rss": {
+              "sample_max_bytes": 33348911104,
+              "sample_max_minus_source_weight_payload_bytes": 3075305472,
+              "statuses": [
+                "ok"
+              ]
+            },
+            "footprint": {
+              "sample_max_bytes": 1324884976,
+              "sample_max_minus_source_weight_payload_bytes": -28948720656,
+              "statuses": [
+                "ok"
+              ]
+            },
+            "graphics_footprint": {
+              "sample_max_bytes": 626442240,
+              "sample_max_minus_source_weight_payload_bytes": -29647163392,
+              "statuses": [
+                "ok"
+              ]
+            },
+            "kernel_lifetime_peak": {
+              "sample_max_bytes": 1452893168,
+              "sample_max_minus_source_weight_payload_bytes": -28820712464,
+              "statuses": [
+                "ok"
+              ]
+            },
+            "metal_allocated": {
+              "sample_max_bytes": null,
+              "sample_max_minus_source_weight_payload_bytes": null,
+              "statuses": [
+                "unavailable"
+              ]
+            },
+            "available_app": {
+              "sample_max_bytes": null,
+              "sample_max_minus_source_weight_payload_bytes": null,
+              "statuses": [
+                "unavailable"
+              ]
+            }
+          },
+          "release_after": {
+            "rss": {
+              "value": 33314373632,
+              "status": "ok",
+              "unit": "B",
+              "scope": "task_info point observation; not a phase peak"
+            },
+            "footprint": {
+              "value": 1289528304,
+              "status": "ok",
+              "unit": "B",
+              "scope": "task_info point observation; not a phase peak"
+            },
+            "graphics_footprint": {
+              "value": 625459200,
+              "status": "ok",
+              "unit": "B",
+              "scope": "task_info point observation; not a phase peak"
+            },
+            "kernel_lifetime_peak": {
+              "value": 1452893168,
+              "status": "ok",
+              "unit": "B",
+              "scope": "kernel physical-footprint peak over this process lifetime; never reset per phase"
+            },
+            "metal_allocated": {
+              "value": null,
+              "status": "unavailable",
+              "unit": "B",
+              "scope": "Core AI Python does not expose the delegate's MTLDevice allocation counter"
+            },
+            "available_app": {
+              "value": null,
+              "status": "unavailable",
+              "unit": "B",
+              "scope": "iOS-only os_proc_available_memory; unavailable to this macOS host"
+            }
+          }
+        },
+        "denoiser": {
+          "source_weight_payload_bytes": 28460498944,
+          "physical_io_single_copy_bytes": 16013828,
+          "observations": {
+            "rss": {
+              "sample_max_bytes": 62200643584,
+              "sample_max_minus_source_weight_payload_bytes": 33740144640,
+              "statuses": [
+                "ok"
+              ]
+            },
+            "footprint": {
+              "sample_max_bytes": 2362258744,
+              "sample_max_minus_source_weight_payload_bytes": -26098240200,
+              "statuses": [
+                "ok"
+              ]
+            },
+            "graphics_footprint": {
+              "sample_max_bytes": 1588625408,
+              "sample_max_minus_source_weight_payload_bytes": -26871873536,
+              "statuses": [
+                "ok"
+              ]
+            },
+            "kernel_lifetime_peak": {
+              "sample_max_bytes": 3334436200,
+              "sample_max_minus_source_weight_payload_bytes": -25126062744,
+              "statuses": [
+                "ok"
+              ]
+            },
+            "metal_allocated": {
+              "sample_max_bytes": null,
+              "sample_max_minus_source_weight_payload_bytes": null,
+              "statuses": [
+                "unavailable"
+              ]
+            },
+            "available_app": {
+              "sample_max_bytes": null,
+              "sample_max_minus_source_weight_payload_bytes": null,
+              "statuses": [
+                "unavailable"
+              ]
+            }
+          },
+          "release_after": {
+            "rss": {
+              "value": 62184423424,
+              "status": "ok",
+              "unit": "B",
+              "scope": "task_info point observation; not a phase peak"
+            },
+            "footprint": {
+              "value": 2203989304,
+              "status": "ok",
+              "unit": "B",
+              "scope": "task_info point observation; not a phase peak"
+            },
+            "graphics_footprint": {
+              "value": 1440137216,
+              "status": "ok",
+              "unit": "B",
+              "scope": "task_info point observation; not a phase peak"
+            },
+            "kernel_lifetime_peak": {
+              "value": 3334436200,
+              "status": "ok",
+              "unit": "B",
+              "scope": "kernel physical-footprint peak over this process lifetime; never reset per phase"
+            },
+            "metal_allocated": {
+              "value": null,
+              "status": "unavailable",
+              "unit": "B",
+              "scope": "Core AI Python does not expose the delegate's MTLDevice allocation counter"
+            },
+            "available_app": {
+              "value": null,
+              "status": "unavailable",
+              "unit": "B",
+              "scope": "iOS-only os_proc_available_memory; unavailable to this macOS host"
+            }
+          }
+        },
+        "vae_encoder": {
+          "source_weight_payload_bytes": 314768768,
+          "physical_io_single_copy_bytes": 4456448,
+          "observations": {
+            "rss": {
+              "sample_max_bytes": 33672740864,
+              "sample_max_minus_source_weight_payload_bytes": 33357972096,
+              "statuses": [
+                "ok"
+              ]
+            },
+            "footprint": {
+              "sample_max_bytes": 1890837872,
+              "sample_max_minus_source_weight_payload_bytes": 1576069104,
+              "statuses": [
+                "ok"
+              ]
+            },
+            "graphics_footprint": {
+              "sample_max_bytes": 1187741696,
+              "sample_max_minus_source_weight_payload_bytes": 872972928,
+              "statuses": [
+                "ok"
+              ]
+            },
+            "kernel_lifetime_peak": {
+              "sample_max_bytes": 1896588656,
+              "sample_max_minus_source_weight_payload_bytes": 1581819888,
+              "statuses": [
+                "ok"
+              ]
+            },
+            "metal_allocated": {
+              "sample_max_bytes": null,
+              "sample_max_minus_source_weight_payload_bytes": null,
+              "statuses": [
+                "unavailable"
+              ]
+            },
+            "available_app": {
+              "sample_max_bytes": null,
+              "sample_max_minus_source_weight_payload_bytes": null,
+              "statuses": [
+                "unavailable"
+              ]
+            }
+          },
+          "release_after": {
+            "rss": {
+              "value": 33668546560,
+              "status": "ok",
+              "unit": "B",
+              "scope": "task_info point observation; not a phase peak"
+            },
+            "footprint": {
+              "value": 1890739568,
+              "status": "ok",
+              "unit": "B",
+              "scope": "task_info point observation; not a phase peak"
+            },
+            "graphics_footprint": {
+              "value": 1187659776,
+              "status": "ok",
+              "unit": "B",
+              "scope": "task_info point observation; not a phase peak"
+            },
+            "kernel_lifetime_peak": {
+              "value": 1896588656,
+              "status": "ok",
+              "unit": "B",
+              "scope": "kernel physical-footprint peak over this process lifetime; never reset per phase"
+            },
+            "metal_allocated": {
+              "value": null,
+              "status": "unavailable",
+              "unit": "B",
+              "scope": "Core AI Python does not expose the delegate's MTLDevice allocation counter"
+            },
+            "available_app": {
+              "value": null,
+              "status": "unavailable",
+              "unit": "B",
+              "scope": "iOS-only os_proc_available_memory; unavailable to this macOS host"
+            }
+          }
+        },
+        "vae_decoder": {
+          "source_weight_payload_bytes": 1036192848,
+          "physical_io_single_copy_bytes": 4456448,
+          "observations": {
+            "rss": {
+              "sample_max_bytes": 63213355008,
+              "sample_max_minus_source_weight_payload_bytes": 62177162160,
+              "statuses": [
+                "ok"
+              ]
+            },
+            "footprint": {
+              "sample_max_bytes": 5276301440,
+              "sample_max_minus_source_weight_payload_bytes": 4240108592,
+              "statuses": [
+                "ok"
+              ]
+            },
+            "graphics_footprint": {
+              "sample_max_bytes": 4500881408,
+              "sample_max_minus_source_weight_payload_bytes": 3464688560,
+              "statuses": [
+                "ok"
+              ]
+            },
+            "kernel_lifetime_peak": {
+              "sample_max_bytes": 5297436800,
+              "sample_max_minus_source_weight_payload_bytes": 4261243952,
+              "statuses": [
+                "ok"
+              ]
+            },
+            "metal_allocated": {
+              "sample_max_bytes": null,
+              "sample_max_minus_source_weight_payload_bytes": null,
+              "statuses": [
+                "unavailable"
+              ]
+            },
+            "available_app": {
+              "sample_max_bytes": null,
+              "sample_max_minus_source_weight_payload_bytes": null,
+              "statuses": [
+                "unavailable"
+              ]
+            }
+          },
+          "release_after": {
+            "rss": {
+              "value": 63213010944,
+              "status": "ok",
+              "unit": "B",
+              "scope": "task_info point observation; not a phase peak"
+            },
+            "footprint": {
+              "value": 5275187328,
+              "status": "ok",
+              "unit": "B",
+              "scope": "task_info point observation; not a phase peak"
+            },
+            "graphics_footprint": {
+              "value": 4500029440,
+              "status": "ok",
+              "unit": "B",
+              "scope": "task_info point observation; not a phase peak"
+            },
+            "kernel_lifetime_peak": {
+              "value": 5297436800,
+              "status": "ok",
+              "unit": "B",
+              "scope": "kernel physical-footprint peak over this process lifetime; never reset per phase"
+            },
+            "metal_allocated": {
+              "value": null,
+              "status": "unavailable",
+              "unit": "B",
+              "scope": "Core AI Python does not expose the delegate's MTLDevice allocation counter"
+            },
+            "available_app": {
+              "value": null,
+              "status": "unavailable",
+              "unit": "B",
+              "scope": "iOS-only os_proc_available_memory; unavailable to this macOS host"
+            }
+          }
+        }
+      },
+      "allocations": [
+        {
+          "storage_id": "vision-source-weight-scenario",
+          "backing_bytes": 2305553344,
+          "begin_ns": 3036281940371958,
+          "end_ns": 3036285173946041,
+          "category": "weights"
+        },
+        {
+          "storage_id": "vision-boundary-scenario-0",
+          "backing_bytes": 23068672,
+          "begin_ns": 3036284959441083,
+          "end_ns": 3036285120528041,
+          "category": "activations"
+        },
+        {
+          "storage_id": "text-source-weight-scenario",
+          "backing_bytes": 30273605632,
+          "begin_ns": 3036285185237708,
+          "end_ns": 3036340134321000,
+          "category": "weights"
+        },
+        {
+          "storage_id": "text-boundary-scenario-0",
+          "backing_bytes": 42732032,
+          "begin_ns": 3036338958107750,
+          "end_ns": 3036340061293375,
+          "category": "activations"
+        },
+        {
+          "storage_id": "denoiser-source-weight-scenario",
+          "backing_bytes": 28460498944,
+          "begin_ns": 3036340776833791,
+          "end_ns": 3036448401989875,
+          "category": "weights"
+        },
+        {
+          "storage_id": "denoiser-boundary-scenario-0",
+          "backing_bytes": 16013828,
+          "begin_ns": 3036398495945833,
+          "end_ns": 3036404718621833,
+          "category": "activations"
+        },
+        {
+          "storage_id": "denoiser-boundary-scenario-1",
+          "backing_bytes": 16013828,
+          "begin_ns": 3036404719769208,
+          "end_ns": 3036410853212791,
+          "category": "activations"
+        },
+        {
+          "storage_id": "denoiser-boundary-scenario-2",
+          "backing_bytes": 16013828,
+          "begin_ns": 3036410855222041,
+          "end_ns": 3036417067767916,
+          "category": "activations"
+        },
+        {
+          "storage_id": "denoiser-boundary-scenario-3",
+          "backing_bytes": 16013828,
+          "begin_ns": 3036417070231416,
+          "end_ns": 3036423154068250,
+          "category": "activations"
+        },
+        {
+          "storage_id": "denoiser-boundary-scenario-4",
+          "backing_bytes": 16013828,
+          "begin_ns": 3036423155148125,
+          "end_ns": 3036429396535708,
+          "category": "activations"
+        },
+        {
+          "storage_id": "denoiser-boundary-scenario-5",
+          "backing_bytes": 16013828,
+          "begin_ns": 3036429399149250,
+          "end_ns": 3036435433689875,
+          "category": "activations"
+        },
+        {
+          "storage_id": "denoiser-boundary-scenario-6",
+          "backing_bytes": 16013828,
+          "begin_ns": 3036435436397500,
+          "end_ns": 3036441981024958,
+          "category": "activations"
+        },
+        {
+          "storage_id": "denoiser-boundary-scenario-7",
+          "backing_bytes": 16013828,
+          "begin_ns": 3036441984787708,
+          "end_ns": 3036448330084416,
+          "category": "activations"
+        },
+        {
+          "storage_id": "vae_encoder-source-weight-scenario",
+          "backing_bytes": 314768768,
+          "begin_ns": 3036340144226541,
+          "end_ns": 3036340774286000,
+          "category": "weights"
+        },
+        {
+          "storage_id": "vae_encoder-boundary-scenario-0",
+          "backing_bytes": 4456448,
+          "begin_ns": 3036340619644541,
+          "end_ns": 3036340720177750,
+          "category": "activations"
+        },
+        {
+          "storage_id": "vae_decoder-source-weight-scenario",
+          "backing_bytes": 1036192848,
+          "begin_ns": 3036448404759000,
+          "end_ns": 3036450497659041,
+          "category": "weights"
+        },
+        {
+          "storage_id": "vae_decoder-boundary-scenario-0",
+          "backing_bytes": 4456448,
+          "begin_ns": 3036450040396750,
+          "end_ns": 3036450431947125,
+          "category": "activations"
+        }
+      ],
+      "declared_scenario": {
+        "planning_peak_bytes": null,
+        "known_live_peak_bytes": 30316337664,
+        "unmeasured_categories": [
+          "activations",
+          "application",
+          "cache",
+          "images",
+          "weights",
+          "workspace"
+        ],
+        "time_ns": 3036338958107750,
+        "categories": {
+          "activations": 42732032,
+          "application": 0,
+          "cache": 0,
+          "images": 0,
+          "weights": 30273605632,
+          "workspace": 0
+        },
+        "timeline": [
+          {
+            "time_ns": 3036281940371958,
+            "live_bytes": 2305553344,
+            "categories": {
+              "activations": 0,
+              "application": 0,
+              "cache": 0,
+              "images": 0,
+              "weights": 2305553344,
+              "workspace": 0
+            }
+          },
+          {
+            "time_ns": 3036284959441083,
+            "live_bytes": 2328622016,
+            "categories": {
+              "activations": 23068672,
+              "application": 0,
+              "cache": 0,
+              "images": 0,
+              "weights": 2305553344,
+              "workspace": 0
+            }
+          },
+          {
+            "time_ns": 3036285120528041,
+            "live_bytes": 2305553344,
+            "categories": {
+              "activations": 0,
+              "application": 0,
+              "cache": 0,
+              "images": 0,
+              "weights": 2305553344,
+              "workspace": 0
+            }
+          },
+          {
+            "time_ns": 3036285173946041,
+            "live_bytes": 0,
+            "categories": {
+              "activations": 0,
+              "application": 0,
+              "cache": 0,
+              "images": 0,
+              "weights": 0,
+              "workspace": 0
+            }
+          },
+          {
+            "time_ns": 3036285185237708,
+            "live_bytes": 30273605632,
+            "categories": {
+              "activations": 0,
+              "application": 0,
+              "cache": 0,
+              "images": 0,
+              "weights": 30273605632,
+              "workspace": 0
+            }
+          },
+          {
+            "time_ns": 3036338958107750,
+            "live_bytes": 30316337664,
+            "categories": {
+              "activations": 42732032,
+              "application": 0,
+              "cache": 0,
+              "images": 0,
+              "weights": 30273605632,
+              "workspace": 0
+            }
+          },
+          {
+            "time_ns": 3036340061293375,
+            "live_bytes": 30273605632,
+            "categories": {
+              "activations": 0,
+              "application": 0,
+              "cache": 0,
+              "images": 0,
+              "weights": 30273605632,
+              "workspace": 0
+            }
+          },
+          {
+            "time_ns": 3036340134321000,
+            "live_bytes": 0,
+            "categories": {
+              "activations": 0,
+              "application": 0,
+              "cache": 0,
+              "images": 0,
+              "weights": 0,
+              "workspace": 0
+            }
+          },
+          {
+            "time_ns": 3036340144226541,
+            "live_bytes": 314768768,
+            "categories": {
+              "activations": 0,
+              "application": 0,
+              "cache": 0,
+              "images": 0,
+              "weights": 314768768,
+              "workspace": 0
+            }
+          },
+          {
+            "time_ns": 3036340619644541,
+            "live_bytes": 319225216,
+            "categories": {
+              "activations": 4456448,
+              "application": 0,
+              "cache": 0,
+              "images": 0,
+              "weights": 314768768,
+              "workspace": 0
+            }
+          },
+          {
+            "time_ns": 3036340720177750,
+            "live_bytes": 314768768,
+            "categories": {
+              "activations": 0,
+              "application": 0,
+              "cache": 0,
+              "images": 0,
+              "weights": 314768768,
+              "workspace": 0
+            }
+          },
+          {
+            "time_ns": 3036340774286000,
+            "live_bytes": 0,
+            "categories": {
+              "activations": 0,
+              "application": 0,
+              "cache": 0,
+              "images": 0,
+              "weights": 0,
+              "workspace": 0
+            }
+          },
+          {
+            "time_ns": 3036340776833791,
+            "live_bytes": 28460498944,
+            "categories": {
+              "activations": 0,
+              "application": 0,
+              "cache": 0,
+              "images": 0,
+              "weights": 28460498944,
+              "workspace": 0
+            }
+          },
+          {
+            "time_ns": 3036398495945833,
+            "live_bytes": 28476512772,
+            "categories": {
+              "activations": 16013828,
+              "application": 0,
+              "cache": 0,
+              "images": 0,
+              "weights": 28460498944,
+              "workspace": 0
+            }
+          },
+          {
+            "time_ns": 3036404718621833,
+            "live_bytes": 28460498944,
+            "categories": {
+              "activations": 0,
+              "application": 0,
+              "cache": 0,
+              "images": 0,
+              "weights": 28460498944,
+              "workspace": 0
+            }
+          },
+          {
+            "time_ns": 3036404719769208,
+            "live_bytes": 28476512772,
+            "categories": {
+              "activations": 16013828,
+              "application": 0,
+              "cache": 0,
+              "images": 0,
+              "weights": 28460498944,
+              "workspace": 0
+            }
+          },
+          {
+            "time_ns": 3036410853212791,
+            "live_bytes": 28460498944,
+            "categories": {
+              "activations": 0,
+              "application": 0,
+              "cache": 0,
+              "images": 0,
+              "weights": 28460498944,
+              "workspace": 0
+            }
+          },
+          {
+            "time_ns": 3036410855222041,
+            "live_bytes": 28476512772,
+            "categories": {
+              "activations": 16013828,
+              "application": 0,
+              "cache": 0,
+              "images": 0,
+              "weights": 28460498944,
+              "workspace": 0
+            }
+          },
+          {
+            "time_ns": 3036417067767916,
+            "live_bytes": 28460498944,
+            "categories": {
+              "activations": 0,
+              "application": 0,
+              "cache": 0,
+              "images": 0,
+              "weights": 28460498944,
+              "workspace": 0
+            }
+          },
+          {
+            "time_ns": 3036417070231416,
+            "live_bytes": 28476512772,
+            "categories": {
+              "activations": 16013828,
+              "application": 0,
+              "cache": 0,
+              "images": 0,
+              "weights": 28460498944,
+              "workspace": 0
+            }
+          },
+          {
+            "time_ns": 3036423154068250,
+            "live_bytes": 28460498944,
+            "categories": {
+              "activations": 0,
+              "application": 0,
+              "cache": 0,
+              "images": 0,
+              "weights": 28460498944,
+              "workspace": 0
+            }
+          },
+          {
+            "time_ns": 3036423155148125,
+            "live_bytes": 28476512772,
+            "categories": {
+              "activations": 16013828,
+              "application": 0,
+              "cache": 0,
+              "images": 0,
+              "weights": 28460498944,
+              "workspace": 0
+            }
+          },
+          {
+            "time_ns": 3036429396535708,
+            "live_bytes": 28460498944,
+            "categories": {
+              "activations": 0,
+              "application": 0,
+              "cache": 0,
+              "images": 0,
+              "weights": 28460498944,
+              "workspace": 0
+            }
+          },
+          {
+            "time_ns": 3036429399149250,
+            "live_bytes": 28476512772,
+            "categories": {
+              "activations": 16013828,
+              "application": 0,
+              "cache": 0,
+              "images": 0,
+              "weights": 28460498944,
+              "workspace": 0
+            }
+          },
+          {
+            "time_ns": 3036435433689875,
+            "live_bytes": 28460498944,
+            "categories": {
+              "activations": 0,
+              "application": 0,
+              "cache": 0,
+              "images": 0,
+              "weights": 28460498944,
+              "workspace": 0
+            }
+          },
+          {
+            "time_ns": 3036435436397500,
+            "live_bytes": 28476512772,
+            "categories": {
+              "activations": 16013828,
+              "application": 0,
+              "cache": 0,
+              "images": 0,
+              "weights": 28460498944,
+              "workspace": 0
+            }
+          },
+          {
+            "time_ns": 3036441981024958,
+            "live_bytes": 28460498944,
+            "categories": {
+              "activations": 0,
+              "application": 0,
+              "cache": 0,
+              "images": 0,
+              "weights": 28460498944,
+              "workspace": 0
+            }
+          },
+          {
+            "time_ns": 3036441984787708,
+            "live_bytes": 28476512772,
+            "categories": {
+              "activations": 16013828,
+              "application": 0,
+              "cache": 0,
+              "images": 0,
+              "weights": 28460498944,
+              "workspace": 0
+            }
+          },
+          {
+            "time_ns": 3036448330084416,
+            "live_bytes": 28460498944,
+            "categories": {
+              "activations": 0,
+              "application": 0,
+              "cache": 0,
+              "images": 0,
+              "weights": 28460498944,
+              "workspace": 0
+            }
+          },
+          {
+            "time_ns": 3036448401989875,
+            "live_bytes": 0,
+            "categories": {
+              "activations": 0,
+              "application": 0,
+              "cache": 0,
+              "images": 0,
+              "weights": 0,
+              "workspace": 0
+            }
+          },
+          {
+            "time_ns": 3036448404759000,
+            "live_bytes": 1036192848,
+            "categories": {
+              "activations": 0,
+              "application": 0,
+              "cache": 0,
+              "images": 0,
+              "weights": 1036192848,
+              "workspace": 0
+            }
+          },
+          {
+            "time_ns": 3036450040396750,
+            "live_bytes": 1040649296,
+            "categories": {
+              "activations": 4456448,
+              "application": 0,
+              "cache": 0,
+              "images": 0,
+              "weights": 1036192848,
+              "workspace": 0
+            }
+          },
+          {
+            "time_ns": 3036450431947125,
+            "live_bytes": 1036192848,
+            "categories": {
+              "activations": 0,
+              "application": 0,
+              "cache": 0,
+              "images": 0,
+              "weights": 1036192848,
+              "workspace": 0
+            }
+          },
+          {
+            "time_ns": 3036450497659041,
+            "live_bytes": 0,
+            "categories": {
+              "activations": 0,
+              "application": 0,
+              "cache": 0,
+              "images": 0,
+              "weights": 0,
+              "workspace": 0
+            }
+          }
+        ],
+        "scope": "declared backing-storage lifetimes; not measured device RAM"
+      },
+      "specialization_seconds": {
+        "value": null,
+        "status": "unavailable",
+        "unit": "s",
+        "scope": "AIModel.load and first call may include specialization; not separately exposed"
+      },
+      "memory_sample_maxima": {
+        "rss": 63221448704,
+        "footprint": 5283625112,
+        "graphics_footprint": 4500881408,
+        "kernel_lifetime_peak": 5297436800,
+        "metal_allocated": null,
+        "available_app": null
+      }
+    }
+  },
+  "png": {
+    "off": {
+      "bytes": 164275,
+      "sha256": "a47b32b4671a65a7c539926128d104db9a2fb6f0ba0391a8b2d3305a00a495f9"
+    },
+    "trace": {
+      "bytes": 164275,
+      "sha256": "a47b32b4671a65a7c539926128d104db9a2fb6f0ba0391a8b2d3305a00a495f9"
+    }
+  },
+  "png_equal": true,
+  "reference_comparison": {
+    "final-latent": {
+      "policy_id": "qmi-numeric-gates-v1",
+      "policy_sha256": "6e3c72b9321b6cdc105f8ddf38aaea9c151ab912e2bb9c36dd57654b31d4c793",
+      "metric_code_sha256": {
+        "numeric_policy.py": "17cf04f3b4b213c13cf4b797aa99fc951be8d29ba0cc9a1357113230b928fd17",
+        "contracts.py": "8845f80b45e2c204edc923c6a582c08cbbdf1ac2b82087fddc85750e7227c601",
+        "evaluation.py": "d44f3f0fc7364178959e4a2913244e9b50b46a6876c4aa222aa4e05c2dae4b85"
+      },
+      "compute_dtype": "float32",
+      "boundary": "final-latent",
+      "metrics": {
+        "finite": true,
+        "shape": [
+          1,
+          1024,
+          64
+        ],
+        "absolute_rmse": 9.093356053727235e-07,
+        "normalized_max": 9.122895016378085e-07,
+        "normalized_rmse": 6.150683843506034e-07,
+        "passed": true
+      },
+      "scope": "One already-selected valid tensor region; not suite or profile verification"
+    },
+    "final-rgba": {
+      "policy_id": "qmi-numeric-gates-v1",
+      "policy_sha256": "6e3c72b9321b6cdc105f8ddf38aaea9c151ab912e2bb9c36dd57654b31d4c793",
+      "metric_code_sha256": {
+        "numeric_policy.py": "17cf04f3b4b213c13cf4b797aa99fc951be8d29ba0cc9a1357113230b928fd17",
+        "contracts.py": "8845f80b45e2c204edc923c6a582c08cbbdf1ac2b82087fddc85750e7227c601",
+        "evaluation.py": "d44f3f0fc7364178959e4a2913244e9b50b46a6876c4aa222aa4e05c2dae4b85"
+      },
+      "compute_dtype": "float32",
+      "boundary": "final-rgba",
+      "metrics": {
+        "finite": true,
+        "shape": [
+          1,
+          4,
+          1,
+          512,
+          512
+        ],
+        "absolute_rmse": 3.194640732160819e-07,
+        "normalized_max": 1.2785196304321289e-05,
+        "normalized_rmse": 3.3782509493008034e-07,
+        "passed": true
+      },
+      "scope": "One already-selected valid tensor region; not suite or profile verification"
+    }
+  },
+  "scope": {
+    "timing": "One separate cached-cold process per mode; not warm or percentile acceptance. Cache entry presence does not prove a runtime cache hit.",
+    "weight_scenario": "Full source parameter tensors used by the wrapper, FP32 bytes, declared live from load start through release end. Compiler pruning/folding/constant duplication and actual resident weight pages are not measured.",
+    "boundary_scenario": "One contiguous backing per physical input/output contract during each call. Internal activations, retained host tensors and host/device copies or aliases are not modeled.",
+    "unknown": "Every category remains incomplete. planning_peak_bytes is null; known_live_peak_bytes is only the declared scenario contribution, not a RAM prediction or lower bound.",
+    "difference": "Observed point maximum minus source parameter payload is arithmetic across different accounting scopes, not unexplained workspace. Negative values are meaningful and retained. Kernel peak is cumulative over the process lifetime.",
+    "quality": "Final FP32 trace-to-source comparison for one input only; no human image quality or mobile acceptance."
+  },
+  "runs": [
+    {
+      "run_id": "edit-off",
+      "conditions": {
+        "profile_sha256": "640617179b1ba660965788fd55171e0676fed9279b3d7e1944f4988b2ae0bb0c",
+        "workload_sha256": "74264fa992ac875945a24aba2f6d20a1c1ef7b3e0aaa99cea65b98c984b12a4e",
+        "device": "Mac16,6",
+        "os_build": "26A428",
+        "route": "coreai-python-fp32",
+        "operation": "edit",
+        "cache_state": "cached-cold",
+        "diagnostics": "off",
+        "power": "ac",
+        "thermal": "nominal"
+      },
+      "status": "completed",
+      "total_seconds": 174.8825465,
+      "process_seconds": 180.82966104196385,
+      "process_exit_code": 0,
+      "controller_stop_reason": null,
+      "minimum_observed_free_bytes": 31137583104,
+      "thermal_observations": [
+        {
+          "value": "nominal",
+          "status": "ok"
+        },
+        {
+          "value": "nominal",
+          "status": "ok"
+        }
+      ],
+      "metrics_sha256": "9ca6862227cf0c85f76ac391b70a7293e99ea471d2452e54a2f997157cd90e38"
+    },
+    {
+      "run_id": "edit-trace",
+      "conditions": {
+        "profile_sha256": "640617179b1ba660965788fd55171e0676fed9279b3d7e1944f4988b2ae0bb0c",
+        "workload_sha256": "74264fa992ac875945a24aba2f6d20a1c1ef7b3e0aaa99cea65b98c984b12a4e",
+        "device": "Mac16,6",
+        "os_build": "26A428",
+        "route": "coreai-python-fp32",
+        "operation": "edit",
+        "cache_state": "cached-cold",
+        "diagnostics": "trace",
+        "power": "ac",
+        "thermal": "nominal"
+      },
+      "status": "completed",
+      "total_seconds": 193.910863167,
+      "process_seconds": 198.23476100014523,
+      "process_exit_code": 0,
+      "controller_stop_reason": null,
+      "minimum_observed_free_bytes": 24988618752,
+      "thermal_observations": [
+        {
+          "value": "nominal",
+          "status": "ok"
+        },
+        {
+          "value": "nominal",
+          "status": "ok"
+        }
+      ],
+      "metrics_sha256": "621dd646023a32272cd54d525b6599f46a2f5165da0af8a1041d62c0361cc12d"
+    }
+  ],
+  "code_revision": "0a3480f617240ff43911c0a3f9a82b12cac1b8fa",
+  "measurement_plan_sha256": "1631f202ff4a10c794cdd2a063f4acba6dff8be3952fa1e41b7f2d29d4235734",
+  "artifact_manifest_sha256": "43306970b99dda7717f7e8500179204fb0d0a9503c5836144b15b6a1d48b5852",
+  "driver": {
+    "bytes": 8230,
+    "sha256": "ff85ee3fd009050fde2a8d6ca52a16f25d2219d4d92daff14d97402c65641511"
+  },
+  "runtime_code": {
+    "contracts.py": {
+      "bytes": 8881,
+      "sha256": "8845f80b45e2c204edc923c6a582c08cbbdf1ac2b82087fddc85750e7227c601"
+    },
+    "convert.py": {
+      "bytes": 6516,
+      "sha256": "dc1ef76282e89ed1d275541516e1faca0bad95dabb3d3dc0bd4e028bb8a831bf"
+    },
+    "denoiser.py": {
+      "bytes": 2426,
+      "sha256": "0b3589f726e45779ac39f5a26e1d728a55286a99ad0d2ac26ca93a2bbb309a68"
+    },
+    "encoders.py": {
+      "bytes": 5863,
+      "sha256": "1ae52e4e5da23a98b850458a072280e7f7cf8762236ee33f4d6b3b4bae0ce23a"
+    },
+    "evaluate.py": {
+      "bytes": 2137,
+      "sha256": "40518ed5f920efa876b5b25e6cc370f5a718e6a66c616a3a9a34c3b7e5e7b391"
+    },
+    "evaluation.py": {
+      "bytes": 19015,
+      "sha256": "d44f3f0fc7364178959e4a2913244e9b50b46a6876c4aa222aa4e05c2dae4b85"
+    },
+    "examples.py": {
+      "bytes": 2915,
+      "sha256": "ae3613068c459404159b19fa68730225e99b4d56e16484de84ffc54b10661041"
+    },
+    "fixtures.py": {
+      "bytes": 12721,
+      "sha256": "9fa0e6034bc53ce7391e39b9d8038a2d1b119f65ae0734dce9bf8b5b48675af8"
+    },
+    "generate.py": {
+      "bytes": 9555,
+      "sha256": "12aeda9514e41fd35f4cfb423fbd79d936bf247132df94abbf577b54c67d82f8"
+    },
+    "measurement.py": {
+      "bytes": 6825,
+      "sha256": "7da4fdec293a96c84732c60820b7e4ce4cd97ae2a7ae29136e4f0f4da15f6f08"
+    },
+    "numeric_policy.py": {
+      "bytes": 2379,
+      "sha256": "17cf04f3b4b213c13cf4b797aa99fc951be8d29ba0cc9a1357113230b928fd17"
+    },
+    "pack.py": {
+      "bytes": 11536,
+      "sha256": "6c7bd5dfcf9834d2e7b9d431abb6681d986c6691094e6d897a77f36268f5d85d"
+    },
+    "prepare.py": {
+      "bytes": 2530,
+      "sha256": "3fa0b4f0450ec95c33690ffef4b2840a56fdba17d271acb281c1b5ac0990ae09"
+    },
+    "preprocessing.py": {
+      "bytes": 6636,
+      "sha256": "1591a4c0587e5ccf3c883a8b70fefbf8406d15917fd36d5afecedf9d89d2551f"
+    },
+    "profile.py": {
+      "bytes": 4453,
+      "sha256": "ff4118eb1681df3853da88f04c2bc49d87782cccd667c9d383c9d295e4797a3e"
+    },
+    "reference.py": {
+      "bytes": 8627,
+      "sha256": "f2e2e931afe5c75ed60396459a82c1b102ff625e011c572850643678de65e7fa"
+    },
+    "runtime.py": {
+      "bytes": 2516,
+      "sha256": "b276c74d7658cc12536e94f03b3f0d4f2a56446b7e24913ef8c433f84a3c1ffa"
+    },
+    "suite_reference.py": {
+      "bytes": 11548,
+      "sha256": "3ca83232a49cf02b1f0cd8b1ef0829615bca86d353b48f6dca1f03f48a28812d"
+    },
+    "verify.py": {
+      "bytes": 7713,
+      "sha256": "eaf5ee0e73ed1d002d60f811169a189f137dbaf8224fcff13fee4ce9694811ce"
+    }
+  },
+  "versions": {
+    "torch": "2.9.0",
+    "diffusers": "0.41.0.dev0",
+    "transformers": "5.18.0",
+    "numpy": "2.4.6",
+    "Pillow": "13.0.0",
+    "coreai-torch": "0.4.3",
+    "coreai-core": "1.0.0b3"
+  },
+  "device": "M4 Max 128 GiB (Mac16,6)",
+  "os": "macOS 27.0 (26A428)",
+  "toolchain": "Xcode 27.0 (27A266a)",
+  "recorded_date": "2026-10-21"
+}

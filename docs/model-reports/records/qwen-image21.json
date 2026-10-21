@@ -15,8 +15,8 @@
   },
   "release": "in_progress",
   "release_note": {
-    "en": "Mac conversion verified; mobile planned",
-    "ja": "Mac変換検証済み／モバイル予定"
+    "en": "Mac conversion verified; mobile implementation in progress",
+    "ja": "Mac変換検証済み／モバイル実装中"
   },
   "download": null,
   "pages": {
@@ -87,6 +87,62 @@
       "thermal": null,
       "model_executed": true,
       "plan_sha256": null
+    },
+    "diagnostics-off-20261021": {
+      "url": "docs/research/qwen-image21-off-on-20261021.json",
+      "level": "diagnostic",
+      "outcome": "passed",
+      "record_type": "standard",
+      "date": "2026-10-21",
+      "platform": "macos",
+      "device": "M4 Max 128 GiB",
+      "os": "macOS 27.0 (26A428)",
+      "toolchain": "Xcode 27.0 (27A266a)",
+      "variant": "FP32; no prefix KV; diagnostics off",
+      "backend": "Core AI; GPU preferred",
+      "route": "Python Core AI; separate process; pre-existing cache entries",
+      "source_revision": "fc13ba1986fcb905854dc8de2f52eee395f49b5b",
+      "artifact_revision": "43306970b99dda7717f7e8500179204fb0d0a9503c5836144b15b6a1d48b5852",
+      "code_revision": "0a3480f617240ff43911c0a3f9a82b12cac1b8fa",
+      "workload": {
+        "en": "Fixed e01 edit, seed 20261018, 512×512 RGBA, batch1, CFG1, eight saved sigma steps. Hash/prepare through PNG save, staged loads. One process per diagnostics mode; cache hit not independently observed.",
+        "ja": "固定e01編集、seed20261018、512×512 RGBA、batch1、CFG1、保存8sigma。hash/prepareからPNG保存まで、段階ロード込み。診断modeごとに新process1回。cache hit自体は独立に観測していない。"
+      },
+      "batch_size": 1,
+      "concurrency": 1,
+      "warmups": 0,
+      "power": "AC",
+      "thermal": "nominal",
+      "model_executed": true,
+      "plan_sha256": "1631f202ff4a10c794cdd2a063f4acba6dff8be3952fa1e41b7f2d29d4235734"
+    },
+    "diagnostics-trace-20261021": {
+      "url": "docs/research/qwen-image21-off-on-20261021.json",
+      "level": "diagnostic",
+      "outcome": "passed",
+      "record_type": "standard",
+      "date": "2026-10-21",
+      "platform": "macos",
+      "device": "M4 Max 128 GiB",
+      "os": "macOS 27.0 (26A428)",
+      "toolchain": "Xcode 27.0 (27A266a)",
+      "variant": "FP32; no prefix KV; diagnostics trace",
+      "backend": "Core AI; GPU preferred",
+      "route": "Python Core AI; separate process; pre-existing cache entries",
+      "source_revision": "fc13ba1986fcb905854dc8de2f52eee395f49b5b",
+      "artifact_revision": "43306970b99dda7717f7e8500179204fb0d0a9503c5836144b15b6a1d48b5852",
+      "code_revision": "0a3480f617240ff43911c0a3f9a82b12cac1b8fa",
+      "workload": {
+        "en": "Fixed e01 edit, seed 20261018, 512×512 RGBA, batch1, CFG1, eight saved sigma steps. Hash/prepare through PNG save, staged loads. One process per diagnostics mode; cache hit not independently observed.",
+        "ja": "固定e01編集、seed20261018、512×512 RGBA、batch1、CFG1、保存8sigma。hash/prepareからPNG保存まで、段階ロード込み。診断modeごとに新process1回。cache hit自体は独立に観測していない。"
+      },
+      "batch_size": 1,
+      "concurrency": 1,
+      "warmups": 0,
+      "power": "AC",
+      "thermal": "nominal",
+      "model_executed": true,
+      "plan_sha256": "1631f202ff4a10c794cdd2a063f4acba6dff8be3952fa1e41b7f2d29d4235734"
     }
   },
   "measurements": [
@@ -152,6 +208,38 @@
       "source_value": {
         "path": "docs/research/qwen-image21-20261018/results.json",
         "pointer": "/bundle/bytes_excluding_manifest"
+      }
+    },
+    {
+      "metric": "latency_s",
+      "value": 174.8825465,
+      "unit": "s",
+      "statistic": "single",
+      "n": 1,
+      "evidence": "diagnostics-off-20261021",
+      "note": {
+        "en": "Diagnostics off; one cached-cold process. No warm, percentile or causal diagnostics-overhead claim.",
+        "ja": "診断off、既存cacheありの新process1回。warm・百分位・診断overheadの因果的な比較ではない。"
+      },
+      "source_value": {
+        "path": "docs/research/qwen-image21-off-on-20261021.json",
+        "pointer": "/modes/off/total_seconds"
+      }
+    },
+    {
+      "metric": "latency_s",
+      "value": 193.910863167,
+      "unit": "s",
+      "statistic": "single",
+      "n": 1,
+      "evidence": "diagnostics-trace-20261021",
+      "note": {
+        "en": "Diagnostics trace; one cached-cold process. No warm, percentile or causal diagnostics-overhead claim.",
+        "ja": "診断trace、既存cacheありの新process1回。warm・百分位・診断overheadの因果的な比較ではない。"
+      },
+      "source_value": {
+        "path": "docs/research/qwen-image21-off-on-20261021.json",
+        "pointer": "/modes/trace/total_seconds"
       }
     }
   ],

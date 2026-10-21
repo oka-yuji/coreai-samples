@@ -165,5 +165,22 @@
     "scope": "Disk usage attribution was not captured. Recovery after process exit does not identify temporary files versus swap. No shared cache was deleted.",
     "rerun_requirement": "Restore a substantial free-space margin and add a live free-space stop threshold before retrying the same input in new output directories."
   },
-  "scope": "Reference finite-output and repeatability evidence; no mobile quality, performance or full-model fit acceptance"
+  "scope": "Reference finite-output and repeatability evidence; no mobile quality, performance or full-model fit acceptance",
+  "measurement_retry": {
+    "evidence": "docs/research/qwen-image21-off-on-20261021.json",
+    "outcome": "both-modes-completed",
+    "input": "e01-20261018",
+    "seconds": {
+      "off": 174.8825465,
+      "trace": 193.910863167
+    },
+    "off_trace_png_identical": true,
+    "aggregate_reproduced": true,
+    "reference_gates_passed": {
+      "final-latent": true,
+      "final-rgba": true
+    },
+    "samples_per_mode": 1,
+    "scope": "Instrumented diagnostic comparison only; no warm/p95 or mobile acceptance."
+  }
 }
