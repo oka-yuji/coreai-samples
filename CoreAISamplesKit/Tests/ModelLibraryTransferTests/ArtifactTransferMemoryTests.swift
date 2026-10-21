@@ -39,7 +39,7 @@ struct ArtifactTransferMemoryTests {
         try await transfer.download(model: model, artifact: artifact, to: directory) { _ in }
         let peak = try kernelPeak()
         print("QMH-01 synthetic_bytes=\(bytes) kernel_lifetime_peak_bytes=\(peak)")
-        #expect(peak < 128 * 1_048_576)
+        #expect(peak < UInt64(bytes) / 2)
         let attributes = try FileManager.default.attributesOfItem(atPath: file.path)
         #expect((attributes[.size] as? NSNumber)?.int64Value == bytes)
     }
