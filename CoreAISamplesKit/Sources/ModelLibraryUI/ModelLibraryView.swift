@@ -67,7 +67,7 @@
                 NavigationStack {
                     VStack(alignment: .leading, spacing: 18) {
                         libraryText("Explore converted models through practical demos.").font(.body)
-                        libraryText("You can read each demo before downloading its model.").foregroundStyle(.secondary)
+                        libraryText("You can read each demo before preparing its model.").foregroundStyle(.secondary)
                     }
                     .padding()
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -93,9 +93,9 @@
                     VStack(alignment: .leading, spacing: 6) {
                         libraryText("Choose a demo for a model.").font(.body)
                         libraryText(
-                            store.state.catalog.models.flatMap(\.artifacts).allSatisfy { $0.download == nil }
+                            store.state.catalog.models.flatMap(\.artifacts).allSatisfy { $0.sourceKind == nil }
                                 ? "Demo descriptions are available. Downloads and execution are not available in this build."
-                                : "You can read each demo before downloading its model."
+                                : "You can read each demo before preparing its model."
                         )
                         .font(.footnote).foregroundStyle(.secondary)
                     }

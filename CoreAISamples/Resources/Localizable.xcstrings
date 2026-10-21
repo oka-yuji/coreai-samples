@@ -8364,6 +8364,50 @@
           }
         }
       }
+    },
+    "Create an image from a prompt or edit one reference image." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "プロンプトから画像を生成したり、参照画像1枚を編集したりできます。"
+          }
+        }
+      }
+    },
+    "Generate 512-square images from a prompt, or provide one reference image to edit." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "プロンプトから512×512の画像を生成します。参照画像を1枚選ぶと、その画像を編集できます。"
+          }
+        }
+      }
+    },
+    "Image Generation" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "画像生成"
+          }
+        }
+      }
+    },
+    "Image generation demo" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "画像生成デモ"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

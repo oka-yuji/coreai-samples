@@ -53,6 +53,25 @@ public struct ModelUpstream: Codable, Equatable, Sendable {
     }
 }
 
+public enum ModelSourceKind: String, Codable, Hashable, Sendable {
+    case huggingFace
+    case localManifest
+}
+
+public struct ModelLocalBundle: Codable, Equatable, Sendable {
+    public let manifestSHA256: String
+    public let profileID: String
+
+    public init(manifestSHA256: String, profileID: String) {
+        self.manifestSHA256 = manifestSHA256
+        self.profileID = profileID
+    }
+
+    public var isValid: Bool {
+        isLowercaseHex(manifestSHA256, count: 64) && !profileID.isEmpty
+    }
+}
+
 public struct ModelArtifactFile: Codable, Equatable, Sendable {
     public let path: String
     public let bytes: Int64
@@ -72,6 +91,7 @@ public struct ModelArtifact: Codable, Equatable, Sendable {
     public let platforms: Set<LibraryPlatform>
     public let sizeBytes: Int64?
     public let download: ModelDownload?
+    public let localBundle: ModelLocalBundle?
     public let upstream: ModelUpstream?
     public let files: [ModelArtifactFile]
     public let visibility: CatalogVisibility
@@ -79,7 +99,7 @@ public struct ModelArtifact: Codable, Equatable, Sendable {
     public init(
         id: String, title: String, contract: String, platforms: Set<LibraryPlatform>, sizeBytes: Int64? = nil,
         download: ModelDownload? = nil, upstream: ModelUpstream? = nil, files: [ModelArtifactFile] = [],
-        visibility: CatalogVisibility = .published
+        visibility: CatalogVisibility = .published, localBundle: ModelLocalBundle? = nil
     ) {
         self.id = id
         self.title = title
@@ -87,13 +107,52 @@ public struct ModelArtifact: Codable, Equatable, Sendable {
         self.platforms = platforms
         self.sizeBytes = sizeBytes
         self.download = download
+        self.localBundle = localBundle
         self.upstream = upstream
         self.files = files
         self.visibility = visibility
     }
 
+    public var sourceKind: ModelSourceKind? {
+        switch (download, localBundle) {
+        case (.some, nil): .huggingFace
+        case (nil, .some): .localManifest
+        default: nil
+        }
+    }
+
+    public var sourceRevision: String? {
+        switch sourceKind {
+        case .huggingFace: download?.revision
+        case .localManifest: localBundle?.manifestSHA256
+        case nil: nil
+        }
+    }
+
+    public var isSourceValid: Bool {
+        switch sourceKind {
+        case .huggingFace: download?.isValid == true
+        case .localManifest:
+            localBundle?.isValid == true
+                && files.contains { $0.path == "bundle.json" && $0.sha256 == localBundle?.manifestSHA256 }
+        case nil: false
+        }
+    }
+
+    public var totalFileBytes: Int64? {
+        var total: Int64 = 0
+        for file in files {
+            let (next, overflow) = total.addingReportingOverflow(file.bytes)
+            guard file.bytes >= 0, !overflow else { return nil }
+            total = next
+        }
+        return total
+    }
+
     var isWellFormed: Bool {
         !id.isEmpty && !title.isEmpty && !contract.isEmpty && !platforms.isEmpty && (sizeBytes ?? 0) >= 0
+            && (download == nil || localBundle == nil) && (localBundle == nil || isSourceValid)
+            && totalFileBytes != nil
             && (download.map { !files.isEmpty && ($0.root.isEmpty || isRelativePath($0.root)) } ?? true)
             && files.allSatisfy { isRelativePath($0.path) && $0.bytes >= 0 && isLowercaseHex($0.sha256, count: 64) }
             && Set(files.map(\.path)).count == files.count
@@ -231,6 +290,24 @@ public enum ModelCatalogError: Error, Equatable {
 public struct ModelCatalog: Equatable, Sendable {
     public let models: [LibraryModel]
     public let demos: [DemoDescriptor]
+
+    public func validateConnections(adapterIDs: [String], unconnectedDemoIDs: Set<String> = []) throws {
+        var connected: Set<String> = []
+        let defined = Set(demos.map(\.id))
+        for id in adapterIDs {
+            guard defined.contains(id) else { throw ModelCatalogError.invalidDemo(id) }
+            guard connected.insert(id).inserted else { throw ModelCatalogError.duplicateDemo(id) }
+        }
+        if let invalid = unconnectedDemoIDs.subtracting(defined).sorted().first {
+            throw ModelCatalogError.invalidDemo(invalid)
+        }
+        if let duplicate = connected.intersection(unconnectedDemoIDs).sorted().first {
+            throw ModelCatalogError.duplicateDemo(duplicate)
+        }
+        if let missing = defined.subtracting(connected.union(unconnectedDemoIDs)).sorted().first {
+            throw ModelCatalogError.invalidDemo(missing)
+        }
+    }
 
     public init(models: [LibraryModel], demos: [DemoDescriptor]) throws {
         var modelIDs: Set<String> = []

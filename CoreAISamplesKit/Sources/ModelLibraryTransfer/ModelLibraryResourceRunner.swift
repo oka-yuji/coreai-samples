@@ -41,10 +41,35 @@ public final class ModelLibraryResourceRunner {
                 try await transferred
                 send(.downloaded(artifact.id, ticket, staging))
             }
+        case .importBundle(let model, let artifact, let ticket, let source):
+            await exclusively(artifact.id, ticket, send, failure: validationFailure) { [self] send in
+                let (updates, sink) = AsyncStream.makeStream(
+                    of: ModelTransferProgress.self, bufferingPolicy: .bufferingNewest(1))
+                async let copied = Self.relayImport(store, model, artifact, source, sink)
+                for await update in updates { send(.progress(artifact.id, ticket, update)) }
+                let staging = try await copied
+                do {
+                    try Task.checkCancellation()
+                    send(.importCopied(artifact.id, ticket))
+                    try Task.checkCancellation()
+                    let resource = try await store.promote(staging: staging, model: model, artifact: artifact)
+                    send(.validated(artifact.id, ticket, resource))
+                } catch {
+                    try? await store.discardImport(staging: staging, model: model, artifact: artifact)
+                    throw error
+                }
+            }
         case .validate(let model, let artifact, let ticket, let staging):
             await exclusively(artifact.id, ticket, send, failure: validationFailure) { [self] send in
-                let resource = try await store.promote(staging: staging, model: model, artifact: artifact)
-                send(.validated(artifact.id, ticket, resource))
+                do {
+                    let resource = try await store.promote(staging: staging, model: model, artifact: artifact)
+                    send(.validated(artifact.id, ticket, resource))
+                } catch {
+                    if artifact.sourceKind == .localManifest {
+                        try? await store.discardImport(staging: staging, model: model, artifact: artifact)
+                    }
+                    throw error
+                }
             }
         case .delete(let resource, let ticket):
             await exclusively(resource.artifactID, ticket, send, failure: deletionFailure) { [self] send in
@@ -56,6 +81,19 @@ public final class ModelLibraryResourceRunner {
                 await withCheckedContinuation { activities[artifactID]?.joiners.append($0) }
             }
             send(.transferStopped(artifactID, ticket))
+        case .stopImport(let model, let artifact, let ticket):
+            if activities[artifact.id]?.ticket == ticket {
+                await withCheckedContinuation { activities[artifact.id]?.joiners.append($0) }
+            }
+            let resource: ValidatedModelResource?
+            do {
+                resource = try await inspect(model, artifact)
+            } catch {
+                resource = nil
+                logger.error(
+                    "Import stop inspection rejected \(artifact.id, privacy: .public): \(String(describing: error))")
+            }
+            if !Task.isCancelled { send(.importStopped(artifact.id, ticket, resource)) }
         case .stopDemo(let session, let ticket):
             send(.demoStopFailed(session.id, ticket, "Demo execution is not connected"))
         }
@@ -93,6 +131,7 @@ public final class ModelLibraryResourceRunner {
             logger.error("Inspection rejected \(artifact.id, privacy: .public): \(String(describing: error))")
             return nil
         case .missing:
+            guard artifact.sourceKind == .huggingFace else { return nil }
             let candidates = migrationCandidates()
             guard !candidates.isEmpty else { return nil }
             let outcomes = await store.migrate(candidates: candidates, model: model, artifact: artifact).outcomes
@@ -108,6 +147,14 @@ public final class ModelLibraryResourceRunner {
     ) async throws {
         defer { sink.finish() }
         try await transfer.download(model: model, artifact: artifact, to: staging) { sink.yield($0) }
+    }
+
+    nonisolated private static func relayImport(
+        _ store: ManagedModelStore, _ model: LibraryModel, _ artifact: ModelArtifact, _ source: URL,
+        _ sink: AsyncStream<ModelTransferProgress>.Continuation
+    ) async throws -> URL {
+        defer { sink.finish() }
+        return try await store.copyForImport(from: source, model: model, artifact: artifact) { sink.yield($0) }
     }
 }
 

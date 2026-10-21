@@ -1,21 +1,38 @@
 #if os(iOS)
     import FeatureStore
+    import Foundation
     import ModelLibraryFeature
     import SwiftUI
+    import UniformTypeIdentifiers
 
     struct ModelAcquisitionControls: View {
         let store: Store<ModelLibraryFeature>
         let model: LibraryModel
         let requestDeletion: (ModelArtifact) -> Void
+        @State private var choosingBundle = false
+        @State private var importArtifactID: String?
 
         var body: some View {
-            if let artifact = store.state.selectedArtifact(for: model.id), artifact.download != nil {
-                acquisition(artifact, installation: store.state.installations[artifact.id] ?? ModelInstallation())
-            } else {
-                Image(systemName: "info.circle")
-                    .foregroundStyle(.secondary)
-                    .frame(minWidth: 44, minHeight: 44)
-                    .accessibilityLabel(libraryText("Description only"))
+            Group {
+                if let artifact = store.state.selectedArtifact(for: model.id), artifact.sourceKind != nil {
+                    acquisition(artifact, installation: store.state.installations[artifact.id] ?? ModelInstallation())
+                } else {
+                    Image(systemName: "info.circle")
+                        .foregroundStyle(.secondary)
+                        .frame(minWidth: 44, minHeight: 44)
+                        .accessibilityLabel(libraryText("Description only"))
+                }
+            }
+            .fileImporter(isPresented: $choosingBundle, allowedContentTypes: [.folder]) { result in
+                guard let artifactID = importArtifactID else { return }
+                importArtifactID = nil
+                switch result {
+                case .success(let folder): store.send(.importRequested(artifactID, folder))
+                case .failure(let error):
+                    if (error as? CocoaError)?.code != .userCancelled {
+                        store.send(.importSelectionFailed(artifactID, error.localizedDescription))
+                    }
+                }
             }
         }
 
@@ -24,19 +41,36 @@
                 switch installation.phase {
                 case .missing, .failed:
                     Button {
-                        store.send(.downloadRequested(artifact.id))
+                        acquire(artifact)
                     } label: {
-                        Image(systemName: installation.phase == .failed ? "arrow.clockwise" : "arrow.down.circle")
-                            .frame(minWidth: 44, minHeight: 44)
-                            .contentShape(Rectangle())
+                        Image(
+                            systemName: artifact.localBundle != nil
+                                ? "folder.badge.plus"
+                                : installation.phase == .failed ? "arrow.clockwise" : "arrow.down.circle"
+                        )
+                        .frame(minWidth: 44, minHeight: 44)
+                        .contentShape(Rectangle())
                     }
                     .accessibilityLabel(
-                        libraryText(installation.phase == .failed ? "Retry download" : "Download model")
+                        libraryText(
+                            artifact.localBundle != nil
+                                ? "Import model" : installation.phase == .failed ? "Retry download" : "Download model")
                     )
                     .accessibilityValue(Text(verbatim: model.name))
                 case .ready:
                     Image(systemName: "checkmark").foregroundStyle(.secondary)
-                        .accessibilityLabel(libraryText("Downloaded"))
+                        .accessibilityLabel(libraryText(artifact.localBundle == nil ? "Downloaded" : "Imported"))
+                    if artifact.localBundle != nil {
+                        Button {
+                            acquire(artifact)
+                        } label: {
+                            Image(systemName: "folder.badge.plus")
+                                .frame(minWidth: 44, minHeight: 44)
+                                .contentShape(Rectangle())
+                        }
+                        .accessibilityLabel(libraryText("Import again"))
+                        .disabled(store.state.session?.selection.modelID == model.id)
+                    }
                     Button {
                         requestDeletion(artifact)
                     } label: {
@@ -48,13 +82,15 @@
                     .accessibilityLabel(libraryText("Delete model"))
                     .accessibilityValue(Text(verbatim: model.name))
                     .disabled(store.state.session?.selection.modelID == model.id)
-                case .downloading(let progress):
+                case .downloading(let progress), .importing(let progress):
                     VStack(spacing: 3) {
                         if let fraction = progress?.fraction {
                             ProgressView(value: fraction)
-                                .accessibilityLabel(libraryText("Downloading"))
+                                .accessibilityLabel(
+                                    libraryText(artifact.localBundle == nil ? "Downloading" : "Importing"))
                         } else {
-                            ProgressView().accessibilityLabel(libraryText("Downloading"))
+                            ProgressView().accessibilityLabel(
+                                libraryText(artifact.localBundle == nil ? "Downloading" : "Importing"))
                         }
                     }
                     .frame(width: 30)
@@ -65,7 +101,7 @@
                             .frame(minWidth: 44, minHeight: 44)
                             .contentShape(Rectangle())
                     }
-                    .accessibilityLabel(libraryText("Cancel download"))
+                    .accessibilityLabel(libraryText(artifact.localBundle == nil ? "Cancel download" : "Cancel import"))
                 case .inspecting, .validating:
                     ProgressView().accessibilityLabel(libraryText("Checking model"))
                     Button {
@@ -84,6 +120,15 @@
             }
             .buttonStyle(.plain)
         }
+
+        private func acquire(_ artifact: ModelArtifact) {
+            if artifact.localBundle != nil {
+                importArtifactID = artifact.id
+                choosingBundle = true
+            } else {
+                store.send(.downloadRequested(artifact.id))
+            }
+        }
     }
 
     struct LibraryFailureView: View {
@@ -96,7 +141,7 @@
                 case .downloadNotConfigured: libraryText("A download source has not been configured for this model.")
                 case .invalidDownload: libraryText("The model download configuration is invalid.")
                 case .invalidResource: libraryText("The model files do not match the required bundle.")
-                case .modelInUse: libraryText("Close this model's demo before deleting its files.")
+                case .modelInUse: libraryText("Close this model's demo before changing its files.")
                 case .operation(let message): Text(verbatim: message)
                 }
             } icon: {

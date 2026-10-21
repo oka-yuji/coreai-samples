@@ -423,6 +423,126 @@
           }
         }
       }
+    },
+    "Cancel import": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "取り込みをキャンセル"
+          }
+        }
+      }
+    },
+    "Close this model's demo before changing its files.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "モデルのファイルを変更する前に、このモデルのデモを閉じてください。"
+          }
+        }
+      }
+    },
+    "For research and evaluation only. Commercial use requires a separate license.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "研究・評価用途に限られます。商用利用には別途ライセンスが必要です。"
+          }
+        }
+      }
+    },
+    "Import again": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "もう一度取り込む"
+          }
+        }
+      }
+    },
+    "Import model": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "モデルを取り込む"
+          }
+        }
+      }
+    },
+    "Import the model to enable its controls.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "モデルを取り込むと、操作できるようになります。"
+          }
+        }
+      }
+    },
+    "Imported": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "取り込み済み"
+          }
+        }
+      }
+    },
+    "Importing": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "取り込み中"
+          }
+        }
+      }
+    },
+    "Local bundle": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ローカルバンドル"
+          }
+        }
+      }
+    },
+    "Qwen Research License": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Qwen Research License"
+          }
+        }
+      }
+    },
+    "Source": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "取得元"
+          }
+        }
+      }
+    },
+    "You can read each demo before preparing its model.": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "モデルを準備する前に、各デモの説明を確認できます。"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

@@ -26,7 +26,12 @@
             migrationCandidates: legacyFolders)
 
         static func make(catalog: ModelCatalog) -> ModelLibraryAssembly.Library {
-            precondition(adapters.map(\.demoID).sorted() == catalog.demos.map(\.id).sorted())
+            let previews = Set(["image-generation"]).intersection(catalog.demos.map(\.id))
+            do {
+                try catalog.validateConnections(adapterIDs: adapters.map(\.demoID), unconnectedDemoIDs: previews)
+            } catch {
+                preconditionFailure("Invalid model demo connections: \(error)")
+            }
             return assembly.makeLibrary(catalog: catalog, capabilities: capabilities(), owner: UUID())
         }
 
@@ -44,9 +49,14 @@
 
         static func runSelfTest(acquire target: String? = nil) async -> Int32 {
             guard let output = LaunchArguments.value("--model-library-selftest") else { return 2 }
+            let folder = LaunchArguments.value("--import-local-bundle").map {
+                URL(filePath: $0, relativeTo: .documentsDirectory)
+            }
+            let previews = (try? IOSDemoCatalog.make().demos.map(\.id)) ?? []
             return await ModelLibrarySelfTest.run(
                 output: URL(filePath: output, relativeTo: .documentsDirectory), root: root,
-                registry: assembly.registry, capabilities: capabilities(), acquire: target, assembly: assembly)
+                registry: assembly.registry, capabilities: capabilities(), acquire: target, assembly: assembly,
+                importBundle: folder, unconnectedDemoIDs: Set(["image-generation"]).intersection(previews))
         }
 
         static func capabilities() -> [DemoCapability: CapabilityState] {

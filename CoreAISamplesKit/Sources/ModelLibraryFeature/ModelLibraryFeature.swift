@@ -11,8 +11,12 @@ public enum ModelLibraryAction: Sendable {
     case capabilityChanged(DemoCapability, CapabilityState)
     case inspected(String, LibraryTicket, ValidatedModelResource?)
     case downloadRequested(String)
+    case importRequested(String, URL)
+    case importSelectionFailed(String, String)
     case progress(String, LibraryTicket, ModelTransferProgress)
     case downloaded(String, LibraryTicket, URL)
+    case importCopied(String, LibraryTicket)
+    case importStopped(String, LibraryTicket, ValidatedModelResource?)
     case validated(String, LibraryTicket, ValidatedModelResource)
     case failed(String, LibraryTicket, ModelLibraryFailure)
     case cancelRequested(String)
@@ -29,8 +33,10 @@ public enum ModelLibraryAction: Sendable {
 public enum ModelLibraryEffect: Equatable, Sendable {
     case inspect(LibraryModel, ModelArtifact, LibraryTicket)
     case download(LibraryModel, ModelArtifact, LibraryTicket)
+    case importBundle(LibraryModel, ModelArtifact, LibraryTicket, URL)
     case validate(LibraryModel, ModelArtifact, LibraryTicket, URL)
     case stopTransfer(artifactID: String, LibraryTicket)
+    case stopImport(LibraryModel, ModelArtifact, LibraryTicket)
     case delete(ValidatedModelResource, LibraryTicket)
     case stopDemo(ModelDemoSession, LibraryTicket)
 }
@@ -75,12 +81,25 @@ public enum ModelLibraryFeature: Feature {
             complete(&state, artifactID: artifactID, resource: resource)
         case .downloadRequested(let artifactID):
             return download(&state, artifactID: artifactID)
-        case .progress(let artifactID, let request, let progress):
-            guard let installation = state.installations[artifactID], installation.requestID == request,
-                case .downloading(let previous) = installation.phase,
-                progress.completedBytes >= (previous?.completedBytes ?? 0)
+        case .importRequested(let artifactID, let source):
+            return importBundle(&state, artifactID: artifactID, source: source)
+        case .importSelectionFailed(let artifactID, let message):
+            guard let model = state.catalog.model(containing: artifactID),
+                model.artifact(artifactID)?.sourceKind == .localManifest,
+                state.installations[artifactID]?.phase.isBusy == false
             else { return [] }
-            state.installations[artifactID]?.phase = .downloading(progress)
+            state.installations[artifactID]?.failure = .operation(message)
+        case .progress(let artifactID, let request, let progress):
+            guard let installation = state.installations[artifactID], installation.requestID == request else {
+                return []
+            }
+            switch installation.phase {
+            case .downloading(let previous) where progress.completedBytes >= (previous?.completedBytes ?? 0):
+                state.installations[artifactID]?.phase = .downloading(progress)
+            case .importing(let previous) where progress.completedBytes >= (previous?.completedBytes ?? 0):
+                state.installations[artifactID]?.phase = .importing(progress)
+            default: return []
+            }
         case .downloaded(let artifactID, let request, let directory):
             guard let installation = state.installations[artifactID], installation.requestID == request,
                 case .downloading = installation.phase, let model = state.catalog.model(containing: artifactID),
@@ -92,6 +111,16 @@ public enum ModelLibraryFeature: Feature {
             }
             state.installations[artifactID]?.phase = .validating
             return [.run(.validate(model, artifact, request, directory), id: .resource(artifactID))]
+        case .importCopied(let artifactID, let request):
+            guard let installation = state.installations[artifactID], installation.requestID == request,
+                case .importing = installation.phase
+            else { return [] }
+            state.installations[artifactID]?.phase = .validating
+        case .importStopped(let artifactID, let request, let resource):
+            guard matches(state, artifactID, request, phase: .stopping),
+                state.installations[artifactID]?.importInProgress == true
+            else { return [] }
+            complete(&state, artifactID: artifactID, resource: resource)
         case .validated(let artifactID, let request, let resource):
             guard matches(state, artifactID, request, phase: .validating) else { return [] }
             complete(&state, artifactID: artifactID, resource: resource)
@@ -99,11 +128,18 @@ public enum ModelLibraryFeature: Feature {
             guard let installation = state.installations[artifactID], installation.requestID == request,
                 installation.phase.isBusy, installation.phase != .stopping
             else { return [] }
+            if installation.importInProgress, installation.phase != .inspecting,
+                let model = state.catalog.model(containing: artifactID), let artifact = model.artifact(artifactID)
+            {
+                return recoverImport(&state, model: model, artifact: artifact, failure: failure)
+            }
             complete(&state, artifactID: artifactID, failure: failure)
         case .cancelRequested(let artifactID):
             return cancel(&state, artifactID: artifactID)
         case .transferStopped(let artifactID, let request):
-            guard matches(state, artifactID, request, phase: .stopping) else { return [] }
+            guard matches(state, artifactID, request, phase: .stopping),
+                state.installations[artifactID]?.importInProgress != true
+            else { return [] }
             complete(&state, artifactID: artifactID)
         case .deleteRequested(let artifactID):
             return delete(&state, artifactID: artifactID)
@@ -210,14 +246,53 @@ public enum ModelLibraryFeature: Feature {
         guard let installation = state.installations[artifactID], let request = installation.requestID
         else { return [] }
         switch installation.phase {
-        case .inspecting, .downloading, .validating:
+        case .inspecting, .downloading, .importing, .validating:
             state.installations[artifactID]?.phase = .stopping
+            if installation.importInProgress, let model = state.catalog.model(containing: artifactID),
+                let artifact = model.artifact(artifactID)
+            {
+                return [
+                    .cancel(.resource(artifactID)),
+                    .run(.stopImport(model, artifact, request), id: .stopping(artifactID)),
+                ]
+            }
             return [
                 .cancel(.resource(artifactID)),
                 .run(.stopTransfer(artifactID: artifactID, request), id: .stopping(artifactID)),
             ]
         case .missing, .stopping, .ready, .deleting, .failed: return []
         }
+    }
+
+    private static func importBundle(_ state: inout State, artifactID: String, source: URL) -> [Operation] {
+        guard state.pendingDestination == nil, let model = state.catalog.model(containing: artifactID),
+            let artifact = state.artifacts(for: model.id).first(where: { $0.id == artifactID }),
+            let installation = state.installations[artifactID], !installation.phase.isBusy
+        else { return [] }
+        guard artifact.sourceKind == .localManifest, artifact.isSourceValid, source.isFileURL else {
+            state.installations[artifactID]?.failure = .invalidResource
+            return []
+        }
+        guard state.session?.resource.artifactID != artifactID else {
+            state.installations[artifactID]?.failure = .modelInUse
+            return []
+        }
+        let request = state.allocateID()
+        state.installations[artifactID]?.phase = .importing(nil)
+        state.installations[artifactID]?.requestID = request
+        state.installations[artifactID]?.failure = nil
+        state.installations[artifactID]?.importInProgress = true
+        return [.run(.importBundle(model, artifact, request, source), id: .resource(artifactID))]
+    }
+
+    private static func recoverImport(
+        _ state: inout State, model: LibraryModel, artifact: ModelArtifact, failure: ModelLibraryFailure
+    ) -> [Operation] {
+        let request = state.allocateID()
+        state.installations[artifact.id]?.phase = .inspecting
+        state.installations[artifact.id]?.requestID = request
+        state.installations[artifact.id]?.failure = failure
+        return [.run(.inspect(model, artifact, request), id: .resource(artifact.id))]
     }
 
     private static func delete(_ state: inout State, artifactID: String) -> [Operation] {
@@ -270,17 +345,20 @@ public enum ModelLibraryFeature: Feature {
         guard let model = state.catalog.model(containing: artifactID), let artifact = model.artifact(artifactID)
         else { return }
         let rejection: ModelLibraryFailure? =
-            if resource == nil { nil } else if artifact.download == nil {
+            if resource == nil { nil } else if artifact.sourceKind == nil {
                 .downloadNotConfigured
-            } else if artifact.download?.isValid != true {
+            } else if !artifact.isSourceValid {
                 .invalidDownload
             } else if resource?.matches(model: model, artifact: artifact) != true { .invalidResource } else { nil }
-        let failure = rejection ?? failure
+        let importing = state.installations[artifactID]?.importInProgress == true
+        let failure = rejection ?? failure ?? (importing ? state.installations[artifactID]?.failure : nil)
+        let accepted = rejection == nil && (failure == nil || importing) ? resource : nil
         state.installations[artifactID]?.requestID = nil
-        state.installations[artifactID]?.resource = failure == nil ? resource : nil
+        state.installations[artifactID]?.resource = accepted
+        state.installations[artifactID]?.importInProgress = false
         state.installations[artifactID]?.failure = failure
         state.installations[artifactID]?.phase =
-            if failure != nil { .failed } else if resource == nil { .missing } else { .ready }
+            if accepted != nil { .ready } else if failure != nil { .failed } else { .missing }
         state.activateIfReady()
     }
 
