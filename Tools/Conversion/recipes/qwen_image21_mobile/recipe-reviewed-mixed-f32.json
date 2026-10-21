@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "name": "qwen_image21_mobile_mixed-f32",
+  "name": "qwen_image21_mobile_mixed_f32",
   "variables": {
     "python": "$python",
     "snapshot": "$snapshot",

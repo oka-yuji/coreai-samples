@@ -11,9 +11,22 @@ from Tools.Conversion.adapters.qwen_image21.mobile_compare import quality_templa
 from Tools.Conversion.adapters.qwen_image21.mobile_pack import copy_file, pack
 from Tools.Conversion.adapters.qwen_image21.mobile_profile import CANDIDATES, make_profile
 from Tools.Conversion.adapters.qwen_image21.mobile_recipe import recipe
+from Tools.Conversion.recipe import load_recipe
 
 
 class ImageMobilePackTests(unittest.TestCase):
+    def test_every_generated_candidate_is_accepted_by_the_actual_recipe_parser(self):
+        repo = Path(__file__).parents[3]
+        root = repo / "Tools/Conversion/recipes/qwen_image21_mobile"
+        bindings = {name: "/fixture/" + name for name in
+                    ("python", "snapshot", "heavy_lock", "baseline_reference", "baseline_bundle", "quality")}
+        for candidate in CANDIDATES:
+            for mode in ("", "-export", "-reviewed"):
+                filename = "recipe" + mode + ("" if candidate == "w4" else "-" + candidate) + ".json"
+                with self.subTest(candidate=candidate, mode=mode):
+                    parsed = load_recipe(root / filename, bindings, repo)
+                    self.assertEqual(len(parsed["steps"]), 7 if mode == "-export" else 13)
+
     def test_pack_cannot_write_inside_the_frozen_fixture_directory(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)

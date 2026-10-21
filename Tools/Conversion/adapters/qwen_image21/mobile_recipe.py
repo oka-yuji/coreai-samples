@@ -114,7 +114,7 @@ def recipe(candidate, *, export_only=False, reviewed=False):
         variables.update(baseline_reference="$baseline_reference", baseline_bundle="$baseline_bundle")
     if reviewed:
         variables["quality"] = "$quality"
-    return {"version": 1, "name": "qwen_image21_mobile_" + candidate,
+    return {"version": 1, "name": "qwen_image21_mobile_" + candidate.replace("-", "_"),
             "variables": variables, "python": "$python",
             "environment": {"HF_HUB_OFFLINE": "1", "TOKENIZERS_PARALLELISM": "false", "COREAI_HEAVY_JOB_LOCK": "$heavy_lock"},
             "steps": steps}
