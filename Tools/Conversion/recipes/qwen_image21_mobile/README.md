@@ -54,6 +54,17 @@ A0-to-A1 and A1-to-B differences are descriptive precision/quantization effects.
 
 After human review, run `recipe-reviewed.json` (or `recipe-reviewed-<candidate>.json`) through the common runner with `--set quality=/path/to/reviewed-ratings.json`. This reuses unchanged numerical evidence and creates a new bundle; it does not edit an earlier bundle's manifest. Missing rows, changed identities/axes, unreviewed values or a failed quality gate cannot pass the reviewed recipe.
 
+For offline review, create a separate gallery after the complete comparison exists:
+
+```sh
+"$QI_PYTHON" -m Tools.Conversion.adapters.qwen_image21.mobile_gallery \
+  --comparison /path/to/cohort-comparison --fixtures /path/to/fixtures \
+  --baseline /path/to/A0 --mixed-reference /path/to/A1 --reference /path/to/B \
+  --verification /path/to/C-verification --output /path/to/new-review-folder
+```
+
+Open `index.html` to compare the four outputs with their prompt and editing reference. The gallery verifies the comparison's cohort identities and copies each PNG against its recorded hash. It does not load models or certify numerical fidelity. Scores remain null until reviewed; browser storage and JSON export preserve partial work. Resume accepts only matching cohort identities, all 60 outputs and unchanged axes. Export the reviewed JSON and pass it to the reviewed recipe above. Keep this research-only gallery local alongside its copied images.
+
 The bundle contains the complete asset inventory, source configuration, tokenizer/processor, dependency lock, numerical/quality summaries and original LICENSE/NOTICE. `receipt.json` gives the SHA-256 of the saved raw `bundle.json` for #263 to pin independently. Grouped payload bits per selected Linear weight and serialized asset-size ratios have explicit scopes; neither is runtime memory usage. The unused LM head was already excluded from the old conversion and is not a new compression gain.
 
 `verified` here covers candidate numerical and human-quality acceptance. `device_verification` stays pending until the separate native integration/device work supplies evidence. Export metadata's minimum OS is a target declaration, not an executed-device claim. No model publication is performed by these recipes.
