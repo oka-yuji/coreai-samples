@@ -2,12 +2,19 @@ import ImageSearchFeature
 import SwiftUI
 import UniformTypeIdentifiers
 
+#if os(iOS)
+    import PhotosUI
+#endif
+
 struct ImageSearchContent: View {
     let state: ImageSearchState
     let send: @MainActor (ImageSearchAction) -> Void
     let isPermitted: @MainActor () -> Bool
     @State private var choosingImages = false
     @State private var imageRequest = 0
+    #if os(iOS)
+        @State private var pickedImages: [PhotosPickerItem] = []
+    #endif
     @Environment(\.locale) private var locale
 
     var body: some View {
@@ -17,13 +24,25 @@ struct ImageSearchContent: View {
             if state.needsIndex && !state.isBusy { indexNotice }
             if state.photos.isEmpty { emptyView } else { gallery }
         }
-        .fileImporter(isPresented: $choosingImages, allowedContentTypes: [.image], allowsMultipleSelection: true) {
-            result in
-            switch result {
-            case .success(let urls): send(.imagesChosen(imageRequest, urls))
-            case .failure(let error): send(.selectionFailed(imageRequest, error.localizedDescription))
+        #if os(iOS)
+            .photosPicker(
+                isPresented: $choosingImages, selection: $pickedImages, maxSelectionCount: 50, matching: .images,
+                preferredItemEncoding: .current
+            )
+            .task(id: pickedImages) { await importImages() }
+            .onDisappear { ImageFile.removeCopies(keeping: state.photos.map(\.url)) }
+            .onChange(of: state.photos.map(\.url)) { _, urls in
+                if pickedImages.isEmpty { ImageFile.removeCopies(keeping: urls) }
             }
-        }
+        #else
+            .fileImporter(isPresented: $choosingImages, allowedContentTypes: [.image], allowsMultipleSelection: true) {
+                result in
+                switch result {
+                case .success(let urls): send(.imagesChosen(imageRequest, urls))
+                case .failure(let error): send(.selectionFailed(imageRequest, error.localizedDescription))
+                }
+            }
+        #endif
         .sheet(item: Binding(get: { state.selection }, set: { send(.select($0)) })) { photo in
             OriginalSearchPhoto(photo: photo, isPermitted: isPermitted)
         }
@@ -199,6 +218,36 @@ struct ImageSearchContent: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(.orange.opacity(0.1), in: RoundedRectangle(cornerRadius: 10))
     }
+
+    #if os(iOS)
+        private func importImages() async {
+            guard !pickedImages.isEmpty else { return }
+            let request = imageRequest
+            let items = pickedImages
+            guard isPermitted() else {
+                send(.selectionFailed(request, "The selected model is not available right now. Try again."))
+                pickedImages = []
+                return
+            }
+            ImageFile.removeCopies(keeping: state.photos.map(\.url))
+            var urls: [URL] = []
+            do {
+                for item in items {
+                    let file = try await item.loadTransferable(type: ImageFile.self)
+                    if let file { urls.append(file.url) }
+                    guard !Task.isCancelled, pickedImages == items else { throw CancellationError() }
+                    guard file != nil else { throw CocoaError(.fileReadNoSuchFile) }
+                }
+                send(.imagesChosen(request, urls))
+                ImageFile.removeCopies(keeping: state.photos.map(\.url) + urls)
+            } catch {
+                for url in urls { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+                guard !(error is CancellationError), !Task.isCancelled, pickedImages == items else { return }
+                send(.selectionFailed(request, error.localizedDescription))
+            }
+            pickedImages = []
+        }
+    #endif
 }
 
 private struct OriginalSearchPhoto: View {
@@ -228,3 +277,33 @@ private struct OriginalSearchPhoto: View {
         .onAppear { image = isPermitted() ? ImageSearchAssembly.original(photo.url) : nil }
     }
 }
+
+#if os(iOS)
+    struct ImageFile: Transferable {
+        static let folder = URL.temporaryDirectory.appending(path: "image-search")
+        let url: URL
+
+        static var transferRepresentation: some TransferRepresentation {
+            FileRepresentation(importedContentType: .image) { received in
+                let directory = folder.appending(path: UUID().uuidString)
+                try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+                let copy = directory.appending(path: received.file.lastPathComponent)
+                try FileManager.default.copyItem(at: received.file, to: copy)
+                return ImageFile(url: copy)
+            }
+        }
+
+        static func removeCopies(keeping kept: [URL]) {
+            let directory = folder.resolvingSymlinksInPath().pathComponents
+            let names = Set(
+                kept.map { $0.deletingLastPathComponent() }
+                    .filter { $0.deletingLastPathComponent().resolvingSymlinksInPath().pathComponents == directory }
+                    .map(\.lastPathComponent))
+            let copies =
+                (try? FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil)) ?? []
+            for copy in copies where !names.contains(copy.lastPathComponent) {
+                try? FileManager.default.removeItem(at: copy)
+            }
+        }
+    }
+#endif

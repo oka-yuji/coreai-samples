@@ -4,6 +4,10 @@
 
 AppleのCore AIとFoundation Modelsでオープンモデルを動かすSwiftサンプル集です。ローカルでの**会話と調査**、**文書の判断と抽出**、**画像検索**、**音声**を、変換手順や検証記録とともに試せます。
 
+<a href="https://x.com/oka_yuuji/status/2112517908631040473"><img src="docs/media/truck-inspection-ios.gif" width="280" alt="iPhoneの点検デモ。質問を読み上げ、音声の回答をGLiNER2.5-multiが分類し、本人が音声で確認してから記録する"></a>
+
+*iPhoneの日本語音声入力によるトラック日常点検デモ（1.5倍速）。GLiNER2.5-multiが端末上で回答を分類し、本人が確認するまで記録しません。[音声つきの全編はX](https://x.com/oka_yuuji/status/2112517908631040473) · [デモの仕組み](docs/truck-inspection.md)*
+
 下の一覧からモデルを選んでください。各ガイドに導入手順・対応端末・実測値・制限をまとめています。状態は変換バンドルの公開状況を表し、アプリへの組み込みとは分けて扱います。
 
 ## モデルとロードマップ
@@ -33,6 +37,10 @@ GLiNER2.5-multiとEmbeddingGemma 2のリポジトリは公開済みで、匿名�
 <!-- model-catalog:end -->
 
 iOSアプリは通常起動で**Models**を開き、6つのデモを各providerへ接続しています。Modelsは固定した版のGLiNER2.5-multi FP32と、EmbeddingGemma 2のFP16（既定）またはINT4/INT8 PTQのバンドルをHugging Faceから匿名で取得し、全ファイルの大きさとSHA-256を確かめてからデモを実行します（[#210](https://github.com/oka-yuji/coreai-samples/issues/210)）。[統合状況](docs/validation/ios-models-integration-20261018.md)を参照してください。iPhoneでの6つのデモの実行は本人確認として残っています。ローカルの診断実行とバンドルの一般公開は別の到達点です。
+
+## カメラ探索デモ
+
+探したい対象をテキストで指定し、入力を変えるだけで追加学習なしに探索対象を切り替えます。[EmbeddingGemma 2のカメラ探索デモをXで見る](https://x.com/oka_yuuji/status/2111307591586578612)。導入手順と制限は[iPhone向けガイド（英語）](docs/object-finder.md)を参照してください。
 
 ## はじめる
 
