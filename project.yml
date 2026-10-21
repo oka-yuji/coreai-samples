@@ -41,6 +41,10 @@ targets:
         basedOnDependencyAnalysis: false
     dependencies:
       - package: CoreAISamplesKit
+        product: ImageDiagnosticFeature
+      - package: CoreAISamplesKit
+        product: ImageGenerationRuntime
+      - package: CoreAISamplesKit
         product: SpeechCore
       - package: CoreAISamplesKit
         product: SpeechFeature
@@ -121,6 +125,7 @@ targets:
     deploymentTarget: "27.0"
     sources:
       - path: CoreAISamples/Demos/ImageSearch
+      - path: CoreAISamples/Demos/ImageGeneration
       - path: CoreAISamples/Demos/VideoSearch
       - path: CoreAISamples/Resources/Recipes
       - path: CoreAISamples/Demos/Products
@@ -145,6 +150,8 @@ targets:
     dependencies:
       - package: CoreAISamplesKit
         product: ImageGenerationCore
+      - package: CoreAISamplesKit
+        product: ImageDiagnosticFeature
       - package: CoreAISamplesKit
         product: ImageGenerationRuntime
       - package: CoreAISamplesKit

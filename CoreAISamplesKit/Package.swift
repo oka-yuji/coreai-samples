@@ -18,6 +18,7 @@ let package = Package(
     products: [
         .library(name: "ImageGenerationCore", targets: ["ImageGenerationCore"]),
         .library(name: "ImageGenerationRuntime", targets: ["ImageGenerationRuntime"]),
+        .library(name: "ImageDiagnosticFeature", targets: ["ImageDiagnosticFeature"]),
         .library(name: "ImageGenerationFeature", targets: ["ImageGenerationFeature"]),
         .library(name: "ImageGenerationUI", targets: ["ImageGenerationUI"]),
         .library(name: "ModelLibraryUI", targets: ["ModelLibraryUI"]),
@@ -69,6 +70,15 @@ let package = Package(
     targets: [
         .target(name: "ImageGenerationCore", swiftSettings: speechSettings),
         .target(
+            name: "ImageDiagnosticFeature", dependencies: ["ImageGenerationCore", "FeatureStore"],
+            swiftSettings: speechSettings),
+        .testTarget(
+            name: "ImageDiagnosticTests",
+            dependencies: [
+                "ImageDiagnosticFeature", "ImageGenerationRuntime", "ImageGenerationCore", "ModelLibraryFeature",
+                "FeatureStore",
+            ], swiftSettings: speechSettings),
+        .target(
             name: "ImageGenerationFeature", dependencies: ["ImageGenerationCore", "FeatureStore"],
             swiftSettings: speechSettings),
         .target(
@@ -91,7 +101,8 @@ let package = Package(
         .target(
             name: "ImageGenerationRuntime",
             dependencies: [
-                "ImageGenerationCore", "ImageGenerationFeature", "FeatureStore", "ModelLibraryFeature",
+                "ImageGenerationCore", "ImageGenerationFeature", "ImageDiagnosticFeature", "FeatureStore",
+                "ModelLibraryFeature",
                 .product(name: "Tokenizers", package: "swift-transformers"),
                 .product(name: "Hub", package: "swift-transformers"),
             ], swiftSettings: speechSettings),
