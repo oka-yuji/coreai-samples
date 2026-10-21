@@ -11,7 +11,7 @@ from .fixtures import file_record, quality_axes
 from .mobile_artifacts import inventory, read_profile, validate_environment, validate_source
 from .mobile_evidence import mobile_fixtures, source_suite, validate_run_result
 from .mobile_examples import tensor
-from .mobile_profile import validate_mobile_profile
+from .mobile_profile import comparison_candidate, validate_mobile_profile
 from .mobile_reference import component_paths, reference_preflight
 from .mobile_verify import audit_numeric
 
@@ -78,7 +78,7 @@ def execute(args):
     mixed_identity = json.loads((args.mixed_reference / "identity.json").read_text())
     mixed_profile = mixed_identity["profile"]
     validate_mobile_profile(mixed_profile)
-    if mixed_profile["id"] != "qmi-mobile-mixed-v1" or mixed_profile["source"] != profile["source"]:
+    if mixed_profile["id"] != "qmi-mobile-" + comparison_candidate(profile) + "-v1" or mixed_profile["source"] != profile["source"]:
         raise ValueError("A1 must be the declared unquantized mixed-precision source counterpart")
     source_suite(args.mixed_reference, mixed_profile, args.fixtures, manifest, list(expected), {}, source_files, versions)
     baseline = baseline_suite(args.baseline, expected)

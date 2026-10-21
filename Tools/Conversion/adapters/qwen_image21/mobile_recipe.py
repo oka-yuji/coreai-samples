@@ -5,7 +5,7 @@ import shutil
 
 from .fixtures import save_json
 from .mobile_artifacts import CONVERTER_FILES
-from .mobile_profile import CANDIDATES
+from .mobile_profile import CANDIDATES, comparison_candidate
 
 
 def recipe(candidate, *, export_only=False, reviewed=False):
@@ -78,7 +78,8 @@ def recipe(candidate, *, export_only=False, reviewed=False):
         })
         steps.append({
             "id": "mixed_profile", "role": "prepare", "depends": ["prepare"],
-            "command": ["$python", "-m", "Tools.Conversion.adapters.qwen_image21.mobile_convert", "profile", "--candidate", "mixed",
+            "command": ["$python", "-m", "Tools.Conversion.adapters.qwen_image21.mobile_convert", "profile", "--candidate",
+                        comparison_candidate({"id": "qmi-mobile-" + candidate + "-v1"}),
                         "--dependency-lock", "$recipe_dir/uv.lock", "--output", "$out"],
             "inputs": [*source_inputs, "$recipe_dir/uv.lock"], "outputs": ["profile.json"], "cwd": "$repo",
         })

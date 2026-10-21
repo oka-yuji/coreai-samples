@@ -22,8 +22,8 @@ def default_lock():
 def recipe_path(name, precision=None):
     if name == "qwen_image21_mobile":
         candidate = precision or "w4"
-        if candidate not in ("fp16", "bf16", "mixed", "w8", "w4"):
-            raise PipelineError("Select fp16, bf16, mixed, w8 or w4 for the mobile image recipe")
+        if candidate not in ("fp16", "bf16", "mixed", "w8", "w4", "mixed-f32", "w4-f32"):
+            raise PipelineError("Select fp16, bf16, mixed, w8, w4, mixed-f32 or w4-f32 for the mobile image recipe")
         filename = "recipe.json" if candidate == "w4" else f"recipe-{candidate}.json"
         path = TOOL / "recipes" / name / filename
         if not path.is_file():
@@ -189,7 +189,7 @@ def main():
     parser = argparse.ArgumentParser(description="Prepare and use the maintainer's local conversion workspace.")
     parser.add_argument("action", choices=("setup", "plan", "run"))
     parser.add_argument("--recipe", default="qwen3_06b")
-    parser.add_argument("--precision", choices=("fp16_safe", "int4_int8", "fp16", "bf16", "mixed", "w8", "w4"))
+    parser.add_argument("--precision", choices=("fp16_safe", "int4_int8", "fp16", "bf16", "mixed", "w8", "w4", "mixed-f32", "w4-f32"))
     parser.add_argument("--workspace", type=Path, default=ROOT / ".local/conversion")
     parser.add_argument("--snapshot", type=Path)
     parser.add_argument("--lock-dir", type=Path, default=default_lock())

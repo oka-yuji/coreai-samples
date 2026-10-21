@@ -105,6 +105,8 @@ class ImageMobilePackTests(unittest.TestCase):
                 self.assertEqual(steps["numeric"]["role"], "verify")
                 self.assertIn("mixed_reference", steps["bundle"]["depends"])
                 self.assertNotIn("--component", steps["mixed_reference"]["command"])
+                command = steps["mixed_profile"]["command"]
+                self.assertEqual(command[command.index("--candidate") + 1], "mixed-f32" if candidate.endswith("-f32") else "mixed")
                 reviewed = mode == "-reviewed"
                 self.assertEqual("--quality" in steps["bundle"]["command"], reviewed)
                 self.assertEqual(any(row["key"] == ["verified"] for row in steps["bundle"]["checks"]), reviewed)

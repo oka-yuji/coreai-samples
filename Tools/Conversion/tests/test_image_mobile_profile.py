@@ -1,12 +1,28 @@
 import copy
 import unittest
 
-from Tools.Conversion.adapters.qwen_image21.mobile_profile import CANDIDATES, make_profile, validate_mobile_profile
+from Tools.Conversion.adapters.qwen_image21.mobile_profile import CANDIDATES, comparison_candidate, make_profile, validate_mobile_profile
 
 
 class ImageMobileProfileTests(unittest.TestCase):
     def profile(self, candidate="w4"):
         return make_profile(candidate, "a" * 64, {"mobile_models.py": "b" * 64})
+
+    def test_full_precision_denoiser_keeps_compressed_storage_and_has_a_matching_dense_counterpart(self):
+        compressed = self.profile("w4-f32")
+        dense = self.profile("mixed-f32")
+        for profile in (compressed, dense):
+            validate_mobile_profile(profile)
+            self.assertEqual(comparison_candidate(profile), "mixed-f32")
+            self.assertTrue(all(value["compute_dtype"] == "float32" for value in profile["components"].values()))
+            self.assertEqual(profile["workload"]["scheduler_output_dtype"], "float32")
+            self.assertEqual(profile["components"]["denoiser"]["weight_encoding"]["other_parameters_dtype"], "float32")
+            self.assertEqual(profile["components"]["denoiser"]["weight_encoding"]["time_frequency_dtype"], "float32")
+        encoding = compressed["components"]["denoiser"]["weight_encoding"]
+        self.assertEqual((encoding["bits"], encoding["group_size"], encoding["storage_dtype"]), (4, 64, "float16"))
+        self.assertEqual(dense["components"]["denoiser"]["weight_encoding"]["kind"], "dense-linear")
+        self.assertEqual(comparison_candidate(self.profile("w4")), "mixed")
+        self.assertNotEqual(validate_mobile_profile(compressed), validate_mobile_profile(self.profile("w4")))
 
     def test_candidates_keep_distinct_identities_and_the_complete_five_component_abi(self):
         hashes = set()

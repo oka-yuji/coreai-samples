@@ -4,12 +4,18 @@ from .evaluation import IMPLEMENTATION, MODEL, REVISION, SIGMAS, canonical_hash,
 from .profile import boundaries
 
 
-CANDIDATES = ("fp16", "bf16", "mixed", "w8", "w4")
+CANDIDATES = ("fp16", "bf16", "mixed", "w8", "w4", "mixed-f32", "w4-f32")
+
+
+def comparison_candidate(profile):
+    return "mixed-f32" if profile["id"] in ("qmi-mobile-w4-f32-v1", "qmi-mobile-mixed-f32-v1") else "mixed"
 
 
 def component_settings(candidate):
     if candidate not in CANDIDATES:
         raise ValueError("Select a declared mobile candidate")
+    full_precision = candidate.endswith("-f32")
+    family = candidate.removesuffix("-f32")
     if candidate in ("fp16", "bf16"):
         precision = "float16" if candidate == "fp16" else "bfloat16"
         result = {kind: {"compute_dtype": precision, "weight_encoding": {"kind": "dense", "dtype": precision}}
@@ -20,21 +26,21 @@ def component_settings(candidate):
     for kind in boundaries():
         if kind.startswith("vae_"):
             result[kind] = {"compute_dtype": "float32", "weight_encoding": {"kind": "dense", "dtype": "float32"}}
-        elif candidate == "mixed":
+        elif family == "mixed":
             result[kind] = {
-                "compute_dtype": "float16" if kind == "denoiser" else "float32",
-                "weight_encoding": {"kind": "dense" if kind == "denoiser" else "dense-linear", "dtype": "float16",
+                "compute_dtype": "float16" if kind == "denoiser" and not full_precision else "float32",
+                "weight_encoding": {"kind": "dense" if kind == "denoiser" and not full_precision else "dense-linear", "dtype": "float16",
                                     "embedding_dtype": "float16" if kind == "text" else "float32",
-                                    "other_parameters_dtype": "float16" if kind == "denoiser" else "float32"},
+                                    "other_parameters_dtype": "float16" if kind == "denoiser" and not full_precision else "float32"},
             }
         else:
             result[kind] = {
-                "compute_dtype": "float16" if kind == "denoiser" else "float32",
+                "compute_dtype": "float16" if kind == "denoiser" and not full_precision else "float32",
                 "weight_encoding": {"kind": "linear-integer", "bits": 8 if kind == "vision" or candidate == "w8" else 4,
                                     "group_size": 16 if kind == "vision" else 64, "axis": 1, "scheme": "symmetric_with_clipping",
                                     "storage_dtype": "float16", "effective_weight": "round16((q-zp)*scale16)",
                                     "embedding_dtype": "float16" if kind == "text" else "float32",
-                                    "other_parameters_dtype": "float16" if kind == "denoiser" else "float32"},
+                                    "other_parameters_dtype": "float16" if kind == "denoiser" and not full_precision else "float32"},
             }
     result["denoiser"]["weight_encoding"]["time_frequency_dtype"] = "float32"
     return result
