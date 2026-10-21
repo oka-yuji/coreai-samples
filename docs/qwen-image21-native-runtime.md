@@ -1,6 +1,6 @@
 # Qwen Image 2.1 Turbo native runtime
 
-Implementation for [#218](https://github.com/oka-yuji/coreai-samples/issues/218), using practical v2 and the [native preprocessing](qwen-image21-native-preprocessing.md) contract. The loader, sequential pipeline, cancellation joining, diagnostics and CPU lifecycle tests are implemented. Full candidate fidelity, calibrated device budgets, the common Models adapter, headless device measurements and QMR-03 through QMR-06 remain pending. Fake backend tests do not establish GPU release or iPhone support.
+Implementation for [#218](https://github.com/oka-yuji/coreai-samples/issues/218), using practical v2 and the [native preprocessing](qwen-image21-native-preprocessing.md) contract. The loader, sequential pipeline, cancellation joining, diagnostics and CPU lifecycle tests are implemented. The explicit [native diagnostic entry](qwen-image21-native-diagnostics.md) provides fixed-input replay and lifecycle measurements. Full candidate fidelity, calibrated device budgets, the common Models adapter, actual headless device measurements and QMR-03 through QMR-06 remain pending. Fake backend tests do not establish GPU release or iPhone support.
 
 ## Ownership and execution
 

@@ -19,6 +19,9 @@ struct DemoApp: App {
 @main
 enum DemoAppMain {
     static func main() async {
+        if let configuration = LaunchArguments.value("--image-generation-check") {
+            exit(await ImageDiagnosticCommand.run(configuration: URL(filePath: configuration)))
+        }
         if let directory = LaunchArguments.value("--image-search-eval"),
             let folder = LaunchArguments.value("--embedding-bundle")
         {

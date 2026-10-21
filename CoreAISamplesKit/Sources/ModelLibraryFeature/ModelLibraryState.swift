@@ -143,6 +143,12 @@ public struct ModelDemoSession: Equatable, Sendable {
     public let selection: DemoSelection
     public let resource: ValidatedModelResource
 
+    public init(id: LibraryTicket, selection: DemoSelection, resource: ValidatedModelResource) {
+        self.id = id
+        self.selection = selection
+        self.resource = resource
+    }
+
     public var identity: ModelArtifactIdentity { resource.identity }
 }
 

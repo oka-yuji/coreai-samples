@@ -41,6 +41,10 @@ targets:
         basedOnDependencyAnalysis: false
     dependencies:
       - package: CoreAISamplesKit
+        product: ImageDiagnosticFeature
+      - package: CoreAISamplesKit
+        product: ImageGenerationRuntime
+      - package: CoreAISamplesKit
         product: SpeechCore
       - package: CoreAISamplesKit
         product: SpeechFeature
@@ -121,6 +125,7 @@ targets:
     deploymentTarget: "27.0"
     sources:
       - path: CoreAISamples/Demos/ImageSearch
+      - path: CoreAISamples/Demos/ImageGeneration
       - path: CoreAISamples/Demos/VideoSearch
       - path: CoreAISamples/Resources/Recipes
       - path: CoreAISamples/Demos/Products
@@ -143,6 +148,10 @@ targets:
           - FieldRow.swift
           - NoteEditor.swift
     dependencies:
+      - package: CoreAISamplesKit
+        product: ImageDiagnosticFeature
+      - package: CoreAISamplesKit
+        product: ImageGenerationRuntime
       - package: CoreAISamplesKit
         product: ObjectFinderRuntime
       - package: CoreAISamplesKit
@@ -197,6 +206,7 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.coreai-samples.DemoApp.ios
+        CODE_SIGN_ENTITLEMENTS: Config/CoreAISamples-iOS.entitlements
         MARKETING_VERSION: "1.0"
         CURRENT_PROJECT_VERSION: "1"
         SWIFT_VERSION: "6.0"
