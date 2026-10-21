@@ -34,6 +34,10 @@ GLiNER2.5-multiとEmbeddingGemma 2のリポジトリは公開済みで、匿名�
 
 iOSアプリは通常起動で**Models**を開き、6つのデモを各providerへ接続しています。Modelsは固定した版のGLiNER2.5-multi FP32と、EmbeddingGemma 2のFP16（既定）またはINT4/INT8 PTQのバンドルをHugging Faceから匿名で取得し、全ファイルの大きさとSHA-256を確かめてからデモを実行します（[#210](https://github.com/oka-yuji/coreai-samples/issues/210)）。[統合状況](docs/validation/ios-models-integration-20261018.md)を参照してください。iPhoneでの6つのデモの実行は本人確認として残っています。ローカルの診断実行とバンドルの一般公開は別の到達点です。
 
+## カメラ探索デモ
+
+探したい対象をテキストで指定し、入力を変えるだけで追加学習なしに探索対象を切り替えます。[EmbeddingGemma 2のカメラ探索デモをXで見る](https://x.com/oka_yuuji/status/2111307591586578612)。導入手順と制限は[iPhone向けガイド（英語）](docs/object-finder.md)を参照してください。
+
 ## はじめる
 
 開発には**AppleシリコンのMac、Xcode 27、Metal Toolchain**が必要です。MacデモはmacOS 27、iPhoneデモは対応を確認したiOS 27の実機を使います。iOSシミュレータではCore AIを実行できません。モデルごとのメモリ要件と検証済み端末は各ガイドで確認してください。

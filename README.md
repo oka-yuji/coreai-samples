@@ -34,6 +34,10 @@ Checked: **2026-10-19**. ✅ = recorded native-app execution on that OS for the 
 
 The iOS app opens **Models**, with six demos connected to their providers. Models downloads the pinned GLiNER2.5-multi FP32 bundle and the EmbeddingGemma 2 FP16 (default) or INT4/INT8 PTQ bundle anonymously from Hugging Face, and a demo runs only after every file's size and SHA-256 has been checked ([#210](https://github.com/oka-yuji/coreai-samples/issues/210)). See the [integration status](docs/validation/ios-models-integration-20261018.md); running the six demos on an iPhone remains a user check. Local diagnostic runs and a bundle's public release are separate milestones.
 
+## Camera search demo
+
+Choose what to find by typing a target, then change the text to switch targets without additional training. [Watch the EmbeddingGemma 2 camera search demo on X](https://x.com/oka_yuuji/status/2111307591586578612). See the [iPhone guide](docs/object-finder.md) for setup and limitations.
+
 ## Get started
 
 Development requires an **Apple silicon Mac, Xcode 27 and the Metal Toolchain**. The Mac demos require macOS 27; iPhone demos require a supported physical device with iOS 27. Core AI execution is unavailable in the iOS simulator. Model memory requirements and verified device coverage are in each guide.
