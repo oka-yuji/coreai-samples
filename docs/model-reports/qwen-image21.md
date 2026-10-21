@@ -1,4 +1,4 @@
-# Qwen Image 2.1 Turbo · macOS FP32
+# Qwen Image 2.1 Turbo
 
 [Home](../../README.md) · [日本語](qwen-image21.ja.md)
 
@@ -37,7 +37,7 @@ Results below retain their original dates and workloads. Different rows may use 
 | Resident memory during inference | Not recorded here | — | No value in this common record; inspect historical evidence before scheduling new measurement. |
 | Memory after release minus baseline | Not recorded here | — | No value in this common record; inspect historical evidence before scheduling new measurement. |
 | Task success fraction | Not recorded here | — | No value in this common record; inspect historical evidence before scheduling new measurement. |
-| Reference error (definition in evidence) | Not recorded here | — | No value in this common record; inspect historical evidence before scheduling new measurement. |
+| Reference error (definition in evidence) | 0.0233002635 error | max; n=16 | [E4](../research/qwen-image21-w4-smoke-20261022.json) · Maximum DiT valid-joint normalized RMSE across 2 × 8 fixed-input comparisons. The frozen F16 limit is 0.0009765625; normalized maximum error also has its own gate. |
 | Stop acknowledgement time | Not recorded here | — | No value in this common record; inspect historical evidence before scheduling new measurement. |
 | Image/text CLIP score | Not recorded here | — | No value in this common record; inspect historical evidence before scheduling new measurement. |
 | Human quality score (rubric required) | Not recorded here | — | No value in this common record; inspect historical evidence before scheduling new measurement. |
@@ -46,7 +46,7 @@ Results below retain their original dates and workloads. Different rows may use 
 
 | Check | State | Scope / remaining work | Evidence |
 |---|---|---|---|
-| Conversion / reference fidelity | Passed (stated scope) | Two fixed FP32 generation/edit outputs and packaged replay; broader quality and mobile use unverified. | [E1](../research/qwen-image21-20261018/README.md) |
+| Conversion / reference fidelity | Failed (stated criterion) | The mobile W4/F16 DiT failed fixed-input gates across two cases and eight steps. Vision/text/VAE and final rollout latent/RGBA passed. The earlier FP32 result remains passed in its own evidence; full mobile fidelity is incomplete. | [E4](../research/qwen-image21-w4-smoke-20261022.json) |
 | Task quality | Not measured | No completed check for this scope under the common protocol. | — |
 | Repeated use / resource release | Not measured | No completed check for this scope under the common protocol. | — |
 | Stop / retry / recovery | Not measured | No completed check for this scope under the common protocol. | — |
@@ -58,6 +58,7 @@ Results below retain their original dates and workloads. Different rows may use 
 | [E1](../research/qwen-image21-20261018/README.md) | 2026-10-18 / legacy / conversion | M4 Max 128 GiB / macOS 27.0 (26A428) / Xcode 27.0 (27A266a) | 512×512 RGBA; batch1; CFG1; 8 sigma steps; generation and one-image edit. Python diagnostic host, staged loads and tensor capture. · variant=FP32; cache off; backend=Core AI; GPU preferred; route=Python conversion / diagnostic host; source_revision=fc13ba1986fcb905854dc8de2f52eee395f49b5b; batch_size=1; concurrency=1; unrecorded: artifact_revision, code_revision, warmups, power, thermal, plan_sha256 |
 | [E2](../research/qwen-image21-off-on-20261021.json) | 2026-10-21 / standard / diagnostic | M4 Max 128 GiB / macOS 27.0 (26A428) / Xcode 27.0 (27A266a) | Fixed e01 edit, seed 20261018, 512×512 RGBA, batch1, CFG1, eight saved sigma steps. Hash/prepare through PNG save, staged loads. One process per diagnostics mode; cache hit not independently observed. · variant=FP32; no prefix KV; diagnostics off; backend=Core AI; GPU preferred; route=Python Core AI; separate process; pre-existing cache entries; source_revision=fc13ba1986fcb905854dc8de2f52eee395f49b5b; artifact_revision=43306970b99dda7717f7e8500179204fb0d0a9503c5836144b15b6a1d48b5852; code_revision=0a3480f617240ff43911c0a3f9a82b12cac1b8fa; batch_size=1; concurrency=1; warmups=0; power=AC; thermal=nominal |
 | [E3](../research/qwen-image21-off-on-20261021.json) | 2026-10-21 / standard / diagnostic | M4 Max 128 GiB / macOS 27.0 (26A428) / Xcode 27.0 (27A266a) | Fixed e01 edit, seed 20261018, 512×512 RGBA, batch1, CFG1, eight saved sigma steps. Hash/prepare through PNG save, staged loads. One process per diagnostics mode; cache hit not independently observed. · variant=FP32; no prefix KV; diagnostics trace; backend=Core AI; GPU preferred; route=Python Core AI; separate process; pre-existing cache entries; source_revision=fc13ba1986fcb905854dc8de2f52eee395f49b5b; artifact_revision=43306970b99dda7717f7e8500179204fb0d0a9503c5836144b15b6a1d48b5852; code_revision=0a3480f617240ff43911c0a3f9a82b12cac1b8fa; batch_size=1; concurrency=1; warmups=0; power=AC; thermal=nominal |
+| [E4](../research/qwen-image21-w4-smoke-20261022.json) | 2026-10-22 / legacy / diagnostic | M4 Max 128 GiB / macOS 27.0 (26A428) / Core AI Torch 0.4.3; Core AI 1.0.0b3; Torch 2.9.0 | Frozen g01/e01, seed 20261018; 512-square; batch1; CFG1; 8 steps; joint2304; no prefix KV. Artifact revision hashes the five exported component records, not a verified bundle. Power/thermal context was not captured; no latency claim. · variant=qmi-mobile-w4-v1; DiT F16 math; other components F32 math; backend=Core AI; GPU preferred; route=Python Core AI fixed-input and captured rollout versus original Diffusers on MPS; source_revision=fc13ba1986fcb905854dc8de2f52eee395f49b5b; artifact_revision=ce6e70483c6a47f456fb1a4bd92e95fe6993b31fada74e460311eaf90f2f77e4; code_revision=ec5f51096bb1a3f41d938045163bebdd5c76d14c; batch_size=1; concurrency=1; warmups=0; unrecorded: power, thermal |
 
 ### Setup, limitations and progress
 

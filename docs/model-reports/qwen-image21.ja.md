@@ -1,4 +1,4 @@
-# Qwen Image 2.1 Turbo · macOS FP32
+# Qwen Image 2.1 Turbo
 
 [トップ](../../README.ja.md) · [English](qwen-image21.md)
 
@@ -37,7 +37,7 @@
 | 推論中の常駐メモリ | この記録では未収録 | — | 共通記録に値がありません。再計測の前に過去の根拠も確認してください。 |
 | 解放後メモリの基準との差 | この記録では未収録 | — | 共通記録に値がありません。再計測の前に過去の根拠も確認してください。 |
 | 課題達成率 | この記録では未収録 | — | 共通記録に値がありません。再計測の前に過去の根拠も確認してください。 |
-| 参照との誤差（定義は根拠参照） | この記録では未収録 | — | 共通記録に値がありません。再計測の前に過去の根拠も確認してください。 |
+| 参照との誤差（定義は根拠参照） | 0.0233002635 error | max; n=16 | [E4](../research/qwen-image21-w4-smoke-20261022.json) · 2入力×8stepのDiT有効joint領域における正規化RMSEの最大値。凍結F16上限0.0009765625に不合格。正規化最大誤差にも別の基準がある。 |
 | 停止受付から完了までの時間 | この記録では未収録 | — | 共通記録に値がありません。再計測の前に過去の根拠も確認してください。 |
 | 画像と文章のCLIP score | この記録では未収録 | — | 共通記録に値がありません。再計測の前に過去の根拠も確認してください。 |
 | 人による品質評点（採点基準を固定） | この記録では未収録 | — | 共通記録に値がありません。再計測の前に過去の根拠も確認してください。 |
@@ -46,7 +46,7 @@
 
 | 確認項目 | 状態 | 対象範囲・残る確認 | 根拠 |
 |---|---|---|---|
-| 変換・参照との一致 | 合格（記載範囲） | 固定FP32の生成・編集2例とbundle単体再実行。一般画質やモバイルは未検証。 | [E1](../research/qwen-image21-20261018/README.md) |
+| 変換・参照との一致 | 不合格（記載基準） | モバイルW4/F16 DiTは2入力・各8stepの固定入力基準が不合格。Vision/text/VAEと最終latent/RGBAは合格。従来FP32の合格は別の証拠として保持し、モバイル全体は未受入。 | [E4](../research/qwen-image21-w4-smoke-20261022.json) |
 | 用途の品質 | 未計測 | この範囲の共通プロトコルによる確認は未実施です。 | — |
 | 連続利用・資源解放 | 未計測 | この範囲の共通プロトコルによる確認は未実施です。 | — |
 | 停止・再試行・回復 | 未計測 | この範囲の共通プロトコルによる確認は未実施です。 | — |
@@ -58,6 +58,7 @@
 | [E1](../research/qwen-image21-20261018/README.md) | 2026-10-18 / legacy / conversion | M4 Max 128 GiB / macOS 27.0 (26A428) / Xcode 27.0 (27A266a) | 512×512 RGBA、batch1、CFG1、8sigma。生成と参照画像1枚の編集。Python診断host、段階ロードとtensor取得を含む。 · variant=FP32; cache off; backend=Core AI; GPU preferred; route=Python conversion / diagnostic host; source_revision=fc13ba1986fcb905854dc8de2f52eee395f49b5b; batch_size=1; concurrency=1; 未記録: artifact_revision, code_revision, warmups, power, thermal, plan_sha256 |
 | [E2](../research/qwen-image21-off-on-20261021.json) | 2026-10-21 / standard / diagnostic | M4 Max 128 GiB / macOS 27.0 (26A428) / Xcode 27.0 (27A266a) | 固定e01編集、seed20261018、512×512 RGBA、batch1、CFG1、保存8sigma。hash/prepareからPNG保存まで、段階ロード込み。診断modeごとに新process1回。cache hit自体は独立に観測していない。 · variant=FP32; no prefix KV; diagnostics off; backend=Core AI; GPU preferred; route=Python Core AI; separate process; pre-existing cache entries; source_revision=fc13ba1986fcb905854dc8de2f52eee395f49b5b; artifact_revision=43306970b99dda7717f7e8500179204fb0d0a9503c5836144b15b6a1d48b5852; code_revision=0a3480f617240ff43911c0a3f9a82b12cac1b8fa; batch_size=1; concurrency=1; warmups=0; power=AC; thermal=nominal |
 | [E3](../research/qwen-image21-off-on-20261021.json) | 2026-10-21 / standard / diagnostic | M4 Max 128 GiB / macOS 27.0 (26A428) / Xcode 27.0 (27A266a) | 固定e01編集、seed20261018、512×512 RGBA、batch1、CFG1、保存8sigma。hash/prepareからPNG保存まで、段階ロード込み。診断modeごとに新process1回。cache hit自体は独立に観測していない。 · variant=FP32; no prefix KV; diagnostics trace; backend=Core AI; GPU preferred; route=Python Core AI; separate process; pre-existing cache entries; source_revision=fc13ba1986fcb905854dc8de2f52eee395f49b5b; artifact_revision=43306970b99dda7717f7e8500179204fb0d0a9503c5836144b15b6a1d48b5852; code_revision=0a3480f617240ff43911c0a3f9a82b12cac1b8fa; batch_size=1; concurrency=1; warmups=0; power=AC; thermal=nominal |
+| [E4](../research/qwen-image21-w4-smoke-20261022.json) | 2026-10-22 / legacy / diagnostic | M4 Max 128 GiB / macOS 27.0 (26A428) / Core AI Torch 0.4.3; Core AI 1.0.0b3; Torch 2.9.0 | 固定g01/e01、seed20261018、512正方形、batch1、CFG1、8step、joint2304、prefix KVなし。資産revisionは5部品記録のhashで検証済みbundleではない。電源/熱は未記録で速度の主張には使わない。 · variant=qmi-mobile-w4-v1; DiT F16 math; other components F32 math; backend=Core AI; GPU preferred; route=Python Core AI fixed-input and captured rollout versus original Diffusers on MPS; source_revision=fc13ba1986fcb905854dc8de2f52eee395f49b5b; artifact_revision=ce6e70483c6a47f456fb1a4bd92e95fe6993b31fada74e460311eaf90f2f77e4; code_revision=ec5f51096bb1a3f41d938045163bebdd5c76d14c; batch_size=1; concurrency=1; warmups=0; 未記録: power, thermal |
 
 ### 導入・制限・進捗
 
