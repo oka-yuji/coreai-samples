@@ -4,6 +4,11 @@
 
 ## Verification
 
+For Swift formatting, run `python3 Tools/Format/check_format.py --base origin/main`.
+The [format checker guide](../Tools/Format/README.md) describes prerequisites,
+file selection, and regression tests. The checker runs entirely from this
+repository and does not need a personal configuration directory.
+
 Run the complete build and model-free checks from the repository root. These need an Apple silicon Mac with macOS 27 and Xcode 27 selected with `xcode-select`.
 
 ```bash

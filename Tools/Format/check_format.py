@@ -35,7 +35,7 @@ def fixed_wire_name_only(result, root):
 
 def main():
     root = Path(__file__).resolve().parents[2]
-    checker = Path.home() / "claude-config/conventions/swift/scripts/check-format.py"
+    checker = Path(__file__).resolve().with_name("check_swift_format.py")
     result = subprocess.run(
         [sys.executable, str(checker), *sys.argv[1:]], cwd=root, text=True, capture_output=True
     )

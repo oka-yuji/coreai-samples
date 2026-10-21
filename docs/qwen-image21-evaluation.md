@@ -46,7 +46,7 @@ Reference/candidate records must match fixture ID, source revision, prompt/refer
 
 `row-major` is the serialized host boundary, not an assumption about preferred NDArray strides. Native packing must honor actual descriptor strides. Indices remain Int32 and masks remain Bool when floating precision changes.
 
-Native golden testing exposed a finer scheduler rule on 2026-10-21: the source upcasts `sample`, but `dt * model_output` still follows PyTorch's scalar promotion. On PyTorch 2.9 CPU, Float16/BFloat16 delta and product rounding must precede the Float32 addition and final cast-back. This matched 20,000 values at all eight steps for both precisions; keeping the delta/product entirely Float32 did not. The plan's Float32 accumulation remains, with this required intermediate rounding made explicit. MPS full-reference checks remain pending.
+Native golden testing exposed a finer scheduler rule on 2026-10-21: the source upcasts `sample`, but `dt * model_output` still follows PyTorch's scalar promotion. On PyTorch 2.9 CPU, Float16/BFloat16 delta and product rounding must precede the Float32 addition and final cast-back. This matched 20,000 values at all eight steps for both precisions; keeping the delta/product entirely Float32 did not. The plan's Float32 accumulation remains, with this required intermediate rounding made explicit. The later FP32 and FP16-network/FP32-VAE MPS source cohorts completed all 60 inputs and both repeats; this does not establish native network equivalence.
 
 ```sh
 "$QI_PYTHON" -m Tools.Conversion.adapters.qwen_image21.evaluate baseline-profile \
@@ -143,7 +143,25 @@ The first Core AI diagnostic-off baseline attempt was stopped during denoising w
 
 The saved failed/unrun rows reproduce the same aggregate through the CLI: zero completed samples and null p50/p95/maximum. Cache entries existing before launch do not prove a runtime cache hit or sufficient temporary space. A new off/on attempt needs a larger free-space margin and a live stop threshold, in new output directories.
 
-QMM-04 remains incomplete. The reference cohorts, unreviewed 60-row quality tables and numeric policy are saved; they do not establish mobile quality or performance. The conversion CPU suite contains 172 tests: 159 passed and 13 optional tests for other models were skipped.
+After the authorized archive and SHA-256 verification of two old CLI cache namespaces, a new diagnostic pair completed on 2026-10-21. The protected Python caches and existing bundle/reference outputs were retained. [The complete measurement record](research/qwen-image21-off-on-20261021.json) binds the input, profile, bundle manifest, runtime code, measurement driver, phase intervals, memory observations, declared allocation scenario and source comparison.
+
+| Mac FP32 e01 edit, seed 20261018 | Diagnostics off | Diagnostics trace |
+| --- | ---: | ---: |
+| Hash/prepare through saved PNG | 174.883 s | 193.911 s |
+| Component load intervals combined | 109.996 s | 116.621 s |
+| Eight denoiser calls combined | 37.639 s | 49.818 s |
+| RSS point-sample maximum | 60,654,567,424 B | 63,221,448,704 B |
+| Footprint point-sample maximum | 5,296,453,688 B | 5,283,625,112 B |
+| Largest observed kernel lifetime footprint peak | 5,302,270,008 B | 5,297,436,800 B |
+| Minimum observed free disk | 31,137,583,104 B | 24,988,618,752 B |
+
+Both processes exited zero, with AC power and nominal observed thermal state. Both PNG files are byte-identical. The trace output also satisfies the frozen FP32 final-output budgets against the independently saved source: latent normalized RMSE 6.150684e-7 and unclipped RGBA absolute RMSE 3.194641e-7. This checks one input, not the full candidate suite or human quality.
+
+The source-parameter/physical-I/O scenario declares weights live from load start through release end and one distinct backing per physical boundary tensor during each call. The lifetime union is 30,316,337,664 B. Compiler pruning/folding/duplication, resident weight pages, retained host arrays, internal activations, workspace, cache and app/image allocations remain incomplete, so the whole planning peak remains null. Per-component observed-minus-source-payload differences are saved as arithmetic across different accounting scopes; they are not workspace estimates or device-RAM requirements. Specialization, delegate Metal allocation and the iOS memory budget remain explicitly unavailable on this host.
+
+CLI reaggregation reproduces the saved aggregate exactly. Each diagnostics group contains one completed cached-cold invocation, below the 20-sample requirement. Neither the time difference nor the point samples establish causal logging overhead, warm/p95 performance or phase peaks. Existing cache entries are not an independent observation of a runtime cache hit.
+
+QMM-01 through QMM-05 now have contract-test, source-cohort, diagnostic-pair and reproducible-aggregation evidence. The reference quality tables remain unreviewed, and mobile feasibility remains separate. The conversion CPU suite contains 172 tests: 159 passed and 13 optional tests for other models were skipped. Required repository checks also passed: strict SwiftLint (397 files, zero violations), format (no changed Swift files), Irodori input build, package tests and macOS Release build. The model-report records and generated bilingual tables passed their check and 27 tests.
 
 ## Scope and review
 
