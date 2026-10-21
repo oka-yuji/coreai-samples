@@ -4,6 +4,10 @@
 
 AppleのCore AIとFoundation Modelsでオープンモデルを動かすSwiftサンプル集です。ローカルでの**会話と調査**、**文書の判断と抽出**、**画像検索**、**音声**を、変換手順や検証記録とともに試せます。
 
+<a href="https://x.com/oka_yuuji/status/2112517908631040473"><img src="docs/media/truck-inspection-ios.gif" width="280" alt="iPhoneの点検デモ。質問を読み上げ、音声の回答をGLiNER2.5-multiが分類し、本人が音声で確認してから記録する"></a>
+
+*iPhoneの日本語音声入力によるトラック日常点検デモ（1.5倍速）。GLiNER2.5-multiが端末上で回答を分類し、本人が確認するまで記録しません。[音声つきの全編はX](https://x.com/oka_yuuji/status/2112517908631040473) · [デモの仕組み](docs/truck-inspection.md)*
+
 下の一覧からモデルを選んでください。各ガイドに導入手順・対応端末・実測値・制限をまとめています。状態は変換バンドルの公開状況を表し、アプリへの組み込みとは分けて扱います。
 
 ## モデルとロードマップ

@@ -4,6 +4,10 @@
 
 Swift samples for running open models with Apple's Core AI and Foundation Models. Explore local **chat and research**, **document decisions and extraction**, **image search**, and **speech**, with conversion recipes and recorded verification results.
 
+<a href="https://x.com/oka_yuuji/status/2112517908631040473"><img src="docs/media/truck-inspection-ios.gif" width="280" alt="Truck inspection demo on iPhone: a question is read aloud, GLiNER2.5-multi classifies the spoken answer, and the person confirms by voice before it is recorded"></a>
+
+*Truck daily inspection on iPhone with Japanese voice input, at 1.5× speed. GLiNER2.5-multi classifies the spoken answer on the device, and nothing is recorded until the person confirms. [Full recording with audio on X](https://x.com/oka_yuuji/status/2112517908631040473) · [How the demo works](docs/truck-inspection.md)*
+
 Start with a model below. Each guide covers setup, supported devices, measurements and limitations; the status describes the converted bundle's public availability, separately from app integration.
 
 ## Models and roadmap
