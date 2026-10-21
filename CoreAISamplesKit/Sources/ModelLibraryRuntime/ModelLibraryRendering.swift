@@ -40,7 +40,7 @@ public struct ModelLibraryRendering {
             content = AnyView(DemoPreparationView(session: session, library: library))
         }
         return AnyView(
-            content.onAppear { [library] in
+            content.task(id: session.id) { @MainActor [library] in
                 if library.state.demoPreparation == .pending { library.send(.requestDemoPreparation(session.id)) }
             })
     }

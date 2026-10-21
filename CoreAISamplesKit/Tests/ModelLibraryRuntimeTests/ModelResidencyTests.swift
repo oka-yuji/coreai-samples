@@ -150,4 +150,38 @@ struct ModelResidencyTests {
         #expect(try second.adapter("comparison").start(.comparison, input: "after cleanup"))
         #expect(await harness.leases(candidate) == 1)
     }
+
+    @Test("A preparation whose owner disappears without closing gives up its residency and lease")
+    func releasesPreparationOfADisappearedOwner() async throws {
+        let harness = try RuntimeHarness()
+        defer { harness.close() }
+        var first: LibraryScene? = harness.scene("A")
+        let second = harness.scene("B")
+        var events = harness.events.makeAsyncIterator()
+        try await first?.download("text-fp16", &events)
+        try await first?.download("image-fp16", &events)
+        second.library.send(.refresh)
+        try await next(&events, "B inspect", "B inspect", "B inspect")
+        harness.ledger.hold()
+        first?.library.send(.deleteRequested("image-fp16"))
+        try await next(&events, "ledger")
+        first?.library.send(.openDemo(.comparison))
+        let owner = try #require(first?.library.state.session)
+        _ = first?.rendering.content(for: owner)
+        let preparing = Task { await harness.runner.prepare(owner) }
+        if let library = first?.library { await awaitDemoState(library) { $0.demoPreparation == .preparing } }
+
+        weak var library = first?.library
+        first = nil
+        #expect(library == nil)
+        harness.ledger.release()
+        await preparing.value
+        await harness.runner.reattempt()
+        #expect(await harness.leases(owner) == 0)
+        second.library.send(.openDemo(.comparison))
+        let candidate = try await second.show()
+        #expect(second.library.state.demoPreparation == .available)
+        #expect(try second.adapter("comparison").start(.comparison, input: "after an owner disappeared"))
+        #expect(await harness.leases(candidate) == 1)
+    }
 }
