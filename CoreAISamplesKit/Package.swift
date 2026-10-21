@@ -69,11 +69,15 @@ let package = Package(
         .target(
             name: "ImageGenerationRuntime",
             dependencies: [
-                "ImageGenerationCore", .product(name: "Tokenizers", package: "swift-transformers"),
+                "ImageGenerationCore", "ModelLibraryFeature",
+                .product(name: "Tokenizers", package: "swift-transformers"),
                 .product(name: "Hub", package: "swift-transformers"),
             ], swiftSettings: speechSettings),
         .testTarget(
-            name: "ImageGenerationTests", dependencies: ["ImageGenerationCore", "ImageGenerationRuntime"],
+            name: "ImageGenerationTests",
+            dependencies: [
+                "ImageGenerationCore", "ImageGenerationRuntime", "ModelLibraryFeature", "ModelLibraryTestSupport",
+            ],
             resources: [.copy("Resources")], swiftSettings: speechSettings),
         .target(
             name: "ModelLibraryUI", dependencies: ["ModelLibraryFeature", "FeatureStore"],

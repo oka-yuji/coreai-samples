@@ -50,6 +50,13 @@ public struct ImageTensorContract: Codable, Equatable, Sendable {
     public let dtype: ImageScalarType
     public let layout: String
 
+    public init(name: String, shape: [Int], dtype: ImageScalarType, layout: String) {
+        self.name = name
+        self.shape = shape
+        self.dtype = dtype
+        self.layout = layout
+    }
+
     public func elementCount() throws -> Int {
         guard !name.isEmpty, !shape.isEmpty, layout == "row-major" else {
             throw ImageGenerationError.invalidProfile("tensor descriptor")
