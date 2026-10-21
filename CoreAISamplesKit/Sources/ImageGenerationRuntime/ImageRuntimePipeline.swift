@@ -47,7 +47,7 @@ actor ImageRuntimePipeline {
 
     func generate(
         _ request: ImageGenerationRequest, trace: (any ImageTraceSink)? = nil,
-        isCurrent: @escaping Permission = { true }, progress: @escaping Progress
+        isCurrent: @escaping Permission = { true }, progress: Progress
     ) async throws -> ImageGenerationResult {
         guard !released else { throw ImageExecutionError.released }
         guard active == nil, !stopping else { throw ImageExecutionError.busy }
@@ -150,7 +150,7 @@ actor ImageRuntimePipeline {
     }
 
     private func perform(
-        _ request: ImageGenerationRequest, trace: (any ImageTraceSink)?, progress: @escaping Progress
+        _ request: ImageGenerationRequest, trace: (any ImageTraceSink)?, progress: Progress
     ) async throws -> ImageGenerationPixels {
         let bundle = try loadBundle(resource, budget)
         try await checkpoint()
@@ -174,7 +174,7 @@ actor ImageRuntimePipeline {
 
     private func encodeText(
         _ bundle: ImageRuntimeBundle, layout: ImagePromptLayout, image: ImageGenerationPixels?,
-        trace: (any ImageTraceSink)?, progress: @escaping Progress
+        trace: (any ImageTraceSink)?, progress: Progress
     ) async throws -> [Float] {
         var vision: [[Float]]?
         if let image {
@@ -198,7 +198,7 @@ actor ImageRuntimePipeline {
 
     private func encodeReference(
         _ bundle: ImageRuntimeBundle, image: ImageGenerationPixels?, trace: (any ImageTraceSink)?,
-        progress: @escaping Progress
+        progress: Progress
     ) async throws -> [Float]? {
         guard let image else { return nil }
         let values: [String: ImageTensorData] = ["value": .floats(try image.vaeInput())]
@@ -213,7 +213,7 @@ actor ImageRuntimePipeline {
 
     private func denoise(
         _ bundle: ImageRuntimeBundle, request: ImageGenerationRequest, structure: ImageDenoiserLayout,
-        text: [Float], reference: [Float]?, trace: (any ImageTraceSink)?, progress: @escaping Progress
+        text: [Float], reference: [Float]?, trace: (any ImageTraceSink)?, progress: Progress
     ) async throws -> [Float] {
         let precision = try descriptor(.denoiser, bundle: bundle).computeDtype
         let noise = try request.initialNoise ?? ImageGenerationNoise.make(seed: request.seed)

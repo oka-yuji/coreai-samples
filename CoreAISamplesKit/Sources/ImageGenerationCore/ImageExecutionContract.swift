@@ -193,7 +193,7 @@ public struct ImageMemoryBudget: Codable, Equatable, Sendable {
     }
 }
 
-public struct ImageGenerationRequest: Sendable {
+public struct ImageGenerationRequest: Equatable, Sendable {
     public let id: UUID
     public let prompt: String
     public let seed: UInt64

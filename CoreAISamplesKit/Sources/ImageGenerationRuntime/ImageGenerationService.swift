@@ -6,7 +6,7 @@ import ModelLibraryFeature
 public protocol ImageGenerationService {
     func generate(
         _ request: ImageGenerationRequest, trace: (any ImageTraceSink)?,
-        progress: @escaping @MainActor @Sendable (ImageExecutionProgress) -> Void
+        progress: @MainActor @Sendable (ImageExecutionProgress) -> Void
     ) async throws -> ImageGenerationResult
     func stop() async throws
     func release() async throws
@@ -47,7 +47,7 @@ public final class LiveImageGenerationService: ImageGenerationService {
 
     public func generate(
         _ request: ImageGenerationRequest, trace: (any ImageTraceSink)? = nil,
-        progress: @escaping @MainActor @Sendable (ImageExecutionProgress) -> Void
+        progress: @MainActor @Sendable (ImageExecutionProgress) -> Void
     ) async throws -> ImageGenerationResult {
         guard !released else { throw ImageExecutionError.released }
         guard !running, stops == 0 else { throw ImageExecutionError.busy }

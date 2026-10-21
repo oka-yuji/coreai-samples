@@ -18,6 +18,8 @@ let package = Package(
     products: [
         .library(name: "ImageGenerationCore", targets: ["ImageGenerationCore"]),
         .library(name: "ImageGenerationRuntime", targets: ["ImageGenerationRuntime"]),
+        .library(name: "ImageGenerationFeature", targets: ["ImageGenerationFeature"]),
+        .library(name: "ImageGenerationUI", targets: ["ImageGenerationUI"]),
         .library(name: "ModelLibraryUI", targets: ["ModelLibraryUI"]),
         .library(name: "ModelLibraryFeature", targets: ["ModelLibraryFeature"]),
         .library(name: "ModelLibraryStorage", targets: ["ModelLibraryStorage"]),
@@ -67,9 +69,29 @@ let package = Package(
     targets: [
         .target(name: "ImageGenerationCore", swiftSettings: speechSettings),
         .target(
+            name: "ImageGenerationFeature", dependencies: ["ImageGenerationCore", "FeatureStore"],
+            swiftSettings: speechSettings),
+        .target(
+            name: "ImageGenerationUI",
+            dependencies: [
+                "ImageGenerationCore", "ImageGenerationFeature", "ImageGenerationRuntime", "FeatureStore",
+                "ModelLibraryFeature", "ModelLibraryRuntime",
+            ],
+            resources: [.process("Resources")], swiftSettings: speechSettings + [.defaultIsolation(MainActor.self)]),
+        .testTarget(
+            name: "ImageGenerationFeatureTests", dependencies: ["ImageGenerationFeature", "ImageGenerationCore"],
+            swiftSettings: speechSettings),
+        .testTarget(
+            name: "ImageGenerationInteractionTests",
+            dependencies: [
+                "ImageGenerationCore", "ImageGenerationFeature", "ImageGenerationRuntime", "ImageGenerationUI",
+                "ModelLibraryFeature", "ModelLibraryRuntime", "ModelLibraryTestSupport", "FeatureStore",
+            ],
+            resources: [.copy("Resources")], swiftSettings: speechSettings),
+        .target(
             name: "ImageGenerationRuntime",
             dependencies: [
-                "ImageGenerationCore", "ModelLibraryFeature",
+                "ImageGenerationCore", "ImageGenerationFeature", "FeatureStore", "ModelLibraryFeature",
                 .product(name: "Tokenizers", package: "swift-transformers"),
                 .product(name: "Hub", package: "swift-transformers"),
             ], swiftSettings: speechSettings),

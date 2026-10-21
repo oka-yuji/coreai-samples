@@ -1,6 +1,6 @@
 # Qwen Image 2.1 Turbo native runtime
 
-Implementation for [#218](https://github.com/oka-yuji/coreai-samples/issues/218), using practical v2 and the [native preprocessing](qwen-image21-native-preprocessing.md) contract. The loader, sequential pipeline, cancellation joining, diagnostics and CPU lifecycle tests are implemented. Full candidate fidelity, calibrated device budgets, the common Models adapter, headless device measurements and QMR-03 through QMR-06 remain pending. Fake backend tests do not establish GPU release or iPhone support.
+Implementation for [#218](https://github.com/oka-yuji/coreai-samples/issues/218), using practical v2 and the [native preprocessing](qwen-image21-native-preprocessing.md) contract. The loader, sequential pipeline, cancellation joining, diagnostics and CPU lifecycle tests are implemented. The [generation UI and common Models adapter](qwen-image21-generation-ui.md) add the Store-owned request path. Full candidate fidelity, calibrated device budgets, headless device measurements and QMR-03 through QMR-06 remain pending. Fake backend tests do not establish GPU release or iPhone support.
 
 ## Ownership and execution
 
@@ -12,7 +12,7 @@ Stop rejects further steps and waits for the operation already submitted. A load
 
 A request-specific admission check also runs before the first validation or model load. If stop reaches an idle runtime before an already-requested generation reaches its actor, that withdrawn request is rejected when it arrives.
 
-Progress carries the request ID. The service checks its delivery ID and current permission on MainActor before forwarding progress or a result. Revocation prevents later stages and suppresses stale delivery. The common adapter must still be tested for backgrounding, scene destruction and A → B → A switching with real resources.
+Progress carries the request ID. Its callback is nonescaping throughout the service and pipeline; it is delivered only within the awaited request. The service checks its delivery ID and current permission on MainActor before forwarding progress or a result. Revocation prevents later stages and suppresses stale delivery. The common adapter must still be tested for backgrounding, scene destruction and A → B → A switching with real resources.
 
 ## Validation and memory budgets
 
