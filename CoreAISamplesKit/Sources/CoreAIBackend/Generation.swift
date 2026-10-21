@@ -126,8 +126,9 @@ struct Sampler {
 
     let mode: Mode
     let temperature: Float
-    private var random: SplitMix64
-    private var scratch: [Float] = []
+    private(set) var random: SplitMix64
+    private(set) var scratch: [Float] = []
+    private(set) var pool: [Int] = []
 
     init(mode: Mode, temperature: Float = 1, seed: UInt64? = nil) {
         self.mode = temperature > 0 ? mode : .greedy
@@ -148,7 +149,7 @@ struct Sampler {
             scratch[i] = exp(scratch[i] - top)
             total += Double(scratch[i])
         }
-        let pool = candidates(count: logits.count, total: total)
+        fillPool(count: logits.count, total: total)
         var target = Double.random(in: 0..<1, using: &random) * pool.reduce(0) { $0 + Double(scratch[$1]) }
         for index in pool {
             target -= Double(scratch[index])
@@ -157,12 +158,18 @@ struct Sampler {
         return Int32(pool.last!)
     }
 
-    private func candidates(count: Int, total: Double) -> [Int] {
-        if mode == .full { return Array(0..<count) }
+    private mutating func fillPool(count: Int, total: Double) {
+        if mode == .full {
+            if pool.count != count {
+                pool.removeAll(keepingCapacity: true)
+                pool.append(contentsOf: 0..<count)
+            }
+            return
+        }
         var floor: Float = 1e-4
-        var pool: [Int]
         while true {
-            pool = (0..<count).filter { scratch[$0] >= floor }
+            pool.removeAll(keepingCapacity: true)
+            for i in 0..<count where scratch[i] >= floor { pool.append(i) }
             let enough =
                 switch mode {
                 case .topK(let k): pool.count >= k
@@ -175,13 +182,17 @@ struct Sampler {
         pool.sort { scratch[$0] != scratch[$1] ? scratch[$0] > scratch[$1] : $0 < $1 }
         switch mode {
         case .topK(let k):
-            return Array(pool.prefix(max(k, 1)))
+            pool.removeSubrange(min(max(k, 1), pool.count)...)
         case .topP(let p):
             var sum = 0.0
-            let last = pool.firstIndex { sum += Double(scratch[$0]); return sum >= p * total } ?? pool.count - 1
-            return Array(pool[...last])
+            let last =
+                pool.firstIndex {
+                    sum += Double(scratch[$0])
+                    return sum >= p * total
+                } ?? pool.count - 1
+            pool.removeSubrange((last + 1)...)
         default:
-            return pool
+            break
         }
     }
 }
