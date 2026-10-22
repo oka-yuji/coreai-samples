@@ -2,7 +2,7 @@ import Accelerate
 import CoreAI
 import Foundation
 
-public enum EngineError: Error, Equatable {
+public enum EngineError: Error, Equatable, LocalizedError {
     case missingFunction(String)
     case missingInput(String)
     case missingOutput
@@ -10,6 +10,12 @@ public enum EngineError: Error, Equatable {
     case contextOverflow(needed: Int, limit: Int)
     case checkpointMismatch
     case unloaded
+    case cacheQueryFailed(query: String, specialize: String)
+
+    public var errorDescription: String? {
+        guard case .cacheQueryFailed(let query, let specialize) = self else { return nil }
+        return "The specialization cache query failed: \(query). Specializing again also failed: \(specialize)."
+    }
 }
 
 public final class Engine {
@@ -19,6 +25,7 @@ public final class Engine {
         public let totalSeconds: Double
         public let requestedComputeUnit: String?
         public let expectsFrequentReshapes: Bool?
+        public let cacheQueryError: String?
     }
 
     public struct Stats: Sendable {
@@ -67,18 +74,15 @@ public final class Engine {
         let clock = ContinuousClock()
         let start = clock.now
         let options = Self.specializationOptions()
-        var specializeSeconds = 0.0
-        let model: AIModel
-        if let cached = (try? AIModelCache.default.model(for: bundle.modelURL, options: options)) ?? nil {
-            model = cached
-        } else {
-            if let width = Self.mainOutputWidth(bundle.modelURL), width != bundle.vocabSize {
-                throw BundleError.notLanguageModel(outputWidth: width, vocabSize: bundle.vocabSize)
-            }
-            let specializeStart = clock.now
-            model = try await AIModel.specialize(contentsOf: bundle.modelURL, options: options)
-            specializeSeconds = (clock.now - specializeStart) / .seconds(1)
-        }
+        let resolved = try await Self.resolveModel(
+            query: { try AIModelCache.default.model(for: bundle.modelURL, options: options) },
+            fallback: {
+                if let width = Self.mainOutputWidth(bundle.modelURL), width != bundle.vocabSize {
+                    throw BundleError.notLanguageModel(outputWidth: width, vocabSize: bundle.vocabSize)
+                }
+                return try await AIModel.specialize(contentsOf: bundle.modelURL, options: options)
+            })
+        let model = resolved.model
 
         guard let descriptor = model.functionDescriptor(for: "main"),
             let main = try model.loadFunction(named: "main")
@@ -116,11 +120,31 @@ public final class Engine {
         self.isHybrid = buffers.contains { $0.sequenceDim == nil }
         self.scratch = [Float](repeating: 0, count: bundle.vocabSize)
         self.loadStats = LoadStats(
-            cached: specializeSeconds == 0,
-            specializeSeconds: specializeSeconds,
+            cached: resolved.cached,
+            specializeSeconds: resolved.specializeSeconds,
             totalSeconds: (clock.now - start) / .seconds(1),
             requestedComputeUnit: Self.computeUnitName(options.preferredComputeUnitKind),
-            expectsFrequentReshapes: options.expectFrequentReshapes)
+            expectsFrequentReshapes: options.expectFrequentReshapes,
+            cacheQueryError: resolved.cacheQueryError)
+    }
+
+    static func resolveModel<Model>(
+        query: () throws -> Model?, fallback: () async throws -> Model
+    ) async throws -> (model: Model, cached: Bool, cacheQueryError: String?, specializeSeconds: Double) {
+        var queryError: String?
+        do {
+            if let model = try query() { return (model, true, nil, 0) }
+        } catch {
+            queryError = String(describing: error)
+        }
+        let start = ContinuousClock.now
+        do {
+            let model = try await fallback()
+            return (model, false, queryError, (ContinuousClock.now - start) / .seconds(1))
+        } catch {
+            guard let queryError else { throw error }
+            throw EngineError.cacheQueryFailed(query: queryError, specialize: String(describing: error))
+        }
     }
 
     static func specializationOptions() -> SpecializationOptions {
