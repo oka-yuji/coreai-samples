@@ -27,6 +27,7 @@ final class ReloadTestControl: Sendable {
         var steps = 0
         var samples = 0
         var blockAtStep: Int?
+        var signalStatsAfterSample: Int?
     }
 
     let state = Mutex(State())
@@ -34,6 +35,7 @@ final class ReloadTestControl: Sendable {
     let reading = AsyncStream<Int>.makeStream()
     let sampling = AsyncStream<Int>.makeStream()
     let stepping = AsyncStream<Int>.makeStream()
+    let statsRead = AsyncStream<Void>.makeStream()
 
     func make(_ bundle: ModelBundle, _ contextLimit: Int) async throws -> EngineBox {
         let gate = AsyncStream<Void>.makeStream()
@@ -101,7 +103,7 @@ final class ReloadTestEngine: RuntimeEngine {
     private let contextLimit: Int
     private var outputIndex = 0
     private(set) var tokens: [Int32] = []
-    private(set) var stats = Engine.Stats()
+    private var counters = Engine.Stats()
     private(set) var hasLogits = false
     var measuresPreparation = false
     let isHybrid = false
@@ -120,6 +122,16 @@ final class ReloadTestEngine: RuntimeEngine {
             $0.liveEngines.remove(id)
             $0.events.append("released-engine:\(id)")
         }
+    }
+
+    var stats: Engine.Stats {
+        let signal = control.state.withLock { state in
+            guard let sample = state.signalStatsAfterSample, state.samples >= sample else { return false }
+            state.signalStatsAfterSample = nil
+            return true
+        }
+        if signal { control.statsRead.continuation.yield() }
+        return counters
     }
 
     func logits() -> [Float16] {
@@ -199,14 +211,14 @@ final class ReloadTestEngine: RuntimeEngine {
         if fail { throw ReloadTestFailure.read }
         if let partial {
             tokens += input.prefix(partial)
-            stats.prefillTokens += min(partial, input.count)
+            counters.prefillTokens += min(partial, input.count)
             throw ReloadTestFailure.read
         }
         guard tokens.count + input.count <= contextLimit else {
             throw EngineError.contextOverflow(needed: tokens.count + input.count, limit: contextLimit)
         }
         tokens += input
-        stats.prefillTokens += input.count
+        counters.prefillTokens += input.count
         outputIndex = 0
         hasLogits = true
     }
@@ -229,7 +241,7 @@ final class ReloadTestEngine: RuntimeEngine {
         }
         if fail { throw ReloadTestFailure.step }
         tokens.append(token)
-        stats.decodeTokens += 1
+        counters.decodeTokens += 1
         outputIndex += 1
         control.state.withLock { $0.steps += 1 }
     }

@@ -10,10 +10,31 @@ extension Runtime {
 
 @Suite(.serialized, .timeLimit(.minutes(1)))
 struct CancelledRequestTests {
+    enum Point: Sendable {
+        case send(afterSample: Int)
+        case metadata(afterSample: Int)
+        case usage
+    }
+
+    enum TerminalSend: String, CaseIterable, Sendable {
+        case responseMetadata
+        case toolCallMetadata
+        case usage
+    }
+
     static let heldTextTokenizer = #"""
         {"added_tokens": [{"id": 3, "content": "<|im_end|>", "special": true}],
          "model": {"type": "BPE", "vocab": {"a": 0, "b": 1, "\uFFFD": 2}, "merges": []}}
         """#
+
+    static let toolCallTokenizer = #"""
+        {"added_tokens": [{"id": 3, "content": "<|im_end|>", "special": true}],
+         "model": {"type": "BPE", "merges": [], "vocab": {"<tool_call>": 0,
+           "{\"name\": \"add\", \"arguments\": {\"a\": 1, \"b\": 2}}": 1, "</tool_call>": 2, "a": 4}}}
+        """#
+
+    static let addTool = Transcript.ToolDefinition(
+        name: "add", description: "Add two integers.", parameters: AddArguments.generationSchema)
 
     static func fixture(_ tokens: [Int], tokenizer: String? = nil) async throws -> ReloadTestModel {
         var settings = LocalLanguageModel.VerificationSettings()
@@ -24,26 +45,38 @@ struct CancelledRequestTests {
         return fixture
     }
 
-    static func cancelInSend(_ fixture: ReloadTestModel, limit: Int, reading: Int, sample: Int) async
-        -> (read: Int, error: (any Error)?)
-    {
+    static func cancelInSend(
+        _ fixture: ReloadTestModel, limit: Int, reading: Int, at point: Point, tools: [Transcript.ToolDefinition] = []
+    ) async -> (read: Int, error: (any Error)?) {
         let channel = LanguageModelExecutorGenerationChannel()
         let hold = AsyncStream<Void>.makeStream()
+        let reached = AsyncStream<Void>.makeStream()
         let reader = Task {
             var events = channel.makeAsyncIterator()
             var read = 0
             while read < reading, try await events.next() != nil { read += 1 }
+            reached.continuation.yield()
             var held = hold.stream.makeAsyncIterator()
             _ = await held.next()
             return read
         }
+        if case .metadata(let sample) = point { fixture.control.state.withLock { $0.signalStatsAfterSample = sample } }
         let request = LanguageModelExecutorGenerationRequest(
             id: UUID(), transcript: Transcript(entries: [.prompt(.init(segments: [.text(.init(content: "a"))]))]),
-            enabledTools: [], generationOptions: .init(samplingMode: .greedy, maximumResponseTokens: limit),
+            enabledTools: tools, generationOptions: .init(samplingMode: .greedy, maximumResponseTokens: limit),
             contextOptions: .init(), metadata: [:])
         let executor = Task { try await fixture.runtime.respond(to: request, streamingInto: channel) }
-        var samples = fixture.control.sampling.stream.makeAsyncIterator()
-        while let count = await samples.next(), count < sample {}
+        switch point {
+        case .send(let sample):
+            var samples = fixture.control.sampling.stream.makeAsyncIterator()
+            while let count = await samples.next(), count < sample {}
+        case .metadata:
+            var reads = fixture.control.statsRead.stream.makeAsyncIterator()
+            _ = await reads.next()
+        case .usage:
+            var arrived = reached.stream.makeAsyncIterator()
+            _ = await arrived.next()
+        }
         await fixture.runtime.barrier()
         executor.cancel()
         let result = await executor.result
@@ -60,7 +93,7 @@ struct CancelledRequestTests {
     func cancelInSend(limit: Int) async throws {
         let fixture = try await Self.fixture([0, 1])
         defer { try? FileManager.default.removeItem(at: fixture.folder) }
-        let cancelled = await Self.cancelInSend(fixture, limit: limit, reading: 2, sample: 3)
+        let cancelled = await Self.cancelInSend(fixture, limit: limit, reading: 2, at: .send(afterSample: 3))
         #expect(cancelled.read == 2)
         #expect(cancelled.error is CancellationError, "\(String(describing: cancelled.error))")
         #expect(fixture.control.state.withLock { $0.steps } == 2)
@@ -85,7 +118,7 @@ struct CancelledRequestTests {
     func cancelInSendAfterHeldText() async throws {
         let fixture = try await Self.fixture([2, 1], tokenizer: Self.heldTextTokenizer)
         defer { try? FileManager.default.removeItem(at: fixture.folder) }
-        let cancelled = await Self.cancelInSend(fixture, limit: 8, reading: 0, sample: 2)
+        let cancelled = await Self.cancelInSend(fixture, limit: 8, reading: 0, at: .send(afterSample: 2))
         #expect(cancelled.read == 0)
         #expect(cancelled.error is CancellationError, "\(String(describing: cancelled.error))")
         #expect(fixture.control.state.withLock { $0.steps } == 1)
@@ -97,7 +130,7 @@ struct CancelledRequestTests {
     func cancelInTerminalSend() async throws {
         let fixture = try await Self.fixture([0, 1, 3])
         defer { try? FileManager.default.removeItem(at: fixture.folder) }
-        let cancelled = await Self.cancelInSend(fixture, limit: 8, reading: 2, sample: 3)
+        let cancelled = await Self.cancelInSend(fixture, limit: 8, reading: 2, at: .send(afterSample: 3))
         #expect(cancelled.error is CancellationError, "\(String(describing: cancelled.error))")
         #expect(await fixture.model.lastRequestMeasurement()?.outcome == .cancelled)
         let session = LanguageModelSession(
@@ -110,10 +143,41 @@ struct CancelledRequestTests {
         #expect(try ModelTestSettings.metadata(session, "splicedGenerations", as: Int.self) == 0)
         let held = try await Self.fixture([2, 3], tokenizer: Self.heldTextTokenizer)
         defer { try? FileManager.default.removeItem(at: held.folder) }
-        let drained = await Self.cancelInSend(held, limit: 8, reading: 0, sample: 2)
+        let drained = await Self.cancelInSend(held, limit: 8, reading: 0, at: .send(afterSample: 2))
         #expect(drained.read == 0)
         #expect(drained.error is CancellationError, "\(String(describing: drained.error))")
         #expect(await held.model.lastRequestMeasurement()?.outcome == .cancelled)
+    }
+
+    @Test(
+        "A request cancelled inside its metadata or usage send ends with CancellationError and keeps no generation",
+        arguments: TerminalSend.allCases)
+    func cancelInEachTerminalSend(_ send: TerminalSend) async throws {
+        let calling = send == .toolCallMetadata
+        let fixture = try await Self.fixture(
+            calling ? [0, 1, 2, 3] : [0, 1, 3], tokenizer: calling ? Self.toolCallTokenizer : nil)
+        defer { try? FileManager.default.removeItem(at: fixture.folder) }
+        let cancelled =
+            switch send {
+            case .responseMetadata:
+                await Self.cancelInSend(fixture, limit: 8, reading: 2, at: .metadata(afterSample: 3))
+            case .toolCallMetadata:
+                await Self.cancelInSend(
+                    fixture, limit: 8, reading: 1, at: .metadata(afterSample: 4), tools: [Self.addTool])
+            case .usage: await Self.cancelInSend(fixture, limit: 8, reading: 3, at: .usage)
+            }
+        #expect(cancelled.read == (send == .usage ? 3 : calling ? 1 : 2))
+        #expect(cancelled.error is CancellationError, "\(String(describing: cancelled.error))")
+        #expect(await fixture.model.lastRequestMeasurement()?.outcome == .cancelled)
+        guard !calling else { return }
+        let session = LanguageModelSession(
+            model: fixture.model,
+            transcript: Transcript(entries: [
+                .prompt(.init(segments: [.text(.init(content: "a"))])),
+                .response(.init(segments: [.text(.init(content: "ab"))])),
+            ]))
+        _ = try await session.respond(to: "a", options: .init(samplingMode: .greedy, maximumResponseTokens: 1))
+        #expect(try ModelTestSettings.metadata(session, "splicedGenerations", as: Int.self) == 0)
     }
 
     @Test(
