@@ -1,0 +1,80 @@
+{
+  "format": 1,
+  "id": "qmi-numeric-gates-v1",
+  "frozen_at": "2026-10-20T20:02:31.263167+00:00",
+  "source_revision": "fc13ba1986fcb905854dc8de2f52eee395f49b5b",
+  "implementation_revision": "b800f828f3951c4d206e154411bcbfa693cd322e",
+  "fixture_definition_sha256": "fe0127bc661bebaa36f75aaeb7f1d21b5e4163c1381a8bcb1652d71efcd87303",
+  "fixture_manifest_raw_sha256": "b26820d8a34afd01f4f2c8e1ab2b0b66d951fe38e5b0a6b79104c1f555fe3ee9",
+  "component": {
+    "float32": {
+      "normalized_max": 0.001,
+      "normalized_rmse": 0.0001
+    },
+    "float16": {
+      "normalized_max": 0.00390625,
+      "normalized_rmse": 0.0009765625
+    },
+    "bfloat16": {
+      "normalized_max": 0.03125,
+      "normalized_rmse": 0.0078125
+    }
+  },
+  "rollout": {
+    "latent_normalized_rmse": 0.005,
+    "rgba_absolute_rmse": 0.01
+  },
+  "comparison": {
+    "capture_dtype": "float32",
+    "metric_dtype": "float64",
+    "normalized_max": "max(abs(actual-reference))/max(max(abs(reference)),1e-12)",
+    "normalized_rmse": "rms(actual-reference)/max(rms(reference),1e-12)",
+    "shape": "exact after selecting the declared valid region",
+    "finite": true,
+    "final_rgba": "all four decoder channels before clipping, compositing or byte conversion",
+    "final_latent_shape": [
+      1,
+      1024,
+      64
+    ],
+    "final_rgba_shape": [
+      1,
+      4,
+      1,
+      512,
+      512
+    ]
+  },
+  "valid_regions": {
+    "vision": "all 256 tokens for each of four outputs",
+    "text": "processed token rows before fixed padding, including template rows",
+    "denoiser_component": "all expanded joint rows before fixed padding",
+    "fixed_step_target": "the exact 1024 target positions from the frozen layout",
+    "vae_encoder": "all channel and spatial positions",
+    "vae_decoder": "all four unclipped channels and spatial positions"
+  },
+  "decision_basis": [
+    "Engineering acceptance budgets, not theoretical rounding bounds or per-element ULP limits.",
+    "Existing Float32 component limits are unchanged. New low-precision component budgets use epsilon and four epsilon as chosen global normalized-error budgets.",
+    "Existing final-latent and RGBA output budgets from verify.py:75-77 are retained for every precision. No epsilon-times-step-count bound is assumed.",
+    "Two source repeat runs had zero observed differences; this does not bound all inputs or cross-runtime error."
+  ],
+  "prior_observations": [
+    "FP32, FP16, BF16 and W4 real-block feasibility probes were already observed before this policy.",
+    "The old FP32-gate failures remain unchanged. New-policy acceptance requires new full-suite runs; reclassification of old probes is insufficient.",
+    "The full mixed FP16-network/FP32-VAE source suite completed; its output quality is unreviewed. Full BF16 source evaluation has not run."
+  ],
+  "requirements": [
+    "B and C share exact quantized weights and dequantization parameters, per-component compute dtype, normalization, clipping, noise, tokens, layouts and sigmas.",
+    "Select each component budget from that component compute dtype; a Float32 VAE retains the Float32 budget even in an otherwise Float16 profile.",
+    "Every applicable output tensor and all eight fixed-input denoiser steps must pass independently in each of 60 runs; no mean pass rate hides a failure.",
+    "In free rollout B and C each use their own preceding latent from the same initial noise and conditions; final latent and RGBA must both pass in each run.",
+    "Generation-only rows mark vision and VAE encoder as not applicable with a reason; editing requires them.",
+    "Nonfloat token/index/mask/shape/sigma equality is exact and outside floating tolerances.",
+    "Independent source, same-quantized-weight reference and conversion evidence must be complete and input-bound before a profile can be verified.",
+    "A0-to-A1 and A1-to-B differences are descriptive with independent finite/quality checks; they are not conversion-error comparisons.",
+    "Human quality ratings require at least 90% success per applicable axis and at most two outputs with a newly failed axis; unreviewed ratings fail completeness.",
+    "Do not automatically widen budgets after failure. A policy change requires a new version, reasons, affected comparisons and new runs; retain old results."
+  ],
+  "local_comparison_pass_is_not_profile_verified": true
+}

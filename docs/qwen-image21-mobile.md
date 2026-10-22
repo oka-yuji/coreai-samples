@@ -4,6 +4,8 @@ A native iOS/iPadOS port using the same checkpoint is worth investigating, but *
 
 Research date: **2026-10-18**. Target: [Qwen/Qwen-Image-2.1-Turbo at `fc13ba1`](https://huggingface.co/Qwen/Qwen-Image-2.1-Turbo/tree/fc13ba1986fcb905854dc8de2f52eee395f49b5b). There has been **no iPhone or iPad inference, memory, thermal, or quality validation** for this port.
 
+The 2026-10-20 plan in [#222](https://github.com/oka-yuji/coreai-samples/issues/222) starts with a small real-weight graph on the target iPhone 17 Pro, alongside [evaluation contracts](qwen-image21-evaluation.md) and shared model residency. The older investigation sequence below is historical. Device execution and full-component fit remain unverified.
+
 ## Current evidence and implementation boundary
 
 | Area | Evidence at the research cutoff | What remains unverified |
@@ -66,7 +68,7 @@ The [pinned pipeline](https://github.com/huggingface/diffusers/blob/b800f828f395
 
 Use the checkpoint's **eight saved sigmas**, append the scheduler's terminal zero, and retain CFG=1 for the initial comparison. Its scheduler configuration has shift=1, dynamic shifting off, and stochastic sampling off. Euler updates run in FP32 before casting back to model precision. A native RNG with the same seed is not sufficient evidence of identical noise: initially supply the exact reference noise tensor. [Saved schedule](https://huggingface.co/Qwen/Qwen-Image-2.1-Turbo/blob/fc13ba1986fcb905854dc8de2f52eee395f49b5b/model_index.json), [scheduler configuration](https://huggingface.co/Qwen/Qwen-Image-2.1-Turbo/blob/fc13ba1986fcb905854dc8de2f52eee395f49b5b/scheduler/scheduler_config.json), [scheduler implementation](https://github.com/huggingface/diffusers/blob/b800f828f3951c4d206e154411bcbfa693cd322e/src/diffusers/schedulers/scheduling_flow_match_euler_discrete.py#L493-L526)
 
-A hidden-state-only encoder is a useful optimization candidate: the pipeline consumes hidden states, while `Qwen3VLForConditionalGeneration` also has a vocabulary projection. Its configured 151,936 × 4,096 untied head is 622,329,856 parameters, about 1.245 GB at BF16. Excluding that unused head, unnecessary hidden-state outputs, and text-generation KV requires a separately compared wrapper; it is not an already measured saving. [Encoder configuration](https://huggingface.co/Qwen/Qwen-Image-2.1-Turbo/blob/fc13ba1986fcb905854dc8de2f52eee395f49b5b/text_encoder/config.json), [hidden-state consumption](https://github.com/huggingface/diffusers/blob/b800f828f3951c4d206e154411bcbfa693cd322e/src/diffusers/pipelines/qwenimage21/pipeline_qwenimage21.py#L303-L337)
+The current compared [`TextEncoder` wrapper](../Tools/Conversion/adapters/qwen_image21/encoders.py) already selects language-model embeddings/layers and omits the vocabulary head and text-generation KV. The source's 151,936 × 4,096 untied head is 622,329,856 parameters, about 1.245 GB at BF16; removing it again is not a new mobile saving. The historical proposal to omit it was superseded by the existing FP32 wrapper and its comparisons. [Encoder configuration](https://huggingface.co/Qwen/Qwen-Image-2.1-Turbo/blob/fc13ba1986fcb905854dc8de2f52eee395f49b5b/text_encoder/config.json), [hidden-state consumption](https://github.com/huggingface/diffusers/blob/b800f828f3951c4d206e154411bcbfa693cd322e/src/diffusers/pipelines/qwenimage21/pipeline_qwenimage21.py#L303-L337)
 
 ## Changes to investigate, in order
 
