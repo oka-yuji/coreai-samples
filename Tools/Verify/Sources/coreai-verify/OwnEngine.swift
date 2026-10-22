@@ -281,6 +281,11 @@ struct SpeedRun: AsyncParsableCommand {
     @Option var engine: String
     @Option var maxTokens: Int
     @Option var round: Int
+    @Option(name: .customLong("repeat")) var repeatCount = 1
+
+    func validate() throws {
+        guard repeatCount > 0 else { throw ValidationError("--repeat takes a count of one or more.") }
+    }
 
     func run() async throws {
         let url = URL(filePath: model)
@@ -289,59 +294,66 @@ struct SpeedRun: AsyncParsableCommand {
         let input = try chatInput(
             tokenizer, system: String(contentsOfFile: preamble, encoding: .utf8), user: rewindQuestions[0])
         let warmup = Array(input.prefix(16))
-        let clock = ContinuousClock()
-        let loadStart = clock.now
-        var first = loadStart
-        var last = loadStart
-        var start = loadStart
-        var loadEnd = loadStart
-        var generated = 0
-        let stopReason: String
-        var loadStats: CoreAIBackend.Engine.LoadStats?
+        let loadStart = ContinuousClock.now
         if engine == "own" {
             let own = try await CoreAIBackend.Engine(bundle: bundle)
-            loadEnd = clock.now
-            loadStats = own.loadStats
+            let loadEnd = ContinuousClock.now
             _ = try await own.generate(warmup, maxTokens: 8, stopTokens: [])
-            own.reset()
-            start = clock.now
-            _ = try await own.generate(input, maxTokens: maxTokens, stopTokens: []) { _ in
-                last = clock.now
-                if first == loadStart { first = last }
-                generated += 1
+            try await measure(input, loadStart, loadEnd, own.loadStats) {
+                own.reset()
+            } generate: { onToken in
+                let output = try await own.generate(input, maxTokens: maxTokens, stopTokens: [], onToken: onToken)
+                return SpeedRecord.ownStopReason(generated: output.count, maxTokens: maxTokens)
             }
-            stopReason = SpeedRecord.ownStopReason(generated: generated, maxTokens: maxTokens)
         } else {
             let official = try await EngineFactory.createEngine(
                 bundle: LanguageModelBundle(at: url),
                 options: EngineOptions(variant: engine == "sequential" ? "coreai-sequential" : nil))
-            loadEnd = clock.now
+            let loadEnd = ContinuousClock.now
             try await official.warmup(queryLength: 1, sampling: .greedy)
             _ = try await drain(official, warmup, 8) { _ in }
-            try await official.reset(to: 0)
-            start = clock.now
-            let reason = try await drain(official, input, maxTokens) { _ in
-                last = clock.now
-                if first == loadStart { first = last }
+            try await measure(input, loadStart, loadEnd, nil) {
+                try await official.reset(to: 0)
+            } generate: {
+                try await SpeedRecord.officialStopReason(drain(official, input, maxTokens, $0))
+            }
+        }
+    }
+
+    func measure(
+        _ input: [Int32], _ loadStart: ContinuousClock.Instant, _ loadEnd: ContinuousClock.Instant,
+        _ loadStats: CoreAIBackend.Engine.LoadStats?, reset: () async throws -> Void,
+        generate: ((Int32) -> Void) async throws -> String
+    ) async throws {
+        for index in 1...repeatCount {
+            try await reset()
+            let start = ContinuousClock.now
+            var first = start
+            var last = start
+            var generated = 0
+            let stopReason = try await generate { _ in
+                last = ContinuousClock.now
+                if generated == 0 { first = last }
                 generated += 1
             }
-            stopReason = SpeedRecord.officialStopReason(reason)
+            var usage = rusage()
+            let peakRssBytes: UInt64? = getrusage(RUSAGE_SELF, &usage) == 0 ? UInt64(usage.ru_maxrss) : nil
+            let prefillS = (first - start) / .seconds(1)
+            let decodeS = (last - first) / .seconds(1)
+            let initial = index == 1
+            try emit(
+                SpeedRecord(
+                    engine: engine, round: round, repeat: index,
+                    loadS: initial ? (loadEnd - loadStart) / .seconds(1) : 0,
+                    warmupS: initial ? (start - loadEnd) / .seconds(1) : 0,
+                    specializeS: (loadStats?.specializeSeconds).map { initial ? $0 : 0 }, cached: loadStats?.cached,
+                    promptTokens: input.count, prefillS: prefillS, prefillTokS: Double(input.count) / prefillS,
+                    maxTokens: maxTokens, generatedTokens: generated, stopReason: stopReason, decodeS: decodeS,
+                    decodeTokS: SpeedRecord.decodeRate(generated: generated, seconds: decodeS),
+                    requestedCompute: loadStats?.requestedComputeUnit,
+                    expectFrequentReshapes: loadStats?.expectsFrequentReshapes, peakRssBytes: peakRssBytes,
+                    rssBytes: Memory.now().rssBytes))
         }
-        var usage = rusage()
-        let peakRssBytes: UInt64? = getrusage(RUSAGE_SELF, &usage) == 0 ? UInt64(usage.ru_maxrss) : nil
-        let prefillS = (first - start) / .seconds(1)
-        let decodeS = (last - first) / .seconds(1)
-        try emit(
-            SpeedRecord(
-                engine: engine, round: round, loadS: (loadEnd - loadStart) / .seconds(1),
-                warmupS: (start - loadEnd) / .seconds(1), specializeS: loadStats?.specializeSeconds,
-                cached: loadStats?.cached, promptTokens: input.count, prefillS: prefillS,
-                prefillTokS: Double(input.count) / prefillS, maxTokens: maxTokens, generatedTokens: generated,
-                stopReason: stopReason, decodeS: decodeS,
-                decodeTokS: SpeedRecord.decodeRate(generated: generated, seconds: decodeS),
-                requestedCompute: loadStats?.requestedComputeUnit,
-                expectFrequentReshapes: loadStats?.expectsFrequentReshapes, peakRssBytes: peakRssBytes,
-                rssBytes: Memory.now().rssBytes))
     }
 
     func drain(_ engine: some InferenceEngine, _ input: [Int32], _ count: Int, _ onToken: (Int32) -> Void) async throws
@@ -680,6 +692,7 @@ struct SpeedRecord: Codable {
     var record = "speed"
     let engine: String
     let round: Int
+    var `repeat` = 1
     let loadS: Double
     let warmupS: Double
     let specializeS: Double?
@@ -716,6 +729,33 @@ struct SpeedRecord: Codable {
         case nil: "unknown"
         @unknown default: "unknown"
         }
+    }
+}
+
+extension SpeedRecord {
+    init(from decoder: any Swift.Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        record = try values.decode(String.self, forKey: .record)
+        engine = try values.decode(String.self, forKey: .engine)
+        round = try values.decode(Int.self, forKey: .round)
+        self.repeat = try values.decodeIfPresent(Int.self, forKey: .repeat) ?? 1
+        loadS = try values.decode(Double.self, forKey: .loadS)
+        warmupS = try values.decode(Double.self, forKey: .warmupS)
+        specializeS = try values.decodeIfPresent(Double.self, forKey: .specializeS)
+        cached = try values.decodeIfPresent(Bool.self, forKey: .cached)
+        promptTokens = try values.decode(Int.self, forKey: .promptTokens)
+        prefillS = try values.decode(Double.self, forKey: .prefillS)
+        prefillTokS = try values.decode(Double.self, forKey: .prefillTokS)
+        maxTokens = try values.decode(Int.self, forKey: .maxTokens)
+        generatedTokens = try values.decode(Int.self, forKey: .generatedTokens)
+        stopReason = try values.decode(String.self, forKey: .stopReason)
+        decodeS = try values.decode(Double.self, forKey: .decodeS)
+        decodeTokS = try values.decodeIfPresent(Double.self, forKey: .decodeTokS)
+        requestedCompute = try values.decodeIfPresent(String.self, forKey: .requestedCompute)
+        expectFrequentReshapes = try values.decodeIfPresent(Bool.self, forKey: .expectFrequentReshapes)
+        observedCompute = try values.decode(String.self, forKey: .observedCompute)
+        peakRssBytes = try values.decodeIfPresent(UInt64.self, forKey: .peakRssBytes)
+        rssBytes = try values.decodeIfPresent(UInt64.self, forKey: .rssBytes)
     }
 }
 
