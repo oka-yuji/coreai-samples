@@ -39,7 +39,10 @@ public final class Engine {
         public var stateBytes: Int { fixedStates.reduce(0) { $0 + $1.count } }
     }
 
-    static let chunk256Assets: [(modelID: String, mainHash: String)] = []
+    static let chunk256Assets: [(modelID: String, mainHash: String)] = [
+        ("Qwen/Qwen3.5-0.8B", "41b46bd34a69c7a25e017122323e72c338ff1fb1a78f17888e5e04bb0c77a2ba"),
+        ("Qwen/Qwen3.5-9B", "410d97a4b3c16ac7b52d30de13ff43234957e080a27db08af67c9052241ee01e"),
+    ]
 
     static func prefillChunkSize(
         modelID: String?, assetHash: String?, isHybrid: Bool, physicalMemory: UInt64,
