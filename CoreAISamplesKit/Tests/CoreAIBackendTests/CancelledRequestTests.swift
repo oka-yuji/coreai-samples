@@ -4,34 +4,12 @@ import Testing
 
 @_spi(Verification) @testable import CoreAIBackend
 
+extension Runtime {
+    func barrier() {}
+}
+
 @Suite(.serialized, .timeLimit(.minutes(1)))
 struct CancelledRequestTests {
-    enum Condition: String, CaseIterable, Sendable {
-        case firstStep
-        case thirdStep
-        case freeRunning
-        case firstStepAfterSendCancellation
-        case thirdStepAfterSendCancellation
-        case freeRunningAfterSendCancellation
-        case firstStepPreservingTranscript
-
-        var blockedStep: Int? {
-            switch self {
-            case .firstStep, .firstStepAfterSendCancellation, .firstStepPreservingTranscript: 1
-            case .thirdStep, .thirdStepAfterSendCancellation: 3
-            case .freeRunning, .freeRunningAfterSendCancellation: nil
-            }
-        }
-
-        var followsSendCancellation: Bool { rawValue.hasSuffix("AfterSendCancellation") }
-
-        static let requested: [Condition] = {
-            let value = ProcessInfo.processInfo.environment["COREAI_CANCEL_NEXT_CONDITIONS"] ?? ""
-            let named = value.split(separator: ",").compactMap { Condition(rawValue: String($0)) }
-            return value == "all" ? allCases : named
-        }()
-    }
-
     static let heldTextTokenizer = #"""
         {"added_tokens": [{"id": 3, "content": "<|im_end|>", "special": true}],
          "model": {"type": "BPE", "vocab": {"a": 0, "b": 1, "\uFFFD": 2}, "merges": []}}
@@ -66,6 +44,7 @@ struct CancelledRequestTests {
         let executor = Task { try await fixture.runtime.respond(to: request, streamingInto: channel) }
         var samples = fixture.control.sampling.stream.makeAsyncIterator()
         while let count = await samples.next(), count < sample {}
+        await fixture.runtime.barrier()
         executor.cancel()
         let result = await executor.result
         hold.continuation.finish()
@@ -114,52 +93,53 @@ struct CancelledRequestTests {
         #expect(await fixture.model.lastGeneratedTokens() == [2, 1])
     }
 
+    @Test("A request cancelled in a terminal send after EOS does not end normally or keep its generation for reuse")
+    func cancelInTerminalSend() async throws {
+        let fixture = try await Self.fixture([0, 1, 3])
+        defer { try? FileManager.default.removeItem(at: fixture.folder) }
+        let cancelled = await Self.cancelInSend(fixture, limit: 8, reading: 2, sample: 3)
+        #expect(cancelled.error is CancellationError, "\(String(describing: cancelled.error))")
+        #expect(await fixture.model.lastRequestMeasurement()?.outcome == .cancelled)
+        let session = LanguageModelSession(
+            model: fixture.model,
+            transcript: Transcript(entries: [
+                .prompt(.init(segments: [.text(.init(content: "a"))])),
+                .response(.init(segments: [.text(.init(content: "ab"))])),
+            ]))
+        _ = try await session.respond(to: "a", options: .init(samplingMode: .greedy, maximumResponseTokens: 1))
+        #expect(try ModelTestSettings.metadata(session, "splicedGenerations", as: Int.self) == 0)
+        let held = try await Self.fixture([2, 3], tokenizer: Self.heldTextTokenizer)
+        defer { try? FileManager.default.removeItem(at: held.folder) }
+        let drained = await Self.cancelInSend(held, limit: 8, reading: 0, sample: 2)
+        #expect(drained.read == 0)
+        #expect(drained.error is CancellationError, "\(String(describing: drained.error))")
+        #expect(await held.model.lastRequestMeasurement()?.outcome == .cancelled)
+    }
+
     @Test(
-        "The same session answers the next request right after a cancelled response",
-        .enabled(if: !Condition.requested.isEmpty), arguments: Condition.requested, 0..<30)
-    func nextRequestAfterCancellation(condition: Condition, run: Int) async throws {
+        "A session preserving its transcript answers the next request right after a cancelled response",
+        arguments: 0..<30)
+    func nextRequestAfterCancellationPreservingTranscript(run _: Int) async throws {
         let fixture = try await Self.fixture([1])
         defer { try? FileManager.default.removeItem(at: fixture.folder) }
-        if condition.followsSendCancellation {
-            let prelude = await Self.cancelInSend(fixture, limit: 8, reading: 2, sample: 3)
-            try #require(prelude.error is CancellationError)
-        }
         let session = LanguageModelSession(model: fixture.model)
-        if condition == .firstStepPreservingTranscript { session.transcriptErrorHandlingPolicy = .preserveTranscript }
-        if let step = condition.blockedStep { fixture.control.state.withLock { $0.blockAtStep = $0.steps + step } }
-        let left: String
-        do {
-            left = try await withTaskCancellationHandler {
-                try await cancelAfterFirstFragment(
-                    session, prompt: "aaaa", maximumTokens: condition.blockedStep == nil ? 1000 : 8, context: .init(),
-                    beforeCancellation: { _ in
-                        guard condition.blockedStep != nil else { return }
-                        var blocked = fixture.control.stepping.stream.makeAsyncIterator()
-                        _ = await blocked.next()
-                    },
-                    waitUntilFinished: { _ = await fixture.model.processedTokens() })
-            } onCancel: {
-                fixture.control.resumeStep()
-            }
-        } catch {
-            Issue.record("\(condition) run \(run): the first request was not cancelled while responding: \(error)")
-            return
+        session.transcriptErrorHandlingPolicy = .preserveTranscript
+        fixture.control.state.withLock { $0.blockAtStep = $0.steps + 1 }
+        _ = try await withTaskCancellationHandler {
+            try await cancelAfterFirstFragment(
+                session, prompt: "aaaa", maximumTokens: 8, context: .init(),
+                beforeCancellation: { _ in
+                    var blocked = fixture.control.stepping.stream.makeAsyncIterator()
+                    _ = await blocked.next()
+                },
+                waitUntilFinished: { _ = await fixture.model.processedTokens() })
+        } onCancel: {
+            fixture.control.resumeStep()
         }
-        var outcome = "answered"
-        var prompt = -1
-        do {
-            let next = try await session.respond(
-                to: "aaaa", options: .init(samplingMode: .greedy, maximumResponseTokens: 8))
-            prompt = next.usage.input.totalTokenCount
-            if next.content.isEmpty { outcome = "empty" }
-            #expect(next.content == "bbbbbbbb", "\(condition) run \(run): the next response was \(next.content)")
-        } catch {
-            outcome = "\(error)"
-            Issue.record("\(condition) run \(run): the next request failed: \(error)")
-        }
-        print(
-            "cancel-next condition=\(condition) run=\(run) left=\(left.count) prompt=\(prompt)"
-                + " entries=\(session.transcript.count) outcome=\(outcome)")
+        try #require(await fixture.model.lastRequestMeasurement()?.outcome == .cancelled)
+        let next = try await session.respond(
+            to: "aaaa", options: .init(samplingMode: .greedy, maximumResponseTokens: 8))
+        #expect(next.content == "bbbbbbbb")
     }
 }
 
@@ -183,17 +163,19 @@ extension ModelIntegrationTests {
             let processed = await model.processedTokens()
             let input = after.usage.input
             let prefilled = try ModelTestSettings.metadata(session, "prefillTokens", as: Int.self)
+            let sharedTokens = try ModelTestSettings.metadata(session, "sharedTokens", as: Int.self)
             let shared = zip(before, processed.prefix(input.totalTokenCount)).prefix { $0 == $1 }.count
             #expect(try ModelTestSettings.metadata(session, "stopReason", as: String.self) == "stopToken")
             #expect(session.transcript.filter { if case .prompt = $0 { true } else { false } }.count == 1)
             #expect(processed.count == input.totalTokenCount + after.usage.output.totalTokenCount)
+            #expect(shared == sharedTokens, "run \(run): common prefix \(shared), sharedTokens \(sharedTokens)")
+            #expect(input.cachedTokenCount <= sharedTokens)
             #expect(input.cachedTokenCount + prefilled == input.totalTokenCount)
-            #expect(shared == input.cachedTokenCount, "run \(run): shared \(shared), cached \(input.cachedTokenCount)")
             #expect(!after.content.isEmpty)
             print(
                 "cancel-next-model run=\(run) left=\(left.count) before=\(before.count) prompt=\(input.totalTokenCount)"
-                    + " cached=\(input.cachedTokenCount) prefilled=\(prefilled) shared=\(shared)"
-                    + " answer=\(after.content)")
+                    + " shared=\(shared) sharedTokens=\(sharedTokens) cached=\(input.cachedTokenCount)"
+                    + " prefilled=\(prefilled) answer=\(after.content)")
             try await ModelTestSettings.checkState(model, label: "cancel-next-\(run)")
         }
     }

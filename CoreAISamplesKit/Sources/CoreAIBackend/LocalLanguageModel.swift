@@ -368,6 +368,7 @@ actor Runtime {
             }
             let drained = await output.send(
                 parser.feed(tokenizer.decode(tokens: pending)) + parser.finish(), reasoning: false, last: true)
+            try Task.checkCancellation()
             let end = clock.now
             probe?.finish(
                 .init(rawValue: stopReason), drained: drained, until: end, sampledTokens: generated.count,
@@ -386,11 +387,13 @@ actor Runtime {
             } else {
                 await channel.send(.response(action: .updateMetadata(metadata)))
             }
+            try Task.checkCancellation()
             await channel.send(
                 .response(
                     action: .updateUsage(
                         input: .init(totalTokenCount: prompt.count, cachedTokenCount: plan.keep),
                         output: .init(totalTokenCount: generated.count, reasoningTokenCount: reasoningTokens))))
+            try Task.checkCancellation()
             if !generated.isEmpty { generations.append((prompt.count, generated)) }
             generations.removeFirst(max(0, generations.count - Self.rememberedGenerations))
         } catch {
