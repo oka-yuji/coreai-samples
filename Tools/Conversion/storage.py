@@ -175,30 +175,40 @@ def directory_lock(path, owner):
                 retained.add_note(f"Further exception during cleanup propagation: {type(error).__name__}: {error}")
             raise retained
     finally:
-        retained = retained or cleanup_failure(sys.exc_info()[1])
-        with blocked_signals(preserving=retained):
-            if retained is not None:
-                try:
-                    if path.lstat().st_ino == identity and read_json(marker).get("token") == token:
-                        write_json(marker, {"token": token, "pid": os.getpid(), **owner,
-                                            "retained": True, "cleanup": retained.details})
-                    else:
-                        retained.add_note(f"Lock ownership changed before cleanup retention: {path}")
-                except BaseException as recording_error:
-                    retained.add_note(f"Could not record retained lock {path}: {recording_error}")
-            elif identity is not None and marker.exists() and path.lstat().st_ino == identity\
-                    and read_json(marker).get("token") == token:
-                marker.unlink()
-                path.rmdir()
-            elif identity is not None and not marker.exists() and path.exists() and path.lstat().st_ino == identity:
-                path.rmdir()
+        try:
+            retained = retained or cleanup_failure(sys.exc_info()[1])
+            with blocked_signals(preserving=retained):
+                if retained is not None:
+                    try:
+                        if path.lstat().st_ino == identity and read_json(marker).get("token") == token:
+                            write_json(marker, {"token": token, "pid": os.getpid(), **owner,
+                                                "retained": True, "cleanup": retained.details})
+                        else:
+                            retained.add_note(f"Lock ownership changed before cleanup retention: {path}")
+                    except BaseException as recording_error:
+                        retained.add_note(f"Could not record retained lock {path}: {recording_error}")
+                elif identity is not None and marker.exists() and path.lstat().st_ino == identity\
+                        and read_json(marker).get("token") == token:
+                    marker.unlink()
+                    path.rmdir()
+                elif identity is not None and not marker.exists() and path.exists() and path.lstat().st_ino == identity:
+                    path.rmdir()
+        except BaseException as error:
+            retained = retained or cleanup_failure(error)
+            if retained is None:
+                raise
+            prefix = f"Could not record retained lock {path}:"
+            if not any(note.startswith(prefix) for note in getattr(retained, "__notes__", ())):
+                retained.add_note(f"{prefix} {type(error).__name__}: {error}")
+            raise retained
 
 
 @contextlib.contextmanager
 def blocked_signals(*, preserving=None):
-    previous = signal.pthread_sigmask(signal.SIG_BLOCK, {signal.SIGINT, signal.SIGTERM})
+    previous = signal.pthread_sigmask(signal.SIG_BLOCK, set())
     failure = preserving
     try:
+        signal.pthread_sigmask(signal.SIG_BLOCK, {signal.SIGINT, signal.SIGTERM})
         yield
     except BaseException as error:
         if failure is None:

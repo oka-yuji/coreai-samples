@@ -167,6 +167,45 @@ class ProcessCleanupTests(unittest.TestCase):
         finally:
             signal.signal(signal.SIGTERM, previous)
 
+    def test_interruption_after_os_mask_change_preserves_each_lock_and_restores_the_mask(self):
+        from Tools.Conversion import storage
+
+        native_mask = signal.pthread_sigmask
+        previous = native_mask(signal.SIG_BLOCK, set())
+        ready = injected = False
+
+        def interrupt(how, mask):
+            nonlocal injected
+            result = native_mask(how, mask)
+            if ready and not injected and how == signal.SIG_BLOCK and set(mask) == {signal.SIGINT, signal.SIGTERM}:
+                injected = True
+                raise KeyboardInterrupt("interrupted after the native mask change")
+            return result
+
+        try:
+            with tempfile.TemporaryDirectory() as folder:
+                locks = [Path(folder) / name for name in ("shared", "work", "stage")]
+                failure = ProcessCleanupError(PipelineError("pending cleanup"), 123, [PermissionError()], None)
+                with patch.object(storage.signal, "pthread_sigmask", side_effect=interrupt):
+                    with self.assertRaises(ProcessCleanupError) as caught:
+                        with directory_lock(locks[0], {}), directory_lock(locks[1], {}), directory_lock(locks[2], {}):
+                            tokens = {lock: read_json(lock / "owner.txt")["token"] for lock in locks}
+                            ready = True
+                            raise failure
+                self.assertTrue(injected)
+                self.assertIs(caught.exception, failure)
+                self.assertEqual(native_mask(signal.SIG_BLOCK, set()), previous)
+                for lock in locks:
+                    owner = read_json(lock / "owner.txt")
+                    self.assertEqual(owner["token"], tokens[lock])
+                    self.assertTrue(owner.get("retained") or any(
+                        f"Could not record retained lock {lock}:" in note for note in failure.__notes__))
+                    with self.assertRaisesRegex(PipelineError, "Busy lock"):
+                        with directory_lock(lock, {}):
+                            self.fail("A cleanup interruption released its lock")
+        finally:
+            native_mask(signal.SIG_SETMASK, previous)
+
     def test_cleanup_retention_cannot_overwrite_a_replacement_lock_owner(self):
         from Tools.Conversion.storage import write_json
 
@@ -191,7 +230,8 @@ class ProcessCleanupTests(unittest.TestCase):
         from Tools.Conversion import storage
 
         source, first = inspect.getsourcelines(storage.directory_lock.__wrapped__)
-        locations = [first + index for index, line in enumerate(source)
+        propagation = source[:next(index for index, line in enumerate(source) if line.startswith("    finally:"))]
+        locations = [first + index for index, line in enumerate(propagation)
                      if line.strip() in ("retained = cleanup_failure(error)", "raise retained")]
         self.assertEqual(len(locations), 2)
 
