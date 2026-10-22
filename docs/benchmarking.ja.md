@@ -97,7 +97,7 @@ Tools/Verify/.build/release/coreai-verify speed-run --model <bundle> --preamble 
 
 - `--repeat N`（既定1）は同じプロセスの中の繰り返しです。1未満は引数の検証で拒否します。ロードとwarmupは最初の1回だけで、各回は「engineの初期化（ownは `reset()`、公式engineは `reset(to: 0)`）→計時開始→同じ入力の全生成→1行出力」です。各行の `repeat` は1始まりの番号です。
 - `--round` は記録のラベルで、生成を繰り返しません。`coreai-verify speed --rounds` はプロセスの繰り返しで、子に `--repeat` を渡しません。
-- `load_s` と `warmup_s` は `repeat` 1の行だけが実測値で、2回目以降は0です。`specialize_s` はownでは1回目だけ実測値で以降0、公式engineでは常に `null` です。`cached` は最初のロードの属性で、全行が同じ値です。生成時のKV再利用は表しません。`prefill_s`、`decode_s`、`decode_tok_s`、`generated_tokens`、`stop_reason` は回ごとに数え直します。
+- `load_s` と `warmup_s` は `repeat` 1の行だけが実測値で、2回目以降は0です。`specialize_s` はownでは1回目だけ実測値で以降0で、公式engineの行には出力しません。`cached` は最初のロードの属性で、全行が同じ値です。生成時のKV再利用は表しません。`prefill_s`、`decode_s`、`decode_tok_s`、`generated_tokens`、`stop_reason` は回ごとに数え直します。最初のtokenを観測しなかった回は `prefill_s` と `prefill_tok_s` を欠測として出力せず、`decode_s` は0、`decode_tok_s` も出力しません。
 - `rss_bytes` は各回の終了時に、engineを保持したまま採取します（推論中の常駐）。`--repeat` を追加する前の `speed-run` はengineを手放した後に採取していたため、それ以前の記録の `rss_bytes` とは比べません。`peak_rss_bytes` は `getrusage` の最大常駐で、その行の時点までのプロセス生涯の最大です（ロード時を含む）。
 - `repeat` のない以前の記録は `repeat` 1として読みます。
 

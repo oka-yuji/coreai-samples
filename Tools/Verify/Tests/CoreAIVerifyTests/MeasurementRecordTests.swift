@@ -76,16 +76,15 @@ import Testing
         #expect(fields["observed_compute"] as? String == "unknown")
     }
 
-    @Test("A speed record keeps its repeat number through the round trip and starts from the first repeat")
-    func speedRecordRepeatRoundTrip() throws {
-        let first = speedRun(peakRssBytes: 100, decodeTokS: 10)
-        var third = first
-        third.repeat = 3
-        for (record, number) in [(first, 1), (third, 3)] {
-            let decoded = try JSONDecoder.snake.decode(SpeedRecord.self, from: JSONEncoder.records.encode(record))
-            #expect(try json(record)["repeat"] as? Int == number)
-            #expect(decoded.repeat == number)
-        }
+    @Test(
+        "A speed record keeps its repeat number through the round trip and starts from the first repeat",
+        arguments: [nil, 3])
+    func speedRecordRepeatRoundTrip(_ number: Int?) throws {
+        var record = speedRun(peakRssBytes: 100, decodeTokS: 10)
+        if let number { record.repeat = number }
+        let decoded = try JSONDecoder.snake.decode(SpeedRecord.self, from: JSONEncoder.records.encode(record))
+        #expect(try json(record)["repeat"] as? Int == number ?? 1)
+        #expect(decoded.repeat == number ?? 1)
     }
 
     @Test("A speed record written without a repeat number decodes as the first repeat")
@@ -96,6 +95,21 @@ import Testing
         fields["repeat"] = nil
         let data = try JSONSerialization.data(withJSONObject: fields)
         #expect(try JSONDecoder.snake.decode(SpeedRecord.self, from: data).repeat == 1)
+    }
+
+    @Test("A repeat that observes no token records its prefill as missing and the remaining repeats still run")
+    func speedRunWithoutTokens() async throws {
+        let run = try SpeedRun.parse(speedRunArguments(["--repeat", "2"]))
+        var records: [SpeedRecord] = []
+        try await run.measure(
+            [1, 2, 3], .now, .now, nil, reset: {}, generate: { _ in "maxTokens" }, output: { records.append($0) })
+        #expect(records.map(\.repeat) == [1, 2])
+        for record in records {
+            let fields = try json(record)
+            #expect(fields["prefill_s"] == nil && fields["prefill_tok_s"] == nil && fields["decode_tok_s"] == nil)
+            #expect(fields["decode_s"] as? Double == 0 && fields["generated_tokens"] as? Int == 0)
+            #expect(fields["stop_reason"] as? String == "maxTokens")
+        }
     }
 
     @Test("A speed run generates once by default and accepts a positive repeat count")

@@ -323,7 +323,7 @@ struct SpeedRun: AsyncParsableCommand {
     func measure(
         _ input: [Int32], _ loadStart: ContinuousClock.Instant, _ loadEnd: ContinuousClock.Instant,
         _ loadStats: CoreAIBackend.Engine.LoadStats?, reset: () async throws -> Void,
-        generate: ((Int32) -> Void) async throws -> String
+        generate: ((Int32) -> Void) async throws -> String, output: (SpeedRecord) throws -> Void = emit
     ) async throws {
         for index in 1...repeatCount {
             try await reset()
@@ -338,16 +338,17 @@ struct SpeedRun: AsyncParsableCommand {
             }
             var usage = rusage()
             let peakRssBytes: UInt64? = getrusage(RUSAGE_SELF, &usage) == 0 ? UInt64(usage.ru_maxrss) : nil
-            let prefillS = (first - start) / .seconds(1)
+            let prefillS = generated == 0 ? nil : (first - start) / .seconds(1)
             let decodeS = (last - first) / .seconds(1)
             let initial = index == 1
-            try emit(
+            try output(
                 SpeedRecord(
                     engine: engine, round: round, repeat: index,
                     loadS: initial ? (loadEnd - loadStart) / .seconds(1) : 0,
                     warmupS: initial ? (start - loadEnd) / .seconds(1) : 0,
                     specializeS: (loadStats?.specializeSeconds).map { initial ? $0 : 0 }, cached: loadStats?.cached,
-                    promptTokens: input.count, prefillS: prefillS, prefillTokS: Double(input.count) / prefillS,
+                    promptTokens: input.count, prefillS: prefillS,
+                    prefillTokS: prefillS.map { Double(input.count) / $0 },
                     maxTokens: maxTokens, generatedTokens: generated, stopReason: stopReason, decodeS: decodeS,
                     decodeTokS: SpeedRecord.decodeRate(generated: generated, seconds: decodeS),
                     requestedCompute: loadStats?.requestedComputeUnit,
@@ -698,8 +699,8 @@ struct SpeedRecord: Codable {
     let specializeS: Double?
     let cached: Bool?
     let promptTokens: Int
-    let prefillS: Double
-    let prefillTokS: Double
+    let prefillS: Double?
+    let prefillTokS: Double?
     let maxTokens: Int
     let generatedTokens: Int
     let stopReason: String
@@ -744,8 +745,8 @@ extension SpeedRecord {
         specializeS = try values.decodeIfPresent(Double.self, forKey: .specializeS)
         cached = try values.decodeIfPresent(Bool.self, forKey: .cached)
         promptTokens = try values.decode(Int.self, forKey: .promptTokens)
-        prefillS = try values.decode(Double.self, forKey: .prefillS)
-        prefillTokS = try values.decode(Double.self, forKey: .prefillTokS)
+        prefillS = try values.decodeIfPresent(Double.self, forKey: .prefillS)
+        prefillTokS = try values.decodeIfPresent(Double.self, forKey: .prefillTokS)
         maxTokens = try values.decode(Int.self, forKey: .maxTokens)
         generatedTokens = try values.decode(Int.self, forKey: .generatedTokens)
         stopReason = try values.decode(String.self, forKey: .stopReason)
@@ -776,12 +777,12 @@ extension SpeedSummary {
         let decode = runs.compactMap(\.decodeTokS)
         let peaks = runs.compactMap(\.peakRssBytes)
         let decodeTokS = Self.median(decode)
-        let prefillTokS = Self.median(runs.map(\.prefillTokS))
+        let prefillTokS = Self.median(runs.compactMap(\.prefillTokS))
         self.init(
             engine: engine, decodeTokS: decodeTokS, decodeRuns: decode.count, prefillTokS: prefillTokS,
             peakRssBytes: peaks.max(), peakRssRuns: peaks.count,
             ownDecodeRatio: Self.ratio(Self.median(own.compactMap(\.decodeTokS)), decodeTokS),
-            ownPrefillRatio: Self.ratio(Self.median(own.map(\.prefillTokS)), prefillTokS))
+            ownPrefillRatio: Self.ratio(Self.median(own.compactMap(\.prefillTokS)), prefillTokS))
     }
 
     static func median(_ values: [Double]) -> Double? {
