@@ -1,5 +1,6 @@
 import FeatureStore
 import Foundation
+import Observation
 import ProductCore
 import ProductFeature
 import Testing
@@ -18,6 +19,35 @@ struct ProductDemoSessionsTests {
     }
 
     private var closed: String { ProductExecutionClosed().errorDescription ?? "" }
+
+    @Test("Returning to the first owner does not permit that owner's retired product runtime", .timeLimit(.minutes(1)))
+    func retiredOwnerCannotUseLatestGate() async throws {
+        let library = try ProductLibrary()
+        try library.install("fp32")
+        let first = try library.open()
+        let services = ProductServices()
+        let sessions = ProductDemoSessions(makeService: services.make)
+        let retired = sessions.bind(first, permits: { true })
+        retired.send(.draftChanged(draft))
+        try await sessions.stop(first)
+        for await state in Observations({ retired.state }) where !state.busy { break }
+        let middle = ModelDemoSession(
+            id: LibraryTicket(owner: UUID(), number: 1), selection: first.selection, resource: first.resource)
+        _ = sessions.bind(middle, permits: { true })
+        try await sessions.stop(middle)
+        let last = ModelDemoSession(
+            id: LibraryTicket(owner: first.id.owner, number: first.id.number + 1),
+            selection: first.selection, resource: first.resource)
+        let current = sessions.bind(last, permits: { true })
+        #expect(retired !== current && services.created.count == 3)
+        retired.send(.appeared)
+        retired.send(.submit(stamp))
+        for await state in Observations({ retired.state }) where !state.busy { break }
+        #expect(retired.state.phase == .failed(closed))
+        #expect(services.created[0].folders.isEmpty && services.created[2].log.isEmpty)
+        try await sessions.stop(first)
+        #expect(current.state.active && services.created[2].log.isEmpty)
+    }
 
     private func settle(_ store: Store<ProductFeature>) async {
         for _ in 0..<10 where store.state.busy { await Task.yield() }

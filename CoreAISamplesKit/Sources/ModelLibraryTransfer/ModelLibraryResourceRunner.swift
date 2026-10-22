@@ -58,6 +58,8 @@ public final class ModelLibraryResourceRunner {
             send(.transferStopped(artifactID, ticket))
         case .stopDemo(let session, let ticket):
             send(.demoStopFailed(session.id, ticket, "Demo execution is not connected"))
+        case .prepareDemo(let session):
+            send(.demoPreparationChanged(session.id, .unavailable))
         }
     }
 

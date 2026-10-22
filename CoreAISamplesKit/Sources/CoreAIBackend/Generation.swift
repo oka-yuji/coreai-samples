@@ -35,7 +35,9 @@ struct ReusePlan: Equatable {
         var stops: [Stop] = []
         if shared < prompt.count, min(shared, afterUser) - keep >= Self.divergenceStopTokens {
             let position = min(shared, try questionStart())
-            if position - keep >= Self.divergenceStopTokens { stops.append(Stop(position: position, role: .divergence)) }
+            if position - keep >= Self.divergenceStopTokens {
+                stops.append(Stop(position: position, role: .divergence))
+            }
         }
         if hybrid, afterUser > keep { stops.append(Stop(position: afterUser, role: .afterUser)) }
         if prompt.count > keep { stops.append(Stop(position: prompt.count, role: .generationStart)) }
@@ -52,13 +54,17 @@ struct ReusePlan: Equatable {
         var prompt = prompt
         var spliced = 0
         for (start, tokens) in generations.sorted(by: { $0.start < $1.start }) {
-            guard start <= min(prompt.count, processed.count), prompt[..<start] == processed[..<start], !prompt[start...].starts(with: tokens)
+            guard start <= min(prompt.count, processed.count), prompt[..<start] == processed[..<start],
+                !prompt[start...].starts(with: tokens)
             else { continue }
             let text = decode(tokens.map(Int.init))
             let counts = [tokens.count] + (1...spliceWindow).flatMap { [tokens.count + $0, tokens.count - $0] }
-            guard let count = counts.first(where: {
-                $0 > 0 && start + $0 <= prompt.count && decode(prompt[start..<start + $0].map(Int.init)).utf8.elementsEqual(text.utf8)
-            }) else { continue }
+            guard
+                let count = counts.first(where: {
+                    $0 > 0 && start + $0 <= prompt.count
+                        && decode(prompt[start..<start + $0].map(Int.init)).utf8.elementsEqual(text.utf8)
+                })
+            else { continue }
             prompt.replaceSubrange(start..<start + count, with: tokens)
             spliced += 1
         }
@@ -81,9 +87,13 @@ enum ToolOutputCut: Equatable {
         }
     }
 
-    static func shrink(_ groups: [[(id: String, count: Int)]], _ cuts: [String: ToolOutputCut]) -> [String: ToolOutputCut]? {
+    static func shrink(_ groups: [[(id: String, count: Int)]], _ cuts: [String: ToolOutputCut]) -> [String:
+        ToolOutputCut]?
+    {
         var cuts = cuts
-        if let group = groups.dropLast(protectedGroups).first(where: { group in group.contains { cuts[$0.id] != .dropped } }) {
+        if let group = groups.dropLast(protectedGroups).first(where: { group in
+            group.contains { cuts[$0.id] != .dropped }
+        }) {
             for output in group { cuts[output.id] = .dropped }
             return cuts
         }
@@ -126,8 +136,9 @@ struct Sampler {
 
     let mode: Mode
     let temperature: Float
-    private var random: SplitMix64
-    private var scratch: [Float] = []
+    private(set) var random: SplitMix64
+    private(set) var scratch: [Float] = []
+    private(set) var pool: [Int] = []
 
     init(mode: Mode, temperature: Float = 1, seed: UInt64? = nil) {
         self.mode = temperature > 0 ? mode : .greedy
@@ -148,7 +159,7 @@ struct Sampler {
             scratch[i] = exp(scratch[i] - top)
             total += Double(scratch[i])
         }
-        let pool = candidates(count: logits.count, total: total)
+        fillPool(count: logits.count, total: total)
         var target = Double.random(in: 0..<1, using: &random) * pool.reduce(0) { $0 + Double(scratch[$1]) }
         for index in pool {
             target -= Double(scratch[index])
@@ -157,12 +168,18 @@ struct Sampler {
         return Int32(pool.last!)
     }
 
-    private func candidates(count: Int, total: Double) -> [Int] {
-        if mode == .full { return Array(0..<count) }
+    private mutating func fillPool(count: Int, total: Double) {
+        if mode == .full {
+            if pool.count != count {
+                pool.removeAll(keepingCapacity: true)
+                pool.append(contentsOf: 0..<count)
+            }
+            return
+        }
         var floor: Float = 1e-4
-        var pool: [Int]
         while true {
-            pool = (0..<count).filter { scratch[$0] >= floor }
+            pool.removeAll(keepingCapacity: true)
+            for i in 0..<count where scratch[i] >= floor { pool.append(i) }
             let enough =
                 switch mode {
                 case .topK(let k): pool.count >= k
@@ -175,13 +192,17 @@ struct Sampler {
         pool.sort { scratch[$0] != scratch[$1] ? scratch[$0] > scratch[$1] : $0 < $1 }
         switch mode {
         case .topK(let k):
-            return Array(pool.prefix(max(k, 1)))
+            pool.removeSubrange(min(max(k, 1), pool.count)...)
         case .topP(let p):
             var sum = 0.0
-            let last = pool.firstIndex { sum += Double(scratch[$0]); return sum >= p * total } ?? pool.count - 1
-            return Array(pool[...last])
+            let last =
+                pool.firstIndex {
+                    sum += Double(scratch[$0])
+                    return sum >= p * total
+                } ?? pool.count - 1
+            pool.removeSubrange((last + 1)...)
         default:
-            return pool
+            break
         }
     }
 }
@@ -310,9 +331,12 @@ struct ToolCallParser {
         guard let object = try? JSONSerialization.jsonObject(with: Data(body.utf8)) as? [String: Any],
             let name = object["name"] as? String, !name.isEmpty,
             let arguments = Self.members(
-                object["arguments"] as? String ?? Self.members(body)?.first(where: { $0.key == "arguments" })?.value ?? "{}")
+                object["arguments"] as? String ?? Self.members(body)?.first(where: { $0.key == "arguments" })?.value
+                    ?? "{}")
         else { return nil }
-        return .call(name: name, arguments: "{" + arguments.map { Self.quoted($0.key) + ":" + $0.value }.joined(separator: ",") + "}")
+        return .call(
+            name: name,
+            arguments: "{" + arguments.map { Self.quoted($0.key) + ":" + $0.value }.joined(separator: ",") + "}")
     }
 
     static func members(_ json: String) -> [(key: String, value: String)]? {
@@ -337,9 +361,15 @@ struct ToolCallParser {
             case ":" where depth == 1 && colon == nil: colon = index
             case "," where depth == 1, "}":
                 if let colon,
-                    let key = try? JSONSerialization.jsonObject(with: Data(String(scalars[start..<colon]).utf8), options: .fragmentsAllowed) as? String
+                    let key = try? JSONSerialization.jsonObject(
+                        with: Data(String(scalars[start..<colon]).utf8), options: .fragmentsAllowed) as? String
                 {
-                    members.append((key, String(scalars[scalars.index(after: colon)..<index]).trimmingCharacters(in: .whitespacesAndNewlines)))
+                    members.append(
+                        (
+                            key,
+                            String(scalars[scalars.index(after: colon)..<index]).trimmingCharacters(
+                                in: .whitespacesAndNewlines)
+                        ))
                 }
                 start = scalars.index(after: index)
                 colon = nil
@@ -372,14 +402,17 @@ struct ToolCallParser {
     }
 
     private func json(_ value: String, type: String?) -> String {
-        if type != "string", (try? JSONSerialization.jsonObject(with: Data(value.utf8), options: .fragmentsAllowed)) != nil {
+        if type != "string",
+            (try? JSONSerialization.jsonObject(with: Data(value.utf8), options: .fragmentsAllowed)) != nil
+        {
             return value.trimmingCharacters(in: .whitespacesAndNewlines)
         }
         return Self.quoted(value)
     }
 
     static func quoted(_ text: String) -> String {
-        let data = try? JSONSerialization.data(withJSONObject: text, options: [.fragmentsAllowed, .withoutEscapingSlashes])
+        let data = try? JSONSerialization.data(
+            withJSONObject: text, options: [.fragmentsAllowed, .withoutEscapingSlashes])
         return String(decoding: data ?? Data(#""""#.utf8), as: UTF8.self)
     }
 
@@ -403,9 +436,11 @@ struct ToolCallParser {
         let b = Self.top2(reread)
         currentTop = a.first
         rereadTop = b.first
-        marginTicks = max(Self.ticks(current[a.first], current[a.second]), Self.ticks(reread[b.first], reread[b.second]))
+        marginTicks = max(
+            Self.ticks(current[a.first], current[a.second]), Self.ticks(reread[b.first], reread[b.second]))
         maxAbsDiff = zip(current, reread).reduce(0) { max($0, abs(Float($1.0) - Float($1.1))) }
-        passed = a.first == b.first || (a.first == b.second && a.second == b.first && marginTicks <= Self.toleranceTicks)
+        passed =
+            a.first == b.first || (a.first == b.second && a.second == b.first && marginTicks <= Self.toleranceTicks)
     }
 
     static func top2(_ values: [Float16]) -> (first: Int, second: Int) {

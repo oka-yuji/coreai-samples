@@ -4,6 +4,10 @@
 
 Swift samples for running open models with Apple's Core AI and Foundation Models. Explore local **chat and research**, **document decisions and extraction**, **image search**, and **speech**, with conversion recipes and recorded verification results.
 
+<a href="https://x.com/oka_yuuji/status/2112517908631040473"><img src="docs/media/truck-inspection-ios.gif" width="280" alt="Truck inspection demo on iPhone: a question is read aloud, GLiNER2.5-multi classifies the spoken answer, and the person confirms by voice before it is recorded"></a>
+
+*Truck daily inspection on iPhone with Japanese voice input, at 1.5× speed. GLiNER2.5-multi classifies the spoken answer on the device, and nothing is recorded until the person confirms. [Full recording with audio on X](https://x.com/oka_yuuji/status/2112517908631040473) · [How the demo works](docs/truck-inspection.md)*
+
 Start with a model below. Each guide covers setup, supported devices, measurements and limitations; the status describes the converted bundle's public availability, separately from app integration.
 
 ## Models and roadmap
@@ -33,6 +37,10 @@ Checked: **2026-10-19**. ✅ = recorded native-app execution on that OS for the 
 <!-- model-catalog:end -->
 
 The iOS app opens **Models**, with six demos connected to their providers. Models downloads the pinned GLiNER2.5-multi FP32 bundle and the EmbeddingGemma 2 FP16 (default) or INT4/INT8 PTQ bundle anonymously from Hugging Face, and a demo runs only after every file's size and SHA-256 has been checked ([#210](https://github.com/oka-yuji/coreai-samples/issues/210)). See the [integration status](docs/validation/ios-models-integration-20261018.md); running the six demos on an iPhone remains a user check. Local diagnostic runs and a bundle's public release are separate milestones.
+
+## Camera search demo
+
+Choose what to find by typing a target, then change the text to switch targets without additional training. [Watch the EmbeddingGemma 2 camera search demo on X](https://x.com/oka_yuuji/status/2111307591586578612). See the [iPhone guide](docs/object-finder.md) for setup and limitations.
 
 ## Get started
 

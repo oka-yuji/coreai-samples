@@ -23,7 +23,8 @@
         }
 
         func content(for session: ModelDemoSession, gate: DemoExecutionGate) -> AnyView {
-            AnyView(ManagedExtractView(store: demo(for: session, gate: gate).store))
+            guard gate.session == session, gate.isPermitted() else { return preview(for: session.selection) }
+            return AnyView(ManagedExtractView(store: demo(for: session, gate: gate).store))
         }
 
         func stop(_ session: ModelDemoSession) async throws {

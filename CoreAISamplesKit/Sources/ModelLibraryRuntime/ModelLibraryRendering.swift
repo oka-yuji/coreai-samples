@@ -32,13 +32,50 @@ public struct ModelLibraryRendering {
         guard let adapter = registry.adapter(for: session.selection.demoID) else {
             return AnyView(Text("Demo execution is not connected in this build.", bundle: .module))
         }
-        let content = adapter.content(for: session, gate: runner.gate(for: session, in: library))
-        return AnyView(content.onAppear { [runner] in runner.provide(session) })
+        _ = runner.gate(for: session, in: library)
+        let content: AnyView
+        if library.state.demoPreparation == .available, let gate = runner.bind(session, in: library) {
+            content = adapter.content(for: session, gate: gate)
+        } else {
+            content = AnyView(DemoPreparationView(session: session, library: library))
+        }
+        return AnyView(
+            content.task(id: session.id) { @MainActor [library] in
+                if library.state.demoPreparation == .pending { library.send(.requestDemoPreparation(session.id)) }
+            })
     }
 
     public func preview(for selection: DemoSelection) -> AnyView {
         registry.adapter(for: selection.demoID)?.preview(for: selection)
             ?? AnyView(DemoDescriptionPreview(demoID: selection.demoID))
+    }
+}
+
+private struct DemoPreparationView: View {
+    let session: ModelDemoSession
+    let library: Store<ModelLibraryFeature>
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            if [.occupied, .permissionRequired].contains(library.state.demoPreparation) {
+                if library.state.demoPreparation == .occupied {
+                    Text("Another window is using a model.", bundle: .module).font(.headline)
+                    Text("Close its demo before trying again.", bundle: .module)
+                } else {
+                    Text("Permissions changed. Retry to start this demo.", bundle: .module)
+                }
+                Button {
+                    library.send(.requestDemoPreparation(session.id))
+                } label: {
+                    Text("Try again", bundle: .module)
+                }
+                .buttonStyle(.bordered)
+            } else if library.state.demoPreparation == .unavailable {
+                Text("Demo execution is not connected in this build.", bundle: .module)
+            } else {
+                ProgressView { Text("Preparing the demo…", bundle: .module) }
+            }
+        }
     }
 }
 
