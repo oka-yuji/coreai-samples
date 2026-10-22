@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import contextlib
 from datetime import datetime, timezone
+import errno
 import json
 import os
 from pathlib import Path
@@ -15,7 +16,7 @@ import uuid
 
 from .recipe import executable_path, expand, preflight, runtime_environment, source_paths
 from .storage import (
-    PipelineError, blocked_signals, check_results, contained, digest, directory_lock, file_hash,
+    PipelineError, ProcessCleanupError, blocked_signals, check_results, cleanup_failure, contained, digest, directory_lock, file_hash,
     read_json, tree_hash, write_json,
 )
 
@@ -60,50 +61,134 @@ def outputs(stage, root):
 def deferred_interrupts():
     previous = {}
     pending = []
+    failure = None
     try:
         for sig in (signal.SIGINT, signal.SIGTERM):
             previous[sig] = signal.signal(sig, lambda signum, _frame: pending.append(signum))
-        yield
+        yield pending
+    except BaseException as error:
+        failure = error
+        if pending:
+            error.add_note(f"Deferred interruption signals: {pending}")
+        raise
     finally:
-        for sig, handler in previous.items():
-            signal.signal(sig, handler)
+        with blocked_signals(preserving=failure):
+            for sig, handler in previous.items():
+                signal.signal(sig, handler)
     if pending:
-        raise KeyboardInterrupt("Termination requested during process startup")
+        raise KeyboardInterrupt("Termination requested")
+
+
+def running_group(group):
+    result = subprocess.run(["/bin/ps", "-ax", "-o", "pgid=,stat="], capture_output=True, text=True,
+                            check=True, timeout=5)
+    rows = [line.split() for line in result.stdout.splitlines() if line.strip()]
+    if not rows or any(len(row) != 2 or not row[0].isdigit()
+                       or re.fullmatch(r"[RSDITZWUX?][A-Za-z+<>=?-]*", row[1]) is None for row in rows):
+        raise PipelineError("Could not inspect process-group completion")
+    return any(int(pgid) == group and not state.startswith("Z") for pgid, state in rows)
+
+
+def signal_group(group, signum):
+    try:
+        os.killpg(group, signum)
+    except ProcessLookupError:
+        return True
+    except PermissionError as error:
+        if error.errno != errno.EPERM:
+            raise
+        try:
+            active = running_group(group)
+        except Exception as inspection_error:
+            error.add_note(f"Process-group inspection failed: {inspection_error}")
+            raise error from inspection_error
+        if active:
+            raise
+        return True
+    return False
+
+
+def cleanup_process(child, primary, state):
+    errors = []
+    with blocked_signals():
+        if primary is not None:
+            try:
+                signal_group(child.pid, signal.SIGTERM)
+            except OSError as error:
+                errors.append(error)
+            try:
+                child.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                pass
+        ended = False
+        try:
+            ended = signal_group(child.pid, signal.SIGKILL)
+        except OSError as error:
+            errors.append(error)
+        try:
+            child.wait(timeout=5)
+        except subprocess.TimeoutExpired as error:
+            errors.append(error)
+        deadline = time.monotonic() + 5
+        while not ended:
+            try:
+                ended = not running_group(child.pid)
+            except Exception as error:
+                errors.append(error)
+                break
+            if ended:
+                break
+            if time.monotonic() >= deadline:
+                errors.append(PipelineError("A process-group member is still running"))
+                break
+            time.sleep(0.05)
+        if not ended or child.returncode is None:
+            raise ProcessCleanupError(primary, child.pid, errors, child.returncode)
+        state["confirmed"] = True
+        if primary is not None:
+            for error in errors:
+                primary.add_note(f"Cleanup recovered after {type(error).__name__}: {error}")
 
 
 def execute(command, cwd, environment, log, timeout):
     with log.open("xb") as handle:
         child = None
-        try:
-            with deferred_interrupts():
+        primary = None
+        cleanup = {"confirmed": False}
+        with deferred_interrupts() as pending:
+            try:
                 child = subprocess.Popen(command, cwd=cwd, env=environment, stdout=handle,
                                          stderr=subprocess.STDOUT, start_new_session=True)
-            code = child.wait(timeout=timeout)
-            if code:
-                raise PipelineError(f"Command exited {code}; see {log}")
-        except BaseException:
-            if child is None:
+                deadline = time.monotonic() + timeout
+                while True:
+                    if pending:
+                        raise KeyboardInterrupt("Termination requested")
+                    remaining = deadline - time.monotonic()
+                    if remaining <= 0:
+                        raise subprocess.TimeoutExpired(command, timeout)
+                    try:
+                        code = child.wait(timeout=min(0.1, remaining))
+                        break
+                    except subprocess.TimeoutExpired:
+                        pass
+                if code:
+                    raise PipelineError(f"Command exited {code}; see {log}")
+            except BaseException as error:
+                if child is None:
+                    raise
+                primary = error
+            try:
+                cleanup_process(child, primary, cleanup)
+            except ProcessCleanupError:
                 raise
-            with blocked_signals():
-                try:
-                    os.killpg(child.pid, signal.SIGTERM)
-                except ProcessLookupError:
-                    pass
-                try:
-                    child.wait(timeout=5)
-                except subprocess.TimeoutExpired:
-                    pass
-                try:
-                    os.killpg(child.pid, signal.SIGKILL)
-                except ProcessLookupError:
-                    pass
-                child.wait()
-            raise
-
-        try:
-            os.killpg(child.pid, signal.SIGKILL)
-        except ProcessLookupError:
-            pass
+            except BaseException as cleanup_error:
+                if not cleanup["confirmed"]:
+                    raise ProcessCleanupError(primary or cleanup_error, child.pid, [cleanup_error], child.returncode) from cleanup_error
+                if primary is None:
+                    raise
+                primary.add_note(f"Further interruption after confirmed cleanup: {cleanup_error}")
+            if primary is not None:
+                raise primary
 
 
 def reusable(stage, object_dir, key):
@@ -160,13 +245,17 @@ def run(recipe, work_dir, *, lock_dir=None, refresh=False):
         for source in source_paths(stage, recipe["variables"]):
             if source.resolve().is_relative_to(work) or work.is_relative_to(source.resolve()):
                 raise PipelineError("Work directory and source inputs must not overlap")
-    if any(s["heavy"] for s in recipe["steps"]) and lock_dir is None:
+    needs_machine_lock = any(s["heavy"] for s in recipe["steps"])
+    if needs_machine_lock and lock_dir is None:
         raise PipelineError("Heavy stages require the shared --lock-dir")
     with directory_lock(work / "run.lock", {"recipe": recipe["name"], "started": now()}):
-        return run_locked(recipe, work, lock_dir=lock_dir, refresh=refresh)
+        machine = directory_lock(lock_dir, {"recipe": recipe["name"], "started": now(), "scope": "pipeline"})\
+            if needs_machine_lock else contextlib.nullcontext()
+        with machine:
+            return run_locked(recipe, work, refresh=refresh)
 
 
-def run_locked(recipe, work, *, lock_dir, refresh):
+def run_locked(recipe, work, *, refresh):
     environment = runtime_environment(recipe)
     started = time.perf_counter()
     host_started = time.perf_counter()
@@ -182,6 +271,7 @@ def run_locked(recipe, work, *, lock_dir, refresh):
               "host_hash_s": host_s, "stages": []}
     bindings = dict(recipe["variables"])
     manifests = {}
+    failure = None
     try:
         for stage in recipe["steps"]:
             label = stage["id"]
@@ -221,14 +311,11 @@ def run_locked(recipe, work, *, lock_dir, refresh):
                     command[0] = str(executable)
                     cwd = expand(stage.get("cwd", "$out"), actual)
                     child_env = {**environment, "TMPDIR": str(scratch) + "/"}
-                    heavy = directory_lock(lock_dir, {"run": identifier, "stage": label, "started": now()})\
-                        if stage["heavy"] else contextlib.nullcontext()
                     execution_started = time.perf_counter()
                     print(f"{label}: executing", flush=True)
-                    with heavy:
-                        if shutil.disk_usage(work).free < stage.get("min_free_bytes", 0):
-                            raise PipelineError(f"Insufficient free disk for {label}")
-                        execute(command, cwd, child_env, attempt / "process.log", stage.get("timeout_s", 3600))
+                    if shutil.disk_usage(work).free < stage.get("min_free_bytes", 0):
+                        raise PipelineError(f"Insufficient free disk for {label}")
+                    execute(command, cwd, child_env, attempt / "process.log", stage.get("timeout_s", 3600))
                     row["execute_s"] = time.perf_counter() - execution_started
                     check_results(artifacts, stage["checks"])
                     artifact_inventory = outputs(stage, artifacts)
@@ -267,16 +354,27 @@ def run_locked(recipe, work, *, lock_dir, refresh):
         report["status"] = "completed"
         report["verification"] = "passed" if any(s["role"] == "verify" for s in recipe["steps"]) else "not_configured"
     except BaseException as error:
-        report["status"] = "cancelled" if isinstance(error, KeyboardInterrupt) else "failed"
-        report["error"] = f"{type(error).__name__}: {error}"
+        failure = cleanup_failure(error) or error
+        primary = failure.primary if isinstance(failure, ProcessCleanupError) and failure.primary is not None else failure
+        report["status"] = "cancelled" if isinstance(primary, KeyboardInterrupt) else "failed"
+        report["error"] = f"{type(primary).__name__}: {primary}"
+        if isinstance(failure, ProcessCleanupError):
+            report["cleanup"] = failure.details
+        if getattr(failure, "__notes__", None):
+            report["error_notes"] = failure.__notes__
         if report["stages"] and report["stages"][-1]["status"] == "running":
             report["stages"][-1]["status"] = report["status"]
             if report["stages"][-1]["role"] == "verify":
-                report["verification"] = "incomplete" if isinstance(error, KeyboardInterrupt) else "failed"
-        raise
+                report["verification"] = "incomplete" if isinstance(primary, KeyboardInterrupt) else "failed"
+        raise failure
     finally:
         report["elapsed_s"] = time.perf_counter() - started
         report["finished"] = now()
-        save_report(report_path, report)
-        print(f"Report: {report_path}", flush=True)
+        try:
+            save_report(report_path, report)
+            print(f"Report: {report_path}", flush=True)
+        except BaseException as reporting_error:
+            if failure is None:
+                raise
+            failure.add_note(f"Could not publish the terminal report: {reporting_error}")
     return report_path

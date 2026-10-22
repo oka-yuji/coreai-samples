@@ -6,7 +6,7 @@ import sys
 
 from .recipe import expand, load_recipe, preflight, source_paths
 from .runner import run
-from .storage import PipelineError, read_json
+from .storage import PipelineError, cleanup_failure, read_json
 
 
 def main():
@@ -49,12 +49,18 @@ def main():
         signal.signal(signal.SIGTERM, stop)
         run(recipe, args.work_dir, lock_dir=args.lock_dir, refresh=args.refresh)
         return 0
-    except KeyboardInterrupt:
-        print("Pipeline cancelled; incomplete results will not be reused.", file=sys.stderr)
-        return 130
-    except (PipelineError, OSError, ValueError, TypeError, KeyError) as error:
-        print(f"Pipeline error: {error}", file=sys.stderr)
-        return 1
+    except BaseException as error:
+        cleanup = cleanup_failure(error)
+        if cleanup is not None:
+            print(f"Pipeline cleanup incomplete; inspect retained locks: {cleanup}", file=sys.stderr)
+            return 130 if isinstance(cleanup.primary, KeyboardInterrupt) else 1
+        if isinstance(error, KeyboardInterrupt):
+            print("Pipeline cancelled; incomplete results will not be reused.", file=sys.stderr)
+            return 130
+        if isinstance(error, (PipelineError, OSError, ValueError, TypeError, KeyError)):
+            print(f"Pipeline error: {error}", file=sys.stderr)
+            return 1
+        raise
 
 
 if __name__ == "__main__":

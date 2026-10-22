@@ -1,0 +1,182 @@
+import json
+from pathlib import Path
+import tempfile
+import unittest
+from unittest.mock import patch
+
+from Tools.Conversion.adapters.qwen_image21 import mobile_artifacts
+from Tools.Conversion.adapters.qwen_image21.evaluation import canonical_hash
+from Tools.Conversion.adapters.qwen_image21.fixtures import file_record, save_json
+from Tools.Conversion.adapters.qwen_image21.mobile_artifacts import inventory, read_component, validate_source
+from Tools.Conversion.adapters.qwen_image21.mobile_convert import new_output, write_new_json
+from Tools.Conversion.adapters.qwen_image21.mobile_profile import make_profile
+
+
+class ImageMobileArtifactTests(unittest.TestCase):
+    def test_existing_outputs_and_dangling_links_are_preserved(self):
+        for defect in ("existing-file", "dangling-link", "existing-directory", "root-link"):
+            with self.subTest(defect=defect), tempfile.TemporaryDirectory() as folder:
+                parent = Path(folder)
+                root = parent / "out"
+                root.mkdir()
+                target = root / "compression.json"
+                if defect == "existing-file":
+                    target.write_text("original")
+                elif defect == "dangling-link":
+                    target.symlink_to(parent / "outside.json")
+                elif defect == "existing-directory":
+                    target.mkdir()
+                else:
+                    link = parent / "linked-output"
+                    link.symlink_to(root, target_is_directory=True)
+                    root = link
+                with self.assertRaises(FileExistsError):
+                    new_output(root, ("compression.json",))
+                self.assertFalse((parent / "outside.json").exists())
+                if defect == "existing-file":
+                    self.assertEqual(target.read_text(), "original")
+
+    def test_json_creation_rejects_destinations_added_after_the_initial_check(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            target = root / "profile.json"
+            new_output(root, (target.name,))
+            target.symlink_to(root / "outside.json")
+            with self.assertRaises(FileExistsError):
+                write_new_json(target, {"value": 1})
+            self.assertFalse((root / "outside.json").exists())
+
+    def fixture(self, root):
+        profile = make_profile("w4", "a" * 64, {"conversion.py": "b" * 64})
+        asset = root / "text.aimodel"
+        asset.mkdir()
+        (asset / "weights.bin").write_bytes(b"fixture weights")
+        compression = {"format": 1, "kind": "text", "profile_sha256": canonical_hash(profile),
+                       "compression": {"kind": "linear-integer", "layers": []}}
+        save_json(root / "compression.json", compression)
+        record = {"format": 2, "kind": "text", "profile": profile, "profile_sha256": canonical_hash(profile),
+                  "conversion_complete": True, "asset": "text.aimodel", "inputs": profile["components"]["text"]["inputs"],
+                  "outputs": profile["components"]["text"]["outputs"], "compression_file": file_record(root / "compression.json"),
+                  "asset_inventory": inventory(asset), "numeric_verification": "pending"}
+        save_json(root / "component.json", record)
+        return profile
+
+    def test_converted_component_remains_pending_numeric_and_device_verification(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            profile = self.fixture(root)
+            record, _ = read_component(root, profile, "text")
+            self.assertEqual(record["numeric_verification"], "pending")
+            self.assertNotIn("verified", record)
+
+    def test_different_profiles_and_modified_reference_files_are_rejected(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            profile = self.fixture(root)
+            other = make_profile("w8", "a" * 64, {"conversion.py": "b" * 64})
+            with self.assertRaises(ValueError):
+                read_component(root, other, "text")
+            path = root / "compression.json"
+            path.write_bytes(path.read_bytes() + b" ")
+            with self.assertRaises(ValueError):
+                read_component(root, profile, "text")
+
+    def test_missing_extra_corrupted_and_linked_asset_entries_are_rejected(self):
+        for defect in ("missing", "extra", "corrupt", "link"):
+            with self.subTest(defect=defect), tempfile.TemporaryDirectory() as folder:
+                root = Path(folder)
+                profile = self.fixture(root)
+                asset = root / "text.aimodel"
+                if defect == "missing":
+                    (asset / "weights.bin").unlink()
+                elif defect == "extra":
+                    (asset / "extra.bin").write_bytes(b"extra")
+                elif defect == "corrupt":
+                    (asset / "weights.bin").write_bytes(b"changed weights")
+                else:
+                    (asset / "link.bin").symlink_to(asset / "weights.bin")
+                with self.assertRaises(ValueError):
+                    read_component(root, profile, "text")
+
+    def test_profile_numeric_type_changes_do_not_reuse_an_old_identity(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            profile = self.fixture(root)
+            path = root / "component.json"
+            record = json.loads(path.read_text())
+            record["profile"]["components"]["text"]["weight_encoding"]["bits"] = 4.0
+            save_json(path, record)
+            with self.assertRaises(ValueError):
+                read_component(root, profile, "text")
+
+    def source_snapshot(self, root, linked=False):
+        specification = json.loads((Path(mobile_artifacts.__file__).parents[2] / "recipes/qwen_image21/model.json").read_text())
+        for index, name in enumerate(specification["files"]):
+            (root / name).parent.mkdir(parents=True, exist_ok=True)
+            if linked:
+                blob = root.parent / "blobs" / str(index)
+                blob.parent.mkdir(exist_ok=True)
+                blob.write_bytes(b"")
+                (root / name).symlink_to(blob)
+            else:
+                (root / name).write_bytes(b"")
+        records = specification["files"]
+        return records, patch("Tools.Conversion.adapters.qwen_image21.mobile_artifacts.file_record",
+                              side_effect=lambda path: records[Path(path).relative_to(root).as_posix()])
+
+    def test_a_snapshot_matching_the_pinned_source_passes_for_every_component(self):
+        for linked in (False, True):
+            with self.subTest(linked=linked), tempfile.TemporaryDirectory() as folder:
+                root = Path(folder) / "snapshot"
+                records, pinned = self.source_snapshot(root, linked)
+                (root / ".cache/huggingface/download/vae").mkdir(parents=True)
+                (root / ".cache/huggingface/download/vae/config.json.metadata").write_text("download metadata")
+                with pinned:
+                    self.assertEqual(validate_source(root), records)
+                    for kind in ("text", "vision", "denoiser", "vae_encoder", "vae_decoder"):
+                        self.assertIn("model_index.json", validate_source(root, kind))
+
+    def test_unlisted_files_that_a_loader_may_select_are_rejected(self):
+        cases = ((("vae/diffusion_pytorch_model.safetensors.index.json",
+                   "vae/diffusion_pytorch_model-00001-of-00001.safetensors"), (None, "vae_encoder", "vae_decoder")),
+                 (("transformer/diffusion_pytorch_model.safetensors",), (None, "denoiser")),
+                 (("processor/added_tokens.json",), (None, "text")))
+        for extras, kinds in cases:
+            for kind in kinds:
+                with self.subTest(extras=extras, kind=kind), tempfile.TemporaryDirectory() as folder:
+                    root = Path(folder)
+                    _, pinned = self.source_snapshot(root)
+                    for name in extras:
+                        (root / name).write_bytes(b"unpinned")
+                    with pinned, self.assertRaisesRegex(ValueError, "Unexpected file in the pinned source"):
+                        validate_source(root, kind)
+
+    def test_a_source_folder_that_cannot_be_listed_is_rejected(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder) / "snapshot"
+            _, pinned = self.source_snapshot(root)
+            for name in ("vae/diffusion_pytorch_model.safetensors.index.json", "vae/diffusion_pytorch_model-00001-of-00001.safetensors"):
+                (root / name).write_bytes(b"unpinned")
+            (root / "vae").chmod(0o111)
+            try:
+                for kind in (None, "vae_encoder", "vae_decoder"):
+                    with self.subTest(kind=kind), pinned, self.assertRaisesRegex(ValueError, "Cannot enumerate the pinned source"):
+                        validate_source(root, kind)
+            finally:
+                (root / "vae").chmod(0o755)
+
+    def test_directory_links_inside_the_pinned_source_are_rejected(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder) / "snapshot"
+            _, pinned = self.source_snapshot(root)
+            templates = Path(folder) / "outside" / "templates"
+            templates.mkdir(parents=True)
+            (templates / "unpinned.jinja").write_text("unpinned template")
+            (root / "processor" / "additional_chat_templates").symlink_to(templates, target_is_directory=True)
+            for kind in (None, "text"):
+                with self.subTest(kind=kind), pinned, self.assertRaisesRegex(ValueError, "Directory links are not allowed in the pinned source"):
+                    validate_source(root, kind)
+
+
+if __name__ == "__main__":
+    unittest.main()
