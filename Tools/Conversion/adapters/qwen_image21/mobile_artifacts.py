@@ -1,5 +1,6 @@
 import importlib.metadata
 import json
+import os
 from pathlib import Path
 
 from .contracts import DIFFUSERS_REVISION, REVISION, digest
@@ -28,6 +29,26 @@ def validate_environment():
     return actual
 
 
+def source_names(snapshot, folder):
+    root = Path(snapshot)
+    pending = [(root / folder, (root / folder).is_symlink())]
+    while pending:
+        directory, linked = pending.pop()
+        name = directory.relative_to(root).as_posix()
+        if linked:
+            raise ValueError("Directory links are not allowed in the pinned source: " + name)
+        try:
+            with os.scandir(directory) as entries:
+                children = [(Path(entry.path), entry.is_dir(), entry.is_symlink()) for entry in entries]
+        except OSError as error:
+            raise ValueError("Cannot enumerate the pinned source: " + name) from error
+        for path, is_directory, linked in children:
+            if is_directory:
+                pending.append((path, linked))
+            else:
+                yield path.relative_to(root).as_posix()
+
+
 def validate_source(snapshot, kind=None):
     specification = json.loads((Path(__file__).parents[2] / "recipes/qwen_image21/model.json").read_text())
     if specification["revision"] != REVISION or specification["diffusers_revision"] != DIFFUSERS_REVISION:
@@ -45,9 +66,8 @@ def validate_source(snapshot, kind=None):
             raise ValueError("Source content differs from the pinned revision: " + name)
     folders = set(groups.values()) if kind is None else {groups[kind]}
     for folder in sorted(folders | {"processor/", "scheduler/"}):
-        for path in sorted((Path(snapshot) / folder).rglob("*")):
-            name = path.relative_to(snapshot).as_posix()
-            if path.is_file() and name not in selected:
+        for name in sorted(source_names(snapshot, folder)):
+            if name not in selected:
                 raise ValueError("Unexpected file in the pinned source: " + name)
     return selected
 

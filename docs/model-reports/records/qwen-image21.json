@@ -161,12 +161,12 @@
       "artifact_revision": "ce6e70483c6a47f456fb1a4bd92e95fe6993b31fada74e460311eaf90f2f77e4",
       "code_revision": "ec5f51096bb1a3f41d938045163bebdd5c76d14c",
       "workload": {
-        "en": "Frozen g01/e01, seed 20261018; 512-square; batch1; CFG1; 8 steps; joint2304; no prefix KV. Artifact revision hashes the five exported component records, not a verified bundle. Power/thermal context was not captured; no latency claim.",
-        "ja": "固定g01/e01、seed20261018、512正方形、batch1、CFG1、8step、joint2304、prefix KVなし。資産revisionは5部品記録のhashで検証済みbundleではない。電源/熱は未記録で速度の主張には使わない。"
+        "en": "Frozen g01/e01, seed 20261018; 512-square; 8 steps. Artifact revision hashes the five exported component records, not a verified bundle. Power/thermal context was not captured; no latency claim.",
+        "ja": "固定g01/e01、seed20261018、512正方形、8step。資産revisionは5部品記録のhashで検証済みbundleではない。電源/熱は未記録で速度の主張には使わない。"
       },
-      "batch_size": 1,
-      "concurrency": 1,
-      "warmups": 0,
+      "batch_size": null,
+      "concurrency": null,
+      "warmups": null,
       "power": null,
       "thermal": null,
       "model_executed": true,
@@ -189,12 +189,12 @@
       "artifact_revision": null,
       "code_revision": "f5cca6f12dde207fa9a9abc6c4af6eb31195951d",
       "workload": {
-        "en": "Frozen 60-run suite: 512-square, batch1, CFG1, 8 steps, no prefix KV. Source B completed all 60 runs and both required repeats with zero repeat difference. Core AI fixed comparisons: 32 of 1,230 failed at the full valid joint (e08/e09 for run suffixes 20261018 and 20261021, all 8 steps); all 480 target-region comparisons passed. Free rollout stopped after 16 of 60 runs. The JSON has no exported-asset inventory hash; power/thermal were not captured; no latency claim.",
-        "ja": "凍結60run suite（512正方形、batch1、CFG1、8step、prefix KVなし）。原典Bは全60runと必須2反復を完了し、反復差は0。Core AIの固定比較は1,230件中32件がfull valid jointで不合格（e08/e09の20261018・20261021、各8step）、target領域480件は全合格。自由rolloutは60run中16runで中止。JSONに書出し資産のinventory hashはなく、電源/熱は未記録で速度の主張には使わない。"
+        "en": "Frozen 60-run suite, 8 steps. Source B completed all 60 runs and both required repeats with zero repeat difference. Core AI fixed comparisons: 32 of 1,230 failed at the full valid joint (e08/e09 for run suffixes 20261018 and 20261021, all 8 steps); all 480 target-region comparisons passed. Free rollout stopped after 16 of 60 runs. The JSON has no exported-asset inventory hash; power/thermal were not captured; no latency claim.",
+        "ja": "凍結60run suite、8step。原典Bは全60runと必須2反復を完了し、反復差は0。Core AIの固定比較は1,230件中32件がfull valid jointで不合格（e08/e09の20261018・20261021、各8step）、target領域480件は全合格。自由rolloutは60run中16runで中止。JSONに書出し資産のinventory hashはなく、電源/熱は未記録で速度の主張には使わない。"
       },
-      "batch_size": 1,
-      "concurrency": 1,
-      "warmups": 0,
+      "batch_size": null,
+      "concurrency": null,
+      "warmups": null,
       "power": null,
       "thermal": null,
       "model_executed": true,
@@ -217,12 +217,12 @@
       "artifact_revision": "77f49a8ac5bc7dd0af04766a8d3f5fbd5ede4431c6eccaa6531336eb36edf7f2",
       "code_revision": "be4cdb03c7442a5b1bc27d228e11c1190bd2facc",
       "workload": {
-        "en": "Four fixed DiT step0 inputs (g01/e01/e08/e09, 20261018) reused from the W4/F32 cohort; joint2304; 512-square; batch1; CFG1. w4-blocks16-23-f32 keeps F16 Linear weights in zero-based DiT blocks 16–23 and passed full-joint and target gates for 4/4 inputs; w4-blocks20-21-f32 failed full-joint for 2/4 (e08/e09). Artifact revision is the 8-block DiT main.mlirb SHA-256; other asset hashes are in the JSON. Not the 60-run suite, rollout, quality or device result; verified=false; power/thermal were not captured; no latency claim.",
-        "ja": "W4/F32 cohortの固定DiT step0入力4件（g01/e01/e08/e09、20261018）を再利用。joint2304、512正方形、batch1、CFG1。0始まりのDiT block16〜23のLinear weightをF16で保持するw4-blocks16-23-f32はfull-joint/targetとも4/4合格、w4-blocks20-21-f32はfull-jointで2/4（e08/e09）不合格。資産revisionは8block DiTのmain.mlirbのSHA-256で、他の資産hashはJSONにある。60run suite・rollout・品質・実機の結果ではなくverified=false。電源/熱は未記録で速度の主張には使わない。"
+        "en": "Four fixed DiT step0 inputs (g01/e01/e08/e09, 20261018) reused from the W4/F32 cohort. w4-blocks16-23-f32 keeps F16 Linear weights in zero-based DiT blocks 16–23 and passed full-joint and target gates for 4/4 inputs; w4-blocks20-21-f32 failed full-joint for 2/4 (e08/e09). Artifact revision is the 8-block DiT main.mlirb SHA-256; other asset hashes are in the JSON. Not the 60-run suite, rollout, quality or device result; verified=false; power/thermal were not captured; no latency claim.",
+        "ja": "W4/F32 cohortの固定DiT step0入力4件（g01/e01/e08/e09、20261018）を再利用。0始まりのDiT block16〜23のLinear weightをF16で保持するw4-blocks16-23-f32はfull-joint/targetとも4/4合格、w4-blocks20-21-f32はfull-jointで2/4（e08/e09）不合格。資産revisionは8block DiTのmain.mlirbのSHA-256で、他の資産hashはJSONにある。60run suite・rollout・品質・実機の結果ではなくverified=false。電源/熱は未記録で速度の主張には使わない。"
       },
-      "batch_size": 1,
-      "concurrency": 1,
-      "warmups": 0,
+      "batch_size": null,
+      "concurrency": null,
+      "warmups": null,
       "power": null,
       "thermal": null,
       "model_executed": true,

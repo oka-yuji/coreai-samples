@@ -109,25 +109,32 @@ class ImageMobileArtifactTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 read_component(root, profile, "text")
 
-    def source_snapshot(self, root):
+    def source_snapshot(self, root, linked=False):
         specification = json.loads((Path(mobile_artifacts.__file__).parents[2] / "recipes/qwen_image21/model.json").read_text())
-        for name in specification["files"]:
+        for index, name in enumerate(specification["files"]):
             (root / name).parent.mkdir(parents=True, exist_ok=True)
-            (root / name).write_bytes(b"")
+            if linked:
+                blob = root.parent / "blobs" / str(index)
+                blob.parent.mkdir(exist_ok=True)
+                blob.write_bytes(b"")
+                (root / name).symlink_to(blob)
+            else:
+                (root / name).write_bytes(b"")
         records = specification["files"]
         return records, patch("Tools.Conversion.adapters.qwen_image21.mobile_artifacts.file_record",
                               side_effect=lambda path: records[Path(path).relative_to(root).as_posix()])
 
     def test_a_snapshot_matching_the_pinned_source_passes_for_every_component(self):
-        with tempfile.TemporaryDirectory() as folder:
-            root = Path(folder)
-            records, pinned = self.source_snapshot(root)
-            (root / ".cache/huggingface/download/vae").mkdir(parents=True)
-            (root / ".cache/huggingface/download/vae/config.json.metadata").write_text("download metadata")
-            with pinned:
-                self.assertEqual(validate_source(root), records)
-                for kind in ("text", "vision", "denoiser", "vae_encoder", "vae_decoder"):
-                    self.assertIn("model_index.json", validate_source(root, kind))
+        for linked in (False, True):
+            with self.subTest(linked=linked), tempfile.TemporaryDirectory() as folder:
+                root = Path(folder) / "snapshot"
+                records, pinned = self.source_snapshot(root, linked)
+                (root / ".cache/huggingface/download/vae").mkdir(parents=True)
+                (root / ".cache/huggingface/download/vae/config.json.metadata").write_text("download metadata")
+                with pinned:
+                    self.assertEqual(validate_source(root), records)
+                    for kind in ("text", "vision", "denoiser", "vae_encoder", "vae_decoder"):
+                        self.assertIn("model_index.json", validate_source(root, kind))
 
     def test_unlisted_files_that_a_loader_may_select_are_rejected(self):
         cases = ((("vae/diffusion_pytorch_model.safetensors.index.json",
@@ -143,6 +150,32 @@ class ImageMobileArtifactTests(unittest.TestCase):
                         (root / name).write_bytes(b"unpinned")
                     with pinned, self.assertRaisesRegex(ValueError, "Unexpected file in the pinned source"):
                         validate_source(root, kind)
+
+    def test_a_source_folder_that_cannot_be_listed_is_rejected(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder) / "snapshot"
+            _, pinned = self.source_snapshot(root)
+            for name in ("vae/diffusion_pytorch_model.safetensors.index.json", "vae/diffusion_pytorch_model-00001-of-00001.safetensors"):
+                (root / name).write_bytes(b"unpinned")
+            (root / "vae").chmod(0o111)
+            try:
+                for kind in (None, "vae_encoder", "vae_decoder"):
+                    with self.subTest(kind=kind), pinned, self.assertRaisesRegex(ValueError, "Cannot enumerate the pinned source"):
+                        validate_source(root, kind)
+            finally:
+                (root / "vae").chmod(0o755)
+
+    def test_directory_links_inside_the_pinned_source_are_rejected(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder) / "snapshot"
+            _, pinned = self.source_snapshot(root)
+            templates = Path(folder) / "outside" / "templates"
+            templates.mkdir(parents=True)
+            (templates / "unpinned.jinja").write_text("unpinned template")
+            (root / "processor" / "additional_chat_templates").symlink_to(templates, target_is_directory=True)
+            for kind in (None, "text"):
+                with self.subTest(kind=kind), pinned, self.assertRaisesRegex(ValueError, "Directory links are not allowed in the pinned source"):
+                    validate_source(root, kind)
 
 
 if __name__ == "__main__":
