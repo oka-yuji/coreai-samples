@@ -1,0 +1,109 @@
+{
+  "format": 1,
+  "source_model": "Qwen/Qwen-Image-2.1-Turbo",
+  "source_revision": "fc13ba1986fcb905854dc8de2f52eee395f49b5b",
+  "source_license": "https://huggingface.co/Qwen/Qwen-Image-2.1-Turbo/blob/fc13ba1986fcb905854dc8de2f52eee395f49b5b/LICENSE",
+  "diffusers_revision": "b800f828f3951c4d206e154411bcbfa693cd322e",
+  "torch": "2.9.0",
+  "transformers": "5.18.0",
+  "pillow": "13.0.0",
+  "contents": "Original authored PNGs, reference preprocessing arrays, saved noise and reference prediction tensors",
+  "files": {
+    "canonical-reference.png": {
+      "bytes": 304724,
+      "sha256": "776895b75172e8df703df5cdac06da23672be6fe95ea4ebf99e9b10dec03bd6f"
+    },
+    "e06-denoiserCosine.f32": {
+      "bytes": 589824,
+      "sha256": "023521b7327c765a61ff0cf7ae5adf9fba71d1f3fd0f7aa6385f00ca8cfceea3"
+    },
+    "e06-denoiserSine.f32": {
+      "bytes": 589824,
+      "sha256": "99d1c1b70e733d142596a4aaee3e582b51ac84ef297e1e8ec2b5aa97020890e8"
+    },
+    "e06-textCosine.f32": {
+      "bytes": 262144,
+      "sha256": "491415e1593b24d71eb6d4ce09d92117d697e480138beac3a8f65c94aed2e46b"
+    },
+    "e06-textSine.f32": {
+      "bytes": 262144,
+      "sha256": "6ccad459d90264a9f8fcafc6c5a559024805815ff8dd2f2ab191dce4773ec3a5"
+    },
+    "g02-denoiserCosine.f32": {
+      "bytes": 589824,
+      "sha256": "4f4dacbae473e402b3dccdd00832708b355973294d555671f7b337988eb26949"
+    },
+    "g02-denoiserSine.f32": {
+      "bytes": 589824,
+      "sha256": "489d2cee1f1a0c6928f2d98f48ff2bd1c0ee6c50bdaae4324f4d3e995a375e33"
+    },
+    "g02-textCosine.f32": {
+      "bytes": 262144,
+      "sha256": "e2b4edc65604473fb7e8d92b003afc7c9ce662db861be6d84ee551e29543cddf"
+    },
+    "g02-textSine.f32": {
+      "bytes": 262144,
+      "sha256": "02bb9084ab0e2b8ef18802a240a4e0d670179fa900d359c29a9758f466761d9d"
+    },
+    "image-golden.json": {
+      "bytes": 3112,
+      "sha256": "40f12c1b69b4d53bdf6c98cd4701852200d18b2b3f0f730e235014f66e5721fb"
+    },
+    "initial-noise.f32": {
+      "bytes": 262144,
+      "sha256": "c46fdeac5135bd96a3c883aeddad09979cb7727114879a8d6a46c71e7b594a04"
+    },
+    "native-golden.json": {
+      "bytes": 494790,
+      "sha256": "890a0e78d43589256fd0d07249d0e2f0c3bdd9fddbeec03ddc1ca559a9b4c83a"
+    },
+    "prediction-0.f32": {
+      "bytes": 262144,
+      "sha256": "cb1ee48b3e104d25de9f44ee87feea337986ddfa5e3b3b0c478610e167d72203"
+    },
+    "prediction-1.f32": {
+      "bytes": 262144,
+      "sha256": "650cbe687dbf1035cc4bc775b4af31a2cbfb613f8b8f73dd71125a19773455fc"
+    },
+    "prediction-2.f32": {
+      "bytes": 262144,
+      "sha256": "3bd7b0a68fa60495d98b45cefaf97a195682c5e44af36fe062985903d7494b81"
+    },
+    "prediction-3.f32": {
+      "bytes": 262144,
+      "sha256": "51a386f6b8e779e96161c4bb9622bb405f7084d0cf137257d43a83d5763d8c87"
+    },
+    "prediction-4.f32": {
+      "bytes": 262144,
+      "sha256": "5becfa870dfa1f7827d533a16d287ba65f6a9f5ceeb44193f3deacbe0e96e4b6"
+    },
+    "prediction-5.f32": {
+      "bytes": 262144,
+      "sha256": "cd5f16f27b16d300abf23046c881c9bdd697b77bbc44bf3eff6de7d24810df8e"
+    },
+    "prediction-6.f32": {
+      "bytes": 262144,
+      "sha256": "3ef6a3f16f8a5602606cc65031c8257706be55fddab0f56b5cd5df012cec904c"
+    },
+    "prediction-7.f32": {
+      "bytes": 262144,
+      "sha256": "bc7d0115362e809e8d7d8c7b4a08f0e9b148decff9d7f5b9774c2f7ff678e2ca"
+    },
+    "profile-v2.json": {
+      "bytes": 8824,
+      "sha256": "49e76e03ed23c45c2d894c3bdd1b32295323f63cb1a3f46643ce45d25bde7569"
+    },
+    "rgba-oriented.png": {
+      "bytes": 415,
+      "sha256": "6663104ab0a0f2ea918dc3f9a4af8d93332a8064debbb8840ae138de9c64ed60"
+    },
+    "rgba-source.png": {
+      "bytes": 377,
+      "sha256": "2ce76a3417d2cfa496923f79ba8c24018c06f3a69786189bf4fb2daf57710376"
+    },
+    "rgba-srgb.png": {
+      "bytes": 763,
+      "sha256": "9359173c0b21772f665bb0d100bee4ea179a3ee3eaaab5cca8de9ec8005e763f"
+    }
+  }
+}

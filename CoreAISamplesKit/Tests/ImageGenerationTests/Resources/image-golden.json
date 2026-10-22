@@ -1,0 +1,104 @@
+{
+  "format": 1,
+  "pillowVersion": "13.0.0",
+  "referenceVersion": "center-crop-bicubic-straight-rgba8-v1",
+  "sourceSHA256": "abb71dc7ebb696c94914eff577667f0d2b09bc40c7605015842d830068aca979",
+  "orientedSHA256": "16d7f4cdef802f8ad2c77f0459a17cff0d2d0d822260e44e84b1c9633a15f9c0",
+  "orientations": [
+    {
+      "orientation": 1,
+      "width": 32,
+      "height": 24,
+      "rgbaSHA256": "abb71dc7ebb696c94914eff577667f0d2b09bc40c7605015842d830068aca979"
+    },
+    {
+      "orientation": 2,
+      "width": 32,
+      "height": 24,
+      "rgbaSHA256": "22fcf6e73cdb4ffa87d56f1de9e24b49221106de0cb1e4ed9fac06249cbd00cc"
+    },
+    {
+      "orientation": 3,
+      "width": 32,
+      "height": 24,
+      "rgbaSHA256": "20e1f9761fa3fc0e5bf11c86c3070ff855825a250e88ab1a13e89ceab389c5f2"
+    },
+    {
+      "orientation": 4,
+      "width": 32,
+      "height": 24,
+      "rgbaSHA256": "30dc9033ad702a81e564d76995a5962c62ad1dfcf51faeb92c4769ee3e4a0e6a"
+    },
+    {
+      "orientation": 5,
+      "width": 24,
+      "height": 32,
+      "rgbaSHA256": "3d48921cf45c2a02d221e6af3d827316dd6d690b3f945e25bdd6124de9914d8a"
+    },
+    {
+      "orientation": 6,
+      "width": 24,
+      "height": 32,
+      "rgbaSHA256": "16d7f4cdef802f8ad2c77f0459a17cff0d2d0d822260e44e84b1c9633a15f9c0"
+    },
+    {
+      "orientation": 7,
+      "width": 24,
+      "height": 32,
+      "rgbaSHA256": "8921a38660006c8d4eed3345184a77725b587405177b1e2bc6267d2930ca925d"
+    },
+    {
+      "orientation": 8,
+      "width": 24,
+      "height": 32,
+      "rgbaSHA256": "955c7d4ab8f2659b9920a2a43636c487823511a309b47e67f0bb0e5bee589270"
+    }
+  ],
+  "resizes": [
+    {
+      "width": 32,
+      "height": 24,
+      "rgbaSHA256": "abb71dc7ebb696c94914eff577667f0d2b09bc40c7605015842d830068aca979"
+    },
+    {
+      "width": 7,
+      "height": 5,
+      "rgbaSHA256": "7eb6feae32c2537b69cf6644da6fa654fdfc6b427ee9acb74988bd39c3948945"
+    },
+    {
+      "width": 31,
+      "height": 17,
+      "rgbaSHA256": "91e817aec69627d2ac41ead8ad9960541086888b9c15c8284c600b86e30010de"
+    },
+    {
+      "width": 64,
+      "height": 48,
+      "rgbaSHA256": "526c1b69745dad5afd0c372f9fb83a9e666d398d756e8babb2257cf6850c04c1"
+    }
+  ],
+  "canonicalSHA256": "1a6ee704ea61fce47aacfc696286865f62cc03b4b3fc410ee1c2742023c5a2f1",
+  "whiteSHA256": "84c63527d3f51874ba6a767f91829fd4e6646b9d49e4dbd0f39ccf3d44b46b58",
+  "vaeSHA256": "e70ae53fbdca6591bb2c47eab3a0bc4fb494b5e0fa3025b2e5ee07fb67bdd8ee",
+  "visionSHA256": "e60e6540b0dc6d63a0abb08ba024db6d6e00ddc6aab1c6f5bbb421635035ac42",
+  "decoderPattern": [
+    -2.0,
+    -1.0,
+    -0.5,
+    0.0,
+    0.5,
+    1.0,
+    2.0,
+    0.003921568859368563,
+    0.10000000149011612,
+    -0.10000000149011612,
+    0.8999999761581421,
+    -0.8999999761581421,
+    0.25,
+    -0.25,
+    0.75,
+    -0.75
+  ],
+  "decoderSHA256": "3a233a1ffb7ae3789ebd970ea2f45fa76b97b3e064d00004155129da5e381931",
+  "colorPolicy": "Preserve encoded RGB channel values as Pillow convert(RGBA); do not apply an ICC display transform",
+  "scope": "Original authored PNGs, all EXIF orientations, Pillow bicubic and Qwen3VL processor; no learned weights"
+}

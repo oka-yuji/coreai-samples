@@ -1,0 +1,413 @@
+{
+  "format": 2,
+  "id": "qmi-fp32-reference-v2",
+  "source": {
+    "model": "Qwen/Qwen-Image-2.1-Turbo",
+    "revision": "fc13ba1986fcb905854dc8de2f52eee395f49b5b",
+    "implementation_revision": "b800f828f3951c4d206e154411bcbfa693cd322e",
+    "dependency_lock_sha256": "893377255e8793ea9c7cec2d914293a05efd7f1439a6c6783670e55254be1779",
+    "converter_sha256": {
+      "convert.py": "dc1ef76282e89ed1d275541516e1faca0bad95dabb3d3dc0bd4e028bb8a831bf",
+      "contracts.py": "8845f80b45e2c204edc923c6a582c08cbbdf1ac2b82087fddc85750e7227c601",
+      "examples.py": "ae3613068c459404159b19fa68730225e99b4d56e16484de84ffc54b10661041",
+      "preprocessing.py": "1591a4c0587e5ccf3c883a8b70fefbf8406d15917fd36d5afecedf9d89d2551f",
+      "denoiser.py": "0b3589f726e45779ac39f5a26e1d728a55286a99ad0d2ac26ca93a2bbb309a68",
+      "encoders.py": "1ae52e4e5da23a98b850458a072280e7f7cf8762236ee33f4d6b3b4bae0ce23a"
+    }
+  },
+  "workload": {
+    "resolution": [
+      512,
+      512
+    ],
+    "reference_resolution": [
+      512,
+      512
+    ],
+    "batch": 1,
+    "maximum_references": 1,
+    "processed_text_capacity": 512,
+    "joint_capacity": 2304,
+    "operation": "generate-and-edit",
+    "cfg": 1,
+    "sigmas": [
+      1.0,
+      0.978453,
+      0.95418,
+      0.926626,
+      0.89508,
+      0.845148,
+      0.704534,
+      0.414568
+    ],
+    "terminal_sigma": 0.0,
+    "scheduler_compute_dtype": "float32",
+    "scheduler_output_dtype": "float32",
+    "cast_back": "every-step-to-model-output",
+    "scheduler_delta_dtype": "model-output",
+    "scheduler_product_dtype": "model-output",
+    "model_timestep_rule": "sigma-f32-scale1000-cast-divide1000",
+    "rounding": "nearest-ties-to-even",
+    "prefix_kv_cache": false,
+    "noise_shape": [
+      1,
+      1024,
+      64
+    ],
+    "noise_dtype": "float32",
+    "rng_version": "torch-2.9.0-cpu-randn-packed-v1",
+    "denoiser_fp16_clip": [
+      -65504,
+      65504
+    ],
+    "zero_centered_norm_dtype": "float32"
+  },
+  "components": {
+    "vision": {
+      "asset": "vision/vision.aimodel",
+      "function": "main",
+      "state_names": [],
+      "compute_dtype": "float32",
+      "weight_encoding": {
+        "kind": "dense",
+        "dtype": "float32"
+      },
+      "inputs": [
+        {
+          "name": "pixel_values",
+          "shape": [
+            1024,
+            1536
+          ],
+          "dtype": "float32",
+          "layout": "row-major"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "merged",
+          "shape": [
+            256,
+            4096
+          ],
+          "dtype": "float32",
+          "layout": "row-major"
+        },
+        {
+          "name": "deepstack_0",
+          "shape": [
+            256,
+            4096
+          ],
+          "dtype": "float32",
+          "layout": "row-major"
+        },
+        {
+          "name": "deepstack_1",
+          "shape": [
+            256,
+            4096
+          ],
+          "dtype": "float32",
+          "layout": "row-major"
+        },
+        {
+          "name": "deepstack_2",
+          "shape": [
+            256,
+            4096
+          ],
+          "dtype": "float32",
+          "layout": "row-major"
+        }
+      ]
+    },
+    "text": {
+      "asset": "text/text.aimodel",
+      "function": "main",
+      "state_names": [],
+      "compute_dtype": "float32",
+      "weight_encoding": {
+        "kind": "dense",
+        "dtype": "float32"
+      },
+      "inputs": [
+        {
+          "name": "input_ids",
+          "shape": [
+            1,
+            512
+          ],
+          "dtype": "int32",
+          "layout": "row-major"
+        },
+        {
+          "name": "vision",
+          "shape": [
+            1,
+            512,
+            4096
+          ],
+          "dtype": "float32",
+          "layout": "row-major"
+        },
+        {
+          "name": "deepstack",
+          "shape": [
+            3,
+            1,
+            512,
+            4096
+          ],
+          "dtype": "float32",
+          "layout": "row-major"
+        },
+        {
+          "name": "cosine",
+          "shape": [
+            1,
+            512,
+            128
+          ],
+          "dtype": "float32",
+          "layout": "row-major"
+        },
+        {
+          "name": "sine",
+          "shape": [
+            1,
+            512,
+            128
+          ],
+          "dtype": "float32",
+          "layout": "row-major"
+        },
+        {
+          "name": "mask",
+          "shape": [
+            1,
+            1,
+            512,
+            512
+          ],
+          "dtype": "bool",
+          "layout": "row-major"
+        },
+        {
+          "name": "visual_mask",
+          "shape": [
+            1,
+            512
+          ],
+          "dtype": "bool",
+          "layout": "row-major"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "hidden",
+          "shape": [
+            1,
+            512,
+            4096
+          ],
+          "dtype": "float32",
+          "layout": "row-major"
+        }
+      ]
+    },
+    "denoiser": {
+      "asset": "denoiser/denoiser.aimodel",
+      "function": "main",
+      "state_names": [],
+      "compute_dtype": "float32",
+      "weight_encoding": {
+        "kind": "dense",
+        "dtype": "float32"
+      },
+      "inputs": [
+        {
+          "name": "latents",
+          "shape": [
+            1,
+            2048,
+            64
+          ],
+          "dtype": "float32",
+          "layout": "row-major"
+        },
+        {
+          "name": "text",
+          "shape": [
+            1,
+            512,
+            4096
+          ],
+          "dtype": "float32",
+          "layout": "row-major"
+        },
+        {
+          "name": "timestep",
+          "shape": [
+            1
+          ],
+          "dtype": "float32",
+          "layout": "row-major"
+        },
+        {
+          "name": "text_index",
+          "shape": [
+            2304
+          ],
+          "dtype": "int32",
+          "layout": "row-major"
+        },
+        {
+          "name": "image_index",
+          "shape": [
+            2304
+          ],
+          "dtype": "int32",
+          "layout": "row-major"
+        },
+        {
+          "name": "image_mask",
+          "shape": [
+            2304
+          ],
+          "dtype": "bool",
+          "layout": "row-major"
+        },
+        {
+          "name": "cosine",
+          "shape": [
+            1,
+            2304,
+            1,
+            64
+          ],
+          "dtype": "float32",
+          "layout": "row-major"
+        },
+        {
+          "name": "sine",
+          "shape": [
+            1,
+            2304,
+            1,
+            64
+          ],
+          "dtype": "float32",
+          "layout": "row-major"
+        },
+        {
+          "name": "mask",
+          "shape": [
+            1,
+            1,
+            2304,
+            2304
+          ],
+          "dtype": "bool",
+          "layout": "row-major"
+        },
+        {
+          "name": "target",
+          "shape": [
+            2304
+          ],
+          "dtype": "bool",
+          "layout": "row-major"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "noise",
+          "shape": [
+            1,
+            2304,
+            64
+          ],
+          "dtype": "float32",
+          "layout": "row-major"
+        }
+      ]
+    },
+    "vae_encoder": {
+      "asset": "vae_encoder/vae_encoder.aimodel",
+      "function": "main",
+      "state_names": [],
+      "compute_dtype": "float32",
+      "weight_encoding": {
+        "kind": "dense",
+        "dtype": "float32"
+      },
+      "inputs": [
+        {
+          "name": "value",
+          "shape": [
+            1,
+            4,
+            1,
+            512,
+            512
+          ],
+          "dtype": "float32",
+          "layout": "row-major"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "result",
+          "shape": [
+            1,
+            64,
+            1,
+            32,
+            32
+          ],
+          "dtype": "float32",
+          "layout": "row-major"
+        }
+      ]
+    },
+    "vae_decoder": {
+      "asset": "vae_decoder/vae_decoder.aimodel",
+      "function": "main",
+      "state_names": [],
+      "compute_dtype": "float32",
+      "weight_encoding": {
+        "kind": "dense",
+        "dtype": "float32"
+      },
+      "inputs": [
+        {
+          "name": "value",
+          "shape": [
+            1,
+            64,
+            1,
+            32,
+            32
+          ],
+          "dtype": "float32",
+          "layout": "row-major"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "result",
+          "shape": [
+            1,
+            4,
+            1,
+            512,
+            512
+          ],
+          "dtype": "float32",
+          "layout": "row-major"
+        }
+      ]
+    }
+  }
+}

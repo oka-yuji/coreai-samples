@@ -16,6 +16,8 @@ let package = Package(
         .iOS("27.0"),
     ],
     products: [
+        .library(name: "ImageGenerationCore", targets: ["ImageGenerationCore"]),
+        .library(name: "ImageGenerationRuntime", targets: ["ImageGenerationRuntime"]),
         .library(name: "ModelLibraryUI", targets: ["ModelLibraryUI"]),
         .library(name: "ModelLibraryFeature", targets: ["ModelLibraryFeature"]),
         .library(name: "ModelLibraryStorage", targets: ["ModelLibraryStorage"]),
@@ -63,6 +65,16 @@ let package = Package(
         .package(url: "https://github.com/huggingface/swift-jinja.git", from: "2.5.1"),
     ],
     targets: [
+        .target(name: "ImageGenerationCore", swiftSettings: speechSettings),
+        .target(
+            name: "ImageGenerationRuntime",
+            dependencies: [
+                "ImageGenerationCore", .product(name: "Tokenizers", package: "swift-transformers"),
+                .product(name: "Hub", package: "swift-transformers"),
+            ], swiftSettings: speechSettings),
+        .testTarget(
+            name: "ImageGenerationTests", dependencies: ["ImageGenerationCore", "ImageGenerationRuntime"],
+            resources: [.copy("Resources")], swiftSettings: speechSettings),
         .target(
             name: "ModelLibraryUI", dependencies: ["ModelLibraryFeature", "FeatureStore"],
             resources: [.process("Resources")], swiftSettings: speechSettings + [.defaultIsolation(MainActor.self)]),
