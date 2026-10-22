@@ -88,7 +88,7 @@
                 }
             case .preview:
                 VStack(alignment: .leading, spacing: 12) {
-                    if artifact?.download == nil {
+                    if artifact?.sourceKind == nil {
                         libraryText("Description only").font(.headline)
                         libraryText(
                             "Demo descriptions are available. Downloads and execution are not available in this build."
@@ -98,7 +98,9 @@
                         libraryText("You can read this demo now.").font(.headline)
                         libraryText(
                             store.state.isConnected(selection)
-                                ? "Download the model to enable its controls."
+                                ? artifact?.localBundle == nil
+                                    ? "Download the model to enable its controls."
+                                    : "Import the model to enable its controls."
                                 : "Demo execution is not connected in this build."
                         )
                         .font(.callout)
@@ -143,7 +145,7 @@
                             libraryText("Variant")
                         }
                         .disabled(store.state.pendingDestination != nil)
-                    } else if let artifact, artifact.download != nil {
+                    } else if let artifact, artifact.sourceKind != nil {
                         LabeledContent {
                             Text(verbatim: artifact.title)
                         } label: {
@@ -169,6 +171,21 @@
                             Text(verbatim: download.revision).textSelection(.enabled)
                         } label: {
                             libraryText("Revision")
+                        }
+                    } else if artifact?.localBundle != nil {
+                        LabeledContent {
+                            libraryText("Local bundle")
+                        } label: {
+                            libraryText("Source")
+                        }
+                        libraryText("For research and evaluation only. Commercial use requires a separate license.")
+                            .font(.callout)
+                        if let upstream = artifact?.upstream,
+                            let license = URL(
+                                string:
+                                    "https://huggingface.co/\(upstream.repository)/blob/\(upstream.revision)/LICENSE")
+                        {
+                            Link(destination: license) { libraryText("Qwen Research License") }
                         }
                     }
                 }

@@ -1,6 +1,16 @@
 public enum IOSDemoCatalog {
-    public static func make(searchTerms: [String: [String]] = [:]) throws -> ModelCatalog {
-        let demos = [
+    public static func make(
+        searchTerms: [String: [String]] = [:], localImageArtifacts: [ModelArtifact]? = nil
+    ) throws -> ModelCatalog {
+        let images = localImageArtifacts ?? verifiedImageArtifacts
+        for artifact in images {
+            guard artifact.sourceKind == .localManifest, artifact.isSourceValid,
+                artifact.contract == "qwen-image21-mobile-v2",
+                artifact.upstream?.repository == "Qwen/Qwen-Image-2.1-Turbo",
+                artifact.upstream?.revision == "fc13ba1986fcb905854dc8de2f52eee395f49b5b"
+            else { throw ModelCatalogError.invalidArtifact(artifact.id) }
+        }
+        var demos = [
             DemoDescriptor(
                 id: "comparison", title: "Comparison demo", systemImage: "rectangle.split.3x1",
                 summary: "Compare product specifications from source text.",
@@ -68,7 +78,7 @@ public enum IOSDemoCatalog {
                 ],
                 platforms: [.iOS], searchTerms: searchTerms["object-finder"]),
         ]
-        let models = [
+        var models = [
             LibraryModel(
                 id: "gliner2.5-multi", name: "GLiNER2.5-multi", category: "Information Extraction",
                 searchTerms: searchTerms["gliner2.5-multi"] ?? [], artifacts: [glinerFP32],
@@ -90,8 +100,27 @@ public enum IOSDemoCatalog {
                     ModelDemoLink(demoID: "object-finder", platforms: [.iOS], requiredCapabilities: [.camera]),
                 ]),
         ]
+        if let initial = images.first {
+            demos.append(
+                DemoDescriptor(
+                    id: "image-generation", title: "Image generation demo", systemImage: "photo.badge.plus",
+                    summary: "Create an image from a prompt or edit one reference image.",
+                    explanation: [
+                        DemoExplanation(
+                            title: "How it works",
+                            text: "Generate 512-square images from a prompt, or provide one reference image to edit.")
+                    ], platforms: [.iOS], searchTerms: searchTerms["image-generation"]))
+            models.append(
+                LibraryModel(
+                    id: "qwen-image21-turbo", name: "Qwen Image 2.1 Turbo", category: "Image Generation",
+                    searchTerms: searchTerms["qwen-image21-turbo"] ?? [], artifacts: images,
+                    defaultArtifactID: initial.id, platforms: [.iOS],
+                    demos: [ModelDemoLink(demoID: "image-generation", platforms: [.iOS])]))
+        }
         return try ModelCatalog(models: models, demos: demos)
     }
+
+    private static let verifiedImageArtifacts: [ModelArtifact] = []
 
     private static func artifact(
         _ id: String, title: String, contract: String, download: ModelDownload, upstream: ModelUpstream,

@@ -71,28 +71,36 @@ public struct ImageLatentScaling: Codable, Equatable, Sendable {
         self.standardDeviation = standardDeviation
     }
 
-    public func normalize(_ channelsFirst: [Float]) throws -> [Float] {
+    public func normalize(
+        _ channelsFirst: [Float], precision: ImageGenerationPrecision = .float32
+    ) throws -> [Float] {
         try validate(channelsFirst)
         var result = [Float](repeating: 0, count: ImageEuler.latentCount)
         for channel in 0..<64 {
+            let offset = try precision.rounded(mean[channel])
+            let scale = try precision.rounded(standardDeviation[channel])
             for token in 0..<1_024 {
-                result[token * 64 + channel] =
-                    (channelsFirst[channel * 1_024 + token] - mean[channel])
-                    / standardDeviation[channel]
+                let value = try precision.rounded(channelsFirst[channel * 1_024 + token])
+                let difference = try precision.rounded(value - offset)
+                result[token * 64 + channel] = try precision.rounded(difference / scale)
             }
         }
         guard result.allSatisfy(\.isFinite) else { throw ImageGenerationError.nonFinite }
         return result
     }
 
-    public func denormalize(_ tokensFirst: [Float]) throws -> [Float] {
+    public func denormalize(
+        _ tokensFirst: [Float], precision: ImageGenerationPrecision = .float32
+    ) throws -> [Float] {
         try validate(tokensFirst)
         var result = [Float](repeating: 0, count: ImageEuler.latentCount)
         for channel in 0..<64 {
+            let offset = try precision.rounded(mean[channel])
+            let scale = try precision.rounded(standardDeviation[channel])
             for token in 0..<1_024 {
-                result[channel * 1_024 + token] =
-                    tokensFirst[token * 64 + channel] * standardDeviation[channel]
-                    + mean[channel]
+                let value = try precision.rounded(tokensFirst[token * 64 + channel])
+                let product = try precision.rounded(value * scale)
+                result[channel * 1_024 + token] = try precision.rounded(product + offset)
             }
         }
         guard result.allSatisfy(\.isFinite) else { throw ImageGenerationError.nonFinite }

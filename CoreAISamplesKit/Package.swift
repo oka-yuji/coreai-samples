@@ -18,6 +18,7 @@ let package = Package(
     products: [
         .library(name: "ImageGenerationCore", targets: ["ImageGenerationCore"]),
         .library(name: "ImageGenerationRuntime", targets: ["ImageGenerationRuntime"]),
+        .library(name: "ImageDiagnosticFeature", targets: ["ImageDiagnosticFeature"]),
         .library(name: "ModelLibraryUI", targets: ["ModelLibraryUI"]),
         .library(name: "ModelLibraryFeature", targets: ["ModelLibraryFeature"]),
         .library(name: "ModelLibraryStorage", targets: ["ModelLibraryStorage"]),
@@ -67,13 +68,26 @@ let package = Package(
     targets: [
         .target(name: "ImageGenerationCore", swiftSettings: speechSettings),
         .target(
+            name: "ImageDiagnosticFeature", dependencies: ["ImageGenerationCore", "FeatureStore"],
+            swiftSettings: speechSettings),
+        .testTarget(
+            name: "ImageDiagnosticTests",
+            dependencies: [
+                "ImageDiagnosticFeature", "ImageGenerationRuntime", "ImageGenerationCore", "ModelLibraryFeature",
+                "FeatureStore",
+            ], swiftSettings: speechSettings),
+        .target(
             name: "ImageGenerationRuntime",
             dependencies: [
-                "ImageGenerationCore", .product(name: "Tokenizers", package: "swift-transformers"),
+                "ImageGenerationCore", "ImageDiagnosticFeature", "ModelLibraryFeature",
+                .product(name: "Tokenizers", package: "swift-transformers"),
                 .product(name: "Hub", package: "swift-transformers"),
             ], swiftSettings: speechSettings),
         .testTarget(
-            name: "ImageGenerationTests", dependencies: ["ImageGenerationCore", "ImageGenerationRuntime"],
+            name: "ImageGenerationTests",
+            dependencies: [
+                "ImageGenerationCore", "ImageGenerationRuntime", "ModelLibraryFeature", "ModelLibraryTestSupport",
+            ],
             resources: [.copy("Resources")], swiftSettings: speechSettings),
         .target(
             name: "ModelLibraryUI", dependencies: ["ModelLibraryFeature", "FeatureStore"],
@@ -83,18 +97,28 @@ let package = Package(
             name: "ModelLibraryTests", dependencies: ["ModelLibraryFeature", "ModelLibraryUI", "FeatureStore"],
             resources: [.copy("Resources")], swiftSettings: speechSettings),
         .target(
-            name: "ModelLibraryStorage", dependencies: ["ModelLibraryFeature", "GLiNERRuntime", "EmbeddingRuntime"],
+            name: "ModelLibraryStorage",
+            dependencies: ["ModelLibraryFeature", "GLiNERRuntime", "EmbeddingRuntime", "ImageGenerationCore"],
             swiftSettings: speechSettings),
         .testTarget(
             name: "ModelLibraryStorageTests",
-            dependencies: ["ModelLibraryStorage", "ModelLibraryFeature", "GLiNERRuntime", "EmbeddingCore"],
+            dependencies: [
+                "ModelLibraryStorage", "ModelLibraryFeature", "GLiNERRuntime", "EmbeddingCore",
+                "ModelLibraryTestSupport",
+            ],
             swiftSettings: speechSettings),
+        .target(
+            name: "ModelLibraryTestSupport", dependencies: ["ModelLibraryFeature", "ModelLibraryStorage"],
+            path: "Tests/ModelLibraryTestSupport", resources: [.copy("Resources")], swiftSettings: speechSettings),
         .target(
             name: "ModelLibraryTransfer", dependencies: ["ModelLibraryFeature", "ModelLibraryStorage", "FeatureStore"],
             swiftSettings: speechSettings),
         .testTarget(
             name: "ModelLibraryTransferTests",
-            dependencies: ["ModelLibraryTransfer", "ModelLibraryStorage", "ModelLibraryFeature", "FeatureStore"],
+            dependencies: [
+                "ModelLibraryTransfer", "ModelLibraryStorage", "ModelLibraryFeature", "FeatureStore",
+                "ModelLibraryTestSupport",
+            ],
             swiftSettings: speechSettings),
         .target(
             name: "ModelLibraryRuntime",
@@ -106,7 +130,7 @@ let package = Package(
             name: "ModelLibraryRuntimeTests",
             dependencies: [
                 "ModelLibraryRuntime", "ModelLibraryFeature", "ModelLibraryStorage", "ModelLibraryTransfer",
-                "FeatureStore", "EmbeddingCore", "EmbeddingRuntime",
+                "FeatureStore", "EmbeddingCore", "EmbeddingRuntime", "ModelLibraryTestSupport",
             ], swiftSettings: speechSettings),
         .target(
             name: "ObjectFinderFeature", dependencies: ["ObjectFinderCore", "FeatureStore"],

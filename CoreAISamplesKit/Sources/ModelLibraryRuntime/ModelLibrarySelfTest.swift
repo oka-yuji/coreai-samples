@@ -8,6 +8,7 @@ public enum ModelLibrarySelfTest {
     struct Report: Encodable {
         struct Registry: Encodable {
             let connectedDemos: [String]
+            let unconnectedDemos: [String]
             let matchesCatalog: Bool
         }
 
@@ -22,6 +23,8 @@ public enum ModelLibrarySelfTest {
             let artifactID: String
             let contract: String
             let distribution: String?
+            let sourceKind: ModelSourceKind?
+            let localManifestSHA256: String?
             let upstreamRevision: String?
             let files: Int
             let inspection: String
@@ -34,6 +37,7 @@ public enum ModelLibrarySelfTest {
                 let contract: String
                 let revision: String
                 let upstreamRevision: String?
+                let sourceKind: ModelSourceKind
             }
 
             struct Result: Encodable {
@@ -76,7 +80,7 @@ public enum ModelLibrarySelfTest {
     public static func run(
         output: URL, root: URL, registry: ModelDemoAdapterRegistry? = nil,
         capabilities: [DemoCapability: CapabilityState]? = nil, acquire target: String? = nil,
-        assembly: ModelLibraryAssembly? = nil
+        assembly: ModelLibraryAssembly? = nil, importBundle: URL? = nil, unconnectedDemoIDs: Set<String> = []
     ) async -> Int32 {
         let failures: [String]
         do {
@@ -84,7 +88,8 @@ public enum ModelLibrarySelfTest {
             do {
                 let checked = try await check(
                     catalog: IOSDemoCatalog.make(), root: root, registry: registry, capabilities: capabilities,
-                    acquire: target, assembly: assembly)
+                    acquire: target, assembly: assembly, importBundle: importBundle,
+                    unconnectedDemoIDs: unconnectedDemoIDs)
                 failures = checked.failures
                 report = checked
             } catch {
@@ -109,16 +114,25 @@ public enum ModelLibrarySelfTest {
     static func check(
         catalog: ModelCatalog, root: URL, registry: ModelDemoAdapterRegistry?,
         capabilities: [DemoCapability: CapabilityState]?, acquire target: String? = nil,
-        assembly: ModelLibraryAssembly? = nil
+        assembly: ModelLibraryAssembly? = nil, importBundle: URL? = nil, unconnectedDemoIDs: Set<String> = []
     ) async throws -> Report {
         let demos = catalog.demos.map(\.id).sorted()
         let connected = registry?.connectedDemos.sorted()
         var failures: [String] = []
-        if let connected, connected != demos {
-            failures.append("registry: connected demos \(connected) differ from catalog demos \(demos)")
+        var connectionsMatch = true
+        if let connected {
+            do {
+                try catalog.validateConnections(adapterIDs: connected, unconnectedDemoIDs: unconnectedDemoIDs)
+            } catch {
+                connectionsMatch = false
+                failures.append("registry: \(error)")
+            }
+        }
+        guard importBundle == nil || target != nil else {
+            throw Failure(description: "Local import requires an exact artifact target")
         }
         let artifacts = try await inspect(catalog, root: root)
-        for artifact in artifacts where artifact.distribution == nil && artifact.inspection != "missing" {
+        for artifact in artifacts where artifact.sourceKind == nil && artifact.inspection != "missing" {
             failures.append(
                 "\(artifact.artifactID): an artifact without a distribution was inspected as \(artifact.inspection)")
         }
@@ -129,7 +143,8 @@ public enum ModelLibrarySelfTest {
                 assembly: assembly
                     ?? ModelLibraryAssembly(
                         adapters: [], store: ManagedModelStore(root: root), transfer: ArtifactTransfer()),
-                installed: Set(artifacts.filter { $0.inspection == "ready" }.map(\.artifactID)))
+                installed: Set(artifacts.filter { $0.inspection == "ready" }.map(\.artifactID)),
+                importBundle: importBundle)
             if acquired.artifacts.isEmpty { failures.append("acquire: \(target) names no catalog artifact") }
             failures += acquired.artifacts.compactMap(problem)
             acquisition = acquired
@@ -149,7 +164,10 @@ public enum ModelLibrarySelfTest {
             scope: scope + (target.map { " Acquisition of \($0) through the library store." } ?? ""),
             catalogValidated: true, catalogDemos: demos, visibleModels: sections.count,
             visibleDemos: sections.reduce(0) { $0 + $1.demos.count },
-            registry: connected.map { Report.Registry(connectedDemos: $0, matchesCatalog: $0 == demos) },
+            registry: connected.map {
+                Report.Registry(
+                    connectedDemos: $0, unconnectedDemos: unconnectedDemoIDs.sorted(), matchesCatalog: connectionsMatch)
+            },
             capabilities: capabilities.map { states in
                 Dictionary(uniqueKeysWithValues: states.map { ($0.key.rawValue, "\($0.value)") })
             },
@@ -171,6 +189,7 @@ public enum ModelLibrarySelfTest {
                     Report.Artifact(
                         modelID: model.id, artifactID: artifact.id, contract: artifact.contract,
                         distribution: artifact.download.map { "\($0.repository)@\($0.revision)" },
+                        sourceKind: artifact.sourceKind, localManifestSHA256: artifact.localBundle?.manifestSHA256,
                         upstreamRevision: artifact.upstream?.revision, files: artifact.files.count,
                         inspection: describe(inspection)))
             }
@@ -180,11 +199,22 @@ public enum ModelLibrarySelfTest {
 
     private static func acquire(
         _ target: String, catalog: ModelCatalog, root: URL, capabilities: [DemoCapability: CapabilityState],
-        assembly: ModelLibraryAssembly, installed: Set<String>
+        assembly: ModelLibraryAssembly, installed: Set<String>, importBundle: URL?
     ) async throws -> Report.Acquisition {
         let selected = catalog.models.flatMap { model in model.artifacts.map { (model, $0) } }
             .filter { target == "all" || $0.1.id == target }
         guard !selected.isEmpty else { return Report.Acquisition(target: target, refreshSeconds: nil, artifacts: []) }
+        if importBundle != nil {
+            guard selected.count == 1, selected[0].1.id == target, selected[0].1.sourceKind == .localManifest else {
+                throw Failure(description: "Local import requires one exact local artifact target")
+            }
+        }
+        guard
+            importBundle != nil
+                || selected.allSatisfy({ $0.1.sourceKind != .localManifest || installed.contains($0.1.id) })
+        else {
+            throw Failure(description: "A selected folder is required before acquiring an uninstalled local artifact")
+        }
         let library = assembly.makeLibrary(catalog: catalog, capabilities: capabilities, owner: UUID()).store
         let clock = ContinuousClock()
         let refresh = clock.now
@@ -199,10 +229,17 @@ public enum ModelLibrarySelfTest {
             var route = installed.contains(artifact.id) ? "installed" : "migration"
             var elapsed: Double?
             var timedOut = false
-            if library.state.installations[artifact.id]?.phase != .ready {
-                route = "download"
+            if library.state.installations[artifact.id]?.phase != .ready || importBundle != nil {
+                route = artifact.sourceKind == .localManifest ? "local-import" : "download"
                 let start = clock.now
-                library.send(.downloadRequested(artifact.id))
+                if artifact.sourceKind == .localManifest {
+                    guard let importBundle else {
+                        throw Failure(description: "A selected folder is required for local import")
+                    }
+                    library.send(.importRequested(artifact.id, importBundle))
+                } else {
+                    library.send(.downloadRequested(artifact.id))
+                }
                 if await !settle(library, [artifact.id]) {
                     timedOut = true
                     library.send(.cancelRequested(artifact.id))
@@ -215,14 +252,14 @@ public enum ModelLibrarySelfTest {
             let inspection = try await store.inspect(model: model, artifact: artifact)
             results.append(
                 Report.Acquisition.Result(
-                    modelID: model.id, artifactID: artifact.id, revision: artifact.download?.revision, route: route,
-                    definedBytes: artifact.files.reduce(0) { $0 + $1.bytes },
+                    modelID: model.id, artifactID: artifact.id, revision: artifact.sourceRevision, route: route,
+                    definedBytes: artifact.totalFileBytes ?? 0,
                     measuredBytes: resource.map { size(of: $0.directory) }, seconds: elapsed,
                     state: timedOut ? "timed out" : "\(installation.phase)", inspection: describe(inspection),
                     identity: resource.map {
                         Report.Acquisition.Identity(
                             modelID: $0.modelID, artifactID: $0.artifactID, contract: $0.contract,
-                            revision: $0.revision, upstreamRevision: $0.upstreamRevision)
+                            revision: $0.revision, upstreamRevision: $0.upstreamRevision, sourceKind: $0.sourceKind)
                     },
                     failure: timedOut
                         ? "The acquisition did not finish within 30 minutes" : installation.failure.map { "\($0)" }))
@@ -252,7 +289,9 @@ public enum ModelLibrarySelfTest {
     }
 
     private static func problem(_ result: Report.Acquisition.Result) -> String? {
-        guard result.state != "ready" || result.inspection != "ready" || result.measuredBytes != result.definedBytes
+        guard
+            result.failure != nil || result.state != "ready" || result.inspection != "ready"
+                || result.measuredBytes != result.definedBytes
         else { return nil }
         return "\(result.artifactID): acquisition \(result.state), inspection \(result.inspection)"
             + (result.failure.map { ", \($0)" } ?? "")

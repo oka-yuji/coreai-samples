@@ -2,6 +2,7 @@ import CryptoKit
 import EmbeddingRuntime
 import Foundation
 import GLiNERRuntime
+import ImageGenerationCore
 import ModelLibraryFeature
 
 public enum ManagedModelStoreError: Error, Equatable {
@@ -56,10 +57,26 @@ struct Ledger: Codable {
         let sizeBytes: Int64
         let installedAt: Date
         let generation: Int
+        let sourceKind: ModelSourceKind?
+
+        init(
+            modelID: String, artifactID: String, contract: String, revision: String, upstreamRevision: String?,
+            sizeBytes: Int64, installedAt: Date, generation: Int, sourceKind: ModelSourceKind? = nil
+        ) {
+            self.modelID = modelID
+            self.artifactID = artifactID
+            self.contract = contract
+            self.revision = revision
+            self.upstreamRevision = upstreamRevision
+            self.sizeBytes = sizeBytes
+            self.installedAt = installedAt
+            self.generation = generation
+            self.sourceKind = sourceKind
+        }
 
         func matches(_ identity: ModelArtifactIdentity) -> Bool {
             modelID == identity.modelID && artifactID == identity.artifactID && contract == identity.contract
-                && revision == identity.revision
+                && revision == identity.revision && (sourceKind ?? .huggingFace) == identity.sourceKind
         }
 
         func records(_ resource: ValidatedModelResource) -> Bool {
@@ -101,12 +118,64 @@ public actor ManagedModelStore {
         return folder
     }
 
+    public func copyForImport(
+        from source: URL, model: LibraryModel, artifact: ModelArtifact,
+        progress: @Sendable (ModelTransferProgress) -> Void
+    ) throws -> URL {
+        guard artifact.sourceKind == .localManifest, source.isFileURL else {
+            throw ManagedModelStoreError.invalidDefinition
+        }
+        let resource = try definition(model, artifact)
+        guard activeLeases(identity: resource.identity) == 0 else { throw ManagedModelStoreError.inUse }
+        let accessed = source.startAccessingSecurityScopedResource()
+        defer { if accessed { source.stopAccessingSecurityScopedResource() } }
+        let managedPath = root.standardizedFileURL.resolvingSymlinksInPath().path
+        let sourcePath = source.standardizedFileURL.resolvingSymlinksInPath().path
+        guard sourcePath != managedPath, !sourcePath.hasPrefix(managedPath + "/"),
+            !managedPath.hasPrefix(sourcePath + "/")
+        else { throw ManagedModelStoreError.pathEscape }
+        try verifyStructure(source, artifact, allowingExtraneous: false)
+        let area = try stagingDirectory(for: model, artifact: artifact)
+        guard try availableCapacity(area) >= resource.sizeBytes else { throw ManagedModelStoreError.insufficientSpace }
+        let staging = area.appending(path: UUID().uuidString, directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: staging, withIntermediateDirectories: false)
+        var completed: Int64 = 0
+        do {
+            let ordered = artifact.files.sorted {
+                if ($0.path == "bundle.json") != ($1.path == "bundle.json") { return $0.path == "bundle.json" }
+                return $0.path < $1.path
+            }
+            for file in ordered {
+                try Task.checkCancellation()
+                let target = staging.appending(path: file.path)
+                try FileManager.default.createDirectory(
+                    at: target.deletingLastPathComponent(), withIntermediateDirectories: true)
+                try copyLocalBundleFile(source: source, file: file, target: target) { increment in
+                    completed += increment
+                    if let value = ModelTransferProgress(completedBytes: completed, totalBytes: resource.sizeBytes) {
+                        progress(value)
+                    }
+                }
+                if file.path == "bundle.json" {
+                    try verifyImageManifest(Data(contentsOf: target), artifact)
+                }
+            }
+            try Task.checkCancellation()
+            try verifyStructure(source, artifact, allowingExtraneous: false)
+            return staging
+        } catch {
+            try? FileManager.default.removeItem(at: staging)
+            _ = rmdir(area.path)
+            throw error
+        }
+    }
+
     public func inspect(model: LibraryModel, artifact: ModelArtifact) throws -> ManagedInspection {
-        guard artifact.download?.isValid == true else { return .missing }
+        guard artifact.isSourceValid else { return .missing }
         let resource: ValidatedModelResource
         do { resource = try definition(model, artifact) } catch { return .invalid(error) }
         let entry = try readLedger()?.entries.first {
-            $0.artifactID == resource.artifactID && $0.revision == resource.revision
+            $0.matches(resource.identity)
         }
         if itemType(resource.directory) == nil, entry == nil { return .missing }
         do { try verify(resource.directory, artifact) } catch let error as CancellationError { throw error } catch {
@@ -114,6 +183,19 @@ public actor ManagedModelStore {
         }
         if entry?.records(resource) != true { try record(resource) }
         return .ready(resource)
+    }
+
+    public func discardImport(staging: URL, model: LibraryModel, artifact: ModelArtifact) throws {
+        guard artifact.sourceKind == .localManifest else { throw ManagedModelStoreError.invalidDefinition }
+        let resource = try definition(model, artifact)
+        let area = try location("staging", resource.artifactID, resource.revision)
+        let expected = area.standardizedFileURL.resolvingSymlinksInPath().path + "/"
+        let candidate = staging.standardizedFileURL.resolvingSymlinksInPath().path
+        guard candidate.hasPrefix(expected), itemType(staging) != .typeSymbolicLink else {
+            throw ManagedModelStoreError.pathEscape
+        }
+        if itemType(staging) != nil { try FileManager.default.removeItem(at: staging) }
+        _ = rmdir(area.path)
     }
 
     public func promote(staging: URL, model: LibraryModel, artifact: ModelArtifact) throws -> ValidatedModelResource {
@@ -126,6 +208,7 @@ public actor ManagedModelStore {
             throw ManagedModelStoreError.pathEscape
         }
         try verify(staging, artifact)
+        try Task.checkCancellation()
         let manager = FileManager.default
         let target = resource.directory
         let trash = try trashItem()
@@ -143,12 +226,18 @@ public actor ManagedModelStore {
             throw error
         }
         try? manager.removeItem(at: trash)
-        try? manager.removeItem(at: area)
+        _ = rmdir(area.path)
         return resource
     }
 
     public func migrate(candidates: [URL], model: LibraryModel, artifact: ModelArtifact) -> MigrationReport {
         var outcomes: [URL: MigrationOutcome] = [:]
+        guard artifact.sourceKind == .huggingFace else {
+            for candidate in candidates {
+                outcomes[candidate] = .undetermined(ManagedModelStoreError.invalidDefinition)
+            }
+            return MigrationReport(outcomes: outcomes)
+        }
         var ready = false
         do { if case .ready = try inspect(model: model, artifact: artifact) { ready = true } } catch {
             for candidate in candidates { outcomes[candidate] = .failed(error) }
@@ -171,7 +260,7 @@ public actor ManagedModelStore {
         let target = try location("artifacts", identity.artifactID, identity.revision)
         let staging = try location("staging", identity.artifactID, identity.revision)
         let bytes = size(of: target) + size(of: staging)
-        ledger.entries.removeAll { $0.artifactID == identity.artifactID && $0.revision == identity.revision }
+        ledger.entries.removeAll { $0.matches(identity) }
         try writeLedger(JSONEncoder().encode(ledger), ledgerURL)
         let manager = FileManager.default
         if itemType(target) != nil {
@@ -242,17 +331,18 @@ public actor ManagedModelStore {
     }
 
     private func definition(_ model: LibraryModel, _ artifact: ModelArtifact) throws -> ValidatedModelResource {
-        guard let download = artifact.download, download.isValid, model.artifact(artifact.id) == artifact,
+        guard artifact.isSourceValid, let kind = artifact.sourceKind, let revision = artifact.sourceRevision,
+            let bytes = artifact.totalFileBytes, model.artifact(artifact.id) == artifact,
             !artifact.files.isEmpty, Set(artifact.files.map(\.path)).count == artifact.files.count
         else { throw ManagedModelStoreError.invalidDefinition }
-        guard download.root.isEmpty || isRelative(download.root), artifact.files.allSatisfy({ isRelative($0.path) })
+        guard artifact.download.map({ $0.root.isEmpty || isRelative($0.root) }) ?? true,
+            artifact.files.allSatisfy({ isRelative($0.path) })
         else { throw ManagedModelStoreError.pathEscape }
         _ = try family(artifact)
         return ValidatedModelResource(
-            modelID: model.id, artifactID: artifact.id, contract: artifact.contract, revision: download.revision,
+            modelID: model.id, artifactID: artifact.id, contract: artifact.contract, revision: revision,
             upstreamRevision: artifact.upstream?.revision,
-            directory: try location("artifacts", artifact.id, download.revision),
-            sizeBytes: artifact.files.reduce(0) { $0 + $1.bytes })
+            directory: try location("artifacts", artifact.id, revision), sizeBytes: bytes, sourceKind: kind)
     }
 
     private func readLedger() throws -> Ledger? {
@@ -266,12 +356,13 @@ public actor ManagedModelStore {
     private func record(_ resource: ValidatedModelResource) throws {
         var ledger = try readLedger() ?? Ledger()
         let next = generation + 1
-        ledger.entries.removeAll { $0.artifactID == resource.artifactID && $0.revision == resource.revision }
+        ledger.entries.removeAll { $0.matches(resource.identity) }
         ledger.entries.append(
             Ledger.Entry(
                 modelID: resource.modelID, artifactID: resource.artifactID, contract: resource.contract,
                 revision: resource.revision, upstreamRevision: resource.upstreamRevision,
-                sizeBytes: resource.sizeBytes, installedAt: clock(), generation: next))
+                sizeBytes: resource.sizeBytes, installedAt: clock(), generation: next,
+                sourceKind: resource.sourceKind == .huggingFace ? nil : resource.sourceKind))
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
         try writeLedger(JSONEncoder().encode(ledger), ledgerURL)
         generation = next
@@ -330,6 +421,7 @@ private func digest(_ file: URL) throws -> String {
 private enum ContractFamily {
     case gliner
     case embedding(precision: String)
+    case image
 }
 
 private struct ContractSource: Decodable {
@@ -338,6 +430,15 @@ private struct ContractSource: Decodable {
 }
 
 private func family(_ artifact: ModelArtifact) throws -> ContractFamily {
+    if artifact.localBundle != nil {
+        guard artifact.contract == "qwen-image21-mobile-v2", artifact.download == nil,
+            artifact.upstream?.repository == "Qwen/Qwen-Image-2.1-Turbo",
+            artifact.upstream?.revision == ImageGenerationProfile.revision,
+            Set(["bundle.json", "LICENSE", "NOTICE.txt", "config/processor/tokenizer.json"])
+                .isSubset(of: Set(artifact.files.map(\.path)))
+        else { throw ManagedModelStoreError.contractMismatch("local image bundle") }
+        return .image
+    }
     if artifact.contract.hasPrefix("gliner-gl4-") {
         guard artifact.files.contains(where: { ["tokenizer/tokenizer.json", "tokenizer.json"].contains($0.path) })
         else { throw ManagedModelStoreError.contractMismatch("tokenizer") }
@@ -392,7 +493,8 @@ private func scanEntries(_ directory: URL, _ artifact: ModelArtifact, allowingEx
             let parts = file.path.split(separator: "/")
             return parts.indices.dropLast().map { parts[...$0].joined(separator: "/") }
         })
-    for entry in try entries(in: directory) {
+    let found = try entries(in: directory)
+    for entry in found {
         if entry.mode == S_IFLNK { throw ManagedModelStoreError.symbolicLink }
         guard
             allowingExtraneous
@@ -400,9 +502,14 @@ private func scanEntries(_ directory: URL, _ artifact: ModelArtifact, allowingEx
                     ? paths.contains(entry.path) : entry.mode == S_IFDIR && folders.contains(entry.path))
         else { throw ManagedModelStoreError.unexpectedFile(entry.path) }
     }
+    if !allowingExtraneous,
+        let missing = paths.subtracting(Set(found.filter { $0.mode == S_IFREG }.map(\.path))).sorted().first
+    {
+        throw ManagedModelStoreError.missingFile(missing)
+    }
 }
 
-private func verifyFiles(_ directory: URL, _ artifact: ModelArtifact, allowingExtraneous: Bool = false) throws {
+private func verifyStructure(_ directory: URL, _ artifact: ModelArtifact, allowingExtraneous: Bool) throws {
     let manager = FileManager.default
     if itemType(directory) == .typeSymbolicLink { throw ManagedModelStoreError.symbolicLink }
     if itemType(directory) == .typeDirectory {
@@ -418,7 +525,11 @@ private func verifyFiles(_ directory: URL, _ artifact: ModelArtifact, allowingEx
             throw ManagedModelStoreError.sizeMismatch(file.path)
         }
     }
-    for file in files {
+}
+
+private func verifyFiles(_ directory: URL, _ artifact: ModelArtifact, allowingExtraneous: Bool = false) throws {
+    try verifyStructure(directory, artifact, allowingExtraneous: allowingExtraneous)
+    for file in artifact.files.sorted(by: { $0.path < $1.path }) {
         try Task.checkCancellation()
         guard try digest(directory.appending(path: file.path)) == file.sha256 else {
             throw ManagedModelStoreError.checksumMismatch(file.path)
@@ -442,5 +553,56 @@ private func verify(_ directory: URL, _ artifact: ModelArtifact) throws {
         guard bundle.revision == artifact.upstream?.revision else {
             throw ManagedModelStoreError.contractMismatch("upstream")
         }
+    case .image:
+        let raw = try Data(contentsOf: directory.appending(path: "bundle.json"))
+        try verifyImageManifest(raw, artifact)
+        let manifest = try ImageGenerationManifest.decode(raw)
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        for (kind, specification) in manifest.profile.components {
+            let asset = directory.appending(path: specification.asset)
+            let path = asset.deletingLastPathComponent().appending(path: "component.json")
+            let component = try decoder.decode(ImageBundleComponent.self, from: Data(contentsOf: path))
+            guard component.format == 2, component.kind == kind, component.asset == asset.lastPathComponent,
+                component.conversionComplete, component.stateNames.isEmpty,
+                component.profile == manifest.profile, component.inputs == specification.inputs,
+                component.outputs == specification.outputs
+            else { throw ManagedModelStoreError.contractMismatch("image component " + kind) }
+        }
     }
+}
+
+private func verifyImageManifest(_ raw: Data, _ artifact: ModelArtifact) throws {
+    let manifest = try ImageGenerationManifest.decode(raw)
+    let decoder = JSONDecoder()
+    decoder.keyDecodingStrategy = .convertFromSnakeCase
+    let acceptance = try decoder.decode(ImageBundleAcceptance.self, from: raw)
+    guard acceptance.verified, acceptance.numericVerified, acceptance.qualityVerified,
+        manifest.profile.id == artifact.localBundle?.profileID,
+        manifest.profile.source.model == artifact.upstream?.repository,
+        manifest.profile.source.revision == artifact.upstream?.revision
+    else { throw ManagedModelStoreError.contractMismatch("image profile") }
+    let expected = artifact.files.filter { $0.path != "bundle.json" }
+    guard manifest.assets.count == expected.count,
+        expected.allSatisfy({ file in
+            manifest.assets[file.path]?.bytes == file.bytes && manifest.assets[file.path]?.sha256 == file.sha256
+        })
+    else { throw ManagedModelStoreError.contractMismatch("image inventory") }
+}
+
+private struct ImageBundleAcceptance: Decodable {
+    let verified: Bool
+    let numericVerified: Bool
+    let qualityVerified: Bool
+}
+
+private struct ImageBundleComponent: Decodable {
+    let format: Int
+    let kind: String
+    let asset: String
+    let conversionComplete: Bool
+    let stateNames: [String]
+    let profile: ImageGenerationProfile
+    let inputs: [ImageTensorContract]
+    let outputs: [ImageTensorContract]
 }

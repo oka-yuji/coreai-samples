@@ -10,6 +10,8 @@
                 switch IOSDemoLaunch.resolve(arguments: CommandLine.arguments) {
                 case .models:
                     PhoneModelLibraryScreen()
+                case .imageGenerationDiagnostic(let configuration):
+                    ImageDiagnosticScreen(configuration: URL(filePath: configuration, relativeTo: .documentsDirectory))
                 case .imageSearchEvaluation:
                     PhoneImageSearchEvalView()
                 case .extractionEvaluation:

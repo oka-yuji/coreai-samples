@@ -5,6 +5,29 @@ import Testing
 @testable import ModelLibraryStorage
 
 struct ManagedModelStoreTests {
+    @Test("QMI-01 A format-one Hugging Face ledger without source kind survives inspection without migration")
+    func legacySourceLedger() async throws {
+        let fixture = StoreFixture()
+        defer { fixture.remove() }
+        let sample = try Sample.gliner()
+        try fixture.write(sample.files, to: fixture.artifactDirectory(sample))
+        let entry: [String: Any] = [
+            "modelID": sample.model.id, "artifactID": sample.artifact.id, "contract": sample.artifact.contract,
+            "revision": distribution, "upstreamRevision": glinerSource.revision,
+            "sizeBytes": try #require(sample.artifact.sizeBytes), "installedAt": 0, "generation": 17,
+        ]
+        let bytes = try JSONSerialization.data(withJSONObject: ["format": 1, "entries": [entry]], options: .sortedKeys)
+        let ledger = fixture.root.appending(path: "ledger.json")
+        try bytes.write(to: ledger)
+        let store = fixture.store(writeLedger: { _, _ in throw CocoaError(.fileWriteNoPermission) })
+        let restored = try #require(try await store.inspect(sample).resource)
+        #expect(restored.sourceKind == .huggingFace)
+        #expect(restored.matches(model: sample.model, artifact: sample.artifact))
+        #expect(restored.directory.path == fixture.artifactDirectory(sample).path)
+        #expect(await store.generation(of: restored.identity) == 17)
+        #expect(try Data(contentsOf: ledger) == bytes)
+    }
+
     @Test("ADOPT-01 The managed store resolves the contract of every artifact in the iOS catalog")
     func catalogContracts() async throws {
         let fixture = StoreFixture()
