@@ -108,14 +108,18 @@ struct ImageGenerationMediaTests {
     }
 
     @Test(
-        "Indexed PNG sources are refused at both decode sizes with or without palette transparency",
-        arguments: [512, 2_048], [false, true])
-    func indexedSources(_ width: Int, _ transparency: Bool) async throws {
+        "Indexed PNG sources are refused at both sizes with or without palette transparency or a leading CgBI chunk",
+        arguments: [512, 2_048],
+        [
+            (transparency: false, cgbi: false), (transparency: true, cgbi: false), (transparency: false, cgbi: true),
+            (transparency: true, cgbi: true),
+        ])
+    func indexedSources(_ width: Int, _ variant: (transparency: Bool, cgbi: Bool)) async throws {
         let root = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: false)
         defer { try? FileManager.default.removeItem(at: root) }
         let url = root.appending(path: "indexed.png")
-        try indexedPNG(width: width, transparency: transparency).write(to: url)
+        try indexedPNG(width: width, transparency: variant.transparency, cgbi: variant.cgbi).write(to: url)
         let source = try #require(CGImageSourceCreateWithURL(url as CFURL, nil))
         let properties = try #require(CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any])
         #expect(properties[kCGImagePropertyColorModel] as? String == kCGImagePropertyColorModelRGB as String)
@@ -124,6 +128,33 @@ struct ImageGenerationMediaTests {
         await #expect(throws: ImageGenerationError.unsupportedImage) {
             try await ImageGenerationMedia().reference(url, ticket: ImageGenerationTicket(owner: UUID(), sequence: 1))
         }
+    }
+
+    @Test("Truncated PNG files are refused", arguments: [8, 20])
+    func truncatedPNG(_ count: Int) async throws {
+        let fixture = try #require(
+            Bundle.module.url(forResource: "rgba-source", withExtension: "png", subdirectory: "Resources"))
+        let root = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: false)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let url = root.appending(path: "truncated.png")
+        try Data(contentsOf: fixture).prefix(count).write(to: url)
+        await #expect(throws: ImageGenerationError.unsupportedImage) {
+            try await ImageGenerationMedia().reference(url, ticket: ImageGenerationTicket(owner: UUID(), sequence: 1))
+        }
+    }
+
+    @Test("A CgBI RGBA source is decoded in RGB channel order and accepted")
+    func appleRGBA() async throws {
+        let root = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: false)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let url = root.appending(path: "cgbi.png")
+        try appleRGBAPNG(width: 512).write(to: url)
+        let preview = try await ImageGenerationMedia().reference(
+            url, ticket: ImageGenerationTicket(owner: UUID(), sequence: 1))
+        #expect(preview.pixels.width == 512 && preview.pixels.height == 512)
+        #expect(preview.pixels.rgba == Array([[UInt8]](repeating: [64, 128, 192, 255], count: 512 * 512).joined()))
     }
 
     @Test("Unselected network locations and incomplete generation results are refused")
@@ -161,17 +192,7 @@ struct ImageGenerationMediaTests {
         return (url, properties[kCGImagePropertyColorModel] as? String, properties[kCGImagePropertyDepth] as? Int)
     }
 
-    private func indexedPNG(width: Int, transparency: Bool) throws -> Data {
-        func bigEndian(_ value: UInt32) -> [UInt8] { withUnsafeBytes(of: value.bigEndian, Array.init) }
-        func chunk(_ name: String, _ body: [UInt8]) -> [UInt8] {
-            let named = Array(name.utf8) + body
-            var crc: UInt32 = 0xFFFF_FFFF
-            for byte in named {
-                crc ^= UInt32(byte)
-                for _ in 0..<8 { crc = crc & 1 == 1 ? (crc >> 1) ^ 0xEDB8_8320 : crc >> 1 }
-            }
-            return bigEndian(UInt32(body.count)) + named + bigEndian(~crc)
-        }
+    private func indexedPNG(width: Int, transparency: Bool, cgbi: Bool) throws -> Data {
         let rows: [UInt8] = (0..<512).flatMap { _ in [0] + (0..<width).map { UInt8($0 % 2) } }
         var low: UInt32 = 1
         var high: UInt32 = 0
@@ -181,11 +202,35 @@ struct ImageGenerationMediaTests {
         }
         let deflated = try (Data(rows) as NSData).compressed(using: .zlib) as Data
         var png: [UInt8] = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]
+        if cgbi { png += chunk("CgBI", [0x50, 0x00, 0x20, 0x02]) }
         png += chunk("IHDR", bigEndian(UInt32(width)) + bigEndian(512) + [8, 3, 0, 0, 0])
         png += chunk("PLTE", [64, 128, 192, 192, 128, 64])
         if transparency { png += chunk("tRNS", [255, 128]) }
         png += chunk("IDAT", [0x78, 0x01] + Array(deflated) + bigEndian(high << 16 | low))
         png += chunk("IEND", [])
         return Data(png)
+    }
+
+    private func appleRGBAPNG(width: Int) throws -> Data {
+        let rows: [UInt8] = (0..<512).flatMap { _ in [0] + (0..<width).flatMap { _ in [192, 128, 64, 255] } }
+        let deflated = try (Data(rows) as NSData).compressed(using: .zlib) as Data
+        var png: [UInt8] = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]
+        png += chunk("CgBI", [0x50, 0x00, 0x20, 0x02])
+        png += chunk("IHDR", bigEndian(UInt32(width)) + bigEndian(512) + [8, 6, 0, 0, 0])
+        png += chunk("IDAT", Array(deflated))
+        png += chunk("IEND", [])
+        return Data(png)
+    }
+
+    private func bigEndian(_ value: UInt32) -> [UInt8] { withUnsafeBytes(of: value.bigEndian, Array.init) }
+
+    private func chunk(_ name: String, _ body: [UInt8]) -> [UInt8] {
+        let named = Array(name.utf8) + body
+        var crc: UInt32 = 0xFFFF_FFFF
+        for byte in named {
+            crc ^= UInt32(byte)
+            for _ in 0..<8 { crc = crc & 1 == 1 ? (crc >> 1) ^ 0xEDB8_8320 : crc >> 1 }
+        }
+        return bigEndian(UInt32(body.count)) + named + bigEndian(~crc)
     }
 }

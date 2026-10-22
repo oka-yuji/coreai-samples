@@ -23,7 +23,9 @@ public actor ImageGenerationMedia {
             let height = properties[kCGImagePropertyPixelHeight] as? Int,
             width > 0, height > 0, width <= 32_768, height <= 32_768, width * height <= 268_435_456,
             properties[kCGImagePropertyColorModel] as? String == kCGImagePropertyColorModelRGB as String,
-            properties[kCGImagePropertyDepth] as? Int == 8, Self.pngColorType(url) != 3
+            properties[kCGImagePropertyDepth] as? Int == 8,
+            CGImageSourceGetType(source) as String? != UTType.png.identifier
+                || Self.pngColorType(url).map { $0 != 3 } == true
         else { throw ImageGenerationError.unsupportedImage }
         let pixels: ImageGenerationPixels
         if max(width, height) <= 1_024 {
@@ -85,11 +87,18 @@ public actor ImageGenerationMedia {
     private static func pngColorType(_ url: URL) -> UInt8? {
         guard let handle = try? FileHandle(forReadingFrom: url) else { return nil }
         defer { try? handle.close() }
-        guard let header = try? handle.read(upToCount: 26), header.count == 26,
-            header.starts(with: [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]),
-            header[12..<16].elementsEqual("IHDR".utf8)
-        else { return nil }
-        return header[25]
+        guard let data = try? handle.read(upToCount: 65_536) else { return nil }
+        let bytes = [UInt8](data)
+        guard bytes.starts(with: [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]) else { return nil }
+        var offset = 8
+        while offset + 8 <= bytes.count {
+            let length = bytes[offset..<offset + 4].reduce(0) { $0 << 8 | Int($1) }
+            if bytes[offset + 4..<offset + 8].elementsEqual("IHDR".utf8) {
+                return length >= 13 && offset + 18 <= bytes.count ? bytes[offset + 17] : nil
+            }
+            offset += 12 + length
+        }
+        return nil
     }
 
     private func png(_ pixels: ImageGenerationPixels, description: String? = nil) throws -> Data {
