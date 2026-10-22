@@ -130,7 +130,7 @@ let package = Package(
             name: "ModelLibraryRuntimeTests",
             dependencies: [
                 "ModelLibraryRuntime", "ModelLibraryFeature", "ModelLibraryStorage", "ModelLibraryTransfer",
-                "FeatureStore", "ModelLibraryTestSupport", "EmbeddingCore", "EmbeddingRuntime",
+                "FeatureStore", "EmbeddingCore", "EmbeddingRuntime", "ModelLibraryTestSupport",
             ], swiftSettings: speechSettings),
         .target(
             name: "ObjectFinderFeature", dependencies: ["ObjectFinderCore", "FeatureStore"],

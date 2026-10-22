@@ -248,6 +248,7 @@ public final class Engine {
         prefillFunction = nil
         context.buffers = []
         context.tokens = []
+        context.releaseInputs()
         logitsArray = NDArray(shape: [1], scalarType: .float16)
         hasLogits = false
     }
@@ -265,10 +266,12 @@ public final class Engine {
         let prepareStart = measuresPreparation ? ContinuousClock.now : nil
         let end = context.tokens.count + chunk.count
         context.reserve(end)
-        let inputs = [
-            "input_ids": Self.row(chunk.count) { chunk[chunk.startIndex + $0] },
-            "position_ids": Self.row(end) { Int32($0) },
-        ]
+        context.writeInputs(chunk)
+        let inputTokens = context.inputTokens
+        let positions = context.positions
+        var inputs = InferenceFunction.Inputs()
+        inputs.insert(inputTokens.rawView().slice(at: [0..<1, 0..<chunk.count]), for: "input_ids")
+        inputs.insert(positions.rawView().slice(at: [0..<1, 0..<end]), for: "position_ids")
         var stateViews = InferenceFunction.MutableViews()
         for index in context.buffers.indices {
             let name = context.buffers[index].name
@@ -289,14 +292,6 @@ public final class Engine {
         _ = try await function.run(inputs: inputs, states: stateViews, outputViews: outputViews)
         context.tokens.append(contentsOf: chunk)
         hasLogits = logits
-    }
-
-    static func row(_ count: Int, _ value: (Int) -> Int32) -> NDArray {
-        var array = NDArray(shape: [1, count], scalarType: .int32)
-        array.mutableView(as: Int32.self).withUnsafeMutablePointer { pointer, _, _ in
-            for i in 0..<count { pointer[i] = value(i) }
-        }
-        return array
     }
 
     static func argmax(_ values: UnsafeBufferPointer<Float16>, scratch: inout [Float]) -> Int32 {
@@ -419,6 +414,9 @@ struct Context {
     var capacity: Int
     let limit: Int
     var tokens: [Int32] = []
+    var inputTokens = NDArray(shape: [1, 0], scalarType: .int32)
+    var positions = NDArray(shape: [1, 0], scalarType: .int32)
+    var writtenPositions = 0
 
     func checkRoom(_ count: Int) throws {
         guard tokens.count + count <= limit else {
@@ -454,8 +452,38 @@ struct Context {
         tokens = checkpoint.tokens
     }
 
+    mutating func writeInputs(_ chunk: ArraySlice<Int32>) {
+        let end = tokens.count + chunk.count
+        if inputTokens.shape[1] < chunk.count { inputTokens = grownRow(inputTokens, needed: chunk.count) }
+        inputTokens.mutableView(as: Int32.self).withUnsafeMutablePointer { pointer, _, _ in
+            for (offset, token) in chunk.enumerated() { pointer[offset] = token }
+        }
+        if positions.shape[1] < end {
+            positions = grownRow(positions, needed: end)
+            writtenPositions = 0
+        }
+        let written = writtenPositions
+        guard written < end else { return }
+        positions.mutableView(as: Int32.self).withUnsafeMutablePointer { pointer, _, _ in
+            for index in written..<end { pointer[index] = Int32(index) }
+        }
+        writtenPositions = end
+    }
+
+    private func grownRow(_ row: NDArray, needed: Int) -> NDArray {
+        let width = Engine.grownCapacity(current: row.shape[1], needed: needed, limit: limit)
+        return NDArray(shape: [1, width], scalarType: .int32)
+    }
+
+    mutating func releaseInputs() {
+        inputTokens = NDArray(shape: [1, 0], scalarType: .int32)
+        positions = NDArray(shape: [1, 0], scalarType: .int32)
+        writtenPositions = 0
+    }
+
     mutating func reset() {
         tokens = []
+        writtenPositions = 0
         for index in buffers.indices where buffers[index].sequenceDim == nil { buffers[index].zero() }
     }
 }
