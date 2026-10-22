@@ -13,6 +13,28 @@ struct ManagedVideoSearchTests {
     let video = URL(filePath: "/videos/clip.mov")
     let unavailable = "The selected model is not available right now. Try again."
 
+    @Test("A new owner's wrapper keeps the video and search results without retaining the previous runtime")
+    func keepsDataAcrossWrapperReplacement() async throws {
+        let services = ServicePool(count: 2)
+        let first = ManagedVideoSearch { services.next() }
+        let original = first.store(folder: fp16, identity: "fp16", isPermitted: { true })
+        original.send(.index(video))
+        await settle(original)
+        original.send(.setQuery("a dog"))
+        original.send(.search)
+        await settle(original)
+        let results = original.state.matches
+        try await first.release()
+        await settle(original)
+        let next = ManagedVideoSearch(retaining: first.state) { services.next() }
+        let replacement = next.store(folder: fp16, identity: "fp16", isPermitted: { true })
+        #expect(replacement !== original && !replacement.state.ready && replacement.state.needsIndex)
+        #expect(replacement.state.video == video && replacement.state.matches == results && !results.isEmpty)
+        #expect(replacement.state.query == "a dog" && services.all[1].calls.isEmpty)
+        replacement.send(.setQuery("new query"))
+        #expect(original.state.query == "a dog" && replacement.state.query == "new query")
+    }
+
     @Test("VID-04 A closed gate or a replaced artifact binding rejects loading without touching the service")
     func gateRejection() async {
         let gate = TestGate()

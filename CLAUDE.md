@@ -46,6 +46,11 @@
 
 ## 重いジョブ
 
+- Modelsのhashメモリ回帰試験は学習済みモデルやGPUを使わない。process生涯のpeakを測るため、ほかの試験と混ぜず、次をそれぞれ新しいprocessで実行する（既定の全体試験ではskip）:
+  `COREAI_HASH_MEMORY_TEST=1 COREAI_HASH_MEMORY_MIB=64 swift test --package-path CoreAISamplesKit --filter ArtifactTransferMemoryTests`
+  `COREAI_HASH_MEMORY_TEST=1 COREAI_HASH_MEMORY_MIB=256 swift test --package-path CoreAISamplesKit --filter ArtifactTransferMemoryTests`
+  合成ファイルのSHA-256と、kernel lifetime footprint peakが合成ファイルの半分未満（256MiBでは128MiB未満）であることを確認する。RSSや測定点の差分をこのpeakの代わりにしない。
+
 - モデルを読むジョブ(変換、計測、モデルを読むテスト、デモアプリでモデルを動かすこと)は、`mkdir -p ~/Library/Caches/coreai-samples && mkdir ~/Library/Caches/coreai-samples/heavy-job` でロックを取ってから始める。中に `owner.txt`(セッション名、ジョブ名、開始時刻、見込み時間)を置く。取る前に、モデルを動かすプロセス(`coreai-chat`、`coreai-verify`、デモアプリなど)が残っていないことを `pgrep` で確かめる。`mkdir` が失敗したら、持ち主のジョブが終わるまで待つ。終わったら外す(名前を `heavy-job-done-<ジョブ名>-<日時>` に変える)。
 - GPU を使う統合テストは `.enabled(if:)` で既定の実行から外す。`swift test` だけでは、モデルを読むテストは動かない。動かすのは、バンドルのフォルダを `:` 区切りで渡したときだけ(このときはロックを取る): `COREAI_TEST_BUNDLES=/path/to/bundle-a:/path/to/bundle-b swift test --package-path CoreAISamplesKit`
 
@@ -56,6 +61,8 @@
 - 同じ文書で質問数を変えるメモリ検査は `DECIDE_SHAPE_MEMORY=1` と `--filter DecisionInferenceTests.questionSizeMemory`。headless の文書再利用経路は `--decide-json input.json output.json --reuse-document`。
 
 - EmbeddingGemma 2のCPU検査は既定の`swift test`に含む。`EG2_TOKENIZER=/path/to/bundle`を渡すと参照12入力のtoken列も照合する（モデルは読まない）。実モデルを読む`embedding-verify`と画像検索デモは共有ロック下で動かす。入力契約とコマンドは`docs/embeddinggemma2.md`。
+- Modelsの実常駐検査は共有ロック下で `COREAI_RESIDENCY_BUNDLE=/path/to/embeddinggemma2-fp16 COREAI_RESIDENCY_METRICS=/path/to/result.json swift test --package-path CoreAISamplesKit --filter RealModelResidencyTests`。既知カタログと照合して一時領域へhard linkし、実EmbeddingModelの推論・保持・unload・再loadを確認する。入力bundleは変更しない。同一volume上のbundleを使う。既定実行ではskipし、Mac統合試験をiPhoneの通常UI検収に代用しない。
+- Qwen画像生成のCPU前後処理は `swift test --package-path CoreAISamplesKit --filter ImageGeneration`。`QMI_TOKENIZER=/path/to/pinned/snapshot/processor`を渡すと原典35入力のtoken列・512/513境界も照合する（学習済みネットワークは読まない）。仕様・画像の色/alpha/resize・RNGの境界は `docs/qwen-image21-native-preprocessing.md`。iOSのlibraryはCoreAISamplesKit内で `xcodebuild -scheme ImageGenerationRuntime -configuration Release -destination 'generic/platform=iOS' -derivedDataPath /path/to/build CODE_SIGNING_ALLOWED=NO build`。
 
 ## 変換の保守（2026-10-15）
 

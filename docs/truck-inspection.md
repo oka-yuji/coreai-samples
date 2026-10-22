@@ -62,6 +62,8 @@ The Store owns tasks. The runner waits for every cancelled operation before ackn
 
 Diagnostics include permissions, selected voice, route for each listen, RMS range, partial and raw final transcripts, final resolution, decisions and timing. The **Copy or share diagnostics** action uses the system share sheet's Copy action. Physical audibility, recognition quality, Bluetooth routing and offline operation require the user's device checks.
 
+A recording of this flow on an iPhone: [animated preview](media/truck-inspection-ios.gif) (1.5× speed, no audio, one free-form answer with its confirmation) and the [full recording with audio on X](https://x.com/oka_yuuji/status/2112517908631040473).
+
 ## Device measurements
 
 With the inspection stopped, expand Model and diagnostics and choose **Measure 20 classifications**. The earlier screen requires a ready model; Models prepares the selected model first. The runner classifies the same short tire-pressure answer once to warm up and then 20 measured times. It bypasses the exact-answer shortcut and leaves inspection records unchanged. Median is the average of sorted samples 10 and 11; p95 uses nearest rank (sample 19). The warmup is reported separately. These timings are inference measurements, not correctness scores.

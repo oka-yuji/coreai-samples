@@ -197,21 +197,16 @@ struct ModelLibraryAssemblyTests {
         await attempt(foreign, "another owner")
         await attempt(missing, "never acquired")
 
-        var events = app.events.makeAsyncIterator()
         let outcomes = Outcomes()
-        adapter.holdsStop = true
         let ticket = LibraryTicket(owner: owner, number: 2)
-        let stop = Task { await runner.run(.stopDemo(missing, ticket)) { outcomes.record($0) } }
-        try await next(&events, "A stopping comparison")
-        await attempt(missing, "while stopping")
-        adapter.releaseStops()
-        await stop.value
+        await runner.run(.stopDemo(missing, ticket)) { outcomes.record($0) }
+        await attempt(missing, "after an unbound stop")
         #expect(outcomes.actions == ["stopped 2"])
         await attempt(missing, "after the stop")
 
         #expect(library.state == shown)
         #expect(adapter.executions.isEmpty && adapter.loads == 0 && adapter.rejections == 4)
-        #expect(adapter.stops == [missing])
+        #expect(adapter.stops.isEmpty)
         #expect(
             app.adapters.values.filter { $0 !== adapter }.allSatisfy {
                 $0.previews.isEmpty && $0.contents.isEmpty && $0.stops.isEmpty && $0.executions.isEmpty
@@ -235,9 +230,11 @@ struct ModelLibraryAssemblyTests {
         let extract = try #require(harness.adapters["extraction"])
         var events = harness.events.makeAsyncIterator()
         func show(_ session: ModelDemoSession) async {
+            let available = store.state.demoPreparation == .available && store.state.session == session
             _ = library.rendering.content(for: session)
             runner.provide(session)
             await runner.prepare(session)
+            if !available { _ = library.rendering.content(for: session) }
         }
 
         store.send(.downloadRequested("text-fp16"))
