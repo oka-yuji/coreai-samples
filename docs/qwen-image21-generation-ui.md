@@ -20,7 +20,7 @@ Preparing, reference encoding, text encoding, decoding and stopping use indeterm
 
 ## Reference image boundary
 
-The ingress version is `imageio-rgb8-max1024-confirmed-center512-v1`. It accepts one local image frame, positive dimensions no larger than 32,768 on either side and at most 268,435,456 pixels. The file is accessed within its security scope and is never modified.
+The ingress version is `imageio-rgb8-max1024-confirmed-center512-v1`. It accepts one local image frame, positive dimensions no larger than 32,768 on either side and at most 268,435,456 pixels. The file is accessed within its security scope and is never modified. The source's color model and bit depth are checked from the image properties before either decode path: only 8-bit RGB sources are accepted, so a large CMYK or 16-bit image is refused before a thumbnail is made.
 
 For images whose longest side is at most 1,024 pixels, direct ImageIO decoding feeds the existing eight-bit RGB reader and EXIF orientation transform. This preserves the encoded RGB bytes, including low-alpha straight RGBA, and does not apply an ICC display transform. The canonical small RGB, tagged RGB and oriented fixtures match native preprocessing exactly.
 
@@ -44,6 +44,6 @@ Run the CPU interaction tests with:
 swift test --package-path CoreAISamplesKit --filter 'ImageGenerationFeatureTests|ImageGenerationMediaTests|ImageGenerationRunnerTests|ManagedImageGenerationTests'
 ```
 
-These tests cover no automatic generation, invalid input, deterministic retry input, stop/retry and stale callbacks, exact-session ownership, delayed delivery after cancellation, export completion tickets, original-file preservation and PNG pixel/metadata identity. A 2,048×1,024 oriented fixture exercises bounded thumbnail decoding before crop confirmation. The private synthetic UI preview also exercises the real View, Store, runner, media processing, picker and exporter without running a learned model.
+These tests cover no automatic generation, invalid input, deterministic retry input, stop/retry and stale callbacks, exact-session ownership, delayed delivery after cancellation, export completion tickets, a save retry that clears an earlier save failure, reference decoding refused without current permission, CMYK and 16-bit source refusal, original-file preservation and PNG pixel/metadata identity. A 2,048×1,024 oriented fixture exercises bounded thumbnail decoding before crop confirmation. The private synthetic UI preview also exercises the real View, Store, runner, media processing, picker and exporter without running a learned model.
 
 QMU-01 and QMU-02 have CPU evidence. QMU-03 through QMU-06 still require the trusted candidate, measured device budget, normal Models flow on the target iPhone, accessibility/orientation checks and the user's acceptance. Synthetic UI success and signed builds do not replace those checks.

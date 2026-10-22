@@ -82,6 +82,31 @@ struct ImageGenerationMediaTests {
         #expect(try Data(contentsOf: url) == original)
     }
 
+    @Test(
+        "CMYK and sixteen-bit sources are refused before either decode path while the same RGB source is accepted",
+        arguments: [512, 2_048])
+    func sourceColorModels(_ width: Int) async throws {
+        let root = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: false)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let media = ImageGenerationMedia()
+        let ticket = ImageGenerationTicket(owner: UUID(), sequence: 1)
+        let rgb = try source("rgb.jpg", in: root, width: width, space: CGColorSpace.sRGB, bits: 8, type: .jpeg)
+        #expect(rgb.model == kCGImagePropertyColorModelRGB as String && rgb.depth == 8)
+        let preview = try await media.reference(rgb.url, ticket: ticket)
+        #expect(preview.pixels.width == 512 && preview.pixels.height == 512)
+        let cmyk = try source("cmyk.jpg", in: root, width: width, space: CGColorSpace.genericCMYK, bits: 8, type: .jpeg)
+        #expect(cmyk.model == kCGImagePropertyColorModelCMYK as String && cmyk.depth == 8)
+        await #expect(throws: ImageGenerationError.unsupportedImage) {
+            try await media.reference(cmyk.url, ticket: ticket)
+        }
+        let deep = try source("rgb16.png", in: root, width: width, space: CGColorSpace.sRGB, bits: 16, type: .png)
+        #expect(deep.model == kCGImagePropertyColorModelRGB as String && deep.depth == 16)
+        await #expect(throws: ImageGenerationError.unsupportedImage) {
+            try await media.reference(deep.url, ticket: ticket)
+        }
+    }
+
     @Test("Unselected network locations and incomplete generation results are refused")
     func invalidMedia() async throws {
         let media = ImageGenerationMedia()
@@ -93,5 +118,27 @@ struct ImageGenerationMediaTests {
         let other = ImageGenerationRequest(id: UUID(), prompt: "image", seed: 1)
         let result = try imageInteractionResult(other)
         await #expect(throws: ImageExecutionError.invalidResource) { try await media.asset(result, request: request) }
+    }
+
+    private func source(
+        _ name: String, in root: URL, width: Int, space: CFString, bits: Int, type: UTType
+    ) throws -> (url: URL, model: String?, depth: Int?) {
+        let url = root.appending(path: name)
+        let colorSpace = try #require(CGColorSpace(name: space))
+        let alpha = space == CGColorSpace.genericCMYK ? CGImageAlphaInfo.none : .noneSkipLast
+        let context = try #require(
+            CGContext(
+                data: nil, width: width, height: 512, bitsPerComponent: bits, bytesPerRow: 0, space: colorSpace,
+                bitmapInfo: alpha.rawValue))
+        context.setFillColor(CGColor(red: 0.2, green: 0.5, blue: 0.8, alpha: 1))
+        context.fill(CGRect(x: 0, y: 0, width: width, height: 512))
+        let image = try #require(context.makeImage())
+        let destination = try #require(
+            CGImageDestinationCreateWithURL(url as CFURL, type.identifier as CFString, 1, nil))
+        CGImageDestinationAddImage(destination, image, nil)
+        #expect(CGImageDestinationFinalize(destination))
+        let imageSource = try #require(CGImageSourceCreateWithURL(url as CFURL, nil))
+        let properties = try #require(CGImageSourceCopyPropertiesAtIndex(imageSource, 0, nil) as? [CFString: Any])
+        return (url, properties[kCGImagePropertyColorModel] as? String, properties[kCGImagePropertyDepth] as? Int)
     }
 }

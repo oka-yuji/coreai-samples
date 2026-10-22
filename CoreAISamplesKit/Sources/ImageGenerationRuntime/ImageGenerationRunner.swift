@@ -25,8 +25,10 @@ public final class ImageGenerationRunner {
         do {
             switch effect {
             case .reference(_, let url):
+                guard permission() else { throw ImageExecutionError.permissionDenied }
                 let preview = try await media.reference(url, ticket: ticket)
                 try Task.checkCancellation()
+                guard permission() else { throw ImageExecutionError.permissionDenied }
                 send(.referencePrepared(ticket, preview))
             case .generate(_, let request):
                 guard permission() else { throw ImageExecutionError.permissionDenied }

@@ -132,4 +132,22 @@ struct ImageGenerationFeatureTests {
         _ = ImageGenerationFeature.reduce(&state, .exportFinished(ticket, true))
         #expect(state.export == nil && state.exportSucceeded && state.result != nil)
     }
+
+    @Test("Starting another save clears only an earlier save failure so a successful retry is not reported as failed")
+    func exportRetry() throws {
+        var state = state()
+        let id = UUID()
+        _ = ImageGenerationFeature.reduce(&state, .generate(id: id, randomSeed: 1))
+        _ = ImageGenerationFeature.reduce(&state, .generated(try #require(state.operation), asset(id: id, seed: 1)))
+        _ = ImageGenerationFeature.reduce(&state, .prepareExport(UUID()))
+        _ = ImageGenerationFeature.reduce(&state, .exportFinished(try #require(state.export), false))
+        #expect(state.failure == .exportFailed && !state.exportSucceeded && state.canExport)
+        _ = ImageGenerationFeature.reduce(&state, .prepareExport(UUID()))
+        _ = ImageGenerationFeature.reduce(&state, .exportFinished(try #require(state.export), true))
+        #expect(state.failure == nil && state.exportSucceeded && state.result?.id == id)
+        _ = ImageGenerationFeature.reduce(&state, .generate(id: UUID(), randomSeed: 2))
+        _ = ImageGenerationFeature.reduce(&state, .failed(try #require(state.operation), .generationFailed))
+        _ = ImageGenerationFeature.reduce(&state, .prepareExport(UUID()))
+        #expect(state.failure == .generationFailed && state.export != nil && state.result?.id == id)
+    }
 }

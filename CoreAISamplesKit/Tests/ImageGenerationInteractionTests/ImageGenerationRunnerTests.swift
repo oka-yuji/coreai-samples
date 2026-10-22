@@ -79,6 +79,44 @@ struct ImageGenerationRunnerTests {
         }
         #expect(value == ticket)
     }
+
+    @Test("A reference is not decoded or delivered without current permission")
+    func referencePermission() async throws {
+        let service = ImageInteractionService()
+        let ticket = ImageGenerationTicket(owner: UUID(), sequence: 1)
+        let missing = FileManager.default.temporaryDirectory.appending(path: "\(UUID().uuidString).png")
+        var actions: [ImageGenerationAction] = []
+        await ImageGenerationRunner(service: service, isPermitted: { false }).run(.reference(ticket, missing)) {
+            actions.append($0)
+        }
+        let url = try #require(
+            Bundle.module.url(forResource: "rgba-source", withExtension: "png", subdirectory: "Resources"))
+        let permission = ImagePermissionCountdown(allowed: 1)
+        await ImageGenerationRunner(service: service, isPermitted: { permission.next() }).run(.reference(ticket, url)) {
+            actions.append($0)
+        }
+        #expect(actions.count == 2)
+        for action in actions {
+            guard case .failed(let value, .unavailable) = action else {
+                Issue.record("A reference without current permission must be refused: \(action)")
+                return
+            }
+            #expect(value == ticket)
+        }
+        #expect(service.requests.isEmpty)
+    }
+}
+
+@MainActor
+private final class ImagePermissionCountdown {
+    private var remaining: Int
+
+    init(allowed: Int) { remaining = allowed }
+
+    func next() -> Bool {
+        remaining -= 1
+        return remaining >= 0
+    }
 }
 
 @MainActor

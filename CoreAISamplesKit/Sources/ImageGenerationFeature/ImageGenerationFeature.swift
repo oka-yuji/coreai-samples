@@ -167,6 +167,7 @@ public enum ImageGenerationFeature: Feature {
             state.export = ImageExportTicket(id: id, resultID: result.id)
             state.exportDismissed = false
             state.exportSucceeded = false
+            if state.failure == .exportFailed { state.failure = nil }
         case .exportDismissed(let ticket):
             guard state.export == ticket else { return [] }
             state.exportDismissed = true

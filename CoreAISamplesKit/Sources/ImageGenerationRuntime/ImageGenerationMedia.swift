@@ -21,7 +21,9 @@ public actor ImageGenerationMedia {
             let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
             let width = properties[kCGImagePropertyPixelWidth] as? Int,
             let height = properties[kCGImagePropertyPixelHeight] as? Int,
-            width > 0, height > 0, width <= 32_768, height <= 32_768, width * height <= 268_435_456
+            width > 0, height > 0, width <= 32_768, height <= 32_768, width * height <= 268_435_456,
+            properties[kCGImagePropertyColorModel] as? String == kCGImagePropertyColorModelRGB as String,
+            properties[kCGImagePropertyDepth] as? Int == 8
         else { throw ImageGenerationError.unsupportedImage }
         let pixels: ImageGenerationPixels
         if max(width, height) <= 1_024 {
