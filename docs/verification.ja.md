@@ -110,7 +110,7 @@ COREAI_TEST_BUNDLES=/path/to/bundle COREAI_TEST_RELOAD_INTERVAL=0 COREAI_TEST_RE
 | speed の `warmup_s` | ロードの終わり → 計測する実行の開始。own は 16 トークンの前置きのあとの 8 トークンの生成と `reset`。official は `warmup(queryLength: 1)`、8 トークンの drain、`reset(to: 0)` | — | s |
 | speed の `specialize_s`、`cached` | own の `Engine.LoadStats` の特殊化の時間。キャッシュ済みのモデルでは 0 | — | s |
 | speed の `max_tokens`、`generated_tokens` | 要求した上限(以前の `decode_tokens`)と、`onToken` または公式の出力列で実際に受け取ったトークンの数 | トークン | トークン |
-| speed の `prefill_s`、`decode_s` | 実行の開始 → 最初のトークン、最初のトークン → 最後のトークン | — | s |
+| speed の `prefill_s`、`decode_s` | 実行の開始 → 最初のトークン、最初のトークン → 最後のトークン。最初のトークンを観測しなかった回では `prefill_s` と `prefill_tok_s` は無く(欠測)、`decode_s` は 0 | — | s |
 | speed の `decode_tok_s` | `(generated_tokens − 1) / decode_s`。2 トークン未満では無い | トークン | トークン/s |
 
 回数は、`prompt_tokens`、`prefilled_tokens`(この依頼でエンジンが読んだトークン。終わったチャンクごとに数えるので、読み込みが途中で失敗しても、それまでに終わったチャンクの分は残ります。プロンプトをすべて使い回したときや、最初のチャンクの前に失敗したときは 0)、`sampled_tokens`(`generated_tokens` と同じ並び。停止のトークンを含まず、上限に達したときの最後の未処理のトークンを含む)、`steps`、`sends`(1 件以上のイベントを送った送信。drain を含む)です。`outcome` は `stopToken`、`maxTokens`、`cancelled`、`failed` のどれかで、後の 2 つには `error` が付きます。speed の記録の `stop_reason` は、自前のエンジンでは件数の規則で決めます。ここでは停止のトークンを無視するので上限で終わり、`maxTokens` になります(上限より前に終わったときは `stopToken`)。公式のエンジンでは iterator が終わった理由(`InferenceOutputSequence.stopReason`)で、`maxTokens`、`stopToken`(EOS)、`stopSequence`、`cancelled`、`error`、`unknown` のどれかです。sequential は残りの文脈に合わせて要求数を縮めるため、`max_tokens` 未満でも `maxTokens` になり得ます。`trace` の行は `sampler.next` ごとに 1 行あるので、`stopToken` の依頼では `sampled_tokens + 1` 行になります。停止のトークンの行には `sample_seconds` だけがあり、後に step が無かった行には `step_seconds` がありません。

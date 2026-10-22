@@ -17,6 +17,11 @@ import Testing
         ["--model", "/not-loaded", "--runtime", runtime, "--prompt", "a"] + extra
     }
 
+    private func speedRunArguments(_ extra: [String] = []) -> [String] {
+        ["--model", "/not-loaded", "--preamble", "/not-loaded", "--engine", "own", "--max-tokens", "1", "--round", "1"]
+            + extra
+    }
+
     private func speedRun(peakRssBytes: UInt64?, decodeTokS: Double?) -> SpeedRecord {
         SpeedRecord(
             engine: "own", round: 1, loadS: 1, warmupS: 1, specializeS: nil, cached: nil, promptTokens: 4,
@@ -69,6 +74,54 @@ import Testing
         let fields = try json(record)
         #expect(fields["max_tokens"] as? Int == 1 && fields["decode_tokens"] == nil)
         #expect(fields["observed_compute"] as? String == "unknown")
+    }
+
+    @Test(
+        "A speed record keeps its repeat number through the round trip and starts from the first repeat",
+        arguments: [nil, 3])
+    func speedRecordRepeatRoundTrip(_ number: Int?) throws {
+        var record = speedRun(peakRssBytes: 100, decodeTokS: 10)
+        if let number { record.repeat = number }
+        let decoded = try JSONDecoder.snake.decode(SpeedRecord.self, from: JSONEncoder.records.encode(record))
+        #expect(try json(record)["repeat"] as? Int == number ?? 1)
+        #expect(decoded.repeat == number ?? 1)
+    }
+
+    @Test("A speed record written without a repeat number decodes as the first repeat")
+    func speedRecordWithoutRepeat() throws {
+        var record = speedRun(peakRssBytes: 100, decodeTokS: 10)
+        record.repeat = 3
+        var fields = try json(record)
+        fields["repeat"] = nil
+        let data = try JSONSerialization.data(withJSONObject: fields)
+        #expect(try JSONDecoder.snake.decode(SpeedRecord.self, from: data).repeat == 1)
+    }
+
+    @Test("A repeat that observes no token records its prefill as missing and the remaining repeats still run")
+    func speedRunWithoutTokens() async throws {
+        let run = try SpeedRun.parse(speedRunArguments(["--repeat", "2"]))
+        var records: [SpeedRecord] = []
+        try await run.measure(
+            [1, 2, 3], .now, .now, nil, reset: {}, generate: { _ in "maxTokens" }, output: { records.append($0) })
+        #expect(records.map(\.repeat) == [1, 2])
+        for record in records {
+            let fields = try json(record)
+            #expect(fields["prefill_s"] == nil && fields["prefill_tok_s"] == nil && fields["decode_tok_s"] == nil)
+            #expect(fields["decode_s"] as? Double == 0 && fields["generated_tokens"] as? Int == 0)
+            #expect(fields["stop_reason"] as? String == "maxTokens")
+        }
+    }
+
+    @Test("A speed run generates once by default and accepts a positive repeat count")
+    func repeatAccepted() throws {
+        #expect(try SpeedRun.parse(speedRunArguments()).repeatCount == 1)
+        #expect(try SpeedRun.parse(speedRunArguments(["--repeat", "3"])).repeatCount == 3)
+    }
+
+    @Test("A repeat count below one is rejected by the argument validation", arguments: ["0", "-1"])
+    func repeatRejected(_ count: String) throws {
+        let error = #expect(throws: (any Error).self) { try SpeedRun.parse(speedRunArguments(["--repeat=\(count)"])) }
+        #expect(SpeedRun.message(for: try #require(error)) == "--repeat takes a count of one or more.")
     }
 
     @Test("The decode rate needs two generated tokens and an own run's stop reason compares the count with the limit")
