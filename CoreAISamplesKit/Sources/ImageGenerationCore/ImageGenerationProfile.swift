@@ -64,8 +64,8 @@ public struct ImageTensorContract: Codable, Equatable, Sendable {
     }
 }
 
-public struct ImageGenerationProfile: Decodable, Sendable {
-    public struct Source: Decodable, Sendable {
+public struct ImageGenerationProfile: Decodable, Equatable, Sendable {
+    public struct Source: Decodable, Equatable, Sendable {
         public let model: String
         public let revision: String
         public let implementationRevision: String
@@ -73,7 +73,7 @@ public struct ImageGenerationProfile: Decodable, Sendable {
         public let converterSha256: [String: String]
     }
 
-    public struct Workload: Decodable, Sendable {
+    public struct Workload: Decodable, Equatable, Sendable {
         public let resolution: [Int]
         public let referenceResolution: [Int]
         public let batch: Int
@@ -99,7 +99,7 @@ public struct ImageGenerationProfile: Decodable, Sendable {
         public let zeroCenteredNormDtype: ImageGenerationPrecision
     }
 
-    public struct Component: Decodable, Sendable {
+    public struct Component: Decodable, Equatable, Sendable {
         public let asset: String
         public let function: String
         public let stateNames: [String]

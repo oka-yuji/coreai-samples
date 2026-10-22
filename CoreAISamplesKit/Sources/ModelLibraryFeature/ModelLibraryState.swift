@@ -5,6 +5,18 @@ public struct ModelArtifactIdentity: Hashable, Sendable {
     public let artifactID: String
     public let contract: String
     public let revision: String
+    public let sourceKind: ModelSourceKind
+
+    public init(
+        modelID: String, artifactID: String, contract: String, revision: String,
+        sourceKind: ModelSourceKind = .huggingFace
+    ) {
+        self.modelID = modelID
+        self.artifactID = artifactID
+        self.contract = contract
+        self.revision = revision
+        self.sourceKind = sourceKind
+    }
 }
 
 public struct ValidatedModelResource: Equatable, Sendable {
@@ -15,10 +27,11 @@ public struct ValidatedModelResource: Equatable, Sendable {
     public let upstreamRevision: String?
     public let directory: URL
     public let sizeBytes: Int64
+    public let sourceKind: ModelSourceKind
 
     public init(
         modelID: String, artifactID: String, contract: String, revision: String, upstreamRevision: String?,
-        directory: URL, sizeBytes: Int64
+        directory: URL, sizeBytes: Int64, sourceKind: ModelSourceKind = .huggingFace
     ) {
         self.modelID = modelID
         self.artifactID = artifactID
@@ -27,15 +40,18 @@ public struct ValidatedModelResource: Equatable, Sendable {
         self.upstreamRevision = upstreamRevision
         self.directory = directory
         self.sizeBytes = sizeBytes
+        self.sourceKind = sourceKind
     }
 
     public var identity: ModelArtifactIdentity {
-        ModelArtifactIdentity(modelID: modelID, artifactID: artifactID, contract: contract, revision: revision)
+        ModelArtifactIdentity(
+            modelID: modelID, artifactID: artifactID, contract: contract, revision: revision, sourceKind: sourceKind)
     }
 
     public func matches(model: LibraryModel, artifact: ModelArtifact) -> Bool {
         modelID == model.id && model.artifact(artifactID) == artifact && contract == artifact.contract
-            && revision == artifact.download?.revision && upstreamRevision == artifact.upstream?.revision
+            && sourceKind == artifact.sourceKind && revision == artifact.sourceRevision && artifact.isSourceValid
+            && upstreamRevision == artifact.upstream?.revision
             && directory.isFileURL && sizeBytes >= 0
     }
 }
@@ -57,6 +73,7 @@ public enum ModelInstallationPhase: Equatable, Sendable {
     case missing
     case inspecting
     case downloading(ModelTransferProgress?)
+    case importing(ModelTransferProgress?)
     case validating
     case stopping
     case ready
@@ -65,7 +82,7 @@ public enum ModelInstallationPhase: Equatable, Sendable {
 
     public var isBusy: Bool {
         switch self {
-        case .inspecting, .downloading, .validating, .stopping, .deleting: true
+        case .inspecting, .downloading, .importing, .validating, .stopping, .deleting: true
         case .missing, .ready, .failed: false
         }
     }
@@ -116,6 +133,7 @@ public struct ModelInstallation: Equatable, Sendable {
     public internal(set) var requestID: LibraryTicket?
     public internal(set) var resource: ValidatedModelResource?
     public internal(set) var failure: ModelLibraryFailure?
+    var importInProgress = false
 
     public init() {}
 }
@@ -189,7 +207,7 @@ public struct ModelLibraryState: Equatable, Sendable {
 
     public func variantTitle(for modelID: String) -> String? {
         guard let artifact = selectedArtifact(for: modelID),
-            artifacts(for: modelID).count > 1 || artifact.download != nil
+            artifacts(for: modelID).count > 1 || artifact.sourceKind != nil
         else { return nil }
         return artifact.title
     }
@@ -239,7 +257,7 @@ public struct ModelLibraryState: Equatable, Sendable {
 
     private func executableResource(for selection: DemoSelection) -> ValidatedModelResource? {
         guard canBrowse(selection), isConnected(selection), let model = catalog.model(selection.modelID),
-            let artifact = selectedArtifact(for: model.id), artifact.download?.isValid == true,
+            let artifact = selectedArtifact(for: model.id), artifact.isSourceValid,
             let installed = installations[artifact.id], installed.phase == .ready,
             let resource = installed.resource, resource.matches(model: model, artifact: artifact)
         else { return nil }

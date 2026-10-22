@@ -8,12 +8,16 @@ public enum ModelLibraryBrowsingRunner {
             send(.inspected(artifact.id, request, nil))
         case .download(_, let artifact, let request):
             send(.failed(artifact.id, request, .downloadNotConfigured))
+        case .importBundle(_, let artifact, let request, _):
+            send(.failed(artifact.id, request, .invalidResource))
         case .validate(_, let artifact, let request, _):
             send(.failed(artifact.id, request, .invalidResource))
         case .delete(let resource, let request):
             send(.failed(resource.artifactID, request, .unavailable))
         case .stopTransfer(let artifactID, let request):
             send(.transferStopped(artifactID, request))
+        case .stopImport(_, let artifact, let request):
+            send(.importStopped(artifact.id, request, nil))
         case .stopDemo(let session, let request):
             send(
                 .demoStopFailed(
