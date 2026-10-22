@@ -62,6 +62,17 @@ import Testing
         #expect(resolved.specializeSeconds == 0)
     }
 
+    @Test(
+        "When the cache query throws and the specialization throws CancellationError, the cancellation propagates instead of cacheQueryFailed"
+    )
+    func cancellationAfterQueryFailureIsNotWrapped() async {
+        await #expect(throws: CancellationError.self) {
+            try await Engine.resolveModel(
+                query: { () throws -> Int? in throw Failure(description: "Missing hash file") },
+                fallback: { throw CancellationError() })
+        }
+    }
+
     @Test("When the cache query returns nil and the specialization fails, the original error is thrown unchanged")
     func missRethrowsTheSpecializationError() async {
         await #expect(throws: Failure(description: "Specialization failed")) {

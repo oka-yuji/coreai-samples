@@ -142,7 +142,7 @@ public final class Engine {
             let model = try await fallback()
             return (model, false, queryError, (ContinuousClock.now - start) / .seconds(1))
         } catch {
-            guard let queryError else { throw error }
+            guard let queryError, !(error is CancellationError) else { throw error }
             throw EngineError.cacheQueryFailed(query: queryError, specialize: String(describing: error))
         }
     }
