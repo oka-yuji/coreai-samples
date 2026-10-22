@@ -117,11 +117,14 @@ public struct ImageDenoiserLayout: Sendable {
         var target = [UInt8](repeating: 0, count: capacity)
         for index in targets { target[index] = 1 }
         var mask = [UInt8](repeating: 0, count: capacity * capacity)
-        for query in 0..<capacity {
-            for key in 0..<length {
-                if query >= key || (query < length && blockIDs[query] >= 0 && blockIDs[query] == blockIDs[key]) {
-                    mask[query * capacity + key] = 1
+        mask.withUnsafeMutableBufferPointer { buffer in
+            guard let base = buffer.baseAddress else { return }
+            for query in 0..<capacity {
+                var end = min(query + 1, length)
+                if query < length, blockIDs[query] >= 0 {
+                    end = positions[(blockIDs[query] + 1) * 1_024 - 1] + 1
                 }
+                base.advanced(by: query * capacity).update(repeating: 1, count: end)
             }
         }
         var axes = Array(repeating: [Int](repeating: 0, count: length), count: 3)

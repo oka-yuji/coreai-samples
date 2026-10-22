@@ -12,7 +12,7 @@ public struct ImageTextConditioning: Sendable {
             guard slots.count == 256, let visionOutputs, visionOutputs.count == 4,
                 visionOutputs.allSatisfy({ $0.count == 256 * 4_096 })
             else { throw ImageGenerationError.invalidShape }
-            guard visionOutputs.allSatisfy({ $0.allSatisfy(\.isFinite) }) else {
+            guard visionOutputs.allSatisfy({ $0.allSatisfy({ $0.isFinite }) }) else {
                 throw ImageGenerationError.nonFinite
             }
         }
@@ -36,7 +36,7 @@ public struct ImageTextConditioning: Sendable {
 extension ImagePromptLayout {
     public func condition(fromHidden hidden: [Float]) throws -> [Float] {
         guard hidden.count == 512 * 4_096 else { throw ImageGenerationError.invalidShape }
-        guard hidden.allSatisfy(\.isFinite) else { throw ImageGenerationError.nonFinite }
+        guard hidden.allSatisfy({ $0.isFinite }) else { throw ImageGenerationError.nonFinite }
         let active = Array(hidden[(drop * 4_096)..<(tokens.count * 4_096)])
         return active + Array(repeating: 0, count: 512 * 4_096 - active.count)
     }
@@ -47,7 +47,7 @@ extension ImageDenoiserLayout {
         guard target.count == ImageEuler.latentCount,
             referenceCount == 0 ? reference == nil : reference?.count == ImageEuler.latentCount
         else { throw ImageGenerationError.invalidShape }
-        guard target.allSatisfy(\.isFinite), reference?.allSatisfy(\.isFinite) ?? true else {
+        guard target.allSatisfy({ $0.isFinite }), reference?.allSatisfy({ $0.isFinite }) ?? true else {
             throw ImageGenerationError.nonFinite
         }
         let values = (reference ?? []) + target
@@ -57,7 +57,7 @@ extension ImageDenoiserLayout {
 
     public func prediction(fromOutput output: [Float]) throws -> [Float] {
         guard output.count == capacity * 64 else { throw ImageGenerationError.invalidShape }
-        guard output.allSatisfy(\.isFinite) else { throw ImageGenerationError.nonFinite }
+        guard output.allSatisfy({ $0.isFinite }) else { throw ImageGenerationError.nonFinite }
         var result = [Float]()
         result.reserveCapacity(ImageEuler.latentCount)
         for index in targetIndices { result.append(contentsOf: output[(index * 64)..<((index + 1) * 64)]) }

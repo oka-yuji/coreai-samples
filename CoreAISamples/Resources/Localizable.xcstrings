@@ -8408,6 +8408,17 @@
           }
         }
       }
+    },
+    "Image generation diagnostics" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "画像生成の診断"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"
