@@ -28,6 +28,15 @@ a work directory at a time, so refreshed dependencies cannot move underneath a r
 Reports contain the source run for reused stages. A reused
 measurement is never presented as a fresh measurement.
 
+A pipeline containing a heavy stage holds the shared machine lock from host/input
+fingerprinting through execution, output checks and cached reuse. Another owner's
+lock is never removed. If a child process or its process group cannot be confirmed
+stopped, the report keeps the primary failure and cleanup details separately, and
+the work, stage and machine locks remain in place. Confirm that recorded process
+group and child have stopped before recovering only that failed run's locks.
+Zombie-only groups are treated as stopped after observation; permission errors,
+failed observations or remaining live members are not silently accepted.
+
 
 The [Qwen3-TTS CustomVoice recipe](recipes/qwen3_tts/README.md) uses a separate
 Transformers 4.57.3 environment to export FP32 neural components and compare them

@@ -1,0 +1,799 @@
+{
+  "format": 1,
+  "date": "2026-10-22",
+  "status": "failed",
+  "scope": "Two frozen inputs at eight steps; incomplete sixty-run suite. Diagnostics enabled; no performance or device claim.",
+  "code_revision": "ec5f51096bb1a3f41d938045163bebdd5c76d14c",
+  "profile_id": "qmi-mobile-w4-v1",
+  "profile_sha256": "856605ed6f22160076d9612c254e96018990a05740ea8f31bb2a251e74fb95a4",
+  "component_inventory_sha256": "ce6e70483c6a47f456fb1a4bd92e95fe6993b31fada74e460311eaf90f2f77e4",
+  "component_inventory_hash_definition": "SHA-256 of exported_components encoded as UTF-8 JSON with sorted keys and comma/colon separators",
+  "source_revision": "fc13ba1986fcb905854dc8de2f52eee395f49b5b",
+  "policy_sha256": "6e3c72b9321b6cdc105f8ddf38aaea9c151ab912e2bb9c36dd57654b31d4c793",
+  "fixture_manifest_sha256": "b26820d8a34afd01f4f2c8e1ab2b0b66d951fe38e5b0a6b79104c1f555fe3ee9",
+  "source_summary_sha256": "d2344691e6dee308d16080dcbd53dd51f2a464b95243ad0e14a24f0a150a9416",
+  "verification_file_sha256": "35202e4359d02b70ed6ef826751011ec19ce5f528f73c445f4a20058aaf56cbe",
+  "fixed_joint_maximum_nrmse": 0.02330026348914614,
+  "rows": [
+    {
+      "run_id": "g01-20261018",
+      "status": "numeric_failed",
+      "fixed": [
+        {
+          "id": "text",
+          "passed": true,
+          "comparisons": [
+            {
+              "boundary": "component",
+              "compute_dtype": "float32",
+              "finite": true,
+              "shape": [
+                1,
+                40,
+                4096
+              ],
+              "absolute_rmse": 0.00014000705394886595,
+              "normalized_max": 5.424338658195137e-06,
+              "normalized_rmse": 6.819584051575622e-06,
+              "passed": true
+            }
+          ]
+        },
+        {
+          "id": "denoiser-0",
+          "passed": false,
+          "comparisons": [
+            {
+              "boundary": "component",
+              "compute_dtype": "float16",
+              "finite": true,
+              "shape": [
+                1,
+                1050,
+                64
+              ],
+              "absolute_rmse": 0.002470148663945263,
+              "normalized_max": 0.010392541676818969,
+              "normalized_rmse": 0.001417272951318743,
+              "passed": false
+            },
+            {
+              "boundary": "fixed-step-target",
+              "compute_dtype": "float16",
+              "finite": true,
+              "shape": [
+                1,
+                1024,
+                64
+              ],
+              "absolute_rmse": 0.0024580135039408394,
+              "normalized_max": 0.010392541676818969,
+              "normalized_rmse": 0.001397722946198094,
+              "passed": false
+            }
+          ]
+        },
+        {
+          "id": "denoiser-1",
+          "passed": false,
+          "comparisons": [
+            {
+              "boundary": "component",
+              "compute_dtype": "float16",
+              "finite": true,
+              "shape": [
+                1,
+                1050,
+                64
+              ],
+              "absolute_rmse": 0.0028508924556925187,
+              "normalized_max": 0.011612412758323285,
+              "normalized_rmse": 0.0017784823486270594,
+              "passed": false
+            },
+            {
+              "boundary": "fixed-step-target",
+              "compute_dtype": "float16",
+              "finite": true,
+              "shape": [
+                1,
+                1024,
+                64
+              ],
+              "absolute_rmse": 0.002849425201654491,
+              "normalized_max": 0.011612412758323285,
+              "normalized_rmse": 0.0017628532266704658,
+              "passed": false
+            }
+          ]
+        },
+        {
+          "id": "denoiser-2",
+          "passed": false,
+          "comparisons": [
+            {
+              "boundary": "component",
+              "compute_dtype": "float16",
+              "finite": true,
+              "shape": [
+                1,
+                1050,
+                64
+              ],
+              "absolute_rmse": 0.0032772183258272603,
+              "normalized_max": 0.013518893798016128,
+              "normalized_rmse": 0.0020583305815547797,
+              "passed": false
+            },
+            {
+              "boundary": "fixed-step-target",
+              "compute_dtype": "float16",
+              "finite": true,
+              "shape": [
+                1,
+                1024,
+                64
+              ],
+              "absolute_rmse": 0.0032860509705523525,
+              "normalized_max": 0.013518893798016128,
+              "normalized_rmse": 0.0020469128116585283,
+              "passed": false
+            }
+          ]
+        },
+        {
+          "id": "denoiser-3",
+          "passed": false,
+          "comparisons": [
+            {
+              "boundary": "component",
+              "compute_dtype": "float16",
+              "finite": true,
+              "shape": [
+                1,
+                1050,
+                64
+              ],
+              "absolute_rmse": 0.0022228339392343244,
+              "normalized_max": 0.005682077435007122,
+              "normalized_rmse": 0.0014008190023394541,
+              "passed": false
+            },
+            {
+              "boundary": "fixed-step-target",
+              "compute_dtype": "float16",
+              "finite": true,
+              "shape": [
+                1,
+                1024,
+                64
+              ],
+              "absolute_rmse": 0.0022026613938635545,
+              "normalized_max": 0.005682077435007122,
+              "normalized_rmse": 0.0013767360653806748,
+              "passed": false
+            }
+          ]
+        },
+        {
+          "id": "denoiser-4",
+          "passed": false,
+          "comparisons": [
+            {
+              "boundary": "component",
+              "compute_dtype": "float16",
+              "finite": true,
+              "shape": [
+                1,
+                1050,
+                64
+              ],
+              "absolute_rmse": 0.0029401994887826577,
+              "normalized_max": 0.00850866022616556,
+              "normalized_rmse": 0.001863582186331041,
+              "passed": false
+            },
+            {
+              "boundary": "fixed-step-target",
+              "compute_dtype": "float16",
+              "finite": true,
+              "shape": [
+                1,
+                1024,
+                64
+              ],
+              "absolute_rmse": 0.0029410101795504196,
+              "normalized_max": 0.00850866022616556,
+              "normalized_rmse": 0.0018489193811205215,
+              "passed": false
+            }
+          ]
+        },
+        {
+          "id": "denoiser-5",
+          "passed": false,
+          "comparisons": [
+            {
+              "boundary": "component",
+              "compute_dtype": "float16",
+              "finite": true,
+              "shape": [
+                1,
+                1050,
+                64
+              ],
+              "absolute_rmse": 0.0022402708558455662,
+              "normalized_max": 0.011160529641544117,
+              "normalized_rmse": 0.0014330615077414687,
+              "passed": false
+            },
+            {
+              "boundary": "fixed-step-target",
+              "compute_dtype": "float16",
+              "finite": true,
+              "shape": [
+                1,
+                1024,
+                64
+              ],
+              "absolute_rmse": 0.002220701684453653,
+              "normalized_max": 0.011160529641544117,
+              "normalized_rmse": 0.0014090925789631312,
+              "passed": false
+            }
+          ]
+        },
+        {
+          "id": "denoiser-6",
+          "passed": true,
+          "comparisons": [
+            {
+              "boundary": "component",
+              "compute_dtype": "float16",
+              "finite": true,
+              "shape": [
+                1,
+                1050,
+                64
+              ],
+              "absolute_rmse": 0.0013870299628316782,
+              "normalized_max": 0.0038277684146785394,
+              "normalized_rmse": 0.000898461885961405,
+              "passed": true
+            },
+            {
+              "boundary": "fixed-step-target",
+              "compute_dtype": "float16",
+              "finite": true,
+              "shape": [
+                1,
+                1024,
+                64
+              ],
+              "absolute_rmse": 0.0013258852052648758,
+              "normalized_max": 0.0038277684146785394,
+              "normalized_rmse": 0.0008520282762602123,
+              "passed": true
+            }
+          ]
+        },
+        {
+          "id": "denoiser-7",
+          "passed": false,
+          "comparisons": [
+            {
+              "boundary": "component",
+              "compute_dtype": "float16",
+              "finite": true,
+              "shape": [
+                1,
+                1050,
+                64
+              ],
+              "absolute_rmse": 0.0014401028199880512,
+              "normalized_max": 0.003731936770300883,
+              "normalized_rmse": 0.0009772903886695584,
+              "passed": false
+            },
+            {
+              "boundary": "fixed-step-target",
+              "compute_dtype": "float16",
+              "finite": true,
+              "shape": [
+                1,
+                1024,
+                64
+              ],
+              "absolute_rmse": 0.0013826877099282731,
+              "normalized_max": 0.003731936770300883,
+              "normalized_rmse": 0.0009312848831728531,
+              "passed": true
+            }
+          ]
+        },
+        {
+          "id": "vae_decoder",
+          "passed": true,
+          "comparisons": [
+            {
+              "boundary": "component",
+              "compute_dtype": "float32",
+              "finite": true,
+              "shape": [
+                1,
+                4,
+                1,
+                512,
+                512
+              ],
+              "absolute_rmse": 9.87644332399434e-08,
+              "normalized_max": 5.424022674560547e-06,
+              "normalized_rmse": 1.2099354419927582e-07,
+              "passed": true
+            }
+          ]
+        }
+      ],
+      "rollout": {
+        "latent": {
+          "finite": true,
+          "shape": [
+            1,
+            1024,
+            64
+          ],
+          "absolute_rmse": 0.001728337409421828,
+          "normalized_max": 0.0055178268251273345,
+          "normalized_rmse": 0.001387318509984174,
+          "passed": true
+        },
+        "rgba": {
+          "finite": true,
+          "shape": [
+            1,
+            4,
+            1,
+            512,
+            512
+          ],
+          "absolute_rmse": 0.001162952202529574,
+          "normalized_max": 0.044634342193603516,
+          "normalized_rmse": 0.0014247002094018985,
+          "passed": true
+        }
+      }
+    },
+    {
+      "run_id": "e01-20261018",
+      "status": "numeric_failed",
+      "fixed": [
+        {
+          "id": "vision",
+          "passed": true,
+          "comparisons": [
+            {
+              "boundary": "component",
+              "compute_dtype": "float32",
+              "finite": true,
+              "shape": [
+                256,
+                4096
+              ],
+              "absolute_rmse": 3.976855675627332e-06,
+              "normalized_max": 3.771541221250474e-05,
+              "normalized_rmse": 1.770176039391044e-05,
+              "passed": true
+            },
+            {
+              "boundary": "component",
+              "compute_dtype": "float32",
+              "finite": true,
+              "shape": [
+                256,
+                4096
+              ],
+              "absolute_rmse": 7.046286506179554e-07,
+              "normalized_max": 1.7334202971036165e-06,
+              "normalized_rmse": 2.3986563407112265e-06,
+              "passed": true
+            },
+            {
+              "boundary": "component",
+              "compute_dtype": "float32",
+              "finite": true,
+              "shape": [
+                256,
+                4096
+              ],
+              "absolute_rmse": 1.3924633991917633e-06,
+              "normalized_max": 7.147757349257887e-06,
+              "normalized_rmse": 4.628898975716643e-06,
+              "passed": true
+            },
+            {
+              "boundary": "component",
+              "compute_dtype": "float32",
+              "finite": true,
+              "shape": [
+                256,
+                4096
+              ],
+              "absolute_rmse": 1.1829246845754773e-06,
+              "normalized_max": 6.8449527305556874e-06,
+              "normalized_rmse": 6.105805796420125e-06,
+              "passed": true
+            }
+          ]
+        },
+        {
+          "id": "text",
+          "passed": true,
+          "comparisons": [
+            {
+              "boundary": "component",
+              "compute_dtype": "float32",
+              "finite": true,
+              "shape": [
+                1,
+                308,
+                4096
+              ],
+              "absolute_rmse": 0.00015116943628638637,
+              "normalized_max": 5.424338658195137e-06,
+              "normalized_rmse": 1.1740660844931641e-05,
+              "passed": true
+            }
+          ]
+        },
+        {
+          "id": "denoiser-0",
+          "passed": false,
+          "comparisons": [
+            {
+              "boundary": "component",
+              "compute_dtype": "float16",
+              "finite": true,
+              "shape": [
+                1,
+                2086,
+                64
+              ],
+              "absolute_rmse": 0.03448026544894185,
+              "normalized_max": 0.3400159781487563,
+              "normalized_rmse": 0.01952759026842648,
+              "passed": false
+            },
+            {
+              "boundary": "fixed-step-target",
+              "compute_dtype": "float16",
+              "finite": true,
+              "shape": [
+                1,
+                1024,
+                64
+              ],
+              "absolute_rmse": 0.00413373802352743,
+              "normalized_max": 0.016161113266214396,
+              "normalized_rmse": 0.0018575421232346863,
+              "passed": false
+            }
+          ]
+        },
+        {
+          "id": "denoiser-1",
+          "passed": false,
+          "comparisons": [
+            {
+              "boundary": "component",
+              "compute_dtype": "float16",
+              "finite": true,
+              "shape": [
+                1,
+                2086,
+                64
+              ],
+              "absolute_rmse": 0.03444178295017273,
+              "normalized_max": 0.38948920248257,
+              "normalized_rmse": 0.021704945801337777,
+              "passed": false
+            },
+            {
+              "boundary": "fixed-step-target",
+              "compute_dtype": "float16",
+              "finite": true,
+              "shape": [
+                1,
+                1024,
+                64
+              ],
+              "absolute_rmse": 0.0034183007239709604,
+              "normalized_max": 0.013807239566110008,
+              "normalized_rmse": 0.001769810015237668,
+              "passed": false
+            }
+          ]
+        },
+        {
+          "id": "denoiser-2",
+          "passed": false,
+          "comparisons": [
+            {
+              "boundary": "component",
+              "compute_dtype": "float16",
+              "finite": true,
+              "shape": [
+                1,
+                2086,
+                64
+              ],
+              "absolute_rmse": 0.03444337910747978,
+              "normalized_max": 0.4147237141927083,
+              "normalized_rmse": 0.022487114559941304,
+              "passed": false
+            },
+            {
+              "boundary": "fixed-step-target",
+              "compute_dtype": "float16",
+              "finite": true,
+              "shape": [
+                1,
+                1024,
+                64
+              ],
+              "absolute_rmse": 0.0034509075882308837,
+              "normalized_max": 0.013593403274464495,
+              "normalized_rmse": 0.0018769581113127953,
+              "passed": false
+            }
+          ]
+        },
+        {
+          "id": "denoiser-3",
+          "passed": false,
+          "comparisons": [
+            {
+              "boundary": "component",
+              "compute_dtype": "float16",
+              "finite": true,
+              "shape": [
+                1,
+                2086,
+                64
+              ],
+              "absolute_rmse": 0.03438578553701585,
+              "normalized_max": 0.4238778844675954,
+              "normalized_rmse": 0.022724062912034992,
+              "passed": false
+            },
+            {
+              "boundary": "fixed-step-target",
+              "compute_dtype": "float16",
+              "finite": true,
+              "shape": [
+                1,
+                1024,
+                64
+              ],
+              "absolute_rmse": 0.0019579128115412236,
+              "normalized_max": 0.011277101776650223,
+              "normalized_rmse": 0.0010834689143895116,
+              "passed": false
+            }
+          ]
+        },
+        {
+          "id": "denoiser-4",
+          "passed": false,
+          "comparisons": [
+            {
+              "boundary": "component",
+              "compute_dtype": "float16",
+              "finite": true,
+              "shape": [
+                1,
+                2086,
+                64
+              ],
+              "absolute_rmse": 0.034365200119344796,
+              "normalized_max": 0.4259216544023475,
+              "normalized_rmse": 0.022804328577983833,
+              "passed": false
+            },
+            {
+              "boundary": "fixed-step-target",
+              "compute_dtype": "float16",
+              "finite": true,
+              "shape": [
+                1,
+                1024,
+                64
+              ],
+              "absolute_rmse": 0.0009748678708853048,
+              "normalized_max": 0.0023636555832630183,
+              "normalized_rmse": 0.0005426654807201211,
+              "passed": true
+            }
+          ]
+        },
+        {
+          "id": "denoiser-5",
+          "passed": false,
+          "comparisons": [
+            {
+              "boundary": "component",
+              "compute_dtype": "float16",
+              "finite": true,
+              "shape": [
+                1,
+                2086,
+                64
+              ],
+              "absolute_rmse": 0.03436399765917437,
+              "normalized_max": 0.4313288629055023,
+              "normalized_rmse": 0.022895473350783162,
+              "passed": false
+            },
+            {
+              "boundary": "fixed-step-target",
+              "compute_dtype": "float16",
+              "finite": true,
+              "shape": [
+                1,
+                1024,
+                64
+              ],
+              "absolute_rmse": 0.0008843145640489558,
+              "normalized_max": 0.0009403079748153687,
+              "normalized_rmse": 0.0004951110911595018,
+              "passed": true
+            }
+          ]
+        },
+        {
+          "id": "denoiser-6",
+          "passed": false,
+          "comparisons": [
+            {
+              "boundary": "component",
+              "compute_dtype": "float16",
+              "finite": true,
+              "shape": [
+                1,
+                2086,
+                64
+              ],
+              "absolute_rmse": 0.034363877240404773,
+              "normalized_max": 0.43687512919409927,
+              "normalized_rmse": 0.022990561843671927,
+              "passed": false
+            },
+            {
+              "boundary": "fixed-step-target",
+              "compute_dtype": "float16",
+              "finite": true,
+              "shape": [
+                1,
+                1024,
+                64
+              ],
+              "absolute_rmse": 0.0008747301721427913,
+              "normalized_max": 0.000969016115696093,
+              "normalized_rmse": 0.0004926814122125827,
+              "passed": true
+            }
+          ]
+        },
+        {
+          "id": "denoiser-7",
+          "passed": false,
+          "comparisons": [
+            {
+              "boundary": "component",
+              "compute_dtype": "float16",
+              "finite": true,
+              "shape": [
+                1,
+                2086,
+                64
+              ],
+              "absolute_rmse": 0.034367530974315594,
+              "normalized_max": 0.4430097849701448,
+              "normalized_rmse": 0.02330026348914614,
+              "passed": false
+            },
+            {
+              "boundary": "fixed-step-target",
+              "compute_dtype": "float16",
+              "finite": true,
+              "shape": [
+                1,
+                1024,
+                64
+              ],
+              "absolute_rmse": 0.001129922372158713,
+              "normalized_max": 0.0010535757663615848,
+              "normalized_rmse": 0.0006488048605761226,
+              "passed": true
+            }
+          ]
+        },
+        {
+          "id": "vae_encoder",
+          "passed": true,
+          "comparisons": [
+            {
+              "boundary": "component",
+              "compute_dtype": "float32",
+              "finite": true,
+              "shape": [
+                1,
+                64,
+                1,
+                32,
+                32
+              ],
+              "absolute_rmse": 2.566206782913836e-06,
+              "normalized_max": 1.992369603915974e-06,
+              "normalized_rmse": 4.547220958940575e-07,
+              "passed": true
+            }
+          ]
+        },
+        {
+          "id": "vae_decoder",
+          "passed": true,
+          "comparisons": [
+            {
+              "boundary": "component",
+              "compute_dtype": "float32",
+              "finite": true,
+              "shape": [
+                1,
+                4,
+                1,
+                512,
+                512
+              ],
+              "absolute_rmse": 7.865724229118124e-08,
+              "normalized_max": 1.6093254089355469e-06,
+              "normalized_rmse": 8.194960863068388e-08,
+              "passed": true
+            }
+          ]
+        }
+      ],
+      "rollout": {
+        "latent": {
+          "finite": true,
+          "shape": [
+            1,
+            1024,
+            64
+          ],
+          "absolute_rmse": 0.0018741045832914962,
+          "normalized_max": 0.002413127413127413,
+          "normalized_rmse": 0.001247090497536691,
+          "passed": true
+        },
+        "rgba": {
+          "finite": true,
+          "shape": [
+            1,
+            4,
+            1,
+            512,
+            512
+          ],
+          "absolute_rmse": 0.0012802236261615244,
+          "normalized_max": 0.017643198370933533,
+          "normalized_rmse": 0.0013338101116653874,
+          "passed": true
+        }
+      }
+    }
+  ],
+  "quality_reviewed": false,
+  "device_verified": false,
+  "repeatability": "Both selected original-source runs and their required repeats passed the saved comparison",
+  "follow_up": "Separate w4-f32 and mixed-f32 candidates added; export, full fidelity, quality and phone checks pending. Existing failed candidate and policy retained."
+}
