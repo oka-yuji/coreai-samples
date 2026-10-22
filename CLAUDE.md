@@ -61,6 +61,7 @@
 - 同じ文書で質問数を変えるメモリ検査は `DECIDE_SHAPE_MEMORY=1` と `--filter DecisionInferenceTests.questionSizeMemory`。headless の文書再利用経路は `--decide-json input.json output.json --reuse-document`。
 
 - EmbeddingGemma 2のCPU検査は既定の`swift test`に含む。`EG2_TOKENIZER=/path/to/bundle`を渡すと参照12入力のtoken列も照合する（モデルは読まない）。実モデルを読む`embedding-verify`と画像検索デモは共有ロック下で動かす。入力契約とコマンドは`docs/embeddinggemma2.md`。
+- Modelsの実常駐検査は共有ロック下で `COREAI_RESIDENCY_BUNDLE=/path/to/embeddinggemma2-fp16 COREAI_RESIDENCY_METRICS=/path/to/result.json swift test --package-path CoreAISamplesKit --filter RealModelResidencyTests`。既知カタログと照合して一時領域へhard linkし、実EmbeddingModelの推論・保持・unload・再loadを確認する。入力bundleは変更しない。同一volume上のbundleを使う。既定実行ではskipし、Mac統合試験をiPhoneの通常UI検収に代用しない。
 - Qwen画像生成のCPU前後処理は `swift test --package-path CoreAISamplesKit --filter ImageGeneration`。`QMI_TOKENIZER=/path/to/pinned/snapshot/processor`を渡すと原典35入力のtoken列・512/513境界も照合する（学習済みネットワークは読まない）。仕様・画像の色/alpha/resize・RNGの境界は `docs/qwen-image21-native-preprocessing.md`。iOSのlibraryはCoreAISamplesKit内で `xcodebuild -scheme ImageGenerationRuntime -configuration Release -destination 'generic/platform=iOS' -derivedDataPath /path/to/build CODE_SIGNING_ALLOWED=NO build`。
 
 ## 変換の保守（2026-10-15）

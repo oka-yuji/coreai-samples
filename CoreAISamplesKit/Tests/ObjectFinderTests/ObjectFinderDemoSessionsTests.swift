@@ -2,6 +2,7 @@ import FeatureStore
 import Foundation
 import ObjectFinderCore
 import ObjectFinderFeature
+import Observation
 import Testing
 
 @testable import ModelLibraryFeature
@@ -87,6 +88,33 @@ struct ObjectFinderDemoSessionsTests {
     private let selection = DemoSelection(modelID: "embeddinggemma2", demoID: "object-finder")
     private let selected = URL(filePath: "/models/embeddinggemma2/selected")
     private let replacement = URL(filePath: "/models/embeddinggemma2/replacement")
+
+    @Test("Returning to the first owner does not permit that owner's retired camera runtime")
+    func retiredOwnerCannotUseLatestGate() async throws {
+        let factory = RuntimeFactory()
+        let sessions = ObjectFinderDemoSessions(makeRuntime: factory.make)
+        let installed = resource(selected)
+        let first = session(1, installed)
+        let retired = sessions.bind(first, permits: { true })
+        try await sessions.stop(first)
+        let middle = ModelDemoSession(
+            id: LibraryTicket(owner: UUID(), number: 1), selection: selection, resource: installed)
+        _ = sessions.bind(middle, permits: { true })
+        try await sessions.stop(middle)
+        let current = sessions.bind(session(2, installed), permits: { true })
+        #expect(current.store !== retired.store && factory.services.count == 3)
+        retired.store.send(.queryChanged("keys"))
+        retired.store.send(.start)
+        for await state in Observations({ retired.store.state }) where state.failure != nil || state.phase == .searching
+        {
+            break
+        }
+        let failure = retired.store.state.failure
+        try await retired.runner.release(retired.store.state.session, send: retired.store.send)
+        #expect(failure == .notPermitted && factory.services[0].searches.isEmpty)
+        try await sessions.stop(first)
+        #expect(factory.services[2].stops.isEmpty)
+    }
 
     private func resource(
         _ directory: URL, revision: String = String(repeating: "a", count: 40)

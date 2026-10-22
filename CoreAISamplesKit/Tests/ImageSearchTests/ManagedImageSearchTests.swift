@@ -13,6 +13,28 @@ struct ManagedImageSearchTests {
     let images = [URL(filePath: "/images/a.png"), URL(filePath: "/images/b.png")]
     let unavailable = "The selected model is not available right now. Try again."
 
+    @Test("A new owner's wrapper keeps image inputs and results without retaining the previous runtime")
+    func keepsDataAcrossWrapperReplacement() async throws {
+        let services = ServicePool(count: 2)
+        let first = ManagedImageSearch { services.next() }
+        let original = first.store(folder: fp16, identity: "fp16", isPermitted: { true })
+        original.send(.index(images))
+        await settle(original)
+        original.send(.setQuery("red box"))
+        original.send(.search)
+        await settle(original)
+        let results = original.state.matches
+        try await first.release()
+        await settle(original)
+        let next = ManagedImageSearch(retaining: first.state) { services.next() }
+        let replacement = next.store(folder: fp16, identity: "fp16", isPermitted: { true })
+        #expect(replacement !== original && !replacement.state.ready && replacement.state.needsIndex)
+        #expect(replacement.state.photos == original.state.photos && replacement.state.matches == results)
+        #expect(replacement.state.query == "red box" && !results.isEmpty && services.all[1].calls.isEmpty)
+        replacement.send(.setQuery("new query"))
+        #expect(original.state.query == "red box" && replacement.state.query == "new query")
+    }
+
     @Test("IMAGE-01 A managed index loads only the selected artifact first and rejects another model folder")
     func selectedArtifactOnly() {
         var state = ImageSearchState(managed: fp16, identity: "fp16")

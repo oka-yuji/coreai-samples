@@ -116,7 +116,7 @@ let package = Package(
             name: "ModelLibraryRuntimeTests",
             dependencies: [
                 "ModelLibraryRuntime", "ModelLibraryFeature", "ModelLibraryStorage", "ModelLibraryTransfer",
-                "FeatureStore", "ModelLibraryTestSupport",
+                "FeatureStore", "EmbeddingCore", "EmbeddingRuntime", "ModelLibraryTestSupport",
             ], swiftSettings: speechSettings),
         .target(
             name: "ObjectFinderFeature", dependencies: ["ObjectFinderCore", "FeatureStore"],
@@ -283,7 +283,7 @@ let package = Package(
                 "CoreAIBackend",
                 .product(name: "Jinja", package: "swift-jinja"),
             ],
-            resources: [.copy("Fixtures")]
+            resources: [.copy("Fixtures"), .copy("Resources")]
         ),
         .testTarget(name: "RAGContextTests", dependencies: ["RAGContext"]),
         .testTarget(name: "RecipeCoreTests", dependencies: ["RecipeCore"], swiftSettings: approachableConcurrency),
