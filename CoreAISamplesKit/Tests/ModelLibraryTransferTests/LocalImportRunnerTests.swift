@@ -138,15 +138,17 @@ struct LocalImportRunnerTests {
         let fixture = try ImageBundleFixture()
         defer { fixture.remove() }
         let installed = try await fixture.install(into: fixture.store())
-        let store = ManagedModelStore(root: fixture.root, writeLedger: { _, _ in throw CocoaError(.fileWriteUnknown) })
+        let store = ManagedModelStore(
+            root: fixture.root, writeLedger: { _, _ in throw CocoaError(.fileWriteUnknown) },
+            availableCapacity: { _ in .max })
         let runner = ModelLibraryResourceRunner(store: store, transfer: ArtifactTransfer())
         let ticket = LibraryTicket(owner: UUID(), number: 1)
-        var failed = false
+        var failures: [ModelLibraryFailure] = []
         var copied = false
         await runner.run(.importBundle(fixture.model, fixture.artifact, ticket, fixture.source)) { action in
-            if case .failed(let id, let request, _) = action {
+            if case .failed(let id, let request, let error) = action {
                 #expect(id == fixture.artifact.id && request == ticket)
-                failed = true
+                failures.append(error)
             } else if case .importCopied = action {
                 copied = true
             } else if case .progress = action {
@@ -154,7 +156,8 @@ struct LocalImportRunnerTests {
                 Issue.record("A failed promotion reported success")
             }
         }
-        #expect(failed && copied)
+        #expect(copied)
+        #expect(failures == [.operation(CocoaError(.fileWriteUnknown).localizedDescription)])
         let staging = try await store.stagingDirectory(for: fixture.model, artifact: fixture.artifact)
         #expect(try FileManager.default.contentsOfDirectory(atPath: staging.path).isEmpty)
         guard case .ready(let current) = try await store.inspect(model: fixture.model, artifact: fixture.artifact)
