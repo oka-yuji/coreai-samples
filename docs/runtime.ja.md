@@ -113,7 +113,7 @@ executor は、推論の状態を取得・変更する前に依頼を検査し�
 
 ## 運用の注意
 
-- **初回の読み込みでモデルを GPU 向けに準備する。** Core AI は準備済みのコピーを `~/Library/Caches/coreai-cache/<OS build>/<name>/` に置きます。`<name>` はコマンドラインのツールならプロセスの名前(`coreai-chat`、`coreai-verify`、`swift test` なら `swiftpm-testing-helper`)、アプリならバンドル ID(`com.coreai-samples.DemoApp`)です。同じプログラムの次の読み込みはそれを使い回します。別のプログラムは自分のコピーを準備し、モデルとほぼ同じ容量のディスクを使います(量子化していないバンドルではもっと大きい)。`coreai-chat --stats` で、コピーを使い回したか(`cached`)と準備にかかった時間(`specialize_s`)が分かります。
+- **初回の読み込みでモデルを、計算ユニットの自動選択(優先する計算ユニットを指定せず、頻繁な reshape を期待する設定)で準備する。** 設定は `SpecializationOptions.default` に `expectFrequentReshapes = true` を足したものです。Core AI は準備済みのコピーを `~/Library/Caches/coreai-cache/<OS build>/<name>/` に置きます。`<name>` はコマンドラインのツールならプロセスの名前(`coreai-chat`、`coreai-verify`、`swift test` なら `swiftpm-testing-helper`)、アプリならバンドル ID(`com.coreai-samples.DemoApp`)です。同じプログラムの次の読み込みはそれを使い回します。別のプログラムは自分のコピーを準備し、モデルとほぼ同じ容量のディスクを使います(量子化していないバンドルではもっと大きい)。`coreai-chat --stats` で、コピーを使い回したか(`cached`)と準備にかかった時間(`specialize_s`)が分かります。GPU 向けに準備していた以前の版から更新した後の初回の読み込みでは、準備がもう一度走ります(再特殊化)。以前の設定で準備したコピーは、容量不足などで OS が消すか、下の方法で準備済みのコピーを消す(そのプログラムのそのバンドルの新旧両方が消えます)まで残ります。
 
 - **準備済みのコピーを消すには**、呼び出したプログラムのそのバンドルのコピーを消す `Engine.deleteSpecializationCache(bundle:)` を呼ぶか、デモアプリの Models の画面の **準備済みキャッシュを削除**(Clear Prepared Copy。画面の確認では `--clear-prepared`)を使うか、フォルダを消します。
 
@@ -160,7 +160,7 @@ LICENSE                  コードの MIT ライセンス
 
 `CoreAISamples` は、このリポジトリの `CoreAIBackend` と `RAGContext` で作った macOS の SwiftUI アプリで、公式の `coreai-models` パッケージは使いません。
 
-- **Models** は、この Mac にあるバンドルのフォルダを開いて読み込み、GPU 向けに準備したコピーを消します。カタログにはQwen3.8 27B (4bit)が載っていますが、現在の配布先は非公開で匿名取得できないため、取得済みフォルダを開きます。カタログのメモリの値「~32 GiB peak RSS while loading」(日本語表示では「約32 GiB（読み込み時のピークRSS）」)は、[Qwenの計測](qwen3.8-27b.ja.md#主な数値)に記したMac でそのバンドルを読み込んだときのアプリのプロセスの常駐メモリのピークで、`/usr/bin/time -l` で測りました(準備済みのコピーから 31.51 GiB、48 回の中央値。初回 31.88 GiB)。最小のメモリ要件ではありません。
+- **Models** は、この Mac にあるバンドルのフォルダを開いて読み込み、準備したコピーを消します。カタログにはQwen3.8 27B (4bit)が載っていますが、現在の配布先は非公開で匿名取得できないため、取得済みフォルダを開きます。カタログのメモリの値「~32 GiB peak RSS while loading」(日本語表示では「約32 GiB（読み込み時のピークRSS）」)は、[Qwenの計測](qwen3.8-27b.ja.md#主な数値)に記したMac でそのバンドルを読み込んだときのアプリのプロセスの常駐メモリのピークで、`/usr/bin/time -l` で測りました(準備済みのコピーから 31.51 GiB、48 回の中央値。初回 31.88 GiB)。最小のメモリ要件ではありません。
 - **Chat** は同じ会話の中でChat／Workを切り替えます。「検索・資料を使う」は起動時OFFで、新しい検索や文書取得をせず、モデルの知識と会話履歴から回答します。ONにしてWeb／Docsを選ぶと、資料を先に取得して回答します。モードは変わらず、WorkではOFFでもメモを保存できます。取得した資料と`[S1]`などの出典IDも同じ会話に保存します。[設定と履歴の仕様](specs/conversation-search-access.md)を参照してください。
 - **Work** は Foundation Models のツールのループで メモを保存します。Webの検索・ページ取得は「検索・資料を使う」とWebがONのときだけ許可します。指示は、`fetch_page` で開いたページだけを引用するよう求めます。**Citation guard**(日本語表示では「引用URLの確認」)の設定は既定で off で、on にすると、引用した URL をその課題で取得したページと照合し、合わなければ 1 回だけ直させます([詳細](demo-app.md#citation-guard))。
 - **Decide** は Clef-Flash で文書を編集できる選択肢で採点し、文書を使い回し、人の確定とモデルの候補を分けて扱います。

@@ -3,6 +3,7 @@ import FeatureStore
 import Foundation
 import ModelLibraryStorage
 import ModelLibraryTransfer
+import Observation
 import SwiftUI
 import Synchronization
 import Testing
@@ -44,6 +45,11 @@ func next(_ events: inout AsyncStream<String>.Iterator, _ wanted: String...) asy
         if let index = remaining.firstIndex(of: event) { remaining.remove(at: index) }
     }
     guard remaining.isEmpty else { throw MissingEvents(events: remaining) }
+}
+
+@MainActor
+func awaitDemoState(_ library: Store<ModelLibraryFeature>, until condition: (ModelLibraryState) -> Bool) async {
+    for await state in Observations({ library.state }) where condition(state) { return }
 }
 
 final class LedgerGate: Sendable {
@@ -211,9 +217,11 @@ final class LibraryScene {
     @discardableResult
     func show() async throws -> ModelDemoSession {
         let session = try #require(library.state.session)
+        let available = library.state.demoPreparation == .available
         _ = rendering.content(for: session)
         runner.provide(session)
         await runner.prepare(session)
+        if !available { _ = rendering.content(for: session) }
         return session
     }
 }

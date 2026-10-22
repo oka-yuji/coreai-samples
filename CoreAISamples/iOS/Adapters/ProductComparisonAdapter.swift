@@ -17,6 +17,7 @@
         }
 
         func content(for session: ModelDemoSession, gate: DemoExecutionGate) -> AnyView {
+            guard gate.session == session, gate.isPermitted() else { return preview(for: session.selection) }
             let store = sessions.bind(session, permits: gate.isPermitted)
             return AnyView(ProductComparisonContent(store: store).onAppear { store.send(.appeared) })
         }

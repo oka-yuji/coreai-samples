@@ -10,6 +10,7 @@
     final class ImageSearchAdapter: ModelDemoAdapter {
         let demoID = "image-search"
         private var searches: [DemoSelection: ManagedImageSearch] = [:]
+        private var owners: [DemoSelection: LibraryTicket] = [:]
 
         func preview(for selection: DemoSelection) -> AnyView {
             var state = searches[selection]?.state ?? ImageSearchState()
@@ -19,8 +20,15 @@
         }
 
         func content(for session: ModelDemoSession, gate: DemoExecutionGate) -> AnyView {
-            let search = searches[session.selection] ?? ManagedImageSearch { LiveImageSearchService() }
+            guard gate.session == session, gate.isPermitted() else { return preview(for: session.selection) }
+            let search =
+                if owners[session.selection]?.owner == session.id.owner, let current = searches[session.selection] {
+                    current
+                } else {
+                    ManagedImageSearch(retaining: searches[session.selection]?.state) { LiveImageSearchService() }
+                }
             searches[session.selection] = search
+            owners[session.selection] = session.id
             let identity = session.identity
             let store = search.store(
                 folder: session.resource.directory,
@@ -30,6 +38,7 @@
         }
 
         func stop(_ session: ModelDemoSession) async throws {
+            guard owners[session.selection] == session.id else { return }
             try await searches[session.selection]?.release()
         }
     }
