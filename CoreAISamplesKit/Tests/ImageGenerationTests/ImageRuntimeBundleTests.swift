@@ -41,6 +41,37 @@ struct ImageRuntimeBundleTests {
         }
     }
 
+    @Test(
+        "Component headers are read beside each asset in the producer and nested layouts", arguments: ["", "models"])
+    func headersBesideAssets(_ folder: String) throws {
+        let fixture = try ImageRuntimeFixture(assetFolder: folder)
+        defer { fixture.remove() }
+        let bundle = try ImageRuntimeBundle.load(fixture.resource, budget: fixture.budget)
+        #expect(bundle.profile.components["text"]?.asset == (folder.isEmpty ? "" : folder + "/") + "text/text.aimodel")
+    }
+
+    @Test("A listed component header that is not beside its asset is refused")
+    func headerAwayFromAsset() throws {
+        let fixture = try ImageRuntimeFixture(assetFolder: "models", headersBesideAssets: false)
+        defer { fixture.remove() }
+        let error = #expect(throws: CocoaError.self) {
+            try ImageRuntimeBundle.load(fixture.resource, budget: fixture.budget)
+        }
+        #expect(error?.code == .fileReadNoSuchFile)
+    }
+
+    @Test(
+        "AppleDouble and hidden files outside the inventory fail before Core AI loads",
+        arguments: ["._unexpected", "config/._unexpected", ".DS_Store", "config/vae/.DS_Store"])
+    func hiddenFiles(_ name: String) throws {
+        let fixture = try ImageRuntimeFixture()
+        defer { fixture.remove() }
+        try Data("hidden".utf8).write(to: fixture.resource.directory.appending(path: name))
+        #expect(throws: ImageExecutionError.invalidResource) {
+            try ImageRuntimeBundle.load(fixture.resource, budget: fixture.budget)
+        }
+    }
+
     @Test("A budget for another profile or manifest cannot select a model by path")
     func budgetIdentity() throws {
         let fixture = try ImageRuntimeFixture()

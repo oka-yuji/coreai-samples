@@ -12,12 +12,15 @@ struct ImageRuntimeFixture: Sendable {
     let resource: ValidatedModelResource
     let budget: ImageMemoryBudget
 
-    init() throws {
-        bundle = try ImageBundleFixture { _, files in
+    init(operation: String = "generate-and-edit", assetFolder: String = "", headersBesideAssets: Bool = true) throws {
+        bundle = try ImageBundleFixture { manifest, files in
             files["config/processor/tokenizer_config.json"] = Data("{}".utf8)
             files["config/vae/config.json"] = try JSONSerialization.data(withJSONObject: [
                 "latents_mean": [Float](repeating: 0, count: 64), "latents_std": [Float](repeating: 1, count: 64),
             ])
+            try Self.arrange(
+                &manifest, &files, operation: operation, assetFolder: assetFolder,
+                headersBesideAssets: headersBesideAssets)
         }
         resource = ValidatedModelResource(
             modelID: bundle.model.id, artifactID: bundle.artifact.id, contract: bundle.artifact.contract,
@@ -38,6 +41,40 @@ struct ImageRuntimeFixture: Sendable {
     }
 
     func remove() { bundle.remove() }
+
+    private static func arrange(
+        _ manifest: inout [String: Any], _ files: inout [String: Data], operation: String, assetFolder: String,
+        headersBesideAssets: Bool
+    ) throws {
+        var profile = try #require(manifest["profile"] as? [String: Any])
+        var workload = try #require(profile["workload"] as? [String: Any])
+        guard workload["operation"] as? String != operation || !assetFolder.isEmpty || !headersBesideAssets else {
+            return
+        }
+        workload["operation"] = operation
+        profile["workload"] = workload
+        var components = try #require(profile["components"] as? [String: [String: Any]])
+        for (kind, component) in components {
+            let asset = try #require(component["asset"] as? String)
+            let moved = assetFolder.isEmpty ? asset : assetFolder + "/" + asset
+            let weights = files.removeValue(forKey: asset + "/weights.bin")
+            files[moved + "/weights.bin"] = try #require(weights)
+            components[kind]?["asset"] = moved
+        }
+        profile["components"] = components
+        manifest["profile"] = profile
+        for (kind, component) in components {
+            let asset = try #require(component["asset"] as? String)
+            let header: [String: Any] = [
+                "format": 2, "kind": kind, "asset": URL(filePath: asset).lastPathComponent,
+                "conversion_complete": true, "state_names": [], "profile": profile,
+                "inputs": try #require(component["inputs"]), "outputs": try #require(component["outputs"]),
+            ]
+            files.removeValue(forKey: kind + "/component.json")
+            let folder = headersBesideAssets ? asset.split(separator: "/").dropLast().joined(separator: "/") : kind
+            files[folder + "/component.json"] = try JSONSerialization.data(withJSONObject: header, options: .sortedKeys)
+        }
+    }
 
     func pipeline(
         backend: any ImageComponentBackend, memory: ImageTestMemory = ImageTestMemory(),

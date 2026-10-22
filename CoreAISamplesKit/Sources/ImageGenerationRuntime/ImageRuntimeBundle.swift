@@ -36,8 +36,9 @@ struct ImageRuntimeBundle: Sendable {
         else { throw ImageExecutionError.invalidResource }
         try verifyFiles(root, manifest: manifest, manifestBytes: Int64(raw.count), resourceBytes: resource.sizeBytes)
         for (kind, component) in manifest.profile.components {
+            let folder = root.appending(path: component.asset).deletingLastPathComponent()
             let header = try decoder().decode(
-                ComponentHeader.self, from: smallFile(root.appending(path: kind + "/component.json")))
+                ComponentHeader.self, from: smallFile(folder.appending(path: "component.json")))
             guard header.format == 2, header.kind == kind, header.conversionComplete, header.stateNames.isEmpty,
                 header.profile == manifest.profile, header.inputs == component.inputs,
                 header.outputs == component.outputs,
@@ -66,28 +67,9 @@ struct ImageRuntimeBundle: Sendable {
                 let parts = name.split(separator: "/")
                 return parts.indices.dropLast().map { parts[...$0].joined(separator: "/") }
             })
-        let base = root.standardizedFileURL.resolvingSymlinksInPath().path + "/"
-        let keys: Set<URLResourceKey> = [.isRegularFileKey, .isDirectoryKey, .isSymbolicLinkKey]
-        guard let enumerator = FileManager.default.enumerator(at: root, includingPropertiesForKeys: Array(keys)) else {
+        guard try regularFiles(in: root, folders: folders) == expected else {
             throw ImageExecutionError.invalidResource
         }
-        var found: Set<String> = []
-        for case let file as URL in enumerator {
-            try Task.checkCancellation()
-            let values = try file.resourceValues(forKeys: keys)
-            let path = file.standardizedFileURL.resolvingSymlinksInPath().path
-            guard values.isSymbolicLink != true, path.hasPrefix(base) else { throw ImageExecutionError.invalidResource }
-            let relative = String(path.dropFirst(base.count))
-            if values.isDirectory == true {
-                guard folders.contains(relative) else { throw ImageExecutionError.invalidResource }
-            } else {
-                guard values.isRegularFile == true, expected.contains(relative) else {
-                    throw ImageExecutionError.invalidResource
-                }
-                found.insert(relative)
-            }
-        }
-        guard found == expected else { throw ImageExecutionError.invalidResource }
         var total = manifestBytes
         for (name, expected) in manifest.assets {
             let (sum, overflow) = total.addingReportingOverflow(expected.bytes)
@@ -99,6 +81,37 @@ struct ImageRuntimeBundle: Sendable {
             }
         }
         guard total == resourceBytes else { throw ImageExecutionError.invalidResource }
+    }
+
+    private static func regularFiles(in root: URL, folders: Set<String>) throws -> Set<String> {
+        var found: Set<String> = []
+        var pending = [""]
+        while let folder = pending.popLast() {
+            try Task.checkCancellation()
+            let base = folder.isEmpty ? root.path : root.path + "/" + folder
+            guard let handle = opendir(base) else { throw ImageExecutionError.invalidResource }
+            defer { closedir(handle) }
+            while true {
+                errno = 0
+                guard let entry = readdir(handle) else {
+                    guard errno == 0 else { throw ImageExecutionError.invalidResource }
+                    break
+                }
+                let name = withUnsafeBytes(of: entry.pointee.d_name) {
+                    String(decoding: $0.prefix(Int(entry.pointee.d_namlen)), as: UTF8.self)
+                }
+                guard name != ".", name != ".." else { continue }
+                var info = stat()
+                guard lstat(base + "/" + name, &info) == 0 else { throw ImageExecutionError.invalidResource }
+                let path = folder.isEmpty ? name : folder + "/" + name
+                switch info.st_mode & S_IFMT {
+                case S_IFREG: found.insert(path)
+                case S_IFDIR where folders.contains(path): pending.append(path)
+                default: throw ImageExecutionError.invalidResource
+                }
+            }
+        }
+        return found
     }
 
     private static func smallFile(_ url: URL) throws -> Data {

@@ -153,6 +153,9 @@ actor ImageRuntimePipeline {
         _ request: ImageGenerationRequest, trace: (any ImageTraceSink)?, progress: Progress
     ) async throws -> ImageGenerationPixels {
         let bundle = try loadBundle(resource, budget)
+        guard request.reference == nil || bundle.profile.workload.operation == "generate-and-edit" else {
+            throw ImageExecutionError.editingUnsupported
+        }
         try await checkpoint()
         let layout = try preparePrompt(bundle.tokenizerDirectory, request.prompt, request.reference != nil)
         let structure = try ImageDenoiserLayout(

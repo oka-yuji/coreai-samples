@@ -10,7 +10,7 @@ The runtime actor keeps its busy gate across every suspension. Generation uses t
 
 Stop rejects further steps and waits for the operation already submitted. A load includes specialization and function loading. The OS 27 cancellation shield joins that native operation before unloading; it does not claim to interrupt a GPU kernel. Service stop also joins its request's return path before permitting immediate reuse. Concurrent stops share cleanup. An unload failure retains the component and prevents generation until explicit cleanup succeeds. Permanent release prevents the old binding from starting again.
 
-A request-specific admission check also runs before the first validation or model load. If stop reaches an idle runtime before an already-requested generation reaches its actor, that withdrawn request is rejected when it arrives.
+A request-specific admission check also runs before the first validation or model load. A request with a reference image is refused after bundle validation and before any component loads unless the profile's operation is `generate-and-edit`. Component headers are read beside each component asset, and the inventory walk uses `readdir` so that AppleDouble and other hidden files outside the manifest are rejected. If stop reaches an idle runtime before an already-requested generation reaches its actor, that withdrawn request is rejected when it arrives.
 
 Progress carries the request ID. The service checks its delivery ID and current permission on MainActor before forwarding progress or a result. Revocation prevents later stages and suppresses stale delivery. The common adapter must still be tested for backgrounding, scene destruction and A → B → A switching with real resources.
 
