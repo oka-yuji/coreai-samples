@@ -2,10 +2,12 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 
+from Tools.Conversion.adapters.qwen_image21 import mobile_artifacts
 from Tools.Conversion.adapters.qwen_image21.evaluation import canonical_hash
 from Tools.Conversion.adapters.qwen_image21.fixtures import file_record, save_json
-from Tools.Conversion.adapters.qwen_image21.mobile_artifacts import inventory, read_component
+from Tools.Conversion.adapters.qwen_image21.mobile_artifacts import inventory, read_component, validate_source
 from Tools.Conversion.adapters.qwen_image21.mobile_convert import new_output, write_new_json
 from Tools.Conversion.adapters.qwen_image21.mobile_profile import make_profile
 
@@ -106,6 +108,41 @@ class ImageMobileArtifactTests(unittest.TestCase):
             save_json(path, record)
             with self.assertRaises(ValueError):
                 read_component(root, profile, "text")
+
+    def source_snapshot(self, root):
+        specification = json.loads((Path(mobile_artifacts.__file__).parents[2] / "recipes/qwen_image21/model.json").read_text())
+        for name in specification["files"]:
+            (root / name).parent.mkdir(parents=True, exist_ok=True)
+            (root / name).write_bytes(b"")
+        records = specification["files"]
+        return records, patch("Tools.Conversion.adapters.qwen_image21.mobile_artifacts.file_record",
+                              side_effect=lambda path: records[Path(path).relative_to(root).as_posix()])
+
+    def test_a_snapshot_matching_the_pinned_source_passes_for_every_component(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            records, pinned = self.source_snapshot(root)
+            (root / ".cache/huggingface/download/vae").mkdir(parents=True)
+            (root / ".cache/huggingface/download/vae/config.json.metadata").write_text("download metadata")
+            with pinned:
+                self.assertEqual(validate_source(root), records)
+                for kind in ("text", "vision", "denoiser", "vae_encoder", "vae_decoder"):
+                    self.assertIn("model_index.json", validate_source(root, kind))
+
+    def test_unlisted_files_that_a_loader_may_select_are_rejected(self):
+        cases = ((("vae/diffusion_pytorch_model.safetensors.index.json",
+                   "vae/diffusion_pytorch_model-00001-of-00001.safetensors"), (None, "vae_encoder", "vae_decoder")),
+                 (("transformer/diffusion_pytorch_model.safetensors",), (None, "denoiser")),
+                 (("processor/added_tokens.json",), (None, "text")))
+        for extras, kinds in cases:
+            for kind in kinds:
+                with self.subTest(extras=extras, kind=kind), tempfile.TemporaryDirectory() as folder:
+                    root = Path(folder)
+                    _, pinned = self.source_snapshot(root)
+                    for name in extras:
+                        (root / name).write_bytes(b"unpinned")
+                    with pinned, self.assertRaisesRegex(ValueError, "Unexpected file in the pinned source"):
+                        validate_source(root, kind)
 
 
 if __name__ == "__main__":

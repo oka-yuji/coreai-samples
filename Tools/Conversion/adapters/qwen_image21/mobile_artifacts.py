@@ -43,6 +43,12 @@ def validate_source(snapshot, kind=None):
         path = Path(snapshot) / name
         if not path.is_file() or file_record(path) != expected:
             raise ValueError("Source content differs from the pinned revision: " + name)
+    folders = set(groups.values()) if kind is None else {groups[kind]}
+    for folder in sorted(folders | {"processor/", "scheduler/"}):
+        for path in sorted((Path(snapshot) / folder).rglob("*")):
+            name = path.relative_to(snapshot).as_posix()
+            if path.is_file() and name not in selected:
+                raise ValueError("Unexpected file in the pinned source: " + name)
     return selected
 
 
