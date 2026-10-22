@@ -15,6 +15,7 @@ struct VideoSearchContent: View {
     @State private var playerURL: URL?
     @State private var choosingVideo = false
     @State private var videoRequest = 0
+    @State private var selectedTime: Double?
     #if os(iOS)
         @State private var pickedVideo: PhotosPickerItem?
     #endif
@@ -25,10 +26,18 @@ struct VideoSearchContent: View {
             controls
             if let failure = state.failure { failureView(failure) }
             if state.needsIndex && !state.isBusy { indexNotice }
-            if state.video != nil { playback }
-            if state.hasSearched {
-                results
-            } else if state.video == nil {
+            if state.video != nil {
+                LazyVStack(alignment: .leading, spacing: 4, pinnedViews: [.sectionHeaders]) {
+                    Section {
+                        if state.hasSearched {
+                            resultsHeader
+                            ForEach(state.displayedMatches) { match in row(match) }
+                        }
+                    } header: {
+                        playback
+                    }
+                }
+            } else {
                 ContentUnavailableView("Find moments in a video with your own words", systemImage: "film.stack")
                     .frame(minHeight: 280)
             }
@@ -47,6 +56,8 @@ struct VideoSearchContent: View {
             }
         #endif
         .onChange(of: state, initial: true) { connectPlayer() }
+        .onChange(of: state.video) { selectedTime = nil }
+        .onChange(of: state.matches) { selectedTime = nil }
         .task(id: state.video) { await connectWhenPermitted() }
         .onDisappear {
             player?.pause()
@@ -165,7 +176,11 @@ struct VideoSearchContent: View {
                 Text("Playback is available once the model is ready.").font(.footnote).foregroundStyle(.secondary)
             }
             if state.hasSearched && state.duration > 0 { markers }
+            if state.hasSearched && !state.displayedMatches.isEmpty { selectionBar }
         }
+        .padding(.bottom, 8)
+        .background(.background)
+        .overlay(alignment: .bottom) { Divider() }
     }
 
     private var markers: some View {
@@ -173,26 +188,54 @@ struct VideoSearchContent: View {
             ZStack(alignment: .leading) {
                 Capsule().fill(.quaternary).frame(height: 4)
                 ForEach(state.displayedMatches) { match in
-                    Button {
-                        play(from: match.moment.time)
-                    } label: {
-                        Capsule().fill(Color.accentColor).frame(width: 4, height: 16)
-                            .frame(width: 24, height: 24)
-                            .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .position(
-                        x: geometry.size.width * min(1, max(0, match.moment.time / state.duration)),
-                        y: geometry.size.height / 2
-                    )
-                    .accessibilityLabel(Text("Play from \(timestamp(match.moment.time))"))
+                    let selected = match.moment.time == selectedTime
+                    Capsule().fill(Color.accentColor.opacity(selected ? 1 : 0.35))
+                        .frame(width: selected ? 5 : 4, height: selected ? 20 : 14)
+                        .position(
+                            x: geometry.size.width * min(1, max(0, match.moment.time / state.duration)),
+                            y: geometry.size.height / 2
+                        )
+                        .zIndex(selected ? 1 : 0)
                 }
             }
         }
         .frame(height: 24)
+        .accessibilityHidden(true)
     }
 
-    private var results: some View {
+    private var selectionBar: some View {
+        let matches = state.displayedMatches
+        let selection = VideoSearchState.selection(in: matches, at: selectedTime)
+        let previous = selection == nil ? matches.last : selection?.previous
+        let next = selection == nil ? matches.first : selection?.next
+        return HStack(spacing: 8) {
+            if let selection {
+                Label("Selected moment", systemImage: "play.fill")
+                Text(verbatim: timestamp(matches[selection.index].moment.time)).bold()
+                Text(verbatim: "\(selection.index + 1) / \(matches.count)").foregroundStyle(.secondary)
+            } else {
+                Label("Select a moment", systemImage: "play")
+            }
+            Spacer()
+            step("Previous moment", systemImage: "chevron.backward", to: previous)
+            step("Next moment", systemImage: "chevron.forward", to: next)
+        }
+        .font(.callout.monospacedDigit())
+        .frame(minHeight: 44)
+    }
+
+    private func step(_ title: LocalizedStringKey, systemImage: String, to target: VideoSearchMatch?) -> some View {
+        Button {
+            if let target { play(from: target.moment.time) }
+        } label: {
+            Image(systemName: systemImage).frame(minWidth: 44, minHeight: 44).contentShape(Rectangle())
+        }
+        .buttonStyle(.borderless)
+        .disabled(target == nil)
+        .accessibilityLabel(title)
+    }
+
+    private var resultsHeader: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .firstTextBaseline) {
                 VStack(alignment: .leading, spacing: 4) {
@@ -220,14 +263,14 @@ struct VideoSearchContent: View {
                 )
                 .accessibilityIdentifier("video-search-no-matches")
             }
-            LazyVStack(alignment: .leading, spacing: 8) {
-                ForEach(state.displayedMatches) { match in row(match) }
-            }
         }
+        .padding(.top, 16)
+        .padding(.bottom, 4)
     }
 
     private func row(_ match: VideoSearchMatch) -> some View {
-        Button {
+        let selected = match.moment.time == selectedTime
+        return Button {
             play(from: match.moment.time)
         } label: {
             HStack(spacing: 12) {
@@ -235,17 +278,29 @@ struct VideoSearchContent: View {
                     Image(decorative: image, scale: 1).resizable().scaledToFill()
                         .frame(width: 96, height: 54)
                         .clipShape(RoundedRectangle(cornerRadius: 6))
+                        .overlay(alignment: .bottomLeading) {
+                            if selected {
+                                Image(systemName: "play.fill").font(.caption2).foregroundStyle(Color.accentColor)
+                                    .padding(5).background(.white, in: Circle()).padding(4)
+                            }
+                        }
                 }
                 Text(verbatim: timestamp(match.moment.time)).font(.body.monospacedDigit())
+                    .fontWeight(selected ? .bold : nil)
+                    .foregroundStyle(selected ? Color.accentColor : Color.primary)
                 Spacer()
                 Text(match.similarity, format: .number.precision(.fractionLength(3)))
                     .monospacedDigit().foregroundStyle(.secondary)
             }
+            .padding(.vertical, 4)
+            .padding(.horizontal, 6)
+            .background(Color.accentColor.opacity(selected ? 0.12 : 0), in: RoundedRectangle(cornerRadius: 10))
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .accessibilityLabel(Text("Play from \(timestamp(match.moment.time))"))
         .accessibilityValue(Text(match.similarity, format: .number.precision(.fractionLength(3))))
+        .accessibilityAddTraits(selected ? .isSelected : [])
     }
 
     private func failureView(_ failure: VideoSearchFailure) -> some View {
@@ -293,6 +348,7 @@ struct VideoSearchContent: View {
 
     private func play(from time: Double) {
         guard isPermitted(), let player = connectPlayer() else { return }
+        selectedTime = time
         player.seek(to: CMTime(seconds: time, preferredTimescale: 600), toleranceBefore: .zero, toleranceAfter: .zero)
         player.play()
     }
