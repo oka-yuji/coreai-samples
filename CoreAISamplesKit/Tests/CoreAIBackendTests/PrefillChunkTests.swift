@@ -67,6 +67,25 @@ import Testing
         }
     }
 
+    @Test("The shipped adoption table lists exactly the measured Qwen3.5-0.8B and Qwen3.5-9B assets")
+    func shippedTableListsTheMeasuredAssets() {
+        #expect(
+            Engine.chunk256Assets.map { [$0.modelID, $0.mainHash] }
+                == [Self.qwen08, Self.qwen9].map { [$0.modelID, $0.mainHash] })
+    }
+
+    @Test(
+        "The shipped adoption table gives the measured Qwen3.5-0.8B and Qwen3.5-9B assets a prefill chunk of 256",
+        arguments: memoryRule.map(\.physicalMemory))
+    func shippedTableAdoptsTheMeasuredAssets(physicalMemory: UInt64) {
+        for asset in [Self.qwen08, Self.qwen9] {
+            #expect(
+                Engine.prefillChunkSize(
+                    modelID: asset.modelID, assetHash: asset.mainHash, isHybrid: true,
+                    physicalMemory: physicalMemory) == 256)
+        }
+    }
+
     @Test(
         "A renamed bundle keeps the adopted chunk through its source model ID and main.hash, and the name alone selects nothing",
         arguments: [
