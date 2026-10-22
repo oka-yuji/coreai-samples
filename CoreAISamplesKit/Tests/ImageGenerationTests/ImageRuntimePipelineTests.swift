@@ -186,6 +186,28 @@ struct ImageRuntimePipelineTests {
         #expect(await backend.history.isEmpty)
     }
 
+    @Test("A reference image is refused before any load unless the profile declares editing")
+    func editingNeedsEditingProfile() async throws {
+        let generation = try ImageRuntimeFixture(operation: "generate")
+        defer { generation.remove() }
+        let refused = ImageFakeBackend()
+        let pipeline = generation.pipeline(backend: refused)
+        await #expect(throws: ImageExecutionError.editingUnsupported) {
+            try await pipeline.generate(generation.request(editing: true), progress: { _ in })
+        }
+        #expect(await refused.history.isEmpty)
+        #expect(await pipeline.report?.status == .failed)
+        #expect(try await pipeline.generate(generation.request(), progress: { _ in }).report.status == .completed)
+        #expect(await refused.history.first == "load:text")
+        let editing = try ImageRuntimeFixture(operation: "generate-and-edit")
+        defer { editing.remove() }
+        let accepted = ImageFakeBackend()
+        let result = try await editing.pipeline(backend: accepted).generate(
+            editing.request(editing: true), progress: { _ in })
+        #expect(result.report.status == .completed)
+        #expect(await accepted.history.first == "load:vision")
+    }
+
     @Test("Permanent release prevents the old binding from starting again")
     func permanentRelease() async throws {
         let fixture = try ImageRuntimeFixture()

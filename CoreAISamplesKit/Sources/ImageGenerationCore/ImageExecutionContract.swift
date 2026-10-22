@@ -11,6 +11,7 @@ public enum ImageExecutionError: Error, Equatable, Sendable {
     case released
     case permissionDenied
     case invalidResource
+    case editingUnsupported
     case invalidTensor(String)
     case memoryUnavailable
     case budgetNotConfigured
