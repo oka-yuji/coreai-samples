@@ -24,11 +24,16 @@ final class ReloadTestControl: Sendable {
         var footprint: UInt64 = 0
         var events: [String] = []
         var generationTokens: [Int] = [1, 3]
+        var steps = 0
+        var samples = 0
+        var blockAtStep: Int?
     }
 
     let state = Mutex(State())
     let loading = AsyncStream<Int>.makeStream()
     let reading = AsyncStream<Int>.makeStream()
+    let sampling = AsyncStream<Int>.makeStream()
+    let stepping = AsyncStream<Int>.makeStream()
 
     func make(_ bundle: ModelBundle, _ contextLimit: Int) async throws -> EngineBox {
         let gate = AsyncStream<Void>.makeStream()
@@ -125,7 +130,12 @@ final class ReloadTestEngine: RuntimeEngine {
     }
 
     func withLogits<Result>(_ body: (UnsafeBufferPointer<Float16>) -> Result) -> Result {
-        logits().withUnsafeBufferPointer(body)
+        control.sampling.continuation.yield(
+            control.state.withLock { state in
+                state.samples += 1
+                return state.samples
+            })
+        return logits().withUnsafeBufferPointer(body)
     }
 
     func checkpoint() -> Engine.Checkpoint {
@@ -204,6 +214,7 @@ final class ReloadTestEngine: RuntimeEngine {
     func step(_ token: Int32) async throws {
         let gate = AsyncStream<Void>.makeStream()
         let (fail, block) = control.state.withLock { state in
+            if state.blockAtStep == state.steps + 1 { (state.blockNextStep, state.blockAtStep) = (true, nil) }
             let pair = (state.failNextStep, state.blockNextStep)
             state.failNextStep = false
             state.blockNextStep = false
@@ -211,6 +222,7 @@ final class ReloadTestEngine: RuntimeEngine {
             return pair
         }
         if block {
+            control.stepping.continuation.yield(id)
             var iterator = gate.stream.makeAsyncIterator()
             _ = await iterator.next()
             try Task.checkCancellation()
@@ -219,6 +231,7 @@ final class ReloadTestEngine: RuntimeEngine {
         tokens.append(token)
         stats.decodeTokens += 1
         outputIndex += 1
+        control.state.withLock { $0.steps += 1 }
     }
 }
 
@@ -230,9 +243,10 @@ struct ReloadTestModel {
 
     static func make(
         policy: LocalLanguageModel.ReloadPolicy, limit: Int = 128,
-        settings: LocalLanguageModel.VerificationSettings = .init()
+        settings: LocalLanguageModel.VerificationSettings = .init(), tokenizer: String? = nil
     ) async throws -> Self {
         let folder = try tinyBundle()
+        if let tokenizer { try Data(tokenizer.utf8).write(to: folder.appending(path: "tokenizer/tokenizer.json")) }
         let config = [
             "tokenizer_class": "Qwen2Tokenizer", "eos_token": "<|im_end|>",
             "chat_template": "{% for message in messages %}{{ message['content'] }}{% endfor %}",

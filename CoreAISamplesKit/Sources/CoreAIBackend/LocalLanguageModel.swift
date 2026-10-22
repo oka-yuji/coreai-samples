@@ -335,8 +335,6 @@ actor Runtime {
                 lastGeneration = generated
                 for call in output.written { written[call.id] = call.keys }
                 written.removeFirst(max(0, written.count - Self.rememberedCalls))
-                if !generated.isEmpty { generations.append((prompt.count, generated)) }
-                generations.removeFirst(max(0, generations.count - Self.rememberedGenerations))
             }
             var parser = ThinkParser(reasoning: opensReasoning)
             var pending: [Int] = []
@@ -362,6 +360,7 @@ actor Runtime {
                 if counted { reasoningTokens += 1 }
                 let sent = await output.send(parts, reasoning: counted)
                 probe?.sent(sent)
+                try Task.checkCancellation()
                 if generated.count < limit {
                     try await compute(core: core) { try await core.engine.step(token) }
                     probe?.stepped()
@@ -392,6 +391,8 @@ actor Runtime {
                     action: .updateUsage(
                         input: .init(totalTokenCount: prompt.count, cachedTokenCount: plan.keep),
                         output: .init(totalTokenCount: generated.count, reasoningTokenCount: reasoningTokens))))
+            if !generated.isEmpty { generations.append((prompt.count, generated)) }
+            generations.removeFirst(max(0, generations.count - Self.rememberedGenerations))
         } catch {
             probe?.fail(
                 error, sampledTokens: generated.count, prefilledTokens: core.engine.stats.prefillTokens - before,
