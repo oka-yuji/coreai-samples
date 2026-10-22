@@ -1,6 +1,6 @@
 import Foundation
 
-public struct ImageComponentLoadMetrics: Codable, Sendable {
+public struct ImageComponentLoadMetrics: Codable, Equatable, Sendable {
     public let cacheHit: Bool
     public let cacheLookupSeconds: Double
     public let specializationSeconds: Double?
@@ -19,7 +19,7 @@ public enum ImageMeasuredOperation: String, Codable, Sendable {
     case loading, inference, release
 }
 
-public struct ImagePhaseMetric: Codable, Sendable {
+public struct ImagePhaseMetric: Codable, Equatable, Sendable {
     public let component: ImageModelComponent
     public let operation: ImageMeasuredOperation
     public let step: Int?
@@ -49,7 +49,7 @@ public struct ImagePhaseMetric: Codable, Sendable {
     }
 }
 
-public struct ImageExecutionReport: Codable, Sendable {
+public struct ImageExecutionReport: Codable, Equatable, Sendable {
     public enum Status: String, Codable, Sendable {
         case running, completed, cancelled, failed, releaseUnconfirmed
     }
@@ -78,7 +78,7 @@ public struct ImageExecutionReport: Codable, Sendable {
     }
 }
 
-public struct ImageGenerationResult: Sendable {
+public struct ImageGenerationResult: Equatable, Sendable {
     public let requestID: UUID
     public let pixels: ImageGenerationPixels
     public let report: ImageExecutionReport

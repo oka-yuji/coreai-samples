@@ -149,9 +149,13 @@ targets:
           - NoteEditor.swift
     dependencies:
       - package: CoreAISamplesKit
+        product: ImageGenerationCore
+      - package: CoreAISamplesKit
         product: ImageDiagnosticFeature
       - package: CoreAISamplesKit
         product: ImageGenerationRuntime
+      - package: CoreAISamplesKit
+        product: ImageGenerationUI
       - package: CoreAISamplesKit
         product: ObjectFinderRuntime
       - package: CoreAISamplesKit
