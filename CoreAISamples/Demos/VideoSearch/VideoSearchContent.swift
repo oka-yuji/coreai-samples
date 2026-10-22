@@ -16,6 +16,7 @@ struct VideoSearchContent: View {
     @State private var choosingVideo = false
     @State private var videoRequest = 0
     @State private var selectedTime: Double?
+    @State private var visibleHeight: CGFloat = .infinity
     #if os(iOS)
         @State private var pickedVideo: PhotosPickerItem?
     #endif
@@ -169,7 +170,7 @@ struct VideoSearchContent: View {
             if let player {
                 VideoPlayer(player: player)
                     .aspectRatio(16 / 9, contentMode: .fit)
-                    .frame(maxHeight: 240)
+                    .frame(maxHeight: maximumPlayerHeight)
                     .frame(maxWidth: .infinity)
                     .accessibilityIdentifier("video-search-player")
             } else {
@@ -181,6 +182,16 @@ struct VideoSearchContent: View {
         .padding(.bottom, 8)
         .background(.background)
         .overlay(alignment: .bottom) { Divider() }
+        .onGeometryChange(for: CGFloat.self) {
+            $0.bounds(of: .scrollView)?.height ?? .infinity
+        } action: {
+            visibleHeight = $0
+        }
+    }
+
+    private var maximumPlayerHeight: CGFloat {
+        guard visibleHeight.isFinite, visibleHeight > 0 else { return 240 }
+        return min(240, visibleHeight * 0.4)
     }
 
     private var markers: some View {
