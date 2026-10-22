@@ -28,6 +28,8 @@ public struct ModelBundle: Sendable {
     public let tokenizerURL: URL
     public let vocabSize: Int
     public let maxContextLength: Int
+    public let sourceModelID: String?
+    public let mainHash: String?
 
     public init(url: URL) throws {
         func exists(_ path: String) -> Bool {
@@ -60,6 +62,9 @@ public struct ModelBundle: Sendable {
         tokenizerURL = url.appending(path: "tokenizer")
         self.vocabSize = vocabSize
         self.maxContextLength = maxContextLength
+        sourceModelID = metadata.source?.hfModelID
+        let hash = try? Data(contentsOf: modelURL.appending(path: "main.hash"))
+        mainHash = hash?.map { String(format: "%02x", $0) }.joined()
     }
 
     public func loadTokenizer() async throws -> any Tokenizer {
@@ -112,8 +117,21 @@ public struct ModelBundle: Sendable {
             }
         }
 
+        struct Source: Decodable {
+            let hfModelID: String?
+
+            enum CodingKeys: String, CodingKey {
+                case hfModelID = "hf_model_id"
+            }
+
+            init(from decoder: any Swift.Decoder) {
+                hfModelID = try? decoder.container(keyedBy: CodingKeys.self).decode(String.self, forKey: .hfModelID)
+            }
+        }
+
         let name: String?
         let assets: Assets?
         let language: Language?
+        let source: Source?
     }
 }
