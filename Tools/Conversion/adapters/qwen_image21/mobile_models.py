@@ -78,7 +78,7 @@ def compress_original(model, kind, profile):
     encoding = profile["components"][kind]["weight_encoding"]
     if encoding["kind"] in ("dense", "dense-linear"):
         return model, {"kind": "dense", "layers": [], "dtype": encoding["dtype"]}
-    return quantize(model, encoding["bits"], encoding["group_size"])
+    return quantize(model, encoding["bits"], encoding["group_size"], dense_modules=encoding.get("dense_modules", ()))
 
 
 class TextBoundary(torch.nn.Module):

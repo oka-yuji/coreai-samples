@@ -11,12 +11,16 @@ Maintainer tooling for [#216](https://github.com/oka-yuji/coreai-samples/issues/
 | `w4` | W4/group64, F16 scales, F32 math | W4/group64, F16 math | W8/group16, F32 math | Dense F32 |
 | `mixed-f32` | F16 Linear/embedding storage, F32 math | F16 Linear storage, F32 math | F16 Linear storage, F32 math | Dense F32 |
 | `w4-f32` | W4/group64, F16 scales, F32 math | W4/group64, F16 scales, F32 math | W8/group16, F32 math | Dense F32 |
+| `w4-blocks20-21-f32` | W4/group64, F32 math | W4 except the 14 Linear weights in blocks 20–21, retained as F16; F32 math | W8/group16, F32 math | Dense F32 |
+| `w4-blocks16-23-f32` | W4/group64, F32 math | W4 except the 56 Linear weights in blocks 16–23, retained as F16; F32 math | W8/group16, F32 math | Dense F32 |
 
 The physical floating-point inputs and outputs remain Float32. Integer indices and Boolean masks keep their declared types. DiT returns the complete `[1,2304,64]` joint output. Text returns hidden states before the final RMSNorm. DiT temporal frequencies and Vision trigonometric tables retain the source Float32 precision. The Vision feed-forward width is 4304, requiring the separate group16 setting.
 
 `mixed` is the unquantized A1 counterpart for the W4/W8 candidates. The previous FP16-network/FP32-VAE source cohort is a different condition. Full FP16 VAE overflow and earlier FP16 text fidelity failures remain failures; these recipes do not change the frozen numerical policy.
 
 `mixed-f32` is the unquantized A1 counterpart for `w4-f32`. These additional profiles retain Float32 DiT normalization parameters, temporal frequencies, activations and scheduler outputs, with Float16 Linear weight storage. The two-case W4/F16 smoke failed fixed-input DiT fidelity while its final latent/RGBA passed. A Float32 arithmetic diagnostic reduced the original-to-wrapper discrepancy; the new candidate must independently pass complete numerical, quality and device checks. It uses the existing Float32 numerical budget.
+
+The complete W4/F32 fixed comparison subsequently failed 32 full-joint tensors, despite passing all 480 target comparisons. The two selective candidates preserve the full output ABI and frozen Float32 thresholds. A four-input MPS source/wrapper diagnostic supported trying retained weights in blocks 20–21 and 16–23; that result does not establish Core AI fidelity, full-suite quality, or mobile memory fit. Both use `mixed-f32` as A1. The profile lists every retained module, compression records its exact F16 weight and bias hashes, and the independent reference rejects missing or changed records. The compression summary distinguishes quantized-only payload estimates from the combined quantized/retained Linear-weight estimate.
 
 ## Prepare and run
 
@@ -33,7 +37,7 @@ python3 -m Tools.Conversion.local plan --recipe qwen_image21_mobile --workspace 
 python3 -m Tools.Conversion.local run --recipe qwen_image21_mobile --workspace "$QI_WORKSPACE"
 ```
 
-The default candidate is W4. Select `--precision fp16`, `bf16`, `mixed`, `w8`, `mixed-f32` or `w4-f32` for the other profiles. The runner preserves failed attempts and verifies stage inputs, outputs and dependencies before reuse. Model stages use the shared heavy-job lock. Keep other model processes stopped and monitor free disk space; individual recipe stages also require a free-space reserve.
+The default candidate is W4. Select a candidate name from the table with `--precision` for the other profiles. The runner preserves failed attempts and verifies stage inputs, outputs and dependencies before reuse. Model stages use the shared heavy-job lock. Keep other model processes stopped and monitor free disk space; individual recipe stages also require a free-space reserve.
 
 For an initial export-only run, use the common runner with `recipe-export.json` (or `recipe-export-<candidate>.json`), the same bindings, work directory and lock:
 

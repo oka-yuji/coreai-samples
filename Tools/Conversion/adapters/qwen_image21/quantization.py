@@ -50,7 +50,17 @@ class LinearCalibration(torch.nn.Module):
         return value
 
 
-def quantize(module, bits, group_size=64):
+def dense_weight(linear, name):
+    if (type(linear) is not torch.nn.Linear or torch.nn.utils.parametrize.is_parametrized(linear)
+            or linear.weight.dtype != torch.float16 or not torch.isfinite(linear.weight).all()
+            or (linear.bias is not None and (linear.bias.dtype != torch.float16 or not torch.isfinite(linear.bias).all()))):
+        raise ValueError("Retained Linear weights require finite Float16 storage without parametrization")
+    return {"name": name, "weight": tensor_record(linear.weight),
+            "bias": tensor_record(linear.bias) if linear.bias is not None else None,
+            "payload_bits": linear.weight.numel() * 16}
+
+
+def quantize(module, bits, group_size=64, *, dense_modules=()):
     if bits not in (4, 8) or type(bits) is not int or type(group_size) is not int or group_size not in (16, 64):
         raise ValueError("Mobile compression requires W4 or W8 with a declared group16 or group64")
     from coreai_opt.quantization import ExecutionMode, ModuleQuantizerConfig, QuantizationSpec, Quantizer, QuantizerConfig
@@ -59,6 +69,11 @@ def quantize(module, bits, group_size=64):
     names = [name for name, child in module.named_modules() if type(child) is torch.nn.Linear]
     if not names or "" in names or any(torch.nn.utils.parametrize.is_parametrized(child) for child in module.modules()):
         raise ValueError("Compression requires a nonempty, unparametrized Linear set")
+    if (not isinstance(dense_modules, (tuple, list)) or any(type(name) is not str for name in dense_modules)
+            or len(dense_modules) != len(set(dense_modules)) or not set(dense_modules) < set(names)):
+        raise ValueError("Retained modules must be a unique proper subset of the declared Linear set")
+    retained = [dense_weight(module.get_submodule(name), name) for name in dense_modules]
+    names = [name for name in names if name not in dense_modules]
     for name in names:
         weight = module.get_submodule(name).weight
         if weight.dtype != torch.float16 or weight.shape[1] % group_size:
@@ -78,9 +93,12 @@ def quantize(module, bits, group_size=64):
     for name, layer in zip(names, finalized.layers, strict=True):
         module.set_submodule(name, layer)
     records = [quantized_weight(module.get_submodule(name), name, bits, group_size)[1] for name in names]
-    return module, {"kind": "linear-integer", "bits": bits, "group_size": group_size, "axis": 1,
-                       "scheme": "symmetric_with_clipping", "storage_dtype": "float16",
-                       "effective_weight": "round16((q-zp)*scale16)", "layers": records}
+    result = {"kind": "linear-integer", "bits": bits, "group_size": group_size, "axis": 1,
+              "scheme": "symmetric_with_clipping", "storage_dtype": "float16",
+              "effective_weight": "round16((q-zp)*scale16)", "layers": records}
+    if retained:
+        result["dense_layers"] = retained
+    return module, result
 
 
 def quantized_weight(linear, name, bits, group_size=64):
@@ -113,6 +131,15 @@ def quantized_weight(linear, name, bits, group_size=64):
 def plain_reference(module, compression):
     reference = copy.deepcopy(module)
     names = [row["name"] for row in compression["layers"]]
+    retained = compression.get("dense_layers", [])
+    retained_names = [row["name"] for row in retained]
+    ordinary = [name for name, child in reference.named_modules() if type(child) is torch.nn.Linear]
+    if (set(ordinary) != set(retained_names) or len(retained_names) != len(set(retained_names))
+            or set(names) & set(retained_names)):
+        raise ValueError("Independent reference must cover every and only the retained dense Linear weight")
+    for row in retained:
+        if dense_weight(reference.get_submodule(row["name"]), row["name"]) != row:
+            raise ValueError("A retained dense weight or bias differs from the exported identity")
     observed = [name for name, child in reference.named_modules()
                 if torch.nn.utils.parametrize.is_parametrized(child, "weight")]
     if set(names) != set(observed) or len(names) != len(set(names)):

@@ -4,11 +4,11 @@ from .evaluation import IMPLEMENTATION, MODEL, REVISION, SIGMAS, canonical_hash,
 from .profile import boundaries
 
 
-CANDIDATES = ("fp16", "bf16", "mixed", "w8", "w4", "mixed-f32", "w4-f32")
+CANDIDATES = ("fp16", "bf16", "mixed", "w8", "w4", "mixed-f32", "w4-f32", "w4-blocks20-21-f32", "w4-blocks16-23-f32")
 
 
 def comparison_candidate(profile):
-    return "mixed-f32" if profile["id"] in ("qmi-mobile-w4-f32-v1", "qmi-mobile-mixed-f32-v1") else "mixed"
+    return "mixed-f32" if profile["id"] in {f"qmi-mobile-{name}-v1" for name in CANDIDATES if name.endswith("-f32")} else "mixed"
 
 
 def component_settings(candidate):
@@ -43,6 +43,11 @@ def component_settings(candidate):
                                     "other_parameters_dtype": "float16" if kind == "denoiser" and not full_precision else "float32"},
             }
     result["denoiser"]["weight_encoding"]["time_frequency_dtype"] = "float32"
+    preserved = {"w4-blocks20-21-f32": (20, 21), "w4-blocks16-23-f32": tuple(range(16, 24))}
+    if candidate in preserved:
+        suffixes = ("attn.to_q", "attn.to_k", "attn.to_v", "attn.to_out.0", "img_mlp.proj", "img_mlp.out", "img_mlp.gate_layer")
+        result["denoiser"]["weight_encoding"]["dense_modules"] = sorted(
+            f"transformer_blocks.{block}.{suffix}.linear" for block in preserved[candidate] for suffix in suffixes)
     return result
 
 

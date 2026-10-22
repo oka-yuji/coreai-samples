@@ -43,6 +43,13 @@ def compression_summary(components, baseline):
                       "selected_linear_payload_bits_scenario": bits if elements else None,
                       "selected_linear_bits_per_weight_scenario": bits / elements if elements else None,
                       "scope": "Asset bytes include serialization; grouped q/scale/zero scenario excludes other weights, IR overhead and runtime memory"}
+        retained = compression.get("dense_layers", [])
+        if retained:
+            dense_elements = sum(row["weight"]["shape"][0] * row["weight"]["shape"][1] for row in retained)
+            dense_bits = sum(row["payload_bits"] for row in retained)
+            rows[kind].update(retained_dense_linear_count=len(retained), retained_dense_weight_elements=dense_elements,
+                              retained_dense_weight_payload_bits=dense_bits,
+                              declared_linear_weight_bits_per_weight_scenario=(bits + dense_bits) / (elements + dense_elements))
     return rows
 
 

@@ -8,6 +8,20 @@ class ImageMobileProfileTests(unittest.TestCase):
     def profile(self, candidate="w4"):
         return make_profile(candidate, "a" * 64, {"mobile_models.py": "b" * 64})
 
+    def test_sensitive_block_candidates_bind_the_exact_dense_weight_set(self):
+        for candidate, blocks in (("w4-blocks20-21-f32", {20, 21}), ("w4-blocks16-23-f32", set(range(16, 24)))):
+            profile = self.profile(candidate)
+            encoding = profile["components"]["denoiser"]["weight_encoding"]
+            self.assertEqual(len(encoding["dense_modules"]), 7 * len(blocks))
+            self.assertEqual({int(name.split(".")[1]) for name in encoding["dense_modules"]}, blocks)
+            self.assertEqual(comparison_candidate(profile), "mixed-f32")
+            self.assertEqual(profile["components"]["denoiser"]["outputs"][0]["shape"], [1, 2304, 64])
+            for mutate in (lambda values: values.pop(), lambda values: values.append(values[0]), lambda values: values.reverse()):
+                altered = copy.deepcopy(profile)
+                mutate(altered["components"]["denoiser"]["weight_encoding"]["dense_modules"])
+                with self.assertRaises(ValueError):
+                    validate_mobile_profile(altered)
+
     def test_full_precision_denoiser_keeps_compressed_storage_and_has_a_matching_dense_counterpart(self):
         compressed = self.profile("w4-f32")
         dense = self.profile("mixed-f32")

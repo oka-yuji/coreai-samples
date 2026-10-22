@@ -8,13 +8,28 @@ from unittest.mock import patch
 
 from Tools.Conversion.adapters.qwen_image21.fixtures import file_record
 from Tools.Conversion.adapters.qwen_image21.mobile_compare import quality_template, score_quality
-from Tools.Conversion.adapters.qwen_image21.mobile_pack import copy_file, pack
+from Tools.Conversion.adapters.qwen_image21.mobile_pack import compression_summary, copy_file, pack
 from Tools.Conversion.adapters.qwen_image21.mobile_profile import CANDIDATES, make_profile
 from Tools.Conversion.adapters.qwen_image21.mobile_recipe import recipe
 from Tools.Conversion.recipe import load_recipe
 
 
 class ImageMobilePackTests(unittest.TestCase):
+    def test_compression_summary_accounts_for_retained_dense_weights(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            asset = root / "denoiser/denoiser.aimodel"
+            asset.mkdir(parents=True)
+            (asset / "model").write_bytes(b"x" * 100)
+            compression = {"layers": [{"shape": [2, 2], "payload_bits_scenario": 20}],
+                           "dense_layers": [{"weight": {"shape": [2, 2]}, "payload_bits": 64}]}
+            result = compression_summary({"denoiser": ({"asset_bytes": 80}, compression)}, root)["denoiser"]
+            self.assertEqual(result["quantized_linear_count"], 1)
+            self.assertEqual(result["retained_dense_linear_count"], 1)
+            self.assertEqual(result["selected_linear_bits_per_weight_scenario"], 5)
+            self.assertEqual(result["declared_linear_weight_bits_per_weight_scenario"], 10.5)
+            self.assertEqual(result["asset_size_ratio"], 0.8)
+
     def test_every_generated_candidate_is_accepted_by_the_actual_recipe_parser(self):
         repo = Path(__file__).parents[3]
         root = repo / "Tools/Conversion/recipes/qwen_image21_mobile"
