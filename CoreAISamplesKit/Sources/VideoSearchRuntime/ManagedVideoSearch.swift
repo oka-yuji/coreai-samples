@@ -13,16 +13,20 @@ public final class ManagedVideoSearch {
     }
 
     private let makeService: @MainActor () -> any VideoSearchService
+    private var retainedState: VideoSearchState?
     private var bound: Bound?
     private var retired: [Bound] = []
     private var bindings = 0
     private var permission: @MainActor () -> Bool = { false }
 
-    public init(makeService: @escaping @MainActor () -> any VideoSearchService) {
+    public init(
+        retaining state: VideoSearchState? = nil, makeService: @escaping @MainActor () -> any VideoSearchService
+    ) {
+        retainedState = state
         self.makeService = makeService
     }
 
-    public var state: VideoSearchState? { bound?.store.state }
+    public var state: VideoSearchState? { bound?.store.state ?? retainedState }
 
     public func store(
         folder: URL, identity: String, isPermitted: @escaping @MainActor () -> Bool
@@ -36,10 +40,12 @@ public final class ManagedVideoSearch {
             return permission()
         }
         let store = Store<VideoSearchFeature>(
-            initialState: VideoSearchState(managed: folder, identity: identity, retaining: bound?.store.state),
+            initialState: VideoSearchState(
+                managed: folder, identity: identity, retaining: bound?.store.state ?? retainedState),
             run: runner.run)
         if let bound { retired.append(bound) }
         bound = Bound(token: token, folder: folder, identity: identity, store: store, runner: runner)
+        retainedState = nil
         return store
     }
 

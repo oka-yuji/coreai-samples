@@ -22,6 +22,8 @@ public enum ModelLibraryAction: Sendable {
     case demoStopped(LibraryTicket, LibraryTicket)
     case demoStopFailed(LibraryTicket, LibraryTicket, String)
     case resourceLost(artifactID: String, session: LibraryTicket)
+    case requestDemoPreparation(LibraryTicket)
+    case demoPreparationChanged(LibraryTicket, DemoPreparation)
     case retryDemoStop
     case dismissFailure
 }
@@ -33,12 +35,14 @@ public enum ModelLibraryEffect: Equatable, Sendable {
     case stopTransfer(artifactID: String, LibraryTicket)
     case delete(ValidatedModelResource, LibraryTicket)
     case stopDemo(ModelDemoSession, LibraryTicket)
+    case prepareDemo(ModelDemoSession)
 }
 
 public enum ModelLibraryEffectID: Hashable, Sendable {
     case resource(String)
     case stopping(String)
     case demo
+    case demoPreparation
 }
 
 public enum ModelLibraryFeature: Feature {
@@ -120,6 +124,7 @@ public enum ModelLibraryFeature: Feature {
             if let lost = state.pendingLoss { state.installations[lost] = ModelInstallation() }
             state.pendingLoss = nil
             state.session = nil
+            state.demoPreparation = .pending
             state.stopRequestID = nil
             state.pendingDestination = nil
             state.pendingArtifact = nil
@@ -138,6 +143,19 @@ public enum ModelLibraryFeature: Feature {
             guard state.pendingDestination == nil else { return [] }
             state.failure = nil
             return stop(&state, session, then: .demo(session.selection))
+        case .requestDemoPreparation(let ticket):
+            guard let session = state.session, session.id == ticket, state.pendingDestination == nil,
+                [.pending, .occupied, .permissionRequired].contains(state.demoPreparation)
+            else { return [] }
+            guard state.permits(session.id, selection: session.selection) else {
+                state.demoPreparation = .permissionRequired
+                return []
+            }
+            state.demoPreparation = .preparing
+            return [.run(.prepareDemo(session), id: .demoPreparation)]
+        case .demoPreparationChanged(let ticket, let preparation):
+            guard state.session?.id == ticket, state.pendingDestination == nil else { return [] }
+            state.demoPreparation = preparation
         case .retryDemoStop:
             guard let session = state.session, state.pendingDestination != nil, state.stopRequestID == nil
             else { return [] }

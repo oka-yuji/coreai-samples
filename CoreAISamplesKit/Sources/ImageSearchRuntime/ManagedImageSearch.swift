@@ -13,16 +13,20 @@ public final class ManagedImageSearch {
     }
 
     private let makeService: @MainActor () -> any ImageSearchService
+    private var retainedState: ImageSearchState?
     private var bound: Bound?
     private var retired: [Bound] = []
     private var bindings = 0
     private var permission: @MainActor () -> Bool = { false }
 
-    public init(makeService: @escaping @MainActor () -> any ImageSearchService) {
+    public init(
+        retaining state: ImageSearchState? = nil, makeService: @escaping @MainActor () -> any ImageSearchService
+    ) {
+        retainedState = state
         self.makeService = makeService
     }
 
-    public var state: ImageSearchState? { bound?.store.state }
+    public var state: ImageSearchState? { bound?.store.state ?? retainedState }
 
     public func store(
         folder: URL, identity: String, isPermitted: @escaping @MainActor () -> Bool
@@ -36,10 +40,12 @@ public final class ManagedImageSearch {
             return permission()
         }
         let store = Store<ImageSearchFeature>(
-            initialState: ImageSearchState(managed: folder, identity: identity, retaining: bound?.store.state),
+            initialState: ImageSearchState(
+                managed: folder, identity: identity, retaining: bound?.store.state ?? retainedState),
             run: runner.run)
         if let bound { retired.append(bound) }
         bound = Bound(token: token, folder: folder, identity: identity, store: store, runner: runner)
+        retainedState = nil
         return store
     }
 

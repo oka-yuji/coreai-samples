@@ -19,6 +19,8 @@ public enum ModelLibraryBrowsingRunner {
                 .demoStopFailed(
                     session.id, request,
                     String(localized: "Demo execution is not connected in this build.", bundle: .module)))
+        case .prepareDemo(let session):
+            send(.demoPreparationChanged(session.id, .unavailable))
         }
     }
 }

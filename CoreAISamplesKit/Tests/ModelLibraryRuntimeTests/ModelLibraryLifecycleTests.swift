@@ -51,13 +51,13 @@ struct ModelLibraryLifecycleTests {
                 && adapter.entries[DemoSelection.objectFinder]?.input == "cup")
 
         library.send(.suspendDemo)
-        try await next(&events, "A stopping object-finder", "A stopDemo")
-        #expect(library.state.selection == DemoSelection.objectFinder && adapter.stops == [first, resumed])
+        try await next(&events, "A stopDemo")
+        #expect(library.state.selection == DemoSelection.objectFinder && adapter.stops == [first])
         #expect(adapter.executions == [first] && adapter.loads == 1)
     }
 
     @Test(
-        "SESSION-05 Conflicting owners keep their own sessions and leases until each owner has stopped its demo"
+        "Conflicting owners keep their sessions but only the resident owner takes a lease until it stops"
     )
     func owners() async throws {
         let harness = try RuntimeHarness()
@@ -79,9 +79,12 @@ struct ModelLibraryLifecycleTests {
         try await next(&events, "B inspect", "B inspect", "B inspect")
         second.library.send(.openDemo(DemoSelection.imageSearch))
         let shared = try await second.show()
-        #expect(await harness.leases(owned) == 2)
+        #expect(await harness.leases(owned) == 1)
+        #expect(second.library.state.demoPreparation == .occupied)
         first.library.send(.closeDemo)
         try await next(&events, "A stopping image-search", "A stopDemo")
+        #expect(await harness.leases(owned) == 0)
+        #expect(try await second.show() == shared)
         #expect(await harness.leases(owned) == 1)
         #expect(try second.adapter("image-search").start(DemoSelection.imageSearch, input: "B"))
         second.library.send(.closeDemo)
@@ -110,12 +113,12 @@ struct ModelLibraryLifecycleTests {
         try await next(&events, "B delete")
         first.library.send(.openDemo(DemoSelection.imageSearch))
         let stale = try await first.show()
-        try await next(&events, "A stopping image-search", "A stopDemo")
+        try await next(&events, "A stopDemo")
         let library = first.library.state
         #expect(library.session == nil && library.selection == DemoSelection.imageSearch)
         #expect(library.installations["image-fp16"] == ModelInstallation())
         #expect(library.access(to: DemoSelection.imageSearch) == .preview(.missing))
-        #expect(!adapter.start(DemoSelection.imageSearch, input: "deleted") && adapter.stops == [stale])
+        #expect(!adapter.start(DemoSelection.imageSearch, input: "deleted") && adapter.stops.isEmpty)
         #expect(await harness.leases(stale) == 0)
 
         try await first.download("image-fp16", &events)
@@ -146,6 +149,7 @@ struct ModelLibraryLifecycleTests {
         harness.ledger.release()
         try await next(&events, "A validate")
         await scene.runner.prepare(session)
+        _ = scene.rendering.content(for: session)
         #expect(adapter.start(DemoSelection.comparison, input: "after the lease"))
         #expect(adapter.executions == [session] && adapter.rejections == 1)
     }
@@ -243,6 +247,8 @@ struct ModelLibraryLifecycleTests {
         try await next(&events, attempt)
         await harness.runner.reattempt()
         #expect(adapter.stops == Array(repeating: session, count: 6))
+        #expect(await harness.leases(session) == 0)
+        #expect(try await second.show() == other)
         #expect(await harness.leases(session) == 1)
         second.library.send(.closeDemo)
         try await next(&events, "B stopping image-search", "B stopDemo")

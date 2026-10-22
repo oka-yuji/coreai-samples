@@ -206,10 +206,11 @@ struct ModelLibraryRuntimeTests {
         let session = try #require(library.state.session)
         _ = scene.rendering.content(for: session)
         scene.runner.provide(session)
-        await Task.yield()
+        await awaitDemoState(library) { $0.demoPreparation == .preparing }
         library.send(.closeDemo)
-        try await next(&events, "A stopping comparison")
         #expect(library.state.session == session)
+        #expect(library.state.pendingDestination == .library)
+        #expect(try scene.adapter("comparison").stops.isEmpty)
         harness.ledger.release()
         try await next(&events, "A stopDemo", "A validate")
         #expect(library.state.session == nil && library.state.selection == nil)

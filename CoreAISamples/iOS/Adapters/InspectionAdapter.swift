@@ -22,6 +22,7 @@
         }
 
         func content(for session: ModelDemoSession, gate: DemoExecutionGate) -> AnyView {
+            guard gate.session == session, gate.isPermitted() else { return preview(for: session.selection) }
             let entry: Entry
             if let current = entries[session.selection], current.session.id == session.id {
                 entry = current
