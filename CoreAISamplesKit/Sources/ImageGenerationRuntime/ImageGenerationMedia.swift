@@ -23,7 +23,7 @@ public actor ImageGenerationMedia {
             let height = properties[kCGImagePropertyPixelHeight] as? Int,
             width > 0, height > 0, width <= 32_768, height <= 32_768, width * height <= 268_435_456,
             properties[kCGImagePropertyColorModel] as? String == kCGImagePropertyColorModelRGB as String,
-            properties[kCGImagePropertyDepth] as? Int == 8
+            properties[kCGImagePropertyDepth] as? Int == 8, Self.pngColorType(url) != 3
         else { throw ImageGenerationError.unsupportedImage }
         let pixels: ImageGenerationPixels
         if max(width, height) <= 1_024 {
@@ -81,6 +81,16 @@ public actor ImageGenerationMedia {
     }
 
     public func join() {}
+
+    private static func pngColorType(_ url: URL) -> UInt8? {
+        guard let handle = try? FileHandle(forReadingFrom: url) else { return nil }
+        defer { try? handle.close() }
+        guard let header = try? handle.read(upToCount: 26), header.count == 26,
+            header.starts(with: [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]),
+            header[12..<16].elementsEqual("IHDR".utf8)
+        else { return nil }
+        return header[25]
+    }
 
     private func png(_ pixels: ImageGenerationPixels, description: String? = nil) throws -> Data {
         let bytes = Data(pixels.rgba)

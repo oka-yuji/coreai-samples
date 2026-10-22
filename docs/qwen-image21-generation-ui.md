@@ -20,7 +20,7 @@ Preparing, reference encoding, text encoding, decoding and stopping use indeterm
 
 ## Reference image boundary
 
-The ingress version is `imageio-rgb8-max1024-confirmed-center512-v1`. It accepts one local image frame, positive dimensions no larger than 32,768 on either side and at most 268,435,456 pixels. The file is accessed within its security scope and is never modified. The source's color model and bit depth are checked from the image properties before either decode path: only 8-bit RGB sources are accepted, so a large CMYK or 16-bit image is refused before a thumbnail is made.
+The ingress version is `imageio-rgb8-max1024-confirmed-center512-v1`. It accepts one local image frame, positive dimensions no larger than 32,768 on either side and at most 268,435,456 pixels. The file is accessed within its security scope and is never modified. The source's color model and bit depth are checked from the image properties before either decode path: only 8-bit RGB sources are accepted, so a large CMYK or 16-bit image is refused before a thumbnail is made. A PNG whose IHDR color type is 3 (indexed) is refused from its header, because ImageIO reports indexed PNGs as 8-bit RGB.
 
 For images whose longest side is at most 1,024 pixels, direct ImageIO decoding feeds the existing eight-bit RGB reader and EXIF orientation transform. This preserves the encoded RGB bytes, including low-alpha straight RGBA, and does not apply an ICC display transform. The canonical small RGB, tagged RGB and oriented fixtures match native preprocessing exactly.
 

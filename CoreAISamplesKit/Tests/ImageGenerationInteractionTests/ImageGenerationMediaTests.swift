@@ -107,6 +107,25 @@ struct ImageGenerationMediaTests {
         }
     }
 
+    @Test(
+        "Indexed PNG sources are refused at both decode sizes with or without palette transparency",
+        arguments: [512, 2_048], [false, true])
+    func indexedSources(_ width: Int, _ transparency: Bool) async throws {
+        let root = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: false)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let url = root.appending(path: "indexed.png")
+        try indexedPNG(width: width, transparency: transparency).write(to: url)
+        let source = try #require(CGImageSourceCreateWithURL(url as CFURL, nil))
+        let properties = try #require(CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any])
+        #expect(properties[kCGImagePropertyColorModel] as? String == kCGImagePropertyColorModelRGB as String)
+        #expect(properties[kCGImagePropertyDepth] as? Int == 8)
+        #expect(CGImageSourceCreateImageAtIndex(source, 0, nil)?.width == width)
+        await #expect(throws: ImageGenerationError.unsupportedImage) {
+            try await ImageGenerationMedia().reference(url, ticket: ImageGenerationTicket(owner: UUID(), sequence: 1))
+        }
+    }
+
     @Test("Unselected network locations and incomplete generation results are refused")
     func invalidMedia() async throws {
         let media = ImageGenerationMedia()
@@ -140,5 +159,33 @@ struct ImageGenerationMediaTests {
         let imageSource = try #require(CGImageSourceCreateWithURL(url as CFURL, nil))
         let properties = try #require(CGImageSourceCopyPropertiesAtIndex(imageSource, 0, nil) as? [CFString: Any])
         return (url, properties[kCGImagePropertyColorModel] as? String, properties[kCGImagePropertyDepth] as? Int)
+    }
+
+    private func indexedPNG(width: Int, transparency: Bool) throws -> Data {
+        func bigEndian(_ value: UInt32) -> [UInt8] { withUnsafeBytes(of: value.bigEndian, Array.init) }
+        func chunk(_ name: String, _ body: [UInt8]) -> [UInt8] {
+            let named = Array(name.utf8) + body
+            var crc: UInt32 = 0xFFFF_FFFF
+            for byte in named {
+                crc ^= UInt32(byte)
+                for _ in 0..<8 { crc = crc & 1 == 1 ? (crc >> 1) ^ 0xEDB8_8320 : crc >> 1 }
+            }
+            return bigEndian(UInt32(body.count)) + named + bigEndian(~crc)
+        }
+        let rows: [UInt8] = (0..<512).flatMap { _ in [0] + (0..<width).map { UInt8($0 % 2) } }
+        var low: UInt32 = 1
+        var high: UInt32 = 0
+        for byte in rows {
+            low = (low + UInt32(byte)) % 65_521
+            high = (high + low) % 65_521
+        }
+        let deflated = try (Data(rows) as NSData).compressed(using: .zlib) as Data
+        var png: [UInt8] = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]
+        png += chunk("IHDR", bigEndian(UInt32(width)) + bigEndian(512) + [8, 3, 0, 0, 0])
+        png += chunk("PLTE", [64, 128, 192, 192, 128, 64])
+        if transparency { png += chunk("tRNS", [255, 128]) }
+        png += chunk("IDAT", [0x78, 0x01] + Array(deflated) + bigEndian(high << 16 | low))
+        png += chunk("IEND", [])
+        return Data(png)
     }
 }
