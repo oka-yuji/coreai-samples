@@ -21,6 +21,12 @@ public struct VideoSearchMatch: Equatable, Sendable, Identifiable {
     }
 }
 
+public struct VideoMomentSelection: Equatable, Sendable {
+    public let index: Int
+    public let previous: VideoSearchMatch?
+    public let next: VideoSearchMatch?
+}
+
 public struct VideoIndex: Equatable, Sendable {
     public let duration: Double
     public let moments: [VideoMoment]
@@ -133,6 +139,14 @@ public struct VideoSearchState: Equatable, Sendable {
             kept.append(match)
         }
         return kept
+    }
+
+    public static func selection(in matches: [VideoSearchMatch], at time: Double?) -> VideoMomentSelection? {
+        guard let time, let index = matches.firstIndex(where: { $0.moment.time == time }) else { return nil }
+        return VideoMomentSelection(
+            index: index,
+            previous: index > 0 ? matches[index - 1] : nil,
+            next: index + 1 < matches.count ? matches[index + 1] : nil)
     }
 }
 

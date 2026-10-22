@@ -262,6 +262,24 @@ struct VideoSearchTests {
         #expect(state.ready && state.phase == .indexing)
     }
 
+    @Test(
+        "NOW-01 The list and the selected time give the position and the previous and next moments, a time not in the list or an empty list gives no selection, and the first has no previous and the last no next"
+    )
+    func momentSelection() {
+        let ranked = matches([(0.9, 30), (0.8, 10), (0.7, 20)])
+        let middle = VideoSearchState.selection(in: ranked, at: 10)
+        #expect(middle?.index == 1 && middle?.previous == ranked[0] && middle?.next == ranked[2])
+        let first = VideoSearchState.selection(in: ranked, at: 30)
+        #expect(first?.index == 0 && first?.previous == nil && first?.next == ranked[1])
+        let last = VideoSearchState.selection(in: ranked, at: 20)
+        #expect(last?.index == 2 && last?.previous == ranked[1] && last?.next == nil)
+        let single = VideoSearchState.selection(in: [ranked[1]], at: 10)
+        #expect(single?.index == 0 && single?.previous == nil && single?.next == nil)
+        #expect(VideoSearchState.selection(in: ranked, at: 15) == nil)
+        #expect(VideoSearchState.selection(in: ranked, at: nil) == nil)
+        #expect(VideoSearchState.selection(in: [], at: 10) == nil)
+    }
+
     @MainActor
     @Test(
         "VID-02 The real Store and runner keep stop active until an in-flight search returns", .timeLimit(.minutes(1)))
