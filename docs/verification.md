@@ -109,7 +109,7 @@ The runtime's generation starts after request validation, template rendering, co
 | `total_seconds` | generation start → end of the drain, before the metadata is sent; on an error, → the error | — | s |
 | speed `load_s` | start → end of `Engine.init` (own) or `EngineFactory.createEngine` (official, no longer including `warmup(queryLength: 1)`) | — | s |
 | speed `warmup_s` | end of the load → start of the measured run. Own: 8 tokens after a 16-token prefix, then `reset`. Official: `warmup(queryLength: 1)`, an 8-token drain and `reset(to: 0)` | — | s |
-| speed `specialize_s`, `cached` | own `Engine.LoadStats`: specialization time, 0 for a cached model | — | s |
+| speed `specialize_s`, `cached` | own `Engine.LoadStats`: specialization time, 0 for a cached model. On a cache miss it also includes the asset width check (reading the asset summary) before specialization; earlier records do not include it, so compare with them carefully | — | s |
 | speed `max_tokens`, `generated_tokens` | requested limit (formerly `decode_tokens`); tokens actually received by `onToken` or from the official sequence | tokens | tokens |
 | speed `prefill_s`, `decode_s` | run start → first token; first token → last token | — | s |
 | speed `decode_tok_s` | `(generated_tokens − 1) / decode_s`; absent below two tokens | tokens | tokens/s |

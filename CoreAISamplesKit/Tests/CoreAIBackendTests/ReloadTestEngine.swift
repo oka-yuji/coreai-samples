@@ -101,7 +101,8 @@ final class ReloadTestEngine: RuntimeEngine {
     var measuresPreparation = false
     let isHybrid = false
     let loadStats = Engine.LoadStats(
-        cached: true, specializeSeconds: 0, totalSeconds: 0, requestedComputeUnit: nil, expectsFrequentReshapes: nil)
+        cached: true, specializeSeconds: 0, totalSeconds: 0, requestedComputeUnit: nil, expectsFrequentReshapes: nil,
+        cacheQueryError: nil)
 
     init(id: Int, control: ReloadTestControl, contextLimit: Int) {
         self.id = id
