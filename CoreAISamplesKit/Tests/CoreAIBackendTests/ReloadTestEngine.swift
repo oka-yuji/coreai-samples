@@ -24,11 +24,18 @@ final class ReloadTestControl: Sendable {
         var footprint: UInt64 = 0
         var events: [String] = []
         var generationTokens: [Int] = [1, 3]
+        var steps = 0
+        var samples = 0
+        var blockAtStep: Int?
+        var signalStatsAfterSample: Int?
     }
 
     let state = Mutex(State())
     let loading = AsyncStream<Int>.makeStream()
     let reading = AsyncStream<Int>.makeStream()
+    let sampling = AsyncStream<Int>.makeStream()
+    let stepping = AsyncStream<Int>.makeStream()
+    let statsRead = AsyncStream<Void>.makeStream()
 
     func make(_ bundle: ModelBundle, _ contextLimit: Int) async throws -> EngineBox {
         let gate = AsyncStream<Void>.makeStream()
@@ -96,7 +103,7 @@ final class ReloadTestEngine: RuntimeEngine {
     private let contextLimit: Int
     private var outputIndex = 0
     private(set) var tokens: [Int32] = []
-    private(set) var stats = Engine.Stats()
+    private var counters = Engine.Stats()
     private(set) var hasLogits = false
     var measuresPreparation = false
     let isHybrid = false
@@ -117,6 +124,14 @@ final class ReloadTestEngine: RuntimeEngine {
         }
     }
 
+    var stats: Engine.Stats {
+        let signal = control.state.withLock { state in
+            state.signalStatsAfterSample.map { state.samples >= $0 } ?? false
+        }
+        if signal { control.statsRead.continuation.yield() }
+        return counters
+    }
+
     func logits() -> [Float16] {
         var values = Array(repeating: Float16(-10), count: 4)
         let token = control.state.withLock { $0.generationTokens[min(outputIndex, $0.generationTokens.count - 1)] }
@@ -125,7 +140,12 @@ final class ReloadTestEngine: RuntimeEngine {
     }
 
     func withLogits<Result>(_ body: (UnsafeBufferPointer<Float16>) -> Result) -> Result {
-        logits().withUnsafeBufferPointer(body)
+        control.sampling.continuation.yield(
+            control.state.withLock { state in
+                state.samples += 1
+                return state.samples
+            })
+        return logits().withUnsafeBufferPointer(body)
     }
 
     func checkpoint() -> Engine.Checkpoint {
@@ -189,14 +209,14 @@ final class ReloadTestEngine: RuntimeEngine {
         if fail { throw ReloadTestFailure.read }
         if let partial {
             tokens += input.prefix(partial)
-            stats.prefillTokens += min(partial, input.count)
+            counters.prefillTokens += min(partial, input.count)
             throw ReloadTestFailure.read
         }
         guard tokens.count + input.count <= contextLimit else {
             throw EngineError.contextOverflow(needed: tokens.count + input.count, limit: contextLimit)
         }
         tokens += input
-        stats.prefillTokens += input.count
+        counters.prefillTokens += input.count
         outputIndex = 0
         hasLogits = true
     }
@@ -204,6 +224,7 @@ final class ReloadTestEngine: RuntimeEngine {
     func step(_ token: Int32) async throws {
         let gate = AsyncStream<Void>.makeStream()
         let (fail, block) = control.state.withLock { state in
+            if state.blockAtStep == state.steps + 1 { (state.blockNextStep, state.blockAtStep) = (true, nil) }
             let pair = (state.failNextStep, state.blockNextStep)
             state.failNextStep = false
             state.blockNextStep = false
@@ -211,14 +232,16 @@ final class ReloadTestEngine: RuntimeEngine {
             return pair
         }
         if block {
+            control.stepping.continuation.yield(id)
             var iterator = gate.stream.makeAsyncIterator()
             _ = await iterator.next()
             try Task.checkCancellation()
         }
         if fail { throw ReloadTestFailure.step }
         tokens.append(token)
-        stats.decodeTokens += 1
+        counters.decodeTokens += 1
         outputIndex += 1
+        control.state.withLock { $0.steps += 1 }
     }
 }
 
@@ -230,9 +253,10 @@ struct ReloadTestModel {
 
     static func make(
         policy: LocalLanguageModel.ReloadPolicy, limit: Int = 128,
-        settings: LocalLanguageModel.VerificationSettings = .init()
+        settings: LocalLanguageModel.VerificationSettings = .init(), tokenizer: String? = nil
     ) async throws -> Self {
         let folder = try tinyBundle()
+        if let tokenizer { try Data(tokenizer.utf8).write(to: folder.appending(path: "tokenizer/tokenizer.json")) }
         let config = [
             "tokenizer_class": "Qwen2Tokenizer", "eos_token": "<|im_end|>",
             "chat_template": "{% for message in messages %}{{ message['content'] }}{% endfor %}",
