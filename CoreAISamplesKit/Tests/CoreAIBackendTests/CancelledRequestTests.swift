@@ -13,7 +13,7 @@ struct CancelledRequestTests {
     enum Point: Sendable {
         case send(afterSample: Int)
         case metadata(afterSample: Int)
-        case usage
+        case usage(afterSample: Int)
     }
 
     enum TerminalSend: String, CaseIterable, Sendable {
@@ -50,17 +50,19 @@ struct CancelledRequestTests {
     ) async -> (read: Int, error: (any Error)?) {
         let channel = LanguageModelExecutorGenerationChannel()
         let hold = AsyncStream<Void>.makeStream()
-        let reached = AsyncStream<Void>.makeStream()
         let reader = Task {
             var events = channel.makeAsyncIterator()
             var read = 0
             while read < reading, try await events.next() != nil { read += 1 }
-            reached.continuation.yield()
             var held = hold.stream.makeAsyncIterator()
             _ = await held.next()
             return read
         }
-        if case .metadata(let sample) = point { fixture.control.state.withLock { $0.signalStatsAfterSample = sample } }
+        switch point {
+        case .send: break
+        case .metadata(let sample), .usage(let sample):
+            fixture.control.state.withLock { $0.signalStatsAfterSample = sample }
+        }
         let request = LanguageModelExecutorGenerationRequest(
             id: UUID(), transcript: Transcript(entries: [.prompt(.init(segments: [.text(.init(content: "a"))]))]),
             enabledTools: tools, generationOptions: .init(samplingMode: .greedy, maximumResponseTokens: limit),
@@ -74,8 +76,9 @@ struct CancelledRequestTests {
             var reads = fixture.control.statsRead.stream.makeAsyncIterator()
             _ = await reads.next()
         case .usage:
-            var arrived = reached.stream.makeAsyncIterator()
-            _ = await arrived.next()
+            var reads = fixture.control.statsRead.stream.makeAsyncIterator()
+            _ = await reads.next()
+            _ = await reads.next()
         }
         await fixture.runtime.barrier()
         executor.cancel()
@@ -164,7 +167,7 @@ struct CancelledRequestTests {
             case .toolCallMetadata:
                 await Self.cancelInSend(
                     fixture, limit: 8, reading: 1, at: .metadata(afterSample: 4), tools: [Self.addTool])
-            case .usage: await Self.cancelInSend(fixture, limit: 8, reading: 3, at: .usage)
+            case .usage: await Self.cancelInSend(fixture, limit: 8, reading: 3, at: .usage(afterSample: 3))
             }
         #expect(cancelled.read == (send == .usage ? 3 : calling ? 1 : 2))
         #expect(cancelled.error is CancellationError, "\(String(describing: cancelled.error))")

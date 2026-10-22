@@ -126,9 +126,7 @@ final class ReloadTestEngine: RuntimeEngine {
 
     var stats: Engine.Stats {
         let signal = control.state.withLock { state in
-            guard let sample = state.signalStatsAfterSample, state.samples >= sample else { return false }
-            state.signalStatsAfterSample = nil
-            return true
+            state.signalStatsAfterSample.map { state.samples >= $0 } ?? false
         }
         if signal { control.statsRead.continuation.yield() }
         return counters

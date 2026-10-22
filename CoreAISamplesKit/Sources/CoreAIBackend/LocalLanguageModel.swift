@@ -388,6 +388,7 @@ actor Runtime {
                 await channel.send(.response(action: .updateMetadata(metadata)))
             }
             try Task.checkCancellation()
+            probe?.reported(prepareSeconds: core.engine.stats.prepareSeconds)
             await channel.send(
                 .response(
                     action: .updateUsage(
