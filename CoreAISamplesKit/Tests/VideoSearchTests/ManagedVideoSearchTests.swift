@@ -117,6 +117,41 @@ struct ManagedVideoSearchTests {
         #expect(service.calls.filter { $0 == "close" }.count == 2)
     }
 
+    @Test(
+        "CLIP-02 A managed store exports the checked moments with progress, reports a failed export, and a new owner's wrapper keeps the selection, clip length and exported clip"
+    )
+    func exportsAndKeepsSelection() async throws {
+        let services = ServicePool(count: 2)
+        services.all[0].exportFailures = [StubError()]
+        let first = ManagedVideoSearch { services.next() }
+        let store = first.store(folder: fp16, identity: "fp16", isPermitted: { true })
+        store.send(.index(video))
+        await settle(store)
+        store.send(.setQuery("a dog"))
+        store.send(.search)
+        await settle(store)
+        store.send(.selectAllMoments)
+        store.send(.setClipLength(5))
+        let destination = URL(filePath: "/exports/moments.mp4")
+        store.send(.export(destination))
+        await settle(store)
+        #expect(store.state.failure?.message == "The clip could not be exported." && store.state.exportedVideo == nil)
+        store.send(.export(destination))
+        await settle(store)
+        #expect(store.state.failure == nil && store.state.exportedVideo == destination)
+        #expect(store.state.exportedSeconds == 1.5 && store.state.exportProgress == 1)
+        #expect(
+            services.all[0].calls.filter { $0.hasPrefix("export") } == [
+                "export 1.5 moments.mp4", "export 1.5 moments.mp4",
+            ])
+        try await first.release()
+        await settle(store)
+        let next = ManagedVideoSearch(retaining: first.state) { services.next() }
+        let replacement = next.store(folder: fp16, identity: "fp16", isPermitted: { true })
+        #expect(replacement.state.selectedMoments == [0.5] && replacement.state.clipLength == 5)
+        #expect(replacement.state.exportedVideo == destination && replacement.state.exportProgress == 0)
+    }
+
     @Test("VID-04 A video that cannot be read fails with its own message and keeps the demo usable")
     func invalidVideo() async throws {
         let services = ServicePool(count: 1)
@@ -165,6 +200,7 @@ private final class ServicePool {
 private final class ScriptedVideoService: VideoSearchService {
     var calls: [String] = []
     var indexFailures: [any Error] = []
+    var exportFailures: [any Error] = []
     var failingCloses: Set<Int> = []
     var holdsClose = false
     let closing = AsyncStream<Void>.makeStream()
@@ -186,6 +222,14 @@ private final class ScriptedVideoService: VideoSearchService {
     func search(_ query: String) async throws -> [VideoSearchMatch] {
         calls.append("search " + query)
         return indexed.map { VideoSearchMatch(moment: $0, similarity: 0.8) }
+    }
+
+    func export(_ plan: VideoClipPlan, of video: URL, to destination: URL, progress: (Double) -> Void) async throws {
+        calls.append("export \(plan.totalSeconds) " + destination.lastPathComponent)
+        progress(0.5)
+        progress(1)
+        if !exportFailures.isEmpty { throw exportFailures.removeFirst() }
+        try Task.checkCancellation()
     }
 
     func waitForIdle() async {}

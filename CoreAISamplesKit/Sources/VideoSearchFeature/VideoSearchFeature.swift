@@ -36,6 +36,40 @@ public struct VideoIndex: Equatable, Sendable {
     }
 }
 
+public struct VideoClipRange: Equatable, Sendable {
+    public let start: Double
+    public let end: Double
+    public init(start: Double, end: Double) {
+        self.start = start
+        self.end = end
+    }
+}
+
+public struct VideoClipPlan: Equatable, Sendable {
+    public let ranges: [VideoClipRange]
+    public let totalSeconds: Double
+
+    public init(ranges: [VideoClipRange]) {
+        self.ranges = ranges
+        totalSeconds = ranges.reduce(0) { $0 + $1.end - $1.start }
+    }
+
+    public static func make(times: [Double], length: Double, duration: Double) -> VideoClipPlan {
+        guard length > 0 else { return VideoClipPlan(ranges: []) }
+        var ranges: [VideoClipRange] = []
+        for start in times.filter({ $0 >= 0 && $0 < duration }).sorted() {
+            let end = min(start + length, duration)
+            guard end > start else { continue }
+            if let last = ranges.last, last.end >= start {
+                ranges[ranges.count - 1] = VideoClipRange(start: last.start, end: max(last.end, end))
+            } else {
+                ranges.append(VideoClipRange(start: start, end: end))
+            }
+        }
+        return VideoClipPlan(ranges: ranges)
+    }
+}
+
 public struct VideoSearchFailure: Equatable, Sendable {
     public let message: String
     public let detail: String
@@ -46,7 +80,7 @@ public struct VideoSearchFailure: Equatable, Sendable {
 }
 
 public enum VideoSearchPhase: Equatable, Sendable {
-    case idle, loading, indexing, searching, stopping
+    case idle, loading, indexing, searching, exporting, stopping
 }
 
 public enum VideoSearchExecution: Equatable, Sendable {
@@ -71,6 +105,7 @@ public enum VideoSampling {
 public struct VideoSearchState: Equatable, Sendable {
     public static let minimumGap = 3.0
     public static let thresholdRange = 0.3...0.9
+    public static let clipLengths: [Double] = [3, 5, 10]
     public var execution: VideoSearchExecution = .standalone
     public var modelFolder: URL?
     public var resourceIdentity: String?
@@ -92,6 +127,11 @@ public struct VideoSearchState: Equatable, Sendable {
     public var seconds: Double?
     public var failure: VideoSearchFailure?
     public var session = 0
+    public var selectedMoments: Set<Double> = []
+    public var clipLength = 3.0
+    public var exportProgress = 0.0
+    public var exportedVideo: URL?
+    public var exportedSeconds = 0.0
     public internal(set) var pendingIndex: URL?
 
     public init(modelFolder: URL? = nil) { self.modelFolder = modelFolder }
@@ -112,6 +152,10 @@ public struct VideoSearchState: Equatable, Sendable {
         showsAllCandidates = previous.showsAllCandidates
         resultIdentity = previous.resultIdentity
         minimumSimilarity = previous.minimumSimilarity
+        selectedMoments = previous.selectedMoments
+        clipLength = previous.clipLength
+        exportedVideo = previous.exportedVideo
+        exportedSeconds = previous.exportedSeconds
     }
 
     public var isBusy: Bool { phase != .idle }
@@ -129,6 +173,13 @@ public struct VideoSearchState: Equatable, Sendable {
         if showsAllCandidates { return matches }
         return Self.suppressNeighbors(matches.filter { $0.similarity >= minimumSimilarity }, gap: Self.minimumGap)
     }
+    public var exportSelection: [Double] {
+        displayedMatches.map(\.moment.time).filter(selectedMoments.contains).sorted()
+    }
+    public var exportPlan: VideoClipPlan {
+        VideoClipPlan.make(times: exportSelection, length: clipLength, duration: duration)
+    }
+    public var canExport: Bool { !isBusy && hasValidIndex && !exportSelection.isEmpty }
 
     public static func suppressNeighbors(_ matches: [VideoSearchMatch], gap: Double) -> [VideoSearchMatch] {
         let ranked = matches.sorted {
@@ -169,12 +220,21 @@ public enum VideoSearchAction: Sendable {
     case selectionFailed(Int, String)
     case showAllCandidates(Bool)
     case thresholdChanged(Double)
+    case toggleMoment(Double)
+    case selectAllMoments
+    case clearMomentSelection
+    case setClipLength(Double)
+    case export(URL)
+    case exportProgress(Int, Double)
+    case exported(Int, URL, Double)
+    case saveFailed(Int, String)
 }
 
 public enum VideoSearchEffect: Equatable, Sendable {
     case load(Int, URL)
     case index(Int, URL)
     case search(Int, String)
+    case export(Int, VideoClipPlan, URL, URL)
     case waitForIdle(Int)
     case close(Int)
 }
@@ -243,6 +303,7 @@ public enum VideoSearchFeature: Feature {
             guard state.canSearch else { return [] }
             state.submittedQuery = state.query
             state.matches = []
+            state.selectedMoments = []
             state.hasSearched = false
             state.showsAllCandidates = false
             start(&state, phase: .searching)
@@ -284,6 +345,46 @@ public enum VideoSearchFeature: Feature {
         case .thresholdChanged(let value):
             guard state.canChangeSettings, VideoSearchState.thresholdRange.contains(value) else { return [] }
             state.minimumSimilarity = value
+        case .toggleMoment, .selectAllMoments, .clearMomentSelection, .setClipLength, .export, .exportProgress,
+            .exported, .saveFailed:
+            return reduceExport(&state, action)
+        }
+        return []
+    }
+
+    private static func reduceExport(_ state: inout State, _ action: Action) -> [Command<Effect, EffectID>] {
+        switch action {
+        case .toggleMoment(let time):
+            guard !state.isBusy else { return [] }
+            if state.selectedMoments.remove(time) == nil { state.selectedMoments.insert(time) }
+        case .selectAllMoments:
+            guard !state.isBusy else { return [] }
+            state.selectedMoments = Set(state.displayedMatches.map(\.moment.time))
+        case .clearMomentSelection:
+            guard !state.isBusy else { return [] }
+            state.selectedMoments = []
+        case .setClipLength(let length):
+            guard !state.isBusy, VideoSearchState.clipLengths.contains(length) else { return [] }
+            state.clipLength = length
+        case .export(let destination):
+            let plan = state.exportPlan
+            guard state.canExport, let video = state.video, !plan.ranges.isEmpty else { return [] }
+            start(&state, phase: .exporting)
+            state.exportProgress = 0
+            state.exportedVideo = nil
+            return [.run(.export(state.session, plan, video, destination), id: .work)]
+        case .exportProgress(let id, let value):
+            guard id == state.session, state.phase == .exporting else { return [] }
+            state.exportProgress = min(1, max(0, value))
+        case .exported(let id, let url, let seconds):
+            guard id == state.session, state.phase == .exporting else { return [] }
+            state.exportedVideo = url
+            state.exportedSeconds = seconds
+            state.phase = .idle
+        case .saveFailed(let id, let detail):
+            guard id == state.session, !state.isBusy else { return [] }
+            state.failure = VideoSearchFailure(message: "The clip could not be saved.", detail: detail)
+        default: break
         }
         return []
     }
@@ -292,11 +393,13 @@ public enum VideoSearchFeature: Feature {
         state.video = nil
         state.duration = 0
         state.moments = []
+        state.exportedVideo = nil
         discardResults(&state)
     }
 
     private static func discardResults(_ state: inout State) {
         state.matches = []
+        state.selectedMoments = []
         state.hasSearched = false
         state.showsAllCandidates = false
         state.indexIdentity = nil

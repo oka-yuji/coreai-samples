@@ -26,6 +26,17 @@ struct VideoSearchTests {
         pairs.map { VideoSearchMatch(moment: VideoMoment(time: $0.time, thumbnail: Data()), similarity: $0.similarity) }
     }
 
+    func searched() -> VideoSearchState {
+        var state = ready()
+        _ = VideoSearchFeature.reduce(&state, .search)
+        _ = VideoSearchFeature.reduce(&state, .searched(1, matches([(0.9, 10), (0.8, 2), (0.75, 6), (0.5, 13)]), 0.1))
+        return state
+    }
+
+    func clips(_ pairs: [(Double, Double)]) -> VideoClipPlan {
+        VideoClipPlan(ranges: pairs.map { VideoClipRange(start: $0.0, end: $0.1) })
+    }
+
     @Test(
         "VID-01 Sampling places one frame at the center of each one-second interval and spaces long videos evenly up to 300 frames",
         arguments: [(15.0, 15), (1_000.0, 300), (0.4, 1)])
@@ -280,6 +291,186 @@ struct VideoSearchTests {
         #expect(VideoSearchState.selection(in: [], at: 10) == nil)
     }
 
+    @Test(
+        "CLIP-01 Selected times become clips in time order, overlapping or touching clips join, the last clip ends at the video's end, and the total is the joined length"
+    )
+    func clipPlan() {
+        #expect(VideoClipPlan.make(times: [12, 1, 7], length: 2, duration: 15) == clips([(1, 3), (7, 9), (12, 14)]))
+        #expect(VideoClipPlan.make(times: [12, 1, 7], length: 2, duration: 15).totalSeconds == 6)
+        let five = VideoClipPlan.make(times: [40, 0, 30, 10, 20], length: 3, duration: 60)
+        #expect(five.ranges.count == 5 && five.totalSeconds == 15)
+        #expect(VideoClipPlan.make(times: [2, 1], length: 3, duration: 15) == clips([(1, 5)]))
+        #expect(VideoClipPlan.make(times: [4, 1], length: 3, duration: 15) == clips([(1, 7)]))
+        #expect(VideoClipPlan.make(times: [4.5, 1], length: 3, duration: 15) == clips([(1, 4), (4.5, 7.5)]))
+        #expect(VideoClipPlan.make(times: [3, 3], length: 3, duration: 15) == clips([(3, 6)]))
+        #expect(VideoClipPlan.make(times: [1, 3, 5], length: 10, duration: 15) == clips([(1, 15)]))
+        let trimmed = VideoClipPlan.make(times: [13], length: 5, duration: 15)
+        #expect(trimmed == clips([(13, 15)]) && trimmed.totalSeconds == 2)
+    }
+
+    @Test(
+        "CLIP-01 An empty selection, times outside the video and a clip length of zero or less give no clips",
+        arguments: [
+            ([Double](), 3.0), ([-1, 15, 20, .nan], 3), ([1, 7], 0), ([1, 7], -3), ([1, 7], .nan),
+        ])
+    func clipPlanEmpty(times: [Double], length: Double) {
+        let plan = VideoClipPlan.make(times: times, length: length, duration: 15)
+        #expect(plan.ranges.isEmpty && plan.totalSeconds == 0)
+    }
+
+    @Test(
+        "CLIP-02 Checking, selecting all, clearing and choosing a clip length work while idle, export starts with the plan fixed, and those changes are rejected while exporting"
+    )
+    func exportSelection() {
+        var state = searched()
+        let destination = URL(filePath: "/exports/moments.mp4")
+        #expect(state.displayedMatches.map(\.moment.time) == [10, 2, 6] && !state.canExport)
+        _ = VideoSearchFeature.reduce(&state, .toggleMoment(10))
+        _ = VideoSearchFeature.reduce(&state, .toggleMoment(2))
+        _ = VideoSearchFeature.reduce(&state, .toggleMoment(10))
+        #expect(state.selectedMoments == [2] && state.exportSelection == [2] && state.canExport)
+        _ = VideoSearchFeature.reduce(&state, .selectAllMoments)
+        #expect(state.exportSelection == [2, 6, 10])
+        _ = VideoSearchFeature.reduce(&state, .clearMomentSelection)
+        #expect(state.selectedMoments.isEmpty && !state.canExport)
+        #expect(VideoSearchFeature.reduce(&state, .export(destination)).isEmpty && !state.isBusy)
+        for rejected in [4, 0, -3, .nan, .infinity] {
+            _ = VideoSearchFeature.reduce(&state, .setClipLength(rejected))
+        }
+        #expect(state.clipLength == 3)
+        _ = VideoSearchFeature.reduce(&state, .setClipLength(10))
+        _ = VideoSearchFeature.reduce(&state, .setClipLength(3))
+        _ = VideoSearchFeature.reduce(&state, .selectAllMoments)
+        let plan = clips([(2, 5), (6, 9), (10, 13)])
+        #expect(state.exportPlan == plan && plan.totalSeconds == 9)
+        #expect(
+            VideoSearchFeature.reduce(&state, .export(destination)) == [
+                .run(.export(2, plan, video, destination), id: .work)
+            ])
+        #expect(state.phase == .exporting && state.exportProgress == 0 && state.exportedVideo == nil)
+        #expect(VideoSearchFeature.reduce(&state, .export(destination)).isEmpty)
+        _ = VideoSearchFeature.reduce(&state, .toggleMoment(2))
+        _ = VideoSearchFeature.reduce(&state, .clearMomentSelection)
+        _ = VideoSearchFeature.reduce(&state, .setClipLength(5))
+        #expect(state.selectedMoments == [2, 6, 10] && state.clipLength == 3)
+        _ = VideoSearchFeature.reduce(&state, .clearMomentSelection)
+        _ = VideoSearchFeature.reduce(&state, .selectAllMoments)
+        #expect(state.selectedMoments == [2, 6, 10])
+        _ = VideoSearchFeature.reduce(&state, .exportProgress(2, 0.4))
+        #expect(state.exportProgress == 0.4)
+        _ = VideoSearchFeature.reduce(&state, .exported(2, destination, 9))
+        #expect(state.phase == .idle && state.exportedVideo == destination && state.exportedSeconds == 9)
+        #expect(state.selectedMoments == [2, 6, 10] && state.canExport)
+    }
+
+    @Test(
+        "CLIP-02 Choosing another video and searching again clear the checked moments, and only another video drops the exported clip"
+    )
+    func exportSelectionCleared() {
+        var state = searched()
+        let destination = URL(filePath: "/exports/moments.mp4")
+        _ = VideoSearchFeature.reduce(&state, .selectAllMoments)
+        _ = VideoSearchFeature.reduce(&state, .export(destination))
+        _ = VideoSearchFeature.reduce(&state, .exported(2, destination, 9))
+        _ = VideoSearchFeature.reduce(&state, .search)
+        #expect(state.selectedMoments.isEmpty && state.exportedVideo == destination)
+        _ = VideoSearchFeature.reduce(&state, .searched(3, matches([(0.9, 10), (0.8, 2)]), 0.1))
+        _ = VideoSearchFeature.reduce(&state, .selectAllMoments)
+        _ = VideoSearchFeature.reduce(&state, .index(video))
+        #expect(state.selectedMoments.isEmpty && state.exportedVideo == destination)
+        _ = VideoSearchFeature.reduce(&state, .indexed(4, [moment], 15, 0.1))
+        _ = VideoSearchFeature.reduce(&state, .index(other))
+        #expect(state.selectedMoments.isEmpty && state.exportedVideo == nil && !state.canExport)
+    }
+
+    @Test(
+        "CLIP-02 A late completion, progress or failure from an old session is ignored, and stop cancels the export and stays stopping until cleanup ends"
+    )
+    func exportStop() {
+        var state = searched()
+        let destination = URL(filePath: "/exports/moments.mp4")
+        _ = VideoSearchFeature.reduce(&state, .selectAllMoments)
+        _ = VideoSearchFeature.reduce(&state, .export(destination))
+        #expect(VideoSearchFeature.reduce(&state, .stop) == [.cancel(.work), .run(.waitForIdle(3), id: .control)])
+        _ = VideoSearchFeature.reduce(&state, .exportProgress(2, 0.9))
+        _ = VideoSearchFeature.reduce(&state, .exported(2, destination, 9))
+        _ = VideoSearchFeature.reduce(&state, .failed(2, VideoSearchFailure(message: "late")))
+        #expect(state.phase == .stopping && state.exportProgress == 0 && state.exportedVideo == nil)
+        #expect(state.failure == nil && !state.canExport)
+        _ = VideoSearchFeature.reduce(&state, .toggleMoment(2))
+        _ = VideoSearchFeature.reduce(&state, .stopped(2))
+        #expect(state.phase == .stopping && state.selectedMoments == [2, 6, 10])
+        _ = VideoSearchFeature.reduce(&state, .stopped(3))
+        #expect(state.phase == .idle && state.canExport && state.exportedVideo == nil)
+        #expect(VideoSearchFeature.reduce(&state, .export(destination)).count == 1 && state.session == 4)
+        _ = VideoSearchFeature.reduce(&state, .exported(2, destination, 9))
+        #expect(state.phase == .exporting && state.exportedVideo == nil)
+        let failure = VideoSearchFailure(message: "The clip could not be exported.")
+        _ = VideoSearchFeature.reduce(&state, .failed(4, failure))
+        #expect(state.phase == .idle && state.failure == failure && state.exportedVideo == nil && state.canExport)
+    }
+
+    @Test("CLIP-06 A save failure from an old session is ignored and one from the current session shows its message")
+    func saveFailure() {
+        var state = searched()
+        let destination = URL(filePath: "/exports/moments.mp4")
+        _ = VideoSearchFeature.reduce(&state, .selectAllMoments)
+        _ = VideoSearchFeature.reduce(&state, .export(destination))
+        _ = VideoSearchFeature.reduce(&state, .exported(2, destination, 9))
+        #expect(VideoSearchFeature.reduce(&state, .saveFailed(1, "stale")).isEmpty && state.failure == nil)
+        _ = VideoSearchFeature.reduce(&state, .saveFailed(2, "disk full"))
+        #expect(state.failure == VideoSearchFailure(message: "The clip could not be saved.", detail: "disk full"))
+        #expect(state.exportedVideo == destination && !state.isBusy)
+    }
+
+    @Test(
+        "CLIP-02 A rebuilt managed Store keeps the checked moments, clip length and exported clip but not the export progress"
+    )
+    func exportRetained() {
+        var managed = VideoSearchState(managed: folder, identity: "fp16")
+        managed.selectedMoments = [2, 6]
+        managed.clipLength = 5
+        managed.exportedVideo = URL(filePath: "/exports/moments.mp4")
+        managed.exportedSeconds = 10
+        managed.exportProgress = 0.5
+        managed.phase = .exporting
+        let rebuilt = VideoSearchState(managed: URL(filePath: "/models/int4"), identity: "int4", retaining: managed)
+        #expect(rebuilt.selectedMoments == [2, 6] && rebuilt.clipLength == 5)
+        #expect(rebuilt.exportedVideo == managed.exportedVideo && rebuilt.exportedSeconds == 10)
+        #expect(rebuilt.exportProgress == 0 && rebuilt.phase == .idle)
+    }
+
+    @MainActor
+    @Test(
+        "CLIP-02 The real Store and runner keep stop active until an in-flight export returns and drop its late result",
+        .timeLimit(.minutes(1)))
+    func storeExportCancellation() async {
+        let service = SuspendedVideoService(moment: moment)
+        let runner = VideoSearchRunner(service: service)
+        let stopped = AsyncStream<Void>.makeStream()
+        var state = searched()
+        _ = VideoSearchFeature.reduce(&state, .selectAllMoments)
+        let store = Store<VideoSearchFeature>(initialState: state) { effect, send in
+            await runner.run(effect) { action in
+                send(action)
+                if case .stopped = action { stopped.continuation.yield(()) }
+            }
+        }
+        store.send(.export(URL(filePath: "/exports/moments.mp4")))
+        var entered = service.entered.stream.makeAsyncIterator()
+        _ = await entered.next()
+        #expect(store.state.phase == .exporting && store.state.exportProgress == 0.5)
+        store.send(.stop)
+        var waiting = service.waiting.stream.makeAsyncIterator()
+        _ = await waiting.next()
+        #expect(store.state.phase == .stopping)
+        service.release()
+        var completed = stopped.stream.makeAsyncIterator()
+        _ = await completed.next()
+        #expect(store.state.phase == .idle && store.state.exportedVideo == nil && store.state.failure == nil)
+        #expect(service.exports == 1 && store.state.canExport)
+    }
+
     @MainActor
     @Test(
         "VID-02 The real Store and runner keep stop active until an in-flight search returns", .timeLimit(.minutes(1)))
@@ -315,6 +506,7 @@ private final class SuspendedVideoService: VideoSearchService {
     let waiting = AsyncStream<Void>.makeStream()
     let moment: VideoMoment
     var calls = 0
+    var exports = 0
     var continuation: CheckedContinuation<Void, Never>?
     var idle: [CheckedContinuation<Void, Never>] = []
     init(moment: VideoMoment) { self.moment = moment }
@@ -332,6 +524,17 @@ private final class SuspendedVideoService: VideoSearchService {
         idle = []
         for waiter in waiters { waiter.resume() }
         return [VideoSearchMatch(moment: moment, similarity: 1)]
+    }
+    func export(_ plan: VideoClipPlan, of video: URL, to destination: URL, progress: (Double) -> Void) async throws {
+        exports += 1
+        progress(0.5)
+        await withCheckedContinuation {
+            continuation = $0
+            entered.continuation.yield(())
+        }
+        let waiters = idle
+        idle = []
+        for waiter in waiters { waiter.resume() }
     }
     func waitForIdle() async {
         await withCheckedContinuation {
