@@ -60,11 +60,11 @@ public final class VideoSearchRunner {
                 try Task.checkCancellation()
                 send(.searched(id, matches, Self.seconds(since: start)))
             case .export(let id, let plan, let video, let destination):
-                try await service.export(plan, of: video, to: destination) { value in
+                let seconds = try await service.export(plan, of: video, to: destination) { value in
                     if !Task.isCancelled { send(.exportProgress(id, value)) }
                 }
                 try Task.checkCancellation()
-                send(.exported(id, destination, plan.totalSeconds))
+                send(.exported(id, destination, seconds))
             case .waitForIdle, .close:
                 return
             }

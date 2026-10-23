@@ -60,7 +60,7 @@ struct VideoSearchContent: View {
         .onChange(of: state.video) { selectedTime = nil }
         .onChange(of: state.matches) { selectedTime = nil }
         .task(id: state.video) { await connectWhenPermitted() }
-        .onAppear { VideoExport.removeFiles(keeping: state.exportedVideo) }
+        .onAppear { VideoExport.removeStaleFiles(keeping: state.exportedVideo) }
         .onDisappear {
             player?.pause()
             #if os(iOS)
@@ -461,20 +461,30 @@ struct VideoExport: Transferable {
             .suggestedFileName { $0.url.lastPathComponent }
     }
 
-    static func destination(keeping kept: URL?) -> URL {
-        removeFiles(keeping: kept)
+    static func destination(replacing previous: URL?) -> URL {
+        if let previous, isInFolder(previous) { try? FileManager.default.removeItem(at: previous) }
         try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.dateFormat = "yyyyMMdd-HHmmss"
-        return folder.appending(path: "moments-\(formatter.string(from: .now)).mp4")
+        let suffix = UUID().uuidString.prefix(8).lowercased()
+        return folder.appending(path: "moments-\(formatter.string(from: .now))-\(suffix).mp4")
     }
 
-    static func removeFiles(keeping kept: URL?) {
-        let files = (try? FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil)) ?? []
+    static func removeStaleFiles(keeping kept: URL?) {
+        let key = URLResourceKey.contentModificationDateKey
+        let files = (try? FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: [key])) ?? []
+        let limit = Date.now.addingTimeInterval(-24 * 60 * 60)
         for file in files where file.lastPathComponent != kept?.lastPathComponent {
+            guard let modified = try? file.resourceValues(forKeys: [key]).contentModificationDate, modified < limit
+            else { continue }
             try? FileManager.default.removeItem(at: file)
         }
+    }
+
+    private static func isInFolder(_ url: URL) -> Bool {
+        url.deletingLastPathComponent().resolvingSymlinksInPath().pathComponents
+            == folder.resolvingSymlinksInPath().pathComponents
     }
 }
 
@@ -502,7 +512,7 @@ private struct VideoExportBar: View {
                 }
             } else {
                 Button {
-                    send(.export(VideoExport.destination(keeping: state.exportedVideo)))
+                    send(.export(VideoExport.destination(replacing: state.exportedVideo)))
                 } label: {
                     Text(
                         "Export \(state.exportSelection.count) moments (\(strings.number(state.exportPlan.totalSeconds)) s)"

@@ -339,28 +339,30 @@ struct VideoSearchTests {
         }
         #expect(state.clipLength == 3)
         _ = VideoSearchFeature.reduce(&state, .setClipLength(10))
+        #expect(state.clipLength == 10)
         _ = VideoSearchFeature.reduce(&state, .setClipLength(3))
-        _ = VideoSearchFeature.reduce(&state, .selectAllMoments)
-        let plan = clips([(2, 5), (6, 9), (10, 13)])
-        #expect(state.exportPlan == plan && plan.totalSeconds == 9)
+        _ = VideoSearchFeature.reduce(&state, .toggleMoment(2))
+        _ = VideoSearchFeature.reduce(&state, .toggleMoment(6))
+        let plan = clips([(2, 5), (6, 9)])
+        #expect(state.exportSelection == [2, 6] && state.exportPlan == plan && plan.totalSeconds == 6)
         #expect(
             VideoSearchFeature.reduce(&state, .export(destination)) == [
                 .run(.export(2, plan, video, destination), id: .work)
             ])
         #expect(state.phase == .exporting && state.exportProgress == 0 && state.exportedVideo == nil)
         #expect(VideoSearchFeature.reduce(&state, .export(destination)).isEmpty)
+        _ = VideoSearchFeature.reduce(&state, .selectAllMoments)
+        #expect(state.selectedMoments == [2, 6])
         _ = VideoSearchFeature.reduce(&state, .toggleMoment(2))
+        _ = VideoSearchFeature.reduce(&state, .toggleMoment(10))
         _ = VideoSearchFeature.reduce(&state, .clearMomentSelection)
         _ = VideoSearchFeature.reduce(&state, .setClipLength(5))
-        #expect(state.selectedMoments == [2, 6, 10] && state.clipLength == 3)
-        _ = VideoSearchFeature.reduce(&state, .clearMomentSelection)
-        _ = VideoSearchFeature.reduce(&state, .selectAllMoments)
-        #expect(state.selectedMoments == [2, 6, 10])
+        #expect(state.selectedMoments == [2, 6] && state.clipLength == 3)
         _ = VideoSearchFeature.reduce(&state, .exportProgress(2, 0.4))
         #expect(state.exportProgress == 0.4)
-        _ = VideoSearchFeature.reduce(&state, .exported(2, destination, 9))
-        #expect(state.phase == .idle && state.exportedVideo == destination && state.exportedSeconds == 9)
-        #expect(state.selectedMoments == [2, 6, 10] && state.canExport)
+        _ = VideoSearchFeature.reduce(&state, .exported(2, destination, 6))
+        #expect(state.phase == .idle && state.exportedVideo == destination && state.exportedSeconds == 6)
+        #expect(state.selectedMoments == [2, 6] && state.canExport)
     }
 
     @Test(
@@ -525,7 +527,9 @@ private final class SuspendedVideoService: VideoSearchService {
         for waiter in waiters { waiter.resume() }
         return [VideoSearchMatch(moment: moment, similarity: 1)]
     }
-    func export(_ plan: VideoClipPlan, of video: URL, to destination: URL, progress: (Double) -> Void) async throws {
+    func export(
+        _ plan: VideoClipPlan, of video: URL, to destination: URL, progress: (Double) -> Void
+    ) async throws -> Double {
         exports += 1
         progress(0.5)
         await withCheckedContinuation {
@@ -535,6 +539,7 @@ private final class SuspendedVideoService: VideoSearchService {
         let waiters = idle
         idle = []
         for waiter in waiters { waiter.resume() }
+        return plan.totalSeconds
     }
     func waitForIdle() async {
         await withCheckedContinuation {

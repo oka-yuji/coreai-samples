@@ -224,12 +224,15 @@ private final class ScriptedVideoService: VideoSearchService {
         return indexed.map { VideoSearchMatch(moment: $0, similarity: 0.8) }
     }
 
-    func export(_ plan: VideoClipPlan, of video: URL, to destination: URL, progress: (Double) -> Void) async throws {
+    func export(
+        _ plan: VideoClipPlan, of video: URL, to destination: URL, progress: (Double) -> Void
+    ) async throws -> Double {
         calls.append("export \(plan.totalSeconds) " + destination.lastPathComponent)
         progress(0.5)
         progress(1)
         if !exportFailures.isEmpty { throw exportFailures.removeFirst() }
         try Task.checkCancellation()
+        return plan.totalSeconds
     }
 
     func waitForIdle() async {}
