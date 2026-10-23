@@ -35,7 +35,7 @@ public final class VideoSearchRunner {
             let failure = await released(value)
             if !Task.isCancelled { send(failure.map { .closeFailed(value, $0.detail) } ?? .stopped(value)) }
             return
-        case .load(let value, _), .index(let value, _), .search(let value, _):
+        case .load(let value, _), .index(let value, _), .search(let value, _), .export(let value, _, _, _):
             id = value
         }
         guard isPermitted() else {
@@ -59,11 +59,22 @@ public final class VideoSearchRunner {
                 let matches = try await service.search(query)
                 try Task.checkCancellation()
                 send(.searched(id, matches, Self.seconds(since: start)))
+            case .export(let id, let plan, let video, let destination):
+                let seconds = try await service.export(plan, of: video, to: destination) { value in
+                    if !Task.isCancelled { send(.exportProgress(id, value)) }
+                }
+                try Task.checkCancellation()
+                send(.exported(id, destination, seconds))
             case .waitForIdle, .close:
                 return
             }
         } catch {
-            if !Task.isCancelled && !(error is CancellationError) { send(.failed(id, Self.failure(error))) }
+            guard !Task.isCancelled && !(error is CancellationError) else { return }
+            if case .export = effect {
+                send(.failed(id, VideoSearchFailure(message: "The clip could not be exported.", detail: "\(error)")))
+            } else {
+                send(.failed(id, Self.failure(error)))
+            }
         }
     }
 
