@@ -60,6 +60,7 @@ struct VideoSearchContent: View {
         .onChange(of: state.video) { selectedTime = nil }
         .onChange(of: state.matches) { selectedTime = nil }
         .task(id: state.video) { await connectWhenPermitted() }
+        .onAppear { VideoExport.removeFiles(keeping: state.exportedVideo) }
         .onDisappear {
             player?.pause()
             #if os(iOS)
@@ -134,6 +135,7 @@ struct VideoSearchContent: View {
                 case .loading: Text("Preparing the model…")
                 case .indexing: Text("Indexing frames: \(state.completed) of \(state.total)")
                 case .searching: Text("Searching the video…")
+                case .exporting: Text("Exporting…")
                 case .stopping: Text("Stopping…")
                 case .idle: EmptyView()
                 }
@@ -168,16 +170,19 @@ struct VideoSearchContent: View {
     private var playback: some View {
         VStack(alignment: .leading, spacing: 12) {
             if let player {
-                VideoPlayer(player: player)
+                Color.clear
                     .aspectRatio(16 / 9, contentMode: .fit)
+                    .overlay { VideoPlayer(player: player).accessibilityIdentifier("video-search-player") }
                     .frame(maxHeight: maximumPlayerHeight)
                     .frame(maxWidth: .infinity)
-                    .accessibilityIdentifier("video-search-player")
             } else {
                 Text("Playback is available once the model is ready.").font(.footnote).foregroundStyle(.secondary)
             }
             if state.hasSearched && state.duration > 0 { markers }
             if state.hasSearched && !state.displayedMatches.isEmpty { selectionBar }
+            if !state.exportSelection.isEmpty || state.phase == .exporting || state.exportedVideo != nil {
+                VideoExportBar(state: state, send: send)
+            }
         }
         .padding(.bottom, 8)
         .background(.background)
@@ -258,7 +263,12 @@ struct VideoSearchContent: View {
                     }
                 }
                 Spacer()
-                Text("\(state.displayedMatches.count) moments").font(.subheadline).foregroundStyle(.secondary)
+                VStack(alignment: .trailing, spacing: 6) {
+                    Text("\(state.displayedMatches.count) moments").font(.subheadline).foregroundStyle(.secondary)
+                    Button("Select all") { send(.selectAllMoments) }
+                        .buttonStyle(.bordered)
+                        .disabled(state.isBusy || state.displayedMatches.isEmpty)
+                }
             }
             Toggle(
                 "Show all candidates",
@@ -280,6 +290,26 @@ struct VideoSearchContent: View {
     }
 
     private func row(_ match: VideoSearchMatch) -> some View {
+        let checked = state.selectedMoments.contains(match.moment.time)
+        return HStack(spacing: 0) {
+            Button {
+                send(.toggleMoment(match.moment.time))
+            } label: {
+                Image(systemName: checked ? "checkmark.circle.fill" : "circle")
+                    .font(.title2)
+                    .foregroundStyle(checked ? Color.accentColor : Color.secondary)
+                    .frame(width: 44, height: 44)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.borderless)
+            .disabled(state.isBusy)
+            .accessibilityLabel(Text("Include \(timestamp(match.moment.time)) in the export"))
+            .accessibilityAddTraits(checked ? .isSelected : [])
+            playButton(match)
+        }
+    }
+
+    private func playButton(_ match: VideoSearchMatch) -> some View {
         let selected = match.moment.time == selectedTime
         return Button {
             play(from: match.moment.time)
@@ -412,7 +442,7 @@ struct VideoSearchContent: View {
             let names = Set(
                 kept.compactMap { $0 }
                     .filter { $0.deletingLastPathComponent().resolvingSymlinksInPath().pathComponents == directory }
-                    .map(\.lastPathComponent))
+                    .map(\.lastPathComponent) + [VideoExport.folder.lastPathComponent])
             let files =
                 (try? FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil)) ?? []
             for file in files where !names.contains(file.lastPathComponent) {
@@ -421,3 +451,125 @@ struct VideoSearchContent: View {
         }
     }
 #endif
+
+struct VideoExport: Transferable {
+    static let folder = URL.temporaryDirectory.appending(path: "video-search/exports")
+    let url: URL
+
+    static var transferRepresentation: some TransferRepresentation {
+        FileRepresentation(exportedContentType: .mpeg4Movie) { SentTransferredFile($0.url) }
+            .suggestedFileName { $0.url.lastPathComponent }
+    }
+
+    static func destination(keeping kept: URL?) -> URL {
+        removeFiles(keeping: kept)
+        try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyyMMdd-HHmmss"
+        return folder.appending(path: "moments-\(formatter.string(from: .now)).mp4")
+    }
+
+    static func removeFiles(keeping kept: URL?) {
+        let files = (try? FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil)) ?? []
+        for file in files where file.lastPathComponent != kept?.lastPathComponent {
+            try? FileManager.default.removeItem(at: file)
+        }
+    }
+}
+
+private struct VideoExportBar: View {
+    let state: VideoSearchState
+    let send: @MainActor (VideoSearchAction) -> Void
+    @State private var saving = false
+    @State private var saveRequest = 0
+    @Environment(\.locale) private var locale
+
+    var body: some View {
+        let strings = DemoStrings(locale: locale)
+        return VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 12) { exportSelectionButtons }
+            clipLengthPicker
+            if state.phase == .exporting {
+                HStack(spacing: 12) {
+                    ProgressView(value: state.exportProgress) {
+                        Text("Exporting…")
+                    } currentValueLabel: {
+                        Text(state.exportProgress, format: .percent.precision(.fractionLength(0)))
+                    }
+                    Button("Stop") { send(.stop) }
+                        .disabled(state.phase == .stopping)
+                }
+            } else {
+                Button {
+                    send(.export(VideoExport.destination(keeping: state.exportedVideo)))
+                } label: {
+                    Text(
+                        "Export \(state.exportSelection.count) moments (\(strings.number(state.exportPlan.totalSeconds)) s)"
+                    )
+                    .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(!state.canExport)
+            }
+            if let video = state.exportedVideo { exportedCard(video, seconds: strings.number(state.exportedSeconds)) }
+        }
+        .font(.callout)
+    }
+
+    private var exportSelectionButtons: some View {
+        Group {
+            Button("Select all") { send(.selectAllMoments) }
+            Button("Clear selection") { send(.clearMomentSelection) }
+        }
+        .buttonStyle(.bordered)
+        .disabled(state.isBusy)
+    }
+
+    private var clipLengthPicker: some View {
+        HStack(spacing: 8) {
+            Text("Clip length").font(.caption).foregroundStyle(.secondary).accessibilityHidden(true)
+            Picker("Clip length", selection: Binding(get: { state.clipLength }, set: { send(.setClipLength($0)) })) {
+                ForEach(VideoSearchState.clipLengths, id: \.self) { length in Text("\(Int(length)) s").tag(length) }
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .fixedSize()
+            .disabled(state.isBusy)
+        }
+    }
+
+    private func exportedCard(_ video: URL, seconds: String) -> some View {
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Exported (\(seconds) s)").bold()
+                Text(verbatim: video.lastPathComponent)
+                    .font(.caption).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
+            }
+            Spacer(minLength: 0)
+            #if os(iOS)
+                ShareLink(item: VideoExport(url: video), preview: SharePreview(video.lastPathComponent)) {
+                    Label("Share", systemImage: "square.and.arrow.up")
+                }
+                .buttonStyle(.borderedProminent)
+            #else
+                Button("Save…") {
+                    saveRequest = state.session
+                    saving = true
+                }
+                .buttonStyle(.borderedProminent)
+                .fileExporter(
+                    isPresented: $saving, item: VideoExport(url: video), contentTypes: [.mpeg4Movie],
+                    defaultFilename: video.lastPathComponent
+                ) { result in
+                    guard case .failure(let error) = result, (error as? CocoaError)?.code != .userCancelled else {
+                        return
+                    }
+                    send(.saveFailed(saveRequest, error.localizedDescription))
+                }
+            #endif
+        }
+        .padding(12)
+        .background(Color.accentColor.opacity(0.08), in: RoundedRectangle(cornerRadius: 10))
+    }
+}
