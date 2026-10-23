@@ -11,7 +11,9 @@ public protocol VideoSearchService {
     func load(_ folder: URL) async throws
     func index(_ video: URL, progress: (Int, Int) -> Void) async throws -> VideoIndex
     func search(_ query: String) async throws -> [VideoSearchMatch]
-    func export(_ plan: VideoClipPlan, of video: URL, to destination: URL, progress: (Double) -> Void) async throws
+    func export(
+        _ plan: VideoClipPlan, of video: URL, to destination: URL, progress: (Double) -> Void
+    ) async throws -> Double
     func waitForIdle() async
     func close() async throws
 }
@@ -71,17 +73,17 @@ public final class LiveVideoSearchService: VideoSearchService {
 
     public func export(
         _ plan: VideoClipPlan, of video: URL, to destination: URL, progress: (Double) -> Void
-    ) async throws {
+    ) async throws -> Double {
         try begin()
         defer { finish() }
         let (values, continuation) = AsyncStream.makeStream(of: Double.self)
-        try await withThrowingTaskGroup { group in
+        return try await withThrowingTaskGroup(of: Double.self) { group in
             group.addTask {
                 defer { continuation.finish() }
-                try await VideoClipExporter.export(plan, of: video, to: destination) { continuation.yield($0) }
+                return try await VideoClipExporter.export(plan, of: video, to: destination) { continuation.yield($0) }
             }
             for await value in values { progress(value) }
-            try await group.waitForAll()
+            return try await group.next() ?? 0
         }
     }
 
