@@ -79,6 +79,20 @@ struct CoreAIOCRModel: OCRModel {
             models[name] = model
             assets.append(.init(name: name, cached: cached != nil, seconds: (clock.now - assetStart) / .seconds(1)))
         }
+        let (functions, states) = try bind(models)
+        let model = CoreAIOCRModel(
+            tokenizer: tokenizer, windowLimit: metadata.vision.windowLimit, tokenLimit: metadata.text.tokenLimit,
+            models: Array(models.values), functions: functions, states: states)
+        return (
+            model,
+            OCRLoadStats(
+                assets: assets, tokenizerSeconds: tokenizerSeconds, totalSeconds: (clock.now - start) / .seconds(1))
+        )
+    }
+
+    private static func bind(_ models: [String: AIModel]) throws
+        -> (functions: [String: InferenceFunction], states: [String: NDArrayDescriptor])
+    {
         var functions: [String: InferenceFunction] = [:]
         var states: [String: NDArrayDescriptor] = [:]
         for signature in signatures {
@@ -100,14 +114,7 @@ struct CoreAIOCRModel: OCRModel {
             }
             functions[signature.asset + "." + signature.function] = function
         }
-        let model = CoreAIOCRModel(
-            tokenizer: tokenizer, windowLimit: metadata.vision.windowLimit, tokenLimit: metadata.text.tokenLimit,
-            models: Array(models.values), functions: functions, states: states)
-        return (
-            model,
-            OCRLoadStats(
-                assets: assets, tokenizerSeconds: tokenizerSeconds, totalSeconds: (clock.now - start) / .seconds(1))
-        )
+        return (functions, states)
     }
 
     static func deleteSpecializationCache(bundle: URL) throws {
