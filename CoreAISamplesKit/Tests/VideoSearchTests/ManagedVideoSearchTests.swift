@@ -139,7 +139,7 @@ struct ManagedVideoSearchTests {
         store.send(.export(destination))
         await settle(store)
         #expect(store.state.failure == nil && store.state.exportedVideo == destination)
-        #expect(store.state.exportedSeconds == 1.5 && store.state.exportProgress == 1)
+        #expect(store.state.exportedSeconds == 0.75 && store.state.exportProgress == 1)
         #expect(
             services.all[0].calls.filter { $0.hasPrefix("export") } == [
                 "export 1.5 moments.mp4", "export 1.5 moments.mp4",
@@ -150,6 +150,17 @@ struct ManagedVideoSearchTests {
         let replacement = next.store(folder: fp16, identity: "fp16", isPermitted: { true })
         #expect(replacement.state.selectedMoments == [0.5] && replacement.state.clipLength == 5)
         #expect(replacement.state.exportedVideo == destination && replacement.state.exportProgress == 0)
+    }
+
+    @Test("CLIP-03 The runner reports the length the service actually exported, not the planned length")
+    func exportedLengthFromService() async {
+        let runner = VideoSearchRunner(service: ScriptedVideoService())
+        let plan = VideoClipPlan.make(times: [8.5], length: 3, duration: 15)
+        var reported: [Double] = []
+        await runner.run(.export(1, plan, video, URL(filePath: "/exports/moments.mp4"))) { action in
+            if case .exported(1, _, let seconds) = action { reported.append(seconds) }
+        }
+        #expect(plan.totalSeconds == 3 && reported == [1.5])
     }
 
     @Test("VID-04 A video that cannot be read fails with its own message and keeps the demo usable")
@@ -232,7 +243,7 @@ private final class ScriptedVideoService: VideoSearchService {
         progress(1)
         if !exportFailures.isEmpty { throw exportFailures.removeFirst() }
         try Task.checkCancellation()
-        return plan.totalSeconds
+        return plan.totalSeconds / 2
     }
 
     func waitForIdle() async {}
