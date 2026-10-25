@@ -28,6 +28,7 @@ let package = Package(
         .library(name: "ObjectFinderCore", targets: ["ObjectFinderCore"]),
         .library(name: "ObjectFinderRuntime", targets: ["ObjectFinderRuntime"]),
         .library(name: "OCRCore", targets: ["OCRCore"]),
+        .library(name: "OCRRuntime", targets: ["OCRRuntime"]),
         .executable(name: "object-finder-check", targets: ["object-finder-check"]),
         .library(name: "SpeechCore", targets: ["SpeechCore"]),
         .library(name: "SpeechFeature", targets: ["SpeechFeature"]),
@@ -158,6 +159,11 @@ let package = Package(
         .testTarget(
             name: "OCRCoreTests", dependencies: ["OCRCore"], resources: [.copy("Resources")],
             swiftSettings: speechSettings),
+        .target(
+            name: "OCRRuntime",
+            dependencies: ["OCRCore", .product(name: "Tokenizers", package: "swift-transformers")],
+            swiftSettings: speechSettings),
+        .testTarget(name: "OCRRuntimeTests", dependencies: ["OCRRuntime", "OCRCore"], swiftSettings: speechSettings),
         .target(name: "SpeechCore", swiftSettings: speechSettings),
         .target(name: "SpeechFeature", dependencies: ["SpeechCore", "FeatureStore"], swiftSettings: speechSettings),
         .target(

@@ -23,6 +23,8 @@ let package = Package(
             dependencies: [
                 "ControlRuntime",
                 .product(name: "CoreAIBackend", package: "CoreAISamplesKit"),
+                .product(name: "OCRCore", package: "CoreAISamplesKit"),
+                .product(name: "OCRRuntime", package: "CoreAISamplesKit"),
                 .product(name: "CoreAILM", package: "coreai-models"),
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
             ]
