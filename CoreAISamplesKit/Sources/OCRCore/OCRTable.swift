@@ -121,7 +121,7 @@ public struct OCRTable: Equatable, Sendable {
         return parts
     }
 
-    static func pythonStripped(_ text: String) -> String {
+    public static func pythonStripped(_ text: String) -> String {
         let scalars = Array(text.unicodeScalars)
         guard let first = scalars.firstIndex(where: { !isPythonWhitespace($0) }),
             let last = scalars.lastIndex(where: { !isPythonWhitespace($0) })
