@@ -21,6 +21,8 @@ WINDOW_PATCHES = WINDOW_UNITS * WINDOW_UNITS * UNIT_PATCHES
 WINDOW_LIMIT = 2048
 TOKEN_LIMIT = 32768
 VISION_NRMSE_LIMIT = 1e-4
+VISION_FP16_COSINE_MIN = 0.999
+VISION_FP16_NRMSE_LIMIT = 0.05
 VISION_CASES = {
     "min": {"size": [56, 56]},
     "square448": {"size": [448, 448]},
@@ -70,7 +72,7 @@ def logit_metrics(reference, actual):
     observed = np.asarray(actual, dtype=np.float64).reshape(-1)
     top = np.sort(expected)[-2:]
     result.update(argmax=int(observed.argmax()), reference_argmax=int(expected.argmax()),
-                  argmax_match=bool(observed.argmax() == expected.argmax()),
+                  argmax_match=bool(result["finite"] and observed.argmax() == expected.argmax()),
                   top5=[int(i) for i in np.argsort(-observed)[:5]],
                   reference_top5=[int(i) for i in np.argsort(-expected)[:5]],
                   reference_top2_gap=float(top[1] - top[0]))

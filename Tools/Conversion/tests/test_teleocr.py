@@ -7,7 +7,8 @@ import unittest
 import numpy as np
 
 from Tools.Conversion.adapters.teleocr.contracts import (
-    FUNCTIONS, REVISION, WINDOW_LIMIT, digest, inspected_functions, restore_order, window_inputs, window_order,
+    FUNCTIONS, REVISION, WINDOW_LIMIT, digest, inspected_functions, logit_metrics, metrics, restore_order, window_inputs,
+    window_order,
 )
 from Tools.Conversion.adapters.teleocr.prepare import validate
 from Tools.Conversion.recipe import load_recipe
@@ -62,6 +63,27 @@ class TeleOCRContractTests(unittest.TestCase):
             window_order(5, 8)
         with self.assertRaises(ValueError):
             window_order(8 * (WINDOW_LIMIT + 1), 8)
+
+    def test_window_inputs_reject_pixel_rows_outside_the_patch_grid(self):
+        with self.assertRaisesRegex(ValueError, "Pixel rows do not match the patch grid"):
+            window_inputs(np.zeros((32, 1176)), np.zeros((32, 40)), 6, 10)
+
+    def test_metrics_reject_mismatched_empty_or_nonfinite_reference_arrays(self):
+        pairs = [(np.ones(3), np.ones(4)), (np.array([np.nan]), np.ones(1)), (np.array([]), np.array([]))]
+        for measure in (metrics, logit_metrics):
+            for reference, actual in pairs:
+                with self.subTest(measure=measure.__name__, reference=reference), self.assertRaises(ValueError):
+                    measure(reference, actual)
+
+    def test_nonfinite_candidates_are_reported_and_never_match(self):
+        self.assertFalse(metrics(np.ones(3), np.array([1.0, np.nan, 1.0]))["finite"])
+        reference = np.array([0.0, 1.0, 3.0, 2.0])
+        for candidate, expected in (([np.nan, 1.0, 3.0, 2.0], False), ([0.0, 1.0, np.nan, 2.0], False),
+                                    ([0.0, 1.0, 3.1, 2.0], True)):
+            with self.subTest(candidate=candidate):
+                result = logit_metrics(reference, np.array(candidate))
+                self.assertIs(result["finite"], expected)
+                self.assertIs(result["argmax_match"], expected)
 
     def test_inspect_report_parsing_matches_the_declared_functions(self):
         report = {"summary": {"functions": [

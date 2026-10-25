@@ -10,8 +10,8 @@ import numpy as np
 import torch
 
 from .contracts import (
-    REQUIRED_VISION_CASES, REVISION, TOKEN_LIMIT, VISION_CASES, VISION_NRMSE_LIMIT, WINDOW_LIMIT, WINDOW_PATCHES,
-    digest, logit_metrics, metrics, restore_order, write_json,
+    REQUIRED_VISION_CASES, REVISION, TOKEN_LIMIT, VISION_CASES, VISION_FP16_COSINE_MIN, VISION_FP16_NRMSE_LIMIT,
+    VISION_NRMSE_LIMIT, WINDOW_LIMIT, WINDOW_PATCHES, digest, logit_metrics, metrics, restore_order, write_json,
 )
 from .wrappers import Decoder, Embed, Main, Prefill, StatelessPrefill, Vision
 
@@ -74,6 +74,12 @@ class Runtime:
         gc.collect()
 
 
+def against_eager(measure, eager, actual):
+    if not np.isfinite(eager).all():
+        return {"finite": False, "shape": list(eager.shape), "skipped": "non-finite PyTorch fp16 output"}
+    return measure(eager, actual)
+
+
 def half(values):
     return {key: value.astype(np.float16) if value.dtype == np.float32 else value for key, value in values.items()}
 
@@ -124,15 +130,20 @@ def vision(args):
             compare(name, f"coreai_{precision}_vs_reference", output)
             if precision == "fp16":
                 eager = rows[name].pop("eager_fp16")
-                rows[name]["coreai_fp16_vs_eager_fp16"] = metrics(restore_order(eager, case["order"]),
-                                                                  restore_order(output, case["order"]))
+                rows[name]["coreai_fp16_vs_eager_fp16"] = against_eager(metrics, restore_order(eager, case["order"]),
+                                                                        restore_order(output, case["order"]))
             print(name, precision, {key: value for key, value in rows[name].items() if key.startswith("coreai")}, flush=True)
         runtime.close()
-    passed = all(rows[name]["coreai_fp32_vs_reference"]["finite"]
-                 and rows[name]["coreai_fp32_vs_reference"]["nrmse"] <= VISION_NRMSE_LIMIT
-                 and rows[name]["coreai_fp16_vs_reference"]["finite"] for name in REQUIRED_VISION_CASES)
-    return passed, {"cases": rows, "gate": {"fp32_nrmse_max": VISION_NRMSE_LIMIT, "required": REQUIRED_VISION_CASES},
-                    **timing}, "vision.aimodel"
+
+    def gated(name):
+        exact, half_precision = rows[name]["coreai_fp32_vs_reference"], rows[name]["coreai_fp16_vs_reference"]
+        return (exact["finite"] and exact["nrmse"] <= VISION_NRMSE_LIMIT and half_precision["finite"]
+                and (half_precision["cosine"] or 0.0) >= VISION_FP16_COSINE_MIN
+                and half_precision["nrmse"] <= VISION_FP16_NRMSE_LIMIT)
+
+    gate = {"fp32_nrmse_max": VISION_NRMSE_LIMIT, "fp16_cosine_min": VISION_FP16_COSINE_MIN,
+            "fp16_nrmse_max": VISION_FP16_NRMSE_LIMIT, "required": REQUIRED_VISION_CASES}
+    return all(gated(name) for name in REQUIRED_VISION_CASES), {"cases": rows, "gate": gate, **timing}, "vision.aimodel"
 
 
 def embed(args):
@@ -179,7 +190,7 @@ def decoder(args):
     output, result["coreai_s"] = runtime(half({name: prefill[name] for name in names}), "logits")
     runtime.close()
     result["coreai_fp16_vs_reference"] = logit_metrics(reference, output)
-    result["coreai_fp16_vs_eager_fp16"] = logit_metrics(eager, output)
+    result["coreai_fp16_vs_eager_fp16"] = against_eager(logit_metrics, eager, output)
     result["stateless_s"] = time.perf_counter() - started
     print({key: value for key, value in result.items() if isinstance(value, dict)}, flush=True)
     started = time.perf_counter()
