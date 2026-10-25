@@ -5,9 +5,14 @@ import Testing
 
 @Suite("OCR prompt tokens and positions")
 struct OCRPromptTests {
+    private static let instructions = [
+        "f1Text448": OCRPrompt.text, "layout1036": OCRPrompt.layout, "table300x200": OCRPrompt.table,
+    ]
+
     private static func prompt(_ item: PromptFixture.Case, _ fixture: PromptFixture) throws -> OCRPrompt {
         let encodings = Dictionary(uniqueKeysWithValues: fixture.segments.map { ($0.text, $0.ids) })
-        return try OCRPrompt(instruction: item.prompt, gridHeight: item.gridHeight, gridWidth: item.gridWidth) { text in
+        let instruction = try #require(instructions[item.name])
+        return try OCRPrompt(instruction: instruction, gridHeight: item.gridHeight, gridWidth: item.gridWidth) { text in
             try #require(encodings[text], "missing segment \(text.debugDescription)")
         }
     }
@@ -18,6 +23,7 @@ struct OCRPromptTests {
     func promptContract(name: String) throws {
         let fixture = try OCRFixtures.load("prompts", as: PromptFixture.self)
         let item = try #require(fixture.cases.first { $0.name == name })
+        #expect(Self.instructions[name] == item.prompt)
         let prompt = try Self.prompt(item, fixture)
         #expect(prompt.ids == item.ids)
         #expect(prompt.imageRange == item.imageStart..<(item.imageStart + item.imageCount))

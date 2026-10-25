@@ -61,6 +61,14 @@ struct OCRParsingTests {
         }
     }
 
+    @Test("Skip layout boxes whose coordinates or pixel products do not fit in Int instead of trapping")
+    func overflowingBoxes() {
+        #expect(OCRLayout.blocks(in: "<box:1 0 1 1><label:x>", width: 2, height: 2).count == 1)
+        #expect(OCRLayout.blocks(in: "<box:99999999999999999999 0 1 1><label:x>", width: 2, height: 2).isEmpty)
+        #expect(OCRLayout.blocks(in: "<box:9223372036854775807 0 1 1><label:x>", width: 2, height: 2).isEmpty)
+        #expect(OCRLayout.blocks(in: "<box:9223372036854775807 0 1 1><label:x>", width: 1, height: 1).isEmpty)
+    }
+
     @Test("Parse OTSL into the reference cells and grid and keep the row widths before padding")
     func tables() throws {
         let fixture = try OCRFixtures.load("tables", as: TableFixture.self)

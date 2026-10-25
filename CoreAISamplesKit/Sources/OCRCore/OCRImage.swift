@@ -30,11 +30,13 @@ public struct OCRImage: Equatable, Sendable {
         let factor = Double(sizeFactor)
         var resizedHeight = Int((Double(height) / factor).rounded(.toNearestOrEven)) * sizeFactor
         var resizedWidth = Int((Double(width) / factor).rounded(.toNearestOrEven)) * sizeFactor
-        if resizedHeight * resizedWidth > maximumPixels {
+        let rounded = resizedHeight.multipliedReportingOverflow(by: resizedWidth)
+        guard !rounded.overflow else { throw OCRError.invalidImage }
+        if rounded.partialValue > maximumPixels {
             let beta = (Double(height * width) / Double(maximumPixels)).squareRoot()
             resizedHeight = max(sizeFactor, Int((Double(height) / beta / factor).rounded(.down)) * sizeFactor)
             resizedWidth = max(sizeFactor, Int((Double(width) / beta / factor).rounded(.down)) * sizeFactor)
-        } else if resizedHeight * resizedWidth < minimumPixels {
+        } else if rounded.partialValue < minimumPixels {
             let beta = (Double(minimumPixels) / Double(height * width)).squareRoot()
             resizedHeight = Int((Double(height) * beta / factor).rounded(.up)) * sizeFactor
             resizedWidth = Int((Double(width) * beta / factor).rounded(.up)) * sizeFactor

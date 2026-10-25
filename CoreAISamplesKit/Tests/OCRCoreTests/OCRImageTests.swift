@@ -78,6 +78,13 @@ struct OCRImageTests {
         }
     }
 
+    @Test("Reject a size whose pixel count overflows after rounding to multiples of 28 instead of trapping")
+    func roundedOverflow() {
+        #expect(throws: OCRError.invalidImage) {
+            try OCRImage.smartResize(width: 3_037_000_499, height: 3_037_000_499)
+        }
+    }
+
     @Test("Reject empty, mismatched, and oversized images")
     func invalidImages() {
         #expect(throws: OCRError.invalidImage) { try OCRImage(width: 0, height: 1, rgb: []) }
