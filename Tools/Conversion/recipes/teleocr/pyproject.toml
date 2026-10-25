@@ -1,0 +1,21 @@
+[project]
+name = "coreai-samples-teleocr"
+version = "0.1.0"
+requires-python = ">=3.11,<3.12"
+dependencies = [
+  "coreai-core==1.0.0b3",
+  "coreai-opt==0.3.0",
+  "coreai-torch==0.4.3",
+  "huggingface-hub==0.36.2",
+  "numpy==2.4.6",
+  "Pillow==13.0.0",
+  "psutil==7.2.2",
+  "safetensors==0.8.0",
+  "torch==2.9.0",
+  "torchao==0.15.0",
+  "torchvision==0.24.0",
+  "transformers==4.57.3"
+]
+
+[tool.uv]
+prerelease = "if-necessary-or-explicit"
