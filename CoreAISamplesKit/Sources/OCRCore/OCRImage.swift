@@ -66,7 +66,25 @@ public struct OCRImage: Equatable, Sendable {
         return try OCRImage(width: width, height: height, rgb: pixels)
     }
 
-    static func isSupported(width: Int, height: Int) -> Bool {
+    public func cropped(to box: OCRBox) throws -> OCRImage {
+        let width = box.x1.subtractingReportingOverflow(box.x0)
+        let height = box.y1.subtractingReportingOverflow(box.y0)
+        guard !width.overflow, !height.overflow,
+            Self.isSupported(width: width.partialValue, height: height.partialValue)
+        else { throw OCRError.invalidImage }
+        var pixels = [UInt8](repeating: 0, count: width.partialValue * height.partialValue * 3)
+        let left = min(max(box.x0, 0), self.width)
+        let span = (max(min(box.x1, self.width), left) - left) * 3
+        let top = min(max(box.y0, 0), self.height)
+        for y in top..<max(min(box.y1, self.height), top) where span > 0 {
+            let source = (y * self.width + left) * 3
+            let target = ((y - box.y0) * width.partialValue + left - box.x0) * 3
+            pixels.replaceSubrange(target..<(target + span), with: rgb[source..<(source + span)])
+        }
+        return try OCRImage(width: width.partialValue, height: height.partialValue, rgb: pixels)
+    }
+
+    package static func isSupported(width: Int, height: Int) -> Bool {
         (1...32_768).contains(width) && (1...32_768).contains(height) && width * height <= 100_000_000
     }
 }

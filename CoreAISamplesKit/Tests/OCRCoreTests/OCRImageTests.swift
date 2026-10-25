@@ -93,4 +93,30 @@ struct OCRImageTests {
         #expect(throws: OCRError.invalidImage) { try OCRImage.smartResize(width: 0, height: 10) }
         #expect(throws: OCRError.invalidImage) { try OCRImage.smartResize(width: Int.max, height: 2) }
     }
+
+    @Test(
+        "Crop like Pillow by copying pixels inside the image and filling pixels outside it with zero",
+        arguments: [
+            OCRBox(x0: 1, y0: 1, x1: 4, y1: 3), OCRBox(x0: -2, y0: 2, x1: 3, y1: 6), OCRBox(x0: 6, y0: 0, x1: 8, y1: 1),
+        ])
+    func crop(box: OCRBox) throws {
+        let image = try OCRFixtures.pattern(width: 5, height: 4)
+        var expected: [UInt8] = []
+        for y in box.y0..<box.y1 {
+            for x in box.x0..<box.x1 {
+                let inside = (0..<5).contains(x) && (0..<4).contains(y)
+                expected += (0..<3).map { inside ? image.rgb[(y * 5 + x) * 3 + $0] : 0 }
+            }
+        }
+        let cropped = try image.cropped(to: box)
+        #expect(cropped.width == box.x1 - box.x0 && cropped.height == box.y1 - box.y0 && cropped.rgb == expected)
+    }
+
+    @Test("Reject crop boxes without width or height and boxes whose size overflows")
+    func invalidCrop() throws {
+        let image = try OCRFixtures.pattern(width: 5, height: 4)
+        #expect(throws: OCRError.invalidImage) { try image.cropped(to: OCRBox(x0: 2, y0: 0, x1: 2, y1: 1)) }
+        #expect(throws: OCRError.invalidImage) { try image.cropped(to: OCRBox(x0: 3, y0: 0, x1: 1, y1: 1)) }
+        #expect(throws: OCRError.invalidImage) { try image.cropped(to: OCRBox(x0: Int.min, y0: 0, x1: 1, y1: 1)) }
+    }
 }
