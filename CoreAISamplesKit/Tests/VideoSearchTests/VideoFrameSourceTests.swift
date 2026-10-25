@@ -129,7 +129,14 @@ enum SyntheticVideo {
         let writer = try AVAssetWriter(outputURL: url, fileType: .mov)
         let input = AVAssetWriterInput(
             mediaType: .video,
-            outputSettings: [AVVideoCodecKey: AVVideoCodecType.h264, AVVideoWidthKey: width, AVVideoHeightKey: height])
+            outputSettings: [
+                AVVideoCodecKey: AVVideoCodecType.h264, AVVideoWidthKey: width, AVVideoHeightKey: height,
+                AVVideoColorPropertiesKey: [
+                    AVVideoColorPrimariesKey: AVVideoColorPrimaries_ITU_R_709_2,
+                    AVVideoTransferFunctionKey: AVVideoTransferFunction_ITU_R_709_2,
+                    AVVideoYCbCrMatrixKey: AVVideoYCbCrMatrix_ITU_R_709_2,
+                ],
+            ])
         input.transform = transform
         let receiver = writer.inputPixelBufferReceiver(for: input, pixelBufferAttributes: nil)
         try writer.start()
@@ -151,6 +158,15 @@ enum SyntheticVideo {
     }
 
     static func dominantColor(of image: CGImage) -> Color {
+        guard let pixel = rgb(of: image) else { return .other }
+        let (red, green, blue) = (pixel[0], pixel[1], pixel[2])
+        if red > 160 && green < 96 && blue < 96 { return .red }
+        if green > 160 && red < 96 && blue < 96 { return .green }
+        if blue > 160 && red < 96 && green < 96 { return .blue }
+        return .other
+    }
+
+    static func rgb(of image: CGImage, x: Double = 0.5, y: Double = 0.5) -> [Int]? {
         var pixel = [UInt8](repeating: 0, count: 4)
         let drawn = pixel.withUnsafeMutableBytes { bytes -> Bool in
             guard
@@ -158,22 +174,16 @@ enum SyntheticVideo {
                     data: bytes.baseAddress, width: 1, height: 1, bitsPerComponent: 8, bytesPerRow: 4,
                     space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)
             else { return false }
+            let (width, height) = (CGFloat(image.width), CGFloat(image.height))
             context.draw(
                 image,
-                in: CGRect(
-                    x: -CGFloat(image.width / 2), y: -CGFloat(image.height / 2), width: CGFloat(image.width),
-                    height: CGFloat(image.height)))
+                in: CGRect(x: -(width * x).rounded(), y: -(height * (1 - y)).rounded(), width: width, height: height))
             return true
         }
-        guard drawn else { return .other }
-        let (red, green, blue) = (Int(pixel[0]), Int(pixel[1]), Int(pixel[2]))
-        if red > 160 && green < 96 && blue < 96 { return .red }
-        if green > 160 && red < 96 && blue < 96 { return .green }
-        if blue > 160 && red < 96 && green < 96 { return .blue }
-        return .other
+        return drawn ? pixel.prefix(3).map(Int.init) : nil
     }
 
-    private static func solid(_ color: CGColor, width: Int, height: Int) throws -> CGImage {
+    static func solid(_ color: CGColor, width: Int, height: Int) throws -> CGImage {
         guard
             let context = CGContext(
                 data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: 0,
