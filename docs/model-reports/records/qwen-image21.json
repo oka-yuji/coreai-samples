@@ -283,6 +283,34 @@
       "thermal": null,
       "model_executed": true,
       "plan_sha256": "6e3c72b9321b6cdc105f8ddf38aaea9c151ab912e2bb9c36dd57654b31d4c793"
+    },
+    "mobile-safe256-full-20261026": {
+      "url": "docs/research/qwen-image21-attention-20261026.json",
+      "level": "diagnostic",
+      "outcome": "failed",
+      "record_type": "legacy",
+      "date": "2026-10-26",
+      "platform": "macos",
+      "device": "M4 Max",
+      "os": "macOS 27.0 (26A428)",
+      "toolchain": "Core AI Torch 0.4.3; Core AI 1.0.0b3; Torch 2.9.0",
+      "variant": "w4-blocks16-23-f32, safe256 explicit F32 attention",
+      "backend": "Core AI; GPU preferred",
+      "route": "Saved independent same-weight B on MPS versus Core AI; private contrasts explicitly identified",
+      "source_revision": "fc13ba1986fcb905854dc8de2f52eee395f49b5b",
+      "artifact_revision": "4cd8ccf4af76e85abb37de69b85c1931256fd93d929cf1923a7442dee6cc851e",
+      "code_revision": "1f1d9b42625d920f7e7ec74a657f52926a939fa3",
+      "workload": {
+        "en": "Fresh B completed 60 runs and 2 repeats, with final hashes identical to the previous B. All 1,230 fixed comparisons passed. Free rollout completed 46 cases: 45 passed and g08-20261021 failed (latent nRMSE 0.01758714, RGBA RMSE 0.02754416). The process ended with SIGKILL (-9), cause unestablished; 14 cases were not completed. Replacing text output with B did not resolve the failing seed. Not full numeric, quality or device acceptance; no speed claim.",
+        "ja": "新Bは60runと2反復を完了し、最終hashは旧Bと一致。固定1,230比較は全合格。自由rolloutは46件完了し45件合格、g08-20261021が不合格（latent nRMSE 0.01758714、RGBA RMSE 0.02754416）。processは原因未確定のSIGKILL(-9)で終了し14件未完。text出力だけのBへの置換でも同seedは解消しなかった。全数値・品質・実機の受入ではなく速度を主張しない。"
+      },
+      "batch_size": 1,
+      "concurrency": 1,
+      "warmups": 0,
+      "power": null,
+      "thermal": null,
+      "model_executed": true,
+      "plan_sha256": "6e3c72b9321b6cdc105f8ddf38aaea9c151ab912e2bb9c36dd57654b31d4c793"
     }
   },
   "measurements": [
