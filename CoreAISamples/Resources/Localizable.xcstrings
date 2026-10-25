@@ -331,6 +331,50 @@
         }
       }
     },
+    "Selected moment" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選択中"
+          }
+        }
+      }
+    },
+    "Select a moment" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "場面を選ぶ"
+          }
+        }
+      }
+    },
+    "Previous moment" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前の場面"
+          }
+        }
+      }
+    },
+    "Next moment" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "次の場面"
+          }
+        }
+      }
+    },
     "Try different wording, lower the match threshold, or show all candidates." : {
       "extractionState" : "manual",
       "localizations" : {
