@@ -13,6 +13,7 @@ Maintainer tooling for [#216](https://github.com/oka-yuji/coreai-samples/issues/
 | `w4-f32` | W4/group64, F16 scales, F32 math | W4/group64, F16 scales, F32 math | W8/group16, F32 math | Dense F32 |
 | `w4-blocks20-21-f32` | W4/group64, F32 math | W4 except the 14 Linear weights in blocks 20–21, retained as F16; F32 math | W8/group16, F32 math | Dense F32 |
 | `w4-blocks16-23-f32` | W4/group64, F32 math | W4 except the 56 Linear weights in blocks 16–23, retained as F16; F32 math | W8/group16, F32 math | Dense F32 |
+| `w4-dit-g16-blocks16-23-f32` | W4/group64, F32 math | W4/group16 except the same 56 retained F16 Linear weights; F32 math | W8/group16, F32 math | Dense F32 |
 
 The physical floating-point inputs and outputs remain Float32. Integer indices and Boolean masks keep their declared types. DiT returns the complete `[1,2304,64]` joint output. Text returns hidden states before the final RMSNorm. DiT temporal frequencies and Vision trigonometric tables retain the source Float32 precision. The Vision feed-forward width is 4304, requiring the separate group16 setting.
 
@@ -23,6 +24,8 @@ The physical floating-point inputs and outputs remain Float32. Integer indices a
 The complete W4/F32 fixed comparison subsequently failed 32 full-joint tensors, despite passing all 480 target comparisons. The two selective candidates preserve the full output ABI and frozen Float32 thresholds. A four-input MPS source/wrapper diagnostic supported trying retained weights in blocks 20–21 and 16–23; that source/wrapper result alone does not establish Core AI fidelity. The subsequent four-case Core AI probe passed both full-joint and target gates for `w4-blocks16-23-f32`, while the two-block candidate still failed e08/e09 full-joint. Their measured DiT assets are 6,342,973,880 B and 4,420,941,001 B respectively. These fixed-step results do not establish full-suite quality or mobile memory fit; see the [scoped probe record](../../../../docs/research/qwen-image21-selective-dit-20261022.json). Block numbers are the zero-based `transformer_blocks` indices. Both use `mixed-f32` as A1. The profile lists every retained module, compression records its exact F16 weight and bias hashes, and the independent reference rejects missing or changed records. The compression summary distinguishes quantized-only payload estimates from the combined quantized/retained Linear-weight estimate.
 
 ## Prepare and run
+
+The group16 DiT candidate has a distinct profile identity and must generate its own matched source cohort and exported assets. It tests finer weight quantization after the group64 candidate passed all 1,230 fixed comparisons but failed one of 60 free rollouts. It does not change any numerical threshold, the preserved block set, other component settings, or the full output ABI. Improved numerical stability, image quality and device fit remain unverified. See the [fidelity record](../../../../docs/research/qwen-image21-attention-20261026.json).
 
 Use an existing pinned source snapshot and the accepted #215 Float32 source cohort and bundle. Model files and raw evidence stay in the local workspace.
 

@@ -9,7 +9,8 @@ class ImageMobileProfileTests(unittest.TestCase):
         return make_profile(candidate, "a" * 64, {"mobile_models.py": "b" * 64})
 
     def test_sensitive_block_candidates_bind_the_exact_dense_weight_set(self):
-        for candidate, blocks in (("w4-blocks20-21-f32", {20, 21}), ("w4-blocks16-23-f32", set(range(16, 24)))):
+        for candidate, blocks in (("w4-blocks20-21-f32", {20, 21}), ("w4-blocks16-23-f32", set(range(16, 24))),
+                                  ("w4-dit-g16-blocks16-23-f32", set(range(16, 24)))):
             profile = self.profile(candidate)
             encoding = profile["components"]["denoiser"]["weight_encoding"]
             self.assertEqual(len(encoding["dense_modules"]), 7 * len(blocks))
@@ -21,6 +22,22 @@ class ImageMobileProfileTests(unittest.TestCase):
                 mutate(altered["components"]["denoiser"]["weight_encoding"]["dense_modules"])
                 with self.assertRaises(ValueError):
                     validate_mobile_profile(altered)
+
+    def test_finer_denoiser_groups_have_a_new_identity_and_preserve_other_components(self):
+        original = self.profile("w4-blocks16-23-f32")
+        finer = self.profile("w4-dit-g16-blocks16-23-f32")
+        self.assertEqual(finer["workload"], original["workload"])
+        for kind in original["components"]:
+            expected = copy.deepcopy(original["components"][kind])
+            if kind == "denoiser":
+                expected["weight_encoding"]["group_size"] = 16
+            self.assertEqual(finer["components"][kind], expected)
+        self.assertNotEqual(validate_mobile_profile(finer), validate_mobile_profile(original))
+        for groups in (64, 32, 16.0):
+            altered = copy.deepcopy(finer)
+            altered["components"]["denoiser"]["weight_encoding"]["group_size"] = groups
+            with self.subTest(groups=groups), self.assertRaises(ValueError):
+                validate_mobile_profile(altered)
 
     def test_full_precision_denoiser_keeps_compressed_storage_and_has_a_matching_dense_counterpart(self):
         compressed = self.profile("w4-f32")

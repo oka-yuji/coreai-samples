@@ -301,8 +301,8 @@
       "artifact_revision": "4cd8ccf4af76e85abb37de69b85c1931256fd93d929cf1923a7442dee6cc851e",
       "code_revision": "1f1d9b42625d920f7e7ec74a657f52926a939fa3",
       "workload": {
-        "en": "Fresh B completed 60 runs and 2 repeats, with final hashes identical to the previous B. All 1,230 fixed comparisons passed. Free rollout completed 46 cases: 45 passed and g08-20261021 failed (latent nRMSE 0.01758714, RGBA RMSE 0.02754416). The process ended with SIGKILL (-9), cause unestablished; 14 cases were not completed. Replacing text output with B did not resolve the failing seed. Not full numeric, quality or device acceptance; no speed claim.",
-        "ja": "新Bは60runと2反復を完了し、最終hashは旧Bと一致。固定1,230比較は全合格。自由rolloutは46件完了し45件合格、g08-20261021が不合格（latent nRMSE 0.01758714、RGBA RMSE 0.02754416）。processは原因未確定のSIGKILL(-9)で終了し14件未完。text出力だけのBへの置換でも同seedは解消しなかった。全数値・品質・実機の受入ではなく速度を主張しない。"
+        "en": "B completed 60 runs and 2 repeats, with final hashes identical to the preceding B. All 1,230 fixed comparisons passed. Combining 46 runs before SIGKILL and 14 successful follow-ups with identical code/components, raw metric audit confirms 59 passing free rollouts and failing g08-20261021 (latent nRMSE 0.01758714, RGBA RMSE 0.02754416). Same-input off-trajectory comparisons pass at steps 2/3; source sensitivity dominates there. Separate four-rollout autorelease-pool controls did not resolve Python process memory growth. The distinct DiT group16 candidate is declared but not yet measured. No quality, device, or latency acceptance.",
+        "ja": "Bは60runと2反復を完了し、最終hashは旧Bと一致。固定1,230比較は全合格。SIGKILL前46runと同一code/部品の追試14runを合わせてraw指標を再計算し、自由rollout59件合格、g08-20261021不合格（latent nRMSE 0.01758714、RGBA RMSE 0.02754416）を確認。軌道外step2/3も同入力比較は合格し、その2点では原典の入力感度が支配的。各別processの4rollout対照ではautorelease poolでPythonのメモリ増加は解消しなかった。別IDのDiT group16候補を追加したが実測前。品質・実機・速度の受入ではない。"
       },
       "batch_size": 1,
       "concurrency": 1,
