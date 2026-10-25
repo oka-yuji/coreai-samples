@@ -1,0 +1,1 @@
+<fcel>品名<fcel>数量<fcel>単価(円)<fcel>備考<nl><fcel>六角ボルトM8<fcel>1,200個<fcel>125<fcel>亞鉛めっき<nl><fcel>防振ゴム板<fcel>350kg<fcel>2,450<fcel>厚さ5mm<nl><fcel>樹脂ケース<fcel>640個<fcel>1,380<fcel>試作用<nl><fcel>銅線<fcel>85kg<fcel>12,800<fcel>在庫優先<nl><|im_end|>

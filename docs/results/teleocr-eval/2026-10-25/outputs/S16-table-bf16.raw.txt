@@ -1,0 +1,1 @@
+<fcel>試料<fcel>温度(°C)<fcel>重さ(g)<fcel>判定<nl><fcel>A-01<fcel>-18.5<fcel>12.40<fcel>合格<nl><fcel>A-02<fcel>-17.9<fcel>12.38<fcel>合格<nl><fcel>B-01<fcel>4.2<fcel>15.06<fcel>再試験<nl><fcel>B-02<fcel>3.8<fcel>15.11<fcel>合格<nl><fcel>C-01<fcel>25.0<fcel>9.87<fcel>合格<nl><|im_end|>

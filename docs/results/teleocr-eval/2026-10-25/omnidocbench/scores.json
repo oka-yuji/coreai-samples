@@ -1,0 +1,384 @@
+{
+ "definition": "00_事前固定_v1.md §4-§6 + 00_事前固定_v1.1_追補.md §2-§6",
+ "primary": "bf16 + MPS",
+ "conditional_meaning": "条件付き = 人手の修正を前提とする対象限定(自動抽出の保証ではない。F5 の CER ≤ 0.25 は特にそう扱う)",
+ "samples": {
+  "OD-table-en-01": {
+   "otsl_found": true,
+   "rows_raw_widths": [
+    3,
+    3,
+    3,
+    3,
+    3,
+    3
+   ],
+   "shape_gt": [
+    6,
+    3
+   ],
+   "shape_strict_match": true,
+   "shape_card_parse": [
+    6,
+    3
+   ],
+   "cell_match": 1.0,
+   "cell_match_unordered": 1.0,
+   "numbers_match": 1.0,
+   "numbers_precision": 1.0,
+   "judgment": "良"
+  },
+  "OD-table-en-02": {
+   "otsl_found": true,
+   "rows_raw_widths": [
+    3,
+    3,
+    3,
+    3,
+    3,
+    3,
+    3,
+    3,
+    3
+   ],
+   "shape_gt": [
+    9,
+    3
+   ],
+   "shape_strict_match": true,
+   "shape_card_parse": [
+    9,
+    3
+   ],
+   "cell_match": 0.9629629629629629,
+   "cell_match_unordered": 0.9629629629629629,
+   "numbers_match": 1.0,
+   "numbers_precision": 1.0,
+   "judgment": "良"
+  },
+  "OD-table-en-03": {
+   "otsl_found": true,
+   "rows_raw_widths": [
+    6,
+    6,
+    6,
+    6,
+    6,
+    6,
+    6,
+    6
+   ],
+   "shape_gt": [
+    8,
+    6
+   ],
+   "shape_strict_match": true,
+   "shape_card_parse": [
+    8,
+    6
+   ],
+   "cell_match": 1.0,
+   "cell_match_unordered": 0.9375,
+   "numbers_match": 1.0,
+   "numbers_precision": 1.0,
+   "judgment": "良"
+  },
+  "OD-table-en-04": {
+   "otsl_found": true,
+   "rows_raw_widths": [
+    3,
+    3,
+    3,
+    3,
+    3,
+    3,
+    3
+   ],
+   "shape_gt": [
+    7,
+    3
+   ],
+   "shape_strict_match": true,
+   "shape_card_parse": [
+    7,
+    3
+   ],
+   "cell_match": 1.0,
+   "cell_match_unordered": 1.0,
+   "numbers_match": null,
+   "numbers_precision": null,
+   "judgment": "良"
+  },
+  "OD-table-zh-01": {
+   "otsl_found": true,
+   "rows_raw_widths": [
+    3,
+    3,
+    3,
+    3,
+    3,
+    3,
+    3,
+    3,
+    3
+   ],
+   "shape_gt": [
+    9,
+    3
+   ],
+   "shape_strict_match": true,
+   "shape_card_parse": [
+    9,
+    3
+   ],
+   "cell_match": 1.0,
+   "cell_match_unordered": 0.7777777777777778,
+   "numbers_match": 1.0,
+   "numbers_precision": 1.0,
+   "judgment": "良"
+  },
+  "OD-table-zh-02": {
+   "otsl_found": true,
+   "rows_raw_widths": [
+    5,
+    5,
+    5,
+    5,
+    5,
+    5,
+    5,
+    5,
+    5
+   ],
+   "shape_gt": [
+    9,
+    5
+   ],
+   "shape_strict_match": true,
+   "shape_card_parse": [
+    9,
+    5
+   ],
+   "cell_match": 1.0,
+   "cell_match_unordered": 1.0,
+   "numbers_match": 1.0,
+   "numbers_precision": 1.0,
+   "judgment": "良"
+  },
+  "OD-table-zh-03": {
+   "otsl_found": true,
+   "rows_raw_widths": [
+    3,
+    3,
+    3,
+    3,
+    3,
+    3,
+    3,
+    3,
+    3
+   ],
+   "shape_gt": [
+    9,
+    3
+   ],
+   "shape_strict_match": true,
+   "shape_card_parse": [
+    9,
+    3
+   ],
+   "cell_match": 1.0,
+   "cell_match_unordered": 1.0,
+   "numbers_match": 1.0,
+   "numbers_precision": 1.0,
+   "judgment": "良"
+  },
+  "OD-table-zh-04": {
+   "otsl_found": true,
+   "rows_raw_widths": [
+    6,
+    6,
+    6,
+    6,
+    6,
+    6,
+    6,
+    6,
+    6,
+    6,
+    6
+   ],
+   "shape_gt": [
+    11,
+    6
+   ],
+   "shape_strict_match": true,
+   "shape_card_parse": [
+    11,
+    6
+   ],
+   "cell_match": 1.0,
+   "cell_match_unordered": 0.8484848484848485,
+   "numbers_match": 1.0,
+   "numbers_precision": 1.0,
+   "judgment": "良"
+  },
+  "OD-text-en-01": {
+   "cer": 0.004149377593360996,
+   "cer_raw": 0.02040816326530612,
+   "len_gt_norm": 241,
+   "len_pred_norm": 241,
+   "judgment": "良"
+  },
+  "OD-text-en-02": {
+   "cer": 0.008,
+   "cer_raw": 0.008,
+   "len_gt_norm": 250,
+   "len_pred_norm": 250,
+   "judgment": "良"
+  },
+  "OD-text-en-03": {
+   "cer": 0.0,
+   "cer_raw": 0.0,
+   "len_gt_norm": 54,
+   "len_pred_norm": 54,
+   "judgment": "良"
+  },
+  "OD-text-en-04": {
+   "cer": 0.0,
+   "cer_raw": 0.0,
+   "len_gt_norm": 168,
+   "len_pred_norm": 168,
+   "judgment": "良"
+  },
+  "OD-text-en-05": {
+   "cer": 0.0,
+   "cer_raw": 0.0,
+   "len_gt_norm": 134,
+   "len_pred_norm": 134,
+   "judgment": "良"
+  },
+  "OD-text-en-06": {
+   "cer": 0.0,
+   "cer_raw": 0.0,
+   "len_gt_norm": 39,
+   "len_pred_norm": 39,
+   "judgment": "良"
+  },
+  "OD-text-en-07": {
+   "cer": 0.0,
+   "cer_raw": 0.0,
+   "len_gt_norm": 75,
+   "len_pred_norm": 75,
+   "judgment": "良"
+  },
+  "OD-text-en-08": {
+   "cer": 0.0,
+   "cer_raw": 0.0,
+   "len_gt_norm": 137,
+   "len_pred_norm": 137,
+   "judgment": "良"
+  },
+  "OD-text-zh-01": {
+   "cer": 0.0,
+   "cer_raw": 0.0,
+   "len_gt_norm": 243,
+   "len_pred_norm": 243,
+   "judgment": "良"
+  },
+  "OD-text-zh-02": {
+   "cer": 0.014285714285714285,
+   "cer_raw": 0.014285714285714285,
+   "len_gt_norm": 70,
+   "len_pred_norm": 70,
+   "judgment": "良"
+  },
+  "OD-text-zh-03": {
+   "cer": 0.015957446808510637,
+   "cer_raw": 0.015957446808510637,
+   "len_gt_norm": 188,
+   "len_pred_norm": 189,
+   "judgment": "良"
+  },
+  "OD-text-zh-04": {
+   "cer": 0.004739336492890996,
+   "cer_raw": 0.004739336492890996,
+   "len_gt_norm": 211,
+   "len_pred_norm": 211,
+   "judgment": "良"
+  },
+  "OD-text-zh-05": {
+   "cer": 0.140625,
+   "cer_raw": 0.140625,
+   "len_gt_norm": 64,
+   "len_pred_norm": 64,
+   "judgment": "不足"
+  },
+  "OD-text-zh-06": {
+   "cer": 0.0,
+   "cer_raw": 0.0,
+   "len_gt_norm": 134,
+   "len_pred_norm": 134,
+   "judgment": "良"
+  },
+  "OD-text-zh-07": {
+   "cer": 0.17391304347826086,
+   "cer_raw": 0.17391304347826086,
+   "len_gt_norm": 161,
+   "len_pred_norm": 169,
+   "judgment": "不足"
+  },
+  "OD-text-zh-08": {
+   "cer": 0.0,
+   "cer_raw": 0.0,
+   "len_gt_norm": 131,
+   "len_pred_norm": 131,
+   "judgment": "良"
+  }
+ },
+ "strata": {
+  "omnidocbench_table_en": {
+   "n": 4,
+   "n_scored": 4,
+   "judgments": {
+    "良": 4
+   },
+   "mean_numbers_match": 1.0,
+   "mean_numbers_precision": 1.0,
+   "mean_cell_match": 0.9907407407407407,
+   "mean_cell_match_unordered": 0.9751157407407407,
+   "shape_strict_match_rate": 1.0
+  },
+  "omnidocbench_table_zh": {
+   "n": 4,
+   "n_scored": 4,
+   "judgments": {
+    "良": 4
+   },
+   "mean_numbers_match": 1.0,
+   "mean_numbers_precision": 1.0,
+   "mean_cell_match": 1.0,
+   "mean_cell_match_unordered": 0.9065656565656566,
+   "shape_strict_match_rate": 1.0
+  },
+  "omnidocbench_text_en": {
+   "n": 8,
+   "n_scored": 8,
+   "judgments": {
+    "良": 8
+   },
+   "mean_cer": 0.0015186721991701244,
+   "mean_cer_raw": 0.003551020408163265
+  },
+  "omnidocbench_text_zh": {
+   "n": 8,
+   "n_scored": 8,
+   "judgments": {
+    "良": 6,
+    "不足": 2
+   },
+   "mean_cer": 0.0436900676331721,
+   "mean_cer_raw": 0.0436900676331721
+  }
+ }
+}

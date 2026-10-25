@@ -167,15 +167,16 @@ def model_processes():
     return found.stdout.split("\n") if found.stdout.strip() else []
 
 
-def acquire(lock, owner, wait_s, log):
+def acquire(lock, describe, wait_s, log):
     lock.parent.mkdir(parents=True, exist_ok=True)
     deadline = time.monotonic() + wait_s
     while True:
         if not model_processes():
             try:
                 lock.mkdir()
+                owner = describe()
                 (lock / "owner.txt").write_text(owner)
-                return
+                return owner
             except FileExistsError:
                 pass
         if time.monotonic() >= deadline:
@@ -239,11 +240,13 @@ def run_plan(set_dir, out, logs, only, job, session, wait_minutes):
 
     env = environment()
     lock = default_lock()
-    owner = (f"session: {session}\njob: {job}\nstarted: {now()}\npid: {os.getpid()}\n"
-             f"expected: {len(ids)} samples, one process per run\n")
+    def describe():
+        return (f"session: {session}\njob: {job}\nstarted: {now()}\npid: {os.getpid()}\n"
+                f"expected: {len(ids)} samples, one process per run\n")
+
     signal.signal(signal.SIGTERM, lambda *_: sys.exit(143))
     waited = time.monotonic()
-    acquire(lock, owner, wait_minutes * 60, log)
+    owner = acquire(lock, describe, wait_minutes * 60, log)
     held, done, failed = time.monotonic(), [], []
     log(f"lock acquired after {held - waited:.0f}s")
     try:

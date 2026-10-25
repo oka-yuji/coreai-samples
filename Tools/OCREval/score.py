@@ -74,7 +74,8 @@ def num_tokens(strings):
 def number_match(gt_tokens, pred_tokens):
     both = Counter(gt_tokens) & Counter(pred_tokens)
     hit = sum(both.values())
-    return {"numbers_match": hit / len(gt_tokens), "numbers_precision": hit / len(pred_tokens) if pred_tokens else None,
+    return {"numbers_match": hit / len(gt_tokens) if gt_tokens else None,
+            "numbers_precision": hit / len(pred_tokens) if pred_tokens else None,
             "numbers_gt": gt_tokens, "numbers_pred": pred_tokens,
             "numbers_missing": sorted((Counter(gt_tokens) - Counter(pred_tokens)).elements()),
             "numbers_extra": sorted((Counter(pred_tokens) - Counter(gt_tokens)).elements())}
@@ -305,7 +306,7 @@ def reference_prediction(outputs, gt, dtype="bf16"):
     if layout is not None:
         files = sorted(outputs.glob(f"{sid}-block[0-9][0-9]-text-{dtype}.txt"))
         pred["blocks"] = blocks(layout, *gt["size_px"])
-        pred["blocks_text"] = "\n".join(p.read_text().strip() for p in files) if files else None
+        pred["blocks_text"] = "\n".join(p.read_text().strip() for p in files)
         pred["block_runs"] = [p.stem for p in files]
     return pred
 
@@ -425,6 +426,7 @@ def selftest():
     assert NUM.findall(norm(sample)) == ["-210", "100V", "50/60Hz", "-10~45\u00b0C", "1,800mm", "0.5W"]
     m = number_match(["5", "5", "10kg"], ["5", "10kg", "7"])
     assert m["numbers_match"] == 2 / 3 and m["numbers_precision"] == 2 / 3 and m["numbers_missing"] == ["5"], m
+    assert number_match([], ["5"])["numbers_match"] is None and number_match([], ["5"])["numbers_precision"] == 0.0
     rows = ["abcde", "fghij", "klmno"]
     r = read_order("abcdefghijklmno", rows)
     assert r["read_order_edit"] == 0 and r["unmatched_rate"] == 0, r

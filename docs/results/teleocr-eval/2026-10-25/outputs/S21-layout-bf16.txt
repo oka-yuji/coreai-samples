@@ -1,0 +1,3 @@
+<box:070 072 478 103><label:title><up>
+<box:067 138 457 481><label:text><up>
+<box:518 138 907 481><label:text><up>

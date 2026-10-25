@@ -1,0 +1,1 @@
+<fcel>項目<fcel>回数<fcel>時間(分)<fcel>担当<nl><fcel>安全講習<fcel>4回<fcel>90<fcel>総務課<nl><fcel>機器操作<fcel>6回<fcel>45<fcel>技術課<nl><fcel>品質基礎<fcel>3回<fcel>120<fcel>品証課<nl><fcel>新人面談<fcel>12回<fcel>30<fcel>人事課<nl><|im_end|>
