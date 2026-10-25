@@ -4,6 +4,12 @@ from pathlib import Path
 import tempfile
 import unittest
 
+try:
+    import diffusers
+    import transformers.vision_utils
+except ImportError as error:
+    raise unittest.SkipTest(f"Qwen image dependencies unavailable: {error}") from error
+
 import numpy as np
 
 from Tools.Conversion.adapters.qwen_image21.fixtures import file_record, save_json

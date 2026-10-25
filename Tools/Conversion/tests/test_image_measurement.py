@@ -2,6 +2,7 @@ import copy
 import errno
 import json
 from pathlib import Path
+import importlib.util
 import unittest
 import tempfile
 from unittest.mock import patch
@@ -26,6 +27,7 @@ class ImageMeasurementTests(unittest.TestCase):
             self.assertEqual(list(Path(directory).iterdir()), [path])
             self.assertIn("could not be saved", error.__notes__[0])
 
+    @unittest.skipIf(importlib.util.find_spec("diffusers") is None, "Qwen image dependencies unavailable: diffusers")
     def test_report_io_failure_cannot_replace_a_generation_cancellation(self):
         from Tools.Conversion.adapters.qwen_image21 import generate
         from Tools.Conversion.adapters.qwen_image21.contracts import KINDS
@@ -104,6 +106,7 @@ class ImageMeasurementTests(unittest.TestCase):
         self.assertEqual(result["new_failure_axes"], {key: ["detail"] for key in selected})
         self.assertFalse(result["candidate_meets_provisional_target"])
 
+    @unittest.skipIf(importlib.util.find_spec("diffusers") is None, "Qwen image dependencies unavailable: diffusers")
     def test_generation_persists_failures_before_any_model_can_load(self):
         from Tools.Conversion.adapters.qwen_image21 import generate
         from Tools.Conversion.adapters.qwen_image21.contracts import KINDS
