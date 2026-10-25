@@ -1,4 +1,5 @@
 import json
+import subprocess
 import tempfile
 import unittest
 from collections import Counter
@@ -58,6 +59,14 @@ class MakeTests(unittest.TestCase):
             gt = json.loads(path.read_text())
             for box in [gt["table_bbox"]] if "table_bbox" in gt else gt.get("line_boxes", []):
                 self.assertTrue(0 <= box[0] < box[2] <= 1240 and 0 <= box[1] < box[3] <= 1754, (path.name, box))
+
+
+class RepositoryTests(unittest.TestCase):
+    def test_no_evaluation_images_are_tracked(self):
+        files = subprocess.run(["git", "ls-files", "--", "docs/results/teleocr-eval", "Tools/OCREval"], cwd=BASELINE.parents[3],
+                               capture_output=True, text=True, check=True).stdout.split("\n")
+        self.assertIn("docs/results/teleocr-eval/2026-10-25/scores.json", files)
+        self.assertEqual([f for f in files if f.lower().endswith((".png", ".jpg", ".jpeg"))], [])
 
 
 if __name__ == "__main__":

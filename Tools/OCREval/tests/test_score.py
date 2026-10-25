@@ -1,10 +1,11 @@
 import json
+import math
 import tempfile
 import unittest
 from pathlib import Path
 
 from Tools.OCREval.fixtures import make
-from Tools.OCREval.score import L, load_set, reference_prediction, score_set, selftest
+from Tools.OCREval.score import TEXT_KEYS, L, judge, load_set, reference_prediction, score_set, selftest
 
 BASELINE = Path(__file__).resolve().parents[3] / "docs/results/teleocr-eval/2026-10-25"
 
@@ -58,6 +59,63 @@ class ScoreTests(unittest.TestCase):
         (outputs / "S19-layout-bf16.txt").write_text("no boxes\n")
         scored = score_set(self.set, outputs=outputs)["samples"]["S19"]
         self.assertEqual((scored["cer"], scored["layout_missing_rate"], scored["judgment"]), (1.0, 1.0, L["insufficient"]))
+
+    def test_missing_block_outputs_are_not_scored(self):
+        outputs = self.root / "partial"
+        outputs.mkdir()
+        (outputs / "S19-layout-bf16.txt").write_text("<box:088 088 468 121><label:title><up>\n<box:087 153 462 499><label:text><up>\n")
+        (outputs / "S19-block01-text-bf16.txt").write_text("x\n")
+        scored = score_set(self.set, outputs=outputs)["samples"]["S19"]
+        self.assertEqual(scored, {"missing": True, "incomplete_blocks": [1, 2], "block_runs": ["S19-block01-text-bf16"],
+                                  "judgment": L["not_scored"]})
+
+    def test_samples_that_must_not_be_redistributed_keep_only_numbers(self):
+        text = {"id": "P1", "kind": "text", "stratum": "public", "rule": "F1", "pipelines": ["text"],
+                "lines": ["The quick brown fox jumps over the lazy dog 12 times."], "crop_px": [0, 0, 10, 10],
+                "image": "page.png", "size_px": [10, 10]}
+        table = {"id": "P2", "kind": "table", "stratum": "public", "rule": "F2", "pipelines": ["table"], "title": "",
+                 "cells": [["Item", "Count"], ["Bolt", "12"]], "crop_px": [0, 0, 10, 10], "image": "page.png",
+                 "size_px": [10, 10]}
+        outputs = self.root / "public-outputs"
+        outputs.mkdir()
+        (outputs / "P1-text-bf16.txt").write_text("The quick brown fox jumps over the lazy cat 12 times.\n")
+        (outputs / "P2-table-bf16.txt").write_text("<fcel>Item<fcel>Count<nl><fcel>Bolt<fcel>13<nl>\n")
+        for redistribute in (False, None):
+            folder = self.root / f"public-{redistribute}"
+            folder.mkdir()
+            for gt in (text, table):
+                extra = {} if redistribute is None else {"redistribute": redistribute}
+                (folder / f"{gt['id']}.json").write_text(json.dumps(gt | extra))
+            samples = score_set(folder, outputs=outputs)["samples"]
+            kept = {k for m in samples.values() for k in m}
+            if redistribute is False:
+                self.assertFalse(kept & set(TEXT_KEYS), kept)
+                self.assertTrue({"cer", "cer_raw", "numbers_match", "cell_match", "shape_strict_match"} <= kept, kept)
+            else:
+                self.assertTrue(set(TEXT_KEYS) <= kept, kept)
+
+    def test_judgment_thresholds_are_inclusive(self):
+        above = lambda x: math.nextafter(x, 1)
+        good, cond, bad = L["good"], L["conditional"], L["insufficient"]
+        cases = [
+            ("F1", {"cer": 0.02}, good), ("F1", {"cer": above(0.02)}, cond),
+            ("F1", {"cer": 0.10}, cond), ("F1", {"cer": above(0.10)}, bad),
+            ("F3", {"cer": 0.03, "numbers_match": 0.90}, good), ("F3", {"cer": above(0.03), "numbers_match": 0.90}, cond),
+            ("F3", {"cer": 0.03, "numbers_match": math.nextafter(0.90, 0)}, cond),
+            ("F3", {"cer": 0.10, "numbers_match": 0.70}, cond), ("F3", {"cer": above(0.10), "numbers_match": 1.0}, bad),
+            ("F3", {"cer": 0.10, "numbers_match": math.nextafter(0.70, 0)}, bad),
+            ("F3", {"cer": 0.03, "numbers_match": None}, good), ("F3", {"cer": 0.10, "numbers_match": None}, cond),
+            ("F4", {"cer": 0.05, "read_order_edit": 0.10}, good), ("F4", {"cer": 0.05, "read_order_edit": above(0.10)}, cond),
+            ("F4", {"cer": above(0.05), "read_order_edit": 0.0}, cond), ("F4", {"cer": 0.05, "read_order_edit": None}, cond),
+            ("F4", {"cer": 0.15}, cond), ("F4", {"cer": above(0.15)}, bad),
+            ("F5", {"cer": 0.10, "numbers_match": 0.80}, good), ("F5", {"cer": above(0.10), "numbers_match": 1.0}, cond),
+            ("F5", {"cer": 0.10, "numbers_match": math.nextafter(0.80, 0)}, cond),
+            ("F5", {"cer": 0.25, "numbers_match": 0.0}, cond), ("F5", {"cer": above(0.25), "numbers_match": 1.0}, bad),
+            ("F5", {"cer": 0.10, "numbers_match": None}, good),
+        ]
+        for rule, metrics, expected in cases:
+            with self.subTest(rule=rule, metrics=metrics):
+                self.assertEqual(judge(rule, metrics), expected)
 
     def test_unparsed_layout_is_marked(self):
         results = self.root / "unparsed"

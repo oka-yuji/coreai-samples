@@ -1,8 +1,13 @@
+import hashlib
+import io
+import json
+import tempfile
 import unittest
+from pathlib import Path
 from unittest import mock
 
 from Tools.OCREval import omnidocbench
-from Tools.OCREval.omnidocbench import crop_box, html_cells, select
+from Tools.OCREval.omnidocbench import crop_box, fetch, html_cells, select
 
 
 def page(name, language="english", source="book", blocks=()):
@@ -48,6 +53,68 @@ class OmniDocBenchTests(unittest.TestCase):
         self.assertEqual({p[1] for p in picked[1:3]}, {"p1.png", "p2.png"})
         self.assertEqual(next(p for p in picked if p[1] == "p2.png")[2], 4)
         self.assertEqual(chosen[0]["content"]["cells"], [["a", "b", "b"], ["a", "c", "d"], ["e", "f", "g"]])
+
+
+class PinnedSubsetTests(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.out = Path(self.tmp.name) / "subset"
+        self.pages = json.dumps([page("p1.png", blocks=[text(7, "x" * 50)])]).encode()
+        self.image = b"image bytes"
+        self.files = {"OmniDocBench.json": self.pages, "images/p1.png": self.image}
+        self.spec = {
+            "source": {"dataset": "owner/name", "revision": "rev", "annotation": "OmniDocBench.json",
+                       "annotation_sha256": hashlib.sha256(self.pages).hexdigest()},
+            "rules": omnidocbench.SPEC["rules"],
+            "samples": [{"id": "OD-text-en-01", "image_path": "p1.png", "anno_id": 7,
+                         "image_sha256": hashlib.sha256(self.image).hexdigest()}],
+        }
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def urlopen(self, url, timeout=None):
+        return io.BytesIO(self.files[url.split("/resolve/rev/", 1)[1]])
+
+    def make(self, **changes):
+        spec = json.loads(json.dumps(self.spec))
+        for key, value in changes.items():
+            target, field = key.split(".")
+            (spec["source"] if target == "source" else spec["samples"][0])[field] = value
+        with mock.patch.dict(omnidocbench.SPEC, spec, clear=True), \
+                mock.patch.object(omnidocbench.urllib.request, "urlopen", self.urlopen):
+            return omnidocbench.make(self.out)
+
+    def test_matching_pins_write_the_local_set(self):
+        manifest = self.make()
+        gt = json.loads((self.out / "OD-text-en-01.json").read_text())
+        self.assertIs(gt["redistribute"], False)
+        self.assertEqual(gt["crop_px"], [0, 0, 14, 9])
+        self.assertEqual(json.loads((self.out / "selection.json").read_text()), self.spec["samples"])
+        self.assertEqual(json.loads((self.out / "manifest.json").read_text()), manifest)
+        self.assertEqual([r["id"] for r in manifest["samples"]], ["OD-text-en-01"])
+
+    def test_a_different_annotation_is_refused(self):
+        with self.assertRaisesRegex(ValueError, "OmniDocBench.json: SHA-256"):
+            self.make(**{"source.annotation_sha256": "0" * 64})
+        self.assertEqual(list((self.out / "source").iterdir()), [])
+
+    def test_a_different_selection_is_refused(self):
+        with self.assertRaisesRegex(ValueError, "selection differs"):
+            self.make(**{"sample.anno_id": 8})
+
+    def test_a_different_image_is_refused(self):
+        with self.assertRaisesRegex(ValueError, "images/p1.png: SHA-256"):
+            self.make(**{"sample.image_sha256": "0" * 64})
+        self.assertFalse((self.out / "p1.png").exists())
+
+    def test_a_corrupt_local_copy_is_fetched_again(self):
+        self.out.mkdir(parents=True)
+        (self.out / "p1.png").write_bytes(b"corrupt")
+        with mock.patch.dict(omnidocbench.SPEC, self.spec, clear=True), \
+                mock.patch.object(omnidocbench.urllib.request, "urlopen", self.urlopen):
+            digest = fetch("images/p1.png", self.out / "p1.png", self.spec["samples"][0]["image_sha256"])
+        self.assertEqual((digest, (self.out / "p1.png").read_bytes()), (self.spec["samples"][0]["image_sha256"], self.image))
 
 
 if __name__ == "__main__":

@@ -1,7 +1,6 @@
 import hashlib
 import json
 import math
-import shutil
 import urllib.parse
 import urllib.request
 from html.parser import HTMLParser
@@ -113,22 +112,32 @@ def select(pages):
     return chosen
 
 
-def fetch(path, dest):
-    if not dest.exists():
-        dest.parent.mkdir(parents=True, exist_ok=True)
-        part = dest.with_name(dest.name + ".part")
-        url = URL.format(path=urllib.parse.quote(path), **SPEC["source"])
-        with urllib.request.urlopen(url, timeout=300) as response, open(part, "wb") as f:
-            shutil.copyfileobj(response, f)
-        part.rename(dest)
-    return sha256(dest)
+def fetch(path, dest, expected=None):
+    if dest.exists():
+        digest = sha256(dest)
+        if expected is None or digest == expected:
+            return digest
+        dest.unlink()
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    part = dest.with_name(dest.name + ".part")
+    url = URL.format(path=urllib.parse.quote(path), **SPEC["source"])
+    h = hashlib.sha256()
+    with urllib.request.urlopen(url, timeout=300) as response, open(part, "wb") as f:
+        for chunk in iter(lambda: response.read(1 << 20), b""):
+            h.update(chunk)
+            f.write(chunk)
+    digest = h.hexdigest()
+    if expected is not None and digest != expected:
+        part.unlink()
+        raise ValueError(f"{path}: SHA-256 {digest} differs from the pinned {expected}")
+    part.rename(dest)
+    return digest
 
 
 def make(out_dir):
     out = Path(out_dir)
     source = out / "source"
-    if fetch(SPEC["source"]["annotation"], source / SPEC["source"]["annotation"]) != SPEC["source"]["annotation_sha256"]:
-        raise ValueError("OmniDocBench annotation differs from the pinned SHA-256")
+    fetch(SPEC["source"]["annotation"], source / SPEC["source"]["annotation"], SPEC["source"]["annotation_sha256"])
     chosen = select(json.loads((source / SPEC["source"]["annotation"]).read_text()))
     pinned = {s["id"]: s for s in SPEC["samples"]}
     picked = [{"id": c["id"], "image_path": c["info"]["image_path"], "anno_id": c["block"]["anno_id"]} for c in chosen]
@@ -138,9 +147,8 @@ def make(out_dir):
     rows = []
     for c, p in zip(chosen, picked):
         info = c["info"]
-        digest = fetch(f"images/{info['image_path']}", out / info["image_path"])
-        if pinned and digest != pinned[c["id"]]["image_sha256"]:
-            raise ValueError(f"{info['image_path']} differs from the pinned SHA-256")
+        digest = fetch(f"images/{info['image_path']}", out / info["image_path"],
+                       pinned[c["id"]]["image_sha256"] if pinned else None)
         p["image_sha256"] = digest
         w, h = info["width"], info["height"]
         gt = {"id": c["id"], "kind": c["kind"], "stratum": f"omnidocbench_{c['kind']}_{c['lang']}",

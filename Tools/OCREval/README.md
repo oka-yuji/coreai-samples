@@ -41,7 +41,10 @@ the lock to `heavy-job-done-<job>-<time>` when it finishes. Each run uses bf16 o
 greedy decoding, the checkpoint's repetition penalty 1.05, at most 4,096 new tokens and a
 600-second generation limit. Outputs are written as `outputs/<id>-<prompt>-bf16.txt`
 (and `.raw.txt` with special tokens), one line per run in `runs.jsonl`, and the
-environment and lock times in `invocations.jsonl`. Records contain no environment
+environment and lock times in `invocations.jsonl`. A run still alive after 900 seconds is
+killed and recorded as a failed sample; the next sample continues. Each invocation record
+lists the completed samples and, when it stopped early, why (`aborted`). Missing ground
+truth or images stop the command before the lock is taken. Records contain no environment
 variables or home-directory paths; console logs go to `--logs`.
 
 ## Evaluation set

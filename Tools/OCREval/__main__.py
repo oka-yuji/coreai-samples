@@ -59,6 +59,9 @@ def main():
         if args.outputs is None and args.results is None:
             parser.error("score needs --outputs, --results or --selftest")
         result = score_set(args.set, outputs=args.outputs, results=args.results)
+        if not result["samples"]:
+            print(f"no ground truth in {args.set}; run `python -m Tools.OCREval make` first", file=sys.stderr)
+            return 2
         if args.out:
             args.out.parent.mkdir(parents=True, exist_ok=True)
             args.out.write_text(json.dumps(result, ensure_ascii=False, indent=1) + "\n")

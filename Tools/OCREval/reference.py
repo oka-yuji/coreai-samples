@@ -13,6 +13,7 @@ from importlib import metadata
 from pathlib import Path
 
 from Tools.Conversion.local import default_lock
+from Tools.Conversion.storage import blocked_signals
 
 from .score import blocks, load_set
 
@@ -35,6 +36,7 @@ PROMPTS = {
 }
 LAYOUT_SIDE = 1036
 MAX_TIME_S = 600.0
+CHILD_TIMEOUT_S = MAX_TIME_S + 300
 MODEL_PROCESSES = "coreai-chat|coreai-verify|llm-runner|coreai-build|CoreAISamples|embedding-verify|irodori-probe"
 
 
@@ -58,7 +60,10 @@ def footprint():
 
 def image_path(set_dir, gt):
     names = [gt["image"]] if "image" in gt else [f"{gt['id']}.png", f"{gt['id']}.jpg"]
-    return next(set_dir / n for n in names if (set_dir / n).exists())
+    found = [set_dir / n for n in names if (set_dir / n).exists()]
+    if not found:
+        raise FileNotFoundError(f"no image for {gt['id']} in {set_dir}; run `python -m Tools.OCREval make` first")
+    return found[0]
 
 
 def run_one(set_dir, out, sid, prompt_id, crop, resize, name, device="mps", dtype="bf16"):
@@ -167,18 +172,20 @@ def model_processes():
     return found.stdout.split("\n") if found.stdout.strip() else []
 
 
-def acquire(lock, describe, wait_s, log):
+def acquire(lock, describe, wait_s, log, state):
     lock.parent.mkdir(parents=True, exist_ok=True)
     deadline = time.monotonic() + wait_s
     while True:
         if not model_processes():
-            try:
-                lock.mkdir()
-                owner = describe()
-                (lock / "owner.txt").write_text(owner)
-                return owner
-            except FileExistsError:
-                pass
+            with blocked_signals():
+                try:
+                    lock.mkdir()
+                except FileExistsError:
+                    pass
+                else:
+                    state["owner"] = describe()
+                    (lock / "owner.txt").write_text(state["owner"])
+                    return
         if time.monotonic() >= deadline:
             raise TimeoutError("the shared model lock stayed busy; no model was loaded")
         log("waiting for the shared model lock")
@@ -204,7 +211,10 @@ def child(set_dir, out, logs, sid, prompt_id, name, crop=None, resize=None):
         process = subprocess.Popen(args, cwd=ROOT, stdout=log, stderr=subprocess.STDOUT, start_new_session=True,
                                    env=os.environ | {"HF_HUB_OFFLINE": "1"})
         try:
-            code = process.wait(timeout=MAX_TIME_S + 300)
+            code = process.wait(timeout=CHILD_TIMEOUT_S)
+        except subprocess.TimeoutExpired:
+            stop(process)
+            raise RuntimeError(f"{name} timed out after {CHILD_TIMEOUT_S:.0f}s") from None
         except BaseException:
             stop(process)
             raise
@@ -228,43 +238,63 @@ def run_sample(set_dir, out, logs, gt, dtype="bf16"):
 
 def run_plan(set_dir, out, logs, only, job, session, wait_minutes):
     gts = load_set(set_dir)
+    if not gts:
+        raise ValueError(f"no ground truth in {set_dir}; run `python -m Tools.OCREval make` first")
     ids = only or list(gts)
     missing = [s for s in ids if s not in gts]
     if missing:
         raise ValueError(f"unknown samples: {missing}")
+    for sid in ids:
+        image_path(set_dir, gts[sid])
     out.mkdir(parents=True, exist_ok=True)
     logs.mkdir(parents=True, exist_ok=True)
 
     def log(message):
         print(f"{now()} {message}", flush=True)
 
-    env = environment()
-    lock = default_lock()
     def describe():
         return (f"session: {session}\njob: {job}\nstarted: {now()}\npid: {os.getpid()}\n"
                 f"expected: {len(ids)} samples, one process per run\n")
 
-    signal.signal(signal.SIGTERM, lambda *_: sys.exit(143))
+    def exit_on(signum, _):
+        sys.exit(128 + signum)
+
+    env = environment()
+    lock = default_lock()
+    signal.signal(signal.SIGTERM, exit_on)
+    if signal.getsignal(signal.SIGHUP) is not signal.SIG_IGN:
+        signal.signal(signal.SIGHUP, exit_on)
+    state, done, failed, aborted = {}, [], [], None
     waited = time.monotonic()
-    owner = acquire(lock, describe, wait_minutes * 60, log)
-    held, done, failed = time.monotonic(), [], []
-    log(f"lock acquired after {held - waited:.0f}s")
     try:
+        acquire(lock, describe, wait_minutes * 60, log, state)
+        state["held"] = time.monotonic()
+        log(f"lock acquired after {state['held'] - waited:.0f}s")
         for sid in ids:
             try:
                 run_sample(set_dir, out, logs, gts[sid])
                 done.append(sid)
-            except RuntimeError as error:
+            except (RuntimeError, subprocess.SubprocessError) as error:
                 failed.append({"sample": sid, "error": str(error)})
             log(f"{sid} done ({len(done)} ok, {len(failed)} failed)")
+    except BaseException as error:
+        aborted = type(error).__name__ + (f": {error}" if str(error) else "")
+        raise
     finally:
-        if (lock / "owner.txt").read_text() != owner:
-            raise RuntimeError("lock owner changed; the lock was left in place")
-        stamp = datetime.now().strftime("%Y%m%dT%H%M%S")
-        lock.rename(lock.with_name(f"heavy-job-done-{job}-{stamp}"))
-        record = env | {"job": job, "samples": ids, "failed": failed, "lock_wait_s": round(held - waited),
-                        "lock_held_s": round(time.monotonic() - held), "finished_at": now()}
-        with open(out / "invocations.jsonl", "a") as f:
-            f.write(json.dumps(record, ensure_ascii=False) + "\n")
-        log(f"lock released after {record['lock_held_s']}s")
+        if "owner" in state:
+            try:
+                released = (lock / "owner.txt").read_text() == state["owner"]
+            except FileNotFoundError:
+                released = False
+            if released:
+                lock.rename(lock.with_name(f"heavy-job-done-{job}-{datetime.now().strftime('%Y%m%dT%H%M%S')}"))
+            held = state.get("held", time.monotonic())
+            record = env | {"job": job, "samples": ids, "completed": done, "failed": failed, "aborted": aborted,
+                            "lock_released": released, "lock_wait_s": round(held - waited),
+                            "lock_held_s": round(time.monotonic() - held), "finished_at": now()}
+            with open(out / "invocations.jsonl", "a") as f:
+                f.write(json.dumps(record, ensure_ascii=False) + "\n")
+            log(f"lock {'released' if released else 'left in place'} after {record['lock_held_s']}s")
+            if not released:
+                raise RuntimeError("lock owner changed; the lock was left in place")
     return failed

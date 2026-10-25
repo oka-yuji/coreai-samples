@@ -1,5 +1,4 @@
 import difflib
-import itertools
 import json
 import math
 import re
@@ -113,8 +112,9 @@ def otsl_rows_raw(text):
             if part in OTSL_CELLS:
                 nxt = parts[idx + 1] if idx + 1 < len(parts) and parts[idx + 1] not in OTSL_TOKENS else ""
                 cells.append((part, nxt.strip() if part == OTSL_FCEL else ""))
-        if cells:
-            rows.append(cells)
+        rows.append(cells)
+    while rows and not rows[-1]:
+        rows.pop()
     return rows
 
 
@@ -122,7 +122,14 @@ def card_grid(text):
     pattern = "(" + "|".join(map(re.escape, OTSL_TOKENS)) + ")"
     tokens = re.findall(pattern, text)
     parts = [p for p in re.split(pattern, text) if p.strip()]
-    rows = [list(row) for is_nl, row in itertools.groupby(tokens, lambda t: t == OTSL_NL) if not is_nl]
+    rows = [[]]
+    for t in tokens:
+        if t == OTSL_NL:
+            rows.append([])
+        else:
+            rows[-1].append(t)
+    while rows and not rows[-1]:
+        rows.pop()
     if not rows:
         return None
     max_cols = max(len(row) for row in rows)
@@ -194,7 +201,7 @@ def judge(fid, m):
     if fid == "F1":
         return good if c <= 0.02 else cond if c <= 0.10 else bad
     if fid == "F3":
-        return good if c <= 0.03 and n >= 0.90 else cond if c <= 0.10 and n >= 0.70 else bad
+        return good if c <= 0.03 and (n is None or n >= 0.90) else cond if c <= 0.10 and (n is None or n >= 0.70) else bad
     if fid == "F2":
         if not m["otsl_found"]:
             return bad
@@ -202,7 +209,7 @@ def judge(fid, m):
     if fid == "F4":
         return good if c <= 0.05 and ro is not None and ro <= 0.10 else cond if c <= 0.15 else bad
     if fid == "F5":
-        return good if c <= 0.10 and n >= 0.80 else cond if c <= 0.25 else bad
+        return good if c <= 0.10 and (n is None or n >= 0.80) else cond if c <= 0.25 else bad
     if fid == "F6":
         return good if c <= 0.10 and ro == 0 else cond if c <= 0.30 else bad
     raise ValueError(fid)
@@ -306,8 +313,13 @@ def reference_prediction(outputs, gt, dtype="bf16"):
     if layout is not None:
         files = sorted(outputs.glob(f"{sid}-block[0-9][0-9]-text-{dtype}.txt"))
         pred["blocks"] = blocks(layout, *gt["size_px"])
-        pred["blocks_text"] = "\n".join(p.read_text().strip() for p in files)
         pred["block_runs"] = [p.stem for p in files]
+        expected = [f"{sid}-block{i:02d}-text-{dtype}" for i in range(1, len(pred["blocks"]) + 1)]
+        if pred["block_runs"] == expected:
+            pred["blocks_text"] = "\n".join(p.read_text().strip() for p in files)
+        else:
+            pred["blocks_text"] = None
+            pred["incomplete_blocks"] = [len(files), len(expected)]
     return pred
 
 
@@ -329,6 +341,9 @@ def sample_scores(gt, pred):
     else:
         text = pred.get("blocks_text") if pipeline == "two_stage" else pred.get("text")
         if text is None:
+            if pipeline == "two_stage" and "incomplete_blocks" in pred:
+                return {"missing": True, "incomplete_blocks": pred["incomplete_blocks"], "block_runs": pred["block_runs"],
+                        "judgment": L["not_scored"]}
             return {"missing": True, "judgment": L["not_scored"]}
         m = scored(lambda: text_metrics(rule, gt, text))
         if pred.get("blocks") is not None and "line_boxes" in gt and "scoring_error" not in m:
@@ -439,9 +454,13 @@ def selftest():
     assert t["rows_raw_widths"] == [2, 2] and t["shape_strict_match"] and t["cell_match"] == 1.0 and t["cell_match_unordered"] == 0.75, t
     t = table_scores("<fcel>A<fcel>B<nl><fcel>C<nl>", [["A", "B"], ["C", "D"]])
     assert t["rows_raw_widths"] == [2, 1] and not t["shape_strict_match"] and t["shape_card_parse"] == [2, 2] and t["cell_match"] == 0.0, t
+    t = table_scores("<fcel>A<fcel>B<nl><nl><fcel>C<fcel>D<nl>", [["A", "B"], ["C", "D"]])
+    assert t["rows_raw_widths"] == [2, 0, 2] and not t["shape_strict_match"] and t["cell_match"] == 0.0, t
+    assert t["grid_card_parse"] == [["A", "B"], ["", ""], ["C", "D"]], t
     t = table_scores("| A | B |", [["A", "B"]])
     assert not t["otsl_found"] and judge("F2", t) == L["insufficient"]
     assert judge("F2", {"scoring_error": "x"}) == L["scoring_failed"]
+    assert judge("F3", {"cer": 0.03, "numbers_match": None}) == L["good"]
     u, o = usage_and_overall({"F1": L["good"], "F3": L["good"], "F2": L["good"], "F4": L["conditional"]})
     assert o == L["adopt"], o
     u, o = usage_and_overall({"F1": L["good"], "F3": L["conditional"], "F2": L["insufficient"], "F4": L["good"], "F6": L["insufficient"]})
