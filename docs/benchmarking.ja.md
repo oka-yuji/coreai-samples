@@ -85,6 +85,39 @@ CLIP scoreは画像と文章の対応を測る補助に使います。FID/KIDは
 7. 生の根拠、用途品質、数値一致、運用確認を分けてレビューします。公開記録から認証情報、個人入力、取得ページ全文、ローカル絶対パス、端末識別子を除きます。変換reportは先に `python3 -m Tools.Conversion.summary` で公開可能な要約を取れますが、その検証stageの時間を推論時間へ転用しません。
 8. モデル記録を更新し、生成・検査・レビューへ進みます。モデル、精度、入力、runtime、OSが変わったら旧条件と旧結果を残します。出荷可否は既存Core AIガイドの10項目で判断し、この表は根拠への入口に使います。
 
+## coreai-verify の速度記録
+
+`Tools/Verify` の `coreai-verify speed-run` は、1プロセスでモデルを1回ロードしてwarmupし、同じ入力の生成を計測して `record: "speed"` の行を出力します。モデルを読むため、手順3のlockの下で実行します。
+
+```sh
+swift build --package-path Tools/Verify -c release
+Tools/Verify/.build/release/coreai-verify speed-run --model <bundle> --preamble <system.txt> \
+  --engine own --max-tokens 256 --round 1 --repeat 3 > .local/speed.jsonl
+```
+
+- `--repeat N`（既定1）は同じプロセスの中の繰り返しです。1未満は引数の検証で拒否します。ロードとwarmupは最初の1回だけで、各回は「engineの初期化（ownは `reset()`、公式engineは `reset(to: 0)`）→計時開始→同じ入力の全生成→1行出力」です。各行の `repeat` は1始まりの番号です。
+- `--round` は記録のラベルで、生成を繰り返しません。`coreai-verify speed --rounds` はプロセスの繰り返しで、子に `--repeat` を渡しません。
+- `load_s` と `warmup_s` は `repeat` 1の行だけが実測値で、2回目以降は0です。`specialize_s` はownでは1回目だけ実測値で以降0で、公式engineの行には出力しません。`cached` は最初のロードの属性で、全行が同じ値です。生成時のKV再利用は表しません。`prefill_s`、`decode_s`、`decode_tok_s`、`generated_tokens`、`stop_reason` は回ごとに数え直します。最初のtokenを観測しなかった回は `prefill_s` と `prefill_tok_s` を欠測として出力せず、`decode_s` は0、`decode_tok_s` も出力しません。
+- `rss_bytes` は各回の終了時に、engineを保持したまま採取します（推論中の常駐）。`--repeat` を追加する前の `speed-run` はengineを手放した後に採取していたため、それ以前の記録の `rss_bytes` とは比べません。`peak_rss_bytes` は `getrusage` の最大常駐で、その行の時点までのプロセス生涯の最大です（ロード時を含む）。
+- `repeat` のない以前の記録は `repeat` 1として読みます。
+
+速度の行は、手順5のrun形式へ `jq` で変換すると共通集計できます。変換用のスクリプトは置きません。`context` には実際のmodel・variant・device・OS・workload・cacheと固定計画の `plan_sha256` を入れ、engineとcacheの条件ごとにファイルを分けます。`run_id` は「試行:engine:round:repeat」です。`speed` の出力に含まれる `speed-summary` の行は変換しません。
+
+```sh
+CONTEXT_JSON='{"model":"<model>","variant":"<variant>","device":"<機種>","os":"<OS build>","workload":"<入力・生成数・engine>","cache":"<cacheの状態>","plan_sha256":"<固定計画のSHA-256>"}'
+jq -c --argjson ctx "$CONTEXT_JSON" --arg trial 1 '
+  select(.record == "speed")
+  | {context: $ctx,
+     run_id: ([$trial, .engine, .round, (.repeat // 1)] | map(tostring) | join(":")),
+     status: (if .stop_reason == "maxTokens" and .generated_tokens == .max_tokens and .decode_tok_s != null
+              then "passed" else "failed" end),
+     metrics: (if .decode_tok_s == null then {} else {decode_tps: {value: .decode_tok_s, unit: "tokens/s"}} end)}
+' .local/speed.jsonl > .local/speed-runs.jsonl
+python3 -m Tools.ModelReports summarize --input .local/speed-runs.jsonl
+```
+
+指定の生成数に届かなかった回と、decode速度を計算できない回（生成が2token未満）は `failed` です。この集計は繰り返しごとの統計（件数・最小・中央値・平均・p95・最大）です。受信時刻で分けた時間のbinや、最初と最後の区間の比による持続性能の判定は算出しません。
+
 ## 記録と追加方法
 
 `model-reports/catalog.json` が順序と確認日、`model-reports/metrics.json` が項目名・単位・用途別の欄、`model-reports/records/<id>.json` が各モデルの結果の正本です。これらは文書用で、アプリのダウンロードカタログとは別です。
