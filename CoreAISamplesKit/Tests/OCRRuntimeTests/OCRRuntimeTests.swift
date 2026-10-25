@@ -112,6 +112,21 @@ struct OCRRuntimeTests {
         #expect(second.tokens == [100, 103, 104] && second.finish == .maxNewTokens)
     }
 
+    @Test("Reject a token budget beyond the bundle limit before running any asset", arguments: [0, 32_752, Int.max])
+    func rejectsTokenBudget(maxNewTokens: Int) async throws {
+        let log = FakeLog()
+        let runtime = OCRRuntime(
+            model: FakeModel(
+                log: log, blockedStep: -1, entered: AsyncStream<Void>.makeStream().continuation,
+                release: AsyncStream<Void>.makeStream().stream),
+            loadStats: OCRLoadStats(assets: [], tokenizerSeconds: 0, totalSeconds: 0))
+        let image = try OCRImage(width: 56, height: 56, rgb: [UInt8](repeating: 128, count: 56 * 56 * 3))
+        await #expect(throws: OCRRuntimeError.self) {
+            try await runtime.recognize(image, instruction: "a", maxNewTokens: maxNewTokens)
+        }
+        #expect(log.state.withLock { $0.caches == 0 && $0.prefills.isEmpty })
+    }
+
     @Test(
         "Read PNG pixels as 8-bit RGB like Pillow, keeping the color of transparent pixels",
         arguments: [

@@ -73,7 +73,7 @@ public actor OCRRuntime {
         let prompt = try OCRPrompt(
             instruction: instruction, gridHeight: vision.gridHeight, gridWidth: vision.gridWidth, encode: model.encode)
         guard maxNewTokens > 0, vision.windowCount <= model.windowLimit,
-            prompt.ids.count + maxNewTokens <= model.tokenLimit
+            maxNewTokens <= model.tokenLimit - prompt.ids.count
         else {
             throw OCRRuntimeError.invalidRequest(
                 "\(vision.windowCount) windows and \(prompt.ids.count) + \(maxNewTokens) tokens exceed the limits.")
