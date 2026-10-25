@@ -1,0 +1,37 @@
+{
+ "model": "XingChen-AGI/TeleOCR",
+ "revision": "70a19ec6a3b036311af19ae5e762e650f41a5980",
+ "python": "3.11.9",
+ "torch": "2.9.0",
+ "torchvision": "0.24.0",
+ "transformers": "4.57.3",
+ "pillow": "13.0.0",
+ "numpy": "2.4.6",
+ "cpuCapability": "DEFAULT",
+ "files": {
+  "images.json": {
+   "bytes": 162949,
+   "sha256": "09029097423e94adee82318c79afee781153baadc12f2f5289735e24d8372ee9"
+  },
+  "vision.json": {
+   "bytes": 235134,
+   "sha256": "8f647cf7834da3021d18d4d38effee8e8c4c01746ecadadf7c227f7f436b3013"
+  },
+  "prompts.json": {
+   "bytes": 124599,
+   "sha256": "2e46d57b402bce2048e57819ddf3f9c2f60cfc2d3ca21020fd636b9795e25bdb"
+  },
+  "generation.json": {
+   "bytes": 14742,
+   "sha256": "e77697fc1ade62a876a2d88ee633e3dd5421e44435a550d0f646756a35504f84"
+  },
+  "layout.json": {
+   "bytes": 2333,
+   "sha256": "0e5142412d8d4ded1d90da4055f1e32ca9621550c0be635908e558313d20113a"
+  },
+  "tables.json": {
+   "bytes": 5910,
+   "sha256": "0b59c6d72b4bb62be55d1013105ed866519fbd21a89d548ececf8c52a44a1ef2"
+  }
+ }
+}
