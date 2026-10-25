@@ -15,8 +15,33 @@ class RealAttention:
                 real, imag = pairs[..., 0], pairs[..., 1]
                 value = torch.stack((real * cosine - imag * sine, imag * cosine + real * sine), dim=-1).flatten(-2).to(hidden_states.dtype)
             values.append(value.transpose(1, 2))
-        value = F.scaled_dot_product_attention(*values, attn_mask=attention_mask).transpose(1, 2).flatten(2)
+        if hidden_states.dtype == torch.float32 and (attention_mask is None or attention_mask.dtype == torch.bool):
+            value = explicit_attention(*values, attention_mask)
+        else:
+            value = F.scaled_dot_product_attention(*values, attn_mask=attention_mask)
+        value = value.transpose(1, 2).flatten(2)
         return attn.to_out[1](attn.to_out[0](value))
+
+
+def explicit_attention(query, key, value, mask):
+    if mask is not None and mask.ndim < 2:
+        return F.scaled_dot_product_attention(query, key, value, attn_mask=mask)
+    transposed = key.transpose(-2, -1)
+    scale = query.shape[-1] ** -0.5
+    parts = []
+    for start in range(0, query.shape[-2], 256):
+        scores = torch.matmul(query[..., start:start + 256, :], transposed) * scale
+        live = None
+        if mask is not None:
+            allowed = mask if mask.shape[-2] == 1 else mask[..., start:start + 256, :]
+            live = allowed.any(dim=-1, keepdim=True)
+            scores = torch.where(allowed, scores, -torch.inf)
+            scores = torch.where(live, scores, 0.0)
+        probabilities = torch.softmax(scores, dim=-1)
+        if live is not None:
+            probabilities = torch.where(live, probabilities, 0.0)
+        parts.append(torch.matmul(probabilities, value))
+    return torch.cat(parts, dim=-2)
 
 
 class Denoiser(nn.Module):
