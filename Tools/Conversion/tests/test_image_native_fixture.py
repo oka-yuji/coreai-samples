@@ -5,6 +5,12 @@ import unittest
 from pathlib import Path
 from types import SimpleNamespace
 
+try:
+    import diffusers
+    import transformers.vision_utils
+except ImportError as error:
+    raise unittest.SkipTest(f"Qwen image dependencies unavailable: {error}") from error
+
 from Tools.Conversion.adapters.qwen_image21.contracts import PROFILE, REVISION
 from Tools.Conversion.adapters.qwen_image21.fixtures import DEFINITION_SHA256
 from Tools.Conversion.adapters.qwen_image21.native_fixture import run

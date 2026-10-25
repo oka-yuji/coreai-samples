@@ -6,6 +6,12 @@ import unittest
 from types import SimpleNamespace
 from unittest.mock import patch
 
+try:
+    import diffusers
+    import transformers.vision_utils
+except ImportError as error:
+    raise unittest.SkipTest(f"Qwen image dependencies unavailable: {error}") from error
+
 from Tools.Conversion.adapters.qwen_image21.fixtures import file_record
 from Tools.Conversion.adapters.qwen_image21.mobile_compare import quality_template, score_quality
 from Tools.Conversion.adapters.qwen_image21.mobile_pack import compression_summary, copy_file, pack
