@@ -46,12 +46,24 @@ public final class Engine {
         public var stateBytes: Int { fixedStates.reduce(0) { $0 + $1.count } }
     }
 
-    static let prefillChunkSize = ProcessInfo.processInfo.physicalMemory >= 64 << 30 ? 4096 : 2048
+    static let chunk256Assets: [(modelID: String, mainHash: String)] = [
+        ("Qwen/Qwen3.5-0.8B", "41b46bd34a69c7a25e017122323e72c338ff1fb1a78f17888e5e04bb0c77a2ba"),
+        ("Qwen/Qwen3.5-9B", "410d97a4b3c16ac7b52d30de13ff43234957e080a27db08af67c9052241ee01e"),
+    ]
+
+    static func prefillChunkSize(
+        modelID: String?, assetHash: String?, isHybrid: Bool, physicalMemory: UInt64,
+        adopted: [(modelID: String, mainHash: String)] = chunk256Assets
+    ) -> Int {
+        if isHybrid, adopted.contains(where: { $0.modelID == modelID && $0.mainHash == assetHash }) { return 256 }
+        return physicalMemory >= 64 << 30 ? 4096 : 2048
+    }
 
     public let vocabSize: Int
     public let contextLimit: Int
     public let hasPrefillFunction: Bool
     public let isHybrid: Bool
+    let prefillChunkSize: Int
     public let loadStats: LoadStats
     public var stats = Stats()
     public var measuresPreparation = false
@@ -118,6 +130,9 @@ public final class Engine {
         self.contextLimit = limit
         self.hasPrefillFunction = prefillFunction != nil
         self.isHybrid = buffers.contains { $0.sequenceDim == nil }
+        self.prefillChunkSize = Self.prefillChunkSize(
+            modelID: bundle.sourceModelID, assetHash: bundle.mainHash, isHybrid: isHybrid,
+            physicalMemory: ProcessInfo.processInfo.physicalMemory)
         self.scratch = [Float](repeating: 0, count: bundle.vocabSize)
         self.loadStats = LoadStats(
             cached: resolved.cached,
@@ -192,7 +207,7 @@ public final class Engine {
         onProgress(0)
         if let prefillFunction, usePrefillFunction {
             while rest.count > 1 {
-                let chunk = rest.prefix(min(Self.prefillChunkSize, rest.count - 1))
+                let chunk = rest.prefix(min(prefillChunkSize, rest.count - 1))
                 try await forward(prefillFunction, chunk, logits: false)
                 stats.prefillTokens += chunk.count
                 rest = rest.dropFirst(chunk.count)
@@ -200,7 +215,7 @@ public final class Engine {
             }
         }
         while !rest.isEmpty {
-            let chunk = rest.prefix(Self.prefillChunkSize)
+            let chunk = rest.prefix(prefillChunkSize)
             try await forward(main, chunk, logits: true)
             stats.prefillTokens += chunk.count
             rest = rest.dropFirst(chunk.count)
