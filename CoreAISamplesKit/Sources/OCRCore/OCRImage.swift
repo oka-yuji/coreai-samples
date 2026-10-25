@@ -84,7 +84,7 @@ public struct OCRImage: Equatable, Sendable {
         return try OCRImage(width: width.partialValue, height: height.partialValue, rgb: pixels)
     }
 
-    static func isSupported(width: Int, height: Int) -> Bool {
+    package static func isSupported(width: Int, height: Int) -> Bool {
         (1...32_768).contains(width) && (1...32_768).contains(height) && width * height <= 100_000_000
     }
 }

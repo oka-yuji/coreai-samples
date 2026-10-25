@@ -69,7 +69,7 @@ struct CoreAIOCRModel: OCRModel {
             try Task.checkCancellation()
             let assetStart = clock.now
             let url = bundle.appending(path: folder)
-            let cached = try? AIModelCache.default.model(for: url, options: options)
+            let cached = try AIModelCache.default.model(for: url, options: options)
             let model: AIModel
             if let cached {
                 model = cached

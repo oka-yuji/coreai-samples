@@ -12,6 +12,7 @@ private struct Call: Equatable {
 
 private final class FakeLog: Sendable {
     struct State {
+        var visionCalls = 0
         var caches = 0
         var prefills: [Int] = []
         var steps: [Call] = []
@@ -20,30 +21,41 @@ private final class FakeLog: Sendable {
     let state = Mutex(State())
 }
 
+private enum CancellationPoint: CaseIterable, Sendable {
+    case encoding
+    case cache
+}
+
 private struct FakeModel: OCRModel {
     let log: FakeLog
     let blockedStep: Int
     let entered: AsyncStream<Void>.Continuation
     let release: AsyncStream<Void>
+    var cancellationPoint: CancellationPoint? = nil
 
     var windowLimit: Int { 2_048 }
     var tokenLimit: Int { 32_768 }
 
-    func encode(_ text: String) -> [Int32] { [1] }
+    func encode(_ text: String) -> [Int32] {
+        if cancellationPoint == .encoding { withUnsafeCurrentTask { $0?.cancel() } }
+        return [1]
+    }
 
     func decode(_ tokens: [Int32], skipSpecialTokens: Bool) -> String {
         tokens.map(String.init).joined(separator: " ")
     }
 
     func makeCache(capacity: Int) -> Int {
-        log.state.withLock { state in
+        if cancellationPoint == .cache { withUnsafeCurrentTask { $0?.cancel() } }
+        return log.state.withLock { state in
             state.caches += 1
             return state.caches
         }
     }
 
     @concurrent func vision(_ input: OCRVisionInput) async throws -> [Float] {
-        [Float](repeating: 0, count: input.windowCount * 16 * 4)
+        log.state.withLock { $0.visionCalls += 1 }
+        return [Float](repeating: 0, count: input.windowCount * 16 * 4)
     }
 
     @concurrent func embed(_ ids: [Int32]) async throws -> [Float] {
@@ -80,6 +92,23 @@ private struct FakeModel: OCRModel {
 
 @Suite("OCR runtime ownership, cancellation and image files", .timeLimit(.minutes(1)))
 struct OCRRuntimeTests {
+    @Test("Cancellation during preparation prevents the next asset call", arguments: CancellationPoint.allCases)
+    private func cancelledPreparationDoesNotRunAnAsset(at point: CancellationPoint) async throws {
+        let log = FakeLog()
+        let runtime = OCRRuntime(
+            model: FakeModel(
+                log: log, blockedStep: -1, entered: AsyncStream<Void>.makeStream().continuation,
+                release: AsyncStream<Void>.makeStream().stream, cancellationPoint: point),
+            loadStats: OCRLoadStats(assets: [], tokenizerSeconds: 0, totalSeconds: 0))
+        let image = try OCRImage(width: 56, height: 56, rgb: [UInt8](repeating: 128, count: 56 * 56 * 3))
+        let request = Task { try await runtime.recognize(image, instruction: "a", maxNewTokens: 3) }
+        await #expect(throws: CancellationError.self) { try await request.value }
+        let (visionCalls, caches, prefills) = log.state.withLock { ($0.visionCalls, $0.caches, $0.prefills) }
+        #expect(visionCalls == (point == .encoding ? 0 : 1))
+        #expect(caches == (point == .encoding ? 0 : 1))
+        #expect(prefills.isEmpty)
+    }
+
     @Test("Stop a cancelled request before its next step, drop its cache, and serve the next request with a new cache")
     func cancelledRequestDropsItsCache() async throws {
         let entered = AsyncStream<Void>.makeStream()

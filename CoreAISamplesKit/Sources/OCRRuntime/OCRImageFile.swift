@@ -10,6 +10,7 @@ extension OCRImage {
         else { throw OCRError.invalidImage }
         let width = image.width
         let height = image.height
+        guard Self.isSupported(width: width, height: height) else { throw OCRError.invalidImage }
         let gray = image.colorSpace?.model == .monochrome
         let colors = gray ? 1 : 3
         let alpha = image.alphaInfo

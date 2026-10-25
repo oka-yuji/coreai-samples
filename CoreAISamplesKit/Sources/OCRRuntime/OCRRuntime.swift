@@ -78,6 +78,7 @@ public actor OCRRuntime {
             throw OCRRuntimeError.invalidRequest(
                 "\(vision.windowCount) windows and \(prompt.ids.count) + \(maxNewTokens) tokens exceed the limits.")
         }
+        try Task.checkCancellation()
         let features = try vision.tokenFeatures(from: await model.vision(vision))
         let visionEnd = clock.now
         try Task.checkCancellation()
@@ -92,6 +93,7 @@ public actor OCRRuntime {
         var cache = try model.makeCache(capacity: prompt.ids.count + maxNewTokens)
         var generation = OCRGeneration(prompt: prompt.ids, maxNewTokens: maxNewTokens)
         let rotary = OCRTextRotary.cosSin(prompt.positions)
+        try Task.checkCancellation()
         var token = try generation.select(await model.prefill(embeddings, rotary: rotary, cache: &cache))
         let firstToken = clock.now
         var position = prompt.ids.count
