@@ -1,0 +1,20 @@
+{
+ "definition": "00_事前固定_v1.md §4-§6 + 00_事前固定_v1.1_追補.md §2-§6",
+ "conditional_meaning": "条件付き = 人手の修正を前提とする対象限定(自動抽出の保証ではない。F5 の CER ≤ 0.25 は特にそう扱う)",
+ "good": "良",
+ "conditional": "条件付き",
+ "insufficient": "不足",
+ "undetermined": "未確定",
+ "scoring_failed": "未確定(採点失敗)",
+ "not_scored": "未確定(採点なし)",
+ "too_few_scored": "未確定(採点不足)",
+ "skip_f1": "見送り(F1 不足)",
+ "candidate": "候補",
+ "outside_rules": "v1 §6 の規則の範囲外: F1 は不足でないが F3/F4 に不足あり(候補にならない)",
+ "excluded": "{}(対象外)",
+ "skip": "見送り",
+ "adopt": "採用",
+ "conditional_adopt": "条件付き採用",
+ "excluded_list": "(対象外: {})",
+ "two_stage_key": "two_stage_別記"
+}
