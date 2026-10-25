@@ -1,0 +1,1 @@
+<fcel>日付<fcel>区間<fcel>運賃(円)<fcel>宿泊(円)<nl><fcel>10月2日<fcel>汐見野→柚ノ木<fcel>4,380<fcel>9,800<nl><fcel>10月3日<fcel>柚ノ木→朝霧台<fcel>1,260<fcel>0<nl><fcel>10月9日<fcel>汐見野→白砂<fcel>2,910<fcel>8,600<nl><fcel>10月15日<fcel>白砂→汐見野<fcel>2,910<fcel>0<nl><|im_end|>

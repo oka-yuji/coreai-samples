@@ -1,0 +1,1 @@
+<fcel>品名<fcel>在庫<fcel>発注点<fcel>保管場所<nl><fcel>コビー用紙<fcel>42箱<fcel>10箱<fcel>倉庫A<nl><fcel>トナー<fcel>7本<fcel>3本<fcel>倉庫B<nl><fcel>電池(単3)<fcel>120本<fcel>40本<fcel>事務室<nl><fcel>封筒(長3)<fcel>1,500枚<fcel>500枚<fcel>倉庫A<nl><|im_end|>

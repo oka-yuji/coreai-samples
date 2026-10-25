@@ -1,0 +1,4 @@
+<box:088 088 468 121><label:title><up>
+<box:087 153 462 499><label:text><up>
+<box:500 088 815 121><label:title><up>
+<box:507 153 883 501><label:text><up>

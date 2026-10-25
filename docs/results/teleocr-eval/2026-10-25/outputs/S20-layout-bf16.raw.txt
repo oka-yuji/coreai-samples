@@ -1,0 +1,3 @@
+<box:067 072 502 101><label:title><up>
+<box:067 138 457 445><label:text><up>
+<box:518 138 907 445><label:text><up><|im_end|>

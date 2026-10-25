@@ -1,0 +1,3551 @@
+{
+ "definition": "00_事前固定_v1.md §4-§6 + 00_事前固定_v1.1_追補.md §2-§6",
+ "primary": "bf16 + MPS",
+ "conditional_meaning": "条件付き = 人手の修正を前提とする対象限定(自動抽出の保証ではない。F5 の CER ≤ 0.25 は特にそう扱う)",
+ "samples": {
+  "F1": {
+   "cer": 0.010452961672473868,
+   "cer_raw": 0.017421602787456445,
+   "len_gt_norm": 287,
+   "len_pred_norm": 287,
+   "diff_ops_gt_vs_pred": [
+    [
+     "replace",
+     "く",
+     "き"
+    ],
+    [
+     "replace",
+     "で",
+     "て"
+    ],
+    [
+     "replace",
+     "掲",
+     "揭"
+    ]
+   ],
+   "judgment": "良"
+  },
+  "F2": {
+   "otsl_found": true,
+   "rows_raw_widths": [
+    4,
+    4,
+    4,
+    4,
+    4
+   ],
+   "shape_gt": [
+    5,
+    4
+   ],
+   "shape_strict_match": true,
+   "shape_card_parse": [
+    5,
+    4
+   ],
+   "cell_match": 0.95,
+   "cell_match_unordered": 0.95,
+   "grid_card_parse": [
+    [
+     "品名",
+     "数量",
+     "単価(円)",
+     "備考"
+    ],
+    [
+     "六角ボルトM8",
+     "1,200個",
+     "125",
+     "亞鉛めっき"
+    ],
+    [
+     "防振ゴム板",
+     "350kg",
+     "2,450",
+     "厚さ5mm"
+    ],
+    [
+     "樹脂ケース",
+     "640個",
+     "1,380",
+     "試作用"
+    ],
+    [
+     "銅線",
+     "85kg",
+     "12,800",
+     "在庫優先"
+    ]
+   ],
+   "pred_cell_texts": [
+    "品名",
+    "数量",
+    "単価(円)",
+    "備考",
+    "六角ボルトM8",
+    "1,200個",
+    "125",
+    "亞鉛めっき",
+    "防振ゴム板",
+    "350kg",
+    "2,450",
+    "厚さ5mm",
+    "樹脂ケース",
+    "640個",
+    "1,380",
+    "試作用",
+    "銅線",
+    "85kg",
+    "12,800",
+    "在庫優先"
+   ],
+   "numbers_match": 1.0,
+   "numbers_precision": 1.0,
+   "numbers_gt": [
+    "8",
+    "1,200",
+    "125",
+    "350kg",
+    "2,450",
+    "5mm",
+    "640",
+    "1,380",
+    "85kg",
+    "12,800"
+   ],
+   "numbers_pred": [
+    "8",
+    "1,200",
+    "125",
+    "350kg",
+    "2,450",
+    "5mm",
+    "640",
+    "1,380",
+    "85kg",
+    "12,800"
+   ],
+   "numbers_missing": [],
+   "numbers_extra": [],
+   "judgment": "良"
+  },
+  "F3": {
+   "cer": 0.005025125628140704,
+   "cer_raw": 0.04568527918781726,
+   "len_gt_norm": 199,
+   "len_pred_norm": 199,
+   "diff_ops_gt_vs_pred": [
+    [
+     "replace",
+     "様",
+     "樣"
+    ]
+   ],
+   "numbers_match": 1.0,
+   "numbers_precision": 1.0,
+   "numbers_gt": [
+    "-210",
+    "-210",
+    "3",
+    "100V",
+    "50/60Hz",
+    "42W",
+    "0.5W",
+    "3.6kg",
+    "285mm",
+    "190mm",
+    "412mm",
+    "1,800mm",
+    "-10~45°C",
+    "-20~60°C",
+    "20~85%",
+    "1"
+   ],
+   "numbers_pred": [
+    "-210",
+    "-210",
+    "3",
+    "100V",
+    "50/60Hz",
+    "42W",
+    "0.5W",
+    "3.6kg",
+    "285mm",
+    "190mm",
+    "412mm",
+    "1,800mm",
+    "-10~45°C",
+    "-20~60°C",
+    "20~85%",
+    "1"
+   ],
+   "numbers_missing": [],
+   "numbers_extra": [],
+   "judgment": "良"
+  },
+  "F4": {
+   "cer": 0.003937007874015748,
+   "cer_raw": 0.003937007874015748,
+   "len_gt_norm": 254,
+   "len_pred_norm": 254,
+   "diff_ops_gt_vs_pred": [
+    [
+     "replace",
+     "挿",
+     "弾"
+    ]
+   ],
+   "read_order_edit": 0.0,
+   "unmatched_rate": 0.0,
+   "read_order_ids": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19
+   ],
+   "rows": [
+    {
+     "id": 1,
+     "pos": 0,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 2,
+     "pos": 21,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 3,
+     "pos": 34,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 4,
+     "pos": 47,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 5,
+     "pos": 61,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 6,
+     "pos": 76,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 7,
+     "pos": 91,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 8,
+     "pos": 104,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 9,
+     "pos": 117,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 10,
+     "pos": 130,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 11,
+     "pos": 142,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 12,
+     "pos": 155,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 13,
+     "pos": 169,
+     "ratio": 0.9231,
+     "matched": true
+    },
+    {
+     "id": 14,
+     "pos": 182,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 15,
+     "pos": 195,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 16,
+     "pos": 208,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 17,
+     "pos": 220,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 18,
+     "pos": 234,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 19,
+     "pos": 246,
+     "ratio": 1.0,
+     "matched": true
+    }
+   ],
+   "layout_blocks": 3,
+   "layout_missing_rate": 0.0,
+   "layout_missing_rows": [],
+   "layout_blocks_without_gt": [],
+   "cer_covered": 0.003937007874015748,
+   "judgment": "良"
+  },
+  "F5": {
+   "cer": 0.01507537688442211,
+   "cer_raw": 0.04060913705583756,
+   "len_gt_norm": 199,
+   "len_pred_norm": 199,
+   "diff_ops_gt_vs_pred": [
+    [
+     "replace",
+     "様",
+     "樣"
+    ],
+    [
+     "replace",
+     "温",
+     "溫"
+    ],
+    [
+     "replace",
+     "温",
+     "溫"
+    ]
+   ],
+   "numbers_match": 1.0,
+   "numbers_precision": 1.0,
+   "numbers_gt": [
+    "-210",
+    "-210",
+    "3",
+    "100V",
+    "50/60Hz",
+    "42W",
+    "0.5W",
+    "3.6kg",
+    "285mm",
+    "190mm",
+    "412mm",
+    "1,800mm",
+    "-10~45°C",
+    "-20~60°C",
+    "20~85%",
+    "1"
+   ],
+   "numbers_pred": [
+    "-210",
+    "-210",
+    "3",
+    "100V",
+    "50/60Hz",
+    "42W",
+    "0.5W",
+    "3.6kg",
+    "285mm",
+    "190mm",
+    "412mm",
+    "1,800mm",
+    "-10~45°C",
+    "-20~60°C",
+    "20~85%",
+    "1"
+   ],
+   "numbers_missing": [],
+   "numbers_extra": [],
+   "judgment": "良"
+  },
+  "S01": {
+   "cer": 0.002652519893899204,
+   "cer_raw": 0.002652519893899204,
+   "len_gt_norm": 377,
+   "len_pred_norm": 377,
+   "diff_ops_gt_vs_pred": [
+    [
+     "replace",
+     "餌",
+     "飯"
+    ]
+   ],
+   "judgment": "良"
+  },
+  "S02": {
+   "cer": 0.008595988538681949,
+   "cer_raw": 0.008595988538681949,
+   "len_gt_norm": 349,
+   "len_pred_norm": 350,
+   "diff_ops_gt_vs_pred": [
+    [
+     "replace",
+     "れる",
+     "ださい"
+    ]
+   ],
+   "judgment": "良"
+  },
+  "S03": {
+   "cer": 0.0,
+   "cer_raw": 0.0,
+   "len_gt_norm": 262,
+   "len_pred_norm": 262,
+   "diff_ops_gt_vs_pred": [],
+   "judgment": "良"
+  },
+  "S04": {
+   "cer": 0.0,
+   "cer_raw": 0.0,
+   "len_gt_norm": 306,
+   "len_pred_norm": 306,
+   "diff_ops_gt_vs_pred": [],
+   "judgment": "良"
+  },
+  "S05": {
+   "cer": 0.013468013468013467,
+   "cer_raw": 0.013468013468013467,
+   "len_gt_norm": 297,
+   "len_pred_norm": 297,
+   "diff_ops_gt_vs_pred": [
+    [
+     "replace",
+     "冊",
+     "団"
+    ],
+    [
+     "replace",
+     "餌",
+     "飯"
+    ],
+    [
+     "replace",
+     "見",
+     "见"
+    ],
+    [
+     "replace",
+     "冊",
+     "団"
+    ]
+   ],
+   "judgment": "良"
+  },
+  "S06": {
+   "cer": 0.007792207792207792,
+   "cer_raw": 0.007792207792207792,
+   "len_gt_norm": 385,
+   "len_pred_norm": 384,
+   "diff_ops_gt_vs_pred": [
+    [
+     "replace",
+     "なく",
+     "。"
+    ],
+    [
+     "replace",
+     "っ",
+     "り"
+    ]
+   ],
+   "judgment": "良"
+  },
+  "S07": {
+   "cer": 0.006756756756756757,
+   "cer_raw": 0.027210884353741496,
+   "len_gt_norm": 148,
+   "len_pred_norm": 148,
+   "diff_ops_gt_vs_pred": [
+    [
+     "replace",
+     "騰",
+     "腾"
+    ]
+   ],
+   "numbers_match": 1.0,
+   "numbers_precision": 1.0,
+   "numbers_gt": [
+    "-08",
+    "-08",
+    "100V",
+    "50/60Hz",
+    "1,250W",
+    "0.8L",
+    "0.95kg",
+    "220mm",
+    "210mm",
+    "1.2m",
+    "3",
+    "5~35°C",
+    "1"
+   ],
+   "numbers_pred": [
+    "-08",
+    "-08",
+    "100V",
+    "50/60Hz",
+    "1,250W",
+    "0.8L",
+    "0.95kg",
+    "220mm",
+    "210mm",
+    "1.2m",
+    "3",
+    "5~35°C",
+    "1"
+   ],
+   "numbers_missing": [],
+   "numbers_extra": [],
+   "judgment": "良"
+  },
+  "S08": {
+   "cer": 0.0,
+   "cer_raw": 0.023809523809523808,
+   "len_gt_norm": 128,
+   "len_pred_norm": 128,
+   "diff_ops_gt_vs_pred": [],
+   "numbers_match": 1.0,
+   "numbers_precision": 1.0,
+   "numbers_gt": [
+    "-3",
+    "-3",
+    "-30~60°C",
+    "10~95%",
+    "0.5°C",
+    "3",
+    "2",
+    "18",
+    "100m",
+    "48",
+    "120g",
+    "4"
+   ],
+   "numbers_pred": [
+    "-3",
+    "-3",
+    "-30~60°C",
+    "10~95%",
+    "0.5°C",
+    "3",
+    "2",
+    "18",
+    "100m",
+    "48",
+    "120g",
+    "4"
+   ],
+   "numbers_missing": [],
+   "numbers_extra": [],
+   "judgment": "良"
+  },
+  "S09": {
+   "cer": 0.0,
+   "cer_raw": 0.0189873417721519,
+   "len_gt_norm": 159,
+   "len_pred_norm": 159,
+   "diff_ops_gt_vs_pred": [],
+   "numbers_match": 1.0,
+   "numbers_precision": 1.0,
+   "numbers_gt": [
+    "-5",
+    "-5",
+    "450lm",
+    "6",
+    "3,200mAh",
+    "4.5",
+    "5V",
+    "2A",
+    "185g",
+    "36mm",
+    "128mm",
+    "-10~40°C",
+    "6",
+    "1"
+   ],
+   "numbers_pred": [
+    "-5",
+    "-5",
+    "450lm",
+    "6",
+    "3,200mAh",
+    "4.5",
+    "5V",
+    "2A",
+    "185g",
+    "36mm",
+    "128mm",
+    "-10~40°C",
+    "6",
+    "1"
+   ],
+   "numbers_missing": [],
+   "numbers_extra": [],
+   "judgment": "良"
+  },
+  "S10": {
+   "cer": 0.013513513513513514,
+   "cer_raw": 0.02702702702702703,
+   "len_gt_norm": 148,
+   "len_pred_norm": 148,
+   "diff_ops_gt_vs_pred": [
+    [
+     "replace",
+     "様",
+     "樣"
+    ],
+    [
+     "replace",
+     "続",
+     "續"
+    ]
+   ],
+   "numbers_match": 1.0,
+   "numbers_precision": 1.0,
+   "numbers_gt": [
+    "-12",
+    "-12",
+    "100V",
+    "50/60Hz",
+    "300W",
+    "1.2L",
+    "18,000",
+    "2.1kg",
+    "160mm",
+    "395mm",
+    "3",
+    "1.4m",
+    "2"
+   ],
+   "numbers_pred": [
+    "-12",
+    "-12",
+    "100V",
+    "50/60Hz",
+    "300W",
+    "1.2L",
+    "18,000",
+    "2.1kg",
+    "160mm",
+    "395mm",
+    "3",
+    "1.4m",
+    "2"
+   ],
+   "numbers_missing": [],
+   "numbers_extra": [],
+   "judgment": "良"
+  },
+  "S11": {
+   "cer": 0.0472972972972973,
+   "cer_raw": 0.6620689655172414,
+   "len_gt_norm": 148,
+   "len_pred_norm": 144,
+   "diff_ops_gt_vs_pred": [
+    [
+     "replace",
+     "様",
+     "樣"
+    ],
+    [
+     "insert",
+     "",
+     ","
+    ],
+    [
+     "delete",
+     "・",
+     ""
+    ],
+    [
+     "delete",
+     ")",
+     ""
+    ],
+    [
+     "delete",
+     ")",
+     ""
+    ],
+    [
+     "delete",
+     "~",
+     ""
+    ],
+    [
+     "delete",
+     "~",
+     ""
+    ]
+   ],
+   "numbers_match": 0.7857142857142857,
+   "numbers_precision": 0.7857142857142857,
+   "numbers_gt": [
+    "-6",
+    "-6",
+    "6.3L",
+    "27°C",
+    "60%",
+    "100V",
+    "50/60Hz",
+    "180W",
+    "2.5L",
+    "39dB",
+    "8.4kg",
+    "1~35°C",
+    "-10~50°C",
+    "1"
+   ],
+   "numbers_pred": [
+    "-6",
+    "-6",
+    "6.3L",
+    "27",
+    "60%",
+    "100V",
+    "50/60Hz",
+    "180W",
+    "2.5L",
+    "39dB",
+    "8.4kg",
+    "135°C",
+    "-1050°C",
+    "1"
+   ],
+   "numbers_missing": [
+    "-10~50°C",
+    "1~35°C",
+    "27°C"
+   ],
+   "numbers_extra": [
+    "-1050°C",
+    "135°C",
+    "27"
+   ],
+   "judgment": "条件付き"
+  },
+  "S12": {
+   "cer": 0.007194244604316547,
+   "cer_raw": 0.028985507246376812,
+   "len_gt_norm": 139,
+   "len_pred_norm": 139,
+   "diff_ops_gt_vs_pred": [
+    [
+     "replace",
+     "様",
+     "樣"
+    ]
+   ],
+   "numbers_match": 1.0,
+   "numbers_precision": 1.0,
+   "numbers_gt": [
+    "-30",
+    "-30",
+    "30kg",
+    "5g",
+    "300mm",
+    "250mm",
+    "12V",
+    "3.5W",
+    "-5~40°C",
+    "4.2kg",
+    "6",
+    "3"
+   ],
+   "numbers_pred": [
+    "-30",
+    "-30",
+    "30kg",
+    "5g",
+    "300mm",
+    "250mm",
+    "12V",
+    "3.5W",
+    "-5~40°C",
+    "4.2kg",
+    "6",
+    "3"
+   ],
+   "numbers_missing": [],
+   "numbers_extra": [],
+   "judgment": "良"
+  },
+  "S13": {
+   "otsl_found": true,
+   "rows_raw_widths": [
+    4,
+    4,
+    4,
+    4,
+    4,
+    4
+   ],
+   "shape_gt": [
+    6,
+    4
+   ],
+   "shape_strict_match": true,
+   "shape_card_parse": [
+    6,
+    4
+   ],
+   "cell_match": 1.0,
+   "cell_match_unordered": 1.0,
+   "grid_card_parse": [
+    [
+     "品名",
+     "数量",
+     "単価(円)",
+     "備考"
+    ],
+    [
+     "平座金M6",
+     "2,400個",
+     "18",
+     "三価クロム"
+    ],
+    [
+     "防振ゴム脚",
+     "160個",
+     "520",
+     "黒色"
+    ],
+    [
+     "配線ダクト",
+     "75本",
+     "1,840",
+     "長さ2m"
+    ],
+    [
+     "端子台",
+     "48個",
+     "2,960",
+     "予備含む"
+    ],
+    [
+     "結束バンド",
+     "30袋",
+     "410",
+     "100本入"
+    ]
+   ],
+   "pred_cell_texts": [
+    "品名",
+    "数量",
+    "単価(円)",
+    "備考",
+    "平座金M6",
+    "2,400個",
+    "18",
+    "三価クロム",
+    "防振ゴム脚",
+    "160個",
+    "520",
+    "黒色",
+    "配線ダクト",
+    "75本",
+    "1,840",
+    "長さ2m",
+    "端子台",
+    "48個",
+    "2,960",
+    "予備含む",
+    "結束バンド",
+    "30袋",
+    "410",
+    "100本入"
+   ],
+   "numbers_match": 1.0,
+   "numbers_precision": 1.0,
+   "numbers_gt": [
+    "6",
+    "2,400",
+    "18",
+    "160",
+    "520",
+    "75",
+    "1,840",
+    "2m",
+    "48",
+    "2,960",
+    "30",
+    "410",
+    "100"
+   ],
+   "numbers_pred": [
+    "6",
+    "2,400",
+    "18",
+    "160",
+    "520",
+    "75",
+    "1,840",
+    "2m",
+    "48",
+    "2,960",
+    "30",
+    "410",
+    "100"
+   ],
+   "numbers_missing": [],
+   "numbers_extra": [],
+   "judgment": "良"
+  },
+  "S14": {
+   "otsl_found": true,
+   "rows_raw_widths": [
+    4,
+    4,
+    4,
+    4,
+    4
+   ],
+   "shape_gt": [
+    5,
+    4
+   ],
+   "shape_strict_match": true,
+   "shape_card_parse": [
+    5,
+    4
+   ],
+   "cell_match": 1.0,
+   "cell_match_unordered": 1.0,
+   "grid_card_parse": [
+    [
+     "項目",
+     "回数",
+     "時間(分)",
+     "担当"
+    ],
+    [
+     "安全講習",
+     "4回",
+     "90",
+     "総務課"
+    ],
+    [
+     "機器操作",
+     "6回",
+     "45",
+     "技術課"
+    ],
+    [
+     "品質基礎",
+     "3回",
+     "120",
+     "品証課"
+    ],
+    [
+     "新人面談",
+     "12回",
+     "30",
+     "人事課"
+    ]
+   ],
+   "pred_cell_texts": [
+    "項目",
+    "回数",
+    "時間(分)",
+    "担当",
+    "安全講習",
+    "4回",
+    "90",
+    "総務課",
+    "機器操作",
+    "6回",
+    "45",
+    "技術課",
+    "品質基礎",
+    "3回",
+    "120",
+    "品証課",
+    "新人面談",
+    "12回",
+    "30",
+    "人事課"
+   ],
+   "numbers_match": 1.0,
+   "numbers_precision": 1.0,
+   "numbers_gt": [
+    "4",
+    "90",
+    "6",
+    "45",
+    "3",
+    "120",
+    "12",
+    "30"
+   ],
+   "numbers_pred": [
+    "4",
+    "90",
+    "6",
+    "45",
+    "3",
+    "120",
+    "12",
+    "30"
+   ],
+   "numbers_missing": [],
+   "numbers_extra": [],
+   "judgment": "良"
+  },
+  "S15": {
+   "otsl_found": true,
+   "rows_raw_widths": [
+    4,
+    4,
+    4,
+    4,
+    4,
+    4
+   ],
+   "shape_gt": [
+    6,
+    4
+   ],
+   "shape_strict_match": true,
+   "shape_card_parse": [
+    6,
+    4
+   ],
+   "cell_match": 1.0,
+   "cell_match_unordered": 1.0,
+   "grid_card_parse": [
+    [
+     "月",
+     "来館者",
+     "前年比",
+     "備考"
+    ],
+    [
+     "4月",
+     "3,812人",
+     "104%",
+     "改装前"
+    ],
+    [
+     "5月",
+     "4,265人",
+     "111%",
+     "連休あり"
+    ],
+    [
+     "6月",
+     "2,947人",
+     "96%",
+     "雨天多い"
+    ],
+    [
+     "7月",
+     "5,130人",
+     "118%",
+     "夏休み"
+    ],
+    [
+     "8月",
+     "5,602人",
+     "121%",
+     "企画展"
+    ]
+   ],
+   "pred_cell_texts": [
+    "月",
+    "来館者",
+    "前年比",
+    "備考",
+    "4月",
+    "3,812人",
+    "104%",
+    "改装前",
+    "5月",
+    "4,265人",
+    "111%",
+    "連休あり",
+    "6月",
+    "2,947人",
+    "96%",
+    "雨天多い",
+    "7月",
+    "5,130人",
+    "118%",
+    "夏休み",
+    "8月",
+    "5,602人",
+    "121%",
+    "企画展"
+   ],
+   "numbers_match": 1.0,
+   "numbers_precision": 1.0,
+   "numbers_gt": [
+    "4",
+    "3,812",
+    "104%",
+    "5",
+    "4,265",
+    "111%",
+    "6",
+    "2,947",
+    "96%",
+    "7",
+    "5,130",
+    "118%",
+    "8",
+    "5,602",
+    "121%"
+   ],
+   "numbers_pred": [
+    "4",
+    "3,812",
+    "104%",
+    "5",
+    "4,265",
+    "111%",
+    "6",
+    "2,947",
+    "96%",
+    "7",
+    "5,130",
+    "118%",
+    "8",
+    "5,602",
+    "121%"
+   ],
+   "numbers_missing": [],
+   "numbers_extra": [],
+   "judgment": "良"
+  },
+  "S16": {
+   "otsl_found": true,
+   "rows_raw_widths": [
+    4,
+    4,
+    4,
+    4,
+    4,
+    4
+   ],
+   "shape_gt": [
+    6,
+    4
+   ],
+   "shape_strict_match": true,
+   "shape_card_parse": [
+    6,
+    4
+   ],
+   "cell_match": 1.0,
+   "cell_match_unordered": 1.0,
+   "grid_card_parse": [
+    [
+     "試料",
+     "温度(°C)",
+     "重さ(g)",
+     "判定"
+    ],
+    [
+     "A-01",
+     "-18.5",
+     "12.40",
+     "合格"
+    ],
+    [
+     "A-02",
+     "-17.9",
+     "12.38",
+     "合格"
+    ],
+    [
+     "B-01",
+     "4.2",
+     "15.06",
+     "再試験"
+    ],
+    [
+     "B-02",
+     "3.8",
+     "15.11",
+     "合格"
+    ],
+    [
+     "C-01",
+     "25.0",
+     "9.87",
+     "合格"
+    ]
+   ],
+   "pred_cell_texts": [
+    "試料",
+    "温度(°C)",
+    "重さ(g)",
+    "判定",
+    "A-01",
+    "-18.5",
+    "12.40",
+    "合格",
+    "A-02",
+    "-17.9",
+    "12.38",
+    "合格",
+    "B-01",
+    "4.2",
+    "15.06",
+    "再試験",
+    "B-02",
+    "3.8",
+    "15.11",
+    "合格",
+    "C-01",
+    "25.0",
+    "9.87",
+    "合格"
+   ],
+   "numbers_match": 1.0,
+   "numbers_precision": 1.0,
+   "numbers_gt": [
+    "-01",
+    "-18.5",
+    "12.40",
+    "-02",
+    "-17.9",
+    "12.38",
+    "-01",
+    "4.2",
+    "15.06",
+    "-02",
+    "3.8",
+    "15.11",
+    "-01",
+    "25.0",
+    "9.87"
+   ],
+   "numbers_pred": [
+    "-01",
+    "-18.5",
+    "12.40",
+    "-02",
+    "-17.9",
+    "12.38",
+    "-01",
+    "4.2",
+    "15.06",
+    "-02",
+    "3.8",
+    "15.11",
+    "-01",
+    "25.0",
+    "9.87"
+   ],
+   "numbers_missing": [],
+   "numbers_extra": [],
+   "judgment": "良"
+  },
+  "S17": {
+   "otsl_found": true,
+   "rows_raw_widths": [
+    4,
+    4,
+    4,
+    4,
+    4
+   ],
+   "shape_gt": [
+    5,
+    4
+   ],
+   "shape_strict_match": true,
+   "shape_card_parse": [
+    5,
+    4
+   ],
+   "cell_match": 0.95,
+   "cell_match_unordered": 0.95,
+   "grid_card_parse": [
+    [
+     "品名",
+     "在庫",
+     "発注点",
+     "保管場所"
+    ],
+    [
+     "コビー用紙",
+     "42箱",
+     "10箱",
+     "倉庫A"
+    ],
+    [
+     "トナー",
+     "7本",
+     "3本",
+     "倉庫B"
+    ],
+    [
+     "電池(単3)",
+     "120本",
+     "40本",
+     "事務室"
+    ],
+    [
+     "封筒(長3)",
+     "1,500枚",
+     "500枚",
+     "倉庫A"
+    ]
+   ],
+   "pred_cell_texts": [
+    "品名",
+    "在庫",
+    "発注点",
+    "保管場所",
+    "コビー用紙",
+    "42箱",
+    "10箱",
+    "倉庫A",
+    "トナー",
+    "7本",
+    "3本",
+    "倉庫B",
+    "電池(単3)",
+    "120本",
+    "40本",
+    "事務室",
+    "封筒(長3)",
+    "1,500枚",
+    "500枚",
+    "倉庫A"
+   ],
+   "numbers_match": 1.0,
+   "numbers_precision": 1.0,
+   "numbers_gt": [
+    "42",
+    "10",
+    "7",
+    "3",
+    "3",
+    "120",
+    "40",
+    "3",
+    "1,500",
+    "500"
+   ],
+   "numbers_pred": [
+    "42",
+    "10",
+    "7",
+    "3",
+    "3",
+    "120",
+    "40",
+    "3",
+    "1,500",
+    "500"
+   ],
+   "numbers_missing": [],
+   "numbers_extra": [],
+   "judgment": "良"
+  },
+  "S18": {
+   "otsl_found": true,
+   "rows_raw_widths": [
+    4,
+    4,
+    4,
+    4,
+    4
+   ],
+   "shape_gt": [
+    5,
+    4
+   ],
+   "shape_strict_match": true,
+   "shape_card_parse": [
+    5,
+    4
+   ],
+   "cell_match": 1.0,
+   "cell_match_unordered": 1.0,
+   "grid_card_parse": [
+    [
+     "日付",
+     "区間",
+     "運賃(円)",
+     "宿泊(円)"
+    ],
+    [
+     "10月2日",
+     "汐見野→柚ノ木",
+     "4,380",
+     "9,800"
+    ],
+    [
+     "10月3日",
+     "柚ノ木→朝霧台",
+     "1,260",
+     "0"
+    ],
+    [
+     "10月9日",
+     "汐見野→白砂",
+     "2,910",
+     "8,600"
+    ],
+    [
+     "10月15日",
+     "白砂→汐見野",
+     "2,910",
+     "0"
+    ]
+   ],
+   "pred_cell_texts": [
+    "日付",
+    "区間",
+    "運賃(円)",
+    "宿泊(円)",
+    "10月2日",
+    "汐見野→柚ノ木",
+    "4,380",
+    "9,800",
+    "10月3日",
+    "柚ノ木→朝霧台",
+    "1,260",
+    "0",
+    "10月9日",
+    "汐見野→白砂",
+    "2,910",
+    "8,600",
+    "10月15日",
+    "白砂→汐見野",
+    "2,910",
+    "0"
+   ],
+   "numbers_match": 1.0,
+   "numbers_precision": 1.0,
+   "numbers_gt": [
+    "10",
+    "2",
+    "4,380",
+    "9,800",
+    "10",
+    "3",
+    "1,260",
+    "0",
+    "10",
+    "9",
+    "2,910",
+    "8,600",
+    "10",
+    "15",
+    "2,910",
+    "0"
+   ],
+   "numbers_pred": [
+    "10",
+    "2",
+    "4,380",
+    "9,800",
+    "10",
+    "3",
+    "1,260",
+    "0",
+    "10",
+    "9",
+    "2,910",
+    "8,600",
+    "10",
+    "15",
+    "2,910",
+    "0"
+   ],
+   "numbers_missing": [],
+   "numbers_extra": [],
+   "judgment": "良"
+  },
+  "S19": {
+   "cer": 0.0794392523364486,
+   "cer_raw": 0.0794392523364486,
+   "len_gt_norm": 214,
+   "len_pred_norm": 215,
+   "diff_ops_gt_vs_pred": [
+    [
+     "delete",
+     "週末市がにぎわう",
+     ""
+    ],
+    [
+     "insert",
+     "",
+     "週末市がにぎわう"
+    ],
+    [
+     "insert",
+     "",
+     "る"
+    ]
+   ],
+   "read_order_edit": 0.0,
+   "unmatched_rate": 0.0,
+   "read_order_ids": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19
+   ],
+   "rows": [
+    {
+     "id": 1,
+     "pos": 0,
+     "ratio": 0.6111,
+     "matched": true
+    },
+    {
+     "id": 2,
+     "pos": 10,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 3,
+     "pos": 21,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 4,
+     "pos": 32,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 5,
+     "pos": 43,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 6,
+     "pos": 54,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 7,
+     "pos": 64,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 8,
+     "pos": 75,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 9,
+     "pos": 86,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 10,
+     "pos": 96,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 11,
+     "pos": 115,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 12,
+     "pos": 126,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 13,
+     "pos": 138,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 14,
+     "pos": 149,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 15,
+     "pos": 160,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 16,
+     "pos": 171,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 17,
+     "pos": 182,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 18,
+     "pos": 193,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 19,
+     "pos": 204,
+     "ratio": 1.0,
+     "matched": true
+    }
+   ],
+   "layout_blocks": 4,
+   "layout_missing_rate": 0.0,
+   "layout_missing_rows": [],
+   "layout_blocks_without_gt": [
+    2
+   ],
+   "cer_covered": 0.0794392523364486,
+   "judgment": "条件付き"
+  },
+  "S20": {
+   "cer": 0.004132231404958678,
+   "cer_raw": 0.004132231404958678,
+   "len_gt_norm": 242,
+   "len_pred_norm": 243,
+   "diff_ops_gt_vs_pred": [
+    [
+     "insert",
+     "",
+     "る"
+    ]
+   ],
+   "read_order_edit": 0.0,
+   "unmatched_rate": 0.0,
+   "read_order_ids": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19
+   ],
+   "rows": [
+    {
+     "id": 1,
+     "pos": 0,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 2,
+     "pos": 12,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 3,
+     "pos": 25,
+     "ratio": 0.9231,
+     "matched": true
+    },
+    {
+     "id": 4,
+     "pos": 39,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 5,
+     "pos": 51,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 6,
+     "pos": 64,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 7,
+     "pos": 77,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 8,
+     "pos": 89,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 9,
+     "pos": 102,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 10,
+     "pos": 115,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 11,
+     "pos": 128,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 12,
+     "pos": 141,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 13,
+     "pos": 154,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 14,
+     "pos": 167,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 15,
+     "pos": 179,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 16,
+     "pos": 191,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 17,
+     "pos": 204,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 18,
+     "pos": 217,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 19,
+     "pos": 230,
+     "ratio": 1.0,
+     "matched": true
+    }
+   ],
+   "layout_blocks": 3,
+   "layout_missing_rate": 0.0,
+   "layout_missing_rows": [],
+   "layout_blocks_without_gt": [],
+   "cer_covered": 0.004132231404958678,
+   "judgment": "良"
+  },
+  "S21": {
+   "cer": 0.011194029850746268,
+   "cer_raw": 0.011194029850746268,
+   "len_gt_norm": 268,
+   "len_pred_norm": 268,
+   "diff_ops_gt_vs_pred": [
+    [
+     "replace",
+     "なく",
+     "。"
+    ],
+    [
+     "insert",
+     "",
+     "て"
+    ]
+   ],
+   "read_order_edit": 0.0,
+   "unmatched_rate": 0.0,
+   "read_order_ids": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21
+   ],
+   "rows": [
+    {
+     "id": 1,
+     "pos": 0,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 2,
+     "pos": 11,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 3,
+     "pos": 24,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 4,
+     "pos": 37,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 5,
+     "pos": 50,
+     "ratio": 0.9167,
+     "matched": true
+    },
+    {
+     "id": 6,
+     "pos": 61,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 7,
+     "pos": 74,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 8,
+     "pos": 87,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 9,
+     "pos": 100,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 10,
+     "pos": 113,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 11,
+     "pos": 126,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 12,
+     "pos": 139,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 13,
+     "pos": 152,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 14,
+     "pos": 164,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 15,
+     "pos": 177,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 16,
+     "pos": 190,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 17,
+     "pos": 203,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 18,
+     "pos": 216,
+     "ratio": 0.9231,
+     "matched": true
+    },
+    {
+     "id": 19,
+     "pos": 230,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 20,
+     "pos": 243,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 21,
+     "pos": 256,
+     "ratio": 1.0,
+     "matched": true
+    }
+   ],
+   "layout_blocks": 3,
+   "layout_missing_rate": 0.0,
+   "layout_missing_rows": [],
+   "layout_blocks_without_gt": [],
+   "cer_covered": 0.011194029850746268,
+   "judgment": "良"
+  },
+  "S22": {
+   "cer": 0.0,
+   "cer_raw": 0.0,
+   "len_gt_norm": 286,
+   "len_pred_norm": 286,
+   "diff_ops_gt_vs_pred": [],
+   "read_order_edit": 0.0,
+   "unmatched_rate": 0.0,
+   "read_order_ids": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17
+   ],
+   "rows": [
+    {
+     "id": 1,
+     "pos": 0,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 2,
+     "pos": 14,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 3,
+     "pos": 31,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 4,
+     "pos": 48,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 5,
+     "pos": 65,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 6,
+     "pos": 82,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 7,
+     "pos": 99,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 8,
+     "pos": 116,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 9,
+     "pos": 133,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 10,
+     "pos": 150,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 11,
+     "pos": 167,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 12,
+     "pos": 184,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 13,
+     "pos": 201,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 14,
+     "pos": 218,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 15,
+     "pos": 235,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 16,
+     "pos": 252,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 17,
+     "pos": 269,
+     "ratio": 1.0,
+     "matched": true
+    }
+   ],
+   "layout_blocks": 3,
+   "layout_missing_rate": 0.0,
+   "layout_missing_rows": [],
+   "layout_blocks_without_gt": [],
+   "cer_covered": 0.0,
+   "judgment": "良"
+  },
+  "S23": {
+   "cer": 0.015789473684210527,
+   "cer_raw": 0.015789473684210527,
+   "len_gt_norm": 190,
+   "len_pred_norm": 191,
+   "diff_ops_gt_vs_pred": [
+    [
+     "replace",
+     "れる",
+     "ださい"
+    ]
+   ],
+   "read_order_edit": 0.0,
+   "unmatched_rate": 0.0,
+   "read_order_ids": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17
+   ],
+   "rows": [
+    {
+     "id": 1,
+     "pos": 0,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 2,
+     "pos": 15,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 3,
+     "pos": 26,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 4,
+     "pos": 37,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 5,
+     "pos": 48,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 6,
+     "pos": 59,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 7,
+     "pos": 70,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 8,
+     "pos": 81,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 9,
+     "pos": 92,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 10,
+     "pos": 103,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 11,
+     "pos": 113,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 12,
+     "pos": 124,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 13,
+     "pos": 135,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 14,
+     "pos": 146,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 15,
+     "pos": 157,
+     "ratio": 0.7273,
+     "matched": true
+    },
+    {
+     "id": 16,
+     "pos": 169,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 17,
+     "pos": 180,
+     "ratio": 1.0,
+     "matched": true
+    }
+   ],
+   "layout_blocks": 3,
+   "layout_missing_rate": 0.0,
+   "layout_missing_rows": [],
+   "layout_blocks_without_gt": [],
+   "cer_covered": 0.015789473684210527,
+   "judgment": "良"
+  },
+  "S24": {
+   "cer": 0.005763688760806916,
+   "cer_raw": 0.005763688760806916,
+   "len_gt_norm": 347,
+   "len_pred_norm": 346,
+   "diff_ops_gt_vs_pred": [
+    [
+     "delete",
+     "な",
+     ""
+    ],
+    [
+     "replace",
+     "っ",
+     "り"
+    ]
+   ],
+   "read_order_edit": 0.0,
+   "unmatched_rate": 0.0,
+   "read_order_ids": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21
+   ],
+   "rows": [
+    {
+     "id": 1,
+     "pos": 0,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 2,
+     "pos": 8,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 3,
+     "pos": 25,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 4,
+     "pos": 42,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 5,
+     "pos": 59,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 6,
+     "pos": 76,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 7,
+     "pos": 92,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 8,
+     "pos": 109,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 9,
+     "pos": 126,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 10,
+     "pos": 143,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 11,
+     "pos": 160,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 12,
+     "pos": 177,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 13,
+     "pos": 193,
+     "ratio": 0.9412,
+     "matched": true
+    },
+    {
+     "id": 14,
+     "pos": 210,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 15,
+     "pos": 227,
+     "ratio": 0.9412,
+     "matched": true
+    },
+    {
+     "id": 16,
+     "pos": 244,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 17,
+     "pos": 261,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 18,
+     "pos": 278,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 19,
+     "pos": 295,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 20,
+     "pos": 312,
+     "ratio": 1.0,
+     "matched": true
+    },
+    {
+     "id": 21,
+     "pos": 329,
+     "ratio": 1.0,
+     "matched": true
+    }
+   ],
+   "layout_blocks": 3,
+   "layout_missing_rate": 0.0,
+   "layout_missing_rows": [],
+   "layout_blocks_without_gt": [],
+   "cer_covered": 0.005763688760806916,
+   "judgment": "良"
+  },
+  "S25": {
+   "cer": 0.013513513513513514,
+   "cer_raw": 0.02702702702702703,
+   "len_gt_norm": 148,
+   "len_pred_norm": 148,
+   "diff_ops_gt_vs_pred": [
+    [
+     "replace",
+     "様",
+     "樣"
+    ],
+    [
+     "replace",
+     "続",
+     "續"
+    ]
+   ],
+   "numbers_match": 1.0,
+   "numbers_precision": 1.0,
+   "numbers_gt": [
+    "-12",
+    "-12",
+    "100V",
+    "50/60Hz",
+    "300W",
+    "1.2L",
+    "18,000",
+    "2.1kg",
+    "160mm",
+    "395mm",
+    "3",
+    "1.4m",
+    "2"
+   ],
+   "numbers_pred": [
+    "-12",
+    "-12",
+    "100V",
+    "50/60Hz",
+    "300W",
+    "1.2L",
+    "18,000",
+    "2.1kg",
+    "160mm",
+    "395mm",
+    "3",
+    "1.4m",
+    "2"
+   ],
+   "numbers_missing": [],
+   "numbers_extra": [],
+   "judgment": "良"
+  },
+  "S26": {
+   "cer": 0.0472972972972973,
+   "cer_raw": 0.06896551724137931,
+   "len_gt_norm": 148,
+   "len_pred_norm": 148,
+   "diff_ops_gt_vs_pred": [
+    [
+     "replace",
+     "様",
+     "樣"
+    ],
+    [
+     "replace",
+     "・",
+     "·"
+    ],
+    [
+     "replace",
+     "温",
+     "溫"
+    ],
+    [
+     "replace",
+     "囲",
+     "圍"
+    ],
+    [
+     "replace",
+     "温",
+     "溫"
+    ],
+    [
+     "replace",
+     "囲",
+     "圍"
+    ],
+    [
+     "replace",
+     "証",
+     "证"
+    ]
+   ],
+   "numbers_match": 1.0,
+   "numbers_precision": 1.0,
+   "numbers_gt": [
+    "-6",
+    "-6",
+    "6.3L",
+    "27°C",
+    "60%",
+    "100V",
+    "50/60Hz",
+    "180W",
+    "2.5L",
+    "39dB",
+    "8.4kg",
+    "1~35°C",
+    "-10~50°C",
+    "1"
+   ],
+   "numbers_pred": [
+    "-6",
+    "-6",
+    "6.3L",
+    "27°C",
+    "60%",
+    "100V",
+    "50/60Hz",
+    "180W",
+    "2.5L",
+    "39dB",
+    "8.4kg",
+    "1~35°C",
+    "-10~50°C",
+    "1"
+   ],
+   "numbers_missing": [],
+   "numbers_extra": [],
+   "judgment": "良"
+  },
+  "S27": {
+   "cer": 0.014388489208633094,
+   "cer_raw": 0.028985507246376812,
+   "len_gt_norm": 139,
+   "len_pred_norm": 139,
+   "diff_ops_gt_vs_pred": [
+    [
+     "replace",
+     "様",
+     "樣"
+    ],
+    [
+     "replace",
+     "奥",
+     "女"
+    ]
+   ],
+   "numbers_match": 1.0,
+   "numbers_precision": 1.0,
+   "numbers_gt": [
+    "-30",
+    "-30",
+    "30kg",
+    "5g",
+    "300mm",
+    "250mm",
+    "12V",
+    "3.5W",
+    "-5~40°C",
+    "4.2kg",
+    "6",
+    "3"
+   ],
+   "numbers_pred": [
+    "-30",
+    "-30",
+    "30kg",
+    "5g",
+    "300mm",
+    "250mm",
+    "12V",
+    "3.5W",
+    "-5~40°C",
+    "4.2kg",
+    "6",
+    "3"
+   ],
+   "numbers_missing": [],
+   "numbers_extra": [],
+   "judgment": "良"
+  },
+  "S28": {
+   "cer": 0.02702702702702703,
+   "cer_raw": 0.047619047619047616,
+   "len_gt_norm": 148,
+   "len_pred_norm": 148,
+   "diff_ops_gt_vs_pred": [
+    [
+     "replace",
+     "様",
+     "樣"
+    ],
+    [
+     "replace",
+     "騰",
+     "腾"
+    ],
+    [
+     "replace",
+     "温",
+     "溫"
+    ],
+    [
+     "replace",
+     "証",
+     "证"
+    ]
+   ],
+   "numbers_match": 1.0,
+   "numbers_precision": 1.0,
+   "numbers_gt": [
+    "-08",
+    "-08",
+    "100V",
+    "50/60Hz",
+    "1,250W",
+    "0.8L",
+    "0.95kg",
+    "220mm",
+    "210mm",
+    "1.2m",
+    "3",
+    "5~35°C",
+    "1"
+   ],
+   "numbers_pred": [
+    "-08",
+    "-08",
+    "100V",
+    "50/60Hz",
+    "1,250W",
+    "0.8L",
+    "0.95kg",
+    "220mm",
+    "210mm",
+    "1.2m",
+    "3",
+    "5~35°C",
+    "1"
+   ],
+   "numbers_missing": [],
+   "numbers_extra": [],
+   "judgment": "良"
+  },
+  "S29": {
+   "cer": 0.0078125,
+   "cer_raw": 0.031746031746031744,
+   "len_gt_norm": 128,
+   "len_pred_norm": 128,
+   "diff_ops_gt_vs_pred": [
+    [
+     "replace",
+     "様",
+     "樣"
+    ]
+   ],
+   "numbers_match": 1.0,
+   "numbers_precision": 1.0,
+   "numbers_gt": [
+    "-3",
+    "-3",
+    "-30~60°C",
+    "10~95%",
+    "0.5°C",
+    "3",
+    "2",
+    "18",
+    "100m",
+    "48",
+    "120g",
+    "4"
+   ],
+   "numbers_pred": [
+    "-3",
+    "-3",
+    "-30~60°C",
+    "10~95%",
+    "0.5°C",
+    "3",
+    "2",
+    "18",
+    "100m",
+    "48",
+    "120g",
+    "4"
+   ],
+   "numbers_missing": [],
+   "numbers_extra": [],
+   "judgment": "良"
+  },
+  "S30": {
+   "cer": 0.018867924528301886,
+   "cer_raw": 0.03164556962025317,
+   "len_gt_norm": 159,
+   "len_pred_norm": 159,
+   "diff_ops_gt_vs_pred": [
+    [
+     "replace",
+     "様",
+     "樣"
+    ],
+    [
+     "replace",
+     "温",
+     "溫"
+    ],
+    [
+     "replace",
+     "証",
+     "證"
+    ]
+   ],
+   "numbers_match": 1.0,
+   "numbers_precision": 1.0,
+   "numbers_gt": [
+    "-5",
+    "-5",
+    "450lm",
+    "6",
+    "3,200mAh",
+    "4.5",
+    "5V",
+    "2A",
+    "185g",
+    "36mm",
+    "128mm",
+    "-10~40°C",
+    "6",
+    "1"
+   ],
+   "numbers_pred": [
+    "-5",
+    "-5",
+    "450lm",
+    "6",
+    "3,200mAh",
+    "4.5",
+    "5V",
+    "2A",
+    "185g",
+    "36mm",
+    "128mm",
+    "-10~40°C",
+    "6",
+    "1"
+   ],
+   "numbers_missing": [],
+   "numbers_extra": [],
+   "judgment": "良"
+  }
+ },
+ "strata": {
+  "f178": {
+   "n": 5,
+   "n_scored": 5,
+   "judgments": {
+    "良": 5
+   },
+   "mean_cer": 0.008622618014763108,
+   "mean_cer_raw": 0.02691325672628175,
+   "mean_numbers_match": 1.0,
+   "mean_numbers_precision": 1.0,
+   "mean_read_order_edit": 0.0,
+   "mean_unmatched_rate": 0.0,
+   "mean_cell_match": 0.95,
+   "mean_cell_match_unordered": 0.95,
+   "mean_layout_missing_rate": 0.0,
+   "mean_cer_covered": 0.003937007874015748,
+   "shape_strict_match_rate": 1.0
+  },
+  "body": {
+   "n": 6,
+   "n_scored": 6,
+   "judgments": {
+    "良": 6
+   },
+   "mean_cer": 0.0054181216154670685,
+   "mean_cer_raw": 0.0054181216154670685
+  },
+  "numbers": {
+   "n": 6,
+   "n_scored": 6,
+   "judgments": {
+    "良": 5,
+    "条件付き": 1
+   },
+   "mean_cer": 0.012460302028647353,
+   "mean_cer_raw": 0.13134820828767707,
+   "mean_numbers_match": 0.9642857142857143,
+   "mean_numbers_precision": 0.9642857142857143
+  },
+  "table": {
+   "n": 6,
+   "n_scored": 6,
+   "judgments": {
+    "良": 6
+   },
+   "mean_numbers_match": 1.0,
+   "mean_numbers_precision": 1.0,
+   "mean_cell_match": 0.9916666666666667,
+   "mean_cell_match_unordered": 0.9916666666666667,
+   "shape_strict_match_rate": 1.0
+  },
+  "columns": {
+   "n": 6,
+   "n_scored": 6,
+   "judgments": {
+    "条件付き": 1,
+    "良": 5
+   },
+   "mean_cer": 0.019386446006195164,
+   "mean_cer_raw": 0.019386446006195164,
+   "mean_read_order_edit": 0.0,
+   "mean_unmatched_rate": 0.0,
+   "mean_layout_missing_rate": 0.0,
+   "mean_cer_covered": 0.019386446006195164
+  },
+  "camera": {
+   "n": 6,
+   "n_scored": 6,
+   "judgments": {
+    "良": 6
+   },
+   "mean_cer": 0.02148445859579547,
+   "mean_cer_raw": 0.03933145008335261,
+   "mean_numbers_match": 1.0,
+   "mean_numbers_precision": 1.0
+  }
+ },
+ "f178": {
+  "fixtures": {
+   "F1": {
+    "cer": 0.010452961672473868,
+    "cer_raw": 0.017421602787456445,
+    "len_gt_norm": 287,
+    "len_pred_norm": 287,
+    "diff_ops_gt_vs_pred": [
+     [
+      "replace",
+      "く",
+      "き"
+     ],
+     [
+      "replace",
+      "で",
+      "て"
+     ],
+     [
+      "replace",
+      "掲",
+      "揭"
+     ]
+    ],
+    "run": "F1-text-bf16",
+    "judgment": "良"
+   },
+   "F3": {
+    "cer": 0.005025125628140704,
+    "cer_raw": 0.04568527918781726,
+    "len_gt_norm": 199,
+    "len_pred_norm": 199,
+    "diff_ops_gt_vs_pred": [
+     [
+      "replace",
+      "様",
+      "樣"
+     ]
+    ],
+    "numbers_match": 1.0,
+    "numbers_precision": 1.0,
+    "numbers_gt": [
+     "-210",
+     "-210",
+     "3",
+     "100V",
+     "50/60Hz",
+     "42W",
+     "0.5W",
+     "3.6kg",
+     "285mm",
+     "190mm",
+     "412mm",
+     "1,800mm",
+     "-10~45°C",
+     "-20~60°C",
+     "20~85%",
+     "1"
+    ],
+    "numbers_pred": [
+     "-210",
+     "-210",
+     "3",
+     "100V",
+     "50/60Hz",
+     "42W",
+     "0.5W",
+     "3.6kg",
+     "285mm",
+     "190mm",
+     "412mm",
+     "1,800mm",
+     "-10~45°C",
+     "-20~60°C",
+     "20~85%",
+     "1"
+    ],
+    "numbers_missing": [],
+    "numbers_extra": [],
+    "run": "F3-text-bf16",
+    "judgment": "良"
+   },
+   "F4": {
+    "cer": 0.452755905511811,
+    "cer_raw": 0.452755905511811,
+    "len_gt_norm": 254,
+    "len_pred_norm": 140,
+    "diff_ops_gt_vs_pred": [
+     [
+      "delete",
+      "お",
+      ""
+     ],
+     [
+      "replace",
+      "スキ",
+      "寿"
+     ],
+     [
+      "delete",
+      "散策路の入口には、川に住む生き物を紹介する看板もある。看板の文章と挿絵は、近くの小学校の児童が授業の一環で作ったものだ。町では来年度以降、夜間の足元を照らす小型の照明を追加する予定で、安全に歩ける時間帯を広げたいとしている。",
+      ""
+     ]
+    ],
+    "read_order_edit": 0.0,
+    "unmatched_rate": 0.47368421052631576,
+    "read_order_ids": [
+     1,
+     2,
+     3,
+     4,
+     5,
+     6,
+     7,
+     8,
+     9,
+     10
+    ],
+    "rows": [
+     {
+      "id": 1,
+      "pos": 0,
+      "ratio": 1.0,
+      "matched": true
+     },
+     {
+      "id": 2,
+      "pos": 21,
+      "ratio": 1.0,
+      "matched": true
+     },
+     {
+      "id": 3,
+      "pos": 34,
+      "ratio": 1.0,
+      "matched": true
+     },
+     {
+      "id": 4,
+      "pos": 46,
+      "ratio": 0.9286,
+      "matched": true
+     },
+     {
+      "id": 5,
+      "pos": 60,
+      "ratio": 1.0,
+      "matched": true
+     },
+     {
+      "id": 6,
+      "pos": 75,
+      "ratio": 1.0,
+      "matched": true
+     },
+     {
+      "id": 7,
+      "pos": 90,
+      "ratio": 1.0,
+      "matched": true
+     },
+     {
+      "id": 8,
+      "pos": 103,
+      "ratio": 1.0,
+      "matched": true
+     },
+     {
+      "id": 9,
+      "pos": 115,
+      "ratio": 0.8462,
+      "matched": true
+     },
+     {
+      "id": 10,
+      "pos": 128,
+      "ratio": 1.0,
+      "matched": true
+     },
+     {
+      "id": 11,
+      "pos": 10,
+      "ratio": 0.3077,
+      "matched": false
+     },
+     {
+      "id": 12,
+      "pos": 126,
+      "ratio": 0.2143,
+      "matched": false
+     },
+     {
+      "id": 13,
+      "pos": 87,
+      "ratio": 0.2308,
+      "matched": false
+     },
+     {
+      "id": 14,
+      "pos": 10,
+      "ratio": 0.3077,
+      "matched": false
+     },
+     {
+      "id": 15,
+      "pos": 45,
+      "ratio": 0.2308,
+      "matched": false
+     },
+     {
+      "id": 16,
+      "pos": 28,
+      "ratio": 0.25,
+      "matched": false
+     },
+     {
+      "id": 17,
+      "pos": 20,
+      "ratio": 0.2857,
+      "matched": false
+     },
+     {
+      "id": 18,
+      "pos": 77,
+      "ratio": 0.1667,
+      "matched": false
+     },
+     {
+      "id": 19,
+      "pos": 82,
+      "ratio": 0.5,
+      "matched": false
+     }
+    ],
+    "run": "F4-text-bf16",
+    "judgment": "不足",
+    "two_stage_別記": {
+     "cer": 0.003937007874015748,
+     "cer_raw": 0.003937007874015748,
+     "len_gt_norm": 254,
+     "len_pred_norm": 254,
+     "diff_ops_gt_vs_pred": [
+      [
+       "replace",
+       "挿",
+       "弾"
+      ]
+     ],
+     "read_order_edit": 0.0,
+     "unmatched_rate": 0.0,
+     "read_order_ids": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19
+     ],
+     "rows": [
+      {
+       "id": 1,
+       "pos": 0,
+       "ratio": 1.0,
+       "matched": true
+      },
+      {
+       "id": 2,
+       "pos": 21,
+       "ratio": 1.0,
+       "matched": true
+      },
+      {
+       "id": 3,
+       "pos": 34,
+       "ratio": 1.0,
+       "matched": true
+      },
+      {
+       "id": 4,
+       "pos": 47,
+       "ratio": 1.0,
+       "matched": true
+      },
+      {
+       "id": 5,
+       "pos": 61,
+       "ratio": 1.0,
+       "matched": true
+      },
+      {
+       "id": 6,
+       "pos": 76,
+       "ratio": 1.0,
+       "matched": true
+      },
+      {
+       "id": 7,
+       "pos": 91,
+       "ratio": 1.0,
+       "matched": true
+      },
+      {
+       "id": 8,
+       "pos": 104,
+       "ratio": 1.0,
+       "matched": true
+      },
+      {
+       "id": 9,
+       "pos": 117,
+       "ratio": 1.0,
+       "matched": true
+      },
+      {
+       "id": 10,
+       "pos": 130,
+       "ratio": 1.0,
+       "matched": true
+      },
+      {
+       "id": 11,
+       "pos": 142,
+       "ratio": 1.0,
+       "matched": true
+      },
+      {
+       "id": 12,
+       "pos": 155,
+       "ratio": 1.0,
+       "matched": true
+      },
+      {
+       "id": 13,
+       "pos": 169,
+       "ratio": 0.9231,
+       "matched": true
+      },
+      {
+       "id": 14,
+       "pos": 182,
+       "ratio": 1.0,
+       "matched": true
+      },
+      {
+       "id": 15,
+       "pos": 195,
+       "ratio": 1.0,
+       "matched": true
+      },
+      {
+       "id": 16,
+       "pos": 208,
+       "ratio": 1.0,
+       "matched": true
+      },
+      {
+       "id": 17,
+       "pos": 220,
+       "ratio": 1.0,
+       "matched": true
+      },
+      {
+       "id": 18,
+       "pos": 234,
+       "ratio": 1.0,
+       "matched": true
+      },
+      {
+       "id": 19,
+       "pos": 246,
+       "ratio": 1.0,
+       "matched": true
+      }
+     ],
+     "runs": [
+      "F4-block01-text-bf16",
+      "F4-block02-text-bf16",
+      "F4-block03-text-bf16"
+     ],
+     "judgment_if_two_stage": "良"
+    }
+   },
+   "F5": {
+    "cer": 0.01507537688442211,
+    "cer_raw": 0.04060913705583756,
+    "len_gt_norm": 199,
+    "len_pred_norm": 199,
+    "diff_ops_gt_vs_pred": [
+     [
+      "replace",
+      "様",
+      "樣"
+     ],
+     [
+      "replace",
+      "温",
+      "溫"
+     ],
+     [
+      "replace",
+      "温",
+      "溫"
+     ]
+    ],
+    "numbers_match": 1.0,
+    "numbers_precision": 1.0,
+    "numbers_gt": [
+     "-210",
+     "-210",
+     "3",
+     "100V",
+     "50/60Hz",
+     "42W",
+     "0.5W",
+     "3.6kg",
+     "285mm",
+     "190mm",
+     "412mm",
+     "1,800mm",
+     "-10~45°C",
+     "-20~60°C",
+     "20~85%",
+     "1"
+    ],
+    "numbers_pred": [
+     "-210",
+     "-210",
+     "3",
+     "100V",
+     "50/60Hz",
+     "42W",
+     "0.5W",
+     "3.6kg",
+     "285mm",
+     "190mm",
+     "412mm",
+     "1,800mm",
+     "-10~45°C",
+     "-20~60°C",
+     "20~85%",
+     "1"
+    ],
+    "numbers_missing": [],
+    "numbers_extra": [],
+    "run": "F5-text-bf16",
+    "judgment": "良"
+   },
+   "F2": {
+    "otsl_found": true,
+    "rows_raw_widths": [
+     4,
+     4,
+     4,
+     4,
+     4
+    ],
+    "shape_gt": [
+     5,
+     4
+    ],
+    "shape_strict_match": true,
+    "shape_card_parse": [
+     5,
+     4
+    ],
+    "cell_match": 0.95,
+    "cell_match_unordered": 0.95,
+    "grid_card_parse": [
+     [
+      "品名",
+      "数量",
+      "単価(円)",
+      "備考"
+     ],
+     [
+      "六角ボルトM8",
+      "1,200個",
+      "125",
+      "亞鉛めっき"
+     ],
+     [
+      "防振ゴム板",
+      "350kg",
+      "2,450",
+      "厚さ5mm"
+     ],
+     [
+      "樹脂ケース",
+      "640個",
+      "1,380",
+      "試作用"
+     ],
+     [
+      "銅線",
+      "85kg",
+      "12,800",
+      "在庫優先"
+     ]
+    ],
+    "pred_cell_texts": [
+     "品名",
+     "数量",
+     "単価(円)",
+     "備考",
+     "六角ボルトM8",
+     "1,200個",
+     "125",
+     "亞鉛めっき",
+     "防振ゴム板",
+     "350kg",
+     "2,450",
+     "厚さ5mm",
+     "樹脂ケース",
+     "640個",
+     "1,380",
+     "試作用",
+     "銅線",
+     "85kg",
+     "12,800",
+     "在庫優先"
+    ],
+    "numbers_match": 1.0,
+    "numbers_precision": 1.0,
+    "numbers_gt": [
+     "8",
+     "1,200",
+     "125",
+     "350kg",
+     "2,450",
+     "5mm",
+     "640",
+     "1,380",
+     "85kg",
+     "12,800"
+    ],
+    "numbers_pred": [
+     "8",
+     "1,200",
+     "125",
+     "350kg",
+     "2,450",
+     "5mm",
+     "640",
+     "1,380",
+     "85kg",
+     "12,800"
+    ],
+    "numbers_missing": [],
+    "numbers_extra": [],
+    "run": "F2-table-bf16",
+    "full_page_text_aux": {
+     "run": "F2-text-bf16",
+     "diff_ops_gt_vs_pred": [
+      [
+       "delete",
+       "品名数量単価(円)備考六角ボルトM81,200個125亜鉛めっき防振ゴム板350kg2,450厚さ5mm樹脂ケース640個1,380試作用銅線85kg12,800在庫優先",
+       ""
+      ]
+     ],
+     "cer": 0.8173076923076923,
+     "cer_raw": 0.8173076923076923,
+     "numbers_match": 0.0,
+     "numbers_precision": 0.0,
+     "numbers_gt": [
+      "8",
+      "1,200",
+      "125",
+      "350kg",
+      "2,450",
+      "5mm",
+      "640",
+      "1,380",
+      "85kg",
+      "12,800"
+     ],
+     "numbers_pred": [
+      "2026",
+      "4"
+     ],
+     "numbers_missing": [
+      "1,200",
+      "1,380",
+      "12,800",
+      "125",
+      "2,450",
+      "350kg",
+      "5mm",
+      "640",
+      "8",
+      "85kg"
+     ],
+     "numbers_extra": [
+      "2026",
+      "4"
+     ]
+    },
+    "judgment": "良"
+   }
+  },
+  "judgments": {
+   "F1": "良",
+   "F3": "良",
+   "F4": "不足",
+   "F5": "良",
+   "F2": "良"
+  },
+  "usage": {
+   "digital_body_F1_F3_F4": "v1 §6 の規則の範囲外: F1 は不足でないが F3/F4 に不足あり(候補にならない)",
+   "table_F2": "良",
+   "camera_F5": "良",
+   "vertical_F6": "未確定(採点なし)"
+  },
+  "overall": "条件付き採用(対象外: F4)",
+  "reference_only_if_F4_two_stage": {
+   "judgments": {
+    "F1": "良",
+    "F3": "良",
+    "F4": "良",
+    "F5": "良",
+    "F2": "良"
+   },
+   "usage": {
+    "digital_body_F1_F3_F4": "候補",
+    "table_F2": "良",
+    "camera_F5": "良",
+    "vertical_F6": "未確定(採点なし)"
+   },
+   "overall": "採用"
+  }
+ }
+}
