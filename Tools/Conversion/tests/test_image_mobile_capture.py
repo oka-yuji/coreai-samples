@@ -4,6 +4,12 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
+try:
+    import diffusers
+    import transformers.vision_utils
+except ImportError as error:
+    raise unittest.SkipTest(f"Qwen image dependencies unavailable: {error}") from error
+
 import numpy as np
 import torch
 

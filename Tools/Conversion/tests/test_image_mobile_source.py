@@ -1,6 +1,12 @@
 import copy
 import unittest
 
+try:
+    import diffusers
+    import transformers.vision_utils
+except ImportError as error:
+    raise unittest.SkipTest(f"Qwen image dependencies unavailable: {error}") from error
+
 import torch
 
 from Tools.Conversion.adapters.qwen_image21.mobile_models import compress_original, configure_original

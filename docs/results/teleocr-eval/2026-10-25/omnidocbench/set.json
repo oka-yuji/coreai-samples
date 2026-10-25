@@ -1,0 +1,213 @@
+{
+ "set": "omnidocbench-subset",
+ "source": {
+  "dataset": "opendatalab/OmniDocBench",
+  "revision": "aa1ee96d106dbe53d0ae59474d75c6e6d9b53fec",
+  "annotation": "OmniDocBench.json",
+  "annotation_sha256": "a45cd84b04ad8b793e775089640e6b681209abea33ead54c1828ddca35fae496",
+  "evaluation_code": {
+   "repository": "https://github.com/opendatalab/OmniDocBench",
+   "commit": "f133a71e9e91c3621c7ce8994200a7b394a06eb3"
+  }
+ },
+ "rules": {
+  "languages": {
+   "simplified_chinese": "zh",
+   "english": "en"
+  },
+  "exclude_data_sources": [
+   "note",
+   "historical_document"
+  ],
+  "forbidden_substrings": [
+   "$",
+   "\\",
+   "<"
+  ],
+  "text": {
+   "category": "text_block",
+   "min_chars": 40,
+   "max_chars": 300,
+   "per_language": 8
+  },
+  "table": {
+   "category": "table",
+   "min_rows": 3,
+   "max_rows": 12,
+   "max_cols": 8,
+   "per_language": 4
+  },
+  "order": "ascending SHA-256 of '313|<image_path>|<anno_id>', at most one block per page in each kind and language",
+  "crop_margin_px": 4
+ },
+ "samples": [
+  {
+   "id": "OD-table-en-01",
+   "stratum": "omnidocbench_table_en",
+   "image": "newspaper_Chicago Tribune_0801@magazinesclubnew_page_019.png",
+   "image_sha256": "5584b20371aae2853936725b2fb268c1961925bf0938ba9b67a19fcd550f88f5",
+   "gt_sha256": "e995673c282338fb368213af943748ed7416b9f820b406ce1161d1cdd3738d12"
+  },
+  {
+   "id": "OD-table-en-02",
+   "stratum": "omnidocbench_table_en",
+   "image": "newspaper_TheBostonGlobe-2025-1-8@magazinesclubnew_page_025.png",
+   "image_sha256": "4c47161ad3a07049940eba19cbbc93e57d474562b65942d33cb2af25e594eda3",
+   "gt_sha256": "5b8ce0e44da1267d0396172635cd4fa2579b8bdce1200c41ae056327e1f74ed1"
+  },
+  {
+   "id": "OD-table-en-03",
+   "stratum": "omnidocbench_table_en",
+   "image": "docstructbench_llm-raw-scihub-o.O-j.chroma.2005.02.018.pdf_6.jpg",
+   "image_sha256": "2ae70fa7b75e4a2ae168a3da31699334c8f037d6129c3e83ef67264a139aa4a1",
+   "gt_sha256": "8f0fdad791568a21563bd0d665ebfd6ae1ba367b2f4a081ec61ffc1fbcd62269"
+  },
+  {
+   "id": "OD-table-en-04",
+   "stratum": "omnidocbench_table_en",
+   "image": "page-fd04ea51-677c-4de2-8e8e-adfd791e2957.png",
+   "image_sha256": "a4bf995e63c0b0b4a7056f7d6499b3d5e05bbe65468fae22486e459c0b0aa02e",
+   "gt_sha256": "bb2ddc16089e79eb4472c1f6d77f0200395d1011031f717aec3162bf348a4790"
+  },
+  {
+   "id": "OD-table-zh-01",
+   "stratum": "omnidocbench_table_zh",
+   "image": "eastmoney_dcf347592d4160dffacffdf00a9c39aa75cf9859205a7543c283d1df8bb14f90.pdf_1.jpg",
+   "image_sha256": "92419570e50769e6715120f856ff5ba490ce2b7184d039eb1ed533cef5e242cd",
+   "gt_sha256": "9142b203f0eee111c45893c043ddf109301e35a99d28ec55a6e63d2dc2695417"
+  },
+  {
+   "id": "OD-table-zh-02",
+   "stratum": "omnidocbench_table_zh",
+   "image": "eastmoney_d2bb183f5254ede5760932ac3118524aa7eddad551935713b435541f1525c1ee.pdf_3.jpg",
+   "image_sha256": "b224c3d1589fd4c7fbe98d9e2570facfd671ea89a9c98e73755aec36327473de",
+   "gt_sha256": "a92c98210b9dd5aad0e85036419a15f7b3b5f1b7956b71a219a6228d32c4758b"
+  },
+  {
+   "id": "OD-table-zh-03",
+   "stratum": "omnidocbench_table_zh",
+   "image": "newspaper_01f020903d7bc4b3fc69f500f41eb77e_1.jpg",
+   "image_sha256": "3ab3bc3e7a6700869a927696a70205296d5a32c58a539f7e68564e4bb6a5b94f",
+   "gt_sha256": "d56aff8aa4acaebc0db23708181dd5813143249f60faa8e2f2c0d579d15ed35d"
+  },
+  {
+   "id": "OD-table-zh-04",
+   "stratum": "omnidocbench_table_zh",
+   "image": "page-2ff22832-e343-46a7-b94f-47ed864ce486.png",
+   "image_sha256": "2a82c54d8fc27fd79b88fd6b3e2b56d154d8a3fc9b8ae73d97969df7a5b68600",
+   "gt_sha256": "071a58511a027307902d8f95aae92a1c30d6db1c36e86a75694c9780d4cba435"
+  },
+  {
+   "id": "OD-text-en-01",
+   "stratum": "omnidocbench_text_en",
+   "image": "book_en_搬书匠-3473-Reactive Programming with RxJS-2015-英文版_page_021.png",
+   "image_sha256": "5a2885a5362c5ca8e8cc4d0014642c32a7f1f04c15533cb7fd19572eeeec17cd",
+   "gt_sha256": "141d2bf1b2a5df9029f65038c72ccf140514f2d45f5bd0967375fbc9900fb3f7"
+  },
+  {
+   "id": "OD-text-en-02",
+   "stratum": "omnidocbench_text_en",
+   "image": "magazine_TheEconomist.2023.12.09_page_045.png",
+   "image_sha256": "3d3d5be39343c8c7b72a1a515a033a47c5ce24995d9aeb77e8a4ad1b233daaf9",
+   "gt_sha256": "eaa6670c822b1dacfc0016273e3f3e4e3051c3e26d04aeaded236acb1d8bd707"
+  },
+  {
+   "id": "OD-text-en-03",
+   "stratum": "omnidocbench_text_en",
+   "image": "newspaper_USAToday-2025-01-08@magazinesclubnew_page_024.png",
+   "image_sha256": "bf1bb1c10ff67c76015a7da6e98570a255be573107314854a745983f7472f87a",
+   "gt_sha256": "b190b8024395408bcc69fc5c02fe71586a0b56183b7213f069ae7fedfe771e8e"
+  },
+  {
+   "id": "OD-text-en-04",
+   "stratum": "omnidocbench_text_en",
+   "image": "newspaper_The Wall Street Journal - 2025-01-08@magazinesclubnew_page_021.png",
+   "image_sha256": "aec0559e222ca31527ab0ac78673d155a2b228a23d2f4519de789ac7452c0fb4",
+   "gt_sha256": "3bd1b7275f2dc1e1e1c3141de500c080222191593e1460affc47ff4d618aef0f"
+  },
+  {
+   "id": "OD-text-en-05",
+   "stratum": "omnidocbench_text_en",
+   "image": "PPT_1637904769_page_008.png",
+   "image_sha256": "840ab1611a71a2883201c921a272b57149e15a615ade494ff83823586e7881f4",
+   "gt_sha256": "f4890dd75a6e14358f0013dba7703c0f255110dfe5b0cef81856e66a1d629ecb"
+  },
+  {
+   "id": "OD-text-en-06",
+   "stratum": "omnidocbench_text_en",
+   "image": "book_en_搬书匠-3473-Reactive Programming with RxJS-2015-英文版_page_003.png",
+   "image_sha256": "be387238dd7a8cef27349e94b512aefb293940b764f7f32e144ed813026a3d35",
+   "gt_sha256": "ce83c0c0f1a4a09f49d533da68fc5d38a2aca648e45b935877f5b4b463f68f9e"
+  },
+  {
+   "id": "OD-text-en-07",
+   "stratum": "omnidocbench_text_en",
+   "image": "magazine_TheEconomist.2023.12.09_page_015.png",
+   "image_sha256": "1913041a65d57578db5cc1a38237b3ca7e19a7d6f2207137a7b72d51a9b1f08d",
+   "gt_sha256": "a3725d165cc2bde1de818ffef7fbb8c718e87b10acf51c42835c8bdddd27858c"
+  },
+  {
+   "id": "OD-text-en-08",
+   "stratum": "omnidocbench_text_en",
+   "image": "exam_paper_2004-2019上海高考英语听力原文和答案_page_050.png",
+   "image_sha256": "0f69c46def894afc60ba0d36901578d9aa65705ad3a9510274e8915fb710f88e",
+   "gt_sha256": "f0b50349a1a0ff941c271e6f2727e5648b8202be631d37a310b259cde320aeff"
+  },
+  {
+   "id": "OD-text-zh-01",
+   "stratum": "omnidocbench_text_zh",
+   "image": "eastmoney_34d623c64d12b5f02ffe4bff74f464b368270b1d6930192876bfe353d8fd6c30.pdf_0.jpg",
+   "image_sha256": "403100ebf4178f28a2a88da928dd82e18d78c3e72560e294faf566d5574961bc",
+   "gt_sha256": "ca080a7d1b9e5c0270aa40ef32eb8f8bf2d6c0684083da1bf0329c64c69a6ec3"
+  },
+  {
+   "id": "OD-text-zh-02",
+   "stratum": "omnidocbench_text_zh",
+   "image": "newspaper_35bdaa11dec104ccbdc9e19ac8527d21_1.jpg",
+   "image_sha256": "49dfcd74ed2b6499532365c9a5eecbe07305aeebd344925b326ef0f2512e47cd",
+   "gt_sha256": "e6112b8936eae42e6037d2fe166a52c9bda037e98fb43abfd7e3e548ece74cfd"
+  },
+  {
+   "id": "OD-text-zh-03",
+   "stratum": "omnidocbench_text_zh",
+   "image": "newspaper_5aedf678eff04d8ebac3692d54103e19_1.jpg",
+   "image_sha256": "af252238b78ceaa1db1901af25dae2ada22c948e90c4b294d59bdc799c1d8a6a",
+   "gt_sha256": "23bf81ddb397eaeef5d59b348893898219551ef512cfb0d3f791363802221802"
+  },
+  {
+   "id": "OD-text-zh-04",
+   "stratum": "omnidocbench_text_zh",
+   "image": "newspaper_02912feb79994ae24665509d964ad9ce_1.jpg",
+   "image_sha256": "d4a40d6ddcbab07e9fa4499bd22d49fface95864cd1a0afdb5675811efd49512",
+   "gt_sha256": "def1d48be8441e093dac4b903924ce37c2d78e2cb497a81e5b10706539ce132e"
+  },
+  {
+   "id": "OD-text-zh-05",
+   "stratum": "omnidocbench_text_zh",
+   "image": "newspaper_0cfb8a42b5d4194d8c73dba0cdf6256c_1.jpg",
+   "image_sha256": "d8074d25973602e55736a1502977414487e5000e06b39ff8cf077167f55e6183",
+   "gt_sha256": "1e33c1ba46ac290c795c1856fc4b8fb53817c32bf22bdb1eeea3c38994708c37"
+  },
+  {
+   "id": "OD-text-zh-06",
+   "stratum": "omnidocbench_text_zh",
+   "image": "newspaper_a7666484ee01a811247e52f784164cbb_1.jpg",
+   "image_sha256": "cec0aa614e88a1fc64e231efb4890b8aaa44c36117cf9d0254386a719afbeb2b",
+   "gt_sha256": "b4aac528ad318471358bc3dbd3fcd5ae836101dc50df4896763cc58650528f22"
+  },
+  {
+   "id": "OD-text-zh-07",
+   "stratum": "omnidocbench_text_zh",
+   "image": "jiaocaineedrop_jiaocai_needrop_en_3361.jpg",
+   "image_sha256": "1054948e0b128fc47b09e6b31b4fc7a0a93a6de811b60b96ceec98902fd4c63f",
+   "gt_sha256": "e027a79004da81afc2e9e8c51d728183fecb0e767db3754735fc67daebbd85b3"
+  },
+  {
+   "id": "OD-text-zh-08",
+   "stratum": "omnidocbench_text_zh",
+   "image": "newspaper_c9147e07a59fdd1194da22f2ec07dd1c_1.jpg",
+   "image_sha256": "2dc7298759ddfba447a591ce0c122a6b0b4cb6d13aef86e8b08ae9466f7b757b",
+   "gt_sha256": "46baf68a2af8e0b734e5a73128536d99bf94626b22e4d2808411e408761da28f"
+  }
+ ]
+}

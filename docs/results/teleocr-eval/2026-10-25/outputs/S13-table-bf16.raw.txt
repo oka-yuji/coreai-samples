@@ -1,0 +1,1 @@
+<fcel>品名<fcel>数量<fcel>単価(円)<fcel>備考<nl><fcel>平座金M6<fcel>2,400個<fcel>18<fcel>三価クロム<nl><fcel>防振ゴム脚<fcel>160個<fcel>520<fcel>黒色<nl><fcel>配線ダクト<fcel>75本<fcel>1,840<fcel>長さ2m<nl><fcel>端子台<fcel>48個<fcel>2,960<fcel>予備含む<nl><fcel>結束バンド<fcel>30袋<fcel>410<fcel>100本入<nl><|im_end|>

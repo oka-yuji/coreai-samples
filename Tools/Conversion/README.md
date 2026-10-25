@@ -240,3 +240,7 @@ The [EmbeddingGemma 2 recipe](recipes/embeddinggemma2/README.md) uses a separate
 The [Magpie TTS v2607 recipe](recipes/magpie/README.md) defines an FP32 macOS research
 profile with four Core AI components, pinned NeMo references and Japanese audio
 checks. It uses the generic plan/run commands with explicit local bindings.
+
+The [TeleOCR recipe](recipes/teleocr/README.md) exports the pinned TeleOCR vision encoder, token
+embedding and decoder as macOS Core AI assets with a separate Transformers 4.57.3 environment. Select it
+with `--recipe teleocr`. Its Python checks cover the stateless parts; the stateful decoder check is deferred to #310 (Swift).

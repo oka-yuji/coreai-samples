@@ -29,6 +29,7 @@ let package = Package(
         .library(name: "ObjectFinderFeature", targets: ["ObjectFinderFeature"]),
         .library(name: "ObjectFinderCore", targets: ["ObjectFinderCore"]),
         .library(name: "ObjectFinderRuntime", targets: ["ObjectFinderRuntime"]),
+        .library(name: "OCRCore", targets: ["OCRCore"]),
         .executable(name: "object-finder-check", targets: ["object-finder-check"]),
         .library(name: "SpeechCore", targets: ["SpeechCore"]),
         .library(name: "SpeechFeature", targets: ["SpeechFeature"]),
@@ -175,6 +176,10 @@ let package = Package(
                 "ObjectFinderCore", "ObjectFinderFeature", "ObjectFinderRuntime", "FeatureStore", "EmbeddingCore",
                 "EmbeddingRuntime", "ModelLibraryFeature",
             ],
+            swiftSettings: speechSettings),
+        .target(name: "OCRCore", swiftSettings: speechSettings),
+        .testTarget(
+            name: "OCRCoreTests", dependencies: ["OCRCore"], resources: [.copy("Resources")],
             swiftSettings: speechSettings),
         .target(name: "SpeechCore", swiftSettings: speechSettings),
         .target(name: "SpeechFeature", dependencies: ["SpeechCore", "FeatureStore"], swiftSettings: speechSettings),

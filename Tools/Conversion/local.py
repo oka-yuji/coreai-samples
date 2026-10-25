@@ -75,7 +75,7 @@ def setup(workspace, recipe, snapshot, lock=None):
     contract = read_json(contract_path)
     if contract.get("model_type") == "embedding_gemma2":
         return setup_embedding(workspace, recipe, snapshot, lock)
-    if contract.get("model_type") == "qwen_image21":
+    if contract.get("model_type") in ("qwen_image21", "teleocr"):
         return setup_image(workspace, recipe, snapshot, lock)
     snapshot = (snapshot or default_snapshot(contract)).expanduser().resolve()
     if not snapshot.is_dir():
@@ -158,7 +158,7 @@ def setup_image(workspace, recipe, snapshot, lock):
                 env={"UV_PROJECT_ENVIRONMENT": str(profile / ".venv")})
         python = profile / ".venv/bin/python"
         validation = profile / "setup" / uuid.uuid4().hex
-        command(python, "-m", "Tools.Conversion.adapters.qwen_image21.prepare", "--snapshot", snapshot,
+        command(python, "-m", f"Tools.Conversion.adapters.{contract['model_type']}.prepare", "--snapshot", snapshot,
                 "--model", recipe.parent / "model.json", "--output", validation, cwd=ROOT)
         if environment != [hashlib.sha256(path.read_bytes()).hexdigest() for path in environment_paths]:
             raise PipelineError("Environment inputs changed during setup")

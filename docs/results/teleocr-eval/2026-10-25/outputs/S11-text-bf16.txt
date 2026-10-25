@@ -1,0 +1,11 @@
+仕樣書：小型除湿機 Karari DH-6
+型番：DH-6-WH
+除湿能力：$6.3 \text{ L/日} $ ( $27 \,^{\circ}\mathrm{C} \cdot 60 \% $
+定格電圧：AC100 V ( $50/60 \text{ Hz} $
+消費電力：180 W
+タンク容量：2.5 L
+運転音：約 39 dB
+本体質量：8.4 kg
+使用温度範囲：$1\sim35 \degree\mathrm{C}$
+保存温度範囲：$-10\sim50 \degree\mathrm{C}$
+保証期間：購入日から1年

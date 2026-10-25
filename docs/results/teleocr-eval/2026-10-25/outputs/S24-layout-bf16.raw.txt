@@ -1,0 +1,3 @@
+<box:105 100 327 123><label:title><up>
+<box:101 158 469 407><label:text><up>
+<box:522 157 890 407><label:text><up><|im_end|>

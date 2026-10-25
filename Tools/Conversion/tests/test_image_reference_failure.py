@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 import tempfile
 from types import SimpleNamespace
+import importlib.util
 import unittest
 from unittest.mock import patch
 
@@ -10,6 +11,7 @@ from Tools.Conversion.adapters.qwen_image21.fixtures import quality_axes
 
 
 class ImageReferenceFailureTests(unittest.TestCase):
+    @unittest.skipIf(importlib.util.find_spec("diffusers") is None, "Qwen image dependencies unavailable: diffusers")
     def test_load_and_input_failure_keep_all_unreviewed_quality_rows(self):
         import torch
         from diffusers import QwenImage21Pipeline

@@ -1,0 +1,3 @@
+<box:068 076 478 100><label:title><up>
+<box:067 138 461 351><label:text><up>
+<box:518 138 913 351><label:text><up><|im_end|>

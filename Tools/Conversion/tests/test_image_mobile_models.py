@@ -3,6 +3,12 @@ from pathlib import Path
 import tempfile
 import unittest
 
+try:
+    import diffusers
+    import transformers.vision_utils
+except ImportError as error:
+    raise unittest.SkipTest(f"Qwen image dependencies unavailable: {error}") from error
+
 import torch
 from diffusers import QwenImage21Transformer2DModel
 
