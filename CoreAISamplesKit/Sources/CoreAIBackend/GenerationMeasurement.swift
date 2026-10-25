@@ -108,6 +108,10 @@ struct GenerationProbe {
         close(outcome, at: end, sampledTokens: sampledTokens, prepareSeconds: prepareSeconds)
     }
 
+    mutating func reported(prepareSeconds: Double) {
+        record.prepareSeconds = preparedBeforeDecode.map { prepareSeconds - $0 } ?? 0
+    }
+
     mutating func fail(_ error: any Error, sampledTokens: Int, prefilledTokens: Int, prepareSeconds: Double) {
         let now = ContinuousClock.now
         if preparedBeforeDecode == nil {
