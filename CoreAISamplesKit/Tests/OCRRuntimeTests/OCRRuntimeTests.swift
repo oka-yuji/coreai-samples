@@ -13,6 +13,8 @@ private struct Call: Equatable {
 private final class FakeLog: Sendable {
     struct State {
         var visionCalls = 0
+        var visionGrids: [[Int]] = []
+        var instructions: [String] = []
         var caches = 0
         var prefills: [Int] = []
         var steps: [Call] = []
@@ -32,17 +34,22 @@ private struct FakeModel: OCRModel {
     let entered: AsyncStream<Void>.Continuation
     let release: AsyncStream<Void>
     var cancellationPoint: CancellationPoint? = nil
+    var layout: String? = nil
 
     var windowLimit: Int { 2_048 }
     var tokenLimit: Int { 32_768 }
 
     func encode(_ text: String) -> [Int32] {
         if cancellationPoint == .encoding { withUnsafeCurrentTask { $0?.cancel() } }
+        if [OCRPrompt.layout, OCRPrompt.text, OCRPrompt.table].contains(text) {
+            log.state.withLock { $0.instructions.append(text) }
+        }
         return [1]
     }
 
     func decode(_ tokens: [Int32], skipSpecialTokens: Bool) -> String {
-        tokens.map(String.init).joined(separator: " ")
+        if let layout, log.state.withLock({ $0.instructions.last == OCRPrompt.layout }) { return layout }
+        return tokens.map(String.init).joined(separator: " ")
     }
 
     func makeCache(capacity: Int) -> Int {
@@ -54,7 +61,10 @@ private struct FakeModel: OCRModel {
     }
 
     @concurrent func vision(_ input: OCRVisionInput) async throws -> [Float] {
-        log.state.withLock { $0.visionCalls += 1 }
+        log.state.withLock { state in
+            state.visionCalls += 1
+            state.visionGrids.append([input.gridHeight, input.gridWidth])
+        }
         return [Float](repeating: 0, count: input.windowCount * 16 * 4)
     }
 
@@ -154,6 +164,58 @@ struct OCRRuntimeTests {
             try await runtime.recognize(image, instruction: "a", maxNewTokens: maxNewTokens)
         }
         #expect(log.state.withLock { $0.caches == 0 && $0.prefills.isEmpty })
+    }
+
+    @Test("Read the whole page with the text prompt and mark the layout as unparsed when the layout output has no box")
+    func unparsedLayoutReadsTheWholePage() async throws {
+        let log = FakeLog()
+        let runtime = OCRRuntime(
+            model: FakeModel(
+                log: log, blockedStep: -1, entered: AsyncStream<Void>.makeStream().continuation,
+                release: AsyncStream<Void>.makeStream().stream),
+            loadStats: OCRLoadStats(assets: [], tokenizerSeconds: 0, totalSeconds: 0))
+        let image = try OCRImage(width: 56, height: 56, rgb: [UInt8](repeating: 128, count: 56 * 56 * 3))
+        let page = try await runtime.read(image, maxNewTokens: 2)
+        #expect(!page.layoutParsed)
+        #expect(page.blocks.count == 1)
+        #expect(page.blocks.first?.block.layout == nil)
+        #expect(page.blocks.first?.block.box == OCRBox(x0: 0, y0: 0, x1: 56, y1: 56))
+        #expect(page.blocks.first?.recognition.text == "100 102")
+        let (instructions, grids) = log.state.withLock { ($0.instructions, $0.visionGrids) }
+        #expect(instructions == [OCRPrompt.layout, OCRPrompt.text])
+        #expect(grids == [[74, 74], [4, 4]])
+    }
+
+    @Test("Hold the runtime for the whole page and read no further block after the page is cancelled")
+    func cancelledPageReadsNoFurtherBlock() async throws {
+        let entered = AsyncStream<Void>.makeStream()
+        let release = AsyncStream<Void>.makeStream()
+        let log = FakeLog()
+        let runtime = OCRRuntime(
+            model: FakeModel(
+                log: log, blockedStep: 2, entered: entered.continuation, release: release.stream,
+                layout: "<box:000 000 500 1000><label:text><up>\n<box:500 000 1000 1000><label:table><up>"),
+            loadStats: OCRLoadStats(assets: [], tokenizerSeconds: 0, totalSeconds: 0))
+        let image = try OCRImage(width: 56, height: 56, rgb: [UInt8](repeating: 128, count: 56 * 56 * 3))
+        let first = Task { try await runtime.read(image, maxNewTokens: 3) }
+        var signals = entered.stream.makeAsyncIterator()
+        _ = await signals.next()
+        await #expect(throws: OCRRuntimeError.busy) {
+            try await runtime.recognize(image, instruction: "a", maxNewTokens: 1)
+        }
+        first.cancel()
+        release.continuation.yield(())
+        await #expect(throws: CancellationError.self) { try await first.value }
+        #expect(log.state.withLock { $0.instructions } == [OCRPrompt.layout, OCRPrompt.text])
+
+        let second = try await runtime.read(image, maxNewTokens: 3)
+        #expect(second.layoutParsed)
+        #expect(
+            second.blocks.map(\.block.box) == [
+                OCRBox(x0: 0, y0: 0, x1: 28, y1: 56), OCRBox(x0: 28, y0: 0, x1: 56, y1: 56),
+            ])
+        #expect(second.blocks.map(\.block.instruction) == [OCRPrompt.text, OCRPrompt.table])
+        #expect(log.state.withLock { Array($0.visionGrids.suffix(2)) } == [[6, 4], [6, 4]])
     }
 
     @Test(

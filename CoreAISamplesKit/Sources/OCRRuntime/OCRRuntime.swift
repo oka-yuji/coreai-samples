@@ -35,6 +35,23 @@ public struct OCRRecognition: Sendable {
     public let totalSeconds: Double
 }
 
+public struct OCRPageReading: Sendable {
+    public struct Block: Sendable {
+        public let block: OCRPageBlock
+        public let recognition: OCRRecognition
+    }
+
+    public let layout: OCRRecognition
+    public let blocks: [Block]
+    public let totalSeconds: Double
+
+    public var layoutParsed: Bool { blocks.first?.block.layout != nil }
+
+    public var markdown: String {
+        blocks.map { $0.block.markdown($0.recognition.text) }.filter { !$0.isEmpty }.joined(separator: "\n\n")
+    }
+}
+
 public actor OCRRuntime {
     public nonisolated let loadStats: OCRLoadStats
     private let model: any OCRModel
@@ -61,6 +78,27 @@ public actor OCRRuntime {
         busy = true
         defer { busy = false }
         return try await run(model, image: image, instruction: instruction, maxNewTokens: maxNewTokens)
+    }
+
+    public func read(_ image: OCRImage, maxNewTokens: Int = OCRGeneration.defaultMaxNewTokens) async throws
+        -> OCRPageReading
+    {
+        guard !busy else { throw OCRRuntimeError.busy }
+        busy = true
+        defer { busy = false }
+        let clock = ContinuousClock()
+        let start = clock.now
+        let side = OCRPage.layoutSide
+        let layout = try await run(
+            model, image: image.resized(width: side, height: side, resampling: .pillow), instruction: OCRPrompt.layout,
+            maxNewTokens: maxNewTokens)
+        var blocks: [OCRPageReading.Block] = []
+        for block in OCRPage.blocks(layout: layout.text, width: image.width, height: image.height) {
+            let recognition = try await run(
+                model, image: image.cropped(to: block.box), instruction: block.instruction, maxNewTokens: maxNewTokens)
+            blocks.append(OCRPageReading.Block(block: block, recognition: recognition))
+        }
+        return OCRPageReading(layout: layout, blocks: blocks, totalSeconds: (clock.now - start) / .seconds(1))
     }
 
     private func run<Model: OCRModel>(_ model: Model, image: OCRImage, instruction: String, maxNewTokens: Int)
