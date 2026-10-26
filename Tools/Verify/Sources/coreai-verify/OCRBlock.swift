@@ -115,7 +115,6 @@ struct OCRBlock: AsyncParsableCommand {
             }
         }
     }
-
 }
 
 struct OCRAssetRecord: Encodable {
