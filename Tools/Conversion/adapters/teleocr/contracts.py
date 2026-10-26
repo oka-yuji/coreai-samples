@@ -32,6 +32,12 @@ VISION_CASES = {
     "landscape": {"size": [1204, 364], "crop": [0, 120, 1240, 495]},
 }
 REQUIRED_VISION_CASES = ["min", "square448", "square1036", "portrait", "landscape"]
+IOS_CONTEXT = 4096
+IOS_PREFILL = [256, 512, 1024, 2048]
+IOS_WINDOWS = {16: ["448x448"], 32: ["896x448", "448x896"], 64: ["896x896"], 100: ["1036x1036"]}
+IOS_DOWNSCALE_SIDE = 896
+IOS_MASKED = -40000.0
+PALETTE_BITS, PALETTE_GROUP = 4, 8
 
 
 def read_json(path):
@@ -126,6 +132,25 @@ DECODER_CONTEXT = [tensor("cos", "Float16", 1, None, 128), tensor("sin", "Float1
 DECODER_STATES = [tensor("keyCache", "Float16", 28, 1, 8, None, 128),
                   tensor("valueCache", "Float16", 28, 1, 8, None, 128)]
 DECODER_OUTPUTS = [tensor("logits", "Float16", 1, 151936)]
+IOS_STATES = [tensor("keyCache", "Float16", 28, 1, 8, IOS_CONTEXT, 128),
+              tensor("valueCache", "Float16", 28, 1, 8, IOS_CONTEXT, 128)]
+IOS_FUNCTIONS = {
+    "vision": {f"windows_{count}": {
+        "inputs": [tensor("pixel_values", "Float16", 64 * count, 1176), tensor("key_valid", "Float16", 64 * count),
+                   tensor("cos", "Float16", 64 * count, 80), tensor("sin", "Float16", 64 * count, 80)],
+        "outputs": [tensor("image_features", "Float16", 16 * count, 1024)], "states": []} for count in IOS_WINDOWS},
+    "embed": {"main": {"inputs": [tensor("input_ids", "Int32", 1, IOS_PREFILL[-1])],
+                       "outputs": [tensor("inputs_embeds", "Float32", 1, IOS_PREFILL[-1], 1024)], "states": []}},
+    "main": {**{f"prefill_{size}": {
+        "inputs": [tensor("inputs_embeds", "Float16", 1, size, 1024), tensor("cos", "Float16", 1, size, 128),
+                   tensor("sin", "Float16", 1, size, 128), tensor("mask", "Float16", 1, 1, size, size),
+                   tensor("logit_row", "Int32", 1)],
+        "outputs": DECODER_OUTPUTS, "states": IOS_STATES} for size in IOS_PREFILL},
+        "main": {"inputs": [tensor("input_ids", "Int32", 1, 1), tensor("cos", "Float16", 1, 1, 128),
+                            tensor("sin", "Float16", 1, 1, 128), tensor("mask", "Float16", 1, 1, 1, IOS_CONTEXT),
+                            tensor("write_mask", "Float16", IOS_CONTEXT)],
+                 "outputs": DECODER_OUTPUTS, "states": IOS_STATES}},
+}
 FUNCTIONS = {
     "vision": {"main": {"inputs": [tensor("pixel_values", "Float16", None, 1176), tensor("key_valid", "Float16", None),
                                    tensor("cos", "Float16", None, 80), tensor("sin", "Float16", None, 80)],

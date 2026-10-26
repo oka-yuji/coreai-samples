@@ -29,6 +29,8 @@ def recipe_path(name, precision=None):
         if not path.is_file():
             raise PipelineError("The selected mobile image recipe is unavailable")
         return path
+    if name == "teleocr" and precision == "ios":
+        return TOOL / "recipes" / name / "recipe-ios.json"
     precision = precision or "fp16_safe"
     if precision not in ("fp16_safe", "int4_int8") or (precision == "int4_int8" and name != "embeddinggemma2"):
         raise PipelineError("INT4/INT8 is available only for embeddinggemma2")
@@ -176,7 +178,7 @@ def pipeline_command(action, recipe, workspace, lock, refresh):
     if recipe.parent.name in ("qwen_image21", "qwen_image21_mobile"):
         result += ["--set", f"heavy_lock={lock}"]
     if action == "run":
-        profile = recipe.parent.name + ("-int4-int8" if recipe.stem == "recipe-int4-int8" else "")
+        profile = recipe.parent.name + {"recipe-int4-int8": "-int4-int8", "recipe-ios": "-ios"}.get(recipe.stem, "")
         result += ["--work-dir", str(workspace / "work" / profile), "--lock-dir", str(lock)]
         if refresh:
             result.append("--refresh")
@@ -189,7 +191,7 @@ def main():
     parser = argparse.ArgumentParser(description="Prepare and use the maintainer's local conversion workspace.")
     parser.add_argument("action", choices=("setup", "plan", "run"))
     parser.add_argument("--recipe", default="qwen3_06b")
-    parser.add_argument("--precision", choices=("fp16_safe", "int4_int8", "fp16", "bf16", "mixed", "w8", "w4", "mixed-f32", "w4-f32", "w4-blocks20-21-f32", "w4-blocks16-23-f32"))
+    parser.add_argument("--precision", choices=("fp16_safe", "int4_int8", "fp16", "bf16", "mixed", "w8", "w4", "mixed-f32", "w4-f32", "w4-blocks20-21-f32", "w4-blocks16-23-f32", "ios"))
     parser.add_argument("--workspace", type=Path, default=ROOT / ".local/conversion")
     parser.add_argument("--snapshot", type=Path)
     parser.add_argument("--lock-dir", type=Path, default=default_lock())

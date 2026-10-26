@@ -35,7 +35,7 @@ def export(module, example, dynamic_shapes=None, half=False):
     return cast_to_16_bit_precision(program) if half else program
 
 
-def save(programs, path, description):
+def save(programs, path, description, static=None):
     from coreai.runtime import AIModelAssetMetadata
     from coreai_torch import TorchConverter
     converter = TorchConverter(mode=TorchConverter.Mode.RELEASE)
@@ -49,27 +49,32 @@ def save(programs, path, description):
     metadata.set_custom("source_revision", REVISION)
     if path.exists():
         raise FileExistsError(path)
-    converter.to_coreai().save_asset(path, metadata)
+    program = converter.to_coreai()
+    for entry, shapes in (static or {}).items():
+        program.set_static_shape_config(entry, shapes)
+    program.save_asset(path, metadata)
 
 
 class Runtime:
-    def __init__(self, path):
+    def __init__(self, path, functions=("main",)):
         from coreai.runtime import AIModel, ComputeUnitKind, SpecializationOptions
         self.runner = asyncio.Runner()
         options = SpecializationOptions.from_preferred_compute_unit_kind(ComputeUnitKind.gpu())
         started = time.perf_counter()
         self.model = self.runner.run(AIModel.load(path, specialization_options=options))
-        self.function = self.model.load_function("main")
+        self.functions = {name: self.model.load_function(name) for name in functions}
         self.load_seconds = time.perf_counter() - started
 
-    def __call__(self, feeds, output):
+    def __call__(self, feeds, output, function="main", state=None):
         from coreai.runtime import NDArray
         started = time.perf_counter()
-        result = self.runner.run(self.function({key: NDArray(np.ascontiguousarray(value)) for key, value in feeds.items()}))
+        inputs = {key: NDArray(np.ascontiguousarray(value)) for key, value in feeds.items()}
+        call = self.functions[function]
+        result = self.runner.run(call(inputs) if state is None else call(inputs, state=state))
         return np.asarray(result[output].numpy()).astype(np.float32), time.perf_counter() - started
 
     def close(self):
-        self.function = self.model = None
+        self.functions = self.model = None
         self.runner.close()
         gc.collect()
 
