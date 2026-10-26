@@ -1,0 +1,241 @@
+{
+  "version": 1,
+  "name": "teleocr_macos_quantized",
+  "description": "TeleOCR decoder INT8 and INT4 plus an independent vision INT8 comparison with matching dense references.",
+  "variables": {},
+  "python": "$python",
+  "environment": {
+    "HF_HUB_OFFLINE": "1",
+    "TRANSFORMERS_OFFLINE": "1",
+    "TOKENIZERS_PARALLELISM": "false"
+  },
+  "steps": [
+    {
+      "id": "prepare",
+      "role": "prepare",
+      "command": ["$python", "-m", "Tools.Conversion.adapters.teleocr.prepare", "--snapshot", "$snapshot", "--model", "$recipe_dir/model.json", "--output", "$out"],
+      "cwd": "$repo",
+      "inputs": ["$repo/Tools/Conversion/adapters/teleocr/prepare.py", "$repo/Tools/Conversion/adapters/teleocr/contracts.py", "$recipe_dir/model.json", "$recipe_dir/pyproject.toml", "$recipe_dir/uv.lock", "$recipe_dir/F1.png", "$snapshot"],
+      "outputs": ["source.json"],
+      "depends": [],
+      "heavy": false,
+      "timeout_s": 600
+    },
+    {
+      "id": "reference",
+      "role": "reference",
+      "command": ["$python", "-m", "Tools.Conversion.adapters.teleocr.reference", "--snapshot", "$snapshot", "--fixture", "$recipe_dir/F1.png", "--output", "$out/reference"],
+      "cwd": "$repo",
+      "inputs": ["$repo/Tools/Conversion/adapters/teleocr/reference.py", "$repo/Tools/Conversion/adapters/teleocr/contracts.py", "$recipe_dir/F1.png", "$snapshot"],
+      "outputs": ["reference"],
+      "depends": ["prepare"],
+      "heavy": true,
+      "timeout_s": 1800,
+      "min_free_bytes": 20000000000
+    },
+    {
+      "id": "vision",
+      "role": "export",
+      "command": ["$python", "-m", "Tools.Conversion.adapters.teleocr.convert", "--snapshot", "$snapshot", "--reference", "$reference/reference", "--kind", "vision", "--output", "$out", "--scratch", "$scratch"],
+      "cwd": "$repo",
+      "inputs": ["$repo/Tools/Conversion/adapters/teleocr/convert.py", "$repo/Tools/Conversion/adapters/teleocr/wrappers.py", "$repo/Tools/Conversion/adapters/teleocr/contracts.py", "$snapshot"],
+      "outputs": ["comparison.json", "vision.aimodel"],
+      "depends": ["reference"],
+      "heavy": true,
+      "timeout_s": 3600,
+      "min_free_bytes": 40000000000,
+      "checks": [
+        {
+          "file": "comparison.json",
+          "key": ["passed"],
+          "equals": true
+        }
+      ]
+    },
+    {
+      "id": "embed",
+      "role": "export",
+      "command": ["$python", "-m", "Tools.Conversion.adapters.teleocr.convert", "--snapshot", "$snapshot", "--reference", "$reference/reference", "--kind", "embed", "--output", "$out", "--scratch", "$scratch"],
+      "cwd": "$repo",
+      "inputs": ["$repo/Tools/Conversion/adapters/teleocr/convert.py", "$repo/Tools/Conversion/adapters/teleocr/wrappers.py", "$repo/Tools/Conversion/adapters/teleocr/contracts.py", "$snapshot"],
+      "outputs": ["comparison.json", "embed.aimodel"],
+      "depends": ["reference"],
+      "heavy": true,
+      "timeout_s": 1200,
+      "min_free_bytes": 40000000000,
+      "checks": [
+        {
+          "file": "comparison.json",
+          "key": ["passed"],
+          "equals": true
+        }
+      ]
+    },
+    {
+      "id": "decoder",
+      "role": "export",
+      "command": ["$python", "-m", "Tools.Conversion.adapters.teleocr.convert", "--snapshot", "$snapshot", "--reference", "$reference/reference", "--kind", "decoder", "--output", "$out", "--scratch", "$scratch"],
+      "cwd": "$repo",
+      "inputs": ["$repo/Tools/Conversion/adapters/teleocr/convert.py", "$repo/Tools/Conversion/adapters/teleocr/wrappers.py", "$repo/Tools/Conversion/adapters/teleocr/contracts.py", "$snapshot"],
+      "outputs": ["comparison.json", "main.aimodel"],
+      "depends": ["reference"],
+      "heavy": true,
+      "timeout_s": 3600,
+      "min_free_bytes": 40000000000,
+      "checks": [
+        {
+          "file": "comparison.json",
+          "key": ["passed"],
+          "equals": true
+        }
+      ]
+    },
+    {
+      "id": "decoder_int8",
+      "role": "export",
+      "command": ["$python", "-m", "Tools.Conversion.adapters.teleocr.quantized", "--snapshot", "$snapshot", "--reference", "$reference/reference", "--kind", "decoder", "--output", "$out", "--scratch", "$scratch", "--bits", "8"],
+      "cwd": "$repo",
+      "inputs": ["$repo/Tools/Conversion/adapters/teleocr/convert.py", "$repo/Tools/Conversion/adapters/teleocr/wrappers.py", "$repo/Tools/Conversion/adapters/teleocr/contracts.py", "$snapshot", "$repo/Tools/Conversion/adapters/teleocr/quantized.py", "$repo/Tools/Conversion/adapters/teleocr/quantization.py"],
+      "outputs": ["comparison.json", "main.aimodel", "compression.json", "reference.safetensors"],
+      "depends": ["reference"],
+      "heavy": true,
+      "timeout_s": 3600,
+      "min_free_bytes": 40000000000,
+      "checks": [
+        {
+          "file": "comparison.json",
+          "key": ["passed"],
+          "equals": true
+        }
+      ]
+    },
+    {
+      "id": "decoder_int4",
+      "role": "export",
+      "command": ["$python", "-m", "Tools.Conversion.adapters.teleocr.quantized", "--snapshot", "$snapshot", "--reference", "$reference/reference", "--kind", "decoder", "--output", "$out", "--scratch", "$scratch", "--bits", "4"],
+      "cwd": "$repo",
+      "inputs": ["$repo/Tools/Conversion/adapters/teleocr/convert.py", "$repo/Tools/Conversion/adapters/teleocr/wrappers.py", "$repo/Tools/Conversion/adapters/teleocr/contracts.py", "$snapshot", "$repo/Tools/Conversion/adapters/teleocr/quantized.py", "$repo/Tools/Conversion/adapters/teleocr/quantization.py"],
+      "outputs": ["comparison.json", "main.aimodel", "compression.json", "reference.safetensors"],
+      "depends": ["reference"],
+      "heavy": true,
+      "timeout_s": 3600,
+      "min_free_bytes": 40000000000,
+      "checks": [
+        {
+          "file": "comparison.json",
+          "key": ["passed"],
+          "equals": true
+        }
+      ]
+    },
+    {
+      "id": "vision_int8",
+      "role": "export",
+      "command": ["$python", "-m", "Tools.Conversion.adapters.teleocr.quantized", "--snapshot", "$snapshot", "--reference", "$reference/reference", "--kind", "vision", "--output", "$out", "--scratch", "$scratch", "--bits", "8"],
+      "cwd": "$repo",
+      "inputs": ["$repo/Tools/Conversion/adapters/teleocr/convert.py", "$repo/Tools/Conversion/adapters/teleocr/wrappers.py", "$repo/Tools/Conversion/adapters/teleocr/contracts.py", "$snapshot", "$repo/Tools/Conversion/adapters/teleocr/quantized.py", "$repo/Tools/Conversion/adapters/teleocr/quantization.py"],
+      "outputs": ["comparison.json", "vision.aimodel", "compression.json", "reference.safetensors"],
+      "depends": ["reference"],
+      "heavy": true,
+      "timeout_s": 3600,
+      "min_free_bytes": 40000000000,
+      "checks": [
+        {
+          "file": "comparison.json",
+          "key": ["passed"],
+          "equals": true
+        }
+      ]
+    },
+    {
+      "id": "bundle_int8",
+      "role": "export",
+      "command": ["$python", "-m", "Tools.Conversion.adapters.teleocr.bundle", "--snapshot", "$snapshot", "--reference", "$reference/reference", "--vision", "$vision", "--embed", "$embed", "--decoder", "$decoder_int8", "--license", "$repo/Tools/Embedding/Licenses/Apache-2.0.txt", "--output", "$out/bundle"],
+      "cwd": "$repo",
+      "inputs": ["$repo/Tools/Conversion/adapters/teleocr/bundle.py", "$repo/Tools/Conversion/adapters/teleocr/contracts.py", "$repo/Tools/Embedding/Licenses/Apache-2.0.txt", "$snapshot"],
+      "outputs": ["bundle"],
+      "depends": ["reference", "vision", "embed", "decoder_int8"],
+      "heavy": false,
+      "timeout_s": 1200,
+      "min_free_bytes": 10000000000
+    },
+    {
+      "id": "verify_int8",
+      "role": "verify",
+      "command": ["$python", "-m", "Tools.Conversion.adapters.teleocr.verify", "--bundle", "$bundle_int8/bundle", "--component", "$vision", "--component", "$embed", "--component", "$decoder_int8", "--output", "$out"],
+      "cwd": "$repo",
+      "inputs": ["$repo/Tools/Conversion/adapters/teleocr/verify.py", "$repo/Tools/Conversion/adapters/teleocr/contracts.py"],
+      "outputs": ["comparison.json"],
+      "depends": ["vision", "embed", "decoder_int8", "bundle_int8"],
+      "heavy": false,
+      "timeout_s": 1200,
+      "checks": [
+        {
+          "file": "comparison.json",
+          "key": ["passed"],
+          "equals": true
+        }
+      ]
+    },
+    {
+      "id": "bundle_int4",
+      "role": "export",
+      "command": ["$python", "-m", "Tools.Conversion.adapters.teleocr.bundle", "--snapshot", "$snapshot", "--reference", "$reference/reference", "--vision", "$vision", "--embed", "$embed", "--decoder", "$decoder_int4", "--license", "$repo/Tools/Embedding/Licenses/Apache-2.0.txt", "--output", "$out/bundle"],
+      "cwd": "$repo",
+      "inputs": ["$repo/Tools/Conversion/adapters/teleocr/bundle.py", "$repo/Tools/Conversion/adapters/teleocr/contracts.py", "$repo/Tools/Embedding/Licenses/Apache-2.0.txt", "$snapshot"],
+      "outputs": ["bundle"],
+      "depends": ["reference", "vision", "embed", "decoder_int4"],
+      "heavy": false,
+      "timeout_s": 1200,
+      "min_free_bytes": 10000000000
+    },
+    {
+      "id": "verify_int4",
+      "role": "verify",
+      "command": ["$python", "-m", "Tools.Conversion.adapters.teleocr.verify", "--bundle", "$bundle_int4/bundle", "--component", "$vision", "--component", "$embed", "--component", "$decoder_int4", "--output", "$out"],
+      "cwd": "$repo",
+      "inputs": ["$repo/Tools/Conversion/adapters/teleocr/verify.py", "$repo/Tools/Conversion/adapters/teleocr/contracts.py"],
+      "outputs": ["comparison.json"],
+      "depends": ["vision", "embed", "decoder_int4", "bundle_int4"],
+      "heavy": false,
+      "timeout_s": 1200,
+      "checks": [
+        {
+          "file": "comparison.json",
+          "key": ["passed"],
+          "equals": true
+        }
+      ]
+    },
+    {
+      "id": "bundle_vision_int8",
+      "role": "export",
+      "command": ["$python", "-m", "Tools.Conversion.adapters.teleocr.bundle", "--snapshot", "$snapshot", "--reference", "$reference/reference", "--vision", "$vision_int8", "--embed", "$embed", "--decoder", "$decoder", "--license", "$repo/Tools/Embedding/Licenses/Apache-2.0.txt", "--output", "$out/bundle"],
+      "cwd": "$repo",
+      "inputs": ["$repo/Tools/Conversion/adapters/teleocr/bundle.py", "$repo/Tools/Conversion/adapters/teleocr/contracts.py", "$repo/Tools/Embedding/Licenses/Apache-2.0.txt", "$snapshot"],
+      "outputs": ["bundle"],
+      "depends": ["reference", "vision_int8", "embed", "decoder"],
+      "heavy": false,
+      "timeout_s": 1200,
+      "min_free_bytes": 10000000000
+    },
+    {
+      "id": "verify_vision_int8",
+      "role": "verify",
+      "command": ["$python", "-m", "Tools.Conversion.adapters.teleocr.verify", "--bundle", "$bundle_vision_int8/bundle", "--component", "$vision_int8", "--component", "$embed", "--component", "$decoder", "--output", "$out"],
+      "cwd": "$repo",
+      "inputs": ["$repo/Tools/Conversion/adapters/teleocr/verify.py", "$repo/Tools/Conversion/adapters/teleocr/contracts.py"],
+      "outputs": ["comparison.json"],
+      "depends": ["vision_int8", "embed", "decoder", "bundle_vision_int8"],
+      "heavy": false,
+      "timeout_s": 1200,
+      "checks": [
+        {
+          "file": "comparison.json",
+          "key": ["passed"],
+          "equals": true
+        }
+      ]
+    }
+  ]
+}
