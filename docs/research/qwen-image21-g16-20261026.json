@@ -1,0 +1,2096 @@
+{
+  "format": 1,
+  "date": "2026-10-26",
+  "converter_commit": "c2d6a5d",
+  "source_revision": "fc13ba1986fcb905854dc8de2f52eee395f49b5b",
+  "scope": "G16 candidate research, preserving failed whole-profile fidelity and separately scoped successful physical component execution. Not normal Models or human-quality acceptance.",
+  "verified": false,
+  "candidate": {
+    "id": "qmi-mobile-w4-dit-g16-blocks16-23-f32-v1",
+    "profile_file": {
+      "bytes": 13153,
+      "sha256": "15cea00f80aca09d9898cb163d2dfe8a717dcf4df36457f59081206f31d7199f"
+    },
+    "profile_sha256": "bb7ba7f1fd1f5a0cc48c9aebda37c957f98dc1aa952263e669f2e7237cb198e6",
+    "components": {
+      "vision": {
+        "record_file": {
+          "bytes": 17602,
+          "sha256": "1dafda6ad8b4d365d7ee6b7b70ffc55d4209ad9c0772cf56155edb164520716b"
+        },
+        "asset_bytes": 657333675
+      },
+      "text": {
+        "record_file": {
+          "bytes": 18085,
+          "sha256": "fdd6bc4e44d18c60f91679e104788cea4e0067c61911c5c81f370cd75cfe8aba"
+        },
+        "asset_bytes": 4936279954
+      },
+      "denoiser": {
+        "record_file": {
+          "bytes": 18711,
+          "sha256": "1ec5f789e1b62e90160212cb980a5d7cdfa4b9fce79ebc3a3026a2e3e1c60309"
+        },
+        "asset_bytes": 6846769275
+      },
+      "vae_encoder": {
+        "record_file": {
+          "bytes": 17064,
+          "sha256": "a007956f0a292871fd21cdf1133526433ae51b185a16ed380833e23af8dd975d"
+        },
+        "asset_bytes": 311722649
+      },
+      "vae_decoder": {
+        "record_file": {
+          "bytes": 17066,
+          "sha256": "82c145b711f60d5826b7baf72e0fee5698c5b2f35778d83d9be6ffe693d89380"
+        },
+        "asset_bytes": 1012367986
+      }
+    }
+  },
+  "numeric": {
+    "source_runs": 60,
+    "source_repeats": 2,
+    "source_summary": {
+      "bytes": 1481022,
+      "sha256": "602f7a8aec52f6f895c4a380ff766f65131e0221106a0ecb9cb1cca812114f5e"
+    },
+    "report_file": {
+      "bytes": 3118703,
+      "sha256": "4bd209af74f7a5cae1244e98b182df7a3ede0dfb984be89ace5bb1103288645f"
+    },
+    "complete": true,
+    "passed": false,
+    "fixed_comparisons": 1230,
+    "fixed_passed": 1202,
+    "fixed_failed": 28,
+    "target_comparisons_passed": 480,
+    "other_component_comparisons_passed": 270,
+    "free_rollouts_completed": 60,
+    "free_rollouts_passed": 60,
+    "failed_runs": [
+      {
+        "run_id": "e10-20261018",
+        "failed_comparisons": [
+          {
+            "step": "denoiser-0",
+            "boundary": "component",
+            "metrics": {
+              "absolute_rmse": 5.980780330571175e-05,
+              "finite": true,
+              "normalized_max": 0.0010242037024717873,
+              "normalized_rmse": 3.9050330015256795e-05,
+              "passed": false,
+              "shape": [
+                1,
+                2080,
+                64
+              ]
+            }
+          },
+          {
+            "step": "denoiser-1",
+            "boundary": "component",
+            "metrics": {
+              "absolute_rmse": 5.96237464801069e-05,
+              "finite": true,
+              "normalized_max": 0.0011723121821149906,
+              "normalized_rmse": 4.237942091091438e-05,
+              "passed": false,
+              "shape": [
+                1,
+                2080,
+                64
+              ]
+            }
+          },
+          {
+            "step": "denoiser-2",
+            "boundary": "component",
+            "metrics": {
+              "absolute_rmse": 5.963368184870479e-05,
+              "finite": true,
+              "normalized_max": 0.001202729861570221,
+              "normalized_rmse": 4.274373086964989e-05,
+              "passed": false,
+              "shape": [
+                1,
+                2080,
+                64
+              ]
+            }
+          },
+          {
+            "step": "denoiser-3",
+            "boundary": "component",
+            "metrics": {
+              "absolute_rmse": 5.956120550396439e-05,
+              "finite": true,
+              "normalized_max": 0.0012036104947630213,
+              "normalized_rmse": 4.276154199111805e-05,
+              "passed": false,
+              "shape": [
+                1,
+                2080,
+                64
+              ]
+            }
+          },
+          {
+            "step": "denoiser-4",
+            "boundary": "component",
+            "metrics": {
+              "absolute_rmse": 5.951299946966732e-05,
+              "finite": true,
+              "normalized_max": 0.001202437956087248,
+              "normalized_rmse": 4.267946582634261e-05,
+              "passed": false,
+              "shape": [
+                1,
+                2080,
+                64
+              ]
+            }
+          },
+          {
+            "step": "denoiser-5",
+            "boundary": "component",
+            "metrics": {
+              "absolute_rmse": 5.9470386866525724e-05,
+              "finite": true,
+              "normalized_max": 0.0011940129978965674,
+              "normalized_rmse": 4.2639741117035345e-05,
+              "passed": false,
+              "shape": [
+                1,
+                2080,
+                64
+              ]
+            }
+          },
+          {
+            "step": "denoiser-6",
+            "boundary": "component",
+            "metrics": {
+              "absolute_rmse": 5.942642982072688e-05,
+              "finite": true,
+              "normalized_max": 0.0011649533170023354,
+              "normalized_rmse": 4.249397132448013e-05,
+              "passed": false,
+              "shape": [
+                1,
+                2080,
+                64
+              ]
+            }
+          },
+          {
+            "step": "denoiser-7",
+            "boundary": "component",
+            "metrics": {
+              "absolute_rmse": 5.942748010650901e-05,
+              "finite": true,
+              "normalized_max": 0.0011382909356024563,
+              "normalized_rmse": 4.254581279266686e-05,
+              "passed": false,
+              "shape": [
+                1,
+                2080,
+                64
+              ]
+            }
+          }
+        ],
+        "rollout": {
+          "latent": {
+            "boundary": "final-latent",
+            "compute_dtype": "float32",
+            "metric_code_sha256": {
+              "contracts.py": "8845f80b45e2c204edc923c6a582c08cbbdf1ac2b82087fddc85750e7227c601",
+              "evaluation.py": "d44f3f0fc7364178959e4a2913244e9b50b46a6876c4aa222aa4e05c2dae4b85",
+              "numeric_policy.py": "17cf04f3b4b213c13cf4b797aa99fc951be8d29ba0cc9a1357113230b928fd17"
+            },
+            "metrics": {
+              "absolute_rmse": 8.420263625832412e-06,
+              "finite": true,
+              "normalized_max": 1.2109305298061737e-05,
+              "normalized_rmse": 6.179648055620297e-06,
+              "passed": true,
+              "shape": [
+                1,
+                1024,
+                64
+              ]
+            },
+            "policy_id": "qmi-numeric-gates-v1",
+            "policy_sha256": "6e3c72b9321b6cdc105f8ddf38aaea9c151ab912e2bb9c36dd57654b31d4c793",
+            "scope": "One already-selected valid tensor region; not suite or profile verification"
+          },
+          "rgba": {
+            "boundary": "final-rgba",
+            "compute_dtype": "float32",
+            "metric_code_sha256": {
+              "contracts.py": "8845f80b45e2c204edc923c6a582c08cbbdf1ac2b82087fddc85750e7227c601",
+              "evaluation.py": "d44f3f0fc7364178959e4a2913244e9b50b46a6876c4aa222aa4e05c2dae4b85",
+              "numeric_policy.py": "17cf04f3b4b213c13cf4b797aa99fc951be8d29ba0cc9a1357113230b928fd17"
+            },
+            "metrics": {
+              "absolute_rmse": 7.5198883205973825e-06,
+              "finite": true,
+              "normalized_max": 0.0002547800540924072,
+              "normalized_rmse": 1.1146781064640053e-05,
+              "passed": true,
+              "shape": [
+                1,
+                4,
+                1,
+                512,
+                512
+              ]
+            },
+            "policy_id": "qmi-numeric-gates-v1",
+            "policy_sha256": "6e3c72b9321b6cdc105f8ddf38aaea9c151ab912e2bb9c36dd57654b31d4c793",
+            "scope": "One already-selected valid tensor region; not suite or profile verification"
+          }
+        }
+      },
+      {
+        "run_id": "e10-20261021",
+        "failed_comparisons": [
+          {
+            "step": "denoiser-1",
+            "boundary": "component",
+            "metrics": {
+              "absolute_rmse": 6.011943703381859e-05,
+              "finite": true,
+              "normalized_max": 0.0011240371853751324,
+              "normalized_rmse": 4.265667232066066e-05,
+              "passed": false,
+              "shape": [
+                1,
+                2080,
+                64
+              ]
+            }
+          },
+          {
+            "step": "denoiser-2",
+            "boundary": "component",
+            "metrics": {
+              "absolute_rmse": 5.960046711620939e-05,
+              "finite": true,
+              "normalized_max": 0.0011601677445887764,
+              "normalized_rmse": 4.265829772346082e-05,
+              "passed": false,
+              "shape": [
+                1,
+                2080,
+                64
+              ]
+            }
+          },
+          {
+            "step": "denoiser-3",
+            "boundary": "component",
+            "metrics": {
+              "absolute_rmse": 5.955774001780724e-05,
+              "finite": true,
+              "normalized_max": 0.00116368954445207,
+              "normalized_rmse": 4.272175701340644e-05,
+              "passed": false,
+              "shape": [
+                1,
+                2080,
+                64
+              ]
+            }
+          },
+          {
+            "step": "denoiser-4",
+            "boundary": "component",
+            "metrics": {
+              "absolute_rmse": 5.947039491353572e-05,
+              "finite": true,
+              "normalized_max": 0.0011528414000808347,
+              "normalized_rmse": 4.262035632623028e-05,
+              "passed": false,
+              "shape": [
+                1,
+                2080,
+                64
+              ]
+            }
+          },
+          {
+            "step": "denoiser-5",
+            "boundary": "component",
+            "metrics": {
+              "absolute_rmse": 5.943673790820503e-05,
+              "finite": true,
+              "normalized_max": 0.0011386903436151677,
+              "normalized_rmse": 4.256434535845884e-05,
+              "passed": false,
+              "shape": [
+                1,
+                2080,
+                64
+              ]
+            }
+          },
+          {
+            "step": "denoiser-6",
+            "boundary": "component",
+            "metrics": {
+              "absolute_rmse": 5.9420286617764926e-05,
+              "finite": true,
+              "normalized_max": 0.0011151195087757396,
+              "normalized_rmse": 4.242310083515676e-05,
+              "passed": false,
+              "shape": [
+                1,
+                2080,
+                64
+              ]
+            }
+          },
+          {
+            "step": "denoiser-7",
+            "boundary": "component",
+            "metrics": {
+              "absolute_rmse": 5.942619026206834e-05,
+              "finite": true,
+              "normalized_max": 0.0010860480512354424,
+              "normalized_rmse": 4.2572273732333605e-05,
+              "passed": false,
+              "shape": [
+                1,
+                2080,
+                64
+              ]
+            }
+          }
+        ],
+        "rollout": {
+          "latent": {
+            "boundary": "final-latent",
+            "compute_dtype": "float32",
+            "metric_code_sha256": {
+              "contracts.py": "8845f80b45e2c204edc923c6a582c08cbbdf1ac2b82087fddc85750e7227c601",
+              "evaluation.py": "d44f3f0fc7364178959e4a2913244e9b50b46a6876c4aa222aa4e05c2dae4b85",
+              "numeric_policy.py": "17cf04f3b4b213c13cf4b797aa99fc951be8d29ba0cc9a1357113230b928fd17"
+            },
+            "metrics": {
+              "absolute_rmse": 4.512862246068947e-06,
+              "finite": true,
+              "normalized_max": 6.4495158705879e-06,
+              "normalized_rmse": 3.32171353291974e-06,
+              "passed": true,
+              "shape": [
+                1,
+                1024,
+                64
+              ]
+            },
+            "policy_id": "qmi-numeric-gates-v1",
+            "policy_sha256": "6e3c72b9321b6cdc105f8ddf38aaea9c151ab912e2bb9c36dd57654b31d4c793",
+            "scope": "One already-selected valid tensor region; not suite or profile verification"
+          },
+          "rgba": {
+            "boundary": "final-rgba",
+            "compute_dtype": "float32",
+            "metric_code_sha256": {
+              "contracts.py": "8845f80b45e2c204edc923c6a582c08cbbdf1ac2b82087fddc85750e7227c601",
+              "evaluation.py": "d44f3f0fc7364178959e4a2913244e9b50b46a6876c4aa222aa4e05c2dae4b85",
+              "numeric_policy.py": "17cf04f3b4b213c13cf4b797aa99fc951be8d29ba0cc9a1357113230b928fd17"
+            },
+            "metrics": {
+              "absolute_rmse": 4.504188382760943e-06,
+              "finite": true,
+              "normalized_max": 0.0002560615539550781,
+              "normalized_rmse": 6.643076184374329e-06,
+              "passed": true,
+              "shape": [
+                1,
+                4,
+                1,
+                512,
+                512
+              ]
+            },
+            "policy_id": "qmi-numeric-gates-v1",
+            "policy_sha256": "6e3c72b9321b6cdc105f8ddf38aaea9c151ab912e2bb9c36dd57654b31d4c793",
+            "scope": "One already-selected valid tensor region; not suite or profile verification"
+          }
+        }
+      },
+      {
+        "run_id": "e11-20261018",
+        "failed_comparisons": [
+          {
+            "step": "denoiser-1",
+            "boundary": "component",
+            "metrics": {
+              "absolute_rmse": 5.967081090900214e-05,
+              "finite": true,
+              "normalized_max": 0.0010056297750154913,
+              "normalized_rmse": 4.2129983957081255e-05,
+              "passed": false,
+              "shape": [
+                1,
+                2089,
+                64
+              ]
+            }
+          },
+          {
+            "step": "denoiser-2",
+            "boundary": "component",
+            "metrics": {
+              "absolute_rmse": 5.9638777097860094e-05,
+              "finite": true,
+              "normalized_max": 0.0010400301899517776,
+              "normalized_rmse": 4.2449576112555603e-05,
+              "passed": false,
+              "shape": [
+                1,
+                2089,
+                64
+              ]
+            }
+          },
+          {
+            "step": "denoiser-3",
+            "boundary": "component",
+            "metrics": {
+              "absolute_rmse": 5.9631435512493147e-05,
+              "finite": true,
+              "normalized_max": 0.0010549935422505224,
+              "normalized_rmse": 4.260665238319216e-05,
+              "passed": false,
+              "shape": [
+                1,
+                2089,
+                64
+              ]
+            }
+          },
+          {
+            "step": "denoiser-4",
+            "boundary": "component",
+            "metrics": {
+              "absolute_rmse": 5.96238068697025e-05,
+              "finite": true,
+              "normalized_max": 0.0010578054748112359,
+              "normalized_rmse": 4.2574386286372446e-05,
+              "passed": false,
+              "shape": [
+                1,
+                2089,
+                64
+              ]
+            }
+          },
+          {
+            "step": "denoiser-5",
+            "boundary": "component",
+            "metrics": {
+              "absolute_rmse": 5.962085223955837e-05,
+              "finite": true,
+              "normalized_max": 0.001055294843555372,
+              "normalized_rmse": 4.257720498544692e-05,
+              "passed": false,
+              "shape": [
+                1,
+                2089,
+                64
+              ]
+            }
+          },
+          {
+            "step": "denoiser-6",
+            "boundary": "component",
+            "metrics": {
+              "absolute_rmse": 5.9619515621367746e-05,
+              "finite": true,
+              "normalized_max": 0.0010421026368131023,
+              "normalized_rmse": 4.245444805706634e-05,
+              "passed": false,
+              "shape": [
+                1,
+                2089,
+                64
+              ]
+            }
+          },
+          {
+            "step": "denoiser-7",
+            "boundary": "component",
+            "metrics": {
+              "absolute_rmse": 5.9626473871665765e-05,
+              "finite": true,
+              "normalized_max": 0.0010230357096189786,
+              "normalized_rmse": 4.2493120071044674e-05,
+              "passed": false,
+              "shape": [
+                1,
+                2089,
+                64
+              ]
+            }
+          }
+        ],
+        "rollout": {
+          "latent": {
+            "boundary": "final-latent",
+            "compute_dtype": "float32",
+            "metric_code_sha256": {
+              "contracts.py": "8845f80b45e2c204edc923c6a582c08cbbdf1ac2b82087fddc85750e7227c601",
+              "evaluation.py": "d44f3f0fc7364178959e4a2913244e9b50b46a6876c4aa222aa4e05c2dae4b85",
+              "numeric_policy.py": "17cf04f3b4b213c13cf4b797aa99fc951be8d29ba0cc9a1357113230b928fd17"
+            },
+            "metrics": {
+              "absolute_rmse": 1.380228886442698e-06,
+              "finite": true,
+              "normalized_max": 5.5760114971305584e-06,
+              "normalized_rmse": 1.0030553794299956e-06,
+              "passed": true,
+              "shape": [
+                1,
+                1024,
+                64
+              ]
+            },
+            "policy_id": "qmi-numeric-gates-v1",
+            "policy_sha256": "6e3c72b9321b6cdc105f8ddf38aaea9c151ab912e2bb9c36dd57654b31d4c793",
+            "scope": "One already-selected valid tensor region; not suite or profile verification"
+          },
+          "rgba": {
+            "boundary": "final-rgba",
+            "compute_dtype": "float32",
+            "metric_code_sha256": {
+              "contracts.py": "8845f80b45e2c204edc923c6a582c08cbbdf1ac2b82087fddc85750e7227c601",
+              "evaluation.py": "d44f3f0fc7364178959e4a2913244e9b50b46a6876c4aa222aa4e05c2dae4b85",
+              "numeric_policy.py": "17cf04f3b4b213c13cf4b797aa99fc951be8d29ba0cc9a1357113230b928fd17"
+            },
+            "metrics": {
+              "absolute_rmse": 2.0216604934969858e-06,
+              "finite": true,
+              "normalized_max": 0.00017601251602172852,
+              "normalized_rmse": 2.826904254917919e-06,
+              "passed": true,
+              "shape": [
+                1,
+                4,
+                1,
+                512,
+                512
+              ]
+            },
+            "policy_id": "qmi-numeric-gates-v1",
+            "policy_sha256": "6e3c72b9321b6cdc105f8ddf38aaea9c151ab912e2bb9c36dd57654b31d4c793",
+            "scope": "One already-selected valid tensor region; not suite or profile verification"
+          }
+        }
+      },
+      {
+        "run_id": "e11-20261021",
+        "failed_comparisons": [
+          {
+            "step": "denoiser-2",
+            "boundary": "component",
+            "metrics": {
+              "absolute_rmse": 5.9679021984790245e-05,
+              "finite": true,
+              "normalized_max": 0.0010199822309934052,
+              "normalized_rmse": 4.22694711538015e-05,
+              "passed": false,
+              "shape": [
+                1,
+                2089,
+                64
+              ]
+            }
+          },
+          {
+            "step": "denoiser-3",
+            "boundary": "component",
+            "metrics": {
+              "absolute_rmse": 5.970660243789438e-05,
+              "finite": true,
+              "normalized_max": 0.0010564584917816062,
+              "normalized_rmse": 4.2525787130538677e-05,
+              "passed": false,
+              "shape": [
+                1,
+                2089,
+                64
+              ]
+            }
+          },
+          {
+            "step": "denoiser-4",
+            "boundary": "component",
+            "metrics": {
+              "absolute_rmse": 5.9629079697464775e-05,
+              "finite": true,
+              "normalized_max": 0.0010580561243186636,
+              "normalized_rmse": 4.252802955431946e-05,
+              "passed": false,
+              "shape": [
+                1,
+                2089,
+                64
+              ]
+            }
+          },
+          {
+            "step": "denoiser-5",
+            "boundary": "component",
+            "metrics": {
+              "absolute_rmse": 5.9626763925459025e-05,
+              "finite": true,
+              "normalized_max": 0.0010543405167434319,
+              "normalized_rmse": 4.253165278302655e-05,
+              "passed": false,
+              "shape": [
+                1,
+                2089,
+                64
+              ]
+            }
+          },
+          {
+            "step": "denoiser-6",
+            "boundary": "component",
+            "metrics": {
+              "absolute_rmse": 5.961948980939992e-05,
+              "finite": true,
+              "normalized_max": 0.0010410294716015544,
+              "normalized_rmse": 4.2414173907983525e-05,
+              "passed": false,
+              "shape": [
+                1,
+                2089,
+                64
+              ]
+            }
+          },
+          {
+            "step": "denoiser-7",
+            "boundary": "component",
+            "metrics": {
+              "absolute_rmse": 5.962530513280558e-05,
+              "finite": true,
+              "normalized_max": 0.0010331667049141213,
+              "normalized_rmse": 4.251681289795862e-05,
+              "passed": false,
+              "shape": [
+                1,
+                2089,
+                64
+              ]
+            }
+          }
+        ],
+        "rollout": {
+          "latent": {
+            "boundary": "final-latent",
+            "compute_dtype": "float32",
+            "metric_code_sha256": {
+              "contracts.py": "8845f80b45e2c204edc923c6a582c08cbbdf1ac2b82087fddc85750e7227c601",
+              "evaluation.py": "d44f3f0fc7364178959e4a2913244e9b50b46a6876c4aa222aa4e05c2dae4b85",
+              "numeric_policy.py": "17cf04f3b4b213c13cf4b797aa99fc951be8d29ba0cc9a1357113230b928fd17"
+            },
+            "metrics": {
+              "absolute_rmse": 1.5918581593432244e-06,
+              "finite": true,
+              "normalized_max": 5.339317315945274e-06,
+              "normalized_rmse": 1.1632291202403417e-06,
+              "passed": true,
+              "shape": [
+                1,
+                1024,
+                64
+              ]
+            },
+            "policy_id": "qmi-numeric-gates-v1",
+            "policy_sha256": "6e3c72b9321b6cdc105f8ddf38aaea9c151ab912e2bb9c36dd57654b31d4c793",
+            "scope": "One already-selected valid tensor region; not suite or profile verification"
+          },
+          "rgba": {
+            "boundary": "final-rgba",
+            "compute_dtype": "float32",
+            "metric_code_sha256": {
+              "contracts.py": "8845f80b45e2c204edc923c6a582c08cbbdf1ac2b82087fddc85750e7227c601",
+              "evaluation.py": "d44f3f0fc7364178959e4a2913244e9b50b46a6876c4aa222aa4e05c2dae4b85",
+              "numeric_policy.py": "17cf04f3b4b213c13cf4b797aa99fc951be8d29ba0cc9a1357113230b928fd17"
+            },
+            "metrics": {
+              "absolute_rmse": 1.4645236724113595e-06,
+              "finite": true,
+              "normalized_max": 0.00010094046592712402,
+              "normalized_rmse": 2.0641334783796977e-06,
+              "passed": true,
+              "shape": [
+                1,
+                4,
+                1,
+                512,
+                512
+              ]
+            },
+            "policy_id": "qmi-numeric-gates-v1",
+            "policy_sha256": "6e3c72b9321b6cdc105f8ddf38aaea9c151ab912e2bb9c36dd57654b31d4c793",
+            "scope": "One already-selected valid tensor region; not suite or profile verification"
+          }
+        }
+      }
+    ],
+    "assembly": {
+      "scope": "Sixty separate Core AI processes with one shared frozen input/code/component identity. Raw metrics, source captures and exported inventories are revalidated; not one continuous process or device/human acceptance.",
+      "raw_audit_complete": true,
+      "public_acceptance_audit": "not_run_numeric_failed",
+      "fixed_comparisons": 1230
+    }
+  },
+  "ios_component": {
+    "scope": "Current G16 candidate: two-cycle DiT full/target fidelity and observed device fit; not full native pipeline, production budget or human quality",
+    "device": "iPhone 17 Pro (iPhone18,1)",
+    "os_build": "24A446",
+    "harness": {
+      "asset_inventory": {
+        "bytes": 428,
+        "sha256": "7ee0a57aaf8dab339325b54cd05dea44f55f76debf782a0d950985e23d8f7ec1"
+      },
+      "controller": {
+        "bytes": 19689,
+        "sha256": "5331d1cb3bb30453328db24e4bef748eb73e9c54bc00cf121a63b664c91382b9"
+      },
+      "executable": {
+        "bytes": 329840,
+        "sha256": "a6456b9832968013311718396433240fcbd02b0e838f5542ef7c349aa66d7c60"
+      },
+      "implementation": {
+        "build": {
+          "bytes": 821,
+          "sha256": "d9c7f9327692c30859e5738e559999e0840f36730563291a5488ddaa04657702"
+        },
+        "builder_receipt": {
+          "bytes": 946,
+          "sha256": "1ee44bfacce9a5b159a8bd5f2ad14fffe4ad350687957b902b6f25d7ee52dfd9"
+        },
+        "scope": "Current G16 DiT component fit and two-cycle full-joint fidelity only. Not a full native pipeline, quality result or production device budget.",
+        "validator": {
+          "bytes": 6973,
+          "sha256": "1b9265f5e3ab079bca6d9418607c00954afb62b69a3504c2ca8fdcd629362e75"
+        }
+      },
+      "probe": {
+        "bytes": 41482,
+        "sha256": "9014846555218467503e8409ea9e158f94d7da9b2acc03e28d466d055843f52b"
+      },
+      "source": {
+        "bytes": 23069,
+        "sha256": "9b051fe37c0ca0edd762d7bf3f4059a4ed55ebdf04b3df57af1c815e9058197b"
+      }
+    },
+    "native_report": {
+      "bytes": 5097,
+      "sha256": "5293af7892111b2e30fc0d62d366000f200d5be35ece7f70f75eec71c85c061c"
+    },
+    "source_probe": {
+      "bytes": 41482,
+      "sha256": "9014846555218467503e8409ea9e158f94d7da9b2acc03e28d466d055843f52b"
+    },
+    "device_process_exited": true,
+    "fidelity_passed": true,
+    "raw_comparisons": [
+      {
+        "boundary": "component",
+        "compute_dtype": "float32",
+        "cycle": 0,
+        "id": "generate",
+        "metric_code_sha256": {
+          "contracts.py": "8845f80b45e2c204edc923c6a582c08cbbdf1ac2b82087fddc85750e7227c601",
+          "evaluation.py": "d44f3f0fc7364178959e4a2913244e9b50b46a6876c4aa222aa4e05c2dae4b85",
+          "numeric_policy.py": "17cf04f3b4b213c13cf4b797aa99fc951be8d29ba0cc9a1357113230b928fd17"
+        },
+        "metrics": {
+          "absolute_rmse": 2.453546518579816e-06,
+          "finite": true,
+          "normalized_max": 5.716895566749671e-06,
+          "normalized_rmse": 1.6538456044035633e-06,
+          "passed": true,
+          "shape": [
+            1,
+            1058,
+            64
+          ]
+        },
+        "policy_id": "qmi-numeric-gates-v1",
+        "policy_sha256": "6e3c72b9321b6cdc105f8ddf38aaea9c151ab912e2bb9c36dd57654b31d4c793",
+        "raw": {
+          "bytes": 589824,
+          "sha256": "8573ae47c704453897ac6a00ea4ac9a164103390e3f8fca46a0d95919ec2b9f3"
+        },
+        "region": "full-valid-joint",
+        "scope": "One already-selected valid tensor region; not suite or profile verification"
+      },
+      {
+        "boundary": "fixed-step-target",
+        "compute_dtype": "float32",
+        "cycle": 0,
+        "id": "generate",
+        "metric_code_sha256": {
+          "contracts.py": "8845f80b45e2c204edc923c6a582c08cbbdf1ac2b82087fddc85750e7227c601",
+          "evaluation.py": "d44f3f0fc7364178959e4a2913244e9b50b46a6876c4aa222aa4e05c2dae4b85",
+          "numeric_policy.py": "17cf04f3b4b213c13cf4b797aa99fc951be8d29ba0cc9a1357113230b928fd17"
+        },
+        "metrics": {
+          "absolute_rmse": 2.2913281695491132e-06,
+          "finite": true,
+          "normalized_max": 2.0566880392575036e-06,
+          "normalized_rmse": 1.5315381356890632e-06,
+          "passed": true,
+          "shape": [
+            1,
+            1024,
+            64
+          ]
+        },
+        "policy_id": "qmi-numeric-gates-v1",
+        "policy_sha256": "6e3c72b9321b6cdc105f8ddf38aaea9c151ab912e2bb9c36dd57654b31d4c793",
+        "raw": {
+          "bytes": 589824,
+          "sha256": "8573ae47c704453897ac6a00ea4ac9a164103390e3f8fca46a0d95919ec2b9f3"
+        },
+        "region": "target",
+        "scope": "One already-selected valid tensor region; not suite or profile verification"
+      },
+      {
+        "boundary": "component",
+        "compute_dtype": "float32",
+        "cycle": 0,
+        "id": "edit",
+        "metric_code_sha256": {
+          "contracts.py": "8845f80b45e2c204edc923c6a582c08cbbdf1ac2b82087fddc85750e7227c601",
+          "evaluation.py": "d44f3f0fc7364178959e4a2913244e9b50b46a6876c4aa222aa4e05c2dae4b85",
+          "numeric_policy.py": "17cf04f3b4b213c13cf4b797aa99fc951be8d29ba0cc9a1357113230b928fd17"
+        },
+        "metrics": {
+          "absolute_rmse": 5.854722162747528e-06,
+          "finite": true,
+          "normalized_max": 4.046754843583703e-05,
+          "normalized_rmse": 3.4055265983199645e-06,
+          "passed": true,
+          "shape": [
+            1,
+            2080,
+            64
+          ]
+        },
+        "policy_id": "qmi-numeric-gates-v1",
+        "policy_sha256": "6e3c72b9321b6cdc105f8ddf38aaea9c151ab912e2bb9c36dd57654b31d4c793",
+        "raw": {
+          "bytes": 589824,
+          "sha256": "63ea8effbfe1d52ea379d1fc148d2744c94e6e4f0fd7bc403927b016312e638e"
+        },
+        "region": "full-valid-joint",
+        "scope": "One already-selected valid tensor region; not suite or profile verification"
+      },
+      {
+        "boundary": "fixed-step-target",
+        "compute_dtype": "float32",
+        "cycle": 0,
+        "id": "edit",
+        "metric_code_sha256": {
+          "contracts.py": "8845f80b45e2c204edc923c6a582c08cbbdf1ac2b82087fddc85750e7227c601",
+          "evaluation.py": "d44f3f0fc7364178959e4a2913244e9b50b46a6876c4aa222aa4e05c2dae4b85",
+          "numeric_policy.py": "17cf04f3b4b213c13cf4b797aa99fc951be8d29ba0cc9a1357113230b928fd17"
+        },
+        "metrics": {
+          "absolute_rmse": 2.08833003730793e-06,
+          "finite": true,
+          "normalized_max": 1.861035322663114e-06,
+          "normalized_rmse": 9.607345645633156e-07,
+          "passed": true,
+          "shape": [
+            1,
+            1024,
+            64
+          ]
+        },
+        "policy_id": "qmi-numeric-gates-v1",
+        "policy_sha256": "6e3c72b9321b6cdc105f8ddf38aaea9c151ab912e2bb9c36dd57654b31d4c793",
+        "raw": {
+          "bytes": 589824,
+          "sha256": "63ea8effbfe1d52ea379d1fc148d2744c94e6e4f0fd7bc403927b016312e638e"
+        },
+        "region": "target",
+        "scope": "One already-selected valid tensor region; not suite or profile verification"
+      },
+      {
+        "boundary": "component",
+        "compute_dtype": "float32",
+        "cycle": 1,
+        "id": "generate",
+        "metric_code_sha256": {
+          "contracts.py": "8845f80b45e2c204edc923c6a582c08cbbdf1ac2b82087fddc85750e7227c601",
+          "evaluation.py": "d44f3f0fc7364178959e4a2913244e9b50b46a6876c4aa222aa4e05c2dae4b85",
+          "numeric_policy.py": "17cf04f3b4b213c13cf4b797aa99fc951be8d29ba0cc9a1357113230b928fd17"
+        },
+        "metrics": {
+          "absolute_rmse": 2.453546518579816e-06,
+          "finite": true,
+          "normalized_max": 5.716895566749671e-06,
+          "normalized_rmse": 1.6538456044035633e-06,
+          "passed": true,
+          "shape": [
+            1,
+            1058,
+            64
+          ]
+        },
+        "policy_id": "qmi-numeric-gates-v1",
+        "policy_sha256": "6e3c72b9321b6cdc105f8ddf38aaea9c151ab912e2bb9c36dd57654b31d4c793",
+        "raw": {
+          "bytes": 589824,
+          "sha256": "8573ae47c704453897ac6a00ea4ac9a164103390e3f8fca46a0d95919ec2b9f3"
+        },
+        "region": "full-valid-joint",
+        "scope": "One already-selected valid tensor region; not suite or profile verification"
+      },
+      {
+        "boundary": "fixed-step-target",
+        "compute_dtype": "float32",
+        "cycle": 1,
+        "id": "generate",
+        "metric_code_sha256": {
+          "contracts.py": "8845f80b45e2c204edc923c6a582c08cbbdf1ac2b82087fddc85750e7227c601",
+          "evaluation.py": "d44f3f0fc7364178959e4a2913244e9b50b46a6876c4aa222aa4e05c2dae4b85",
+          "numeric_policy.py": "17cf04f3b4b213c13cf4b797aa99fc951be8d29ba0cc9a1357113230b928fd17"
+        },
+        "metrics": {
+          "absolute_rmse": 2.2913281695491132e-06,
+          "finite": true,
+          "normalized_max": 2.0566880392575036e-06,
+          "normalized_rmse": 1.5315381356890632e-06,
+          "passed": true,
+          "shape": [
+            1,
+            1024,
+            64
+          ]
+        },
+        "policy_id": "qmi-numeric-gates-v1",
+        "policy_sha256": "6e3c72b9321b6cdc105f8ddf38aaea9c151ab912e2bb9c36dd57654b31d4c793",
+        "raw": {
+          "bytes": 589824,
+          "sha256": "8573ae47c704453897ac6a00ea4ac9a164103390e3f8fca46a0d95919ec2b9f3"
+        },
+        "region": "target",
+        "scope": "One already-selected valid tensor region; not suite or profile verification"
+      },
+      {
+        "boundary": "component",
+        "compute_dtype": "float32",
+        "cycle": 1,
+        "id": "edit",
+        "metric_code_sha256": {
+          "contracts.py": "8845f80b45e2c204edc923c6a582c08cbbdf1ac2b82087fddc85750e7227c601",
+          "evaluation.py": "d44f3f0fc7364178959e4a2913244e9b50b46a6876c4aa222aa4e05c2dae4b85",
+          "numeric_policy.py": "17cf04f3b4b213c13cf4b797aa99fc951be8d29ba0cc9a1357113230b928fd17"
+        },
+        "metrics": {
+          "absolute_rmse": 5.854722162747528e-06,
+          "finite": true,
+          "normalized_max": 4.046754843583703e-05,
+          "normalized_rmse": 3.4055265983199645e-06,
+          "passed": true,
+          "shape": [
+            1,
+            2080,
+            64
+          ]
+        },
+        "policy_id": "qmi-numeric-gates-v1",
+        "policy_sha256": "6e3c72b9321b6cdc105f8ddf38aaea9c151ab912e2bb9c36dd57654b31d4c793",
+        "raw": {
+          "bytes": 589824,
+          "sha256": "63ea8effbfe1d52ea379d1fc148d2744c94e6e4f0fd7bc403927b016312e638e"
+        },
+        "region": "full-valid-joint",
+        "scope": "One already-selected valid tensor region; not suite or profile verification"
+      },
+      {
+        "boundary": "fixed-step-target",
+        "compute_dtype": "float32",
+        "cycle": 1,
+        "id": "edit",
+        "metric_code_sha256": {
+          "contracts.py": "8845f80b45e2c204edc923c6a582c08cbbdf1ac2b82087fddc85750e7227c601",
+          "evaluation.py": "d44f3f0fc7364178959e4a2913244e9b50b46a6876c4aa222aa4e05c2dae4b85",
+          "numeric_policy.py": "17cf04f3b4b213c13cf4b797aa99fc951be8d29ba0cc9a1357113230b928fd17"
+        },
+        "metrics": {
+          "absolute_rmse": 2.08833003730793e-06,
+          "finite": true,
+          "normalized_max": 1.861035322663114e-06,
+          "normalized_rmse": 9.607345645633156e-07,
+          "passed": true,
+          "shape": [
+            1,
+            1024,
+            64
+          ]
+        },
+        "policy_id": "qmi-numeric-gates-v1",
+        "policy_sha256": "6e3c72b9321b6cdc105f8ddf38aaea9c151ab912e2bb9c36dd57654b31d4c793",
+        "raw": {
+          "bytes": 589824,
+          "sha256": "63ea8effbfe1d52ea379d1fc148d2744c94e6e4f0fd7bc403927b016312e638e"
+        },
+        "region": "target",
+        "scope": "One already-selected valid tensor region; not suite or profile verification"
+      }
+    ],
+    "observations": {
+      "dtype": "fp32",
+      "before": {
+        "available_app_bytes": 6429063400,
+        "footprint_bytes": 13387544,
+        "kernel_peak_footprint_bytes": 15075072,
+        "rss_bytes": 95240192,
+        "status": "ok"
+      },
+      "preflight_required_available_bytes": 4294967296,
+      "asset_verification_seconds": 2.923880541,
+      "asset_verification_before": {
+        "available_app_bytes": 6430947680,
+        "footprint_bytes": 11503264,
+        "kernel_peak_footprint_bytes": 11503264,
+        "rss_bytes": 79101952,
+        "status": "ok"
+      },
+      "events": [
+        {
+          "cycle": 0,
+          "memory": {
+            "available_app_bytes": 5665137736,
+            "footprint_bytes": 777313208,
+            "kernel_peak_footprint_bytes": 777313208,
+            "rss_bytes": 3857022976,
+            "status": "ok"
+          },
+          "phase": "loaded",
+          "seconds": 29.428579667
+        },
+        {
+          "cycle": 0,
+          "memory": {
+            "available_app_bytes": 6137100040,
+            "footprint_bytes": 305350904,
+            "kernel_peak_footprint_bytes": 1570233656,
+            "rss_bytes": 92110848,
+            "status": "ok"
+          },
+          "phase": "released",
+          "sample_delay_ms": 500
+        },
+        {
+          "cycle": 1,
+          "memory": {
+            "available_app_bytes": 5659157192,
+            "footprint_bytes": 783293752,
+            "kernel_peak_footprint_bytes": 1570233656,
+            "rss_bytes": 6253510656,
+            "status": "ok"
+          },
+          "phase": "loaded",
+          "seconds": 10.283066834
+        },
+        {
+          "cycle": 1,
+          "memory": {
+            "available_app_bytes": 6162953968,
+            "footprint_bytes": 279496976,
+            "kernel_peak_footprint_bytes": 1571167568,
+            "rss_bytes": 69124096,
+            "status": "ok"
+          },
+          "phase": "released",
+          "sample_delay_ms": 500
+        }
+      ],
+      "cases": [
+        {
+          "comparison_elements": 67712,
+          "cycle": 0,
+          "finite": true,
+          "id": "generate",
+          "memory_after_call": {
+            "available_app_bytes": 5397029624,
+            "footprint_bytes": 1045421320,
+            "kernel_peak_footprint_bytes": 1570233656,
+            "rss_bytes": 1413791744,
+            "status": "ok"
+          },
+          "normalized_max": 5.716895566749671e-06,
+          "normalized_rmse": 1.6538456044035144e-06,
+          "raw_output": {
+            "bytes": 589824,
+            "dtype": "float32",
+            "path": "outputs/cycle-0-generate.f32",
+            "sha256": "8573ae47c704453897ac6a00ea4ac9a164103390e3f8fca46a0d95919ec2b9f3",
+            "shape": [
+              1,
+              2304,
+              64
+            ]
+          },
+          "seconds": 25.385423
+        },
+        {
+          "comparison_elements": 133120,
+          "cycle": 0,
+          "finite": true,
+          "id": "edit",
+          "memory_after_call": {
+            "available_app_bytes": 5386592944,
+            "footprint_bytes": 1055858000,
+            "kernel_peak_footprint_bytes": 1570233656,
+            "rss_bytes": 1409073152,
+            "status": "ok"
+          },
+          "normalized_max": 4.046754843583703e-05,
+          "normalized_rmse": 3.4055265983198388e-06,
+          "raw_output": {
+            "bytes": 589824,
+            "dtype": "float32",
+            "path": "outputs/cycle-0-edit.f32",
+            "sha256": "63ea8effbfe1d52ea379d1fc148d2744c94e6e4f0fd7bc403927b016312e638e",
+            "shape": [
+              1,
+              2304,
+              64
+            ]
+          },
+          "seconds": 26.228828916999998
+        },
+        {
+          "comparison_elements": 67712,
+          "cycle": 1,
+          "finite": true,
+          "id": "generate",
+          "memory_after_call": {
+            "available_app_bytes": 5404992176,
+            "footprint_bytes": 1037458768,
+            "kernel_peak_footprint_bytes": 1571167568,
+            "rss_bytes": 5317083136,
+            "status": "ok"
+          },
+          "normalized_max": 5.716895566749671e-06,
+          "normalized_rmse": 1.6538456044035144e-06,
+          "raw_output": {
+            "bytes": 589824,
+            "dtype": "float32",
+            "path": "outputs/cycle-1-generate.f32",
+            "sha256": "8573ae47c704453897ac6a00ea4ac9a164103390e3f8fca46a0d95919ec2b9f3",
+            "shape": [
+              1,
+              2304,
+              64
+            ]
+          },
+          "seconds": 26.912397667
+        },
+        {
+          "comparison_elements": 133120,
+          "cycle": 1,
+          "finite": true,
+          "id": "edit",
+          "memory_after_call": {
+            "available_app_bytes": 5415789208,
+            "footprint_bytes": 1026661736,
+            "kernel_peak_footprint_bytes": 1571167568,
+            "rss_bytes": 5171265536,
+            "status": "ok"
+          },
+          "normalized_max": 4.046754843583703e-05,
+          "normalized_rmse": 3.4055265983198388e-06,
+          "raw_output": {
+            "bytes": 589824,
+            "dtype": "float32",
+            "path": "outputs/cycle-1-edit.f32",
+            "sha256": "63ea8effbfe1d52ea379d1fc148d2744c94e6e4f0fd7bc403927b016312e638e",
+            "shape": [
+              1,
+              2304,
+              64
+            ]
+          },
+          "seconds": 34.310819125
+        }
+      ],
+      "os": "Version 27.0.1 (Build 24A446)",
+      "architecture": "h18p",
+      "thermal_state": 1
+    },
+    "limitations": [
+      "Two fixed step0 inputs and two component load/call/release cycles only",
+      "Lifetime peak and point observations are not per-phase production calibration",
+      "No clean latency, full native pipeline, normal UI or human-quality acceptance"
+    ]
+  },
+  "boundary": {
+    "complete": true,
+    "component_file": {
+      "bytes": 18711,
+      "sha256": "1ec5f789e1b62e90160212cb980a5d7cdfa4b9fce79ebc3a3026a2e3e1c60309"
+    },
+    "profile_sha256": "bb7ba7f1fd1f5a0cc48c9aebda37c957f98dc1aa952263e669f2e7237cb198e6",
+    "rows": [
+      {
+        "byte_identical": true,
+        "case": "e10-20261018-step0",
+        "image_index": 703,
+        "joint_row": 711,
+        "norm_statistics": {
+          "max": [
+            [
+              219.52191162109375
+            ]
+          ],
+          "mean": [
+            [
+              -0.02560776471727877
+            ]
+          ],
+          "min": [
+            [
+              -330.8003845214844
+            ]
+          ],
+          "variance": [
+            [
+              361.7404115481806
+            ]
+          ]
+        },
+        "route": "original",
+        "source_input": {
+          "bytes": 5244478,
+          "sha256": "3ed7e2e2add22a497dca5d639fb5a7a22fef34332d006fcf1ce9f13f502871b2"
+        }
+      },
+      {
+        "byte_identical": true,
+        "case": "e10-20261018-step3",
+        "image_index": 703,
+        "joint_row": 711,
+        "norm_statistics": {
+          "max": [
+            [
+              219.52191162109375
+            ]
+          ],
+          "mean": [
+            [
+              -0.02560776471727877
+            ]
+          ],
+          "min": [
+            [
+              -330.8003845214844
+            ]
+          ],
+          "variance": [
+            [
+              361.7404115481806
+            ]
+          ]
+        },
+        "route": "original",
+        "source_input": {
+          "bytes": 5244478,
+          "sha256": "69802c1bc68c778edb59d0e790d0d78a22834c633546ff3c97af29c8cf4c45d4"
+        }
+      },
+      {
+        "byte_identical": true,
+        "case": "e11-20261018-step0",
+        "image_index": 703,
+        "joint_row": 711,
+        "norm_statistics": {
+          "max": [
+            [
+              219.52191162109375
+            ]
+          ],
+          "mean": [
+            [
+              -0.02560776471727877
+            ]
+          ],
+          "min": [
+            [
+              -330.8003845214844
+            ]
+          ],
+          "variance": [
+            [
+              361.7404115481806
+            ]
+          ]
+        },
+        "route": "original",
+        "source_input": {
+          "bytes": 5391943,
+          "sha256": "e6100b5fbe0be7a886f0d09069393b40bf26e37021d929fcdec866f4cbd15a5d"
+        }
+      },
+      {
+        "byte_identical": true,
+        "case": "e12-20261018-step0",
+        "image_index": 703,
+        "joint_row": 711,
+        "norm_statistics": {
+          "max": [
+            [
+              237.36862182617188
+            ]
+          ],
+          "mean": [
+            [
+              -0.10203227392230474
+            ]
+          ],
+          "min": [
+            [
+              -330.2913818359375
+            ]
+          ],
+          "variance": [
+            [
+              350.41098326563065
+            ]
+          ]
+        },
+        "route": "original",
+        "source_input": {
+          "bytes": 5244478,
+          "sha256": "10768733394d48d58d32131637a150b06d96e74aede2177a0d945f8b2b89a5bc"
+        }
+      },
+      {
+        "byte_identical": true,
+        "case": "g08-20261021-step0",
+        "image_index": 677,
+        "joint_row": 711,
+        "norm_statistics": {
+          "max": [
+            [
+              343.8156433105469
+            ]
+          ],
+          "mean": [
+            [
+              -0.037379052862092976
+            ]
+          ],
+          "min": [
+            [
+              -459.0489196777344
+            ]
+          ],
+          "variance": [
+            [
+              540.753688514653
+            ]
+          ]
+        },
+        "route": "original",
+        "source_input": {
+          "bytes": 820544,
+          "sha256": "bee9f4ba9b1879410438a05a28049d18e319cfeae15e477f11edd89cb14d3759"
+        }
+      },
+      {
+        "case": "e10-20261018-step0",
+        "coreai_file": {
+          "bytes": 590094,
+          "sha256": "a3078ab1c98809be6d63de5d6b3a350663fc1620cf2edefcbb4e2dfe12ad1d76"
+        },
+        "coreai_vs_source": {
+          "boundary": "component",
+          "compute_dtype": "float32",
+          "metric_code_sha256": {
+            "contracts.py": "8845f80b45e2c204edc923c6a582c08cbbdf1ac2b82087fddc85750e7227c601",
+            "evaluation.py": "d44f3f0fc7364178959e4a2913244e9b50b46a6876c4aa222aa4e05c2dae4b85",
+            "numeric_policy.py": "17cf04f3b4b213c13cf4b797aa99fc951be8d29ba0cc9a1357113230b928fd17"
+          },
+          "metrics": {
+            "absolute_rmse": 5.980780330571175e-05,
+            "finite": true,
+            "normalized_max": 0.0010242037024717873,
+            "normalized_rmse": 3.9050330015256795e-05,
+            "passed": false,
+            "shape": [
+              1,
+              2080,
+              64
+            ]
+          },
+          "policy_id": "qmi-numeric-gates-v1",
+          "policy_sha256": "6e3c72b9321b6cdc105f8ddf38aaea9c151ab912e2bb9c36dd57654b31d4c793",
+          "scope": "One already-selected valid tensor region; not suite or profile verification"
+        },
+        "coreai_vs_wrapper": {
+          "boundary": "component",
+          "compute_dtype": "float32",
+          "metric_code_sha256": {
+            "contracts.py": "8845f80b45e2c204edc923c6a582c08cbbdf1ac2b82087fddc85750e7227c601",
+            "evaluation.py": "d44f3f0fc7364178959e4a2913244e9b50b46a6876c4aa222aa4e05c2dae4b85",
+            "numeric_policy.py": "17cf04f3b4b213c13cf4b797aa99fc951be8d29ba0cc9a1357113230b928fd17"
+          },
+          "metrics": {
+            "absolute_rmse": 2.2001533008989577e-05,
+            "finite": true,
+            "normalized_max": 0.00035732460630094474,
+            "normalized_rmse": 1.436546921119528e-05,
+            "passed": true,
+            "shape": [
+              1,
+              2080,
+              64
+            ]
+          },
+          "policy_id": "qmi-numeric-gates-v1",
+          "policy_sha256": "6e3c72b9321b6cdc105f8ddf38aaea9c151ab912e2bb9c36dd57654b31d4c793",
+          "scope": "One already-selected valid tensor region; not suite or profile verification"
+        },
+        "norm_statistics": {
+          "max": [
+            [
+              219.413818359375
+            ]
+          ],
+          "mean": [
+            [
+              -0.02578017275482125
+            ]
+          ],
+          "min": [
+            [
+              -330.7254638671875
+            ]
+          ],
+          "variance": [
+            [
+              361.7291562348139
+            ]
+          ]
+        },
+        "route": "wrapper",
+        "source": {
+          "boundary": "component",
+          "compute_dtype": "float32",
+          "metric_code_sha256": {
+            "contracts.py": "8845f80b45e2c204edc923c6a582c08cbbdf1ac2b82087fddc85750e7227c601",
+            "evaluation.py": "d44f3f0fc7364178959e4a2913244e9b50b46a6876c4aa222aa4e05c2dae4b85",
+            "numeric_policy.py": "17cf04f3b4b213c13cf4b797aa99fc951be8d29ba0cc9a1357113230b928fd17"
+          },
+          "metrics": {
+            "absolute_rmse": 3.8497933681975336e-05,
+            "finite": true,
+            "normalized_max": 0.0006668782996292753,
+            "normalized_rmse": 2.5136469358389456e-05,
+            "passed": true,
+            "shape": [
+              1,
+              2080,
+              64
+            ]
+          },
+          "policy_id": "qmi-numeric-gates-v1",
+          "policy_sha256": "6e3c72b9321b6cdc105f8ddf38aaea9c151ab912e2bb9c36dd57654b31d4c793",
+          "scope": "One already-selected valid tensor region; not suite or profile verification"
+        }
+      },
+      {
+        "case": "e10-20261018-step3",
+        "coreai_file": {
+          "bytes": 590094,
+          "sha256": "682440cc37d64d3ae8f32cbc7e13ca7b96a1aa96fb9b06e82ac212e7c546f909"
+        },
+        "coreai_vs_source": {
+          "boundary": "component",
+          "compute_dtype": "float32",
+          "metric_code_sha256": {
+            "contracts.py": "8845f80b45e2c204edc923c6a582c08cbbdf1ac2b82087fddc85750e7227c601",
+            "evaluation.py": "d44f3f0fc7364178959e4a2913244e9b50b46a6876c4aa222aa4e05c2dae4b85",
+            "numeric_policy.py": "17cf04f3b4b213c13cf4b797aa99fc951be8d29ba0cc9a1357113230b928fd17"
+          },
+          "metrics": {
+            "absolute_rmse": 5.956120550396439e-05,
+            "finite": true,
+            "normalized_max": 0.0012036104947630213,
+            "normalized_rmse": 4.276154199111805e-05,
+            "passed": false,
+            "shape": [
+              1,
+              2080,
+              64
+            ]
+          },
+          "policy_id": "qmi-numeric-gates-v1",
+          "policy_sha256": "6e3c72b9321b6cdc105f8ddf38aaea9c151ab912e2bb9c36dd57654b31d4c793",
+          "scope": "One already-selected valid tensor region; not suite or profile verification"
+        },
+        "coreai_vs_wrapper": {
+          "boundary": "component",
+          "compute_dtype": "float32",
+          "metric_code_sha256": {
+            "contracts.py": "8845f80b45e2c204edc923c6a582c08cbbdf1ac2b82087fddc85750e7227c601",
+            "evaluation.py": "d44f3f0fc7364178959e4a2913244e9b50b46a6876c4aa222aa4e05c2dae4b85",
+            "numeric_policy.py": "17cf04f3b4b213c13cf4b797aa99fc951be8d29ba0cc9a1357113230b928fd17"
+          },
+          "metrics": {
+            "absolute_rmse": 2.1917007190836397e-05,
+            "finite": true,
+            "normalized_max": 0.0004199167679027185,
+            "normalized_rmse": 1.5735157748157816e-05,
+            "passed": true,
+            "shape": [
+              1,
+              2080,
+              64
+            ]
+          },
+          "policy_id": "qmi-numeric-gates-v1",
+          "policy_sha256": "6e3c72b9321b6cdc105f8ddf38aaea9c151ab912e2bb9c36dd57654b31d4c793",
+          "scope": "One already-selected valid tensor region; not suite or profile verification"
+        },
+        "norm_statistics": {
+          "max": [
+            [
+              219.413818359375
+            ]
+          ],
+          "mean": [
+            [
+              -0.02578017275482125
+            ]
+          ],
+          "min": [
+            [
+              -330.7254638671875
+            ]
+          ],
+          "variance": [
+            [
+              361.7291562348139
+            ]
+          ]
+        },
+        "route": "wrapper",
+        "source": {
+          "boundary": "component",
+          "compute_dtype": "float32",
+          "metric_code_sha256": {
+            "contracts.py": "8845f80b45e2c204edc923c6a582c08cbbdf1ac2b82087fddc85750e7227c601",
+            "evaluation.py": "d44f3f0fc7364178959e4a2913244e9b50b46a6876c4aa222aa4e05c2dae4b85",
+            "numeric_policy.py": "17cf04f3b4b213c13cf4b797aa99fc951be8d29ba0cc9a1357113230b928fd17"
+          },
+          "metrics": {
+            "absolute_rmse": 3.8255696429689754e-05,
+            "finite": true,
+            "normalized_max": 0.0007836934373761693,
+            "normalized_rmse": 2.7465403956082786e-05,
+            "passed": true,
+            "shape": [
+              1,
+              2080,
+              64
+            ]
+          },
+          "policy_id": "qmi-numeric-gates-v1",
+          "policy_sha256": "6e3c72b9321b6cdc105f8ddf38aaea9c151ab912e2bb9c36dd57654b31d4c793",
+          "scope": "One already-selected valid tensor region; not suite or profile verification"
+        }
+      },
+      {
+        "case": "e11-20261018-step0",
+        "coreai_file": {
+          "bytes": 590094,
+          "sha256": "a3fb82e92caf16efd6de0d2a6ba3c489b2b2559a58cd6c4b59feb96c8c987b7d"
+        },
+        "coreai_vs_source": {
+          "boundary": "component",
+          "compute_dtype": "float32",
+          "metric_code_sha256": {
+            "contracts.py": "8845f80b45e2c204edc923c6a582c08cbbdf1ac2b82087fddc85750e7227c601",
+            "evaluation.py": "d44f3f0fc7364178959e4a2913244e9b50b46a6876c4aa222aa4e05c2dae4b85",
+            "numeric_policy.py": "17cf04f3b4b213c13cf4b797aa99fc951be8d29ba0cc9a1357113230b928fd17"
+          },
+          "metrics": {
+            "absolute_rmse": 6.0501347885011124e-05,
+            "finite": true,
+            "normalized_max": 0.0009598853585621338,
+            "normalized_rmse": 4.016034386891975e-05,
+            "passed": true,
+            "shape": [
+              1,
+              2089,
+              64
+            ]
+          },
+          "policy_id": "qmi-numeric-gates-v1",
+          "policy_sha256": "6e3c72b9321b6cdc105f8ddf38aaea9c151ab912e2bb9c36dd57654b31d4c793",
+          "scope": "One already-selected valid tensor region; not suite or profile verification"
+        },
+        "coreai_vs_wrapper": {
+          "boundary": "component",
+          "compute_dtype": "float32",
+          "metric_code_sha256": {
+            "contracts.py": "8845f80b45e2c204edc923c6a582c08cbbdf1ac2b82087fddc85750e7227c601",
+            "evaluation.py": "d44f3f0fc7364178959e4a2913244e9b50b46a6876c4aa222aa4e05c2dae4b85",
+            "numeric_policy.py": "17cf04f3b4b213c13cf4b797aa99fc951be8d29ba0cc9a1357113230b928fd17"
+          },
+          "metrics": {
+            "absolute_rmse": 2.672699284038272e-05,
+            "finite": true,
+            "normalized_max": 0.00033488465390343306,
+            "normalized_rmse": 1.7741186251074508e-05,
+            "passed": true,
+            "shape": [
+              1,
+              2089,
+              64
+            ]
+          },
+          "policy_id": "qmi-numeric-gates-v1",
+          "policy_sha256": "6e3c72b9321b6cdc105f8ddf38aaea9c151ab912e2bb9c36dd57654b31d4c793",
+          "scope": "One already-selected valid tensor region; not suite or profile verification"
+        },
+        "norm_statistics": {
+          "max": [
+            [
+              219.413818359375
+            ]
+          ],
+          "mean": [
+            [
+              -0.02578017275482125
+            ]
+          ],
+          "min": [
+            [
+              -330.7254638671875
+            ]
+          ],
+          "variance": [
+            [
+              361.7291562348139
+            ]
+          ]
+        },
+        "route": "wrapper",
+        "source": {
+          "boundary": "component",
+          "compute_dtype": "float32",
+          "metric_code_sha256": {
+            "contracts.py": "8845f80b45e2c204edc923c6a582c08cbbdf1ac2b82087fddc85750e7227c601",
+            "evaluation.py": "d44f3f0fc7364178959e4a2913244e9b50b46a6876c4aa222aa4e05c2dae4b85",
+            "numeric_policy.py": "17cf04f3b4b213c13cf4b797aa99fc951be8d29ba0cc9a1357113230b928fd17"
+          },
+          "metrics": {
+            "absolute_rmse": 3.900273204571065e-05,
+            "finite": true,
+            "normalized_max": 0.0006249994158506627,
+            "normalized_rmse": 2.5889722882870404e-05,
+            "passed": true,
+            "shape": [
+              1,
+              2089,
+              64
+            ]
+          },
+          "policy_id": "qmi-numeric-gates-v1",
+          "policy_sha256": "6e3c72b9321b6cdc105f8ddf38aaea9c151ab912e2bb9c36dd57654b31d4c793",
+          "scope": "One already-selected valid tensor region; not suite or profile verification"
+        }
+      },
+      {
+        "case": "e12-20261018-step0",
+        "coreai_file": {
+          "bytes": 590094,
+          "sha256": "dbfcc945e053b3740d2405f27ee8c55deb3e10279f00498494c38520b60b80ac"
+        },
+        "coreai_vs_source": {
+          "boundary": "component",
+          "compute_dtype": "float32",
+          "metric_code_sha256": {
+            "contracts.py": "8845f80b45e2c204edc923c6a582c08cbbdf1ac2b82087fddc85750e7227c601",
+            "evaluation.py": "d44f3f0fc7364178959e4a2913244e9b50b46a6876c4aa222aa4e05c2dae4b85",
+            "numeric_policy.py": "17cf04f3b4b213c13cf4b797aa99fc951be8d29ba0cc9a1357113230b928fd17"
+          },
+          "metrics": {
+            "absolute_rmse": 4.191976356121333e-06,
+            "finite": true,
+            "normalized_max": 3.8569957062193036e-05,
+            "normalized_rmse": 2.4383543033236193e-06,
+            "passed": true,
+            "shape": [
+              1,
+              2080,
+              64
+            ]
+          },
+          "policy_id": "qmi-numeric-gates-v1",
+          "policy_sha256": "6e3c72b9321b6cdc105f8ddf38aaea9c151ab912e2bb9c36dd57654b31d4c793",
+          "scope": "One already-selected valid tensor region; not suite or profile verification"
+        },
+        "coreai_vs_wrapper": {
+          "boundary": "component",
+          "compute_dtype": "float32",
+          "metric_code_sha256": {
+            "contracts.py": "8845f80b45e2c204edc923c6a582c08cbbdf1ac2b82087fddc85750e7227c601",
+            "evaluation.py": "d44f3f0fc7364178959e4a2913244e9b50b46a6876c4aa222aa4e05c2dae4b85",
+            "numeric_policy.py": "17cf04f3b4b213c13cf4b797aa99fc951be8d29ba0cc9a1357113230b928fd17"
+          },
+          "metrics": {
+            "absolute_rmse": 5.7847907676376415e-06,
+            "finite": true,
+            "normalized_max": 6.471753775750229e-05,
+            "normalized_rmse": 3.3648496735779997e-06,
+            "passed": true,
+            "shape": [
+              1,
+              2080,
+              64
+            ]
+          },
+          "policy_id": "qmi-numeric-gates-v1",
+          "policy_sha256": "6e3c72b9321b6cdc105f8ddf38aaea9c151ab912e2bb9c36dd57654b31d4c793",
+          "scope": "One already-selected valid tensor region; not suite or profile verification"
+        },
+        "norm_statistics": {
+          "max": [
+            [
+              237.3679656982422
+            ]
+          ],
+          "mean": [
+            [
+              -0.10202940869339727
+            ]
+          ],
+          "min": [
+            [
+              -330.291259765625
+            ]
+          ],
+          "variance": [
+            [
+              350.4115082521039
+            ]
+          ]
+        },
+        "route": "wrapper",
+        "source": {
+          "boundary": "component",
+          "compute_dtype": "float32",
+          "metric_code_sha256": {
+            "contracts.py": "8845f80b45e2c204edc923c6a582c08cbbdf1ac2b82087fddc85750e7227c601",
+            "evaluation.py": "d44f3f0fc7364178959e4a2913244e9b50b46a6876c4aa222aa4e05c2dae4b85",
+            "numeric_policy.py": "17cf04f3b4b213c13cf4b797aa99fc951be8d29ba0cc9a1357113230b928fd17"
+          },
+          "metrics": {
+            "absolute_rmse": 4.059683675880818e-06,
+            "finite": true,
+            "normalized_max": 2.614754628341675e-05,
+            "normalized_rmse": 2.3614033859617803e-06,
+            "passed": true,
+            "shape": [
+              1,
+              2080,
+              64
+            ]
+          },
+          "policy_id": "qmi-numeric-gates-v1",
+          "policy_sha256": "6e3c72b9321b6cdc105f8ddf38aaea9c151ab912e2bb9c36dd57654b31d4c793",
+          "scope": "One already-selected valid tensor region; not suite or profile verification"
+        }
+      },
+      {
+        "case": "g08-20261021-step0",
+        "coreai_file": {
+          "bytes": 590094,
+          "sha256": "7c8309447173aafbe6895813bbdee1a9ec63d12cf2abfa56e252ed62effa6e5b"
+        },
+        "coreai_vs_source": {
+          "boundary": "component",
+          "compute_dtype": "float32",
+          "metric_code_sha256": {
+            "contracts.py": "8845f80b45e2c204edc923c6a582c08cbbdf1ac2b82087fddc85750e7227c601",
+            "evaluation.py": "d44f3f0fc7364178959e4a2913244e9b50b46a6876c4aa222aa4e05c2dae4b85",
+            "numeric_policy.py": "17cf04f3b4b213c13cf4b797aa99fc951be8d29ba0cc9a1357113230b928fd17"
+          },
+          "metrics": {
+            "absolute_rmse": 3.98184885276625e-06,
+            "finite": true,
+            "normalized_max": 5.41187827279199e-06,
+            "normalized_rmse": 2.6840180826726833e-06,
+            "passed": true,
+            "shape": [
+              1,
+              1058,
+              64
+            ]
+          },
+          "policy_id": "qmi-numeric-gates-v1",
+          "policy_sha256": "6e3c72b9321b6cdc105f8ddf38aaea9c151ab912e2bb9c36dd57654b31d4c793",
+          "scope": "One already-selected valid tensor region; not suite or profile verification"
+        },
+        "coreai_vs_wrapper": {
+          "boundary": "component",
+          "compute_dtype": "float32",
+          "metric_code_sha256": {
+            "contracts.py": "8845f80b45e2c204edc923c6a582c08cbbdf1ac2b82087fddc85750e7227c601",
+            "evaluation.py": "d44f3f0fc7364178959e4a2913244e9b50b46a6876c4aa222aa4e05c2dae4b85",
+            "numeric_policy.py": "17cf04f3b4b213c13cf4b797aa99fc951be8d29ba0cc9a1357113230b928fd17"
+          },
+          "metrics": {
+            "absolute_rmse": 3.007253439542123e-06,
+            "finite": true,
+            "normalized_max": 8.645061588743404e-06,
+            "normalized_rmse": 2.0270793513913756e-06,
+            "passed": true,
+            "shape": [
+              1,
+              1058,
+              64
+            ]
+          },
+          "policy_id": "qmi-numeric-gates-v1",
+          "policy_sha256": "6e3c72b9321b6cdc105f8ddf38aaea9c151ab912e2bb9c36dd57654b31d4c793",
+          "scope": "One already-selected valid tensor region; not suite or profile verification"
+        },
+        "norm_statistics": {
+          "max": [
+            [
+              343.8158264160156
+            ]
+          ],
+          "mean": [
+            [
+              -0.03737951421362595
+            ]
+          ],
+          "min": [
+            [
+              -459.0491943359375
+            ]
+          ],
+          "variance": [
+            [
+              540.7539334171369
+            ]
+          ]
+        },
+        "route": "wrapper",
+        "source": {
+          "boundary": "component",
+          "compute_dtype": "float32",
+          "metric_code_sha256": {
+            "contracts.py": "8845f80b45e2c204edc923c6a582c08cbbdf1ac2b82087fddc85750e7227c601",
+            "evaluation.py": "d44f3f0fc7364178959e4a2913244e9b50b46a6876c4aa222aa4e05c2dae4b85",
+            "numeric_policy.py": "17cf04f3b4b213c13cf4b797aa99fc951be8d29ba0cc9a1357113230b928fd17"
+          },
+          "metrics": {
+            "absolute_rmse": 2.39276083594882e-06,
+            "finite": true,
+            "normalized_max": 5.891191163296917e-06,
+            "normalized_rmse": 1.6128722080286977e-06,
+            "passed": true,
+            "shape": [
+              1,
+              1058,
+              64
+            ]
+          },
+          "policy_id": "qmi-numeric-gates-v1",
+          "policy_sha256": "6e3c72b9321b6cdc105f8ddf38aaea9c151ab912e2bb9c36dd57654b31d4c793",
+          "scope": "One already-selected valid tensor region; not suite or profile verification"
+        }
+      }
+    ],
+    "scope": "G16 original replay, Torch wrapper and saved Core AI output at identical effective weights and inputs. Joint token711 is tracked; not a new accepted candidate.",
+    "script": {
+      "bytes": 7014,
+      "sha256": "dbc87efb828f75f13f808b118c50132dd56d85fde2b60a281f35f365ab76ebc3"
+    },
+    "verified": false
+  },
+  "standalone_rope": {
+    "complete": true,
+    "metal_source": "\n    const uint offset = id * 2;\n    const uint frequency = (id / (32 * 64)) * 64 + id % 64;\n    const float a = x[offset];\n    const float b = x[offset + 1];\n    const float co = c[frequency];\n    const float si = s[frequency];\n    const float r1 = fma(a, co, -(b * si));\n    const float r2 = fma(-b, si, a * co);\n    const float i1 = fma(b, co, a * si);\n    const float i2 = fma(a, si, b * co);\n    first_first[offset] = r1; first_first[offset + 1] = i1;\n    first_second[offset] = r1; first_second[offset + 1] = i2;\n    second_first[offset] = r2; second_first[offset + 1] = i1;\n    second_second[offset] = r2; second_second[offset + 1] = i2;\n    natural[offset] = a * co - b * si;\n    natural[offset + 1] = a * si + b * co;\n",
+    "rows": [
+      {
+        "absolute_rmse": 4.4252699776168284e-08,
+        "different_elements": 1219625,
+        "max_abs_error": 1.9073486328125e-06,
+        "mode": "first_first",
+        "tensor": "block-0-query"
+      },
+      {
+        "absolute_rmse": 0.0,
+        "different_elements": 0,
+        "max_abs_error": 0.0,
+        "mode": "first_second",
+        "tensor": "block-0-query"
+      },
+      {
+        "absolute_rmse": 6.283730351944638e-08,
+        "different_elements": 2431900,
+        "max_abs_error": 1.9073486328125e-06,
+        "mode": "second_first",
+        "tensor": "block-0-query"
+      },
+      {
+        "absolute_rmse": 4.461194095884355e-08,
+        "different_elements": 1212275,
+        "max_abs_error": 1.9073486328125e-06,
+        "mode": "second_second",
+        "tensor": "block-0-query"
+      },
+      {
+        "absolute_rmse": 4.66577192904849e-08,
+        "different_elements": 1602643,
+        "max_abs_error": 1.9073486328125e-06,
+        "mode": "natural",
+        "tensor": "block-0-query"
+      },
+      {
+        "absolute_rmse": 3.149181803647544e-08,
+        "different_elements": 1210820,
+        "max_abs_error": 1.9073486328125e-06,
+        "mode": "first_first",
+        "tensor": "block-0-key"
+      },
+      {
+        "absolute_rmse": 0.0,
+        "different_elements": 0,
+        "max_abs_error": 0.0,
+        "mode": "first_second",
+        "tensor": "block-0-key"
+      },
+      {
+        "absolute_rmse": 4.397500919726553e-08,
+        "different_elements": 2428156,
+        "max_abs_error": 1.9073486328125e-06,
+        "mode": "second_first",
+        "tensor": "block-0-key"
+      },
+      {
+        "absolute_rmse": 3.069310721737225e-08,
+        "different_elements": 1217336,
+        "max_abs_error": 1.9073486328125e-06,
+        "mode": "second_second",
+        "tensor": "block-0-key"
+      },
+      {
+        "absolute_rmse": 3.5375024793388324e-08,
+        "different_elements": 1597411,
+        "max_abs_error": 1.9073486328125e-06,
+        "mode": "natural",
+        "tensor": "block-0-key"
+      },
+      {
+        "absolute_rmse": 4.861284694899357e-08,
+        "different_elements": 1210295,
+        "max_abs_error": 9.5367431640625e-07,
+        "mode": "first_first",
+        "tensor": "block-17-query"
+      },
+      {
+        "absolute_rmse": 0.0,
+        "different_elements": 0,
+        "max_abs_error": 0.0,
+        "mode": "first_second",
+        "tensor": "block-17-query"
+      },
+      {
+        "absolute_rmse": 6.948820945366613e-08,
+        "different_elements": 2426567,
+        "max_abs_error": 9.5367431640625e-07,
+        "mode": "second_first",
+        "tensor": "block-17-query"
+      },
+      {
+        "absolute_rmse": 4.9652818294536937e-08,
+        "different_elements": 1216272,
+        "max_abs_error": 9.5367431640625e-07,
+        "mode": "second_second",
+        "tensor": "block-17-query"
+      },
+      {
+        "absolute_rmse": 5.4235108843043776e-08,
+        "different_elements": 1604638,
+        "max_abs_error": 9.5367431640625e-07,
+        "mode": "natural",
+        "tensor": "block-17-query"
+      },
+      {
+        "absolute_rmse": 5.350123538363876e-08,
+        "different_elements": 1208568,
+        "max_abs_error": 1.9073486328125e-06,
+        "mode": "first_first",
+        "tensor": "block-17-key"
+      },
+      {
+        "absolute_rmse": 0.0,
+        "different_elements": 0,
+        "max_abs_error": 0.0,
+        "mode": "first_second",
+        "tensor": "block-17-key"
+      },
+      {
+        "absolute_rmse": 7.496262106928705e-08,
+        "different_elements": 2425723,
+        "max_abs_error": 1.9073486328125e-06,
+        "mode": "second_first",
+        "tensor": "block-17-key"
+      },
+      {
+        "absolute_rmse": 5.2507260164685795e-08,
+        "different_elements": 1217155,
+        "max_abs_error": 9.5367431640625e-07,
+        "mode": "second_second",
+        "tensor": "block-17-key"
+      },
+      {
+        "absolute_rmse": 5.725628085002319e-08,
+        "different_elements": 1599513,
+        "max_abs_error": 9.5367431640625e-07,
+        "mode": "natural",
+        "tensor": "block-17-key"
+      }
+    ],
+    "scope": "Actual Core AI custom Metal arithmetic versus source MPS complex multiplication on four captured normed Q/K tensors. TorchMetalKernel torch_defn is not evidence of Metal execution. No full-model or device acceptance.",
+    "script": {
+      "bytes": 6110,
+      "sha256": "3ab2e3aa2fe2e217e11605c6e52a751f1dec276e7d3b71627c8b17d82f4906c4"
+    },
+    "verified": false
+  },
+  "remaining": [
+    "Resolve full-joint max error without changing the frozen gate",
+    "Revalidate the adopted implementation over all cases",
+    "A1 comparison and human review",
+    "Final-asset physical calibration and normal Models UI flows"
+  ]
+}
