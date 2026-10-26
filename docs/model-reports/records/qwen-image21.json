@@ -54,8 +54,8 @@
       "variants": [],
       "evidence": [],
       "note": {
-        "en": "Native demo is not provided for this platform.",
-        "ja": "このOSのネイティブデモは未提供です。"
+        "en": "Earlier non-FMA G16 component execution passed; this is not normal Models acceptance. The new FMA attempt was terminated by iOS memory pressure before a final diagnostic record. Full pipeline, device budget and human/UI acceptance remain pending.",
+        "ja": "旧非FMA G16の部品実行は合格したが通常Modelsの受入ではない。新FMA試行は終端診断を残す前にiOSのメモリ圧力で終了。全pipeline・端末予算・本人/UI受入は未完。"
       }
     }
   },
@@ -367,6 +367,34 @@
       "thermal": null,
       "model_executed": true,
       "plan_sha256": "6e3c72b9321b6cdc105f8ddf38aaea9c151ab912e2bb9c36dd57654b31d4c793"
+    },
+    "mobile-fma-host-fixed-20261026": {
+      "url": "docs/research/qwen-image21-g16-20261026.json",
+      "level": "diagnostic",
+      "outcome": "passed",
+      "record_type": "legacy",
+      "date": "2026-10-26",
+      "platform": "macos",
+      "device": "M4 Max",
+      "os": "macOS 27.0 (26A428)",
+      "toolchain": "Core AI Torch 0.4.3; Core AI 1.0.0b3; Torch 2.9.0",
+      "variant": "w4-dit-g16-blocks16-23-f32; safe256; explicit Metal FMA RoPE",
+      "backend": "Core AI; GPU preferred",
+      "route": "Ten fixed component calls with fresh formal FMA assets and their own matched B; host preflight for device diagnostics",
+      "source_revision": "fc13ba1986fcb905854dc8de2f52eee395f49b5b",
+      "artifact_revision": "b09a43c49f6dee9f6815d0d2adfcee2b927e5289e253a015b901a79c184208c5",
+      "code_revision": "e403d2001465026f797411b1dea31355d0be4808",
+      "workload": {
+        "en": "Fresh matched B completed all60 runs and2 repeats; final latent/RGBA/PNG match the previous G16 B byte-for-byte. Ten component calls pass all18 comparisons, including all4 Vision outputs and the formerly worst e10-20261018 DiT step3 (full-joint nmax0.000802730). Full1230 fixed comparisons and60 free rollouts are still running. A separate iPhone attempt ended in vm-pageshortage without a final report or raw output; loader and system-memory conditions remain confounded. No mobile profile acceptance.",
+        "ja": "新B60件と2反復が完了し、全60の最終latent/RGBA/PNGは旧G16 Bとbyte一致。5部品×2callの全18比較が合格し、Vision全4出力と旧最大誤差のe10-20261018 DiT step3（full-joint nmax0.000802730）を含む。固定1,230比較と自由60件は実行中。別のiPhone試行はvm-pageshortageで終了し、終端JSON/rawなし。loader変更と端末状態の寄与は未分離で、mobile profileの受入ではない。"
+      },
+      "batch_size": 1,
+      "concurrency": 1,
+      "warmups": 0,
+      "power": null,
+      "thermal": null,
+      "model_executed": true,
+      "plan_sha256": "6e3c72b9321b6cdc105f8ddf38aaea9c151ab912e2bb9c36dd57654b31d4c793"
     }
   },
   "measurements": [
@@ -523,11 +551,12 @@
         "mobile-w4-smoke-20261022",
         "mobile-w4-f32-diagnostic-20261022",
         "mobile-selective-dit-20261022",
-        "mobile-eightblock-full-20261026"
+        "mobile-eightblock-full-20261026",
+        "mobile-g16-full-20261026"
       ],
       "note": {
-        "en": "No accepted mobile candidate yet. Earlier failures remain recorded. The current eight-block candidate failed 32 of 1,230 full fixed comparisons at e12/e13. A private explicit-attention workaround passed 95 selected checks with unchanged weights and gates. The implemented converter still needs complete formal verification, quality review and device acceptance.",
-        "ja": "モバイル候補は未採用。従来の不合格を保持し、現行8block候補も全固定1,230比較中32件（e12/e13）が不合格。重みと基準を保つ明示attentionの私有対照は95比較に合格したが、実装済みconverterの正式全評価・画質・実機受入は未完。"
+        "en": "No accepted mobile profile. Preserve the G64 free-rollout failure and G16 full-joint28 failures. The explicit FMA correction has private fixed/rollout and fresh formal18-comparison host evidence; complete formal numerical, human-quality and native acceptance remain pending.",
+        "ja": "モバイルprofileは未採用。G64の自由rollout不合格とG16のfull-joint28件不合格を保持する。明示FMA修正は私有固定/自由対照と正式資産のhost18比較に合格したが、正式全数値・人の画質・native受入は未完。"
       }
     },
     "quality": {
