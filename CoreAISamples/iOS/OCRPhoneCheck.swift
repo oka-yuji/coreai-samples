@@ -22,7 +22,6 @@
         }
 
         struct Load: Encodable {
-            let pass: Int
             let seconds: Double
             let tokenizerSeconds: Double
             let assets: [Asset]
@@ -31,7 +30,6 @@
         }
 
         struct Request: Encodable {
-            let pass: Int
             let name: String
             let prompt: String
             let crop: [Int]?
@@ -69,7 +67,7 @@
             let image: String
             let started: Date
             let device: Device
-            var loads: [Load] = []
+            var load: Load?
             var requests: [Request] = []
             var error: String?
             var finished: Date?
@@ -110,23 +108,19 @@
                 try save()
                 let source = try OCRImage(data: Data(contentsOf: documents.appending(path: file)))
                 let bundle = documents.appending(path: name)
-                for pass in 1...2 {
-                    let before = memory()
-                    let clock = ContinuousClock()
-                    let start = clock.now
-                    let runtime = try await OCRRuntime.load(bundle: bundle)
-                    let stats = runtime.loadStats
-                    report.loads.append(
-                        Load(
-                            pass: pass, seconds: (clock.now - start) / .seconds(1),
-                            tokenizerSeconds: stats.tokenizerSeconds,
-                            assets: stats.assets.map { Asset(name: $0.name, cached: $0.cached, seconds: $0.seconds) },
-                            before: before, after: memory()))
+                let before = memory()
+                let clock = ContinuousClock()
+                let start = clock.now
+                let runtime = try await OCRRuntime.load(bundle: bundle)
+                let stats = runtime.loadStats
+                report.load = Load(
+                    seconds: (clock.now - start) / .seconds(1), tokenizerSeconds: stats.tokenizerSeconds,
+                    assets: stats.assets.map { Asset(name: $0.name, cached: $0.cached, seconds: $0.seconds) },
+                    before: before, after: memory())
+                try save()
+                for item in cases {
+                    report.requests.append(try await recognize(item, source: source, runtime: runtime))
                     try save()
-                    for item in cases {
-                        report.requests.append(try await recognize(item, source: source, runtime: runtime, pass: pass))
-                        try save()
-                    }
                 }
             } catch {
                 report.error = String(describing: error)
@@ -142,9 +136,7 @@
             return report.error == nil ? 0 : 1
         }
 
-        private static func recognize(_ item: Case, source: OCRImage, runtime: OCRRuntime, pass: Int) async throws
-            -> Request
-        {
+        private static func recognize(_ item: Case, source: OCRImage, runtime: OCRRuntime) async throws -> Request {
             var image = source
             if let crop = item.crop { image = try image.cropped(to: crop) }
             if let resize = item.resize {
@@ -154,7 +146,7 @@
             let before = memory()
             let result = try await runtime.recognize(image, instruction: item.instruction)
             return Request(
-                pass: pass, name: item.name, prompt: item.prompt,
+                name: item.name, prompt: item.prompt,
                 crop: item.crop.map { [$0.x0, $0.y0, $0.x1, $0.y1] }, resize: item.resize,
                 imagePx: [image.width, image.height], processorPx: [processor.width, processor.height],
                 grid: [result.gridHeight, result.gridWidth], windows: result.windowCount,
