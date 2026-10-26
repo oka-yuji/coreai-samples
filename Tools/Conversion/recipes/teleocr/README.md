@@ -94,3 +94,9 @@ in ANE region formation even with GPU preferred. The compiled copy stays in
 scratch and is not shipped. The bundle retains the source `.aimodel`, and the
 Swift OCR runtime already uses the same reshape hint. The comparison record
 includes the specialization options, architecture and time.
+
+The [2026-10-27 validation record](../../../../docs/results/teleocr-quantization/2026-10-27.json)
+contains the conversion metrics, asset hashes, export audits and Swift checks.
+All three candidates finish the F1 448-square block with 212 generated tokens.
+INT4 produces different text from INT8; this component check makes no full-document
+quality or adoption claim.

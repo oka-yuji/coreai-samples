@@ -1,0 +1,904 @@
+{
+  "schema": "teleocr-quantized-assets-validation/1",
+  "date": "2026-10-27",
+  "implementation_commit": "0b24b663fac87cd86e5112299491901939c940d7",
+  "issue": "https://github.com/oka-yuji/coreai-samples/issues/314",
+  "pull_request": "https://github.com/oka-yuji/coreai-samples/pull/334",
+  "scope": "Component conversion and F1 448-square Swift block inference; full evaluation and publication are not completed.",
+  "source_revision": "70a19ec6a3b036311af19ae5e762e650f41a5980",
+  "pipeline": {
+    "run": "20261026T160027-a60a0369",
+    "status": "completed",
+    "verification": "passed",
+    "elapsed_s": 214.62557870801538
+  },
+  "components": {
+    "decoder_int8": {
+      "kind": "decoder",
+      "precision": "int8",
+      "passed": true,
+      "seconds": 48.534962374717,
+      "versions": {
+        "coreai-core": "1.0.0b3",
+        "coreai-opt": "0.3.0",
+        "coreai-torch": "0.4.3",
+        "torch": "2.9.0",
+        "transformers": "4.57.3"
+      },
+      "code_sha256": {
+        "contracts.py": "b387d9e180310ca840ee5e4953874574f2ad86d451cac0360cf26c49d8ae2a22",
+        "convert.py": "ae72733b25f0213a6f47236a56ee9e0f4045631f411a4d42abea370c410879ec",
+        "quantization.py": "def521454f94f974263c3a6361de106f975ed911286c0f900b60283df9c942d1",
+        "quantized.py": "d2648f1f6c66740bd0f59a62b0c90b1d7ebfb45d822a33dabaca9d5693f40bfa",
+        "wrappers.py": "4ab7d42c4c90ade08d45e26cda0d824dc934cb985097998eb8abd6d9532623ff"
+      },
+      "quality": {
+        "argmax": 99528,
+        "argmax_match": true,
+        "cosine": 0.999979723951111,
+        "finite": true,
+        "max_abs": 0.10108590126037598,
+        "nrmse": 0.006714804491536083,
+        "reference_argmax": 99528,
+        "reference_max_abs": 15.809680938720703,
+        "reference_top2_gap": 6.453107833862305,
+        "reference_top5": [
+          99528,
+          109385,
+          21894,
+          102376,
+          117358
+        ],
+        "shape": [
+          1,
+          151936
+        ],
+        "top5": [
+          99528,
+          109385,
+          21894,
+          102376,
+          117358
+        ]
+      },
+      "conversion": {
+        "argmax": 99528,
+        "argmax_match": true,
+        "cosine": 0.9999971480045942,
+        "finite": true,
+        "max_abs": 0.028922080993652344,
+        "nrmse": 0.0035130141620852142,
+        "numeric_divergence": false,
+        "reference_argmax": 99528,
+        "reference_max_abs": 15.810453414916992,
+        "reference_top2_gap": 6.444518089294434,
+        "reference_top5": [
+          99528,
+          109385,
+          21894,
+          102376,
+          117358
+        ],
+        "shape": [
+          1,
+          151936
+        ],
+        "top5": [
+          99528,
+          109385,
+          21894,
+          102376,
+          117358
+        ]
+      },
+      "conversion_vs_eager_fp16": {
+        "argmax": 99528,
+        "argmax_match": true,
+        "cosine": 0.9999982859711432,
+        "finite": true,
+        "max_abs": 0.022705078125,
+        "nrmse": 0.0024407362123955467,
+        "reference_argmax": 99528,
+        "reference_max_abs": 15.828125,
+        "reference_top2_gap": 6.4609375,
+        "reference_top5": [
+          99528,
+          109385,
+          21894,
+          102376,
+          117358
+        ],
+        "shape": [
+          1,
+          151936
+        ],
+        "top5": [
+          99528,
+          109385,
+          21894,
+          102376,
+          117358
+        ]
+      },
+      "float16_difference": {
+        "argmax": 99528,
+        "argmax_match": true,
+        "cosine": 0.9999933360891897,
+        "finite": true,
+        "max_abs": 0.030592679977416992,
+        "nrmse": 0.0055305974079596495,
+        "reference_argmax": 99528,
+        "reference_max_abs": 15.810453414916992,
+        "reference_top2_gap": 6.444518089294434,
+        "reference_top5": [
+          99528,
+          109385,
+          21894,
+          102376,
+          117358
+        ],
+        "shape": [
+          1,
+          151936
+        ],
+        "top5": [
+          99528,
+          109385,
+          21894,
+          102376,
+          117358
+        ]
+      },
+      "gate": {
+        "cosine_min": 0.999,
+        "nrmse_max": 0.05,
+        "reference": "independently dequantized weights, float32 PyTorch"
+      },
+      "compression": {
+        "bits": 8,
+        "scheme": "symmetric_with_clipping",
+        "granularity": "block64_axis1",
+        "layers": 196,
+        "reference_sha256": "f8cb038306055362338ff2a58f541622450ee3c1d1c015bb13554987c57eb8d9",
+        "functions": {
+          "main": {
+            "modules": 196,
+            "parameters_match": true
+          },
+          "prefill": {
+            "modules": 196,
+            "parameters_match": true
+          }
+        },
+        "record_sha256": "44d30c6ed6e696430d29ba4db186091dbce2bba31df48c1f3400e16989ff9cff"
+      }
+    },
+    "decoder_int4": {
+      "kind": "decoder",
+      "precision": "int4",
+      "passed": true,
+      "seconds": 48.517211417201906,
+      "versions": {
+        "coreai-core": "1.0.0b3",
+        "coreai-opt": "0.3.0",
+        "coreai-torch": "0.4.3",
+        "torch": "2.9.0",
+        "transformers": "4.57.3"
+      },
+      "code_sha256": {
+        "contracts.py": "b387d9e180310ca840ee5e4953874574f2ad86d451cac0360cf26c49d8ae2a22",
+        "convert.py": "ae72733b25f0213a6f47236a56ee9e0f4045631f411a4d42abea370c410879ec",
+        "quantization.py": "def521454f94f974263c3a6361de106f975ed911286c0f900b60283df9c942d1",
+        "quantized.py": "d2648f1f6c66740bd0f59a62b0c90b1d7ebfb45d822a33dabaca9d5693f40bfa",
+        "wrappers.py": "4ab7d42c4c90ade08d45e26cda0d824dc934cb985097998eb8abd6d9532623ff"
+      },
+      "quality": {
+        "argmax": 99528,
+        "argmax_match": true,
+        "cosine": 0.9919531600626795,
+        "finite": true,
+        "max_abs": 2.1213404536247253,
+        "nrmse": 0.14313870025485625,
+        "reference_argmax": 99528,
+        "reference_max_abs": 15.809680938720703,
+        "reference_top2_gap": 6.453107833862305,
+        "reference_top5": [
+          99528,
+          109385,
+          21894,
+          102376,
+          117358
+        ],
+        "shape": [
+          1,
+          151936
+        ],
+        "top5": [
+          99528,
+          109385,
+          21894,
+          102376,
+          117358
+        ]
+      },
+      "conversion": {
+        "argmax": 99528,
+        "argmax_match": true,
+        "cosine": 0.9999987450124771,
+        "finite": true,
+        "max_abs": 0.02178645133972168,
+        "nrmse": 0.0017480730522069937,
+        "numeric_divergence": false,
+        "reference_argmax": 99528,
+        "reference_max_abs": 15.118228912353516,
+        "reference_top2_gap": 5.694109916687012,
+        "reference_top5": [
+          99528,
+          109385,
+          21894,
+          102376,
+          117358
+        ],
+        "shape": [
+          1,
+          151936
+        ],
+        "top5": [
+          99528,
+          109385,
+          21894,
+          102376,
+          117358
+        ]
+      },
+      "conversion_vs_eager_fp16": {
+        "argmax": 99528,
+        "argmax_match": true,
+        "cosine": 0.9999987178480638,
+        "finite": true,
+        "max_abs": 0.021484375,
+        "nrmse": 0.0016389461083335074,
+        "reference_argmax": 99528,
+        "reference_max_abs": 15.109375,
+        "reference_top2_gap": 5.6875,
+        "reference_top5": [
+          99528,
+          109385,
+          21894,
+          102376,
+          117358
+        ],
+        "shape": [
+          1,
+          151936
+        ],
+        "top5": [
+          99528,
+          109385,
+          21894,
+          102376,
+          117358
+        ]
+      },
+      "float16_difference": {
+        "argmax": 99528,
+        "argmax_match": true,
+        "cosine": 0.9999988852221019,
+        "finite": true,
+        "max_abs": 0.023888587951660156,
+        "nrmse": 0.0015434433254002142,
+        "reference_argmax": 99528,
+        "reference_max_abs": 15.118228912353516,
+        "reference_top2_gap": 5.694109916687012,
+        "reference_top5": [
+          99528,
+          109385,
+          21894,
+          102376,
+          117358
+        ],
+        "shape": [
+          1,
+          151936
+        ],
+        "top5": [
+          99528,
+          109385,
+          21894,
+          102376,
+          117358
+        ]
+      },
+      "gate": {
+        "cosine_min": 0.999,
+        "nrmse_max": 0.05,
+        "reference": "independently dequantized weights, float32 PyTorch"
+      },
+      "compression": {
+        "bits": 4,
+        "scheme": "symmetric_with_clipping",
+        "granularity": "block64_axis1",
+        "layers": 196,
+        "reference_sha256": "c265847803a9d7b0577b8de18d65ef0e721a45cd4ac07998cb6e5ee36df27940",
+        "functions": {
+          "main": {
+            "modules": 196,
+            "parameters_match": true
+          },
+          "prefill": {
+            "modules": 196,
+            "parameters_match": true
+          }
+        },
+        "record_sha256": "70d14994042305927e3735ee26fa678d52e9e44afe5335101922662175b05650"
+      }
+    },
+    "vision_int8": {
+      "kind": "vision",
+      "precision": "int8",
+      "passed": true,
+      "seconds": 55.011838208884,
+      "versions": {
+        "coreai-core": "1.0.0b3",
+        "coreai-opt": "0.3.0",
+        "coreai-torch": "0.4.3",
+        "torch": "2.9.0",
+        "transformers": "4.57.3"
+      },
+      "code_sha256": {
+        "contracts.py": "b387d9e180310ca840ee5e4953874574f2ad86d451cac0360cf26c49d8ae2a22",
+        "convert.py": "ae72733b25f0213a6f47236a56ee9e0f4045631f411a4d42abea370c410879ec",
+        "quantization.py": "def521454f94f974263c3a6361de106f975ed911286c0f900b60283df9c942d1",
+        "quantized.py": "d2648f1f6c66740bd0f59a62b0c90b1d7ebfb45d822a33dabaca9d5693f40bfa",
+        "wrappers.py": "4ab7d42c4c90ade08d45e26cda0d824dc934cb985097998eb8abd6d9532623ff"
+      },
+      "cases": {
+        "landscape": {
+          "conversion": {
+            "cosine": 0.9999973708120845,
+            "finite": true,
+            "max_abs": 13.70843505859375,
+            "nrmse": 0.002297473748112523,
+            "reference_max_abs": 795.1486206054688,
+            "shape": [
+              559,
+              1024
+            ]
+          },
+          "coreai_s": 0.3057961668819189,
+          "quality": {
+            "cosine": 0.9999445379827042,
+            "finite": true,
+            "max_abs": 22.16168212890625,
+            "nrmse": 0.010580344151771885,
+            "reference_max_abs": 794.3438720703125,
+            "shape": [
+              559,
+              1024
+            ]
+          }
+        },
+        "min": {
+          "conversion": {
+            "cosine": 0.9999982988845872,
+            "finite": true,
+            "max_abs": 0.63525390625,
+            "nrmse": 0.002052269482127791,
+            "reference_max_abs": 486.38525390625,
+            "shape": [
+              4,
+              1024
+            ]
+          },
+          "coreai_s": 0.2552732080221176,
+          "quality": {
+            "cosine": 0.9998567335828651,
+            "finite": true,
+            "max_abs": 9.038543701171875,
+            "nrmse": 0.01985434648016723,
+            "reference_max_abs": 480.3700866699219,
+            "shape": [
+              4,
+              1024
+            ]
+          }
+        },
+        "portrait": {
+          "conversion": {
+            "cosine": 0.9999777429317344,
+            "finite": true,
+            "max_abs": 7.5158233642578125,
+            "nrmse": 0.006674307726475873,
+            "reference_max_abs": 718.7959594726562,
+            "shape": [
+              559,
+              1024
+            ]
+          },
+          "coreai_s": 0.30883991718292236,
+          "quality": {
+            "cosine": 0.9998602395063397,
+            "finite": true,
+            "max_abs": 37.02294921875,
+            "nrmse": 0.016721586453794804,
+            "reference_max_abs": 718.44189453125,
+            "shape": [
+              559,
+              1024
+            ]
+          }
+        },
+        "square1036": {
+          "conversion": {
+            "cosine": 0.9999905977959697,
+            "finite": true,
+            "max_abs": 9.42559814453125,
+            "nrmse": 0.0043368082254586875,
+            "reference_max_abs": 817.8153686523438,
+            "shape": [
+              1369,
+              1024
+            ]
+          },
+          "coreai_s": 0.7283316669054329,
+          "quality": {
+            "cosine": 0.9999338984109949,
+            "finite": true,
+            "max_abs": 39.240631103515625,
+            "nrmse": 0.011514129234182918,
+            "reference_max_abs": 819.1604614257812,
+            "shape": [
+              1369,
+              1024
+            ]
+          }
+        },
+        "square448": {
+          "conversion": {
+            "cosine": 0.999596666708626,
+            "finite": true,
+            "max_abs": 44.11188316345215,
+            "nrmse": 0.028402965351652418,
+            "reference_max_abs": 820.4535522460938,
+            "shape": [
+              256,
+              1024
+            ]
+          },
+          "coreai_s": 0.11541954195126891,
+          "quality": {
+            "cosine": 0.9994594669218986,
+            "finite": true,
+            "max_abs": 45.379404067993164,
+            "nrmse": 0.032895453698517506,
+            "reference_max_abs": 817.6508178710938,
+            "shape": [
+              256,
+              1024
+            ]
+          }
+        },
+        "square896": {
+          "conversion": {
+            "cosine": 0.9999762750483207,
+            "finite": true,
+            "max_abs": 26.603515625,
+            "nrmse": 0.006888417397996614,
+            "reference_max_abs": 733.4208374023438,
+            "shape": [
+              1024,
+              1024
+            ]
+          },
+          "coreai_s": 0.4512310829013586,
+          "quality": {
+            "cosine": 0.9997645105063271,
+            "finite": true,
+            "max_abs": 48.57635498046875,
+            "nrmse": 0.021705122033955207,
+            "reference_max_abs": 731.5430297851562,
+            "shape": [
+              1024,
+              1024
+            ]
+          }
+        }
+      },
+      "specialization": {
+        "architecture": "h16c",
+        "expect_frequent_reshapes": true,
+        "preferred_compute": "gpu",
+        "seconds": 27.335862291045487
+      },
+      "compression": {
+        "bits": 8,
+        "scheme": "symmetric_with_clipping",
+        "granularity": "channel_axis0",
+        "layers": 162,
+        "reference_sha256": "cb9660c6d10505e5068a54fc1241e975393b2e7430fbbd1f165b6b1173695c15",
+        "functions": {
+          "main": {
+            "modules": 162,
+            "parameters_match": true
+          }
+        },
+        "record_sha256": "844b03562a8a9f21dd13ab327060183a6638463707e56ddf10961bf312fbffd1"
+      }
+    }
+  },
+  "bundles": {
+    "int8": {
+      "metadata_sha256": "ae5d59d73341f6d2e128dde5267d71afb4f808d874dfe55dcb477e2f08e2b417",
+      "files_match": true,
+      "compression_matches": true,
+      "assets": {
+        "embed": {
+          "matches_contract": true,
+          "compression_matches": true,
+          "bytes": 311166204,
+          "storage_types": [
+            {
+              "count": 155582464,
+              "name": "BFloat16"
+            },
+            {
+              "count": 1,
+              "name": "Int32"
+            }
+          ],
+          "compute_types": [
+            "BFloat16",
+            "Float32",
+            "Int32"
+          ]
+        },
+        "main": {
+          "matches_contract": true,
+          "compression_matches": true,
+          "bytes": 766402298,
+          "storage_types": [
+            {
+              "count": 440451072,
+              "name": "Int8"
+            },
+            {
+              "count": 162562054,
+              "name": "Float16"
+            },
+            {
+              "count": 319,
+              "name": "Int32"
+            },
+            {
+              "count": 19,
+              "name": "UInt32"
+            },
+            {
+              "count": 1,
+              "name": "UInt64"
+            }
+          ],
+          "compute_types": [
+            "Float16",
+            "Float32",
+            "Int32",
+            "Int8",
+            "UInt32",
+            "UInt64"
+          ]
+        },
+        "vision": {
+          "matches_contract": true,
+          "compression_matches": true,
+          "bytes": 1327153995,
+          "storage_types": [
+            {
+              "count": 663440392,
+              "name": "Float16"
+            },
+            {
+              "count": 54,
+              "name": "Int32"
+            },
+            {
+              "count": 21,
+              "name": "UInt32"
+            },
+            {
+              "count": 1,
+              "name": "UInt64"
+            }
+          ],
+          "compute_types": [
+            "Bool",
+            "Float16",
+            "Float32",
+            "Int32",
+            "UInt32",
+            "UInt64"
+          ]
+        }
+      }
+    },
+    "int4": {
+      "metadata_sha256": "1fdd23da1c2c53430c1646ea90c08aaa847b691f057abb706a64c75b8acf93d0",
+      "files_match": true,
+      "compression_matches": true,
+      "assets": {
+        "embed": {
+          "matches_contract": true,
+          "compression_matches": true,
+          "bytes": 311166204,
+          "storage_types": [
+            {
+              "count": 155582464,
+              "name": "BFloat16"
+            },
+            {
+              "count": 1,
+              "name": "Int32"
+            }
+          ],
+          "compute_types": [
+            "BFloat16",
+            "Float32",
+            "Int32"
+          ]
+        },
+        "main": {
+          "matches_contract": true,
+          "compression_matches": true,
+          "bytes": 546201162,
+          "storage_types": [
+            {
+              "count": 440451072,
+              "name": "Int4"
+            },
+            {
+              "count": 162562054,
+              "name": "Float16"
+            },
+            {
+              "count": 319,
+              "name": "Int32"
+            },
+            {
+              "count": 19,
+              "name": "UInt32"
+            },
+            {
+              "count": 1,
+              "name": "UInt64"
+            }
+          ],
+          "compute_types": [
+            "Float16",
+            "Float32",
+            "Int32",
+            "Int4",
+            "UInt32",
+            "UInt64"
+          ]
+        },
+        "vision": {
+          "matches_contract": true,
+          "compression_matches": true,
+          "bytes": 1327153995,
+          "storage_types": [
+            {
+              "count": 663440392,
+              "name": "Float16"
+            },
+            {
+              "count": 54,
+              "name": "Int32"
+            },
+            {
+              "count": 21,
+              "name": "UInt32"
+            },
+            {
+              "count": 1,
+              "name": "UInt64"
+            }
+          ],
+          "compute_types": [
+            "Bool",
+            "Float16",
+            "Float32",
+            "Int32",
+            "UInt32",
+            "UInt64"
+          ]
+        }
+      }
+    },
+    "vision_int8": {
+      "metadata_sha256": "7768ad2268631c62f3334ffd724f6eec284ac9e042d88e74116b6a68c35cfa00",
+      "files_match": true,
+      "compression_matches": true,
+      "assets": {
+        "embed": {
+          "matches_contract": true,
+          "compression_matches": true,
+          "bytes": 311166204,
+          "storage_types": [
+            {
+              "count": 155582464,
+              "name": "BFloat16"
+            },
+            {
+              "count": 1,
+              "name": "Int32"
+            }
+          ],
+          "compute_types": [
+            "BFloat16",
+            "Float32",
+            "Int32"
+          ]
+        },
+        "main": {
+          "matches_contract": true,
+          "compression_matches": true,
+          "bytes": 1192987556,
+          "storage_types": [
+            {
+              "count": 596049927,
+              "name": "Float16"
+            },
+            {
+              "count": 319,
+              "name": "Int32"
+            },
+            {
+              "count": 19,
+              "name": "UInt32"
+            },
+            {
+              "count": 1,
+              "name": "UInt64"
+            }
+          ],
+          "compute_types": [
+            "Float16",
+            "Float32",
+            "Int32",
+            "UInt32",
+            "UInt64"
+          ]
+        },
+        "vision": {
+          "matches_contract": true,
+          "compression_matches": true,
+          "bytes": 666618186,
+          "storage_types": [
+            {
+              "count": 661425920,
+              "name": "Int8"
+            },
+            {
+              "count": 2449159,
+              "name": "Float16"
+            },
+            {
+              "count": 54,
+              "name": "Int32"
+            },
+            {
+              "count": 21,
+              "name": "UInt32"
+            },
+            {
+              "count": 1,
+              "name": "UInt64"
+            }
+          ],
+          "compute_types": [
+            "Bool",
+            "Float16",
+            "Float32",
+            "Int32",
+            "Int8",
+            "UInt32",
+            "UInt64"
+          ]
+        }
+      }
+    }
+  },
+  "swift": {
+    "int8": {
+      "image_sha256": "5e7bd11137589429c1c19e73f1c944ecaa514fe8441cc6b5cc51d01b2f9befdc",
+      "prompt": "text",
+      "resize": 448,
+      "image_px": [
+        448,
+        448
+      ],
+      "prompt_tokens": 286,
+      "output_tokens": 212,
+      "finished_by": "eos",
+      "load_s": 38.772848834,
+      "generate_s": 2.831610959,
+      "os": "Version 27.0 (Build 26A428)",
+      "executable_sha256": "9642396ab225b5fb77bb5b7caf594bf497395cbda4ee68624206858eefa6ed71",
+      "text_sha256": "3d643e7a363e2fc87a4f571190132d2750bf8f4e898b70641d8d2bc8bb409ecf",
+      "records_sha256": "83dcc10c4d1bb315678968c536426c396df49b28614e2db36aa9785e01324fec"
+    },
+    "int4": {
+      "image_sha256": "5e7bd11137589429c1c19e73f1c944ecaa514fe8441cc6b5cc51d01b2f9befdc",
+      "prompt": "text",
+      "resize": 448,
+      "image_px": [
+        448,
+        448
+      ],
+      "prompt_tokens": 286,
+      "output_tokens": 212,
+      "finished_by": "eos",
+      "load_s": 34.911308125,
+      "generate_s": 2.67558625,
+      "os": "Version 27.0 (Build 26A428)",
+      "executable_sha256": "9642396ab225b5fb77bb5b7caf594bf497395cbda4ee68624206858eefa6ed71",
+      "text_sha256": "eb4348c7f35ed2a50ee95f1497719d90f0d916baa0b05b73fa61e36e2e7d5a6e",
+      "records_sha256": "8a7624aa207d0e8b243d3a1a396e70e6999f5a9842d36f7be6f48b0a0fc3d651"
+    },
+    "vision_int8": {
+      "image_sha256": "5e7bd11137589429c1c19e73f1c944ecaa514fe8441cc6b5cc51d01b2f9befdc",
+      "prompt": "text",
+      "resize": 448,
+      "image_px": [
+        448,
+        448
+      ],
+      "prompt_tokens": 286,
+      "output_tokens": 212,
+      "finished_by": "eos",
+      "load_s": 36.955638875,
+      "generate_s": 3.00041475,
+      "os": "Version 27.0 (Build 26A428)",
+      "executable_sha256": "9642396ab225b5fb77bb5b7caf594bf497395cbda4ee68624206858eefa6ed71",
+      "text_sha256": "3d643e7a363e2fc87a4f571190132d2750bf8f4e898b70641d8d2bc8bb409ecf",
+      "records_sha256": "ad7d4e1ac057970e4891070197099e88b34ee048aa73d3d70af19ca5c13d52b6"
+    }
+  },
+  "checks": {
+    "conversion_unittest": {
+      "run": 235,
+      "passed": 202,
+      "skipped": 33,
+      "skips": "Other model-specific environments; no TeleOCR test skipped"
+    },
+    "teleocr_unittest_after_specialization_change": 18,
+    "swift_test": "passed; model-enabled tests skipped by default",
+    "swiftlint": "469 files, zero violations, strict with repository baseline",
+    "format": "zero changed Swift files; passed",
+    "irodori_build": "passed",
+    "macos_release_build": "passed",
+    "independent_review": {
+      "confirmed_fixed": 3,
+      "remaining_confirmed": 0,
+      "extra_export_audit_added": true
+    }
+  },
+  "failures_and_fixes": [
+    {
+      "failure": "deepcopy plus remove_parametrizations invalidated the original Linear class",
+      "fix": "Create new plain Linear modules in the independent reference; regression test preserves original inference"
+    },
+    {
+      "failure": "Argmax margin alone accepted arbitrary finite conversion errors",
+      "fix": "Require fixed nRMSE <= 0.05 and cosine >= 0.999; use margin only as a classification"
+    },
+    {
+      "failure": "The vision INT8 notice retained the FP16 weight description",
+      "fix": "Render the declared precision in the notice"
+    },
+    {
+      "failure": "Dynamic vision INT8 aborted in ANERegionFormationPass with GPU-preferred Python specialization",
+      "fix": "Specialize only the host architecture with expect-frequent-reshapes; check six inputs and the source bundle through Swift"
+    }
+  ],
+  "next": "Issue #333 owns the complete fixed-set quality/performance comparison. Issue #328 and iOS support remain incomplete."
+}
