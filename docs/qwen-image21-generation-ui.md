@@ -68,4 +68,6 @@ The `w4-dit-g16-blocks16-23-f32` candidate changes only the DiT's quantized grou
 
 The [completed G16 evaluation](research/qwen-image21-g16-20261026.json) retains a failed overall numerical result: all 60 free rollouts and 480 target comparisons pass, but 28 full-joint maximum-error comparisons fail at e10/e11. Separate physical iPhone 17 Pro execution of the current DiT passes two fixed inputs across two load/call/release cycles, including all eight full-valid/target raw comparisons. Its lifetime peak footprint is 1,571,167,568 bytes. This is component evidence and does not calibrate the full app or enable the production catalog.
 
-An experimental custom Metal RoPE operation matches the original MPS complex arithmetic bit-for-bit on four captured query/key tensors. Full-model integration, complete numerical acceptance, image-quality review and the normal Models workflow remain outstanding.
+An experimental custom Metal RoPE operation matches the original MPS complex arithmetic bit-for-bit on four captured query/key tensors. Formal full-model numerical acceptance, image-quality review and the normal Models workflow remain outstanding.
+
+The FMA-only private DiT, retaining global safe256 attention, passes 98 expanded fixed inputs and six targeted free rollouts. The mobile Float32 conversion path now uses this rotary ordering. Fresh formal assets, complete numerical verification and their own physical-device measurements remain required; the preceding G16 failure and earlier component measurements remain separate evidence.

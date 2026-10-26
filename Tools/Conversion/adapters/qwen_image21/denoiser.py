@@ -4,6 +4,9 @@ from torch.nn import functional as F
 
 
 class RealAttention:
+    def __init__(self, rotary=None):
+        self.rotary = rotary
+
     def __call__(self, attn, hidden_states, rotary_emb=None, attention_mask=None, **kwargs):
         cosine, sine = rotary_emb
         values = []
@@ -11,9 +14,12 @@ class RealAttention:
             value = projection(hidden_states).unflatten(-1, (attn.heads, attn.inner_dim // attn.heads))
             if norm is not None:
                 value = norm(value)
-                pairs = value.float().reshape(*value.shape[:-1], -1, 2)
-                real, imag = pairs[..., 0], pairs[..., 1]
-                value = torch.stack((real * cosine - imag * sine, imag * cosine + real * sine), dim=-1).flatten(-2).to(hidden_states.dtype)
+                if self.rotary is not None and hidden_states.dtype == torch.float32:
+                    value = self.rotary(value, cosine, sine)
+                else:
+                    pairs = value.float().reshape(*value.shape[:-1], -1, 2)
+                    real, imag = pairs[..., 0], pairs[..., 1]
+                    value = torch.stack((real * cosine - imag * sine, imag * cosine + real * sine), dim=-1).flatten(-2).to(hidden_states.dtype)
             values.append(value.transpose(1, 2))
         if hidden_states.dtype == torch.float32 and (attention_mask is None or attention_mask.dtype == torch.bool):
             value = explicit_attention(*values, attention_mask)
@@ -45,14 +51,15 @@ def explicit_attention(query, key, value, mask):
 
 
 class Denoiser(nn.Module):
-    def __init__(self, model):
+    def __init__(self, model, rotary=None):
         super().__init__()
+        self.rotary = rotary
         self.img_in, self.txt_in = model.img_in, model.txt_in
         self.time_text_embed, self.modulation = model.time_text_embed, model.modulation
         self.blocks = model.transformer_blocks
         self.norm_out, self.proj_out = model.norm_out, model.proj_out
         for block in self.blocks:
-            block.attn.set_processor(RealAttention())
+            block.attn.set_processor(RealAttention(rotary))
 
     def forward(self, latents, text, timestep, text_index, image_index, image_mask, cosine, sine, mask, target):
         image_hidden, text_hidden = self.img_in(latents), self.txt_in(text)
