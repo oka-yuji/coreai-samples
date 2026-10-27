@@ -13,6 +13,8 @@ private struct Call: Equatable {
 private final class FakeLog: Sendable {
     struct State {
         var visionCalls = 0
+        var visionWindows: [Int] = []
+        var capacities: [Int] = []
         var caches = 0
         var prefills: [Int] = []
         var steps: [Call] = []
@@ -32,9 +34,11 @@ private struct FakeModel: OCRModel {
     let entered: AsyncStream<Void>.Continuation
     let release: AsyncStream<Void>
     var cancellationPoint: CancellationPoint? = nil
+    var shapes: OCRStaticShapes? = nil
 
-    var windowLimit: Int { 2_048 }
-    var tokenLimit: Int { 32_768 }
+    var windowLimit: Int { shapes?.visionWindows.last ?? 2_048 }
+    var tokenLimit: Int { shapes?.context ?? 32_768 }
+    var staticShapes: OCRStaticShapes? { shapes }
 
     func encode(_ text: String) -> [Int32] {
         if cancellationPoint == .encoding { withUnsafeCurrentTask { $0?.cancel() } }
@@ -49,12 +53,16 @@ private struct FakeModel: OCRModel {
         if cancellationPoint == .cache { withUnsafeCurrentTask { $0?.cancel() } }
         return log.state.withLock { state in
             state.caches += 1
+            state.capacities.append(capacity)
             return state.caches
         }
     }
 
     @concurrent func vision(_ input: OCRVisionInput) async throws -> [Float] {
-        log.state.withLock { $0.visionCalls += 1 }
+        log.state.withLock {
+            $0.visionCalls += 1
+            $0.visionWindows.append(input.windowCount)
+        }
         return [Float](repeating: 0, count: input.windowCount * 16 * 4)
     }
 
@@ -154,6 +162,68 @@ struct OCRRuntimeTests {
             try await runtime.recognize(image, instruction: "a", maxNewTokens: maxNewTokens)
         }
         #expect(log.state.withLock { $0.caches == 0 && $0.prefills.isEmpty })
+    }
+
+    private static func staticRuntime(_ shapes: OCRStaticShapes, log: FakeLog) -> OCRRuntime {
+        OCRRuntime(
+            model: FakeModel(
+                log: log, blockedStep: -1, entered: AsyncStream<Void>.makeStream().continuation,
+                release: AsyncStream<Void>.makeStream().stream, shapes: shapes),
+            loadStats: OCRLoadStats(assets: [], tokenizerSeconds: 0, totalSeconds: 0))
+    }
+
+    @Test("Stop a static bundle's generation at its fixed context instead of rejecting the default token budget")
+    func staticContextBoundsGeneration() async throws {
+        let log = FakeLog()
+        let shapes = OCRStaticShapes(
+            context: 24, masked: -40_000, visionWindows: [1, 4], downscaleSide: 224, embedTokens: 20,
+            prefillTokens: [20])
+        let image = try OCRImage(width: 56, height: 56, rgb: [UInt8](repeating: 128, count: 56 * 56 * 3))
+        let result = try await Self.staticRuntime(shapes, log: log).recognize(image, instruction: "a")
+        let (capacities, steps) = log.state.withLock { ($0.capacities, $0.steps) }
+        #expect(result.promptTokens == 17)
+        #expect(result.tokens.count == 7 && result.finish == .maxNewTokens)
+        #expect(capacities == [24])
+        #expect(steps.map(\.position) == Array(17..<23))
+    }
+
+    @Test("Downscale an image whose windows exceed a static bundle's largest vision bucket")
+    func staticDownscale() async throws {
+        let log = FakeLog()
+        let shapes = OCRStaticShapes(
+            context: 128, masked: -40_000, visionWindows: [1, 4], downscaleSide: 224, embedTokens: 80,
+            prefillTokens: [80])
+        let image = try OCRImage(width: 448, height: 448, rgb: [UInt8](repeating: 128, count: 448 * 448 * 3))
+        let result = try await Self.staticRuntime(shapes, log: log).recognize(image, instruction: "a", maxNewTokens: 2)
+        #expect(log.state.withLock { $0.visionWindows } == [4])
+        #expect(result.gridHeight == 16 && result.gridWidth == 16 && result.windowCount == 4)
+    }
+
+    @Test("Reject a prompt longer than every static prefill bucket before running any asset")
+    func staticPromptLimit() async throws {
+        let log = FakeLog()
+        let shapes = OCRStaticShapes(
+            context: 64, masked: -40_000, visionWindows: [1, 4], downscaleSide: 224, embedTokens: 16,
+            prefillTokens: [16])
+        let image = try OCRImage(width: 56, height: 56, rgb: [UInt8](repeating: 128, count: 56 * 56 * 3))
+        await #expect(throws: OCRRuntimeError.self) {
+            try await Self.staticRuntime(shapes, log: log).recognize(image, instruction: "a", maxNewTokens: 2)
+        }
+        #expect(log.state.withLock { $0.visionCalls == 0 && $0.caches == 0 })
+    }
+
+    @Test(
+        "Recognize a supported thin image after reducing its windows to a static bucket",
+        arguments: [(14_000, 70), (70, 14_000)])
+    func staticThinDownscale(width: Int, height: Int) async throws {
+        let log = FakeLog()
+        let shapes = OCRStaticShapes(
+            context: 4_096, masked: -40_000, visionWindows: [16, 32, 64, 100], downscaleSide: 896,
+            embedTokens: 2_048, prefillTokens: [256, 512, 1_024, 2_048])
+        let image = try OCRImage(width: width, height: height, rgb: [UInt8](repeating: 128, count: width * height * 3))
+        let result = try await Self.staticRuntime(shapes, log: log).recognize(image, instruction: "a", maxNewTokens: 1)
+        #expect(result.windowCount == 7 && result.tokens == [100])
+        #expect(log.state.withLock { $0.visionWindows } == [7])
     }
 
     @Test(
