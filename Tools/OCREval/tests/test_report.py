@@ -83,6 +83,26 @@ class ReportTests(unittest.TestCase):
         right = {"A": {"judgment": L["insufficient"]}, "B": {"judgment": L["good"]}}
         self.assertEqual(judgment_changes(left, right), {"same": 0, "improved": 1, "degraded": 1, "missing": 1, "degraded_samples": ["A"]})
 
+    def test_equal_text_does_not_hide_other_prediction_differences_or_incomplete_generation(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.prepare(root)
+            path = root / "comparisons.json"
+            pairs = json.loads(path.read_text())
+            pairs["test"]["self"]["samples"]["A"]["exact_prediction"] = False
+            write(path, pairs)
+            pair = self.export(root)["comparisons"]["test"]["self"]
+            self.assertEqual(pair["text_equal"], 1)
+            self.assertEqual(pair["prediction_difference_with_equal_text"], 1)
+            self.assertEqual(pair["non_eos_pairs"], 0)
+            self.assertEqual(pair["mismatch_fraction"], 1)
+            pairs["test"]["self"]["samples"]["A"] |= {"exact_prediction": True, "both_eos": False}
+            write(path, pairs)
+            pair = self.export(root)["comparisons"]["test"]["self"]
+            self.assertEqual(pair["prediction_difference_with_equal_text"], 0)
+            self.assertEqual(pair["non_eos_pairs"], 1)
+            self.assertEqual(pair["mismatch_fraction"], 1)
+
     def test_a_good_score_from_an_incomplete_generation_is_not_a_completed_good_run(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

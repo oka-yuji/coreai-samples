@@ -98,6 +98,8 @@ def build(source, target, spec_path):
                 "axis": pair["axis"], "expected": len(rows), "missing": sum(row.get("missing", False) for row in rows),
                 "exact_and_eos": exact, "text_equal": sum(row.get("text_equal", False) for row in rows),
                 "present": present, "mismatch_fraction": 1 - exact / present if present else None,
+                "non_eos_pairs": sum(not row.get("missing", False) and not row.get("both_eos", False) for row in rows),
+                "prediction_difference_with_equal_text": sum(not row.get("missing", False) and not row["exact_prediction"] and row["text_equal"] for row in rows),
                 "judgments": judgment_changes(scores[label][pair["left"]]["samples"], scores[label][pair["right"]]["samples"]),
                 "output_agreement": "exact" if rows and exact == len(rows) else "differences_require_interpretation"}
         baseline = scores[label]["coreai-fp16"]["samples"]
