@@ -2,6 +2,7 @@ import json
 import tempfile
 import unittest
 import os
+import contextlib
 from pathlib import Path
 from types import SimpleNamespace
 from unittest import mock
@@ -124,6 +125,75 @@ class WeightsTests(unittest.TestCase):
 
 
 class RunnerTests(unittest.TestCase):
+    @contextlib.contextmanager
+    def fixture(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = root / "set"
+            source.mkdir()
+            Image.new("RGB", (32, 32)).save(source / "A.png")
+            (source / "A.json").write_text(json.dumps({"id": "A", "kind": "body", "rule": "F1", "pipelines": ["text"], "lines": ["safe"]}))
+            (source / "manifest.json").write_text(json.dumps({"samples": [{"id": "A", "image_sha256": sha256(source / "A.png"), "gt_sha256": sha256(source / "A.json")}]}))
+            (root / "cli").write_text("test")
+            plan = {"cli": str(root / "cli"), "cli_sha256": sha256(root / "cli"), "sets": {"test": str(source)},
+                    "comparisons": [], "variants": [{"id": "A", "engine": "reference"}], "cache_root": "unused"}
+            (root / "plan.json").write_text(json.dumps(plan))
+            record = {"layout": {"finished_by": "eos", "status": "unparsed"}, "blocks": [{"text": "safe", "box_px": [0, 0, 32, 32], "finished_by": "eos"}]}
+            with mock.patch.dict(os.environ, {"COREAI_HEAVY_JOB_LOCK": str(root / "lock")}), \
+                    mock.patch.object(compare.reference, "model_processes", return_value=[]), \
+                    mock.patch.object(compare.reference, "environment", return_value={"machine": {"cpu": "test"}, "os": {"build": "test"}}), \
+                    mock.patch.object(compare.reference, "command", return_value="test"), \
+                    mock.patch.object(compare.signal, "signal"), \
+                    mock.patch.object(compare, "run_child", return_value=record) as child:
+                yield root, child, record
+
+    def test_interrupt_records_the_inflight_run_before_releasing_the_lock(self):
+        with self.fixture() as (root, child, _):
+            child.side_effect = KeyboardInterrupt("requested stop")
+            with self.assertRaises(KeyboardInterrupt):
+                compare.run_plan(root / "plan.json", root / "out", performance=False)
+            rows = json.loads((root / "out/runs.json").read_text())
+            self.assertEqual(len(rows), 1)
+            self.assertEqual(rows[0]["status"], "failed")
+            self.assertIn("KeyboardInterrupt", rows[0]["error"])
+            self.assertFalse((root / "lock").exists())
+
+    def test_invocation_write_failure_still_releases_the_owned_lock(self):
+        with self.fixture() as (root, _, _):
+            original = compare.write
+            def fail(path, value):
+                if path.name == "invocation.json":
+                    raise OSError("storage failure")
+                original(path, value)
+            with mock.patch.object(compare, "write", side_effect=fail):
+                with self.assertRaisesRegex(OSError, "storage failure"):
+                    compare.run_plan(root / "plan.json", root / "out", performance=False)
+            self.assertFalse((root / "lock").exists())
+
+    def test_unconfirmed_child_cleanup_retains_the_lock_and_failed_run(self):
+        from Tools.Conversion.storage import ProcessCleanupError
+
+        with self.fixture() as (root, child, _):
+            child.side_effect = ProcessCleanupError(RuntimeError("child failed"), 123, [OSError("kill denied")], None)
+            with self.assertRaises(ProcessCleanupError):
+                compare.run_plan(root / "plan.json", root / "out", performance=False)
+            self.assertTrue((root / "lock").is_dir())
+            self.assertTrue(json.loads((root / "out/invocation.json").read_text())["lock_retained"])
+            self.assertEqual(json.loads((root / "out/runs.json").read_text())[0]["status"], "failed")
+
+    def test_scoring_uses_archived_ground_truth_after_source_changes(self):
+        with self.fixture() as (root, child, record):
+            def mutate(*args):
+                p = root / "set/A.json"
+                gt = json.loads(p.read_text())
+                gt["lines"] = ["changed after inference started"]
+                p.write_text(json.dumps(gt))
+                return record
+            child.side_effect = mutate
+            compare.run_plan(root / "plan.json", root / "out", performance=False)
+            score = json.loads((root / "out/scores/test/A.json").read_text())
+            self.assertEqual(score["samples"]["A"]["cer"], 0)
+
     def test_failures_remain_in_denominator_and_lock_is_released(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

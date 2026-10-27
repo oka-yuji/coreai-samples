@@ -9,6 +9,8 @@ from datetime import datetime
 from pathlib import Path
 
 from Tools.Conversion.local import default_lock
+from Tools.Conversion.runner import execute as execute_process
+from Tools.Conversion.storage import cleanup_failure
 from . import reference
 from .score import load_set, result_prediction, score_set
 
@@ -95,16 +97,8 @@ def run_child(plan, variant, image, directory, cold, owner):
         write(config, variant)
         output = directory / "reference.json"
         command = [sys.executable, "-m", "Tools.OCREval.compare", "--child", str(config), image, str(output)]
-    with (directory / "process.log").open("w") as log:
-        process = subprocess.Popen(command, cwd=reference.ROOT, stdout=log, stderr=subprocess.STDOUT, start_new_session=True,
-                                   env=os.environ | {"HF_HUB_OFFLINE": "1", "OCR_EVAL_LOCK_OWNER": owner})
-        try:
-            code = process.wait(timeout=1800)
-        except BaseException:
-            reference.stop(process)
-            raise
-    if code:
-        raise RuntimeError(f"Child process exited with {code}; see {directory / 'process.log'}")
+    execute_process(command, reference.ROOT, os.environ | {"HF_HUB_OFFLINE": "1", "OCR_EVAL_LOCK_OWNER": owner},
+                    directory / "process.log", 1800)
     result = json.loads(output.read_text())
     if result["image_sha256"] != reference.sha256(image):
         raise ValueError("The child read a different image")
@@ -187,12 +181,18 @@ def run_plan(plan_path, out, only=None, performance=True):
                 else:
                     row["assets_cached"] = {a["name"]: a["cached"] for a in record["assets"]}
                     row["conditions_after"] = {"power": reference.command("pmset", "-g", "batt"), "thermal": reference.command("pmset", "-g", "therm")}
-            except (OSError, ValueError, RuntimeError, subprocess.SubprocessError) as error:
+            except BaseException as error:
                 row |= {"status": "failed", "error": f"{type(error).__name__}: {error}", "metrics": {}}
-            row["wall_s"] = time.monotonic() - started
-            runs.append(row)
-            write(out / "runs.json", runs)
-            print(run_id, row["status"], round(row["wall_s"], 2), flush=True)
+                if cleanup_failure(error):
+                    state["retain_lock"] = True
+                    raise
+                if not isinstance(error, (OSError, ValueError, RuntimeError, subprocess.SubprocessError)):
+                    raise
+            finally:
+                row["wall_s"] = time.monotonic() - started
+                runs.append(row)
+                write(out / "runs.json", runs)
+                print(run_id, row["status"], round(row["wall_s"], 2), flush=True)
         for label, samples in inputs.items():
             for sid in samples:
                 if only and sid not in only:
@@ -216,12 +216,15 @@ def run_plan(plan_path, out, only=None, performance=True):
         aborted = f"{type(error).__name__}: {error}"
         raise
     finally:
-        write(out / "invocation.json", {"plan_sha256": plan_hash, "only": only, "performance": performance,
-                                       "aborted": aborted, "finished_at": reference.now(), "runs_recorded": len(runs)})
-        if state.get("owner"):
-            if (lock / "owner.txt").read_text() != owner:
-                raise RuntimeError("Lock ownership changed; leaving the lock in place")
-            lock.rename(lock.with_name("heavy-job-done-333-" + datetime.now().strftime("%Y%m%dT%H%M%S%f")))
+        try:
+            write(out / "invocation.json", {"plan_sha256": plan_hash, "only": only, "performance": performance,
+                                           "aborted": aborted, "finished_at": reference.now(), "runs_recorded": len(runs),
+                                           "lock_retained": state.get("retain_lock", False)})
+        finally:
+            if state.get("owner") and not state.get("retain_lock"):
+                if (lock / "owner.txt").read_text() != owner:
+                    raise RuntimeError("Lock ownership changed; leaving the lock in place")
+                lock.rename(lock.with_name("heavy-job-done-333-" + datetime.now().strftime("%Y%m%dT%H%M%S%f")))
     return runs
 
 
