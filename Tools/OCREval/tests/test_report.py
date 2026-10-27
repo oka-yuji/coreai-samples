@@ -1,0 +1,86 @@
+import json
+import tempfile
+import unittest
+from pathlib import Path
+
+from Tools.OCREval.compare import write
+from Tools.OCREval.report import build, judgment_changes
+from Tools.OCREval.score import L
+
+
+class ReportTests(unittest.TestCase):
+    def prepare(self, root):
+        context = {"model": "teleocr", "variant": "coreai-fp16", "device": "test", "os": "test", "workload": "test:A", "cache": "prepared", "plan_sha256": "a" * 64}
+        plan = {"source": "test", "cli_sha256": "b" * 64, "conditions": {"backend": "test"}, "fixture_revision": {"test": "c" * 64}, "timing_boundary": "test",
+                "variants": [{"id": "coreai-fp16", "engine": "coreai", "bundle": "/PRIVATE_MODEL_PATH", "asset_hashes": {"metadata.json": "d" * 64}}],
+                "comparisons": [], "performance": {"set": "test", "sample": "A"}}
+        write(root / "plan.json", plan)
+        write(root / "invocation.json", {"aborted": None, "only": None, "performance": True, "plan_sha256": "a" * 64, "finished_at": "test"})
+        write(root / "inputs/inputs.json", {"test": {"A": {"image": "/PRIVATE_INPUT_PATH"}}})
+        write(root / "environment.json", {key: "test" for key in ("os", "machine", "python", "packages", "model", "xcode", "swift")})
+        write(root / "scores/test/coreai-fp16.json", {"samples": {"A": {"judgment": L["good"], "cer": 0.1, "diff_ops_gt_vs_pred": ["PRIVATE_TEXT"]}},
+                                                    "strata": {"test": {"n": 1, "n_scored": 1, "mean_cer": 0.1}}})
+        write(root / "comparisons.json", {"test": {}})
+        rows = []
+        for phase, count in [("quality", 1), ("cold", 1), ("warmup", 1), ("measured", 20)]:
+            for i in range(count):
+                row = {"run_id": f"{phase}-{i}", "set": "test", "sample": "A", "variant": "coreai-fp16", "phase": phase, "iteration": i,
+                       "context": context | {"cache": "cold" if phase == "cold" else "prepared"},
+                       "status": "warmup" if phase == "warmup" else "passed", "metrics": {"latency_s": {"value": i + 1, "unit": "s"}},
+                       "conditions_before": {"power": "AC Power PRIVATE_BATTERY_ID", "thermal": "no warning"},
+                       "conditions_after": {"power": "AC Power PRIVATE_BATTERY_ID", "thermal": "no warning"}}
+                rows.append(row)
+        write(root / "runs.json", rows)
+        return rows
+
+    def export(self, root):
+        spec = Path(__file__).resolve().parents[3] / "docs/model-reports/metrics.json"
+        return build(root, root / "public", spec)
+
+    def test_complete_report_preserves_counts_and_uses_common_p95_without_private_content(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.prepare(root)
+            report = self.export(root)
+            measured = report["performance"]["coreai-fp16"]["prepared"]
+            self.assertEqual(measured["counts"], {"passed": 20, "failed": 0, "warmup": 1})
+            self.assertEqual(measured["metrics"]["latency_s"]["p95"], 19)
+            self.assertEqual(measured["power_sources"], ["AC Power"])
+            self.assertEqual(report["quality"]["test"]["coreai-fp16"]["metrics"]["cer"]["n"], 1)
+            for path in (root / "public").rglob("*"):
+                if path.is_file():
+                    self.assertNotIn("PRIVATE_", path.read_text())
+
+    def test_failed_measurements_keep_the_denominator_and_suppress_under_twenty_p95(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            rows = self.prepare(root)
+            rows[-1] |= {"status": "failed", "metrics": {}, "error": "PRIVATE_ERROR_PATH"}
+            write(root / "runs.json", rows)
+            measured = self.export(root)["performance"]["coreai-fp16"]["prepared"]
+            self.assertEqual(measured["counts"]["failed"], 1)
+            self.assertEqual(measured["metrics"]["latency_s"]["n"], 19)
+            self.assertIsNone(measured["metrics"]["latency_s"]["p95"])
+
+    def test_incomplete_or_duplicate_invocations_cannot_be_exported_as_complete(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            rows = self.prepare(root)
+            for bad in (rows[:-1], rows + [rows[0]]):
+                write(root / "runs.json", bad)
+                with self.assertRaisesRegex(ValueError, "Missing, duplicate"):
+                    self.export(root)
+            write(root / "runs.json", rows)
+            invocation = json.loads((root / "invocation.json").read_text())
+            write(root / "invocation.json", invocation | {"aborted": "interrupted"})
+            with self.assertRaisesRegex(ValueError, "complete full invocation"):
+                self.export(root)
+
+    def test_quality_judgment_drops_and_missing_samples_remain_separate(self):
+        left = {"A": {"judgment": L["good"]}, "B": {"judgment": L["conditional"]}, "C": {"judgment": L["insufficient"]}}
+        right = {"A": {"judgment": L["insufficient"]}, "B": {"judgment": L["good"]}}
+        self.assertEqual(judgment_changes(left, right), {"same": 0, "improved": 1, "degraded": 1, "missing": 1, "degraded_samples": ["A"]})
+
+
+if __name__ == "__main__":
+    unittest.main()
