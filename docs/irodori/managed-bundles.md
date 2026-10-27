@@ -6,7 +6,7 @@ The local source identity uses the SHA-256 of `irodori.json` (`ce41c61dd2249cab6
 
 Import copies into a new staging directory while retaining access to the selected folder. Size, checksum, manifest, exact inventory and symbolic-link checks precede promotion into the managed store. Failure or cancellation leaves the source untouched. An active lease prevents replacement or deletion. Inspection repeats verification before returning a ready resource. Existing image bundles continue to use `bundle.json` by default, and previous local-source records retain their identity.
 
-The storage contract alone does not expose a runnable demo. The Models speech adapter is tracked by [#336](https://github.com/oka-yuji/coreai-samples/issues/336). Physical-device generation, memory, playback and listening remain pending under [#329](https://github.com/oka-yuji/coreai-samples/issues/329) and [#95](https://github.com/oka-yuji/coreai-samples/issues/95).
+The normal iOS Models screen registers the pinned artifact and connects it to the managed speech adapter. See [the iPhone guide](iphone.md#use-irodori-from-models) for import, generation, playback and WAV export. Display and import completion do not start inference. Models retains the resource lease until speech shutdown joins generation, playback and audio-session deactivation. Physical-device generation, memory, playback and listening remain pending under [#329](https://github.com/oka-yuji/coreai-samples/issues/329) and [#95](https://github.com/oka-yuji/coreai-samples/issues/95).
 
 ## Verification
 
