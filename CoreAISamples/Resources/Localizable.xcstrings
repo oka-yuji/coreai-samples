@@ -355,12 +355,34 @@
         }
       }
     },
+    "1. Prepare the model" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1. モデルを準備"
+          }
+        }
+      }
+    },
     "1. Your fridge" : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "1. 冷蔵庫の写真"
+          }
+        }
+      }
+    },
+    "2. Enter what to say" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "2. 読み上げる文章を入力"
           }
         }
       }
@@ -381,6 +403,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "3. 調理器具を確認"
+          }
+        }
+      }
+    },
+    "3. Generate and listen" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "3. 音声を生成して聴く"
+          }
+        }
+      }
+    },
+    "3. Generate, listen and save" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "3. 生成して聴く・保存する"
           }
         }
       }
@@ -466,6 +510,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "閾値未満のスコア、必須性が不明な材料、未確認の器具・在庫・数量は再確認が必要です。"
+          }
+        }
+      }
+    },
+    "About reference voices" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "参照音声について"
           }
         }
       }
@@ -1402,6 +1457,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "この会話を続けるには %@ を選択してください。"
+          }
+        }
+      }
+    },
+    "Choose Try an example or enter a short Japanese passage. You can leave the voice variation setting as it is." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「例文で試す」を選ぶか、短い日本語の文章を入力します。声のバリエーションの設定は、そのままで始められます。"
           }
         }
       }
@@ -2623,6 +2689,17 @@
         }
       }
     },
+    "Enter text or choose an example to enable generation." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "文章を入力するか、例文を選ぶと生成できます。"
+          }
+        }
+      }
+    },
     "Enter what you want to find and inspect matching regions in the camera preview. Matches are similarity candidates and may need human review." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3759,6 +3836,17 @@
         }
       }
     },
+    "Keep this screen open. Preparing the model for the first time can take longer." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この画面を開いたままお待ちください。初回はモデルの準備に時間がかかる場合があります。"
+          }
+        }
+      }
+    },
     "Kitchen equipment" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3809,6 +3897,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "ラベル"
+          }
+        }
+      }
+    },
+    "Leave this number unchanged to get started. Change it to try a different voice variation." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この数値はそのままで始められます。別の声のバリエーションを試したいときに変更してください。"
           }
         }
       }
@@ -7288,6 +7387,17 @@
         }
       }
     },
+    "Tap Generate speech and keep the app open. The first generation can take longer while the model is prepared. When it finishes, tap Play or Save WAV. Stop cancels the current operation." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「音声を生成」を押し、アプリを開いたまま待ちます。初回はモデルの準備に時間がかかる場合があります。完了したら「再生」で聴くか、「WAVを保存」で保存できます。「停止」で処理を中止できます。"
+          }
+        }
+      }
+    },
     "Tap answers work without a model." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7587,6 +7697,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "会話を保存できませんでした。詳細（原文）: %@"
+          }
+        }
+      }
+    },
+    "The current model bundle generates speech from text without a reference voice. Recording, importing a voice recording and voice cloning are not supported by this bundle. Changing the seed changes the generated voice variation." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "現在のモデルは、参照音声を使わずに文章から音声を生成します。このモデルでは、録音や音声ファイルの取り込み、その声を参考にした生成には対応していません。シードの数値を変えると、生成する声のバリエーションが変わります。"
           }
         }
       }
@@ -8037,6 +8158,17 @@
         }
       }
     },
+    "This build does not offer an Irodori model download. In Files, select the complete prepared Irodori FP32 folder with Import model. The folder uses 3.38 GB and is copied into the app, so allow space for both copies and model preparation." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このバージョンではIrodoriモデルをダウンロードできません。「モデルを取り込む」から、ファイルアプリにある準備済みのIrodori FP32フォルダ全体を選びます。容量は3.38 GBで、アプリ内にもコピーします。元のフォルダとコピー、モデルの準備に必要な空き容量を確保してください。"
+          }
+        }
+      }
+    },
     "This model folder is incomplete or incompatible. Open a valid EmbeddingGemma 2 bundle." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -8210,6 +8342,17 @@
         }
       }
     },
+    "Try an example" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "例文で試す"
+          }
+        }
+      }
+    },
     "Try different wording, choose more images, or show all candidates." : {
       "localizations" : {
         "ja" : {
@@ -8270,6 +8413,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "種類"
+          }
+        }
+      }
+    },
+    "Type a short Japanese passage, or start with an example below." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "短い日本語の文章を入力するか、まずは例文で試してみてください。"
           }
         }
       }
@@ -8520,6 +8674,17 @@
         }
       }
     },
+    "Voice options" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "声の詳細設定"
+          }
+        }
+      }
+    },
     "WAV file saved." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -8635,6 +8800,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "探したいもの"
+          }
+        }
+      }
+    },
+    "When generation finishes, play the audio here or save it as a WAV file." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "生成が終わると、ここで再生したり、WAVファイルとして保存したりできます。"
           }
         }
       }

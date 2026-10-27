@@ -18,8 +18,9 @@ def rms_norm(norm, values):
 
 
 class Vision(nn.Module):
-    def __init__(self, visual):
+    def __init__(self, visual, masked=float("-inf")):
         super().__init__()
+        self.masked = masked
         self.patch = visual.patch_embed.proj
         self.blocks, self.merger = visual.blocks, visual.merger
         self.full = set(visual.fullatt_block_indexes)
@@ -28,7 +29,7 @@ class Vision(nn.Module):
     def forward(self, pixel_values, key_valid, cos, sin):
         count = pixel_values.shape[0]
         hidden = F.linear(pixel_values, self.patch.weight.reshape(self.patch.weight.shape[0], -1))
-        bias = torch.where(key_valid > 0.5, 0.0, float("-inf")).to(hidden.dtype)
+        bias = torch.where(key_valid > 0.5, 0.0, self.masked).to(hidden.dtype)
         window_bias, full_bias = bias.reshape(-1, 1, 1, WINDOW_PATCHES), bias.reshape(1, 1, 1, -1)
         cos, sin = cos.unsqueeze(1), sin.unsqueeze(1)
         for index, block in enumerate(self.blocks):
@@ -61,7 +62,7 @@ class Decoder(nn.Module):
         self.repeats = config.num_attention_heads // config.num_key_value_heads
         self.vocab = config.vocab_size
 
-    def decode(self, hidden, cos, sin, mask, key_cache=None, value_cache=None):
+    def decode(self, hidden, cos, sin, mask, key_cache=None, value_cache=None, write=None, row=None):
         batch, count, _ = hidden.shape
         total = mask.shape[-1]
         past = total - count
@@ -75,7 +76,12 @@ class Decoder(nn.Module):
             query, key = query.transpose(1, 2), key.transpose(1, 2)
             query = query * cos + rotate_half(query) * sin
             key = key * cos + rotate_half(key) * sin
-            if key_cache is not None:
+            if write is not None:
+                key = torch.where(write, key, key_cache[index])
+                value = torch.where(write, value, value_cache[index])
+                key_cache[index:index + 1] = key.unsqueeze(0)
+                value_cache[index:index + 1] = value.unsqueeze(0)
+            elif key_cache is not None:
                 key_cache[index:index + 1, :, :, past:total, :] = key.unsqueeze(0)
                 value_cache[index:index + 1, :, :, past:total, :] = value.unsqueeze(0)
                 key, value = key_cache[index, :, :, :total, :], value_cache[index, :, :, :total, :]
@@ -84,7 +90,8 @@ class Decoder(nn.Module):
                                                     attn_mask=mask, scale=attention.scaling)
             hidden = hidden + attention.o_proj(output.transpose(1, 2).reshape(batch, count, -1))
             hidden = hidden + layer.mlp(rms_norm(layer.post_attention_layernorm, hidden))
-        return self.head(rms_norm(self.norm, hidden[:, -1, :])).reshape(1, self.vocab)
+        last = hidden[:, -1, :] if row is None else hidden.index_select(1, row)[:, 0, :]
+        return self.head(rms_norm(self.norm, last)).reshape(1, self.vocab)
 
 
 class Prefill(nn.Module):
@@ -103,6 +110,25 @@ class Main(nn.Module):
 
     def forward(self, input_ids, cos, sin, mask, keyCache, valueCache):
         return self.decoder.decode(self.decoder.embed(input_ids), cos, sin, mask, keyCache, valueCache)
+
+
+class StaticPrefill(nn.Module):
+    def __init__(self, decoder):
+        super().__init__()
+        self.decoder = decoder
+
+    def forward(self, inputs_embeds, cos, sin, mask, logit_row, keyCache, valueCache):
+        return self.decoder.decode(inputs_embeds, cos, sin, mask, keyCache, valueCache, row=logit_row)
+
+
+class StaticMain(nn.Module):
+    def __init__(self, decoder):
+        super().__init__()
+        self.decoder = decoder
+
+    def forward(self, input_ids, cos, sin, mask, write_mask, keyCache, valueCache):
+        write = write_mask.reshape(1, 1, -1, 1) > 0.5
+        return self.decoder.decode(self.decoder.embed(input_ids), cos, sin, mask, keyCache, valueCache, write=write)
 
 
 class StatelessPrefill(nn.Module):

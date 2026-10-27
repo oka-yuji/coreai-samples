@@ -106,9 +106,9 @@ class VisionBoundary(torch.nn.Module):
 
 
 class DenoiserBoundary(torch.nn.Module):
-    def __init__(self, original, dtype):
+    def __init__(self, original, dtype, rotary=None):
         super().__init__()
-        self.denoiser = Denoiser(original)
+        self.denoiser = Denoiser(original, rotary=rotary)
         self.dtype = dtype
 
     def forward(self, latents, text, timestep, text_index, image_index, image_mask, cosine, sine, mask, target):
@@ -126,14 +126,16 @@ class VAEBoundary(torch.nn.Module):
         return self.vae(value.to(self.dtype)).float()
 
 
-def export_boundary(original, kind, profile):
+def export_boundary(original, kind, profile, *, rotary=None):
+    if rotary is not None and (kind != "denoiser" or profile["components"][kind]["compute_dtype"] != "float32"):
+        raise ValueError("Explicit Metal rotary is only supported for the Float32 denoiser")
     dtype = DTYPES[profile["components"][kind]["compute_dtype"]]
     if kind == "text":
         result = TextBoundary(original, dtype)
     elif kind == "vision":
         result = VisionBoundary(original, dtype)
     elif kind == "denoiser":
-        result = DenoiserBoundary(original, dtype)
+        result = DenoiserBoundary(original, dtype, rotary=rotary)
     else:
         result = VAEBoundary(original, kind, dtype)
     return result.eval().requires_grad_(False)

@@ -1,0 +1,534 @@
+{
+  "format": 1,
+  "language": "ja",
+  "ui": {
+    "page_title": "Qwen Image｜画質の確認",
+    "title": "画像の仕上がりを確認",
+    "intro": "生成・編集の指示を読み、4列の画像をそれぞれ同じ基準で採点します。",
+    "export": "採点をJSONで保存",
+    "resume": "保存した採点を読み込む",
+    "save_hint": "途中保存・再開できます。終了前にJSONを保存してください。",
+    "previous": "前のケース",
+    "next": "次のケース",
+    "case": "ケース",
+    "background": "透過確認の背景",
+    "checker": "市松模様",
+    "white": "白",
+    "black": "黒",
+    "generate": "画像生成",
+    "edit": "画像編集",
+    "prompt_title": "AIに渡した指示",
+    "display_note": "評価用の日本語表示です。生成に使った原文も確認できます。",
+    "original": "生成・編集に使った原文",
+    "checks_title": "この画像で確認すること",
+    "reference": "編集前の元画像",
+    "reference_hint": "保持できているかは、この元画像と見比べます。クリックで拡大できます。",
+    "cohort_hint": "各画像を、指示と確認ポイントに照らして採点してください。",
+    "scoring": "採点の目安を見る",
+    "score_legend": "0＝条件を満たさない　1＝条件を満たすが粗さがある　2＝良好",
+    "unreviewed": "未採点",
+    "score_0": "0 · 条件を満たさない",
+    "score_1": "1 · 許容できる",
+    "score_2": "2 · 良好",
+    "axes_reviewed": "項目を採点済み",
+    "case_progress": "このケース",
+    "overall_progress": "全体",
+    "image_hint": "画像はクリックで拡大できます。迷う項目は未採点のまま残せます。",
+    "saved": "このブラウザに保存しました。終了前にJSONも保存してください。",
+    "save_failed": "ブラウザへの保存ができません。JSONで保存してください。",
+    "restored": "保存済みの採点を復元しました。",
+    "restore_failed": "保存済みの採点を復元できませんでした。JSONを読み込んで確認してください。",
+    "bad_cohorts": "4種類の画像の採点がそろったJSONを選んでください。",
+    "bad_identity": "この画像セットとは異なる採点ファイルです。",
+    "bad_rows": "採点のケースに不足または重複があります。",
+    "bad_axes": "採点項目がこの画像セットと一致しません。",
+    "bad_score": "点数は未採点・0・1・2のいずれかにしてください。",
+    "bad_json": "JSONを読み込めませんでした。保存した採点ファイルを選んでください。",
+    "scope": "合否の集計は別に行います。空欄を合格として扱うことはありません。"
+  },
+  "axes": {
+    "instruction": {
+      "label": "指示への一致",
+      "meaning": "指定された対象・色・数・配置・編集内容を満たしているかを見ます。",
+      "scores": [
+        "指示の条件を満たしていない。",
+        "指示の条件は満たしているが、見え方に粗さがある。",
+        "指定内容をはっきり満たしている。"
+      ]
+    },
+    "detail": {
+      "label": "形・輪郭の自然さ",
+      "meaning": "指定された画風に沿って、形・輪郭・部品のつながりや細部の崩れを見ます。",
+      "scores": [
+        "形や輪郭が大きく崩れ、条件を満たしていない。",
+        "形や輪郭は読み取れるが、目立つ粗さがある。",
+        "形・つながり・細部が自然で明瞭。"
+      ]
+    },
+    "text": {
+      "label": "文字の正確さ",
+      "meaning": "指定された文字が正確で、読みやすいかを見ます。",
+      "scores": [
+        "誤字・欠字がある、または読めない。",
+        "指定文字は正しく読めるが、形に粗さがある。",
+        "指定文字が正確ではっきり読める。"
+      ]
+    },
+    "preservation": {
+      "label": "元画像の保持",
+      "meaning": "編集前の元画像と比べ、変更を指定していない部分が保たれているかを見ます。",
+      "scores": [
+        "保持すべき内容が変わり、条件を満たしていない。",
+        "保持すべき内容は残っているが、細部に粗さがある。",
+        "保持すべき内容が明瞭に保たれている。"
+      ]
+    },
+    "alpha": {
+      "label": "透過と縁の自然さ",
+      "meaning": "白・黒・市松の背景で、指定された透明部分と輪郭を見ます。",
+      "scores": [
+        "必要な部分が透けていない、または対象が欠けている。",
+        "必要な部分は透けるが、縁に粗さがある。",
+        "必要な部分が透け、縁も自然で明瞭。"
+      ]
+    }
+  },
+  "cohorts": {
+    "A0": {
+      "title": "A0｜元のモデル",
+      "description": "比較の基準になる出力"
+    },
+    "A1": {
+      "title": "A1｜精度変更後",
+      "description": "重みの精度を変更した出力"
+    },
+    "B": {
+      "title": "B｜量子化後の参照",
+      "description": "Core AIへ変換する前の出力"
+    },
+    "C": {
+      "title": "C｜Core AI版",
+      "description": "変換後のモデルによる出力"
+    }
+  },
+  "cases": {
+    "g01": {
+      "source_prompt": "A blue ceramic teapot on a white table, soft daylight, simple clean product photograph.",
+      "prompt_ja": "白い机の上に青い陶器のティーポットがある。柔らかな昼の光で撮った、シンプルですっきりした商品写真。",
+      "checks": {
+        "instruction": [
+          "青い陶器のティーポットがある",
+          "白い机の上に置かれている",
+          "柔らかな昼の光による、シンプルな商品写真になっている"
+        ],
+        "detail": [
+          "注ぎ口・取っ手・ふたの形やつながり、陶器の輪郭に不自然な崩れがないか"
+        ]
+      }
+    },
+    "g02": {
+      "source_prompt": "白い机の上に青い陶器のティーポットが一つ。柔らかな自然光の商品写真。",
+      "prompt_ja": "白い机の上に青い陶器のティーポットが一つ。柔らかな自然光の商品写真。",
+      "checks": {
+        "instruction": [
+          "青い陶器のティーポットが1つある",
+          "白い机と柔らかな自然光による商品写真になっている"
+        ],
+        "detail": [
+          "注ぎ口・取っ手・ふたの形やつながり、陶器の輪郭に不自然な崩れがないか"
+        ]
+      }
+    },
+    "g03": {
+      "source_prompt": "A red apple to the left of a green pear on a plain white background. Exactly two fruits.",
+      "prompt_ja": "無地の白い背景に、赤いリンゴを左、緑の洋梨を右に置く。果物はちょうど2つ。",
+      "checks": {
+        "instruction": [
+          "赤いリンゴが左、緑の洋梨が右にある",
+          "果物は合計2つで、背景は無地の白になっている"
+        ],
+        "detail": [
+          "果物の形や輪郭に、意図しない欠け・融合・崩れがないか"
+        ]
+      }
+    },
+    "g04": {
+      "source_prompt": "白い背景に赤いリンゴと緑の洋梨。リンゴは左、洋梨は右。果物は合計二つ。",
+      "prompt_ja": "白い背景に赤いリンゴと緑の洋梨。リンゴは左、洋梨は右。果物は合計二つ。",
+      "checks": {
+        "instruction": [
+          "赤いリンゴが左、緑の洋梨が右にある",
+          "果物は合計2つで、背景は白になっている"
+        ],
+        "detail": [
+          "果物の形や輪郭に、意図しない欠け・融合・崩れがないか"
+        ]
+      }
+    },
+    "g05": {
+      "source_prompt": "A simple cafe poster with the exact large readable text COFFEE above a single coffee cup, clean typography.",
+      "prompt_ja": "シンプルなカフェのポスター。コーヒーカップ1つの上に、正確な文字「COFFEE」を大きく読みやすく配置する。すっきりした文字デザイン。",
+      "checks": {
+        "instruction": [
+          "カフェのシンプルなポスターになっている",
+          "コーヒーカップは1つで、その上に大きな「COFFEE」がある"
+        ],
+        "text": [
+          "「COFFEE」のつづりが正しく、大きく読みやすいか"
+        ],
+        "detail": [
+          "カップの形・輪郭やポスターの細部に不自然な崩れがないか"
+        ]
+      }
+    },
+    "g06": {
+      "source_prompt": "喫茶店のシンプルなポスター。大きく読みやすい「珈琲」の二文字と、その下にコーヒーカップを一つ。",
+      "prompt_ja": "喫茶店のシンプルなポスター。大きく読みやすい「珈琲」の二文字と、その下にコーヒーカップを一つ。",
+      "checks": {
+        "instruction": [
+          "喫茶店のシンプルなポスターになっている",
+          "大きな「珈琲」の下にコーヒーカップが1つある"
+        ],
+        "text": [
+          "「珈琲」の2文字が正しく、大きく読みやすいか"
+        ],
+        "detail": [
+          "カップの形・輪郭やポスターの細部に不自然な崩れがないか"
+        ]
+      }
+    },
+    "g07": {
+      "source_prompt": "A blue sign with the exact white text OPEN 24 HOURS, front view, no other words.",
+      "prompt_ja": "青い看板に、正確な白い文字「OPEN 24 HOURS」を表示する。正面から見た画像で、ほかの言葉は入れない。",
+      "checks": {
+        "instruction": [
+          "青い看板に白い文字がある",
+          "正面から見た画像で、文字は「OPEN 24 HOURS」のみになっている"
+        ],
+        "text": [
+          "「OPEN 24 HOURS」の文字・数字・順序が正しく、余計な言葉がなく読みやすいか"
+        ]
+      }
+    },
+    "g08": {
+      "source_prompt": "青地の看板に白い文字で「営業中」とだけ書かれている。正面から見た画像。",
+      "prompt_ja": "青地の看板に白い文字で「営業中」とだけ書かれている。正面から見た画像。",
+      "checks": {
+        "instruction": [
+          "青い看板に白い文字がある",
+          "正面から見た画像で、文字は「営業中」のみになっている"
+        ],
+        "text": [
+          "「営業中」が正しく、ほかの言葉がなく読みやすいか"
+        ]
+      }
+    },
+    "g09": {
+      "source_prompt": "Portrait photograph of an adult woman wearing round glasses and a green sweater against a neutral gray background.",
+      "prompt_ja": "丸い眼鏡と緑のセーターを着用した成人女性の肖像写真。背景は中立的な灰色。",
+      "checks": {
+        "instruction": [
+          "成人女性の肖像写真になっている",
+          "丸い眼鏡、緑のセーター、灰色の背景がある"
+        ],
+        "detail": [
+          "顔や眼鏡の形、目・輪郭・服の細部に不自然な崩れがないか"
+        ]
+      }
+    },
+    "g10": {
+      "source_prompt": "丸い眼鏡をかけ、緑色のセーターを着た成人男性の肖像写真。背景は無地の灰色。",
+      "prompt_ja": "丸い眼鏡をかけ、緑色のセーターを着た成人男性の肖像写真。背景は無地の灰色。",
+      "checks": {
+        "instruction": [
+          "成人男性の肖像写真になっている",
+          "丸い眼鏡、緑のセーター、無地の灰色の背景がある"
+        ],
+        "detail": [
+          "顔や眼鏡の形、目・輪郭・服の細部に不自然な崩れがないか"
+        ]
+      }
+    },
+    "g11": {
+      "source_prompt": "An adult person holding one yellow umbrella on a rainy street, full body visible, natural anatomy.",
+      "prompt_ja": "雨の街路で、黄色い傘を1つ持つ成人。全身が見え、人体の形が自然な画像。",
+      "checks": {
+        "instruction": [
+          "雨の街路で、成人が黄色い傘を1つ持っている",
+          "全身が写っている"
+        ],
+        "detail": [
+          "手足のつながりや体のバランス、傘の形が自然か"
+        ]
+      }
+    },
+    "g12": {
+      "source_prompt": "雨の街角で黄色い傘を一つ持つ成人。全身が写り、自然な姿勢で立っている。",
+      "prompt_ja": "雨の街角で黄色い傘を一つ持つ成人。全身が写り、自然な姿勢で立っている。",
+      "checks": {
+        "instruction": [
+          "雨の街角で、成人が黄色い傘を1つ持っている",
+          "全身が写り、自然な姿勢で立っている"
+        ],
+        "detail": [
+          "手足のつながりや体のバランス、傘の形が自然か"
+        ]
+      }
+    },
+    "g13": {
+      "source_prompt": "A small red toy robot isolated on a transparent background, clean edges, full object visible.",
+      "prompt_ja": "小さな赤いおもちゃのロボットを、透明な背景に単独で配置する。輪郭はきれいで、ロボット全体が見える。",
+      "checks": {
+        "instruction": [
+          "小さな赤いおもちゃのロボットが単独で写っている",
+          "ロボット全体が見える切り抜き画像になっている"
+        ],
+        "detail": [
+          "部品のつながりや輪郭に、意図しない欠け・崩れがないか"
+        ],
+        "alpha": [
+          "背景を白・黒・市松に切り替え、周囲が透けて見え、ロボットの縁がきれいか"
+        ]
+      }
+    },
+    "g14": {
+      "source_prompt": "透明な背景に黄色い花を一輪。茎と葉まで全体が写り、輪郭が明瞭な切り抜き画像。",
+      "prompt_ja": "透明な背景に黄色い花を一輪。茎と葉まで全体が写り、輪郭が明瞭な切り抜き画像。",
+      "checks": {
+        "instruction": [
+          "黄色い花が1輪ある",
+          "茎と葉まで全体が写る、輪郭の明瞭な切り抜き画像になっている"
+        ],
+        "detail": [
+          "花びら・茎・葉の形やつながりに不自然な崩れがないか"
+        ],
+        "alpha": [
+          "背景を白・黒・市松に切り替え、花の周囲が透けて見え、縁がきれいか"
+        ]
+      }
+    },
+    "g15": {
+      "source_prompt": "A macro photograph of a silver wristwatch with a blue dial, detailed hands and hour markings on a white surface.",
+      "prompt_ja": "白い面の上に置かれた、青い文字盤の銀色の腕時計のマクロ写真。針と時刻の目盛りが細かく描かれている。",
+      "checks": {
+        "instruction": [
+          "銀色の腕時計と青い文字盤がある",
+          "白い面の上のマクロ写真で、針と時刻目盛りが細かく描かれている"
+        ],
+        "detail": [
+          "時計の針・目盛り・ケースの形や細部に、不自然な欠け・融合・崩れがないか"
+        ]
+      }
+    },
+    "e01": {
+      "source_prompt": "赤い円を青い円に変更してください。円の形と白い背景をそのまま保持してください。",
+      "prompt_ja": "赤い円を青い円に変更してください。円の形と白い背景をそのまま保持してください。",
+      "checks": {
+        "instruction": [
+          "元画像の赤い円が青い円になっている"
+        ],
+        "preservation": [
+          "元画像と比べて、円の形と白い背景が保たれているか"
+        ]
+      }
+    },
+    "e02": {
+      "source_prompt": "Change the red circle to green. Keep its exact shape, size, location and the white background.",
+      "prompt_ja": "赤い円を緑に変える。円の形・大きさ・位置と白い背景を正確に保つ。",
+      "checks": {
+        "instruction": [
+          "元画像の赤い円が緑の円になっている"
+        ],
+        "preservation": [
+          "元画像と比べて、円の形・大きさ・位置と白い背景が正確に保たれているか"
+        ]
+      }
+    },
+    "e03": {
+      "source_prompt": "左の赤い四角だけを黄色に変更してください。右の青い円と配置は保持してください。",
+      "prompt_ja": "左の赤い四角だけを黄色に変更してください。右の青い円と配置は保持してください。",
+      "checks": {
+        "instruction": [
+          "左の赤い四角だけが黄色になっている"
+        ],
+        "preservation": [
+          "元画像と比べて、右の青い円と図形の配置が保たれているか"
+        ]
+      }
+    },
+    "e04": {
+      "source_prompt": "Change only the background to pale gray. Preserve the red square and blue circle, their positions and sizes.",
+      "prompt_ja": "背景だけを淡い灰色に変える。赤い四角と青い円、およびそれらの位置と大きさを保つ。",
+      "checks": {
+        "instruction": [
+          "背景だけが淡い灰色になっている"
+        ],
+        "preservation": [
+          "元画像と比べて、赤い四角・青い円とそれぞれの位置・大きさが保たれているか"
+        ]
+      }
+    },
+    "e05": {
+      "source_prompt": "人物の青いシャツを赤いシャツに変更してください。顔、髪、眼鏡、姿勢、背景は保持してください。",
+      "prompt_ja": "人物の青いシャツを赤いシャツに変更してください。顔、髪、眼鏡、姿勢、背景は保持してください。",
+      "checks": {
+        "instruction": [
+          "人物の青いシャツが赤くなっている"
+        ],
+        "detail": [
+          "人物や服の輪郭・つながりに、不自然な崩れがないか"
+        ],
+        "preservation": [
+          "元画像と比べて、顔・髪・眼鏡・姿勢・背景が保たれているか"
+        ]
+      }
+    },
+    "e06": {
+      "source_prompt": "Replace the white background with pale green. Preserve the illustrated person's face, glasses, hair, blue shirt and pose.",
+      "prompt_ja": "白い背景を淡い緑に置き換える。描かれた人物の顔・眼鏡・髪・青いシャツ・姿勢を保つ。",
+      "checks": {
+        "instruction": [
+          "白い背景が淡い緑になっている"
+        ],
+        "detail": [
+          "人物や服の輪郭・つながりに、不自然な崩れがないか"
+        ],
+        "preservation": [
+          "元画像と比べて、顔・眼鏡・髪・青いシャツ・姿勢が保たれているか"
+        ]
+      }
+    },
+    "e07": {
+      "source_prompt": "人物の眼鏡のフレームだけを赤くしてください。人物のほかの特徴と構図は変えないでください。",
+      "prompt_ja": "人物の眼鏡のフレームだけを赤くしてください。人物のほかの特徴と構図は変えないでください。",
+      "checks": {
+        "instruction": [
+          "人物の眼鏡のフレームだけが赤くなっている"
+        ],
+        "detail": [
+          "眼鏡のフレームや顔の輪郭に、不自然な崩れがないか"
+        ],
+        "preservation": [
+          "元画像と比べて、眼鏡のフレームの色以外の人物の特徴と構図が保たれているか"
+        ]
+      }
+    },
+    "e08": {
+      "source_prompt": "Replace the word OPEN with CLOSED. Preserve the blue sign and white lettering style.",
+      "prompt_ja": "「OPEN」を「CLOSED」に置き換える。青い看板と白い文字のスタイルを保つ。",
+      "checks": {
+        "instruction": [
+          "看板の「OPEN」が「CLOSED」に置き換わっている"
+        ],
+        "text": [
+          "「CLOSED」のつづりが正しく読めるか"
+        ],
+        "preservation": [
+          "元画像と比べて、青い看板と白い文字のスタイルが保たれているか"
+        ]
+      }
+    },
+    "e09": {
+      "source_prompt": "看板の文字を「営業中」に変更してください。青い背景、白い文字、看板の形を保持してください。",
+      "prompt_ja": "看板の文字を「営業中」に変更してください。青い背景、白い文字、看板の形を保持してください。",
+      "checks": {
+        "instruction": [
+          "看板の文字が「営業中」になっている"
+        ],
+        "text": [
+          "「営業中」の文字が正しく読めるか"
+        ],
+        "preservation": [
+          "元画像と比べて、青い背景・白い文字・看板の形が保たれているか"
+        ]
+      }
+    },
+    "e10": {
+      "source_prompt": "Change the red star to blue while preserving the transparent background, size, and sharp edges.",
+      "prompt_ja": "赤い星を青に変える。透明な背景、大きさ、くっきりした輪郭を保つ。",
+      "checks": {
+        "instruction": [
+          "元画像の赤い星が青くなっている"
+        ],
+        "preservation": [
+          "元画像と比べて、星の大きさとくっきりした輪郭が保たれているか"
+        ],
+        "alpha": [
+          "背景を白・黒・市松に切り替え、元画像の透明な背景が保たれているか"
+        ]
+      }
+    },
+    "e11": {
+      "source_prompt": "赤い星を黄色に変更してください。透明な背景と星の輪郭、位置、大きさを保持してください。",
+      "prompt_ja": "赤い星を黄色に変更してください。透明な背景と星の輪郭、位置、大きさを保持してください。",
+      "checks": {
+        "instruction": [
+          "元画像の赤い星が黄色になっている"
+        ],
+        "preservation": [
+          "元画像と比べて、星の輪郭・位置・大きさが保たれているか"
+        ],
+        "alpha": [
+          "背景を白・黒・市松に切り替え、元画像の透明な背景が保たれているか"
+        ]
+      }
+    },
+    "e12": {
+      "source_prompt": "Change the blue bottle to green. Preserve the smooth shading, white cap and plain background.",
+      "prompt_ja": "青いボトルを緑に変える。滑らかな陰影、白いキャップ、無地の背景を保つ。",
+      "checks": {
+        "instruction": [
+          "元画像の青いボトルが緑になっている"
+        ],
+        "detail": [
+          "ボトルやキャップの形、滑らかな陰影に不自然な崩れがないか"
+        ],
+        "preservation": [
+          "元画像と比べて、滑らかな陰影・白いキャップ・無地の背景が保たれているか"
+        ]
+      }
+    },
+    "e13": {
+      "source_prompt": "ボトルの背景だけを淡いピンクに変えてください。青いボトルと白いキャップ、陰影を保持してください。",
+      "prompt_ja": "ボトルの背景だけを淡いピンクに変えてください。青いボトルと白いキャップ、陰影を保持してください。",
+      "checks": {
+        "instruction": [
+          "ボトルの背景だけが淡いピンクになっている"
+        ],
+        "detail": [
+          "ボトルやキャップの形、滑らかな陰影に不自然な崩れがないか"
+        ],
+        "preservation": [
+          "元画像と比べて、青いボトル・白いキャップ・陰影が保たれているか"
+        ]
+      }
+    },
+    "e14": {
+      "source_prompt": "Add one small red circle in the center. Preserve the black and white checkerboard pattern everywhere else.",
+      "prompt_ja": "中央に小さな赤い円を1つ追加する。それ以外の場所の白黒の市松模様を保つ。",
+      "checks": {
+        "instruction": [
+          "中央に小さな赤い円が1つ追加されている"
+        ],
+        "detail": [
+          "追加した円の輪郭や市松模様の線に、不自然な崩れがないか"
+        ],
+        "preservation": [
+          "元画像と比べて、追加した円以外の場所の白黒の市松模様が保たれているか"
+        ]
+      }
+    },
+    "e15": {
+      "source_prompt": "右側の青い円だけを削除し、白い背景にしてください。左側の赤い四角はそのまま保持してください。",
+      "prompt_ja": "右側の青い円だけを削除し、白い背景にしてください。左側の赤い四角はそのまま保持してください。",
+      "checks": {
+        "instruction": [
+          "右側の青い円が削除され、その箇所が白い背景になっている"
+        ],
+        "preservation": [
+          "元画像と比べて、左側の赤い四角がそのまま保たれているか"
+        ]
+      }
+    }
+  }
+}

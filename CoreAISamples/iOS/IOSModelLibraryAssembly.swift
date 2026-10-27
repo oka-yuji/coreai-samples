@@ -2,6 +2,8 @@
     import AVFoundation
     import FeatureStore
     import Foundation
+    import ImageGenerationRuntime
+    import ImageGenerationUI
     import ModelLibraryFeature
     import ModelLibraryRuntime
     import ModelLibraryStorage
@@ -11,10 +13,22 @@
 
     @MainActor
     enum IOSModelLibraryAssembly {
-        static let adapters: [any ModelDemoAdapter] = [
-            ProductComparisonAdapter(), ExtractionAdapter(), InspectionAdapter(), ImageSearchAdapter(),
-            VideoSearchAdapter(), ObjectFinderAdapter(), SpeechAdapter(),
-        ]
+        static let adapters: [any ModelDemoAdapter] = {
+            var result: [any ModelDemoAdapter] = [
+                ProductComparisonAdapter(), ExtractionAdapter(), InspectionAdapter(), ImageSearchAdapter(),
+                VideoSearchAdapter(), ObjectFinderAdapter(), SpeechAdapter(),
+            ]
+            if (try? IOSDemoCatalog.make().demos.contains { $0.id == "image-generation" }) == true {
+                result.append(
+                    ImageGenerationAdapter { session, permission in
+                        guard let budget = ImageGenerationDeviceProfiles.budget(for: session.resource) else {
+                            return nil
+                        }
+                        return LiveImageGenerationService(session: session, budget: budget, isPermitted: permission)
+                    })
+            }
+            return result
+        }()
         private static let root: URL = {
             let root = ModelStorage.root.appending(path: "ModelLibrary")
             try? FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
@@ -31,6 +45,7 @@
 
         static func make(catalog: ModelCatalog) -> ModelLibraryAssembly.Library {
             let previews = Set(["image-generation"]).intersection(catalog.demos.map(\.id))
+                .subtracting(adapters.map(\.demoID))
             do {
                 try catalog.validateConnections(adapterIDs: adapters.map(\.demoID), unconnectedDemoIDs: previews)
             } catch {
@@ -61,7 +76,9 @@
             return await ModelLibrarySelfTest.run(
                 output: URL(filePath: output, relativeTo: .documentsDirectory), root: root,
                 registry: assembly.registry, capabilities: capabilities(), acquire: target, assembly: assembly,
-                importBundle: folder, unconnectedDemoIDs: Set(["image-generation"]).intersection(previews),
+                importBundle: folder,
+                unconnectedDemoIDs: Set(["image-generation"]).intersection(previews).subtracting(
+                    adapters.map(\.demoID)),
                 catalog: { try definitions.get() })
         }
 

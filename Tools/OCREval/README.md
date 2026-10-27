@@ -116,24 +116,61 @@ and arithmetic means; no single overall score is produced.
 
 ## OCR result JSON
 
-`score --results DIR` reads one `<id>.json` per sample. This minimal draft is the shape
-the scorer needs; the OCR pipeline issue fixes the final format.
+`coreai-verify ocr <bundle> <image> --out DIR` (in `Tools/Verify`) reads a page with the
+Core AI bundle and writes `DIR/<image name>.json` and `DIR/<image name>.md`. `score --results DIR`
+reads one `<id>.json` per sample in this format (`teleocr-ocr-result/1`):
 
 ~~~json
 {
-  "schema": "teleocr-ocr-result/0",
-  "image": {"name": "F4.png", "size_px": [1240, 1754]},
-  "layout": {"status": "parsed", "resize": 1036},
+  "record": "ocr", "schema": "teleocr-ocr-result/1",
+  "image": "F4.png", "image_sha256": "...", "image_px": [1240, 1754],
+  "layout": {"status": "parsed", "resize": 1036, "text": "<box:068 071 848 103><label:title><up>\n...",
+             "seconds": {"vision": 1.4, "first_token": 1.8, "decode": 1.1, "total": 2.9},
+             "tokens": {"prompt": 1396, "image": 1369, "output": 73}, "finished_by": "eos", "skipped_boxes": []},
   "blocks": [
-    {"label": "text", "box_px": [84, 124, 1052, 181], "prompt": "text", "text": "...",
-     "otsl": null, "cells": null, "seconds": 2.1}
-  ]
+    {"index": 0, "label": "title", "box_norm": [68, 71, 848, 103], "box_px": [84, 124, 1052, 181],
+     "prompt": "text", "text": "...",
+     "seconds": {"vision": 0.1, "first_token": 0.2, "decode": 0.2, "total": 0.4},
+     "tokens": {"prompt": 100, "image": 70, "output": 21}, "finished_by": "eos"}
+  ],
+  "generate_s": 6.0, "load_s": 1.2, "assets": [], "memory": {}, "footprint_peak_bytes": 0
 }
 ~~~
 
-Blocks are read in order. Text samples use the block texts joined by newlines; table
-samples use the first block with `otsl`; `box_px` feeds the layout metrics.
-`"layout": {"status": "unparsed"}` marks a page read without layout boxes.
+- The page is resized to 1036 x 1036 (Pillow bicubic) for the layout prompt. `layout.text` is
+  its output. Each usable `<box>` becomes a block in output order; `box_px` is the crop in
+  source pixels, `[x0, y0, x1, y1)`, with the 0-1000 box scaled and rounded outward.
+  A crop is usable when both sides are positive and at most 32768, its area is at most
+  100000000 pixels, and its aspect ratio is at most 200. Other parsed boxes are recorded
+  in `layout.skipped_boxes` with `label`, `box_norm` and `box_px`, and are not recognized.
+  The remaining blocks keep their output order and contiguous indices.
+- Each block is cropped from the source page and read with the table prompt when its label
+  is `table`, otherwise with the text prompt. `text` is the output decoded without special
+  tokens and stripped. Table blocks also carry `otsl` (the same string), `cells` (`row`,
+  `column`, `row_span`, `column_span`, `text`, assembled with the model card's rules) and
+  `grid` (cells expanded over their spans).
+- `layout.status` is `unparsed` when the layout output has no usable box. The whole page is
+  then read with the text prompt as one block without `label` and `box_norm`; skipped boxes
+  remain in the record. With some usable boxes, the status stays `parsed` even if others
+  were skipped. Cancellation and model execution errors still fail the page request.
+- `seconds` are measured from the start of each request; `decode` is `total` minus
+  `first_token`. `generate_s` is the whole page. The run fields (`load_s`, `assets` with
+  `main_hash`, `memory`, `peak_rss_bytes`, `footprint_peak_bytes`, `pageins`,
+  `wired_delta_bytes`, `os`, `executable_sha256`) are the same as `coreai-verify ocr-block`.
+- Scoring: text samples use the block texts joined by newlines, table samples the first
+  block with `otsl`, two-stage samples also the layout metrics from `box_px`, and an
+  `unparsed` layout adds `layout_unparsed: true`.
+- The pipeline reads every page in two stages. The baseline reads `body`, `numbers` and
+  `camera` pages and F1, F3 and F5 as full-page text, and tables from the ground-truth
+  `table_bbox` crop, so compare those strata by judgment, not by string.
+
+`tests/fixtures/F4.json` is a CLI record from the synthetic F4 page, captured with the
+FP16 bundle on 2026-10-27 (`b2262d0`). Local paths are replaced with portable names,
+and the empty `skipped_boxes` list records that all three parsed boxes were used.
+`test_cli_record_fixture_is_scored_by_the_command` passes it through `score --results`
+and compares every F4 metric with the fixed baseline. Verify's `OCRRecordTests` checks
+the encoder's field names, table cells, skipped boxes and whole-page fallback without
+loading a model.
 
 ## Baseline
 

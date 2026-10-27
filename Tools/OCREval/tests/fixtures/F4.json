@@ -1,0 +1,158 @@
+{
+  "assets": [
+    {
+      "cached": false,
+      "main_hash": "c924a1dc39f9bd9a35a81a64d8e3aab4cf01896a52661001bf1e61877d626003",
+      "name": "vision",
+      "seconds": 3.200088917
+    },
+    {
+      "cached": false,
+      "main_hash": "bd2fffe5ee5c644f9f193cfc04d3e594841704c19a4fd28c17bc18056ac70daa",
+      "name": "embed",
+      "seconds": 0.0630915
+    },
+    {
+      "cached": false,
+      "main_hash": "0a4a96379d197cd5b8f4c6ebd316ecf2efadec5e810d0598786a2d11b6de889b",
+      "name": "main",
+      "seconds": 35.108913208
+    }
+  ],
+  "blocks": [
+    {
+      "box_norm": [
+        68,
+        71,
+        848,
+        103
+      ],
+      "box_px": [
+        84,
+        124,
+        1052,
+        181
+      ],
+      "finished_by": "eos",
+      "index": 0,
+      "label": "title",
+      "prompt": "text",
+      "seconds": {
+        "decode": 0.203612333,
+        "first_token": 0.17572975,
+        "total": 0.379342083,
+        "vision": 0.130946167
+      },
+      "text": "汐見野だより 第12号 小川沿いの散策路が完成",
+      "tokens": {
+        "image": 70,
+        "output": 21,
+        "prompt": 100
+      }
+    },
+    {
+      "box_norm": [
+        67,
+        142,
+        424,
+        397
+      ],
+      "box_px": [
+        83,
+        249,
+        526,
+        697
+      ],
+      "finished_by": "eos",
+      "index": 1,
+      "label": "text",
+      "prompt": "text",
+      "seconds": {
+        "decode": 1.050250541,
+        "first_token": 0.295388959,
+        "total": 1.3456395,
+        "vision": 0.21634325
+      },
+      "text": "町の東を流れる小川沿いに、昨年の秋から散策路の整備が進められてきた。全長はおよそ2.4 kmで、途中には休憩用のベンチが八か所に置かれている。川岸の草刈りは地域の有志が月に一度行っており、春には菜の花、秋にはススキが道の両側を彩るようになった。",
+      "tokens": {
+        "image": 256,
+        "output": 99,
+        "prompt": 286
+      }
+    },
+    {
+      "box_norm": [
+        518,
+        142,
+        851,
+        397
+      ],
+      "box_px": [
+        642,
+        249,
+        1056,
+        697
+      ],
+      "finished_by": "eos",
+      "index": 2,
+      "label": "text",
+      "prompt": "text",
+      "seconds": {
+        "decode": 0.9941487090000001,
+        "first_token": 0.296147833,
+        "total": 1.290296542,
+        "vision": 0.21928175
+      },
+      "text": "散策路の入口には、川に住む生き物を紹介する看板もある。看板の文章と弾絵は、近くの小学校の児童が授業の一環で作ったものだ。町では来年度以降、夜間の足元を照らす小型の照明を追加する予定で、安全に歩ける時間帯を広げたいとしている。",
+      "tokens": {
+        "image": 240,
+        "output": 95,
+        "prompt": 270
+      }
+    }
+  ],
+  "bundle": "teleocr/fp16",
+  "executable_sha256": "1eecc7535f2c36f113306acaa90c281fbec50201b6f083ba98f8fb45c7d4d7bc",
+  "footprint_peak_bytes": 2913786288,
+  "generate_s": 5.850297084,
+  "image": "F4.png",
+  "image_px": [
+    1240,
+    1754
+  ],
+  "image_sha256": "50e6741afea1be14839e67c01e6a8355cdf0e634379f6838efc359758ab8c747",
+  "layout": {
+    "finished_by": "eos",
+    "resize": 1036,
+    "seconds": {
+      "decode": 1.034454416,
+      "first_token": 1.7713625,
+      "total": 2.805816916,
+      "vision": 1.379968541
+    },
+    "status": "parsed",
+    "text": "<box:068 071 848 103><label:title><up>\n<box:067 142 424 397><label:text><up>\n<box:518 142 851 397><label:text><up>",
+    "tokens": {
+      "image": 1369,
+      "output": 73,
+      "prompt": 1396
+    },
+    "skipped_boxes": []
+  },
+  "load_s": 39.556474542,
+  "memory": {
+    "captured_at": "2026-10-26T15:25:57Z",
+    "footprint_bytes": 2818447816,
+    "graphics_footprint_bytes": 2157264896,
+    "rss_bytes": 7398998016,
+    "status": "ok",
+    "unit": "B"
+  },
+  "os": "Version 27.0 (Build 26A428)",
+  "pageins": 1105158,
+  "peak_rss_bytes": 9592045568,
+  "record": "ocr",
+  "schema": "teleocr-ocr-result/1",
+  "tokenizer_s": 0.33896,
+  "wired_delta_bytes": 5519065088
+}

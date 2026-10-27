@@ -95,18 +95,34 @@
                         )
                         .font(.callout)
                     } else {
-                        libraryText("You can read this demo now.").font(.headline)
-                        libraryText(
-                            store.state.isConnected(selection)
-                                ? artifact?.localBundle == nil
-                                    ? "Download the model to enable its controls."
-                                    : "Import the model to enable its controls."
-                                : "Demo execution is not connected in this build."
-                        )
-                        .font(.callout)
-                        ModelAcquisitionControls(store: store, model: model) {
-                            deletion = ModelDeletionRequest(model: model, artifact: $0)
+                        if selection.modelID == "irodori" {
+                            libraryText("1. Prepare the model").font(.headline)
+                            libraryText(
+                                "Irodori is not available to download in this build. Import the prepared model folder from Files to get started."
+                            )
+                            .font(.callout)
+                            libraryText("The model uses 3.38 GB. Importing keeps the original and creates an app copy.")
+                                .font(.caption).foregroundStyle(.secondary)
+                            if let guide = URL(
+                                string: "https://github.com/oka-yuji/coreai-samples/blob/main/docs/irodori/iphone.md")
+                            {
+                                Link(destination: guide) { libraryText("Model preparation guide") }
+                            }
+                        } else {
+                            libraryText("You can read this demo now.").font(.headline)
+                            libraryText(
+                                store.state.isConnected(selection)
+                                    ? artifact?.localBundle == nil
+                                        ? "Download the model to enable its controls."
+                                        : "Import the model to enable its controls."
+                                    : "Demo execution is not connected in this build."
+                            )
+                            .font(.callout)
                         }
+                        ModelAcquisitionControls(
+                            store: store, model: model,
+                            requestDeletion: { deletion = ModelDeletionRequest(model: model, artifact: $0) },
+                            showsActionTitle: selection.modelID == "irodori")
                     }
                     if let artifact, let failure = store.state.installations[artifact.id]?.failure {
                         LibraryFailureView(failure: failure)
@@ -118,6 +134,14 @@
                 renderer.preview(for: selection).disabled(true).allowsHitTesting(false)
             case .ready(let session):
                 if store.state.permits(session.id, selection: selection) {
+                    if selection.modelID == "irodori" {
+                        Label {
+                            libraryText("1. Model ready")
+                        } icon: {
+                            Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
+                        }
+                        .font(.callout)
+                    }
                     renderer.content(for: session)
                 } else {
                     LibraryFailureView(failure: .unavailable)

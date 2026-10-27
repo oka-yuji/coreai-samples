@@ -156,6 +156,8 @@ targets:
         basedOnDependencyAnalysis: false
     dependencies:
       - package: CoreAISamplesKit
+        product: ImageGenerationCore
+      - package: CoreAISamplesKit
         product: SpeechCore
       - package: CoreAISamplesKit
         product: SpeechFeature
@@ -165,6 +167,8 @@ targets:
         product: ImageDiagnosticFeature
       - package: CoreAISamplesKit
         product: ImageGenerationRuntime
+      - package: CoreAISamplesKit
+        product: ImageGenerationUI
       - package: CoreAISamplesKit
         product: ObjectFinderRuntime
       - package: CoreAISamplesKit

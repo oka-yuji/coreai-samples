@@ -9,6 +9,7 @@
         let store: Store<ModelLibraryFeature>
         let model: LibraryModel
         let requestDeletion: (ModelArtifact) -> Void
+        var showsActionTitle = false
         @State private var choosingBundle = false
         @State private var importArtifactID: String?
 
@@ -43,6 +44,14 @@
                     Button {
                         acquire(artifact)
                     } label: {
+                        if showsActionTitle {
+                            libraryText(
+                                artifact.localBundle != nil
+                                    ? "Import model"
+                                    : installation.phase == .failed ? "Retry download" : "Download model"
+                            )
+                            .padding(.leading, 12)
+                        }
                         Image(
                             systemName: artifact.localBundle != nil
                                 ? "folder.badge.plus"

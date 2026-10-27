@@ -10,7 +10,7 @@ from .mobile_profile import validate_mobile_profile
 
 
 CONVERTER_FILES = ("mobile_artifacts.py", "mobile_convert.py", "mobile_models.py", "mobile_profile.py", "quantization.py",
-                   "denoiser.py", "encoders.py", "profile.py", "contracts.py", "evaluation.py")
+                   "denoiser.py", "metal_rotary.py", "encoders.py", "profile.py", "contracts.py", "evaluation.py")
 
 
 def converter_identity():
