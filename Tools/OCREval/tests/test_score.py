@@ -1,5 +1,7 @@
 import json
 import math
+import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -14,10 +16,16 @@ def result_blocks(gt, pred):
     pipeline = gt["pipelines"][0]
     if pipeline == "two_stage":
         texts = [p.read_text() for p in sorted((BASELINE / "outputs").glob(f"{gt['id']}-block[0-9][0-9]-text-bf16.txt"))]
-        return [{"label": b["label"], "box_px": b["crop_px"], "prompt": "text", "text": t} for b, t in zip(pred["blocks"], texts)]
-    if pipeline == "table":
-        return [{"label": "table", "box_px": gt["table_bbox"], "prompt": "table", "text": "", "otsl": pred["table"]}]
-    return [{"label": "text", "box_px": [0, 0, *gt["size_px"]], "prompt": "text", "text": pred["text"]}]
+        found = [{"label": b["label"], "box_px": b["crop_px"], "prompt": "text", "text": t} for b, t in zip(pred["blocks"], texts)]
+    elif pipeline == "table":
+        found = [{"label": "table", "box_px": gt["table_bbox"], "prompt": "table", "text": pred["table"], "otsl": pred["table"]}]
+    else:
+        found = [{"label": "text", "box_px": [0, 0, *gt["size_px"]], "prompt": "text", "text": pred["text"]}]
+    for index, block in enumerate(found):
+        block.update(index=index, box_norm=[round(v * 1000 / size) for v, size in zip(block["box_px"], gt["size_px"] * 2)],
+                     seconds={"vision": 0.1, "first_token": 0.2, "decode": 0.3, "total": 0.5},
+                     tokens={"prompt": 100, "image": 64, "output": 20}, finished_by="eos")
+    return found
 
 
 class ScoreTests(unittest.TestCase):
@@ -46,12 +54,24 @@ class ScoreTests(unittest.TestCase):
         ids = ("F1", "F2", "F4", "S07", "S13", "S19", "S25")
         for sid in ids:
             blocks = result_blocks(gts[sid], reference_prediction(BASELINE / "outputs", gts[sid]))
-            doc = {"schema": "teleocr-ocr-result/0", "layout": {"status": "parsed", "resize": 1036}, "blocks": blocks}
+            doc = {"record": "ocr", "schema": "teleocr-ocr-result/1", "image": f"{sid}.png", "image_px": gts[sid]["size_px"],
+                   "layout": {"status": "parsed", "resize": 1036, "skipped_boxes": []}, "blocks": blocks}
             (results / f"{sid}.json").write_text(json.dumps(doc, ensure_ascii=False))
         scored = score_set(self.set, results=results)["samples"]
         for sid in ids:
             self.assertEqual(scored[sid], self.baseline["samples"][sid], sid)
         self.assertEqual(scored["S01"], {"missing": True, "judgment": L["not_scored"]})
+
+    def test_cli_record_fixture_is_scored_by_the_command(self):
+        fixtures = Path(__file__).parent / "fixtures"
+        record = json.loads((fixtures / "F4.json").read_text())
+        self.assertEqual(record["schema"], "teleocr-ocr-result/1")
+        self.assertEqual(record["layout"]["skipped_boxes"], [])
+        output = self.root / "cli-fixture-scores.json"
+        subprocess.run([sys.executable, "-m", "Tools.OCREval", "score", "--set", str(self.set),
+                        "--results", str(fixtures), "--out", str(output)],
+                       cwd=BASELINE.parents[3], check=True, capture_output=True, text=True)
+        self.assertEqual(json.loads(output.read_text())["samples"]["F4"], self.baseline["samples"]["F4"])
 
     def test_layout_without_boxes_scores_an_empty_prediction(self):
         outputs = self.root / "no-boxes"
