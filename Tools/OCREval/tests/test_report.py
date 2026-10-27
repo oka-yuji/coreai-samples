@@ -83,6 +83,25 @@ class ReportTests(unittest.TestCase):
         right = {"A": {"judgment": L["insufficient"]}, "B": {"judgment": L["good"]}}
         self.assertEqual(judgment_changes(left, right), {"same": 0, "improved": 1, "degraded": 1, "missing": 1, "degraded_samples": ["A"]})
 
+    def test_a_good_score_from_an_incomplete_generation_is_not_a_completed_good_run(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            rows = self.prepare(root)
+            rows[0]["status"] = "failed"
+            write(root / "runs.json", rows)
+            quality = self.export(root)["quality"]["test"]["coreai-fp16"]
+            self.assertEqual(quality["good_fraction"], 1)
+            self.assertEqual(quality["completed_good_fraction"], 0)
+
+    def test_warmup_cannot_be_relabelled_as_a_successful_measured_run(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            rows = self.prepare(root)
+            next(row for row in rows if row["phase"] == "warmup")["status"] = "passed"
+            write(root / "runs.json", rows)
+            with self.assertRaisesRegex(ValueError, "phase"):
+                self.export(root)
+
     def test_derived_score_and_pair_sets_must_cover_exactly_the_fixed_inputs(self):
         for mutation in ("score-missing", "score-extra", "pair-missing", "pair-extra", "set-missing", "pair-id-missing", "input-set-extra"):
             with self.subTest(mutation=mutation), tempfile.TemporaryDirectory() as tmp:

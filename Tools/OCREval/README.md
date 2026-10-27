@@ -238,3 +238,6 @@ conversion comparisons separate, preserves failure counts, and uses ModelReports
 existing statistics. `good_fraction` counts only the scorer's good judgment; conditional
 judgments stay separate. Page `mismatch_fraction` counts non-exact or non-EOS pairs among
 present pairs, with missing pairs reported separately. It is not a logit error metric.
+`completed_good_fraction` additionally requires successful EOS completion. A good score
+from a truncated generation does not become a completed task. Warmup phases cannot be
+relabeled as measured successes in the exported evidence.

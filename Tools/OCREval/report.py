@@ -63,8 +63,8 @@ def build(source, target, spec_path):
         raise ValueError("Missing, duplicate or unexpected runs")
     if any(row["context"]["plan_sha256"] != invocation["plan_sha256"] for row in runs):
         raise ValueError("Mixed plan identities")
-    if any(row["status"] not in ("passed", "failed", "warmup") for row in runs):
-        raise ValueError("Unknown run status")
+    if any(row["status"] not in ({"warmup", "failed"} if row["phase"] == "warmup" else {"passed", "failed"}) for row in runs):
+        raise ValueError("Run status differs from its phase")
     env, spec = read(source / "environment.json"), read(spec_path)
     result = {"schema": "teleocr-precision-evaluation/1", "plan_sha256": invocation["plan_sha256"], "source_commit": plan["source"],
               "cli_sha256": plan["cli_sha256"], "finished_at": invocation["finished_at"],
@@ -82,6 +82,8 @@ def build(source, target, spec_path):
             result["quality"][label][vid] = score_summary(scores[label][vid])
             subset = [row for row in runs if row["phase"] == "quality" and row["set"] == label and row["variant"] == vid]
             result["quality"][label][vid]["execution"] = dict(Counter(row["status"] for row in subset))
+            good_completed = sum(row["status"] == "passed" and scores[label][vid]["samples"][row["sample"]]["judgment"] == L["good"] for row in subset)
+            result["quality"][label][vid]["completed_good_fraction"] = good_completed / len(subset) if subset else None
     comparisons = read(source / "comparisons.json")
     require_keys(comparisons, inputs, "comparison set")
     for label, pairs in comparisons.items():
