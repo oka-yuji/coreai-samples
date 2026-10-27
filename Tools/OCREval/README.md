@@ -164,6 +164,14 @@ reads one `<id>.json` per sample in this format (`teleocr-ocr-result/1`):
   `camera` pages and F1, F3 and F5 as full-page text, and tables from the ground-truth
   `table_bbox` crop, so compare those strata by judgment, not by string.
 
+`tests/fixtures/F4.json` is a CLI record from the synthetic F4 page, captured with the
+FP16 bundle on 2026-10-27 (`b2262d0`). Local paths are replaced with portable names,
+and the empty `skipped_boxes` list records that all three parsed boxes were used.
+`test_cli_record_fixture_is_scored_by_the_command` passes it through `score --results`
+and compares every F4 metric with the fixed baseline. Verify's `OCRRecordTests` checks
+the encoder's field names, table cells, skipped boxes and whole-page fallback without
+loading a model.
+
 ## Baseline
 
 `docs/results/teleocr-eval/2026-10-25/` stores the original-model outputs, run records and
