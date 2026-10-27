@@ -7,12 +7,12 @@
         public static let modelPathKey = "irodoriModelPath"
         private let engine: any SpeechGenerating
         private let playback: AudioPlayback
-        private let defaults: UserDefaults
+        private let defaults: UserDefaults?
 
-        public convenience init(defaults: UserDefaults = .standard) {
+        public convenience init(defaults: UserDefaults? = .standard) {
             self.init(engine: IrodoriRuntime(), playback: AudioPlayback(), defaults: defaults)
         }
-        init(engine: any SpeechGenerating, playback: AudioPlayback, defaults: UserDefaults) {
+        init(engine: any SpeechGenerating, playback: AudioPlayback, defaults: UserDefaults?) {
             self.engine = engine
             self.playback = playback
             self.defaults = defaults
@@ -21,7 +21,7 @@
         public func open(path: String) async throws -> SpeechModel {
             let model = try await engine.open(URL(filePath: path, directoryHint: .isDirectory))
             try Task.checkCancellation()
-            defaults.set(path, forKey: Self.modelPathKey)
+            defaults?.set(path, forKey: Self.modelPathKey)
             return model
         }
         public func generate(text: String, seed: UInt64) async throws -> SpeechAudio {

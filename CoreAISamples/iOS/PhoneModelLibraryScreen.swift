@@ -13,7 +13,7 @@
         init() {
             _library = State(
                 initialValue: Result {
-                    let definitions = try IOSDemoCatalog.make()
+                    let definitions = try IOSModelLibraryAssembly.catalog()
                     let translations = DemoLanguage.allCases.map { DemoStrings(locale: $0.locale) }
                     var terms: [String: [String]] = [:]
                     for demo in definitions.demos {
@@ -22,7 +22,8 @@
                     for model in definitions.models {
                         terms[model.id] = translations.map { $0.text(model.category) }
                     }
-                    return IOSModelLibraryAssembly.make(catalog: try IOSDemoCatalog.make(searchTerms: terms))
+                    return IOSModelLibraryAssembly.make(
+                        catalog: try IOSModelLibraryAssembly.catalog(searchTerms: terms))
                 })
         }
 

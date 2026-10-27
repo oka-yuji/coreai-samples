@@ -27,6 +27,7 @@
 <a href="#intent">01 目的と範囲</a><a href="#current">02 現状との差分</a><a href="#experience">03 画面と導線</a><a href="#designs">↳ iOS / macOS デザイン案</a><a href="#hig">↳ HIGと標準UIへの対応</a><a href="#behavior">04 操作と状態</a><a href="#catalog">05 モデル・公開管理</a><a href="#architecture">06 責務と共通化</a><a href="#lifecycle">07 切替と保存</a><a href="#migration">08 移行方針</a><a href="#acceptance">09 受入条件</a><a href="#decisions">10 確認したい判断</a><a href="#sources">11 根拠と文書管理</a>
 </nav>
 <div>
+<p class="note"><strong>2026-10-27の適用差分（#329 v2・Irodoriのみ）:</strong> 本人の「実装・レビュー後にmainへマージし、実機確認はmainで行う」という指示により、ホスト自動検証とレビューを通したIrodoriを通常Modelsへ接続し、実機受入を後段とする。第03・04・10節の「端末確認済みだけ掲載」は、このmainでの受入準備に限り例外とする。実機対応済み・提供完了・公開済みを意味せず、親のIOS-IR-01/03/05と#95 M4/M5の原文・ID・未完了状態を維持する。他モデルの条件は変えない。</p>
 <section id="intent">
 <span class="number">01 / INTENT</span><h2>モデルを評価したい人の順番に合わせる</h2>
 <p>主な利用者は、変換済みモデルの動作を自分の端末で試し、用途・結果・制約を確かめたい開発者を想定する。現在の機能別ナビゲーションでは、試したいモデルに到達するまでに機能の選択やモデルの再選択が必要になる。</p>
@@ -37,7 +38,7 @@
 <section id="current">
 <span class="number">02 / CURRENT → PROPOSED</span><h2>機能別の実装を、モデル中心の入口につなぐ</h2>
 <div class="table-wrap"><table><thead><tr><th>観点</th><th>現状のコード</th><th>提案</th></tr></thead><tbody>
-<tr><td>iOSの起動</td><td>Modelsを表示し、モデル別に5つのデモの説明を閲覧できる。取得・検査・削除の経路と5デモの実行部は接続済み。公開済みの配布定義（GLiNER2.5-multi FP32、EmbeddingGemma 2 FP16・INT4/INT8 PTQ）を採用し、取得して検査を通った変換版で各デモを実行する。iPhoneでの5デモの実行は本人確認として残る。</td><td>Modelsにモデル別のデモアイコンを表示し、選んだデモへ直接進む。取得前も解説を閲覧できる。</td></tr>
+<tr><td>iOSの起動</td><td>Modelsに3モデル・7デモを接続。GLiNER2.5-multi FP32とEmbeddingGemma 2 FP16・INT4/INT8 PTQは固定配布版を取得し、Irodori FP32は既知のローカル14ファイルを取り込む。全資産の検査後に操作を許可し、表示・取得完了だけでは推論しない。iPhoneでの実行はモデル別の本人確認として残る。</td><td>Modelsのデモアイコンから直接進み、取得前も解説を閲覧できる。</td></tr>
 <tr><td>macOSの起動</td><td>機能別サイドバー。通常はチャットを初期選択し、会話復元を要求する。</td><td>モデル一覧を入口にする。過去の会話は明示的に再開する。</td></tr>
 <tr><td>モデル選択</td><td>チャットのモデルメニューや、各機能のフォルダ選択に分散。</td><td>選択したモデル・変換成果物をデモへ渡す。デモ内は使用中モデルを表示する。</td></tr>
 <tr><td>カタログ</td><td>Catalog.modelsはQwenの配布情報1件。各デモのモデル資源は別経路で解決。</td><td>モデルと成果物、対応デモ、公開範囲を対応づける。</td></tr>
@@ -120,7 +121,7 @@
 <tr><td>GLiNER系</td><td>スペックメモ</td><td>Extraction lab、トラック点検は必要なモデル契約・設定を個別に照合する。名前だけで同一成果物とみなさない。</td></tr>
 <tr><td>EmbeddingGemma 2</td><td>画像検索</td><td>iOSのObject finder。カメラ等の依存条件を追加。</td></tr>
 <tr><td>Clef系</td><td>Decide</td><td>Recipesは補助の画像理解機能とその利用条件を明示する。</td></tr>
-<tr><td>Irodori</td><td>音声合成</td><td>macOSは既存Speech。別ターゲットSpeechPhoneの統合は未決で、今回の標準iOSアプリにあるものとみなさない。</td></tr>
+<tr><td>Irodori</td><td>音声合成</td><td>macOSは既存Speech。iOSは#329 v2により通常Modelsへ接続し、文・seed、生成、再生・停止、WAV保存を提供する。SpeechPhoneは別の診断入口として保持。実機・聴取はmainで本人確認待ち。</td></tr>
 </tbody></table></div>
 <p class="note">これは接続候補であり、全件を初回公開する約束ではない。実際のモデル・成果物・プラットフォームの組合せは公開対象表として確定する。</p>
 </section>
@@ -210,7 +211,7 @@
 <tr><td>公開対象</td><td>モデル・成果物・デモ対応の単位で選ぶ。</td><td>初回に掲載する具体的なモデルと変換版。現時点では未確定。</td></tr>
 <tr><td>未検証モデル</td><td>iOSは掲載しない方針に更新済み（2026-10-18）。</td><td>macOSでの紹介・開発向け導線は別途判断する。</td></tr>
 <tr><td>初期画面と履歴</td><td>毎回モデル一覧。履歴は明示的に開く。</td><td>前回画面への自動復元を将来の設定にするか。</td></tr>
-<tr><td>音声のiOS入口</td><td>初版ではSpeechPhoneを独立したまま扱う。</td><td>統合する場合の追加範囲、保存データと診断の扱い。</td></tr>
+<tr><td>音声のiOS入口</td><td>2026-10-27の#329 v2で通常Modelsへ接続。終了時は生成・再生の停止join後にleaseを解放し、旧audioとexport ticketを破棄する。文・seedだけを再表示へ引き継ぐ。既存SpeechPhone・元資産・WAVは変更しない。</td><td><a href="../irodori/managed-validation.md">CPU・ビルド・レビュー記録</a>。mainでの実機・音質確認は未完了。</td></tr>
 <tr><td>切替後の状態と資源</td><td>入力・結果は組合せごとにセッション内保持、ランタイムは解放。</td><td>再ロード費用、複数ウィンドウの資源所有と保存互換性。</td></tr>
 </tbody></table></div>
 <p>これらが変われば該当する仕様・受入条件の版を更新する。今のドラフトから、全項目の実装承認や公開承認を推定しない。</p>
@@ -222,7 +223,7 @@
 <li>入口の実装：<a href="../../CoreAISamples/iOS/PhoneDemoApp.swift">PhoneDemoApp</a>、<a href="../../CoreAISamples/DemoRootView.swift">DemoRootView</a>、<a href="../../CoreAISamples/DemoNavigator.swift">DemoNavigator</a></li>
 <li>モデル管理：<a href="../../CoreAISamples/Demos/ModelManager/Catalog.swift">Catalog</a>、<a href="../../CoreAISamples/Demos/ModelManager/ModelMenu.swift">ModelMenu</a></li>
 <li>既存の振る舞い：<a href="demo-presentation.md">表示・ローカライズ</a>、<a href="product-comparison-demo.md">スペックメモ</a>、<a href="fridge-recipe-demo.md">Recipes</a>、<a href="conversation-step-budget.md">会話のステップ予算</a></li>
-<li>用途別資源：<a href="../embeddinggemma2.md">EmbeddingGemma 2</a>、<a href="../irodori/demo.md">Speechデモ</a>、<a href="../irodori/iphone.md">SpeechPhone</a></li>
+<li>用途別資源：<a href="../embeddinggemma2.md">EmbeddingGemma 2</a>、<a href="../irodori/demo.md">Speechデモ</a>、<a href="../irodori/iphone.md">IrodoriのiPhone手順</a></li>
 </ul>
 <p>画面案は現行コードと2026-10-17の相談を根拠にした設計提案。Core AIのAPI追加や性能保証を前提にしない。既存検証記録の合格を、本書の変更後の合格として流用しない。</p>
 <h3>閲覧と更新</h3>

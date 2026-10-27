@@ -36,7 +36,7 @@ GLiNER2.5-multiとEmbeddingGemma 2のリポジトリは公開済みで、匿名�
 | LTX 2.5 | 動画生成 | [—](docs/model-reports/ltx25.ja.md#model-report) | [—](docs/model-reports/ltx25.ja.md#model-report) | 対応予定 · 調査 | — | [ガイド・結果](docs/model-reports/ltx25.ja.md) |
 <!-- model-catalog:end -->
 
-iOSアプリは通常起動で**Models**を開き、6つのデモを各providerへ接続しています。Modelsは固定した版のGLiNER2.5-multi FP32と、EmbeddingGemma 2のFP16（既定）またはINT4/INT8 PTQのバンドルをHugging Faceから匿名で取得し、全ファイルの大きさとSHA-256を確かめてからデモを実行します（[#210](https://github.com/oka-yuji/coreai-samples/issues/210)）。[統合状況](docs/validation/ios-models-integration-20261018.md)を参照してください。iPhoneでの6つのデモの実行は本人確認として残っています。ローカルの診断実行とバンドルの一般公開は別の到達点です。
+iOSアプリは通常起動で**Models**を開き、7つのデモを各実行部へ接続しています。固定版のGLiNER2.5-multi FP32とEmbeddingGemma 2のFP16（既定）またはINT4/INT8 PTQはHugging Faceから匿名で取得し、Irodori FP32は既知のローカルフォルダを取り込みます。全ファイルの検査後に操作が有効になります。Irodoriでは文・seedの入力、明示生成、再生・停止、WAV保存を試せます。[iPhoneの導入・確認手順（英語）](docs/irodori/iphone.md#use-irodori-from-models)を参照してください。[従来の統合記録](docs/validation/ios-models-integration-20261018.md)と[Irodoriの検証記録（英語）](docs/irodori/managed-validation.md)では、ホスト検証と未完了の実機受入を区別しています。ローカルの診断実行とバンドルの一般公開は別の到達点です。
 
 ## カメラ探索デモ
 

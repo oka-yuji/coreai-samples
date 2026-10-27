@@ -135,6 +135,7 @@ let package = Package(
             dependencies: [
                 "ModelLibraryRuntime", "ModelLibraryFeature", "ModelLibraryStorage", "ModelLibraryTransfer",
                 "FeatureStore", "EmbeddingCore", "EmbeddingRuntime", "ModelLibraryTestSupport",
+                "SpeechRuntime", "SpeechCore", "SpeechFeature",
             ], swiftSettings: speechSettings),
         .target(
             name: "ObjectFinderFeature", dependencies: ["ObjectFinderCore", "FeatureStore"],
@@ -174,7 +175,7 @@ let package = Package(
         .target(
             name: "SpeechRuntime",
             dependencies: [
-                "SpeechCore", "SpeechFeature", "SpeechAssets",
+                "SpeechCore", "SpeechFeature", "SpeechAssets", "ModelLibraryFeature",
                 .product(
                     name: "IrodoriInputLogic", package: "IrodoriInputKit", condition: .when(platforms: [.macOS, .iOS])),
                 .product(
@@ -187,7 +188,7 @@ let package = Package(
         .testTarget(
             name: "SpeechRuntimeTests",
             dependencies: [
-                "SpeechRuntime", "SpeechCore", "SpeechFeature", "FeatureStore", "SpeechAssets",
+                "SpeechRuntime", "SpeechCore", "SpeechFeature", "FeatureStore", "SpeechAssets", "ModelLibraryFeature",
                 .product(name: "IrodoriInputLogic", package: "IrodoriInputKit"),
                 .product(name: "IrodoriTokenizers", package: "IrodoriInputKit"),
             ], resources: [.copy("Resources")], swiftSettings: speechSettings),
