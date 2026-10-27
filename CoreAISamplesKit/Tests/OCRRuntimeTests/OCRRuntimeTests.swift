@@ -218,6 +218,26 @@ struct OCRRuntimeTests {
         #expect(log.state.withLock { Array($0.visionGrids.suffix(2)) } == [[6, 4], [6, 4]])
     }
 
+    @Test("Read valid blocks around an unusable crop and keep the skipped box in the page result")
+    func skipsUnusableCrop() async throws {
+        let log = FakeLog()
+        let runtime = OCRRuntime(
+            model: FakeModel(
+                log: log, blockedStep: -1, entered: AsyncStream<Void>.makeStream().continuation,
+                release: AsyncStream<Void>.makeStream().stream,
+                layout: "<box:0 0 1000 100><label:title><up>"
+                    + "<box:100 0 101 1000><label:text><up>"
+                    + "<box:0 200 1000 1000><label:table><up>"),
+            loadStats: OCRLoadStats(assets: [], tokenizerSeconds: 0, totalSeconds: 0))
+        let image = try OCRImage(width: 1_000, height: 800, rgb: [UInt8](repeating: 128, count: 1_000 * 800 * 3))
+        let page = try await runtime.read(image, maxNewTokens: 1)
+        #expect(page.layoutParsed)
+        #expect(page.blocks.map { $0.block.layout?.label } == ["title", "table"])
+        #expect(page.skippedBoxes.map(\.cropBox) == [OCRBox(x0: 100, y0: 0, x1: 101, y1: 800)])
+        #expect(log.state.withLock { $0.instructions } == [OCRPrompt.layout, OCRPrompt.text, OCRPrompt.table])
+        #expect(log.state.withLock { $0.caches } == 3)
+    }
+
     @Test(
         "Read PNG pixels as 8-bit RGB like Pillow, keeping the color of transparent pixels",
         arguments: [

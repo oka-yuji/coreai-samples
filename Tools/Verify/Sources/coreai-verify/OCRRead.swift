@@ -81,6 +81,7 @@ struct OCRLayoutRecord: Encodable {
     let status: String
     let resize = OCRPage.layoutSide
     let text: String
+    let skippedBoxes: [OCRSkippedBoxRecord]
     let seconds: OCRSecondsRecord
     let tokens: OCRTokensRecord
     let finishedBy: String
@@ -88,9 +89,24 @@ struct OCRLayoutRecord: Encodable {
     init(_ page: OCRPageReading) {
         status = page.layoutParsed ? "parsed" : "unparsed"
         text = page.layout.text
+        skippedBoxes = page.skippedBoxes.map(OCRSkippedBoxRecord.init)
         seconds = OCRSecondsRecord(page.layout)
         tokens = OCRTokensRecord(page.layout)
         finishedBy = page.layout.finishedBy
+    }
+}
+
+struct OCRSkippedBoxRecord: Encodable {
+    let label: String
+    let boxNorm: [Int]
+    let boxPx: [Int]
+
+    init(_ block: OCRLayoutBlock) {
+        label = block.label
+        let normalized = block.normalizedBox
+        let crop = block.cropBox
+        boxNorm = [normalized.x0, normalized.y0, normalized.x1, normalized.y1]
+        boxPx = [crop.x0, crop.y0, crop.x1, crop.y1]
     }
 }
 

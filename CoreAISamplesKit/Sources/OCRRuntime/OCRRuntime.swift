@@ -43,6 +43,7 @@ public struct OCRPageReading: Sendable {
 
     public let layout: OCRRecognition
     public let blocks: [Block]
+    public let skippedBoxes: [OCRLayoutBlock]
     public let totalSeconds: Double
 
     public var layoutParsed: Bool { blocks.first?.block.layout != nil }
@@ -92,13 +93,16 @@ public actor OCRRuntime {
         let layout = try await run(
             model, image: image.resized(width: side, height: side, resampling: .pillow), instruction: OCRPrompt.layout,
             maxNewTokens: maxNewTokens)
+        let plan = OCRPage.plan(layout: layout.text, width: image.width, height: image.height)
         var blocks: [OCRPageReading.Block] = []
-        for block in OCRPage.blocks(layout: layout.text, width: image.width, height: image.height) {
+        for block in plan.blocks {
             let recognition = try await run(
                 model, image: image.cropped(to: block.box), instruction: block.instruction, maxNewTokens: maxNewTokens)
             blocks.append(OCRPageReading.Block(block: block, recognition: recognition))
         }
-        return OCRPageReading(layout: layout, blocks: blocks, totalSeconds: (clock.now - start) / .seconds(1))
+        return OCRPageReading(
+            layout: layout, blocks: blocks, skippedBoxes: plan.skippedBoxes,
+            totalSeconds: (clock.now - start) / .seconds(1))
     }
 
     private func run<Model: OCRModel>(_ model: Model, image: OCRImage, instruction: String, maxNewTokens: Int)

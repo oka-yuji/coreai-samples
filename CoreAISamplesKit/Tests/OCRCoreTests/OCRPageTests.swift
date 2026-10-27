@@ -17,7 +17,10 @@ struct OCRPageTests {
 
     @Test(
         "Fall back to the whole page without a layout mark when the layout output has no usable box",
-        arguments: ["", "Analyze the image layout.", "<box:500 100 500 200><label:text><up>"])
+        arguments: [
+            "", "Analyze the image layout.", "<box:500 100 500 200><label:text><up>",
+            "<box:100 0 101 1000><label:text><up>",
+        ])
     func wholePageFallback(layout: String) throws {
         let blocks = OCRPage.blocks(layout: layout, width: 1_000, height: 800)
         let block = try #require(blocks.first)
@@ -25,6 +28,27 @@ struct OCRPageTests {
         #expect(block.layout == nil)
         #expect(block.box == OCRBox(x0: 0, y0: 0, x1: 1_000, y1: 800))
         #expect(block.instruction == OCRPrompt.text)
+    }
+
+    @Test("Keep usable boxes in order and record zero, reversed, thin and oversized crops")
+    func skippedBoxesAreRecorded() {
+        let layout = [
+            "<box:0 0 1000 100><label:title><up>",
+            "<box:500 100 500 200><label:text><up>",
+            "<box:900 100 800 200><label:text><up>",
+            "<box:100 0 101 1000><label:text><up>",
+            "<box:0 0 40000 40000><label:text><up>",
+            "<box:0 200 1000 1000><label:table><up>",
+        ].joined(separator: "\n")
+        let plan = OCRPage.plan(layout: layout, width: 1_000, height: 800)
+        #expect(plan.blocks.map { $0.layout?.label } == ["title", "table"])
+        #expect(
+            plan.skippedBoxes.map(\.cropBox) == [
+                OCRBox(x0: 500, y0: 80, x1: 500, y1: 160),
+                OCRBox(x0: 900, y0: 80, x1: 800, y1: 160),
+                OCRBox(x0: 100, y0: 0, x1: 101, y1: 800),
+                OCRBox(x0: 0, y0: 0, x1: 40_000, y1: 32_000),
+            ])
     }
 
     @Test(

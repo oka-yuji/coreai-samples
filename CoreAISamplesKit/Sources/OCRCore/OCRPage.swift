@@ -20,10 +20,34 @@ public enum OCRPage {
     public static let layoutSide = 1_036
 
     public static func blocks(layout: String, width: Int, height: Int) -> [OCRPageBlock] {
-        let blocks = OCRLayout.blocks(in: layout, width: width, height: height)
-            .filter { $0.cropBox.x0 < $0.cropBox.x1 && $0.cropBox.y0 < $0.cropBox.y1 }
-            .map { OCRPageBlock(layout: $0, box: $0.cropBox) }
-        return blocks.isEmpty ? [OCRPageBlock(layout: nil, box: OCRBox(x0: 0, y0: 0, x1: width, y1: height))] : blocks
+        plan(layout: layout, width: width, height: height).blocks
+    }
+
+    public static func plan(layout: String, width: Int, height: Int)
+        -> (blocks: [OCRPageBlock], skippedBoxes: [OCRLayoutBlock])
+    {
+        var blocks: [OCRPageBlock] = []
+        var skipped: [OCRLayoutBlock] = []
+        for block in OCRLayout.blocks(in: layout, width: width, height: height) {
+            if isUsable(block.cropBox) {
+                blocks.append(OCRPageBlock(layout: block, box: block.cropBox))
+            } else {
+                skipped.append(block)
+            }
+        }
+        if blocks.isEmpty {
+            blocks.append(OCRPageBlock(layout: nil, box: OCRBox(x0: 0, y0: 0, x1: width, y1: height)))
+        }
+        return (blocks, skipped)
+    }
+
+    private static func isUsable(_ box: OCRBox) -> Bool {
+        let width = box.x1.subtractingReportingOverflow(box.x0)
+        let height = box.y1.subtractingReportingOverflow(box.y0)
+        guard !width.overflow, !height.overflow,
+            OCRImage.isSupported(width: width.partialValue, height: height.partialValue)
+        else { return false }
+        return (try? OCRImage.smartResize(width: width.partialValue, height: height.partialValue)) != nil
     }
 }
 

@@ -126,7 +126,7 @@ reads one `<id>.json` per sample in this format (`teleocr-ocr-result/1`):
   "image": "F4.png", "image_sha256": "...", "image_px": [1240, 1754],
   "layout": {"status": "parsed", "resize": 1036, "text": "<box:068 071 848 103><label:title><up>\n...",
              "seconds": {"vision": 1.4, "first_token": 1.8, "decode": 1.1, "total": 2.9},
-             "tokens": {"prompt": 1396, "image": 1369, "output": 73}, "finished_by": "eos"},
+             "tokens": {"prompt": 1396, "image": 1369, "output": 73}, "finished_by": "eos", "skipped_boxes": []},
   "blocks": [
     {"index": 0, "label": "title", "box_norm": [68, 71, 848, 103], "box_px": [84, 124, 1052, 181],
      "prompt": "text", "text": "...",
@@ -138,15 +138,21 @@ reads one `<id>.json` per sample in this format (`teleocr-ocr-result/1`):
 ~~~
 
 - The page is resized to 1036 x 1036 (Pillow bicubic) for the layout prompt. `layout.text` is
-  its output. Each `<box>` becomes a block in output order; `box_px` is the crop in source
-  pixels, `[x0, y0, x1, y1)`, with the 0-1000 box scaled and rounded outward.
+  its output. Each usable `<box>` becomes a block in output order; `box_px` is the crop in
+  source pixels, `[x0, y0, x1, y1)`, with the 0-1000 box scaled and rounded outward.
+  A crop is usable when both sides are positive and at most 32768, its area is at most
+  100000000 pixels, and its aspect ratio is at most 200. Other parsed boxes are recorded
+  in `layout.skipped_boxes` with `label`, `box_norm` and `box_px`, and are not recognized.
+  The remaining blocks keep their output order and contiguous indices.
 - Each block is cropped from the source page and read with the table prompt when its label
   is `table`, otherwise with the text prompt. `text` is the output decoded without special
   tokens and stripped. Table blocks also carry `otsl` (the same string), `cells` (`row`,
   `column`, `row_span`, `column_span`, `text`, assembled with the model card's rules) and
   `grid` (cells expanded over their spans).
 - `layout.status` is `unparsed` when the layout output has no usable box. The whole page is
-  then read with the text prompt as one block without `label` and `box_norm`.
+  then read with the text prompt as one block without `label` and `box_norm`; skipped boxes
+  remain in the record. With some usable boxes, the status stays `parsed` even if others
+  were skipped. Cancellation and model execution errors still fail the page request.
 - `seconds` are measured from the start of each request; `decode` is `total` minus
   `first_token`. `generate_s` is the whole page. The run fields (`load_s`, `assets` with
   `main_hash`, `memory`, `peak_rss_bytes`, `footprint_peak_bytes`, `pageins`,
