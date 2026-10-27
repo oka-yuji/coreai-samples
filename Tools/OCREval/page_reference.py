@@ -74,6 +74,7 @@ def run(image_path, out, variant):
     from transformers import AutoModel, AutoProcessor
 
     dtype = {"bf16": torch.bfloat16, "fp32": torch.float32}[variant["dtype"]]
+    torch.manual_seed(0)
     source = snapshot()
     started = time.perf_counter()
     processor = AutoProcessor.from_pretrained(str(source), trust_remote_code=True, use_fast=True)

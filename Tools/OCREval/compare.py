@@ -170,6 +170,8 @@ def run_plan(plan_path, out, only=None, performance=True):
             started = time.monotonic()
             try:
                 record = run_child(plan, variant, inputs[label][sid]["image"], out / "processes" / run_id, phase == "cold", owner)
+                if phase in ("warmup", "measured") and not all(asset["cached"] for asset in record["assets"]):
+                    raise ValueError("A prepared-load measurement specialized an asset")
                 eos = all(item["finished_by"] == "eos" for item in [record["layout"], *record["blocks"]])
                 row["status"] = "warmup" if phase == "warmup" and eos else "passed" if eos else "failed"
                 row["all_eos"] = eos
