@@ -1,17 +1,6 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
-    "Permissions changed. Retry to start this demo." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "権限が変更されました。再試行してデモを開始してください。"
-          }
-        }
-      }
-    },
     "Another window is using a model." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -85,6 +74,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "点検への回答"
+          }
+        }
+      }
+    },
+    "Permissions changed. Retry to start this demo." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "権限が変更されました。再試行してデモを開始してください。"
           }
         }
       }

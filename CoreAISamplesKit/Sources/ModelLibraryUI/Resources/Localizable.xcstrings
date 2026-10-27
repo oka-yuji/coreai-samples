@@ -1,392 +1,152 @@
 {
-  "sourceLanguage": "en",
-  "strings": {
-    "A download source has not been configured for this model.": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "このモデルのダウンロード元はまだ設定されていません。"
+  "sourceLanguage" : "en",
+  "strings" : {
+    "A download source has not been configured for this model." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このモデルのダウンロード元はまだ設定されていません。"
           }
         }
       }
     },
-    "About this app": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "このアプリについて"
+    "About this app" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このアプリについて"
           }
         }
       }
     },
-    "About this demo": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "このデモについて"
+    "About this demo" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このデモについて"
           }
         }
       }
     },
-    "Cancel": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "キャンセル"
+    "Cancel" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "キャンセル"
           }
         }
       }
     },
-    "Cancel download": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ダウンロードをキャンセル"
+    "Cancel download" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ダウンロードをキャンセル"
           }
         }
       }
     },
-    "Category": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "分類"
+    "Cancel import" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "取り込みをキャンセル"
           }
         }
       }
     },
-    "Checking model": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "モデルを確認中"
+    "Category" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "分類"
           }
         }
       }
     },
-    "Choose a demo for a model.": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "モデルから、試したいデモを選ぶ。"
+    "Checking model" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルを確認中"
           }
         }
       }
     },
-    "Close this model's demo before deleting its files.": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "モデルを削除する前に、このモデルのデモを閉じてください。"
+    "Choose a demo for a model." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルから、試したいデモを選ぶ。"
           }
         }
       }
     },
-    "Delete": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "削除"
+    "Close this model's demo before changing its files." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルのファイルを変更する前に、このモデルのデモを閉じてください。"
           }
         }
       }
     },
-    "Delete model": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "モデルを削除"
+    "Close this model's demo before deleting its files." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルを削除する前に、このモデルのデモを閉じてください。"
           }
         }
       }
     },
-    "Delete this model?": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "このモデルを削除しますか？"
+    "Delete" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "削除"
           }
         }
       }
     },
-    "Deleting model": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "モデルを削除中"
+    "Delete model" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルを削除"
           }
         }
       }
     },
-    "Demo unavailable": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "デモを利用できません"
+    "Delete this model?" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このモデルを削除しますか？"
           }
         }
       }
     },
-    "Done": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "完了"
-          }
-        }
-      }
-    },
-    "Download model": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "モデルをダウンロード"
-          }
-        }
-      }
-    },
-    "Download the model to enable its controls.": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "モデルをダウンロードすると操作できるようになります。"
-          }
-        }
-      }
-    },
-    "Downloaded": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ダウンロード済み"
-          }
-        }
-      }
-    },
-    "Downloading": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ダウンロード中"
-          }
-        }
-      }
-    },
-    "Explore converted models through practical demos.": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "変換したモデルを、具体的なデモで試せます。"
-          }
-        }
-      }
-    },
-    "Model information": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "モデル情報"
-          }
-        }
-      }
-    },
-    "Model size": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "モデル容量"
-          }
-        }
-      }
-    },
-    "No models available": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "利用できるモデルがありません"
-          }
-        }
-      }
-    },
-    "No published models support this device yet.": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "この端末に対応する公開済みモデルはまだありません。"
-          }
-        }
-      }
-    },
-    "Only model files are removed. Your inputs and saved results remain.": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "削除するのはモデルファイルだけです。入力と保存した結果は残ります。"
-          }
-        }
-      }
-    },
-    "Repository": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "リポジトリ"
-          }
-        }
-      }
-    },
-    "Retry download": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ダウンロードを再試行"
-          }
-        }
-      }
-    },
-    "Retry stopping": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "停止を再試行"
-          }
-        }
-      }
-    },
-    "Revision": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "リビジョン"
-          }
-        }
-      }
-    },
-    "Search models and demos": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "モデル・デモを検索"
-          }
-        }
-      }
-    },
-    "Stopping": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "停止中"
-          }
-        }
-      }
-    },
-    "Stopping the previous demo…": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "前のデモを停止しています…"
-          }
-        }
-      }
-    },
-    "The model download configuration is invalid.": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "モデルのダウンロード設定に問題があります。"
-          }
-        }
-      }
-    },
-    "The model files do not match the required bundle.": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "モデルファイルが必要な形式と一致しません。"
-          }
-        }
-      }
-    },
-    "This demo is not available on this device.": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "この端末ではこのデモを利用できません。"
-          }
-        }
-      }
-    },
-    "Variant": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "変換版"
-          }
-        }
-      }
-    },
-    "Variant: %@": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "変換版: %@"
-          }
-        }
-      }
-    },
-    "You can read each demo before downloading its model.": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ダウンロード前でも、デモの解説を読めます。"
-          }
-        }
-      }
-    },
-    "You can read this demo now.": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "デモの解説を閲覧できます。"
+    "Deleting model" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルを削除中"
           }
         }
       }
@@ -413,6 +173,16 @@
         }
       }
     },
+    "Demo unavailable" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "デモを利用できません"
+          }
+        }
+      }
+    },
     "Description only" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -424,126 +194,356 @@
         }
       }
     },
-    "Cancel import": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "取り込みをキャンセル"
+    "Done" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "完了"
           }
         }
       }
     },
-    "Close this model's demo before changing its files.": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "モデルのファイルを変更する前に、このモデルのデモを閉じてください。"
+    "Download model" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルをダウンロード"
           }
         }
       }
     },
-    "For research and evaluation only. Commercial use requires a separate license.": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "研究・評価用途に限られます。商用利用には別途ライセンスが必要です。"
+    "Download the model to enable its controls." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルをダウンロードすると操作できるようになります。"
           }
         }
       }
     },
-    "Import again": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "もう一度取り込む"
+    "Downloaded" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ダウンロード済み"
           }
         }
       }
     },
-    "Import model": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "モデルを取り込む"
+    "Downloading" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ダウンロード中"
           }
         }
       }
     },
-    "Import the model to enable its controls.": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "モデルを取り込むと、操作できるようになります。"
+    "Explore converted models through practical demos." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "変換したモデルを、具体的なデモで試せます。"
           }
         }
       }
     },
-    "Imported": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "取り込み済み"
+    "For research and evaluation only. Commercial use requires a separate license." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "研究・評価用途に限られます。商用利用には別途ライセンスが必要です。"
           }
         }
       }
     },
-    "Importing": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "取り込み中"
+    "Import again" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "もう一度取り込む"
           }
         }
       }
     },
-    "Local bundle": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ローカルバンドル"
+    "Import model" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルを取り込む"
           }
         }
       }
     },
-    "Qwen Research License": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Qwen Research License"
+    "Import the model to enable its controls." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルを取り込むと、操作できるようになります。"
           }
         }
       }
     },
-    "Source": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "取得元"
+    "Imported" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "取り込み済み"
           }
         }
       }
     },
-    "You can read each demo before preparing its model.": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "モデルを準備する前に、各デモの説明を確認できます。"
+    "Importing" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "取り込み中"
+          }
+        }
+      }
+    },
+    "Local bundle" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ローカルバンドル"
+          }
+        }
+      }
+    },
+    "Model information" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデル情報"
+          }
+        }
+      }
+    },
+    "Model size" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデル容量"
+          }
+        }
+      }
+    },
+    "No models available" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "利用できるモデルがありません"
+          }
+        }
+      }
+    },
+    "No published models support this device yet." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この端末に対応する公開済みモデルはまだありません。"
+          }
+        }
+      }
+    },
+    "Only model files are removed. Your inputs and saved results remain." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "削除するのはモデルファイルだけです。入力と保存した結果は残ります。"
+          }
+        }
+      }
+    },
+    "Qwen Research License" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Qwen Research License"
+          }
+        }
+      }
+    },
+    "Repository" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "リポジトリ"
+          }
+        }
+      }
+    },
+    "Retry download" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ダウンロードを再試行"
+          }
+        }
+      }
+    },
+    "Retry stopping" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "停止を再試行"
+          }
+        }
+      }
+    },
+    "Revision" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "リビジョン"
+          }
+        }
+      }
+    },
+    "Search models and demos" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデル・デモを検索"
+          }
+        }
+      }
+    },
+    "Source" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "取得元"
+          }
+        }
+      }
+    },
+    "Stopping" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "停止中"
+          }
+        }
+      }
+    },
+    "Stopping the previous demo…" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前のデモを停止しています…"
+          }
+        }
+      }
+    },
+    "The model download configuration is invalid." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルのダウンロード設定に問題があります。"
+          }
+        }
+      }
+    },
+    "The model files do not match the required bundle." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルファイルが必要な形式と一致しません。"
+          }
+        }
+      }
+    },
+    "This demo is not available on this device." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この端末ではこのデモを利用できません。"
+          }
+        }
+      }
+    },
+    "Variant" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "変換版"
+          }
+        }
+      }
+    },
+    "Variant: %@" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "変換版: %@"
+          }
+        }
+      }
+    },
+    "You can read each demo before downloading its model." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ダウンロード前でも、デモの解説を読めます。"
+          }
+        }
+      }
+    },
+    "You can read each demo before preparing its model." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルを準備する前に、各デモの説明を確認できます。"
+          }
+        }
+      }
+    },
+    "You can read this demo now." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "デモの解説を閲覧できます。"
           }
         }
       }
     }
   },
-  "version": "1.0"
+  "version" : "1.0"
 }
