@@ -1,71 +1,108 @@
 <!doctype html>
-<html lang="en">
+<html lang="ja">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="google" content="notranslate">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'none'; base-uri 'none'; form-action 'none'">
-<title>Qwen Image quality review</title>
+<title>Qwen Image review</title>
 <style>
-body{margin:0;background:#f5f3ee;color:#242925;font:16px/1.5 system-ui,sans-serif}main{max-width:1800px;margin:auto;padding:24px}header{border-bottom:2px solid #435d49;padding-bottom:18px}h1{font-size:28px;margin:0}p{max-width:90ch}.toolbar{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin:18px 0}button,select,input{font:inherit}button,select{padding:8px 12px;border:1px solid #9aa49a;border-radius:6px;background:white;color:inherit}button{cursor:pointer}button:disabled{opacity:.45;cursor:default}button.primary{background:#2d573c;color:white}#status{font-variant-numeric:tabular-nums}#message{color:#813b20;min-height:1.5em}#prompt{font-size:19px;margin:12px 0;white-space:pre-wrap}#reference{width:180px}#reference img{width:100%;display:block}#reference[hidden]{display:none}.columns{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px}.card{padding:14px;background:white;border:1px solid #cfd4cc;border-radius:8px}.card h2{font-size:17px;margin:0 0 10px}.image{display:block;background-color:white}.image img{width:100%;height:auto;display:block}.checker .image{background-image:conic-gradient(#ddd 25%,white 0 50%,#ddd 0 75%,white 0);background-size:20px 20px}.black .image{background:#111}.white .image{background:white}.rating{display:grid;grid-template-columns:1fr 1.4fr;gap:8px;align-items:center;margin-top:10px}.rating select{width:100%}summary{cursor:pointer}details{margin:16px 0}.hint{color:#536054;font-size:14px}button:focus-visible,select:focus-visible,a:focus-visible{outline:3px solid #d18b2d;outline-offset:3px}@media(max-width:1100px){.columns{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:600px){main{padding:14px}.columns{grid-template-columns:1fr}}
+:root{color-scheme:light;font-family:system-ui,"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;color:#242925;background:#f5f3ee;line-height:1.6}
+*{box-sizing:border-box}body{margin:0}main{max-width:1800px;margin:auto;padding:22px 28px 40px}h1{margin:0;font-size:25px;letter-spacing:.01em}p{margin:0}button,select,input{font:inherit;color:inherit}button,select{padding:7px 12px;border:1px solid #9aa49a;border-radius:6px;background:#fff}button{cursor:pointer}button:disabled{opacity:.4;cursor:default}button.primary{background:#2d573c;color:#fff;border-color:#2d573c}button:focus-visible,select:focus-visible,a:focus-visible,summary:focus-visible{outline:3px solid #b67120;outline-offset:3px}
+.review-header{display:flex;justify-content:space-between;gap:20px;align-items:start}.intro{font-size:14px;color:#536054;margin-top:4px}.progress{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;font-size:14px}.progress strong{display:block}.utility{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:14px}.resume{display:flex;align-items:center;gap:6px;font-size:13px}.resume input{max-width:245px;font-size:12px}.hint{font-size:12px;color:#536054}#message{min-height:1.6em;font-size:12px;margin-top:5px;color:#5a653f}
+.navigation{position:sticky;top:0;z-index:2;display:flex;gap:9px;align-items:center;flex-wrap:wrap;padding:12px 0;background:#f5f3eef5;border-bottom:1px solid #cbd3c7}.navigation label{display:flex;align-items:center;gap:7px;font-size:13px}.navigation select{max-width:260px}.navigation .background{margin-left:auto}.identity{font-size:12px;font-weight:500;color:#536054;margin:0}
+.context{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:20px;background:#e9eee4;border-left:4px solid #52704c;padding:16px 18px;margin:16px 0 12px;scroll-margin-top:78px}.context h2{font-size:14px;margin:0 0 5px;color:#385333}.context #prompt{font-size:18px;font-weight:600;line-height:1.7;max-width:85ch;white-space:pre-wrap}.checks-title{font-size:13px;font-weight:600;margin-top:10px}.checks{display:flex;gap:8px 28px;flex-wrap:wrap;padding-left:20px;margin:5px 0 8px;font-size:14px}.original{font-size:12px;color:#536054;margin-top:7px}.original p{white-space:pre-wrap;margin-top:5px}.original summary{cursor:pointer}.reference{margin:0;max-width:180px}.reference h3{font-size:13px;margin:0 0 5px}.reference img{display:block;width:140px;height:140px;object-fit:contain}.reference figcaption{font-size:11px;color:#536054;margin-top:5px;max-width:170px}#reference[hidden]{display:none}
+.scorebar{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin:10px 0}.scorebar p{font-size:13px}.scorebar details{font-size:12px}.scorebar summary{cursor:pointer}.rubrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px;padding:14px 0}.rubric{max-width:65ch}.rubric strong{display:block}.rubric p{font-size:12px}.rubric ol{padding-left:22px;font-size:12px}.columns{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}.card{min-width:0;background:#fff;border:1px solid #cfd4cc;border-radius:8px;overflow:hidden}.card-header{padding:11px 13px}.card h2{font-size:16px;margin:0}.cohort-note{font-size:11px;color:#536054;margin-top:2px}.image{display:block;background:#fff}.image img{width:100%;height:auto;display:block}.checker .image{background-image:conic-gradient(#ddd 25%,#fff 0 50%,#ddd 0 75%,#fff 0);background-size:20px 20px}.black .image{background:#111}.white .image{background:#fff}.ratings{padding:0 13px 12px}.rating{display:block;padding-top:12px}.rating+.rating{border-top:1px solid #e4e7e1;margin-top:12px}.rating-title{font-size:14px;font-weight:650;display:block}.rating-hint{display:block;color:#536054;font-size:12px;line-height:1.65;margin:4px 0 7px}.rating select{width:100%;font-size:13px;padding:8px}.footer{margin-top:12px;display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
+@media(max-width:1100px){main{padding:18px}.columns{grid-template-columns:repeat(2,minmax(0,1fr))}.context #prompt{font-size:16px}.checks{display:block}.context{scroll-margin-top:120px}.navigation .background{margin-left:0}}
+@media(max-width:620px){main{padding:12px}.review-header{display:block}.progress{text-align:left;margin-top:8px}.utility{gap:8px}.resume{display:block}.context{grid-template-columns:1fr;padding:12px}.reference{max-width:none;display:grid;grid-template-columns:140px 1fr;gap:4px 12px}.reference h3{grid-column:1/-1}.reference figcaption{max-width:none}.columns{grid-template-columns:1fr}.navigation{gap:6px}.navigation select{max-width:175px}.context #prompt{font-size:16px}.scorebar{display:block}.scorebar details{margin-top:6px}}
 </style>
 <main class="checker" id="review">
-<header><h1>Qwen Image · quality review</h1><p>Review each image against its prompt and, for edits, the original reference. Ratings stay unreviewed until you select a score. Export the JSON file to preserve your work.</p><div class="toolbar"><button class="primary" id="export">Export ratings</button><label>Resume ratings <input type="file" id="resume" accept="application/json,.json"></label><strong id="status" aria-live="polite"></strong></div><div id="message" role="status"></div></header>
-<details><summary>Scoring guide</summary><p>0 — Failed: the requirement is not met. 1 — Acceptable: the requirement is met with visible defects. 2 — Good: the requirement is clearly met. Leave uncertain or unchecked axes unreviewed.</p><p>Instruction: requested content and changes. Detail: shape, edges, anatomy and fine features. Text: exact requested lettering and legibility. Preservation: reference content outside the requested change. Alpha: requested transparency and clean edges. Use the background selector when assessing transparency.</p><p class="hint">The acceptance calculation runs separately. This page never grants model verification or replaces the numerical checks.</p></details>
-<nav class="toolbar" aria-label="Review cases"><button id="previous">Previous</button><label>Case <select id="case"></select></label><button id="next">Next</button><label>Image background <select id="background"><option value="checker">Checkerboard</option><option value="white">White</option><option value="black">Black</option></select></label></nav>
-<h2 id="identity"></h2><p id="prompt"></p><figure id="reference" hidden><a class="image" target="_blank" rel="noopener"><img alt="Original editing reference"></a><figcaption>Original reference</figcaption></figure><section class="columns" id="columns" aria-label="Compared outputs"></section><p class="hint">Open an image to inspect it at full size. Exported files can include unfinished ratings; packaging still requires every applicable score.</p>
+<header class="review-header"><div><h1 id="page-title"></h1><p class="intro" id="intro"></p></div><div class="progress"><strong id="case-status"></strong><span id="status" aria-live="polite"></span></div></header>
+<div class="utility"><button class="primary" id="export"></button><label class="resume"><span id="resume-label"></span><input type="file" id="resume" accept="application/json,.json"></label><span class="hint" id="save-hint"></span></div><div id="message" role="status"></div>
+<nav class="navigation" aria-label="Review cases"><button id="previous"></button><label><span id="case-label"></span><select id="case"></select></label><button id="next"></button><h2 class="identity" id="identity"></h2><label class="background"><span id="background-label"></span><select id="background"></select></label></nav>
+<section class="context" id="case-context" aria-labelledby="prompt-title"><div><h2 id="prompt-title"></h2><p id="prompt"></p><p class="checks-title" id="checks-title"></p><ul class="checks" id="instruction-checks"></ul><details class="original"><summary id="original-label"></summary><p id="prompt-source" class="notranslate" translate="no"></p><p class="hint" id="display-note"></p></details></div><figure class="reference" id="reference" hidden><h3 id="reference-title"></h3><a class="image" target="_blank" rel="noopener"><img alt="Original editing reference"></a><figcaption id="reference-hint"></figcaption></figure></section>
+<div class="scorebar"><p id="score-legend"></p><details><summary id="scoring-label"></summary><div class="rubrics" id="rubrics"></div></details></div>
+<section class="columns" id="columns" aria-label="Compared outputs"></section><div class="footer"><p class="hint" id="image-hint"></p><p class="hint" id="scope"></p></div>
 </main>
 <script id="payload" type="application/json">__REVIEW_PAYLOAD__</script>
 <script>
 "use strict";
 const data=JSON.parse(document.getElementById("payload").textContent);
-const names=["A0","A1","B","C"];
-const titles={A0:"A0 · Original Float32",A1:"A1 · Mixed precision",B:"B · Candidate reference",C:"C · Converted output"};
-const labels={instruction:"Instruction",detail:"Detail",text:"Text",preservation:"Preservation",alpha:"Alpha"};
-const initial=data.ratings;
+const names=["A0","A1","B","C"],axisOrder=["instruction","detail","text","preservation","alpha"];
+const copy=data.review,ui=copy.ui,initial=data.ratings;
 let ratings=structuredClone(initial),current=0,resumeVersion=0;
 const key="qmi-review-"+data.comparison_sha256;
 const el=id=>document.getElementById(id);
 const equal=(a,b)=>JSON.stringify(canonical(a))===JSON.stringify(canonical(b));
 function canonical(value){if(Array.isArray(value))return value.map(canonical);if(value&&typeof value==="object")return Object.fromEntries(Object.keys(value).sort().map(k=>[k,canonical(value[k])]));return value;}
+function node(tag,text,css){const value=document.createElement(tag);if(text!==undefined)value.textContent=text;if(css)value.className=css;return value;}
 function validate(value){
- if(value?.format!==2||!equal(Object.keys(value.cohorts||{}).sort(),names.slice().sort()))throw Error("This file does not contain the four expected cohorts.");
+ if(value?.format!==2||!equal(Object.keys(value.cohorts||{}).sort(),names.slice().sort()))throw Error(ui.bad_cohorts);
  for(const name of names){
   const expected=initial.cohorts[name],actual=value.cohorts[name];
-  if(!equal(actual.identity,expected.identity))throw Error("This file belongs to different output images.");
-  if(!Array.isArray(actual.ratings)||actual.ratings.length!==expected.ratings.length)throw Error("A rating row is missing or duplicated.");
+  if(!equal(actual.identity,expected.identity))throw Error(ui.bad_identity);
+  if(!Array.isArray(actual.ratings)||actual.ratings.length!==expected.ratings.length)throw Error(ui.bad_rows);
   const seen=new Set();
   for(const row of actual.ratings){
    const original=expected.ratings.find(item=>item.run_id===row.run_id);
-   if(!original||seen.has(row.run_id)||!equal(Object.keys(row.axes||{}).sort(),Object.keys(original.axes).sort()))throw Error("The rating cases or axes changed.");
+   if(!original||seen.has(row.run_id)||!equal(Object.keys(row.axes||{}).sort(),Object.keys(original.axes).sort()))throw Error(ui.bad_axes);
    seen.add(row.run_id);
-   if(Object.values(row.axes).some(score=>score!==null&&score!==0&&score!==1&&score!==2))throw Error("A score is outside the allowed scale.");
+   if(Object.values(row.axes).some(score=>score!==null&&score!==0&&score!==1&&score!==2))throw Error(ui.bad_score);
   }
  }
  return value;
 }
-function persist(){try{localStorage.setItem(key,JSON.stringify(ratings));el("message").textContent="Saved in this browser. Export a JSON copy before closing.";}catch{el("message").textContent="Browser storage is unavailable. Export your ratings to preserve them.";}}
-function status(){const values=names.flatMap(name=>ratings.cohorts[name].ratings.flatMap(row=>Object.values(row.axes)));el("status").textContent=values.filter(value=>value!==null).length+" / "+values.length+" axes reviewed";}
+function persist(){try{localStorage.setItem(key,JSON.stringify(ratings));el("message").textContent=ui.saved;}catch{el("message").textContent=ui.save_failed;}}
+function status(){
+ const values=names.flatMap(name=>ratings.cohorts[name].ratings.flatMap(row=>Object.values(row.axes)));
+ const selected=names.flatMap(name=>Object.values(ratings.cohorts[name].ratings.find(row=>row.run_id===data.cases[current].run_id).axes));
+ el("status").textContent=ui.overall_progress+" "+values.filter(value=>value!==null).length+" / "+values.length+" "+ui.axes_reviewed;
+ el("case-status").textContent=ui.case_progress+" "+selected.filter(value=>value!==null).length+" / "+selected.length;
+}
 function render(){
- const item=data.cases[current];el("case").value=String(current);el("previous").disabled=current===0;el("next").disabled=current===data.cases.length-1;el("identity").textContent=(current+1)+" / "+data.cases.length+" · "+item.run_id;el("prompt").textContent=item.prompt;
- el("reference").hidden=!item.reference;if(item.reference){el("reference").querySelector("a").href=item.reference;el("reference").querySelector("img").src=item.reference;}
+ const item=data.cases[current];
+ el("case").value=String(current);el("previous").disabled=current===0;el("next").disabled=current===data.cases.length-1;
+ el("identity").textContent=(current+1)+" / "+data.cases.length+" · "+item.run_id;
+ el("prompt-title").textContent=(item.reference?ui.edit:ui.generate)+" · "+ui.prompt_title;
+ el("prompt").textContent=item.guidance.prompt_ja;el("prompt-source").textContent=item.prompt;
+ el("instruction-checks").replaceChildren(...item.guidance.checks.instruction.map(text=>node("li",text)));
+ el("reference").hidden=!item.reference;
+ if(item.reference){el("reference").querySelector("a").href=item.reference;el("reference").querySelector("img").src=item.reference;el("reference").querySelector("img").alt=ui.reference;}
+ const axes=axisOrder.filter(axis=>Object.hasOwn(item.guidance.checks,axis));
+ el("rubrics").replaceChildren();
+ for(const axis of axes){
+  const rubric=node("div",undefined,"rubric"),list=node("ol");list.start=0;
+  list.append(...copy.axes[axis].scores.map(text=>node("li",text)));
+  rubric.append(node("strong",copy.axes[axis].label),node("p",copy.axes[axis].meaning),list);el("rubrics").append(rubric);
+ }
  el("columns").replaceChildren();
  for(const name of names){
-  const card=document.createElement("article");card.className="card";const title=document.createElement("h2");title.textContent=titles[name];card.append(title);
-  const link=document.createElement("a");link.href=item.images[name];link.target="_blank";link.rel="noopener";link.className="image";const image=document.createElement("img");image.src=item.images[name];image.alt=name+" output for "+item.run_id;image.width=512;image.height=512;link.append(image);card.append(link);
-  const row=ratings.cohorts[name].ratings.find(value=>value.run_id===item.run_id);
-  for(const axis of Object.keys(row.axes)){
-   const label=document.createElement("label");label.className="rating";const text=document.createElement("span");text.textContent=labels[axis]||axis;const select=document.createElement("select");select.setAttribute("aria-label",name+" "+axis);
-   for(const [value,title] of [["","Unreviewed"],["0","0 · Failed"],["1","1 · Acceptable"],["2","2 · Good"]]){const option=document.createElement("option");option.value=value;option.textContent=title;select.append(option);}
-   select.value=row.axes[axis]===null?"":String(row.axes[axis]);select.onchange=()=>{resumeVersion++;el("resume").value="";row.axes[axis]=select.value===""?null:Number(select.value);persist();status();};label.append(text,select);card.append(label);
+  const card=node("article",undefined,"card"),heading=node("div",undefined,"card-header");
+  heading.append(node("h2",copy.cohorts[name].title),node("p",copy.cohorts[name].description,"cohort-note"));card.append(heading);
+  const link=node("a",undefined,"image");link.href=item.images[name];link.target="_blank";link.rel="noopener";
+  const image=node("img");image.src=item.images[name];image.alt=name+" · "+item.run_id;image.width=512;image.height=512;link.append(image);card.append(link);
+  const row=ratings.cohorts[name].ratings.find(value=>value.run_id===item.run_id),controls=node("div",undefined,"ratings");
+  for(const axis of axes){
+   const label=node("label",undefined,"rating"),select=node("select");
+   select.setAttribute("aria-label",name+" "+copy.axes[axis].label);select.setAttribute("data-cohort",name);select.setAttribute("data-axis",axis);
+   for(const [value,title] of [["",ui.unreviewed],["0",ui.score_0],["1",ui.score_1],["2",ui.score_2]]){const option=node("option",title);option.value=value;select.append(option);}
+   select.value=row.axes[axis]===null?"":String(row.axes[axis]);
+   select.onchange=()=>{resumeVersion++;el("resume").value="";row.axes[axis]=select.value===""?null:Number(select.value);persist();status();};
+   label.append(node("span",copy.axes[axis].label,"rating-title"),node("span",item.guidance.checks[axis].join(" / "),"rating-hint"),select);controls.append(label);
   }
-  el("columns").append(card);
+  card.append(controls);el("columns").append(card);
  }
  status();
 }
-for(const [index,item] of data.cases.entries()){const option=document.createElement("option");option.value=String(index);option.textContent=(index+1)+" · "+item.run_id;el("case").append(option);}
-el("case").onchange=()=>{current=Number(el("case").value);render();};el("previous").onclick=()=>{if(current>0){current--;render();}};el("next").onclick=()=>{if(current<data.cases.length-1){current++;render();}};el("background").onchange=()=>{el("review").className=el("background").value;};
-el("export").onclick=()=>{const url=URL.createObjectURL(new Blob([JSON.stringify(ratings,null,2)+"\n"],{type:"application/json"}));const link=document.createElement("a");link.href=url;link.download="quality-ratings-reviewed.json";link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
-el("resume").onchange=async()=>{const version=++resumeVersion,file=el("resume").files[0];if(!file)return;try{const restored=validate(JSON.parse(await file.text()));if(version!==resumeVersion)return;ratings=restored;persist();render();}catch(error){if(version===resumeVersion)el("message").textContent=error.message;}finally{if(version===resumeVersion)el("resume").value="";}};
-try{const saved=localStorage.getItem(key);if(saved){ratings=validate(JSON.parse(saved));el("message").textContent="Restored ratings for these exact outputs from this browser.";}}catch{el("message").textContent="Saved browser ratings could not be restored. The initial ratings are unchanged.";}
+function navigate(index){if(index<0||index>=data.cases.length)return;current=index;render();el("case-context").scrollIntoView({block:"start",behavior:"instant"});}
+const texts={"page-title":"title",intro:"intro",export:"export","resume-label":"resume","save-hint":"save_hint",previous:"previous",next:"next","case-label":"case","background-label":"background","checks-title":"checks_title","original-label":"original","display-note":"display_note","reference-title":"reference","reference-hint":"reference_hint","score-legend":"score_legend","scoring-label":"scoring","image-hint":"image_hint",scope:"scope"};
+for(const [id,key] of Object.entries(texts))el(id).textContent=ui[key];
+document.title=ui.page_title;
+for(const value of ["checker","white","black"]){const option=node("option",ui[value]);option.value=value;el("background").append(option);}
+for(const [index,item] of data.cases.entries()){const option=node("option",(index+1)+" · "+item.run_id);option.value=String(index);el("case").append(option);}
+el("case").onchange=()=>navigate(Number(el("case").value));el("previous").onclick=()=>navigate(current-1);el("next").onclick=()=>navigate(current+1);el("background").onchange=()=>{el("review").className=el("background").value;};
+el("export").onclick=()=>{const url=URL.createObjectURL(new Blob([JSON.stringify(ratings,null,2)+"\n"],{type:"application/json"}));const link=node("a");link.href=url;link.download="quality-ratings-reviewed.json";link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
+el("resume").onchange=async()=>{const version=++resumeVersion,file=el("resume").files[0];if(!file)return;try{const restored=validate(JSON.parse(await file.text()));if(version!==resumeVersion)return;ratings=restored;persist();render();}catch(error){if(version===resumeVersion)el("message").textContent=Object.values(ui).includes(error.message)?error.message:ui.bad_json;}finally{if(version===resumeVersion)el("resume").value="";}};
+try{const saved=localStorage.getItem(key);if(saved){ratings=validate(JSON.parse(saved));el("message").textContent=ui.restored;}}catch{el("message").textContent=ui.restore_failed;}
 render();
 </script>
 </html>

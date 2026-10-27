@@ -7,6 +7,7 @@ from pathlib import Path
 from .evaluation import canonical_hash, quality_summary, relative
 from .fixtures import quality_axes
 from .mobile_evidence import mobile_fixtures
+from .mobile_ratings import rating_identity_matches
 
 
 COHORTS = ("A0", "A1", "B", "C")
@@ -40,13 +41,36 @@ def validate_ratings(ratings, cohorts):
     axes = quality_axes()
     for name in COHORTS:
         cohort = ratings["cohorts"][name]
-        if canonical_hash(cohort.get("identity")) != canonical_hash(cohorts[name]):
+        if not rating_identity_matches(cohort.get("identity"), cohorts[name]):
             raise ValueError("Ratings belong to a different output cohort")
         rows = cohort.get("ratings", [])
         if len(rows) != len(axes) or {row.get("run_id") for row in rows} != set(axes):
             raise ValueError("Every frozen output must retain a rating row")
         scores = {row["run_id"]: row["axes"] for row in rows}
         quality_summary(scores, scores, axes)
+
+
+def load_review_guide():
+    recipes = Path(__file__).parents[2] / "recipes"
+    path = recipes / "qwen_image21_mobile/quality-review-ja.json"
+    data = path.read_bytes()
+    guide = json.loads(data)
+    definition = json.loads((recipes / "qwen_image21/evaluation-cases.json").read_text())
+    cases = {case["id"]: case for case in definition["cases"]}
+    if guide.get("format") != 1 or guide.get("language") != "ja" or set(guide.get("cases", {})) != set(cases):
+        raise ValueError("Review guidance must cover the frozen cases")
+    if set(guide.get("cohorts", {})) != set(COHORTS) or set(guide.get("axes", {})) != {
+            "instruction", "detail", "text", "preservation", "alpha"}:
+        raise ValueError("Review guidance changed the cohorts or axes")
+    for key, case in cases.items():
+        display = guide["cases"][key]
+        if (display.get("source_prompt") != case["prompt"] or not isinstance(display.get("prompt_ja"), str)
+                or not display["prompt_ja"].strip() or set(display.get("checks", {})) != set(case["axes"])):
+            raise ValueError("Review guidance differs from its frozen prompt or axes: " + key)
+        for points in display["checks"].values():
+            if not isinstance(points, list) or not points or any(not isinstance(point, str) or not point.strip() for point in points):
+                raise ValueError("Review guidance requires concrete inspection points: " + key)
+    return guide, bytes_record(data)
 
 
 def copied_png(root, name, expected, output, destination):
@@ -87,9 +111,18 @@ def build(args):
     rows = comparison.get("runs", [])
     if len(rows) != 60 or {row.get("run_id") for row in rows} != set(expected):
         raise ValueError("The comparison must retain every frozen output")
+    guide, guide_file = load_review_guide()
+    metadata_by_run = {}
     for row in rows:
         if canonical_hash(row["input"]) != canonical_hash(expected[row["run_id"]]):
             raise ValueError("The comparison input differs from the frozen fixture")
+        key = row["run_id"]
+        identifier = expected[key]["fixture_id"]
+        metadata_name = identifier + "/input.json"
+        metadata, _ = read_json(args.fixtures, metadata_name, manifest["inventory"][metadata_name])
+        if metadata["prompt"] != guide["cases"][identifier]["source_prompt"]:
+            raise ValueError("The displayed review guidance belongs to another prompt: " + key)
+        metadata_by_run[key] = metadata
     outputs = {}
     for name in COHORTS:
         filename = "verification.json" if name == "C" else "summary.json"
@@ -113,9 +146,10 @@ def build(args):
     cases = []
     images = {}
     for key, run in expected.items():
-        metadata_name = run["fixture_id"] + "/input.json"
-        metadata, _ = read_json(args.fixtures, metadata_name, manifest["inventory"][metadata_name])
-        entry = {"run_id": key, "prompt": metadata["prompt"], "seed": run["seed"], "images": {}}
+        metadata = metadata_by_run[key]
+        display = guide["cases"][run["fixture_id"]]
+        entry = {"run_id": key, "prompt": metadata["prompt"], "seed": run["seed"], "images": {},
+                 "guidance": {"prompt_ja": display["prompt_ja"], "checks": display["checks"]}}
         reference = metadata.get("reference")
         if reference:
             destination = "images/reference-" + run["fixture_id"] + ".png"
@@ -129,14 +163,17 @@ def build(args):
             images[destination] = copied_png(roots[name], path, record, args.output, destination)
             entry["images"][name] = destination
         cases.append(entry)
-    payload = {"format": 1, "comparison_sha256": comparison_file["sha256"], "cases": cases, "ratings": ratings}
+    payload = {"format": 1, "comparison_sha256": comparison_file["sha256"], "cases": cases, "ratings": ratings,
+               "review": {key: guide[key] for key in ("language", "ui", "axes", "cohorts")}}
     encoded = json.dumps(payload, ensure_ascii=False, allow_nan=False).replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026")
     template = Path(__file__).parents[2] / "recipes/qwen_image21_mobile/quality-review.html"
-    html = template.read_text().replace("__REVIEW_PAYLOAD__", encoded)
+    template_data = template.read_bytes()
+    html = template_data.decode().replace("__REVIEW_PAYLOAD__", encoded)
     with (args.output / "index.html").open("x") as stream:
         stream.write(html)
     receipt = {"format": 1, "comparison_file": comparison_file, "initial_ratings_file": ratings_file,
-               "images": images, "html": bytes_record(html.encode()), "complete": True,
+               "images": images, "html": bytes_record(html.encode()), "display_guide_file": guide_file,
+               "template_file": bytes_record(template_data), "complete": True,
                "scope": "Offline human-rating tool; does not independently certify conversion or quality"}
     with (args.output / "review-receipt.json").open("x") as stream:
         json.dump(receipt, stream, indent=2)
