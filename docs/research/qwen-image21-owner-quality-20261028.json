@@ -26,12 +26,13 @@
   },
   "acceptance_amendment": {
     "version": "QMI practical v2 visual-review amendment, 2026-10-28",
-    "criterion_id": "QMV-01",
+    "criterion_id": "QMI-OWNER-VISUAL-01",
+    "criterion_id_correction": "The initial QMV-01 label was already used by issue #221 for a different criterion. This correction changes only the identifier, not the review method, evidence or decision.",
     "criterion": "The owner accepts the current candidate's visual appearance after an overall review of the bound gallery, with concerns and review limitations recorded.",
     "status": "met",
     "scope": "Visual-quality adoption of this local research candidate only. Numerical thresholds and device acceptance remain unchanged.",
     "replaces_for_this_scope": "The requirement for the owner to complete all 592 per-axis ratings before accepting this candidate's appearance.",
-    "mapping": "QMP-02's visual-quality adoption uses QMV-01; its numerical requirement remains unchanged. QMU-05 and QMP-08 have partial visual evidence, not completed device acceptance.",
+    "mapping": "QMP-02's visual-quality adoption uses QMI-OWNER-VISUAL-01; its numerical requirement remains unchanged. QMU-05 and QMP-08 have partial visual evidence, not completed device acceptance.",
     "reason": "Explicit owner request to reduce exhaustive manual review and use their actual qualitative feedback. This amendment was made after the outputs were viewed and is not a preregistered quantitative result."
   },
   "detailed_benchmark": {
@@ -43,7 +44,7 @@
     "last_preserved_entered_ratings": 4,
     "per_axis_success_rates": null,
     "new_failure_count": null,
-    "treatment": "The old 90-percent-per-axis and at-most-two-new-failures result is not claimed. Existing ratings and reports remain unchanged. Further exhaustive scoring is not required from the owner for QMV-01."
+    "treatment": "The old 90-percent-per-axis and at-most-two-new-failures result is not claimed. Existing ratings and reports remain unchanged. Further exhaustive scoring is not required from the owner for QMI-OWNER-VISUAL-01."
   },
   "not_established": [
     "Per-case compliance with every instruction, editing preservation, text or alpha requirement",
@@ -52,5 +53,11 @@
     "Normal Models cancellation, retry, save, share or accessibility acceptance"
   ],
   "runtime_effect": "Documentation of owner acceptance only. This record does not set the existing benchmark quality_verified or verified flags, enable a production artifact, or invent a device calibration.",
-  "remaining_work": "Carry this explicit acceptance method into candidate evidence without relabeling the incomplete benchmark; resolve the native-device memory failure and complete the real Models workflow before PR #285 is merged."
+  "remaining_work_at_review": "Carry this explicit acceptance method into candidate evidence without relabeling the incomplete benchmark; resolve the native-device memory failure and complete the real Models workflow before PR #285 is merged.",
+  "subsequent_merge_instruction": {
+    "recorded_on": "2026-10-28",
+    "owner_request_ja": "ではmainにマージしておいてください",
+    "scope": "After receiving the visual acceptance and outstanding device-work status, the owner requested merging the current implementation. Code integration is separate from completion of the remaining device work tracked in issue #220.",
+    "full_device_acceptance": false
+  }
 }
