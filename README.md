@@ -36,7 +36,7 @@ Checked: **2026-10-19**. ✅ = recorded native-app execution on that OS for the 
 | LTX 2.5 | Video generation | [—](docs/model-reports/ltx25.md#model-report) | [—](docs/model-reports/ltx25.md#model-report) | Planned · investigation | — | [Guide / results](docs/model-reports/ltx25.md) |
 <!-- model-catalog:end -->
 
-The iOS app opens **Models**, with six demos connected to their providers. Models downloads the pinned GLiNER2.5-multi FP32 bundle and the EmbeddingGemma 2 FP16 (default) or INT4/INT8 PTQ bundle anonymously from Hugging Face, and a demo runs only after every file's size and SHA-256 has been checked ([#210](https://github.com/oka-yuji/coreai-samples/issues/210)). See the [integration status](docs/validation/ios-models-integration-20261018.md); running the six demos on an iPhone remains a user check. Local diagnostic runs and a bundle's public release are separate milestones.
+The iOS app opens **Models**, with seven demos connected to their providers. Models downloads the pinned GLiNER2.5-multi FP32 and EmbeddingGemma 2 FP16 (default) or INT4/INT8 PTQ bundles anonymously from Hugging Face, and imports the known Irodori FP32 folder locally. Every file is checked before execution is enabled. Irodori supports text/seed input, explicit generation, playback/stop and WAV export; see the [iPhone setup and acceptance guide](docs/irodori/iphone.md#use-irodori-from-models). The [earlier integration record](docs/validation/ios-models-integration-20261018.md) and [Irodori validation](docs/irodori/managed-validation.md) keep host checks separate from pending device acceptance. Local diagnostics and public bundle release are separate milestones.
 
 ## Camera search demo
 

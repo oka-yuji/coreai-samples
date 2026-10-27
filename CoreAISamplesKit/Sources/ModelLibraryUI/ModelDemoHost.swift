@@ -178,14 +178,17 @@
                         } label: {
                             libraryText("Source")
                         }
-                        libraryText("For research and evaluation only. Commercial use requires a separate license.")
-                            .font(.callout)
-                        if let upstream = artifact?.upstream,
-                            let license = URL(
-                                string:
-                                    "https://huggingface.co/\(upstream.repository)/blob/\(upstream.revision)/LICENSE")
-                        {
-                            Link(destination: license) { libraryText("Qwen Research License") }
+                        if artifact?.contract == "qwen-image21-mobile-v2" {
+                            libraryText("For research and evaluation only. Commercial use requires a separate license.")
+                                .font(.callout)
+                            if let upstream = artifact?.upstream,
+                                let license = URL(
+                                    string:
+                                        "https://huggingface.co/\(upstream.repository)/blob/\(upstream.revision)/LICENSE"
+                                )
+                            {
+                                Link(destination: license) { libraryText("Qwen Research License") }
+                            }
                         }
                     }
                 }

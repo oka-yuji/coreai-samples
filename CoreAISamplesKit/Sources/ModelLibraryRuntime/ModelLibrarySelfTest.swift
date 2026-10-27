@@ -80,14 +80,16 @@ public enum ModelLibrarySelfTest {
     public static func run(
         output: URL, root: URL, registry: ModelDemoAdapterRegistry? = nil,
         capabilities: [DemoCapability: CapabilityState]? = nil, acquire target: String? = nil,
-        assembly: ModelLibraryAssembly? = nil, importBundle: URL? = nil, unconnectedDemoIDs: Set<String> = []
+        assembly: ModelLibraryAssembly? = nil, importBundle: URL? = nil, unconnectedDemoIDs: Set<String> = [],
+        catalog: @MainActor () throws -> ModelCatalog = { try IOSDemoCatalog.make() }
     ) async -> Int32 {
         let failures: [String]
         do {
             let report: any Encodable
             do {
                 let checked = try await check(
-                    catalog: IOSDemoCatalog.make(), root: root, registry: registry, capabilities: capabilities,
+                    catalog: catalog(), root: root,
+                    registry: registry, capabilities: capabilities,
                     acquire: target, assembly: assembly, importBundle: importBundle,
                     unconnectedDemoIDs: unconnectedDemoIDs)
                 failures = checked.failures

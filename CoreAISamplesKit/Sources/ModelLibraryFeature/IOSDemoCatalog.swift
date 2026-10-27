@@ -1,6 +1,7 @@
 public enum IOSDemoCatalog {
     public static func make(
-        searchTerms: [String: [String]] = [:], localImageArtifacts: [ModelArtifact]? = nil
+        searchTerms: [String: [String]] = [:], localImageArtifacts: [ModelArtifact]? = nil,
+        speechArtifact: ModelArtifact? = nil
     ) throws -> ModelCatalog {
         let images = localImageArtifacts ?? verifiedImageArtifacts
         for artifact in images {
@@ -116,6 +117,29 @@ public enum IOSDemoCatalog {
                     searchTerms: searchTerms["qwen-image21-turbo"] ?? [], artifacts: images,
                     defaultArtifactID: initial.id, platforms: [.iOS],
                     demos: [ModelDemoLink(demoID: "image-generation", platforms: [.iOS])]))
+        }
+        if let speechArtifact {
+            guard speechArtifact.contract == "irodori-coreai-v1", speechArtifact.isSourceValid,
+                speechArtifact.localBundle?.manifestPath == "irodori.json"
+            else { throw ModelCatalogError.invalidArtifact(speechArtifact.id) }
+            demos.append(
+                DemoDescriptor(
+                    id: "speech", title: "Speech demo", systemImage: "waveform",
+                    summary: "Turn a short Japanese passage into speech, then play or save it.",
+                    explanation: [
+                        DemoExplanation(
+                            title: "How it works",
+                            text:
+                                "Enter text and a seed, generate speech on this device, and save the result as a WAV file."
+                        )
+                    ],
+                    platforms: [.iOS], searchTerms: searchTerms["speech"]))
+            models.append(
+                LibraryModel(
+                    id: "irodori", name: "Irodori", category: "Speech Synthesis",
+                    searchTerms: searchTerms["irodori"] ?? [], artifacts: [speechArtifact],
+                    defaultArtifactID: speechArtifact.id, platforms: [.iOS],
+                    demos: [ModelDemoLink(demoID: "speech", platforms: [.iOS])]))
         }
         return try ModelCatalog(models: models, demos: demos)
     }

@@ -61,14 +61,18 @@ public enum ModelSourceKind: String, Codable, Hashable, Sendable {
 public struct ModelLocalBundle: Codable, Equatable, Sendable {
     public let manifestSHA256: String
     public let profileID: String
+    private let manifestFile: String?
 
-    public init(manifestSHA256: String, profileID: String) {
+    public var manifestPath: String { manifestFile ?? "bundle.json" }
+
+    public init(manifestSHA256: String, profileID: String, manifestPath: String = "bundle.json") {
         self.manifestSHA256 = manifestSHA256
         self.profileID = profileID
+        manifestFile = manifestPath == "bundle.json" ? nil : manifestPath
     }
 
     public var isValid: Bool {
-        isLowercaseHex(manifestSHA256, count: 64) && !profileID.isEmpty
+        isLowercaseHex(manifestSHA256, count: 64) && !profileID.isEmpty && isRelativePath(manifestPath)
     }
 }
 
@@ -134,7 +138,7 @@ public struct ModelArtifact: Codable, Equatable, Sendable {
         case .huggingFace: download?.isValid == true
         case .localManifest:
             localBundle?.isValid == true
-                && files.contains { $0.path == "bundle.json" && $0.sha256 == localBundle?.manifestSHA256 }
+                && files.contains { $0.path == localBundle?.manifestPath && $0.sha256 == localBundle?.manifestSHA256 }
         case nil: false
         }
     }

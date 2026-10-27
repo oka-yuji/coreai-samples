@@ -2,7 +2,7 @@ import argparse, ctypes, hashlib, json, os, shutil, subprocess, tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-RULES = ROOT / "CoreAISamplesKit/Sources/SpeechRuntime/Resources/irodori-assets.json"
+RULES = ROOT / "CoreAISamplesKit/Sources/SpeechAssets/Resources/irodori-assets.json"
 TOKENIZER_SHA = "6a0734cf21c802169defaffe719bc2ef12bb9d0be37e54b61ed27aa89394723d"
 
 def sha256(path):
