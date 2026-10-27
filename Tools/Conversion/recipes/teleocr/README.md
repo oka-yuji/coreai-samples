@@ -33,7 +33,7 @@ The reference stage runs the original FP32 model on the synthetic page `F1.png` 
 
 - Vision: the FP32 export of the same dynamic-window graph must match the original vision encoder with normalized RMSE ≤ 1e-4 on the five required inputs. The bundled FP16 asset must also stay finite with cosine ≥ 0.999 and normalized RMSE ≤ 0.05 against the original on those inputs; this loose gate only catches broken FP16 conversion. The float16 difference (PyTorch FP32 vs FP16) and the conversion difference (PyTorch FP16 vs Core AI) are recorded separately.
 - Embedding: the F1 prompt tokens and a single token must match the original `embed_tokens` with maximum absolute difference 0.
-- Decoder: a stateless FP16 prefill of the 448² F1 prompt (S = 286) must keep the original last-position argmax; the maximum difference and the float16 difference are recorded. The stateful functions are not executed by the Python runtime; their execution check is deferred to #310 (Swift).
+- Decoder: a stateless FP16 prefill of the 448² F1 prompt (S = 286) must keep the original last-position argmax; the maximum difference and the float16 difference are recorded. The Python runtime does not execute the stateful functions; the Swift runtime does. `coreai-verify ocr-block` reads one block and `coreai-verify ocr` reads a page (layout, crops, blocks and OTSL tables) with the bundle, and their outputs are compared with the Python reference (see `Tools/OCREval`).
 
 ```sh
 .local/conversion/teleocr/.venv/bin/python -m unittest discover -s Tools/Conversion/tests -v
