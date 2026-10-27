@@ -28,6 +28,13 @@ def bucket(sizes, count):
     return min(size for size in sizes if size >= count)
 
 
+def vision_variants(cases):
+    for name, case in cases.items():
+        yield name, case, bucket(IOS_WINDOWS, len(case["key_valid"]) // WINDOW_PATCHES)
+        if name == "square448":
+            yield "square448_windows32", case, 32
+
+
 def decoder_comparison_passes(check):
     bounded = conversion_passes(check)
     check["numeric_divergence"] = bool(
@@ -85,9 +92,8 @@ def vision(args):
     static = Runtime(args.output / "vision.aimodel", [f"windows_{count}" for count in IOS_WINDOWS])
     dynamic = Runtime(args.dynamic / "vision.aimodel")
     result["load_s"] = static.load_seconds
-    for name, case in cases.items():
+    for name, case, size in vision_variants(cases):
         count = len(case["key_valid"]) // WINDOW_PATCHES
-        size = bucket(IOS_WINDOWS, count)
         output, seconds = static(half(padded_window_rows(case, size)), "image_features", f"windows_{size}")
         actual = restore_order(output[:count * 16], case["order"])
         baseline, _ = dynamic(half({key: case[key] for key in VISION_INPUTS}), "image_features")

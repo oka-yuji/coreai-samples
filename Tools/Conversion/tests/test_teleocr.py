@@ -10,7 +10,7 @@ import numpy as np
 
 from Tools.Conversion import local
 from Tools.Conversion.adapters.teleocr.contracts import (
-    FUNCTIONS, IOS_CONTEXT, IOS_FUNCTIONS, IOS_MASKED, REVISION, WINDOW_LIMIT, digest, inspected_functions, logit_metrics,
+    FUNCTIONS, IOS_CONTEXT, IOS_FUNCTIONS, IOS_MASKED, IOS_WINDOWS, REVISION, VISION_CASES, WINDOW_LIMIT, digest, inspected_functions, logit_metrics,
     metrics, restore_order, window_inputs, window_order,
 )
 from Tools.Conversion.adapters.teleocr.prepare import validate
@@ -161,6 +161,16 @@ class TeleOCRContractTests(unittest.TestCase):
 
 @unittest.skipUnless(importlib.util.find_spec("torch"), "The pinned TeleOCR environment is required")
 class TeleOCRStaticWrapperTests(unittest.TestCase):
+    def test_vision_comparisons_exercise_every_static_function(self):
+        from Tools.Conversion.adapters.teleocr.ios import vision_variants
+        cases = {name: {"key_valid": np.ones(len(window_order(case["size"][1] // 14, case["size"][0] // 14)) * 4)}
+                 for name, case in VISION_CASES.items()}
+        variants = list(vision_variants(cases))
+        self.assertEqual({windows for _, _, windows in variants}, set(IOS_WINDOWS))
+        self.assertEqual({name for name, _, _ in variants}, set(VISION_CASES) | {"square448_windows32"})
+        padded = next((case, windows) for name, case, windows in variants if name == "square448_windows32")
+        self.assertEqual((len(padded[0]["key_valid"]) // 64, padded[1]), (16, 32))
+
     def test_static_decoder_rejects_unbounded_errors_and_accepts_only_close_top_two_divergence(self):
         from Tools.Conversion.adapters.teleocr.ios import decoder_comparison_passes
         reference = np.array([0.0, 10.0, 1.0])
