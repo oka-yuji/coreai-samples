@@ -137,7 +137,7 @@ def run_plan(plan_path, out, only=None, performance=True):
         raise SystemExit(128 + signum)
     signal.signal(signal.SIGTERM, on_signal)
     if signal.getsignal(signal.SIGHUP) is not signal.SIG_IGN:
-        signal.signal(signal.SIGHUP, on_signal)
+        signal.signal(signal.SIGHUP, lambda *_: signal.raise_signal(signal.SIGTERM))
     try:
         reference.acquire(lock, lambda: owner, 0, print, state)
         if reference.sha256(Path(plan["cli"])) != plan["cli_sha256"]:
