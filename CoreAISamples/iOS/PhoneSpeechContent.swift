@@ -7,13 +7,14 @@
         let send: (SpeechAction) -> Void
         let isPermitted: @MainActor () -> Bool
         @Environment(\.locale) private var locale
+        @State private var showingVoiceOptions = false
         private enum Field: Hashable { case text, seed }
         @FocusState private var editing: Field?
 
         var body: some View {
             VStack(alignment: .leading, spacing: 16) {
                 HStack {
-                    Text("Text").font(.headline)
+                    Text("2. Enter what to say").font(.headline)
                     Spacer()
                     Menu("Examples") {
                         ForEach(state.examples) { example in
@@ -24,6 +25,15 @@
                     }
                     .disabled(!editable)
                 }
+                Text("Type a short Japanese passage, or start with an example below.")
+                    .font(.callout).foregroundStyle(.secondary)
+                if let example = state.examples.first {
+                    Button("Try an example", systemImage: "text.badge.plus") {
+                        perform(.setText(example.text))
+                    }
+                    .disabled(!editable)
+                    .accessibilityIdentifier("speech.example")
+                }
                 TextEditor(text: Binding(get: { state.text }, set: { perform(.setText($0)) }))
                     .frame(minHeight: 140)
                     .focused($editing, equals: .text)
@@ -33,28 +43,47 @@
                     .overlay(RoundedRectangle(cornerRadius: 8).stroke(.quaternary))
                 Text("Short passages work best. Maximum 255 tokens.")
                     .font(.caption).foregroundStyle(.secondary)
-                LabeledContent("Seed") {
-                    TextField("Seed", text: Binding(get: { state.seed }, set: { perform(.setSeed($0)) }))
-                        .keyboardType(.numberPad)
-                        .textFieldStyle(.roundedBorder)
-                        .focused($editing, equals: .seed)
-                        .disabled(!editable)
-                        .accessibilityLabel("Seed")
-                        .accessibilityIdentifier("speech.seed")
+                DisclosureGroup("Voice options", isExpanded: $showingVoiceOptions) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(
+                            "Leave this number unchanged to get started. Change it to try a different voice variation."
+                        )
+                        .font(.caption).foregroundStyle(.secondary)
+                        LabeledContent("Seed") {
+                            TextField("Seed", text: Binding(get: { state.seed }, set: { perform(.setSeed($0)) }))
+                                .keyboardType(.numberPad)
+                                .textFieldStyle(.roundedBorder)
+                                .focused($editing, equals: .seed)
+                                .disabled(!editable)
+                                .accessibilityLabel("Seed")
+                                .accessibilityIdentifier("speech.seed")
+                        }
+                    }
+                    .padding(.top, 8)
                 }
                 if UInt64(state.seed) == nil {
                     Text("Enter a whole-number seed from 0 to 18446744073709551615.")
                         .font(.caption).foregroundStyle(.orange)
                 }
+                Divider()
+                Text("3. Generate and listen").font(.headline)
                 Button("Generate speech", systemImage: "waveform") { perform(.generate) }
                     .buttonStyle(.borderedProminent)
                     .disabled(!state.canGenerate || !isPermitted())
                     .accessibilityIdentifier("speech.generate")
+                if editable && state.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    Text("Enter text or choose an example to enable generation.")
+                        .font(.callout).foregroundStyle(.secondary)
+                }
                 if state.busy {
                     Button("Stop", systemImage: "stop.fill", role: .destructive) { send(.stop) }
                         .disabled(state.phase == .stopping)
                         .accessibilityIdentifier("speech.stop")
                     ProgressView { Text(LocalizedStringKey(phaseLabel)) }
+                    if state.phase == .generating {
+                        Text("Keep this screen open. Preparing the model for the first time can take longer.")
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
                 } else if let message = state.message {
                     RuntimeMessageText(message).font(.callout).textSelection(.enabled)
                 }
@@ -74,6 +103,9 @@
                     DisclosureGroup("Text used for generation") {
                         Text(verbatim: audio.normalizedText).textSelection(.enabled)
                     }
+                } else if !state.busy {
+                    Text("When generation finishes, play the audio here or save it as a WAV file.")
+                        .font(.callout).foregroundStyle(.secondary)
                 }
             }
             .toolbar {
