@@ -29,6 +29,6 @@ python3 Tools/Irodori/prepare-bundle.py \
   --output /path/to/Irodori-FP32
 ```
 
-The script checks every source digest, uses APFS copy-on-write copies, and publishes the complete folder with an exclusive rename. It refuses any existing output. It does not execute a model. The app opens the resulting folder containing `irodori.json`, `tokenizer.json`, and `artifacts/`.
+The script checks every source digest, uses APFS copy-on-write copies, and publishes the complete folder with an exclusive rename. It refuses any existing output. It does not execute a model. The app opens the resulting folder containing `irodori.json`, `tokenizer.json`, and `artifacts/`. The [managed import contract](managed-bundles.md) describes the same folder's complete inventory and Models storage validation.
 
 Input dependency provenance and upstream licenses are in `Vendor/IrodoriInputKit`. Core AI/Swift lifecycle and source changes are reviewed separately from human audio quality.
