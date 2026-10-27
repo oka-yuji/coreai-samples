@@ -1,6 +1,6 @@
 # Qwen Image 2.1 Turbo generation UI
 
-Implementation for [#220](https://github.com/oka-yuji/coreai-samples/issues/220), using practical v2, the [native runtime](qwen-image21-native-runtime.md), and the common Models session and residency contracts. The input, confirmation, progress, stop, result and PNG flows have CPU and synthetic UI evidence. Actual iPhone generation, device accessibility and human acceptance remain pending. No production artifact identity or device memory budget is invented to enable the screen.
+Implementation for [#220](https://github.com/oka-yuji/coreai-samples/issues/220), using practical v2, the [native runtime](qwen-image21-native-runtime.md), and the common Models session and residency contracts. The input, confirmation, progress, stop, result and PNG flows have CPU and synthetic UI evidence. The owner accepted the current candidate's appearance through an overall gallery review on October 28, as scoped below. Actual iPhone generation, device accessibility and acceptance of the device workflow remain pending. No production artifact identity or device memory budget is invented to enable the screen.
 
 ## Hosting and ownership
 
@@ -77,3 +77,13 @@ Fresh formal FMA assets now have a complete matched B cohort of 60 inputs and tw
 The first new-asset iPhone attempt ended in an OS `vm-pageshortage` termination before a final diagnostic report or raw output was produced. The executed binary matches the jetsam record. This attempt also changed the private harness from the convenience initializer to explicit cache lookup and specialization, so the cause cannot yet be assigned to FMA alone. Jetsam page counts and the earlier process footprint are different measurements. The [diagnostic record](research/qwen-image21-g16-20261026.json) preserves the failure; device budgets, normal Models operation and human acceptance remain unverified.
 
 The local quality-review gallery now supplies Japanese instructions and case-specific inspection points, preserving the actual generation prompts, image identities, scoring axes and saved ratings. Its rating-import boundary accepts lossless JSON number spelling changes such as `1.0` to `1`, with strict rejection of changed values and identities. This usability correction does not complete the human-quality or physical-device acceptance gates.
+
+### Owner visual review, October 28, 2026
+
+At the owner's request, the current local research candidate's appearance is accepted using an overall qualitative gallery review, recorded as **QMV-01 / qmi-owner-visual-v1** in the [bound acceptance record](research/qwen-image21-owner-quality-20261028.json). The owner found the precision-adjusted images closest to the original outputs and the Core AI images acceptable overall, without noticing an unacceptable output during the overview. The owner need not complete all 592 ratings for this visual decision.
+
+This is an explicit amendment to the visual-quality adoption method in QMP-02, made after viewing the outputs. The frozen numerical requirement remains unchanged. The old per-axis benchmark is still incomplete; no success percentage, zero-failure count or at-most-two-new-failures result is inferred. The existing ratings and numerical reports are retained. The bound profile and gallery identify the reviewed outputs; acceptance does not automatically transfer to a different candidate.
+
+The fourth gallery entry, `g02-20261021`, is text-to-image with no reference image input. Its prompt requests one blue ceramic teapot on a white desk in soft natural light, with no stripe requirement. A0 is a comparison output, not an input or required target. Missing stripes therefore do not alone violate the prompt, and do not alone prove that one output follows the prompt better. Actual image-editing cases have their own reference input and preservation requirements, which the overview does not individually certify.
+
+QMU-05 and QMP-08 now have visual-quality evidence, while their device-operation portions remain open. This documentation does not change the benchmark's `quality_verified` / `verified` flags or enable an artifact. Candidate evidence must preserve the explicit review method when integrated. The next engineering work is the native-device memory diagnosis and complete generation, editing, cancellation, retry, PNG saving and sharing through Models.

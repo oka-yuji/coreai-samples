@@ -1,0 +1,56 @@
+{
+  "format": 1,
+  "id": "qmi-owner-visual-v1",
+  "recorded_on": "2026-10-28",
+  "reviewer": "repository owner",
+  "evidence_source": "Owner feedback in the development conversation on 2026-10-28",
+  "method": "Qualitative overview of the existing four-cohort gallery; not exhaustive case-by-axis scoring",
+  "decision": "accepted_for_current_local_research_candidate_visual_quality",
+  "authorization": "Owner requested that their overall impressions satisfy the visual review instead of individually scoring all 60 cases.",
+  "comparison_sha256": "301cb11dc96cba0d14b68dec81dc67c9a4d16dddbe451a616531e334492dbdf8",
+  "candidate_profile_sha256": "54825e53ede46206af76d1edd6871c7bd633cf4e39bc55ef210c7386663bb59b",
+  "numeric_verification_sha256": "22dc0e91663a2899dcb320bcb780ecd25fd61947dedc087042a8b9c33abd0468",
+  "reviewed_code_commit": "7da8c0dc9df21a2d71997d52eda41d97a6365e1f",
+  "owner_feedback_ja": "精度変更後のImageがもっとも近い出力結果にみえました。ただCore AI版も許容できる範囲で決して許容できない出力はなかったです。ただ4ケース目のような元が縦のストライプが入っているポットに対して柄のないポットにCore AI版では出力されているのでこれが元のモデルが画像として提供されているならちょっと違和感ある生成になりますが、テキストからImageを生成しているだけの比較ならもっともCore AI版が忠実に出力されている印象です。",
+  "interpretation": {
+    "scope": "The owner found the Core AI outputs visually acceptable in an overall review and did not notice an unacceptable output. This is an observation, not a measured zero-failure count.",
+    "similarity": "The owner perceived the precision-adjusted outputs as closest to the original outputs. No per-case ranking or quantitative similarity claim is inferred.",
+    "fourth_gallery_case": {
+      "run_id": "g02-20261021",
+      "mode": "text-to-image",
+      "prompt": "白い机の上に青い陶器のティーポットが一つ。柔らかな自然光の商品写真。",
+      "reference_image_input": false,
+      "stripe_requirement": false,
+      "finding": "A0 is a separately generated comparison output, not an input image or required target. The absence of stripes does not by itself violate this prompt. This alone does not establish that the plain version is objectively more faithful."
+    }
+  },
+  "acceptance_amendment": {
+    "version": "QMI practical v2 visual-review amendment, 2026-10-28",
+    "criterion_id": "QMV-01",
+    "criterion": "The owner accepts the current candidate's visual appearance after an overall review of the bound gallery, with concerns and review limitations recorded.",
+    "status": "met",
+    "scope": "Visual-quality adoption of this local research candidate only. Numerical thresholds and device acceptance remain unchanged.",
+    "replaces_for_this_scope": "The requirement for the owner to complete all 592 per-axis ratings before accepting this candidate's appearance.",
+    "mapping": "QMP-02's visual-quality adoption uses QMV-01; its numerical requirement remains unchanged. QMU-05 and QMP-08 have partial visual evidence, not completed device acceptance.",
+    "reason": "Explicit owner request to reduce exhaustive manual review and use their actual qualitative feedback. This amendment was made after the outputs were viewed and is not a preregistered quantitative result."
+  },
+  "detailed_benchmark": {
+    "policy": "numeric-gates-v1.json",
+    "policy_sha256": "6e3c72b9321b6cdc105f8ddf38aaea9c151ab912e2bb9c36dd57654b31d4c793",
+    "policy_sha256_kind": "canonical_json",
+    "status": "incomplete",
+    "required_ratings": 592,
+    "last_preserved_entered_ratings": 4,
+    "per_axis_success_rates": null,
+    "new_failure_count": null,
+    "treatment": "The old 90-percent-per-axis and at-most-two-new-failures result is not claimed. Existing ratings and reports remain unchanged. Further exhaustive scoring is not required from the owner for QMV-01."
+  },
+  "not_established": [
+    "Per-case compliance with every instruction, editing preservation, text or alpha requirement",
+    "Quality of another profile, model revision or subsequently regenerated gallery",
+    "iPhone memory fit or successful complete native generation and editing",
+    "Normal Models cancellation, retry, save, share or accessibility acceptance"
+  ],
+  "runtime_effect": "Documentation of owner acceptance only. This record does not set the existing benchmark quality_verified or verified flags, enable a production artifact, or invent a device calibration.",
+  "remaining_work": "Carry this explicit acceptance method into candidate evidence without relabeling the incomplete benchmark; resolve the native-device memory failure and complete the real Models workflow before PR #285 is merged."
+}
