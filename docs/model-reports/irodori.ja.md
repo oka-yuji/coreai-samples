@@ -18,7 +18,7 @@
 | OS | 状態 | 確認した範囲・残る確認 | 根拠 |
 |---|---|---|---|
 | macos | △ | ランタイム/UIは実装済み。実アプリのGPU生成・試聴の受入は未完了。 | [E1](../irodori/demo.md) |
-| ios | △ | ランタイム/UIは実装済み。実アプリのGPU生成・試聴の受入は未完了。 | [E2](../irodori/iphone.md) |
+| ios | △ | 通常Modelsへの取り込み・音声UIは実装済み。mainでの実機生成・メモリ・試聴受入は未完了。 | [E2](../irodori/iphone.md) |
 
 ### 性能と品質
 
@@ -64,4 +64,8 @@
 - [iPhone（英語）](../irodori/iphone.md)
 
 - [#93](https://github.com/oka-yuji/coreai-samples/issues/93)
+
+- [Modelsの検証（英語）](../irodori/managed-validation.md)
+
+- [#329](https://github.com/oka-yuji/coreai-samples/issues/329)
 <!-- model-report:end -->

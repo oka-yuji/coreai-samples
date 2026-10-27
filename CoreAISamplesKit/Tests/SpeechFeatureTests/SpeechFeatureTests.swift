@@ -149,3 +149,30 @@ struct SpeechFeatureTests {
         #expect(state.exportTicket == nil && state.message == "WAV file saved.")
     }
 }
+
+extension SpeechFeatureTests {
+    @Test(
+        "IR-SESSION-02 A managed speech screen keeps Models selection and invalidates old audio and save tickets on exit"
+    )
+    func managedLifetime() throws {
+        var state = SpeechState(managedModel: model)
+        #expect(SpeechFeature.reduce(&state, .appeared).isEmpty)
+        _ = SpeechFeature.reduce(&state, .setText("Test"))
+        #expect(SpeechFeature.reduce(&state, .openBundle("/other")).isEmpty)
+        #expect(state.model == model)
+        _ = SpeechFeature.reduce(&state, .generate)
+        let generation = state.session
+        _ = SpeechFeature.reduce(&state, .generated(generation, audio))
+        _ = SpeechFeature.reduce(&state, .prepareExport)
+        let ticket = try #require(state.exportTicket)
+        let commands = SpeechFeature.reduce(&state, .ended)
+        #expect(commands == [.cancelAll, .run(.stop(state.session), id: .stop)])
+        #expect(state.audio == nil && state.message == nil && state.exportTicket == nil && !state.canPlay)
+        let stopped = state
+        #expect(SpeechFeature.reduce(&state, .generated(generation, audio)).isEmpty)
+        #expect(SpeechFeature.reduce(&state, .exportFinished(ticket, nil)).isEmpty)
+        #expect(state == stopped)
+        let resumed = SpeechState(managedModel: model, retaining: state)
+        #expect(resumed.text == "Test" && resumed.audio == nil && resumed.exportTicket == nil)
+    }
+}
