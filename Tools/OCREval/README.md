@@ -231,10 +231,4 @@ table/Markdown assembly. It excludes bundle loading, input file I/O, executable 
 JSON serialization and output file I/O. Performance `latency_s` uses this interval;
 the existing `generate_s` field retains its narrower `OCRRuntime.read` interval.
 
-After a full invocation completes, export its aggregates and canonical performance
-runs with `python -m Tools.OCREval.report <run-directory> <public-results-directory>`.
-The exporter rejects interrupted, partial or duplicate run sets. It keeps quality and
-conversion comparisons separate, preserves failure counts, and uses ModelReports'
-existing statistics. `good_fraction` counts only the scorer's good judgment; conditional
-judgments stay separate. Page `mismatch_fraction` counts non-exact or non-EOS pairs among
-present pairs, with missing pairs reported separately. It is not a logit error metric.
+Public aggregation and ModelReports integration are tracked in issue #356.
