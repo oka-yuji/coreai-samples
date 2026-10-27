@@ -66,6 +66,7 @@ class InputsTests(unittest.TestCase):
             with Image.open(result["public"]["A"]["image"]) as image:
                 self.assertEqual(image.size, (30, 40))
             (source / "A.json").write_text("{}")
+            self.assertEqual(json.loads((root / "out/public/A.json").read_text())["crop_px"], [10, 20, 40, 60])
             with self.assertRaisesRegex(ValueError, "hash mismatch"):
                 prepared_inputs({"public": str(source)}, root / "rejected")
 

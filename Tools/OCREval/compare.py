@@ -45,6 +45,7 @@ def prepared_inputs(sets, out):
             target = out / label / f"{sid}.png"
             target.parent.mkdir(parents=True, exist_ok=True)
             image.save(target)
+            write(target.with_suffix(".json"), gt)
             rows[sid] = {"image": str(target), "image_sha256": reference.sha256(target), "source_sha256": reference.sha256(source), "crop_px": crop}
         records[label] = rows
     write(out / "inputs.json", records)
@@ -157,6 +158,9 @@ def run_plan(plan_path, out, only=None, performance=True):
         env["swift"] = reference.command("xcrun", "swift", "--version")
         write(out / "environment.json", env)
         inputs = prepared_inputs(plan["sets"], out / "inputs")
+        unknown = set(only or []) - {sid for samples in inputs.values() for sid in samples}
+        if unknown:
+            raise ValueError(f"Unknown samples: {sorted(unknown)}")
         for variant in plan["variants"]:
             if variant["engine"] == "coreai":
                 for file, expected in variant["asset_hashes"].items():
@@ -169,6 +173,8 @@ def run_plan(plan_path, out, only=None, performance=True):
                                "workload": f"two-stage:{label}:{sid}:4096", "cache": "cold" if phase == "cold" else "observed-per-asset" if phase == "quality" else "prepared", "plan_sha256": plan_hash}}
             started = time.monotonic()
             try:
+                if phase != "quality":
+                    row["conditions_before"] = {"power": reference.command("pmset", "-g", "batt"), "thermal": reference.command("pmset", "-g", "therm")}
                 record = run_child(plan, variant, inputs[label][sid]["image"], out / "processes" / run_id, phase == "cold", owner)
                 if phase in ("warmup", "measured") and not all(asset["cached"] for asset in record["assets"]):
                     raise ValueError("A prepared-load measurement specialized an asset")
@@ -180,6 +186,7 @@ def run_plan(plan_path, out, only=None, performance=True):
                     write(out / "results" / label / variant["id"] / f"{sid}.json", record)
                 else:
                     row["assets_cached"] = {a["name"]: a["cached"] for a in record["assets"]}
+                    row["conditions_after"] = {"power": reference.command("pmset", "-g", "batt"), "thermal": reference.command("pmset", "-g", "therm")}
             except (OSError, ValueError, RuntimeError, subprocess.SubprocessError) as error:
                 row |= {"status": "failed", "error": f"{type(error).__name__}: {error}", "metrics": {}}
             row["wall_s"] = time.monotonic() - started
@@ -202,9 +209,9 @@ def run_plan(plan_path, out, only=None, performance=True):
                     for variant in variants:
                         execute(variant, label, sid, phase, iteration)
         compare_records(plan, inputs, out)
-        for label, directory in plan["sets"].items():
+        for label in plan["sets"]:
             for variant in plan["variants"]:
-                write(out / "scores" / label / f"{variant['id']}.json", score_set(Path(directory), results=out / "results" / label / variant["id"]))
+                write(out / "scores" / label / f"{variant['id']}.json", score_set(out / "inputs" / label, results=out / "results" / label / variant["id"]))
     except BaseException as error:
         aborted = f"{type(error).__name__}: {error}"
         raise

@@ -200,7 +200,9 @@ plan under the shared model lock. Use the pinned OCREval environment. The plan s
 The runner verifies source, input and asset hashes before inference. Each input is a
 full page for synthetic fixtures, or the original annotation crop for OmniDocBench;
 source hashes and crops remain in `inputs.json`. Every variant uses the same page
-pipeline. Compressed reference tensors must cover exactly the declared Linear targets
+pipeline. Scoring uses the archived ground truth in the output directory, so later
+edits to the source set cannot change an in-progress invocation's scoring target.
+Compressed reference tensors must cover exactly the declared Linear targets
 and match the conversion manifest's effective weight hashes. FP32 reference scales and
 exported FP16 scales remain distinct numerical conditions.
 
@@ -222,3 +224,5 @@ counts layout plus every block, including EOS. RSS and footprint are process-lif
 peaks. Bundle/cache sizes are logical file bytes; caches are located by the actual
 asset hashes, and missing cache entries fail the measurement. `ocr --clear-cache`
 deletes only the selected bundle's cache entries before its cold load.
+Power and thermal warnings are sampled before and after each performance process;
+these observations are kept separate from the invocation's initial environment.
