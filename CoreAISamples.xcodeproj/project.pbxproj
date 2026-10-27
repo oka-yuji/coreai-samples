@@ -44,6 +44,7 @@
 		2662B8C643C55FC8FE5CCF95 /* SpeechRuntime in Frameworks */ = {isa = PBXBuildFile; productRef = EF1CB2B029271CA3096FB7C2 /* SpeechRuntime */; };
 		28935173A6CB3108F0A073A8 /* PhoneSpeechContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF8D3D4F01785F0AA38A6A60 /* PhoneSpeechContent.swift */; };
 		28BFB0B60BC709ED2FE59D70 /* ObjectFinderRuntime in Frameworks */ = {isa = PBXBuildFile; productRef = 49AFB91FE5D3116E69481A87 /* ObjectFinderRuntime */; };
+		2B8B67AB92E67D3FC00B52C1 /* OCRCore in Frameworks */ = {isa = PBXBuildFile; productRef = 13C12B539057310391F5A377 /* OCRCore */; };
 		2CD107EA0CB22CDA042BCAF9 /* ExtractionAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7EA2799CC1E5E8999D2B1BF2 /* ExtractionAdapter.swift */; };
 		2E6C0AF6978C5A9C77DA8C10 /* FeatureStore in Frameworks */ = {isa = PBXBuildFile; productRef = F5D0FEB350D222736BF73094 /* FeatureStore */; };
 		31042D2A839D4FE25AA23E99 /* SpeechAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A936F8FD6E421D4D1A79749 /* SpeechAdapter.swift */; };
@@ -164,11 +165,13 @@
 		9B1870B687EC16E0F42E912F /* ProductAssembly.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F204E06B5FCFA512B91A646 /* ProductAssembly.swift */; };
 		9D7698B415D1356A7BF0FFFB /* ProductCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04E9B33538ECE4A7CBD2D9B0 /* ProductCardView.swift */; };
 		9D802D5BD64548A531688576 /* ObjectFinderCore in Frameworks */ = {isa = PBXBuildFile; productRef = CA77088F7FD4CAC47AD39FB4 /* ObjectFinderCore */; };
+		9EFBE0E65337144A60F2C15D /* OCRPhoneCheck.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C25BDCF9DBC5D27EEFF3B41 /* OCRPhoneCheck.swift */; };
 		A2D050A52E4424CB0AAC080C /* LiveInspectionSpeech.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F27640F8151AC5D099163D9 /* LiveInspectionSpeech.swift */; };
 		A2E5A4C05E8245386E19181A /* object-finder-examples.json in Resources */ = {isa = PBXBuildFile; fileRef = 2C50C49BB82E6F8BA570C7B2 /* object-finder-examples.json */; };
 		A3BA3BD55ABC5946F3A68CBD /* ObjectFinderFeature in Frameworks */ = {isa = PBXBuildFile; productRef = 69B40134CCF3862045F4E7C5 /* ObjectFinderFeature */; };
 		A516C5F1A3B332C70B9746E4 /* VideoSearchContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1955546B2A2B2D0BF9A9006E /* VideoSearchContent.swift */; };
 		A6BDC0269DA3DFDE8D9CB2DA /* SpeechFeature in Frameworks */ = {isa = PBXBuildFile; productRef = BDFD5B273D89B4D2E5A8CF2A /* SpeechFeature */; };
+		A6F33E9888249B772D4F9DF3 /* OCRPhoneCheck.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C25BDCF9DBC5D27EEFF3B41 /* OCRPhoneCheck.swift */; };
 		A90A0A3217552E5A011F8275 /* DemoLanguage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44BCC8CC19AB6344E09262EB /* DemoLanguage.swift */; };
 		A96393E7180FBE7F474B1B20 /* GLiNERCore in Frameworks */ = {isa = PBXBuildFile; productRef = B83B007D551DD5E789EE8B58 /* GLiNERCore */; };
 		A9AEB14652B17A4BE269655C /* PhoneDemoApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBE9C20E195FE641300D6F57 /* PhoneDemoApp.swift */; };
@@ -185,6 +188,7 @@
 		B0F6928D3790DB8F41EC90AE /* ProductComparisonAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B1FA83AF87E30C17EC28488 /* ProductComparisonAdapter.swift */; };
 		B10B9212EB0A058161FAE791 /* VideoSearchFeature in Frameworks */ = {isa = PBXBuildFile; productRef = 0979AE1A43C852D40CDE7F71 /* VideoSearchFeature */; };
 		B1DD58EA8D2DFB52E3157842 /* PhoneExtractView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EF29907EAA61DD548671267 /* PhoneExtractView.swift */; };
+		B218B3122D274825BF956712 /* OCRRuntime in Frameworks */ = {isa = PBXBuildFile; productRef = 4F229C722B6C6F5BE0300B45 /* OCRRuntime */; };
 		B3981D94A10DB479FED7A58C /* ImageSearchContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD846F3F9802B8FB51FBC96A /* ImageSearchContent.swift */; };
 		B62247B1FC9C52A67DD7AFA2 /* InspectionSpeaker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9042E52315E369A6C16890CE /* InspectionSpeaker.swift */; };
 		B6E6CA2DA418633553FF400B /* SpeechAssembly.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EF067F2F1108F44E0873891 /* SpeechAssembly.swift */; };
@@ -340,6 +344,7 @@
 		85E8C50CD6907046A8C5A46E /* ImageSearchAssembly.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageSearchAssembly.swift; sourceTree = "<group>"; };
 		8608B7A795003231A4E788DF /* BundleSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BundleSupport.swift; sourceTree = "<group>"; };
 		89EDDFD9D06EE560E8AFF0B4 /* ConversationNotesSelfTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationNotesSelfTest.swift; sourceTree = "<group>"; };
+		8C25BDCF9DBC5D27EEFF3B41 /* OCRPhoneCheck.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OCRPhoneCheck.swift; sourceTree = "<group>"; };
 		8D03BF17879A8622C726CB22 /* AgentSelfTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentSelfTest.swift; sourceTree = "<group>"; };
 		8DF2AB7669E5A655B829AA2A /* ComposerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComposerView.swift; sourceTree = "<group>"; };
 		9042E52315E369A6C16890CE /* InspectionSpeaker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InspectionSpeaker.swift; sourceTree = "<group>"; };
@@ -477,6 +482,8 @@
 				D586E67CF490A5BF2665FF4E /* ExtractRuntime in Frameworks */,
 				0523CB7E7355BC1B7FE9814D /* VideoSearchFeature in Frameworks */,
 				3AC81341CAB1686ADEE5BE00 /* VideoSearchRuntime in Frameworks */,
+				2B8B67AB92E67D3FC00B52C1 /* OCRCore in Frameworks */,
+				B218B3122D274825BF956712 /* OCRRuntime in Frameworks */,
 				50A5189AD75BAEFCC01AA022 /* AVKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -823,6 +830,7 @@
 				2F27640F8151AC5D099163D9 /* LiveInspectionSpeech.swift */,
 				CD05FACDEDB78E3CE2E43B3E /* ObjectFinderContent.swift */,
 				45CDC3B6511E848B1B0B40E6 /* ObjectFinderView.swift */,
+				8C25BDCF9DBC5D27EEFF3B41 /* OCRPhoneCheck.swift */,
 				BBE9C20E195FE641300D6F57 /* PhoneDemoApp.swift */,
 				7AB887CD5BEF34A3F73F5324 /* PhoneExtractContent.swift */,
 				1EF29907EAA61DD548671267 /* PhoneExtractView.swift */,
@@ -932,6 +940,8 @@
 				F0BAE9DF2726F2AF009608A6 /* ExtractRuntime */,
 				A909330989091AA582FDDC9E /* VideoSearchFeature */,
 				6B24CFFD08A2AF0D9B2393B3 /* VideoSearchRuntime */,
+				13C12B539057310391F5A377 /* OCRCore */,
+				4F229C722B6C6F5BE0300B45 /* OCRRuntime */,
 			);
 			productName = "CoreAISamples-iOS";
 			productReference = EA2345E55E00D969C54E6B75 /* CoreAISamples-iOS.app */;
@@ -1194,6 +1204,7 @@
 				F8E2A64FD4FCB0220D394B60 /* LaunchArguments.swift in Sources */,
 				A2D050A52E4424CB0AAC080C /* LiveInspectionSpeech.swift in Sources */,
 				3952BB6FAB3547BC9A583CC3 /* ModelStorage.swift in Sources */,
+				A6F33E9888249B772D4F9DF3 /* OCRPhoneCheck.swift in Sources */,
 				D22F7C4785D0396D168404AF /* ObjectFinderAdapter.swift in Sources */,
 				3457671FCB03949708514ED4 /* ObjectFinderContent.swift in Sources */,
 				F5AD4178296DC72D7277F5BE /* ObjectFinderView.swift in Sources */,
@@ -1286,6 +1297,7 @@
 				C0366556B44891DDD42D78D0 /* ModelsView.swift in Sources */,
 				AED5E118182009EE94A8A9D9 /* ModelsViewModel.swift in Sources */,
 				8892507C77E382DB2CF578B3 /* NoteEditor.swift in Sources */,
+				9EFBE0E65337144A60F2C15D /* OCRPhoneCheck.swift in Sources */,
 				C4CC2A79968BA857B19F7FC2 /* ObjectFinderAdapter.swift in Sources */,
 				41CA6F8D7C2BCD8F43A409ED /* ObjectFinderContent.swift in Sources */,
 				4A6895CD871A1B833B7EF5E5 /* ObjectFinderView.swift in Sources */,
@@ -1681,6 +1693,10 @@
 			isa = XCSwiftPackageProductDependency;
 			productName = TruckInspectionRuntime;
 		};
+		13C12B539057310391F5A377 /* OCRCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = OCRCore;
+		};
 		141CEB564582543BE6AF4A63 /* ProductRuntime */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = ProductRuntime;
@@ -1748,6 +1764,10 @@
 		4D118B582CEBB7A2857FD224 /* SpeechRuntime */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = SpeechRuntime;
+		};
+		4F229C722B6C6F5BE0300B45 /* OCRRuntime */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = OCRRuntime;
 		};
 		5508EAA95E2473E7414E7DB4 /* SpeechRuntime */ = {
 			isa = XCSwiftPackageProductDependency;

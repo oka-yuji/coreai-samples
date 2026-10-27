@@ -37,6 +37,8 @@
 | `ExtractEval.run()` の既存の Task (`Demos/Extract/ExtractEval.swift`) | ヘッドレス入口が一度だけ MainActor 上で execute を開始し、完了時に終了コードを返してプロセスを終える。UI の非同期状態管理の例外には広げない。 | `--extract-eval` の dev50 の出力を既存の基準と照合する。既存の行の抑制を baseline へ移したもので、新しい Task の許可は追加しない。 |
 | `ObjectFinderPreview` (`ObjectFinderRuntime/ObjectFinderPreview.swift`) | Session と preview layer の結び付けは MainActor の初期化で一度だけ行う。Session の configure/start/stop は一つの ObjectFinderCapture serial actor に限定する。UI は session を操作せず、layer の配置・描画だけを MainActor で行う。preview connection の向きは UI の最新姿勢から MainActor で設定し、capture 再接続後にも現在値を適用する（Apple 公式の MainActor preview / capture actor 分離に準拠）。callback は世代付きの不変な矩形だけを MainActor へ渡し、古い世代を拒否する。 枠の期限Timerの作成・破棄・callbackもMainActorに限り、弱参照proxyと現在Timerのidentity照合を使う。親layerが一致するviewの切離しだけが描画とTimerを無効化する。 | 30 fps 設定・capture の全アクセス経路・layer の全呼出元のレビュー、署名 iOS build、ObjectFinderTests。Apple AVCam の preview/session 接続と SDK27 宣言を照合。 |
 | `OCRRuntime` (`OCRRuntime/OCRRuntime.swift`) | actor が特殊化済みの資産と tokenizer(`any OCRModel`)と busy を所有する。依頼は 1 本ずつで、進行中の `recognize` には `busy` を返し、待ち行列に入れない。KV(`keyCache` / `valueCache`、型 A の別々の stored property)は画像・crop ごとに `run` の局所変数として作り、`@concurrent` の資産呼び出しへ inout で渡し、完了・失敗・取消のどれで抜けても破棄する。token 列の一致で再利用しない。取消は vision・prefill・各 decode step の前で確かめる。`@unchecked Sendable` と `nonisolated(unsafe)` は使わない。 | `OCRRuntimeTests`(偽の資産で、取消後に次の step を呼ばない・新しい KV で次の依頼が成功する・進行中は `busy`。変異試験で検出を確認)と `coreai-verify ocr-block` の参照一致。 |
+| `OCRPhoneCheck.run` (`iOS/OCRPhoneCheck.swift`) | 明示診断の1回の呼出しがrun ID・report・出力先を局所所有する。モデル呼出し前にcheckpointを保存し、成功後に完成した結果へ置き換え、失敗時はcheckpointとMemoryを保持する。UUID付きの出力先を使いatomicに書く。通常Modelsの起動では呼ばず、診断終了後にプロセスを終える。 | IOSDemoLaunchTests、署名iOS build、元の制御を維持したCPU故障注入（モデル前のthrow/終了・保存失敗・同秒run）とmainでの本人の実機確認。 |
+
 
 
 ## 公開物の規約

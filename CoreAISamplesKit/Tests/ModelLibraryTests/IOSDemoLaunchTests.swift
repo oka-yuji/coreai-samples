@@ -48,6 +48,9 @@ struct IOSDemoLaunchTests {
             (["app", "--object-finder"], .legacyDemos),
             (["app", "--truck-inspection"], .legacyDemos),
             (["app", "--legacy-demos"], .legacyDemos),
+            (["app", "--ocr-check-run", "teleocr-ios-fp16"], .ocrCheck("teleocr-ios-fp16")),
+            (["app", "--ocr-check-run=teleocr-ios-pal4", "--legacy-demos"], .ocrCheck("teleocr-ios-pal4")),
+            (["app", "--ocr-check-run"], .models),
         ])
     func destination(arguments: [String], expected: IOSDemoLaunch) {
         #expect(IOSDemoLaunch.resolve(arguments: arguments) == expected)
