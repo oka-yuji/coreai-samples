@@ -29,29 +29,35 @@ struct OCRRead: AsyncParsableCommand {
         if clearCache { try OCRRuntime.deleteSpecializationCache(bundle: bundleURL) }
         let runtime = try await OCRRuntime.load(bundle: bundleURL)
         let file = try Data(contentsOf: URL(filePath: image))
+        let clock = ContinuousClock()
+        let pipelineStart = clock.now
         let source = try OCRImage(data: file)
         let page = try await runtime.read(source)
+        let layout = OCRLayoutRecord(page)
+        let blocks = page.blocks.enumerated().map { OCRPageBlockRecord(index: $0.offset, $0.element) }
+        let markdown = page.markdown
+        let pipelineSeconds = (clock.now - pipelineStart) / .seconds(1)
         var usage = rusage()
         let measured = getrusage(RUSAGE_SELF, &usage) == 0
         let executable = try Bundle.main.executableURL.map { try hex(Data(SHA256.hash(data: Data(contentsOf: $0)))) }
         let record = OCRPageRecord(
             bundle: bundle, image: image, imageSha256: hex(Data(SHA256.hash(data: file))),
-            imagePx: [source.width, source.height], layout: OCRLayoutRecord(page),
-            blocks: page.blocks.enumerated().map { OCRPageBlockRecord(index: $0.offset, $0.element) },
+            imagePx: [source.width, source.height], layout: layout, blocks: blocks,
             generateS: page.totalSeconds, loadS: runtime.loadStats.totalSeconds,
             tokenizerS: runtime.loadStats.tokenizerSeconds,
             assets: runtime.loadStats.assets.map { OCRAssetRecord(bundle: bundle, $0) },
             memory: .now(), peakRssBytes: measured ? usage.ru_maxrss : nil, footprintPeakBytes: footprintPeak(),
             pageins: measured ? usage.ru_majflt : nil,
             wiredDeltaBytes: wiredBytes().flatMap { now in wiredBefore.map { Int64(now) - Int64($0) } },
-            os: ProcessInfo.processInfo.operatingSystemVersionString, executableSha256: executable)
+            os: ProcessInfo.processInfo.operatingSystemVersionString, executableSha256: executable,
+            pipelineS: pipelineSeconds)
         try emit(record)
         if let out {
             let folder = URL(filePath: out)
             let name = URL(filePath: image).deletingPathExtension().lastPathComponent
             try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
             try (JSONEncoder.records.encode(record) + Data("\n".utf8)).write(to: folder.appending(path: name + ".json"))
-            try Data((page.markdown + "\n").utf8).write(to: folder.appending(path: name + ".md"))
+            try Data((markdown + "\n").utf8).write(to: folder.appending(path: name + ".md"))
         }
     }
 }
@@ -176,4 +182,5 @@ struct OCRPageRecord: Encodable {
     let wiredDeltaBytes: Int64?
     let os: String
     let executableSha256: String?
+    var pipelineS: Double?
 }

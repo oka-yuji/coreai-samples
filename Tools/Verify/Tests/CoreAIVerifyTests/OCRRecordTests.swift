@@ -32,11 +32,12 @@ struct OCRRecordTests {
             blocks: page.blocks.enumerated().map { OCRPageBlockRecord(index: $0.offset, $0.element) },
             generateS: page.totalSeconds, loadS: 1, tokenizerS: 0.1, assets: [], memory: .now(),
             peakRssBytes: nil, footprintPeakBytes: nil, pageins: nil, wiredDeltaBytes: nil,
-            os: "test", executableSha256: nil)
+            os: "test", executableSha256: nil, pipelineS: 2)
         let doc = try #require(
             JSONSerialization.jsonObject(with: JSONEncoder.records.encode(record)) as? [String: Any])
         #expect(doc["schema"] as? String == "teleocr-ocr-result/1")
         #expect(doc["record"] as? String == "ocr")
+        #expect(doc["pipeline_s"] as? Double == 2)
         #expect(doc["image_px"] as? [Int] == [1_000, 800])
         let encodedLayout = try #require(doc["layout"] as? [String: Any])
         #expect(encodedLayout["status"] as? String == "parsed")

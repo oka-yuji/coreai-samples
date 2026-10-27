@@ -226,3 +226,7 @@ asset hashes, and missing cache entries fail the measurement. `ocr --clear-cache
 deletes only the selected bundle's cache entries before its cold load.
 Power and thermal warnings are sampled before and after each performance process;
 these observations are kept separate from the invocation's initial environment.
+The CLI's additive `pipeline_s` field includes image decoding, the page runtime and
+table/Markdown assembly. It excludes bundle loading, input file I/O, executable hashing,
+JSON serialization and output file I/O. Performance `latency_s` uses this interval;
+the existing `generate_s` field retains its narrower `OCRRuntime.read` interval.

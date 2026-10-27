@@ -70,7 +70,7 @@ def size(path):
 
 
 def metrics(record, variant, cache_root, cold):
-    result = {"latency_s": {"value": record["generate_s"], "unit": "s"},
+    result = {"latency_s": {"value": record["pipeline_s"], "unit": "s"},
               "first_load_s" if cold else "warm_load_s": {"value": record["load_s"], "unit": "s"},
               "bundle_bytes": {"value": size(variant["bundle"]), "unit": "B"}}
     for source, target in [("peak_rss_bytes", "peak_rss_bytes"), ("footprint_peak_bytes", "peak_footprint_bytes")]:

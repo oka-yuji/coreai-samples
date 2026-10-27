@@ -78,10 +78,11 @@ class InputsTests(unittest.TestCase):
             (root / "bundle/weight").write_bytes(b"abc")
             (root / "cache/hash").mkdir(parents=True)
             (root / "cache/hash/data").write_bytes(b"abcde")
-            record = {"generate_s": 2, "load_s": 1, "assets": [{"main_hash": "hash"}], "layout": {"tokens": {"output": 2}},
+            record = {"generate_s": 2, "pipeline_s": 3, "load_s": 1, "assets": [{"main_hash": "hash"}], "layout": {"tokens": {"output": 2}},
                       "blocks": [{"tokens": {"output": 5}}], "peak_rss_bytes": 100}
             result = metrics(record, {"bundle": str(root / "bundle")}, str(root / "cache"), True)
             self.assertNotIn("peak_footprint_bytes", result)
+            self.assertEqual(result["latency_s"]["value"], 3)
             self.assertEqual(result["prepared_bytes"]["value"], 5)
             self.assertEqual(result["bundle_bytes"]["value"], 3)
             self.assertEqual(result["generated_tokens"]["value"], 7)
