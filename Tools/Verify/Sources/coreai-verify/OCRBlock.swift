@@ -95,12 +95,10 @@ struct OCRBlock: AsyncParsableCommand {
                 downscaled: result.gridHeight * OCRVisionInput.patchSize != processor.height
                     || result.gridWidth * OCRVisionInput.patchSize != processor.width,
                 imageTokens: result.imageTokens, promptTokens: result.promptTokens, outputTokens: result.tokens.count,
-                finishedBy: result.finish == .stopToken ? "eos" : "max_new_tokens", text: result.text,
+                finishedBy: result.finishedBy, text: result.text,
                 rawText: result.rawText, tokens: result.tokens, loadS: runtime.loadStats.totalSeconds,
                 tokenizerS: runtime.loadStats.tokenizerSeconds,
-                assets: runtime.loadStats.assets.map {
-                    OCRAssetRecord(name: $0.name, cached: $0.cached, seconds: $0.seconds, mainHash: mainHash($0.name))
-                },
+                assets: runtime.loadStats.assets.map { OCRAssetRecord(bundle: bundle, $0) },
                 visionS: result.visionSeconds, firstTokenS: result.firstTokenSeconds, decodeS: decodeSeconds,
                 generateS: result.totalSeconds, tokS: Double(result.tokens.count) / result.totalSeconds,
                 decodeTokS: result.tokens.count > 1 ? Double(result.tokens.count - 1) / decodeSeconds : nil,
@@ -119,11 +117,6 @@ struct OCRBlock: AsyncParsableCommand {
             }
         }
     }
-
-    func mainHash(_ asset: String) -> String? {
-        let url = URL(filePath: bundle).appending(path: asset + ".aimodel/main.hash")
-        return (try? Data(contentsOf: url)).map(hex)
-    }
 }
 
 struct OCRAssetRecord: Encodable {
@@ -131,6 +124,18 @@ struct OCRAssetRecord: Encodable {
     let cached: Bool
     let seconds: Double
     let mainHash: String?
+
+    init(bundle: String, _ asset: OCRLoadStats.Asset) {
+        name = asset.name
+        cached = asset.cached
+        seconds = asset.seconds
+        let url = URL(filePath: bundle).appending(path: asset.name + ".aimodel/main.hash")
+        mainHash = (try? Data(contentsOf: url)).map(hex)
+    }
+}
+
+extension OCRRecognition {
+    var finishedBy: String { finish == .stopToken ? "eos" : "max_new_tokens" }
 }
 
 struct OCRBlockRecord: Encodable {

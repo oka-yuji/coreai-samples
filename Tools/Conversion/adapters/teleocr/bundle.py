@@ -3,8 +3,9 @@ import shutil
 from pathlib import Path
 
 from .contracts import (
-    FUNCTIONS, MODEL_ID, PROMPTS, REVISION, STOP_TOKENS, SYSTEM, TOKEN_LIMIT, UNIT_PATCHES, WINDOW_LIMIT, WINDOW_PATCHES,
-    WINDOW_PIXELS, digest, read_json, write_json,
+    FUNCTIONS, IOS_CONTEXT, IOS_DOWNSCALE_SIDE, IOS_FUNCTIONS, IOS_MASKED, IOS_PREFILL, IOS_WINDOWS, MODEL_ID,
+    PALETTE_BITS, PALETTE_GROUP, PROMPTS, REVISION, STOP_TOKENS, SYSTEM, TOKEN_LIMIT, UNIT_PATCHES, WINDOW_LIMIT,
+    WINDOW_PATCHES, WINDOW_PIXELS, digest, read_json, write_json,
 )
 
 TOKENIZER = ["tokenizer.json", "tokenizer_config.json", "chat_template.jinja", "vocab.json", "merges.txt",
@@ -28,6 +29,16 @@ Changes from the original:
 Converted by Yuji Oka with the coreai-samples conversion recipe. This is not an official
 release of the original authors.
 """
+IOS_CHANGES = """
+iOS static-shape variant:
+- The vision graph is specialized to fixed window buckets and masks hidden keys with -40000.
+- The token embedding takes a fixed 2048-token input.
+- The decoder is specialized to fixed prefill lengths and a single-token decode function that
+  share a fixed 4096-token float16 key/value state.
+"""
+PALETTE_CHANGES = """- The decoder's linear weights were compressed with 4-bit k-means palettization (group size 8).
+  The token embedding, the tied LM head and the norms keep their original values.
+"""
 
 
 def build(args):
@@ -42,8 +53,12 @@ def build(args):
     for name in TOKENIZER:
         shutil.copyfile(args.snapshot / name, output / "tokenizer" / name)
     shutil.copyfile(args.license, output / "LICENSE")
-    (output / "NOTICE").write_text(NOTICE.format(model=MODEL_ID, revision=REVISION,
-                                               vision_precision="float16 weights and activations"))
+    ios = args.platform == "ios"
+    notice = NOTICE.format(model=MODEL_ID, revision=REVISION, vision_precision="float16 weights and activations")
+    if ios:
+        notice = notice.replace("\nConverted by", IOS_CHANGES + (PALETTE_CHANGES if args.precision == "pal4" else "")
+                                + "\nConverted by")
+    (output / "NOTICE").write_text(notice)
     config = read_json(args.snapshot / "config.json")
     text, vision = config["text_config"], config["vision_config"]
     image = read_json(args.snapshot / "preprocessor_config.json")
@@ -89,6 +104,27 @@ def build(args):
         "prompt": {"system": SYSTEM, "template": TEMPLATE, "prompts": PROMPTS},
         "functions": FUNCTIONS,
     }
+    if ios:
+        metadata.update(platform="ios", precision=args.precision, functions=IOS_FUNCTIONS, static={
+            "context": IOS_CONTEXT, "masked": IOS_MASKED, "vision_windows": list(IOS_WINDOWS),
+            "vision_buckets": {str(count): sizes for count, sizes in IOS_WINDOWS.items()},
+            "downscale_side": IOS_DOWNSCALE_SIDE, "embed_tokens": IOS_PREFILL[-1], "prefill_tokens": IOS_PREFILL,
+            "functions": "vision windows_<windows>, embed main, decoder prefill_<tokens> and main (one token)",
+            "padding": "Vision pads whole windows with pixel 0, key_valid 0, cos 1 and sin 0. Embedding pads token "
+                       "ids with 0. Prefill pads rows with zero embeddings, cos 1 and sin 0 and hides every key of a "
+                       "padding row.",
+            "kv_write": "prefill always starts at position 0 and writes [0, S); logit_row selects the last real "
+                        "row. main writes the one position marked by write_mask and attends over the whole state "
+                        "with mask [1, 1, 1, context]. Zero-fill both states when allocating them.",
+            "mask": "Additive float16 masks with 0 for visible keys and the masked value for hidden keys."})
+        metadata["vision"]["window_limit"] = max(IOS_WINDOWS)
+        metadata["text"]["token_limit"] = IOS_CONTEXT
+        metadata["text"].pop("kv_write")
+        metadata["text"].pop("mask")
+        if args.precision == "pal4":
+            metadata["quantization"] = {"method": "k-means palettization", "bits": PALETTE_BITS,
+                                        "group_size": PALETTE_GROUP, "axis": 0,
+                                        "scope": "decoder linear weights; embedding, tied LM head and norms unchanged"}
     compression = {}
     for kind, directory in (("vision", args.vision), ("decoder", args.decoder)):
         path = directory / "compression.json"
@@ -115,6 +151,8 @@ def main():
     parser = argparse.ArgumentParser()
     for name in ("snapshot", "reference", "vision", "embed", "decoder", "license", "output"):
         parser.add_argument(f"--{name}", type=Path, required=True)
+    parser.add_argument("--platform", choices=["macos", "ios"], default="macos")
+    parser.add_argument("--precision", choices=["fp16", "pal4"], default="fp16")
     build(parser.parse_args())
 
 
