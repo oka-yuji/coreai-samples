@@ -1,6 +1,9 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "" : {
+      "shouldTranslate" : false
+    },
     "Another window is using a model." : {
       "extractionState" : "manual",
       "localizations" : {

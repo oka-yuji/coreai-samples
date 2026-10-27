@@ -102,6 +102,7 @@
       }
     },
     "Close this model's demo before deleting its files." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ja" : {
           "stringUnit" : {
@@ -515,6 +516,7 @@
       }
     },
     "You can read each demo before downloading its model." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ja" : {
           "stringUnit" : {
