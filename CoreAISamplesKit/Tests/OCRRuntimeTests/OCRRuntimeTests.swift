@@ -134,6 +134,9 @@ struct OCRRuntimeTests {
         await #expect(throws: OCRRuntimeError.busy) {
             try await runtime.recognize(image, instruction: "a", maxNewTokens: 8)
         }
+        await #expect(throws: OCRRuntimeError.busy) {
+            try await runtime.read(image, maxNewTokens: 1)
+        }
         first.cancel()
         release.continuation.yield(())
         await #expect(throws: CancellationError.self) { try await first.value }
@@ -202,6 +205,9 @@ struct OCRRuntimeTests {
         _ = await signals.next()
         await #expect(throws: OCRRuntimeError.busy) {
             try await runtime.recognize(image, instruction: "a", maxNewTokens: 1)
+        }
+        await #expect(throws: OCRRuntimeError.busy) {
+            try await runtime.read(image, maxNewTokens: 1)
         }
         first.cancel()
         release.continuation.yield(())
