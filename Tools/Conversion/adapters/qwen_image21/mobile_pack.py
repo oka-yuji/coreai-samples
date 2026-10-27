@@ -10,6 +10,7 @@ from Tools.Conversion.storage import write_json
 from .contracts import require_heavy_job, validate_bundle
 from .evaluation import canonical_hash, validate_manifest
 from .fixtures import file_record
+from .mobile_acceptance import OWNER_REVIEW, OWNER_REVIEW_PATH, quality_acceptance
 from .mobile_artifacts import inventory, read_component, read_profile
 from .mobile_compare import execute as compare_cohorts
 from .mobile_reference import component_paths
@@ -68,6 +69,8 @@ def pack(args):
     comparison = args.output / "cohort-comparison"
     compare_cohorts(SimpleNamespace(**{**vars(args), "output": comparison}))
     result = json.loads((comparison / "comparison.json").read_text())
+    acceptance = quality_acceptance(comparison / "comparison.json", profile,
+                                    args.verification / "verification.json", getattr(args, "owner_review", None))
     numeric_identity = json.loads((args.verification / "verification.json").read_text())["identity"]
     source_files = numeric_identity["source_identity"]["source_files"]
     components = {kind: read_component(path, profile, kind) for kind, path in paths.items()}
@@ -98,6 +101,8 @@ def pack(args):
                 (args.verification / "verification.json", Path("evidence/numeric.json"), result["cohorts"]["C"]["verification_file"])]
     for name in ("comparison.json", "quality-ratings.json"):
         planned.append((comparison / name, Path("evidence") / name, file_record(comparison / name)))
+    if acceptance["method"] == OWNER_REVIEW:
+        planned.append((OWNER_REVIEW_PATH, Path(acceptance["evidence"]), acceptance["review_file"]))
     for cohort, root in (("A0", args.baseline), ("A1", args.mixed_reference), ("B", args.reference)):
         for name in ("identity.json", "summary.json"):
             expected = result["cohorts"][cohort]["summary_file"] if name == "summary.json" else file_record(root / name)
@@ -121,7 +126,8 @@ def pack(args):
     write_json(bundle / "compression.json", sizes)
     marker.unlink()
     manifest = {"format": 2, "profile": profile, "assets": inventory(bundle), "numeric_verified": True,
-                "quality_verified": result["quality_passed"], "verified": result["quality_passed"],
+                "quality_verified": acceptance["accepted"], "verified": acceptance["accepted"],
+                "quality_acceptance": acceptance,
                 "target_minimum_os": "27.0", "device_verification": "pending",
                 "source_revision": profile["source"]["revision"], "profile_sha256": canonical_hash(profile),
                 "evidence": {"numeric": "evidence/numeric.json", "comparison": "evidence/comparison.json",
@@ -132,7 +138,8 @@ def pack(args):
         raise ValueError("The complete bundle inventory changed during packing")
     write_json(args.output / "receipt.json", {"format": 2, "bundle_ready": True, "manifest": file_record(bundle / "bundle.json"),
                "profile_sha256": canonical_hash(profile), "asset_bytes": total, "numeric_passed": True,
-               "quality_passed": result["quality_passed"], "verified": result["quality_passed"], "device_verification": "pending"})
+               "quality_passed": result["quality_passed"], "quality_accepted": acceptance["accepted"],
+               "quality_acceptance": acceptance, "verified": acceptance["accepted"], "device_verification": "pending"})
 
 
 def main():
@@ -142,6 +149,7 @@ def main():
         parser.add_argument("--" + name, type=Path, required=True)
     parser.add_argument("--component", action="append", default=[])
     parser.add_argument("--quality", type=Path)
+    parser.add_argument("--owner-review", choices=[OWNER_REVIEW])
     pack(parser.parse_args())
 
 
