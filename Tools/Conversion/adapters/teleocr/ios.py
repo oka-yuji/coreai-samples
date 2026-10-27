@@ -17,6 +17,7 @@ from .contracts import (
     write_json,
 )
 from .convert import STATES, VISION_INPUTS, Runtime, export, half, load_model, save, tensors
+from .quantized import DECODER_COSINE_MIN, DECODER_NRMSE_LIMIT, conversion_passes
 from .wrappers import Decoder, Embed, StaticMain, StaticPrefill, Vision
 
 PREFILL_INPUTS = ["inputs_embeds", "cos", "sin", "mask", "logit_row"]
@@ -25,6 +26,15 @@ MAIN_INPUTS = ["input_ids", "cos", "sin", "mask", "write_mask"]
 
 def bucket(sizes, count):
     return min(size for size in sizes if size >= count)
+
+
+def decoder_comparison_passes(check):
+    bounded = conversion_passes(check)
+    check["numeric_divergence"] = bool(
+        bounded and not check["argmax_match"]
+        and set(check["top5"][:2]) == set(check["reference_top5"][:2])
+        and check["reference_top2_gap"] <= 2 * check["max_abs"])
+    return bounded and (check["argmax_match"] or check["numeric_divergence"])
 
 
 def padded_window_rows(case, windows):
@@ -189,12 +199,13 @@ def decoder(args):
     result["step_vs_wrapper_fp32"] = logit_metrics(second, logits)
     runtime.close()
     checks = [result[key] for key in ("prefill_vs_reference", "prefill_vs_wrapper_fp32", "step_vs_wrapper_fp32")]
-    for check in checks:
-        check["numeric_divergence"] = bool(check["finite"] and not check["argmax_match"]
-                                           and check["reference_top2_gap"] <= 2 * check["max_abs"])
+    comparisons = [decoder_comparison_passes(check) for check in checks]
+    result["gate"] = {"fp16_nrmse_max": DECODER_NRMSE_LIMIT, "fp16_cosine_min": DECODER_COSINE_MIN,
+                      "fp16_argmax": "match or the same top-two candidates within the bounded maximum error",
+                      "pal4": "finite outputs; differences from the uncompressed FP32 reference are recorded only"}
     passed = all(check["finite"] for check in checks)
     if args.precision == "fp16":
-        passed = passed and all(check["argmax_match"] or check["numeric_divergence"] for check in checks)
+        passed = passed and all(comparisons)
     return passed, result, "main.aimodel"
 
 

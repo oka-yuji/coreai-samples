@@ -161,6 +161,21 @@ class TeleOCRContractTests(unittest.TestCase):
 
 @unittest.skipUnless(importlib.util.find_spec("torch"), "The pinned TeleOCR environment is required")
 class TeleOCRStaticWrapperTests(unittest.TestCase):
+    def test_static_decoder_rejects_unbounded_errors_and_accepts_only_close_top_two_divergence(self):
+        from Tools.Conversion.adapters.teleocr.ios import decoder_comparison_passes
+        reference = np.array([0.0, 10.0, 1.0])
+        for values in ([0.0, 0.0, 0.0], [60000.0, -60000.0, -60000.0], [0.0, 20.0, 2.0], [0.0, np.nan, 1.0]):
+            check = logit_metrics(reference, np.array(values))
+            with self.subTest(values=values):
+                self.assertFalse(decoder_comparison_passes(check))
+                self.assertFalse(check["numeric_divergence"])
+        self.assertTrue(decoder_comparison_passes(logit_metrics(reference, reference + 0.001)))
+        near = logit_metrics(np.array([10.0, 10.001, 1.0]), np.array([10.001, 10.0, 1.0]))
+        self.assertTrue(decoder_comparison_passes(near))
+        self.assertTrue(near["numeric_divergence"])
+        unrelated = logit_metrics(np.array([10.0, 10.001, 9.999]), np.array([10.0, 9.998, 10.002]))
+        self.assertFalse(decoder_comparison_passes(unrelated))
+
     def test_static_inputs_pad_hide_and_mark_the_decode_position(self):
         from Tools.Conversion.adapters.teleocr.ios import padded_window_rows, prefill_inputs, step_inputs
         rows = {"pixel_values": np.ones((64, 1176), np.float32), "key_valid": np.ones(64, np.float32),
