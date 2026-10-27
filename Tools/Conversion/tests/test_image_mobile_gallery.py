@@ -10,7 +10,7 @@ import unittest
 from unittest.mock import patch
 
 from Tools.Conversion.adapters.qwen_image21.fixtures import quality_axes
-from Tools.Conversion.adapters.qwen_image21.mobile_gallery import build, bytes_record, validate_ratings
+from Tools.Conversion.adapters.qwen_image21.mobile_gallery import build, bytes_record, load_review_guide, validate_ratings
 
 
 class ImageMobileGalleryTests(unittest.TestCase):
@@ -24,7 +24,7 @@ class ImageMobileGalleryTests(unittest.TestCase):
             result = subprocess.run([shutil.which("node"), str(Path(__file__).with_name("image_gallery_ui.cjs")),
                                      str(template), str(args.output / "index.html")], capture_output=True, text=True, check=True)
             cases = json.loads(result.stdout)["results"]
-            self.assertEqual(len(cases), 2)
+            self.assertEqual(len(cases), 5)
             self.assertTrue(all(case["passed"] for case in cases))
 
     def fixture(self, root):
@@ -38,6 +38,8 @@ class ImageMobileGalleryTests(unittest.TestCase):
         for name in vars(args):
             if name != "output":
                 getattr(args, name).mkdir()
+        definition = json.loads((Path(__file__).parents[1] / "recipes/qwen_image21/evaluation-cases.json").read_text())
+        prompts = {case["id"]: case["prompt"] for case in definition["cases"]}
         runs, fixture_files = [], {}
         for key in quality_axes():
             identifier, seed = key.split("-")
@@ -45,7 +47,7 @@ class ImageMobileGalleryTests(unittest.TestCase):
             path = identifier + "/input.json"
             if path not in fixture_files:
                 reference = "images/" + identifier + ".png" if identifier.startswith("e") else None
-                metadata = {"prompt": "Literal </script><script>alert(1)</script> & text", "reference": reference}
+                metadata = {"prompt": prompts[identifier], "reference": reference}
                 fixture_files[path] = self.write(args.fixtures / path, metadata)
                 if reference:
                     target = args.fixtures / reference
@@ -95,11 +97,47 @@ class ImageMobileGalleryTests(unittest.TestCase):
             self.assertEqual(len(payload["cases"]), 60)
             self.assertEqual(len(receipt["images"]), 255)
             self.assertEqual(html.count("<script"), 2)
-            self.assertIn("</script><script>alert(1)</script>", payload["cases"][0]["prompt"])
+            guide, guide_file = load_review_guide()
+            self.assertEqual(receipt["display_guide_file"], guide_file)
+            self.assertEqual(payload["cases"][0]["prompt"], guide["cases"]["g01"]["source_prompt"])
+            self.assertEqual(payload["cases"][0]["guidance"]["prompt_ja"], guide["cases"]["g01"]["prompt_ja"])
             for case in payload["cases"]:
                 self.assertEqual(set(case["images"]), {"A0", "A1", "B", "C"})
+                self.assertEqual(set(case["guidance"]["checks"]), set(quality_axes()[case["run_id"]]))
             self.assertTrue(all(score is None for cohort in ratings["cohorts"].values()
                                 for row in cohort["ratings"] for score in row["axes"].values()))
+
+    def test_translated_guidance_cannot_bind_to_a_different_prompt(self):
+        with tempfile.TemporaryDirectory() as directory:
+            args, _, _ = self.fixture(Path(directory))
+            guide, receipt = load_review_guide()
+            guide["cases"]["g01"]["source_prompt"] = "A different source prompt"
+            with patch("Tools.Conversion.adapters.qwen_image21.mobile_gallery.mobile_fixtures"), patch(
+                    "Tools.Conversion.adapters.qwen_image21.mobile_gallery.load_review_guide", return_value=(guide, receipt)):
+                with self.assertRaisesRegex(ValueError, "another prompt"):
+                    build(args)
+            self.assertFalse(args.output.exists())
+
+    def test_original_and_translated_text_cannot_break_out_of_the_json_script(self):
+        with tempfile.TemporaryDirectory() as directory:
+            args, _, _ = self.fixture(Path(directory))
+            guide, receipt = load_review_guide()
+            injected = "Literal </script><script>alert(1)</script> & text"
+            path = args.fixtures / "g01/input.json"
+            value = json.loads(path.read_text())
+            value["prompt"] = injected
+            manifest = json.loads((args.fixtures / "fixtures.json").read_text())
+            manifest["inventory"]["g01/input.json"] = self.write(path, value)
+            self.write(args.fixtures / "fixtures.json", manifest)
+            guide["cases"]["g01"].update(source_prompt=injected, prompt_ja=injected)
+            with patch("Tools.Conversion.adapters.qwen_image21.mobile_gallery.mobile_fixtures"), patch(
+                    "Tools.Conversion.adapters.qwen_image21.mobile_gallery.load_review_guide", return_value=(guide, receipt)):
+                build(args)
+            html = (args.output / "index.html").read_text()
+            payload = json.loads(html.split('<script id="payload" type="application/json">', 1)[1].split("</script>", 1)[0])
+            self.assertEqual(html.count("<script"), 2)
+            self.assertEqual(payload["cases"][0]["prompt"], injected)
+            self.assertEqual(payload["cases"][0]["guidance"]["prompt_ja"], injected)
 
     def test_changed_inputs_are_rejected_without_creating_a_reviewable_page(self):
         for defect in ("image", "summary", "ratings", "input", "overlap", "link"):

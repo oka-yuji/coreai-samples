@@ -13,6 +13,7 @@ from .mobile_evidence import mobile_fixtures, source_suite, validate_run_result
 from .mobile_examples import tensor
 from .mobile_profile import comparison_candidate, validate_mobile_profile
 from .mobile_reference import component_paths, reference_preflight
+from .mobile_ratings import rating_identity_matches
 from .mobile_verify import audit_numeric
 
 
@@ -54,7 +55,7 @@ def score_quality(value, cohorts):
     axes = quality_axes()
     for name, identity in cohorts.items():
         cohort = value["cohorts"][name]
-        if canonical_hash(cohort.get("identity")) != canonical_hash(identity):
+        if not rating_identity_matches(cohort.get("identity"), identity):
             raise ValueError("Quality ratings belong to a different output cohort")
         rows = cohort.get("ratings", [])
         if len(rows) != 60 or {row.get("run_id") for row in rows} != set(axes):

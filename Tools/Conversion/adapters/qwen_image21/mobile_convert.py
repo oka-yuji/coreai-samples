@@ -44,7 +44,11 @@ def export_component(args):
     original, compression = compress_original(original, args.kind, profile)
     write_new_json(args.output / "compression.json", {"format": 1, "kind": args.kind,
               "profile_sha256": canonical_hash(profile), "compression": compression})
-    wrapper = export_boundary(original, args.kind, profile)
+    rotary = None
+    if args.kind == "denoiser" and profile["components"][args.kind]["compute_dtype"] == "float32":
+        from .metal_rotary import Float32Rotary
+        rotary = Float32Rotary()
+    wrapper = export_boundary(original, args.kind, profile, rotary=rotary)
     specification = profile["components"][args.kind]
     dtypes = {"float32": torch.float32, "int32": torch.int32, "bool": torch.bool}
     example = tuple(torch.ones(item["shape"], dtype=dtypes[item["dtype"]])
@@ -54,6 +58,8 @@ def export_component(args):
     with torch.no_grad():
         program = torch.export.export(wrapper, example, strict=False).run_decompositions(get_decomp_table())
     converter = TorchConverter(mode=TorchConverter.Mode.RELEASE)
+    if rotary is not None:
+        converter.register_custom_kernels([rotary.kernel])
     converter.add_exported_program(program, input_names=[item["name"] for item in specification["inputs"]],
                                    output_names=[item["name"] for item in specification["outputs"]],
                                    state_names=[], entrypoint_name="main")
@@ -64,6 +70,8 @@ def export_component(args):
     metadata.model_description = f"Qwen Image 2.1 Turbo mobile candidate: {args.kind}; numerical and quality validation required"
     metadata.set_custom("source_revision", profile["source"]["revision"])
     metadata.set_custom("profile_sha256", canonical_hash(profile))
+    if rotary is not None:
+        metadata.set_custom("rotary_arithmetic", "float32-explicit-metal-fma")
     target = args.output / (args.kind + ".aimodel")
     if target.exists() or target.is_symlink():
         raise FileExistsError("The asset destination changed during conversion")
