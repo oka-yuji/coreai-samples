@@ -6,6 +6,7 @@ import unittest
 from unittest import mock
 
 from Tools.Conversion import local, summary
+from Tools.Conversion.adapters.qwen_image21.mobile_profile import CANDIDATES
 from Tools.Conversion.storage import PipelineError
 
 
@@ -67,7 +68,7 @@ class MaintenanceTests(unittest.TestCase):
             with self.assertRaises(PipelineError):
                 local.recipe_path(name, "w4")
         self.assertEqual(local.recipe_path("embeddinggemma2", "int4_int8").name, "recipe-int4-int8.json")
-        for candidate in ("fp16", "bf16", "mixed", "w8", "w4"):
+        for candidate in CANDIDATES:
             path = local.recipe_path("qwen_image21_mobile", candidate)
             self.assertEqual(path.parent.name, "qwen_image21_mobile")
             expected = "recipe.json" if candidate == "w4" else f"recipe-{candidate}.json"
@@ -76,6 +77,20 @@ class MaintenanceTests(unittest.TestCase):
         for unsupported in ("fp16_safe", "int4_int8"):
             with self.assertRaises(PipelineError):
                 local.recipe_path("qwen_image21_mobile", unsupported)
+
+    def test_local_plan_accepts_the_finer_denoiser_candidate(self):
+        with tempfile.TemporaryDirectory() as folder:
+            workspace = Path(folder)
+            (workspace / "qwen_image21_mobile.paths.json").write_text("{}")
+            arguments = ["local", "plan", "--recipe", "qwen_image21_mobile", "--precision", "w4-dit-g16-blocks16-23-f32",
+                         "--workspace", str(workspace), "--lock-dir", str(workspace / "lock")]
+            with mock.patch.object(local.sys, "argv", arguments), mock.patch.object(local.os, "chdir"), \
+                    mock.patch.object(local.os, "execv") as execute:
+                self.assertIsNone(local.main())
+            execute.assert_called_once()
+            command = execute.call_args.args[1]
+            self.assertIn(str(local.TOOL / "recipes/qwen_image21_mobile/recipe-w4-dit-g16-blocks16-23-f32.json"), command)
+            self.assertIn("plan", command)
 
     def test_setup_does_not_reset_a_modified_or_wrong_checkout(self):
         revision = "a" * 40

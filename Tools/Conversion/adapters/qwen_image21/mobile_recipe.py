@@ -103,7 +103,7 @@ def recipe(candidate, *, export_only=False, reviewed=False):
                         "--fixtures", "$fixtures/fixtures", "--reference", "$reference/reference", "--mixed-reference", "$mixed_reference/reference",
                         "--baseline", "$baseline_reference", "--baseline-bundle", "$baseline_bundle",
                         "--verification", "$numeric/numeric", "--output", "$out", *bindings, *(["--quality", "$quality"] if reviewed else [])],
-            "inputs": [*inputs, prefix + "mobile_pack.py", prefix + "mobile_compare.py", prefix + "pack.py",
+            "inputs": [*inputs, prefix + "mobile_pack.py", prefix + "mobile_compare.py", prefix + "mobile_ratings.py", prefix + "pack.py",
                        "$repo/docs/research/qwen-image21-evaluation-20261021.json", "$baseline_reference", "$baseline_bundle",
                        *(["$quality"] if reviewed else [])],
             "outputs": ["bundle", "receipt.json", "cohort-comparison"], "heavy": True, "timeout_s": 3600,
