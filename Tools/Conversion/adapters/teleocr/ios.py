@@ -237,7 +237,8 @@ def main():
                                                  "peak_rss_bytes": resource.getrusage(resource.RUSAGE_SELF).ru_maxrss,
                                                  "versions": versions,
                                                  "code_sha256": {name: digest(Path(__file__).with_name(name)) for name in
-                                                                 ("ios.py", "convert.py", "wrappers.py", "contracts.py")},
+                                                                 ("ios.py", "convert.py", "wrappers.py", "contracts.py",
+                                                                  "quantized.py", "quantization.py")},
                                                  "asset": asset})
     if not passed:
         raise SystemExit(f"The iOS {args.kind} comparison failed")

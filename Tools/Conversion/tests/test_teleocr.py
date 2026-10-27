@@ -1,5 +1,6 @@
 import copy
 import importlib.util
+import inspect
 from pathlib import Path
 import sys
 from types import SimpleNamespace
@@ -161,6 +162,16 @@ class TeleOCRContractTests(unittest.TestCase):
 
 @unittest.skipUnless(importlib.util.find_spec("torch"), "The pinned TeleOCR environment is required")
 class TeleOCRStaticWrapperTests(unittest.TestCase):
+    def test_ios_cache_inputs_include_the_imported_comparison_gate(self):
+        from Tools.Conversion.adapters.teleocr import ios, quantized
+        files = {"$repo/" + str(Path(inspect.getsourcefile(function)).relative_to(ROOT))
+                 for function in (ios.conversion_passes, quantized.quantize)}
+        recipe = load_recipe(local.recipe_path("teleocr", "ios"),
+                             {"python": sys.executable, "snapshot": "/unused"}, ROOT)
+        for step in recipe["steps"]:
+            if "Tools.Conversion.adapters.teleocr.ios" in step["command"]:
+                self.assertTrue(files.issubset(set(step["inputs"])), step["id"])
+
     def test_vision_comparisons_exercise_every_static_function(self):
         from Tools.Conversion.adapters.teleocr.ios import vision_variants
         cases = {name: {"key_valid": np.ones(len(window_order(case["size"][1] // 14, case["size"][0] // 14)) * 4)}

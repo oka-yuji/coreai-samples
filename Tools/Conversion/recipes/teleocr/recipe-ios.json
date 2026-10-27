@@ -317,7 +317,9 @@
         "$repo/Tools/Conversion/adapters/teleocr/convert.py",
         "$repo/Tools/Conversion/adapters/teleocr/wrappers.py",
         "$repo/Tools/Conversion/adapters/teleocr/contracts.py",
-        "$snapshot"
+        "$snapshot",
+        "$repo/Tools/Conversion/adapters/teleocr/quantized.py",
+        "$repo/Tools/Conversion/adapters/teleocr/quantization.py"
       ],
       "outputs": [
         "comparison.json",
@@ -362,7 +364,9 @@
         "$repo/Tools/Conversion/adapters/teleocr/convert.py",
         "$repo/Tools/Conversion/adapters/teleocr/wrappers.py",
         "$repo/Tools/Conversion/adapters/teleocr/contracts.py",
-        "$snapshot"
+        "$snapshot",
+        "$repo/Tools/Conversion/adapters/teleocr/quantized.py",
+        "$repo/Tools/Conversion/adapters/teleocr/quantization.py"
       ],
       "outputs": [
         "comparison.json",
@@ -408,7 +412,9 @@
         "$repo/Tools/Conversion/adapters/teleocr/convert.py",
         "$repo/Tools/Conversion/adapters/teleocr/wrappers.py",
         "$repo/Tools/Conversion/adapters/teleocr/contracts.py",
-        "$snapshot"
+        "$snapshot",
+        "$repo/Tools/Conversion/adapters/teleocr/quantized.py",
+        "$repo/Tools/Conversion/adapters/teleocr/quantization.py"
       ],
       "outputs": [
         "comparison.json",
@@ -454,7 +460,9 @@
         "$repo/Tools/Conversion/adapters/teleocr/convert.py",
         "$repo/Tools/Conversion/adapters/teleocr/wrappers.py",
         "$repo/Tools/Conversion/adapters/teleocr/contracts.py",
-        "$snapshot"
+        "$snapshot",
+        "$repo/Tools/Conversion/adapters/teleocr/quantized.py",
+        "$repo/Tools/Conversion/adapters/teleocr/quantization.py"
       ],
       "outputs": [
         "comparison.json",
