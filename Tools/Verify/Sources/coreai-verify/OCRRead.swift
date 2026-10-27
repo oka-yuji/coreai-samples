@@ -20,9 +20,14 @@ struct OCRRead: AsyncParsableCommand {
     @Option(help: "Folder for <image name>.json (the record) and <image name>.md.")
     var out: String?
 
+    @Flag(help: "Delete the specialization cache entries of the three assets before loading.")
+    var clearCache = false
+
     func run() async throws {
         let wiredBefore = wiredBytes()
-        let runtime = try await OCRRuntime.load(bundle: URL(filePath: bundle))
+        let bundleURL = URL(filePath: bundle)
+        if clearCache { try OCRRuntime.deleteSpecializationCache(bundle: bundleURL) }
+        let runtime = try await OCRRuntime.load(bundle: bundleURL)
         let file = try Data(contentsOf: URL(filePath: image))
         let source = try OCRImage(data: file)
         let page = try await runtime.read(source)
