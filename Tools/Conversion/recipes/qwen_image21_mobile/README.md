@@ -67,6 +67,16 @@ A0-to-A1 and A1-to-B differences are descriptive precision/quantization effects.
 
 After human review, run `recipe-reviewed.json` (or `recipe-reviewed-<candidate>.json`) through the common runner with `--set quality=/path/to/reviewed-ratings.json`. This reuses unchanged numerical evidence and creates a new bundle; it does not edit an earlier bundle's manifest. Missing rows, changed identities/axes, unreviewed values or a failed quality gate cannot pass the reviewed recipe.
 
+### Approved qualitative review
+
+The owner accepted the current G16/FMA candidate's appearance through an overall gallery review, recorded as [QMI-OWNER-VISUAL-01](../../../../docs/research/qwen-image21-owner-quality-20261028.json). Packing those exact outputs can select `--owner-review qmi-owner-visual-v1` on `Tools.Conversion.adapters.qwen_image21.mobile_pack`. Supply the same snapshot, profile, lock, fixtures, five component paths, source cohorts and numerical verification used for the accepted comparison, and a new output directory. The complete numerical and file audits still run before acceptance.
+
+`recipe-owner-reviewed-w4-dit-g16-blocks16-23-f32.json` selects this method through the common runner. It can only accept the bound existing profile, numerical report and comparison bytes. A fresh conversion or a different report requires its own review; matching the candidate name alone is insufficient. The recipe tracks the acceptance code and owner record as cache inputs.
+
+The bundle copies the owner record into `evidence/owner-review.json` and records the method, criterion, approval-file identity and scope under `quality_acceptance`. `quality_verified` and `verified` indicate numerical and accepted visual evidence for this local candidate. They do not certify device operation. The receipt retains `quality_passed=false` for the incomplete old case-by-axis benchmark and separately records `quality_accepted=true`. Original ratings and comparison results remain unchanged; `device_verification` remains `pending`.
+
+The [October 28 bundle record](../../../../docs/research/qwen-image21-owner-bundle-20261028.json) identifies the packed files and independent inventory check. It is a local bundle, with no published download or calibrated device profile. Registering a download, enabling normal Models generation and claiming iPhone support require their own evidence.
+
 For offline review, create a separate gallery after the complete comparison exists:
 
 ```sh
