@@ -12,11 +12,6 @@
                     PhoneModelLibraryScreen()
                 case .imageGenerationDiagnostic(let configuration):
                     ImageDiagnosticScreen(configuration: URL(filePath: configuration, relativeTo: .documentsDirectory))
-                case .ocrCheck(let bundle):
-                    ProgressView().task {
-                        UIApplication.shared.isIdleTimerDisabled = true
-                        exit(await OCRPhoneCheck.run(bundle: bundle))
-                    }
                 case .imageSearchEvaluation:
                     PhoneImageSearchEvalView()
                 case .extractionEvaluation:

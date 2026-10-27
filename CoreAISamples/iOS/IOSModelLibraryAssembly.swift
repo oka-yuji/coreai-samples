@@ -13,7 +13,7 @@
     enum IOSModelLibraryAssembly {
         static let adapters: [any ModelDemoAdapter] = [
             ProductComparisonAdapter(), ExtractionAdapter(), InspectionAdapter(), ImageSearchAdapter(),
-            VideoSearchAdapter(), ObjectFinderAdapter(),
+            VideoSearchAdapter(), ObjectFinderAdapter(), SpeechAdapter(),
         ]
         private static let root: URL = {
             let root = ModelStorage.root.appending(path: "ModelLibrary")
@@ -24,6 +24,10 @@
         private static let assembly = ModelLibraryAssembly(
             adapters: adapters, store: ManagedModelStore(root: root), transfer: ArtifactTransfer(),
             migrationCandidates: legacyFolders)
+
+        static func catalog(searchTerms: [String: [String]] = [:]) throws -> ModelCatalog {
+            try IOSDemoCatalog.make(searchTerms: searchTerms, speechArtifact: IrodoriModelArtifact.make())
+        }
 
         static func make(catalog: ModelCatalog) -> ModelLibraryAssembly.Library {
             let previews = Set(["image-generation"]).intersection(catalog.demos.map(\.id))
@@ -52,11 +56,13 @@
             let folder = LaunchArguments.value("--import-local-bundle").map {
                 URL(filePath: $0, relativeTo: .documentsDirectory)
             }
-            let previews = (try? IOSDemoCatalog.make().demos.map(\.id)) ?? []
+            let definitions = Result { try catalog() }
+            let previews = (try? definitions.get().demos.map(\.id)) ?? []
             return await ModelLibrarySelfTest.run(
                 output: URL(filePath: output, relativeTo: .documentsDirectory), root: root,
                 registry: assembly.registry, capabilities: capabilities(), acquire: target, assembly: assembly,
-                importBundle: folder, unconnectedDemoIDs: Set(["image-generation"]).intersection(previews))
+                importBundle: folder, unconnectedDemoIDs: Set(["image-generation"]).intersection(previews),
+                catalog: { try definitions.get() })
         }
 
         static func capabilities() -> [DemoCapability: CapabilityState] {

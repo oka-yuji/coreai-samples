@@ -44,6 +44,20 @@
         "ja": "#93"
       },
       "url": "https://github.com/oka-yuji/coreai-samples/issues/93"
+    },
+    {
+      "title": {
+        "en": "Models validation",
+        "ja": "Modelsの検証（英語）"
+      },
+      "url": "docs/irodori/managed-validation.md"
+    },
+    {
+      "title": {
+        "en": "#329",
+        "ja": "#329"
+      },
+      "url": "https://github.com/oka-yuji/coreai-samples/issues/329"
     }
   ],
   "support": {
@@ -65,8 +79,8 @@
         "ios"
       ],
       "note": {
-        "en": "Runtime/UI implemented; actual app GPU generation and listening acceptance pending.",
-        "ja": "ランタイム/UIは実装済み。実アプリのGPU生成・試聴の受入は未完了。"
+        "en": "Normal Models import and speech UI implemented; device generation, memory and listening acceptance pending on main.",
+        "ja": "通常Modelsへの取り込み・音声UIは実装済み。mainでの実機生成・メモリ・試聴受入は未完了。"
       }
     }
   },

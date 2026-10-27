@@ -1,4 +1,4 @@
-# TeleOCR macOS FP16 assets
+# TeleOCR macOS assets
 
 This maintainer recipe converts [XingChen-AGI/TeleOCR](https://huggingface.co/XingChen-AGI/TeleOCR) at revision `70a19ec6a3b036311af19ae5e762e650f41a5980` into three Core AI assets for macOS and checks the parts that the Python runtime can verify. It does not run the Swift OCR path, generate text or publish weights. The iOS static-shape profile is described below.
 
@@ -48,6 +48,66 @@ The reference stage runs the original FP32 model on the synthetic page `F1.png` 
 - `main.aimodel`: `prefill_256`, `prefill_512`, `prefill_1024` and `prefill_2048` start at position 0, write keys and values to [0, S), attend with an additive mask [1, 1, S, S] (padding rows fully hidden) and return the logits of the row named by `logit_row`. `main` decodes one token: it writes the position marked by the one-hot `write_mask` [4096] and attends over the whole state with a mask [1, 1, 1, 4096]. Every function shares the float16 states `keyCache` / `valueCache` [28, 1, 8, 4096, 128]; zero them when allocating. Prompt plus generated tokens stay within 4096 and prompts above 2048 tokens are refused.
 - Specialize without `expectFrequentReshapes` and with the default compute units. No ahead-of-time compilation is produced.
 
-Python checks: each vision bucket against the macOS dynamic FP16 asset and the FP32 reference on the six reference inputs (finite, nRMSE ≤ 0.05, cosine to the reference ≥ 0.999), the embedding with maximum absolute difference 0, and the decoder's `prefill_512` plus one `main` step on Core AI against the FP32 wrapper (FP16 must keep the argmax or diverge only within the margin rule; the palettized decoder is recorded). `verify_ios` and `verify_ios_pal4` compare `coreai-build inspect` with the declared static functions and states. End-to-end Swift comparisons use `coreai-verify ocr-block` with the iOS bundle.
+Python checks: each vision bucket against the macOS dynamic FP16 asset and the FP32 reference on the six reference inputs (finite, nRMSE ≤ 0.05, cosine to the reference ≥ 0.999), the embedding with maximum absolute difference 0, and the decoder's `prefill_512` plus one `main` step on Core AI against the FP32 wrapper (FP16 must keep the argmax or diverge only within the margin rule; the palettized decoder is recorded). `verify_ios` and `verify_ios_pal4` compare `coreai-build inspect` with the declared static functions and states. End-to-end Swift comparisons use `coreai-verify ocr-block` with the static runtime from #341; the recipe and descriptor checks do not establish iPhone support.
 
 TeleOCR is distributed under Apache-2.0. The bundle carries the license text and a notice describing the changes. This repository's code is MIT-licensed.
+
+## Decoder INT8 / INT4 and vision INT8
+
+The quantized recipe keeps the FP16 asset ABI and creates separate decoder INT8,
+decoder INT4 and vision INT8 bundles:
+
+```sh
+python3 -m Tools.Conversion.local plan --recipe teleocr --precision int4_int8
+python3 -m Tools.Conversion.local run --recipe teleocr --precision int4_int8
+```
+
+It uses the same environment and pinned snapshot as FP16. Its separate work directory
+is `.local/conversion/work/teleocr-quantized`. The bundles are in `bundle_int8`,
+`bundle_int4` and `bundle_vision_int8`. Require all three verify stages to pass.
+
+Decoder compression covers exactly the seven attention/MLP Linear weights per layer,
+using symmetric-with-clipping integer quantization in blocks of 64 input channels.
+The embedding, tied LM head, normalization, biases, activations and KV stay
+unquantized. Vision INT8 is a separate experiment with per-output-channel Linear
+weights; its Conv3d patch projection stays unquantized, and its bundle keeps the FP16
+decoder. This is linear integer compression for Mac, not iOS palettization.
+
+Each compressed stage saves the selected and retained parameter identities in
+`compression.json` and independently dequantized weights in `reference.safetensors`.
+The reference contains only compressed weights and is applied to the pinned source
+wrapper for evaluation; it is not a complete checkpoint. Its SHA-256 is in the
+compression record. The bundle metadata contains the compression record and each
+component's precision. The verifier checks that the component records match the
+bundle and that inspect reports enough integer storage for the selected weights.
+Before serialization, every exported function must use exactly the declared
+compressed modules with the same integer values, zero points and FP16 scales.
+This per-function identity audit is required for both prefill and decode; aggregate
+storage counts alone cannot prove that the target set is correct.
+
+`comparison.json` separates the original-model-to-quantized-PyTorch quality difference
+from the quantized-PyTorch-to-Core-AI conversion difference. Decoder checks use the F1
+448-square prefill; vision checks use the existing six inputs. An argmax divergence
+is classified as numerical only within fixed conversion bounds: normalized RMSE
+≤ 0.05 and cosine ≥ 0.999 against the independent quantized reference. Within
+those bounds the top-two gap is compared with twice the maximum absolute difference
+for reporting; that margin inequality alone is not an accuracy gate. Non-finite
+outputs fail verification.
+Full document quality, generation, performance and memory comparisons use the fixed
+OCREval set in issue #333; passing these component checks does not complete that
+evaluation or establish iPhone support.
+
+Vision INT8 is verified through a host-only specialization made with
+`coreai-build compile --preferred-compute gpu --expect-frequent-reshapes`.
+The host architecture comes from the SDK. Python's public specialization options
+do not expose the reshape hint; without it this dynamic-window INT8 graph aborts
+in ANE region formation even with GPU preferred. The compiled copy stays in
+scratch and is not shipped. The bundle retains the source `.aimodel`, and the
+Swift OCR runtime already uses the same reshape hint. The comparison record
+includes the specialization options, architecture and time.
+
+The [2026-10-27 validation record](../../../../docs/results/teleocr-quantization/2026-10-27.json)
+contains the conversion metrics, asset hashes, export audits and Swift checks.
+All three candidates finish the F1 448-square block with 212 generated tokens.
+INT4 produces different text from INT8; this component check makes no full-document
+quality or adoption claim.

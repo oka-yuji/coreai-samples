@@ -21,7 +21,7 @@ The full license text is in LICENSE.
 Changes from the original:
 - The vision encoder and merger were rewritten as a dynamic window-batched graph that takes
   padded windows, a key validity mask and rotary tables prepared by the host, and were converted
-  to Core AI with float16 weights and activations.
+  to Core AI with {vision_precision}.
 - The token embedding table was exported unchanged (bfloat16) with a float32 output.
 - The text decoder was exported as prefill and main functions with float16 key/value states.
 - RMS normalization is computed in an equivalent rescaled form to stay within the float16 range.
@@ -54,7 +54,7 @@ def build(args):
         shutil.copyfile(args.snapshot / name, output / "tokenizer" / name)
     shutil.copyfile(args.license, output / "LICENSE")
     ios = args.platform == "ios"
-    notice = NOTICE.format(model=MODEL_ID, revision=REVISION)
+    notice = NOTICE.format(model=MODEL_ID, revision=REVISION, vision_precision="float16 weights and activations")
     if ios:
         notice = notice.replace("\nConverted by", IOS_CHANGES + (PALETTE_CHANGES if args.precision == "pal4" else "")
                                 + "\nConverted by")
@@ -125,6 +125,23 @@ def build(args):
             metadata["quantization"] = {"method": "k-means palettization", "bits": PALETTE_BITS,
                                         "group_size": PALETTE_GROUP, "axis": 0,
                                         "scope": "decoder linear weights; embedding, tied LM head and norms unchanged"}
+    compression = {}
+    for kind, directory in (("vision", args.vision), ("decoder", args.decoder)):
+        path = directory / "compression.json"
+        if path.exists():
+            compression[kind] = read_json(path)
+    if compression:
+        metadata["compression"] = compression
+        metadata["precision"] = f"int{compression['decoder']['bits']}" if "decoder" in compression else "fp16"
+        metadata["component_precision"] = {"vision": "int8" if "vision" in compression else "fp16",
+                                            "decoder": metadata["precision"], "embedding": "bfloat16"}
+        if "vision" in compression:
+            (output / "NOTICE").write_text(NOTICE.format(
+                model=MODEL_ID, revision=REVISION, vision_precision="INT8 Linear weights and float16 activations"))
+        with (output / "NOTICE").open("a") as handle:
+            for kind, record in compression.items():
+                handle.write(f"\n- {kind}: INT{record['bits']} {record['scheme']} {record['granularity']} Linear weights. "
+                             "Activations, normalization, embedding, tied LM head and KV are not quantized.\n")
     metadata["files"] = {str(path.relative_to(output)): digest(path)
                          for path in sorted(output.rglob("*")) if path.is_file()}
     write_json(output / "metadata.json", metadata)

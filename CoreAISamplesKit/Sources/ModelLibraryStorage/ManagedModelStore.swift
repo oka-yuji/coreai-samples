@@ -4,6 +4,7 @@ import Foundation
 import GLiNERRuntime
 import ImageGenerationCore
 import ModelLibraryFeature
+import SpeechAssets
 
 public enum ManagedModelStoreError: Error, Equatable {
     case invalidDefinition
@@ -142,7 +143,9 @@ public actor ManagedModelStore {
         var completed: Int64 = 0
         do {
             let ordered = artifact.files.sorted {
-                if ($0.path == "bundle.json") != ($1.path == "bundle.json") { return $0.path == "bundle.json" }
+                if ($0.path == artifact.localBundle?.manifestPath) != ($1.path == artifact.localBundle?.manifestPath) {
+                    return $0.path == artifact.localBundle?.manifestPath
+                }
                 return $0.path < $1.path
             }
             for file in ordered {
@@ -156,8 +159,8 @@ public actor ManagedModelStore {
                         progress(value)
                     }
                 }
-                if file.path == "bundle.json" {
-                    try verifyImageManifest(Data(contentsOf: target), artifact)
+                if file.path == artifact.localBundle?.manifestPath {
+                    try verifyLocalManifest(Data(contentsOf: target), artifact)
                 }
             }
             try Task.checkCancellation()
@@ -422,6 +425,7 @@ private enum ContractFamily {
     case gliner
     case embedding(precision: String)
     case image
+    case speech
 }
 
 private struct ContractSource: Decodable {
@@ -431,7 +435,14 @@ private struct ContractSource: Decodable {
 
 private func family(_ artifact: ModelArtifact) throws -> ContractFamily {
     if artifact.localBundle != nil {
+        if artifact.contract == IrodoriModelArtifact.contract {
+            guard artifact == (try IrodoriModelArtifact.make()) else {
+                throw ManagedModelStoreError.contractMismatch("Irodori inventory")
+            }
+            return .speech
+        }
         guard artifact.contract == "qwen-image21-mobile-v2", artifact.download == nil,
+            artifact.localBundle?.manifestPath == "bundle.json",
             artifact.upstream?.repository == "Qwen/Qwen-Image-2.1-Turbo",
             artifact.upstream?.revision == ImageGenerationProfile.revision,
             Set(["bundle.json", "LICENSE", "NOTICE.txt", "config/processor/tokenizer.json"])
@@ -553,6 +564,8 @@ private func verify(_ directory: URL, _ artifact: ModelArtifact) throws {
         guard bundle.revision == artifact.upstream?.revision else {
             throw ManagedModelStoreError.contractMismatch("upstream")
         }
+    case .speech:
+        try IrodoriBundleInventory.validateManifest(Data(contentsOf: directory.appending(path: "irodori.json")))
     case .image:
         let raw = try Data(contentsOf: directory.appending(path: "bundle.json"))
         try verifyImageManifest(raw, artifact)
@@ -605,4 +618,12 @@ private struct ImageBundleComponent: Decodable {
     let profile: ImageGenerationProfile
     let inputs: [ImageTensorContract]
     let outputs: [ImageTensorContract]
+}
+
+private func verifyLocalManifest(_ raw: Data, _ artifact: ModelArtifact) throws {
+    switch try family(artifact) {
+    case .image: try verifyImageManifest(raw, artifact)
+    case .speech: try IrodoriBundleInventory.validateManifest(raw)
+    default: throw ManagedModelStoreError.invalidDefinition
+    }
 }

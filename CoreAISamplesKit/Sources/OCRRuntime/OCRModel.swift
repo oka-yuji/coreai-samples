@@ -8,7 +8,6 @@ protocol OCRModel: Sendable {
 
     var windowLimit: Int { get }
     var tokenLimit: Int { get }
-    var staticShapes: OCRStaticShapes? { get }
     func encode(_ text: String) -> [Int32]
     func decode(_ tokens: [Int32], skipSpecialTokens: Bool) -> String
     func makeCache(capacity: Int) throws -> Cache
@@ -17,8 +16,4 @@ protocol OCRModel: Sendable {
     @concurrent func prefill(_ embeddings: [Float], rotary: OCRRotary, cache: inout Cache) async throws -> [Float]
     @concurrent func step(_ token: Int32, position: Int, rotary: OCRRotary, cache: inout Cache) async throws
         -> [Float]
-}
-
-extension OCRModel {
-    var staticShapes: OCRStaticShapes? { nil }
 }

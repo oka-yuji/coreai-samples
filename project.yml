@@ -139,6 +139,8 @@ targets:
       - path: CoreAISamples/Resources/image-search-reference.json
       - path: CoreAISamples/Resources/EmbeddingValidation
       - path: CoreAISamples/iOS
+      - path: CoreAISamples/Demos/Speech/SpeechExport.swift
+      - path: CoreAISamples/Demos/Speech/Resources/speech-examples.json
       - path: CoreAISamples/LaunchArguments.swift
       - path: CoreAISamples/Demos/ModelManager/ModelStorage.swift
       - path: CoreAISamples/Demos/Extract
@@ -147,7 +149,18 @@ targets:
           - FieldEditor.swift
           - FieldRow.swift
           - NoteEditor.swift
+    preBuildScripts:
+      - name: Build Irodori input library for iPhone
+        script: '"$SRCROOT/Tools/Irodori/build-inputs.sh" iphoneos'
+        shell: /bin/bash
+        basedOnDependencyAnalysis: false
     dependencies:
+      - package: CoreAISamplesKit
+        product: SpeechCore
+      - package: CoreAISamplesKit
+        product: SpeechFeature
+      - package: CoreAISamplesKit
+        product: SpeechRuntime
       - package: CoreAISamplesKit
         product: ImageDiagnosticFeature
       - package: CoreAISamplesKit
@@ -202,10 +215,6 @@ targets:
         product: VideoSearchFeature
       - package: CoreAISamplesKit
         product: VideoSearchRuntime
-      - package: CoreAISamplesKit
-        product: OCRCore
-      - package: CoreAISamplesKit
-        product: OCRRuntime
       - sdk: AVKit.framework
     settings:
       base:

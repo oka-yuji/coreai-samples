@@ -89,3 +89,5 @@
 
 - `SpeechPhone` is a separate iOS 27 target/bundle ID. `SpeechLibraryFeature` and `SpeechCheckFeature` also use the shared Store; neither starts model inference on ordinary launch. `--speech-check-run` explicitly selects diagnostics. Device checks must use the requested iPhone, protect existing model/output directories, and record OS/connectivity separately from host build success.
 - For Phone changes, also build the signed `SpeechPhone` product and inspect the actual Info.plist for both file-sharing keys, plus the memory entitlement. The source settings alone are not evidence that the generated app contains those keys.
+
+- Irodoriの実バンドル取り込み検査は共有heavy-jobロック下で `COREAI_IRODORI_IMPORT_BUNDLE=/path/to/sampler-irodori-fp32 swift test --package-path CoreAISamplesKit --filter IrodoriImportTests.knownBundle`。固定14ファイルを一時管理領域へコピーし、検査・lease・改変/欠損/余分/symlinkの拒否を確認する。モデル推論は行わない。既定実行はskip。元フォルダは変更しない。

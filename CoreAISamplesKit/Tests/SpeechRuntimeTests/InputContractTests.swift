@@ -5,6 +5,7 @@ import IrodoriTokenizers
 import SpeechCore
 import Testing
 
+@testable import SpeechAssets
 @testable import SpeechRuntime
 
 @Test("Pinned normalization matches the Unicode reference corpus")

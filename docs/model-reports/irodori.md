@@ -18,7 +18,7 @@ Results below retain their original dates and workloads. Different rows may use 
 | Platform | State | Verified scope / remaining work | Evidence |
 |---|---|---|---|
 | macos | △ | Runtime/UI implemented; actual app GPU generation and listening acceptance pending. | [E1](../irodori/demo.md) |
-| ios | △ | Runtime/UI implemented; actual app GPU generation and listening acceptance pending. | [E2](../irodori/iphone.md) |
+| ios | △ | Normal Models import and speech UI implemented; device generation, memory and listening acceptance pending on main. | [E2](../irodori/iphone.md) |
 
 ### Performance and quality
 
@@ -64,4 +64,8 @@ Results below retain their original dates and workloads. Different rows may use 
 - [iPhone](../irodori/iphone.md)
 
 - [#93](https://github.com/oka-yuji/coreai-samples/issues/93)
+
+- [Models validation](../irodori/managed-validation.md)
+
+- [#329](https://github.com/oka-yuji/coreai-samples/issues/329)
 <!-- model-report:end -->

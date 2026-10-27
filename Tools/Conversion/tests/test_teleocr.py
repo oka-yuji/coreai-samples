@@ -147,6 +147,17 @@ class TeleOCRContractTests(unittest.TestCase):
             self.assertIn(f"--platform ios --precision {precision}", command)
         self.assertIn("decoder_ios_pal4", steps["verify_ios_pal4"]["depends"])
 
+    def test_dynamic_quantized_and_ios_recipes_keep_separate_work_directories(self):
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = Path(directory)
+            (workspace / "teleocr.paths.json").write_text("{}")
+            for precision, name in ((None, "teleocr"), ("int4_int8", "teleocr-quantized"), ("ios", "teleocr-ios")):
+                with self.subTest(precision=precision):
+                    recipe = local.recipe_path("teleocr", precision)
+                    command = local.pipeline_command("run", recipe, workspace, workspace / "heavy-job", False)
+                    self.assertEqual(command[command.index("--work-dir") + 1], str(workspace / "work" / name))
+                    self.assertEqual(command[command.index("--lock-dir") + 1], str(workspace / "heavy-job"))
+
 
 @unittest.skipUnless(importlib.util.find_spec("torch"), "The pinned TeleOCR environment is required")
 class TeleOCRStaticWrapperTests(unittest.TestCase):

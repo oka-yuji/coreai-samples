@@ -100,12 +100,14 @@ let package = Package(
             resources: [.copy("Resources")], swiftSettings: speechSettings),
         .target(
             name: "ModelLibraryStorage",
-            dependencies: ["ModelLibraryFeature", "GLiNERRuntime", "EmbeddingRuntime", "ImageGenerationCore"],
+            dependencies: [
+                "ModelLibraryFeature", "GLiNERRuntime", "EmbeddingRuntime", "ImageGenerationCore", "SpeechAssets",
+            ],
             swiftSettings: speechSettings),
         .testTarget(
             name: "ModelLibraryStorageTests",
             dependencies: [
-                "ModelLibraryStorage", "ModelLibraryFeature", "GLiNERRuntime", "EmbeddingCore",
+                "ModelLibraryStorage", "ModelLibraryFeature", "GLiNERRuntime", "EmbeddingCore", "SpeechAssets",
                 "ModelLibraryTestSupport",
             ],
             swiftSettings: speechSettings),
@@ -133,6 +135,7 @@ let package = Package(
             dependencies: [
                 "ModelLibraryRuntime", "ModelLibraryFeature", "ModelLibraryStorage", "ModelLibraryTransfer",
                 "FeatureStore", "EmbeddingCore", "EmbeddingRuntime", "ModelLibraryTestSupport",
+                "SpeechRuntime", "SpeechCore", "SpeechFeature",
             ], swiftSettings: speechSettings),
         .target(
             name: "ObjectFinderFeature", dependencies: ["ObjectFinderCore", "FeatureStore"],
@@ -165,16 +168,19 @@ let package = Package(
             swiftSettings: speechSettings),
         .testTarget(name: "OCRRuntimeTests", dependencies: ["OCRRuntime", "OCRCore"], swiftSettings: speechSettings),
         .target(name: "SpeechCore", swiftSettings: speechSettings),
+        .target(
+            name: "SpeechAssets", dependencies: ["SpeechCore"], resources: [.process("Resources")],
+            swiftSettings: speechSettings),
         .target(name: "SpeechFeature", dependencies: ["SpeechCore", "FeatureStore"], swiftSettings: speechSettings),
         .target(
             name: "SpeechRuntime",
             dependencies: [
-                "SpeechCore", "SpeechFeature",
+                "SpeechCore", "SpeechFeature", "SpeechAssets", "ModelLibraryFeature",
                 .product(
                     name: "IrodoriInputLogic", package: "IrodoriInputKit", condition: .when(platforms: [.macOS, .iOS])),
                 .product(
                     name: "IrodoriTokenizers", package: "IrodoriInputKit", condition: .when(platforms: [.macOS, .iOS])),
-            ], resources: [.process("Resources")], swiftSettings: speechSettings),
+            ], swiftSettings: speechSettings),
         .testTarget(name: "SpeechCoreTests", dependencies: ["SpeechCore"], swiftSettings: speechSettings),
         .testTarget(
             name: "SpeechFeatureTests", dependencies: ["SpeechCore", "SpeechFeature", "FeatureStore"],
@@ -182,7 +188,7 @@ let package = Package(
         .testTarget(
             name: "SpeechRuntimeTests",
             dependencies: [
-                "SpeechRuntime", "SpeechCore", "SpeechFeature", "FeatureStore",
+                "SpeechRuntime", "SpeechCore", "SpeechFeature", "FeatureStore", "SpeechAssets", "ModelLibraryFeature",
                 .product(name: "IrodoriInputLogic", package: "IrodoriInputKit"),
                 .product(name: "IrodoriTokenizers", package: "IrodoriInputKit"),
             ], resources: [.copy("Resources")], swiftSettings: speechSettings),

@@ -1,6 +1,233 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "Speech demo" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音声合成デモ"
+          }
+        }
+      }
+    },
+    "Speech Synthesis" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音声合成"
+          }
+        }
+      }
+    },
+    "Turn a short Japanese passage into speech, then play or save it." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "短い日本語の文章から音声を生成し、再生や保存を試せます。"
+          }
+        }
+      }
+    },
+    "Enter text and a seed, generate speech on this device, and save the result as a WAV file." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "文章とシードを入力して、この端末で音声を生成し、WAVファイルとして保存します。"
+          }
+        }
+      }
+    },
+    "Short passages work best. Maximum 255 tokens." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "短い文章でお試しください。上限は255トークンです。"
+          }
+        }
+      }
+    },
+    "Waiting for the current operation to stop…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "現在の処理が停止するのを待っています…"
+          }
+        }
+      }
+    },
+    "Generating speech…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音声を生成中…"
+          }
+        }
+      }
+    },
+    "Playing audio…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音声を再生中…"
+          }
+        }
+      }
+    },
+    "Checking model files…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルファイルを確認中…"
+          }
+        }
+      }
+    },
+    "Model files verified. Enter text and generate speech." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルを確認しました。文章を入力して音声を生成できます。"
+          }
+        }
+      }
+    },
+    "Speech is ready. Play it or save the WAV file." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音声を生成しました。再生するか、WAVファイルを保存できます。"
+          }
+        }
+      }
+    },
+    "Playback finished." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "再生が終了しました。"
+          }
+        }
+      }
+    },
+    "Playback interrupted. You can play the audio again." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "再生が中断されました。もう一度再生できます。"
+          }
+        }
+      }
+    },
+    "WAV file saved." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "WAVファイルを保存しました。"
+          }
+        }
+      }
+    },
+    "Audio length" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音声の長さ"
+          }
+        }
+      }
+    },
+    "Generation" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "生成時間"
+          }
+        }
+      }
+    },
+    "Speech example: Greeting" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "あいさつ"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Greeting"
+          }
+        }
+      }
+    },
+    "Speech example: Announcement" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "お知らせ"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Announcement"
+          }
+        }
+      }
+    },
+    "Speech example: Instructions" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "作業手順"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Instructions"
+          }
+        }
+      }
+    },
     "%@ s audio" : {
       "extractionState" : "manual",
       "localizations" : {

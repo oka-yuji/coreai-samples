@@ -2,30 +2,7 @@
     import CryptoKit
     import Foundation
     import SpeechCore
-
-    struct AssetSpec: Decodable {
-        struct FileSpec: Decodable {
-            let bytes: Int
-            let sha256: String
-        }
-        let stem: String
-        let files: [String: FileSpec]
-    }
-
-    struct SpeechManifest: Codable {
-        let format: String
-        let modelID: String
-        let precision: String
-        let sampleRate: Int
-
-        func validate() throws {
-            guard format == "irodori-coreai-v1", modelID == "Aratako/Irodori-TTS-v4.1-Small-MF",
-                precision == "fp32", sampleRate == 48000
-            else {
-                throw SpeechError.invalidAsset("Select a supported Irodori FP32 model folder.")
-            }
-        }
-    }
+    import SpeechAssets
 
     struct ValidatedSpeechBundle: Sendable {
         let directory: URL
@@ -35,12 +12,8 @@
         static func open(_ directory: URL) throws -> Self {
             try Task.checkCancellation()
             let file = directory.appendingPathComponent("irodori.json")
-            let manifest = try JSONDecoder().decode(SpeechManifest.self, from: Data(contentsOf: file))
-            try manifest.validate()
-            guard let rules = Bundle.module.url(forResource: "irodori-assets", withExtension: "json") else {
-                throw SpeechError.invalidAsset("The application's Irodori asset manifest is missing.")
-            }
-            let specs = try JSONDecoder().decode([AssetSpec].self, from: Data(contentsOf: rules))
+            try IrodoriBundleInventory.validateManifest(Data(contentsOf: file))
+            let specs = try IrodoriBundleInventory.assetSpecifications()
             let assets = try specs.map { spec in
                 let asset = directory.appendingPathComponent("artifacts").appendingPathComponent(spec.stem + ".aimodel")
                 for (name, expected) in spec.files {

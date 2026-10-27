@@ -69,17 +69,11 @@ public actor OCRRuntime {
         let clock = ContinuousClock()
         let start = clock.now
         try Task.checkCancellation()
-        var vision = try OCRVisionInput(image)
-        if let shapes = model.staticShapes, vision.windowCount > model.windowLimit {
-            let size = shapes.fittedSize(width: image.width, height: image.height)
-            vision = try OCRVisionInput(image.resized(width: size.width, height: size.height, resampling: .pillow))
-        }
+        let vision = try OCRVisionInput(image)
         let prompt = try OCRPrompt(
             instruction: instruction, gridHeight: vision.gridHeight, gridWidth: vision.gridWidth, encode: model.encode)
-        let limit = model.staticShapes.map { min(maxNewTokens, $0.context - prompt.ids.count) } ?? maxNewTokens
-        guard maxNewTokens > 0, limit > 0, vision.windowCount <= model.windowLimit,
-            limit <= model.tokenLimit - prompt.ids.count,
-            model.staticShapes.map({ $0.prefillBucket(tokens: prompt.ids.count) != nil }) ?? true
+        guard maxNewTokens > 0, vision.windowCount <= model.windowLimit,
+            maxNewTokens <= model.tokenLimit - prompt.ids.count
         else {
             throw OCRRuntimeError.invalidRequest(
                 "\(vision.windowCount) windows and \(prompt.ids.count) + \(maxNewTokens) tokens exceed the limits.")
@@ -96,8 +90,8 @@ public actor OCRRuntime {
         embeddings.replaceSubrange(
             prompt.imageRange.lowerBound * width..<prompt.imageRange.upperBound * width, with: features)
         try Task.checkCancellation()
-        var cache = try model.makeCache(capacity: prompt.ids.count + limit)
-        var generation = OCRGeneration(prompt: prompt.ids, maxNewTokens: limit)
+        var cache = try model.makeCache(capacity: prompt.ids.count + maxNewTokens)
+        var generation = OCRGeneration(prompt: prompt.ids, maxNewTokens: maxNewTokens)
         let rotary = OCRTextRotary.cosSin(prompt.positions)
         try Task.checkCancellation()
         var token = try generation.select(await model.prefill(embeddings, rotary: rotary, cache: &cache))

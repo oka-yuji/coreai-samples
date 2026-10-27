@@ -26,6 +26,7 @@ public struct SpeechState: Sendable, Equatable {
     public enum Phase: Sendable, Equatable { case idle, opening, generating, playing, stopping }
     public var phase: Phase = .idle
     public var presented = false
+    public var managed = false
     public var session = 0
     public var text: String
     public var seed = "1708"
@@ -42,6 +43,13 @@ public struct SpeechState: Sendable, Equatable {
         self.examples = examples
         self.text = examples.first?.text ?? ""
         self.lastPath = lastPath
+    }
+    public init(managedModel: SpeechModel, examples: [SpeechExample] = [], retaining previous: SpeechState? = nil) {
+        self.init(examples: examples)
+        managed = true
+        model = managedModel
+        text = previous?.text ?? text
+        seed = previous?.seed ?? seed
     }
     public var busy: Bool { phase != .idle }
     public var exportVisible: Bool { exportTicket != nil && !exportDismissed }
@@ -99,12 +107,16 @@ public enum SpeechFeature: Feature {
             state.presented = true
         case .ended:
             state.presented = false
+            if state.managed {
+                state.audio = nil
+                state.message = nil
+            }
             state.session += 1
             state.phase = .stopping
             clearExport(&state)
             return [.cancelAll, .run(.stop(state.session), id: .stop)]
         case .openBundle(let path):
-            guard state.editable else { return [] }
+            guard !state.managed, state.editable else { return [] }
             state.session += 1
             state.phase = .opening
             state.model = nil

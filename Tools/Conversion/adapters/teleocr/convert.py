@@ -199,6 +199,13 @@ def decoder(args):
     result["stateless_s"] = time.perf_counter() - started
     print({key: value for key, value in result.items() if isinstance(value, dict)}, flush=True)
     started = time.perf_counter()
+    save_decoder(core, args.output / "main.aimodel")
+    result["stateful_export_s"] = time.perf_counter() - started
+    passed = result["coreai_fp16_vs_reference"]["finite"] and result["coreai_fp16_vs_reference"]["argmax_match"]
+    return passed, result, "main.aimodel"
+
+
+def save_decoder(core, path, description="TeleOCR decoder with prefill and main functions and FP16 KV states", compression=None):
     count, past, capacity = 8, 5, 64
     cache = torch.zeros(len(core.layers), 1, core.kv_heads, capacity, core.head_dim)
     context = (torch.zeros(1, count, core.head_dim), torch.zeros(1, count, core.head_dim),
@@ -213,11 +220,11 @@ def decoder(args):
         ("main", Main(core), torch.zeros(1, count, dtype=torch.int32), "input_ids"),
     ):
         program = export(module.eval(), (first, *context, cache.clone(), cache.clone()), ({1: tokens}, *shared), half=True)
+        if compression is not None:
+            from .quantization import audit_program
+            compression.setdefault("functions", {})[entry] = audit_program(program, compression, "decoder.")
         programs.append((entry, program, [name, *DECODER_INPUTS], ["logits"], STATES))
-    save(programs, args.output / "main.aimodel", "TeleOCR decoder with prefill and main functions and FP16 KV states")
-    result["stateful_export_s"] = time.perf_counter() - started
-    passed = result["coreai_fp16_vs_reference"]["finite"] and result["coreai_fp16_vs_reference"]["argmax_match"]
-    return passed, result, "main.aimodel"
+    save(programs, path, description)
 
 
 def main():

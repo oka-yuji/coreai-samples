@@ -20,6 +20,8 @@ def default_lock():
 
 
 def recipe_path(name, precision=None):
+    if name == "teleocr" and precision == "int4_int8":
+        return TOOL / "recipes" / name / "recipe-quantized.json"
     if name == "qwen_image21_mobile":
         candidate = precision or "w4"
         if candidate not in ("fp16", "bf16", "mixed", "w8", "w4", "mixed-f32", "w4-f32", "w4-blocks20-21-f32", "w4-blocks16-23-f32"):
@@ -178,7 +180,8 @@ def pipeline_command(action, recipe, workspace, lock, refresh):
     if recipe.parent.name in ("qwen_image21", "qwen_image21_mobile"):
         result += ["--set", f"heavy_lock={lock}"]
     if action == "run":
-        profile = recipe.parent.name + {"recipe-int4-int8": "-int4-int8", "recipe-ios": "-ios"}.get(recipe.stem, "")
+        suffix = {"recipe-int4-int8": "-int4-int8", "recipe-quantized": "-quantized", "recipe-ios": "-ios"}.get(recipe.stem, "")
+        profile = recipe.parent.name + suffix
         result += ["--work-dir", str(workspace / "work" / profile), "--lock-dir", str(lock)]
         if refresh:
             result.append("--refresh")
