@@ -4,9 +4,17 @@
 
 The normal **Core AI Demos** iOS app now includes **Models → Irodori → Speech demo**. Build and run the `CoreAISamples-iOS` scheme from **main**, with the local signing configuration and the `aarch64-apple-ios` Rust target installed. Its build script prepares the native input library. Device generation and listening acceptance are still pending; the host build is not evidence of device support.
 
+### Before you start
+
+This build has **no in-app Irodori model download**. It needs a complete, prepared **Irodori FP32** folder containing `irodori.json`, `tokenizer.json` and `artifacts/`. The upstream PyTorch checkpoint cannot be imported directly. If you do not already have the converted assets, the preparation script alone cannot create them. The app links to this guide beside **Import model**, and **About this demo** describes preparation, generation, playback and saving without leaving the app.
+
+The current bundle generates a voice from text. It does **not** accept a recorded or imported reference voice and does not clone a speaker. A seed selects a voice variation; it is not a reference voice selector. Reference-voice capture and conditioning require additional converted model components and their validation.
+
+### Generate your first passage
+
 1. Prepare the known FP32 folder using [the existing preparation command](runtime.md#prepare-a-local-model-folder). Keep the complete folder accessible in Files on the iPhone. An existing folder under **On My iPhone → Irodori Speech** can be selected without moving or deleting it.
 2. Open **Models → Irodori → Speech demo**, choose **Import model**, and select the complete prepared folder. Wait for validation. The app copies it into managed storage; it does not modify the original. The 3.38 GB source and managed copy both need space, plus room for specialization.
-3. Enter a short Japanese passage and a whole-number seed, or choose an example. Press **Generate speech**. Merely opening Models, importing, or viewing the speech screen does not generate audio.
+3. Under **2. Enter what to say**, tap **Try an example** or enter a short Japanese passage. Leave **Voice options** at its default for the first attempt; a seed change is optional. Under **3. Generate and listen**, press **Generate speech** and keep the screen open. Merely opening Models, importing, or viewing the speech screen does not generate audio.
 4. Use **Play**, **Stop**, and **Save WAV…**. The exported file is 48 kHz mono Float32 WAV. Generation time and audio length are shown on the screen.
 5. Wait for a stop to finish before starting again. Leaving the demo, changing models, or moving to the background cancels generation/playback and waits for audio-session deactivation and runtime release. Reopening retains text and seed, but clears old audio and save tickets; generate again to obtain a new result.
 

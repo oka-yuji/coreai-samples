@@ -128,10 +128,25 @@ public enum IOSDemoCatalog {
                     summary: "Turn a short Japanese passage into speech, then play or save it.",
                     explanation: [
                         DemoExplanation(
-                            title: "How it works",
+                            title: "1. Prepare the model",
                             text:
-                                "Enter text and a seed, generate speech on this device, and save the result as a WAV file."
-                        )
+                                "This build does not offer an Irodori model download. In Files, select the complete prepared Irodori FP32 folder with Import model. The folder uses 3.38 GB and is copied into the app, so allow space for both copies and model preparation."
+                        ),
+                        DemoExplanation(
+                            title: "2. Enter what to say",
+                            text:
+                                "Choose Try an example or enter a short Japanese passage. You can leave the voice variation setting as it is."
+                        ),
+                        DemoExplanation(
+                            title: "3. Generate, listen and save",
+                            text:
+                                "Tap Generate speech and keep the app open. The first generation can take longer while the model is prepared. When it finishes, tap Play or Save WAV. Stop cancels the current operation."
+                        ),
+                        DemoExplanation(
+                            title: "About reference voices",
+                            text:
+                                "The current model bundle generates speech from text without a reference voice. Recording, importing a voice recording and voice cloning are not supported by this bundle. Changing the seed changes the generated voice variation."
+                        ),
                     ],
                     platforms: [.iOS], searchTerms: searchTerms["speech"]))
             models.append(
