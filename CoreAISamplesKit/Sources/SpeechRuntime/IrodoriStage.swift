@@ -6,14 +6,15 @@
     struct Stage: Sendable {
         let model: AIModel
         let function: InferenceFunction
-        init(url: URL, dynamicShape: Bool) async throws {
+        init(url: URL, dynamicShape: Bool, frequentReshapes: Bool? = nil) async throws {
             try Task.checkCancellation()
             #if os(iOS)
                 let onPhone = true
             #else
                 let onPhone = false
             #endif
-            let options = Self.options(dynamicShape: dynamicShape, onPhone: onPhone)
+            var options = Self.options(dynamicShape: dynamicShape, onPhone: onPhone)
+            if let frequentReshapes { options.expectFrequentReshapes = frequentReshapes }
             model = try await AIModel.specialize(contentsOf: url, options: options)
             try Task.checkCancellation()
             guard let descriptor = model.functionDescriptor(for: "predict"), descriptor.stateNames.isEmpty,
