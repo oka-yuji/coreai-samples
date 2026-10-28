@@ -177,3 +177,58 @@ loading a model.
 `docs/results/teleocr-eval/2026-10-25/` stores the original-model outputs, run records and
 scores for F1-F5 and S01-S30, and only run records and redacted scores for the
 OmniDocBench subset. `set.json` lists the input hashes the baseline used.
+
+## Precision comparison
+
+`python -m Tools.OCREval.compare <plan.json> <new-output-directory>` runs a fixed local
+plan under the shared model lock. Use the pinned OCREval environment. The plan supplies:
+
+- `cli`, `cli_sha256`: the Release `coreai-verify` executable and its SHA-256.
+- `source_cache`: the SSD Hugging Face cache containing the pinned TeleOCR snapshot.
+- `sets`: named input directories containing the original manifest and ground truth.
+- `cache_root`: the actual Core AI cache partition for this executable and OS build.
+- `variants`: unique `id`, `engine` (`coreai` or `reference`), and either `bundle` plus
+  `asset_hashes` (relative file name to SHA-256), or `dtype` (`bf16` or `fp32`). Compressed
+  references additionally supply `weights` (the conversion stage artifact directory) and
+  `weight_hashes` with `compression_sha256` and `reference_sha256`.
+- `comparisons`: named pairs (`id`, `left`, `right`, `axis`) separating original-to-
+  compressed quality from compressed-reference-to-Core-AI output agreement. Include an
+  uncompressed FP32 control when the original reference is BF16.
+- `performance`: the `set` and `sample` used for cold loads, one warmup and 20 measured
+  fresh processes per Core AI variant, interleaved in plan order.
+
+The runner verifies source, input and asset hashes before inference. Each input is a
+full page for synthetic fixtures, or the original annotation crop for OmniDocBench;
+source hashes and crops remain in `inputs.json`. Every variant uses the same page
+pipeline. Scoring uses the archived ground truth in the output directory, so later
+edits to the source set cannot change an in-progress invocation's scoring target.
+Compressed reference tensors must cover exactly the declared Linear targets
+and match the conversion manifest's effective weight hashes. FP32 reference scales and
+exported FP16 scales remain distinct numerical conditions.
+
+`results/` contains the page outputs, `scores/` the unchanged scorer's per-set results,
+and `comparisons.json` the exact prediction, text-only and EOS comparisons. Reference
+outputs use `teleocr-reference-page/1`, with token IDs and raw text; they are not CLI
+schema `/1` records. A mismatch is an observed difference, not an automatic numerical
+tolerance pass. Failures and incomplete generations remain in `runs.json`. Interrupted
+invocations retain their recorded runs and an `aborted` reason in `invocation.json`.
+
+`--only F2 F4 --no-performance` is for a bounded integration probe. Its missing samples
+stay missing in comparisons and scores; do not report it as a complete evaluation.
+Use a new output directory for every invocation. All raw OmniDocBench artifacts remain
+private. Publish only reviewed aggregate metrics and sanitized provenance.
+
+For common reporting, separate cold and prepared contexts, retain warmup/failure rows,
+and pass performance run rows through `Tools.ModelReports summarize`. `generated_tokens`
+counts layout plus every block, including EOS. RSS and footprint are process-lifetime
+peaks. Bundle/cache sizes are logical file bytes; caches are located by the actual
+asset hashes, and missing cache entries fail the measurement. `ocr --clear-cache`
+deletes only the selected bundle's cache entries before its cold load.
+Power and thermal warnings are sampled before and after each performance process;
+these observations are kept separate from the invocation's initial environment.
+The CLI's additive `pipeline_s` field includes image decoding, the page runtime and
+table/Markdown assembly. It excludes bundle loading, input file I/O, executable hashing,
+JSON serialization and output file I/O. Performance `latency_s` uses this interval;
+the existing `generate_s` field retains its narrower `OCRRuntime.read` interval.
+
+Public aggregation and ModelReports integration are tracked in issue #356.
