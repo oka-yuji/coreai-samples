@@ -111,6 +111,25 @@ struct TeleOCRImportTests {
         #expect(try await store.inspect(model: model(artifact), artifact: artifact).isMissing)
     }
 
+    @Test("A trusted TeleOCR metadata file reaches payload verification without an unsupported-family failure")
+    func validManifestReachesPayload() async throws {
+        let artifact = try TeleOCRModelArtifact.make()
+        let fixture = StoreFixture()
+        defer { fixture.remove() }
+        try sparseSource(artifact, at: fixture.documents)
+        let url = try #require(
+            Bundle.module.url(forResource: "teleocr-metadata", withExtension: "json", subdirectory: "Resources"))
+        let metadata = try Data(contentsOf: url)
+        #expect(sha256(metadata) == TeleOCRModelArtifact.manifestSHA256)
+        try metadata.write(to: fixture.documents.appending(path: "metadata.json"))
+        let store = fixture.store()
+        await #expect(throws: ManagedModelStoreError.checksumMismatch("LICENSE")) {
+            try await store.copyForImport(from: fixture.documents, model: model(artifact), artifact: artifact) { _ in }
+        }
+        #expect(try await store.inspect(model: model(artifact), artifact: artifact).isMissing)
+        #expect(try Data(contentsOf: fixture.documents.appending(path: "metadata.json")) == metadata)
+    }
+
     @Test(
         "The evaluated TeleOCR bundle imports intact, survives a rejected replacement and respects leases",
         .enabled(if: ProcessInfo.processInfo.environment["COREAI_TELEOCR_IMPORT_BUNDLE"] != nil))

@@ -633,6 +633,7 @@ private func verifyLocalManifest(_ raw: Data, _ artifact: ModelArtifact) throws 
     switch try family(artifact) {
     case .image: try verifyImageManifest(raw, artifact)
     case .speech: try IrodoriBundleInventory.validateManifest(raw)
+    case .ocr: try TeleOCRModelArtifact.validateManifest(raw)
     default: throw ManagedModelStoreError.invalidDefinition
     }
 }
