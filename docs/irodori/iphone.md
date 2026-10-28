@@ -46,7 +46,7 @@ Use a new check ID each time. Results are written to `Documents/SpeechChecks/<ID
 
 `SpeechPhone` is a separate iOS 27 app, displayed as **Irodori Speech**, with bundle identifier `com.coreai-samples.SpeechPhone`. Its demo screen is titled **Irodori**. It reuses the pinned FP32 speech runtime and can coexist with the Mac demos and the existing Extract iPhone app. Its source is in SpeechPhone, with a dedicated target and scheme alongside the Mac and existing iPhone app.
 
-The integration check on October 16, 2026 passed the signed SpeechPhone Release build, Mac and existing iPhone regression builds, CPU tests, lint and format. The generated app contains both file-sharing keys and the increased-memory-limit entitlement. A fresh device-info read reported iOS 27.0.1 and a connected tunnel. Model execution, audible playback, WAV export on the device and personal listening acceptance remain unverified. The October 13 connection failure is retained in the validation record as historical evidence.
+The historical integration check on October 16, 2026 passed the signed SpeechPhone Release build, Mac and existing iPhone regression builds, CPU tests, lint and format. The generated app contains both file-sharing keys and the increased-memory-limit entitlement. That check did not execute a model. The October 29 reference preflight above adds model execution and WAV saving; audible playback and personal listening remain unverified. The October 13 connection failure is retained as historical evidence.
 
 ## Build and install
 
@@ -74,15 +74,15 @@ Unlock the iPhone, keep Developer Mode enabled, and connect it to the Mac by USB
 
 ## Put the model on the phone
 
-Use [the prepared FP32 folder](runtime.md#prepare-a-local-model-folder). The four assets total 3,368,343,098 bytes; the folder including tokenizer and metadata totals **3,375,061,725 bytes (3.38 GB)**. That is storage size, not the app's working-memory requirement. Specialization needs additional storage and memory. No model weights are embedded in the app.
+For recording and file input, use the **reference v2 folder** described above (3,836,181,569 bytes). SpeechPhone also supports [the legacy FP32 folder](runtime.md#prepare-a-local-model-folder) for text-only generation: four assets totaling 3,368,343,098 bytes, or **3,375,061,725 bytes (3.38 GB)** including tokenizer and metadata. These are storage sizes, not working-memory requirements. Specialization needs additional storage and memory. No model weights are embedded in the app.
 
-Copy the entire `sampler-irodori-fp32` folder into **Files → On My iPhone → Irodori Speech**, or use:
+Copy the complete model folder into **Files → On My iPhone → Irodori Speech**. For example, copy a prepared reference folder with:
 
 ```sh
 xcrun devicectl device copy to --device "$phone_device" \
   --domain-type appDataContainer --domain-identifier com.coreai-samples.SpeechPhone \
-  --source /path/to/sampler-irodori-fp32 \
-  --destination Documents/sampler-irodori-fp32
+  --source /path/to/irodori-reference-fp32-v2 \
+  --destination Documents/irodori-reference-fp32-v2
 ```
 
 Let the copy finish before opening the model. Do not use `--remove-existing-content true`. `SpeechChecks` is reserved for diagnostic output; give the model a different folder name. The app lists visible local folders containing `irodori.json`, then verifies all asset sizes/digests and the pinned tokenizer before inference. An incomplete or changed copy is rejected.
@@ -91,11 +91,11 @@ Let the copy finish before opening the model. Do not use `--remove-existing-cont
 
 1. Launch Irodori Speech normally and tap **Refresh model folders**.
 2. Choose the prepared folder. Wait for file verification to complete.
-3. Enter a short passage or choose an example; seed `1708` is the default. Input above 255 body tokens is rejected.
+3. With a reference v2 folder, use **Record voice** or **Choose audio file** as described above. Enter a short passage or choose an example; seed `1708` is the default. Input above 255 body tokens is rejected.
 4. Tap **Generate speech**, then **Play** or **Save WAV…**. The result shows audio duration, generation duration and normalized text. The WAV is 48 kHz mono Float32.
 5. **Stop** waits for resource cleanup before allowing another operation. Leaving the foreground also ends the operation. Audio-session interruption returns playback to idle without discarding the completed WAV.
 
-Keep the app in the foreground during model preparation and generation. Editing text or seed invalidates the previous audio. First specialization can take longer than later runs. Reading accuracy and naturalness still require listening; this app preserves the upstream normalization and uses no reference voice, empty caption, four steps, no trim and no watermark.
+Keep the app in the foreground during model preparation and generation. Editing text or seed invalidates the previous audio. First specialization can take longer than later runs. Reading accuracy and naturalness still require listening. The app preserves upstream normalization, empty caption, four steps, no trim and no watermark. A selected reference conditions the voice with v2; without a reference, generation uses the model's default voice.
 
 ## Explicit device diagnostic
 
@@ -115,7 +115,7 @@ xcrun devicectl device copy from --device "$phone_device" \
   --source Documents/SpeechChecks/check-001 --destination /tmp/irodori-phone-check-001
 ```
 
-The report records OS/build, hardware, Core AI architecture, thermal/power state, per-sample generation time, waveform size and process memory. `availableBytes` is the runtime process allowance, `footprintBytes` is the current physical footprint, and `peakFootprintBytes` is the process-lifetime peak, not a separately reset peak for each utterance. This three-call check is not an endurance or production benchmark. The first two texts correspond to the earlier lab CLI's `a00-s1708` and `a01-s1708`; the third repeats the first. Actual phone output comparison remains pending.
+The report records OS/build, hardware, Core AI architecture, thermal/power state, per-sample generation time, waveform size and process memory. `availableBytes` is the runtime process allowance, `footprintBytes` is the current physical footprint, and `peakFootprintBytes` is the process-lifetime peak, not a separately reset peak for each utterance. This three-call check is not an endurance or production benchmark. The first two texts correspond to the earlier lab CLI's `a00-s1708` and `a01-s1708`; the third repeats the first. Repeat equality passed in the October 29 reference preflight; comparison with original PyTorch waveforms remains separate and incomplete.
 
 The diagnostic plays to completion, then calls stop/release. Stopping partway through audible playback, real system interruption, save-panel interaction and subjective listening remain separate manual checks. To return to the normal screen, launch the app without the diagnostic arguments.
 
@@ -127,4 +127,4 @@ The diagnostic plays to completion, then calls stop/release. Stopping partway th
 - [ ] Stop generation and switch to the background; after cleanup, return and generate again without an old result appearing.
 - [ ] Confirm pronunciation, naturalness and usability personally. No automated result substitutes for this check.
 
-See [implementation validation](iphone-validation.md) for the completed CPU/build/review evidence and the outstanding device connection.
+See [reference-input validation](reference-input-validation.md) for current CPU/build/device evidence. [Earlier implementation validation](iphone-validation.md) retains the previous connection and verification history.
