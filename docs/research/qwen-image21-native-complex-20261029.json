@@ -1,0 +1,1222 @@
+{
+  "format": 1,
+  "date": "2026-10-29",
+  "profile_id": "qmi-mobile-w4-dit-g16-native-complex-blocks16-23-f32-v1",
+  "profile_sha256": "4341e99e65dcd4857dd5c29d4c5061d5ef51976b8e2cd5391317617f05356b3f",
+  "host": {
+    "hardware": "M4 Max 128GB",
+    "os": "macOS 27.0 (26A428)",
+    "coreai_core": "1.0.0b3",
+    "coreai_torch": "0.4.3",
+    "torch": "2.9.0"
+  },
+  "fixed_preflight": {
+    "report": {
+      "bytes": 130401,
+      "sha256": "d3b9a94f90ade78b4f6d549469990149b4b5f9fe6241db8b87e0ccdda61795e2"
+    },
+    "passed": true,
+    "scope": "Selected fixed DiT inputs only; old accepted source cohort retained as independent data. This is not the complete current-profile verification or a quality/device result.",
+    "case_count": 6,
+    "step_count": 48,
+    "median_call_seconds": 5.484478458529338,
+    "timing_scope": "Diagnostic calls on one Mac run; not a mobile speed result",
+    "bit_comparison": [
+      {
+        "run_id": "g08-20261018",
+        "step": "denoiser-0",
+        "shape": [
+          1,
+          2304,
+          64
+        ],
+        "bit_identical": true,
+        "different_bits_elements": 0,
+        "old_output": {
+          "bytes": 590094,
+          "sha256": "14eae7993c90e23ccd48c41c2864afa8645a6c100915696ca83b7306bbcb1a21"
+        },
+        "new_output": {
+          "bytes": 590094,
+          "sha256": "14eae7993c90e23ccd48c41c2864afa8645a6c100915696ca83b7306bbcb1a21"
+        }
+      },
+      {
+        "run_id": "g08-20261018",
+        "step": "denoiser-1",
+        "shape": [
+          1,
+          2304,
+          64
+        ],
+        "bit_identical": true,
+        "different_bits_elements": 0,
+        "old_output": {
+          "bytes": 590094,
+          "sha256": "1049293d64b1514546d9f13ba3166e07684d5d10e1807648f943d69881d7d7dd"
+        },
+        "new_output": {
+          "bytes": 590094,
+          "sha256": "1049293d64b1514546d9f13ba3166e07684d5d10e1807648f943d69881d7d7dd"
+        }
+      },
+      {
+        "run_id": "g08-20261018",
+        "step": "denoiser-2",
+        "shape": [
+          1,
+          2304,
+          64
+        ],
+        "bit_identical": true,
+        "different_bits_elements": 0,
+        "old_output": {
+          "bytes": 590094,
+          "sha256": "b19b2799c18618511691f6c020c470596018e35ca7f459bbafe2c1df7810e3bc"
+        },
+        "new_output": {
+          "bytes": 590094,
+          "sha256": "b19b2799c18618511691f6c020c470596018e35ca7f459bbafe2c1df7810e3bc"
+        }
+      },
+      {
+        "run_id": "g08-20261018",
+        "step": "denoiser-3",
+        "shape": [
+          1,
+          2304,
+          64
+        ],
+        "bit_identical": true,
+        "different_bits_elements": 0,
+        "old_output": {
+          "bytes": 590094,
+          "sha256": "a693b2682f3704e3e150137915a9c31d375b865159d4d59c883d117974288994"
+        },
+        "new_output": {
+          "bytes": 590094,
+          "sha256": "a693b2682f3704e3e150137915a9c31d375b865159d4d59c883d117974288994"
+        }
+      },
+      {
+        "run_id": "g08-20261018",
+        "step": "denoiser-4",
+        "shape": [
+          1,
+          2304,
+          64
+        ],
+        "bit_identical": true,
+        "different_bits_elements": 0,
+        "old_output": {
+          "bytes": 590094,
+          "sha256": "f4fe34612fe2fe9e1b2785ea2962353dfcf5820fe19c7276966c43fb89390a09"
+        },
+        "new_output": {
+          "bytes": 590094,
+          "sha256": "f4fe34612fe2fe9e1b2785ea2962353dfcf5820fe19c7276966c43fb89390a09"
+        }
+      },
+      {
+        "run_id": "g08-20261018",
+        "step": "denoiser-5",
+        "shape": [
+          1,
+          2304,
+          64
+        ],
+        "bit_identical": true,
+        "different_bits_elements": 0,
+        "old_output": {
+          "bytes": 590094,
+          "sha256": "1bc8892aa8cbc8bb4444fc9e502f1512c8d32885c164cb829a2080cff56bcfeb"
+        },
+        "new_output": {
+          "bytes": 590094,
+          "sha256": "1bc8892aa8cbc8bb4444fc9e502f1512c8d32885c164cb829a2080cff56bcfeb"
+        }
+      },
+      {
+        "run_id": "g08-20261018",
+        "step": "denoiser-6",
+        "shape": [
+          1,
+          2304,
+          64
+        ],
+        "bit_identical": true,
+        "different_bits_elements": 0,
+        "old_output": {
+          "bytes": 590094,
+          "sha256": "2cc1ede630c932fa78fd29ad7fd2d97f727fd5bf17b0ae49d1207336b949f0fb"
+        },
+        "new_output": {
+          "bytes": 590094,
+          "sha256": "2cc1ede630c932fa78fd29ad7fd2d97f727fd5bf17b0ae49d1207336b949f0fb"
+        }
+      },
+      {
+        "run_id": "g08-20261018",
+        "step": "denoiser-7",
+        "shape": [
+          1,
+          2304,
+          64
+        ],
+        "bit_identical": true,
+        "different_bits_elements": 0,
+        "old_output": {
+          "bytes": 590094,
+          "sha256": "02cc51fdc555efb659638cceabd56d12e8548433ef54c8ed0ab6eef5245f8fbb"
+        },
+        "new_output": {
+          "bytes": 590094,
+          "sha256": "02cc51fdc555efb659638cceabd56d12e8548433ef54c8ed0ab6eef5245f8fbb"
+        }
+      },
+      {
+        "run_id": "g08-20261021",
+        "step": "denoiser-0",
+        "shape": [
+          1,
+          2304,
+          64
+        ],
+        "bit_identical": true,
+        "different_bits_elements": 0,
+        "old_output": {
+          "bytes": 590094,
+          "sha256": "2b54c964a0027b80f3efc3cd445977328a056ef9c91427ecde167dd76f091c98"
+        },
+        "new_output": {
+          "bytes": 590094,
+          "sha256": "2b54c964a0027b80f3efc3cd445977328a056ef9c91427ecde167dd76f091c98"
+        }
+      },
+      {
+        "run_id": "g08-20261021",
+        "step": "denoiser-1",
+        "shape": [
+          1,
+          2304,
+          64
+        ],
+        "bit_identical": true,
+        "different_bits_elements": 0,
+        "old_output": {
+          "bytes": 590094,
+          "sha256": "035112bcc9cb24a1d423a16e6c46fbdc83e8c52395912e80a3c549d4a44dbfa2"
+        },
+        "new_output": {
+          "bytes": 590094,
+          "sha256": "035112bcc9cb24a1d423a16e6c46fbdc83e8c52395912e80a3c549d4a44dbfa2"
+        }
+      },
+      {
+        "run_id": "g08-20261021",
+        "step": "denoiser-2",
+        "shape": [
+          1,
+          2304,
+          64
+        ],
+        "bit_identical": true,
+        "different_bits_elements": 0,
+        "old_output": {
+          "bytes": 590094,
+          "sha256": "34d6e60a1ba2dccb9912d145d9823c0c38409b272113d3e40a33add4da825b95"
+        },
+        "new_output": {
+          "bytes": 590094,
+          "sha256": "34d6e60a1ba2dccb9912d145d9823c0c38409b272113d3e40a33add4da825b95"
+        }
+      },
+      {
+        "run_id": "g08-20261021",
+        "step": "denoiser-3",
+        "shape": [
+          1,
+          2304,
+          64
+        ],
+        "bit_identical": true,
+        "different_bits_elements": 0,
+        "old_output": {
+          "bytes": 590094,
+          "sha256": "f0de835a26d64ee4e933eddab43d9d0f36ed1e6d94de24c303de62efff0c3f51"
+        },
+        "new_output": {
+          "bytes": 590094,
+          "sha256": "f0de835a26d64ee4e933eddab43d9d0f36ed1e6d94de24c303de62efff0c3f51"
+        }
+      },
+      {
+        "run_id": "g08-20261021",
+        "step": "denoiser-4",
+        "shape": [
+          1,
+          2304,
+          64
+        ],
+        "bit_identical": true,
+        "different_bits_elements": 0,
+        "old_output": {
+          "bytes": 590094,
+          "sha256": "b51c36eba8c5340545276b5e2314849d9bf28c3f24857b5a5f25b2b42edb2119"
+        },
+        "new_output": {
+          "bytes": 590094,
+          "sha256": "b51c36eba8c5340545276b5e2314849d9bf28c3f24857b5a5f25b2b42edb2119"
+        }
+      },
+      {
+        "run_id": "g08-20261021",
+        "step": "denoiser-5",
+        "shape": [
+          1,
+          2304,
+          64
+        ],
+        "bit_identical": true,
+        "different_bits_elements": 0,
+        "old_output": {
+          "bytes": 590094,
+          "sha256": "c5f5ecce4059bed1e1bb4ea981a70658781378ae32d13fe6e5927f398eff8a17"
+        },
+        "new_output": {
+          "bytes": 590094,
+          "sha256": "c5f5ecce4059bed1e1bb4ea981a70658781378ae32d13fe6e5927f398eff8a17"
+        }
+      },
+      {
+        "run_id": "g08-20261021",
+        "step": "denoiser-6",
+        "shape": [
+          1,
+          2304,
+          64
+        ],
+        "bit_identical": true,
+        "different_bits_elements": 0,
+        "old_output": {
+          "bytes": 590094,
+          "sha256": "fe15375fb62cb67af21c5fc8afab1c319f7d6c87a4588cb1a2f196e358318175"
+        },
+        "new_output": {
+          "bytes": 590094,
+          "sha256": "fe15375fb62cb67af21c5fc8afab1c319f7d6c87a4588cb1a2f196e358318175"
+        }
+      },
+      {
+        "run_id": "g08-20261021",
+        "step": "denoiser-7",
+        "shape": [
+          1,
+          2304,
+          64
+        ],
+        "bit_identical": true,
+        "different_bits_elements": 0,
+        "old_output": {
+          "bytes": 590094,
+          "sha256": "c9d39928f33eef080a54c8e673e88b9125aaaf6a285f94374e6cec7bca242553"
+        },
+        "new_output": {
+          "bytes": 590094,
+          "sha256": "c9d39928f33eef080a54c8e673e88b9125aaaf6a285f94374e6cec7bca242553"
+        }
+      },
+      {
+        "run_id": "e10-20261018",
+        "step": "denoiser-0",
+        "shape": [
+          1,
+          2304,
+          64
+        ],
+        "bit_identical": true,
+        "different_bits_elements": 0,
+        "old_output": {
+          "bytes": 590094,
+          "sha256": "e4997b7096dce9f03ac24585fd815717e706f49919cff6fbd8dda43a81ee82a7"
+        },
+        "new_output": {
+          "bytes": 590094,
+          "sha256": "e4997b7096dce9f03ac24585fd815717e706f49919cff6fbd8dda43a81ee82a7"
+        }
+      },
+      {
+        "run_id": "e10-20261018",
+        "step": "denoiser-1",
+        "shape": [
+          1,
+          2304,
+          64
+        ],
+        "bit_identical": true,
+        "different_bits_elements": 0,
+        "old_output": {
+          "bytes": 590094,
+          "sha256": "4de8a566ddcab1eeb46fd2e3c0f7a80c90e601844ab351df09d90783c4d3f50b"
+        },
+        "new_output": {
+          "bytes": 590094,
+          "sha256": "4de8a566ddcab1eeb46fd2e3c0f7a80c90e601844ab351df09d90783c4d3f50b"
+        }
+      },
+      {
+        "run_id": "e10-20261018",
+        "step": "denoiser-2",
+        "shape": [
+          1,
+          2304,
+          64
+        ],
+        "bit_identical": true,
+        "different_bits_elements": 0,
+        "old_output": {
+          "bytes": 590094,
+          "sha256": "87270edbdf92c1b8902effa2f83136ef4526b46c34e6ecad6b0d29797371d866"
+        },
+        "new_output": {
+          "bytes": 590094,
+          "sha256": "87270edbdf92c1b8902effa2f83136ef4526b46c34e6ecad6b0d29797371d866"
+        }
+      },
+      {
+        "run_id": "e10-20261018",
+        "step": "denoiser-3",
+        "shape": [
+          1,
+          2304,
+          64
+        ],
+        "bit_identical": true,
+        "different_bits_elements": 0,
+        "old_output": {
+          "bytes": 590094,
+          "sha256": "39072b6bc79ce3aa27cacff7566be8f76b6f3ada82cebe4508911c7a3c08ee7c"
+        },
+        "new_output": {
+          "bytes": 590094,
+          "sha256": "39072b6bc79ce3aa27cacff7566be8f76b6f3ada82cebe4508911c7a3c08ee7c"
+        }
+      },
+      {
+        "run_id": "e10-20261018",
+        "step": "denoiser-4",
+        "shape": [
+          1,
+          2304,
+          64
+        ],
+        "bit_identical": true,
+        "different_bits_elements": 0,
+        "old_output": {
+          "bytes": 590094,
+          "sha256": "c55092be2dec342c5d5267a7bfde8b3c59fa02a94fd7ebdb6300986d54c83f1c"
+        },
+        "new_output": {
+          "bytes": 590094,
+          "sha256": "c55092be2dec342c5d5267a7bfde8b3c59fa02a94fd7ebdb6300986d54c83f1c"
+        }
+      },
+      {
+        "run_id": "e10-20261018",
+        "step": "denoiser-5",
+        "shape": [
+          1,
+          2304,
+          64
+        ],
+        "bit_identical": true,
+        "different_bits_elements": 0,
+        "old_output": {
+          "bytes": 590094,
+          "sha256": "f8a361fcb53073df5aaa41b11e0cfd4349245b281bb6e2a368ea210e49baf5b4"
+        },
+        "new_output": {
+          "bytes": 590094,
+          "sha256": "f8a361fcb53073df5aaa41b11e0cfd4349245b281bb6e2a368ea210e49baf5b4"
+        }
+      },
+      {
+        "run_id": "e10-20261018",
+        "step": "denoiser-6",
+        "shape": [
+          1,
+          2304,
+          64
+        ],
+        "bit_identical": true,
+        "different_bits_elements": 0,
+        "old_output": {
+          "bytes": 590094,
+          "sha256": "d1980d00ad74db73888888160a22caa44ed77a551b833fe4870a7a1efc3a8576"
+        },
+        "new_output": {
+          "bytes": 590094,
+          "sha256": "d1980d00ad74db73888888160a22caa44ed77a551b833fe4870a7a1efc3a8576"
+        }
+      },
+      {
+        "run_id": "e10-20261018",
+        "step": "denoiser-7",
+        "shape": [
+          1,
+          2304,
+          64
+        ],
+        "bit_identical": true,
+        "different_bits_elements": 0,
+        "old_output": {
+          "bytes": 590094,
+          "sha256": "7d1b9c797c67d2d1be0193b27ac0dc5520689552d0667ea5c9ff20cc0c82ea87"
+        },
+        "new_output": {
+          "bytes": 590094,
+          "sha256": "7d1b9c797c67d2d1be0193b27ac0dc5520689552d0667ea5c9ff20cc0c82ea87"
+        }
+      },
+      {
+        "run_id": "e10-20261021",
+        "step": "denoiser-0",
+        "shape": [
+          1,
+          2304,
+          64
+        ],
+        "bit_identical": true,
+        "different_bits_elements": 0,
+        "old_output": {
+          "bytes": 590094,
+          "sha256": "ec865e083389441a31fec5bcd8eab18fc1df02e1345f2254c181da3ccddd55be"
+        },
+        "new_output": {
+          "bytes": 590094,
+          "sha256": "ec865e083389441a31fec5bcd8eab18fc1df02e1345f2254c181da3ccddd55be"
+        }
+      },
+      {
+        "run_id": "e10-20261021",
+        "step": "denoiser-1",
+        "shape": [
+          1,
+          2304,
+          64
+        ],
+        "bit_identical": true,
+        "different_bits_elements": 0,
+        "old_output": {
+          "bytes": 590094,
+          "sha256": "71d24447ec61a5e3d60644b5b95c1c873313268b376e6b5ba0c545ad3e2bd34f"
+        },
+        "new_output": {
+          "bytes": 590094,
+          "sha256": "71d24447ec61a5e3d60644b5b95c1c873313268b376e6b5ba0c545ad3e2bd34f"
+        }
+      },
+      {
+        "run_id": "e10-20261021",
+        "step": "denoiser-2",
+        "shape": [
+          1,
+          2304,
+          64
+        ],
+        "bit_identical": true,
+        "different_bits_elements": 0,
+        "old_output": {
+          "bytes": 590094,
+          "sha256": "6c9301b987d6084ca77cfcf3bc78134eae88efcc1485a1cac036b6e87f1dc914"
+        },
+        "new_output": {
+          "bytes": 590094,
+          "sha256": "6c9301b987d6084ca77cfcf3bc78134eae88efcc1485a1cac036b6e87f1dc914"
+        }
+      },
+      {
+        "run_id": "e10-20261021",
+        "step": "denoiser-3",
+        "shape": [
+          1,
+          2304,
+          64
+        ],
+        "bit_identical": true,
+        "different_bits_elements": 0,
+        "old_output": {
+          "bytes": 590094,
+          "sha256": "06c137e5d03c471ea4a272795218bb6e52a91fc2e2e24ef04528b4591f38e702"
+        },
+        "new_output": {
+          "bytes": 590094,
+          "sha256": "06c137e5d03c471ea4a272795218bb6e52a91fc2e2e24ef04528b4591f38e702"
+        }
+      },
+      {
+        "run_id": "e10-20261021",
+        "step": "denoiser-4",
+        "shape": [
+          1,
+          2304,
+          64
+        ],
+        "bit_identical": true,
+        "different_bits_elements": 0,
+        "old_output": {
+          "bytes": 590094,
+          "sha256": "6f276981cf8e4d05313bf12b2711c604a5cf67fe530497053302076f20a02ea7"
+        },
+        "new_output": {
+          "bytes": 590094,
+          "sha256": "6f276981cf8e4d05313bf12b2711c604a5cf67fe530497053302076f20a02ea7"
+        }
+      },
+      {
+        "run_id": "e10-20261021",
+        "step": "denoiser-5",
+        "shape": [
+          1,
+          2304,
+          64
+        ],
+        "bit_identical": true,
+        "different_bits_elements": 0,
+        "old_output": {
+          "bytes": 590094,
+          "sha256": "f0a9d63d23538d608b41776b781b6c8c060d4266045dc69ee8c5c41cb0353a5c"
+        },
+        "new_output": {
+          "bytes": 590094,
+          "sha256": "f0a9d63d23538d608b41776b781b6c8c060d4266045dc69ee8c5c41cb0353a5c"
+        }
+      },
+      {
+        "run_id": "e10-20261021",
+        "step": "denoiser-6",
+        "shape": [
+          1,
+          2304,
+          64
+        ],
+        "bit_identical": true,
+        "different_bits_elements": 0,
+        "old_output": {
+          "bytes": 590094,
+          "sha256": "29beb2ae79a1e369193d3981fa2dcc8ce1349675be889d714d67365f9dcd33eb"
+        },
+        "new_output": {
+          "bytes": 590094,
+          "sha256": "29beb2ae79a1e369193d3981fa2dcc8ce1349675be889d714d67365f9dcd33eb"
+        }
+      },
+      {
+        "run_id": "e10-20261021",
+        "step": "denoiser-7",
+        "shape": [
+          1,
+          2304,
+          64
+        ],
+        "bit_identical": true,
+        "different_bits_elements": 0,
+        "old_output": {
+          "bytes": 590094,
+          "sha256": "07b542e9247c27fe8e0653159ae279773a658c0179e5d54e461f48f7fb1dcef5"
+        },
+        "new_output": {
+          "bytes": 590094,
+          "sha256": "07b542e9247c27fe8e0653159ae279773a658c0179e5d54e461f48f7fb1dcef5"
+        }
+      },
+      {
+        "run_id": "e11-20261018",
+        "step": "denoiser-0",
+        "shape": [
+          1,
+          2304,
+          64
+        ],
+        "bit_identical": true,
+        "different_bits_elements": 0,
+        "old_output": {
+          "bytes": 590094,
+          "sha256": "078a6d4763a850f6f2c074ff02baf4ce866595977d1e6fc8337e3bb9a745c680"
+        },
+        "new_output": {
+          "bytes": 590094,
+          "sha256": "078a6d4763a850f6f2c074ff02baf4ce866595977d1e6fc8337e3bb9a745c680"
+        }
+      },
+      {
+        "run_id": "e11-20261018",
+        "step": "denoiser-1",
+        "shape": [
+          1,
+          2304,
+          64
+        ],
+        "bit_identical": true,
+        "different_bits_elements": 0,
+        "old_output": {
+          "bytes": 590094,
+          "sha256": "21e78402deaec04e35a0fc49074dd30c410536d8f5f9d71eb99f2f1f89509e3b"
+        },
+        "new_output": {
+          "bytes": 590094,
+          "sha256": "21e78402deaec04e35a0fc49074dd30c410536d8f5f9d71eb99f2f1f89509e3b"
+        }
+      },
+      {
+        "run_id": "e11-20261018",
+        "step": "denoiser-2",
+        "shape": [
+          1,
+          2304,
+          64
+        ],
+        "bit_identical": true,
+        "different_bits_elements": 0,
+        "old_output": {
+          "bytes": 590094,
+          "sha256": "533386f25af07a5ea944e5a8e95b18970afc76a2b07b6359dd53bd0852be4e48"
+        },
+        "new_output": {
+          "bytes": 590094,
+          "sha256": "533386f25af07a5ea944e5a8e95b18970afc76a2b07b6359dd53bd0852be4e48"
+        }
+      },
+      {
+        "run_id": "e11-20261018",
+        "step": "denoiser-3",
+        "shape": [
+          1,
+          2304,
+          64
+        ],
+        "bit_identical": true,
+        "different_bits_elements": 0,
+        "old_output": {
+          "bytes": 590094,
+          "sha256": "29627981495e42afaab67720f21d4f5951e1ca5397e2fc6f59089d992b612b2d"
+        },
+        "new_output": {
+          "bytes": 590094,
+          "sha256": "29627981495e42afaab67720f21d4f5951e1ca5397e2fc6f59089d992b612b2d"
+        }
+      },
+      {
+        "run_id": "e11-20261018",
+        "step": "denoiser-4",
+        "shape": [
+          1,
+          2304,
+          64
+        ],
+        "bit_identical": true,
+        "different_bits_elements": 0,
+        "old_output": {
+          "bytes": 590094,
+          "sha256": "83f9140fcde40b2dbb9f28da2d3741d2d10c8eea826859ee66f77a297f20de32"
+        },
+        "new_output": {
+          "bytes": 590094,
+          "sha256": "83f9140fcde40b2dbb9f28da2d3741d2d10c8eea826859ee66f77a297f20de32"
+        }
+      },
+      {
+        "run_id": "e11-20261018",
+        "step": "denoiser-5",
+        "shape": [
+          1,
+          2304,
+          64
+        ],
+        "bit_identical": true,
+        "different_bits_elements": 0,
+        "old_output": {
+          "bytes": 590094,
+          "sha256": "9bffbc46ab579b977b56abd4598d38b37e8e03d5fa267c2b290c5cc328b8bf3d"
+        },
+        "new_output": {
+          "bytes": 590094,
+          "sha256": "9bffbc46ab579b977b56abd4598d38b37e8e03d5fa267c2b290c5cc328b8bf3d"
+        }
+      },
+      {
+        "run_id": "e11-20261018",
+        "step": "denoiser-6",
+        "shape": [
+          1,
+          2304,
+          64
+        ],
+        "bit_identical": true,
+        "different_bits_elements": 0,
+        "old_output": {
+          "bytes": 590094,
+          "sha256": "a1d2081172c6c9b4b10b9de43e9d22c732da0f45768dd32b471750d52ca72d06"
+        },
+        "new_output": {
+          "bytes": 590094,
+          "sha256": "a1d2081172c6c9b4b10b9de43e9d22c732da0f45768dd32b471750d52ca72d06"
+        }
+      },
+      {
+        "run_id": "e11-20261018",
+        "step": "denoiser-7",
+        "shape": [
+          1,
+          2304,
+          64
+        ],
+        "bit_identical": true,
+        "different_bits_elements": 0,
+        "old_output": {
+          "bytes": 590094,
+          "sha256": "9fc8b3e0a3d47841e03b99c208edcd3af02d71d817928a9640dac2c930d07fa6"
+        },
+        "new_output": {
+          "bytes": 590094,
+          "sha256": "9fc8b3e0a3d47841e03b99c208edcd3af02d71d817928a9640dac2c930d07fa6"
+        }
+      },
+      {
+        "run_id": "e11-20261021",
+        "step": "denoiser-0",
+        "shape": [
+          1,
+          2304,
+          64
+        ],
+        "bit_identical": true,
+        "different_bits_elements": 0,
+        "old_output": {
+          "bytes": 590094,
+          "sha256": "5025911eeadedc5e9e368413bc650c65a5f7474e9552ed985fad3466e43dc937"
+        },
+        "new_output": {
+          "bytes": 590094,
+          "sha256": "5025911eeadedc5e9e368413bc650c65a5f7474e9552ed985fad3466e43dc937"
+        }
+      },
+      {
+        "run_id": "e11-20261021",
+        "step": "denoiser-1",
+        "shape": [
+          1,
+          2304,
+          64
+        ],
+        "bit_identical": true,
+        "different_bits_elements": 0,
+        "old_output": {
+          "bytes": 590094,
+          "sha256": "1bbe3231d4e1bef363a13a5fdcacba8ec056123cdb63a42c965bef23a3f624ff"
+        },
+        "new_output": {
+          "bytes": 590094,
+          "sha256": "1bbe3231d4e1bef363a13a5fdcacba8ec056123cdb63a42c965bef23a3f624ff"
+        }
+      },
+      {
+        "run_id": "e11-20261021",
+        "step": "denoiser-2",
+        "shape": [
+          1,
+          2304,
+          64
+        ],
+        "bit_identical": true,
+        "different_bits_elements": 0,
+        "old_output": {
+          "bytes": 590094,
+          "sha256": "dc053b352707fc4bed027b92dc95332372dc2091184cac1c7edecd962bb10ca9"
+        },
+        "new_output": {
+          "bytes": 590094,
+          "sha256": "dc053b352707fc4bed027b92dc95332372dc2091184cac1c7edecd962bb10ca9"
+        }
+      },
+      {
+        "run_id": "e11-20261021",
+        "step": "denoiser-3",
+        "shape": [
+          1,
+          2304,
+          64
+        ],
+        "bit_identical": true,
+        "different_bits_elements": 0,
+        "old_output": {
+          "bytes": 590094,
+          "sha256": "c2d5c62ac8f2599097a78f133e73a3709a5eaeb8806df2644fffb42488a07e67"
+        },
+        "new_output": {
+          "bytes": 590094,
+          "sha256": "c2d5c62ac8f2599097a78f133e73a3709a5eaeb8806df2644fffb42488a07e67"
+        }
+      },
+      {
+        "run_id": "e11-20261021",
+        "step": "denoiser-4",
+        "shape": [
+          1,
+          2304,
+          64
+        ],
+        "bit_identical": true,
+        "different_bits_elements": 0,
+        "old_output": {
+          "bytes": 590094,
+          "sha256": "222cdc86b9119fa8eb7a9bada815b349008bbe06f238d00efbc98e76b01b0302"
+        },
+        "new_output": {
+          "bytes": 590094,
+          "sha256": "222cdc86b9119fa8eb7a9bada815b349008bbe06f238d00efbc98e76b01b0302"
+        }
+      },
+      {
+        "run_id": "e11-20261021",
+        "step": "denoiser-5",
+        "shape": [
+          1,
+          2304,
+          64
+        ],
+        "bit_identical": true,
+        "different_bits_elements": 0,
+        "old_output": {
+          "bytes": 590094,
+          "sha256": "8ec6b83ff07dc01d507abf5bff2574ad0483a28b995103439504ec4f8efa7c7b"
+        },
+        "new_output": {
+          "bytes": 590094,
+          "sha256": "8ec6b83ff07dc01d507abf5bff2574ad0483a28b995103439504ec4f8efa7c7b"
+        }
+      },
+      {
+        "run_id": "e11-20261021",
+        "step": "denoiser-6",
+        "shape": [
+          1,
+          2304,
+          64
+        ],
+        "bit_identical": true,
+        "different_bits_elements": 0,
+        "old_output": {
+          "bytes": 590094,
+          "sha256": "fad715506a172b09e0c54b6cb7f13a6cef09a22ff536aa0634049454ec98b0f7"
+        },
+        "new_output": {
+          "bytes": 590094,
+          "sha256": "fad715506a172b09e0c54b6cb7f13a6cef09a22ff536aa0634049454ec98b0f7"
+        }
+      },
+      {
+        "run_id": "e11-20261021",
+        "step": "denoiser-7",
+        "shape": [
+          1,
+          2304,
+          64
+        ],
+        "bit_identical": true,
+        "different_bits_elements": 0,
+        "old_output": {
+          "bytes": 590094,
+          "sha256": "f1eb9ffb107d52b644d5e94c0f92fa8dc0bfc628ff244e692bcaf181145a31db"
+        },
+        "new_output": {
+          "bytes": 590094,
+          "sha256": "f1eb9ffb107d52b644d5e94c0f92fa8dc0bfc628ff244e692bcaf181145a31db"
+        }
+      }
+    ]
+  },
+  "load_only": {
+    "metal": {
+      "before": {
+        "compressedBytes": 0,
+        "footprintBytes": 2114040,
+        "internalBytes": 1753088,
+        "kernelLifetimePeakBytes": 2114040,
+        "physicalMemoryBytes": 137438953472,
+        "residentBytes": 6602752,
+        "visibleMetalBytes": 81920
+      },
+      "loaded": {
+        "compressedBytes": 0,
+        "footprintBytes": 3284228000,
+        "internalBytes": 61374464,
+        "kernelLifetimePeakBytes": 3284228000,
+        "physicalMemoryBytes": 137438953472,
+        "residentBytes": 6999752704,
+        "visibleMetalBytes": 3219095552
+      },
+      "loadSeconds": 14.478081334,
+      "released": {
+        "compressedBytes": 0,
+        "footprintBytes": 3280667488,
+        "internalBytes": 61374464,
+        "kernelLifetimePeakBytes": 3284228000,
+        "physicalMemoryBytes": 137438953472,
+        "residentBytes": 153649152,
+        "visibleMetalBytes": 491520
+      },
+      "releasedAfter500ms": {
+        "compressedBytes": 0,
+        "footprintBytes": 3280667488,
+        "internalBytes": 61374464,
+        "kernelLifetimePeakBytes": 3284228000,
+        "physicalMemoryBytes": 137438953472,
+        "residentBytes": 153649152,
+        "visibleMetalBytes": 491520
+      },
+      "scope": "Fresh process, load and release only, no inference"
+    },
+    "complex": {
+      "before": {
+        "compressedBytes": 0,
+        "footprintBytes": 2130424,
+        "internalBytes": 1769472,
+        "kernelLifetimePeakBytes": 2130424,
+        "physicalMemoryBytes": 137438953472,
+        "residentBytes": 6619136,
+        "visibleMetalBytes": 81920
+      },
+      "loaded": {
+        "compressedBytes": 0,
+        "footprintBytes": 772331304,
+        "internalBytes": 63340544,
+        "kernelLifetimePeakBytes": 772331304,
+        "physicalMemoryBytes": 137438953472,
+        "residentBytes": 7004946432,
+        "visibleMetalBytes": 705314816
+      },
+      "loadSeconds": 13.969742041999998,
+      "released": {
+        "compressedBytes": 0,
+        "footprintBytes": 768803608,
+        "internalBytes": 63340544,
+        "kernelLifetimePeakBytes": 772331304,
+        "physicalMemoryBytes": 137438953472,
+        "residentBytes": 158842880,
+        "visibleMetalBytes": 491520
+      },
+      "releasedAfter500ms": {
+        "compressedBytes": 0,
+        "footprintBytes": 768803608,
+        "internalBytes": 63340544,
+        "kernelLifetimePeakBytes": 772331304,
+        "physicalMemoryBytes": 137438953472,
+        "residentBytes": 158842880,
+        "visibleMetalBytes": 491520
+      },
+      "scope": "Fresh process, load and release only, no inference"
+    }
+  },
+  "load_only_reports": {
+    "metal": {
+      "bytes": 1179,
+      "sha256": "7844a224ba65e1210016ed5bb1fc7339411fb28c98b954b73cd9d1e6426a387e"
+    },
+    "complex": {
+      "bytes": 1172,
+      "sha256": "56e28b4e66f867e481c4f7662710272fb9be20b520c64444faad7baf2a70bd46"
+    }
+  },
+  "numerical_suite": "pending",
+  "device_verification": "not_run",
+  "visual_acceptance": "not_transferred",
+  "scope": "Selected fixed inputs and fresh-process Mac load-only comparison. No complete numerical, iPhone, quality, device-budget or ordinary Models acceptance.",
+  "code_revision": "b72011063e8e1c21c1bf89a6a3dc120b6a53048b",
+  "compression_equivalence": {
+    "vision": {
+      "previous_file": {
+        "bytes": 134033,
+        "sha256": "2e7035299667f5cb1b8bceec9d3a6035360a83e68d7f3a0e877698a8e9e914a5"
+      },
+      "candidate_file": {
+        "bytes": 134033,
+        "sha256": "e2bb96e420e36a719417d5a404068d8d601e1552996de2600858189f9b186f36"
+      },
+      "difference_only": "/profile_sha256",
+      "previous_profile_sha256": "54825e53ede46206af76d1edd6871c7bd633cf4e39bc55ef210c7386663bb59b",
+      "candidate_profile_sha256": "4341e99e65dcd4857dd5c29d4c5061d5ef51976b8e2cd5391317617f05356b3f"
+    },
+    "text": {
+      "previous_file": {
+        "bytes": 292373,
+        "sha256": "32f352f41ccbac2ede3c4fa4d8d55df41f35595d9904464751dccb9c4e5df960"
+      },
+      "candidate_file": {
+        "bytes": 292373,
+        "sha256": "336e3ccd64f8e33bb1c86e023bb8a56a45316ef1f4fa731d80dfd92caffda012"
+      },
+      "difference_only": "/profile_sha256",
+      "previous_profile_sha256": "54825e53ede46206af76d1edd6871c7bd633cf4e39bc55ef210c7386663bb59b",
+      "candidate_profile_sha256": "4341e99e65dcd4857dd5c29d4c5061d5ef51976b8e2cd5391317617f05356b3f"
+    },
+    "denoiser": {
+      "previous_file": {
+        "bytes": 227787,
+        "sha256": "1dbc93b3c817c05275fb3d31d11df797cafb5762d150dd5630117a3e78040c66"
+      },
+      "candidate_file": {
+        "bytes": 227787,
+        "sha256": "3c08efbdf1a924c0487c6bd6c8accee05c01fa2f5e67afa4c8f2936c9bbbf396"
+      },
+      "difference_only": "/profile_sha256",
+      "previous_profile_sha256": "54825e53ede46206af76d1edd6871c7bd633cf4e39bc55ef210c7386663bb59b",
+      "candidate_profile_sha256": "4341e99e65dcd4857dd5c29d4c5061d5ef51976b8e2cd5391317617f05356b3f"
+    },
+    "vae_encoder": {
+      "previous_file": {
+        "bytes": 217,
+        "sha256": "fb9b9a737e430b0518349e7dcce40aee510f297f145b749d502ea4db270a57e8"
+      },
+      "candidate_file": {
+        "bytes": 217,
+        "sha256": "e2c30e8b1c472cb3a7593dc06d0deb2e274332656fda768d6fb093e3a598892e"
+      },
+      "difference_only": "/profile_sha256",
+      "previous_profile_sha256": "54825e53ede46206af76d1edd6871c7bd633cf4e39bc55ef210c7386663bb59b",
+      "candidate_profile_sha256": "4341e99e65dcd4857dd5c29d4c5061d5ef51976b8e2cd5391317617f05356b3f"
+    },
+    "vae_decoder": {
+      "previous_file": {
+        "bytes": 217,
+        "sha256": "9fbbac5d51cb81141d9f8e9a77d2c13bbee7b0d442fa20d6e23d8a41c13334b9"
+      },
+      "candidate_file": {
+        "bytes": 217,
+        "sha256": "1bbe6ac0cb507d113464d3741344b5474fd50e702d1dc07d0ff2baf9b7306776"
+      },
+      "difference_only": "/profile_sha256",
+      "previous_profile_sha256": "54825e53ede46206af76d1edd6871c7bd633cf4e39bc55ef210c7386663bb59b",
+      "candidate_profile_sha256": "4341e99e65dcd4857dd5c29d4c5061d5ef51976b8e2cd5391317617f05356b3f"
+    }
+  },
+  "denoiser": {
+    "asset_bytes": 6846756493,
+    "asset_inventory": {
+      "main.hash": {
+        "bytes": 32,
+        "sha256": "1cfa331fe79a115f4c444ece2e5322f11a8211daff315474f01520d319de9012"
+      },
+      "main.mlirb": {
+        "bytes": 6846755894,
+        "sha256": "eacded0298a54afb1980c329c414e53e0b954b79ef905696712b310166eca568"
+      },
+      "metadata.json": {
+        "bytes": 567,
+        "sha256": "96829143670e8053c63ea03d5eecca2eaaaac219a3a83c56018f65736088f254"
+      }
+    }
+  },
+  "primitive": {
+    "report": {
+      "bytes": 985,
+      "sha256": "910b4f18d8b0d7087fb017d3ef37559f9b4b59db16985054c73fd7efa56d82cb"
+    },
+    "complete": true,
+    "source_capture": {
+      "bytes": 345508644,
+      "sha256": "150259fa547317cfcfc4837303583ef20291cfb5c27da606f5db629f3c8f14b7"
+    },
+    "script": {
+      "bytes": 4638,
+      "sha256": "abd05591e8668f63ffe0f5f51063de238e8a31ad0c847125a6cb9917aecdb96e"
+    },
+    "rows": [
+      {
+        "tensor": "block-0-query",
+        "different_elements": 0,
+        "max_abs_error": 0.0,
+        "absolute_rmse": 0.0
+      },
+      {
+        "tensor": "block-0-key",
+        "different_elements": 0,
+        "max_abs_error": 0.0,
+        "absolute_rmse": 0.0
+      },
+      {
+        "tensor": "block-17-query",
+        "different_elements": 0,
+        "max_abs_error": 0.0,
+        "absolute_rmse": 0.0
+      },
+      {
+        "tensor": "block-17-key",
+        "different_elements": 0,
+        "max_abs_error": 0.0,
+        "absolute_rmse": 0.0
+      }
+    ],
+    "scope": "Four frozen normed Q/K tensors, original MPS complex reference and builtin Core AI complex path. No model weights, full-model acceptance or iPhone result."
+  },
+  "verification": {
+    "conversion_unit_tests": {
+      "tests": 300,
+      "skipped": 13,
+      "result": "passed",
+      "scope": "Includes eight visual-equivalence tests; no learned model test"
+    },
+    "swift_tests": {
+      "tests": 981,
+      "suites": 160,
+      "runners": 36,
+      "skipped_tests": 43,
+      "result": "passed",
+      "scope": "CPU defaults; no real-model or phone tests"
+    },
+    "swiftlint": {
+      "files": 506,
+      "violations": 0
+    },
+    "swift_format": {
+      "changed_swift_files": 0,
+      "result": "passed"
+    },
+    "code_revision": "0001debd2f63ff04c056693dc5b26641f70067d9",
+    "macos_release_build": "passed",
+    "equivalence_files": {
+      "Tools/Conversion/adapters/qwen_image21/mobile_visual_equivalence.py": {
+        "bytes": 12713,
+        "sha256": "72d0e38e8e56b139b19d2ffefec9fc05b9952a334d9d2903c5f26dbbae437de2"
+      },
+      "Tools/Conversion/tests/test_image_visual_equivalence.py": {
+        "bytes": 12742,
+        "sha256": "bcebf1ed0ce15983372482027f552be0ec30c61fdf3a3eab4a31e85c96277293"
+      }
+    },
+    "independent_reviews": {
+      "resolved_findings": 2,
+      "remaining_confirmed_or_plausible": 0,
+      "scope": "Converter selection and visual-equivalence tooling, including the immutable original presentation and visible ratings. Complete candidate proof and device results remain unverified."
+    }
+  },
+  "source_cohort": {
+    "complete": true,
+    "run_count": 60,
+    "repeat_count": 2,
+    "source_summary": {
+      "bytes": 1481128,
+      "sha256": "4acaf90594df20b194d68299b77200a9eb95019c8a6f617e66e37f674814230d"
+    },
+    "previous_summary": {
+      "bytes": 1481106,
+      "sha256": "c0b1d4f52519e34cb074a7df6a946bd6b7ced25e72e5a4dbbf77a3a532c3e132"
+    },
+    "identical_final_files": 180,
+    "scope": "Fresh original-PyTorch source B only; not Core AI C fidelity or a device result",
+    "detail_report": {
+      "bytes": 31607,
+      "sha256": "766635015a82d793cba31f02fb372193e104e0a4f8357d6d2f2b6ffad55fcc00"
+    }
+  }
+}
