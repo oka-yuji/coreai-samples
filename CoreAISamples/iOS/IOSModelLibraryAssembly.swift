@@ -40,7 +40,9 @@
             migrationCandidates: legacyFolders)
 
         static func catalog(searchTerms: [String: [String]] = [:]) throws -> ModelCatalog {
-            try IOSDemoCatalog.make(searchTerms: searchTerms, speechArtifact: IrodoriModelArtifact.make())
+            try IOSDemoCatalog.make(
+                searchTerms: searchTerms, speechArtifact: IrodoriModelArtifact.make(),
+                referenceSpeechArtifact: IrodoriModelArtifact.make(profile: .referenceVoice))
         }
 
         static func make(catalog: ModelCatalog) -> ModelLibraryAssembly.Library {

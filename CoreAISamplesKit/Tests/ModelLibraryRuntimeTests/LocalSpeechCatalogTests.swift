@@ -3,10 +3,35 @@ import Foundation
 import ModelLibraryFeature
 import ModelLibraryRuntime
 import ModelLibraryStorage
+import SpeechRuntime
 import Testing
 
 @MainActor
 struct LocalSpeechCatalogTests {
+    @Test("REF-UI-04 Models selects the reference variant and enables voice input without requiring microphone access")
+    func referenceVariant() async throws {
+        let legacy = try IrodoriModelArtifact.make()
+        let reference = try IrodoriModelArtifact.make(profile: .referenceVoice)
+        let catalog = try IOSDemoCatalog.make(speechArtifact: legacy, referenceSpeechArtifact: reference)
+        let state = ModelLibraryState(catalog: catalog, environment: LibraryEnvironment(platform: .iOS), owner: UUID())
+        #expect(state.selectedArtifact(for: "irodori") == reference)
+        let model = try #require(catalog.model("irodori"))
+        #expect(model.artifacts == [reference, legacy])
+        #expect(model.demos.allSatisfy { $0.requiredCapabilities.isEmpty })
+        let resource = ValidatedModelResource(
+            modelID: model.id, artifactID: reference.id, contract: reference.contract,
+            revision: try #require(reference.sourceRevision), upstreamRevision: nil,
+            directory: URL(filePath: "/reference-fixture"), sizeBytes: reference.sizeBytes ?? 0,
+            sourceKind: .localManifest)
+        let session = ModelDemoSession(
+            id: LibraryTicket(owner: UUID(), number: 1),
+            selection: DemoSelection(modelID: "irodori", demoID: "speech"), resource: resource)
+        let sessions = SpeechDemoSessions()
+        let store = sessions.bind(session, examples: [], permits: { true })
+        #expect(store.state.model?.supportsReferenceAudio == true && store.state.canSelectReference)
+        await sessions.stop(session)
+    }
+
     @Test("GUIDE-01 Model preparation and speech instructions remain available before importing a model")
     func firstUseGuidance() throws {
         let artifact = try IrodoriModelArtifact.make()

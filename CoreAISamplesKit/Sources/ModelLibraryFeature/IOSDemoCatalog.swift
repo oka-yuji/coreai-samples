@@ -1,7 +1,7 @@
 public enum IOSDemoCatalog {
     public static func make(
         searchTerms: [String: [String]] = [:], localImageArtifacts: [ModelArtifact]? = nil,
-        speechArtifact: ModelArtifact? = nil
+        speechArtifact: ModelArtifact? = nil, referenceSpeechArtifact: ModelArtifact? = nil
     ) throws -> ModelCatalog {
         let images = localImageArtifacts ?? verifiedImageArtifacts
         for artifact in images {
@@ -118,15 +118,24 @@ public enum IOSDemoCatalog {
                     defaultArtifactID: initial.id, platforms: [.iOS],
                     demos: [ModelDemoLink(demoID: "image-generation", platforms: [.iOS])]))
         }
-        if let speechArtifact {
-            guard speechArtifact.contract == "irodori-coreai-v1", speechArtifact.isSourceValid,
-                speechArtifact.localBundle?.manifestPath == "irodori.json"
-            else { throw ModelCatalogError.invalidArtifact(speechArtifact.id) }
+        for (value, contract) in [
+            (speechArtifact, "irodori-coreai-v1"), (referenceSpeechArtifact, "irodori-coreai-v2"),
+        ] {
+            if let artifact = value {
+                guard artifact.contract == contract, artifact.isSourceValid,
+                    artifact.localBundle?.manifestPath == "irodori.json" || artifact.download != nil
+                else { throw ModelCatalogError.invalidArtifact(artifact.id) }
+            }
+        }
+        let speechArtifacts = [referenceSpeechArtifact, speechArtifact].compactMap { $0 }
+        if let initialSpeech = speechArtifacts.first {
             demos.append(
                 DemoDescriptor(
                     id: "speech", title: "Speech demo", systemImage: "waveform",
-                    summary: "Turn a short Japanese passage into speech, then play or save it.",
-                    explanation: [
+                    summary: referenceSpeechArtifact == nil
+                        ? "Turn a short Japanese passage into speech, then play or save it."
+                        : "Generate Japanese speech using a recorded voice or an audio file.",
+                    explanation: referenceSpeechArtifact.map { referenceExplanation(download: $0.download != nil) } ?? [
                         DemoExplanation(
                             title: "1. Prepare the model",
                             text:
@@ -152,11 +161,42 @@ public enum IOSDemoCatalog {
             models.append(
                 LibraryModel(
                     id: "irodori", name: "Irodori", category: "Speech Synthesis",
-                    searchTerms: searchTerms["irodori"] ?? [], artifacts: [speechArtifact],
-                    defaultArtifactID: speechArtifact.id, platforms: [.iOS],
+                    searchTerms: searchTerms["irodori"] ?? [], artifacts: speechArtifacts,
+                    defaultArtifactID: initialSpeech.id, platforms: [.iOS],
                     demos: [ModelDemoLink(demoID: "speech", platforms: [.iOS])]))
         }
         return try ModelCatalog(models: models, demos: demos)
+    }
+
+    private static func referenceExplanation(download: Bool) -> [DemoExplanation] {
+        [
+            DemoExplanation(
+                title: "1. Prepare the model",
+                text: download
+                    ? "Download the Reference voice model. It uses about 3.84 GB. Wait for the model check to finish before recording or choosing an audio file."
+                    : "Import the prepared Reference voice model folder from Files. It uses about 3.84 GB, plus space for the app copy. The legacy model supports text-only generation."
+            ),
+            DemoExplanation(
+                title: "2. Choose a reference voice",
+                text:
+                    "Tap Record voice, speak clearly, then Finish recording. Or tap Choose audio file and select a WAV, M4A, MP3 or AIFF file. Use 0.5 to 30 seconds of your own voice or a voice you have permission to use. Listen to reference lets you check the selected audio."
+            ),
+            DemoExplanation(
+                title: "3. Enter what to say",
+                text:
+                    "Choose Try an example or enter a short Japanese passage. Leave the voice options unchanged to begin. A reference voice is optional; leaving it empty uses a generated voice."
+            ),
+            DemoExplanation(
+                title: "4. Generate, listen and save",
+                text:
+                    "Tap Generate speech and keep the app open. The first run prepares the model and can take longer. Then use Play or Save WAV. Stop cancels recording, reading, generation or playback."
+            ),
+            DemoExplanation(
+                title: "On-device generation",
+                text:
+                    "Speech generation runs on this device. The app does not upload your reference audio. Saving or sharing a WAV uses the destination you choose."
+            ),
+        ]
     }
 
     private static let verifiedImageArtifacts: [ModelArtifact] = []

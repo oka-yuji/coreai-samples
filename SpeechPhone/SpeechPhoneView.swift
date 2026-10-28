@@ -34,6 +34,9 @@ struct SpeechPhoneView: View {
                         "Copy the prepared model folder to Irodori Speech in the Files app, then refresh. Model files use about 3.38 GB; additional space is needed for preparation."
                     )
                 }
+                Section {
+                    SpeechReferenceControls(state: speech.state, send: speech.send)
+                }
                 Section("Text") {
                     Menu("Examples") {
                         ForEach(speech.state.examples) { example in
@@ -129,10 +132,10 @@ struct SpeechPhoneView: View {
         if speech.state.busy {
             HStack {
                 ProgressView()
-                Text(phaseLabel)
+                Text(LocalizedStringKey(phaseLabel))
             }
         } else if let message = speech.state.message {
-            Text(message).textSelection(.enabled)
+            Text(LocalizedStringKey(message)).textSelection(.enabled)
         }
     }
     private var phaseLabel: String {
@@ -142,6 +145,10 @@ struct SpeechPhoneView: View {
         case .generating: "Generating speech…"
         case .playing: "Playing audio…"
         case .stopping: "Waiting for the current operation to stop…"
+        case .preparingRecording: "Preparing to record…"
+        case .recording: "Recording your reference voice…"
+        case .finishingRecording: "Preparing your recorded voice…"
+        case .importingReference: "Reading the reference audio…"
         }
     }
     private func appear() {

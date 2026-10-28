@@ -1,0 +1,96 @@
+{
+  "architecture": "h18p",
+  "batteryState": 2,
+  "finalMemory": {
+    "availableBytes": 6268385056,
+    "footprintBytes": 174065888,
+    "peakFootprintBytes": 1144576904,
+    "thermalState": 0
+  },
+  "hardware": "iPhone18,1",
+  "lowPowerMode": false,
+  "osBuild": "Version 27.0.1 (Build 24A446)",
+  "osVersion": "27.0.1",
+  "playbackCompleted": false,
+  "records": [
+    {
+      "audioSeconds": 4,
+      "exampleID": "greeting",
+      "generationSeconds": 13.734449416999999,
+      "memory": {
+        "availableBytes": 5638956392,
+        "footprintBytes": 803494552,
+        "peakFootprintBytes": 868260504,
+        "thermalState": 0
+      },
+      "normalizedText": "こんにちは。これは音声合成のテストです。",
+      "seed": 1708,
+      "wavBytes": 768058
+    },
+    {
+      "audioSeconds": 4.24,
+      "exampleID": "announcement",
+      "generationSeconds": 3.904047959,
+      "memory": {
+        "availableBytes": 5386216568,
+        "footprintBytes": 1056234376,
+        "peakFootprintBytes": 1133812616,
+        "thermalState": 0
+      },
+      "normalizedText": "本日の点検は終了しました。異常はありません。",
+      "seed": 1708,
+      "wavBytes": 814138
+    },
+    {
+      "audioSeconds": 4,
+      "exampleID": "greeting",
+      "generationSeconds": 3.684103125,
+      "memory": {
+        "availableBytes": 5372241016,
+        "footprintBytes": 1070209928,
+        "peakFootprintBytes": 1144576904,
+        "thermalState": 0
+      },
+      "normalizedText": "こんにちは。これは音声合成のテストです。",
+      "seed": 1708,
+      "wavBytes": 768058
+    }
+  ],
+  "referenceAudioSeconds": 3.88,
+  "repeatedWAVMatches": true,
+  "startMemory": {
+    "availableBytes": 6424819896,
+    "footprintBytes": 17631048,
+    "peakFootprintBytes": 17729352,
+    "thermalState": 0
+  },
+  "verificationScope": {
+    "date": "2026-10-29",
+    "product": "SpeechPhone preflight",
+    "mode": "explicit reference-audio diagnostic, no playback or microphone capture",
+    "sourceBase": "a755889e87f027497d979d41e4469805b955faf6",
+    "sourceBranch": "feat/368-irodori-voice-input",
+    "sourceState": "PR370 working tree before final merge",
+    "modelProfile": "irodori-coreai-v2",
+    "modelBytes": 3836181569,
+    "referenceFixture": "synthetic native test reference, 48 kHz mono WAV",
+    "repeatMeaning": "greeting, announcement, greeting; same reference and seed"
+  },
+  "outputs": [
+    {
+      "name": "sample-0.wav",
+      "bytes": 768058,
+      "sha256": "5ec98369d2abeeb4d48b8773bf6de56916b8f08c1861cdbee86924dbd4adf792"
+    },
+    {
+      "name": "sample-1.wav",
+      "bytes": 814138,
+      "sha256": "80b83455e8f0fd4a08d0ae5c862b72f6ffa804b09945889edd289433d8f71db5"
+    },
+    {
+      "name": "sample-2.wav",
+      "bytes": 768058,
+      "sha256": "5ec98369d2abeeb4d48b8773bf6de56916b8f08c1861cdbee86924dbd4adf792"
+    }
+  ]
+}

@@ -48,13 +48,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Use the microphone to enter truck inspection results by voice."
+            "value" : "Record reference voices and enter inspection answers by voice."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "トラックの点検結果を音声で入力するために、マイクを使用します。"
+            "value" : "参照音声を録音したり、点検結果を音声で入力したりします。"
           }
         }
       }

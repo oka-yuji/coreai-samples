@@ -54,7 +54,9 @@ enum SpeechPhoneAssembly {
             return args[index + 1]
         }
         guard let runID = value("--speech-check-run") else { return nil }
-        return SpeechCheckRequest(folder: value("--speech-model-folder") ?? "sampler-irodori-fp32", runID: runID)
+        return SpeechCheckRequest(
+            folder: value("--speech-model-folder") ?? "sampler-irodori-fp32", runID: runID,
+            referenceAudio: value("--reference-audio"), playAudio: !args.contains("--no-playback"))
     }
 
 }
