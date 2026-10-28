@@ -92,6 +92,8 @@ struct OCRBlock: AsyncParsableCommand {
                 prompt: prompt, crop: box.map { [$0.x0, $0.y0, $0.x1, $0.y1] }, resize: resize,
                 imagePx: [source.width, source.height], processorPx: [processor.width, processor.height],
                 grid: [result.gridHeight, result.gridWidth], windows: result.windowCount,
+                downscaled: result.gridHeight * OCRVisionInput.patchSize != processor.height
+                    || result.gridWidth * OCRVisionInput.patchSize != processor.width,
                 imageTokens: result.imageTokens, promptTokens: result.promptTokens, outputTokens: result.tokens.count,
                 finishedBy: result.finishedBy, text: result.text,
                 rawText: result.rawText, tokens: result.tokens, loadS: runtime.loadStats.totalSeconds,
@@ -149,6 +151,7 @@ struct OCRBlockRecord: Encodable {
     let processorPx: [Int]
     let grid: [Int]
     let windows: Int
+    let downscaled: Bool
     let imageTokens: Int
     let promptTokens: Int
     let outputTokens: Int
