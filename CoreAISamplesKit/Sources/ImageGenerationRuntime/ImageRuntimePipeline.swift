@@ -19,6 +19,7 @@ actor ImageRuntimePipeline {
     let memory: @Sendable () -> ImageMemoryObservation
     let loadBundle: BundleLoader
     let preparePrompt: PromptPreparer
+    let journal: (any ImageCheckpointSink)?
     private var active: UUID?
     private var admission: Permission?
     private var stopping = false
@@ -31,6 +32,7 @@ actor ImageRuntimePipeline {
     init(
         resource: ValidatedModelResource, budget: ImageMemoryBudget, backend: any ImageComponentBackend,
         permission: @escaping Permission, memory: @escaping @Sendable () -> ImageMemoryObservation,
+        journal: (any ImageCheckpointSink)? = nil,
         loadBundle: @escaping BundleLoader = ImageRuntimeBundle.load,
         preparePrompt: @escaping PromptPreparer = { directory, prompt, reference in
             try ImageGenerationTokenizer(directory: directory).prepare(prompt, hasReference: reference)
@@ -43,6 +45,7 @@ actor ImageRuntimePipeline {
         self.memory = memory
         self.loadBundle = loadBundle
         self.preparePrompt = preparePrompt
+        self.journal = journal
     }
 
     func generate(
@@ -57,7 +60,7 @@ actor ImageRuntimePipeline {
         report = ImageExecutionReport(
             requestID: request.id, profileID: budget.profileID, manifestSHA256: budget.manifestSHA256,
             noiseSource: request.initialNoise == nil ? ImageGenerationNoise.version : "supplied-float32-packed",
-            diagnosticsEnabled: trace != nil)
+            diagnosticsEnabled: trace != nil || journal != nil)
         let start = ContinuousClock.now
         let outcome: Result<ImageGenerationPixels, any Error>
         do {
@@ -145,7 +148,12 @@ actor ImageRuntimePipeline {
     private func emit(_ phase: ImageExecutionPhase, progress: Progress) async throws {
         try await checkpoint()
         guard let active else { throw ImageExecutionError.released }
-        await progress(ImageExecutionProgress(requestID: active, phase: phase))
+        let value = ImageExecutionProgress(requestID: active, phase: phase)
+        if let journal, let report {
+            try await journal.record(value, report: report, memory: memory())
+            try await checkpoint()
+        }
+        await progress(value)
         try await checkpoint()
     }
 

@@ -87,6 +87,11 @@ struct TestPipeline: SpeechPipeline {
         return TestContext(frames: Int(input.tokenIDs[1]), log: lifetime.log)
     }
     @concurrent
+    func prepare(_ input: IrodoriTextInput, reference: SpeechReferenceAudio?) async throws -> any SpeechContext {
+        await driver.record(reference)
+        return try await prepare(input)
+    }
+    @concurrent
     func generate(_ context: any SpeechContext, seed: UInt64) async throws -> [Float] {
         try await driver.generate(frames: context.frames, seed: seed)
     }
@@ -100,6 +105,8 @@ actor TestDriver {
     var fail = false
     var factoryCount = 0
     var seeds: [UInt64] = []
+    var references: [SpeechReferenceAudio?] = []
+    func record(_ reference: SpeechReferenceAudio?) { references.append(reference) }
     func configure(block: Bool = false, fail: Bool = false) {
         self.block = block
         self.fail = fail
@@ -118,10 +125,14 @@ actor TestDriver {
     }
 }
 
-func testDependencies(_ driver: TestDriver, releasing: TestSignal = TestSignal()) -> SpeechDependencies {
+func testDependencies(
+    _ driver: TestDriver, releasing: TestSignal = TestSignal(), referenceVoice: Bool = false
+) -> SpeechDependencies {
     SpeechDependencies(
         validate: {
-            ValidatedSpeechBundle(directory: $0, assets: [], tokenizer: $0.appendingPathComponent("tokenizer.json"))
+            ValidatedSpeechBundle(
+                directory: $0, assets: referenceVoice ? Array(repeating: $0, count: 6) : [],
+                tokenizer: $0.appendingPathComponent("tokenizer.json"))
         },
         tokenizer: { _ in TestTokenizer() },
         pipeline: { _ in await driver.makePipeline() },

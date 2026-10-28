@@ -3,9 +3,11 @@ import Foundation
 public struct SpeechModel: Equatable, Sendable {
     public let name: String
     public let directory: URL
-    public init(name: String, directory: URL) {
+    public let supportsReferenceAudio: Bool
+    public init(name: String, directory: URL, supportsReferenceAudio: Bool = false) {
         self.name = name
         self.directory = directory
+        self.supportsReferenceAudio = supportsReferenceAudio
     }
 }
 
@@ -27,6 +29,7 @@ public enum SpeechError: Error, Equatable, LocalizedError, Sendable {
     case textTooLong(Int)
     case invalidAsset(String)
     case playbackFailed
+    case referenceNotSupported
 
     public var errorDescription: String? {
         switch self {
@@ -39,6 +42,7 @@ public enum SpeechError: Error, Equatable, LocalizedError, Sendable {
         case .textTooLong(let count): "This text contains \(count) tokens. Shorten it to 255 tokens or fewer."
         case .invalidAsset(let message): message
         case .playbackFailed: "The generated audio could not be played."
+        case .referenceNotSupported: "This model does not support a reference voice. Choose the reference-voice model."
         }
     }
 }

@@ -442,8 +442,8 @@ private func family(_ artifact: ModelArtifact) throws -> ContractFamily {
             }
             return .ocr
         }
-        if artifact.contract == IrodoriModelArtifact.contract {
-            guard artifact == (try IrodoriModelArtifact.make()) else {
+        if let profile = SpeechBundleProfile(rawValue: artifact.contract) {
+            guard artifact == (try IrodoriModelArtifact.make(profile: profile)) else {
                 throw ManagedModelStoreError.contractMismatch("Irodori inventory")
             }
             return .speech

@@ -18,7 +18,7 @@ Results below retain their original dates and workloads. Different rows may use 
 | Platform | State | Verified scope / remaining work | Evidence |
 |---|---|---|---|
 | macos | — | Native demo is not provided for this platform. | — |
-| ios | — | The exact numerical and owner qualitative evidence is now packaged in a local candidate; there is no published download or calibrated device budget. Earlier non-FMA G16 component execution passed, while the new FMA attempt ended under iOS memory pressure. Full native pipeline and normal Models acceptance remain pending. | — |
+| ios | — | The owner-accepted numerical candidate is packaged locally. In the ordinary CoreAISamples binary, text inference succeeds but the first DiT inference trial ends with OS vm-pageshortage; checkpoints survive. Normal Models, published download and calibrated device budgets remain unavailable. | — |
 
 ### Performance and quality
 
@@ -78,4 +78,6 @@ Results below retain their original dates and workloads. Different rows may use 
 - [Mobile plan #222](https://github.com/oka-yuji/coreai-samples/issues/222)
 
 - [Owner-accepted local bundle](../research/qwen-image21-owner-bundle-20261028.json)
+
+- [Native checkpoint diagnosis](../research/qwen-image21-native-checkpoints-20261029.json)
 <!-- model-report:end -->

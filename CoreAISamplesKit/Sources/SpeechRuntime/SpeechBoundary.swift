@@ -10,7 +10,17 @@
 
     protocol SpeechPipeline: Sendable {
         @concurrent func prepare(_ input: IrodoriTextInput) async throws -> any SpeechContext
+        @concurrent func prepare(_ input: IrodoriTextInput, reference: SpeechReferenceAudio?) async throws
+            -> any SpeechContext
         @concurrent func generate(_ context: any SpeechContext, seed: UInt64) async throws -> [Float]
+    }
+
+    extension SpeechPipeline {
+        @concurrent
+        func prepare(_ input: IrodoriTextInput, reference: SpeechReferenceAudio?) async throws -> any SpeechContext {
+            guard reference == nil else { throw SpeechError.referenceNotSupported }
+            return try await prepare(input)
+        }
     }
 
     protocol SpeechTokenizer {
@@ -34,6 +44,14 @@
     public protocol SpeechGenerating: Actor {
         func open(_ directory: URL) async throws -> SpeechModel
         func generate(text: String, seed: UInt64) async throws -> SpeechAudio
+        func generate(text: String, seed: UInt64, reference: SpeechReferenceAudio?) async throws -> SpeechAudio
         func release() async
+    }
+
+    extension SpeechGenerating {
+        public func generate(text: String, seed: UInt64, reference: SpeechReferenceAudio?) async throws -> SpeechAudio {
+            guard reference == nil else { throw SpeechError.referenceNotSupported }
+            return try await generate(text: text, seed: seed)
+        }
     }
 #endif
