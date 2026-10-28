@@ -18,7 +18,7 @@
 | OS | 状態 | 確認した範囲・残る確認 | 根拠 |
 |---|---|---|---|
 | macos | — | このOSのネイティブデモは未提供です。 | — |
-| ios | — | 数値合格と本人の定性画質評価を同一候補のローカルbundleに収録済み。公開DLと端末予算は未登録。旧非FMA G16部品は実行合格、新FMA試行はiOSのメモリ圧力で終了。全native経路と通常Modelsの受入は未完。 | — |
+| ios | — | 数値合格・本人画質受入済み候補はローカル梱包済み。本体でtext推論は成功するが、rawとh18p AOTのDiT試行は完成画像を得る前にOSのメモリ圧力で終了。通常Models、公開DL、端末予算の較正は未完了。 | — |
 
 ### 性能と品質
 
@@ -78,4 +78,8 @@
 - [モバイル計画 #222](https://github.com/oka-yuji/coreai-samples/issues/222)
 
 - [本人画質受入済みローカルbundle](../research/qwen-image21-owner-bundle-20261028.json)
+
+- [本体アプリの実機診断記録](../research/qwen-image21-native-checkpoints-20261029.json)
+
+- [AOT資産の実機対照](../research/qwen-image21-aot-20261029.json)
 <!-- model-report:end -->

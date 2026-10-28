@@ -44,6 +44,20 @@
         "ja": "本人画質受入済みローカルbundle"
       },
       "url": "docs/research/qwen-image21-owner-bundle-20261028.json"
+    },
+    {
+      "title": {
+        "en": "Native checkpoint diagnosis",
+        "ja": "本体アプリの実機診断記録"
+      },
+      "url": "docs/research/qwen-image21-native-checkpoints-20261029.json"
+    },
+    {
+      "title": {
+        "en": "AOT device comparison",
+        "ja": "AOT資産の実機対照"
+      },
+      "url": "docs/research/qwen-image21-aot-20261029.json"
     }
   ],
   "support": {
@@ -61,8 +75,8 @@
       "variants": [],
       "evidence": [],
       "note": {
-        "en": "The exact numerical and owner qualitative evidence is now packaged in a local candidate; there is no published download or calibrated device budget. Earlier non-FMA G16 component execution passed, while the new FMA attempt ended under iOS memory pressure. Full native pipeline and normal Models acceptance remain pending.",
-        "ja": "数値合格と本人の定性画質評価を同一候補のローカルbundleに収録済み。公開DLと端末予算は未登録。旧非FMA G16部品は実行合格、新FMA試行はiOSのメモリ圧力で終了。全native経路と通常Modelsの受入は未完。"
+        "en": "The accepted numerical/visual candidate is packaged locally. Main-app text inference succeeds, but raw and h18p AOT DiT trials terminate under OS memory pressure before a complete image. Normal Models, published download and calibrated device budgets remain unavailable.",
+        "ja": "数値合格・本人画質受入済み候補はローカル梱包済み。本体でtext推論は成功するが、rawとh18p AOTのDiT試行は完成画像を得る前にOSのメモリ圧力で終了。通常Models、公開DL、端末予算の較正は未完了。"
       }
     }
   },

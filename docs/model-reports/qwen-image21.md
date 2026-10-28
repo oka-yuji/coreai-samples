@@ -18,7 +18,7 @@ Results below retain their original dates and workloads. Different rows may use 
 | Platform | State | Verified scope / remaining work | Evidence |
 |---|---|---|---|
 | macos | — | Native demo is not provided for this platform. | — |
-| ios | — | The exact numerical and owner qualitative evidence is now packaged in a local candidate; there is no published download or calibrated device budget. Earlier non-FMA G16 component execution passed, while the new FMA attempt ended under iOS memory pressure. Full native pipeline and normal Models acceptance remain pending. | — |
+| ios | — | The accepted numerical/visual candidate is packaged locally. Main-app text inference succeeds, but raw and h18p AOT DiT trials terminate under OS memory pressure before a complete image. Normal Models, published download and calibrated device budgets remain unavailable. | — |
 
 ### Performance and quality
 
@@ -78,4 +78,8 @@ Results below retain their original dates and workloads. Different rows may use 
 - [Mobile plan #222](https://github.com/oka-yuji/coreai-samples/issues/222)
 
 - [Owner-accepted local bundle](../research/qwen-image21-owner-bundle-20261028.json)
+
+- [Native checkpoint diagnosis](../research/qwen-image21-native-checkpoints-20261029.json)
+
+- [AOT device comparison](../research/qwen-image21-aot-20261029.json)
 <!-- model-report:end -->
