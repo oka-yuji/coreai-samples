@@ -6,6 +6,18 @@ import Testing
 @testable import ImageGenerationRuntime
 
 struct ImageCompiledAssetTests {
+    @Test("Compiled metadata larger than its contract is rejected even when its JSON source hash matches")
+    func oversizedMetadata() throws {
+        let hash = String(repeating: "a", count: 64)
+        let compiled = ImageGenerationManifest.CompiledAsset(
+            asset: "model.aimodelc", architecture: "h18p", sourceSha256: hash)
+        var data = try JSONSerialization.data(withJSONObject: ["sourceHash": hash])
+        data.append(Data(repeating: 32, count: 1_048_577 - data.count))
+        #expect(throws: ImageGenerationError.invalidProfile("compiled metadata size")) {
+            try compiled.validateMetadata(data)
+        }
+    }
+
     @Test("A compiled component binds to its raw source and is passed through the existing pipeline")
     func boundComponent() async throws {
         let fixture = try compiledFixture()

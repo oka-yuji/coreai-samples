@@ -18,6 +18,9 @@ public struct ImageGenerationManifest: Decodable, Sendable {
         }
 
         public func validateMetadata(_ data: Data) throws {
+            guard data.count <= 1_048_576 else {
+                throw ImageGenerationError.invalidProfile("compiled metadata size")
+            }
             let metadata = try JSONDecoder().decode(CompiledMetadata.self, from: data)
             guard metadata.sourceHash.lowercased() == sourceSha256 else {
                 throw ImageGenerationError.invalidProfile("compiled metadata source")

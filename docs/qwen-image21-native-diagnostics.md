@@ -24,7 +24,7 @@ The UTF-8 JSON uses these fields:
 | `reference` | Optional `{ "path": ..., "sha256": ... }` for one hashed image with a longest side at most 1,024; existing eight-bit RGB/orientation/center-crop preprocessing applies |
 | `noise` | Optional `{ "path": ..., "sha256": ... }` for exactly 65,536 little-endian Float32 values in packed latent order; NaN/infinity are rejected |
 | `trace` | Explicit Boolean; false for clean timing, true for intermediate tensor capture |
-| `loadingMode` | Optional diagnostic comparison: `explicitCache` (default) or `automatic`, both using GPU preference. Automatic uses `AIModel(contentsOf:options:)`; its cache-hit state is unknown and omitted, and its initialization duration is recorded separately. Ordinary Models retains explicit cache lookup. |
+| `loadingMode` | Optional diagnostic comparison: `explicitCache` (default), `automatic`, or `aheadOfTime`, all using GPU preference. Automatic and compiled loading use `AIModel(contentsOf:options:)`; cache-hit state is unobserved and omitted, and initialization duration is recorded separately. Ordinary Models retains explicit cache lookup. |
 | `stop` | Optional component, operation (`loading` or `inference`), DiT step (0–7; otherwise absent), and delayMilliseconds (1–60,000) |
 
 Relative bundle/input paths resolve from the request's parent directory. The output is a new sibling directory named `image-check-<runID>`. Existing outputs are refused, including an existing symlink at that name. Source inputs and bundles are never modified.
@@ -50,6 +50,30 @@ An optional stop plan schedules cancellation after a matching progress event. Th
 Mac command exit codes are 0 for completed, 2 for cancelled and 1 for failure or unconfirmed cleanup. The phone exits after a terminal acknowledged outcome; an unconfirmed cleanup keeps its stop control available. Diagnostic images, CPU fake tests and signed builds do not establish real-device acceptance.
 
 The existing runtime reports point memory samples and process-lifetime peak values, not phase peaks. Use fresh-process measurements and external observation for phase/specialization peaks, and record power/thermal conditions before performance claims. A positive estimated budget is a stated admission policy for measurement, not evidence of an observed memory requirement. Production device profiles remain empty until the relevant measurements are accepted.
+
+## Source-bound AOT comparison
+
+A format-two manifest may add `compiled_assets`, keyed by an existing component name. Each entry declares `asset` (a relative `.aimodelc` directory), `architecture` and `source_sha256`. The source hash must match that component's raw `main.mlirb` in the inventory. Every compiled file is included in the complete inventory, and its metadata is limited to 1 MiB. Both Models import and the runtime compare the compiled `metadata.json` `sourceHash` with the raw model hash. Existing raw bundles remain supported.
+
+Selecting `aheadOfTime` requires a nonempty declaration and an exact match between every declared architecture and `AIModel.deviceArchitectureName` before any model loads. Declared components use the compiled asset; other components retain explicit raw cache lookup. Missing, altered, linked or mismatched files fail validation. Native checkpoints name the actual selected asset. This diagnostic option does not register a model in Models or supply a production memory budget.
+
+Use the pinned mobile conversion environment and the common runner's shared heavy-job lock for this pack-stage command:
+
+```sh
+xcrun coreai-build compile /path/to/accepted-raw-bundle/denoiser/denoiser.aimodel \
+  --platform iOS --min-deployment-version 27.0 --preferred-compute gpu \
+  --architecture h18p --output /new/compiled/denoiser.h18p.aimodelc
+
+python -m Tools.Conversion.adapters.qwen_image21.mobile_aot_pack \
+  --bundle /path/to/accepted-raw-bundle \
+  --manifest-sha256 <recorded-raw-manifest-sha256> \
+  --compiled denoiser /path/to/denoiser.h18p.aimodelc \
+  --architecture h18p --output /new/aot-comparison
+```
+
+The command refuses existing or overlapping output directories, verifies the pinned raw manifest and both inventories, then copies into a new bundle and writes its new manifest and receipt. It preserves the raw bundle and its numerical/visual evidence. `compiled_verification` and `device_verification` remain `pending`; source binding does not certify the compiled output's numerical behavior.
+
+The [October 29 AOT record](research/qwen-image21-aot-20261029.json) covers a 57-file, 20,630,914,733-byte candidate built from the same accepted raw DiT. The physical iPhone loads the selected h18p asset, but its loaded footprint remains about 3.31 GB. The generation trial reaches `run-before` after input preparation, then the OS terminates PID 5204 with `vm-pageshortage`, with a matching executable UUID. No complete image or production calibration was obtained; AOT alone did not resolve this workload's memory failure.
 
 ## Physical checkpoint verification, October 29, 2026
 
