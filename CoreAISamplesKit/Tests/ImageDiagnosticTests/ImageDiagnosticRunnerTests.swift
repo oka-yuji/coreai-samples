@@ -36,7 +36,7 @@ struct ImageDiagnosticRunnerTests {
                 environmentRead.open()
                 return ("fixture-device", "fixture-os")
             },
-            makeService: { _, _, _ in
+            makeService: { _, _, _, _ in
                 factories += 1
                 return DiagnosticFakeService()
             })
@@ -71,7 +71,7 @@ struct ImageDiagnosticRunnerTests {
         let terminal = DiagnosticGate()
         let runner = ImageDiagnosticRunner(
             files: ImageDiagnosticFiles(), environment: { ("fixture-device", "fixture-os") },
-            makeService: { _, _, _ in service })
+            makeService: { _, _, _, _ in service })
         let store = Store<ImageDiagnosticFeature>(initialState: ImageDiagnosticState()) { effect, send in
             await runner.run(effect) { action in
                 send(action)
@@ -116,7 +116,7 @@ struct ImageDiagnosticRunnerTests {
         let recovered = DiagnosticGate()
         let runner = ImageDiagnosticRunner(
             files: ImageDiagnosticFiles(), environment: { ("fixture-device", "fixture-os") },
-            makeService: { _, _, _ in service })
+            makeService: { _, _, _, _ in service })
         let store = Store<ImageDiagnosticFeature>(initialState: ImageDiagnosticState()) { effect, send in
             await runner.run(effect) { action in
                 send(action)

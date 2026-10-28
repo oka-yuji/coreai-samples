@@ -28,6 +28,7 @@ struct ImageDiagnosticConfiguration: Codable, Sendable {
     let noise: Input?
     let trace: Bool
     let stop: ImageDiagnosticStop?
+    let loadingMode: ImageModelLoading?
 
     func validate() throws {
         guard format == 1, !runID.isEmpty, runID.utf8.count <= 100,
