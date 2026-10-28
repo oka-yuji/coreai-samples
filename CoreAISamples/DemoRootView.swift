@@ -17,6 +17,7 @@ enum Demo: String, CaseIterable, Identifiable {
     case videoSearch
     case extract
     case speech
+    case ocr
     case models
 
     var id: String { rawValue }
@@ -30,6 +31,7 @@ enum Demo: String, CaseIterable, Identifiable {
         case .videoSearch: "EmbeddingGemma 2"
         case .extract: "GLiNER2.5-multi"
         case .speech: "Irodori"
+        case .ocr: "TeleOCR"
         case .models: "Models"
         }
     }
@@ -43,6 +45,7 @@ enum Demo: String, CaseIterable, Identifiable {
         case .videoSearch: "Find moments in a video with your own words"
         case .extract: "Compare product specifications from official descriptions"
         case .speech: "Generate and play speech from text with Irodori"
+        case .ocr: "Read text and tables from a document image"
         case .models: "Get, open and prepare model bundles"
         }
     }
@@ -56,6 +59,7 @@ enum Demo: String, CaseIterable, Identifiable {
         case .videoSearch: "film.stack"
         case .extract: "text.magnifyingglass"
         case .speech: "waveform"
+        case .ocr: "doc.viewfinder"
         case .models: "square.and.arrow.down"
         }
     }
@@ -77,6 +81,7 @@ struct DemoRootView: View {
     @State private var imageSearch = ImageSearchAssembly.makeStore()
     @State private var videoSearch = VideoSearchAssembly.makeStore()
     @State private var speech = SpeechAssembly.makeStore()
+    @State private var ocr = OCRMacLibrary()
     @State private var showingExtractionLab = false
     @State private var extract = Store<ExtractFeature>(
         initialState: ExtractState(
@@ -119,6 +124,7 @@ struct DemoRootView: View {
                         }
                 }
             case .speech?: SpeechView(store: speech)
+            case .ocr?: OCRHostView(library: ocr)
             case .models?: ModelsView()
             case nil: ContentUnavailableView("Select a demo", systemImage: "square.grid.2x2")
             }
@@ -129,6 +135,7 @@ struct DemoRootView: View {
         .environment(models)
         .environment(decide)
         .environment(speech)
+        .environment(ocr)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button("New conversation", systemImage: "square.and.pencil") {
@@ -154,7 +161,14 @@ struct DemoRootView: View {
                 host.store.send(.library(.refresh))
             }
         }
-        .onDisappear { lifetime.close(windowID) }
+        .onDisappear {
+            ocr.close()
+            lifetime.close(windowID)
+        }
+        .onChange(of: navigator.selection) { old, new in
+            if old == .ocr && new != .ocr { ocr.leave() }
+        }
+        .onChange(of: scenePhase) { _, phase in ocr.enter(phase) }
         .onChange(of: scenePhase) { if scenePhase == .active { host.store.send(.library(.refresh)) } }
         .onChange(of: host.state.id) { host.restorePreferences() }
         .onChange(of: chat.loadStarted) { host.refreshIfModelChanged() }

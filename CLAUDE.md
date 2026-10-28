@@ -42,6 +42,9 @@
 
 | `OCRPipeline` (`OCRDemoRuntime/OCRPipeline.swift`) | actorがページmodel・bundle・busy・解放待ちを所有する。load/read/imageは一つずつ、await中もbusyを保持。releaseは進行中の操作が終了するまで待ち、modelを破棄してから全waiterへ返す。resume後に旧releaseが状態を書き直さない。Storeだけが操作Taskを開始/取消し、Runnerはowner許可とsessionを検査する。 | OCRFeatureTests、OCRRunnerTests、OCRPipelineTestsの遅いload/read・取消を無視するfake・複数release・旧完了・停止後再読取り。実ページは下記の共有lock条件。 |
 
+| `OCRDemoSessions` (`OCRDemoRuntime/OCRDemoSessions.swift`) | MainActorがowner/sessionごとのStore・Runner・失効可能な許可を所有し、同じselectionを旧session停止中に再bindしない。stopは先に許可を失効し、Store終了とservice解放を待ち、自分のentryだけを除去する。次のownerへ入力の値だけを渡し、service・結果・古いTaskは渡さない。service factoryはsessionごとに新しいinstanceを作る。 | OCRDemoSessionsTestsのowner交代・旧Store再入拒否・遅いstop・未表示Store解放。 |
+| `OCRMacServices` / `OCRMacLibrary` (`Demos/OCR/`) | OCR専用のModelLibraryAssembly/RunnerをMac全windowで共有し、windowごとのlibrary ownerで資産leaseと常駐を制御する。既存Mac全デモの移行ではない。画面離脱/背景化/終了をActionで通知し、終了時は転送取消とowner abandonも要求する。通常起動ではOCRのload/readを開始しない。 | Mac結合レビュー、既存Modelsのlease/stop試験、OCR owner試験とmainでの本人確認。 |
+
 
 ## 公開物の規約
 
