@@ -12,7 +12,10 @@ struct ImageRuntimeFixture: Sendable {
     let resource: ValidatedModelResource
     let budget: ImageMemoryBudget
 
-    init(operation: String = "generate-and-edit", assetFolder: String = "", headersBesideAssets: Bool = true) throws {
+    init(
+        operation: String = "generate-and-edit", assetFolder: String = "", headersBesideAssets: Bool = true,
+        mutate: (inout [String: Any], inout [String: Data]) throws -> Void = { _, _ in }
+    ) throws {
         bundle = try ImageBundleFixture { manifest, files in
             files["config/processor/tokenizer_config.json"] = Data("{}".utf8)
             files["config/vae/config.json"] = try JSONSerialization.data(withJSONObject: [
@@ -21,6 +24,7 @@ struct ImageRuntimeFixture: Sendable {
             try Self.arrange(
                 &manifest, &files, operation: operation, assetFolder: assetFolder,
                 headersBesideAssets: headersBesideAssets)
+            try mutate(&manifest, &files)
         }
         resource = ValidatedModelResource(
             modelID: bundle.model.id, artifactID: bundle.artifact.id, contract: bundle.artifact.contract,
@@ -79,11 +83,12 @@ struct ImageRuntimeFixture: Sendable {
     func pipeline(
         backend: any ImageComponentBackend, memory: ImageTestMemory = ImageTestMemory(),
         journal: (any ImageCheckpointSink)? = nil,
+        compiledArchitecture: String? = nil,
         permission: @escaping ImageRuntimePipeline.Permission = { true }
     ) -> ImageRuntimePipeline {
         ImageRuntimePipeline(
             resource: resource, budget: budget, backend: backend, permission: permission, memory: memory.read,
-            journal: journal,
+            journal: journal, compiledArchitecture: compiledArchitecture,
             preparePrompt: { _, _, reference in
                 try ImagePromptLayout(
                     tokens: [1] + (reference ? Array(repeating: ImagePromptLayout.imageToken, count: 256) : []) + [2],
@@ -130,6 +135,7 @@ actor ImageFakeBackend: ImageComponentBackend {
     private var loaded: ImageGenerationProfile.Component?
     private var calls = 0
     private(set) var history: [String] = []
+    private(set) var compiledAssets: [String: ImageGenerationManifest.CompiledAsset] = [:]
     private var failures: Set<String> = []
     private var nonfinite = false
 
@@ -143,9 +149,12 @@ actor ImageFakeBackend: ImageComponentBackend {
     func returnNonfinite() { nonfinite = true }
     nonisolated func finishEvents() { sink.finish() }
 
-    func load(directory: URL, component: ImageGenerationProfile.Component) async throws -> ImageComponentLoadMetrics {
+    func load(
+        directory: URL, component: ImageGenerationProfile.Component, compiled: ImageGenerationManifest.CompiledAsset?
+    ) async throws -> ImageComponentLoadMetrics {
         #expect(loaded == nil)
         loaded = component
+        if let compiled { compiledAssets[component.asset] = compiled }
         calls = 0
         let event = "load:" + component.asset.split(separator: "/")[0]
         try await signal(String(event))
