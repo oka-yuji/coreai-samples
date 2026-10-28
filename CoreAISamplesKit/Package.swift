@@ -162,6 +162,7 @@ let package = Package(
                 "ModelLibraryRuntime", "ModelLibraryFeature", "ModelLibraryStorage", "ModelLibraryTransfer",
                 "FeatureStore", "EmbeddingCore", "EmbeddingRuntime", "ModelLibraryTestSupport",
                 "SpeechRuntime", "SpeechCore", "SpeechFeature",
+                "OCRDemoRuntime", "OCRFeature",
             ], swiftSettings: speechSettings),
         .target(
             name: "ObjectFinderFeature", dependencies: ["ObjectFinderCore", "FeatureStore"],
