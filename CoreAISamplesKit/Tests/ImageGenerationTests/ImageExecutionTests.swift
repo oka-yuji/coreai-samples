@@ -3,6 +3,23 @@ import ImageGenerationCore
 import Testing
 
 struct ImageExecutionTests {
+    @Test("Automatic loading preserves unknown cache state and legacy load metrics remain readable")
+    func loadMetricCompatibility() throws {
+        let old = Data(
+            #"{"cacheHit":true,"cacheLookupSeconds":0.1,"functionLoadSeconds":2.0}"#.utf8)
+        let legacy = try JSONDecoder().decode(ImageComponentLoadMetrics.self, from: old)
+        #expect(legacy.cacheHit == true)
+        #expect(legacy.initializationSeconds == nil)
+        #expect(legacy.loadingMode == nil)
+        let automatic = ImageComponentLoadMetrics(
+            cacheHit: nil, cacheLookupSeconds: 0, specializationSeconds: nil, functionLoadSeconds: 2,
+            initializationSeconds: 1.5, loadingMode: "automatic")
+        let data = try JSONEncoder().encode(automatic)
+        let fields = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        #expect(fields["cacheHit"] == nil)
+        #expect(try JSONDecoder().decode(ImageComponentLoadMetrics.self, from: data) == automatic)
+    }
+
     private func budget(_ amount: UInt64 = 100) throws -> ImageMemoryBudget {
         try ImageMemoryBudget(
             profileID: "profile", manifestSHA256: String(repeating: "a", count: 64),
