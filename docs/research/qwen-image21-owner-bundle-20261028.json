@@ -1,0 +1,47 @@
+{
+  "format": 1,
+  "date": "2026-10-28",
+  "criterion_ids": [
+    "QMA-01",
+    "QMA-02",
+    "QMA-03"
+  ],
+  "profile_id": "qmi-mobile-w4-dit-g16-blocks16-23-f32-v1",
+  "profile_sha256": "54825e53ede46206af76d1edd6871c7bd633cf4e39bc55ef210c7386663bb59b",
+  "source_revision": "fc13ba1986fcb905854dc8de2f52eee395f49b5b",
+  "manifest": {
+    "bytes": 22588,
+    "sha256": "66b2154e45359c6636830ddc95c7e95c52ea9355d5b10bd12bf8a4df9d33e32b"
+  },
+  "bundle_bytes": 13783323764,
+  "file_count": 50,
+  "inventory_verified": true,
+  "numeric_verified": true,
+  "numeric_report": {
+    "bytes": 3118753,
+    "sha256": "22dc0e91663a2899dcb320bcb780ecd25fd61947dedc087042a8b9c33abd0468"
+  },
+  "quality_acceptance": {
+    "accepted": true,
+    "benchmark_passed": false,
+    "criterion_id": "QMI-OWNER-VISUAL-01",
+    "device_verification": "pending",
+    "evidence": "evidence/owner-review.json",
+    "method": "qmi-owner-visual-v1",
+    "review_file": {
+      "bytes": 5564,
+      "sha256": "a6d76c7224d7807bf364de32aa0fe77772d7e4604829865e17c92fb7e25e5c53"
+    },
+    "scope": "Qualitative visual acceptance of this bound local research candidate; not a benchmark score or device acceptance"
+  },
+  "benchmark_quality_passed": false,
+  "device_verification": "pending",
+  "model_inference_executed": false,
+  "download": null,
+  "scope": "New local bundle from previously accepted numerical outputs and the approved qualitative review. Full inventory rehashed independently after packing. No device calibration or normal Models support is claimed.",
+  "code_files": {
+    "Tools/Conversion/adapters/qwen_image21/mobile_pack.py": "69ecc9d5c8760ab23b5606d4807c9cd03f7701e8b18c6839d3fdd5ed154b7b6b",
+    "Tools/Conversion/adapters/qwen_image21/mobile_acceptance.py": "68b4cb53e0096ac79ed283e7c84e93dd90c9bbe33fe1c084e774ce7cd0b5313f",
+    "Tools/Conversion/adapters/qwen_image21/mobile_recipe.py": "69197c5ad04a4e86f4cde2e60fd941cd7e21daaae37253465ffd8a416a7c1629"
+  }
+}

@@ -18,7 +18,7 @@
 | OS | 状態 | 確認した範囲・残る確認 | 根拠 |
 |---|---|---|---|
 | macos | — | このOSのネイティブデモは未提供です。 | — |
-| ios | — | 旧非FMA G16の部品実行は合格したが通常Modelsの受入ではない。新FMA試行は終端診断を残す前にiOSのメモリ圧力で終了。全pipeline・端末予算・本人/UI受入は未完。 | — |
+| ios | — | 数値合格と本人の定性画質評価を同一候補のローカルbundleに収録済み。公開DLと端末予算は未登録。旧非FMA G16部品は実行合格、新FMA試行はiOSのメモリ圧力で終了。全native経路と通常Modelsの受入は未完。 | — |
 
 ### 性能と品質
 
@@ -76,4 +76,6 @@
 - [変換手順（英語）](../../Tools/Conversion/recipes/qwen_image21/README.md)
 
 - [モバイル計画 #222](https://github.com/oka-yuji/coreai-samples/issues/222)
+
+- [本人画質受入済みローカルbundle](../research/qwen-image21-owner-bundle-20261028.json)
 <!-- model-report:end -->

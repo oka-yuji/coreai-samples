@@ -37,6 +37,13 @@
         "ja": "モバイル計画 #222"
       },
       "url": "https://github.com/oka-yuji/coreai-samples/issues/222"
+    },
+    {
+      "title": {
+        "en": "Owner-accepted local bundle",
+        "ja": "本人画質受入済みローカルbundle"
+      },
+      "url": "docs/research/qwen-image21-owner-bundle-20261028.json"
     }
   ],
   "support": {
@@ -54,8 +61,8 @@
       "variants": [],
       "evidence": [],
       "note": {
-        "en": "Earlier non-FMA G16 component execution passed; this is not normal Models acceptance. The new FMA attempt was terminated by iOS memory pressure before a final diagnostic record. Full pipeline, device budget and human/UI acceptance remain pending.",
-        "ja": "旧非FMA G16の部品実行は合格したが通常Modelsの受入ではない。新FMA試行は終端診断を残す前にiOSのメモリ圧力で終了。全pipeline・端末予算・本人/UI受入は未完。"
+        "en": "The exact numerical and owner qualitative evidence is now packaged in a local candidate; there is no published download or calibrated device budget. Earlier non-FMA G16 component execution passed, while the new FMA attempt ended under iOS memory pressure. Full native pipeline and normal Models acceptance remain pending.",
+        "ja": "数値合格と本人の定性画質評価を同一候補のローカルbundleに収録済み。公開DLと端末予算は未登録。旧非FMA G16部品は実行合格、新FMA試行はiOSのメモリ圧力で終了。全native経路と通常Modelsの受入は未完。"
       }
     }
   },

@@ -4,15 +4,18 @@ from pathlib import Path
 import shutil
 
 from .fixtures import save_json
+from .mobile_acceptance import OWNER_REVIEW
 from .mobile_artifacts import CONVERTER_FILES
 from .mobile_profile import CANDIDATES, comparison_candidate
 
 
-def recipe(candidate, *, export_only=False, reviewed=False):
+def recipe(candidate, *, export_only=False, reviewed=False, owner_review=False):
     if candidate not in CANDIDATES:
         raise ValueError("Unknown mobile recipe")
     if reviewed and export_only:
         raise ValueError("An export-only recipe cannot declare quality review")
+    if owner_review and (export_only or reviewed or candidate != "w4-dit-g16-blocks16-23-f32"):
+        raise ValueError("Owner review is bound to one candidate and a separate acceptance method")
     prefix = "$repo/Tools/Conversion/adapters/qwen_image21/"
     source_inputs = [prefix + name for name in CONVERTER_FILES]
     steps = [
@@ -94,7 +97,7 @@ def recipe(candidate, *, export_only=False, reviewed=False):
         })
         checks = [{"file": "receipt.json", "key": ["bundle_ready"], "equals": True},
                   {"file": "receipt.json", "key": ["numeric_passed"], "equals": True}]
-        if reviewed:
+        if reviewed or owner_review:
             checks.append({"file": "receipt.json", "key": ["verified"], "equals": True})
         steps.append({
             "id": "bundle", "role": "export", "depends": ["profile", "fixtures", "reference", "numeric", "mixed_reference", *components],
@@ -102,9 +105,11 @@ def recipe(candidate, *, export_only=False, reviewed=False):
                         "--snapshot", "$snapshot", "--profile", "$profile/profile.json", "--dependency-lock", "$recipe_dir/uv.lock",
                         "--fixtures", "$fixtures/fixtures", "--reference", "$reference/reference", "--mixed-reference", "$mixed_reference/reference",
                         "--baseline", "$baseline_reference", "--baseline-bundle", "$baseline_bundle",
-                        "--verification", "$numeric/numeric", "--output", "$out", *bindings, *(["--quality", "$quality"] if reviewed else [])],
-            "inputs": [*inputs, prefix + "mobile_pack.py", prefix + "mobile_compare.py", prefix + "mobile_ratings.py", prefix + "pack.py",
+                        "--verification", "$numeric/numeric", "--output", "$out", *bindings, *(["--quality", "$quality"] if reviewed else []),
+                        *(["--owner-review", OWNER_REVIEW] if owner_review else [])],
+            "inputs": [*inputs, prefix + "mobile_pack.py", prefix + "mobile_compare.py", prefix + "mobile_ratings.py", prefix + "mobile_acceptance.py", prefix + "pack.py",
                        "$repo/docs/research/qwen-image21-evaluation-20261021.json", "$baseline_reference", "$baseline_bundle",
+                       *(["$repo/docs/research/qwen-image21-owner-quality-20261028.json"] if owner_review else []),
                        *(["$quality"] if reviewed else [])],
             "outputs": ["bundle", "receipt.json", "cohort-comparison"], "heavy": True, "timeout_s": 3600,
             "min_free_bytes": 40000000000, "cwd": "$repo", "checks": checks,
@@ -135,9 +140,10 @@ def main():
         else:
             shutil.copy2(root / "qwen_image21" / name, target / name)
     for candidate in CANDIDATES:
-        for mode in ("", "-export", "-reviewed"):
+        modes = ("", "-export", "-reviewed", "-owner-reviewed") if candidate == "w4-dit-g16-blocks16-23-f32" else ("", "-export", "-reviewed")
+        for mode in modes:
             filename = "recipe" + mode + ("" if candidate == "w4" else "-" + candidate) + ".json"
-            expected = recipe(candidate, export_only=mode == "-export", reviewed=mode == "-reviewed")
+            expected = recipe(candidate, export_only=mode == "-export", reviewed=mode == "-reviewed", owner_review=mode == "-owner-reviewed")
             if args.check:
                 if json.loads((target / filename).read_text()) != expected:
                     raise ValueError("A generated mobile recipe is out of date: " + filename)
