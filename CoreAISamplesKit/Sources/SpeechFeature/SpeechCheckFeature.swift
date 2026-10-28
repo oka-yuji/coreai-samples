@@ -4,15 +4,20 @@ import Foundation
 public struct SpeechCheckRequest: Equatable, Sendable {
     public let folder: String
     public let runID: String
-    public init(folder: String, runID: String) {
+    public let referenceAudio: String?
+    public let playAudio: Bool
+    public init(folder: String, runID: String, referenceAudio: String? = nil, playAudio: Bool = true) {
         self.folder = folder
         self.runID = runID
+        self.referenceAudio = referenceAudio
+        self.playAudio = playAudio
     }
 }
 public struct SpeechCheckState: Equatable, Sendable {
     public enum Phase: Sendable, Equatable { case idle, running, stopping, finished }
     public var phase: Phase = .idle
     public var started = false
+    public var succeeded: Bool?
     public var session = 0
     public var message = "Ready"
     public init() {}
@@ -51,10 +56,12 @@ public enum SpeechCheckFeature: Feature {
         case .completed(let session, let path):
             guard session == state.session, state.phase == .running else { return [] }
             state.phase = .finished
+            state.succeeded = true
             state.message = "Device check finished. Results: " + path
         case .failed(let session, let message):
             guard session == state.session, state.phase == .running else { return [] }
             state.phase = .finished
+            state.succeeded = false
             state.message = "Device check failed: " + message
         case .stop:
             guard state.phase == .running else { return [] }
@@ -65,6 +72,7 @@ public enum SpeechCheckFeature: Feature {
         case .stopped(let session):
             guard session == state.session, state.phase == .stopping else { return [] }
             state.phase = .finished
+            state.succeeded = false
             state.message = "Device check stopped."
         }
         return []

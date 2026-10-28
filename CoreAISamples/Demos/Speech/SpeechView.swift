@@ -126,6 +126,10 @@ struct SpeechView: View {
         case .generating: "Generating speech…"
         case .playing: "Playing audio…"
         case .stopping: "Stopping after the current operation…"
+        case .preparingRecording: "Preparing to record…"
+        case .recording: "Recording your reference voice…"
+        case .finishingRecording: "Preparing your recorded voice…"
+        case .importingReference: "Reading the reference audio…"
         }
     }
 }

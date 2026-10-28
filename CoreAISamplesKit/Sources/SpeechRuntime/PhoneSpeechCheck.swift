@@ -45,6 +45,8 @@
         let records: [PhoneSpeechRecord]
         let playbackCompleted: Bool
         let finalMemory: PhoneMemory
+        let referenceAudioSeconds: Double?
+        let repeatedWAVMatches: Bool?
     }
 
     @MainActor
@@ -97,13 +99,20 @@
                 progress("Checking all model files…")
                 try await files.writeStatus(encoder.encode(["phase": "opening", "os": environment.info().osVersion]))
                 _ = try await service.open(path: folder.path)
+                let reference: SpeechReferenceAudio?
+                if let name = request.referenceAudio {
+                    reference = try await service.importReference(files.referenceFile(name))
+                } else {
+                    reference = nil
+                }
                 var records: [PhoneSpeechRecord] = []
                 var audioToPlay: Data?
+                var repeatedWAVMatches = false
                 for (index, example) in [examples[0], examples[1], examples[0]].enumerated() {
                     try Task.checkCancellation()
                     progress("Generating sample \(index + 1) of 3…")
                     try await files.writeStatus(encoder.encode(["phase": "generating", "sample": String(index)]))
-                    let audio = try await service.generate(text: example.text, seed: 1708)
+                    let audio = try await service.generate(text: example.text, seed: 1708, reference: reference)
                     try Task.checkCancellation()
                     try await files.writeWAV(audio.wav, index: index)
                     records.append(
@@ -113,12 +122,15 @@
                             generationSeconds: audio.elapsedSeconds, wavBytes: audio.wav.count,
                             memory: environment.memory()))
                     if index == 0 { audioToPlay = audio.wav }
+                    if index == 2 { repeatedWAVMatches = audioToPlay == audio.wav }
                 }
                 guard let audioToPlay else { throw SpeechError.invalidSamples }
                 try Task.checkCancellation()
-                progress("Playing the first generated sample…")
-                try await files.writeStatus(encoder.encode(["phase": "playing"]))
-                try await service.play(audioToPlay)
+                if request.playAudio {
+                    progress("Playing the first generated sample…")
+                    try await files.writeStatus(encoder.encode(["phase": "playing"]))
+                    try await service.play(audioToPlay)
+                }
                 await service.stop()
                 try Task.checkCancellation()
                 let info = environment.info()
@@ -126,7 +138,8 @@
                     osVersion: info.osVersion, osBuild: info.osBuild,
                     hardware: info.hardware, batteryState: info.batteryState, lowPowerMode: info.lowPowerMode,
                     architecture: info.architecture, startMemory: initial, records: records,
-                    playbackCompleted: true, finalMemory: environment.memory())
+                    playbackCompleted: request.playAudio, finalMemory: environment.memory(),
+                    referenceAudioSeconds: reference?.seconds, repeatedWAVMatches: repeatedWAVMatches)
                 try await files.writeReport(encoder.encode(report))
                 try await files.writeStatus(encoder.encode(["phase": "completed"]))
                 return "SpeechChecks/" + destination.lastPathComponent

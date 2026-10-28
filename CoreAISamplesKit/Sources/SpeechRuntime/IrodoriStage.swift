@@ -6,8 +6,14 @@
     struct Stage: Sendable {
         let model: AIModel
         let function: InferenceFunction
+        private let assetName: String
+        private let tracing: Bool
         init(url: URL, dynamicShape: Bool, frequentReshapes: Bool? = nil) async throws {
             try Task.checkCancellation()
+            let name = url.lastPathComponent
+            let trace = ProcessInfo.processInfo.environment["COREAI_TRACE_STAGES"] == "1"
+            assetName = name
+            tracing = trace
             #if os(iOS)
                 let onPhone = true
             #else
@@ -15,6 +21,7 @@
             #endif
             var options = Self.options(dynamicShape: dynamicShape, onPhone: onPhone)
             if let frequentReshapes { options.expectFrequentReshapes = frequentReshapes }
+            if trace { print("Irodori specialize \(name), frequentReshapes=\(options.expectFrequentReshapes)") }
             model = try await AIModel.specialize(contentsOf: url, options: options)
             try Task.checkCancellation()
             guard let descriptor = model.functionDescriptor(for: "predict"), descriptor.stateNames.isEmpty,
@@ -22,6 +29,7 @@
                 let function = try model.loadFunction(named: "predict")
             else { throw SpeechError.invalidAsset("Unsupported predict/output/state contract") }
             self.function = function
+            if trace { print("Irodori ready \(name)") }
         }
         static func options(dynamicShape: Bool, onPhone: Bool) -> SpecializationOptions {
             var result = SpecializationOptions(preferredComputeUnitKind: .gpu)
@@ -31,11 +39,13 @@
         @concurrent
         func run(_ inputs: [String: NDArray]) async throws -> NDArray {
             try Task.checkCancellation()
+            if tracing { print("Irodori run \(assetName): \(inputs.mapValues { $0.shape })") }
             var outputs = try await function.run(inputs: inputs)
             guard let result = outputs.remove("output"), let array = result.ndArray else {
                 throw SpeechError.invalidAsset("Missing output")
             }
             try Task.checkCancellation()
+            if tracing { print("Irodori output \(assetName): \(array.shape)") }
             return array
         }
     }
