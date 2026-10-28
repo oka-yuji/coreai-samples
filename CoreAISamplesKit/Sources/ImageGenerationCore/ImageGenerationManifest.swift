@@ -6,9 +6,29 @@ public struct ImageGenerationManifest: Decodable, Sendable {
         public let sha256: String
     }
 
+    public struct CompiledAsset: Decodable, Equatable, Sendable {
+        public let asset: String
+        public let architecture: String
+        public let sourceSha256: String
+
+        public init(asset: String, architecture: String, sourceSha256: String) {
+            self.asset = asset
+            self.architecture = architecture
+            self.sourceSha256 = sourceSha256
+        }
+
+        public func validateMetadata(_ data: Data) throws {
+            let metadata = try JSONDecoder().decode(CompiledMetadata.self, from: data)
+            guard metadata.sourceHash.lowercased() == sourceSha256 else {
+                throw ImageGenerationError.invalidProfile("compiled metadata source")
+            }
+        }
+    }
+
     public let format: Int
     public let profile: ImageGenerationProfile
     public let assets: [String: FileRecord]
+    public let compiledAssets: [String: CompiledAsset]?
 
     public static func decode(_ rawBytes: Data) throws -> Self {
         let decoder = JSONDecoder()
@@ -36,5 +56,22 @@ public struct ImageGenerationManifest: Decodable, Sendable {
                 throw ImageGenerationError.invalidProfile("missing component asset")
             }
         }
+        let compiled = compiledAssets ?? [:]
+        guard Set(compiled.keys).isSubset(of: ImageGenerationProfile.componentNames),
+            Set(compiled.values.map(\.asset)).count == compiled.count
+        else { throw ImageGenerationError.invalidProfile("compiled components") }
+        for (kind, value) in compiled {
+            guard let original = profile.components[kind], imageRelativePathIsValid(value.asset),
+                value.asset.hasSuffix(".aimodelc"), !value.architecture.isEmpty, value.architecture.utf8.count <= 32,
+                value.architecture.utf8.allSatisfy({ (48...57).contains($0) || (97...122).contains($0) }),
+                imageDigestIsValid(value.sourceSha256),
+                assets[original.asset + "/main.mlirb"]?.sha256 == value.sourceSha256,
+                let metadata = assets[value.asset + "/metadata.json"], metadata.bytes <= 1_048_576
+            else { throw ImageGenerationError.invalidProfile("compiled source identity") }
+        }
     }
+}
+
+private struct CompiledMetadata: Decodable {
+    let sourceHash: String
 }
