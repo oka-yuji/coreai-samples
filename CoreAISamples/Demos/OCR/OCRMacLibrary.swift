@@ -50,13 +50,13 @@
         func leave() { store?.send(.closeDemo) }
 
         func enter(_ phase: ScenePhase) {
-            if phase == .background { store?.send(.suspendDemo) }
+            if phase == .background { leave() }
             if phase == .active { OCRMacServices.assembly.runner.retryAbandoned() }
         }
 
         func close() {
             guard let store else { return }
-            store.send(.closeDemo)
+            leave()
             for (artifact, installation) in store.state.installations where installation.phase.isBusy {
                 store.send(.cancelRequested(artifact))
             }
