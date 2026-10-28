@@ -18,7 +18,7 @@ Results below retain their original dates and workloads. Different rows may use 
 | Platform | State | Verified scope / remaining work | Evidence |
 |---|---|---|---|
 | macos | — | Native demo is not provided for this platform. | — |
-| ios | — | Earlier non-FMA G16 component execution passed; this is not normal Models acceptance. The new FMA attempt was terminated by iOS memory pressure before a final diagnostic record. Full pipeline, device budget and human/UI acceptance remain pending. | — |
+| ios | — | The exact numerical and owner qualitative evidence is now packaged in a local candidate; there is no published download or calibrated device budget. Earlier non-FMA G16 component execution passed, while the new FMA attempt ended under iOS memory pressure. Full native pipeline and normal Models acceptance remain pending. | — |
 
 ### Performance and quality
 
@@ -76,4 +76,6 @@ Results below retain their original dates and workloads. Different rows may use 
 - [Conversion](../../Tools/Conversion/recipes/qwen_image21/README.md)
 
 - [Mobile plan #222](https://github.com/oka-yuji/coreai-samples/issues/222)
+
+- [Owner-accepted local bundle](../research/qwen-image21-owner-bundle-20261028.json)
 <!-- model-report:end -->

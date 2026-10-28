@@ -93,3 +93,9 @@ QMU-05 and QMP-08 now have visual-quality evidence, while their device-operation
 After the owner received the visual acceptance and remaining device-work status, they requested merging the current implementation into main. This changes the integration timing recorded earlier; it does not complete the outstanding functional acceptance. Issue #220 remains open for that work, and the PR references it without closing it.
 
 The integration preserves the existing Irodori adapter, catalog and signed iOS target while adding the conditional image-generation adapter. It also retains main's OCR page-reading and static iOS conversion routes. The verified image artifact list and device calibrations are still empty, so this merge does not make Qwen image generation available through the ordinary iPhone Models catalog. The numerical and owner visual evidence remains valid for the bound candidate; native memory diagnosis and the real device workflow remain pending.
+
+### Candidate evidence packaging, October 28, 2026
+
+The approved qualitative review can now be packed with the exact accepted numerical outputs using `qmi-owner-visual-v1`. The [local bundle record](research/qwen-image21-owner-bundle-20261028.json) identifies all 50 files, including the raw manifest, totaling 13,783,323,764 bytes. The original benchmark remains incomplete. Its false `quality_passed` value is preserved alongside the separate accepted visual method; no per-axis success rate is inferred.
+
+This makes the candidate evidence available to the existing import and native diagnostic contracts. It does not register a download, calibrate device memory or complete QMU-03 through QMU-06. Normal Models generation still requires the device work described above.
