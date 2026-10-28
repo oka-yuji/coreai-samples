@@ -18,7 +18,7 @@
 | OS | 状態 | 確認した範囲・残る確認 | 根拠 |
 |---|---|---|---|
 | macos | △ | ランタイム/UIは実装済み。実アプリのGPU生成・試聴の受入は未完了。 | [E1](../irodori/demo.md) |
-| ios | △ | 通常Modelsへの取り込み・音声UIは実装済み。mainでの実機生成・メモリ・試聴受入は未完了。 | [E2](../irodori/iphone.md) |
+| ios | △ | iPhone 17 Proの診断で参照ファイル付き3生成・WAV保存・反復一致を確認。録音/ファイルUIは実装済み。通常画面の操作と試聴の本人受入は未完了。 | [E2](../irodori/iphone.md) · [E3](../irodori/reference-input-device.json) |
 
 ### 性能と品質
 
@@ -56,6 +56,7 @@
 |---|---|---|---|
 | [E1](../irodori/demo.md) | 2026-10-19 / legacy / plan | M4 Max 128 GiB / macOS 27.0 (26A428) / Xcode 27.0 (27A266a) | ネイティブ実装とCPU・ビルド検証。実アプリ生成と試聴は確認待ち。 状況の確認日は2026-10-19。モデル実行日ではない。 · variant=FP32; backend=Core AI; GPU preferred; route=plan; batch_size=1; concurrency=1; 未記録: source_revision, artifact_revision, code_revision, warmups, power, thermal, plan_sha256 |
 | [E2](../irodori/iphone.md) | 2026-10-19 / legacy / plan | iPhone 17 Pro / iOS 27.0.1 (24A446) / Xcode 27.0 (27A266a) | ネイティブ実装とCPU・ビルド検証。実アプリ生成と試聴は確認待ち。 状況の確認日は2026-10-19。モデル実行日ではない。 · variant=FP32; backend=Core AI; GPU preferred; route=plan; batch_size=1; concurrency=1; 未記録: source_revision, artifact_revision, code_revision, warmups, power, thermal, plan_sha256 |
+| [E3](../irodori/reference-input-device.json) | 2026-10-29 / legacy / diagnostic | iPhone 17 Pro / iOS 27.0.1 (24A446) / Xcode 27.0 (27A266a) | 合成音声3.88秒を参照し、挨拶→案内→挨拶をseed 1708で生成。WAV3本と挨拶の反復一致を確認。通常画面の操作・聴取受入とは区別する。 · variant=Reference voice FP32 v2; backend=Core AI; GPU preferred; audio/speaker/duration/decoder EFR false; route=SpeechPhone explicit reference-file diagnostic; no playback or microphone capture; source_revision=ccc78f5d480b6e51b69b2d5042a14c4da04fea6e; code_revision=PR370 working tree based on a755889e87f027497d979d41e4469805b955faf6; batch_size=1; concurrency=1; warmups=0; power=USB connected, charging; thermal=nominal (0); 未記録: artifact_revision, plan_sha256 |
 
 ### 導入・制限・進捗
 
@@ -68,4 +69,6 @@
 - [Modelsの検証（英語）](../irodori/managed-validation.md)
 
 - [#329](https://github.com/oka-yuji/coreai-samples/issues/329)
+
+- [参照音声ランタイム（英語）](../irodori/reference-runtime.md)
 <!-- model-report:end -->
