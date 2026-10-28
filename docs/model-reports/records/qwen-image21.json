@@ -51,6 +51,13 @@
         "ja": "本体アプリの実機診断記録"
       },
       "url": "docs/research/qwen-image21-native-checkpoints-20261029.json"
+    },
+    {
+      "title": {
+        "en": "AOT device comparison",
+        "ja": "AOT資産の実機対照"
+      },
+      "url": "docs/research/qwen-image21-aot-20261029.json"
     }
   ],
   "support": {
@@ -68,8 +75,8 @@
       "variants": [],
       "evidence": [],
       "note": {
-        "en": "The owner-accepted numerical candidate is packaged locally. In the ordinary CoreAISamples binary, text inference succeeds but the first DiT inference trial ends with OS vm-pageshortage; checkpoints survive. Normal Models, published download and calibrated device budgets remain unavailable.",
-        "ja": "数値合格・本人画質受入済み候補はローカル梱包済み。CoreAISamples本体でtext推論は成功したが、最初のDiT推論試行はOSのvm-pageshortageで終了。直前の記録は回収できた。通常Models、公開DL、端末予算の較正は未完了。"
+        "en": "The accepted numerical/visual candidate is packaged locally. Main-app text inference succeeds, but raw and h18p AOT DiT trials terminate under OS memory pressure before a complete image. Normal Models, published download and calibrated device budgets remain unavailable.",
+        "ja": "数値合格・本人画質受入済み候補はローカル梱包済み。本体でtext推論は成功するが、rawとh18p AOTのDiT試行は完成画像を得る前にOSのメモリ圧力で終了。通常Models、公開DL、端末予算の較正は未完了。"
       }
     }
   },

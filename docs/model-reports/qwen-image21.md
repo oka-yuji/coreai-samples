@@ -18,7 +18,7 @@ Results below retain their original dates and workloads. Different rows may use 
 | Platform | State | Verified scope / remaining work | Evidence |
 |---|---|---|---|
 | macos | — | Native demo is not provided for this platform. | — |
-| ios | — | The owner-accepted numerical candidate is packaged locally. In the ordinary CoreAISamples binary, text inference succeeds but the first DiT inference trial ends with OS vm-pageshortage; checkpoints survive. Normal Models, published download and calibrated device budgets remain unavailable. | — |
+| ios | — | The accepted numerical/visual candidate is packaged locally. Main-app text inference succeeds, but raw and h18p AOT DiT trials terminate under OS memory pressure before a complete image. Normal Models, published download and calibrated device budgets remain unavailable. | — |
 
 ### Performance and quality
 
@@ -80,4 +80,6 @@ Results below retain their original dates and workloads. Different rows may use 
 - [Owner-accepted local bundle](../research/qwen-image21-owner-bundle-20261028.json)
 
 - [Native checkpoint diagnosis](../research/qwen-image21-native-checkpoints-20261029.json)
+
+- [AOT device comparison](../research/qwen-image21-aot-20261029.json)
 <!-- model-report:end -->
