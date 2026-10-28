@@ -24,6 +24,7 @@ The UTF-8 JSON uses these fields:
 | `reference` | Optional `{ "path": ..., "sha256": ... }` for one hashed image with a longest side at most 1,024; existing eight-bit RGB/orientation/center-crop preprocessing applies |
 | `noise` | Optional `{ "path": ..., "sha256": ... }` for exactly 65,536 little-endian Float32 values in packed latent order; NaN/infinity are rejected |
 | `trace` | Explicit Boolean; false for clean timing, true for intermediate tensor capture |
+| `loadingMode` | Optional diagnostic comparison: `explicitCache` (default) or `automatic`, both using GPU preference. Automatic uses `AIModel(contentsOf:options:)`; its cache-hit state is unknown and omitted, and its initialization duration is recorded separately. Ordinary Models retains explicit cache lookup. |
 | `stop` | Optional component, operation (`loading` or `inference`), DiT step (0–7; otherwise absent), and delayMilliseconds (1–60,000) |
 
 Relative bundle/input paths resolve from the request's parent directory. The output is a new sibling directory named `image-check-<runID>`. Existing outputs are refused, including an existing symlink at that name. Source inputs and bundles are never modified.
@@ -35,6 +36,8 @@ The explicit diagnostic entry also writes `checkpoint.json` before preparation a
 A checkpoint's `report.status` remains `running`, including the final checkpoint before VAE release. It proves only that execution reached that boundary, not that the upcoming operation completed, nor that its memory observation is the phase peak. An OS termination can leave a readable checkpoint without `execution.json` or `completion.json`; retain that partial run as incomplete and correlate its process ID with the OS termination record. The regular Models path does not create this journal. The standalone temporary QwenMobileProbe is not required; use the CoreAISamples app for these diagnostics.
 
 `native-checkpoint.json` further separates function loading, each input allocation/copy and the call to `InferenceFunction.run`. It is bound to the same request, profile, manifest and latest pipeline checkpoint. Input records include the actual SDK descriptor's shape, preferred strides and minimum byte count, with memory observations before and after creation. A `run-before` record establishes that all inputs were prepared; `run-after` establishes that the awaited call returned. Neither record alone establishes valid output or a completed image. Emergency unloading does not depend on these writes.
+
+Native checkpoints observe an already admitted backend operation: a load includes specialization and function loading, and a call includes native input buffers and execution. They do not add cancellation points inside that protected operation. Stop continues to join the current operation before release; the pipeline checkpoint before the next operation rechecks cancellation and ownership.
 
 Input validation failures before output creation have no result directory. A record-writing failure preserves the original native and cleanup errors in the diagnostic outcome instead of replacing them with the final I/O error. A partial directory without a complete, parseable terminal record is not a successful run. Cancellation does not publish an unfinished image.
 

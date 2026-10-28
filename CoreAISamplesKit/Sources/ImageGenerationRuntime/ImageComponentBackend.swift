@@ -2,6 +2,10 @@ import CoreAI
 import Foundation
 import ImageGenerationCore
 
+enum ImageModelLoading: String, Codable, Sendable {
+    case explicitCache, automatic
+}
+
 protocol ImageComponentBackend: Actor {
     func load(directory: URL, component: ImageGenerationProfile.Component) async throws -> ImageComponentLoadMetrics
     func call(_ values: [String: ImageTensorData]) async throws -> [String: ImageTensorData]
@@ -18,8 +22,12 @@ actor CoreAIImageBackend: ImageComponentBackend {
     private var loaded: Loaded?
     private var busy = false
     private let journal: ImageExecutionJournal?
+    private let loadingMode: ImageModelLoading
 
-    init(journal: ImageExecutionJournal? = nil) { self.journal = journal }
+    init(journal: ImageExecutionJournal? = nil, loadingMode: ImageModelLoading = .explicitCache) {
+        self.journal = journal
+        self.loadingMode = loadingMode
+    }
 
     func load(directory: URL, component: ImageGenerationProfile.Component) async throws -> ImageComponentLoadMetrics {
         guard !busy, loaded == nil else { throw ImageExecutionError.busy }
@@ -27,18 +35,33 @@ actor CoreAIImageBackend: ImageComponentBackend {
         defer { busy = false }
         let url = directory.appending(path: component.asset)
         let options = SpecializationOptions(preferredComputeUnitKind: .gpu)
-        let lookupStart = ContinuousClock.now
-        let cached = try AIModelCache.default.model(for: url, options: options)
-        let lookupSeconds = elapsed(since: lookupStart)
         let model: AIModel
+        let cacheHit: Bool?
+        let lookupSeconds: Double
         let specializationSeconds: Double?
-        if let cached {
-            model = cached
-            specializationSeconds = nil
-        } else {
+        let initializationSeconds: Double?
+        switch loadingMode {
+        case .automatic:
             let start = ContinuousClock.now
-            model = try await AIModel.specialize(contentsOf: url, options: options)
-            specializationSeconds = elapsed(since: start)
+            model = try await AIModel(contentsOf: url, options: options)
+            initializationSeconds = elapsed(since: start)
+            cacheHit = nil
+            lookupSeconds = 0
+            specializationSeconds = nil
+        case .explicitCache:
+            initializationSeconds = nil
+            let lookupStart = ContinuousClock.now
+            let cached = try AIModelCache.default.model(for: url, options: options)
+            lookupSeconds = elapsed(since: lookupStart)
+            cacheHit = cached != nil
+            if let cached {
+                model = cached
+                specializationSeconds = nil
+            } else {
+                let start = ContinuousClock.now
+                model = try await AIModel.specialize(contentsOf: url, options: options)
+                specializationSeconds = elapsed(since: start)
+            }
         }
         guard let descriptor = model.functionDescriptor(for: component.function), descriptor.stateNames.isEmpty,
             Set(descriptor.inputNames) == Set(component.inputs.map(\.name)),
@@ -62,8 +85,9 @@ actor CoreAIImageBackend: ImageComponentBackend {
         try await journal?.recordNative(
             stage: "function-load-after", asset: component.asset, memory: ImageMemorySampler.capture())
         return ImageComponentLoadMetrics(
-            cacheHit: cached != nil, cacheLookupSeconds: lookupSeconds, specializationSeconds: specializationSeconds,
-            functionLoadSeconds: loadSeconds)
+            cacheHit: cacheHit, cacheLookupSeconds: lookupSeconds, specializationSeconds: specializationSeconds,
+            functionLoadSeconds: loadSeconds, initializationSeconds: initializationSeconds,
+            loadingMode: loadingMode.rawValue)
     }
 
     func call(_ values: [String: ImageTensorData]) async throws -> [String: ImageTensorData] {

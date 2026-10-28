@@ -642,5 +642,41 @@
     "screenshot_sha256": "25d0e0983f816f8d086f020c3c3c69c4d7285bba7546e1079f62a9653af1c813",
     "scope": "Ordinary launch with no diagnostic arguments displayed the existing Models screen. The screenshot is retained privately."
   },
-  "release_observation_scope": "Release memory is sampled immediately after unload. The old probe sampled 500 ms later; do not compare these as equal delays or infer a model-reference leak from footprint alone. In the v2 runs Metal allocation and RSS fall immediately while footprint remains high."
+  "release_observation_scope": "Release memory is sampled immediately after unload. The old probe sampled 500 ms later; do not compare these as equal delays or infer a model-reference leak from footprint alone. In the v2 runs Metal allocation and RSS fall immediately while footprint remains high.",
+  "native_internal_verification": {
+    "code_revision": "84db75b2e1dbfbba04915cc12da929cf1c98ca58",
+    "binary_sha256": "5ac5ae25fac2e3e4fa8821669c4c0385d836564304640bf5645abda4d0e3a644",
+    "binary_uuid": "649D16D1-1615-3349-9412-6202C86A1D1E",
+    "status": "process_absent_without_terminal_record",
+    "app_termination_reason": null,
+    "checkpoint": {
+      "asset": "denoiser/denoiser.aimodel",
+      "checkpointSequence": 6,
+      "component": "denoiser",
+      "format": 1,
+      "manifestSHA256": "66b2154e45359c6636830ddc95c7e95c52ea9355d5b10bd12bf8a4df9d33e32b",
+      "memory": {
+        "availableBytes": 3114410696,
+        "footprintBytes": 3328040248,
+        "kernelLifetimePeakBytes": 3328040248,
+        "lowPowerMode": false,
+        "physicalMemoryBytes": 12291735552,
+        "residentBytes": 3543400448,
+        "scope": "processDirtyBudget",
+        "thermalState": 1,
+        "visibleMetalBytes": 3219324928
+      },
+      "processID": 3944,
+      "profileID": "qmi-mobile-w4-dit-g16-blocks16-23-f32-v1",
+      "requestID": "2E2ADE23-6C17-442B-8B7F-BEC2F4C35446",
+      "sequence": 41,
+      "stage": "run-before",
+      "step": 0,
+      "uptimeSeconds": 27319.838665125
+    },
+    "checkpoint_sha256": "6ac1ccfa41552abfda684472a6bfabd4325cfbe135f935d5754d2f7209d51a4d",
+    "nearby_os_record_sha256": "0c7ac11f520c2649fa197b6d2f56d4bd725c83d2c20b0decdd36a13e174e0933",
+    "nearby_os_event": "AppleDeviceQueryService was terminated for vm-compressor-thrashing. This event lists the target app without a kill reason; it does not establish a second app vm-pageshortage termination.",
+    "scope": "Every native input was prepared and the run-before checkpoint was saved. No run-after, terminal report or final image exists. The control connection was lost and the target PID was later absent; its exact termination reason remains unconfirmed."
+  }
 }

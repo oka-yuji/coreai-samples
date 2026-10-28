@@ -7,7 +7,7 @@ import ModelLibraryFeature
 @MainActor
 public final class ImageDiagnosticRunner {
     typealias Factory =
-        @MainActor (ModelDemoSession, ImageMemoryBudget, URL, @escaping @MainActor @Sendable () -> Bool) ->
+        @MainActor (ModelDemoSession, ImageDiagnosticConfiguration, URL, @escaping @MainActor @Sendable () -> Bool) ->
         any ImageGenerationService
     private let files: ImageDiagnosticFiles
     private let makeService: Factory
@@ -24,9 +24,11 @@ public final class ImageDiagnosticRunner {
     private var waiters: [CheckedContinuation<Void, Never>] = []
 
     public convenience init() {
-        self.init(files: ImageDiagnosticFiles(), environment: Self.identity) { session, budget, directory, permission in
+        self.init(files: ImageDiagnosticFiles(), environment: Self.identity) {
+            session, configuration, directory, permission in
             LiveImageGenerationService(
-                session: session, budget: budget, diagnosticDirectory: directory, isPermitted: permission)
+                session: session, budget: configuration.budget, diagnosticDirectory: directory,
+                loadingMode: configuration.loadingMode ?? .explicitCache, isPermitted: permission)
         }
     }
 
@@ -137,7 +139,7 @@ public final class ImageDiagnosticRunner {
         do {
             try Task.checkCancellation()
             guard !revoked else { throw CancellationError() }
-            let service = makeService(session, context.configuration.budget, context.directory) { [weak self] in
+            let service = makeService(session, context.configuration, context.directory) { [weak self] in
                 self?.active == true && self?.revoked == false
             }
             self.service = service

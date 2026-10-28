@@ -28,11 +28,21 @@ public final class LiveImageGenerationService: ImageGenerationService {
         session: ModelDemoSession, budget: ImageMemoryBudget, diagnosticDirectory: URL? = nil,
         isPermitted: @escaping @MainActor @Sendable () -> Bool
     ) {
+        self.init(
+            session: session, budget: budget, diagnosticDirectory: diagnosticDirectory, loadingMode: .explicitCache,
+            isPermitted: isPermitted)
+    }
+
+    convenience init(
+        session: ModelDemoSession, budget: ImageMemoryBudget, diagnosticDirectory: URL?, loadingMode: ImageModelLoading,
+        isPermitted: @escaping @MainActor @Sendable () -> Bool
+    ) {
         let journal = diagnosticDirectory.map { ImageExecutionJournal(directory: $0) }
         self.init(
             session: session,
             pipeline: ImageRuntimePipeline(
-                resource: session.resource, budget: budget, backend: CoreAIImageBackend(journal: journal),
+                resource: session.resource, budget: budget,
+                backend: CoreAIImageBackend(journal: journal, loadingMode: loadingMode),
                 permission: isPermitted, memory: ImageMemorySampler.capture,
                 journal: journal),
             isPermitted: isPermitted)
