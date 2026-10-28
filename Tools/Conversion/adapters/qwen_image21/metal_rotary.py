@@ -28,17 +28,24 @@ def rotary_kernel():
 
 
 class Float32Rotary(torch.nn.Module):
-    def __init__(self):
+    def __init__(self, *, native_complex=False):
         super().__init__()
-        self.kernel = rotary_kernel()
+        self.native_complex = native_complex
+        self.kernel = None if native_complex else rotary_kernel()
+
+    @property
+    def arithmetic(self):
+        return "float32-native-complex" if self.native_complex else "float32-explicit-metal-fma"
 
     def forward(self, value, cosine, sine):
         if value.dtype != torch.float32 or cosine.dtype != torch.float32 or sine.dtype != torch.float32:
-            raise ValueError("The Metal rotary boundary requires Float32 inputs")
+            raise ValueError("The rotary boundary requires Float32 inputs")
         if value.ndim != 4 or value.shape[0] != 1 or value.shape[-2:] != (32, 128) or not 1 <= value.shape[1] <= 2304:
-            raise ValueError("The Metal rotary boundary requires one batch, 32 heads and 128 channels")
+            raise ValueError("The rotary boundary requires one batch, 32 heads and 128 channels")
         if cosine.shape != (1, value.shape[1], 1, 64) or sine.shape != cosine.shape:
             raise ValueError("The rotary frequencies must cover every token and pair")
+        if self.native_complex:
+            return reference_rotary(value, cosine, sine).reshape(value.shape)
         return self.kernel(value.reshape(-1), cosine.reshape(-1), sine.reshape(-1),
                            threads_per_grid=(value.numel() // 2, 1, 1), threads_per_thread_group=(256, 1, 1),
                            result_shapes=[[value.numel()]]).reshape(value.shape)

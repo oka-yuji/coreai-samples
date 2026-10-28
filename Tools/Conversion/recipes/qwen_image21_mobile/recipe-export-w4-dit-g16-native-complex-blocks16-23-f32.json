@@ -1,0 +1,392 @@
+{
+  "version": 1,
+  "name": "qwen_image21_mobile_w4_dit_g16_native_complex_blocks16_23_f32",
+  "variables": {
+    "python": "$python",
+    "snapshot": "$snapshot",
+    "heavy_lock": "$heavy_lock"
+  },
+  "python": "$python",
+  "environment": {
+    "HF_HUB_OFFLINE": "1",
+    "TOKENIZERS_PARALLELISM": "false",
+    "COREAI_HEAVY_JOB_LOCK": "$heavy_lock"
+  },
+  "steps": [
+    {
+      "id": "prepare",
+      "role": "prepare",
+      "command": [
+        "$python",
+        "-m",
+        "Tools.Conversion.adapters.qwen_image21.prepare",
+        "--snapshot",
+        "$snapshot",
+        "--model",
+        "$recipe_dir/model.json",
+        "--output",
+        "$out"
+      ],
+      "inputs": [
+        "$repo/Tools/Conversion/adapters/qwen_image21/prepare.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/contracts.py",
+        "$recipe_dir/model.json",
+        "$snapshot"
+      ],
+      "outputs": [
+        "source.json"
+      ],
+      "heavy": true,
+      "timeout_s": 600,
+      "min_free_bytes": 80000000000,
+      "cwd": "$repo"
+    },
+    {
+      "id": "profile",
+      "role": "prepare",
+      "depends": [
+        "prepare"
+      ],
+      "command": [
+        "$python",
+        "-m",
+        "Tools.Conversion.adapters.qwen_image21.mobile_convert",
+        "profile",
+        "--candidate",
+        "w4-dit-g16-native-complex-blocks16-23-f32",
+        "--dependency-lock",
+        "$recipe_dir/uv.lock",
+        "--output",
+        "$out"
+      ],
+      "inputs": [
+        "$repo/Tools/Conversion/adapters/qwen_image21/mobile_artifacts.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/mobile_convert.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/mobile_models.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/mobile_profile.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/quantization.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/denoiser.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/metal_rotary.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/encoders.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/profile.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/contracts.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/evaluation.py",
+        "$recipe_dir/uv.lock"
+      ],
+      "outputs": [
+        "profile.json"
+      ],
+      "cwd": "$repo"
+    },
+    {
+      "id": "vision",
+      "role": "export",
+      "depends": [
+        "prepare",
+        "profile"
+      ],
+      "command": [
+        "$python",
+        "-m",
+        "Tools.Conversion.adapters.qwen_image21.mobile_convert",
+        "export",
+        "--snapshot",
+        "$snapshot",
+        "--profile",
+        "$profile/profile.json",
+        "--dependency-lock",
+        "$recipe_dir/uv.lock",
+        "--kind",
+        "vision",
+        "--output",
+        "$out"
+      ],
+      "inputs": [
+        "$repo/Tools/Conversion/adapters/qwen_image21/mobile_artifacts.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/mobile_convert.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/mobile_models.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/mobile_profile.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/quantization.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/denoiser.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/metal_rotary.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/encoders.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/profile.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/contracts.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/evaluation.py",
+        "$snapshot/text_encoder",
+        "$snapshot/processor",
+        "$snapshot/scheduler",
+        "$recipe_dir/model.json",
+        "$recipe_dir/uv.lock",
+        "$snapshot/LICENSE",
+        "$snapshot/model_index.json"
+      ],
+      "outputs": [
+        "component.json",
+        "compression.json",
+        "vision.aimodel"
+      ],
+      "checks": [
+        {
+          "file": "component.json",
+          "key": [
+            "conversion_complete"
+          ],
+          "equals": true
+        }
+      ],
+      "heavy": true,
+      "timeout_s": 3600,
+      "min_free_bytes": 80000000000,
+      "cwd": "$repo"
+    },
+    {
+      "id": "text",
+      "role": "export",
+      "depends": [
+        "prepare",
+        "profile"
+      ],
+      "command": [
+        "$python",
+        "-m",
+        "Tools.Conversion.adapters.qwen_image21.mobile_convert",
+        "export",
+        "--snapshot",
+        "$snapshot",
+        "--profile",
+        "$profile/profile.json",
+        "--dependency-lock",
+        "$recipe_dir/uv.lock",
+        "--kind",
+        "text",
+        "--output",
+        "$out"
+      ],
+      "inputs": [
+        "$repo/Tools/Conversion/adapters/qwen_image21/mobile_artifacts.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/mobile_convert.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/mobile_models.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/mobile_profile.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/quantization.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/denoiser.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/metal_rotary.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/encoders.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/profile.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/contracts.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/evaluation.py",
+        "$snapshot/text_encoder",
+        "$snapshot/processor",
+        "$snapshot/scheduler",
+        "$recipe_dir/model.json",
+        "$recipe_dir/uv.lock",
+        "$snapshot/LICENSE",
+        "$snapshot/model_index.json"
+      ],
+      "outputs": [
+        "component.json",
+        "compression.json",
+        "text.aimodel"
+      ],
+      "checks": [
+        {
+          "file": "component.json",
+          "key": [
+            "conversion_complete"
+          ],
+          "equals": true
+        }
+      ],
+      "heavy": true,
+      "timeout_s": 3600,
+      "min_free_bytes": 80000000000,
+      "cwd": "$repo"
+    },
+    {
+      "id": "denoiser",
+      "role": "export",
+      "depends": [
+        "prepare",
+        "profile"
+      ],
+      "command": [
+        "$python",
+        "-m",
+        "Tools.Conversion.adapters.qwen_image21.mobile_convert",
+        "export",
+        "--snapshot",
+        "$snapshot",
+        "--profile",
+        "$profile/profile.json",
+        "--dependency-lock",
+        "$recipe_dir/uv.lock",
+        "--kind",
+        "denoiser",
+        "--output",
+        "$out"
+      ],
+      "inputs": [
+        "$repo/Tools/Conversion/adapters/qwen_image21/mobile_artifacts.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/mobile_convert.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/mobile_models.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/mobile_profile.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/quantization.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/denoiser.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/metal_rotary.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/encoders.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/profile.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/contracts.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/evaluation.py",
+        "$snapshot/transformer",
+        "$snapshot/processor",
+        "$snapshot/scheduler",
+        "$recipe_dir/model.json",
+        "$recipe_dir/uv.lock",
+        "$snapshot/LICENSE",
+        "$snapshot/model_index.json"
+      ],
+      "outputs": [
+        "component.json",
+        "compression.json",
+        "denoiser.aimodel"
+      ],
+      "checks": [
+        {
+          "file": "component.json",
+          "key": [
+            "conversion_complete"
+          ],
+          "equals": true
+        }
+      ],
+      "heavy": true,
+      "timeout_s": 3600,
+      "min_free_bytes": 80000000000,
+      "cwd": "$repo"
+    },
+    {
+      "id": "vae_encoder",
+      "role": "export",
+      "depends": [
+        "prepare",
+        "profile"
+      ],
+      "command": [
+        "$python",
+        "-m",
+        "Tools.Conversion.adapters.qwen_image21.mobile_convert",
+        "export",
+        "--snapshot",
+        "$snapshot",
+        "--profile",
+        "$profile/profile.json",
+        "--dependency-lock",
+        "$recipe_dir/uv.lock",
+        "--kind",
+        "vae_encoder",
+        "--output",
+        "$out"
+      ],
+      "inputs": [
+        "$repo/Tools/Conversion/adapters/qwen_image21/mobile_artifacts.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/mobile_convert.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/mobile_models.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/mobile_profile.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/quantization.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/denoiser.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/metal_rotary.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/encoders.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/profile.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/contracts.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/evaluation.py",
+        "$snapshot/vae",
+        "$snapshot/processor",
+        "$snapshot/scheduler",
+        "$recipe_dir/model.json",
+        "$recipe_dir/uv.lock",
+        "$snapshot/LICENSE",
+        "$snapshot/model_index.json"
+      ],
+      "outputs": [
+        "component.json",
+        "compression.json",
+        "vae_encoder.aimodel"
+      ],
+      "checks": [
+        {
+          "file": "component.json",
+          "key": [
+            "conversion_complete"
+          ],
+          "equals": true
+        }
+      ],
+      "heavy": true,
+      "timeout_s": 3600,
+      "min_free_bytes": 80000000000,
+      "cwd": "$repo"
+    },
+    {
+      "id": "vae_decoder",
+      "role": "export",
+      "depends": [
+        "prepare",
+        "profile"
+      ],
+      "command": [
+        "$python",
+        "-m",
+        "Tools.Conversion.adapters.qwen_image21.mobile_convert",
+        "export",
+        "--snapshot",
+        "$snapshot",
+        "--profile",
+        "$profile/profile.json",
+        "--dependency-lock",
+        "$recipe_dir/uv.lock",
+        "--kind",
+        "vae_decoder",
+        "--output",
+        "$out"
+      ],
+      "inputs": [
+        "$repo/Tools/Conversion/adapters/qwen_image21/mobile_artifacts.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/mobile_convert.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/mobile_models.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/mobile_profile.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/quantization.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/denoiser.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/metal_rotary.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/encoders.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/profile.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/contracts.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/evaluation.py",
+        "$snapshot/vae",
+        "$snapshot/processor",
+        "$snapshot/scheduler",
+        "$recipe_dir/model.json",
+        "$recipe_dir/uv.lock",
+        "$snapshot/LICENSE",
+        "$snapshot/model_index.json"
+      ],
+      "outputs": [
+        "component.json",
+        "compression.json",
+        "vae_decoder.aimodel"
+      ],
+      "checks": [
+        {
+          "file": "component.json",
+          "key": [
+            "conversion_complete"
+          ],
+          "equals": true
+        }
+      ],
+      "heavy": true,
+      "timeout_s": 3600,
+      "min_free_bytes": 80000000000,
+      "cwd": "$repo"
+    }
+  ]
+}

@@ -8,7 +8,7 @@ from .contracts import digest, require_heavy_job
 from .evaluation import canonical_hash
 from .fixtures import file_record
 from .mobile_artifacts import converter_identity, inventory, read_profile, validate_environment, validate_source
-from .mobile_profile import CANDIDATES, make_profile
+from .mobile_profile import CANDIDATES, NATIVE_COMPLEX_CANDIDATE, make_profile
 
 
 def new_output(directory, names):
@@ -47,7 +47,7 @@ def export_component(args):
     rotary = None
     if args.kind == "denoiser" and profile["components"][args.kind]["compute_dtype"] == "float32":
         from .metal_rotary import Float32Rotary
-        rotary = Float32Rotary()
+        rotary = Float32Rotary(native_complex=profile["id"] == f"qmi-mobile-{NATIVE_COMPLEX_CANDIDATE}-v1")
     wrapper = export_boundary(original, args.kind, profile, rotary=rotary)
     specification = profile["components"][args.kind]
     dtypes = {"float32": torch.float32, "int32": torch.int32, "bool": torch.bool}
@@ -58,7 +58,7 @@ def export_component(args):
     with torch.no_grad():
         program = torch.export.export(wrapper, example, strict=False).run_decompositions(get_decomp_table())
     converter = TorchConverter(mode=TorchConverter.Mode.RELEASE)
-    if rotary is not None:
+    if rotary is not None and rotary.kernel is not None:
         converter.register_custom_kernels([rotary.kernel])
     converter.add_exported_program(program, input_names=[item["name"] for item in specification["inputs"]],
                                    output_names=[item["name"] for item in specification["outputs"]],
@@ -71,7 +71,7 @@ def export_component(args):
     metadata.set_custom("source_revision", profile["source"]["revision"])
     metadata.set_custom("profile_sha256", canonical_hash(profile))
     if rotary is not None:
-        metadata.set_custom("rotary_arithmetic", "float32-explicit-metal-fma")
+        metadata.set_custom("rotary_arithmetic", rotary.arithmetic)
     target = args.output / (args.kind + ".aimodel")
     if target.exists() or target.is_symlink():
         raise FileExistsError("The asset destination changed during conversion")

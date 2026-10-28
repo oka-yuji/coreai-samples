@@ -128,7 +128,7 @@ class VAEBoundary(torch.nn.Module):
 
 def export_boundary(original, kind, profile, *, rotary=None):
     if rotary is not None and (kind != "denoiser" or profile["components"][kind]["compute_dtype"] != "float32"):
-        raise ValueError("Explicit Metal rotary is only supported for the Float32 denoiser")
+        raise ValueError("Explicit rotary is only supported for the Float32 denoiser")
     dtype = DTYPES[profile["components"][kind]["compute_dtype"]]
     if kind == "text":
         result = TextBoundary(original, dtype)
