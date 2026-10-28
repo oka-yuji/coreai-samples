@@ -23,3 +23,5 @@ The iPhone preflight is retained in [reference-input-device.json](reference-inpu
 Independent review found no remaining confirmed code defect after these fixes. It did not execute a model or record a microphone. The unresolved Python waveform-fidelity screen and the limits of native smoke testing remain in [reference-runtime.md](reference-runtime.md). Tests and build success do not establish speaker similarity, naturalness, maximum-length iPhone behavior or long-run memory stability.
 
 The operation guide and model-report records were updated, retaining pending personal acceptance and the earlier evidence. The public model card is a publication draft; no placeholder download source has been inserted. Existing source-model folders and unrelated working-tree changes were kept intact.
+
+After integrating concurrent main changes through `b1e27bf`, the full host suite reported 995 tests with 47 conditional skips and no failures. All three Release products, strict lint (514 files), changed-file format (33 Swift files) and model-report checks passed again. The earlier 980-test count above refers to the pre-integration check.
