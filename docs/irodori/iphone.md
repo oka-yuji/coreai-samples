@@ -2,27 +2,45 @@
 
 ## Use Irodori from Models
 
-The normal **Core AI Demos** iOS app now includes **Models → Irodori → Speech demo**. Build and run the `CoreAISamples-iOS` scheme from **main**, with the local signing configuration and the `aarch64-apple-ios` Rust target installed. Its build script prepares the native input library. Device generation and listening acceptance are still pending; the host build is not evidence of device support.
+Build and run **CoreAISamples-iOS** on a physical iPhone with iOS 27 or later. In **Models → Irodori → Speech demo**, select **Reference voice (FP32)**. The legacy FP32 variant remains available for text-only generation.
 
-### Before you start
+### Model preparation
 
-This build has **no in-app Irodori model download**. It needs a complete, prepared **Irodori FP32** folder containing `irodori.json`, `tokenizer.json` and `artifacts/`. The upstream PyTorch checkpoint cannot be imported directly. If you do not already have the converted assets, the preparation script alone cannot create them. The app links to this guide beside **Import model**, and **About this demo** describes preparation, generation, playback and saving without leaving the app.
+The reference runtime uses the separate `irodori-coreai-v2` folder: six model components, `tokenizer.json` and `irodori.json`, totaling about **3.84 GB**. The current catalog accepts the prepared folder through **Import model**. A public model download is awaiting the owner's publication decision; the app does not point to a placeholder download URL.
 
-The current bundle generates a voice from text. It does **not** accept a recorded or imported reference voice and does not clone a speaker. A seed selects a voice variation; it is not a reference voice selector. Reference-voice capture and conditioning require additional converted model components and their validation.
+Use a complete prepared reference folder in Files. The original PyTorch checkpoint and a renamed v1 folder are not compatible. The [preparation command](reference-runtime.md) checks the pinned component hashes and leaves the sources unchanged. Import creates a managed app copy, so keep space for the original, the copy and model specialization. Extra files and symbolic links are rejected.
 
-### Generate your first passage
+### Record or choose a voice
 
-1. Prepare the known FP32 folder using [the existing preparation command](runtime.md#prepare-a-local-model-folder). Keep the complete folder accessible in Files on the iPhone. An existing folder under **On My iPhone → Irodori Speech** can be selected without moving or deleting it.
-2. Open **Models → Irodori → Speech demo**, choose **Import model**, and select the complete prepared folder. Wait for validation. The app copies it into managed storage; it does not modify the original. The 3.38 GB source and managed copy both need space, plus room for specialization.
-3. Under **2. Enter what to say**, tap **Try an example** or enter a short Japanese passage. Leave **Voice options** at its default for the first attempt; a seed change is optional. Under **3. Generate and listen**, press **Generate speech** and keep the screen open. Merely opening Models, importing, or viewing the speech screen does not generate audio.
-4. Use **Play**, **Stop**, and **Save WAV…**. The exported file is 48 kHz mono Float32 WAV. Generation time and audio length are shown on the screen.
-5. Wait for a stop to finish before starting again. Leaving the demo, changing models, or moving to the background cancels generation/playback and waits for audio-session deactivation and runtime release. Reopening retains text and seed, but clears old audio and save tickets; generate again to obtain a new result.
+1. Import the **Reference voice** model and wait for **1. Model ready**.
+2. Under **2. Choose a reference voice**, tap **Record voice**, speak clearly, and tap **Finish recording**. Recording stops automatically after 30 seconds. **Cancel recording** discards that attempt. If microphone permission is denied, use **Open microphone settings** or choose a file instead.
+3. Alternatively, tap **Choose audio file** and select a WAV, M4A, MP3 or AIFF file. Use a clear recording from 0.5 to 30 seconds. The app converts supported files to 48 kHz mono; it does not silently truncate a long file. The selected name and duration appear after validation.
+4. Use **Listen to reference** to check the input, or **Remove reference** to return to a generated voice. Reference audio is optional. Use your own voice or a recording you have permission to use.
+5. Under **3. Enter what to say**, choose **Try an example** or enter a short Japanese passage. The seed is inside **Voice options** and can stay unchanged.
+6. Under **4. Generate and listen**, tap **Generate speech** and keep the app open. First specialization takes longer. Then use **Play**, **Stop** and **Save WAV…**.
 
-The [managed bundle contract](managed-bundles.md) and [validation record](managed-validation.md) distinguish host checks from device results. Only the fixed 14-file inventory is accepted; incomplete copies, changed files, extra files (including `.DS_Store`), and symbolic links are rejected. Do not add files to the prepared folder.
+Opening the screen, importing a model, or choosing an example does not start inference. Leaving the managed demo or moving to the background stops recording, loading, generation and playback before the resource lease is released. Text and seed are retained; reference/output audio from a closed managed session are cleared. Import failure or cancellation keeps an existing reference instead of replacing it with invalid data.
 
-### Acceptance on main
+Generation and reference processing run on the device. Reference audio is not uploaded by the app; an exported WAV follows the destination selected by the user. Recorded temporary files are removed after decoding or failure.
 
-The user requested device confirmation after merging. On iPhone 17 Pro / iOS 27, check a short generation, reading/naturalness, playback, WAV export, cancellation during generation and playback, background/foreground, and a switch to another model followed by return. Record the main commit, device model/identifier, OS build, text and seed, displayed generation time and audio length, memory measurement method and peak, thermal state and power connection. Keep the WAV and record failures as well as successes. The existing SpeechPhone diagnostic below can supply separate measurements, but does not replace normal-Models acceptance. #329 IOS-IR-01/03/05 and #95 M4/M5 remain pending until their evidence is recorded.
+### Verification status
+
+The October 29, 2026 preflight on **iPhone 17 Pro / iOS 27.0.1 (24A446)** completed reference-file decoding, three generations, WAV saving and resource release through the shared runtime. Greeting → announcement → greeting produced 4.00 / 4.24 / 4.00-second outputs; the repeated greeting WAVs matched. See [the measured report](reference-input-device.json).
+
+The initial device attempt aborted in the GPU codec decoder with a dynamic-allocation assertion. Disabling frequent-reshape specialization for the iOS decoder resolved that attempt. The Mac policy stays separate. The diagnostic used a synthetic reference file and did not record a microphone or play sound. Normal-screen operation, real microphone input, playback/listening and subjective speaker quality remain personal acceptance checks. The earlier Python waveform-fidelity miss is preserved in [the runtime record](reference-runtime.md).
+
+### Explicit reference diagnostic in the normal app
+
+For a prepared folder and a reference file directly in the app's Documents directory, the normal iOS app accepts these development launch arguments:
+
+```text
+--speech-reference-check reference-check-01
+--speech-model-folder Irodori-Reference
+--reference-audio reference.wav
+--exit-after-speech-check
+```
+
+Use a new check ID each time. Results are written to `Documents/SpeechChecks/<ID>/` without overwriting prior runs. The diagnostic generates and saves three examples, records memory and repeat equality, and skips playback and microphone capture. A normal launch without the flag opens Models and performs no generation. The separate SpeechPhone product uses `--speech-check-run <ID>` with the same folder/reference flags and `--no-playback`.
 
 ## Separate SpeechPhone app
 

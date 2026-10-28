@@ -117,6 +117,17 @@
         }
       }
     },
+    "%@ s reference" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "参照音声 %@ 秒"
+          }
+        }
+      }
+    },
     "%@ s · %lld reused document tokens" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -376,6 +387,17 @@
         }
       }
     },
+    "2. Choose a reference voice" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "2. 参照音声を選ぶ"
+          }
+        }
+      }
+    },
     "2. Enter what to say" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -407,6 +429,17 @@
         }
       }
     },
+    "3. Enter what to say" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "3. 読み上げる文章を入力"
+          }
+        }
+      }
+    },
     "3. Generate and listen" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -425,6 +458,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "3. 生成して聴く・保存する"
+          }
+        }
+      }
+    },
+    "4. Generate and listen" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "4. 音声を生成して聴く"
+          }
+        }
+      }
+    },
+    "4. Generate, listen and save" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "4. 生成して聴く・保存する"
           }
         }
       }
@@ -722,6 +777,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "ファイル操作を許可（move_note、次のタスクから）"
+          }
+        }
+      }
+    },
+    "Allow microphone access in Settings to record a reference voice." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "参照音声を録音するには、設定でマイクへのアクセスを許可してください。"
           }
         }
       }
@@ -1062,6 +1128,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "変更を取り消す"
+          }
+        }
+      }
+    },
+    "Cancel recording" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "録音を取り消す"
           }
         }
       }
@@ -1461,6 +1538,17 @@
         }
       }
     },
+    "Choose Try an example or enter a short Japanese passage. Leave the voice options unchanged to begin. A reference voice is optional; leaving it empty uses a generated voice." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「例文で試す」を選ぶか、短い日本語の文章を入力します。声の詳細設定はそのままで始められます。参照音声を指定しなければ、モデルが生成する声を使います。"
+          }
+        }
+      }
+    },
     "Choose Try an example or enter a short Japanese passage. You can leave the voice variation setting as it is." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1557,6 +1645,28 @@
         }
       }
     },
+    "Choose a voice recording no longer than 30 seconds." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "30秒以内の音声を選んでください。"
+          }
+        }
+      }
+    },
+    "Choose audio file" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音声ファイルを選ぶ"
+          }
+        }
+      }
+    },
     "Choose images…" : {
       "localizations" : {
         "ja" : {
@@ -1573,6 +1683,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "モデルを選択"
+          }
+        }
+      }
+    },
+    "Choose the Reference voice model to enable recording and audio files." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "録音や音声ファイルを使うには、参照音声対応のモデルを選んでください。"
           }
         }
       }
@@ -2548,6 +2669,17 @@
         }
       }
     },
+    "Download the Reference voice model. It uses about 3.84 GB. Wait for the model check to finish before recording or choosing an audio file." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "参照音声対応のモデルをダウンロードします。容量は約3.84 GBです。モデルの確認が終わったら、声を録音するか音声ファイルを選んでください。"
+          }
+        }
+      }
+    },
     "Downloaded" : {
       "localizations" : {
         "ja" : {
@@ -3073,6 +3205,17 @@
         }
       }
     },
+    "Finish recording" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "録音を終える"
+          }
+        }
+      }
+    },
     "Finishing the current request…" : {
       "localizations" : {
         "ja" : {
@@ -3135,6 +3278,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "プロンプトから512×512の画像を生成します。参照画像を1枚選ぶと、その画像を編集できます。"
+          }
+        }
+      }
+    },
+    "Generate Japanese speech using a recorded voice or an audio file." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "録音や音声ファイルの声を参考に、日本語の音声を生成します。"
           }
         }
       }
@@ -3473,6 +3627,17 @@
         }
       }
     },
+    "Import the prepared Reference voice model folder from Files. It uses about 3.84 GB, plus space for the app copy. The legacy model supports text-only generation." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ファイルアプリから、準備済みの参照音声対応モデルを取り込みます。容量は約3.84 GBで、アプリ内のコピーにも空き容量が必要です。従来モデルは文章だけから生成します。"
+          }
+        }
+      }
+    },
     "Import…" : {
       "localizations" : {
         "ja" : {
@@ -3771,6 +3936,17 @@
     "Irodori" : {
       "shouldTranslate" : false
     },
+    "Irodori device check" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Irodori 実機チェック"
+          }
+        }
+      }
+    },
     "Item name" : {
       "localizations" : {
         "ja" : {
@@ -3912,6 +4088,17 @@
         }
       }
     },
+    "Leave this number unchanged to get started. Change it to try another variation of the speech." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この数値はそのままで始められます。別の発話のバリエーションを試したいときに変更してください。"
+          }
+        }
+      }
+    },
     "Leave this unchecked when unseen ingredients are still unknown." : {
       "localizations" : {
         "ja" : {
@@ -3938,6 +4125,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "選択肢: %@"
+          }
+        }
+      }
+    },
+    "Listen to reference" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "参照音声を聴く"
           }
         }
       }
@@ -4984,6 +5182,17 @@
         }
       }
     },
+    "On-device generation" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "端末内で生成"
+          }
+        }
+      }
+    },
     "On-device photo reading + %@" : {
       "localizations" : {
         "ja" : {
@@ -5105,6 +5314,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "前回のモデルを開く"
+          }
+        }
+      }
+    },
+    "Open microphone settings" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "マイクの設定を開く"
           }
         }
       }
@@ -5633,6 +5853,28 @@
         }
       }
     },
+    "Preparing to record…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "録音の準備中…"
+          }
+        }
+      }
+    },
+    "Preparing your recorded voice…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "録音した音声を準備中…"
+          }
+        }
+      }
+    },
     "Preparing…" : {
       "localizations" : {
         "ja" : {
@@ -5889,6 +6131,17 @@
         }
       }
     },
+    "Reading the reference audio…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "参照音声を読み込み中…"
+          }
+        }
+      }
+    },
     "Ready" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5985,6 +6238,72 @@
         }
       }
     },
+    "Record voice" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "声を録音"
+          }
+        }
+      }
+    },
+    "Record your voice or choose an audio file. The generated speech will use it as a voice reference." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "声を録音するか、音声ファイルを選んでください。その声の特徴を参考に、文章を読み上げます。"
+          }
+        }
+      }
+    },
+    "Recorded voice" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "録音した音声"
+          }
+        }
+      }
+    },
+    "Recording stopped unexpectedly. Please try again." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "録音が中断されました。もう一度試してください。"
+          }
+        }
+      }
+    },
+    "Recording your reference voice…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "参照音声を録音中…"
+          }
+        }
+      }
+    },
+    "Reference voice is ready. Enter text and generate speech." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "参照音声の準備ができました。文章を入力して音声を生成してください。"
+          }
+        }
+      }
+    },
     "Refresh" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -6042,6 +6361,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "カードを削除"
+          }
+        }
+      }
+    },
+    "Remove reference" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "参照音声を外す"
           }
         }
       }
@@ -7020,6 +7350,17 @@
         }
       }
     },
+    "Speech generation runs on this device. The app does not upload your reference audio. Saving or sharing a WAV uses the destination you choose." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音声はこの端末で生成します。アプリが参照音声を外部へ送信することはありません。WAVの保存・共有は、選んだ保存先や共有先を使います。"
+          }
+        }
+      }
+    },
     "Speech is ready. Play it or save the WAV file." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7394,6 +7735,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "「音声を生成」を押し、アプリを開いたまま待ちます。初回はモデルの準備に時間がかかる場合があります。完了したら「再生」で聴くか、「WAVを保存」で保存できます。「停止」で処理を中止できます。"
+          }
+        }
+      }
+    },
+    "Tap Generate speech and keep the app open. The first run prepares the model and can take longer. Then use Play or Save WAV. Stop cancels recording, reading, generation or playback." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「音声を生成」を押し、アプリを開いたまま待ちます。初回はモデルの準備に時間がかかる場合があります。完了したら「再生」で聴くか、「WAVを保存」で保存できます。「停止」で録音・読み込み・生成・再生を中止できます。"
+          }
+        }
+      }
+    },
+    "Tap Record voice, speak clearly, then Finish recording. Or tap Choose audio file and select a WAV, M4A, MP3 or AIFF file. Use 0.5 to 30 seconds of your own voice or a voice you have permission to use. Listen to reference lets you check the selected audio." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「声を録音」を押してはっきり話し、「録音を終える」を押します。または「音声ファイルを選ぶ」からWAV、M4A、MP3、AIFFを選びます。自分の声、または使用許可のある声を0.5〜30秒で用意してください。「参照音声を聴く」で内容を確認できます。"
           }
         }
       }
@@ -7985,6 +8348,28 @@
         }
       }
     },
+    "The recording is silent. Record your voice and try again." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音が入っていません。声を録音して、もう一度試してください。"
+          }
+        }
+      }
+    },
+    "The reference audio contains invalid samples." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "参照音声に読み取れないデータが含まれています。"
+          }
+        }
+      }
+    },
     "The reply stopped at the end of the context window (%lld tokens were left for it). Start a new conversation if the next message does not fit." : {
       "localizations" : {
         "ja" : {
@@ -8158,6 +8543,17 @@
         }
       }
     },
+    "This audio file could not be read. Choose a WAV, M4A, MP3 or AIFF file." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音声ファイルを読み取れませんでした。WAV、M4A、MP3、AIFFのいずれかを選んでください。"
+          }
+        }
+      }
+    },
     "This build does not offer an Irodori model download. In Files, select the complete prepared Irodori FP32 folder with Import model. The folder uses 3.38 GB and is copied into the app, so allow space for both copies and model preparation." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -8165,6 +8561,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "このバージョンではIrodoriモデルをダウンロードできません。「モデルを取り込む」から、ファイルアプリにある準備済みのIrodori FP32フォルダ全体を選びます。容量は3.38 GBで、アプリ内にもコピーします。元のフォルダとコピー、モデルの準備に必要な空き容量を確保してください。"
+          }
+        }
+      }
+    },
+    "This model does not support a reference voice. Choose the reference-voice model." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このモデルは参照音声に対応していません。参照音声対応のモデルを選んでください。"
           }
         }
       }
@@ -8508,6 +8915,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "5つのサンプルのような、キッコーマンのレシピURLを指定してください。"
+          }
+        }
+      }
+    },
+    "Use a clear voice recording from 0.5 to 30 seconds. Recording stops automatically after 30 seconds." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "はっきりした声の音声を0.5〜30秒で用意してください。録音は30秒で自動停止します。"
+          }
+        }
+      }
+    },
+    "Use a voice recording of at least half a second." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "0.5秒以上の音声を用意してください。"
           }
         }
       }
@@ -8886,6 +9315,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "あなた"
+          }
+        }
+      }
+    },
+    "You can also leave this empty to use a generated voice." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "参照音声を指定しない場合は、モデルが生成する声を使います。"
           }
         }
       }
