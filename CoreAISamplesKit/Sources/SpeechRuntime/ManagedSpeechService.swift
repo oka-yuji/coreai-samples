@@ -50,6 +50,27 @@ final class ManagedSpeechService: SpeechService {
         try await perform { try await service.play(data) }
     }
 
+    func recordReference(ticket: Int, started: @MainActor () -> Void) async throws -> SpeechReferenceAudio {
+        try await perform {
+            try await service.recordReference(ticket: ticket) {
+                if active && !stopping && isPermitted() && !Task.isCancelled { started() }
+            }
+        }
+    }
+
+    func finishReferenceRecording(ticket: Int) async {
+        guard active, !stopping, isPermitted(), !Task.isCancelled else { return }
+        await service.finishReferenceRecording(ticket: ticket)
+    }
+
+    func importReference(_ url: URL) async throws -> SpeechReferenceAudio {
+        try await perform { try await service.importReference(url) }
+    }
+
+    func playReference(_ reference: SpeechReferenceAudio) async throws {
+        try await perform { try await service.playReference(reference) }
+    }
+
     func stop() async {
         if stopping {
             await withCheckedContinuation { stopWaiters.append($0) }

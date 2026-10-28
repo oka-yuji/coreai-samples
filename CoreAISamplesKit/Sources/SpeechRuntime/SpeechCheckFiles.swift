@@ -53,6 +53,19 @@
             guard let output else { throw SpeechError.invalidAsset("No check output folder was reserved.") }
             try data.write(to: output.appendingPathComponent("sample-\(index).wav"), options: .withoutOverwriting)
         }
+        public func referenceFile(_ name: String) throws -> URL {
+            guard !name.isEmpty, name.utf8.count <= 160, !name.contains("/"), !name.contains("\\"), name != ".",
+                name != ".."
+            else {
+                throw SpeechError.invalidAsset("Choose a reference audio file directly inside Documents.")
+            }
+            let file = documents.appendingPathComponent(name)
+            let values = try file.resourceValues(forKeys: [.isRegularFileKey, .isSymbolicLinkKey])
+            guard values.isRegularFile == true, values.isSymbolicLink != true,
+                file.resolvingSymlinksInPath().deletingLastPathComponent() == documents.resolvingSymlinksInPath()
+            else { throw SpeechError.invalidAsset("Choose a reference audio file directly inside Documents.") }
+            return file
+        }
         public func writeReport(_ data: Data) throws {
             guard let output else { throw SpeechError.invalidAsset("No check output folder was reserved.") }
             try data.write(to: output.appendingPathComponent("report.json"), options: .withoutOverwriting)
