@@ -7,8 +7,16 @@
     public protocol SpeechService {
         func open(path: String) async throws -> SpeechModel
         func generate(text: String, seed: UInt64) async throws -> SpeechAudio
+        func generate(text: String, seed: UInt64, reference: SpeechReferenceAudio?) async throws -> SpeechAudio
         func play(_ data: Data) async throws
         func stop() async
+    }
+
+    extension SpeechService {
+        public func generate(text: String, seed: UInt64, reference: SpeechReferenceAudio?) async throws -> SpeechAudio {
+            guard reference == nil else { throw SpeechError.referenceNotSupported }
+            return try await generate(text: text, seed: seed)
+        }
     }
 
     @MainActor

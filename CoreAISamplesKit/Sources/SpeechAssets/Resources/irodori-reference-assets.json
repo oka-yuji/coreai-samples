@@ -1,0 +1,104 @@
+[
+  {
+    "stem": "text-256-fp32-upstream",
+    "files": {
+      "main.hash": {
+        "bytes": 32,
+        "sha256": "ad831e783e30b0135e5cc4ac6d4cf194fab2f0d44637b515efd76c97dff2b6cb"
+      },
+      "main.mlirb": {
+        "bytes": 1265890376,
+        "sha256": "33ea5552471f18c591475dd5fcab9fa4aa413d6ab07005fe5e7f33a694c50670"
+      },
+      "metadata.json": {
+        "bytes": 319,
+        "sha256": "7176c16437a635a348beb133b93c2de6c12b7bbd3378731b35df18c37b950165"
+      }
+    }
+  },
+  {
+    "stem": "duration-reference-fp32",
+    "files": {
+      "main.hash": {
+        "bytes": 32,
+        "sha256": "2b362ff3e2ce1c4e5278af1e239c3e9d9763f5aee0f12536cb819f2faaaeda9b"
+      },
+      "main.mlirb": {
+        "bytes": 87151217,
+        "sha256": "4ef0686d36a1999e821a958d7d0045515a6c6670410a78b376a7995482f10808"
+      },
+      "metadata.json": {
+        "bytes": 391,
+        "sha256": "02a9ae4ac6870edf96a2df29d82776f11256ea3a40ff815b4fb8465904c178ad"
+      }
+    }
+  },
+  {
+    "stem": "dit-reference-fp32",
+    "files": {
+      "main.hash": {
+        "bytes": 32,
+        "sha256": "3aae94a0f7299cbfeba4b11c3424aac7d0b6efcfd087bb30ab424539401b58b5"
+      },
+      "main.mlirb": {
+        "bytes": 1492599792,
+        "sha256": "4e464c48bbc8182e428fa3e31396a3038692f6a63cb5cc8453f625a85a720b4d"
+      },
+      "metadata.json": {
+        "bytes": 386,
+        "sha256": "ecb9d51f531ab8c210fc4f2f4dc8606a6eb896ee086f1c71d9ad01bafaf27cc7"
+      }
+    }
+  },
+  {
+    "stem": "codec-dynamic13-750-fp32",
+    "files": {
+      "main.hash": {
+        "bytes": 32,
+        "sha256": "e9d51cdacef789a87bf79cf733e20425c63edadb081476566f15af8e57d67425"
+      },
+      "main.mlirb": {
+        "bytes": 522703868,
+        "sha256": "a559d40f2642889d0456a2f3b6db426c7f7f50b5a78cba8bb77cdfc86a8baf7b"
+      },
+      "metadata.json": {
+        "bytes": 392,
+        "sha256": "1609abd437127fa6c22c3609bd7574f920dd8416861107e56bf9c54824fb0a54"
+      }
+    }
+  },
+  {
+    "stem": "reference-audio-fp32",
+    "files": {
+      "main.hash": {
+        "bytes": 32,
+        "sha256": "704feb9c9a152c36987440b5a837da93a468c8959a4408e84d5289cf7161fce2"
+      },
+      "main.mlirb": {
+        "bytes": 218828055,
+        "sha256": "2a02b4736c20c36c52007ac6ec09c80528e220c6697c8726cbc69c5de6f5195d"
+      },
+      "metadata.json": {
+        "bytes": 388,
+        "sha256": "591f93f9fd5a899c77f44dc925862c33053dd6bdbd5d1d79ffcdc99cceba55e2"
+      }
+    }
+  },
+  {
+    "stem": "reference-speaker-fp32",
+    "files": {
+      "main.hash": {
+        "bytes": 32,
+        "sha256": "ec0577aa924f56c38165cf164d199e48517d430b8cb158791313b4a83d04be05"
+      },
+      "main.mlirb": {
+        "bytes": 242287176,
+        "sha256": "089569ad8e88c1578214d8676b3c74d8e92dd2a870005cb6f7bad43f53805bea"
+      },
+      "metadata.json": {
+        "bytes": 390,
+        "sha256": "8616c9c9d9af4f92c6bb600ad62ba75b0dd91e51c8db78c15489bc5d1680b9ec"
+      }
+    }
+  }
+]
