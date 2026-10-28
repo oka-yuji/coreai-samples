@@ -5,6 +5,29 @@ import OCRFeature
 import Testing
 
 struct OCRFeatureTests {
+    @Test("Dismissing an export preserves its completion error while later edits reject the old callback")
+    func exportDismissal() throws {
+        var state = OCRState(bundle: URL(filePath: "/fixture/model"), input: try input())
+        state.presented = true
+        state.phase = .complete
+        state.document = try document()
+        _ = OCRFeature.reduce(&state, .exportRequested(.json))
+        let first = try #require(state.export)
+        #expect(state.exportVisible && !state.editable)
+        _ = OCRFeature.reduce(&state, .exportDismissed(id: first.id, session: first.session))
+        #expect(!state.exportVisible && state.editable && state.export == first)
+        _ = OCRFeature.reduce(&state, .exportFinished(id: first.id, session: first.session, error: "write failed"))
+        #expect(state.export == nil && state.message == "write failed")
+        _ = OCRFeature.reduce(&state, .exportRequested(.markdown))
+        let second = try #require(state.export)
+        #expect(state.message == nil)
+        _ = OCRFeature.reduce(&state, .exportDismissed(id: second.id, session: second.session))
+        let next = URL(filePath: "/fixture/next.png")
+        #expect(OCRFeature.reduce(&state, .selectImage(next)) == [.run(.select(1, next), id: .operation)])
+        _ = OCRFeature.reduce(&state, .exportFinished(id: second.id, session: second.session, error: "old failure"))
+        #expect(state.export == nil && state.phase == .selecting && state.message == nil)
+    }
+
     @Test("A selected image progresses through load and reading into one result and both export formats")
     func completedPage() throws {
         var state = OCRState(bundle: URL(filePath: "/fixture/model"))
