@@ -127,6 +127,7 @@ public enum OCRFeature: Feature {
             state.phase = state.presented ? .cancelled : .idle
         case .exportRequested(let format):
             guard state.editable, let document = state.document else { return [] }
+            clearExport(&state)
             state.message = nil
             do {
                 let data = try format == .json ? document.json() : Data((document.markdown + "\n").utf8)

@@ -5,6 +5,22 @@ import OCRFeature
 import Testing
 
 struct OCRFeatureTests {
+    @Test("A failed next export invalidates an older dismissed ticket before its late completion")
+    func failedNextExport() throws {
+        var state = OCRState(bundle: URL(filePath: "/fixture/model"), input: try input())
+        state.presented = true
+        state.phase = .complete
+        state.document = try document(seconds: .nan)
+        _ = OCRFeature.reduce(&state, .exportRequested(.markdown))
+        let previous = try #require(state.export)
+        _ = OCRFeature.reduce(&state, .exportDismissed(id: previous.id, session: previous.session))
+        _ = OCRFeature.reduce(&state, .exportRequested(.json))
+        let failure = try #require(state.message)
+        #expect(state.export == nil)
+        _ = OCRFeature.reduce(&state, .exportFinished(id: previous.id, session: previous.session, error: nil))
+        #expect(state.message == failure && state.export == nil)
+    }
+
     @Test("Dismissing an export preserves its completion error while later edits reject the old callback")
     func exportDismissal() throws {
         var state = OCRState(bundle: URL(filePath: "/fixture/model"), input: try input())
