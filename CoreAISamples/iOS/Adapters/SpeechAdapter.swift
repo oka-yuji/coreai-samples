@@ -12,7 +12,7 @@
         private let sessions = SpeechDemoSessions()
 
         func preview(for selection: DemoSelection) -> AnyView {
-            var state = sessions.state(for: selection) ?? SpeechState(examples: examples)
+            var state = sessions.state(for: selection) ?? SpeechState(examples: Self.examples)
             state.presented = false
             state.phase = .idle
             state.audio = nil
@@ -23,15 +23,15 @@
 
         func content(for session: ModelDemoSession, gate: DemoExecutionGate) -> AnyView {
             guard gate.session == session, gate.isPermitted() else { return preview(for: session.selection) }
-            let store = sessions.bind(session, examples: examples, permits: gate.isPermitted)
-            return AnyView(PhoneSpeechStoreContent(store: store, isPermitted: gate.isPermitted))
+            let store = sessions.bind(session, examples: Self.examples, permits: gate.isPermitted)
+            return AnyView(PhoneSpeechStoreContent(store: store, isPermitted: gate.isPermitted).id(session.id))
         }
 
         func stop(_ session: ModelDemoSession) async throws {
             await sessions.stop(session)
         }
 
-        private var examples: [SpeechExample] {
+        static var examples: [SpeechExample] {
             guard let url = Bundle.main.url(forResource: "speech-examples", withExtension: "json"),
                 let data = try? Data(contentsOf: url),
                 let values = try? JSONDecoder().decode([SpeechExample].self, from: data)

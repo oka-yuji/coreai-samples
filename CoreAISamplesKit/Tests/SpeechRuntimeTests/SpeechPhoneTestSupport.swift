@@ -38,6 +38,8 @@ final class FakeCheckSpeechService: SpeechService {
     var texts: [String] = []
     var plays = 0
     var stops = 0
+    var referenceToImport: SpeechReferenceAudio?
+    var generatedReferences: [SpeechReferenceAudio?] = []
     func open(path: String) throws -> SpeechModel {
         opens += 1
         if failure == "open" { throw SpeechError.invalidSamples }
@@ -55,6 +57,14 @@ final class FakeCheckSpeechService: SpeechService {
         plays += 1
         if failure == "play" { throw SpeechError.invalidSamples }
         if failure == "interrupt" { throw CancellationError() }
+    }
+    func generate(text: String, seed: UInt64, reference: SpeechReferenceAudio?) async throws -> SpeechAudio {
+        generatedReferences.append(reference)
+        return try await generate(text: text, seed: seed)
+    }
+    func importReference(_ url: URL) throws -> SpeechReferenceAudio {
+        guard let referenceToImport else { throw SpeechReferenceError.unreadable }
+        return referenceToImport
     }
     func stop() {
         stops += 1

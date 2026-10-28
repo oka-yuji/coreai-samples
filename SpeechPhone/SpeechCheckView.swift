@@ -1,3 +1,4 @@
+import Darwin
 import FeatureStore
 import SpeechFeature
 import SwiftUI
@@ -25,5 +26,10 @@ struct SpeechCheckView: View {
         .onAppear { store.send(.start(request)) }
         .onDisappear { store.send(.stop) }
         .onChange(of: scenePhase) { _, phase in if phase == .background { store.send(.stop) } }
+        .onChange(of: store.state.phase) { _, phase in
+            if phase == .finished, CommandLine.arguments.contains("--exit-after-speech-check") {
+                exit(store.state.succeeded == true ? 0 : 1)
+            }
+        }
     }
 }

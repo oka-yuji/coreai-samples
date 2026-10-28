@@ -12,6 +12,28 @@ struct PhoneSpeechCheckTests {
         SpeechExample(id: "one", title: "One", text: "One"), SpeechExample(id: "two", title: "Two", text: "Two"),
     ]
 
+    @Test("REF-UI-05 The device check uses its reference file and can save evidence without playing sound")
+    func referenceCheck() async throws {
+        let root = try phoneTestDirectory()
+        defer { try? FileManager.default.removeItem(at: root) }
+        try Data([1]).write(to: root.appending(path: "reference.wav"))
+        let service = FakeCheckSpeechService()
+        let reference = try SpeechReferenceAudio(
+            samples: [Float](repeating: 0.25, count: 24_000), source: .file("reference.wav"))
+        service.referenceToImport = reference
+        let check = PhoneSpeechCheck(
+            service: service, files: SpeechCheckFiles(documents: root), examples: examples,
+            environment: FakePhoneEnvironment())
+        let result = try await check.run(
+            .init(folder: "model", runID: "reference", referenceAudio: "reference.wav", playAudio: false)
+        ) { _ in }
+        let report = try JSONDecoder().decode(
+            PhoneSpeechReport.self, from: Data(contentsOf: root.appending(path: result).appending(path: "report.json")))
+        #expect(service.generatedReferences == [reference, reference, reference])
+        #expect(service.plays == 0 && !report.playbackCompleted)
+        #expect(report.referenceAudioSeconds == 0.5 && report.repeatedWAVMatches == true)
+    }
+
     @Test("The check saves three independent samples, playback evidence and resource snapshots")
     func successfulCheck() async throws {
         let root = try phoneTestDirectory()
