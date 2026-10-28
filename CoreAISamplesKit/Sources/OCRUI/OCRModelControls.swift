@@ -114,14 +114,18 @@
         }
 
         private func failureText(_ failure: ModelLibraryFailure) -> some View {
-            let message: String
-            switch failure {
-            case .operation(let detail): message = detail
-            case .modelInUse: message = "Close the OCR demo before replacing or removing its model."
-            default: message = "The model is not available. Check its folder and try importing again."
+            let notice = TeleOCRModelNotice(failure)
+            return VStack(alignment: .leading, spacing: 6) {
+                Text(LocalizedStringKey(notice.message), bundle: .module).foregroundStyle(.red)
+                if let detail = notice.detail {
+                    DisclosureGroup {
+                        Text(verbatim: detail).textSelection(.enabled)
+                    } label: {
+                        Text("Details", bundle: .module)
+                    }
+                }
             }
-            return Text(LocalizedStringKey(message), bundle: .module).font(.callout).foregroundStyle(.red)
-                .textSelection(.enabled)
+            .font(.callout)
         }
     }
 #endif

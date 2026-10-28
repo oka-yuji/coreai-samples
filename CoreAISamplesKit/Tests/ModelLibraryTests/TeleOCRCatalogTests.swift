@@ -2,6 +2,29 @@ import ModelLibraryFeature
 import Testing
 
 struct TeleOCRCatalogTests {
+    @Test(
+        "OCR model failures expose useful messages instead of unlocalized internal names",
+        arguments: [
+            (
+                "insufficientSpace",
+                "There is not enough disk space to import this model. Free some space and try again."
+            ),
+            ("ledgerCorrupted", "The model library record is damaged. Model changes are unavailable."),
+            ("transfer in progress", "Another window is transferring this model. Wait for it to finish."),
+        ])
+    func failureMessages(reason: String, message: String) {
+        let notice = TeleOCRModelNotice(.operation(reason))
+        #expect(notice.message == message && notice.detail == nil)
+    }
+
+    @Test("Unknown model failures preserve details under a common explanation")
+    func unknownFailure() {
+        let notice = TeleOCRModelNotice(.operation("fixture failure"))
+        #expect(notice.message == "The model operation could not be completed." && notice.detail == "fixture failure")
+        #expect(TeleOCRModelNotice(.invalidResource).detail == nil)
+        #expect(TeleOCRModelNotice(.modelInUse).message == "Close the OCR demo before replacing or removing its model.")
+    }
+
     @Test("The OCR catalog exposes one Mac document demo backed by the supplied artifact")
     func catalog() throws {
         let hash = String(repeating: "a", count: 64)

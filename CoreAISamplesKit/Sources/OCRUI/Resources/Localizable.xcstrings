@@ -26,6 +26,17 @@
         }
       }
     },
+    "Another window is transferring this model. Wait for it to finish." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "別のウインドウでこのモデルを転送しています。完了までお待ちください。"
+          }
+        }
+      }
+    },
     "Cancel" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -77,6 +88,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "モデルの入れ替えや削除の前に、OCRデモを閉じてください。"
+          }
+        }
+      }
+    },
+    "Details" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "詳細"
           }
         }
       }
@@ -510,6 +532,28 @@
         }
       }
     },
+    "The model library record is damaged. Model changes are unavailable." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルライブラリの記録が破損しています。モデルを変更できません。"
+          }
+        }
+      }
+    },
+    "The model operation could not be completed." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルの操作を完了できませんでした。"
+          }
+        }
+      }
+    },
     "The output limit was reached. Some content may be missing." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -539,6 +583,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "選択したモデルは現在使用できません。もう一度お試しください。"
+          }
+        }
+      }
+    },
+    "There is not enough disk space to import this model. Free some space and try again." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルを取り込むための空き容量が不足しています。空きを増やして再試行してください。"
           }
         }
       }
