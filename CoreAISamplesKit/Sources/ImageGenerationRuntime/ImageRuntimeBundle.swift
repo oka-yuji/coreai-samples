@@ -35,6 +35,10 @@ struct ImageRuntimeBundle: Sendable {
             ]).isSubset(of: Set(manifest.assets.keys))
         else { throw ImageExecutionError.invalidResource }
         try verifyFiles(root, manifest: manifest, manifestBytes: Int64(raw.count), resourceBytes: resource.sizeBytes)
+        for compiled in (manifest.compiledAssets ?? [:]).values {
+            try compiled.validateMetadata(
+                smallFile(root.appending(path: compiled.asset).appending(path: "metadata.json")))
+        }
         for (kind, component) in manifest.profile.components {
             let folder = root.appending(path: component.asset).deletingLastPathComponent()
             let header = try decoder().decode(
