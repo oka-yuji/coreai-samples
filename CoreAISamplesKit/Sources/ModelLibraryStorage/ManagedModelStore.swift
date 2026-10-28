@@ -570,6 +570,10 @@ private func verify(_ directory: URL, _ artifact: ModelArtifact) throws {
         let raw = try Data(contentsOf: directory.appending(path: "bundle.json"))
         try verifyImageManifest(raw, artifact)
         let manifest = try ImageGenerationManifest.decode(raw)
+        for compiled in (manifest.compiledAssets ?? [:]).values {
+            try compiled.validateMetadata(
+                Data(contentsOf: directory.appending(path: compiled.asset).appending(path: "metadata.json")))
+        }
         let decoder = JSONDecoder()
         decoder.keyDecodingStrategy = .convertFromSnakeCase
         for (kind, specification) in manifest.profile.components {
