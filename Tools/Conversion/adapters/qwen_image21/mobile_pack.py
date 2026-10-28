@@ -10,7 +10,7 @@ from Tools.Conversion.storage import write_json
 from .contracts import require_heavy_job, validate_bundle
 from .evaluation import canonical_hash, validate_manifest
 from .fixtures import file_record
-from .mobile_acceptance import OWNER_REVIEW, OWNER_REVIEW_PATH, quality_acceptance
+from .mobile_acceptance import OWNER_IDENTICAL_PATH, OWNER_IDENTICAL_REVIEW, OWNER_REVIEW, OWNER_REVIEW_PATH, quality_acceptance
 from .mobile_artifacts import inventory, read_component, read_profile
 from .mobile_compare import execute as compare_cohorts
 from .mobile_reference import component_paths
@@ -101,8 +101,10 @@ def pack(args):
                 (args.verification / "verification.json", Path("evidence/numeric.json"), result["cohorts"]["C"]["verification_file"])]
     for name in ("comparison.json", "quality-ratings.json"):
         planned.append((comparison / name, Path("evidence") / name, file_record(comparison / name)))
-    if acceptance["method"] == OWNER_REVIEW:
+    if acceptance["method"] in (OWNER_REVIEW, OWNER_IDENTICAL_REVIEW):
         planned.append((OWNER_REVIEW_PATH, Path(acceptance["evidence"]), acceptance["review_file"]))
+    if acceptance["method"] == OWNER_IDENTICAL_REVIEW:
+        planned.append((OWNER_IDENTICAL_PATH, Path(acceptance["equivalence_evidence"]), acceptance["equivalence_file"]))
     for cohort, root in (("A0", args.baseline), ("A1", args.mixed_reference), ("B", args.reference)):
         for name in ("identity.json", "summary.json"):
             expected = result["cohorts"][cohort]["summary_file"] if name == "summary.json" else file_record(root / name)
@@ -149,7 +151,7 @@ def main():
         parser.add_argument("--" + name, type=Path, required=True)
     parser.add_argument("--component", action="append", default=[])
     parser.add_argument("--quality", type=Path)
-    parser.add_argument("--owner-review", choices=[OWNER_REVIEW])
+    parser.add_argument("--owner-review", choices=[OWNER_REVIEW, OWNER_IDENTICAL_REVIEW])
     pack(parser.parse_args())
 
 

@@ -11,6 +11,7 @@ from .mobile_profile import NATIVE_COMPLEX_CANDIDATE
 
 
 REVIEWED_GALLERY_RECEIPT = {"bytes": 38598, "sha256": "8595efe52d5930a784a949fef3ad6630f134d83cdbe31914ad00f0a9851fca93"}
+EQUIVALENCE_FILES = ("mobile_visual_equivalence.py", "mobile_gallery.py", "evaluation.py")
 
 
 def cohort_roots(values):
@@ -161,8 +162,7 @@ def prove_equivalence(previous_comparison, previous_roots, candidate_comparison,
             "previous": {"comparison_file": previous_file, "cohorts": previous["cohorts"], **previous["cohorts"]["C"]},
             "candidate": {"comparison_file": candidate_file, "cohorts": candidate["cohorts"], **candidate["cohorts"]["C"]},
             "allowed_profile_changes": contract_changes,
-            "equivalence_code": {name: file_record(Path(__file__).with_name(name)) for name in
-                                 ("mobile_visual_equivalence.py", "mobile_gallery.py", "evaluation.py")},
+            "equivalence_code": {name: file_record(Path(__file__).with_name(name)) for name in EQUIVALENCE_FILES},
             "same_reviewed_images": True, "run_count": len(rows), "image_count": len(rows) * len(COHORTS), "runs": rows,
             "scope": "Byte-identical PNGs and unchanged inputs, source, precision and effective compression. Evidence for reusing the original visual feedback only; not numerical auditing, benchmark scoring, new human approval or device acceptance."}
 
