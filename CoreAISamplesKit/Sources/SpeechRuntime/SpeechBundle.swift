@@ -12,8 +12,11 @@
         static func open(_ directory: URL) throws -> Self {
             try Task.checkCancellation()
             let file = directory.appendingPathComponent("irodori.json")
-            try IrodoriBundleInventory.validateManifest(Data(contentsOf: file))
-            let specs = try IrodoriBundleInventory.assetSpecifications()
+            let profile = try IrodoriBundleInventory.profile(in: Data(contentsOf: file))
+            guard try hashFile(file) == IrodoriBundleInventory.manifestSHA256(for: profile) else {
+                throw SpeechError.invalidAsset("The Irodori manifest does not match the selected model profile.")
+            }
+            let specs = try IrodoriBundleInventory.assetSpecifications(profile: profile)
             let assets = try specs.map { spec in
                 let asset = directory.appendingPathComponent("artifacts").appendingPathComponent(spec.stem + ".aimodel")
                 for (name, expected) in spec.files {

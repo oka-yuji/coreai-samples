@@ -9,6 +9,7 @@
         private var tokenizer: (any SpeechTokenizer)?
         private var pipeline: (any SpeechPipeline)?
         private var policy = RecyclePolicy()
+        private var previousReferenceFrames: Int?
         private var busy = false
         private var releasing = false
         private var waiters: [CheckedContinuation<Void, Never>] = []
@@ -27,13 +28,20 @@
             try Task.checkCancellation()
             bundle = validated
             tokenizer = input
-            return SpeechModel(name: "Irodori v4.1 Small MF (FP32)", directory: directory)
+            return SpeechModel(
+                name: "Irodori v4.1 Small MF (FP32)", directory: directory,
+                supportsReferenceAudio: validated.assets.count == 6)
         }
 
         public func generate(text: String, seed: UInt64) async throws -> SpeechAudio {
+            try await generate(text: text, seed: seed, reference: nil)
+        }
+
+        public func generate(text: String, seed: UInt64, reference: SpeechReferenceAudio?) async throws -> SpeechAudio {
             guard !busy, !releasing else { throw SpeechError.busy }
             try Task.checkCancellation()
             guard let bundle else { throw SpeechError.noModel }
+            guard reference == nil || bundle.assets.count == 6 else { throw SpeechError.referenceNotSupported }
             if tokenizer == nil { tokenizer = try dependencies.tokenizer(bundle.tokenizer) }
             guard let tokenizer else { throw SpeechError.noModel }
             let input: IrodoriTextInput
@@ -45,9 +53,11 @@
             let start = ContinuousClock.now
             var context: (any SpeechContext)?
             do {
+                let referenceFrames = reference?.frameCount ?? 0
+                if let previousReferenceFrames, previousReferenceFrames != referenceFrames { clearModels() }
                 if pipeline == nil { pipeline = try await dependencies.pipeline(bundle.assets) }
                 try Task.checkCancellation()
-                context = try await prepare(input)
+                context = try await prepare(input, reference: reference)
                 guard let frames = context?.frames, (13...750).contains(frames) else {
                     throw SpeechError.invalidDuration
                 }
@@ -57,7 +67,7 @@
                     policy.reset()
                     pipeline = try await dependencies.pipeline(bundle.assets)
                     try Task.checkCancellation()
-                    context = try await prepare(input)
+                    context = try await prepare(input, reference: reference)
                     guard context?.frames == frames else { throw SpeechError.invalidDuration }
                 }
                 let pcm = try await samples(context, seed: seed)
@@ -67,6 +77,7 @@
                 let wav = try floatWAV(samples: pcm)
                 try Task.checkCancellation()
                 policy.recordCompletion(frames: frames)
+                previousReferenceFrames = referenceFrames
                 return SpeechAudio(
                     wav: wav, audioSeconds: Double(frames) * 0.04,
                     elapsedSeconds: (ContinuousClock.now - start) / .seconds(1),
@@ -89,9 +100,11 @@
             }
         }
 
-        private func prepare(_ input: IrodoriTextInput) async throws -> any SpeechContext {
+        private func prepare(_ input: IrodoriTextInput, reference: SpeechReferenceAudio?) async throws
+            -> any SpeechContext
+        {
             guard let pipeline else { throw SpeechError.noModel }
-            return try await pipeline.prepare(input)
+            return try await pipeline.prepare(input, reference: reference)
         }
 
         private func samples(_ context: (any SpeechContext)?, seed: UInt64) async throws -> [Float] {
@@ -114,6 +127,7 @@
         private func clearModels() {
             pipeline = nil
             policy.reset()
+            previousReferenceFrames = nil
         }
     }
 #endif

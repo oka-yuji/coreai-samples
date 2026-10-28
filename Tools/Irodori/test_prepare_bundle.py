@@ -7,6 +7,28 @@ module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
 
 class PrepareBundleTests(unittest.TestCase):
+    def test_reference_bundle_combines_sources_without_changing_the_original(self):
+        with tempfile.TemporaryDirectory() as name:
+            root = Path(name)
+            base = root / "base"
+            reference = root / "reference"
+            rules = []
+            for folder, stem, data in [(base, "text", b"base"), (reference, "voice", b"voice")]:
+                path = folder / (stem + ".aimodel")
+                path.mkdir(parents=True)
+                (path / "main.mlirb").write_bytes(data)
+                rules.append({"stem":stem,"files":{"main.mlirb":{"bytes":len(data),"sha256":hashlib.sha256(data).hexdigest()}}})
+            rule_path = root / "rules.json"
+            rule_path.write_text(json.dumps(rules))
+            tokenizer = root / "tokenizer.json"
+            tokenizer.write_bytes(b"tokenizer")
+            with patch.object(module, "REFERENCE_RULES", rule_path), patch.object(module, "TOKENIZER_SHA", hashlib.sha256(b"tokenizer").hexdigest()):
+                output = module.prepare(base, tokenizer, root / "bundle", reference)
+                self.assertEqual(json.loads((output / "irodori.json").read_text())["format"], "irodori-coreai-v2")
+                self.assertEqual((output / "artifacts/voice.aimodel/main.mlirb").read_bytes(), b"voice")
+                self.assertEqual((base / "text.aimodel/main.mlirb").read_bytes(), b"base")
+                self.assertEqual((reference / "voice.aimodel/main.mlirb").read_bytes(), b"voice")
+
     def test_complete_bundle_and_existing_output_are_preserved(self):
         with tempfile.TemporaryDirectory() as name:
             root = Path(name)
