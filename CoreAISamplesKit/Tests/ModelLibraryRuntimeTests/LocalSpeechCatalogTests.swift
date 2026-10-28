@@ -7,6 +7,23 @@ import Testing
 
 @MainActor
 struct LocalSpeechCatalogTests {
+    @Test("GUIDE-01 Model preparation and speech instructions remain available before importing a model")
+    func firstUseGuidance() throws {
+        let artifact = try IrodoriModelArtifact.make()
+        let catalog = try IOSDemoCatalog.make(speechArtifact: artifact)
+        var state = ModelLibraryState(catalog: catalog, environment: LibraryEnvironment(platform: .iOS), owner: UUID())
+        let selection = DemoSelection(modelID: "irodori", demoID: "speech")
+        #expect(ModelLibraryFeature.reduce(&state, .openDemo(selection)).isEmpty)
+        #expect(state.access(to: selection) == .preview(.missing))
+        #expect(state.session == nil)
+        let explanation = try #require(state.catalog.demo("speech")).explanation
+        #expect(explanation.count >= 4)
+        #expect(explanation.contains { $0.text.contains("Import model") && $0.text.contains("3.38 GB") })
+        #expect(explanation.contains { $0.text.contains("Try an example") })
+        #expect(explanation.contains { $0.text.contains("Play") && $0.text.contains("Save WAV") })
+        #expect(explanation.contains { $0.text.contains("reference voice") && $0.text.contains("not supported") })
+    }
+
     @Test("IOS-IR-06 A catalog construction failure writes a diagnostic report and returns failure")
     func catalogFailure() async throws {
         let root = URL.temporaryDirectory.appending(path: "speech-catalog-error-\(UUID().uuidString)")

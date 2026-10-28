@@ -1,6 +1,28 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "1. Model ready" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1. モデルの準備完了"
+          }
+        }
+      }
+    },
+    "1. Prepare the model" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1. モデルを準備"
+          }
+        }
+      }
+    },
     "A download source has not been configured for this model." : {
       "localizations" : {
         "ja" : {
@@ -315,6 +337,17 @@
         }
       }
     },
+    "Irodori is not available to download in this build. Import the prepared model folder from Files to get started." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このバージョンではIrodoriをダウンロードできません。ファイルアプリから準備済みのモデルフォルダを取り込むと始められます。"
+          }
+        }
+      }
+    },
     "Local bundle" : {
       "localizations" : {
         "ja" : {
@@ -331,6 +364,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "モデル情報"
+          }
+        }
+      }
+    },
+    "Model preparation guide" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルの準備手順を開く"
           }
         }
       }
@@ -481,6 +525,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "モデルファイルが必要な形式と一致しません。"
+          }
+        }
+      }
+    },
+    "The model uses 3.38 GB. Importing keeps the original and creates an app copy." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルの容量は3.38 GBです。取り込むと元のフォルダを残したまま、アプリ内にコピーを作成します。"
           }
         }
       }
