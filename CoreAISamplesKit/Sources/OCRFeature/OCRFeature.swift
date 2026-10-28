@@ -23,6 +23,7 @@ public struct OCRState: Equatable, Sendable {
     public var document: OCRDocument?
     public var message: String?
     public var export: OCRExport?
+    public var exportDismissed = false
     var nextExport = 0
 
     public init(bundle: URL, input: OCRInput? = nil) {
@@ -31,7 +32,8 @@ public struct OCRState: Equatable, Sendable {
     }
 
     public var busy: Bool { [.selecting, .loading, .reading, .stopping].contains(phase) }
-    public var editable: Bool { presented && !busy && export == nil }
+    public var exportVisible: Bool { export != nil && !exportDismissed }
+    public var editable: Bool { presented && !busy && !exportVisible }
     public var canRead: Bool { editable && input != nil }
 }
 
@@ -47,6 +49,7 @@ public enum OCRAction: Equatable, Sendable {
     case stop
     case stopped(Int)
     case exportRequested(OCRExportFormat)
+    case exportDismissed(id: Int, session: Int)
     case exportFinished(id: Int, session: Int, error: String?)
     case uiError(String)
 }
@@ -87,6 +90,7 @@ public enum OCRFeature: Feature {
             state.input = nil
             state.document = nil
             state.message = nil
+            clearExport(&state)
             return [.run(.select(state.session, url), id: .operation)]
         case .selected(let session, let input):
             guard state.session == session, state.phase == .selecting else { return [] }
@@ -98,6 +102,7 @@ public enum OCRFeature: Feature {
             state.phase = .loading
             state.document = nil
             state.message = nil
+            clearExport(&state)
             return [.run(.load(state.session, state.bundle), id: .operation)]
         case .loaded(let session):
             guard state.session == session, state.phase == .loading, let input = state.input else { return [] }
@@ -122,16 +127,21 @@ public enum OCRFeature: Feature {
             state.phase = state.presented ? .cancelled : .idle
         case .exportRequested(let format):
             guard state.editable, let document = state.document else { return [] }
+            state.message = nil
             do {
                 let data = try format == .json ? document.json() : Data((document.markdown + "\n").utf8)
                 state.nextExport += 1
                 state.export = OCRExport(
                     id: state.nextExport, session: state.session, format: format,
                     name: URL(filePath: document.image).deletingPathExtension().lastPathComponent, data: data)
+                state.exportDismissed = false
             } catch { state.message = "The OCR result could not be prepared for export." }
+        case .exportDismissed(let id, let session):
+            guard state.export?.id == id, state.export?.session == session else { return [] }
+            state.exportDismissed = true
         case .exportFinished(let id, let session, let error):
             guard state.export?.id == id, state.export?.session == session else { return [] }
-            state.export = nil
+            clearExport(&state)
             state.message = error
         case .uiError(let message):
             guard !state.busy else { return [] }
@@ -143,7 +153,13 @@ public enum OCRFeature: Feature {
     private static func stop(_ state: inout State) -> [Command] {
         state.session += 1
         state.phase = .stopping
-        state.export = nil
+        state.message = nil
+        clearExport(&state)
         return [.cancelAll, .run(.release(state.session), id: .stop)]
+    }
+
+    private static func clearExport(_ state: inout State) {
+        state.export = nil
+        state.exportDismissed = false
     }
 }
