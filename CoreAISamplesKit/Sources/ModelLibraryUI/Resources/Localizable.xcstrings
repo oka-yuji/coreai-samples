@@ -237,6 +237,17 @@
         }
       }
     },
+    "Download the Reference voice model to enable recording and audio files." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "参照音声対応のモデルをダウンロードすると、録音や音声ファイルを使えます。"
+          }
+        }
+      }
+    },
     "Download the model to enable its controls." : {
       "localizations" : {
         "ja" : {
@@ -263,6 +274,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "ダウンロード中"
+          }
+        }
+      }
+    },
+    "Downloading model…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルをダウンロード中…"
           }
         }
       }
@@ -307,12 +329,34 @@
         }
       }
     },
+    "Import the Reference voice model folder from Files to enable recording and audio files." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ファイルアプリから参照音声対応のモデルを取り込むと、録音や音声ファイルを使えます。"
+          }
+        }
+      }
+    },
     "Import the model to enable its controls." : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "モデルを取り込むと、操作できるようになります。"
+          }
+        }
+      }
+    },
+    "Import the prepared text-only model folder from Files. Choose Reference voice to use recordings or audio files." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ファイルアプリから文章用モデルを取り込みます。録音や音声ファイルを使う場合は、参照音声対応モデルを選んでください。"
           }
         }
       }
@@ -337,6 +381,28 @@
         }
       }
     },
+    "Importing keeps the original folder and creates a separate app copy." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "取り込むと元のフォルダを残したまま、アプリ内にコピーを作成します。"
+          }
+        }
+      }
+    },
+    "Importing model…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルを取り込み中…"
+          }
+        }
+      }
+    },
     "Irodori is not available to download in this build. Import the prepared model folder from Files to get started." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -354,6 +420,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "ローカルバンドル"
+          }
+        }
+      }
+    },
+    "Model" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデル"
+          }
+        }
+      }
+    },
+    "Model files: %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルの容量：%@"
           }
         }
       }
@@ -425,6 +513,39 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Qwen Research License"
+          }
+        }
+      }
+    },
+    "Reference voice (FP32)" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "参照音声対応（FP32）"
+          }
+        }
+      }
+    },
+    "Reference voice (download)" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "参照音声対応（ダウンロード）"
+          }
+        }
+      }
+    },
+    "Reference voice (local folder)" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "参照音声対応（フォルダ取り込み）"
           }
         }
       }
@@ -505,6 +626,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "前のデモを停止しています…"
+          }
+        }
+      }
+    },
+    "Text only (legacy)" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "標準の声のみ（従来モデル）"
           }
         }
       }

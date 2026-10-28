@@ -10,6 +10,7 @@
         @State private var explanationExpanded = false
         @State private var showingModel = false
         @State private var deletion: ModelDeletionRequest?
+        @Environment(\.locale) private var locale
 
         private var model: LibraryModel? { store.state.catalog.model(selection.modelID) }
         private var demo: DemoDescriptor? { store.state.catalog.demo(selection.demoID) }
@@ -23,6 +24,26 @@
                             Text(verbatim: model.classification).font(.footnote).foregroundStyle(.secondary)
                             Text(LocalizedStringKey(demo.title)).font(.title3.bold())
                             Text(LocalizedStringKey(demo.summary)).foregroundStyle(.secondary)
+                            if model.id == "irodori", store.state.artifacts(for: model.id).count > 1 {
+                                Picker(
+                                    selection: Binding(
+                                        get: {
+                                            store.state.selectedArtifact(for: model.id)?.id ?? model.defaultArtifactID
+                                        },
+                                        set: { store.send(.selectArtifact(modelID: model.id, artifactID: $0)) }
+                                    )
+                                ) {
+                                    ForEach(store.state.artifacts(for: model.id), id: \.id) { item in
+                                        libraryText(
+                                            item.contract == "irodori-coreai-v1" ? "Text only (legacy)" : item.title
+                                        )
+                                        .tag(item.id)
+                                    }
+                                } label: {
+                                    libraryText("Model")
+                                }
+                                .disabled(store.state.pendingDestination != nil)
+                            }
                             DisclosureGroup(isExpanded: $explanationExpanded) {
                                 VStack(alignment: .leading, spacing: 15) {
                                     ForEach(Array(demo.explanation.enumerated()), id: \.offset) { _, section in
@@ -43,7 +64,11 @@
                     }
                     .navigationTitle(Text(verbatim: model.name))
                     .navigationSubtitle(
-                        store.state.variantTitle(for: model.id).map { Text("Variant: \($0)", bundle: .module) }
+                        store.state.variantTitle(for: model.id).map {
+                            Text(
+                                "Variant: \(String(localized: String.LocalizationValue($0), bundle: .module, locale: locale))",
+                                bundle: .module)
+                        }
                             ?? Text(verbatim: "")
                     )
                     .toolbar {
@@ -98,11 +123,21 @@
                         if selection.modelID == "irodori" {
                             libraryText("1. Prepare the model").font(.headline)
                             libraryText(
-                                "Irodori is not available to download in this build. Import the prepared model folder from Files to get started."
+                                artifact?.download != nil
+                                    ? "Download the Reference voice model to enable recording and audio files."
+                                    : artifact?.contract == "irodori-coreai-v2"
+                                        ? "Import the Reference voice model folder from Files to enable recording and audio files."
+                                        : "Import the prepared text-only model folder from Files. Choose Reference voice to use recordings or audio files."
                             )
                             .font(.callout)
-                            libraryText("The model uses 3.38 GB. Importing keeps the original and creates an app copy.")
-                                .font(.caption).foregroundStyle(.secondary)
+                            if let bytes = artifact?.sizeBytes {
+                                Text("Model files: \(bytes.formatted(.byteCount(style: .file)))", bundle: .module)
+                                    .font(.caption).foregroundStyle(.secondary)
+                            }
+                            if artifact?.localBundle != nil {
+                                libraryText("Importing keeps the original folder and creates a separate app copy.")
+                                    .font(.caption).foregroundStyle(.secondary)
+                            }
                             if let guide = URL(
                                 string: "https://github.com/oka-yuji/coreai-samples/blob/main/docs/irodori/iphone.md")
                             {
@@ -164,7 +199,7 @@
                                 get: { store.state.selectedArtifacts[model.id] ?? "" },
                                 set: { store.send(.selectArtifact(modelID: model.id, artifactID: $0)) })
                         ) {
-                            ForEach(artifacts, id: \.id) { Text(verbatim: $0.title).tag($0.id) }
+                            ForEach(artifacts, id: \.id) { libraryText($0.title).tag($0.id) }
                         } label: {
                             libraryText("Variant")
                         }

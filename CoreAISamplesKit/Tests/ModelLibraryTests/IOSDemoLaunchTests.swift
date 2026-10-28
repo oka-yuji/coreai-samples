@@ -27,6 +27,9 @@ struct IOSDemoLaunchTests {
         arguments: [
             ([String](), IOSDemoLaunch.models),
             (["app", "--cpu"], .models),
+            (["app", "--speech-reference-check", "test-run"], .speechReferenceDiagnostic("test-run")),
+            (["app", "--speech-reference-check=test-run"], .speechReferenceDiagnostic("test-run")),
+            (["app", "--speech-reference-check"], .models),
             (["app", "--extract-eval"], .models),
             (["app", "--extract-eval", "fixture"], .extractionEvaluation),
             (["app", "--extract-eval=fixture"], .extractionEvaluation),

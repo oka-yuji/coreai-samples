@@ -17,6 +17,8 @@
                         UIApplication.shared.isIdleTimerDisabled = true
                         exit(await OCRPhoneCheck.run(bundle: bundle))
                     }
+                case .speechReferenceDiagnostic(let runID):
+                    PhoneSpeechCheckScreen(runID: runID)
                 case .imageSearchEvaluation:
                     PhoneImageSearchEvalView()
                 case .extractionEvaluation:

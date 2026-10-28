@@ -98,3 +98,5 @@
 - For Phone changes, also build the signed `SpeechPhone` product and inspect the actual Info.plist for both file-sharing keys, plus the memory entitlement. The source settings alone are not evidence that the generated app contains those keys.
 
 - Irodoriの実バンドル取り込み検査は共有heavy-jobロック下で `COREAI_IRODORI_IMPORT_BUNDLE=/path/to/sampler-irodori-fp32 swift test --package-path CoreAISamplesKit --filter IrodoriImportTests.knownBundle`。固定14ファイルを一時管理領域へコピーし、検査・lease・改変/欠損/余分/symlinkの拒否を確認する。モデル推論は行わない。既定実行はskip。元フォルダは変更しない。
+
+- Irodori voice input uses an actor-owned recorder and reader. Recording control carries the SpeechFeature session ticket through the service and is checked inside the recorder; stop cancels the pending recording-control effect. Delegate events use a per-recording stream. iOS decoder EFR is false after the dynamic-allocation device failure; Mac decoder EFR is unchanged. `COREAI_TRACE_STAGES=1` logs only asset names, shapes and settings for explicit diagnostics. No normal launch records or generates automatically.

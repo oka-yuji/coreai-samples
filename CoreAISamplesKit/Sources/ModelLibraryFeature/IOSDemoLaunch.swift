@@ -2,6 +2,7 @@ public enum IOSDemoLaunch: Equatable, Sendable {
     case models
     case imageGenerationDiagnostic(String)
     case ocrCheck(String)
+    case speechReferenceDiagnostic(String)
     case imageSearchEvaluation
     case extractionEvaluation
     case modelLibrarySelfTest
@@ -9,6 +10,9 @@ public enum IOSDemoLaunch: Equatable, Sendable {
     case legacyDemos
 
     public static func resolve(arguments: [String]) -> Self {
+        if let runID = value("--speech-reference-check", in: arguments) {
+            return .speechReferenceDiagnostic(runID)
+        }
         if let configuration = value("--image-generation-check", in: arguments) {
             return .imageGenerationDiagnostic(configuration)
         }

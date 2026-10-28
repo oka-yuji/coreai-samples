@@ -1,6 +1,6 @@
 # Reference-voice runtime
 
-The v2 runtime adds reference conditioning while retaining the v1 text-only bundle and `generate(text:seed:)` API. `generate(text:seed:reference:)` accepts a validated `SpeechReferenceAudio`. Legacy implementations reject a non-nil reference instead of dropping it. The iOS input and Models connection is tracked separately in #368; backend delivery is #362.
+The v2 runtime adds reference conditioning while retaining the v1 text-only bundle and `generate(text:seed:)` API. `generate(text:seed:reference:)` accepts a validated `SpeechReferenceAudio`. Legacy implementations reject a non-nil reference instead of dropping it. The iOS input and Models connection is tracked separately in #368; backend delivery is #362; recording/file input is #368.
 
 Reference PCM is mono Float32 at 48 kHz, 0.5–30 seconds, finite and non-silent. Peaks above one are scaled down. The input is right-padded by reflection to the 1,920-sample codec hop. After audio encoding, incomplete four-frame speaker patches are discarded. The speaker encoder emits the masked mean token followed by the patch tokens. Its state and mask reach both duration prediction and every MeanFlow step. Output remains 48 kHz mono Float32 WAV, four steps, empty caption, no tail trimming or watermark.
 
@@ -25,7 +25,7 @@ python3 Tools/Irodori/prepare-bundle.py \
 
 The command verifies input and output hashes, materializes symbolic links, supports a source on another volume, and refuses an existing destination. Arbitrary PyTorch checkpoints cannot be imported into this runtime.
 
-`IrodoriRuntime` keeps its busy gate across suspension and joins release. It drops the old pipeline when the reference frame count changes, including changes within one speaker patch, in addition to the existing generation-count and generated-frame policy. Audio encoder, speaker encoder and conditioned duration disable frequent-reshape specialization; DiT/decoder retain their existing policy.
+`IrodoriRuntime` keeps its busy gate across suspension and joins release. It drops the old pipeline when the reference frame count changes, including changes within one speaker patch, in addition to the existing generation-count and generated-frame policy. Audio encoder, speaker encoder and conditioned duration disable frequent-reshape specialization; DiT retains its existing policy. On iOS, the decoder also disables frequent-reshape specialization after the device check exposed a dynamic-allocation assertion.
 
 ## Validation and limits
 
@@ -34,3 +34,7 @@ The four added components passed individual PyTorch/Core AI FP32 checks on macOS
 The initial Swift native all-EFR configuration also failed repeat equality: reference → no-reference → same reference returned 69 and 89 frames. Changing the three reference-front components to EFR false produced 100 frames and byte-identical repeated WAVs for the same roughly 3.86-second reference. The native check then passed both 0.5- and 30-second reference boundaries and generation without a reference. These are different fixtures from the original-PyTorch comparison; the native smoke is not a substitute for that fidelity check. Reference audio came from the existing synthetic speech fixture, not a user's microphone recording.
 
 CPU tests cover input rejection, reflection and scaling, reference forwarding, old-model rejection, pipeline replacement, stop/release, session gating and v2 inventory. The existing Mac, signed iOS and SpeechPhone products are regression build targets. Opt-in native commands are listed in `CLAUDE.md`. Physical-device UI and personal listening acceptance belong to #368 and the parent #355, and must remain separate from host checks.
+
+## iPhone decoder correction (October 29, 2026)
+
+Stage tracing on iPhone 17 Pro / iOS 27.0.1 isolated `Failed to resolve dynamic dimensions for memref.alloc` to the decoder call with latent `[1,100,32]`; the text, audio/speaker encoders, duration and four DiT calls completed first. Setting only the iOS decoder to EFR false produced the PCM and completed three reference-conditioned generations, saved WAVs and released resources. The [device report](reference-input-device.json) retains the environment, memory observations, output sizes and repeated-WAV equality. It does not certify live microphone input, listening quality, maximum-length device behavior or full PyTorch fidelity.
