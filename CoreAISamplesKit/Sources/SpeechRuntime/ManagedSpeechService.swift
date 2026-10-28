@@ -32,13 +32,17 @@ final class ManagedSpeechService: SpeechService {
     }
 
     func generate(text: String, seed: UInt64) async throws -> SpeechAudio {
+        try await generate(text: text, seed: seed, reference: nil)
+    }
+
+    func generate(text: String, seed: UInt64, reference: SpeechReferenceAudio?) async throws -> SpeechAudio {
         try await perform {
             if !opened {
                 _ = try await service.open(path: directory.path)
                 try checkPermission()
                 opened = true
             }
-            return try await service.generate(text: text, seed: seed)
+            return try await service.generate(text: text, seed: seed, reference: reference)
         }
     }
 

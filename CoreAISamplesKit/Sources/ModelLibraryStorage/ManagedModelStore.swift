@@ -435,8 +435,8 @@ private struct ContractSource: Decodable {
 
 private func family(_ artifact: ModelArtifact) throws -> ContractFamily {
     if artifact.localBundle != nil {
-        if artifact.contract == IrodoriModelArtifact.contract {
-            guard artifact == (try IrodoriModelArtifact.make()) else {
+        if let profile = SpeechBundleProfile(rawValue: artifact.contract) {
+            guard artifact == (try IrodoriModelArtifact.make(profile: profile)) else {
                 throw ManagedModelStoreError.contractMismatch("Irodori inventory")
             }
             return .speech

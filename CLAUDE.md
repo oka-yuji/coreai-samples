@@ -84,6 +84,10 @@
 
 ## Irodori runtime
 
+- Reference-voice v2 keeps the v1 bundle supported. `SpeechReferenceAudio` accepts finite, non-silent 48 kHz mono PCM from 0.5 to 30 seconds; it scales peaks above one, uses reflect padding for the 1,920-sample codec hop, and discards incomplete four-frame speaker patches. The six-component inventory is pinned independently.
+- Reference audio encoder, speaker encoder and conditioned duration use `expectFrequentReshapes = false`; DiT and codec retain their existing reshape setting. A change in reference frame count releases the previous pipeline. With all stages set to true, the native reference → no-reference → same-reference check returned different frame counts; the selected setting passed repeat equality and 0.5/30-second checks on the Mac. Do not infer iPhone results or waveform-fidelity acceptance from that check.
+- Model checks remain opt-in under the shared heavy-job lock. Native smoke: `COREAI_IRODORI_REFERENCE_BUNDLE=/path/to/v2 COREAI_IRODORI_SMOKE_REFERENCE=/path/to/48khz-mono.wav COREAI_IRODORI_SMOKE_OUTPUT=/new/output swift test --package-path CoreAISamplesKit --filter SpeechReferenceIntegrationTests.nativeSmoke`. Original-PyTorch fixtures additionally use `COREAI_IRODORI_REFERENCE_FIXTURES` and a new `COREAI_IRODORI_REFERENCE_REPORT` file with `--filter SpeechReferenceIntegrationTests.nativeGeneration`. Missing fixtures are a skip, not a fidelity pass.
+
 - The Mac and iOS 27 speech runtime uses the pinned Rust input adapter in `Vendor/IrodoriInputKit`. Build it with `Tools/Irodori/build-inputs.sh` before package tests. These operations do not execute Core AI models.
 - `SpeechCore` and `SpeechFeature` are pure-logic targets. `SpeechRuntime` owns a single in-flight operation and holds its busy gate across suspension. A release waits for that operation to finish; it does not clear a newer pipeline after resuming.
 - Test display names and source follow the existing English-only/no-comments rules. Model generation and listening in the app are user acceptance checks for this change.

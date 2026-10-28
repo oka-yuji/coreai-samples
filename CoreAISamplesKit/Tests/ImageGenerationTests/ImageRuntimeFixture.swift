@@ -78,10 +78,12 @@ struct ImageRuntimeFixture: Sendable {
 
     func pipeline(
         backend: any ImageComponentBackend, memory: ImageTestMemory = ImageTestMemory(),
+        journal: (any ImageCheckpointSink)? = nil,
         permission: @escaping ImageRuntimePipeline.Permission = { true }
     ) -> ImageRuntimePipeline {
         ImageRuntimePipeline(
             resource: resource, budget: budget, backend: backend, permission: permission, memory: memory.read,
+            journal: journal,
             preparePrompt: { _, _, reference in
                 try ImagePromptLayout(
                     tokens: [1] + (reference ? Array(repeating: ImagePromptLayout.imageToken, count: 256) : []) + [2],

@@ -1,17 +1,23 @@
 import Foundation
 
 public struct ImageComponentLoadMetrics: Codable, Equatable, Sendable {
-    public let cacheHit: Bool
+    public let cacheHit: Bool?
     public let cacheLookupSeconds: Double
     public let specializationSeconds: Double?
     public let functionLoadSeconds: Double
+    public let initializationSeconds: Double?
+    public let loadingMode: String?
 
-    public init(cacheHit: Bool, cacheLookupSeconds: Double, specializationSeconds: Double?, functionLoadSeconds: Double)
-    {
+    public init(
+        cacheHit: Bool?, cacheLookupSeconds: Double, specializationSeconds: Double?, functionLoadSeconds: Double,
+        initializationSeconds: Double? = nil, loadingMode: String? = nil
+    ) {
         self.cacheHit = cacheHit
         self.cacheLookupSeconds = cacheLookupSeconds
         self.specializationSeconds = specializationSeconds
         self.functionLoadSeconds = functionLoadSeconds
+        self.initializationSeconds = initializationSeconds
+        self.loadingMode = loadingMode
     }
 }
 

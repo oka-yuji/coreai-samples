@@ -27,6 +27,9 @@
         public func generate(text: String, seed: UInt64) async throws -> SpeechAudio {
             try await engine.generate(text: text, seed: seed)
         }
+        public func generate(text: String, seed: UInt64, reference: SpeechReferenceAudio?) async throws -> SpeechAudio {
+            try await engine.generate(text: text, seed: seed, reference: reference)
+        }
         public func play(_ data: Data) async throws { try await playback.play(data) }
         public func stop() async {
             await playback.stopAndWait()

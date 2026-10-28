@@ -6,6 +6,26 @@ import Testing
 @testable import ImageGenerationRuntime
 
 struct ImageDiagnosticFilesTests {
+    @Test("Diagnostic loader selection is explicit and unsupported modes are rejected")
+    func loadingMode() throws {
+        let root = try diagnosticTemporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let specification = try diagnosticSpecification(root)
+        let data = try Data(contentsOf: specification)
+        #expect(try JSONDecoder().decode(ImageDiagnosticConfiguration.self, from: data).loadingMode == nil)
+        var fields = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        fields["loadingMode"] = "automatic"
+        let selected = try JSONDecoder().decode(
+            ImageDiagnosticConfiguration.self, from: JSONSerialization.data(withJSONObject: fields))
+        #expect(selected.loadingMode == .automatic)
+        try selected.validate()
+        fields["loadingMode"] = "unknown"
+        #expect(throws: DecodingError.self) {
+            try JSONDecoder().decode(
+                ImageDiagnosticConfiguration.self, from: JSONSerialization.data(withJSONObject: fields))
+        }
+    }
+
     @Test("Pinned noise bytes retain their float bits and an existing diagnostic output is never overwritten")
     func inputsAndOutput() async throws {
         let root = try diagnosticTemporaryDirectory()
