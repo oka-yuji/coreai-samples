@@ -25,14 +25,15 @@ public final class LiveImageGenerationService: ImageGenerationService {
     private var completions: [CheckedContinuation<Void, Never>] = []
 
     public convenience init(
-        session: ModelDemoSession, budget: ImageMemoryBudget,
+        session: ModelDemoSession, budget: ImageMemoryBudget, diagnosticDirectory: URL? = nil,
         isPermitted: @escaping @MainActor @Sendable () -> Bool
     ) {
         self.init(
             session: session,
             pipeline: ImageRuntimePipeline(
                 resource: session.resource, budget: budget, backend: CoreAIImageBackend(),
-                permission: isPermitted, memory: ImageMemorySampler.capture),
+                permission: isPermitted, memory: ImageMemorySampler.capture,
+                journal: diagnosticDirectory.map { ImageExecutionJournal(directory: $0) }),
             isPermitted: isPermitted)
     }
 
