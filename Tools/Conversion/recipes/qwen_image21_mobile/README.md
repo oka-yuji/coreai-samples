@@ -77,6 +77,10 @@ The bundle copies the owner record into `evidence/owner-review.json` and records
 
 The [October 28 bundle record](../../../../docs/research/qwen-image21-owner-bundle-20261028.json) identifies the packed files and independent inventory check. It is a local bundle, with no published download or calibrated device profile. Registering a download, enabling normal Models generation and claiming iPhone support require their own evidence.
 
+### AOT comparison bundles
+
+`Tools.Conversion.adapters.qwen_image21.mobile_aot_pack` adds an existing architecture-specific compiled derivative to a pinned accepted raw bundle without overwriting that bundle. It verifies both complete inventories and the compiled metadata's binding to the raw `main.mlirb`, then emits a new manifest identity with device/compiled verification still pending. The command, manifest fields and explicit `aheadOfTime` diagnostic selection are documented in [native diagnostics](../../../../docs/qwen-image21-native-diagnostics.md#source-bound-aot-comparison). The current h18p comparison did not resolve the first DiT step's memory-pressure termination; compilation and loading are separate from successful generation.
+
 For offline review, create a separate gallery after the complete comparison exists:
 
 ```sh

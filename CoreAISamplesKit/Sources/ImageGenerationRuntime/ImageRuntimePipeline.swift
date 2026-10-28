@@ -20,6 +20,7 @@ actor ImageRuntimePipeline {
     let loadBundle: BundleLoader
     let preparePrompt: PromptPreparer
     let journal: (any ImageCheckpointSink)?
+    let compiledArchitecture: String?
     private var active: UUID?
     private var admission: Permission?
     private var stopping = false
@@ -33,6 +34,7 @@ actor ImageRuntimePipeline {
         resource: ValidatedModelResource, budget: ImageMemoryBudget, backend: any ImageComponentBackend,
         permission: @escaping Permission, memory: @escaping @Sendable () -> ImageMemoryObservation,
         journal: (any ImageCheckpointSink)? = nil,
+        compiledArchitecture: String? = nil,
         loadBundle: @escaping BundleLoader = ImageRuntimeBundle.load,
         preparePrompt: @escaping PromptPreparer = { directory, prompt, reference in
             try ImageGenerationTokenizer(directory: directory).prepare(prompt, hasReference: reference)
@@ -46,6 +48,7 @@ actor ImageRuntimePipeline {
         self.loadBundle = loadBundle
         self.preparePrompt = preparePrompt
         self.journal = journal
+        self.compiledArchitecture = compiledArchitecture
     }
 
     func generate(
@@ -161,6 +164,11 @@ actor ImageRuntimePipeline {
         _ request: ImageGenerationRequest, trace: (any ImageTraceSink)?, progress: Progress
     ) async throws -> ImageGenerationPixels {
         let bundle = try loadBundle(resource, budget)
+        if let compiledArchitecture {
+            guard let compiled = bundle.manifest.compiledAssets, !compiled.isEmpty,
+                compiled.values.allSatisfy({ $0.architecture == compiledArchitecture })
+            else { throw ImageExecutionError.invalidResource }
+        }
         guard request.reference == nil || bundle.profile.workload.operation == "generate-and-edit" else {
             throw ImageExecutionError.editingUnsupported
         }
@@ -261,7 +269,9 @@ actor ImageRuntimePipeline {
         let start = ContinuousClock.now
         do {
             let load = try await withTaskCancellationShield {
-                try await backend.load(directory: bundle.directory, component: description)
+                try await backend.load(
+                    directory: bundle.directory, component: description,
+                    compiled: bundle.manifest.compiledAssets?[kind.rawValue])
             }
             report?.phases.append(
                 ImagePhaseMetric(
