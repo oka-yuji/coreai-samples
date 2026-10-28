@@ -34,7 +34,9 @@ public final class SpeechDemoSessions {
             [weak self] in
             self?.latest[session.selection] == session.id && permits()
         }
-        let model = SpeechModel(name: "Irodori v4.1 Small MF (FP32)", directory: session.resource.directory)
+        let model = SpeechModel(
+            name: "Irodori v4.1 Small MF (FP32)", directory: session.resource.directory,
+            supportsReferenceAudio: session.resource.contract == "irodori-coreai-v2")
         let store = Store<SpeechFeature>(
             initialState: SpeechState(managedModel: model, examples: examples, retaining: prior),
             run: SpeechRunner(service: service).run)

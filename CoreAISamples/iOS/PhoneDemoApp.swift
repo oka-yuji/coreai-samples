@@ -12,6 +12,8 @@
                     PhoneModelLibraryScreen()
                 case .imageGenerationDiagnostic(let configuration):
                     ImageDiagnosticScreen(configuration: URL(filePath: configuration, relativeTo: .documentsDirectory))
+                case .speechReferenceDiagnostic(let runID):
+                    PhoneSpeechCheckScreen(runID: runID)
                 case .imageSearchEvaluation:
                     PhoneImageSearchEvalView()
                 case .extractionEvaluation:

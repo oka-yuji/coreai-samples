@@ -21,10 +21,15 @@
             var values: [Stage] = []
             for (index, asset) in assets.enumerated() {
                 let referenceStage = assets.count == 6 && [1, 4, 5].contains(index)
+                #if os(iOS)
+                    let phoneDecoder = index == 3
+                #else
+                    let phoneDecoder = false
+                #endif
                 values.append(
                     try await Stage(
                         url: asset, dynamicShape: index >= 2 || referenceStage,
-                        frequentReshapes: referenceStage ? false : nil))
+                        frequentReshapes: referenceStage || phoneDecoder ? false : nil))
             }
             stages = values
         }

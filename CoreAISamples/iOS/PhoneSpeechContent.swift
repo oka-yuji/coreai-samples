@@ -13,8 +13,10 @@
 
         var body: some View {
             VStack(alignment: .leading, spacing: 16) {
+                SpeechReferenceControls(state: state, send: perform)
+                Divider()
                 HStack {
-                    Text("2. Enter what to say").font(.headline)
+                    Text("3. Enter what to say").font(.headline)
                     Spacer()
                     Menu("Examples") {
                         ForEach(state.examples) { example in
@@ -46,7 +48,7 @@
                 DisclosureGroup("Voice options", isExpanded: $showingVoiceOptions) {
                     VStack(alignment: .leading, spacing: 8) {
                         Text(
-                            "Leave this number unchanged to get started. Change it to try a different voice variation."
+                            "Leave this number unchanged to get started. Change it to try another variation of the speech."
                         )
                         .font(.caption).foregroundStyle(.secondary)
                         LabeledContent("Seed") {
@@ -66,7 +68,7 @@
                         .font(.caption).foregroundStyle(.orange)
                 }
                 Divider()
-                Text("3. Generate and listen").font(.headline)
+                Text("4. Generate and listen").font(.headline)
                 Button("Generate speech", systemImage: "waveform") { perform(.generate) }
                     .buttonStyle(.borderedProminent)
                     .disabled(!state.canGenerate || !isPermitted())
@@ -126,7 +128,9 @@
         private func perform(_ action: SpeechAction) {
             guard isPermitted() else { return }
             switch action {
-            case .generate, .play, .prepareExport: editing = nil
+            case .generate, .play, .prepareExport, .recordReference, .finishReferenceRecording, .importReference,
+                .playReference:
+                editing = nil
             default: break
             }
             send(action)
@@ -143,6 +147,10 @@
             case .generating: "Generating speech…"
             case .playing: "Playing audio…"
             case .stopping: "Waiting for the current operation to stop…"
+            case .preparingRecording: "Preparing to record…"
+            case .recording: "Recording your reference voice…"
+            case .finishingRecording: "Preparing your recorded voice…"
+            case .importingReference: "Reading the reference audio…"
             }
         }
     }

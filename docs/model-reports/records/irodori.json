@@ -58,6 +58,13 @@
         "ja": "#329"
       },
       "url": "https://github.com/oka-yuji/coreai-samples/issues/329"
+    },
+    {
+      "title": {
+        "en": "Reference voice runtime",
+        "ja": "参照音声ランタイム（英語）"
+      },
+      "url": "docs/irodori/reference-runtime.md"
     }
   ],
   "support": {
@@ -76,11 +83,12 @@
       "state": "pending",
       "variants": [],
       "evidence": [
-        "ios"
+        "ios",
+        "ios-reference-v2"
       ],
       "note": {
-        "en": "Normal Models import and speech UI implemented; device generation, memory and listening acceptance pending on main.",
-        "ja": "通常Modelsへの取り込み・音声UIは実装済み。mainでの実機生成・メモリ・試聴受入は未完了。"
+        "en": "Reference-file generation, three WAV outputs and repeat equality passed an iPhone 17 Pro diagnostic. Recording/file UI is implemented; normal-screen operation and listening acceptance remain pending.",
+        "ja": "iPhone 17 Proの診断で参照ファイル付き3生成・WAV保存・反復一致を確認。録音/ファイルUIは実装済み。通常画面の操作と試聴の本人受入は未完了。"
       }
     }
   },
@@ -139,6 +147,34 @@
       "power": null,
       "thermal": null,
       "model_executed": false,
+      "plan_sha256": null
+    },
+    "ios-reference-v2": {
+      "url": "docs/irodori/reference-input-device.json",
+      "level": "diagnostic",
+      "outcome": "passed",
+      "record_type": "legacy",
+      "date": "2026-10-29",
+      "platform": "ios",
+      "device": "iPhone 17 Pro",
+      "os": "iOS 27.0.1 (24A446)",
+      "toolchain": "Xcode 27.0 (27A266a)",
+      "variant": "Reference voice FP32 v2",
+      "backend": "Core AI; GPU preferred; audio/speaker/duration/decoder EFR false",
+      "route": "SpeechPhone explicit reference-file diagnostic; no playback or microphone capture",
+      "source_revision": "ccc78f5d480b6e51b69b2d5042a14c4da04fea6e",
+      "artifact_revision": null,
+      "code_revision": "PR370 working tree based on a755889e87f027497d979d41e4469805b955faf6",
+      "workload": {
+        "en": "Synthetic 3.88-second reference; greeting, announcement, greeting; seed 1708; three WAVs and repeated greeting equality. This is not normal-screen or listening acceptance.",
+        "ja": "合成音声3.88秒を参照し、挨拶→案内→挨拶をseed 1708で生成。WAV3本と挨拶の反復一致を確認。通常画面の操作・聴取受入とは区別する。"
+      },
+      "batch_size": 1,
+      "concurrency": 1,
+      "warmups": 0,
+      "power": "USB connected, charging",
+      "thermal": "nominal (0)",
+      "model_executed": true,
       "plan_sha256": null
     }
   },
