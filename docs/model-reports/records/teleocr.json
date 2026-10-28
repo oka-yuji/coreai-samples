@@ -13,10 +13,10 @@
     "en": "Document OCR",
     "ja": "文書OCR"
   },
-  "release": "planned",
+  "release": "in_progress",
   "release_note": {
-    "en": "investigation",
-    "ja": "調査"
+    "en": "Fixed macOS CLI evaluation; native demo and distribution acceptance remain separate.",
+    "ja": "macOS CLIの固定評価。ネイティブデモと配布の受入は別途。"
   },
   "download": null,
   "pages": {
@@ -52,24 +52,2008 @@
       }
     }
   },
-  "evidence": {},
-  "measurements": [],
-  "omissions": {},
+  "evidence": {
+    "eval20261028-fp16-performance": {
+      "url": "docs/results/teleocr-eval/2026-10-28/README.md",
+      "level": "diagnostic",
+      "outcome": "passed",
+      "record_type": "standard",
+      "date": "2026-10-28",
+      "platform": "macos",
+      "device": "Apple M4 Max / 137438953472 B RAM",
+      "os": "macOS 27.0 (26A428)",
+      "toolchain": "Xcode 27.0; Build version 27A266a; Apple Swift version 6.4 (swiftlang-6.4.0.34.1 clang-2100.3.34.1)",
+      "variant": "coreai-fp16",
+      "backend": "Core AI SpecializationOptions.default, expectFrequentReshapes=true",
+      "route": "coreai-verify ocr; two-stage page pipeline",
+      "source_revision": "70a19ec6a3b036311af19ae5e762e650f41a5980",
+      "artifact_revision": "1f3ab394969bb5c4a87e7653cc755080e92bf856909cb4ff637ad3c5182e1862",
+      "code_revision": "ea722fca17aaf0a469d9d0cbf8271b7c3d348e8d",
+      "workload": {
+        "en": "Synthetic F4 page: cold load once, one warmup and 20 interleaved fresh-process measurements. Image decode, layout/crops, recognition and table/Markdown assembly; file I/O and JSON serialization excluded.",
+        "ja": "合成F4ページ。cold1回、warmup1回、各条件を交互に新processで20回。画像復号・layout/crop・認識・表/Markdown組立を含み、file I/OとJSON serializationは除外。"
+      },
+      "batch_size": 1,
+      "concurrency": 1,
+      "warmups": 1,
+      "power": "AC Power (performance runs sampled before/after; quality runs share the invocation)",
+      "thermal": "Note: No thermal warning level has been recorded\nNote: No performance warning level has been recorded\nNote: No CPU power status has been recorded; no GPU utilization or temperature measurement",
+      "model_executed": true,
+      "plan_sha256": "eadd399a8942f11d6e907df4ed86a05bffa9c6ba4ad8f43e58387508ad758b1b"
+    },
+    "eval20261028-fp16-quality": {
+      "url": "docs/results/teleocr-eval/2026-10-28/README.md",
+      "level": "diagnostic",
+      "outcome": "failed",
+      "record_type": "standard",
+      "date": "2026-10-28",
+      "platform": "macos",
+      "device": "Apple M4 Max / 137438953472 B RAM",
+      "os": "macOS 27.0 (26A428)",
+      "toolchain": "Xcode 27.0; Build version 27A266a; Apple Swift version 6.4 (swiftlang-6.4.0.34.1 clang-2100.3.34.1)",
+      "variant": "coreai-fp16",
+      "backend": "Core AI SpecializationOptions.default, expectFrequentReshapes=true",
+      "route": "coreai-verify ocr; two-stage page pipeline",
+      "source_revision": "70a19ec6a3b036311af19ae5e762e650f41a5980",
+      "artifact_revision": "1f3ab394969bb5c4a87e7653cc755080e92bf856909cb4ff637ad3c5182e1862",
+      "code_revision": "ea722fca17aaf0a469d9d0cbf8271b7c3d348e8d",
+      "workload": {
+        "en": "35 synthetic pages and 24 pinned OmniDocBench annotation crops, separately scored; one generation per condition. Original BF16, FP32 control and matching compressed FP32 references are separate axes. These samples do not establish unseen-document quality or native-app acceptance.",
+        "ja": "合成35ページと固定OmniDocBench領域24件を別採点、条件ごとに1回。元BF16・FP32対照・対応する圧縮FP32参照を別軸で比較。未使用実写の品質やネイティブアプリ受入を保証するものではない。"
+      },
+      "batch_size": 1,
+      "concurrency": 1,
+      "warmups": 0,
+      "power": "AC Power (performance runs sampled before/after; quality runs share the invocation)",
+      "thermal": "Note: No thermal warning level has been recorded\nNote: No performance warning level has been recorded\nNote: No CPU power status has been recorded; no GPU utilization or temperature measurement",
+      "model_executed": true,
+      "plan_sha256": "eadd399a8942f11d6e907df4ed86a05bffa9c6ba4ad8f43e58387508ad758b1b"
+    },
+    "eval20261028-fp16-fidelity": {
+      "url": "docs/results/teleocr-eval/2026-10-28/README.md",
+      "level": "diagnostic",
+      "outcome": "failed",
+      "record_type": "standard",
+      "date": "2026-10-28",
+      "platform": "macos",
+      "device": "Apple M4 Max / 137438953472 B RAM",
+      "os": "macOS 27.0 (26A428)",
+      "toolchain": "Xcode 27.0; Build version 27A266a; Apple Swift version 6.4 (swiftlang-6.4.0.34.1 clang-2100.3.34.1)",
+      "variant": "coreai-fp16",
+      "backend": "Core AI SpecializationOptions.default, expectFrequentReshapes=true / PyTorch MPS",
+      "route": "coreai-verify ocr; two-stage page pipeline",
+      "source_revision": "70a19ec6a3b036311af19ae5e762e650f41a5980",
+      "artifact_revision": "1f3ab394969bb5c4a87e7653cc755080e92bf856909cb4ff637ad3c5182e1862",
+      "code_revision": "ea722fca17aaf0a469d9d0cbf8271b7c3d348e8d",
+      "workload": {
+        "en": "Same image and full page path: matching FP32 PyTorch reference versus Core AI. Exact layout/box/prompt/text/OTSL and EOS criterion. Output differences are not automatically numerical-tolerance passes or proof of a converter defect.",
+        "ja": "同じ画像/ページ経路のFP32 PyTorch参照対Core AI。layout/box/prompt/text/OTSLとEOSの厳密一致基準。出力差を自動的に数値許容合格や変換器の欠陥の証明とはしない。"
+      },
+      "batch_size": 1,
+      "concurrency": 1,
+      "warmups": 0,
+      "power": "AC Power (performance runs sampled before/after; quality runs share the invocation)",
+      "thermal": "Note: No thermal warning level has been recorded\nNote: No performance warning level has been recorded\nNote: No CPU power status has been recorded; no GPU utilization or temperature measurement",
+      "model_executed": true,
+      "plan_sha256": "eadd399a8942f11d6e907df4ed86a05bffa9c6ba4ad8f43e58387508ad758b1b"
+    },
+    "eval20261028-int8-performance": {
+      "url": "docs/results/teleocr-eval/2026-10-28/README.md",
+      "level": "diagnostic",
+      "outcome": "passed",
+      "record_type": "standard",
+      "date": "2026-10-28",
+      "platform": "macos",
+      "device": "Apple M4 Max / 137438953472 B RAM",
+      "os": "macOS 27.0 (26A428)",
+      "toolchain": "Xcode 27.0; Build version 27A266a; Apple Swift version 6.4 (swiftlang-6.4.0.34.1 clang-2100.3.34.1)",
+      "variant": "coreai-int8",
+      "backend": "Core AI SpecializationOptions.default, expectFrequentReshapes=true",
+      "route": "coreai-verify ocr; two-stage page pipeline",
+      "source_revision": "70a19ec6a3b036311af19ae5e762e650f41a5980",
+      "artifact_revision": "b9d084ac34fab6c99e760b6debff657057b4358f23f02ee1041638b68d904429",
+      "code_revision": "ea722fca17aaf0a469d9d0cbf8271b7c3d348e8d",
+      "workload": {
+        "en": "Synthetic F4 page: cold load once, one warmup and 20 interleaved fresh-process measurements. Image decode, layout/crops, recognition and table/Markdown assembly; file I/O and JSON serialization excluded.",
+        "ja": "合成F4ページ。cold1回、warmup1回、各条件を交互に新processで20回。画像復号・layout/crop・認識・表/Markdown組立を含み、file I/OとJSON serializationは除外。"
+      },
+      "batch_size": 1,
+      "concurrency": 1,
+      "warmups": 1,
+      "power": "AC Power (performance runs sampled before/after; quality runs share the invocation)",
+      "thermal": "Note: No thermal warning level has been recorded\nNote: No performance warning level has been recorded\nNote: No CPU power status has been recorded; no GPU utilization or temperature measurement",
+      "model_executed": true,
+      "plan_sha256": "eadd399a8942f11d6e907df4ed86a05bffa9c6ba4ad8f43e58387508ad758b1b"
+    },
+    "eval20261028-int8-quality": {
+      "url": "docs/results/teleocr-eval/2026-10-28/README.md",
+      "level": "diagnostic",
+      "outcome": "failed",
+      "record_type": "standard",
+      "date": "2026-10-28",
+      "platform": "macos",
+      "device": "Apple M4 Max / 137438953472 B RAM",
+      "os": "macOS 27.0 (26A428)",
+      "toolchain": "Xcode 27.0; Build version 27A266a; Apple Swift version 6.4 (swiftlang-6.4.0.34.1 clang-2100.3.34.1)",
+      "variant": "coreai-int8",
+      "backend": "Core AI SpecializationOptions.default, expectFrequentReshapes=true",
+      "route": "coreai-verify ocr; two-stage page pipeline",
+      "source_revision": "70a19ec6a3b036311af19ae5e762e650f41a5980",
+      "artifact_revision": "b9d084ac34fab6c99e760b6debff657057b4358f23f02ee1041638b68d904429",
+      "code_revision": "ea722fca17aaf0a469d9d0cbf8271b7c3d348e8d",
+      "workload": {
+        "en": "35 synthetic pages and 24 pinned OmniDocBench annotation crops, separately scored; one generation per condition. Original BF16, FP32 control and matching compressed FP32 references are separate axes. These samples do not establish unseen-document quality or native-app acceptance.",
+        "ja": "合成35ページと固定OmniDocBench領域24件を別採点、条件ごとに1回。元BF16・FP32対照・対応する圧縮FP32参照を別軸で比較。未使用実写の品質やネイティブアプリ受入を保証するものではない。"
+      },
+      "batch_size": 1,
+      "concurrency": 1,
+      "warmups": 0,
+      "power": "AC Power (performance runs sampled before/after; quality runs share the invocation)",
+      "thermal": "Note: No thermal warning level has been recorded\nNote: No performance warning level has been recorded\nNote: No CPU power status has been recorded; no GPU utilization or temperature measurement",
+      "model_executed": true,
+      "plan_sha256": "eadd399a8942f11d6e907df4ed86a05bffa9c6ba4ad8f43e58387508ad758b1b"
+    },
+    "eval20261028-int8-fidelity": {
+      "url": "docs/results/teleocr-eval/2026-10-28/README.md",
+      "level": "diagnostic",
+      "outcome": "failed",
+      "record_type": "standard",
+      "date": "2026-10-28",
+      "platform": "macos",
+      "device": "Apple M4 Max / 137438953472 B RAM",
+      "os": "macOS 27.0 (26A428)",
+      "toolchain": "Xcode 27.0; Build version 27A266a; Apple Swift version 6.4 (swiftlang-6.4.0.34.1 clang-2100.3.34.1)",
+      "variant": "coreai-int8",
+      "backend": "Core AI SpecializationOptions.default, expectFrequentReshapes=true / PyTorch MPS",
+      "route": "coreai-verify ocr; two-stage page pipeline",
+      "source_revision": "70a19ec6a3b036311af19ae5e762e650f41a5980",
+      "artifact_revision": "b9d084ac34fab6c99e760b6debff657057b4358f23f02ee1041638b68d904429",
+      "code_revision": "ea722fca17aaf0a469d9d0cbf8271b7c3d348e8d",
+      "workload": {
+        "en": "Same image and full page path: matching FP32 PyTorch reference versus Core AI. Exact layout/box/prompt/text/OTSL and EOS criterion. Output differences are not automatically numerical-tolerance passes or proof of a converter defect.",
+        "ja": "同じ画像/ページ経路のFP32 PyTorch参照対Core AI。layout/box/prompt/text/OTSLとEOSの厳密一致基準。出力差を自動的に数値許容合格や変換器の欠陥の証明とはしない。"
+      },
+      "batch_size": 1,
+      "concurrency": 1,
+      "warmups": 0,
+      "power": "AC Power (performance runs sampled before/after; quality runs share the invocation)",
+      "thermal": "Note: No thermal warning level has been recorded\nNote: No performance warning level has been recorded\nNote: No CPU power status has been recorded; no GPU utilization or temperature measurement",
+      "model_executed": true,
+      "plan_sha256": "eadd399a8942f11d6e907df4ed86a05bffa9c6ba4ad8f43e58387508ad758b1b"
+    },
+    "eval20261028-int4-performance": {
+      "url": "docs/results/teleocr-eval/2026-10-28/README.md",
+      "level": "diagnostic",
+      "outcome": "passed",
+      "record_type": "standard",
+      "date": "2026-10-28",
+      "platform": "macos",
+      "device": "Apple M4 Max / 137438953472 B RAM",
+      "os": "macOS 27.0 (26A428)",
+      "toolchain": "Xcode 27.0; Build version 27A266a; Apple Swift version 6.4 (swiftlang-6.4.0.34.1 clang-2100.3.34.1)",
+      "variant": "coreai-int4",
+      "backend": "Core AI SpecializationOptions.default, expectFrequentReshapes=true",
+      "route": "coreai-verify ocr; two-stage page pipeline",
+      "source_revision": "70a19ec6a3b036311af19ae5e762e650f41a5980",
+      "artifact_revision": "e85b0be668cccdcd0a0114b4f9713baec421b16d4a487dfc582655954ac07b66",
+      "code_revision": "ea722fca17aaf0a469d9d0cbf8271b7c3d348e8d",
+      "workload": {
+        "en": "Synthetic F4 page: cold load once, one warmup and 20 interleaved fresh-process measurements. Image decode, layout/crops, recognition and table/Markdown assembly; file I/O and JSON serialization excluded.",
+        "ja": "合成F4ページ。cold1回、warmup1回、各条件を交互に新processで20回。画像復号・layout/crop・認識・表/Markdown組立を含み、file I/OとJSON serializationは除外。"
+      },
+      "batch_size": 1,
+      "concurrency": 1,
+      "warmups": 1,
+      "power": "AC Power (performance runs sampled before/after; quality runs share the invocation)",
+      "thermal": "Note: No thermal warning level has been recorded\nNote: No performance warning level has been recorded\nNote: No CPU power status has been recorded; no GPU utilization or temperature measurement",
+      "model_executed": true,
+      "plan_sha256": "eadd399a8942f11d6e907df4ed86a05bffa9c6ba4ad8f43e58387508ad758b1b"
+    },
+    "eval20261028-int4-quality": {
+      "url": "docs/results/teleocr-eval/2026-10-28/README.md",
+      "level": "diagnostic",
+      "outcome": "failed",
+      "record_type": "standard",
+      "date": "2026-10-28",
+      "platform": "macos",
+      "device": "Apple M4 Max / 137438953472 B RAM",
+      "os": "macOS 27.0 (26A428)",
+      "toolchain": "Xcode 27.0; Build version 27A266a; Apple Swift version 6.4 (swiftlang-6.4.0.34.1 clang-2100.3.34.1)",
+      "variant": "coreai-int4",
+      "backend": "Core AI SpecializationOptions.default, expectFrequentReshapes=true",
+      "route": "coreai-verify ocr; two-stage page pipeline",
+      "source_revision": "70a19ec6a3b036311af19ae5e762e650f41a5980",
+      "artifact_revision": "e85b0be668cccdcd0a0114b4f9713baec421b16d4a487dfc582655954ac07b66",
+      "code_revision": "ea722fca17aaf0a469d9d0cbf8271b7c3d348e8d",
+      "workload": {
+        "en": "35 synthetic pages and 24 pinned OmniDocBench annotation crops, separately scored; one generation per condition. Original BF16, FP32 control and matching compressed FP32 references are separate axes. These samples do not establish unseen-document quality or native-app acceptance.",
+        "ja": "合成35ページと固定OmniDocBench領域24件を別採点、条件ごとに1回。元BF16・FP32対照・対応する圧縮FP32参照を別軸で比較。未使用実写の品質やネイティブアプリ受入を保証するものではない。"
+      },
+      "batch_size": 1,
+      "concurrency": 1,
+      "warmups": 0,
+      "power": "AC Power (performance runs sampled before/after; quality runs share the invocation)",
+      "thermal": "Note: No thermal warning level has been recorded\nNote: No performance warning level has been recorded\nNote: No CPU power status has been recorded; no GPU utilization or temperature measurement",
+      "model_executed": true,
+      "plan_sha256": "eadd399a8942f11d6e907df4ed86a05bffa9c6ba4ad8f43e58387508ad758b1b"
+    },
+    "eval20261028-int4-fidelity": {
+      "url": "docs/results/teleocr-eval/2026-10-28/README.md",
+      "level": "diagnostic",
+      "outcome": "failed",
+      "record_type": "standard",
+      "date": "2026-10-28",
+      "platform": "macos",
+      "device": "Apple M4 Max / 137438953472 B RAM",
+      "os": "macOS 27.0 (26A428)",
+      "toolchain": "Xcode 27.0; Build version 27A266a; Apple Swift version 6.4 (swiftlang-6.4.0.34.1 clang-2100.3.34.1)",
+      "variant": "coreai-int4",
+      "backend": "Core AI SpecializationOptions.default, expectFrequentReshapes=true / PyTorch MPS",
+      "route": "coreai-verify ocr; two-stage page pipeline",
+      "source_revision": "70a19ec6a3b036311af19ae5e762e650f41a5980",
+      "artifact_revision": "e85b0be668cccdcd0a0114b4f9713baec421b16d4a487dfc582655954ac07b66",
+      "code_revision": "ea722fca17aaf0a469d9d0cbf8271b7c3d348e8d",
+      "workload": {
+        "en": "Same image and full page path: matching FP32 PyTorch reference versus Core AI. Exact layout/box/prompt/text/OTSL and EOS criterion. Output differences are not automatically numerical-tolerance passes or proof of a converter defect.",
+        "ja": "同じ画像/ページ経路のFP32 PyTorch参照対Core AI。layout/box/prompt/text/OTSLとEOSの厳密一致基準。出力差を自動的に数値許容合格や変換器の欠陥の証明とはしない。"
+      },
+      "batch_size": 1,
+      "concurrency": 1,
+      "warmups": 0,
+      "power": "AC Power (performance runs sampled before/after; quality runs share the invocation)",
+      "thermal": "Note: No thermal warning level has been recorded\nNote: No performance warning level has been recorded\nNote: No CPU power status has been recorded; no GPU utilization or temperature measurement",
+      "model_executed": true,
+      "plan_sha256": "eadd399a8942f11d6e907df4ed86a05bffa9c6ba4ad8f43e58387508ad758b1b"
+    },
+    "eval20261028-vision-int8-performance": {
+      "url": "docs/results/teleocr-eval/2026-10-28/README.md",
+      "level": "diagnostic",
+      "outcome": "passed",
+      "record_type": "standard",
+      "date": "2026-10-28",
+      "platform": "macos",
+      "device": "Apple M4 Max / 137438953472 B RAM",
+      "os": "macOS 27.0 (26A428)",
+      "toolchain": "Xcode 27.0; Build version 27A266a; Apple Swift version 6.4 (swiftlang-6.4.0.34.1 clang-2100.3.34.1)",
+      "variant": "coreai-vision-int8",
+      "backend": "Core AI SpecializationOptions.default, expectFrequentReshapes=true",
+      "route": "coreai-verify ocr; two-stage page pipeline",
+      "source_revision": "70a19ec6a3b036311af19ae5e762e650f41a5980",
+      "artifact_revision": "b7de99594ace296ba44b7623832da3a75c3b1e06de5daa415236eaa4d49b5ea7",
+      "code_revision": "ea722fca17aaf0a469d9d0cbf8271b7c3d348e8d",
+      "workload": {
+        "en": "Synthetic F4 page: cold load once, one warmup and 20 interleaved fresh-process measurements. Image decode, layout/crops, recognition and table/Markdown assembly; file I/O and JSON serialization excluded.",
+        "ja": "合成F4ページ。cold1回、warmup1回、各条件を交互に新processで20回。画像復号・layout/crop・認識・表/Markdown組立を含み、file I/OとJSON serializationは除外。"
+      },
+      "batch_size": 1,
+      "concurrency": 1,
+      "warmups": 1,
+      "power": "AC Power (performance runs sampled before/after; quality runs share the invocation)",
+      "thermal": "Note: No thermal warning level has been recorded\nNote: No performance warning level has been recorded\nNote: No CPU power status has been recorded; no GPU utilization or temperature measurement",
+      "model_executed": true,
+      "plan_sha256": "eadd399a8942f11d6e907df4ed86a05bffa9c6ba4ad8f43e58387508ad758b1b"
+    },
+    "eval20261028-vision-int8-quality": {
+      "url": "docs/results/teleocr-eval/2026-10-28/README.md",
+      "level": "diagnostic",
+      "outcome": "failed",
+      "record_type": "standard",
+      "date": "2026-10-28",
+      "platform": "macos",
+      "device": "Apple M4 Max / 137438953472 B RAM",
+      "os": "macOS 27.0 (26A428)",
+      "toolchain": "Xcode 27.0; Build version 27A266a; Apple Swift version 6.4 (swiftlang-6.4.0.34.1 clang-2100.3.34.1)",
+      "variant": "coreai-vision-int8",
+      "backend": "Core AI SpecializationOptions.default, expectFrequentReshapes=true",
+      "route": "coreai-verify ocr; two-stage page pipeline",
+      "source_revision": "70a19ec6a3b036311af19ae5e762e650f41a5980",
+      "artifact_revision": "b7de99594ace296ba44b7623832da3a75c3b1e06de5daa415236eaa4d49b5ea7",
+      "code_revision": "ea722fca17aaf0a469d9d0cbf8271b7c3d348e8d",
+      "workload": {
+        "en": "35 synthetic pages and 24 pinned OmniDocBench annotation crops, separately scored; one generation per condition. Original BF16, FP32 control and matching compressed FP32 references are separate axes. These samples do not establish unseen-document quality or native-app acceptance.",
+        "ja": "合成35ページと固定OmniDocBench領域24件を別採点、条件ごとに1回。元BF16・FP32対照・対応する圧縮FP32参照を別軸で比較。未使用実写の品質やネイティブアプリ受入を保証するものではない。"
+      },
+      "batch_size": 1,
+      "concurrency": 1,
+      "warmups": 0,
+      "power": "AC Power (performance runs sampled before/after; quality runs share the invocation)",
+      "thermal": "Note: No thermal warning level has been recorded\nNote: No performance warning level has been recorded\nNote: No CPU power status has been recorded; no GPU utilization or temperature measurement",
+      "model_executed": true,
+      "plan_sha256": "eadd399a8942f11d6e907df4ed86a05bffa9c6ba4ad8f43e58387508ad758b1b"
+    },
+    "eval20261028-vision-int8-fidelity": {
+      "url": "docs/results/teleocr-eval/2026-10-28/README.md",
+      "level": "diagnostic",
+      "outcome": "failed",
+      "record_type": "standard",
+      "date": "2026-10-28",
+      "platform": "macos",
+      "device": "Apple M4 Max / 137438953472 B RAM",
+      "os": "macOS 27.0 (26A428)",
+      "toolchain": "Xcode 27.0; Build version 27A266a; Apple Swift version 6.4 (swiftlang-6.4.0.34.1 clang-2100.3.34.1)",
+      "variant": "coreai-vision-int8",
+      "backend": "Core AI SpecializationOptions.default, expectFrequentReshapes=true / PyTorch MPS",
+      "route": "coreai-verify ocr; two-stage page pipeline",
+      "source_revision": "70a19ec6a3b036311af19ae5e762e650f41a5980",
+      "artifact_revision": "b7de99594ace296ba44b7623832da3a75c3b1e06de5daa415236eaa4d49b5ea7",
+      "code_revision": "ea722fca17aaf0a469d9d0cbf8271b7c3d348e8d",
+      "workload": {
+        "en": "Same image and full page path: matching FP32 PyTorch reference versus Core AI. Exact layout/box/prompt/text/OTSL and EOS criterion. Output differences are not automatically numerical-tolerance passes or proof of a converter defect.",
+        "ja": "同じ画像/ページ経路のFP32 PyTorch参照対Core AI。layout/box/prompt/text/OTSLとEOSの厳密一致基準。出力差を自動的に数値許容合格や変換器の欠陥の証明とはしない。"
+      },
+      "batch_size": 1,
+      "concurrency": 1,
+      "warmups": 0,
+      "power": "AC Power (performance runs sampled before/after; quality runs share the invocation)",
+      "thermal": "Note: No thermal warning level has been recorded\nNote: No performance warning level has been recorded\nNote: No CPU power status has been recorded; no GPU utilization or temperature measurement",
+      "model_executed": true,
+      "plan_sha256": "eadd399a8942f11d6e907df4ed86a05bffa9c6ba4ad8f43e58387508ad758b1b"
+    }
+  },
+  "measurements": [
+    {
+      "metric": "first_load_s",
+      "value": 42.509149958,
+      "unit": "s",
+      "statistic": "single",
+      "n": 1,
+      "evidence": "eval20261028-fp16-performance",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/performance/coreai-fp16/cold/metrics/first_load_s/median"
+      },
+      "note": {
+        "en": "coreai-fp16; F4; cache=cold. Selected specialization entries cleared; OS file/Metal caches not flushed.",
+        "ja": "coreai-fp16・F4・cache=cold。対象特殊化entryを削除。OS file/Metal cacheはflushしていない。"
+      }
+    },
+    {
+      "metric": "peak_footprint_bytes",
+      "value": 3781090096,
+      "unit": "B",
+      "statistic": "single",
+      "n": 1,
+      "evidence": "eval20261028-fp16-performance",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/performance/coreai-fp16/cold/metrics/peak_footprint_bytes/median"
+      },
+      "note": {
+        "en": "coreai-fp16; F4; cache=cold. Process-lifetime footprint peak including load; not added to RSS.",
+        "ja": "coreai-fp16・F4・cache=cold。loadを含むprocess生涯footprint peak。RSSと合算しない。"
+      }
+    },
+    {
+      "metric": "peak_rss_bytes",
+      "value": 10058629120,
+      "unit": "B",
+      "statistic": "single",
+      "n": 1,
+      "evidence": "eval20261028-fp16-performance",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/performance/coreai-fp16/cold/metrics/peak_rss_bytes/median"
+      },
+      "note": {
+        "en": "coreai-fp16; F4; cache=cold. Process-lifetime RSS peak including load; not added to footprint.",
+        "ja": "coreai-fp16・F4・cache=cold。loadを含むprocess生涯RSS peak。footprintと合算しない。"
+      }
+    },
+    {
+      "metric": "bundle_bytes",
+      "value": 2847208089,
+      "unit": "B",
+      "statistic": "max",
+      "n": 20,
+      "evidence": "eval20261028-fp16-performance",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/performance/coreai-fp16/prepared/metrics/bundle_bytes/max"
+      },
+      "note": {
+        "en": "coreai-fp16; F4; cache=prepared. Logical file bytes of the evaluated bundle.",
+        "ja": "coreai-fp16・F4・cache=prepared。評価したbundleの論理file bytes。"
+      }
+    },
+    {
+      "metric": "generated_tokens",
+      "value": 288.0,
+      "unit": "tokens",
+      "statistic": "median",
+      "n": 20,
+      "evidence": "eval20261028-fp16-performance",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/performance/coreai-fp16/prepared/metrics/generated_tokens/median"
+      },
+      "note": {
+        "en": "coreai-fp16; F4; cache=prepared. Layout and all blocks, including EOS.",
+        "ja": "coreai-fp16・F4・cache=prepared。layout・全block・EOSを含む。"
+      }
+    },
+    {
+      "metric": "latency_s",
+      "value": 6.1443145005,
+      "unit": "s",
+      "statistic": "median",
+      "n": 20,
+      "evidence": "eval20261028-fp16-performance",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/performance/coreai-fp16/prepared/metrics/latency_s/median"
+      },
+      "note": {
+        "en": "coreai-fp16; F4; cache=prepared. Image decode, page inference and table/Markdown assembly; load and file I/O excluded.",
+        "ja": "coreai-fp16・F4・cache=prepared。画像復号・page推論・表/Markdown組立。loadとfile I/Oは除外。"
+      }
+    },
+    {
+      "metric": "latency_s",
+      "value": 6.780785958,
+      "unit": "s",
+      "statistic": "p95",
+      "n": 20,
+      "evidence": "eval20261028-fp16-performance",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/performance/coreai-fp16/prepared/metrics/latency_s/p95"
+      },
+      "note": {
+        "en": "coreai-fp16; F4; cache=prepared. Image decode, page inference and table/Markdown assembly; load and file I/O excluded.",
+        "ja": "coreai-fp16・F4・cache=prepared。画像復号・page推論・表/Markdown組立。loadとfile I/Oは除外。"
+      }
+    },
+    {
+      "metric": "peak_footprint_bytes",
+      "value": 3276495136,
+      "unit": "B",
+      "statistic": "max",
+      "n": 20,
+      "evidence": "eval20261028-fp16-performance",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/performance/coreai-fp16/prepared/metrics/peak_footprint_bytes/max"
+      },
+      "note": {
+        "en": "coreai-fp16; F4; cache=prepared. Process-lifetime footprint peak including load; not added to RSS.",
+        "ja": "coreai-fp16・F4・cache=prepared。loadを含むprocess生涯footprint peak。RSSと合算しない。"
+      }
+    },
+    {
+      "metric": "peak_rss_bytes",
+      "value": 9076244480,
+      "unit": "B",
+      "statistic": "max",
+      "n": 20,
+      "evidence": "eval20261028-fp16-performance",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/performance/coreai-fp16/prepared/metrics/peak_rss_bytes/max"
+      },
+      "note": {
+        "en": "coreai-fp16; F4; cache=prepared. Process-lifetime RSS peak including load; not added to footprint.",
+        "ja": "coreai-fp16・F4・cache=prepared。loadを含むprocess生涯RSS peak。footprintと合算しない。"
+      }
+    },
+    {
+      "metric": "prepared_bytes",
+      "value": 6686155073,
+      "unit": "B",
+      "statistic": "max",
+      "n": 20,
+      "evidence": "eval20261028-fp16-performance",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/performance/coreai-fp16/prepared/metrics/prepared_bytes/max"
+      },
+      "note": {
+        "en": "coreai-fp16; F4; cache=prepared. Logical bytes of distinct asset-hash cache directories after F4.",
+        "ja": "coreai-fp16・F4・cache=prepared。F4後の重複しないasset-hash cache directoryの論理bytes。"
+      }
+    },
+    {
+      "metric": "warm_load_s",
+      "value": 1.2554908545,
+      "unit": "s",
+      "statistic": "median",
+      "n": 20,
+      "evidence": "eval20261028-fp16-performance",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/performance/coreai-fp16/prepared/metrics/warm_load_s/median"
+      },
+      "note": {
+        "en": "coreai-fp16; F4; cache=prepared. Fresh process, prepared specialization cache; inference excluded.",
+        "ja": "coreai-fp16・F4・cache=prepared。新process・特殊化済みcache。推論時間を含まない。"
+      }
+    },
+    {
+      "metric": "warm_load_s",
+      "value": 1.373024583,
+      "unit": "s",
+      "statistic": "p95",
+      "n": 20,
+      "evidence": "eval20261028-fp16-performance",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/performance/coreai-fp16/prepared/metrics/warm_load_s/p95"
+      },
+      "note": {
+        "en": "coreai-fp16; F4; cache=prepared. Fresh process, prepared specialization cache; inference excluded.",
+        "ja": "coreai-fp16・F4・cache=prepared。新process・特殊化済みcache。推論時間を含まない。"
+      }
+    },
+    {
+      "metric": "task_success",
+      "value": 0.9428571428571428,
+      "unit": "ratio",
+      "statistic": "aggregate",
+      "n": 35,
+      "evidence": "eval20261028-fp16-quality",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/quality/synthetic/coreai-fp16/completed_good_fraction"
+      },
+      "note": {
+        "en": "coreai-fp16; synthetic. Good scorer judgment AND successful EOS completion / all expected samples; conditional and missing samples are not good successes.",
+        "ja": "coreai-fp16・synthetic。良判定かつEOS完了の件数/全予定入力。条件付き・欠測は成功の分子へ含めない。"
+      }
+    },
+    {
+      "metric": "cer",
+      "value": 0.01679550294363896,
+      "unit": "ratio",
+      "statistic": "mean",
+      "n": 28,
+      "evidence": "eval20261028-fp16-quality",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/quality/synthetic/coreai-fp16/metrics/cer/mean"
+      },
+      "note": {
+        "en": "coreai-fp16; synthetic. Macro mean over samples with this metric; metric-specific n and missing/execution counts remain in the primary record. Fixed issue313 normalization and scoring.",
+        "ja": "coreai-fp16・synthetic。当該指標がある入力のmacro平均。指標ごとのnと欠測/実行失敗は正本へ保持。#313の固定正規化/採点を使用。"
+      }
+    },
+    {
+      "metric": "ocr_number_recall",
+      "value": 0.9926303854875284,
+      "unit": "ratio",
+      "statistic": "mean",
+      "n": 21,
+      "evidence": "eval20261028-fp16-quality",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/quality/synthetic/coreai-fp16/metrics/numbers_match/mean"
+      },
+      "note": {
+        "en": "coreai-fp16; synthetic. Macro mean over samples with this metric; metric-specific n and missing/execution counts remain in the primary record. Fixed issue313 normalization and scoring.",
+        "ja": "coreai-fp16・synthetic。当該指標がある入力のmacro平均。指標ごとのnと欠測/実行失敗は正本へ保持。#313の固定正規化/採点を使用。"
+      }
+    },
+    {
+      "metric": "ocr_number_precision",
+      "value": 0.9926303854875284,
+      "unit": "ratio",
+      "statistic": "mean",
+      "n": 21,
+      "evidence": "eval20261028-fp16-quality",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/quality/synthetic/coreai-fp16/metrics/numbers_precision/mean"
+      },
+      "note": {
+        "en": "coreai-fp16; synthetic. Macro mean over samples with this metric; metric-specific n and missing/execution counts remain in the primary record. Fixed issue313 normalization and scoring.",
+        "ja": "coreai-fp16・synthetic。当該指標がある入力のmacro平均。指標ごとのnと欠測/実行失敗は正本へ保持。#313の固定正規化/採点を使用。"
+      }
+    },
+    {
+      "metric": "ocr_table_cell_match",
+      "value": 0.986904761904762,
+      "unit": "ratio",
+      "statistic": "mean",
+      "n": 7,
+      "evidence": "eval20261028-fp16-quality",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/quality/synthetic/coreai-fp16/metrics/cell_match/mean"
+      },
+      "note": {
+        "en": "coreai-fp16; synthetic. Macro mean over samples with this metric; metric-specific n and missing/execution counts remain in the primary record. Fixed issue313 normalization and scoring.",
+        "ja": "coreai-fp16・synthetic。当該指標がある入力のmacro平均。指標ごとのnと欠測/実行失敗は正本へ保持。#313の固定正規化/採点を使用。"
+      }
+    },
+    {
+      "metric": "ocr_reading_order_error",
+      "value": 0.0,
+      "unit": "ratio",
+      "statistic": "mean",
+      "n": 7,
+      "evidence": "eval20261028-fp16-quality",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/quality/synthetic/coreai-fp16/metrics/read_order_edit/mean"
+      },
+      "note": {
+        "en": "coreai-fp16; synthetic. Macro mean over samples with this metric; metric-specific n and missing/execution counts remain in the primary record. Fixed issue313 normalization and scoring.",
+        "ja": "coreai-fp16・synthetic。当該指標がある入力のmacro平均。指標ごとのnと欠測/実行失敗は正本へ保持。#313の固定正規化/採点を使用。"
+      }
+    },
+    {
+      "metric": "task_success",
+      "value": 0.75,
+      "unit": "ratio",
+      "statistic": "aggregate",
+      "n": 24,
+      "evidence": "eval20261028-fp16-quality",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/quality/omnidocbench/coreai-fp16/completed_good_fraction"
+      },
+      "note": {
+        "en": "coreai-fp16; omnidocbench. Good scorer judgment AND successful EOS completion / all expected samples; conditional and missing samples are not good successes.",
+        "ja": "coreai-fp16・omnidocbench。良判定かつEOS完了の件数/全予定入力。条件付き・欠測は成功の分子へ含めない。"
+      }
+    },
+    {
+      "metric": "cer",
+      "value": 0.09567372809422495,
+      "unit": "ratio",
+      "statistic": "mean",
+      "n": 16,
+      "evidence": "eval20261028-fp16-quality",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/quality/omnidocbench/coreai-fp16/metrics/cer/mean"
+      },
+      "note": {
+        "en": "coreai-fp16; omnidocbench. Macro mean over samples with this metric; metric-specific n and missing/execution counts remain in the primary record. Fixed issue313 normalization and scoring.",
+        "ja": "coreai-fp16・omnidocbench。当該指標がある入力のmacro平均。指標ごとのnと欠測/実行失敗は正本へ保持。#313の固定正規化/採点を使用。"
+      }
+    },
+    {
+      "metric": "ocr_number_recall",
+      "value": 1.0,
+      "unit": "ratio",
+      "statistic": "mean",
+      "n": 6,
+      "evidence": "eval20261028-fp16-quality",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/quality/omnidocbench/coreai-fp16/metrics/numbers_match/mean"
+      },
+      "note": {
+        "en": "coreai-fp16; omnidocbench. Macro mean over samples with this metric; metric-specific n and missing/execution counts remain in the primary record. Fixed issue313 normalization and scoring.",
+        "ja": "coreai-fp16・omnidocbench。当該指標がある入力のmacro平均。指標ごとのnと欠測/実行失敗は正本へ保持。#313の固定正規化/採点を使用。"
+      }
+    },
+    {
+      "metric": "ocr_number_precision",
+      "value": 1.0,
+      "unit": "ratio",
+      "statistic": "mean",
+      "n": 6,
+      "evidence": "eval20261028-fp16-quality",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/quality/omnidocbench/coreai-fp16/metrics/numbers_precision/mean"
+      },
+      "note": {
+        "en": "coreai-fp16; omnidocbench. Macro mean over samples with this metric; metric-specific n and missing/execution counts remain in the primary record. Fixed issue313 normalization and scoring.",
+        "ja": "coreai-fp16・omnidocbench。当該指標がある入力のmacro平均。指標ごとのnと欠測/実行失敗は正本へ保持。#313の固定正規化/採点を使用。"
+      }
+    },
+    {
+      "metric": "ocr_table_cell_match",
+      "value": 0.8571428571428571,
+      "unit": "ratio",
+      "statistic": "mean",
+      "n": 7,
+      "evidence": "eval20261028-fp16-quality",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/quality/omnidocbench/coreai-fp16/metrics/cell_match/mean"
+      },
+      "note": {
+        "en": "coreai-fp16; omnidocbench. Macro mean over samples with this metric; metric-specific n and missing/execution counts remain in the primary record. Fixed issue313 normalization and scoring.",
+        "ja": "coreai-fp16・omnidocbench。当該指標がある入力のmacro平均。指標ごとのnと欠測/実行失敗は正本へ保持。#313の固定正規化/採点を使用。"
+      }
+    },
+    {
+      "metric": "reference_error",
+      "value": 0.05714285714285716,
+      "unit": "error",
+      "statistic": "aggregate",
+      "n": 35,
+      "evidence": "eval20261028-fp16-fidelity",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/comparisons/synthetic/fp16-conversion/mismatch_fraction"
+      },
+      "note": {
+        "en": "coreai-fp16; synthetic. Non-exact or non-EOS page pairs / present pairs; missing pairs separate. This is not logit nRMSE. Text differs in 0 pairs; 2 prediction differences retain the same text.",
+        "ja": "coreai-fp16・synthetic。不一致または非EOSのページ対/結果がある対。欠測は別計上。logitのnRMSEではない。本文差0件、本文一致で他の予測差2件。"
+      }
+    },
+    {
+      "metric": "reference_error",
+      "value": 0.04166666666666663,
+      "unit": "error",
+      "statistic": "aggregate",
+      "n": 24,
+      "evidence": "eval20261028-fp16-fidelity",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/comparisons/omnidocbench/fp16-conversion/mismatch_fraction"
+      },
+      "note": {
+        "en": "coreai-fp16; omnidocbench. Non-exact or non-EOS page pairs / present pairs; missing pairs separate. This is not logit nRMSE. Text differs in 1 pairs; 0 prediction differences retain the same text.",
+        "ja": "coreai-fp16・omnidocbench。不一致または非EOSのページ対/結果がある対。欠測は別計上。logitのnRMSEではない。本文差1件、本文一致で他の予測差0件。"
+      }
+    },
+    {
+      "metric": "first_load_s",
+      "value": 42.537481833,
+      "unit": "s",
+      "statistic": "single",
+      "n": 1,
+      "evidence": "eval20261028-int8-performance",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/performance/coreai-int8/cold/metrics/first_load_s/median"
+      },
+      "note": {
+        "en": "coreai-int8; F4; cache=cold. Selected specialization entries cleared; OS file/Metal caches not flushed.",
+        "ja": "coreai-int8・F4・cache=cold。対象特殊化entryを削除。OS file/Metal cacheはflushしていない。"
+      }
+    },
+    {
+      "metric": "peak_footprint_bytes",
+      "value": 3825079552,
+      "unit": "B",
+      "statistic": "single",
+      "n": 1,
+      "evidence": "eval20261028-int8-performance",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/performance/coreai-int8/cold/metrics/peak_footprint_bytes/median"
+      },
+      "note": {
+        "en": "coreai-int8; F4; cache=cold. Process-lifetime footprint peak including load; not added to RSS.",
+        "ja": "coreai-int8・F4・cache=cold。loadを含むprocess生涯footprint peak。RSSと合算しない。"
+      }
+    },
+    {
+      "metric": "peak_rss_bytes",
+      "value": 6723731456,
+      "unit": "B",
+      "statistic": "single",
+      "n": 1,
+      "evidence": "eval20261028-int8-performance",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/performance/coreai-int8/cold/metrics/peak_rss_bytes/median"
+      },
+      "note": {
+        "en": "coreai-int8; F4; cache=cold. Process-lifetime RSS peak including load; not added to footprint.",
+        "ja": "coreai-int8・F4・cache=cold。loadを含むprocess生涯RSS peak。footprintと合算しない。"
+      }
+    },
+    {
+      "metric": "bundle_bytes",
+      "value": 2420910034,
+      "unit": "B",
+      "statistic": "max",
+      "n": 20,
+      "evidence": "eval20261028-int8-performance",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/performance/coreai-int8/prepared/metrics/bundle_bytes/max"
+      },
+      "note": {
+        "en": "coreai-int8; F4; cache=prepared. Logical file bytes of the evaluated bundle.",
+        "ja": "coreai-int8・F4・cache=prepared。評価したbundleの論理file bytes。"
+      }
+    },
+    {
+      "metric": "generated_tokens",
+      "value": 288.0,
+      "unit": "tokens",
+      "statistic": "median",
+      "n": 20,
+      "evidence": "eval20261028-int8-performance",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/performance/coreai-int8/prepared/metrics/generated_tokens/median"
+      },
+      "note": {
+        "en": "coreai-int8; F4; cache=prepared. Layout and all blocks, including EOS.",
+        "ja": "coreai-int8・F4・cache=prepared。layout・全block・EOSを含む。"
+      }
+    },
+    {
+      "metric": "latency_s",
+      "value": 6.0983209995,
+      "unit": "s",
+      "statistic": "median",
+      "n": 20,
+      "evidence": "eval20261028-int8-performance",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/performance/coreai-int8/prepared/metrics/latency_s/median"
+      },
+      "note": {
+        "en": "coreai-int8; F4; cache=prepared. Image decode, page inference and table/Markdown assembly; load and file I/O excluded.",
+        "ja": "coreai-int8・F4・cache=prepared。画像復号・page推論・表/Markdown組立。loadとfile I/Oは除外。"
+      }
+    },
+    {
+      "metric": "latency_s",
+      "value": 6.557927958,
+      "unit": "s",
+      "statistic": "p95",
+      "n": 20,
+      "evidence": "eval20261028-int8-performance",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/performance/coreai-int8/prepared/metrics/latency_s/p95"
+      },
+      "note": {
+        "en": "coreai-int8; F4; cache=prepared. Image decode, page inference and table/Markdown assembly; load and file I/O excluded.",
+        "ja": "coreai-int8・F4・cache=prepared。画像復号・page推論・表/Markdown組立。loadとfile I/Oは除外。"
+      }
+    },
+    {
+      "metric": "peak_footprint_bytes",
+      "value": 3337425624,
+      "unit": "B",
+      "statistic": "max",
+      "n": 20,
+      "evidence": "eval20261028-int8-performance",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/performance/coreai-int8/prepared/metrics/peak_footprint_bytes/max"
+      },
+      "note": {
+        "en": "coreai-int8; F4; cache=prepared. Process-lifetime footprint peak including load; not added to RSS.",
+        "ja": "coreai-int8・F4・cache=prepared。loadを含むprocess生涯footprint peak。RSSと合算しない。"
+      }
+    },
+    {
+      "metric": "peak_rss_bytes",
+      "value": 5766676480,
+      "unit": "B",
+      "statistic": "max",
+      "n": 20,
+      "evidence": "eval20261028-int8-performance",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/performance/coreai-int8/prepared/metrics/peak_rss_bytes/max"
+      },
+      "note": {
+        "en": "coreai-int8; F4; cache=prepared. Process-lifetime RSS peak including load; not added to footprint.",
+        "ja": "coreai-int8・F4・cache=prepared。loadを含むprocess生涯RSS peak。footprintと合算しない。"
+      }
+    },
+    {
+      "metric": "prepared_bytes",
+      "value": 4498192946,
+      "unit": "B",
+      "statistic": "max",
+      "n": 20,
+      "evidence": "eval20261028-int8-performance",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/performance/coreai-int8/prepared/metrics/prepared_bytes/max"
+      },
+      "note": {
+        "en": "coreai-int8; F4; cache=prepared. Logical bytes of distinct asset-hash cache directories after F4.",
+        "ja": "coreai-int8・F4・cache=prepared。F4後の重複しないasset-hash cache directoryの論理bytes。"
+      }
+    },
+    {
+      "metric": "warm_load_s",
+      "value": 0.968584083,
+      "unit": "s",
+      "statistic": "median",
+      "n": 20,
+      "evidence": "eval20261028-int8-performance",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/performance/coreai-int8/prepared/metrics/warm_load_s/median"
+      },
+      "note": {
+        "en": "coreai-int8; F4; cache=prepared. Fresh process, prepared specialization cache; inference excluded.",
+        "ja": "coreai-int8・F4・cache=prepared。新process・特殊化済みcache。推論時間を含まない。"
+      }
+    },
+    {
+      "metric": "warm_load_s",
+      "value": 1.2408105,
+      "unit": "s",
+      "statistic": "p95",
+      "n": 20,
+      "evidence": "eval20261028-int8-performance",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/performance/coreai-int8/prepared/metrics/warm_load_s/p95"
+      },
+      "note": {
+        "en": "coreai-int8; F4; cache=prepared. Fresh process, prepared specialization cache; inference excluded.",
+        "ja": "coreai-int8・F4・cache=prepared。新process・特殊化済みcache。推論時間を含まない。"
+      }
+    },
+    {
+      "metric": "task_success",
+      "value": 0.9428571428571428,
+      "unit": "ratio",
+      "statistic": "aggregate",
+      "n": 35,
+      "evidence": "eval20261028-int8-quality",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/quality/synthetic/coreai-int8/completed_good_fraction"
+      },
+      "note": {
+        "en": "coreai-int8; synthetic. Good scorer judgment AND successful EOS completion / all expected samples; conditional and missing samples are not good successes.",
+        "ja": "coreai-int8・synthetic。良判定かつEOS完了の件数/全予定入力。条件付き・欠測は成功の分子へ含めない。"
+      }
+    },
+    {
+      "metric": "cer",
+      "value": 0.01679550294363896,
+      "unit": "ratio",
+      "statistic": "mean",
+      "n": 28,
+      "evidence": "eval20261028-int8-quality",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/quality/synthetic/coreai-int8/metrics/cer/mean"
+      },
+      "note": {
+        "en": "coreai-int8; synthetic. Macro mean over samples with this metric; metric-specific n and missing/execution counts remain in the primary record. Fixed issue313 normalization and scoring.",
+        "ja": "coreai-int8・synthetic。当該指標がある入力のmacro平均。指標ごとのnと欠測/実行失敗は正本へ保持。#313の固定正規化/採点を使用。"
+      }
+    },
+    {
+      "metric": "ocr_number_recall",
+      "value": 0.9926303854875284,
+      "unit": "ratio",
+      "statistic": "mean",
+      "n": 21,
+      "evidence": "eval20261028-int8-quality",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/quality/synthetic/coreai-int8/metrics/numbers_match/mean"
+      },
+      "note": {
+        "en": "coreai-int8; synthetic. Macro mean over samples with this metric; metric-specific n and missing/execution counts remain in the primary record. Fixed issue313 normalization and scoring.",
+        "ja": "coreai-int8・synthetic。当該指標がある入力のmacro平均。指標ごとのnと欠測/実行失敗は正本へ保持。#313の固定正規化/採点を使用。"
+      }
+    },
+    {
+      "metric": "ocr_number_precision",
+      "value": 0.9926303854875284,
+      "unit": "ratio",
+      "statistic": "mean",
+      "n": 21,
+      "evidence": "eval20261028-int8-quality",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/quality/synthetic/coreai-int8/metrics/numbers_precision/mean"
+      },
+      "note": {
+        "en": "coreai-int8; synthetic. Macro mean over samples with this metric; metric-specific n and missing/execution counts remain in the primary record. Fixed issue313 normalization and scoring.",
+        "ja": "coreai-int8・synthetic。当該指標がある入力のmacro平均。指標ごとのnと欠測/実行失敗は正本へ保持。#313の固定正規化/採点を使用。"
+      }
+    },
+    {
+      "metric": "ocr_table_cell_match",
+      "value": 0.986904761904762,
+      "unit": "ratio",
+      "statistic": "mean",
+      "n": 7,
+      "evidence": "eval20261028-int8-quality",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/quality/synthetic/coreai-int8/metrics/cell_match/mean"
+      },
+      "note": {
+        "en": "coreai-int8; synthetic. Macro mean over samples with this metric; metric-specific n and missing/execution counts remain in the primary record. Fixed issue313 normalization and scoring.",
+        "ja": "coreai-int8・synthetic。当該指標がある入力のmacro平均。指標ごとのnと欠測/実行失敗は正本へ保持。#313の固定正規化/採点を使用。"
+      }
+    },
+    {
+      "metric": "ocr_reading_order_error",
+      "value": 0.0,
+      "unit": "ratio",
+      "statistic": "mean",
+      "n": 7,
+      "evidence": "eval20261028-int8-quality",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/quality/synthetic/coreai-int8/metrics/read_order_edit/mean"
+      },
+      "note": {
+        "en": "coreai-int8; synthetic. Macro mean over samples with this metric; metric-specific n and missing/execution counts remain in the primary record. Fixed issue313 normalization and scoring.",
+        "ja": "coreai-int8・synthetic。当該指標がある入力のmacro平均。指標ごとのnと欠測/実行失敗は正本へ保持。#313の固定正規化/採点を使用。"
+      }
+    },
+    {
+      "metric": "task_success",
+      "value": 0.75,
+      "unit": "ratio",
+      "statistic": "aggregate",
+      "n": 24,
+      "evidence": "eval20261028-int8-quality",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/quality/omnidocbench/coreai-int8/completed_good_fraction"
+      },
+      "note": {
+        "en": "coreai-int8; omnidocbench. Good scorer judgment AND successful EOS completion / all expected samples; conditional and missing samples are not good successes.",
+        "ja": "coreai-int8・omnidocbench。良判定かつEOS完了の件数/全予定入力。条件付き・欠測は成功の分子へ含めない。"
+      }
+    },
+    {
+      "metric": "cer",
+      "value": 0.09412093306316904,
+      "unit": "ratio",
+      "statistic": "mean",
+      "n": 16,
+      "evidence": "eval20261028-int8-quality",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/quality/omnidocbench/coreai-int8/metrics/cer/mean"
+      },
+      "note": {
+        "en": "coreai-int8; omnidocbench. Macro mean over samples with this metric; metric-specific n and missing/execution counts remain in the primary record. Fixed issue313 normalization and scoring.",
+        "ja": "coreai-int8・omnidocbench。当該指標がある入力のmacro平均。指標ごとのnと欠測/実行失敗は正本へ保持。#313の固定正規化/採点を使用。"
+      }
+    },
+    {
+      "metric": "ocr_number_recall",
+      "value": 1.0,
+      "unit": "ratio",
+      "statistic": "mean",
+      "n": 6,
+      "evidence": "eval20261028-int8-quality",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/quality/omnidocbench/coreai-int8/metrics/numbers_match/mean"
+      },
+      "note": {
+        "en": "coreai-int8; omnidocbench. Macro mean over samples with this metric; metric-specific n and missing/execution counts remain in the primary record. Fixed issue313 normalization and scoring.",
+        "ja": "coreai-int8・omnidocbench。当該指標がある入力のmacro平均。指標ごとのnと欠測/実行失敗は正本へ保持。#313の固定正規化/採点を使用。"
+      }
+    },
+    {
+      "metric": "ocr_number_precision",
+      "value": 1.0,
+      "unit": "ratio",
+      "statistic": "mean",
+      "n": 6,
+      "evidence": "eval20261028-int8-quality",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/quality/omnidocbench/coreai-int8/metrics/numbers_precision/mean"
+      },
+      "note": {
+        "en": "coreai-int8; omnidocbench. Macro mean over samples with this metric; metric-specific n and missing/execution counts remain in the primary record. Fixed issue313 normalization and scoring.",
+        "ja": "coreai-int8・omnidocbench。当該指標がある入力のmacro平均。指標ごとのnと欠測/実行失敗は正本へ保持。#313の固定正規化/採点を使用。"
+      }
+    },
+    {
+      "metric": "ocr_table_cell_match",
+      "value": 0.8571428571428571,
+      "unit": "ratio",
+      "statistic": "mean",
+      "n": 7,
+      "evidence": "eval20261028-int8-quality",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/quality/omnidocbench/coreai-int8/metrics/cell_match/mean"
+      },
+      "note": {
+        "en": "coreai-int8; omnidocbench. Macro mean over samples with this metric; metric-specific n and missing/execution counts remain in the primary record. Fixed issue313 normalization and scoring.",
+        "ja": "coreai-int8・omnidocbench。当該指標がある入力のmacro平均。指標ごとのnと欠測/実行失敗は正本へ保持。#313の固定正規化/採点を使用。"
+      }
+    },
+    {
+      "metric": "reference_error",
+      "value": 0.11428571428571432,
+      "unit": "error",
+      "statistic": "aggregate",
+      "n": 35,
+      "evidence": "eval20261028-int8-fidelity",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/comparisons/synthetic/int8-conversion/mismatch_fraction"
+      },
+      "note": {
+        "en": "coreai-int8; synthetic. Non-exact or non-EOS page pairs / present pairs; missing pairs separate. This is not logit nRMSE. Text differs in 1 pairs; 3 prediction differences retain the same text.",
+        "ja": "coreai-int8・synthetic。不一致または非EOSのページ対/結果がある対。欠測は別計上。logitのnRMSEではない。本文差1件、本文一致で他の予測差3件。"
+      }
+    },
+    {
+      "metric": "reference_error",
+      "value": 0.04166666666666663,
+      "unit": "error",
+      "statistic": "aggregate",
+      "n": 24,
+      "evidence": "eval20261028-int8-fidelity",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/comparisons/omnidocbench/int8-conversion/mismatch_fraction"
+      },
+      "note": {
+        "en": "coreai-int8; omnidocbench. Non-exact or non-EOS page pairs / present pairs; missing pairs separate. This is not logit nRMSE. Text differs in 1 pairs; 0 prediction differences retain the same text.",
+        "ja": "coreai-int8・omnidocbench。不一致または非EOSのページ対/結果がある対。欠測は別計上。logitのnRMSEではない。本文差1件、本文一致で他の予測差0件。"
+      }
+    },
+    {
+      "metric": "first_load_s",
+      "value": 42.833759458,
+      "unit": "s",
+      "statistic": "single",
+      "n": 1,
+      "evidence": "eval20261028-int4-performance",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/performance/coreai-int4/cold/metrics/first_load_s/median"
+      },
+      "note": {
+        "en": "coreai-int4; F4; cache=cold. Selected specialization entries cleared; OS file/Metal caches not flushed.",
+        "ja": "coreai-int4・F4・cache=cold。対象特殊化entryを削除。OS file/Metal cacheはflushしていない。"
+      }
+    },
+    {
+      "metric": "peak_footprint_bytes",
+      "value": 4019606736,
+      "unit": "B",
+      "statistic": "single",
+      "n": 1,
+      "evidence": "eval20261028-int4-performance",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/performance/coreai-int4/cold/metrics/peak_footprint_bytes/median"
+      },
+      "note": {
+        "en": "coreai-int4; F4; cache=cold. Process-lifetime footprint peak including load; not added to RSS.",
+        "ja": "coreai-int4・F4・cache=cold。loadを含むprocess生涯footprint peak。RSSと合算しない。"
+      }
+    },
+    {
+      "metric": "peak_rss_bytes",
+      "value": 6349389824,
+      "unit": "B",
+      "statistic": "single",
+      "n": 1,
+      "evidence": "eval20261028-int4-performance",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/performance/coreai-int4/cold/metrics/peak_rss_bytes/median"
+      },
+      "note": {
+        "en": "coreai-int4; F4; cache=cold. Process-lifetime RSS peak including load; not added to footprint.",
+        "ja": "coreai-int4・F4・cache=cold。loadを含むprocess生涯RSS peak。footprintと合算しない。"
+      }
+    },
+    {
+      "metric": "bundle_bytes",
+      "value": 2200708898,
+      "unit": "B",
+      "statistic": "max",
+      "n": 20,
+      "evidence": "eval20261028-int4-performance",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/performance/coreai-int4/prepared/metrics/bundle_bytes/max"
+      },
+      "note": {
+        "en": "coreai-int4; F4; cache=prepared. Logical file bytes of the evaluated bundle.",
+        "ja": "coreai-int4・F4・cache=prepared。評価したbundleの論理file bytes。"
+      }
+    },
+    {
+      "metric": "generated_tokens",
+      "value": 287.0,
+      "unit": "tokens",
+      "statistic": "median",
+      "n": 20,
+      "evidence": "eval20261028-int4-performance",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/performance/coreai-int4/prepared/metrics/generated_tokens/median"
+      },
+      "note": {
+        "en": "coreai-int4; F4; cache=prepared. Layout and all blocks, including EOS.",
+        "ja": "coreai-int4・F4・cache=prepared。layout・全block・EOSを含む。"
+      }
+    },
+    {
+      "metric": "latency_s",
+      "value": 6.007030438,
+      "unit": "s",
+      "statistic": "median",
+      "n": 20,
+      "evidence": "eval20261028-int4-performance",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/performance/coreai-int4/prepared/metrics/latency_s/median"
+      },
+      "note": {
+        "en": "coreai-int4; F4; cache=prepared. Image decode, page inference and table/Markdown assembly; load and file I/O excluded.",
+        "ja": "coreai-int4・F4・cache=prepared。画像復号・page推論・表/Markdown組立。loadとfile I/Oは除外。"
+      }
+    },
+    {
+      "metric": "latency_s",
+      "value": 6.492878917,
+      "unit": "s",
+      "statistic": "p95",
+      "n": 20,
+      "evidence": "eval20261028-int4-performance",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/performance/coreai-int4/prepared/metrics/latency_s/p95"
+      },
+      "note": {
+        "en": "coreai-int4; F4; cache=prepared. Image decode, page inference and table/Markdown assembly; load and file I/O excluded.",
+        "ja": "coreai-int4・F4・cache=prepared。画像復号・page推論・表/Markdown組立。loadとfile I/Oは除外。"
+      }
+    },
+    {
+      "metric": "peak_footprint_bytes",
+      "value": 3356381744,
+      "unit": "B",
+      "statistic": "max",
+      "n": 20,
+      "evidence": "eval20261028-int4-performance",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/performance/coreai-int4/prepared/metrics/peak_footprint_bytes/max"
+      },
+      "note": {
+        "en": "coreai-int4; F4; cache=prepared. Process-lifetime footprint peak including load; not added to RSS.",
+        "ja": "coreai-int4・F4・cache=prepared。loadを含むprocess生涯footprint peak。RSSと合算しない。"
+      }
+    },
+    {
+      "metric": "peak_rss_bytes",
+      "value": 5349982208,
+      "unit": "B",
+      "statistic": "max",
+      "n": 20,
+      "evidence": "eval20261028-int4-performance",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/performance/coreai-int4/prepared/metrics/peak_rss_bytes/max"
+      },
+      "note": {
+        "en": "coreai-int4; F4; cache=prepared. Process-lifetime RSS peak including load; not added to footprint.",
+        "ja": "coreai-int4・F4・cache=prepared。loadを含むprocess生涯RSS peak。footprintと合算しない。"
+      }
+    },
+    {
+      "metric": "prepared_bytes",
+      "value": 4277991298,
+      "unit": "B",
+      "statistic": "max",
+      "n": 20,
+      "evidence": "eval20261028-int4-performance",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/performance/coreai-int4/prepared/metrics/prepared_bytes/max"
+      },
+      "note": {
+        "en": "coreai-int4; F4; cache=prepared. Logical bytes of distinct asset-hash cache directories after F4.",
+        "ja": "coreai-int4・F4・cache=prepared。F4後の重複しないasset-hash cache directoryの論理bytes。"
+      }
+    },
+    {
+      "metric": "warm_load_s",
+      "value": 0.948625354,
+      "unit": "s",
+      "statistic": "median",
+      "n": 20,
+      "evidence": "eval20261028-int4-performance",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/performance/coreai-int4/prepared/metrics/warm_load_s/median"
+      },
+      "note": {
+        "en": "coreai-int4; F4; cache=prepared. Fresh process, prepared specialization cache; inference excluded.",
+        "ja": "coreai-int4・F4・cache=prepared。新process・特殊化済みcache。推論時間を含まない。"
+      }
+    },
+    {
+      "metric": "warm_load_s",
+      "value": 1.105935833,
+      "unit": "s",
+      "statistic": "p95",
+      "n": 20,
+      "evidence": "eval20261028-int4-performance",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/performance/coreai-int4/prepared/metrics/warm_load_s/p95"
+      },
+      "note": {
+        "en": "coreai-int4; F4; cache=prepared. Fresh process, prepared specialization cache; inference excluded.",
+        "ja": "coreai-int4・F4・cache=prepared。新process・特殊化済みcache。推論時間を含まない。"
+      }
+    },
+    {
+      "metric": "task_success",
+      "value": 0.9428571428571428,
+      "unit": "ratio",
+      "statistic": "aggregate",
+      "n": 35,
+      "evidence": "eval20261028-int4-quality",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/quality/synthetic/coreai-int4/completed_good_fraction"
+      },
+      "note": {
+        "en": "coreai-int4; synthetic. Good scorer judgment AND successful EOS completion / all expected samples; conditional and missing samples are not good successes.",
+        "ja": "coreai-int4・synthetic。良判定かつEOS完了の件数/全予定入力。条件付き・欠測は成功の分子へ含めない。"
+      }
+    },
+    {
+      "metric": "cer",
+      "value": 0.01674697592398121,
+      "unit": "ratio",
+      "statistic": "mean",
+      "n": 28,
+      "evidence": "eval20261028-int4-quality",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/quality/synthetic/coreai-int4/metrics/cer/mean"
+      },
+      "note": {
+        "en": "coreai-int4; synthetic. Macro mean over samples with this metric; metric-specific n and missing/execution counts remain in the primary record. Fixed issue313 normalization and scoring.",
+        "ja": "coreai-int4・synthetic。当該指標がある入力のmacro平均。指標ごとのnと欠測/実行失敗は正本へ保持。#313の固定正規化/採点を使用。"
+      }
+    },
+    {
+      "metric": "ocr_number_recall",
+      "value": 0.996031746031746,
+      "unit": "ratio",
+      "statistic": "mean",
+      "n": 21,
+      "evidence": "eval20261028-int4-quality",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/quality/synthetic/coreai-int4/metrics/numbers_match/mean"
+      },
+      "note": {
+        "en": "coreai-int4; synthetic. Macro mean over samples with this metric; metric-specific n and missing/execution counts remain in the primary record. Fixed issue313 normalization and scoring.",
+        "ja": "coreai-int4・synthetic。当該指標がある入力のmacro平均。指標ごとのnと欠測/実行失敗は正本へ保持。#313の固定正規化/採点を使用。"
+      }
+    },
+    {
+      "metric": "ocr_number_precision",
+      "value": 0.996031746031746,
+      "unit": "ratio",
+      "statistic": "mean",
+      "n": 21,
+      "evidence": "eval20261028-int4-quality",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/quality/synthetic/coreai-int4/metrics/numbers_precision/mean"
+      },
+      "note": {
+        "en": "coreai-int4; synthetic. Macro mean over samples with this metric; metric-specific n and missing/execution counts remain in the primary record. Fixed issue313 normalization and scoring.",
+        "ja": "coreai-int4・synthetic。当該指標がある入力のmacro平均。指標ごとのnと欠測/実行失敗は正本へ保持。#313の固定正規化/採点を使用。"
+      }
+    },
+    {
+      "metric": "ocr_table_cell_match",
+      "value": 0.9797619047619047,
+      "unit": "ratio",
+      "statistic": "mean",
+      "n": 7,
+      "evidence": "eval20261028-int4-quality",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/quality/synthetic/coreai-int4/metrics/cell_match/mean"
+      },
+      "note": {
+        "en": "coreai-int4; synthetic. Macro mean over samples with this metric; metric-specific n and missing/execution counts remain in the primary record. Fixed issue313 normalization and scoring.",
+        "ja": "coreai-int4・synthetic。当該指標がある入力のmacro平均。指標ごとのnと欠測/実行失敗は正本へ保持。#313の固定正規化/採点を使用。"
+      }
+    },
+    {
+      "metric": "ocr_reading_order_error",
+      "value": 0.0,
+      "unit": "ratio",
+      "statistic": "mean",
+      "n": 7,
+      "evidence": "eval20261028-int4-quality",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/quality/synthetic/coreai-int4/metrics/read_order_edit/mean"
+      },
+      "note": {
+        "en": "coreai-int4; synthetic. Macro mean over samples with this metric; metric-specific n and missing/execution counts remain in the primary record. Fixed issue313 normalization and scoring.",
+        "ja": "coreai-int4・synthetic。当該指標がある入力のmacro平均。指標ごとのnと欠測/実行失敗は正本へ保持。#313の固定正規化/採点を使用。"
+      }
+    },
+    {
+      "metric": "task_success",
+      "value": 0.75,
+      "unit": "ratio",
+      "statistic": "aggregate",
+      "n": 24,
+      "evidence": "eval20261028-int4-quality",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/quality/omnidocbench/coreai-int4/completed_good_fraction"
+      },
+      "note": {
+        "en": "coreai-int4; omnidocbench. Good scorer judgment AND successful EOS completion / all expected samples; conditional and missing samples are not good successes.",
+        "ja": "coreai-int4・omnidocbench。良判定かつEOS完了の件数/全予定入力。条件付き・欠測は成功の分子へ含めない。"
+      }
+    },
+    {
+      "metric": "cer",
+      "value": 0.08306892640893553,
+      "unit": "ratio",
+      "statistic": "mean",
+      "n": 16,
+      "evidence": "eval20261028-int4-quality",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/quality/omnidocbench/coreai-int4/metrics/cer/mean"
+      },
+      "note": {
+        "en": "coreai-int4; omnidocbench. Macro mean over samples with this metric; metric-specific n and missing/execution counts remain in the primary record. Fixed issue313 normalization and scoring.",
+        "ja": "coreai-int4・omnidocbench。当該指標がある入力のmacro平均。指標ごとのnと欠測/実行失敗は正本へ保持。#313の固定正規化/採点を使用。"
+      }
+    },
+    {
+      "metric": "ocr_number_recall",
+      "value": 1.0,
+      "unit": "ratio",
+      "statistic": "mean",
+      "n": 6,
+      "evidence": "eval20261028-int4-quality",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/quality/omnidocbench/coreai-int4/metrics/numbers_match/mean"
+      },
+      "note": {
+        "en": "coreai-int4; omnidocbench. Macro mean over samples with this metric; metric-specific n and missing/execution counts remain in the primary record. Fixed issue313 normalization and scoring.",
+        "ja": "coreai-int4・omnidocbench。当該指標がある入力のmacro平均。指標ごとのnと欠測/実行失敗は正本へ保持。#313の固定正規化/採点を使用。"
+      }
+    },
+    {
+      "metric": "ocr_number_precision",
+      "value": 1.0,
+      "unit": "ratio",
+      "statistic": "mean",
+      "n": 6,
+      "evidence": "eval20261028-int4-quality",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/quality/omnidocbench/coreai-int4/metrics/numbers_precision/mean"
+      },
+      "note": {
+        "en": "coreai-int4; omnidocbench. Macro mean over samples with this metric; metric-specific n and missing/execution counts remain in the primary record. Fixed issue313 normalization and scoring.",
+        "ja": "coreai-int4・omnidocbench。当該指標がある入力のmacro平均。指標ごとのnと欠測/実行失敗は正本へ保持。#313の固定正規化/採点を使用。"
+      }
+    },
+    {
+      "metric": "ocr_table_cell_match",
+      "value": 0.8518518518518519,
+      "unit": "ratio",
+      "statistic": "mean",
+      "n": 7,
+      "evidence": "eval20261028-int4-quality",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/quality/omnidocbench/coreai-int4/metrics/cell_match/mean"
+      },
+      "note": {
+        "en": "coreai-int4; omnidocbench. Macro mean over samples with this metric; metric-specific n and missing/execution counts remain in the primary record. Fixed issue313 normalization and scoring.",
+        "ja": "coreai-int4・omnidocbench。当該指標がある入力のmacro平均。指標ごとのnと欠測/実行失敗は正本へ保持。#313の固定正規化/採点を使用。"
+      }
+    },
+    {
+      "metric": "reference_error",
+      "value": 0.05714285714285716,
+      "unit": "error",
+      "statistic": "aggregate",
+      "n": 35,
+      "evidence": "eval20261028-int4-fidelity",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/comparisons/synthetic/int4-conversion/mismatch_fraction"
+      },
+      "note": {
+        "en": "coreai-int4; synthetic. Non-exact or non-EOS page pairs / present pairs; missing pairs separate. This is not logit nRMSE. Text differs in 1 pairs; 1 prediction differences retain the same text.",
+        "ja": "coreai-int4・synthetic。不一致または非EOSのページ対/結果がある対。欠測は別計上。logitのnRMSEではない。本文差1件、本文一致で他の予測差1件。"
+      }
+    },
+    {
+      "metric": "reference_error",
+      "value": 0.16666666666666663,
+      "unit": "error",
+      "statistic": "aggregate",
+      "n": 24,
+      "evidence": "eval20261028-int4-fidelity",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/comparisons/omnidocbench/int4-conversion/mismatch_fraction"
+      },
+      "note": {
+        "en": "coreai-int4; omnidocbench. Non-exact or non-EOS page pairs / present pairs; missing pairs separate. This is not logit nRMSE. Text differs in 2 pairs; 2 prediction differences retain the same text.",
+        "ja": "coreai-int4・omnidocbench。不一致または非EOSのページ対/結果がある対。欠測は別計上。logitのnRMSEではない。本文差2件、本文一致で他の予測差2件。"
+      }
+    },
+    {
+      "metric": "first_load_s",
+      "value": 41.546071082999994,
+      "unit": "s",
+      "statistic": "single",
+      "n": 1,
+      "evidence": "eval20261028-vision-int8-performance",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/performance/coreai-vision-int8/cold/metrics/first_load_s/median"
+      },
+      "note": {
+        "en": "coreai-vision-int8; F4; cache=cold. Selected specialization entries cleared; OS file/Metal caches not flushed.",
+        "ja": "coreai-vision-int8・F4・cache=cold。対象特殊化entryを削除。OS file/Metal cacheはflushしていない。"
+      }
+    },
+    {
+      "metric": "peak_footprint_bytes",
+      "value": 3875493240,
+      "unit": "B",
+      "statistic": "single",
+      "n": 1,
+      "evidence": "eval20261028-vision-int8-performance",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/performance/coreai-vision-int8/cold/metrics/peak_footprint_bytes/median"
+      },
+      "note": {
+        "en": "coreai-vision-int8; F4; cache=cold. Process-lifetime footprint peak including load; not added to RSS.",
+        "ja": "coreai-vision-int8・F4・cache=cold。loadを含むprocess生涯footprint peak。RSSと合算しない。"
+      }
+    },
+    {
+      "metric": "peak_rss_bytes",
+      "value": 8231796736,
+      "unit": "B",
+      "statistic": "single",
+      "n": 1,
+      "evidence": "eval20261028-vision-int8-performance",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/performance/coreai-vision-int8/cold/metrics/peak_rss_bytes/median"
+      },
+      "note": {
+        "en": "coreai-vision-int8; F4; cache=cold. Process-lifetime RSS peak including load; not added to footprint.",
+        "ja": "coreai-vision-int8・F4・cache=cold。loadを含むprocess生涯RSS peak。footprintと合算しない。"
+      }
+    },
+    {
+      "metric": "bundle_bytes",
+      "value": 2186926997,
+      "unit": "B",
+      "statistic": "max",
+      "n": 20,
+      "evidence": "eval20261028-vision-int8-performance",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/performance/coreai-vision-int8/prepared/metrics/bundle_bytes/max"
+      },
+      "note": {
+        "en": "coreai-vision-int8; F4; cache=prepared. Logical file bytes of the evaluated bundle.",
+        "ja": "coreai-vision-int8・F4・cache=prepared。評価したbundleの論理file bytes。"
+      }
+    },
+    {
+      "metric": "generated_tokens",
+      "value": 288.0,
+      "unit": "tokens",
+      "statistic": "median",
+      "n": 20,
+      "evidence": "eval20261028-vision-int8-performance",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/performance/coreai-vision-int8/prepared/metrics/generated_tokens/median"
+      },
+      "note": {
+        "en": "coreai-vision-int8; F4; cache=prepared. Layout and all blocks, including EOS.",
+        "ja": "coreai-vision-int8・F4・cache=prepared。layout・全block・EOSを含む。"
+      }
+    },
+    {
+      "metric": "latency_s",
+      "value": 8.588239833,
+      "unit": "s",
+      "statistic": "median",
+      "n": 20,
+      "evidence": "eval20261028-vision-int8-performance",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/performance/coreai-vision-int8/prepared/metrics/latency_s/median"
+      },
+      "note": {
+        "en": "coreai-vision-int8; F4; cache=prepared. Image decode, page inference and table/Markdown assembly; load and file I/O excluded.",
+        "ja": "coreai-vision-int8・F4・cache=prepared。画像復号・page推論・表/Markdown組立。loadとfile I/Oは除外。"
+      }
+    },
+    {
+      "metric": "latency_s",
+      "value": 10.652186959,
+      "unit": "s",
+      "statistic": "p95",
+      "n": 20,
+      "evidence": "eval20261028-vision-int8-performance",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/performance/coreai-vision-int8/prepared/metrics/latency_s/p95"
+      },
+      "note": {
+        "en": "coreai-vision-int8; F4; cache=prepared. Image decode, page inference and table/Markdown assembly; load and file I/O excluded.",
+        "ja": "coreai-vision-int8・F4・cache=prepared。画像復号・page推論・表/Markdown組立。loadとfile I/Oは除外。"
+      }
+    },
+    {
+      "metric": "peak_footprint_bytes",
+      "value": 3356791632,
+      "unit": "B",
+      "statistic": "max",
+      "n": 20,
+      "evidence": "eval20261028-vision-int8-performance",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/performance/coreai-vision-int8/prepared/metrics/peak_footprint_bytes/max"
+      },
+      "note": {
+        "en": "coreai-vision-int8; F4; cache=prepared. Process-lifetime footprint peak including load; not added to RSS.",
+        "ja": "coreai-vision-int8・F4・cache=prepared。loadを含むprocess生涯footprint peak。RSSと合算しない。"
+      }
+    },
+    {
+      "metric": "peak_rss_bytes",
+      "value": 7093469184,
+      "unit": "B",
+      "statistic": "max",
+      "n": 20,
+      "evidence": "eval20261028-vision-int8-performance",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/performance/coreai-vision-int8/prepared/metrics/peak_rss_bytes/max"
+      },
+      "note": {
+        "en": "coreai-vision-int8; F4; cache=prepared. Process-lifetime RSS peak including load; not added to footprint.",
+        "ja": "coreai-vision-int8・F4・cache=prepared。loadを含むprocess生涯RSS peak。footprintと合算しない。"
+      }
+    },
+    {
+      "metric": "prepared_bytes",
+      "value": 4702849136,
+      "unit": "B",
+      "statistic": "max",
+      "n": 20,
+      "evidence": "eval20261028-vision-int8-performance",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/performance/coreai-vision-int8/prepared/metrics/prepared_bytes/max"
+      },
+      "note": {
+        "en": "coreai-vision-int8; F4; cache=prepared. Logical bytes of distinct asset-hash cache directories after F4.",
+        "ja": "coreai-vision-int8・F4・cache=prepared。F4後の重複しないasset-hash cache directoryの論理bytes。"
+      }
+    },
+    {
+      "metric": "warm_load_s",
+      "value": 1.1548254375,
+      "unit": "s",
+      "statistic": "median",
+      "n": 20,
+      "evidence": "eval20261028-vision-int8-performance",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/performance/coreai-vision-int8/prepared/metrics/warm_load_s/median"
+      },
+      "note": {
+        "en": "coreai-vision-int8; F4; cache=prepared. Fresh process, prepared specialization cache; inference excluded.",
+        "ja": "coreai-vision-int8・F4・cache=prepared。新process・特殊化済みcache。推論時間を含まない。"
+      }
+    },
+    {
+      "metric": "warm_load_s",
+      "value": 1.323007208,
+      "unit": "s",
+      "statistic": "p95",
+      "n": 20,
+      "evidence": "eval20261028-vision-int8-performance",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/performance/coreai-vision-int8/prepared/metrics/warm_load_s/p95"
+      },
+      "note": {
+        "en": "coreai-vision-int8; F4; cache=prepared. Fresh process, prepared specialization cache; inference excluded.",
+        "ja": "coreai-vision-int8・F4・cache=prepared。新process・特殊化済みcache。推論時間を含まない。"
+      }
+    },
+    {
+      "metric": "task_success",
+      "value": 0.9428571428571428,
+      "unit": "ratio",
+      "statistic": "aggregate",
+      "n": 35,
+      "evidence": "eval20261028-vision-int8-quality",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/quality/synthetic/coreai-vision-int8/completed_good_fraction"
+      },
+      "note": {
+        "en": "coreai-vision-int8; synthetic. Good scorer judgment AND successful EOS completion / all expected samples; conditional and missing samples are not good successes.",
+        "ja": "coreai-vision-int8・synthetic。良判定かつEOS完了の件数/全予定入力。条件付き・欠測は成功の分子へ含めない。"
+      }
+    },
+    {
+      "metric": "cer",
+      "value": 0.01679550294363896,
+      "unit": "ratio",
+      "statistic": "mean",
+      "n": 28,
+      "evidence": "eval20261028-vision-int8-quality",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/quality/synthetic/coreai-vision-int8/metrics/cer/mean"
+      },
+      "note": {
+        "en": "coreai-vision-int8; synthetic. Macro mean over samples with this metric; metric-specific n and missing/execution counts remain in the primary record. Fixed issue313 normalization and scoring.",
+        "ja": "coreai-vision-int8・synthetic。当該指標がある入力のmacro平均。指標ごとのnと欠測/実行失敗は正本へ保持。#313の固定正規化/採点を使用。"
+      }
+    },
+    {
+      "metric": "ocr_number_recall",
+      "value": 0.9926303854875284,
+      "unit": "ratio",
+      "statistic": "mean",
+      "n": 21,
+      "evidence": "eval20261028-vision-int8-quality",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/quality/synthetic/coreai-vision-int8/metrics/numbers_match/mean"
+      },
+      "note": {
+        "en": "coreai-vision-int8; synthetic. Macro mean over samples with this metric; metric-specific n and missing/execution counts remain in the primary record. Fixed issue313 normalization and scoring.",
+        "ja": "coreai-vision-int8・synthetic。当該指標がある入力のmacro平均。指標ごとのnと欠測/実行失敗は正本へ保持。#313の固定正規化/採点を使用。"
+      }
+    },
+    {
+      "metric": "ocr_number_precision",
+      "value": 0.9926303854875284,
+      "unit": "ratio",
+      "statistic": "mean",
+      "n": 21,
+      "evidence": "eval20261028-vision-int8-quality",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/quality/synthetic/coreai-vision-int8/metrics/numbers_precision/mean"
+      },
+      "note": {
+        "en": "coreai-vision-int8; synthetic. Macro mean over samples with this metric; metric-specific n and missing/execution counts remain in the primary record. Fixed issue313 normalization and scoring.",
+        "ja": "coreai-vision-int8・synthetic。当該指標がある入力のmacro平均。指標ごとのnと欠測/実行失敗は正本へ保持。#313の固定正規化/採点を使用。"
+      }
+    },
+    {
+      "metric": "ocr_table_cell_match",
+      "value": 0.986904761904762,
+      "unit": "ratio",
+      "statistic": "mean",
+      "n": 7,
+      "evidence": "eval20261028-vision-int8-quality",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/quality/synthetic/coreai-vision-int8/metrics/cell_match/mean"
+      },
+      "note": {
+        "en": "coreai-vision-int8; synthetic. Macro mean over samples with this metric; metric-specific n and missing/execution counts remain in the primary record. Fixed issue313 normalization and scoring.",
+        "ja": "coreai-vision-int8・synthetic。当該指標がある入力のmacro平均。指標ごとのnと欠測/実行失敗は正本へ保持。#313の固定正規化/採点を使用。"
+      }
+    },
+    {
+      "metric": "ocr_reading_order_error",
+      "value": 0.0,
+      "unit": "ratio",
+      "statistic": "mean",
+      "n": 7,
+      "evidence": "eval20261028-vision-int8-quality",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/quality/synthetic/coreai-vision-int8/metrics/read_order_edit/mean"
+      },
+      "note": {
+        "en": "coreai-vision-int8; synthetic. Macro mean over samples with this metric; metric-specific n and missing/execution counts remain in the primary record. Fixed issue313 normalization and scoring.",
+        "ja": "coreai-vision-int8・synthetic。当該指標がある入力のmacro平均。指標ごとのnと欠測/実行失敗は正本へ保持。#313の固定正規化/採点を使用。"
+      }
+    },
+    {
+      "metric": "task_success",
+      "value": 0.75,
+      "unit": "ratio",
+      "statistic": "aggregate",
+      "n": 24,
+      "evidence": "eval20261028-vision-int8-quality",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/quality/omnidocbench/coreai-vision-int8/completed_good_fraction"
+      },
+      "note": {
+        "en": "coreai-vision-int8; omnidocbench. Good scorer judgment AND successful EOS completion / all expected samples; conditional and missing samples are not good successes.",
+        "ja": "coreai-vision-int8・omnidocbench。良判定かつEOS完了の件数/全予定入力。条件付き・欠測は成功の分子へ含めない。"
+      }
+    },
+    {
+      "metric": "cer",
+      "value": 0.09567372809422495,
+      "unit": "ratio",
+      "statistic": "mean",
+      "n": 16,
+      "evidence": "eval20261028-vision-int8-quality",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/quality/omnidocbench/coreai-vision-int8/metrics/cer/mean"
+      },
+      "note": {
+        "en": "coreai-vision-int8; omnidocbench. Macro mean over samples with this metric; metric-specific n and missing/execution counts remain in the primary record. Fixed issue313 normalization and scoring.",
+        "ja": "coreai-vision-int8・omnidocbench。当該指標がある入力のmacro平均。指標ごとのnと欠測/実行失敗は正本へ保持。#313の固定正規化/採点を使用。"
+      }
+    },
+    {
+      "metric": "ocr_number_recall",
+      "value": 1.0,
+      "unit": "ratio",
+      "statistic": "mean",
+      "n": 6,
+      "evidence": "eval20261028-vision-int8-quality",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/quality/omnidocbench/coreai-vision-int8/metrics/numbers_match/mean"
+      },
+      "note": {
+        "en": "coreai-vision-int8; omnidocbench. Macro mean over samples with this metric; metric-specific n and missing/execution counts remain in the primary record. Fixed issue313 normalization and scoring.",
+        "ja": "coreai-vision-int8・omnidocbench。当該指標がある入力のmacro平均。指標ごとのnと欠測/実行失敗は正本へ保持。#313の固定正規化/採点を使用。"
+      }
+    },
+    {
+      "metric": "ocr_number_precision",
+      "value": 1.0,
+      "unit": "ratio",
+      "statistic": "mean",
+      "n": 6,
+      "evidence": "eval20261028-vision-int8-quality",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/quality/omnidocbench/coreai-vision-int8/metrics/numbers_precision/mean"
+      },
+      "note": {
+        "en": "coreai-vision-int8; omnidocbench. Macro mean over samples with this metric; metric-specific n and missing/execution counts remain in the primary record. Fixed issue313 normalization and scoring.",
+        "ja": "coreai-vision-int8・omnidocbench。当該指標がある入力のmacro平均。指標ごとのnと欠測/実行失敗は正本へ保持。#313の固定正規化/採点を使用。"
+      }
+    },
+    {
+      "metric": "ocr_table_cell_match",
+      "value": 0.8571428571428571,
+      "unit": "ratio",
+      "statistic": "mean",
+      "n": 7,
+      "evidence": "eval20261028-vision-int8-quality",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/quality/omnidocbench/coreai-vision-int8/metrics/cell_match/mean"
+      },
+      "note": {
+        "en": "coreai-vision-int8; omnidocbench. Macro mean over samples with this metric; metric-specific n and missing/execution counts remain in the primary record. Fixed issue313 normalization and scoring.",
+        "ja": "coreai-vision-int8・omnidocbench。当該指標がある入力のmacro平均。指標ごとのnと欠測/実行失敗は正本へ保持。#313の固定正規化/採点を使用。"
+      }
+    },
+    {
+      "metric": "reference_error",
+      "value": 0.05714285714285716,
+      "unit": "error",
+      "statistic": "aggregate",
+      "n": 35,
+      "evidence": "eval20261028-vision-int8-fidelity",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/comparisons/synthetic/vision-int8-conversion/mismatch_fraction"
+      },
+      "note": {
+        "en": "coreai-vision-int8; synthetic. Non-exact or non-EOS page pairs / present pairs; missing pairs separate. This is not logit nRMSE. Text differs in 1 pairs; 1 prediction differences retain the same text.",
+        "ja": "coreai-vision-int8・synthetic。不一致または非EOSのページ対/結果がある対。欠測は別計上。logitのnRMSEではない。本文差1件、本文一致で他の予測差1件。"
+      }
+    },
+    {
+      "metric": "reference_error",
+      "value": 0.04166666666666663,
+      "unit": "error",
+      "statistic": "aggregate",
+      "n": 24,
+      "evidence": "eval20261028-vision-int8-fidelity",
+      "source_value": {
+        "path": "docs/results/teleocr-eval/2026-10-28/summary.json",
+        "pointer": "/comparisons/omnidocbench/vision-int8-conversion/mismatch_fraction"
+      },
+      "note": {
+        "en": "coreai-vision-int8; omnidocbench. Non-exact or non-EOS page pairs / present pairs; missing pairs separate. This is not logit nRMSE. Text differs in 0 pairs; 1 prediction differences retain the same text.",
+        "ja": "coreai-vision-int8・omnidocbench。不一致または非EOSのページ対/結果がある対。欠測は別計上。logitのnRMSEではない。本文差0件、本文一致で他の予測差1件。"
+      }
+    }
+  ],
+  "omissions": {
+    "wer": {
+      "state": "not_measured",
+      "reason": {
+        "en": "Word segmentation was not fixed; CER is reported instead.",
+        "ja": "単語分割の定義は固定していない。CERを記録する。"
+      }
+    },
+    "layout_f1": {
+      "state": "not_measured",
+      "reason": {
+        "en": "Layout/structure F1 was not measured; fixed reading-order and table-cell metrics remain separate.",
+        "ja": "layout/構造F1は未計測。固定した読み順と表セル指標を別に記録する。"
+      }
+    },
+    "resident_bytes": {
+      "state": "not_measured",
+      "reason": {
+        "en": "In-inference residency was not sampled; post-request raw memory is not substituted.",
+        "ja": "推論中の常駐量は未採取。要求後のrawメモリで代用しない。"
+      }
+    },
+    "residual_bytes": {
+      "state": "not_measured",
+      "reason": {
+        "en": "Single-process release-minus-baseline was not measured.",
+        "ja": "同一process内の解放後と基準の差は未計測。"
+      }
+    },
+    "cancel_s": {
+      "state": "not_measured",
+      "reason": {
+        "en": "Real-model interactive cancellation latency was not measured; CPU fault tests are a separate scope.",
+        "ja": "実モデルの対話的な取消時間は未計測。CPU故障試験とは別の範囲。"
+      }
+    }
+  },
   "checks": {
     "fidelity": {
-      "state": "not_measured",
-      "evidence": [],
+      "state": "failed",
+      "evidence": [
+        "eval20261028-fp16-fidelity",
+        "eval20261028-int8-fidelity",
+        "eval20261028-int4-fidelity",
+        "eval20261028-vision-int8-fidelity"
+      ],
       "note": {
-        "en": "No completed check for this scope under the common protocol.",
-        "ja": "この範囲の共通プロトコルによる確認は未実施です。"
+        "en": "Exact page-output criterion across the four declared conditions; see per-condition comparison counts and unresolved output differences. Numeric component checks and task quality are distinct.",
+        "ja": "4条件のページ出力厳密一致基準。条件別の一致/欠測数と未解釈の出力差を参照。数値部品検証と用途品質は別。"
       }
     },
     "quality": {
-      "state": "not_measured",
-      "evidence": [],
+      "state": "failed",
+      "evidence": [
+        "eval20261028-fp16-quality",
+        "eval20261028-int8-quality",
+        "eval20261028-int4-quality",
+        "eval20261028-vision-int8-quality"
+      ],
       "note": {
-        "en": "No completed check for this scope under the common protocol.",
-        "ja": "この範囲の共通プロトコルによる確認は未実施です。"
+        "en": "Frozen automatic scoring only, preserving conditional and insufficient judgments. Real-photo/native-app acceptance remains pending; OmniDocBench is a small selected public subset, not a guaranteed held-out generalization test.",
+        "ja": "固定自動採点のみ。条件付き/不足を保持。実写とネイティブアプリ受入は未確認。OmniDocBenchは選択した小subsetであり、未使用入力への一般化を保証しない。"
       }
     },
     "stability": {
