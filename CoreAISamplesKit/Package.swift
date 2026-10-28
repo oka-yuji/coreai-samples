@@ -126,7 +126,7 @@ let package = Package(
             dependencies: [
                 "ModelLibraryFeature", "GLiNERRuntime", "EmbeddingRuntime", "ImageGenerationCore", "SpeechAssets",
             ],
-            swiftSettings: speechSettings),
+            resources: [.process("Resources")], swiftSettings: speechSettings),
         .testTarget(
             name: "ModelLibraryStorageTests",
             dependencies: [
