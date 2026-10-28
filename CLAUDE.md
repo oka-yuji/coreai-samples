@@ -97,3 +97,4 @@
 - Irodoriの実バンドル取り込み検査は共有heavy-jobロック下で `COREAI_IRODORI_IMPORT_BUNDLE=/path/to/sampler-irodori-fp32 swift test --package-path CoreAISamplesKit --filter IrodoriImportTests.knownBundle`。固定14ファイルを一時管理領域へコピーし、検査・lease・改変/欠損/余分/symlinkの拒否を確認する。モデル推論は行わない。既定実行はskip。元フォルダは変更しない。
 
 - OCRデモ共通実行部の実モデル照合は共有heavy-jobロック下で `COREAI_OCR_DEMO_BUNDLE=/path/to/evaluated-bundle COREAI_OCR_DEMO_IMAGES=/path/to/fixed-images COREAI_OCR_DEMO_REFERENCES=/path/to/CLI-results COREAI_OCR_DEMO_OUTPUT=/path/to/private-output swift test --package-path CoreAISamplesKit --filter OCRNativePageTests.fixedPages`。F2/F4の予測構造・本文/表・終了・token数・Markdownを固定CLIと照合する。通常suiteはskip、実写/通常UI/iPhone受入の代用にはしない。
+- TeleOCRの実bundle登録検査は共有heavy-jobロック下で `COREAI_TELEOCR_IMPORT_BUNDLE=/path/to/evaluated-dynamic-fp16-bundle swift test --package-path CoreAISamplesKit --filter TeleOCRImportTests.knownBundle`。固定19ファイルのsize/hash・import/inspect・失敗時の旧登録保持・lease中の削除拒否・解放後の削除・元bundle不変を確認する。推論は行わず、既定実行ではskipする。
