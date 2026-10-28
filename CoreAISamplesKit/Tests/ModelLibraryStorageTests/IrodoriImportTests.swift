@@ -6,6 +6,23 @@ import Testing
 @testable import ModelLibraryStorage
 
 struct IrodoriImportTests {
+    @Test("REF-CORE-03 Reference bundles have a separate identity and pin all twenty files")
+    func referenceDefinition() async throws {
+        let legacy = try IrodoriModelArtifact.make()
+        let artifact = try IrodoriModelArtifact.make(profile: .referenceVoice)
+        #expect(artifact.id != legacy.id && artifact.contract != legacy.contract)
+        #expect(artifact.sourceRevision == IrodoriBundleInventory.referenceManifestSHA256)
+        #expect(artifact.files.count == 20 && artifact.isSourceValid)
+        #expect(artifact.files.contains { $0.path.contains("reference-audio-fp32") })
+        #expect(artifact.files.contains { $0.path.contains("reference-speaker-fp32") })
+        let fixture = StoreFixture()
+        defer { fixture.remove() }
+        let store = fixture.store()
+        #expect(try await store.inspect(model: model(artifact), artifact: artifact).isMissing)
+        let staging = try await store.stagingDirectory(for: model(artifact), artifact: artifact)
+        #expect(staging.lastPathComponent == artifact.sourceRevision)
+    }
+
     @Test("IR-ASSET-01 The Irodori identity pins the manifest and all fourteen files")
     func definition() async throws {
         let artifact = try IrodoriModelArtifact.make()
