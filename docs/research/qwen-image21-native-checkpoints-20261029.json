@@ -1,0 +1,646 @@
+{
+  "format": 1,
+  "date": "2026-10-29",
+  "issue": 360,
+  "code_revision": "2fac5613b1268a44bb73460722d16bee97b603b5",
+  "binary_sha256": "dd90fedaa748068066da8d6be3c6b4cec1567f78c6313c40bff1e543960958d1",
+  "binary_uuid": "E49EEC26-92DB-312C-BA8A-54BE79A9B2C3",
+  "hardware_model": "iPhone18,1",
+  "device": "iPhone 17 Pro",
+  "os_build": "24A446",
+  "os_version": "27.0.1",
+  "transport": "wired",
+  "memory_entitlement": true,
+  "manifest_sha256": "66b2154e45359c6636830ddc95c7e95c52ea9355d5b10bd12bf8a4df9d33e32b",
+  "observed_process_budget_bytes": 6442450944,
+  "workload": {
+    "fixture": "g02",
+    "seed": 20261021,
+    "noise": "supplied reference float32 packed",
+    "resolution": [
+      512,
+      512
+    ]
+  },
+  "checkpoint_acceptance": "passed",
+  "full_generation_completed": false,
+  "production_calibration": false,
+  "attempts": [
+    {
+      "id": "run-20261029",
+      "status": "failed",
+      "error": "insufficientMemory(component: ImageGenerationCore.ImageModelComponent.text, required: 6444451938, available: 6381139984)",
+      "total_seconds": 7.288583459000001,
+      "budget_basis": "estimate",
+      "budget_evidence": "Initial diagnostic admission policy, not a measured calibration. Loading: serialized component asset bytes + twice physical input/output bytes + 128 MiB. Inference: 2 GiB provisional workspace + twice physical input/output bytes. Compiler transient peak is unknown; existing 512 MiB or 20 percent runtime reserve remains enforced.",
+      "phases": [
+        {
+          "additionalBudgetBytes": 5155961749,
+          "after": {
+            "availableBytes": 6381139984,
+            "footprintBytes": 61310960,
+            "kernelLifetimePeakBytes": 117295064,
+            "lowPowerMode": false,
+            "physicalMemoryBytes": 12291735552,
+            "residentBytes": 172834816,
+            "scope": "processDirtyBudget",
+            "thermalState": 0,
+            "visibleMetalBytes": 65536
+          },
+          "before": {
+            "availableBytes": 6381139984,
+            "footprintBytes": 61310960,
+            "kernelLifetimePeakBytes": 117295064,
+            "lowPowerMode": false,
+            "physicalMemoryBytes": 12291735552,
+            "residentBytes": 172834816,
+            "scope": "processDirtyBudget",
+            "thermalState": 0,
+            "visibleMetalBytes": 65536
+          },
+          "component": "text",
+          "error": "insufficientMemory(component: ImageGenerationCore.ImageModelComponent.text, required: 6444451938, available: 6381139984)",
+          "operation": "loading",
+          "seconds": 0
+        }
+      ],
+      "terminal_report_sha256": "5e94df274833fc4b2debd0dca0e4dcaa39911c11ccfd7a68735ed571c64d6e5c"
+    },
+    {
+      "id": "g02-memory-policy-v2-20261029",
+      "status": "failed",
+      "error": "insufficientMemory(component: ImageGenerationCore.ImageModelComponent.denoiser, required: 3468001493, available: 3130073776)",
+      "total_seconds": 61.945331666,
+      "budget_basis": "estimate",
+      "budget_evidence": "Diagnostic estimate v2: text and denoiser loading use twice historical same-family iPhone17Pro/iOS27.0.1 component lifetime footprint peaks plus 256 MiB (text 1,394,317,328 B; non-FMA G16 DiT 1,571,167,568 B). These are different artifact/loader executions, not calibration or an upper-bound guarantee for this candidate. Other components and inference estimates are unchanged. The 512 MiB/20-percent runtime reserve is unchanged. Initial serialized-size estimate refusal is retained.",
+      "phases": [
+        {
+          "additionalBudgetBytes": 3057070112,
+          "after": {
+            "availableBytes": 5620197456,
+            "footprintBytes": 822253488,
+            "kernelLifetimePeakBytes": 822269872,
+            "lowPowerMode": false,
+            "physicalMemoryBytes": 12291735552,
+            "residentBytes": 4501897216,
+            "scope": "processDirtyBudget",
+            "thermalState": 0,
+            "visibleMetalBytes": 722944000
+          },
+          "before": {
+            "availableBytes": 6381172776,
+            "footprintBytes": 61278168,
+            "kernelLifetimePeakBytes": 117245888,
+            "lowPowerMode": false,
+            "physicalMemoryBytes": 12291735552,
+            "residentBytes": 183484416,
+            "scope": "processDirtyBudget",
+            "thermalState": 0,
+            "visibleMetalBytes": 65536
+          },
+          "component": "text",
+          "load": {
+            "cacheHit": false,
+            "cacheLookupSeconds": 0.00256525,
+            "functionLoadSeconds": 6.884778540999999,
+            "specializationSeconds": 15.038854624999999
+          },
+          "operation": "loading",
+          "reserveBytes": 1288490189,
+          "seconds": 21.92832525
+        },
+        {
+          "additionalBudgetBytes": 2232947712,
+          "after": {
+            "availableBytes": 5302118240,
+            "footprintBytes": 1140332704,
+            "kernelLifetimePeakBytes": 1399707808,
+            "lowPowerMode": false,
+            "physicalMemoryBytes": 12291735552,
+            "residentBytes": 4397154304,
+            "scope": "processDirtyBudget",
+            "thermalState": 0,
+            "visibleMetalBytes": 6106071040
+          },
+          "before": {
+            "availableBytes": 5619984464,
+            "footprintBytes": 822466480,
+            "kernelLifetimePeakBytes": 822466480,
+            "lowPowerMode": false,
+            "physicalMemoryBytes": 12291735552,
+            "residentBytes": 4509204480,
+            "scope": "processDirtyBudget",
+            "thermalState": 0,
+            "visibleMetalBytes": 722944000
+          },
+          "component": "text",
+          "operation": "inference",
+          "reserveBytes": 1288490189,
+          "seconds": 6.636298209
+        },
+        {
+          "after": {
+            "availableBytes": 6087849712,
+            "footprintBytes": 354601232,
+            "kernelLifetimePeakBytes": 1399707808,
+            "lowPowerMode": false,
+            "physicalMemoryBytes": 12291735552,
+            "residentBytes": 134561792,
+            "scope": "processDirtyBudget",
+            "thermalState": 0,
+            "visibleMetalBytes": 403374080
+          },
+          "before": {
+            "availableBytes": 5301921632,
+            "footprintBytes": 1140529312,
+            "kernelLifetimePeakBytes": 1399707808,
+            "lowPowerMode": false,
+            "physicalMemoryBytes": 12291735552,
+            "residentBytes": 4399661056,
+            "scope": "processDirtyBudget",
+            "thermalState": 0,
+            "visibleMetalBytes": 6106071040
+          },
+          "component": "text",
+          "operation": "release",
+          "seconds": 0.069118041
+        },
+        {
+          "additionalBudgetBytes": 3410770592,
+          "after": {
+            "availableBytes": 3130352304,
+            "footprintBytes": 3312098640,
+            "kernelLifetimePeakBytes": 3312115024,
+            "lowPowerMode": false,
+            "physicalMemoryBytes": 12291735552,
+            "residentBytes": 4765876224,
+            "scope": "processDirtyBudget",
+            "thermalState": 1,
+            "visibleMetalBytes": 3219324928
+          },
+          "before": {
+            "availableBytes": 6079067888,
+            "footprintBytes": 363383056,
+            "kernelLifetimePeakBytes": 1399707808,
+            "lowPowerMode": false,
+            "physicalMemoryBytes": 12291735552,
+            "residentBytes": 146800640,
+            "scope": "processDirtyBudget",
+            "thermalState": 0,
+            "visibleMetalBytes": 403374080
+          },
+          "component": "denoiser",
+          "load": {
+            "cacheHit": false,
+            "cacheLookupSeconds": 0.004228625,
+            "functionLoadSeconds": 10.19839675,
+            "specializationSeconds": 16.344387791
+          },
+          "operation": "loading",
+          "reserveBytes": 1288490189,
+          "seconds": 26.551731500000002
+        },
+        {
+          "additionalBudgetBytes": 2179511304,
+          "after": {
+            "availableBytes": 3130073776,
+            "footprintBytes": 3312377168,
+            "kernelLifetimePeakBytes": 3312377168,
+            "lowPowerMode": false,
+            "physicalMemoryBytes": 12291735552,
+            "residentBytes": 4675076096,
+            "scope": "processDirtyBudget",
+            "thermalState": 1,
+            "visibleMetalBytes": 3219324928
+          },
+          "before": {
+            "availableBytes": 3130073776,
+            "footprintBytes": 3312377168,
+            "kernelLifetimePeakBytes": 3312377168,
+            "lowPowerMode": false,
+            "physicalMemoryBytes": 12291735552,
+            "residentBytes": 4675076096,
+            "scope": "processDirtyBudget",
+            "thermalState": 1,
+            "visibleMetalBytes": 3219324928
+          },
+          "component": "denoiser",
+          "error": "insufficientMemory(component: ImageGenerationCore.ImageModelComponent.denoiser, required: 3468001493, available: 3130073776)",
+          "operation": "inference",
+          "seconds": 0,
+          "step": 0
+        },
+        {
+          "after": {
+            "availableBytes": 3133634288,
+            "footprintBytes": 3308816656,
+            "kernelLifetimePeakBytes": 3312377168,
+            "lowPowerMode": false,
+            "physicalMemoryBytes": 12291735552,
+            "residentBytes": 50675712,
+            "scope": "processDirtyBudget",
+            "thermalState": 1,
+            "visibleMetalBytes": 720896
+          },
+          "before": {
+            "availableBytes": 3130073776,
+            "footprintBytes": 3312377168,
+            "kernelLifetimePeakBytes": 3312377168,
+            "lowPowerMode": false,
+            "physicalMemoryBytes": 12291735552,
+            "residentBytes": 4675633152,
+            "scope": "processDirtyBudget",
+            "thermalState": 1,
+            "visibleMetalBytes": 3219324928
+          },
+          "component": "denoiser",
+          "operation": "release",
+          "seconds": 0.059890375
+        }
+      ],
+      "terminal_report_sha256": "bdb3e3ea32fc7b89729127153bd5d95becd9d533f7086d459994ff86448ae676"
+    },
+    {
+      "id": "g02-warm-policy-v2-20261029",
+      "status": "failed",
+      "error": "insufficientMemory(component: ImageGenerationCore.ImageModelComponent.denoiser, required: 3468001493, available: 3131613848)",
+      "total_seconds": 26.301939166,
+      "budget_basis": "estimate",
+      "budget_evidence": "Diagnostic estimate v2: text and denoiser loading use twice historical same-family iPhone17Pro/iOS27.0.1 component lifetime footprint peaks plus 256 MiB (text 1,394,317,328 B; non-FMA G16 DiT 1,571,167,568 B). These are different artifact/loader executions, not calibration or an upper-bound guarantee for this candidate. Other components and inference estimates are unchanged. The 512 MiB/20-percent runtime reserve is unchanged. Initial serialized-size estimate refusal is retained.",
+      "phases": [
+        {
+          "additionalBudgetBytes": 3057070112,
+          "after": {
+            "availableBytes": 5620820072,
+            "footprintBytes": 821630872,
+            "kernelLifetimePeakBytes": 821647256,
+            "lowPowerMode": false,
+            "physicalMemoryBytes": 12291735552,
+            "residentBytes": 4887986176,
+            "scope": "processDirtyBudget",
+            "thermalState": 1,
+            "visibleMetalBytes": 722944000
+          },
+          "before": {
+            "availableBytes": 6381156368,
+            "footprintBytes": 61294576,
+            "kernelLifetimePeakBytes": 117196760,
+            "lowPowerMode": false,
+            "physicalMemoryBytes": 12291735552,
+            "residentBytes": 183517184,
+            "scope": "processDirtyBudget",
+            "thermalState": 1,
+            "visibleMetalBytes": 65536
+          },
+          "component": "text",
+          "load": {
+            "cacheHit": true,
+            "cacheLookupSeconds": 0.002282834,
+            "functionLoadSeconds": 6.536070375
+          },
+          "operation": "loading",
+          "reserveBytes": 1288490189,
+          "seconds": 6.538685917
+        },
+        {
+          "additionalBudgetBytes": 2232947712,
+          "after": {
+            "availableBytes": 5304805216,
+            "footprintBytes": 1137645728,
+            "kernelLifetimePeakBytes": 1401919648,
+            "lowPowerMode": false,
+            "physicalMemoryBytes": 12291735552,
+            "residentBytes": 4921327616,
+            "scope": "processDirtyBudget",
+            "thermalState": 1,
+            "visibleMetalBytes": 6106071040
+          },
+          "before": {
+            "availableBytes": 5620623464,
+            "footprintBytes": 821827480,
+            "kernelLifetimePeakBytes": 821827480,
+            "lowPowerMode": false,
+            "physicalMemoryBytes": 12291735552,
+            "residentBytes": 4901634048,
+            "scope": "processDirtyBudget",
+            "thermalState": 1,
+            "visibleMetalBytes": 722944000
+          },
+          "component": "text",
+          "operation": "inference",
+          "reserveBytes": 1288490189,
+          "seconds": 4.901288958
+        },
+        {
+          "after": {
+            "availableBytes": 6090176240,
+            "footprintBytes": 352274704,
+            "kernelLifetimePeakBytes": 1401919648,
+            "lowPowerMode": false,
+            "physicalMemoryBytes": 12291735552,
+            "residentBytes": 155107328,
+            "scope": "processDirtyBudget",
+            "thermalState": 1,
+            "visibleMetalBytes": 403374080
+          },
+          "before": {
+            "availableBytes": 5304526688,
+            "footprintBytes": 1137924256,
+            "kernelLifetimePeakBytes": 1401919648,
+            "lowPowerMode": false,
+            "physicalMemoryBytes": 12291735552,
+            "residentBytes": 4921655296,
+            "scope": "processDirtyBudget",
+            "thermalState": 1,
+            "visibleMetalBytes": 6106071040
+          },
+          "component": "text",
+          "operation": "release",
+          "seconds": 0.058231917
+        },
+        {
+          "additionalBudgetBytes": 3410770592,
+          "after": {
+            "availableBytes": 3131826840,
+            "footprintBytes": 3310624104,
+            "kernelLifetimePeakBytes": 3310640488,
+            "lowPowerMode": false,
+            "physicalMemoryBytes": 12291735552,
+            "residentBytes": 4935860224,
+            "scope": "processDirtyBudget",
+            "thermalState": 1,
+            "visibleMetalBytes": 3219324928
+          },
+          "before": {
+            "availableBytes": 6081574616,
+            "footprintBytes": 360876328,
+            "kernelLifetimePeakBytes": 1401919648,
+            "lowPowerMode": false,
+            "physicalMemoryBytes": 12291735552,
+            "residentBytes": 164085760,
+            "scope": "processDirtyBudget",
+            "thermalState": 1,
+            "visibleMetalBytes": 403374080
+          },
+          "component": "denoiser",
+          "load": {
+            "cacheHit": true,
+            "cacheLookupSeconds": 0.002038834,
+            "functionLoadSeconds": 8.411909292
+          },
+          "operation": "loading",
+          "reserveBytes": 1288490189,
+          "seconds": 8.414640875
+        },
+        {
+          "additionalBudgetBytes": 2179511304,
+          "after": {
+            "availableBytes": 3131613848,
+            "footprintBytes": 3310837096,
+            "kernelLifetimePeakBytes": 3310837096,
+            "lowPowerMode": false,
+            "physicalMemoryBytes": 12291735552,
+            "residentBytes": 4882284544,
+            "scope": "processDirtyBudget",
+            "thermalState": 1,
+            "visibleMetalBytes": 3219324928
+          },
+          "before": {
+            "availableBytes": 3131613848,
+            "footprintBytes": 3310837096,
+            "kernelLifetimePeakBytes": 3310837096,
+            "lowPowerMode": false,
+            "physicalMemoryBytes": 12291735552,
+            "residentBytes": 4882284544,
+            "scope": "processDirtyBudget",
+            "thermalState": 1,
+            "visibleMetalBytes": 3219324928
+          },
+          "component": "denoiser",
+          "error": "insufficientMemory(component: ImageGenerationCore.ImageModelComponent.denoiser, required: 3468001493, available: 3131613848)",
+          "operation": "inference",
+          "seconds": 0,
+          "step": 0
+        },
+        {
+          "after": {
+            "availableBytes": 3135125208,
+            "footprintBytes": 3307325736,
+            "kernelLifetimePeakBytes": 3310869864,
+            "lowPowerMode": false,
+            "physicalMemoryBytes": 12291735552,
+            "residentBytes": 52232192,
+            "scope": "processDirtyBudget",
+            "thermalState": 1,
+            "visibleMetalBytes": 720896
+          },
+          "before": {
+            "availableBytes": 3131581080,
+            "footprintBytes": 3310869864,
+            "kernelLifetimePeakBytes": 3310869864,
+            "lowPowerMode": false,
+            "physicalMemoryBytes": 12291735552,
+            "residentBytes": 4882808832,
+            "scope": "processDirtyBudget",
+            "thermalState": 1,
+            "visibleMetalBytes": 3219324928
+          },
+          "component": "denoiser",
+          "operation": "release",
+          "seconds": 0.053712333
+        }
+      ],
+      "terminal_report_sha256": "9a029f0d3e1c37a781c03689bdc16e5f0abf7984b9fed7b1099563880aafc1e5"
+    },
+    {
+      "id": "g02-inference-estimate-v3-20261029",
+      "status": "os_termination",
+      "reason": "vm-pageshortage",
+      "process_id": 3132,
+      "last_boundary": {
+        "component": "denoiser",
+        "phase": "inference",
+        "step": 0
+      },
+      "last_memory_observation": {
+        "availableBytes": 3128910512,
+        "footprintBytes": 3313540432,
+        "kernelLifetimePeakBytes": 3313556816,
+        "lowPowerMode": false,
+        "physicalMemoryBytes": 12291735552,
+        "residentBytes": 5188960256,
+        "scope": "processDirtyBudget",
+        "thermalState": 1,
+        "visibleMetalBytes": 3219324928
+      },
+      "completed_phases": [
+        {
+          "additionalBudgetBytes": 3057070112,
+          "after": {
+            "availableBytes": 5620754536,
+            "footprintBytes": 821696408,
+            "kernelLifetimePeakBytes": 821712792,
+            "lowPowerMode": false,
+            "physicalMemoryBytes": 12291735552,
+            "residentBytes": 4866277376,
+            "scope": "processDirtyBudget",
+            "thermalState": 1,
+            "visibleMetalBytes": 722944000
+          },
+          "before": {
+            "availableBytes": 6381123600,
+            "footprintBytes": 61327344,
+            "kernelLifetimePeakBytes": 117278680,
+            "lowPowerMode": false,
+            "physicalMemoryBytes": 12291735552,
+            "residentBytes": 183533568,
+            "scope": "processDirtyBudget",
+            "thermalState": 1,
+            "visibleMetalBytes": 65536
+          },
+          "component": "text",
+          "load": {
+            "cacheHit": true,
+            "cacheLookupSeconds": 0.001979625,
+            "functionLoadSeconds": 8.397106
+          },
+          "operation": "loading",
+          "reserveBytes": 1288490189,
+          "seconds": 8.399460292
+        },
+        {
+          "additionalBudgetBytes": 2232947712,
+          "after": {
+            "availableBytes": 5300021112,
+            "footprintBytes": 1142429832,
+            "kernelLifetimePeakBytes": 1401067680,
+            "lowPowerMode": false,
+            "physicalMemoryBytes": 12291735552,
+            "residentBytes": 4635394048,
+            "scope": "processDirtyBudget",
+            "thermalState": 1,
+            "visibleMetalBytes": 6106071040
+          },
+          "before": {
+            "availableBytes": 5620607080,
+            "footprintBytes": 821843864,
+            "kernelLifetimePeakBytes": 821843864,
+            "lowPowerMode": false,
+            "physicalMemoryBytes": 12291735552,
+            "residentBytes": 4877352960,
+            "scope": "processDirtyBudget",
+            "thermalState": 1,
+            "visibleMetalBytes": 722944000
+          },
+          "component": "text",
+          "operation": "inference",
+          "reserveBytes": 1288490189,
+          "seconds": 4.902518708
+        },
+        {
+          "after": {
+            "availableBytes": 6100268832,
+            "footprintBytes": 342182112,
+            "kernelLifetimePeakBytes": 1401067680,
+            "lowPowerMode": false,
+            "physicalMemoryBytes": 12291735552,
+            "residentBytes": 95289344,
+            "scope": "processDirtyBudget",
+            "thermalState": 1,
+            "visibleMetalBytes": 403374080
+          },
+          "before": {
+            "availableBytes": 5299873656,
+            "footprintBytes": 1142577288,
+            "kernelLifetimePeakBytes": 1401067680,
+            "lowPowerMode": false,
+            "physicalMemoryBytes": 12291735552,
+            "residentBytes": 4638736384,
+            "scope": "processDirtyBudget",
+            "thermalState": 1,
+            "visibleMetalBytes": 6106071040
+          },
+          "component": "text",
+          "operation": "release",
+          "seconds": 0.065059541
+        },
+        {
+          "additionalBudgetBytes": 3410770592,
+          "after": {
+            "availableBytes": 3128910512,
+            "footprintBytes": 3313540432,
+            "kernelLifetimePeakBytes": 3313556816,
+            "lowPowerMode": false,
+            "physicalMemoryBytes": 12291735552,
+            "residentBytes": 5185421312,
+            "scope": "processDirtyBudget",
+            "thermalState": 1,
+            "visibleMetalBytes": 3219324928
+          },
+          "before": {
+            "availableBytes": 6091519776,
+            "footprintBytes": 350931168,
+            "kernelLifetimePeakBytes": 1401067680,
+            "lowPowerMode": false,
+            "physicalMemoryBytes": 12291735552,
+            "residentBytes": 112132096,
+            "scope": "processDirtyBudget",
+            "thermalState": 1,
+            "visibleMetalBytes": 403374080
+          },
+          "component": "denoiser",
+          "load": {
+            "cacheHit": true,
+            "cacheLookupSeconds": 0.00352,
+            "functionLoadSeconds": 8.376359958
+          },
+          "operation": "loading",
+          "reserveBytes": 1288490189,
+          "seconds": 8.380643583000001
+        }
+      ],
+      "checkpoint_sha256": "e811523ed5cd21b40ae7e94679741a2e17e560292d2d1138731a60a1bb125beb",
+      "os_record_sha256": "9f0998e9955a78cbff0720569c2ef2a5b0ac3648fa9933204d1904b10b707167",
+      "terminal_record_present": false,
+      "image_present": false,
+      "binary_uuid_matched": true,
+      "scope": "The checkpoint precedes submission. The OS record identifies this process; no completed DiT step, final output or phase peak is inferred.",
+      "budget_basis": "estimate",
+      "budget_evidence": "Diagnostic estimate v2: text and denoiser loading use twice historical same-family iPhone17Pro/iOS27.0.1 component lifetime footprint peaks plus 256 MiB (text 1,394,317,328 B; non-FMA G16 DiT 1,571,167,568 B). These are different artifact/loader executions, not calibration or an upper-bound guarantee for this candidate. Other components and inference estimates are unchanged. The 512 MiB/20-percent runtime reserve is unchanged. Initial serialized-size estimate refusal is retained. Diagnostic estimate v3 changes only DiT inference additional bytes to historical first-cycle lifetime peak minus loaded footprint plus 256 MiB: 1,570,233,656 - 777,313,208 + 268,435,456 = 1,061,355,904 B. This excludes memory already present after load; it remains a measurement estimate, not current-candidate calibration. Cold and cache-hit v2 refusals are retained; actual phase memory still must satisfy the unchanged reserve for production.",
+      "budget": {
+        "profileID": "qmi-mobile-w4-dit-g16-blocks16-23-f32-v1",
+        "manifestSHA256": "66b2154e45359c6636830ddc95c7e95c52ea9355d5b10bd12bf8a4df9d33e32b",
+        "components": {
+          "denoiser": {
+            "loadingAdditionalBytes": 3410770592,
+            "inferenceAdditionalBytes": 1061355904
+          },
+          "text": {
+            "loadingAdditionalBytes": 3057070112,
+            "inferenceAdditionalBytes": 2232947712
+          },
+          "vae_decoder": {
+            "loadingAdditionalBytes": 1155498610,
+            "inferenceAdditionalBytes": 2156396544
+          },
+          "vae_encoder": {
+            "loadingAdditionalBytes": 454853260,
+            "inferenceAdditionalBytes": 2156396544
+          },
+          "vision": {
+            "loadingAdditionalBytes": 837688739,
+            "inferenceAdditionalBytes": 2193620992
+          }
+        }
+      }
+    }
+  ],
+  "remaining": "Resolve the native DiT memory failure, then validate complete generation and editing, measured budgets and normal Models operation. Diagnostic estimates do not enable a production artifact.",
+  "ordinary_startup": {
+    "route": "Models",
+    "verified_on_device": true,
+    "screenshot_sha256": "25d0e0983f816f8d086f020c3c3c69c4d7285bba7546e1079f62a9653af1c813",
+    "scope": "Ordinary launch with no diagnostic arguments displayed the existing Models screen. The screenshot is retained privately."
+  },
+  "release_observation_scope": "Release memory is sampled immediately after unload. The old probe sampled 500 ms later; do not compare these as equal delays or infer a model-reference leak from footprint alone. In the v2 runs Metal allocation and RSS fall immediately while footprint remains high."
+}

@@ -17,6 +17,9 @@ actor CoreAIImageBackend: ImageComponentBackend {
 
     private var loaded: Loaded?
     private var busy = false
+    private let journal: ImageExecutionJournal?
+
+    init(journal: ImageExecutionJournal? = nil) { self.journal = journal }
 
     func load(directory: URL, component: ImageGenerationProfile.Component) async throws -> ImageComponentLoadMetrics {
         guard !busy, loaded == nil else { throw ImageExecutionError.busy }
@@ -48,14 +51,19 @@ actor CoreAIImageBackend: ImageComponentBackend {
         for contract in component.outputs {
             try ImageCoreAIBuffers.check(descriptor.outputDescriptor(of: contract.name), contract: contract)
         }
+        try await journal?.recordNative(
+            stage: "function-load-before", asset: component.asset, memory: ImageMemorySampler.capture())
         let loadStart = ContinuousClock.now
         guard let function = try model.loadFunction(named: component.function) else {
             throw ImageExecutionError.invalidResource
         }
         loaded = Loaded(model: model, function: function, component: component)
+        let loadSeconds = elapsed(since: loadStart)
+        try await journal?.recordNative(
+            stage: "function-load-after", asset: component.asset, memory: ImageMemorySampler.capture())
         return ImageComponentLoadMetrics(
             cacheHit: cached != nil, cacheLookupSeconds: lookupSeconds, specializationSeconds: specializationSeconds,
-            functionLoadSeconds: elapsed(since: loadStart))
+            functionLoadSeconds: loadSeconds)
     }
 
     func call(_ values: [String: ImageTensorData]) async throws -> [String: ImageTensorData] {
@@ -63,7 +71,7 @@ actor CoreAIImageBackend: ImageComponentBackend {
         guard let loaded else { throw ImageExecutionError.invalidResource }
         busy = true
         defer { busy = false }
-        return try await Self.evaluate(loaded, values: values)
+        return try await Self.evaluate(loaded, values: values, journal: journal)
     }
 
     func unload() throws {
@@ -71,9 +79,9 @@ actor CoreAIImageBackend: ImageComponentBackend {
         loaded = nil
     }
 
-    private static func evaluate(_ loaded: Loaded, values: [String: ImageTensorData]) async throws -> [String:
-        ImageTensorData]
-    {
+    private static func evaluate(
+        _ loaded: Loaded, values: [String: ImageTensorData], journal: ImageExecutionJournal?
+    ) async throws -> [String: ImageTensorData] {
         guard Set(values.keys) == Set(loaded.component.inputs.map(\.name)) else {
             throw ImageExecutionError.invalidResource
         }
@@ -82,10 +90,23 @@ actor CoreAIImageBackend: ImageComponentBackend {
             guard let value = values[contract.name],
                 case .ndArray(let descriptor)? = loaded.function.descriptor.inputDescriptor(of: contract.name)
             else { throw ImageExecutionError.invalidTensor(contract.name) }
+            let observation = ImageNativeTensorObservation(
+                name: contract.name, shape: descriptor.shape, strides: descriptor.preferredStrides,
+                minimumByteCount: descriptor.minimumByteCount)
+            try await journal?.recordNative(
+                stage: "input-before", asset: loaded.component.asset, tensor: observation,
+                memory: ImageMemorySampler.capture())
             inputs[contract.name] = try ImageCoreAIBuffers.make(
                 value, contract: contract, strides: descriptor.preferredStrides)
+            try await journal?.recordNative(
+                stage: "input-after", asset: loaded.component.asset, tensor: observation,
+                memory: ImageMemorySampler.capture())
         }
+        try await journal?.recordNative(
+            stage: "run-before", asset: loaded.component.asset, memory: ImageMemorySampler.capture())
         var outputs = try await loaded.function.run(inputs: inputs)
+        try await journal?.recordNative(
+            stage: "run-after", asset: loaded.component.asset, memory: ImageMemorySampler.capture())
         var result: [String: ImageTensorData] = [:]
         for contract in loaded.component.outputs {
             guard let array = outputs.remove(contract.name)?.ndArray else {

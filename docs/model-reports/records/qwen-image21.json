@@ -44,6 +44,13 @@
         "ja": "本人画質受入済みローカルbundle"
       },
       "url": "docs/research/qwen-image21-owner-bundle-20261028.json"
+    },
+    {
+      "title": {
+        "en": "Native checkpoint diagnosis",
+        "ja": "本体アプリの実機診断記録"
+      },
+      "url": "docs/research/qwen-image21-native-checkpoints-20261029.json"
     }
   ],
   "support": {
@@ -61,8 +68,8 @@
       "variants": [],
       "evidence": [],
       "note": {
-        "en": "The exact numerical and owner qualitative evidence is now packaged in a local candidate; there is no published download or calibrated device budget. Earlier non-FMA G16 component execution passed, while the new FMA attempt ended under iOS memory pressure. Full native pipeline and normal Models acceptance remain pending.",
-        "ja": "数値合格と本人の定性画質評価を同一候補のローカルbundleに収録済み。公開DLと端末予算は未登録。旧非FMA G16部品は実行合格、新FMA試行はiOSのメモリ圧力で終了。全native経路と通常Modelsの受入は未完。"
+        "en": "The owner-accepted numerical candidate is packaged locally. In the ordinary CoreAISamples binary, text inference succeeds but the first DiT inference trial ends with OS vm-pageshortage; checkpoints survive. Normal Models, published download and calibrated device budgets remain unavailable.",
+        "ja": "数値合格・本人画質受入済み候補はローカル梱包済み。CoreAISamples本体でtext推論は成功したが、最初のDiT推論試行はOSのvm-pageshortageで終了。直前の記録は回収できた。通常Models、公開DL、端末予算の較正は未完了。"
       }
     }
   },

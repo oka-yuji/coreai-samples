@@ -132,6 +132,45 @@ struct ImageExecutionJournalTests {
         #expect(try checkpoint(directory)["sequence"] as? Int == 2)
     }
 
+    @Test("Native allocation checkpoints require a request and follow its current component and step")
+    func nativeCheckpointBinding() async throws {
+        let directory = try temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let journal = ImageExecutionJournal(directory: directory)
+        let memory = ImageTestMemory().read()
+        await #expect(throws: ImageExecutionError.invalidResource) {
+            try await journal.recordNative(stage: "run-before", asset: "text/text.aimodel", memory: memory)
+        }
+        let identifier = UUID()
+        let report = ImageExecutionReport(
+            requestID: identifier, profileID: "fixture", manifestSHA256: String(repeating: "a", count: 64),
+            noiseSource: "fixture", diagnosticsEnabled: true)
+        try await journal.record(
+            ImageExecutionProgress(requestID: identifier, phase: .loading(.text)), report: report, memory: memory)
+        try await journal.recordNative(stage: "function-load-before", asset: "text/text.aimodel", memory: memory)
+        try await journal.record(
+            ImageExecutionProgress(requestID: identifier, phase: .running(.denoiser, step: 3)), report: report,
+            memory: memory)
+        try await journal.recordNative(
+            stage: "input-before", asset: "denoiser/denoiser.aimodel",
+            tensor: ImageNativeTensorObservation(name: "value", shape: [1, 4], strides: [4, 1], minimumByteCount: 16),
+            memory: memory)
+        let saved = try #require(
+            JSONSerialization.jsonObject(with: Data(contentsOf: directory.appending(path: "native-checkpoint.json")))
+                as? [String: Any])
+        #expect(saved["requestID"] as? String == identifier.uuidString)
+        #expect(saved["profileID"] as? String == "fixture")
+        #expect(saved["manifestSHA256"] as? String == report.manifestSHA256)
+        #expect(saved["sequence"] as? Int == 2)
+        #expect(saved["checkpointSequence"] as? Int == 2)
+        #expect(saved["component"] as? String == "denoiser")
+        #expect(saved["step"] as? Int == 3)
+        let tensor = try #require(saved["tensor"] as? [String: Any])
+        #expect(tensor["shape"] as? [Int] == [1, 4])
+        #expect(tensor["strides"] as? [Int] == [4, 1])
+        #expect(tensor["minimumByteCount"] as? Int == 16)
+    }
+
     private func temporaryDirectory() throws -> URL {
         let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: false)
