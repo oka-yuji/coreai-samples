@@ -40,6 +40,8 @@
 | `CoreAIOCRModel.Cache` (`OCRRuntime/CoreAIOCRModel.swift`) | OCRRuntimeの各runがkeyCache/valueCacheを別々のstored propertyとして新規所有し、forwardだけがinoutで借用する。静的KVは関数間で同じ記述子を確認して全域をゼロ初期化し、動的KVは依頼に必要な容量で確保する。paddingは有効位置に数えず、取消後に別の依頼へ持ち越さない。モデル・関数表・形状設定はロード後に変更しない。 | OCRStaticShapesTestsとOCRRuntimeTestsの容量・prefill上限・縮小・取消試験、および共有ロック下の静的/動的ocr-block比較。 |
 
 
+| `OCRPipeline` (`OCRDemoRuntime/OCRPipeline.swift`) | actorがページmodel・bundle・busy・解放待ちを所有する。load/read/imageは一つずつ、await中もbusyを保持。releaseは進行中の操作が終了するまで待ち、modelを破棄してから全waiterへ返す。resume後に旧releaseが状態を書き直さない。Storeだけが操作Taskを開始/取消し、Runnerはowner許可とsessionを検査する。 | OCRFeatureTests、OCRRunnerTests、OCRPipelineTestsの遅いload/read・取消を無視するfake・複数release・旧完了・停止後再読取り。実ページは下記の共有lock条件。 |
+
 
 ## 公開物の規約
 
@@ -93,3 +95,5 @@
 - For Phone changes, also build the signed `SpeechPhone` product and inspect the actual Info.plist for both file-sharing keys, plus the memory entitlement. The source settings alone are not evidence that the generated app contains those keys.
 
 - Irodoriの実バンドル取り込み検査は共有heavy-jobロック下で `COREAI_IRODORI_IMPORT_BUNDLE=/path/to/sampler-irodori-fp32 swift test --package-path CoreAISamplesKit --filter IrodoriImportTests.knownBundle`。固定14ファイルを一時管理領域へコピーし、検査・lease・改変/欠損/余分/symlinkの拒否を確認する。モデル推論は行わない。既定実行はskip。元フォルダは変更しない。
+
+- OCRデモ共通実行部の実モデル照合は共有heavy-jobロック下で `COREAI_OCR_DEMO_BUNDLE=/path/to/evaluated-bundle COREAI_OCR_DEMO_IMAGES=/path/to/fixed-images COREAI_OCR_DEMO_REFERENCES=/path/to/CLI-results COREAI_OCR_DEMO_OUTPUT=/path/to/private-output swift test --package-path CoreAISamplesKit --filter OCRNativePageTests.fixedPages`。F2/F4の予測構造・本文/表・終了・token数・Markdownを固定CLIと照合する。通常suiteはskip、実写/通常UI/iPhone受入の代用にはしない。

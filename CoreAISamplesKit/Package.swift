@@ -31,6 +31,8 @@ let package = Package(
         .library(name: "ObjectFinderRuntime", targets: ["ObjectFinderRuntime"]),
         .library(name: "OCRCore", targets: ["OCRCore"]),
         .library(name: "OCRRuntime", targets: ["OCRRuntime"]),
+        .library(name: "OCRFeature", targets: ["OCRFeature"]),
+        .library(name: "OCRDemoRuntime", targets: ["OCRDemoRuntime"]),
         .executable(name: "object-finder-check", targets: ["object-finder-check"]),
         .library(name: "SpeechCore", targets: ["SpeechCore"]),
         .library(name: "SpeechFeature", targets: ["SpeechFeature"]),
@@ -190,6 +192,16 @@ let package = Package(
             dependencies: ["OCRCore", .product(name: "Tokenizers", package: "swift-transformers")],
             swiftSettings: speechSettings),
         .testTarget(name: "OCRRuntimeTests", dependencies: ["OCRRuntime", "OCRCore"], swiftSettings: speechSettings),
+        .target(name: "OCRFeature", dependencies: ["OCRCore", "FeatureStore"], swiftSettings: speechSettings),
+        .testTarget(
+            name: "OCRFeatureTests", dependencies: ["OCRFeature", "OCRCore", "FeatureStore"],
+            swiftSettings: speechSettings),
+        .target(
+            name: "OCRDemoRuntime", dependencies: ["OCRFeature", "OCRCore", "OCRRuntime"], swiftSettings: speechSettings
+        ),
+        .testTarget(
+            name: "OCRDemoRuntimeTests", dependencies: ["OCRDemoRuntime", "OCRFeature", "OCRCore", "FeatureStore"],
+            swiftSettings: speechSettings),
         .target(name: "SpeechCore", swiftSettings: speechSettings),
         .target(
             name: "SpeechAssets", dependencies: ["SpeechCore"], resources: [.process("Resources")],
