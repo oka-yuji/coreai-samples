@@ -1,3 +1,4 @@
+import CoreAI
 import Foundation
 import ImageGenerationCore
 import ModelLibraryFeature
@@ -44,7 +45,8 @@ public final class LiveImageGenerationService: ImageGenerationService {
                 resource: session.resource, budget: budget,
                 backend: CoreAIImageBackend(journal: journal, loadingMode: loadingMode),
                 permission: isPermitted, memory: ImageMemorySampler.capture,
-                journal: journal),
+                journal: journal,
+                compiledArchitecture: loadingMode == .aheadOfTime ? AIModel.deviceArchitectureName : nil),
             isPermitted: isPermitted)
     }
 

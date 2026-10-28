@@ -3,11 +3,13 @@ import Foundation
 import ImageGenerationCore
 
 enum ImageModelLoading: String, Codable, Sendable {
-    case explicitCache, automatic
+    case explicitCache, automatic, aheadOfTime
 }
 
 protocol ImageComponentBackend: Actor {
-    func load(directory: URL, component: ImageGenerationProfile.Component) async throws -> ImageComponentLoadMetrics
+    func load(
+        directory: URL, component: ImageGenerationProfile.Component, compiled: ImageGenerationManifest.CompiledAsset?
+    ) async throws -> ImageComponentLoadMetrics
     func call(_ values: [String: ImageTensorData]) async throws -> [String: ImageTensorData]
     func unload() async throws
 }
@@ -17,6 +19,7 @@ actor CoreAIImageBackend: ImageComponentBackend {
         let model: AIModel
         let function: InferenceFunction
         let component: ImageGenerationProfile.Component
+        let asset: String
     }
 
     private var loaded: Loaded?
@@ -29,19 +32,36 @@ actor CoreAIImageBackend: ImageComponentBackend {
         self.loadingMode = loadingMode
     }
 
-    func load(directory: URL, component: ImageGenerationProfile.Component) async throws -> ImageComponentLoadMetrics {
+    func load(
+        directory: URL, component: ImageGenerationProfile.Component,
+        compiled: ImageGenerationManifest.CompiledAsset? = nil
+    ) async throws -> ImageComponentLoadMetrics {
         guard !busy, loaded == nil else { throw ImageExecutionError.busy }
         busy = true
         defer { busy = false }
-        let url = directory.appending(path: component.asset)
+        let url: URL
+        let selectedAsset: String
+        let selectedMode: ImageModelLoading
+        if loadingMode == .aheadOfTime, let compiled {
+            guard compiled.architecture == AIModel.deviceArchitectureName else {
+                throw ImageExecutionError.invalidResource
+            }
+            url = directory.appending(path: compiled.asset)
+            selectedAsset = compiled.asset
+            selectedMode = .aheadOfTime
+        } else {
+            url = directory.appending(path: component.asset)
+            selectedAsset = component.asset
+            selectedMode = loadingMode == .aheadOfTime ? .explicitCache : loadingMode
+        }
         let options = SpecializationOptions(preferredComputeUnitKind: .gpu)
         let model: AIModel
         let cacheHit: Bool?
         let lookupSeconds: Double
         let specializationSeconds: Double?
         let initializationSeconds: Double?
-        switch loadingMode {
-        case .automatic:
+        switch selectedMode {
+        case .automatic, .aheadOfTime:
             let start = ContinuousClock.now
             model = try await AIModel(contentsOf: url, options: options)
             initializationSeconds = elapsed(since: start)
@@ -75,19 +95,19 @@ actor CoreAIImageBackend: ImageComponentBackend {
             try ImageCoreAIBuffers.check(descriptor.outputDescriptor(of: contract.name), contract: contract)
         }
         try await journal?.recordNative(
-            stage: "function-load-before", asset: component.asset, memory: ImageMemorySampler.capture())
+            stage: "function-load-before", asset: selectedAsset, memory: ImageMemorySampler.capture())
         let loadStart = ContinuousClock.now
         guard let function = try model.loadFunction(named: component.function) else {
             throw ImageExecutionError.invalidResource
         }
-        loaded = Loaded(model: model, function: function, component: component)
+        loaded = Loaded(model: model, function: function, component: component, asset: selectedAsset)
         let loadSeconds = elapsed(since: loadStart)
         try await journal?.recordNative(
-            stage: "function-load-after", asset: component.asset, memory: ImageMemorySampler.capture())
+            stage: "function-load-after", asset: selectedAsset, memory: ImageMemorySampler.capture())
         return ImageComponentLoadMetrics(
             cacheHit: cacheHit, cacheLookupSeconds: lookupSeconds, specializationSeconds: specializationSeconds,
             functionLoadSeconds: loadSeconds, initializationSeconds: initializationSeconds,
-            loadingMode: loadingMode.rawValue)
+            loadingMode: selectedMode.rawValue)
     }
 
     func call(_ values: [String: ImageTensorData]) async throws -> [String: ImageTensorData] {
@@ -118,19 +138,19 @@ actor CoreAIImageBackend: ImageComponentBackend {
                 name: contract.name, shape: descriptor.shape, strides: descriptor.preferredStrides,
                 minimumByteCount: descriptor.minimumByteCount)
             try await journal?.recordNative(
-                stage: "input-before", asset: loaded.component.asset, tensor: observation,
+                stage: "input-before", asset: loaded.asset, tensor: observation,
                 memory: ImageMemorySampler.capture())
             inputs[contract.name] = try ImageCoreAIBuffers.make(
                 value, contract: contract, strides: descriptor.preferredStrides)
             try await journal?.recordNative(
-                stage: "input-after", asset: loaded.component.asset, tensor: observation,
+                stage: "input-after", asset: loaded.asset, tensor: observation,
                 memory: ImageMemorySampler.capture())
         }
         try await journal?.recordNative(
-            stage: "run-before", asset: loaded.component.asset, memory: ImageMemorySampler.capture())
+            stage: "run-before", asset: loaded.asset, memory: ImageMemorySampler.capture())
         var outputs = try await loaded.function.run(inputs: inputs)
         try await journal?.recordNative(
-            stage: "run-after", asset: loaded.component.asset, memory: ImageMemorySampler.capture())
+            stage: "run-after", asset: loaded.asset, memory: ImageMemorySampler.capture())
         var result: [String: ImageTensorData] = [:]
         for contract in loaded.component.outputs {
             guard let array = outputs.remove(contract.name)?.ndArray else {
