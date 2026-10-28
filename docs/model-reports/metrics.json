@@ -467,6 +467,16 @@
         "s"
       ],
       "min": 0
+    },
+    "generated_tokens": {
+      "label": {
+        "en": "Generated tokens (layout and all blocks)",
+        "ja": "生成トークン数（layoutと全block）"
+      },
+      "units": [
+        "tokens"
+      ],
+      "min": 0
     }
   },
   "text": {

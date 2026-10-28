@@ -808,6 +808,7 @@
         "$repo/Tools/Conversion/adapters/qwen_image21/mobile_pack.py",
         "$repo/Tools/Conversion/adapters/qwen_image21/mobile_compare.py",
         "$repo/Tools/Conversion/adapters/qwen_image21/mobile_ratings.py",
+        "$repo/Tools/Conversion/adapters/qwen_image21/mobile_acceptance.py",
         "$repo/Tools/Conversion/adapters/qwen_image21/pack.py",
         "$repo/docs/research/qwen-image21-evaluation-20261021.json",
         "$baseline_reference",
