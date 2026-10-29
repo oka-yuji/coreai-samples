@@ -1028,10 +1028,37 @@
       "sha256": "56e28b4e66f867e481c4f7662710272fb9be20b520c64444faad7baf2a70bd46"
     }
   },
-  "numerical_suite": "pending",
+  "numerical_suite": {
+    "complete": true,
+    "passed": true,
+    "report": {
+      "bytes": 3118784,
+      "sha256": "d5fc29ccb5f54e62df68497f1b5f31d27890ca47c496e4244e1d39d55c83cd66"
+    },
+    "profile_sha256": "4341e99e65dcd4857dd5c29d4c5061d5ef51976b8e2cd5391317617f05356b3f",
+    "policy_sha256": "6e3c72b9321b6cdc105f8ddf38aaea9c151ab912e2bb9c36dd57654b31d4c793",
+    "run_count": 60,
+    "fixed_comparisons": 1230,
+    "final_comparisons": 120,
+    "raw_audit_complete": true,
+    "public_acceptance_audit": "passed",
+    "worst_final_latent_normalized_rmse": 0.0002431612673770399,
+    "worst_final_rgba_absolute_rmse": 0.00043535935655218775,
+    "source_summary": {
+      "bytes": 1481128,
+      "sha256": "4acaf90594df20b194d68299b77200a9eb95019c8a6f617e66e37f674814230d"
+    },
+    "old_fma_numeric_report": {
+      "bytes": 3118753,
+      "sha256": "22dc0e91663a2899dcb320bcb780ecd25fd61947dedc087042a8b9c33abd0468"
+    },
+    "final_files_identical_to_fma": 180,
+    "different_final_files": [],
+    "scope": "Complete Mac numerical fidelity against the matched original source with the unchanged frozen policy, sixty isolated Core AI processes and raw re-audit. Not device, benchmark-quality or normal Models acceptance."
+  },
   "device_verification": "not_run",
   "visual_acceptance": "not_transferred",
-  "scope": "Selected fixed inputs and fresh-process Mac load-only comparison. No complete numerical, iPhone, quality, device-budget or ordinary Models acceptance.",
+  "scope": "Mac load-only and selected-input preflight followed by complete current-profile numerical fidelity and raw re-audit. Gallery-equivalence adoption, iPhone execution, device budgets and ordinary Models acceptance remain pending.",
   "code_revision": "b72011063e8e1c21c1bf89a6a3dc120b6a53048b",
   "compression_equivalence": {
     "vision": {
@@ -1161,10 +1188,11 @@
   },
   "verification": {
     "conversion_unit_tests": {
-      "tests": 300,
+      "tests": 305,
       "skipped": 13,
       "result": "passed",
-      "scope": "Includes eight visual-equivalence tests; no learned model test"
+      "code_revision": "6fccb6ce1799dedde1135811cb60309cacde165e",
+      "scope": "Includes proof pinning and visual-equivalence tests; no real-model or phone tests"
     },
     "swift_tests": {
       "tests": 981,
@@ -1186,8 +1214,8 @@
     "macos_release_build": "passed",
     "equivalence_files": {
       "Tools/Conversion/adapters/qwen_image21/mobile_visual_equivalence.py": {
-        "bytes": 12713,
-        "sha256": "72d0e38e8e56b139b19d2ffefec9fc05b9952a334d9d2903c5f26dbbae437de2"
+        "bytes": 12718,
+        "sha256": "0df5923263a81e4f3e37747dcd6bd2543552b3d9ed95de31a8b83c083a618fe5"
       },
       "Tools/Conversion/tests/test_image_visual_equivalence.py": {
         "bytes": 12742,
@@ -1195,9 +1223,45 @@
       }
     },
     "independent_reviews": {
-      "resolved_findings": 2,
+      "resolved_code_findings": 3,
       "remaining_confirmed_or_plausible": 0,
-      "scope": "Converter selection and visual-equivalence tooling, including the immutable original presentation and visible ratings. Complete candidate proof and device results remain unverified."
+      "scope": "Converter selection and visual-equivalence acceptance tooling, including the original presentation, visible ratings and independent proof-file pinning. Actual complete gallery proof and device results remain unverified."
+    },
+    "integrated_app_checks": {
+      "code_revision": "e250f916d1e95e76a69a82a8edea89dfa0c93c7f",
+      "swift_test_display_count": 995,
+      "suites": 164,
+      "runners": 36,
+      "skipped_tests": 43,
+      "swiftlint_files": 514,
+      "swiftlint_violations": 0,
+      "swift_format": "passed, no changed Swift files",
+      "macos_release_build": "passed",
+      "ios_release_build": "passed"
+    },
+    "ios_binary": {
+      "build_code_revision": "e250f916d1e95e76a69a82a8edea89dfa0c93c7f",
+      "bundle_id": "com.coreai-samples.DemoApp.ios",
+      "binary_sha256": "a816621a35f308db5398791842c1533c5162bda71280d78049c9177288fcd720",
+      "increased_memory_limit": true,
+      "file_sharing": true,
+      "open_documents_in_place": true,
+      "multiple_scenes": true,
+      "signature_verification": "passed",
+      "uuid": "87A70349-5D47-3244-852D-6ED7A8BE37BB"
+    },
+    "native_trace_checker": {
+      "checker": {
+        "bytes": 9517,
+        "sha256": "acea8192f7cc4bedf891e83af231de9960ba4f1a0a4efd858b40432e69be31ee"
+      },
+      "replay": {
+        "bytes": 35878,
+        "sha256": "bb79f374e6064aa3ceb7fbd511e1afff404c6f58ef523f41575390d77ffbeab3"
+      },
+      "normal_control_count": 1,
+      "rejected_mutations": 5,
+      "scope": "CPU synthetic reader/lifecycle/source/pixel-binding checks only. No native numerical trial or learned model execution."
     }
   },
   "source_cohort": {
