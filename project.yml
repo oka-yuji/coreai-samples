@@ -63,6 +63,8 @@ targets:
       - package: CoreAISamplesKit
         product: RAGContext
       - package: CoreAISamplesKit
+        product: RAGDocumentRuntime
+      - package: CoreAISamplesKit
         product: FeatureStore
       - package: CoreAISamplesKit
         product: ProductCore
@@ -220,6 +222,10 @@ targets:
         product: VideoSearchFeature
       - package: CoreAISamplesKit
         product: VideoSearchRuntime
+      - package: CoreAISamplesKit
+        product: OCRCore
+      - package: CoreAISamplesKit
+        product: OCRRuntime
       - sdk: AVKit.framework
     settings:
       base:

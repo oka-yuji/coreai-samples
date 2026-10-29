@@ -16,6 +16,7 @@ final class ConversationRunner {
     private let chat: ChatViewModel
     private let archive: ConversationArchive
     private let termination: (Bool) -> Void
+    private let selectionFactory: (() -> RAGSectionSelector)?
     private let sourceTokenCounter: (@Sendable (String) -> Int)?
     private let retrieveSources: @Sendable (String, RAGSettings, @Sendable (String) -> Int) async -> RAGRetrieval
     private let writer = UUID()
@@ -34,7 +35,8 @@ final class ConversationRunner {
         toolExecutor: ((AgentToolCall) async -> AgentToolOutput)? = nil,
         sourceTokenCounter: (@Sendable (String) -> Int)? = nil,
         retrieveSources: (@Sendable (String, RAGSettings, @Sendable (String) -> Int) async -> RAGRetrieval)? = nil,
-        retrievalInputs: RAGInputs = .live
+        retrievalInputs: RAGInputs = .live,
+        selectionFactory: (() -> RAGSectionSelector)? = nil
     ) {
         let tools = ToolRunner(preferences: preferences, executor: toolExecutor)
         session = ConversationSession(
@@ -47,6 +49,7 @@ final class ConversationRunner {
         self.archive = archive
         self.termination = termination
         self.sourceTokenCounter = sourceTokenCounter
+        self.selectionFactory = selectionFactory
         self.retrieveSources =
             retrieveSources ?? { question, settings, count in
                 await RAGRetriever.gather(question: question, settings: settings, count: count, inputs: retrievalInputs)
@@ -155,14 +158,26 @@ final class ConversationRunner {
             let capturedSettings = settings
             let retrieve = retrieveSources
             let retrieval = await collectSources(run: run) {
-                await retrieve(question, capturedSettings, count)
+                var found = await retrieve(question, capturedSettings, count)
+                if found.requestedStrategy == RAGStrategy.structureLLM.rawValue, !Task.isCancelled {
+                    found = await self.selectSections(
+                        found, question: question, settings: capturedSettings, count: count)
+                }
+                await self.recordRetrieval(found, run: run)
+                return found
             }
-            guard !session.stopRequested, !Task.isCancelled, let retrieval else {
+            guard !session.stopRequested, !Task.isCancelled, let retrieval,
+                retrieval.selectionTrace?.status != "cancelled"
+            else {
                 sourceResult = GenerationStats(stopReason: "cancelled", sources: 0)
                 send(.stopped(run: run))
                 return
             }
             lastRetrieval = retrieval
+            if let failure = retrieval.selectionFailure {
+                send(.generationFailed(run: run, message: failure))
+                return
+            }
             for note in retrieval.notes {
                 send(.guardNote(run: run, title: "Sources", text: note, warning: true))
             }
@@ -175,8 +190,8 @@ final class ConversationRunner {
             }
             do {
                 guard
-                    let prepared = try tools.sources.prepare(
-                        question: prompt, sources: retrieval.conversationSources(), today: settings.today,
+                    let prepared = try retrieval.prepare(
+                        using: tools.sources, question: prompt, today: settings.today,
                         budget: RAGContext.promptTokenBudget,
                         count: { count(ConversationFeature.finalized(policy.restrictingSearch(in: $0))) },
                         mode: policy.mode)
@@ -193,7 +208,7 @@ final class ConversationRunner {
                         run: run, ids: ids, evidence: tools.evidence,
                         lines: tools.sources.citations(ids)))
                 prompt = prepared.prompt
-                lastRetrieval?.sources = Array(retrieval.sources.prefix(prepared.sources.count))
+                lastRetrieval?.sources = retrieval.suppliedSources(prepared)
                 let sourceTokens = lastRetrieval?.sources.map { count(RAGContext.measuredBlock($0)) }
                     .reduce(0, +)
                 lastRetrieval?.sourceTokens = sourceTokens ?? 0
@@ -243,6 +258,25 @@ final class ConversationRunner {
             if policy.mode == .work { await citationGuard.saveRunMetrics(session: session) }
             send(end.action(run))
         }
+    }
+
+    private func recordRetrieval(_ retrieval: RAGRetrieval, run: Int) {
+        if retrievingRun == run { lastRetrieval = retrieval }
+    }
+
+    private func selectSections(
+        _ retrieval: RAGRetrieval, question: String, settings: RAGSettings, count: @Sendable (String) -> Int
+    ) async -> RAGRetrieval {
+        guard let selector = selectionFactory?() ?? chat.model.map({ RAGSectionSelector(model: $0) }) else {
+            var failed = retrieval
+            failed.selectionFailure = "No model is loaded for section selection."
+            return failed
+        }
+        let fixed = count(RAGContext.prompt(question: question, sources: [], today: settings.today))
+        return await selector.select(
+            retrieval, question: question,
+            budget: min(settings.sourceTokenBudget, RAGContext.promptTokenBudget - fixed), count: count,
+            contextLimit: chat.contextLimit, deadline: tools.preferences.deadline)
     }
 
     func collectSources(run: Int, gather: @escaping @Sendable () async -> RAGRetrieval) async -> RAGRetrieval? {

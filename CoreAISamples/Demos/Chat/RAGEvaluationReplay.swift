@@ -25,13 +25,15 @@ final class RAGEvaluationReplay: Sendable {
 
     nonisolated var inputs: RAGInputs {
         RAGInputs(
-            local: { [self] _ in documents.filter { !$0.isWeb }.sorted { $0.url < $1.url }.flatMap(\.sources) },
+            local: { [self] _ in documents.filter { !$0.isWeb }.sorted { $0.url < $1.url }.map(\.snapshot) },
             search: { [self] question, settings in
                 try search(question, limit: settings.searchResults)
             },
             read: { [self] url in
                 let document = try page(url.absoluteString)
-                return (document.format == "html" ? document.raw : "", document.text)
+                return RAGPage(
+                    raw: document.raw, text: document.text, finalURL: document.url,
+                    format: RAGDocumentFormat(rawValue: document.format) ?? .text)
             })
     }
 

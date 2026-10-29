@@ -16,6 +16,7 @@
     "effort": "low",
     "citationGuard": true,
     "deadlineSeconds": 900,
+    "selection": {"candidates": 12, "sections": 3, "inputTokens": 2048, "outputTokens": 128, "timeoutSeconds": 30},
     "expectedModelHash": null
   },
   "documents": [
