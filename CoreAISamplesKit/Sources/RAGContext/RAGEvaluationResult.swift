@@ -84,6 +84,7 @@ public struct RAGEvaluationResult: Codable, Sendable {
     public var answer = ""
     public var suppliedPassages: [RAGEvaluationPassage] = []
     public var candidates: [RAGEvaluationPassage] = []
+    public var documents: [RAGDocumentSnapshot]?
     public var retrievalMetrics: RAGEvaluationMetrics?
     public var inputTokens: Int?
     public var reusedTokens: Int?
