@@ -1,0 +1,97 @@
+[
+  {
+    "path": "LICENSE",
+    "bytes": 11358,
+    "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+  },
+  {
+    "path": "NOTICE",
+    "bytes": 909,
+    "sha256": "5fa0f21f8a45f3f88dafb9ff4f42611b2c26ae38b7251e7af3bd01e145be6b4d"
+  },
+  {
+    "path": "embed.aimodel/main.hash",
+    "bytes": 32,
+    "sha256": "dc91087698ad1a508cbd56db534783da8dc1629f65a2a15c2d4126eda52d41fb"
+  },
+  {
+    "path": "embed.aimodel/main.mlirb",
+    "bytes": 311165781,
+    "sha256": "62298e27eef88864ba57f3a32370942726cc77b99fe7c9a8155a25204846f7b3"
+  },
+  {
+    "path": "embed.aimodel/metadata.json",
+    "bytes": 392,
+    "sha256": "1807181183847b68a3ddaf08fea4eeb48a04120d3fc081b17ecc3461be5d51ee"
+  },
+  {
+    "path": "main.aimodel/main.hash",
+    "bytes": 32,
+    "sha256": "3d72975811bceab78a5aebdc6f2db49abd6f249f1e3472b028483701f0074ed5"
+  },
+  {
+    "path": "main.aimodel/main.mlirb",
+    "bytes": 1192987115,
+    "sha256": "9cef6e42387788962d53c5d53029352350392e003276b643846c61878aa80f1f"
+  },
+  {
+    "path": "main.aimodel/metadata.json",
+    "bytes": 386,
+    "sha256": "9e65b2005d5f834bce36562e935da50ae98941880571a3cba0bc3196347985a0"
+  },
+  {
+    "path": "metadata.json",
+    "bytes": 10527,
+    "sha256": "a0783aadd9e824c525c6343352addc0765df7bd1857b9da6064b139cc025e56a"
+  },
+  {
+    "path": "tokenizer/added_tokens.json",
+    "bytes": 605,
+    "sha256": "58b54bbe36fc752f79a24a271ef66a0a0830054b4dfad94bde757d851968060b"
+  },
+  {
+    "path": "tokenizer/chat_template.jinja",
+    "bytes": 1017,
+    "sha256": "a0bc6f6fc7a29a80017a433e8f03a1cc1236e838a944a2d034295a60c4f2fddb"
+  },
+  {
+    "path": "tokenizer/merges.txt",
+    "bytes": 1671853,
+    "sha256": "8831e4f1a044471340f7c0a83d7bd71306a5b867e95fd870f74d0c5308a904d5"
+  },
+  {
+    "path": "tokenizer/special_tokens_map.json",
+    "bytes": 613,
+    "sha256": "76862e765266b85aa9459767e33cbaf13970f327a0e88d1c65846c2ddd3a1ecd"
+  },
+  {
+    "path": "tokenizer/tokenizer.json",
+    "bytes": 11421896,
+    "sha256": "9c5ae00e602b8860cbd784ba82a8aa14e8feecec692e7076590d014d7b7fdafa"
+  },
+  {
+    "path": "tokenizer/tokenizer_config.json",
+    "bytes": 4730,
+    "sha256": "e04be4dd17e9f661bc487ba848a37f66a8f1adf2eef412f5d4ecb40cab4d39e7"
+  },
+  {
+    "path": "tokenizer/vocab.json",
+    "bytes": 2776833,
+    "sha256": "ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910"
+  },
+  {
+    "path": "vision.aimodel/main.hash",
+    "bytes": 32,
+    "sha256": "8c774b850c16164bd5e24518b67c68822fcf997c0b0ef96a682ed5806ff4ea07"
+  },
+  {
+    "path": "vision.aimodel/main.mlirb",
+    "bytes": 1327153602,
+    "sha256": "901e00d8a7a4d94aa2b996fa7ee1ef44ef2fa64c3cfdcabf70735a6b3dcfad98"
+  },
+  {
+    "path": "vision.aimodel/metadata.json",
+    "bytes": 376,
+    "sha256": "359130ae17fec62d16c0fc3b0663fb3fe66180011f5a7284fb493e1df351d63b"
+  }
+]

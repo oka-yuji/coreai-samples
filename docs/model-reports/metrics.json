@@ -477,6 +477,49 @@
         "tokens"
       ],
       "min": 0
+    },
+    "ocr_number_recall": {
+      "label": {
+        "en": "OCR numeric-token recall",
+        "ja": "OCR数値トークン再現率"
+      },
+      "units": [
+        "ratio"
+      ],
+      "min": 0,
+      "max": 1
+    },
+    "ocr_number_precision": {
+      "label": {
+        "en": "OCR numeric-token precision",
+        "ja": "OCR数値トークン適合率"
+      },
+      "units": [
+        "ratio"
+      ],
+      "min": 0,
+      "max": 1
+    },
+    "ocr_table_cell_match": {
+      "label": {
+        "en": "OCR ordered table-cell agreement",
+        "ja": "OCR表セル順序付き一致率"
+      },
+      "units": [
+        "ratio"
+      ],
+      "min": 0,
+      "max": 1
+    },
+    "ocr_reading_order_error": {
+      "label": {
+        "en": "OCR normalized reading-order error",
+        "ja": "OCR正規化読み順誤り"
+      },
+      "units": [
+        "ratio"
+      ],
+      "min": 0
     }
   },
   "text": {
