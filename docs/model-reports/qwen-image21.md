@@ -18,7 +18,7 @@ Results below retain their original dates and workloads. Different rows may use 
 | Platform | State | Verified scope / remaining work | Evidence |
 |---|---|---|---|
 | macos | — | Native demo is not provided for this platform. | — |
-| ios | — | The accepted numerical/visual candidate is packaged locally. Main-app text inference succeeds, but raw and h18p AOT DiT trials terminate under OS memory pressure before a complete image. Normal Models, published download and calibrated device budgets remain unavailable. | — |
+| ios | — | Native-complex generation and editing complete in the main app, but transparent-reference decoding changes hidden RGB and the editing fidelity gate fails. Normal Models, published download and calibrated device budgets remain unavailable. | — |
 
 ### Performance and quality
 
@@ -49,7 +49,7 @@ Results below retain their original dates and workloads. Different rows may use 
 | Check | State | Scope / remaining work | Evidence |
 |---|---|---|---|
 | Conversion / reference fidelity | Passed (stated scope) | Formal FMA and native-complex profiles pass all1230 fixed and60 final-pair comparisons on macOS with unchanged gates and raw re-audit. Their C final latent/RGBA/PNG files are byte-identical. This does not establish native iPhone, gallery-proof or device acceptance. | [E13](../research/qwen-image21-g16-20261026.json) · [E15](../research/qwen-image21-native-complex-20261029.json) |
-| Task quality | Not measured | No completed check for this scope under the common protocol. | — |
+| Task quality | Not measured | The original owner feedback is bound to the byte-identical saved gallery. No completed per-axis benchmark or device visual acceptance is claimed. | — |
 | Repeated use / resource release | Not measured | No completed check for this scope under the common protocol. | — |
 | Stop / retry / recovery | Not measured | No completed check for this scope under the common protocol. | — |
 
@@ -86,4 +86,8 @@ Results below retain their original dates and workloads. Different rows may use 
 - [AOT device comparison](../research/qwen-image21-aot-20261029.json)
 
 - [Native-complex candidate results](../research/qwen-image21-native-complex-20261029.json)
+
+- [Identical-gallery visual evidence](../research/qwen-image21-native-complex-visual-equivalence-20261029.json)
+
+- [Native generation and reference-input discrepancy](../research/qwen-image21-native-complex-device-20261029.json)
 <!-- model-report:end -->

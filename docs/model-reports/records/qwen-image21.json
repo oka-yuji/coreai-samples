@@ -65,6 +65,20 @@
         "ja": "組込み複素数候補の検証記録"
       },
       "url": "docs/research/qwen-image21-native-complex-20261029.json"
+    },
+    {
+      "title": {
+        "en": "Identical-gallery visual evidence",
+        "ja": "同じ画質受入への対応証拠"
+      },
+      "url": "docs/research/qwen-image21-native-complex-visual-equivalence-20261029.json"
+    },
+    {
+      "title": {
+        "en": "Native generation and reference-input discrepancy",
+        "ja": "本体生成と参照入力の不一致"
+      },
+      "url": "docs/research/qwen-image21-native-complex-device-20261029.json"
     }
   ],
   "support": {
@@ -82,8 +96,8 @@
       "variants": [],
       "evidence": [],
       "note": {
-        "en": "The accepted numerical/visual candidate is packaged locally. Main-app text inference succeeds, but raw and h18p AOT DiT trials terminate under OS memory pressure before a complete image. Normal Models, published download and calibrated device budgets remain unavailable.",
-        "ja": "数値合格・本人画質受入済み候補はローカル梱包済み。本体でtext推論は成功するが、rawとh18p AOTのDiT試行は完成画像を得る前にOSのメモリ圧力で終了。通常Models、公開DL、端末予算の較正は未完了。"
+        "en": "Native-complex generation and editing complete in the main app, but transparent-reference decoding changes hidden RGB and the editing fidelity gate fails. Normal Models, published download and calibrated device budgets remain unavailable.",
+        "ja": "native-complexで本体の生成・編集は終端まで進むが、透過参照の読込で隠れたRGBが変わり、編集の数値基準に不合格。通常Models、公開DL、測定済み端末予算は未提供。"
       }
     }
   },
@@ -672,8 +686,8 @@
       "state": "not_measured",
       "evidence": [],
       "note": {
-        "en": "No completed check for this scope under the common protocol.",
-        "ja": "この範囲の共通プロトコルによる確認は未実施です。"
+        "en": "The original owner feedback is bound to the byte-identical saved gallery. No completed per-axis benchmark or device visual acceptance is claimed.",
+        "ja": "元の本人フィードバックをbyte一致した保存galleryへ対応付けた。項目別benchmarkと端末画質の受入は完了していない。"
       }
     },
     "stability": {

@@ -9,7 +9,7 @@ OWNER_REVIEW = "qmi-owner-visual-v1"
 OWNER_REVIEW_PATH = Path(__file__).parents[4] / "docs/research/qwen-image21-owner-quality-20261028.json"
 OWNER_IDENTICAL_REVIEW = "qmi-owner-identical-gallery-v1"
 OWNER_IDENTICAL_PATH = Path(__file__).parents[4] / "docs/research/qwen-image21-native-complex-visual-equivalence-20261029.json"
-OWNER_IDENTICAL_RECORD = None
+OWNER_IDENTICAL_RECORD = {"bytes": 135961, "sha256": "c5949123d82e9524e7867a1a5737c29ff3c898fdf2ad0faa5f147c84107b57de"}
 
 
 def identical_acceptance(comparison, profile_hash, numeric_file, acceptance):

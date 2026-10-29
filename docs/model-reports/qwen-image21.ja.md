@@ -18,7 +18,7 @@
 | OS | 状態 | 確認した範囲・残る確認 | 根拠 |
 |---|---|---|---|
 | macos | — | このOSのネイティブデモは未提供です。 | — |
-| ios | — | 数値合格・本人画質受入済み候補はローカル梱包済み。本体でtext推論は成功するが、rawとh18p AOTのDiT試行は完成画像を得る前にOSのメモリ圧力で終了。通常Models、公開DL、端末予算の較正は未完了。 | — |
+| ios | — | native-complexで本体の生成・編集は終端まで進むが、透過参照の読込で隠れたRGBが変わり、編集の数値基準に不合格。通常Models、公開DL、測定済み端末予算は未提供。 | — |
 
 ### 性能と品質
 
@@ -49,7 +49,7 @@
 | 確認項目 | 状態 | 対象範囲・残る確認 | 根拠 |
 |---|---|---|---|
 | 変換・参照との一致 | 合格（記載範囲） | 正式FMAとnative-complexの両profileはmacOSで固定1,230比較と最終60組に全合格し、基準不変のraw再監査も成功。Cの最終latent/RGBA/PNGはbyte一致。native iPhone、gallery全体の証明、端末受入は別途未完。 | [E13](../research/qwen-image21-g16-20261026.json) · [E15](../research/qwen-image21-native-complex-20261029.json) |
-| 用途の品質 | 未計測 | この範囲の共通プロトコルによる確認は未実施です。 | — |
+| 用途の品質 | 未計測 | 元の本人フィードバックをbyte一致した保存galleryへ対応付けた。項目別benchmarkと端末画質の受入は完了していない。 | — |
 | 連続利用・資源解放 | 未計測 | この範囲の共通プロトコルによる確認は未実施です。 | — |
 | 停止・再試行・回復 | 未計測 | この範囲の共通プロトコルによる確認は未実施です。 | — |
 
@@ -86,4 +86,8 @@
 - [AOT資産の実機対照](../research/qwen-image21-aot-20261029.json)
 
 - [組込み複素数候補の検証記録](../research/qwen-image21-native-complex-20261029.json)
+
+- [同じ画質受入への対応証拠](../research/qwen-image21-native-complex-visual-equivalence-20261029.json)
+
+- [本体生成と参照入力の不一致](../research/qwen-image21-native-complex-device-20261029.json)
 <!-- model-report:end -->

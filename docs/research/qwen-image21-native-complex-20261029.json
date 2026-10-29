@@ -1056,9 +1056,35 @@
     "different_final_files": [],
     "scope": "Complete Mac numerical fidelity against the matched original source with the unchanged frozen policy, sixty isolated Core AI processes and raw re-audit. Not device, benchmark-quality or normal Models acceptance."
   },
-  "device_verification": "not_run",
-  "visual_acceptance": "not_transferred",
-  "scope": "Mac load-only and selected-input preflight followed by complete current-profile numerical fidelity and raw re-audit. Gallery-equivalence adoption, iPhone execution, device budgets and ordinary Models acceptance remain pending.",
+  "device_verification": "incomplete",
+  "visual_acceptance": {
+    "accepted": true,
+    "benchmark_passed": false,
+    "criterion_id": "QMI-OWNER-VISUAL-01",
+    "device_verification": "pending",
+    "equivalence_evidence": "evidence/visual-equivalence.json",
+    "equivalence_file": {
+      "bytes": 135961,
+      "sha256": "c5949123d82e9524e7867a1a5737c29ff3c898fdf2ad0faa5f147c84107b57de"
+    },
+    "evidence": "evidence/owner-review.json",
+    "method": "qmi-owner-identical-gallery-v1",
+    "review_file": {
+      "bytes": 5564,
+      "sha256": "a6d76c7224d7807bf364de32aa0fe77772d7e4604829865e17c92fb7e25e5c53"
+    },
+    "scope": "Original qualitative visual acceptance reused for the exact byte-identical gallery and presentation; no new human review, benchmark score or device acceptance",
+    "proof": {
+      "bytes": 135961,
+      "sha256": "c5949123d82e9524e7867a1a5737c29ff3c898fdf2ad0faa5f147c84107b57de"
+    },
+    "same_reviewed_images": true,
+    "same_reviewed_presentation": true,
+    "reviewed_output_pairs": 240,
+    "gallery_files_rehashed": 510,
+    "frozen_input_files_rehashed": 129
+  },
+  "scope": "Complete Mac numerical fidelity and identical saved-gallery evidence, packaged with the original qualitative feedback. Main-app generation and editing finish, but editing fails native fidelity because hidden RGB is lost at the reference-input boundary. Device calibration, normal Models and performance acceptance remain incomplete.",
   "code_revision": "b72011063e8e1c21c1bf89a6a3dc120b6a53048b",
   "compression_equivalence": {
     "vision": {
@@ -1282,5 +1308,16 @@
       "bytes": 31607,
       "sha256": "766635015a82d793cba31f02fb372193e104e0a4f8357d6d2f2b6ffad55fcc00"
     }
+  },
+  "accepted_bundle": {
+    "manifest": {
+      "bytes": 23018,
+      "sha256": "8b9e34748d760fa9ec7762f5064652281c80effb19c692bcdbe8ef1e521d59ad"
+    },
+    "file_count": 51,
+    "bundle_bytes": 13783495099,
+    "device_verification": "pending",
+    "host_inventory_rehashed": true,
+    "device_files_and_sizes_verified": true
   }
 }
