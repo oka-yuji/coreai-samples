@@ -61,6 +61,7 @@ public struct RAGEvaluationSettings: Codable, Equatable, Sendable {
     public var effort: String
     public var citationGuard: Bool
     public var deadlineSeconds: Double
+    public var selection: RAGSectionLimits?
 }
 
 public struct RAGEvaluationManifest: Codable, Equatable, Sendable {
@@ -83,7 +84,7 @@ public struct RAGEvaluationManifest: Codable, Equatable, Sendable {
     }
 
     public func validate(strategy: String = "flat", requiresModelPin: Bool = false) throws {
-        guard [RAGStrategy.flat.rawValue, RAGStrategy.structureBM25.rawValue].contains(strategy) else {
+        guard RAGStrategy(rawValue: strategy) != nil else {
             throw Failure.invalid("unsupported strategy: " + strategy)
         }
         guard schemaVersion == 1, parserVersion == "flat-v1", offsetUnit == "swift-character",
@@ -98,6 +99,9 @@ public struct RAGEvaluationManifest: Codable, Equatable, Sendable {
             settings.deadlineSeconds.isFinite, (1...3_600).contains(settings.deadlineSeconds),
             RAGContext.isoDate(in: settings.today) == settings.today
         else { throw Failure.invalid("settings") }
+        if strategy == RAGStrategy.structureLLM.rawValue, settings.selection?.isValid != true {
+            throw Failure.invalid("freeze valid section selection limits before C evaluation")
+        }
         if requiresModelPin, settings.expectedModelHash?.isEmpty != false {
             throw Failure.invalid("freeze the verified Qwen3.8 4bit main.hash before model evaluation")
         }

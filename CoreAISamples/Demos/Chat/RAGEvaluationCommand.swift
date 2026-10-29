@@ -22,6 +22,10 @@ enum RAGEvaluationCommand {
                 if let output = LaunchArguments.value("--retrieval-output"),
                     let selected = RAGStrategy(rawValue: strategy)
                 {
+                    guard selected != .structureLLM else {
+                        throw RAGEvaluationManifest.Failure.invalid(
+                            "C retrieval inspection requires native model execution")
+                    }
                     try await RAGRetrievalInspection.inspect(
                         manifest, strategy: selected, output: URL(filePath: output))
                 }
@@ -113,6 +117,7 @@ enum RAGEvaluationCommand {
                 settings.pageCharacterBudget = manifest.settings.pageCharacterBudget
                 settings.today = manifest.settings.today
                 settings.recordsDiagnostics = true
+                settings.selectionLimits = manifest.settings.selection ?? RAGSectionLimits()
                 return settings
             },
             local: inputs.local,
@@ -152,12 +157,26 @@ enum RAGEvaluationCommand {
         result.candidateSectionIDs = runner.lastRetrieval?.selectionCandidates.map(\.sectionID)
         let usage = runner.session.usage
         result.answer = answer(state.entries, guarder: runner.citationGuard)
-        result.inputTokens = usage?.input.totalTokenCount
-        result.reusedTokens = usage?.input.cachedTokenCount
-        result.outputTokens = usage?.output.totalTokenCount
+        result.answerInputTokens = usage?.input.totalTokenCount
+        result.answerReusedTokens = usage?.input.cachedTokenCount
+        result.answerOutputTokens = usage?.output.totalTokenCount
+        let selection = runner.lastRetrieval?.selectionTrace
+        func total(_ answer: Int?, _ selected: Int?) -> Int? {
+            guard let answer else { return nil }
+            guard selection?.didRun == true else { return answer }
+            return selected.map { answer + $0 }
+        }
+        result.inputTokens = total(result.answerInputTokens, selection?.inputTokens)
+        result.reusedTokens = total(result.answerReusedTokens, selection?.reusedTokens)
+        result.outputTokens = total(result.answerOutputTokens, selection?.outputTokens)
         result.sourceTokens = runner.lastRetrieval?.sourceTokens
         result.retrievalSeconds = runner.lastRetrieval?.seconds
-        result.selectionSeconds = 0
+        result.selection = runner.lastRetrieval?.selectionTrace
+        result.selectionSeconds = result.selection?.seconds ?? 0
+        result.candidateMetrics = .measure(
+            item: item, manifest: manifest,
+            passages: (runner.lastRetrieval?.selectionCandidates ?? []).flatMap { $0.headers + [$0.source] }.compactMap(
+                passage))
         result.answerTTFTSeconds = answerTTFT
         result.sourceIDsValid = runner.citationGuard.checks.last?.local.map { !$0.violation }
         result.finishReason = state.lastFinish.rawValue
@@ -191,6 +210,12 @@ enum RAGEvaluationCommand {
             } else {
                 result.reason = "archive was not saved"
             }
+        } else if state.lastFinish == .stopped {
+            result.status = .cancelled
+            result.reason = result.selection?.reason ?? "cancelled"
+        } else if result.selection?.status == "none", trace.errors.isEmpty {
+            result.status = .completed
+            result.reason = "selectionNone"
         } else if state.lastFinish == .eos || state.lastFinish == .cap {
             result.status = trace.errors.isEmpty && usage != nil ? .completed : .failed
             result.reason =
