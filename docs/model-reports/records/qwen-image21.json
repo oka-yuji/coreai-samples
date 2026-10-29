@@ -15,8 +15,8 @@
   },
   "release": "in_progress",
   "release_note": {
-    "en": "Mac conversion verified; mobile implementation in progress",
-    "ja": "Mac変換検証済み／モバイル実装中"
+    "en": "Native iPhone diagnostics passed; normal Models integration is pending device completion",
+    "ja": "本体iPhone診断合格／通常Models接続は実機の終了確認待ち"
   },
   "download": null,
   "pages": {
@@ -79,6 +79,20 @@
         "ja": "本体生成と参照入力の不一致"
       },
       "url": "docs/research/qwen-image21-native-complex-device-20261029.json"
+    },
+    {
+      "title": {
+        "en": "Corrected native generation and editing",
+        "ja": "入力修正後の本体生成・編集"
+      },
+      "url": "docs/research/qwen-image21-png-input-device-20261030.json"
+    },
+    {
+      "title": {
+        "en": "Partial repeated-use observations",
+        "ja": "逐次反復の途中記録"
+      },
+      "url": "docs/research/qwen-image21-device-series-partial-20261030.json"
     }
   ],
   "support": {
@@ -92,12 +106,14 @@
       }
     },
     "ios": {
-      "state": "unavailable",
+      "state": "pending",
       "variants": [],
-      "evidence": [],
+      "evidence": [
+        "native-corrected-20261030"
+      ],
       "note": {
-        "en": "Native-complex generation and editing complete in the main app, but transparent-reference decoding changes hidden RGB and the editing fidelity gate fails. Normal Models, published download and calibrated device budgets remain unavailable.",
-        "ja": "native-complexで本体の生成・編集は終端まで進むが、透過参照の読込で隠れたRGBが変わり、編集の数値基準に不合格。通常Models、公開DL、測定済み端末予算は未提供。"
+        "en": "Main-app generation and editing pass the final numerical gates after the PNG correction. Eight sequential requests with a five-second post-release wait were recovered before connectivity was lost; two outcomes are unconfirmed. The default Models entry and production budgets remain disabled. No public download or completed latency acceptance.",
+        "ja": "PNG修正後、本体の生成・編集が最終数値基準に合格。解放後5秒待機付きの逐次実行は8回分を回収したが、通信切断により残り2回は未確認。既定Modelsと本番予算は未登録。公開DL・待ち時間の受入も未完。"
       }
     }
   },
@@ -521,6 +537,34 @@
       "thermal": null,
       "model_executed": true,
       "plan_sha256": "6e3c72b9321b6cdc105f8ddf38aaea9c151ab912e2bb9c36dd57654b31d4c793"
+    },
+    "native-corrected-20261030": {
+      "url": "docs/research/qwen-image21-png-input-device-20261030.json",
+      "level": "diagnostic",
+      "outcome": "passed",
+      "record_type": "legacy",
+      "date": "2026-10-30",
+      "platform": "ios",
+      "device": "iPhone 17 Pro (iPhone18,1)",
+      "os": "iOS 27.0.1 (24A446)",
+      "toolchain": "Xcode 27.0; Swift 6.4; system Core AI runtime",
+      "variant": "qmi-mobile-w4-dit-g16-native-complex-blocks16-23-f32-v1",
+      "backend": "Core AI; GPU preferred",
+      "route": "Explicit image diagnostic in CoreAISamples-iOS; supplied noise; trace and journal enabled; fresh processes with prepared cache",
+      "source_revision": "fc13ba1986fcb905854dc8de2f52eee395f49b5b",
+      "artifact_revision": "8b9e34748d760fa9ec7762f5064652281c80effb19c692bcdbe8ef1e521d59ad",
+      "code_revision": "c55e9aad9566b33d168476108e8e6a7859a77829",
+      "workload": {
+        "en": "Two fixed 512-square, eight-step cases: g02/20261021 generation and e10/20261018 editing. Final latent and unclipped RGBA pass the frozen gates; e10 VAE input is bit-identical to the independent PNG decoding. Imported diagnostic records, not the common benchmark; power source and a common-protocol plan hash were not recorded. Low Power Mode was off. Binary/source file hashes are bound in the primary record.",
+        "ja": "512角・8stepの固定2例（g02/20261021生成、e10/20261018編集）。最終latentと未clip RGBAが凍結基準へ合格し、e10 VAE入力は独立PNG読込とbit一致。共通benchmarkではなく既存診断記録の取込みで、給電条件と共通プロトコルの計画hashは未記録。低電力モードはoff。実binary/source file hashは一次記録へ固定。"
+      },
+      "batch_size": 1,
+      "concurrency": 1,
+      "warmups": 0,
+      "power": null,
+      "thermal": "e10: raw state 0 to 1; g02: raw state 1 to 2",
+      "plan_sha256": null,
+      "model_executed": true
     }
   },
   "measurements": [
@@ -675,11 +719,12 @@
       "state": "passed",
       "evidence": [
         "mobile-fma-full-20261026",
-        "mobile-native-complex-full-20261029"
+        "mobile-native-complex-full-20261029",
+        "native-corrected-20261030"
       ],
       "note": {
-        "en": "Formal FMA and native-complex profiles pass all1230 fixed and60 final-pair comparisons on macOS with unchanged gates and raw re-audit. Their C final latent/RGBA/PNG files are byte-identical. This does not establish native iPhone, gallery-proof or device acceptance.",
-        "ja": "正式FMAとnative-complexの両profileはmacOSで固定1,230比較と最終60組に全合格し、基準不変のraw再監査も成功。Cの最終latent/RGBA/PNGはbyte一致。native iPhone、gallery全体の証明、端末受入は別途未完。"
+        "en": "Formal FMA and native-complex profiles pass all 1,230 fixed and 60 final-pair comparisons on macOS with unchanged gates and raw re-audit. The saved galleries are identical. Corrected native iPhone g02/e10 also pass their bound final latent/RGBA gates; this is not full native-suite or ordinary-workflow acceptance.",
+        "ja": "正式FMAとnative-complexはMacで固定1,230比較・最終60組に凍結基準で合格し、raw再監査も成功。保存galleryは同一。入力修正後の本体iPhone g02/e10も最終latent/RGBA基準に合格したが、全native集合や通常操作の受入とは区別する。"
       }
     },
     "quality": {
