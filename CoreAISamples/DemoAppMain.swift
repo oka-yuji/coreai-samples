@@ -19,6 +19,9 @@ struct DemoApp: App {
 @main
 enum DemoAppMain {
     static func main() async {
+        if let manifest = LaunchArguments.value("--rag-eval") {
+            exit(await RAGEvaluationCommand.run(manifestURL: URL(filePath: manifest)))
+        }
         if let configuration = LaunchArguments.value("--image-generation-check") {
             exit(await ImageDiagnosticCommand.run(configuration: URL(filePath: configuration)))
         }
