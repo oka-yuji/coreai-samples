@@ -16,6 +16,8 @@ Progress carries the request ID. Its callback is nonescaping throughout the serv
 
 ## Validation and memory budgets
 
+On iOS, an accepted generation request keeps the screen awake while its native work is running. A shared MainActor owner set restores the previous idle-timer setting when the final request finishes or joins after cancellation, before stop waiters are resumed. Rejected requests do not acquire an owner, and unknown or repeated releases cannot clear another request's ownership. This does not prevent manual locking or alter the existing background/suspend behavior. The platform binding is a no-op on macOS. CPU lifecycle regressions and both platform builds cover the implementation; physical auto-lock timing remains a separate manual check.
+
 Validation requires a local-manifest resource with the pinned upstream revision. It hashes the raw manifest, checks its complete asset inventory and aggregate size, rejects extra files, directories and links, verifies all five component headers and requires numerical/quality acceptance flags. The common catalog supplies the trusted manifest identity; flags alone do not establish trust. Tokenizer and VAE scaling configurations must be in the hashed inventory.
 
 `ImageMemoryBudget` binds `profileID` and `manifestSHA256` to all five components. Every component supplies positive `loadingAdditionalBytes` and `inferenceAdditionalBytes`. Missing estimates are errors. No production default is supplied while device calibration is pending.

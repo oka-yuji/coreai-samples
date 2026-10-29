@@ -16,8 +16,10 @@ struct ImageGenerationServiceTests {
         defer { resume.finish() }
         await backend.hold("load:text", until: gate)
         var events = backend.events.makeAsyncIterator()
+        let screen = ImageScreenActivityState()
         let service = LiveImageGenerationService(
-            session: fixture.session(), pipeline: fixture.pipeline(backend: backend), isPermitted: { true })
+            session: fixture.session(), pipeline: fixture.pipeline(backend: backend), activity: screen.makeActivity(),
+            isPermitted: { true })
         let request = try fixture.request()
         let delivery = ImageProgressRecorder()
         let running = Task {
@@ -25,16 +27,19 @@ struct ImageGenerationServiceTests {
             return try await service.generate(request, progress: delivery.receive)
         }
         try await imageEvent("load:text", from: &events)
+        #expect(screen.disabled)
         running.cancel()
         let firstStop = Task { try await service.stop() }
         let secondStop = Task { try await service.stop() }
         resume.finish()
         try await firstStop.value
         try await secondStop.value
+        #expect(!screen.disabled)
         #expect(delivery.values.last?.phase == .loading(.text))
         let result = try await service.generate(fixture.request(), progress: delivery.receive)
         await #expect(throws: CancellationError.self) { try await running.value }
         #expect(result.report.status == .completed)
+        #expect(screen.writes == [true, false, true, false])
     }
 
     @Test("A revoked binding cannot publish progress or a successful result and a new owner can start")
