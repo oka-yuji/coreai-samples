@@ -30,7 +30,7 @@ struct RAGEvaluationTests {
 
     @Test(
         "RG-E03 rejects unimplemented strategies before execution",
-        arguments: ["structure-bm25", "structure-llm", "unknown"])
+        arguments: ["structure-llm", "unknown"])
     func unsupported(_ strategy: String) throws {
         let manifest = try corpus()
         #expect(throws: RAGEvaluationManifest.Failure.self) { try manifest.validate(strategy: strategy) }

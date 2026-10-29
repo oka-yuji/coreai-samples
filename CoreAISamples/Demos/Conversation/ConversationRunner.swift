@@ -175,8 +175,8 @@ final class ConversationRunner {
             }
             do {
                 guard
-                    let prepared = try tools.sources.prepare(
-                        question: prompt, sources: retrieval.conversationSources(), today: settings.today,
+                    let prepared = try retrieval.prepare(
+                        using: tools.sources, question: prompt, today: settings.today,
                         budget: RAGContext.promptTokenBudget,
                         count: { count(ConversationFeature.finalized(policy.restrictingSearch(in: $0))) },
                         mode: policy.mode)
@@ -193,7 +193,7 @@ final class ConversationRunner {
                         run: run, ids: ids, evidence: tools.evidence,
                         lines: tools.sources.citations(ids)))
                 prompt = prepared.prompt
-                lastRetrieval?.sources = Array(retrieval.sources.prefix(prepared.sources.count))
+                lastRetrieval?.sources = retrieval.suppliedSources(prepared)
                 let sourceTokens = lastRetrieval?.sources.map { count(RAGContext.measuredBlock($0)) }
                     .reduce(0, +)
                 lastRetrieval?.sourceTokens = sourceTokens ?? 0

@@ -15,6 +15,7 @@ struct RAGSettings: Sendable {
     var today = RAGContext.today()
     var captureStructure = false
     var recordsDiagnostics = false
+    var strategy = RAGStrategy.flat
     var documentsDirectory: URL = RAGRetriever.defaultDocumentsDirectory()
 
     static let budgetChoices = [3_000, 6_000]
@@ -25,6 +26,7 @@ struct RAGSettings: Sendable {
     static func fromDefaults() -> RAGSettings {
         var settings = RAGSettings()
         settings.captureStructure = LaunchArguments.flag("--rag-structure")
+        settings.strategy = LaunchArguments.value("--rag-strategy").flatMap(RAGStrategy.init(rawValue:)) ?? .flat
         settings.braveAPIKey = UserDefaults.standard.string(forKey: ConversationPreferences.braveKeyKey) ?? ""
         if let path = LaunchArguments.value("--rag-docs") {
             settings.documentsDirectory = URL(filePath: path, directoryHint: .isDirectory)
@@ -41,10 +43,20 @@ struct RAGRetrieval: Sendable {
     var candidates = 0
     var candidatePassages: [RAGSource] = []
     var documents: [RAGDocumentSnapshot] = []
+    var bodySources: [RAGSource] = []
+    var selectionCandidates: [RAGCandidate] = []
+    var atomicGroups: [[RAGSource]]?
+    var requestedStrategy = RAGStrategy.flat.rawValue
+    var effectiveStrategy = RAGStrategy.flat.rawValue
+    var fallbacks: [String] = []
     var sourceTokens = 0
     var seconds: Double = 0
 
     func conversationSources() throws -> [ConversationSource] {
+        try Self.convert(sources)
+    }
+
+    static func convert(_ sources: [RAGSource]) throws -> [ConversationSource] {
         try sources.map { source in
             guard let version = source.version, let offset = source.offset, let document = source.document else {
                 throw ConversationSources.Failure.invalid
@@ -53,6 +65,27 @@ struct RAGRetrieval: Sendable {
                 document: document, version: version, title: source.title, date: source.date,
                 passages: [SourcePassage(offset: offset, text: source.text)])
         }
+    }
+
+    func prepare(
+        using ledger: ConversationSources, question: String, today: String, budget: Int,
+        count: (String) -> Int, mode: ConversationMode
+    ) throws -> ConversationSources.Prepared? {
+        if let atomicGroups {
+            return try ledger.prepare(
+                question: question, groups: atomicGroups.map(Self.convert), today: today,
+                budget: budget, count: count, mode: mode)
+        }
+        return try ledger.prepare(
+            question: question, sources: conversationSources(), today: today,
+            budget: budget, count: count, mode: mode)
+    }
+
+    func suppliedSources(_ prepared: ConversationSources.Prepared) -> [RAGSource] {
+        if let groupCount = prepared.groupCount, let atomicGroups {
+            return RAGStructuredSelection.uniqueSources(atomicGroups.prefix(groupCount).flatMap { $0 })
+        }
+        return Array(sources.prefix(prepared.sources.count))
     }
 
     var summary: String {
@@ -74,7 +107,8 @@ enum RAGRetriever {
         -> RAGRetrieval
     {
         let start = ContinuousClock.now
-        let settings = inputs.configure(settings)
+        var settings = inputs.configure(settings)
+        if settings.strategy != .flat { settings.captureStructure = true }
         var out = RAGRetrieval()
         var candidates: [RAGSource] = []
         guard !Task.isCancelled else { return RAGRetrieval() }
@@ -104,6 +138,10 @@ enum RAGRetriever {
             candidates, question: question,
             budget: min(settings.sourceTokenBudget, RAGContext.promptTokenBudget - fixed),
             count: count, rank: bestRanking)
+        out.bodySources = out.sources
+        applyStructured(
+            to: &out, question: question, settings: settings,
+            budget: min(settings.sourceTokenBudget, RAGContext.promptTokenBudget - fixed), count: count)
         out.sourceTokens = out.sources.map { count(RAGContext.measuredBlock($0)) }.reduce(0, +)
         out.seconds = (ContinuousClock.now - start) / .seconds(1)
         return out

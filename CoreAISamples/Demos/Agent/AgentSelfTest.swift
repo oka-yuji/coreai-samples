@@ -543,6 +543,7 @@ enum AgentSelfTest {
         await ConversationAccessSelfTest.run { name, passed, detail in check(name, passed, detail) }
         await RAGEvaluationSelfTest.run { name, passed, detail in check(name, passed, detail) }
         await RAGStructureSelfTest.run { name, passed, detail in check(name, passed, detail) }
+        await RAGSelectionSelfTest.run { name, passed, detail in check(name, passed, detail) }
 
         let transcripts = FileManager.default.temporaryDirectory.appending(
             path: "agent-selftest-transcripts-\(ProcessInfo.processInfo.processIdentifier)",

@@ -64,7 +64,7 @@ All retrieval is replayed. Unknown search queries and URLs produce recorded erro
 
 `completed` is an execution state, not a correct-answer grade. Answer correctness, factual support and correct abstention remain ungraded for human review against the gold and the actual supplied evidence. UI placeholders are not model answers.
 
-Retrieval recall counts fully covered gold ranges of the correct document/version. Hit@1/@3 use the first one/three supplied passages in retrieval order. Absent-answer cases have no recall score; do not count them as perfect recall.
+Retrieval recall counts fully covered gold ranges of the correct document/version across all supplied passages, including original headings. Hit@1/@3 use the first one/three supplied body passages in retrieval order; heading-only passages do not consume body ranks. Absent-answer cases have no recall score; do not count them as perfect recall.
 
 These retrieval metrics describe precollected RAG sources. Later Work tool responses are retained in the conversation archive and their requests in the result; use those actual responses too when judging the final answer's support. Do not treat precollection recall as end-to-end agent recall. A missing driver control record is unconfirmed termination, even if the native record says completed.
 

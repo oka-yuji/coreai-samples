@@ -19,6 +19,12 @@ enum RAGEvaluationCommand {
                 if let output = LaunchArguments.value("--structure-output") {
                     try await RAGStructureInspection.inspect(manifest, output: URL(filePath: output))
                 }
+                if let output = LaunchArguments.value("--retrieval-output"),
+                    let selected = RAGStrategy(rawValue: strategy)
+                {
+                    try await RAGRetrievalInspection.inspect(
+                        manifest, strategy: selected, output: URL(filePath: output))
+                }
                 print("RAG EVALUATION VALID: \(manifest.cases.count) cases, \(manifest.documents.count) documents")
                 return 0
             }
@@ -141,7 +147,9 @@ enum RAGEvaluationCommand {
         item: RAGEvaluationCase, replay: RAGEvaluationReplay, timedOut: Bool, answerTTFT: Double?,
         result: inout RAGEvaluationResult
     ) {
-        result.effectiveStrategy = "flat"
+        result.effectiveStrategy = runner.lastRetrieval?.effectiveStrategy
+        result.fallbackReasons = runner.lastRetrieval?.fallbacks
+        result.candidateSectionIDs = runner.lastRetrieval?.selectionCandidates.map(\.sectionID)
         let usage = runner.session.usage
         result.answer = answer(state.entries, guarder: runner.citationGuard)
         result.inputTokens = usage?.input.totalTokenCount
@@ -159,10 +167,17 @@ enum RAGEvaluationCommand {
         let supplied = runner.tools.sources.records.filter {
             runner.tools.suppliedSourceIDs.contains($0.id)
         }
-        result.suppliedPassages = (runner.lastRetrieval?.sources ?? []).filter { source in
+        let delivered = (runner.lastRetrieval?.sources ?? []).filter { source in
             supplied.contains { $0.document == source.document && $0.version == source.version }
+        }
+        result.suppliedPassages = delivered.compactMap(passage)
+        let identities = Set(delivered.map(RAGStructuredSelection.identity))
+        result.rankedBodyPassages = (runner.lastRetrieval?.bodySources ?? []).filter {
+            identities.contains(RAGStructuredSelection.identity($0))
         }.compactMap(passage)
-        result.retrievalMetrics = .measure(item: item, manifest: manifest, passages: result.suppliedPassages)
+        result.retrievalMetrics = .measure(
+            item: item, manifest: manifest, passages: result.suppliedPassages,
+            rankedBodies: result.rankedBodyPassages)
         let trace = replay.trace.withLock { $0 }
         result.toolRequests = trace.requests
         result.replayErrors = trace.errors
