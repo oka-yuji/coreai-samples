@@ -222,6 +222,10 @@ targets:
         product: VideoSearchFeature
       - package: CoreAISamplesKit
         product: VideoSearchRuntime
+      - package: CoreAISamplesKit
+        product: OCRCore
+      - package: CoreAISamplesKit
+        product: OCRRuntime
       - sdk: AVKit.framework
     settings:
       base:
