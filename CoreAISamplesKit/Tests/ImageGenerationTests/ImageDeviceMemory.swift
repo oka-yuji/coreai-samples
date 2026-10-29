@@ -12,8 +12,15 @@ enum ImageDeviceMemory {
                 task_info(mach_task_self_, task_flavor_t(TASK_VM_INFO), $0, &count)
             }
         }
+        #if os(iOS)
+            let available: UInt64? = UInt64(os_proc_available_memory())
+            let scope = ImageMemoryScope.processDirtyBudget
+        #else
+            let available: UInt64? = nil
+            let scope = ImageMemoryScope.unavailable
+        #endif
         return ImageMemoryObservation(
-            scope: .processDirtyBudget, availableBytes: UInt64(os_proc_available_memory()),
+            scope: scope, availableBytes: available,
             footprintBytes: status == KERN_SUCCESS ? info.phys_footprint : nil,
             residentBytes: status == KERN_SUCCESS ? info.resident_size : nil,
             kernelLifetimePeakBytes: status == KERN_SUCCESS ? UInt64(max(0, info.ledger_phys_footprint_peak)) : nil,
