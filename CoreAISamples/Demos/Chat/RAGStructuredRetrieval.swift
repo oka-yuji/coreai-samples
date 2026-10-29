@@ -29,6 +29,10 @@ extension RAGRetriever {
                 pool += set.candidates
             }
         }
+        if settings.strategy == .structureLLM {
+            retrieval.selectionCandidates = pool
+            retrieval.candidatePassages = pool.map(\.source)
+        }
         guard hasStructure else {
             retrieval.fallbacks.append("noStructuredCandidates")
             return

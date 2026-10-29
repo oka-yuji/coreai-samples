@@ -16,6 +16,7 @@ struct RAGSettings: Sendable {
     var captureStructure = false
     var recordsDiagnostics = false
     var strategy = RAGStrategy.flat
+    var selectionLimits = RAGSectionLimits()
     var documentsDirectory: URL = RAGRetriever.defaultDocumentsDirectory()
 
     static let budgetChoices = [3_000, 6_000]
@@ -49,6 +50,9 @@ struct RAGRetrieval: Sendable {
     var requestedStrategy = RAGStrategy.flat.rawValue
     var effectiveStrategy = RAGStrategy.flat.rawValue
     var fallbacks: [String] = []
+    var selectionLimits = RAGSectionLimits()
+    var selectionTrace: RAGSectionTrace?
+    var selectionFailure: String?
     var sourceTokens = 0
     var seconds: Double = 0
 
@@ -110,6 +114,7 @@ enum RAGRetriever {
         var settings = inputs.configure(settings)
         if settings.strategy != .flat { settings.captureStructure = true }
         var out = RAGRetrieval()
+        out.selectionLimits = settings.selectionLimits
         var candidates: [RAGSource] = []
         guard !Task.isCancelled else { return RAGRetrieval() }
 

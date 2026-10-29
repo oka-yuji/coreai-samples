@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		FDE5829CDDB6179088A2A738 /* RAGSectionSelfTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5DA5F4FE852FA95D32CD0BDC /* RAGSectionSelfTest.swift */; };
+		4C52216E54735ECCDA970444 /* RAGSectionSelector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 140A8735F5A5B9FC23799161 /* RAGSectionSelector.swift */; };
 		00722EE029BA88ADEAF7F50F /* TruckInspectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23AE6DC74C5AC0E32B8BDEF8 /* TruckInspectionView.swift */; };
 		01465A266337E72336D04376 /* product-preview.json in Resources */ = {isa = PBXBuildFile; fileRef = 3E1806903B2EE352B87387AF /* product-preview.json */; };
 		03022B690389F227CF4DF0FF /* PhoneSpeechCheckScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = B00891492901CA0D49EB481F /* PhoneSpeechCheckScreen.swift */; };
@@ -284,6 +286,8 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		5DA5F4FE852FA95D32CD0BDC /* RAGSectionSelfTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RAGSectionSelfTest.swift; sourceTree = "<group>"; };
+		140A8735F5A5B9FC23799161 /* RAGSectionSelector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RAGSectionSelector.swift; sourceTree = "<group>"; };
 		014DF817A58FB0A498F44C89 /* RAGStructuredRetrieval.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RAGStructuredRetrieval.swift; sourceTree = "<group>"; };
 		0477EBADA2061C5A4A49EFE4 /* LaunchArguments.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchArguments.swift; sourceTree = "<group>"; };
 		04B9B706979F215C4898949A /* 04-gratin.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "04-gratin.png"; sourceTree = "<group>"; };
@@ -684,6 +688,8 @@
 				7E559742B198F6AA37FB3990 /* RAGPageRead.swift */,
 				541190684FDDDB2AE9DCED4F /* RAGRetrievalInspection.swift */,
 				F16F9ACC21FBADD31D00D5BE /* RAGSelectionSelfTest.swift */,
+				140A8735F5A5B9FC23799161 /* RAGSectionSelector.swift */,
+				5DA5F4FE852FA95D32CD0BDC /* RAGSectionSelfTest.swift */,
 				014DF817A58FB0A498F44C89 /* RAGStructuredRetrieval.swift */,
 				86C7AF55C727C294582F69E5 /* RAGStructureInspection.swift */,
 				1177181489D035B70BB5008A /* RAGStructureSelfTest.swift */,
@@ -1374,6 +1380,8 @@
 				19542B4BB02EEEFD72B640AA /* RAGSelectionSelfTest.swift in Sources */,
 				9021F06141C1E90E2B6053D6 /* RAGStructureInspection.swift in Sources */,
 				42D77086431DA7B229C4B249 /* RAGStructureSelfTest.swift in Sources */,
+				4C52216E54735ECCDA970444 /* RAGSectionSelector.swift in Sources */,
+				FDE5829CDDB6179088A2A738 /* RAGSectionSelfTest.swift in Sources */,
 				87E208D62C706A34187F8ED2 /* RAGStructuredRetrieval.swift in Sources */,
 				040CEE6FAC4B1743BB677ADA /* RecipeAssembly.swift in Sources */,
 				FFF3C06A390062F289948187 /* RecipeInspectorView.swift in Sources */,

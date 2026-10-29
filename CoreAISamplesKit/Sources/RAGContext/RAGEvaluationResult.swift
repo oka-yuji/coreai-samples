@@ -89,7 +89,12 @@ public struct RAGEvaluationResult: Codable, Sendable {
     public var fallbackReasons: [String]?
     public var rankedBodyPassages: [RAGEvaluationPassage]?
     public var candidateSectionIDs: [String]?
+    public var selection: RAGSectionTrace?
+    public var candidateMetrics: RAGEvaluationMetrics?
     public var retrievalMetrics: RAGEvaluationMetrics?
+    public var answerInputTokens: Int?
+    public var answerReusedTokens: Int?
+    public var answerOutputTokens: Int?
     public var inputTokens: Int?
     public var reusedTokens: Int?
     public var outputTokens: Int?
