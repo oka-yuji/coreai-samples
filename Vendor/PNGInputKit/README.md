@@ -4,4 +4,6 @@ This package preserves encoded, unassociated RGB/RGBA samples for model inputs. 
 
 LodePNG is pinned to `e584a8490db1b76b81bf298c11c09d3b55d9c270` (20261006) from [the upstream repository](https://github.com/lvandeve/lodepng). `lodepng.c` is the unchanged upstream `lodepng.cpp` under the upstream-supported C filename; `lodepng.h` is unchanged. File hashes are in `upstream.json`. The original zlib license notice is retained in both files and in `LICENSE`.
 
+The license file retains the upstream trailing whitespace byte-for-byte. Its Git whitespace exception is limited to that file; handwritten code uses the repository checks.
+
 The build excludes encoding, disk access, C++ conveniences and ancillary metadata decoding. Core PNG transparency remains enabled. The app validates frame count and source metadata separately, bounds encoded input, and retains the existing unsupported-format checks. The bridge sets a decompressed-output limit derived from the validated dimensions; LodePNG additionally requires the exact scanline size. This limit rejects oversized output but is not a hard ceiling on temporary allocations. The wrapper checks every chunk CRC and rejects bytes after IEND.
