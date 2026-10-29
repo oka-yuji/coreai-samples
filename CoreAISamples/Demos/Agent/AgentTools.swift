@@ -279,7 +279,7 @@ enum AgentTools {
         try await downloadPage(url: url).text
     }
 
-    static func downloadPage(url: URL) async throws -> (text: String, finalURL: URL?) {
+    static func downloadPage(url: URL) async throws -> (text: String, finalURL: URL?, contentType: String) {
         let policy = AgentFetchPolicy()
         try await policy.validate(url)
         let redirects = AgentFetchRedirects(policy: policy)
@@ -310,7 +310,7 @@ enum AgentTools {
                 throw AgentToolMessage(text: "error: page too large", fatal: true)
             }
         }
-        return (decodeText(Data(bytes), encodingName: response.textEncodingName), response.url)
+        return (decodeText(Data(bytes), encodingName: response.textEncodingName), response.url, type)
     }
 
     static func decodeText(_ data: Data, encodingName: String?) -> String {
@@ -716,41 +716,12 @@ enum AgentTools {
         return target
     }
 
-    static func plainText(fromHTML html: String) -> String {
-        var text = html.replacing(/<!--.*?-->/.dotMatchesNewlines(), with: " ")
-        text = text.replacing(/<script\b.*?<\/script>/.dotMatchesNewlines().ignoresCase(), with: " ")
-        text = text.replacing(/<style\b.*?<\/style>/.dotMatchesNewlines().ignoresCase(), with: " ")
-        text = text.replacing(/<noscript\b.*?<\/noscript>/.dotMatchesNewlines().ignoresCase(), with: " ")
-        text = text.replacing(/<(br|\/p|\/div|\/h[1-6]|\/li|\/tr|\/table)\b[^>]*>/.ignoresCase(), with: "\n")
-        text = text.replacing(/<[^>]*>/.dotMatchesNewlines(), with: " ")
-        return condense(decodeEntities(text))
-    }
+    static func plainText(fromHTML html: String) -> String { RAGHTMLText.plainText(fromHTML: html) }
 
-    static func condense(_ text: String) -> String {
-        text.split(separator: "\n")
-            .map { $0.split(whereSeparator: \.isWhitespace).joined(separator: " ") }
-            .filter { !$0.isEmpty }
-            .joined(separator: "\n")
-    }
+    static func condense(_ text: String) -> String { RAGHTMLText.condense(text) }
 
-    static let namedEntities = [
-        "amp": "&", "lt": "<", "gt": ">", "quot": "\"", "apos": "'", "nbsp": " ", "hellip": "…",
-        "mdash": "—", "ndash": "–", "rsquo": "’", "lsquo": "‘", "ldquo": "“", "rdquo": "”",
-    ]
+    static func decodeEntities(_ text: String) -> String { RAGHTMLText.decodeEntities(text) }
 
-    static func decodeEntities(_ text: String) -> String {
-        guard text.contains("&") else { return text }
-        return text.replacing(/&(#[xX]?[0-9A-Fa-f]+|[A-Za-z][A-Za-z0-9]*);/) { match in
-            let body = match.1
-            guard body.hasPrefix("#") else { return namedEntities[String(body)] ?? String(match.0) }
-            let hex = body.hasPrefix("#x") || body.hasPrefix("#X")
-            let digits = body.dropFirst(hex ? 2 : 1)
-            guard let code = UInt32(digits, radix: hex ? 16 : 10), let scalar = Unicode.Scalar(code) else {
-                return String(match.0)
-            }
-            return String(Character(scalar))
-        }
-    }
 }
 
 actor ToolCassette {
