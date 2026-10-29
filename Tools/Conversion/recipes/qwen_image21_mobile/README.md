@@ -14,10 +14,13 @@ Maintainer tooling for [#216](https://github.com/oka-yuji/coreai-samples/issues/
 | `w4-blocks20-21-f32` | W4/group64, F32 math | W4 except the 14 Linear weights in blocks 20–21, retained as F16; F32 math | W8/group16, F32 math | Dense F32 |
 | `w4-blocks16-23-f32` | W4/group64, F32 math | W4 except the 56 Linear weights in blocks 16–23, retained as F16; F32 math | W8/group16, F32 math | Dense F32 |
 | `w4-dit-g16-blocks16-23-f32` | W4/group64, F32 math | W4/group16 except the same 56 retained F16 Linear weights; F32 math | W8/group16, F32 math | Dense F32 |
+| `w4-dit-g16-native-complex-blocks16-23-f32` | Same as G16/FMA | Same weights and F32 contract, builtin complex RoPE | Same as G16/FMA | Same as G16/FMA |
 
 The physical floating-point inputs and outputs remain Float32. Integer indices and Boolean masks keep their declared types. DiT returns the complete `[1,2304,64]` joint output. Text returns hidden states before the final RMSNorm. DiT temporal frequencies and Vision trigonometric tables retain the source Float32 precision. The Vision feed-forward width is 4304, requiring the separate group16 setting.
 
-Mobile Float32 DiT exports use a custom Metal RoPE kernel with explicit fused multiply-add ordering. The kernel matches the original MPS complex multiplication on the captured query/key tensors; ordinary `addcmul` decomposition does not preserve that ordering. Global safe256 attention, weights, full output ABI and frozen thresholds are retained. The kernel is registered before authoring and its source is included in converter identity. These assets require GPU-path validation; CPU-only execution is not established. Low-precision mobile exports and the separate legacy FP32 recipe retain their previous rotary path.
+Mobile Float32 DiT exports retain the custom Metal RoPE kernel with explicit fused multiply-add ordering, except for the separately named native-complex candidate. The kernel matches the original MPS complex multiplication on the captured query/key tensors; ordinary `addcmul` decomposition does not preserve that ordering. Global safe256 attention, weights, full output ABI and frozen thresholds are retained. The kernel is registered before authoring and its source is included in converter identity. These assets require GPU-path validation; CPU-only execution is not established. Low-precision mobile exports and the separate legacy FP32 recipe retain their previous rotary path.
+
+The native-complex candidate exports the existing PyTorch `view_as_complex` / multiplication / `view_as_real` reference directly as builtin Core AI operations, without registering a custom Metal kernel. It keeps the G16 candidate's complete source, compression, preserved blocks, shape and schedule contracts. A fresh profile, all five component inventories and the complete source/fidelity suite are required. The [October 29 record](../../../../docs/research/qwen-image21-native-complex-20261029.json) retains the selected fixed-input and Mac load-only preflight, followed by the complete numerical pass: all 1,230 fixed comparisons and all 60 final latent/RGBA pairs, with raw re-audit. All 180 final C latent/RGBA/PNG files match the previous FMA candidate byte-for-byte. The four-cohort gallery proof and iPhone verification remain separate and pending.
 
 `mixed` is the unquantized A1 counterpart for the W4/W8 candidates. The previous FP16-network/FP32-VAE source cohort is a different condition. Full FP16 VAE overflow and earlier FP16 text fidelity failures remain failures; these recipes do not change the frozen numerical policy.
 
@@ -76,6 +79,30 @@ The owner accepted the current G16/FMA candidate's appearance through an overall
 The bundle copies the owner record into `evidence/owner-review.json` and records the method, criterion, approval-file identity and scope under `quality_acceptance`. `quality_verified` and `verified` indicate numerical and accepted visual evidence for this local candidate. They do not certify device operation. The receipt retains `quality_passed=false` for the incomplete old case-by-axis benchmark and separately records `quality_accepted=true`. Original ratings and comparison results remain unchanged; `device_verification` remains `pending`.
 
 The [October 28 bundle record](../../../../docs/research/qwen-image21-owner-bundle-20261028.json) identifies the packed files and independent inventory check. It is a local bundle, with no published download or calibrated device profile. Registering a download, enabling normal Models generation and claiming iPhone support require their own evidence.
+
+### Comparing preserved visual content
+
+After fresh numerical auditing and gallery creation, the native-complex candidate can be checked against the owner-reviewed FMA outputs:
+
+```sh
+python -m Tools.Conversion.adapters.qwen_image21.mobile_visual_equivalence \
+  --previous-comparison /path/to/accepted/comparison \
+  --candidate-comparison /path/to/new/comparison \
+  --previous-gallery /path/to/accepted/gallery --candidate-gallery /path/to/new/gallery \
+  --previous-root A0=/path/to/accepted/A0 --previous-root A1=/path/to/accepted/A1 \
+  --previous-root B=/path/to/accepted/B --previous-root C=/path/to/accepted/C \
+  --candidate-root A0=/path/to/new/A0 --candidate-root A1=/path/to/new/A1 \
+  --candidate-root B=/path/to/new/B --candidate-root C=/path/to/new/C \
+  --output /new/visual-equivalence.json
+```
+
+This reads the original approval's exact comparison, numerical-report and profile hashes. It requires all 60 runs, all four cohorts, unchanged inputs and effective compression, and byte-identical actual PNGs. Only the FMA-to-native-complex profile ID and the four converter-file changes are allowed. The original gallery receipt is pinned independently. Preserved receipts and rendered HTML also bind the cohort/run mapping, reference images, prompts, seed, order, Japanese guidance, visible rating values and review template. Missing, reordered, altered or linked evidence is rejected; different PNG bytes do not by themselves establish a quality regression.
+
+The output is equivalence evidence, not a new human decision or a numerical audit. It does not alter the original approval, produce benchmark scores, register an artifact, or change device acceptance. Packing still requires the independent full numerical audit and an explicit acceptance method bound to the exact candidate evidence.
+
+`qmi-owner-identical-gallery-v1` is the separate pack method for the native-complex candidate. It reads only the repository's fixed `qwen-image21-native-complex-visual-equivalence-20261029.json` record; an arbitrary proof path is not accepted. The complete actual comparison must produce that record, and its independently checked byte count and SHA-256 must be pinned in the acceptance code. Until both steps are complete, the method refuses packing. Its bindings cover the original owner record, the original preserved gallery, the current proof implementation, and the candidate's exact profile/numerical/comparison files. A failed numerical gate cannot be rescued by image equivalence.
+
+The corresponding `recipe-owner-reviewed-w4-dit-g16-native-complex-blocks16-23-f32.json` tracks both records and proof code as cache inputs. Packing copies the unchanged original approval and the separate equivalence proof into the new bundle inventory. The accepted visual content is the basis for reusing the owner's earlier feedback; no new human review is claimed. The original incomplete benchmark and `device_verification=pending` remain unchanged.
 
 ### AOT comparison bundles
 
