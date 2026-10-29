@@ -38,17 +38,22 @@ enum RAGEvaluationSelfTest {
             await native(manifest: manifest, item: item, strategy: .structureLLM, check: check)
             await native(manifest: manifest, item: item, strategy: .structureLLM, abstains: true, check: check)
             await native(manifest: manifest, item: item, strategy: .structureLLM, failsSelection: true, check: check)
+            for strategy in [RAGStrategy.flat, .structureBM25, .structureLLM] {
+                await native(manifest: manifest, item: item, strategy: strategy, mode: .chat, check: check)
+            }
         } catch { check("rag-eval/fixture", false, error.localizedDescription) }
     }
 
     private static func native(
-        manifest: RAGEvaluationManifest, item: RAGEvaluationCase, strategy: RAGStrategy, abstains: Bool = false,
+        manifest: RAGEvaluationManifest, item: RAGEvaluationCase, strategy: RAGStrategy,
+        mode: ConversationMode = .work, abstains: Bool = false,
         failsSelection: Bool = false,
         check: (String, Bool, String) -> Void
     ) async {
         func report(_ name: String, _ passed: Bool, _ detail: String) {
             check(
-                name + "/" + strategy.rawValue + (abstains ? "/none" : failsSelection ? "/failed-selector" : ""),
+                name + "/" + strategy.rawValue + (mode == .chat ? "/chat" : "")
+                    + (abstains ? "/none" : failsSelection ? "/failed-selector" : ""),
                 passed, detail)
         }
         let directory = URL.temporaryDirectory.appending(path: "rag-eval-selftest-" + UUID().uuidString)
@@ -60,7 +65,8 @@ enum RAGEvaluationSelfTest {
             preferences.fixedDate = manifest.settings.today
             preferences.notesFolderPath = directory.appending(path: "notes").path
             let model = RAGEvaluationFixtureModel(
-                selectionReply: failsSelection ? "ERROR" : abstains ? "NONE" : "C1", writesNote: strategy != .flat)
+                selectionReply: failsSelection ? "ERROR" : abstains ? "NONE" : "C1",
+                writesNote: mode == .work && strategy != .flat)
             let runner = ConversationRunner(
                 id: "rag-evaluation", chat: ChatViewModel(), preferences: preferences,
                 archive: ConversationArchive(directory: directory),
@@ -84,13 +90,14 @@ enum RAGEvaluationSelfTest {
                         countInput: { $0.count + $1.count })
                 })
             var initial = ConversationState(
-                id: "rag-evaluation", now: Date(), mode: .work, settings: preferences.settings)
+                id: "rag-evaluation", now: Date(), mode: mode, settings: preferences.settings)
             initial.settings.webSearchEnabled = true
             let store = ConversationStore(initialState: initial, run: runner.run)
             store.send(.sendSources(item.question, .init(web: true, local: false, budget: 3_000), now: Date()))
             for await settled in Observations({ !store.state.isRunning && store.state.persistence == .saved })
             where settled { break }
             var result = RAGEvaluationResult(caseID: item.id, manifestHash: "fixture", strategy: strategy.rawValue)
+            result.mode = mode.rawValue
             RAGEvaluationCommand.collect(
                 runner: runner, state: store.state, manifest: manifest, item: item, replay: replay,
                 timedOut: false, answerTTFT: 1, result: &result)
@@ -113,7 +120,8 @@ enum RAGEvaluationSelfTest {
             report(
                 "rag-eval/work-metrics",
                 result.status == .completed
-                    && result.outputTokens == (strategy == .flat ? 5 : strategy == .structureBM25 ? 6 : 8)
+                    && result.outputTokens
+                        == (5 + (mode == .work && strategy != .flat ? 1 : 0) + (strategy == .structureLLM ? 2 : 0))
                     && result.inputTokens != nil && (result.sourceTokens ?? 0) > 0,
                 "status=\(result.status) output=\(result.outputTokens ?? -1) sources=\(result.sourceTokens ?? -1)")
             var failed = store.state
@@ -143,7 +151,7 @@ enum RAGEvaluationSelfTest {
                 "UI placeholder is not model output")
             report(
                 "rag-eval/native-work",
-                store.state.lastFinish == .eos && store.state.mode == .work
+                store.state.lastFinish == .eos && store.state.mode == mode
                     && runner.lastRetrieval?.pagesRead == 1 && runner.tools.suppliedSourceIDs == ["S1"]
                     && runner.citationGuard.checks.last?.local?.violation == false
                     && replay.trace.withLock { $0.errors.isEmpty },
@@ -152,11 +160,12 @@ enum RAGEvaluationSelfTest {
                 report(
                     "rag-eval/selection-costs",
                     result.selection?.outputTokens == 2
-                        && result.answerOutputTokens == 6 && result.outputTokens == 8
+                        && result.answerOutputTokens == (mode == .work ? 6 : 5)
+                        && result.outputTokens == (mode == .work ? 8 : 7)
                         && result.inputTokens == (result.answerInputTokens ?? 0) + (result.selection?.inputTokens ?? 0),
                     "input=\(result.inputTokens ?? -1), selection=\(result.selection?.inputTokens ?? -1)")
             }
-            if strategy != .flat {
+            if mode == .work && strategy != .flat {
                 let files = try FileManager.default.contentsOfDirectory(
                     at: directory.appending(path: "notes"), includingPropertiesForKeys: nil)
                 let contents = try files.filter { $0.pathExtension == "md" }.map {

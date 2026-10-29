@@ -30,3 +30,5 @@ The first stop probe intentionally held the native executor before its first cha
 RG-L07 and #373 RG-E06 require the verified existing Qwen3.8 27B 4bit bundle. #377 owns the real Work 72-case comparison, bounded repetitions, Chat compatibility sample, factual-support grading and adoption decision. The unresolved model path is not replaced with another model, synthetic scores or a download. The manifest keeps `expectedModelHash` unset and native evaluation rejects it before loading.
 
 The specification is `docs/specs/rag-section-selection.md`. Confirmed findings are appended immediately to the Core AI guide and consolidated there. No default strategy, archive schema, UI setting, model conversion or merge is included in this change.
+
+Chat compatibility also passes the same native evaluation path in A/B/C, including source IDs, saved completion and separate C usage. Logs: `/private/tmp/rag376-chat-{build,offline,lint,format}.log`. Work remains the primary target. This follow-up changes tests only; runtime implementation stays at `73ad3f6`.
