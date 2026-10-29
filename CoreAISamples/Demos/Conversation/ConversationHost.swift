@@ -115,19 +115,26 @@ final class ConversationHost {
     @ObservationIgnored private var modelLoad: Date
     @ObservationIgnored private let archive: ConversationArchive
     @ObservationIgnored private let termination: (Bool) -> Void
+    @ObservationIgnored private let retrievalInputs: RAGInputs
+    @ObservationIgnored private let toolExecutor: ((AgentToolCall) async -> AgentToolOutput)?
 
     init(
         chat: ChatViewModel, preferences: ConversationPreferences = ConversationPreferences(),
         archive: ConversationArchive = ConversationRunner.defaultArchive,
-        termination: @escaping (Bool) -> Void = { _ in }
+        termination: @escaping (Bool) -> Void = { _ in },
+        retrievalInputs: RAGInputs = .live,
+        toolExecutor: ((AgentToolCall) async -> AgentToolOutput)? = nil
     ) {
         self.chat = chat
         self.termination = termination
+        self.retrievalInputs = retrievalInputs
+        self.toolExecutor = toolExecutor
         self.archive = archive
         self.preferences = preferences
         modelLoad = chat.loadStarted
         (store, runner) = Self.make(
-            chat: chat, preferences: preferences, mode: .chat, archive: archive, termination: termination)
+            chat: chat, preferences: preferences, mode: .chat, archive: archive, termination: termination,
+            retrievalInputs: retrievalInputs, toolExecutor: toolExecutor)
     }
 
     var state: ConversationState { store.state }
@@ -157,7 +164,7 @@ final class ConversationHost {
         library.pendingDelete = nil
         (store, runner) = Self.make(
             chat: chat, preferences: preferences, mode: store.state.mode, archive: archive, termination: termination,
-            library: library)
+            library: library, retrievalInputs: retrievalInputs, toolExecutor: toolExecutor)
         if persistSelection { store.send(.library(.selectNew)) }
     }
 
@@ -285,14 +292,16 @@ final class ConversationHost {
     private static func make(
         chat: ChatViewModel, preferences: ConversationPreferences, mode: ConversationMode,
         archive: ConversationArchive, termination: @escaping (Bool) -> Void,
-        library: ConversationLibraryState = ConversationLibraryState()
+        library: ConversationLibraryState = ConversationLibraryState(),
+        retrievalInputs: RAGInputs, toolExecutor: ((AgentToolCall) async -> AgentToolOutput)?
     )
         -> (ConversationStore, ConversationRunner)
     {
         let now = Date()
         let id = newID(now)
         let runner = ConversationRunner(
-            id: id, chat: chat, preferences: preferences, archive: archive, termination: termination)
+            id: id, chat: chat, preferences: preferences, archive: archive, termination: termination,
+            toolExecutor: toolExecutor, retrievalInputs: retrievalInputs)
         var state = ConversationState(
             id: id, now: now, mode: mode, settings: preferences.settings, modelID: chat.modelName,
             instructionsVersion: preferences.citeFetched ? "cite-fetched-v3" : "frozen-v3",

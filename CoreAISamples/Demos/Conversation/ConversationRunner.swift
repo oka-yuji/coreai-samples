@@ -33,10 +33,8 @@ final class ConversationRunner {
         sessionFactory: ((ToolRunner) -> LanguageModelSession)? = nil, recordsMetrics: Bool = true,
         toolExecutor: ((AgentToolCall) async -> AgentToolOutput)? = nil,
         sourceTokenCounter: (@Sendable (String) -> Int)? = nil,
-        retrieveSources: @escaping @Sendable (String, RAGSettings, @Sendable (String) -> Int) async -> RAGRetrieval = {
-            question, settings, count in
-            await RAGRetriever.gather(question: question, settings: settings, count: count)
-        }
+        retrieveSources: (@Sendable (String, RAGSettings, @Sendable (String) -> Int) async -> RAGRetrieval)? = nil,
+        retrievalInputs: RAGInputs = .live
     ) {
         let tools = ToolRunner(preferences: preferences, executor: toolExecutor)
         session = ConversationSession(
@@ -49,7 +47,10 @@ final class ConversationRunner {
         self.archive = archive
         self.termination = termination
         self.sourceTokenCounter = sourceTokenCounter
-        self.retrieveSources = retrieveSources
+        self.retrieveSources =
+            retrieveSources ?? { question, settings, count in
+                await RAGRetriever.gather(question: question, settings: settings, count: count, inputs: retrievalInputs)
+            }
     }
 
     func run(_ effect: ConversationEffect, _ send: (ConversationAction) -> Void) async {
@@ -145,6 +146,7 @@ final class ConversationRunner {
                 return
             }
             var settings = RAGSettings.fromDefaults()
+            settings.today = tools.preferences.fixedDate ?? RAGContext.today()
             settings.web = request.web
             settings.local = request.local
             settings.sourceTokenBudget = request.budget
@@ -174,7 +176,7 @@ final class ConversationRunner {
             do {
                 guard
                     let prepared = try tools.sources.prepare(
-                        question: prompt, sources: retrieval.conversationSources(), today: RAGContext.today(),
+                        question: prompt, sources: retrieval.conversationSources(), today: settings.today,
                         budget: RAGContext.promptTokenBudget,
                         count: { count(ConversationFeature.finalized(policy.restrictingSearch(in: $0))) },
                         mode: policy.mode)
