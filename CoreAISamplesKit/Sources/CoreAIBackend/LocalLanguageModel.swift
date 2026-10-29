@@ -14,7 +14,7 @@ public struct LocalLanguageModel: LanguageModel {
             model: LocalLanguageModel,
             streamingInto channel: LanguageModelExecutorGenerationChannel
         ) async throws {
-            try await model.runtime.respond(to: request, streamingInto: channel)
+            try await model.runtime.respond(to: request, streamingInto: channel, measurement: model.measurementOverride)
         }
     }
 
@@ -36,6 +36,7 @@ public struct LocalLanguageModel: LanguageModel {
     public let executorConfiguration: URL
     public let loadStats: Engine.LoadStats
     let runtime: Runtime
+    private var measurementOverride: GenerationMeasurement.Level?
 
     public init(
         bundle url: URL, contextLimit: Int? = nil, overflow: OverflowPolicy = .error,
@@ -73,6 +74,16 @@ public struct LocalLanguageModel: LanguageModel {
 
     public func countTokens(_ text: String) -> Int {
         runtime.tokenizer.encode(text: text, addSpecialTokens: false).count
+    }
+
+    @_spi(Verification) public func recordingMeasurements(_ level: GenerationMeasurement.Level) -> Self {
+        var copy = self
+        copy.measurementOverride = level
+        return copy
+    }
+
+    public func countToolFreePromptTokens(instructions: String, prompt: String) async throws -> Int {
+        try await runtime.countToolFreePromptTokens(instructions: instructions, prompt: prompt)
     }
 
     @_spi(Verification) public func processedState() async -> (tokens: [Int32], logits: [Float16]) {
@@ -222,7 +233,8 @@ actor Runtime {
 
     func respond(
         to request: LanguageModelExecutorGenerationRequest,
-        streamingInto channel: LanguageModelExecutorGenerationChannel
+        streamingInto channel: LanguageModelExecutorGenerationChannel,
+        measurement: GenerationMeasurement.Level? = nil
     ) async throws {
         let tools = try Self.validatedTools(for: request)
         await lock()
@@ -274,7 +286,8 @@ actor Runtime {
         try await generate(
             request: request, channel: channel, core: currentCore(), tools: tools, messages: messages, context: context,
             rendered: rendered, prompt: prompt, afterUser: boundary, previous: previous, splicing: splicing,
-            spliced: spliced, truncated: truncated, reloadSeconds: reloadSeconds, sharedOverride: sharedOverride)
+            spliced: spliced, truncated: truncated, reloadSeconds: reloadSeconds, sharedOverride: sharedOverride,
+            measurementLevel: measurement ?? settings.measurement)
     }
 
     private func generate(
@@ -282,7 +295,7 @@ actor Runtime {
         core: EngineBox, tools: [ToolSchema], messages: [Message], context: [String: any Sendable],
         rendered: [Int32], prompt: [Int32], afterUser: Int, previous: [Int32],
         splicing: [(start: Int, tokens: [Int32])], spliced: Int, truncated: Int, reloadSeconds: Double?,
-        sharedOverride: Int?
+        sharedOverride: Int?, measurementLevel: GenerationMeasurement.Level
     ) async throws {
         var sampler = Self.sampler(request.generationOptions)
         let lastUser = messages.lastIndex { $0["role"] as? String == "user" }
@@ -291,7 +304,8 @@ actor Runtime {
         let clock = ContinuousClock()
         let start = clock.now
         var probe = GenerationProbe(
-            settings.measurement, requestID: request.id, promptTokens: prompt.count, reloadSeconds: reloadSeconds,
+            measurementLevel, requestID: request.id, promptTokens: prompt.count,
+            reloadSeconds: reloadSeconds,
             start: start)
         defer { lastMeasurement = probe?.record }
         core.engine.measuresPreparation = probe != nil
@@ -461,6 +475,17 @@ actor Runtime {
             checkpoints.removeAll()
             throw error
         }
+    }
+
+    func countToolFreePromptTokens(instructions: String, prompt: String) throws -> Int {
+        let transcript = Transcript(entries: [
+            .instructions(.init(segments: [.text(.init(content: instructions))], toolDefinitions: [])),
+            .prompt(.init(segments: [.text(.init(content: prompt))])),
+        ])
+        let messages = try Self.messages(
+            transcript, keepsReasoning: settings.keepsHistoryReasoning, sanitizer: sanitizer)
+        let context = Self.templateContext(.custom("off"), variables: settings.templateVariables)
+        return try render(messages, generationPrompt: true, context: context).count
     }
 
     private func render(_ messages: [Message], generationPrompt: Bool, context: [String: any Sendable]) throws

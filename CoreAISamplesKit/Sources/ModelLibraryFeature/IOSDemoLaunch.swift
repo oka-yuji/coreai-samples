@@ -1,6 +1,7 @@
 public enum IOSDemoLaunch: Equatable, Sendable {
     case models
     case imageGenerationDiagnostic(String)
+    case ocrCheck(String)
     case speechReferenceDiagnostic(String)
     case imageSearchEvaluation
     case extractionEvaluation
@@ -15,6 +16,7 @@ public enum IOSDemoLaunch: Equatable, Sendable {
         if let configuration = value("--image-generation-check", in: arguments) {
             return .imageGenerationDiagnostic(configuration)
         }
+        if let bundle = value("--ocr-check-run", in: arguments) { return .ocrCheck(bundle) }
         if arguments.contains("--image-search-eval") { return .imageSearchEvaluation }
         if value("--extract-eval", in: arguments) != nil { return .extractionEvaluation }
         if value("--model-library-selftest", in: arguments) != nil {

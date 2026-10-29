@@ -55,6 +55,7 @@ let package = Package(
         .library(name: "GLiNERCore", targets: ["GLiNERCore"]),
         .library(name: "GLiNERRuntime", targets: ["GLiNERRuntime"]),
         .library(name: "RAGContext", targets: ["RAGContext"]),
+        .library(name: "RAGDocumentRuntime", targets: ["RAGDocumentRuntime"]),
         .executable(name: "coreai-chat", targets: ["coreai-chat"]),
         .library(name: "FeatureStore", targets: ["FeatureStore"]),
         .library(name: "ExtractFeature", targets: ["ExtractFeature"]),
@@ -71,6 +72,8 @@ let package = Package(
         .package(path: "../Vendor/IrodoriInputKit"),
         .package(url: "https://github.com/huggingface/swift-transformers", from: "1.3.4"),
         .package(url: "https://github.com/huggingface/swift-jinja.git", from: "2.5.1"),
+        .package(url: "https://github.com/scinfu/SwiftSoup.git", exact: "2.14.3"),
+        .package(url: "https://github.com/swiftlang/swift-markdown.git", exact: "0.9.0"),
     ],
     targets: [
         .target(name: "ImageGenerationCore", swiftSettings: speechSettings),
@@ -289,6 +292,16 @@ let package = Package(
             resources: [.process("Resources")]
         ),
         .target(name: "RAGContext"),
+        .target(
+            name: "RAGDocumentRuntime",
+            dependencies: [
+                "RAGContext", .product(name: "SwiftSoup", package: "SwiftSoup"),
+                .product(name: "Markdown", package: "swift-markdown"),
+            ],
+            swiftSettings: speechSettings),
+        .testTarget(
+            name: "RAGDocumentRuntimeTests", dependencies: ["RAGDocumentRuntime", "RAGContext"],
+            swiftSettings: speechSettings),
         .target(
             name: "ProductFeature", dependencies: ["ProductCore", "FeatureStore"],
             swiftSettings: approachableConcurrency),
