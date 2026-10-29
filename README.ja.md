@@ -30,7 +30,7 @@ GLiNER2.5-multiとEmbeddingGemma 2のリポジトリは公開済みで、匿名�
 | Magpie TTS Multilingual v2607 | 音声生成 | [—](docs/model-reports/magpie-tts.ja.md#model-report) | [—](docs/model-reports/magpie-tts.ja.md#model-report) | 着手中 · 変換検証済み・試聴／公開待ち | — | [ガイド・結果](docs/model-reports/magpie-tts.ja.md) |
 | Qwen3-TTS CustomVoice · 0.6B | 音声生成 | [—](docs/model-reports/qwen3-tts-06b.ja.md#model-report) | [—](docs/model-reports/qwen3-tts-06b.ja.md#model-report) | 着手中 · 変換検証済み・試聴／公開待ち | — | [ガイド・結果](docs/model-reports/qwen3-tts-06b.ja.md) |
 | Qwen3-TTS CustomVoice · 1.7B | 音声生成 | [—](docs/model-reports/qwen3-tts-17b.ja.md#model-report) | [—](docs/model-reports/qwen3-tts-17b.ja.md#model-report) | 着手中 · 変換検証済み・試聴／公開待ち | — | [ガイド・結果](docs/model-reports/qwen3-tts-17b.ja.md) |
-| TeleOCR | 文書OCR | [—](docs/model-reports/teleocr.ja.md#model-report) | [—](docs/model-reports/teleocr.ja.md#model-report) | 対応予定 · 調査 | — | [ガイド・結果](docs/model-reports/teleocr.ja.md) |
+| TeleOCR | 文書OCR | [—](docs/model-reports/teleocr.ja.md#model-report) | [—](docs/model-reports/teleocr.ja.md#model-report) | 着手中 · macOS CLIの固定評価。ネイティブデモと配布の受入は別途。 | — | [ガイド・結果](docs/model-reports/teleocr.ja.md) |
 | MiniCPM-V 4.7 1B | 画像・動画の理解 | [—](docs/model-reports/minicpm-v47.ja.md#model-report) | [—](docs/model-reports/minicpm-v47.ja.md#model-report) | 対応予定 · 調査 | — | [ガイド・結果](docs/model-reports/minicpm-v47.ja.md) |
 | Depth Anything 3 Small | 深度・カメラ姿勢 | [—](docs/model-reports/depth-anything3.ja.md#model-report) | [—](docs/model-reports/depth-anything3.ja.md#model-report) | 対応予定 · 調査 | — | [ガイド・結果](docs/model-reports/depth-anything3.ja.md) |
 | LTX 2.5 | 動画生成 | [—](docs/model-reports/ltx25.ja.md#model-report) | [—](docs/model-reports/ltx25.ja.md#model-report) | 対応予定 · 調査 | — | [ガイド・結果](docs/model-reports/ltx25.ja.md) |

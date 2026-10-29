@@ -18,11 +18,14 @@ public struct RAGEvaluationDocument: Codable, Equatable, Sendable {
 
     public var isWeb: Bool { url.hasPrefix("https://") }
 
-    public var sources: [RAGSource] {
-        RAGContext.documentSources(
-            title: title, url: isWeb ? url : (URL(string: url)?.lastPathComponent ?? title),
-            document: url, date: date, text: text)
+    public var snapshot: RAGDocumentSnapshot {
+        RAGDocumentSnapshot(
+            id: url, url: isWeb ? url : (URL(string: url)?.lastPathComponent ?? title), finalURL: url,
+            title: title, date: date, raw: raw, text: text, format: RAGDocumentFormat(rawValue: format) ?? .text)
     }
+
+    public var sources: [RAGSource] { snapshot.sources }
+
 }
 
 public struct RAGEvaluationEvidence: Codable, Equatable, Sendable {
@@ -58,6 +61,7 @@ public struct RAGEvaluationSettings: Codable, Equatable, Sendable {
     public var effort: String
     public var citationGuard: Bool
     public var deadlineSeconds: Double
+    public var selection: RAGSectionLimits?
 }
 
 public struct RAGEvaluationManifest: Codable, Equatable, Sendable {
@@ -80,7 +84,9 @@ public struct RAGEvaluationManifest: Codable, Equatable, Sendable {
     }
 
     public func validate(strategy: String = "flat", requiresModelPin: Bool = false) throws {
-        guard strategy == RAGStrategy.flat.rawValue else { throw Failure.invalid("unsupported strategy: " + strategy) }
+        guard RAGStrategy(rawValue: strategy) != nil else {
+            throw Failure.invalid("unsupported strategy: " + strategy)
+        }
         guard schemaVersion == 1, parserVersion == "flat-v1", offsetUnit == "swift-character",
             !datasetID.isEmpty, !documents.isEmpty, !cases.isEmpty
         else { throw Failure.invalid("schema, parser, offset unit or empty dataset") }
@@ -93,6 +99,9 @@ public struct RAGEvaluationManifest: Codable, Equatable, Sendable {
             settings.deadlineSeconds.isFinite, (1...3_600).contains(settings.deadlineSeconds),
             RAGContext.isoDate(in: settings.today) == settings.today
         else { throw Failure.invalid("settings") }
+        if strategy == RAGStrategy.structureLLM.rawValue, settings.selection?.isValid != true {
+            throw Failure.invalid("freeze valid section selection limits before C evaluation")
+        }
         if requiresModelPin, settings.expectedModelHash?.isEmpty != false {
             throw Failure.invalid("freeze the verified Qwen3.8 4bit main.hash before model evaluation")
         }

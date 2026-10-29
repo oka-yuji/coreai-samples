@@ -30,10 +30,18 @@ struct RAGEvaluationTests {
 
     @Test(
         "RG-E03 rejects unimplemented strategies before execution",
-        arguments: ["structure-bm25", "structure-llm", "unknown"])
+        arguments: ["unknown"])
     func unsupported(_ strategy: String) throws {
         let manifest = try corpus()
         #expect(throws: RAGEvaluationManifest.Failure.self) { try manifest.validate(strategy: strategy) }
+    }
+
+    @Test("C requires frozen valid selection limits")
+    func selectionLimits() throws {
+        var manifest = try corpus()
+        try manifest.validate(strategy: "structure-llm")
+        manifest.settings.selection = nil
+        #expect(throws: RAGEvaluationManifest.Failure.self) { try manifest.validate(strategy: "structure-llm") }
     }
 
     @Test("RG-E03 rejects changed documents, duplicate identities and invalid gold ranges", arguments: 0..<8)

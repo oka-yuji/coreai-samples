@@ -64,11 +64,11 @@ All retrieval is replayed. Unknown search queries and URLs produce recorded erro
 
 `completed` is an execution state, not a correct-answer grade. Answer correctness, factual support and correct abstention remain ungraded for human review against the gold and the actual supplied evidence. UI placeholders are not model answers.
 
-Retrieval recall counts fully covered gold ranges of the correct document/version. Hit@1/@3 use the first one/three supplied passages in retrieval order. Absent-answer cases have no recall score; do not count them as perfect recall.
+Retrieval recall counts fully covered gold ranges of the correct document/version across all supplied passages, including original headings. Hit@1/@3 use the first one/three supplied body passages in retrieval order; heading-only passages do not consume body ranks. Absent-answer cases have no recall score; do not count them as perfect recall.
 
 These retrieval metrics describe precollected RAG sources. Later Work tool responses are retained in the conversation archive and their requests in the result; use those actual responses too when judging the final answer's support. Do not treat precollection recall as end-to-end agent recall. A missing driver control record is unconfirmed termination, even if the native record says completed.
 
-`answerTTFTSeconds` starts immediately before the Host request, including retrieval, and ends when the first nonempty displayed answer segment is observed. Thinking, tool calls and the no-answer placeholder do not count. It is an observed response time, not GPU prefill time or a guarantee that the final answer is already complete. `totalSeconds` includes request completion and conversation saving; model loading is outside this interval. Usage comes from the native session, including Work's multiple steps. `selectionSeconds` is zero for A because A performs no extra LLM selection; lexical ranking is included in retrieval time.
+`answerTTFTSeconds` starts immediately before the Host request, including retrieval, and ends when the first nonempty displayed answer segment is observed. Thinking, tool calls and the no-answer placeholder do not count. It is an observed response time, not GPU prefill time or a guarantee that the final answer is already complete. `totalSeconds` includes request completion and conversation saving; model loading is outside this interval. Answer usage comes from the native answer session, including Work's multiple steps. For C, `selection` separately records the selector usage and elapsed/stop time, while top-level input/reused/output totals add both calls; `answerInputTokens`/`answerReusedTokens`/`answerOutputTokens` preserve answer-only counts. `selectionSeconds` is zero for A because A performs no extra LLM selection; lexical ranking is included in retrieval time.
 
 `lifetimePeakFootprintBytes` comes from the kernel's process-lifetime physical-footprint peak after the run, including model loading. It is not RSS or a difference between sampled memory values. Each model case uses a fresh process. An unavailable value remains unavailable.
 
@@ -79,3 +79,5 @@ python3 -m Tools.RAGEvaluation --summary-only --output .local/rag-runs/new-devel
 ```
 
 Keep model paths, conversation data and raw logs local. Publish reviewed summaries with their conditions and limitations. Issue #377 owns the real-model A/B/C comparison and adoption decision.
+
+C (`structure-llm`) additionally requires the manifest's fixed `selection` limits. See [selection contract](../../docs/specs/rag-section-selection.md). A valid selector `NONE` completes with `reason: selectionNone` and zero answer generation; this is not automatically a correct-abstention grade. C cannot be inspected with the model-free `--retrieval-output` option.

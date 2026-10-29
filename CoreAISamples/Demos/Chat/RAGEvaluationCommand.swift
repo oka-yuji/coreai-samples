@@ -16,6 +16,19 @@ enum RAGEvaluationCommand {
             try manifest.validate(strategy: strategy, requiresModelPin: !LaunchArguments.flag("--validate-only"))
             for item in manifest.cases { _ = try RAGEvaluationReplay(manifest: manifest, item: item) }
             if LaunchArguments.flag("--validate-only") {
+                if let output = LaunchArguments.value("--structure-output") {
+                    try await RAGStructureInspection.inspect(manifest, output: URL(filePath: output))
+                }
+                if let output = LaunchArguments.value("--retrieval-output"),
+                    let selected = RAGStrategy(rawValue: strategy)
+                {
+                    guard selected != .structureLLM else {
+                        throw RAGEvaluationManifest.Failure.invalid(
+                            "C retrieval inspection requires native model execution")
+                    }
+                    try await RAGRetrievalInspection.inspect(
+                        manifest, strategy: selected, output: URL(filePath: output))
+                }
                 print("RAG EVALUATION VALID: \(manifest.cases.count) cases, \(manifest.documents.count) documents")
                 return 0
             }
@@ -103,6 +116,8 @@ enum RAGEvaluationCommand {
                 settings.pagesToRead = manifest.settings.pagesToRead
                 settings.pageCharacterBudget = manifest.settings.pageCharacterBudget
                 settings.today = manifest.settings.today
+                settings.recordsDiagnostics = true
+                settings.selectionLimits = manifest.settings.selection ?? RAGSectionLimits()
                 return settings
             },
             local: inputs.local,
@@ -137,27 +152,51 @@ enum RAGEvaluationCommand {
         item: RAGEvaluationCase, replay: RAGEvaluationReplay, timedOut: Bool, answerTTFT: Double?,
         result: inout RAGEvaluationResult
     ) {
-        result.effectiveStrategy = "flat"
+        result.effectiveStrategy = runner.lastRetrieval?.effectiveStrategy
+        result.fallbackReasons = runner.lastRetrieval?.fallbacks
+        result.candidateSectionIDs = runner.lastRetrieval?.selectionCandidates.map(\.sectionID)
         let usage = runner.session.usage
         result.answer = answer(state.entries, guarder: runner.citationGuard)
-        result.inputTokens = usage?.input.totalTokenCount
-        result.reusedTokens = usage?.input.cachedTokenCount
-        result.outputTokens = usage?.output.totalTokenCount
+        result.answerInputTokens = usage?.input.totalTokenCount
+        result.answerReusedTokens = usage?.input.cachedTokenCount
+        result.answerOutputTokens = usage?.output.totalTokenCount
+        let selection = runner.lastRetrieval?.selectionTrace
+        func total(_ answer: Int?, _ selected: Int?) -> Int? {
+            guard let answer else { return nil }
+            guard selection?.didRun == true else { return answer }
+            return selected.map { answer + $0 }
+        }
+        result.inputTokens = total(result.answerInputTokens, selection?.inputTokens)
+        result.reusedTokens = total(result.answerReusedTokens, selection?.reusedTokens)
+        result.outputTokens = total(result.answerOutputTokens, selection?.outputTokens)
         result.sourceTokens = runner.lastRetrieval?.sourceTokens
         result.retrievalSeconds = runner.lastRetrieval?.seconds
-        result.selectionSeconds = 0
+        result.selection = runner.lastRetrieval?.selectionTrace
+        result.selectionSeconds = result.selection?.seconds ?? 0
+        result.candidateMetrics = .measure(
+            item: item, manifest: manifest,
+            passages: (runner.lastRetrieval?.selectionCandidates ?? []).flatMap { $0.headers + [$0.source] }.compactMap(
+                passage))
         result.answerTTFTSeconds = answerTTFT
         result.sourceIDsValid = runner.citationGuard.checks.last?.local.map { !$0.violation }
         result.finishReason = state.lastFinish.rawValue
         result.citationOutcome = runner.citationGuard.outcome
+        result.documents = runner.lastRetrieval?.documents
         result.candidates = (runner.lastRetrieval?.candidatePassages ?? []).compactMap(passage)
         let supplied = runner.tools.sources.records.filter {
             runner.tools.suppliedSourceIDs.contains($0.id)
         }
-        result.suppliedPassages = (runner.lastRetrieval?.sources ?? []).filter { source in
+        let delivered = (runner.lastRetrieval?.sources ?? []).filter { source in
             supplied.contains { $0.document == source.document && $0.version == source.version }
+        }
+        result.suppliedPassages = delivered.compactMap(passage)
+        let identities = Set(delivered.map(RAGStructuredSelection.identity))
+        result.rankedBodyPassages = (runner.lastRetrieval?.bodySources ?? []).filter {
+            identities.contains(RAGStructuredSelection.identity($0))
         }.compactMap(passage)
-        result.retrievalMetrics = .measure(item: item, manifest: manifest, passages: result.suppliedPassages)
+        result.retrievalMetrics = .measure(
+            item: item, manifest: manifest, passages: result.suppliedPassages,
+            rankedBodies: result.rankedBodyPassages)
         let trace = replay.trace.withLock { $0 }
         result.toolRequests = trace.requests
         result.replayErrors = trace.errors
@@ -171,6 +210,12 @@ enum RAGEvaluationCommand {
             } else {
                 result.reason = "archive was not saved"
             }
+        } else if state.lastFinish == .stopped {
+            result.status = .cancelled
+            result.reason = result.selection?.reason ?? "cancelled"
+        } else if result.selection?.status == "none", trace.errors.isEmpty {
+            result.status = .completed
+            result.reason = "selectionNone"
         } else if state.lastFinish == .eos || state.lastFinish == .cap {
             result.status = trace.errors.isEmpty && usage != nil ? .completed : .failed
             result.reason =

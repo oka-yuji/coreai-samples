@@ -19,6 +19,12 @@ struct DemoApp: App {
 @main
 enum DemoAppMain {
     static func main() async {
+        if let strategy = LaunchArguments.value("--rag-strategy"),
+            !["flat", "structure-bm25", "structure-llm"].contains(strategy)
+        {
+            FileHandle.standardError.write(Data("Unsupported RAG strategy.\n".utf8))
+            exit(1)
+        }
         if let manifest = LaunchArguments.value("--rag-eval") {
             exit(await RAGEvaluationCommand.run(manifestURL: URL(filePath: manifest)))
         }
