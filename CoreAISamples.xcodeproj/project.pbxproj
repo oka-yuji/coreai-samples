@@ -34,6 +34,7 @@
 		16CC300A10504F414B0E428B /* ExtractRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F2F07EBDAB41490EF60A529 /* ExtractRunner.swift */; };
 		177E9290C8D0A2885AD5387C /* SpeechFeature in Frameworks */ = {isa = PBXBuildFile; productRef = FE873BDE9C77CAB1DD11671A /* SpeechFeature */; };
 		194A39178C83D882AC647C3F /* ExtractService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7E148DB501CB7AAE81691D6 /* ExtractService.swift */; };
+		19542B4BB02EEEFD72B640AA /* RAGSelectionSelfTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = F16F9ACC21FBADD31D00D5BE /* RAGSelectionSelfTest.swift */; };
 		1B661960FFD10BEF3AEB5E8F /* product-preview.json in Resources */ = {isa = PBXBuildFile; fileRef = 3E1806903B2EE352B87387AF /* product-preview.json */; };
 		1BAB353782013F29BE9CC155 /* TruckInspectionRuntime in Frameworks */ = {isa = PBXBuildFile; productRef = 131E2F2E07B05178D004FD0F /* TruckInspectionRuntime */; };
 		1ECF3359D4CFD442B31C7822 /* SpeechReferenceControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E8F067D0636EEF40E2268B3 /* SpeechReferenceControls.swift */; };
@@ -154,6 +155,7 @@
 		850158F9C75A8B01FC7B82DE /* DemoRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3C4386FEDC295B729DF07C1 /* DemoRootView.swift */; };
 		8544E609CB89A211C632E020 /* recipe-examples.json in Resources */ = {isa = PBXBuildFile; fileRef = 6E9B8152E4CC1BA675751CB5 /* recipe-examples.json */; };
 		8685AA2B616BA4AF220D767D /* ModelSelectionSelfTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7DE5BA037505543B8869BB1 /* ModelSelectionSelfTest.swift */; };
+		87E208D62C706A34187F8ED2 /* RAGStructuredRetrieval.swift in Sources */ = {isa = PBXBuildFile; fileRef = 014DF817A58FB0A498F44C89 /* RAGStructuredRetrieval.swift */; };
 		8892507C77E382DB2CF578B3 /* NoteEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = E12E6AFDDBD1A46129826431 /* NoteEditor.swift */; };
 		88A54445B24AA3A794E71605 /* TruckInspectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23AE6DC74C5AC0E32B8BDEF8 /* TruckInspectionView.swift */; };
 		8CDAD010089452FF35D233B1 /* RAGEvaluationSelfTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB1628C1AF8EEAE8FC3AEEAB /* RAGEvaluationSelfTest.swift */; };
@@ -237,6 +239,7 @@
 		D586E67CF490A5BF2665FF4E /* ModelLibraryTransfer in Frameworks */ = {isa = PBXBuildFile; productRef = 7D282C1A74200A481D89C2C0 /* ModelLibraryTransfer */; };
 		D67B49D171D086AF18026280 /* VideoSearchFeature in Frameworks */ = {isa = PBXBuildFile; productRef = 0979AE1A43C852D40CDE7F71 /* VideoSearchFeature */; };
 		D9159780662C018DF61DC9B4 /* ConversationSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4EB6B5C0D4EEB1350D728A30 /* ConversationSession.swift */; };
+		D9CCE89D9007ACF146219D29 /* RAGRetrievalInspection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 541190684FDDDB2AE9DCED4F /* RAGRetrievalInspection.swift */; };
 		D9EF2BF9DB6E3B2C786B9153 /* EmbeddingRuntime in Frameworks */ = {isa = PBXBuildFile; productRef = 71DC72A96FA08B77DF9E724C /* EmbeddingRuntime */; };
 		DB232074896A4231DF78BCD7 /* DecideRuntime in Frameworks */ = {isa = PBXBuildFile; productRef = D4430673A05B3681BE4C973C /* DecideRuntime */; };
 		DC1579D87D040882926DA62A /* ImageSearchSelfTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 555173E2E133C5066E8482E1 /* ImageSearchSelfTest.swift */; };
@@ -281,6 +284,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		014DF817A58FB0A498F44C89 /* RAGStructuredRetrieval.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RAGStructuredRetrieval.swift; sourceTree = "<group>"; };
 		0477EBADA2061C5A4A49EFE4 /* LaunchArguments.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchArguments.swift; sourceTree = "<group>"; };
 		04B9B706979F215C4898949A /* 04-gratin.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "04-gratin.png"; sourceTree = "<group>"; };
 		04E9B33538ECE4A7CBD2D9B0 /* ProductCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProductCardView.swift; sourceTree = "<group>"; };
@@ -337,6 +341,7 @@
 		51FF5AB624408DE25F252FFF /* ModelMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelMenu.swift; sourceTree = "<group>"; };
 		52A987B79D37ED0DE3A71B01 /* ConversationRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationRunner.swift; sourceTree = "<group>"; };
 		53F15DB3D78F006C718A6F5E /* correction_words.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = correction_words.json; sourceTree = "<group>"; };
+		541190684FDDDB2AE9DCED4F /* RAGRetrievalInspection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RAGRetrievalInspection.swift; sourceTree = "<group>"; };
 		555173E2E133C5066E8482E1 /* ImageSearchSelfTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageSearchSelfTest.swift; sourceTree = "<group>"; };
 		5752BFE3276EAB49C2ADF091 /* InspectionRecognition.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InspectionRecognition.swift; sourceTree = "<group>"; };
 		57DF8A7744E8740E70B48D78 /* GUIDriver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GUIDriver.swift; sourceTree = "<group>"; };
@@ -412,6 +417,7 @@
 		E435AB7F872EB64CEE46E3CC /* ProductComparisonView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProductComparisonView.swift; sourceTree = "<group>"; };
 		EA2345E55E00D969C54E6B75 /* CoreAISamples-iOS.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = "CoreAISamples-iOS.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		F0E62FA415AF325EC796A8CE /* video-search-queries.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "video-search-queries.json"; sourceTree = "<group>"; };
+		F16F9ACC21FBADD31D00D5BE /* RAGSelectionSelfTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RAGSelectionSelfTest.swift; sourceTree = "<group>"; };
 		F180E3951683BCC6D53485FA /* InfoPlist.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = InfoPlist.xcstrings; sourceTree = "<group>"; };
 		F3C4386FEDC295B729DF07C1 /* DemoRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoRootView.swift; sourceTree = "<group>"; };
 		F417EC4866A0F58AB8F72380 /* MetricsLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetricsLog.swift; sourceTree = "<group>"; };
@@ -676,6 +682,9 @@
 				BB1628C1AF8EEAE8FC3AEEAB /* RAGEvaluationSelfTest.swift */,
 				7367AF89D12E19D9081F2642 /* RAGInputs.swift */,
 				7E559742B198F6AA37FB3990 /* RAGPageRead.swift */,
+				541190684FDDDB2AE9DCED4F /* RAGRetrievalInspection.swift */,
+				F16F9ACC21FBADD31D00D5BE /* RAGSelectionSelfTest.swift */,
+				014DF817A58FB0A498F44C89 /* RAGStructuredRetrieval.swift */,
 				86C7AF55C727C294582F69E5 /* RAGStructureInspection.swift */,
 				1177181489D035B70BB5008A /* RAGStructureSelfTest.swift */,
 				5071A083BC24B9B2B38CEFFB /* SelfTest.swift */,
@@ -1361,8 +1370,11 @@
 				8CDAD010089452FF35D233B1 /* RAGEvaluationSelfTest.swift in Sources */,
 				AC70F199B54E39EE7236D0FD /* RAGInputs.swift in Sources */,
 				CF8325A339B1FA52E651EAD9 /* RAGPageRead.swift in Sources */,
+				D9CCE89D9007ACF146219D29 /* RAGRetrievalInspection.swift in Sources */,
+				19542B4BB02EEEFD72B640AA /* RAGSelectionSelfTest.swift in Sources */,
 				9021F06141C1E90E2B6053D6 /* RAGStructureInspection.swift in Sources */,
 				42D77086431DA7B229C4B249 /* RAGStructureSelfTest.swift in Sources */,
+				87E208D62C706A34187F8ED2 /* RAGStructuredRetrieval.swift in Sources */,
 				040CEE6FAC4B1743BB677ADA /* RecipeAssembly.swift in Sources */,
 				FFF3C06A390062F289948187 /* RecipeInspectorView.swift in Sources */,
 				70AF18D9E3D418DAEB7227A1 /* RecipeModelView.swift in Sources */,

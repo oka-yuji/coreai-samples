@@ -30,7 +30,8 @@ public struct RAGEvaluationMetrics: Codable, Equatable, Sendable {
     public var recall: Double?
 
     public static func measure(
-        item: RAGEvaluationCase, manifest: RAGEvaluationManifest, passages: [RAGEvaluationPassage]
+        item: RAGEvaluationCase, manifest: RAGEvaluationManifest, passages: [RAGEvaluationPassage],
+        rankedBodies: [RAGEvaluationPassage]? = nil
     ) -> Self {
         let count = item.gold.filter { covered($0, manifest: manifest, passages: passages) }.count
         return Self(
@@ -38,12 +39,12 @@ public struct RAGEvaluationMetrics: Codable, Equatable, Sendable {
             hitAt1: item.gold.isEmpty
                 ? nil
                 : item.gold.contains {
-                    covered($0, manifest: manifest, passages: Array(passages.prefix(1)))
+                    covered($0, manifest: manifest, passages: Array((rankedBodies ?? passages).prefix(1)))
                 },
             hitAt3: item.gold.isEmpty
                 ? nil
                 : item.gold.contains {
-                    covered($0, manifest: manifest, passages: Array(passages.prefix(3)))
+                    covered($0, manifest: manifest, passages: Array((rankedBodies ?? passages).prefix(3)))
                 }, recall: item.gold.isEmpty ? nil : Double(count) / Double(item.gold.count))
     }
 
@@ -85,6 +86,9 @@ public struct RAGEvaluationResult: Codable, Sendable {
     public var suppliedPassages: [RAGEvaluationPassage] = []
     public var candidates: [RAGEvaluationPassage] = []
     public var documents: [RAGDocumentSnapshot]?
+    public var fallbackReasons: [String]?
+    public var rankedBodyPassages: [RAGEvaluationPassage]?
+    public var candidateSectionIDs: [String]?
     public var retrievalMetrics: RAGEvaluationMetrics?
     public var inputTokens: Int?
     public var reusedTokens: Int?

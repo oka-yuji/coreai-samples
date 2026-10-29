@@ -83,7 +83,9 @@ public struct RAGEvaluationManifest: Codable, Equatable, Sendable {
     }
 
     public func validate(strategy: String = "flat", requiresModelPin: Bool = false) throws {
-        guard strategy == RAGStrategy.flat.rawValue else { throw Failure.invalid("unsupported strategy: " + strategy) }
+        guard [RAGStrategy.flat.rawValue, RAGStrategy.structureBM25.rawValue].contains(strategy) else {
+            throw Failure.invalid("unsupported strategy: " + strategy)
+        }
         guard schemaVersion == 1, parserVersion == "flat-v1", offsetUnit == "swift-character",
             !datasetID.isEmpty, !documents.isEmpty, !cases.isEmpty
         else { throw Failure.invalid("schema, parser, offset unit or empty dataset") }
