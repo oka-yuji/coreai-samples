@@ -239,6 +239,38 @@ targets:
         INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace: "YES"
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: "YES"
 
+  CoreAISamplesImageTests:
+    type: bundle.unit-test
+    platform: iOS
+    deploymentTarget: "27.0"
+    sources:
+      - path: CoreAISamplesImageTests
+      - path: CoreAISamplesKit/Tests/ImageGenerationTests/ImageGenerationImageTests.swift
+      - path: CoreAISamplesKit/Tests/ImageGenerationTests/ImageGenerationGoldenTests.swift
+      - path: CoreAISamplesKit/Tests/ImageGenerationTests/ImageReferencePixelIdentityTests.swift
+      - path: CoreAISamplesKit/Tests/ImageGenerationTests/Resources
+        type: folder
+    dependencies:
+      - target: CoreAISamples-iOS
+      - package: CoreAISamplesKit
+        product: ImageGenerationCore
+      - package: CoreAISamplesKit
+        product: ImageGenerationRuntime
+    postBuildScripts:
+      - name: Sign hosted image test resources
+        script: '"$SRCROOT/Tools/Testing/sign_test_resources.sh"'
+        shell: /bin/bash
+        basedOnDependencyAnalysis: false
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.coreai-samples.ImageTests
+        SWIFT_VERSION: "6.0"
+        SWIFT_UPCOMING_FEATURE_NONISOLATED_NONSENDING_BY_DEFAULT: YES
+        SWIFT_UPCOMING_FEATURE_INFER_ISOLATED_CONFORMANCES: YES
+        GENERATE_INFOPLIST_FILE: "YES"
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/CoreAISamples-iOS.app/CoreAISamples-iOS"
+        BUNDLE_LOADER: "$(TEST_HOST)"
+
   SpeechPhone:
     type: application
     platform: iOS
@@ -315,6 +347,16 @@ schemes:
       config: Release
     archive:
       config: Release
+
+  CoreAISamples-ImageTests:
+    build:
+      targets:
+        CoreAISamples-iOS: all
+        CoreAISamplesImageTests: [test]
+    test:
+      config: Release
+      targets:
+        - CoreAISamplesImageTests
 
   SpeechPhone:
     build:

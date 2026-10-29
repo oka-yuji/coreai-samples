@@ -24,7 +24,9 @@ Physical tensor boundaries are serialized row-major. A future Core AI caller mus
 
 ## Images
 
-The file reader accepts single-frame, 8-bit RGB images supported by ImageIO. It checks size before decoding, applies EXIF orientations 1–8, and preserves encoded RGB channel values instead of applying an ICC display transform. Unsupported representations fail explicitly. Tested fixtures are original PNGs, including tagged sRGB, unassociated alpha and orientation metadata; broader JPEG/HEIF decoder equivalence is not claimed.
+The file reader accepts single-frame, 8-bit RGB images. Standard RGB/RGBA PNG pixels are decoded without alpha multiplication by the pinned LodePNG bridge in [PNGInputKit](../Vendor/PNGInputKit/README.md). ImageIO supplies frame and orientation metadata. The decoder checks dimensions before raster allocation, limits encoded PNG input to 256 MiB, and validates chunk integrity. EXIF orientations 1–8 are applied once; encoded RGB values are preserved without an ICC display transform. The existing CgBI, non-PNG and large-preview ImageIO paths remain separate. Unsupported representations fail explicitly. Broader JPEG/HEIF decoder equivalence is not claimed.
+
+On iPhone 17 Pro / iOS 27.0.1, ImageIO and the CoreGraphics PNG provider returned premultiplied pixels even with caching disabled. A fully transparent white pixel became transparent black before the VAE; the white-composited Vision input concealed this difference. The ordinary small-PNG preview, URL reader and diagnostic's already-hashed Data now share the raw PNG decoder. The original e10 diagnostic failure is retained separately from the corrected CPU pixel tests; a saved image alone is not numerical acceptance.
 
 `squareReference()` takes the centered square using integer crop coordinates and resizes it to 512 × 512. The result is the canonical reference that should be previewed and passed to both reference/native evaluation. The caller retains the source image separately.
 
