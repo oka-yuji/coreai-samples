@@ -63,6 +63,7 @@ public struct ConversationSources: Codable, Equatable, Sendable {
         public var ids: [String]
         public var prompt: String
         public var tokens: Int
+        public var groupCount: Int?
     }
     public enum Failure: Error, LocalizedError {
         case invalid
@@ -85,6 +86,33 @@ public struct ConversationSources: Codable, Equatable, Sendable {
             let tokens = count(prompt)
             if tokens <= budget { return Prepared(sources: kept, ids: ids, prompt: prompt, tokens: tokens) }
             kept.removeLast()
+        }
+        return nil
+    }
+
+    public func prepare(
+        question: String, groups: [[ConversationSource]], today: String, budget: Int,
+        count: (String) -> Int, mode: ConversationMode = .chat
+    ) throws -> Prepared? {
+        var remaining = groups
+        while !remaining.isEmpty {
+            var sources: [ConversationSource] = []
+            for source in remaining.flatMap({ $0 })
+            where !sources.contains(where: { existing in
+                existing.document == source.document && existing.version == source.version
+                    && existing.passages.count == source.passages.count
+                    && zip(existing.passages, source.passages).allSatisfy {
+                        $0.offset == $1.offset && $0.text.utf8.elementsEqual($1.text.utf8)
+                    }
+            }) { sources.append(source) }
+            if var prepared = try prepare(
+                question: question, sources: sources, today: today,
+                budget: Int.max, count: count, mode: mode), prepared.tokens <= budget
+            {
+                prepared.groupCount = remaining.count
+                return prepared
+            }
+            remaining.removeLast()
         }
         return nil
     }

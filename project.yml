@@ -63,6 +63,8 @@ targets:
       - package: CoreAISamplesKit
         product: RAGContext
       - package: CoreAISamplesKit
+        product: RAGDocumentRuntime
+      - package: CoreAISamplesKit
         product: FeatureStore
       - package: CoreAISamplesKit
         product: ProductCore
