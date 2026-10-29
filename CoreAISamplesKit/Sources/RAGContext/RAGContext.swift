@@ -24,10 +24,18 @@ public enum RAGContext {
     public static let sourceTokenBudget = 3_000
     public static let promptTokenBudget = 8_000
 
+    public static func fingerprint(_ text: String) -> String {
+        fingerprint(Data(text.utf8))
+    }
+
+    public static func fingerprint(_ data: Data) -> String {
+        SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
+    }
+
     public static func documentSources(
         title: String, url: String, document: String? = nil, date: String = "", text: String
     ) -> [RAGSource] {
-        let version = SHA256.hash(data: Data(text.utf8)).map { String(format: "%02x", $0) }.joined()
+        let version = fingerprint(text)
         var result: [RAGSource] = []
         var start = text.startIndex
         var offset = 0
