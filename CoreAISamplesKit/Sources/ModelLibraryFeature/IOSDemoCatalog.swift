@@ -109,7 +109,27 @@ public enum IOSDemoCatalog {
                     explanation: [
                         DemoExplanation(
                             title: "How it works",
-                            text: "Generate 512-square images from a prompt, or provide one reference image to edit.")
+                            text: "Generate 512-square images from a prompt, or provide one reference image to edit."),
+                        DemoExplanation(
+                            title: "1. Prepare the model",
+                            text:
+                                "Import the complete prepared Qwen Image folder from Files. It uses 13.78 GB, plus space for the app copy. This build does not provide a model download."
+                        ),
+                        DemoExplanation(
+                            title: "2. Describe the image",
+                            text:
+                                "Enter a prompt. To edit an image, choose one reference and confirm the square crop. Keep the same seed to repeat the same request."
+                        ),
+                        DemoExplanation(
+                            title: "3. Generate and save",
+                            text:
+                                "Generation takes several minutes. Keep the app open. Stop waits for the current operation to finish. Save or share the completed PNG."
+                        ),
+                        DemoExplanation(
+                            title: "Device and model requirements",
+                            text:
+                                "This build enables Qwen Image on iPhone 17 Pro with iOS 27.0.1. Check the included LICENSE and NOTICE for the model terms. Your prompt and reference image stay on the device."
+                        ),
                     ], platforms: [.iOS], searchTerms: searchTerms["image-generation"]))
             models.append(
                 LibraryModel(
