@@ -129,14 +129,14 @@ let package = Package(
             dependencies: [
                 "ModelLibraryFeature", "GLiNERRuntime", "EmbeddingRuntime", "ImageGenerationCore", "SpeechAssets",
             ],
-            swiftSettings: speechSettings),
+            resources: [.process("Resources")], swiftSettings: speechSettings),
         .testTarget(
             name: "ModelLibraryStorageTests",
             dependencies: [
                 "ModelLibraryStorage", "ModelLibraryFeature", "GLiNERRuntime", "EmbeddingCore", "SpeechAssets",
                 "ModelLibraryTestSupport",
             ],
-            swiftSettings: speechSettings),
+            resources: [.copy("Resources")], swiftSettings: speechSettings),
         .target(
             name: "ModelLibraryTestSupport", dependencies: ["ModelLibraryFeature", "ModelLibraryStorage"],
             path: "Tests/ModelLibraryTestSupport", resources: [.copy("Resources")], swiftSettings: speechSettings),

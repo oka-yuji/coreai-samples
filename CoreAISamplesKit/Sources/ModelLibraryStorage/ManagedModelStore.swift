@@ -426,6 +426,7 @@ private enum ContractFamily {
     case embedding(precision: String)
     case image
     case speech
+    case ocr
 }
 
 private struct ContractSource: Decodable {
@@ -435,6 +436,12 @@ private struct ContractSource: Decodable {
 
 private func family(_ artifact: ModelArtifact) throws -> ContractFamily {
     if artifact.localBundle != nil {
+        if artifact.contract == TeleOCRModelArtifact.contract {
+            guard artifact == (try TeleOCRModelArtifact.make()) else {
+                throw ManagedModelStoreError.contractMismatch("TeleOCR inventory")
+            }
+            return .ocr
+        }
         if let profile = SpeechBundleProfile(rawValue: artifact.contract) {
             guard artifact == (try IrodoriModelArtifact.make(profile: profile)) else {
                 throw ManagedModelStoreError.contractMismatch("Irodori inventory")
@@ -566,6 +573,8 @@ private func verify(_ directory: URL, _ artifact: ModelArtifact) throws {
         }
     case .speech:
         try IrodoriBundleInventory.validateManifest(Data(contentsOf: directory.appending(path: "irodori.json")))
+    case .ocr:
+        try TeleOCRModelArtifact.validateManifest(Data(contentsOf: directory.appending(path: "metadata.json")))
     case .image:
         let raw = try Data(contentsOf: directory.appending(path: "bundle.json"))
         try verifyImageManifest(raw, artifact)
@@ -628,6 +637,7 @@ private func verifyLocalManifest(_ raw: Data, _ artifact: ModelArtifact) throws 
     switch try family(artifact) {
     case .image: try verifyImageManifest(raw, artifact)
     case .speech: try IrodoriBundleInventory.validateManifest(raw)
+    case .ocr: try TeleOCRModelArtifact.validateManifest(raw)
     default: throw ManagedModelStoreError.invalidDefinition
     }
 }

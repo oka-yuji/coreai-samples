@@ -99,4 +99,6 @@
 
 - Irodoriの実バンドル取り込み検査は共有heavy-jobロック下で `COREAI_IRODORI_IMPORT_BUNDLE=/path/to/sampler-irodori-fp32 swift test --package-path CoreAISamplesKit --filter IrodoriImportTests.knownBundle`。固定14ファイルを一時管理領域へコピーし、検査・lease・改変/欠損/余分/symlinkの拒否を確認する。モデル推論は行わない。既定実行はskip。元フォルダは変更しない。
 
+- TeleOCRの実bundle登録検査は共有heavy-jobロック下で `COREAI_TELEOCR_IMPORT_BUNDLE=/path/to/evaluated-dynamic-fp16-bundle swift test --package-path CoreAISamplesKit --filter TeleOCRImportTests.knownBundle`。固定19ファイルのsize/hash・import/inspect・失敗時の旧登録保持・lease中の削除拒否・解放後の削除・元bundle不変を確認する。推論は行わず、既定実行ではskipする。
+
 - Irodori voice input uses an actor-owned recorder and reader. Recording control carries the SpeechFeature session ticket through the service and is checked inside the recorder; stop cancels the pending recording-control effect. Delegate events use a per-recording stream. iOS decoder EFR is false after the dynamic-allocation device failure; Mac decoder EFR is unchanged. `COREAI_TRACE_STAGES=1` logs only asset names, shapes and settings for explicit diagnostics. No normal launch records or generates automatically.
