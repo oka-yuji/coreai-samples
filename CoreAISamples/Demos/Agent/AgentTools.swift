@@ -279,7 +279,7 @@ enum AgentTools {
         try await downloadPage(url: url).text
     }
 
-    static func downloadPage(url: URL) async throws -> (text: String, finalURL: URL?) {
+    static func downloadPage(url: URL) async throws -> (text: String, finalURL: URL?, contentType: String) {
         let policy = AgentFetchPolicy()
         try await policy.validate(url)
         let redirects = AgentFetchRedirects(policy: policy)
@@ -310,7 +310,7 @@ enum AgentTools {
                 throw AgentToolMessage(text: "error: page too large", fatal: true)
             }
         }
-        return (decodeText(Data(bytes), encodingName: response.textEncodingName), response.url)
+        return (decodeText(Data(bytes), encodingName: response.textEncodingName), response.url, type)
     }
 
     static func decodeText(_ data: Data, encodingName: String?) -> String {

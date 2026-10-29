@@ -18,11 +18,14 @@ public struct RAGEvaluationDocument: Codable, Equatable, Sendable {
 
     public var isWeb: Bool { url.hasPrefix("https://") }
 
-    public var sources: [RAGSource] {
-        RAGContext.documentSources(
-            title: title, url: isWeb ? url : (URL(string: url)?.lastPathComponent ?? title),
-            document: url, date: date, text: text)
+    public var snapshot: RAGDocumentSnapshot {
+        RAGDocumentSnapshot(
+            id: url, url: isWeb ? url : (URL(string: url)?.lastPathComponent ?? title), finalURL: url,
+            title: title, date: date, raw: raw, text: text, format: RAGDocumentFormat(rawValue: format) ?? .text)
     }
+
+    public var sources: [RAGSource] { snapshot.sources }
+
 }
 
 public struct RAGEvaluationEvidence: Codable, Equatable, Sendable {

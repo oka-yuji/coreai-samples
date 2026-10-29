@@ -1,7 +1,7 @@
 import ConversationFeature
 import Foundation
-import PDFKit
 import RAGContext
+import RAGDocumentRuntime
 import SwiftUI
 
 struct RAGSettings: Sendable {
@@ -13,6 +13,8 @@ struct RAGSettings: Sendable {
     var pageCharacterBudget = 3_000
     var sourceTokenBudget = RAGContext.sourceTokenBudget
     var today = RAGContext.today()
+    var captureStructure = false
+    var recordsDiagnostics = false
     var documentsDirectory: URL = RAGRetriever.defaultDocumentsDirectory()
 
     static let budgetChoices = [3_000, 6_000]
@@ -22,6 +24,7 @@ struct RAGSettings: Sendable {
     @MainActor
     static func fromDefaults() -> RAGSettings {
         var settings = RAGSettings()
+        settings.captureStructure = LaunchArguments.flag("--rag-structure")
         settings.braveAPIKey = UserDefaults.standard.string(forKey: ConversationPreferences.braveKeyKey) ?? ""
         if let path = LaunchArguments.value("--rag-docs") {
             settings.documentsDirectory = URL(filePath: path, directoryHint: .isDirectory)
@@ -37,6 +40,7 @@ struct RAGRetrieval: Sendable {
     var pagesRead = 0
     var candidates = 0
     var candidatePassages: [RAGSource] = []
+    var documents: [RAGDocumentSnapshot] = []
     var sourceTokens = 0
     var seconds: Double = 0
 
@@ -73,7 +77,7 @@ enum RAGRetriever {
         let settings = inputs.configure(settings)
         var out = RAGRetrieval()
         var candidates: [RAGSource] = []
-        guard !Task.isCancelled else { return out }
+        guard !Task.isCancelled else { return RAGRetrieval() }
 
         if settings.local {
             let local = inputs.local(settings.documentsDirectory)
@@ -82,17 +86,19 @@ enum RAGRetriever {
                     "Documents: no readable .txt, .md or .pdf file in \(settings.documentsDirectory.path(percentEncoded: false))"
                 )
             }
-            candidates += local
+            let documents = local.map { settings.captureStructure ? RAGStructureReader.read($0) : $0 }
+            if settings.captureStructure || settings.recordsDiagnostics { out.documents += documents }
+            candidates += documents.flatMap(\.sources)
         }
 
-        guard !Task.isCancelled else { return out }
+        guard !Task.isCancelled else { return RAGRetrieval() }
         if settings.web {
             candidates += await webCandidates(question: question, settings: settings, inputs: inputs, into: &out)
         }
 
-        guard !Task.isCancelled else { return out }
+        guard !Task.isCancelled else { return RAGRetrieval() }
         out.candidates = candidates.count
-        out.candidatePassages = candidates
+        if settings.recordsDiagnostics { out.candidatePassages = candidates }
         let fixed = count(RAGContext.prompt(question: question, sources: [], today: settings.today))
         out.sources = RAGContext.select(
             candidates, question: question,
@@ -140,19 +146,27 @@ enum RAGRetriever {
             }
 
         let budget = settings.pageCharacterBudget
-        let read = await withTaskGroup(of: (Int, [RAGSource], String?).self) { group in
+        let capture = settings.captureStructure
+        let retain = capture || settings.recordsDiagnostics
+        let read = await withTaskGroup(of: (Int, [RAGSource], RAGDocumentSnapshot?, String?).self) { group in
             for (index, pair) in wanted.enumerated() {
                 group.addTask {
-                    await passages(from: pair.0, url: pair.1, question: question, budget: budget, read: inputs.read)
-                        .map { (index, $0, nil) } ?? (index, [], "Could not read \(pair.1.absoluteString)")
+                    if let result = await passages(
+                        from: pair.0, url: pair.1, question: question, budget: budget,
+                        capture: capture, read: inputs.read)
+                    {
+                        return (index, result.sources, retain ? result.document : nil, nil)
+                    }
+                    return (index, [], nil, "Could not read \(pair.1.absoluteString)")
                 }
             }
-            var rows: [(Int, [RAGSource], String?)] = []
+            var rows: [(Int, [RAGSource], RAGDocumentSnapshot?, String?)] = []
             for await row in group { rows.append(row) }
             return rows.sorted { $0.0 < $1.0 }
         }
         out.pagesRead = read.filter { !$0.1.isEmpty }.count
-        out.notes += read.compactMap(\.2)
+        out.notes += read.compactMap(\.3)
+        out.documents += read.compactMap(\.2)
         return read.flatMap(\.1)
     }
 
@@ -182,31 +196,31 @@ enum RAGRetriever {
     }
 
     static func passages(
-        from result: AgentTools.SearchResult, url: URL, question: String, budget: Int,
-        read: @Sendable (URL) async throws -> (html: String, text: String)
-    ) async
-        -> [RAGSource]?
-    {
-        let html: String
-        let text: String
-        do {
-            (html, text) = try await read(url)
-        } catch {
+        from result: AgentTools.SearchResult, url: URL, question: String, budget: Int, capture: Bool,
+        read: @Sendable (URL) async throws -> RAGPage
+    ) async -> (sources: [RAGSource], document: RAGDocumentSnapshot)? {
+        let page: RAGPage
+        do { page = try await read(url) } catch {
             AgentTools.log("[rag] \(url.absoluteString) read failed: \(error)")
             return nil
         }
-        guard !text.isEmpty else { return nil }
-
+        guard !page.text.isEmpty, !Task.isCancelled else { return nil }
         let date =
-            RAGContext.publishedDate(html: html)
+            RAGContext.publishedDate(html: page.raw)
             ?? RAGContext.isoDate(in: result.snippet)
-            ?? RAGContext.isoDate(in: String(text.prefix(600)))
-            ?? ""
+            ?? RAGContext.isoDate(in: String(page.text.prefix(600))) ?? ""
         let title = result.title.isEmpty ? (url.host() ?? url.absoluteString) : result.title
-        let candidates = RAGContext.documentSources(title: title, url: url.absoluteString, date: date, text: text)
-        return RAGContext.select(
-            candidates, question: question, budget: budget, count: { $0.count }, rank: bestRanking)
+        let acquired = RAGDocumentSnapshot(
+            id: url.absoluteString, url: url.absoluteString, finalURL: page.finalURL, title: title,
+            date: date, raw: page.raw, text: page.text, format: page.format)
+        let document = capture ? RAGStructureReader.read(acquired) : acquired
+        guard !Task.isCancelled else { return nil }
+        let sources = RAGContext.select(
+            document.sources, question: question, budget: budget,
+            count: { $0.count }, rank: bestRanking)
+        return (sources, document)
     }
+
 }
 
 struct RAGControls: View {

@@ -16,6 +16,9 @@ enum RAGEvaluationCommand {
             try manifest.validate(strategy: strategy, requiresModelPin: !LaunchArguments.flag("--validate-only"))
             for item in manifest.cases { _ = try RAGEvaluationReplay(manifest: manifest, item: item) }
             if LaunchArguments.flag("--validate-only") {
+                if let output = LaunchArguments.value("--structure-output") {
+                    try await RAGStructureInspection.inspect(manifest, output: URL(filePath: output))
+                }
                 print("RAG EVALUATION VALID: \(manifest.cases.count) cases, \(manifest.documents.count) documents")
                 return 0
             }
@@ -103,6 +106,7 @@ enum RAGEvaluationCommand {
                 settings.pagesToRead = manifest.settings.pagesToRead
                 settings.pageCharacterBudget = manifest.settings.pageCharacterBudget
                 settings.today = manifest.settings.today
+                settings.recordsDiagnostics = true
                 return settings
             },
             local: inputs.local,
@@ -150,6 +154,7 @@ enum RAGEvaluationCommand {
         result.sourceIDsValid = runner.citationGuard.checks.last?.local.map { !$0.violation }
         result.finishReason = state.lastFinish.rawValue
         result.citationOutcome = runner.citationGuard.outcome
+        result.documents = runner.lastRetrieval?.documents
         result.candidates = (runner.lastRetrieval?.candidatePassages ?? []).compactMap(passage)
         let supplied = runner.tools.sources.records.filter {
             runner.tools.suppliedSourceIDs.contains($0.id)
