@@ -1,0 +1,11 @@
+# Hosted image checks
+
+`CoreAISamples-ImageTests` uses the existing iOS app as its test host. Ordinary tests exercise image inputs and the memory-summary logic without loading a model. The resource-only bundles listed in `image_test_resources.xcfilelist` are build inputs to the inner signing script, so Xcode must copy them before signing. Keep this list consistent with the test target's resolved resources; a post-build script position alone does not establish that dependency.
+
+`ImageDeviceCalibrationTests` is disabled unless the test environment contains `COREAI_IMAGE_CALIBRATION_CONFIG`. Run it only while holding the repository's shared heavy-job lock and after confirming exclusive use of the connected phone. It does not register an artifact or bypass the native service's bundle validation and memory reserve.
+
+The environment value is a path relative to the app's Documents folder. Its JSON contains `runID`, `requests` (one or two existing native diagnostic request paths relative to Documents), and `repetitions` (1–20). Each request must have `trace=false`, matching hardware/OS, a complete budget and hashed fixed noise; a reference PNG is optional. Use a new run ID each time. The output directory is `Documents/image-calibration-<runID>`, with immutable input, PNG/raw image and `measurement.json` per attempt. `completed.txt` is written only after every attempt succeeds. App process termination and host-control outcomes must also be checked separately.
+
+Each call uses a new service in the same app process. It joins and releases before the next call and records memory immediately, after 500 ms and after 5 seconds. The app stays awake during the explicitly selected test and refuses model work when it is not active.
+
+Memory observations target a 10 ms interval. Summaries retain actual maximum gaps, invalid samples, sampled maxima and cumulative kernel lifetime peak separately. Progress intervals include host work between runtime boundaries and are not exact kernel phase peaks. The 5-second observation delay is part of the recorded repeated-use protocol. `startToImageSeconds` covers the service call and PNG preparation, not a UI interaction benchmark. These records alone do not establish quality acceptance, warm p95 or the suitability of a production budget.

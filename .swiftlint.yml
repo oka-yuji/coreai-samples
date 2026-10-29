@@ -1,5 +1,6 @@
 included:
   - CoreAISamples
+  - CoreAISamplesImageTests
   - SpeechPhone
   - CoreAISamplesKit/Sources
   - CoreAISamplesKit/Tests

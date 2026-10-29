@@ -262,10 +262,14 @@ targets:
         product: ImageGenerationCore
       - package: CoreAISamplesKit
         product: ImageGenerationRuntime
+      - package: CoreAISamplesKit
+        product: ModelLibraryFeature
     postBuildScripts:
       - name: Sign hosted image test resources
         script: '"$SRCROOT/Tools/Testing/sign_test_resources.sh"'
         shell: /bin/bash
+        inputFileLists:
+          - $(SRCROOT)/Tools/Testing/image_test_resources.xcfilelist
         basedOnDependencyAnalysis: false
     settings:
       base:
