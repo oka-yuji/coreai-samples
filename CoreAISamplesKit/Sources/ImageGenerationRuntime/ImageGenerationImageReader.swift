@@ -2,18 +2,41 @@ import CoreGraphics
 import Foundation
 import ImageGenerationCore
 import ImageIO
+import UniformTypeIdentifiers
 
 public enum ImageGenerationImageReader {
     public static func read(_ url: URL) throws -> ImageGenerationPixels {
         let accessed = url.startAccessingSecurityScopedResource()
         defer { if accessed { url.stopAccessingSecurityScopedResource() } }
-        guard let source = CGImageSourceCreateWithURL(url as CFURL, nil), CGImageSourceGetCount(source) == 1,
+        guard let source = CGImageSourceCreateWithURL(url as CFURL, nil) else {
+            throw ImageGenerationError.unsupportedImage
+        }
+        if CGImageSourceGetType(source) as String? == UTType.png.identifier {
+            return try ImageGenerationPNG.read(url)
+        }
+        return try read(source)
+    }
+
+    public static func read(_ data: Data) throws -> ImageGenerationPixels {
+        guard let source = CGImageSourceCreateWithData(data as CFData, nil) else {
+            throw ImageGenerationError.unsupportedImage
+        }
+        if CGImageSourceGetType(source) as String? == UTType.png.identifier {
+            return try ImageGenerationPNG.decode(data)
+        }
+        return try read(source)
+    }
+
+    private static func read(_ source: CGImageSource) throws -> ImageGenerationPixels {
+        guard CGImageSourceGetCount(source) == 1,
             let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
             let width = properties[kCGImagePropertyPixelWidth] as? Int,
             let height = properties[kCGImagePropertyPixelHeight] as? Int,
-            width > 0, height > 0, width <= 32_768, height <= 32_768, width * height <= 40_000_000,
-            let image = CGImageSourceCreateImageAtIndex(source, 0, nil)
+            width > 0, height > 0, width <= 32_768, height <= 32_768, width * height <= 40_000_000
         else { throw ImageGenerationError.unsupportedImage }
+        guard let image = CGImageSourceCreateImageAtIndex(source, 0, nil) else {
+            throw ImageGenerationError.unsupportedImage
+        }
         return try read(image).oriented(properties[kCGImagePropertyOrientation] as? Int ?? 1)
     }
 

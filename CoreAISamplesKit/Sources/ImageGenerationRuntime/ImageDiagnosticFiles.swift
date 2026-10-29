@@ -100,11 +100,9 @@ public actor ImageDiagnosticFiles {
                 let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
                 let width = properties[kCGImagePropertyPixelWidth] as? Int,
                 let height = properties[kCGImagePropertyPixelHeight] as? Int,
-                (1...1_024).contains(width), (1...1_024).contains(height),
-                let image = CGImageSourceCreateImageAtIndex(source, 0, nil)
+                (1...1_024).contains(width), (1...1_024).contains(height)
             else { throw ImageExecutionError.invalidResource }
-            reference = try ImageGenerationImageReader.read(image)
-                .oriented(properties[kCGImagePropertyOrientation] as? Int ?? 1).squareReference()
+            reference = try ImageGenerationImageReader.read(data).squareReference()
         } else {
             reference = nil
         }

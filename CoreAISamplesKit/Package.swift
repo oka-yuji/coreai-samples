@@ -69,6 +69,7 @@ let package = Package(
     ],
     dependencies: [
         .package(path: "../Vendor/IrodoriInputKit"),
+        .package(path: "../Vendor/PNGInputKit"),
         .package(url: "https://github.com/huggingface/swift-transformers", from: "1.3.4"),
         .package(url: "https://github.com/huggingface/swift-jinja.git", from: "2.5.1"),
         .package(url: "https://github.com/scinfu/SwiftSoup.git", exact: "2.14.3"),
@@ -110,6 +111,7 @@ let package = Package(
             dependencies: [
                 "ImageGenerationCore", "ImageGenerationFeature", "ImageDiagnosticFeature", "FeatureStore",
                 "ModelLibraryFeature",
+                .product(name: "CImagePNG", package: "PNGInputKit"),
                 .product(name: "Tokenizers", package: "swift-transformers"),
                 .product(name: "Hub", package: "swift-transformers"),
             ], swiftSettings: speechSettings),
@@ -117,6 +119,7 @@ let package = Package(
             name: "ImageGenerationTests",
             dependencies: [
                 "ImageGenerationCore", "ImageGenerationRuntime", "ModelLibraryFeature", "ModelLibraryTestSupport",
+                .product(name: "CImagePNG", package: "PNGInputKit"),
             ],
             resources: [.copy("Resources")], swiftSettings: speechSettings),
         .target(

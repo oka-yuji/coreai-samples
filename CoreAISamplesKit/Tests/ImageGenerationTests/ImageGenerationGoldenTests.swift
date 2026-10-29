@@ -212,7 +212,7 @@ struct NativeGolden: Decodable {
     let savedNoise: SavedNoise
 
     static func resource(_ name: String) throws -> URL {
-        try #require(Bundle.module.resourceURL).appending(path: "Resources/" + name)
+        try #require(Bundle.module.url(forResource: name, withExtension: nil, subdirectory: "Resources"))
     }
 
     static func load() throws -> Self {
