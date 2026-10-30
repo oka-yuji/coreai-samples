@@ -49,7 +49,7 @@ public enum FetchAddressPolicy {
             + ipv4.map { $0 + #"\.?"# }
             + ipv6.map { #"\["# + $0 + #"(%[a-z0-9._-]+)?\]"# }
             + (ipv4 + mapped).map { #"\[::ffff:"# + $0 + #"(%[a-z0-9._-]+)?\]"# }
-        return hosts.map { #"^[a-z]+://([^/@]*@)?"# + $0 + "[/:]" }
+        return hosts.map { #"^[a-z]+://([^/@]*@)?"# + $0 + "[/:]" } + ["^http://"]
     }()
 
     public static func contentRules() throws -> String {
