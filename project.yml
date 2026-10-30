@@ -126,7 +126,7 @@ targets:
         INFOPLIST_KEY_CFBundleDisplayName: Core AI Demos
         INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.developer-tools
         INFOPLIST_KEY_NSHumanReadableCopyright: ""
-        ENABLE_HARDENED_RUNTIME: "NO"
+        ENABLE_HARDENED_RUNTIME: "YES"
         ENABLE_APP_SANDBOX: "NO"
 
   CoreAISamples-iOS:
