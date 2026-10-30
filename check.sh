@@ -46,7 +46,7 @@ check_stage=build-app
 printf 'CHECK RUN: %s\n' "$check_stage"
 check_output="$check_root/.build/check"
 xcodebuild -project CoreAISamples.xcodeproj -scheme CoreAISamples -configuration Release \
-    -destination 'platform=macOS' -derivedDataPath "$check_output/DerivedData" build
+    -destination 'platform=macOS' -derivedDataPath "$check_output/DerivedData" -onlyUsePackageVersionsFromResolvedFile build
 check_stage=agent-offline
 printf 'CHECK RUN: %s\n' "$check_stage"
 "$check_output/DerivedData/Build/Products/Release/CoreAISamples.app/Contents/MacOS/CoreAISamples" --agent-selftest --offline
