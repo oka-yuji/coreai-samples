@@ -9,7 +9,7 @@
   swiftlint lint --config .swiftlint.yml --baseline .swiftlint-baseline.json --strict --no-cache
   python3 Tools/Format/check_format.py --base origin/main
   ./Tools/Irodori/build-inputs.sh
-  swift test --package-path CoreAISamplesKit
+  swift test --package-path CoreAISamplesKit --force-resolved-versions
   xcodebuild -project CoreAISamples.xcodeproj -scheme CoreAISamples -configuration Release -destination 'platform=macOS' -onlyUsePackageVersionsFromResolvedFile build
   ```
 

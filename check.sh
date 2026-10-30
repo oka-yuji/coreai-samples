@@ -27,21 +27,31 @@ check_stage=model-reports
 printf 'CHECK RUN: %s\n' "$check_stage"
 python3 -m Tools.ModelReports check
 python3 -m unittest discover -s Tools/ModelReports/tests -v
+check_stage=package-pins
+printf 'CHECK RUN: %s\n' "$check_stage"
+python3 -I - <<'PY'
+import json
+kit = {pin["identity"]: pin["state"] for pin in json.load(open("CoreAISamplesKit/Package.resolved"))["pins"]}
+verify = {pin["identity"]: pin["state"] for pin in json.load(open("Tools/Verify/Package.resolved"))["pins"]}
+differing = sorted(name for name in kit if verify.get(name) != kit[name])
+if differing:
+    raise SystemExit(f"Tools/Verify/Package.resolved differs from CoreAISamplesKit/Package.resolved: {differing}")
+PY
 check_stage=build-irodori-inputs
 printf 'CHECK RUN: %s\n' "$check_stage"
 ./Tools/Irodori/build-inputs.sh
 check_stage=build-kit
 printf 'CHECK RUN: %s\n' "$check_stage"
-swift build --package-path CoreAISamplesKit
+swift build --package-path CoreAISamplesKit --force-resolved-versions
 check_stage=test-without-models
 printf 'CHECK RUN: %s\n' "$check_stage"
-swift test --package-path CoreAISamplesKit --no-parallel
+swift test --package-path CoreAISamplesKit --force-resolved-versions --no-parallel
 check_stage=build-verify
 printf 'CHECK RUN: %s\n' "$check_stage"
-swift build --package-path Tools/Verify -c release
+swift build --package-path Tools/Verify -c release --force-resolved-versions
 check_stage=test-verify-without-models
 printf 'CHECK RUN: %s\n' "$check_stage"
-swift test --package-path Tools/Verify -c release --no-parallel
+swift test --package-path Tools/Verify -c release --force-resolved-versions --no-parallel
 check_stage=build-app
 printf 'CHECK RUN: %s\n' "$check_stage"
 check_output="$check_root/.build/check"
