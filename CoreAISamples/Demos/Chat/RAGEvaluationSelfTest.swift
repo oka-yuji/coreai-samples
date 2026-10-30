@@ -33,6 +33,29 @@ enum RAGEvaluationSelfTest {
                 settings: AgentToolSettings())
             check(
                 "rag-eval/unknown-page", unknown.finalURL == nil && unknown.text.contains("not recorded"), unknown.text)
+            var replays: [String] = []
+            for flagged in [true, false] {
+                let replayed = try RAGEvaluationReplay(manifest: manifest, item: item)
+                let preferences = ConversationPreferences(persists: false)
+                preferences.replaysRecordedTools = flagged
+                let tools = ToolRunner(
+                    preferences: preferences,
+                    executor: { await replayed.execute($0, settings: preferences.toolSettings) })
+                _ = await tools.execute(
+                    AgentToolCall(name: "web_search", arguments: [.init(name: "query", value: item.question)]))
+                let url = replayed.documents.first(where: \.isWeb)?.url ?? ""
+                let page = await tools.execute(
+                    AgentToolCall(name: "fetch_page", arguments: [.init(name: "url", value: url)]))
+                let fetched = replayed.trace.withLock { $0.requests.contains("fetch: " + url) }
+                replays.append(
+                    "\(flagged ? "flagged" : "unflagged"): refused=\(page == ToolRunner.fetchOriginRefusal) "
+                        + "replayed=\(fetched) ledger=\(tools.ledger.count)")
+            }
+            check(
+                "rag-eval/replay-skips-origin-check",
+                replays == [
+                    "flagged: refused=false replayed=true ledger=1", "unflagged: refused=true replayed=false ledger=0",
+                ], replays.joined(separator: " | "))
             await native(manifest: manifest, item: item, strategy: .flat, check: check)
             await native(manifest: manifest, item: item, strategy: .structureBM25, check: check)
             await native(manifest: manifest, item: item, strategy: .structureLLM, check: check)
@@ -64,6 +87,7 @@ enum RAGEvaluationSelfTest {
             preferences.resetForHeadless()
             preferences.fixedDate = manifest.settings.today
             preferences.notesFolderPath = directory.appending(path: "notes").path
+            preferences.replaysRecordedTools = true
             let model = RAGEvaluationFixtureModel(
                 selectionReply: failsSelection ? "ERROR" : abstains ? "NONE" : "C1",
                 writesNote: mode == .work && strategy != .flat)

@@ -564,6 +564,7 @@ enum AgentSelfTest {
         await ConversationSourcesSelfTest.run { name, passed, detail in check(name, passed, detail) }
         await ConversationBudgetSelfTest.run { name, passed, detail in check(name, passed, detail) }
         await ConversationAccessSelfTest.run { name, passed, detail in check(name, passed, detail) }
+        await FetchProvenanceSelfTest.run { name, passed, detail in check(name, passed, detail) }
         await RAGEvaluationSelfTest.run { name, passed, detail in check(name, passed, detail) }
         await RAGStructureSelfTest.run { name, passed, detail in check(name, passed, detail) }
         await RAGSelectionSelfTest.run { name, passed, detail in check(name, passed, detail) }

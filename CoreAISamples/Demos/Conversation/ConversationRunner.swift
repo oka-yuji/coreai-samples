@@ -127,6 +127,7 @@ final class ConversationRunner {
         if !repair && !policy.answerOnly {
             let guarding = policy.mode == .work && policy.citationGuard
             tools.beginTask(guardActive: guarding, continuing: policy.continuing)
+            if !policy.continuing { tools.requests.append(prompt) }
             citationGuard.begin(
                 active: guarding, suppliedSourcesRequired: policy.sourceRequest != nil || policy.sourceIDs != nil)
             lastRetrieval = nil
@@ -334,7 +335,8 @@ final class ConversationRunner {
             savedRevisions[snapshot.id] = snapshot.revision
             tools.restoreEvidence(
                 snapshot.evidence ?? ConversationEvidence(), notesDirectory: tools.preferences.notesDirectory,
-                suppliedSourceIDs: snapshot.suppliedSourceIDs)
+                suppliedSourceIDs: snapshot.suppliedSourceIDs,
+                requests: snapshot.turns.filter { $0.kind == .normal }.map(\.prompt))
             return .snapshot(restored)
         } catch {
             return .readOnly(id: snapshot.id, markdown: snapshot.markdown(), reason: error.localizedDescription)
