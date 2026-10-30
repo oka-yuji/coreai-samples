@@ -40,8 +40,9 @@ acceptance remain separate from this conversion experiment.
 ## Environment and local bindings
 
 Use a dedicated Python 3.11 environment under `.local/conversion/magpie`. Install
-the packages in `requirements.lock`, then install the clean NeMo checkout at the
-revision in `model.json` as editable with `uv pip install --no-deps -e <checkout>`.
+the packages with `uv pip install --require-hashes -r requirements.lock`, then
+install the clean NeMo checkout at the revision in `model.json` separately as
+editable with `uv pip install --no-deps -e <checkout>`.
 The lock intentionally excludes the machine-specific editable checkout path.
 `peft` is included because this NeMo revision imports speechlm2 through its TTS
 module initializer. No CUDA, MPS or Metal reference kernel is required for the

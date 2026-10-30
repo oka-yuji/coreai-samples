@@ -473,6 +473,28 @@ enum AgentSelfTest {
                 settings: AgentToolSettings(notesDirectory: movesIn)
             ).text)
         check("notes/moveRefused", refusals.allSatisfy { $0.hasPrefix("error:") }, refusals.joined(separator: " | "))
+        do {
+            let written = try await AgentTools.notes.write(
+                title: "Managed move", fileName: "Managed move.md", content: "body", directory: movesIn)
+            let published = try await AgentTools.notes.publish(written, directory: movesIn)
+            var settings = AgentToolSettings(notesDirectory: movesIn)
+            settings.allowFileOperations = true
+            let moved = await AgentTools.run(
+                AgentToolCall(
+                    name: "move_note",
+                    arguments: [
+                        AgentArgument(name: "title", value: "Managed move"),
+                        AgentArgument(name: "destination", value: archive.path(percentEncoded: false)),
+                    ]),
+                settings: settings)
+            check(
+                "notes/moveManaged",
+                moved.text.hasSuffix("/archive/Managed move.md") && moved.note?.id == written.id
+                    && moved.note.map { FileManager.default.fileExists(atPath: $0.path.path) } == true
+                    && !FileManager.default.fileExists(atPath: published.path.path), moved.text)
+        } catch {
+            check("notes/moveManaged", false, "\(error)")
+        }
         try? FileManager.default.removeItem(at: movesIn)
 
         check(
