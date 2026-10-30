@@ -94,6 +94,7 @@
 
 - The Mac and iOS 27 speech runtime uses the pinned Rust input adapter in `Vendor/IrodoriInputKit`. Build it with `Tools/Irodori/build-inputs.sh` before package tests. These operations do not execute Core AI models.
 - `SpeechCore` and `SpeechFeature` are pure-logic targets. `SpeechRuntime` owns a single in-flight operation and holds its busy gate across suspension. A release waits for that operation to finish; it does not clear a newer pipeline after resuming.
+- `ValidatedSpeechBundle.open` reads only the pinned inventory: each file is opened through descriptors without following symlinks, cloned with `fclonefileat` into a temporary folder and verified there. The verified copy lives at `Caches/<bundle ID>/IrodoriVerified/<manifest SHA-256>/` and is reused while complete, so the Core AI cache source keeps the same path and files. On iOS a copy that cannot be cloned fails the open; on the Mac the bundle is verified in place instead (#404).
 - Test display names and source follow the existing English-only/no-comments rules. Model generation and listening in the app are user acceptance checks for this change.
 - `SpeechFeature` owns session and save-panel tickets. `Store` owns task cancellation; `SpeechRunner`/`LiveSpeechService` join runtime release before acknowledging stop. `AudioPlayback` resolves its continuation after synchronous stop instead of waiting for a delegate completion callback. CPU tests use fake devices.
 
