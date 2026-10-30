@@ -141,7 +141,6 @@
 		6C76B33D12B95B500FFBC49B /* InspectionRecognition.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5752BFE3276EAB49C2ADF091 /* InspectionRecognition.swift */; };
 		6DC89743479937677DB58337 /* ExtractService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7E148DB501CB7AAE81691D6 /* ExtractService.swift */; };
 		6E1288DCFF4EB3C80D6489BB /* ExtractRuntime in Frameworks */ = {isa = PBXBuildFile; productRef = FC34C7EEA9DBB693609F3C26 /* ExtractRuntime */; };
-		6F2A325693E09FFFCD1CE02D /* ImageGenerationCore in Frameworks */ = {isa = PBXBuildFile; productRef = 4DE99B8BBBE7EAE1E0BBE06F /* ImageGenerationCore */; };
 		6FE46EE9CAE1DAB20FED4B75 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C8BB1C51D3BFC85B5F047FD0 /* Localizable.xcstrings */; };
 		70AF18D9E3D418DAEB7227A1 /* RecipeModelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C788E9F664AA9590A13BF66C /* RecipeModelView.swift */; };
 		734D57E0658E75EE0DC17986 /* CitationGuard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B01769CA25F5F41CFA1E93F /* CitationGuard.swift */; };
@@ -226,7 +225,6 @@
 		B6E6CA2DA418633553FF400B /* SpeechAssembly.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EF067F2F1108F44E0873891 /* SpeechAssembly.swift */; };
 		B7CA6BBDF59AF0DE6461871B /* ComposerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8DF2AB7669E5A655B829AA2A /* ComposerView.swift */; };
 		BB8E7BC8719150928F11C961 /* OCRFeature in Frameworks */ = {isa = PBXBuildFile; productRef = 6A0FB60EDAA08CEE3E6FFC03 /* OCRFeature */; };
-		BDC0F280D0F2D8703A5AAB7A /* ModelLibraryFeature in Frameworks */ = {isa = PBXBuildFile; productRef = 76E7610462EA2BF0F074B3C8 /* ModelLibraryFeature */; };
 		BE5297A9C5729D047A6B0A4D /* ObjectFinderFeature in Frameworks */ = {isa = PBXBuildFile; productRef = 69B40134CCF3862045F4E7C5 /* ObjectFinderFeature */; };
 		BF2A48F1993C91C4541D02DC /* ImageSearchSelfTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 555173E2E133C5066E8482E1 /* ImageSearchSelfTest.swift */; };
 		C0366556B44891DDD42D78D0 /* ModelsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B70B30B00E918D18EE2AA983 /* ModelsView.swift */; };
@@ -300,7 +298,6 @@
 		F7CB94E32AB3EAADDC578D24 /* ImageDeviceCalibrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DEF20038F33CBAE85614A13 /* ImageDeviceCalibrationTests.swift */; };
 		F849992D914CB583ACAB84A3 /* image-search-reference.json in Resources */ = {isa = PBXBuildFile; fileRef = 97A66460729265871B0AEACF /* image-search-reference.json */; };
 		F8E2A64FD4FCB0220D394B60 /* LaunchArguments.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0477EBADA2061C5A4A49EFE4 /* LaunchArguments.swift */; };
-		F95EED7CDC936296CA7C84E7 /* ImageGenerationRuntime in Frameworks */ = {isa = PBXBuildFile; productRef = 5D3F6809A439FE571A2A9679 /* ImageGenerationRuntime */; };
 		FC29B6DFCD29636BE27E2564 /* object-finder-examples.json in Resources */ = {isa = PBXBuildFile; fileRef = 2C50C49BB82E6F8BA570C7B2 /* object-finder-examples.json */; };
 		FC6626F927F8F428880FBBC9 /* DemoAppMain.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F02F3A778FCB93B0D8828BB /* DemoAppMain.swift */; };
 		FD803AFBAD6DE4E92475B957 /* VideoSearchAssembly.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF81F5162AD3FDAA09A43D62 /* VideoSearchAssembly.swift */; };
@@ -486,16 +483,6 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		1923F02850A8EE2E2F170F5D /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				6F2A325693E09FFFCD1CE02D /* ImageGenerationCore in Frameworks */,
-				F95EED7CDC936296CA7C84E7 /* ImageGenerationRuntime in Frameworks */,
-				BDC0F280D0F2D8703A5AAB7A /* ModelLibraryFeature in Frameworks */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		43253ADF73D6DE9D9C751F9D /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -1037,19 +1024,18 @@
 			buildPhases = (
 				C8AE69805169FFE1B1667FDE /* Sources */,
 				3CA56C8AC8505F7F9D4C7D60 /* Resources */,
-				1923F02850A8EE2E2F170F5D /* Frameworks */,
 				1C820E7333F4F3CAD5D82388 /* Sign hosted image test resources */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 				E30116BA1F1335D76F19E31C /* PBXTargetDependency */,
+				1D215F5A83E51FDAA6B1629B /* PBXTargetDependency */,
+				B66067B2FF0B54DE15E682C0 /* PBXTargetDependency */,
+				B4DA0513611702606759B525 /* PBXTargetDependency */,
 			);
 			name = CoreAISamplesImageTests;
 			packageProductDependencies = (
-				4DE99B8BBBE7EAE1E0BBE06F /* ImageGenerationCore */,
-				5D3F6809A439FE571A2A9679 /* ImageGenerationRuntime */,
-				76E7610462EA2BF0F074B3C8 /* ModelLibraryFeature */,
 			);
 			productName = CoreAISamplesImageTests;
 			productReference = AC07B5B052D2FAA52463042D /* CoreAISamplesImageTests.xctest */;
@@ -1604,6 +1590,18 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		1D215F5A83E51FDAA6B1629B /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			productRef = "TEMP_2E8E2546-ADB6-4CF2-BF1B-DA478014FC66" /* ImageGenerationCore */;
+		};
+		B4DA0513611702606759B525 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			productRef = "TEMP_44555593-963F-4EA3-A95F-B27EF3FAE6F1" /* ModelLibraryFeature */;
+		};
+		B66067B2FF0B54DE15E682C0 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			productRef = "TEMP_217885B6-35FA-4411-ACCF-834B22806187" /* ImageGenerationRuntime */;
+		};
 		E30116BA1F1335D76F19E31C /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = D474FC70FAC3D033E53C49E1 /* CoreAISamples-iOS */;
@@ -2105,10 +2103,6 @@
 			isa = XCSwiftPackageProductDependency;
 			productName = SpeechRuntime;
 		};
-		4DE99B8BBBE7EAE1E0BBE06F /* ImageGenerationCore */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = ImageGenerationCore;
-		};
 		4F229C722B6C6F5BE0300B45 /* OCRRuntime */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = OCRRuntime;
@@ -2116,10 +2110,6 @@
 		5508EAA95E2473E7414E7DB4 /* SpeechRuntime */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = SpeechRuntime;
-		};
-		5D3F6809A439FE571A2A9679 /* ImageGenerationRuntime */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = ImageGenerationRuntime;
 		};
 		5D4CC438A589DC6E4A0E248B /* RAGContext */ = {
 			isa = XCSwiftPackageProductDependency;
@@ -2152,10 +2142,6 @@
 		71DC72A96FA08B77DF9E724C /* EmbeddingRuntime */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = EmbeddingRuntime;
-		};
-		76E7610462EA2BF0F074B3C8 /* ModelLibraryFeature */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = ModelLibraryFeature;
 		};
 		7D282C1A74200A481D89C2C0 /* ModelLibraryTransfer */ = {
 			isa = XCSwiftPackageProductDependency;
@@ -2304,6 +2290,18 @@
 		FE873BDE9C77CAB1DD11671A /* SpeechFeature */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = SpeechFeature;
+		};
+		"TEMP_217885B6-35FA-4411-ACCF-834B22806187" /* ImageGenerationRuntime */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = ImageGenerationRuntime;
+		};
+		"TEMP_2E8E2546-ADB6-4CF2-BF1B-DA478014FC66" /* ImageGenerationCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = ImageGenerationCore;
+		};
+		"TEMP_44555593-963F-4EA3-A95F-B27EF3FAE6F1" /* ModelLibraryFeature */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = ModelLibraryFeature;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

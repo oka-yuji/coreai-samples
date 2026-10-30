@@ -277,10 +277,13 @@ targets:
       - target: CoreAISamples-iOS
       - package: CoreAISamplesKit
         product: ImageGenerationCore
+        link: false
       - package: CoreAISamplesKit
         product: ImageGenerationRuntime
+        link: false
       - package: CoreAISamplesKit
         product: ModelLibraryFeature
+        link: false
     postBuildScripts:
       - name: Sign hosted image test resources
         script: '"$SRCROOT/Tools/Testing/sign_test_resources.sh"'
