@@ -183,7 +183,7 @@ enum RAGRetriever {
             .prefix(settings.pagesToRead)
             .compactMap { result -> (AgentTools.SearchResult, URL)? in
                 guard let url = URL(string: result.url), let scheme = url.scheme?.lowercased(),
-                    scheme == "http" || scheme == "https", url.host != nil
+                    scheme == "https", url.host != nil
                 else { return nil }
                 return (result, url)
             }

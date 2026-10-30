@@ -1,4 +1,5 @@
 import Foundation
+import Hub
 import Tokenizers
 
 public enum BundleError: Error, Equatable, LocalizedError {
@@ -7,16 +8,20 @@ public enum BundleError: Error, Equatable, LocalizedError {
     case invalidValue(String, Int)
     case vocabularyMismatch(tokenizer: Int, metadata: Int)
     case notLanguageModel(outputWidth: Int, vocabSize: Int)
+    case tokenIDOutOfRange(String)
 
     public var errorDescription: String? {
         switch self {
         case .missingFile(let path): "The model bundle has no \(path)."
         case .missingField(let key): "metadata.json has no \(key)."
-        case .invalidValue(let key, let value): "\(key) in metadata.json is \(value); it must be positive."
+        case .invalidValue(let key, let value):
+            "\(key) in metadata.json is \(value); it must be \(value > 0 ? "at most \(Int32.max)" : "positive")."
         case .vocabularyMismatch(let tokenizer, let metadata):
             "The tokenizer has \(tokenizer) tokens, more than language.vocab_size (\(metadata)) in metadata.json."
         case .notLanguageModel(let outputWidth, let vocabSize):
             "The main function returns \(outputWidth) values per token, not \(vocabSize) logits (language.vocab_size); this is not a language model this runtime can run."
+        case .tokenIDOutOfRange(let id):
+            "tokenizer.json has the token ID \(id); token IDs must be integers from 0 to \(Int32.max - 1)."
         }
     }
 }
@@ -53,6 +58,7 @@ public struct ModelBundle: Sendable {
         where value <= 0 {
             throw BundleError.invalidValue(key, value)
         }
+        guard vocabSize <= Int32.max else { throw BundleError.invalidValue("language.vocab_size", vocabSize) }
         for path in [main, "tokenizer/tokenizer.json"] where !exists(path) {
             throw BundleError.missingFile(path)
         }
@@ -93,11 +99,21 @@ public struct ModelBundle: Sendable {
     }
 
     static func tokenCount(_ url: URL) throws -> Int {
-        let file = try JSONSerialization.jsonObject(with: Data(contentsOf: url)) as? [String: Any] ?? [:]
-        let vocab = (file["model"] as? [String: Any])?["vocab"]
-        let ids = (vocab as? [String: Int]).map { Array($0.values) } ?? Array(0..<((vocab as? [Any])?.count ?? 0))
-        let added = (file["added_tokens"] as? [[String: Any]] ?? []).compactMap { $0["id"] as? Int }
-        return ((ids + added).max() ?? -1) + 1
+        let file = try HubApi.shared.configuration(fileURL: url)
+        let vocab: Config = file.model.vocab
+        let ids =
+            try vocab.dictionary(or: [:]).values.map(tokenID)
+            + file.addedTokens.array(or: []).compactMap { $0.dictionary()?["id"] }.map(tokenID)
+            + vocab.array(or: []).indices
+        if let id = ids.first(where: { !(0..<Int(Int32.max)).contains($0) }) {
+            throw BundleError.tokenIDOutOfRange(String(id))
+        }
+        return (ids.max() ?? -1) + 1
+    }
+
+    private static func tokenID(_ value: Config) throws -> Int {
+        guard let id = value.integer() else { throw BundleError.tokenIDOutOfRange(value.description) }
+        return id
     }
 
     private struct Metadata: Decodable {
