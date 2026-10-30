@@ -2421,6 +2421,22 @@
         }
       }
     },
+    "Create an image from a prompt or edit one reference image. Generation takes several minutes." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create an image from a prompt or edit one reference image. Generation takes several minutes."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "指示文から画像を生成したり、参照画像1枚を編集したりできます。生成には数分かかります。"
+          }
+        }
+      }
+    },
     "Create comparison card" : {
       "localizations" : {
         "ja" : {

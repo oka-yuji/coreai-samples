@@ -105,7 +105,8 @@ public enum IOSDemoCatalog {
             demos.append(
                 DemoDescriptor(
                     id: "image-generation", title: "Image generation demo", systemImage: "photo.badge.plus",
-                    summary: "Create an image from a prompt or edit one reference image.",
+                    summary:
+                        "Create an image from a prompt or edit one reference image. Generation takes several minutes.",
                     explanation: [
                         DemoExplanation(
                             title: "How it works",
