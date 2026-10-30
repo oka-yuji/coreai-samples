@@ -42,7 +42,7 @@ enum ConversationBudgetSelfTest {
                     }
                     let url = "https://example.com/verified"
                     return AgentToolOutput(
-                        text: "Verified source", seen: call.name == "fetch_page" ? [url: "Verified source"] : [:],
+                        text: "Verified source", seen: [url: "Verified source"],
                         finalURL: call.name == "fetch_page" ? url : nil)
                 })
             let updates = AsyncStream<ConversationState>.makeStream()

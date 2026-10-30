@@ -107,6 +107,7 @@ enum RAGEvaluationCommand {
         preferences.fixedDate = manifest.settings.today
         preferences.stableNotePaths = true
         preferences.notesFolderPath = directory.appending(path: "notes").path
+        preferences.replaysRecordedTools = true
         let replay = try RAGEvaluationReplay(manifest: manifest, item: item)
         let inputs = replay.inputs
         let configured = RAGInputs(
