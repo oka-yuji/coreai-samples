@@ -96,6 +96,7 @@ enum AgentTools {
             else {
                 return AgentToolOutput(text: "error: fetch_page needs an absolute http or https URL")
             }
+            guard scheme == "https" else { return AgentToolOutput(text: httpRefusal) }
             do {
                 return try await fetchPage(
                     url: url, budget: settings.pageCharacterBudget, query: call.value("query") ?? "")
@@ -246,6 +247,8 @@ enum AgentTools {
     }
 
     static let localAddressRefusal = "error: fetch_page refuses local or private addresses"
+
+    static let httpRefusal = "error: fetch_page reads only https URLs"
 
     static let maximumPageBytes = 5 * 1_048_576
 
@@ -520,13 +523,9 @@ enum AgentTools {
         let named = ["Desktop", "Documents", "Downloads"].map {
             home.appending(path: $0, directoryHint: .isDirectory)
         }
-        let homePath = comparablePath(home)
         return (named + [notesDirectory])
             .map { $0.standardizedFileURL.resolvingSymlinksInPath() }
-            .filter { root in
-                let path = comparablePath(root)
-                return path != homePath && !homePath.hasPrefix(path == "/" ? "/" : path + "/")
-            }
+            .filter { !FolderIdentity.isWithin(home, anyOf: [$0]) }
     }
 
     static func moveNote(
@@ -551,7 +550,7 @@ enum AgentTools {
         let wanted = title.trimmingCharacters(in: .whitespacesAndNewlines)
         for name in [noteFileName(title), wanted.hasSuffix(".md") ? wanted : wanted + ".md"] {
             let url = directory.appending(path: name)
-            guard comparablePath(url.deletingLastPathComponent()) == comparablePath(directory),
+            guard FolderIdentity.isSame(url.deletingLastPathComponent(), as: directory),
                 FileManager.default.fileExists(atPath: url.path(percentEncoded: false))
             else { continue }
             return url
@@ -571,12 +570,6 @@ enum AgentTools {
             ?? .distantPast
     }
 
-    private static func comparablePath(_ url: URL) -> String {
-        var path = url.standardizedFileURL.resolvingSymlinksInPath().path(percentEncoded: false)
-        while path.count > 1, path.hasSuffix("/") { path.removeLast() }
-        return path.lowercased()
-    }
-
     private static func destinationFolder(_ destination: String, allowedRoots: [URL]) throws -> URL {
         let text = (destination.trimmingCharacters(in: .whitespacesAndNewlines) as NSString)
             .expandingTildeInPath
@@ -585,12 +578,7 @@ enum AgentTools {
             ? URL(fileURLWithPath: text, isDirectory: true)
             : homeDirectory.appending(path: text, directoryHint: .isDirectory)
         let resolved = url.standardizedFileURL.resolvingSymlinksInPath()
-        let path = comparablePath(resolved)
-        let inside = allowedRoots.contains {
-            let root = comparablePath($0)
-            return path == root || path.hasPrefix(root + "/")
-        }
-        guard inside else {
+        guard FolderIdentity.isWithin(resolved, anyOf: allowedRoots) else {
             throw AgentToolMessage(
                 text: "error: destination must be Desktop, Documents, Downloads or a folder inside them")
         }
@@ -861,7 +849,7 @@ final class AgentPageReader: NSObject, WKNavigationDelegate {
     private var navigation: CheckedContinuation<Void, Error>?
     private var evaluation: CheckedContinuation<String?, Error>?
     private var view: WKWebView?
-    private var statusFailure: AgentToolMessage?
+    private(set) var statusFailure: AgentToolMessage?
     private let policy: AgentFetchPolicy
     private let resolutions = AgentAddressScope()
     private(set) var contentRulesInstalled = false
@@ -1061,6 +1049,9 @@ struct AgentFetchPolicy: Sendable {
         else {
             throw AgentToolMessage(
                 text: "error: fetch_page needs an absolute http or https URL", fatal: true, forbidsPageFallback: true)
+        }
+        guard scheme == "https" else {
+            throw AgentToolMessage(text: AgentTools.httpRefusal, fatal: true, forbidsPageFallback: true)
         }
         if host.hasPrefix("["), host.hasSuffix("]") { host = String(host.dropFirst().dropLast()) }
         guard !FetchAddressPolicy.isLocalName(host) else {
