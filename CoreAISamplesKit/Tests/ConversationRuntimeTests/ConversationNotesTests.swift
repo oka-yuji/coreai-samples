@@ -178,7 +178,14 @@ struct ConversationNotesTests {
         #expect(try FileManager.default.contentsOfDirectory(atPath: allowed.path).isEmpty)
     }
 
-    @Test("On a case-insensitive volume a move into the allowed folder spelled with different case still succeeds")
+    static var temporaryVolumeIsCaseInsensitive: Bool {
+        (try? URL.temporaryDirectory.resourceValues(forKeys: [.volumeSupportsCaseSensitiveNamesKey]))?
+            .volumeSupportsCaseSensitiveNames == false
+    }
+
+    @Test(
+        "On a case-insensitive volume a move into the allowed folder spelled with different case still succeeds",
+        .enabled(if: temporaryVolumeIsCaseInsensitive))
     func movesIntoCaseVariantOfAllowedFolder() async throws {
         let root = folder()
         defer { try? FileManager.default.removeItem(at: root) }
@@ -196,6 +203,23 @@ struct ConversationNotesTests {
         #expect(moved.warning == nil && !moved.note.draft)
         #expect(try FileManager.default.contentsOfDirectory(atPath: allowed.path) == ["Plan.md"])
         #expect(!FileManager.default.fileExists(atPath: note.path.path))
+    }
+
+    @Test("A move into a deeply nested existing folder inside the allowed root succeeds")
+    func movesIntoDeeplyNestedFolder() async throws {
+        let root = folder()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let allowed = root.appending(path: "Allowed")
+        let deep = (0..<200).reduce(allowed) { folder, _ in folder.appending(path: "d") }
+        try FileManager.default.createDirectory(at: deep, withIntermediateDirectories: true)
+        let directory = root.appending(path: "notes")
+        let notes = ConversationNotes()
+        let draft = try await notes.write(title: "Plan", fileName: "Plan.md", content: "Body", directory: directory)
+        let note = try await notes.publish(draft, directory: directory)
+        let moved = try await notes.move(
+            noteID: note.id, destination: deep, allowedRoots: [allowed], directory: directory)
+        #expect(moved.warning == nil)
+        #expect(FileManager.default.fileExists(atPath: deep.appending(path: "Plan.md").path))
     }
 
     @Test(

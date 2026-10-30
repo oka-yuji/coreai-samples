@@ -359,10 +359,14 @@ public enum FolderIdentity {
             guard parent != path else { return false }
             path = parent
         }
-        var visited = Set<Key>()
-        while let current = key(path), visited.insert(current).inserted {
+        guard let resolved = realpath(path, nil) else { return false }
+        path = String(cString: resolved)
+        free(resolved)
+        while let current = key(path) {
             if allowed.contains(current) { return true }
-            path += "/.."
+            let parent = (path as NSString).deletingLastPathComponent
+            guard parent != path else { return false }
+            path = parent
         }
         return false
     }
