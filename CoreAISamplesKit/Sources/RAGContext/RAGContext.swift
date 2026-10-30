@@ -147,19 +147,24 @@ public enum RAGContext {
     ]
 
     public static func publishedDate(html: String) -> String? {
-        for tag in html.matches(of: /<meta\b[^>]*>/.ignoresCase()) {
-            let attributes = String(tag.0)
+        let property = attributePattern("property")
+        let name = attributePattern("name")
+        let itemprop = attributePattern("itemprop")
+        let content = attributePattern("content")
+        for tag in RAGHTMLText.ranges(in: html, from: /<meta\b/.ignoresCase(), to: />/) {
+            let attributes = String(html[tag])
             guard
-                let name = attribute("property", in: attributes) ?? attribute("name", in: attributes)
-                    ?? attribute("itemprop", in: attributes),
-                metaNames.contains(where: { $0.caseInsensitiveCompare(name) == .orderedSame }),
-                let content = attribute("content", in: attributes),
-                let date = isoDate(in: content)
+                let label = attribute(property, in: attributes) ?? attribute(name, in: attributes)
+                    ?? attribute(itemprop, in: attributes),
+                metaNames.contains(where: { $0.caseInsensitiveCompare(label) == .orderedSame }),
+                let value = attribute(content, in: attributes),
+                let date = isoDate(in: value)
             else { continue }
             return date
         }
-        for tag in html.matches(of: /<time\b[^>]*>/.ignoresCase()) {
-            guard let value = attribute("datetime", in: String(tag.0)),
+        let datetime = attributePattern("datetime")
+        for tag in RAGHTMLText.ranges(in: html, from: /<time\b/.ignoresCase(), to: />/) {
+            guard let value = attribute(datetime, in: String(html[tag])),
                 let date = isoDate(in: value)
             else { continue }
             return date
@@ -168,10 +173,15 @@ public enum RAGContext {
     }
 
     static func attribute(_ name: String, in tag: String) -> String? {
-        guard
-            let match = try? Regex("\(name)\\s*=\\s*[\"']([^\"']*)[\"']").ignoresCase()
-                .firstMatch(in: tag), let range = match[1].range
-        else { return nil }
+        attribute(attributePattern(name), in: tag)
+    }
+
+    private static func attributePattern(_ name: String) -> Regex<AnyRegexOutput>? {
+        try? Regex("\(name)\\s*=\\s*[\"']([^\"']*)[\"']").ignoresCase()
+    }
+
+    private static func attribute(_ pattern: Regex<AnyRegexOutput>?, in tag: String) -> String? {
+        guard let pattern, let match = try? pattern.firstMatch(in: tag), let range = match[1].range else { return nil }
         return String(tag[range])
     }
 
