@@ -13,8 +13,8 @@
   "complete": true,
   "completionMeaning": "Assigned read-only source/data review complete; live-model and GUI acceptance are separate and not claimed.",
   "skills": [
-    "/Users/okayuuji/.codex/skills/review/SKILL.md",
-    "/Users/okayuuji/.codex/skills/self-review-branch/SKILL.md"
+    "~/.codex/skills/review/SKILL.md",
+    "~/.codex/skills/self-review-branch/SKILL.md"
   ],
   "environment": {
     "compiler": "Apple Swift 6.4 (swiftlang-6.4.0.34.1 clang-2100.3.34.1)",
@@ -207,13 +207,13 @@
   "excluded": [],
   "blockers": [],
   "primaryReferences": [
-    "/Users/okayuuji/src/swiftlang/swift-evolution/proposals/0166-swift-archival-serialization.md (KeyedDecodingContainerProtocol.decodeIfPresent)",
-    "/Users/okayuuji/src/swiftlang/swift-evolution/proposals/0306-actors.md (previously verified reentrancy contract)",
-    "/Users/okayuuji/src/swiftlang/swift-testing/Sources/Testing/Testing.docc (previously verified Testing expectations/error handling)",
-    "/Users/okayuuji/Desktop/ナレッジ/coreai-guide/guide/11-performance-and-verification.md (timing definitions)",
-    "/Users/okayuuji/Desktop/ナレッジ/coreai-guide/guide/12-custom-head-models.md",
-    "/Users/okayuuji/Desktop/ナレッジ/coreai-guide/guide/26-swift-for-coreai.md",
-    "/Users/okayuuji/Desktop/ナレッジ/coreai-guide/guide/27-model-adaptation.md"
+    "~/src/swiftlang/swift-evolution/proposals/0166-swift-archival-serialization.md (KeyedDecodingContainerProtocol.decodeIfPresent)",
+    "~/src/swiftlang/swift-evolution/proposals/0306-actors.md (previously verified reentrancy contract)",
+    "~/src/swiftlang/swift-testing/Sources/Testing/Testing.docc (previously verified Testing expectations/error handling)",
+    "~/Desktop/ナレッジ/coreai-guide/guide/11-performance-and-verification.md (timing definitions)",
+    "~/Desktop/ナレッジ/coreai-guide/guide/12-custom-head-models.md",
+    "~/Desktop/ナレッジ/coreai-guide/guide/26-swift-for-coreai.md",
+    "~/Desktop/ナレッジ/coreai-guide/guide/27-model-adaptation.md"
   ],
   "guideCandidates": [],
   "guideCandidatesNote": "追記候補なし。時間の境界を明記する原則は既存ガイド第11章にあり、今回の個別アプリ契約は仕様書とdocs/recipes-demo.mdに反映済み。",

@@ -396,10 +396,14 @@ struct PageTool: Tool {
     func call(arguments: Arguments) async throws -> String {
         let started = await log.begin()
         defer { log.record(name, started) }
-        let url = URL(filePath: folder).appending(path: arguments.name + ".txt")
-        if let page = try? String(contentsOf: url, encoding: .utf8) { return page }
         let names = (try? FileManager.default.contentsOfDirectory(atPath: folder)) ?? []
         let available = names.filter { $0.hasSuffix(".txt") }.map { String($0.dropLast(4)) }.sorted()
+        if available.contains(arguments.name),
+            let page = try? String(
+                contentsOf: URL(filePath: folder).appending(path: arguments.name + ".txt"), encoding: .utf8)
+        {
+            return page
+        }
         return "No page named \(arguments.name). Available pages: \(available.joined(separator: ", "))."
     }
 }

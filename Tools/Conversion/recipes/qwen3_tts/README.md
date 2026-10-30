@@ -22,8 +22,9 @@ identities. Every model stage checks those bytes again. Main model and speech
 tokenizer state dictionaries are also loaded strictly after source initialization.
 
 Use the clean Qwen3-TTS checkout at the revision recorded in `model.json`, a
-dedicated Python 3.11 environment and `requirements.lock`. Install the checkout
-with `uv pip install --no-deps -e <checkout>` after the lock's packages. The lock
+dedicated Python 3.11 environment and `requirements.lock`. Install the lock's
+packages with `uv pip install --require-hashes -r requirements.lock`, then install
+the checkout separately with `uv pip install --no-deps -e <checkout>`. The lock
 does not contain a machine-specific editable checkout path. Qwen uses its required
 Transformers 4.57.3; this environment is separate from the Magpie environment.
 

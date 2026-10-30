@@ -1,7 +1,7 @@
 {
   "summary": "未解消の確定指摘なし。R94-1（MainActorでの同期audio session activation）は非同期SDK APIへの変更で解消。最終版の独立Release CPU41件PASS。",
   "complete": true,
-  "repo": "/Users/okayuuji/Desktop/SelfApps/_wt/coreai-samples-94-ios-runtime",
+  "repo": "~/Desktop/SelfApps/_wt/coreai-samples-94-ios-runtime",
   "base_sha": "043cf1f2439bcf2912673530d5a9dfd673c3b3e5",
   "head_sha": "4dd2b4b9e73582007c33ed7d46fdd365db44b430",
   "state_token": "166b85483d7e450d1137954c00c0f6ffb4fb4f7bc5ab37fae9810d9e5c62dd00",
