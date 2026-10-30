@@ -8,7 +8,7 @@ public enum BundleError: Error, Equatable, LocalizedError {
     case invalidValue(String, Int)
     case vocabularyMismatch(tokenizer: Int, metadata: Int)
     case notLanguageModel(outputWidth: Int, vocabSize: Int)
-    case tokenIDOutOfRange(Int)
+    case tokenIDOutOfRange(String)
 
     public var errorDescription: String? {
         switch self {
@@ -21,7 +21,7 @@ public enum BundleError: Error, Equatable, LocalizedError {
         case .notLanguageModel(let outputWidth, let vocabSize):
             "The main function returns \(outputWidth) values per token, not \(vocabSize) logits (language.vocab_size); this is not a language model this runtime can run."
         case .tokenIDOutOfRange(let id):
-            "tokenizer.json has the token ID \(id); token IDs must be from 0 to \(Int32.max - 1)."
+            "tokenizer.json has the token ID \(id); token IDs must be integers from 0 to \(Int32.max - 1)."
         }
     }
 }
@@ -102,12 +102,18 @@ public struct ModelBundle: Sendable {
         let file = try HubApi.shared.configuration(fileURL: url)
         let vocab: Config = file.model.vocab
         let ids =
-            (vocab.dictionary()?.values.compactMap { $0.integer() } ?? Array(vocab.array(or: []).indices))
-            + file.addedTokens.array(or: []).compactMap { $0["id"].integer() }
+            try vocab.dictionary(or: [:]).values.map(tokenID)
+            + file.addedTokens.array(or: []).compactMap { $0.dictionary()?["id"] }.map(tokenID)
+            + vocab.array(or: []).indices
         if let id = ids.first(where: { !(0..<Int(Int32.max)).contains($0) }) {
-            throw BundleError.tokenIDOutOfRange(id)
+            throw BundleError.tokenIDOutOfRange(String(id))
         }
         return (ids.max() ?? -1) + 1
+    }
+
+    private static func tokenID(_ value: Config) throws -> Int {
+        guard let id = value.integer() else { throw BundleError.tokenIDOutOfRange(value.description) }
+        return id
     }
 
     private struct Metadata: Decodable {

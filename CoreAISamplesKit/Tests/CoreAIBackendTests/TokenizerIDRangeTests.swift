@@ -9,18 +9,30 @@ private func tokenizerJSON(vocab: String = #"{"a": 0, "b": 1, "ab": 2}"#, added:
     #"{"added_tokens": [\#(added)], "model": {"type": "BPE", "vocab": \#(vocab), "merges": ["a b"]}}"#
 }
 
-private let outOfRange: [(String, Int)] = [
-    (tokenizerJSON(vocab: #"{"a": 0, "b": 4294967296, "ab": 2}"#), 4_294_967_296),
-    (tokenizerJSON(vocab: #"{"a": 0, "b": 9223372036854775807, "ab": 2}"#), Int.max),
-    (tokenizerJSON(added: #"{"id": 2147483647, "content": "<|im_end|>", "special": true}"#), 2_147_483_647),
-    (tokenizerJSON(added: #"{"id": -1, "content": "<|im_end|>", "special": true}"#), -1),
-    (tokenizerJSON(vocab: #"{"a": 0, "b": 1, "ab": 2, "b": 4294967296}"#), 4_294_967_296),
-    (
-        #"{"addedTokens": [{"id": 4294967296, "content": "<|im_end|>"}], "added_tokens": [\#(addedToken)], "#
-            + #""model": {"type": "BPE", "vocab": {"a": 0, "b": 1, "ab": 2}, "merges": ["a b"]}}"#,
-        4_294_967_296
-    ),
+private let unreadable = [
+    ("9223372036854775808", "9.223372e+18"), ("-9223372036854775809", "-9.223372e+18"),
+    ("4294967296.0", "4.2949673e+09"), (#""5""#, #""5""#),
 ]
+
+private let outOfRange: [(String, String)] =
+    [
+        (tokenizerJSON(vocab: #"{"a": 0, "b": 4294967296, "ab": 2}"#), "4294967296"),
+        (tokenizerJSON(vocab: #"{"a": 0, "b": 9223372036854775807, "ab": 2}"#), "9223372036854775807"),
+        (tokenizerJSON(added: #"{"id": 2147483647, "content": "<|im_end|>", "special": true}"#), "2147483647"),
+        (tokenizerJSON(added: #"{"id": -1, "content": "<|im_end|>", "special": true}"#), "-1"),
+        (tokenizerJSON(vocab: #"{"a": 0, "b": 1, "ab": 2, "b": 4294967296}"#), "4294967296"),
+        (
+            #"{"addedTokens": [{"id": 4294967296, "content": "<|im_end|>"}], "added_tokens": [\#(addedToken)], "#
+                + #""model": {"type": "BPE", "vocab": {"a": 0, "b": 1, "ab": 2}, "merges": ["a b"]}}"#,
+            "4294967296"
+        ),
+    ]
+    + unreadable.flatMap { json, value in
+        [
+            (tokenizerJSON(vocab: #"{"a": 0, "b": \#(json), "ab": 2}"#), value),
+            (tokenizerJSON(added: #"{"id": \#(json), "content": "<|im_end|>", "special": true}"#), value),
+        ]
+    }
 
 private func decisionTokenizer(_ json: String) throws -> URL {
     let folder = FileManager.default.temporaryDirectory.appending(path: "decision-tokenizer-\(UUID().uuidString)")
@@ -33,9 +45,9 @@ private func decisionTokenizer(_ json: String) throws -> URL {
 
 struct TokenizerIDRangeTests {
     @Test(
-        "A language model bundle whose tokenizer.json has an ID outside 0..<Int32.max throws when the tokenizer loads",
+        "A language model bundle whose tokenizer.json has an ID that is not an integer in 0..<Int32.max throws on load",
         arguments: outOfRange)
-    func languageModelRefusesTokenIDs(json: String, id: Int) async throws {
+    func languageModelRefusesTokenIDs(json: String, id: String) async throws {
         let folder = try tinyBundle()
         defer { try? FileManager.default.removeItem(at: folder) }
         try Data(json.utf8).write(to: folder.appending(path: "tokenizer/tokenizer.json"))
@@ -60,8 +72,9 @@ struct TokenizerIDRangeTests {
     }
 
     @Test(
-        "The decision model's tokenizer load throws for an ID outside 0..<Int32.max", arguments: outOfRange)
-    func decisionRefusesTokenIDs(json: String, id: Int) async throws {
+        "The decision model's tokenizer load throws for an ID that is not an integer in 0..<Int32.max",
+        arguments: outOfRange)
+    func decisionRefusesTokenIDs(json: String, id: String) async throws {
         let folder = try decisionTokenizer(json)
         defer { try? FileManager.default.removeItem(at: folder) }
         await #expect(throws: BundleError.tokenIDOutOfRange(id)) { try await DecisionModel.loadTokenizer(folder) }
