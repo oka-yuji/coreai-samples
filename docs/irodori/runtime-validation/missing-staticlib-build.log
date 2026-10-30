@@ -1,5 +1,5 @@
-warning: /Users/okayuuji/Library/org.swift.swiftpm/configuration is not accessible or not writable, disabling user-level cache features.
-warning: /Users/okayuuji/Library/org.swift.swiftpm/security is not accessible or not writable, disabling user-level cache features.
+warning: ~/Library/org.swift.swiftpm/configuration is not accessible or not writable, disabling user-level cache features.
+warning: ~/Library/org.swift.swiftpm/security is not accessible or not writable, disabling user-level cache features.
 Building for debugging...
 [0/9] Write Consumer-entitlement.plist
 [0/9] Write sources
