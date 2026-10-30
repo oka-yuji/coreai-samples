@@ -15,8 +15,10 @@ objects.
 ```
 
 - Snapshot: `XingChen-AGI/TeleOCR@70a19ec6a3b036311af19ae5e762e650f41a5980` in the Hugging Face
-  cache (`--snapshot` overrides the path). Loading the processor executes the snapshot's own
-  remote code, as `trust_remote_code=True` does.
+  cache (`--snapshot` overrides the path). Before anything is loaded, the script checks the size
+  and SHA-256 of the 14 files pinned in `Tools/Conversion/recipes/teleocr/model.json` and stops
+  if the snapshot differs. Loading the processor then executes the snapshot's own remote code, as
+  `trust_remote_code=True` does.
 - `--knowledge` is the #178 investigation folder. The script reads `fixtures/F1.png`,
   the F2 and F4 image sizes, `records/outputs/F2-table-bf16.txt`,
   `records/outputs/F2-layout-bf16.txt`, `records/outputs/F4-layout-bf16.txt` and the F2 grid in

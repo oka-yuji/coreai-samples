@@ -26,7 +26,14 @@ from transformers.generation.stopping_criteria import EosTokenCriteria, MaxLengt
 from transformers.image_processing_utils_fast import SizeDict
 from transformers.models.qwen2_vl.image_processing_qwen2_vl import smart_resize
 
+ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT))
+
+from Tools.Conversion.adapters.teleocr.contracts import read_json
+from Tools.Conversion.adapters.teleocr.prepare import validate
+
 REVISION = "70a19ec6a3b036311af19ae5e762e650f41a5980"
+MODEL = ROOT / "Tools/Conversion/recipes/teleocr/model.json"
 SNAPSHOT = Path.home() / f".cache/huggingface/hub/models--XingChen-AGI--TeleOCR/snapshots/{REVISION}"
 SYSTEM = "You are a helpful assistant."
 PROMPTS = {
@@ -482,6 +489,7 @@ def main():
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--snapshot", type=Path, default=SNAPSHOT)
     args = parser.parse_args()
+    validate(args.snapshot, read_json(MODEL))
     processor = AutoProcessor.from_pretrained(str(args.snapshot), trust_remote_code=True, use_fast=True)
     config = AutoConfig.from_pretrained(str(args.snapshot), trust_remote_code=True)
     module = load_module(args.snapshot)
