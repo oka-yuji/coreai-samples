@@ -29,11 +29,18 @@ public actor ImageGenerationMedia {
         else { throw ImageGenerationError.unsupportedImage }
         let pixels: ImageGenerationPixels
         if max(width, height) <= 1_024 {
-            guard let image = CGImageSourceCreateImageAtIndex(source, 0, options) else {
-                throw ImageGenerationError.unsupportedImage
+            if CGImageSourceGetType(source) as String? == UTType.png.identifier {
+                pixels = try ImageGenerationImageReader.read(url)
+                guard max(pixels.width, pixels.height) <= 1_024 else {
+                    throw ImageGenerationError.unsupportedImage
+                }
+            } else {
+                guard let image = CGImageSourceCreateImageAtIndex(source, 0, options) else {
+                    throw ImageGenerationError.unsupportedImage
+                }
+                pixels = try ImageGenerationImageReader.read(image)
+                    .oriented(properties[kCGImagePropertyOrientation] as? Int ?? 1)
             }
-            pixels = try ImageGenerationImageReader.read(image)
-                .oriented(properties[kCGImagePropertyOrientation] as? Int ?? 1)
         } else {
             guard
                 let image = CGImageSourceCreateThumbnailAtIndex(

@@ -1,0 +1,20 @@
+{
+  "repository": "https://github.com/lvandeve/lodepng",
+  "revision": "e584a8490db1b76b81bf298c11c09d3b55d9c270",
+  "version": "20261006",
+  "license": "zlib",
+  "files": {
+    "Sources/CImagePNG/lodepng.c": {
+      "bytes": 312689,
+      "sha256": "6aec876971ec860527859458d3095220fc5ee1258ec37eb59e1e7dd9cf136a81"
+    },
+    "Sources/CImagePNG/lodepng.h": {
+      "bytes": 108843,
+      "sha256": "9a1fca0238c38333bdc8545336961b73fd0b76957bbacf033186991be9d7cf85"
+    },
+    "LICENSE": {
+      "bytes": 886,
+      "sha256": "bdafa318b8e637d600ca1b60545e894881977a16a16b74809c95e805701621e3"
+    }
+  }
+}

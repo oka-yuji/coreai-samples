@@ -19,6 +19,7 @@ public final class LiveImageGenerationService: ImageGenerationService {
     public let session: ModelDemoSession
     private let pipeline: ImageRuntimePipeline
     private let permission: @MainActor @Sendable () -> Bool
+    private let activity: ImageScreenActivity
     private var running = false
     private var delivery: UUID?
     private var released = false
@@ -52,11 +53,13 @@ public final class LiveImageGenerationService: ImageGenerationService {
 
     init(
         session: ModelDemoSession, pipeline: ImageRuntimePipeline,
+        activity: ImageScreenActivity = .shared,
         isPermitted: @escaping @MainActor @Sendable () -> Bool
     ) {
         self.session = session
         self.pipeline = pipeline
         permission = isPermitted
+        self.activity = activity
     }
 
     public func generate(
@@ -67,11 +70,13 @@ public final class LiveImageGenerationService: ImageGenerationService {
         guard !running, stops == 0 else { throw ImageExecutionError.busy }
         guard permission() else { throw ImageExecutionError.permissionDenied }
         try Task.checkCancellation()
+        let activityID = activity.begin()
         running = true
         delivery = request.id
         defer {
             running = false
             delivery = nil
+            activity.end(activityID)
             let pending = completions
             completions.removeAll()
             for completion in pending { completion.resume() }
