@@ -218,7 +218,8 @@ enum FetchProvenanceSelfTest {
         let guide = "https://docs.example/guide"
         let index = "https://docs.example/guide/"
         let escaped = "https://docs.example/caf%C3%A9"
-        let request = "Read \(guide) and \(escaped)."
+        let composed = "https://docs.example/r\u{E9}sum\u{E9}"
+        let request = "Read \(guide), \(escaped) and \(composed)."
         let leaked = guide + "#leak-blue"
         let search = AgentToolOutput(text: "1. Guide index\n   \(index)", seen: [index: "Guide index"])
         let log = ProvenanceLog()
@@ -228,7 +229,7 @@ enum FetchProvenanceSelfTest {
             AgentToolCall(name: "web_search", arguments: [AgentArgument(name: "query", value: "guide")]))
         for url in [
             leaked, "https://DOCS.example/guide", guide + "//", "https://docs.example/caf\u{E9}", escaped, guide, index,
-            guide + "#top",
+            guide + "#top", "https://docs.example/re\u{301}sume\u{301}",
         ] {
             _ = await tools.execute(fetch(url))
         }
@@ -259,12 +260,13 @@ enum FetchProvenanceSelfTest {
         _ = await evaluation.execute(fetch(leaked))
         let calls = log.calls.withLock { $0 }
         let ragCalls = replayed.calls.withLock { $0 }
+        let expected = ["web_search", guide, guide, guide, escaped, escaped, guide, index, guide, composed]
         check(
             "provenance/fetchUsesOriginSpelling",
-            calls == ["web_search", guide, guide, guide, escaped, escaped, guide, index, guide]
-                && cassette == ["record: origin page", "replay: variant page"] && ragCalls == [leaked]
-                && cited.citationsFetched == 1,
-            "calls=\(calls) cassette=\(cassette) rag=\(ragCalls) \(cited.logLine)")
+            calls.map { Array($0.utf8) } == expected.map { Array($0.utf8) }
+                && cassette == ["record: origin page", "replay: variant page"]
+                && ragCalls.map { Array($0.utf8) } == [Array(leaked.utf8)] && cited.citationsFetched == 1,
+            "calls=\(calls) bytes=\(calls.map(\.utf8.count)) cassette=\(cassette) rag=\(ragCalls) \(cited.logLine)")
     }
 
     private static func snippets(_ check: (String, Bool, String) -> Void) async throws {

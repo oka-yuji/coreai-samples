@@ -275,7 +275,7 @@ final class ToolRunner {
         let origins =
             requests.filter { $0 != ConversationHost.continuePrompt }.flatMap(CitationGuard.guardURLs(in:))
             + (seenURLs ?? Self.adding(seenPages, to: []))
-        if origins.contains(written) { return written }
+        if let same = origins.first(where: { $0.utf8.elementsEqual(written.utf8) }) { return same }
         let target = CitationGuard.guardNormalized(written)
         return origins.first { CitationGuard.guardNormalized($0) == target }
     }
