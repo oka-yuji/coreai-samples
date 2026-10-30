@@ -34,13 +34,20 @@ public actor DecisionModel {
     public static func load(bundle url: URL) async throws -> DecisionModel {
         let bundle = try DecisionBundle(url: url)
         let lexical = try DecisionLexical(url: bundle.lexicalURL, width: bundle.manifest.backbone.hiddenSize)
-        let tokenizer = try await AutoTokenizer.from(modelFolder: bundle.tokenizerURL)
+        let tokenizer = try await loadTokenizer(bundle.tokenizerURL)
         try Task.checkCancellation()
         let runtime = try await DecisionRuntime.load(bundle: bundle, capacity: 256)
         try Task.checkCancellation()
         return try DecisionModel(
             bundle: bundle, tokenizer: tokenizer, lexical: lexical, runtime: runtime,
             reviewPolicy: DecisionReviewPolicy.bundled())
+    }
+
+    static func loadTokenizer(_ folder: URL) async throws -> any Tokenizer {
+        async let checked = ModelBundle.tokenCount(folder.appending(path: "tokenizer.json"))
+        let tokenizer = try await AutoTokenizer.from(modelFolder: folder)
+        _ = try await checked
+        return tokenizer
     }
 
     public func tokenCount(for request: DecisionRequest) throws -> Int {
