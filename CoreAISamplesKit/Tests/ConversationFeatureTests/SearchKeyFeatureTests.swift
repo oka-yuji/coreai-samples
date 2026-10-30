@@ -37,7 +37,7 @@ struct SearchKeyFeatureTests {
         let failure = KeyFeature.Failure(.read, reason: "Locked")
         _ = KeyFeature.reduce(&state, .loaded(ticket: 1, .unreadable(failure)))
         #expect(state.status == .failed(failure) && state.status != .empty)
-        #expect(state.saved.isEmpty && !state.canSave)
+        #expect(state.saved.isEmpty && !state.canSave && state.notice(for: failure) == .readFailed)
         #expect(KeyFeature.reduce(&state, .loadRequested) == [.run(.load(ticket: 2), id: .keychain)])
         _ = KeyFeature.reduce(&state, .loaded(ticket: 2, .stored("")))
         #expect(state.status == .empty)
@@ -136,6 +136,38 @@ struct SearchKeyFeatureTests {
         _ = KeyFeature.reduce(&state, .loadRequested)
         _ = KeyFeature.reduce(&state, .loaded(ticket: 1, load))
         #expect(state.canLeave == canLeave)
+    }
+
+    @Test(
+        "A failed save says that searches use DuckDuckGo when no key is in use, and names the key that stays otherwise",
+        arguments: [
+            (KeyFeature.Load.stored("old-key"), "new-key", KeyFeature.Notice.saveFailedKeepingPrevious),
+            (.stored(""), "new-key", .saveFailedUsingDuckDuckGo),
+            (.unreadable(KeyFeature.Failure(.read, reason: "Locked")), "new-key", .saveFailedUsingDuckDuckGo),
+            (.stored("old-key"), "", .deleteFailed),
+            (.unmoved("legacy-key", KeyFeature.Failure(.move, reason: "Denied")), "legacy-key", .moveFailed),
+        ])
+    func failedSaveNamesTheKeyInUse(load: KeyFeature.Load, draft: String, notice: KeyFeature.Notice) {
+        var state = KeyFeature.State()
+        _ = KeyFeature.reduce(&state, .loadRequested)
+        _ = KeyFeature.reduce(&state, .loaded(ticket: 1, load))
+        _ = KeyFeature.reduce(&state, .draftChanged(draft))
+        _ = KeyFeature.reduce(&state, .saveRequested)
+        let failure = KeyFeature.Failure(draft.isEmpty ? .delete : .write, reason: "Denied")
+        _ = KeyFeature.reduce(&state, .saved(ticket: 2, .failure(failure)))
+        #expect(state.failure.map { state.notice(for: $0) } == notice)
+    }
+
+    @Test("A save result from an earlier ticket or after the save has finished is ignored")
+    func staleSaveResultIsIgnored() {
+        var state = loaded("old-key")
+        _ = KeyFeature.reduce(&state, .draftChanged("new-key"))
+        _ = KeyFeature.reduce(&state, .saveRequested)
+        _ = KeyFeature.reduce(&state, .saved(ticket: 1, .success("stale-key")))
+        #expect(state.status == .saving && state.saved == "old-key")
+        _ = KeyFeature.reduce(&state, .saved(ticket: 2, .success("new-key")))
+        _ = KeyFeature.reduce(&state, .saved(ticket: 2, .failure(KeyFeature.Failure(.write, reason: "Late"))))
+        #expect(state.status == .saved && state.saved == "new-key" && state.failure == nil)
     }
 
     @Test("The status follows reading, editing and saving the key")

@@ -25,6 +25,15 @@ public enum SearchKeyFeature: Feature {
 
         public var canLeave: Bool { !isBusy && retry != .saveRequested }
 
+        public func notice(for failure: Failure) -> Notice {
+            switch failure.operation {
+            case .read: .readFailed
+            case .move: .moveFailed
+            case .write: saved.isEmpty ? .saveFailedUsingDuckDuckGo : .saveFailedKeepingPrevious
+            case .delete: .deleteFailed
+            }
+        }
+
         public var status: Status {
             switch phase {
             case .unloaded, .loading: return .reading
@@ -44,6 +53,10 @@ public enum SearchKeyFeature: Feature {
     public enum Status: Equatable, Sendable {
         case reading, saving, unsaved, saved, empty
         case failed(Failure)
+    }
+
+    public enum Notice: Equatable, Sendable {
+        case readFailed, moveFailed, saveFailedKeepingPrevious, saveFailedUsingDuckDuckGo, deleteFailed
     }
 
     public struct Failure: Error, Equatable, Sendable {

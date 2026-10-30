@@ -56,7 +56,7 @@ public enum ConversationEffect: Equatable, Sendable {
 
 public enum ConversationFeature: Feature {
     public enum EffectID: Hashable, Sendable {
-        case generation, stop, save, restore, libraryList, libraryMutation
+        case generation, stop, save, restore, libraryList, libraryMutation, termination
     }
 
     public typealias Command = FeatureStore.Command<ConversationEffect, EffectID>
@@ -281,11 +281,11 @@ public enum ConversationFeature: Feature {
                 state.library.error = nil
             }
             state.library.upsert(ConversationSummary(ConversationSnapshot(state)))
-            return state.isTerminating && !state.isRunning ? [.run(.terminationReady(true), id: nil)] : []
+            return state.isTerminating && !state.isRunning ? [.run(.terminationReady(true), id: .termination)] : []
         case .archiveFailed(let id, let revision, let message):
             guard id == state.id, state.persistence == .saving(revision: revision) else { return [] }
             state.persistence = .failed(message)
-            return state.isTerminating && !state.isRunning ? [.run(.terminationReady(false), id: nil)] : []
+            return state.isTerminating && !state.isRunning ? [.run(.terminationReady(false), id: .termination)] : []
         case .retrySave:
             guard !state.isRunning, !state.isRestoring, state.readOnlyMarkdown == nil, !state.turns.isEmpty else {
                 return []
@@ -310,12 +310,12 @@ public enum ConversationFeature: Feature {
             }
             if state.isSaving || state.isRestoring || state.library.isMutating { return [] }
             if state.turns.isEmpty || state.readOnlyMarkdown != nil || state.persistence == .saved {
-                return [.run(.terminationReady(true), id: nil)]
+                return [.run(.terminationReady(true), id: .termination)]
             }
             return save(&state)
         case .terminationCancelled:
             state.isTerminating = false
-            return []
+            return [.cancel(.termination)]
         case .saved(let id):
             if id == state.id, !state.isRestoring { state.persistence = .saved }
             return []

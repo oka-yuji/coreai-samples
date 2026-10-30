@@ -1278,6 +1278,58 @@ enum AgentSelfTest {
                 "idle=\(String(describing: idle)) unsaved=\(String(describing: unsaved)) "
                     + "waited=\(String(describing: waited)) fresh=\(fresh) refused=\(String(describing: refused)) "
                     + "retained=\(retained) again=\(String(describing: again)) store=\(probe.calls)")
+            let gated = KeyStoreProbe("stored", gated: true)
+            defer { gated.release() }
+            let quitting = ConversationPreferences(defaults: stored, keyVault: SearchKeyVault(store: gated))
+            quitting.searchKey.send(.loadRequested)
+            await settled(quitting)
+            let archive = ConversationArchive(
+                directory: folder.appending(path: "termination", directoryHint: .isDirectory))
+            var conversation = ConversationState(
+                id: "termination", now: Date(timeIntervalSince1970: 1_700_000_000), instructionsVersion: "cite-fetched",
+                toolsVersion: "web_search,fetch_page,write_note,move_note")
+            _ = ConversationFeature.reduce(&conversation, .send("Keep this", mode: .chat, now: conversation.createdAt))
+            _ = ConversationFeature.reduce(
+                &conversation,
+                .transcriptChanged(
+                    run: 1,
+                    TranscriptRecord(entries: [
+                        .instructions(id: "i", text: "Keep context"), .prompt(id: "p", text: "Keep this"),
+                        .response(id: "a", text: "Kept", metadata: StepMetadata(stopReason: "stopToken")),
+                    ])))
+            _ = ConversationFeature.reduce(&conversation, .generationEnded(run: 1, stopReason: "stopToken"))
+            try? await archive.save(ConversationSnapshot(conversation), expectedRevision: 0, writer: UUID())
+            var host: ConversationHost?
+            var ends: [String] = []
+            let (ended, end) = AsyncStream<Void>.makeStream()
+            host = ConversationHost(
+                chat: ChatViewModel(), preferences: quitting, archive: archive,
+                termination: {
+                    ends.append("\($0) saving=\(host?.state.isSaving ?? false)")
+                    end.yield()
+                })
+            if let host {
+                host.store.send(.restoreLatestRequested)
+                for await restoring in Observations({ host.state.isRestoring }) where !restoring { break }
+                quitting.searchKey.send(.draftChanged("typed"))
+                quitting.searchKey.send(.saveRequested)
+                host.store.send(.terminationRequested)
+                for _ in 0..<3 { await Task.yield() }
+                host.store.send(.terminationCancelled)
+                host.store.send(.retrySave)
+                host.store.send(.terminationRequested)
+                let saving = host.state.isSaving && host.state.isTerminating
+                gated.release()
+                for await _ in ended { break }
+                for await busy in Observations({ quitting.searchKey.state.isBusy || host.state.isSaving }) where !busy {
+                    break
+                }
+                for _ in 0..<10 { await Task.yield() }
+                check(
+                    "conversation/cancelledTerminationStaysCancelled",
+                    saving && ends == ["true saving=false"] && gated.value == "typed",
+                    "saving=\(saving) ends=\(ends) key=\(gated.value ?? "nil") store=\(gated.calls)")
+            }
         } else {
             check("conversation/headlessDefaults", false, "could not create isolated defaults")
         }
@@ -1928,11 +1980,15 @@ private final class KeyStoreProbe: SecretStore {
 
     private let record: Mutex<(value: String?, calls: [String])>
     private let failing: Set<String>
+    private let gate: DispatchSemaphore?
 
-    init(_ value: String? = nil, failing: Set<String> = []) {
+    init(_ value: String? = nil, failing: Set<String> = [], gated: Bool = false) {
         record = Mutex((value, []))
         self.failing = failing
+        gate = gated ? DispatchSemaphore(value: 0) : nil
     }
+
+    func release() { gate?.signal() }
 
     var value: String? { record.withLock { $0.value } }
     var calls: [String] { record.withLock { $0.calls } }
@@ -1945,6 +2001,7 @@ private final class KeyStoreProbe: SecretStore {
     }
 
     func write(_ value: String) throws {
+        gate?.wait()
         try record.withLock {
             try enter("write", &$0.calls)
             $0.value = value

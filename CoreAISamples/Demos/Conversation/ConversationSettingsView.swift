@@ -99,19 +99,20 @@ struct ConversationSettingsView: View {
         case .empty: EmptyView()
         case .failed(let failure):
             HStack(spacing: 6) {
-                failureText(failure).foregroundStyle(.red)
+                failureText(searchKey.state.notice(for: failure), failure.reason).foregroundStyle(.red)
                 Button("Retry") { if let retry = searchKey.state.retry { searchKey.send(retry) } }
                     .disabled(searchKey.state.retry == nil)
             }
         }
     }
 
-    private func failureText(_ failure: SearchKeyFeature.Failure) -> Text {
-        switch failure.operation {
-        case .read: Text("Could not read the saved key, so searches use DuckDuckGo: \(failure.reason)")
-        case .move: Text("Could not move the key to the keychain, so it stays in the settings file: \(failure.reason)")
-        case .write: Text("Could not save the key, so the previous key stays in use: \(failure.reason)")
-        case .delete: Text("Could not remove the saved key, so it stays in use: \(failure.reason)")
+    private func failureText(_ notice: SearchKeyFeature.Notice, _ reason: String) -> Text {
+        switch notice {
+        case .readFailed: Text("Could not read the saved key, so searches use DuckDuckGo: \(reason)")
+        case .moveFailed: Text("Could not move the key to the keychain, so it stays in the settings file: \(reason)")
+        case .saveFailedKeepingPrevious: Text("Could not save the key, so the previous key stays in use: \(reason)")
+        case .saveFailedUsingDuckDuckGo: Text("Could not save the key, so searches use DuckDuckGo: \(reason)")
+        case .deleteFailed: Text("Could not remove the saved key, so it stays in use: \(reason)")
         }
     }
 

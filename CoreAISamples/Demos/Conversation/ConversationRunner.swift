@@ -116,6 +116,7 @@ final class ConversationRunner {
         case .terminationReady(let success):
             let keys = tools.preferences.searchKey
             for await busy in Observations({ keys.state.isBusy }) where !busy { break }
+            guard !Task.isCancelled else { return }
             termination(success && keys.state.canLeave)
         }
     }

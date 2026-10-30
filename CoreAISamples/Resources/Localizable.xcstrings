@@ -2396,6 +2396,16 @@
         }
       }
     },
+    "Could not save the key, so searches use DuckDuckGo: %@" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "キーを保存できなかったため、検索にはDuckDuckGoを使います。詳細（原文）: %@"
+          }
+        }
+      }
+    },
     "Could not save the key, so the previous key stays in use: %@" : {
       "localizations" : {
         "ja" : {
