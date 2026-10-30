@@ -30,6 +30,7 @@ final class ToolRunner {
     private(set) var ledger: [FetchRecord] = []
     private(set) var fetchAttempts: [FetchAttempt] = []
     private(set) var seenPages: [String: String] = [:]
+    private(set) var seenURLs: [String]?
     private(set) var notesWritten: [(key: String, text: String)] = []
     private(set) var draftOrder: [String] = []
     private(set) var webToolCalls = 0
@@ -62,7 +63,7 @@ final class ToolRunner {
             },
             attempts: fetchAttempts.map { .init(url: $0.url, ok: $0.ok, refused: $0.refused) }, seen: seenPages,
             noteIDs: noteIDs,
-            taskWebCalls: webToolCalls, sources: sources.records.isEmpty ? nil : sources)
+            taskWebCalls: webToolCalls, sources: sources.records.isEmpty ? nil : sources, seenURLs: seenURLs)
     }
 
     func restoreEvidence(
@@ -74,6 +75,7 @@ final class ToolRunner {
         }
         fetchAttempts = evidence.attempts.map { FetchAttempt(url: $0.url, ok: $0.ok, refused: $0.refused) }
         seenPages = evidence.seen
+        seenURLs = evidence.seenURLs
         noteIDs = evidence.noteIDs ?? []
         notesWritten = []
         draftOrder = []
@@ -101,7 +103,7 @@ final class ToolRunner {
             ledger.append(
                 FetchRecord(
                     url: source.document, finalURL: source.document, sha256: hash, characters: text.count))
-            seenPages[source.document] = text
+            see([source.document: text])
         }
         return ids
     }
@@ -236,7 +238,9 @@ final class ToolRunner {
         }
         let start = Date()
         let output: AgentToolOutput
-        let refused = call.name == "fetch_page" && !allowsFetch(call.value("url") ?? "")
+        let permitted = admitted(call)
+        let refused = permitted == nil
+        let call = permitted ?? call
         if refused {
             output = AgentToolOutput(text: Self.fetchOriginRefusal)
         } else if call.name == "fetch_page", !reserveRepairFetch() {
@@ -251,13 +255,44 @@ final class ToolRunner {
     }
 
     func allowsFetch(_ url: String) -> Bool {
-        if preferences.cassette?.mode == .replay || (executor != nil && preferences.replaysRecordedTools) {
-            return true
+        skipsOriginCheck || origin(of: url) != nil
+    }
+
+    private var skipsOriginCheck: Bool {
+        preferences.cassette?.mode == .replay || (executor != nil && preferences.replaysRecordedTools)
+    }
+
+    private func admitted(_ call: AgentToolCall) -> AgentToolCall? {
+        guard call.name == "fetch_page", !skipsOriginCheck else { return call }
+        guard let origin = origin(of: call.value("url") ?? "") else { return nil }
+        var admitted = call
+        admitted.arguments = call.arguments.map { $0.name == "url" ? AgentArgument(name: "url", value: origin) : $0 }
+        return admitted
+    }
+
+    private func origin(of url: String) -> String? {
+        let written = url.trimmingCharacters(in: .whitespacesAndNewlines)
+        let origins =
+            requests.filter { $0 != ConversationHost.continuePrompt }.flatMap(CitationGuard.guardURLs(in:))
+            + (seenURLs ?? Self.adding(seenPages, to: []))
+        if origins.contains(written) { return written }
+        let target = CitationGuard.guardNormalized(written)
+        return origins.first { CitationGuard.guardNormalized($0) == target }
+    }
+
+    private func see(_ seen: [String: String]) {
+        guard !seen.isEmpty else { return }
+        seenURLs = Self.adding(seen, to: seenURLs ?? Self.adding(seenPages, to: []))
+        seenPages.merge(seen) { _, new in new }
+    }
+
+    private static func adding(_ seen: [String: String], to urls: [String]) -> [String] {
+        var urls = urls
+        var known = Set(urls)
+        for (key, text) in seen.sorted(by: { $0.key < $1.key }) {
+            for url in [key] + CitationGuard.guardURLs(in: text) where known.insert(url).inserted { urls.append(url) }
         }
-        let texts = requests.filter { $0 != ConversationHost.continuePrompt } + seenPages.values
-        let origins = Array(seenPages.keys) + texts.flatMap(CitationGuard.guardURLs(in:))
-        let target = CitationGuard.guardNormalized(url.trimmingCharacters(in: .whitespacesAndNewlines))
-        return origins.contains { CitationGuard.guardNormalized($0) == target }
+        return urls
     }
 
     private func reserveRepairFetch() -> Bool {
@@ -291,7 +326,7 @@ final class ToolRunner {
     }
 
     private func record(_ call: AgentToolCall, _ output: AgentToolOutput, refused: Bool, start: Date, end: Date) {
-        seenPages.merge(output.seen) { _, new in new }
+        see(output.seen)
         if call.name == "fetch_page" {
             let page = CitationGuard.fetchRecord(call, output)
             if let page { ledger.append(page) }

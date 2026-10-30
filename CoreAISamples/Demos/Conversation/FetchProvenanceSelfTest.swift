@@ -14,6 +14,8 @@ enum FetchProvenanceSelfTest {
             try await conversation(root, check)
             legacyEvidence(check)
             try await cassettes(root, check)
+            try await spellings(root, check)
+            try await snippets(check)
         } catch {
             check("provenance/fixture", false, error.localizedDescription)
         }
@@ -192,6 +194,110 @@ enum FetchProvenanceSelfTest {
                 "replay-or-record: refused hits=0 webCalls=0",
             ] && (try? Data(contentsOf: tape)) == recorded,
             results.joined(separator: " | "))
+    }
+
+    private static func fetch(_ url: String) -> AgentToolCall {
+        AgentToolCall(name: "fetch_page", arguments: [AgentArgument(name: "url", value: url)])
+    }
+
+    private static func recording(
+        _ log: ProvenanceLog, _ preferences: ConversationPreferences = ConversationPreferences(persists: false),
+        search: AgentToolOutput, page: @escaping (String) -> String
+    ) -> ToolRunner {
+        ToolRunner(
+            preferences: preferences,
+            executor: { call in
+                let url = call.value("url") ?? ""
+                log.calls.withLock { $0.append(call.name == "fetch_page" ? url : call.name) }
+                guard call.name == "fetch_page" else { return search }
+                return AgentToolOutput(text: page(url), seen: [url: page(url)], finalURL: url)
+            })
+    }
+
+    private static func spellings(_ root: URL, _ check: (String, Bool, String) -> Void) async throws {
+        let guide = "https://docs.example/guide"
+        let index = "https://docs.example/guide/"
+        let escaped = "https://docs.example/caf%C3%A9"
+        let request = "Read \(guide) and \(escaped)."
+        let leaked = guide + "#leak-blue"
+        let search = AgentToolOutput(text: "1. Guide index\n   \(index)", seen: [index: "Guide index"])
+        let log = ProvenanceLog()
+        let tools = recording(log, search: search) { _ in "Page" }
+        tools.requests = [request]
+        _ = await tools.execute(
+            AgentToolCall(name: "web_search", arguments: [AgentArgument(name: "query", value: "guide")]))
+        for url in [
+            leaked, "https://DOCS.example/guide", guide + "//", "https://docs.example/caf\u{E9}", escaped, guide, index,
+            guide + "#top",
+        ] {
+            _ = await tools.execute(fetch(url))
+        }
+        let cited = CitationGuard.ledgerCheck(
+            stage: "answer", answer: "Sources:\n" + leaked, notes: [], ledger: tools.ledger,
+            attempts: tools.fetchAttempts, sourcesRequired: nil, usedWebTools: true)
+        let tape = root.appending(path: "spellings.jsonl")
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        let lines = try [(guide, "origin page"), (leaked, "variant page")].map { url, text in
+            let entry = ToolCassette.Entry(
+                key: ["fetch_page", url, ""], text: text, seen: [:], ok: true, finalURL: url, ms: 0, recorded: "t")
+            return try JSONEncoder().encode(entry) + Data("\n".utf8)
+        }
+        try lines.reduce(Data(), +).write(to: tape)
+        var cassette: [String] = []
+        for mode in [ToolCassette.Mode.record, .replay] {
+            let preferences = ConversationPreferences(persists: false)
+            preferences.notesFolderPath = root.path
+            preferences.cassette = try ToolCassette(file: tape, mode: mode, replaysLatency: false)
+            let taped = ToolRunner(preferences: preferences)
+            taped.requests = [request]
+            cassette.append(mode.rawValue + ": " + (await taped.execute(fetch(leaked))))
+        }
+        let replayed = ProvenanceLog()
+        let rag = ConversationPreferences(persists: false)
+        rag.replaysRecordedTools = true
+        let evaluation = recording(replayed, rag, search: search) { _ in "Page" }
+        _ = await evaluation.execute(fetch(leaked))
+        let calls = log.calls.withLock { $0 }
+        let ragCalls = replayed.calls.withLock { $0 }
+        check(
+            "provenance/fetchUsesOriginSpelling",
+            calls == ["web_search", guide, guide, guide, escaped, escaped, guide, index, guide]
+                && cassette == ["record: origin page", "replay: variant page"] && ragCalls == [leaked]
+                && cited.citationsFetched == 1,
+            "calls=\(calls) cassette=\(cassette) rag=\(ragCalls) \(cited.logLine)")
+    }
+
+    private static func snippets(_ check: (String, Bool, String) -> Void) async throws {
+        let result = "https://search.example/a"
+        let mirror = "https://snippet.example/b"
+        let search = AgentToolOutput(
+            text: "1. A\n   \(result)\n   Mirror at \(mirror)", seen: [result: "A\nMirror at \(mirror)"])
+        let log = ProvenanceLog()
+        func runner() -> ToolRunner { recording(log, search: search) { $0 == result ? "A body" : "Page at " + $0 } }
+        func opens(_ tools: ToolRunner) async -> Bool {
+            await tools.execute(fetch(mirror)) != ToolRunner.fetchOriginRefusal
+        }
+        let live = runner()
+        _ = await live.execute(
+            AgentToolCall(name: "web_search", arguments: [AgentArgument(name: "query", value: "a")]))
+        _ = await live.execute(fetch(result))
+        let saved = try JSONEncoder().encode(live.evidence)
+        let opened = await opens(live)
+        let reopened = runner()
+        reopened.restoreEvidence(try JSONDecoder().decode(ConversationEvidence.self, from: saved))
+        let restored = await opens(reopened)
+        check(
+            "provenance/snippetURLSurvivesPageFetch", opened && restored,
+            "live=\(opened) restored=\(restored) calls=\(log.calls.withLock { $0 })")
+        let legacy = runner()
+        let old = #"{"attempts":[],"pages":[],"seen":{"\#(result)":"A\nMirror at \#(mirror)"}}"#
+        legacy.restoreEvidence(try JSONDecoder().decode(ConversationEvidence.self, from: Data(old.utf8)))
+        let derived = legacy.allowsFetch(mirror)
+        _ = await legacy.execute(fetch(result))
+        let kept = await opens(legacy)
+        check(
+            "provenance/legacyEvidenceKeepsSnippetURLs", derived && kept,
+            "derived=\(derived) kept=\(kept) calls=\(log.calls.withLock { $0 })")
     }
 
     private static func idle(_ store: ConversationStore) async {

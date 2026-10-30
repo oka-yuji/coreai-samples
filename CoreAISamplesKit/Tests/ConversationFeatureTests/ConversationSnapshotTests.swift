@@ -125,4 +125,14 @@ struct ConversationSnapshotTests {
         let attempts = try #require(object["attempts"] as? [[String: Any]])
         #expect(attempts.map { $0.keys.sorted() } == [["ok", "refused", "url"], ["ok", "url"]])
     }
+
+    @Test("Seen URLs keep their order through encoding and evidence saved without them decodes as nil")
+    func roundTripsSeenURLs() throws {
+        let urls = ["https://search.example/a", "https://snippet.example/b", "https://example.com/c"]
+        let evidence = ConversationEvidence(seen: ["https://search.example/a": "A body"], seenURLs: urls)
+        let decoded = try JSONDecoder().decode(ConversationEvidence.self, from: JSONEncoder().encode(evidence))
+        #expect(decoded == evidence && decoded.seenURLs == urls)
+        let saved = #"{"pages":[],"attempts":[],"seen":{"https://search.example/a":"A body"}}"#
+        #expect(try JSONDecoder().decode(ConversationEvidence.self, from: Data(saved.utf8)).seenURLs == nil)
+    }
 }
