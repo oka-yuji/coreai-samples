@@ -520,13 +520,9 @@ enum AgentTools {
         let named = ["Desktop", "Documents", "Downloads"].map {
             home.appending(path: $0, directoryHint: .isDirectory)
         }
-        let homePath = comparablePath(home)
         return (named + [notesDirectory])
             .map { $0.standardizedFileURL.resolvingSymlinksInPath() }
-            .filter { root in
-                let path = comparablePath(root)
-                return path != homePath && !homePath.hasPrefix(path == "/" ? "/" : path + "/")
-            }
+            .filter { !FolderIdentity.isWithin(home, anyOf: [$0]) }
     }
 
     static func moveNote(
@@ -551,7 +547,7 @@ enum AgentTools {
         let wanted = title.trimmingCharacters(in: .whitespacesAndNewlines)
         for name in [noteFileName(title), wanted.hasSuffix(".md") ? wanted : wanted + ".md"] {
             let url = directory.appending(path: name)
-            guard comparablePath(url.deletingLastPathComponent()) == comparablePath(directory),
+            guard FolderIdentity.isSame(url.deletingLastPathComponent(), as: directory),
                 FileManager.default.fileExists(atPath: url.path(percentEncoded: false))
             else { continue }
             return url
@@ -571,12 +567,6 @@ enum AgentTools {
             ?? .distantPast
     }
 
-    private static func comparablePath(_ url: URL) -> String {
-        var path = url.standardizedFileURL.resolvingSymlinksInPath().path(percentEncoded: false)
-        while path.count > 1, path.hasSuffix("/") { path.removeLast() }
-        return path.lowercased()
-    }
-
     private static func destinationFolder(_ destination: String, allowedRoots: [URL]) throws -> URL {
         let text = (destination.trimmingCharacters(in: .whitespacesAndNewlines) as NSString)
             .expandingTildeInPath
@@ -585,12 +575,7 @@ enum AgentTools {
             ? URL(fileURLWithPath: text, isDirectory: true)
             : homeDirectory.appending(path: text, directoryHint: .isDirectory)
         let resolved = url.standardizedFileURL.resolvingSymlinksInPath()
-        let path = comparablePath(resolved)
-        let inside = allowedRoots.contains {
-            let root = comparablePath($0)
-            return path == root || path.hasPrefix(root + "/")
-        }
-        guard inside else {
+        guard FolderIdentity.isWithin(resolved, anyOf: allowedRoots) else {
             throw AgentToolMessage(
                 text: "error: destination must be Desktop, Documents, Downloads or a folder inside them")
         }
