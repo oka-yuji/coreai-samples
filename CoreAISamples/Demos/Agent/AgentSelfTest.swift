@@ -1,9 +1,12 @@
 import ConversationFeature
 import ConversationRuntime
 import CryptoKit
+import FeatureStore
 import Foundation
 import FoundationModels
+import Observation
 import RAGContext
+import Synchronization
 
 enum AgentSelfTest {
     static func run() -> Never {
@@ -1098,11 +1101,11 @@ enum AgentSelfTest {
         let defaultsName = "agent-defaults-" + UUID().uuidString
         if let defaults = UserDefaults(suiteName: defaultsName) {
             defer { defaults.removePersistentDomain(forName: defaultsName) }
-            let keys = KeyStoreProbe()
+            let keys = SearchKeyVault(store: KeyStoreProbe())
             var flagMismatches: [String] = []
             func checkFlags(over saved: Bool?) {
                 for value in ["on", "off"] {
-                    let agent = ConversationPreferences(defaults: defaults, keyStore: keys)
+                    let agent = ConversationPreferences(defaults: defaults, keyVault: keys)
                     agent.persists = false
                     _ = try? applyM4GOptions(to: agent, arguments: ["--citation-guard", value])
                     let stored = defaults.object(forKey: ConversationPreferences.citationGuardKey) as? Bool
@@ -1113,7 +1116,7 @@ enum AgentSelfTest {
                     }
                 }
             }
-            let fresh = ConversationPreferences(defaults: defaults, keyStore: keys)
+            let fresh = ConversationPreferences(defaults: defaults, keyVault: keys)
             check(
                 "m4h/defaultInstructionsAndGuard",
                 fresh.citeFetched && !fresh.citationGuard
@@ -1121,11 +1124,11 @@ enum AgentSelfTest {
                 "fresh settings: citeFetched=\(fresh.citeFetched) citationGuard=\(fresh.citationGuard)")
             checkFlags(over: nil)
             fresh.citationGuard = true
-            let savedOn = ConversationPreferences(defaults: defaults, keyStore: keys).citationGuard
+            let savedOn = ConversationPreferences(defaults: defaults, keyVault: keys).citationGuard
             checkFlags(over: true)
             fresh.citeFetched = false
             fresh.citationGuard = false
-            let saved = ConversationPreferences(defaults: defaults, keyStore: keys)
+            let saved = ConversationPreferences(defaults: defaults, keyVault: keys)
             checkFlags(over: false)
             check(
                 "m4h/savedInstructionsAndGuard", savedOn && !saved.citeFetched && !saved.citationGuard,
@@ -1149,8 +1152,19 @@ enum AgentSelfTest {
             ]
             for (key, value) in values { stored.set(value, forKey: key) }
             let braveKey = ConversationPreferences.braveKeyKey
+            func settled(_ preferences: ConversationPreferences) async {
+                for await phase in Observations({ preferences.searchKey.state.phase }) where phase == .ready { return }
+            }
+            func save(_ key: String, in preferences: ConversationPreferences) async {
+                preferences.searchKey.send(.draftChanged(key))
+                preferences.searchKey.send(.saveRequested)
+                await settled(preferences)
+            }
             let keys = KeyStoreProbe()
-            let headless = ConversationPreferences(defaults: stored, keyStore: keys)
+            let headless = ConversationPreferences(defaults: stored, keyVault: SearchKeyVault(store: keys))
+            let launched = headless.braveAPIKey.isEmpty && keys.calls.isEmpty
+            headless.searchKey.send(.loadRequested)
+            await settled(headless)
             let loaded =
                 headless.maxSteps == 3 && headless.chatMaxSteps == 24 && headless.maxTokens == 2_048
                 && headless.pageBudget == 4_000
@@ -1169,35 +1183,42 @@ enum AgentSelfTest {
                     $0.key == braveKey || (stored.object(forKey: $0.key) as? NSObject)?.isEqual($0.value) == true
                 } && keys.value == "key" && keys.calls == ["read", "write"]
             check(
-                "conversation/headlessDefaults", loaded && moved && reset && kept,
-                "loaded=\(loaded) moved=\(moved) reset=\(reset) kept=\(kept) store=\(keys.calls)")
+                "conversation/headlessDefaults", launched && loaded && moved && reset && kept,
+                "launched=\(launched) loaded=\(loaded) moved=\(moved) reset=\(reset) kept=\(kept) store=\(keys.calls)")
             stored.set("legacy", forKey: braveKey)
             let saved = KeyStoreProbe("stored")
-            let chat = ConversationPreferences(defaults: stored, keyStore: saved)
+            let chat = ConversationPreferences(defaults: stored, keyVault: SearchKeyVault(store: saved))
+            chat.searchKey.send(.loadRequested)
+            await settled(chat)
             let chatKey = RAGSettings.fromDefaults(chat).braveAPIKey
             let cleared = stored.object(forKey: braveKey) == nil
             check(
                 "conversation/chatSearchKeyFromStore", chatKey == "stored" && cleared && saved.calls == ["read"],
                 "chat=\(chatKey) defaultsCleared=\(cleared) store=\(saved.calls)")
-            chat.braveAPIKey = "typed"
-            let typed = saved.value == "typed" && stored.object(forKey: braveKey) == nil
-            chat.braveAPIKey = ""
+            await save("typed", in: chat)
+            let typed = saved.value == "typed" && chat.braveAPIKey == "typed" && stored.object(forKey: braveKey) == nil
+            await save("", in: chat)
             check(
                 "conversation/searchKeySavedToStore",
-                typed && saved.value == nil && saved.calls == ["read", "write", "delete"]
+                typed && saved.value == nil && chat.braveAPIKey.isEmpty && saved.calls == ["read", "write", "delete"]
                     && stored.object(forKey: braveKey) == nil,
                 "typed=\(typed) store=\(saved.calls)")
             stored.set("legacy", forKey: braveKey)
             let untouched = KeyStoreProbe("stored")
-            let isolated = ConversationPreferences(defaults: stored, keyStore: untouched, persists: false)
+            let isolated = ConversationPreferences(
+                defaults: stored, keyVault: SearchKeyVault(store: untouched), persists: false)
             let empty = isolated.braveAPIKey.isEmpty && RAGSettings.fromDefaults(isolated).braveAPIKey.isEmpty
-            isolated.braveAPIKey = "typed"
+            isolated.searchKey.send(.loadRequested)
+            await settled(isolated)
+            await save("typed", in: isolated)
+            let memory = isolated.braveAPIKey == "typed" && isolated.searchKeyVault == nil
             isolated.braveAPIKey = ""
             let legacy = stored.string(forKey: braveKey)
             check(
                 "conversation/headlessSearchKeyUntouched",
-                empty && untouched.calls.isEmpty && untouched.value == "stored" && legacy == "legacy",
-                "empty=\(empty) store=\(untouched.calls) defaults=\(legacy ?? "nil")")
+                empty && memory && isolated.braveAPIKey.isEmpty && untouched.calls.isEmpty
+                    && untouched.value == "stored" && legacy == "legacy",
+                "empty=\(empty) memory=\(memory) store=\(untouched.calls) defaults=\(legacy ?? "nil")")
         } else {
             check("conversation/headlessDefaults", false, "could not create isolated defaults")
         }
@@ -1743,23 +1764,31 @@ enum AgentSelfTest {
 }
 
 private final class KeyStoreProbe: SecretStore {
-    var value: String?
-    private(set) var calls: [String] = []
+    private let record: Mutex<(value: String?, calls: [String])>
 
-    init(_ value: String? = nil) { self.value = value }
+    init(_ value: String? = nil) { record = Mutex((value, [])) }
+
+    var value: String? { record.withLock { $0.value } }
+    var calls: [String] { record.withLock { $0.calls } }
 
     func read() throws -> String? {
-        calls.append("read")
-        return value
+        record.withLock {
+            $0.calls.append("read")
+            return $0.value
+        }
     }
 
     func write(_ value: String) throws {
-        calls.append("write")
-        self.value = value
+        record.withLock {
+            $0.calls.append("write")
+            $0.value = value
+        }
     }
 
     func delete() throws {
-        calls.append("delete")
-        value = nil
+        record.withLock {
+            $0.calls.append("delete")
+            $0.value = nil
+        }
     }
 }

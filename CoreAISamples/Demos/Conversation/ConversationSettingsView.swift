@@ -1,5 +1,6 @@
 import AppKit
 import ConversationFeature
+import FeatureStore
 import SwiftUI
 
 struct ConversationSettingsView: View {
@@ -40,16 +41,7 @@ struct ConversationSettingsView: View {
                 ForEach(ConversationPreferences.maxTokenChoices, id: \.self) { Text("\($0)").tag(Int?.some($0)) }
             }
             .fixedSize()
-            HStack(spacing: 6) {
-                Text("Brave Search API key")
-                SecureField(
-                    "Brave Search API key", text: $preferences.braveAPIKey,
-                    prompt: Text("optional — empty uses DuckDuckGo")
-                )
-                .labelsHidden()
-                .textFieldStyle(.roundedBorder)
-                .frame(maxWidth: 280)
-            }
+            searchKeyField(preferences.searchKey)
             Toggle(
                 "Allow file operations (move_note, from the next conversation)", isOn: $preferences.fileOperations)
             Toggle("Citation guard", isOn: $preferences.citationGuard)
@@ -74,6 +66,53 @@ struct ConversationSettingsView: View {
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func searchKeyField(_ searchKey: Store<SearchKeyFeature>) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 6) {
+                Text("Brave Search API key")
+                SecureField(
+                    "Brave Search API key",
+                    text: Binding(get: { searchKey.state.draft }, set: { searchKey.send(.draftChanged($0)) }),
+                    prompt: Text("optional — empty uses DuckDuckGo")
+                )
+                .labelsHidden()
+                .textFieldStyle(.roundedBorder)
+                .frame(maxWidth: 280)
+                .disabled(!searchKey.state.canEdit)
+                .onSubmit { searchKey.send(.saveRequested) }
+                Button("Save") { searchKey.send(.saveRequested) }
+                    .disabled(!searchKey.state.canSave)
+            }
+            searchKeyStatus(searchKey)
+        }
+    }
+
+    @ViewBuilder
+    private func searchKeyStatus(_ searchKey: Store<SearchKeyFeature>) -> some View {
+        switch searchKey.state.status {
+        case .reading: Text("Reading the saved key…").foregroundStyle(.secondary)
+        case .saving: Text("Saving the key…").foregroundStyle(.secondary)
+        case .unsaved: Text("Not saved").foregroundStyle(.secondary)
+        case .saved: Text("Saved in the keychain").foregroundStyle(.secondary)
+        case .empty: EmptyView()
+        case .failed(let failure):
+            HStack(spacing: 6) {
+                failureText(failure).foregroundStyle(.red)
+                Button("Retry") { searchKey.send(failure.operation == .read ? .loadRequested : .saveRequested) }
+                    .disabled(failure.operation != .read && !searchKey.state.canSave)
+            }
+        }
+    }
+
+    private func failureText(_ failure: SearchKeyFeature.Failure) -> Text {
+        switch failure.operation {
+        case .read: Text("Could not read the saved key, so searches use DuckDuckGo: \(failure.reason)")
+        case .move: Text("Could not move the key to the keychain, so it stays in the settings file: \(failure.reason)")
+        case .write: Text("Could not save the key, so the previous key stays in use: \(failure.reason)")
+        case .delete: Text("Could not remove the saved key, so it stays in use: \(failure.reason)")
+        }
     }
 
     private func sliderBinding(_ value: Binding<Int>) -> Binding<Double> {

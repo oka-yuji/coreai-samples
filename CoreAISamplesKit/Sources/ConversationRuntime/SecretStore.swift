@@ -1,41 +1,104 @@
+import ConversationFeature
+import Dispatch
 import Foundation
 import Security
 
-public protocol SecretStore {
+public protocol SecretStore: Sendable {
     func read() throws -> String?
     func write(_ value: String) throws
     func delete() throws
 }
 
-extension SecretStore {
-    public func load(migrating key: String, from defaults: UserDefaults, persisting: Bool) -> String {
-        guard persisting else { return "" }
-        let legacy = defaults.string(forKey: key) ?? ""
-        let stored: String
-        do {
-            stored = try read() ?? ""
-            if stored.isEmpty, !legacy.isEmpty { try write(legacy) }
-        } catch {
-            return legacy
-        }
-        defaults.removeObject(forKey: key)
-        return stored.isEmpty ? legacy : stored
+public actor SearchKeyVault {
+    private let store: any SecretStore
+    private let queue = DispatchSerialQueue(label: "com.coreai-samples.search-key")
+
+    public nonisolated var unownedExecutor: UnownedSerialExecutor { queue.asUnownedSerialExecutor() }
+
+    public init(store: any SecretStore) {
+        self.store = store
     }
 
-    public func save(_ value: String, replacing key: String, in defaults: UserDefaults, persisting: Bool) {
-        guard persisting else { return }
+    public func load(legacy: String) -> SearchKeyFeature.Load {
+        let stored: String
         do {
-            if value.isEmpty { try delete() } else { try write(value) }
+            stored = try store.read() ?? ""
         } catch {
-            return
+            return .unreadable(Self.failure(.read, error))
         }
-        defaults.removeObject(forKey: key)
+        if !stored.isEmpty || legacy.isEmpty { return .stored(stored) }
+        do {
+            try store.write(legacy)
+        } catch {
+            return .unmoved(legacy, Self.failure(.move, error))
+        }
+        return .stored(legacy)
+    }
+
+    public func save(_ value: String) -> Result<String, SearchKeyFeature.Failure> {
+        do {
+            if value.isEmpty { try store.delete() } else { try store.write(value) }
+        } catch {
+            return .failure(Self.failure(value.isEmpty ? .delete : .write, error))
+        }
+        return .success(value)
+    }
+
+    public func flush() {}
+
+    private static func failure(_ operation: SearchKeyFeature.Failure.Operation, _ error: any Error)
+        -> SearchKeyFeature.Failure
+    {
+        SearchKeyFeature.Failure(operation, reason: error.localizedDescription)
     }
 }
 
-public struct KeychainSecretStore: SecretStore, Sendable {
-    public struct Failure: Error, Equatable {
+@MainActor
+public struct SearchKeyRunner {
+    public let vault: SearchKeyVault?
+    private let defaults: UserDefaults
+    private let legacyKey: String
+
+    public init(vault: SearchKeyVault?, defaults: UserDefaults, legacyKey: String) {
+        self.vault = vault
+        self.defaults = defaults
+        self.legacyKey = legacyKey
+    }
+
+    public func run(_ effect: SearchKeyFeature.Effect, _ send: (SearchKeyFeature.Action) -> Void) async {
+        switch effect {
+        case .load(let ticket):
+            guard let vault else {
+                send(.loaded(ticket: ticket, .stored("")))
+                return
+            }
+            let load = await vault.load(legacy: defaults.string(forKey: legacyKey) ?? "")
+            if case .stored = load { defaults.removeObject(forKey: legacyKey) }
+            send(.loaded(ticket: ticket, load))
+        case .save(let value, let ticket):
+            guard let vault else {
+                send(.saved(ticket: ticket, .success(value)))
+                return
+            }
+            let result = await vault.save(value)
+            if case .success = result { defaults.removeObject(forKey: legacyKey) }
+            send(.saved(ticket: ticket, result))
+        }
+    }
+}
+
+public struct KeychainSecretStore: SecretStore {
+    public struct Failure: Error, Equatable, LocalizedError {
         public var status: OSStatus
+
+        public init(status: OSStatus) {
+            self.status = status
+        }
+
+        public var errorDescription: String? {
+            let message = SecCopyErrorMessageString(status, nil).map { $0 as String } ?? "Keychain error"
+            return "\(message) (\(status))"
+        }
     }
 
     public let service: String

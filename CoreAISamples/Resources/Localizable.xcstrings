@@ -2304,6 +2304,16 @@
         }
       }
     },
+    "Could not move the key to the keychain, so it stays in the settings file: %@" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "キーをキーチェーンへ移せなかったため、設定ファイルに残っています。詳細（原文）: %@"
+          }
+        }
+      }
+    },
     "Could not open Models" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2335,6 +2345,26 @@
         }
       }
     },
+    "Could not read the saved key, so searches use DuckDuckGo: %@" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保存したキーを読み込めなかったため、検索にはDuckDuckGoを使います。詳細（原文）: %@"
+          }
+        }
+      }
+    },
+    "Could not remove the saved key, so it stays in use: %@" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保存したキーを削除できなかったため、このキーを引き続き使います。詳細（原文）: %@"
+          }
+        }
+      }
+    },
     "Could not retrieve any sources." : {
       "localizations" : {
         "ja" : {
@@ -2352,6 +2382,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "会話を保存できませんでした"
+          }
+        }
+      }
+    },
+    "Could not save the key, so the previous key stays in use: %@" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "キーを保存できなかったため、以前のキーを引き続き使います。詳細（原文）: %@"
           }
         }
       }
@@ -5059,6 +5099,16 @@
         }
       }
     },
+    "Not saved" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未保存"
+          }
+        }
+      }
+    },
     "Note" : {
       "localizations" : {
         "ja" : {
@@ -6208,6 +6258,16 @@
         }
       }
     },
+    "Reading the saved key…" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保存したキーを読み込んでいます…"
+          }
+        }
+      }
+    },
     "Ready" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -6587,6 +6647,16 @@
         }
       }
     },
+    "Retry" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "再試行"
+          }
+        }
+      }
+    },
     "Retry save" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -6799,6 +6869,16 @@
         }
       }
     },
+    "Saved in the keychain" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "キーチェーンに保存済み"
+          }
+        }
+      }
+    },
     "Saved notes: %@" : {
       "localizations" : {
         "ja" : {
@@ -6827,6 +6907,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "会話を保存しています…"
+          }
+        }
+      }
+    },
+    "Saving the key…" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "キーを保存しています…"
           }
         }
       }

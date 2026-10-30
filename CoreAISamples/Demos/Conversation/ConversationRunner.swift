@@ -113,6 +113,7 @@ final class ConversationRunner {
             await citationGuard.cancelRepair()
             chat.externallyBusy = false
         case .terminationReady(let success):
+            await tools.preferences.searchKeyVault?.flush()
             termination(success)
         }
     }
