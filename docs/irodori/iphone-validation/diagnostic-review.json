@@ -1,7 +1,7 @@
 {
   "summary": "未解消の確定指摘なし。R95-1（結果保存先と同名のモデル配下への出力追加）をbeforeで再現し、修正後52件の独立Release CPU試験で解消を確認。",
   "complete": true,
-  "repo": "/Users/okayuuji/Desktop/SelfApps/_wt/coreai-samples-95-iphone",
+  "repo": "~/Desktop/SelfApps/_wt/coreai-samples-95-iphone",
   "base_sha": "0894efabd9b793efc9db0a57b581db93966a6511",
   "head_sha": "0894efabd9b793efc9db0a57b581db93966a6511",
   "state_token": "f61a1092db47a4b893648515eb2b6ac118a3f21f63dd1f3738611673e6402e93",
