@@ -53,7 +53,13 @@
             let incoming = root.appending(path: "incoming-" + UUID().uuidString, directoryHint: .isDirectory)
             do {
                 try? FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
-                guard mkdir(incoming.path, 0o700) == 0 else { throw CloneFailure(code: errno) }
+                let lock = Darwin.open(
+                    root.appending(path: ".lock").path, O_RDWR | O_CREAT | O_NOFOLLOW | O_CLOEXEC, 0o600)
+                guard lock >= 0 else { throw CloneFailure(code: errno) }
+                defer { close(lock) }
+                guard flock(lock, LOCK_EX) == 0, mkdir(incoming.path, 0o700) == 0 else {
+                    throw CloneFailure(code: errno)
+                }
                 defer { try? FileManager.default.removeItem(at: incoming) }
                 let (spec, key) = try verify(source, into: incoming, layout: layout, clone: clone)
                 let target = root.appending(path: key, directoryHint: .isDirectory)
@@ -118,7 +124,7 @@
         ) throws {
             let locked = UInt32(UF_IMMUTABLE | UF_APPEND)
             for path in paths {
-                let (handle, status) = try regularFile(path, in: input)
+                let handle = try regularFile(path, in: input).handle
                 var parent = copy
                 for part in path.split(separator: "/").dropLast() {
                     parent.append(path: String(part), directoryHint: .isDirectory)
@@ -127,9 +133,10 @@
                 let target = copy.appending(path: path).path
                 let code = clone(handle.fileDescriptor, target)
                 guard code == 0 else { throw CloneFailure(code: code) }
-                guard status.st_flags & locked == 0 || chflags(target, status.st_flags & ~locked) == 0 else {
-                    throw CloneFailure(code: errno)
-                }
+                var copied = stat()
+                guard lstat(target, &copied) == 0,
+                    copied.st_flags & locked == 0 || chflags(target, copied.st_flags & ~locked) == 0
+                else { throw CloneFailure(code: errno) }
             }
         }
 

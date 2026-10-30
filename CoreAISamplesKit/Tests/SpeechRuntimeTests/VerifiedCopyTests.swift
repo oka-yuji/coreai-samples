@@ -1,6 +1,7 @@
 import CryptoKit
 import Foundation
 import SpeechCore
+import Synchronization
 import Testing
 
 @testable import SpeechAssets
@@ -182,6 +183,68 @@ struct VerifiedCopyTests {
         #expect(try fixture.copyFolders() == [BundleFixture.key])
     }
 
+    @Test(
+        "SPK-03 A source file locked between its check and its clone leaves no temporary copy",
+        arguments: [false, true])
+    func lockedBeforeClone(_ changed: Bool) async throws {
+        let fixture = try BundleFixture()
+        defer { fixture.remove() }
+        _ = try ValidatedSpeechBundle.open(fixture.source, copyingInto: fixture.copies, layout: BundleFixture.layout)
+        if changed { try fixture.apply(.changedBytes) }
+        let locked = fixture.source.appending(path: "tokenizer.json").path
+        defer { chflags(locked, 0) }
+        let lockThenClone: @Sendable (Int32, String) -> Int32 = { descriptor, path in
+            if path.hasSuffix("/tokenizer.json") { fchflags(descriptor, UInt32(UF_IMMUTABLE)) }
+            return ValidatedSpeechBundle.cloneFile(descriptor, to: path)
+        }
+        let runtime = IrodoriRuntime(
+            dependencies: fixture.dependencies(TestDriver(), reads: LifetimeLog(), clone: lockThenClone))
+        if changed {
+            await #expect(throws: SpeechError.self) { try await runtime.open(fixture.source) }
+        } else {
+            _ = try await runtime.open(fixture.source)
+        }
+        #expect(try FileManager.default.attributesOfItem(atPath: locked)[.immutable] as? Bool == true)
+        #expect(try fixture.copyFolders() == [BundleFixture.key])
+    }
+
+    @Test("SPK-03 Two opens that repair the same damaged copy take turns and read one published copy")
+    func serializesRepair() async throws {
+        let fixture = try BundleFixture()
+        defer { fixture.remove() }
+        _ = try ValidatedSpeechBundle.open(fixture.source, copyingInto: fixture.copies, layout: BundleFixture.layout)
+        try FileManager.default.removeItem(at: fixture.copy.appending(path: "artifacts/a.aimodel/main.mlirb"))
+        let (source, lockPath) = (fixture.source, fixture.copies.appending(path: ".lock").path)
+        let laterReads = LifetimeLog()
+        let laterRuntime = IrodoriRuntime(dependencies: fixture.dependencies(TestDriver(), reads: laterReads))
+        let later = Mutex<Task<SpeechModel, any Error>?>(nil)
+        let lockStates = LifetimeLog()
+        let startLater: @Sendable (Int32, String) -> Int32 = { descriptor, path in
+            if path.hasSuffix("/irodori.json") {
+                let probe = Darwin.open(lockPath, O_RDWR | O_CREAT | O_CLOEXEC, 0o600)
+                let held = probe >= 0 && flock(probe, LOCK_EX | LOCK_NB) != 0 && errno == EWOULDBLOCK
+                lockStates.add(held ? "held" : "free")
+                close(probe)
+                later.withLock { $0 = Task { try await laterRuntime.open(source) } }
+            }
+            return ValidatedSpeechBundle.cloneFile(descriptor, to: path)
+        }
+        let reads = LifetimeLog()
+        let runtime = IrodoriRuntime(dependencies: fixture.dependencies(TestDriver(), reads: reads, clone: startLater))
+        _ = try await runtime.open(source)
+        let published = try fixture.inodes()
+        _ = try await #require(later.withLock { $0 }).value
+        _ = try await runtime.generate(text: "13", seed: 1)
+        _ = try await laterRuntime.generate(text: "13", seed: 1)
+        #expect(lockStates.snapshot() == ["held"])
+        #expect(try fixture.inodes() == published)
+        #expect(try fixture.copyFolders() == [BundleFixture.key])
+        let tokenizer = "\(fixture.copy.appending(path: "tokenizer.json").path)=tokenizer-1"
+        let assets = ["a", "b"].map { "\(fixture.copy.appending(path: "artifacts/\($0).aimodel").path)=model-\($0)-1" }
+        #expect(reads.snapshot() == [tokenizer] + assets)
+        #expect(laterReads.snapshot() == [tokenizer] + assets)
+    }
+
     @Test("SPK-04 After a clone failure the iOS setting rejects the folder and the Mac setting verifies it in place")
     func cloneFailure() async throws {
         let fixture = try BundleFixture()
@@ -325,7 +388,7 @@ struct BundleFixture: Sendable {
 
     func copyFolders() throws -> Set<String> {
         guard FileManager.default.fileExists(atPath: copies.path) else { return [] }
-        return Set(try FileManager.default.contentsOfDirectory(atPath: copies.path))
+        return Set(try FileManager.default.contentsOfDirectory(atPath: copies.path)).subtracting([".lock"])
     }
 
     func inodes() throws -> [String: UInt64] {
