@@ -22,15 +22,28 @@ struct PageToolTests {
         #expect(try await tool.call(arguments: .init(name: "index")) == "handbook index")
     }
 
-    @Test("A page name that leaves the folder is refused without reading the outside file")
-    func refusesEscapingNames() async throws {
+    enum EscapingName: CaseIterable, Sendable {
+        case parent, dottedParent, absolute
+
+        func name(root: URL) -> String {
+            switch self {
+            case .parent: "../secret"
+            case .dottedParent: "./../secret"
+            case .absolute: root.appending(path: "secret").path(percentEncoded: false)
+            }
+        }
+    }
+
+    @Test(
+        "A page name that leaves the folder is refused without reading the outside file",
+        arguments: EscapingName.allCases)
+    func refusesEscapingNames(_ kind: EscapingName) async throws {
         let (root, pages) = try folders()
         defer { try? FileManager.default.removeItem(at: root) }
         let tool = PageTool(folder: pages.path(percentEncoded: false), log: ToolLog(snapshot: nil))
-        for name in ["../secret", "./../secret", root.appending(path: "secret").path(percentEncoded: false)] {
-            let reply = try await tool.call(arguments: .init(name: name))
-            #expect(!reply.contains("outside secret"))
-            #expect(reply == "No page named \(name). Available pages: index.")
-        }
+        let name = kind.name(root: root)
+        let reply = try await tool.call(arguments: .init(name: name))
+        #expect(!reply.contains("outside secret"))
+        #expect(reply == "No page named \(name). Available pages: index.")
     }
 }
