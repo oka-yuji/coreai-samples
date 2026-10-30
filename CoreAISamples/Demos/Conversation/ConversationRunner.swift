@@ -148,12 +148,11 @@ final class ConversationRunner {
                 send(.generationFailed(run: run, message: "No model is loaded."))
                 return
             }
-            var settings = RAGSettings.fromDefaults()
+            var settings = RAGSettings.fromDefaults(tools.preferences)
             settings.today = tools.preferences.fixedDate ?? RAGContext.today()
             settings.web = request.web
             settings.local = request.local
             settings.sourceTokenBudget = request.budget
-            settings.braveAPIKey = tools.preferences.braveAPIKey
             let question = prompt
             let capturedSettings = settings
             let retrieve = retrieveSources

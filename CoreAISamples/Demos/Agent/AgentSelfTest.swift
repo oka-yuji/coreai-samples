@@ -1,4 +1,5 @@
 import ConversationFeature
+import ConversationRuntime
 import CryptoKit
 import Foundation
 import FoundationModels
@@ -1097,10 +1098,11 @@ enum AgentSelfTest {
         let defaultsName = "agent-defaults-" + UUID().uuidString
         if let defaults = UserDefaults(suiteName: defaultsName) {
             defer { defaults.removePersistentDomain(forName: defaultsName) }
+            let keys = KeyStoreProbe()
             var flagMismatches: [String] = []
             func checkFlags(over saved: Bool?) {
                 for value in ["on", "off"] {
-                    let agent = ConversationPreferences(defaults: defaults)
+                    let agent = ConversationPreferences(defaults: defaults, keyStore: keys)
                     agent.persists = false
                     _ = try? applyM4GOptions(to: agent, arguments: ["--citation-guard", value])
                     let stored = defaults.object(forKey: ConversationPreferences.citationGuardKey) as? Bool
@@ -1111,7 +1113,7 @@ enum AgentSelfTest {
                     }
                 }
             }
-            let fresh = ConversationPreferences(defaults: defaults)
+            let fresh = ConversationPreferences(defaults: defaults, keyStore: keys)
             check(
                 "m4h/defaultInstructionsAndGuard",
                 fresh.citeFetched && !fresh.citationGuard
@@ -1119,11 +1121,11 @@ enum AgentSelfTest {
                 "fresh settings: citeFetched=\(fresh.citeFetched) citationGuard=\(fresh.citationGuard)")
             checkFlags(over: nil)
             fresh.citationGuard = true
-            let savedOn = ConversationPreferences(defaults: defaults).citationGuard
+            let savedOn = ConversationPreferences(defaults: defaults, keyStore: keys).citationGuard
             checkFlags(over: true)
             fresh.citeFetched = false
             fresh.citationGuard = false
-            let saved = ConversationPreferences(defaults: defaults)
+            let saved = ConversationPreferences(defaults: defaults, keyStore: keys)
             checkFlags(over: false)
             check(
                 "m4h/savedInstructionsAndGuard", savedOn && !saved.citeFetched && !saved.citationGuard,
@@ -1146,22 +1148,56 @@ enum AgentSelfTest {
                 ConversationPreferences.citeFetchedKey: false,
             ]
             for (key, value) in values { stored.set(value, forKey: key) }
-            let headless = ConversationPreferences(defaults: stored)
+            let braveKey = ConversationPreferences.braveKeyKey
+            let keys = KeyStoreProbe()
+            let headless = ConversationPreferences(defaults: stored, keyStore: keys)
             let loaded =
                 headless.maxSteps == 3 && headless.chatMaxSteps == 24 && headless.maxTokens == 2_048
                 && headless.pageBudget == 4_000
                 && headless.braveAPIKey == "key" && headless.fileOperations && headless.notesFolderPath == "/tmp/notes"
                 && !headless.citationGuard && !headless.citeFetched
+            let moved =
+                keys.value == "key" && keys.calls == ["read", "write"] && stored.object(forKey: braveKey) == nil
             headless.resetForHeadless()
             headless.effort = .medium
             let reset =
                 !headless.persists && headless.maxSteps == 8 && headless.chatMaxSteps == 16 && headless.maxTokens == nil
                 && headless.pageBudget == 10_000 && headless.braveAPIKey.isEmpty && !headless.fileOperations
                 && headless.notesFolderPath.isEmpty && !headless.citationGuard && headless.citeFetched
-            let kept = values.allSatisfy { (stored.object(forKey: $0.key) as? NSObject)?.isEqual($0.value) == true }
+            let kept =
+                values.allSatisfy {
+                    $0.key == braveKey || (stored.object(forKey: $0.key) as? NSObject)?.isEqual($0.value) == true
+                } && keys.value == "key" && keys.calls == ["read", "write"]
             check(
-                "conversation/headlessDefaults", loaded && reset && kept,
-                "loaded=\(loaded) reset=\(reset) kept=\(kept)")
+                "conversation/headlessDefaults", loaded && moved && reset && kept,
+                "loaded=\(loaded) moved=\(moved) reset=\(reset) kept=\(kept) store=\(keys.calls)")
+            stored.set("legacy", forKey: braveKey)
+            let saved = KeyStoreProbe("stored")
+            let chat = ConversationPreferences(defaults: stored, keyStore: saved)
+            let chatKey = RAGSettings.fromDefaults(chat).braveAPIKey
+            let cleared = stored.object(forKey: braveKey) == nil
+            check(
+                "conversation/chatSearchKeyFromStore", chatKey == "stored" && cleared && saved.calls == ["read"],
+                "chat=\(chatKey) defaultsCleared=\(cleared) store=\(saved.calls)")
+            chat.braveAPIKey = "typed"
+            let typed = saved.value == "typed" && stored.object(forKey: braveKey) == nil
+            chat.braveAPIKey = ""
+            check(
+                "conversation/searchKeySavedToStore",
+                typed && saved.value == nil && saved.calls == ["read", "write", "delete"]
+                    && stored.object(forKey: braveKey) == nil,
+                "typed=\(typed) store=\(saved.calls)")
+            stored.set("legacy", forKey: braveKey)
+            let untouched = KeyStoreProbe("stored")
+            let isolated = ConversationPreferences(defaults: stored, keyStore: untouched, persists: false)
+            let empty = isolated.braveAPIKey.isEmpty && RAGSettings.fromDefaults(isolated).braveAPIKey.isEmpty
+            isolated.braveAPIKey = "typed"
+            isolated.braveAPIKey = ""
+            let legacy = stored.string(forKey: braveKey)
+            check(
+                "conversation/headlessSearchKeyUntouched",
+                empty && untouched.calls.isEmpty && untouched.value == "stored" && legacy == "legacy",
+                "empty=\(empty) store=\(untouched.calls) defaults=\(legacy ?? "nil")")
         } else {
             check("conversation/headlessDefaults", false, "could not create isolated defaults")
         }
@@ -1703,5 +1739,27 @@ enum AgentSelfTest {
                     "\(output.text.prefix(120))")
             } catch { check("fetch/capture/\(index)", false, "\(error)") }
         }
+    }
+}
+
+private final class KeyStoreProbe: SecretStore {
+    var value: String?
+    private(set) var calls: [String] = []
+
+    init(_ value: String? = nil) { self.value = value }
+
+    func read() throws -> String? {
+        calls.append("read")
+        return value
+    }
+
+    func write(_ value: String) throws {
+        calls.append("write")
+        self.value = value
+    }
+
+    func delete() throws {
+        calls.append("delete")
+        value = nil
     }
 }

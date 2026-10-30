@@ -24,11 +24,11 @@ struct RAGSettings: Sendable {
     var provider: String { braveAPIKey.isEmpty ? "DuckDuckGo" : "Brave" }
 
     @MainActor
-    static func fromDefaults() -> RAGSettings {
+    static func fromDefaults(_ preferences: ConversationPreferences) -> RAGSettings {
         var settings = RAGSettings()
         settings.captureStructure = LaunchArguments.flag("--rag-structure")
         settings.strategy = LaunchArguments.value("--rag-strategy").flatMap(RAGStrategy.init(rawValue:)) ?? .flat
-        settings.braveAPIKey = UserDefaults.standard.string(forKey: ConversationPreferences.braveKeyKey) ?? ""
+        settings.braveAPIKey = preferences.braveAPIKey
         if let path = LaunchArguments.value("--rag-docs") {
             settings.documentsDirectory = URL(filePath: path, directoryHint: .isDirectory)
         }

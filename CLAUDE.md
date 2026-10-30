@@ -60,6 +60,8 @@
   `COREAI_HASH_MEMORY_TEST=1 COREAI_HASH_MEMORY_MIB=256 swift test --package-path CoreAISamplesKit --filter ArtifactTransferMemoryTests`
   合成ファイルのSHA-256と、kernel lifetime footprint peakが合成ファイルの半分未満（256MiBでは128MiB未満）であることを確認する。RSSや測定点の差分をこのpeakの代わりにしない。
 
+- Brave APIキーの実Keychainの試験は既定の実行ではskipする。ログインKeychainに試験用のservice `com.coreai-samples.keychain-test` で保存・読出し・上書き・削除し、最後に消す（本番のservice `com.coreai-samples.DemoApp.brave-search` には触れない）: `COREAI_KEYCHAIN_TEST=1 swift test --package-path CoreAISamplesKit --filter KeychainSecretStoreTests`。実行後に `security find-generic-password -s com.coreai-samples.keychain-test` が見つからないことを確かめる。
+
 - モデルを読むジョブ(変換、計測、モデルを読むテスト、デモアプリでモデルを動かすこと)は、`mkdir -p ~/Library/Caches/coreai-samples && mkdir ~/Library/Caches/coreai-samples/heavy-job` でロックを取ってから始める。中に `owner.txt`(セッション名、ジョブ名、開始時刻、見込み時間)を置く。取る前に、モデルを動かすプロセス(`coreai-chat`、`coreai-verify`、デモアプリなど)が残っていないことを `pgrep` で確かめる。`mkdir` が失敗したら、持ち主のジョブが終わるまで待つ。終わったら外す(名前を `heavy-job-done-<ジョブ名>-<日時>` に変える)。
 - GPU を使う統合テストは `.enabled(if:)` で既定の実行から外す。`swift test` だけでは、モデルを読むテストは動かない。動かすのは、バンドルのフォルダを `:` 区切りで渡したときだけ(このときはロックを取る): `COREAI_TEST_BUNDLES=/path/to/bundle-a:/path/to/bundle-b swift test --package-path CoreAISamplesKit`
 
