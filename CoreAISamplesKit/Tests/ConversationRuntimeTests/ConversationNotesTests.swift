@@ -151,6 +151,93 @@ struct ConversationNotesTests {
         }
     }
 
+    @Test(
+        "On a case-sensitive volume a move into a separate folder spelled like the only allowed folder is refused and the note stays",
+        .enabled(if: ProcessInfo.processInfo.environment["COREAI_CASE_SENSITIVE_ROOT"] != nil))
+    func refusesCaseVariantFolderOnCaseSensitiveVolume() async throws {
+        let volume = try #require(ProcessInfo.processInfo.environment["COREAI_CASE_SENSITIVE_ROOT"])
+        let root = URL(fileURLWithPath: volume, isDirectory: true).appending(path: "notes-case-" + UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let allowed = root.appending(path: "Allowed")
+        let other = root.appending(path: "allowed")
+        try FileManager.default.createDirectory(at: allowed, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: other, withIntermediateDirectories: true)
+        let volumeValues = try root.resourceValues(forKeys: [.volumeSupportsCaseSensitiveNamesKey])
+        try #require(volumeValues.volumeSupportsCaseSensitiveNames == true)
+        try #require(FileManager.default.contentsOfDirectory(atPath: root.path).sorted() == ["Allowed", "allowed"])
+        let directory = root.appending(path: "notes")
+        let notes = ConversationNotes()
+        let draft = try await notes.write(title: "Plan", fileName: "Plan.md", content: "Body", directory: directory)
+        let note = try await notes.publish(draft, directory: directory)
+        await #expect(throws: NoteStorageError.invalidDestination) {
+            try await notes.move(noteID: note.id, destination: other, allowedRoots: [allowed], directory: directory)
+        }
+        #expect(try await notes.read(noteID: note.id, directory: directory).path == note.path)
+        #expect(FileManager.default.fileExists(atPath: note.path.path))
+        #expect(try FileManager.default.contentsOfDirectory(atPath: other.path).isEmpty)
+        #expect(try FileManager.default.contentsOfDirectory(atPath: allowed.path).isEmpty)
+    }
+
+    @Test("On a case-insensitive volume a move into the allowed folder spelled with different case still succeeds")
+    func movesIntoCaseVariantOfAllowedFolder() async throws {
+        let root = folder()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let allowed = root.appending(path: "Allowed")
+        try FileManager.default.createDirectory(at: allowed, withIntermediateDirectories: true)
+        let volumeValues = try root.resourceValues(forKeys: [.volumeSupportsCaseSensitiveNamesKey])
+        try #require(volumeValues.volumeSupportsCaseSensitiveNames == false)
+        let directory = root.appending(path: "notes")
+        let notes = ConversationNotes()
+        let draft = try await notes.write(title: "Plan", fileName: "Plan.md", content: "Body", directory: directory)
+        let note = try await notes.publish(draft, directory: directory)
+        let spelled = root.appending(path: "allowed")
+        let moved = try await notes.move(
+            noteID: note.id, destination: spelled, allowedRoots: [allowed], directory: directory)
+        #expect(moved.warning == nil && !moved.note.draft)
+        #expect(try FileManager.default.contentsOfDirectory(atPath: allowed.path) == ["Plan.md"])
+        #expect(!FileManager.default.fileExists(atPath: note.path.path))
+    }
+
+    @Test(
+        "A destination that leaves the allowed folder through a symlink is refused and nothing is written outside",
+        arguments: ["link", "link/new", "dangling/new"])
+    func refusesSymlinkedDestination(_ relativePath: String) async throws {
+        let root = folder()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let allowed = root.appending(path: "Allowed")
+        let outside = root.appending(path: "Outside")
+        try FileManager.default.createDirectory(at: allowed, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: outside, withIntermediateDirectories: true)
+        try FileManager.default.createSymbolicLink(at: allowed.appending(path: "link"), withDestinationURL: outside)
+        try FileManager.default.createSymbolicLink(
+            at: allowed.appending(path: "dangling"), withDestinationURL: outside.appending(path: "missing"))
+        let directory = root.appending(path: "notes")
+        let notes = ConversationNotes()
+        let draft = try await notes.write(title: "Plan", fileName: "Plan.md", content: "Body", directory: directory)
+        let note = try await notes.publish(draft, directory: directory)
+        await #expect(throws: NoteStorageError.invalidDestination) {
+            try await notes.move(
+                noteID: note.id, destination: allowed.appending(path: relativePath), allowedRoots: [allowed],
+                directory: directory)
+        }
+        #expect(try FileManager.default.contentsOfDirectory(atPath: outside.path).isEmpty)
+        #expect(FileManager.default.fileExists(atPath: note.path.path))
+    }
+
+    @Test("The same-folder check compares the folder itself rather than its path")
+    func sameFolder() throws {
+        let root = folder()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let notes = root.appending(path: "Notes")
+        let other = root.appending(path: "Other")
+        try FileManager.default.createDirectory(at: notes, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: other, withIntermediateDirectories: true)
+        try FileManager.default.createSymbolicLink(at: root.appending(path: "alias"), withDestinationURL: notes)
+        #expect(FolderIdentity.isSame(root.appending(path: "alias"), as: notes))
+        #expect(!FolderIdentity.isSame(other, as: notes))
+        #expect(!FolderIdentity.isSame(root.appending(path: "missing"), as: notes))
+    }
+
     private func folder() -> URL { URL.temporaryDirectory.appending(path: "conversation-notes-" + UUID().uuidString) }
 
     @Test("Draft file names reserve case-insensitive names and private tmp paths are accepted")

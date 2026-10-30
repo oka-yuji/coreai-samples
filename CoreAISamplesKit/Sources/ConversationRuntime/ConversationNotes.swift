@@ -184,13 +184,9 @@ public actor ConversationNotes {
         let located = try locate(noteID, directory: directory)
         if located.draft { throw NoteStorageError.awaitingChecks }
         let destination = destination.standardizedFileURL.resolvingSymlinksInPath()
-        let destinationPath = destination.path.lowercased()
-        guard destination.isFileURL,
-            allowedRoots.contains(where: {
-                let path = $0.standardizedFileURL.resolvingSymlinksInPath().path.lowercased()
-                return destinationPath == path || destinationPath.hasPrefix(path + "/")
-            })
-        else { throw NoteStorageError.invalidDestination }
+        guard FolderIdentity.isWithin(destination, anyOf: allowedRoots) else {
+            throw NoteStorageError.invalidDestination
+        }
         let target = try child(located.record.fileName, in: destination)
         guard !FileManager.default.fileExists(atPath: target.path) else { throw NoteStorageError.invalidDestination }
         try FileManager.default.createDirectory(at: destination, withIntermediateDirectories: true)
@@ -343,5 +339,42 @@ public actor ConversationNotes {
 
     private func hash(_ data: Data) -> String {
         SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
+    }
+}
+
+public enum FolderIdentity {
+    private struct Key: Hashable {
+        var device: dev_t
+        var inode: ino_t
+    }
+
+    public static func isWithin(_ url: URL, anyOf roots: [URL]) -> Bool {
+        let allowed = Set(
+            roots.filter(\.isFileURL).compactMap { key($0.standardizedFileURL.resolvingSymlinksInPath().path) })
+        guard url.isFileURL, !allowed.isEmpty else { return false }
+        var path = url.standardizedFileURL.resolvingSymlinksInPath().path
+        var entry = stat()
+        while lstat(path, &entry) != 0 {
+            let parent = (path as NSString).deletingLastPathComponent
+            guard parent != path else { return false }
+            path = parent
+        }
+        var visited = Set<Key>()
+        while let current = key(path), visited.insert(current).inserted {
+            if allowed.contains(current) { return true }
+            path += "/.."
+        }
+        return false
+    }
+
+    public static func isSame(_ url: URL, as other: URL) -> Bool {
+        guard url.isFileURL, other.isFileURL, let first = key(url.path) else { return false }
+        return first == key(other.path)
+    }
+
+    private static func key(_ path: String) -> Key? {
+        var info = stat()
+        guard stat(path, &info) == 0 else { return nil }
+        return Key(device: info.st_dev, inode: info.st_ino)
     }
 }
