@@ -32,6 +32,7 @@ let package = Package(
         .library(name: "OCRCore", targets: ["OCRCore"]),
         .library(name: "OCRRuntime", targets: ["OCRRuntime"]),
         .library(name: "OCRFeature", targets: ["OCRFeature"]),
+        .library(name: "OCRUI", targets: ["OCRUI"]),
         .library(name: "OCRDemoRuntime", targets: ["OCRDemoRuntime"]),
         .executable(name: "object-finder-check", targets: ["object-finder-check"]),
         .library(name: "SpeechCore", targets: ["SpeechCore"]),
@@ -167,6 +168,7 @@ let package = Package(
                 "ModelLibraryRuntime", "ModelLibraryFeature", "ModelLibraryStorage", "ModelLibraryTransfer",
                 "FeatureStore", "EmbeddingCore", "EmbeddingRuntime", "ModelLibraryTestSupport",
                 "SpeechRuntime", "SpeechCore", "SpeechFeature",
+                "OCRDemoRuntime", "OCRFeature",
             ], swiftSettings: speechSettings),
         .target(
             name: "ObjectFinderFeature", dependencies: ["ObjectFinderCore", "FeatureStore"],
@@ -203,11 +205,16 @@ let package = Package(
             name: "OCRFeatureTests", dependencies: ["OCRFeature", "OCRCore", "FeatureStore"],
             swiftSettings: speechSettings),
         .target(
-            name: "OCRDemoRuntime", dependencies: ["OCRFeature", "OCRCore", "OCRRuntime"], swiftSettings: speechSettings
+            name: "OCRDemoRuntime", dependencies: ["OCRFeature", "OCRCore", "OCRRuntime", "ModelLibraryFeature"],
+            swiftSettings: speechSettings
         ),
         .testTarget(
-            name: "OCRDemoRuntimeTests", dependencies: ["OCRDemoRuntime", "OCRFeature", "OCRCore", "FeatureStore"],
+            name: "OCRDemoRuntimeTests",
+            dependencies: ["OCRDemoRuntime", "OCRFeature", "OCRCore", "FeatureStore", "ModelLibraryFeature"],
             swiftSettings: speechSettings),
+        .target(
+            name: "OCRUI", dependencies: ["OCRFeature", "FeatureStore", "ModelLibraryFeature"],
+            resources: [.process("Resources")], swiftSettings: speechSettings + [.defaultIsolation(MainActor.self)]),
         .target(name: "SpeechCore", swiftSettings: speechSettings),
         .target(
             name: "SpeechAssets", dependencies: ["SpeechCore"], resources: [.process("Resources")],
