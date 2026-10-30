@@ -289,6 +289,7 @@ let package = Package(
         .target(
             name: "CoreAIBackend",
             dependencies: [
+                .product(name: "Hub", package: "swift-transformers"),
                 .product(name: "Tokenizers", package: "swift-transformers"),
                 .product(name: "Jinja", package: "swift-jinja"),
             ],

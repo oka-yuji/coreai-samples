@@ -16,7 +16,7 @@ extension RAGRetriever {
             hasStructure = hasStructure || set.candidates.contains(where: \.structured)
             if let reason = set.fallbackReason { retrieval.fallbacks.append(document.id + ": " + reason) }
             let scheme = URL(string: document.id)?.scheme?.lowercased()
-            if scheme == "https" || scheme == "http" {
+            if scheme == "https" {
                 let selected = RAGStructuredSelection.select(
                     set.candidates, question: question, budget: settings.pageCharacterBudget,
                     count: { $0.count }, rank: bestRanking)
