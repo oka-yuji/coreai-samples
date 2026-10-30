@@ -2,13 +2,40 @@ import Foundation
 
 public enum RAGHTMLText {
     public static func plainText(fromHTML html: String) -> String {
-        var text = html.replacing(/<!--.*?-->/.dotMatchesNewlines(), with: " ")
-        text = text.replacing(/<script\b.*?<\/script>/.dotMatchesNewlines().ignoresCase(), with: " ")
-        text = text.replacing(/<style\b.*?<\/style>/.dotMatchesNewlines().ignoresCase(), with: " ")
-        text = text.replacing(/<noscript\b.*?<\/noscript>/.dotMatchesNewlines().ignoresCase(), with: " ")
-        text = text.replacing(/<(br|\/p|\/div|\/h[1-6]|\/li|\/tr|\/table)\b[^>]*>/.ignoresCase(), with: "\n")
-        text = text.replacing(/<[^>]*>/.dotMatchesNewlines(), with: " ")
+        var text = replacing(html, from: /<!--/, to: /-->/, with: " ")
+        text = replacing(text, from: /<script\b/.ignoresCase(), to: /<\/script>/.ignoresCase(), with: " ")
+        text = replacing(text, from: /<style\b/.ignoresCase(), to: /<\/style>/.ignoresCase(), with: " ")
+        text = replacing(text, from: /<noscript\b/.ignoresCase(), to: /<\/noscript>/.ignoresCase(), with: " ")
+        text = replacing(text, from: /<(br|\/p|\/div|\/h[1-6]|\/li|\/tr|\/table)\b/.ignoresCase(), to: />/, with: "\n")
+        text = replacing(text, from: /</, to: />/, with: " ")
         return condense(decodeEntities(text))
+    }
+
+    static func ranges(
+        in text: String, from opening: some RegexComponent, to closing: some RegexComponent
+    ) -> [Range<String.Index>] {
+        var ranges: [Range<String.Index>] = []
+        var start = text.startIndex
+        while let open = text[start...].firstMatch(of: opening),
+            let close = text[open.range.upperBound...].firstMatch(of: closing)
+        {
+            ranges.append(open.range.lowerBound..<close.range.upperBound)
+            start = close.range.upperBound
+        }
+        return ranges
+    }
+
+    private static func replacing(
+        _ text: String, from opening: some RegexComponent, to closing: some RegexComponent, with replacement: String
+    ) -> String {
+        var result = ""
+        var start = text.startIndex
+        for range in ranges(in: text, from: opening, to: closing) {
+            result += text[start..<range.lowerBound]
+            result += replacement
+            start = range.upperBound
+        }
+        return result + text[start...]
     }
 
     public static func condense(_ text: String) -> String {

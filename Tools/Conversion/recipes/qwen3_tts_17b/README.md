@@ -14,7 +14,9 @@ model identity and configuration before accepting either 0.6B or 1.7B inputs.
 Existing 0.6B contracts and assets remain supported; assets cannot be mixed.
 
 Use the same isolated Python 3.11 environment and pinned Qwen checkout as the
-[0.6B recipe](../qwen3_tts/README.md). `requirements.lock` records the dependencies.
+[0.6B recipe](../qwen3_tts/README.md). `requirements.lock` records the dependencies;
+install it with `uv pip install --require-hashes -r requirements.lock` and the
+checkout separately with `uv pip install --no-deps -e <checkout>`.
 The pretrained snapshot and generated outputs use separate directories.
 
 Create a git-ignored bindings file:
