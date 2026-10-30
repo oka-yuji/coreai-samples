@@ -1,7 +1,7 @@
 {
   "summary": "未解消の確定指摘なし。R92-1は修正前に再現し、修正後の独立Release CPU 31件で解消を確認。",
   "complete": true,
-  "repo": "/Users/okayuuji/Desktop/SelfApps/_wt/coreai-samples-92-speech",
+  "repo": "~/Desktop/SelfApps/_wt/coreai-samples-92-speech",
   "base_sha": "45936ba8f50e9d59182dae5d5948c232ba218fee",
   "head_sha": "45936ba8f50e9d59182dae5d5948c232ba218fee",
   "final_state_token": "153f12a9de9220e6c6da3ab9ede9aa082515b4c2ca949ca419e10dece138668b",
