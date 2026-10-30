@@ -7,7 +7,7 @@ import json
 import math
 import os
 import re
-import shutil
+import stat
 import sys
 import tempfile
 from pathlib import Path
@@ -31,7 +31,7 @@ from transformers.models.qwen2_vl.image_processing_qwen2_vl import smart_resize
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
-from Tools.Conversion.adapters.teleocr.contracts import digest, read_json
+from Tools.Conversion.adapters.teleocr.contracts import read_json
 
 REVISION = "70a19ec6a3b036311af19ae5e762e650f41a5980"
 MODEL = ROOT / "Tools/Conversion/recipes/teleocr/model.json"
@@ -77,11 +77,15 @@ def pinned_copy(snapshot, work):
             raise ValueError(f"Unsafe pinned source path: {relative}")
         if Path(relative).suffix == ".safetensors":
             continue
+        with os.fdopen(os.open(Path(snapshot) / relative, os.O_RDONLY | os.O_NONBLOCK), "rb") as source:
+            if not stat.S_ISREG(os.fstat(source.fileno()).st_mode):
+                raise ValueError(f"Pinned source is not a regular file: {relative}")
+            data = source.read(expected["bytes"] + 1)
+        if len(data) != expected["bytes"] or hashlib.sha256(data).hexdigest() != expected["sha256"]:
+            raise ValueError(f"Source content does not match the pinned revision: {relative}")
         destination = target / relative
         destination.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(Path(snapshot) / relative, destination)
-        if destination.stat().st_size != expected["bytes"] or digest(destination) != expected["sha256"]:
-            raise ValueError(f"Source content does not match the pinned revision: {relative}")
+        destination.write_bytes(data)
     return target
 
 
