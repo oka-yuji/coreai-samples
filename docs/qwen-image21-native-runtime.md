@@ -22,6 +22,8 @@ Validation requires a local-manifest resource with the pinned upstream revision.
 
 `ImageMemoryBudget` binds `profileID` and `manifestSHA256` to all five components. Every component supplies positive `loadingAdditionalBytes` and `inferenceAdditionalBytes`. Missing estimates are errors. No production default is supplied while device calibration is pending.
 
+`ImageDeviceCalibration` also binds the model ID, artifact ID, contract, local source kind, upstream revision, exact hardware and OS build. Its constructor rejects a budget for a different manifest or profile. A matching manifest alone does not select a budget. These metadata checks do not establish measured memory requirements; registration still requires the corresponding device evidence.
+
 Each load and inference takes a new memory observation. On iOS, available dirty-memory headroom plus current footprint forms the observed process budget. The reserve is the greater of 512 MiB and 20% of that budget, rounded up. The phase's additional estimate must fit alongside that reserve. The inference estimate excludes weights already counted in the loaded footprint. On macOS, free/inactive pages provide estimated system headroom and physical RAM supplies the reserve basis; the report distinguishes this from an iOS process limit.
 
 Reports preserve cache lookup, specialization on a cache miss, function loading, each call and release timings. They include point observations of footprint, RSS, visible Metal allocation, available memory, thermal state and low-power mode. The kernel peak is a process-lifetime peak. Neither point samples nor that lifetime peak are labeled as a phase-specific peak. Fresh-process specialization and release measurements remain required.

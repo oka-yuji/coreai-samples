@@ -2,24 +2,19 @@
     import Darwin
     import Foundation
     import ImageGenerationCore
+    import ImageGenerationRuntime
     import ModelLibraryFeature
 
     enum ImageGenerationDeviceProfiles {
-        private struct Calibration {
-            let hardwareModel: String
-            let osBuild: String
-            let budget: ImageMemoryBudget
-        }
-
-        private static let calibrations: [Calibration] = []
+        private static let calibrations: [ImageDeviceCalibration] = []
 
         static func budget(for resource: ValidatedModelResource) -> ImageMemoryBudget? {
             guard let hardware = systemValue("hw.machine"), let build = systemValue("kern.osversion") else {
                 return nil
             }
-            return calibrations.first {
-                $0.hardwareModel == hardware && $0.osBuild == build && $0.budget.manifestSHA256 == resource.revision
-            }?.budget
+            return calibrations.lazy.compactMap {
+                $0.budget(for: resource, hardwareModel: hardware, osBuild: build)
+            }.first
         }
 
         private static func systemValue(_ name: String) -> String? {

@@ -6,6 +6,17 @@ import Testing
 struct QwenImageArtifactTests {
     private struct Manifest: Decodable {
         let assets: [String: File]
+        let profile: Profile
+        let sourceRevision: String
+
+        enum CodingKeys: String, CodingKey {
+            case assets, profile
+            case sourceRevision = "source_revision"
+        }
+
+        struct Profile: Decodable {
+            let id: String
+        }
 
         struct File: Decodable {
             let bytes: Int64
@@ -25,6 +36,8 @@ struct QwenImageArtifactTests {
         let artifact = QwenImage21Artifact.nativeComplex
         #expect(artifact.sourceKind == .localManifest && artifact.download == nil && artifact.isSourceValid)
         #expect(artifact.localBundle?.manifestSHA256 == hash)
+        #expect(artifact.localBundle?.profileID == manifest.profile.id)
+        #expect(artifact.upstream?.revision == manifest.sourceRevision)
         #expect(artifact.files.count == 51 && Set(artifact.files.map(\.path)).count == 51)
         #expect(artifact.sizeBytes == 13_783_495_099)
         #expect(artifact.files.reduce(0) { $0 + $1.bytes } == artifact.sizeBytes)
