@@ -18,10 +18,12 @@ public struct ConversationEvidence: Codable, Equatable, Sendable {
     public struct Attempt: Codable, Equatable, Sendable {
         public var url: String
         public var ok: Bool
+        public var refused: Bool?
 
-        public init(url: String, ok: Bool) {
+        public init(url: String, ok: Bool, refused: Bool? = nil) {
             self.url = url
             self.ok = ok
+            self.refused = refused
         }
     }
 

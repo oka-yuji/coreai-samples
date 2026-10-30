@@ -34,6 +34,7 @@ final class ConversationPreferences {
     @ObservationIgnored var stableNotePaths = false
     @ObservationIgnored var fixedDate: String?
     @ObservationIgnored var cassette: ToolCassette?
+    @ObservationIgnored var replaysRecordedTools = false
     @ObservationIgnored var deadline: Date?
     @ObservationIgnored private let defaults: UserDefaults
 

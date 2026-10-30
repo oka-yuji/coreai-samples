@@ -19,6 +19,8 @@ final class ToolRunner {
     }
 
     nonisolated static let repairFetchLimitText = "error: citation repair fetch limit reached"
+    static let fetchOriginRefusal =
+        "error: fetch_page can open only URLs from the user's messages, search results, or pages fetched in this conversation. Run web_search first, or use a URL the user wrote."
     static let repairFetchLimit = 3
 
     weak var session: ConversationSession?
@@ -31,6 +33,7 @@ final class ToolRunner {
     private(set) var notesWritten: [(key: String, text: String)] = []
     private(set) var draftOrder: [String] = []
     private(set) var webToolCalls = 0
+    var requests: [String] = []
     private var noteIDs: [String] = []
     private var notePartsByID: [String: [String]] = [:]
     private var noteReceipts: [String: NoteReceipt] = [:]
@@ -57,17 +60,19 @@ final class ToolRunner {
             pages: ledger.map {
                 .init(url: $0.url, finalURL: $0.finalURL, sha256: $0.sha256, characters: $0.characters)
             },
-            attempts: fetchAttempts.map { .init(url: $0.url, ok: $0.ok) }, seen: seenPages, noteIDs: noteIDs,
+            attempts: fetchAttempts.map { .init(url: $0.url, ok: $0.ok, refused: $0.refused) }, seen: seenPages,
+            noteIDs: noteIDs,
             taskWebCalls: webToolCalls, sources: sources.records.isEmpty ? nil : sources)
     }
 
     func restoreEvidence(
-        _ evidence: ConversationEvidence, notesDirectory: URL? = nil, suppliedSourceIDs: Set<String> = []
+        _ evidence: ConversationEvidence, notesDirectory: URL? = nil, suppliedSourceIDs: Set<String> = [],
+        requests: [String] = []
     ) {
         ledger = evidence.pages.map {
             FetchRecord(url: $0.url, finalURL: $0.finalURL, sha256: $0.sha256, characters: $0.characters)
         }
-        fetchAttempts = evidence.attempts.map { FetchAttempt(url: $0.url, ok: $0.ok) }
+        fetchAttempts = evidence.attempts.map { FetchAttempt(url: $0.url, ok: $0.ok, refused: $0.refused) }
         seenPages = evidence.seen
         noteIDs = evidence.noteIDs ?? []
         notesWritten = []
@@ -79,6 +84,7 @@ final class ToolRunner {
         webToolCalls = evidence.taskWebCalls ?? evidence.attempts.count
         sources = evidence.sources ?? ConversationSources()
         self.suppliedSourceIDs = suppliedSourceIDs
+        self.requests = requests
     }
 
     func markSourcesSupplied(_ ids: [String]) { suppliedSourceIDs.formUnion(ids) }
@@ -230,15 +236,28 @@ final class ToolRunner {
         }
         let start = Date()
         let output: AgentToolOutput
-        if call.name == "fetch_page", !reserveRepairFetch() {
+        let refused = call.name == "fetch_page" && !allowsFetch(call.value("url") ?? "")
+        if refused {
+            output = AgentToolOutput(text: Self.fetchOriginRefusal)
+        } else if call.name == "fetch_page", !reserveRepairFetch() {
             output = AgentToolOutput(text: Self.repairFetchLimitText)
         } else if let executor {
             output = await executor(call)
         } else {
             output = await AgentTools.run(call, settings: settings)
         }
-        record(call, output, start: start, end: Date())
+        record(call, output, refused: refused, start: start, end: Date())
         return output.text
+    }
+
+    func allowsFetch(_ url: String) -> Bool {
+        if preferences.cassette?.mode == .replay || (executor != nil && preferences.replaysRecordedTools) {
+            return true
+        }
+        let texts = requests.filter { $0 != ConversationHost.continuePrompt } + seenPages.values
+        let origins = Array(seenPages.keys) + texts.flatMap(CitationGuard.guardURLs(in:))
+        let target = CitationGuard.guardNormalized(url.trimmingCharacters(in: .whitespacesAndNewlines))
+        return origins.contains { CitationGuard.guardNormalized($0) == target }
     }
 
     private func reserveRepairFetch() -> Bool {
@@ -271,16 +290,17 @@ final class ToolRunner {
         if note.draft { draftOrder.append(note.id) }
     }
 
-    private func record(_ call: AgentToolCall, _ output: AgentToolOutput, start: Date, end: Date) {
+    private func record(_ call: AgentToolCall, _ output: AgentToolOutput, refused: Bool, start: Date, end: Date) {
         seenPages.merge(output.seen) { _, new in new }
         if call.name == "fetch_page" {
             let page = CitationGuard.fetchRecord(call, output)
             if let page { ledger.append(page) }
             fetchAttempts.append(
                 FetchAttempt(
-                    url: (call.value("url") ?? "").trimmingCharacters(in: .whitespacesAndNewlines), ok: page != nil))
+                    url: (call.value("url") ?? "").trimmingCharacters(in: .whitespacesAndNewlines), ok: page != nil,
+                    refused: refused ? true : nil))
         }
-        if call.name == "web_search" || call.name == "fetch_page" { webToolCalls += 1 }
+        if !refused, call.name == "web_search" || call.name == "fetch_page" { webToolCalls += 1 }
         if let note = output.note {
             recordNote(note, replacingTitle: call.name == "write_note" && repairFetchLimit != nil)
         }
