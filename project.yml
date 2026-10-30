@@ -263,6 +263,7 @@ targets:
     deploymentTarget: "27.0"
     sources:
       - path: CoreAISamplesImageTests
+      - path: CoreAISamplesKit/Tests/ImageGenerationTests/ImageCalibrationProgress.swift
       - path: CoreAISamplesKit/Tests/ImageGenerationTests/ImageDeviceCalibrationInput.swift
       - path: CoreAISamplesKit/Tests/ImageGenerationTests/ImageDeviceCalibrationTests.swift
       - path: CoreAISamplesKit/Tests/ImageGenerationTests/ImageDeviceMemory.swift

@@ -284,6 +284,7 @@
 		EA6EA15C27A2452E25470CAF /* ConversationBudgetSelfTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C9D606E59C375EB20C9B214 /* ConversationBudgetSelfTest.swift */; };
 		EBC2196A2344ED1096E95E1B /* ImageSearchVectorCheck.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3D65A0C17724B4972F0D163 /* ImageSearchVectorCheck.swift */; };
 		EBD06F165F843DC318379076 /* ChatRAG.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1063E369286C82F9F3981B8A /* ChatRAG.swift */; };
+		EC2B6E936078D476E9EB1340 /* ImageCalibrationProgress.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBC474E8475BB6816A73F9A1 /* ImageCalibrationProgress.swift */; };
 		ECEB60BC19FA63632F2E89B1 /* ConversationFeature in Frameworks */ = {isa = PBXBuildFile; productRef = 891D81C8BBAFE7FAC28AA888 /* ConversationFeature */; };
 		F0507562C028CFA66E675271 /* ImageSearchContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD846F3F9802B8FB51FBC96A /* ImageSearchContent.swift */; };
 		F05A89528822F6762EC19F0B /* FeatureStore in Frameworks */ = {isa = PBXBuildFile; productRef = 1CE1E17F70A89101A49E40D3 /* FeatureStore */; };
@@ -469,6 +470,7 @@
 		E3B992FFD4E283E0DF813628 /* CoreAISamplesKit */ = {isa = PBXFileReference; lastKnownFileType = folder; name = CoreAISamplesKit; path = CoreAISamplesKit; sourceTree = SOURCE_ROOT; };
 		E435AB7F872EB64CEE46E3CC /* ProductComparisonView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProductComparisonView.swift; sourceTree = "<group>"; };
 		EA2345E55E00D969C54E6B75 /* CoreAISamples-iOS.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = "CoreAISamples-iOS.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		EBC474E8475BB6816A73F9A1 /* ImageCalibrationProgress.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageCalibrationProgress.swift; sourceTree = "<group>"; };
 		F0E62FA415AF325EC796A8CE /* video-search-queries.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "video-search-queries.json"; sourceTree = "<group>"; };
 		F16F9ACC21FBADD31D00D5BE /* RAGSelectionSelfTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RAGSelectionSelfTest.swift; sourceTree = "<group>"; };
 		F180E3951683BCC6D53485FA /* InfoPlist.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = InfoPlist.xcstrings; sourceTree = "<group>"; };
@@ -867,6 +869,7 @@
 		B990A41B7989DB09D741E08F /* ImageGenerationTests */ = {
 			isa = PBXGroup;
 			children = (
+				EBC474E8475BB6816A73F9A1 /* ImageCalibrationProgress.swift */,
 				94EC46C966DF2E5757C61EC0 /* ImageDeviceCalibrationInput.swift */,
 				3DEF20038F33CBAE85614A13 /* ImageDeviceCalibrationTests.swift */,
 				4C5819C9766A98C2284DAD1A /* ImageDeviceMemory.swift */,
@@ -1463,6 +1466,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				EC2B6E936078D476E9EB1340 /* ImageCalibrationProgress.swift in Sources */,
 				C20F7633663454D027F8E9F6 /* ImageDeviceCalibrationInput.swift in Sources */,
 				F7CB94E32AB3EAADDC578D24 /* ImageDeviceCalibrationTests.swift in Sources */,
 				015A108175CEB030590E699A /* ImageDeviceMemory.swift in Sources */,

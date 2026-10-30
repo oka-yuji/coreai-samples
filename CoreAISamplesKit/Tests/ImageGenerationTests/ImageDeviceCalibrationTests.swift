@@ -77,14 +77,19 @@ struct ImageDeviceCalibrationTests {
             let raw = try ImageDeviceCalibrationInput.read(url, maximum: 1_048_576)
             let config = try JSONDecoder().decode(Configuration.self, from: raw)
             try config.validate()
+            let display = try ImageCalibrationProgress()
+            defer { display.close() }
             let output = URL.documentsDirectory.appending(path: "image-calibration-" + config.runID)
             try #require(!FileManager.default.fileExists(atPath: output.path))
             try FileManager.default.createDirectory(at: output, withIntermediateDirectories: false)
             try raw.write(to: output.appending(path: "configuration.json"), options: .withoutOverwriting)
             for iteration in 0..<config.repetitions {
                 for (index, request) in config.requests.enumerated() {
+                    display.begin(
+                        iteration * config.requests.count + index + 1, total: config.repetitions * config.requests.count
+                    )
                     let requestURL = URL(filePath: request, relativeTo: .documentsDirectory)
-                    try await run(requestURL, output: output.appending(path: "\(iteration)-\(index)"))
+                    try await run(requestURL, output: output.appending(path: "\(iteration)-\(index)"), display: display)
                 }
             }
             try Task.checkCancellation()
@@ -92,7 +97,7 @@ struct ImageDeviceCalibrationTests {
                 to: output.appending(path: "completed.txt"), options: .withoutOverwriting)
         }
 
-        private func run(_ url: URL, output: URL) async throws {
+        private func run(_ url: URL, output: URL, display: ImageCalibrationProgress) async throws {
             try FileManager.default.createDirectory(at: output, withIntermediateDirectories: false)
             let raw = try ImageDeviceCalibrationInput.read(url, maximum: 1_048_576)
             let input = try JSONDecoder().decode(ImageDeviceCalibrationInput.self, from: raw)
@@ -115,6 +120,7 @@ struct ImageDeviceCalibrationTests {
             do {
                 let result = try await service.generate(request, trace: nil) { value in
                     observer.transition(String(describing: value.phase))
+                    display.update(value.phase)
                 }
                 let asset = try await ImageGenerationMedia().asset(result, request: request)
                 seconds = (ContinuousClock.now - clock) / .seconds(1)
