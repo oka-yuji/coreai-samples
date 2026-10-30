@@ -1241,6 +1241,42 @@ enum AgentSelfTest {
                 empty && memory && isolated.braveAPIKey.isEmpty && untouched.calls.isEmpty
                     && untouched.value == "stored" && legacy == "legacy",
                 "empty=\(empty) memory=\(memory) store=\(untouched.calls) defaults=\(legacy ?? "nil")")
+            func terminate(_ preferences: ConversationPreferences, saved: Bool = true) async -> Bool? {
+                var ended: Bool?
+                let runner = ConversationRunner(
+                    id: "terminate", chat: ChatViewModel(), preferences: preferences,
+                    archive: ConversationArchive(directory: folder), termination: { ended = $0 })
+                await runner.run(.terminationReady(saved)) { _ in }
+                return ended
+            }
+            let working = ConversationPreferences(
+                defaults: stored, keyVault: SearchKeyVault(store: KeyStoreProbe("stored")))
+            working.searchKey.send(.loadRequested)
+            await settled(working)
+            let idle = await terminate(working)
+            let unsaved = await terminate(working, saved: false)
+            working.searchKey.send(.draftChanged("fresh"))
+            working.searchKey.send(.saveRequested)
+            let waited = await terminate(working)
+            let fresh = working.braveAPIKey
+            let probe = KeyStoreProbe("stored", failing: ["write"])
+            let failing = ConversationPreferences(defaults: stored, keyVault: SearchKeyVault(store: probe))
+            failing.searchKey.send(.loadRequested)
+            await settled(failing)
+            failing.searchKey.send(.draftChanged("typed"))
+            failing.searchKey.send(.saveRequested)
+            let refused = await terminate(failing)
+            let retained =
+                failing.braveAPIKey == "stored" && failing.searchKey.state.draft == "typed"
+                && failing.searchKey.state.canSave
+            let again = await terminate(failing)
+            check(
+                "conversation/terminationWaitsForSearchKey",
+                idle == true && unsaved == false && waited == true && fresh == "fresh" && refused == false && retained
+                    && again == false && probe.calls == ["read", "write"],
+                "idle=\(String(describing: idle)) unsaved=\(String(describing: unsaved)) "
+                    + "waited=\(String(describing: waited)) fresh=\(fresh) refused=\(String(describing: refused)) "
+                    + "retained=\(retained) again=\(String(describing: again)) store=\(probe.calls)")
         } else {
             check("conversation/headlessDefaults", false, "could not create isolated defaults")
         }
@@ -1786,31 +1822,44 @@ enum AgentSelfTest {
 }
 
 private final class KeyStoreProbe: SecretStore {
-    private let record: Mutex<(value: String?, calls: [String])>
+    struct Failure: LocalizedError {
+        var errorDescription: String? { "Injected failure" }
+    }
 
-    init(_ value: String? = nil) { record = Mutex((value, [])) }
+    private let record: Mutex<(value: String?, calls: [String])>
+    private let failing: Set<String>
+
+    init(_ value: String? = nil, failing: Set<String> = []) {
+        record = Mutex((value, []))
+        self.failing = failing
+    }
 
     var value: String? { record.withLock { $0.value } }
     var calls: [String] { record.withLock { $0.calls } }
 
     func read() throws -> String? {
-        record.withLock {
-            $0.calls.append("read")
+        try record.withLock {
+            try enter("read", &$0.calls)
             return $0.value
         }
     }
 
     func write(_ value: String) throws {
-        record.withLock {
-            $0.calls.append("write")
+        try record.withLock {
+            try enter("write", &$0.calls)
             $0.value = value
         }
     }
 
     func delete() throws {
-        record.withLock {
-            $0.calls.append("delete")
+        try record.withLock {
+            try enter("delete", &$0.calls)
             $0.value = nil
         }
+    }
+
+    private func enter(_ call: String, _ calls: inout [String]) throws {
+        calls.append(call)
+        if failing.contains(call) { throw Failure() }
     }
 }

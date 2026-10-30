@@ -44,8 +44,6 @@ public actor SearchKeyVault {
         return .success(value)
     }
 
-    public func flush() {}
-
     private static func failure(_ operation: SearchKeyFeature.Failure.Operation, _ error: any Error)
         -> SearchKeyFeature.Failure
     {

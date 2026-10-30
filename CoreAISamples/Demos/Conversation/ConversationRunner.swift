@@ -3,6 +3,7 @@ import ConversationRuntime
 import FeatureStore
 import Foundation
 import FoundationModels
+import Observation
 import RAGContext
 
 typealias ConversationStore = Store<ConversationFeature>
@@ -113,8 +114,9 @@ final class ConversationRunner {
             await citationGuard.cancelRepair()
             chat.externallyBusy = false
         case .terminationReady(let success):
-            await tools.preferences.searchKeyVault?.flush()
-            termination(success)
+            let keys = tools.preferences.searchKey
+            for await busy in Observations({ keys.state.isBusy }) where !busy { break }
+            termination(success && keys.state.canLeave)
         }
     }
 

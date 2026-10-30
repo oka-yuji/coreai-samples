@@ -83,6 +83,24 @@ struct SecretStoreTests {
         }
     }
 
+    @Test("When retrying the move keeps failing, the legacy key stays and the move can be retried again")
+    func repeatedMoveFailuresKeepLegacy() async throws {
+        try await withDefaults { defaults in
+            defaults.set("legacy-key", forKey: key)
+            let store = FakeSecretStore(failing: ["write"])
+            let keys = makeStore(store, defaults)
+            await load(keys)
+            for _ in 0..<2 {
+                keys.send(.saveRequested)
+                await settle(keys)
+            }
+            #expect(keys.state.status == .failed(SearchKeyFeature.Failure(.move, reason: "Injected failure")))
+            #expect(keys.state.saved == "legacy-key" && keys.state.retry == .saveRequested && !keys.state.canLeave)
+            #expect(store.calls == ["read", "write", "write", "write"] && store.value == nil)
+            #expect(defaults.string(forKey: key) == "legacy-key")
+        }
+    }
+
     @Test(
         "When saving fails, the saved key, the draft and the legacy key are kept and the reason is returned",
         arguments: zip(["new-key", ""], [SearchKeyFeature.Failure.Operation.write, .delete]))
@@ -136,20 +154,24 @@ struct SecretStoreTests {
         try await withDefaults { defaults in
             let store = FakeSecretStore(gated: true)
             defer { store.release() }
-            let vault = SearchKeyVault(store: store)
-            let runner = SearchKeyRunner(vault: vault, defaults: defaults, legacyKey: key)
-            let keys = Store<SearchKeyFeature>(initialState: SearchKeyFeature.State(), run: runner.run)
-            await load(keys)
-            keys.send(.draftChanged("new-key"))
-            keys.send(.saveRequested)
-            for await call in store.started where call == "write" { break }
-            #expect(keys.state.phase == .saving)
-            async let reread = vault.load(legacy: "")
-            store.release()
-            #expect(await reread == .stored("new-key"))
-            await settle(keys)
-            #expect(keys.state.saved == "new-key" && store.calls == ["read", "write", "read"])
-            #expect(!store.ranOnMainThread && store.peak == 1)
+            await withTaskCancellationHandler {
+                let vault = SearchKeyVault(store: store)
+                let runner = SearchKeyRunner(vault: vault, defaults: defaults, legacyKey: key)
+                let keys = Store<SearchKeyFeature>(initialState: SearchKeyFeature.State(), run: runner.run)
+                await load(keys)
+                keys.send(.draftChanged("new-key"))
+                keys.send(.saveRequested)
+                for await call in store.started where call == "write" { break }
+                #expect(keys.state.phase == .saving)
+                async let reread = vault.load(legacy: "")
+                store.release()
+                #expect(await reread == .stored("new-key"))
+                await settle(keys)
+                #expect(keys.state.saved == "new-key" && store.calls == ["read", "write", "read"])
+                #expect(!store.ranOnMainThread && store.peak == 1)
+            } onCancel: {
+                store.release()
+            }
         }
     }
 

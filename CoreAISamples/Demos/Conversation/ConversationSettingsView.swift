@@ -100,8 +100,8 @@ struct ConversationSettingsView: View {
         case .failed(let failure):
             HStack(spacing: 6) {
                 failureText(failure).foregroundStyle(.red)
-                Button("Retry") { searchKey.send(failure.operation == .read ? .loadRequested : .saveRequested) }
-                    .disabled(failure.operation != .read && !searchKey.state.canSave)
+                Button("Retry") { if let retry = searchKey.state.retry { searchKey.send(retry) } }
+                    .disabled(searchKey.state.retry == nil)
             }
         }
     }

@@ -2375,6 +2375,16 @@
         }
       }
     },
+    "Could not save the Brave Search API key" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Brave SearchのAPIキーを保存できませんでした"
+          }
+        }
+      }
+    },
     "Could not save the conversation" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -8091,6 +8101,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "回答に、提示した資料の引用がありません。"
+          }
+        }
+      }
+    },
+    "The app is still open. You can retry, or fix the keychain error and try quitting again." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アプリは開いたままです。保存を再試行するか、キーチェーンのエラーの原因を解消して終了を再試行できます。"
           }
         }
       }
