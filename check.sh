@@ -27,16 +27,9 @@ check_stage=model-reports
 printf 'CHECK RUN: %s\n' "$check_stage"
 python3 -m Tools.ModelReports check
 python3 -m unittest discover -s Tools/ModelReports/tests -v
-check_stage=package-pins
+check_stage=package-pins-tests
 printf 'CHECK RUN: %s\n' "$check_stage"
-python3 -I - <<'PY'
-import json
-kit = {pin["identity"]: pin["state"] for pin in json.load(open("CoreAISamplesKit/Package.resolved"))["pins"]}
-verify = {pin["identity"]: pin["state"] for pin in json.load(open("Tools/Verify/Package.resolved"))["pins"]}
-differing = sorted(name for name in kit if verify.get(name) != kit[name])
-if differing:
-    raise SystemExit(f"Tools/Verify/Package.resolved differs from CoreAISamplesKit/Package.resolved: {differing}")
-PY
+python3 -m unittest discover -s Tools/Packages/tests -v
 check_stage=build-irodori-inputs
 printf 'CHECK RUN: %s\n' "$check_stage"
 ./Tools/Irodori/build-inputs.sh
@@ -57,6 +50,9 @@ printf 'CHECK RUN: %s\n' "$check_stage"
 check_output="$check_root/.build/check"
 xcodebuild -project CoreAISamples.xcodeproj -scheme CoreAISamples -configuration Release \
     -destination 'platform=macOS' -derivedDataPath "$check_output/DerivedData" -onlyUsePackageVersionsFromResolvedFile build
+check_stage=package-pins
+printf 'CHECK RUN: %s\n' "$check_stage"
+python3 -I Tools/Packages/check-pins.py --with-verify "$check_output/DerivedData"
 check_stage=agent-offline
 printf 'CHECK RUN: %s\n' "$check_stage"
 "$check_output/DerivedData/Build/Products/Release/CoreAISamples.app/Contents/MacOS/CoreAISamples" --agent-selftest --offline

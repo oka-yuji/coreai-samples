@@ -11,6 +11,7 @@
   ./Tools/Irodori/build-inputs.sh
   swift test --package-path CoreAISamplesKit --force-resolved-versions
   xcodebuild -project CoreAISamples.xcodeproj -scheme CoreAISamples -configuration Release -destination 'platform=macOS' -onlyUsePackageVersionsFromResolvedFile build
+  python3 -I Tools/Packages/check-pins.py
   ```
 
 - 大きさの合図(合否には使わない): `swiftlint lint --config .swiftlint-size.yml --quiet`
