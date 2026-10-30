@@ -15,10 +15,12 @@ objects.
 ```
 
 - Snapshot: `XingChen-AGI/TeleOCR@70a19ec6a3b036311af19ae5e762e650f41a5980` in the Hugging Face
-  cache (`--snapshot` overrides the path). Before anything is loaded, the script checks the size
-  and SHA-256 of the 14 files pinned in `Tools/Conversion/recipes/teleocr/model.json` and stops
-  if the snapshot differs. Loading the processor then executes the snapshot's own remote code, as
-  `trust_remote_code=True` does.
+  cache (`--snapshot` overrides the path). Before anything is loaded, the script copies the 13
+  files pinned in `Tools/Conversion/recipes/teleocr/model.json` other than the weights into a new
+  temporary folder, checks their size and SHA-256 there, and stops if any differs. The processor,
+  configuration and `modeling_naviocr.py` are loaded only from that copy, so other files and cached
+  bytecode in the snapshot are never used. Loading the processor then executes the pinned remote
+  code, as `trust_remote_code=True` does.
 - `--knowledge` is the #178 investigation folder. The script reads `fixtures/F1.png`,
   the F2 and F4 image sizes, `records/outputs/F2-table-bf16.txt`,
   `records/outputs/F2-layout-bf16.txt`, `records/outputs/F4-layout-bf16.txt` and the F2 grid in

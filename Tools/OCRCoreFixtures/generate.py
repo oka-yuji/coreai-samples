@@ -7,7 +7,9 @@ import json
 import math
 import os
 import re
+import shutil
 import sys
+import tempfile
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -29,8 +31,7 @@ from transformers.models.qwen2_vl.image_processing_qwen2_vl import smart_resize
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
-from Tools.Conversion.adapters.teleocr.contracts import read_json
-from Tools.Conversion.adapters.teleocr.prepare import validate
+from Tools.Conversion.adapters.teleocr.contracts import digest, read_json
 
 REVISION = "70a19ec6a3b036311af19ae5e762e650f41a5980"
 MODEL = ROOT / "Tools/Conversion/recipes/teleocr/model.json"
@@ -67,6 +68,21 @@ def float_digest(values):
 
 def byte_digest(values):
     return hashlib.sha256(np.ascontiguousarray(values, dtype=np.uint8).tobytes()).hexdigest()
+
+
+def pinned_copy(snapshot, work):
+    target = work / REVISION
+    for relative, expected in read_json(MODEL)["files"].items():
+        if Path(relative).is_absolute() or ".." in Path(relative).parts:
+            raise ValueError(f"Unsafe pinned source path: {relative}")
+        if Path(relative).suffix == ".safetensors":
+            continue
+        destination = target / relative
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(Path(snapshot) / relative, destination)
+        if destination.stat().st_size != expected["bytes"] or digest(destination) != expected["sha256"]:
+            raise ValueError(f"Source content does not match the pinned revision: {relative}")
+    return target
 
 
 def load_module(snapshot):
@@ -489,18 +505,19 @@ def main():
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--snapshot", type=Path, default=SNAPSHOT)
     args = parser.parse_args()
-    validate(args.snapshot, read_json(MODEL))
-    processor = AutoProcessor.from_pretrained(str(args.snapshot), trust_remote_code=True, use_fast=True)
-    config = AutoConfig.from_pretrained(str(args.snapshot), trust_remote_code=True)
-    module = load_module(args.snapshot)
-    files = {
-        "images.json": image_fixtures(processor),
-        "vision.json": vision_fixtures(processor, module, config),
-        "prompts.json": prompt_fixtures(processor, module, config, args.knowledge),
-        "generation.json": generation_fixtures(),
-        "layout.json": layout_fixtures(args.knowledge),
-        "tables.json": table_fixtures(args.knowledge),
-    }
+    with tempfile.TemporaryDirectory() as work:
+        snapshot = pinned_copy(args.snapshot, Path(work))
+        processor = AutoProcessor.from_pretrained(str(snapshot), trust_remote_code=True, use_fast=True)
+        config = AutoConfig.from_pretrained(str(snapshot), trust_remote_code=True)
+        module = load_module(snapshot)
+        files = {
+            "images.json": image_fixtures(processor),
+            "vision.json": vision_fixtures(processor, module, config),
+            "prompts.json": prompt_fixtures(processor, module, config, args.knowledge),
+            "generation.json": generation_fixtures(),
+            "layout.json": layout_fixtures(args.knowledge),
+            "tables.json": table_fixtures(args.knowledge),
+        }
     args.out.mkdir(parents=True, exist_ok=True)
     provenance = {"model": "XingChen-AGI/TeleOCR", "revision": REVISION, "python": sys.version.split()[0],
                   "torch": torch.__version__, "torchvision": torchvision.__version__,
