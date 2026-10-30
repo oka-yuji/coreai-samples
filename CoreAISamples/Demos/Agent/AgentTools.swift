@@ -96,6 +96,7 @@ enum AgentTools {
             else {
                 return AgentToolOutput(text: "error: fetch_page needs an absolute http or https URL")
             }
+            guard scheme == "https" else { return AgentToolOutput(text: httpRefusal) }
             do {
                 return try await fetchPage(
                     url: url, budget: settings.pageCharacterBudget, query: call.value("query") ?? "")
@@ -246,6 +247,8 @@ enum AgentTools {
     }
 
     static let localAddressRefusal = "error: fetch_page refuses local or private addresses"
+
+    static let httpRefusal = "error: fetch_page reads only https URLs"
 
     static let maximumPageBytes = 5 * 1_048_576
 
@@ -861,7 +864,7 @@ final class AgentPageReader: NSObject, WKNavigationDelegate {
     private var navigation: CheckedContinuation<Void, Error>?
     private var evaluation: CheckedContinuation<String?, Error>?
     private var view: WKWebView?
-    private var statusFailure: AgentToolMessage?
+    private(set) var statusFailure: AgentToolMessage?
     private let policy: AgentFetchPolicy
     private let resolutions = AgentAddressScope()
     private(set) var contentRulesInstalled = false
@@ -1061,6 +1064,9 @@ struct AgentFetchPolicy: Sendable {
         else {
             throw AgentToolMessage(
                 text: "error: fetch_page needs an absolute http or https URL", fatal: true, forbidsPageFallback: true)
+        }
+        guard scheme == "https" else {
+            throw AgentToolMessage(text: AgentTools.httpRefusal, fatal: true, forbidsPageFallback: true)
         }
         if host.hasPrefix("["), host.hasSuffix("]") { host = String(host.dropFirst().dropLast()) }
         guard !FetchAddressPolicy.isLocalName(host) else {

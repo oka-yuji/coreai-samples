@@ -3,6 +3,7 @@ import CryptoKit
 import Foundation
 import FoundationModels
 import RAGContext
+import WebKit
 
 enum AgentSelfTest {
     static func run() -> Never {
@@ -1552,7 +1553,8 @@ enum AgentSelfTest {
     @MainActor
     private static func fetchAddressChecks(offline: Bool, _ check: (String, Bool, String) -> Void) async {
         guard let publicURL = URL(string: "https://public.example/page"),
-            let privateURL = URL(string: "http://127.0.0.1/private")
+            let privateURL = URL(string: "https://127.0.0.1/private"),
+            let httpURL = URL(string: "http://public.example/page")
         else {
             check("fetch/addressFixtures", false, "Invalid URL fixture")
             return
@@ -1576,12 +1578,27 @@ enum AgentSelfTest {
         }
         for address in ["2130706433", "0x7f.1", "0177.0.0.1", "[::ffff:7f00:1]", "localhost."] {
             do {
-                try await AgentFetchPolicy().validate(URL(string: "http://\(address)/"))
+                try await AgentFetchPolicy().validate(URL(string: "https://\(address)/"))
                 check("fetch/numeric/" + address, false, "Unexpectedly allowed")
             } catch {
-                check("fetch/numeric/" + address, true, "\(error)")
+                check(
+                    "fetch/numeric/" + address, (error as? AgentToolMessage)?.text == AgentTools.localAddressRefusal,
+                    "\(error)")
             }
         }
+        do {
+            try await AgentFetchPolicy(resolve: { _ in throw AgentToolMessage(text: "error: resolved an http URL") })
+                .validate(httpURL)
+            check("fetch/http/policy", false, "Unexpectedly allowed")
+        } catch let error as AgentToolMessage {
+            check(
+                "fetch/http/policy", error.text == AgentTools.httpRefusal && error.fatal && error.forbidsPageFallback,
+                error.text)
+        } catch { check("fetch/http/policy", false, "\(error)") }
+        let agent = await AgentTools.run(
+            AgentToolCall(name: "fetch_page", arguments: [AgentArgument(name: "url", value: "http://127.0.0.1/page")]),
+            settings: AgentToolSettings(notesDirectory: FileManager.default.temporaryDirectory))
+        check("fetch/http/agent", agent.text == AgentTools.httpRefusal, agent.text)
         let cancelledScope = AgentAddressScope()
         cancelledScope.cancel()
         for name in ["8.8.8.8", "public.example"] {
@@ -1615,25 +1632,84 @@ enum AgentSelfTest {
         } catch let error as AgentToolMessage {
             check("fetch/ragRefusalSkipsRender", error.text == AgentTools.localAddressRefusal, error.text)
         } catch { check("fetch/ragRefusalSkipsRender", false, "\(error)") }
+        do {
+            _ = try await RAGRetriever.readPageDetails(
+                url: httpURL, policy: policy,
+                download: { _ in throw AgentToolMessage(text: "error: forbidden download started") },
+                render: { _ in throw AgentToolMessage(text: "error: forbidden render started") })
+            check("fetch/http/ragRead", false, "Unexpected success")
+        } catch let error as AgentToolMessage {
+            check("fetch/http/ragRead", error.text == AgentTools.httpRefusal, error.text)
+        } catch { check("fetch/http/ragRead", false, "\(error)") }
+        let page = RAGPage(raw: "", text: "Alpha", finalURL: publicURL.absoluteString, format: .text)
+        var web = RAGSettings()
+        web.web = true
+        web.recordsDiagnostics = true
+        let retrieval = await RAGRetriever.gather(
+            question: "Alpha", settings: web, count: { $0.count },
+            inputs: RAGInputs(
+                local: { _ in [] },
+                search: { _, _ in
+                    [
+                        .init(title: "Cleartext", url: "http://127.0.0.1/page", snippet: ""),
+                        .init(title: "Public", url: publicURL.absoluteString, snippet: ""),
+                    ]
+                }, read: { _ in page }))
+        let read = retrieval.documents.map(\.id)
+        check("fetch/http/ragEntry", read == [publicURL.absoluteString], "\(read)")
         if let response = HTTPURLResponse(url: publicURL, statusCode: 302, httpVersion: nil, headerFields: nil) {
-            let redirects = AgentFetchRedirects(policy: policy)
-            let task = URLSession.shared.dataTask(with: publicURL)
-            let next = await redirects.urlSession(
-                .shared, task: task, willPerformHTTPRedirection: response, newRequest: URLRequest(url: privateURL))
-            var text = "redirect body"
-            do { try redirects.checkResponse() } catch let error as AgentToolMessage { text = error.text } catch {}
-            check("fetch/redirectBeforeRequest", next == nil && text == AgentTools.localAddressRefusal, text)
+            for (name, target, expected) in [
+                ("redirectBeforeRequest", privateURL, AgentTools.localAddressRefusal),
+                ("http/redirect", httpURL, AgentTools.httpRefusal),
+            ] {
+                let redirects = AgentFetchRedirects(policy: policy)
+                let task = URLSession.shared.dataTask(with: publicURL)
+                let next = await redirects.urlSession(
+                    .shared, task: task, willPerformHTTPRedirection: response, newRequest: URLRequest(url: target))
+                var text = "redirect body"
+                do { try redirects.checkResponse() } catch let error as AgentToolMessage { text = error.text } catch {}
+                check("fetch/" + name, next == nil && text == expected, text)
+            }
         }
-        for mainFrame in [true, false] {
-            let reader = AgentPageReader(policy: policy)
-            let decision = await reader.navigationPolicy(url: privateURL, isMainFrame: mainFrame)
-            check("fetch/webNavigation/\(mainFrame ? "main" : "subframe")", decision == .cancel, "\(decision)")
+        for (prefix, target, expected) in [
+            ("", privateURL, AgentTools.localAddressRefusal), ("http/", httpURL, AgentTools.httpRefusal),
+        ] {
+            for mainFrame in [true, false] {
+                let reader = AgentPageReader(policy: policy)
+                let decision = await reader.navigationPolicy(url: target, isMainFrame: mainFrame)
+                let text = reader.statusFailure?.text ?? "\(decision)"
+                check(
+                    "fetch/\(prefix)webNavigation/\(mainFrame ? "main" : "subframe")",
+                    decision == .cancel && text == expected, text)
+            }
         }
         let reader = AgentPageReader(policy: policy)
         do {
             _ = try await reader.configuration()
             check("fetch/contentRulesInstalled", reader.contentRulesInstalled, "Rules were not installed")
         } catch { check("fetch/contentRulesInstalled", false, "\(error)") }
+        do {
+            let rules =
+                try JSONSerialization.jsonObject(with: Data(FetchAddressPolicy.contentRules().utf8))
+                as? [[String: [String: String]]] ?? []
+            let filters = try rules.filter { $0["action"]?["type"] == "block" }
+                .compactMap { $0["trigger"]?["url-filter"] }
+                .map { try NSRegularExpression(pattern: $0, options: [.caseInsensitive]) }
+            let blocked = { (url: String) in
+                filters.contains { $0.firstMatch(in: url, range: NSRange(url.startIndex..., in: url)) != nil }
+            }
+            check(
+                "fetch/http/contentRule",
+                blocked("http://public.example/image.png") && !blocked("https://public.example/image.png")
+                    && blocked("https://127.0.0.1/image.png"), "\(filters.count) block rules")
+        } catch { check("fetch/http/contentRule", false, "\(error)") }
+        for (name, html) in [
+            ("redirect", #"<meta http-equiv="refresh" content="0; url=http://127.0.0.1/next">"#),
+            ("subframe", #"<iframe src="http://127.0.0.1/frame"></iframe>"#),
+        ] {
+            let text = await webViewRefusal(html, policy: policy)
+            check("fetch/http/webView/" + name, text == AgentTools.httpRefusal, text)
+        }
         for evaluation in [false, true] {
             for outcome in ["refusal", "cancellation", "success", "before-registration"] {
                 let waiting = AgentPageReader(policy: policy)
@@ -1666,16 +1742,40 @@ enum AgentSelfTest {
             }
         }
         if !offline, let raw = LaunchArguments.value("--fetch-redirect-test-url"), let url = URL(string: raw) {
+            let refused = { (text: String) in
+                url.scheme?.lowercased() == "https"
+                    && [AgentTools.localAddressRefusal, AgentTools.httpRefusal].contains(text)
+            }
             let output = await AgentTools.run(
                 AgentToolCall(name: "fetch_page", arguments: [AgentArgument(name: "url", value: raw)]),
                 settings: AgentToolSettings())
-            check("fetch/liveRedirect/agent", output.text == AgentTools.localAddressRefusal, output.text)
+            check("fetch/liveRedirect/agent", refused(output.text), output.text)
             do {
                 _ = try await RAGRetriever.readPage(url: url)
                 check("fetch/liveRedirect/rag", false, "Unexpectedly allowed")
             } catch let error as AgentToolMessage {
-                check("fetch/liveRedirect/rag", error.text == AgentTools.localAddressRefusal, error.text)
+                check("fetch/liveRedirect/rag", refused(error.text), error.text)
             } catch { check("fetch/liveRedirect/rag", false, "\(error)") }
+        }
+    }
+
+    @MainActor
+    private static func webViewRefusal(_ html: String, policy: AgentFetchPolicy) async -> String {
+        let reader = AgentPageReader(policy: policy)
+        DispatchQueue.main.asyncAfter(deadline: .now() + AgentPageReader.timeout) { [weak reader] in
+            MainActor.assumeIsolated { reader?.abort(with: AgentPageReader.timedOutMessage) }
+        }
+        do {
+            let view = WKWebView(frame: .zero, configuration: try await reader.configuration())
+            view.navigationDelegate = reader
+            defer { view.stopLoading() }
+            try await reader.waitForNavigation {
+                view.loadHTMLString(html, baseURL: URL(string: "https://public.example/"))
+            }
+            try await reader.waitForNavigation {}
+            return "no refusal"
+        } catch {
+            return (error as? AgentToolMessage)?.text ?? "\(error)"
         }
     }
 
