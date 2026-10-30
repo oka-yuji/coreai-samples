@@ -14,18 +14,18 @@
     "docs/specs/demo-presentation.md"
   ],
   "rulesSources": [
-    "/Users/okayuuji/.codex/skills/self-review-branch/SKILL.md",
-    "/Users/okayuuji/.codex/skills/review/SKILL.md",
-    "/Users/okayuuji/.codex/skills/review/references/swift-review.md",
+    "~/.codex/skills/self-review-branch/SKILL.md",
+    "~/.codex/skills/review/SKILL.md",
+    "~/.codex/skills/review/references/swift-review.md",
     "CLAUDE.md",
-    "/Users/okayuuji/claude-config/conventions/swift/architecture.md",
-    "/Users/okayuuji/claude-config/conventions/swift/testing.md"
+    "~/claude-config/conventions/swift/architecture.md",
+    "~/claude-config/conventions/swift/testing.md"
   ],
   "primaryReferences": [
-    "/Users/okayuuji/Desktop/ナレッジ/coreai-guide/README.md",
-    "/Users/okayuuji/Desktop/ナレッジ/coreai-guide/guide/12-custom-head-models.md (要点・ルール・落とし穴; normalization versus calibration)",
-    "/Users/okayuuji/src/swiftlang/hig/disclosure-controls.md",
-    "/Users/okayuuji/src/swiftlang/swift-evolution/proposals/0166-swift-archival-serialization.md (decodeIfPresent boundary)",
+    "~/Desktop/ナレッジ/coreai-guide/README.md",
+    "~/Desktop/ナレッジ/coreai-guide/guide/12-custom-head-models.md (要点・ルール・落とし穴; normalization versus calibration)",
+    "~/src/swiftlang/hig/disclosure-controls.md",
+    "~/src/swiftlang/swift-evolution/proposals/0166-swift-archival-serialization.md (decodeIfPresent boundary)",
     "Installed MacOSX27.0 SwiftUI/Foundation declarations and #52 CPU overload probe reused for localization semantics"
   ],
   "environment": {
