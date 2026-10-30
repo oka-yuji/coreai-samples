@@ -41,6 +41,18 @@ targets:
         basedOnDependencyAnalysis: false
     dependencies:
       - package: CoreAISamplesKit
+        product: OCRFeature
+      - package: CoreAISamplesKit
+        product: OCRDemoRuntime
+      - package: CoreAISamplesKit
+        product: OCRUI
+      - package: CoreAISamplesKit
+        product: ModelLibraryFeature
+      - package: CoreAISamplesKit
+        product: ModelLibraryStorage
+      - package: CoreAISamplesKit
+        product: ModelLibraryTransfer
+      - package: CoreAISamplesKit
         product: ImageDiagnosticFeature
       - package: CoreAISamplesKit
         product: ImageGenerationRuntime

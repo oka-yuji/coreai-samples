@@ -1,5 +1,6 @@
 import Foundation
 import OCRFeature
+import OCRRuntime
 
 @MainActor
 public protocol OCRService {
@@ -52,11 +53,23 @@ public final class OCRRunner {
             send(action)
         } catch {
             guard !Task.isCancelled else { return }
-            send(error is CancellationError ? .cancelled(session) : .failed(session, error.localizedDescription))
+            send(error is CancellationError ? .cancelled(session) : .failed(session, Self.message(error, for: effect)))
         }
     }
 
     public func release() async { await service.release() }
+
+    static func message(_ error: any Error, for effect: OCREffect) -> String {
+        if (error as? OCRRuntimeError) == .busy { return "Another read is still finishing. Try again shortly." }
+        if let message = (error as? any LocalizedError)?.errorDescription { return message }
+        if error is CocoaError { return error.localizedDescription }
+        switch effect {
+        case .select: return "The image could not be opened. Choose another image."
+        case .load: return "Model preparation failed. Check the model folder and try again."
+        case .read: return "The document could not be read. Try another image."
+        case .release: return "OCR could not finish stopping. Try again."
+        }
+    }
 }
 
 @MainActor

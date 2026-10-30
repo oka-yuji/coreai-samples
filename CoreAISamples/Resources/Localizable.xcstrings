@@ -1870,6 +1870,17 @@
         }
       }
     },
+    "Close and reopen the OCR demo to start this session." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OCRデモを閉じて開き直してください。"
+          }
+        }
+      }
+    },
     "Code → stock and quantity checks" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2692,6 +2703,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "文書本文"
+          }
+        }
+      }
+    },
+    "Documents" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "文書"
           }
         }
       }
@@ -5205,6 +5227,28 @@
         }
       }
     },
+    "OCR could not finish stopping. Try again." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OCRの停止が完了しませんでした。もう一度お試しください。"
+          }
+        }
+      }
+    },
+    "OCR is unavailable" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OCRを使用できません"
+          }
+        }
+      }
+    },
     "Object to find" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5347,6 +5391,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "設定を開く"
+          }
+        }
+      }
+    },
+    "Open TeleOCR to read a document image." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "TeleOCRを開いて文書画像を読み取ります。"
           }
         }
       }
@@ -6118,6 +6173,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "原文を確認"
+          }
+        }
+      }
+    },
+    "Read text and tables from a document image" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "文書画像から本文と表を読み取る"
           }
         }
       }
@@ -7697,6 +7763,17 @@
         }
       }
     },
+    "Stopping OCR…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OCRを停止中…"
+          }
+        }
+      }
+    },
     "Stopping failed" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7901,6 +7978,10 @@
         }
       }
     },
+    "TeleOCR" : {
+      "extractionState" : "manual",
+      "shouldTranslate" : false
+    },
     "Text" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7952,6 +8033,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "生成に使用したテキスト"
+          }
+        }
+      }
+    },
+    "The OCR catalog could not be loaded." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OCRのカタログを読み込めませんでした。"
           }
         }
       }
@@ -8857,6 +8949,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "ページの例："
+          }
+        }
+      }
+    },
+    "Try again" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "再試行"
           }
         }
       }
