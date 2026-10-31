@@ -2,6 +2,7 @@
     import AVFoundation
     import FeatureStore
     import Foundation
+    import ImageGenerationCore
     import ImageGenerationRuntime
     import ImageGenerationUI
     import ModelLibraryFeature
@@ -21,10 +22,7 @@
             if (try? IOSDemoCatalog.make().demos.contains { $0.id == "image-generation" }) == true {
                 result.append(
                     ImageGenerationAdapter { session, permission in
-                        guard let budget = ImageGenerationDeviceProfiles.budget(for: session.resource) else {
-                            return nil
-                        }
-                        return LiveImageGenerationService(session: session, budget: budget, isPermitted: permission)
+                        makeImageService(session, permission: permission)?.service
                     })
             }
             return result
@@ -38,6 +36,13 @@
         private static let assembly = ModelLibraryAssembly(
             adapters: adapters, store: ManagedModelStore(root: root), transfer: ArtifactTransfer(),
             migrationCandidates: legacyFolders)
+
+        private static func makeImageService(
+            _ session: ModelDemoSession, permission: @escaping ManagedImageGeneration.Permission
+        ) -> (service: LiveImageGenerationService, budget: ImageMemoryBudget)? {
+            guard let budget = ImageGenerationDeviceProfiles.budget(for: session.resource) else { return nil }
+            return (LiveImageGenerationService(session: session, budget: budget, isPermitted: permission), budget)
+        }
 
         static func catalog(searchTerms: [String: [String]] = [:]) throws -> ModelCatalog {
             try IOSDemoCatalog.make(
@@ -70,17 +75,47 @@
 
         static func runSelfTest(acquire target: String? = nil) async -> Int32 {
             guard let output = LaunchArguments.value("--model-library-selftest") else { return 2 }
+            let checkImageConnection = LaunchArguments.flag("--check-image-generation-connection")
+            guard !checkImageConnection || target == QwenImage21Artifact.nativeComplex.id else {
+                FileHandle.standardError.write(
+                    Data("Image connection verification requires the exact Qwen artifact target.\n".utf8))
+                return 2
+            }
+            let outputURL = URL(filePath: output, relativeTo: .documentsDirectory)
             let folder = LaunchArguments.value("--import-local-bundle").map {
                 URL(filePath: $0, relativeTo: .documentsDirectory)
             }
             let definitions = Result { try catalog() }
             let previews = (try? definitions.get().demos.map(\.id)) ?? []
+            let connection =
+                checkImageConnection
+                ? IOSImageGenerationConnectionCheck(
+                    output: outputURL.appendingPathExtension("image-connection.json"), factory: makeImageService) : nil
+            let checkedAdapters = adapters.map { adapter -> any ModelDemoAdapter in
+                guard let connection, adapter.demoID == "image-generation" else { return adapter }
+                return ImageGenerationAdapter { session, permission in
+                    connection.makeService(for: session, permission: permission)
+                }
+            }
+            let checkedAssembly =
+                connection == nil
+                ? assembly
+                : ModelLibraryAssembly(
+                    adapters: checkedAdapters, store: ManagedModelStore(root: root), transfer: ArtifactTransfer(),
+                    migrationCandidates: legacyFolders)
+            let afterAcquisition: ModelLibrarySelfTest.AcquisitionCheck?
+            if let connection {
+                afterAcquisition = .init { library in await connection.check(library) }
+            } else {
+                afterAcquisition = nil
+            }
             return await ModelLibrarySelfTest.run(
-                output: URL(filePath: output, relativeTo: .documentsDirectory), root: root,
-                registry: assembly.registry, capabilities: capabilities(), acquire: target, assembly: assembly,
+                output: outputURL, root: root,
+                registry: checkedAssembly.registry, capabilities: capabilities(), acquire: target,
+                assembly: checkedAssembly,
                 importBundle: folder,
                 unconnectedDemoIDs: Set(["image-generation"]).intersection(previews).subtracting(
-                    adapters.map(\.demoID)),
+                    checkedAdapters.map(\.demoID)), afterAcquisition: afterAcquisition,
                 catalog: { try definitions.get() })
         }
 

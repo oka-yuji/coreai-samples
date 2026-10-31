@@ -84,6 +84,7 @@
 		3D3CD23F10150DCD39D4F6C1 /* SpeechExport.swift in Sources */ = {isa = PBXBuildFile; fileRef = D005E7D2BBBBEDDF71AD3A7B /* SpeechExport.swift */; };
 		3DF638F111A1931F5E7F2DB4 /* RecipeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1BAA92853DA68C9FDF5D1827 /* RecipeView.swift */; };
 		3E29EDC926A94A2EA5D7F2CC /* correction_words.json in Resources */ = {isa = PBXBuildFile; fileRef = 53F15DB3D78F006C718A6F5E /* correction_words.json */; };
+		3F4ED2B0CA9165CEBA8D841B /* IOSImageGenerationConnectionCheck.swift in Sources */ = {isa = PBXBuildFile; fileRef = D762E1ABAAA15EEE46AA7133 /* IOSImageGenerationConnectionCheck.swift */; };
 		3FFEF16C2AA352B33DCC89F9 /* EmbeddingCore in Frameworks */ = {isa = PBXBuildFile; productRef = 37B25E378A65B1AC9310F64C /* EmbeddingCore */; };
 		40712AD43DC9BE260DB46E62 /* PhoneExtractContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AB887CD5BEF34A3F73F5324 /* PhoneExtractContent.swift */; };
 		40D561949D3C716C66C23D0D /* TruckInspectionAssembly.swift in Sources */ = {isa = PBXBuildFile; fileRef = DCBAA551F86D44CD24D4787C /* TruckInspectionAssembly.swift */; };
@@ -187,6 +188,7 @@
 		92BC8BCD8F21E836B73E2204 /* PhoneExtractContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AB887CD5BEF34A3F73F5324 /* PhoneExtractContent.swift */; };
 		938CDAF7453AA1F4A8963427 /* SpeechFeature in Frameworks */ = {isa = PBXBuildFile; productRef = BDFD5B273D89B4D2E5A8CF2A /* SpeechFeature */; };
 		9489BEB70AF382E6332F8D2D /* 02-ginger-pork.png in Resources */ = {isa = PBXBuildFile; fileRef = AF62F056E1C7BDA459C4655A /* 02-ginger-pork.png */; };
+		96ED826F89CD6C4864C7938B /* IOSImageGenerationConnectionCheck.swift in Sources */ = {isa = PBXBuildFile; fileRef = D762E1ABAAA15EEE46AA7133 /* IOSImageGenerationConnectionCheck.swift */; };
 		97A354A60ACA2DAE602CE7DE /* gradient_tall.png in Resources */ = {isa = PBXBuildFile; fileRef = 681B6A08183C9B3A3DE51E58 /* gradient_tall.png */; };
 		97B7EBB7A7DDE8266181D721 /* FeatureStore in Frameworks */ = {isa = PBXBuildFile; productRef = A10F5ED4A2E950644FC5C5D3 /* FeatureStore */; };
 		993CEA13CB6E1255F860A578 /* ImageSearchRuntime in Frameworks */ = {isa = PBXBuildFile; productRef = 704839888A37047D543E7AA1 /* ImageSearchRuntime */; };
@@ -460,6 +462,7 @@
 		CD05FACDEDB78E3CE2E43B3E /* ObjectFinderContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ObjectFinderContent.swift; sourceTree = "<group>"; };
 		CF81F5162AD3FDAA09A43D62 /* VideoSearchAssembly.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoSearchAssembly.swift; sourceTree = "<group>"; };
 		D005E7D2BBBBEDDF71AD3A7B /* SpeechExport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechExport.swift; sourceTree = "<group>"; };
+		D762E1ABAAA15EEE46AA7133 /* IOSImageGenerationConnectionCheck.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IOSImageGenerationConnectionCheck.swift; sourceTree = "<group>"; };
 		D7900E92556E3B5D90842513 /* Local.xcconfig.template */ = {isa = PBXFileReference; path = Local.xcconfig.template; sourceTree = "<group>"; };
 		D86955C470BBA0D26E18C160 /* RAGEvaluationCommand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RAGEvaluationCommand.swift; sourceTree = "<group>"; };
 		DA2674A4B3DE025177BD4654 /* RecipeInspectorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipeInspectorView.swift; sourceTree = "<group>"; };
@@ -975,6 +978,7 @@
 				148BF4ADF94AA3ECAAB30DB9 /* InspectionAudioCapture.swift */,
 				5752BFE3276EAB49C2ADF091 /* InspectionRecognition.swift */,
 				9042E52315E369A6C16890CE /* InspectionSpeaker.swift */,
+				D762E1ABAAA15EEE46AA7133 /* IOSImageGenerationConnectionCheck.swift */,
 				44BA75E22EC287033FFDBFBB /* IOSModelLibraryAssembly.swift */,
 				2F27640F8151AC5D099163D9 /* LiveInspectionSpeech.swift */,
 				CD05FACDEDB78E3CE2E43B3E /* ObjectFinderContent.swift */,
@@ -1406,6 +1410,7 @@
 				16CC300A10504F414B0E428B /* ExtractRunner.swift in Sources */,
 				6DC89743479937677DB58337 /* ExtractService.swift in Sources */,
 				2CD107EA0CB22CDA042BCAF9 /* ExtractionAdapter.swift in Sources */,
+				96ED826F89CD6C4864C7938B /* IOSImageGenerationConnectionCheck.swift in Sources */,
 				34B8E68145C72B1FE4CCD28B /* IOSModelLibraryAssembly.swift in Sources */,
 				4B83AD05157A6D65B481760A /* ImageDiagnosticScreen.swift in Sources */,
 				0D28BE02D30B9476AB73AEFE /* ImageGenerationDeviceProfiles.swift in Sources */,
@@ -1513,6 +1518,7 @@
 				E3DA34EB5609CB1F3033BBDC /* GUIDriver.swift in Sources */,
 				F683B96AA637C180E95E71A7 /* HubDownloadSelfTest.swift in Sources */,
 				6895060850B682FA0B41235D /* HubDownloader.swift in Sources */,
+				3F4ED2B0CA9165CEBA8D841B /* IOSImageGenerationConnectionCheck.swift in Sources */,
 				CBD514AF16595650B2E201CF /* IOSModelLibraryAssembly.swift in Sources */,
 				CE257D95FA675F108E68DCBA /* ImageDiagnosticScreen.swift in Sources */,
 				216BCF5B542E82CED63C3B57 /* ImageGenerationDeviceProfiles.swift in Sources */,
@@ -1596,15 +1602,15 @@
 /* Begin PBXTargetDependency section */
 		1D215F5A83E51FDAA6B1629B /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			productRef = "TEMP_2E8E2546-ADB6-4CF2-BF1B-DA478014FC66" /* ImageGenerationCore */;
+			productRef = "TEMP_87079AE1-6C51-4C64-A906-437A13CBA135" /* ImageGenerationCore */;
 		};
 		B4DA0513611702606759B525 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			productRef = "TEMP_44555593-963F-4EA3-A95F-B27EF3FAE6F1" /* ModelLibraryFeature */;
+			productRef = "TEMP_48C20EE2-3EBB-4571-890C-60655B916616" /* ModelLibraryFeature */;
 		};
 		B66067B2FF0B54DE15E682C0 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			productRef = "TEMP_217885B6-35FA-4411-ACCF-834B22806187" /* ImageGenerationRuntime */;
+			productRef = "TEMP_E2B7E6CF-2972-4A1C-8AD2-618D298384DD" /* ImageGenerationRuntime */;
 		};
 		E30116BA1F1335D76F19E31C /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
@@ -2295,17 +2301,17 @@
 			isa = XCSwiftPackageProductDependency;
 			productName = SpeechFeature;
 		};
-		"TEMP_217885B6-35FA-4411-ACCF-834B22806187" /* ImageGenerationRuntime */ = {
+		"TEMP_48C20EE2-3EBB-4571-890C-60655B916616" /* ModelLibraryFeature */ = {
 			isa = XCSwiftPackageProductDependency;
-			productName = ImageGenerationRuntime;
+			productName = ModelLibraryFeature;
 		};
-		"TEMP_2E8E2546-ADB6-4CF2-BF1B-DA478014FC66" /* ImageGenerationCore */ = {
+		"TEMP_87079AE1-6C51-4C64-A906-437A13CBA135" /* ImageGenerationCore */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = ImageGenerationCore;
 		};
-		"TEMP_44555593-963F-4EA3-A95F-B27EF3FAE6F1" /* ModelLibraryFeature */ = {
+		"TEMP_E2B7E6CF-2972-4A1C-8AD2-618D298384DD" /* ImageGenerationRuntime */ = {
 			isa = XCSwiftPackageProductDependency;
-			productName = ModelLibraryFeature;
+			productName = ImageGenerationRuntime;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
