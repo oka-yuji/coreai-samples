@@ -18,7 +18,7 @@
 | OS | 状態 | 確認した範囲・残る確認 | 根拠 |
 |---|---|---|---|
 | macos | — | このOSのネイティブデモは未提供です。 | — |
-| ios | △ | PNG修正後、本体の生成・編集が最終数値基準に合格。解放後5秒待機付きの逐次実行は8回分を回収したが、通信切断により残り2回は未確認。既定Modelsと本番予算は未登録。公開DL・待ち時間の受入も未完。 | [E16](../research/qwen-image21-png-input-device-20261030.json) |
+| ios | △ | PNG修正後、本体の生成・編集が最終数値基準に合格。10月31日の解放後5秒待機付き反復は9回完了し、10回目はテスト接続の失効後にrequestだけが残った。元のアプリプロセスの不在は確認済み。連続10回の完走、本番予算、通常Models接続は未完。公開DL・待ち時間の受入も未完。 | [E16](../research/qwen-image21-png-input-device-20261030.json) |
 
 ### 性能と品質
 
@@ -95,4 +95,6 @@
 - [入力修正後の本体生成・編集](../research/qwen-image21-png-input-device-20261030.json)
 
 - [逐次反復の途中記録](../research/qwen-image21-device-series-partial-20261030.json)
+
+- [9回の実機完了と10回目の中断記録](../research/qwen-image21-device-series-partial-20261031.json)
 <!-- model-report:end -->

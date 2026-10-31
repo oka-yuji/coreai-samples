@@ -18,7 +18,7 @@ Results below retain their original dates and workloads. Different rows may use 
 | Platform | State | Verified scope / remaining work | Evidence |
 |---|---|---|---|
 | macos | — | Native demo is not provided for this platform. | — |
-| ios | △ | Main-app generation and editing pass the final numerical gates after the PNG correction. Eight sequential requests with a five-second post-release wait were recovered before connectivity was lost; two outcomes are unconfirmed. The default Models entry and production budgets remain disabled. No public download or completed latency acceptance. | [E16](../research/qwen-image21-png-input-device-20261030.json) |
+| ios | △ | Main-app generation and editing pass the final numerical gates after the PNG correction. The October 31 sequence retained nine completed requests with a five-second post-release wait. The tenth has only its request after the test connection expired; the original app process was later confirmed absent. Ten consecutive completions, production budgets and the normal Models entry remain pending. No public download or completed latency acceptance. | [E16](../research/qwen-image21-png-input-device-20261030.json) |
 
 ### Performance and quality
 
@@ -95,4 +95,6 @@ Results below retain their original dates and workloads. Different rows may use 
 - [Corrected native generation and editing](../research/qwen-image21-png-input-device-20261030.json)
 
 - [Partial repeated-use observations](../research/qwen-image21-device-series-partial-20261030.json)
+
+- [Nine completed trials and the interrupted tenth request](../research/qwen-image21-device-series-partial-20261031.json)
 <!-- model-report:end -->

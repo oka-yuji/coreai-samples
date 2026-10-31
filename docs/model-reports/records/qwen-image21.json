@@ -15,8 +15,8 @@
   },
   "release": "in_progress",
   "release_note": {
-    "en": "Native iPhone diagnostics passed; normal Models integration is pending device completion",
-    "ja": "本体iPhone診断合格／通常Models接続は実機の終了確認待ち"
+    "en": "Native iPhone diagnostics passed; consecutive testing and normal Models integration pending",
+    "ja": "本体iPhone診断合格／連続計測と通常Models接続は未完"
   },
   "download": null,
   "pages": {
@@ -93,6 +93,13 @@
         "ja": "逐次反復の途中記録"
       },
       "url": "docs/research/qwen-image21-device-series-partial-20261030.json"
+    },
+    {
+      "title": {
+        "en": "Nine completed trials and the interrupted tenth request",
+        "ja": "9回の実機完了と10回目の中断記録"
+      },
+      "url": "docs/research/qwen-image21-device-series-partial-20261031.json"
     }
   ],
   "support": {
@@ -112,8 +119,8 @@
         "native-corrected-20261030"
       ],
       "note": {
-        "en": "Main-app generation and editing pass the final numerical gates after the PNG correction. Eight sequential requests with a five-second post-release wait were recovered before connectivity was lost; two outcomes are unconfirmed. The default Models entry and production budgets remain disabled. No public download or completed latency acceptance.",
-        "ja": "PNG修正後、本体の生成・編集が最終数値基準に合格。解放後5秒待機付きの逐次実行は8回分を回収したが、通信切断により残り2回は未確認。既定Modelsと本番予算は未登録。公開DL・待ち時間の受入も未完。"
+        "en": "Main-app generation and editing pass the final numerical gates after the PNG correction. The October 31 sequence retained nine completed requests with a five-second post-release wait. The tenth has only its request after the test connection expired; the original app process was later confirmed absent. Ten consecutive completions, production budgets and the normal Models entry remain pending. No public download or completed latency acceptance.",
+        "ja": "PNG修正後、本体の生成・編集が最終数値基準に合格。10月31日の解放後5秒待機付き反復は9回完了し、10回目はテスト接続の失効後にrequestだけが残った。元のアプリプロセスの不在は確認済み。連続10回の完走、本番予算、通常Models接続は未完。公開DL・待ち時間の受入も未完。"
       }
     }
   },
