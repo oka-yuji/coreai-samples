@@ -7,6 +7,41 @@ import Testing
 struct ImageDeviceCalibrationBindingTests {
     private let artifact = QwenImage21Artifact.nativeComplex
 
+    @Test("The registered Qwen calibration matches measured memory bounds and the ordinary catalog")
+    func productionCalibration() throws {
+        let catalog = try IOSDemoCatalog.make()
+        let model = try #require(catalog.model("qwen-image21-turbo"))
+        #expect(model.artifacts == [artifact])
+        #expect(artifact.download == nil && artifact.sourceKind == .localManifest)
+        let calibration = try ImageDeviceCalibration.makeQwenImage21NativeComplex()
+        let budget = try #require(
+            calibration.budget(for: resource(), hardwareModel: "iPhone18,1", osBuild: "24A446"))
+        #expect(budget.profileID == QwenImage21Artifact.profileID)
+        #expect(budget.manifestSHA256 == QwenImage21Artifact.manifestSHA256)
+        let witnesses: [(ImageModelComponent, ImageMemoryPhase, UInt64, UInt64)] = [
+            (.denoiser, .inference, 842_718_784, 3_681_815_832),
+            (.denoiser, .loading, 385_944_112, 3_677_752_600),
+            (.text, .inference, 872_913_392, 3_681_815_832),
+            (.text, .loading, 219_089_480, 3_681_815_832),
+            (.vaeDecoder, .inference, 1_895_304_448, 3_681_815_832),
+            (.vaeDecoder, .loading, 353_634_840, 3_681_815_832),
+            (.vaeEncoder, .inference, 804_686_696, 3_677_752_600),
+            (.vaeEncoder, .loading, 408_963_656, 3_677_752_600),
+            (.vision, .inference, 515_313_040, 3_681_815_832),
+            (.vision, .loading, 193_628_720, 3_681_815_832),
+        ]
+        let mebibyte: UInt64 = 1_048_576
+        for (component, phase, before, terminalPeak) in witnesses {
+            try #require(terminalPeak >= before)
+            let expected = ((terminalPeak - before + 256 * mebibyte + mebibyte - 1) / mebibyte) * mebibyte
+            let value = try #require(budget.components[component])
+            let actual = phase == .loading ? value.loadingAdditionalBytes : value.inferenceAdditionalBytes
+            #expect(actual == expected)
+        }
+        #expect(calibration.budget(for: resource(), hardwareModel: "iPhone15,4", osBuild: "24A446") == nil)
+        #expect(calibration.budget(for: resource(), hardwareModel: "iPhone18,1", osBuild: "unknown") == nil)
+    }
+
     @Test("A calibration matches the complete artifact identity and exact hardware and OS build")
     func identity() throws {
         let budget = try syntheticBudget()

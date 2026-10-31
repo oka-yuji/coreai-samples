@@ -6,7 +6,8 @@
     import ModelLibraryFeature
 
     enum ImageGenerationDeviceProfiles {
-        private static let calibrations: [ImageDeviceCalibration] = []
+        private static let calibrations: [ImageDeviceCalibration] =
+            (try? ImageDeviceCalibration.makeQwenImage21NativeComplex()).map { [$0] } ?? []
 
         static func budget(for resource: ValidatedModelResource) -> ImageMemoryBudget? {
             guard let hardware = systemValue("hw.machine"), let build = systemValue("kern.osversion") else {

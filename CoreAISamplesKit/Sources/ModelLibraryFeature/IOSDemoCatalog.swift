@@ -220,7 +220,7 @@ public enum IOSDemoCatalog {
         ]
     }
 
-    private static let verifiedImageArtifacts: [ModelArtifact] = []
+    private static let verifiedImageArtifacts: [ModelArtifact] = [QwenImage21Artifact.nativeComplex]
 
     private static func artifact(
         _ id: String, title: String, contract: String, download: ModelDownload, upstream: ModelUpstream,
