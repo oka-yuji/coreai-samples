@@ -56,10 +56,14 @@ func bundleValidation() throws {
     let manifest = SpeechManifest(
         format: "irodori-coreai-v1", modelID: "Aratako/Irodori-TTS-v4.1-Small-MF", precision: "fp32", sampleRate: 48000)
     try JSONEncoder().encode(manifest).write(to: directory.appendingPathComponent("irodori.json"))
-    #expect(throws: (any Error).self) { try ValidatedSpeechBundle.open(directory) }
+    #expect(throws: (any Error).self) {
+        try ValidatedSpeechBundle.open(directory, copyingInto: directory.appendingPathComponent("copies"))
+    }
     let file = directory.appendingPathComponent("bytes")
     try Data("abc".utf8).write(to: file)
-    #expect(try hashFile(file) == "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad")
+    #expect(
+        try hashFile(FileHandle(forReadingFrom: file))
+            == "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad")
     #expect(throws: (any Error).self) { try IrodoriTokenizer(tokenizerJSON: file) }
 }
 
