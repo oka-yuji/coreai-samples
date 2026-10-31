@@ -7,6 +7,20 @@ module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
 
 class PrepareBundleTests(unittest.TestCase):
+    def test_legacy_manifest_retains_its_pinned_identity(self):
+        data = module.make_manifest()
+        self.assertEqual(len(data), 132)
+        self.assertEqual(hashlib.sha256(data).hexdigest(), "ce41c61dd2249cab61aa69017316627c54329177fbfb19a1d1df4d775d65dbc7")
+        self.assertNotIn("assetInventorySHA256", json.loads(data))
+
+    def test_reference_manifest_changes_identity_when_the_inventory_changes(self):
+        first = module.make_manifest(b"first inventory")
+        second = module.make_manifest(b"second inventory")
+        self.assertNotEqual(first, second)
+        self.assertEqual(first, module.make_manifest(b"first inventory"))
+        self.assertEqual(json.loads(first)["format"], "irodori-coreai-v2")
+        self.assertEqual(json.loads(first)["modelID"], "Aratako/Irodori-TTS-v4.1-Small-MF")
+
     def test_reference_bundle_combines_sources_without_changing_the_original(self):
         with tempfile.TemporaryDirectory() as name:
             root = Path(name)
