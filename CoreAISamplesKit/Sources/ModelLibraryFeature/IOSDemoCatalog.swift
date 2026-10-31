@@ -213,7 +213,7 @@ public enum IOSDemoCatalog {
     private static let glinerFP32 = artifact(
         "gliner2.5-multi-fp32-t256-t512", title: "FP32", contract: "gliner-gl4-fp32-t256-t512",
         download: ModelDownload(
-            repository: "okayuji/gliner2.5-multi-coreai-fp32", revision: "043e738f3a91222ec013b2d80e240e34abb46bdb"),
+            repository: "okayuji/gliner2.5-multi-coreai-fp32", revision: "5fad4fa0f78118f7b9216fdb36c46176454870e2"),
         upstream: ModelUpstream(
             repository: "fastino/gliner2.5-multi-v1", revision: "2ca71aafb3446d9014e1c55c7ff51c9bc7209c47"),
         files: [
@@ -239,8 +239,8 @@ public enum IOSDemoCatalog {
                 path: "THIRD_PARTY_NOTICES.md", bytes: 4_190,
                 sha256: "f73981af85975e48c271db74816b939b9f5505ede4c018430f2a3979ed8c76f8"),
             ModelArtifactFile(
-                path: "README.md", bytes: 25_702,
-                sha256: "9777d6aa5fd0a7a95f12d1dbac3f127c0d54269dea095b875520cfc2651ef823"),
+                path: "README.md", bytes: 33_148,
+                sha256: "97bfc4e5dac77c405897c51e3fe4e9941e5003b8e9a17d761c3671a38c4c8ae5"),
         ])
 
     private static let embeddingRepository = "okayuji/embeddinggemma-2-coreai"
