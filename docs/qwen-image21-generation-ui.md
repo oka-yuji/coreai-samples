@@ -1,6 +1,6 @@
 # Qwen Image 2.1 Turbo generation UI
 
-Implementation for [#220](https://github.com/oka-yuji/coreai-samples/issues/220), using practical v2, the [native runtime](qwen-image21-native-runtime.md), and the common Models session and residency contracts. The input, confirmation, progress, stop, result and PNG flows have CPU and synthetic UI evidence. The owner accepted the current candidate's appearance through an overall gallery review on October 28, as scoped below. The main-app iPhone generation and editing diagnostics now pass their frozen final numerical gates after the PNG input correction. Device accessibility and acceptance of the ordinary workflow remain pending. The local artifact is defined, but the default catalog and production device budgets remain disabled while device completion is unconfirmed; see [the partial repeated-use record](research/qwen-image21-device-series-partial-20261030.json).
+Implementation for [#220](https://github.com/oka-yuji/coreai-samples/issues/220), using practical v2, the [native runtime](qwen-image21-native-runtime.md), and the common Models session and residency contracts. The input, confirmation, progress, stop, result and PNG flows have CPU and synthetic UI evidence. The owner accepted the current candidate's appearance through an overall gallery review on October 28, as scoped below. The corrected native diagnostics pass their frozen numerical gates. The [November 1 record](research/qwen-image21-device-calibration-20261101.json) adds ten same-process completions with matching saved image pixels and a measured admission profile. The known local artifact and exact iPhone18,1 / 24A446 budget are registered, and Models import has passed. Separate-process restart, service-connection verification, accessibility and ordinary UI acceptance remain pending.
 
 ## Hosting and ownership
 
@@ -36,7 +36,7 @@ Save uses the system `Transferable` exporter. Dismissing the panel is distinct f
 
 ## Availability and validation
 
-Production availability requires an actual verified local artifact and a calibrated `ImageMemoryBudget` tied to its manifest, hardware model and OS build. The device calibration table is currently empty. Unsupported bindings show that generation is unavailable and do not construct a native service. The iOS app has its own increased-memory-limit entitlement; actual available memory is still checked before every native phase.
+Production availability requires an actual verified local artifact and a calibrated `ImageMemoryBudget` tied to its manifest, hardware model and OS build. The registry now contains the native-complex profile for iPhone18,1 / 24A446. Unsupported bindings show that generation is unavailable and do not construct a native service. The iOS app has its own increased-memory-limit entitlement; actual available memory is still checked before every native phase.
 
 Run the CPU interaction tests with:
 

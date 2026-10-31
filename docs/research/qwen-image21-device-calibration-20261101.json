@@ -1,7 +1,7 @@
 {
   "format": 1,
   "date": "2026-11-01",
-  "status": "calibration-adopted-models-verification-pending",
+  "status": "calibration-and-import-verified-restart-pending",
   "hardware_model": "iPhone18,1",
   "os_build": "24A446",
   "manifest_sha256": "8b9e34748d760fa9ec7762f5064652281c80effb19c692bcdbe8ef1e521d59ad",
@@ -20511,10 +20511,42 @@
     "scope": "Controlled host interruption and journal recovery; no successful generation or native cancellation acknowledgement claimed"
   },
   "models_verification": {
-    "status": "pending"
+    "status": "import-verified-restart-pending",
+    "code_revision": "7eb2a2f6d822f70e86fb82ffb53a44fc25bf6bac",
+    "binary_sha256": "ddc0c2cefbc1ed9dd94006a73157be3c2c71dd49a32f6db9a2130a2080f3895d",
+    "source_matches_installed_build": true,
+    "import": {
+      "pid": 12345,
+      "process_terminated": true,
+      "acquisition": {
+        "artifactID": "qmi-mobile-w4-dit-g16-native-complex-blocks16-23-f32-v1",
+        "definedBytes": 13783495099,
+        "identity": {
+          "artifactID": "qmi-mobile-w4-dit-g16-native-complex-blocks16-23-f32-v1",
+          "contract": "qwen-image21-mobile-v2",
+          "modelID": "qwen-image21-turbo",
+          "revision": "8b9e34748d760fa9ec7762f5064652281c80effb19c692bcdbe8ef1e521d59ad",
+          "sourceKind": "localManifest",
+          "upstreamRevision": "fc13ba1986fcb905854dc8de2f52eee395f49b5b"
+        },
+        "inspection": "ready",
+        "measuredBytes": 13783495099,
+        "modelID": "qwen-image21-turbo",
+        "revision": "8b9e34748d760fa9ec7762f5064652281c80effb19c692bcdbe8ef1e521d59ad",
+        "route": "local-import",
+        "seconds": 22.6,
+        "state": "ready"
+      },
+      "report_sha256": "63b3d9471c8322f29a14f3d26ea07be2b4b90d9e94ac9a916ee48f3f7cdfdbde",
+      "controller_sha256": "b4582181de22c88c8c6bcaf53f3803c808e688bbeebcc9e6041dea40f62172f1"
+    },
+    "image_adapter_registered": true,
+    "image_adapter_unconnected": false,
+    "public_download_available": false,
+    "restart_and_connection": "Not run: a separate app process appeared after the import process exited; awaiting coordination before restarting it."
   },
   "remaining": [
-    "Normal Models import, separate-process restart and production service connection verification",
+    "Separate-process restart and production service connection verification; import already passed",
     "Current UI interaction and owner acceptance in #220/#221",
     "Warm performance acceptance and immediate same-service reuse are separate; recorded runtimes exceed the provisional latency targets"
   ]

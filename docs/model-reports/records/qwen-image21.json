@@ -15,8 +15,8 @@
   },
   "release": "in_progress",
   "release_note": {
-    "en": "Native iPhone diagnostics passed; consecutive testing and normal Models integration pending",
-    "ja": "本体iPhone診断合格／連続計測と通常Models接続は未完"
+    "en": "Ten iPhone trials passed; measured profile and local import enabled; restart/connection check pending",
+    "ja": "iPhone連続10回合格／実測予算・ローカル取込対応／再起動・接続確認は未完"
   },
   "download": null,
   "pages": {
@@ -100,6 +100,13 @@
         "ja": "9回の実機完了と10回目の中断記録"
       },
       "url": "docs/research/qwen-image21-device-series-partial-20261031.json"
+    },
+    {
+      "title": {
+        "en": "Ten-request device calibration, recovery and Models verification",
+        "ja": "実機10回の較正・中断回収・Models検証"
+      },
+      "url": "docs/research/qwen-image21-device-calibration-20261101.json"
     }
   ],
   "support": {
@@ -116,11 +123,12 @@
       "state": "pending",
       "variants": [],
       "evidence": [
-        "native-corrected-20261030"
+        "native-corrected-20261030",
+        "device-calibration-20261101"
       ],
       "note": {
-        "en": "Main-app generation and editing pass the final numerical gates after the PNG correction. The October 31 sequence retained nine completed requests with a five-second post-release wait. The tenth has only its request after the test connection expired; the original app process was later confirmed absent. Ten consecutive completions, production budgets and the normal Models entry remain pending. No public download or completed latency acceptance.",
-        "ja": "PNG修正後、本体の生成・編集が最終数値基準に合格。10月31日の解放後5秒待機付き反復は9回完了し、10回目はテスト接続の失効後にrequestだけが残った。元のアプリプロセスの不在は確認済み。連続10回の完走、本番予算、通常Models接続は未完。公開DL・待ち時間の受入も未完。"
+        "en": "Ten fixed generation/editing requests completed in one main-app process and all saved RGBA/PNG pixels match the accepted native outputs. The measured profile is enabled only for iPhone18,1 / 24A446 and the pinned local artifact. Models imported and inspected all 13,783,495,099 bytes. Separate-process restart and service-connection verification remain pending. No public download, completed UI acceptance or latency acceptance.",
+        "ja": "本体の同一processで固定の生成・編集10回が完走し、保存RGBAとPNG画素は全件で既合格の本体出力と一致。iPhone18,1／24A446と固定ローカル資産だけに実測予算を登録。Modelsで13,783,495,099 bytesの取り込み・検査が成功した。別processの再起動とサービス接続は未確認。公開DL・通常UI・待ち時間の受入は未完。"
       }
     }
   },
@@ -570,6 +578,34 @@
       "warmups": 0,
       "power": null,
       "thermal": "e10: raw state 0 to 1; g02: raw state 1 to 2",
+      "plan_sha256": null,
+      "model_executed": true
+    },
+    "device-calibration-20261101": {
+      "url": "docs/research/qwen-image21-device-calibration-20261101.json",
+      "level": "diagnostic",
+      "outcome": "passed",
+      "record_type": "legacy",
+      "date": "2026-11-01",
+      "platform": "ios",
+      "device": "iPhone 17 Pro (iPhone18,1)",
+      "os": "iOS 27.0.1 (24A446)",
+      "toolchain": "Xcode 27.0; Swift 6.4; system Core AI runtime",
+      "variant": "qmi-mobile-w4-dit-g16-native-complex-blocks16-23-f32-v1",
+      "backend": "Core AI; GPU preferred",
+      "route": "Main-app hosted same-process calibration; five generation/editing pairs; new service per request; five-second post-release wait; runtime journals on and tensor traces off",
+      "source_revision": "fc13ba1986fcb905854dc8de2f52eee395f49b5b",
+      "artifact_revision": "8b9e34748d760fa9ec7762f5064652281c80effb19c692bcdbe8ef1e521d59ad",
+      "code_revision": "03e61840c92673c4ca1df005910831d387f588a1",
+      "workload": {
+        "en": "Ten 512-square, eight-step requests using fixed g02/20261021 generation and e10/20261018 editing inputs and noise. All saved RGBA8/PNG pixels match accepted native outputs; no new latent or unclipped-tensor comparison is claimed. 387,435 memory samples, zero invalid samples, maximum gap 65.097 ms, five-second footprint 98,110,000–122,145,304 bytes. Expanded budgets pass 483 recorded admission points, including separately labeled older controls. Controlled interruption preserves bound journals without a successful result. Low Power Mode was off; transport was wired USB, but charging state and a common-benchmark plan hash were not recorded. Current Models import is separately recorded under source 7eb2a2f; its restart and service connection are pending.",
+        "ja": "固定g02/20261021生成とe10/20261018編集・固定noiseの512角8stepを計10回。保存RGBA8とPNG画素が既合格の本体出力へ全一致し、新たなlatent／未clip tensor照合とはしない。メモリ387,435標本、invalid0、最大gap65.097ms、解放5秒後footprint98,110,000〜122,145,304 B。旧条件を区別して含めた拡張予算は483観測地点で通過。明示中断でも対応の取れたjournalが残り、成功結果は作られない。低電力modeはoff、接続はUSBだが給電状態と共通benchmarkの計画hashは未記録。Models取込は別の7eb2a2fの結果で、再起動・サービス接続は未確認。"
+      },
+      "batch_size": 1,
+      "concurrency": 1,
+      "warmups": 0,
+      "power": null,
+      "thermal": "Observed raw thermal states 0, 1 and 2; individual observations retained",
       "plan_sha256": null,
       "model_executed": true
     }

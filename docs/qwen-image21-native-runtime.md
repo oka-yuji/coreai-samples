@@ -1,6 +1,6 @@
 # Qwen Image 2.1 Turbo native runtime
 
-Implementation for [#218](https://github.com/oka-yuji/coreai-samples/issues/218), using practical v2 and the [native preprocessing](qwen-image21-native-preprocessing.md) contract. The loader, sequential pipeline, cancellation joining, diagnostics and CPU lifecycle tests are implemented. The [generation UI and common Models adapter](qwen-image21-generation-ui.md) add the Store-owned request path. The explicit [native diagnostic entry](qwen-image21-native-diagnostics.md) provides fixed-input replay and lifecycle measurements. Full candidate fidelity, calibrated device budgets, actual headless device measurements and QMR-03 through QMR-06 remain pending. Fake backend tests do not establish GPU release or iPhone support.
+Implementation for [#218](https://github.com/oka-yuji/coreai-samples/issues/218), using practical v2 and the [native preprocessing](qwen-image21-native-preprocessing.md) contract. The loader, sequential pipeline, cancellation joining, diagnostics and CPU lifecycle tests are implemented. The [generation UI and common Models adapter](qwen-image21-generation-ui.md) add the Store-owned request path. The explicit [native diagnostic entry](qwen-image21-native-diagnostics.md) provides fixed-input replay and lifecycle measurements. The [November 1 record](research/qwen-image21-device-calibration-20261101.json) documents ten fixed generation/editing completions in one iPhone process, matching saved image pixels, accepted device budgets and Models import. Separate-process restart and service connection, ordinary UI acceptance, and the broader performance and cancellation checks remain pending.
 
 ## Ownership and execution
 
@@ -20,7 +20,7 @@ On iOS, an accepted generation request keeps the screen awake while its native w
 
 Validation requires a local-manifest resource with the pinned upstream revision. It hashes the raw manifest, checks its complete asset inventory and aggregate size, rejects extra files, directories and links, verifies all five component headers and requires numerical/quality acceptance flags. The common catalog supplies the trusted manifest identity; flags alone do not establish trust. Tokenizer and VAE scaling configurations must be in the hashed inventory.
 
-`ImageMemoryBudget` binds `profileID` and `manifestSHA256` to all five components. Every component supplies positive `loadingAdditionalBytes` and `inferenceAdditionalBytes`. Missing estimates are errors. No production default is supplied while device calibration is pending.
+`ImageMemoryBudget` binds `profileID` and `manifestSHA256` to all five components. Every component supplies positive `loadingAdditionalBytes` and `inferenceAdditionalBytes`. Missing estimates are errors. The [November 1 calibration](research/qwen-image21-device-calibration-20261101.json) supplies the registered native-complex profile only for iPhone18,1 / OS build 24A446 and the pinned raw manifest. Other bindings remain unsupported.
 
 `ImageDeviceCalibration` also binds the model ID, artifact ID, contract, local source kind, upstream revision, exact hardware and OS build. Its constructor rejects a budget for a different manifest or profile. A matching manifest alone does not select a budget. These metadata checks do not establish measured memory requirements; registration still requires the corresponding device evidence.
 
