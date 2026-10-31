@@ -18,7 +18,7 @@
 | OS | 状態 | 確認した範囲・残る確認 | 根拠 |
 |---|---|---|---|
 | macos | — | このOSのネイティブデモは未提供です。 | — |
-| ios | — | native-complexで本体の生成・編集は終端まで進むが、透過参照の読込で隠れたRGBが変わり、編集の数値基準に不合格。通常Models、公開DL、測定済み端末予算は未提供。 | — |
+| ios | △ | 本体の同一processで固定の生成・編集10回が完走し、保存RGBAとPNG画素は全件で既合格の本体出力と一致。iPhone18,1／24A446と固定ローカル資産だけに実測予算を登録。Modelsで13,783,495,099 bytesの取り込み・検査が成功した。別processの再起動とサービス接続は未確認。公開DL・通常UI・待ち時間の受入は未完。 | [E16](../research/qwen-image21-png-input-device-20261030.json) · [E17](../research/qwen-image21-device-calibration-20261101.json) |
 
 ### 性能と品質
 
@@ -48,7 +48,7 @@
 
 | 確認項目 | 状態 | 対象範囲・残る確認 | 根拠 |
 |---|---|---|---|
-| 変換・参照との一致 | 合格（記載範囲） | 正式FMAとnative-complexの両profileはmacOSで固定1,230比較と最終60組に全合格し、基準不変のraw再監査も成功。Cの最終latent/RGBA/PNGはbyte一致。native iPhone、gallery全体の証明、端末受入は別途未完。 | [E13](../research/qwen-image21-g16-20261026.json) · [E15](../research/qwen-image21-native-complex-20261029.json) |
+| 変換・参照との一致 | 合格（記載範囲） | 正式FMAとnative-complexはMacで固定1,230比較・最終60組に凍結基準で合格し、raw再監査も成功。保存galleryは同一。入力修正後の本体iPhone g02/e10も最終latent/RGBA基準に合格したが、全native集合や通常操作の受入とは区別する。 | [E13](../research/qwen-image21-g16-20261026.json) · [E15](../research/qwen-image21-native-complex-20261029.json) · [E16](../research/qwen-image21-png-input-device-20261030.json) |
 | 用途の品質 | 未計測 | 元の本人フィードバックをbyte一致した保存galleryへ対応付けた。項目別benchmarkと端末画質の受入は完了していない。 | — |
 | 連続利用・資源解放 | 未計測 | この範囲の共通プロトコルによる確認は未実施です。 | — |
 | 停止・再試行・回復 | 未計測 | この範囲の共通プロトコルによる確認は未実施です。 | — |
@@ -72,6 +72,8 @@
 | [E13](../research/qwen-image21-g16-20261026.json) | 2026-10-26 / legacy / diagnostic | M4 Max / macOS 27.0 (26A428) / Core AI Torch 0.4.3; Core AI 1.0.0b3; Torch 2.9.0 | 同weight B60件＋2反復、固定1,230比較、自由60件の最終latent/RGBAが凍結基準に全合格。source/export inventoryと全raw指標を再照合し、public auditも成功。旧候補の不合格を保持する。macOSの数値受入であり、人の画質、iPhone安定性/予算、通常Models操作は未受入。 · variant=w4-dit-g16-blocks16-23-f32; safe256; explicit Metal FMA RoPE; backend=Core AI; GPU preferred; route=Complete same-weight original B versus Core AI, each C case in a fresh process; all raw metrics independently audited; source_revision=fc13ba1986fcb905854dc8de2f52eee395f49b5b; artifact_revision=b09a43c49f6dee9f6815d0d2adfcee2b927e5289e253a015b901a79c184208c5; code_revision=e403d2001465026f797411b1dea31355d0be4808; batch_size=1; concurrency=1; warmups=0; 未記録: power, thermal |
 | [E14](../research/qwen-image21-native-complex-20261029.json) | 2026-10-29 / legacy / diagnostic | M4 Max / macOS 27.0 (26A428) / Core AI Torch 0.4.3; Core AI 1.0.0b3; Torch 2.9.0 | g08/e10/e11×2seed×8stepの固定DiT全48出力が凍結full-valid/target基準に合格し、受入済みFMA出力とbit一致。Macのfresh process/load-only footprintは3,284,228,000から772,331,304 B、Metal allocatedは3,219,095,552から705,314,816 Bへ低下。5部品の実圧縮記録は不変。この予備段階では全suite・画質対応・iPhoneは未完。後続の全数値合格は別記する。 · variant=qmi-mobile-w4-dit-g16-native-complex-blocks16-23-f32-v1; backend=Core AI; GPU preferred; route=Selected fixed-input Core AI preflight and separate fresh-process Swift load-only comparison; source_revision=fc13ba1986fcb905854dc8de2f52eee395f49b5b; artifact_revision=eacded0298a54afb1980c329c414e53e0b954b79ef905696712b310166eca568; code_revision=b72011063e8e1c21c1bf89a6a3dc120b6a53048b; batch_size=1; concurrency=1; warmups=0; 未記録: power, thermal |
 | [E15](../research/qwen-image21-native-complex-20261029.json) | 2026-10-29 / legacy / diagnostic | M4 Max / macOS 27.0 (26A428) / Core AI Torch 0.4.3; Core AI 1.0.0b3; Torch 2.9.0 | 原典B60件＋2反復が完了。固定1,230比較と最終latent/RGBA60組が凍結基準に全合格し、raw再監査と公開auditも成功。Cの最終latent/RGBA/PNG計180ファイルは旧FMA候補とbyte一致。別途の4cohort gallery同一性証明とiPhoneは未完。 · variant=qmi-mobile-w4-dit-g16-native-complex-blocks16-23-f32-v1; backend=Core AI; GPU preferred; route=Complete current-profile source B and Core AI C; all sixty isolated C cases and strict raw acceptance audit; source_revision=fc13ba1986fcb905854dc8de2f52eee395f49b5b; artifact_revision=eacded0298a54afb1980c329c414e53e0b954b79ef905696712b310166eca568; code_revision=b72011063e8e1c21c1bf89a6a3dc120b6a53048b; batch_size=1; concurrency=1; warmups=0; 未記録: power, thermal |
+| [E16](../research/qwen-image21-png-input-device-20261030.json) | 2026-10-30 / legacy / diagnostic | iPhone 17 Pro (iPhone18,1) / iOS 27.0.1 (24A446) / Xcode 27.0; Swift 6.4; system Core AI runtime | 512角・8stepの固定2例（g02/20261021生成、e10/20261018編集）。最終latentと未clip RGBAが凍結基準へ合格し、e10 VAE入力は独立PNG読込とbit一致。共通benchmarkではなく既存診断記録の取込みで、給電条件と共通プロトコルの計画hashは未記録。低電力モードはoff。実binary/source file hashは一次記録へ固定。 · variant=qmi-mobile-w4-dit-g16-native-complex-blocks16-23-f32-v1; backend=Core AI; GPU preferred; route=Explicit image diagnostic in CoreAISamples-iOS; supplied noise; trace and journal enabled; fresh processes with prepared cache; source_revision=fc13ba1986fcb905854dc8de2f52eee395f49b5b; artifact_revision=8b9e34748d760fa9ec7762f5064652281c80effb19c692bcdbe8ef1e521d59ad; code_revision=c55e9aad9566b33d168476108e8e6a7859a77829; batch_size=1; concurrency=1; warmups=0; thermal=e10: raw state 0 to 1; g02: raw state 1 to 2; 未記録: power, plan_sha256 |
+| [E17](../research/qwen-image21-device-calibration-20261101.json) | 2026-11-01 / legacy / diagnostic | iPhone 17 Pro (iPhone18,1) / iOS 27.0.1 (24A446) / Xcode 27.0; Swift 6.4; system Core AI runtime | 固定g02/20261021生成とe10/20261018編集・固定noiseの512角8stepを計10回。保存RGBA8とPNG画素が既合格の本体出力へ全一致し、新たなlatent／未clip tensor照合とはしない。メモリ387,435標本、invalid0、最大gap65.097ms、解放5秒後footprint98,110,000〜122,145,304 B。旧条件を区別して含めた拡張予算は483観測地点で通過。明示中断でも対応の取れたjournalが残り、成功結果は作られない。低電力modeはoff、接続はUSBだが給電状態と共通benchmarkの計画hashは未記録。Models取込は別の7eb2a2fの結果で、再起動・サービス接続は未確認。 · variant=qmi-mobile-w4-dit-g16-native-complex-blocks16-23-f32-v1; backend=Core AI; GPU preferred; route=Main-app hosted same-process calibration; five generation/editing pairs; new service per request; five-second post-release wait; runtime journals on and tensor traces off; source_revision=fc13ba1986fcb905854dc8de2f52eee395f49b5b; artifact_revision=8b9e34748d760fa9ec7762f5064652281c80effb19c692bcdbe8ef1e521d59ad; code_revision=03e61840c92673c4ca1df005910831d387f588a1; batch_size=1; concurrency=1; warmups=0; thermal=Observed raw thermal states 0, 1 and 2; individual observations retained; 未記録: power, plan_sha256 |
 
 ### 導入・制限・進捗
 
@@ -90,4 +92,12 @@
 - [同じ画質受入への対応証拠](../research/qwen-image21-native-complex-visual-equivalence-20261029.json)
 
 - [本体生成と参照入力の不一致](../research/qwen-image21-native-complex-device-20261029.json)
+
+- [入力修正後の本体生成・編集](../research/qwen-image21-png-input-device-20261030.json)
+
+- [逐次反復の途中記録](../research/qwen-image21-device-series-partial-20261030.json)
+
+- [9回の実機完了と10回目の中断記録](../research/qwen-image21-device-series-partial-20261031.json)
+
+- [実機10回の較正・中断回収・Models検証](../research/qwen-image21-device-calibration-20261101.json)
 <!-- model-report:end -->

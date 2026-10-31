@@ -398,6 +398,22 @@
         }
       }
     },
+    "2. Describe the image" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "2. Describe the image"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "2. 作りたい画像を説明する"
+          }
+        }
+      }
+    },
     "2. Enter what to say" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -447,6 +463,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "3. 音声を生成して聴く"
+          }
+        }
+      }
+    },
+    "3. Generate and save" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "3. Generate and save"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "3. 生成して保存する"
           }
         }
       }
@@ -2449,6 +2481,22 @@
         }
       }
     },
+    "Create an image from a prompt or edit one reference image. Generation takes several minutes." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create an image from a prompt or edit one reference image. Generation takes several minutes."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "指示文から画像を生成したり、参照画像1枚を編集したりできます。生成には数分かかります。"
+          }
+        }
+      }
+    },
     "Create comparison card" : {
       "localizations" : {
         "ja" : {
@@ -2633,6 +2681,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "開発者向けの処理詳細"
+          }
+        }
+      }
+    },
+    "Device and model requirements" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Device and model requirements"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "対応端末とモデルの利用条件"
           }
         }
       }
@@ -2855,6 +2919,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "文章を入力し、項目ごとに抽出された文字列とスコアを原文と照らし合わせて確認します。"
+          }
+        }
+      }
+    },
+    "Enter a prompt. To edit an image, choose one reference and confirm the square crop. Keep the same seed to repeat the same request." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter a prompt. To edit an image, choose one reference and confirm the square crop. Keep the same seed to repeat the same request."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "作りたい画像の指示を入力してください。編集する場合は参照画像を1枚選び、正方形に切り取る範囲を確認します。同じ条件で繰り返すときはシードを変えずに実行してください。"
           }
         }
       }
@@ -3493,6 +3573,22 @@
         }
       }
     },
+    "Generation takes several minutes. Keep the app open. Stop waits for the current operation to finish. Save or share the completed PNG." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Generation takes several minutes. Keep the app open. Stop waits for the current operation to finish. Save or share the completed PNG."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "生成には数分かかります。アプリを開いたままお待ちください。「中止」は実行中の処理が終わるまで待ってから停止します。完成したPNGを保存・共有できます。"
+          }
+        }
+      }
+    },
     "Get, open and prepare model bundles" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3705,6 +3801,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "画像はこの iPhone 内で解析し、保存しません。小さい物や隠れた物は見つからないことがあります。"
+          }
+        }
+      }
+    },
+    "Import the complete prepared Qwen Image folder from Files. It uses 13.78 GB, plus space for the app copy. This build does not provide a model download." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Import the complete prepared Qwen Image folder from Files. It uses 13.78 GB, plus space for the app copy. This build does not provide a model download."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「ファイル」から準備済みのQwen Imageフォルダを丸ごと取り込んでください。モデルは13.78 GBあり、アプリ内へコピーする分の空き容量も必要です。このビルドではモデルのダウンロードを提供していません。"
           }
         }
       }
@@ -8773,6 +8885,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "このバージョンではIrodoriモデルをダウンロードできません。「モデルを取り込む」から、ファイルアプリにある準備済みのIrodori FP32フォルダ全体を選びます。容量は3.38 GBで、アプリ内にもコピーします。元のフォルダとコピー、モデルの準備に必要な空き容量を確保してください。"
+          }
+        }
+      }
+    },
+    "This build enables Qwen Image on iPhone 17 Pro with iOS 27.0.1. Check the included LICENSE and NOTICE for the model terms. Your prompt and reference image stay on the device." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This build enables Qwen Image on iPhone 17 Pro with iOS 27.0.1. Check the included LICENSE and NOTICE for the model terms. Your prompt and reference image stay on the device."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このビルドではiOS 27.0.1のiPhone 17 ProでQwen Imageを利用できます。モデルの利用条件は同梱のLICENSEとNOTICEをご確認ください。指示文と参照画像は端末内で処理されます。"
           }
         }
       }

@@ -51,7 +51,44 @@ An optional stop plan schedules cancellation after a matching progress event. Th
 
 Mac command exit codes are 0 for completed, 2 for cancelled and 1 for failure or unconfirmed cleanup. The phone exits after a terminal acknowledged outcome; an unconfirmed cleanup keeps its stop control available. Diagnostic images, CPU fake tests and signed builds do not establish real-device acceptance.
 
-The existing runtime reports point memory samples and process-lifetime peak values, not phase peaks. Use fresh-process measurements and external observation for phase/specialization peaks, and record power/thermal conditions before performance claims. A positive estimated budget is a stated admission policy for measurement, not evidence of an observed memory requirement. Production device profiles remain empty until the relevant measurements are accepted.
+The existing runtime reports point memory samples and process-lifetime peak values, not phase peaks. Use fresh-process measurements and external observation for phase/specialization peaks, and record power/thermal conditions before performance claims. A positive estimated budget is a stated admission policy for measurement, not evidence of an observed memory requirement. Production profiles require matched, accepted measurements; the current registered profile is documented below.
+
+## Hosted consecutive calibration
+
+`CoreAISamples-ImageTests` runs the shared `ImageDeviceCalibrationTests` inside the ordinary iPhone app. It requires the explicit `COREAI_IMAGE_CALIBRATION_CONFIG` environment variable with a Documents-relative configuration path. A new `runID` preserves earlier results. The configuration lists one or two request files and a repetition count; the service is released and observed for five seconds before each new service instance.
+
+```json
+{
+  "runID": "native-complex-checkpoints-v5",
+  "requests": ["generation/request.json", "editing/request.json"],
+  "repetitions": 5,
+  "checkpoints": true
+}
+```
+
+The optional `checkpoints` flag defaults to disabled. Enabling it uses the existing runtime journal to save `checkpoint.json` and `native-checkpoint.json` before model operations, without tensor traces. Its execution reports explicitly set `diagnosticsEnabled`; compare its instrumentation conditions separately from trials with journaling disabled. A checkpoint identifies the last observed boundary, not a completed GPU operation or a successful image. Recording failures still propagate through the existing cleanup path.
+
+Each finished attempt writes `measurement.json`, and only the complete sequence writes `completed.txt`. A missing terminal record remains incomplete even when earlier attempts passed. The [October 31 record](research/qwen-image21-device-series-partial-20261031.json) contains nine completed requests followed by a test-connection failure during the tenth attempt. It does not activate production device budgets or ordinary Models registration.
+
+### November 1 calibration and recovery
+
+The [current record](research/qwen-image21-device-calibration-20261101.json) contains ten completed requests in the same iPhone18,1 / 24A446 process, using source `03e6184`, fixed generation/editing inputs and runtime journals. Each request creates a new service and waits five seconds after release. All ten saved RGBA8 images and PNG pixels match the previously accepted native outputs. The completed marker, host exit zero, journal identities and original process termination were checked independently.
+
+The run retained 387,435 memory samples with zero invalid samples and a maximum observed gap of 65.097 ms. Maximum kernel lifetime footprint was 3,684,060,440 bytes; five-second post-release footprint ranged from 98,110,000 to 122,145,304 bytes. These are separate measures. Generation took 308.6–469.3 seconds and editing 396.9–440.4 seconds under this instrumented protocol. Immediate same-service reuse, warm latency acceptance and ordinary UI operation remain separate.
+
+The adopted additional-memory budgets below use the largest valid terminal lifetime peak minus the core phase's starting footprint, add 256 MiB, then round up to MiB. Older cold-load and repeated-use observations are retained as separately identified conservative controls. The older wired VAE encoder observations increase its two budgets by 10 MiB. The unchanged reserve is the greater of 512 MiB and 20% of the observed process budget. All 483 listed admission snapshots pass replay, with a minimum remaining margin of 491,432,219 bytes.
+
+| Component | Loading additional MiB | Inference additional MiB |
+|---|---:|---:|
+| Vision | 3583 | 3276 |
+| Text | 3559 | 2935 |
+| VAE encoder | 3374 | 2996 |
+| DiT | 3396 | 2964 |
+| VAE decoder | 3431 | 1960 |
+
+A separate controlled host interruption after a DiT step-one `run-before` observation preserved both journals and the original request. Their request, asset and process bindings remained consistent after the app process disappeared. No measurement, output image or completion marker was produced. This verifies partial-record recovery; it does not claim successful generation or a native cancellation acknowledgement.
+
+The profile and known local artifact are registered. Models imported and inspected all 13,783,495,099 bytes through the ordinary Store. Separate-process restart and the explicit [service connection check](../Tools/Testing/README.md#models-connection-check) remain pending; current UI interaction and owner acceptance remain in #220 and #221.
 
 ## Source-bound AOT comparison
 

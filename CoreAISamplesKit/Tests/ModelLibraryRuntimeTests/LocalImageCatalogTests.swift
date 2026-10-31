@@ -12,6 +12,63 @@ import Testing
 @MainActor
 struct LocalImageCatalogTests {
     @Test(
+        "An explicit acquisition check receives the ready library and contributes failures", arguments: [false, true])
+    func additionalAcquisitionCheck(fails: Bool) async throws {
+        let fixture = try ImageBundleFixture()
+        defer { fixture.remove() }
+        let catalog = try IOSDemoCatalog.make(localImageArtifacts: [fixture.artifact])
+        let adapters = catalog.demos.map { NoModelAdapter($0.id) }
+        let assembly = ModelLibraryAssembly(adapters: adapters, store: fixture.store(), transfer: ArtifactTransfer())
+        var calls = 0
+        let result = try await ModelLibrarySelfTest.check(
+            catalog: catalog, root: fixture.root, registry: assembly.registry, capabilities: [:],
+            acquire: fixture.artifact.id, assembly: assembly, importBundle: fixture.source,
+            afterAcquisition: .init { library in
+                calls += 1
+                #expect(library.store.state.installations[fixture.artifact.id]?.phase == .ready)
+                #expect(library.store.state.installations[fixture.artifact.id]?.resource?.sourceKind == .localManifest)
+                _ = library.rendering.preview(
+                    for: DemoSelection(modelID: "qwen-image21-turbo", demoID: "image-generation"))
+                return fails ? ["connection rejected"] : []
+            })
+        #expect(calls == 1)
+        #expect(adapters.first { $0.demoID == "image-generation" }?.callbacks == 1)
+        #expect(result.failures == (fails ? ["connection rejected"] : []))
+    }
+
+    @Test("A failed acquisition does not run its additional connection check")
+    func acquisitionFailureSkipsConnection() async throws {
+        let fixture = try ImageBundleFixture()
+        defer { fixture.remove() }
+        let catalog = try IOSDemoCatalog.make(localImageArtifacts: [fixture.artifact])
+        let adapters = catalog.demos.map { NoModelAdapter($0.id) }
+        let assembly = ModelLibraryAssembly(adapters: adapters, store: fixture.store(), transfer: ArtifactTransfer())
+        try Data("altered".utf8).write(to: fixture.source.appending(path: "bundle.json"))
+        var calls = 0
+        let result = try await ModelLibrarySelfTest.check(
+            catalog: catalog, root: fixture.root, registry: assembly.registry, capabilities: [:],
+            acquire: fixture.artifact.id, assembly: assembly, importBundle: fixture.source,
+            afterAcquisition: .init { _ in
+                calls += 1
+                return []
+            })
+        #expect(calls == 0)
+        #expect(!result.failures.isEmpty)
+    }
+
+    @Test("An additional acquisition check requires an explicit artifact target")
+    func connectionRequiresAcquisition() async throws {
+        let fixture = try ImageBundleFixture()
+        defer { fixture.remove() }
+        let catalog = try IOSDemoCatalog.make(localImageArtifacts: [fixture.artifact])
+        await #expect(throws: (any Error).self) {
+            try await ModelLibrarySelfTest.check(
+                catalog: catalog, root: fixture.root, registry: nil, capabilities: nil,
+                afterAcquisition: .init { _ in [] })
+        }
+    }
+
+    @Test(
         "QMI-06 The ordinary catalog and acquisition harness accept an explicitly unconnected image demo without model callbacks"
     )
     func localCatalogAcquisition() async throws {

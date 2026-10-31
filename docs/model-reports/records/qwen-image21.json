@@ -15,8 +15,8 @@
   },
   "release": "in_progress",
   "release_note": {
-    "en": "Mac conversion verified; mobile implementation in progress",
-    "ja": "Mac変換検証済み／モバイル実装中"
+    "en": "Ten iPhone trials passed; measured profile and local import enabled; restart/connection check pending",
+    "ja": "iPhone連続10回合格／実測予算・ローカル取込対応／再起動・接続確認は未完"
   },
   "download": null,
   "pages": {
@@ -79,6 +79,34 @@
         "ja": "本体生成と参照入力の不一致"
       },
       "url": "docs/research/qwen-image21-native-complex-device-20261029.json"
+    },
+    {
+      "title": {
+        "en": "Corrected native generation and editing",
+        "ja": "入力修正後の本体生成・編集"
+      },
+      "url": "docs/research/qwen-image21-png-input-device-20261030.json"
+    },
+    {
+      "title": {
+        "en": "Partial repeated-use observations",
+        "ja": "逐次反復の途中記録"
+      },
+      "url": "docs/research/qwen-image21-device-series-partial-20261030.json"
+    },
+    {
+      "title": {
+        "en": "Nine completed trials and the interrupted tenth request",
+        "ja": "9回の実機完了と10回目の中断記録"
+      },
+      "url": "docs/research/qwen-image21-device-series-partial-20261031.json"
+    },
+    {
+      "title": {
+        "en": "Ten-request device calibration, recovery and Models verification",
+        "ja": "実機10回の較正・中断回収・Models検証"
+      },
+      "url": "docs/research/qwen-image21-device-calibration-20261101.json"
     }
   ],
   "support": {
@@ -92,12 +120,15 @@
       }
     },
     "ios": {
-      "state": "unavailable",
+      "state": "pending",
       "variants": [],
-      "evidence": [],
+      "evidence": [
+        "native-corrected-20261030",
+        "device-calibration-20261101"
+      ],
       "note": {
-        "en": "Native-complex generation and editing complete in the main app, but transparent-reference decoding changes hidden RGB and the editing fidelity gate fails. Normal Models, published download and calibrated device budgets remain unavailable.",
-        "ja": "native-complexで本体の生成・編集は終端まで進むが、透過参照の読込で隠れたRGBが変わり、編集の数値基準に不合格。通常Models、公開DL、測定済み端末予算は未提供。"
+        "en": "Ten fixed generation/editing requests completed in one main-app process and all saved RGBA/PNG pixels match the accepted native outputs. The measured profile is enabled only for iPhone18,1 / 24A446 and the pinned local artifact. Models imported and inspected all 13,783,495,099 bytes. Separate-process restart and service-connection verification remain pending. No public download, completed UI acceptance or latency acceptance.",
+        "ja": "本体の同一processで固定の生成・編集10回が完走し、保存RGBAとPNG画素は全件で既合格の本体出力と一致。iPhone18,1／24A446と固定ローカル資産だけに実測予算を登録。Modelsで13,783,495,099 bytesの取り込み・検査が成功した。別processの再起動とサービス接続は未確認。公開DL・通常UI・待ち時間の受入は未完。"
       }
     }
   },
@@ -521,6 +552,62 @@
       "thermal": null,
       "model_executed": true,
       "plan_sha256": "6e3c72b9321b6cdc105f8ddf38aaea9c151ab912e2bb9c36dd57654b31d4c793"
+    },
+    "native-corrected-20261030": {
+      "url": "docs/research/qwen-image21-png-input-device-20261030.json",
+      "level": "diagnostic",
+      "outcome": "passed",
+      "record_type": "legacy",
+      "date": "2026-10-30",
+      "platform": "ios",
+      "device": "iPhone 17 Pro (iPhone18,1)",
+      "os": "iOS 27.0.1 (24A446)",
+      "toolchain": "Xcode 27.0; Swift 6.4; system Core AI runtime",
+      "variant": "qmi-mobile-w4-dit-g16-native-complex-blocks16-23-f32-v1",
+      "backend": "Core AI; GPU preferred",
+      "route": "Explicit image diagnostic in CoreAISamples-iOS; supplied noise; trace and journal enabled; fresh processes with prepared cache",
+      "source_revision": "fc13ba1986fcb905854dc8de2f52eee395f49b5b",
+      "artifact_revision": "8b9e34748d760fa9ec7762f5064652281c80effb19c692bcdbe8ef1e521d59ad",
+      "code_revision": "c55e9aad9566b33d168476108e8e6a7859a77829",
+      "workload": {
+        "en": "Two fixed 512-square, eight-step cases: g02/20261021 generation and e10/20261018 editing. Final latent and unclipped RGBA pass the frozen gates; e10 VAE input is bit-identical to the independent PNG decoding. Imported diagnostic records, not the common benchmark; power source and a common-protocol plan hash were not recorded. Low Power Mode was off. Binary/source file hashes are bound in the primary record.",
+        "ja": "512角・8stepの固定2例（g02/20261021生成、e10/20261018編集）。最終latentと未clip RGBAが凍結基準へ合格し、e10 VAE入力は独立PNG読込とbit一致。共通benchmarkではなく既存診断記録の取込みで、給電条件と共通プロトコルの計画hashは未記録。低電力モードはoff。実binary/source file hashは一次記録へ固定。"
+      },
+      "batch_size": 1,
+      "concurrency": 1,
+      "warmups": 0,
+      "power": null,
+      "thermal": "e10: raw state 0 to 1; g02: raw state 1 to 2",
+      "plan_sha256": null,
+      "model_executed": true
+    },
+    "device-calibration-20261101": {
+      "url": "docs/research/qwen-image21-device-calibration-20261101.json",
+      "level": "diagnostic",
+      "outcome": "passed",
+      "record_type": "legacy",
+      "date": "2026-11-01",
+      "platform": "ios",
+      "device": "iPhone 17 Pro (iPhone18,1)",
+      "os": "iOS 27.0.1 (24A446)",
+      "toolchain": "Xcode 27.0; Swift 6.4; system Core AI runtime",
+      "variant": "qmi-mobile-w4-dit-g16-native-complex-blocks16-23-f32-v1",
+      "backend": "Core AI; GPU preferred",
+      "route": "Main-app hosted same-process calibration; five generation/editing pairs; new service per request; five-second post-release wait; runtime journals on and tensor traces off",
+      "source_revision": "fc13ba1986fcb905854dc8de2f52eee395f49b5b",
+      "artifact_revision": "8b9e34748d760fa9ec7762f5064652281c80effb19c692bcdbe8ef1e521d59ad",
+      "code_revision": "03e61840c92673c4ca1df005910831d387f588a1",
+      "workload": {
+        "en": "Ten 512-square, eight-step requests using fixed g02/20261021 generation and e10/20261018 editing inputs and noise. All saved RGBA8/PNG pixels match accepted native outputs; no new latent or unclipped-tensor comparison is claimed. 387,435 memory samples, zero invalid samples, maximum gap 65.097 ms, five-second footprint 98,110,000–122,145,304 bytes. Expanded budgets pass 483 recorded admission points, including separately labeled older controls. Controlled interruption preserves bound journals without a successful result. Low Power Mode was off; transport was wired USB, but charging state and a common-benchmark plan hash were not recorded. Current Models import is separately recorded under source 7eb2a2f; its restart and service connection are pending.",
+        "ja": "固定g02/20261021生成とe10/20261018編集・固定noiseの512角8stepを計10回。保存RGBA8とPNG画素が既合格の本体出力へ全一致し、新たなlatent／未clip tensor照合とはしない。メモリ387,435標本、invalid0、最大gap65.097ms、解放5秒後footprint98,110,000〜122,145,304 B。旧条件を区別して含めた拡張予算は483観測地点で通過。明示中断でも対応の取れたjournalが残り、成功結果は作られない。低電力modeはoff、接続はUSBだが給電状態と共通benchmarkの計画hashは未記録。Models取込は別の7eb2a2fの結果で、再起動・サービス接続は未確認。"
+      },
+      "batch_size": 1,
+      "concurrency": 1,
+      "warmups": 0,
+      "power": null,
+      "thermal": "Observed raw thermal states 0, 1 and 2; individual observations retained",
+      "plan_sha256": null,
+      "model_executed": true
     }
   },
   "measurements": [
@@ -675,11 +762,12 @@
       "state": "passed",
       "evidence": [
         "mobile-fma-full-20261026",
-        "mobile-native-complex-full-20261029"
+        "mobile-native-complex-full-20261029",
+        "native-corrected-20261030"
       ],
       "note": {
-        "en": "Formal FMA and native-complex profiles pass all1230 fixed and60 final-pair comparisons on macOS with unchanged gates and raw re-audit. Their C final latent/RGBA/PNG files are byte-identical. This does not establish native iPhone, gallery-proof or device acceptance.",
-        "ja": "正式FMAとnative-complexの両profileはmacOSで固定1,230比較と最終60組に全合格し、基準不変のraw再監査も成功。Cの最終latent/RGBA/PNGはbyte一致。native iPhone、gallery全体の証明、端末受入は別途未完。"
+        "en": "Formal FMA and native-complex profiles pass all 1,230 fixed and 60 final-pair comparisons on macOS with unchanged gates and raw re-audit. The saved galleries are identical. Corrected native iPhone g02/e10 also pass their bound final latent/RGBA gates; this is not full native-suite or ordinary-workflow acceptance.",
+        "ja": "正式FMAとnative-complexはMacで固定1,230比較・最終60組に凍結基準で合格し、raw再監査も成功。保存galleryは同一。入力修正後の本体iPhone g02/e10も最終latent/RGBA基準に合格したが、全native集合や通常操作の受入とは区別する。"
       }
     },
     "quality": {
