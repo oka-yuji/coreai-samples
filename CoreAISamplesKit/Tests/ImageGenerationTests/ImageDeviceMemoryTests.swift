@@ -4,6 +4,17 @@ import Testing
 
 @MainActor
 struct ImageDeviceMemoryTests {
+    @Test("Calibration checkpoints require an explicit configuration opt-in")
+    func checkpointConfiguration() throws {
+        let original = Data(#"{"runID":"run","requests":["input"],"repetitions":5}"#.utf8)
+        let enabled = Data(#"{"runID":"run","requests":["input"],"repetitions":5,"checkpoints":true}"#.utf8)
+        let disabled = Data(#"{"runID":"run","requests":["input"],"repetitions":5,"checkpoints":false}"#.utf8)
+        let decoder = JSONDecoder()
+        #expect(try decoder.decode(ImageDeviceCalibrationTests.Configuration.self, from: original).checkpoints == nil)
+        #expect(try decoder.decode(ImageDeviceCalibrationTests.Configuration.self, from: enabled).checkpoints == true)
+        #expect(try decoder.decode(ImageDeviceCalibrationTests.Configuration.self, from: disabled).checkpoints == false)
+    }
+
     @Test("A measurement write failure retains the generation and cleanup failures")
     func recordingFailure() throws {
         let folder = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
@@ -26,18 +37,24 @@ struct ImageDeviceMemoryTests {
 
     @Test("Calibration run names reject path traversal and invalid repetition counts")
     func configurationBoundary() throws {
-        try ImageDeviceCalibrationTests.Configuration(runID: "native-complex-v1", requests: ["input"], repetitions: 5)
-            .validate()
+        try ImageDeviceCalibrationTests.Configuration(
+            runID: "native-complex-v1", requests: ["input"], repetitions: 5, checkpoints: nil
+        )
+        .validate()
         for name in ["", "old/../../tmp/escape", "..", "../run", "name.ext"] {
             #expect(throws: ImageExecutionError.invalidResource) {
-                try ImageDeviceCalibrationTests.Configuration(runID: name, requests: ["input"], repetitions: 1)
-                    .validate()
+                try ImageDeviceCalibrationTests.Configuration(
+                    runID: name, requests: ["input"], repetitions: 1, checkpoints: nil
+                )
+                .validate()
             }
         }
         for count in [0, 21] {
             #expect(throws: ImageExecutionError.invalidResource) {
-                try ImageDeviceCalibrationTests.Configuration(runID: "run", requests: ["input"], repetitions: count)
-                    .validate()
+                try ImageDeviceCalibrationTests.Configuration(
+                    runID: "run", requests: ["input"], repetitions: count, checkpoints: nil
+                )
+                .validate()
             }
         }
     }

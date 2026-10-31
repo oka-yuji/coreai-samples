@@ -53,6 +53,23 @@ Mac command exit codes are 0 for completed, 2 for cancelled and 1 for failure or
 
 The existing runtime reports point memory samples and process-lifetime peak values, not phase peaks. Use fresh-process measurements and external observation for phase/specialization peaks, and record power/thermal conditions before performance claims. A positive estimated budget is a stated admission policy for measurement, not evidence of an observed memory requirement. Production device profiles remain empty until the relevant measurements are accepted.
 
+## Hosted consecutive calibration
+
+`CoreAISamples-ImageTests` runs the shared `ImageDeviceCalibrationTests` inside the ordinary iPhone app. It requires the explicit `COREAI_IMAGE_CALIBRATION_CONFIG` environment variable with a Documents-relative configuration path. A new `runID` preserves earlier results. The configuration lists one or two request files and a repetition count; the service is released and observed for five seconds before each new service instance.
+
+```json
+{
+  "runID": "native-complex-checkpoints-v5",
+  "requests": ["generation/request.json", "editing/request.json"],
+  "repetitions": 5,
+  "checkpoints": true
+}
+```
+
+The optional `checkpoints` flag defaults to disabled. Enabling it uses the existing runtime journal to save `checkpoint.json` and `native-checkpoint.json` before model operations, without tensor traces. Its execution reports explicitly set `diagnosticsEnabled`; compare its instrumentation conditions separately from trials with journaling disabled. A checkpoint identifies the last observed boundary, not a completed GPU operation or a successful image. Recording failures still propagate through the existing cleanup path.
+
+Each finished attempt writes `measurement.json`, and only the complete sequence writes `completed.txt`. A missing terminal record remains incomplete even when earlier attempts passed. The [October 31 record](research/qwen-image21-device-series-partial-20261031.json) contains nine completed requests followed by a test-connection failure during the tenth attempt. It does not activate production device budgets or ordinary Models registration.
+
 ## Source-bound AOT comparison
 
 A format-two manifest may add `compiled_assets`, keyed by an existing component name. Each entry declares `asset` (a relative `.aimodelc` directory), `architecture` and `source_sha256`. The source hash must match that component's raw `main.mlirb` in the inventory. Every compiled file is included in the complete inventory, and its metadata is limited to 1 MiB. Both Models import and the runtime compare the compiled `metadata.json` `sourceHash` with the raw model hash. Existing raw bundles remain supported.

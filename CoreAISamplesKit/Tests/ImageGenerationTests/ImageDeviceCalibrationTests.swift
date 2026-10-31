@@ -14,6 +14,7 @@ struct ImageDeviceCalibrationTests {
         let runID: String
         let requests: [String]
         let repetitions: Int
+        let checkpoints: Bool?
 
         func validate() throws {
             guard (1...20).contains(repetitions), (1...2).contains(requests.count), !runID.isEmpty,
@@ -89,7 +90,9 @@ struct ImageDeviceCalibrationTests {
                         iteration * config.requests.count + index + 1, total: config.repetitions * config.requests.count
                     )
                     let requestURL = URL(filePath: request, relativeTo: .documentsDirectory)
-                    try await run(requestURL, output: output.appending(path: "\(iteration)-\(index)"), display: display)
+                    try await run(
+                        requestURL, output: output.appending(path: "\(iteration)-\(index)"),
+                        checkpoints: config.checkpoints == true, display: display)
                 }
             }
             try Task.checkCancellation()
@@ -97,7 +100,9 @@ struct ImageDeviceCalibrationTests {
                 to: output.appending(path: "completed.txt"), options: .withoutOverwriting)
         }
 
-        private func run(_ url: URL, output: URL, display: ImageCalibrationProgress) async throws {
+        private func run(
+            _ url: URL, output: URL, checkpoints: Bool, display: ImageCalibrationProgress
+        ) async throws {
             try FileManager.default.createDirectory(at: output, withIntermediateDirectories: false)
             let raw = try ImageDeviceCalibrationInput.read(url, maximum: 1_048_576)
             let input = try JSONDecoder().decode(ImageDeviceCalibrationInput.self, from: raw)
@@ -107,7 +112,8 @@ struct ImageDeviceCalibrationTests {
                 session: ModelDemoSession(
                     id: LibraryTicket(owner: UUID(), number: 1),
                     selection: DemoSelection(modelID: resource.modelID, demoID: "image-generation"), resource: resource),
-                budget: input.budget, isPermitted: { UIApplication.shared.applicationState == .active })
+                budget: input.budget, diagnosticDirectory: checkpoints ? output : nil,
+                isPermitted: { UIApplication.shared.applicationState == .active })
             let observer = ImageDeviceMemoryObserver()
             observer.transition("start")
             async let monitoring: Void = observer.watch()
