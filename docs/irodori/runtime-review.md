@@ -12,6 +12,6 @@ R5: Three small bundle preparation tests verify complete output, existing/racing
 
 Independent review found two P2 defects: the existing check.sh lacked Rust preparation, and directory copying retained source symlinks that runtime validation rejected. Both were reproduced, fixed, and independently rechecked. There are no unresolved confirmed or plausible findings. Vendor math, FFI, dependency lock and licenses match their source implementation, apart from documented representation/metadata changes.
 
-Actual Core AI numerical parity and memory behavior after integration, app interaction and listening remain user acceptance work. The earlier lab GPU measurements are not treated as a new measurement of this library. No PR, merge or model publication is included in this implementation request.
+This historical review did not measure actual model inference, memory behavior, app interaction or listening. Later native generation checks are in [release asset validation](release-asset-validation.json); those checks do not establish original-PyTorch waveform parity or subjective quality.
 
 The upstream PYTORCH_LICENSE is retained byte for byte, including its original trailing whitespace. Whitespace validation excludes that license and raw logs only. The source/import count is 1,031 lines before the small build/manifest configuration files; this is within the original 850–1,200-line runtime estimate, with most input code reused.

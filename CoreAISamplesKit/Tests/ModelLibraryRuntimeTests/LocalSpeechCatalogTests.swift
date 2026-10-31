@@ -8,6 +8,30 @@ import Testing
 
 @MainActor
 struct LocalSpeechCatalogTests {
+    @Test(
+        "IRDL-03 The public reference release downloads through Models and becomes ready after verification",
+        .enabled(if: ProcessInfo.processInfo.environment["COREAI_IRODORI_DOWNLOAD_OUTPUT"] != nil))
+    func downloadReference() async throws {
+        let path = try #require(ProcessInfo.processInfo.environment["COREAI_IRODORI_DOWNLOAD_OUTPUT"])
+        let output = URL(filePath: path, directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: output, withIntermediateDirectories: false)
+        let artifact = try IrodoriModelArtifact.makeReferenceDownload()
+        let catalog = try IOSDemoCatalog.make(referenceSpeechArtifact: artifact)
+        let model = try #require(catalog.model("irodori"))
+        let root = output.appending(path: "ModelLibrary")
+        let status = await ModelLibrarySelfTest.run(
+            output: output.appending(path: "acquisition.json"), root: root, acquire: artifact.id,
+            catalog: { catalog })
+        #expect(status == 0)
+        let result = try await ManagedModelStore(root: root).inspect(model: model, artifact: artifact)
+        guard case .ready(let resource) = result else {
+            Issue.record("The downloaded model did not pass inspection.")
+            return
+        }
+        #expect(resource.revision == artifact.sourceRevision)
+        #expect(resource.sizeBytes == artifact.totalFileBytes)
+    }
+
     @Test("REF-UI-04 Models selects the reference variant and enables voice input without requiring microphone access")
     func referenceVariant() async throws {
         let legacy = try IrodoriModelArtifact.make()
