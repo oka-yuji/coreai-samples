@@ -1,6 +1,6 @@
 # Speech demo validation — 2026-10-13
 
-This unit implements [#92](https://github.com/oka-yuji/coreai-samples/issues/92) on runtime commit `45936ba8f50e9d59182dae5d5948c232ba218fee` ([#91](https://github.com/oka-yuji/coreai-samples/issues/91)). Parent [#93](https://github.com/oka-yuji/coreai-samples/issues/93) remains pending user acceptance. The criterion IDs and original 2026-10-13 issue bodies are unchanged.
+This unit implements [#92](https://github.com/oka-yuji/coreai-samples/issues/92) on runtime commit `45936ba8f50e9d59182dae5d5948c232ba218fee` ([#91](https://github.com/oka-yuji/coreai-samples/issues/91)). The criterion IDs and original 2026-10-13 issue bodies are unchanged.
 
 ## Acceptance mapping
 
@@ -11,9 +11,9 @@ This unit implements [#92](https://github.com/oka-yuji/coreai-samples/issues/92)
 | U3: playback and save outcomes belong to their original operation | Four `AudioPlaybackTests`, `stopRelease`, `runnerOutcomes`, `exportSessions`, `exportTickets` | CPU pass; real player/panel behavior belongs to U6 |
 | U4: real service wired into Speech and Models; tests and build | Package tests, format, lint, Release app build, project regenerated from `project.yml` | Pass |
 | U5: local FP32 folder and instructions | Bundle preparation verified source and output SHA values; [manual instructions](demo.md) | Pass |
-| U6: actual app/GPU/playback/save and restart | [Manual checklist](demo.md#user-acceptance-checklist-u6-not-executed-by-the-implementation-agent) | **Not executed; user owns this check** |
+| U6: actual app/GPU/playback/save and restart | [Validation limits](demo.md#validation-limits) | **Not measured by this validation** |
 
-The app links `SpeechFeature`, `SpeechRuntime` and the pinned native tokenizer; it does not invoke Python or the lab CLI. iOS remains Extract-only. All changed source and test hashes are in [the manifest](demo-validation/manifest.json). The model folder contains the four FP32 assets (3,368,343,098 bytes), tokenizer and `irodori.json`; preparation executes no model. Three examples and the runtime's checksum resource bundle are present in the built app. The arm64 executable passes `codesign --verify --deep --strict`.
+The app links `SpeechFeature`, `SpeechRuntime` and the pinned native tokenizer; it does not invoke Python or the lab CLI. At this historical revision, iOS was Extract-only; the [current iPhone guide](iphone.md) describes the later speech integration. All changed source and test hashes are in [the manifest](demo-validation/manifest.json). The model folder contains the four FP32 assets (3,368,343,098 bytes), tokenizer and `irodori.json`; preparation executes no model. Three examples and the runtime's checksum resource bundle are present in the built app. The arm64 executable passes `codesign --verify --deep --strict`.
 
 ## Automated verification
 
@@ -50,10 +50,10 @@ Two independent code reviews are complete, with no unresolved confirmed or plaus
 - The independent Release harness passed **31 CPU tests**, including four additional playback/lifetime probes. Delayed old cancellation dispatch, duplicate decode-failure callbacks and Store destruction were exercised. The tested source copies match the final runtime, feature, core and Store source. [After log](demo-validation/playback-after-tests.log), [additional tests](demo-validation/independent-playback-tests.swift.txt).
 - The initial independent failure log contained interleaved UTF-8 output. The reviewer retained the raw bytes and a replacement-decoded readable copy; this was a recovered log-decoding problem, separate from the two expected regression failures against the old Runner.
 
-The source audit covers the changed Feature, runtime services, playback, views, navigation, build settings, examples and tests, plus their Store/runtime boundaries. Real panels, audio devices, keyboard/focus, visual layout and GPU execution remain unverified U6 work. There are no pending review tasks. User acceptance remains separate from that code review. The prior runtime and tokenizer review is in [runtime-review.md](runtime-review.md).
+The source audit covers the changed Feature, runtime services, playback, views, navigation, build settings, examples and tests, plus their Store/runtime boundaries. This review did not measure real panels, audio devices, keyboard/focus, visual layout or GPU execution. The prior runtime and tokenizer review is in [runtime-review.md](runtime-review.md).
 
 ## Reflection and document alignment
 
 The implementation follows the planned two units, #91 then #92. The UI unit adds 587 Swift source lines plus navigation/configuration and tests, within the planned 600–950 source/configuration range. The provisional 8 SP estimate is retained; no time or line-count conversion is applied. Contract details settled within the approved scope: explicit reopening of the last folder, separate export tickets for late panel callbacks, and a Mac-only Cargo pre-build phase also represented in XcodeGen's source configuration.
 
-`docs/demo-app.md`, the README's build entry point, `CLAUDE.md` and [the Speech instructions](demo.md) now describe the implemented paths and pending manual check. The next required action is U6 by the user; any defect found there returns to implementation and targeted regression checks. No speculative feature expansion, PR, merge or release was performed.
+The [current Speech instructions](demo.md) describe the implemented paths and measurement limits. This historical record covers the source and automated checks listed above.

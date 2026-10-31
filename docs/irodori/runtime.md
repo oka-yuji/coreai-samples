@@ -16,7 +16,7 @@ swift test --package-path CoreAISamplesKit --filter 'Speech|IrodoriRuntimeTests'
 python3 Tools/Irodori/test_prepare_bundle.py
 ```
 
-Do not set the model-test environment variables for this CPU-only check. Tests use temporary files and controlled fake pipelines, plus the frozen 283-case normalization corpus and 49 noise inputs. The model numerical route is adapted from the already verified lab implementation; the app's actual GPU generation and listening remain user acceptance work.
+Do not set the model-test environment variables for this CPU-only check. Tests use temporary files and controlled fake pipelines, plus the frozen 283-case normalization corpus and 49 noise inputs. The model numerical route is adapted from the already verified lab implementation; native generation is covered separately by the [release checks](release-asset-validation.json), which do not evaluate listening quality.
 
 ## Prepare a local model folder
 

@@ -42,7 +42,7 @@
         static func catalog(searchTerms: [String: [String]] = [:]) throws -> ModelCatalog {
             try IOSDemoCatalog.make(
                 searchTerms: searchTerms, speechArtifact: IrodoriModelArtifact.make(),
-                referenceSpeechArtifact: IrodoriModelArtifact.make(profile: .referenceVoice))
+                referenceSpeechArtifact: IrodoriModelArtifact.makeReferenceDownload())
         }
 
         static func make(catalog: ModelCatalog) -> ModelLibraryAssembly.Library {

@@ -6,16 +6,16 @@ Build and run **CoreAISamples-iOS** on a physical iPhone with iOS 27 or later. I
 
 ### Model preparation
 
-The reference runtime uses the separate `irodori-coreai-v2` folder: six model components, `tokenizer.json` and `irodori.json`, totaling about **3.84 GB**. The current catalog accepts the prepared folder through **Import model**. A public model download is awaiting the owner's publication decision; the app does not point to a placeholder download URL.
+Tap **Download model** and wait for file verification. The app downloads the fixed [Core AI reference release](https://huggingface.co/okayuji/irodori-v4.1-small-mf-coreai-fp32), including six model components, tokenizer, manifest and license notices: **3,835,396,408 bytes (3.84 GB)**. Allow additional space for model preparation and specialization caches. Keep the app open during download and generation.
 
-Use a complete prepared reference folder in Files. The original PyTorch checkpoint and a renamed v1 folder are not compatible. The [preparation command](reference-runtime.md) checks the pinned component hashes and leaves the sources unchanged. Import creates a managed app copy, so keep space for the original, the copy and model specialization. Extra files and symbolic links are rejected.
+The reference model can generate with or without a reference voice. The legacy **FP32** variant uses **Import model** and a separately prepared text-only folder. The original PyTorch checkpoint and a renamed legacy folder cannot be used as the reference model.
 
 ### Record or choose a voice
 
-1. Import the **Reference voice** model and wait for **1. Model ready**.
+1. Download the **Reference voice** model and wait for **1. Model ready**.
 2. Under **2. Choose a reference voice**, tap **Record voice**, speak clearly, and tap **Finish recording**. Recording stops automatically after 30 seconds. **Cancel recording** discards that attempt. If microphone permission is denied, use **Open microphone settings** or choose a file instead.
 3. Alternatively, tap **Choose audio file** and select a WAV, M4A, MP3 or AIFF file. Use a clear recording from 0.5 to 30 seconds. The app converts supported files to 48 kHz mono; it does not silently truncate a long file. The selected name and duration appear after validation.
-4. Use **Listen to reference** to check the input, or **Remove reference** to return to a generated voice. Reference audio is optional. Use your own voice or a recording you have permission to use.
+4. Use **Listen to reference** to check the input, or **Remove reference** to return to a generated voice. Reference audio is optional. Use your own voice or obtain the voice owner's explicit permission for the intended AI synthesis and use of its outputs. Owning a recording or finding it online does not establish that permission. Do not present generated speech as something that person actually said.
 5. Under **3. Enter what to say**, choose **Try an example** or enter a short Japanese passage. The seed is inside **Voice options** and can stay unchanged.
 6. Under **4. Generate and listen**, tap **Generate speech** and keep the app open. First specialization takes longer. Then use **Play**, **Stop** and **Save WAV…**.
 
@@ -27,7 +27,7 @@ Generation and reference processing run on the device. Reference audio is not up
 
 The October 29, 2026 preflight on **iPhone 17 Pro / iOS 27.0.1 (24A446)** completed reference-file decoding, three generations, WAV saving and resource release through the shared runtime. Greeting → announcement → greeting produced 4.00 / 4.24 / 4.00-second outputs; the repeated greeting WAVs matched. See [the measured report](reference-input-device.json).
 
-The initial device attempt aborted in the GPU codec decoder with a dynamic-allocation assertion. Disabling frequent-reshape specialization for the iOS decoder resolved that attempt. The Mac policy stays separate. The diagnostic used a synthetic reference file and did not record a microphone or play sound. Normal-screen operation, real microphone input, playback/listening and subjective speaker quality remain personal acceptance checks. The earlier Python waveform-fidelity miss is preserved in [the runtime record](reference-runtime.md).
+The initial device attempt aborted in the GPU codec decoder with a dynamic-allocation assertion. Disabling frequent-reshape specialization for the iOS decoder resolved that attempt. The Mac policy stays separate. The diagnostic used a synthetic reference file and did not record a microphone or play sound. This diagnostic does not establish normal-screen operation, real microphone capture, audible playback or subjective speaker quality. The earlier Python waveform-fidelity miss is preserved in [the runtime record](reference-runtime.md).
 
 ### Explicit reference diagnostic in the normal app
 
@@ -46,7 +46,7 @@ Use a new check ID each time. Results are written to `Documents/SpeechChecks/<ID
 
 `SpeechPhone` is a separate iOS 27 app, displayed as **Irodori Speech**, with bundle identifier `com.coreai-samples.SpeechPhone`. Its demo screen is titled **Irodori**. It reuses the pinned FP32 speech runtime and can coexist with the Mac demos and the existing Extract iPhone app. Its source is in SpeechPhone, with a dedicated target and scheme alongside the Mac and existing iPhone app.
 
-The historical integration check on October 16, 2026 passed the signed SpeechPhone Release build, Mac and existing iPhone regression builds, CPU tests, lint and format. The generated app contains both file-sharing keys and the increased-memory-limit entitlement. That check did not execute a model. The October 29 reference preflight above adds model execution and WAV saving; audible playback and personal listening remain unverified. The October 13 connection failure is retained as historical evidence.
+The historical integration check on October 16, 2026 passed the signed SpeechPhone Release build, Mac and existing iPhone regression builds, CPU tests, lint and format. The generated app contains both file-sharing keys and the increased-memory-limit entitlement. That check did not execute a model. The October 29 reference preflight above adds model execution and WAV saving; audible playback and subjective listening quality were not evaluated by that diagnostic. The October 13 connection failure is retained as historical evidence.
 
 ## Build and install
 
@@ -60,7 +60,7 @@ xcodebuild -project CoreAISamples.xcodeproj -scheme SpeechPhone \
   -derivedDataPath .build/SpeechPhone -allowProvisioningUpdates build
 ```
 
-In Xcode, choose **SpeechPhone**, then the iPhone, and Run. The new app requests the increased-memory-limit entitlement. The built app and development profile were checked for that entitlement; the available memory must still be measured on the device.
+For the normal Models download flow, choose **CoreAISamples-iOS** in Xcode, then the iPhone, and Run. Choose **SpeechPhone** only for the separate local-folder demo described below. The new app requests the increased-memory-limit entitlement. The built app and development profile were checked for that entitlement; the available memory must still be measured on the device.
 
 For command-line deployment, replace the device placeholder with the intended iPhone's identifier:
 
@@ -74,7 +74,7 @@ Unlock the iPhone, keep Developer Mode enabled, and connect it to the Mac by USB
 
 ## Put the model on the phone
 
-For recording and file input, use the **reference v2 folder** described above (3,836,181,569 bytes). SpeechPhone also supports [the legacy FP32 folder](runtime.md#prepare-a-local-model-folder) for text-only generation: four assets totaling 3,368,343,098 bytes, or **3,375,061,725 bytes (3.38 GB)** including tokenizer and metadata. These are storage sizes, not working-memory requirements. Specialization needs additional storage and memory. No model weights are embedded in the app.
+SpeechPhone uses a local model folder rather than the Models downloader. For recording and file input, download the reference v2 release from [Hugging Face](https://huggingface.co/okayuji/irodori-v4.1-small-mf-coreai-fp32) and copy it to the phone. Its 20 model files total **3,835,379,527 bytes**; license notices and documentation are additional. SpeechPhone also supports [the legacy FP32 folder](runtime.md#prepare-a-local-model-folder) for text-only generation: four assets totaling 3,368,343,098 bytes, or **3,375,061,725 bytes (3.38 GB)** including tokenizer and metadata. These are storage sizes, not working-memory requirements. Specialization needs additional storage and memory. No model weights are embedded in the app.
 
 Copy the complete model folder into **Files → On My iPhone → Irodori Speech**. For example, copy a prepared reference folder with:
 
@@ -119,12 +119,8 @@ The report records OS/build, hardware, Core AI architecture, thermal/power state
 
 The diagnostic plays to completion, then calls stop/release. Stopping partway through audible playback, real system interruption, save-panel interaction and subjective listening remain separate manual checks. To return to the normal screen, launch the app without the diagnostic arguments.
 
-## Acceptance still required on the device
+## Validation limits
 
-- [ ] Install on the updated iPhone 17 Pro and verify the visible model/text/seed controls.
-- [ ] Copy the model, complete file validation, generate and listen to the samples; inspect the saved WAVs and device report.
-- [ ] Play, stop partway, replay and export a WAV through the actual save panel.
-- [ ] Stop generation and switch to the background; after cleanup, return and generate again without an old result appearing.
-- [ ] Confirm pronunciation, naturalness and usability personally. No automated result substitutes for this check.
+The diagnostic results cover the recorded assets, inputs and device conditions. Microphone capture, audible playback, speaker similarity, naturalness and long-running iPhone memory behavior have not been established by those measurements. Original-PyTorch waveform parity remains unresolved for the native reference path. See the [model card](model-card.md) for numerical results and upstream usage conditions.
 
 See [reference-input validation](reference-input-validation.md) for current CPU/build/device evidence. [Earlier implementation validation](iphone-validation.md) retains the previous connection and verification history.
