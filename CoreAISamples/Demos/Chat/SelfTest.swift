@@ -58,7 +58,7 @@ enum SelfTest {
                 chat.contextLimit, preferences.effort.label, String(stats.cached), stats.specializeSeconds,
                 chat.loadSeconds))
         if chat.ragEnabled {
-            let settings = RAGSettings.fromDefaults()
+            let settings = RAGSettings.fromDefaults(preferences)
             log(
                 "[rag] mode=on web=\(chat.ragWeb) local=\(chat.ragLocal) search=\(settings.provider) results=\(settings.searchResults) "
                     + "pages=\(settings.pagesToRead) pageBudget=\(settings.pageCharacterBudget)chars sourceBudget=\(chat.ragBudget)tok "

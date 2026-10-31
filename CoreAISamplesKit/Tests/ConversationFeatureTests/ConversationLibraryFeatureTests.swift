@@ -25,7 +25,7 @@ struct ConversationLibraryFeatureTests {
             ? .archiveRestored(
                 id: "selected", .snapshot(ConversationSnapshot(ConversationState(id: "selected", now: launch))))
             : .restoreFailed(id: "selected", message: "Unavailable")
-        #expect(reduce(&state, action) == [[.run(.terminationReady(true), id: nil)]])
+        #expect(reduce(&state, action) == [[.run(.terminationReady(true), id: .termination)]])
         #expect(state.id == (succeeds ? "selected" : "old") && !state.isRestoring)
     }
 
@@ -106,7 +106,7 @@ struct ConversationLibraryFeatureTests {
                 .library(
                     .deleted(
                         ticket: state.library.ticket, id: state.id, replacementID: "new", now: launch, warning: nil)))
-                == [[.run(.terminationReady(true), id: nil)]])
+                == [[.run(.terminationReady(true), id: .termination)]])
         #expect(state.id == "new" && state.library.items.isEmpty && state.turns.isEmpty)
     }
 }

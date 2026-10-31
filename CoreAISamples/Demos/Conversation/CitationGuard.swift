@@ -13,6 +13,7 @@ struct FetchRecord: Codable, Sendable, Equatable {
 struct FetchAttempt: Codable, Sendable, Equatable {
     var url: String
     var ok: Bool
+    var refused: Bool?
 }
 
 struct LedgerCheck: Codable, Sendable, Equatable {
@@ -401,7 +402,8 @@ final class CitationGuard {
         sourcesRequired: Bool?, usedWebTools: Bool
     ) -> LedgerCheck {
         let fetched = Set(ledger.flatMap { [guardNormalized($0.url), guardNormalized($0.finalURL)] })
-        let failed = Set(attempts.filter { !$0.ok }.map { guardNormalized($0.url) }).subtracting(fetched)
+        let tries = attempts.filter { $0.refused != true }
+        let failed = Set(tries.filter { !$0.ok }.map { guardNormalized($0.url) }).subtracting(fetched)
         let cited = guardURLs(in: answer)
         let confirmed = cited.filter { fetched.contains(guardNormalized($0)) }
         let tried = fetched.union(failed)
@@ -413,7 +415,7 @@ final class CitationGuard {
         {
             noteUnfetched.append(url)
         }
-        let everyTryFailed = !attempts.isEmpty && attempts.allSatisfy { !$0.ok }
+        let everyTryFailed = !tries.isEmpty && tries.allSatisfy { !$0.ok }
         let required = sourcesRequired ?? ((usedWebTools || !cited.isEmpty) && !everyTryFailed)
         return LedgerCheck(
             stage: stage, citationsTotal: cited.count, citationsFetched: confirmed.count,

@@ -52,6 +52,10 @@ final class ConversationLifetime: NSObject, NSApplicationDelegate {
 
     private func showFailure(_ id: UUID) {
         guard let host = hosts[id] else { return }
+        guard host.preferences.searchKey.state.canLeave else {
+            showKeyFailure(id, host)
+            return
+        }
         let alert = NSAlert()
         alert.messageText = String(localized: "Could not save the conversation")
         alert.informativeText = String(
@@ -67,5 +71,20 @@ final class ConversationLifetime: NSObject, NSApplicationDelegate {
             host.saveCopy()
             if closing.contains(id) { host.store.send(.terminationRequested) }
         }
+    }
+
+    private func showKeyFailure(_ id: UUID, _ host: ConversationHost) {
+        let keys = host.preferences.searchKey
+        let alert = NSAlert()
+        alert.messageText = String(localized: "Could not save the Brave Search API key")
+        alert.informativeText = String(
+            localized: "The app is still open. You can retry, or fix the keychain error and try quitting again.")
+        if let failure = keys.state.failure { alert.informativeText += "\n\n" + failure.reason }
+        alert.addButton(withTitle: String(localized: "Keep app open"))
+        alert.addButton(withTitle: String(localized: "Retry"))
+        guard alert.runModal() == .alertSecondButtonReturn, let retry = keys.state.retry else { return }
+        host.store.send(.terminationCancelled)
+        keys.send(retry)
+        if closing.contains(id) { host.store.send(.terminationRequested) }
     }
 }

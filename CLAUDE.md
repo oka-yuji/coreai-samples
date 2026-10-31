@@ -9,8 +9,9 @@
   swiftlint lint --config .swiftlint.yml --baseline .swiftlint-baseline.json --strict --no-cache
   python3 Tools/Format/check_format.py --base origin/main
   ./Tools/Irodori/build-inputs.sh
-  swift test --package-path CoreAISamplesKit
-  xcodebuild -project CoreAISamples.xcodeproj -scheme CoreAISamples -configuration Release -destination 'platform=macOS' build
+  swift test --package-path CoreAISamplesKit --force-resolved-versions
+  xcodebuild -project CoreAISamples.xcodeproj -scheme CoreAISamples -configuration Release -destination 'platform=macOS' -onlyUsePackageVersionsFromResolvedFile build
+  python3 -I Tools/Packages/check-pins.py
   ```
 
 - 大きさの合図(合否には使わない): `swiftlint lint --config .swiftlint-size.yml --quiet`
@@ -59,6 +60,8 @@
   `COREAI_HASH_MEMORY_TEST=1 COREAI_HASH_MEMORY_MIB=64 swift test --package-path CoreAISamplesKit --filter ArtifactTransferMemoryTests`
   `COREAI_HASH_MEMORY_TEST=1 COREAI_HASH_MEMORY_MIB=256 swift test --package-path CoreAISamplesKit --filter ArtifactTransferMemoryTests`
   合成ファイルのSHA-256と、kernel lifetime footprint peakが合成ファイルの半分未満（256MiBでは128MiB未満）であることを確認する。RSSや測定点の差分をこのpeakの代わりにしない。
+
+- Brave APIキーの実Keychainの試験は既定の実行ではskipする。ログインKeychainに試験用のservice `com.coreai-samples.keychain-test` で保存・読出し・上書き・削除し、最後に消す（本番のservice `com.coreai-samples.DemoApp.brave-search` には触れない）: `COREAI_KEYCHAIN_TEST=1 swift test --package-path CoreAISamplesKit --filter KeychainSecretStoreTests`。実行後に `security find-generic-password -s com.coreai-samples.keychain-test` が見つからないことを確かめる。
 
 - ノートの移動先を大小文字を区別するボリュームで確かめる試験は既定の実行ではskipする。一時のボリュームを作って渡し、終わったら外す（モデル・GPUは使わない）:
   `S=$(mktemp -d) && hdiutil create -size 64m -fs 'Case-sensitive APFS' -volname notecase -type SPARSE "$S/cs" && hdiutil attach -nobrowse -mountpoint "$S/mnt" "$S/cs.sparseimage"`
