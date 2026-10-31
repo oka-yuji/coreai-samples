@@ -9,7 +9,7 @@ public enum IrodoriBundleInventory {
     }
 
     public static let manifestSHA256 = "ce41c61dd2249cab61aa69017316627c54329177fbfb19a1d1df4d775d65dbc7"
-    public static let referenceManifestSHA256 = "8dca0128ec50d8b186a2f9acb6e6d658f65e9e21aae0ac766bad650e5ede4ea9"
+    public static let referenceManifestSHA256 = "964e4c6f3d5f235fff5bac346d545a928112274412241d348ab3c65ff5f449a5"
     public static let modelID = "Aratako/Irodori-TTS-v4.1-Small-MF"
 
     public static func files(profile: SpeechBundleProfile = .textOnly) throws -> [File] {
@@ -21,7 +21,8 @@ public enum IrodoriBundleInventory {
         }
         return
             (assets + [
-                File(path: "irodori.json", bytes: 132, sha256: manifestSHA256(for: profile)),
+                File(
+                    path: "irodori.json", bytes: profile == .textOnly ? 132 : 226, sha256: manifestSHA256(for: profile)),
                 File(
                     path: "tokenizer.json", bytes: 6_718_495,
                     sha256: "6a0734cf21c802169defaffe719bc2ef12bb9d0be37e54b61ed27aa89394723d"),

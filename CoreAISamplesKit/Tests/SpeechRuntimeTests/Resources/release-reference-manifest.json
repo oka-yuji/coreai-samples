@@ -1,0 +1,7 @@
+{
+  "format": "irodori-coreai-v2",
+  "modelID": "Aratako/Irodori-TTS-v4.1-Small-MF",
+  "precision": "fp32",
+  "sampleRate": 48000,
+  "assetInventorySHA256": "1ef49b32d0135bf873439ba4b5197498a47844dbdf55faedd3e3d5e86137d8b2"
+}

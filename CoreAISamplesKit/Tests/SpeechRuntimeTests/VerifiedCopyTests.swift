@@ -79,7 +79,15 @@ struct VerifiedCopyTests {
             "\"format\": \"\(profile.rawValue)\"", "\"modelID\": \"Aratako/Irodori-TTS-v4.1-Small-MF\"",
             "\"precision\": \"fp32\"", "\"sampleRate\": 48000",
         ]
-        let manifest = Data(("{\n  " + fields.joined(separator: ",\n  ") + "\n}\n").utf8)
+        let manifest: Data
+        if profile == .referenceVoice {
+            let url = try #require(
+                Bundle.module.url(
+                    forResource: "release-reference-manifest", withExtension: "json", subdirectory: "Resources"))
+            manifest = try Data(contentsOf: url)
+        } else {
+            manifest = Data(("{\n  " + fields.joined(separator: ",\n  ") + "\n}\n").utf8)
+        }
         let layout = try SpeechBundleLayout.irodori(manifest: manifest)
         let stems =
             profile == .textOnly
