@@ -1,0 +1,148 @@
+{
+  "date": "2026-11-01",
+  "date_timezone": "Asia/Tokyo",
+  "repository": "okayuji/irodori-v4.1-small-mf-coreai-fp32",
+  "revision": "f5db5096365c7d1388a5002cfb3280f66cb19375",
+  "code_revision": "ed013ff786fb9aa79c61c8addb8883ec321965b2",
+  "environment": {
+    "device": "M5 Max",
+    "memory_bytes": 137438953472,
+    "os": "macOS 27.2 (26B123)",
+    "toolchain": "Xcode 27.0 (27A266a); Swift 6.4",
+    "configuration": "SwiftPM Debug",
+    "power": "AC attached",
+    "thermal_before": "nominal (0)",
+    "thermal_after": "nominal (0)",
+    "cache": "Not cleared; specialization cache may be reused",
+    "thermal_scope": "Released-asset generation only; control thermal state was not sampled separately."
+  },
+  "public_access": {
+    "anonymous": true,
+    "route": "Normal Models transfer and managed-store verification using the iOS catalog on a Mac",
+    "files": 22,
+    "bytes": 3835396408,
+    "all_sizes_and_sha256_match": true,
+    "state": "ready",
+    "inspection": "ready",
+    "failures": [],
+    "test": "LocalSpeechCatalogTests.downloadReference",
+    "tests_executed": 1
+  },
+  "privacy_audit": {
+    "verdict": "passed",
+    "complete": true,
+    "private": false,
+    "refs": 1,
+    "commits": 1,
+    "unique_objects": 25,
+    "release_files": 25,
+    "release_bytes": 3836457825,
+    "unresolved_findings": 0,
+    "errors": [],
+    "scanner_id": "63501ba4f0d44b8a0f05127025407875f7cbd983dc573919d6905b816d9f7baf",
+    "checked_at": "2026-10-31T15:59:33.044432+00:00",
+    "manifest_sha256": "94feab53f277e39ecac630f6609267fda87cee89e738040c744779f4a6d9eb78"
+  },
+  "native_generation": {
+    "test": "SpeechReferenceIntegrationTests.nativeSmoke",
+    "tests_executed": 1,
+    "passed": true,
+    "seed": 1708,
+    "reference_sha256": "ecb217e91cbe5bfbdd2cfd0af14f025702abdf9d4cf86240a725542d225bf95b",
+    "reference_seconds": 3.8609166666666668,
+    "output_seconds": {
+      "reference.wav": 4.0,
+      "unconditioned.wav": 5.48
+    },
+    "same_reference_repeat_equal": true,
+    "reference_boundaries_seconds": [
+      0.5,
+      30
+    ],
+    "execution_plan_sha256": "b9a5b7b14b0063ffdffbd9fb6bffcb475d84f6c1d8441d0b61b83e7343ba369c",
+    "outputs": [
+      {
+        "file": "reference.wav",
+        "bytes": 768058,
+        "sha256": "8bd9ed243f0290e5264d0b72248e84ec73598bb384fa51f096319b45e0de1463",
+        "baseline_sha256": "76efbd5be6ddbd6eef59ea622e778022cf787828a88f3099605bc01918642710",
+        "matches_fixed_baseline": false
+      },
+      {
+        "file": "unconditioned.wav",
+        "bytes": 1052218,
+        "sha256": "720f0a962749e195c2ed76c310c96797db4375aa3718b879e2441e53a3b72f95",
+        "baseline_sha256": "d2d8a9f736d5a96ef48bed970cab5cef9b5b4ae02c88e31d9036470b0cfb462a",
+        "matches_fixed_baseline": false
+      }
+    ]
+  },
+  "same_host_pre_strip_comparison": {
+    "checked_at": "2026-10-31T16:00:12.440033+00:00",
+    "code_revision": "1ae9634e29729afa8595c6d9caaad6f63850f862",
+    "comparison_code_revision": "ed013ff786fb9aa79c61c8addb8883ec321965b2",
+    "plan_sha256": "72c5f1d711e452d32adf0b4e61e8e955d617836bc0d71ac37b76c9a591065929",
+    "same_generation_code_and_dependencies": true,
+    "native_smoke_passed": true,
+    "outputs": [
+      {
+        "file": "reference.wav",
+        "bytes": 768058,
+        "sha256": "8bd9ed243f0290e5264d0b72248e84ec73598bb384fa51f096319b45e0de1463",
+        "released_asset_sha256": "8bd9ed243f0290e5264d0b72248e84ec73598bb384fa51f096319b45e0de1463",
+        "byte_equal": true
+      },
+      {
+        "file": "unconditioned.wav",
+        "bytes": 1052218,
+        "sha256": "720f0a962749e195c2ed76c310c96797db4375aa3718b879e2441e53a3b72f95",
+        "released_asset_sha256": "720f0a962749e195c2ed76c310c96797db4375aa3718b879e2441e53a3b72f95",
+        "byte_equal": true
+      }
+    ],
+    "cross_environment_baseline_match": false,
+    "interpretation": "Same-host pre-strip versus released-asset comparison; separate from the failed old M4/macOS27.0 output comparison.",
+    "actual_source_files": 20,
+    "actual_source_bytes": 3836181569,
+    "actual_source_manifest_sha256": "8dca0128ec50d8b186a2f9acb6e6d658f65e9e21aae0ac766bad650e5ede4ea9",
+    "thermal_before": null,
+    "thermal_after": null,
+    "thermal_note": "Thermal state was not sampled separately for this control. The top-level nominal observations apply only to the released-asset run.",
+    "plan_metadata_correction": {
+      "unchanged_plan": true,
+      "source_files_and_bytes": "The frozen plan inherited source_files=22 and source_bytes=3835396408 from the public-download run. The actual pre-strip source was 20 files / 3836181569 bytes, verified by its original inventory.",
+      "baseline_environment_text": "The inherited baseline_environment sentence about unchanged expected hashes describes the earlier cross-environment comparison. This control used the explicit expected_outputs values from the anonymous M5 run, fixed before the control execution.",
+      "impact": "Source identity, source_route, baseline code, explicit expected_outputs and byte-equality gate identify the actual control. The frozen plan and its hash were not rewritten after execution."
+    }
+  },
+  "cross_environment_comparison": {
+    "baseline": "M4 Max / macOS 27.0 (26A428)",
+    "baseline_plan": "release-validation-plan.json",
+    "byte_equal": false,
+    "result": "The additional cross-environment byte-equality check failed and remains failed. Both outputs retain the same sample count and have no nonfinite samples. The contribution of GPU generation versus OS version is not isolated.",
+    "differences": [
+      {
+        "file": "reference.wav",
+        "samples": 192000,
+        "header_equal": true,
+        "nonfinite": 0,
+        "max_absolute_error": 0.00032491981983184814,
+        "nrmse": 6.128317713224209e-05,
+        "cosine": 0.9999999981225903
+      },
+      {
+        "file": "unconditioned.wav",
+        "samples": 263040,
+        "header_equal": true,
+        "nonfinite": 0,
+        "max_absolute_error": 2.4097971618175507e-06,
+        "nrmse": 8.598876310810453e-07,
+        "cosine": 0.9999999999996044
+      }
+    ]
+  },
+  "limitations": [
+    "No iPhone screen interaction, microphone capture or listening assessment was performed by these host checks.",
+    "This is output-preservation and acquisition verification, not a latency benchmark or original-PyTorch waveform-fidelity acceptance."
+  ]
+}

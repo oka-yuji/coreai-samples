@@ -1,8 +1,13 @@
 import ConversationFeature
+import ConversationRuntime
 import CryptoKit
+import FeatureStore
 import Foundation
 import FoundationModels
+import Observation
 import RAGContext
+import Synchronization
+import WebKit
 
 enum AgentSelfTest {
     static func run() -> Never {
@@ -472,6 +477,28 @@ enum AgentSelfTest {
                 settings: AgentToolSettings(notesDirectory: movesIn)
             ).text)
         check("notes/moveRefused", refusals.allSatisfy { $0.hasPrefix("error:") }, refusals.joined(separator: " | "))
+        do {
+            let written = try await AgentTools.notes.write(
+                title: "Managed move", fileName: "Managed move.md", content: "body", directory: movesIn)
+            let published = try await AgentTools.notes.publish(written, directory: movesIn)
+            var settings = AgentToolSettings(notesDirectory: movesIn)
+            settings.allowFileOperations = true
+            let moved = await AgentTools.run(
+                AgentToolCall(
+                    name: "move_note",
+                    arguments: [
+                        AgentArgument(name: "title", value: "Managed move"),
+                        AgentArgument(name: "destination", value: archive.path(percentEncoded: false)),
+                    ]),
+                settings: settings)
+            check(
+                "notes/moveManaged",
+                moved.text.hasSuffix("/archive/Managed move.md") && moved.note?.id == written.id
+                    && moved.note.map { FileManager.default.fileExists(atPath: $0.path.path) } == true
+                    && !FileManager.default.fileExists(atPath: published.path.path), moved.text)
+        } catch {
+            check("notes/moveManaged", false, "\(error)")
+        }
         try? FileManager.default.removeItem(at: movesIn)
 
         check(
@@ -541,6 +568,7 @@ enum AgentSelfTest {
         await ConversationSourcesSelfTest.run { name, passed, detail in check(name, passed, detail) }
         await ConversationBudgetSelfTest.run { name, passed, detail in check(name, passed, detail) }
         await ConversationAccessSelfTest.run { name, passed, detail in check(name, passed, detail) }
+        await FetchProvenanceSelfTest.run { name, passed, detail in check(name, passed, detail) }
         await RAGEvaluationSelfTest.run { name, passed, detail in check(name, passed, detail) }
         await RAGStructureSelfTest.run { name, passed, detail in check(name, passed, detail) }
         await RAGSelectionSelfTest.run { name, passed, detail in check(name, passed, detail) }
@@ -1097,10 +1125,11 @@ enum AgentSelfTest {
         let defaultsName = "agent-defaults-" + UUID().uuidString
         if let defaults = UserDefaults(suiteName: defaultsName) {
             defer { defaults.removePersistentDomain(forName: defaultsName) }
+            let keys = SearchKeyVault(store: KeyStoreProbe())
             var flagMismatches: [String] = []
             func checkFlags(over saved: Bool?) {
                 for value in ["on", "off"] {
-                    let agent = ConversationPreferences(defaults: defaults)
+                    let agent = ConversationPreferences(defaults: defaults, keyVault: keys)
                     agent.persists = false
                     _ = try? applyM4GOptions(to: agent, arguments: ["--citation-guard", value])
                     let stored = defaults.object(forKey: ConversationPreferences.citationGuardKey) as? Bool
@@ -1111,7 +1140,7 @@ enum AgentSelfTest {
                     }
                 }
             }
-            let fresh = ConversationPreferences(defaults: defaults)
+            let fresh = ConversationPreferences(defaults: defaults, keyVault: keys)
             check(
                 "m4h/defaultInstructionsAndGuard",
                 fresh.citeFetched && !fresh.citationGuard
@@ -1119,11 +1148,11 @@ enum AgentSelfTest {
                 "fresh settings: citeFetched=\(fresh.citeFetched) citationGuard=\(fresh.citationGuard)")
             checkFlags(over: nil)
             fresh.citationGuard = true
-            let savedOn = ConversationPreferences(defaults: defaults).citationGuard
+            let savedOn = ConversationPreferences(defaults: defaults, keyVault: keys).citationGuard
             checkFlags(over: true)
             fresh.citeFetched = false
             fresh.citationGuard = false
-            let saved = ConversationPreferences(defaults: defaults)
+            let saved = ConversationPreferences(defaults: defaults, keyVault: keys)
             checkFlags(over: false)
             check(
                 "m4h/savedInstructionsAndGuard", savedOn && !saved.citeFetched && !saved.citationGuard,
@@ -1146,22 +1175,162 @@ enum AgentSelfTest {
                 ConversationPreferences.citeFetchedKey: false,
             ]
             for (key, value) in values { stored.set(value, forKey: key) }
-            let headless = ConversationPreferences(defaults: stored)
+            let braveKey = ConversationPreferences.braveKeyKey
+            func settled(_ preferences: ConversationPreferences) async {
+                for await phase in Observations({ preferences.searchKey.state.phase }) where phase == .ready { return }
+            }
+            func save(_ key: String, in preferences: ConversationPreferences) async {
+                preferences.searchKey.send(.draftChanged(key))
+                preferences.searchKey.send(.saveRequested)
+                await settled(preferences)
+            }
+            let keys = KeyStoreProbe()
+            let headless = ConversationPreferences(defaults: stored, keyVault: SearchKeyVault(store: keys))
+            let launched = headless.braveAPIKey.isEmpty && keys.calls.isEmpty
+            headless.searchKey.send(.loadRequested)
+            await settled(headless)
             let loaded =
                 headless.maxSteps == 3 && headless.chatMaxSteps == 24 && headless.maxTokens == 2_048
                 && headless.pageBudget == 4_000
                 && headless.braveAPIKey == "key" && headless.fileOperations && headless.notesFolderPath == "/tmp/notes"
                 && !headless.citationGuard && !headless.citeFetched
+            let moved =
+                keys.value == "key" && keys.calls == ["read", "write"] && stored.object(forKey: braveKey) == nil
             headless.resetForHeadless()
             headless.effort = .medium
             let reset =
                 !headless.persists && headless.maxSteps == 8 && headless.chatMaxSteps == 16 && headless.maxTokens == nil
                 && headless.pageBudget == 10_000 && headless.braveAPIKey.isEmpty && !headless.fileOperations
                 && headless.notesFolderPath.isEmpty && !headless.citationGuard && headless.citeFetched
-            let kept = values.allSatisfy { (stored.object(forKey: $0.key) as? NSObject)?.isEqual($0.value) == true }
+            let kept =
+                values.allSatisfy {
+                    $0.key == braveKey || (stored.object(forKey: $0.key) as? NSObject)?.isEqual($0.value) == true
+                } && keys.value == "key" && keys.calls == ["read", "write"]
             check(
-                "conversation/headlessDefaults", loaded && reset && kept,
-                "loaded=\(loaded) reset=\(reset) kept=\(kept)")
+                "conversation/headlessDefaults", launched && loaded && moved && reset && kept,
+                "launched=\(launched) loaded=\(loaded) moved=\(moved) reset=\(reset) kept=\(kept) store=\(keys.calls)")
+            stored.set("legacy", forKey: braveKey)
+            let saved = KeyStoreProbe("stored")
+            let chat = ConversationPreferences(defaults: stored, keyVault: SearchKeyVault(store: saved))
+            chat.searchKey.send(.loadRequested)
+            await settled(chat)
+            let chatKey = RAGSettings.fromDefaults(chat).braveAPIKey
+            let cleared = stored.object(forKey: braveKey) == nil
+            check(
+                "conversation/chatSearchKeyFromStore", chatKey == "stored" && cleared && saved.calls == ["read"],
+                "chat=\(chatKey) defaultsCleared=\(cleared) store=\(saved.calls)")
+            await save("typed", in: chat)
+            let typed = saved.value == "typed" && chat.braveAPIKey == "typed" && stored.object(forKey: braveKey) == nil
+            await save("", in: chat)
+            check(
+                "conversation/searchKeySavedToStore",
+                typed && saved.value == nil && chat.braveAPIKey.isEmpty && saved.calls == ["read", "write", "delete"]
+                    && stored.object(forKey: braveKey) == nil,
+                "typed=\(typed) store=\(saved.calls)")
+            stored.set("legacy", forKey: braveKey)
+            let untouched = KeyStoreProbe("stored")
+            let isolated = ConversationPreferences(
+                defaults: stored, keyVault: SearchKeyVault(store: untouched), persists: false)
+            let empty = isolated.braveAPIKey.isEmpty && RAGSettings.fromDefaults(isolated).braveAPIKey.isEmpty
+            isolated.searchKey.send(.loadRequested)
+            await settled(isolated)
+            await save("typed", in: isolated)
+            let memory = isolated.braveAPIKey == "typed" && isolated.searchKeyVault == nil
+            isolated.braveAPIKey = ""
+            let legacy = stored.string(forKey: braveKey)
+            check(
+                "conversation/headlessSearchKeyUntouched",
+                empty && memory && isolated.braveAPIKey.isEmpty && untouched.calls.isEmpty
+                    && untouched.value == "stored" && legacy == "legacy",
+                "empty=\(empty) memory=\(memory) store=\(untouched.calls) defaults=\(legacy ?? "nil")")
+            func terminate(_ preferences: ConversationPreferences, saved: Bool = true) async -> Bool? {
+                var ended: Bool?
+                let runner = ConversationRunner(
+                    id: "terminate", chat: ChatViewModel(), preferences: preferences,
+                    archive: ConversationArchive(directory: folder), termination: { ended = $0 })
+                await runner.run(.terminationReady(saved)) { _ in }
+                return ended
+            }
+            let working = ConversationPreferences(
+                defaults: stored, keyVault: SearchKeyVault(store: KeyStoreProbe("stored")))
+            working.searchKey.send(.loadRequested)
+            await settled(working)
+            let idle = await terminate(working)
+            let unsaved = await terminate(working, saved: false)
+            working.searchKey.send(.draftChanged("fresh"))
+            working.searchKey.send(.saveRequested)
+            let waited = await terminate(working)
+            let fresh = working.braveAPIKey
+            let probe = KeyStoreProbe("stored", failing: ["write"])
+            let failing = ConversationPreferences(defaults: stored, keyVault: SearchKeyVault(store: probe))
+            failing.searchKey.send(.loadRequested)
+            await settled(failing)
+            failing.searchKey.send(.draftChanged("typed"))
+            failing.searchKey.send(.saveRequested)
+            let refused = await terminate(failing)
+            let retained =
+                failing.braveAPIKey == "stored" && failing.searchKey.state.draft == "typed"
+                && failing.searchKey.state.canSave
+            let again = await terminate(failing)
+            check(
+                "conversation/terminationWaitsForSearchKey",
+                idle == true && unsaved == false && waited == true && fresh == "fresh" && refused == false && retained
+                    && again == false && probe.calls == ["read", "write"],
+                "idle=\(String(describing: idle)) unsaved=\(String(describing: unsaved)) "
+                    + "waited=\(String(describing: waited)) fresh=\(fresh) refused=\(String(describing: refused)) "
+                    + "retained=\(retained) again=\(String(describing: again)) store=\(probe.calls)")
+            let gated = KeyStoreProbe("stored", gated: true)
+            defer { gated.release() }
+            let quitting = ConversationPreferences(defaults: stored, keyVault: SearchKeyVault(store: gated))
+            quitting.searchKey.send(.loadRequested)
+            await settled(quitting)
+            let archive = ConversationArchive(
+                directory: folder.appending(path: "termination", directoryHint: .isDirectory))
+            var conversation = ConversationState(
+                id: "termination", now: Date(timeIntervalSince1970: 1_700_000_000), instructionsVersion: "cite-fetched",
+                toolsVersion: "web_search,fetch_page,write_note,move_note")
+            _ = ConversationFeature.reduce(&conversation, .send("Keep this", mode: .chat, now: conversation.createdAt))
+            _ = ConversationFeature.reduce(
+                &conversation,
+                .transcriptChanged(
+                    run: 1,
+                    TranscriptRecord(entries: [
+                        .instructions(id: "i", text: "Keep context"), .prompt(id: "p", text: "Keep this"),
+                        .response(id: "a", text: "Kept", metadata: StepMetadata(stopReason: "stopToken")),
+                    ])))
+            _ = ConversationFeature.reduce(&conversation, .generationEnded(run: 1, stopReason: "stopToken"))
+            try? await archive.save(ConversationSnapshot(conversation), expectedRevision: 0, writer: UUID())
+            var host: ConversationHost?
+            var ends: [String] = []
+            let (ended, end) = AsyncStream<Void>.makeStream()
+            host = ConversationHost(
+                chat: ChatViewModel(), preferences: quitting, archive: archive,
+                termination: {
+                    ends.append("\($0) saving=\(host?.state.isSaving ?? false)")
+                    end.yield()
+                })
+            if let host {
+                host.store.send(.restoreLatestRequested)
+                for await restoring in Observations({ host.state.isRestoring }) where !restoring { break }
+                quitting.searchKey.send(.draftChanged("typed"))
+                quitting.searchKey.send(.saveRequested)
+                host.store.send(.terminationRequested)
+                for _ in 0..<3 { await Task.yield() }
+                host.store.send(.terminationCancelled)
+                host.store.send(.retrySave)
+                host.store.send(.terminationRequested)
+                let saving = host.state.isSaving && host.state.isTerminating
+                gated.release()
+                for await _ in ended { break }
+                for await busy in Observations({ quitting.searchKey.state.isBusy || host.state.isSaving }) where !busy {
+                    break
+                }
+                for _ in 0..<10 { await Task.yield() }
+                check(
+                    "conversation/cancelledTerminationStaysCancelled",
+                    saving && ends == ["true saving=false"] && gated.value == "typed",
+                    "saving=\(saving) ends=\(ends) key=\(gated.value ?? "nil") store=\(gated.calls)")
+            }
         } else {
             check("conversation/headlessDefaults", false, "could not create isolated defaults")
         }
@@ -1552,7 +1721,8 @@ enum AgentSelfTest {
     @MainActor
     private static func fetchAddressChecks(offline: Bool, _ check: (String, Bool, String) -> Void) async {
         guard let publicURL = URL(string: "https://public.example/page"),
-            let privateURL = URL(string: "http://127.0.0.1/private")
+            let privateURL = URL(string: "https://127.0.0.1/private"),
+            let httpURL = URL(string: "http://public.example/page")
         else {
             check("fetch/addressFixtures", false, "Invalid URL fixture")
             return
@@ -1576,12 +1746,27 @@ enum AgentSelfTest {
         }
         for address in ["2130706433", "0x7f.1", "0177.0.0.1", "[::ffff:7f00:1]", "localhost."] {
             do {
-                try await AgentFetchPolicy().validate(URL(string: "http://\(address)/"))
+                try await AgentFetchPolicy().validate(URL(string: "https://\(address)/"))
                 check("fetch/numeric/" + address, false, "Unexpectedly allowed")
             } catch {
-                check("fetch/numeric/" + address, true, "\(error)")
+                check(
+                    "fetch/numeric/" + address, (error as? AgentToolMessage)?.text == AgentTools.localAddressRefusal,
+                    "\(error)")
             }
         }
+        do {
+            try await AgentFetchPolicy(resolve: { _ in throw AgentToolMessage(text: "error: resolved an http URL") })
+                .validate(httpURL)
+            check("fetch/http/policy", false, "Unexpectedly allowed")
+        } catch let error as AgentToolMessage {
+            check(
+                "fetch/http/policy", error.text == AgentTools.httpRefusal && error.fatal && error.forbidsPageFallback,
+                error.text)
+        } catch { check("fetch/http/policy", false, "\(error)") }
+        let agent = await AgentTools.run(
+            AgentToolCall(name: "fetch_page", arguments: [AgentArgument(name: "url", value: "http://127.0.0.1/page")]),
+            settings: AgentToolSettings(notesDirectory: FileManager.default.temporaryDirectory))
+        check("fetch/http/agent", agent.text == AgentTools.httpRefusal, agent.text)
         let cancelledScope = AgentAddressScope()
         cancelledScope.cancel()
         for name in ["8.8.8.8", "public.example"] {
@@ -1615,25 +1800,84 @@ enum AgentSelfTest {
         } catch let error as AgentToolMessage {
             check("fetch/ragRefusalSkipsRender", error.text == AgentTools.localAddressRefusal, error.text)
         } catch { check("fetch/ragRefusalSkipsRender", false, "\(error)") }
+        do {
+            _ = try await RAGRetriever.readPageDetails(
+                url: httpURL, policy: policy,
+                download: { _ in throw AgentToolMessage(text: "error: forbidden download started") },
+                render: { _ in throw AgentToolMessage(text: "error: forbidden render started") })
+            check("fetch/http/ragRead", false, "Unexpected success")
+        } catch let error as AgentToolMessage {
+            check("fetch/http/ragRead", error.text == AgentTools.httpRefusal, error.text)
+        } catch { check("fetch/http/ragRead", false, "\(error)") }
+        let page = RAGPage(raw: "", text: "Alpha", finalURL: publicURL.absoluteString, format: .text)
+        var web = RAGSettings()
+        web.web = true
+        web.recordsDiagnostics = true
+        let retrieval = await RAGRetriever.gather(
+            question: "Alpha", settings: web, count: { $0.count },
+            inputs: RAGInputs(
+                local: { _ in [] },
+                search: { _, _ in
+                    [
+                        .init(title: "Cleartext", url: "http://127.0.0.1/page", snippet: ""),
+                        .init(title: "Public", url: publicURL.absoluteString, snippet: ""),
+                    ]
+                }, read: { _ in page }))
+        let read = retrieval.documents.map(\.id)
+        check("fetch/http/ragEntry", read == [publicURL.absoluteString], "\(read)")
         if let response = HTTPURLResponse(url: publicURL, statusCode: 302, httpVersion: nil, headerFields: nil) {
-            let redirects = AgentFetchRedirects(policy: policy)
-            let task = URLSession.shared.dataTask(with: publicURL)
-            let next = await redirects.urlSession(
-                .shared, task: task, willPerformHTTPRedirection: response, newRequest: URLRequest(url: privateURL))
-            var text = "redirect body"
-            do { try redirects.checkResponse() } catch let error as AgentToolMessage { text = error.text } catch {}
-            check("fetch/redirectBeforeRequest", next == nil && text == AgentTools.localAddressRefusal, text)
+            for (name, target, expected) in [
+                ("redirectBeforeRequest", privateURL, AgentTools.localAddressRefusal),
+                ("http/redirect", httpURL, AgentTools.httpRefusal),
+            ] {
+                let redirects = AgentFetchRedirects(policy: policy)
+                let task = URLSession.shared.dataTask(with: publicURL)
+                let next = await redirects.urlSession(
+                    .shared, task: task, willPerformHTTPRedirection: response, newRequest: URLRequest(url: target))
+                var text = "redirect body"
+                do { try redirects.checkResponse() } catch let error as AgentToolMessage { text = error.text } catch {}
+                check("fetch/" + name, next == nil && text == expected, text)
+            }
         }
-        for mainFrame in [true, false] {
-            let reader = AgentPageReader(policy: policy)
-            let decision = await reader.navigationPolicy(url: privateURL, isMainFrame: mainFrame)
-            check("fetch/webNavigation/\(mainFrame ? "main" : "subframe")", decision == .cancel, "\(decision)")
+        for (prefix, target, expected) in [
+            ("", privateURL, AgentTools.localAddressRefusal), ("http/", httpURL, AgentTools.httpRefusal),
+        ] {
+            for mainFrame in [true, false] {
+                let reader = AgentPageReader(policy: policy)
+                let decision = await reader.navigationPolicy(url: target, isMainFrame: mainFrame)
+                let text = reader.statusFailure?.text ?? "\(decision)"
+                check(
+                    "fetch/\(prefix)webNavigation/\(mainFrame ? "main" : "subframe")",
+                    decision == .cancel && text == expected, text)
+            }
         }
         let reader = AgentPageReader(policy: policy)
         do {
             _ = try await reader.configuration()
             check("fetch/contentRulesInstalled", reader.contentRulesInstalled, "Rules were not installed")
         } catch { check("fetch/contentRulesInstalled", false, "\(error)") }
+        do {
+            let rules =
+                try JSONSerialization.jsonObject(with: Data(FetchAddressPolicy.contentRules().utf8))
+                as? [[String: [String: String]]] ?? []
+            let filters = try rules.filter { $0["action"]?["type"] == "block" }
+                .compactMap { $0["trigger"]?["url-filter"] }
+                .map { try NSRegularExpression(pattern: $0, options: [.caseInsensitive]) }
+            let blocked = { (url: String) in
+                filters.contains { $0.firstMatch(in: url, range: NSRange(url.startIndex..., in: url)) != nil }
+            }
+            check(
+                "fetch/http/contentRule",
+                blocked("http://public.example/image.png") && !blocked("https://public.example/image.png")
+                    && blocked("https://127.0.0.1/image.png"), "\(filters.count) block rules")
+        } catch { check("fetch/http/contentRule", false, "\(error)") }
+        for (name, html) in [
+            ("redirect", #"<meta http-equiv="refresh" content="0; url=http://127.0.0.1/next">"#),
+            ("subframe", #"<iframe src="http://127.0.0.1/frame"></iframe>"#),
+        ] {
+            let text = await webViewRefusal(html, policy: policy)
+            check("fetch/http/webView/" + name, text == AgentTools.httpRefusal, text)
+        }
         for evaluation in [false, true] {
             for outcome in ["refusal", "cancellation", "success", "before-registration"] {
                 let waiting = AgentPageReader(policy: policy)
@@ -1666,16 +1910,40 @@ enum AgentSelfTest {
             }
         }
         if !offline, let raw = LaunchArguments.value("--fetch-redirect-test-url"), let url = URL(string: raw) {
+            let refused = { (text: String) in
+                url.scheme?.lowercased() == "https"
+                    && [AgentTools.localAddressRefusal, AgentTools.httpRefusal].contains(text)
+            }
             let output = await AgentTools.run(
                 AgentToolCall(name: "fetch_page", arguments: [AgentArgument(name: "url", value: raw)]),
                 settings: AgentToolSettings())
-            check("fetch/liveRedirect/agent", output.text == AgentTools.localAddressRefusal, output.text)
+            check("fetch/liveRedirect/agent", refused(output.text), output.text)
             do {
                 _ = try await RAGRetriever.readPage(url: url)
                 check("fetch/liveRedirect/rag", false, "Unexpectedly allowed")
             } catch let error as AgentToolMessage {
-                check("fetch/liveRedirect/rag", error.text == AgentTools.localAddressRefusal, error.text)
+                check("fetch/liveRedirect/rag", refused(error.text), error.text)
             } catch { check("fetch/liveRedirect/rag", false, "\(error)") }
+        }
+    }
+
+    @MainActor
+    private static func webViewRefusal(_ html: String, policy: AgentFetchPolicy) async -> String {
+        let reader = AgentPageReader(policy: policy)
+        DispatchQueue.main.asyncAfter(deadline: .now() + AgentPageReader.timeout) { [weak reader] in
+            MainActor.assumeIsolated { reader?.abort(with: AgentPageReader.timedOutMessage) }
+        }
+        do {
+            let view = WKWebView(frame: .zero, configuration: try await reader.configuration())
+            view.navigationDelegate = reader
+            defer { view.stopLoading() }
+            try await reader.waitForNavigation {
+                view.loadHTMLString(html, baseURL: URL(string: "https://public.example/"))
+            }
+            try await reader.waitForNavigation {}
+            return "no refusal"
+        } catch {
+            return (error as? AgentToolMessage)?.text ?? "\(error)"
         }
     }
 
@@ -1703,5 +1971,53 @@ enum AgentSelfTest {
                     "\(output.text.prefix(120))")
             } catch { check("fetch/capture/\(index)", false, "\(error)") }
         }
+    }
+}
+
+private final class KeyStoreProbe: SecretStore {
+    struct Failure: LocalizedError {
+        var errorDescription: String? { "Injected failure" }
+    }
+
+    private let record: Mutex<(value: String?, calls: [String])>
+    private let failing: Set<String>
+    private let gate: DispatchSemaphore?
+
+    init(_ value: String? = nil, failing: Set<String> = [], gated: Bool = false) {
+        record = Mutex((value, []))
+        self.failing = failing
+        gate = gated ? DispatchSemaphore(value: 0) : nil
+    }
+
+    func release() { gate?.signal() }
+
+    var value: String? { record.withLock { $0.value } }
+    var calls: [String] { record.withLock { $0.calls } }
+
+    func read() throws -> String? {
+        try record.withLock {
+            try enter("read", &$0.calls)
+            return $0.value
+        }
+    }
+
+    func write(_ value: String) throws {
+        gate?.wait()
+        try record.withLock {
+            try enter("write", &$0.calls)
+            $0.value = value
+        }
+    }
+
+    func delete() throws {
+        try record.withLock {
+            try enter("delete", &$0.calls)
+            $0.value = nil
+        }
+    }
+
+    private func enter(_ call: String, _ calls: inout [String]) throws {
+        calls.append(call)
+        if failing.contains(call) { throw Failure() }
     }
 }

@@ -37,10 +37,21 @@ def verify_files(artifacts, tokenizer, rules, reference_artifacts=None):
     if sha256(tokenizer) != TOKENIZER_SHA:
         raise ValueError("Tokenizer SHA-256 mismatch")
 
+def make_manifest(reference_inventory=None):
+    payload = {
+        "format": "irodori-coreai-v2" if reference_inventory is not None else "irodori-coreai-v1",
+        "modelID": "Aratako/Irodori-TTS-v4.1-Small-MF",
+        "precision": "fp32", "sampleRate": 48000
+    }
+    if reference_inventory is not None:
+        payload["assetInventorySHA256"] = hashlib.sha256(reference_inventory).hexdigest()
+    return (json.dumps(payload, indent=2) + "\n").encode()
+
 def prepare(artifacts, tokenizer, destination, reference_artifacts=None):
     if destination.exists() or destination.is_symlink():
         raise FileExistsError(destination)
-    rules = json.loads((REFERENCE_RULES if reference_artifacts is not None else RULES).read_text())
+    inventory = (REFERENCE_RULES if reference_artifacts is not None else RULES).read_bytes()
+    rules = json.loads(inventory)
     verify_files(artifacts, tokenizer, rules, reference_artifacts)
     destination.parent.mkdir(parents=True, exist_ok=True)
     staging = Path(tempfile.mkdtemp(prefix=".irodori-", dir=destination.parent))
@@ -57,11 +68,7 @@ def prepare(artifacts, tokenizer, destination, reference_artifacts=None):
                 else:
                     shutil.copyfile(source, target / relative)
         shutil.copyfile(tokenizer, staging / "tokenizer.json")
-        (staging / "irodori.json").write_text(json.dumps({
-            "format": "irodori-coreai-v2" if reference_artifacts is not None else "irodori-coreai-v1",
-            "modelID": "Aratako/Irodori-TTS-v4.1-Small-MF",
-            "precision": "fp32", "sampleRate": 48000
-        }, indent=2) + "\n")
+        (staging / "irodori.json").write_bytes(make_manifest(inventory if reference_artifacts is not None else None))
         verify_files(staging / "artifacts", staging / "tokenizer.json", rules)
         rename_exclusive(staging, destination)
     finally:

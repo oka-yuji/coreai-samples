@@ -9,8 +9,9 @@
   swiftlint lint --config .swiftlint.yml --baseline .swiftlint-baseline.json --strict --no-cache
   python3 Tools/Format/check_format.py --base origin/main
   ./Tools/Irodori/build-inputs.sh
-  swift test --package-path CoreAISamplesKit
-  xcodebuild -project CoreAISamples.xcodeproj -scheme CoreAISamples -configuration Release -destination 'platform=macOS' build
+  swift test --package-path CoreAISamplesKit --force-resolved-versions
+  xcodebuild -project CoreAISamples.xcodeproj -scheme CoreAISamples -configuration Release -destination 'platform=macOS' -onlyUsePackageVersionsFromResolvedFile build
+  python3 -I Tools/Packages/check-pins.py
   ```
 
 - 大きさの合図(合否には使わない): `swiftlint lint --config .swiftlint-size.yml --quiet`
@@ -61,6 +62,12 @@
   `COREAI_HASH_MEMORY_TEST=1 COREAI_HASH_MEMORY_MIB=256 swift test --package-path CoreAISamplesKit --filter ArtifactTransferMemoryTests`
   合成ファイルのSHA-256と、kernel lifetime footprint peakが合成ファイルの半分未満（256MiBでは128MiB未満）であることを確認する。RSSや測定点の差分をこのpeakの代わりにしない。
 
+- Brave APIキーの実Keychainの試験は既定の実行ではskipする。ログインKeychainに試験用のservice `com.coreai-samples.keychain-test` で保存・読出し・上書き・削除し、最後に消す（本番のservice `com.coreai-samples.DemoApp.brave-search` には触れない）: `COREAI_KEYCHAIN_TEST=1 swift test --package-path CoreAISamplesKit --filter KeychainSecretStoreTests`。実行後に `security find-generic-password -s com.coreai-samples.keychain-test` が見つからないことを確かめる。
+
+- ノートの移動先を大小文字を区別するボリュームで確かめる試験は既定の実行ではskipする。一時のボリュームを作って渡し、終わったら外す（モデル・GPUは使わない）:
+  `S=$(mktemp -d) && hdiutil create -size 64m -fs 'Case-sensitive APFS' -volname notecase -type SPARSE "$S/cs" && hdiutil attach -nobrowse -mountpoint "$S/mnt" "$S/cs.sparseimage"`
+  `COREAI_CASE_SENSITIVE_ROOT="$S/mnt" swift test --package-path CoreAISamplesKit --filter ConversationNotesTests`、その後 `hdiutil detach "$S/mnt"`。実行件数に `refusesCaseVariantFolderOnCaseSensitiveVolume` が含まれることを確かめる。
+
 - モデルを読むジョブ(変換、計測、モデルを読むテスト、デモアプリでモデルを動かすこと)は、`mkdir -p ~/Library/Caches/coreai-samples && mkdir ~/Library/Caches/coreai-samples/heavy-job` でロックを取ってから始める。中に `owner.txt`(セッション名、ジョブ名、開始時刻、見込み時間)を置く。取る前に、モデルを動かすプロセス(`coreai-chat`、`coreai-verify`、デモアプリなど)が残っていないことを `pgrep` で確かめる。`mkdir` が失敗したら、持ち主のジョブが終わるまで待つ。終わったら外す(名前を `heavy-job-done-<ジョブ名>-<日時>` に変える)。
 - GPU を使う統合テストは `.enabled(if:)` で既定の実行から外す。`swift test` だけでは、モデルを読むテストは動かない。動かすのは、バンドルのフォルダを `:` 区切りで渡したときだけ(このときはロックを取る): `COREAI_TEST_BUNDLES=/path/to/bundle-a:/path/to/bundle-b swift test --package-path CoreAISamplesKit`
 
@@ -95,6 +102,7 @@
 
 - The Mac and iOS 27 speech runtime uses the pinned Rust input adapter in `Vendor/IrodoriInputKit`. Build it with `Tools/Irodori/build-inputs.sh` before package tests. These operations do not execute Core AI models.
 - `SpeechCore` and `SpeechFeature` are pure-logic targets. `SpeechRuntime` owns a single in-flight operation and holds its busy gate across suspension. A release waits for that operation to finish; it does not clear a newer pipeline after resuming.
+- `ValidatedSpeechBundle.open` reads only the pinned inventory: each file is opened through descriptors without following symlinks, cloned with `fclonefileat` into a temporary folder and verified there. The verified copy lives at `Caches/<bundle ID>/IrodoriVerified/<manifest SHA-256>/` and is reused while complete, so the Core AI cache source keeps the same path and files. An exclusive `flock` on `IrodoriVerified/.lock` serializes opens from the clone through publishing, so a repair never replaces a copy that another open has published. On iOS a copy that cannot be cloned fails the open; on the Mac the bundle is verified in place instead (#404).
 - Test display names and source follow the existing English-only/no-comments rules. Model generation and listening in the app are user acceptance checks for this change.
 - `SpeechFeature` owns session and save-panel tickets. `Store` owns task cancellation; `SpeechRunner`/`LiveSpeechService` join runtime release before acknowledging stop. `AudioPlayback` resolves its continuation after synchronous stop instead of waiting for a delegate completion callback. CPU tests use fake devices.
 
@@ -104,6 +112,7 @@
 - For Phone changes, also build the signed `SpeechPhone` product and inspect the actual Info.plist for both file-sharing keys, plus the memory entitlement. The source settings alone are not evidence that the generated app contains those keys.
 
 - Irodoriの実バンドル取り込み検査は共有heavy-jobロック下で `COREAI_IRODORI_IMPORT_BUNDLE=/path/to/sampler-irodori-fp32 swift test --package-path CoreAISamplesKit --filter IrodoriImportTests.knownBundle`。固定14ファイルを一時管理領域へコピーし、検査・lease・改変/欠損/余分/symlinkの拒否を確認する。モデル推論は行わない。既定実行はskip。元フォルダは変更しない。
+- Irodori参照版の公開HF取得検査は同じロック下で `COREAI_IRODORI_DOWNLOAD_OUTPUT=/absolute/new/output swift test --package-path CoreAISamplesKit --filter LocalSpeechCatalogTests.downloadReference`。既存出力先を拒否し、通常Modelsの転送・全22ファイル検査・readyを確認して、取得物とacquisition.jsonを残す。既定実行はskip。推論とiPhoneの画面操作は別に確認する。
 
 - OCRデモ共通実行部の実モデル照合は共有heavy-jobロック下で `COREAI_OCR_DEMO_BUNDLE=/path/to/evaluated-bundle COREAI_OCR_DEMO_IMAGES=/path/to/fixed-images COREAI_OCR_DEMO_REFERENCES=/path/to/CLI-results COREAI_OCR_DEMO_OUTPUT=/path/to/private-output swift test --package-path CoreAISamplesKit --filter OCRNativePageTests.fixedPages`。F2/F4の予測構造・本文/表・終了・token数・Markdownを固定CLIと照合する。通常suiteはskip、実写/通常UI/iPhone受入の代用にはしない。
 - TeleOCRの実bundle登録検査は共有heavy-jobロック下で `COREAI_TELEOCR_IMPORT_BUNDLE=/path/to/evaluated-dynamic-fp16-bundle swift test --package-path CoreAISamplesKit --filter TeleOCRImportTests.knownBundle`。固定19ファイルのsize/hash・import/inspect・失敗時の旧登録保持・lease中の削除拒否・解放後の削除・元bundle不変を確認する。推論は行わず、既定実行ではskipする。

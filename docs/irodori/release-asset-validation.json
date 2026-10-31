@@ -1,0 +1,126 @@
+{
+  "change": "Remove source debug locations from the reference-voice v2 release",
+  "original_manifest_sha256": "8dca0128ec50d8b186a2f9acb6e6d658f65e9e21aae0ac766bad650e5ede4ea9",
+  "released_manifest_sha256": "964e4c6f3d5f235fff5bac346d545a928112274412241d348ab3c65ff5f449a5",
+  "model_payload_bytes": 3835379527,
+  "components": [
+    {
+      "component": "text-256-fp32-upstream.aimodel",
+      "semantic_sha256": "b7060f8adc9afb08ed609e4286b27206ac1d579b4fcc7535a1559846bdc40d5d",
+      "semantic_bytes": 2531396708,
+      "matches_before_after_reload": true
+    },
+    {
+      "component": "duration-reference-fp32.aimodel",
+      "semantic_sha256": "660fe7f68df70e51be3e1f02deacb2f52c1dcbc938d252455566f52489c18407",
+      "semantic_bytes": 174245133,
+      "matches_before_after_reload": true
+    },
+    {
+      "component": "dit-reference-fp32.aimodel",
+      "semantic_sha256": "7da66c5190f9b65a03c2b3e82d5eee84ae383010a703d04d554438cc63fb38fe",
+      "semantic_bytes": 2984284799,
+      "matches_before_after_reload": true
+    },
+    {
+      "component": "codec-dynamic13-750-fp32.aimodel",
+      "semantic_sha256": "6d272643bfa3f48a3d684f098aff55332d35f83fc00884e90721dce8aff59010",
+      "semantic_bytes": 1045315185,
+      "matches_before_after_reload": true
+    },
+    {
+      "component": "reference-audio-fp32.aimodel",
+      "semantic_sha256": "6ab2fb1fb63585b2bc901a3ddeb60eca59d5ecd1cf266426881ab27da4a786da",
+      "semantic_bytes": 437562525,
+      "matches_before_after_reload": true
+    },
+    {
+      "component": "reference-speaker-fp32.aimodel",
+      "semantic_sha256": "efb97a52a76e206ac62d601b70d34e66811928a0736aa943f8adf4376f22ef13",
+      "semantic_bytes": 484271918,
+      "matches_before_after_reload": true
+    }
+  ],
+  "semantic_comparison": {
+    "debug_locations": false,
+    "elided_constants_or_resources": false,
+    "reload_in_fresh_process": true
+  },
+  "native_comparison": [
+    {
+      "sample": "reference.wav",
+      "bytes_before": 768058,
+      "bytes_after": 768058,
+      "sha256_before": "76efbd5be6ddbd6eef59ea622e778022cf787828a88f3099605bc01918642710",
+      "sha256_after": "76efbd5be6ddbd6eef59ea622e778022cf787828a88f3099605bc01918642710",
+      "byte_equal": true
+    },
+    {
+      "sample": "unconditioned.wav",
+      "bytes_before": 1052218,
+      "bytes_after": 1052218,
+      "sha256_before": "d2d8a9f736d5a96ef48bed970cab5cef9b5b4ae02c88e31d9036470b0cfb462a",
+      "sha256_after": "d2d8a9f736d5a96ef48bed970cab5cef9b5b4ae02c88e31d9036470b0cfb462a",
+      "byte_equal": true
+    }
+  ],
+  "native_reference_seconds": 3.8609166666666668,
+  "native_seed": 1708,
+  "native_boundary_checks_seconds": [
+    0.5,
+    30
+  ],
+  "coreai_core": "1.0.0b3",
+  "coreai_torch": "0.4.3",
+  "environment": {
+    "os": "27.0",
+    "os_build": "26A428",
+    "architecture": "arm64"
+  },
+  "limitations": [
+    "The comparison preserves the existing runtime output; it does not establish original-PyTorch waveform parity.",
+    "The reference is a synthetic fixture, not a microphone recording.",
+    "No speaker-similarity or naturalness score is introduced by this check."
+  ],
+  "confirmation": {
+    "checked_at": "2026-10-31T01:59:30.870951+00:00",
+    "plan_sha256": "c9c2ae9f4478e0f3cae713e2d1a1455926336d35777c59df769dc0b8129181a8",
+    "code_revision": "c2e6c67be22847e848fd22668e63b93ea9aa62eb",
+    "power": "AC attached",
+    "thermal_before": "nominal (0)",
+    "thermal_after": "nominal (0)",
+    "outputs": [
+      {
+        "file": "reference.wav",
+        "bytes": 768058,
+        "sha256": "76efbd5be6ddbd6eef59ea622e778022cf787828a88f3099605bc01918642710",
+        "matches_fixed_baseline": true
+      },
+      {
+        "file": "unconditioned.wav",
+        "bytes": 1052218,
+        "sha256": "d2d8a9f736d5a96ef48bed970cab5cef9b5b4ae02c88e31d9036470b0cfb462a",
+        "matches_fixed_baseline": true
+      }
+    ],
+    "native_smoke_passed": true,
+    "configuration": "SwiftPM Debug; correctness only"
+  },
+  "historical_runtime_observation": {
+    "date": "2026-10-29",
+    "asset_manifest": "8dca0128ec50d8b186a2f9acb6e6d658f65e9e21aae0ac766bad650e5ede4ea9",
+    "reference_seconds": 3.8609166666666668,
+    "output_seconds": 4.0,
+    "runtime_generation_seconds": 1.276209042,
+    "seed": 1708,
+    "precision": "fp32",
+    "batch_size": 1,
+    "concurrency": 1,
+    "device": "M4 Max",
+    "os": "macOS 27.0 (26A428)",
+    "toolchain": "Xcode 27.0",
+    "cache_condition": "cache condition not recorded in the historical log",
+    "source_log_sha256": "328e4d6e5ded404e41424804e2085f87adbaf06ea45c36497f907d3682d33356",
+    "comparison_scope": "A single historical observation, not a latency benchmark or a speed comparison with the release assets."
+  }
+}

@@ -30,11 +30,25 @@ struct ConversationPersistenceTests {
         #expect(reduce(&state, .archiveSaved(id: state.id, revision: 1)) == [[]])
         _ = reduce(&state, .stopped(run: 1))
         #expect(!state.isRunning && state.isSaving)
-        #expect(reduce(&state, .archiveSaved(id: state.id, revision: 2)) == [[.run(.terminationReady(true), id: nil)]])
+        #expect(
+            reduce(&state, .archiveSaved(id: state.id, revision: 2))
+                == [[.run(.terminationReady(true), id: .termination)]])
         #expect(!state.canLeave)
         #expect(reduce(&state, .sendRepair("Repair citations", now: launch)) == [[.run(.cancelRepair, id: nil)]])
-        _ = reduce(&state, .terminationCancelled)
+        #expect(reduce(&state, .terminationCancelled) == [[.cancel(.termination)]])
         #expect(state.canLeave)
+    }
+
+    @Test("Every wait for the end of a quit can be cancelled, including one that follows a failed save")
+    func terminationWaitsCanBeCancelled() {
+        var state = ConversationState(id: "empty", now: launch)
+        #expect(reduce(&state, .terminationRequested) == [[.run(.terminationReady(true), id: .termination)]])
+        #expect(reduce(&state, .terminationCancelled) == [[.cancel(.termination)]] && !state.isTerminating)
+        state = started(.chat)
+        _ = reduce(&state, .generationEnded(run: 1, stopReason: "stopToken"), .terminationRequested)
+        #expect(
+            reduce(&state, .archiveFailed(id: state.id, revision: 1, message: "Disk full"))
+                == [[.run(.terminationReady(false), id: .termination)]])
     }
 
     @Test("Stopping preparation keeps the stopping state until acknowledgement and ignores later progress")

@@ -13,12 +13,12 @@
     "en": "Speech generation and playback",
     "ja": "音声の生成・再生"
   },
-  "release": "in_progress",
+  "release": "released",
   "release_note": {
-    "en": "app/device acceptance",
-    "ja": "アプリ／実機の確認"
+    "en": "experimental FP32 conversion",
+    "ja": "実験的なFP32変換"
   },
-  "download": null,
+  "download": "https://huggingface.co/okayuji/irodori-v4.1-small-mf-coreai-fp32",
   "pages": {
     "en": "docs/model-reports/irodori.md",
     "ja": "docs/model-reports/irodori.ja.md"
@@ -65,6 +65,20 @@
         "ja": "参照音声ランタイム（英語）"
       },
       "url": "docs/irodori/reference-runtime.md"
+    },
+    {
+      "title": {
+        "en": "Release asset verification",
+        "ja": "配布資産の検証（英語）"
+      },
+      "url": "docs/irodori/release-asset-validation.json"
+    },
+    {
+      "title": {
+        "en": "Public download verification",
+        "ja": "公開版の取得検証（英語）"
+      },
+      "url": "docs/irodori/managed-validation.md#public-download-verification-2026-11-01"
     }
   ],
   "support": {
@@ -72,11 +86,14 @@
       "state": "pending",
       "variants": [],
       "evidence": [
-        "macos"
+        "macos",
+        "macos-release-v2",
+        "macos-public-v2",
+        "macos-public-v2-control"
       ],
       "note": {
-        "en": "Runtime/UI implemented; actual app GPU generation and listening acceptance pending.",
-        "ja": "ランタイム/UIは実装済み。実アプリのGPU生成・試聴の受入は未完了。"
+        "en": "Native generation is verified with synthetic references; GUI playback and subjective quality are not covered by these checks.",
+        "ja": "合成参照音声によるネイティブ生成を検証。GUI再生と主観的な音質はこの検証の対象外。"
       }
     },
     "ios": {
@@ -87,8 +104,8 @@
         "ios-reference-v2"
       ],
       "note": {
-        "en": "Reference-file generation, three WAV outputs and repeat equality passed an iPhone 17 Pro diagnostic. Recording/file UI is implemented; normal-screen operation and listening acceptance remain pending.",
-        "ja": "iPhone 17 Proの診断で参照ファイル付き3生成・WAV保存・反復一致を確認。録音/ファイルUIは実装済み。通常画面の操作と試聴の本人受入は未完了。"
+        "en": "An iPhone 17 Pro diagnostic verified reference-file generation, three WAV outputs and repeat equality. Microphone capture and normal-screen interaction are outside that diagnostic.",
+        "ja": "iPhone 17 Proの診断で参照ファイル付き3生成・WAV保存・反復一致を確認。マイク録音と通常画面の操作は診断の対象外。"
       }
     }
   },
@@ -110,8 +127,8 @@
       "artifact_revision": null,
       "code_revision": null,
       "workload": {
-        "en": "Native implementation and CPU/build checks; actual app generation/listening pending. Status reviewed on 2026-10-19; this is not a model-run date.",
-        "ja": "ネイティブ実装とCPU・ビルド検証。実アプリ生成と試聴は確認待ち。 状況の確認日は2026-10-19。モデル実行日ではない。"
+        "en": "Native implementation and CPU/build checks without model execution. The date is the record review date.",
+        "ja": "モデル実行を含まないネイティブ実装とCPU・ビルド検証。日付は記録の確認日。"
       },
       "batch_size": 1,
       "concurrency": 1,
@@ -138,8 +155,8 @@
       "artifact_revision": null,
       "code_revision": null,
       "workload": {
-        "en": "Native implementation and CPU/build checks; actual app generation/listening pending. Status reviewed on 2026-10-19; this is not a model-run date.",
-        "ja": "ネイティブ実装とCPU・ビルド検証。実アプリ生成と試聴は確認待ち。 状況の確認日は2026-10-19。モデル実行日ではない。"
+        "en": "Native implementation and CPU/build checks without model execution. The date is the record review date.",
+        "ja": "モデル実行を含まないネイティブ実装とCPU・ビルド検証。日付は記録の確認日。"
       },
       "batch_size": 1,
       "concurrency": 1,
@@ -176,6 +193,90 @@
       "thermal": "nominal (0)",
       "model_executed": true,
       "plan_sha256": null
+    },
+    "macos-release-v2": {
+      "url": "docs/irodori/release-asset-validation.json",
+      "level": "diagnostic",
+      "outcome": "passed",
+      "record_type": "standard",
+      "date": "2026-10-31",
+      "platform": "macos",
+      "device": "M4 Max 128 GiB",
+      "os": "macOS 27.0 (26A428)",
+      "toolchain": "Xcode 27.0 (27A266a); Swift 6.4; SwiftPM Debug",
+      "variant": "Reference voice FP32 v2 release",
+      "backend": "Core AI; GPU preferred",
+      "route": "Native integration test; no latency benchmark; specialization cache not reset",
+      "source_revision": "ccc78f5d480b6e51b69b2d5042a14c4da04fea6e",
+      "artifact_revision": "964e4c6f3d5f235fff5bac346d545a928112274412241d348ab3c65ff5f449a5",
+      "code_revision": "c2e6c67be22847e848fd22668e63b93ea9aa62eb",
+      "workload": {
+        "en": "Reference and no-reference WAVs match fixed original-asset baselines byte-for-byte; repeated reference and 0.5/30-second reference boundaries pass. No microphone capture or GUI playback.",
+        "ja": "参照あり・なしのWAVが固定した旧資産の出力とbyte一致。参照の反復と0.5/30秒の参照入力境界も成功。マイク録音・GUI再生は含まない。"
+      },
+      "batch_size": 1,
+      "concurrency": 1,
+      "warmups": 0,
+      "power": "AC attached",
+      "thermal": "nominal (0) before and after",
+      "model_executed": true,
+      "plan_sha256": "c9c2ae9f4478e0f3cae713e2d1a1455926336d35777c59df769dc0b8129181a8"
+    },
+    "macos-public-v2": {
+      "url": "docs/irodori/release-download-validation.json",
+      "level": "diagnostic",
+      "outcome": "failed",
+      "record_type": "standard",
+      "date": "2026-11-01",
+      "platform": "macos",
+      "device": "M5 Max 128 GiB",
+      "os": "macOS 27.2 (26B123)",
+      "toolchain": "Xcode 27.0 (27A266a); Swift 6.4; SwiftPM Debug",
+      "variant": "Reference voice FP32 v2 public release",
+      "backend": "Core AI; GPU preferred",
+      "route": "Anonymous Models acquisition and nativeSmoke, with the historical M4/macOS 27.0 byte-equality check",
+      "source_revision": "ccc78f5d480b6e51b69b2d5042a14c4da04fea6e",
+      "artifact_revision": "f5db5096365c7d1388a5002cfb3280f66cb19375",
+      "code_revision": "ed013ff786fb9aa79c61c8addb8883ec321965b2",
+      "workload": {
+        "en": "All 22 downloaded files pass size/SHA checks and become ready. Reference/no-reference generation, repeat equality and 0.5/30-second boundaries pass. The additional byte-equality gate against the earlier M4/macOS 27.0 WAVs fails; the same-host control is recorded separately.",
+        "ja": "匿名取得22ファイルのサイズ・SHA照合とreadyを確認。参照あり/なし生成、反復一致、0.5/30秒境界は成功。追加した過去M4/macOS 27.0とのWAV byte一致ゲートは不合格。同じ実行機での対照は別に記録。"
+      },
+      "batch_size": 1,
+      "concurrency": 1,
+      "warmups": 0,
+      "power": "AC attached",
+      "thermal": "nominal (0) before and after released-asset generation",
+      "model_executed": true,
+      "plan_sha256": "b9a5b7b14b0063ffdffbd9fb6bffcb475d84f6c1d8441d0b61b83e7343ba369c"
+    },
+    "macos-public-v2-control": {
+      "url": "docs/irodori/release-download-validation.json",
+      "level": "diagnostic",
+      "outcome": "passed",
+      "record_type": "legacy",
+      "date": "2026-11-01",
+      "platform": "macos",
+      "device": "M5 Max 128 GiB",
+      "os": "macOS 27.2 (26B123)",
+      "toolchain": "Xcode 27.0 (27A266a); Swift 6.4; SwiftPM Debug",
+      "variant": "Pre-strip reference FP32 v2 control against public release",
+      "backend": "Core AI; GPU preferred",
+      "route": "Pre-strip assets vs public release on the same M5/macOS 27.2 host; identical generation code and dependencies",
+      "source_revision": "ccc78f5d480b6e51b69b2d5042a14c4da04fea6e",
+      "artifact_revision": "8dca0128ec50d8b186a2f9acb6e6d658f65e9e21aae0ac766bad650e5ede4ea9",
+      "code_revision": "1ae9634e29729afa8595c6d9caaad6f63850f862",
+      "workload": {
+        "en": "Both pre-strip WAVs match the anonymous public-release outputs byte-for-byte on this host. Repeated-reference equality and 0.5/30-second reference boundaries pass. This does not make the historical cross-environment comparison pass. Thermal state was not sampled separately for this control.",
+        "ja": "同じ実行機で旧資産のWAV2本が匿名取得した公開版とbyte一致。参照の反復と0.5/30秒の入力境界も成功。過去の別環境との比較は不合格のまま保持。 この対照のthermal stateは個別に採取していない。"
+      },
+      "batch_size": 1,
+      "concurrency": 1,
+      "warmups": 0,
+      "power": "AC attached",
+      "thermal": null,
+      "model_executed": true,
+      "plan_sha256": "72c5f1d711e452d32adf0b4e61e8e955d617836bc0d71ac37b76c9a591065929"
     }
   },
   "measurements": [],
@@ -213,5 +314,6 @@
         "ja": "この範囲の共通プロトコルによる確認は未実施です。"
       }
     }
-  }
+  },
+  "public_access_evidence": "docs/irodori/managed-validation.md#public-download-verification-2026-11-01"
 }

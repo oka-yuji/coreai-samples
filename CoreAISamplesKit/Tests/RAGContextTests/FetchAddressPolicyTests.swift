@@ -62,7 +62,7 @@ struct FetchAddressPolicyTests {
         }
     }
 
-    @Test("Subresource filters match local literals without blocking ordinary public URLs")
+    @Test("Subresource filters match local literals and cleartext http without blocking public https URLs")
     func contentFilters() throws {
         let filters = try FetchAddressPolicy.subresourceFilters.map {
             try NSRegularExpression(pattern: $0, options: [.caseInsensitive])
@@ -84,6 +84,7 @@ struct FetchAddressPolicyTests {
             "example.com", "developer.apple.com", "1.1.1.1", "100.128.0.1", "[2606:4700::1111]", "[::ffff:808:808]",
         ] {
             #expect(!blocked("https://\(host)/path"), "\(host)")
+            #expect(blocked("http://\(host)/path"), "\(host)")
         }
         let rules = try #require(
             JSONSerialization.jsonObject(with: Data(FetchAddressPolicy.contentRules().utf8)) as? [[String: Any]])

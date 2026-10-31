@@ -104,4 +104,35 @@ struct ConversationSnapshotTests {
         #expect(markdown.contains("````\nquery: Swift 6.3\nmax_results: 3\n````"))
         #expect(markdown.hasPrefix("# Conversation\n\n- title: What is Swift?\n- id: c1\n- model: qwen3.8-27b\n"))
     }
+
+    @Test("Evidence saved before refused fetches were recorded decodes with every attempt unrefused")
+    func decodesEvidenceWithoutRefusals() throws {
+        let saved = #"{"pages":[],"attempts":[{"url":"https://example.com/gone","ok":false}],"seen":{}}"#
+        let evidence = try JSONDecoder().decode(ConversationEvidence.self, from: Data(saved.utf8))
+        #expect(evidence.attempts == [ConversationEvidence.Attempt(url: "https://example.com/gone", ok: false)])
+        #expect(evidence.attempts.map(\.refused) == [nil])
+    }
+
+    @Test("A refused fetch keeps its flag through encoding while other attempts encode without the field")
+    func roundTripsRefusedAttempts() throws {
+        let evidence = ConversationEvidence(attempts: [
+            .init(url: "https://attacker.example/collect?d=1", ok: false, refused: true),
+            .init(url: "https://example.com/page", ok: true),
+        ])
+        let data = try JSONEncoder().encode(evidence)
+        #expect(try JSONDecoder().decode(ConversationEvidence.self, from: data) == evidence)
+        let object = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        let attempts = try #require(object["attempts"] as? [[String: Any]])
+        #expect(attempts.map { $0.keys.sorted() } == [["ok", "refused", "url"], ["ok", "url"]])
+    }
+
+    @Test("Seen URLs keep their order through encoding and evidence saved without them decodes as nil")
+    func roundTripsSeenURLs() throws {
+        let urls = ["https://search.example/a", "https://snippet.example/b", "https://example.com/c"]
+        let evidence = ConversationEvidence(seen: ["https://search.example/a": "A body"], seenURLs: urls)
+        let decoded = try JSONDecoder().decode(ConversationEvidence.self, from: JSONEncoder().encode(evidence))
+        #expect(decoded == evidence && decoded.seenURLs == urls)
+        let saved = #"{"pages":[],"attempts":[],"seen":{"https://search.example/a":"A body"}}"#
+        #expect(try JSONDecoder().decode(ConversationEvidence.self, from: Data(saved.utf8)).seenURLs == nil)
+    }
 }

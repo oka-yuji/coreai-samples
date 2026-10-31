@@ -1,5 +1,5 @@
 macro expansion #expect:1:1: error: the compiler is unable to type-check this expression in reasonable time; try breaking up the expression into distinct sub-expressions
-`- /Users/okayuuji/Desktop/SelfApps/_wt/coreai-samples-91-irodori/CoreAISamplesKit/Tests/SpeechRuntimeTests/IrodoriRuntimeTests.swift:29:55: note: expanded code originates here
+`- ~/Desktop/SelfApps/_wt/coreai-samples-91-irodori/CoreAISamplesKit/Tests/SpeechRuntimeTests/IrodoriRuntimeTests.swift:29:55: note: expanded code originates here
  27 |         let first = try await runtime.generate(text: "13", seed: 1708)
  28 |         #expect(first.audioSeconds == 0.52)
  29 |         #expect(first.wav.count == 58 + 13 * 1920 * 4)

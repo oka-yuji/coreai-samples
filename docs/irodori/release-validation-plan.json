@@ -1,0 +1,34 @@
+{
+  "schema": 1,
+  "created_at": "2026-10-31T01:54:23.644404+00:00",
+  "purpose": "Validate release-asset output preservation; not a latency or quality benchmark",
+  "source_revision": "ccc78f5d480b6e51b69b2d5042a14c4da04fea6e",
+  "artifact_revision": "964e4c6f3d5f235fff5bac346d545a928112274412241d348ab3c65ff5f449a5",
+  "code_revision": "c2e6c67be22847e848fd22668e63b93ea9aa62eb",
+  "baseline_code_revision": "1ae9634e29729afa8595c6d9caaad6f63850f862",
+  "baseline_artifact_revision": "8dca0128ec50d8b186a2f9acb6e6d658f65e9e21aae0ac766bad650e5ede4ea9",
+  "reference_sha256": "ecb217e91cbe5bfbdd2cfd0af14f025702abdf9d4cf86240a725542d225bf95b",
+  "reference_provenance": "Synthetic audio from prior Irodori conversion checks; no microphone capture",
+  "text_fixture_sha256": "40a9124e44c2c707de65539a962ce67971a8b8ada1c12eccb6b1836cc7e50291",
+  "text": "こんにちは。これは音声合成のテストです。",
+  "seed": 1708,
+  "sequence": [
+    "reference",
+    "no-reference",
+    "same-reference",
+    "reference-0.5s",
+    "reference-30s"
+  ],
+  "expected_outputs": {
+    "reference.wav": "76efbd5be6ddbd6eef59ea622e778022cf787828a88f3099605bc01918642710",
+    "unconditioned.wav": "d2d8a9f736d5a96ef48bed970cab5cef9b5b4ae02c88e31d9036470b0cfb462a"
+  },
+  "gate": "Reference and no-reference WAVs must match the fixed original-asset baselines byte for byte; repeated reference and both boundaries must pass nativeSmoke",
+  "configuration": "SwiftPM Debug native integration test",
+  "batch_size": 1,
+  "concurrency": 1,
+  "warmups": 0,
+  "cache": "Not cleared; existing specialization cache may be reused",
+  "power": "AC attached",
+  "thermal_before": "nominal (0)"
+}

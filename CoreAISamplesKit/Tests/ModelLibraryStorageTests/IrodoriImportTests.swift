@@ -6,6 +6,27 @@ import Testing
 @testable import ModelLibraryStorage
 
 struct IrodoriImportTests {
+    @Test("IRPACK-03 The reference release has a new identity and rejects the previous manifest identity")
+    func referenceReleaseIdentity() async throws {
+        let previous = "8dca0128ec50d8b186a2f9acb6e6d658f65e9e21aae0ac766bad650e5ede4ea9"
+        let artifact = try IrodoriModelArtifact.make(profile: .referenceVoice)
+        #expect(artifact.sourceRevision != previous)
+        let outdated = ModelArtifact(
+            id: artifact.id, title: artifact.title, contract: artifact.contract, platforms: artifact.platforms,
+            sizeBytes: artifact.sizeBytes,
+            files: artifact.files.map {
+                $0.path == "irodori.json" ? ModelArtifactFile(path: $0.path, bytes: 132, sha256: previous) : $0
+            },
+            localBundle: ModelLocalBundle(
+                manifestSHA256: previous, profileID: artifact.id, manifestPath: "irodori.json"))
+        #expect(outdated.isSourceValid)
+        let fixture = StoreFixture()
+        defer { fixture.remove() }
+        let result = try await fixture.store().inspect(model: model(outdated), artifact: outdated)
+        #expect(result.resource == nil)
+        #expect(result.reason?.contains("Irodori inventory") == true)
+    }
+
     @Test("REF-CORE-03 Reference bundles have a separate identity and pin all twenty files")
     func referenceDefinition() async throws {
         let legacy = try IrodoriModelArtifact.make()

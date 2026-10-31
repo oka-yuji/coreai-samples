@@ -68,6 +68,7 @@
 		330B4A9240E9871AD04245A6 /* DecideSelfTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47737423C61124F4327C174E /* DecideSelfTest.swift */; };
 		3457671FCB03949708514ED4 /* ObjectFinderContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD05FACDEDB78E3CE2E43B3E /* ObjectFinderContent.swift */; };
 		34B8E68145C72B1FE4CCD28B /* IOSModelLibraryAssembly.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44BA75E22EC287033FFDBFBB /* IOSModelLibraryAssembly.swift */; };
+		35A8F2FF5029AB1D9E5300B5 /* FetchProvenanceSelfTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FB6B1B36C2F9ED00C7205DD /* FetchProvenanceSelfTest.swift */; };
 		35AADB18E6D9888472F64B54 /* OCRMacLibrary.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2CB6BD9593A5870E758F452 /* OCRMacLibrary.swift */; };
 		36B44880EECCFBD6D426A9E3 /* DecideResultRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F7FE685C8A7B3B5D383AC56 /* DecideResultRow.swift */; };
 		36D49B81E1D68D03832B9359 /* ExtractRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F2F07EBDAB41490EF60A529 /* ExtractRunner.swift */; };
@@ -401,6 +402,7 @@
 		6E29B37C3D0277DAF2924DD9 /* SpeechPhoneApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechPhoneApp.swift; sourceTree = "<group>"; };
 		6E9B8152E4CC1BA675751CB5 /* recipe-examples.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "recipe-examples.json"; sourceTree = "<group>"; };
 		6EB152195520DDB1A6886F41 /* RAGEvaluationReplay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RAGEvaluationReplay.swift; sourceTree = "<group>"; };
+		6FB6B1B36C2F9ED00C7205DD /* FetchProvenanceSelfTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FetchProvenanceSelfTest.swift; sourceTree = "<group>"; };
 		733E4239A319DC1CB1D27B23 /* ImageReferencePixelIdentityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageReferencePixelIdentityTests.swift; sourceTree = "<group>"; };
 		7367AF89D12E19D9081F2642 /* RAGInputs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RAGInputs.swift; sourceTree = "<group>"; };
 		7A89987BFF1C553FC444E064 /* Ingredients.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Ingredients.xcstrings; sourceTree = "<group>"; };
@@ -644,6 +646,7 @@
 				5FE1AAADA7D78400722AF4AA /* ConversationSidebar.swift */,
 				101755802CD17A377B6C22CE /* ConversationSourcesSelfTest.swift */,
 				1C1F34FF7ED5E8185A8FE414 /* ConversationView.swift */,
+				6FB6B1B36C2F9ED00C7205DD /* FetchProvenanceSelfTest.swift */,
 				6D299F487F2C50A979C20F46 /* ToolRunner.swift */,
 			);
 			path = Conversation;
@@ -1504,6 +1507,7 @@
 				194A39178C83D882AC647C3F /* ExtractService.swift in Sources */,
 				C2651307CE5074B3E2A328C8 /* ExtractView.swift in Sources */,
 				DCE66D2FAF6D9FA2A497652B /* ExtractionAdapter.swift in Sources */,
+				35A8F2FF5029AB1D9E5300B5 /* FetchProvenanceSelfTest.swift in Sources */,
 				38D5380927AEC3918CC5F304 /* FieldEditor.swift in Sources */,
 				5BB2FFBBAE4EDB21463258C0 /* FieldRow.swift in Sources */,
 				E3DA34EB5609CB1F3033BBDC /* GUIDriver.swift in Sources */,
@@ -1864,7 +1868,7 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_APP_SANDBOX = NO;
-				ENABLE_HARDENED_RUNTIME = NO;
+				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Core AI Demos";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
@@ -1918,7 +1922,7 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_APP_SANDBOX = NO;
-				ENABLE_HARDENED_RUNTIME = NO;
+				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Core AI Demos";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
