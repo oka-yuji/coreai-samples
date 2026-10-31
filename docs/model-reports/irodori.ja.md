@@ -17,8 +17,8 @@
 
 | OS | 状態 | 確認した範囲・残る確認 | 根拠 |
 |---|---|---|---|
-| macos | △ | ランタイム/UIは実装済み。実アプリのGPU生成・試聴の受入は未完了。 | [E1](../irodori/demo.md) |
-| ios | △ | iPhone 17 Proの診断で参照ファイル付き3生成・WAV保存・反復一致を確認。録音/ファイルUIは実装済み。通常画面の操作と試聴の本人受入は未完了。 | [E2](../irodori/iphone.md) · [E3](../irodori/reference-input-device.json) |
+| macos | △ | 合成参照音声によるネイティブ生成を検証。GUI再生と主観的な音質はこの検証の対象外。 | [E1](../irodori/demo.md) · [E4](../irodori/release-asset-validation.json) · [E5](../irodori/release-download-validation.json) · [E6](../irodori/release-download-validation.json) |
+| ios | △ | iPhone 17 Proの診断で参照ファイル付き3生成・WAV保存・反復一致を確認。マイク録音と通常画面の操作は診断の対象外。 | [E2](../irodori/iphone.md) · [E3](../irodori/reference-input-device.json) |
 
 ### 性能と品質
 
@@ -54,9 +54,12 @@
 
 | 根拠 | 日付・記録区分・経路 | 機種・OS・ツール | 入力と記録済みの条件 |
 |---|---|---|---|
-| [E1](../irodori/demo.md) | 2026-10-19 / legacy / plan | M4 Max 128 GiB / macOS 27.0 (26A428) / Xcode 27.0 (27A266a) | ネイティブ実装とCPU・ビルド検証。実アプリ生成と試聴は確認待ち。 状況の確認日は2026-10-19。モデル実行日ではない。 · variant=FP32; backend=Core AI; GPU preferred; route=plan; batch_size=1; concurrency=1; 未記録: source_revision, artifact_revision, code_revision, warmups, power, thermal, plan_sha256 |
-| [E2](../irodori/iphone.md) | 2026-10-19 / legacy / plan | iPhone 17 Pro / iOS 27.0.1 (24A446) / Xcode 27.0 (27A266a) | ネイティブ実装とCPU・ビルド検証。実アプリ生成と試聴は確認待ち。 状況の確認日は2026-10-19。モデル実行日ではない。 · variant=FP32; backend=Core AI; GPU preferred; route=plan; batch_size=1; concurrency=1; 未記録: source_revision, artifact_revision, code_revision, warmups, power, thermal, plan_sha256 |
+| [E1](../irodori/demo.md) | 2026-10-19 / legacy / plan | M4 Max 128 GiB / macOS 27.0 (26A428) / Xcode 27.0 (27A266a) | モデル実行を含まないネイティブ実装とCPU・ビルド検証。日付は記録の確認日。 · variant=FP32; backend=Core AI; GPU preferred; route=plan; batch_size=1; concurrency=1; 未記録: source_revision, artifact_revision, code_revision, warmups, power, thermal, plan_sha256 |
+| [E2](../irodori/iphone.md) | 2026-10-19 / legacy / plan | iPhone 17 Pro / iOS 27.0.1 (24A446) / Xcode 27.0 (27A266a) | モデル実行を含まないネイティブ実装とCPU・ビルド検証。日付は記録の確認日。 · variant=FP32; backend=Core AI; GPU preferred; route=plan; batch_size=1; concurrency=1; 未記録: source_revision, artifact_revision, code_revision, warmups, power, thermal, plan_sha256 |
 | [E3](../irodori/reference-input-device.json) | 2026-10-29 / legacy / diagnostic | iPhone 17 Pro / iOS 27.0.1 (24A446) / Xcode 27.0 (27A266a) | 合成音声3.88秒を参照し、挨拶→案内→挨拶をseed 1708で生成。WAV3本と挨拶の反復一致を確認。通常画面の操作・聴取受入とは区別する。 · variant=Reference voice FP32 v2; backend=Core AI; GPU preferred; audio/speaker/duration/decoder EFR false; route=SpeechPhone explicit reference-file diagnostic; no playback or microphone capture; source_revision=ccc78f5d480b6e51b69b2d5042a14c4da04fea6e; code_revision=PR370 working tree based on a755889e87f027497d979d41e4469805b955faf6; batch_size=1; concurrency=1; warmups=0; power=USB connected, charging; thermal=nominal (0); 未記録: artifact_revision, plan_sha256 |
+| [E4](../irodori/release-asset-validation.json) | 2026-10-31 / standard / diagnostic | M4 Max 128 GiB / macOS 27.0 (26A428) / Xcode 27.0 (27A266a); Swift 6.4; SwiftPM Debug | 参照あり・なしのWAVが固定した旧資産の出力とbyte一致。参照の反復と0.5/30秒の参照入力境界も成功。マイク録音・GUI再生は含まない。 · variant=Reference voice FP32 v2 release; backend=Core AI; GPU preferred; route=Native integration test; no latency benchmark; specialization cache not reset; source_revision=ccc78f5d480b6e51b69b2d5042a14c4da04fea6e; artifact_revision=964e4c6f3d5f235fff5bac346d545a928112274412241d348ab3c65ff5f449a5; code_revision=c2e6c67be22847e848fd22668e63b93ea9aa62eb; batch_size=1; concurrency=1; warmups=0; power=AC attached; thermal=nominal (0) before and after |
+| [E5](../irodori/release-download-validation.json) | 2026-11-01 / standard / diagnostic | M5 Max 128 GiB / macOS 27.2 (26B123) / Xcode 27.0 (27A266a); Swift 6.4; SwiftPM Debug | 匿名取得22ファイルのサイズ・SHA照合とreadyを確認。参照あり/なし生成、反復一致、0.5/30秒境界は成功。追加した過去M4/macOS 27.0とのWAV byte一致ゲートは不合格。同じ実行機での対照は別に記録。 · variant=Reference voice FP32 v2 public release; backend=Core AI; GPU preferred; route=Anonymous Models acquisition and nativeSmoke, with the historical M4/macOS 27.0 byte-equality check; source_revision=ccc78f5d480b6e51b69b2d5042a14c4da04fea6e; artifact_revision=f5db5096365c7d1388a5002cfb3280f66cb19375; code_revision=ed013ff786fb9aa79c61c8addb8883ec321965b2; batch_size=1; concurrency=1; warmups=0; power=AC attached; thermal=nominal (0) before and after released-asset generation |
+| [E6](../irodori/release-download-validation.json) | 2026-11-01 / legacy / diagnostic | M5 Max 128 GiB / macOS 27.2 (26B123) / Xcode 27.0 (27A266a); Swift 6.4; SwiftPM Debug | 同じ実行機で旧資産のWAV2本が匿名取得した公開版とbyte一致。参照の反復と0.5/30秒の入力境界も成功。過去の別環境との比較は不合格のまま保持。 この対照のthermal stateは個別に採取していない。 · variant=Pre-strip reference FP32 v2 control against public release; backend=Core AI; GPU preferred; route=Pre-strip assets vs public release on the same M5/macOS 27.2 host; identical generation code and dependencies; source_revision=ccc78f5d480b6e51b69b2d5042a14c4da04fea6e; artifact_revision=8dca0128ec50d8b186a2f9acb6e6d658f65e9e21aae0ac766bad650e5ede4ea9; code_revision=1ae9634e29729afa8595c6d9caaad6f63850f862; batch_size=1; concurrency=1; warmups=0; power=AC attached; 未記録: thermal |
 
 ### 導入・制限・進捗
 
@@ -71,4 +74,8 @@
 - [#329](https://github.com/oka-yuji/coreai-samples/issues/329)
 
 - [参照音声ランタイム（英語）](../irodori/reference-runtime.md)
+
+- [配布資産の検証（英語）](../irodori/release-asset-validation.json)
+
+- [公開版の取得検証（英語）](../irodori/managed-validation.md#public-download-verification-2026-11-01)
 <!-- model-report:end -->

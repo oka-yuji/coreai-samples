@@ -435,18 +435,21 @@ private struct ContractSource: Decodable {
 }
 
 private func family(_ artifact: ModelArtifact) throws -> ContractFamily {
+    if let profile = SpeechBundleProfile(rawValue: artifact.contract) {
+        let expected =
+            try artifact.download == nil
+            ? IrodoriModelArtifact.make(profile: profile) : IrodoriModelArtifact.makeReferenceDownload()
+        guard artifact == expected else {
+            throw ManagedModelStoreError.contractMismatch("Irodori inventory")
+        }
+        return .speech
+    }
     if artifact.localBundle != nil {
         if artifact.contract == TeleOCRModelArtifact.contract {
             guard artifact == (try TeleOCRModelArtifact.make()) else {
                 throw ManagedModelStoreError.contractMismatch("TeleOCR inventory")
             }
             return .ocr
-        }
-        if let profile = SpeechBundleProfile(rawValue: artifact.contract) {
-            guard artifact == (try IrodoriModelArtifact.make(profile: profile)) else {
-                throw ManagedModelStoreError.contractMismatch("Irodori inventory")
-            }
-            return .speech
         }
         guard artifact.contract == "qwen-image21-mobile-v2", artifact.download == nil,
             artifact.localBundle?.manifestPath == "bundle.json",

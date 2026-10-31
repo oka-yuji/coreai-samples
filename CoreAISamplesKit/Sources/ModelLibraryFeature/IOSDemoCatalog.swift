@@ -213,7 +213,7 @@ public enum IOSDemoCatalog {
     private static let glinerFP32 = artifact(
         "gliner2.5-multi-fp32-t256-t512", title: "FP32", contract: "gliner-gl4-fp32-t256-t512",
         download: ModelDownload(
-            repository: "okayuji/gliner2.5-multi-coreai-fp32", revision: "5fad4fa0f78118f7b9216fdb36c46176454870e2"),
+            repository: "okayuji/gliner2.5-multi-coreai-fp32", revision: "a88d5df297e46f3d073bb164c3ac44f35d107b25"),
         upstream: ModelUpstream(
             repository: "fastino/gliner2.5-multi-v1", revision: "2ca71aafb3446d9014e1c55c7ff51c9bc7209c47"),
         files: [

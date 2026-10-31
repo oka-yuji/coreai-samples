@@ -177,7 +177,7 @@
       "modelID": "gliner2.5-multi",
       "artifactID": "gliner2.5-multi-fp32-t256-t512",
       "repository": "okayuji/gliner2.5-multi-coreai-fp32",
-      "revision": "5fad4fa0f78118f7b9216fdb36c46176454870e2",
+      "revision": "a88d5df297e46f3d073bb164c3ac44f35d107b25",
       "root": "",
       "upstream": {
         "repository": "fastino/gliner2.5-multi-v1",
