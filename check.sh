@@ -23,6 +23,10 @@ fi
 check_stage=format-tests
 printf 'CHECK RUN: %s\n' "$check_stage"
 python3 -m unittest discover -s Tools/Format/tests -v
+check_stage=local-paths
+printf 'CHECK RUN: %s\n' "$check_stage"
+python3 -m unittest discover -s Tools/Privacy/tests -v
+python3 -I Tools/Privacy/check-local-paths.py
 check_stage=model-reports
 printf 'CHECK RUN: %s\n' "$check_stage"
 python3 -m Tools.ModelReports check
