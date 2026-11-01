@@ -40,7 +40,6 @@ final class ConversationPreferences {
     init(defaults: UserDefaults = .standard, persists: Bool = true) {
         self.defaults = defaults
         self.persists = persists
-        if persists { defaults.removeObject(forKey: Self.braveKeyKey) }
         func positive(_ key: String) -> Int? { (defaults.object(forKey: key) as? Int).flatMap { $0 > 0 ? $0 : nil } }
         effort = defaults.string(forKey: Self.effortKey).flatMap(AgentReasoningEffort.init(rawValue:)) ?? .low
         maxSteps = positive(Self.maxStepsKey) ?? 8
@@ -73,6 +72,10 @@ final class ConversationPreferences {
         notesFolderPath = ""
         citationGuard = false
         citeFetched = true
+    }
+
+    func removeLegacySearchKey() {
+        store(nil, Self.braveKeyKey)
     }
 
     private func store(_ value: Any?, _ key: String) {

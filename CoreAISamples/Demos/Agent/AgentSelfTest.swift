@@ -1173,6 +1173,8 @@ enum AgentSelfTest {
                 && headless.pageBudget == 4_000
                 && headless.fileOperations && headless.notesFolderPath == "/tmp/notes"
                 && !headless.citationGuard && !headless.citeFetched
+            let untouched = stored.string(forKey: braveKey) == "key"
+            headless.removeLegacySearchKey()
             let removed = stored.object(forKey: braveKey) == nil
             headless.resetForHeadless()
             headless.effort = .medium
@@ -1187,11 +1189,11 @@ enum AgentSelfTest {
                 "conversation/headlessDefaults", loaded && reset && kept,
                 "loaded=\(loaded) reset=\(reset) kept=\(kept)")
             stored.set("legacy", forKey: braveKey)
-            _ = ConversationPreferences(defaults: stored, persists: false)
-            let untouched = stored.string(forKey: braveKey) == "legacy"
+            headless.removeLegacySearchKey()
+            let unsaved = stored.string(forKey: braveKey) == "legacy"
             check(
-                "conversation/legacySearchKeyRemoved", removed && untouched,
-                "removedOnLaunch=\(removed) keptWithoutPersisting=\(untouched)")
+                "conversation/legacySearchKeyRemoved", untouched && removed && unsaved,
+                "untouchedOnCreation=\(untouched) removed=\(removed) keptWithoutPersisting=\(unsaved)")
         } else {
             check("conversation/headlessDefaults", false, "could not create isolated defaults")
         }
