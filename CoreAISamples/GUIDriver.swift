@@ -549,7 +549,7 @@ final class GUIDriver {
         let policy = TurnPolicy(.work, settings: preferences.settings)
         note(
             "agent effort=\(preferences.effort.rawValue) steps=\(policy.maxSteps) tokens=\(policy.maxTokens) "
-                + "budget=\(preferences.pageBudget) search=\(preferences.searchProvider) fileOps=\(preferences.fileOperations)"
+                + "budget=\(preferences.pageBudget) search=DuckDuckGo fileOps=\(preferences.fileOperations)"
         )
 
         await step(4, "agent-task", "Work: the task is sent and the first step streams") {

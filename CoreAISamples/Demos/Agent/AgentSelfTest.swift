@@ -1,12 +1,8 @@
 import ConversationFeature
-import ConversationRuntime
 import CryptoKit
-import FeatureStore
 import Foundation
 import FoundationModels
-import Observation
 import RAGContext
-import Synchronization
 import WebKit
 
 enum AgentSelfTest {
@@ -77,7 +73,7 @@ enum AgentSelfTest {
         let policy = TurnPolicy(.work, settings: preferences.settings)
         out(
             "[e2e] effort=\(preferences.effort.rawValue) steps=\(policy.maxSteps) tokens=\(policy.maxTokens) "
-                + "pageBudget=\(preferences.pageBudget) search=\(preferences.searchProvider) "
+                + "pageBudget=\(preferences.pageBudget) search=DuckDuckGo "
                 + "date=\(preferences.fixedDate ?? AgentPromptBuilder.today()) "
                 + "fileOps=\(preferences.fileOperations) notesDir=\(preferences.notesDirectory.path(percentEncoded: false))"
         )
@@ -379,18 +375,14 @@ enum AgentSelfTest {
 
         check(
             "search/rateLimited",
-            AgentTools.searchStatusError(202, brave: false)
+            AgentTools.searchStatusError(202)
                 == "error: search backend returned HTTP 202 (rate limited or blocked). Do not retry the "
                 + "same query immediately; try a different tool or rephrase once."
-                && AgentTools.searchStatusError(429, brave: false)?.contains("HTTP 429") == true
-                && AgentTools.searchStatusError(401, brave: true)?.contains("Brave API key rejected") == true
-                && AgentTools.searchStatusError(402, brave: true)?.contains("paid plan") == true,
-            AgentTools.searchStatusError(202, brave: false) ?? "nil")
+                && AgentTools.searchStatusError(429)?.contains("HTTP 429") == true
+                && AgentTools.searchStatusError(401)?.contains("rate limited or blocked") == true,
+            AgentTools.searchStatusError(202) ?? "nil")
 
-        check(
-            "search/ok200",
-            AgentTools.searchStatusError(200, brave: false) == nil
-                && AgentTools.searchStatusError(200, brave: true) == nil, "200 must not be an error")
+        check("search/ok200", AgentTools.searchStatusError(200) == nil, "200 must not be an error")
 
         let hostile = "../../etc/pas swd: <hack>"
         let hostileName = AgentTools.noteFileName(hostile)
@@ -1125,11 +1117,10 @@ enum AgentSelfTest {
         let defaultsName = "agent-defaults-" + UUID().uuidString
         if let defaults = UserDefaults(suiteName: defaultsName) {
             defer { defaults.removePersistentDomain(forName: defaultsName) }
-            let keys = SearchKeyVault(store: KeyStoreProbe())
             var flagMismatches: [String] = []
             func checkFlags(over saved: Bool?) {
                 for value in ["on", "off"] {
-                    let agent = ConversationPreferences(defaults: defaults, keyVault: keys)
+                    let agent = ConversationPreferences(defaults: defaults)
                     agent.persists = false
                     _ = try? applyM4GOptions(to: agent, arguments: ["--citation-guard", value])
                     let stored = defaults.object(forKey: ConversationPreferences.citationGuardKey) as? Bool
@@ -1140,7 +1131,7 @@ enum AgentSelfTest {
                     }
                 }
             }
-            let fresh = ConversationPreferences(defaults: defaults, keyVault: keys)
+            let fresh = ConversationPreferences(defaults: defaults)
             check(
                 "m4h/defaultInstructionsAndGuard",
                 fresh.citeFetched && !fresh.citationGuard
@@ -1148,11 +1139,11 @@ enum AgentSelfTest {
                 "fresh settings: citeFetched=\(fresh.citeFetched) citationGuard=\(fresh.citationGuard)")
             checkFlags(over: nil)
             fresh.citationGuard = true
-            let savedOn = ConversationPreferences(defaults: defaults, keyVault: keys).citationGuard
+            let savedOn = ConversationPreferences(defaults: defaults).citationGuard
             checkFlags(over: true)
             fresh.citeFetched = false
             fresh.citationGuard = false
-            let saved = ConversationPreferences(defaults: defaults, keyVault: keys)
+            let saved = ConversationPreferences(defaults: defaults)
             checkFlags(over: false)
             check(
                 "m4h/savedInstructionsAndGuard", savedOn && !saved.citeFetched && !saved.citationGuard,
@@ -1176,161 +1167,31 @@ enum AgentSelfTest {
             ]
             for (key, value) in values { stored.set(value, forKey: key) }
             let braveKey = ConversationPreferences.braveKeyKey
-            func settled(_ preferences: ConversationPreferences) async {
-                for await phase in Observations({ preferences.searchKey.state.phase }) where phase == .ready { return }
-            }
-            func save(_ key: String, in preferences: ConversationPreferences) async {
-                preferences.searchKey.send(.draftChanged(key))
-                preferences.searchKey.send(.saveRequested)
-                await settled(preferences)
-            }
-            let keys = KeyStoreProbe()
-            let headless = ConversationPreferences(defaults: stored, keyVault: SearchKeyVault(store: keys))
-            let launched = headless.braveAPIKey.isEmpty && keys.calls.isEmpty
-            headless.searchKey.send(.loadRequested)
-            await settled(headless)
+            let headless = ConversationPreferences(defaults: stored)
             let loaded =
                 headless.maxSteps == 3 && headless.chatMaxSteps == 24 && headless.maxTokens == 2_048
                 && headless.pageBudget == 4_000
-                && headless.braveAPIKey == "key" && headless.fileOperations && headless.notesFolderPath == "/tmp/notes"
+                && headless.fileOperations && headless.notesFolderPath == "/tmp/notes"
                 && !headless.citationGuard && !headless.citeFetched
-            let moved =
-                keys.value == "key" && keys.calls == ["read", "write"] && stored.object(forKey: braveKey) == nil
+            let removed = stored.object(forKey: braveKey) == nil
             headless.resetForHeadless()
             headless.effort = .medium
             let reset =
                 !headless.persists && headless.maxSteps == 8 && headless.chatMaxSteps == 16 && headless.maxTokens == nil
-                && headless.pageBudget == 10_000 && headless.braveAPIKey.isEmpty && !headless.fileOperations
+                && headless.pageBudget == 10_000 && !headless.fileOperations
                 && headless.notesFolderPath.isEmpty && !headless.citationGuard && headless.citeFetched
-            let kept =
-                values.allSatisfy {
-                    $0.key == braveKey || (stored.object(forKey: $0.key) as? NSObject)?.isEqual($0.value) == true
-                } && keys.value == "key" && keys.calls == ["read", "write"]
-            check(
-                "conversation/headlessDefaults", launched && loaded && moved && reset && kept,
-                "launched=\(launched) loaded=\(loaded) moved=\(moved) reset=\(reset) kept=\(kept) store=\(keys.calls)")
-            stored.set("legacy", forKey: braveKey)
-            let saved = KeyStoreProbe("stored")
-            let chat = ConversationPreferences(defaults: stored, keyVault: SearchKeyVault(store: saved))
-            chat.searchKey.send(.loadRequested)
-            await settled(chat)
-            let chatKey = RAGSettings.fromDefaults(chat).braveAPIKey
-            let cleared = stored.object(forKey: braveKey) == nil
-            check(
-                "conversation/chatSearchKeyFromStore", chatKey == "stored" && cleared && saved.calls == ["read"],
-                "chat=\(chatKey) defaultsCleared=\(cleared) store=\(saved.calls)")
-            await save("typed", in: chat)
-            let typed = saved.value == "typed" && chat.braveAPIKey == "typed" && stored.object(forKey: braveKey) == nil
-            await save("", in: chat)
-            check(
-                "conversation/searchKeySavedToStore",
-                typed && saved.value == nil && chat.braveAPIKey.isEmpty && saved.calls == ["read", "write", "delete"]
-                    && stored.object(forKey: braveKey) == nil,
-                "typed=\(typed) store=\(saved.calls)")
-            stored.set("legacy", forKey: braveKey)
-            let untouched = KeyStoreProbe("stored")
-            let isolated = ConversationPreferences(
-                defaults: stored, keyVault: SearchKeyVault(store: untouched), persists: false)
-            let empty = isolated.braveAPIKey.isEmpty && RAGSettings.fromDefaults(isolated).braveAPIKey.isEmpty
-            isolated.searchKey.send(.loadRequested)
-            await settled(isolated)
-            await save("typed", in: isolated)
-            let memory = isolated.braveAPIKey == "typed" && isolated.searchKeyVault == nil
-            isolated.braveAPIKey = ""
-            let legacy = stored.string(forKey: braveKey)
-            check(
-                "conversation/headlessSearchKeyUntouched",
-                empty && memory && isolated.braveAPIKey.isEmpty && untouched.calls.isEmpty
-                    && untouched.value == "stored" && legacy == "legacy",
-                "empty=\(empty) memory=\(memory) store=\(untouched.calls) defaults=\(legacy ?? "nil")")
-            func terminate(_ preferences: ConversationPreferences, saved: Bool = true) async -> Bool? {
-                var ended: Bool?
-                let runner = ConversationRunner(
-                    id: "terminate", chat: ChatViewModel(), preferences: preferences,
-                    archive: ConversationArchive(directory: folder), termination: { ended = $0 })
-                await runner.run(.terminationReady(saved)) { _ in }
-                return ended
+            let kept = values.allSatisfy {
+                $0.key == braveKey || (stored.object(forKey: $0.key) as? NSObject)?.isEqual($0.value) == true
             }
-            let working = ConversationPreferences(
-                defaults: stored, keyVault: SearchKeyVault(store: KeyStoreProbe("stored")))
-            working.searchKey.send(.loadRequested)
-            await settled(working)
-            let idle = await terminate(working)
-            let unsaved = await terminate(working, saved: false)
-            working.searchKey.send(.draftChanged("fresh"))
-            working.searchKey.send(.saveRequested)
-            let waited = await terminate(working)
-            let fresh = working.braveAPIKey
-            let probe = KeyStoreProbe("stored", failing: ["write"])
-            let failing = ConversationPreferences(defaults: stored, keyVault: SearchKeyVault(store: probe))
-            failing.searchKey.send(.loadRequested)
-            await settled(failing)
-            failing.searchKey.send(.draftChanged("typed"))
-            failing.searchKey.send(.saveRequested)
-            let refused = await terminate(failing)
-            let retained =
-                failing.braveAPIKey == "stored" && failing.searchKey.state.draft == "typed"
-                && failing.searchKey.state.canSave
-            let again = await terminate(failing)
             check(
-                "conversation/terminationWaitsForSearchKey",
-                idle == true && unsaved == false && waited == true && fresh == "fresh" && refused == false && retained
-                    && again == false && probe.calls == ["read", "write"],
-                "idle=\(String(describing: idle)) unsaved=\(String(describing: unsaved)) "
-                    + "waited=\(String(describing: waited)) fresh=\(fresh) refused=\(String(describing: refused)) "
-                    + "retained=\(retained) again=\(String(describing: again)) store=\(probe.calls)")
-            let gated = KeyStoreProbe("stored", gated: true)
-            defer { gated.release() }
-            let quitting = ConversationPreferences(defaults: stored, keyVault: SearchKeyVault(store: gated))
-            quitting.searchKey.send(.loadRequested)
-            await settled(quitting)
-            let archive = ConversationArchive(
-                directory: folder.appending(path: "termination", directoryHint: .isDirectory))
-            var conversation = ConversationState(
-                id: "termination", now: Date(timeIntervalSince1970: 1_700_000_000), instructionsVersion: "cite-fetched",
-                toolsVersion: "web_search,fetch_page,write_note,move_note")
-            _ = ConversationFeature.reduce(&conversation, .send("Keep this", mode: .chat, now: conversation.createdAt))
-            _ = ConversationFeature.reduce(
-                &conversation,
-                .transcriptChanged(
-                    run: 1,
-                    TranscriptRecord(entries: [
-                        .instructions(id: "i", text: "Keep context"), .prompt(id: "p", text: "Keep this"),
-                        .response(id: "a", text: "Kept", metadata: StepMetadata(stopReason: "stopToken")),
-                    ])))
-            _ = ConversationFeature.reduce(&conversation, .generationEnded(run: 1, stopReason: "stopToken"))
-            try? await archive.save(ConversationSnapshot(conversation), expectedRevision: 0, writer: UUID())
-            var host: ConversationHost?
-            var ends: [String] = []
-            let (ended, end) = AsyncStream<Void>.makeStream()
-            host = ConversationHost(
-                chat: ChatViewModel(), preferences: quitting, archive: archive,
-                termination: {
-                    ends.append("\($0) saving=\(host?.state.isSaving ?? false)")
-                    end.yield()
-                })
-            if let host {
-                host.store.send(.restoreLatestRequested)
-                for await restoring in Observations({ host.state.isRestoring }) where !restoring { break }
-                quitting.searchKey.send(.draftChanged("typed"))
-                quitting.searchKey.send(.saveRequested)
-                host.store.send(.terminationRequested)
-                for _ in 0..<3 { await Task.yield() }
-                host.store.send(.terminationCancelled)
-                host.store.send(.retrySave)
-                host.store.send(.terminationRequested)
-                let saving = host.state.isSaving && host.state.isTerminating
-                gated.release()
-                for await _ in ended { break }
-                for await busy in Observations({ quitting.searchKey.state.isBusy || host.state.isSaving }) where !busy {
-                    break
-                }
-                for _ in 0..<10 { await Task.yield() }
-                check(
-                    "conversation/cancelledTerminationStaysCancelled",
-                    saving && ends == ["true saving=false"] && gated.value == "typed",
-                    "saving=\(saving) ends=\(ends) key=\(gated.value ?? "nil") store=\(gated.calls)")
-            }
+                "conversation/headlessDefaults", loaded && reset && kept,
+                "loaded=\(loaded) reset=\(reset) kept=\(kept)")
+            stored.set("legacy", forKey: braveKey)
+            _ = ConversationPreferences(defaults: stored, persists: false)
+            let untouched = stored.string(forKey: braveKey) == "legacy"
+            check(
+                "conversation/legacySearchKeyRemoved", removed && untouched,
+                "removedOnLaunch=\(removed) keptWithoutPersisting=\(untouched)")
         } else {
             check("conversation/headlessDefaults", false, "could not create isolated defaults")
         }
@@ -1971,53 +1832,5 @@ enum AgentSelfTest {
                     "\(output.text.prefix(120))")
             } catch { check("fetch/capture/\(index)", false, "\(error)") }
         }
-    }
-}
-
-private final class KeyStoreProbe: SecretStore {
-    struct Failure: LocalizedError {
-        var errorDescription: String? { "Injected failure" }
-    }
-
-    private let record: Mutex<(value: String?, calls: [String])>
-    private let failing: Set<String>
-    private let gate: DispatchSemaphore?
-
-    init(_ value: String? = nil, failing: Set<String> = [], gated: Bool = false) {
-        record = Mutex((value, []))
-        self.failing = failing
-        gate = gated ? DispatchSemaphore(value: 0) : nil
-    }
-
-    func release() { gate?.signal() }
-
-    var value: String? { record.withLock { $0.value } }
-    var calls: [String] { record.withLock { $0.calls } }
-
-    func read() throws -> String? {
-        try record.withLock {
-            try enter("read", &$0.calls)
-            return $0.value
-        }
-    }
-
-    func write(_ value: String) throws {
-        gate?.wait()
-        try record.withLock {
-            try enter("write", &$0.calls)
-            $0.value = value
-        }
-    }
-
-    func delete() throws {
-        try record.withLock {
-            try enter("delete", &$0.calls)
-            $0.value = nil
-        }
-    }
-
-    private func enter(_ call: String, _ calls: inout [String]) throws {
-        calls.append(call)
-        if failing.contains(call) { throw Failure() }
     }
 }

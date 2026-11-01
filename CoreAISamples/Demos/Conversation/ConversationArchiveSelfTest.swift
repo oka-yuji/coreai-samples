@@ -50,7 +50,6 @@ enum ConversationArchiveSelfTest {
                 stopped.outcome == "stopped" && stoppedRunner.session.stopRequested, "outcome=\(stopped.outcome)")
             let preferences = ConversationPreferences(persists: false)
             preferences.resetForHeadless()
-            preferences.braveAPIKey = "not-part-of-the-archive"
             let host = ConversationHost(chat: ChatViewModel(), preferences: preferences, archive: archive)
             host.store.send(.restoreLatestRequested)
             for await restoring in Observations({ host.state.isRestoring }) where !restoring { break }
@@ -62,7 +61,6 @@ enum ConversationArchiveSelfTest {
             check(
                 "conversation/restoreSettingsAndEvidence",
                 preferences.maxTokens == 512 && !preferences.fileOperations
-                    && preferences.braveAPIKey == "not-part-of-the-archive"
                     && host.runner.tools.evidence == state.evidence,
                 "tokens=\(String(describing: preferences.maxTokens)) pages=\(host.runner.tools.ledger.count)")
             host.runner.citationGuard.begin(active: true)

@@ -14,9 +14,7 @@ struct RAGInputs: Sendable {
                 RAGInputs.localDocuments(directory: directory)
             },
             search: { question, settings in
-                try await settings.braveAPIKey.isEmpty
-                    ? AgentTools.duckDuckGoResults(query: question, limit: settings.searchResults)
-                    : AgentTools.braveResults(query: question, limit: settings.searchResults, key: settings.braveAPIKey)
+                try await AgentTools.duckDuckGoResults(query: question, limit: settings.searchResults)
             }, read: { try await RAGRetriever.readPageDetails(url: $0) })
     }
     nonisolated static func localDocuments(directory: URL) -> [RAGDocumentSnapshot] {

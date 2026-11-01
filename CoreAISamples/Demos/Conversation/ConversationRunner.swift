@@ -3,7 +3,6 @@ import ConversationRuntime
 import FeatureStore
 import Foundation
 import FoundationModels
-import Observation
 import RAGContext
 
 typealias ConversationStore = Store<ConversationFeature>
@@ -114,10 +113,8 @@ final class ConversationRunner {
             await citationGuard.cancelRepair()
             chat.externallyBusy = false
         case .terminationReady(let success):
-            let keys = tools.preferences.searchKey
-            for await busy in Observations({ keys.state.isBusy }) where !busy { break }
             guard !Task.isCancelled else { return }
-            termination(success && keys.state.canLeave)
+            termination(success)
         }
     }
 
@@ -153,7 +150,7 @@ final class ConversationRunner {
                 send(.generationFailed(run: run, message: "No model is loaded."))
                 return
             }
-            var settings = RAGSettings.fromDefaults(tools.preferences)
+            var settings = RAGSettings.fromDefaults()
             settings.today = tools.preferences.fixedDate ?? RAGContext.today()
             settings.web = request.web
             settings.local = request.local

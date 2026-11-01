@@ -1,6 +1,5 @@
 import ConversationFeature
 import ConversationRuntime
-import FeatureStore
 import Foundation
 import Observation
 
@@ -18,8 +17,6 @@ final class ConversationPreferences {
     static let citationGuardKey = "agent.citationGuard"
     static let citeFetchedKey = "agent.citeFetched"
     static let maxTokenChoices = [512, 1_024, 1_536, 2_048, 4_096, 8_192]
-    static let braveKeyVault = SearchKeyVault(
-        store: KeychainSecretStore(service: "com.coreai-samples.DemoApp.brave-search", account: "api-key"))
 
     var persists: Bool
     var effort: AgentReasoningEffort { didSet { store(effort.rawValue, Self.effortKey) } }
@@ -27,10 +24,6 @@ final class ConversationPreferences {
     var chatMaxSteps: Int { didSet { store(chatMaxSteps, Self.chatMaxStepsKey) } }
     var maxTokens: Int? { didSet { store(maxTokens, Self.maxTokensKey) } }
     var pageBudget: Int { didSet { store(pageBudget, Self.pageBudgetKey) } }
-    var braveAPIKey: String {
-        get { searchKey.state.saved }
-        set { searchKey.send(.replaced(newValue)) }
-    }
     var fileOperations: Bool { didSet { store(fileOperations, Self.fileOpsKey) } }
     var notesFolderPath: String { didSet { store(notesFolderPath, Self.notesFolderKey) } }
     var citationGuard: Bool { didSet { store(citationGuard, Self.citationGuardKey) } }
@@ -42,17 +35,12 @@ final class ConversationPreferences {
     @ObservationIgnored var cassette: ToolCassette?
     @ObservationIgnored var replaysRecordedTools = false
     @ObservationIgnored var deadline: Date?
-    @ObservationIgnored let searchKey: Store<SearchKeyFeature>
-    @ObservationIgnored let searchKeyVault: SearchKeyVault?
     @ObservationIgnored private let defaults: UserDefaults
 
-    init(defaults: UserDefaults = .standard, keyVault: SearchKeyVault? = nil, persists: Bool = true) {
+    init(defaults: UserDefaults = .standard, persists: Bool = true) {
         self.defaults = defaults
         self.persists = persists
-        let runner = SearchKeyRunner(
-            vault: persists ? keyVault ?? Self.braveKeyVault : nil, defaults: defaults, legacyKey: Self.braveKeyKey)
-        searchKeyVault = runner.vault
-        searchKey = Store(initialState: SearchKeyFeature.State(), run: runner.run)
+        if persists { defaults.removeObject(forKey: Self.braveKeyKey) }
         func positive(_ key: String) -> Int? { (defaults.object(forKey: key) as? Int).flatMap { $0 > 0 ? $0 : nil } }
         effort = defaults.string(forKey: Self.effortKey).flatMap(AgentReasoningEffort.init(rawValue:)) ?? .low
         maxSteps = positive(Self.maxStepsKey) ?? 8
@@ -81,7 +69,6 @@ final class ConversationPreferences {
         chatMaxSteps = TurnPolicy.defaultChatSteps
         maxTokens = nil
         pageBudget = 10_000
-        braveAPIKey = ""
         fileOperations = false
         notesFolderPath = ""
         citationGuard = false
@@ -100,8 +87,6 @@ final class ConversationPreferences {
             chatMaxSteps: chatMaxSteps)
     }
 
-    var searchProvider: String { braveAPIKey.isEmpty ? "DuckDuckGo" : "Brave Search API" }
-
     var notesDirectory: URL {
         notesFolderPath.isEmpty
             ? AgentTools.defaultNotesDirectory()
@@ -110,7 +95,7 @@ final class ConversationPreferences {
 
     var toolSettings: AgentToolSettings {
         AgentToolSettings(
-            pageCharacterBudget: pageBudget, braveAPIKey: braveAPIKey, notesDirectory: notesDirectory,
+            pageCharacterBudget: pageBudget, notesDirectory: notesDirectory,
             allowFileOperations: fileOperations, cassette: cassette, stableNotePaths: stableNotePaths)
     }
 }
