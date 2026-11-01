@@ -177,7 +177,7 @@
       "modelID": "gliner2.5-multi",
       "artifactID": "gliner2.5-multi-fp32-t256-t512",
       "repository": "okayuji/gliner2.5-multi-coreai-fp32",
-      "revision": "043e738f3a91222ec013b2d80e240e34abb46bdb",
+      "revision": "a88d5df297e46f3d073bb164c3ac44f35d107b25",
       "root": "",
       "upstream": {
         "repository": "fastino/gliner2.5-multi-v1",
@@ -221,12 +221,12 @@
         },
         {
           "path": "README.md",
-          "bytes": 25702,
-          "sha256": "9777d6aa5fd0a7a95f12d1dbac3f127c0d54269dea095b875520cfc2651ef823"
+          "bytes": 33148,
+          "sha256": "97bfc4e5dac77c405897c51e3fe4e9941e5003b8e9a17d761c3671a38c4c8ae5"
         }
       ],
-      "sizeBytes": 1247733386
+      "sizeBytes": 1247740832
     }
   ],
-  "totalBytes": 2503290760
+  "totalBytes": 2503298206
 }
