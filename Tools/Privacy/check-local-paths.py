@@ -1,3 +1,4 @@
+import os
 import re
 import subprocess
 import sys
@@ -5,29 +6,57 @@ from pathlib import Path
 
 root = Path(__file__).resolve().parents[2]
 pattern = re.compile(
-    rb"[/]Users[/](?!runner\b)[^\s/`'\"]+"
-    rb"|[/]home[/](?!runner\b)[^\s/`'\"]+"
+    rb"[/]Users[/](?!runner[/]work[/])[^\s/`'\"]+"
+    rb"|[-]Users[-][^\s/`'\"-]+[-]"
+    rb"|[/]home[/][^\s/`'\"]+"
     rb"|[/]Volumes[/][^\s/`'\"]+"
     rb"|[/]var[/]folders[/]"
 )
 
 
-def tracked():
-    listing = subprocess.run(["git", "-C", str(root), "ls-files", "-z"], capture_output=True, check=True).stdout
-    return [name for name in listing.decode().split("\0") if name]
+def git(*args, data=None):
+    try:
+        return subprocess.run(["git", "-C", str(root), *args], input=data, stdout=subprocess.PIPE, check=True).stdout
+    except (OSError, subprocess.CalledProcessError):
+        print("Could not read the tracked files with git.", file=sys.stderr)
+        sys.exit(2)
 
 
-def findings():
-    for name in tracked():
+def contents():
+    entries = []
+    for entry in git("ls-files", "-s", "-z").split(b"\0"):
+        if entry:
+            info, name = entry.split(b"\t", 1)
+            mode, blob = info.split()[:2]
+            if mode != b"160000":
+                entries.append((os.fsdecode(name), blob))
+    batch = git("cat-file", "--batch", data=b"".join(blob + b"\n" for _, blob in entries))
+    offset = 0
+    for name, _ in entries:
+        end = batch.index(b"\n", offset)
+        size = int(batch[offset:end].split()[2])
+        staged = batch[end + 1:end + 1 + size]
+        offset = end + 2 + size
         path = root / name
-        if path.is_symlink() or not path.is_file():
-            continue
-        data = path.read_bytes()
-        for line in sorted({data.count(b"\n", 0, match.start()) + 1 for match in pattern.finditer(data)}):
-            yield f"{name}:{line}"
+        if path.is_symlink():
+            current = os.fsencode(os.readlink(path))
+        elif path.is_file():
+            current = path.read_bytes()
+        else:
+            current = staged
+        yield name, current, staged
 
 
-found = list(findings())
+def lines(data):
+    data = data.replace(b"\\/", b"/")
+    return sorted({data.count(b"\n", 0, match.start()) + 1 for match in pattern.finditer(data)})
+
+
+found = []
+for name, current, staged in contents():
+    found += [f"{name}:{line}" for line in lines(current)]
+    if staged != current:
+        found += [f"{name}:{line} (staged)" for line in lines(staged)]
 for item in found:
     print(item)
 if found:

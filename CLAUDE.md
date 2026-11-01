@@ -55,7 +55,7 @@
 - 手書きのソース・テスト・設定には、doc コメントを含めてコメントを書かない。SwiftPM の `swift-tools-version` と shell の先頭 shebang は、ツールが解釈する宣言として保持する。
 - ソースに日本語の文字列を入れない。画面の日英翻訳はString Catalog、例の資料は JSON の資源に置く。`RAGContext.swift` の `dateLabel`、`instruction(today:)`、`block(_:number:)`、`message(question:sources:)` の既存のプロンプト定数だけを例外とする。`noSourcesReply` は例外に含めない。表示言語の切替で入力やモデルのプロンプトを変更しない(2026-10-09のユーザー指定)。
 - コミットと PR に `Co-Authored-By` を付けない。
-- 公開物(文書・記録・ログを含む)に、作業環境のホーム・外部ボリューム・一時フォルダの絶対パスを書かない。`~` かリポジトリからの相対パスで書く。`Tools/Privacy/check-local-paths.py` は追跡中の全ファイルを読み、当たった場所をファイル名と行番号だけで示す。当たった文字列を Issue・PR・コメントへ貼らない。
+- 公開物(文書・記録・ログを含む)に、作業環境のホーム・外部ボリューム・ユーザーごとの一時フォルダ(`/var/folders`)の絶対パスを書かない。`~` かリポジトリからの相対パスで書く。`Tools/Privacy/check-local-paths.py` は追跡中の全ファイルを、作業ツリーとステージ済みの両方の内容で読み(symlink はリンク先の文字列)、当たった場所をファイル名と行番号だけで示す。当たった文字列を Issue・PR・コメントへ貼らない。
 
 ## 重いジョブ
 
