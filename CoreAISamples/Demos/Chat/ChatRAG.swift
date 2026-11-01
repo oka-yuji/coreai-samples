@@ -8,7 +8,6 @@ struct RAGSettings: Sendable {
     var web = false
     var local = false
     var searchResults = 8
-    var braveAPIKey = ""
     var pagesToRead = 5
     var pageCharacterBudget = 3_000
     var sourceTokenBudget = RAGContext.sourceTokenBudget
@@ -21,14 +20,11 @@ struct RAGSettings: Sendable {
 
     static let budgetChoices = [3_000, 6_000]
 
-    var provider: String { braveAPIKey.isEmpty ? "DuckDuckGo" : "Brave" }
-
     @MainActor
-    static func fromDefaults(_ preferences: ConversationPreferences) -> RAGSettings {
+    static func fromDefaults() -> RAGSettings {
         var settings = RAGSettings()
         settings.captureStructure = LaunchArguments.flag("--rag-structure")
         settings.strategy = LaunchArguments.value("--rag-strategy").flatMap(RAGStrategy.init(rawValue:)) ?? .flat
-        settings.braveAPIKey = preferences.braveAPIKey
         if let path = LaunchArguments.value("--rag-docs") {
             settings.documentsDirectory = URL(filePath: path, directoryHint: .isDirectory)
         }

@@ -34,7 +34,6 @@ struct AgentToolOutput: Sendable {
 struct AgentToolSettings: Sendable {
     var pageCharacterBudget: Int = 4_000
     var searchResults: Int = 5
-    var braveAPIKey: String = ""
 
     var notesDirectory: URL = AgentTools.defaultNotesDirectory()
 
@@ -83,7 +82,7 @@ enum AgentTools {
                 .flatMap { Int($0.trimmingCharacters(in: .whitespacesAndNewlines)) }
             let limit = min(10, max(1, requested ?? settings.searchResults))
             do {
-                return try await webSearch(query: query, limit: limit, braveAPIKey: settings.braveAPIKey)
+                return try await webSearch(query: query, limit: limit)
             } catch let failure as AgentToolMessage {
                 return AgentToolOutput(text: failure.text)
             } catch {
@@ -165,13 +164,8 @@ enum AgentTools {
                 + (note.warning.map { "\nwarning: " + $0 } ?? ""), note: note)
     }
 
-    static func webSearch(
-        query: String, limit: Int, braveAPIKey: String
-    ) async throws -> AgentToolOutput {
-        let results =
-            braveAPIKey.isEmpty
-            ? try await duckDuckGoResults(query: query, limit: limit)
-            : try await braveResults(query: query, limit: limit, key: braveAPIKey)
+    static func webSearch(query: String, limit: Int) async throws -> AgentToolOutput {
+        let results = try await duckDuckGoResults(query: query, limit: limit)
         guard !results.isEmpty else { return AgentToolOutput(text: "no results for \"\(query)\"") }
         let text = results.enumerated().map { index, result in
             "\(index + 1). \(result.title)\n   \(result.url)\n   \(result.snippet)"
@@ -183,23 +177,15 @@ enum AgentTools {
         return AgentToolOutput(text: text, seen: seen)
     }
 
-    static func searchStatusError(_ status: Int, brave: Bool) -> String? {
+    static func searchStatusError(_ status: Int) -> String? {
         guard status != 200 else { return nil }
-        if brave, status == 401 || status == 403 {
-            return "error: search backend returned HTTP \(status) (Brave API key rejected). "
-                + "Fix or clear the key in Settings; do not retry this call."
-        }
-        if brave, status == 402 {
-            return "error: search backend returned HTTP 402 (Brave API needs a paid plan). "
-                + "Clear the key in Settings to fall back to DuckDuckGo; do not retry this call."
-        }
         return "error: search backend returned HTTP \(status) (rate limited or blocked). "
             + "Do not retry the same query immediately; try a different tool or rephrase once."
     }
 
-    private static func checkStatus(_ response: URLResponse, brave: Bool) throws {
+    private static func checkStatus(_ response: URLResponse) throws {
         guard let http = response as? HTTPURLResponse,
-            let message = searchStatusError(http.statusCode, brave: brave)
+            let message = searchStatusError(http.statusCode)
         else { return }
         throw AgentToolMessage(text: message)
     }
@@ -209,41 +195,8 @@ enum AgentTools {
         components?.queryItems = [URLQueryItem(name: "q", value: query)]
         guard let url = components?.url else { return [] }
         let (data, response) = try await URLSession.shared.data(for: get(url))
-        try checkStatus(response, brave: false)
+        try checkStatus(response)
         return Array(parseDuckDuckGo(String(decoding: data, as: UTF8.self)).prefix(limit))
-    }
-
-    private struct BravePayload: Decodable {
-        struct Web: Decodable {
-            struct Item: Decodable {
-                var title: String?
-                var url: String?
-                var description: String?
-            }
-            var results: [Item]?
-        }
-        var web: Web?
-    }
-
-    static func braveResults(query: String, limit: Int, key: String) async throws -> [SearchResult] {
-        var components = URLComponents(string: "https://api.search.brave.com/res/v1/web/search")
-        components?.queryItems = [
-            URLQueryItem(name: "q", value: query),
-            URLQueryItem(name: "count", value: String(limit)),
-        ]
-        guard let url = components?.url else { return [] }
-        var request = get(url)
-        request.setValue("application/json", forHTTPHeaderField: "Accept")
-        request.setValue(key, forHTTPHeaderField: "X-Subscription-Token")
-        let (data, response) = try await URLSession.shared.data(for: request)
-        try checkStatus(response, brave: true)
-        let payload = try JSONDecoder().decode(BravePayload.self, from: data)
-        return (payload.web?.results ?? []).prefix(limit).map {
-            SearchResult(
-                title: decodeEntities($0.title ?? ""),
-                url: $0.url ?? "",
-                snippet: plainText(fromHTML: $0.description ?? ""))
-        }
     }
 
     static let localAddressRefusal = "error: fetch_page refuses local or private addresses"

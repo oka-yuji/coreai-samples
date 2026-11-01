@@ -157,7 +157,7 @@ struct DemoRootView: View {
             lifetime.register(windowID, host: host)
             if LaunchArguments.value("--gui-e2e") == nil {
                 host.store.send(.restoreLatestRequested)
-                host.preferences.searchKey.send(.loadRequested)
+                host.preferences.removeLegacySearchKey()
             } else {
                 host.store.send(.library(.refresh))
             }
