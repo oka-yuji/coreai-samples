@@ -34,10 +34,10 @@ struct ManagedModelStoreTests {
         defer { fixture.remove() }
         let store = fixture.store()
         let catalog = try IOSDemoCatalog.make()
-        #expect(catalog.models.flatMap(\.artifacts).count == 3)
+        #expect(catalog.models.flatMap(\.artifacts).count == 4)
         for model in catalog.models {
             for artifact in model.artifacts {
-                let revision = try #require(artifact.download?.revision)
+                let revision = try #require(artifact.sourceRevision)
                 let staging = try await store.stagingDirectory(for: model, artifact: artifact)
                 #expect(Array(staging.pathComponents.suffix(3)) == ["staging", artifact.id, revision])
                 #expect(try await store.inspect(model: model, artifact: artifact).isMissing)

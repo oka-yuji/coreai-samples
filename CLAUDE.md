@@ -27,6 +27,7 @@
 - A12(安全条件を隣のコメントに書く): 公開ソースにコメントを置かないため、条件と検査を下の表に記録する。`concurrency_escape` の検出は維持し、新しい宣言を自動的に許可しない。既存の宣言の基準値は `.swiftlint-baseline.json` で追跡する。変更時は新しいアクセス経路も条件を満たすか確認する。
 - lint の抑制をソースのコメントに書かない。`no_inline_swiftlint_commands` と公開ソースの監査で確認する。基準値の更新は、ruleIdentifier・ファイル・該当コード・件数を変更前と比較し、許可の追加を説明する。既存ファイル全体を新しく除外しない。
 - T1(新しい試験は Swift Testing): Agent の既定、カセット、取得先の制限、Hub の照合のアプリ統合確認は既存の `--agent-selftest` に追加できる。アプリに Swift Testing の target がないため。新しい独立した純ロジックの単体試験は Swift Testing に置く。アプリの試験 target を導入したら統合確認の移設を検討する。
+- T8(実時間の待機): `ImageDeviceCalibrationTests`の500ms/4500msと`ImageDeviceMemoryObserver.watch`の10msは、実機メモリの採取時点・間隔そのものを測るための例外。順序制御の代用には使わない。iOSの明示opt-in計測だけが実行し、通常のMac CPU試験は設定・記録失敗・集計を待機なしで検査する。baselineはこの3文のrule・file・code・件数だけを許可し、ファイル全体は除外しない。実機の試行は共通heavy-jobロック下で行い、sampled peak・実際の最大gap・kernel生涯peakを分ける。
 
 ### 既存の並行処理の安全条件
 

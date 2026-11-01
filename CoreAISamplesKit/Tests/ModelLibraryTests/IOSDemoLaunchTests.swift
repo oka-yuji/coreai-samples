@@ -60,27 +60,35 @@ struct IOSDemoLaunchTests {
     }
 
     @Test(
-        "ADOPT-01 The iOS catalog presents two models and six demos whose artifacts carry the published distribution definitions with every file, size, checksum and upstream"
+        "ADOPT-01 The iOS catalog preserves published distributions and exposes the verified local image artifact without a download"
     )
     func catalog() throws {
         let catalog = try IOSDemoCatalog.make()
         let sections = catalog.sections(platform: .iOS, audience: .release)
-        #expect(sections.map(\.model.name) == ["GLiNER2.5-multi", "EmbeddingGemma 2"])
+        #expect(sections.map(\.model.name) == ["GLiNER2.5-multi", "EmbeddingGemma 2", "Qwen Image 2.1 Turbo"])
         #expect(
             sections.map { $0.demos.map(\.id) } == [
                 ["comparison", "extraction", "inspection"], ["image-search", "video-search", "object-finder"],
+                ["image-generation"],
             ])
-        #expect(sections.map { $0.artifacts.map(\.title) } == [["FP32"], ["FP16", "INT4/INT8 PTQ"]])
+        #expect(sections.map { $0.artifacts.map(\.title) } == [["FP32"], ["FP16", "INT4/INT8 PTQ"], ["W4/W8"]])
         #expect(
             catalog.models.map(\.defaultArtifactID) == [
                 "gliner2.5-multi-fp32-t256-t512", "embeddinggemma2-fp16-safe-s128-v70",
+                QwenImage21Artifact.profileID,
             ])
         #expect(catalog.sections(platform: .macOS, audience: .release).isEmpty)
 
         let url = try #require(
             Bundle.module.url(forResource: "distribution", withExtension: "json", subdirectory: "Resources"))
         let published = try JSONDecoder().decode(Distribution.self, from: Data(contentsOf: url))
-        let artifacts = catalog.models.flatMap(\.artifacts)
+        let artifacts = catalog.models.flatMap(\.artifacts).filter { $0.sourceKind == .huggingFace }
+        let local = catalog.models.flatMap(\.artifacts).filter { $0.sourceKind == .localManifest }
+        #expect(local == [QwenImage21Artifact.nativeComplex])
+        #expect(
+            local.allSatisfy {
+                $0.download == nil && $0.localBundle?.manifestSHA256 == QwenImage21Artifact.manifestSHA256
+            })
         #expect(artifacts.map(\.id).sorted() == published.artifacts.map(\.artifactID).sorted())
         let contracts = [
             "gliner2.5-multi-fp32-t256-t512": "gliner-gl4-fp32-t256-t512",
@@ -150,8 +158,18 @@ struct IOSDemoLaunchTests {
                 #expect(state.session == nil)
                 #expect(state.access(to: selection) == .preview(index == 0 ? .missing : .failed))
                 let artifactID = section.model.defaultArtifactID
+                let previous = state.installations[artifactID]
                 let commands = ModelLibraryFeature.reduce(&state, .downloadRequested(artifactID))
                 let artifact = try #require(section.model.artifact(artifactID))
+                if artifact.sourceKind == .localManifest {
+                    #expect(commands.isEmpty && state.session == nil)
+                    #expect(state.installations[artifactID]?.phase == previous?.phase)
+                    #expect(state.installations[artifactID]?.requestID == nil)
+                    #expect(state.installations[artifactID]?.failure == .downloadNotConfigured)
+                    #expect(ModelLibraryFeature.reduce(&state, .closeDemo).isEmpty)
+                    #expect(state.selection == nil)
+                    continue
+                }
                 let request = try #require(state.installations[artifactID]?.requestID)
                 #expect(commands == [.run(.download(section.model, artifact, request), id: .resource(artifactID))])
                 for command in commands {

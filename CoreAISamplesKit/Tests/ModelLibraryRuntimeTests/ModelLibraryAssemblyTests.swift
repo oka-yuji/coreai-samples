@@ -46,7 +46,7 @@ private final class AppAssembly {
             try Data("legacy-\(name)".utf8).write(to: folder.appending(path: name))
             try Data("legacy-weights".utf8).write(to: folder.appending(path: "model.bin"))
         }
-        catalog = try IOSDemoCatalog.make()
+        catalog = try IOSDemoCatalog.make(localImageArtifacts: [])
         let (events, sink) = AsyncStream.makeStream(of: String.self)
         self.events = events
         let labels = OwnerLabels()
@@ -96,7 +96,7 @@ private func wait(_ library: Store<ModelLibraryFeature>, until condition: (Model
 @Suite(.timeLimit(.minutes(1)))
 struct ModelLibraryAssemblyTests {
     @Test(
-        "E2E-01 ADOPT-02 The app assembly connects one provider to each demo of the iOS catalog, passes the download request of every published artifact to the transfer with its catalog definition, and creates no session or provider work before the acquisition completes"
+        "E2E-01 ADOPT-02 The app assembly connects the published-download catalog and creates no provider work before acquisition completes"
     )
     func publishedArtifacts() async throws {
         let app = try AppAssembly()
@@ -278,7 +278,7 @@ struct ModelLibraryAssemblyTests {
     }
 
     @Test(
-        "The model library self-test reports the iOS catalog, its six providers, the capability states and missing published artifacts, fails when a catalog demo has no provider, and leaves the iOS-only checks out without a registry"
+        "The model library self-test reports the supplied published-download catalog and rejects missing providers"
     )
     func selfTest() async throws {
         let app = try AppAssembly()
@@ -290,7 +290,7 @@ struct ModelLibraryAssemblyTests {
 
         let status = await ModelLibrarySelfTest.run(
             output: output, root: app.root, registry: app.assembly.registry,
-            capabilities: [.camera: .denied, .network: .available])
+            capabilities: [.camera: .denied, .network: .available], catalog: { app.catalog })
         #expect(status == 0)
         let passed = try report()
         let registry = passed["registry"] as? [String: Any]
@@ -313,12 +313,14 @@ struct ModelLibraryAssemblyTests {
 
         let partial = ModelDemoAdapterRegistry()
         for adapter in app.adapters.values where adapter.demoID != "object-finder" { partial.register(adapter) }
-        #expect(await ModelLibrarySelfTest.run(output: output, root: app.root, registry: partial) == 1)
+        #expect(
+            await ModelLibrarySelfTest.run(output: output, root: app.root, registry: partial, catalog: { app.catalog })
+                == 1)
         let failed = try report()
         #expect((failed["failures"] as? [String])?.count == 1)
         #expect((failed["registry"] as? [String: Any])?["matchesCatalog"] as? Bool == false)
 
-        #expect(await ModelLibrarySelfTest.run(output: output, root: app.root) == 0)
+        #expect(await ModelLibrarySelfTest.run(output: output, root: app.root, catalog: { app.catalog }) == 0)
         let catalogOnly = try report()
         #expect(catalogOnly["registry"] == nil && catalogOnly["capabilities"] == nil)
         #expect((catalogOnly["scope"] as? String)?.hasPrefix("Catalog and store checks only") == true)
@@ -334,7 +336,7 @@ struct ModelLibraryAssemblyTests {
         let output = app.base.appending(path: "selftest.json")
         let status = await ModelLibrarySelfTest.run(
             output: output, root: app.root, registry: app.assembly.registry, capabilities: [:], acquire: "all",
-            assembly: app.assembly)
+            assembly: app.assembly, catalog: { app.catalog })
         #expect(status == 1)
         let report = try #require(JSONSerialization.jsonObject(with: Data(contentsOf: output)) as? [String: Any])
         let acquisition = try #require(report["acquisition"] as? [String: Any])

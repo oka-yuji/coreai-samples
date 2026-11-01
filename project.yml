@@ -263,6 +263,11 @@ targets:
     deploymentTarget: "27.0"
     sources:
       - path: CoreAISamplesImageTests
+      - path: CoreAISamplesKit/Tests/ImageGenerationTests/ImageCalibrationProgress.swift
+      - path: CoreAISamplesKit/Tests/ImageGenerationTests/ImageDeviceCalibrationInput.swift
+      - path: CoreAISamplesKit/Tests/ImageGenerationTests/ImageDeviceCalibrationTests.swift
+      - path: CoreAISamplesKit/Tests/ImageGenerationTests/ImageDeviceMemory.swift
+      - path: CoreAISamplesKit/Tests/ImageGenerationTests/ImageDeviceMemoryTests.swift
       - path: CoreAISamplesKit/Tests/ImageGenerationTests/ImageGenerationImageTests.swift
       - path: CoreAISamplesKit/Tests/ImageGenerationTests/ImageGenerationGoldenTests.swift
       - path: CoreAISamplesKit/Tests/ImageGenerationTests/ImageReferencePixelIdentityTests.swift
@@ -272,12 +277,19 @@ targets:
       - target: CoreAISamples-iOS
       - package: CoreAISamplesKit
         product: ImageGenerationCore
+        link: false
       - package: CoreAISamplesKit
         product: ImageGenerationRuntime
+        link: false
+      - package: CoreAISamplesKit
+        product: ModelLibraryFeature
+        link: false
     postBuildScripts:
       - name: Sign hosted image test resources
         script: '"$SRCROOT/Tools/Testing/sign_test_resources.sh"'
         shell: /bin/bash
+        inputFileLists:
+          - $(SRCROOT)/Tools/Testing/image_test_resources.xcfilelist
         basedOnDependencyAnalysis: false
     settings:
       base:

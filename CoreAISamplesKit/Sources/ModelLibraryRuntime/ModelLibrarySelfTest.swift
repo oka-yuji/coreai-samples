@@ -5,6 +5,14 @@ import ModelLibraryStorage
 import ModelLibraryTransfer
 
 public enum ModelLibrarySelfTest {
+    public struct AcquisitionCheck {
+        let run: @MainActor (ModelLibraryAssembly.Library) async -> [String]
+
+        public init(_ run: @escaping @MainActor (ModelLibraryAssembly.Library) async -> [String]) {
+            self.run = run
+        }
+    }
+
     struct Report: Encodable {
         struct Registry: Encodable {
             let connectedDemos: [String]
@@ -81,6 +89,7 @@ public enum ModelLibrarySelfTest {
         output: URL, root: URL, registry: ModelDemoAdapterRegistry? = nil,
         capabilities: [DemoCapability: CapabilityState]? = nil, acquire target: String? = nil,
         assembly: ModelLibraryAssembly? = nil, importBundle: URL? = nil, unconnectedDemoIDs: Set<String> = [],
+        afterAcquisition: AcquisitionCheck? = nil,
         catalog: @MainActor () throws -> ModelCatalog = { try IOSDemoCatalog.make() }
     ) async -> Int32 {
         let failures: [String]
@@ -91,7 +100,7 @@ public enum ModelLibrarySelfTest {
                     catalog: catalog(), root: root,
                     registry: registry, capabilities: capabilities,
                     acquire: target, assembly: assembly, importBundle: importBundle,
-                    unconnectedDemoIDs: unconnectedDemoIDs)
+                    unconnectedDemoIDs: unconnectedDemoIDs, afterAcquisition: afterAcquisition)
                 failures = checked.failures
                 report = checked
             } catch {
@@ -116,7 +125,8 @@ public enum ModelLibrarySelfTest {
     static func check(
         catalog: ModelCatalog, root: URL, registry: ModelDemoAdapterRegistry?,
         capabilities: [DemoCapability: CapabilityState]?, acquire target: String? = nil,
-        assembly: ModelLibraryAssembly? = nil, importBundle: URL? = nil, unconnectedDemoIDs: Set<String> = []
+        assembly: ModelLibraryAssembly? = nil, importBundle: URL? = nil, unconnectedDemoIDs: Set<String> = [],
+        afterAcquisition: AcquisitionCheck? = nil
     ) async throws -> Report {
         let demos = catalog.demos.map(\.id).sorted()
         let connected = registry?.connectedDemos.sorted()
@@ -133,6 +143,9 @@ public enum ModelLibrarySelfTest {
         guard importBundle == nil || target != nil else {
             throw Failure(description: "Local import requires an exact artifact target")
         }
+        guard afterAcquisition == nil || target != nil else {
+            throw Failure(description: "Additional acquisition checks require an artifact target")
+        }
         let artifacts = try await inspect(catalog, root: root)
         for artifact in artifacts where artifact.sourceKind == nil && artifact.inspection != "missing" {
             failures.append(
@@ -140,15 +153,16 @@ public enum ModelLibrarySelfTest {
         }
         var acquisition: Report.Acquisition?
         if let target {
-            let acquired = try await acquire(
+            let (acquired, additionalFailures) = try await acquire(
                 target, catalog: catalog, root: root, capabilities: capabilities ?? [:],
                 assembly: assembly
                     ?? ModelLibraryAssembly(
                         adapters: [], store: ManagedModelStore(root: root), transfer: ArtifactTransfer()),
                 installed: Set(artifacts.filter { $0.inspection == "ready" }.map(\.artifactID)),
-                importBundle: importBundle)
+                importBundle: importBundle, afterAcquisition: afterAcquisition)
             if acquired.artifacts.isEmpty { failures.append("acquire: \(target) names no catalog artifact") }
             failures += acquired.artifacts.compactMap(problem)
+            failures += additionalFailures
             acquisition = acquired
         }
         let sections = catalog.sections(platform: .iOS, audience: .release)
@@ -201,11 +215,14 @@ public enum ModelLibrarySelfTest {
 
     private static func acquire(
         _ target: String, catalog: ModelCatalog, root: URL, capabilities: [DemoCapability: CapabilityState],
-        assembly: ModelLibraryAssembly, installed: Set<String>, importBundle: URL?
-    ) async throws -> Report.Acquisition {
+        assembly: ModelLibraryAssembly, installed: Set<String>, importBundle: URL?,
+        afterAcquisition: AcquisitionCheck?
+    ) async throws -> (Report.Acquisition, [String]) {
         let selected = catalog.models.flatMap { model in model.artifacts.map { (model, $0) } }
             .filter { target == "all" || $0.1.id == target }
-        guard !selected.isEmpty else { return Report.Acquisition(target: target, refreshSeconds: nil, artifacts: []) }
+        guard !selected.isEmpty else {
+            return (Report.Acquisition(target: target, refreshSeconds: nil, artifacts: []), [])
+        }
         if importBundle != nil {
             guard selected.count == 1, selected[0].1.id == target, selected[0].1.sourceKind == .localManifest else {
                 throw Failure(description: "Local import requires one exact local artifact target")
@@ -217,7 +234,8 @@ public enum ModelLibrarySelfTest {
         else {
             throw Failure(description: "A selected folder is required before acquiring an uninstalled local artifact")
         }
-        let library = assembly.makeLibrary(catalog: catalog, capabilities: capabilities, owner: UUID()).store
+        let context = assembly.makeLibrary(catalog: catalog, capabilities: capabilities, owner: UUID())
+        let library = context.store
         let clock = ContinuousClock()
         let refresh = clock.now
         library.send(.refresh)
@@ -266,7 +284,17 @@ public enum ModelLibrarySelfTest {
                     failure: timedOut
                         ? "The acquisition did not finish within 30 minutes" : installation.failure.map { "\($0)" }))
         }
-        return Report.Acquisition(target: target, refreshSeconds: refreshSeconds, artifacts: results)
+        let additionalFailures: [String]
+        if let afterAcquisition {
+            additionalFailures =
+                results.compactMap(problem).isEmpty
+                ? await afterAcquisition.run(context) : ["Additional checks require successful acquisition"]
+        } else {
+            additionalFailures = []
+        }
+        return (
+            Report.Acquisition(target: target, refreshSeconds: refreshSeconds, artifacts: results), additionalFailures
+        )
     }
 
     private static func settle(_ library: Store<ModelLibraryFeature>, _ artifactIDs: [String]) async -> Bool {

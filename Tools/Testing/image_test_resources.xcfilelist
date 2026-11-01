@@ -1,0 +1,10 @@
+$(CODESIGNING_FOLDER_PATH)/CoreAISamplesKit_GLiNERCore.bundle
+$(CODESIGNING_FOLDER_PATH)/CoreAISamplesKit_ImageGenerationUI.bundle
+$(CODESIGNING_FOLDER_PATH)/CoreAISamplesKit_ModelLibraryRuntime.bundle
+$(CODESIGNING_FOLDER_PATH)/CoreAISamplesKit_ModelLibraryStorage.bundle
+$(CODESIGNING_FOLDER_PATH)/CoreAISamplesKit_ModelLibraryUI.bundle
+$(CODESIGNING_FOLDER_PATH)/CoreAISamplesKit_ProductRuntime.bundle
+$(CODESIGNING_FOLDER_PATH)/CoreAISamplesKit_SpeechAssets.bundle
+$(CODESIGNING_FOLDER_PATH)/CoreAISamplesKit_TruckInspectionRuntime.bundle
+$(CODESIGNING_FOLDER_PATH)/swift-crypto_Crypto.bundle
+$(CODESIGNING_FOLDER_PATH)/swift-transformers_Hub.bundle

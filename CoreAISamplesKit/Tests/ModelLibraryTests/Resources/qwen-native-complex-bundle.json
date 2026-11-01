@@ -1,0 +1,733 @@
+{
+  "assets": {
+    "LICENSE": {
+      "bytes": 7831,
+      "sha256": "8dc973f024ff95966bea25866efa443fd16776dcb1001e681e3d467ea572b28d"
+    },
+    "NOTICE.txt": {
+      "bytes": 663,
+      "sha256": "d6aa4e607dfe3aa2b3581aa981be6c15123963d50c50bef4268b3eaabc713e65"
+    },
+    "README.txt": {
+      "bytes": 559,
+      "sha256": "ae8200a7e3ded6eb00b4db0ce196f4a8206e1ebb0f4cf0b5af6f741bdbca678a"
+    },
+    "compression.json": {
+      "bytes": 2525,
+      "sha256": "773d25c01c890904e6450af61870e53f4a099a4482b60f1871d228303e760189"
+    },
+    "config/processor/chat_template.jinja": {
+      "bytes": 5292,
+      "sha256": "3636d0f0bd6bef02654cdffdc447b79cb2cef8ab02cc75267345946291a489e4"
+    },
+    "config/processor/processor_config.json": {
+      "bytes": 1300,
+      "sha256": "14932921ca485d458a04dafd8069fbb0a4505622a48208d19ed247115801385b"
+    },
+    "config/processor/tokenizer.json": {
+      "bytes": 11422650,
+      "sha256": "be75606093db2094d7cd20f3c2f385c212750648bd6ea4fb2bf507a6a4c55506"
+    },
+    "config/processor/tokenizer_config.json": {
+      "bytes": 705,
+      "sha256": "fd42a0b35a8d13cd473e88e310b50cbf1bccaa9eb60ed0fd873af5f8f0c59307"
+    },
+    "config/scheduler/scheduler_config.json": {
+      "bytes": 486,
+      "sha256": "16c948c71f9152a34cce6e3a2f309e97ad2dca32beecbe5e2fd3a7925b7eb4bb"
+    },
+    "config/text_encoder/config.json": {
+      "bytes": 1542,
+      "sha256": "89050cba6b66c4f68f52305b54fc37efe28d95232246b94aa8dc0cfa36f3b734"
+    },
+    "config/transformer/config.json": {
+      "bytes": 370,
+      "sha256": "2c567038ca190824728844b8d06d94ae02360e668707afd9734e789a7eb58ce3"
+    },
+    "config/vae/config.json": {
+      "bytes": 2172,
+      "sha256": "42bfdec412459bbb7bc38a0617ab70edcfc873f84ec47e0c7d01c53ba09885a5"
+    },
+    "denoiser/component.json": {
+      "bytes": 18822,
+      "sha256": "627197fe7807e3f8509f4b5a69a4892ac05c89aa3a9a34d0e76f40761c8d39dc"
+    },
+    "denoiser/compression.json": {
+      "bytes": 227787,
+      "sha256": "3c08efbdf1a924c0487c6bd6c8accee05c01fa2f5e67afa4c8f2936c9bbbf396"
+    },
+    "denoiser/denoiser.aimodel/main.hash": {
+      "bytes": 32,
+      "sha256": "1cfa331fe79a115f4c444ece2e5322f11a8211daff315474f01520d319de9012"
+    },
+    "denoiser/denoiser.aimodel/main.mlirb": {
+      "bytes": 6846755894,
+      "sha256": "eacded0298a54afb1980c329c414e53e0b954b79ef905696712b310166eca568"
+    },
+    "denoiser/denoiser.aimodel/metadata.json": {
+      "bytes": 567,
+      "sha256": "96829143670e8053c63ea03d5eecca2eaaaac219a3a83c56018f65736088f254"
+    },
+    "evidence/A0/identity.json": {
+      "bytes": 1074,
+      "sha256": "dda0719aa91ed20ea6080e310028ecc061ae2897579b187cafe345ad8277ae27"
+    },
+    "evidence/A0/summary.json": {
+      "bytes": 166482,
+      "sha256": "8e6ffd1928e6ef2a56596a3d81ff6a83e6ae56a5b849b35cdfae2a1f6378a62b"
+    },
+    "evidence/A1/identity.json": {
+      "bytes": 15423,
+      "sha256": "3a25a23ddc781d3258854f870606e3f7291bbbd1d8402da27d1b641eaee7bde0"
+    },
+    "evidence/A1/summary.json": {
+      "bytes": 723975,
+      "sha256": "e945bff716ccd31290df22aa9170e20b2ee3d9f7ef46f06d1f103fcc25e54f1b"
+    },
+    "evidence/B/identity.json": {
+      "bytes": 722904,
+      "sha256": "999e04becad7b256aa28b60be49d03bfb4132a9e54df2398e14d74fdb09e7660"
+    },
+    "evidence/B/summary.json": {
+      "bytes": 1481128,
+      "sha256": "4acaf90594df20b194d68299b77200a9eb95019c8a6f617e66e37f674814230d"
+    },
+    "evidence/comparison.json": {
+      "bytes": 211924,
+      "sha256": "287a0f7ed409678c0dcbe69d4fd1aefdf736e093d841638d9c8a4014d3216a28"
+    },
+    "evidence/fixtures.json": {
+      "bytes": 74388,
+      "sha256": "b26820d8a34afd01f4f2c8e1ab2b0b66d951fe38e5b0a6b79104c1f555fe3ee9"
+    },
+    "evidence/numeric.json": {
+      "bytes": 3118784,
+      "sha256": "d5fc29ccb5f54e62df68497f1b5f31d27890ca47c496e4244e1d39d55c83cd66"
+    },
+    "evidence/owner-review.json": {
+      "bytes": 5564,
+      "sha256": "a6d76c7224d7807bf364de32aa0fe77772d7e4604829865e17c92fb7e25e5c53"
+    },
+    "evidence/quality-ratings.json": {
+      "bytes": 42107,
+      "sha256": "da3139c5a6e007001ea95b7c3af66ed52d0b3a3aeaf4ef4532a5bb066844bc1c"
+    },
+    "evidence/visual-equivalence.json": {
+      "bytes": 135961,
+      "sha256": "c5949123d82e9524e7867a1a5737c29ff3c898fdf2ad0faa5f147c84107b57de"
+    },
+    "text/component.json": {
+      "bytes": 18196,
+      "sha256": "9b763055751e1a54c8b337a534b3a6a677d1c8b615eb2a29137e66d1d4c3563d"
+    },
+    "text/compression.json": {
+      "bytes": 292373,
+      "sha256": "336e3ccd64f8e33bb1c86e023bb8a56a45316ef1f4fa731d80dfd92caffda012"
+    },
+    "text/text.aimodel/main.hash": {
+      "bytes": 32,
+      "sha256": "622aa59fd7ce0fb6c7c20fba2c6621d2777690799866e64aec61f398e4bcb4ed"
+    },
+    "text/text.aimodel/main.mlirb": {
+      "bytes": 4936279428,
+      "sha256": "c3637bd1c1254df244cd8511f1b6a71a64b058b0b3bde42c9c1cd77402b79205"
+    },
+    "text/text.aimodel/metadata.json": {
+      "bytes": 511,
+      "sha256": "679eaff8fbead5af9814a8e6460dd2798feaf5493af71b2644fcf3cd523e1d76"
+    },
+    "uv.lock": {
+      "bytes": 121801,
+      "sha256": "893377255e8793ea9c7cec2d914293a05efd7f1439a6c6783670e55254be1779"
+    },
+    "vae_decoder/component.json": {
+      "bytes": 17176,
+      "sha256": "9f1612e97b3ab6d2424ac64a4e530a3ff4edd05d6e0dd51c5b91e20edca77157"
+    },
+    "vae_decoder/compression.json": {
+      "bytes": 217,
+      "sha256": "1bbe6ac0cb507d113464d3741344b5474fd50e702d1dc07d0ff2baf9b7306776"
+    },
+    "vae_decoder/vae_decoder.aimodel/main.hash": {
+      "bytes": 32,
+      "sha256": "9c3f029dfabdd506b00b94625d16642e7607ce42c09924b416f48abbd61b79a9"
+    },
+    "vae_decoder/vae_decoder.aimodel/main.mlirb": {
+      "bytes": 1012367442,
+      "sha256": "d7ecc7a9335e4f613436afd9ce3caf0553779db5b2c0a407a5b5f64d2094ffa4"
+    },
+    "vae_decoder/vae_decoder.aimodel/metadata.json": {
+      "bytes": 518,
+      "sha256": "e499fb1e1e498cbe539d600efabf590bb10c6d439e7ad95c61d84b9c5315b00d"
+    },
+    "vae_encoder/component.json": {
+      "bytes": 17174,
+      "sha256": "7126039244cd6563a00aa3dee98848bda340638891c864f889ad6876ff38e09f"
+    },
+    "vae_encoder/compression.json": {
+      "bytes": 217,
+      "sha256": "e2c30e8b1c472cb3a7593dc06d0deb2e274332656fda768d6fb093e3a598892e"
+    },
+    "vae_encoder/vae_encoder.aimodel/main.hash": {
+      "bytes": 32,
+      "sha256": "81c77f8cfa67e1d12d4a72cf16d95ee5b6f079d80cd96580673ac9d9f982c125"
+    },
+    "vae_encoder/vae_encoder.aimodel/main.mlirb": {
+      "bytes": 311722097,
+      "sha256": "3634781357be061a962f235dae4fada2734f5be57d8f91228f03313141361e9a"
+    },
+    "vae_encoder/vae_encoder.aimodel/metadata.json": {
+      "bytes": 518,
+      "sha256": "5dbc6c20ddf0ad59abb20d3207802d4271196491538d743c4c86c1e0efa88d5a"
+    },
+    "vision/component.json": {
+      "bytes": 17712,
+      "sha256": "1f2775134330ef2c957c4aabcaf5159bcb839e133ba3a7e12247ed8d41c38b49"
+    },
+    "vision/compression.json": {
+      "bytes": 134033,
+      "sha256": "e2bb96e420e36a719417d5a404068d8d601e1552996de2600858189f9b186f36"
+    },
+    "vision/vision.aimodel/main.hash": {
+      "bytes": 32,
+      "sha256": "871b257311f5556dc8be2fd3e6731d5310cb38bd77b7cdd113cb80f5bafaa737"
+    },
+    "vision/vision.aimodel/main.mlirb": {
+      "bytes": 657333116,
+      "sha256": "f56b0e89184d07c001044ef1e35b690e94c264bc04e912b1591140032bad62cb"
+    },
+    "vision/vision.aimodel/metadata.json": {
+      "bytes": 513,
+      "sha256": "25e91c8005adb22f4bd9cd1e353dc6a8a7c422f041d1eb25e7162c56449f57f0"
+    }
+  },
+  "device_verification": "pending",
+  "evidence": {
+    "comparison": "evidence/comparison.json",
+    "numeric": "evidence/numeric.json",
+    "quality": "evidence/quality-ratings.json"
+  },
+  "format": 2,
+  "numeric_verified": true,
+  "profile": {
+    "components": {
+      "denoiser": {
+        "asset": "denoiser/denoiser.aimodel",
+        "compute_dtype": "float32",
+        "function": "main",
+        "inputs": [
+          {
+            "dtype": "float32",
+            "layout": "row-major",
+            "name": "latents",
+            "shape": [
+              1,
+              2048,
+              64
+            ]
+          },
+          {
+            "dtype": "float32",
+            "layout": "row-major",
+            "name": "text",
+            "shape": [
+              1,
+              512,
+              4096
+            ]
+          },
+          {
+            "dtype": "float32",
+            "layout": "row-major",
+            "name": "timestep",
+            "shape": [
+              1
+            ]
+          },
+          {
+            "dtype": "int32",
+            "layout": "row-major",
+            "name": "text_index",
+            "shape": [
+              2304
+            ]
+          },
+          {
+            "dtype": "int32",
+            "layout": "row-major",
+            "name": "image_index",
+            "shape": [
+              2304
+            ]
+          },
+          {
+            "dtype": "bool",
+            "layout": "row-major",
+            "name": "image_mask",
+            "shape": [
+              2304
+            ]
+          },
+          {
+            "dtype": "float32",
+            "layout": "row-major",
+            "name": "cosine",
+            "shape": [
+              1,
+              2304,
+              1,
+              64
+            ]
+          },
+          {
+            "dtype": "float32",
+            "layout": "row-major",
+            "name": "sine",
+            "shape": [
+              1,
+              2304,
+              1,
+              64
+            ]
+          },
+          {
+            "dtype": "bool",
+            "layout": "row-major",
+            "name": "mask",
+            "shape": [
+              1,
+              1,
+              2304,
+              2304
+            ]
+          },
+          {
+            "dtype": "bool",
+            "layout": "row-major",
+            "name": "target",
+            "shape": [
+              2304
+            ]
+          }
+        ],
+        "outputs": [
+          {
+            "dtype": "float32",
+            "layout": "row-major",
+            "name": "noise",
+            "shape": [
+              1,
+              2304,
+              64
+            ]
+          }
+        ],
+        "state_names": [],
+        "weight_encoding": {
+          "axis": 1,
+          "bits": 4,
+          "dense_modules": [
+            "transformer_blocks.16.attn.to_k.linear",
+            "transformer_blocks.16.attn.to_out.0.linear",
+            "transformer_blocks.16.attn.to_q.linear",
+            "transformer_blocks.16.attn.to_v.linear",
+            "transformer_blocks.16.img_mlp.gate_layer.linear",
+            "transformer_blocks.16.img_mlp.out.linear",
+            "transformer_blocks.16.img_mlp.proj.linear",
+            "transformer_blocks.17.attn.to_k.linear",
+            "transformer_blocks.17.attn.to_out.0.linear",
+            "transformer_blocks.17.attn.to_q.linear",
+            "transformer_blocks.17.attn.to_v.linear",
+            "transformer_blocks.17.img_mlp.gate_layer.linear",
+            "transformer_blocks.17.img_mlp.out.linear",
+            "transformer_blocks.17.img_mlp.proj.linear",
+            "transformer_blocks.18.attn.to_k.linear",
+            "transformer_blocks.18.attn.to_out.0.linear",
+            "transformer_blocks.18.attn.to_q.linear",
+            "transformer_blocks.18.attn.to_v.linear",
+            "transformer_blocks.18.img_mlp.gate_layer.linear",
+            "transformer_blocks.18.img_mlp.out.linear",
+            "transformer_blocks.18.img_mlp.proj.linear",
+            "transformer_blocks.19.attn.to_k.linear",
+            "transformer_blocks.19.attn.to_out.0.linear",
+            "transformer_blocks.19.attn.to_q.linear",
+            "transformer_blocks.19.attn.to_v.linear",
+            "transformer_blocks.19.img_mlp.gate_layer.linear",
+            "transformer_blocks.19.img_mlp.out.linear",
+            "transformer_blocks.19.img_mlp.proj.linear",
+            "transformer_blocks.20.attn.to_k.linear",
+            "transformer_blocks.20.attn.to_out.0.linear",
+            "transformer_blocks.20.attn.to_q.linear",
+            "transformer_blocks.20.attn.to_v.linear",
+            "transformer_blocks.20.img_mlp.gate_layer.linear",
+            "transformer_blocks.20.img_mlp.out.linear",
+            "transformer_blocks.20.img_mlp.proj.linear",
+            "transformer_blocks.21.attn.to_k.linear",
+            "transformer_blocks.21.attn.to_out.0.linear",
+            "transformer_blocks.21.attn.to_q.linear",
+            "transformer_blocks.21.attn.to_v.linear",
+            "transformer_blocks.21.img_mlp.gate_layer.linear",
+            "transformer_blocks.21.img_mlp.out.linear",
+            "transformer_blocks.21.img_mlp.proj.linear",
+            "transformer_blocks.22.attn.to_k.linear",
+            "transformer_blocks.22.attn.to_out.0.linear",
+            "transformer_blocks.22.attn.to_q.linear",
+            "transformer_blocks.22.attn.to_v.linear",
+            "transformer_blocks.22.img_mlp.gate_layer.linear",
+            "transformer_blocks.22.img_mlp.out.linear",
+            "transformer_blocks.22.img_mlp.proj.linear",
+            "transformer_blocks.23.attn.to_k.linear",
+            "transformer_blocks.23.attn.to_out.0.linear",
+            "transformer_blocks.23.attn.to_q.linear",
+            "transformer_blocks.23.attn.to_v.linear",
+            "transformer_blocks.23.img_mlp.gate_layer.linear",
+            "transformer_blocks.23.img_mlp.out.linear",
+            "transformer_blocks.23.img_mlp.proj.linear"
+          ],
+          "effective_weight": "round16((q-zp)*scale16)",
+          "embedding_dtype": "float32",
+          "group_size": 16,
+          "kind": "linear-integer",
+          "other_parameters_dtype": "float32",
+          "scheme": "symmetric_with_clipping",
+          "storage_dtype": "float16",
+          "time_frequency_dtype": "float32"
+        }
+      },
+      "text": {
+        "asset": "text/text.aimodel",
+        "compute_dtype": "float32",
+        "function": "main",
+        "inputs": [
+          {
+            "dtype": "int32",
+            "layout": "row-major",
+            "name": "input_ids",
+            "shape": [
+              1,
+              512
+            ]
+          },
+          {
+            "dtype": "float32",
+            "layout": "row-major",
+            "name": "vision",
+            "shape": [
+              1,
+              512,
+              4096
+            ]
+          },
+          {
+            "dtype": "float32",
+            "layout": "row-major",
+            "name": "deepstack",
+            "shape": [
+              3,
+              1,
+              512,
+              4096
+            ]
+          },
+          {
+            "dtype": "float32",
+            "layout": "row-major",
+            "name": "cosine",
+            "shape": [
+              1,
+              512,
+              128
+            ]
+          },
+          {
+            "dtype": "float32",
+            "layout": "row-major",
+            "name": "sine",
+            "shape": [
+              1,
+              512,
+              128
+            ]
+          },
+          {
+            "dtype": "bool",
+            "layout": "row-major",
+            "name": "mask",
+            "shape": [
+              1,
+              1,
+              512,
+              512
+            ]
+          },
+          {
+            "dtype": "bool",
+            "layout": "row-major",
+            "name": "visual_mask",
+            "shape": [
+              1,
+              512
+            ]
+          }
+        ],
+        "outputs": [
+          {
+            "dtype": "float32",
+            "layout": "row-major",
+            "name": "hidden",
+            "shape": [
+              1,
+              512,
+              4096
+            ]
+          }
+        ],
+        "state_names": [],
+        "weight_encoding": {
+          "axis": 1,
+          "bits": 4,
+          "effective_weight": "round16((q-zp)*scale16)",
+          "embedding_dtype": "float16",
+          "group_size": 64,
+          "kind": "linear-integer",
+          "other_parameters_dtype": "float32",
+          "scheme": "symmetric_with_clipping",
+          "storage_dtype": "float16"
+        }
+      },
+      "vae_decoder": {
+        "asset": "vae_decoder/vae_decoder.aimodel",
+        "compute_dtype": "float32",
+        "function": "main",
+        "inputs": [
+          {
+            "dtype": "float32",
+            "layout": "row-major",
+            "name": "value",
+            "shape": [
+              1,
+              64,
+              1,
+              32,
+              32
+            ]
+          }
+        ],
+        "outputs": [
+          {
+            "dtype": "float32",
+            "layout": "row-major",
+            "name": "result",
+            "shape": [
+              1,
+              4,
+              1,
+              512,
+              512
+            ]
+          }
+        ],
+        "state_names": [],
+        "weight_encoding": {
+          "dtype": "float32",
+          "kind": "dense"
+        }
+      },
+      "vae_encoder": {
+        "asset": "vae_encoder/vae_encoder.aimodel",
+        "compute_dtype": "float32",
+        "function": "main",
+        "inputs": [
+          {
+            "dtype": "float32",
+            "layout": "row-major",
+            "name": "value",
+            "shape": [
+              1,
+              4,
+              1,
+              512,
+              512
+            ]
+          }
+        ],
+        "outputs": [
+          {
+            "dtype": "float32",
+            "layout": "row-major",
+            "name": "result",
+            "shape": [
+              1,
+              64,
+              1,
+              32,
+              32
+            ]
+          }
+        ],
+        "state_names": [],
+        "weight_encoding": {
+          "dtype": "float32",
+          "kind": "dense"
+        }
+      },
+      "vision": {
+        "asset": "vision/vision.aimodel",
+        "compute_dtype": "float32",
+        "function": "main",
+        "inputs": [
+          {
+            "dtype": "float32",
+            "layout": "row-major",
+            "name": "pixel_values",
+            "shape": [
+              1024,
+              1536
+            ]
+          }
+        ],
+        "outputs": [
+          {
+            "dtype": "float32",
+            "layout": "row-major",
+            "name": "merged",
+            "shape": [
+              256,
+              4096
+            ]
+          },
+          {
+            "dtype": "float32",
+            "layout": "row-major",
+            "name": "deepstack_0",
+            "shape": [
+              256,
+              4096
+            ]
+          },
+          {
+            "dtype": "float32",
+            "layout": "row-major",
+            "name": "deepstack_1",
+            "shape": [
+              256,
+              4096
+            ]
+          },
+          {
+            "dtype": "float32",
+            "layout": "row-major",
+            "name": "deepstack_2",
+            "shape": [
+              256,
+              4096
+            ]
+          }
+        ],
+        "state_names": [],
+        "weight_encoding": {
+          "axis": 1,
+          "bits": 8,
+          "effective_weight": "round16((q-zp)*scale16)",
+          "embedding_dtype": "float32",
+          "group_size": 16,
+          "kind": "linear-integer",
+          "other_parameters_dtype": "float32",
+          "scheme": "symmetric_with_clipping",
+          "storage_dtype": "float16"
+        }
+      }
+    },
+    "format": 2,
+    "id": "qmi-mobile-w4-dit-g16-native-complex-blocks16-23-f32-v1",
+    "source": {
+      "converter_sha256": {
+        "contracts.py": "8845f80b45e2c204edc923c6a582c08cbbdf1ac2b82087fddc85750e7227c601",
+        "denoiser.py": "24b550ddaf052fd07dff90fb93ffcb843b53b57c39b28b745cd0bef1c6f9cd9a",
+        "encoders.py": "1ae52e4e5da23a98b850458a072280e7f7cf8762236ee33f4d6b3b4bae0ce23a",
+        "evaluation.py": "d44f3f0fc7364178959e4a2913244e9b50b46a6876c4aa222aa4e05c2dae4b85",
+        "metal_rotary.py": "7792daeea4fdd4d65a26ddf021dac93b749510cd4adc148f9c64fa87e860da99",
+        "mobile_artifacts.py": "35ebebac53cc83ddd5c91c4c8f69fc94faddb6f488c96c5b0e752ff9760e56ea",
+        "mobile_convert.py": "c028298349a85c84e441cc3ea7122f1ddc910581c83682fba7d0f0334703203a",
+        "mobile_models.py": "f54aaa49e24e884d91356171ee79e5a7fff64b3ebd6e51788b099e51e1b66ef9",
+        "mobile_profile.py": "657bb70ea750f98a53da9eb32ec021eeeca46ccbef6cb9255dcb00c040a6e32e",
+        "profile.py": "ff4118eb1681df3853da88f04c2bc49d87782cccd667c9d383c9d295e4797a3e",
+        "quantization.py": "9ece32c0483cebe456152ff06ca7dbc843d460ae64f99659a557dba66a5eddfd"
+      },
+      "dependency_lock_sha256": "893377255e8793ea9c7cec2d914293a05efd7f1439a6c6783670e55254be1779",
+      "implementation_revision": "b800f828f3951c4d206e154411bcbfa693cd322e",
+      "model": "Qwen/Qwen-Image-2.1-Turbo",
+      "revision": "fc13ba1986fcb905854dc8de2f52eee395f49b5b"
+    },
+    "workload": {
+      "batch": 1,
+      "cast_back": "every-step-to-model-output",
+      "cfg": 1,
+      "denoiser_fp16_clip": [
+        -65504,
+        65504
+      ],
+      "joint_capacity": 2304,
+      "maximum_references": 1,
+      "model_timestep_rule": "sigma-f32-scale1000-cast-divide1000",
+      "noise_dtype": "float32",
+      "noise_shape": [
+        1,
+        1024,
+        64
+      ],
+      "operation": "generate-and-edit",
+      "prefix_kv_cache": false,
+      "processed_text_capacity": 512,
+      "reference_resolution": [
+        512,
+        512
+      ],
+      "resolution": [
+        512,
+        512
+      ],
+      "rng_version": "torch-2.9.0-cpu-randn-packed-v1",
+      "rounding": "nearest-ties-to-even",
+      "scheduler_compute_dtype": "float32",
+      "scheduler_delta_dtype": "model-output",
+      "scheduler_output_dtype": "float32",
+      "scheduler_product_dtype": "model-output",
+      "sigmas": [
+        1.0,
+        0.978453,
+        0.95418,
+        0.926626,
+        0.89508,
+        0.845148,
+        0.704534,
+        0.414568
+      ],
+      "terminal_sigma": 0.0,
+      "zero_centered_norm_dtype": "float32"
+    }
+  },
+  "profile_sha256": "4341e99e65dcd4857dd5c29d4c5061d5ef51976b8e2cd5391317617f05356b3f",
+  "quality_acceptance": {
+    "accepted": true,
+    "benchmark_passed": false,
+    "criterion_id": "QMI-OWNER-VISUAL-01",
+    "device_verification": "pending",
+    "equivalence_evidence": "evidence/visual-equivalence.json",
+    "equivalence_file": {
+      "bytes": 135961,
+      "sha256": "c5949123d82e9524e7867a1a5737c29ff3c898fdf2ad0faa5f147c84107b57de"
+    },
+    "evidence": "evidence/owner-review.json",
+    "method": "qmi-owner-identical-gallery-v1",
+    "review_file": {
+      "bytes": 5564,
+      "sha256": "a6d76c7224d7807bf364de32aa0fe77772d7e4604829865e17c92fb7e25e5c53"
+    },
+    "scope": "Original qualitative visual acceptance reused for the exact byte-identical gallery and presentation; no new human review, benchmark score or device acceptance"
+  },
+  "quality_verified": true,
+  "source_revision": "fc13ba1986fcb905854dc8de2f52eee395f49b5b",
+  "target_minimum_os": "27.0",
+  "verified": true
+}
