@@ -806,6 +806,7 @@ final class AgentPageReader: NSObject, WKNavigationDelegate {
     private let policy: AgentFetchPolicy
     private let resolutions = AgentAddressScope()
     private(set) var contentRulesInstalled = false
+    private(set) var cancelledFrames = 0
     private var stopped = false
 
     init(policy: AgentFetchPolicy = AgentFetchPolicy()) {
