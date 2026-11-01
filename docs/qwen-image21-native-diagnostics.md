@@ -88,7 +88,7 @@ The adopted additional-memory budgets below use the largest valid terminal lifet
 
 A separate controlled host interruption after a DiT step-one `run-before` observation preserved both journals and the original request. Their request, asset and process bindings remained consistent after the app process disappeared. No measurement, output image or completion marker was produced. This verifies partial-record recovery; it does not claim successful generation or a native cancellation acknowledgement.
 
-The profile and known local artifact are registered. Models imported and inspected all 13,783,495,099 bytes through the ordinary Store. Separate-process restart and the explicit [service connection check](../Tools/Testing/README.md#models-connection-check) remain pending; current UI interaction and owner acceptance remain in #220 and #221.
+The profile and known local artifact are registered. Models imported and inspected all 13,783,495,099 bytes through the ordinary Store. Fresh app processes restore the installed resource without reimport. The explicit [service connection check](../Tools/Testing/README.md#models-connection-check) confirms normal preparation, one production service construction with the adopted budget, and permission revocation after close. Current UI interaction and owner acceptance remain in #220 and #221.
 
 ## Source-bound AOT comparison
 

@@ -1,7 +1,7 @@
 {
   "format": 1,
   "date": "2026-11-01",
-  "status": "calibration-and-import-verified-restart-pending",
+  "status": "calibration-and-models-connection-verified",
   "hardware_model": "iPhone18,1",
   "os_build": "24A446",
   "manifest_sha256": "8b9e34748d760fa9ec7762f5064652281c80effb19c692bcdbe8ef1e521d59ad",
@@ -20511,9 +20511,9 @@
     "scope": "Controlled host interruption and journal recovery; no successful generation or native cancellation acknowledgement claimed"
   },
   "models_verification": {
-    "status": "import-verified-restart-pending",
-    "code_revision": "7eb2a2f6d822f70e86fb82ffb53a44fc25bf6bac",
-    "binary_sha256": "ddc0c2cefbc1ed9dd94006a73157be3c2c71dd49a32f6db9a2130a2080f3895d",
+    "status": "verified",
+    "code_revision": "7ae9e90d859e0b6787cf7a4cc53a71674c69b5d8",
+    "binary_sha256": "105a89732fcd7414fde5d303470b93ac5fd4add99bf49f9219e905dfc0da9e9b",
     "source_matches_installed_build": true,
     "import": {
       "pid": 12345,
@@ -20538,15 +20538,185 @@
         "state": "ready"
       },
       "report_sha256": "63b3d9471c8322f29a14f3d26ea07be2b4b90d9e94ac9a916ee48f3f7cdfdbde",
-      "controller_sha256": "b4582181de22c88c8c6bcaf53f3803c808e688bbeebcc9e6041dea40f62172f1"
+      "controller_sha256": "b4582181de22c88c8c6bcaf53f3803c808e688bbeebcc9e6041dea40f62172f1",
+      "code_revision": "7eb2a2f6d822f70e86fb82ffb53a44fc25bf6bac",
+      "binary_sha256": "ddc0c2cefbc1ed9dd94006a73157be3c2c71dd49a32f6db9a2130a2080f3895d"
     },
     "image_adapter_registered": true,
     "image_adapter_unconnected": false,
     "public_download_available": false,
-    "restart_and_connection": "Not run: a separate app process appeared after the import process exited; awaiting coordination before restarting it."
+    "restart_and_connection": "Verified in separate app processes without reimport; the final build includes the latest main catalog update.",
+    "restart_verifications": [
+      {
+        "run": "models-restart-v2",
+        "code_revision": "7eb2a2f6d822f70e86fb82ffb53a44fc25bf6bac",
+        "controller_source_revision": "5e54da3826ddbf57777e754dccb2628810c3c57e",
+        "binary_sha256": "ddc0c2cefbc1ed9dd94006a73157be3c2c71dd49a32f6db9a2130a2080f3895d",
+        "pid": 15477,
+        "process_terminated": true,
+        "acquisition": {
+          "artifactID": "qmi-mobile-w4-dit-g16-native-complex-blocks16-23-f32-v1",
+          "definedBytes": 13783495099,
+          "identity": {
+            "artifactID": "qmi-mobile-w4-dit-g16-native-complex-blocks16-23-f32-v1",
+            "contract": "qwen-image21-mobile-v2",
+            "modelID": "qwen-image21-turbo",
+            "revision": "8b9e34748d760fa9ec7762f5064652281c80effb19c692bcdbe8ef1e521d59ad",
+            "sourceKind": "localManifest",
+            "upstreamRevision": "fc13ba1986fcb905854dc8de2f52eee395f49b5b"
+          },
+          "inspection": "ready",
+          "measuredBytes": 13783495099,
+          "modelID": "qwen-image21-turbo",
+          "revision": "8b9e34748d760fa9ec7762f5064652281c80effb19c692bcdbe8ef1e521d59ad",
+          "route": "installed",
+          "state": "ready"
+        },
+        "connection": {
+          "artifactID": "qmi-mobile-w4-dit-g16-native-complex-blocks16-23-f32-v1",
+          "budget": {
+            "components": {
+              "denoiser": {
+                "inferenceAdditionalBytes": 3107979264,
+                "loadingAdditionalBytes": 3560964096
+              },
+              "text": {
+                "inferenceAdditionalBytes": 3077570560,
+                "loadingAdditionalBytes": 3731881984
+              },
+              "vae_decoder": {
+                "inferenceAdditionalBytes": 2055208960,
+                "loadingAdditionalBytes": 3597664256
+              },
+              "vae_encoder": {
+                "inferenceAdditionalBytes": 3141533696,
+                "loadingAdditionalBytes": 3537895424
+              },
+              "vision": {
+                "inferenceAdditionalBytes": 3435134976,
+                "loadingAdditionalBytes": 3757047808
+              }
+            },
+            "manifestSHA256": "8b9e34748d760fa9ec7762f5064652281c80effb19c692bcdbe8ef1e521d59ad",
+            "profileID": "qmi-mobile-w4-dit-g16-native-complex-blocks16-23-f32-v1"
+          },
+          "closed": true,
+          "contract": "qwen-image21-mobile-v2",
+          "factoryCalls": 1,
+          "failures": [],
+          "modelID": "qwen-image21-turbo",
+          "permissionAfterBinding": true,
+          "permissionAfterClose": false,
+          "prepared": true,
+          "revision": "8b9e34748d760fa9ec7762f5064652281c80effb19c692bcdbe8ef1e521d59ad",
+          "scope": "Normal Models acquisition, preparation, adapter and live-service binding; no image generation or UI interaction",
+          "serviceCreated": true,
+          "sourceKind": "localManifest"
+        },
+        "files": {
+          "report.json": {
+            "bytes": 4488,
+            "sha256": "0560777562f3550e0731ceb9cbfc60a2a50fc47632b70d5e4760c20af1af4265"
+          },
+          "connection.json": {
+            "bytes": 1419,
+            "sha256": "ea0094b94374e897cf1c4e487fe83472e7d6876b2450cd781c8b757f62476a63"
+          },
+          "controller.json": {
+            "bytes": 507,
+            "sha256": "0799a5ab827c6530122a4566d84ee203160e367a6adff968361c332fc159ac57"
+          }
+        }
+      },
+      {
+        "run": "models-restart-v3",
+        "code_revision": "7ae9e90d859e0b6787cf7a4cc53a71674c69b5d8",
+        "controller_source_revision": "7ae9e90d859e0b6787cf7a4cc53a71674c69b5d8",
+        "binary_sha256": "105a89732fcd7414fde5d303470b93ac5fd4add99bf49f9219e905dfc0da9e9b",
+        "pid": 15526,
+        "process_terminated": true,
+        "acquisition": {
+          "artifactID": "qmi-mobile-w4-dit-g16-native-complex-blocks16-23-f32-v1",
+          "definedBytes": 13783495099,
+          "identity": {
+            "artifactID": "qmi-mobile-w4-dit-g16-native-complex-blocks16-23-f32-v1",
+            "contract": "qwen-image21-mobile-v2",
+            "modelID": "qwen-image21-turbo",
+            "revision": "8b9e34748d760fa9ec7762f5064652281c80effb19c692bcdbe8ef1e521d59ad",
+            "sourceKind": "localManifest",
+            "upstreamRevision": "fc13ba1986fcb905854dc8de2f52eee395f49b5b"
+          },
+          "inspection": "ready",
+          "measuredBytes": 13783495099,
+          "modelID": "qwen-image21-turbo",
+          "revision": "8b9e34748d760fa9ec7762f5064652281c80effb19c692bcdbe8ef1e521d59ad",
+          "route": "installed",
+          "state": "ready"
+        },
+        "connection": {
+          "artifactID": "qmi-mobile-w4-dit-g16-native-complex-blocks16-23-f32-v1",
+          "budget": {
+            "components": {
+              "denoiser": {
+                "inferenceAdditionalBytes": 3107979264,
+                "loadingAdditionalBytes": 3560964096
+              },
+              "text": {
+                "inferenceAdditionalBytes": 3077570560,
+                "loadingAdditionalBytes": 3731881984
+              },
+              "vae_decoder": {
+                "inferenceAdditionalBytes": 2055208960,
+                "loadingAdditionalBytes": 3597664256
+              },
+              "vae_encoder": {
+                "inferenceAdditionalBytes": 3141533696,
+                "loadingAdditionalBytes": 3537895424
+              },
+              "vision": {
+                "inferenceAdditionalBytes": 3435134976,
+                "loadingAdditionalBytes": 3757047808
+              }
+            },
+            "manifestSHA256": "8b9e34748d760fa9ec7762f5064652281c80effb19c692bcdbe8ef1e521d59ad",
+            "profileID": "qmi-mobile-w4-dit-g16-native-complex-blocks16-23-f32-v1"
+          },
+          "closed": true,
+          "contract": "qwen-image21-mobile-v2",
+          "factoryCalls": 1,
+          "failures": [],
+          "modelID": "qwen-image21-turbo",
+          "permissionAfterBinding": true,
+          "permissionAfterClose": false,
+          "prepared": true,
+          "revision": "8b9e34748d760fa9ec7762f5064652281c80effb19c692bcdbe8ef1e521d59ad",
+          "scope": "Normal Models acquisition, preparation, adapter and live-service binding; no image generation or UI interaction",
+          "serviceCreated": true,
+          "sourceKind": "localManifest"
+        },
+        "files": {
+          "report.json": {
+            "bytes": 4490,
+            "sha256": "90c291761a1088cacfe25351950328f1cbe6e1117b708c0ee7147f8ac8803ba5"
+          },
+          "connection.json": {
+            "bytes": 1419,
+            "sha256": "ea0094b94374e897cf1c4e487fe83472e7d6876b2450cd781c8b757f62476a63"
+          },
+          "controller.json": {
+            "bytes": 507,
+            "sha256": "a8d19e3b77a3d39f9d709f417442b18ce41347bfce42f1b6274a97414c088534"
+          }
+        }
+      }
+    ],
+    "prior_control_refusal": {
+      "run": "models-restart-v1",
+      "status": "not-run",
+      "reason": "A separate app process was present. After the owner confirmed they were not using the phone, it was restarted under explicit authorization."
+    }
   },
   "remaining": [
-    "Separate-process restart and production service connection verification; import already passed",
     "Current UI interaction and owner acceptance in #220/#221",
     "Warm performance acceptance and immediate same-service reuse are separate; recorded runtimes exceed the provisional latency targets"
   ]

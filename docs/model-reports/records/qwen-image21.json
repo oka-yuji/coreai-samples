@@ -15,8 +15,8 @@
   },
   "release": "in_progress",
   "release_note": {
-    "en": "Ten iPhone trials passed; measured profile and local import enabled; restart/connection check pending",
-    "ja": "iPhone連続10回合格／実測予算・ローカル取込対応／再起動・接続確認は未完"
+    "en": "Ten iPhone trials and Models import/restart/service binding verified; ordinary UI acceptance pending",
+    "ja": "iPhone連続10回・Models取込／再起動／サービス接続確認済み／通常UI受入は未完"
   },
   "download": null,
   "pages": {
@@ -124,11 +124,12 @@
       "variants": [],
       "evidence": [
         "native-corrected-20261030",
-        "device-calibration-20261101"
+        "device-calibration-20261101",
+        "models-connection-20261101"
       ],
       "note": {
-        "en": "Ten fixed generation/editing requests completed in one main-app process and all saved RGBA/PNG pixels match the accepted native outputs. The measured profile is enabled only for iPhone18,1 / 24A446 and the pinned local artifact. Models imported and inspected all 13,783,495,099 bytes. Separate-process restart and service-connection verification remain pending. No public download, completed UI acceptance or latency acceptance.",
-        "ja": "本体の同一processで固定の生成・編集10回が完走し、保存RGBAとPNG画素は全件で既合格の本体出力と一致。iPhone18,1／24A446と固定ローカル資産だけに実測予算を登録。Modelsで13,783,495,099 bytesの取り込み・検査が成功した。別processの再起動とサービス接続は未確認。公開DL・通常UI・待ち時間の受入は未完。"
+        "en": "Ten fixed generation/editing requests completed in one main-app process and all saved RGBA8/PNG pixels match the accepted native outputs. The measured profile is limited to iPhone18,1 / 24A446 and the pinned local artifact. Models imported all 13,783,495,099 bytes, restored the installed resource in new processes, and bound then closed one production image service with the adopted budget. Ordinary UI interaction, owner acceptance and latency acceptance remain separate; no public model download is configured.",
+        "ja": "本体の同一processで固定の生成・編集10回が完走し、保存RGBA8とPNG画素は全件で既合格の本体出力と一致。実測予算はiPhone18,1／24A446と固定ローカル資産に限定。Modelsで13,783,495,099 bytesを取り込み、別processで再取込なしに復元し、採用予算で本番画像serviceの接続・終了を確認した。通常UI操作・本人受入・待ち時間の受入は別。公開モデルDLは未設定。"
       }
     }
   },
@@ -598,8 +599,8 @@
       "artifact_revision": "8b9e34748d760fa9ec7762f5064652281c80effb19c692bcdbe8ef1e521d59ad",
       "code_revision": "03e61840c92673c4ca1df005910831d387f588a1",
       "workload": {
-        "en": "Ten 512-square, eight-step requests using fixed g02/20261021 generation and e10/20261018 editing inputs and noise. All saved RGBA8/PNG pixels match accepted native outputs; no new latent or unclipped-tensor comparison is claimed. 387,435 memory samples, zero invalid samples, maximum gap 65.097 ms, five-second footprint 98,110,000–122,145,304 bytes. Expanded budgets pass 483 recorded admission points, including separately labeled older controls. Controlled interruption preserves bound journals without a successful result. Low Power Mode was off; transport was wired USB, but charging state and a common-benchmark plan hash were not recorded. Current Models import is separately recorded under source 7eb2a2f; its restart and service connection are pending.",
-        "ja": "固定g02/20261021生成とe10/20261018編集・固定noiseの512角8stepを計10回。保存RGBA8とPNG画素が既合格の本体出力へ全一致し、新たなlatent／未clip tensor照合とはしない。メモリ387,435標本、invalid0、最大gap65.097ms、解放5秒後footprint98,110,000〜122,145,304 B。旧条件を区別して含めた拡張予算は483観測地点で通過。明示中断でも対応の取れたjournalが残り、成功結果は作られない。低電力modeはoff、接続はUSBだが給電状態と共通benchmarkの計画hashは未記録。Models取込は別の7eb2a2fの結果で、再起動・サービス接続は未確認。"
+        "en": "Ten 512-square, eight-step requests using fixed g02/20261021 generation and e10/20261018 editing inputs and noise. All saved RGBA8/PNG pixels match accepted native outputs; no new latent or unclipped-tensor comparison is claimed. 387,435 memory samples, zero invalid samples, maximum gap 65.097 ms, five-second footprint 98,110,000–122,145,304 bytes. Expanded budgets pass 483 recorded admission points, including separately labeled older controls. Controlled interruption preserves bound journals without a successful result. Low Power Mode was off; transport was wired USB, but charging state and a common-benchmark plan hash were not recorded. Models import, restart and service binding are separately recorded with their own source and binary identities.",
+        "ja": "固定g02/20261021生成とe10/20261018編集・固定noiseの512角8stepを計10回。保存RGBA8とPNG画素が既合格の本体出力へ全一致し、新たなlatent／未clip tensor照合とはしない。メモリ387,435標本、invalid0、最大gap65.097ms、解放5秒後footprint98,110,000〜122,145,304 B。旧条件を区別して含めた拡張予算は483観測地点で通過。明示中断でも対応の取れたjournalが残り、成功結果は作られない。低電力modeはoff、接続はUSBだが給電状態と共通benchmarkの計画hashは未記録。Models取込・再起動・service接続は別のsource/binary identityとともに記録。"
       },
       "batch_size": 1,
       "concurrency": 1,
@@ -608,6 +609,34 @@
       "thermal": "Observed raw thermal states 0, 1 and 2; individual observations retained",
       "plan_sha256": null,
       "model_executed": true
+    },
+    "models-connection-20261101": {
+      "url": "docs/research/qwen-image21-device-calibration-20261101.json",
+      "level": "native_app",
+      "outcome": "passed",
+      "record_type": "legacy",
+      "date": "2026-11-01",
+      "platform": "ios",
+      "device": "iPhone 17 Pro (iPhone18,1)",
+      "os": "iOS 27.0.1 (24A446)",
+      "toolchain": "Xcode 27.0; Swift 6.4; system Core AI runtime",
+      "variant": "qmi-mobile-w4-dit-g16-native-complex-blocks16-23-f32-v1",
+      "backend": "Core AI; GPU preferred",
+      "route": "Ordinary Models Store import, installed-resource inspection in fresh app processes, preparation and renderer/adapter/production-service binding followed by close",
+      "source_revision": "fc13ba1986fcb905854dc8de2f52eee395f49b5b",
+      "artifact_revision": "8b9e34748d760fa9ec7762f5064652281c80effb19c692bcdbe8ef1e521d59ad",
+      "code_revision": "7ae9e90d859e0b6787cf7a4cc53a71674c69b5d8",
+      "workload": {
+        "en": "The local 51-file artifact imports and inspects ready at exactly 13,783,495,099 bytes. Fresh processes use route=installed without reimport. The normal Store, resource lease, renderer, adapter and production factory create exactly one live service with the adopted budget; permission is true after binding and false after confirmed close. The final candidate includes main through 73e6a20. These connection checks do not execute model inference or UI interactions. Earlier preflight refusal and source/binary bindings are retained.",
+        "ja": "51fileのローカル資産を13,783,495,099 bytesで取り込み・検査してready。別processでは再取込なしのinstalled経路で復元。通常Store・lease・renderer・adapter・本番factoryを通して採用予算の実serviceを1回構築し、binding後のpermission=trueとclose完了後falseを確認。最終候補はmainの73e6a20まで統合。接続検査自体はモデル推論とUI操作を実行しない。先行する起動前拒否とsource/binaryの対応を保持。"
+      },
+      "batch_size": null,
+      "concurrency": 1,
+      "warmups": null,
+      "power": null,
+      "thermal": null,
+      "plan_sha256": null,
+      "model_executed": false
     }
   },
   "measurements": [
