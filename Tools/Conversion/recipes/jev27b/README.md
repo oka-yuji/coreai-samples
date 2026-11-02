@@ -10,6 +10,8 @@ evaluate the model. It records what later stages may rely on:
   calibration files. A mismatch fails the check; the contract is not adjusted to the files.
 - `ready.json` from the `prepare` step: integrity, tokenizer comparison, adapter and head
   layout, and the versions of both environments and the Apple toolchain.
+- `fixtures/`: identifiers and hashes of the fixed sets F, Q, Cal, H and J
+  ([fixtures/README.md](fixtures/README.md)). No corpus or JGLUE text is stored.
 - `Tools/Conversion/adapters/jev27b/typed_head.py`: rendering of the `bare-v1` template,
   slot ranges, temperature and softmax, token bands, tokenization and the final hidden state.
 
@@ -50,9 +52,12 @@ Setup checks the integrity records and then, under the shared machine lock, crea
   `coreai-models` package environment and the release `llm-runner`;
 - `.local/conversion/jev27b.paths.json` and `.local/conversion/jev27b/setup.json`.
 
-`--snapshot` selects another JEV-27B folder. The run has one step: `prepare` writes `ready.json`
-without re-hashing the weight shards. It compares sizes and modification times with the
-integrity records and re-hashes files up to 32 MiB.
+`--snapshot` selects another JEV-27B folder. The run has two steps:
+
+- `prepare` writes `ready.json` without re-hashing the weight shards. It compares sizes and
+  modification times with the integrity records and re-hashes files up to 32 MiB.
+- `fixture` regenerates every set, requires byte-identical files and restores each row from the
+  corpus and JGLUE files through `load_rows` with matching hashes.
 
 ## Tokenizer
 
@@ -67,4 +72,4 @@ unchanged. Token identifiers in Swift are compared against the same file.
 ## Terms
 
 JEV-27B and `Qwen/Qwen3.8-27B` are Apache-2.0. The JEV corpus is Apache-2.0 and asks for
-credit in derived work. JGLUE is CC BY-SA 4.0.
+credit in derived work. JGLUE is CC BY-SA 4.0. The fixtures keep identifiers and hashes only.

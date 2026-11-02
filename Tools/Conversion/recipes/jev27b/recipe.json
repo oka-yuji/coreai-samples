@@ -1,7 +1,7 @@
 {
   "version": 1,
   "name": "jev27b_typed_decision",
-  "description": "Pinned JEV-27B System 1 inputs and the reference and converter environments.",
+  "description": "Pinned JEV-27B System 1 inputs, reference and converter environments, and fixed evaluation sets.",
   "variables": {
     "adapters": "$repo/Tools/Conversion/adapters/jev27b",
     "fixtures": "$recipe_dir/fixtures"
@@ -60,6 +60,44 @@
       "checks": [{"file": "ready.json", "key": ["ready"], "equals": true}],
       "cache": false,
       "timeout_s": 600
+    },
+    {
+      "id": "fixture",
+      "role": "verify",
+      "depends": ["prepare"],
+      "command": [
+        "$python", "-m", "Tools.Conversion.adapters.jev27b.fixtures",
+        "--model", "$recipe_dir/model.json",
+        "--snapshot", "$snapshot",
+        "--corpus", "$corpus",
+        "--jglue", "$jglue",
+        "--fixtures", "$fixtures",
+        "--output", "$out",
+        "--check"
+      ],
+      "cwd": "$repo",
+      "inputs": [
+        "$adapters/fixtures.py",
+        "$adapters/prepare.py",
+        "$adapters/typed_head.py",
+        "$repo/Tools/Conversion/adapters/pinned.py",
+        "$repo/Tools/Conversion/storage.py",
+        "$recipe_dir/model.json",
+        "$fixtures",
+        "${corpus}.integrity.json",
+        "$corpus/test_set_30k.jsonl",
+        "$corpus/test.jsonl",
+        "$corpus/calibration.jsonl",
+        "${jglue}.integrity.json",
+        "$jglue/datasets",
+        "$snapshot/config.json",
+        "$snapshot/tokenizer.json",
+        "$snapshot/tokenizer_config.json",
+        "$snapshot/chat_template.jinja"
+      ],
+      "outputs": ["F.json", "Q.json", "Cal.json", "H.json", "J.json", "check.json"],
+      "checks": [{"file": "check.json", "key": ["passed"], "equals": true}],
+      "timeout_s": 1800
     }
   ]
 }
