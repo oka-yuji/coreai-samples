@@ -326,6 +326,8 @@ def main():
         report = check(args.fixtures, args.output, args.corpus, args.jglue)
         report.update(integrity=integrity, placeholder_rows=placeholders)
         write_json(args.output / "check.json", report)
+        return 0 if report["passed"] else 1
+    return 0
 
 
 if __name__ == "__main__":

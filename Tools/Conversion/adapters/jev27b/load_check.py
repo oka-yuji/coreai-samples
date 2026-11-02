@@ -102,12 +102,14 @@ def main():
         "eval": not lora["training"],
         "card_examples": all(result["card_max_difference"] <= CARD_TOLERANCE
                              for result in results if "card_max_difference" in result)}
+    passed = all(checks.values())
     write_json(output, {
-        "passed": all(checks.values()), "checks": checks, "card_tolerance": CARD_TOLERANCE, "device": args.device,
+        "passed": passed, "checks": checks, "card_tolerance": CARD_TOLERANCE, "device": args.device,
         "dtype": "bfloat16", "lora": lora, "rows": results, "temperatures": temperatures,
         "timing_s": {"base_load": round(base_loaded - started, 1), "adapter_load": round(adapter_loaded - base_loaded, 1),
                      "forward_total": round(finished - loop_started, 1), "total": round(finished - started, 1)},
         "memory": memory})
+    return 0 if passed else 1
 
 
 if __name__ == "__main__":
