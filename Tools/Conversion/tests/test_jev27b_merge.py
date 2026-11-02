@@ -10,7 +10,7 @@ from Tools.Conversion import summary
 from Tools.Conversion.adapters.jev27b.merge import (
     lora_pairs, manifest_files, merge, merge_projection, merged_revision, saved_index, saved_name, targeted,
 )
-from Tools.Conversion.adapters.jev27b.verify_merge import THRESHOLD, compare_outputs
+from Tools.Conversion.adapters.jev27b.verify_merge import THRESHOLD, compare_outputs, identical
 from Tools.Conversion.storage import PipelineError
 
 TORCH = importlib.util.find_spec("torch") is not None
@@ -35,6 +35,15 @@ class MergeFormulaTests(unittest.TestCase):
         self.assertEqual(merged.dtype, torch.bfloat16)
         self.assertTrue(torch.equal(merged, (weight.float() + 2.0 * (b @ a)).to(torch.bfloat16)))
         self.assertFalse(torch.equal(merged, weight + (2.0 * (b @ a)).to(torch.bfloat16)))
+
+    def test_tensors_are_compared_bit_for_bit(self):
+        import torch
+
+        values = torch.tensor([float("nan"), 1.5]).to(torch.bfloat16)
+        self.assertTrue(identical(values, values.clone()))
+        self.assertFalse(identical(torch.zeros(1, dtype=torch.bfloat16), -torch.zeros(1, dtype=torch.bfloat16)))
+        self.assertFalse(identical(values, values.float()))
+        self.assertFalse(identical(values.reshape(1, 2), values))
 
     def test_merge_writes_renamed_shards_with_bit_identical_copies_and_a_stable_size(self):
         import torch
@@ -176,6 +185,10 @@ class OutputComparisonTests(unittest.TestCase):
         first, second = row("a", [0.2, 0.8], [0.2, 0.8])
         outputs, _, _ = compare_outputs({"passed": False, "rows": [first]}, {"passed": True, "rows": [second]})
         self.assertEqual((outputs["passed"], outputs["references_passed"], outputs["rows_match"]), (False, False, True))
+        _, rejected = row("a", None, None, rejected=True)
+        outputs, joined, compared = compare_outputs({"passed": True, "rows": [first]}, {"passed": True, "rows": [rejected]})
+        self.assertEqual((outputs["passed"], outputs["rows_match"], outputs["differing_rows"], compared, joined),
+                         (False, False, ["a"], 0, []))
 
 
 class MergeSummaryTests(unittest.TestCase):

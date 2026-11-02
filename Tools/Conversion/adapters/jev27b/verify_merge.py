@@ -14,6 +14,14 @@ from .typed_head import BANDS
 SCHEMA = "typed-decision-merge/1"
 THRESHOLD = 0.01
 SHARED = ("id", "kind", "options", "band", "row_sha256", "text_sha256", "token_count", "tokens", "rejected")
+TEXT_KEYS = ("rope_parameters", "layer_types", "mamba_ssm_dtype", "mtp_num_hidden_layers")
+
+
+def identical(first, second):
+    import torch
+
+    return first.dtype == second.dtype and first.shape == second.shape \
+        and torch.equal(first.reshape(-1).view(torch.uint8), second.reshape(-1).view(torch.uint8))
 
 
 def check_weights(snapshot, base, merged, contract):
@@ -55,12 +63,12 @@ def check_weights(snapshot, base, merged, contract):
                     dtypes[f"{name.rsplit('.', 1)[-1]}:{after.dtype}"] += 1
                     if after.dtype != before.dtype:
                         retyped.append(name)
-                    elif not torch.equal(after, expected):
+                    elif not identical(after, expected):
                         mismatched.append(name)
     config = read_json(checkpoint / "config.json")
     flat = read_json(snapshot / "config.json")
     text = config.get("text_config", {})
-    different = sorted(key for key in text if key not in flat or flat[key] != text[key])
+    different = sorted({key for key in text if key not in flat or flat[key] != text[key]} | set(TEXT_KEYS) - set(text))
     files = manifest_files(checkpoint)
     manifest = read_json(merged / "manifest.json")
     checks = {
@@ -120,7 +128,7 @@ def compare_outputs(reference, merged):
     matching = [row["id"] for row in first] == [row["id"] for row in second]
     differing = [a["id"] for a, b in zip(first, second) if any(a[key] != b[key] for key in SHARED)] if matching else []
     joined, errors = [], []
-    for a, b in zip(first, second) if matching else ():
+    for a, b in zip(first, second) if matching and not differing else ():
         row = {key: a[key] for key in SHARED}
         for stage, source in (("0", a), ("1", a), ("1m", b)):
             for key in (f"logits{stage}", f"p{stage}", f"p{stage}_T", f"elapsed{stage}_s"):
