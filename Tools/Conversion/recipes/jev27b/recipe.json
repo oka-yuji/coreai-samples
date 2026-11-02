@@ -182,7 +182,7 @@
       "command": [
         "$python", "-m", "Tools.Conversion.adapters.jev27b.reference_merged",
         "--model", "$recipe_dir/model.json",
-        "--checkpoint", "$merge/checkpoint",
+        "--merge", "$merge",
         "--snapshot", "$snapshot",
         "--corpus", "$corpus",
         "--jglue", "$jglue",

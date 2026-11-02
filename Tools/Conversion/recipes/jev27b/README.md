@@ -81,16 +81,18 @@ a reused step does not, and `--refresh` always adds another.
   with sorted keys and no spaces, so it depends only on the files. `provenance.json` records the
   input hashes, the formula, the scale, the dtypes, the pairs per target, the mapping of layers 0
   and 3, the elapsed time, the peak resident memory and the library versions.
-- `reference` renders and tokenizes every row of F, rejects rows longer than 8,192 tokens without a
+- `reference` first checks that PEFT holds every adapter pair of the file with the scale 2.0 in eval
+  mode. It renders and tokenizes every row of F, rejects rows longer than 8,192 tokens without a
   forward pass, and computes the head logits and the probabilities at temperature 1 and at the
-  calibrated temperature with the adapter (stage 1) and inside `disable_adapter()` (stage 0).
+  calibrated temperature with the adapter (stage 1) and inside `disable_adapter()` (stage 0), where
+  every LoRA layer must report itself disabled.
 - `reference_merged` loads the checkpoint as `Qwen3_5ForCausalLM` with
   `config=Qwen3_5Config.from_pretrained(checkpoint).text_config`. Transformers 5.16.1 removes the
-  `language_model` prefix for `qwen3_5_text`, so no `key_mapping` is given; missing, unexpected and
-  mismatched keys must be empty. It runs the same rows (stage 1') and also writes
-  `hidden.safetensors`: `hidden` [302, 5120] float32 in the order of F, zero for rejected rows, and
-  `mask` [302] uint8 that is 1 for rows with a forward pass. The metadata entry `ids` lists the row
-  IDs.
+  `language_model` prefix for `qwen3_5_text`, so no `key_mapping` is given; the applied conversion
+  rules are recorded, and missing, unexpected and mismatched keys must be empty before any row runs.
+  It runs the same rows (stage 1') and also writes `hidden.safetensors`: `hidden` [302, 5120]
+  float32 in the order of F, zero for rejected rows, and `mask` [302] uint8 that is 1 for rows with
+  a forward pass. Its metadata holds `merged_revision` and the row IDs (`ids`).
 - `verify_merge` recomputes every merged projection from the source tensors and the adapter, and
   compares all 851 tensors bit for bit, their dtypes, the index, the shard headers, `config.json`,
   the tokenizer files and the manifest. It requires both references to have passed and their rows

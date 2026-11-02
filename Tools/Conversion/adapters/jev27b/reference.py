@@ -108,16 +108,19 @@ def main():
     adapter_loaded = time.perf_counter()
     lora = lora_summary(model, load_file(str(args.snapshot / "adapter/adapter_model.safetensors")))
     layers = [module for module in model.modules() if isinstance(module, LoraLayer)]
-    forward1_s, allocated1 = forward(model, rows, head, "1", args.device)
-    with model.disable_adapter():
-        lora["disabled_in_stage0"] = sum(module.disable_adapters for module in layers)
-        forward0_s, allocated0 = forward(model, rows, head, "0", args.device)
-    lora["enabled_after_stage0"] = sum(not module.disable_adapters for module in layers)
     checks = {"pairs": lora["consumed_pairs"] == lora["file_pairs"] == len(layers) == contract["lora"]["pairs"],
               "state_matches_file": not lora["missing"] and not lora["unexpected"],
-              "scale": lora["scaling"] == [contract["lora"]["scale"]], "eval": not lora["training"],
-              "stage0_disables_every_layer": lora["disabled_in_stage0"] == len(layers),
-              "stage1_layers_restored": lora["enabled_after_stage0"] == len(layers)}
+              "scale": lora["scaling"] == [contract["lora"]["scale"]], "eval": not lora["training"]}
+    forward1_s = forward0_s = 0.0
+    allocated1 = allocated0 = 0
+    if all(checks.values()):
+        forward1_s, allocated1 = forward(model, rows, head, "1", args.device)
+        with model.disable_adapter():
+            lora["disabled_in_stage0"] = sum(module.disable_adapters for module in layers)
+            forward0_s, allocated0 = forward(model, rows, head, "0", args.device)
+        lora["enabled_after_stage0"] = sum(not module.disable_adapters for module in layers)
+        checks.update(stage0_disables_every_layer=lora["disabled_in_stage0"] == len(layers),
+                      stage1_layers_restored=lora["enabled_after_stage0"] == len(layers))
     finished = time.perf_counter()
     timing = {"rows_s": round(prepared - started, 1), "base_load_s": round(base_loaded - prepared, 1),
               "adapter_load_s": round(adapter_loaded - base_loaded, 1), "forward1_s": forward1_s, "forward0_s": forward0_s,
