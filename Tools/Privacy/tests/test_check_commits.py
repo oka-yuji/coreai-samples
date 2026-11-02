@@ -58,6 +58,12 @@ class CommitChecks(unittest.TestCase):
     def publish(self):
         self.git("update-ref", "refs/remotes/origin/main", "HEAD")
 
+    def connect(self):
+        subprocess.run(["git", "init", "-q", "--bare", str(self.remote)], env=self.environment, check=True)
+        self.git("remote", "add", "origin", str(self.remote))
+        self.git("push", "-q", "origin", "main")
+        self.git("config", "core.hooksPath", str(self.root / "Tools/Privacy/hooks"))
+
     def remote_branch(self, name):
         return self.git("ls-remote", "origin", f"refs/heads/{name}").stdout.split("\t")[0]
 
@@ -124,10 +130,7 @@ class CommitChecks(unittest.TestCase):
     def test_pre_push_hook_blocks_new_commits_with_paths_and_allows_the_rest(self):
         self.write("docs/old.md", f"{absolute('Users', 'alice', 'old')}\n")
         self.commit()
-        subprocess.run(["git", "init", "-q", "--bare", str(self.remote)], env=self.environment, check=True)
-        self.git("remote", "add", "origin", str(self.remote))
-        self.git("push", "-q", "origin", "main")
-        self.git("config", "core.hooksPath", "Tools/Privacy/hooks")
+        self.connect()
         self.git("switch", "-q", "-c", "other")
         self.write("docs/other.md", "other\n")
         self.commit()
@@ -146,6 +149,47 @@ class CommitChecks(unittest.TestCase):
         self.assertEqual(self.remote_branch("other"), "")
         self.git("push", "-q", "origin", "--delete", "topic")
         self.assertEqual(self.remote_branch("topic"), "")
+        self.git("switch", "-q", "-c", "leak", "main")
+        self.write("docs/leak.md", f"{absolute('Users', 'alice', 'leak')}\n")
+        leaked = self.commit()
+        refused = self.git("push", "-q", "origin", "leak", check=False)
+        self.assertNotEqual(refused.returncode, 0)
+        self.assertIn(f"docs/leak.md:1 ({leaked[:7]})", refused.stdout + refused.stderr)
+        self.assertNoMatchedText(refused)
+        self.assertEqual(self.remote_branch("leak"), "")
+
+    def test_pre_push_hook_allows_merging_published_commits_whose_paths_were_fixed(self):
+        self.git("switch", "-q", "-c", "topic")
+        self.write("docs/topic.md", "topic\n")
+        self.commit()
+        self.git("switch", "-q", "main")
+        self.write("docs/fixed.md", f"{absolute('Users', 'alice', 'fixed')}\n")
+        self.commit()
+        self.write("docs/fixed.md", "fixed\n")
+        self.commit()
+        self.connect()
+        self.git("push", "-q", "origin", "topic")
+        self.git("switch", "-q", "topic")
+        self.git("merge", "-q", "--no-ff", "-m", "chore: merge main", "main")
+        merged = self.git("rev-parse", "HEAD").stdout.strip()
+        self.git("push", "-q", "origin", "topic")
+        self.assertEqual(self.remote_branch("topic"), merged)
+
+    def test_pre_push_hook_checks_pushes_from_a_worktree_without_the_hook_files(self):
+        self.connect()
+        worktree = self.root.parent / "old"
+        self.git("worktree", "add", "-q", "-b", "old", str(worktree))
+        shutil.rmtree(worktree / "Tools")
+        (worktree / "docs").mkdir()
+        (worktree / "docs/old.md").write_text(f"{absolute('Users', 'alice', 'old')}\n", encoding="utf-8")
+        self.git("-C", str(worktree), "add", "-A")
+        self.git("-C", str(worktree), "commit", "-q", "-m", "chore: drop the checks")
+        added = self.git("-C", str(worktree), "rev-parse", "HEAD").stdout.strip()
+        refused = self.git("-C", str(worktree), "push", "-q", "origin", "old", check=False)
+        self.assertNotEqual(refused.returncode, 0)
+        self.assertIn(f"docs/old.md:1 ({added[:7]})", refused.stdout + refused.stderr)
+        self.assertNoMatchedText(refused)
+        self.assertEqual(self.remote_branch("old"), "")
 
     def test_unknown_revision_exits_with_two_and_reports_nothing(self):
         self.publish()
