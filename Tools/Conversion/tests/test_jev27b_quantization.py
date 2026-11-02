@@ -69,8 +69,15 @@ class ReferenceRowTests(unittest.TestCase):
         self.assertEqual(plain["top1_changed"], {"rows": 1, "ids": ["near"]})
         self.assertAlmostEqual(plain["max_probability_error"], 0.04)
         self.assertAlmostEqual(plain["mean_probability_error"], 0.03)
-        self.assertEqual(result["margin_within_2e"], {"rows": 1, "ids": ["near"]})
+        self.assertEqual(plain["margin_within_2e"], {"rows": 1, "ids": ["near"]})
+        self.assertEqual(result["shipping_temperature"]["margin_within_2e"], {"rows": 1, "ids": ["near"]})
         self.assertEqual(set(plain["by_kind"]), {"noul"})
+        shifted = copy.deepcopy(rows)
+        shifted[1]["p2_T"] = [0.60, 0.40]
+        moved = compare(shifted, "2", "1m")
+        shipped = moved["shipping_temperature"]
+        self.assertEqual((shipped["margin_within_2e"]["rows"], shipped["top1_changed"]["rows"]), (2, 2))
+        self.assertEqual(moved["temperature_1"]["margin_within_2e"]["rows"], 1)
 
 
 if __name__ == "__main__":

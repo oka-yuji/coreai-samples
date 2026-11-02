@@ -70,14 +70,17 @@ def compare(rows, stage, reference):
         probe, base = row[f"p{stage}"], row[f"p{reference}"]
         ranked = sorted(base, reverse=True)
         error = largest(probe, base)
-        errors.append({"id": row["id"], "kind": row["kind"], "band": row["band"], "e": error,
-                       "e_T": largest(row[f"p{stage}_T"], row[f"p{reference}_T"]),
+        shipped = sorted(row[f"p{reference}_T"], reverse=True)
+        error_t = largest(row[f"p{stage}_T"], row[f"p{reference}_T"])
+        errors.append({"id": row["id"], "kind": row["kind"], "band": row["band"], "e": error, "e_T": error_t,
                        "top": top(probe) != top(base), "top_T": top(row[f"p{stage}_T"]) != top(row[f"p{reference}_T"]),
-                       "within": ranked[0] - ranked[1] <= 2 * error})
-    margin = [row["id"] for row in errors if row["within"]]
-    return {"rows": len(errors), "temperature_1": summary(errors, "e", "top"),
-            "shipping_temperature": summary(errors, "e_T", "top_T"),
-            "margin_within_2e": {"rows": len(margin), "ids": margin}}
+                       "within": ranked[0] - ranked[1] <= 2 * error, "within_T": shipped[0] - shipped[1] <= 2 * error_t})
+    result = {"rows": len(errors)}
+    for name, field, changed, within in (("temperature_1", "e", "top", "within"),
+                                         ("shipping_temperature", "e_T", "top_T", "within_T")):
+        margin = [row["id"] for row in errors if row[within]]
+        result[name] = {**summary(errors, field, changed), "margin_within_2e": {"rows": len(margin), "ids": margin}}
+    return result
 
 
 def differences(rows, first, second):
@@ -113,9 +116,10 @@ def section(name, comparison):
     return [f"## {name}", "",
             f"- Rows {comparison['rows']}. Temperature 1: maximum {plain['max_probability_error']:.6f}, mean "
             f"{plain['mean_probability_error']:.6f}, top-1 changes {plain['top1_changed']['rows']}, rows with a reference "
-            f"margin of at most 2e {comparison['margin_within_2e']['rows']}.",
+            f"margin of at most 2e {plain['margin_within_2e']['rows']}.",
             f"- Shipping temperature: maximum {shipped['max_probability_error']:.6f}, mean "
-            f"{shipped['mean_probability_error']:.6f}, top-1 changes {shipped['top1_changed']['rows']}.", "",
+            f"{shipped['mean_probability_error']:.6f}, top-1 changes {shipped['top1_changed']['rows']}, rows with a "
+            f"reference margin of at most 2e {shipped['margin_within_2e']['rows']}.", "",
             *lines("Kind", plain["by_kind"]), "", *lines("Band", bands), ""]
 
 
