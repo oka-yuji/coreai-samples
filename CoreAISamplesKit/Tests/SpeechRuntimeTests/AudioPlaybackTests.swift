@@ -156,4 +156,91 @@ struct AudioPlaybackTests {
         await #expect(throws: CancellationError.self) { try await task.value }
         #expect(returned && device.stopCount == 1 && session.stops == 1)
     }
+
+    @Test("A late start result from stopped playback cannot affect newer playback")
+    func staleStartResult() async throws {
+        let first = FakePlaybackDevice()
+        let second = FakePlaybackDevice()
+        first.holdsStart = true
+        var devices = [first, second]
+        let playback = AudioPlayback { _ in devices.removeFirst() }
+        let old = Task { try await playback.play(Data()) }
+        defer {
+            playback.stop()
+            old.cancel()
+        }
+        try await first.started.wait()
+        playback.stop()
+        await #expect(throws: CancellationError.self) { try await old.value }
+        let current = Task { try await playback.play(Data()) }
+        defer {
+            playback.stop()
+            current.cancel()
+        }
+        try await second.started.wait()
+        let report = try #require(first.pendingStart)
+        report(false)
+        try #require(second.stopCount == 0 && second.completion != nil)
+        second.completion?(true)
+        try await current.value
+        #expect(first.stopCount == 1 && second.stopCount == 1)
+    }
+
+    @Test("Stop waiters return only after the device stop and the session deactivation complete")
+    func stopWaitersWaitForCleanup() async throws {
+        let device = FakeSessionDevice()
+        let player = FakePlaybackDevice()
+        player.holdsStop = true
+        let playback = AudioPlayback(session: ManagedPlaybackSession(device: device)) { _ in player }
+        var returned = false
+        var released = 0
+        let playing = Task {
+            defer { returned = true }
+            try await playback.play(Data())
+        }
+        defer {
+            player.pendingStop?()
+            device.completed?()
+            playing.cancel()
+        }
+        try await device.activationStarted.wait()
+        device.ready?(.success(()))
+        try await player.started.wait()
+        playback.stop()
+        let waiting = [TestSignal(), TestSignal()]
+        let waiters = waiting.map { signal in
+            Task {
+                signal.fire()
+                await playback.stopAndWait()
+                released += 1
+            }
+        }
+        for signal in waiting { try await signal.wait() }
+        #expect(player.stopCount == 1 && device.deactivations == 0 && !returned && released == 0)
+        let stopped = try #require(player.pendingStop)
+        player.pendingStop = nil
+        stopped()
+        try await device.deactivationStarted.wait()
+        #expect(device.deactivations == 1 && !returned && released == 0)
+        device.completed?()
+        await #expect(throws: CancellationError.self) { try await playing.value }
+        for waiter in waiters { await waiter.value }
+        #expect(returned && released == 2 && device.deactivations == 1 && player.stopCount == 1)
+    }
+
+    @Test("A stop with nothing playing does not block the next playback")
+    func idleStop() async throws {
+        let device = FakePlaybackDevice()
+        device.immediateCompletion = true
+        let playback = AudioPlayback { _ in device }
+        playback.stop()
+        let task = Task { try await playback.play(Data()) }
+        defer {
+            playback.stop()
+            task.cancel()
+        }
+        try await device.started.wait()
+        try await task.value
+        #expect(device.playCount == 1 && device.stopCount == 1 && device.completion == nil)
+    }
 }
