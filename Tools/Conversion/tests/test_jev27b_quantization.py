@@ -1,10 +1,13 @@
 import copy
 import importlib.util
+import json
 import unittest
 
 from Tools.Conversion.adapters.jev27b.decision import HASH_SCHEMA, compare_hashes
+from Tools.Conversion.adapters.jev27b import summary
 from Tools.Conversion.adapters.jev27b.probe import estimate, speed_rows
 from Tools.Conversion.adapters.jev27b.verify_quantization import compare, complete, differences, finite, joined
+from Tools.Conversion.storage import PipelineError
 
 NUMPY = importlib.util.find_spec("numpy") is not None
 
@@ -124,6 +127,53 @@ class SpeedEstimateTests(unittest.TestCase):
         self.assertEqual(concave["model"], "linear")
         single = estimate([(100, 5.0)], rows)
         self.assertEqual((single["model"], single["estimate_s"]), ("per-token", 5.0 / 100 * 1100))
+
+
+class QuantizationSummaryTests(unittest.TestCase):
+    report = {"version": 1, "status": "failed", "verification": "failed", "stages": []}
+
+    def comparison(self):
+        temperature = {"max_probability_error": 0.2, "mean_probability_error": 0.02, "by_kind": {}, "by_band": {},
+                       "top1_changed": {"rows": 3, "ids": ["private-example-sentinel"]},
+                       "margin_within_2e": {"rows": 5, "ids": ["private-example-sentinel"]}}
+        side = {"rows": 301, "temperature_1": temperature, "shipping_temperature": copy.deepcopy(temperature)}
+        return {"schema": "typed-decision-quantization/1", "passed": True,
+                "checks": {"hashes_match": True, "rows_complete": True, "finite": True},
+                "hashes": {"items": 1622, "matching": 1622},
+                "rows": {"F": 302, "Q": 900, "F_forwarded": 301, "Q_forwarded": 900, "rejected": 1},
+                "stage2_vs_1m": side, "stage0q_vs_0": copy.deepcopy(side), "devices": {"2": "private-example-sentinel"},
+                "adaptation": {"F": {"stage 2 against 0q": {"rows": 301, "mean": 0.25, "max": 0.9}},
+                               "Q": {"stage 2 against 0q": {"rows": 0}}}}
+
+    def test_the_quantization_check_projects_only_its_numbers(self):
+        result = summary.project(self.report, self.comparison())
+        self.assertEqual(result["status"], "failed")
+        comparison = result["comparison"]
+        self.assertEqual(comparison["stage2_vs_1m"]["temperature_1"],
+                         {"max_probability_error": 0.2, "mean_probability_error": 0.02, "top1_changed": 3,
+                          "margin_within_2e": 5})
+        self.assertEqual((comparison["passed"], comparison["hashes_match"], comparison["hashed_tensors"],
+                          comparison["rows"]["F"]), (True, True, 1622, 302))
+        self.assertEqual(comparison["adaptation_mean"], {"F: stage 2 against 0q": 0.25})
+        self.assertNotIn("private-example-sentinel", json.dumps(result))
+
+    def test_the_quantization_check_rejects_invalid_values_and_other_schemas(self):
+        for mutate in (lambda c: c["checks"].update(finite="yes"), lambda c: c["hashes"].update(items=-1),
+                       lambda c: c["stage2_vs_1m"]["temperature_1"].update(max_probability_error=float("nan")),
+                       lambda c: c["rows"].update(Q=1.5), lambda c: c.update(schema="typed-decision-merge/1")):
+            comparison = self.comparison()
+            mutate(comparison)
+            with self.subTest(comparison=comparison), self.assertRaises(PipelineError):
+                summary.project(self.report, comparison)
+
+    def test_an_incomplete_check_projects_its_results_without_statistics(self):
+        comparison = self.comparison()
+        for key in ("stage2_vs_1m", "stage0q_vs_0", "adaptation"):
+            del comparison[key]
+        comparison.update(passed=False, checks={"hashes_match": False, "rows_complete": True, "finite": True})
+        result = summary.project(self.report, comparison)["comparison"]
+        self.assertEqual((result["passed"], result["hashes_match"]), (False, False))
+        self.assertNotIn("stage2_vs_1m", result)
 
 
 if __name__ == "__main__":

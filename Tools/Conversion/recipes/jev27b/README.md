@@ -155,8 +155,13 @@ checkpoint is used as it is, as a limited exploration.
   (`typed-decision-quantization/1`) and `report.md`; it applies no numeric threshold.
 
 `verbalizers` and `verbalizer_ids` in `decision.json` are copied from `judge_config.json`, which
-defines both. `python3 -m Tools.Conversion.summary <report.json> --comparison <quantization.json>`
-prints the shareable numbers.
+defines both.
+
+`python3 -m Tools.Conversion.adapters.jev27b.summary <report.json> --comparison <quantization.json>`
+prints the shareable numbers of a run and its quantization check. It lives beside the steps rather
+than in `Tools/Conversion/summary.py` because every `Tools/Conversion/*.py` file is part of each
+step's cache key: editing that file would make the next run repeat every step, including the
+merge, both references, the export and both probes.
 
 ## Tokenizer
 
