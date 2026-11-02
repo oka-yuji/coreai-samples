@@ -59,7 +59,10 @@ def decide(logits24, kind, n, temperature):
         raise ValueError("Temperature must be a positive finite number")
     start, end = slot_range(kind, n)
     selected = values[start:end]
-    return softmax([value / temperature for value in selected]), softmax(selected)
+    scaled = [value / temperature for value in selected]
+    if not all(math.isfinite(value) for value in scaled):
+        raise ValueError("Head logits divided by the temperature must be finite")
+    return softmax(scaled), softmax(selected)
 
 
 def band(token_count):

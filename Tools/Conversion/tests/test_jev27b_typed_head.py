@@ -86,6 +86,9 @@ class TypedHeadDecisionTests(unittest.TestCase):
         for temperature in (0.0, -1.0, math.nan, math.inf, True, "1"):
             with self.subTest(temperature=temperature), self.assertRaises(ValueError):
                 decide(good, "noul", 2, temperature)
+        for values, temperature in (([1.0] * 24, 5e-324), ([1e308, -1e308] + [0.0] * 22, 0.5)):
+            with self.subTest(scaled=values[:2], temperature=temperature), self.assertRaises(ValueError):
+                decide(values, "noul", 2, temperature)
 
 
 class TypedHeadBandTests(unittest.TestCase):
