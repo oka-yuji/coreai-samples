@@ -47,7 +47,10 @@ def targeted(names, targets):
 
 
 def merge_projection(weight, a, b, scale):
-    return (weight.float() + scale * (b.float() @ a.float())).to(weight.dtype)
+    delta = scale * (b.float() @ a.float())
+    if delta.shape != weight.shape:
+        raise ValueError(f"LoRA update {tuple(delta.shape)} does not match the weight {tuple(weight.shape)}")
+    return (weight.float() + delta).to(weight.dtype)
 
 
 def saved_index(weight_map, total_size):
@@ -101,42 +104,48 @@ def merge(snapshot, checkpoint, weight_map, pairs, lora, scale):
     return consumed, total, {"source": dict(source), "saved": dict(saved)}
 
 
-def main():
+def write_checkpoint(snapshot, base, output, contract):
     from safetensors.torch import load_file
 
-    parser = argparse.ArgumentParser(description="Merge the JEV-27B System 1 LoRA into its text backbone.")
-    for name in ("model", "snapshot", "base", "output"):
-        parser.add_argument(f"--{name}", type=Path, required=True)
-    args = parser.parse_args()
-    started = time.perf_counter()
-    checkpoint = args.output / "checkpoint"
+    checkpoint = output / "checkpoint"
     checkpoint.mkdir(parents=True)
-    contract = load_contract(args.model)
-    snapshot = args.snapshot.resolve()
-    check_integrity(snapshot, contract["model_id"], contract["revision"])
-    adapter = check_adapter(snapshot, contract)
-    scale = contract["lora"]["scale"]
-    if adapter["scale"] != scale:
-        raise ValueError("The adapter scale differs from the contract")
     index = read_json(snapshot / "model.safetensors.index.json")
     lora = load_file(str(snapshot / "adapter/adapter_model.safetensors"))
     pairs = lora_pairs(lora)
-    consumed, total, dtypes = merge(snapshot, checkpoint, index["weight_map"], pairs, lora, scale)
+    consumed, total, dtypes = merge(snapshot, checkpoint, index["weight_map"], pairs, lora, contract["lora"]["scale"])
     if set(consumed) != set(pairs) or set(consumed.values()) != {1} or len(pairs) != contract["lora"]["pairs"]:
         raise ValueError("Every LoRA pair must be merged exactly once")
     if total != index["metadata"]["total_size"]:
         raise ValueError("The merged shards differ in size from the source index")
     write_json(checkpoint / "model.safetensors.index.json", saved_index(index["weight_map"], total))
-    shutil.copyfile(args.base / "config.json", checkpoint / "config.json")
+    shutil.copyfile(base / "config.json", checkpoint / "config.json")
     for name in TOKENIZER_FILES:
         shutil.copyfile(snapshot / name, checkpoint / name)
     files = manifest_files(checkpoint)
     revision = merged_revision(files)
-    write_json(args.output / "manifest.json", {"merged_revision": revision, "files": files})
+    write_json(output / "manifest.json", {"merged_revision": revision, "files": files})
+    return {"revision": revision, "index": index, "pairs": pairs, "consumed": consumed, "dtypes": dtypes,
+            "adapter_dtypes": dict(Counter(str(tensor.dtype) for tensor in lora.values()))}
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Merge the JEV-27B System 1 LoRA into its text backbone.")
+    for name in ("model", "snapshot", "base", "output"):
+        parser.add_argument(f"--{name}", type=Path, required=True)
+    args = parser.parse_args()
+    started = time.perf_counter()
+    contract = load_contract(args.model)
+    snapshot = args.snapshot.resolve()
+    check_integrity(snapshot, contract["model_id"], contract["revision"])
+    adapter = check_adapter(snapshot, contract)
+    if adapter["scale"] != contract["lora"]["scale"]:
+        raise ValueError("The adapter scale differs from the contract")
+    merged = write_checkpoint(snapshot, args.base, args.output, contract)
+    weight_map, pairs, consumed = merged["index"]["weight_map"], merged["pairs"], merged["consumed"]
     record = read_json(Path(f"{snapshot}.integrity.json"))
-    shards = set(index["weight_map"].values())
+    shards = set(weight_map.values())
     write_json(args.output / "provenance.json", {
-        "merged_revision": revision,
+        "merged_revision": merged["revision"],
         "source": {"model_id": contract["model_id"], "revision": contract["revision"], "base_model": contract["base_model"],
                    "shards_sha256": {entry["path"]: entry["actual_sha256"] for entry in record["files"] if entry["path"] in shards},
                    "shards_sha256_from": {"record": f"{snapshot.name}.integrity.json", "checked_at": record["checked_at"]},
@@ -145,11 +154,11 @@ def main():
                    "head_sha256": sha256(snapshot / contract["head"]),
                    "base_config_sha256": sha256(args.base / "config.json"),
                    "tokenizer_sha256": {name: sha256(snapshot / name) for name in TOKENIZER_FILES}},
-        "formula": FORMULA, "scale": scale,
+        "formula": FORMULA, "scale": contract["lora"]["scale"],
         "adapter": {key: adapter[key] for key in ("r", "alpha", "use_rslora", "use_dora")},
-        "dtypes": {**dtypes, "adapter": dict(Counter(str(tensor.dtype) for tensor in lora.values())), "compute": "torch.float32"},
+        "dtypes": {**merged["dtypes"], "adapter": merged["adapter_dtypes"], "compute": "torch.float32"},
         "pairs": {"total": len(pairs), "per_target": adapter["per_target"]},
-        "tensors": {"total": len(index["weight_map"]), "merged": len(consumed), "copied": len(index["weight_map"]) - len(consumed)},
+        "tensors": {"total": len(weight_map), "merged": len(consumed), "copied": len(weight_map) - len(consumed)},
         "examples": examples(pairs, read_json(snapshot / "config.json")["layer_types"]),
         "elapsed_s": round(time.perf_counter() - started, 1),
         "peak_rss_bytes": resource.getrusage(resource.RUSAGE_SELF).ru_maxrss,

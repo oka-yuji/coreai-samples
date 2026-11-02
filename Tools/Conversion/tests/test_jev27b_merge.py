@@ -8,9 +8,10 @@ import unittest
 
 from Tools.Conversion import summary
 from Tools.Conversion.adapters.jev27b.merge import (
-    lora_pairs, manifest_files, merge, merge_projection, merged_revision, saved_index, saved_name, targeted,
+    lora_pairs, manifest_files, merge, merge_projection, merged_revision, saved_index, saved_name, targeted, write_checkpoint,
 )
-from Tools.Conversion.adapters.jev27b.verify_merge import THRESHOLD, compare_outputs, identical
+from Tools.Conversion.adapters.jev27b.prepare import TOKENIZER_FILES
+from Tools.Conversion.adapters.jev27b.verify_merge import THRESHOLD, check_weights, compare_outputs, identical
 from Tools.Conversion.storage import PipelineError
 
 TORCH = importlib.util.find_spec("torch") is not None
@@ -35,6 +36,8 @@ class MergeFormulaTests(unittest.TestCase):
         self.assertEqual(merged.dtype, torch.bfloat16)
         self.assertTrue(torch.equal(merged, (weight.float() + 2.0 * (b @ a)).to(torch.bfloat16)))
         self.assertFalse(torch.equal(merged, weight + (2.0 * (b @ a)).to(torch.bfloat16)))
+        with self.assertRaises(ValueError):
+            merge_projection(weight, a, b[:1], 2.0)
 
     def test_tensors_are_compared_bit_for_bit(self):
         import torch
@@ -83,6 +86,59 @@ class MergeFormulaTests(unittest.TestCase):
                 self.assertTrue(torch.equal(handle.get_tensor(saved_name(target)),
                                             merge_projection(tensors[target], *lora.values(), 2.0)))
                 self.assertTrue(torch.equal(handle.get_tensor(saved_name(f"{LAYER}.A_log")), tensors[f"{LAYER}.A_log"]))
+
+
+@unittest.skipUnless(TORCH, "The JEV-27B reference environment is required")
+class WeightCheckTests(unittest.TestCase):
+    def test_the_weight_check_passes_the_merge_and_fails_a_changed_tensor_or_config(self):
+        import torch
+        from safetensors.torch import load_file, save_file
+
+        generator = torch.Generator().manual_seed(3)
+        target = f"{LAYER}.in_proj_qkv.weight"
+        tensors = {"model.embed_tokens.weight": torch.randn(8, 4, generator=generator).to(torch.bfloat16),
+                   target: torch.randn(6, 4, generator=generator).to(torch.bfloat16),
+                   f"{LAYER}.in_proj_a.weight": torch.randn(2, 4, generator=generator).to(torch.bfloat16),
+                   f"{LAYER}.A_log": torch.randn(2, generator=generator).to(torch.bfloat16),
+                   "lm_head.weight": torch.randn(8, 4, generator=generator).to(torch.bfloat16)}
+        weight_map = {name: "model-00002-of-00002.safetensors" if "layers" in name else "model-00001-of-00002.safetensors"
+                      for name in tensors}
+        lora = {lora_key(target, "A"): torch.randn(16, 4, generator=generator),
+                lora_key(target, "B"): torch.randn(6, 16, generator=generator)}
+        text = {"model_type": "qwen3_5_text", "rope_parameters": {"rope_theta": 10000000}, "layer_types": ["linear_attention"],
+                "mamba_ssm_dtype": "float32", "mtp_num_hidden_layers": 1}
+        contract = {"lora": {"scale": 2.0, "targets": TARGETS, "pairs": 1}}
+        with tempfile.TemporaryDirectory() as folder:
+            snapshot, base, merged = (Path(folder) / name for name in ("snapshot", "base", "merged"))
+            (snapshot / "adapter").mkdir(parents=True)
+            base.mkdir()
+            for shard in set(weight_map.values()):
+                save_file({name: tensor for name, tensor in tensors.items() if weight_map[name] == shard}, str(snapshot / shard),
+                          metadata={"format": "pt"})
+            total = sum(tensor.numel() * tensor.element_size() for tensor in tensors.values())
+            (snapshot / "model.safetensors.index.json").write_text(
+                json.dumps({"metadata": {"total_size": total}, "weight_map": weight_map}))
+            save_file(lora, str(snapshot / "adapter/adapter_model.safetensors"))
+            (snapshot / "config.json").write_text(json.dumps({**text, "architectures": ["Qwen3_5ForCausalLM"]}))
+            (base / "config.json").write_text(json.dumps({"model_type": "qwen3_5", "text_config": text, "vision_config": {}}))
+            for name in TOKENIZER_FILES:
+                (snapshot / name).write_text(name)
+            write_checkpoint(snapshot, base, merged, contract)
+            result = check_weights(snapshot, base, merged, contract)
+            self.assertTrue(result["passed"], result["checks"])
+            self.assertEqual((result["merged"], result["copied"], result["pairs_consumed"]), (1, 4, 1))
+            shard = merged / "checkpoint" / weight_map[target]
+            saved = load_file(str(shard))
+            saved[saved_name(target)] = tensors[target] + (2.0 * (lora[lora_key(target, "B")] @ lora[lora_key(target, "A")])).to(
+                torch.bfloat16)
+            save_file(saved, str(shard), metadata={"format": "pt"})
+            config = {"model_type": "qwen3_5", "text_config": {key: value for key, value in text.items() if key != "mamba_ssm_dtype"}}
+            (merged / "checkpoint/config.json").write_text(json.dumps(config))
+            result = check_weights(snapshot, base, merged, contract)
+            self.assertEqual(result["mismatched"], [target])
+            self.assertEqual(result["text_config_differences"], ["mamba_ssm_dtype"])
+            self.assertEqual({name for name, passed in result["checks"].items() if not passed},
+                             {"tensors_equal", "config_bytes", "text_config", "manifest"})
 
 
 class KeyMappingTests(unittest.TestCase):
