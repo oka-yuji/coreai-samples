@@ -96,6 +96,41 @@
       "outputs": ["F.json", "Q.json", "Cal.json", "H.json", "J.json", "check.json"],
       "checks": [{"file": "check.json", "key": ["passed"], "equals": true}],
       "timeout_s": 1800
+    },
+    {
+      "id": "merge",
+      "role": "export",
+      "depends": ["prepare"],
+      "command": [
+        "$python", "-m", "Tools.Conversion.adapters.jev27b.merge",
+        "--model", "$recipe_dir/model.json",
+        "--snapshot", "$snapshot",
+        "--base", "$base",
+        "--output", "$out"
+      ],
+      "cwd": "$repo",
+      "inputs": [
+        "$adapters/merge.py",
+        "$adapters/prepare.py",
+        "$adapters/typed_head.py",
+        "$repo/Tools/Conversion/adapters/pinned.py",
+        "$repo/Tools/Conversion/storage.py",
+        "$recipe_dir/model.json",
+        "${snapshot}.integrity.json",
+        "$snapshot/model-*.safetensors",
+        "$snapshot/model.safetensors.index.json",
+        "$snapshot/config.json",
+        "$snapshot/adapter/*",
+        "$snapshot/head.safetensors",
+        "$snapshot/tokenizer.json",
+        "$snapshot/tokenizer_config.json",
+        "$snapshot/chat_template.jinja",
+        "$base/config.json"
+      ],
+      "outputs": ["checkpoint", "manifest.json", "provenance.json"],
+      "heavy": true,
+      "timeout_s": 3600,
+      "min_free_bytes": 70000000000
     }
   ]
 }

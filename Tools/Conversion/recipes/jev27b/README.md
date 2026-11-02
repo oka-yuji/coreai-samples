@@ -3,8 +3,8 @@
 This recipe pins the inputs, environments and evaluation sets for converting the System 1
 path of [autotrust/JEV-27B](https://huggingface.co/autotrust/JEV-27B) (revision
 `14b425269ed24452e0a5ad5a8f3e51d139647a88`): the Qwen3.8-27B text backbone with its
-unmerged LoRA and the 24-slot fp32 decision head. This stage does not merge, convert or
-evaluate the model. It records what later stages may rely on:
+unmerged LoRA and the 24-slot fp32 decision head. The recipe merges the LoRA; it does not
+convert or evaluate the model. These files record what the steps rely on:
 
 - `model.json`: the contract checked against the downloaded adapter, head, judge and
   calibration files. A mismatch fails the check; the contract is not adjusted to the files.
@@ -52,7 +52,7 @@ Setup checks the integrity records and then, under the shared machine lock, crea
   `coreai-models` package environment and the release `llm-runner`;
 - `.local/conversion/jev27b.paths.json` and `.local/conversion/jev27b/setup.json`.
 
-`--snapshot` selects another JEV-27B folder. The run has two steps:
+`--snapshot` selects another JEV-27B folder. The first two steps check the inputs and sets:
 
 - `prepare` writes `ready.json` without re-hashing the weight shards. It requires each folder to
   hold exactly the files of its integrity record (apart from `.cache`), compares sizes and
@@ -61,6 +61,25 @@ Setup checks the integrity records and then, under the shared machine lock, crea
   by setup; run setup again after changing them.
 - `fixture` regenerates every set, requires byte-identical files and restores each row from the
   corpus and JGLUE files through `load_rows` with matching hashes.
+
+The steps that read the weights are heavy, so `run` holds the shared machine lock for the whole
+pipeline. Each executed `merge` adds a 54 GB checkpoint under the work directory's `objects/`;
+a reused step does not, and `--refresh` always adds another.
+
+## Merge and references
+
+- `merge` adds each LoRA pair to its projection as `bf16(fp32(W) + 2.0 * (fp32(B) @ fp32(A)))`,
+  one tensor at a time on the CPU, and copies every other tensor bit for bit. It stops unless all
+  400 pairs are used exactly once and the shards add up to the source `total_size`.
+  `checkpoint/` holds the 13 shards with the source file names and membership, the keys renamed
+  from `model.` to `model.language_model.` (`lm_head.weight` unchanged), a recomputed index, the
+  `Qwen/Qwen3.8-27B` `config.json` copied byte for byte (`qwen3_5` with `text_config`; its
+  `vision_config` is kept, but no vision or MTP tensors exist) and the three distributed tokenizer
+  files copied byte for byte. `manifest.json` lists the path, size and SHA-256 of every checkpoint
+  file. `merged_revision` is the first 40 hexadecimal digits of the SHA-256 of that list serialized
+  with sorted keys and no spaces, so it depends only on the files. `provenance.json` records the
+  input hashes, the formula, the scale, the dtypes, the pairs per target, the mapping of layers 0
+  and 3, the elapsed time, the peak resident memory and the library versions.
 
 ## Tokenizer
 
