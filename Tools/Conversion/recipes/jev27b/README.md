@@ -69,6 +69,23 @@ normalizer equal those of `Qwen/Qwen3.8-27B`, and `chat_template.jinja` is ident
 from its own `tokenizer.json`. `AutoTokenizer` of transformers 5.16.1 loads the file
 unchanged. Token identifiers in Swift are compared against the same file.
 
+## Load check
+
+Loading the model is a heavy job. Hold the shared machine lock and run with the reference
+environment and the offline Hugging Face settings of `recipe.json`:
+
+~~~sh
+python -m Tools.Conversion.adapters.jev27b.load_check --model Tools/Conversion/recipes/jev27b/model.json \
+  --snapshot <JEV-27B folder> --corpus <corpus folder> --jglue <JGLUE folder> \
+  --fixtures Tools/Conversion/recipes/jev27b/fixtures --output <new folder>
+~~~
+
+It loads the backbone in bfloat16 on MPS, applies the adapter with PEFT in eval mode, compares
+every adapter tensor in the model with the file, and runs the two card examples and one row of
+each kind through `last_hidden` and the fp32 head. `load-check.json` records the consumed LoRA
+pairs, the probabilities with and without the calibrated temperature, the difference from the
+card's example values, timings and the peak resident memory.
+
 ## Terms
 
 JEV-27B and `Qwen/Qwen3.8-27B` are Apache-2.0. The JEV corpus is Apache-2.0 and asks for
