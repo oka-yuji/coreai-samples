@@ -70,7 +70,8 @@ parser.add_argument("repository")
 repository = parser.parse_args().repository
 try:
     found = scan()
-except (OSError, subprocess.CalledProcessError, LookupError, TypeError, ValueError, AttributeError):
+except (OSError, subprocess.CalledProcessError, LookupError, TypeError, ValueError, AttributeError) as error:
+    print(f"{type(error).__name__}: {error}", file=sys.stderr)
     fail()
 for item in found:
     print(item)

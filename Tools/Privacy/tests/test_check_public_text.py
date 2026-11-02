@@ -135,17 +135,20 @@ class PublicTextChecks(unittest.TestCase):
 
     def test_api_failures_exit_with_two_instead_of_reporting_no_paths(self):
         cases = {
-            "gh fails": {"output": "", "code": 1},
-            "invalid JSON": {"output": "not json", "code": 0},
-            "more edits than one page": repository(absolute("Users", "alice", "x"), {"I1": edits(("", None), more=True)}),
-            "fewer edit histories than requested": dict(repository(absolute("Users", "alice", "x")), limit=0),
+            "gh fails": ({"output": "", "code": 1}, "CalledProcessError: Command "),
+            "invalid JSON": ({"output": "not json", "code": 0}, "JSONDecodeError: Expecting value"),
+            "more edits than one page": (repository(absolute("Users", "alice", "x"), {"I1": edits(("", None), more=True)}), None),
+            "fewer edit histories than requested": (dict(repository(absolute("Users", "alice", "x")), limit=0), None),
         }
-        for name, fake in cases.items():
+        for name, (fake, cause) in cases.items():
             with self.subTest(name):
                 result = self.run_check(fake)
                 self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
                 self.assertEqual(result.stdout, "")
-                self.assertIn("Could not read", result.stderr)
+                messages = result.stderr.splitlines()
+                self.assertTrue(messages[-1].startswith("Could not read"), messages)
+                if cause:
+                    self.assertTrue(messages[-2].startswith(cause), messages)
 
 
 if __name__ == "__main__":
