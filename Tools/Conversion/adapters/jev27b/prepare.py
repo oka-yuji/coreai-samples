@@ -27,6 +27,9 @@ TOKENIZER_FILES = ("tokenizer.json", "tokenizer_config.json", "chat_template.jin
 REFERENCE_PACKAGES = ("accelerate", "huggingface-hub", "numpy", "peft", "safetensors", "tokenizers", "torch", "transformers")
 UPSTREAM_PACKAGES = ("coreai-models", "coreai-torch", "coreai-opt", "coreai-core", "torch", "transformers")
 CONTENT_LIMIT = 32 * 1024 * 1024
+RECORDED_DIGESTS = {"lfs-sha256": ("expected_sha256", "actual_sha256"),
+                    "git-blob-sha1": ("expected_git_blob_sha1", "actual_git_blob_sha1")}
+ENVIRONMENT_FILES = ("pyproject.toml", "uv.lock")
 VERSION_PROBE = """import importlib.metadata as m, json, sys
 found = {}
 for name in sys.argv[1:]:
@@ -63,14 +66,20 @@ def git_blob(data):
     return hashlib.sha1(b"blob %d\0" % len(data) + data).hexdigest()
 
 
-def check_integrity(directory, revision):
+def check_integrity(directory, repository, revision):
     directory = Path(directory)
     record = read_json(Path(f"{directory}.integrity.json"))
     files = record.get("files")
-    if record.get("revision") != revision or not files or record.get("files_checked") != len(files) \
-            or record.get("ok_true") != len(files) or record.get("ok_false") != 0 \
+    if record.get("repo_id") != repository or record.get("revision") != revision or not files \
+            or record.get("files_checked") != len(files) or record.get("ok_true") != len(files) \
+            or record.get("ok_false") != 0 or record.get("local_files_not_in_scope") \
             or any(entry.get("ok") is not True for entry in files):
-        raise ValueError(f"Incomplete integrity record or another revision: {directory.name}")
+        raise ValueError(f"Incomplete integrity record or another source: {directory.name}")
+    present = {path.relative_to(directory).as_posix() for path in directory.rglob("*")
+               if (path.is_symlink() or not path.is_dir()) and path.name != ".DS_Store"
+               and ".cache" not in path.relative_to(directory).parts}
+    if present != {entry["path"] for entry in files}:
+        raise ValueError(f"Files differ from the integrity record: {sorted(present ^ {entry['path'] for entry in files})}")
     checked = datetime.fromisoformat(record["checked_at"]).timestamp()
     total = verified = 0
     for entry in files:
@@ -78,6 +87,9 @@ def check_integrity(directory, revision):
         path = directory / relative
         if relative.is_absolute() or ".." in relative.parts or path.is_symlink() or not path.is_file():
             raise ValueError(f"Missing or unsafe file: {entry['path']}")
+        names = RECORDED_DIGESTS.get(entry["check"])
+        if names is None or entry.get(names[0]) is None or entry.get(names[0]) != entry.get(names[1]):
+            raise ValueError(f"Integrity record entry is inconsistent: {entry['path']}")
         status = path.stat()
         if status.st_size != entry["expected_size"] or status.st_size != entry["actual_size"] or status.st_mtime > checked + 1:
             raise ValueError(f"File changed after its integrity check: {entry['path']}")
@@ -85,9 +97,8 @@ def check_integrity(directory, revision):
         if status.st_size <= CONTENT_LIMIT:
             data = path.read_bytes()
             digest = hashlib.sha256(data).hexdigest()
-            expected = {"lfs-sha256": (digest, entry.get("expected_sha256")),
-                        "git-blob-sha1": (git_blob(data), entry.get("expected_git_blob_sha1"))}.get(entry["check"])
-            if expected is None or expected[0] != expected[1] or digest != entry["actual_sha256"]:
+            observed = digest if entry["check"] == "lfs-sha256" else git_blob(data)
+            if observed != entry[names[0]] or digest != entry["actual_sha256"]:
                 raise ValueError(f"File content differs from its integrity record: {entry['path']}")
             verified += 1
     return {"revision": revision, "files": len(files), "bytes": total, "content_rehashed": verified,
@@ -122,7 +133,9 @@ def check_adapter(snapshot, contract):
     expected = {"peft_type": "LORA", "r": lora["r"], "lora_alpha": lora["alpha"], "use_rslora": lora["use_rslora"],
                 "use_dora": lora["use_dora"], "modules_to_save": None, "trainable_token_indices": None,
                 "target_parameters": None, "layers_to_transform": None, "layers_pattern": None, "exclude_modules": None,
-                "rank_pattern": {}, "alpha_pattern": {}, "bias": "none", "lora_bias": False, "fan_in_fan_out": False}
+                "rank_pattern": {}, "alpha_pattern": {}, "bias": "none", "lora_bias": False, "fan_in_fan_out": False,
+                "layer_replication": None, "use_qalora": False, "alora_invocation_tokens": None, "arrow_config": None,
+                "use_bdlora": None, "velora_config": None, "monteclora_config": None, "kasa_config": None}
     differences = sorted(key for key, value in expected.items() if adapter.get(key, "missing") != value)
     if sorted(adapter.get("target_modules", [])) != sorted(lora["targets"]):
         differences.append("target_modules")
@@ -167,10 +180,14 @@ def check_decision(snapshot, contract, config):
         "kinds": sorted(judge["kinds"]) == sorted(SLOTS),
         "hidden_size": judge["hidden_size"] == hidden,
         "unmerged_adapter": judge["weights_mode"] == "unmerged" and judge["adapter_subfolder"] == "adapter",
+        "no_softcap": "softcap" in judge and judge["softcap"] is None,
+        "adapter_summary": (judge["lora"]["r"], judge["lora"]["alpha"], sorted(judge["lora"]["target_modules"]))
+        == (contract["lora"]["r"], contract["lora"]["alpha"], sorted(contract["lora"]["targets"])),
         "head": head == {"proj.weight": ("F32", [SLOTS["choice"][1], hidden]), "proj.bias": ("F32", [SLOTS["choice"][1]])},
         "temperatures": set(temperatures) == set(SLOTS) and all(
             isinstance(value, float) and math.isfinite(value) and value > 0 for value in temperatures.values()),
         "placeholder_rows_excluded": calibration.get("d1_excluded") is True,
+        "per_kind_only": calibration.get("per_kind_family") == {},
     }
     failed = sorted(name for name, passed in checks.items() if not passed)
     if failed:
@@ -235,12 +252,22 @@ def compare_tokenizers(snapshot, base):
     return files
 
 
-def runtime_tokenizer(snapshot):
+def distributed_tokenizer(snapshot):
     from transformers import AutoTokenizer
 
     tokenizer = AutoTokenizer.from_pretrained(str(snapshot))
-    different = tokenizer_sections(json.loads(tokenizer.backend_tokenizer.to_str()), read_json(snapshot / "tokenizer.json"))
-    return {"class": type(tokenizer).__name__, "uses_distributed_file": not different, "different_sections": different}
+    different = tokenizer_sections(json.loads(tokenizer.backend_tokenizer.to_str()), read_json(Path(snapshot) / "tokenizer.json"))
+    if different:
+        raise ValueError(f"The reference tokenizer differs from the distributed tokenizer.json: {different}")
+    return tokenizer
+
+
+def check_setup(setup, recipe, revision, runner_sha256):
+    inputs = {name: sha256(Path(recipe) / name) for name in ENVIRONMENT_FILES}
+    if setup.get("environment_inputs") != inputs or setup.get("upstream_revision") != revision \
+            or setup.get("llm_runner_sha256") != runner_sha256:
+        raise ValueError("The environments were built from other recipe inputs or revisions; run setup again")
+    return setup
 
 
 def environment(recipe, upstream, runner):
@@ -275,20 +302,21 @@ def main():
         raise FileExistsError("ready.json must be written to a new directory")
     contract = load_contract(args.model)
     snapshot = args.snapshot.resolve()
-    integrity = {"snapshot": check_integrity(snapshot, contract["revision"]),
-                 "base": check_integrity(args.base, contract["base_model"]["revision"])}
+    integrity = {"snapshot": check_integrity(snapshot, contract["model_id"], contract["revision"]),
+                 "base": check_integrity(args.base, contract["base_model"]["id"], contract["base_model"]["revision"])}
     summary, config = check_config(snapshot, contract)
     adapter = check_adapter(snapshot, contract)
     decision = check_decision(snapshot, contract, config)
     tokenizer = compare_tokenizers(snapshot, args.base)
-    tokenizer["runtime"] = runtime_tokenizer(snapshot)
+    tokenizer["runtime"] = {"class": type(distributed_tokenizer(snapshot)).__name__, "uses_distributed_file": True}
     tokenizer["policy"] = contract["tokenizer"]
     versions = environment(args.model.parent, args.upstream, args.runner)
     if versions["upstream"]["revision"] != contract["upstream_revision"] or not versions["upstream"]["clean"]:
         raise ValueError("The converter checkout must be a clean copy of the contract revision")
+    setup = check_setup(read_json(args.setup), args.model.parent, contract["upstream_revision"],
+                        versions["upstream"]["llm_runner_sha256"])
     write_json(output, {"ready": True, "contract": contract, "config": summary, "integrity": integrity, "adapter": adapter,
-                        "decision": decision, "tokenizer": tokenizer, "environment": versions,
-                        "setup": read_json(args.setup)})
+                        "decision": decision, "tokenizer": tokenizer, "environment": versions, "setup": setup})
 
 
 if __name__ == "__main__":

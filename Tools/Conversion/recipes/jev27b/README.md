@@ -54,8 +54,11 @@ Setup checks the integrity records and then, under the shared machine lock, crea
 
 `--snapshot` selects another JEV-27B folder. The run has two steps:
 
-- `prepare` writes `ready.json` without re-hashing the weight shards. It compares sizes and
-  modification times with the integrity records and re-hashes files up to 32 MiB.
+- `prepare` writes `ready.json` without re-hashing the weight shards. It requires each folder to
+  hold exactly the files of its integrity record (apart from `.cache`), compares sizes and
+  modification times with the record, and re-hashes files up to 32 MiB. It stops when
+  `pyproject.toml`, `uv.lock`, the converter revision or `llm-runner` differ from those recorded
+  by setup; run setup again after changing them.
 - `fixture` regenerates every set, requires byte-identical files and restores each row from the
   corpus and JGLUE files through `load_rows` with matching hashes.
 
@@ -67,7 +70,8 @@ the ByteLevel decoder sets all three options. Its vocabulary, merges, added toke
 normalizer equal those of `Qwen/Qwen3.8-27B`, and `chat_template.jinja` is identical. The
 `pretokenize_regex` in its `tokenizer_config.json` still contains `\p{M}` and therefore differs
 from its own `tokenizer.json`. `AutoTokenizer` of transformers 5.16.1 loads the file
-unchanged. Token identifiers in Swift are compared against the same file.
+unchanged; `prepare`, the fixtures and the load check stop if the tokenizer it builds differs
+from the file. Token identifiers in Swift are compared against the same file.
 
 ## Load check
 

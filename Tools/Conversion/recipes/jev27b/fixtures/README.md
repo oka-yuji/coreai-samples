@@ -11,7 +11,10 @@ rows = load_rows("Tools/Conversion/recipes/jev27b/fixtures/F.json", corpus_dir, 
 
 `load_rows` rebuilds `state`, `question`, `options` and the corpus `target` or JGLUE `label`,
 and fails unless the hash, kind and option count match. Rows built from several corpus states
-have no target.
+have no target. The hash does not cover targets or labels: JGLUE files are compared with their
+pins when they are read, and the corpus must be checked with
+`Tools.Conversion.adapters.jev27b.prepare.check_integrity` before its targets are used, as the
+`fixture` step does.
 
 ## Schema
 

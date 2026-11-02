@@ -7,7 +7,7 @@ import random
 import sys
 
 from ...storage import read_json, write_json
-from .prepare import check_integrity, load_contract
+from .prepare import check_integrity, distributed_tokenizer, load_contract
 from .typed_head import BANDS, FIXED_OPTIONS, band, render, tokenize
 
 SEED = 20261102
@@ -302,8 +302,6 @@ def placeholder_rows(sets, sources):
 
 
 def main():
-    from transformers import AutoTokenizer
-
     parser = argparse.ArgumentParser(description="Generate or check the fixed JEV-27B evaluation sets.")
     for name in ("model", "snapshot", "corpus", "jglue", "fixtures", "output"):
         parser.add_argument(f"--{name}", type=Path, required=True)
@@ -311,12 +309,12 @@ def main():
     args = parser.parse_args()
     contract = load_contract(args.model)
     pins = read_json(args.fixtures / "jglue.json")
-    integrity = {"corpus": check_integrity(args.corpus, contract["dataset"]["revision"]),
-                 "jglue": check_integrity(args.jglue, pins["revision"])}
+    integrity = {"corpus": check_integrity(args.corpus, contract["dataset"]["id"], contract["dataset"]["revision"]),
+                 "jglue": check_integrity(args.jglue, pins["repository"], pins["revision"])}
     if any((args.output / f"{name}.json").exists() for name in SETS):
         raise FileExistsError("Fixtures must be generated into a new directory")
     sources = Sources(args.corpus, args.jglue, pins)
-    tokenizer = AutoTokenizer.from_pretrained(str(args.snapshot))
+    tokenizer = distributed_tokenizer(args.snapshot)
     sets = build_sets(sources, tokenizer)
     placeholders = placeholder_rows(sets, sources)
     if placeholders:

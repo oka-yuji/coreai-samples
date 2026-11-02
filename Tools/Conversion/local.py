@@ -121,7 +121,8 @@ def setup(workspace, recipe, snapshot, lock=None):
 def setup_jev27b(workspace, recipe, snapshot, lock):
     import time
 
-    from .adapters.jev27b.prepare import check_integrity, load_contract
+    from .adapters.jev27b.prepare import ENVIRONMENT_FILES, check_integrity, load_contract
+    from .adapters.pinned import sha256
 
     contract = load_contract(recipe.parent / "model.json")
     pins = read_json(recipe.parent / "fixtures/jglue.json")
@@ -129,9 +130,11 @@ def setup_jev27b(workspace, recipe, snapshot, lock):
                "base": workspace / "models" / (contract["base_model"]["id"].replace("/", "--") + "-meta"),
                "corpus": workspace / "datasets" / contract["dataset"]["id"].replace("/", "--"),
                "jglue": workspace / "datasets" / pins["repository"].replace("/", "--")}
-    for name, revision in (("snapshot", contract["revision"]), ("base", contract["base_model"]["revision"]),
-                           ("corpus", contract["dataset"]["revision"]), ("jglue", pins["revision"])):
-        check_integrity(sources[name], revision)
+    for name, repository, revision in (("snapshot", contract["model_id"], contract["revision"]),
+                                       ("base", contract["base_model"]["id"], contract["base_model"]["revision"]),
+                                       ("corpus", contract["dataset"]["id"], contract["dataset"]["revision"]),
+                                       ("jglue", pins["repository"], pins["revision"])):
+        check_integrity(sources[name], repository, revision)
     profile = workspace / "jev27b"
     upstream = workspace / "upstream-jev27b/coreai-models"
     check_workspace_paths(workspace, profile)
@@ -139,6 +142,7 @@ def setup_jev27b(workspace, recipe, snapshot, lock):
     with directory_lock(workspace / "setup.lock", {"operation": "setup"}), \
             directory_lock(lock or default_lock(), {"operation": "jev27b-setup"}):
         started = time.perf_counter()
+        inputs = {name: sha256(recipe.parent / name) for name in ENVIRONMENT_FILES}
         (profile / "hf-cache/hub").mkdir(parents=True, exist_ok=True)
         command("uv", "sync", "--project", recipe.parent, "--frozen", "--no-dev", "--python", "3.11",
                 env={"UV_PROJECT_ENVIRONMENT": str(profile / ".venv")})
@@ -146,8 +150,11 @@ def setup_jev27b(workspace, recipe, snapshot, lock):
         command(python, "-c", "import peft, torch, transformers; assert torch.backends.mps.is_available()")
         reference_s = time.perf_counter() - started
         _, runner = build_upstream(upstream, contract["upstream_revision"])
+        if inputs != {name: sha256(recipe.parent / name) for name in ENVIRONMENT_FILES}:
+            raise PipelineError("Environment inputs changed during setup")
         record = profile / "setup.json"
-        write_json(record, {"upstream_revision": contract["upstream_revision"], "reference_environment_s": round(reference_s, 1),
+        write_json(record, {"upstream_revision": contract["upstream_revision"], "environment_inputs": inputs,
+                            "llm_runner_sha256": sha256(runner), "reference_environment_s": round(reference_s, 1),
                             "converter_environment_s": round(time.perf_counter() - started - reference_s, 1)})
         bindings = workspace / "jev27b.paths.json"
         write_json(bindings, {"python": str(python), "upstream": str(upstream), "runner": str(runner),

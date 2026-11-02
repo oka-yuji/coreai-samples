@@ -7,7 +7,7 @@ import time
 
 from ...storage import read_json, write_json
 from .fixtures import CARD_EXAMPLES, load_rows
-from .prepare import load_contract
+from .prepare import distributed_tokenizer, load_contract
 from .typed_head import decide, last_hidden, render, tokenize
 
 KINDS = ("noul", "choice", "score")
@@ -43,7 +43,7 @@ def main():
     import torch
     from peft import PeftModel
     from safetensors.torch import load_file
-    from transformers import AutoModelForCausalLM, AutoTokenizer
+    from transformers import AutoModelForCausalLM
 
     parser = argparse.ArgumentParser(description="Load JEV-27B with its LoRA once and run the decision head on fixed rows.")
     for name in ("model", "snapshot", "corpus", "jglue", "fixtures", "output"):
@@ -58,7 +58,7 @@ def main():
     rows = select(read_json(fixture)["rows"], load_rows(fixture, args.corpus, args.jglue))
     temperatures = read_json(args.snapshot / "calibration.json")["per_kind"]
     started = time.perf_counter()
-    tokenizer = AutoTokenizer.from_pretrained(str(args.snapshot))
+    tokenizer = distributed_tokenizer(args.snapshot)
     base = AutoModelForCausalLM.from_pretrained(str(args.snapshot), dtype=torch.bfloat16, device_map=args.device)
     base_loaded = time.perf_counter()
     model = PeftModel.from_pretrained(base, str(args.snapshot / "adapter"))
