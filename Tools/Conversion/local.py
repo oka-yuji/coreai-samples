@@ -75,9 +75,29 @@ def check_workspace_paths(workspace, upstream):
             raise PipelineError("Exporter, Python and build directories must belong to this workspace")
 
 
+def build_upstream(upstream, revision):
+    if not upstream.exists():
+        upstream.parent.mkdir(parents=True, exist_ok=True)
+        command("git", "clone", "--no-checkout", "--", UPSTREAM, upstream)
+        command("git", "-C", upstream, "checkout", "--detach", revision)
+    check_checkout(upstream, revision)
+    command("uv", "sync", "--project", upstream, "--frozen", "--no-dev", "--package", "coreai-models",
+            "--python", "3.11", env={"UV_PROJECT_ENVIRONMENT": str(upstream / ".venv")})
+    command("swift", "build", "--package-path", upstream, "-c", "release", "--product", "llm-runner",
+            "--disable-automatic-resolution")
+    check_checkout(upstream, revision)
+    python = upstream / ".venv/bin/python"
+    runner = upstream / ".build/release/llm-runner"
+    if not python.is_file() or not runner.is_file():
+        raise PipelineError("Setup did not produce the Python environment and Swift runner")
+    return python, runner
+
+
 def setup(workspace, recipe, snapshot, lock=None):
     contract_path = recipe.parent / "model.json"
     contract = read_json(contract_path)
+    if recipe.parent.name == "jev27b":
+        return setup_jev27b(workspace, recipe, snapshot, lock)
     if contract.get("model_type") == "embedding_gemma2":
         return setup_embedding(workspace, recipe, snapshot, lock)
     if contract.get("model_type") in ("qwen_image21", "teleocr"):
@@ -92,22 +112,47 @@ def setup(workspace, recipe, snapshot, lock=None):
     check_workspace_paths(workspace, upstream)
     with directory_lock(workspace / "setup.lock", {"operation": "setup"}), \
             directory_lock(lock or default_lock(), {"operation": "conversion-setup"}):
-        if not upstream.exists():
-            upstream.parent.mkdir(parents=True, exist_ok=True)
-            command("git", "clone", "--no-checkout", "--", UPSTREAM, upstream)
-            command("git", "-C", upstream, "checkout", "--detach", contract["upstream_revision"])
-        check_checkout(upstream, contract["upstream_revision"])
-        command("uv", "sync", "--project", upstream, "--frozen", "--no-dev", "--package", "coreai-models",
-                "--python", "3.11", env={"UV_PROJECT_ENVIRONMENT": str(upstream / ".venv")})
-        command("swift", "build", "--package-path", upstream, "-c", "release", "--product", "llm-runner",
-                "--disable-automatic-resolution")
-        check_checkout(upstream, contract["upstream_revision"])
-        python = upstream / ".venv/bin/python"
-        runner = upstream / ".build/release/llm-runner"
-        if not python.is_file() or not runner.is_file():
-            raise PipelineError("Setup did not produce the Python environment and Swift runner")
+        build_upstream(upstream, contract["upstream_revision"])
         bindings = workspace / f"{recipe.parent.name}.paths.json"
         write_json(bindings, {"upstream": str(upstream), "snapshot": str(snapshot)})
+        print(f"Local bindings: {bindings}")
+
+
+def setup_jev27b(workspace, recipe, snapshot, lock):
+    import time
+
+    from .adapters.jev27b.prepare import check_integrity, load_contract
+
+    contract = load_contract(recipe.parent / "model.json")
+    pins = read_json(recipe.parent / "fixtures/jglue.json")
+    sources = {"snapshot": (snapshot or workspace / "models" / contract["model_id"].replace("/", "--")).expanduser().resolve(),
+               "base": workspace / "models" / (contract["base_model"]["id"].replace("/", "--") + "-meta"),
+               "corpus": workspace / "datasets" / contract["dataset"]["id"].replace("/", "--"),
+               "jglue": workspace / "datasets" / pins["repository"].replace("/", "--")}
+    for name, revision in (("snapshot", contract["revision"]), ("base", contract["base_model"]["revision"]),
+                           ("corpus", contract["dataset"]["revision"]), ("jglue", pins["revision"])):
+        check_integrity(sources[name], revision)
+    profile = workspace / "jev27b"
+    upstream = workspace / "upstream-jev27b/coreai-models"
+    check_workspace_paths(workspace, profile)
+    check_workspace_paths(workspace, upstream)
+    with directory_lock(workspace / "setup.lock", {"operation": "setup"}), \
+            directory_lock(lock or default_lock(), {"operation": "jev27b-setup"}):
+        started = time.perf_counter()
+        (profile / "hf-cache/hub").mkdir(parents=True, exist_ok=True)
+        command("uv", "sync", "--project", recipe.parent, "--frozen", "--no-dev", "--python", "3.11",
+                env={"UV_PROJECT_ENVIRONMENT": str(profile / ".venv")})
+        python = profile / ".venv/bin/python"
+        command(python, "-c", "import peft, torch, transformers; assert torch.backends.mps.is_available()")
+        reference_s = time.perf_counter() - started
+        _, runner = build_upstream(upstream, contract["upstream_revision"])
+        record = profile / "setup.json"
+        write_json(record, {"upstream_revision": contract["upstream_revision"], "reference_environment_s": round(reference_s, 1),
+                            "converter_environment_s": round(time.perf_counter() - started - reference_s, 1)})
+        bindings = workspace / "jev27b.paths.json"
+        write_json(bindings, {"python": str(python), "upstream": str(upstream), "runner": str(runner),
+                              "hf_cache": str(profile / "hf-cache"), "setup_record": str(record),
+                              **{name: str(path) for name, path in sources.items()}})
         print(f"Local bindings: {bindings}")
 
 
