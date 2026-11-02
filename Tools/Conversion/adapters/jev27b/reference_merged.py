@@ -45,7 +45,7 @@ def main():
               "eval": not model.training}
     hidden = torch.zeros(len(rows), config.text_config.hidden_size, dtype=torch.float32)
     forward_s, allocated = forward(model, rows, head, "1m", args.device, hidden) if all(checks.values()) else (0.0, 0)
-    mask = torch.tensor([not row["rejected"] for row in rows], dtype=torch.uint8)
+    mask = torch.tensor([row.get("logits1m") is not None for row in rows], dtype=torch.uint8)
     args.output.mkdir(parents=True, exist_ok=True)
     save_file({"hidden": hidden, "mask": mask}, str(args.output / "hidden.safetensors"),
               metadata={"format": "pt", "merged_revision": revision, "ids": json.dumps([row["id"] for row in rows])})
