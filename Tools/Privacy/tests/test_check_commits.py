@@ -67,13 +67,16 @@ class CommitChecks(unittest.TestCase):
     def remote_branch(self, name):
         return self.git("ls-remote", "origin", f"refs/heads/{name}").stdout.split("\t")[0]
 
-    def run_check(self, *args):
+    def run_script(self, *args):
         return subprocess.run(
-            [sys.executable, "-I", str(self.root / "Tools/Privacy/check-local-paths.py"), "--commits", *args],
+            [sys.executable, "-I", str(self.root / "Tools/Privacy/check-local-paths.py"), *args],
             capture_output=True,
             text=True,
             env=self.environment,
         )
+
+    def run_check(self, *args):
+        return self.run_script("--commits", *args)
 
     def assertNoMatchedText(self, result):
         for text in ("alice", "Archive"):
@@ -199,6 +202,14 @@ class CommitChecks(unittest.TestCase):
         self.assertIn(f"docs/old.md:1 ({added[:7]})", refused.stdout + refused.stderr)
         self.assertNoMatchedText(refused)
         self.assertEqual(self.remote_branch("old"), "")
+
+    def test_unknown_arguments_exit_with_two_and_print_the_usage(self):
+        for args in (["--commit"], ["origin/main..HEAD"]):
+            with self.subTest(args=args):
+                result = self.run_script(*args)
+                self.assertEqual(result.returncode, 2)
+                self.assertEqual(result.stdout, "")
+                self.assertIn("Usage: check-local-paths.py [--commits [<git rev-list arguments>...]]", result.stderr)
 
     def test_unknown_revision_exits_with_two_and_reports_nothing(self):
         self.publish()

@@ -78,6 +78,9 @@ def commits(args):
 
 if sys.argv[1:2] == ["--commits"]:
     found = commits(sys.argv[2:] or ["origin/main..HEAD"])
+elif sys.argv[1:]:
+    print("Usage: check-local-paths.py [--commits [<git rev-list arguments>...]]", file=sys.stderr)
+    sys.exit(2)
 else:
     found = []
     for name, current, staged in contents():
