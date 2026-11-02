@@ -66,8 +66,10 @@ Setup checks the integrity records and then, under the shared machine lock, crea
 The steps that read the weights are heavy, so `run` holds the shared machine lock for the whole
 pipeline. Each executed `merge` adds a 54 GB checkpoint under the work directory's `objects/`, and
 a failed or cancelled `merge` leaves its partial checkpoint under `runs/<run>/merge/`. A step is
-reused only when its inputs, its dependencies, every `Tools/Conversion/*.py` file, the OS build,
-the reference environment and the executable are unchanged; `--refresh` always executes it again.
+reused only when its definition, inputs and dependencies, every `Tools/Conversion/*.py` file, the
+OS build and platform, the reference environment, the executable and the environment variables
+passed to it (`PATH`, `HOME`, `TMPDIR`, `LANG`, `LC_ALL`, `DEVELOPER_DIR`) are unchanged, so run
+it again from the same shell settings; `--refresh` always executes it again.
 
 ## Merge and references
 
