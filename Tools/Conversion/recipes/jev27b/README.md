@@ -131,8 +131,10 @@ checkpoint is used as it is, as a limited exploration.
   bfloat16 compute and a 262,144-token context. Right after quantization it hashes every tensor
   of the quantized model (`quantized-hashes.json`). A thread samples the process RSS, swap, the
   exporter's temporary folder, free disk and the memory free percentage every 5 seconds
-  (`monitor.tsv`) and stops the export when swap above 16 GB rises on three samples in a row or
-  the free percentage stays below 8 for three samples. It then replaces the resaved tokenizer
+  (`monitor.tsv`). When swap above 16 GB rises on three samples in a row or the free percentage
+  stays below 8 for three samples, it records the reason, interrupts the export and kills the
+  process if it is still running 120 seconds later; the exporter runs inside an event loop that
+  defers the interrupt to its next await. After the export it replaces the resaved tokenizer
   with byte copies, sets `source.revision` in `metadata.json` to the merged revision, adds the
   head, `LICENSE`, `NOTICE.md`, `decision.json` and `SHA256SUMS`, validates `decision.json`
   against the files, and writes `inspect.json` (function, input, output and state descriptors
