@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from unittest import mock
 
-from Tools.Conversion.adapters.jev27b import export
+from Tools.Conversion.adapters.jev27b import export, monitor
 
 
 class AssetTypeTests(unittest.TestCase):
@@ -20,30 +20,30 @@ class MonitorTests(unittest.TestCase):
     def sampled(self, swaps, frees):
         folder = tempfile.TemporaryDirectory()
         self.addCleanup(folder.cleanup)
-        monitor = export.Monitor(Path(folder.name) / "monitor.tsv", [folder.name], [], lambda reason: None)
+        watcher = monitor.Monitor(Path(folder.name) / "monitor.tsv", [folder.name], [], lambda reason: None)
         verdicts = []
-        with mock.patch.object(export, "command_output", return_value="1\n"), \
-                mock.patch.object(export, "swap_used", side_effect=swaps), \
-                mock.patch.object(export, "free_percent", side_effect=frees):
+        with mock.patch.object(monitor, "command_output", return_value="1\n"), \
+                mock.patch.object(monitor, "swap_used", side_effect=swaps), \
+                mock.patch.object(monitor, "free_percent", side_effect=frees):
             for _ in swaps:
-                monitor.sample()
-                verdicts.append(monitor.verdict())
-        return monitor, verdicts
+                watcher.sample()
+                verdicts.append(watcher.verdict())
+        return watcher, verdicts
 
     def test_swap_must_rise_above_the_limit_three_times_in_a_row(self):
-        high = int(export.SWAP_LIMIT_BYTES)
+        high = int(monitor.SWAP_LIMIT_BYTES)
         _, verdicts = self.sampled([high + 1, high + 2, high + 3, high + 4], [50] * 4)
         self.assertEqual([value is not None for value in verdicts], [False, False, False, True])
         _, steady = self.sampled([high + 1, high + 2, high + 2, high + 3, high + 4], [50] * 5)
         self.assertEqual([value is not None for value in steady], [False] * 5)
 
     def test_low_free_memory_stops_after_three_samples_and_records_extremes(self):
-        monitor, verdicts = self.sampled([1, 1, 1, 1], [7, 7, 9, 5])
+        _, verdicts = self.sampled([1, 1, 1, 1], [7, 7, 9, 5])
         self.assertEqual([value is not None for value in verdicts], [False, False, False, False])
-        monitor, verdicts = self.sampled([1, 1, 1], [7, 6, 5])
+        watcher, verdicts = self.sampled([1, 1, 1], [7, 6, 5])
         self.assertIn("memory free percentage", verdicts[-1])
-        self.assertEqual(monitor.lowest["free_percent"], 5)
-        self.assertEqual(monitor.peak["rss_bytes"], 1024)
+        self.assertEqual(watcher.lowest["free_percent"], 5)
+        self.assertEqual(watcher.peak["rss_bytes"], 1024)
 
 
 if __name__ == "__main__":

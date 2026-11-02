@@ -1,8 +1,8 @@
 import copy
 import unittest
 
-from Tools.Conversion.adapters.jev27b.decision import HASH_SCHEMA
-from Tools.Conversion.adapters.jev27b.verify_quantization import compare, compare_hashes, complete, finite
+from Tools.Conversion.adapters.jev27b.decision import HASH_SCHEMA, compare_hashes
+from Tools.Conversion.adapters.jev27b.verify_quantization import compare, complete, finite
 
 SETTINGS = {"schema": HASH_SCHEMA, "model_id": "owner/merged", "revision": "1" * 40, "model_type": "qwen3_5", "device": "cpu",
             "versions": {"torch": "2.9.0"}, "recipe_sha256": "a" * 64, "compute_precision": "bfloat16",

@@ -142,11 +142,14 @@ def load_check(model, config, dtype):
     return result
 
 
-def check_location(upstream):
+def check_location(upstream, recipe):
     import coreai_models
 
-    if not Path(coreai_models.__file__).resolve().is_relative_to(Path(upstream).resolve() / "python/src"):
+    upstream = Path(upstream).resolve()
+    if not Path(coreai_models.__file__).resolve().is_relative_to(upstream / "python/src"):
         raise ValueError("Exporter imported from an unexpected checkout")
+    if not Path(recipe).resolve().is_relative_to(upstream):
+        raise ValueError("The quantization recipe must come from the exporter checkout")
 
 
 def export_config(contract, recipe, model_id, output_dir, name):

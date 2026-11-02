@@ -4,33 +4,14 @@ from pathlib import Path
 import sys
 
 from ...storage import read_json, write_json
-from .decision import HASH_SCHEMA
+from .decision import compare_hashes
 from .prepare import load_contract
 from .typed_head import BANDS
 from .verify_merge import SHARED, largest, stats, summary, top
 
 SCHEMA = "typed-decision-quantization/1"
-SETTINGS = ("model_id", "revision", "model_type", "device", "versions", "recipe_sha256", "compute_precision", "compression",
-            "context_length")
 SETS = ("F", "Q")
 SUM_TOLERANCE = 1e-3
-
-
-def compare_hashes(first, second):
-    left, right = ({entry["name"]: entry for entry in side["tensors"]} for side in (first, second))
-    fields = ("kind", "shape", "dtype", "sha256")
-    differing = sorted(name for name in left.keys() & right.keys() if any(left[name][f] != right[name][f] for f in fields))
-    result = {"items": len(left), "compared": len(left.keys() & right.keys()), "differing": differing,
-              "only_first": sorted(left.keys() - right.keys()), "only_second": sorted(right.keys() - left.keys()),
-              "order": [entry["name"] for entry in first["tensors"]] == [entry["name"] for entry in second["tensors"]],
-              "layout": first["layout"] == second["layout"],
-              "settings": sorted(key for key in SETTINGS if first.get(key) != second.get(key)),
-              "schema": first.get("schema") == second.get("schema") == HASH_SCHEMA,
-              "unreadable": sorted(name for name in left if left[name]["sha256"] is None)}
-    result["matching"] = result["compared"] - len(differing)
-    result["hashes_match"] = not (differing or result["only_first"] or result["only_second"] or result["settings"]
-                                  or result["unreadable"]) and result["order"] and result["layout"] and result["schema"]
-    return result
 
 
 def stage_keys(stage):

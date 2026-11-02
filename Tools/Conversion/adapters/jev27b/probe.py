@@ -9,12 +9,11 @@ import time
 
 from ...storage import read_json, write_json
 from ..pinned import check_upstream, pinned_hub, sha256
-from .export import RECIPE, Monitor
+from .decision import HEAD_TENSORS, compare_hashes
 from .fixtures import load_rows
+from .monitor import Monitor
 from .prepare import check_integrity, distributed_tokenizer, load_contract
-from .reference import decision_head
 from .typed_head import band, decide, render, tokenize
-from .verify_quantization import compare_hashes
 
 SETS = ("F", "Q")
 STAGES = {"merged": "2", "base": "0q"}
@@ -26,7 +25,7 @@ SPEED_TOKENS = (0, 512, 2048, 4096)
 def arguments():
     parser = argparse.ArgumentParser(description="Re-quantize a JEV-27B backbone and run F and Q in float32 (stage 2 or 0q).")
     parser.add_argument("--stage", choices=sorted(STAGES), required=True)
-    for name in ("model", "snapshot", "upstream", "corpus", "jglue", "fixtures", "scratch", "output"):
+    for name in ("model", "snapshot", "upstream", "recipe", "corpus", "jglue", "fixtures", "scratch", "output"):
         parser.add_argument(f"--{name}", type=Path, required=True)
     parser.add_argument("--merge", type=Path)
     parser.add_argument("--export", type=Path)
@@ -55,6 +54,14 @@ def fixed_rows(args, contract, tokenizer):
                          "tokens": ids, "last_token": tokenizer.decode(ids[-1:]),
                          "rejected": len(ids) > contract["limits"]["input_tokens"]})
     return rows
+
+
+def decision_head(snapshot, contract):
+    from safetensors.torch import load_file
+
+    tensors = load_file(str(snapshot / contract["head"]))
+    weight, bias = (tensors[name].float() for name in HEAD_TENSORS)
+    return weight, bias, read_json(snapshot / "calibration.json")["per_kind"]
 
 
 def identity(args, contract):
@@ -186,7 +193,7 @@ def main():
     contract = load_contract(args.model)
     check_upstream(args.upstream, contract)
     source, folder = identity(args, contract)
-    recipe = args.upstream.resolve() / RECIPE
+    recipe = args.recipe.resolve()
     head = decision_head(args.snapshot, contract)
     started = time.perf_counter()
     timing = {}
@@ -202,7 +209,7 @@ def main():
 
             from . import backbone
 
-            backbone.check_location(args.upstream)
+            backbone.check_location(args.upstream, recipe)
             model_type = backbone.COMPOSITE if args.stage == "merged" else backbone.FLAT
             backbone.install(backbone.pipeline, model_type)
             rows = fixed_rows(args, contract, distributed_tokenizer(folder))
