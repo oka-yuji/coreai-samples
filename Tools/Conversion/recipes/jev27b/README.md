@@ -3,8 +3,9 @@
 This recipe pins the inputs, environments and evaluation sets for converting the System 1
 path of [autotrust/JEV-27B](https://huggingface.co/autotrust/JEV-27B) (revision
 `14b425269ed24452e0a5ad5a8f3e51d139647a88`): the Qwen3.8-27B text backbone with its
-unmerged LoRA and the 24-slot fp32 decision head. The recipe merges the LoRA; it does not
-convert or evaluate the model. These files record what the steps rely on:
+unmerged LoRA and the 24-slot fp32 decision head. The recipe merges the LoRA and records
+PyTorch references; it does not convert or evaluate the model. These files record what the
+steps rely on:
 
 - `model.json`: the contract checked against the downloaded adapter, head, judge and
   calibration files. A mismatch fails the check; the contract is not adjusted to the files.
@@ -80,6 +81,16 @@ a reused step does not, and `--refresh` always adds another.
   with sorted keys and no spaces, so it depends only on the files. `provenance.json` records the
   input hashes, the formula, the scale, the dtypes, the pairs per target, the mapping of layers 0
   and 3, the elapsed time, the peak resident memory and the library versions.
+- `reference` renders and tokenizes every row of F, rejects rows longer than 8,192 tokens without a
+  forward pass, and computes the head logits and the probabilities at temperature 1 and at the
+  calibrated temperature with the adapter (stage 1) and inside `disable_adapter()` (stage 0).
+- `reference_merged` loads the checkpoint as `Qwen3_5ForCausalLM` with
+  `config=Qwen3_5Config.from_pretrained(checkpoint).text_config`. Transformers 5.16.1 removes the
+  `language_model` prefix for `qwen3_5_text`, so no `key_mapping` is given; missing, unexpected and
+  mismatched keys must be empty. It runs the same rows (stage 1') and also writes
+  `hidden.safetensors`: `hidden` [302, 5120] float32 in the order of F, zero for rejected rows, and
+  `mask` [302] uint8 that is 1 for rows with a forward pass. The metadata entry `ids` lists the row
+  IDs.
 
 ## Tokenizer
 
