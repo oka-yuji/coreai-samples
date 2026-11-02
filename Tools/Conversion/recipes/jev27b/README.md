@@ -64,8 +64,10 @@ Setup checks the integrity records and then, under the shared machine lock, crea
   corpus and JGLUE files through `load_rows` with matching hashes.
 
 The steps that read the weights are heavy, so `run` holds the shared machine lock for the whole
-pipeline. Each executed `merge` adds a 54 GB checkpoint under the work directory's `objects/`;
-a reused step does not, and `--refresh` always adds another.
+pipeline. Each executed `merge` adds a 54 GB checkpoint under the work directory's `objects/`, and
+a failed or cancelled `merge` leaves its partial checkpoint under `runs/<run>/merge/`. A step is
+reused only when its inputs, its dependencies, every `Tools/Conversion/*.py` file, the OS build,
+the reference environment and the executable are unchanged; `--refresh` always executes it again.
 
 ## Merge and references
 
