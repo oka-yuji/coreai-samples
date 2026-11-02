@@ -20,7 +20,7 @@ SETS = ("F", "Q")
 STAGES = {"merged": "2", "base": "0q"}
 BUDGET_S = 6 * 3600
 MPS_TOLERANCE = 1e-3
-SPEED_TOKENS = (0, 512, 2048)
+SPEED_TOKENS = (0, 512, 2048, 4096)
 
 
 def arguments():
@@ -248,6 +248,8 @@ def main():
             run = Runner(backbone, torch, model, head)
             device, plan = choose_device(run, model, rows, args.device, started)
             probe.update(device=device, plan=plan)
+            print("device", device, json.dumps({key: plan[key] for key in ("cpu", "mps", "mps_max_difference", "stopped")
+                                                 if key in plan}), flush=True)
             if device is None:
                 write_json(args.output / "probe.json", {**probe, "passed": False, "timing": timing,
                                                         "monitor": monitor.finish()})

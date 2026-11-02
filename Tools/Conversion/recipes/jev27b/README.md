@@ -143,9 +143,11 @@ checkpoint is used as it is, as a limited exploration.
   float32 with float32 zero states. `probe_merged` stops unless every hash equals the export's;
   `probe_base` loads `autotrust/JEV-27B` itself through a `qwen3_5_text` entry without the
   `text_config` unwrapping and key prefix, and keeps its own hashes. Each first estimates the
-  CPU time from three rows of about 0, 512 and 2,048 tokens. When the estimate exceeds six
-  hours, it switches to MPS only if three short rows agree within 1e-3 between CPU and MPS and
-  the MPS estimate fits; otherwise it stops before running the sets.
+  CPU time with a quadratic fit to rows of about 0, 512, 2,048 and 4,096 tokens; the eager
+  linear-attention update grows faster than linearly with the input length, so a fit to
+  shorter rows underestimates the longest band. When the estimate exceeds six hours, it switches
+  to MPS only if three short rows agree within 1e-3 between CPU and MPS and the MPS estimate
+  fits; otherwise it stops before running the sets.
 - `verify_quantization` requires matching hashes, complete rows equal to the fixtures and to the
   earlier references, and finite probabilities. It writes `reference_q.json`, `quantization.json`
   (`typed-decision-quantization/1`) and `report.md`; it applies no numeric threshold.
