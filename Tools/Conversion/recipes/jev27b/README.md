@@ -3,9 +3,11 @@
 This recipe pins the inputs, environments and evaluation sets for converting the System 1
 path of [autotrust/JEV-27B](https://huggingface.co/autotrust/JEV-27B) (revision
 `14b425269ed24452e0a5ad5a8f3e51d139647a88`): the Qwen3.8-27B text backbone with its
-unmerged LoRA and the 24-slot fp32 decision head. The recipe merges the LoRA and records
-PyTorch references; it does not convert or evaluate the model. These files record what the
-steps rely on:
+unmerged LoRA and the 24-slot fp32 decision head. The recipe merges the LoRA, records PyTorch
+references, converts the merged backbone to a 4-bit Core AI asset that returns hidden states,
+records the quantized references and assembles a typed-decision bundle
+([docs/jev27b.md](../../../../docs/jev27b.md)). It does not evaluate the model. These files
+record what the steps rely on:
 
 - `model.json`: the contract checked against the downloaded adapter, head, judge and
   calibration files. A mismatch fails the check; the contract is not adjusted to the files.
@@ -107,6 +109,50 @@ it again from the same shell settings; `--refresh` always executes it again.
   `report.md` compares the card examples with the card values, which is not a pass criterion.
   `python3 -m Tools.Conversion.summary <report.json> --comparison <comparison.json>` prints the
   shareable numbers.
+
+## Conversion, quantized references and bundle
+
+These steps run before `verify_merge` for now. `verify_merge` fails its output check (stage 1
+against stage 1' exceeds 0.01) while that result awaits a decision, and the runner stops at the
+first failed step, so it stays last until the decision is made. A run therefore ends with status
+`failed` after every conversion step has completed; check the steps in `report.json`. The merged
+checkpoint is used as it is, as a limited exploration.
+
+- `export_dry_run` runs in the converter environment. Under a local Hugging Face cache that maps
+  `merged_model_id` at `merged_revision` to `$merge/checkpoint`, it runs the official
+  `coreai_models.llm.export --dry-run` (the merged ID has no registry preset, so it passes
+  `--experimental` and the recipe file through `--compression-config`) and loads the backbone
+  with `from_hf_memory_efficient`. The `qwen3_5` registry entry is swapped in the same process
+  for `TypedDecisionBackbone`, a subclass of the official `Qwen3_5ForCausalLM` without a prefill
+  graph or `lm_head` whose `main` returns the final hidden states. `dry-run.log` and
+  `dry-run.json` record the resolution, the fused projections (`in_proj_all`, `qkv_gate_proj`),
+  that no parameter stayed unloaded, and the export contract.
+- `export` calls the official `export_model` with `qwen3_5_cfg` (uint4, per-block 32, minval),
+  bfloat16 compute and a 262,144-token context. Right after quantization it hashes every tensor
+  of the quantized model (`quantized-hashes.json`). A thread samples the process RSS, swap, the
+  exporter's temporary folder, free disk and the memory free percentage every 5 seconds
+  (`monitor.tsv`) and stops the export when swap above 16 GB rises on three samples in a row or
+  the free percentage stays below 8 for three samples. It then replaces the resaved tokenizer
+  with byte copies, sets `source.revision` in `metadata.json` to the merged revision, adds the
+  head, `LICENSE`, `NOTICE.md`, `decision.json` and `SHA256SUMS`, validates `decision.json`
+  against the files, and writes `inspect.json` (function, input, output and state descriptors
+  read from the asset summary without specializing it) and `provenance.json` (durations, memory
+  and disk extremes, sizes, revisions, the Apple toolchain and library versions).
+- `probe_merged` and `probe_base` rebuild the quantized model in their own processes through the
+  exporter's `resolve_model` and `build_model`, hash it before any cast, and run F and Q in
+  float32 with float32 zero states. `probe_merged` stops unless every hash equals the export's;
+  `probe_base` loads `autotrust/JEV-27B` itself through a `qwen3_5_text` entry without the
+  `text_config` unwrapping and key prefix, and keeps its own hashes. Each first estimates the
+  CPU time from three rows of about 0, 512 and 2,048 tokens. When the estimate exceeds six
+  hours, it switches to MPS only if three short rows agree within 1e-3 between CPU and MPS and
+  the MPS estimate fits; otherwise it stops before running the sets.
+- `verify_quantization` requires matching hashes, complete rows equal to the fixtures and to the
+  earlier references, and finite probabilities. It writes `reference_q.json`, `quantization.json`
+  (`typed-decision-quantization/1`) and `report.md`; it applies no numeric threshold.
+
+`verbalizers` and `verbalizer_ids` in `decision.json` are copied from `judge_config.json`, which
+defines both. `python3 -m Tools.Conversion.summary <report.json> --comparison <quantization.json>`
+prints the shareable numbers.
 
 ## Tokenizer
 
