@@ -18,7 +18,7 @@ def git(*args, data=None):
     try:
         return subprocess.run(["git", "-C", str(root), *args], input=data, stdout=subprocess.PIPE, check=True).stdout
     except (OSError, subprocess.CalledProcessError):
-        print("Could not read the tracked files with git.", file=sys.stderr)
+        print("Could not read the repository with git.", file=sys.stderr)
         sys.exit(2)
 
 

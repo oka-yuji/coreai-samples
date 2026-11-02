@@ -216,6 +216,7 @@ class CommitChecks(unittest.TestCase):
         result = self.run_check("missing..HEAD")
         self.assertEqual(result.returncode, 2)
         self.assertEqual(result.stdout, "")
+        self.assertIn("Could not read the repository with git.", result.stderr)
         self.assertNoMatchedText(result)
 
 
