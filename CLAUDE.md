@@ -7,6 +7,7 @@
 
   ```sh
   python3 -I Tools/Privacy/check-local-paths.py
+  python3 -I Tools/Privacy/check-local-paths.py --commits origin/main..HEAD
   swiftlint lint --config .swiftlint.yml --baseline .swiftlint-baseline.json --strict --no-cache
   python3 Tools/Format/check_format.py --base origin/main
   ./Tools/Irodori/build-inputs.sh
@@ -14,6 +15,8 @@
   xcodebuild -project CoreAISamples.xcodeproj -scheme CoreAISamples -configuration Release -destination 'platform=macOS' -onlyUsePackageVersionsFromResolvedFile build
   python3 -I Tools/Packages/check-pins.py
   ```
+
+- push の前の検査は `Tools/Privacy/hooks/pre-push` が行い、clone ごとに 1 回 `git config core.hooksPath Tools/Privacy/hooks` で有効にする(worktree は設定を共有する)。
 
 - 大きさの合図(合否には使わない): `swiftlint lint --config .swiftlint-size.yml --quiet`
 

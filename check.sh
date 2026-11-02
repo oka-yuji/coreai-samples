@@ -27,6 +27,7 @@ check_stage=local-paths
 printf 'CHECK RUN: %s\n' "$check_stage"
 python3 -m unittest discover -s Tools/Privacy/tests -v
 python3 -I Tools/Privacy/check-local-paths.py
+python3 -I Tools/Privacy/check-local-paths.py --commits origin/main..HEAD
 check_stage=model-reports
 printf 'CHECK RUN: %s\n' "$check_stage"
 python3 -m Tools.ModelReports check

@@ -1,0 +1,13 @@
+#!/bin/sh
+set -eu
+check="$(git rev-parse --show-toplevel)/Tools/Privacy/check-local-paths.py"
+while read -r local_ref local_sha remote_ref remote_sha; do
+    case $local_sha in
+        *[!0]*) ;;
+        *) continue ;;
+    esac
+    case $remote_sha in
+        *[!0]*) python3 -I "$check" --commits "$remote_sha..$local_sha" </dev/null ;;
+        *) python3 -I "$check" --commits "$local_sha" --not "--remotes=$1" </dev/null ;;
+    esac
+done

@@ -52,11 +52,38 @@ def lines(data):
     return sorted({data.count(b"\n", 0, match.start()) + 1 for match in pattern.finditer(data)})
 
 
-found = []
-for name, current, staged in contents():
-    found += [f"{name}:{line}" for line in lines(current)]
-    if staged != current:
-        found += [f"{name}:{line} (staged)" for line in lines(staged)]
+def commits(args):
+    entries = []
+    commit = b""
+    for line in git("rev-list", "--objects", "--in-commit-order", "--reverse", *args).split(b"\n"):
+        if line:
+            sha, separator, name = line.partition(b" ")
+            if not separator:
+                commit = sha
+            entries.append((sha, name, commit))
+    batch = git("cat-file", "--batch", data=b"".join(sha + b"\n" for sha, _, _ in entries))
+    found = []
+    offset = 0
+    for sha, name, commit in entries:
+        end = batch.index(b"\n", offset)
+        kind, size = batch[offset:end].split()[1:]
+        data = batch[end + 1:end + 1 + int(size)]
+        offset = end + 2 + int(size)
+        if kind == b"commit":
+            found += [f"{sha[:7].decode()}:{line} (message)" for line in lines(data.partition(b"\n\n")[2])]
+        elif kind == b"blob":
+            found += [f"{os.fsdecode(name)}:{line} ({commit[:7].decode()})" for line in lines(data)]
+    return found
+
+
+if sys.argv[1:2] == ["--commits"]:
+    found = commits(sys.argv[2:] or ["origin/main..HEAD"])
+else:
+    found = []
+    for name, current, staged in contents():
+        found += [f"{name}:{line}" for line in lines(current)]
+        if staged != current:
+            found += [f"{name}:{line} (staged)" for line in lines(staged)]
 for item in found:
     print(item)
 if found:
