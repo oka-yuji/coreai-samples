@@ -1,8 +1,12 @@
 import copy
+import importlib.util
 import unittest
 
 from Tools.Conversion.adapters.jev27b.decision import HASH_SCHEMA, compare_hashes
-from Tools.Conversion.adapters.jev27b.verify_quantization import compare, complete, finite
+from Tools.Conversion.adapters.jev27b.probe import estimate, speed_rows
+from Tools.Conversion.adapters.jev27b.verify_quantization import compare, complete, differences, finite, joined
+
+NUMPY = importlib.util.find_spec("numpy") is not None
 
 SETTINGS = {"schema": HASH_SCHEMA, "model_id": "owner/merged", "revision": "1" * 40, "model_type": "qwen3_5", "device": "cpu",
             "versions": {"torch": "2.9.0"}, "recipe_sha256": "a" * 64, "compute_precision": "bfloat16",
@@ -17,6 +21,7 @@ def record(*digests):
 
 def row(identifier, kind="noul", rejected=False, **stages):
     entry = {"set": "F", "id": identifier, "kind": kind, "band": None if rejected else "<=512", "row_sha256": "r",
+             "text_sha256": "t",
              "token_count": 9000 if rejected else 3, "tokens": [1] * (9000 if rejected else 3),
              "options": ["false", "true"], "rejected": rejected}
     for stage, probabilities in stages.items():
@@ -78,6 +83,47 @@ class ReferenceRowTests(unittest.TestCase):
         shipped = moved["shipping_temperature"]
         self.assertEqual((shipped["margin_within_2e"]["rows"], shipped["top1_changed"]["rows"]), (2, 2))
         self.assertEqual(moved["temperature_1"]["margin_within_2e"]["rows"], 1)
+
+
+class JoinTests(unittest.TestCase):
+    def test_rows_join_by_identity_and_q_rows_keep_only_the_quantized_stages(self):
+        first = row("a", **{"2": [0.4, 0.6]})
+        second = row("b", **{"2": [0.7, 0.3]})
+        q_row = {**row("q", **{"2": [0.5, 0.5]}), "set": "Q"}
+        merged = {"rows": [first, second, q_row]}
+        base = {"rows": [{**item, **{key.replace("2", "0q"): value for key, value in item.items() if "2" in key}}
+                         for item in copy.deepcopy(merged["rows"])]}
+        base["rows"][1]["p0q"] = [0.6, 0.4]
+        stage0 = {"rows": [row("b", **{"0": [0.9, 0.1], "1": [0.8, 0.2]}), row("a", **{"0": [0.3, 0.7], "1": [0.4, 0.6]})]}
+        stage1m = {"rows": [row("a", **{"1m": [0.45, 0.55]}), row("b", **{"1m": [0.75, 0.25]})]}
+        rows = joined((merged, base), (stage0, stage1m))
+        self.assertEqual([item["id"] for item in rows], ["a", "b", "q"])
+        self.assertEqual((rows[0]["p0"], rows[0]["p1m"], rows[1]["p1"]), ([0.3, 0.7], [0.45, 0.55], [0.8, 0.2]))
+        self.assertNotIn("p0", rows[2])
+        self.assertEqual(rows[2]["p0q"], [0.5, 0.5])
+        result = differences(rows[:2], "2", "0q")
+        self.assertEqual(result["rows"], 2)
+        self.assertAlmostEqual(result["mean"], 0.05)
+        self.assertAlmostEqual(result["max"], 0.1)
+
+
+class SpeedEstimateTests(unittest.TestCase):
+    def test_speed_rows_take_the_closest_distinct_rows(self):
+        rows = [{"id": name, "token_count": count} for name, count in (("s", 40), ("m", 500), ("l", 1500), ("x", 3900))]
+        self.assertEqual([item["id"] for item in speed_rows(rows)], ["s", "m", "l", "x"])
+        self.assertEqual([item["id"] for item in speed_rows(rows[:2])], ["s", "m"])
+
+    @unittest.skipUnless(NUMPY, "numpy is required for the time estimate")
+    def test_the_estimate_fits_a_quadratic_and_falls_back_to_a_line(self):
+        rows = [{"token_count": count} for count in (100, 1000)]
+        quadratic = estimate([(100, 2.0 + 0.01 * 100 + 1e-6 * 100 ** 2), (1000, 2.0 + 10.0 + 1.0),
+                              (3000, 2.0 + 30.0 + 9.0)], rows)
+        self.assertEqual(quadratic["model"], "quadratic")
+        self.assertAlmostEqual(quadratic["estimate_s"], 3.01 + 13.0, places=6)
+        concave = estimate([(100, 1.0), (1000, 9.0), (3000, 20.0)], rows)
+        self.assertEqual(concave["model"], "linear")
+        single = estimate([(100, 5.0)], rows)
+        self.assertEqual((single["model"], single["estimate_s"]), ("per-token", 5.0 / 100 * 1100))
 
 
 if __name__ == "__main__":
