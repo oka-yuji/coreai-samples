@@ -61,7 +61,7 @@ def scan():
             for part, version, text in versions:
                 place = f"{kind} #{number} {part}" if part else f"{kind} {number}"
                 suffix = f" (edit {version})" if version else ""
-                found += [((kinds.index(kind), number, part != "title", line, version), f"{place}:{line}{suffix}") for line in lines((text or "").encode())]
+                found += [((kinds.index(kind), number, part != "title", version, line), f"{place}:{line}{suffix}") for line in lines((text or "").encode())]
     return [item for _, item in sorted(found)]
 
 

@@ -99,9 +99,9 @@ class PublicTextChecks(unittest.TestCase):
             result.stdout.splitlines(),
             [
                 "issue #2 title:1",
-                "issue #2 body:1 (edit 2)",
                 "issue #2 body:2",
                 "issue #2 body:2 (edit 1)",
+                "issue #2 body:1 (edit 2)",
                 "pr #3 body:3",
                 "comment 41:1",
                 "comment 41:1 (edit 1)",
