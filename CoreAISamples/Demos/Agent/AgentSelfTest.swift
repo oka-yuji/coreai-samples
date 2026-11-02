@@ -1714,6 +1714,23 @@ enum AgentSelfTest {
                     decision == .cancel && text == expected, text)
             }
         }
+        let absoluteURLRefusal = "error: fetch_page needs an absolute http or https URL"
+        let frames: [(String, URL?, Bool, WKNavigationActionPolicy, String?, Int)] = [
+            ("srcdoc", URL(string: "about:srcdoc"), false, .cancel, nil, 1),
+            ("data", URL(string: "data:text/html,x"), false, .cancel, nil, 1),
+            ("blob", URL(string: "blob:https://public.example/x"), false, .cancel, nil, 1),
+            ("noURL", nil, false, .cancel, nil, 1),
+            ("aboutBlank", URL(string: "about:blank"), false, .allow, nil, 0),
+            ("mainSrcdoc", URL(string: "about:srcdoc"), true, .cancel, absoluteURLRefusal, 0),
+        ]
+        for (name, url, mainFrame, expected, refusal, cancelled) in frames {
+            let reader = AgentPageReader(policy: policy)
+            let decision = await reader.navigationPolicy(url: url, isMainFrame: mainFrame)
+            let text = reader.statusFailure?.text
+            check(
+                "fetch/frame/" + name, decision == expected && text == refusal && reader.cancelledFrames == cancelled,
+                "\(text ?? "\(decision)") cancelled=\(reader.cancelledFrames)")
+        }
         let reader = AgentPageReader(policy: policy)
         do {
             _ = try await reader.configuration()
@@ -1741,6 +1758,13 @@ enum AgentSelfTest {
             let text = await webViewRefusal(html, policy: policy)
             check("fetch/http/webView/" + name, text == AgentTools.httpRefusal, text)
         }
+        let frameReader = AgentPageReader(policy: policy)
+        let frameText = await webViewBodyText(
+            #"<p>frame fixture main text</p><iframe srcdoc="x"></iframe>"#, reader: frameReader)
+        check(
+            "fetch/frame/webView/srcdoc",
+            frameText.contains("frame fixture main text") && frameReader.statusFailure == nil
+                && frameReader.cancelledFrames >= 1, "\(frameText) cancelled=\(frameReader.cancelledFrames)")
         for evaluation in [false, true] {
             for outcome in ["refusal", "cancellation", "success", "before-registration"] {
                 let waiting = AgentPageReader(policy: policy)
@@ -1805,6 +1829,33 @@ enum AgentSelfTest {
             }
             try await reader.waitForNavigation {}
             return "no refusal"
+        } catch {
+            return (error as? AgentToolMessage)?.text ?? "\(error)"
+        }
+    }
+
+    @MainActor
+    private static func webViewBodyText(_ html: String, reader: AgentPageReader) async -> String {
+        DispatchQueue.main.asyncAfter(deadline: .now() + AgentPageReader.timeout) { [weak reader] in
+            MainActor.assumeIsolated { reader?.abort(with: AgentPageReader.timedOutMessage) }
+        }
+        do {
+            let view = WKWebView(frame: .zero, configuration: try await reader.configuration())
+            view.navigationDelegate = reader
+            defer { view.stopLoading() }
+            try await reader.waitForNavigation {
+                view.loadHTMLString(html, baseURL: URL(string: "https://public.example/"))
+            }
+            while reader.cancelledFrames == 0, reader.statusFailure == nil {
+                try await Task.sleep(for: .milliseconds(50))
+            }
+            if let failure = reader.statusFailure { throw failure }
+            let text = try await reader.waitForEvaluation { complete in
+                view.evaluateJavaScript("document.body.innerText") { value, error in
+                    if let error { complete(.failure(error)) } else { complete(.success(value as? String)) }
+                }
+            }
+            return text ?? ""
         } catch {
             return (error as? AgentToolMessage)?.text ?? "\(error)"
         }

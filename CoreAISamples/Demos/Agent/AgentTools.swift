@@ -806,6 +806,7 @@ final class AgentPageReader: NSObject, WKNavigationDelegate {
     private let policy: AgentFetchPolicy
     private let resolutions = AgentAddressScope()
     private(set) var contentRulesInstalled = false
+    private(set) var cancelledFrames = 0
     private var stopped = false
 
     init(policy: AgentFetchPolicy = AgentFetchPolicy()) {
@@ -939,6 +940,11 @@ final class AgentPageReader: NSObject, WKNavigationDelegate {
     func navigationPolicy(url: URL?, isMainFrame: Bool) async -> WKNavigationActionPolicy {
         guard !stopped else { return .cancel }
         if !isMainFrame, url?.absoluteString == "about:blank" { return .allow }
+        let scheme = url?.scheme?.lowercased()
+        if !isMainFrame, scheme != "http", scheme != "https" {
+            cancelledFrames += 1
+            return .cancel
+        }
         do {
             try await policy.validate(url, scope: resolutions)
             return stopped ? .cancel : .allow
