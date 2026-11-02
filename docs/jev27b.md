@@ -84,7 +84,8 @@ hash record. The quantized models then run in float32 with float32 states.
 `verify_quantization` writes `reference_q.json`: one row per input of F (stages 0, 1, 1', 2 and 0q) and Q (stages 2 and
 0q) with `id`, `kind`, `options`, `band`, `row_sha256`, `text_sha256`, `token_count`, `tokens`, `rejected`, and for each
 stage `logits<stage>` (24 values before the temperature), `p<stage>` (temperature 1), `p<stage>_T` (shipping
-temperature) and `elapsed<stage>_s`. Rows longer than 8,192 tokens are rejected without a forward pass. Hidden states
+temperature) and `elapsed<stage>_s`; its header gives the device and dtype of each stage (`stages`). Rows longer than
+8,192 tokens are rejected without a forward pass. Hidden states
 of F are kept in `hidden2.safetensors` and `hidden0q.safetensors` (`hidden` [302, 5120] float32 in the order of F,
 `mask` [302] uint8 for rows with a forward pass). `quantization.json` (`typed-decision-quantization/1`) records the
 differences of stage 2 from stage 1' and of stage 0q from stage 0. Its `passed` covers hash agreement, complete rows

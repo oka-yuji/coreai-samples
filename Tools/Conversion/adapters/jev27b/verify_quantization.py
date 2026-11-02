@@ -183,9 +183,11 @@ def main():
                       adaptation={"F": {"stage 2 against 0q": differences(f_joined, "2", "0q"),
                                         "stage 1' against 0": differences(f_joined, "1m", "0")},
                                   "Q": {"stage 2 against 0q": differences(q_rows, "2", "0q")}})
+        stages = {name: {"device": source["device"], "dtype": source["dtype"]}
+                  for name, source in (("0", stage0), ("1", stage0), ("1m", stage1m), ("2", merged), ("0q", base))}
         write_json(args.output / "reference_q.json", {"merged_revision": merged["revision"], "base_revision": base["revision"],
-                                                       "devices": result["devices"], "dtype": merged["dtype"],
-                                                       "temperatures": merged["temperatures"], "rows": rows})
+                                                       "stages": stages, "temperatures": merged["temperatures"],
+                                                       "rows": rows})
         (args.output / "report.md").write_text(report(result), encoding="utf-8")
     write_json(args.output / "quantization.json", result)
     return 0 if result["passed"] else 1
