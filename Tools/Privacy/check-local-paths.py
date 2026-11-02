@@ -69,7 +69,7 @@ def commits(args):
         kind, size = batch[offset:end].split()[1:]
         data = batch[end + 1:end + 1 + int(size)]
         offset = end + 2 + int(size)
-        if kind == b"commit":
+        if kind in (b"commit", b"tag"):
             found += [f"{sha[:7].decode()}:{line} (message)" for line in lines(data.partition(b"\n\n")[2])]
         elif kind == b"blob":
             found += [f"{os.fsdecode(name)}:{line} ({commit[:7].decode()})" for line in lines(data)]

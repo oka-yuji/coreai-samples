@@ -16,7 +16,7 @@
   python3 -I Tools/Packages/check-pins.py
   ```
 
-- push の前の検査は `Tools/Privacy/hooks/pre-push` が行い、手元の remote-tracking ref に無いコミットの内容と本文を検査する。本体の clone で 1 回 `git config core.hooksPath "$(git rev-parse --show-toplevel)/Tools/Privacy/hooks"` で有効にする(絶対パス。worktree は設定を共有するので、すべての worktree からの push で動く)。
+- push の前の検査は `Tools/Privacy/hooks/pre-push` が行い、手元の remote-tracking ref に無いコミットの内容と本文(注釈付き tag の本文を含む)を検査する。本体の clone で 1 回 `git config core.hooksPath "$(git rev-parse --show-toplevel)/Tools/Privacy/hooks"` で有効にする(絶対パス。worktree は設定を共有するので、すべての worktree からの push で動く)。
 
 - 大きさの合図(合否には使わない): `swiftlint lint --config .swiftlint-size.yml --quiet`
 

@@ -101,6 +101,15 @@ class CommitChecks(unittest.TestCase):
         self.assertEqual(result.stdout.splitlines(), [f"{commit[:7]}:3 (message)"])
         self.assertNoMatchedText(result)
 
+    def test_path_in_an_annotated_tag_message_is_reported_by_tag_and_message_line(self):
+        self.publish()
+        self.git("tag", "-a", "v1", "-m", "chore: release", "-m", f"Built from {absolute('Users', 'alice', 'build')}")
+        tag = self.git("rev-parse", "v1").stdout.strip()
+        result = self.run_check("v1", "--not", "--remotes")
+        self.assertEqual(result.returncode, 1)
+        self.assertEqual(result.stdout.splitlines(), [f"{tag[:7]}:3 (message)"])
+        self.assertNoMatchedText(result)
+
     def test_path_in_a_blob_that_a_merge_commit_introduces_is_reported(self):
         self.publish()
         self.git("switch", "-q", "-c", "topic")
