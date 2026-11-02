@@ -140,9 +140,10 @@ class PublicTextChecks(unittest.TestCase):
             "%2f".join(["", "var", "folders", "xy"]),
             "\\/".join(["", "Users", "alice", "model"]),
         ])
-        result = self.run_check(repository([issue(1, body)]))
+        mixed = "a\\u002fb %2Fc\\nd %0A\n\\/opt\\u002Ftools%2fbin\nx " + "%2F".join(["", "Users", "alice", "y"]) + "\n"
+        result = self.run_check(repository([issue(1, body), issue(2, mixed)]))
         self.assertEqual(result.returncode, 1, result.stderr)
-        self.assertEqual(result.stdout.splitlines(), [f"issue #1 body:{line}" for line in range(1, 6)])
+        self.assertEqual(result.stdout.splitlines(), [f"issue #1 body:{line}" for line in range(1, 6)] + ["issue #2 body:3"])
 
     def test_api_failures_exit_with_two_instead_of_reporting_no_paths(self):
         path = absolute("Users", "alice", "x")
