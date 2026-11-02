@@ -6,9 +6,12 @@ from pathlib import Path
 import tempfile
 import unittest
 
+from Tools.Conversion import summary
 from Tools.Conversion.adapters.jev27b.merge import (
     lora_pairs, manifest_files, merge, merge_projection, merged_revision, saved_index, saved_name, targeted,
 )
+from Tools.Conversion.adapters.jev27b.verify_merge import THRESHOLD, compare_outputs
+from Tools.Conversion.storage import PipelineError
 
 TORCH = importlib.util.find_spec("torch") is not None
 TARGETS = ["q_proj", "k_proj", "v_proj", "o_proj", "in_proj_qkv", "in_proj_z", "out_proj", "gate_proj", "up_proj", "down_proj"]
@@ -129,6 +132,74 @@ class IndexAndRevisionTests(unittest.TestCase):
             self.assertEqual(merged_revision(files), hashlib.sha256(canonical).hexdigest()[:40])
             (roots[1] / "b.json").write_bytes(b"changed")
             self.assertNotEqual(merged_revision(manifest_files(roots[1])), merged_revision(files))
+
+
+def row(identifier, p1, p1m, rejected=False, kind="noul", tokens=(1, 2)):
+    stages = {} if rejected else {"logits0": [0.0] * 24, "logits1": [0.0] * 24, "p0": [0.5, 0.5], "p0_T": [0.5, 0.5],
+                                  "p1": p1, "p1_T": p1, "elapsed0_s": 0.1, "elapsed1_s": 0.1}
+    merged = {} if rejected else {"logits1m": [0.0] * 24, "p1m": p1m, "p1m_T": p1m, "elapsed1m_s": 0.1}
+    empty = {key: None for key in ("logits0", "logits1", "logits1m", "p0", "p1", "p1m", "p0_T", "p1_T", "p1m_T",
+                                   "elapsed0_s", "elapsed1_s", "elapsed1m_s")}
+    shared = {"id": identifier, "kind": kind, "options": ["false", "true"], "band": None if rejected else "<=512",
+              "row_sha256": "r", "text_sha256": "t", "token_count": len(tokens), "tokens": list(tokens), "rejected": rejected}
+    return {**shared, **empty, **stages}, {**shared, **empty, **merged}
+
+
+class OutputComparisonTests(unittest.TestCase):
+    def compare(self, *rows):
+        return compare_outputs({"passed": True, "rows": [first for first, _ in rows]},
+                               {"passed": True, "rows": [second for _, second in rows]})
+
+    def test_rows_within_the_threshold_pass_and_rejected_rows_are_not_compared(self):
+        outputs, joined, compared = self.compare(row("a", [0.2, 0.8], [0.205, 0.795]), row("b", [0.6, 0.4], [0.6, 0.4]),
+                                                 row("c", None, None, rejected=True))
+        self.assertTrue(outputs["passed"])
+        self.assertEqual((compared, len(joined)), (2, 3))
+        self.assertAlmostEqual(outputs["max_probability_error"], 0.005)
+        self.assertEqual(outputs["violations"], [])
+        self.assertEqual(outputs["adaptation"]["rows_above"], 2)
+        self.assertEqual(set(joined[0]), {"id", "kind", "options", "band", "row_sha256", "text_sha256", "token_count", "tokens",
+                                          "rejected", "logits0", "logits1", "logits1m", "p0", "p1", "p1m", "p0_T", "p1_T",
+                                          "p1m_T", "elapsed0_s", "elapsed1_s", "elapsed1m_s"})
+
+    def test_a_larger_difference_or_different_tokens_fail(self):
+        outputs, _, _ = self.compare(row("a", [0.49, 0.51], [0.51, 0.49]))
+        self.assertFalse(outputs["passed"])
+        self.assertGreater(outputs["max_probability_error"], THRESHOLD)
+        self.assertEqual([violation["id"] for violation in outputs["violations"]], ["a"])
+        self.assertEqual(outputs["top1_changed"], {"rows": 1, "ids": ["a"]})
+        first, _ = row("a", [0.2, 0.8], [0.2, 0.8])
+        _, second = row("a", [0.2, 0.8], [0.2, 0.8], tokens=(1, 3))
+        outputs, _, _ = compare_outputs({"passed": True, "rows": [first]}, {"passed": True, "rows": [second]})
+        self.assertFalse(outputs["passed"])
+        self.assertEqual(outputs["differing_rows"], ["a"])
+        first, second = row("a", [0.2, 0.8], [0.2, 0.8])
+        outputs, _, _ = compare_outputs({"passed": False, "rows": [first]}, {"passed": True, "rows": [second]})
+        self.assertEqual((outputs["passed"], outputs["references_passed"], outputs["rows_match"]), (False, False, True))
+
+
+class MergeSummaryTests(unittest.TestCase):
+    report = {"version": 1, "status": "completed", "verification": "passed", "stages": []}
+    comparison = {"schema": "typed-decision-merge/1", "passed": True, "rows": 302, "compared": 301, "rejected": 1,
+                  "merged_revision": "private-example-sentinel",
+                  "weights": {"passed": True, "pairs_consumed": 400, "mismatched": ["private-example-sentinel"]},
+                  "outputs": {"max_probability_error": 0.004, "mean_probability_error": 0.0005,
+                              "violations": [{"id": "private-example-sentinel"}]}}
+
+    def test_the_merge_comparison_projects_only_its_numbers(self):
+        result = summary.project(self.report, self.comparison)
+        self.assertEqual(result["comparison"], {"passed": True, "rows": 302, "compared": 301, "rejected": 1,
+                                                "max_probability_error": 0.004, "mean_probability_error": 0.0005,
+                                                "weights_passed": True, "pairs_consumed": 400})
+        self.assertNotIn("private-example-sentinel", json.dumps(result))
+
+    def test_the_merge_comparison_rejects_invalid_values(self):
+        for mutate in (lambda c: c["weights"].update(passed="yes"), lambda c: c["outputs"].update(max_probability_error=-1),
+                       lambda c: c.update(rows=1.5), lambda c: c["weights"].update(pairs_consumed=True)):
+            comparison = json.loads(json.dumps(self.comparison))
+            mutate(comparison)
+            with self.subTest(comparison=comparison), self.assertRaises(PipelineError):
+                summary.project(self.report, comparison)
 
 
 if __name__ == "__main__":

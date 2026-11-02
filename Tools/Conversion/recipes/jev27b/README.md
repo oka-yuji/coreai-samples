@@ -91,6 +91,15 @@ a reused step does not, and `--refresh` always adds another.
   `hidden.safetensors`: `hidden` [302, 5120] float32 in the order of F, zero for rejected rows, and
   `mask` [302] uint8 that is 1 for rows with a forward pass. The metadata entry `ids` lists the row
   IDs.
+- `verify_merge` recomputes every merged projection from the source tensors and the adapter, and
+  compares all 851 tensors, their dtypes, the index, the shard headers, `config.json`, the
+  tokenizer files and the manifest. It joins the stage 1 and stage 1' rows by ID, requires the same
+  tokens, text hashes and rejections, and passes only when the largest probability difference at
+  temperature 1 is at most 0.01 on every compared row. `comparison.json` (`typed-decision-merge/1`)
+  holds the checks and the statistics by kind and band; `reference.json` joins stages 0, 1 and 1';
+  `report.md` compares the card examples with the card values, which is not a pass criterion.
+  `python3 -m Tools.Conversion.summary <report.json> --comparison <comparison.json>` prints the
+  shareable numbers.
 
 ## Tokenizer
 

@@ -213,6 +213,44 @@
       "outputs": ["reference-merged.json", "hidden.safetensors"],
       "heavy": true,
       "timeout_s": 5400
+    },
+    {
+      "id": "verify_merge",
+      "role": "verify",
+      "depends": ["merge", "reference", "reference_merged"],
+      "command": [
+        "$python", "-m", "Tools.Conversion.adapters.jev27b.verify_merge",
+        "--model", "$recipe_dir/model.json",
+        "--snapshot", "$snapshot",
+        "--base", "$base",
+        "--merge", "$merge",
+        "--reference", "$reference/reference.json",
+        "--merged-reference", "$reference_merged/reference-merged.json",
+        "--output", "$out"
+      ],
+      "cwd": "$repo",
+      "inputs": [
+        "$adapters/verify_merge.py",
+        "$adapters/merge.py",
+        "$adapters/fixtures.py",
+        "$adapters/prepare.py",
+        "$adapters/typed_head.py",
+        "$repo/Tools/Conversion/adapters/pinned.py",
+        "$repo/Tools/Conversion/storage.py",
+        "$recipe_dir/model.json",
+        "$snapshot/model-*.safetensors",
+        "$snapshot/model.safetensors.index.json",
+        "$snapshot/config.json",
+        "$snapshot/adapter/*",
+        "$snapshot/tokenizer.json",
+        "$snapshot/tokenizer_config.json",
+        "$snapshot/chat_template.jinja",
+        "$base/config.json"
+      ],
+      "outputs": ["comparison.json", "reference.json", "report.md"],
+      "checks": [{"file": "comparison.json", "key": ["passed"], "equals": true}],
+      "heavy": true,
+      "timeout_s": 3600
     }
   ]
 }
