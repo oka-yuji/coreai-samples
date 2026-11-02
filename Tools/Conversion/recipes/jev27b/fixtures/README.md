@@ -48,8 +48,8 @@ Rows with source `yuri_v1` are excluded everywhere. Each set uses
 - Q (900): stratified `test_set_30k` rows, 300 per kind, excluding every id used by F,
   including the parts of joined rows.
 - Cal (3,000): 1,000 `calibration` rows per kind. H (1,500): 500 `test` rows per kind.
-- J (600): per JGLUE task, `random.Random("20261102:J:<task>")` draws 208 ids from the sorted
-  validation ids; the first 8 belong to F and the other 200 to J.
+- J (600): per JGLUE task, `random.Random("20261102:J:<task>")` draws 208 ids from the validation
+  ids converted to strings and sorted as strings; the first 8 belong to F and the other 200 to J.
 
 JGLUE rows use only JGLUE fields and the pinned labels:
 
