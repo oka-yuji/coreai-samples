@@ -7,22 +7,52 @@
     @MainActor
     protocol PlaybackDevice: AnyObject {
         var completion: ((Bool) -> Void)? { get set }
-        func play() -> Bool
-        func stop()
+        func play(started: @escaping @MainActor (Bool) -> Void)
+        func stop(completed: @escaping @MainActor () -> Void)
+    }
+
+    actor PlayerHardware {
+        nonisolated private let queue = DispatchSerialQueue(label: "PlayerHardware")
+        nonisolated var unownedExecutor: UnownedSerialExecutor { queue.asUnownedSerialExecutor() }
+        private let player: AVAudioPlayer
+        private var stopped = false
+
+        init(data: Data) throws { player = try AVAudioPlayer(data: data) }
+        func play(delegate: PlayerDevice) -> Bool {
+            guard !stopped else { return false }
+            player.delegate = delegate
+            return player.prepareToPlay() && player.play()
+        }
+        func stop() {
+            stopped = true
+            player.delegate = nil
+            player.stop()
+        }
+        nonisolated func play(delegate: PlayerDevice, started: @escaping @MainActor (Bool) -> Void) {
+            queue.async {
+                let result = self.assumeIsolated { $0.play(delegate: delegate) }
+                DispatchQueue.main.async { started(result) }
+            }
+        }
+        nonisolated func stop(completed: @escaping @MainActor () -> Void) {
+            queue.async {
+                self.assumeIsolated { $0.stop() }
+                DispatchQueue.main.async { completed() }
+            }
+        }
     }
 
     @MainActor
     final class PlayerDevice: NSObject, PlaybackDevice, AVAudioPlayerDelegate {
-        private let player: AVAudioPlayer
+        private let hardware: PlayerHardware
         var completion: ((Bool) -> Void)?
 
         init(data: Data) throws {
-            player = try AVAudioPlayer(data: data)
+            hardware = try PlayerHardware(data: data)
             super.init()
-            player.delegate = self
         }
-        func play() -> Bool { player.prepareToPlay() && player.play() }
-        func stop() { player.stop() }
+        func play(started: @escaping @MainActor (Bool) -> Void) { hardware.play(delegate: self, started: started) }
+        func stop(completed: @escaping @MainActor () -> Void) { hardware.stop(completed: completed) }
         func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) { completion?(flag) }
         func audioPlayerDecodeErrorDidOccur(_ player: AVAudioPlayer, error: (any Error)?) { completion?(false) }
     }
@@ -73,7 +103,10 @@
                             switch result {
                             case .failure(let error): finish(ticket, result: .failure(error))
                             case .success:
-                                if !created.play() { finish(ticket, result: .failure(SpeechError.playbackFailed)) }
+                                created.play { [weak self] started in
+                                    guard let self, !started else { return }
+                                    finish(ticket, result: .failure(SpeechError.playbackFailed))
+                                }
                             }
                         })
                 }
@@ -98,8 +131,10 @@
             guard ticket == generation, continuation != nil, !finishing else { return }
             finishing = true
             device?.completion = nil
-            device?.stop()
-            session.stop { [weak self] in self?.complete(ticket, result: result) }
+            let stopped: @MainActor () -> Void = { [weak self] in
+                self?.session.stop { [weak self] in self?.complete(ticket, result: result) }
+            }
+            if let device { device.stop(completed: stopped) } else { stopped() }
         }
         private func complete(_ ticket: Int, result: Result<Void, any Error>) {
             guard ticket == generation, let pending = continuation, finishing else { return }
