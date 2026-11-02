@@ -45,7 +45,7 @@ class MergeFormulaTests(unittest.TestCase):
         values = torch.tensor([float("nan"), 1.5]).to(torch.bfloat16)
         self.assertTrue(identical(values, values.clone()))
         self.assertFalse(identical(torch.zeros(1, dtype=torch.bfloat16), -torch.zeros(1, dtype=torch.bfloat16)))
-        self.assertFalse(identical(values, values.float()))
+        self.assertFalse(identical(values, values.view(torch.int16)))
         self.assertFalse(identical(values.reshape(1, 2), values))
 
     def test_merge_writes_renamed_shards_with_bit_identical_copies_and_a_stable_size(self):
@@ -99,7 +99,7 @@ class WeightCheckTests(unittest.TestCase):
         tensors = {"model.embed_tokens.weight": torch.randn(8, 4, generator=generator).to(torch.bfloat16),
                    target: torch.randn(6, 4, generator=generator).to(torch.bfloat16),
                    f"{LAYER}.in_proj_a.weight": torch.randn(2, 4, generator=generator).to(torch.bfloat16),
-                   f"{LAYER}.A_log": torch.randn(2, generator=generator).to(torch.bfloat16),
+                   f"{LAYER}.A_log": torch.tensor([float("nan"), -0.0]).to(torch.bfloat16),
                    "lm_head.weight": torch.randn(8, 4, generator=generator).to(torch.bfloat16)}
         weight_map = {name: "model-00002-of-00002.safetensors" if "layers" in name else "model-00001-of-00002.safetensors"
                       for name in tensors}
@@ -131,11 +131,12 @@ class WeightCheckTests(unittest.TestCase):
             saved = load_file(str(shard))
             saved[saved_name(target)] = tensors[target] + (2.0 * (lora[lora_key(target, "B")] @ lora[lora_key(target, "A")])).to(
                 torch.bfloat16)
+            saved[saved_name(f"{LAYER}.A_log")] = torch.tensor([float("nan"), 0.0]).to(torch.bfloat16)
             save_file(saved, str(shard), metadata={"format": "pt"})
             config = {"model_type": "qwen3_5", "text_config": {key: value for key, value in text.items() if key != "mamba_ssm_dtype"}}
             (merged / "checkpoint/config.json").write_text(json.dumps(config))
             result = check_weights(snapshot, base, merged, contract)
-            self.assertEqual(result["mismatched"], [target])
+            self.assertEqual(result["mismatched"], [f"{LAYER}.A_log", target])
             self.assertEqual(result["text_config_differences"], ["mamba_ssm_dtype"])
             self.assertEqual({name for name, passed in result["checks"].items() if not passed},
                              {"tensors_equal", "config_bytes", "text_config", "manifest"})
