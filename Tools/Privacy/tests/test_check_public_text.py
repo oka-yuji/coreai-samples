@@ -20,7 +20,7 @@ if "output" in fake:
     sys.stdout.write(fake["output"])
     sys.exit(fake["code"])
 if sys.argv[1:] == ["api", "graphql", "--input", "-"]:
-    nodes = re.findall(r'"([^"]*)"', json.load(sys.stdin)["query"])[:fake.get("limit")]
+    nodes = [node for node in re.findall(r'"([^"]*)"', json.load(sys.stdin)["query"]) if node not in fake.get("missing", [])]
     empty = {"userContentEdits": {"pageInfo": {"hasNextPage": False}, "nodes": []}}
     print(json.dumps({"data": {"nodes": [fake["edits"].get(node, empty) for node in nodes]}}))
 else:
@@ -41,10 +41,14 @@ def edits(*versions, more=False):
     return {"userContentEdits": {"pageInfo": {"hasNextPage": more}, "nodes": nodes}}
 
 
-def repository(body, history=None):
+def issue(number, body):
+    return {"number": number, "node_id": f"I{number}", "title": "Notes", "body": body}
+
+
+def repository(*pages, history=None):
     return {
         "pages": {
-            endpoint("issues?state=all&per_page=100"): [[{"number": 1, "node_id": "I1", "title": "Notes", "body": body}]],
+            endpoint("issues?state=all&per_page=100"): list(pages),
             endpoint("issues/comments?per_page=100"): [[]],
             endpoint("pulls/comments?per_page=100"): [[]],
         },
@@ -117,9 +121,16 @@ class PublicTextChecks(unittest.TestCase):
     def test_deleted_edits_are_not_read_and_a_repository_without_paths_passes(self):
         body = f"Use ~/Library/Caches/app or docs/media/demo.gif and `/Volumes/`.\nFiles: {absolute('Users', 'runner', 'work', 'lib')}\n"
         history = {"I1": edits((body, None), (absolute("Users", "alice", "old"), "2026-11-01T00:00:00Z"))}
-        result = self.run_check(repository(body, history))
+        result = self.run_check(repository([issue(1, body)], history=history))
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual(result.stdout, "")
+
+    def test_items_after_the_first_hundred_are_read_in_the_next_batch(self):
+        body = f"intro\n{absolute('Users', 'alice', 'x')}"
+        plain = [issue(number, "plain") for number in range(1, 101)]
+        result = self.run_check(repository(plain, [issue(101, body)], history={"I101": edits((body, None))}))
+        self.assertEqual(result.returncode, 1, result.stderr)
+        self.assertEqual(result.stdout.splitlines(), ["issue #101 body:2", "issue #101 body:2 (edit 1)"])
 
     def test_paths_separated_by_json_and_url_escapes_are_reported(self):
         body = "\n".join([
@@ -129,16 +140,19 @@ class PublicTextChecks(unittest.TestCase):
             "%2f".join(["", "var", "folders", "xy"]),
             "\\/".join(["", "Users", "alice", "model"]),
         ])
-        result = self.run_check(repository(body))
+        result = self.run_check(repository([issue(1, body)]))
         self.assertEqual(result.returncode, 1, result.stderr)
         self.assertEqual(result.stdout.splitlines(), [f"issue #1 body:{line}" for line in range(1, 6)])
 
     def test_api_failures_exit_with_two_instead_of_reporting_no_paths(self):
+        path = absolute("Users", "alice", "x")
+        plain = [issue(number, "plain") for number in range(1, 101)]
         cases = {
             "gh fails": ({"output": "", "code": 1}, "CalledProcessError: Command "),
             "invalid JSON": ({"output": "not json", "code": 0}, "JSONDecodeError: Expecting value"),
-            "more edits than one page": (repository(absolute("Users", "alice", "x"), {"I1": edits(("", None), more=True)}), None),
-            "fewer edit histories than requested": (dict(repository(absolute("Users", "alice", "x")), limit=0), None),
+            "more edits than one page": (repository([issue(1, path)], history={"I1": edits(("", None), more=True)}), None),
+            "fewer edit histories than requested": (dict(repository([issue(1, path)]), missing=["I1"]), None),
+            "fewer edit histories in the second batch": (dict(repository(plain, [issue(101, path)]), missing=["I101"]), None),
         }
         for name, (fake, cause) in cases.items():
             with self.subTest(name):
