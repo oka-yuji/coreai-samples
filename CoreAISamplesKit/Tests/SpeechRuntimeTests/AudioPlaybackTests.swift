@@ -9,16 +9,23 @@ final class FakePlaybackDevice: PlaybackDevice {
     var completion: ((Bool) -> Void)?
     var playResult = true
     var immediateCompletion: Bool?
+    var holdsStart = false
+    var pendingStart: (@MainActor (Bool) -> Void)?
+    var holdsStop = false
+    var pendingStop: (@MainActor () -> Void)?
     var stopCount = 0
     var playCount = 0
     let started = TestSignal()
-    func play() -> Bool {
+    func play(started report: @escaping @MainActor (Bool) -> Void) {
         playCount += 1
         started.fire()
         if let immediateCompletion { completion?(immediateCompletion) }
-        return playResult
+        if holdsStart { pendingStart = report } else { report(playResult) }
     }
-    func stop() { stopCount += 1 }
+    func stop(completed: @escaping @MainActor () -> Void) {
+        stopCount += 1
+        if holdsStop { pendingStop = completed } else { completed() }
+    }
 }
 
 @MainActor
@@ -99,5 +106,54 @@ struct AudioPlaybackTests {
         gate.open()
         await #expect(throws: CancellationError.self) { try await task.value }
         #expect(!created)
+    }
+
+    @Test(
+        "A stop while the device is still starting ends playback once and ignores the late start result",
+        arguments: [true, false])
+    func stopWhileStarting(lateResult: Bool) async throws {
+        let device = FakePlaybackDevice()
+        device.holdsStart = true
+        let playback = AudioPlayback { _ in device }
+        let task = Task { try await playback.play(Data()) }
+        defer {
+            playback.stop()
+            task.cancel()
+        }
+        try await device.started.wait()
+        playback.stop()
+        await #expect(throws: CancellationError.self) { try await task.value }
+        #expect(device.stopCount == 1 && device.completion == nil)
+        let report = try #require(device.pendingStart)
+        report(lateResult)
+        #expect(device.stopCount == 1 && device.playCount == 1)
+    }
+
+    @Test("The session is not deactivated until the device has finished stopping")
+    func sessionWaitsForDeviceStop() async throws {
+        let session = FakePlaybackSession()
+        let device = FakePlaybackDevice()
+        device.holdsStop = true
+        let playback = AudioPlayback(session: session) { _ in device }
+        var returned = false
+        let task = Task {
+            defer { returned = true }
+            try await playback.play(Data())
+        }
+        defer {
+            device.pendingStop?()
+            task.cancel()
+        }
+        try await device.started.wait()
+        playback.stop()
+        try #require(device.stopCount == 1 && session.stops == 0)
+        await #expect(throws: SpeechError.busy) { try await playback.play(Data()) }
+        #expect(!returned)
+        let stopped = try #require(device.pendingStop)
+        device.pendingStop = nil
+        stopped()
+        #expect(session.stops == 1)
+        await #expect(throws: CancellationError.self) { try await task.value }
+        #expect(returned && device.stopCount == 1 && session.stops == 1)
     }
 }
