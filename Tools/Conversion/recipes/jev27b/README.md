@@ -179,7 +179,8 @@ checkpoint is used as it is, as a limited exploration.
 
 `verbalizers` and `verbalizer_ids` in `decision.json` are copied from `judge_config.json`, which
 defines both. The `bundle` variable and the literal output of the `export` step name the same
-folder, as do `bundle_gdnfp32` and the first output of `export_gdnfp32`; change each pair together.
+folder, as do `bundle_gdnfp32`, the first output of `export_gdnfp32` and the third output of `calibrate`; change
+each group together.
 
 `python3 -m Tools.Conversion.adapters.jev27b.summary <report.json> --comparison <quantization.json>`
 prints the shareable numbers of a run and its quantization check. It lives beside the steps rather
@@ -203,6 +204,27 @@ These steps also run before `verify_merge`:
   of at most 0.01 in every input band with rows. Bands without rows are listed as unevaluated, top-1 changes are
   reported with the 0.06 rule, and the shipping-temperature statistics are recomputed from the logits and reported
   separately. `comparison.json` (`typed-decision-fidelity/1`) and `report.md` hold the result.
+
+## Quality and calibration
+
+These steps also run before `verify_merge`. The conditions and definitions are fixed in
+[docs/jev27b.md](../../../../docs/jev27b.md#quality-and-calibration); no threshold is set from the results.
+
+- `reference_q` and `reference_merged_q` run `reference_sets.py --sets Q` with `--stage peft` (stages 1 and 0, the
+  adapter disabled for stage 0) and `--stage merged` (stage 1'). The module repeats the model loading and checks of
+  `reference.py` and `reference_merged.py` and imports their head, forward and header functions; both modules stay
+  unchanged, so `reference` and `reference_merged` keep their cache keys. Each writes `reference-Q.json` or
+  `reference-merged-Q.json` (no hidden states) and passes only with the same checks as the step it mirrors.
+- `typed_input_eval` writes `input-Q.json`, `input-Cal.json` and `input-H.json`; `typed_decide_q`, `typed_decide_cal`
+  and `typed_decide_h` run `coreai-verify typed-decide` on them with the variant bundle of `export_gdnfp32`.
+- `score_q` scores stages 0, 0q, 1', 2 and 3 of Q against the teacher distribution and writes `quality.json`
+  (`typed-decision-quality/1`) and `report.md`. Its check is `recorded`: inconsistent or non-finite inputs fail the
+  step, and a quality condition that is not met is recorded without failing it.
+- `calibrate` refits the temperature of each kind on the stage 3 logits of Cal, selects it on H without the rows whose
+  state occurs in Cal, writes a calibrated copy of the variant bundle (an APFS clone with `calibration-refit.json`, an
+  updated `decision.json` and `SHA256SUMS`), and re-evaluates the fidelity of F from the saved logits at the adopted
+  temperatures (`comparison-refit.json`). Its checks are `recorded` in `calibration.json` and the `passed` of
+  `comparison-refit.json`.
 
 ## Tokenizer
 

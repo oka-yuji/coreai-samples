@@ -4,8 +4,9 @@
 [`jev27b` conversion recipe](../Tools/Conversion/recipes/jev27b/README.md) builds from
 [autotrust/JEV-27B](https://huggingface.co/autotrust/JEV-27B). The bundle is not distributed. The output check of the
 merged checkpoint (stage 1 against stage 1', largest probability difference at most 0.01) has not passed and awaits a
-decision; the bundle and the quantized references below are a limited exploration that uses that merged checkpoint. No
-quality, fidelity or calibration result is claimed here.
+decision; the bundle and the quantized references below are a limited exploration that uses that merged checkpoint. The
+quality and calibration results under [Quality and calibration](#quality-and-calibration) measure agreement with the
+teacher distribution of the corpus on fixed sets; they are not a claim of real-world correctness.
 
 JEV-27B answers typed questions (`noul`, `choice` with 2 to 16 options, `score` from 0 to 5) with one prefill of a bare
 template. The final hidden state of the last token goes through a 24-row decision head. The bundle keeps that split:
@@ -71,7 +72,7 @@ size and SHA-256 of every listed file.
 | `slots` | Head rows per kind as `[start, end)`: `noul` [0, 2), `score` [2, 8), `choice` [8, 24). The ranges are disjoint and cover all 24 rows. A choice with n options uses the first n rows of its range. |
 | `verbalizers`, `verbalizer_ids` | Copied unchanged from the distributed `judge_config.json`: the 24 verbalizer strings and their token IDs. |
 | `template` | `version` `bare-v1`; `text` with the placeholders `{kind}`, `{state}`, `{question}` and `{options}`; `option_separator` (a line feed); `choice_line` `{label}) {option}` with `labels` A to P; `fixed_options` for `noul` (`false`, `true`) and `score` (`0` to `5`); `add_special_tokens` false; `last_token` `]:` |
-| `temperatures` | `per_kind` (the `per_kind` values of the distributed `calibration.json`, unchanged, all above 0), `calibration_id` (`<model>@<revision>/calibration.json`), `calibration_sha256`, `source` (`card`) |
+| `temperatures` | `per_kind` (the `per_kind` values of the distributed `calibration.json`, unchanged, all above 0), `calibration_id` (`<model>@<revision>/calibration.json`), `calibration_sha256`, `source` (`card`). The calibrated copy written by `calibrate` changes these four ([Calibrated bundle](#calibrated-bundle)). |
 | `limits` | `options` 16 and `input_tokens` 8192 (the whole rendered input, template included) |
 | `ties` | `lowest-index`: equal probabilities select the earliest option |
 | `source` | `model` and `base_model` (ID and revision), `adapter_sha256`, `adapter_config_sha256`, `head_sha256`, `merged_model_id`, `merged_revision`, `upstream_revision` (apple/coreai-models), `compression`, `compute_precision` |
@@ -92,12 +93,12 @@ options of the question. Temperature 1 gives the uncalibrated probabilities; `pe
 
 | Stage | Model | Precision | Where |
 |---|---|---|---|
-| 0 | Distributed backbone with the decision head, adapter disabled | bfloat16 | `reference` |
+| 0 | Distributed backbone with the decision head, adapter disabled | bfloat16 | `reference` (F), `reference_q` (Q) |
 | 0q | Stage 0 quantized with the export recipe, computed in float32 | float32 | `probe_base` |
-| 1 | Backbone with the unmerged LoRA adapter (PEFT) | bfloat16 | `reference` |
-| 1' | Merged checkpoint | bfloat16 | `reference_merged` |
+| 1 | Backbone with the unmerged LoRA adapter (PEFT) | bfloat16 | `reference` (F), `reference_q` (Q) |
+| 1' | Merged checkpoint | bfloat16 | `reference_merged` (F), `reference_merged_q` (Q) |
 | 2 | Merged checkpoint quantized with the export recipe, computed in float32 | float32 | `probe_merged` |
-| 3 | Core AI asset of the float32 gated delta update variant, run from Swift (`TypedDecisionModel`) | asset | `typed_decide_f` |
+| 3 | Core AI asset of the float32 gated delta update variant, run from Swift (`TypedDecisionModel`) | asset | `typed_decide_f` (F), `typed_decide_q`, `typed_decide_cal`, `typed_decide_h` |
 
 Stages 2 and 0q are built in their own processes through the exporter's own loading and quantization path. Every tensor
 of the quantized model (quantized data, scales, offsets and unquantized weights) is hashed before any float32 cast.
@@ -225,6 +226,142 @@ shared machine lock; without the variable they are skipped. `DECIDE_METRICS_DIR`
 ~~~sh
 COREAI_TYPED_DECISION_BUNDLE=/path/to/jev27b_s1_gdnfp32_qwen3_5_cfg_dynamic swift test --package-path CoreAISamplesKit \
   --filter TypedDecisionInferenceTests
+~~~
+
+## Quality and calibration
+
+The recipe measures stage 3 (the Core AI asset of the variant bundle) against the other stages on Q and refits the
+temperatures from stage 3 on Cal, with the conditions fixed before any measurement. Every number is agreement with the
+teacher distribution of the corpus (`target`, output distributions of Jev 1.13), not calibration against real-world
+correctness.
+
+These steps also run before `verify_merge`:
+
+- `reference_q` and `reference_merged_q` run Q through stages 1 and 0 (PEFT, `disable_adapter()`) and through stage 1'
+  with `reference_sets.py`, which repeats the model loading and checks of `reference.py` and `reference_merged.py`,
+  imports their head, forward and header functions, and leaves both modules unchanged. They write `reference-Q.json` and
+  `reference-merged-Q.json` (rows in the form of `reference_q.json` with `set`, without hidden states). Stage 1 is
+  computed but not used.
+- `typed_input_eval` writes `input-Q.json`, `input-Cal.json` and `input-H.json`, and `typed_decide_q`,
+  `typed_decide_cal` and `typed_decide_h` run them through `coreai-verify typed-decide` with the variant bundle.
+- `score_q` (`score.py`) writes `quality.json` (`typed-decision-quality/1`) and `report.md`. `recorded` is its check:
+  missing rows, rows that differ in ID, order, token IDs or rejection, non-finite values and invalid targets fail the
+  step, while a quality condition that is not met is recorded and does not.
+- `calibrate` (`calibrate.py`) writes `calibration.json` (`typed-decision-calibration/1`), `report.md`, a calibrated
+  copy of the bundle and `comparison-refit.json`. Its checks are `recorded` and the `passed` of `comparison-refit.json`.
+
+Definitions:
+
+- Probabilities of every stage are recomputed from the 24 head logits before the temperature, with the slot range, the
+  division by T and the softmax of `typed_head.decide`, at temperature 1 and at the card temperatures. Log-probabilities
+  use log-sum-exp in the same order and are not clipped.
+- Targets are restored with `load_rows` after the corpus integrity check. A target needs one non-negative value per
+  option with a sum within 1e-3 of 1 and is divided by its sum. The teacher top is the first largest target value.
+- choice accuracy: the argmax of p equals the teacher top, in points. noul Brier (soft): mean of (P(true) - t(true))^2;
+  the hard form uses 1 when the teacher top is `true`. Multiclass Brier: the sum of (p_i - t_i)^2 over the options.
+  score MAE / 5: mean of |sum k p(k) - sum k t(k)| / 5. KL(t || p) sums the terms with t_i > 0. noul AUROC ranks
+  P(true) with the teacher top as the label, leaves out rows with a 0.5 target, counts tied predictions one half and is
+  undefined with one class. ECE uses the confidence max p in 15 equal bins (1.0 falls in the last), against the mean
+  target of the predicted option (soft) or the accuracy (hard); empty bins weigh 0.
+- Intervals: 2,000 bootstrap replicates with seed 20261102 and the same draws for every stage; within a kind, rows that
+  share a state are drawn together. The 95% interval takes the 2.5 and 97.5 percentiles with linear interpolation.
+
+Conditions at temperature 1 on Q:
+
+| Condition | Compared | Passes when |
+|---|---|---|
+| Quantization, choice | accuracy of stage 3 minus stage 1' | at least -2 points |
+| Quantization, noul | Brier (soft) of stage 3 minus stage 1' | at most +0.01 |
+| Quantization, score | MAE / 5 of stage 3 minus stage 1' | at most +0.02 |
+| Adaptation | gain(bf16) = stage 1' against stage 0, gain(4bit) = stage 3 against stage 0q, for choice accuracy, noul Brier, score MAE / 5 and KL | gain(4bit) - 0.8 gain(bf16) >= 0 for each metric |
+
+The point estimates decide the quantization conditions; the 95% interval of each paired difference is reported with
+whether it contains the limit. Accuracy gains are adapted minus base, the other gains base minus adapted. A metric with
+gain(bf16) at most 0 is undefined, which is not a pass. Stage 2 against stage 0q is reported beside the gains to
+separate the contribution of the adapter at 4 bits from the difference between stage 3 and stage 2.
+
+Temperatures: for each kind, beta = 1 / T in [0.25, 4] minimizes the mean cross-entropy to the target of the stage 3
+logits on Cal with a golden-section search until the bracket is narrower than 1e-7. Reaching an end of the range is
+recorded; the range is not widened. The candidate is rounded to float32, the value that the Swift runtime uses, and
+written as the shortest decimal that rounds back to it. A kind adopts its candidate only when neither the NLL nor the
+multiclass Brier on H' is larger than at the card temperature, both at float32; H' is H without the 38 rows whose
+state also occurs in Cal. All of H is recorded too, but H selects the temperature and is not a final evaluation. ECE
+intervals are conditional on the chosen temperature and leave out the uncertainty of the fit and of the selection.
+
+Results (run `20261103T154310-65e7b5bb` for Q, Cal and H; `calibrate` in run `20261103T175311-463e881b`). The
+quantization conditions and every adaptation gain pass:
+
+| Condition (temperature 1, Q) | Stage 1' | Stage 3 | Difference [95% interval] | Limit | Result |
+|---|---:|---:|---|---|---|
+| choice accuracy (points) | 87.33 | 86.67 | -0.67 [-3.00, +1.67] | >= -2 | pass; the interval contains the limit |
+| noul Brier (soft) | 0.00141 | 0.00165 | +0.00024 [+0.00009, +0.00042] | <= +0.01 | pass |
+| score MAE / 5 | 0.02120 | 0.02171 | +0.00051 [-0.00029, +0.00129] | <= +0.02 | pass |
+
+| Metric | gain(bf16) | gain(4bit) | gain(4bit) - 0.8 gain(bf16) | Stage 2 over 0q | Result |
+|---|---:|---:|---:|---:|---|
+| choice accuracy (points) | +25.33 | +26.33 | +6.07 | +26.67 | pass |
+| noul Brier (soft) | +0.0648 | +0.0723 | +0.0205 | +0.0723 | pass |
+| score MAE / 5 | +0.0937 | +0.0901 | +0.0151 | +0.0901 | pass |
+| KL | +0.3378 | +0.3555 | +0.0852 | +0.3555 | pass |
+
+| Stage (temperature 1, Q) | KL | Top-1 | Choice accuracy | noul AUROC | noul Brier (soft / hard) | score MAE |
+|---|---:|---:|---:|---:|---|---:|
+| 0 | 0.3577 | 0.5844 | 62.00 | 0.8999 | 0.0662 / 0.1934 | 0.5746 |
+| 0q | 0.3757 | 0.5900 | 60.33 | 0.8925 | 0.0740 / 0.2008 | 0.5591 |
+| 1' | 0.0198 | 0.9089 | 87.33 | 0.9941 | 0.0014 / 0.0843 | 0.1060 |
+| 2 | 0.0203 | 0.9044 | 87.00 | 0.9933 | 0.0017 / 0.0859 | 0.1087 |
+| 3 | 0.0202 | 0.9033 | 86.67 | 0.9934 | 0.0017 / 0.0857 | 0.1085 |
+
+`quality.json` and `report.md` also hold the same table at the card temperatures, the values per kind and the card's
+own figures, which cover all 29,955 rows of `test_set_30k` (placeholder rows included) at the card temperatures and are
+therefore shown for reference only. One noul row of Q has a 0.5 target and is left out of the AUROC.
+
+| Kind | Card T | Refitted T (no end reached) | H' NLL, card then refitted | H' multiclass Brier, card then refitted | Adopted |
+|---|---:|---:|---|---|---|
+| noul | 1.0143135 | 1.0056266 | 0.384497, 0.384488 | 0.003832, 0.003823 | yes |
+| choice | 1.0161281 | 1.0053791 | 0.732314, 0.732290 | 0.020188, 0.020145 | yes |
+| score | 1.0036213 | 1.010558 | 1.062951, 1.062910 | 0.009226, 0.009215 | yes |
+
+ECE on H' at the card and the adopted temperatures, with 95% intervals:
+
+| Kind | Soft, card T | Soft, adopted T | Hard, card T | Hard, adopted T |
+|---|---|---|---|---|
+| noul | 0.0041 [0.0030, 0.0091] | 0.0035 [0.0027, 0.0086] | 0.1619 [0.1446, 0.1795] | 0.1609 [0.1437, 0.1785] |
+| choice | 0.0122 [0.0093, 0.0225] | 0.0092 [0.0079, 0.0199] | 0.2185 [0.1949, 0.2430] | 0.2163 [0.1932, 0.2420] |
+| score | 0.0043 [0.0048, 0.0122] | 0.0042 [0.0045, 0.0120] | 0.3349 [0.3077, 0.3609] | 0.3365 [0.3093, 0.3626] |
+
+ECE sums absolute bin gaps, so resampling biases it upward; for score the soft value lies below its percentile
+interval. The hard ECE compares the confidence with the agreement of the top option with the teacher top; for score
+the mean confidence on H' (about 0.56) lies far below that agreement (about 0.89) because the teacher distributions
+are spread out. The fidelity criteria of F, re-evaluated from the saved logits at the adopted temperatures, still pass
+(`comparison-refit.json`; at the adopted temperatures, maximum 0.0065, mean 0.0011, no top-1 change).
+
+Stage 3 ran Q in 458.7 s, Cal in 1,866.3 s and H in 919.6 s of forward time (about 180 tokens per second over all rows,
+median 0.48 s per row). Stages 1 and 0 of Q took 679.4 s and 644.7 s and stage 1' took 628.9 s on MPS.
+
+### Calibrated bundle
+
+`calibrate` writes `jev27b_s1_gdnfp32_qwen3_5_cfg_dynamic/` into its own output as an APFS clone (`cp -c`) of the
+variant bundle and then checks that every file of the variant still matches its `SHA256SUMS` and that the copy holds
+the same files. The variant itself is not modified.
+
+- `calibration-refit.json` (`typed-decision-calibration-refit/1`) records, for each kind, the card temperature, the fit
+  (beta, bracket, iterations, end reached, cross-entropy), the candidate, the adopted value and the reason, the
+  statistics of Cal, H' and H at both temperatures, the excluded rows of H, the settings, the SHA-256 of `main.mlirb`
+  and of the Cal and H fixtures, and the input digests of the stage 3 runs.
+- `decision.json` differs from the variant in `files`, which lists `calibration-refit.json`, and in `temperatures`:
+  `per_kind` holds the adopted values (the refitted float32 decimals, or the card value for a kind that keeps it),
+  `source` is `refit` when any kind adopts its candidate, `calibration_sha256` is the SHA-256 of
+  `calibration-refit.json` and `calibration_id` is `jev27b-refit/<its first 16 hexadecimal digits>`. `SHA256SUMS` is
+  written after `decision.json` and lists both files.
+- The asset, head and tokenizer are byte-identical to the variant, so the specialization cache entry of the variant
+  applies. `TypedDecisionBundle` reads the temperatures as `Float`; with `JEV_BUNDLE_DIR` set to the calibrated bundle,
+  the bundle test compares them with the `temperatures` of `calibration-refit.json`.
+
+~~~sh
+python3 -m Tools.Conversion.adapters.jev27b.decision <calibrated bundle>/decision.json --check-files
+JEV_BUNDLE_DIR=/path/to/calibrated/jev27b_s1_gdnfp32_qwen3_5_cfg_dynamic swift test --package-path CoreAISamplesKit \
+  --filter TypedDecision
 ~~~
 
 ## Terms

@@ -91,6 +91,10 @@ enum TypedDecisionFakeBundle {
     }
 }
 
+struct TypedDecisionRefit: Decodable {
+    let temperatures: [String: Double]
+}
+
 struct TypedDecisionBundleDefect: Sendable, CustomTestStringConvertible {
     let testDescription: String
     let fragment: String
@@ -263,9 +267,15 @@ struct TypedDecisionBundleTests {
         #expect(bundle.backboneInputs == ["input_ids", "position_ids"])
         #expect(bundle.stateNames == ["keyCache", "valueCache", "convStates", "recurrentStates"])
         #expect(bundle.contextLength == 262_144)
-        let temperatures = try TypedDecisionRealHead.load().temperatures.compactMap { key, value in
+        let refit = bundle.url.appending(path: "calibration-refit.json")
+        let expected =
+            FileManager.default.fileExists(atPath: refit.path(percentEncoded: false))
+            ? try JSONDecoder().decode(TypedDecisionRefit.self, from: Data(contentsOf: refit)).temperatures
+            : try TypedDecisionRealHead.load().temperatures
+        let temperatures = expected.compactMap { key, value in
             TypedDecisionKind(rawValue: key).map { ($0, Float(value)) }
         }
+        #expect(temperatures.count == 3)
         #expect(bundle.temperatures == Dictionary(uniqueKeysWithValues: temperatures))
         _ = try TypedDecisionHead(url: bundle.headURL, width: bundle.hiddenSize)
     }
