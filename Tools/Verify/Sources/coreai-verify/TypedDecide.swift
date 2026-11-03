@@ -29,12 +29,15 @@ struct TypedDecide: AsyncParsableCommand {
     func run() async throws {
         let started = Date.now
         let outputURL = URL(filePath: output)
-        guard !FileManager.default.fileExists(atPath: outputURL.path) else {
-            throw ValidationError("The output file already exists: \(output)")
-        }
+        var isFolder: ObjCBool = false
+        guard !FileManager.default.fileExists(atPath: outputURL.path),
+            FileManager.default.fileExists(atPath: outputURL.deletingLastPathComponent().path, isDirectory: &isFolder),
+            isFolder.boolValue
+        else { throw ValidationError("The output file must not exist yet, and its folder must exist: \(output)") }
         let data = try Data(contentsOf: URL(filePath: input))
         let rows = try JSONDecoder().decode(TypedDecideInput.self, from: data).rows.prefix(limit ?? .max)
         let model = try await TypedDecisionModel.load(bundle: URL(filePath: bundle))
+        let bundleRecord = try TypedDecideBundleRecord(model)
         let clock = ContinuousClock()
         var records: [TypedDecideRecord] = []
         for (index, row) in rows.enumerated() {
@@ -46,8 +49,8 @@ struct TypedDecide: AsyncParsableCommand {
                 Data("[\(index + 1)/\(rows.count)] \(row.id) \(summary) \(seconds(clock.now - start)) s\n".utf8))
         }
         let document = TypedDecideDocument(
-            bundle: try TypedDecideBundleRecord(model), inputSha256: hex(Data(SHA256.hash(data: data))),
-            started: started, host: TypedDecideHost(), rows: records)
+            bundle: bundleRecord, inputSha256: hex(Data(SHA256.hash(data: data))), started: started,
+            host: TypedDecideHost(), rows: records)
         try JSONEncoder.records.encode(document).write(to: outputURL, options: .withoutOverwriting)
     }
 
@@ -118,9 +121,9 @@ struct TypedDecideBundleRecord: Encodable {
 
     init(_ model: TypedDecisionModel) throws {
         let bundle = model.bundle
-        let suffix = "  " + bundle.assetURL.lastPathComponent + "/main.mlirb"
+        let asset = Array((String(bundle.assetURL.path.dropFirst(bundle.url.path.count + 1)) + "/main.mlirb").utf8)
         let sums = try String(contentsOf: bundle.url.appending(path: "SHA256SUMS"), encoding: .utf8)
-        guard let line = sums.split(separator: "\n").first(where: { $0.hasSuffix(suffix) }) else {
+        guard let line = sums.split(separator: "\n").first(where: { Array($0.utf8.dropFirst(66)) == asset }) else {
             throw ValidationError("SHA256SUMS does not list the asset's main.mlirb.")
         }
         let stats = model.loadStats
@@ -136,7 +139,7 @@ struct TypedDecideBundleRecord: Encodable {
 
 struct TypedDecideHost: Encodable {
     var osBuild = Self.sysctl("kern.osversion")
-    var machine = Self.sysctl("hw.machine")
+    var machine = Self.sysctl("hw.model")
 
     static func sysctl(_ name: String) -> String {
         var size = 0
