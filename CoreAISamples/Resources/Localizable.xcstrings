@@ -2367,6 +2367,22 @@
         }
       }
     },
+    "Could not remove the prepared copy of %@: %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Could not remove the prepared copy of %1$@: %2$@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@の準備済みキャッシュを削除できませんでした: %2$@"
+          }
+        }
+      }
+    },
     "Could not retrieve any sources." : {
       "localizations" : {
         "ja" : {
@@ -2719,17 +2735,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "文書本文"
-          }
-        }
-      }
-    },
-    "Documents" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "文書"
           }
         }
       }
@@ -4731,6 +4736,16 @@
         }
       }
     },
+    "Model information" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデル情報"
+          }
+        }
+      }
+    },
     "Model probability (uncalibrated)" : {
       "localizations" : {
         "ja" : {
@@ -6586,6 +6601,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "このアプリがGPU向けに準備したキャッシュを削除します。次回の読込時に作り直します。"
+          }
+        }
+      }
+    },
+    "Removed the prepared copy of %@. The next load prepares it again." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@の準備済みキャッシュを削除しました。次回の読込時に作り直します。"
           }
         }
       }

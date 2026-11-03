@@ -41,8 +41,9 @@ enum DemoAppMain {
         if let output = LaunchArguments.value("--model-library-selftest") {
             exit(
                 await ModelLibrarySelfTest.run(
-                    output: URL(filePath: output), root: ModelStorage.root.appending(path: "ModelLibrary"),
-                    acquire: LaunchArguments.value("--acquire"), platform: .macOS,
+                    output: URL(filePath: output), root: MacModelLibraryServices.root,
+                    registry: MacModelLibraryServices.assembly.registry, acquire: LaunchArguments.value("--acquire"),
+                    unconnectedDemoIDs: MacModelLibraryServices.unconnectedDemoIDs, platform: .macOS,
                     catalog: { try MacDemoCatalog.make() }))
         }
         if LaunchArguments.flag("--check-localization") {

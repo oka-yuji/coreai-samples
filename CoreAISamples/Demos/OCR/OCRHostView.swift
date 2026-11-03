@@ -3,7 +3,7 @@
     import SwiftUI
 
     struct OCRHostView: View {
-        let library: OCRMacLibrary
+        let library: MacModelLibrary
 
         var body: some View {
             Group {

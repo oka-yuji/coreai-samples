@@ -32,6 +32,7 @@
 		1333BF7F20CD65A23CD1EB37 /* ProductCore in Frameworks */ = {isa = PBXBuildFile; productRef = 2756B2F1A9710CFFF8C6EC68 /* ProductCore */; };
 		144C9149B2B49F6DA5300EA8 /* OCRCore in Frameworks */ = {isa = PBXBuildFile; productRef = 13C12B539057310391F5A377 /* OCRCore */; };
 		144E14392F7E1FDBC800476D /* SpeechView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEE5CB9731EE821324E0CB00 /* SpeechView.swift */; };
+		14C49F2663475452E1B1E541 /* ModelLibraryUI in Frameworks */ = {isa = PBXBuildFile; productRef = 77D64BE63A70448F28E27E50 /* ModelLibraryUI */; };
 		15CEE8A4932A4A5F8D689CC0 /* inspection_u1.json in Resources */ = {isa = PBXBuildFile; fileRef = CB2168189614CA94670A5D5A /* inspection_u1.json */; };
 		166156C680148471B6DE20CC /* ImageTestBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 467BAD30F4EF645A810E81C0 /* ImageTestBundle.swift */; };
 		16CC300A10504F414B0E428B /* ExtractRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F2F07EBDAB41490EF60A529 /* ExtractRunner.swift */; };
@@ -69,7 +70,6 @@
 		3457671FCB03949708514ED4 /* ObjectFinderContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD05FACDEDB78E3CE2E43B3E /* ObjectFinderContent.swift */; };
 		34B8E68145C72B1FE4CCD28B /* IOSModelLibraryAssembly.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44BA75E22EC287033FFDBFBB /* IOSModelLibraryAssembly.swift */; };
 		35A8F2FF5029AB1D9E5300B5 /* FetchProvenanceSelfTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FB6B1B36C2F9ED00C7205DD /* FetchProvenanceSelfTest.swift */; };
-		35AADB18E6D9888472F64B54 /* OCRMacLibrary.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2CB6BD9593A5870E758F452 /* OCRMacLibrary.swift */; };
 		360AD914000391D21C53171C /* ConversationHistoryColumn.swift in Sources */ = {isa = PBXBuildFile; fileRef = A424D041AA97C06F1F4DE2A3 /* ConversationHistoryColumn.swift */; };
 		36B44880EECCFBD6D426A9E3 /* DecideResultRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F7FE685C8A7B3B5D383AC56 /* DecideResultRow.swift */; };
 		36D49B81E1D68D03832B9359 /* ExtractRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F2F07EBDAB41490EF60A529 /* ExtractRunner.swift */; };
@@ -160,6 +160,7 @@
 		7DB29AC3F6130B6475B942D9 /* ConversationAccessSelfTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE730AD5E9F3B460BD97FC21 /* ConversationAccessSelfTest.swift */; };
 		7E17D3BAB58B9DE53F911FB4 /* ProductComparisonView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E435AB7F872EB64CEE46E3CC /* ProductComparisonView.swift */; };
 		7E4EC1373520E44DC1C7978C /* VideoSearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 40F1AAB95D69B178E4C687E4 /* VideoSearchView.swift */; };
+		7F0CEAED7F18EF1433DF5B48 /* MacModelLibrary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E82632522809E92896F4735 /* MacModelLibrary.swift */; };
 		809642677C1BC58905638DB9 /* gradient_square.png in Resources */ = {isa = PBXBuildFile; fileRef = 119F865DE343C77CD34AB2B7 /* gradient_square.png */; };
 		80B32F7AC625100D4F4A3B39 /* image-search-reference.json in Resources */ = {isa = PBXBuildFile; fileRef = 97A66460729265871B0AEACF /* image-search-reference.json */; };
 		80FBE434B7B5021A98F98329 /* SpeechPhoneView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD6C8107CC666E3504893A8A /* SpeechPhoneView.swift */; };
@@ -429,6 +430,7 @@
 		977BC651B0F2CCFE00DD90F9 /* ImageDiagnosticScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageDiagnosticScreen.swift; sourceTree = "<group>"; };
 		97A66460729265871B0AEACF /* image-search-reference.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "image-search-reference.json"; sourceTree = "<group>"; };
 		9A7D62D9AC2E8B93A34FD9C7 /* InfoPlist.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = InfoPlist.xcstrings; sourceTree = "<group>"; };
+		9E82632522809E92896F4735 /* MacModelLibrary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacModelLibrary.swift; sourceTree = "<group>"; };
 		9F2F07EBDAB41490EF60A529 /* ExtractRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtractRunner.swift; sourceTree = "<group>"; };
 		9F7FE685C8A7B3B5D383AC56 /* DecideResultRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DecideResultRow.swift; sourceTree = "<group>"; };
 		A014A59B7FD23A97BEB797A0 /* PhoneModelLibraryScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneModelLibraryScreen.swift; sourceTree = "<group>"; };
@@ -454,7 +456,6 @@
 		BBE9C20E195FE641300D6F57 /* PhoneDemoApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneDemoApp.swift; sourceTree = "<group>"; };
 		BD6C8107CC666E3504893A8A /* SpeechPhoneView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechPhoneView.swift; sourceTree = "<group>"; };
 		C26DF7E916EAD5535CC6F685 /* RAGSectionSelfTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RAGSectionSelfTest.swift; sourceTree = "<group>"; };
-		C2CB6BD9593A5870E758F452 /* OCRMacLibrary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OCRMacLibrary.swift; sourceTree = "<group>"; };
 		C42B3AF5F404AB36CA20D168 /* TruckInspectionContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TruckInspectionContent.swift; sourceTree = "<group>"; };
 		C788E9F664AA9590A13BF66C /* RecipeModelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipeModelView.swift; sourceTree = "<group>"; };
 		C8A8415903D96B5F5D18625D /* Signing.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.xcconfig; sourceTree = "<group>"; };
@@ -541,6 +542,7 @@
 				F27B5D6AA26595EE985AE236 /* ModelLibraryRuntime in Frameworks */,
 				E11DF434E59F699CB7EA375C /* VideoSearchFeature in Frameworks */,
 				B3158C7EC758B013959CB2FF /* VideoSearchRuntime in Frameworks */,
+				14C49F2663475452E1B1E541 /* ModelLibraryUI in Frameworks */,
 				65727EF7592950DF73CB70B4 /* AVKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -625,6 +627,7 @@
 				09F71463DA4F2153E25B4F33 /* Catalog.swift */,
 				3A20485F7EB3740C480083D7 /* HubDownloader.swift */,
 				598FAFD4122CCFFFB1A83FB4 /* HubDownloadSelfTest.swift */,
+				9E82632522809E92896F4735 /* MacModelLibrary.swift */,
 				51FF5AB624408DE25F252FFF /* ModelMenu.swift */,
 				B7DE5BA037505543B8869BB1 /* ModelSelectionSelfTest.swift */,
 				FAE0376EC66AACAB7D06A922 /* ModelStorage.swift */,
@@ -919,7 +922,6 @@
 			children = (
 				A83E84EE5AB848D7AA9C38CD /* OCRHostView.swift */,
 				2B39F09D4D52CDEB38FD6D12 /* OCRMacAdapter.swift */,
-				C2CB6BD9593A5870E758F452 /* OCRMacLibrary.swift */,
 			);
 			path = OCR;
 			sourceTree = "<group>";
@@ -1180,6 +1182,7 @@
 				0EA9F283E9E5FAA7D873966C /* ModelLibraryRuntime */,
 				0979AE1A43C852D40CDE7F71 /* VideoSearchFeature */,
 				0DCE105E4F65208BB25CA8FC /* VideoSearchRuntime */,
+				77D64BE63A70448F28E27E50 /* ModelLibraryUI */,
 			);
 			productName = CoreAISamples;
 			productReference = AC4EC31CE5CEA79543AC008A /* CoreAISamples.app */;
@@ -1538,6 +1541,7 @@
 				B62247B1FC9C52A67DD7AFA2 /* InspectionSpeaker.swift in Sources */,
 				46CBAB943E1184CC6B04C04C /* LaunchArguments.swift in Sources */,
 				ABE183289E65E843CA8C91EE /* LiveInspectionSpeech.swift in Sources */,
+				7F0CEAED7F18EF1433DF5B48 /* MacModelLibrary.swift in Sources */,
 				C6C9A2085B4BE5EBDEB9030D /* MetricsLog.swift in Sources */,
 				324F3326B68B737B45C1CBCE /* ModelMenu.swift in Sources */,
 				8685AA2B616BA4AF220D767D /* ModelSelectionSelfTest.swift in Sources */,
@@ -1547,7 +1551,6 @@
 				8892507C77E382DB2CF578B3 /* NoteEditor.swift in Sources */,
 				78AC9D6A96C3BFA811AD8F6C /* OCRHostView.swift in Sources */,
 				58D229527996273794504243 /* OCRMacAdapter.swift in Sources */,
-				35AADB18E6D9888472F64B54 /* OCRMacLibrary.swift in Sources */,
 				9EFBE0E65337144A60F2C15D /* OCRPhoneCheck.swift in Sources */,
 				C4CC2A79968BA857B19F7FC2 /* ObjectFinderAdapter.swift in Sources */,
 				41CA6F8D7C2BCD8F43A409ED /* ObjectFinderContent.swift in Sources */,
@@ -2156,6 +2159,10 @@
 		71DC72A96FA08B77DF9E724C /* EmbeddingRuntime */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = EmbeddingRuntime;
+		};
+		77D64BE63A70448F28E27E50 /* ModelLibraryUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = ModelLibraryUI;
 		};
 		7D282C1A74200A481D89C2C0 /* ModelLibraryTransfer */ = {
 			isa = XCSwiftPackageProductDependency;

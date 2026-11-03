@@ -84,6 +84,17 @@ enum DemoModel: CaseIterable {
         }
     }
 
+    var libraryID: String {
+        switch self {
+        case .qwen: "qwen3.8-27b"
+        case .clefFlash: "clef-flash-9b"
+        case .embeddingGemma: "embeddinggemma2"
+        case .gliner: "gliner2.5-multi"
+        case .irodori: "irodori"
+        case .teleOCR: "teleocr"
+        }
+    }
+
     var demos: [Demo] { Demo.allCases.filter { $0.model == self } }
 }
 
@@ -117,7 +128,7 @@ struct DemoRootView: View {
     @State private var imageSearch = ImageSearchAssembly.makeStore()
     @State private var videoSearch = VideoSearchAssembly.makeStore()
     @State private var speech = SpeechAssembly.makeStore()
-    @State private var ocr = OCRMacLibrary()
+    @State private var library = MacModelLibrary()
     @State private var showingExtractionLab = false
     @State private var extract = Store<ExtractFeature>(
         initialState: ExtractState(
@@ -160,7 +171,7 @@ struct DemoRootView: View {
                         }
                 }
             case .speech?: SpeechView(store: speech)
-            case .ocr?: OCRHostView(library: ocr)
+            case .ocr?: OCRHostView(library: library)
             case .models?: ModelsView()
             case nil: ContentUnavailableView("Select a demo", systemImage: "square.grid.2x2")
             }
@@ -171,7 +182,7 @@ struct DemoRootView: View {
         .environment(models)
         .environment(decide)
         .environment(speech)
-        .environment(ocr)
+        .environment(library)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 DemoLanguagePicker(
@@ -191,13 +202,13 @@ struct DemoRootView: View {
             }
         }
         .onDisappear {
-            ocr.close()
+            library.close()
             lifetime.close(windowID)
         }
         .onChange(of: navigator.selection) { old, new in
-            if old == .ocr && new != .ocr { ocr.leave() }
+            if old == .ocr && new != .ocr { library.leave() }
         }
-        .onChange(of: scenePhase) { _, phase in ocr.enter(phase) }
+        .onChange(of: scenePhase) { _, phase in library.enter(phase) }
         .onChange(of: scenePhase) { if scenePhase == .active { host.store.send(.library(.refresh)) } }
         .onChange(of: host.state.id) { host.restorePreferences() }
         .onChange(of: chat.loadStarted) { host.refreshIfModelChanged() }
