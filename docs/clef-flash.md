@@ -72,12 +72,13 @@ Results below retain their original dates and workloads. Different rows may use 
 
 Can you make a recipe with what is in your fridge? **Recipes** reads a fridge photo, lets you check the proposed ingredients, and compares your inventory with a recipe URL. It uses Apple's on-device model for the photo, **Clef-Flash 9B through Core AI** for recipe requirements and equipment, and Swift code for quantities. **Decide** uses the same Clef bundle to score a document against editable questions. Both expose the model's uncalibrated probabilities.
 
-**Requires access to the separately distributed Clef bundle.** The `hf download` line below works only with a Hugging Face account that has access to that repository. Install the [Hugging Face CLI](https://huggingface.co/docs/huggingface_hub/guides/cli), sign in with `hf auth login` using that account, then get the app and decision bundle. Select the folder containing `decision.json` when opening the bundle:
+**The Clef bundle is distributed separately in a public [Hugging Face repository](https://huggingface.co/okayuji/clef-flash-9b-coreai-decide)** and is anonymously downloadable, without `hf auth login`. The `hf download` line below pins revision `12e30be4e391310377c534524df8962359a08b0f`, the `main` branch on 2026-11-04. All 25 files of that revision (7,278,592,396 bytes) answered anonymous requests; see the [distribution record](validation/mac-models-distribution-20261104.md#clef-flash-9b). Install the [Hugging Face CLI](https://huggingface.co/docs/huggingface_hub/guides/cli), then get the app and decision bundle. Select the folder containing `decision.json` when opening the bundle:
 
 ```sh
 git clone https://github.com/oka-yuji/coreai-samples.git
 cd coreai-samples
-hf download okayuji/clef-flash-9b-coreai-decide --local-dir ./models/clef-flash-9b-decide-v1
+hf download okayuji/clef-flash-9b-coreai-decide --revision 12e30be4e391310377c534524df8962359a08b0f \
+  --local-dir ./models/clef-flash-9b-decide-v1
 ```
 
 Open `CoreAISamples.xcodeproj`, choose the **CoreAISamples** scheme and **My Mac**, set the Run build configuration to **Release**, and run. The **EN / JP** control at the top right switches every Mac screen.

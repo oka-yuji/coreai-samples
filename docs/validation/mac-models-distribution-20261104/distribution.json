@@ -1,0 +1,527 @@
+{
+  "artifacts": [
+    {
+      "modelID": "qwen38-27b",
+      "repository": "okayuji/Qwen3.8-27B-coreai-4bit",
+      "revision": "8e24aebe036eae577d4a3bd019ba728a73358318",
+      "private": false,
+      "gated": false,
+      "refs": {
+        "branches": {
+          "main": "843c3846b683eb2c946377af2c4d1aed9099278d"
+        },
+        "tags": {
+          "v1.0.0": "8e24aebe036eae577d4a3bd019ba728a73358318"
+        }
+      },
+      "files": [
+        {
+          "path": ".gitattributes",
+          "bytes": 1675,
+          "sha256": "b8a5a8514639eb2900bdab04a0c88f30efe56fcd74c32f99429cff3bb9135aa7",
+          "source": "downloaded"
+        },
+        {
+          "path": "LICENSE",
+          "bytes": 11544,
+          "sha256": "bbedc3fda3305820b977265f01b8619d87570a6739de3a5582c3464840f1e57a",
+          "source": "downloaded"
+        },
+        {
+          "path": "NOTICE.md",
+          "bytes": 2031,
+          "sha256": "555d05f7a796871f077aed9be96a3d0266cabda156ca0cb76b5caff32857d1bf",
+          "source": "downloaded"
+        },
+        {
+          "path": "README.md",
+          "bytes": 23057,
+          "sha256": "bde88e3cfbe29d22157920d622f5704db0b12080b6b48286ae9537a048ae7553",
+          "source": "downloaded"
+        },
+        {
+          "path": "SHA256SUMS",
+          "bytes": 742,
+          "sha256": "38eab6014cc228f07ecd30537bee1f5c537e843983384022d3f9426f557dc6db",
+          "source": "downloaded"
+        },
+        {
+          "path": "metadata.json",
+          "bytes": 611,
+          "sha256": "4d0ff58551151addc5dd2277f50822c83a58f882b40b17010fadadda163d7336",
+          "source": "downloaded"
+        },
+        {
+          "path": "qwen3_8_27b_qwen3_5_cfg_gdnfp32_dynamic.aimodel/main.hash",
+          "bytes": 32,
+          "sha256": "ff124141ecdbe5af8f596695afdf2349f02f6b07d4a63e8e2946bdcd7a92b615",
+          "source": "downloaded"
+        },
+        {
+          "path": "qwen3_8_27b_qwen3_5_cfg_gdnfp32_dynamic.aimodel/main.mlirb",
+          "bytes": 16839684298,
+          "sha256": "e18245bac6945d11a3504c57b7a8cd452fd1f2bee6e4e95071fcd5ae56e2c64d",
+          "source": "lfs"
+        },
+        {
+          "path": "qwen3_8_27b_qwen3_5_cfg_gdnfp32_dynamic.aimodel/metadata.json",
+          "bytes": 394,
+          "sha256": "ae72f0009fd761fcf2bcc37c49a9ee1f0c953079e52762639b8c81ea1456e9c2",
+          "source": "downloaded"
+        },
+        {
+          "path": "tokenizer/chat_template.jinja",
+          "bytes": 8952,
+          "sha256": "c3cf9e34abf4f9e36c2d72165aa9c132d3e2a725b6c2586aaa3a8af9d7a81041",
+          "source": "downloaded"
+        },
+        {
+          "path": "tokenizer/tokenizer.json",
+          "bytes": 12809320,
+          "sha256": "0997f410c57a1f4e53b09e4be8f4a172d90edd9564368fb0847030937229b9f3",
+          "source": "lfs"
+        },
+        {
+          "path": "tokenizer/tokenizer_config.json",
+          "bytes": 1124,
+          "sha256": "f842671db16546726c2818d71390d4b7cd2f7761b208818476473499e03e9883",
+          "source": "downloaded"
+        }
+      ],
+      "totalBytes": 16852543780,
+      "head": [
+        {
+          "path": ".gitattributes",
+          "status": 200,
+          "content-length": 1675,
+          "x-repo-commit": "8e24aebe036eae577d4a3bd019ba728a73358318"
+        },
+        {
+          "path": "LICENSE",
+          "status": 200,
+          "content-length": 11544,
+          "x-repo-commit": "8e24aebe036eae577d4a3bd019ba728a73358318"
+        },
+        {
+          "path": "NOTICE.md",
+          "status": 200,
+          "content-length": 2031,
+          "x-repo-commit": "8e24aebe036eae577d4a3bd019ba728a73358318"
+        },
+        {
+          "path": "README.md",
+          "status": 200,
+          "content-length": 23057,
+          "x-repo-commit": "8e24aebe036eae577d4a3bd019ba728a73358318"
+        },
+        {
+          "path": "SHA256SUMS",
+          "status": 200,
+          "content-length": 742,
+          "x-repo-commit": "8e24aebe036eae577d4a3bd019ba728a73358318"
+        },
+        {
+          "path": "metadata.json",
+          "status": 200,
+          "content-length": 611,
+          "x-repo-commit": "8e24aebe036eae577d4a3bd019ba728a73358318"
+        },
+        {
+          "path": "qwen3_8_27b_qwen3_5_cfg_gdnfp32_dynamic.aimodel/main.hash",
+          "status": 200,
+          "content-length": 32,
+          "x-repo-commit": "8e24aebe036eae577d4a3bd019ba728a73358318"
+        },
+        {
+          "path": "qwen3_8_27b_qwen3_5_cfg_gdnfp32_dynamic.aimodel/main.mlirb",
+          "status": 200,
+          "content-length": 16839684298,
+          "x-repo-commit": "8e24aebe036eae577d4a3bd019ba728a73358318"
+        },
+        {
+          "path": "qwen3_8_27b_qwen3_5_cfg_gdnfp32_dynamic.aimodel/metadata.json",
+          "status": 200,
+          "content-length": 394,
+          "x-repo-commit": "8e24aebe036eae577d4a3bd019ba728a73358318"
+        },
+        {
+          "path": "tokenizer/chat_template.jinja",
+          "status": 200,
+          "content-length": 8952,
+          "x-repo-commit": "8e24aebe036eae577d4a3bd019ba728a73358318"
+        },
+        {
+          "path": "tokenizer/tokenizer.json",
+          "status": 200,
+          "content-length": 12809320,
+          "x-repo-commit": "8e24aebe036eae577d4a3bd019ba728a73358318"
+        },
+        {
+          "path": "tokenizer/tokenizer_config.json",
+          "status": 200,
+          "content-length": 1124,
+          "x-repo-commit": "8e24aebe036eae577d4a3bd019ba728a73358318"
+        }
+      ],
+      "catalogSizeBytes": 16852543780,
+      "comparedWithMain": {
+        "revision": "843c3846b683eb2c946377af2c4d1aed9099278d",
+        "files": 12,
+        "totalBytes": 16852544376,
+        "differences": [
+          {
+            "path": "README.md",
+            "bytes": {
+              "pinned": 23057,
+              "main": 23653
+            },
+            "gitBlobSha1": {
+              "pinned": "f832e1a36f10a039012cfb45040a735acee4cd41",
+              "main": "5d28e18228c1fd9148d4a36939f789a4e3c141b5"
+            }
+          }
+        ]
+      },
+      "checkedAt": "2026-11-04T04:51:04+09:00",
+      "environment": {
+        "os": "macOS 27.2 (26B123)",
+        "machine": "arm64",
+        "python": "3.11.9",
+        "huggingface_hub": "0.36.2",
+        "requests": "2.33.1"
+      }
+    },
+    {
+      "modelID": "clef-flash",
+      "repository": "okayuji/clef-flash-9b-coreai-decide",
+      "revision": "12e30be4e391310377c534524df8962359a08b0f",
+      "private": false,
+      "gated": false,
+      "refs": {
+        "branches": {
+          "main": "12e30be4e391310377c534524df8962359a08b0f"
+        },
+        "tags": {}
+      },
+      "files": [
+        {
+          "path": ".gitattributes",
+          "bytes": 1792,
+          "sha256": "7d77f854df126b6070f5303fbc4fc1e0625ce28cbe32e132860f56cad5abb743",
+          "source": "downloaded"
+        },
+        {
+          "path": "LICENSE",
+          "bytes": 11544,
+          "sha256": "bbedc3fda3305820b977265f01b8619d87570a6739de3a5582c3464840f1e57a",
+          "source": "downloaded"
+        },
+        {
+          "path": "NOTICE.md",
+          "bytes": 2402,
+          "sha256": "80c99d154583fcfeae5abf69c2ac73f7d2e2de4e3e903d57e108d842f237d360",
+          "source": "downloaded"
+        },
+        {
+          "path": "README.md",
+          "bytes": 11648,
+          "sha256": "62e28d359c01e69340722e3a7c5e73bd07aec67d98baf96d3ab3fbb5a06cf95f",
+          "source": "downloaded"
+        },
+        {
+          "path": "SHA256SUMS",
+          "bytes": 1519,
+          "sha256": "4e942e42f0f25de911ca64747ebb618767324f95b5fe77f93cfec9cda8c39de6",
+          "source": "downloaded"
+        },
+        {
+          "path": "VERIFICATION.md",
+          "bytes": 4782,
+          "sha256": "d3d3b4c6a5bf41f1f832f84e78aa3513afab518e1c7de775293529f2e370b058",
+          "source": "downloaded"
+        },
+        {
+          "path": "backbone/clef_flash_9b_hidden_gdnfp32_qwen3_5_cfg_dynamic.aimodel/main.hash",
+          "bytes": 32,
+          "sha256": "1e61340923df1a642e123bc16b9b3d76d844c3a13fb6af98c8975c028531b9dd",
+          "source": "downloaded"
+        },
+        {
+          "path": "backbone/clef_flash_9b_hidden_gdnfp32_qwen3_5_cfg_dynamic.aimodel/main.mlirb",
+          "bytes": 4980751116,
+          "sha256": "9df4a0ca25c389fb3317fe49436ede115a2cab23f652b6d9584c6e3a685524f4",
+          "source": "lfs"
+        },
+        {
+          "path": "backbone/clef_flash_9b_hidden_gdnfp32_qwen3_5_cfg_dynamic.aimodel/metadata.json",
+          "bytes": 105,
+          "sha256": "0bc0a704c5f257dac14c9d59953dd72b7eea448f34d2fc519815688f9cfa8c62",
+          "source": "downloaded"
+        },
+        {
+          "path": "backbone/lexical.safetensors",
+          "bytes": 2034237672,
+          "sha256": "758ca4781a52ff0eb0f6bd39682cce05605d309ec16d9186f0ef41e4bdf2e83e",
+          "source": "lfs"
+        },
+        {
+          "path": "backbone/metadata.json",
+          "bytes": 639,
+          "sha256": "a16e611340891be029f06756dca3598a47a4b749861a78518fbb96eb1b243848",
+          "source": "downloaded"
+        },
+        {
+          "path": "backbone/tokenizer/chat_template.jinja",
+          "bytes": 7756,
+          "sha256": "a4aee8afcf2e0711942cf848899be66016f8d14a889ff9ede07bca099c28f715",
+          "source": "downloaded"
+        },
+        {
+          "path": "backbone/tokenizer/tokenizer.json",
+          "bytes": 19989325,
+          "sha256": "06b9509352d2af50381ab2247e083b80d32d5c0aba91c272ca9ff729b6a0e523",
+          "source": "lfs"
+        },
+        {
+          "path": "backbone/tokenizer/tokenizer_config.json",
+          "bytes": 1124,
+          "sha256": "f842671db16546726c2818d71390d4b7cd2f7761b208818476473499e03e9883",
+          "source": "downloaded"
+        },
+        {
+          "path": "decision.json",
+          "bytes": 2224,
+          "sha256": "67f69d5bd401104fd594ba74d94622882341c138be6149132d68f9857def852d",
+          "source": "downloaded"
+        },
+        {
+          "path": "examples/maintenance-request.json",
+          "bytes": 9179,
+          "sha256": "c69b2b4157a63ccd56241f0b69c8661b6038322ce54b80fca443e46b2480b8fe",
+          "source": "downloaded"
+        },
+        {
+          "path": "examples/maintenance-response.json",
+          "bytes": 2454,
+          "sha256": "dc813dd0b18aa3bdf220b6b432c520f499621e8d9cf738b347a5e677878d12a9",
+          "source": "downloaded"
+        },
+        {
+          "path": "head/clef_flash_9b_head_q16o8_fp16.aimodel/main.hash",
+          "bytes": 32,
+          "sha256": "eb5cc18488ab766888b1f6778cd3a90e21e3324b6dfb3cba3f5c8e83ca307571",
+          "source": "downloaded"
+        },
+        {
+          "path": "head/clef_flash_9b_head_q16o8_fp16.aimodel/main.mlirb",
+          "bytes": 243542718,
+          "sha256": "3499f42e07131b5b04d88d657c944eb49b69c35e9afa0eff15ad4527f53c1adc",
+          "source": "lfs"
+        },
+        {
+          "path": "head/clef_flash_9b_head_q16o8_fp16.aimodel/metadata.json",
+          "bytes": 105,
+          "sha256": "f8dcade10712f9cb11ef39a19f02249a202fbeec26d4f6aa046eb9a3aea15ade",
+          "source": "downloaded"
+        },
+        {
+          "path": "verification/alternating-question-sizes.json",
+          "bytes": 3577,
+          "sha256": "4ade6da38f1add2d6b0919536b9967b2c3387ca0cd2ac0f3d74171771e9e36a9",
+          "source": "downloaded"
+        },
+        {
+          "path": "verification/app-scenario.json",
+          "bytes": 424,
+          "sha256": "f2a15bcf47132eee81b9127029579f3327480f8c427e14087477624f7c59b29d",
+          "source": "downloaded"
+        },
+        {
+          "path": "verification/context-reuse.json",
+          "bytes": 2488,
+          "sha256": "e45d218658b11f7776611a8e1ca062cad1ae3a8008c74efa7a2e11007354d909",
+          "source": "downloaded"
+        },
+        {
+          "path": "verification/gui-and-cancellation.json",
+          "bytes": 4380,
+          "sha256": "0b73e63de8774526c5facbe56a685e3123c2fc7162942abef1baa997f4c28ab7",
+          "source": "downloaded"
+        },
+        {
+          "path": "verification/ten-document-summary.json",
+          "bytes": 3359,
+          "sha256": "57a02cfb1ccf00ffcf126f6e3a69fa848b533e572b8406c343eb844dfdd3f1de",
+          "source": "downloaded"
+        }
+      ],
+      "totalBytes": 7278592396,
+      "head": [
+        {
+          "path": ".gitattributes",
+          "status": 200,
+          "content-length": 1792,
+          "x-repo-commit": "12e30be4e391310377c534524df8962359a08b0f"
+        },
+        {
+          "path": "LICENSE",
+          "status": 200,
+          "content-length": 11544,
+          "x-repo-commit": "12e30be4e391310377c534524df8962359a08b0f"
+        },
+        {
+          "path": "NOTICE.md",
+          "status": 200,
+          "content-length": 2402,
+          "x-repo-commit": "12e30be4e391310377c534524df8962359a08b0f"
+        },
+        {
+          "path": "README.md",
+          "status": 200,
+          "content-length": 11648,
+          "x-repo-commit": "12e30be4e391310377c534524df8962359a08b0f"
+        },
+        {
+          "path": "SHA256SUMS",
+          "status": 200,
+          "content-length": 1519,
+          "x-repo-commit": "12e30be4e391310377c534524df8962359a08b0f"
+        },
+        {
+          "path": "VERIFICATION.md",
+          "status": 200,
+          "content-length": 4782,
+          "x-repo-commit": "12e30be4e391310377c534524df8962359a08b0f"
+        },
+        {
+          "path": "backbone/clef_flash_9b_hidden_gdnfp32_qwen3_5_cfg_dynamic.aimodel/main.hash",
+          "status": 200,
+          "content-length": 32,
+          "x-repo-commit": "12e30be4e391310377c534524df8962359a08b0f"
+        },
+        {
+          "path": "backbone/clef_flash_9b_hidden_gdnfp32_qwen3_5_cfg_dynamic.aimodel/main.mlirb",
+          "status": 200,
+          "content-length": 4980751116,
+          "x-repo-commit": "12e30be4e391310377c534524df8962359a08b0f"
+        },
+        {
+          "path": "backbone/clef_flash_9b_hidden_gdnfp32_qwen3_5_cfg_dynamic.aimodel/metadata.json",
+          "status": 200,
+          "content-length": 105,
+          "x-repo-commit": "12e30be4e391310377c534524df8962359a08b0f"
+        },
+        {
+          "path": "backbone/lexical.safetensors",
+          "status": 200,
+          "content-length": 2034237672,
+          "x-repo-commit": "12e30be4e391310377c534524df8962359a08b0f"
+        },
+        {
+          "path": "backbone/metadata.json",
+          "status": 200,
+          "content-length": 639,
+          "x-repo-commit": "12e30be4e391310377c534524df8962359a08b0f"
+        },
+        {
+          "path": "backbone/tokenizer/chat_template.jinja",
+          "status": 200,
+          "content-length": 7756,
+          "x-repo-commit": "12e30be4e391310377c534524df8962359a08b0f"
+        },
+        {
+          "path": "backbone/tokenizer/tokenizer.json",
+          "status": 200,
+          "content-length": 19989325,
+          "x-repo-commit": "12e30be4e391310377c534524df8962359a08b0f"
+        },
+        {
+          "path": "backbone/tokenizer/tokenizer_config.json",
+          "status": 200,
+          "content-length": 1124,
+          "x-repo-commit": "12e30be4e391310377c534524df8962359a08b0f"
+        },
+        {
+          "path": "decision.json",
+          "status": 200,
+          "content-length": 2224,
+          "x-repo-commit": "12e30be4e391310377c534524df8962359a08b0f"
+        },
+        {
+          "path": "examples/maintenance-request.json",
+          "status": 200,
+          "content-length": 9179,
+          "x-repo-commit": "12e30be4e391310377c534524df8962359a08b0f"
+        },
+        {
+          "path": "examples/maintenance-response.json",
+          "status": 200,
+          "content-length": 2454,
+          "x-repo-commit": "12e30be4e391310377c534524df8962359a08b0f"
+        },
+        {
+          "path": "head/clef_flash_9b_head_q16o8_fp16.aimodel/main.hash",
+          "status": 200,
+          "content-length": 32,
+          "x-repo-commit": "12e30be4e391310377c534524df8962359a08b0f"
+        },
+        {
+          "path": "head/clef_flash_9b_head_q16o8_fp16.aimodel/main.mlirb",
+          "status": 200,
+          "content-length": 243542718,
+          "x-repo-commit": "12e30be4e391310377c534524df8962359a08b0f"
+        },
+        {
+          "path": "head/clef_flash_9b_head_q16o8_fp16.aimodel/metadata.json",
+          "status": 200,
+          "content-length": 105,
+          "x-repo-commit": "12e30be4e391310377c534524df8962359a08b0f"
+        },
+        {
+          "path": "verification/alternating-question-sizes.json",
+          "status": 200,
+          "content-length": 3577,
+          "x-repo-commit": "12e30be4e391310377c534524df8962359a08b0f"
+        },
+        {
+          "path": "verification/app-scenario.json",
+          "status": 200,
+          "content-length": 424,
+          "x-repo-commit": "12e30be4e391310377c534524df8962359a08b0f"
+        },
+        {
+          "path": "verification/context-reuse.json",
+          "status": 200,
+          "content-length": 2488,
+          "x-repo-commit": "12e30be4e391310377c534524df8962359a08b0f"
+        },
+        {
+          "path": "verification/gui-and-cancellation.json",
+          "status": 200,
+          "content-length": 4380,
+          "x-repo-commit": "12e30be4e391310377c534524df8962359a08b0f"
+        },
+        {
+          "path": "verification/ten-document-summary.json",
+          "status": 200,
+          "content-length": 3359,
+          "x-repo-commit": "12e30be4e391310377c534524df8962359a08b0f"
+        }
+      ],
+      "checkedAt": "2026-11-04T04:51:23+09:00",
+      "environment": {
+        "os": "macOS 27.2 (26B123)",
+        "machine": "arm64",
+        "python": "3.11.9",
+        "huggingface_hub": "0.36.2",
+        "requests": "2.33.1"
+      }
+    }
+  ],
+  "anonymous": {
+    "token": false,
+    "HF_HUB_DISABLE_IMPLICIT_TOKEN": "1",
+    "authorizationHeadersSent": 0,
+    "httpExchanges": 141
+  }
+}
