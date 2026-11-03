@@ -164,6 +164,14 @@ checkpoint is used as it is, as a limited exploration.
   shorter rows underestimates the longest band. When the estimate exceeds six hours, it switches
   to MPS only if three short rows agree within 1e-3 between CPU and MPS and the MPS estimate
   fits; otherwise it stops before running the sets.
+- `export_gdnfp32` exports the same merged backbone as `jev27b_s1_gdnfp32_qwen3_5_cfg_dynamic` with
+  `TypedDecisionBackboneGdnFp32` (`backbone_gdnfp32.py`, through `export_variant.py`). In each linear-attention layer the
+  six inputs of the composite `gated_delta_update` operation are cast to float32 and its two outputs are cast back; the
+  original module stays a child of the wrapper, so the exporter externalizes it as before. The step passes only when
+  every quantized tensor hashes as in `export` (`decision.compare_hashes`), all 48 layers are wrapped, every
+  `gated_delta_update` call in the IR of the asset takes six float32 inputs and the inspection matches. `variant.json`
+  records these checks with the IR counts of both assets, and the Core AI steps below use this bundle. The existing
+  steps and their modules are unchanged, so their cached results stay valid.
 - `verify_quantization` requires matching hashes, complete rows equal to the fixtures and to the
   earlier references, and finite probabilities. It writes `reference_q.json`, `quantization.json`
   (`typed-decision-quantization/1`) and `report.md`; it applies no numeric threshold.
@@ -186,8 +194,9 @@ These steps also run before `verify_merge`:
   and tokenizes every row with the distributed tokenizer, and stops unless the token counts and bands equal the
   fixture. It writes `input-F.json` (`{"rows": [{"id", "kind", "state", "question", "options"}]}`) and `check.json`
   (rows, rejected rows and the SHA-256 of each input file). The text stays in the local work directory.
-- `typed_decide_f` runs `coreai-verify typed-decide` with the exported bundle on `input-F.json` and writes
-  `swift-F.json` ([docs/jev27b.md](../../../../docs/jev27b.md#running-on-mac)). It loads the model, so it is heavy.
+- `typed_decide_f` runs `coreai-verify typed-decide` with the variant bundle of `export_gdnfp32` on `input-F.json` and
+  writes `swift-F.json` ([docs/jev27b.md](../../../../docs/jev27b.md#running-on-mac)). It loads the model, so it is
+  heavy.
 - `compare_f` scores `swift-F.json` against stage 2 of `reference_q.json`: rows, token IDs and the rejected row
   first, then finite distributions, then at temperature 1 a largest probability difference of at most 0.03 and a mean
   of at most 0.01 in every input band with rows. Bands without rows are listed as unevaluated, top-1 changes are
