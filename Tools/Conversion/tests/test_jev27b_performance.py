@@ -5,8 +5,10 @@ import tempfile
 import unittest
 
 from Tools.Conversion.adapters.jev27b.fixtures import Builder, Sources
+from Tools.Conversion.adapters.jev27b.decision import sha256
 from Tools.Conversion.adapters.jev27b.performance import (
-    LENGTHS, ROUNDS, build, cancel_runs, latency_runs, load_runs, memory_run, schedule, used, write_lines,
+    LENGTHS, ROUNDS, build, bundle_run, cancel_runs, counted, latency_runs, load_runs, memory_run, schedule, used,
+    write_lines,
 )
 from Tools.ModelReports.reports import ROOT as REPORTS_ROOT, load, summarize
 
@@ -64,12 +66,15 @@ class RowTests(unittest.TestCase):
 
 
 class RecordTests(unittest.TestCase):
-    PLAN = {"model_id": "jev27b", "context": {"variant": "v", "device": "d", "os": "o", "power": "AC", "thermal": "t"}}
+    PLAN = {"model_id": "jev27b", "warmup_runs": 1, "measured_runs": ROUNDS,
+            "context": {"variant": "v", "device": "d", "os": "o", "power": "AC", "thermal": "t",
+                        "artifact_revision": "b" * 64}}
     SHA = "a" * 64
+    INPUTS = {"input-P.json": "c" * 64, "input-P-latency.json": "d" * 64}
 
     def manifest(self):
-        return {"rows": [{"id": f"performance:tokens{tokens}", "tokens": tokens, "kind": kind,
-                          "tokens_sha256": f"{tokens:064d}"} for tokens, kind in LENGTHS]}
+        return {"inputs": self.INPUTS, "rows": [{"id": f"performance:tokens{tokens}", "tokens": tokens, "kind": kind,
+                                                 "tokens_sha256": f"{tokens:064d}"} for tokens, kind in LENGTHS]}
 
     def latency(self):
         rows = []
@@ -77,8 +82,9 @@ class RecordTests(unittest.TestCase):
             for tokens, _ in LENGTHS:
                 rows.append({"id": f"performance:tokens{tokens}@{label}", "token_count": tokens,
                              "tokens_sha256": f"{tokens:064d}", "elapsed_seconds": tokens / 200 + int(label != "warmup"),
-                             "resident_bytes_max": {"rss_bytes": 10 * tokens, "footprint_bytes": tokens, "samples": 4}})
-        return {"rows": rows}
+                             "resident_bytes_max": {"rss_bytes": 10 * tokens, "footprint_bytes": tokens, "samples": 4,
+                                                    "failed_samples": 0}})
+        return {"bundle": {"version": "b" * 64, "specialization": "cached"}, "input_sha256": "d" * 64, "rows": rows}
 
     def test_latency_runs_summarize_per_length_with_warmups_and_failures(self):
         document = self.latency()
@@ -97,12 +103,24 @@ class RecordTests(unittest.TestCase):
         self.assertIsNone(summary["metrics"]["latency_s"]["p95"])
         self.assertEqual(summary["metrics"]["latency_s"]["median"], 1.5)
 
-    def test_loads_pass_only_with_the_expected_specialization(self):
-        documents = [{"bundle": {"specialization": state, "load_seconds": {"bundle": 1, "tokenizer": 0.5, "head": 0.25,
-                                                                          "backbone": 20}}}
-                     for state in ("fresh", "cached", "fresh")]
-        runs = load_runs(self.PLAN, self.SHA, documents, "fresh", "first_load_s")
-        self.assertEqual([row["status"] for row in runs], ["passed", "failed", "passed"])
+    def test_runs_of_another_bundle_or_input_fail(self):
+        for change in ({"bundle": {"version": "e" * 64, "specialization": "cached"}}, {"input_sha256": "e" * 64}):
+            runs = latency_runs(self.PLAN, self.SHA, self.manifest(), {**self.latency(), **change})
+            self.assertEqual({row["status"] for rows in runs.values() for row in rows}, {"failed"})
+        document = self.latency()
+        document["rows"][0]["tokens_sha256"] = "0" * 64
+        self.assertEqual(latency_runs(self.PLAN, self.SHA, self.manifest(), document)[100][0]["status"], "failed")
+
+    def test_loads_pass_only_with_the_expected_specialization_bundle_and_input(self):
+        def document(state, version="b" * 64, digest="c" * 64):
+            return {"bundle": {"specialization": state, "version": version,
+                               "load_seconds": {"bundle": 1, "tokenizer": 0.5, "head": 0.25, "backbone": 20}},
+                    "input_sha256": digest}
+
+        documents = [document("fresh"), document("cached"), document("fresh", version="e" * 64),
+                     document("fresh", digest="e" * 64)]
+        runs = load_runs(self.PLAN, self.SHA, self.manifest(), documents, "fresh", "first_load_s")
+        self.assertEqual([row["status"] for row in runs], ["passed", "failed", "failed", "failed"])
         self.assertEqual(runs[0]["metrics"]["first_load_s"], {"value": 21.75, "unit": "s"})
 
     def test_memory_and_cancellation_records(self):
@@ -114,10 +132,48 @@ class RecordTests(unittest.TestCase):
         items = [{"attempt": 1, "tokens": 2000, "entered": True, "cancelled": True, "request_to_error_seconds": 8.0,
                   "start_to_error_seconds": 10.0},
                  {"attempt": 2, "tokens": 2000, "entered": True, "cancelled": False, "request_to_error_seconds": 7.0,
-                  "start_to_error_seconds": 9.0}]
-        cancels = cancel_runs(self.PLAN, self.SHA, {"cancellations": items})
-        self.assertEqual([row["status"] for row in cancels], ["passed", "failed"])
+                  "start_to_error_seconds": 9.0},
+                 {"attempt": 3, "tokens": 2000, "entered": True, "cancelled": True, "request_to_error_seconds": 0.04,
+                  "start_to_error_seconds": 0.05}]
+        cancels = cancel_runs(self.PLAN, self.SHA, {"cancellations": items, "uncancelledSeconds": 8.5})
+        self.assertEqual([row["status"] for row in cancels], ["passed", "failed", "failed"])
         self.assertEqual(cancels[0]["metrics"]["cancel_s"], {"value": 8.0, "unit": "s"})
+
+    def test_memory_needs_every_measured_row_sampled_without_failures(self):
+        text = "  55000  maximum resident set size\n  777  peak memory footprint\n"
+        document = self.latency()
+        document["rows"][-1]["resident_bytes_max"]["failed_samples"] = 1
+        runs = latency_runs(self.PLAN, self.SHA, self.manifest(), document)
+        record = memory_run(self.PLAN, self.SHA, text, runs)[0]
+        self.assertEqual(record["status"], "failed")
+        self.assertNotIn("resident_bytes", record["metrics"])
+        self.assertEqual(record["resident_failed_samples"], [0, 0, 1])
+
+    def test_missing_rounds_or_cancellations_are_refused(self):
+        document = self.latency()
+        document["rows"] = document["rows"][:8]
+        runs = latency_runs(self.PLAN, self.SHA, self.manifest(), document)
+        with self.assertRaises(ValueError):
+            counted(self.PLAN, runs, [{}] * ROUNDS)
+        full = latency_runs(self.PLAN, self.SHA, self.manifest(), self.latency())
+        counted(self.PLAN, full, [{}] * ROUNDS)
+        with self.assertRaises(ValueError):
+            counted(self.PLAN, full, [{}] * (ROUNDS - 1))
+
+    def test_the_bundle_size_counts_every_file_and_checks_the_version(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder) / "bundle"
+            (root / "asset.aimodel").mkdir(parents=True)
+            (root / "asset.aimodel" / "main.mlirb").write_bytes(b"x" * 10)
+            (root / "decision.json").write_text("{}")
+            plan = {**self.PLAN, "context": {**self.PLAN["context"], "artifact_revision": sha256(root / "decision.json")}}
+            record = bundle_run(plan, self.SHA, root)[0]
+            self.assertEqual((record["status"], record["files"], record["metrics"]["bundle_bytes"]["value"]),
+                             ("passed", 2, 12))
+            self.assertEqual(bundle_run(self.PLAN, self.SHA, root)[0]["status"], "failed")
+            (root / "link").symlink_to(root / "decision.json")
+            with self.assertRaises(ValueError):
+                bundle_run(plan, self.SHA, root)
 
 
 if __name__ == "__main__":

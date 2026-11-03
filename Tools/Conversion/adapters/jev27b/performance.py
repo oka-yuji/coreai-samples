@@ -91,17 +91,24 @@ def total_load(document):
     return sum(document["bundle"]["load_seconds"][part] for part in ("bundle", "tokenizer", "head", "backbone"))
 
 
+def same_run(plan, manifest, document, name):
+    return document["bundle"]["version"] == plan["context"]["artifact_revision"] \
+        and document.get("input_sha256") == manifest["inputs"][name]
+
+
 def latency_runs(plan, plan_sha256, manifest, document):
     expected = {entry["id"]: entry for entry in manifest["rows"]}
+    origin = same_run(plan, manifest, document, "input-P-latency.json")
+    cache = f"specialization {document['bundle']['specialization']}; one process for every length"
     runs = {}
     for row in document["rows"]:
         identifier, label = row["id"].split("@")
         entry = expected[identifier]
-        valid = "error" not in row and row["token_count"] == entry["tokens"] and row["tokens_sha256"] == entry["tokens_sha256"]
-        status = "warmup" if label == "warmup" else "passed" if valid else "failed"
+        valid = origin and "error" not in row and row["token_count"] == entry["tokens"] \
+            and row["tokens_sha256"] == entry["tokens_sha256"]
+        status = "failed" if not valid else "warmup" if label == "warmup" else "passed"
         identity = context(plan, plan_sha256, f"P row of {entry['tokens']} tokens ({entry['kind']}), lengths interleaved "
-                           f"in one process, {ROUNDS} measured rounds after one warmup",
-                           "specialization cached; one process for every length")
+                           f"in one process, {ROUNDS} measured rounds after one warmup", cache)
         runs.setdefault(entry["tokens"], []).append(run(
             f"latency:{entry['tokens']}:{label}", identity, status,
             {"latency_s": (row["elapsed_seconds"], "s")} if valid else {}, row_id=row["id"],
@@ -109,11 +116,13 @@ def latency_runs(plan, plan_sha256, manifest, document):
     return runs
 
 
-def load_runs(plan, plan_sha256, documents, expected, metric):
+def load_runs(plan, plan_sha256, manifest, documents, expected, metric):
     cache = {"fresh": "specialization cache entry deleted before each load (--clear-cache)",
              "cached": "specialization cache entry present; new process"}[expected]
     identity = context(plan, plan_sha256, "new process per load, --limit 1 on the 100-token P row", cache)
-    return [run(f"{metric}:{index}", identity, "passed" if document["bundle"]["specialization"] == expected else "failed",
+    return [run(f"{metric}:{index}", identity,
+                "passed" if document["bundle"]["specialization"] == expected
+                and same_run(plan, manifest, document, "input-P.json") else "failed",
                 {metric: (total_load(document), "s")}, specialization=document["bundle"]["specialization"],
                 load_seconds=document["bundle"]["load_seconds"])
             for index, document in enumerate(documents, start=1)]
@@ -122,23 +131,48 @@ def load_runs(plan, plan_sha256, documents, expected, metric):
 def memory_run(plan, plan_sha256, text, latency):
     found = {name: int(re.search(rf"^\s*(\d+)\s+{label}$", text, re.M).group(1)) for name, label in MEMORY.items()}
     resident = [item["resident_bytes_max"] for item in latency[8192] if item["status"] == "passed"]
+    complete = len(resident) == plan["measured_runs"] and all(item["samples"] > 0 and item["failed_samples"] == 0
+                                                               for item in resident)
     identity = context(plan, plan_sha256, "the latency process: /usr/bin/time -l for the process lifetime, 100 ms "
                        "sampling during the measured 8,192-token rows", "specialization cached; one process")
-    return [run("memory:latency-process", identity, "passed",
-                {**{name: (value, "B") for name, value in found.items()},
-                 "resident_bytes": (max(item["rss_bytes"] for item in resident), "B")},
-                resident_footprint_bytes=max(item["footprint_bytes"] for item in resident),
-                resident_samples=[item["samples"] for item in resident])]
+    metrics = {name: (value, "B") for name, value in found.items()}
+    if complete:
+        metrics["resident_bytes"] = (max(item["rss_bytes"] for item in resident), "B")
+    return [run("memory:latency-process", identity, "passed" if complete else "failed", metrics,
+                resident_footprint_bytes=max((item["footprint_bytes"] for item in resident), default=None),
+                resident_samples=[item["samples"] for item in resident],
+                resident_failed_samples=[item["failed_samples"] for item in resident])]
 
 
 def cancel_runs(plan, plan_sha256, metrics):
-    items = metrics["cancellations"]
+    items, uncancelled = metrics["cancellations"], metrics["uncancelledSeconds"]
     identity = context(plan, plan_sha256, f"TypedDecisionInferenceTests: a {items[0]['tokens']}-token request cancelled "
-                       "after its forward run started, through a backbone that does not pass the cancellation on",
-                       "specialization cached; test process")
-    return [run(f"cancel:{item['attempt']}", identity, "passed" if item["entered"] and item["cancelled"] else "failed",
+                       "after the test backbone reported the start of its forward call; the backbone runs the forward "
+                       "in a task that the cancellation does not reach", "specialization cached; test process")
+    return [run(f"cancel:{item['attempt']}", identity,
+                "passed" if item["entered"] and item["cancelled"] and item["request_to_error_seconds"] > uncancelled / 2
+                else "failed",
                 {"cancel_s": (item["request_to_error_seconds"], "s")}, start_to_error_seconds=item["start_to_error_seconds"],
-                entered=item["entered"], cancelled=item["cancelled"]) for item in items]
+                entered=item["entered"], cancelled=item["cancelled"], uncancelled_seconds=uncancelled) for item in items]
+
+
+def bundle_run(plan, plan_sha256, bundle):
+    files = [path for path in sorted(Path(bundle).rglob("*")) if path.is_symlink() or path.is_file()]
+    if any(path.is_symlink() for path in files):
+        raise ValueError("The bundle must not contain links")
+    identity = context(plan, plan_sha256, f"file sizes of the calibrated bundle ({len(files)} files)",
+                       "not applicable (no model load)")
+    return [run("bundle:calibrated", identity,
+                "passed" if sha256(Path(bundle) / "decision.json") == plan["context"]["artifact_revision"] else "failed",
+                {"bundle_bytes": (sum(path.stat().st_size for path in files), "B")}, files=len(files))]
+
+
+def counted(plan, latency, cancel):
+    labels = {tokens: [row["run_id"].rsplit(":", 1)[1] for row in rows] for tokens, rows in latency.items()}
+    if sorted(labels) != [tokens for tokens, _ in LENGTHS] or len(cancel) != plan["measured_runs"] \
+            or any(items.count("warmup") != plan["warmup_runs"]
+                   or len(items) - items.count("warmup") != plan["measured_runs"] for items in labels.values()):
+        raise ValueError("The outputs do not hold the planned warmup and measured runs")
 
 
 def write_lines(path, rows):
@@ -150,12 +184,14 @@ def write_records(args):
     plan_sha256 = sha256(args.plan)
     latency = latency_runs(plan, plan_sha256, manifest, read_json(args.latency))
     files = {f"latency-{tokens}.jsonl": rows for tokens, rows in sorted(latency.items())}
-    files["first-load.jsonl"] = load_runs(plan, plan_sha256, [read_json(path) for path in args.fresh], "fresh",
-                                          "first_load_s")
-    files["warm-load.jsonl"] = load_runs(plan, plan_sha256, [read_json(path) for path in args.cached], "cached",
-                                         "warm_load_s")
+    files["first-load.jsonl"] = load_runs(plan, plan_sha256, manifest, [read_json(path) for path in args.fresh],
+                                          "fresh", "first_load_s")
+    files["warm-load.jsonl"] = load_runs(plan, plan_sha256, manifest, [read_json(path) for path in args.cached],
+                                         "cached", "warm_load_s")
     files["memory.jsonl"] = memory_run(plan, plan_sha256, args.time.read_text(), latency)
     files["cancel.jsonl"] = cancel_runs(plan, plan_sha256, read_json(args.cancel))
+    files["bundle.jsonl"] = bundle_run(plan, plan_sha256, args.bundle)
+    counted(plan, latency, files["cancel.jsonl"])
     args.output.mkdir(parents=True, exist_ok=True)
     for name, rows in files.items():
         if (args.output / name).exists():
@@ -171,7 +207,7 @@ def main():
     for name in ("model", "snapshot", "corpus", "fixtures", "output"):
         rows.add_argument(f"--{name}", type=Path, required=True)
     records = commands.add_parser("records")
-    for name in ("plan", "manifest", "latency", "time", "cancel", "output"):
+    for name in ("plan", "manifest", "latency", "time", "cancel", "bundle", "output"):
         records.add_argument(f"--{name}", type=Path, required=True)
     for name in ("fresh", "cached"):
         records.add_argument(f"--{name}", type=Path, nargs=ROUNDS, required=True)
