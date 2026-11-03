@@ -8,10 +8,55 @@ struct ConversationView: View {
     @Environment(ConversationHost.self) private var host
     @Environment(DemoNavigator.self) private var navigator
     @Environment(\.locale) private var locale
+    @AppStorage("conversationHistoryVisible") private var historyVisible = true
     @State private var showSettings = false
     @State private var timelinePosition = ScrollPosition(edge: .bottom)
 
     var body: some View {
+        HStack(spacing: 0) {
+            if historyVisible {
+                ConversationHistoryColumn()
+                    .frame(width: 260)
+                Divider()
+            }
+            chatPane
+        }
+        .navigationTitle(modelTitle)
+        .toolbar {
+            ToolbarItemGroup(placement: .navigation) {
+                Button("Conversation history", systemImage: "clock.arrow.circlepath") { historyVisible.toggle() }
+                    .help("Show or hide the conversation history")
+                Button("New conversation", systemImage: "square.and.pencil", action: host.startNew)
+                    .disabled(!host.canManageHistory)
+                    .help("Start a new conversation")
+            }
+            ToolbarItemGroup(placement: .primaryAction) {
+                Button("Copy conversation", systemImage: "doc.on.doc", action: copy)
+                    .disabled(host.state.entries.isEmpty && host.state.readOnlyMarkdown == nil)
+                    .help("Copy the conversation as Markdown")
+                Button("Conversation settings", systemImage: "gearshape") { showSettings.toggle() }
+                    .help("Conversation settings")
+                    .disabled(chat.phase != .ready || host.state.readOnlyMarkdown != nil || host.state.isRestoring)
+                    .popover(isPresented: $showSettings, arrowEdge: .bottom) {
+                        VStack(alignment: .leading, spacing: 0) {
+                            HStack {
+                                Text("Conversation settings").font(.headline)
+                                Spacer()
+                                Button("Done") { showSettings = false }
+                            }
+                            .padding(16)
+                            Divider()
+                            ScrollView { ConversationSettingsView() }
+                                .frame(maxHeight: 520)
+                        }
+                        .frame(width: 560)
+                    }
+            }
+        }
+        .onChange(of: host.state.id) { showSettings = false }
+    }
+
+    private var chatPane: some View {
         VStack(spacing: 0) {
             archiveStatus
             if let markdown = host.state.readOnlyMarkdown {
@@ -43,32 +88,6 @@ struct ConversationView: View {
                 }
             }
         }
-        .navigationTitle(modelTitle)
-        .toolbar {
-            ToolbarItemGroup(placement: .primaryAction) {
-                Button("Copy conversation", systemImage: "doc.on.doc", action: copy)
-                    .disabled(host.state.entries.isEmpty && host.state.readOnlyMarkdown == nil)
-                    .help("Copy the conversation as Markdown")
-                Button("Conversation settings", systemImage: "gearshape") { showSettings.toggle() }
-                    .help("Conversation settings")
-                    .disabled(chat.phase != .ready || host.state.readOnlyMarkdown != nil || host.state.isRestoring)
-                    .popover(isPresented: $showSettings, arrowEdge: .bottom) {
-                        VStack(alignment: .leading, spacing: 0) {
-                            HStack {
-                                Text("Conversation settings").font(.headline)
-                                Spacer()
-                                Button("Done") { showSettings = false }
-                            }
-                            .padding(16)
-                            Divider()
-                            ScrollView { ConversationSettingsView() }
-                                .frame(maxHeight: 520)
-                        }
-                        .frame(width: 560)
-                    }
-            }
-        }
-        .onChange(of: host.state.id) { showSettings = false }
     }
 
     private var modelTitle: Text {
