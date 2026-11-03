@@ -331,9 +331,10 @@ ECE on H' at the card and the adopted temperatures, with 95% intervals:
 | score | 0.0043 [0.0048, 0.0122] | 0.0042 [0.0045, 0.0120] | 0.3349 [0.3077, 0.3609] | 0.3365 [0.3093, 0.3626] |
 
 ECE sums absolute bin gaps, so resampling biases it upward; for score the soft value lies below its percentile
-interval. The hard ECE compares the confidence with the agreement of the top option with the teacher top, which is far
-from 1 for score. The fidelity criteria of F, re-evaluated from the saved logits at the adopted temperatures, still
-pass (`comparison-refit.json`; shipping-temperature maximum 0.0065, mean 0.0011, no top-1 change).
+interval. The hard ECE compares the confidence with the agreement of the top option with the teacher top; for score
+the mean confidence on H' (about 0.56) lies far below that agreement (about 0.89) because the teacher distributions
+are spread out. The fidelity criteria of F, re-evaluated from the saved logits at the adopted temperatures, still pass
+(`comparison-refit.json`; at the adopted temperatures, maximum 0.0065, mean 0.0011, no top-1 change).
 
 Stage 3 ran Q in 458.7 s, Cal in 1,866.3 s and H in 919.6 s of forward time (about 180 tokens per second over all rows,
 median 0.48 s per row). Stages 1 and 0 of Q took 679.4 s and 644.7 s and stage 1' took 628.9 s on MPS.
@@ -341,8 +342,8 @@ median 0.48 s per row). Stages 1 and 0 of Q took 679.4 s and 644.7 s and stage 1
 ### Calibrated bundle
 
 `calibrate` writes `jev27b_s1_gdnfp32_qwen3_5_cfg_dynamic/` into its own output as an APFS clone (`cp -c`) of the
-variant bundle, after checking that every file of the variant still matches its `SHA256SUMS`. The variant itself is
-not modified.
+variant bundle and then checks that every file of the variant still matches its `SHA256SUMS` and that the copy holds
+the same files. The variant itself is not modified.
 
 - `calibration-refit.json` (`typed-decision-calibration-refit/1`) records, for each kind, the card temperature, the fit
   (beta, bracket, iterations, end reached, cross-entropy), the candidate, the adopted value and the reason, the

@@ -179,7 +179,8 @@ checkpoint is used as it is, as a limited exploration.
 
 `verbalizers` and `verbalizer_ids` in `decision.json` are copied from `judge_config.json`, which
 defines both. The `bundle` variable and the literal output of the `export` step name the same
-folder, as do `bundle_gdnfp32` and the first output of `export_gdnfp32`; change each pair together.
+folder, as do `bundle_gdnfp32`, the first output of `export_gdnfp32` and the third output of `calibrate`; change
+each group together.
 
 `python3 -m Tools.Conversion.adapters.jev27b.summary <report.json> --comparison <quantization.json>`
 prints the shareable numbers of a run and its quantization check. It lives beside the steps rather
