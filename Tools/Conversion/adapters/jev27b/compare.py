@@ -86,13 +86,14 @@ def changed_top(row, swift, reference):
             "within_rule": gap <= TOP_RULE}
 
 
-def aggregate(errors, changes):
+def aggregate(errors, changes, judged=True):
     result = summary(errors, "e", "top")
     result["bands"] = {}
     for label, _ in BANDS:
         group = result["by_band"].get(label)
         if group:
-            result["bands"][label] = {**group, "passed": group["max"] <= MAXIMUM and group["mean"] <= MEAN}
+            result["bands"][label] = {**group, "passed": group["max"] <= MAXIMUM and group["mean"] <= MEAN} \
+                if judged else group
     result["unevaluated"] = [label for label, _ in BANDS if label not in result["bands"]]
     result["top_changes"] = changes
     result["top_changes_within_rule"] = sum(change["within_rule"] for change in changes)
@@ -129,31 +130,34 @@ def compare(reference, swift, shipping):
     elapsed = [(base["band"], row["elapsed_seconds"]) for row, base in pairs]
     return {"schema": SCHEMA, "passed": passed, "criteria": {"maximum": MAXIMUM, "mean": MEAN,
                                                               "sum_tolerance": SUM_TOLERANCE, "top_rule": TOP_RULE},
-            "checks": {"rows_complete": not problems, "finite": not bad,
+            "checks": {"rows_complete": not problems, "finite": None if problems else not bad,
                        "bands_passed": bool(temperature_1["bands"])
                        and all(band["passed"] for band in temperature_1["bands"].values())},
             "problems": problems, "nonfinite": bad,
             "rows": {"total": len(expected), "forwarded": len(pairs),
                      "rejected": sum(row["rejected"] for row in expected)},
             "temperature_1": temperature_1,
-            "shipping_temperature": {"temperatures": shipping, **aggregate(shipped, shipped_changes)},
+            "shipping_temperature": {"temperatures": shipping, **aggregate(shipped, shipped_changes, judged=False)},
             "stage_1m_reference": {**stats([row["e"] for row in merged]),
-                                   "by_band": grouped(merged, "band", "e")},
+                                   "by_band": {label: group for label, _ in BANDS
+                                               if (group := grouped(merged, "band", "e").get(label))}},
             "cli_shipping_difference": max(cli, default=0.0),
             "cli_shipping_consistent": max(cli, default=0.0) <= CLI_TOLERANCE,
             "elapsed": {"total_s": math.fsum(seconds for _, seconds in elapsed),
                         "by_band": {label: stats([seconds for band, seconds in elapsed if band == label])
                                     for label, _ in BANDS if any(band == label for band, _ in elapsed)}},
-            "capacity": dict(sorted(Counter(str(row["capacity"]) for row, _ in pairs).items())),
+            "capacity": {str(size): count for size, count in sorted(Counter(row["capacity"] for row, _ in pairs).items())},
             "bundle": swift.get("bundle"), "input_sha256": swift.get("input_sha256")}
 
 
 def band_lines(title, result):
-    lines = [f"| {title} | Rows | Maximum | Mean | Passed |", "|---|---:|---:|---:|---|"]
+    judged = all("passed" in group for group in result["bands"].values())
+    lines = [f"| {title} | Rows | Maximum | Mean |" + (" Passed |" if judged else ""),
+             "|---|---:|---:|---:|" + ("---|" if judged else "")]
     for label, group in result["bands"].items():
-        lines.append(f"| {label} | {group['rows']} | {group['max']:.6f} | {group['mean']:.6f} | "
-                     f"{str(group['passed']).lower()} |")
-    lines += [f"| {label} | 0 | - | - | unevaluated |" for label in result["unevaluated"]]
+        lines.append(f"| {label} | {group['rows']} | {group['max']:.6f} | {group['mean']:.6f} |"
+                     + (f" {str(group['passed']).lower()} |" if judged else ""))
+    lines += [f"| {label} | 0 | - | - |" + (" unevaluated |" if judged else "") for label in result["unevaluated"]]
     return lines
 
 
@@ -170,9 +174,10 @@ def change_lines(changes):
 
 def report(result):
     plain, shipped = result["temperature_1"], result["shipping_temperature"]
+    finite_label = "unevaluated" if result["checks"]["finite"] is None else str(result["checks"]["finite"]).lower()
     lines = ["# JEV-27B Core AI against the quantized reference (F)", "",
              f"- Passed: {str(result['passed']).lower()} (rows {str(result['checks']['rows_complete']).lower()}, "
-             f"finite {str(result['checks']['finite']).lower()}, bands "
+             f"finite {finite_label}, bands "
              f"{str(result['checks']['bands_passed']).lower()}). Criteria per band at temperature 1: maximum e_j "
              f"<= {MAXIMUM}, mean <= {MEAN}.",
              f"- Rows {result['rows']['total']}, forwarded {result['rows']['forwarded']}, rejected "

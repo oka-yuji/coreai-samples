@@ -44,7 +44,7 @@ class TypedInputTests(unittest.TestCase):
 
 class RecipeTests(unittest.TestCase):
     def test_the_core_ai_steps_follow_the_quantized_references_and_need_the_verify_binding(self):
-        with self.assertRaises(PipelineError):
+        with self.assertRaisesRegex(PipelineError, "verify"):
             load_recipe(RECIPE, BINDINGS, ROOT)
         steps = load_recipe(RECIPE, {**BINDINGS, "verify": "/unused/coreai-verify"}, ROOT)["steps"]
         ids = [step["id"] for step in steps]

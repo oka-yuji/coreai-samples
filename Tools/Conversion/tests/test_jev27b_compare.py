@@ -1,7 +1,10 @@
 import copy
+import json
+from pathlib import Path
+import tempfile
 import unittest
 
-from Tools.Conversion.adapters.jev27b.compare import compare, tokens_sha256
+from Tools.Conversion.adapters.jev27b.compare import compare, report, temperatures, tokens_sha256
 from Tools.Conversion.adapters.jev27b.typed_head import decide
 
 TEMPERATURES = {"noul": 1.25, "choice": 0.75, "score": 1.5}
@@ -147,6 +150,36 @@ class CompareTests(unittest.TestCase):
         self.assertNotEqual(other["shipping_temperature"]["max_probability_error"],
                             result["shipping_temperature"]["max_probability_error"])
         self.assertTrue(result["passed"])
+
+    def test_the_report_marks_unevaluated_checks_and_keeps_the_band_order(self):
+        reference, swift = documents()
+        broken = copy.deepcopy(swift)
+        broken["rows"].reverse()
+        result = compare(reference, broken, TEMPERATURES)
+        self.assertIsNone(result["checks"]["finite"])
+        self.assertIn("finite unevaluated", report(result))
+        swift["rows"][3]["capacity"] = 1024
+        result = compare(reference, swift, TEMPERATURES)
+        text = report(result)
+        self.assertIn("| 2049-4096 | 0 | - | - | unevaluated |", text)
+        shipping = text.split("## Shipping temperature")[1].split("## Stage 3")[0]
+        self.assertNotIn("Passed", shipping)
+        self.assertNotIn("passed", result["shipping_temperature"]["bands"]["<=512"])
+        self.assertEqual(list(result["stage_1m_reference"]["by_band"]), ["<=512", "513-2048"])
+        self.assertEqual(list(result["capacity"]), ["256", "1024"])
+
+    def test_temperatures_come_from_the_reference_or_a_per_kind_file(self):
+        reference, _ = documents()
+        self.assertEqual(temperatures(None, reference), TEMPERATURES)
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "temperatures.json"
+            path.write_text(json.dumps({"per_kind": {"noul": 2.0, "choice": 1.0, "score": 0.5}}))
+            self.assertEqual(temperatures(path, reference)["score"], 0.5)
+            for values in ({"noul": 0, "choice": 1, "score": 1}, {"noul": 1, "choice": 1},
+                           {"noul": True, "choice": 1, "score": 1}):
+                path.write_text(json.dumps({"per_kind": values}))
+                with self.assertRaises(ValueError):
+                    temperatures(path, reference)
 
 
 if __name__ == "__main__":
