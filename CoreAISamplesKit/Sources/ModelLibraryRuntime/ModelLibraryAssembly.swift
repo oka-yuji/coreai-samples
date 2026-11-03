@@ -27,10 +27,11 @@ public struct ModelLibraryAssembly {
     }
 
     public func makeLibrary(
-        catalog: ModelCatalog, capabilities: [DemoCapability: CapabilityState], owner: UUID
+        catalog: ModelCatalog, platform: LibraryPlatform = .iOS, capabilities: [DemoCapability: CapabilityState],
+        owner: UUID
     ) -> Library {
         let environment = LibraryEnvironment(
-            platform: .iOS, connectedDemos: registry.connectedDemos, capabilities: capabilities)
+            platform: platform, connectedDemos: registry.connectedDemos, capabilities: capabilities)
         let library = Store<ModelLibraryFeature>(
             initialState: ModelLibraryState(catalog: catalog, environment: environment, owner: owner),
             run: runner.run)

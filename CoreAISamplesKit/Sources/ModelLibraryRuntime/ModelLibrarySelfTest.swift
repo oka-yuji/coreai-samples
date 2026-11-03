@@ -89,7 +89,7 @@ public enum ModelLibrarySelfTest {
         output: URL, root: URL, registry: ModelDemoAdapterRegistry? = nil,
         capabilities: [DemoCapability: CapabilityState]? = nil, acquire target: String? = nil,
         assembly: ModelLibraryAssembly? = nil, importBundle: URL? = nil, unconnectedDemoIDs: Set<String> = [],
-        afterAcquisition: AcquisitionCheck? = nil,
+        afterAcquisition: AcquisitionCheck? = nil, platform: LibraryPlatform = .iOS,
         catalog: @MainActor () throws -> ModelCatalog = { try IOSDemoCatalog.make() }
     ) async -> Int32 {
         let failures: [String]
@@ -100,7 +100,7 @@ public enum ModelLibrarySelfTest {
                     catalog: catalog(), root: root,
                     registry: registry, capabilities: capabilities,
                     acquire: target, assembly: assembly, importBundle: importBundle,
-                    unconnectedDemoIDs: unconnectedDemoIDs, afterAcquisition: afterAcquisition)
+                    unconnectedDemoIDs: unconnectedDemoIDs, afterAcquisition: afterAcquisition, platform: platform)
                 failures = checked.failures
                 report = checked
             } catch {
@@ -126,7 +126,7 @@ public enum ModelLibrarySelfTest {
         catalog: ModelCatalog, root: URL, registry: ModelDemoAdapterRegistry?,
         capabilities: [DemoCapability: CapabilityState]?, acquire target: String? = nil,
         assembly: ModelLibraryAssembly? = nil, importBundle: URL? = nil, unconnectedDemoIDs: Set<String> = [],
-        afterAcquisition: AcquisitionCheck? = nil
+        afterAcquisition: AcquisitionCheck? = nil, platform: LibraryPlatform = .iOS
     ) async throws -> Report {
         let demos = catalog.demos.map(\.id).sorted()
         let connected = registry?.connectedDemos.sorted()
@@ -159,24 +159,26 @@ public enum ModelLibrarySelfTest {
                     ?? ModelLibraryAssembly(
                         adapters: [], store: ManagedModelStore(root: root), transfer: ArtifactTransfer()),
                 installed: Set(artifacts.filter { $0.inspection == "ready" }.map(\.artifactID)),
-                importBundle: importBundle, afterAcquisition: afterAcquisition)
+                importBundle: importBundle, afterAcquisition: afterAcquisition, platform: platform)
             if acquired.artifacts.isEmpty { failures.append("acquire: \(target) names no catalog artifact") }
             failures += acquired.artifacts.compactMap(problem)
             failures += additionalFailures
             acquisition = acquired
         }
-        let sections = catalog.sections(platform: .iOS, audience: .release)
+        let sections = catalog.sections(platform: platform, audience: .release)
         #if os(iOS)
-            let platform = "iOS"
+            let host = "iOS"
         #else
-            let platform = "macOS"
+            let host = "macOS"
         #endif
         let scope =
             registry == nil
             ? "Catalog and store checks only. The demo adapters and capability states belong to the iOS app."
-            : "Catalog, registry, capability and store checks of the iOS app."
+            : platform == .macOS
+                ? "Catalog, registry and store checks of the Mac app."
+                : "Catalog, registry, capability and store checks of the iOS app."
         return Report(
-            platform: platform,
+            platform: host,
             scope: scope + (target.map { " Acquisition of \($0) through the library store." } ?? ""),
             catalogValidated: true, catalogDemos: demos, visibleModels: sections.count,
             visibleDemos: sections.reduce(0) { $0 + $1.demos.count },
@@ -216,7 +218,7 @@ public enum ModelLibrarySelfTest {
     private static func acquire(
         _ target: String, catalog: ModelCatalog, root: URL, capabilities: [DemoCapability: CapabilityState],
         assembly: ModelLibraryAssembly, installed: Set<String>, importBundle: URL?,
-        afterAcquisition: AcquisitionCheck?
+        afterAcquisition: AcquisitionCheck?, platform: LibraryPlatform
     ) async throws -> (Report.Acquisition, [String]) {
         let selected = catalog.models.flatMap { model in model.artifacts.map { (model, $0) } }
             .filter { target == "all" || $0.1.id == target }
@@ -234,7 +236,8 @@ public enum ModelLibrarySelfTest {
         else {
             throw Failure(description: "A selected folder is required before acquiring an uninstalled local artifact")
         }
-        let context = assembly.makeLibrary(catalog: catalog, capabilities: capabilities, owner: UUID())
+        let context = assembly.makeLibrary(
+            catalog: catalog, platform: platform, capabilities: capabilities, owner: UUID())
         let library = context.store
         let clock = ContinuousClock()
         let refresh = clock.now

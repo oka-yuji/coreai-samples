@@ -1,5 +1,7 @@
 import Foundation
+import ModelLibraryFeature
 import ModelLibraryRuntime
+import ModelLibraryStorage
 import SwiftUI
 
 struct DemoApp: App {
@@ -40,7 +42,8 @@ enum DemoAppMain {
             exit(
                 await ModelLibrarySelfTest.run(
                     output: URL(filePath: output), root: ModelStorage.root.appending(path: "ModelLibrary"),
-                    acquire: LaunchArguments.value("--acquire")))
+                    acquire: LaunchArguments.value("--acquire"), platform: .macOS,
+                    catalog: { try MacDemoCatalog.make() }))
         }
         if LaunchArguments.flag("--check-localization") {
             DemoLocalizationCheck.run()
