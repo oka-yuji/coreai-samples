@@ -75,7 +75,7 @@ custom_rules:
   concurrency_escape:
     regex: '@unchecked\s+Sendable|nonisolated\s*\(\s*unsafe\s*\)|@preconcurrency\s+import'
     match_kinds: [attribute.builtin, keyword, identifier, typeidentifier]
-    message: "Record the safety invariant in AGENTS.md and review any existing baseline exception (A12)."
+    message: "Record the safety invariant in CLAUDE.md and review any existing baseline exception (A12)."
     severity: error
 
   no_inline_swiftlint_commands:
