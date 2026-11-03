@@ -170,15 +170,16 @@ checkpoint is used as it is, as a limited exploration.
   original module stays a child of the wrapper, so the exporter externalizes it as before. The step passes only when
   every quantized tensor hashes as in `export` (`decision.compare_hashes`), all 48 layers are wrapped, every
   `gated_delta_update` call in the IR of the asset takes six float32 inputs and the inspection matches. `variant.json`
-  records these checks with the IR counts of both assets, and the Core AI steps below use this bundle. The existing
-  steps and their modules are unchanged, so their cached results stay valid.
+  records these checks with the IR counts of both assets, and the Core AI steps below use this bundle. The steps
+  before it and their modules are unchanged and stay reused; `typed_decide_f` depends on this step, so a new variant
+  makes it and `compare_f` run again.
 - `verify_quantization` requires matching hashes, complete rows equal to the fixtures and to the
   earlier references, and finite probabilities. It writes `reference_q.json`, `quantization.json`
   (`typed-decision-quantization/1`) and `report.md`; it applies no numeric threshold.
 
 `verbalizers` and `verbalizer_ids` in `decision.json` are copied from `judge_config.json`, which
 defines both. The `bundle` variable and the literal output of the `export` step name the same
-folder; change both together.
+folder, as do `bundle_gdnfp32` and the first output of `export_gdnfp32`; change each pair together.
 
 `python3 -m Tools.Conversion.adapters.jev27b.summary <report.json> --comparison <quantization.json>`
 prints the shareable numbers of a run and its quantization check. It lives beside the steps rather
