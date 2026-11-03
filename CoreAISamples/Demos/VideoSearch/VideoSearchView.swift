@@ -47,8 +47,11 @@
                         .font(.callout).foregroundStyle(.secondary)
                 } else {
                     if state.ready { Label("Model ready", systemImage: "checkmark.circle") }
-                    Text(verbatim: state.modelFolder?.lastPathComponent ?? "EmbeddingGemma 2")
-                        .font(.caption).foregroundStyle(.secondary)
+                    Text(
+                        verbatim: library?.artifactTitle(.embeddingGemma) ?? state.modelFolder?.lastPathComponent
+                            ?? "EmbeddingGemma 2"
+                    )
+                    .font(.caption).foregroundStyle(.secondary)
                 }
             }
         }

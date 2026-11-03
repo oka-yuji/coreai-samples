@@ -99,7 +99,7 @@ struct ProductComparisonView: View {
                     if let guidance {
                         guidance
                     } else if let folder = state.modelFolder {
-                        Text(verbatim: folder.lastPathComponent).lineLimit(1).truncationMode(.middle)
+                        Text(verbatim: modelName(folder)).lineLimit(1).truncationMode(.middle)
                     }
                     Spacer()
                     #if os(iOS)
@@ -134,6 +134,14 @@ struct ProductComparisonView: View {
         #else
             guard let library else { return true }
             return library.resource(inUse: .gliner)?.directory == state.modelFolder
+        #endif
+    }
+
+    private func modelName(_ folder: URL) -> String {
+        #if os(iOS)
+            return folder.lastPathComponent
+        #else
+            return library?.artifactTitle(.gliner) ?? folder.lastPathComponent
         #endif
     }
 

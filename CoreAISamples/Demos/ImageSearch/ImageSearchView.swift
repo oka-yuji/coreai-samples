@@ -93,8 +93,15 @@ struct ImageSearchView: View {
     }
 
     private var folderName: some View {
-        Text(verbatim: state.modelFolder?.lastPathComponent ?? "EmbeddingGemma 2")
-            .font(.caption).foregroundStyle(.secondary)
+        Text(verbatim: modelName).font(.caption).foregroundStyle(.secondary)
+    }
+
+    private var modelName: String {
+        #if os(iOS)
+            return state.modelFolder?.lastPathComponent ?? "EmbeddingGemma 2"
+        #else
+            return library?.artifactTitle(.embeddingGemma) ?? state.modelFolder?.lastPathComponent ?? "EmbeddingGemma 2"
+        #endif
     }
 
     private var canUseModel: Bool {
