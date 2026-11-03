@@ -24,7 +24,7 @@ struct ConversationView: View {
         .navigationTitle(modelTitle)
         .toolbar {
             ToolbarItemGroup(placement: .navigation) {
-                Button("Conversation history", systemImage: "sidebar.leading") { historyVisible.toggle() }
+                Button("Conversation history", systemImage: "clock.arrow.circlepath") { historyVisible.toggle() }
                     .help("Show or hide the conversation history")
                 Button("New conversation", systemImage: "square.and.pencil", action: host.startNew)
                     .disabled(!host.canManageHistory)
