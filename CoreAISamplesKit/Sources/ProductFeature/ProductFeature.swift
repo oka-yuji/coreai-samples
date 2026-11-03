@@ -76,7 +76,7 @@ public enum ProductAction: Sendable {
     case extracted(Int, ProductMemo)
     case failed(Int, String)
     case remove(Int)
-    case stop, appeared, closed
+    case stop, appeared, closed, modelUnavailable
     case stopped(Int)
     case released(Int)
     case releaseFailed(Int, String)
@@ -104,6 +104,10 @@ public enum ProductFeature: Feature {
         case .modelChosen(let url):
             guard !state.managed else { return [] }
             state.modelFolder = url
+            return stop(&state)
+        case .modelUnavailable:
+            guard !state.managed else { return [] }
+            state.modelFolder = nil
             return stop(&state)
         case .submit(let date):
             guard state.canAdd else { return [] }

@@ -29,14 +29,22 @@ enum ImageSearchAssembly {
         return queries
     }
 
+    static var launchBundle: URL? { LaunchArguments.value("--embedding-bundle").map { URL(filePath: $0) } }
+
+    static var initialFolder: URL? {
+        #if os(iOS)
+            let prepared = URL.documentsDirectory.appending(path: preparedFolderName)
+            return launchBundle
+                ?? (FileManager.default.fileExists(atPath: prepared.appending(path: "embedding-manifest.json").path)
+                    ? prepared : nil)
+        #else
+            return launchBundle
+        #endif
+    }
+
     static func makeStore() -> Store<ImageSearchFeature> {
-        let prepared = URL.documentsDirectory.appending(path: preparedFolderName)
-        let folder =
-            LaunchArguments.value("--embedding-bundle").map { URL(filePath: $0) }
-            ?? (FileManager.default.fileExists(atPath: prepared.appending(path: "embedding-manifest.json").path)
-                ? prepared : nil)
-        return Store(
-            initialState: ImageSearchState(modelFolder: folder),
+        Store(
+            initialState: ImageSearchState(modelFolder: initialFolder),
             run: ImageSearchRunner(service: LiveImageSearchService()).run)
     }
 

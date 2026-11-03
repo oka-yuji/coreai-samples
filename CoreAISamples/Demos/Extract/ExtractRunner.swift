@@ -39,7 +39,9 @@ struct ExtractRunner {
                 var info = try await service.open(folder: URL(filePath: path, directoryHint: .isDirectory))
 
                 info.path = path
-                UserDefaults.standard.set(path, forKey: Self.assetFolderKey)
+                #if os(iOS)
+                    UserDefaults.standard.set(path, forKey: Self.assetFolderKey)
+                #endif
                 send(.assetOpened(info))
             } catch is CancellationError {
                 return

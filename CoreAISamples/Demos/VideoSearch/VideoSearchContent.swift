@@ -11,6 +11,7 @@ struct VideoSearchContent: View {
     let state: VideoSearchState
     let send: @MainActor (VideoSearchAction) -> Void
     let isPermitted: @MainActor () -> Bool
+    var canUseModel = true
     @State private var player: AVPlayer?
     @State private var playerURL: URL?
     @State private var choosingVideo = false
@@ -75,7 +76,7 @@ struct VideoSearchContent: View {
                 videoRequest = state.session
                 choosingVideo = true
             }
-            .disabled(!state.canIndex)
+            .disabled(!state.canIndex || !canUseModel)
             .accessibilityIdentifier("video-search-choose")
             HStack(spacing: 10) {
                 Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
@@ -83,11 +84,11 @@ struct VideoSearchContent: View {
                     "Describe a moment to find", text: Binding(get: { state.query }, set: { send(.setQuery($0)) })
                 )
                 .textFieldStyle(.plain)
-                .onSubmit { send(.search) }
+                .onSubmit { if canUseModel { send(.search) } }
                 .accessibilityIdentifier("video-search-query")
                 Button("Search") { send(.search) }
                     .buttonStyle(.borderedProminent)
-                    .disabled(!state.canSearch)
+                    .disabled(!state.canSearch || !canUseModel)
                     .accessibilityIdentifier("video-search-submit")
             }
             .padding(10)
@@ -162,7 +163,7 @@ struct VideoSearchContent: View {
                 if let video = state.video { send(.index(video)) }
             }
             .buttonStyle(.bordered)
-            .disabled(!state.canIndex)
+            .disabled(!state.canIndex || !canUseModel)
         }
         .font(.callout)
     }

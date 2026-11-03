@@ -8,14 +8,18 @@ import SwiftUI
 @MainActor
 enum ProductAssembly {
     static func makeStore() -> Store<ProductFeature> {
-        let saved = UserDefaults.standard.string(forKey: ExtractRunner.assetFolderKey)
-        let defaultFolder = ModelStorage.root.appending(path: "gliner/gliner25_multi_fp32_t256_t512")
-        let folder: URL? =
-            if let saved, !saved.isEmpty {
-                URL(filePath: saved)
-            } else if FileManager.default.fileExists(atPath: defaultFolder.appending(path: "contract.json").path) {
-                defaultFolder
-            } else { nil }
+        #if os(iOS)
+            let saved = UserDefaults.standard.string(forKey: ExtractRunner.assetFolderKey)
+            let defaultFolder = ModelStorage.root.appending(path: "gliner/gliner25_multi_fp32_t256_t512")
+            let folder: URL? =
+                if let saved, !saved.isEmpty {
+                    URL(filePath: saved)
+                } else if FileManager.default.fileExists(atPath: defaultFolder.appending(path: "contract.json").path) {
+                    defaultFolder
+                } else { nil }
+        #else
+            let folder: URL? = nil
+        #endif
         return Store(
             initialState: ProductState(modelFolder: folder), run: ProductRunner(service: LiveProductService()).run)
     }
