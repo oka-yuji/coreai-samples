@@ -1,4 +1,5 @@
 import ArgumentParser
+import CoreAI
 import CoreAIBackend
 import CryptoKit
 import Darwin
@@ -22,6 +23,12 @@ struct TypedDecide: AsyncParsableCommand {
     @Option(help: "Run only the first N rows.")
     var limit: Int?
 
+    @Flag(help: "Delete the specialization cache entry of the bundle's asset before loading.")
+    var clearCache = false
+
+    @Flag(help: "Sample the process memory every 100 ms while each row runs and record the largest RSS and footprint.")
+    var sampleMemory = false
+
     func validate() throws {
         if let limit, limit <= 0 { throw ValidationError("--limit takes a positive value.") }
     }
@@ -36,13 +43,22 @@ struct TypedDecide: AsyncParsableCommand {
         else { throw ValidationError("The output file must not exist yet, and its folder must exist: \(output)") }
         let data = try Data(contentsOf: URL(filePath: input))
         let rows = try JSONDecoder().decode(TypedDecideInput.self, from: data).rows.prefix(limit ?? .max)
-        let model = try await TypedDecisionModel.load(bundle: URL(filePath: bundle))
+        let bundleURL = URL(filePath: bundle)
+        if clearCache { try AIModelCache.default.deleteEntries(for: TypedDecisionBundle(url: bundleURL).assetURL) }
+        let model = try await TypedDecisionModel.load(bundle: bundleURL)
         let bundleRecord = try TypedDecideBundleRecord(model)
         let clock = ContinuousClock()
         var records: [TypedDecideRecord] = []
         for (index, row) in rows.enumerated() {
             let start = clock.now
-            let record = try await Self.decide(row, model: model)
+            var record: TypedDecideRecord
+            if sampleMemory {
+                let sampled = try await sampleResident { try await Self.decide(row, model: model) }
+                record = sampled.value
+                record.residentBytesMax = sampled.resident
+            } else {
+                record = try await Self.decide(row, model: model)
+            }
             records.append(record)
             let summary = record.error ?? "\(record.tokenCount ?? 0) tokens"
             FileHandle.standardError.write(
@@ -162,4 +178,5 @@ struct TypedDecideRecord: Encodable {
     var probabilitiesT1: [Double]?
     var top: Int?
     var elapsedSeconds: Double?
+    var residentBytesMax: ResidentMaximum?
 }
