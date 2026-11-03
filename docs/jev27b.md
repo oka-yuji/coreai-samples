@@ -222,9 +222,9 @@ the first bundle), `TypedDecisionInferenceTests` runs ten rows of F (the two car
 of the reference, bit-identical results for the same row run twice, a request cancelled at the forward checkpoint and
 a request cancelled while its forward pass runs (through a backbone that does not pass the cancellation on), each
 followed by a row that still matches, and the difference between the rounded capacity and 8,192 positions. The second
-cancellation test then cancels a 2,000-token request three times after the backbone has reported the start of its
-forward run, and writes the time from each cancellation request to the `CancellationError` to
-`typed-cancel-run.json`. The fixture is `Fixtures/TypedDecision/inference.json`,
+cancellation test then cancels a 2,000-token request three times after the test backbone has reported the start of
+its forward call, and writes the time from each cancellation request to the `CancellationError` to
+`typed-cancel-run.json` ([Performance](#performance)). The fixture is `Fixtures/TypedDecision/inference.json`,
 written by `swift_fixture` with `--quantized-reference <reference_q.json>`. The tests load the model, so hold the
 shared machine lock; without the variable they are skipped. `DECIDE_METRICS_DIR` saves their measurements as
 `typed-*.json`.
@@ -475,8 +475,9 @@ The performance of the calibrated bundle is measured outside the recipe with the
 summarize`. No pass line is set.
 
 - The plan comes from `python3 -m Tools.ModelReports template --kind decision --model jev27b`, with every field filled
-  and its SHA-256 recorded before the first measurement (`plan_sha256` of every run record). It fixes one warmup and
-  three measured runs per condition; with fewer than 20 runs `summarize` reports no p95.
+  and its SHA-256 recorded before the first measurement (`plan_sha256` of every run record). It fixes three measured
+  runs per condition and, for `latency_s`, one warmup of each length; with fewer than 20 runs `summarize` reports no
+  p95.
 - The rows P (`performance.py rows`) are four rows of exactly 100, 500, 2,000 and 8,192 tokens (`noul`, `choice`,
   `score`, `noul`), each built like the boundary rows of F (`Builder.exact`): a base row of the kind, states of further
   rows of `test_set_30k` joined after it and the last one cut so that the rendered input has exactly that many tokens.
@@ -485,9 +486,10 @@ summarize`. No pass line is set.
   directory.
 - `coreai-verify typed-decide` has two options for these measurements. `--clear-cache` deletes the specialization
   cache entry of the bundle's asset before loading, so the load specializes again (`specialization: fresh`).
-  `--sample-memory` samples the RSS and the physical footprint of the process every 100 ms while each row runs and
-  writes the largest values to the row as `resident_bytes_max`. The recipe keeps running the earlier build of the
-  executable, so its cached steps stay valid.
+  `--sample-memory` samples the RSS and the physical footprint of the process every 100 ms while each row runs, and
+  once more after the row, and writes `resident_bytes_max` (`rss_bytes` and `footprint_bytes`, the largest values,
+  with `samples`, `failed_samples` and `interval_seconds`) to the row. The recipe keeps running the earlier build of
+  the executable, so its cached steps stay valid.
 - `latency_s` is the `elapsed_seconds` of a row: from the call of `TypedDecisionModel.decide` to its return
   (rendering, tokenization, the forward run and the head, without the JSON input and output). One process runs one
   warmup of each length and then three rounds with the lengths interleaved.
@@ -497,12 +499,17 @@ summarize`. No pass line is set.
 - `peak_rss_bytes` and `peak_footprint_bytes` come from `/usr/bin/time -l` around the latency process (its whole
   lifetime, including the load), and `resident_bytes` is the largest RSS sampled during the measured 8,192-token rows.
   The values are not added together.
-- `cancel_s` is measured by `TypedDecisionInferenceTests` with `COREAI_TYPED_DECISION_BUNDLE` and `DECIDE_METRICS_DIR`:
-  a 2,000-token request runs through a backbone that does not pass the cancellation on; after the forward run has
-  started (the backbone reports its entry), the request is cancelled three times, and the time from the cancellation
-  request to the `CancellationError` is written to `typed-cancel-run.json`. A Core AI run is not stopped by the
-  cancellation, so the time is the rest of the run.
-- `performance.py records` converts the outputs into run records per condition, which `summarize` aggregates.
+- `cancel_s` is measured by `TypedDecisionInferenceTests` with `COREAI_TYPED_DECISION_BUNDLE` and `DECIDE_METRICS_DIR`.
+  The request is the first fixture row (the refund card example) with its state repeated 164 times, 2,000 tokens; it
+  is not a row of P. It runs through a test backbone that starts the Core AI forward in a task of its own, which the
+  cancellation does not reach. After the backbone reports the start of its forward call, the request is cancelled;
+  this is done three times, and the time from the cancellation request to the `CancellationError` is written to
+  `typed-cancel-run.json`. With this backbone the time is, by construction, the rest of the run; whether
+  `InferenceFunction.run` itself stops on a cancellation is not measured here.
+- `performance.py records` converts the outputs into run records per condition, which `summarize` aggregates. It
+  marks a run as failed when its output comes from another bundle or input, its token IDs differ from P, a load did
+  not specialize as expected, a memory sample failed, or a cancellation took less than half of the uncancelled run,
+  and it refuses outputs without the planned number of runs.
 
 Results (2026-11-04, plan revision 3, SHA-256 `d361e027c9f6c4929bc8cafe7ea4f378fcdbfe7e01e795a1229e6cbc5cd5d4b7`; the
 calibrated bundle, `decision.json` SHA-256 `a2b186a87a64d9e93a56f185a5ebc2a0613d00da7440eeb8c8c2229b64f6adf3`):
@@ -524,22 +531,40 @@ calibrated bundle, `decision.json` SHA-256 `a2b186a87a64d9e93a56f185a5ebc2a0613d
 - **Power:** measured on battery by the owner's decision (2026-11-04), without an AC adapter, because the adapter was
   disconnected before the measurement. The plan was revised to record this (revision 3) before any measurement; it
   replaced revision 2, which named AC power. The battery went from 90% to 76% between 06:23:59 and 06:31:34 JST, no
-  adapter was attached during the measurement, Low Power Mode was off (`pmset -g powermode 0`), and `pmset -g therm`
-  recorded no thermal or performance warning in any of the ten snapshots. The numbers are not comparable with
-  measurements on AC power without a new measurement.
+  adapter was attached during the measurement, and Low Power Mode was off (the `powermode` line of `pmset -g` was 0).
+  The numbers are not comparable with measurements on AC power without a new measurement.
+- **Thermal pressure:** `pmset -g therm` recorded no thermal or performance warning in any of the ten snapshots, but
+  it does not show the thermal pressure. The pressure level of `thermalmonitord` in the system log went from nominal
+  to moderate at 06:28:52 and to heavy from 06:29:08 to 06:32:08 (moderate until 06:32:23). The loads and the first two
+  rounds ran at nominal pressure; the last seconds of the second 8,192-token row and the whole third round (moderate,
+  then heavy for the 8,192-token row) and the whole cancellation test (heavy) did not. The third 2,000-token row
+  (9.0762 s) is about 1.8% slower than the first two. The medians include rows of the third round (100 tokens) and of
+  the end of the second round (8,192 tokens).
+- Other load: before the measurement no other model process was running (checked with `pgrep`); the GPU use of other
+  processes was not recorded.
 - In the loads, the bundle check took about 5.25 s and the tokenizer about 0.6 s every time; the backbone took 21.8 to
-  22.1 s with a fresh specialization and 3.5 s from the cache. File caches were warm in both cases.
+  22.1 s with a fresh specialization and 3.5 s from the cache. File caches of the system were not flushed between the
+  processes.
 - The first row of each process took about 2.1 s for 100 tokens; the warmup rows were not counted. In the latency
   process the warmups of 500 and 2,000 tokens (1.9 s and 7.7 s) were faster than their measured rounds, which followed
   an 8,192-token row.
-- The physical footprint sampled during the rows grew in each round of the interleaved lengths: about 8.0 GB during
-  the 8,192-token warmup, then 12.6, 16.8 and 21.6 GB during the three measured 8,192-token rows. The RSS stayed near
-  17.3 GB (it includes the mapped weights). The process lifetime peaks of `/usr/bin/time -l` are reported as they are;
-  RSS and footprint are not added together.
-- In the cancellation test the backbone reported its entry before every cancellation; each request ended with
-  `CancellationError` 9.06 to 9.20 s after the request, against 8.72 s for the same request without cancellation,
-  so the cancellation took effect only when the run returned. The cancellation test ran in the debug build of the test
-  target; `swift test -c release` fails to build another test target of the package.
+- The physical footprint sampled during the rows grew in each round of the interleaved lengths, by 4.2 to 4.8 GB per
+  round of four rows: about 8.0 GB during the 8,192-token warmup, then 12.6, 16.8 and 21.6 GB during the three
+  measured 8,192-token rows, without levelling off. `peak_footprint_bytes` is therefore the value after these sixteen
+  interleaved requests, not an upper bound: it grows with the number of requests whose length changes. The cause was
+  not investigated; it has the same form as the work memory that grows in one model when the length of consecutive
+  calls changes several times over (an assumption, not measured here).
+- The RSS sampled during the rows stayed between 16.50 and 17.29 GB (it includes the mapped weights). The lifetime peak
+  of 32.3 GB, about twice the 16.0 GB asset, occurred outside the rows, during the load, which was not sampled. The
+  process lifetime peaks of `/usr/bin/time -l` are reported as they are; RSS and footprint are not added together.
+- In the cancellation test the backbone reported the start of its forward call before every cancellation; each request
+  ended with `CancellationError` 9.06 to 9.20 s after the cancellation request, against 8.72 s for the same request
+  without cancellation, which is the rest of the run by the construction of the test backbone. In the same test, the
+  cancellation of a request at the forward checkpoint of `TypedDecisionModel` ended it before the run (0.16 s). The
+  cancellation test ran in the debug build of the test target; `swift test -c release` fails to build another test
+  target of the package.
+- `bundle_bytes` is the size of the 13 regular files of the calibrated bundle, counted by `performance.py records`
+  after plan revision 3.
 
 ## Terms
 
