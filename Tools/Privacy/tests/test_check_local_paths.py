@@ -56,6 +56,27 @@ class LocalPathChecks(unittest.TestCase):
         for text in ("alice", "Archive", "folders", "run.log", "runner"):
             self.assertNotIn(text, result.stdout + result.stderr)
 
+    def test_json_unicode_escaped_separators_are_reported_by_file_and_line_only(self):
+        self.write("logs/unicode.json", '{"lower": "' + "\\u002f".join(["", "Users", "alice", "a"]) + '",\n "upper": "' + "\\u002F".join(["", "Users", "alice", "b"]) + '"}\n')
+        result = self.run_check()
+        self.assertEqual(result.returncode, 1)
+        self.assertEqual(result.stdout.splitlines(), ["logs/unicode.json:1", "logs/unicode.json:2"])
+        self.assertNotIn("alice", result.stdout + result.stderr)
+
+    def test_percent_encoded_separators_are_reported_by_file_and_line_only(self):
+        self.write("docs/links.md", "open?path=" + "%2F".join(["", "Users", "alice", "a"]) + "\nopen?path=" + "%2f".join(["", "Users", "alice", "b"]) + "\n")
+        result = self.run_check()
+        self.assertEqual(result.returncode, 1)
+        self.assertEqual(result.stdout.splitlines(), ["docs/links.md:1", "docs/links.md:2"])
+        self.assertNotIn("alice", result.stdout + result.stderr)
+
+    def test_line_numbers_point_to_the_original_lines_after_decoding(self):
+        self.write("logs/mixed.log", "a\\u002fb %2Fc\\nd %0A\n\\/opt\\u002Ftools%2fbin\nx " + "%2F".join(["", "Users", "alice", "y"]) + "\n")
+        result = self.run_check()
+        self.assertEqual(result.returncode, 1)
+        self.assertEqual(result.stdout.splitlines(), ["logs/mixed.log:3"])
+        self.assertNotIn("alice", result.stdout + result.stderr)
+
     def test_path_inside_a_binary_file_is_reported(self):
         self.write("Assets/blob.bin", b"\x00\x01\n\x89PNG" + absolute("Users", "alice", "x").encode() + b"\x00")
         result = self.run_check()

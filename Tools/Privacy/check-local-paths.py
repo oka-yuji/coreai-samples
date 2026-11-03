@@ -12,6 +12,7 @@ pattern = re.compile(
     rb"|[/]Volumes[/][^\s/`'\"]+"
     rb"|[/]var[/]folders[/]"
 )
+escaped = re.compile(rb"\\/|\\u002[fF]|%2[fF]")
 
 
 def git(*args, data=None):
@@ -48,7 +49,7 @@ def contents():
 
 
 def lines(data):
-    data = data.replace(b"\\/", b"/")
+    data = escaped.sub(b"/", data)
     return sorted({data.count(b"\n", 0, match.start()) + 1 for match in pattern.finditer(data)})
 
 
