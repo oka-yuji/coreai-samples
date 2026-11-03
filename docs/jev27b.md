@@ -1,19 +1,173 @@
-# JEV-27B typed decisions (draft)
+# JEV-27B typed decisions for Core AI
 
-**Status: draft, not published.** This page describes the typed-decision bundle that the
-[`jev27b` conversion recipe](../Tools/Conversion/recipes/jev27b/README.md) builds from
-[autotrust/JEV-27B](https://huggingface.co/autotrust/JEV-27B). The bundle is not distributed. The output check of the
-merged checkpoint (stage 1 against stage 1', largest probability difference at most 0.01) has not passed and awaits a
-decision; the bundle and the quantized references below are a limited exploration that uses that merged checkpoint. The
-quality and calibration results under [Quality and calibration](#quality-and-calibration) measure agreement with the
-teacher distribution of the corpus on fixed sets; they are not a claim of real-world correctness. The Japanese results
-under [Japanese (JGLUE)](#japanese-jglue) are descriptive and have no pass line.
+[Home](../README.md) · [日本語](jev27b.ja.md)
 
-JEV-27B answers typed questions (`noul`, `choice` with 2 to 16 options, `score` from 0 to 5) with one prefill of a bare
-template. The final hidden state of the last token goes through a 24-row decision head. The bundle keeps that split:
-the Core AI asset returns hidden states, and the head is applied in float32 outside the asset.
+JEV-27B answers typed questions about a situation: `noul` (false or true), `choice` (2 to 16 options) and `score` (0 to
+5). This page describes the Core AI bundle that the [`jev27b` recipe](../Tools/Conversion/recipes/jev27b/README.md)
+builds from [autotrust/JEV-27B](https://huggingface.co/autotrust/JEV-27B) and the checks recorded for it. One prefill of
+a bare template runs on the Core AI asset, and a 24-row decision head turns the hidden state of the last token into the
+probabilities of the options. The bundle is not distributed, and the sample app does not use it yet; the
+`coreai-verify typed-decide` command runs it on the Mac.
 
-## Bundle layout
+**For:** developers who build the bundle themselves and want to measure typed decisions on the Mac. **Not for:**
+free-form chat, production decisions, or probabilities used as real-world correctness without further checks.
+
+Requirements: Apple silicon, macOS 27, Xcode 27 with Metal Toolchain, GPU execution. Measured on a Mac16,6 (Apple M4
+Max) with 128 GiB of memory, macOS 27.0 (26A428). A minimum-memory configuration has not been established. Building the
+bundle needs the reference and converter environments of the recipe, the pinned inputs and free disk space (the
+export steps check for 160 GB).
+
+<!-- model-report:start -->
+<a id="model-report"></a>
+
+## Evaluation summary
+
+[Measurement protocol](benchmarking.md) · [Source record](model-reports/records/jev27b.json)
+
+Results below retain their original dates and workloads. Different rows may use different runs; they are not a controlled comparison. Legacy records explicitly retain unrecorded conditions. Missing values are not zero or a pass.
+
+### Demo support
+
+| Platform | State | Verified scope / remaining work | Evidence |
+|---|---|---|---|
+| macos | — | Only the coreai-verify command line tool runs the bundle; app integration is #449. | — |
+| ios | — | Native demo is not provided for this platform. | — |
+
+### Performance and quality
+
+| Metric | Result | Statistic / samples | Scope and evidence |
+|---|---|---|---|
+| Bundle / payload size | 16,064,815,496 B | single; n=1 | [E5](validation/jev27b/README.md#bundle) · The 13 files of the calibrated bundle, including the 16 GB asset. |
+| Prepared cache size | Not measured | — | The size of the specialization cache entry is not exposed by the command line tool. |
+| First load, including specialization | 27.6991793 s | median; n=3 | [E4](validation/jev27b/README.md#performance) · New process with the specialization cache entry deleted (--clear-cache); bundle check, tokenizer, head and backbone. File caches not flushed. |
+| Load from prepared cache | 9.42181062 s | median; n=3 | [E4](validation/jev27b/README.md#performance) · New process with the specialization cache entry present; same parts as the first load. |
+| Request / pipeline completion time | 0.598414292 s | median; n=3 | [E4](validation/jev27b/README.md#performance) · P row of exactly 100 tokens; TypedDecisionModel.decide from call to return; lengths interleaved in one process after one warmup each. The median row ran under moderate thermal pressure. |
+| Request / pipeline completion time | 2.27002092 s | median; n=3 | [E4](validation/jev27b/README.md#performance) · P row of exactly 500 tokens; TypedDecisionModel.decide from call to return; lengths interleaved in one process after one warmup each. |
+| Request / pipeline completion time | 8.91910646 s | median; n=3 | [E4](validation/jev27b/README.md#performance) · P row of exactly 2,000 tokens; TypedDecisionModel.decide from call to return; lengths interleaved in one process after one warmup each. |
+| Request / pipeline completion time | 37.495032 s | median; n=3 | [E4](validation/jev27b/README.md#performance) · P row of exactly 8,192 tokens; TypedDecisionModel.decide from call to return; lengths interleaved in one process after one warmup each. The last seconds of the median row ran under moderate thermal pressure. |
+| Peak RSS | 32,343,687,168 B | single; n=1 | [E4](validation/jev27b/README.md#performance) · /usr/bin/time -l of the latency process, lifetime maximum including the load; not added to the footprint. |
+| Peak physical footprint | 21,565,667,056 B | single; n=1 | [E4](validation/jev27b/README.md#performance) · /usr/bin/time -l of the latency process (peak memory footprint). |
+| Resident memory during inference | 17,290,887,168 B | max; n=1 | [E4](validation/jev27b/README.md#performance) · Largest RSS sampled every 100 ms during the measured 8,192-token rows (--sample-memory). |
+| Memory after release minus baseline | Not measured | — | The command line process never releases the model before it exits, so no after-release baseline exists. |
+| Task success fraction | 0.866666667 ratio | mean; n=300 | [E2](validation/jev27b/README.md#quality) · Stage 3 choice rows of Q whose top option is the teacher top (agreement with the teacher distribution, not real-world accuracy); stage 1' 0.8733. |
+| Reference error (definition in evidence) | 0.00654150054 error | max; n=301 | [E1](validation/jev27b/README.md#fidelity) · Largest probability difference of F at temperature 1 between Core AI and the float32 PyTorch run of the same quantized weights. |
+| Stop acknowledgement time | 9.14671854 s | median; n=3 | [E4](validation/jev27b/README.md#performance) · 2,000-token request cancelled after the test backbone reported its forward call; the backbone does not pass the cancellation on, so this is the rest of the run. Heavy thermal pressure. |
+| Reused-document request time | Not measured | — | Reusing the state of a document between questions is not implemented for typed decisions. |
+
+### Verification coverage
+
+| Check | State | Scope / remaining work | Evidence |
+|---|---|---|---|
+| Conversion / reference fidelity | Passed (stated scope) | Every band of F within a largest difference of 0.03 and a mean of 0.01 at temperature 1 (largest 0.0065); no top-1 change. | [E1](validation/jev27b/README.md#fidelity) |
+| Task quality | Passed (stated scope) | Choice accuracy passes on its point estimate (-0.67 points, limit -2 points), but its 95% interval [-3.00, +1.67] contains the limit (n = 300). noul Brier +0.00024, score normalized MAE +0.00051. Agreement with the teacher distribution, not real-world accuracy. | [E2](validation/jev27b/README.md#quality) |
+| Repeated use / resource release | Not measured | Two identical runs and 5,400 consecutive rows exist, but releasing and reloading the model was not verified. | — |
+| Stop / retry / recovery | Passed (stated scope) | Three requests cancelled during the forward run ended with CancellationError when the run returned, and a request cancelled at the forward checkpoint ended before the run. The test backbone does not pass the cancellation on; whether a Core AI run itself stops was not measured. | [E4](validation/jev27b/README.md#performance) |
+
+### Evidence and conditions
+
+| Evidence | Date / record / route level | Device / OS / tools | Workload and recorded conditions |
+|---|---|---|---|
+| [E1](validation/jev27b/README.md#fidelity) | 2026-11-03 / legacy / diagnostic | Mac16,6 (Apple M4 Max), 128 GiB RAM / macOS 27.0 (26A428) / Xcode 27.0 (27A266a), Apple Swift 6.4 (swiftlang-6.4.0.34.1) | F: 302 rows (301 forwarded, one above 8,192 tokens rejected) at temperature 1 against the float32 PyTorch run of the same quantized weights, per input band. · variant=uint4 backbone (gdn-fp32) / float32 head; backend=Core AI; GPU preferred; expectFrequentReshapes true; route=coreai-verify typed-decide (recipe step typed_decide_f); source_revision=14b425269ed24452e0a5ad5a8f3e51d139647a88; artifact_revision=26a11dca07a265feca4970dccdf2ebabaa005730132035e9df37b207cd26051e; code_revision=c626c9a27f448961cc9d84addba31ce74573e183; batch_size=1; concurrency=1; power=AC power; unrecorded: warmups, thermal, plan_sha256 |
+| [E2](validation/jev27b/README.md#quality) | 2026-11-04 / legacy / diagnostic | Mac16,6 (Apple M4 Max), 128 GiB RAM / macOS 27.0 (26A428) / Xcode 27.0 (27A266a), Apple Swift 6.4 (swiftlang-6.4.0.34.1) | Q (900 rows), Cal (3,000) and H (1,500) against the teacher distribution; quantization and adaptation conditions fixed before measuring; temperatures refitted on Cal and selected on H'. Agreement with the teacher, not real-world correctness. · variant=uint4 backbone (gdn-fp32) / float32 head; backend=Core AI; GPU preferred; expectFrequentReshapes true; route=coreai-verify typed-decide (recipe steps typed_decide_q / cal / h); source_revision=14b425269ed24452e0a5ad5a8f3e51d139647a88; artifact_revision=26a11dca07a265feca4970dccdf2ebabaa005730132035e9df37b207cd26051e; code_revision=a35072f9dad0fa62a1f224319b849638088ef618; batch_size=1; concurrency=1; power=AC power; unrecorded: warmups, thermal, plan_sha256 |
+| [E3](validation/jev27b/README.md#japanese) | 2026-11-04 / legacy / diagnostic | Mac16,6 (Apple M4 Max), 128 GiB RAM / macOS 27.0 (26A428) / Xcode 27.0 (27A266a), Apple Swift 6.4 (swiftlang-6.4.0.34.1) | JGLUE J (200 rows per task, two prompt variants, stages 1' and 3). Measurement completed; no pass line, so passed means completed, not a criterion met. · variant=uint4 backbone (gdn-fp32) / float32 head; backend=Core AI; GPU preferred; expectFrequentReshapes true; route=coreai-verify typed-decide and PyTorch MPS bf16 (recipe steps typed_decide_j / reference_j); source_revision=14b425269ed24452e0a5ad5a8f3e51d139647a88; artifact_revision=a2b186a87a64d9e93a56f185a5ebc2a0613d00da7440eeb8c8c2229b64f6adf3; code_revision=b64eae58e9b4a8954b6b9270a109e6edd6bd22c8; batch_size=1; concurrency=1; power=AC power; unrecorded: warmups, thermal, plan_sha256 |
+| [E4](validation/jev27b/README.md#performance) | 2026-11-04 / standard / diagnostic | Mac16,6 (Apple M4 Max), 128 GiB RAM / macOS 27.0 (26A428) / Xcode 27.0 (27A266a), Apple Swift 6.4 (swiftlang-6.4.0.34.1) | P: four rows of exactly 100, 500, 2,000 and 8,192 tokens; latency one warmup and three measured rounds per length in one process; three fresh and three cached loads in new processes; /usr/bin/time -l and 100 ms sampling for memory; three cancellations of a 2,000-token request. Measured on battery power by the owner's decision (90% to 76%, no adapter, Low Power Mode off; plan revision 3 records this). Thermal pressure moderate to heavy in the third round and the cancellation test. · variant=uint4 backbone (gdn-fp32) / float32 head; backend=Core AI; GPU preferred; expectFrequentReshapes true; route=coreai-verify typed-decide; TypedDecisionInferenceTests for cancellation; source_revision=14b425269ed24452e0a5ad5a8f3e51d139647a88; artifact_revision=a2b186a87a64d9e93a56f185a5ebc2a0613d00da7440eeb8c8c2229b64f6adf3; code_revision=9d8fdf821470168c3d92276808cb9ff1f815d7de; batch_size=1; concurrency=1; warmups=1; power=Battery power, no AC adapter attached (pmset -g ac); 90% at start, Low Power Mode off (pmset -g powermode 0). Measured on battery by the owner's instruction on 2026-11-04 06:20 JST; thermal=pmset -g therm: no warning in 10 snapshots; thermalmonitord pressure moderate from 06:28:52 and heavy 06:29:08-06:32:08 (third round and the cancellation test) |
+| [E5](validation/jev27b/README.md#bundle) | 2026-11-04 / standard / conversion | Mac16,6 (Apple M4 Max), 128 GiB RAM / macOS 27.0 (26A428) / Xcode 27.0 (27A266a), Apple Swift 6.4 (swiftlang-6.4.0.34.1) | File sizes of the calibrated bundle, measured under the performance plan; SHA256SUMS and decision.json checked. · variant=uint4 backbone (gdn-fp32) / float32 head; backend=Core AI; GPU preferred; expectFrequentReshapes true; route=recipe step calibrate (calibrated copy of the variant bundle); source_revision=14b425269ed24452e0a5ad5a8f3e51d139647a88; artifact_revision=a2b186a87a64d9e93a56f185a5ebc2a0613d00da7440eeb8c8c2229b64f6adf3; code_revision=9d8fdf821470168c3d92276808cb9ff1f815d7de; batch_size=1; concurrency=1; warmups=1; power=Battery power, no AC adapter attached (pmset -g ac); 90% at start, Low Power Mode off (pmset -g powermode 0). Measured on battery by the owner's instruction on 2026-11-04 06:20 JST; thermal=pmset -g therm: no warning in 10 snapshots; thermalmonitord pressure moderate from 06:28:52 and heavy 06:29:08-06:32:08 (third round and the cancellation test) |
+
+### Setup, limitations and progress
+
+- [Conversion recipe](../Tools/Conversion/recipes/jev27b/README.md)
+
+- [Validation records](validation/jev27b/README.md)
+
+- [Japanese (JGLUE), no pass line](jev27b.md#japanese-jglue)
+<!-- model-report:end -->
+
+## Quick start
+
+1. Build the bundle with the recipe. Place the pinned inputs under `.local/conversion`, run setup, build and copy the
+   `coreai-verify` executable, and run the recipe ([recipe README](../Tools/Conversion/recipes/jev27b/README.md)). The
+   `calibrate` step writes the calibrated bundle `jev27b_s1_gdnfp32_qwen3_5_cfg_dynamic` into its output folder. Check a
+   copy from inside its folder with `shasum -a 256 -c SHA256SUMS`, and from the repository root with
+   `python3 -m Tools.Conversion.adapters.jev27b.decision <bundle>/decision.json --check-files`.
+2. Answer typed questions with the command line tool. Running the model is a heavy job: hold the shared machine lock
+   (`CLAUDE.md`).
+
+   ~~~sh
+   swift build -c release --package-path Tools/Verify --product coreai-verify
+   Tools/Verify/.build/release/coreai-verify typed-decide --bundle <bundle> --input in.json --output out.json
+   ~~~
+
+   `in.json` holds the rows to answer, for example the refund example of the model card:
+
+   ~~~json
+   {"rows": [{"id": "refund", "kind": "noul",
+              "state": "Customer says the parcel arrived damaged and wants their money back.",
+              "question": "Is the customer asking for a refund?", "options": ["false", "true"]}]}
+   ~~~
+
+   `out.json` holds, for every row, the token count, the 24 head logits, the probabilities at the bundle temperatures
+   and at temperature 1, the top option and the time of the decision ([Running on Mac](#running-on-mac)).
+
+## Recorded result
+
+The numbers come from the recipe runs and the performance measurement recorded in
+[docs/validation/jev27b](validation/jev27b/README.md). Quality and calibration measure agreement with the teacher
+distribution of the corpus (output distributions of Jev 1.13), not real-world correctness.
+
+- **Fidelity** (fixed set F, 302 rows; 301 forwarded and one above 8,192 tokens rejected): at temperature 1, the
+  Core AI output differs from the float32 PyTorch run of the same quantized weights by at most 0.0065 and on average
+  0.0011, within 0.03 and 0.01 in every input band up to 8,192 tokens, with no change of the top option. Details:
+  [Running on Mac](#running-on-mac).
+- **Quantization and adaptation** (Q, 900 rows): stage 3 against stage 1' at temperature 1 passes the three conditions
+  fixed before measuring: choice accuracy -0.67 points (limit -2), noul Brier +0.00024 (limit +0.01) and score MAE / 5
+  +0.00051 (limit +0.02). The choice accuracy passes on its point estimate, while its 95% interval [-3.00, +1.67]
+  contains the limit (n = 300, two rows of difference). The adaptation keeps at least 80% of its bf16 gain at 4 bits
+  in all four metrics. Stage 3: KL 0.0202, top-1 agreement 0.903, choice accuracy 86.67% (stage 1' 87.33%), noul AUROC
+  0.993. Details: [Quality and calibration](#quality-and-calibration).
+- **Calibration**: the temperatures refitted on Cal from the stage 3 logits are adopted for all three kinds (noul
+  1.0056266, choice 1.0053791, score 1.010558), because neither the NLL nor the Brier score on the held-out H' is worse
+  than at the card temperatures. The fidelity of F at these temperatures still passes.
+- **Japanese** (JGLUE J, 200 rows per task, no pass line): at stage 3 with the adopted prompt variant, JNLI choice
+  accuracy 0.855 (`en`), JNLI noul accuracy 0.920 and AUROC 0.978 (`en`), JCommonsenseQA accuracy 0.960 (`ja`), and
+  JSTS MAE 0.529, Pearson 0.859 and Spearman 0.792 (`en`). Details: [Japanese (JGLUE)](#japanese-jglue).
+- **Performance** (medians of three measured runs; one warmup of each length before the latency rounds): one decision
+  takes 0.60 s at 100 tokens, 2.27 s at 500, 8.92 s at 2,000 and 37.50 s at 8,192; loading takes 27.70 s with a fresh
+  specialization and 9.42 s from the cache; the latency process peaks at 32.3 GB RSS and 21.6 GB physical footprint
+  and keeps about 17.3 GB resident during 8,192-token rows; a request cancelled during its 2,000-token run through the
+  test backbone ends 9.15 s later, when the run returns. Measured on battery power by the owner's decision; the third
+  round and the cancellation test ran under moderate to heavy thermal pressure. Details: [Performance](#performance).
+
+## Verified scope and limits
+
+- The merged checkpoint did not pass its output check: stage 1 (the unmerged adapter) and stage 1' (the merged
+  checkpoint) differ by up to 0.038 against the limit 0.01. The owner decided to record this and continue with the
+  merged checkpoint as a limited exploration; the limit was not changed.
+- The bundle is the variant with a float32 gated delta update (`export_gdnfp32`); its quantized weights are identical to
+  those of the first bundle. The first bundle exceeded the fidelity limits above 512 tokens (largest difference 0.138 in
+  the 4,097 to 8,192 band); the variant stays within them in every band.
+- The quality conditions compare stage 3 with stage 1' and the adapted stages with the base stages on fixed sets drawn
+  from the distillation corpus. They are agreement with the teacher, not accuracy against human labels.
+- The adopted temperatures were refitted on Cal and selected on H' against the teacher distribution, so the shipping
+  probabilities are calibrated to the teacher, not to real-world correctness.
+- The Japanese results have no pass line and are not a claim of Japanese quality or of calibration. The prompt variant
+  was adopted on a separate set before J was run.
+- Inputs up to 8,192 tokens (the whole rendered template) are accepted; longer rows are rejected without a forward
+  pass. The fixed sets cover the bands up to 512, 513 to 2,048, 2,049 to 4,096 and 4,097 to 8,192 tokens, and the
+  performance rows have exactly 100, 500, 2,000 and 8,192 tokens.
+- A request cancelled during its forward run keeps the model busy until the run returns and then ends with
+  `CancellationError`; a request cancelled before the run ends at once. The cancellation test runs the forward through
+  a test backbone that does not pass the cancellation on, so whether a Core AI run itself stops on a cancellation was
+  not measured.
+- Not verified: iOS, integration into the app (#449), Macs with less memory, releasing and reloading the model in one
+  process, and the reuse of a document between questions.
+
+## Input and files
+
+The calibrated bundle has 13 files, 16,064,815,496 bytes in total. Its model version is the SHA-256 of `decision.json`:
+`a2b186a87a64d9e93a56f185a5ebc2a0613d00da7440eeb8c8c2229b64f6adf3`. The bundle layout, the contract of `decision.json`,
+the Swift types and the command line tool are described below.
+
+### Bundle layout
 
 ```text
 jev27b_s1_qwen3_5_cfg_dynamic/
@@ -36,7 +190,7 @@ jev27b_s1_qwen3_5_cfg_dynamic/
 - `head.safetensors` and the tokenizer files are byte-for-byte copies of the files distributed with JEV-27B. The
   tokenizer is never saved again.
 
-### Variant with a float32 gated delta update
+#### Variant with a float32 gated delta update
 
 The recipe also exports `jev27b_s1_gdnfp32_qwen3_5_cfg_dynamic` (step `export_gdnfp32`), and the Core AI steps run on
 this bundle. It has the same layout, states and outputs. In each of the 48 linear-attention layers, the six inputs of
@@ -63,7 +217,7 @@ python3 -m Tools.Conversion.adapters.jev27b.decision <bundle>/decision.json --ch
 The second command runs from the repository root, needs no third-party package, and checks the schema below and the
 size and SHA-256 of every listed file.
 
-## decision.json (typed-decision-v1)
+### decision.json (typed-decision-v1)
 
 | Field | Content |
 |---|---|
@@ -90,34 +244,7 @@ run `main` once from zero states, read the hidden state of the last position (th
 `z = proj.weight @ h + proj.bias` in float32, take the slot range of the kind, and apply a softmax to `z / T` over the
 options of the question. Temperature 1 gives the uncalibrated probabilities; `per_kind` gives the shipping ones.
 
-## Reference stages
-
-| Stage | Model | Precision | Where |
-|---|---|---|---|
-| 0 | Distributed backbone with the decision head, adapter disabled | bfloat16 | `reference` (F), `reference_q` (Q) |
-| 0q | Stage 0 quantized with the export recipe, computed in float32 | float32 | `probe_base` |
-| 1 | Backbone with the unmerged LoRA adapter (PEFT) | bfloat16 | `reference` (F), `reference_q` (Q) |
-| 1' | Merged checkpoint | bfloat16 | `reference_merged` (F), `reference_merged_q` (Q) |
-| 2 | Merged checkpoint quantized with the export recipe, computed in float32 | float32 | `probe_merged` |
-| 3 | Core AI asset of the float32 gated delta update variant, run from Swift (`TypedDecisionModel`) | asset | `typed_decide_f` (F), `typed_decide_q`, `typed_decide_cal`, `typed_decide_h` |
-
-Stages 2 and 0q are built in their own processes through the exporter's own loading and quantization path. Every tensor
-of the quantized model (quantized data, scales, offsets and unquantized weights) is hashed before any float32 cast.
-Stage 2 must reproduce the hashes recorded during the export; stage 0q has no exported counterpart and keeps its own
-hash record. The quantized models then run in float32 with float32 zero states; the key and value caches hold
-max(T, 2048) positions for an input of T tokens.
-
-`verify_quantization` writes `reference_q.json`: one row per input of F (stages 0, 1, 1', 2 and 0q) and Q (stages 2 and
-0q) with `set` (`F` or `Q`), `id`, `kind`, `options`, `band`, `row_sha256`, `text_sha256`, `token_count`, `tokens`,
-`rejected`, and for each stage `logits<stage>` (24 values before the temperature), `p<stage>` (temperature 1),
-`p<stage>_T` (shipping temperature) and `elapsed<stage>_s`, where `<stage>` is `0`, `1`, `1m` (stage 1'), `2` or `0q`; its header gives the device and dtype of each stage (`stages`). Rows longer than
-8,192 tokens are rejected without a forward pass. Hidden states
-of F are kept in `hidden2.safetensors` and `hidden0q.safetensors` (`hidden` [302, 5120] float32 in the order of F,
-`mask` [302] uint8 for rows with a forward pass). `quantization.json` (`typed-decision-quantization/1`) records the
-differences of stage 2 from stage 1' and of stage 0q from stage 0. Its `passed` covers hash agreement, complete rows
-and finite probabilities only; no numeric threshold is applied at this step.
-
-## Swift contract
+### Swift contract
 
 `CoreAIBackend` opens the bundle, renders the template and applies the head without loading the Core AI asset. These
 types are separate from the Clef-Flash decision types.
@@ -165,7 +292,7 @@ its token IDs differ from those of the Python tokenizer where a pattern boundary
 examples are consecutive CRLF line breaks and Hindi and Thai words with combining marks. The fixtures contain no such
 text.
 
-## Running on Mac
+### Running on Mac
 
 `TypedDecisionModel` (an actor in `CoreAIBackend`) runs the bundle on Core AI. These types are also separate from the
 Clef-Flash decision types; `DecisionRuntime` and `DecisionModel` are unchanged.
@@ -234,7 +361,38 @@ COREAI_TYPED_DECISION_BUNDLE=/path/to/jev27b_s1_gdnfp32_qwen3_5_cfg_dynamic swif
   --filter TypedDecisionInferenceTests
 ~~~
 
-## Quality and calibration
+## Evaluation details
+
+The stages, the fixed definitions and the full tables of every check.
+
+### Reference stages
+
+| Stage | Model | Precision | Where |
+|---|---|---|---|
+| 0 | Distributed backbone with the decision head, adapter disabled | bfloat16 | `reference` (F), `reference_q` (Q) |
+| 0q | Stage 0 quantized with the export recipe, computed in float32 | float32 | `probe_base` |
+| 1 | Backbone with the unmerged LoRA adapter (PEFT) | bfloat16 | `reference` (F), `reference_q` (Q) |
+| 1' | Merged checkpoint | bfloat16 | `reference_merged` (F), `reference_merged_q` (Q) |
+| 2 | Merged checkpoint quantized with the export recipe, computed in float32 | float32 | `probe_merged` |
+| 3 | Core AI asset of the float32 gated delta update variant, run from Swift (`TypedDecisionModel`) | asset | `typed_decide_f` (F), `typed_decide_q`, `typed_decide_cal`, `typed_decide_h` |
+
+Stages 2 and 0q are built in their own processes through the exporter's own loading and quantization path. Every tensor
+of the quantized model (quantized data, scales, offsets and unquantized weights) is hashed before any float32 cast.
+Stage 2 must reproduce the hashes recorded during the export; stage 0q has no exported counterpart and keeps its own
+hash record. The quantized models then run in float32 with float32 zero states; the key and value caches hold
+max(T, 2048) positions for an input of T tokens.
+
+`verify_quantization` writes `reference_q.json`: one row per input of F (stages 0, 1, 1', 2 and 0q) and Q (stages 2 and
+0q) with `set` (`F` or `Q`), `id`, `kind`, `options`, `band`, `row_sha256`, `text_sha256`, `token_count`, `tokens`,
+`rejected`, and for each stage `logits<stage>` (24 values before the temperature), `p<stage>` (temperature 1),
+`p<stage>_T` (shipping temperature) and `elapsed<stage>_s`, where `<stage>` is `0`, `1`, `1m` (stage 1'), `2` or `0q`; its header gives the device and dtype of each stage (`stages`). Rows longer than
+8,192 tokens are rejected without a forward pass. Hidden states
+of F are kept in `hidden2.safetensors` and `hidden0q.safetensors` (`hidden` [302, 5120] float32 in the order of F,
+`mask` [302] uint8 for rows with a forward pass). `quantization.json` (`typed-decision-quantization/1`) records the
+differences of stage 2 from stage 1' and of stage 0q from stage 0. Its `passed` covers hash agreement, complete rows
+and finite probabilities only; no numeric threshold is applied at this step.
+
+### Quality and calibration
 
 The recipe measures stage 3 (the Core AI asset of the variant bundle) against the other stages on Q and refits the
 temperatures from stage 3 on Cal, with the conditions fixed before any measurement. Every number is agreement with the
@@ -346,7 +504,7 @@ At stage 3 the `elapsed_seconds` of the rows (from the call of `decide` to its r
 1,866.3 s for Cal and 919.6 s for H (about 180 tokens per second over all rows, median 0.48 s per row). Stages 1 and
 0 of Q took 679.4 s and 644.7 s and stage 1' took 628.9 s on MPS.
 
-### Calibrated bundle
+#### Calibrated bundle
 
 `calibrate` writes `jev27b_s1_gdnfp32_qwen3_5_cfg_dynamic/` into its own output as an APFS clone (`cp -c`) of the
 variant bundle and then checks that every file of the variant still matches its `SHA256SUMS` and that the copy holds
@@ -371,7 +529,7 @@ JEV_BUNDLE_DIR=/path/to/calibrated/jev27b_s1_gdnfp32_qwen3_5_cfg_dynamic swift t
   --filter TypedDecision
 ~~~
 
-## Japanese (JGLUE)
+### Japanese (JGLUE)
 
 The recipe also runs the Japanese set J (200 rows each of the JNLI, JCommonsenseQA and JSTS validation files of
 JGLUE v1.2.0) through stage 1' and stage 3 with two prompt variants, after fixing which variant to adopt on a separate
@@ -468,7 +626,7 @@ J at temperature 1 (200 rows per task; the last column is the adopted variant):
   (600 rows) and 953.0 s for J (2,200 rows), with medians of 0.464 and 0.436 s per row; the forward runs of stage 1'
   took 975.8 s for the 1,600 rows of J on MPS.
 
-## Performance
+### Performance
 
 The performance of the calibrated bundle is measured outside the recipe with the steps of
 [docs/benchmarking.ja.md](benchmarking.ja.md): a frozen plan, run records in JSONL and `python3 -m Tools.ModelReports
