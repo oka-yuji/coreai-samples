@@ -9,6 +9,16 @@ private let typedDecisionModel = Task {
     try await TypedDecisionModel.load(bundle: URL(filePath: typedDecisionBundle))
 }
 
+struct TypedDecisionDetachedBackbone: TypedDecisionBackbone {
+    let runtime: TypedDecisionRuntime
+    let entered: AsyncStream<Void>.Continuation
+
+    func forward(_ ids: [Int], capacity: Int) async throws -> [Float] {
+        entered.yield()
+        return try await Task { try await runtime.forward(ids, capacity: capacity) }.value
+    }
+}
+
 struct TypedDecisionInferenceRow: Decodable, CustomTestStringConvertible {
     private struct Document: Decodable { let rows: [TypedDecisionInferenceRow] }
 
@@ -123,14 +133,18 @@ struct TypedDecisionInferenceTests {
         }
     }
 
-    @Test("A request cancelled after its forward starts ends with CancellationError and the next row still matches")
+    static func longRequest(_ row: TypedDecisionInferenceRow) -> TypedDecisionRequest {
+        TypedDecisionRequest(
+            state: Array(repeating: row.state, count: 120).joined(separator: " "), question: row.question,
+            kind: row.kind, options: row.options)
+    }
+
+    @Test("A request cancelled at the forward checkpoint ends with CancellationError and the next row still matches")
     func cancellationLeavesTheNextRowIntact() async throws {
         let model = try await typedDecisionModel.value
         let row = try #require(try TypedDecisionInferenceRow.rows().first)
         let before = try await model.decide(row.request)
-        let long = TypedDecisionRequest(
-            state: Array(repeating: row.state, count: 120).joined(separator: " "), question: row.question,
-            kind: row.kind, options: row.options)
+        let long = Self.longRequest(row)
         let longTokens = try await model.tokenCount(for: long)
         let (started, continuation) = AsyncStream.makeStream(of: Void.self)
         await model.setForwardCheckpoint { continuation.yield() }
@@ -160,12 +174,46 @@ struct TypedDecisionInferenceTests {
         let uncancelled = try await model.decide(long)
         let uncancelledSeconds = (clock.now - uncancelledStart) / .seconds(1)
         #expect(Self.isDistribution(uncancelled.probabilitiesT1))
-        print("typed-cancel uncancelled tokens \(longTokens) seconds \(uncancelledSeconds)")
+        let phase = seconds < uncancelledSeconds / 2 ? "before the run" : "after the run"
+        print("typed-cancel uncancelled tokens \(longTokens) seconds \(uncancelledSeconds) caught \(phase)")
         try DecisionInferenceTests.writeMetrics(
             [
                 "id": row.id, "tokens": longTokens, "cancelledSeconds": seconds,
-                "uncancelledSeconds": uncancelledSeconds, "nextError": error,
+                "uncancelledSeconds": uncancelledSeconds, "nextError": error, "caught": phase,
             ], name: "typed-cancel")
+    }
+
+    @Test("A request cancelled while its forward runs keeps the model busy until the run returns, then ends cancelled")
+    func cancellationDuringTheRunWaitsForTheRun() async throws {
+        let model = try await typedDecisionModel.value
+        let bundle = model.bundle
+        let (runtime, _) = try await TypedDecisionRuntime.load(bundle: bundle)
+        let tokenizer = try await DecisionModel.loadTokenizer(bundle.tokenizerURL)
+        let (entered, continuation) = AsyncStream.makeStream(of: Void.self)
+        let detached = TypedDecisionModel(
+            bundle: bundle, encode: { tokenizer.encode(text: $0, addSpecialTokens: false) },
+            head: try TypedDecisionHead(url: bundle.headURL, width: bundle.hiddenSize),
+            backbone: TypedDecisionDetachedBackbone(runtime: runtime, entered: continuation))
+        let row = try #require(try TypedDecisionInferenceRow.rows().first)
+        var iterator = entered.makeAsyncIterator()
+        let before = try await detached.decide(row.request)
+        #expect(await iterator.next() != nil)
+        let clock = ContinuousClock()
+        let start = clock.now
+        let task = Task { try await detached.decide(Self.longRequest(row)) }
+        #expect(await iterator.next() != nil)
+        task.cancel()
+        await #expect(throws: TypedDecisionError.busy) { try await detached.decide(row.request) }
+        let result = await task.result
+        let seconds = (clock.now - start) / .seconds(1)
+        guard case .failure(let error) = result, error is CancellationError else {
+            Issue.record("Expected CancellationError after the run, got \(result)")
+            return
+        }
+        let after = try await detached.decide(row.request)
+        #expect(after.logits.map(\.bitPattern) == before.logits.map(\.bitPattern))
+        print("typed-cancel-run seconds \(seconds) next \(row.id) bit-identical")
+        try DecisionInferenceTests.writeMetrics(["id": row.id, "cancelledSeconds": seconds], name: "typed-cancel-run")
     }
 
     @Test("A row run with the rounded capacity and with 8,192 positions records the probability difference")
