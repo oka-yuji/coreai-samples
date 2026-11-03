@@ -183,6 +183,7 @@ public struct ModelLibraryState: Equatable, Sendable {
     public internal(set) var pendingLoss: String?
     public internal(set) var stopRequestID: LibraryTicket?
     public internal(set) var failure: ModelLibraryFailure?
+    public internal(set) var usages: [String: ModelUsage] = [:]
     var nextID = 0
 
     public init(catalog: ModelCatalog, environment: LibraryEnvironment, owner: UUID) {

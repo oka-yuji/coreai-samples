@@ -15,6 +15,11 @@ public final class ModelLibraryRunner {
         weak var store: Store<ModelLibraryFeature>?
     }
 
+    private struct UsageKey: Hashable {
+        let owner: UUID
+        let identity: ModelArtifactIdentity
+    }
+
     private let resources: ModelLibraryResourceRunner
     private let registry: ModelDemoAdapterRegistry
     private let store: ManagedModelStore
@@ -24,6 +29,8 @@ public final class ModelLibraryRunner {
     private var stopping: [LibraryTicket: [CheckedContinuation<String?, Never>]] = [:]
     private var releasedThrough: [UUID: Int] = [:]
     private var libraries: [UUID: LibraryReference] = [:]
+    private var registered: [UUID: LibraryReference] = [:]
+    private var usages: [UsageKey: [ResourceLease]] = [:]
     private var resident: ModelDemoSession?
     private var bound: Set<LibraryTicket> = []
     private lazy var work = Store<DemoRuntimeWork>(initialState: DemoRuntimeWork.State()) { [weak self] job, _ in
@@ -45,20 +52,49 @@ public final class ModelLibraryRunner {
     }
 
     public func run(_ effect: ModelLibraryEffect, send: (ModelLibraryAction) -> Void) async {
-        if case .prepareDemo(let session) = effect {
+        switch effect {
+        case .prepareDemo(let session):
             await prepare(session)
-            return
-        }
-        guard case .stopDemo(let session, let ticket) = effect else {
+        case .acquireUsage(let identity, let ticket):
+            let resource = await acquireUsage(identity: identity, owner: ticket.owner)
+            send(.usageAcquired(identity.modelID, ticket, resource))
+        case .releaseUsage(let identity, let ticket):
+            await releaseUsage(identity: identity, owner: ticket.owner)
+        case .stopDemo(let session, let ticket):
+            retryAbandoned()
+            if let failure = await stop(session) {
+                send(.demoStopFailed(session.id, ticket, failure))
+            } else {
+                send(.demoStopped(session.id, ticket))
+            }
+        default:
             await resources.run(effect, send: send)
-            return
         }
-        retryAbandoned()
-        if let failure = await stop(session) {
-            send(.demoStopFailed(session.id, ticket, failure))
-        } else {
-            send(.demoStopped(session.id, ticket))
+    }
+
+    func register(_ library: Store<ModelLibraryFeature>) {
+        registered[library.state.owner] = LibraryReference(store: library)
+    }
+
+    func acquireUsage(identity: ModelArtifactIdentity, owner: UUID) async -> ValidatedModelResource? {
+        let lease = await store.lease(identity: identity, owner: owner)
+        let installed = await store.generation(of: identity) != nil
+        guard installed, !Task.isCancelled,
+            let installation = registered[owner]?.store?.state.installations[identity.artifactID],
+            installation.phase == .ready, let resource = installation.resource, resource.identity == identity
+        else {
+            await lease.release()
+            return nil
         }
+        usages[UsageKey(owner: owner, identity: identity), default: []].append(lease)
+        return resource
+    }
+
+    func releaseUsage(identity: ModelArtifactIdentity, owner: UUID) async {
+        let key = UsageKey(owner: owner, identity: identity)
+        guard let lease = usages[key]?.popLast() else { return }
+        if usages[key]?.isEmpty == true { usages[key] = nil }
+        await lease.release()
     }
 
     public func abandon(owner: UUID) {
@@ -138,7 +174,11 @@ public final class ModelLibraryRunner {
 
     func release(owner: UUID) async {
         libraries[owner] = nil
+        registered[owner] = nil
         releasedThrough[owner] = .max
+        let used = usages.filter { $0.key.owner == owner }
+        for key in used.keys { usages[key] = nil }
+        for lease in used.values.joined() { await lease.release() }
         for session in leases.values.map(\.session) where session.id.owner == owner {
             abandoned[session.id] = session
         }

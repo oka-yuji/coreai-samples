@@ -70,6 +70,26 @@
             availableSpace = ModelStorage.availableSpace()
         }
 
+        func use(_ model: DemoModel) { store?.send(.useRequested(model.libraryID)) }
+
+        func stopUsing(_ model: DemoModel) { store?.send(.useEnded(model.libraryID)) }
+
+        func isInUse(_ model: DemoModel) -> Bool { store?.state.usages[model.libraryID]?.isActive == true }
+
+        func resource(inUse model: DemoModel) -> ValidatedModelResource? {
+            guard let resource = store?.state.usages[model.libraryID]?.resource, resource == installed(model) else {
+                return nil
+            }
+            return resource
+        }
+
+        func installed(_ model: DemoModel) -> ValidatedModelResource? {
+            guard let state = store?.state, let artifact = state.selectedArtifact(for: model.libraryID) else {
+                return nil
+            }
+            return state.installations[artifact.id]?.resource
+        }
+
         func leave() { store?.send(.closeDemo) }
 
         func enter(_ phase: ScenePhase) {

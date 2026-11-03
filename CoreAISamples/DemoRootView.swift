@@ -208,6 +208,9 @@ struct DemoRootView: View {
         .onChange(of: navigator.selection) { old, new in
             if old == .ocr && new != .ocr { library.leave() }
         }
+        .onChange(of: library.installed(.irodori)?.directory) { old, new in
+            if old != nil, new != old { speech.send(.bundleUnavailable) }
+        }
         .onChange(of: scenePhase) { _, phase in library.enter(phase) }
         .onChange(of: scenePhase) { if scenePhase == .active { host.store.send(.library(.refresh)) } }
         .onChange(of: host.state.id) { host.restorePreferences() }

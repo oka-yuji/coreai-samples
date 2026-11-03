@@ -76,11 +76,12 @@ struct ConversationSidebar: View {
             Text(verbatim: model.title)
             Spacer(minLength: 4)
             if let store = library.store, let entry = store.state.catalog.model(model.libraryID) {
-                ModelInformationButton(store: store, model: entry)
+                ModelInformationButton(store: store, model: entry, inUse: library.isInUse(model))
                 if store.state.selectedArtifact(for: entry.id)?.sourceKind != nil {
-                    ModelAcquisitionControls(store: store, model: entry) {
-                        deletion = ModelDeletionRequest(model: entry, artifact: $0)
-                    }
+                    ModelAcquisitionControls(
+                        store: store, model: entry,
+                        requestDeletion: { deletion = ModelDeletionRequest(model: entry, artifact: $0) },
+                        deletionDisabled: library.isInUse(model))
                 }
             }
         }
@@ -102,6 +103,7 @@ struct ConversationSidebar: View {
 private struct ModelInformationButton: View {
     let store: Store<ModelLibraryFeature>
     let model: LibraryModel
+    let inUse: Bool
     @State private var showing = false
     @State private var message: Text?
     @Environment(\.locale) private var locale
@@ -135,7 +137,7 @@ private struct ModelInformationButton: View {
                         }
                     }
                     .help("Remove the copy this app prepared for the GPU. The next load prepares it again.")
-                    .disabled(store.state.session?.selection.modelID == model.id)
+                    .disabled(store.state.session?.selection.modelID == model.id || inUse)
                     if let message { message.font(.callout).foregroundStyle(.secondary) }
                 }
             }

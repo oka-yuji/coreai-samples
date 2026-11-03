@@ -92,6 +92,7 @@ public enum SpeechAction: Equatable, Sendable {
     case referencePrepared(Int, SpeechReferenceAudio)
     case microphoneDenied(Int)
     case referenceSelectionFailed(Int, String)
+    case bundleUnavailable
 }
 
 public enum SpeechEffect: Equatable, Sendable {
@@ -118,7 +119,7 @@ public enum SpeechFeature: Feature {
     public static func reduce(_ state: inout State, _ action: Action) -> [Command] {
         if !state.presented {
             switch action {
-            case .appeared, .stopped: break
+            case .appeared, .stopped, .bundleUnavailable: break
             default: return []
             }
         }
@@ -283,6 +284,14 @@ public enum SpeechFeature: Feature {
             state.phase = .playing
             state.message = nil
             return [.run(.playReference(state.session, reference), id: .operation)]
+        case .bundleUnavailable:
+            guard !state.managed else { return [] }
+            state.model = nil
+            state.lastPath = nil
+            state.audio = nil
+            state.message = nil
+            clearExport(&state)
+            return reduce(&state, .stop)
         }
         return []
     }

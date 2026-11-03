@@ -9,17 +9,19 @@ public struct ModelAcquisitionControls: View {
     let model: LibraryModel
     let requestDeletion: (ModelArtifact) -> Void
     var showsActionTitle = false
+    var deletionDisabled = false
     @State private var choosingBundle = false
     @State private var importArtifactID: String?
 
     public init(
         store: Store<ModelLibraryFeature>, model: LibraryModel, requestDeletion: @escaping (ModelArtifact) -> Void,
-        showsActionTitle: Bool = false
+        showsActionTitle: Bool = false, deletionDisabled: Bool = false
     ) {
         self.store = store
         self.model = model
         self.requestDeletion = requestDeletion
         self.showsActionTitle = showsActionTitle
+        self.deletionDisabled = deletionDisabled
     }
 
     public var body: some View {
@@ -99,7 +101,7 @@ public struct ModelAcquisitionControls: View {
                 .foregroundStyle(.secondary)
                 .accessibilityLabel(libraryText("Delete model"))
                 .accessibilityValue(Text(verbatim: model.name))
-                .disabled(store.state.session?.selection.modelID == model.id)
+                .disabled(store.state.session?.selection.modelID == model.id || deletionDisabled)
             case .downloading(let progress), .importing(let progress):
                 VStack(spacing: 3) {
                     if let fraction = progress?.fraction {
