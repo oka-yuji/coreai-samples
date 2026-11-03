@@ -60,7 +60,7 @@ Results below retain their original dates and workloads. Different rows may use 
 |---|---|---|---|
 | Conversion / reference fidelity | Passed (stated scope) | Every band of F within a largest difference of 0.03 and a mean of 0.01 at temperature 1 (largest 0.0065); no top-1 change. | [E1](validation/jev27b/README.md#fidelity) |
 | Task quality | Passed (stated scope) | Choice accuracy passes on its point estimate (-0.67 points, limit -2 points), but its 95% interval [-3.00, +1.67] contains the limit (n = 300). noul Brier +0.00024, score normalized MAE +0.00051. Agreement with the teacher distribution, not real-world accuracy. | [E2](validation/jev27b/README.md#quality) |
-| Repeated use / resource release | Not measured | The GPU test returns bit-identical logits for each row run twice in one process, and up to 3,000 consecutive rows ran in one process (Cal), but releasing and reloading the model was not verified. | — |
+| Repeated use / resource release | Not measured | Two runs of F with the variant bundle (fresh and cached specialization) gave identical logits for all 301 rows, the GPU test returns bit-identical logits for each of its ten rows (at most 512 tokens) run twice in one process, and up to 3,000 consecutive rows ran in one process (Cal). Releasing and reloading the model in one process was not verified. | — |
 | Stop / retry / recovery | Passed (stated scope) | Three requests cancelled during the forward run ended with CancellationError when the run returned, and a request cancelled at the forward checkpoint ended before the run. After both kinds of cancellation the next row returned logits bit-identical to the same row before the cancellation. The test backbone does not pass the cancellation on; whether a Core AI run itself stops was not measured. | [E4](validation/jev27b/README.md#performance) |
 
 ### Evidence and conditions
@@ -119,11 +119,11 @@ distribution of the corpus (output distributions of Jev 1.13), not real-world co
   0.0011, within 0.03 and 0.01 in every input band up to 8,192 tokens, with no change of the top option. Details:
   [`fidelity.json`](validation/jev27b/fidelity.json) (per band) and [Running on Mac](#running-on-mac).
 - **Quantization and adaptation** (Q, 900 rows): stage 3 against stage 1' ([Reference stages](#reference-stages)) at
-  temperature 1 passes the three conditions fixed before measuring: choice accuracy -0.67 points (limit -2), noul Brier +0.00024 (limit +0.01) and score MAE / 5
-  +0.00051 (limit +0.02). The choice accuracy passes on its point estimate, while its 95% interval [-3.00, +1.67]
-  contains the limit (n = 300, two rows of difference). The adaptation keeps at least 80% of its bf16 gain at 4 bits
-  in all four metrics. Stage 3: KL 0.0202, top-1 agreement 0.903, choice accuracy 86.67% (stage 1' 87.33%), noul AUROC
-  0.993. Details: [Quality and calibration](#quality-and-calibration).
+  temperature 1 passes the three conditions fixed before measuring: choice accuracy -0.67 points (limit -2), noul Brier
+  +0.00024 (limit +0.01) and score MAE / 5 +0.00051 (limit +0.02). The choice accuracy passes on its point estimate,
+  while its 95% interval [-3.00, +1.67] contains the limit (n = 300, two rows of difference). The adaptation keeps at
+  least 80% of its bf16 gain at 4 bits in all four metrics. Stage 3: KL 0.0202, top-1 agreement 0.903, choice accuracy
+  86.67% (stage 1' 87.33%), noul AUROC 0.993. Details: [Quality and calibration](#quality-and-calibration).
 - **Calibration**: the temperatures refitted on Cal from the stage 3 logits are adopted for all three kinds (noul
   1.0056266, choice 1.0053791, score 1.010558), because neither the NLL nor the Brier score on the held-out H' is worse
   than at the card temperatures. The fidelity of F at these temperatures still passes.
@@ -132,10 +132,11 @@ distribution of the corpus (output distributions of Jev 1.13), not real-world co
   JSTS MAE 0.529, Pearson 0.859 and Spearman 0.792 (`en`). Details: [Japanese (JGLUE)](#japanese-jglue).
 - **Performance** (medians of three measured runs; one warmup of each length before the latency rounds): one decision
   takes 0.60 s at 100 tokens, 2.27 s at 500, 8.92 s at 2,000 and 37.50 s at 8,192; loading takes 27.70 s with a fresh
-  specialization and 9.42 s from the cache; the latency process peaks at 32.3 GB RSS and 21.6 GB physical footprint
-  (not levelled off) and keeps about 17.3 GB resident during 8,192-token rows; a request cancelled during its 2,000-token run through the
-  test backbone ends 9.15 s later, when the run returns. Measured on battery power by the owner's decision; the third
-  round and the cancellation test ran under moderate to heavy thermal pressure. Details: [Performance](#performance).
+  specialization and 9.42 s from the cache; the latency process peaks at 32.3 GB RSS and 21.6 GB physical footprint (not
+  levelled off) and keeps about 17.3 GB resident during 8,192-token rows; a request cancelled during its 2,000-token run
+  through the test backbone ends 9.15 s later, when the run returns. Measured on battery power by the owner's decision;
+  the third round and the cancellation test ran under moderate to heavy thermal pressure. Details:
+  [Performance](#performance).
 
 ## Verified scope and limits
 
@@ -272,9 +273,9 @@ types are separate from the Clef-Flash decision types.
 `swift test --package-path CoreAISamplesKit --filter TypedDecision` runs the rendering, rejection, synthetic head,
 bundle and model tests; the model tests use a fake backbone. With `JEV_BUNDLE_DIR` set to the bundle folder, the tests
 also compare the token IDs of every fixture row with the bundled tokenizer, compare the bundled head with stage 1'
-(logits within 1e-4, probabilities within 1e-5) and open the bundle, which reads every listed file, including the 16 GB
-asset, for its SHA-256. None of these tests loads or runs the Core AI asset; `TypedDecisionInferenceTests` (below) does,
-only with `COREAI_TYPED_DECISION_BUNDLE`.
+([Reference stages](#reference-stages); logits within 1e-4, probabilities within 1e-5) and open the bundle, which reads
+every listed file, including the 16 GB asset, for its SHA-256. None of these tests loads or runs the Core AI asset;
+`TypedDecisionInferenceTests` (below) does, only with `COREAI_TYPED_DECISION_BUNDLE`.
 
 ~~~sh
 JEV_BUNDLE_DIR=/path/to/jev27b_s1_qwen3_5_cfg_dynamic swift test --package-path CoreAISamplesKit --filter TypedDecision
@@ -341,15 +342,15 @@ The recipe adds three steps after `verify_quantization`, still before `verify_me
 - `typed_decide_f` runs `coreai-verify typed-decide` on `input-F.json` with the variant bundle of `export_gdnfp32`
   and writes `swift-F.json`. The executable is the variable `verify`, which must be passed with `--set`
   ([recipe README](../Tools/Conversion/recipes/jev27b/README.md)).
-- `compare_f` scores `swift-F.json` against stage 2 in `reference_q.json` and writes `comparison.json`
-  (`typed-decision-fidelity/1`) and `report.md`. `passed` requires the rows of F in order with the reference token
-  IDs (by `tokens_sha256`) and a `tooManyTokens` rejection exactly for the rejected row, finite probabilities between
-  0 and 1 that sum to 1 within 1e-3, and at temperature 1, for every input band with rows, a largest
-  `e_j = max_i |p3_i - p2_i|` of at most 0.03 and a mean of at most 0.01. Bands without rows are listed as
-  unevaluated. Top-1 changes are reported with whether the new option is within 0.06 of the reference top; they are
-  not a criterion. The shipping-temperature statistics are recomputed from the 24 logits of both sides and reported
-  separately; `--temperatures <json>` (a `per_kind` object) scores them at other temperatures. The difference from
-  stage 1' is shown for reference only.
+- `compare_f` scores `swift-F.json` against stage 2 ([Reference stages](#reference-stages)) in `reference_q.json` and
+  writes `comparison.json` (`typed-decision-fidelity/1`) and `report.md`. `passed` requires the rows of F in order with
+  the reference token IDs (by `tokens_sha256`) and a `tooManyTokens` rejection exactly for the rejected row, finite
+  probabilities between 0 and 1 that sum to 1 within 1e-3, and at temperature 1, for every input band with rows, a
+  largest `e_j = max_i |p3_i - p2_i|` of at most 0.03 and a mean of at most 0.01. Bands without rows are listed as
+  unevaluated. Top-1 changes are reported with whether the new option is within 0.06 of the reference top; they are not
+  a criterion. The shipping-temperature statistics are recomputed from the 24 logits of both sides and reported
+  separately; `--temperatures <json>` (a `per_kind` object) scores them at other temperatures. The difference from stage
+  1' is shown for reference only.
 
 With `COREAI_TYPED_DECISION_BUNDLE` set to the absolute path of a bundle folder (the variant, as in the recipe, or
 the first bundle), `TypedDecisionInferenceTests` runs ten rows of F (the two card examples and the eight JGLUE rows of

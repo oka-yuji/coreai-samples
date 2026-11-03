@@ -32,10 +32,10 @@ JEV-27B は、状況についての型付きの質問に答えるモデルです
 | 特殊化キャッシュ容量 | 未計測 | — | 特殊化 cache の大きさはコマンドラインのツールから見えないので測っていない。 |
 | 初回ロード（特殊化を含む） | 27.6991793 s | median; n=3 | [E4](validation/jev27b/README.md#performance) · 特殊化 cache を消した新プロセス(--clear-cache)。bundle の検査・tokenizer・ヘッド・本体の合計。ファイルの cache は消していない。バッテリー駆動(計画の改訂 3)。 |
 | 特殊化済みキャッシュからのロード | 9.42181062 s | median; n=3 | [E4](validation/jev27b/README.md#performance) · 特殊化 cache がある新プロセス。初回と同じ部分の合計。バッテリー駆動(計画の改訂 3)。 |
-| 要求・パイプライン完了時間 | 0.598414292 s | median; n=3 | [E4](validation/jev27b/README.md#performance) · ちょうど 100 トークンの P の行。TypedDecisionModel.decide の呼び出しから復帰まで。1 プロセスで長さを交互に、各長さ warmup 1 回の後。各行の間 100 ms ごとにメモリを採取(--sample-memory)。中央値の行は熱の圧力 moderate の下。バッテリー駆動(計画の改訂 3)。 |
-| 要求・パイプライン完了時間 | 2.27002092 s | median; n=3 | [E4](validation/jev27b/README.md#performance) · ちょうど 500 トークンの P の行。TypedDecisionModel.decide の呼び出しから復帰まで。1 プロセスで長さを交互に、各長さ warmup 1 回の後。各行の間 100 ms ごとにメモリを採取(--sample-memory)。バッテリー駆動(計画の改訂 3)。 |
-| 要求・パイプライン完了時間 | 8.91910646 s | median; n=3 | [E4](validation/jev27b/README.md#performance) · ちょうど 2,000 トークンの P の行。TypedDecisionModel.decide の呼び出しから復帰まで。1 プロセスで長さを交互に、各長さ warmup 1 回の後。各行の間 100 ms ごとにメモリを採取(--sample-memory)。バッテリー駆動(計画の改訂 3)。 |
-| 要求・パイプライン完了時間 | 37.495032 s | median; n=3 | [E4](validation/jev27b/README.md#performance) · ちょうど 8,192 トークンの P の行。TypedDecisionModel.decide の呼び出しから復帰まで。1 プロセスで長さを交互に、各長さ warmup 1 回の後。各行の間 100 ms ごとにメモリを採取(--sample-memory)。中央値の行の最後の数秒は熱の圧力 moderate の下。バッテリー駆動(計画の改訂 3)。 |
+| 要求・パイプライン完了時間 | 0.598414292 s | median; n=3 | [E4](validation/jev27b/README.md#performance) · ちょうど 100 トークンの P の行。TypedDecisionModel.decide の呼び出しから復帰まで。1 プロセスで長さを交互に、各長さ warmup 1 回の後。各行の run 中に 100 ms ごとにメモリを採取(--sample-memory)。中央値の行は熱の圧力 moderate の下。バッテリー駆動(計画の改訂 3)。 |
+| 要求・パイプライン完了時間 | 2.27002092 s | median; n=3 | [E4](validation/jev27b/README.md#performance) · ちょうど 500 トークンの P の行。TypedDecisionModel.decide の呼び出しから復帰まで。1 プロセスで長さを交互に、各長さ warmup 1 回の後。各行の run 中に 100 ms ごとにメモリを採取(--sample-memory)。バッテリー駆動(計画の改訂 3)。 |
+| 要求・パイプライン完了時間 | 8.91910646 s | median; n=3 | [E4](validation/jev27b/README.md#performance) · ちょうど 2,000 トークンの P の行。TypedDecisionModel.decide の呼び出しから復帰まで。1 プロセスで長さを交互に、各長さ warmup 1 回の後。各行の run 中に 100 ms ごとにメモリを採取(--sample-memory)。バッテリー駆動(計画の改訂 3)。 |
+| 要求・パイプライン完了時間 | 37.495032 s | median; n=3 | [E4](validation/jev27b/README.md#performance) · ちょうど 8,192 トークンの P の行。TypedDecisionModel.decide の呼び出しから復帰まで。1 プロセスで長さを交互に、各長さ warmup 1 回の後。各行の run 中に 100 ms ごとにメモリを採取(--sample-memory)。中央値の行の最後の数秒は熱の圧力 moderate の下。バッテリー駆動(計画の改訂 3)。 |
 | ピークRSS | 32,343,687,168 B | single; n=1 | [E4](validation/jev27b/README.md#performance) · latency のプロセスの /usr/bin/time -l。読み込みを含む生涯の最大。footprint と足さない。バッテリー駆動(計画の改訂 3)。 |
 | ピークphysical footprint | 21,565,667,056 B | single; n=1 | [E4](validation/jev27b/README.md#performance) · latency のプロセスの /usr/bin/time -l(peak memory footprint)。上限ではない。長さを交互に流す 1 周ごとに 4.2〜4.8 GB 増え、頭打ちになっていない。バッテリー駆動(計画の改訂 3)。 |
 | 推論中の常駐メモリ | 17,290,887,168 B | max; n=1 | [E4](validation/jev27b/README.md#performance) · 計測した 8,192 トークンの行の run 中に 100 ms ごとに採った RSS の最大(--sample-memory)。バッテリー駆動(計画の改訂 3)。 |
@@ -51,7 +51,7 @@ JEV-27B は、状況についての型付きの質問に答えるモデルです
 |---|---|---|---|
 | 変換・参照との一致 | 合格（記載範囲） | 温度 1 の F のすべての帯で最大 0.03・平均 0.01 の内側(最大 0.0065)。top の変化なし。 | [E1](validation/jev27b/README.md#fidelity) |
 | 用途の品質 | 合格（記載範囲） | choice の正答率は点推定 −0.67 pt で閾値 −2 pt を満たすが、95% 区間 [−3.00, +1.67] は閾値をまたぐ(n = 300)。noul の Brier +0.00024、score の正規化 MAE +0.00051。教師分布への一致で、現実の正答率ではない。 | [E2](validation/jev27b/README.md#quality) |
-| 連続利用・資源解放 | 未計測 | GPU の試験で同じ行を 1 プロセスで 2 回流すと logit がビット単位で同じで、1 プロセスで最大 3,000 行(Cal)を続けて流したが、解放と再読み込みは確かめていない。 | — |
+| 連続利用・資源解放 | 未計測 | 変種の bundle で F を 2 回(特殊化 fresh と cached)流すと 301 行すべてで logit が同じで、GPU の試験は 10 行(512 トークン以下)を 1 プロセスで 2 回ずつ流してビット単位で同じ logit を返し、1 プロセスで最大 3,000 行(Cal)を続けて流した。同じプロセスでの解放と再読み込みは確かめていない。 | — |
 | 停止・再試行・回復 | 合格（記載範囲） | forward の run 中に取り消した 3 回の依頼は run が返った時点で CancellationError で終わり、checkpoint での取消は run の前に終わった。どちらの取消の後も、次の行の logit は取消の前の同じ行とビット単位で同じだった。試験用 backbone は取消を伝えないので、Core AI の run 自体が止まるかは測っていない。 | [E4](validation/jev27b/README.md#performance) |
 
 ### 根拠と測定条件

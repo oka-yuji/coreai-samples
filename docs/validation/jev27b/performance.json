@@ -833,6 +833,7 @@
   },
   "schema": "jev27b-validation-performance/1",
   "sources": {
+    "cancel-test.log": "e56ccad015c0dd2a60bc786cc4a56a8307362db623a1afa1e4f1175d66ed4412",
     "cancel/typed-cancel-run.json": "df787670a7b5216d4cd81b5317127fd1782d0f57cc7482d1631fc793ec3585c6",
     "cancel/typed-cancel.json": "fcef820f20f72948d0e1240471b132c951f9d14ba7e61de204d7487c4996f13a",
     "cancel/typed-parity.json": "919c64e0100a19d2dd09a082ee71fb30e40a83c4940ee9617f68e57b0b0d1314",
@@ -847,5 +848,18 @@
     "load-fresh-3.json": "f83a32519a57346647b809c2b69afd413209a481be6d5f7de6c6b16099f6b83b",
     "records-2/bundle.jsonl": "e87c9c9e432b077dba79355e2bc5858d15ff63c68cb6afa0ecab71dd9c34c5e8",
     "records-2/memory.jsonl": "339d98ea8e36830b0c957dea2d58f812ae06eea3c2374c85e12c1c1f60b7212e"
+  },
+  "tests": {
+    "build": "debug build of the test target (swift test without -c release)",
+    "failed": 0,
+    "passed": [
+      "Ten rows of F match stage 2 at temperature 1 within the band limits with the reference token IDs",
+      "Running each row twice in a row gives bit-identical logits and probabilities",
+      "A request cancelled at the forward checkpoint ends with CancellationError and the next row still matches",
+      "A request cancelled while its forward runs keeps the model busy until the run returns, then ends cancelled",
+      "A row run with the rounded capacity and with 8,192 positions records the probability difference"
+    ],
+    "source": "cancel-test.log",
+    "suite": "TypedDecisionInferenceTests"
   }
 }

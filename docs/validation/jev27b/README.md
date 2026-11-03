@@ -18,8 +18,8 @@ The recipe runs record neither the power source nor a git revision.
   12:15 on 2026-11-03 during the `probe_base` step (stage 0q). The battery charge also fell during the long PyTorch
   steps of that day while the adapter was attached. The log is written at events, not continuously.
 - **Code revision:** `code_revision` is the commit a run started from when that commit is still published. Otherwise
-  it is the first published commit whose `Tools/Conversion` and `Tools/Verify` files used by the run are unchanged
-  (`git diff`). The commit of each run is named below.
+  it is a published commit in which the `Tools/Conversion` files used by the run are unchanged (`git diff`). The
+  commit of each run is named below; the command line tool is the next item.
 - **Evaluation CLI:** the recipe steps ran the evaluation build of `coreai-verify`, made at 22:01 on 2026-11-03, a
   minute after commit 5b4e1c6 (rebased as b6f1e0d in #474 with the same `Tools/Verify` sources). Its outputs write
   `arm64` as the machine, so it predates e247258, which changed only that name and two checks made before the rows
@@ -37,7 +37,7 @@ largest and mean difference and the top-1 changes.
 
 No measurement plan was fixed before this run in the form of the common protocol, so the record marks it `legacy`.
 The run started from commit eb8e744, which the squash merge of #476 replaced. The record's `code_revision` is that
-merge, c626c9a, whose files used by the run are unchanged.
+merge, c626c9a, in which the `Tools/Conversion` files used by the run are unchanged.
 
 ## Quality
 
@@ -97,16 +97,22 @@ seconds of the third 2,000-token row. So the third round and the cancellation te
 round) ran at moderate pressure.
 
 The cancellation test runs the forward through a test backbone that does not pass the cancellation on, so `cancel_s`
-is the rest of the run by construction.
+is the rest of the run by construction. That the next row is bit-identical after each kind of cancellation is an
+assertion of the five passing GPU tests listed in `tests`, not a recorded number.
 
 The common protocol requires the conditions to be recorded and the plan and revisions to be fixed. It does not
-require a particular power source. This plan named the battery power and the builds before the measurement, so the
-record keeps this evidence as `standard`.
+require a particular power source. This plan named the battery power and the debug build of the cancellation test
+before the measurement, so the record keeps this evidence as `standard`. The debug build does not inflate
+`cancel_s`: the interval is the rest of the Core AI run, the head is not computed after a cancellation, and the same
+request without cancellation took 8.72 s in that build, against 8.91 to 9.08 s for the three measured 2,000-token
+rows of the release command line tool. The condition on other load rests only on `pgrep` finding no other model
+process.
 
 ## Bundle
 
 The calibrated bundle written by the `calibrate` step of run `20261103T175311-463e881b`: 13 files, 16,064,815,496
 bytes in total, `decision.json` SHA-256 `a2b186a87a64d9e93a56f185a5ebc2a0613d00da7440eeb8c8c2229b64f6adf3`, asset
-`965396ce46af30aca1e65df8fe2e0fa4639be120b8bb18a7edeefc5dbbc86de0`. `performance.py records` counted its size with the
-code of commit e879c67 after plan revision 3 was frozen (`bundle` in `performance.json`). `shasum -a 256 -c SHA256SUMS`
-and `decision.py --check-files` pass on it (run again on 2026-11-04).
+`965396ce46af30aca1e65df8fe2e0fa4639be120b8bb18a7edeefc5dbbc86de0`. `performance.py records` counted its size at 07:12,
+after plan revision 3 was frozen, with the working tree that was committed as e879c67 at 07:13 (`bundle` in
+`performance.json`). `shasum -a 256 -c SHA256SUMS` and `decision.py --check-files` pass on it (run again at 08:29 on
+2026-11-04; the log stays with the local outputs).

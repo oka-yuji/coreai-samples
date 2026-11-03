@@ -270,7 +270,7 @@
       },
       "note": {
         "en": "P row of exactly 100 tokens; TypedDecisionModel.decide from call to return; lengths interleaved in one process after one warmup each; memory sampled every 100 ms during each row (--sample-memory). The median row ran under moderate thermal pressure. On battery power (plan revision 3).",
-        "ja": "ちょうど 100 トークンの P の行。TypedDecisionModel.decide の呼び出しから復帰まで。1 プロセスで長さを交互に、各長さ warmup 1 回の後。各行の間 100 ms ごとにメモリを採取(--sample-memory)。中央値の行は熱の圧力 moderate の下。バッテリー駆動(計画の改訂 3)。"
+        "ja": "ちょうど 100 トークンの P の行。TypedDecisionModel.decide の呼び出しから復帰まで。1 プロセスで長さを交互に、各長さ warmup 1 回の後。各行の run 中に 100 ms ごとにメモリを採取(--sample-memory)。中央値の行は熱の圧力 moderate の下。バッテリー駆動(計画の改訂 3)。"
       }
     },
     {
@@ -286,7 +286,7 @@
       },
       "note": {
         "en": "P row of exactly 500 tokens; TypedDecisionModel.decide from call to return; lengths interleaved in one process after one warmup each; memory sampled every 100 ms during each row (--sample-memory). On battery power (plan revision 3).",
-        "ja": "ちょうど 500 トークンの P の行。TypedDecisionModel.decide の呼び出しから復帰まで。1 プロセスで長さを交互に、各長さ warmup 1 回の後。各行の間 100 ms ごとにメモリを採取(--sample-memory)。バッテリー駆動(計画の改訂 3)。"
+        "ja": "ちょうど 500 トークンの P の行。TypedDecisionModel.decide の呼び出しから復帰まで。1 プロセスで長さを交互に、各長さ warmup 1 回の後。各行の run 中に 100 ms ごとにメモリを採取(--sample-memory)。バッテリー駆動(計画の改訂 3)。"
       }
     },
     {
@@ -302,7 +302,7 @@
       },
       "note": {
         "en": "P row of exactly 2,000 tokens; TypedDecisionModel.decide from call to return; lengths interleaved in one process after one warmup each; memory sampled every 100 ms during each row (--sample-memory). On battery power (plan revision 3).",
-        "ja": "ちょうど 2,000 トークンの P の行。TypedDecisionModel.decide の呼び出しから復帰まで。1 プロセスで長さを交互に、各長さ warmup 1 回の後。各行の間 100 ms ごとにメモリを採取(--sample-memory)。バッテリー駆動(計画の改訂 3)。"
+        "ja": "ちょうど 2,000 トークンの P の行。TypedDecisionModel.decide の呼び出しから復帰まで。1 プロセスで長さを交互に、各長さ warmup 1 回の後。各行の run 中に 100 ms ごとにメモリを採取(--sample-memory)。バッテリー駆動(計画の改訂 3)。"
       }
     },
     {
@@ -318,7 +318,7 @@
       },
       "note": {
         "en": "P row of exactly 8,192 tokens; TypedDecisionModel.decide from call to return; lengths interleaved in one process after one warmup each; memory sampled every 100 ms during each row (--sample-memory). The last seconds of the median row ran under moderate thermal pressure. On battery power (plan revision 3).",
-        "ja": "ちょうど 8,192 トークンの P の行。TypedDecisionModel.decide の呼び出しから復帰まで。1 プロセスで長さを交互に、各長さ warmup 1 回の後。各行の間 100 ms ごとにメモリを採取(--sample-memory)。中央値の行の最後の数秒は熱の圧力 moderate の下。バッテリー駆動(計画の改訂 3)。"
+        "ja": "ちょうど 8,192 トークンの P の行。TypedDecisionModel.decide の呼び出しから復帰まで。1 プロセスで長さを交互に、各長さ warmup 1 回の後。各行の run 中に 100 ms ごとにメモリを採取(--sample-memory)。中央値の行の最後の数秒は熱の圧力 moderate の下。バッテリー駆動(計画の改訂 3)。"
       }
     },
     {
@@ -466,8 +466,8 @@
       "state": "not_measured",
       "evidence": [],
       "note": {
-        "en": "The GPU test returns bit-identical logits for each row run twice in one process, and up to 3,000 consecutive rows ran in one process (Cal), but releasing and reloading the model was not verified.",
-        "ja": "GPU の試験で同じ行を 1 プロセスで 2 回流すと logit がビット単位で同じで、1 プロセスで最大 3,000 行(Cal)を続けて流したが、解放と再読み込みは確かめていない。"
+        "en": "Two runs of F with the variant bundle (fresh and cached specialization) gave identical logits for all 301 rows, the GPU test returns bit-identical logits for each of its ten rows (at most 512 tokens) run twice in one process, and up to 3,000 consecutive rows ran in one process (Cal). Releasing and reloading the model in one process was not verified.",
+        "ja": "変種の bundle で F を 2 回(特殊化 fresh と cached)流すと 301 行すべてで logit が同じで、GPU の試験は 10 行(512 トークン以下)を 1 プロセスで 2 回ずつ流してビット単位で同じ logit を返し、1 プロセスで最大 3,000 行(Cal)を続けて流した。同じプロセスでの解放と再読み込みは確かめていない。"
       }
     },
     "cancellation": {
