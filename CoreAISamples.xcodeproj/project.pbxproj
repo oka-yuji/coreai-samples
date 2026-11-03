@@ -64,7 +64,6 @@
 		31042D2A839D4FE25AA23E99 /* SpeechAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A936F8FD6E421D4D1A79749 /* SpeechAdapter.swift */; };
 		3150B586410104EB00827A21 /* InspectionAudioCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 148BF4ADF94AA3ECAAB30DB9 /* InspectionAudioCapture.swift */; };
 		3192597C462AD731BD85F6D2 /* RAGDocumentRuntime in Frameworks */ = {isa = PBXBuildFile; productRef = CC65BF104D2561579B7BB954 /* RAGDocumentRuntime */; };
-		31A6D50DBCF169F5FF01994B /* SpeechModelButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31648CD6AE87EB33511412C4 /* SpeechModelButton.swift */; };
 		324F3326B68B737B45C1CBCE /* ModelMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51FF5AB624408DE25F252FFF /* ModelMenu.swift */; };
 		330B4A9240E9871AD04245A6 /* DecideSelfTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47737423C61124F4327C174E /* DecideSelfTest.swift */; };
 		3457671FCB03949708514ED4 /* ObjectFinderContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD05FACDEDB78E3CE2E43B3E /* ObjectFinderContent.swift */; };
@@ -360,7 +359,6 @@
 		2C50C49BB82E6F8BA570C7B2 /* object-finder-examples.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "object-finder-examples.json"; sourceTree = "<group>"; };
 		2C9D606E59C375EB20C9B214 /* ConversationBudgetSelfTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationBudgetSelfTest.swift; sourceTree = "<group>"; };
 		2F27640F8151AC5D099163D9 /* LiveInspectionSpeech.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveInspectionSpeech.swift; sourceTree = "<group>"; };
-		31648CD6AE87EB33511412C4 /* SpeechModelButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechModelButton.swift; sourceTree = "<group>"; };
 		33CBF7CF8C3F96D9CF47735D /* DemoLocalizationCheck.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoLocalizationCheck.swift; sourceTree = "<group>"; };
 		347693E891F4308F370D720E /* DemoNavigator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoNavigator.swift; sourceTree = "<group>"; };
 		35AEFA86A5545B593DC7ADE0 /* AgentTools.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentTools.swift; sourceTree = "<group>"; };
@@ -676,7 +674,6 @@
 			children = (
 				1EF067F2F1108F44E0873891 /* SpeechAssembly.swift */,
 				D005E7D2BBBBEDDF71AD3A7B /* SpeechExport.swift */,
-				31648CD6AE87EB33511412C4 /* SpeechModelButton.swift */,
 				0E8F067D0636EEF40E2268B3 /* SpeechReferenceControls.swift */,
 				AEE5CB9731EE821324E0CB00 /* SpeechView.swift */,
 				7C5B94712CF2C298506EDB49 /* Resources */,
@@ -1590,7 +1587,6 @@
 				31042D2A839D4FE25AA23E99 /* SpeechAdapter.swift in Sources */,
 				B6E6CA2DA418633553FF400B /* SpeechAssembly.swift in Sources */,
 				4DB1962CEDA4F3E9C958C7E3 /* SpeechExport.swift in Sources */,
-				31A6D50DBCF169F5FF01994B /* SpeechModelButton.swift in Sources */,
 				E98F672AC4E0760204CF0035 /* SpeechReferenceControls.swift in Sources */,
 				144E14392F7E1FDBC800476D /* SpeechView.swift in Sources */,
 				84CACB21A547B2C201617E85 /* ToolRunner.swift in Sources */,

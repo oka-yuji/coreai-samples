@@ -2760,6 +2760,16 @@
         }
       }
     },
+    "Download Irodori from its heading in the sidebar." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "サイドバーの見出しから Irodori を取得してください。"
+          }
+        }
+      }
+    },
     "Download the Reference voice model. It uses about 3.84 GB. Wait for the model check to finish before recording or choosing an audio file." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5515,17 +5525,6 @@
         }
       }
     },
-    "Open last model" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "前回のモデルを開く"
-          }
-        }
-      }
-    },
     "Open microphone settings" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5573,17 +5572,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "写真を開く"
-          }
-        }
-      }
-    },
-    "Open speech model…" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "音声モデルを開く…"
           }
         }
       }
