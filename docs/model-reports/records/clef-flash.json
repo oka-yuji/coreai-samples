@@ -13,12 +13,13 @@
     "en": "Recipes, Decide · macOS",
     "ja": "Recipes・Decide · macOS"
   },
-  "release": "in_progress",
+  "release": "released",
   "release_note": {
-    "en": "private bundle",
-    "ja": "バンドル非公開"
+    "en": "in-app download pending",
+    "ja": "アプリ内の取得は対応中"
   },
   "download": "https://huggingface.co/okayuji/clef-flash-9b-coreai-decide",
+  "public_access_evidence": "docs/validation/mac-models-distribution-20261104.md#clef-flash-9b",
   "pages": {
     "en": "docs/clef-flash.md",
     "ja": "docs/clef-flash.ja.md"

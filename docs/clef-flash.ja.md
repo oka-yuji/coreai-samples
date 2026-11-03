@@ -72,12 +72,13 @@
 
 冷蔵庫にあるもので、このレシピは作れるか。**Recipes** は冷蔵庫の写真を読み、提案された食材を利用者が確認してから、その在庫をレシピの URL と照らし合わせます。写真には Apple の端末上のモデルを、レシピの必要な食材と道具には **Core AI で動く Clef-Flash 9B** を、数量には Swift のコードを使います。**Decide** は同じ Clef のバンドルで、文書を編集できる質問で採点します。どちらもモデルの校正していない確率を表示します。
 
-**別に配布している Clef のバンドルへのアクセス権が必要です。** 下の `hf download` は、そのリポジトリへのアクセス権がある Hugging Face のアカウントでだけ動きます。[Hugging Face CLI](https://huggingface.co/docs/huggingface_hub/guides/cli)を入れ、そのアカウントで `hf auth login` を実行してから、アプリとバンドルを取得します。バンドルを開くときは `decision.json` を含むフォルダを選びます。
+**Clef のバンドルは、公開している [Hugging Face のリポジトリ](https://huggingface.co/okayuji/clef-flash-9b-coreai-decide)で別に配布しています。** `hf auth login` なしで、匿名で取得できます。下の `hf download` は revision `12e30be4e391310377c534524df8962359a08b0f`(2026-11-04 時点の `main`)に固定しています。この revision の全 25 ファイル(7,278,592,396 bytes)が匿名の要求に応答したことを[配布の記録(英語)](validation/mac-models-distribution-20261104.md#clef-flash-9b)に残しています。[Hugging Face CLI](https://huggingface.co/docs/huggingface_hub/guides/cli)を入れてから、アプリとバンドルを取得します。バンドルを開くときは `decision.json` を含むフォルダを選びます。
 
 ```sh
 git clone https://github.com/oka-yuji/coreai-samples.git
 cd coreai-samples
-hf download okayuji/clef-flash-9b-coreai-decide --local-dir ./models/clef-flash-9b-decide-v1
+hf download okayuji/clef-flash-9b-coreai-decide --revision 12e30be4e391310377c534524df8962359a08b0f \
+  --local-dir ./models/clef-flash-9b-decide-v1
 ```
 
 `CoreAISamples.xcodeproj` を開き、**CoreAISamples** スキームと **My Mac** を選び、実行の構成を **Release** にして実行します。右上の **EN / JP** で、Mac の 6 つの画面の表示がすべて切り替わります。
