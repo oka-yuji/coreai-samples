@@ -1,4 +1,5 @@
 import ast
+import hashlib
 import json
 import math
 from pathlib import Path
@@ -7,9 +8,9 @@ import unittest
 
 from Tools.Conversion.adapters.jev27b.compare import tokens_sha256
 from Tools.Conversion.adapters.jev27b.japanese import (
-    ADOPTION_SCHEMA, GROUPS, JDEV_ROWS, NOUL, ONE, PERMUTATIONS, VARIANTS, adopt, answer, frozen_adoption,
-    jdev_document, label_problems, load_wrappers, metrics, order_sensitivity, pearson, plan, ranks, reference_problems,
-    spearman, swift_problems, tokenized, wrapped,
+    ADOPTION_SCHEMA, GROUPS, JDEV_ROWS, NLI_LABELS, NOUL, ONE, PERMUTATIONS, VARIANTS, adopt, answer, fixed_texts,
+    frozen_adoption, jdev_document, label_problems, load_wrappers, metrics, order_sensitivity, pearson, plan, ranks,
+    reference_problems, spearman, swift_problems, tokenized, wrapped,
 )
 from Tools.Conversion.adapters.jev27b.typed_head import FIXED_OPTIONS, decide, render
 from Tools.Conversion.recipe import load_recipe
@@ -77,6 +78,13 @@ class WrapperTests(unittest.TestCase):
             path.write_text(json.dumps(broken))
             with self.assertRaises(ValueError):
                 load_wrappers(path)
+
+    def test_the_jnli_options_follow_the_order_of_the_jnli_labels(self):
+        wrappers = load_wrappers(WRAPPERS)
+        pins = json.loads((RECIPE / "fixtures/jglue.json").read_text())
+        self.assertEqual(tuple(pins["jnli_labels"]), NLI_LABELS)
+        self.assertEqual(wrappers["variants"]["en"]["JNLI"]["options"], list(NLI_LABELS))
+        self.assertEqual(wrappers["variants"]["ja"]["JNLI"]["options"], pins["jnli_options"])
 
     def test_noul_is_true_only_for_entailment(self):
         wrappers = load_wrappers(WRAPPERS)
@@ -193,6 +201,34 @@ class JdevTests(unittest.TestCase):
         self.assertEqual(jdev_document(self.tasks(), PINS, identifiers, texts)["rows"], document["rows"])
         self.assertNotEqual([row["id"] for row in jdev_document(self.tasks(), PINS, set(), set())["rows"]],
                             [row["id"] for row in document["rows"]])
+
+
+class FixedTextTests(unittest.TestCase):
+    def test_the_fixed_texts_come_from_the_jglue_rows_of_both_f_and_j(self):
+        records = {
+            "JNLI": [{"sentence_pair_id": "1", "sentence1": "p1", "sentence2": "h1", "label": "neutral"},
+                     {"sentence_pair_id": "2", "sentence1": "p2", "sentence2": "h2", "label": "entailment"}],
+            "JCommonsenseQA": [{"q_id": 7, "question": "q7", "label": 0, **{f"choice{k}": f"c{k}" for k in range(5)}},
+                               {"q_id": 8, "question": "q8", "label": 1, **{f"choice{k}": f"d{k}" for k in range(5)}}],
+            "JSTS": [{"sentence_pair_id": "3", "sentence1": "s3", "sentence2": "t3", "label": 1.0}],
+        }
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            pins = {"files": {}}
+            for task, rows in records.items():
+                data = "".join(json.dumps(row) + "\n" for row in rows).encode()
+                (root / f"{task}.json").write_bytes(data)
+                pins["files"][task] = {"path": f"{task}.json", "bytes": len(data),
+                                       "sha256": hashlib.sha256(data).hexdigest()}
+            (root / "F.json").write_text(json.dumps({"rows": [{"id": "row1", "source": "test_set_30k"},
+                                                              {"id": "jglue:JNLI:1", "source": "jglue:JNLI"}]}))
+            j = [{"id": "jglue:JCommonsenseQA:7", "source": "jglue:JCommonsenseQA"},
+                 {"id": "jglue:JSTS:3", "source": "jglue:JSTS"}]
+            (root / "J.json").write_text(json.dumps({"rows": j}))
+            tasks, identifiers, texts = fixed_texts(root, pins, root)
+        self.assertEqual(identifiers, {"jglue:JNLI:1", "jglue:JCommonsenseQA:7", "jglue:JSTS:3"})
+        self.assertEqual(texts, {"p1", "h1", "q7", "s3", "t3"})
+        self.assertEqual(set(tasks["JCommonsenseQA"]), {"7", "8"})
 
 
 class AdoptionTests(unittest.TestCase):
