@@ -7,6 +7,7 @@ import struct
 import sys
 
 from ...storage import read_json
+from .compare import tokens_sha256
 from .fixtures import CARD_EXAMPLES, load_rows, serialize
 from .prepare import distributed_tokenizer
 from .typed_head import FIXED_OPTIONS, LINE_BREAKS, SLOTS, decide, render, tokenize
@@ -168,9 +169,24 @@ def real_head_rows(rows, merged, hidden_path, head_path):
     return result
 
 
+def inference_rows(rows, quantized):
+    found = {row["id"]: row for row in quantized["rows"] if row["set"] == "F"}
+    result = []
+    for row in rows:
+        reference = found.get(row["id"])
+        if not reference or reference["rejected"] or reference["tokens"] != row["tokens"] \
+                or reference["text_sha256"] != hashlib.sha256(row["text"].encode("utf-8")).hexdigest():
+            raise ValueError(f"The quantized reference differs from the fixture: {row['id']}")
+        result.append({**{field: row[field] for field in FIELDS}, "token_count": row["token_count"],
+                       "tokens_sha256": tokens_sha256(row["tokens"]), "band": reference["band"],
+                       **{key: reference[key] for key in ("logits2", "p2", "p2_T", "p1m")}})
+    return result
+
+
 def main():
     parser = argparse.ArgumentParser(description="Write the JSON fixtures of the Swift typed-decision tests.")
-    for name in ("snapshot", "corpus", "jglue", "fixtures", "reference", "merged-reference", "hidden", "output"):
+    for name in ("snapshot", "corpus", "jglue", "fixtures", "reference", "merged-reference", "hidden",
+                 "quantized-reference", "output"):
         parser.add_argument(f"--{name}", type=Path, required=True)
     args = parser.parse_args()
     pins = read_json(args.fixtures / "jglue.json")
@@ -186,6 +202,9 @@ def main():
                 or reference["text_sha256"] != hashlib.sha256(row["text"].encode("utf-8")).hexdigest():
             raise ValueError(f"The reference differs from the fixture: {row['id']}")
     merged = read_json(args.merged_reference)
+    quantized = read_json(args.quantized_reference)
+    if quantized["merged_revision"] != merged["merged_revision"]:
+        raise ValueError("The quantized reference uses another merged checkpoint")
     chosen = [row for row in rows if row["id"] in CARD_EXAMPLES]
     chosen += [next(row for row in rows if row["id"].startswith(f"jglue:{task}:")) for task in REAL_HEAD_TASKS]
     temperatures = read_json(args.snapshot / "calibration.json")["per_kind"]
@@ -199,12 +218,17 @@ def main():
         "real-head": {"__license__": license_note(pins), "head_sha256": sha256(head_path),
                       "merged_revision": merged["merged_revision"], "temperatures": merged["temperatures"],
                       "rows": real_head_rows(chosen, merged, args.hidden, head_path)},
+        "inference": {"__license__": license_note(pins), "merged_revision": quantized["merged_revision"],
+                      "temperatures": quantized["temperatures"],
+                      "rows": inference_rows([row for row in rows if not row["id"].startswith("synthetic:")],
+                                             quantized)},
     }
     args.output.mkdir(parents=True, exist_ok=True)
     for name, document in documents.items():
         (args.output / f"{name}.json").write_text(serialize(document), encoding="utf-8")
     print(json.dumps({"render": len(rows), "japanese": sum(row["id"].startswith("jglue:") for row in rows),
-                      "rejected": len(REJECTED), "head": len(HEAD_CASES), "real_head": len(chosen)}))
+                      "rejected": len(REJECTED), "head": len(HEAD_CASES), "real_head": len(chosen),
+                      "inference": len(documents["inference"]["rows"])}))
     return 0
 
 
