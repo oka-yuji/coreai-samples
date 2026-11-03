@@ -1,5 +1,6 @@
 from fractions import Fraction
 import math
+from pathlib import Path
 import unittest
 
 from Tools.Conversion.adapters.jev27b.compare import tokens_sha256
@@ -8,6 +9,11 @@ from Tools.Conversion.adapters.jev27b.score import (
     summary, teacher, units,
 )
 from Tools.Conversion.adapters.jev27b.typed_head import decide, softmax
+from Tools.Conversion.recipe import load_recipe
+
+ROOT = Path(__file__).resolve().parents[3]
+BINDINGS = {name: "/unused" for name in ("base", "corpus", "hf_cache", "jglue", "python", "runner", "setup_record",
+                                         "snapshot", "upstream", "verify")}
 
 CARD = {"noul": 1.25, "choice": 0.75, "score": 1.5}
 OPTIONS = {"noul": ["false", "true"], "score": ["0", "1", "2", "3", "4", "5"], "choice": ["a", "b", "c"]}
@@ -275,6 +281,34 @@ class ScoreTests(unittest.TestCase):
             result = score(*inputs)
             self.assertFalse(result["recorded"], name)
             self.assertTrue(result["problems"][name], name)
+
+
+class RecipeTests(unittest.TestCase):
+    def test_the_quality_steps_add_q_cal_and_h_without_changing_the_earlier_steps(self):
+        steps = {step["id"]: step for step in load_recipe(ROOT / "Tools/Conversion/recipes/jev27b/recipe.json",
+                                                          BINDINGS, ROOT)["steps"]}
+        reference, merged = steps["reference_q"], steps["reference_merged_q"]
+        self.assertEqual((reference["depends"], merged["depends"]), (steps["reference"]["depends"],
+                                                                     steps["reference_merged"]["depends"]))
+        for step, original, stage in ((reference, steps["reference"], "peft"), (merged, steps["reference_merged"], "merged")):
+            self.assertEqual(step["command"][step["command"].index("--stage") + 1], stage)
+            self.assertEqual(step["command"][step["command"].index("--sets") + 1:][:1], ["Q"])
+            self.assertTrue(step["heavy"])
+            self.assertTrue({"$adapters/reference_sets.py", "$fixtures/Q.json"} <= set(step["inputs"]))
+            self.assertEqual(set(original["inputs"]) - set(step["inputs"]), {"$fixtures/F.json"})
+        self.assertEqual(steps["typed_input_eval"]["outputs"], ["input-Q.json", "input-Cal.json", "input-H.json",
+                                                                "check.json"])
+        for name in ("Q", "Cal", "H"):
+            decide = steps[f"typed_decide_{name.lower()}"]
+            self.assertEqual(decide["depends"], ["export_gdnfp32", "typed_input_eval"])
+            self.assertIn("$export_gdnfp32/$bundle_gdnfp32", decide["command"])
+            self.assertIn(f"$typed_input_eval/input-{name}.json", decide["command"])
+            self.assertEqual((decide["outputs"], decide["heavy"]), ([f"swift-{name}.json"], True))
+        scoring = steps["score_q"]
+        self.assertEqual(scoring["checks"], [{"file": "quality.json", "key": ["recorded"], "equals": True}])
+        self.assertFalse(scoring["heavy"])
+        self.assertTrue({"$adapters/score.py", "$adapters/compare.py", "$adapters/verify_quantization.py"}
+                        <= set(scoring["inputs"]))
 
 
 if __name__ == "__main__":
