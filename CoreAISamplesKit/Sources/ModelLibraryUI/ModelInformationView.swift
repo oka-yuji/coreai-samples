@@ -5,10 +5,12 @@ import SwiftUI
 public struct ModelInformationView: View {
     private let store: Store<ModelLibraryFeature>
     private let model: LibraryModel
+    private let inUse: Bool
 
-    public init(store: Store<ModelLibraryFeature>, model: LibraryModel) {
+    public init(store: Store<ModelLibraryFeature>, model: LibraryModel, inUse: Bool = false) {
         self.store = store
         self.model = model
+        self.inUse = inUse
     }
 
     private var artifact: ModelArtifact? { store.state.selectedArtifact(for: model.id) }
@@ -31,7 +33,7 @@ public struct ModelInformationView: View {
                 } label: {
                     libraryText("Variant")
                 }
-                .disabled(store.state.pendingDestination != nil)
+                .disabled(store.state.pendingDestination != nil || inUse)
             } else if let artifact, artifact.sourceKind != nil {
                 LabeledContent {
                     Text(verbatim: artifact.title)

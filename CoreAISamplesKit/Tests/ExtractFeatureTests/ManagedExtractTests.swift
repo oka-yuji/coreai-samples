@@ -147,7 +147,7 @@ struct ManagedExtractTests {
     }
 
     @Test(
-        "The standalone lab still opens the remembered folder, extracts when it opens and after a settled edit, and ignores the managed lifecycle actions"
+        "The standalone lab still opens the remembered folder, extracts when it opens and after a settled edit, and ignores a failed release"
     )
     func standaloneKeepsAutomaticExtraction() {
         var state = ExtractState(form: testForm, labels: testForm, lastAssetPath: "/last")
@@ -161,7 +161,7 @@ struct ManagedExtractTests {
         #expect(ExtractFeature.reduce(&state, .compositionChanged(true)) == [.cancel(.extraction)])
         #expect(ExtractFeature.reduce(&state, .compositionChanged(false)) == [.run(.settle, id: .extraction)])
         let before = state
-        #expect(send(&state, .closed, .released, .releaseFailed("busy")) == [[], [], []])
+        #expect(send(&state, .releaseFailed("busy")) == [[]])
         #expect(state == before && state.execution == .standalone)
     }
 

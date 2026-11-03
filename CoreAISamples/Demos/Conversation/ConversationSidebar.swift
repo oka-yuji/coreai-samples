@@ -122,7 +122,7 @@ private struct ModelInformationButton: View {
         .accessibilityValue(Text(verbatim: model.name))
         .popover(isPresented: $showing) {
             VStack(alignment: .leading, spacing: 12) {
-                ModelInformationView(store: store, model: model)
+                ModelInformationView(store: store, model: model, inUse: inUse)
                 if let artifact = store.state.selectedArtifact(for: model.id),
                     let resource = store.state.installations[artifact.id]?.resource
                 {

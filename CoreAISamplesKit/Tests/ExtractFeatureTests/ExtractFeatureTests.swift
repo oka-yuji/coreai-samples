@@ -307,6 +307,23 @@ struct ExtractFeatureTests {
     }
 
     @Test(
+        "Closing the standalone lab cancels its work and releases the asset, and the next folder choice opens it again"
+    )
+    func closedReleasesTheAssetInStandaloneMode() {
+        var state = readyState()
+        _ = send(&state, .textChanged("pressure 0.4MPa"), .extractRequested)
+        #expect(state.phase == .extracting(version: 1))
+        #expect(ExtractFeature.reduce(&state, .closed) == [.cancelAll, .run(.release, id: .asset)])
+        #expect(state.phase == .idle && state.execution == .standalone && state.text == "pressure 0.4MPa")
+        #expect(ExtractFeature.reduce(&state, .released).isEmpty)
+        #expect(state.asset == .none)
+        #expect(
+            ExtractFeature.reduce(&state, .assetFolderChosen(path: "/asset")) == [
+                .run(.openAsset(path: "/asset"), id: .asset)
+            ])
+    }
+
+    @Test(
         "reduce starts no extraction while an input method converts a word, stops the one under way, and waits again for the text when the conversion ends without a result"
     )
     func waitsForTheConversionToEnd() {

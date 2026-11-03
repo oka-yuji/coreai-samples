@@ -2760,6 +2760,16 @@
         }
       }
     },
+    "Download %@ from its heading in the sidebar." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "サイドバーの見出しから %@ を取得してください。"
+          }
+        }
+      }
+    },
     "Download Irodori from its heading in the sidebar." : {
       "localizations" : {
         "ja" : {
@@ -5014,16 +5024,6 @@
         }
       }
     },
-    "No asset folder" : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "モデル資産が未選択です"
-          }
-        }
-      }
-    },
     "No close matches" : {
       "localizations" : {
         "ja" : {
@@ -5410,16 +5410,6 @@
         }
       }
     },
-    "Open Asset Folder…" : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "モデル資産フォルダを開く…"
-          }
-        }
-      }
-    },
     "Open Clef-Flash bundle" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5501,16 +5491,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "モデル管理でフォルダを選び、モデルを読み込んでください。"
-          }
-        }
-      }
-    },
-    "Open an asset folder to extract." : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "モデル資産フォルダを開くと抽出できます。"
           }
         }
       }

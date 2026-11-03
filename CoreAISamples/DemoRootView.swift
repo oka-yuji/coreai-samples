@@ -132,9 +132,7 @@ struct DemoRootView: View {
     @State private var showingExtractionLab = false
     @State private var extract = Store<ExtractFeature>(
         initialState: ExtractState(
-            form: ExtractResources.form, labels: ExtractResources.examples.labels,
-            lastAssetPath: UserDefaults.standard.string(forKey: ExtractRunner.assetFolderKey),
-            appVersion: ExtractRunner.appVersion),
+            form: ExtractResources.form, labels: ExtractResources.examples.labels, appVersion: ExtractRunner.appVersion),
         run: ExtractRunner(service: GLiNERExtractService(correctionWords: ExtractResources.correctionWords)).run)
 
     init(lifetime: ConversationLifetime) {
@@ -155,11 +153,13 @@ struct DemoRootView: View {
             case .chat?: ConversationView()
             case .decide?: DecideView(store: decide)
             case .recipes?: RecipeView(store: recipes)
-            case .imageSearch?: ImageSearchView(store: imageSearch)
-            case .videoSearch?: VideoSearchView(store: videoSearch)
+            case .imageSearch?:
+                ImageSearchView(store: imageSearch).environment(ImageSearchAssembly.launchBundle == nil ? library : nil)
+            case .videoSearch?:
+                VideoSearchView(store: videoSearch).environment(ImageSearchAssembly.launchBundle == nil ? library : nil)
             case .extract?:
                 if LaunchArguments.value("--gui-e2e") != nil && LaunchArguments.value("--extract") != nil {
-                    ExtractView(store: extract)
+                    ExtractView(store: extract).environment(nil as MacModelLibrary?)
                 } else {
                     ProductComparisonView(store: products)
                         .toolbar { Button("Extraction lab") { showingExtractionLab = true } }
@@ -210,6 +210,16 @@ struct DemoRootView: View {
         }
         .onChange(of: library.installed(.irodori)?.directory) { old, new in
             if old != nil, new != old { speech.send(.bundleUnavailable) }
+        }
+        .onChange(of: library.installed(.gliner)?.directory) { old, new in
+            guard old != nil, new != old else { return }
+            products.send(.modelUnavailable)
+            extract.send(.closed)
+        }
+        .onChange(of: library.installed(.embeddingGemma)?.directory) { old, new in
+            guard old != nil, new != old, ImageSearchAssembly.launchBundle == nil else { return }
+            imageSearch.send(.disappeared)
+            videoSearch.send(.disappeared)
         }
         .onChange(of: scenePhase) { _, phase in library.enter(phase) }
         .onChange(of: scenePhase) { if scenePhase == .active { host.store.send(.library(.refresh)) } }

@@ -90,6 +90,10 @@
             return state.installations[artifact.id]?.resource
         }
 
+        func artifactTitle(_ model: DemoModel) -> String? {
+            store?.state.selectedArtifact(for: model.libraryID)?.title
+        }
+
         func leave() { store?.send(.closeDemo) }
 
         func enter(_ phase: ScenePhase) {

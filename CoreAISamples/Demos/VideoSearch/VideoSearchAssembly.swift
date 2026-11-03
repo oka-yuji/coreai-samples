@@ -14,13 +14,8 @@ enum VideoSearchAssembly {
     }
 
     static func makeStore() -> Store<VideoSearchFeature> {
-        let prepared = URL.documentsDirectory.appending(path: ImageSearchAssembly.preparedFolderName)
-        let folder =
-            LaunchArguments.value("--embedding-bundle").map { URL(filePath: $0) }
-            ?? (FileManager.default.fileExists(atPath: prepared.appending(path: "embedding-manifest.json").path)
-                ? prepared : nil)
-        return Store(
-            initialState: VideoSearchState(modelFolder: folder),
+        Store(
+            initialState: VideoSearchState(modelFolder: ImageSearchAssembly.initialFolder),
             run: VideoSearchRunner(service: LiveVideoSearchService()).run)
     }
 }
