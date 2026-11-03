@@ -29,7 +29,7 @@ The download button on the **Irodori** heading fetches the pinned reference mode
 
 The generation duration measures model loading/specialization if needed, the inference stages and WAV encoding; it starts after text preprocessing. It is not total time since the button press, and it is not a memory measurement. The result uses no reference voice, empty caption, four MeanFlow steps, no trim and no watermark. The upstream normalization behavior, including its known removal of a Unicode minus sign, is preserved.
 
-**Stop during generation** cancels the request cooperatively. It waits for the current model operation to return before releasing model resources and enabling another request. Switching away from Irodori also cancels and releases resources. Returning while cleanup is in progress keeps generation disabled. Later generation loads the models again. A failed generation clears its runtime resources so a subsequent request can retry. After the model is deleted, the screen forgets it; download it again to continue.
+**Stop during generation** cancels the request cooperatively. It waits for the current model operation to return before releasing model resources and enabling another request. Switching away from Irodori also cancels and releases resources. Returning while cleanup is in progress keeps generation disabled. Later generation loads the models again. A failed generation clears its runtime resources so a subsequent request can retry. After the model is deleted, also in another window, the screen forgets it and asks you to download it again from the sidebar heading. **Generate speech** is available only while the screen holds the downloaded model. If opening the model fails, select another demo and return to try again.
 
 ## Validation limits
 
