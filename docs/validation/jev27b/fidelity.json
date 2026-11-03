@@ -1,0 +1,73 @@
+{
+  "bundle": {
+    "asset_sha256": "965396ce46af30aca1e65df8fe2e0fa4639be120b8bb18a7edeefc5dbbc86de0",
+    "name": "jev27b_s1_gdnfp32_qwen3_5_cfg_dynamic",
+    "specialization": "fresh",
+    "version": "26a11dca07a265feca4970dccdf2ebabaa005730132035e9df37b207cd26051e"
+  },
+  "card_temperature": {
+    "max": 0.006514586364783581,
+    "mean": 0.0011318451407692442,
+    "top_changes": 0
+  },
+  "checks": {
+    "bands_passed": true,
+    "finite": true,
+    "rows_complete": true
+  },
+  "cli_shipping_difference": 3.3500927809626546e-08,
+  "criteria": {
+    "maximum": 0.03,
+    "mean": 0.01,
+    "sum_tolerance": 0.001,
+    "top_rule": 0.06
+  },
+  "evidence": "fidelity",
+  "passed": true,
+  "rows": {
+    "forwarded": 301,
+    "rejected": 1,
+    "total": 302
+  },
+  "schema": "jev27b-validation-fidelity/1",
+  "source": {
+    "file": "comparison.json",
+    "object": "6240ec7e91fec895",
+    "run": "20261103T142317-7668a060",
+    "sha256": "f4f096f95606aa8daf04a0617644d287b518d47d4a2b669d862ccd60a3131cea",
+    "step": "compare_f"
+  },
+  "source_schema": "typed-decision-fidelity/1",
+  "temperature_1": {
+    "bands": {
+      "2049-4096": {
+        "max": 0.006541500537179168,
+        "mean": 0.0017490689401197363,
+        "passed": true,
+        "rows": 10
+      },
+      "4097-8192": {
+        "max": 0.005527762635680639,
+        "mean": 0.002821975712203427,
+        "passed": true,
+        "rows": 11
+      },
+      "513-2048": {
+        "max": 0.003520027146961771,
+        "mean": 0.0014720036100711634,
+        "passed": true,
+        "rows": 11
+      },
+      "<=512": {
+        "max": 0.004456359248531827,
+        "mean": 0.001030177756508631,
+        "passed": true,
+        "rows": 269
+      }
+    },
+    "max": 0.006541500537179168,
+    "mean": 0.0011356886327144175,
+    "top_changes": 0,
+    "unevaluated": []
+  }
+}
