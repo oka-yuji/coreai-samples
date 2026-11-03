@@ -438,7 +438,8 @@ private func family(_ artifact: ModelArtifact) throws -> ContractFamily {
     if let profile = SpeechBundleProfile(rawValue: artifact.contract) {
         let expected =
             try artifact.download == nil
-            ? IrodoriModelArtifact.make(profile: profile) : IrodoriModelArtifact.makeReferenceDownload()
+            ? IrodoriModelArtifact.make(profile: profile, platforms: artifact.platforms)
+            : IrodoriModelArtifact.makeReferenceDownload(platforms: artifact.platforms)
         guard artifact == expected else {
             throw ManagedModelStoreError.contractMismatch("Irodori inventory")
         }

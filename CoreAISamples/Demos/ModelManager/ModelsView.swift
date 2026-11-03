@@ -1,6 +1,5 @@
 import DecideFeature
 import FeatureStore
-import OCRUI
 import SpeechFeature
 import SwiftUI
 import UniformTypeIdentifiers
@@ -9,7 +8,6 @@ struct ModelsView: View {
     @Environment(ModelsViewModel.self) private var vm
     @Environment(Store<DecideFeature>.self) private var decide
     @Environment(Store<SpeechFeature>.self) private var speech
-    @Environment(OCRMacLibrary.self) private var ocr
     @Environment(ChatViewModel.self) private var chat
     @Environment(ConversationHost.self) private var host
     @Environment(DemoNavigator.self) private var navigator
@@ -56,22 +54,9 @@ struct ModelsView: View {
                 LabeledContent("Downloaded models", value: vm.downloadedSize.formatted(.byteCount(style: .file)))
                 LabeledContent("Disk available", value: vm.availableSpace.formatted(.byteCount(style: .file)))
             }
-            Section("Documents") {
-                if let store = ocr.store {
-                    OCRModelControls(store: store) { selection in
-                        store.send(.openDemo(selection))
-                        navigator.selection = .ocr
-                    }
-                } else {
-                    Text("OCR is unavailable")
-                }
-            }
         }
         .demoNavigationTitle("Models")
-        .onAppear {
-            vm.refresh()
-            ocr.refresh()
-        }
+        .onAppear { vm.refresh() }
         .fileImporter(isPresented: $importing, allowedContentTypes: [.folder]) { result in
             if case .success(let url) = result { vm.open(url) }
         }
