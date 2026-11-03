@@ -226,6 +226,28 @@ These steps also run before `verify_merge`. The conditions and definitions are f
   temperatures (`comparison-refit.json`). Its checks are `recorded` in `calibration.json` and the `passed` of
   `comparison-refit.json`.
 
+## Japanese
+
+These steps also run before `verify_merge`. The definitions are fixed in
+[docs/jev27b.md](../../../../docs/jev27b.md#japanese-jglue); no pass line is set.
+
+- `jdev_fixture` writes `jdev.json`: 100 rows per JGLUE task outside J and F that share no sentence or question with
+  them, with their IDs and SHA-256 only.
+- `typed_input_jdev` and `typed_input_j` wrap the rows with the two variants of `wrappers.json` (`ja` and `en`) and
+  write `input-Jdev.json` / `input-J.json` and the text-free manifests `rows-Jdev.json` / `rows-J.json`.
+  `typed_input_j` also writes the three permuted orders of the adopted JCommonsenseQA variant and refuses an adoption
+  that is not frozen.
+- `typed_decide_jdev` and `typed_decide_j` run `coreai-verify typed-decide` with the calibrated bundle of `calibrate`
+  (`$calibrate/$bundle_gdnfp32`).
+- `prompt_adoption` writes `prompt-adoption.json`; its check is `frozen`.
+- `reference_j` runs the wrapped rows of J through stage 1' with the loading, checks and forward of
+  `reference_merged_q` and writes `reference-merged-J.json`.
+- `score_j` writes `japanese.json` (`typed-decision-japanese/1`) and `report.md`; its check is `recorded`.
+
+`wrappers.json` holds the instruction text of both variants. Changing it makes every step from `typed_input_jdev` on
+run again; changing `japanese.py` or a module it imports also `jdev_fixture`. The three heavy steps among them took
+about 38 minutes.
+
 ## Tokenizer
 
 The distributed `tokenizer.json` is used as is and is never saved again. It is the resaved
