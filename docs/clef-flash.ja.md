@@ -82,9 +82,9 @@ hf download okayuji/clef-flash-9b-coreai-decide --local-dir ./models/clef-flash-
 
 `CoreAISamples.xcodeproj` を開き、**CoreAISamples** スキームと **My Mac** を選び、実行の構成を **Release** にして実行します。右上の **EN / JP** で、Mac の 6 つの画面の表示がすべて切り替わります。
 
-サイドバーでレシピの説明が付いた **Clef-Flash 9B** を開き、**Clef-Flashのフォルダを選択**(Open Clef-Flash bundle)を選び、`models/clef-flash-9b-decide-v1` を選びます。**サンプル → 卵3個の卵焼き**(Examples → Three-egg omelette)を選び、提案された卵の数量を `1 pcs` にして確定し、**レシピを判定**(Check recipe)を押します。レシピには卵が 3 個要るので、確定した在庫では 2 個足りません。同梱の 5 枚の写真とレシピの URL は [Recipes の手順](recipes-demo.md)にあります。写真と在庫は Mac から出ません。レシピの URL の取得にはインターネット接続が要ります。
+サイドバーの **Clef-Flash 9B** の節の **今ある食材で、このレシピを作れる？**(Can you make this recipe with what you have?)の行を開き、**Clef-Flashのフォルダを選択**(Open Clef-Flash bundle)を選び、`models/clef-flash-9b-decide-v1` を選びます。**サンプル → 卵3個の卵焼き**(Examples → Three-egg omelette)を選び、提案された卵の数量を `1 pcs` にして確定し、**レシピを判定**(Check recipe)を押します。レシピには卵が 3 個要るので、確定した在庫では 2 個足りません。同梱の 5 枚の写真とレシピの URL は [Recipes の手順](recipes-demo.md)にあります。写真と在庫は Mac から出ません。レシピの URL の取得にはインターネット接続が要ります。
 
-サイドバーで文書チェックリストの説明が付いた **Clef-Flash 9B** を開き、同じバンドルを選んで、**サンプル → 保守契約**(Examples → Maintenance agreement)を選んで **条件を判定**(Run checklist)を押します。質問を編集してもう一度実行すると、文書を使い回します。確認の付け方、JSON の書き出し、Swift の API は [Decide の説明](decide.md)にあります。
+同じ節の **編集できる確認項目で文書の条件を判定**(Check a document against an editable checklist)の行を開き、同じバンドルを選んで、**サンプル → 保守契約**(Examples → Maintenance agreement)を選んで **条件を判定**(Run checklist)を押します。質問を編集してもう一度実行すると、文書を使い回します。確認の付け方、JSON の書き出し、Swift の API は [Decide の説明](decide.md)にあります。
 
 ビルドしたアプリは、ウィンドウを開かずに記録済みの入力も実行できます。`DECIDE_APP` にアプリの実行ファイルを指定します。
 

@@ -82,9 +82,9 @@ hf download okayuji/clef-flash-9b-coreai-decide --local-dir ./models/clef-flash-
 
 Open `CoreAISamples.xcodeproj`, choose the **CoreAISamples** scheme and **My Mac**, set the Run build configuration to **Release**, and run. The **EN / JP** control at the top right switches every Mac screen.
 
-In the **Clef-Flash 9B** sidebar entry for recipe checks, choose **Open Clef-Flash bundle** and select `models/clef-flash-9b-decide-v1`. Try **Examples → Three-egg omelette**, review the suggested egg as `1 pcs`, confirm it, then **Check recipe**. The recipe needs three eggs, so the confirmed inventory is two short. Follow the [Recipes walkthrough](recipes-demo.md) for all five bundled photos and recipe URLs. Photos and inventory stay on the Mac; fetching a recipe URL needs an internet connection.
+In the **Clef-Flash 9B** section of the sidebar, select the **Can you make this recipe with what you have?** row, choose **Open Clef-Flash bundle** and select `models/clef-flash-9b-decide-v1`. Try **Examples → Three-egg omelette**, review the suggested egg as `1 pcs`, confirm it, then **Check recipe**. The recipe needs three eggs, so the confirmed inventory is two short. Follow the [Recipes walkthrough](recipes-demo.md) for all five bundled photos and recipe URLs. Photos and inventory stay on the Mac; fetching a recipe URL needs an internet connection.
 
-In the **Clef-Flash 9B** sidebar entry for document checklists, open the same bundle, choose **Examples → Maintenance agreement**, then **Run checklist**. Edit a question and run again to reuse the document. The [Decide guide](decide.md) covers review, JSON export and the Swift API.
+In the same section, select the **Check a document against an editable checklist** row, open the same bundle, choose **Examples → Maintenance agreement**, then **Run checklist**. Edit a question and run again to reuse the document. The [Decide guide](decide.md) covers review, JSON export and the Swift API.
 
 The built app also runs the recorded request without opening a window. Set `DECIDE_APP` to its executable:
 
