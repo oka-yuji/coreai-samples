@@ -1,3 +1,4 @@
+import ast
 import json
 import math
 from pathlib import Path
@@ -11,9 +12,13 @@ from Tools.Conversion.adapters.jev27b.japanese import (
     spearman, swift_problems, tokenized, wrapped,
 )
 from Tools.Conversion.adapters.jev27b.typed_head import FIXED_OPTIONS, decide, render
+from Tools.Conversion.recipe import load_recipe
 
 ROOT = Path(__file__).resolve().parents[3]
-WRAPPERS = ROOT / "Tools/Conversion/recipes/jev27b/wrappers.json"
+RECIPE = ROOT / "Tools/Conversion/recipes/jev27b"
+WRAPPERS = RECIPE / "wrappers.json"
+BINDINGS = {name: "/unused" for name in ("base", "corpus", "hf_cache", "jglue", "python", "runner", "setup_record",
+                                         "snapshot", "upstream", "verify")}
 PINS = {"jnli_options": ["e", "c", "n"], "jnli_labels": ["entailment", "contradiction", "neutral"]}
 
 
@@ -279,6 +284,67 @@ class ConsistencyTests(unittest.TestCase):
         rows[0]["label"] = 3
         rows[-1]["label"] = 5.5
         self.assertEqual(label_problems(rows), [rows[0]["id"], rows[-1]["id"]])
+
+
+def imported(path):
+    found, pending = set(), [path]
+    while pending:
+        current = pending.pop()
+        if current in found:
+            continue
+        found.add(current)
+        for node in ast.walk(ast.parse(current.read_text())):
+            if isinstance(node, ast.ImportFrom) and node.level and node.module:
+                base = current.parents[node.level - 1]
+                candidate = base.joinpath(*node.module.split(".")).with_suffix(".py")
+                if candidate.is_file():
+                    pending.append(candidate)
+    return found
+
+
+class RecipeTests(unittest.TestCase):
+    STEPS = ["jdev_fixture", "typed_input_jdev", "typed_decide_jdev", "prompt_adoption", "typed_input_j",
+             "typed_decide_j", "reference_j", "score_j"]
+
+    def steps(self):
+        recipe = load_recipe(RECIPE / "recipe.json", BINDINGS, ROOT)
+        return recipe, {step["id"]: step for step in recipe["steps"]}
+
+    def test_the_japanese_steps_follow_the_calibration_and_precede_verify_merge(self):
+        recipe, steps = self.steps()
+        ids = list(steps)
+        self.assertEqual(ids[ids.index("calibrate") + 1:], self.STEPS + ["verify_merge"])
+        expected = {"jdev_fixture": ["fixture"], "typed_input_jdev": ["jdev_fixture", "prepare"],
+                    "typed_decide_jdev": ["calibrate", "typed_input_jdev"],
+                    "prompt_adoption": ["typed_decide_jdev", "typed_input_jdev", "jdev_fixture", "calibrate"],
+                    "typed_input_j": ["prompt_adoption", "fixture", "prepare"],
+                    "typed_decide_j": ["calibrate", "typed_input_j"], "reference_j": ["prepare", "merge", "fixture"],
+                    "score_j": ["typed_input_j", "typed_decide_j", "reference_j", "prompt_adoption", "calibrate"]}
+        self.assertEqual({name: steps[name]["depends"] for name in self.STEPS}, expected)
+        self.assertEqual({name for name in self.STEPS if steps[name].get("heavy")},
+                         {"typed_decide_jdev", "typed_decide_j", "reference_j"})
+        for name in ("typed_decide_jdev", "typed_decide_j"):
+            self.assertEqual(steps[name]["command"][:2], ["$verify", "typed-decide"])
+            self.assertIn("$calibrate/$bundle_gdnfp32", steps[name]["command"])
+        self.assertIn(recipe["variables"]["bundle_gdnfp32"], steps["calibrate"]["outputs"])
+        self.assertEqual(steps["prompt_adoption"]["checks"],
+                         [{"file": "prompt-adoption.json", "key": ["frozen"], "equals": True}])
+        self.assertEqual(steps["score_j"]["checks"], [{"file": "japanese.json", "key": ["recorded"], "equals": True}])
+        self.assertEqual(steps["reference_j"]["checks"],
+                         [{"file": "reference-merged-J.json", "key": ["passed"], "equals": True}])
+
+    def test_every_python_step_lists_the_modules_it_imports(self):
+        _, steps = self.steps()
+        adapters = ROOT / "Tools/Conversion/adapters/jev27b"
+        for name in self.STEPS:
+            step = steps[name]
+            if step["command"][0] != "$python":
+                continue
+            module = step["command"][step["command"].index("-m") + 1].split(".")[-1]
+            listed = {item.replace("$adapters", str(adapters)).replace("$repo", str(ROOT)) for item in step["inputs"]}
+            self.assertLessEqual({str(path) for path in imported(adapters / f"{module}.py")}, listed, name)
+            if "--wrappers" in step["command"]:
+                self.assertIn("$recipe_dir/wrappers.json", step["inputs"], name)
 
 
 if __name__ == "__main__":
