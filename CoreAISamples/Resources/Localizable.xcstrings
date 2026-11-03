@@ -2766,6 +2766,22 @@
         }
       }
     },
+    "Downloaded %@ · Available %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Downloaded %1$@ · Available %2$@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "取得済み %1$@ · 空き %2$@"
+          }
+        }
+      }
+    },
     "Downloaded models" : {
       "localizations" : {
         "ja" : {
@@ -4447,6 +4463,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "保守契約"
+          }
+        }
+      }
+    },
+    "Manage" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "管理"
           }
         }
       }
@@ -8923,17 +8949,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "ツールの結果（原文）: %@"
-          }
-        }
-      }
-    },
-    "Tools" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ツール"
           }
         }
       }

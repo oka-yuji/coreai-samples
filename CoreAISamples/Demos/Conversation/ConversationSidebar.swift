@@ -10,11 +10,13 @@ struct ConversationSidebar: View {
 
     @Environment(ConversationHost.self) private var host
     @Environment(DemoNavigator.self) private var navigator
+    @Environment(ModelsViewModel.self) private var models
     @State private var editingID: String?
     @State private var editingTitle = ""
 
     var body: some View {
         VStack(spacing: 0) {
+            storage
             List(selection: selection) {
                 Section("Conversations") {
                     if host.state.turns.isEmpty && host.state.readOnlyMarkdown == nil {
@@ -36,19 +38,14 @@ struct ConversationSidebar: View {
                             }
                     }
                 }
-                Section("Tools") {
-                    ForEach(Demo.allCases.filter { $0 != .chat }) { demo in
-                        Label {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(LocalizedStringKey(demo.title))
-                                Text(LocalizedStringKey(demo.summary)).font(.caption).foregroundStyle(.secondary)
-                            }
-                        } icon: {
-                            Image(systemName: demo.systemImage)
-                        }
-                        .tag(Selection.tool(demo))
+                ForEach(DemoModel.allCases, id: \.self) { model in
+                    Section {
+                        ForEach(model.demos) { demoRow($0) }
+                    } header: {
+                        Text(verbatim: model.title)
                     }
                 }
+                Section("Manage") { demoRow(.models) }
             }
             if host.state.library.loading != nil || host.state.library.isMutating {
                 ProgressView().controlSize(.small).padding(8)
@@ -69,8 +66,9 @@ struct ConversationSidebar: View {
                 }.padding(8)
             }
         }
-        .demoNavigationTitle("Demos")
+        .demoNavigationTitle("Models")
         .navigationSplitViewColumnWidth(min: 220, ideal: 260)
+        .onAppear { models.refresh() }
         .alert(
             "Rename conversation", isPresented: Binding(get: { editingID != nil }, set: { if !$0 { editingID = nil } })
         ) {
@@ -108,6 +106,21 @@ struct ConversationSidebar: View {
             case nil: break
             }
         }
+    }
+
+    private var storage: some View {
+        let downloaded = models.downloadedSize.formatted(.byteCount(style: .file))
+        let available = models.availableSpace.formatted(.byteCount(style: .file))
+        return Text("Downloaded \(downloaded) · Available \(available)")
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 6)
+    }
+
+    private func demoRow(_ demo: Demo) -> some View {
+        Label(LocalizedStringKey(demo.summary), systemImage: demo.systemImage).lineLimit(nil).tag(Selection.tool(demo))
     }
 
     private func row(_ item: ConversationSummary) -> some View {
