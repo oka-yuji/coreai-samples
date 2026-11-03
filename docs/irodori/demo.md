@@ -1,6 +1,6 @@
 # Irodori speech demo
 
-The macOS app has an **Irodori** screen for the verified Irodori v4.1 Small MF FP32 assets. Open a local model folder, enter text and a seed, generate speech, then play it or save a 48 kHz mono Float32 WAV. **Models → Open speech model…** opens the same screen. This model is separate from the Chat model selection.
+The macOS app has an **Irodori** screen for the verified Irodori v4.1 Small MF FP32 assets. Download the model from the **Irodori** heading in the sidebar, select the Irodori row, enter text and a seed, generate speech, then play it or save a 48 kHz mono Float32 WAV. This model is separate from the Chat model selection.
 
 Native generation is covered by the [release asset checks](release-asset-validation.json). Those checks do not evaluate GUI playback or subjective pronunciation, naturalness and speaker similarity. For the iPhone download and reference-input flow, see [the iPhone guide](iphone.md).
 
@@ -17,11 +17,11 @@ open .build/SpeechDemo/Build/Products/Release/CoreAISamples.app
 
 Quit an older running copy of Core AI Samples before opening this build, so the shared bundle identifier does not bring the older process forward.
 
-Download the reference model from [Hugging Face](https://huggingface.co/okayuji/irodori-v4.1-small-mf-coreai-fp32), or prepare the legacy text-only folder using [the runtime instructions](runtime.md#prepare-a-local-model-folder). Select the resulting parent folder containing `irodori.json`, `tokenizer.json` and `artifacts/`, rather than an individual `.aimodel`. No weights are bundled with the app or downloaded by this feature. The app verifies the fixed asset sizes and SHA-256 values when opening the folder; this stage does not execute a model.
+The download button on the **Irodori** heading fetches the pinned reference model (22 files, about 3.84 GB) from [Hugging Face](https://huggingface.co/okayuji/irodori-v4.1-small-mf-coreai-fp32) into the app's model library and verifies every file. No weights are bundled with the app. The screen verifies the fixed asset sizes and SHA-256 values again when it opens the downloaded folder; this stage does not execute a model. While the screen is shown, the heading's delete button is unavailable; leave the screen to delete the model.
 
 ## Use the screen
 
-1. Choose **Irodori → Open speech model…** and select the prepared folder. After validation, the status says that the files are verified. The last successful folder is remembered; **Open last model** reopens it explicitly on the next launch.
+1. Select the **Irodori** row after the download finishes, or stay on the screen until it does. The screen opens the downloaded model by itself; after validation, the status says that the files are verified. Without a download, the screen asks you to download the model from the sidebar heading.
 2. Use an example or enter a short passage. The fixed tokenizer permits at most 255 body tokens. Longer input is rejected without truncation. The seed is an unsigned 64-bit integer; `1708` is the initial value.
 3. Press **Generate speech**. The first request loads and specializes the models. The status remains busy during this work. When ready, the screen shows the audio duration, generation duration and the normalized text used by the model.
 4. Press **Play**, then **Stop** to interrupt playback, or let it finish. The result remains available for replay and saving. Editing text or seed discards that result so it cannot be mistaken for the new input.
@@ -29,7 +29,7 @@ Download the reference model from [Hugging Face](https://huggingface.co/okayuji/
 
 The generation duration measures model loading/specialization if needed, the inference stages and WAV encoding; it starts after text preprocessing. It is not total time since the button press, and it is not a memory measurement. The result uses no reference voice, empty caption, four MeanFlow steps, no trim and no watermark. The upstream normalization behavior, including its known removal of a Unicode minus sign, is preserved.
 
-**Stop during generation** cancels the request cooperatively. It waits for the current model operation to return before releasing model resources and enabling another request. Switching away from Irodori also cancels and releases resources. Returning while cleanup is in progress keeps generation disabled. Later generation loads the models again. A failed generation clears its runtime resources so a subsequent request can retry. A deleted or replaced model folder should be selected and validated again.
+**Stop during generation** cancels the request cooperatively. It waits for the current model operation to return before releasing model resources and enabling another request. Switching away from Irodori also cancels and releases resources. Returning while cleanup is in progress keeps generation disabled. Later generation loads the models again. A failed generation clears its runtime resources so a subsequent request can retry. After the model is deleted, the screen forgets it; download it again to continue.
 
 ## Validation limits
 
