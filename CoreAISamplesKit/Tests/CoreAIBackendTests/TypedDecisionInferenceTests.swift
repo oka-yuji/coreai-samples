@@ -226,6 +226,7 @@ struct TypedDecisionInferenceTests {
                 try await detached.decide(request)
             }
             #expect(timing.entered && timing.cancelled, "Attempt \(attempt): \(timing)")
+            #expect(timing.requestToEndSeconds > uncancelled / 2, "Attempt \(attempt): \(timing)")
             cancellations.append(timing.record.merging(["attempt": attempt, "tokens": tokens]) { first, _ in first })
             print("typed-cancel-timing attempt \(attempt) tokens \(tokens) \(timing) uncancelled \(uncancelled)")
         }

@@ -46,11 +46,16 @@ struct TypedDecisionCancelTimingTests {
     func requestToError() async {
         let (entered, continuation) = AsyncStream.makeStream(of: Void.self)
         var iterator = entered.makeAsyncIterator()
-        let timing = await cancelWhileRunning(
-            entered: &iterator, now: Self.clock([.zero, .milliseconds(1_500), .seconds(4)])
-        ) {
+        let elapsed = Mutex(Duration.zero)
+        let origin = ContinuousClock.now
+        let now: @Sendable () -> ContinuousClock.Instant = { origin + elapsed.withLock { $0 } }
+        let timing = await cancelWhileRunning(entered: &iterator, now: now) {
+            for _ in 0..<200 { await Task.yield() }
+            elapsed.withLock { $0 = .milliseconds(1_500) }
             continuation.yield()
             while !Task.isCancelled { await Task.yield() }
+            for _ in 0..<200 { await Task.yield() }
+            elapsed.withLock { $0 = .seconds(4) }
             try Task.checkCancellation()
         }
         #expect(

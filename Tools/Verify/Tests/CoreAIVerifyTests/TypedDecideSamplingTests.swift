@@ -22,6 +22,8 @@ import Testing
     func largestDuringTheRun() async throws {
         let values: [UInt64?] = [100, nil, 300, 200]
         let captured = Mutex(0)
+        let finished = Mutex(false)
+        let afterRun = Mutex<[Bool]>([])
         let deadlines = Mutex<[ContinuousClock.Instant]>([])
         let (signal, continuation) = AsyncStream.makeStream(of: Int.self)
         let started = ContinuousClock.now
@@ -36,11 +38,14 @@ import Testing
                 return count - 1
             }
             continuation.yield(index)
+            let done = finished.withLock { $0 }
+            afterRun.withLock { $0.append(done) }
             guard let rss = values[min(index, values.count - 1)] else { return Memory.failed(code: 5) }
             return Memory(rssBytes: rss, footprintBytes: rss / 2, graphicsFootprintBytes: 0)
         }
         let result = try await sampleResident(started: started, waitUntil: wait, capture: capture) {
             for await index in signal where index >= values.count - 1 { break }
+            finished.withLock { $0 = true }
             return 7
         }
         let total = captured.withLock { $0 }
@@ -49,6 +54,7 @@ import Testing
         #expect(result.resident.samples + result.resident.failedSamples == total)
         #expect(result.resident.failedSamples == 1)
         #expect(result.resident.intervalSeconds == 0.1)
+        #expect(afterRun.withLock { $0.last } == true)
         let recorded = deadlines.withLock { $0 }
         #expect(!recorded.isEmpty)
         for (index, deadline) in recorded.enumerated() {
