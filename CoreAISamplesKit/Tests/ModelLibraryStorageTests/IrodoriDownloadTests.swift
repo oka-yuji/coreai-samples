@@ -69,4 +69,42 @@ struct IrodoriDownloadTests {
             try await store.stagingDirectory(for: model, artifact: artifact)
         }
     }
+
+    @Test(
+        "LIB-03 The Mac reference download passes the storage check while altered files or contracts are rejected",
+        arguments: ["intact", "hash", "missing", "contract"])
+    func macDistribution(_ field: String) async throws {
+        let known = try IrodoriModelArtifact.makeReferenceDownload(platforms: [.macOS])
+        var files = known.files
+        if field == "hash" {
+            files[0] = ModelArtifactFile(
+                path: files[0].path, bytes: files[0].bytes, sha256: String(repeating: "a", count: 64))
+        } else if field == "missing" {
+            files.removeFirst()
+        }
+        let artifact = ModelArtifact(
+            id: known.id, title: known.title,
+            contract: field == "contract" ? IrodoriModelArtifact.contract : known.contract,
+            platforms: known.platforms, sizeBytes: files.reduce(0) { $0 + $1.bytes }, download: known.download,
+            upstream: known.upstream, files: files)
+        let model = LibraryModel(
+            id: "irodori", name: "Irodori", category: "Speech", artifacts: [artifact],
+            defaultArtifactID: artifact.id, platforms: [.macOS], demos: [])
+        let fixture = StoreFixture()
+        defer { fixture.remove() }
+        let store = fixture.store()
+        guard field != "intact" else {
+            #expect(artifact == known && known.platforms == [.macOS])
+            #expect(try await store.inspect(model: model, artifact: artifact).isMissing)
+            #expect(
+                try await store.stagingDirectory(for: model, artifact: artifact).lastPathComponent
+                    == known.sourceRevision)
+            return
+        }
+        let inspected = try await store.inspect(model: model, artifact: artifact)
+        #expect(inspected.resource == nil && inspected.reason?.contains("Irodori inventory") == true)
+        await #expect(throws: ManagedModelStoreError.contractMismatch("Irodori inventory")) {
+            try await store.stagingDirectory(for: model, artifact: artifact)
+        }
+    }
 }
