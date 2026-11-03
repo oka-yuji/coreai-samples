@@ -102,6 +102,7 @@ private struct ModelInformationButton: View {
     let model: LibraryModel
     @State private var showing = false
     @State private var message: Text?
+    @Environment(\.locale) private var locale
 
     var body: some View {
         Button {
@@ -138,6 +139,7 @@ private struct ModelInformationButton: View {
             }
             .padding()
             .frame(width: 360)
+            .environment(\.locale, locale)
         }
     }
 }
