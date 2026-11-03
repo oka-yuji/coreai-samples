@@ -79,7 +79,7 @@ Results below retain their original dates and workloads. Different rows may use 
 ## Run the demo
 
 1. Prepare the bundle below, or use the locally prepared bundle from the validation work.
-2. Build and run `CoreAISamples` in Xcode on macOS 27. Select **EmbeddingGemma 2** in the sidebar.
+2. Build and run `CoreAISamples` in Xcode on macOS 27. In the **EmbeddingGemma 2** section of the sidebar, select the **Find selected images with your own words** row.
 3. Choose **Open model → Open model folder…** and select the bundle directory.
 4. Choose **Use sample images** or **Choose images…**. Wait for indexing to finish.
 5. Describe an image and select **Search**. Select a result to open its original.
@@ -129,7 +129,7 @@ You can choose up to 50 images. The index is held in memory and discarded when t
 Find moments in a video with your own words, then play the video from the moment you select (#129). The demo samples still frames, embeds each frame with the same image encoder and preprocessing as image search, and ranks the frames against the query. Audio, motion between frames and captions are not used.
 
 - **iPhone:** in **Models**, open **Video search demo** under **EmbeddingGemma 2**. **Choose video…** opens the Photos picker, which runs outside the app, so the demo asks for no photo library permission. The chosen video is copied to the app's temporary folder; the next choice replaces the copy. Indexing loads the selected variant when needed. Going back, moving to the background and switching the variant stop the demo and release the model and its index as in image search; the video, the query, the results and the threshold stay, and **Index again** rebuilds the index.
-- **Mac:** select **Find moments in a video with your own words** under **EmbeddingGemma 2** in the sidebar, open the model folder, then choose a movie file. You can preselect the demo and bundle at launch: `CoreAISamples.app/Contents/MacOS/CoreAISamples --embedding-bundle /path/to/bundle --video-search`. Keep `--video-search` last: AppKit reads the arguments as option-value pairs, so a flag placed before `--embedding-bundle` leaves the path on its own, AppKit opens it as a document, and SwiftUI then opens no window.
+- **Mac:** in the **EmbeddingGemma 2** section of the sidebar, select the **Find moments in a video with your own words** row, open the model folder, then choose a movie file. You can preselect the demo and bundle at launch: `CoreAISamples.app/Contents/MacOS/CoreAISamples --embedding-bundle /path/to/bundle --video-search`. Keep `--video-search` last: AppKit reads the arguments as option-value pairs, so a flag placed before `--embedding-bundle` leaves the path on its own, AppKit opens it as a document, and SwiftUI then opens no window.
 
 One frame is taken at the center of each one-second interval, up to 300 frames; a longer video is sampled at 300 evenly spaced times. Frames are decoded with the video's orientation applied, at most 640 pixels on the long side, within 0.5 seconds of the requested time, and a result shows the time of the decoded frame. Frames are requested a few at a time so that decoded frames do not pile up while the model is busy. A time whose frame cannot be decoded is skipped, and a video with no decodable frame is rejected. The index is held in memory only.
 

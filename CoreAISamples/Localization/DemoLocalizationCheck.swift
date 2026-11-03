@@ -33,7 +33,8 @@ enum DemoLocalizationCheck {
                 "Retry save", "Saving conversation…", "Keep app open",
             ]
             keys += [
-                "Conversations", "Tools", "Rename…", "Delete…", "Move to Trash", "Markdown export is not up to date.",
+                "Conversations", "Manage", "Rename…", "Delete…", "Move to Trash", "Markdown export is not up to date.",
+                "Downloaded %@ · Available %@",
             ]
             keys += [
                 "Source citations", "The answer did not cite any supplied source.",

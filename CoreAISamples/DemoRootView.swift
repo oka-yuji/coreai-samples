@@ -65,6 +65,42 @@ enum Demo: String, CaseIterable, Identifiable {
     }
 }
 
+enum DemoModel: CaseIterable {
+    case qwen
+    case clefFlash
+    case embeddingGemma
+    case gliner
+    case irodori
+    case teleOCR
+
+    var title: String {
+        switch self {
+        case .qwen: "Qwen3.8 27B"
+        case .clefFlash: "Clef-Flash 9B"
+        case .embeddingGemma: "EmbeddingGemma 2"
+        case .gliner: "GLiNER2.5-multi"
+        case .irodori: "Irodori"
+        case .teleOCR: "TeleOCR"
+        }
+    }
+
+    var demos: [Demo] { Demo.allCases.filter { $0.model == self } }
+}
+
+extension Demo {
+    var model: DemoModel? {
+        switch self {
+        case .chat: .qwen
+        case .decide, .recipes: .clefFlash
+        case .imageSearch, .videoSearch: .embeddingGemma
+        case .extract: .gliner
+        case .speech: .irodori
+        case .ocr: .teleOCR
+        case .models: nil
+        }
+    }
+}
+
 struct DemoRootView: View {
     private let lifetime: ConversationLifetime
     @State private var windowID: UUID
