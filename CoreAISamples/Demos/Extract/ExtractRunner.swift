@@ -62,7 +62,12 @@ struct ExtractRunner {
                 send(.exportFailed(Self.describe(error)))
             }
         case .release:
-            return
+            do {
+                try await service.release()
+                send(.released)
+            } catch {
+                send(.releaseFailed(Self.describe(error)))
+            }
         }
     }
 

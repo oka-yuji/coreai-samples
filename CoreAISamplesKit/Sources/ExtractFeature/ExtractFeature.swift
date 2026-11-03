@@ -84,11 +84,9 @@ public enum ExtractFeature: Feature {
             if state.isManaged, case .extracting = state.phase { state.phase = .failed(message) }
             return []
         case .closed:
-            guard state.isManaged else { return [] }
             if case .extracting = state.phase { state.phase = .idle }
             return [.cancelAll, .run(.release, id: .asset)]
         case .released:
-            guard state.isManaged else { return [] }
             state.asset = .none
             return []
         case .releaseFailed(let message):
