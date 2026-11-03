@@ -428,6 +428,87 @@
       "timeout_s": 1800
     },
     {
+      "id": "typed_input",
+      "role": "prepare",
+      "depends": ["fixture", "prepare"],
+      "command": [
+        "$python", "-m", "Tools.Conversion.adapters.jev27b.typed_input",
+        "--model", "$recipe_dir/model.json",
+        "--snapshot", "$snapshot",
+        "--corpus", "$corpus",
+        "--jglue", "$jglue",
+        "--fixtures", "$fixtures",
+        "--sets", "F",
+        "--output", "$out"
+      ],
+      "cwd": "$repo",
+      "inputs": [
+        "$adapters/typed_input.py",
+        "$adapters/fixtures.py",
+        "$adapters/prepare.py",
+        "$adapters/typed_head.py",
+        "$repo/Tools/Conversion/adapters/pinned.py",
+        "$repo/Tools/Conversion/storage.py",
+        "$recipe_dir/model.json",
+        "$fixtures/F.json",
+        "$fixtures/jglue.json",
+        "${corpus}.integrity.json",
+        "$corpus",
+        "${jglue}.integrity.json",
+        "$jglue",
+        "$snapshot/config.json",
+        "$snapshot/tokenizer.json",
+        "$snapshot/tokenizer_config.json",
+        "$snapshot/chat_template.jinja"
+      ],
+      "outputs": ["input-F.json", "check.json"],
+      "checks": [{"file": "check.json", "key": ["passed"], "equals": true}],
+      "timeout_s": 1800
+    },
+    {
+      "id": "typed_decide_f",
+      "role": "reference",
+      "depends": ["export", "typed_input"],
+      "command": [
+        "$verify", "typed-decide",
+        "--bundle", "$export/$bundle",
+        "--input", "$typed_input/input-F.json",
+        "--output", "$out/swift-F.json"
+      ],
+      "cwd": "$repo",
+      "inputs": ["$recipe_dir/model.json"],
+      "outputs": ["swift-F.json"],
+      "heavy": true,
+      "timeout_s": 14400
+    },
+    {
+      "id": "compare_f",
+      "role": "verify",
+      "depends": ["typed_decide_f", "verify_quantization"],
+      "command": [
+        "$python", "-m", "Tools.Conversion.adapters.jev27b.compare",
+        "--reference", "$verify_quantization/reference_q.json",
+        "--set", "F",
+        "--swift", "$typed_decide_f/swift-F.json",
+        "--output", "$out"
+      ],
+      "cwd": "$repo",
+      "inputs": [
+        "$adapters/compare.py",
+        "$adapters/verify_merge.py",
+        "$adapters/merge.py",
+        "$adapters/fixtures.py",
+        "$adapters/prepare.py",
+        "$adapters/typed_head.py",
+        "$repo/Tools/Conversion/adapters/pinned.py",
+        "$repo/Tools/Conversion/storage.py",
+        "$recipe_dir/model.json"
+      ],
+      "outputs": ["comparison.json", "report.md"],
+      "checks": [{"file": "comparison.json", "key": ["passed"], "equals": true}],
+      "timeout_s": 600
+    },
+    {
       "id": "verify_merge",
       "role": "verify",
       "depends": ["merge", "reference", "reference_merged"],

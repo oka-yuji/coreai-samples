@@ -42,9 +42,21 @@ cache is written. The JGLUE files are fetched from
 
 ~~~sh
 python3 -m Tools.Conversion.local setup --recipe jev27b
-python3 -m Tools.Conversion.local plan --recipe jev27b
-python3 -m Tools.Conversion.local run --recipe jev27b
+swift build -c release --package-path Tools/Verify --product coreai-verify
+mkdir -p .local/conversion/jev27b/bin
+cp Tools/Verify/.build/release/coreai-verify .local/conversion/jev27b/bin/coreai-verify
+python3 -m Tools.Conversion plan Tools/Conversion/recipes/jev27b/recipe.json \
+  --bindings .local/conversion/jev27b.paths.json --set verify=$PWD/.local/conversion/jev27b/bin/coreai-verify
+python3 -m Tools.Conversion run Tools/Conversion/recipes/jev27b/recipe.json \
+  --bindings .local/conversion/jev27b.paths.json --work-dir .local/conversion/work/jev27b \
+  --lock-dir ~/Library/Caches/coreai-samples/heavy-job --set verify=$PWD/.local/conversion/jev27b/bin/coreai-verify
 ~~~
+
+The `typed_decide_f` step runs the executable named by the variable `verify`, which has no default: pass its absolute
+path with `--set verify=...`, as above. `python3 -m Tools.Conversion.local plan|run --recipe jev27b` cannot pass it
+and stops with an unresolved variable. The step runs a copy of the executable rather than the build product, because
+the runner hashes the executable into the step's cache key: copying a new build makes `typed_decide_f` and `compare_f`
+run again, and the other steps stay reused.
 
 Setup checks the integrity records and then, under the shared machine lock, creates:
 
@@ -163,6 +175,22 @@ prints the shareable numbers of a run and its quantization check. It lives besid
 than in `Tools/Conversion/summary.py` because every `Tools/Conversion/*.py` file is part of each
 step's cache key: editing that file would make the next run repeat every step, including the
 merge, both references, the export and both probes.
+
+## Core AI run and fidelity
+
+These steps also run before `verify_merge`:
+
+- `typed_input` checks the corpus and JGLUE integrity records, restores the text of F through `load_rows`, renders
+  and tokenizes every row with the distributed tokenizer, and stops unless the token counts and bands equal the
+  fixture. It writes `input-F.json` (`{"rows": [{"id", "kind", "state", "question", "options"}]}`) and `check.json`
+  (rows, rejected rows and the SHA-256 of each input file). The text stays in the local work directory.
+- `typed_decide_f` runs `coreai-verify typed-decide` with the exported bundle on `input-F.json` and writes
+  `swift-F.json` ([docs/jev27b.md](../../../../docs/jev27b.md#running-on-mac)). It loads the model, so it is heavy.
+- `compare_f` scores `swift-F.json` against stage 2 of `reference_q.json`: rows, token IDs and the rejected row
+  first, then finite distributions, then at temperature 1 a largest probability difference of at most 0.03 and a mean
+  of at most 0.01 in every input band with rows. Bands without rows are listed as unevaluated, top-1 changes are
+  reported with the 0.06 rule, and the shipping-temperature statistics are recomputed from the logits and reported
+  separately. `comparison.json` (`typed-decision-fidelity/1`) and `report.md` hold the result.
 
 ## Tokenizer
 
