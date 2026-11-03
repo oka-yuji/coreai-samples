@@ -80,7 +80,7 @@ options of the question. Temperature 1 gives the uncalibrated probabilities; `pe
 | 1 | Backbone with the unmerged LoRA adapter (PEFT) | bfloat16 | `reference` |
 | 1' | Merged checkpoint | bfloat16 | `reference_merged` |
 | 2 | Merged checkpoint quantized with the export recipe, computed in float32 | float32 | `probe_merged` |
-| 3 | Core AI asset run from Swift | asset | not part of this recipe |
+| 3 | Core AI asset run from Swift (`TypedDecisionModel`) | asset | `typed_decide_f` |
 
 Stages 2 and 0q are built in their own processes through the exporter's own loading and quantization path. Every tensor
 of the quantized model (quantized data, scales, offsets and unquantized weights) is hashed before any float32 cast.
@@ -115,11 +115,12 @@ types are separate from the Clef-Flash decision types.
 | `TypedDecisionHead.top(of:)` | The index of the largest value; ties select the earliest. |
 | `TypedDecisionAnswer` | `kind`, `options`, `logits`, `probabilities`, `probabilitiesT1`, `top` and `tokenCount` of one decision. |
 
-`swift test --package-path CoreAISamplesKit --filter TypedDecision` runs the rendering, rejection, synthetic head and
-bundle tests. With `JEV_BUNDLE_DIR` set to the bundle folder, the tests also compare the token IDs of every fixture row
-with the bundled tokenizer, compare the bundled head with stage 1' (logits within 1e-4, probabilities within 1e-5) and
-open the bundle, which reads every listed file, including the 16 GB asset, for its SHA-256. None of these tests loads or
-runs the Core AI asset.
+`swift test --package-path CoreAISamplesKit --filter TypedDecision` runs the rendering, rejection, synthetic head,
+bundle and model tests; the model tests use a fake backbone. With `JEV_BUNDLE_DIR` set to the bundle folder, the tests
+also compare the token IDs of every fixture row with the bundled tokenizer, compare the bundled head with stage 1'
+(logits within 1e-4, probabilities within 1e-5) and open the bundle, which reads every listed file, including the 16 GB
+asset, for its SHA-256. None of these tests loads or runs the Core AI asset; `TypedDecisionInferenceTests` (below) does,
+only with `COREAI_TYPED_DECISION_BUNDLE`.
 
 ~~~sh
 JEV_BUNDLE_DIR=/path/to/jev27b_s1_qwen3_5_cfg_dynamic swift test --package-path CoreAISamplesKit --filter TypedDecision
@@ -128,20 +129,85 @@ JEV_BUNDLE_DIR=/path/to/jev27b_s1_qwen3_5_cfg_dynamic swift test --package-path 
 The fixtures are in `CoreAISamplesKit/Tests/CoreAIBackendTests/Fixtures/TypedDecision/`: `render.json` (15 synthetic
 English rows with the input boundaries, the two card examples of the model card and 8 JGLUE rows of F with their text,
 rendered and tokenized in Python), `reject.json` (19 option lists that the reference renderer refuses), `head.json` (a
-head of width 4 with six cases computed with `decide`) and `real-head.json` (four rows of F with their stage 1' hidden
-state, logits and probabilities, and token IDs but no text). Regenerate them in the reference environment:
+head of width 4 with six cases computed with `decide`), `real-head.json` (four rows of F with their stage 1' hidden
+state, logits and probabilities, and token IDs but no text) and `inference.json` (the card examples and JGLUE rows of
+`render.json` with their token count, token SHA-256, band and the stage 2 and 1' values of `reference_q.json`).
+Regenerate them in the reference environment:
 
 ~~~sh
 python -m Tools.Conversion.adapters.jev27b.swift_fixture --snapshot <JEV-27B folder> --corpus <corpus folder> \
   --jglue <JGLUE folder> --fixtures Tools/Conversion/recipes/jev27b/fixtures --reference <reference.json> \
   --merged-reference <reference-merged.json> --hidden <hidden.safetensors> \
-  --output CoreAISamplesKit/Tests/CoreAIBackendTests/Fixtures/TypedDecision
+  --quantized-reference <reference_q.json> --output CoreAISamplesKit/Tests/CoreAIBackendTests/Fixtures/TypedDecision
 ~~~
 
 The Swift tokenizer (swift-transformers 1.3.4) matches the Split pre-tokenizer pattern on whole grapheme clusters, so
 its token IDs differ from those of the Python tokenizer where a pattern boundary falls inside a cluster. Measured
 examples are consecutive CRLF line breaks and Hindi and Thai words with combining marks. The fixtures contain no such
 text.
+
+## Running on Mac
+
+`TypedDecisionModel` (an actor in `CoreAIBackend`) runs the bundle on Core AI. These types are also separate from the
+Clef-Flash decision types; `DecisionRuntime` and `DecisionModel` are unchanged.
+
+| API | Behavior |
+|---|---|
+| `TypedDecisionModel.load(bundle:)` | Opens the bundle with `TypedDecisionBundle(url:)`, so a bundle that breaks the contract fails before any asset is read. Then it loads the bundled tokenizer, maps the head and specializes `main` with the GPU preferred and `expectFrequentReshapes = true`, reusing the specialization cache entry when there is one. Before specializing it checks that the asset summary lists the `hidden_states` output; afterwards it checks the descriptors: `input_ids` and `position_ids` Int32 1 x ?, `hidden_states` Float16 1 x ? x 5120, the four states of `decision.json`, no interleaved layout and at most one dynamic dimension per state. `loadStats` holds the seconds of each part and whether the specialization came from the cache. |
+| `decide(_:)` | Renders and tokenizes the request (rejections throw before the model runs), runs `main` once from zero states and applies the head. Each request allocates its own four states, with the dynamic dimension set to `capacity(forTokens:)`, the token count rounded up to a multiple of 256 and at most `input_tokens`. `position_ids` are 0 to T - 1 without padding, and only the hidden state of the last position is read. Returns a `TypedDecisionAnswer`. |
+| One request at a time | A request that arrives while another is running throws `TypedDecisionError.busy`; requests are not queued. The running request keeps the model busy until its forward pass returns, also after its task is cancelled. Cancellation is checked before and after the forward pass and ends the request with `CancellationError`. |
+| `tokenIDs(for:)`, `tokenCount(for:)` | The token IDs and their count for a request, with the same rejections as `decide(_:)`. |
+
+`coreai-verify typed-decide` (in `Tools/Verify`) loads the model once and answers the rows of a JSON file one at a time:
+
+~~~sh
+swift build -c release --package-path Tools/Verify --product coreai-verify
+Tools/Verify/.build/release/coreai-verify typed-decide --bundle <bundle> --input <in.json> --output <out.json> [--limit N]
+~~~
+
+- Input: `{"rows": [{"id", "kind", "state", "question", "options"}]}`; other keys are ignored. `--limit N` runs the
+  first N rows.
+- Output (`typed-decide/1`), written once at the end to a file that must not exist yet:
+  `bundle` (`name`, `version` (the SHA-256 of `decision.json`), `asset_sha256` (the `main.mlirb` digest in
+  `SHA256SUMS`), `specialization` (`cached` or `fresh`), `load_seconds` (`bundle`, `tokenizer`, `head`, `backbone`)),
+  `input_sha256`, `started` (ISO 8601, UTC), `host` (`os_build`, `machine`) and `rows`. A row holds `id`, `kind`,
+  `token_count`, `tokens_sha256` (the SHA-256 of the token IDs written in decimal and joined by commas), `capacity`,
+  `logits` (24 values before the temperature), `probabilities` (shipping temperature), `probabilities_t1`, `top`
+  and `elapsed_seconds`. A rejected row holds `id`, `kind`, `error` (`tooManyTokens` or `invalidOptions`) and, for
+  `tooManyTokens`, `token_count`. Progress goes to standard error. Any other failure stops the run without an output.
+- Running the model is a heavy job: hold the shared machine lock.
+
+The recipe adds three steps after `verify_quantization`, still before `verify_merge`:
+
+- `typed_input` restores the text of F from the corpus and JGLUE, checks that the token counts and bands equal the
+  fixture, and writes `input-F.json` and `check.json`. `--sets` takes several sets (`F`, `Q`, `Cal`, `H`, `J`) and
+  writes one `input-<set>.json` for each.
+- `typed_decide_f` runs `coreai-verify typed-decide` on `input-F.json` with the exported bundle and writes
+  `swift-F.json`. The executable is the variable `verify`, which must be passed with `--set`
+  ([recipe README](../Tools/Conversion/recipes/jev27b/README.md)).
+- `compare_f` scores `swift-F.json` against stage 2 in `reference_q.json` and writes `comparison.json`
+  (`typed-decision-fidelity/1`) and `report.md`. `passed` requires the rows of F in order with the reference token
+  IDs (by `tokens_sha256`) and a `tooManyTokens` rejection exactly for the rejected row, finite probabilities between
+  0 and 1 that sum to 1 within 1e-3, and at temperature 1, for every input band with rows, a largest
+  `e_j = max_i |p3_i - p2_i|` of at most 0.03 and a mean of at most 0.01. Bands without rows are listed as
+  unevaluated. Top-1 changes are reported with whether the new option is within 0.06 of the reference top; they are
+  not a criterion. The shipping-temperature statistics are recomputed from the 24 logits of both sides and reported
+  separately; `--temperatures <json>` (a `per_kind` object) scores them at other temperatures. The difference from
+  stage 1' is shown for reference only.
+
+With `COREAI_TYPED_DECISION_BUNDLE` set to the absolute path of the bundle folder, `TypedDecisionInferenceTests` runs
+ten rows of F (the two card examples and the eight JGLUE rows of `render.json`, all at most 512 tokens) on Core AI:
+the band limits against stage 2 at temperature 1 with the token IDs of the reference, bit-identical results for the
+same row run twice, a request cancelled after its forward pass starts followed by a row that still matches, and the
+difference between the rounded capacity and 8,192 positions. The fixture is `Fixtures/TypedDecision/inference.json`,
+written by `swift_fixture` with `--quantized-reference <reference_q.json>`. The tests load the model, so hold the
+shared machine lock; without the variable they are skipped. `DECIDE_METRICS_DIR` saves their measurements as
+`typed-*.json`.
+
+~~~sh
+COREAI_TYPED_DECISION_BUNDLE=/path/to/jev27b_s1_qwen3_5_cfg_dynamic swift test --package-path CoreAISamplesKit \
+  --filter TypedDecisionInferenceTests
+~~~
 
 ## Terms
 
