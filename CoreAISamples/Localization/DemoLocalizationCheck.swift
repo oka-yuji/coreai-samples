@@ -34,7 +34,7 @@ enum DemoLocalizationCheck {
             ]
             keys += [
                 "Conversations", "Manage", "Rename…", "Delete…", "Move to Trash", "Markdown export is not up to date.",
-                "Downloaded %@ · Available %@",
+                "Downloaded %@ · Available %@", "Conversation history", "Show or hide the conversation history",
             ]
             keys += [
                 "Source citations", "The answer did not cite any supplied source.",

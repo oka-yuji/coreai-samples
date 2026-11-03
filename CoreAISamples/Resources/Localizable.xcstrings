@@ -2176,6 +2176,16 @@
         }
       }
     },
+    "Conversation history" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "会話の履歴"
+          }
+        }
+      }
+    },
     "Conversation settings" : {
       "localizations" : {
         "ja" : {
@@ -7321,6 +7331,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "すべての候補を表示"
+          }
+        }
+      }
+    },
+    "Show or hide the conversation history" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "会話の履歴を表示または非表示にします"
           }
         }
       }

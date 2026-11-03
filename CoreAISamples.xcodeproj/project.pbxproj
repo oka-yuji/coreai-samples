@@ -70,6 +70,7 @@
 		34B8E68145C72B1FE4CCD28B /* IOSModelLibraryAssembly.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44BA75E22EC287033FFDBFBB /* IOSModelLibraryAssembly.swift */; };
 		35A8F2FF5029AB1D9E5300B5 /* FetchProvenanceSelfTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FB6B1B36C2F9ED00C7205DD /* FetchProvenanceSelfTest.swift */; };
 		35AADB18E6D9888472F64B54 /* OCRMacLibrary.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2CB6BD9593A5870E758F452 /* OCRMacLibrary.swift */; };
+		360AD914000391D21C53171C /* ConversationHistoryColumn.swift in Sources */ = {isa = PBXBuildFile; fileRef = A424D041AA97C06F1F4DE2A3 /* ConversationHistoryColumn.swift */; };
 		36B44880EECCFBD6D426A9E3 /* DecideResultRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F7FE685C8A7B3B5D383AC56 /* DecideResultRow.swift */; };
 		36D49B81E1D68D03832B9359 /* ExtractRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F2F07EBDAB41490EF60A529 /* ExtractRunner.swift */; };
 		370E8D93FDF286C8C9D0FBBC /* 05-caprese.png in Resources */ = {isa = PBXBuildFile; fileRef = 40FBC139C9FDEC515A5F909A /* 05-caprese.png */; };
@@ -432,6 +433,7 @@
 		9F7FE685C8A7B3B5D383AC56 /* DecideResultRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DecideResultRow.swift; sourceTree = "<group>"; };
 		A014A59B7FD23A97BEB797A0 /* PhoneModelLibraryScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneModelLibraryScreen.swift; sourceTree = "<group>"; };
 		A3D65A0C17724B4972F0D163 /* ImageSearchVectorCheck.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageSearchVectorCheck.swift; sourceTree = "<group>"; };
+		A424D041AA97C06F1F4DE2A3 /* ConversationHistoryColumn.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationHistoryColumn.swift; sourceTree = "<group>"; };
 		A83E84EE5AB848D7AA9C38CD /* OCRHostView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OCRHostView.swift; sourceTree = "<group>"; };
 		AC07B5B052D2FAA52463042D /* CoreAISamplesImageTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = CoreAISamplesImageTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		AC4EC31CE5CEA79543AC008A /* CoreAISamples.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CoreAISamples.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -640,6 +642,7 @@
 				AE730AD5E9F3B460BD97FC21 /* ConversationAccessSelfTest.swift */,
 				F8A445C0F98E7EF55960E4EB /* ConversationArchiveSelfTest.swift */,
 				2C9D606E59C375EB20C9B214 /* ConversationBudgetSelfTest.swift */,
+				A424D041AA97C06F1F4DE2A3 /* ConversationHistoryColumn.swift */,
 				27FDA760AB8D286B4E8C266C /* ConversationHost.swift */,
 				69CD3BEEBD95887645565C8C /* ConversationLifetime.swift */,
 				89EDDFD9D06EE560E8AFF0B4 /* ConversationNotesSelfTest.swift */,
@@ -1488,6 +1491,7 @@
 				7DB29AC3F6130B6475B942D9 /* ConversationAccessSelfTest.swift in Sources */,
 				5668A40CC5FF61A2AA39118A /* ConversationArchiveSelfTest.swift in Sources */,
 				EA6EA15C27A2452E25470CAF /* ConversationBudgetSelfTest.swift in Sources */,
+				360AD914000391D21C53171C /* ConversationHistoryColumn.swift in Sources */,
 				E6486E1900A9A6AF5261B94E /* ConversationHost.swift in Sources */,
 				4F8AAE5BE35F479C752D9F3F /* ConversationLifetime.swift in Sources */,
 				7C79732CC95B936473E2F96D /* ConversationNotesSelfTest.swift in Sources */,
