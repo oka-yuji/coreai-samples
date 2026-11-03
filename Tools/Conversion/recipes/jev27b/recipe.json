@@ -6,6 +6,7 @@
     "adapters": "$repo/Tools/Conversion/adapters/jev27b",
     "fixtures": "$recipe_dir/fixtures",
     "bundle": "jev27b_s1_qwen3_5_cfg_dynamic",
+    "bundle_gdnfp32": "jev27b_s1_gdnfp32_qwen3_5_cfg_dynamic",
     "converter": "$upstream/.venv/bin/python",
     "quantization_recipe": "$upstream/models/qwen3_5/qwen3_5_cfg.yaml"
   },
@@ -294,6 +295,53 @@
       "min_free_bytes": 160000000000
     },
     {
+      "id": "export_gdnfp32",
+      "role": "export",
+      "depends": ["export", "merge", "prepare"],
+      "command": [
+        "$converter", "-m", "Tools.Conversion.adapters.jev27b.export_variant", "export",
+        "--model", "$recipe_dir/model.json",
+        "--merge", "$merge",
+        "--snapshot", "$snapshot",
+        "--base", "$base",
+        "--upstream", "$upstream",
+        "--recipe", "$quantization_recipe",
+        "--bundle", "$bundle_gdnfp32",
+        "--baseline", "$export",
+        "--output", "$out"
+      ],
+      "cwd": "$repo",
+      "inputs": [
+        "$adapters/export_variant.py",
+        "$adapters/backbone_gdnfp32.py",
+        "$adapters/export.py",
+        "$adapters/monitor.py",
+        "$adapters/backbone.py",
+        "$adapters/decision.py",
+        "$adapters/prepare.py",
+        "$adapters/typed_head.py",
+        "$repo/Tools/Conversion/adapters/pinned.py",
+        "$repo/Tools/Conversion/storage.py",
+        "$recipe_dir/model.json",
+        "$quantization_recipe",
+        "$snapshot/head.safetensors",
+        "$snapshot/calibration.json",
+        "$snapshot/judge_config.json",
+        "$snapshot/adapter/adapter_config.json",
+        "$snapshot/adapter/adapter_model.safetensors",
+        "$snapshot/tokenizer.json",
+        "$snapshot/tokenizer_config.json",
+        "$snapshot/chat_template.jinja",
+        "$base/LICENSE"
+      ],
+      "outputs": ["jev27b_s1_gdnfp32_qwen3_5_cfg_dynamic", "provenance.json", "quantized-hashes.json", "inspect.json",
+                  "variant.json"],
+      "checks": [{"file": "variant.json", "key": ["passed"], "equals": true}],
+      "heavy": true,
+      "timeout_s": 3600,
+      "min_free_bytes": 160000000000
+    },
+    {
       "id": "probe_merged",
       "role": "reference",
       "depends": ["export", "fixture", "prepare", "merge"],
@@ -468,10 +516,10 @@
     {
       "id": "typed_decide_f",
       "role": "reference",
-      "depends": ["export", "typed_input"],
+      "depends": ["export_gdnfp32", "typed_input"],
       "command": [
         "$verify", "typed-decide",
-        "--bundle", "$export/$bundle",
+        "--bundle", "$export_gdnfp32/$bundle_gdnfp32",
         "--input", "$typed_input/input-F.json",
         "--output", "$out/swift-F.json"
       ],

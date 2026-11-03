@@ -34,6 +34,23 @@ jev27b_s1_qwen3_5_cfg_dynamic/
 - `head.safetensors` and the tokenizer files are byte-for-byte copies of the files distributed with JEV-27B. The
   tokenizer is never saved again.
 
+### Variant with a float32 gated delta update
+
+The recipe also exports `jev27b_s1_gdnfp32_qwen3_5_cfg_dynamic` (step `export_gdnfp32`), and the Core AI steps run on
+this bundle. It has the same layout, states and outputs. In each of the 48 linear-attention layers, the six inputs of
+the composite `gated_delta_update` operation (query, key, value, g, beta and the recurrent state) are cast to float32
+before the operation, and its two outputs are cast back to bfloat16. In the first bundle, the operation receives
+bfloat16 values. The derived class `TypedDecisionBackboneGdnFp32` keeps the original module as a child of the wrapper,
+so the exporter still externalizes it as the same composite operation. Quantization and the quantized weights do not
+change: the step requires the per-tensor SHA-256 of the quantized model to equal the record of `export`.
+
+- `variant.json` records the hash comparison, the number of wrapped layers, the input types of every
+  `gated_delta_update` call in the IR of both assets (read without the weights), the number of `cast` operations and
+  the inspection of the asset. Its `passed` is the check of the step.
+- `decision.json` differs from the first bundle only in `backbone.asset` and `files`. `NOTICE.md` adds a line for the
+  float32 update, and `provenance.json` records `variant: gdn-fp32` and the key of the `export` object it was checked
+  against.
+
 Check a copy of the bundle from inside its folder:
 
 ~~~sh
@@ -80,7 +97,7 @@ options of the question. Temperature 1 gives the uncalibrated probabilities; `pe
 | 1 | Backbone with the unmerged LoRA adapter (PEFT) | bfloat16 | `reference` |
 | 1' | Merged checkpoint | bfloat16 | `reference_merged` |
 | 2 | Merged checkpoint quantized with the export recipe, computed in float32 | float32 | `probe_merged` |
-| 3 | Core AI asset run from Swift (`TypedDecisionModel`) | asset | `typed_decide_f` |
+| 3 | Core AI asset of the float32 gated delta update variant, run from Swift (`TypedDecisionModel`) | asset | `typed_decide_f` |
 
 Stages 2 and 0q are built in their own processes through the exporter's own loading and quantization path. Every tensor
 of the quantized model (quantized data, scales, offsets and unquantized weights) is hashed before any float32 cast.
@@ -182,8 +199,8 @@ The recipe adds three steps after `verify_quantization`, still before `verify_me
 - `typed_input` restores the text of F from the corpus and JGLUE, checks that the token counts and bands equal the
   fixture, and writes `input-F.json` and `check.json`. `--sets` takes several sets (`F`, `Q`, `Cal`, `H`, `J`) and
   writes one `input-<set>.json` for each.
-- `typed_decide_f` runs `coreai-verify typed-decide` on `input-F.json` with the exported bundle and writes
-  `swift-F.json`. The executable is the variable `verify`, which must be passed with `--set`
+- `typed_decide_f` runs `coreai-verify typed-decide` on `input-F.json` with the variant bundle of `export_gdnfp32`
+  and writes `swift-F.json`. The executable is the variable `verify`, which must be passed with `--set`
   ([recipe README](../Tools/Conversion/recipes/jev27b/README.md)).
 - `compare_f` scores `swift-F.json` against stage 2 in `reference_q.json` and writes `comparison.json`
   (`typed-decision-fidelity/1`) and `report.md`. `passed` requires the rows of F in order with the reference token
@@ -195,17 +212,18 @@ The recipe adds three steps after `verify_quantization`, still before `verify_me
   separately; `--temperatures <json>` (a `per_kind` object) scores them at other temperatures. The difference from
   stage 1' is shown for reference only.
 
-With `COREAI_TYPED_DECISION_BUNDLE` set to the absolute path of the bundle folder, `TypedDecisionInferenceTests` runs
-ten rows of F (the two card examples and the eight JGLUE rows of `render.json`, all at most 512 tokens) on Core AI:
-the band limits against stage 2 at temperature 1 with the token IDs of the reference, bit-identical results for the
-same row run twice, a request cancelled after its forward pass starts followed by a row that still matches, and the
-difference between the rounded capacity and 8,192 positions. The fixture is `Fixtures/TypedDecision/inference.json`,
+With `COREAI_TYPED_DECISION_BUNDLE` set to the absolute path of a bundle folder (the variant, as in the recipe, or
+the first bundle), `TypedDecisionInferenceTests` runs ten rows of F (the two card examples and the eight JGLUE rows of
+`render.json`, all at most 512 tokens) on Core AI: the band limits against stage 2 at temperature 1 with the token IDs
+of the reference, bit-identical results for the same row run twice, a request cancelled at the forward checkpoint and
+a request cancelled while its forward pass runs (through a backbone that does not pass the cancellation on), each
+followed by a row that still matches, and the difference between the rounded capacity and 8,192 positions. The fixture is `Fixtures/TypedDecision/inference.json`,
 written by `swift_fixture` with `--quantized-reference <reference_q.json>`. The tests load the model, so hold the
 shared machine lock; without the variable they are skipped. `DECIDE_METRICS_DIR` saves their measurements as
 `typed-*.json`.
 
 ~~~sh
-COREAI_TYPED_DECISION_BUNDLE=/path/to/jev27b_s1_qwen3_5_cfg_dynamic swift test --package-path CoreAISamplesKit \
+COREAI_TYPED_DECISION_BUNDLE=/path/to/jev27b_s1_gdnfp32_qwen3_5_cfg_dynamic swift test --package-path CoreAISamplesKit \
   --filter TypedDecisionInferenceTests
 ~~~
 
