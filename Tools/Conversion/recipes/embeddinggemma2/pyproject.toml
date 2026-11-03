@@ -8,7 +8,7 @@ dependencies = [
   "coreai-torch==0.4.3",
   "huggingface-hub==2.2.0",
   "numpy==2.3.5",
-  "Pillow==12.2.0",
+  "Pillow==13.0.0",
   "safetensors==0.8.0",
   "torch==2.9.0",
   "torchao==0.17.0",

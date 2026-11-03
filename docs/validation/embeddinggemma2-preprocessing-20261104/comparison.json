@@ -1,0 +1,388 @@
+{
+  "equal": true,
+  "model_revision": "914f7f89142e33e77833254d9c9b90c3cef7303b",
+  "left": {
+    "versions": {
+      "python": "3.11.9",
+      "pillow": "12.2.0",
+      "filelock": "4.2.0",
+      "setuptools": "84.0.0",
+      "transformers": "5.19.0",
+      "torch": "2.9.0",
+      "numpy": "2.3.5"
+    }
+  },
+  "right": {
+    "versions": {
+      "python": "3.11.9",
+      "pillow": "13.0.0",
+      "filelock": "4.2.7",
+      "setuptools": "84.2.1",
+      "transformers": "5.19.0",
+      "torch": "2.9.0",
+      "numpy": "2.3.5"
+    }
+  },
+  "fixtures": [
+    {
+      "id": "01-oyakodon",
+      "png_bytes_equal": true,
+      "pixels_equal": true,
+      "arrays": {
+        "input_ids": {
+          "shape": [
+            1,
+            128
+          ],
+          "dtype": "int64",
+          "equal": true,
+          "max_abs_difference": 0.0
+        },
+        "attention_mask": {
+          "shape": [
+            1,
+            128
+          ],
+          "dtype": "int64",
+          "equal": true,
+          "max_abs_difference": 0.0
+        },
+        "pixel_values": {
+          "shape": [
+            1,
+            630,
+            768
+          ],
+          "dtype": "float32",
+          "equal": true,
+          "max_abs_difference": 0.0
+        },
+        "image_position_ids": {
+          "shape": [
+            1,
+            630,
+            2
+          ],
+          "dtype": "int64",
+          "equal": true,
+          "max_abs_difference": 0.0
+        }
+      }
+    },
+    {
+      "id": "02-ginger-pork",
+      "png_bytes_equal": true,
+      "pixels_equal": true,
+      "arrays": {
+        "input_ids": {
+          "shape": [
+            1,
+            128
+          ],
+          "dtype": "int64",
+          "equal": true,
+          "max_abs_difference": 0.0
+        },
+        "attention_mask": {
+          "shape": [
+            1,
+            128
+          ],
+          "dtype": "int64",
+          "equal": true,
+          "max_abs_difference": 0.0
+        },
+        "pixel_values": {
+          "shape": [
+            1,
+            630,
+            768
+          ],
+          "dtype": "float32",
+          "equal": true,
+          "max_abs_difference": 0.0
+        },
+        "image_position_ids": {
+          "shape": [
+            1,
+            630,
+            2
+          ],
+          "dtype": "int64",
+          "equal": true,
+          "max_abs_difference": 0.0
+        }
+      }
+    },
+    {
+      "id": "03-omelette",
+      "png_bytes_equal": true,
+      "pixels_equal": true,
+      "arrays": {
+        "input_ids": {
+          "shape": [
+            1,
+            128
+          ],
+          "dtype": "int64",
+          "equal": true,
+          "max_abs_difference": 0.0
+        },
+        "attention_mask": {
+          "shape": [
+            1,
+            128
+          ],
+          "dtype": "int64",
+          "equal": true,
+          "max_abs_difference": 0.0
+        },
+        "pixel_values": {
+          "shape": [
+            1,
+            630,
+            768
+          ],
+          "dtype": "float32",
+          "equal": true,
+          "max_abs_difference": 0.0
+        },
+        "image_position_ids": {
+          "shape": [
+            1,
+            630,
+            2
+          ],
+          "dtype": "int64",
+          "equal": true,
+          "max_abs_difference": 0.0
+        }
+      }
+    },
+    {
+      "id": "04-gratin",
+      "png_bytes_equal": true,
+      "pixels_equal": true,
+      "arrays": {
+        "input_ids": {
+          "shape": [
+            1,
+            128
+          ],
+          "dtype": "int64",
+          "equal": true,
+          "max_abs_difference": 0.0
+        },
+        "attention_mask": {
+          "shape": [
+            1,
+            128
+          ],
+          "dtype": "int64",
+          "equal": true,
+          "max_abs_difference": 0.0
+        },
+        "pixel_values": {
+          "shape": [
+            1,
+            630,
+            768
+          ],
+          "dtype": "float32",
+          "equal": true,
+          "max_abs_difference": 0.0
+        },
+        "image_position_ids": {
+          "shape": [
+            1,
+            630,
+            2
+          ],
+          "dtype": "int64",
+          "equal": true,
+          "max_abs_difference": 0.0
+        }
+      }
+    },
+    {
+      "id": "05-caprese",
+      "png_bytes_equal": true,
+      "pixels_equal": true,
+      "arrays": {
+        "input_ids": {
+          "shape": [
+            1,
+            128
+          ],
+          "dtype": "int64",
+          "equal": true,
+          "max_abs_difference": 0.0
+        },
+        "attention_mask": {
+          "shape": [
+            1,
+            128
+          ],
+          "dtype": "int64",
+          "equal": true,
+          "max_abs_difference": 0.0
+        },
+        "pixel_values": {
+          "shape": [
+            1,
+            630,
+            768
+          ],
+          "dtype": "float32",
+          "equal": true,
+          "max_abs_difference": 0.0
+        },
+        "image_position_ids": {
+          "shape": [
+            1,
+            630,
+            2
+          ],
+          "dtype": "int64",
+          "equal": true,
+          "max_abs_difference": 0.0
+        }
+      }
+    },
+    {
+      "id": "gradient_square",
+      "png_bytes_equal": true,
+      "pixels_equal": true,
+      "arrays": {
+        "input_ids": {
+          "shape": [
+            1,
+            128
+          ],
+          "dtype": "int64",
+          "equal": true,
+          "max_abs_difference": 0.0
+        },
+        "attention_mask": {
+          "shape": [
+            1,
+            128
+          ],
+          "dtype": "int64",
+          "equal": true,
+          "max_abs_difference": 0.0
+        },
+        "pixel_values": {
+          "shape": [
+            1,
+            630,
+            768
+          ],
+          "dtype": "float32",
+          "equal": true,
+          "max_abs_difference": 0.0
+        },
+        "image_position_ids": {
+          "shape": [
+            1,
+            630,
+            2
+          ],
+          "dtype": "int64",
+          "equal": true,
+          "max_abs_difference": 0.0
+        }
+      }
+    },
+    {
+      "id": "gradient_wide",
+      "png_bytes_equal": true,
+      "pixels_equal": true,
+      "arrays": {
+        "input_ids": {
+          "shape": [
+            1,
+            128
+          ],
+          "dtype": "int64",
+          "equal": true,
+          "max_abs_difference": 0.0
+        },
+        "attention_mask": {
+          "shape": [
+            1,
+            128
+          ],
+          "dtype": "int64",
+          "equal": true,
+          "max_abs_difference": 0.0
+        },
+        "pixel_values": {
+          "shape": [
+            1,
+            630,
+            768
+          ],
+          "dtype": "float32",
+          "equal": true,
+          "max_abs_difference": 0.0
+        },
+        "image_position_ids": {
+          "shape": [
+            1,
+            630,
+            2
+          ],
+          "dtype": "int64",
+          "equal": true,
+          "max_abs_difference": 0.0
+        }
+      }
+    },
+    {
+      "id": "gradient_tall",
+      "png_bytes_equal": true,
+      "pixels_equal": true,
+      "arrays": {
+        "input_ids": {
+          "shape": [
+            1,
+            128
+          ],
+          "dtype": "int64",
+          "equal": true,
+          "max_abs_difference": 0.0
+        },
+        "attention_mask": {
+          "shape": [
+            1,
+            128
+          ],
+          "dtype": "int64",
+          "equal": true,
+          "max_abs_difference": 0.0
+        },
+        "pixel_values": {
+          "shape": [
+            1,
+            630,
+            768
+          ],
+          "dtype": "float32",
+          "equal": true,
+          "max_abs_difference": 0.0
+        },
+        "image_position_ids": {
+          "shape": [
+            1,
+            630,
+            2
+          ],
+          "dtype": "int64",
+          "equal": true,
+          "max_abs_difference": 0.0
+        }
+      }
+    }
+  ]
+}
