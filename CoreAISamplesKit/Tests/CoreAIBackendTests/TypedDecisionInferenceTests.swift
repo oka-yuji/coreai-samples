@@ -133,9 +133,9 @@ struct TypedDecisionInferenceTests {
         }
     }
 
-    static func longRequest(_ row: TypedDecisionInferenceRow) -> TypedDecisionRequest {
+    static func longRequest(_ row: TypedDecisionInferenceRow, repeats: Int = 120) -> TypedDecisionRequest {
         TypedDecisionRequest(
-            state: Array(repeating: row.state, count: 120).joined(separator: " "), question: row.question,
+            state: Array(repeating: row.state, count: repeats).joined(separator: " "), question: row.question,
             kind: row.kind, options: row.options)
     }
 
@@ -211,9 +211,29 @@ struct TypedDecisionInferenceTests {
             return
         }
         let after = try await detached.decide(row.request)
+        #expect(await iterator.next() != nil)
         #expect(after.logits.map(\.bitPattern) == before.logits.map(\.bitPattern))
         print("typed-cancel-run seconds \(seconds) next \(row.id) bit-identical")
-        try DecisionInferenceTests.writeMetrics(["id": row.id, "cancelledSeconds": seconds], name: "typed-cancel-run")
+        let request = Self.longRequest(row, repeats: 164)
+        let tokens = try await detached.tokenCount(for: request)
+        let clockStart = clock.now
+        _ = try await detached.decide(request)
+        #expect(await iterator.next() != nil)
+        let uncancelled = (clock.now - clockStart) / .seconds(1)
+        var cancellations: [[String: Any]] = []
+        for attempt in 1...3 {
+            let timing = await cancelWhileRunning(entered: &iterator) {
+                try await detached.decide(request)
+            }
+            #expect(timing.entered && timing.cancelled, "Attempt \(attempt): \(timing)")
+            cancellations.append(timing.record.merging(["attempt": attempt, "tokens": tokens]) { first, _ in first })
+            print("typed-cancel-timing attempt \(attempt) tokens \(tokens) \(timing) uncancelled \(uncancelled)")
+        }
+        try DecisionInferenceTests.writeMetrics(
+            [
+                "id": row.id, "cancelledSeconds": seconds, "tokens": tokens, "uncancelledSeconds": uncancelled,
+                "cancellations": cancellations,
+            ], name: "typed-cancel-run")
     }
 
     @Test("A row run with the rounded capacity and with 8,192 positions records the probability difference")
