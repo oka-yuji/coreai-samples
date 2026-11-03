@@ -77,8 +77,10 @@ struct ConversationSidebar: View {
             Spacer(minLength: 4)
             if let store = library.store, let entry = store.state.catalog.model(model.libraryID) {
                 ModelInformationButton(store: store, model: entry)
-                ModelAcquisitionControls(store: store, model: entry) {
-                    deletion = ModelDeletionRequest(model: entry, artifact: $0)
+                if store.state.selectedArtifact(for: entry.id)?.sourceKind != nil {
+                    ModelAcquisitionControls(store: store, model: entry) {
+                        deletion = ModelDeletionRequest(model: entry, artifact: $0)
+                    }
                 }
             }
         }
