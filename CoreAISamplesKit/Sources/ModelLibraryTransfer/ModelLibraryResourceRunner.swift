@@ -98,6 +98,10 @@ public final class ModelLibraryResourceRunner {
             send(.demoStopFailed(session.id, ticket, "Demo execution is not connected"))
         case .prepareDemo(let session):
             send(.demoPreparationChanged(session.id, .unavailable))
+        case .acquireUsage(let identity, let ticket):
+            send(.usageAcquired(identity.modelID, ticket, nil))
+        case .releaseUsage:
+            break
         }
     }
 

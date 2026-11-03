@@ -35,6 +35,7 @@ public struct ModelLibraryAssembly {
         let library = Store<ModelLibraryFeature>(
             initialState: ModelLibraryState(catalog: catalog, environment: environment, owner: owner),
             run: runner.run)
+        runner.register(library)
         return Library(
             store: library, rendering: ModelLibraryRendering(registry: registry, runner: runner, library: library))
     }

@@ -30,6 +30,9 @@ public enum ModelLibraryAction: Sendable {
     case demoPreparationChanged(LibraryTicket, DemoPreparation)
     case retryDemoStop
     case dismissFailure
+    case useRequested(String)
+    case useEnded(String)
+    case usageAcquired(String, LibraryTicket, ValidatedModelResource?)
 }
 
 public enum ModelLibraryEffect: Equatable, Sendable {
@@ -42,6 +45,8 @@ public enum ModelLibraryEffect: Equatable, Sendable {
     case delete(ValidatedModelResource, LibraryTicket)
     case stopDemo(ModelDemoSession, LibraryTicket)
     case prepareDemo(ModelDemoSession)
+    case acquireUsage(ModelArtifactIdentity, LibraryTicket)
+    case releaseUsage(ModelArtifactIdentity, LibraryTicket)
 }
 
 public enum ModelLibraryEffectID: Hashable, Sendable {
@@ -59,6 +64,11 @@ public enum ModelLibraryFeature: Feature {
     public typealias Operation = Command<Effect, EffectID>
 
     public static func reduce(_ state: inout State, _ action: Action) -> [Operation] {
+        let operations = respond(&state, action)
+        return operations + serveUsages(&state)
+    }
+
+    private static func respond(_ state: inout State, _ action: Action) -> [Operation] {
         switch action {
         case .refresh:
             return inspect(&state)
@@ -201,6 +211,12 @@ public enum ModelLibraryFeature: Feature {
             return [.run(.stopDemo(session, request), id: .demo)]
         case .dismissFailure:
             state.failure = nil
+        case .useRequested(let modelID):
+            state.usages[modelID, default: ModelUsage()].users += 1
+        case .useEnded(let modelID):
+            return endUsage(&state, modelID)
+        case .usageAcquired(let modelID, let ticket, let resource):
+            return acquired(&state, modelID, ticket, resource)
         }
         return []
     }
@@ -370,7 +386,10 @@ public enum ModelLibraryFeature: Feature {
             } else if resource?.matches(model: model, artifact: artifact) != true { .invalidResource } else { nil }
         let importing = state.installations[artifactID]?.importInProgress == true
         let failure = rejection ?? failure ?? (importing ? state.installations[artifactID]?.failure : nil)
-        let accepted = rejection == nil && (failure == nil || importing) ? resource : nil
+        let retained = failure == .modelInUse && resource == nil && !importing
+        let accepted =
+            rejection == nil && (failure == nil || importing)
+            ? resource : retained ? state.installations[artifactID]?.resource : nil
         state.installations[artifactID]?.requestID = nil
         state.installations[artifactID]?.resource = accepted
         state.installations[artifactID]?.importInProgress = false
