@@ -1,10 +1,11 @@
 import copy
 import importlib.util
 from pathlib import Path
+import tempfile
 import unittest
 
 from Tools.Conversion.adapters.jev27b.decision import HASH_SCHEMA, compare_hashes
-from Tools.Conversion.adapters.jev27b.export_variant import ir_counts, verdict
+from Tools.Conversion.adapters.jev27b.export_variant import ANCHOR, NOTE, add_note, ir_counts, verdict
 from Tools.Conversion.recipe import load_recipe
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -22,6 +23,10 @@ IR = "\n".join([
     f"({F32}, {F32}, {F32}, tensor<1x4x?xf32>, tensor<1x4x?xf32>, tensor<1x4x8x8xf32>) -> (tensor<1x?x4x8xf32>)",
     "    %2:2 = coreai.invoke @layer.gdu_1(%a, %b, %c, %d, %e, %f)  : "
     f"({BF16}, {BF16}, {BF16}, tensor<1x4x?xbf16>, tensor<1x4x?xbf16>, tensor<1x4x8x8xbf16>) -> (tensor<1x?x4x8xbf16>)",
+    "    %6:2 = coreai.invoke @layer.gdu_1(%a, %b, %c, %d, %e, %f)  : "
+    f"({F32}, {F32}, {F32}, tensor<1x4x?xf32>, tensor<1x4x?xf32>, tensor<1x4x8x8xbf16>) -> (tensor<1x?x4x8xf32>)",
+    "    %7:2 = coreai.invoke @layer.gdu_1(%a, %b, %c, %d, %e)  : "
+    f"({F32}, {F32}, {F32}, tensor<1x4x?xf32>, tensor<1x4x?xf32>) -> (tensor<1x?x4x8xf32>)",
     "    %3 = coreai.invoke @layer.norm_2(%g)  : (tensor<1x?x8xbf16>) -> tensor<1x?x8xbf16>",
     "    %4 = coreai.cast %3 : tensor<1x?x8xbf16> to tensor<1x?x8xf32>",
     "    %5 = coreai.cast_like %4 : tensor<1x?x8xf32>",
@@ -41,9 +46,20 @@ class VariantCheckTests(unittest.TestCase):
     def test_the_ir_counts_float32_gated_delta_update_calls_and_casts(self):
         counts = ir_counts(IR)
         self.assertEqual(counts["composite_declarations"], {"gated_delta_update": 1, "rms_norm": 1})
-        self.assertEqual(counts["invoke_sites_by_kind"], {"gated_delta_update": 2, "rms_norm": 1})
-        self.assertEqual((counts["gated_delta_update_sites"], counts["gated_delta_update_float32_sites"]), (2, 1))
+        self.assertEqual(counts["invoke_sites_by_kind"], {"gated_delta_update": 4, "rms_norm": 1})
+        self.assertEqual((counts["gated_delta_update_sites"], counts["gated_delta_update_float32_sites"]), (4, 1))
         self.assertEqual(counts["cast_operations"], 1)
+
+    def test_the_note_follows_the_conversion_line_of_the_notice(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "NOTICE.md"
+            path.write_text(f"# Notice\n\n- First change.\n{ANCHOR} with the recipe.\n- Last change.\n", encoding="utf-8")
+            add_note(Path(folder))
+            self.assertEqual(path.read_text(encoding="utf-8").split("\n")[3:6],
+                             [f"{ANCHOR} with the recipe.", NOTE, "- Last change."])
+            path.write_text("# Notice\n\n- Another change.\n", encoding="utf-8")
+            with self.assertRaises(ValueError):
+                add_note(Path(folder))
 
     def test_the_variant_passes_only_with_equal_hashes_every_layer_wrapped_and_float32_updates(self):
         baseline = record({"a": "a" * 64, "b": "b" * 64})
@@ -71,6 +87,7 @@ class VariantCheckTests(unittest.TestCase):
         self.assertEqual(variant["depends"], ["export", "merge", "prepare"])
         self.assertIn("$export", variant["command"])
         self.assertTrue(set(steps["export"]["inputs"]) < set(variant["inputs"]))
+        self.assertTrue({"$adapters/backbone_gdnfp32.py", "$adapters/export_variant.py"} <= set(variant["inputs"]))
         self.assertEqual(recipe["variables"]["bundle_gdnfp32"], variant["outputs"][0])
         self.assertEqual(decide["depends"], ["export_gdnfp32", "typed_input"])
         self.assertIn("$export_gdnfp32/$bundle_gdnfp32", decide["command"])
@@ -125,6 +142,7 @@ class WrapperTests(unittest.TestCase):
         names = [name for name, _ in model.named_parameters()] + [name for name, _ in model.named_buffers()]
         self.assertEqual(wrap_gated_delta_updates(model), 3)
         self.assertEqual(wrapped_count(model), 3)
+        self.assertEqual(sum(isinstance(module, Fake) for module in model.modules()), 3)
         self.assertEqual(wrap_gated_delta_updates(model), 0)
         self.assertTrue(all(isinstance(layer._gated_delta_update, Fp32GatedDeltaUpdate)
                             and isinstance(layer._gated_delta_update.inner, Fake) for layer in (model[0], model[2], model[3])))
@@ -136,8 +154,11 @@ class WrapperTests(unittest.TestCase):
         from Tools.Conversion.adapters.jev27b.backbone_gdnfp32 import TypedDecisionBackboneGdnFp32, entry_for, wrapped_count
         from Tools.Conversion.tests.test_jev27b_backbone import composite_config
 
+        from coreai_torch.composite_ops import GatedDeltaUpdate
+
         model = TypedDecisionBackboneGdnFp32(config=composite_config(), model_device="meta")
         self.assertEqual(wrapped_count(model), 3)
+        self.assertEqual(sum(isinstance(module, GatedDeltaUpdate) for module in model.modules()), 3)
         original = backbone.TypedDecisionBackbone(config=composite_config(), model_device="meta")
         self.assertEqual([name for name, _ in model.named_parameters()],
                          [name for name, _ in original.named_parameters()])
