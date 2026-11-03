@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 import unittest
 
+from Tools.Conversion.adapters.jev27b.compare import tokens_sha256
 from Tools.Conversion.adapters.jev27b.fixtures import digest
 from Tools.Conversion.adapters.jev27b.swift_fixture import (BIAS, FIELDS, JAPANESE, WEIGHT, WIDTH, head_cases,
                                                             license_note, rejected_rows, synthetic_rows)
@@ -43,6 +44,21 @@ class SwiftFixtureTests(unittest.TestCase):
             self.assertEqual([row[field] for field in ("kind", "options", "tokens")],
                              [rendered[row["id"]][field] for field in ("kind", "options", "tokens")])
             self.assertEqual(len(row["hidden"]), 5120)
+
+    def test_inference_rows_repeat_the_card_and_jglue_render_rows_with_stage_2_values(self):
+        inference, real = load("inference"), load("real-head")
+        rendered = [row for row in load("render")["rows"] if not row["id"].startswith("synthetic:")]
+        self.assertEqual(inference["__license__"], license_note(load("jglue", FIXTURES)))
+        self.assertEqual((inference["merged_revision"], inference["temperatures"]),
+                         (real["merged_revision"], real["temperatures"]))
+        self.assertEqual([row["id"] for row in inference["rows"]], [row["id"] for row in rendered])
+        for row, source in zip(inference["rows"], rendered):
+            self.assertEqual([row[field] for field in FIELDS], [source[field] for field in FIELDS])
+            self.assertEqual((row["token_count"], row["tokens_sha256"]),
+                             (source["token_count"], tokens_sha256(source["tokens"])))
+            self.assertEqual(row["band"], "<=512")
+            self.assertEqual((len(row["logits2"]), len(row["p2"]), len(row["p2_T"]), len(row["p1m"])),
+                             (24, *[len(row["options"])] * 3))
 
     def test_rejected_rows_and_the_synthetic_head_match_the_generator(self):
         self.assertEqual(load("reject")["rows"], rejected_rows())

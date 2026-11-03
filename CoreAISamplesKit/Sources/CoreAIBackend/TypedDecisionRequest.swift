@@ -26,6 +26,7 @@ public enum TypedDecisionError: Error, Equatable, LocalizedError {
     case tooManyTokens(count: Int, limit: Int)
     case nonFinite(String)
     case invalidHidden(count: Int, expected: Int)
+    case busy
 
     public var errorDescription: String? {
         switch self {
@@ -34,6 +35,7 @@ public enum TypedDecisionError: Error, Equatable, LocalizedError {
             "The request renders to \(count) tokens; the model takes at most \(limit) tokens."
         case .invalidHidden(let count, let expected):
             "The head received \(count) values; it expects \(expected) values."
+        case .busy: "Another typed decision is running; send one request at a time."
         }
     }
 }

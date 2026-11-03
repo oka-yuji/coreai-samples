@@ -60,6 +60,7 @@ struct TypedDecisionRendererTests {
         case .tooManyTokens: "tooManyTokens"
         case .nonFinite: "nonFinite"
         case .invalidHidden: "invalidHidden"
+        case .busy: "busy"
         }
     }
 
