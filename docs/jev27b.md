@@ -337,8 +337,9 @@ the mean confidence on H' (about 0.56) lies far below that agreement (about 0.89
 are spread out. The fidelity criteria of F, re-evaluated from the saved logits at the adopted temperatures, still pass
 (`comparison-refit.json`; at the adopted temperatures, maximum 0.0065, mean 0.0011, no top-1 change).
 
-Stage 3 ran Q in 458.7 s, Cal in 1,866.3 s and H in 919.6 s of forward time (about 180 tokens per second over all rows,
-median 0.48 s per row). Stages 1 and 0 of Q took 679.4 s and 644.7 s and stage 1' took 628.9 s on MPS.
+At stage 3 the `elapsed_seconds` of the rows (from the call of `decide` to its return) add up to 458.7 s for Q,
+1,866.3 s for Cal and 919.6 s for H (about 180 tokens per second over all rows, median 0.48 s per row). Stages 1 and
+0 of Q took 679.4 s and 644.7 s and stage 1' took 628.9 s on MPS.
 
 ### Calibrated bundle
 
@@ -374,11 +375,13 @@ they are not a claim of Japanese quality or of calibration.
 
 These steps run after `calibrate`, still before `verify_merge`:
 
-- `jdev_fixture` (`japanese.py jdev`) writes `jdev.json`: 100 rows per task of the pinned JGLUE validation files that
-  are not in J or F and whose `sentence1` or `sentence2` (JNLI, JSTS) or question (JCommonsenseQA) equals no
-  `sentence1`, `sentence2` or question of any JGLUE row of J or F, drawn with one `random.Random("20261102:Jdev")` from
-  the sorted eligible IDs of JNLI, JCommonsenseQA and JSTS in this order. It records the ID and the SHA-256 of each row
-  and the size of every exclusion; it holds no text.
+- `jdev_fixture` (`japanese.py jdev`) writes `jdev.json`: 100 rows per task of the pinned JGLUE validation files. A
+  row is eligible when it is not in J or F, when neither its `sentence1` nor its `sentence2` (JNLI, JSTS), or its
+  question (JCommonsenseQA), equals any `sentence1`, `sentence2` or question of a JGLUE row of J or F (compared across
+  the three tasks), and when its options render (no row was left out for this). The native IDs (`sentence_pair_id`,
+  and `q_id` turned into a string) of the eligible rows of each task are sorted as strings, and one
+  `random.Random("20261102:Jdev")` draws `rng.sample(ids, 100)` for JNLI, JCommonsenseQA and JSTS in this order.
+  `jdev.json` records the ID and the SHA-256 of each row and the size of every exclusion; it holds no text.
 - `typed_input_jdev` and `typed_input_j` (`japanese.py input`) wrap the rows with both variants and write the CLI input
   (`input-<set>.json`, with text, kept in the work directory) and `rows-<set>.json`: for each row the key, the SHA-256
   of the JGLUE row (the fixture value), the SHA-256 of the rendered text after wrapping, the token count and the label,
@@ -456,8 +459,9 @@ J at temperature 1 (200 rows per task; the last column is the adopted variant):
   by two; the four answers agree on 191 of 200 rows.
 - Stage 3 against stage 1' row by row at temperature 1: the top option is the same on 179 to 200 of the 200 rows of
   each task and variant (JSTS is lowest), the largest probability difference is 0.17 and the mean 0.011 to 0.033.
-- Stage 3 ran Jdev (600 rows) in 278.2 s and J (2,200 rows) in 953.0 s of forward time (median 0.464 and 0.436 s per
-  row); stage 1' ran the 1,600 rows of J in 975.8 s on MPS.
+- At stage 3 the `elapsed_seconds` of the rows (from the call of `decide` to its return) add up to 278.2 s for Jdev
+  (600 rows) and 953.0 s for J (2,200 rows), with medians of 0.464 and 0.436 s per row; the forward runs of stage 1'
+  took 975.8 s for the 1,600 rows of J on MPS.
 
 ## Terms
 

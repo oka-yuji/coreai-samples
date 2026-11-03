@@ -57,8 +57,10 @@ python3 -m Tools.Conversion run Tools/Conversion/recipes/jev27b/recipe.json \
 The `typed_decide_f` step runs the executable named by the variable `verify`, which has no default: pass its absolute
 path with `--set verify=...`, as above. `python3 -m Tools.Conversion.local plan|run --recipe jev27b` does not pass it
 and stops with an unresolved variable. The step runs a copy of the executable rather than the build product, because
-the runner hashes the executable into the step's cache key: copying a new build makes `typed_decide_f` and `compare_f`
-run again, and the other steps stay reused.
+the runner hashes the executable into the step's cache key: copying a new build makes every step that runs it
+(`typed_decide_f`, `typed_decide_q`, `typed_decide_cal`, `typed_decide_h`, `typed_decide_jdev` and `typed_decide_j`)
+and every step that depends on them run again, including `compare_f`, `score_q`, `calibrate` and the Japanese steps.
+The steps before them stay reused.
 
 Setup checks the integrity records and then, under the shared machine lock, creates:
 
@@ -171,8 +173,8 @@ checkpoint is used as it is, as a limited exploration.
   every quantized tensor hashes as in `export` (`decision.compare_hashes`), all 48 layers are wrapped, every
   `gated_delta_update` call in the IR of the asset takes six float32 inputs and the inspection matches. `variant.json`
   records these checks with the IR counts of both assets, and the Core AI steps below use this bundle. The steps
-  before it and their modules are unchanged and stay reused; `typed_decide_f` depends on this step, so a new variant
-  makes it and `compare_f` run again.
+  before it and their modules are unchanged and stay reused; the Core AI steps depend on this step, so a new variant
+  makes them and every step after them run again, including `calibrate` and the Japanese steps.
 - `verify_quantization` requires matching hashes, complete rows equal to the fixtures and to the
   earlier references, and finite probabilities. It writes `reference_q.json`, `quantization.json`
   (`typed-decision-quantization/1`) and `report.md`; it applies no numeric threshold.
