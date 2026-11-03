@@ -63,7 +63,10 @@ struct SpeechView: View {
                 Button("Generate speech", systemImage: "waveform") { store.send(.generate) }
                     .buttonStyle(.borderedProminent)
                     .keyboardShortcut(.return, modifiers: .command)
-                    .disabled(!store.state.canGenerate)
+                    .disabled(
+                        !store.state.canGenerate
+                            || library.resource(inUse: .irodori)?.directory.path != store.state.lastPath
+                    )
                     .accessibilityIdentifier("speech.generate")
                 Button("Play", systemImage: "play.fill") { store.send(.play) }
                     .disabled(!store.state.canPlay)
@@ -120,6 +123,9 @@ struct SpeechView: View {
             store.send(.ended)
             library.stopUsing(.irodori)
             attempted = nil
+        }
+        .onChange(of: library.resource(inUse: .irodori)?.directory) { _, new in
+            if new == nil { attempted = nil }
         }
         .onChange(of: bundleToOpen, initial: true) { _, path in
             guard let path else { return }

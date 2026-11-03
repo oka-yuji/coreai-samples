@@ -145,7 +145,7 @@ public enum ModelLibraryFeature: Feature {
             if installation.importInProgress, installation.phase != .inspecting,
                 let model = state.catalog.model(containing: artifactID), let artifact = model.artifact(artifactID)
             {
-                return recoverImport(&state, model: model, artifact: artifact, failure: failure)
+                return reinspect(&state, model: model, artifact: artifact, failure: failure)
             }
             complete(&state, artifactID: artifactID, failure: failure)
         case .cancelRequested(let artifactID):
@@ -319,8 +319,8 @@ public enum ModelLibraryFeature: Feature {
         return [.run(.importBundle(model, artifact, request, source), id: .resource(artifactID))]
     }
 
-    private static func recoverImport(
-        _ state: inout State, model: LibraryModel, artifact: ModelArtifact, failure: ModelLibraryFailure
+    static func reinspect(
+        _ state: inout State, model: LibraryModel, artifact: ModelArtifact, failure: ModelLibraryFailure?
     ) -> [Operation] {
         let request = state.allocateID()
         state.installations[artifact.id]?.phase = .inspecting

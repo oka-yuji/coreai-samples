@@ -19,11 +19,18 @@ struct ModelUsageFeatureTests {
         return state
     }
 
-    private func acquisition(_ operations: [Operation]) -> LibraryTicket? {
+    private func acquisition(_ operations: [Operation], of artifactID: String = "fp32") -> LibraryTicket? {
         guard operations.count == 1, case .run(.acquireUsage(let identity, let ticket), .none) = operations[0],
-            identity == fixture.resource("fp32").identity
+            identity == fixture.resource(artifactID).identity
         else { return nil }
         return ticket
+    }
+
+    private func inspection(_ operations: [Operation], in state: ModelLibraryState) -> LibraryTicket? {
+        guard operations.count == 1, case .run(.inspect(let model, let artifact, let request), let id) = operations[0],
+            model == state.catalog.model("model"), artifact.id == "fp32", id == .resource("fp32")
+        else { return nil }
+        return request
     }
 
     @Test("USE-01 Each use of a ready artifact asks for its own lease and each ended use releases one lease")
@@ -88,24 +95,47 @@ struct ModelUsageFeatureTests {
         #expect(state.usages["model"]?.resource == nil && state.usages["model"]?.isActive == true)
     }
 
-    @Test("USE-01 A refused lease for an artifact that still looks ready is not retried until it is checked again")
-    func refusalWaitsForInspection() throws {
+    @Test(
+        "USE-01 A refused lease for an artifact that still looks ready checks that artifact once and asks again, and a second refusal stops without another check"
+    )
+    func refusalChecksOnce() throws {
         var state = try installed()
+        let resource = fixture.resource("fp32")
         let ticket = try #require(acquisition(reduce(&state, .useRequested("model"))))
-        #expect(reduce(&state, .usageAcquired("model", ticket, nil)).isEmpty)
-        #expect(state.usages["model"]?.isActive == false && state.usages["model"]?.resource == nil)
-        #expect(reduce(&state, .dismissFailure).isEmpty)
-
-        let inspections = reduce(&state, .refresh)
-        guard inspections.count == 1, case .run(.inspect(_, _, let request), _) = inspections[0] else {
-            Issue.record("Expected one inspection, got \(inspections)")
-            return
-        }
-        let retry = try #require(
-            acquisition(reduce(&state, .inspected("fp32", request, fixture.resource("fp32")))))
+        let request = try #require(inspection(reduce(&state, .usageAcquired("model", ticket, nil)), in: state))
+        #expect(state.installations["fp32"]?.phase == .inspecting && state.installations["fp32"]?.resource == resource)
+        #expect(state.usages["model"]?.isActive == false && state.usages["model"]?.rechecked == resource.identity)
+        let retry = try #require(acquisition(reduce(&state, .inspected("fp32", request, resource))))
         #expect(retry != ticket)
-        #expect(reduce(&state, .usageAcquired("model", retry, fixture.resource("fp32"))).isEmpty)
-        #expect(state.usages["model"]?.resource == fixture.resource("fp32"))
+
+        var granted = state
+        #expect(reduce(&granted, .usageAcquired("model", retry, resource)).isEmpty)
+        #expect(granted.usages["model"]?.resource == resource && granted.usages["model"]?.rechecked == nil)
+
+        #expect(reduce(&state, .usageAcquired("model", retry, nil)).isEmpty)
+        #expect(state.installations["fp32"]?.phase == .ready && state.usages["model"]?.refused == resource.identity)
+        #expect(reduce(&state, .dismissFailure).isEmpty)
+        let checked = try #require(inspection(reduce(&state, .refresh), in: state))
+        let again = try #require(acquisition(reduce(&state, .inspected("fp32", checked, resource))))
+        #expect(reduce(&state, .usageAcquired("model", again, nil)).isEmpty)
+        #expect(state.installations["fp32"]?.phase == .ready && state.usages["model"]?.isActive == false)
+    }
+
+    @Test("USE-01 A variant change after a refusal clears the recheck and asks for the selected variant")
+    func variantChangeClearsRecheck() throws {
+        var state = fixture.state(try fixture.variantCatalog(), audience: .development)
+        try fixture.install(&state, "fp32")
+        try fixture.install(&state, "int4")
+        let resource = fixture.resource("fp32")
+        let ticket = try #require(acquisition(reduce(&state, .useRequested("model"))))
+        let request = try #require(inspection(reduce(&state, .usageAcquired("model", ticket, nil)), in: state))
+        let retry = try #require(acquisition(reduce(&state, .inspected("fp32", request, resource))))
+        #expect(reduce(&state, .usageAcquired("model", retry, nil)).isEmpty)
+        #expect(state.usages["model"]?.refused == resource.identity)
+
+        let switched = reduce(&state, .selectArtifact(modelID: "model", artifactID: "int4"))
+        #expect(acquisition(switched, of: "int4") != nil)
+        #expect(state.usages["model"]?.rechecked == nil && state.usages["model"]?.isActive == true)
     }
 
     @Test(

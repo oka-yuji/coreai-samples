@@ -192,4 +192,85 @@ struct ModelLibraryUsageTests {
         try await next(&events, "A delete")
         #expect(library.state.installations["text-fp16"] == ModelInstallation())
     }
+
+    @Test(
+        "USE-01 A model deleted in another window is refused when this window uses it again, and the window rechecks it back to missing without a lease"
+    )
+    func refusalAfterDeletionElsewhere() async throws {
+        let harness = try RuntimeHarness()
+        defer { harness.close() }
+        let first = scene("A", in: harness)
+        let second = scene("B", in: harness)
+        var events = harness.events.makeAsyncIterator()
+        try await first.download("text-fp16", &events)
+        first.library.send(.useRequested("text"))
+        try await next(&events, "A acquireUsage")
+        #expect(first.library.state.usages["text"]?.resource != nil)
+        first.library.send(.useEnded("text"))
+        try await next(&events, "A releaseUsage")
+
+        second.library.send(.refresh)
+        try await next(&events, "B inspect", "B inspect", "B inspect")
+        second.library.send(.deleteRequested("text-fp16"))
+        try await next(&events, "B delete")
+        #expect(second.library.state.installations["text-fp16"] == ModelInstallation())
+        #expect(first.library.state.installations["text-fp16"]?.phase == .ready)
+
+        first.library.send(.useRequested("text"))
+        try await next(&events, "A acquireUsage", "A inspect")
+        #expect(first.library.state.installations["text-fp16"] == ModelInstallation())
+        #expect(first.library.state.usages["text"]?.isActive == false)
+        #expect(first.library.state.usages["text"]?.resource == nil)
+        #expect(await leases(harness) == 0)
+    }
+
+    @Test("USE-03 release(owner:) while a usage lease is being taken returns that lease and closes the owner")
+    func releasesOwnerDuringAcquisition() async throws {
+        let harness = try RuntimeHarness()
+        defer { harness.close() }
+        let first = scene("A", in: harness)
+        var events = harness.events.makeAsyncIterator()
+        let runner = harness.runner
+        try await first.download("text-fp16", &events)
+        harness.ledger.hold()
+        first.library.send(.downloadRequested("image-fp16"))
+        try await next(&events, "A download", "ledger")
+
+        first.library.send(.useRequested("text"))
+        #expect(first.library.state.usages["text"]?.isActive == true)
+        await Task.yield()
+        await runner.release(owner: first.owner)
+        harness.ledger.release()
+        try await next(&events, "A validate", "A acquireUsage", "A inspect", "A acquireUsage")
+        #expect(first.library.state.usages["text"]?.resource == nil)
+        #expect(first.library.state.usages["text"]?.isActive == false)
+        #expect(await leases(harness) == 0)
+        #expect(await runner.acquireUsage(identity: identity, owner: first.owner) == nil)
+        #expect(await leases(harness) == 0)
+    }
+
+    @Test("USE-03 abandon(owner:) returns the usage leases of a closed window through the runner's own work")
+    func abandonReturnsUsageLeases() async throws {
+        let harness = try RuntimeHarness()
+        defer { harness.close() }
+        let first = scene("A", in: harness)
+        var events = harness.events.makeAsyncIterator()
+        try await first.download("text-fp16", &events)
+        first.library.send(.useRequested("text"))
+        first.library.send(.useRequested("text"))
+        try await next(&events, "A acquireUsage", "A acquireUsage")
+        #expect(await leases(harness) == 2)
+
+        harness.runner.abandon(owner: first.owner)
+        var remaining = await leases(harness)
+        for _ in 0..<10_000 where remaining > 0 {
+            await Task.yield()
+            remaining = await leases(harness)
+        }
+        #expect(remaining == 0)
+        #expect(await harness.runner.acquireUsage(identity: identity, owner: first.owner) == nil)
+        first.library.send(.deleteRequested("text-fp16"))
+        try await next(&events, "A delete")
+        #expect(first.library.state.installations["text-fp16"] == ModelInstallation())
+    }
 }

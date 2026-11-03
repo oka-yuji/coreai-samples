@@ -7,6 +7,7 @@ public struct ModelUsage: Equatable, Sendable {
     var held: [LibraryTicket] = []
     var pending: [LibraryTicket] = []
     var refused: ModelArtifactIdentity?
+    var rechecked: ModelArtifactIdentity?
 
     public var isActive: Bool { !held.isEmpty || !pending.isEmpty }
 }
@@ -36,11 +37,19 @@ extension ModelLibraryFeature {
             {
                 usage.held.append(ticket)
                 usage.resource = resource
+                usage.rechecked = nil
             } else {
                 operations.append(.run(.releaseUsage(resource.identity, ticket), id: nil))
             }
-        } else if installed?.phase == .ready {
-            usage.refused = installed?.resource?.identity
+        } else if installed?.phase == .ready, let identity = installed?.resource?.identity,
+            let model = state.catalog.model(modelID), let artifact = state.selectedArtifact(for: modelID)
+        {
+            if usage.rechecked == identity {
+                usage.refused = identity
+            } else {
+                usage.rechecked = identity
+                operations = reinspect(&state, model: model, artifact: artifact, failure: nil)
+            }
         }
         keep(&state, usage, for: modelID)
         return operations
@@ -61,7 +70,9 @@ extension ModelLibraryFeature {
                 state.usages[modelID]?.refused = nil
                 continue
             }
+            if usage.rechecked != nil, usage.rechecked != resource.identity { usage.rechecked = nil }
             guard usage.refused != resource.identity, usage.resource == nil || usage.resource == resource else {
+                state.usages[modelID] = usage
                 continue
             }
             while usage.held.count + usage.pending.count < usage.users {
