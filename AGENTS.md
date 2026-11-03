@@ -1,5 +1,11 @@
 # coreai-samples
 
+## ブランチ運用
+
+- 統合先: main
+- マージ: AI
+- main 自動公開: なし(根拠: 2026-11-03 確認。`.github/workflows` が無く、GitHub Pages・environments・deployments・webhook も無い。Vercel などの連携の設定ファイルも無い)
+
 ## Swift 規約
 
 - 規約は `~/claude-config/conventions/swift/`(`architecture.md`、`testing.md`)。このリポジトリでの上書きは、下の「規約との差分」に書く。
