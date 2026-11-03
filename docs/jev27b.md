@@ -288,7 +288,7 @@ multiclass Brier on H' is larger than at the card temperature, both at float32; 
 state also occurs in Cal. All of H is recorded too, but H selects the temperature and is not a final evaluation. ECE
 intervals are conditional on the chosen temperature and leave out the uncertainty of the fit and of the selection.
 
-Results (run `20261103T154310-65e7b5bb` for Q, Cal and H; `calibrate` in run `20261103T172023-a8311b01`). The
+Results (run `20261103T154310-65e7b5bb` for Q, Cal and H; `calibrate` in run `20261103T175311-463e881b`). The
 quantization conditions and every adaptation gain pass:
 
 | Condition (temperature 1, Q) | Stage 1' | Stage 3 | Difference [95% interval] | Limit | Result |
