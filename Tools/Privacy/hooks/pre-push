@@ -1,0 +1,14 @@
+#!/bin/sh
+set -eu
+check="$(dirname "$0")/../check-local-paths.py"
+while read -r local_ref local_sha remote_ref remote_sha; do
+    case $local_sha in
+        *[!0]*) ;;
+        *) continue ;;
+    esac
+    case $remote_sha in
+        *[!0]*) set -- "^$remote_sha" ;;
+        *) set -- ;;
+    esac
+    python3 -I "$check" --commits "$local_sha" "$@" --not --remotes </dev/null
+done
