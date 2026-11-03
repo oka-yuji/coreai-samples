@@ -1,6 +1,7 @@
 {
   "bundle": {
     "bytes": 16064815496,
+    "counted": "performance.py records after plan revision 3",
     "decision_sha256": "a2b186a87a64d9e93a56f185a5ebc2a0613d00da7440eeb8c8c2229b64f6adf3",
     "files": 13,
     "summary": {
@@ -50,6 +51,7 @@
         "tokens": 2000
       }
     ],
+    "build": "debug build of the test target (swift test without -c release)",
     "counts": {
       "failed": 0,
       "passed": 3,
@@ -66,16 +68,29 @@
         "unit": "s"
       }
     },
-    "note": "The Core AI run is not stopped by the cancellation; the request ends with CancellationError when the run returns.",
+    "note": "The test backbone runs the forward in a task that the cancellation does not reach, so the request ends with CancellationError when the run returns. Whether a Core AI run itself stops on a cancellation was not measured.",
+    "request": "card-example:refund with its state repeated 164 times (not a P row)",
     "source_sha256": "ea9fdf1d6ed7374ad500e85bcafa458a98d60a25620a1efa1139cfff706f29a4",
     "tokens": 2000,
     "uncancelled_seconds": 8.720023625
+  },
+  "checkpoint_cancel": {
+    "build": "debug build of the test target (swift test without -c release)",
+    "cancelled_seconds": 0.164989084,
+    "caught": "before the run",
+    "next_row_error": 0.0005070642031823405,
+    "request": "card-example:refund",
+    "same_row_error_without_cancellation": 0.0005070642031823405,
+    "tokens": 1472,
+    "uncancelled_seconds": 6.464660832999999
   },
   "conditions": {
     "adapter_attached": false,
     "battery_percent_first": 90,
     "battery_percent_last": 76,
+    "builds": "command line measurements: release build of coreai-verify at the plan's code_revision; cancellation test: debug build of the test target (swift test without -c release), as the plan states",
     "low_power_mode": "off (pmset -g powermode 0)",
+    "other_load": "pgrep found no other model process before the measurement; GPU use of other processes was not recorded",
     "snapshots": 10,
     "thermal": "pmset -g therm: no thermal, performance or CPU power warning in any snapshot",
     "thermal_pressure": [
@@ -96,7 +111,7 @@
         "time": "06:32:23"
       }
     ],
-    "thermal_pressure_rows": "the loads and the first two rounds at nominal except the last seconds of the second 8,192-token row; the third round moderate, then heavy from the 2,000-token row; the cancellation test heavy",
+    "thermal_pressure_rows": "the loads and the first two rounds at nominal, except the last seconds of the second 8,192-token row (moderate); the third round moderate until the last seconds of its 2,000-token row, then heavy for its 8,192-token row; the cancellation test heavy",
     "thermal_pressure_source": "thermalmonitord mTPL in the system log; nominal before 06:28:52",
     "window": "2026-11-04 06:23:59 to 06:31:34 +0900"
   },
@@ -515,7 +530,22 @@
         "unit": "B"
       }
     },
-    "source_sha256": "339d98ea8e36830b0c957dea2d58f812ae06eea3c2374c85e12c1c1f60b7212e"
+    "resident_failed_samples": [
+      0,
+      0,
+      0
+    ],
+    "resident_samples": [
+      374,
+      377,
+      378
+    ],
+    "source_sha256": "339d98ea8e36830b0c957dea2d58f812ae06eea3c2374c85e12c1c1f60b7212e",
+    "values": {
+      "peak_footprint_bytes": 21565667056,
+      "peak_rss_bytes": 32343687168,
+      "resident_bytes": 17290887168
+    }
   },
   "p": {
     "excluded_parts": 3324,
@@ -801,5 +831,21 @@
     "warmup_runs": 1,
     "workload": "P: four rows of exactly 100, 500, 2,000 and 8,192 tokens (noul, choice, score, noul) built from test_set_30k states with seed 20261102:P, sharing no corpus row with F or Q. latency_s: one process with the lengths interleaved, one warmup of each length followed by three rounds. first_load_s: three new processes with --clear-cache --limit 1; warm_load_s: three new processes with --limit 1. peak_rss_bytes / peak_footprint_bytes: /usr/bin/time -l around the latency process; resident_bytes: the largest RSS sampled every 100 ms during the measured 8,192-token rows (--sample-memory). cancel_s: three cancellations of a 2,000-token request after its forward run started, in TypedDecisionInferenceTests (swift test, debug build of the test target). Loads run first (three fresh, then three cached), then the latency process, then the cancellation test."
   },
-  "schema": "jev27b-validation-performance/1"
+  "schema": "jev27b-validation-performance/1",
+  "sources": {
+    "cancel/typed-cancel-run.json": "df787670a7b5216d4cd81b5317127fd1782d0f57cc7482d1631fc793ec3585c6",
+    "cancel/typed-cancel.json": "fcef820f20f72948d0e1240471b132c951f9d14ba7e61de204d7487c4996f13a",
+    "cancel/typed-parity.json": "919c64e0100a19d2dd09a082ee71fb30e40a83c4940ee9617f68e57b0b0d1314",
+    "conditions.log": "9ec2c58da9e8a6f7f451d974d22bd9f16aceed98b6a22b6e202abaededbb9518",
+    "latency.json": "8d7304ce1d26ffb9604747b6ab872df61ac80834cf5833f4220025e2a3029556",
+    "latency.log": "96d4ae90eaa6083dd216b8826e095045f687dfe9a6ed9ad893ca9ab8ed7d9d01",
+    "load-cached-1.json": "34e905c74b488c6e03239a2a0bc084c9dd48400f203ff176116d67830fae80ed",
+    "load-cached-2.json": "451f3ce0b6e37d65b8457d002d67e3f431d57b20a79539d9d102a46310008544",
+    "load-cached-3.json": "6d733eb98aa6d7331e6cf73baa211a048e80d9bf3c9de35e29cb9bd973b8737f",
+    "load-fresh-1.json": "2688e4e55e6b83b2dc6e995b2f74cdfd21d08c686d1485132251de2e5be679d8",
+    "load-fresh-2.json": "160a3669b444fbf202daa3c6d28639f17fa9f0eeca8f8dde9e934719aec595b4",
+    "load-fresh-3.json": "f83a32519a57346647b809c2b69afd413209a481be6d5f7de6c6b16099f6b83b",
+    "records-2/bundle.jsonl": "e87c9c9e432b077dba79355e2bc5858d15ff63c68cb6afa0ecab71dd9c34c5e8",
+    "records-2/memory.jsonl": "339d98ea8e36830b0c957dea2d58f812ae06eea3c2374c85e12c1c1f60b7212e"
+  }
 }

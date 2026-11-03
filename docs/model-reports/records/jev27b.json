@@ -1,484 +1,484 @@
 {
- "id": "jev27b",
- "kind": "decision",
- "name": {
-  "en": "JEV-27B · uint4 + fp32 head, text",
-  "ja": "JEV-27B · uint4＋fp32ヘッド、テキスト"
- },
- "use": {
-  "en": "Typed decisions (CLI)",
-  "ja": "型付き判断(CLI)"
- },
- "overview": {
-  "en": "Typed decisions · macOS CLI",
-  "ja": "型付き判断 · macOS CLI"
- },
- "release": "in_progress",
- "release_note": {
-  "en": "bundle not distributed; publication is decided in #450",
-  "ja": "バンドル非公開。公開は #450 で判断"
- },
- "download": null,
- "pages": {
-  "en": "docs/jev27b.md",
-  "ja": "docs/jev27b.ja.md"
- },
- "links": [
-  {
-   "title": {
-    "en": "Conversion recipe",
-    "ja": "変換レシピ"
-   },
-   "url": "Tools/Conversion/recipes/jev27b/README.md"
+  "id": "jev27b",
+  "kind": "decision",
+  "name": {
+    "en": "JEV-27B · uint4 + fp32 head, text",
+    "ja": "JEV-27B · uint4＋fp32ヘッド、テキスト"
   },
-  {
-   "title": {
-    "en": "Validation records",
-    "ja": "検証の記録"
-   },
-   "url": "docs/validation/jev27b/README.md"
+  "use": {
+    "en": "Typed decisions (CLI)",
+    "ja": "型付き判断(CLI)"
   },
-  {
-   "title": {
-    "en": "Japanese (JGLUE), no pass line",
-    "ja": "日本語(JGLUE)、合格線なし"
-   },
-   "url": "docs/jev27b.md#japanese-jglue"
+  "overview": {
+    "en": "Typed decisions · macOS CLI",
+    "ja": "型付き判断 · macOS CLI"
+  },
+  "release": "in_progress",
+  "release_note": {
+    "en": "bundle not distributed; publication is decided in #450",
+    "ja": "バンドル非公開。公開は #450 で判断"
+  },
+  "download": null,
+  "pages": {
+    "en": "docs/jev27b.md",
+    "ja": "docs/jev27b.ja.md"
+  },
+  "links": [
+    {
+      "title": {
+        "en": "Conversion recipe",
+        "ja": "変換レシピ"
+      },
+      "url": "Tools/Conversion/recipes/jev27b/README.md"
+    },
+    {
+      "title": {
+        "en": "Validation records",
+        "ja": "検証の記録"
+      },
+      "url": "docs/validation/jev27b/README.md"
+    },
+    {
+      "title": {
+        "en": "Japanese (JGLUE), no pass line",
+        "ja": "日本語(JGLUE)、合格線なし"
+      },
+      "url": "docs/jev27b.md#japanese-jglue"
+    }
+  ],
+  "support": {
+    "macos": {
+      "state": "unavailable",
+      "variants": [],
+      "evidence": [],
+      "note": {
+        "en": "Only the coreai-verify command line tool runs the bundle; app integration is #449.",
+        "ja": "bundle は coreai-verify のコマンドラインでだけ動く。アプリへの組み込みは #449。"
+      }
+    },
+    "ios": {
+      "state": "unavailable",
+      "variants": [],
+      "evidence": [],
+      "note": {
+        "en": "Native demo is not provided for this platform.",
+        "ja": "このOSのネイティブデモは未提供です。"
+      }
+    }
+  },
+  "evidence": {
+    "fidelity": {
+      "url": "docs/validation/jev27b/README.md#fidelity",
+      "level": "diagnostic",
+      "outcome": "passed",
+      "record_type": "legacy",
+      "date": "2026-11-03",
+      "platform": "macos",
+      "device": "Mac16,6 (Apple M4 Max), 128 GiB RAM",
+      "os": "macOS 27.0 (26A428)",
+      "toolchain": "Xcode 27.0 (27A266a), Apple Swift 6.4 (swiftlang-6.4.0.34.1)",
+      "variant": "uint4 backbone (gdn-fp32) / float32 head",
+      "backend": "Core AI; GPU preferred; expectFrequentReshapes true",
+      "route": "coreai-verify typed-decide (recipe step typed_decide_f) and the PyTorch reference stage 2",
+      "source_revision": "14b425269ed24452e0a5ad5a8f3e51d139647a88",
+      "artifact_revision": "26a11dca07a265feca4970dccdf2ebabaa005730132035e9df37b207cd26051e",
+      "code_revision": "c626c9a27f448961cc9d84addba31ce74573e183",
+      "workload": {
+        "en": "F: 302 rows (301 forwarded, one above 8,192 tokens rejected) at temperature 1 against the float32 PyTorch run of the same quantized weights, per input band.",
+        "ja": "F の 302 行(301 行を流し、8,192 トークン超の 1 行は拒否)を温度 1 で、同じ量子化後の重みの PyTorch float32 と入力の帯ごとに比較。"
+      },
+      "batch_size": 1,
+      "concurrency": 1,
+      "warmups": null,
+      "power": null,
+      "thermal": null,
+      "model_executed": true,
+      "plan_sha256": null
+    },
+    "quality": {
+      "url": "docs/validation/jev27b/README.md#quality",
+      "level": "diagnostic",
+      "outcome": "passed",
+      "record_type": "legacy",
+      "date": "2026-11-04",
+      "platform": "macos",
+      "device": "Mac16,6 (Apple M4 Max), 128 GiB RAM",
+      "os": "macOS 27.0 (26A428)",
+      "toolchain": "Xcode 27.0 (27A266a), Apple Swift 6.4 (swiftlang-6.4.0.34.1)",
+      "variant": "uint4 backbone (gdn-fp32) / float32 head",
+      "backend": "Core AI; GPU preferred; expectFrequentReshapes true",
+      "route": "coreai-verify typed-decide for stage 3 (recipe steps typed_decide_q / cal / h) and the PyTorch reference stages 0, 0q, 1' and 2",
+      "source_revision": "14b425269ed24452e0a5ad5a8f3e51d139647a88",
+      "artifact_revision": "26a11dca07a265feca4970dccdf2ebabaa005730132035e9df37b207cd26051e",
+      "code_revision": "31071af7acef18f77362609bb548233b61ad624a",
+      "workload": {
+        "en": "Q (900 rows), Cal (3,000) and H (1,500) against the teacher distribution; quantization and adaptation conditions fixed before measuring; temperatures refitted on Cal and selected on H'. Agreement with the teacher, not real-world correctness. Results of 2026-11-03 (stages 0q and 2) to 2026-11-04 (the other stages, the scoring and the calibration).",
+        "ja": "Q(900 行)・Cal(3,000)・H(1,500)を教師分布と比較。量子化と適応の条件は計測前に固定。温度は Cal で再フィットし H′ で採否。教師への一致で、現実の正しさではない。結果は 2026-11-03(段 0q と 2)から 2026-11-04(ほかの段、採点、校正)。"
+      },
+      "batch_size": 1,
+      "concurrency": 1,
+      "warmups": null,
+      "power": null,
+      "thermal": null,
+      "model_executed": true,
+      "plan_sha256": null
+    },
+    "japanese": {
+      "url": "docs/validation/jev27b/README.md#japanese",
+      "level": "diagnostic",
+      "outcome": "passed",
+      "record_type": "legacy",
+      "date": "2026-11-04",
+      "platform": "macos",
+      "device": "Mac16,6 (Apple M4 Max), 128 GiB RAM",
+      "os": "macOS 27.0 (26A428)",
+      "toolchain": "Xcode 27.0 (27A266a), Apple Swift 6.4 (swiftlang-6.4.0.34.1)",
+      "variant": "uint4 backbone (gdn-fp32) / float32 head",
+      "backend": "Core AI; GPU preferred; expectFrequentReshapes true",
+      "route": "coreai-verify typed-decide and PyTorch MPS bf16 (recipe steps typed_decide_j / reference_j)",
+      "source_revision": "14b425269ed24452e0a5ad5a8f3e51d139647a88",
+      "artifact_revision": "a2b186a87a64d9e93a56f185a5ebc2a0613d00da7440eeb8c8c2229b64f6adf3",
+      "code_revision": "b64eae58e9b4a8954b6b9270a109e6edd6bd22c8",
+      "workload": {
+        "en": "JGLUE J (200 rows per task, two prompt variants, stages 1' and 3). Measurement completed; no pass line, so passed means completed, not a criterion met.",
+        "ja": "JGLUE の J(各 task 200 行、prompt の 2 変種、段 1′ と 3)。測定は完了。合格線は無く、passed は完了を表し基準を満たしたことではない。"
+      },
+      "batch_size": 1,
+      "concurrency": 1,
+      "warmups": null,
+      "power": null,
+      "thermal": null,
+      "model_executed": true,
+      "plan_sha256": null
+    },
+    "performance": {
+      "url": "docs/validation/jev27b/README.md#performance",
+      "level": "diagnostic",
+      "outcome": "passed",
+      "record_type": "standard",
+      "date": "2026-11-04",
+      "platform": "macos",
+      "device": "Mac16,6 (Apple M4 Max), 128 GiB RAM",
+      "os": "macOS 27.0 (26A428)",
+      "toolchain": "Xcode 27.0 (27A266a), Apple Swift 6.4 (swiftlang-6.4.0.34.1)",
+      "variant": "uint4 backbone (gdn-fp32) / float32 head",
+      "backend": "Core AI; GPU preferred; expectFrequentReshapes true",
+      "route": "coreai-verify typed-decide (release build); TypedDecisionInferenceTests in the debug build of the test target for cancellation",
+      "source_revision": "14b425269ed24452e0a5ad5a8f3e51d139647a88",
+      "artifact_revision": "a2b186a87a64d9e93a56f185a5ebc2a0613d00da7440eeb8c8c2229b64f6adf3",
+      "code_revision": "9d8fdf821470168c3d92276808cb9ff1f815d7de",
+      "workload": {
+        "en": "P: four rows of exactly 100, 500, 2,000 and 8,192 tokens; latency one warmup and three measured rounds per length in one process; three fresh and three cached loads in new processes; /usr/bin/time -l and 100 ms sampling for memory; three cancellations of a 2,000-token request. Measured on battery power by the owner's decision (90% to 76%, no adapter, Low Power Mode off; plan revision 3 records this). Thermal pressure moderate to heavy in the third round and the cancellation test. The warmup is for the latency rounds only; loads and cancellations have none. Other load: no other model process (pgrep before the measurement); GPU use of other processes was not recorded.",
+        "ja": "P はちょうど 100・500・2,000・8,192 トークンの 4 行。1 判断の時間は 1 プロセスで長さごとに warmup 1 回と計測 3 周。ロードは新しいプロセスで fresh 3 回と cached 3 回。メモリは /usr/bin/time -l と 100 ms の採取。取消は 2,000 トークンの依頼で 3 回。本人の決定によりバッテリー駆動で計測した(90% から 76%、アダプターなし、低電力モード off。計画の改訂 3 に記録)。第 3 周と取消の試験は熱の圧力 moderate から heavy の下。warmup は 1 判断の時間の周だけで、ロードと取消には無い。他の負荷: モデルの他のプロセスなし(計測の前の pgrep)。ほかのプロセスの GPU の使用は記録していない。"
+      },
+      "batch_size": 1,
+      "concurrency": 1,
+      "warmups": 1,
+      "power": "Battery power, no AC adapter attached (pmset -g ac); 90% at start, Low Power Mode off (pmset -g powermode 0). Measured on battery by the owner's instruction on 2026-11-04 06:20 JST",
+      "thermal": "pmset -g therm: no warning in 10 snapshots; thermalmonitord pressure moderate from 06:28:52 (end of the second round) and heavy 06:29:08-06:32:08 (from the end of the third 2,000-token row through the cancellation test)",
+      "model_executed": true,
+      "plan_sha256": "d361e027c9f6c4929bc8cafe7ea4f378fcdbfe7e01e795a1229e6cbc5cd5d4b7"
+    },
+    "bundle": {
+      "url": "docs/validation/jev27b/README.md#bundle",
+      "level": "conversion",
+      "outcome": "passed",
+      "record_type": "standard",
+      "date": "2026-11-04",
+      "platform": "macos",
+      "device": "Mac16,6 (Apple M4 Max), 128 GiB RAM",
+      "os": "macOS 27.0 (26A428)",
+      "toolchain": "Xcode 27.0 (27A266a), Apple Swift 6.4 (swiftlang-6.4.0.34.1)",
+      "variant": "uint4 backbone (gdn-fp32) / float32 head",
+      "backend": "Core AI; GPU preferred; expectFrequentReshapes true",
+      "route": "performance.py records over the calibrated bundle written by the recipe step calibrate",
+      "source_revision": "14b425269ed24452e0a5ad5a8f3e51d139647a88",
+      "artifact_revision": "a2b186a87a64d9e93a56f185a5ebc2a0613d00da7440eeb8c8c2229b64f6adf3",
+      "code_revision": "e879c67ff30344fc69f5cb6dcde93ed432d9339c",
+      "workload": {
+        "en": "File sizes of the calibrated bundle, counted after plan revision 3 was frozen; the SHA-256 of decision.json equals the plan's artifact revision. No model load.",
+        "ja": "校正済み bundle のファイルの大きさ。計画の改訂 3 を凍結した後に数えた。decision.json の SHA-256 は計画の artifact revision と同じ。モデルは読まない。"
+      },
+      "batch_size": 1,
+      "concurrency": 1,
+      "warmups": 0,
+      "power": "not applicable (file sizes)",
+      "thermal": "not applicable (file sizes)",
+      "model_executed": false,
+      "plan_sha256": "d361e027c9f6c4929bc8cafe7ea4f378fcdbfe7e01e795a1229e6cbc5cd5d4b7"
+    }
+  },
+  "measurements": [
+    {
+      "metric": "bundle_bytes",
+      "value": 16064815496,
+      "unit": "B",
+      "statistic": "single",
+      "n": 1,
+      "evidence": "bundle",
+      "source_value": {
+        "path": "docs/validation/jev27b/performance.json",
+        "pointer": "/bundle/bytes"
+      },
+      "note": {
+        "en": "The 13 files of the calibrated bundle, including the 16 GB asset; counted by performance.py records after plan revision 3.",
+        "ja": "校正済み bundle の 13 ファイル(16 GB の資産を含む)。計画の改訂 3 の後に performance.py records で数えた。"
+      }
+    },
+    {
+      "metric": "first_load_s",
+      "value": 27.699179291,
+      "unit": "s",
+      "statistic": "median",
+      "n": 3,
+      "evidence": "performance",
+      "source_value": {
+        "path": "docs/validation/jev27b/performance.json",
+        "pointer": "/loads/first_load_s/metrics/first_load_s/median"
+      },
+      "note": {
+        "en": "New process with the specialization cache entry deleted (--clear-cache); bundle check, tokenizer, head and backbone. File caches not flushed. On battery power (plan revision 3).",
+        "ja": "特殊化 cache を消した新プロセス(--clear-cache)。bundle の検査・tokenizer・ヘッド・本体の合計。ファイルの cache は消していない。バッテリー駆動(計画の改訂 3)。"
+      }
+    },
+    {
+      "metric": "warm_load_s",
+      "value": 9.421810624999999,
+      "unit": "s",
+      "statistic": "median",
+      "n": 3,
+      "evidence": "performance",
+      "source_value": {
+        "path": "docs/validation/jev27b/performance.json",
+        "pointer": "/loads/warm_load_s/metrics/warm_load_s/median"
+      },
+      "note": {
+        "en": "New process with the specialization cache entry present; same parts as the first load. On battery power (plan revision 3).",
+        "ja": "特殊化 cache がある新プロセス。初回と同じ部分の合計。バッテリー駆動(計画の改訂 3)。"
+      }
+    },
+    {
+      "metric": "latency_s",
+      "value": 0.5984142920000001,
+      "unit": "s",
+      "statistic": "median",
+      "n": 3,
+      "evidence": "performance",
+      "source_value": {
+        "path": "docs/validation/jev27b/performance.json",
+        "pointer": "/latency/100/metrics/latency_s/median"
+      },
+      "note": {
+        "en": "P row of exactly 100 tokens; TypedDecisionModel.decide from call to return; lengths interleaved in one process after one warmup each; memory sampled every 100 ms during each row (--sample-memory). The median row ran under moderate thermal pressure. On battery power (plan revision 3).",
+        "ja": "ちょうど 100 トークンの P の行。TypedDecisionModel.decide の呼び出しから復帰まで。1 プロセスで長さを交互に、各長さ warmup 1 回の後。各行の間 100 ms ごとにメモリを採取(--sample-memory)。中央値の行は熱の圧力 moderate の下。バッテリー駆動(計画の改訂 3)。"
+      }
+    },
+    {
+      "metric": "latency_s",
+      "value": 2.270020917,
+      "unit": "s",
+      "statistic": "median",
+      "n": 3,
+      "evidence": "performance",
+      "source_value": {
+        "path": "docs/validation/jev27b/performance.json",
+        "pointer": "/latency/500/metrics/latency_s/median"
+      },
+      "note": {
+        "en": "P row of exactly 500 tokens; TypedDecisionModel.decide from call to return; lengths interleaved in one process after one warmup each; memory sampled every 100 ms during each row (--sample-memory). On battery power (plan revision 3).",
+        "ja": "ちょうど 500 トークンの P の行。TypedDecisionModel.decide の呼び出しから復帰まで。1 プロセスで長さを交互に、各長さ warmup 1 回の後。各行の間 100 ms ごとにメモリを採取(--sample-memory)。バッテリー駆動(計画の改訂 3)。"
+      }
+    },
+    {
+      "metric": "latency_s",
+      "value": 8.919106458,
+      "unit": "s",
+      "statistic": "median",
+      "n": 3,
+      "evidence": "performance",
+      "source_value": {
+        "path": "docs/validation/jev27b/performance.json",
+        "pointer": "/latency/2000/metrics/latency_s/median"
+      },
+      "note": {
+        "en": "P row of exactly 2,000 tokens; TypedDecisionModel.decide from call to return; lengths interleaved in one process after one warmup each; memory sampled every 100 ms during each row (--sample-memory). On battery power (plan revision 3).",
+        "ja": "ちょうど 2,000 トークンの P の行。TypedDecisionModel.decide の呼び出しから復帰まで。1 プロセスで長さを交互に、各長さ warmup 1 回の後。各行の間 100 ms ごとにメモリを採取(--sample-memory)。バッテリー駆動(計画の改訂 3)。"
+      }
+    },
+    {
+      "metric": "latency_s",
+      "value": 37.495032,
+      "unit": "s",
+      "statistic": "median",
+      "n": 3,
+      "evidence": "performance",
+      "source_value": {
+        "path": "docs/validation/jev27b/performance.json",
+        "pointer": "/latency/8192/metrics/latency_s/median"
+      },
+      "note": {
+        "en": "P row of exactly 8,192 tokens; TypedDecisionModel.decide from call to return; lengths interleaved in one process after one warmup each; memory sampled every 100 ms during each row (--sample-memory). The last seconds of the median row ran under moderate thermal pressure. On battery power (plan revision 3).",
+        "ja": "ちょうど 8,192 トークンの P の行。TypedDecisionModel.decide の呼び出しから復帰まで。1 プロセスで長さを交互に、各長さ warmup 1 回の後。各行の間 100 ms ごとにメモリを採取(--sample-memory)。中央値の行の最後の数秒は熱の圧力 moderate の下。バッテリー駆動(計画の改訂 3)。"
+      }
+    },
+    {
+      "metric": "peak_rss_bytes",
+      "value": 32343687168,
+      "unit": "B",
+      "statistic": "single",
+      "n": 1,
+      "evidence": "performance",
+      "source_value": {
+        "path": "docs/validation/jev27b/performance.json",
+        "pointer": "/memory/values/peak_rss_bytes"
+      },
+      "note": {
+        "en": "/usr/bin/time -l of the latency process, lifetime maximum including the load; not added to the footprint. On battery power (plan revision 3).",
+        "ja": "latency のプロセスの /usr/bin/time -l。読み込みを含む生涯の最大。footprint と足さない。バッテリー駆動(計画の改訂 3)。"
+      }
+    },
+    {
+      "metric": "peak_footprint_bytes",
+      "value": 21565667056,
+      "unit": "B",
+      "statistic": "single",
+      "n": 1,
+      "evidence": "performance",
+      "source_value": {
+        "path": "docs/validation/jev27b/performance.json",
+        "pointer": "/memory/values/peak_footprint_bytes"
+      },
+      "note": {
+        "en": "/usr/bin/time -l of the latency process (peak memory footprint). Not a bound: the footprint grew by 4.2 to 4.8 GB in each round of alternating lengths and had not levelled off. On battery power (plan revision 3).",
+        "ja": "latency のプロセスの /usr/bin/time -l(peak memory footprint)。上限ではない。長さを交互に流す 1 周ごとに 4.2〜4.8 GB 増え、頭打ちになっていない。バッテリー駆動(計画の改訂 3)。"
+      }
+    },
+    {
+      "metric": "resident_bytes",
+      "value": 17290887168,
+      "unit": "B",
+      "statistic": "max",
+      "n": 1,
+      "evidence": "performance",
+      "source_value": {
+        "path": "docs/validation/jev27b/performance.json",
+        "pointer": "/memory/values/resident_bytes"
+      },
+      "note": {
+        "en": "Largest RSS sampled every 100 ms during the measured 8,192-token rows (--sample-memory). On battery power (plan revision 3).",
+        "ja": "計測した 8,192 トークンの行の run 中に 100 ms ごとに採った RSS の最大(--sample-memory)。バッテリー駆動(計画の改訂 3)。"
+      }
+    },
+    {
+      "metric": "cancel_s",
+      "value": 9.146718542,
+      "unit": "s",
+      "statistic": "median",
+      "n": 3,
+      "evidence": "performance",
+      "source_value": {
+        "path": "docs/validation/jev27b/performance.json",
+        "pointer": "/cancel/metrics/cancel_s/median"
+      },
+      "note": {
+        "en": "2,000-token request (the state of the refund card example repeated 164 times, not a P row) cancelled after the test backbone reported its forward call; the backbone does not pass the cancellation on, so this is the rest of the run (8.72 s without cancellation). Debug build of the test target (swift test). Heavy thermal pressure. On battery power (plan revision 3).",
+        "ja": "試験用 backbone が forward の呼び出しを報告した後に取り消した 2,000 トークンの依頼(返金のカードの例の state を 164 回繰り返したもの。P の行ではない)。backbone は取消を伝えないので run の残り時間(取り消さなければ 8.72 s)。試験 target の debug build(swift test)。熱の圧力は heavy。バッテリー駆動(計画の改訂 3)。"
+      }
+    },
+    {
+      "metric": "task_success",
+      "value": 0.8666666666666667,
+      "unit": "ratio",
+      "statistic": "mean",
+      "n": 300,
+      "evidence": "quality",
+      "source_value": {
+        "path": "docs/validation/jev27b/quality.json",
+        "pointer": "/stages/1/3/choice_accuracy_ratio"
+      },
+      "note": {
+        "en": "Stage 3 choice rows of Q whose top option is the teacher top (agreement with the teacher distribution, not real-world accuracy); stage 1' 0.8733.",
+        "ja": "段 3 の Q の choice の行で top が教師の top と一致した割合(教師分布への一致で、現実の正答率ではない)。段 1′ は 0.8733。"
+      }
+    },
+    {
+      "metric": "reference_error",
+      "value": 0.006541500537179168,
+      "unit": "error",
+      "statistic": "max",
+      "n": 301,
+      "evidence": "fidelity",
+      "source_value": {
+        "path": "docs/validation/jev27b/fidelity.json",
+        "pointer": "/temperature_1/max"
+      },
+      "note": {
+        "en": "Largest probability difference of F at temperature 1 between Core AI and the float32 PyTorch run of the same quantized weights.",
+        "ja": "温度 1 の F で、Core AI と同じ量子化後の重みの PyTorch float32 の確率差の最大。"
+      }
+    }
+  ],
+  "omissions": {
+    "prepared_bytes": {
+      "state": "not_measured",
+      "reason": {
+        "en": "The size of the specialization cache entry is not exposed by the command line tool.",
+        "ja": "特殊化 cache の大きさはコマンドラインのツールから見えないので測っていない。"
+      }
+    },
+    "residual_bytes": {
+      "state": "not_measured",
+      "reason": {
+        "en": "The command line process never releases the model before it exits, so no after-release baseline exists.",
+        "ja": "コマンドラインのプロセスは終わるまでモデルを手放さないので、解放後の基準が無い。"
+      }
+    },
+    "reuse_latency_s": {
+      "state": "not_measured",
+      "reason": {
+        "en": "Reusing the state of a document between questions is not implemented for typed decisions.",
+        "ja": "質問をまたいで文書の状態を再利用する経路は型付き判断にまだ無い。"
+      }
+    }
+  },
+  "checks": {
+    "fidelity": {
+      "state": "passed",
+      "evidence": [
+        "fidelity"
+      ],
+      "note": {
+        "en": "Every band of F within a largest difference of 0.03 and a mean of 0.01 at temperature 1 (largest 0.0065); no top-1 change.",
+        "ja": "温度 1 の F のすべての帯で最大 0.03・平均 0.01 の内側(最大 0.0065)。top の変化なし。"
+      }
+    },
+    "quality": {
+      "state": "passed",
+      "evidence": [
+        "quality"
+      ],
+      "note": {
+        "en": "Choice accuracy passes on its point estimate (-0.67 points, limit -2 points), but its 95% interval [-3.00, +1.67] contains the limit (n = 300). noul Brier +0.00024, score normalized MAE +0.00051. Agreement with the teacher distribution, not real-world accuracy.",
+        "ja": "choice の正答率は点推定 −0.67 pt で閾値 −2 pt を満たすが、95% 区間 [−3.00, +1.67] は閾値をまたぐ(n = 300)。noul の Brier +0.00024、score の正規化 MAE +0.00051。教師分布への一致で、現実の正答率ではない。"
+      }
+    },
+    "stability": {
+      "state": "not_measured",
+      "evidence": [],
+      "note": {
+        "en": "The GPU test returns bit-identical logits for each row run twice in one process, and up to 3,000 consecutive rows ran in one process (Cal), but releasing and reloading the model was not verified.",
+        "ja": "GPU の試験で同じ行を 1 プロセスで 2 回流すと logit がビット単位で同じで、1 プロセスで最大 3,000 行(Cal)を続けて流したが、解放と再読み込みは確かめていない。"
+      }
+    },
+    "cancellation": {
+      "state": "passed",
+      "evidence": [
+        "performance"
+      ],
+      "note": {
+        "en": "Three requests cancelled during the forward run ended with CancellationError when the run returned, and a request cancelled at the forward checkpoint ended before the run. After both kinds of cancellation the next row returned logits bit-identical to the same row before the cancellation. The test backbone does not pass the cancellation on; whether a Core AI run itself stops was not measured.",
+        "ja": "forward の run 中に取り消した 3 回の依頼は run が返った時点で CancellationError で終わり、checkpoint での取消は run の前に終わった。どちらの取消の後も、次の行の logit は取消の前の同じ行とビット単位で同じだった。試験用 backbone は取消を伝えないので、Core AI の run 自体が止まるかは測っていない。"
+      }
+    }
   }
- ],
- "support": {
-  "macos": {
-   "state": "unavailable",
-   "variants": [],
-   "evidence": [],
-   "note": {
-    "en": "Only the coreai-verify command line tool runs the bundle; app integration is #449.",
-    "ja": "bundle は coreai-verify のコマンドラインでだけ動く。アプリへの組み込みは #449。"
-   }
-  },
-  "ios": {
-   "state": "unavailable",
-   "variants": [],
-   "evidence": [],
-   "note": {
-    "en": "Native demo is not provided for this platform.",
-    "ja": "このOSのネイティブデモは未提供です。"
-   }
-  }
- },
- "evidence": {
-  "fidelity": {
-   "url": "docs/validation/jev27b/README.md#fidelity",
-   "level": "diagnostic",
-   "outcome": "passed",
-   "record_type": "legacy",
-   "date": "2026-11-03",
-   "platform": "macos",
-   "device": "Mac16,6 (Apple M4 Max), 128 GiB RAM",
-   "os": "macOS 27.0 (26A428)",
-   "toolchain": "Xcode 27.0 (27A266a), Apple Swift 6.4 (swiftlang-6.4.0.34.1)",
-   "variant": "uint4 backbone (gdn-fp32) / float32 head",
-   "backend": "Core AI; GPU preferred; expectFrequentReshapes true",
-   "route": "coreai-verify typed-decide (recipe step typed_decide_f)",
-   "source_revision": "14b425269ed24452e0a5ad5a8f3e51d139647a88",
-   "artifact_revision": "26a11dca07a265feca4970dccdf2ebabaa005730132035e9df37b207cd26051e",
-   "code_revision": "c626c9a27f448961cc9d84addba31ce74573e183",
-   "workload": {
-    "en": "F: 302 rows (301 forwarded, one above 8,192 tokens rejected) at temperature 1 against the float32 PyTorch run of the same quantized weights, per input band.",
-    "ja": "F の 302 行(301 行を流し、8,192 トークン超の 1 行は拒否)を温度 1 で、同じ量子化後の重みの PyTorch float32 と入力の帯ごとに比較。"
-   },
-   "batch_size": 1,
-   "concurrency": 1,
-   "warmups": null,
-   "power": "AC power",
-   "thermal": null,
-   "model_executed": true,
-   "plan_sha256": null
-  },
-  "quality": {
-   "url": "docs/validation/jev27b/README.md#quality",
-   "level": "diagnostic",
-   "outcome": "passed",
-   "record_type": "legacy",
-   "date": "2026-11-04",
-   "platform": "macos",
-   "device": "Mac16,6 (Apple M4 Max), 128 GiB RAM",
-   "os": "macOS 27.0 (26A428)",
-   "toolchain": "Xcode 27.0 (27A266a), Apple Swift 6.4 (swiftlang-6.4.0.34.1)",
-   "variant": "uint4 backbone (gdn-fp32) / float32 head",
-   "backend": "Core AI; GPU preferred; expectFrequentReshapes true",
-   "route": "coreai-verify typed-decide (recipe steps typed_decide_q / cal / h)",
-   "source_revision": "14b425269ed24452e0a5ad5a8f3e51d139647a88",
-   "artifact_revision": "26a11dca07a265feca4970dccdf2ebabaa005730132035e9df37b207cd26051e",
-   "code_revision": "a35072f9dad0fa62a1f224319b849638088ef618",
-   "workload": {
-    "en": "Q (900 rows), Cal (3,000) and H (1,500) against the teacher distribution; quantization and adaptation conditions fixed before measuring; temperatures refitted on Cal and selected on H'. Agreement with the teacher, not real-world correctness.",
-    "ja": "Q(900 行)・Cal(3,000)・H(1,500)を教師分布と比較。量子化と適応の条件は計測前に固定。温度は Cal で再フィットし H′ で採否。教師への一致で、現実の正しさではない。"
-   },
-   "batch_size": 1,
-   "concurrency": 1,
-   "warmups": null,
-   "power": "AC power",
-   "thermal": null,
-   "model_executed": true,
-   "plan_sha256": null
-  },
-  "japanese": {
-   "url": "docs/validation/jev27b/README.md#japanese",
-   "level": "diagnostic",
-   "outcome": "passed",
-   "record_type": "legacy",
-   "date": "2026-11-04",
-   "platform": "macos",
-   "device": "Mac16,6 (Apple M4 Max), 128 GiB RAM",
-   "os": "macOS 27.0 (26A428)",
-   "toolchain": "Xcode 27.0 (27A266a), Apple Swift 6.4 (swiftlang-6.4.0.34.1)",
-   "variant": "uint4 backbone (gdn-fp32) / float32 head",
-   "backend": "Core AI; GPU preferred; expectFrequentReshapes true",
-   "route": "coreai-verify typed-decide and PyTorch MPS bf16 (recipe steps typed_decide_j / reference_j)",
-   "source_revision": "14b425269ed24452e0a5ad5a8f3e51d139647a88",
-   "artifact_revision": "a2b186a87a64d9e93a56f185a5ebc2a0613d00da7440eeb8c8c2229b64f6adf3",
-   "code_revision": "b64eae58e9b4a8954b6b9270a109e6edd6bd22c8",
-   "workload": {
-    "en": "JGLUE J (200 rows per task, two prompt variants, stages 1' and 3). Measurement completed; no pass line, so passed means completed, not a criterion met.",
-    "ja": "JGLUE の J(各 task 200 行、prompt の 2 変種、段 1′ と 3)。測定は完了。合格線は無く、passed は完了を表し基準を満たしたことではない。"
-   },
-   "batch_size": 1,
-   "concurrency": 1,
-   "warmups": null,
-   "power": "AC power",
-   "thermal": null,
-   "model_executed": true,
-   "plan_sha256": null
-  },
-  "performance": {
-   "url": "docs/validation/jev27b/README.md#performance",
-   "level": "diagnostic",
-   "outcome": "passed",
-   "record_type": "standard",
-   "date": "2026-11-04",
-   "platform": "macos",
-   "device": "Mac16,6 (Apple M4 Max), 128 GiB RAM",
-   "os": "macOS 27.0 (26A428)",
-   "toolchain": "Xcode 27.0 (27A266a), Apple Swift 6.4 (swiftlang-6.4.0.34.1)",
-   "variant": "uint4 backbone (gdn-fp32) / float32 head",
-   "backend": "Core AI; GPU preferred; expectFrequentReshapes true",
-   "route": "coreai-verify typed-decide; TypedDecisionInferenceTests for cancellation",
-   "source_revision": "14b425269ed24452e0a5ad5a8f3e51d139647a88",
-   "artifact_revision": "a2b186a87a64d9e93a56f185a5ebc2a0613d00da7440eeb8c8c2229b64f6adf3",
-   "code_revision": "9d8fdf821470168c3d92276808cb9ff1f815d7de",
-   "workload": {
-    "en": "P: four rows of exactly 100, 500, 2,000 and 8,192 tokens; latency one warmup and three measured rounds per length in one process; three fresh and three cached loads in new processes; /usr/bin/time -l and 100 ms sampling for memory; three cancellations of a 2,000-token request. Measured on battery power by the owner's decision (90% to 76%, no adapter, Low Power Mode off; plan revision 3 records this). Thermal pressure moderate to heavy in the third round and the cancellation test.",
-    "ja": "P はちょうど 100・500・2,000・8,192 トークンの 4 行。1 判断の時間は 1 プロセスで長さごとに warmup 1 回と計測 3 周。ロードは新しいプロセスで fresh 3 回と cached 3 回。メモリは /usr/bin/time -l と 100 ms の採取。取消は 2,000 トークンの依頼で 3 回。本人の決定によりバッテリー駆動で計測した(90% から 76%、アダプターなし、低電力モード off。計画の改訂 3 に記録)。第 3 周と取消の試験は熱の圧力 moderate から heavy の下。"
-   },
-   "batch_size": 1,
-   "concurrency": 1,
-   "warmups": 1,
-   "power": "Battery power, no AC adapter attached (pmset -g ac); 90% at start, Low Power Mode off (pmset -g powermode 0). Measured on battery by the owner's instruction on 2026-11-04 06:20 JST",
-   "thermal": "pmset -g therm: no warning in 10 snapshots; thermalmonitord pressure moderate from 06:28:52 and heavy 06:29:08-06:32:08 (third round and the cancellation test)",
-   "model_executed": true,
-   "plan_sha256": "d361e027c9f6c4929bc8cafe7ea4f378fcdbfe7e01e795a1229e6cbc5cd5d4b7"
-  },
-  "bundle": {
-   "url": "docs/validation/jev27b/README.md#bundle",
-   "level": "conversion",
-   "outcome": "passed",
-   "record_type": "standard",
-   "date": "2026-11-04",
-   "platform": "macos",
-   "device": "Mac16,6 (Apple M4 Max), 128 GiB RAM",
-   "os": "macOS 27.0 (26A428)",
-   "toolchain": "Xcode 27.0 (27A266a), Apple Swift 6.4 (swiftlang-6.4.0.34.1)",
-   "variant": "uint4 backbone (gdn-fp32) / float32 head",
-   "backend": "Core AI; GPU preferred; expectFrequentReshapes true",
-   "route": "recipe step calibrate (calibrated copy of the variant bundle)",
-   "source_revision": "14b425269ed24452e0a5ad5a8f3e51d139647a88",
-   "artifact_revision": "a2b186a87a64d9e93a56f185a5ebc2a0613d00da7440eeb8c8c2229b64f6adf3",
-   "code_revision": "9d8fdf821470168c3d92276808cb9ff1f815d7de",
-   "workload": {
-    "en": "File sizes of the calibrated bundle, measured under the performance plan; SHA256SUMS and decision.json checked.",
-    "ja": "校正済み bundle のファイルの大きさ。性能の計画のもとで測った。SHA256SUMS と decision.json を確認。"
-   },
-   "batch_size": 1,
-   "concurrency": 1,
-   "warmups": 1,
-   "power": "Battery power, no AC adapter attached (pmset -g ac); 90% at start, Low Power Mode off (pmset -g powermode 0). Measured on battery by the owner's instruction on 2026-11-04 06:20 JST",
-   "thermal": "pmset -g therm: no warning in 10 snapshots; thermalmonitord pressure moderate from 06:28:52 and heavy 06:29:08-06:32:08 (third round and the cancellation test)",
-   "model_executed": false,
-   "plan_sha256": "d361e027c9f6c4929bc8cafe7ea4f378fcdbfe7e01e795a1229e6cbc5cd5d4b7"
-  }
- },
- "measurements": [
-  {
-   "metric": "bundle_bytes",
-   "value": 16064815496,
-   "unit": "B",
-   "statistic": "single",
-   "n": 1,
-   "evidence": "bundle",
-   "source_value": {
-    "path": "docs/validation/jev27b/performance.json",
-    "pointer": "/bundle/bytes"
-   },
-   "note": {
-    "en": "The 13 files of the calibrated bundle, including the 16 GB asset.",
-    "ja": "校正済み bundle の 13 ファイル(16 GB の資産を含む)。"
-   }
-  },
-  {
-   "metric": "first_load_s",
-   "value": 27.699179291,
-   "unit": "s",
-   "statistic": "median",
-   "n": 3,
-   "evidence": "performance",
-   "source_value": {
-    "path": "docs/validation/jev27b/performance.json",
-    "pointer": "/loads/first_load_s/metrics/first_load_s/median"
-   },
-   "note": {
-    "en": "New process with the specialization cache entry deleted (--clear-cache); bundle check, tokenizer, head and backbone. File caches not flushed.",
-    "ja": "特殊化 cache を消した新プロセス(--clear-cache)。bundle の検査・tokenizer・ヘッド・本体の合計。ファイルの cache は消していない。"
-   }
-  },
-  {
-   "metric": "warm_load_s",
-   "value": 9.421810624999999,
-   "unit": "s",
-   "statistic": "median",
-   "n": 3,
-   "evidence": "performance",
-   "source_value": {
-    "path": "docs/validation/jev27b/performance.json",
-    "pointer": "/loads/warm_load_s/metrics/warm_load_s/median"
-   },
-   "note": {
-    "en": "New process with the specialization cache entry present; same parts as the first load.",
-    "ja": "特殊化 cache がある新プロセス。初回と同じ部分の合計。"
-   }
-  },
-  {
-   "metric": "latency_s",
-   "value": 0.5984142920000001,
-   "unit": "s",
-   "statistic": "median",
-   "n": 3,
-   "evidence": "performance",
-   "source_value": {
-    "path": "docs/validation/jev27b/performance.json",
-    "pointer": "/latency/100/metrics/latency_s/median"
-   },
-   "note": {
-    "en": "P row of exactly 100 tokens; TypedDecisionModel.decide from call to return; lengths interleaved in one process after one warmup each. The median row ran under moderate thermal pressure.",
-    "ja": "ちょうど 100 トークンの P の行。TypedDecisionModel.decide の呼び出しから復帰まで。1 プロセスで長さを交互に、各長さ warmup 1 回の後。中央値の行は熱の圧力 moderate の下。"
-   }
-  },
-  {
-   "metric": "latency_s",
-   "value": 2.270020917,
-   "unit": "s",
-   "statistic": "median",
-   "n": 3,
-   "evidence": "performance",
-   "source_value": {
-    "path": "docs/validation/jev27b/performance.json",
-    "pointer": "/latency/500/metrics/latency_s/median"
-   },
-   "note": {
-    "en": "P row of exactly 500 tokens; TypedDecisionModel.decide from call to return; lengths interleaved in one process after one warmup each.",
-    "ja": "ちょうど 500 トークンの P の行。TypedDecisionModel.decide の呼び出しから復帰まで。1 プロセスで長さを交互に、各長さ warmup 1 回の後。"
-   }
-  },
-  {
-   "metric": "latency_s",
-   "value": 8.919106458,
-   "unit": "s",
-   "statistic": "median",
-   "n": 3,
-   "evidence": "performance",
-   "source_value": {
-    "path": "docs/validation/jev27b/performance.json",
-    "pointer": "/latency/2000/metrics/latency_s/median"
-   },
-   "note": {
-    "en": "P row of exactly 2,000 tokens; TypedDecisionModel.decide from call to return; lengths interleaved in one process after one warmup each.",
-    "ja": "ちょうど 2,000 トークンの P の行。TypedDecisionModel.decide の呼び出しから復帰まで。1 プロセスで長さを交互に、各長さ warmup 1 回の後。"
-   }
-  },
-  {
-   "metric": "latency_s",
-   "value": 37.495032,
-   "unit": "s",
-   "statistic": "median",
-   "n": 3,
-   "evidence": "performance",
-   "source_value": {
-    "path": "docs/validation/jev27b/performance.json",
-    "pointer": "/latency/8192/metrics/latency_s/median"
-   },
-   "note": {
-    "en": "P row of exactly 8,192 tokens; TypedDecisionModel.decide from call to return; lengths interleaved in one process after one warmup each. The last seconds of the median row ran under moderate thermal pressure.",
-    "ja": "ちょうど 8,192 トークンの P の行。TypedDecisionModel.decide の呼び出しから復帰まで。1 プロセスで長さを交互に、各長さ warmup 1 回の後。中央値の行の最後の数秒は熱の圧力 moderate の下。"
-   }
-  },
-  {
-   "metric": "peak_rss_bytes",
-   "value": 32343687168,
-   "unit": "B",
-   "statistic": "single",
-   "n": 1,
-   "evidence": "performance",
-   "source_value": {
-    "path": "docs/validation/jev27b/performance.json",
-    "pointer": "/memory/metrics/peak_rss_bytes/median"
-   },
-   "note": {
-    "en": "/usr/bin/time -l of the latency process, lifetime maximum including the load; not added to the footprint.",
-    "ja": "latency のプロセスの /usr/bin/time -l。読み込みを含む生涯の最大。footprint と足さない。"
-   }
-  },
-  {
-   "metric": "peak_footprint_bytes",
-   "value": 21565667056,
-   "unit": "B",
-   "statistic": "single",
-   "n": 1,
-   "evidence": "performance",
-   "source_value": {
-    "path": "docs/validation/jev27b/performance.json",
-    "pointer": "/memory/metrics/peak_footprint_bytes/median"
-   },
-   "note": {
-    "en": "/usr/bin/time -l of the latency process (peak memory footprint).",
-    "ja": "latency のプロセスの /usr/bin/time -l(peak memory footprint)。"
-   }
-  },
-  {
-   "metric": "resident_bytes",
-   "value": 17290887168,
-   "unit": "B",
-   "statistic": "max",
-   "n": 1,
-   "evidence": "performance",
-   "source_value": {
-    "path": "docs/validation/jev27b/performance.json",
-    "pointer": "/memory/metrics/resident_bytes/median"
-   },
-   "note": {
-    "en": "Largest RSS sampled every 100 ms during the measured 8,192-token rows (--sample-memory).",
-    "ja": "計測した 8,192 トークンの行の run 中に 100 ms ごとに採った RSS の最大(--sample-memory)。"
-   }
-  },
-  {
-   "metric": "cancel_s",
-   "value": 9.146718542,
-   "unit": "s",
-   "statistic": "median",
-   "n": 3,
-   "evidence": "performance",
-   "source_value": {
-    "path": "docs/validation/jev27b/performance.json",
-    "pointer": "/cancel/metrics/cancel_s/median"
-   },
-   "note": {
-    "en": "2,000-token request cancelled after the test backbone reported its forward call; the backbone does not pass the cancellation on, so this is the rest of the run. Heavy thermal pressure.",
-    "ja": "試験用 backbone が forward の呼び出しを報告した後に取り消した 2,000 トークンの依頼。backbone は取消を伝えないので run の残り時間。熱の圧力は heavy。"
-   }
-  },
-  {
-   "metric": "task_success",
-   "value": 0.8666666666666667,
-   "unit": "ratio",
-   "statistic": "mean",
-   "n": 300,
-   "evidence": "quality",
-   "source_value": {
-    "path": "docs/validation/jev27b/quality.json",
-    "pointer": "/stages/1/3/choice_accuracy_ratio"
-   },
-   "note": {
-    "en": "Stage 3 choice rows of Q whose top option is the teacher top (agreement with the teacher distribution, not real-world accuracy); stage 1' 0.8733.",
-    "ja": "段 3 の Q の choice の行で top が教師の top と一致した割合(教師分布への一致で、現実の正答率ではない)。段 1′ は 0.8733。"
-   }
-  },
-  {
-   "metric": "reference_error",
-   "value": 0.006541500537179168,
-   "unit": "error",
-   "statistic": "max",
-   "n": 301,
-   "evidence": "fidelity",
-   "source_value": {
-    "path": "docs/validation/jev27b/fidelity.json",
-    "pointer": "/temperature_1/max"
-   },
-   "note": {
-    "en": "Largest probability difference of F at temperature 1 between Core AI and the float32 PyTorch run of the same quantized weights.",
-    "ja": "温度 1 の F で、Core AI と同じ量子化後の重みの PyTorch float32 の確率差の最大。"
-   }
-  }
- ],
- "omissions": {
-  "prepared_bytes": {
-   "state": "not_measured",
-   "reason": {
-    "en": "The size of the specialization cache entry is not exposed by the command line tool.",
-    "ja": "特殊化 cache の大きさはコマンドラインのツールから見えないので測っていない。"
-   }
-  },
-  "residual_bytes": {
-   "state": "not_measured",
-   "reason": {
-    "en": "The command line process never releases the model before it exits, so no after-release baseline exists.",
-    "ja": "コマンドラインのプロセスは終わるまでモデルを手放さないので、解放後の基準が無い。"
-   }
-  },
-  "reuse_latency_s": {
-   "state": "not_measured",
-   "reason": {
-    "en": "Reusing the state of a document between questions is not implemented for typed decisions.",
-    "ja": "質問をまたいで文書の状態を再利用する経路は型付き判断にまだ無い。"
-   }
-  }
- },
- "checks": {
-  "fidelity": {
-   "state": "passed",
-   "evidence": [
-    "fidelity"
-   ],
-   "note": {
-    "en": "Every band of F within a largest difference of 0.03 and a mean of 0.01 at temperature 1 (largest 0.0065); no top-1 change.",
-    "ja": "温度 1 の F のすべての帯で最大 0.03・平均 0.01 の内側(最大 0.0065)。top の変化なし。"
-   }
-  },
-  "quality": {
-   "state": "passed",
-   "evidence": [
-    "quality"
-   ],
-   "note": {
-    "en": "Choice accuracy passes on its point estimate (-0.67 points, limit -2 points), but its 95% interval [-3.00, +1.67] contains the limit (n = 300). noul Brier +0.00024, score normalized MAE +0.00051. Agreement with the teacher distribution, not real-world accuracy.",
-    "ja": "choice の正答率は点推定 −0.67 pt で閾値 −2 pt を満たすが、95% 区間 [−3.00, +1.67] は閾値をまたぐ(n = 300)。noul の Brier +0.00024、score の正規化 MAE +0.00051。教師分布への一致で、現実の正答率ではない。"
-   }
-  },
-  "stability": {
-   "state": "not_measured",
-   "evidence": [],
-   "note": {
-    "en": "Two identical runs and 5,400 consecutive rows exist, but releasing and reloading the model was not verified.",
-    "ja": "2 回の実行の一致と 5,400 行の連続実行はあるが、解放と再読み込みは確かめていない。"
-   }
-  },
-  "cancellation": {
-   "state": "passed",
-   "evidence": [
-    "performance"
-   ],
-   "note": {
-    "en": "Three requests cancelled during the forward run ended with CancellationError when the run returned, and a request cancelled at the forward checkpoint ended before the run. The test backbone does not pass the cancellation on; whether a Core AI run itself stops was not measured.",
-    "ja": "forward の run 中に取り消した 3 回の依頼は run が返った時点で CancellationError で終わり、checkpoint での取消は run の前に終わった。試験用 backbone は取消を伝えないので、Core AI の run 自体が止まるかは測っていない。"
-   }
-  }
- }
 }
