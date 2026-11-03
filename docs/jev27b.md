@@ -6,7 +6,8 @@
 merged checkpoint (stage 1 against stage 1', largest probability difference at most 0.01) has not passed and awaits a
 decision; the bundle and the quantized references below are a limited exploration that uses that merged checkpoint. The
 quality and calibration results under [Quality and calibration](#quality-and-calibration) measure agreement with the
-teacher distribution of the corpus on fixed sets; they are not a claim of real-world correctness.
+teacher distribution of the corpus on fixed sets; they are not a claim of real-world correctness. The Japanese results
+under [Japanese (JGLUE)](#japanese-jglue) are descriptive and have no pass line.
 
 JEV-27B answers typed questions (`noul`, `choice` with 2 to 16 options, `score` from 0 to 5) with one prefill of a bare
 template. The final hidden state of the last token goes through a 24-row decision head. The bundle keeps that split:
@@ -336,8 +337,9 @@ the mean confidence on H' (about 0.56) lies far below that agreement (about 0.89
 are spread out. The fidelity criteria of F, re-evaluated from the saved logits at the adopted temperatures, still pass
 (`comparison-refit.json`; at the adopted temperatures, maximum 0.0065, mean 0.0011, no top-1 change).
 
-Stage 3 ran Q in 458.7 s, Cal in 1,866.3 s and H in 919.6 s of forward time (about 180 tokens per second over all rows,
-median 0.48 s per row). Stages 1 and 0 of Q took 679.4 s and 644.7 s and stage 1' took 628.9 s on MPS.
+At stage 3 the `elapsed_seconds` of the rows (from the call of `decide` to its return) add up to 458.7 s for Q,
+1,866.3 s for Cal and 919.6 s for H (about 180 tokens per second over all rows, median 0.48 s per row). Stages 1 and
+0 of Q took 679.4 s and 644.7 s and stage 1' took 628.9 s on MPS.
 
 ### Calibrated bundle
 
@@ -363,6 +365,103 @@ python3 -m Tools.Conversion.adapters.jev27b.decision <calibrated bundle>/decisio
 JEV_BUNDLE_DIR=/path/to/calibrated/jev27b_s1_gdnfp32_qwen3_5_cfg_dynamic swift test --package-path CoreAISamplesKit \
   --filter TypedDecision
 ~~~
+
+## Japanese (JGLUE)
+
+The recipe also runs the Japanese set J (200 rows each of the JNLI, JCommonsenseQA and JSTS validation files of
+JGLUE v1.2.0) through stage 1' and stage 3 with two prompt variants, after fixing which variant to adopt on a separate
+selection set. No pass line is set. The numbers below are descriptive results on 200 rows per task without intervals;
+they are not a claim of Japanese quality or of calibration.
+
+These steps run after `calibrate`, still before `verify_merge`:
+
+- `jdev_fixture` (`japanese.py jdev`) writes `jdev.json`: 100 rows per task of the pinned JGLUE validation files. A
+  row is eligible when it is not in J or F, when neither its `sentence1` nor its `sentence2` (JNLI, JSTS), or its
+  question (JCommonsenseQA), equals any `sentence1`, `sentence2` or question of a JGLUE row of J or F (compared across
+  the three tasks), and when its options render (no row was left out for this). The native IDs (`sentence_pair_id`,
+  and `q_id` turned into a string) of the eligible rows of each task are sorted as strings, and one
+  `random.Random("20261102:Jdev")` draws `rng.sample(ids, 100)` for JNLI, JCommonsenseQA and JSTS in this order.
+  `jdev.json` records the ID and the SHA-256 of each row and the size of every exclusion; it holds no text.
+- `typed_input_jdev` and `typed_input_j` (`japanese.py input`) wrap the rows with both variants and write the CLI input
+  (`input-<set>.json`, with text, kept in the work directory) and `rows-<set>.json`: for each row the key, the SHA-256
+  of the JGLUE row (the fixture value), the SHA-256 of the rendered text after wrapping, the token count and the label,
+  without text.
+- `typed_decide_jdev` and `typed_decide_j` run `coreai-verify typed-decide` with the calibrated bundle of `calibrate`.
+- `prompt_adoption` (`japanese.py adopt`) scores Jdev and writes `prompt-adoption.json` with `frozen: true`. Its check is
+  `frozen`. `typed_input_j` refuses an adoption that is not frozen for the same `wrappers.json`, so J runs only after
+  the adoption is fixed.
+- `reference_j` (`reference_j.py`) builds the same wrapped rows of J (without the permuted rows) and runs them through
+  stage 1' with the `merged_stage` of `reference_sets.py`; it passes with the same checks as `reference_merged_q`.
+- `score_j` (`japanese.py score`) writes `japanese.json` (`typed-decision-japanese/1`) and `report.md`. Its check is
+  `recorded`: missing rows, rows that differ in ID, order, token IDs, hashes or labels, non-finite values and stage 3
+  probabilities that differ from the bundle temperatures fail the step.
+
+Both variants put an instruction of the same content around the unchanged JGLUE text and differ only in its language;
+the bare form of the A1 rows (the question without an instruction) is not evaluated. The structure tags stay `bare-v1`.
+The prefix, suffix and JNLI options of each variant are in
+[`wrappers.json`](../Tools/Conversion/recipes/jev27b/wrappers.json):
+
+| Task | Kind | State | Question | Options |
+|---|---|---|---|---|
+| JNLI | `choice` | `sentence1` | prefix + `sentence2` + suffix | entailment, contradiction, neutral in the language of the variant |
+| JNLI noul (derived from the 200 JNLI rows, ID `<id>:noul`) | `noul` | `sentence1` | prefix + `sentence2` | `false`, `true`; true only for entailment |
+| JCommonsenseQA | `choice` | empty | prefix + question + suffix | the five choices, not translated |
+| JSTS | `score` | `sentence1` | prefix + `sentence2` + suffix | `0` to `5` |
+
+A row key is the JGLUE ID (with `:noul` for the derived rows), the variant and the option order.
+
+Adoption, fixed before any run: on Jdev at temperature 1, each task adopts the variant with more correct JNLI choice
+rows, more correct JCommonsenseQA rows, or the smaller MAE of the expected JSTS score; a tie adopts `ja`. JNLI noul
+follows the JNLI choice adoption as a common policy, which is not a claim that it is best for noul. The adoption chooses
+the reported variant and the variant of the order test; J itself runs with both variants.
+
+Definitions (fixed before any run):
+
+- Probabilities are recomputed from the 24 logits of each stage at temperature 1 and at the adopted temperatures of the
+  calibrated bundle. KL and ECE are not computed.
+- JNLI choice and JCommonsenseQA accuracy: the first largest probability is the label. JNLI noul accuracy: P(true) > 0.5
+  is true and P(true) = 0.5 is false. AUROC ranks P(true) with entailment as the positive class, ties count one half,
+  and it is undefined with one class. The hard Brier score is the mean of (P(true) - y)^2 with y = 1 for entailment.
+- JSTS: E[p] = sum k p(k) against the continuous label, as MAE, Pearson and Spearman (average ranks for ties); either is
+  undefined when one side is constant.
+- Option order (stage 3, adopted JCommonsenseQA variant): the options in four fixed orders (as given, reversed, rotated
+  left by one and by two); the label moves with its option, and each answer is mapped back to the original option. The
+  accuracy of each order and the number of rows whose four answers agree are recorded.
+- Stage 3 minus stage 1' on the same rows, wrapper and temperature is the difference of quantization and execution path
+  together.
+
+Results (run `20261103T184500-52091525`: `prompt_adoption` for Jdev, `score_j` for J). The adoption, frozen before J
+ran:
+
+| Task (Jdev, temperature 1) | Metric | `ja` | `en` | Adopted |
+|---|---|---:|---:|---|
+| JNLI choice | accuracy | 0.8300 (83/100) | 0.8900 (89/100) | `en` |
+| JCommonsenseQA | accuracy | 0.9600 (96/100) | 0.9500 (95/100) | `ja` |
+| JSTS | MAE of E[p] | 0.5806 | 0.5577 | `en` |
+| JNLI noul | follows JNLI choice | - | - | `en` |
+
+J at temperature 1 (200 rows per task; the last column is the adopted variant):
+
+| Task | Metric | Stage 1' `ja` | Stage 1' `en` | Stage 3 `ja` | Stage 3 `en` | 3 - 1' `ja` | 3 - 1' `en` | Adopted |
+|---|---|---:|---:|---:|---:|---:|---:|---|
+| JNLI choice | accuracy | 0.8200 | 0.8700 | 0.8050 | 0.8550 | -0.0150 | -0.0150 | `en` |
+| JNLI noul | accuracy | 0.9350 | 0.9200 | 0.9250 | 0.9200 | -0.0100 | +0.0000 | `en` |
+| JNLI noul | AUROC | 0.9856 | 0.9801 | 0.9842 | 0.9777 | -0.0014 | -0.0024 | `en` |
+| JNLI noul | hard Brier | 0.0499 | 0.0531 | 0.0541 | 0.0588 | +0.0043 | +0.0057 | `en` |
+| JCommonsenseQA | accuracy | 0.9600 | 0.9700 | 0.9600 | 0.9600 | +0.0000 | -0.0100 | `ja` |
+| JSTS | MAE of E[p] | 0.5819 | 0.5412 | 0.5778 | 0.5287 | -0.0041 | -0.0124 | `en` |
+| JSTS | Pearson | 0.8501 | 0.8555 | 0.8474 | 0.8591 | -0.0027 | +0.0035 | `en` |
+| JSTS | Spearman | 0.7818 | 0.7858 | 0.7796 | 0.7924 | -0.0022 | +0.0066 | `en` |
+
+- At the adopted temperatures the accuracies and AUROC values are the same, and the other values move by at most
+  0.0007 (`japanese.json` and `report.md` hold both tables). 35 of the 200 JNLI rows are entailment.
+- JCommonsenseQA option order (stage 3, `ja`): accuracy 0.9600 as given, 0.9700 reversed, 0.9600 rotated by one and
+  by two; the four answers agree on 191 of 200 rows.
+- Stage 3 against stage 1' row by row at temperature 1: the top option is the same on 179 to 200 of the 200 rows of
+  each task and variant (JSTS is lowest), the largest probability difference is 0.17 and the mean 0.011 to 0.033.
+- At stage 3 the `elapsed_seconds` of the rows (from the call of `decide` to its return) add up to 278.2 s for Jdev
+  (600 rows) and 953.0 s for J (2,200 rows), with medians of 0.464 and 0.436 s per row; the forward runs of stage 1'
+  took 975.8 s for the 1,600 rows of J on MPS.
 
 ## Terms
 

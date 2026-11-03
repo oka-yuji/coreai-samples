@@ -143,7 +143,9 @@ class RecipeTests(unittest.TestCase):
         steps = {step["id"]: step for step in recipe["steps"]}
         ids = list(steps)
         step = steps["calibrate"]
-        self.assertEqual(ids[ids.index("score_q") + 1:], ["calibrate", "verify_merge"])
+        self.assertEqual(ids[ids.index("score_q") + 1:], ["calibrate", "jdev_fixture", "typed_input_jdev",
+                                                           "typed_decide_jdev", "prompt_adoption", "typed_input_j",
+                                                           "typed_decide_j", "reference_j", "score_j", "verify_merge"])
         self.assertEqual(step["depends"], ["typed_decide_cal", "typed_decide_h", "typed_decide_f", "export_gdnfp32",
                                            "verify_quantization"])
         self.assertIn("$export_gdnfp32/$bundle_gdnfp32", step["command"])

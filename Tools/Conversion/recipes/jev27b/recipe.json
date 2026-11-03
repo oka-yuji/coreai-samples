@@ -830,6 +830,208 @@
       "timeout_s": 3600
     },
     {
+      "id": "jdev_fixture",
+      "role": "prepare",
+      "depends": ["fixture"],
+      "command": [
+        "$python", "-m", "Tools.Conversion.adapters.jev27b.japanese", "jdev",
+        "--model", "$recipe_dir/model.json",
+        "--jglue", "$jglue",
+        "--fixtures", "$fixtures",
+        "--output", "$out"
+      ],
+      "cwd": "$repo",
+      "inputs": [
+        "$adapters/japanese.py", "$adapters/score.py", "$adapters/compare.py", "$adapters/verify_quantization.py",
+        "$adapters/verify_merge.py", "$adapters/merge.py", "$adapters/decision.py", "$adapters/fixtures.py",
+        "$adapters/prepare.py", "$adapters/typed_head.py", "$repo/Tools/Conversion/adapters/pinned.py",
+        "$repo/Tools/Conversion/storage.py", "$recipe_dir/model.json", "$fixtures/F.json", "$fixtures/J.json",
+        "$fixtures/jglue.json", "${jglue}.integrity.json", "$jglue"
+      ],
+      "outputs": ["jdev.json"],
+      "checks": [{"file": "jdev.json", "key": ["passed"], "equals": true}],
+      "timeout_s": 600
+    },
+    {
+      "id": "typed_input_jdev",
+      "role": "prepare",
+      "depends": ["jdev_fixture", "prepare"],
+      "command": [
+        "$python", "-m", "Tools.Conversion.adapters.jev27b.japanese", "input",
+        "--set", "Jdev",
+        "--model", "$recipe_dir/model.json",
+        "--snapshot", "$snapshot",
+        "--jglue", "$jglue",
+        "--fixtures", "$fixtures",
+        "--wrappers", "$recipe_dir/wrappers.json",
+        "--jdev", "$jdev_fixture/jdev.json",
+        "--output", "$out"
+      ],
+      "cwd": "$repo",
+      "inputs": [
+        "$adapters/japanese.py", "$adapters/score.py", "$adapters/compare.py", "$adapters/verify_quantization.py",
+        "$adapters/verify_merge.py", "$adapters/merge.py", "$adapters/decision.py", "$adapters/fixtures.py",
+        "$adapters/prepare.py", "$adapters/typed_head.py", "$repo/Tools/Conversion/adapters/pinned.py",
+        "$repo/Tools/Conversion/storage.py", "$recipe_dir/model.json", "$recipe_dir/wrappers.json",
+        "$fixtures/jglue.json", "${jglue}.integrity.json", "$jglue", "$snapshot/config.json",
+        "$snapshot/tokenizer.json", "$snapshot/tokenizer_config.json", "$snapshot/chat_template.jinja"
+      ],
+      "outputs": ["input-Jdev.json", "rows-Jdev.json", "check.json"],
+      "checks": [{"file": "check.json", "key": ["passed"], "equals": true}],
+      "timeout_s": 1800
+    },
+    {
+      "id": "typed_decide_jdev",
+      "role": "reference",
+      "depends": ["calibrate", "typed_input_jdev"],
+      "command": [
+        "$verify", "typed-decide",
+        "--bundle", "$calibrate/$bundle_gdnfp32",
+        "--input", "$typed_input_jdev/input-Jdev.json",
+        "--output", "$out/swift-Jdev.json"
+      ],
+      "cwd": "$repo",
+      "inputs": ["$recipe_dir/model.json"],
+      "outputs": ["swift-Jdev.json"],
+      "heavy": true,
+      "timeout_s": 7200
+    },
+    {
+      "id": "prompt_adoption",
+      "role": "verify",
+      "depends": ["typed_decide_jdev", "typed_input_jdev", "jdev_fixture", "calibrate"],
+      "command": [
+        "$python", "-m", "Tools.Conversion.adapters.jev27b.japanese", "adopt",
+        "--model", "$recipe_dir/model.json",
+        "--snapshot", "$snapshot",
+        "--jglue", "$jglue",
+        "--fixtures", "$fixtures",
+        "--wrappers", "$recipe_dir/wrappers.json",
+        "--jdev", "$jdev_fixture/jdev.json",
+        "--rows", "$typed_input_jdev/rows-Jdev.json",
+        "--swift", "$typed_decide_jdev/swift-Jdev.json",
+        "--bundle", "$calibrate/$bundle_gdnfp32",
+        "--output", "$out"
+      ],
+      "cwd": "$repo",
+      "inputs": [
+        "$adapters/japanese.py", "$adapters/score.py", "$adapters/compare.py", "$adapters/verify_quantization.py",
+        "$adapters/verify_merge.py", "$adapters/merge.py", "$adapters/decision.py", "$adapters/fixtures.py",
+        "$adapters/prepare.py", "$adapters/typed_head.py", "$repo/Tools/Conversion/adapters/pinned.py",
+        "$repo/Tools/Conversion/storage.py", "$recipe_dir/model.json", "$recipe_dir/wrappers.json",
+        "$fixtures/jglue.json", "${jglue}.integrity.json", "$jglue", "$snapshot/config.json",
+        "$snapshot/tokenizer.json", "$snapshot/tokenizer_config.json", "$snapshot/chat_template.jinja"
+      ],
+      "outputs": ["prompt-adoption.json", "report.md"],
+      "checks": [{"file": "prompt-adoption.json", "key": ["frozen"], "equals": true}],
+      "timeout_s": 1800
+    },
+    {
+      "id": "typed_input_j",
+      "role": "prepare",
+      "depends": ["prompt_adoption", "fixture", "prepare"],
+      "command": [
+        "$python", "-m", "Tools.Conversion.adapters.jev27b.japanese", "input",
+        "--set", "J",
+        "--model", "$recipe_dir/model.json",
+        "--snapshot", "$snapshot",
+        "--jglue", "$jglue",
+        "--fixtures", "$fixtures",
+        "--wrappers", "$recipe_dir/wrappers.json",
+        "--adoption", "$prompt_adoption/prompt-adoption.json",
+        "--output", "$out"
+      ],
+      "cwd": "$repo",
+      "inputs": [
+        "$adapters/japanese.py", "$adapters/score.py", "$adapters/compare.py", "$adapters/verify_quantization.py",
+        "$adapters/verify_merge.py", "$adapters/merge.py", "$adapters/decision.py", "$adapters/fixtures.py",
+        "$adapters/prepare.py", "$adapters/typed_head.py", "$repo/Tools/Conversion/adapters/pinned.py",
+        "$repo/Tools/Conversion/storage.py", "$recipe_dir/model.json", "$recipe_dir/wrappers.json",
+        "$fixtures/J.json", "$fixtures/jglue.json", "${jglue}.integrity.json", "$jglue", "$snapshot/config.json",
+        "$snapshot/tokenizer.json", "$snapshot/tokenizer_config.json", "$snapshot/chat_template.jinja"
+      ],
+      "outputs": ["input-J.json", "rows-J.json", "check.json"],
+      "checks": [{"file": "check.json", "key": ["passed"], "equals": true}],
+      "timeout_s": 1800
+    },
+    {
+      "id": "typed_decide_j",
+      "role": "reference",
+      "depends": ["calibrate", "typed_input_j"],
+      "command": [
+        "$verify", "typed-decide",
+        "--bundle", "$calibrate/$bundle_gdnfp32",
+        "--input", "$typed_input_j/input-J.json",
+        "--output", "$out/swift-J.json"
+      ],
+      "cwd": "$repo",
+      "inputs": ["$recipe_dir/model.json"],
+      "outputs": ["swift-J.json"],
+      "heavy": true,
+      "timeout_s": 14400
+    },
+    {
+      "id": "reference_j",
+      "role": "reference",
+      "depends": ["prepare", "merge", "fixture"],
+      "command": [
+        "$python", "-m", "Tools.Conversion.adapters.jev27b.reference_j",
+        "--model", "$recipe_dir/model.json",
+        "--merge", "$merge",
+        "--snapshot", "$snapshot",
+        "--jglue", "$jglue",
+        "--fixtures", "$fixtures",
+        "--wrappers", "$recipe_dir/wrappers.json",
+        "--output", "$out"
+      ],
+      "cwd": "$repo",
+      "inputs": [
+        "$adapters/reference_j.py", "$adapters/reference_sets.py", "$adapters/reference.py",
+        "$adapters/reference_merged.py", "$adapters/load_check.py", "$adapters/japanese.py", "$adapters/score.py",
+        "$adapters/compare.py", "$adapters/verify_quantization.py", "$adapters/verify_merge.py",
+        "$adapters/merge.py", "$adapters/decision.py", "$adapters/fixtures.py", "$adapters/prepare.py",
+        "$adapters/typed_head.py", "$repo/Tools/Conversion/adapters/pinned.py", "$repo/Tools/Conversion/storage.py",
+        "$recipe_dir/model.json", "$recipe_dir/wrappers.json", "$snapshot/head.safetensors",
+        "$snapshot/calibration.json", "$fixtures/J.json", "$fixtures/jglue.json", "${jglue}.integrity.json",
+        "$jglue"
+      ],
+      "outputs": ["reference-merged-J.json"],
+      "checks": [{"file": "reference-merged-J.json", "key": ["passed"], "equals": true}],
+      "heavy": true,
+      "timeout_s": 7200
+    },
+    {
+      "id": "score_j",
+      "role": "verify",
+      "depends": ["typed_input_j", "typed_decide_j", "reference_j", "prompt_adoption", "calibrate"],
+      "command": [
+        "$python", "-m", "Tools.Conversion.adapters.jev27b.japanese", "score",
+        "--model", "$recipe_dir/model.json",
+        "--snapshot", "$snapshot",
+        "--jglue", "$jglue",
+        "--fixtures", "$fixtures",
+        "--wrappers", "$recipe_dir/wrappers.json",
+        "--adoption", "$prompt_adoption/prompt-adoption.json",
+        "--rows", "$typed_input_j/rows-J.json",
+        "--swift", "$typed_decide_j/swift-J.json",
+        "--reference", "$reference_j/reference-merged-J.json",
+        "--bundle", "$calibrate/$bundle_gdnfp32",
+        "--output", "$out"
+      ],
+      "cwd": "$repo",
+      "inputs": [
+        "$adapters/japanese.py", "$adapters/score.py", "$adapters/compare.py", "$adapters/verify_quantization.py",
+        "$adapters/verify_merge.py", "$adapters/merge.py", "$adapters/decision.py", "$adapters/fixtures.py",
+        "$adapters/prepare.py", "$adapters/typed_head.py", "$repo/Tools/Conversion/adapters/pinned.py",
+        "$repo/Tools/Conversion/storage.py", "$recipe_dir/model.json", "$recipe_dir/wrappers.json",
+        "$fixtures/J.json", "$fixtures/jglue.json", "${jglue}.integrity.json", "$jglue", "$snapshot/config.json",
+        "$snapshot/tokenizer.json", "$snapshot/tokenizer_config.json", "$snapshot/chat_template.jinja"
+      ],
+      "outputs": ["japanese.json", "report.md"],
+      "checks": [{"file": "japanese.json", "key": ["recorded"], "equals": true}],
+      "timeout_s": 1800
+    },
+    {
       "id": "verify_merge",
       "role": "verify",
       "depends": ["merge", "reference", "reference_merged"],
