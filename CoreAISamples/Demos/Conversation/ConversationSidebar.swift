@@ -13,6 +13,8 @@ struct ConversationSidebar: View {
     @Environment(ModelsViewModel.self) private var models
     @State private var editingID: String?
     @State private var editingTitle = ""
+    @State private var collapsed: Set<DemoModel> = []
+    @State private var manageExpanded = true
 
     var body: some View {
         VStack(spacing: 0) {
@@ -39,13 +41,13 @@ struct ConversationSidebar: View {
                     }
                 }
                 ForEach(DemoModel.allCases, id: \.self) { model in
-                    Section {
+                    Section(isExpanded: expanded(model)) {
                         ForEach(model.demos) { demoRow($0) }
                     } header: {
                         Text(verbatim: model.title)
                     }
                 }
-                Section("Manage") { demoRow(.models) }
+                Section("Manage", isExpanded: $manageExpanded) { demoRow(.models) }
             }
             if host.state.library.loading != nil || host.state.library.isMutating {
                 ProgressView().controlSize(.small).padding(8)
@@ -117,6 +119,14 @@ struct ConversationSidebar: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 16)
             .padding(.vertical, 6)
+    }
+
+    private func expanded(_ model: DemoModel) -> Binding<Bool> {
+        Binding {
+            !collapsed.contains(model)
+        } set: { isExpanded in
+            if isExpanded { collapsed.remove(model) } else { collapsed.insert(model) }
+        }
     }
 
     private func demoRow(_ demo: Demo) -> some View {
