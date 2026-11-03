@@ -98,8 +98,54 @@ of F are kept in `hidden2.safetensors` and `hidden0q.safetensors` (`hidden` [302
 differences of stage 2 from stage 1' and of stage 0q from stage 0. Its `passed` covers hash agreement, complete rows
 and finite probabilities only; no numeric threshold is applied at this step.
 
+## Swift contract
+
+`CoreAIBackend` opens the bundle, renders the template and applies the head without loading the Core AI asset. These
+types are separate from the Clef-Flash decision types.
+
+| API | Behavior |
+|---|---|
+| `TypedDecisionBundle(url:)` | Reads `decision.json` and checks it against the schema above, with the slots exactly as shown and a float16 hidden state; a template that differs from bare-v1 in any key or value is refused. `SHA256SUMS` must list every entry of `files` and `decision.json` with the same digests, the folder must hold exactly the listed files and no links, and the size and SHA-256 of every listed file are computed. Exposes `url`, `name`, `version` (SHA-256 of `decision.json`), `hiddenSize`, `limits` (`options`, `inputTokens`), `temperatures`, `verbalizerIDs`, `headURL`, `tokenizerURL`, `assetURL`, `backboneFunction`, `backboneInputs`, `backboneOutput`, `stateNames` and `contextLength`. Failures throw `TypedDecisionError.invalidBundle`; cancellation passes through. |
+| `TypedDecisionRequest` | `state`, `question`, `kind` (`TypedDecisionKind`: `noul`, `choice`, `score`) and `options`. |
+| `TypedDecisionRenderer.render(_:)` | The text of the reference renderer. Options that break the input rules throw `invalidOptions`. Options are compared as UTF-8 bytes, so canonically equivalent options with different scalars stay distinct in the text; the bundled tokenizer normalizes to NFC, so their tokens are the same. |
+| `TypedDecisionRenderer.tokenIDs(for:tokenizer:limit:)` | Encodes the rendered text without special tokens. More than `limit` tokens throw `tooManyTokens`. |
+| `TypedDecisionHead(url:width:)` | Maps `head.safetensors` and checks that it holds `proj.weight` [24, width] and `proj.bias` [24] in float32 inside the file. |
+| `logits(hidden:)` | `proj.weight @ h + proj.bias` in float32. A hidden state of another length throws `invalidHidden`. |
+| `probabilities(logits:kind:count:temperature:)` | The softmax over the options of the kind, computed in double precision and returned as float32, at the given temperature (`shipping`) and at 1 (`plain`). Non-finite logits and a temperature that is not positive and finite throw `nonFinite`; an option count outside the slots throws `invalidOptions`. |
+| `TypedDecisionHead.top(of:)` | The index of the largest value; ties select the earliest. |
+| `TypedDecisionAnswer` | `kind`, `options`, `logits`, `probabilities`, `probabilitiesT1`, `top` and `tokenCount` of one decision. |
+
+`swift test --package-path CoreAISamplesKit --filter TypedDecision` runs the rendering, rejection, synthetic head and
+bundle tests. With `JEV_BUNDLE_DIR` set to the bundle folder, the tests also compare the token IDs of every fixture row
+with the bundled tokenizer, compare the bundled head with stage 1' (logits within 1e-4, probabilities within 1e-5) and
+open the bundle, which reads every listed file, including the 16 GB asset, for its SHA-256. None of these tests loads or
+runs the Core AI asset.
+
+~~~sh
+JEV_BUNDLE_DIR=/path/to/jev27b_s1_qwen3_5_cfg_dynamic swift test --package-path CoreAISamplesKit --filter TypedDecision
+~~~
+
+The fixtures are in `CoreAISamplesKit/Tests/CoreAIBackendTests/Fixtures/TypedDecision/`: `render.json` (15 synthetic
+English rows with the input boundaries, the two card examples of the model card and 8 JGLUE rows of F with their text,
+rendered and tokenized in Python), `reject.json` (19 option lists that the reference renderer refuses), `head.json` (a
+head of width 4 with six cases computed with `decide`) and `real-head.json` (four rows of F with their stage 1' hidden
+state, logits and probabilities, and token IDs but no text). Regenerate them in the reference environment:
+
+~~~sh
+python -m Tools.Conversion.adapters.jev27b.swift_fixture --snapshot <JEV-27B folder> --corpus <corpus folder> \
+  --jglue <JGLUE folder> --fixtures Tools/Conversion/recipes/jev27b/fixtures --reference <reference.json> \
+  --merged-reference <reference-merged.json> --hidden <hidden.safetensors> \
+  --output CoreAISamplesKit/Tests/CoreAIBackendTests/Fixtures/TypedDecision
+~~~
+
+The Swift tokenizer (swift-transformers 1.3.4) matches the Split pre-tokenizer pattern on whole grapheme clusters, so
+its token IDs differ from those of the Python tokenizer where a pattern boundary falls inside a cluster. Measured
+examples are consecutive CRLF line breaks and Hindi and Thai words with combining marks. The fixtures contain no such
+text.
+
 ## Terms
 
 Qwen3.8-27B (Qwen) and JEV-27B (AutoTrust AI) are Apache-2.0. JEV-27B was trained on
 `SargeDev/jev-distill-corpus-v3` (Apache-2.0), most of whose labels are output distributions of TypeSafe Jev 1.13. The
-fixed sets are built from that corpus and from JGLUE (CC BY-SA 4.0) and are not redistributed.
+fixed sets are built from that corpus and from JGLUE (CC BY-SA 4.0) and are not redistributed. The Swift test
+fixtures contain the text of eight JGLUE rows under CC BY-SA 4.0; their notice is in `render.json`.
