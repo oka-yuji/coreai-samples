@@ -1,0 +1,136 @@
+# JEV-27B の型付き判断(Core AI 版)
+
+[トップ](../README.ja.md) · [English](jev27b.md)
+
+JEV-27B は、状況についての型付きの質問に答えるモデルです。質問の型は `noul`(false か true)、`choice`(2〜16 択)、`score`(0〜5)の 3 つです。このページは、[`jev27b` の変換レシピ](../Tools/Conversion/recipes/jev27b/README.md)が [autotrust/JEV-27B](https://huggingface.co/autotrust/JEV-27B) から作る Core AI の bundle と、その記録した検査を説明します。素のテンプレートを 1 回 prefill して Core AI の資産で最後のトークンの隠れ状態を出し、24 行の判断ヘッドで選択肢の確率に変えます。bundle は配布していません。サンプルアプリもまだ使っておらず、Mac の `coreai-verify typed-decide` で動かします。
+
+**向いている人:** bundle を自分で作り、Mac で型付きの判断を測りたい開発者。**向かない用途:** 自由な対話、本番の判断、追加の検査なしに確率を現実の正しさとして使うこと。
+
+必要なもの: Apple silicon、macOS 27、Metal Toolchain を入れた Xcode 27、GPU での実行。計測は Mac16,6(Apple M4 Max、メモリ 128 GiB)、macOS 27.0(26A428)で行いました。最小のメモリ構成は確かめていません。bundle を作るには、レシピの参照環境と変換環境、固定した入力、空きディスクが要ります(書き出しの段は 160 GB の空きを確かめます)。
+
+<!-- model-report:start -->
+<a id="model-report"></a>
+
+## 共通の検証サマリー
+
+[計測プロトコル](benchmarking.ja.md) · [元の記録](model-reports/records/jev27b.json)
+
+元の測定日・入力条件を保持しています。行ごとに異なるrunを使う場合があり、条件をそろえた速度比較ではありません。旧記録で不足する条件も明示します。未計測はゼロや合格を意味しません。
+
+### デモ対応
+
+| OS | 状態 | 確認した範囲・残る確認 | 根拠 |
+|---|---|---|---|
+| macos | — | bundle は coreai-verify のコマンドラインでだけ動く。アプリへの組み込みは #449。 | — |
+| ios | — | このOSのネイティブデモは未提供です。 | — |
+
+### 性能と品質
+
+| 指標 | 結果 | 集計・件数 | 条件と根拠 |
+|---|---|---|---|
+| バンドル・資産容量 | 16,064,815,496 B | single; n=1 | [E5](validation/jev27b/README.md#bundle) · 校正済み bundle の 13 ファイル(16 GB の資産を含む)。計画の改訂 3 の後に performance.py records で数えた。 |
+| 特殊化キャッシュ容量 | 未計測 | — | 特殊化 cache の大きさはコマンドラインのツールから見えないので測っていない。 |
+| 初回ロード（特殊化を含む） | 27.6991793 s | median; n=3 | [E4](validation/jev27b/README.md#performance) · 特殊化 cache を消した新プロセス(--clear-cache)。bundle の検査・tokenizer・ヘッド・本体の合計。ファイルの cache は消していない。バッテリー駆動(計画の改訂 3)。 |
+| 特殊化済みキャッシュからのロード | 9.42181062 s | median; n=3 | [E4](validation/jev27b/README.md#performance) · 特殊化 cache がある新プロセス。初回と同じ部分の合計。バッテリー駆動(計画の改訂 3)。 |
+| 要求・パイプライン完了時間 | 0.598414292 s | median; n=3 | [E4](validation/jev27b/README.md#performance) · ちょうど 100 トークンの P の行。TypedDecisionModel.decide の呼び出しから復帰まで。1 プロセスで長さを交互に、各長さ warmup 1 回の後。各行の run 中に 100 ms ごとにメモリを採取(--sample-memory)。中央値の行は熱の圧力 moderate の下。バッテリー駆動(計画の改訂 3)。 |
+| 要求・パイプライン完了時間 | 2.27002092 s | median; n=3 | [E4](validation/jev27b/README.md#performance) · ちょうど 500 トークンの P の行。TypedDecisionModel.decide の呼び出しから復帰まで。1 プロセスで長さを交互に、各長さ warmup 1 回の後。各行の run 中に 100 ms ごとにメモリを採取(--sample-memory)。バッテリー駆動(計画の改訂 3)。 |
+| 要求・パイプライン完了時間 | 8.91910646 s | median; n=3 | [E4](validation/jev27b/README.md#performance) · ちょうど 2,000 トークンの P の行。TypedDecisionModel.decide の呼び出しから復帰まで。1 プロセスで長さを交互に、各長さ warmup 1 回の後。各行の run 中に 100 ms ごとにメモリを採取(--sample-memory)。バッテリー駆動(計画の改訂 3)。 |
+| 要求・パイプライン完了時間 | 37.495032 s | median; n=3 | [E4](validation/jev27b/README.md#performance) · ちょうど 8,192 トークンの P の行。TypedDecisionModel.decide の呼び出しから復帰まで。1 プロセスで長さを交互に、各長さ warmup 1 回の後。各行の run 中に 100 ms ごとにメモリを採取(--sample-memory)。中央値の行の最後の数秒は熱の圧力 moderate の下。バッテリー駆動(計画の改訂 3)。 |
+| ピークRSS | 32,343,687,168 B | single; n=1 | [E4](validation/jev27b/README.md#performance) · latency のプロセスの /usr/bin/time -l。読み込みを含む生涯の最大。footprint と足さない。バッテリー駆動(計画の改訂 3)。 |
+| ピークphysical footprint | 21,565,667,056 B | single; n=1 | [E4](validation/jev27b/README.md#performance) · latency のプロセスの /usr/bin/time -l(peak memory footprint)。上限ではない。長さを交互に流す 1 周ごとに 4.2〜4.8 GB 増え、頭打ちになっていない。バッテリー駆動(計画の改訂 3)。 |
+| 推論中の常駐メモリ | 17,290,887,168 B | max; n=1 | [E4](validation/jev27b/README.md#performance) · 計測した 8,192 トークンの行の run 中に 100 ms ごとに採った RSS の最大(--sample-memory)。バッテリー駆動(計画の改訂 3)。 |
+| 解放後メモリの基準との差 | 未計測 | — | コマンドラインのプロセスは終わるまでモデルを手放さないので、解放後の基準が無い。 |
+| 課題達成率 | 0.866666667 ratio | mean; n=300 | [E2](validation/jev27b/README.md#quality) · 段 3 の Q の choice の行で top が教師の top と一致した割合(教師分布への一致で、現実の正答率ではない)。段 1′ は 0.8733。 |
+| 参照との誤差（定義は根拠参照） | 0.00654150054 error | max; n=301 | [E1](validation/jev27b/README.md#fidelity) · 温度 1 の F で、Core AI と同じ量子化後の重みの PyTorch float32 の確率差の最大。 |
+| 停止受付から完了までの時間 | 9.14671854 s | median; n=3 | [E4](validation/jev27b/README.md#performance) · 試験用 backbone が forward の呼び出しを報告した後に取り消した 2,000 トークンの依頼(返金のカードの例の state を 164 回繰り返したもの。P の行ではない)。backbone は取消を伝えないので run の残り時間(取り消さなければ 8.72 s)。試験 target の debug build(swift test)。熱の圧力は heavy。バッテリー駆動(計画の改訂 3)。 |
+| 文書再利用時の完了時間 | 未計測 | — | 質問をまたいで文書の状態を再利用する経路は型付き判断にまだ無い。 |
+
+### 検証した範囲
+
+| 確認項目 | 状態 | 対象範囲・残る確認 | 根拠 |
+|---|---|---|---|
+| 変換・参照との一致 | 合格（記載範囲） | 温度 1 の F のすべての帯で最大 0.03・平均 0.01 の内側(最大 0.0065)。top の変化なし。 | [E1](validation/jev27b/README.md#fidelity) |
+| 用途の品質 | 合格（記載範囲） | choice の正答率は点推定 −0.67 pt で閾値 −2 pt を満たすが、95% 区間 [−3.00, +1.67] は閾値をまたぐ(n = 300)。noul の Brier +0.00024、score の正規化 MAE +0.00051。教師分布への一致で、現実の正答率ではない。 | [E2](validation/jev27b/README.md#quality) |
+| 連続利用・資源解放 | 未計測 | 変種の bundle で F を 2 回(特殊化 fresh と cached)流すと 301 行すべてで logit が同じで、GPU の試験は 10 行(512 トークン以下)を 1 プロセスで 2 回ずつ流してビット単位で同じ logit を返し、1 プロセスで最大 3,000 行(Cal)を続けて流した。同じプロセスでの解放と再読み込みは確かめていない。 | — |
+| 停止・再試行・回復 | 合格（記載範囲） | forward の run 中に取り消した 3 回の依頼は run が返った時点で CancellationError で終わり、checkpoint での取消は run の前に終わった。どちらの取消の後も、次の行の logit は取消の前の同じ行とビット単位で同じだった。試験用 backbone は取消を伝えないので、Core AI の run 自体が止まるかは測っていない。 | [E4](validation/jev27b/README.md#performance) |
+
+### 根拠と測定条件
+
+| 根拠 | 日付・記録区分・経路 | 機種・OS・ツール | 入力と記録済みの条件 |
+|---|---|---|---|
+| [E1](validation/jev27b/README.md#fidelity) | 2026-11-03 / legacy / diagnostic | Mac16,6 (Apple M4 Max), 128 GiB RAM / macOS 27.0 (26A428) / Xcode 27.0 (27A266a), Apple Swift 6.4 (swiftlang-6.4.0.34.1) | F の 302 行(301 行を流し、8,192 トークン超の 1 行は拒否)を温度 1 で、同じ量子化後の重みの PyTorch float32 と入力の帯ごとに比較。 · variant=uint4 backbone (gdn-fp32) / float32 head; backend=Core AI; GPU preferred; expectFrequentReshapes true; route=coreai-verify typed-decide (recipe step typed_decide_f) and the PyTorch reference stage 2; source_revision=14b425269ed24452e0a5ad5a8f3e51d139647a88; artifact_revision=26a11dca07a265feca4970dccdf2ebabaa005730132035e9df37b207cd26051e; code_revision=c626c9a27f448961cc9d84addba31ce74573e183; batch_size=1; concurrency=1; 未記録: warmups, power, thermal, plan_sha256 |
+| [E2](validation/jev27b/README.md#quality) | 2026-11-04 / legacy / diagnostic | Mac16,6 (Apple M4 Max), 128 GiB RAM / macOS 27.0 (26A428) / Xcode 27.0 (27A266a), Apple Swift 6.4 (swiftlang-6.4.0.34.1) | Q(900 行)・Cal(3,000)・H(1,500)を教師分布と比較。量子化と適応の条件は計測前に固定。温度は Cal で再フィットし H′ で採否。教師への一致で、現実の正しさではない。結果は 2026-11-03(段 0q と 2)から 2026-11-04(ほかの段、採点、校正)。 · variant=uint4 backbone (gdn-fp32) / float32 head; backend=Core AI; GPU preferred; expectFrequentReshapes true; route=coreai-verify typed-decide for stage 3 (recipe steps typed_decide_q / cal / h) and the PyTorch reference stages 0, 0q, 1' and 2; source_revision=14b425269ed24452e0a5ad5a8f3e51d139647a88; artifact_revision=26a11dca07a265feca4970dccdf2ebabaa005730132035e9df37b207cd26051e; code_revision=31071af7acef18f77362609bb548233b61ad624a; batch_size=1; concurrency=1; 未記録: warmups, power, thermal, plan_sha256 |
+| [E3](validation/jev27b/README.md#japanese) | 2026-11-04 / legacy / diagnostic | Mac16,6 (Apple M4 Max), 128 GiB RAM / macOS 27.0 (26A428) / Xcode 27.0 (27A266a), Apple Swift 6.4 (swiftlang-6.4.0.34.1) | JGLUE の J(各 task 200 行、prompt の 2 変種、段 1′ と 3)。測定は完了。合格線は無く、passed は完了を表し基準を満たしたことではない。 · variant=uint4 backbone (gdn-fp32) / float32 head; backend=Core AI; GPU preferred; expectFrequentReshapes true; route=coreai-verify typed-decide and PyTorch MPS bf16 (recipe steps typed_decide_j / reference_j); source_revision=14b425269ed24452e0a5ad5a8f3e51d139647a88; artifact_revision=a2b186a87a64d9e93a56f185a5ebc2a0613d00da7440eeb8c8c2229b64f6adf3; code_revision=b64eae58e9b4a8954b6b9270a109e6edd6bd22c8; batch_size=1; concurrency=1; 未記録: warmups, power, thermal, plan_sha256 |
+| [E4](validation/jev27b/README.md#performance) | 2026-11-04 / standard / diagnostic | Mac16,6 (Apple M4 Max), 128 GiB RAM / macOS 27.0 (26A428) / Xcode 27.0 (27A266a), Apple Swift 6.4 (swiftlang-6.4.0.34.1) | P はちょうど 100・500・2,000・8,192 トークンの 4 行。1 判断の時間は 1 プロセスで長さごとに warmup 1 回と計測 3 周。ロードは新しいプロセスで fresh 3 回と cached 3 回。メモリは /usr/bin/time -l と 100 ms の採取。取消は 2,000 トークンの依頼で 3 回。本人の決定によりバッテリー駆動で計測した(90% から 76%、アダプターなし、低電力モード off。計画の改訂 3 に記録)。第 3 周と取消の試験は熱の圧力 moderate から heavy の下。warmup は 1 判断の時間の周だけで、ロードと取消には無い。他の負荷: モデルの他のプロセスなし(計測の前の pgrep)。ほかのプロセスの GPU の使用は記録していない。 · variant=uint4 backbone (gdn-fp32) / float32 head; backend=Core AI; GPU preferred; expectFrequentReshapes true; route=coreai-verify typed-decide (release build); TypedDecisionInferenceTests in the debug build of the test target for cancellation; source_revision=14b425269ed24452e0a5ad5a8f3e51d139647a88; artifact_revision=a2b186a87a64d9e93a56f185a5ebc2a0613d00da7440eeb8c8c2229b64f6adf3; code_revision=9d8fdf821470168c3d92276808cb9ff1f815d7de; batch_size=1; concurrency=1; warmups=1; power=Battery power, no AC adapter attached (pmset -g ac); 90% at start, Low Power Mode off (pmset -g powermode 0). Measured on battery by the owner's instruction on 2026-11-04 06:20 JST; thermal=pmset -g therm: no warning in 10 snapshots; thermalmonitord pressure moderate from 06:28:52 (end of the second round) and heavy 06:29:08-06:32:08 (from the end of the third 2,000-token row through the cancellation test) |
+| [E5](validation/jev27b/README.md#bundle) | 2026-11-04 / standard / conversion | Mac16,6 (Apple M4 Max), 128 GiB RAM / macOS 27.0 (26A428) / Xcode 27.0 (27A266a), Apple Swift 6.4 (swiftlang-6.4.0.34.1) | 校正済み bundle のファイルの大きさ。計画の改訂 3 を凍結した後に数えた。decision.json の SHA-256 は計画の artifact revision と同じ。モデルは読まない。 · variant=uint4 backbone (gdn-fp32) / float32 head; backend=Core AI; GPU preferred; expectFrequentReshapes true; route=performance.py records over the calibrated bundle written by the recipe step calibrate; source_revision=14b425269ed24452e0a5ad5a8f3e51d139647a88; artifact_revision=a2b186a87a64d9e93a56f185a5ebc2a0613d00da7440eeb8c8c2229b64f6adf3; code_revision=e879c67ff30344fc69f5cb6dcde93ed432d9339c; batch_size=1; concurrency=1; warmups=0; power=not applicable (file sizes); thermal=not applicable (file sizes) |
+
+### 導入・制限・進捗
+
+- [変換レシピ](../Tools/Conversion/recipes/jev27b/README.md)
+
+- [検証の記録](validation/jev27b/README.md)
+
+- [日本語(JGLUE)、合格線なし](jev27b.md#japanese-jglue)
+<!-- model-report:end -->
+
+## クイックスタート
+
+1. レシピで bundle を作ります。固定した入力を `.local/conversion` に置き、setup を流し、`coreai-verify` を build して写し、レシピを流します([レシピの README](../Tools/Conversion/recipes/jev27b/README.md))。`calibrate` の段が、校正済みの bundle `jev27b_s1_gdnfp32_qwen3_5_cfg_dynamic` をその出力のフォルダに書きます。写した bundle は、そのフォルダの中で `shasum -a 256 -c SHA256SUMS`、リポジトリの直下で `python3 -m Tools.Conversion.adapters.jev27b.decision <bundle>/decision.json --check-files` で確かめられます。
+2. コマンドラインのツールで型付きの質問に答えます。モデルを動かすのは重いジョブなので、共有の lock を取ってから流します(`CLAUDE.md`)。
+
+   ~~~sh
+   swift build -c release --package-path Tools/Verify --product coreai-verify
+   Tools/Verify/.build/release/coreai-verify typed-decide --bundle <bundle> --input in.json --output out.json
+   ~~~
+
+   `in.json` には答える行を書きます。たとえばモデルカードの返金の例です。
+
+   ~~~json
+   {"rows": [{"id": "refund", "kind": "noul",
+              "state": "Customer says the parcel arrived damaged and wants their money back.",
+              "question": "Is the customer asking for a refund?", "options": ["false", "true"]}]}
+   ~~~
+
+   `out.json` には、行ごとにトークン数、24 個のヘッドの logit、bundle の温度と温度 1 の確率、top の選択肢、判断にかかった時間が入ります([Running on Mac](jev27b.md#running-on-mac))。
+
+## 記録した結果
+
+数値は、レシピの run と性能の計測の記録([docs/validation/jev27b](validation/jev27b/README.md))から写しています。品質と校正は、corpus の教師分布(Jev 1.13 の出力分布)への一致を測ったもので、現実の正しさではありません。
+
+- **一致**(固定集合 F の 302 行。301 行を流し、8,192 トークンを超える 1 行は拒否): 温度 1 で、同じ量子化後の重みの PyTorch float32 の実行との確率差は最大 0.0065、平均 0.0011 でした。8,192 トークンまでのどの入力の帯でも 0.03 と 0.01 の内側で、top の選択肢の変化はありません。詳細: [`fidelity.json`](validation/jev27b/fidelity.json)(帯ごと)と [Running on Mac](jev27b.md#running-on-mac)。
+- **量子化と適応**(Q の 900 行): 温度 1 の段 3 と段 1′([段の定義](jev27b.md#reference-stages))の比較は、測る前に固定した 3 条件を満たしました。choice の正答率は −0.67 pt(閾値 −2)、noul の Brier は +0.00024(閾値 +0.01)、score の MAE / 5 は +0.00051(閾値 +0.02)です。choice の正答率は点推定で合格ですが、95% 区間 [−3.00, +1.67] は閾値をまたぎます(n = 300、差は 2 行)。適応の効果は 4 指標とも、bf16 の効果の 80% 以上が 4bit でも残りました。段 3 は KL 0.0202、top-1 の一致 0.903、choice の正答率 86.67%(段 1′ は 87.33%)、noul の AUROC 0.993 です。詳細: [Quality and calibration](jev27b.md#quality-and-calibration)。
+- **校正**: Cal の段 3 の logit から再フィットした温度を 3 種類とも採用しました(noul 1.0056266、choice 1.0053791、score 1.010558)。取り分けておいた H′ で、NLL と Brier がカードの温度より悪くならなかったためです。この温度でも F の一致は合格のままです。
+- **日本語**(JGLUE の J、各 task 200 行、合格線なし): 段 3 で採用した prompt の変種の値は、JNLI choice の正答率 0.855(`en`)、JNLI noul の正答率 0.920 と AUROC 0.978(`en`)、JCommonsenseQA の正答率 0.960(`ja`)、JSTS の MAE 0.529・Pearson 0.859・Spearman 0.792(`en`)です。詳細: [Japanese (JGLUE)](jev27b.md#japanese-jglue)。
+- **性能**(計測 3 回の中央値。1 判断の時間は長さごとに warmup 1 回の後): 1 回の判断は 100 トークンで 0.60 s、500 で 2.27 s、2,000 で 8.92 s、8,192 で 37.50 s です。読み込みは、特殊化を新しく行うと 27.70 s、cache からなら 9.42 s です。1 判断の時間を測ったプロセスのピークは RSS 32.3 GB、physical footprint 21.6 GB(頭打ちになっていない)で、8,192 トークンの行の間は約 17.3 GB が常駐しました。試験用の backbone で 2,000 トークンの run の最中に取り消した依頼は、取消の要求から 9.15 s 後、run が返った時点で終わりました。本人の決定により、バッテリー駆動で計測しています。第 3 周と取消の試験は、熱の圧力が moderate から heavy の下で測りました。詳細: [Performance](jev27b.md#performance)。
+
+## 検証した範囲と上限
+
+- 統合した checkpoint は出力の検査を満たしていません。段 1(統合前のアダプター)と段 1′(統合した checkpoint)の差は最大 0.038 で、閾値 0.01 を超えます。本人がこれを記録して統合した checkpoint で進めると決め、限られた探索として扱っています。閾値は変えていません。
+- bundle は gated delta update を float32 で計算する変種(`export_gdnfp32`)で、量子化後の重みは最初の bundle と同じです。最初の bundle は 512 トークンを超える帯で一致の基準を超えました(4,097〜8,192 の帯で最大 0.138、#475)。変種はすべての帯で基準の内側です。
+- 品質の条件は、蒸留の corpus から引いた固定集合で、段 3 と段 1′、適応した段と基底の段を比べたものです。教師への一致であり、人のラベルに対する正答率ではありません。choice の正答率の条件は点推定(−0.67 pt、閾値 −2)で合格ですが、95% 区間 [−3.00, +1.67] は閾値をまたぎます(n = 300、差は 2 行)。適応の効果の条件(4bit の効果が bf16 の効果の 0.8 倍以上)は 4 指標とも満たしました(割合 0.96〜1.12)。
+- 採用した温度は、Cal で再フィットし H′ で教師分布に照らして選んだものです。出荷時の確率は教師に合わせた校正で、現実の正しさに対する校正ではありません。
+- 日本語の結果に合格線はなく、日本語の品質や校正の合格を示すものではありません。prompt の変種は、J を流す前に別の集合で採用を決めました。
+- 入力は 8,192 トークン(描画したテンプレート全体)まで受け付け、超える行は forward なしで拒否します。すべての帯を含むのは一致の集合 F だけです(512 まで 269 行、513〜2,048 が 11 行、2,049〜4,096 が 10 行、4,097〜8,192 が 11 行)。品質・校正・日本語の集合は短く、最長は Q が 593 トークン(900 行のうち 897 行が 512 以下)、Cal が 672、H が 689、J が wrapper を当てて 129 です。約 700 トークンを超える入力の品質と校正は測っていません。性能用の行はちょうど 100、500、2,000、8,192 トークンです。
+- physical footprint のピーク 21.6 GB は、1 プロセスで長さを交互に 16 回流した後の値で、上限ではありません。8,192 トークンの行で 8.0 から 12.6、16.8、21.6 GB と 1 周ごとに 4.2〜4.8 GB 増え、頭打ちになっていません。それらの行の RSS は約 17.3 GB のままでした。
+- forward の run の最中に取り消した依頼は、run が返るまでモデルを使用中のままにし、その後 `CancellationError` で終わります。run の前に取り消した依頼は、すぐに終わります。取消の試験は取消を伝えない試験用の backbone で forward を流すので、Core AI の run 自体が取消で止まるかは測っていません。
+- 確かめていないもの: iOS、アプリへの組み込み(#449)、メモリの少ない Mac、同じプロセスでの解放と再読み込み、質問をまたいだ文書の再利用。
+
+## 入力とファイル
+
+- 入力は `state`、`question`、`kind`(`noul` / `choice` / `score`)、`options` です。`choice` は 2〜16 個の重ならない 1 行の選択肢、`noul` は `false` と `true`、`score` は `0`〜`5` だけを受け付けます。描画は JEV-27B の `bare-v1` テンプレートに従い、規則に合わない入力は描き換えずに拒否します。
+- bundle は、`main` だけを持つ Core AI の資産(最後の RMSNorm の後の隠れ状態を返す)、`head.safetensors`(`proj.weight` [24, 5120] と `proj.bias` [24]、float32)、配布元の tokenizer のバイト単位の写し、`decision.json`(`typed-decision-v1`)、書き出しが書く `metadata.json`、`LICENSE`、`NOTICE.md`、`SHA256SUMS` からなります。校正済みの bundle には、温度の再フィットの記録 `calibration-refit.json` が加わります。
+- 校正済みの bundle は 13 ファイル、合計 16,064,815,496 バイトです。モデルの版は `decision.json` の SHA-256 で、`a2b186a87a64d9e93a56f185a5ebc2a0613d00da7440eeb8c8c2229b64f6adf3` です。
+- Swift の型(`TypedDecisionBundle`、`TypedDecisionModel` など)、`decision.json` の項目、CLI の入出力の詳細は英語のページの [Input and files](jev27b.md#input-and-files) にあります。
+
+## 評価の詳細
+
+評価の段、定義、表の全体は英語のページにあります。
+
+- [Reference stages](jev27b.md#reference-stages): 段 0(配布の基底)、0q(基底の量子化)、1(統合前のアダプター)、1′(統合した checkpoint)、2(統合した重みの量子化を float32 で計算)、3(Core AI の資産)。
+- [Quality and calibration](jev27b.md#quality-and-calibration): Q・Cal・H の段、事前に固定した条件と定義、結果の表、校正済み bundle の作り方。
+- [Japanese (JGLUE)](jev27b.md#japanese-jglue): 日本語の 2 変種の wrapper、Jdev の抽出と採用の規則、J の結果の表。
+- [Performance](jev27b.md#performance): 固定計画、性能用の行 P、計測の区切り、結果の表。
+
+## ライセンスと帰属
+
+Qwen3.8-27B(Qwen)と JEV-27B(AutoTrust AI)は Apache-2.0 です。JEV-27B は `SargeDev/jev-distill-corpus-v3`(Apache-2.0)で学習され、そのラベルの多くは TypeSafe Jev 1.13 の出力分布です。固定集合はこの corpus と JGLUE(CC BY-SA 4.0)から作り、再配布しません。Swift の試験の fixture には JGLUE の 8 行の本文が CC BY-SA 4.0 で入っており、その表示は `render.json` にあります。

@@ -1,0 +1,1386 @@
+{
+  "adoption": {
+    "adopted": {
+      "JCommonsenseQA": "ja",
+      "JNLI": "en",
+      "JNLI:noul": "en",
+      "JSTS": "en"
+    },
+    "results": {
+      "1": {
+        "en": {
+          "JCommonsenseQA": {
+            "accuracy": 0.95,
+            "hits": 95,
+            "rows": 100
+          },
+          "JNLI": {
+            "accuracy": 0.89,
+            "confusion": {
+              "columns": "prediction",
+              "matrix": [
+                [
+                  13,
+                  0,
+                  2
+                ],
+                [
+                  0,
+                  18,
+                  4
+                ],
+                [
+                  5,
+                  0,
+                  58
+                ]
+              ],
+              "order": [
+                "entailment",
+                "contradiction",
+                "neutral"
+              ],
+              "rows": "label"
+            },
+            "hits": 89,
+            "rows": 100
+          },
+          "JSTS": {
+            "expected_mean": 2.2126162484835366,
+            "label_mean": 2.266,
+            "mae": 0.557732682590633,
+            "pearson": 0.838640549581778,
+            "rows": 100,
+            "spearman": 0.7905355196304235
+          }
+        },
+        "ja": {
+          "JCommonsenseQA": {
+            "accuracy": 0.96,
+            "hits": 96,
+            "rows": 100
+          },
+          "JNLI": {
+            "accuracy": 0.83,
+            "confusion": {
+              "columns": "prediction",
+              "matrix": [
+                [
+                  13,
+                  0,
+                  2
+                ],
+                [
+                  0,
+                  13,
+                  9
+                ],
+                [
+                  6,
+                  0,
+                  57
+                ]
+              ],
+              "order": [
+                "entailment",
+                "contradiction",
+                "neutral"
+              ],
+              "rows": "label"
+            },
+            "hits": 83,
+            "rows": 100
+          },
+          "JSTS": {
+            "expected_mean": 2.0267945824265765,
+            "label_mean": 2.266,
+            "mae": 0.5806128348404265,
+            "pearson": 0.8312773930161061,
+            "rows": 100,
+            "spearman": 0.7818260568185404
+          }
+        }
+      },
+      "adopted": {
+        "en": {
+          "JCommonsenseQA": {
+            "accuracy": 0.95,
+            "hits": 95,
+            "rows": 100
+          },
+          "JNLI": {
+            "accuracy": 0.89,
+            "confusion": {
+              "columns": "prediction",
+              "matrix": [
+                [
+                  13,
+                  0,
+                  2
+                ],
+                [
+                  0,
+                  18,
+                  4
+                ],
+                [
+                  5,
+                  0,
+                  58
+                ]
+              ],
+              "order": [
+                "entailment",
+                "contradiction",
+                "neutral"
+              ],
+              "rows": "label"
+            },
+            "hits": 89,
+            "rows": 100
+          },
+          "JSTS": {
+            "expected_mean": 2.2115206707408537,
+            "label_mean": 2.266,
+            "mae": 0.5582051685796813,
+            "pearson": 0.8386049911991729,
+            "rows": 100,
+            "spearman": 0.7904513702312749
+          }
+        },
+        "ja": {
+          "JCommonsenseQA": {
+            "accuracy": 0.96,
+            "hits": 96,
+            "rows": 100
+          },
+          "JNLI": {
+            "accuracy": 0.83,
+            "confusion": {
+              "columns": "prediction",
+              "matrix": [
+                [
+                  13,
+                  0,
+                  2
+                ],
+                [
+                  0,
+                  13,
+                  9
+                ],
+                [
+                  6,
+                  0,
+                  57
+                ]
+              ],
+              "order": [
+                "entailment",
+                "contradiction",
+                "neutral"
+              ],
+              "rows": "label"
+            },
+            "hits": 83,
+            "rows": 100
+          },
+          "JSTS": {
+            "expected_mean": 2.026206300880245,
+            "label_mean": 2.266,
+            "mae": 0.5810192496012145,
+            "pearson": 0.8313123206298638,
+            "rows": 100,
+            "spearman": 0.7812790857240743
+          }
+        }
+      }
+    },
+    "rule": "per task on Jdev at temperature 1: the variant with more correct JNLI choice rows, more correct JCommonsenseQA rows, or the smaller MAE of the expected JSTS score; a tie adopts ja. JNLI noul follows the JNLI choice adoption as a common policy, which is not a claim that it is best for noul.",
+    "selection_temperature": 1.0,
+    "sha256": "d95d8904ac3c19b9e6ce86bd570ce2bab543654e2d9a09924b25b67bd7c7cb10"
+  },
+  "agreement": {
+    "1": {
+      "en": {
+        "JCommonsenseQA": {
+          "max_probability_difference": 0.1138507053533902,
+          "mean_probability_difference": 0.011550368902578621,
+          "rows": 200,
+          "same_top": 198
+        },
+        "JNLI": {
+          "max_probability_difference": 0.1735346896042428,
+          "mean_probability_difference": 0.0238233355088695,
+          "rows": 200,
+          "same_top": 195
+        },
+        "JNLI:noul": {
+          "max_probability_difference": 0.09291022711686903,
+          "mean_probability_difference": 0.015877995300131918,
+          "rows": 200,
+          "same_top": 198
+        },
+        "JSTS": {
+          "max_probability_difference": 0.11384846795221276,
+          "mean_probability_difference": 0.0331771122673475,
+          "rows": 200,
+          "same_top": 179
+        }
+      },
+      "ja": {
+        "JCommonsenseQA": {
+          "max_probability_difference": 0.08186027572454185,
+          "mean_probability_difference": 0.010829717841723716,
+          "rows": 200,
+          "same_top": 200
+        },
+        "JNLI": {
+          "max_probability_difference": 0.12392093128467696,
+          "mean_probability_difference": 0.022406641083281772,
+          "rows": 200,
+          "same_top": 193
+        },
+        "JNLI:noul": {
+          "max_probability_difference": 0.13765640657472888,
+          "mean_probability_difference": 0.013722181689626465,
+          "rows": 200,
+          "same_top": 198
+        },
+        "JSTS": {
+          "max_probability_difference": 0.12349091133084286,
+          "mean_probability_difference": 0.03092705042479097,
+          "rows": 200,
+          "same_top": 186
+        }
+      }
+    },
+    "adopted": {
+      "en": {
+        "JCommonsenseQA": {
+          "max_probability_difference": 0.11323347697608432,
+          "mean_probability_difference": 0.011613295038748486,
+          "rows": 200,
+          "same_top": 198
+        },
+        "JNLI": {
+          "max_probability_difference": 0.1725641004866788,
+          "mean_probability_difference": 0.02382560820575601,
+          "rows": 200,
+          "same_top": 195
+        },
+        "JNLI:noul": {
+          "max_probability_difference": 0.0923967784155828,
+          "mean_probability_difference": 0.01589248539351463,
+          "rows": 200,
+          "same_top": 198
+        },
+        "JSTS": {
+          "max_probability_difference": 0.11241174527089981,
+          "mean_probability_difference": 0.03293625819366193,
+          "rows": 200,
+          "same_top": 179
+        }
+      },
+      "ja": {
+        "JCommonsenseQA": {
+          "max_probability_difference": 0.08147303715650439,
+          "mean_probability_difference": 0.010892545727614193,
+          "rows": 200,
+          "same_top": 200
+        },
+        "JNLI": {
+          "max_probability_difference": 0.12458515427800965,
+          "mean_probability_difference": 0.022423516188628458,
+          "rows": 200,
+          "same_top": 193
+        },
+        "JNLI:noul": {
+          "max_probability_difference": 0.13719119069232175,
+          "mean_probability_difference": 0.013737780835761874,
+          "rows": 200,
+          "same_top": 198
+        },
+        "JSTS": {
+          "max_probability_difference": 0.12214343957994009,
+          "mean_probability_difference": 0.030721680311161563,
+          "rows": 200,
+          "same_top": 186
+        }
+      }
+    }
+  },
+  "bundle": {
+    "asset_sha256": "965396ce46af30aca1e65df8fe2e0fa4639be120b8bb18a7edeefc5dbbc86de0",
+    "calibration_id": "jev27b-refit/449492cee3d8b363",
+    "name": "jev27b_s1_gdnfp32_qwen3_5_cfg_dynamic",
+    "version": "a2b186a87a64d9e93a56f185a5ebc2a0613d00da7440eeb8c8c2229b64f6adf3"
+  },
+  "definitions": {
+    "accuracy": "JNLI choice and JCommonsenseQA: the first largest probability is the label, a permuted row maps its answer back to the original option; JNLI noul: P(true) > 0.5 is true and P(true) = 0.5 is false",
+    "auroc": "P(true) of the JNLI noul rows ranked with entailment as the positive class, ties count one half, undefined with one class",
+    "brier_hard": "mean of (P(true) - y)^2 with y = 1 for entailment and 0 for contradiction and neutral",
+    "difference": "stage 3 minus stage 1' on the same rows, wrapper and temperature: quantization and execution path together",
+    "jsts": "E[p] = sum k p(k) against the continuous label: MAE, Pearson and Spearman (average ranks for ties), undefined when either side is constant",
+    "permutations": "stage 3, adopted JCommonsenseQA variant: the options in the four fixed orders, the label position follows its option, and the answers are mapped back to the original options",
+    "scope": "Descriptive results on 200 rows per task without a pass line and without intervals; they are not a claim of Japanese quality or of calibration",
+    "temperatures": "1 and the adopted temperatures of the calibrated bundle (decision.json per_kind); probabilities are recomputed from the 24 logits of each stage"
+  },
+  "differences": {
+    "1": {
+      "en": {
+        "JCommonsenseQA": {
+          "accuracy": -0.010000000000000009
+        },
+        "JNLI": {
+          "accuracy": -0.015000000000000013
+        },
+        "JNLI:noul": {
+          "accuracy": 0.0,
+          "auroc": -0.00242424242424244,
+          "brier_hard": 0.0057087280769639245
+        },
+        "JSTS": {
+          "mae": -0.012437069217976271,
+          "pearson": 0.003529234352411259,
+          "spearman": 0.006644242039329229
+        }
+      },
+      "ja": {
+        "JCommonsenseQA": {
+          "accuracy": 0.0
+        },
+        "JNLI": {
+          "accuracy": -0.014999999999999902
+        },
+        "JNLI:noul": {
+          "accuracy": -0.010000000000000009,
+          "auroc": -0.0013852813852813783,
+          "brier_hard": 0.004264902546886863
+        },
+        "JSTS": {
+          "mae": -0.004135912328703251,
+          "pearson": -0.0026976444928992205,
+          "spearman": -0.002213244294290706
+        }
+      }
+    },
+    "adopted": {
+      "en": {
+        "JCommonsenseQA": {
+          "accuracy": -0.010000000000000009
+        },
+        "JNLI": {
+          "accuracy": -0.015000000000000013
+        },
+        "JNLI:noul": {
+          "accuracy": 0.0,
+          "auroc": -0.00242424242424244,
+          "brier_hard": 0.005701021389147333
+        },
+        "JSTS": {
+          "mae": -0.0124946067415459,
+          "pearson": 0.0034991908564848684,
+          "spearman": 0.006510470397772639
+        }
+      },
+      "ja": {
+        "JCommonsenseQA": {
+          "accuracy": 0.0
+        },
+        "JNLI": {
+          "accuracy": -0.014999999999999902
+        },
+        "JNLI:noul": {
+          "accuracy": -0.010000000000000009,
+          "auroc": -0.0013852813852813783,
+          "brier_hard": 0.004250677655056427
+        },
+        "JSTS": {
+          "mae": -0.003943690586963644,
+          "pearson": -0.0027351902612466894,
+          "spearman": -0.0024086410740923325
+        }
+      }
+    }
+  },
+  "evidence": "japanese",
+  "inputs": {
+    "adoption_sha256": "d95d8904ac3c19b9e6ce86bd570ce2bab543654e2d9a09924b25b67bd7c7cb10",
+    "fixture_sha256": "772b9ea158ed65b259afc013e7f5253fca8d5221963cfdedec82d38cbac1dd93",
+    "input_sha256": "3604f39b638910dc8d17aa6d70e249ab898f97d1daf3a19f881dede71e0e464a",
+    "longest": 129,
+    "rows_sha256": "44946fc7bf8624b556d81ead5a304915585937d5b00276987bbee8a477da8e57",
+    "tokens": 159847
+  },
+  "jdev": {
+    "excluded_texts": 1016,
+    "ids": [
+      "jglue:JNLI:2137",
+      "jglue:JNLI:822",
+      "jglue:JNLI:1711",
+      "jglue:JNLI:374",
+      "jglue:JNLI:908",
+      "jglue:JNLI:2239",
+      "jglue:JNLI:841",
+      "jglue:JNLI:1694",
+      "jglue:JNLI:1554",
+      "jglue:JNLI:1257",
+      "jglue:JNLI:414",
+      "jglue:JNLI:2410",
+      "jglue:JNLI:1831",
+      "jglue:JNLI:1866",
+      "jglue:JNLI:290",
+      "jglue:JNLI:1330",
+      "jglue:JNLI:1533",
+      "jglue:JNLI:2166",
+      "jglue:JNLI:1507",
+      "jglue:JNLI:1115",
+      "jglue:JNLI:611",
+      "jglue:JNLI:597",
+      "jglue:JNLI:1673",
+      "jglue:JNLI:23",
+      "jglue:JNLI:1128",
+      "jglue:JNLI:1587",
+      "jglue:JNLI:1675",
+      "jglue:JNLI:363",
+      "jglue:JNLI:283",
+      "jglue:JNLI:2109",
+      "jglue:JNLI:1370",
+      "jglue:JNLI:210",
+      "jglue:JNLI:1944",
+      "jglue:JNLI:1861",
+      "jglue:JNLI:139",
+      "jglue:JNLI:1836",
+      "jglue:JNLI:1346",
+      "jglue:JNLI:460",
+      "jglue:JNLI:2167",
+      "jglue:JNLI:1746",
+      "jglue:JNLI:2351",
+      "jglue:JNLI:706",
+      "jglue:JNLI:306",
+      "jglue:JNLI:1146",
+      "jglue:JNLI:2241",
+      "jglue:JNLI:1632",
+      "jglue:JNLI:1518",
+      "jglue:JNLI:948",
+      "jglue:JNLI:1307",
+      "jglue:JNLI:1870",
+      "jglue:JNLI:862",
+      "jglue:JNLI:1920",
+      "jglue:JNLI:1317",
+      "jglue:JNLI:365",
+      "jglue:JNLI:534",
+      "jglue:JNLI:319",
+      "jglue:JNLI:663",
+      "jglue:JNLI:443",
+      "jglue:JNLI:656",
+      "jglue:JNLI:74",
+      "jglue:JNLI:2387",
+      "jglue:JNLI:1520",
+      "jglue:JNLI:1914",
+      "jglue:JNLI:887",
+      "jglue:JNLI:1755",
+      "jglue:JNLI:1209",
+      "jglue:JNLI:458",
+      "jglue:JNLI:664",
+      "jglue:JNLI:2300",
+      "jglue:JNLI:135",
+      "jglue:JNLI:29",
+      "jglue:JNLI:294",
+      "jglue:JNLI:973",
+      "jglue:JNLI:261",
+      "jglue:JNLI:304",
+      "jglue:JNLI:1979",
+      "jglue:JNLI:1013",
+      "jglue:JNLI:1021",
+      "jglue:JNLI:1653",
+      "jglue:JNLI:1615",
+      "jglue:JNLI:383",
+      "jglue:JNLI:313",
+      "jglue:JNLI:243",
+      "jglue:JNLI:1789",
+      "jglue:JNLI:2281",
+      "jglue:JNLI:1487",
+      "jglue:JNLI:1309",
+      "jglue:JNLI:1306",
+      "jglue:JNLI:1223",
+      "jglue:JNLI:433",
+      "jglue:JNLI:1926",
+      "jglue:JNLI:1359",
+      "jglue:JNLI:420",
+      "jglue:JNLI:1764",
+      "jglue:JNLI:1105",
+      "jglue:JNLI:901",
+      "jglue:JNLI:207",
+      "jglue:JNLI:1020",
+      "jglue:JNLI:651",
+      "jglue:JNLI:582",
+      "jglue:JCommonsenseQA:9284",
+      "jglue:JCommonsenseQA:9844",
+      "jglue:JCommonsenseQA:10048",
+      "jglue:JCommonsenseQA:9681",
+      "jglue:JCommonsenseQA:9445",
+      "jglue:JCommonsenseQA:9112",
+      "jglue:JCommonsenseQA:9500",
+      "jglue:JCommonsenseQA:9833",
+      "jglue:JCommonsenseQA:9263",
+      "jglue:JCommonsenseQA:9936",
+      "jglue:JCommonsenseQA:9954",
+      "jglue:JCommonsenseQA:9478",
+      "jglue:JCommonsenseQA:9181",
+      "jglue:JCommonsenseQA:9825",
+      "jglue:JCommonsenseQA:10052",
+      "jglue:JCommonsenseQA:9675",
+      "jglue:JCommonsenseQA:9795",
+      "jglue:JCommonsenseQA:9349",
+      "jglue:JCommonsenseQA:9053",
+      "jglue:JCommonsenseQA:9336",
+      "jglue:JCommonsenseQA:9498",
+      "jglue:JCommonsenseQA:9562",
+      "jglue:JCommonsenseQA:8988",
+      "jglue:JCommonsenseQA:9665",
+      "jglue:JCommonsenseQA:9873",
+      "jglue:JCommonsenseQA:9525",
+      "jglue:JCommonsenseQA:9422",
+      "jglue:JCommonsenseQA:9655",
+      "jglue:JCommonsenseQA:9049",
+      "jglue:JCommonsenseQA:9780",
+      "jglue:JCommonsenseQA:9046",
+      "jglue:JCommonsenseQA:9029",
+      "jglue:JCommonsenseQA:9319",
+      "jglue:JCommonsenseQA:9966",
+      "jglue:JCommonsenseQA:9152",
+      "jglue:JCommonsenseQA:9051",
+      "jglue:JCommonsenseQA:9884",
+      "jglue:JCommonsenseQA:9928",
+      "jglue:JCommonsenseQA:9747",
+      "jglue:JCommonsenseQA:9781",
+      "jglue:JCommonsenseQA:9978",
+      "jglue:JCommonsenseQA:9409",
+      "jglue:JCommonsenseQA:9209",
+      "jglue:JCommonsenseQA:9895",
+      "jglue:JCommonsenseQA:10029",
+      "jglue:JCommonsenseQA:9852",
+      "jglue:JCommonsenseQA:9630",
+      "jglue:JCommonsenseQA:9255",
+      "jglue:JCommonsenseQA:9421",
+      "jglue:JCommonsenseQA:8979",
+      "jglue:JCommonsenseQA:9195",
+      "jglue:JCommonsenseQA:9354",
+      "jglue:JCommonsenseQA:9924",
+      "jglue:JCommonsenseQA:9435",
+      "jglue:JCommonsenseQA:9212",
+      "jglue:JCommonsenseQA:10021",
+      "jglue:JCommonsenseQA:9874",
+      "jglue:JCommonsenseQA:9176",
+      "jglue:JCommonsenseQA:9741",
+      "jglue:JCommonsenseQA:9771",
+      "jglue:JCommonsenseQA:9725",
+      "jglue:JCommonsenseQA:9787",
+      "jglue:JCommonsenseQA:9891",
+      "jglue:JCommonsenseQA:9140",
+      "jglue:JCommonsenseQA:9684",
+      "jglue:JCommonsenseQA:9246",
+      "jglue:JCommonsenseQA:9033",
+      "jglue:JCommonsenseQA:9068",
+      "jglue:JCommonsenseQA:9964",
+      "jglue:JCommonsenseQA:9339",
+      "jglue:JCommonsenseQA:9460",
+      "jglue:JCommonsenseQA:9915",
+      "jglue:JCommonsenseQA:9595",
+      "jglue:JCommonsenseQA:9312",
+      "jglue:JCommonsenseQA:9221",
+      "jglue:JCommonsenseQA:9238",
+      "jglue:JCommonsenseQA:9416",
+      "jglue:JCommonsenseQA:9225",
+      "jglue:JCommonsenseQA:9617",
+      "jglue:JCommonsenseQA:9419",
+      "jglue:JCommonsenseQA:9646",
+      "jglue:JCommonsenseQA:9540",
+      "jglue:JCommonsenseQA:9493",
+      "jglue:JCommonsenseQA:9972",
+      "jglue:JCommonsenseQA:9183",
+      "jglue:JCommonsenseQA:10031",
+      "jglue:JCommonsenseQA:9157",
+      "jglue:JCommonsenseQA:9214",
+      "jglue:JCommonsenseQA:9083",
+      "jglue:JCommonsenseQA:9714",
+      "jglue:JCommonsenseQA:9411",
+      "jglue:JCommonsenseQA:9758",
+      "jglue:JCommonsenseQA:9399",
+      "jglue:JCommonsenseQA:9281",
+      "jglue:JCommonsenseQA:9817",
+      "jglue:JCommonsenseQA:9043",
+      "jglue:JCommonsenseQA:9767",
+      "jglue:JCommonsenseQA:9154",
+      "jglue:JCommonsenseQA:9803",
+      "jglue:JCommonsenseQA:9153",
+      "jglue:JSTS:393",
+      "jglue:JSTS:781",
+      "jglue:JSTS:531",
+      "jglue:JSTS:126",
+      "jglue:JSTS:576",
+      "jglue:JSTS:1300",
+      "jglue:JSTS:474",
+      "jglue:JSTS:1099",
+      "jglue:JSTS:1155",
+      "jglue:JSTS:1324",
+      "jglue:JSTS:272",
+      "jglue:JSTS:303",
+      "jglue:JSTS:1193",
+      "jglue:JSTS:703",
+      "jglue:JSTS:964",
+      "jglue:JSTS:961",
+      "jglue:JSTS:797",
+      "jglue:JSTS:1420",
+      "jglue:JSTS:698",
+      "jglue:JSTS:1141",
+      "jglue:JSTS:164",
+      "jglue:JSTS:74",
+      "jglue:JSTS:543",
+      "jglue:JSTS:522",
+      "jglue:JSTS:1004",
+      "jglue:JSTS:67",
+      "jglue:JSTS:294",
+      "jglue:JSTS:321",
+      "jglue:JSTS:1045",
+      "jglue:JSTS:661",
+      "jglue:JSTS:365",
+      "jglue:JSTS:1107",
+      "jglue:JSTS:1363",
+      "jglue:JSTS:268",
+      "jglue:JSTS:1250",
+      "jglue:JSTS:706",
+      "jglue:JSTS:475",
+      "jglue:JSTS:682",
+      "jglue:JSTS:65",
+      "jglue:JSTS:1438",
+      "jglue:JSTS:789",
+      "jglue:JSTS:846",
+      "jglue:JSTS:416",
+      "jglue:JSTS:1056",
+      "jglue:JSTS:892",
+      "jglue:JSTS:1434",
+      "jglue:JSTS:1037",
+      "jglue:JSTS:1361",
+      "jglue:JSTS:541",
+      "jglue:JSTS:878",
+      "jglue:JSTS:451",
+      "jglue:JSTS:989",
+      "jglue:JSTS:339",
+      "jglue:JSTS:557",
+      "jglue:JSTS:33",
+      "jglue:JSTS:1316",
+      "jglue:JSTS:1080",
+      "jglue:JSTS:617",
+      "jglue:JSTS:203",
+      "jglue:JSTS:1275",
+      "jglue:JSTS:923",
+      "jglue:JSTS:378",
+      "jglue:JSTS:31",
+      "jglue:JSTS:1305",
+      "jglue:JSTS:709",
+      "jglue:JSTS:169",
+      "jglue:JSTS:352",
+      "jglue:JSTS:527",
+      "jglue:JSTS:1353",
+      "jglue:JSTS:788",
+      "jglue:JSTS:250",
+      "jglue:JSTS:448",
+      "jglue:JSTS:697",
+      "jglue:JSTS:64",
+      "jglue:JSTS:944",
+      "jglue:JSTS:1057",
+      "jglue:JSTS:1030",
+      "jglue:JSTS:354",
+      "jglue:JSTS:551",
+      "jglue:JSTS:439",
+      "jglue:JSTS:986",
+      "jglue:JSTS:336",
+      "jglue:JSTS:1302",
+      "jglue:JSTS:1174",
+      "jglue:JSTS:1183",
+      "jglue:JSTS:934",
+      "jglue:JSTS:936",
+      "jglue:JSTS:1113",
+      "jglue:JSTS:1000",
+      "jglue:JSTS:1386",
+      "jglue:JSTS:784",
+      "jglue:JSTS:1337",
+      "jglue:JSTS:1035",
+      "jglue:JSTS:571",
+      "jglue:JSTS:457",
+      "jglue:JSTS:234",
+      "jglue:JSTS:177",
+      "jglue:JSTS:166",
+      "jglue:JSTS:245",
+      "jglue:JSTS:385"
+    ],
+    "per_task": 100,
+    "pools": {
+      "JCommonsenseQA": {
+        "eligible": 911,
+        "in_fixed_sets": 208,
+        "not_renderable": 0,
+        "rows": 1119,
+        "shares_text": 0
+      },
+      "JNLI": {
+        "eligible": 1832,
+        "in_fixed_sets": 208,
+        "not_renderable": 0,
+        "rows": 2434,
+        "shares_text": 394
+      },
+      "JSTS": {
+        "eligible": 1193,
+        "in_fixed_sets": 208,
+        "not_renderable": 0,
+        "rows": 1457,
+        "shares_text": 56
+      }
+    },
+    "seed": "20261102:Jdev",
+    "sha256": "bcbd4433c7ae45b335a32fbcd9e1ec8e3e3ad523238a0f839caa5a0d406f59eb"
+  },
+  "permutations": {
+    "1": {
+      "complete_rows": 200,
+      "consistent_fraction": 0.955,
+      "consistent_rows": 191,
+      "orders": {
+        "identity": {
+          "accuracy": 0.96,
+          "hits": 192,
+          "order": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ],
+          "rows": 200
+        },
+        "reverse": {
+          "accuracy": 0.97,
+          "hits": 194,
+          "order": [
+            4,
+            3,
+            2,
+            1,
+            0
+          ],
+          "rows": 200
+        },
+        "rotate1": {
+          "accuracy": 0.96,
+          "hits": 192,
+          "order": [
+            1,
+            2,
+            3,
+            4,
+            0
+          ],
+          "rows": 200
+        },
+        "rotate2": {
+          "accuracy": 0.96,
+          "hits": 192,
+          "order": [
+            2,
+            3,
+            4,
+            0,
+            1
+          ],
+          "rows": 200
+        }
+      },
+      "rows": 200,
+      "variant": "ja"
+    },
+    "adopted": {
+      "complete_rows": 200,
+      "consistent_fraction": 0.955,
+      "consistent_rows": 191,
+      "orders": {
+        "identity": {
+          "accuracy": 0.96,
+          "hits": 192,
+          "order": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ],
+          "rows": 200
+        },
+        "reverse": {
+          "accuracy": 0.97,
+          "hits": 194,
+          "order": [
+            4,
+            3,
+            2,
+            1,
+            0
+          ],
+          "rows": 200
+        },
+        "rotate1": {
+          "accuracy": 0.96,
+          "hits": 192,
+          "order": [
+            1,
+            2,
+            3,
+            4,
+            0
+          ],
+          "rows": 200
+        },
+        "rotate2": {
+          "accuracy": 0.96,
+          "hits": 192,
+          "order": [
+            2,
+            3,
+            4,
+            0,
+            1
+          ],
+          "rows": 200
+        }
+      },
+      "rows": 200,
+      "variant": "ja"
+    }
+  },
+  "reference": {
+    "device": "mps",
+    "dtype": "bfloat16",
+    "merged_revision": "c0b996d8130e268232806ac89e95543b228cdaf9",
+    "peak_rss_bytes": 54512254976
+  },
+  "rows": {
+    "by_group": {
+      "en/JCommonsenseQA/identity": 200,
+      "en/JNLI/identity": 200,
+      "en/JNLI:noul/identity": 200,
+      "en/JSTS/identity": 200,
+      "ja/JCommonsenseQA/identity": 200,
+      "ja/JCommonsenseQA/reverse": 200,
+      "ja/JCommonsenseQA/rotate1": 200,
+      "ja/JCommonsenseQA/rotate2": 200,
+      "ja/JNLI/identity": 200,
+      "ja/JNLI:noul/identity": 200,
+      "ja/JSTS/identity": 200
+    },
+    "stage_1m": 1600,
+    "total": 2200
+  },
+  "schema": "jev27b-validation-japanese/1",
+  "scope": "Descriptive results on 200 rows per task without a pass line and without intervals; they are not a claim of Japanese quality or of calibration",
+  "sources": [
+    {
+      "file": "japanese.json",
+      "object": "d941be041a73f44c",
+      "run": "20261103T184500-52091525",
+      "sha256": "f48f434c07a2bb20cbae855f8c58d07a595bab93d51792993c2bfb5f19dd666e",
+      "step": "score_j"
+    },
+    {
+      "file": "prompt-adoption.json",
+      "object": "5a2a60af45acc778",
+      "run": "20261103T184500-52091525",
+      "sha256": "d95d8904ac3c19b9e6ce86bd570ce2bab543654e2d9a09924b25b67bd7c7cb10",
+      "step": "prompt_adoption"
+    },
+    {
+      "file": "jdev.json",
+      "object": "eb0bbd79f94a843c",
+      "run": "20261103T184500-52091525",
+      "sha256": "bcbd4433c7ae45b335a32fbcd9e1ec8e3e3ad523238a0f839caa5a0d406f59eb",
+      "step": "jdev_fixture"
+    }
+  ],
+  "stages": {
+    "1": {
+      "1m": {
+        "en": {
+          "JCommonsenseQA": {
+            "accuracy": 0.97,
+            "hits": 194,
+            "rows": 200
+          },
+          "JNLI": {
+            "accuracy": 0.87,
+            "confusion": {
+              "columns": "prediction",
+              "matrix": [
+                [
+                  32,
+                  0,
+                  3
+                ],
+                [
+                  3,
+                  59,
+                  9
+                ],
+                [
+                  7,
+                  4,
+                  83
+                ]
+              ],
+              "order": [
+                "entailment",
+                "contradiction",
+                "neutral"
+              ],
+              "rows": "label"
+            },
+            "hits": 174,
+            "rows": 200
+          },
+          "JNLI:noul": {
+            "accuracy": 0.92,
+            "auroc": 0.9800865800865801,
+            "brier_hard": 0.05308903002181356,
+            "hits": 184,
+            "positives": 35,
+            "rows": 200
+          },
+          "JSTS": {
+            "expected_mean": 2.2609542216020224,
+            "label_mean": 2.381,
+            "mae": 0.541181510795005,
+            "pearson": 0.8555238476243757,
+            "rows": 200,
+            "spearman": 0.7857738709765201
+          }
+        },
+        "ja": {
+          "JCommonsenseQA": {
+            "accuracy": 0.96,
+            "hits": 192,
+            "rows": 200
+          },
+          "JNLI": {
+            "accuracy": 0.82,
+            "confusion": {
+              "columns": "prediction",
+              "matrix": [
+                [
+                  33,
+                  0,
+                  2
+                ],
+                [
+                  3,
+                  48,
+                  20
+                ],
+                [
+                  8,
+                  3,
+                  83
+                ]
+              ],
+              "order": [
+                "entailment",
+                "contradiction",
+                "neutral"
+              ],
+              "rows": "label"
+            },
+            "hits": 164,
+            "rows": 200
+          },
+          "JNLI:noul": {
+            "accuracy": 0.935,
+            "auroc": 0.9856277056277056,
+            "brier_hard": 0.049879495400922035,
+            "hits": 187,
+            "positives": 35,
+            "rows": 200
+          },
+          "JSTS": {
+            "expected_mean": 2.1024861251010303,
+            "label_mean": 2.381,
+            "mae": 0.581894182653191,
+            "pearson": 0.8501476041886531,
+            "rows": 200,
+            "spearman": 0.78180506176832
+          }
+        }
+      },
+      "3": {
+        "en": {
+          "JCommonsenseQA": {
+            "accuracy": 0.96,
+            "hits": 192,
+            "rows": 200
+          },
+          "JNLI": {
+            "accuracy": 0.855,
+            "confusion": {
+              "columns": "prediction",
+              "matrix": [
+                [
+                  32,
+                  0,
+                  3
+                ],
+                [
+                  3,
+                  60,
+                  8
+                ],
+                [
+                  11,
+                  4,
+                  79
+                ]
+              ],
+              "order": [
+                "entailment",
+                "contradiction",
+                "neutral"
+              ],
+              "rows": "label"
+            },
+            "hits": 171,
+            "rows": 200
+          },
+          "JNLI:noul": {
+            "accuracy": 0.92,
+            "auroc": 0.9776623376623377,
+            "brier_hard": 0.058797758098777485,
+            "hits": 184,
+            "positives": 35,
+            "rows": 200
+          },
+          "JSTS": {
+            "expected_mean": 2.2889720194431744,
+            "label_mean": 2.381,
+            "mae": 0.5287444415770287,
+            "pearson": 0.859053081976787,
+            "rows": 200,
+            "spearman": 0.7924181130158493
+          }
+        },
+        "ja": {
+          "JCommonsenseQA": {
+            "accuracy": 0.96,
+            "hits": 192,
+            "rows": 200
+          },
+          "JNLI": {
+            "accuracy": 0.805,
+            "confusion": {
+              "columns": "prediction",
+              "matrix": [
+                [
+                  32,
+                  0,
+                  3
+                ],
+                [
+                  3,
+                  48,
+                  20
+                ],
+                [
+                  10,
+                  3,
+                  81
+                ]
+              ],
+              "order": [
+                "entailment",
+                "contradiction",
+                "neutral"
+              ],
+              "rows": "label"
+            },
+            "hits": 161,
+            "rows": 200
+          },
+          "JNLI:noul": {
+            "accuracy": 0.925,
+            "auroc": 0.9842424242424243,
+            "brier_hard": 0.0541443979478089,
+            "hits": 185,
+            "positives": 35,
+            "rows": 200
+          },
+          "JSTS": {
+            "expected_mean": 2.1195679601977058,
+            "label_mean": 2.381,
+            "mae": 0.5777582703244878,
+            "pearson": 0.8474499596957539,
+            "rows": 200,
+            "spearman": 0.7795918174740293
+          }
+        }
+      }
+    },
+    "adopted": {
+      "1m": {
+        "en": {
+          "JCommonsenseQA": {
+            "accuracy": 0.97,
+            "hits": 194,
+            "rows": 200
+          },
+          "JNLI": {
+            "accuracy": 0.87,
+            "confusion": {
+              "columns": "prediction",
+              "matrix": [
+                [
+                  32,
+                  0,
+                  3
+                ],
+                [
+                  3,
+                  59,
+                  9
+                ],
+                [
+                  7,
+                  4,
+                  83
+                ]
+              ],
+              "order": [
+                "entailment",
+                "contradiction",
+                "neutral"
+              ],
+              "rows": "label"
+            },
+            "hits": 174,
+            "rows": 200
+          },
+          "JNLI:noul": {
+            "accuracy": 0.92,
+            "auroc": 0.9800865800865801,
+            "brier_hard": 0.053128731348545476,
+            "hits": 184,
+            "positives": 35,
+            "rows": 200
+          },
+          "JSTS": {
+            "expected_mean": 2.2598225877565583,
+            "label_mean": 2.381,
+            "mae": 0.5418303280635073,
+            "pearson": 0.855490474390161,
+            "rows": 200,
+            "spearman": 0.7857340400944837
+          }
+        },
+        "ja": {
+          "JCommonsenseQA": {
+            "accuracy": 0.96,
+            "hits": 192,
+            "rows": 200
+          },
+          "JNLI": {
+            "accuracy": 0.82,
+            "confusion": {
+              "columns": "prediction",
+              "matrix": [
+                [
+                  33,
+                  0,
+                  2
+                ],
+                [
+                  3,
+                  48,
+                  20
+                ],
+                [
+                  8,
+                  3,
+                  83
+                ]
+              ],
+              "order": [
+                "entailment",
+                "contradiction",
+                "neutral"
+              ],
+              "rows": "label"
+            },
+            "hits": 164,
+            "rows": 200
+          },
+          "JNLI:noul": {
+            "accuracy": 0.935,
+            "auroc": 0.9856277056277056,
+            "brier_hard": 0.04993008228761979,
+            "hits": 187,
+            "positives": 35,
+            "rows": 200
+          },
+          "JSTS": {
+            "expected_mean": 2.1017400219984923,
+            "label_mean": 2.381,
+            "mae": 0.5823592650082253,
+            "pearson": 0.8502107396369496,
+            "rows": 200,
+            "spearman": 0.7821545213937343
+          }
+        }
+      },
+      "3": {
+        "en": {
+          "JCommonsenseQA": {
+            "accuracy": 0.96,
+            "hits": 192,
+            "rows": 200
+          },
+          "JNLI": {
+            "accuracy": 0.855,
+            "confusion": {
+              "columns": "prediction",
+              "matrix": [
+                [
+                  32,
+                  0,
+                  3
+                ],
+                [
+                  3,
+                  60,
+                  8
+                ],
+                [
+                  11,
+                  4,
+                  79
+                ]
+              ],
+              "order": [
+                "entailment",
+                "contradiction",
+                "neutral"
+              ],
+              "rows": "label"
+            },
+            "hits": 171,
+            "rows": 200
+          },
+          "JNLI:noul": {
+            "accuracy": 0.92,
+            "auroc": 0.9776623376623377,
+            "brier_hard": 0.05882975273769281,
+            "hits": 184,
+            "positives": 35,
+            "rows": 200
+          },
+          "JSTS": {
+            "expected_mean": 2.2878917593244568,
+            "label_mean": 2.381,
+            "mae": 0.5293357213219614,
+            "pearson": 0.8589896652466459,
+            "rows": 200,
+            "spearman": 0.7922445104922563
+          }
+        },
+        "ja": {
+          "JCommonsenseQA": {
+            "accuracy": 0.96,
+            "hits": 192,
+            "rows": 200
+          },
+          "JNLI": {
+            "accuracy": 0.805,
+            "confusion": {
+              "columns": "prediction",
+              "matrix": [
+                [
+                  32,
+                  0,
+                  3
+                ],
+                [
+                  3,
+                  48,
+                  20
+                ],
+                [
+                  10,
+                  3,
+                  81
+                ]
+              ],
+              "order": [
+                "entailment",
+                "contradiction",
+                "neutral"
+              ],
+              "rows": "label"
+            },
+            "hits": 161,
+            "rows": 200
+          },
+          "JNLI:noul": {
+            "accuracy": 0.925,
+            "auroc": 0.9842424242424243,
+            "brier_hard": 0.05418075994267622,
+            "hits": 185,
+            "positives": 35,
+            "rows": 200
+          },
+          "JSTS": {
+            "expected_mean": 2.1189005179221776,
+            "label_mean": 2.381,
+            "mae": 0.5784155744212617,
+            "pearson": 0.8474755493757029,
+            "rows": 200,
+            "spearman": 0.779745880319642
+          }
+        }
+      }
+    }
+  },
+  "temperatures": {
+    "1": {
+      "choice": 1.0,
+      "noul": 1.0,
+      "score": 1.0
+    },
+    "adopted": {
+      "choice": 1.0053791,
+      "noul": 1.0056266,
+      "score": 1.010558
+    }
+  },
+  "timing": {
+    "stage3": {
+      "median_s": 0.4359825625,
+      "rows": 2200,
+      "total_s": 952.9782864890001
+    },
+    "stage_1m": {
+      "forward1m_s": 975.8,
+      "load_s": 9.4,
+      "rows_s": 2.4,
+      "total_s": 987.7
+    }
+  },
+  "wrappers": {
+    "file": "Tools/Conversion/recipes/jev27b/wrappers.json",
+    "sha256": "b57d88528d27eb4999d49c99f5723f92e909eaab71e299b4d24ec32dc379148e"
+  }
+}
