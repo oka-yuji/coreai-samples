@@ -1,9 +1,15 @@
 import copy
 import importlib.util
+from pathlib import Path
 import unittest
 
 from Tools.Conversion.adapters.jev27b.decision import HASH_SCHEMA, compare_hashes
 from Tools.Conversion.adapters.jev27b.export_variant import ir_counts, verdict
+from Tools.Conversion.recipe import load_recipe
+
+ROOT = Path(__file__).resolve().parents[3]
+BINDINGS = {name: "/unused" for name in ("base", "corpus", "hf_cache", "jglue", "python", "runner", "setup_record",
+                                         "snapshot", "upstream", "verify")}
 
 CONVERTER = importlib.util.find_spec("coreai_models") is not None
 F32, BF16 = "tensor<1x4x?x8xf32>", "tensor<1x4x?x8xbf16>"
@@ -55,6 +61,19 @@ class VariantCheckTests(unittest.TestCase):
                                                                    (48, 48, 48, 48, True, 1)):
             ir = {"gated_delta_update_sites": sites, "gated_delta_update_float32_sites": float32}
             self.assertFalse(verdict(hashes, wrapped, layers, ir, inspected, aborts)["passed"])
+
+    def test_the_recipe_exports_the_variant_after_the_export_and_runs_typed_decide_on_it(self):
+        recipe = load_recipe(ROOT / "Tools/Conversion/recipes/jev27b/recipe.json", BINDINGS, ROOT)
+        steps = {step["id"]: step for step in recipe["steps"]}
+        ids = list(steps)
+        variant, decide = steps["export_gdnfp32"], steps["typed_decide_f"]
+        self.assertEqual(ids[ids.index("export") + 1], "export_gdnfp32")
+        self.assertEqual(variant["depends"], ["export", "merge", "prepare"])
+        self.assertIn("$export", variant["command"])
+        self.assertTrue(set(steps["export"]["inputs"]) < set(variant["inputs"]))
+        self.assertEqual(recipe["variables"]["bundle_gdnfp32"], variant["outputs"][0])
+        self.assertEqual(decide["depends"], ["export_gdnfp32", "typed_input"])
+        self.assertIn("$export_gdnfp32/$bundle_gdnfp32", decide["command"])
 
 
 @unittest.skipUnless(CONVERTER, "The JEV-27B converter environment is required")
