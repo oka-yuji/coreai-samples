@@ -1,0 +1,101 @@
+{
+  "version": 1,
+  "name": "jev27b_typed_decision",
+  "description": "Pinned JEV-27B System 1 inputs, reference and converter environments, and fixed evaluation sets.",
+  "variables": {
+    "adapters": "$repo/Tools/Conversion/adapters/jev27b",
+    "fixtures": "$recipe_dir/fixtures"
+  },
+  "python": "$python",
+  "environment": {
+    "HF_HOME": "$hf_cache",
+    "HF_HUB_CACHE": "$hf_cache/hub",
+    "HF_HUB_OFFLINE": "1",
+    "HF_HUB_DISABLE_TELEMETRY": "1",
+    "TRANSFORMERS_OFFLINE": "1",
+    "TOKENIZERS_PARALLELISM": "false"
+  },
+  "steps": [
+    {
+      "id": "prepare",
+      "role": "prepare",
+      "command": [
+        "$python", "-m", "Tools.Conversion.adapters.jev27b.prepare",
+        "--model", "$recipe_dir/model.json",
+        "--snapshot", "$snapshot",
+        "--base", "$base",
+        "--upstream", "$upstream",
+        "--runner", "$runner",
+        "--setup", "$setup_record",
+        "--output", "$out"
+      ],
+      "cwd": "$repo",
+      "inputs": [
+        "$adapters/prepare.py",
+        "$adapters/typed_head.py",
+        "$repo/Tools/Conversion/adapters/pinned.py",
+        "$repo/Tools/Conversion/storage.py",
+        "$recipe_dir/model.json",
+        "$recipe_dir/pyproject.toml",
+        "$recipe_dir/uv.lock",
+        "$setup_record",
+        "${snapshot}.integrity.json",
+        "$snapshot/config.json",
+        "$snapshot/model.safetensors.index.json",
+        "$snapshot/adapter/adapter_config.json",
+        "$snapshot/adapter/adapter_model.safetensors",
+        "$snapshot/judge_config.json",
+        "$snapshot/calibration.json",
+        "$snapshot/head.safetensors",
+        "$snapshot/tokenizer.json",
+        "$snapshot/tokenizer_config.json",
+        "$snapshot/chat_template.jinja",
+        "${base}.integrity.json",
+        "$base/tokenizer.json",
+        "$base/tokenizer_config.json",
+        "$base/chat_template.jinja",
+        "$runner"
+      ],
+      "outputs": ["ready.json"],
+      "checks": [{"file": "ready.json", "key": ["ready"], "equals": true}],
+      "cache": false,
+      "timeout_s": 600
+    },
+    {
+      "id": "fixture",
+      "role": "verify",
+      "depends": ["prepare"],
+      "command": [
+        "$python", "-m", "Tools.Conversion.adapters.jev27b.fixtures",
+        "--model", "$recipe_dir/model.json",
+        "--snapshot", "$snapshot",
+        "--corpus", "$corpus",
+        "--jglue", "$jglue",
+        "--fixtures", "$fixtures",
+        "--output", "$out",
+        "--check"
+      ],
+      "cwd": "$repo",
+      "inputs": [
+        "$adapters/fixtures.py",
+        "$adapters/prepare.py",
+        "$adapters/typed_head.py",
+        "$repo/Tools/Conversion/adapters/pinned.py",
+        "$repo/Tools/Conversion/storage.py",
+        "$recipe_dir/model.json",
+        "$fixtures",
+        "${corpus}.integrity.json",
+        "$corpus",
+        "${jglue}.integrity.json",
+        "$jglue",
+        "$snapshot/config.json",
+        "$snapshot/tokenizer.json",
+        "$snapshot/tokenizer_config.json",
+        "$snapshot/chat_template.jinja"
+      ],
+      "outputs": ["F.json", "Q.json", "Cal.json", "H.json", "J.json", "check.json"],
+      "checks": [{"file": "check.json", "key": ["passed"], "equals": true}],
+      "timeout_s": 1800
+    }
+  ]
+}

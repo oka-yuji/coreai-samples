@@ -1,0 +1,42 @@
+{
+  "files": {
+    "JCommonsenseQA": {
+      "bytes": 235633,
+      "git_blob_sha1": "1099679e5bc9a4d70f9ae6a6e7b41dca84897f99",
+      "path": "datasets/jcommonsenseqa-v1.2/valid-v1.2.json",
+      "sha256": "0d8d76f3bfa0d174866939882faccdd01fbc2bcd5a76c43748ba0c40a7b3b8d4"
+    },
+    "JNLI": {
+      "bytes": 632446,
+      "git_blob_sha1": "bd1cf766540d75fb189a87a9a7c8e1a31e1565e0",
+      "path": "datasets/jnli-v1.2/valid-v1.2.json",
+      "sha256": "ca0353efc7c2eebfb6de4e13f16295053c8b1ee65e7b0849190c90426fbc495f"
+    },
+    "JSTS": {
+      "bytes": 372253,
+      "git_blob_sha1": "8374a83973edc34788ecf0b3d52ae73048f518fe",
+      "path": "datasets/jsts-v1.2/valid-v1.2.json",
+      "sha256": "7c0bdcb381179f01096c635d058853d96da1e1248d23fe3f5c2beed5dc2d9b1a"
+    }
+  },
+  "jnli_labels": [
+    "entailment",
+    "contradiction",
+    "neutral"
+  ],
+  "jnli_options": [
+    "含意",
+    "矛盾",
+    "中立"
+  ],
+  "license": "CC BY-SA 4.0",
+  "loader": {
+    "file": "JGLUE.py",
+    "git_blob_sha1": "195ff0a028f10450430375973ba2eddbfc105bde",
+    "repository": "shunk031/JGLUE",
+    "revision": "41cc99f1c01d41b1ab13435ae97b7076c2199f4c"
+  },
+  "repository": "yahoojapan/JGLUE",
+  "revision": "c96c6af54200a404f31a3a4cd0b289786aa78809",
+  "tag": "v1.2.0"
+}
