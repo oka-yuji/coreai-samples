@@ -41,10 +41,10 @@ class FitTests(unittest.TestCase):
 
     def test_reaching_an_end_of_the_beta_range_is_recorded_without_widening_it(self):
         lower = fit(rows(8.0, count=60, kinds=("noul",)))
-        self.assertEqual((lower["bound"], lower["bracket"][0]), ("lower", LOW))
+        self.assertEqual((lower["bound"], lower["bracket"][0]), ("T 4 (beta 0.25)", LOW))
         self.assertAlmostEqual(lower["temperature"], 1 / LOW, places=5)
         upper = fit(rows(0.1, count=60, kinds=("score",)))
-        self.assertEqual((upper["bound"], upper["bracket"][1]), ("upper", HIGH))
+        self.assertEqual((upper["bound"], upper["bracket"][1]), ("T 0.25 (beta 4)", HIGH))
         self.assertAlmostEqual(upper["temperature"], 1 / HIGH, places=5)
 
     def test_temperatures_are_rounded_to_float32_and_written_as_the_shortest_decimal(self):

@@ -60,7 +60,8 @@ def fit(rows, low=LOW, high=HIGH, step=STEP):
             at_right = objective(rows, right)
     beta = (first + last) / 2
     return {"rows": len(rows), "beta": beta, "temperature": 1 / beta, "bracket": [first, last], "iterations": iterations,
-            "bound": "lower" if first == low else "upper" if last == high else None,
+            "bound": f"T {1 / low:g} (beta {low:g})" if first == low else f"T {1 / high:g} (beta {high:g})"
+            if last == high else None,
             "cross_entropy": objective(rows, beta), "cross_entropy_t1": objective(rows, 1.0)}
 
 
@@ -189,7 +190,7 @@ def report(result):
               "- These numbers measure agreement with the teacher distribution, not calibration against real-world "
               "correctness. ECE intervals are conditional on the chosen temperature and leave out the uncertainty of "
               "the fit and of the selection.", "",
-              "| Kind | Card T | Candidate T | Bound reached | Cal CE (T = 1 / card / candidate) | Adopted T | Adopted | "
+              "| Kind | Card T | Candidate T | End of the range reached | Cal CE (T = 1 / card / candidate) | Adopted T | Adopted | "
               "Reason |", "|---|---:|---:|---|---|---:|---|---|"]
     cal = refit["statistics"]["Cal"]
     for kind, item in refit["kinds"].items():
@@ -214,7 +215,7 @@ def report(result):
               f"- `{bundle['name']}`: `decision.json` SHA-256 `{bundle['decision_sha256']}`, temperatures "
               f"{bundle['temperatures']}. `{REFIT}` is listed in `files` and in `SHA256SUMS`.",
               f"- Fidelity of F re-evaluated from the saved logits at the adopted temperatures: passed "
-              f"{str(comparison['passed']).lower()}; shipping temperature maximum {comparison['maximum']:.6f}, mean "
+              f"{str(comparison['passed']).lower()}; at the adopted temperatures, maximum {comparison['maximum']:.6f}, mean "
               f"{comparison['mean']:.6f}, top-1 changes {comparison['top_changes']}.",
               f"- Stage 3 time: Cal {result['timing']['Cal']}, H {result['timing']['H']}."]
     return "\n".join(lines) + "\n"
