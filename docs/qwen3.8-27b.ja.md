@@ -83,7 +83,7 @@ hf download okayuji/Qwen3.8-27B-coreai-4bit --revision 8e24aebe036eae577d4a3bd01
   --local-dir ./models/qwen3.8-27b-coreai-4bit
 ```
 
-`CoreAISamples.xcodeproj` を開き、**CoreAISamples** スキームと **My Mac** を選んで実行します(このスキームは Release でビルドします)。サイドバーの **管理**(Manage)の節の **モデルの取得・読込・準備**(Get, open and prepare model bundles)の行で **モデル管理**(Models)を開き、**フォルダを開く…**(Open Folder…)を選び、`models/qwen3.8-27b-coreai-4bit` を選んで **読み込む**(Load)を押します。初回の読み込みは M4 Max で 86.87 秒かかり、そのうち 82.84 秒が GPU 向けの準備でした。2 回目以降は 3.6〜10.3 秒でした。会話のタイトルにはモデル名を表示します。**チャット**(Chat)モードで話しかけるか、**ワーク**(Work)モードでタスクやメモ保存を行います。Webで調べるときは会話設定の「検索・資料を使う」と「Web」をONにします。**モデル管理**のダウンロードは、同じ固定revisionを匿名の経路で取得します。配布先は2026-11-04から公開しています。画面の表示は右上の **EN / JP** で切り替えられます。
+`CoreAISamples.xcodeproj` を開き、**CoreAISamples** スキームと **My Mac** を選んで実行します(このスキームは Release でビルドします)。サイドバーの **管理**(Manage)の節の **モデルの取得・読込・準備**(Get, open and prepare model bundles)の行で **モデル管理**(Models)を開き、**フォルダを開く…**(Open Folder…)を選び、`models/qwen3.8-27b-coreai-4bit` を選んで **読み込む**(Load)を押します。初回の読み込みは M4 Max で 86.87 秒かかり、そのうち 82.84 秒が GPU 向けの準備でした。2 回目以降は 3.6〜10.3 秒でした。会話のタイトルにはモデル名を表示します。**チャット**(Chat)モードで話しかけるか、**ワーク**(Work)モードでタスクやメモ保存を行います。Webで調べるときは会話設定の「検索・資料を使う」と「Web」をONにします。**モデル管理**には、同じ固定revisionを匿名の経路で取得する機能があります。配布先は2026-11-04から公開しています。画面の表示は右上の **EN / JP** で切り替えられます。
 
 コマンドラインでは、`CoreAISamplesKit` フォルダで次を実行します。
 

@@ -73,6 +73,7 @@ Both repositories passed the model-release information audit (scanner `63501ba4`
 | Qwen3.8 27B | local | 2026-11-03 15:41 | 12 files, 16,852,544,376 bytes (the `main` payload) | passed |
 | Qwen3.8 27B | hub, authenticated, while private | 2026-11-04 00:45 | 2 refs (`main`, `v1.0.0`), 5 commits, 16 unique objects | passed |
 | Qwen3.8 27B | gate | 2026-11-04 01:21 | 2 refs; `main` manifest equal to the local payload | passed |
+| Qwen3.8 27B | hub, anonymous, after publication | 2026-11-04 05:17 | 2 refs (`main`, `v1.0.0`), 5 commits, 16 unique objects; `main` manifest equal to the check before publication | passed |
 | Clef-Flash 9B | local | 2026-11-04 00:20 | 25 files, 7,278,592,396 bytes | passed |
 | Clef-Flash 9B | hub, authenticated, while private | 2026-11-04 00:35 | 1 ref (`main`), 18 commits, 30 unique objects | passed |
 | Clef-Flash 9B | gate | 2026-11-04 00:51 | 1 ref; `main` manifest equal to the local payload | passed |
