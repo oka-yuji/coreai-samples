@@ -51,7 +51,7 @@ class RecipeTests(unittest.TestCase):
         self.assertEqual(ids[ids.index("verify_quantization") + 1:],
                          ["typed_input", "typed_decide_f", "compare_f", "reference_q", "reference_merged_q",
                           "typed_input_eval", "typed_decide_q", "typed_decide_cal", "typed_decide_h", "score_q",
-                          "verify_merge"])
+                          "calibrate", "verify_merge"])
         decide = steps[ids.index("typed_decide_f")]
         self.assertEqual((decide["command"][:2], decide["heavy"]), (["$verify", "typed-decide"], True))
 
