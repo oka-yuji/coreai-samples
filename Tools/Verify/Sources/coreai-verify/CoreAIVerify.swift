@@ -604,6 +604,7 @@ struct Memory: Encodable {
     let unit = "B"
     var rssBytes: UInt64?
     var footprintBytes: UInt64?
+    var footprintPeakBytes: UInt64?
     var graphicsFootprintBytes: UInt64?
 
     static func now() -> Memory {
@@ -617,6 +618,7 @@ struct Memory: Encodable {
         guard result == KERN_SUCCESS else { return failed(code: result) }
         return Memory(
             rssBytes: info.resident_size, footprintBytes: info.phys_footprint,
+            footprintPeakBytes: UInt64(max(0, info.ledger_phys_footprint_peak)),
             graphicsFootprintBytes: UInt64(max(0, info.ledger_tag_graphics_footprint))
                 + UInt64(max(0, info.ledger_tag_graphics_footprint_compressed)))
     }
