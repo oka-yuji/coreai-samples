@@ -208,3 +208,41 @@ bytes in total, `decision.json` SHA-256 `a2b186a87a64d9e93a56f185a5ebc2a0613d00d
 after plan revision 3 was frozen, with the working tree that was committed as e879c67 at 07:13 (`bundle` in
 `performance.json`). `shasum -a 256 -c SHA256SUMS` and `decision.py --check-files` pass on it (run again at 08:29 on
 2026-11-04; the log stays with the local outputs).
+
+## Memory stability (2026-11-05)
+
+The published artifact is unchanged. [The memory record](memory-stability-20261105.json) compares the normal Release
+CLI before and after the runtime change, then checks three longer workloads on a MacBook Pro (14-inch, 2024),
+Apple M4 Max, 128 GiB (Mac16,6), macOS 27.0. The adapter reports 68 W on AC. Every row starts at a nominal
+ProcessInfo thermal state; CPU builds and tests were allowed during these stability runs. These are separate
+from the controlled latency comparison. Input text and raw corpus identifiers are not included.
+
+| Workload | Warmup / measured calls | Kernel footprint peak | Peak RSS, including load | Added system swap | Output comparison |
+|---|---:|---:|---:|---:|---|
+| 100/500/2000/8192 tokens alternating | 4 / 100 | 8,393,766,472 B | 32,646,430,720 B | 0 B | Every logit and both probability arrays bit-identical |
+| Same 8192-token input | 1 / 100 | 6,827,587,384 B | 32,336,232,448 B | 0 B | Bit-identical |
+| 6144/8192 tokens alternating | 2 / 20 | 9,169,450,928 B | 32,669,925,376 B | 0 B | Bit-identical |
+
+The first two cases require a kernel peak below 12 GiB and a first-five versus last-five median increase
+of at most 512 MiB for each same-length series. The largest increase was 127,090,760 B in the mixed case
+and 34,078,792 B in the same-length case. The nearby-length case has a separate 24 GiB peak limit; its
+median changes are recorded without applying the 512 MiB gate. All cases require swap growth below 128 MiB.
+RSS and footprint are different counters and are not added. A sampled peak is not substituted for the kernel counter.
+
+The normal CLI's original 16 alternating calls reached a kernel footprint peak of 21,396,977,368 B.
+The corresponding 16-call smoke with runtime recycling reached 8,137,602,608 B with identical outputs.
+Holding AIModel and recreating only InferenceFunction was rejected: it completed three rows before
+the stop guard triggered, and its kernel peak reached 50,319,340,624 B. A polling stop trigger is not a strict
+maximum-memory bound. The specific allocation site inside Core AI remains unidentified.
+
+The runtime permits three shape changes and releases both model and function before the fourth; an unchanged
+shape stays loaded. A bookmark keeps the identity of the specialization without retaining the model.
+If the cache entry is absent, the original bundle version and all file hashes are revalidated before reloading.
+A successful reload updates the bookmark. Failure or cancellation discards the runtime, and busy remains set
+until the running operation finishes. The private direct-runtime diagnostic found about 3.7 seconds per reload;
+its timings are not the final before/after benchmark. The earlier 94 W latency measurements remain historical evidence.
+
+Six serialized GPU tests passed in Release with testability enabled. The added session test waits for an
+uncooperative 1472-token forward to finish, reports cancellation, reloads once and returns a bit-identical next
+answer. CPU tests separately cover busy, failed reloads, stale bookmarks and modified bundles. The GPU suite
+is diagnostic evidence without a separate benchmark plan, so its record remains legacy rather than a latency claim.
