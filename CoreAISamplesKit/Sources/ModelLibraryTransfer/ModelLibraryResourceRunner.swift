@@ -132,6 +132,18 @@ public final class ModelLibraryResourceRunner {
     private func inspect(_ model: LibraryModel, _ artifact: ModelArtifact) async throws -> ValidatedModelResource? {
         switch try await store.inspect(model: model, artifact: artifact) {
         case .ready(let resource):
+            let candidates = migrationCandidates()
+            if !candidates.isEmpty {
+                do {
+                    try await store.resumeMigration(candidates: candidates, model: model, artifact: artifact)
+                } catch is CancellationError {
+                    throw CancellationError()
+                } catch {
+                    logger.error(
+                        "Migration cleanup remains pending for \(artifact.id, privacy: .public): \(String(describing: error))"
+                    )
+                }
+            }
             return resource
         case .invalid(let error):
             logger.error("Inspection rejected \(artifact.id, privacy: .public): \(String(describing: error))")
@@ -142,7 +154,16 @@ public final class ModelLibraryResourceRunner {
             guard !candidates.isEmpty else { return nil }
             let outcomes = await store.migrate(candidates: candidates, model: model, artifact: artifact).outcomes
             for case .migrated(let resource)? in candidates.map({ outcomes[$0] }) { return resource }
-            for case .failed(let error)? in candidates.map({ outcomes[$0] }) { throw error }
+            for case .failed(let error)? in candidates.map({ outcomes[$0] }) {
+                if error is CancellationError { throw error }
+                if case .ready(let resource) = try await store.inspect(model: model, artifact: artifact) {
+                    logger.error(
+                        "Migration cleanup remains pending for \(artifact.id, privacy: .public): \(String(describing: error))"
+                    )
+                    return resource
+                }
+                throw error
+            }
             return nil
         }
     }

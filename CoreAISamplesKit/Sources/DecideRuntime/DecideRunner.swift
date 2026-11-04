@@ -9,6 +9,11 @@ public protocol DecideService {
     func decide(_ input: DecideInput, reuse: Bool) async throws -> DecideOutput
     func read(_ url: URL) async throws -> String
     func waitForIdle() async
+    func releaseModelResources() async
+}
+
+extension DecideService {
+    public func releaseModelResources() async { await waitForIdle() }
 }
 
 @MainActor
@@ -40,6 +45,9 @@ public final class DecideRunner {
             do {
                 send(.completed(session, revision, try await service.decide(input, reuse: reuse)))
             } catch is CancellationError {} catch { send(.failed(session, error.localizedDescription)) }
+        case .release(let id):
+            await service.releaseModelResources()
+            send(.released(id))
         case .waitForIdle(let session):
             await service.waitForIdle()
             send(.stopped(session))

@@ -1,0 +1,24 @@
+{
+  "template": "bare-v1",
+  "rows": [
+    {"error": "invalidOptions", "id": "reject:choice-17", "kind": "choice", "options": ["option 1", "option 2", "option 3", "option 4", "option 5", "option 6", "option 7", "option 8", "option 9", "option 10", "option 11", "option 12", "option 13", "option 14", "option 15", "option 16", "option 17"], "question": "A question?", "state": "A state."},
+    {"error": "invalidOptions", "id": "reject:choice-1", "kind": "choice", "options": ["only"], "question": "A question?", "state": "A state."},
+    {"error": "invalidOptions", "id": "reject:choice-0", "kind": "choice", "options": [], "question": "A question?", "state": "A state."},
+    {"error": "invalidOptions", "id": "reject:duplicate", "kind": "choice", "options": ["same", "other", "same"], "question": "A question?", "state": "A state."},
+    {"error": "invalidOptions", "id": "reject:line-break-u000a", "kind": "choice", "options": ["before\nafter", "plain"], "question": "A question?", "state": "A state."},
+    {"error": "invalidOptions", "id": "reject:line-break-u000d", "kind": "choice", "options": ["before\rafter", "plain"], "question": "A question?", "state": "A state."},
+    {"error": "invalidOptions", "id": "reject:line-break-u000b", "kind": "choice", "options": ["before\u000bafter", "plain"], "question": "A question?", "state": "A state."},
+    {"error": "invalidOptions", "id": "reject:line-break-u000c", "kind": "choice", "options": ["before\fafter", "plain"], "question": "A question?", "state": "A state."},
+    {"error": "invalidOptions", "id": "reject:line-break-u001c", "kind": "choice", "options": ["before\u001cafter", "plain"], "question": "A question?", "state": "A state."},
+    {"error": "invalidOptions", "id": "reject:line-break-u001d", "kind": "choice", "options": ["before\u001dafter", "plain"], "question": "A question?", "state": "A state."},
+    {"error": "invalidOptions", "id": "reject:line-break-u001e", "kind": "choice", "options": ["before\u001eafter", "plain"], "question": "A question?", "state": "A state."},
+    {"error": "invalidOptions", "id": "reject:line-break-u0085", "kind": "choice", "options": ["before\u0085after", "plain"], "question": "A question?", "state": "A state."},
+    {"error": "invalidOptions", "id": "reject:line-break-u2028", "kind": "choice", "options": ["before\u2028after", "plain"], "question": "A question?", "state": "A state."},
+    {"error": "invalidOptions", "id": "reject:line-break-u2029", "kind": "choice", "options": ["before\u2029after", "plain"], "question": "A question?", "state": "A state."},
+    {"error": "invalidOptions", "id": "reject:line-break-crlf", "kind": "choice", "options": ["before\r\nafter", "plain"], "question": "A question?", "state": "A state."},
+    {"error": "invalidOptions", "id": "reject:noul-reversed", "kind": "noul", "options": ["true", "false"], "question": "A question?", "state": "A state."},
+    {"error": "invalidOptions", "id": "reject:noul-case", "kind": "noul", "options": ["False", "True"], "question": "A question?", "state": "A state."},
+    {"error": "invalidOptions", "id": "reject:score-five", "kind": "score", "options": ["0", "1", "2", "3", "4"], "question": "A question?", "state": "A state."},
+    {"error": "invalidOptions", "id": "reject:score-order", "kind": "score", "options": ["0", "1", "2", "3", "5", "4"], "question": "A question?", "state": "A state."}
+  ]
+}

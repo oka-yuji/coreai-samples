@@ -1,0 +1,540 @@
+{
+  "id": "jev27b",
+  "kind": "decision",
+  "name": {
+    "en": "JEV-27B · uint4 + fp32 head, text",
+    "ja": "JEV-27B · uint4＋fp32ヘッド、テキスト"
+  },
+  "use": {
+    "en": "Typed decisions (CLI)",
+    "ja": "型付き判断(CLI)"
+  },
+  "overview": {
+    "en": "Typed decisions · macOS CLI",
+    "ja": "型付き判断 · macOS CLI"
+  },
+  "release": "in_progress",
+  "release_note": {
+    "en": "bundle not distributed; publication is decided in #450",
+    "ja": "バンドル非公開。公開は #450 で判断"
+  },
+  "download": null,
+  "pages": {
+    "en": "docs/jev27b.md",
+    "ja": "docs/jev27b.ja.md"
+  },
+  "links": [
+    {
+      "title": {
+        "en": "Conversion recipe",
+        "ja": "変換レシピ"
+      },
+      "url": "Tools/Conversion/recipes/jev27b/README.md"
+    },
+    {
+      "title": {
+        "en": "Validation records",
+        "ja": "検証の記録"
+      },
+      "url": "docs/validation/jev27b/README.md"
+    },
+    {
+      "title": {
+        "en": "Japanese (JGLUE), no pass line",
+        "ja": "日本語(JGLUE)、合格線なし"
+      },
+      "url": "docs/jev27b.md#japanese-jglue"
+    }
+  ],
+  "support": {
+    "macos": {
+      "state": "unavailable",
+      "variants": [],
+      "evidence": [],
+      "note": {
+        "en": "Only the coreai-verify command line tool runs the bundle; app integration is #449.",
+        "ja": "bundle は coreai-verify のコマンドラインでだけ動く。アプリへの組み込みは #449。"
+      }
+    },
+    "ios": {
+      "state": "unavailable",
+      "variants": [],
+      "evidence": [],
+      "note": {
+        "en": "Native demo is not provided for this platform.",
+        "ja": "このOSのネイティブデモは未提供です。"
+      }
+    }
+  },
+  "evidence": {
+    "fidelity": {
+      "url": "docs/validation/jev27b/README.md#fidelity",
+      "level": "diagnostic",
+      "outcome": "passed",
+      "record_type": "legacy",
+      "date": "2026-11-03",
+      "platform": "macos",
+      "device": "Mac16,6 (Apple M4 Max), 128 GiB RAM",
+      "os": "macOS 27.0 (26A428)",
+      "toolchain": "Xcode 27.0 (27A266a), Apple Swift 6.4 (swiftlang-6.4.0.34.1)",
+      "variant": "uint4 backbone (gdn-fp32) / float32 head",
+      "backend": "Core AI; GPU preferred; expectFrequentReshapes true",
+      "route": "coreai-verify typed-decide (recipe step typed_decide_f) and the PyTorch reference stage 2",
+      "source_revision": "14b425269ed24452e0a5ad5a8f3e51d139647a88",
+      "artifact_revision": "26a11dca07a265feca4970dccdf2ebabaa005730132035e9df37b207cd26051e",
+      "code_revision": "c626c9a27f448961cc9d84addba31ce74573e183",
+      "workload": {
+        "en": "F: 302 rows (301 forwarded, one above 8,192 tokens rejected) at temperature 1 against the float32 PyTorch run of the same quantized weights, per input band.",
+        "ja": "F の 302 行(301 行を流し、8,192 トークン超の 1 行は拒否)を温度 1 で、同じ量子化後の重みの PyTorch float32 と入力の帯ごとに比較。"
+      },
+      "batch_size": 1,
+      "concurrency": 1,
+      "warmups": null,
+      "power": null,
+      "thermal": null,
+      "model_executed": true,
+      "plan_sha256": null
+    },
+    "quality": {
+      "url": "docs/validation/jev27b/README.md#quality",
+      "level": "diagnostic",
+      "outcome": "passed",
+      "record_type": "legacy",
+      "date": "2026-11-04",
+      "platform": "macos",
+      "device": "Mac16,6 (Apple M4 Max), 128 GiB RAM",
+      "os": "macOS 27.0 (26A428)",
+      "toolchain": "Xcode 27.0 (27A266a), Apple Swift 6.4 (swiftlang-6.4.0.34.1)",
+      "variant": "uint4 backbone (gdn-fp32) / float32 head",
+      "backend": "Core AI; GPU preferred; expectFrequentReshapes true",
+      "route": "coreai-verify typed-decide for stage 3 (recipe steps typed_decide_q / cal / h) and the PyTorch reference stages 0, 0q, 1' and 2",
+      "source_revision": "14b425269ed24452e0a5ad5a8f3e51d139647a88",
+      "artifact_revision": "26a11dca07a265feca4970dccdf2ebabaa005730132035e9df37b207cd26051e",
+      "code_revision": "31071af7acef18f77362609bb548233b61ad624a",
+      "workload": {
+        "en": "Q (900 rows), Cal (3,000) and H (1,500) against the teacher distribution; quantization and adaptation conditions fixed before measuring; temperatures refitted on Cal and selected on H'. Agreement with the teacher, not real-world correctness. Results of 2026-11-03 (stages 0q and 2) to 2026-11-04 (the other stages, the scoring and the calibration).",
+        "ja": "Q(900 行)・Cal(3,000)・H(1,500)を教師分布と比較。量子化と適応の条件は計測前に固定。温度は Cal で再フィットし H′ で採否。教師への一致で、現実の正しさではない。結果は 2026-11-03(段 0q と 2)から 2026-11-04(ほかの段、採点、校正)。"
+      },
+      "batch_size": 1,
+      "concurrency": 1,
+      "warmups": null,
+      "power": null,
+      "thermal": null,
+      "model_executed": true,
+      "plan_sha256": null
+    },
+    "japanese": {
+      "url": "docs/validation/jev27b/README.md#japanese",
+      "level": "diagnostic",
+      "outcome": "passed",
+      "record_type": "legacy",
+      "date": "2026-11-04",
+      "platform": "macos",
+      "device": "Mac16,6 (Apple M4 Max), 128 GiB RAM",
+      "os": "macOS 27.0 (26A428)",
+      "toolchain": "Xcode 27.0 (27A266a), Apple Swift 6.4 (swiftlang-6.4.0.34.1)",
+      "variant": "uint4 backbone (gdn-fp32) / float32 head",
+      "backend": "Core AI; GPU preferred; expectFrequentReshapes true",
+      "route": "coreai-verify typed-decide and PyTorch MPS bf16 (recipe steps typed_decide_j / reference_j)",
+      "source_revision": "14b425269ed24452e0a5ad5a8f3e51d139647a88",
+      "artifact_revision": "a2b186a87a64d9e93a56f185a5ebc2a0613d00da7440eeb8c8c2229b64f6adf3",
+      "code_revision": "b64eae58e9b4a8954b6b9270a109e6edd6bd22c8",
+      "workload": {
+        "en": "JGLUE J (200 rows per task, two prompt variants, stages 1' and 3). Measurement completed; no pass line, so passed means completed, not a criterion met.",
+        "ja": "JGLUE の J(各 task 200 行、prompt の 2 変種、段 1′ と 3)。測定は完了。合格線は無く、passed は完了を表し基準を満たしたことではない。"
+      },
+      "batch_size": 1,
+      "concurrency": 1,
+      "warmups": null,
+      "power": null,
+      "thermal": null,
+      "model_executed": true,
+      "plan_sha256": null
+    },
+    "performance": {
+      "url": "docs/validation/jev27b/README.md#ac-94-w",
+      "level": "diagnostic",
+      "outcome": "passed",
+      "record_type": "standard",
+      "date": "2026-11-04",
+      "platform": "macos",
+      "device": "Mac16,6 (Apple M4 Max), 128 GiB RAM",
+      "os": "macOS 27.0 (26A428)",
+      "toolchain": "Xcode 27.0 (27A266a), Apple Swift 6.4 (swiftlang-6.4.0.34.1)",
+      "variant": "uint4 backbone (gdn-fp32) / float32 head",
+      "backend": "Core AI; GPU preferred; expectFrequentReshapes true",
+      "route": "coreai-verify typed-decide --wait-nominal-thermal 600 (release build); TypedDecisionInferenceTests in the debug build of the test target for cancellation",
+      "source_revision": "14b425269ed24452e0a5ad5a8f3e51d139647a88",
+      "artifact_revision": "a2b186a87a64d9e93a56f185a5ebc2a0613d00da7440eeb8c8c2229b64f6adf3",
+      "code_revision": "18890f539107dd14a65458981db7853d2d959dcb",
+      "workload": {
+        "en": "P: four rows of exactly 100, 500, 2,000 and 8,192 tokens; latency one warmup and three measured rounds per length in one process, every row started at a nominal thermal state; three fresh and three cached loads in new processes; /usr/bin/time -l and 100 ms sampling for memory; three cancellations of a 2,000-token request. Measured on AC power (140W USB-C Power Adapter, 94 W; battery 100%, charged) in the energy mode High Power, the owner's setting (plan-d2b-ac94). Every stage started at 94 W, thermal pressure level 0, at least 120 s without user input and no audio, video or automation assertions; user input happened during the latency process, the last at about 11:26:13 while it waited for a nominal state (no row ran then); earlier inputs in that process cannot be excluded (HIDIdleTime keeps only the last one). The 8,192-token row of the second round turned heavy about 20 s into it. The warmup is for the latency rounds only; loads and cancellations have none. Other load: no other model process (pgrep before the measurement); the CPU and GPU use of other processes was not recorded.",
+        "ja": "P はちょうど 100・500・2,000・8,192 トークンの 4 行。1 判断の時間は 1 プロセスで長さごとに warmup 1 回と計測 3 周で、各行を熱の状態 nominal で始めた。ロードは新しいプロセスで fresh 3 回と cached 3 回。メモリは /usr/bin/time -l と 100 ms の採取。取消は 2,000 トークンの依頼で 3 回。AC 給電(140W USB-C 電源アダプター、94 W。残量 100%、充電済み)、本人の設定のエネルギーモード High Power で計測した(plan-d2b-ac94)。各段は 94 W、熱の圧力 level 0、入力の無い 120 s 以上、音声・動画・自動操作の assertions なしで始めた。入力は 1 判断の時間のプロセスの間にあり、最後は 11:26:13 ごろで熱の状態 nominal を待つ間(行は流れていない)。それより前の入力は、HIDIdleTime が最後の 1 回しか残さないので除けない。第 2 周の 8,192 トークンの行は始めて約 20 s 後に heavy になった。warmup は 1 判断の時間の周だけで、ロードと取消には無い。他の負荷: モデルの他のプロセスなし(計測の前の pgrep)。ほかのプロセスの CPU と GPU の使用は記録していない。"
+      },
+      "batch_size": 1,
+      "concurrency": 1,
+      "warmups": 1,
+      "power": "AC: 140W USB-C Power Adapter, 94 W (pmset -g ac); battery 100% charged; energy mode High Power (powermode 2 in pmset -g)",
+      "thermal": "pmset -g therm: no warning; ProcessInfo thermalState nominal at the start of every row (the longest wait 54.51 s) and thermalmonitord pressure (mTPL) 0 at the start of every stage; during the latency process moderate from 11:25:51 and heavy 11:25:53-11:26:52 (the 8,192-token row of the second round)",
+      "model_executed": true,
+      "plan_sha256": "47a12e99d22dbd40e2a41cedc2b91665bc587e44bbdeb6157d97c24d299c4cb2"
+    },
+    "bundle": {
+      "url": "docs/validation/jev27b/README.md#bundle",
+      "level": "conversion",
+      "outcome": "passed",
+      "record_type": "standard",
+      "date": "2026-11-04",
+      "platform": "macos",
+      "device": "Mac16,6 (Apple M4 Max), 128 GiB RAM",
+      "os": "macOS 27.0 (26A428)",
+      "toolchain": "Xcode 27.0 (27A266a), Apple Swift 6.4 (swiftlang-6.4.0.34.1)",
+      "variant": "uint4 backbone (gdn-fp32) / float32 head",
+      "backend": "Core AI; GPU preferred; expectFrequentReshapes true",
+      "route": "performance.py records over the calibrated bundle written by the recipe step calibrate",
+      "source_revision": "14b425269ed24452e0a5ad5a8f3e51d139647a88",
+      "artifact_revision": "a2b186a87a64d9e93a56f185a5ebc2a0613d00da7440eeb8c8c2229b64f6adf3",
+      "code_revision": "e879c67ff30344fc69f5cb6dcde93ed432d9339c",
+      "workload": {
+        "en": "File sizes of the calibrated bundle, counted after plan revision 3 was frozen; the SHA-256 of decision.json equals the plan's artifact revision. No model load.",
+        "ja": "校正済み bundle のファイルの大きさ。計画の改訂 3 を凍結した後に数えた。decision.json の SHA-256 は計画の artifact revision と同じ。モデルは読まない。"
+      },
+      "batch_size": 1,
+      "concurrency": 1,
+      "warmups": 0,
+      "power": "not applicable (file sizes)",
+      "thermal": "not applicable (file sizes)",
+      "model_executed": false,
+      "plan_sha256": "d361e027c9f6c4929bc8cafe7ea4f378fcdbfe7e01e795a1229e6cbc5cd5d4b7"
+    },
+    "performance-battery": {
+      "url": "docs/validation/jev27b/README.md#battery-power",
+      "level": "diagnostic",
+      "outcome": "passed",
+      "record_type": "standard",
+      "date": "2026-11-04",
+      "platform": "macos",
+      "device": "Mac16,6 (Apple M4 Max), 128 GiB RAM",
+      "os": "macOS 27.0 (26A428)",
+      "toolchain": "Xcode 27.0 (27A266a), Apple Swift 6.4 (swiftlang-6.4.0.34.1)",
+      "variant": "uint4 backbone (gdn-fp32) / float32 head",
+      "backend": "Core AI; GPU preferred; expectFrequentReshapes true",
+      "route": "coreai-verify typed-decide (release build); TypedDecisionInferenceTests in the debug build of the test target for cancellation",
+      "source_revision": "14b425269ed24452e0a5ad5a8f3e51d139647a88",
+      "artifact_revision": "a2b186a87a64d9e93a56f185a5ebc2a0613d00da7440eeb8c8c2229b64f6adf3",
+      "code_revision": "9d8fdf821470168c3d92276808cb9ff1f815d7de",
+      "workload": {
+        "en": "P: four rows of exactly 100, 500, 2,000 and 8,192 tokens; latency one warmup and three measured rounds per length in one process; three fresh and three cached loads in new processes; /usr/bin/time -l and 100 ms sampling for memory; three cancellations of a 2,000-token request. Measured on battery power by the owner's decision (90% to 76%, no adapter, Low Power Mode off; plan revision 3 records this). Thermal pressure moderate to heavy in the third round and the cancellation test. The warmup is for the latency rounds only; loads and cancellations have none. Other load: no other model process (pgrep before the measurement); GPU use of other processes was not recorded.",
+        "ja": "P はちょうど 100・500・2,000・8,192 トークンの 4 行。1 判断の時間は 1 プロセスで長さごとに warmup 1 回と計測 3 周。ロードは新しいプロセスで fresh 3 回と cached 3 回。メモリは /usr/bin/time -l と 100 ms の採取。取消は 2,000 トークンの依頼で 3 回。本人の決定によりバッテリー駆動で計測した(90% から 76%、アダプターなし、低電力モード off。計画の改訂 3 に記録)。第 3 周と取消の試験は熱の圧力 moderate から heavy の下。warmup は 1 判断の時間の周だけで、ロードと取消には無い。他の負荷: モデルの他のプロセスなし(計測の前の pgrep)。ほかのプロセスの GPU の使用は記録していない。"
+      },
+      "batch_size": 1,
+      "concurrency": 1,
+      "warmups": 1,
+      "power": "Battery power, no AC adapter attached (pmset -g ac); 90% at start, Low Power Mode off (powermode 0 in pmset -g). Measured on battery by the owner's instruction on 2026-11-04 06:20 JST",
+      "thermal": "pmset -g therm: no warning in 10 snapshots; thermalmonitord pressure moderate from 06:28:52 (end of the second round) and heavy 06:29:08-06:32:08 (from the end of the third 2,000-token row through the cancellation test)",
+      "model_executed": true,
+      "plan_sha256": "d361e027c9f6c4929bc8cafe7ea4f378fcdbfe7e01e795a1229e6cbc5cd5d4b7"
+    },
+    "performance-ac-70w": {
+      "url": "docs/validation/jev27b/README.md#ac-70-w",
+      "level": "diagnostic",
+      "outcome": "passed",
+      "record_type": "standard",
+      "date": "2026-11-04",
+      "platform": "macos",
+      "device": "Mac16,6 (Apple M4 Max), 128 GiB RAM",
+      "os": "macOS 27.0 (26A428)",
+      "toolchain": "Xcode 27.0 (27A266a), Apple Swift 6.4 (swiftlang-6.4.0.34.1)",
+      "variant": "uint4 backbone (gdn-fp32) / float32 head",
+      "backend": "Core AI; GPU preferred; expectFrequentReshapes true",
+      "route": "coreai-verify typed-decide (release build); TypedDecisionInferenceTests in the debug build of the test target for cancellation",
+      "source_revision": "14b425269ed24452e0a5ad5a8f3e51d139647a88",
+      "artifact_revision": "a2b186a87a64d9e93a56f185a5ebc2a0613d00da7440eeb8c8c2229b64f6adf3",
+      "code_revision": "9b610f88ba0b7810555384200686472e02cd11f2",
+      "workload": {
+        "en": "P: four rows of exactly 100, 500, 2,000 and 8,192 tokens; latency one warmup and three measured rounds per length in one process; three fresh and three cached loads in new processes; /usr/bin/time -l and 100 ms sampling for memory; three cancellations of a 2,000-token request. Measured on AC power (70W USB-C Power Adapter, 68 W; battery 64% to 67%, charging) in the energy mode High Power, the owner's setting (plan-d2b-ac). Every stage started at thermal pressure level 0; the pressure turned heavy during the latency process (the 8,192-token row of the second round and the third round). The warmup is for the latency rounds only; loads and cancellations have none. Other load: no other model process (pgrep before the measurement); pmset -g log shows other activity during the run (audio sessions, a browser video wake lock, a UI automation session) that the battery run did not have; the CPU and GPU use of other processes was not recorded.",
+        "ja": "P はちょうど 100・500・2,000・8,192 トークンの 4 行。1 判断の時間は 1 プロセスで長さごとに warmup 1 回と計測 3 周。ロードは新しいプロセスで fresh 3 回と cached 3 回。メモリは /usr/bin/time -l と 100 ms の採取。取消は 2,000 トークンの依頼で 3 回。AC 給電(70W USB-C 電源アダプター、68 W。残量 64% から 67%、充電中)、本人の設定のエネルギーモード High Power で計測した(plan-d2b-ac)。各段は熱の圧力 level 0 で始めたが、1 判断の時間のプロセスの途中で heavy になった(第 2 周の 8,192 トークンの行と第 3 周)。warmup は 1 判断の時間の周だけで、ロードと取消には無い。他の負荷: モデルの他のプロセスなし(計測の前の pgrep)。pmset -g log には、バッテリー駆動の計測の間には無かったほかの活動(音声のセッション、ブラウザの動画の wake lock、UI の自動操作のセッション)が残っている。ほかのプロセスの CPU と GPU の使用は記録していない。"
+      },
+      "batch_size": 1,
+      "concurrency": 1,
+      "warmups": 1,
+      "power": "AC: 70W USB-C Power Adapter, 68 W (pmset -g ac); battery 64% to 67%, charging; energy mode High Power (powermode 2 in pmset -g)",
+      "thermal": "pmset -g therm: no warning; thermalmonitord pressure (mTPL) 0 at the start of every stage (the cancellation test waited 50 s); during the latency process moderate from 09:26:46 and heavy 09:26:48-09:29:05 (the 8,192-token row of the second round and the third round)",
+      "model_executed": true,
+      "plan_sha256": "8763b18a0830395744f3f65e2bd27d5a151d85dc201b1296ea15e175af9128cb"
+    }
+  },
+  "measurements": [
+    {
+      "metric": "bundle_bytes",
+      "value": 16064815496,
+      "unit": "B",
+      "statistic": "single",
+      "n": 1,
+      "evidence": "bundle",
+      "source_value": {
+        "path": "docs/validation/jev27b/performance.json",
+        "pointer": "/bundle/bytes"
+      },
+      "note": {
+        "en": "The 13 files of the calibrated bundle, including the 16 GB asset; counted by performance.py records after plan revision 3.",
+        "ja": "校正済み bundle の 13 ファイル(16 GB の資産を含む)。計画の改訂 3 の後に performance.py records で数えた。"
+      }
+    },
+    {
+      "metric": "first_load_s",
+      "value": 28.22435325,
+      "unit": "s",
+      "statistic": "median",
+      "n": 3,
+      "evidence": "performance",
+      "source_value": {
+        "path": "docs/validation/jev27b/performance-ac94.json",
+        "pointer": "/loads/first_load_s/metrics/first_load_s/median"
+      },
+      "note": {
+        "en": "New process with the specialization cache entry deleted (--clear-cache); bundle check, tokenizer, head and backbone. File caches not flushed. On AC power (140 W adapter, 94 W), energy mode High Power (plan-d2b-ac94).",
+        "ja": "特殊化 cache を消した新プロセス(--clear-cache)。bundle の検査・tokenizer・ヘッド・本体の合計。ファイルの cache は消していない。AC 給電(140 W アダプター、94 W)、エネルギーモード High Power(plan-d2b-ac94)。"
+      }
+    },
+    {
+      "metric": "warm_load_s",
+      "value": 9.504954333,
+      "unit": "s",
+      "statistic": "median",
+      "n": 3,
+      "evidence": "performance",
+      "source_value": {
+        "path": "docs/validation/jev27b/performance-ac94.json",
+        "pointer": "/loads/warm_load_s/metrics/warm_load_s/median"
+      },
+      "note": {
+        "en": "New process with the specialization cache entry present; same parts as the first load. On AC power (140 W adapter, 94 W), energy mode High Power (plan-d2b-ac94).",
+        "ja": "特殊化 cache がある新プロセス。初回と同じ部分の合計。AC 給電(140 W アダプター、94 W)、エネルギーモード High Power(plan-d2b-ac94)。"
+      }
+    },
+    {
+      "metric": "latency_s",
+      "value": 0.614704083,
+      "unit": "s",
+      "statistic": "median",
+      "n": 3,
+      "evidence": "performance",
+      "source_value": {
+        "path": "docs/validation/jev27b/performance-ac94.json",
+        "pointer": "/latency/100/metrics/latency_s/median"
+      },
+      "note": {
+        "en": "P row of exactly 100 tokens; TypedDecisionModel.decide from call to return; lengths interleaved in one process after one warmup each; memory sampled every 100 ms during each row (--sample-memory); every row started at a nominal thermal state (--wait-nominal-thermal 600). The third round's row started after waiting 54.51 s for a nominal thermal state. On AC power (140 W adapter, 94 W), energy mode High Power (plan-d2b-ac94).",
+        "ja": "ちょうど 100 トークンの P の行。TypedDecisionModel.decide の呼び出しから復帰まで。1 プロセスで長さを交互に、各長さ warmup 1 回の後。各行の run 中に 100 ms ごとにメモリを採取(--sample-memory)。各行は熱の状態 nominal で開始(--wait-nominal-thermal 600)。第 3 周の行は熱の状態 nominal を 54.51 s 待ってから始めた。AC 給電(140 W アダプター、94 W)、エネルギーモード High Power(plan-d2b-ac94)。"
+      }
+    },
+    {
+      "metric": "latency_s",
+      "value": 2.207618334,
+      "unit": "s",
+      "statistic": "median",
+      "n": 3,
+      "evidence": "performance",
+      "source_value": {
+        "path": "docs/validation/jev27b/performance-ac94.json",
+        "pointer": "/latency/500/metrics/latency_s/median"
+      },
+      "note": {
+        "en": "P row of exactly 500 tokens; TypedDecisionModel.decide from call to return; lengths interleaved in one process after one warmup each; memory sampled every 100 ms during each row (--sample-memory); every row started at a nominal thermal state (--wait-nominal-thermal 600). On AC power (140 W adapter, 94 W), energy mode High Power (plan-d2b-ac94).",
+        "ja": "ちょうど 500 トークンの P の行。TypedDecisionModel.decide の呼び出しから復帰まで。1 プロセスで長さを交互に、各長さ warmup 1 回の後。各行の run 中に 100 ms ごとにメモリを採取(--sample-memory)。各行は熱の状態 nominal で開始(--wait-nominal-thermal 600)。AC 給電(140 W アダプター、94 W)、エネルギーモード High Power(plan-d2b-ac94)。"
+      }
+    },
+    {
+      "metric": "latency_s",
+      "value": 8.97832325,
+      "unit": "s",
+      "statistic": "median",
+      "n": 3,
+      "evidence": "performance",
+      "source_value": {
+        "path": "docs/validation/jev27b/performance-ac94.json",
+        "pointer": "/latency/2000/metrics/latency_s/median"
+      },
+      "note": {
+        "en": "P row of exactly 2,000 tokens; TypedDecisionModel.decide from call to return; lengths interleaved in one process after one warmup each; memory sampled every 100 ms during each row (--sample-memory); every row started at a nominal thermal state (--wait-nominal-thermal 600). On AC power (140 W adapter, 94 W), energy mode High Power (plan-d2b-ac94).",
+        "ja": "ちょうど 2,000 トークンの P の行。TypedDecisionModel.decide の呼び出しから復帰まで。1 プロセスで長さを交互に、各長さ warmup 1 回の後。各行の run 中に 100 ms ごとにメモリを採取(--sample-memory)。各行は熱の状態 nominal で開始(--wait-nominal-thermal 600)。AC 給電(140 W アダプター、94 W)、エネルギーモード High Power(plan-d2b-ac94)。"
+      }
+    },
+    {
+      "metric": "latency_s",
+      "value": 37.139140167,
+      "unit": "s",
+      "statistic": "median",
+      "n": 3,
+      "evidence": "performance",
+      "source_value": {
+        "path": "docs/validation/jev27b/performance-ac94.json",
+        "pointer": "/latency/8192/metrics/latency_s/median"
+      },
+      "note": {
+        "en": "P row of exactly 8,192 tokens; TypedDecisionModel.decide from call to return; lengths interleaved in one process after one warmup each; memory sampled every 100 ms during each row (--sample-memory); every row started at a nominal thermal state (--wait-nominal-thermal 600). The second round's row turned heavy about 20 s into it; the median row (first round) ran at nominal pressure. On AC power (140 W adapter, 94 W), energy mode High Power (plan-d2b-ac94).",
+        "ja": "ちょうど 8,192 トークンの P の行。TypedDecisionModel.decide の呼び出しから復帰まで。1 プロセスで長さを交互に、各長さ warmup 1 回の後。各行の run 中に 100 ms ごとにメモリを採取(--sample-memory)。各行は熱の状態 nominal で開始(--wait-nominal-thermal 600)。第 2 周の行は始めて約 20 s 後に熱の圧力 heavy になった。中央値の行(第 1 周)は nominal の下。AC 給電(140 W アダプター、94 W)、エネルギーモード High Power(plan-d2b-ac94)。"
+      }
+    },
+    {
+      "metric": "peak_rss_bytes",
+      "value": 32333840384,
+      "unit": "B",
+      "statistic": "single",
+      "n": 1,
+      "evidence": "performance",
+      "source_value": {
+        "path": "docs/validation/jev27b/performance-ac94.json",
+        "pointer": "/memory/values/peak_rss_bytes"
+      },
+      "note": {
+        "en": "/usr/bin/time -l of the latency process, lifetime maximum including the load; not added to the footprint. On AC power (140 W adapter, 94 W), energy mode High Power (plan-d2b-ac94).",
+        "ja": "latency のプロセスの /usr/bin/time -l。読み込みを含む生涯の最大。footprint と足さない。AC 給電(140 W アダプター、94 W)、エネルギーモード High Power(plan-d2b-ac94)。"
+      }
+    },
+    {
+      "metric": "peak_footprint_bytes",
+      "value": 21336815344,
+      "unit": "B",
+      "statistic": "single",
+      "n": 1,
+      "evidence": "performance",
+      "source_value": {
+        "path": "docs/validation/jev27b/performance-ac94.json",
+        "pointer": "/memory/values/peak_footprint_bytes"
+      },
+      "note": {
+        "en": "/usr/bin/time -l of the latency process (peak memory footprint). Not a bound: the footprint grew by 4.1 to 4.5 GB in each round of alternating lengths and had not levelled off. On AC power (140 W adapter, 94 W), energy mode High Power (plan-d2b-ac94).",
+        "ja": "latency のプロセスの /usr/bin/time -l(peak memory footprint)。上限ではない。長さを交互に流す 1 周ごとに 4.1〜4.5 GB 増え、頭打ちになっていない。AC 給電(140 W アダプター、94 W)、エネルギーモード High Power(plan-d2b-ac94)。"
+      }
+    },
+    {
+      "metric": "resident_bytes",
+      "value": 17298096128,
+      "unit": "B",
+      "statistic": "max",
+      "n": 1,
+      "evidence": "performance",
+      "source_value": {
+        "path": "docs/validation/jev27b/performance-ac94.json",
+        "pointer": "/memory/values/resident_bytes"
+      },
+      "note": {
+        "en": "Largest RSS sampled every 100 ms during the measured 8,192-token rows (--sample-memory). On AC power (140 W adapter, 94 W), energy mode High Power (plan-d2b-ac94).",
+        "ja": "計測した 8,192 トークンの行の run 中に 100 ms ごとに採った RSS の最大(--sample-memory)。AC 給電(140 W アダプター、94 W)、エネルギーモード High Power(plan-d2b-ac94)。"
+      }
+    },
+    {
+      "metric": "cancel_s",
+      "value": 8.840078334,
+      "unit": "s",
+      "statistic": "median",
+      "n": 3,
+      "evidence": "performance",
+      "source_value": {
+        "path": "docs/validation/jev27b/performance-ac94.json",
+        "pointer": "/cancel/metrics/cancel_s/median"
+      },
+      "note": {
+        "en": "2,000-token request (the state of the refund card example repeated 164 times, not a P row) cancelled after the test backbone reported its forward call; the backbone does not pass the cancellation on, so the request ends only when the run returns; the times (8.72 to 9.00 s) are longer than the same request without cancellation (8.20 s), for a reason not investigated. Debug build of the test target (swift test). Nominal thermal pressure (the test started after 30 s of waiting for 120 s without user input). On AC power (140 W adapter, 94 W), energy mode High Power (plan-d2b-ac94).",
+        "ja": "試験用 backbone が forward の呼び出しを報告した後に取り消した 2,000 トークンの依頼(返金のカードの例の state を 164 回繰り返したもの。P の行ではない)。backbone は取消を伝えないので、依頼は run が返った時点で終わる。時間(8.72〜9.00 s)は取り消さない同じ依頼(8.20 s)より長く、理由は調べていない。試験 target の debug build(swift test)。熱の圧力は nominal(入力の無い 120 s を 30 s 待ってから開始)。AC 給電(140 W アダプター、94 W)、エネルギーモード High Power(plan-d2b-ac94)。"
+      }
+    },
+    {
+      "metric": "task_success",
+      "value": 0.8666666666666667,
+      "unit": "ratio",
+      "statistic": "mean",
+      "n": 300,
+      "evidence": "quality",
+      "source_value": {
+        "path": "docs/validation/jev27b/quality.json",
+        "pointer": "/stages/1/3/choice_accuracy_ratio"
+      },
+      "note": {
+        "en": "Stage 3 choice rows of Q whose top option is the teacher top (agreement with the teacher distribution, not real-world accuracy); stage 1' 0.8733.",
+        "ja": "段 3 の Q の choice の行で top が教師の top と一致した割合(教師分布への一致で、現実の正答率ではない)。段 1′ は 0.8733。"
+      }
+    },
+    {
+      "metric": "reference_error",
+      "value": 0.006541500537179168,
+      "unit": "error",
+      "statistic": "max",
+      "n": 301,
+      "evidence": "fidelity",
+      "source_value": {
+        "path": "docs/validation/jev27b/fidelity.json",
+        "pointer": "/temperature_1/max"
+      },
+      "note": {
+        "en": "Largest probability difference of F at temperature 1 between Core AI and the float32 PyTorch run of the same quantized weights.",
+        "ja": "温度 1 の F で、Core AI と同じ量子化後の重みの PyTorch float32 の確率差の最大。"
+      }
+    }
+  ],
+  "omissions": {
+    "prepared_bytes": {
+      "state": "not_measured",
+      "reason": {
+        "en": "The size of the specialization cache entry is not exposed by the command line tool.",
+        "ja": "特殊化 cache の大きさはコマンドラインのツールから見えないので測っていない。"
+      }
+    },
+    "residual_bytes": {
+      "state": "not_measured",
+      "reason": {
+        "en": "The command line process never releases the model before it exits, so no after-release baseline exists.",
+        "ja": "コマンドラインのプロセスは終わるまでモデルを手放さないので、解放後の基準が無い。"
+      }
+    },
+    "reuse_latency_s": {
+      "state": "not_measured",
+      "reason": {
+        "en": "Reusing the state of a document between questions is not implemented for typed decisions.",
+        "ja": "質問をまたいで文書の状態を再利用する経路は型付き判断にまだ無い。"
+      }
+    }
+  },
+  "checks": {
+    "fidelity": {
+      "state": "passed",
+      "evidence": [
+        "fidelity"
+      ],
+      "note": {
+        "en": "Every band of F within a largest difference of 0.03 and a mean of 0.01 at temperature 1 (largest 0.0065); no top-1 change.",
+        "ja": "温度 1 の F のすべての帯で最大 0.03・平均 0.01 の内側(最大 0.0065)。top の変化なし。"
+      }
+    },
+    "quality": {
+      "state": "passed",
+      "evidence": [
+        "quality"
+      ],
+      "note": {
+        "en": "Choice accuracy passes on its point estimate (-0.67 points, limit -2 points), but its 95% interval [-3.00, +1.67] contains the limit (n = 300). noul Brier +0.00024, score normalized MAE +0.00051. Agreement with the teacher distribution, not real-world accuracy.",
+        "ja": "choice の正答率は点推定 −0.67 pt で閾値 −2 pt を満たすが、95% 区間 [−3.00, +1.67] は閾値をまたぐ(n = 300)。noul の Brier +0.00024、score の正規化 MAE +0.00051。教師分布への一致で、現実の正答率ではない。"
+      }
+    },
+    "stability": {
+      "state": "not_measured",
+      "evidence": [],
+      "note": {
+        "en": "Two runs of F with the variant bundle (fresh and cached specialization) gave identical logits for all 301 rows, the GPU test returns bit-identical logits for each of its ten rows (at most 512 tokens) run twice in one process, and up to 3,000 consecutive rows ran in one process (Cal). Releasing and reloading the model in one process was not verified.",
+        "ja": "変種の bundle で F を 2 回(特殊化 fresh と cached)流すと 301 行すべてで logit が同じで、GPU の試験は 10 行(512 トークン以下)を 1 プロセスで 2 回ずつ流してビット単位で同じ logit を返し、1 プロセスで最大 3,000 行(Cal)を続けて流した。同じプロセスでの解放と再読み込みは確かめていない。"
+      }
+    },
+    "cancellation": {
+      "state": "passed",
+      "evidence": [
+        "performance"
+      ],
+      "note": {
+        "en": "Three requests cancelled during the forward run ended with CancellationError when the run returned, and a request cancelled at the forward checkpoint ended before the run. After both kinds of cancellation the next row returned logits bit-identical to the same row before the cancellation. The test backbone does not pass the cancellation on; whether a Core AI run itself stops was not measured.",
+        "ja": "forward の run 中に取り消した 3 回の依頼は run が返った時点で CancellationError で終わり、checkpoint での取消は run の前に終わった。どちらの取消の後も、次の行の logit は取消の前の同じ行とビット単位で同じだった。試験用 backbone は取消を伝えないので、Core AI の run 自体が止まるかは測っていない。"
+      }
+    }
+  }
+}

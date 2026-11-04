@@ -9846,6 +9846,26 @@
         }
       },
       "shouldTranslate" : false
+    },
+    "Download Clef-Flash from its heading in the sidebar." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "サイドバーの見出しから Clef-Flash を取得してください。"
+          }
+        }
+      }
+    },
+    "Unload model" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルを解放"
+          }
+        }
+      }
     }
   },
   "version" : "1.1"

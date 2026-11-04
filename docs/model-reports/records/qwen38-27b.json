@@ -15,11 +15,11 @@
   },
   "release": "released",
   "release_note": {
-    "en": "in-app download pending",
-    "ja": "アプリ内の取得は対応中"
+    "en": "Mac UI acceptance pending",
+    "ja": "Mac通常UIの本人確認待ち"
   },
   "download": "https://huggingface.co/okayuji/Qwen3.8-27B-coreai-4bit",
-  "public_access_evidence": "docs/validation/mac-models-distribution-20261104.md#qwen38-27b",
+  "public_access_evidence": "docs/validation/mac-language-models-20261104.md#anonymous-acquisition",
   "pages": {
     "en": "docs/qwen3.8-27b.md",
     "ja": "docs/qwen3.8-27b.ja.md"

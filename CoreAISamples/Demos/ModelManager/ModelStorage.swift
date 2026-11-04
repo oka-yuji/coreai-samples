@@ -1,4 +1,6 @@
 import Foundation
+import ModelLibraryFeature
+import ModelLibraryStorage
 
 enum ModelStorage {
     static let markerName = ".download-complete.json"
@@ -25,6 +27,14 @@ enum ModelStorage {
     static func key(_ url: URL) -> String {
         let path = url.standardizedFileURL.path(percentEncoded: false)
         return path.count > 1 && path.hasSuffix("/") ? String(path.dropLast()) : path
+    }
+
+    static func conversationKey(_ url: URL) -> String {
+        ModelLocationIdentity.key(
+            url, legacy: directory(for: "okayuji/Qwen3.8-27B-coreai-4bit"),
+            managed: root.appending(path: "ModelLibrary/artifacts")
+                .appending(path: LanguageModelArtifacts.qwenID)
+                .appending(path: LanguageModelArtifacts.qwenRevision))
     }
 
     static var prepared: Set<String> {

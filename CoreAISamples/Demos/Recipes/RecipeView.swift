@@ -9,15 +9,20 @@ struct RecipeView: View {
     let store: Store<RecipeFeature>
     @Environment(\.locale) private var locale
     @State private var importingPhoto = false
-    @State private var importingModel = false
+    @Environment(MacModelLibrary.self) private var library
+    @State private var attempted: String?
     private var strings: DemoStrings { DemoStrings(locale: locale) }
 
     var body: some View {
         VStack(spacing: 0) {
             header
             RecipeModelView(
-                state: store.state, open: { importingModel = true },
-                retry: { store.send(.openModel(store.state.modelPath)) })
+                state: store.state,
+                retry: {
+                    if let path = library.resource(inUse: .clefFlash)?.directory.path {
+                        store.send(.openModel(path))
+                    }
+                })
             Divider()
             HSplitView {
                 ScrollView {
@@ -48,14 +53,34 @@ struct RecipeView: View {
             footer
         }
         .demoNavigationTitle("Clef-Flash 9B")
-        .onAppear { store.send(.appeared) }
-        .onDisappear { store.send(.ended) }
+        .onAppear {
+            store.send(.appeared)
+            library.use(.clefFlash)
+        }
+        .onDisappear {
+            store.send(.ended)
+            library.stopUsing(.clefFlash)
+            attempted = nil
+        }
+        .onChange(of: store.state.modelRelease) { _, _ in attempted = nil }
+        .onChange(of: library.resource(inUse: .clefFlash)?.directory) { _, new in
+            if new == nil { attempted = nil }
+        }
+        .onChange(of: bundleToOpen, initial: true) { _, path in
+            guard let path else { return }
+            attempted = path
+            store.send(.openModel(path))
+        }
         .fileImporter(isPresented: $importingPhoto, allowedContentTypes: [.image]) { result in
             receive(result) { store.send(.importPhoto($0)) }
         }
-        .fileImporter(isPresented: $importingModel, allowedContentTypes: [.folder]) { result in
-            receive(result) { store.send(.openModel($0.path)) }
-        }
+    }
+
+    private var bundleToOpen: String? {
+        guard store.state.phase == .idle, store.state.modelName == nil,
+            let path = library.resource(inUse: .clefFlash)?.directory.path, attempted != path
+        else { return nil }
+        return path
     }
 
     private var header: some View {
@@ -74,7 +99,9 @@ struct RecipeView: View {
             } else {
                 Button("Check recipe", systemImage: "checkmark.circle") { store.send(.check) }
                     .buttonStyle(.borderedProminent)
-                    .disabled(!store.state.canCheck)
+                    .disabled(
+                        !store.state.canCheck
+                            || library.resource(inUse: .clefFlash)?.directory.path != store.state.modelPath)
             }
         }
         .padding(20)
@@ -288,12 +315,12 @@ struct RecipeView: View {
         case .fetching: Text("Reading the recipe URL...")
         case .loading: Text("Opening the decision model...")
         case .checking: Text("Checking recipe requirements and equipment...")
-        case .stopping: Text("Waiting for the current operation to stop...")
+        case .stopping, .closing: Text("Waiting for the current operation to stop...")
         default:
             if let name = store.state.modelName {
                 Text("On-device photo reading + \(name)")
             } else {
-                Text("Photos stay on this Mac. Open a decision bundle to check recipes.")
+                Text("Download Clef-Flash from its heading in the sidebar.")
             }
         }
     }

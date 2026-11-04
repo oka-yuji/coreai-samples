@@ -6,15 +6,21 @@ import UniformTypeIdentifiers
 
 @MainActor
 enum DecideAssembly {
-    static func makeStore() -> Store<DecideFeature> {
+    static func makeStore(managed: Bool = false) -> Store<DecideFeature> {
         let service = LiveDecideService(
-            examplesURL: Bundle.main.url(forResource: "decide-examples", withExtension: "json"))
+            examplesURL: Bundle.main.url(forResource: "decide-examples", withExtension: "json"),
+            acquireModel: { path in
+                guard managed else { return {} }
+                return try await MacModelLibraryServices.acquire(path, modelID: "clef-flash-9b")
+            })
         return Store(initialState: DecideState(), run: DecideRunner(service: service).run)
     }
 }
 
 struct DecideView: View {
     @Bindable var store: Store<DecideFeature>
+    @Environment(MacModelLibrary.self) private var library
+    @State private var attempted: String?
     @State private var importingDocument = false
     @State private var editing: DecideItem?
     @State private var search = ""
@@ -37,8 +43,24 @@ struct DecideView: View {
         }
         .padding(20)
         .demoNavigationTitle("Clef-Flash 9B")
-        .onAppear { store.send(.appeared) }
-        .onDisappear { store.send(.ended) }
+        .onAppear {
+            store.send(.appeared)
+            library.use(.clefFlash)
+        }
+        .onDisappear {
+            store.send(.ended)
+            library.stopUsing(.clefFlash)
+            attempted = nil
+        }
+        .onChange(of: store.state.modelRelease) { _, _ in attempted = nil }
+        .onChange(of: library.resource(inUse: .clefFlash)?.directory) { _, new in
+            if new == nil { attempted = nil }
+        }
+        .onChange(of: bundleToOpen, initial: true) { _, path in
+            guard let path else { return }
+            attempted = path
+            store.send(.openBundle(path))
+        }
         .fileImporter(isPresented: $importingDocument, allowedContentTypes: [.plainText, .text]) { result in
             switch result {
             case .success(let url): store.send(.readDocument(url))
@@ -61,6 +83,13 @@ struct DecideView: View {
         }
     }
 
+    private var bundleToOpen: String? {
+        guard store.state.phase == .idle, store.state.model == nil,
+            let path = library.resource(inUse: .clefFlash)?.directory.path, attempted != path
+        else { return nil }
+        return path
+    }
+
     private var header: some View {
         HStack(alignment: .top, spacing: 16) {
             VStack(alignment: .leading, spacing: 4) {
@@ -70,13 +99,15 @@ struct DecideView: View {
                     if let name = store.state.model?.name {
                         Text(verbatim: name)
                     } else {
-                        Text("Open a Clef-Flash decision bundle to begin.")
+                        Text("Download Clef-Flash from its heading in the sidebar.")
                     }
                 }
                 .font(.callout).foregroundStyle(.secondary).textSelection(.enabled)
             }
             Spacer()
-            DecideModelButton(store: store)
+            if store.state.model == nil, let path = library.resource(inUse: .clefFlash)?.directory.path {
+                Button("Retry") { store.send(.openBundle(path)) }.disabled(store.state.busy)
+            }
         }
     }
 
@@ -179,10 +210,16 @@ struct DecideView: View {
                 Button("Run checklist", systemImage: "play.fill") { store.send(.run(reuse: true)) }
                     .buttonStyle(.borderedProminent)
                     .keyboardShortcut(.return, modifiers: .command)
-                    .disabled(!store.state.canRun)
+                    .disabled(
+                        !store.state.canRun
+                            || library.resource(inUse: .clefFlash)?.directory.path != store.state.model?.path
+                    )
                     .accessibilityIdentifier("decide.run")
                 Button("Read again") { store.send(.run(reuse: false)) }
-                    .disabled(!store.state.canRun)
+                    .disabled(
+                        !store.state.canRun
+                            || library.resource(inUse: .clefFlash)?.directory.path != store.state.model?.path
+                    )
                     .help("Read the complete document again to compare with reuse.")
                 if store.state.busy {
                     Button("Stop") { store.send(.stop) }
@@ -274,7 +311,7 @@ struct DecideView: View {
         switch store.state.phase {
         case .loading: "Opening and preparing the decision model…"
         case .running: "Evaluating the checklist…"
-        case .stopping: "Stopping the current operation…"
+        case .stopping, .closing: "Stopping the current operation…"
         case .reading: "Reading the document…"
         case .idle, .closed: "Loading example documents…"
         }
@@ -292,31 +329,6 @@ struct DecideView: View {
         }
         text.append(AttributedString(remaining))
         return text
-    }
-}
-
-struct DecideModelButton: View {
-    let store: Store<DecideFeature>
-    @Environment(DemoNavigator.self) private var navigator
-    @State private var importing = false
-
-    var body: some View {
-        Button("Open decision bundle…", systemImage: "folder") { importing = true }
-            .disabled(store.state.busy)
-            .fileImporter(isPresented: $importing, allowedContentTypes: [.folder]) { result in
-                switch result {
-                case .success(let url):
-                    store.send(.appeared)
-                    store.send(.openBundle(url.path))
-                    navigator.selection = .decide
-                case .failure(let error):
-                    if (error as? CocoaError)?.code != .userCancelled {
-                        store.send(.appeared)
-                        store.send(.uiError("The selected decision folder could not be opened."))
-                        navigator.selection = .decide
-                    }
-                }
-            }
     }
 }
 

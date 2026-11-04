@@ -1,6 +1,7 @@
 import ConversationFeature
 import ConversationRuntime
 import Foundation
+import ModelLibraryStorage
 import Observation
 
 @MainActor
@@ -106,6 +107,41 @@ enum ConversationArchiveSelfTest {
                 "conversation/missingHistoryPreservesSelection",
                 host.state.id == "restored" && host.canManageHistory
                     && host.state.library.error != nil, "id=\(host.state.id)")
+            var legacyState = state
+            legacyState.modelLocation = ModelStorage.directory(for: "okayuji/Qwen3.8-27B-coreai-4bit").path
+            let legacyArchive = ConversationArchive(directory: directory.appending(path: "migration"))
+            try await legacyArchive.save(ConversationSnapshot(legacyState), expectedRevision: 0, writer: UUID())
+            let migrated = ConversationHost(chat: ChatViewModel(), preferences: preferences, archive: legacyArchive)
+            migrated.store.send(.restoreRequested(id: legacyState.id))
+            for await restoring in Observations({ migrated.state.isRestoring }) where !restoring { break }
+            let restoredStore = migrated.store
+            let managed = MacModelLibraryServices.root.appending(path: "artifacts")
+                .appending(path: LanguageModelArtifacts.qwenID).appending(path: LanguageModelArtifacts.qwenRevision)
+            let kept = migrated.prepareModelSwitch(to: managed)
+            check(
+                "conversation/legacyModelKeepsRestoredHistory",
+                kept && migrated.matchesSavedModel(managed) && migrated.store === restoredStore
+                    && migrated.state.entries.count == 2 && migrated.runner.session.awaitingRestoredModel,
+                "matched=\(migrated.matchesSavedModel(managed)) entries=\(migrated.state.entries.count)")
+            var terminationEvents: [String] = []
+            let terminating = ConversationHost(
+                chat: ChatViewModel(), preferences: preferences, archive: legacyArchive,
+                termination: { terminationEvents.append($0 ? "finished" : "failed") },
+                resumeModels: { terminationEvents.append("resumed") },
+                modelUnloaded: { terminationEvents.append("unloaded") },
+                releaseModels: { terminationEvents.append("released") })
+            await terminating.runner.run(.terminationReady(true)) { _ in }
+            terminating.cancelTermination()
+            check(
+                "conversation/terminationCleanupAndResume",
+                terminationEvents == ["unloaded", "released", "finished", "resumed"],
+                terminationEvents.joined(separator: ","))
+            terminationEvents = []
+            await terminating.runner.run(.terminationReady(false)) { _ in }
+            terminating.cancelTermination(resumeModels: false)
+            check(
+                "conversation/failedCloseKeepsHiddenDemosStopped", terminationEvents == ["failed"],
+                terminationEvents.joined(separator: ","))
             let reopenedStore = host.store
             let different = host.prepareModelSwitch(to: URL(filePath: "/tmp/conversation-app-test-other"))
             check(

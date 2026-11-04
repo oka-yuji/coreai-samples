@@ -3,24 +3,30 @@ import SwiftUI
 
 struct ModelMenu: View {
     @Environment(ChatViewModel.self) private var chat
-    @Environment(ModelsViewModel.self) private var models
+    @Environment(MacModelLibrary.self) private var library
     @Environment(DemoNavigator.self) private var navigator
     @Environment(ConversationHost.self) private var host
 
-    @State private var chosen: ModelsViewModel.MenuEntry?
+    @Environment(MacModelChoice.self) private var choice
 
     var body: some View {
-        let entries = models.menuEntries(current: chat.phase == .ready ? chat.bundleURL : nil)
         Menu {
-            if entries.downloaded.isEmpty && entries.onThisMac.isEmpty {
-                Button("No models yet") {}
-                    .disabled(true)
+            if let resource = library.installed(.qwen) {
+                Toggle(
+                    "Qwen3.8 27B",
+                    isOn: Binding(
+                        get: { ModelSwitch.isLoaded(resource.directory, phase: chat.phase, current: chat.bundleURL) },
+                        set: { _ in
+                            guard !ModelSwitch.isLoaded(resource.directory, phase: chat.phase, current: chat.bundleURL)
+                            else { return }
+                            if library.resource(inUse: .qwen) == nil && !choice.state.selecting { library.use(.qwen) }
+                            choice.send(.choose)
+                        }))
+            } else {
+                Button("No models yet") {}.disabled(true)
             }
-            if !entries.downloaded.isEmpty {
-                Section("Downloaded") { choices(entries.downloaded) }
-            }
-            if !entries.onThisMac.isEmpty {
-                Section("On this Mac") { choices(entries.onThisMac) }
+            if chat.phase == .ready {
+                Button("Unload model") { choice.send(.unload) }
             }
             Divider()
             Button("Manage Models…") { navigator.selection = .models }
@@ -36,30 +42,16 @@ struct ModelMenu: View {
         .disabled(
             Self.isDisabled(
                 loading: chat.isLoading, responding: chat.isResponding, busy: chat.externallyBusy,
-                running: !host.state.canLeave)
+                running: !host.state.canLeave || choice.state.selecting || choice.state.unloading)
         )
         .onReceive(NotificationCenter.default.publisher(for: NSMenu.didBeginTrackingNotification)) { _ in
-            models.refresh()
+            library.refresh()
         }
-        .task(id: chosen?.id) {
-            guard let entry = chosen else { return }
-            await ModelSwitch.choose(entry.url, chat: chat, host: host)
-            chosen = nil
-        }
+
     }
 
     private var modelLabel: Text {
         chat.modelName.isEmpty ? Text("Choose model") : Text(verbatim: chat.modelName)
-    }
-
-    private func choices(_ entries: [ModelsViewModel.MenuEntry]) -> some View {
-        ForEach(entries) { entry in
-            Toggle(
-                entry.name,
-                isOn: Binding(
-                    get: { entry.isCurrent },
-                    set: { _ in chosen = entry }))
-        }
     }
 
     static func isDisabled(loading: Bool, responding: Bool, busy: Bool, running: Bool) -> Bool {

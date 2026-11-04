@@ -1,0 +1,37 @@
+{
+  "model_id": "autotrust/JEV-27B",
+  "revision": "14b425269ed24452e0a5ad5a8f3e51d139647a88",
+  "model_type": "qwen3_5_text",
+  "base_model": {
+    "id": "Qwen/Qwen3.8-27B",
+    "revision": "1d4bf0f2ff6012fd82039f2fa52739d0dd7c60c0"
+  },
+  "merged_model_id": "okayuji/jev-27b-s1-merged",
+  "lora": {
+    "r": 16,
+    "alpha": 32,
+    "scale": 2.0,
+    "use_rslora": false,
+    "use_dora": false,
+    "pairs": 400,
+    "targets": ["q_proj", "k_proj", "v_proj", "o_proj", "in_proj_qkv", "in_proj_z", "out_proj", "gate_proj", "up_proj", "down_proj"]
+  },
+  "head": "head.safetensors",
+  "template_version": "bare-v1",
+  "precision": "bfloat16",
+  "compression": "qwen3_5_cfg",
+  "context_length": 262144,
+  "limits": {
+    "options": 16,
+    "input_tokens": 8192
+  },
+  "tokenizer": {
+    "policy": "keep-distributed",
+    "note": "resaved form without \\p{M}"
+  },
+  "dataset": {
+    "id": "SargeDev/jev-distill-corpus-v3",
+    "revision": "75111a13a8455032f0435050bfc7e0c9026ecfe8"
+  },
+  "upstream_revision": "d3382a59ecce6ba13536130aa87367611b6c4676"
+}

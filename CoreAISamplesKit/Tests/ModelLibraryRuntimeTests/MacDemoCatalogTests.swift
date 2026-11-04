@@ -39,7 +39,7 @@ struct MacDemoCatalogTests {
         }
         for id in ["qwen3.8-27b", "clef-flash-9b"] {
             let artifacts = try #require(catalog.model(id)).artifacts
-            #expect(artifacts.count == 1 && artifacts.allSatisfy { $0.sourceKind == nil && $0.files.isEmpty })
+            #expect(artifacts.count == 1 && artifacts.allSatisfy { $0.sourceKind == .huggingFace && !$0.files.isEmpty })
         }
         #expect(
             catalog.model("gliner2.5-multi")?.artifacts == [PublishedModelArtifacts.glinerFP32(platforms: [.macOS])]

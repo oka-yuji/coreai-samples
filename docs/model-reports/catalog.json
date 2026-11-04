@@ -4,6 +4,7 @@
   "models": [
     "qwen38-27b",
     "clef-flash",
+    "jev27b",
     "gliner25",
     "embeddinggemma2",
     "irodori",

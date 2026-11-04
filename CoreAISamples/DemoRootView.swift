@@ -2,6 +2,7 @@ import DecideFeature
 import ExtractFeature
 import FeatureStore
 import ImageSearchFeature
+import ModelLibraryFeature
 import Observation
 import ProductFeature
 import RecipeFeature
@@ -118,17 +119,18 @@ struct DemoRootView: View {
     @Environment(\.scenePhase) private var scenePhase
 
     @AppStorage(DemoLanguage.preferenceKey) private var languageCode = DemoLanguage.initialCode
-    @State private var navigator = DemoNavigator()
+    @State private var navigator: DemoNavigator
     @State private var chat: ChatViewModel
     @State private var host: ConversationHost
     @State private var models = ModelsViewModel()
-    @State private var decide = DecideAssembly.makeStore()
-    @State private var recipes = RecipeAssembly.makeStore()
+    @State private var decide: Store<DecideFeature>
+    @State private var recipes: Store<RecipeFeature>
     @State private var products = ProductAssembly.makeStore()
     @State private var imageSearch = ImageSearchAssembly.makeStore()
     @State private var videoSearch = VideoSearchAssembly.makeStore()
     @State private var speech = SpeechAssembly.makeStore()
-    @State private var library = MacModelLibrary()
+    @State private var library: MacModelLibrary
+    @State private var choice: MacModelChoice
     @State private var showingExtractionLab = false
     @State private var extract = Store<ExtractFeature>(
         initialState: ExtractState(
@@ -139,12 +141,124 @@ struct DemoRootView: View {
         self.lifetime = lifetime
         let id = UUID()
         _windowID = State(initialValue: id)
-        let chat = ChatViewModel()
+        let navigator = DemoNavigator()
+        _navigator = State(initialValue: navigator)
+        let choice = MacModelChoice(initialState: MacModelSelection.State()) { _, _ in }
+        _choice = State(initialValue: choice)
+        let library = MacModelLibrary()
+        _library = State(initialValue: library)
+        let managed = LaunchArguments.value("--gui-e2e") == nil
+        let chat = ChatViewModel(managed: managed)
+        let decide = DecideAssembly.makeStore(managed: managed)
+        let recipes = RecipeAssembly.makeStore(managed: managed)
         _chat = State(initialValue: chat)
-        _host = State(initialValue: ConversationHost(chat: chat, termination: { lifetime.finished(id, success: $0) }))
+        _decide = State(initialValue: decide)
+        _recipes = State(initialValue: recipes)
+        _host = State(
+            initialValue: ConversationHost(
+                chat: chat, termination: { lifetime.finished(id, success: $0) },
+                resumeModels: {
+                    if navigator.selection == .decide { decide.send(.appeared) }
+                    if navigator.selection == .recipes { recipes.send(.appeared) }
+                },
+                modelUnloaded: {
+                    choice.send(.reset)
+                    library.stopUsing(.qwen)
+                },
+                releaseModels: {
+                    decide.send(.ended)
+                    recipes.send(.ended)
+                    for await phases in Observations({ (decide.state.phase, recipes.state.phase) }) {
+                        if phases.0 != .closing && phases.1 != .closing { break }
+                    }
+                }))
+    }
+
+    private var modelLoadID: String? {
+        guard choice.state.selecting, let resource = library.resource(inUse: .qwen) else { return nil }
+        return "\(choice.state.request):" + ModelStorage.key(resource.directory)
     }
 
     var body: some View {
+        lifetimeContent
+            .onChange(of: host.state.id) { host.restorePreferences() }
+            .onChange(of: chat.loadStarted) { host.refreshIfModelChanged() }
+            .onChange(of: library.store?.state.usages[DemoModel.qwen.libraryID]) { _, usage in
+                guard choice.state.selecting, !chat.isLoading, usage?.isActive != true, usage?.resource == nil else {
+                    return
+                }
+                choice.send(.reset)
+                library.stopUsing(.qwen)
+            }
+            .task(id: modelLoadID) {
+                guard choice.state.selecting, let resource = library.resource(inUse: .qwen) else { return }
+                let request = choice.state.request
+                _ = await ModelSwitch.choose(resource.directory, chat: chat, host: host)
+                guard choice.state.request == request else { return }
+                if chat.phase != .ready { library.stopUsing(.qwen) }
+                choice.send(.selected(request))
+            }
+            .task(id: choice.state.unloading ? choice.state.request : nil) {
+                guard choice.state.unloading else { return }
+                let request = choice.state.request
+                guard host.state.canLeave, !chat.isLoading else {
+                    choice.send(.unloaded(request))
+                    return
+                }
+                host.runner.session.releaseModel()
+                chat.clearModel()
+                await chat.loader.release()
+                guard choice.state.request == request else { return }
+                library.stopUsing(.qwen)
+                choice.send(.unloaded(request))
+            }
+            .task {
+                await GUIDriver.shared.start(
+                    navigator: navigator, chat: chat, host: host, models: models, extract: extract)
+            }
+    }
+
+    private var lifetimeContent: some View {
+        content
+            .onAppear {
+                lifetime.register(windowID, host: host)
+                if LaunchArguments.value("--gui-e2e") == nil {
+                    host.store.send(.restoreLatestRequested)
+                    host.preferences.removeLegacySearchKey()
+                } else {
+                    host.store.send(.library(.refresh))
+                }
+            }
+            .onDisappear {
+                library.close()
+                lifetime.close(windowID)
+            }
+            .onChange(of: navigator.selection) { old, new in
+                if old == .ocr && new != .ocr { library.leave() }
+            }
+            .onChange(of: library.installed(.irodori)?.directory) { old, new in
+                if old != nil, new != old { speech.send(.bundleUnavailable) }
+            }
+            .onChange(of: library.installed(.gliner)?.directory) { old, new in
+                guard old != nil, new != old else { return }
+                products.send(.modelUnavailable)
+                extract.send(.closed)
+            }
+            .onChange(of: library.installed(.embeddingGemma)?.directory) { old, new in
+                guard old != nil, new != old, ImageSearchAssembly.launchBundle == nil else { return }
+                imageSearch.send(.disappeared)
+                videoSearch.send(.disappeared)
+            }
+            .onChange(of: library.installed(.clefFlash)?.directory) { old, new in
+                guard old != nil, new != old else { return }
+                decide.send(.ended)
+                recipes.send(.ended)
+            }
+            .onChange(of: scenePhase) { _, phase in library.enter(phase) }
+            .onChange(of: scenePhase) { if scenePhase == .active { host.store.send(.library(.refresh)) } }
+    }
+
+    @ViewBuilder private var content: some View {
         @Bindable var navigator = navigator
         NavigationSplitView {
             ConversationSidebar()
@@ -183,6 +297,7 @@ struct DemoRootView: View {
         .environment(decide)
         .environment(speech)
         .environment(library)
+        .environment(choice)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 DemoLanguagePicker(
@@ -192,41 +307,5 @@ struct DemoRootView: View {
             }
         }
         .environment(\.locale, (DemoLanguage(rawValue: languageCode) ?? .english).locale)
-        .onAppear {
-            lifetime.register(windowID, host: host)
-            if LaunchArguments.value("--gui-e2e") == nil {
-                host.store.send(.restoreLatestRequested)
-                host.preferences.removeLegacySearchKey()
-            } else {
-                host.store.send(.library(.refresh))
-            }
-        }
-        .onDisappear {
-            library.close()
-            lifetime.close(windowID)
-        }
-        .onChange(of: navigator.selection) { old, new in
-            if old == .ocr && new != .ocr { library.leave() }
-        }
-        .onChange(of: library.installed(.irodori)?.directory) { old, new in
-            if old != nil, new != old { speech.send(.bundleUnavailable) }
-        }
-        .onChange(of: library.installed(.gliner)?.directory) { old, new in
-            guard old != nil, new != old else { return }
-            products.send(.modelUnavailable)
-            extract.send(.closed)
-        }
-        .onChange(of: library.installed(.embeddingGemma)?.directory) { old, new in
-            guard old != nil, new != old, ImageSearchAssembly.launchBundle == nil else { return }
-            imageSearch.send(.disappeared)
-            videoSearch.send(.disappeared)
-        }
-        .onChange(of: scenePhase) { _, phase in library.enter(phase) }
-        .onChange(of: scenePhase) { if scenePhase == .active { host.store.send(.library(.refresh)) } }
-        .onChange(of: host.state.id) { host.restorePreferences() }
-        .onChange(of: chat.loadStarted) { host.refreshIfModelChanged() }
-        .task {
-            await GUIDriver.shared.start(navigator: navigator, chat: chat, host: host, models: models, extract: extract)
-        }
     }
 }

@@ -8,31 +8,33 @@ import RecipeRuntime
 enum RecipeAssembly {
     static let modelPathKey = "recipeDecisionBundlePath"
 
-    static func makeStore() -> Store<RecipeFeature> {
+    static func makeStore(managed: Bool = false) -> Store<RecipeFeature> {
         do {
-            let state = try initialState()
-            let runner = RecipeRunner(service: try LiveRecipeService()) {
-                UserDefaults.standard.set($0, forKey: modelPathKey)
-            }
+            let state = try initialState(managed: managed)
+            let service = try LiveRecipeService(acquireModel: { path in
+                guard managed else { return {} }
+                return try await MacModelLibraryServices.acquire(path, modelID: "clef-flash-9b")
+            })
+            let runner = RecipeRunner(service: service)
             return Store(initialState: state, run: runner.run)
         } catch {
             let message = "The recipe demo could not open its resources: " + error.localizedDescription
             var state = RecipeState(vocabulary: FoodVocabulary(foods: [], units: [:]))
             state.message = message
-            return Store(initialState: state) { effect, send in
-                if case .waitForIdle(let session) = effect {
-                    send(.stopped(session))
-                } else {
-                    send(.failed(effect.session, message))
+            let store = Store<RecipeFeature>(initialState: state) { effect, send in
+                switch effect {
+                case .waitForIdle(let session): send(.stopped(session))
+                case .release(let session): send(.released(session))
+                default: send(.failed(effect.session, message))
                 }
             }
+            return store
         }
     }
 
-    static func initialState() throws -> RecipeState {
+    static func initialState(managed: Bool = false) throws -> RecipeState {
         let path =
-            ProcessInfo.processInfo.environment["COREAI_DECISION_BUNDLE"]
-            ?? UserDefaults.standard.string(forKey: modelPathKey) ?? ""
+            managed ? "" : ProcessInfo.processInfo.environment["COREAI_DECISION_BUNDLE"] ?? ""
         return try RecipeState(vocabulary: FoodVocabulary.bundled(), examples: examples(), modelPath: path)
     }
 
