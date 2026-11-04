@@ -72,14 +72,54 @@ protocol was fixed, so the record marks it `legacy`. The run started from commit
 
 ## Performance
 
-The performance was measured twice on 2026-11-04 with the same rows P, timing boundary and counts: on AC power under
-`plan-d2b-ac` (#488) and earlier on battery power under `plan-d2b` revision 3 (#480). The record's performance values
-come from the AC measurement (evidence `performance`); the battery measurement stays as evidence
-`performance-battery` with its own file. The two are not a controlled comparison of power sources: the thermal
-pressure, the battery state, the energy mode and the other activity on the machine differ, and the AC latency and
-loads are not faster (see [docs/jev27b.md](../../jev27b.md#performance)).
+The performance was measured three times on 2026-11-04 with the same rows P, timing boundary and counts: on AC power
+with a 140 W adapter at 94 W under `plan-d2b-ac94` (#490), earlier on AC power with a 70 W adapter under `plan-d2b-ac`
+(#488), and first on battery power under `plan-d2b` revision 3 (#480). The record's performance values come from the
+94 W measurement (evidence `performance`); the other two stay as evidence `performance-ac-70w` and
+`performance-battery` with their own files. Only the 94 W measurement started every row at a nominal thermal state
+and every stage without user input and without audio, video or automation activity. The three are not a controlled
+comparison of power sources: the thermal pressure, the battery state, the energy mode and the other activity on the
+machine differ (see [docs/jev27b.md](../../jev27b.md#performance)).
 
-### AC power
+### AC 94 W
+
+[`performance-ac94.json`](performance-ac94.json): the measurement of 2026-11-04 from 11:21:07 to 11:30:03 (#490) under
+the fixed plan `plan-d2b-ac94` with SHA-256 `47a12e99d22dbd40e2a41cedc2b91665bc587e44bbdeb6157d97c24d299c4cb2`. The plan
+is `plan-d2b-ac` with only the power, the thermal condition, the other load, the code revision, the binary and the
+per-row thermal wait changed, and it was frozen before the measurement. Besides the fields of the earlier files, every
+latency row records its start (`started`, UTC in whole seconds), the seconds it waited for a nominal thermal state
+(`thermal_wait_seconds`) and the state it started with (`thermal_state_at_start`), and `conditions` hold the gate of
+every stage (watts, battery, energy mode, thermal pressure level, seconds without user input and matching assertions).
+Its `sources` include the measurement log, the thermal and power logs and the assertions of `pmset -g log`.
+
+The plan's code revision is 18890f5, which added `--wait-nominal-thermal` to `coreai-verify typed-decide`; the command
+line measurements used a release build of that commit. Before every latency row (warmups included) the tool waited, up
+to 600 s, until `ProcessInfo.processInfo.thermalState` was nominal. The cancellation test ran in the debug build of the
+test target, as the plan states. Before the measurement `pgrep` found no other model process.
+
+- **Power:** the 140W USB-C Power Adapter at 94 W (`pmset -g ac`) at every stage, the battery at 100%, charged. The
+  energy mode on AC was High Power (`powermode 2` in `pmset -g`), the owner's setting, which was not changed.
+- **Gate:** every stage started only at 94 W or more, with at least 120 s without user input (`HIDIdleTime`), with no
+  `coreaudiod`, video wake lock or Computer Use assertion and at thermal pressure level 0, waiting for each condition
+  up to 10 minutes. Only the cancellation test had to wait, 30 s, for 120 s without input.
+- **Thermal pressure:** all 16 latency rows started at a nominal thermal state. Only the 100-token row of the third
+  round had to wait, 54.51 s. During the latency process the level of `thermalmonitord` went to moderate at 11:25:51
+  and heavy from 11:25:53 to 11:26:52 (moderate until 11:27:02): the 8,192-token row of the second round turned
+  moderate and heavy about 20 s into it, and the next row waited until the level was back to nominal. The median rows
+  of all four lengths, the loads and the cancellation test ran at nominal pressure. `pmset -g therm` showed no warning.
+- **Other load:** the assertions of `pmset -g log` show only the assertions of the measurement and network tasks of
+  `cloudd` from 11:27:59 to 11:28:17, between the latency process and the cancellation test. There was user input
+  during the latency process, the last at about 11:26:13, while it waited for a nominal thermal state before the third
+  round, so no row ran then; earlier inputs in that process cannot be excluded, since `HIDIdleTime` keeps only the
+  last one. The CPU and GPU use of other processes was not recorded.
+
+The record keeps this evidence as `standard` for the same reasons as the earlier ones: the plan named the power, the
+energy mode, the thermal and other-load conditions and the debug build of the cancellation test before the
+measurement. The same request without cancellation took 8.20 s in the debug build, within the 7.96 to 9.03 s of the
+three measured 2,000-token rows of the release command line tool, so the debug build does not make `cancel_s` look
+longer. The cancelled requests took 8.72 to 9.00 s, longer than that uncancelled run, for a reason not investigated.
+
+### AC 70 W
 
 [`performance-ac.json`](performance-ac.json): the measurement of 2026-11-04 from 09:22:08 to 09:31:10 (#488) under the
 fixed plan `plan-d2b-ac` with SHA-256 `8763b18a0830395744f3f65e2bd27d5a151d85dc201b1296ea15e175af9128cb`. The plan is

@@ -1,0 +1,1067 @@
+{
+  "bundle": {
+    "bytes": 16064815496,
+    "counted": "performance.py records after plan-d2b-ac94",
+    "decision_sha256": "a2b186a87a64d9e93a56f185a5ebc2a0613d00da7440eeb8c8c2229b64f6adf3",
+    "files": 13,
+    "summary": {
+      "counts": {
+        "failed": 0,
+        "passed": 1,
+        "warmup": 0
+      },
+      "metrics": {
+        "bundle_bytes": {
+          "max": 16064815496,
+          "mean": 16064815496,
+          "median": 16064815496,
+          "min": 16064815496,
+          "n": 1,
+          "p95": null,
+          "unit": "B"
+        }
+      },
+      "source_sha256": "c4e19debb2ba3c69ff9a558fb98d6e2ff6d94df5ed6f33073ab8a3e68c1fceab"
+    }
+  },
+  "cancel": {
+    "attempts": [
+      {
+        "attempt": 1,
+        "cancelled": true,
+        "entered": true,
+        "request_to_error_seconds": 8.724637334,
+        "start_to_error_seconds": 8.763941709,
+        "tokens": 2000
+      },
+      {
+        "attempt": 2,
+        "cancelled": true,
+        "entered": true,
+        "request_to_error_seconds": 9.002470834,
+        "start_to_error_seconds": 9.04139075,
+        "tokens": 2000
+      },
+      {
+        "attempt": 3,
+        "cancelled": true,
+        "entered": true,
+        "request_to_error_seconds": 8.840078334,
+        "start_to_error_seconds": 8.879069417,
+        "tokens": 2000
+      }
+    ],
+    "build": "debug build of the test target (swift test without -c release)",
+    "counts": {
+      "failed": 0,
+      "passed": 3,
+      "warmup": 0
+    },
+    "metrics": {
+      "cancel_s": {
+        "max": 9.002470834,
+        "mean": 8.855728834,
+        "median": 8.840078334,
+        "min": 8.724637334,
+        "n": 3,
+        "p95": null,
+        "unit": "s"
+      }
+    },
+    "note": "The test backbone runs the forward in a task that the cancellation does not reach, so the request ends with CancellationError when the run returns. Whether a Core AI run itself stops on a cancellation was not measured.",
+    "request": "card-example:refund with its state repeated 164 times (not a P row)",
+    "source_sha256": "8c0b3d63b9df19dce77af6f32b20b8c0f2b0e36bf967905091c507fc250632bf",
+    "tokens": 2000,
+    "uncancelled_seconds": 8.195826292
+  },
+  "checkpoint_cancel": {
+    "build": "debug build of the test target (swift test without -c release)",
+    "cancelled_seconds": 0.165411792,
+    "caught": "before the run",
+    "next_row_error": 0.0005070642031823405,
+    "request": "card-example:refund",
+    "same_row_error_without_cancellation": 0.0005070642031823405,
+    "tokens": 1472,
+    "uncancelled_seconds": 6.1214185
+  },
+  "conditions": {
+    "builds": "command line measurements: release build of coreai-verify at the plan's code_revision; cancellation test: debug build of the test target (swift test without -c release), as the plan states",
+    "gate_waits_seconds": {
+      "cached-1": 0,
+      "cached-2": 0,
+      "cached-3": 0,
+      "cancel": 30,
+      "fresh-1": 0,
+      "fresh-2": 0,
+      "fresh-3": 0,
+      "latency": 0
+    },
+    "other_activity": "assertions of pmset -g log during the run (assertions-log.txt): only the caffeinate assertions of the measurement and network tasks of cloudd from 11:27:59 to 11:28:17, between the latency process and the cancellation test; no audio, video or automation assertions. User input (HIDIdleTime): none for 647 to 792 s before the loads and the latency process; input happened during the latency process, the last at about 11:26:13, while it waited for a nominal thermal state before the third round (no row ran then); the cancellation test waited 30 s for 120 s without input",
+    "other_load": "pgrep found no other model process before the measurement; every stage started with no user input for at least 120 s and no audio, video or automation assertions; GPU use of other processes was not recorded",
+    "row_thermal": {
+      "largest_wait_seconds": 54.513207833,
+      "limit_seconds": 600,
+      "nominal_at_start": 16,
+      "rows": 16,
+      "total_wait_seconds": 54.513288748
+    },
+    "row_thermal_note": "started is the UTC time of a row's start in whole seconds; every row started at nominal; the 100-token row of the third round waited 54.51 s for it",
+    "stages": [
+      {
+        "adapter": "140W USB-C Power Adapter",
+        "battery_percent": 100,
+        "battery_state": "charged",
+        "idle_seconds": 647,
+        "other_assertions": 0,
+        "pmset_therm": "no warning",
+        "powermode": 2,
+        "stage": "start",
+        "thermal_pressure_level": 0,
+        "time": "11:21:07",
+        "watts": 94
+      },
+      {
+        "adapter": "140W USB-C Power Adapter",
+        "battery_percent": 100,
+        "battery_state": "charged",
+        "idle_seconds": 647,
+        "other_assertions": 0,
+        "pmset_therm": "no warning",
+        "powermode": 2,
+        "stage": "fresh-1",
+        "thermal_pressure_level": 0,
+        "time": "11:21:07",
+        "watts": 94
+      },
+      {
+        "adapter": "140W USB-C Power Adapter",
+        "battery_percent": 100,
+        "battery_state": "charged",
+        "idle_seconds": 684,
+        "other_assertions": 0,
+        "pmset_therm": "no warning",
+        "powermode": 2,
+        "stage": "fresh-2",
+        "thermal_pressure_level": 0,
+        "time": "11:21:44",
+        "watts": 94
+      },
+      {
+        "adapter": "140W USB-C Power Adapter",
+        "battery_percent": 100,
+        "battery_state": "charged",
+        "idle_seconds": 720,
+        "other_assertions": 0,
+        "pmset_therm": "no warning",
+        "powermode": 2,
+        "stage": "fresh-3",
+        "thermal_pressure_level": 0,
+        "time": "11:22:20",
+        "watts": 94
+      },
+      {
+        "adapter": "140W USB-C Power Adapter",
+        "battery_percent": 100,
+        "battery_state": "charged",
+        "idle_seconds": 756,
+        "other_assertions": 0,
+        "pmset_therm": "no warning",
+        "powermode": 2,
+        "stage": "cached-1",
+        "thermal_pressure_level": 0,
+        "time": "11:22:56",
+        "watts": 94
+      },
+      {
+        "adapter": "140W USB-C Power Adapter",
+        "battery_percent": 100,
+        "battery_state": "charged",
+        "idle_seconds": 768,
+        "other_assertions": 0,
+        "pmset_therm": "no warning",
+        "powermode": 2,
+        "stage": "cached-2",
+        "thermal_pressure_level": 0,
+        "time": "11:23:08",
+        "watts": 94
+      },
+      {
+        "adapter": "140W USB-C Power Adapter",
+        "battery_percent": 100,
+        "battery_state": "charged",
+        "idle_seconds": 780,
+        "other_assertions": 0,
+        "pmset_therm": "no warning",
+        "powermode": 2,
+        "stage": "cached-3",
+        "thermal_pressure_level": 0,
+        "time": "11:23:20",
+        "watts": 94
+      },
+      {
+        "adapter": "140W USB-C Power Adapter",
+        "battery_percent": 100,
+        "battery_state": "charged",
+        "idle_seconds": 792,
+        "other_assertions": 0,
+        "pmset_therm": "no warning",
+        "powermode": 2,
+        "stage": "latency",
+        "thermal_pressure_level": 0,
+        "time": "11:23:32",
+        "watts": 94
+      },
+      {
+        "adapter": "140W USB-C Power Adapter",
+        "battery_percent": 100,
+        "battery_state": "charged",
+        "idle_seconds": 127,
+        "other_assertions": 0,
+        "pmset_therm": "no warning",
+        "powermode": 2,
+        "stage": "cancel",
+        "thermal_pressure_level": 0,
+        "time": "11:28:20",
+        "watts": 94
+      },
+      {
+        "adapter": "140W USB-C Power Adapter",
+        "battery_percent": 100,
+        "battery_state": "charged",
+        "idle_seconds": 230,
+        "other_assertions": 0,
+        "pmset_therm": "no warning",
+        "powermode": 2,
+        "stage": "end",
+        "thermal_pressure_level": 0,
+        "time": "11:30:03",
+        "watts": 94
+      }
+    ],
+    "thermal_pressure_history": [
+      {
+        "mtpl": 1,
+        "time": "11:25:51"
+      },
+      {
+        "mtpl": 2,
+        "time": "11:25:53"
+      },
+      {
+        "mtpl": 1,
+        "time": "11:26:52"
+      },
+      {
+        "mtpl": 0,
+        "time": "11:27:02"
+      }
+    ],
+    "thermal_pressure_levels": {
+      "0": "nominal",
+      "1": "moderate",
+      "2": "heavy"
+    },
+    "thermal_pressure_rows": "every row started at a nominal thermal state; the 8,192-token row of the second round turned moderate about 20 s into it (11:25:51) and heavy from 11:25:53 to its end; the next row waited 54.51 s until the state was nominal again (mTPL 0 at 11:27:02); the median rows of all four lengths, the loads and the cancellation test ran at nominal pressure",
+    "thermal_pressure_source": "thermalmonitord mTPL from log show over the measurement window, saved right after the run (thermal-log.txt); the rows record ProcessInfo thermalState at their start",
+    "window": "2026-11-04 11:21:07 to 11:30:03 +0900"
+  },
+  "evidence": "performance",
+  "latency": {
+    "100": {
+      "counts": {
+        "failed": 0,
+        "passed": 3,
+        "warmup": 1
+      },
+      "metrics": {
+        "latency_s": {
+          "max": 0.675247875,
+          "mean": 0.6292735693333333,
+          "median": 0.614704083,
+          "min": 0.5978687500000001,
+          "n": 3,
+          "p95": null,
+          "unit": "s"
+        }
+      },
+      "source_sha256": "77f1580d44a643fb502e3074571f3ded47e050b06ed1ae3fdf382680aa33629c"
+    },
+    "2000": {
+      "counts": {
+        "failed": 0,
+        "passed": 3,
+        "warmup": 1
+      },
+      "metrics": {
+        "latency_s": {
+          "max": 9.031009541,
+          "mean": 8.657323763666668,
+          "median": 8.97832325,
+          "min": 7.9626385,
+          "n": 3,
+          "p95": null,
+          "unit": "s"
+        }
+      },
+      "source_sha256": "eb36668202bc796b93c398a28b0d0e23fc8021702a23730b498acb8482c59aa4"
+    },
+    "500": {
+      "counts": {
+        "failed": 0,
+        "passed": 3,
+        "warmup": 1
+      },
+      "metrics": {
+        "latency_s": {
+          "max": 2.270861916,
+          "mean": 2.145603,
+          "median": 2.207618334,
+          "min": 1.9583287500000002,
+          "n": 3,
+          "p95": null,
+          "unit": "s"
+        }
+      },
+      "source_sha256": "c345701f5d8246bda076f736ea2b932395497320dec091a7ec007c36823a4f16"
+    },
+    "8192": {
+      "counts": {
+        "failed": 0,
+        "passed": 3,
+        "warmup": 1
+      },
+      "metrics": {
+        "latency_s": {
+          "max": 37.28912875,
+          "mean": 36.79215122233334,
+          "median": 37.139140167,
+          "min": 35.94818475,
+          "n": 3,
+          "p95": null,
+          "unit": "s"
+        }
+      },
+      "source_sha256": "3d6a4505a9dd8684be2fb8e75293d38d6b484e9381a3d6dd462c38c07269e24c"
+    }
+  },
+  "latency_process": {
+    "load_seconds": {
+      "backbone": 3.607829791,
+      "bundle": 5.253613625,
+      "head": 0.00021075,
+      "tokenizer": 0.639137375
+    },
+    "specialization": "cached"
+  },
+  "latency_rows": [
+    {
+      "elapsed_seconds": 2.126821333,
+      "id": "performance:tokens100@warmup",
+      "resident_bytes_max": {
+        "failed_samples": 0,
+        "footprint_bytes": 904655472,
+        "interval_seconds": 0.1,
+        "rss_bytes": 16519348224,
+        "samples": 23
+      },
+      "started": "2026-11-04T02:23:41Z",
+      "thermal_state_at_start": "nominal",
+      "thermal_wait_seconds": 6.5416e-05,
+      "token_count": 100
+    },
+    {
+      "elapsed_seconds": 1.896661917,
+      "id": "performance:tokens500@warmup",
+      "resident_bytes_max": {
+        "failed_samples": 0,
+        "footprint_bytes": 1314206392,
+        "interval_seconds": 0.1,
+        "rss_bytes": 16552525824,
+        "samples": 20
+      },
+      "started": "2026-11-04T02:23:43Z",
+      "thermal_state_at_start": "nominal",
+      "thermal_wait_seconds": 1.041e-06,
+      "token_count": 500
+    },
+    {
+      "elapsed_seconds": 7.903170041,
+      "id": "performance:tokens2000@warmup",
+      "resident_bytes_max": {
+        "failed_samples": 0,
+        "footprint_bytes": 3019387840,
+        "interval_seconds": 0.1,
+        "rss_bytes": 16736092160,
+        "samples": 81
+      },
+      "started": "2026-11-04T02:23:45Z",
+      "thermal_state_at_start": "nominal",
+      "thermal_wait_seconds": 9.17e-07,
+      "token_count": 2000
+    },
+    {
+      "elapsed_seconds": 36.579553333,
+      "id": "performance:tokens8192@warmup",
+      "resident_bytes_max": {
+        "failed_samples": 0,
+        "footprint_bytes": 8189654576,
+        "interval_seconds": 0.1,
+        "rss_bytes": 17283481600,
+        "samples": 368
+      },
+      "started": "2026-11-04T02:23:53Z",
+      "thermal_state_at_start": "nominal",
+      "thermal_wait_seconds": 1.042e-06,
+      "token_count": 8192
+    },
+    {
+      "elapsed_seconds": 0.614704083,
+      "id": "performance:tokens100@1",
+      "resident_bytes_max": {
+        "failed_samples": 0,
+        "footprint_bytes": 6413775976,
+        "interval_seconds": 0.1,
+        "rss_bytes": 17165156352,
+        "samples": 8
+      },
+      "started": "2026-11-04T02:24:30Z",
+      "thermal_state_at_start": "nominal",
+      "thermal_wait_seconds": 1.167e-06,
+      "token_count": 100
+    },
+    {
+      "elapsed_seconds": 2.270861916,
+      "id": "performance:tokens500@1",
+      "resident_bytes_max": {
+        "failed_samples": 0,
+        "footprint_bytes": 6993835088,
+        "interval_seconds": 0.1,
+        "rss_bytes": 16680845312,
+        "samples": 24
+      },
+      "started": "2026-11-04T02:24:30Z",
+      "thermal_state_at_start": "nominal",
+      "thermal_wait_seconds": 1.208e-06,
+      "token_count": 500
+    },
+    {
+      "elapsed_seconds": 9.031009541,
+      "id": "performance:tokens2000@1",
+      "resident_bytes_max": {
+        "failed_samples": 0,
+        "footprint_bytes": 8495756536,
+        "interval_seconds": 0.1,
+        "rss_bytes": 16820043776,
+        "samples": 92
+      },
+      "started": "2026-11-04T02:24:33Z",
+      "thermal_state_at_start": "nominal",
+      "thermal_wait_seconds": 9.16e-07,
+      "token_count": 2000
+    },
+    {
+      "elapsed_seconds": 37.139140167,
+      "id": "performance:tokens8192@1",
+      "resident_bytes_max": {
+        "failed_samples": 0,
+        "footprint_bytes": 12514916008,
+        "interval_seconds": 0.1,
+        "rss_bytes": 17288019968,
+        "samples": 373
+      },
+      "started": "2026-11-04T02:24:42Z",
+      "thermal_state_at_start": "nominal",
+      "thermal_wait_seconds": 1.083e-06,
+      "token_count": 8192
+    },
+    {
+      "elapsed_seconds": 0.5978687500000001,
+      "id": "performance:tokens100@2",
+      "resident_bytes_max": {
+        "failed_samples": 0,
+        "footprint_bytes": 10796594280,
+        "interval_seconds": 0.1,
+        "rss_bytes": 17168990208,
+        "samples": 7
+      },
+      "started": "2026-11-04T02:25:19Z",
+      "thermal_state_at_start": "nominal",
+      "thermal_wait_seconds": 1.416e-06,
+      "token_count": 100
+    },
+    {
+      "elapsed_seconds": 2.207618334,
+      "id": "performance:tokens500@2",
+      "resident_bytes_max": {
+        "failed_samples": 0,
+        "footprint_bytes": 11388007528,
+        "interval_seconds": 0.1,
+        "rss_bytes": 16684597248,
+        "samples": 24
+      },
+      "started": "2026-11-04T02:25:20Z",
+      "thermal_state_at_start": "nominal",
+      "thermal_wait_seconds": 1.208e-06,
+      "token_count": 500
+    },
+    {
+      "elapsed_seconds": 8.97832325,
+      "id": "performance:tokens2000@2",
+      "resident_bytes_max": {
+        "failed_samples": 0,
+        "footprint_bytes": 12726433040,
+        "interval_seconds": 0.1,
+        "rss_bytes": 16830267392,
+        "samples": 91
+      },
+      "started": "2026-11-04T02:25:22Z",
+      "thermal_state_at_start": "nominal",
+      "thermal_wait_seconds": 1.042e-06,
+      "token_count": 2000
+    },
+    {
+      "elapsed_seconds": 37.28912875,
+      "id": "performance:tokens8192@2",
+      "resident_bytes_max": {
+        "failed_samples": 0,
+        "footprint_bytes": 16617944816,
+        "interval_seconds": 0.1,
+        "rss_bytes": 17296916480,
+        "samples": 375
+      },
+      "started": "2026-11-04T02:25:31Z",
+      "thermal_state_at_start": "nominal",
+      "thermal_wait_seconds": 1.375e-06,
+      "token_count": 8192
+    },
+    {
+      "elapsed_seconds": 0.675247875,
+      "id": "performance:tokens100@3",
+      "resident_bytes_max": {
+        "failed_samples": 0,
+        "footprint_bytes": 14233203840,
+        "interval_seconds": 0.1,
+        "rss_bytes": 16673505280,
+        "samples": 8
+      },
+      "started": "2026-11-04T02:27:03Z",
+      "thermal_state_at_start": "nominal",
+      "thermal_wait_seconds": 54.513207833,
+      "token_count": 100
+    },
+    {
+      "elapsed_seconds": 1.9583287500000002,
+      "id": "performance:tokens500@3",
+      "resident_bytes_max": {
+        "failed_samples": 0,
+        "footprint_bytes": 14623306856,
+        "interval_seconds": 0.1,
+        "rss_bytes": 16693428224,
+        "samples": 21
+      },
+      "started": "2026-11-04T02:27:03Z",
+      "thermal_state_at_start": "nominal",
+      "thermal_wait_seconds": 1e-06,
+      "token_count": 500
+    },
+    {
+      "elapsed_seconds": 7.9626385,
+      "id": "performance:tokens2000@3",
+      "resident_bytes_max": {
+        "failed_samples": 0,
+        "footprint_bytes": 16260904232,
+        "interval_seconds": 0.1,
+        "rss_bytes": 16831823872,
+        "samples": 81
+      },
+      "started": "2026-11-04T02:27:05Z",
+      "thermal_state_at_start": "nominal",
+      "thermal_wait_seconds": 1.042e-06,
+      "token_count": 2000
+    },
+    {
+      "elapsed_seconds": 35.94818475,
+      "id": "performance:tokens8192@3",
+      "resident_bytes_max": {
+        "failed_samples": 0,
+        "footprint_bytes": 21166831344,
+        "interval_seconds": 0.1,
+        "rss_bytes": 17298096128,
+        "samples": 361
+      },
+      "started": "2026-11-04T02:27:13Z",
+      "thermal_state_at_start": "nominal",
+      "thermal_wait_seconds": 1.042e-06,
+      "token_count": 8192
+    }
+  ],
+  "loads": {
+    "first_load_s": {
+      "counts": {
+        "failed": 0,
+        "passed": 3,
+        "warmup": 0
+      },
+      "metrics": {
+        "first_load_s": {
+          "max": 28.511821875,
+          "mean": 28.254845500000002,
+          "median": 28.22435325,
+          "min": 28.028361375000003,
+          "n": 3,
+          "p95": null,
+          "unit": "s"
+        }
+      },
+      "runs": [
+        {
+          "load_seconds": {
+            "backbone": 22.641136375,
+            "bundle": 5.256628292,
+            "head": 0.000176875,
+            "tokenizer": 0.613880333
+          },
+          "specialization": "fresh"
+        },
+        {
+          "load_seconds": {
+            "backbone": 22.257051291,
+            "bundle": 5.311119458,
+            "head": 0.000177709,
+            "tokenizer": 0.656004792
+          },
+          "specialization": "fresh"
+        },
+        {
+          "load_seconds": {
+            "backbone": 22.121006125,
+            "bundle": 5.25917775,
+            "head": 0.000175458,
+            "tokenizer": 0.648002042
+          },
+          "specialization": "fresh"
+        }
+      ],
+      "source_sha256": "d6621480992ec1e99a2822dcd865f8690f426c07ae9b78f921a043e3516631b5"
+    },
+    "warm_load_s": {
+      "counts": {
+        "failed": 0,
+        "passed": 3,
+        "warmup": 0
+      },
+      "metrics": {
+        "warm_load_s": {
+          "max": 9.506094709000001,
+          "mean": 9.496746722333334,
+          "median": 9.504954333,
+          "min": 9.479191125,
+          "n": 3,
+          "p95": null,
+          "unit": "s"
+        }
+      },
+      "runs": [
+        {
+          "load_seconds": {
+            "backbone": 3.596756875,
+            "bundle": 5.269954084,
+            "head": 0.0002025,
+            "tokenizer": 0.63918125
+          },
+          "specialization": "cached"
+        },
+        {
+          "load_seconds": {
+            "backbone": 3.593314834,
+            "bundle": 5.250037417,
+            "head": 0.000186083,
+            "tokenizer": 0.635652791
+          },
+          "specialization": "cached"
+        },
+        {
+          "load_seconds": {
+            "backbone": 3.605176375,
+            "bundle": 5.250843458,
+            "head": 0.000184167,
+            "tokenizer": 0.648750333
+          },
+          "specialization": "cached"
+        }
+      ],
+      "source_sha256": "e2dc5d8e0ba8db18dbc5f96dac0c878e6cb1f12afbabf6e8277aa38806437d07"
+    }
+  },
+  "memory": {
+    "counts": {
+      "failed": 0,
+      "passed": 1,
+      "warmup": 0
+    },
+    "metrics": {
+      "peak_footprint_bytes": {
+        "max": 21336815344,
+        "mean": 21336815344,
+        "median": 21336815344,
+        "min": 21336815344,
+        "n": 1,
+        "p95": null,
+        "unit": "B"
+      },
+      "peak_rss_bytes": {
+        "max": 32333840384,
+        "mean": 32333840384,
+        "median": 32333840384,
+        "min": 32333840384,
+        "n": 1,
+        "p95": null,
+        "unit": "B"
+      },
+      "resident_bytes": {
+        "max": 17298096128,
+        "mean": 17298096128,
+        "median": 17298096128,
+        "min": 17298096128,
+        "n": 1,
+        "p95": null,
+        "unit": "B"
+      }
+    },
+    "resident_failed_samples": [
+      0,
+      0,
+      0
+    ],
+    "resident_samples": [
+      373,
+      375,
+      361
+    ],
+    "source_sha256": "b2bc1d4ee1119819e0968c93b627adaf87679c2f381efac1b43760a5918fb86a",
+    "values": {
+      "peak_footprint_bytes": 21336815344,
+      "peak_rss_bytes": 32333840384,
+      "resident_bytes": 17298096128
+    }
+  },
+  "p": {
+    "excluded_parts": 3324,
+    "rows": [
+      {
+        "cut": 53,
+        "id": "performance:tokens100",
+        "kind": "noul",
+        "parts": [
+          "v3_44b905b6c09bfa01_n",
+          "v3_d6823ad76f582175_c"
+        ],
+        "sha256": "3e8847ebd269f98207e5bd876561235ca8b38f6f141f4c98420939c0ba133570",
+        "tokens": 100,
+        "tokens_sha256": "9c19ce14c4faf01538d6a37e5b2a7a325cc6f7a927bde10926b90af94faed40e"
+      },
+      {
+        "cut": 436,
+        "id": "performance:tokens500",
+        "kind": "choice",
+        "parts": [
+          "v3_0bb289f2bb8dcc75_c",
+          "v3_5261e8a24601b607_c",
+          "v3_a5699c60ed055d9c_n",
+          "v3_f93b4822fa758009_s",
+          "v3_f2550dc39d9d0b28_n",
+          "v3_df8343dae2a5d286_s",
+          "v3_d8c565ab7d18d937_c",
+          "v3_e69d4c19206baed2_c",
+          "painting-geometry-v1:0e2a6fff5a08e2fee879256f:rgb:x0_y7_red"
+        ],
+        "sha256": "0fb1fbf55baf4b0aee96edab61b571a3563eba54e0c22747f408ac0b610f6091",
+        "tokens": 500,
+        "tokens_sha256": "86f979c031e2c05f7da5a1c516e5a59251651135539cf532174cf22470f83a8a"
+      },
+      {
+        "cut": 40,
+        "id": "performance:tokens2000",
+        "kind": "score",
+        "parts": [
+          "v3_168ae677bc8bb220_s",
+          "v3_46ad0419b582ced8_c",
+          "v3_1a794a4c1f0a33f3_n",
+          "v3_cd536d10258a4a1d_s",
+          "v3_a4823d366f72eeee_c",
+          "v3_9cf8a9e03734ab9d_s",
+          "v3_eba655c81264f7c6_s",
+          "v3_6d1be614346367e1_c",
+          "v3_d62035862e665733_n",
+          "v3_af2d5b43a647665b_c",
+          "v3_206493083c3afe69_c",
+          "v3_b686d257c728d7ae_s",
+          "v3_22026f12f274a124_s",
+          "v3_89c3b19b2190d8ae_n",
+          "v3_6850e20435d3c491_n",
+          "v3_56e885f6d3ebf4ec_c",
+          "v3_60b1fe46049ca69a_n",
+          "v3_1be94c1b86fb0510_c",
+          "v3_cbef0d518629b01c_c",
+          "v3_e921934d4384b5c9_s",
+          "tic_tac_toe-v1:..XOXX.OO:..XOXX.OO",
+          "v3_47bdfad12cd95d91_n",
+          "v3_006181f87d5634fa_s",
+          "v3_527df1e7544be499_s",
+          "v3_3cf5e2e6f48c74be_n",
+          "v3_83b83216002df6a4_n",
+          "v3_2e9e700c0878aa85_s",
+          "v3_ef44e5f558399f94_c",
+          "v3_2d37b0954057b5b4_c",
+          "v3_4e7e7d2db405a3c0_s",
+          "v3_7c0aa74cf5081583_s",
+          "v3_c2e46e6e08bff14e_n",
+          "v3_72e7df0a75f5e2d3_n",
+          "v3_cff42238e51d473d_n",
+          "v3_263f7f108105b976_n",
+          "v3_00fb1a44cac8ebef_c",
+          "v3_55160b616b6df1d8_c",
+          "v3_90698613232ac33e_n",
+          "v3_2dbbffc5025d6f53_n",
+          "v3_63588fd7e18a81bf_c",
+          "v3_f1aa1e6bce57154d_s",
+          "v3_6d3988f85284e0f9_n",
+          "v3_dc377d200fb9ba17_n",
+          "snake-v1:7fce3efeaa9bc27df50c24a5:collision_up",
+          "tic_tac_toe-v1:...OXX.O.:...OXX.O."
+        ],
+        "sha256": "f37e7ec3a6ce71f08c2ee0315968f951195d4c8ba139622c50095f9c27d2d6e9",
+        "tokens": 2000,
+        "tokens_sha256": "4fa9a11ff84fa24b5764789f9052640b80e2e9617463ea4fb363c2d41e89242f"
+      },
+      {
+        "cut": 87,
+        "id": "performance:tokens8192",
+        "kind": "noul",
+        "parts": [
+          "snake-v1:73b8efb3cfc26c81ca45f666:collision_right",
+          "tile_platformer-v1:6ef06149384b366203927724:86009e2ef78d4e6b07b2ff24",
+          "v3_338ad8d13f820f95_n",
+          "v3_fa02dafbbdf39baf_n",
+          "v3_3b56dc0110523da1_n",
+          "v3_0a8a6f148bcefea9_c",
+          "v3_76e865d9e8c40b79_s",
+          "v3_799b6ce77231c31e_n",
+          "v3_2a1418e139c870a8_c",
+          "painting-geometry-v1:64bc2870f3a7605addb52186:rgb:x4_y6_red",
+          "v3_93b1f376ca0a9233_n",
+          "v3_6b097203a8c1f2ef_s",
+          "v3_19c2366b6557bee2_n",
+          "v3_917d48f3df32c1d7_n",
+          "v3_27e5e849f49805ab_c",
+          "v3_79a7957ca3d3200b_s",
+          "v3_96b3ec054bcec2a1_s",
+          "workflow-controls-v1:security_incidents:42:66:v1:BLOCK EGRESS ASSET",
+          "v3_1d771938b9ff63fd_c",
+          "v3_26f64b89c37f9733_c",
+          "v3_606ab454891213d6_n",
+          "v3_3613c361fa003646_c",
+          "v3_d111c0b5d740b7cf_s",
+          "v3_b43ac41125014120_s",
+          "v3_25a5984ab69ffb0d_n",
+          "workflow-controls-v1:customer_service:42:237:v0:CANCEL",
+          "v3_a7ddc6f35c39f58c_c",
+          "v3_66a55d605e552f54_s",
+          "v3_0d4dee1c0942c4d6_n",
+          "painting-geometry-v1:eebf3cbe96ecf1509d4ee646:hsl:x3_y7_hue",
+          "v3_bc136d1907b047c7_c",
+          "v3_3949bb58daeb665d_n",
+          "v3_5d6e607c0c43f6a6_s",
+          "v3_98e4e2fa1caac7b6_s",
+          "v3_9e94ff0dcecb4be4_n",
+          "v3_a1b1f8378435c933_c",
+          "v3_22464ab931533d06_c",
+          "v3_a202da755822eff8_s",
+          "v3_6fe7f4c825c6a9fa_s",
+          "painting-geometry-v1:94dc0bdcdb980f639745aa8b:silhouette:x0_y5",
+          "v3_9b0b5e2e66008ffe_s",
+          "v3_9bcb85a63fbea70a_s",
+          "v3_a85295fdf6e05790_n",
+          "v3_7cbc56c62f4e3515_c",
+          "v3_c21918a65051bf3b_s",
+          "v3_270f2afc1aabebc0_n",
+          "v3_0d568a1e2db91f59_n",
+          "v3_68109b3a0f255bcc_n",
+          "v3_35c9ed4a80cd9384_s",
+          "v3_7828e85ae57464a7_c",
+          "v3_8dc0b5c841126140_n",
+          "v3_c5d57233a0fec2c3_s",
+          "v3_047f7baca084e5a1_n",
+          "v3_c5b35710602facbe_s",
+          "v3_d62dd01fa6568678_c",
+          "v3_764776545dad3703_c",
+          "v3_5fbd24c15db8b549_n",
+          "v3_3be312dbc03b30d4_s",
+          "v3_7edece73a7a5df33_s",
+          "v3_bc50ea703f31ada6_n",
+          "v3_da5be7ced5df914c_n",
+          "tic_tac_toe-v1:..XXOOXOX:XX.OO.XOX",
+          "v3_c282272dbc2d89ba_s",
+          "v3_0d02c55746a71454_n",
+          "v3_91d876c9fe01aef5_s",
+          "workflow-controls-v1:security_incidents:42:63:v1:QUARANTINE FILE",
+          "v3_0fc5f1fe63e15274_s",
+          "v3_434b0f7dcd3b6e4b_c",
+          "v3_49801e91ba6e2d4a_s",
+          "tic_tac_toe-v1:..OX.OXOX:..OX.OXOX",
+          "v3_43e99241d3899e6c_c",
+          "v3_1a3fa0018e7c247e_n",
+          "v3_feacb47044788e3f_n",
+          "v3_de914d2c39df5630_c",
+          "v3_f93549a551cfb627_s",
+          "v3_2d0059902c8565b5_s",
+          "v3_34f394d5a8ec24d1_s",
+          "v3_1ce632c7e0f607ab_c",
+          "v3_e6a686ccf9048820_s",
+          "v3_42a52c5ce4fde203_s",
+          "v3_9b5c79346eb9c35c_c",
+          "v3_77ece403a722c619_n",
+          "v3_9eadbbea132a1cb2_n",
+          "v3_661f73237e2b2d26_c",
+          "v3_e7a59fa9a8eb8562_c",
+          "v3_966448c9915d5c9c_s",
+          "v3_a0ef54bae31cf35b_n",
+          "v3_4b0757cc7b6b696a_c",
+          "v3_7045377609e415da_n",
+          "v3_ce08b55cb93f3eac_s",
+          "v3_7d215f229fbb8191_n",
+          "v3_8e0eada021eaed95_c",
+          "v3_4ac9547962355479_c",
+          "v3_03b0f5b9764ca7d0_s",
+          "v3_4172a003b0198bef_n",
+          "v3_df093e10cb6257c1_n",
+          "workflow-controls-v1:agent_trace_observability:42:156:v2:PAGE ON-CALL",
+          "v3_e25803c091a5f822_s",
+          "v3_f33fb9740a531f6e_c",
+          "v3_765cc8f233eb99f2_s",
+          "v3_130b97d5a359a1a4_n",
+          "reasoning-control-v1:76109:1264:decision",
+          "v3_f576087ce4b75489_c",
+          "v3_28a65f1663ded4d5_s",
+          "v3_7ab5e39320fa12fc_n",
+          "v3_eb66631c124bcd44_n",
+          "v3_34e9205d822a2f1a_c",
+          "v3_142a0e4207092beb_c",
+          "v3_b7248f872e95467e_n",
+          "v3_30e57b2db149877c_s",
+          "v3_13dbbe1793f6b886_c",
+          "v3_ee12c47f8c5baf5f_c",
+          "v3_cc4c90373c10d08c_n",
+          "v3_9664c1b0c69569ff_s",
+          "v3_3c4dbbb4ae44735f_c",
+          "v3_cd732b4b76e2d232_n",
+          "workflow-controls-v1:security_incidents:42:99:v1:REMOVE FORWARDING RULES",
+          "v3_bf1704f73670cdcd_s",
+          "v3_34a1fc5190aae5f3_n",
+          "v3_8e3646db7d0baaa5_s",
+          "v3_365791d86460b68b_n",
+          "v3_63464313319a9e33_n",
+          "v3_06fe1bba5980296e_c",
+          "v3_daf13f84d1c9fdc9_s",
+          "v3_da3eeb16ca3d879d_c",
+          "v3_fd43e354c94002fa_c",
+          "v3_f318cbe88f98a51c_n",
+          "v3_a146febb8ab0c800_s",
+          "v3_24dad7214f086a2a_s",
+          "v3_2d8317ab847460d6_n",
+          "v3_7ee5c18f58cf4daf_s",
+          "v3_adbe5ded7283a55c_c",
+          "v3_02e58a8290ddd993_c",
+          "v3_f0ead55887a7f130_s",
+          "v3_c5a172450eb16833_s",
+          "workflow-controls-v1:security_incidents:42:211:v2:REVOKE ACCESS KEY",
+          "v3_423f7ef0a1d285dd_c",
+          "workflow-controls-v1:invoice_processing:42:15:v1:DUPLICATE",
+          "v3_815d70c510f6cb6c_s",
+          "v3_3220100bde8842f0_c",
+          "v3_241be18524145202_c",
+          "v3_9a9e7c1871f238e8_n",
+          "v3_cba7ccb68aeebf68_c",
+          "v3_ea5ab977e5fcf709_n"
+        ],
+        "sha256": "5b96d44f58fc8c7c84c1ce287d9b92e65079112feb1d8e6798ecbadda52b3c1c",
+        "tokens": 8192,
+        "tokens_sha256": "b6230ef3136acd81fe7b8cc4cb872dc19518ad4e1bda7d5addd24ccd383f41b2"
+      }
+    ],
+    "seed": "20261102:P",
+    "sha256": "5da251905302dcc31475f01c7062afa4ecc54b4d66143da9ab04b43adafe6002"
+  },
+  "plan": {
+    "acceptance_criteria": "None. The measurements are recorded without a pass line.",
+    "artifact_revision": "a2b186a87a64d9e93a56f185a5ebc2a0613d00da7440eeb8c8c2229b64f6adf3",
+    "code_revision": "18890f539107dd14a65458981db7853d2d959dcb",
+    "date": "2026-11-04",
+    "fixture_revision": "5da251905302dcc31475f01c7062afa4ecc54b4d66143da9ab04b43adafe6002",
+    "measured_runs": 3,
+    "measured_runs_reason": "Fixed to 3 by Issue #480 before measuring (warmup 1 + 3 per length, 3 loads of each kind, 3 cancellations). It is below the default 20, so p95 is not computed (null).",
+    "metric_sources": {
+      "from_other_records": {
+        "reference_error": "the fidelity record of #475 (F at temperature 1), not measured here",
+        "task_success": "the quality record of #447 (stage 3 on Q), not measured here"
+      },
+      "measured": {
+        "bundle_bytes": "the sum of the file sizes of the calibrated bundle, once",
+        "cancel_s": "three cancellations in TypedDecisionInferenceTests",
+        "first_load_s": "three new processes with --clear-cache --limit 1",
+        "latency_s": "the latency process, three measured rows per length",
+        "peak_footprint_bytes": "/usr/bin/time -l of the latency process",
+        "peak_rss_bytes": "/usr/bin/time -l of the latency process",
+        "resident_bytes": "--sample-memory during the measured 8,192-token rows of the latency process",
+        "warm_load_s": "three new processes with --limit 1"
+      },
+      "not_measured": {
+        "prepared_bytes": "the size of the specialization cache entry is not exposed by the CLI",
+        "residual_bytes": "the CLI process never releases the model before it exits, so no after-release baseline exists",
+        "reuse_latency_s": "reusing the state of a document between questions is not implemented for typed decisions"
+      }
+    },
+    "power": "AC: 140W USB-C Power Adapter, 94 W (pmset -g ac); battery 100% charged; energy mode High Power (powermode 2 in pmset -g)",
+    "revision": "1 (plan-d2b-ac94): same rows, boundary and counts as plan-d2b-ac (8763b18a0830395744f3f65e2bd27d5a151d85dc201b1296ea15e175af9128cb); differs in power, thermal, other load, code_revision, the binary and the per-row thermal wait",
+    "sha256": "47a12e99d22dbd40e2a41cedc2b91665bc587e44bbdeb6157d97c24d299c4cb2",
+    "thermal": "ProcessInfo thermalState nominal required at the start of every row (--wait-nominal-thermal 600) and of every stage (mTPL 0, waited up to 10 minutes); history saved from log show after the run",
+    "timing_boundary": "latency_s: from the call of TypedDecisionModel.decide to its return (rendering, tokenization, the forward run and the head), without reading or writing JSON. Loads: the sum of the bundle, tokenizer, head and backbone parts of bundle.load_seconds (TypedDecisionModel.load); loading and specialization are not separable through the API. cancel_s: from the cancellation request to the CancellationError of the request.",
+    "warmup_runs": 1,
+    "workload": "P: four rows of exactly 100, 500, 2,000 and 8,192 tokens (noul, choice, score, noul) built from test_set_30k states with seed 20261102:P, sharing no corpus row with F or Q. latency_s: one process with the lengths interleaved, one warmup of each length followed by three rounds. first_load_s: three new processes with --clear-cache --limit 1; warm_load_s: three new processes with --limit 1. peak_rss_bytes / peak_footprint_bytes: /usr/bin/time -l around the latency process; resident_bytes: the largest RSS sampled every 100 ms during the measured 8,192-token rows (--sample-memory). cancel_s: three cancellations of a 2,000-token request after its forward run started, in TypedDecisionInferenceTests (swift test, debug build of the test target). Loads run first (three fresh, then three cached), then the latency process, then the cancellation test; each stage starts only when the thermal pressure level is 0; no user input for at least 120 s (HIDIdleTime) and no audio, video or automation assertions before each stage; assertions of the window saved."
+  },
+  "schema": "jev27b-validation-performance/1",
+  "sources": {
+    "assertions-log.txt": "12c2c7f05f9ff56c4c22262ad5cf62f7ef6adc6b155cdcebe3f2d347095e696b",
+    "cancel-test.log": "129248f9fc26c4b52d7c51018672952eaaa28519c2ce6dcb95199579f7da07dd",
+    "cancel/typed-cancel-run.json": "6b273d0f5cbea57e0e2313f98206eb649878785433e082ef7b76eecd3e229689",
+    "cancel/typed-cancel.json": "7753077ca45df528d8f2769dd946b9137a6e52962320e3c577ed8f0c23b8927d",
+    "cancel/typed-parity.json": "af8263be34a0d0e83d06f7ace33689c25ec1f9b036daa7ddb6e1b0b11c78b6d3",
+    "conditions.log": "4cc3e400bd9a5ce97e740d5d847adc8acd0e11134ad9a952dd1069bc42571aa3",
+    "latency.json": "3e9400ae0088765bbb165b9c4e57dbb7f127ca2131e0151be5b5642f48207499",
+    "latency.log": "7f96dea8538f2e22df87fae080c7e7eeb840cc877af4bb830224a98be0658dbe",
+    "load-cached-1.json": "27f72e3a6e010bd4b704b0a133c7f16f4277254196881a221b01ae85c62b7231",
+    "load-cached-2.json": "8e465bc07207ffd2504d351a1913d4feb34dfe88d291092ead3838b5c1e8b886",
+    "load-cached-3.json": "8d8719e2a7d3164110bf8d414401ba49c0fe613fcabef2c12adbcfab986ba8da",
+    "load-fresh-1.json": "8b17a51efb7a7d466c45e9834d779ebd35087ea1a9c3baf076ce28624babc604",
+    "load-fresh-2.json": "87c905f72b136695cb434cdfcf1487532eedf35d041fec5a1d3a381e6dc3c160",
+    "load-fresh-3.json": "0b9cbf6a0ece72349a467170a2c401f0cb977879a2b57a28992d7aa662b9faa6",
+    "measure.log": "3fc0a5198fd6e80cc003d3e669d76760ae480eb794cf66ecf3ab046b5bbd1585",
+    "power-log.txt": "f898bfa2b2b692dbd1cefff353a4bc35e265cbe19dcf1dd006b35682ad898b37",
+    "records/bundle.jsonl": "c4e19debb2ba3c69ff9a558fb98d6e2ff6d94df5ed6f33073ab8a3e68c1fceab",
+    "records/memory.jsonl": "b2bc1d4ee1119819e0968c93b627adaf87679c2f381efac1b43760a5918fb86a",
+    "thermal-log.txt": "010a67ecfbe57cf886651ce2cd27d1b9156234312abfc08317c05daeabe292f8"
+  },
+  "tests": {
+    "build": "debug build of the test target (swift test without -c release)",
+    "failed": 0,
+    "passed": [
+      "Ten rows of F match stage 2 at temperature 1 within the band limits with the reference token IDs",
+      "Running each row twice in a row gives bit-identical logits and probabilities",
+      "A request cancelled at the forward checkpoint ends with CancellationError and the next row still matches",
+      "A request cancelled while its forward runs keeps the model busy until the run returns, then ends cancelled",
+      "A row run with the rounded capacity and with 8,192 positions records the probability difference"
+    ],
+    "source": "cancel-test.log",
+    "suite": "TypedDecisionInferenceTests"
+  }
+}
