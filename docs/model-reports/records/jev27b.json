@@ -152,7 +152,7 @@
       "plan_sha256": null
     },
     "performance": {
-      "url": "docs/validation/jev27b/README.md#ac-power",
+      "url": "docs/validation/jev27b/README.md#ac-94-w",
       "level": "diagnostic",
       "outcome": "passed",
       "record_type": "standard",
@@ -163,21 +163,21 @@
       "toolchain": "Xcode 27.0 (27A266a), Apple Swift 6.4 (swiftlang-6.4.0.34.1)",
       "variant": "uint4 backbone (gdn-fp32) / float32 head",
       "backend": "Core AI; GPU preferred; expectFrequentReshapes true",
-      "route": "coreai-verify typed-decide (release build); TypedDecisionInferenceTests in the debug build of the test target for cancellation",
+      "route": "coreai-verify typed-decide --wait-nominal-thermal 600 (release build); TypedDecisionInferenceTests in the debug build of the test target for cancellation",
       "source_revision": "14b425269ed24452e0a5ad5a8f3e51d139647a88",
       "artifact_revision": "a2b186a87a64d9e93a56f185a5ebc2a0613d00da7440eeb8c8c2229b64f6adf3",
-      "code_revision": "9b610f88ba0b7810555384200686472e02cd11f2",
+      "code_revision": "18890f539107dd14a65458981db7853d2d959dcb",
       "workload": {
-        "en": "P: four rows of exactly 100, 500, 2,000 and 8,192 tokens; latency one warmup and three measured rounds per length in one process; three fresh and three cached loads in new processes; /usr/bin/time -l and 100 ms sampling for memory; three cancellations of a 2,000-token request. Measured on AC power (70W USB-C Power Adapter, 68 W; battery 64% to 67%, charging) in the energy mode High Power, the owner's setting (plan-d2b-ac). Every stage started at thermal pressure level 0; the pressure turned heavy during the latency process (the 8,192-token row of the second round and the third round). The warmup is for the latency rounds only; loads and cancellations have none. Other load: no other model process (pgrep before the measurement); pmset -g log shows other activity during the run (audio sessions, a browser video wake lock, a UI automation session) that the battery run did not have; the CPU and GPU use of other processes was not recorded.",
-        "ja": "P はちょうど 100・500・2,000・8,192 トークンの 4 行。1 判断の時間は 1 プロセスで長さごとに warmup 1 回と計測 3 周。ロードは新しいプロセスで fresh 3 回と cached 3 回。メモリは /usr/bin/time -l と 100 ms の採取。取消は 2,000 トークンの依頼で 3 回。AC 給電(70W USB-C 電源アダプター、68 W。残量 64% から 67%、充電中)、本人の設定のエネルギーモード High Power で計測した(plan-d2b-ac)。各段は熱の圧力 level 0 で始めたが、1 判断の時間のプロセスの途中で heavy になった(第 2 周の 8,192 トークンの行と第 3 周)。warmup は 1 判断の時間の周だけで、ロードと取消には無い。他の負荷: モデルの他のプロセスなし(計測の前の pgrep)。pmset -g log には、バッテリー駆動の計測の間には無かったほかの活動(音声のセッション、ブラウザの動画の wake lock、UI の自動操作のセッション)が残っている。ほかのプロセスの CPU と GPU の使用は記録していない。"
+        "en": "P: four rows of exactly 100, 500, 2,000 and 8,192 tokens; latency one warmup and three measured rounds per length in one process, every row started at a nominal thermal state; three fresh and three cached loads in new processes; /usr/bin/time -l and 100 ms sampling for memory; three cancellations of a 2,000-token request. Measured on AC power (140W USB-C Power Adapter, 94 W; battery 100%, charged) in the energy mode High Power, the owner's setting (plan-d2b-ac94). Every stage started at 94 W, thermal pressure level 0, at least 120 s without user input and no audio, video or automation assertions; user input happened during the latency process, the last at about 11:26:13 while it waited for a nominal state (no row ran then); earlier inputs in that process cannot be excluded (HIDIdleTime keeps only the last one). The 8,192-token row of the second round turned heavy about 20 s into it. The warmup is for the latency rounds only; loads and cancellations have none. Other load: no other model process (pgrep before the measurement); the CPU and GPU use of other processes was not recorded.",
+        "ja": "P はちょうど 100・500・2,000・8,192 トークンの 4 行。1 判断の時間は 1 プロセスで長さごとに warmup 1 回と計測 3 周で、各行を熱の状態 nominal で始めた。ロードは新しいプロセスで fresh 3 回と cached 3 回。メモリは /usr/bin/time -l と 100 ms の採取。取消は 2,000 トークンの依頼で 3 回。AC 給電(140W USB-C 電源アダプター、94 W。残量 100%、充電済み)、本人の設定のエネルギーモード High Power で計測した(plan-d2b-ac94)。各段は 94 W、熱の圧力 level 0、入力の無い 120 s 以上、音声・動画・自動操作の assertions なしで始めた。入力は 1 判断の時間のプロセスの間にあり、最後は 11:26:13 ごろで熱の状態 nominal を待つ間(行は流れていない)。それより前の入力は、HIDIdleTime が最後の 1 回しか残さないので除けない。第 2 周の 8,192 トークンの行は始めて約 20 s 後に heavy になった。warmup は 1 判断の時間の周だけで、ロードと取消には無い。他の負荷: モデルの他のプロセスなし(計測の前の pgrep)。ほかのプロセスの CPU と GPU の使用は記録していない。"
       },
       "batch_size": 1,
       "concurrency": 1,
       "warmups": 1,
-      "power": "AC: 70W USB-C Power Adapter, 68 W (pmset -g ac); battery 64% to 67%, charging; energy mode High Power (powermode 2 in pmset -g)",
-      "thermal": "pmset -g therm: no warning; thermalmonitord pressure (mTPL) 0 at the start of every stage (the cancellation test waited 50 s); during the latency process moderate from 09:26:46 and heavy 09:26:48-09:29:05 (the 8,192-token row of the second round and the third round)",
+      "power": "AC: 140W USB-C Power Adapter, 94 W (pmset -g ac); battery 100% charged; energy mode High Power (powermode 2 in pmset -g)",
+      "thermal": "pmset -g therm: no warning; ProcessInfo thermalState nominal at the start of every row (the longest wait 54.51 s) and thermalmonitord pressure (mTPL) 0 at the start of every stage; during the latency process moderate from 11:25:51 and heavy 11:25:53-11:26:52 (the 8,192-token row of the second round)",
       "model_executed": true,
-      "plan_sha256": "8763b18a0830395744f3f65e2bd27d5a151d85dc201b1296ea15e175af9128cb"
+      "plan_sha256": "47a12e99d22dbd40e2a41cedc2b91665bc587e44bbdeb6157d97c24d299c4cb2"
     },
     "bundle": {
       "url": "docs/validation/jev27b/README.md#bundle",
@@ -234,6 +234,34 @@
       "thermal": "pmset -g therm: no warning in 10 snapshots; thermalmonitord pressure moderate from 06:28:52 (end of the second round) and heavy 06:29:08-06:32:08 (from the end of the third 2,000-token row through the cancellation test)",
       "model_executed": true,
       "plan_sha256": "d361e027c9f6c4929bc8cafe7ea4f378fcdbfe7e01e795a1229e6cbc5cd5d4b7"
+    },
+    "performance-ac-70w": {
+      "url": "docs/validation/jev27b/README.md#ac-70-w",
+      "level": "diagnostic",
+      "outcome": "passed",
+      "record_type": "standard",
+      "date": "2026-11-04",
+      "platform": "macos",
+      "device": "Mac16,6 (Apple M4 Max), 128 GiB RAM",
+      "os": "macOS 27.0 (26A428)",
+      "toolchain": "Xcode 27.0 (27A266a), Apple Swift 6.4 (swiftlang-6.4.0.34.1)",
+      "variant": "uint4 backbone (gdn-fp32) / float32 head",
+      "backend": "Core AI; GPU preferred; expectFrequentReshapes true",
+      "route": "coreai-verify typed-decide (release build); TypedDecisionInferenceTests in the debug build of the test target for cancellation",
+      "source_revision": "14b425269ed24452e0a5ad5a8f3e51d139647a88",
+      "artifact_revision": "a2b186a87a64d9e93a56f185a5ebc2a0613d00da7440eeb8c8c2229b64f6adf3",
+      "code_revision": "9b610f88ba0b7810555384200686472e02cd11f2",
+      "workload": {
+        "en": "P: four rows of exactly 100, 500, 2,000 and 8,192 tokens; latency one warmup and three measured rounds per length in one process; three fresh and three cached loads in new processes; /usr/bin/time -l and 100 ms sampling for memory; three cancellations of a 2,000-token request. Measured on AC power (70W USB-C Power Adapter, 68 W; battery 64% to 67%, charging) in the energy mode High Power, the owner's setting (plan-d2b-ac). Every stage started at thermal pressure level 0; the pressure turned heavy during the latency process (the 8,192-token row of the second round and the third round). The warmup is for the latency rounds only; loads and cancellations have none. Other load: no other model process (pgrep before the measurement); pmset -g log shows other activity during the run (audio sessions, a browser video wake lock, a UI automation session) that the battery run did not have; the CPU and GPU use of other processes was not recorded.",
+        "ja": "P はちょうど 100・500・2,000・8,192 トークンの 4 行。1 判断の時間は 1 プロセスで長さごとに warmup 1 回と計測 3 周。ロードは新しいプロセスで fresh 3 回と cached 3 回。メモリは /usr/bin/time -l と 100 ms の採取。取消は 2,000 トークンの依頼で 3 回。AC 給電(70W USB-C 電源アダプター、68 W。残量 64% から 67%、充電中)、本人の設定のエネルギーモード High Power で計測した(plan-d2b-ac)。各段は熱の圧力 level 0 で始めたが、1 判断の時間のプロセスの途中で heavy になった(第 2 周の 8,192 トークンの行と第 3 周)。warmup は 1 判断の時間の周だけで、ロードと取消には無い。他の負荷: モデルの他のプロセスなし(計測の前の pgrep)。pmset -g log には、バッテリー駆動の計測の間には無かったほかの活動(音声のセッション、ブラウザの動画の wake lock、UI の自動操作のセッション)が残っている。ほかのプロセスの CPU と GPU の使用は記録していない。"
+      },
+      "batch_size": 1,
+      "concurrency": 1,
+      "warmups": 1,
+      "power": "AC: 70W USB-C Power Adapter, 68 W (pmset -g ac); battery 64% to 67%, charging; energy mode High Power (powermode 2 in pmset -g)",
+      "thermal": "pmset -g therm: no warning; thermalmonitord pressure (mTPL) 0 at the start of every stage (the cancellation test waited 50 s); during the latency process moderate from 09:26:46 and heavy 09:26:48-09:29:05 (the 8,192-token row of the second round and the third round)",
+      "model_executed": true,
+      "plan_sha256": "8763b18a0830395744f3f65e2bd27d5a151d85dc201b1296ea15e175af9128cb"
     }
   },
   "measurements": [
@@ -255,162 +283,162 @@
     },
     {
       "metric": "first_load_s",
-      "value": 28.600993499999998,
+      "value": 28.22435325,
       "unit": "s",
       "statistic": "median",
       "n": 3,
       "evidence": "performance",
       "source_value": {
-        "path": "docs/validation/jev27b/performance-ac.json",
+        "path": "docs/validation/jev27b/performance-ac94.json",
         "pointer": "/loads/first_load_s/metrics/first_load_s/median"
       },
       "note": {
-        "en": "New process with the specialization cache entry deleted (--clear-cache); bundle check, tokenizer, head and backbone. File caches not flushed. On AC power, energy mode High Power (plan-d2b-ac).",
-        "ja": "特殊化 cache を消した新プロセス(--clear-cache)。bundle の検査・tokenizer・ヘッド・本体の合計。ファイルの cache は消していない。AC 給電、エネルギーモード High Power(plan-d2b-ac)。"
+        "en": "New process with the specialization cache entry deleted (--clear-cache); bundle check, tokenizer, head and backbone. File caches not flushed. On AC power (140 W adapter, 94 W), energy mode High Power (plan-d2b-ac94).",
+        "ja": "特殊化 cache を消した新プロセス(--clear-cache)。bundle の検査・tokenizer・ヘッド・本体の合計。ファイルの cache は消していない。AC 給電(140 W アダプター、94 W)、エネルギーモード High Power(plan-d2b-ac94)。"
       }
     },
     {
       "metric": "warm_load_s",
-      "value": 10.384216791,
+      "value": 9.504954333,
       "unit": "s",
       "statistic": "median",
       "n": 3,
       "evidence": "performance",
       "source_value": {
-        "path": "docs/validation/jev27b/performance-ac.json",
+        "path": "docs/validation/jev27b/performance-ac94.json",
         "pointer": "/loads/warm_load_s/metrics/warm_load_s/median"
       },
       "note": {
-        "en": "New process with the specialization cache entry present; same parts as the first load. On AC power, energy mode High Power (plan-d2b-ac).",
-        "ja": "特殊化 cache がある新プロセス。初回と同じ部分の合計。AC 給電、エネルギーモード High Power(plan-d2b-ac)。"
+        "en": "New process with the specialization cache entry present; same parts as the first load. On AC power (140 W adapter, 94 W), energy mode High Power (plan-d2b-ac94).",
+        "ja": "特殊化 cache がある新プロセス。初回と同じ部分の合計。AC 給電(140 W アダプター、94 W)、エネルギーモード High Power(plan-d2b-ac94)。"
       }
     },
     {
       "metric": "latency_s",
-      "value": 0.647088125,
+      "value": 0.614704083,
       "unit": "s",
       "statistic": "median",
       "n": 3,
       "evidence": "performance",
       "source_value": {
-        "path": "docs/validation/jev27b/performance-ac.json",
+        "path": "docs/validation/jev27b/performance-ac94.json",
         "pointer": "/latency/100/metrics/latency_s/median"
       },
       "note": {
-        "en": "P row of exactly 100 tokens; TypedDecisionModel.decide from call to return; lengths interleaved in one process after one warmup each; memory sampled every 100 ms during each row (--sample-memory). On AC power, energy mode High Power (plan-d2b-ac).",
-        "ja": "ちょうど 100 トークンの P の行。TypedDecisionModel.decide の呼び出しから復帰まで。1 プロセスで長さを交互に、各長さ warmup 1 回の後。各行の run 中に 100 ms ごとにメモリを採取(--sample-memory)。AC 給電、エネルギーモード High Power(plan-d2b-ac)。"
+        "en": "P row of exactly 100 tokens; TypedDecisionModel.decide from call to return; lengths interleaved in one process after one warmup each; memory sampled every 100 ms during each row (--sample-memory); every row started at a nominal thermal state (--wait-nominal-thermal 600). The third round's row started after waiting 54.51 s for a nominal thermal state. On AC power (140 W adapter, 94 W), energy mode High Power (plan-d2b-ac94).",
+        "ja": "ちょうど 100 トークンの P の行。TypedDecisionModel.decide の呼び出しから復帰まで。1 プロセスで長さを交互に、各長さ warmup 1 回の後。各行の run 中に 100 ms ごとにメモリを採取(--sample-memory)。各行は熱の状態 nominal で開始(--wait-nominal-thermal 600)。第 3 周の行は熱の状態 nominal を 54.51 s 待ってから始めた。AC 給電(140 W アダプター、94 W)、エネルギーモード High Power(plan-d2b-ac94)。"
       }
     },
     {
       "metric": "latency_s",
-      "value": 2.389115334,
+      "value": 2.207618334,
       "unit": "s",
       "statistic": "median",
       "n": 3,
       "evidence": "performance",
       "source_value": {
-        "path": "docs/validation/jev27b/performance-ac.json",
+        "path": "docs/validation/jev27b/performance-ac94.json",
         "pointer": "/latency/500/metrics/latency_s/median"
       },
       "note": {
-        "en": "P row of exactly 500 tokens; TypedDecisionModel.decide from call to return; lengths interleaved in one process after one warmup each; memory sampled every 100 ms during each row (--sample-memory). On AC power, energy mode High Power (plan-d2b-ac).",
-        "ja": "ちょうど 500 トークンの P の行。TypedDecisionModel.decide の呼び出しから復帰まで。1 プロセスで長さを交互に、各長さ warmup 1 回の後。各行の run 中に 100 ms ごとにメモリを採取(--sample-memory)。AC 給電、エネルギーモード High Power(plan-d2b-ac)。"
+        "en": "P row of exactly 500 tokens; TypedDecisionModel.decide from call to return; lengths interleaved in one process after one warmup each; memory sampled every 100 ms during each row (--sample-memory); every row started at a nominal thermal state (--wait-nominal-thermal 600). On AC power (140 W adapter, 94 W), energy mode High Power (plan-d2b-ac94).",
+        "ja": "ちょうど 500 トークンの P の行。TypedDecisionModel.decide の呼び出しから復帰まで。1 プロセスで長さを交互に、各長さ warmup 1 回の後。各行の run 中に 100 ms ごとにメモリを採取(--sample-memory)。各行は熱の状態 nominal で開始(--wait-nominal-thermal 600)。AC 給電(140 W アダプター、94 W)、エネルギーモード High Power(plan-d2b-ac94)。"
       }
     },
     {
       "metric": "latency_s",
-      "value": 9.373261125,
+      "value": 8.97832325,
       "unit": "s",
       "statistic": "median",
       "n": 3,
       "evidence": "performance",
       "source_value": {
-        "path": "docs/validation/jev27b/performance-ac.json",
+        "path": "docs/validation/jev27b/performance-ac94.json",
         "pointer": "/latency/2000/metrics/latency_s/median"
       },
       "note": {
-        "en": "P row of exactly 2,000 tokens; TypedDecisionModel.decide from call to return; lengths interleaved in one process after one warmup each; memory sampled every 100 ms during each row (--sample-memory). The median row (second round) ended within about a second after the thermal pressure turned moderate, so its last second may have run at moderate pressure. On AC power, energy mode High Power (plan-d2b-ac).",
-        "ja": "ちょうど 2,000 トークンの P の行。TypedDecisionModel.decide の呼び出しから復帰まで。1 プロセスで長さを交互に、各長さ warmup 1 回の後。各行の run 中に 100 ms ごとにメモリを採取(--sample-memory)。中央値の行(第 2 周)は熱の圧力が moderate に変わってから約 1 秒以内に終わったので、最後の約 1 秒は moderate の下だった可能性がある。AC 給電、エネルギーモード High Power(plan-d2b-ac)。"
+        "en": "P row of exactly 2,000 tokens; TypedDecisionModel.decide from call to return; lengths interleaved in one process after one warmup each; memory sampled every 100 ms during each row (--sample-memory); every row started at a nominal thermal state (--wait-nominal-thermal 600). On AC power (140 W adapter, 94 W), energy mode High Power (plan-d2b-ac94).",
+        "ja": "ちょうど 2,000 トークンの P の行。TypedDecisionModel.decide の呼び出しから復帰まで。1 プロセスで長さを交互に、各長さ warmup 1 回の後。各行の run 中に 100 ms ごとにメモリを採取(--sample-memory)。各行は熱の状態 nominal で開始(--wait-nominal-thermal 600)。AC 給電(140 W アダプター、94 W)、エネルギーモード High Power(plan-d2b-ac94)。"
       }
     },
     {
       "metric": "latency_s",
-      "value": 42.36798,
+      "value": 37.139140167,
       "unit": "s",
       "statistic": "median",
       "n": 3,
       "evidence": "performance",
       "source_value": {
-        "path": "docs/validation/jev27b/performance-ac.json",
+        "path": "docs/validation/jev27b/performance-ac94.json",
         "pointer": "/latency/8192/metrics/latency_s/median"
       },
       "note": {
-        "en": "P row of exactly 8,192 tokens; TypedDecisionModel.decide from call to return; lengths interleaved in one process after one warmup each; memory sampled every 100 ms during each row (--sample-memory). The median row (second round) ran under heavy thermal pressure; the first round's row, at nominal pressure, took 41.67 s. On AC power, energy mode High Power (plan-d2b-ac).",
-        "ja": "ちょうど 8,192 トークンの P の行。TypedDecisionModel.decide の呼び出しから復帰まで。1 プロセスで長さを交互に、各長さ warmup 1 回の後。各行の run 中に 100 ms ごとにメモリを採取(--sample-memory)。中央値の行(第 2 周)は熱の圧力 heavy の下。熱の圧力 nominal の第 1 周の行は 41.67 s。AC 給電、エネルギーモード High Power(plan-d2b-ac)。"
+        "en": "P row of exactly 8,192 tokens; TypedDecisionModel.decide from call to return; lengths interleaved in one process after one warmup each; memory sampled every 100 ms during each row (--sample-memory); every row started at a nominal thermal state (--wait-nominal-thermal 600). The second round's row turned heavy about 20 s into it; the median row (first round) ran at nominal pressure. On AC power (140 W adapter, 94 W), energy mode High Power (plan-d2b-ac94).",
+        "ja": "ちょうど 8,192 トークンの P の行。TypedDecisionModel.decide の呼び出しから復帰まで。1 プロセスで長さを交互に、各長さ warmup 1 回の後。各行の run 中に 100 ms ごとにメモリを採取(--sample-memory)。各行は熱の状態 nominal で開始(--wait-nominal-thermal 600)。第 2 周の行は始めて約 20 s 後に熱の圧力 heavy になった。中央値の行(第 1 周)は nominal の下。AC 給電(140 W アダプター、94 W)、エネルギーモード High Power(plan-d2b-ac94)。"
       }
     },
     {
       "metric": "peak_rss_bytes",
-      "value": 32343474176,
+      "value": 32333840384,
       "unit": "B",
       "statistic": "single",
       "n": 1,
       "evidence": "performance",
       "source_value": {
-        "path": "docs/validation/jev27b/performance-ac.json",
+        "path": "docs/validation/jev27b/performance-ac94.json",
         "pointer": "/memory/values/peak_rss_bytes"
       },
       "note": {
-        "en": "/usr/bin/time -l of the latency process, lifetime maximum including the load; not added to the footprint. On AC power, energy mode High Power (plan-d2b-ac).",
-        "ja": "latency のプロセスの /usr/bin/time -l。読み込みを含む生涯の最大。footprint と足さない。AC 給電、エネルギーモード High Power(plan-d2b-ac)。"
+        "en": "/usr/bin/time -l of the latency process, lifetime maximum including the load; not added to the footprint. On AC power (140 W adapter, 94 W), energy mode High Power (plan-d2b-ac94).",
+        "ja": "latency のプロセスの /usr/bin/time -l。読み込みを含む生涯の最大。footprint と足さない。AC 給電(140 W アダプター、94 W)、エネルギーモード High Power(plan-d2b-ac94)。"
       }
     },
     {
       "metric": "peak_footprint_bytes",
-      "value": 20837938928,
+      "value": 21336815344,
       "unit": "B",
       "statistic": "single",
       "n": 1,
       "evidence": "performance",
       "source_value": {
-        "path": "docs/validation/jev27b/performance-ac.json",
+        "path": "docs/validation/jev27b/performance-ac94.json",
         "pointer": "/memory/values/peak_footprint_bytes"
       },
       "note": {
-        "en": "/usr/bin/time -l of the latency process (peak memory footprint). Not a bound: the footprint grew by 4.1 to 4.3 GB in each round of alternating lengths and had not levelled off. On AC power, energy mode High Power (plan-d2b-ac).",
-        "ja": "latency のプロセスの /usr/bin/time -l(peak memory footprint)。上限ではない。長さを交互に流す 1 周ごとに 4.1〜4.3 GB 増え、頭打ちになっていない。AC 給電、エネルギーモード High Power(plan-d2b-ac)。"
+        "en": "/usr/bin/time -l of the latency process (peak memory footprint). Not a bound: the footprint grew by 4.1 to 4.5 GB in each round of alternating lengths and had not levelled off. On AC power (140 W adapter, 94 W), energy mode High Power (plan-d2b-ac94).",
+        "ja": "latency のプロセスの /usr/bin/time -l(peak memory footprint)。上限ではない。長さを交互に流す 1 周ごとに 4.1〜4.5 GB 増え、頭打ちになっていない。AC 給電(140 W アダプター、94 W)、エネルギーモード High Power(plan-d2b-ac94)。"
       }
     },
     {
       "metric": "resident_bytes",
-      "value": 17333698560,
+      "value": 17298096128,
       "unit": "B",
       "statistic": "max",
       "n": 1,
       "evidence": "performance",
       "source_value": {
-        "path": "docs/validation/jev27b/performance-ac.json",
+        "path": "docs/validation/jev27b/performance-ac94.json",
         "pointer": "/memory/values/resident_bytes"
       },
       "note": {
-        "en": "Largest RSS sampled every 100 ms during the measured 8,192-token rows (--sample-memory). On AC power, energy mode High Power (plan-d2b-ac).",
-        "ja": "計測した 8,192 トークンの行の run 中に 100 ms ごとに採った RSS の最大(--sample-memory)。AC 給電、エネルギーモード High Power(plan-d2b-ac)。"
+        "en": "Largest RSS sampled every 100 ms during the measured 8,192-token rows (--sample-memory). On AC power (140 W adapter, 94 W), energy mode High Power (plan-d2b-ac94).",
+        "ja": "計測した 8,192 トークンの行の run 中に 100 ms ごとに採った RSS の最大(--sample-memory)。AC 給電(140 W アダプター、94 W)、エネルギーモード High Power(plan-d2b-ac94)。"
       }
     },
     {
       "metric": "cancel_s",
-      "value": 8.885407583000001,
+      "value": 8.840078334,
       "unit": "s",
       "statistic": "median",
       "n": 3,
       "evidence": "performance",
       "source_value": {
-        "path": "docs/validation/jev27b/performance-ac.json",
+        "path": "docs/validation/jev27b/performance-ac94.json",
         "pointer": "/cancel/metrics/cancel_s/median"
       },
       "note": {
-        "en": "2,000-token request (the state of the refund card example repeated 164 times, not a P row) cancelled after the test backbone reported its forward call; the backbone does not pass the cancellation on, so the request ends only when the run returns; the times (8.60 to 9.00 s) are longer than the same request without cancellation (7.98 s), for a reason not investigated. Debug build of the test target (swift test). Nominal thermal pressure (the test started after 50 s of waiting for level 0). On AC power, energy mode High Power (plan-d2b-ac).",
-        "ja": "試験用 backbone が forward の呼び出しを報告した後に取り消した 2,000 トークンの依頼(返金のカードの例の state を 164 回繰り返したもの。P の行ではない)。backbone は取消を伝えないので、依頼は run が返った時点で終わる。時間(8.60〜9.00 s)は取り消さない同じ依頼(7.98 s)より長く、理由は調べていない。試験 target の debug build(swift test)。熱の圧力は nominal(level 0 を 50 s 待ってから開始)。AC 給電、エネルギーモード High Power(plan-d2b-ac)。"
+        "en": "2,000-token request (the state of the refund card example repeated 164 times, not a P row) cancelled after the test backbone reported its forward call; the backbone does not pass the cancellation on, so the request ends only when the run returns; the times (8.72 to 9.00 s) are longer than the same request without cancellation (8.20 s), for a reason not investigated. Debug build of the test target (swift test). Nominal thermal pressure (the test started after 30 s of waiting for 120 s without user input). On AC power (140 W adapter, 94 W), energy mode High Power (plan-d2b-ac94).",
+        "ja": "試験用 backbone が forward の呼び出しを報告した後に取り消した 2,000 トークンの依頼(返金のカードの例の state を 164 回繰り返したもの。P の行ではない)。backbone は取消を伝えないので、依頼は run が返った時点で終わる。時間(8.72〜9.00 s)は取り消さない同じ依頼(8.20 s)より長く、理由は調べていない。試験 target の debug build(swift test)。熱の圧力は nominal(入力の無い 120 s を 30 s 待ってから開始)。AC 給電(140 W アダプター、94 W)、エネルギーモード High Power(plan-d2b-ac94)。"
       }
     },
     {

@@ -237,7 +237,7 @@
     },
     "window": "2026-11-04 09:22:08 to 09:31:10 +0900"
   },
-  "evidence": "performance",
+  "evidence": "performance-ac-70w",
   "latency": {
     "100": {
       "counts": {
