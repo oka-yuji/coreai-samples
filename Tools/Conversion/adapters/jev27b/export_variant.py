@@ -9,7 +9,7 @@ import time
 
 from ...storage import read_json, write_json
 from ..pinned import apple_toolchain, check_upstream, pinned_hub, sha256
-from .decision import DECISION, compare_hashes, listing, validate, write_sums
+from .decision import DECISION, LAST_OUTPUT, compare_hashes, listing, validate, write_sums
 from .export import (arguments, asset_bytes, durations, expected_functions, finish_bundle, inspect_asset, instrument,
                      merged_identity)
 from .monitor import Monitor
@@ -87,9 +87,9 @@ def verdict(hashes, wrapped, layers, ir, inspected, monitor_aborts):
     return {"passed": all(checks.values()), "checks": checks}
 
 
-def export():
+def export(*, last_token=False):
     args = arguments("Export the merged JEV-27B backbone with a float32 gated delta update.", "snapshot", "base",
-                     "baseline")
+                     "baseline", *(("source-bundle",) if last_token else ()))
     destination = args.output / args.bundle
     if destination.exists() or (args.output / "provenance.json").exists():
         raise FileExistsError("The bundle must be written to a new directory")
@@ -97,10 +97,17 @@ def export():
     upstream_revision = check_upstream(args.upstream, contract)
     recipe = args.recipe.resolve()
     baseline = baseline_identity(args.baseline)
+    variant = "gdn-fp32-last-token" if last_token else VARIANT
+    source = None
+    if last_token:
+        from . import last_token_bundle
+
+        source = last_token_bundle.source_identity(
+            args.source_bundle, args.baseline / baseline["bundle"] / f"{baseline['bundle']}.aimodel", revision)
     temporary = Path(tempfile.gettempdir())
     args.output.mkdir(parents=True, exist_ok=True)
     provenance = {"merged_revision": revision, "upstream_revision": upstream_revision, "bundle": args.bundle,
-                  "variant": VARIANT, "baseline": baseline,
+                  "variant": variant, "baseline": baseline,
                   "export_config": {"hf_model_id": contract["merged_model_id"], "variant": "macOS",
                                     "compression": contract["compression"], "recipe_sha256": sha256(recipe),
                                     "compute_precision": contract["precision"],
@@ -118,7 +125,12 @@ def export():
             from . import backbone, backbone_gdnfp32
 
             backbone.check_location(args.upstream, recipe)
-            backbone_gdnfp32.install(backbone.pipeline)
+            if last_token:
+                from . import backbone_last_token
+
+                entry = backbone_last_token.install(backbone.pipeline)
+            else:
+                entry = backbone_gdnfp32.install(backbone.pipeline)
             settings = {**identity, "model_type": backbone.COMPOSITE, "recipe_sha256": sha256(recipe),
                         "compute_precision": contract["precision"], "compression": contract["compression"],
                         "context_length": contract["context_length"]}
@@ -133,7 +145,7 @@ def export():
             config = backbone.export_config(contract, recipe, contract["merged_model_id"], args.output, args.bundle)
             resolved = backbone.pipeline.resolve_model(config)
             if resolved.model_type != backbone.COMPOSITE \
-                    or resolved.model_class is not backbone_gdnfp32.TypedDecisionBackboneGdnFp32:
+                    or resolved.model_class is not entry.macos_class:
                 raise ValueError(f"Unexpected resolution: {resolved.model_type}")
             bundle = Path(backbone.pipeline.export_model(config))
             phases["export_end"] = time.perf_counter()
@@ -142,7 +154,12 @@ def export():
             hidden_size = resolved.hf_config.hidden_size
             layers = backbone.layer_count(resolved.hf_config, "linear_attention")
             expected = expected_functions(backbone, resolved.hf_config)
+            if last_token:
+                expected["main"]["outputs"] = {LAST_OUTPUT: {"dtype": "float16", "shape": [1, 1, hidden_size]}}
         bundled = finish_variant(destination, args, contract, revision, hidden_size)
+        if last_token:
+            bundled = {**bundled, **last_token_bundle.finish(
+                destination, args.source_bundle, source, f"{args.bundle}.aimodel", hidden_size)}
         phases["end"] = time.perf_counter()
     except BaseException as error:
         phases["end"] = time.perf_counter()
@@ -169,7 +186,7 @@ def export():
           "baseline": ir_summary(args.baseline / baseline["bundle"] / f"{baseline['bundle']}.aimodel")}
     result = verdict(hashes, wrapped.get("layers", 0), layers, ir["variant"], inspected, monitor_record["aborts"])
     write_json(args.output / "variant.json", {
-        **result, "variant": VARIANT, "linear_attention_layers": layers, "wrapped_layers": wrapped.get("layers", 0),
+        **result, "variant": variant, "linear_attention_layers": layers, "wrapped_layers": wrapped.get("layers", 0),
         "hash_comparison": hashes, "ir": ir, "baseline": baseline, "timing": durations(phases),
         "peak_rss_bytes": monitor_record["peak"]["max_rss_bytes"], "sizes": sizes})
     write_json(args.output / "provenance.json", {
@@ -183,9 +200,9 @@ def main():
     if len(sys.argv) == 3 and sys.argv[1] == "ir":
         print(json.dumps(ir_of(Path(sys.argv[2]))))
         return 0
-    if len(sys.argv) < 2 or sys.argv[1] != "export":
-        raise SystemExit("usage: export_variant.py {export ...,ir <asset>}")
-    return export()
+    if len(sys.argv) < 2 or sys.argv[1] not in ("export", "export-last-token"):
+        raise SystemExit("usage: export_variant.py {export ...,export-last-token ...,ir <asset>}")
+    return export(last_token=sys.argv[1] == "export-last-token")
 
 
 if __name__ == "__main__":
