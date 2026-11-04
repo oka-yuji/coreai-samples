@@ -115,7 +115,7 @@
     "thermal_pressure_source": "thermalmonitord mTPL in the system log; nominal before 06:28:52",
     "window": "2026-11-04 06:23:59 to 06:31:34 +0900"
   },
-  "evidence": "performance",
+  "evidence": "performance-battery",
   "latency": {
     "100": {
       "counts": {
