@@ -34,9 +34,33 @@ minimum-memory validation and sustained-use stability are not inferred from the 
 
 ## Publication verification
 
-Publication verification is pending. The model files, complete remote history and final local/remote identity are
-checked before visibility is changed; anonymous acquisition is checked after publication. The final results are
-recorded here when those operations complete.
+The repository became public on 2026-11-04 at 12:54:47 UTC, with `main` at
+`acc4cc835f64a75ab9ecee9d5d2e119a3bd29212`. The complete distribution contains 19 files and 16,064,854,276 bytes;
+root documentation and examples account for the difference from the model directory. [release.json](release.json)
+records each file's SHA-256, the model identities, the checks and their scope.
+
+Before publication, `model-release-audit` passed the complete local payload, the private repository's three
+reachable commits and the final local/remote gate. There were no unresolved path/credential findings, exceptions or
+read failures. The remote head manifest matched the local one. LFS attributes were committed and read back before
+uploading the full payload so the server did not add an unaccounted file change.
+
+The authenticated `hf download --local-dir` path used the official cache populated from the fixed repository
+revision. All 19 files matched their remote sizes and SHA-256 or Git blob identities; the strict `decision.json`
+check and `SHA256SUMS` passed. The downloaded bundle ran the authored 61-token example and returned the same full
+logits and probabilities as the packaged response. The download cache stayed outside `bundle/`.
+
+After publication, fresh anonymous HTTP requests fetched README and decision.json with HTTP 200 and identical
+bytes. A model-body Range request returned HTTP 206 with `bytes 0-0/16044285337`; only one byte was read. The client
+used `trust_env=False`, and all seven requests carried no Authorization header. This establishes anonymous resolve
+access; it is not a fresh anonymous full-model download.
+
+The anonymous full-history audit passed on 2026-11-04 at 13:33:26 UTC. It rehashed and scanned every fixed cached
+file from the three reachable commits (18 unique objects; 24 records including ref/commit metadata), with no
+unresolved findings, exceptions or read failures. Its head manifest, refs and scanner identity matched the private
+checks. All 15 HTTP sends, including the initial access checks, carried no Authorization header; the helper files
+were unchanged. A final anonymous read at 13:33:28 UTC confirmed the same public, ungated repository, HEAD and refs
+with two more requests and no Authorization header. Raw operational reports are retained privately; their digests
+and scoped results are recorded in release.json.
 
 ## Known limits
 
