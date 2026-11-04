@@ -1,0 +1,294 @@
+{
+  "schema": "jev27b-release/1",
+  "date": "2026-11-04",
+  "repository": "okayuji/jev-27b-coreai",
+  "revision": "acc4cc835f64a75ab9ecee9d5d2e119a3bd29212",
+  "payload": {
+    "files": 19,
+    "bytes": 16064854276,
+    "manifest_sha256": "1eaedcc6d26dc8d204e9658a8d5c8d38ac84151b363c2d9c394741c919f13d4c",
+    "manifest": [
+      {
+        "path": ".gitattributes",
+        "bytes": 1631,
+        "sha256": "035e772a364652f1855e864033b5d1dca10584df350f9d8ba15365ab99c2e741"
+      },
+      {
+        "path": "LICENSE",
+        "bytes": 11544,
+        "sha256": "bbedc3fda3305820b977265f01b8619d87570a6739de3a5582c3464840f1e57a"
+      },
+      {
+        "path": "NOTICE.md",
+        "bytes": 4802,
+        "sha256": "9ca60a56dd0c65a1a5dbda41336730b9ea0c84f7f1637faed08e8f1a43a634ea"
+      },
+      {
+        "path": "README.md",
+        "bytes": 13323,
+        "sha256": "54755767e7c1bc727f7d935188743c43f394c7118733e4e784750fae5b897f60"
+      },
+      {
+        "path": "bundle/LICENSE",
+        "bytes": 11544,
+        "sha256": "bbedc3fda3305820b977265f01b8619d87570a6739de3a5582c3464840f1e57a"
+      },
+      {
+        "path": "bundle/NOTICE.md",
+        "bytes": 4802,
+        "sha256": "9ca60a56dd0c65a1a5dbda41336730b9ea0c84f7f1637faed08e8f1a43a634ea"
+      },
+      {
+        "path": "bundle/SHA256SUMS",
+        "bytes": 1138,
+        "sha256": "5bb4e8e5b4b79b8b84f3576bd4d243158b97e5a824101eefe461b1734b4b7991"
+      },
+      {
+        "path": "bundle/calibration-refit.json",
+        "bytes": 19871,
+        "sha256": "93bcba90332627cef0f5b67cce78eb29b4f8cc55ce4701000d4cef6829be0f79"
+      },
+      {
+        "path": "bundle/decision.json",
+        "bytes": 4844,
+        "sha256": "2f34243a3d28500075e09d02d9f9f565a7c4b02f94a7d47b2a3caba7262d357d"
+      },
+      {
+        "path": "bundle/head.safetensors",
+        "bytes": 491768,
+        "sha256": "8256776bac46e653a3e126ab4e8d5e6d0eed73e7fa6f1e55306083607e44753d"
+      },
+      {
+        "path": "bundle/jev27b_s1_gdnfp32_qwen3_5_cfg_dynamic.aimodel/main.hash",
+        "bytes": 32,
+        "sha256": "ddc5c3030f568e15899d3bb12e4cd96a2d65e3bb36bc174c3167c3cabf7d1b33"
+      },
+      {
+        "path": "bundle/jev27b_s1_gdnfp32_qwen3_5_cfg_dynamic.aimodel/main.mlirb",
+        "bytes": 16044285337,
+        "sha256": "965396ce46af30aca1e65df8fe2e0fa4639be120b8bb18a7edeefc5dbbc86de0"
+      },
+      {
+        "path": "bundle/jev27b_s1_gdnfp32_qwen3_5_cfg_dynamic.aimodel/metadata.json",
+        "bytes": 105,
+        "sha256": "cd7122fc213817c8d65853b586d25bd2f090a8dbc5ba54b574926001cb832d3b"
+      },
+      {
+        "path": "bundle/metadata.json",
+        "bytes": 2545,
+        "sha256": "2b49e25cab2368581d83ddbd124893d1723ef231f4a50673457a488f25c6302d"
+      },
+      {
+        "path": "bundle/tokenizer/chat_template.jinja",
+        "bytes": 8952,
+        "sha256": "c3cf9e34abf4f9e36c2d72165aa9c132d3e2a725b6c2586aaa3a8af9d7a81041"
+      },
+      {
+        "path": "bundle/tokenizer/tokenizer.json",
+        "bytes": 19989325,
+        "sha256": "06b9509352d2af50381ab2247e083b80d32d5c0aba91c272ca9ff729b6a0e523"
+      },
+      {
+        "path": "bundle/tokenizer/tokenizer_config.json",
+        "bytes": 1124,
+        "sha256": "66e427c470fe580fe8c7b5725d857af23d8417e37fae62667ec698306a19987b"
+      },
+      {
+        "path": "examples/request.json",
+        "bytes": 287,
+        "sha256": "0814b02d92bbeeefca1fc25de88afd988d83e8879419294ea95b7e1c56d1868f"
+      },
+      {
+        "path": "examples/response.json",
+        "bytes": 1302,
+        "sha256": "f74a9bf741effdb9e2821a7d8bcdd6aa30033b1cfb9321a9dbcf40c6fb5a856b"
+      }
+    ]
+  },
+  "bundle": {
+    "files": 13,
+    "bytes": 16064821387,
+    "decision_sha256": "2f34243a3d28500075e09d02d9f9f565a7c4b02f94a7d47b2a3caba7262d357d",
+    "evaluated_decision_sha256": "a2b186a87a64d9e93a56f185a5ebc2a0613d00da7440eeb8c8c2229b64f6adf3",
+    "unchanged_files": [
+      {
+        "path": "LICENSE",
+        "bytes": 11544,
+        "sha256": "bbedc3fda3305820b977265f01b8619d87570a6739de3a5582c3464840f1e57a"
+      },
+      {
+        "path": "head.safetensors",
+        "bytes": 491768,
+        "sha256": "8256776bac46e653a3e126ab4e8d5e6d0eed73e7fa6f1e55306083607e44753d"
+      },
+      {
+        "path": "jev27b_s1_gdnfp32_qwen3_5_cfg_dynamic.aimodel/main.hash",
+        "bytes": 32,
+        "sha256": "ddc5c3030f568e15899d3bb12e4cd96a2d65e3bb36bc174c3167c3cabf7d1b33"
+      },
+      {
+        "path": "jev27b_s1_gdnfp32_qwen3_5_cfg_dynamic.aimodel/main.mlirb",
+        "bytes": 16044285337,
+        "sha256": "965396ce46af30aca1e65df8fe2e0fa4639be120b8bb18a7edeefc5dbbc86de0"
+      },
+      {
+        "path": "jev27b_s1_gdnfp32_qwen3_5_cfg_dynamic.aimodel/metadata.json",
+        "bytes": 105,
+        "sha256": "cd7122fc213817c8d65853b586d25bd2f090a8dbc5ba54b574926001cb832d3b"
+      },
+      {
+        "path": "tokenizer/chat_template.jinja",
+        "bytes": 8952,
+        "sha256": "c3cf9e34abf4f9e36c2d72165aa9c132d3e2a725b6c2586aaa3a8af9d7a81041"
+      },
+      {
+        "path": "tokenizer/tokenizer.json",
+        "bytes": 19989325,
+        "sha256": "06b9509352d2af50381ab2247e083b80d32d5c0aba91c272ca9ff729b6a0e523"
+      },
+      {
+        "path": "tokenizer/tokenizer_config.json",
+        "bytes": 1124,
+        "sha256": "66e427c470fe580fe8c7b5725d857af23d8417e37fae62667ec698306a19987b"
+      }
+    ],
+    "changed_files": [
+      "NOTICE.md",
+      "metadata.json",
+      "calibration-refit.json",
+      "decision.json",
+      "SHA256SUMS"
+    ],
+    "runtime_contract_and_temperatures_unchanged": true
+  },
+  "calibration": {
+    "original_record_sha256": "449492cee3d8b363589e6037c0390758455234510015f59a5f18621e17c31eb8",
+    "published_record_sha256": "93bcba90332627cef0f5b67cce78eb29b4f8cc55ce4701000d4cef6829be0f79",
+    "original_schema": "typed-decision-calibration-refit/1",
+    "published_schema": "typed-decision-calibration-refit-public/1",
+    "excluded_rows": 38,
+    "digest_count": 38,
+    "numerical_and_other_data_unchanged": true,
+    "original_calibration_id": "jev27b-refit/449492cee3d8b363",
+    "published_calibration_id": "jev27b-refit/93bcba90332627ce"
+  },
+  "acquisition": {
+    "authenticated": true,
+    "cache_outside_bundle": true,
+    "all_file_hashes_and_sizes_match": true,
+    "decision_check_passed": true,
+    "sha256sums_passed": true,
+    "native_example": {
+      "passed": true,
+      "repo": "okayuji/jev-27b-coreai",
+      "revision": "acc4cc835f64a75ab9ecee9d5d2e119a3bd29212",
+      "model_version": "2f34243a3d28500075e09d02d9f9f565a7c4b02f94a7d47b2a3caba7262d357d",
+      "input_sha256": "0814b02d92bbeeefca1fc25de88afd988d83e8879419294ea95b7e1c56d1868f",
+      "probabilities_match": true,
+      "logits_match": true,
+      "token_count": 61,
+      "top": 1,
+      "mode": "release-acquisition check, not a performance benchmark"
+    }
+  },
+  "publication": {
+    "private": false,
+    "confirmed_at": "2026-11-04T12:54:47.858505+00:00",
+    "anonymous_resolution": {
+      "schema": "jev27b-anonymous-access/1",
+      "repo": "okayuji/jev-27b-coreai",
+      "revision": "acc4cc835f64a75ab9ecee9d5d2e119a3bd29212",
+      "private": false,
+      "checked_at": "2026-11-04T12:54:50.626484+00:00",
+      "trust_env": false,
+      "token_argument": false,
+      "requests": 7,
+      "authorization_headers": 0,
+      "resolved": [
+        {
+          "path": "README.md",
+          "status": 200,
+          "bytes_read": 13323,
+          "sha256": "54755767e7c1bc727f7d935188743c43f394c7118733e4e784750fae5b897f60",
+          "matches_payload": true
+        },
+        {
+          "path": "bundle/decision.json",
+          "status": 200,
+          "bytes_read": 4844,
+          "sha256": "2f34243a3d28500075e09d02d9f9f565a7c4b02f94a7d47b2a3caba7262d357d",
+          "matches_payload": true
+        },
+        {
+          "path": "bundle/jev27b_s1_gdnfp32_qwen3_5_cfg_dynamic.aimodel/main.mlirb",
+          "status": 206,
+          "bytes_read": 1,
+          "content_range": "bytes 0-0/16044285337",
+          "content_length": "1",
+          "scope": "anonymous resolve reachability; not a fresh full model download"
+        }
+      ],
+      "fresh_anonymous_full_download": false
+    },
+    "final_anonymous_state": {
+      "schema": "jev27b-final-public-state/1",
+      "repo": "okayuji/jev-27b-coreai",
+      "revision": "acc4cc835f64a75ab9ecee9d5d2e119a3bd29212",
+      "private": false,
+      "gated": false,
+      "refs": [
+        {
+          "kind": "branches",
+          "ref": "refs/heads/main",
+          "ref_sha256": "f921bd05e68b03740c450e565e0e6173e546193170b2dd404ddb6f153e9b5bf3",
+          "commit": "acc4cc835f64a75ab9ecee9d5d2e119a3bd29212"
+        }
+      ],
+      "checked_at": "2026-11-04T13:33:28.681865+00:00",
+      "matches_anonymous_audit": true,
+      "requests": 2,
+      "authorization_headers": 0,
+      "trust_env": false,
+      "token_argument": false
+    }
+  },
+  "privacy": {
+    "scanner_id": "63501ba4f0d44b8a0f05127025407875f7cbd983dc573919d6905b816d9f7baf",
+    "local": "passed",
+    "private_history": "passed",
+    "gate": "passed",
+    "anonymous_history": "passed",
+    "exceptions": 0,
+    "private_history_commits": 3,
+    "private_history_unique_objects": 18,
+    "refs": [
+      {
+        "kind": "branches",
+        "ref": "refs/heads/main",
+        "ref_sha256": "f921bd05e68b03740c450e565e0e6173e546193170b2dd404ddb6f153e9b5bf3",
+        "commit": "acc4cc835f64a75ab9ecee9d5d2e119a3bd29212"
+      }
+    ],
+    "report_sha256": {
+      "local-public.json": "ec232a2816d7805b62e77f2e972556801b71935f1c375c6a1a0a1694a7ef43df",
+      "hub-public-private.json": "7783b7613c3d8e484014003170ad991898eac6c96f20bcc84aa3dc9ffc9d7b5e",
+      "gate-public.json": "68d0d1d94ef537cd4b6743d4aa82c515ca008c170c88997426a1bc86848b92aa",
+      "hub-public-anonymous.json": "d82332334ae213aaa6446066edee6cdf8cd7a09fe922138019da434228ed7018"
+    },
+    "anonymous_history_commits": 3,
+    "anonymous_history_unique_objects": 18,
+    "anonymous_history_records": 24,
+    "anonymous_history_checked_at": "2026-11-04T13:33:26.801547+00:00",
+    "anonymous_http": {
+      "trust_env": false,
+      "token_argument": false,
+      "requests": 15,
+      "authorization_headers": 0,
+      "helper_files_unchanged": true,
+      "fresh_anonymous_full_download": false,
+      "cached_files_scan_complete": true,
+      "audit_verdict": "passed",
+      "audit_exit": 0
+    }
+  }
+}

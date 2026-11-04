@@ -1,20 +1,19 @@
 # JEV-27B typed decisions for Core AI
 
-[Home](../README.md) · [日本語](jev27b.ja.md)
+[Home](../README.md) · [日本語](jev27b.ja.md) · [Download on Hugging Face](https://huggingface.co/okayuji/jev-27b-coreai)
 
 JEV-27B answers typed questions about a situation: `noul` (false or true), `choice` (2 to 16 options) and `score` (0 to
 5). This page describes the Core AI bundle that the [`jev27b` recipe](../Tools/Conversion/recipes/jev27b/README.md)
 builds from [autotrust/JEV-27B](https://huggingface.co/autotrust/JEV-27B) and the checks recorded for it. One prefill of
 a bare template runs on the Core AI asset, and a 24-row decision head turns the hidden state of the last token into the
-probabilities of the options. The bundle is not distributed, and the sample app does not use it yet; the
-`coreai-verify typed-decide` command runs it on the Mac.
+probabilities of the options. Download the bundle from Hugging Face and run it on the Mac with
+`coreai-verify typed-decide`. The sample app does not use this model; app integration remains separate.
 
-**For:** developers who build the bundle themselves and want to measure typed decisions on the Mac. **Not for:**
+**For:** Swift developers running and measuring typed decisions on the Mac. **Not for:**
 free-form chat, production decisions, or probabilities used as real-world correctness without further checks.
 
 Requirements: Apple silicon, macOS 27, Xcode 27 with Metal Toolchain, GPU execution. Measured on a Mac16,6 (Apple M4
-Max) with 128 GiB of memory, macOS 27.0 (26A428). A minimum-memory configuration has not been established. Building the
-bundle needs the reference and converter environments of the recipe, the pinned inputs and free disk space (the
+Max) with 128 GiB of memory, macOS 27.0 (26A428). A minimum-memory configuration has not been established. Downloading the bundle does not require conversion. Building it from source needs the reference and converter environments of the recipe, the pinned inputs and free disk space (the
 export steps check for 160 GB).
 
 <!-- model-report:start -->
@@ -86,29 +85,31 @@ Results below retain their original dates and workloads. Different rows may use 
 
 ## Quick start
 
-1. Build the bundle with the recipe. Place the pinned inputs under `.local/conversion`, run setup, build and copy the
-   `coreai-verify` executable, and run the recipe ([recipe README](../Tools/Conversion/recipes/jev27b/README.md)). The
-   `calibrate` step writes the calibrated bundle `jev27b_s1_gdnfp32_qwen3_5_cfg_dynamic` into its output folder. Check a
-   copy from inside its folder with `shasum -a 256 -c SHA256SUMS`, and from the repository root with
-   `python3 -m Tools.Conversion.adapters.jev27b.decision <bundle>/decision.json --check-files`.
-2. Answer typed questions with the command line tool. Running the model is a heavy job: hold the shared machine lock
-   (`CLAUDE.md`).
+Install the [common prerequisites](../README.md#get-started), including Rust/Cargo, and the Hugging Face CLI.
+From the repository root, download the model and run the authored example:
 
-   ~~~sh
-   swift build -c release --package-path Tools/Verify --product coreai-verify
-   Tools/Verify/.build/release/coreai-verify typed-decide --bundle <bundle> --input in.json --output out.json
-   ~~~
+~~~sh
+hf download okayuji/jev-27b-coreai --local-dir models/jev27b
+./Tools/Irodori/build-inputs.sh
+swift build -c release --package-path Tools/Verify --product coreai-verify --force-resolved-versions
+Tools/Verify/.build/release/coreai-verify typed-decide --bundle models/jev27b/bundle --input models/jev27b/examples/request.json --output jev-decision-output.json
+~~~
 
-   `in.json` holds the rows to answer, for example the refund example of the model card:
+The output file must not exist yet. Run model operations under the shared machine lock in `AGENTS.md`.
+Keep the `bundle/` subfolder: the Hugging Face download cache, model card and example files belong outside the
+strictly checked model inventory. The [release record](validation/jev27b/release.md) connects the published
+files with the previously evaluated bundle. The model card includes the authored request and its recorded answer.
 
-   ~~~json
-   {"rows": [{"id": "refund", "kind": "noul",
-              "state": "Customer says the parcel arrived damaged and wants their money back.",
-              "question": "Is the customer asking for a refund?", "options": ["false", "true"]}]}
-   ~~~
+To build the bundle from source, use the [conversion recipe](../Tools/Conversion/recipes/jev27b/README.md).
+Place the pinned inputs under `.local/conversion`, run setup, build and copy the `coreai-verify` executable,
+and run the recipe. The `calibrate` step writes the calibrated bundle
+`jev27b_s1_gdnfp32_qwen3_5_cfg_dynamic`. Check a copy from inside its folder with
+`shasum -a 256 -c SHA256SUMS`, or from the repository root with
+`python3 -m Tools.Conversion.adapters.jev27b.decision <bundle>/decision.json --check-files`.
 
-   `out.json` holds, for every row, the token count, the 24 head logits, the probabilities at the bundle temperatures
-   and at temperature 1, the top option and the time of the decision ([Running on Mac](#running-on-mac)).
+Custom input JSON holds rows with `id`, `kind`, `state`, `question` and `options`. The runner's output records the
+token count, the 24 head logits, probabilities at the bundle temperatures and at temperature 1, the top option and
+the time of each decision ([Running on Mac](#running-on-mac)).
 
 ## Recorded result
 
@@ -175,22 +176,32 @@ distribution of the corpus (output distributions of Jev 1.13), not real-world co
 
 ## Input and files
 
-The calibrated bundle has 13 files, 16,064,815,496 bytes in total. Its model version is the SHA-256 of `decision.json`:
-`a2b186a87a64d9e93a56f185a5ebc2a0613d00da7440eeb8c8c2229b64f6adf3`. The bundle layout, the contract of `decision.json`,
-the Swift types and the command line tool are described below.
+The calibrated bundle used for the recorded evaluations, before release-notice changes, had 13 files and
+16,064,815,496 bytes; its `decision.json` SHA-256 was
+`a2b186a87a64d9e93a56f185a5ebc2a0613d00da7440eeb8c8c2229b64f6adf3`. The published `bundle/` has 13 files and
+16,064,821,387 bytes, with manifest SHA-256
+`2f34243a3d28500075e09d02d9f9f565a7c4b02f94a7d47b2a3caba7262d357d`. The [release record](validation/jev27b/release.md)
+identifies the publication-metadata changes, the calibration record with hashed identifiers, and the unchanged model files. The layout, file contract, Swift types and
+command line tool are described below.
 
 ### Bundle layout
 
 ```text
-jev27b_s1_qwen3_5_cfg_dynamic/
-  jev27b_s1_qwen3_5_cfg_dynamic.aimodel/   main only: hidden states after the final RMSNorm
-  metadata.json                            written by the exporter; source.revision is the merged revision
-  tokenizer/                               tokenizer.json, tokenizer_config.json, chat_template.jinja
-  head.safetensors                         proj.weight [24, 5120] and proj.bias [24], float32
-  decision.json                            the typed-decision-v1 contract below
-  LICENSE                                  Apache License 2.0
-  NOTICE.md                                attribution and the changes made
-  SHA256SUMS                               SHA-256 of every other file
+jev-27b-coreai/
+  README.md
+  LICENSE
+  NOTICE.md
+  examples/
+  bundle/
+    jev27b_s1_gdnfp32_qwen3_5_cfg_dynamic.aimodel/
+    metadata.json
+    tokenizer/
+    head.safetensors
+    calibration-refit.json
+    decision.json
+    LICENSE
+    NOTICE.md
+    SHA256SUMS
 ```
 
 - The asset has one function, `main`. Inputs: `input_ids` and `position_ids` (Int32, 1 x ?). Output: `hidden_states`
