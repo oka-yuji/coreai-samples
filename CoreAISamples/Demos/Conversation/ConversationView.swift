@@ -6,7 +6,7 @@ import SwiftUI
 struct ConversationView: View {
     @Environment(ChatViewModel.self) private var chat
     @Environment(ConversationHost.self) private var host
-    @Environment(DemoNavigator.self) private var navigator
+    @Environment(MacModelLibrary.self) private var library
     @Environment(\.locale) private var locale
     @AppStorage("conversationHistoryVisible") private var historyVisible = true
     @State private var showSettings = false
@@ -134,7 +134,6 @@ struct ConversationView: View {
                     .font(.headline)
                 Text("Choose \(host.state.modelID) to continue this conversation.")
                     .foregroundStyle(.secondary)
-                Button("Open Models") { navigator.selection = .models }
             }
         case .loading(let preparing):
             LoadingView(name: chat.modelName, preparing: preparing, since: chat.loadStarted)
@@ -143,7 +142,6 @@ struct ConversationView: View {
                 Label("Could not open the model", systemImage: "exclamationmark.triangle")
                     .font(.headline)
                 RuntimeMessageText(message).foregroundStyle(.secondary).textSelection(.enabled)
-                Button("Open Models") { navigator.selection = .models }
             }
         case .empty:
             VStack(alignment: .leading, spacing: 10) {
@@ -153,11 +151,14 @@ struct ConversationView: View {
                     if !host.state.modelID.isEmpty {
                         Text("Choose \(host.state.modelID) to continue this conversation.")
                     } else {
-                        Text("Choose a model from the menu above, or open a bundle folder in Models.")
+                        if library.installed(.qwen) == nil {
+                            Text("Download Qwen3.8 27B from its heading in the sidebar.")
+                        } else {
+                            Text("Choose a model from the menu above.")
+                        }
                     }
                 }
                 .foregroundStyle(.secondary)
-                Button("Open Models") { navigator.selection = .models }
             }
         }
     }

@@ -784,10 +784,7 @@ enum AgentSelfTest {
         if !offline, let directory = LaunchArguments.value("--fetch-capture-dir") {
             await captureFetchPages(directory) { name, passed, detail in check(name, passed, detail) }
         }
-        for result in await HubDownloadSelfTest.run(offline: offline) {
-            check(result.name, result.passed, result.detail)
-        }
-        await ModelSelectionSelfTest.run { name, passed, detail in check(name, passed, detail) }
+        await LibrarySelectionSelfTest.run { name, passed, detail in check(name, passed, detail) }
 
         if offline {
             out("SKIP  search/live (--offline)")
@@ -1521,11 +1518,14 @@ enum AgentSelfTest {
         let broken = folder.appending(path: "broken-bundle", directoryHint: .isDirectory)
         try? FileManager.default.createDirectory(at: broken, withIntermediateDirectories: true)
         try? Data("{}".utf8).write(to: broken.appending(path: "metadata.json"))
-        let models = ModelsViewModel()
-        models.open(broken)
-        check(
-            "m4g/modelsShowBundleError", models.message?.hasSuffix("metadata.json has no name.") == true,
-            models.message ?? "nil")
+        do {
+            _ = try BundleSupport.supportedBundle(at: broken)
+            check("m4g/bundleValidationShowsError", false, "An invalid bundle was accepted.")
+        } catch {
+            check(
+                "m4g/bundleValidationShowsError", error.localizedDescription.hasSuffix("metadata.json has no name."),
+                error.localizedDescription)
+        }
     }
 
     static let longPageFixture: String = {
