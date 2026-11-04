@@ -134,14 +134,21 @@ public final class ModelLibraryResourceRunner {
         case .ready(let resource):
             let candidates = migrationCandidates()
             if !candidates.isEmpty {
-                do {
-                    try await store.resumeMigration(candidates: candidates, model: model, artifact: artifact)
-                } catch is CancellationError {
-                    throw CancellationError()
-                } catch {
+                switch try await store.resumeMigration(candidates: candidates, model: model, artifact: artifact) {
+                case .notNeeded:
+                    break
+                case .inspected(.ready(let verified)):
+                    return verified
+                case .inspected(.missing):
+                    return nil
+                case .inspected(.invalid(let error)):
+                    logger.error("Migration rejected \(artifact.id, privacy: .public): \(String(describing: error))")
+                    return nil
+                case .cleanupPending(let verified, let error):
                     logger.error(
                         "Migration cleanup remains pending for \(artifact.id, privacy: .public): \(String(describing: error))"
                     )
+                    return verified
                 }
             }
             return resource
@@ -156,7 +163,9 @@ public final class ModelLibraryResourceRunner {
             for case .migrated(let resource)? in candidates.map({ outcomes[$0] }) { return resource }
             for case .failed(let error)? in candidates.map({ outcomes[$0] }) {
                 if error is CancellationError { throw error }
-                if case .ready(let resource) = try await store.inspect(model: model, artifact: artifact) {
+                if case .ready(let resource) = try await store.inspect(
+                    model: model, artifact: artifact, verification: .full)
+                {
                     logger.error(
                         "Migration cleanup remains pending for \(artifact.id, privacy: .public): \(String(describing: error))"
                     )

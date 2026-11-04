@@ -365,7 +365,7 @@ struct ManagedModelStoreTests {
 
         try Data("fixture-gliner-weightZ".utf8).write(to: directory.appending(path: "x.aimodel/main.mlirb"))
         #expect(
-            try await store.inspect(sample).reason
+            try await store.inspect(model: sample.model, artifact: sample.artifact, verification: .full).reason
                 == describe(ManagedModelStoreError.checksumMismatch("x.aimodel/main.mlirb")))
         #expect(try fixture.ledger().entries.contains { $0.artifactID == sample.artifact.id })
 

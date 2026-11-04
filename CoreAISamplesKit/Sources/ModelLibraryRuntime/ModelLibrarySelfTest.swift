@@ -202,7 +202,7 @@ public enum ModelLibrarySelfTest {
         var artifacts: [Report.Artifact] = []
         for model in catalog.models {
             for artifact in model.artifacts {
-                let inspection = try await store.inspect(model: model, artifact: artifact)
+                let inspection = try await store.inspect(model: model, artifact: artifact, verification: .full)
                 artifacts.append(
                     Report.Artifact(
                         modelID: model.id, artifactID: artifact.id, contract: artifact.contract,
@@ -272,7 +272,7 @@ public enum ModelLibrarySelfTest {
             }
             let installation = library.state.installations[artifact.id] ?? ModelInstallation()
             let resource = installation.resource
-            let inspection = try await store.inspect(model: model, artifact: artifact)
+            let inspection = try await store.inspect(model: model, artifact: artifact, verification: .full)
             results.append(
                 Report.Acquisition.Result(
                     modelID: model.id, artifactID: artifact.id, revision: artifact.sourceRevision, route: route,
@@ -352,7 +352,7 @@ public enum ModelLibrarySelfTest {
 
     private static func seconds(_ duration: Duration) -> Double {
         let (whole, fraction) = duration.components
-        return ((Double(whole) + Double(fraction) / 1e18) * 10).rounded() / 10
+        return ((Double(whole) + Double(fraction) / 1e18) * 1_000_000).rounded() / 1_000_000
     }
 
     private static func displayPath(_ url: URL) -> String {

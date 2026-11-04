@@ -28,6 +28,17 @@ public enum ManagedInspection: Sendable {
     case invalid(any Error)
 }
 
+public enum ModelVerification: Sendable {
+    case recorded
+    case full
+}
+
+public enum MigrationResumption: Sendable {
+    case notNeeded
+    case inspected(ManagedInspection)
+    case cleanupPending(ValidatedModelResource, any Error)
+}
+
 public enum MigrationOutcome: Sendable {
     case migrated(ValidatedModelResource)
     case skipped
@@ -175,7 +186,9 @@ public actor ManagedModelStore {
         }
     }
 
-    public func inspect(model: LibraryModel, artifact: ModelArtifact) throws -> ManagedInspection {
+    public func inspect(
+        model: LibraryModel, artifact: ModelArtifact, verification: ModelVerification = .recorded
+    ) throws -> ManagedInspection {
         guard artifact.isSourceValid else { return .missing }
         let resource: ValidatedModelResource
         do { resource = try definition(model, artifact) } catch { return .invalid(error) }
@@ -183,7 +196,13 @@ public actor ManagedModelStore {
             $0.matches(resource.identity)
         }
         if itemType(resource.directory) == nil, entry == nil { return .missing }
-        do { try verify(resource.directory, artifact) } catch let error as CancellationError { throw error } catch {
+        do {
+            if verification == .recorded, entry?.records(resource) == true {
+                try verifyStructure(resource.directory, artifact, allowingExtraneous: false)
+            } else {
+                try verify(resource.directory, artifact)
+            }
+        } catch let error as CancellationError { throw error } catch {
             return .invalid(error)
         }
         if entry?.records(resource) != true { try record(resource) }
@@ -244,7 +263,9 @@ public actor ManagedModelStore {
             return MigrationReport(outcomes: outcomes)
         }
         var ready = false
-        do { if case .ready = try inspect(model: model, artifact: artifact) { ready = true } } catch {
+        do {
+            if case .ready = try inspect(model: model, artifact: artifact, verification: .full) { ready = true }
+        } catch {
             for candidate in candidates { outcomes[candidate] = .failed(error) }
             return MigrationReport(outcomes: outcomes)
         }
@@ -264,13 +285,29 @@ public actor ManagedModelStore {
         return MigrationReport(outcomes: outcomes)
     }
 
-    public func resumeMigration(candidates: [URL], model: LibraryModel, artifact: ModelArtifact) throws {
-        guard removeMigratedSources else { return }
-        let journal = try location("migrations", artifact.id, artifact.sourceRevision ?? "").appending(
-            path: "cleanup.json")
-        guard itemType(journal) != nil else { return }
-        guard case .ready = try inspect(model: model, artifact: artifact) else { return }
-        for candidate in candidates { try finishMigration(candidate, artifact: artifact) }
+    public func resumeMigration(
+        candidates: [URL], model: LibraryModel, artifact: ModelArtifact
+    ) throws -> MigrationResumption {
+        guard removeMigratedSources else { return .notNeeded }
+        var journalFailure: (any Error)?
+        do {
+            let journal = try location("migrations", artifact.id, artifact.sourceRevision ?? "").appending(
+                path: "cleanup.json")
+            guard itemType(journal) != nil else { return .notNeeded }
+        } catch {
+            journalFailure = error
+        }
+        let inspection = try inspect(model: model, artifact: artifact, verification: .full)
+        guard case .ready(let resource) = inspection else { return .inspected(inspection) }
+        if let journalFailure { return .cleanupPending(resource, journalFailure) }
+        do {
+            for candidate in candidates { try finishMigration(candidate, artifact: artifact) }
+        } catch let error as CancellationError {
+            throw error
+        } catch {
+            return .cleanupPending(resource, error)
+        }
+        return .inspected(inspection)
     }
 
     public func delete(identity: ModelArtifactIdentity) throws -> Int64 {
