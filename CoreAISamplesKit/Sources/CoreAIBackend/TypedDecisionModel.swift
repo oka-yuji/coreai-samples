@@ -50,9 +50,13 @@ public actor TypedDecisionModel {
         let (runtime, cached) = try await TypedDecisionRuntime.load(bundle: bundle)
         stats.backboneSeconds = (clock.now - start) / .seconds(1)
         stats.cachedSpecialization = cached
+        let bookmark = runtime.bookmarkData
+        let session = TypedDecisionSession(backbone: runtime) {
+            try await TypedDecisionRuntime.reload(bundle: bundle, bookmark: bookmark)
+        }
         return TypedDecisionModel(
             bundle: bundle, encode: { tokenizer.encode(text: $0, addSpecialTokens: false) }, head: head,
-            backbone: runtime, loadStats: stats)
+            backbone: session, loadStats: stats)
     }
 
     public nonisolated func capacity(forTokens count: Int) -> Int {
