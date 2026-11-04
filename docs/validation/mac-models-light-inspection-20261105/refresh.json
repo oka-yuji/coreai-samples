@@ -1,0 +1,48 @@
+{
+  "issue": 495,
+  "before_source": "aaa989fbe793714350bb69c6f718eed5232aa5d1",
+  "before_integrated_as": "1fc3d094ffef96738716801d038c72d720018c72",
+  "after_source": "eda5a4f6da27ea16151853d6c266100356b20cbb",
+  "machine": "Apple M5 Max",
+  "os": "27.2",
+  "bundle_id": "com.coreai.samples.validation465",
+  "before_executable": "CoreAISamplesCheck466",
+  "after_executable": "CoreAISamplesCheck495",
+  "heavy_job_lock": true,
+  "inference": false,
+  "artifacts": [
+    {
+      "id": "qwen3.8-27b-coreai-4bit",
+      "revision": "8e24aebe036eae577d4a3bd019ba728a73358318",
+      "files": 12,
+      "bytes": 16852543780
+    },
+    {
+      "id": "clef-flash-9b-coreai-decide",
+      "revision": "12e30be4e391310377c534524df8962359a08b0f",
+      "files": 25,
+      "bytes": 7278592396
+    }
+  ],
+  "total_bytes": 24131136176,
+  "pending_migration": false,
+  "before_refresh_seconds": [
+    7.8,
+    7.8,
+    7.8
+  ],
+  "after_refresh_seconds": [
+    0.002163,
+    0.002089,
+    0.002049
+  ],
+  "before_resolution_seconds": 0.1,
+  "after_resolution_seconds": 1e-06,
+  "before_median_seconds": 7.8,
+  "after_median_seconds": 0.002089,
+  "full_initial_inspections": "ready for both artifacts in every run",
+  "post_acquisition_inspections": "ready; installed route; no download; zero failures",
+  "file_cache": "not purged; each refresh follows the diagnostic full initial inspection in both versions",
+  "measurement_scope": "library.refresh dispatch through idle for the catalog; excludes diagnostic full initial and post-acquisition inspections",
+  "limitation": "The stated minutes-scale baseline was not reproduced on this machine; observed values are reported unchanged."
+}
