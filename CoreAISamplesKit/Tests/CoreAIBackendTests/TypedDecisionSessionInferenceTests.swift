@@ -8,8 +8,7 @@ private actor TypedDecisionSessionReloads {
     func record() { count += 1 }
 }
 
-@Suite(.serialized, .enabled(if: !typedDecisionBundle.isEmpty))
-struct TypedDecisionSessionInferenceTests {
+extension TypedDecisionInferenceTests {
     private static func model(
         entered: AsyncStream<Void>.Continuation, reloads: TypedDecisionSessionReloads
     ) async throws -> TypedDecisionModel {
