@@ -718,13 +718,13 @@ last column compares the medians with the earlier measurement on battery power b
   check (5.29 to 5.93 s, against about 5.25 s) and the backbone of the loads (22.2 to 24.3 s fresh and 3.8 s cached,
   against 21.8 to 22.1 s and 3.5 s) were slower too. The cancellation test was 2.9% faster; on battery it ran at heavy
   pressure. The cause was not investigated. Besides the power source, this run differed in the energy mode, the battery
-  charging from the 68 W of the adapter, and the other activity on the machine below, which the battery run did not
-  have.
+  charging from the 68 W of the adapter, and the other activity on the machine below (audio sessions, a browser video
+  and a UI automation session), which the battery run did not have.
 - Other load: before the measurement no other model process was running (checked with `pgrep`). The assertions of `pmset
   -g log` show other activity during this run: audio sessions from about 09:22 to 09:28:47 and from about 09:29:36 to
   09:30:52, a video wake lock of a browser from 09:25:56 to 09:25:58, a UI automation session at 09:23:31 (during the
-  third fresh load, the slowest of the three), Handoff and network tasks. The battery run had none of these. The CPU and
-  GPU use of other processes was not recorded.
+  third fresh load, the slowest of the three), Handoff and network tasks. The battery run had none of these except one
+  short network task. The CPU and GPU use of other processes was not recorded.
 - The physical footprint sampled during the rows again grew in each round of four rows, by 4.1 to 4.3 GB: about 8.2 GB
   during the 8,192-token warmup, then 12.6, 16.6 and 20.8 GB during the three measured 8,192-token rows, without
   levelling off; `peak_footprint_bytes` is not an upper bound. The RSS sampled during the rows stayed between 16.53 and

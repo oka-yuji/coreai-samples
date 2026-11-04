@@ -104,10 +104,10 @@ debug build of the test target, as the plan states.
   change to moderate; the rows carry no clock times, so their times are rebuilt from the logs within about a second.
   Of the medians, only the 8,192-token one (second round) ran at heavy pressure. `pmset -g therm` showed no warning.
 - **Other load:** before the measurement `pgrep` found no other model process. The assertions of `pmset -g log`
-  show other activity during this run that the battery run did not have: audio sessions from about 09:22 to 09:28:47
-  and from about 09:29:36 to 09:30:52, a video wake lock of a browser from 09:25:56 to 09:25:58, a UI automation
-  session at 09:23:31 (during the third fresh load, the slowest of the three), Handoff and network tasks. The CPU and
-  GPU use of other processes was not recorded.
+  show other activity during this run: audio sessions from about 09:22 to 09:28:47 and from about 09:29:36 to
+  09:30:52, a video wake lock of a browser from 09:25:56 to 09:25:58, a UI automation session at 09:23:31 (during the
+  third fresh load, the slowest of the three), Handoff and network tasks. The battery run had none of these except one
+  short network task. The CPU and GPU use of other processes was not recorded.
 
 The common protocol requires the conditions to be recorded and the plan and revisions to be fixed; the power source,
 its watts and the energy mode are recorded conditions, not requirements. This plan named the AC power, the energy

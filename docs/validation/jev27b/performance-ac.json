@@ -86,7 +86,7 @@
   },
   "conditions": {
     "builds": "command line measurements: release build of coreai-verify at the plan's code_revision; cancellation test: debug build of the test target (swift test without -c release), as the plan states",
-    "other_activity": "assertions of pmset -g log during the run (assertions-log.txt): audio sessions of coreaudiod from about 09:22 to 09:28:47 and from about 09:29:36 to 09:30:52, a video wake lock of a browser from 09:25:56 to 09:25:58, a UI automation session at 09:23:31 (during the third fresh load), Handoff and network tasks. The battery run (06:22 to 06:33) had none of these (assertions-log-battery-window.txt). Their CPU and GPU use was not recorded",
+    "other_activity": "assertions of pmset -g log during the run (assertions-log.txt): audio sessions of coreaudiod from about 09:22 to 09:28:47 and from about 09:29:36 to 09:30:52, a video wake lock of a browser from 09:25:56 to 09:25:58, a UI automation session at 09:23:31 (during the third fresh load), Handoff and network tasks. The battery run (06:22 to 06:33) had none of these except one short network task (assertions-log-battery-window.txt). Their CPU and GPU use was not recorded",
     "other_load": "pgrep found no other model process before the measurement; GPU use of other processes was not recorded",
     "stages": [
       {
