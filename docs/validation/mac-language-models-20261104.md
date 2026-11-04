@@ -1,6 +1,6 @@
 # Mac language-model library integration (2026-11-04)
 
-Issue #465, integration PR #467. Implementation: `8c7a012` (catalog, storage, migration) and `dd02aa8` (application and runtime lifecycle).
+Issue #465, integration PR #467. Implementation: `8c7a012` (catalog, storage, migration) and `dd02aa8` (application and runtime lifecycle), with termination-cancellation corrections in `e79bbc3`.
 
 | Condition | Evidence | Status |
 |---|---|---|
@@ -11,8 +11,10 @@ Issue #465, integration PR #467. Implementation: `8c7a012` (catalog, storage, mi
 | LLM-05 | Mac Release, strict lint, formatting, package pins and package tests passed; anonymous acquisition through the application is still pending | Partial |
 | LLM-06 | Normal UI generation, restored conversation continuation, Decide and Recipes with real models, and the visible deletion controls | User acceptance pending |
 
-The package run reported 1,189 tests with no failures across 39 runs; 74 optional model/fixture checks were skipped. The macOS application passed `--agent-selftest --offline` and `--check-localization` (102 runtime keys, no missing Japanese translations). The iPhoneOS Release build passed with signing disabled; this is a build result, not an iPhone execution result. Logs are retained outside the repository.
+The package run reported 1,192 tests with no failures across 39 runs; 51 optional model/fixture tests were skipped. The macOS application passed `--agent-selftest --offline` and `--check-localization` (102 runtime keys, no missing Japanese translations). The iPhoneOS Release build passed with signing disabled; this is a build result, not an iPhone execution result. Logs are retained outside the repository.
 
 Runtime lease tests cover a path reconstructed using `URL(filePath:)`, refusal before installation and for a different directory, independent holders and deletion after the last release. Decide and Recipe tests cover cancellation that finishes late, closing and reopening, rejection of old release acknowledgements and loading again after release. Independent reviews corrected directory-URL comparison, pending selection lifetime, cleanup failure handling and termination cancellation. Their final inspected scope had no remaining confirmed findings; model execution and user acceptance remain separate.
 
 The original 5 SP estimate and the parent split remain unchanged. The additional lifecycle code completes the planned stop/release contract for the three newly connected demos; keeping it with their connection avoids a merge point where deletion is possible while native work still owns the model. The later removal of the old management screen and documentation migration belong to #466.
+
+Post-review regression checks include `MacModelSelectionTests` (resetting a pending selection, rejecting old load/unload completions and distinct task identities), the monotonic model-release marker in both Features, and application self-tests for cleanup/resume order and keeping hidden demos stopped after a failed close. A CPU SwiftUI probe reproduced omission of a transient `closing` notification; the monotonic marker recovered the second load. The real-model and normal-UI checks remain pending.
