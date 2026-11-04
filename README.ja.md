@@ -21,8 +21,8 @@ GLiNER2.5-multi、EmbeddingGemma 2、Qwen3.8 27B、Clef-Flash 9Bのリポジト�
 
 | モデル・バンドル | 用途 | macOS | iOS | 状態 | ダウンロード | ガイド |
 |---|---|---|---|---|---|---|
-| Qwen3.8 27B · 4ビット、テキスト | Chat・Work・`coreai-chat` | [✅](docs/qwen3.8-27b.ja.md#model-report) | [—](docs/qwen3.8-27b.ja.md#model-report) | 公開済み · アプリ内の取得は対応中 | [Hugging Face](https://huggingface.co/okayuji/Qwen3.8-27B-coreai-4bit) | [ガイド・結果](docs/qwen3.8-27b.ja.md) |
-| Clef-Flash 9B · uint4＋fp16ヘッド、テキスト | Recipes・Decide | [✅](docs/clef-flash.ja.md#model-report) | [—](docs/clef-flash.ja.md#model-report) | 公開済み · アプリ内の取得は対応中 | [Hugging Face](https://huggingface.co/okayuji/clef-flash-9b-coreai-decide) | [ガイド・結果](docs/clef-flash.ja.md) |
+| Qwen3.8 27B · 4ビット、テキスト | Chat・Work・`coreai-chat` | [✅](docs/qwen3.8-27b.ja.md#model-report) | [—](docs/qwen3.8-27b.ja.md#model-report) | 公開済み · Mac通常UIの本人確認待ち | [Hugging Face](https://huggingface.co/okayuji/Qwen3.8-27B-coreai-4bit) | [ガイド・結果](docs/qwen3.8-27b.ja.md) |
+| Clef-Flash 9B · uint4＋fp16ヘッド、テキスト | Recipes・Decide | [✅](docs/clef-flash.ja.md#model-report) | [—](docs/clef-flash.ja.md#model-report) | 公開済み · Mac通常UIの本人確認待ち | [Hugging Face](https://huggingface.co/okayuji/clef-flash-9b-coreai-decide) | [ガイド・結果](docs/clef-flash.ja.md) |
 | JEV-27B · uint4＋fp32ヘッド、テキスト | 型付き判断(CLI) | [—](docs/jev27b.ja.md#model-report) | [—](docs/jev27b.ja.md#model-report) | 着手中 · バンドル非公開。公開は #450 で判断 | — | [ガイド・結果](docs/jev27b.ja.md) |
 | GLiNER2.5-multi · FP32 | 商品情報の抽出・点検メモ | [△](docs/model-reports/gliner25.ja.md#model-report) | [△](docs/model-reports/gliner25.ja.md#model-report) | 公開済み · iOSの実機確認待ち | [Hugging Face](https://huggingface.co/okayuji/gliner2.5-multi-coreai-fp32) | [ガイド・結果](docs/model-reports/gliner25.ja.md) |
 | EmbeddingGemma 2 · FP16／INT4-INT8 PTQ | 画像検索・動画の場面検索・カメラで物探し | [✅](docs/model-reports/embeddinggemma2.ja.md#model-report) | [△](docs/model-reports/embeddinggemma2.ja.md#model-report) | 公開済み · iOSの実機確認待ち | [Hugging Face](https://huggingface.co/okayuji/embeddinggemma-2-coreai) | [ガイド・結果](docs/model-reports/embeddinggemma2.ja.md) |
