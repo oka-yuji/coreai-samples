@@ -39,19 +39,19 @@ Results below retain their original dates and workloads. Different rows may use 
 |---|---|---|---|
 | Bundle / payload size | 16,064,815,496 B | single; n=1 | [E5](validation/jev27b/README.md#bundle) · The 13 files of the calibrated bundle, including the 16 GB asset; counted by performance.py records after plan revision 3. |
 | Prepared cache size | Not measured | — | The size of the specialization cache entry is not exposed by the command line tool. |
-| First load, including specialization | 27.6991793 s | median; n=3 | [E4](validation/jev27b/README.md#performance) · New process with the specialization cache entry deleted (--clear-cache); bundle check, tokenizer, head and backbone. File caches not flushed. On battery power (plan revision 3). |
-| Load from prepared cache | 9.42181062 s | median; n=3 | [E4](validation/jev27b/README.md#performance) · New process with the specialization cache entry present; same parts as the first load. On battery power (plan revision 3). |
-| Request / pipeline completion time | 0.598414292 s | median; n=3 | [E4](validation/jev27b/README.md#performance) · P row of exactly 100 tokens; TypedDecisionModel.decide from call to return; lengths interleaved in one process after one warmup each; memory sampled every 100 ms during each row (--sample-memory). The median row ran under moderate thermal pressure. On battery power (plan revision 3). |
-| Request / pipeline completion time | 2.27002092 s | median; n=3 | [E4](validation/jev27b/README.md#performance) · P row of exactly 500 tokens; TypedDecisionModel.decide from call to return; lengths interleaved in one process after one warmup each; memory sampled every 100 ms during each row (--sample-memory). On battery power (plan revision 3). |
-| Request / pipeline completion time | 8.91910646 s | median; n=3 | [E4](validation/jev27b/README.md#performance) · P row of exactly 2,000 tokens; TypedDecisionModel.decide from call to return; lengths interleaved in one process after one warmup each; memory sampled every 100 ms during each row (--sample-memory). On battery power (plan revision 3). |
-| Request / pipeline completion time | 37.495032 s | median; n=3 | [E4](validation/jev27b/README.md#performance) · P row of exactly 8,192 tokens; TypedDecisionModel.decide from call to return; lengths interleaved in one process after one warmup each; memory sampled every 100 ms during each row (--sample-memory). The last seconds of the median row ran under moderate thermal pressure. On battery power (plan revision 3). |
-| Peak RSS | 32,343,687,168 B | single; n=1 | [E4](validation/jev27b/README.md#performance) · /usr/bin/time -l of the latency process, lifetime maximum including the load; not added to the footprint. On battery power (plan revision 3). |
-| Peak physical footprint | 21,565,667,056 B | single; n=1 | [E4](validation/jev27b/README.md#performance) · /usr/bin/time -l of the latency process (peak memory footprint). Not a bound: the footprint grew by 4.2 to 4.8 GB in each round of alternating lengths and had not levelled off. On battery power (plan revision 3). |
-| Resident memory during inference | 17,290,887,168 B | max; n=1 | [E4](validation/jev27b/README.md#performance) · Largest RSS sampled every 100 ms during the measured 8,192-token rows (--sample-memory). On battery power (plan revision 3). |
+| First load, including specialization | 28.6009935 s | median; n=3 | [E4](validation/jev27b/README.md#ac-power) · New process with the specialization cache entry deleted (--clear-cache); bundle check, tokenizer, head and backbone. File caches not flushed. On AC power, energy mode High Power (plan-d2b-ac). |
+| Load from prepared cache | 10.3842168 s | median; n=3 | [E4](validation/jev27b/README.md#ac-power) · New process with the specialization cache entry present; same parts as the first load. On AC power, energy mode High Power (plan-d2b-ac). |
+| Request / pipeline completion time | 0.647088125 s | median; n=3 | [E4](validation/jev27b/README.md#ac-power) · P row of exactly 100 tokens; TypedDecisionModel.decide from call to return; lengths interleaved in one process after one warmup each; memory sampled every 100 ms during each row (--sample-memory). On AC power, energy mode High Power (plan-d2b-ac). |
+| Request / pipeline completion time | 2.38911533 s | median; n=3 | [E4](validation/jev27b/README.md#ac-power) · P row of exactly 500 tokens; TypedDecisionModel.decide from call to return; lengths interleaved in one process after one warmup each; memory sampled every 100 ms during each row (--sample-memory). On AC power, energy mode High Power (plan-d2b-ac). |
+| Request / pipeline completion time | 9.37326113 s | median; n=3 | [E4](validation/jev27b/README.md#ac-power) · P row of exactly 2,000 tokens; TypedDecisionModel.decide from call to return; lengths interleaved in one process after one warmup each; memory sampled every 100 ms during each row (--sample-memory). On AC power, energy mode High Power (plan-d2b-ac). |
+| Request / pipeline completion time | 42.36798 s | median; n=3 | [E4](validation/jev27b/README.md#ac-power) · P row of exactly 8,192 tokens; TypedDecisionModel.decide from call to return; lengths interleaved in one process after one warmup each; memory sampled every 100 ms during each row (--sample-memory). The median row (second round) ran under heavy thermal pressure; the first round's row, at nominal pressure, took 41.67 s. On AC power, energy mode High Power (plan-d2b-ac). |
+| Peak RSS | 32,343,474,176 B | single; n=1 | [E4](validation/jev27b/README.md#ac-power) · /usr/bin/time -l of the latency process, lifetime maximum including the load; not added to the footprint. On AC power, energy mode High Power (plan-d2b-ac). |
+| Peak physical footprint | 20,837,938,928 B | single; n=1 | [E4](validation/jev27b/README.md#ac-power) · /usr/bin/time -l of the latency process (peak memory footprint). Not a bound: the footprint grew by 4.1 to 4.3 GB in each round of alternating lengths and had not levelled off. On AC power, energy mode High Power (plan-d2b-ac). |
+| Resident memory during inference | 17,333,698,560 B | max; n=1 | [E4](validation/jev27b/README.md#ac-power) · Largest RSS sampled every 100 ms during the measured 8,192-token rows (--sample-memory). On AC power, energy mode High Power (plan-d2b-ac). |
 | Memory after release minus baseline | Not measured | — | The command line process never releases the model before it exits, so no after-release baseline exists. |
 | Task success fraction | 0.866666667 ratio | mean; n=300 | [E2](validation/jev27b/README.md#quality) · Stage 3 choice rows of Q whose top option is the teacher top (agreement with the teacher distribution, not real-world accuracy); stage 1' 0.8733. |
 | Reference error (definition in evidence) | 0.00654150054 error | max; n=301 | [E1](validation/jev27b/README.md#fidelity) · Largest probability difference of F at temperature 1 between Core AI and the float32 PyTorch run of the same quantized weights. |
-| Stop acknowledgement time | 9.14671854 s | median; n=3 | [E4](validation/jev27b/README.md#performance) · 2,000-token request (the state of the refund card example repeated 164 times, not a P row) cancelled after the test backbone reported its forward call; the backbone does not pass the cancellation on, so this is the rest of the run (8.72 s without cancellation). Debug build of the test target (swift test). Heavy thermal pressure. On battery power (plan revision 3). |
+| Stop acknowledgement time | 8.88540758 s | median; n=3 | [E4](validation/jev27b/README.md#ac-power) · 2,000-token request (the state of the refund card example repeated 164 times, not a P row) cancelled after the test backbone reported its forward call; the backbone does not pass the cancellation on, so this is the rest of the run (7.98 s without cancellation). Debug build of the test target (swift test). Nominal thermal pressure (the test started after 50 s of waiting for level 0). On AC power, energy mode High Power (plan-d2b-ac). |
 | Reused-document request time | Not measured | — | Reusing the state of a document between questions is not implemented for typed decisions. |
 
 ### Verification coverage
@@ -61,7 +61,7 @@ Results below retain their original dates and workloads. Different rows may use 
 | Conversion / reference fidelity | Passed (stated scope) | Every band of F within a largest difference of 0.03 and a mean of 0.01 at temperature 1 (largest 0.0065); no top-1 change. | [E1](validation/jev27b/README.md#fidelity) |
 | Task quality | Passed (stated scope) | Choice accuracy passes on its point estimate (-0.67 points, limit -2 points), but its 95% interval [-3.00, +1.67] contains the limit (n = 300). noul Brier +0.00024, score normalized MAE +0.00051. Agreement with the teacher distribution, not real-world accuracy. | [E2](validation/jev27b/README.md#quality) |
 | Repeated use / resource release | Not measured | Two runs of F with the variant bundle (fresh and cached specialization) gave identical logits for all 301 rows, the GPU test returns bit-identical logits for each of its ten rows (at most 512 tokens) run twice in one process, and up to 3,000 consecutive rows ran in one process (Cal). Releasing and reloading the model in one process was not verified. | — |
-| Stop / retry / recovery | Passed (stated scope) | Three requests cancelled during the forward run ended with CancellationError when the run returned, and a request cancelled at the forward checkpoint ended before the run. After both kinds of cancellation the next row returned logits bit-identical to the same row before the cancellation. The test backbone does not pass the cancellation on; whether a Core AI run itself stops was not measured. | [E4](validation/jev27b/README.md#performance) |
+| Stop / retry / recovery | Passed (stated scope) | Three requests cancelled during the forward run ended with CancellationError when the run returned, and a request cancelled at the forward checkpoint ended before the run. After both kinds of cancellation the next row returned logits bit-identical to the same row before the cancellation. The test backbone does not pass the cancellation on; whether a Core AI run itself stops was not measured. | [E4](validation/jev27b/README.md#ac-power) |
 
 ### Evidence and conditions
 
@@ -70,8 +70,9 @@ Results below retain their original dates and workloads. Different rows may use 
 | [E1](validation/jev27b/README.md#fidelity) | 2026-11-03 / legacy / diagnostic | Mac16,6 (Apple M4 Max), 128 GiB RAM / macOS 27.0 (26A428) / Xcode 27.0 (27A266a), Apple Swift 6.4 (swiftlang-6.4.0.34.1) | F: 302 rows (301 forwarded, one above 8,192 tokens rejected) at temperature 1 against the float32 PyTorch run of the same quantized weights, per input band. · variant=uint4 backbone (gdn-fp32) / float32 head; backend=Core AI; GPU preferred; expectFrequentReshapes true; route=coreai-verify typed-decide (recipe step typed_decide_f) and the PyTorch reference stage 2; source_revision=14b425269ed24452e0a5ad5a8f3e51d139647a88; artifact_revision=26a11dca07a265feca4970dccdf2ebabaa005730132035e9df37b207cd26051e; code_revision=c626c9a27f448961cc9d84addba31ce74573e183; batch_size=1; concurrency=1; unrecorded: warmups, power, thermal, plan_sha256 |
 | [E2](validation/jev27b/README.md#quality) | 2026-11-04 / legacy / diagnostic | Mac16,6 (Apple M4 Max), 128 GiB RAM / macOS 27.0 (26A428) / Xcode 27.0 (27A266a), Apple Swift 6.4 (swiftlang-6.4.0.34.1) | Q (900 rows), Cal (3,000) and H (1,500) against the teacher distribution; quantization and adaptation conditions fixed before measuring; temperatures refitted on Cal and selected on H'. Agreement with the teacher, not real-world correctness. Results of 2026-11-03 (stages 0q and 2) to 2026-11-04 (the other stages, the scoring and the calibration). · variant=uint4 backbone (gdn-fp32) / float32 head; backend=Core AI; GPU preferred; expectFrequentReshapes true; route=coreai-verify typed-decide for stage 3 (recipe steps typed_decide_q / cal / h) and the PyTorch reference stages 0, 0q, 1' and 2; source_revision=14b425269ed24452e0a5ad5a8f3e51d139647a88; artifact_revision=26a11dca07a265feca4970dccdf2ebabaa005730132035e9df37b207cd26051e; code_revision=31071af7acef18f77362609bb548233b61ad624a; batch_size=1; concurrency=1; unrecorded: warmups, power, thermal, plan_sha256 |
 | [E3](validation/jev27b/README.md#japanese) | 2026-11-04 / legacy / diagnostic | Mac16,6 (Apple M4 Max), 128 GiB RAM / macOS 27.0 (26A428) / Xcode 27.0 (27A266a), Apple Swift 6.4 (swiftlang-6.4.0.34.1) | JGLUE J (200 rows per task, two prompt variants, stages 1' and 3). Measurement completed; no pass line, so passed means completed, not a criterion met. · variant=uint4 backbone (gdn-fp32) / float32 head; backend=Core AI; GPU preferred; expectFrequentReshapes true; route=coreai-verify typed-decide and PyTorch MPS bf16 (recipe steps typed_decide_j / reference_j); source_revision=14b425269ed24452e0a5ad5a8f3e51d139647a88; artifact_revision=a2b186a87a64d9e93a56f185a5ebc2a0613d00da7440eeb8c8c2229b64f6adf3; code_revision=b64eae58e9b4a8954b6b9270a109e6edd6bd22c8; batch_size=1; concurrency=1; unrecorded: warmups, power, thermal, plan_sha256 |
-| [E4](validation/jev27b/README.md#performance) | 2026-11-04 / standard / diagnostic | Mac16,6 (Apple M4 Max), 128 GiB RAM / macOS 27.0 (26A428) / Xcode 27.0 (27A266a), Apple Swift 6.4 (swiftlang-6.4.0.34.1) | P: four rows of exactly 100, 500, 2,000 and 8,192 tokens; latency one warmup and three measured rounds per length in one process; three fresh and three cached loads in new processes; /usr/bin/time -l and 100 ms sampling for memory; three cancellations of a 2,000-token request. Measured on battery power by the owner's decision (90% to 76%, no adapter, Low Power Mode off; plan revision 3 records this). Thermal pressure moderate to heavy in the third round and the cancellation test. The warmup is for the latency rounds only; loads and cancellations have none. Other load: no other model process (pgrep before the measurement); GPU use of other processes was not recorded. · variant=uint4 backbone (gdn-fp32) / float32 head; backend=Core AI; GPU preferred; expectFrequentReshapes true; route=coreai-verify typed-decide (release build); TypedDecisionInferenceTests in the debug build of the test target for cancellation; source_revision=14b425269ed24452e0a5ad5a8f3e51d139647a88; artifact_revision=a2b186a87a64d9e93a56f185a5ebc2a0613d00da7440eeb8c8c2229b64f6adf3; code_revision=9d8fdf821470168c3d92276808cb9ff1f815d7de; batch_size=1; concurrency=1; warmups=1; power=Battery power, no AC adapter attached (pmset -g ac); 90% at start, Low Power Mode off (pmset -g powermode 0). Measured on battery by the owner's instruction on 2026-11-04 06:20 JST; thermal=pmset -g therm: no warning in 10 snapshots; thermalmonitord pressure moderate from 06:28:52 (end of the second round) and heavy 06:29:08-06:32:08 (from the end of the third 2,000-token row through the cancellation test) |
+| [E4](validation/jev27b/README.md#ac-power) | 2026-11-04 / standard / diagnostic | Mac16,6 (Apple M4 Max), 128 GiB RAM / macOS 27.0 (26A428) / Xcode 27.0 (27A266a), Apple Swift 6.4 (swiftlang-6.4.0.34.1) | P: four rows of exactly 100, 500, 2,000 and 8,192 tokens; latency one warmup and three measured rounds per length in one process; three fresh and three cached loads in new processes; /usr/bin/time -l and 100 ms sampling for memory; three cancellations of a 2,000-token request. Measured on AC power (70W USB-C Power Adapter, 68 W; battery 64% to 67%, charging) in the energy mode High Power, the owner's setting (plan-d2b-ac). Every stage started at thermal pressure level 0; the pressure turned heavy during the latency process (the 8,192-token row of the second round and the third round). The warmup is for the latency rounds only; loads and cancellations have none. Other load: no other model process (pgrep before the measurement); GPU use of other processes was not recorded. · variant=uint4 backbone (gdn-fp32) / float32 head; backend=Core AI; GPU preferred; expectFrequentReshapes true; route=coreai-verify typed-decide (release build); TypedDecisionInferenceTests in the debug build of the test target for cancellation; source_revision=14b425269ed24452e0a5ad5a8f3e51d139647a88; artifact_revision=a2b186a87a64d9e93a56f185a5ebc2a0613d00da7440eeb8c8c2229b64f6adf3; code_revision=9b610f88ba0b7810555384200686472e02cd11f2; batch_size=1; concurrency=1; warmups=1; power=AC: 70W USB-C Power Adapter, 68 W (pmset -g ac); battery 64% to 67%, charging; energy mode High Power (pmset -g powermode 2); thermal=pmset -g therm: no warning; thermalmonitord pressure (mTPL) 0 at the start of every stage (the cancellation test waited 50 s); during the latency process moderate from 09:26:46 and heavy 09:26:48-09:29:05 (the 8,192-token row of the second round and the third round) |
 | [E5](validation/jev27b/README.md#bundle) | 2026-11-04 / standard / conversion | Mac16,6 (Apple M4 Max), 128 GiB RAM / macOS 27.0 (26A428) / Xcode 27.0 (27A266a), Apple Swift 6.4 (swiftlang-6.4.0.34.1) | File sizes of the calibrated bundle, counted after plan revision 3 was frozen; the SHA-256 of decision.json equals the plan's artifact revision. No model load. · variant=uint4 backbone (gdn-fp32) / float32 head; backend=Core AI; GPU preferred; expectFrequentReshapes true; route=performance.py records over the calibrated bundle written by the recipe step calibrate; source_revision=14b425269ed24452e0a5ad5a8f3e51d139647a88; artifact_revision=a2b186a87a64d9e93a56f185a5ebc2a0613d00da7440eeb8c8c2229b64f6adf3; code_revision=e879c67ff30344fc69f5cb6dcde93ed432d9339c; batch_size=1; concurrency=1; warmups=0; power=not applicable (file sizes); thermal=not applicable (file sizes) |
+| [E6](validation/jev27b/README.md#battery-power) | 2026-11-04 / standard / diagnostic | Mac16,6 (Apple M4 Max), 128 GiB RAM / macOS 27.0 (26A428) / Xcode 27.0 (27A266a), Apple Swift 6.4 (swiftlang-6.4.0.34.1) | P: four rows of exactly 100, 500, 2,000 and 8,192 tokens; latency one warmup and three measured rounds per length in one process; three fresh and three cached loads in new processes; /usr/bin/time -l and 100 ms sampling for memory; three cancellations of a 2,000-token request. Measured on battery power by the owner's decision (90% to 76%, no adapter, Low Power Mode off; plan revision 3 records this). Thermal pressure moderate to heavy in the third round and the cancellation test. The warmup is for the latency rounds only; loads and cancellations have none. Other load: no other model process (pgrep before the measurement); GPU use of other processes was not recorded. · variant=uint4 backbone (gdn-fp32) / float32 head; backend=Core AI; GPU preferred; expectFrequentReshapes true; route=coreai-verify typed-decide (release build); TypedDecisionInferenceTests in the debug build of the test target for cancellation; source_revision=14b425269ed24452e0a5ad5a8f3e51d139647a88; artifact_revision=a2b186a87a64d9e93a56f185a5ebc2a0613d00da7440eeb8c8c2229b64f6adf3; code_revision=9d8fdf821470168c3d92276808cb9ff1f815d7de; batch_size=1; concurrency=1; warmups=1; power=Battery power, no AC adapter attached (pmset -g ac); 90% at start, Low Power Mode off (pmset -g powermode 0). Measured on battery by the owner's instruction on 2026-11-04 06:20 JST; thermal=pmset -g therm: no warning in 10 snapshots; thermalmonitord pressure moderate from 06:28:52 (end of the second round) and heavy 06:29:08-06:32:08 (from the end of the third 2,000-token row through the cancellation test) |
 
 ### Setup, limitations and progress
 
@@ -130,12 +131,13 @@ distribution of the corpus (output distributions of Jev 1.13), not real-world co
 - **Japanese** (JGLUE J, 200 rows per task, no pass line): at stage 3 with the adopted prompt variant, JNLI choice
   accuracy 0.855 (`en`), JNLI noul accuracy 0.920 and AUROC 0.978 (`en`), JCommonsenseQA accuracy 0.960 (`ja`), and
   JSTS MAE 0.529, Pearson 0.859 and Spearman 0.792 (`en`). Details: [Japanese (JGLUE)](#japanese-jglue).
-- **Performance** (medians of three measured runs; one warmup of each length before the latency rounds): one decision
-  takes 0.60 s at 100 tokens, 2.27 s at 500, 8.92 s at 2,000 and 37.50 s at 8,192; loading takes 27.70 s with a fresh
-  specialization and 9.42 s from the cache; the latency process peaks at 32.3 GB RSS and 21.6 GB physical footprint (not
-  levelled off) and keeps about 17.3 GB resident during 8,192-token rows; a request cancelled during its 2,000-token run
-  through the test backbone ends 9.15 s later, when the run returns. Measured on battery power by the owner's decision;
-  the third round and the cancellation test ran under moderate to heavy thermal pressure. Details:
+- **Performance** (medians of three measured runs; one warmup of each length before the latency rounds; on AC power in
+  the energy mode High Power): one decision takes 0.65 s at 100 tokens, 2.39 s at 500, 9.37 s at 2,000 and 42.37 s at
+  8,192; loading takes 28.60 s with a fresh specialization and 10.38 s from the cache; the latency process peaks at 32.3
+  GB RSS and 20.8 GB physical footprint (not levelled off) and keeps about 17.3 GB resident during 8,192-token rows; a
+  request cancelled during its 2,000-token run through the test backbone ends 8.89 s later, when the run returns. Every
+  stage started at nominal thermal pressure, but the 8,192-token row of the second round and the third round ran under
+  heavy pressure. An earlier measurement on battery power was 3 to 13% faster in the latency and the loads. Details:
   [Performance](#performance).
 
 ## Verified scope and limits
@@ -160,9 +162,10 @@ distribution of the corpus (output distributions of Jev 1.13), not real-world co
   4,096 and 11 from 4,097 to 8,192. The quality, calibration and Japanese sets are short: at most 593 tokens in Q (897
   of its 900 rows up to 512), 672 in Cal, 689 in H and 129 in J with the prompt wrapper. Quality and calibration above
   about 700 tokens were not measured. The performance rows have exactly 100, 500, 2,000 and 8,192 tokens.
-- The peak physical footprint of 21.6 GB is the value after 16 requests of alternating lengths in one process, not a
-  bound. At the 8,192-token rows it grew from 8.0 to 12.6, 16.8 and 21.6 GB, by 4.2 to 4.8 GB in each round, and had
-  not levelled off; the RSS of those rows stayed at about 17.3 GB.
+- The peak physical footprint of 20.8 GB is the value after 16 requests of alternating lengths in one process, not a
+  bound. At the 8,192-token rows it grew from 8.2 to 12.6, 16.6 and 20.8 GB, by 4.1 to 4.3 GB in each round, and had not
+  levelled off; the RSS of those rows stayed at about 17.3 GB. The measurement on battery power showed the same growth
+  (8.0 to 21.6 GB).
 - A request cancelled during its forward run keeps the model busy until the run returns and then ends with
   `CancellationError`; a request cancelled before the run ends at once. The cancellation test runs the forward through
   a test backbone that does not pass the cancellation on, so whether a Core AI run itself stops on a cancellation was
@@ -639,7 +642,8 @@ J at temperature 1 (200 rows per task; the last column is the adopted variant):
 
 The performance of the calibrated bundle is measured outside the recipe with the steps of
 [docs/benchmarking.ja.md](benchmarking.ja.md): a frozen plan, run records in JSONL and `python3 -m Tools.ModelReports
-summarize`. No pass line is set.
+summarize`. No pass line is set. It was measured twice with the same rows, boundary and counts: on AC power under
+`plan-d2b-ac` (#488), whose values the model record uses, and earlier on battery power under plan revision 3 (#480).
 
 - The plan comes from `python3 -m Tools.ModelReports template --kind decision --model jev27b`, with every field filled
   and its SHA-256 recorded before the first measurement (`plan_sha256` of every run record). It fixes three measured
@@ -678,8 +682,57 @@ summarize`. No pass line is set.
   not specialize as expected, a memory sample failed, or a cancellation took less than half of the uncancelled run,
   and it refuses outputs without the planned number of runs.
 
-Results (2026-11-04, plan revision 3, SHA-256 `d361e027c9f6c4929bc8cafe7ea4f378fcdbfe7e01e795a1229e6cbc5cd5d4b7`; the
-calibrated bundle, `decision.json` SHA-256 `a2b186a87a64d9e93a56f185a5ebc2a0613d00da7440eeb8c8c2229b64f6adf3`):
+Results on AC power (2026-11-04, `plan-d2b-ac`, SHA-256
+`8763b18a0830395744f3f65e2bd27d5a151d85dc201b1296ea15e175af9128cb`; the calibrated bundle, `decision.json` SHA-256
+`a2b186a87a64d9e93a56f185a5ebc2a0613d00da7440eeb8c8c2229b64f6adf3`). These are the values of the model record. The
+last column compares the medians with the earlier measurement on battery power below:
+
+| Metric | Value | Runs | Against battery |
+|---|---:|---|---:|
+| `latency_s`, 100 tokens (`noul`) | 0.6471 s | median of 3 (0.6209 to 0.6602) | +8.1% |
+| `latency_s`, 500 tokens (`choice`) | 2.3891 s | median of 3 (2.3703 to 2.4801) | +5.2% |
+| `latency_s`, 2,000 tokens (`score`) | 9.3733 s | median of 3 (9.3328 to 10.3874) | +5.1% |
+| `latency_s`, 8,192 tokens (`noul`) | 42.3680 s | median of 3 (41.6706 to 53.1283) | +13.0% |
+| `first_load_s` (`specialization: fresh` in all three) | 28.6010 s | median of 3 (28.1471 to 30.7716) | +3.3% |
+| `warm_load_s` (`specialization: cached` in all three) | 10.3842 s | median of 3 (10.1384 to 10.4565) | +10.2% |
+| `peak_rss_bytes` (latency process) | 32,343,474,176 B | one process | 0.0% |
+| `peak_footprint_bytes` (latency process) | 20,837,938,928 B | one process | -3.4% |
+| `resident_bytes` (largest RSS during the 8,192-token rows) | 17,333,698,560 B | one process, 3 rows | +0.2% |
+| `cancel_s` (2,000 tokens) | 8.8854 s | median of 3 (8.5951 to 9.0007) | -2.9% |
+
+- **Power:** AC through the 70W USB-C Power Adapter at 68 W (`pmset -g ac`) at every stage, the battery charging from
+  64% to 67% between 09:22:08 and 09:31:10 JST. The energy mode on AC was High Power (the `powermode` line of `pmset
+  -g` was 2), the owner's setting, which was not changed. The plan `plan-d2b-ac` recorded this before the measurement;
+  it differs from plan revision 3 only in the power, the thermal condition, the code revision (9b610f8) and the
+  binary, a release build of that commit that is byte-identical to the build used on battery.
+- **Thermal pressure:** each stage started only when the pressure level of `thermalmonitord` was 0 (nominal), waiting
+  up to 10 minutes; only the cancellation test had to wait (50 s). During the latency process the level went to
+  moderate at 09:26:46 and heavy from 09:26:48 to 09:29:05 (moderate until 09:29:19): the 8,192-token row of the
+  second round and the whole third round ran at heavy pressure, the loads, the first round, the rest of the second
+  round and the cancellation test at nominal. Of the medians, only the 8,192-token one ran at heavy pressure; the
+  first round's 8,192-token row took 41.6706 s. The third round's rows were the slowest of each length (53.1283 s at
+  8,192 tokens). `pmset -g therm` recorded no warning.
+- **Against battery:** the latency and the loads on AC were 3 to 13% slower than on battery, also where both ran at
+  nominal pressure: in the first round, by 4.3% at 100 tokens, 5.2% at 500, 4.6% at 2,000 and 11.9% at 8,192. The
+  bundle check (5.29 to 5.93 s, against about 5.25 s) and the backbone of the loads (22.2 to 24.3 s fresh and 3.8 s
+  cached, against 21.8 to 22.1 s and 3.5 s) were slower too. The cancellation test was 2.9% faster; on battery it ran
+  at heavy pressure. The cause was not investigated; the adapter supplied 68 W while the battery was charging.
+- Other load: before the measurement no other model process was running (checked with `pgrep`); the GPU use of other
+  processes was not recorded.
+- The physical footprint sampled during the rows again grew in each round of four rows, by 4.1 to 4.3 GB: about 8.2 GB
+  during the 8,192-token warmup, then 12.6, 16.6 and 20.8 GB during the three measured 8,192-token rows, without
+  levelling off; `peak_footprint_bytes` is not an upper bound. The RSS sampled during the rows stayed between 16.53
+  and 17.33 GB, and the lifetime peak of 32.3 GB occurred during the load.
+- In the cancellation test the backbone reported the start of its forward call before every cancellation; each request
+  ended with `CancellationError` 8.60 to 9.00 s after the cancellation request, against 7.98 s for the same request
+  without cancellation. The cancellation at the forward checkpoint ended a request before the run (0.17 s). All five
+  GPU tests of `TypedDecisionInferenceTests` passed.
+
+#### Earlier measurement on battery power
+
+Results on battery power (2026-11-04, plan revision 3, SHA-256
+`d361e027c9f6c4929bc8cafe7ea4f378fcdbfe7e01e795a1229e6cbc5cd5d4b7`; the calibrated bundle, `decision.json` SHA-256
+`a2b186a87a64d9e93a56f185a5ebc2a0613d00da7440eeb8c8c2229b64f6adf3`):
 
 | Metric | Value | Runs |
 |---|---:|---|
@@ -699,7 +752,7 @@ calibrated bundle, `decision.json` SHA-256 `a2b186a87a64d9e93a56f185a5ebc2a0613d
   disconnected before the measurement. The plan was revised to record this (revision 3) before any measurement; it
   replaced revision 2, which named AC power. The battery went from 90% to 76% between 06:23:59 and 06:31:34 JST, no
   adapter was attached during the measurement, and Low Power Mode was off (the `powermode` line of `pmset -g` was 0).
-  The numbers are not comparable with measurements on AC power without a new measurement.
+  The measurement on AC power above differs from this one in more than the power source.
 - **Thermal pressure:** `pmset -g therm` recorded no thermal or performance warning in any of the ten snapshots, but
   it does not show the thermal pressure. The pressure level of `thermalmonitord` in the system log went from nominal
   to moderate at 06:28:52 and to heavy from 06:29:08 to 06:32:08 (moderate until 06:32:23). The loads and the first two

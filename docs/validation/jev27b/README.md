@@ -1,7 +1,7 @@
 # JEV-27B validation records
 
 These JSON files copy the numbers of the JEV-27B checks from the local run outputs of the
-[`jev27b` recipe](../../../Tools/Conversion/recipes/jev27b/README.md) and of the performance measurement, so that the
+[`jev27b` recipe](../../../Tools/Conversion/recipes/jev27b/README.md) and of the performance measurements, so that the
 [model record](../../model-reports/records/jev27b.json) can check its values against them. They hold IDs, counts,
 SHA-256 values and metrics only: no corpus or JGLUE text, no local paths. Each file names its sources (the run and
 step, or the file of the measurement) with their SHA-256; the run outputs themselves stay in the local work
@@ -72,8 +72,49 @@ protocol was fixed, so the record marks it `legacy`. The run started from commit
 
 ## Performance
 
+The performance was measured twice on 2026-11-04 with the same rows P, timing boundary and counts: on AC power under
+`plan-d2b-ac` (#488) and earlier on battery power under `plan-d2b` revision 3 (#480). The record's performance values
+come from the AC measurement (evidence `performance`); the battery measurement stays as evidence
+`performance-battery` with its own file. The two are not a controlled comparison of power sources: the thermal
+pressure, the battery state and the energy mode differ, and the AC values are not faster (see
+[docs/jev27b.md](../../jev27b.md#performance)).
+
+### AC power
+
+[`performance-ac.json`](performance-ac.json): the measurement of 2026-11-04 from 09:22:08 to 09:31:10 (#488) under the
+fixed plan `plan-d2b-ac` with SHA-256 `8763b18a0830395744f3f65e2bd27d5a151d85dc201b1296ea15e175af9128cb`. The plan is
+plan revision 3 with only the power, the thermal condition, the code revision and the binary changed, and it was frozen
+before the measurement. The file has the same fields as the battery file and, in `conditions`, the adapter, watts,
+battery, energy mode and thermal pressure level at the start of every stage, the waits before the stages and the
+thermal pressure history of the run.
+
+The plan's code revision is 9b610f8 (main). The command line measurements used a release build of `coreai-verify` at
+that commit, byte-identical to the build of 9d8fdf8 (the sources had not changed). The cancellation test ran in the
+debug build of the test target, as the plan states. Before the measurement `pgrep` found no other model process; the
+GPU use of other processes was not recorded.
+
+- **Power:** the 70W USB-C Power Adapter at 68 W (`pmset -g ac`) at every stage; the battery charged from 64% to 67%.
+  The energy mode on AC was High Power (`powermode 2` in `pmset -g`), the owner's setting, which was not changed.
+- **Thermal pressure:** every stage started at level 0; the plan made each stage wait for it for up to 10 minutes. Only
+  the cancellation test had to wait, 50 seconds. During the latency process the level of `thermalmonitord` went to
+  moderate at 09:26:46 and heavy from 09:26:48 to 09:29:05 (moderate until 09:29:19). So the 8,192-token row of the
+  second round and the whole third round ran at heavy pressure. The loads, the first round, the rest of the second
+  round and the cancellation test ran at nominal pressure. Of the medians, only the 8,192-token one (second round) ran
+  at heavy pressure. `pmset -g therm` showed no warning.
+
+The common protocol requires the conditions to be recorded and the plan and revisions to be fixed; the power source,
+its watts and the energy mode are recorded conditions, not requirements. This plan named the AC power, the energy
+mode, the wait for level 0 and the debug build of the cancellation test before the measurement, so the record keeps
+this evidence as `standard`. The debug build does not inflate `cancel_s`: the interval is the rest of the Core AI run,
+the head is not computed after a cancellation, and the same request without cancellation took 7.98 s in that build,
+against 9.33 to 10.39 s for the three measured 2,000-token rows of the release command line tool. The condition on
+other load rests only on `pgrep` finding no other model process.
+
+### Battery power
+
 [`performance.json`](performance.json): the measurement of 2026-11-04 (#480) under the fixed plan with SHA-256
-`d361e027c9f6c4929bc8cafe7ea4f378fcdbfe7e01e795a1229e6cbc5cd5d4b7` (revision 3). It records:
+`d361e027c9f6c4929bc8cafe7ea4f378fcdbfe7e01e795a1229e6cbc5cd5d4b7` (plan-d2b revision 3; evidence
+`performance-battery`). It records:
 
 - the plan fields;
 - the four rows P (exactly 100, 500, 2,000 and 8,192 tokens), with the IDs of their corpus parts and their SHA-256;
