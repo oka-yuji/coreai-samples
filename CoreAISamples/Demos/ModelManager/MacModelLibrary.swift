@@ -9,12 +9,7 @@
     import Observation
     import SwiftUI
 
-    @MainActor
-    @Observable
-    final class MacModelChoice {
-        var requested = false
-        var unloading = false
-    }
+    typealias MacModelChoice = Store<MacModelSelection>
 
     @MainActor
     @Observable

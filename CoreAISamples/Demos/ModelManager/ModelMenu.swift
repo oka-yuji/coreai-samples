@@ -19,14 +19,14 @@ struct ModelMenu: View {
                         set: { _ in
                             guard !ModelSwitch.isLoaded(resource.directory, phase: chat.phase, current: chat.bundleURL)
                             else { return }
-                            if library.resource(inUse: .qwen) == nil && !choice.requested { library.use(.qwen) }
-                            choice.requested = true
+                            if library.resource(inUse: .qwen) == nil && !choice.state.selecting { library.use(.qwen) }
+                            choice.send(.choose)
                         }))
             } else {
                 Button("No models yet") {}.disabled(true)
             }
             if chat.phase == .ready {
-                Button("Unload model") { choice.unloading = true }
+                Button("Unload model") { choice.send(.unload) }
             }
             Divider()
             Button("Manage Models…") { navigator.selection = .models }
@@ -42,7 +42,7 @@ struct ModelMenu: View {
         .disabled(
             Self.isDisabled(
                 loading: chat.isLoading, responding: chat.isResponding, busy: chat.externallyBusy,
-                running: !host.state.canLeave || choice.requested || choice.unloading)
+                running: !host.state.canLeave || choice.state.selecting || choice.state.unloading)
         )
         .onReceive(NotificationCenter.default.publisher(for: NSMenu.didBeginTrackingNotification)) { _ in
             library.refresh()

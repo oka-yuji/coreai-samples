@@ -32,7 +32,9 @@ final class ConversationLifetime: NSObject, NSApplicationDelegate {
             guard waiting.remove(id) != nil else { return }
             if !success {
                 waiting.removeAll()
-                for host in hosts.values { host.store.send(.terminationCancelled) }
+                for (owner, host) in hosts {
+                    host.cancelTermination(resumeModels: !closing.contains(owner))
+                }
                 NSApplication.shared.reply(toApplicationShouldTerminate: false)
                 showFailure(id)
                 return

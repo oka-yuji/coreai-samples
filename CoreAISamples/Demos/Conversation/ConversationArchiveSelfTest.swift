@@ -123,6 +123,25 @@ enum ConversationArchiveSelfTest {
                 kept && migrated.matchesSavedModel(managed) && migrated.store === restoredStore
                     && migrated.state.entries.count == 2 && migrated.runner.session.awaitingRestoredModel,
                 "matched=\(migrated.matchesSavedModel(managed)) entries=\(migrated.state.entries.count)")
+            var terminationEvents: [String] = []
+            let terminating = ConversationHost(
+                chat: ChatViewModel(), preferences: preferences, archive: legacyArchive,
+                termination: { terminationEvents.append($0 ? "finished" : "failed") },
+                resumeModels: { terminationEvents.append("resumed") },
+                modelUnloaded: { terminationEvents.append("unloaded") },
+                releaseModels: { terminationEvents.append("released") })
+            await terminating.runner.run(.terminationReady(true)) { _ in }
+            terminating.cancelTermination()
+            check(
+                "conversation/terminationCleanupAndResume",
+                terminationEvents == ["unloaded", "released", "finished", "resumed"],
+                terminationEvents.joined(separator: ","))
+            terminationEvents = []
+            await terminating.runner.run(.terminationReady(false)) { _ in }
+            terminating.cancelTermination(resumeModels: false)
+            check(
+                "conversation/failedCloseKeepsHiddenDemosStopped", terminationEvents == ["failed"],
+                terminationEvents.joined(separator: ","))
             let reopenedStore = host.store
             let different = host.prepareModelSwitch(to: URL(filePath: "/tmp/conversation-app-test-other"))
             check(

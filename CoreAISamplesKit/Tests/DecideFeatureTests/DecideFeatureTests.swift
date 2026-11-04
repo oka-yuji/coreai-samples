@@ -127,6 +127,7 @@ struct DecideFeatureTests {
         #expect(DecideFeature.reduce(&state, .setDocument("new")).isEmpty)
         #expect(DecideFeature.reduce(&state, .completed(0, 0, output())).isEmpty)
         #expect(state == closed)
+        #expect(state.modelRelease == 1)
         _ = DecideFeature.reduce(&state, .appeared)
         #expect(state.phase == .closing && state.model == nil)
         _ = DecideFeature.reduce(&state, .released(0))

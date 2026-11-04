@@ -114,6 +114,8 @@ final class ConversationHost {
     @ObservationIgnored private(set) var runner: ConversationRunner
     @ObservationIgnored private var modelLoad: Date
     @ObservationIgnored private let archive: ConversationArchive
+    @ObservationIgnored private let resumeModels: @MainActor () -> Void
+    @ObservationIgnored private let modelUnloaded: @MainActor () -> Void
     @ObservationIgnored private let releaseModels: @MainActor () async -> Void
     @ObservationIgnored private let termination: (Bool) -> Void
     @ObservationIgnored private let retrievalInputs: RAGInputs
@@ -123,6 +125,8 @@ final class ConversationHost {
         chat: ChatViewModel, preferences: ConversationPreferences = ConversationPreferences(),
         archive: ConversationArchive = ConversationRunner.defaultArchive,
         termination: @escaping (Bool) -> Void = { _ in },
+        resumeModels: @escaping @MainActor () -> Void = {},
+        modelUnloaded: @escaping @MainActor () -> Void = {},
         releaseModels: @escaping @MainActor () async -> Void = {},
         retrievalInputs: RAGInputs = .live,
         toolExecutor: ((AgentToolCall) async -> AgentToolOutput)? = nil
@@ -130,6 +134,8 @@ final class ConversationHost {
         self.chat = chat
         self.termination = termination
         self.releaseModels = releaseModels
+        self.modelUnloaded = modelUnloaded
+        self.resumeModels = resumeModels
         self.retrievalInputs = retrievalInputs
         self.toolExecutor = toolExecutor
         self.archive = archive
@@ -137,7 +143,7 @@ final class ConversationHost {
         modelLoad = chat.loadStarted
         (store, runner) = Self.make(
             chat: chat, preferences: preferences, mode: .chat, archive: archive, termination: termination,
-            releaseModels: releaseModels,
+            modelUnloaded: modelUnloaded, releaseModels: releaseModels,
             retrievalInputs: retrievalInputs, toolExecutor: toolExecutor)
     }
 
@@ -168,7 +174,7 @@ final class ConversationHost {
         library.pendingDelete = nil
         (store, runner) = Self.make(
             chat: chat, preferences: preferences, mode: store.state.mode, archive: archive, termination: termination,
-            releaseModels: releaseModels,
+            modelUnloaded: modelUnloaded, releaseModels: releaseModels,
             library: library, retrievalInputs: retrievalInputs, toolExecutor: toolExecutor)
         if persistSelection { store.send(.library(.selectNew)) }
     }
@@ -293,6 +299,11 @@ final class ConversationHost {
         send(Self.continuePrompt, mode: .work)
     }
 
+    func cancelTermination(resumeModels: Bool = true) {
+        store.send(.terminationCancelled)
+        if resumeModels { self.resumeModels() }
+    }
+
     func stop() {
         store.send(.stopRequested)
     }
@@ -300,7 +311,7 @@ final class ConversationHost {
     private static func make(
         chat: ChatViewModel, preferences: ConversationPreferences, mode: ConversationMode,
         archive: ConversationArchive, termination: @escaping (Bool) -> Void,
-        releaseModels: @escaping @MainActor () async -> Void,
+        modelUnloaded: @escaping @MainActor () -> Void, releaseModels: @escaping @MainActor () async -> Void,
         library: ConversationLibraryState = ConversationLibraryState(),
         retrievalInputs: RAGInputs, toolExecutor: ((AgentToolCall) async -> AgentToolOutput)?
     )
@@ -310,7 +321,7 @@ final class ConversationHost {
         let id = newID(now)
         let runner = ConversationRunner(
             id: id, chat: chat, preferences: preferences, archive: archive, termination: termination,
-            releaseModels: releaseModels,
+            modelUnloaded: modelUnloaded, releaseModels: releaseModels,
             toolExecutor: toolExecutor, retrievalInputs: retrievalInputs)
         var state = ConversationState(
             id: id, now: now, mode: mode, settings: preferences.settings, modelID: chat.modelName,

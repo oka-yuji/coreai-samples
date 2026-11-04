@@ -62,9 +62,7 @@ struct RecipeView: View {
             library.stopUsing(.clefFlash)
             attempted = nil
         }
-        .onChange(of: store.state.phase) { _, phase in
-            if phase == .closing { attempted = nil }
-        }
+        .onChange(of: store.state.modelRelease) { _, _ in attempted = nil }
         .onChange(of: library.resource(inUse: .clefFlash)?.directory) { _, new in
             if new == nil { attempted = nil }
         }
