@@ -298,6 +298,8 @@ source-file hashes, per-process memory/load/power observations, and the fixed pl
 A is the published runtime/artifact, B adds bounded shape reuse, C adds the unpublished final-token artifact, and
 D runs the pinned original BF16 backbone with active, unmerged LoRA in PyTorch/MPS and its FP32 CPU decision head.
 The JSON pins code, binary, artifacts, source revision, dependencies and measurement helpers for each condition.
+The plan's `frozen_at_utc` is its initial preparation timestamp; the runner captured the final SHA above before
+starting the first process, after the premeasurement guard and identity checks had been strengthened.
 
 All runs used the same MacBook Pro (14-inch, 2024), Apple M4 Max, 128 GiB, macOS 27.0 (26A428), AC reporting 68 W,
 and High Power mode. Battery charge ranged from 100% to 94% over the sequence. Every row, including warmups,
