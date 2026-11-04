@@ -44,6 +44,13 @@
         "ja": "日本語(JGLUE)、合格線なし"
       },
       "url": "docs/jev27b.md#japanese-jglue"
+    },
+    {
+      "title": {
+        "en": "Unpublished final-token candidate validation",
+        "ja": "未公開の最終位置出力版の検証"
+      },
+      "url": "docs/validation/jev27b/README.md#final-token-output-2026-11-05"
     }
   ],
   "support": {
@@ -372,6 +379,34 @@
       "warmups": null,
       "power": "AC, pmset reports 68 W",
       "thermal": "Not recorded per test; not a latency comparison",
+      "model_executed": true,
+      "plan_sha256": null
+    },
+    "last-token-candidate": {
+      "url": "docs/validation/jev27b/README.md#final-token-output-2026-11-05",
+      "level": "diagnostic",
+      "outcome": "passed",
+      "record_type": "legacy",
+      "date": "2026-11-05",
+      "platform": "macos",
+      "device": "MacBook Pro (14-inch, 2024), Apple M4 Max, 128 GiB unified memory (Mac16,6)",
+      "os": "macOS 27.0 (26A428)",
+      "toolchain": "Xcode 27.0 (27A266a), Apple Swift 6.4 (swiftlang-6.4.0.34.1)",
+      "variant": "Unpublished uint4 final-token output candidate / float32 head",
+      "backend": "Core AI; GPU preferred; expectFrequentReshapes true",
+      "route": "F/Q CLI inference and scoring; six Release GPU tests with -enable-testing; old-bundle compatibility check",
+      "source_revision": "14b425269ed24452e0a5ad5a8f3e51d139647a88",
+      "artifact_revision": "0db5ca716c7fea75605bffddf2d1d6de03fd80c471b3528277beb98a663d9880",
+      "code_revision": "8fcb8843bcb90171b7f5f22473df052cead75758",
+      "workload": {
+        "en": "F: 301 forwards and one above-limit rejection; Q: 900 rows, existing D1-1/D1-2 passed. Floating-point values differ from the old native artifact; no top changes. Calibration reused; Cal/H and Japanese set not rerun. No separate common-protocol benchmark plan. The public artifact is unchanged.",
+        "ja": "Fは301推論と上限超過1件拒否、Q900件の既存D1-1/D1-2に合格。旧nativeの浮動小数点値とは差があるがtop変化なし。校正を流用しCal/H・日本語セットは再検証していない。共通様式の独立計測計画はなく、公開資産は未変更。"
+      },
+      "batch_size": 1,
+      "concurrency": 1,
+      "warmups": null,
+      "power": "AC, pmset reports 68 W",
+      "thermal": "Per-row thermal state not recorded for these CLI runs or GPU tests; no timing comparison",
       "model_executed": true,
       "plan_sha256": null
     }

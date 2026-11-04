@@ -89,6 +89,34 @@ OS build and platform, the reference environment, the executable and the environ
 passed to it (`PATH`, `HOME`, `TMPDIR`, `LANG`, `LC_ALL`, `DEVELOPER_DIR`) are unchanged, so run
 it again from the same shell settings; `--refresh` always executes it again.
 
+## Final-token candidate
+
+`last-token.json` is a separate conversion recipe for #500. It reuses the verified merged checkpoint and
+the published calibrated bundle; it does not rerun merging or change the original recipe. Add three paths
+to a private bindings file: `verified_merge` (the merge artifact folder containing `checkpoint` and
+`manifest.json`), `baseline_gdnfp32` (the original variant artifact folder) and `published_bundle`
+(the calibrated public bundle). Keep the existing reference and converter bindings.
+
+~~~sh
+python3 -m Tools.Conversion plan Tools/Conversion/recipes/jev27b/last-token.json \
+  --bindings .local/conversion/jev27b-last-token.paths.json
+python3 -m Tools.Conversion run Tools/Conversion/recipes/jev27b/last-token.json \
+  --bindings .local/conversion/jev27b-last-token.paths.json \
+  --work-dir .local/conversion/work/jev27b-last-token \
+  --lock-dir "${COREAI_HEAVY_JOB_LOCK:-$HOME/Library/Caches/coreai-samples/heavy-job}"
+~~~
+
+The output `last_token_hidden_state` is float16 `[1,1,5120]`. The exporter requires identical quantized
+tensor hashes/layout and the existing float32 GDN operations. It copies the published head, tokenizer,
+template, slot definitions and calibration unchanged, validates the original asset identity and writes a
+new `decision.json` with `distribution.status = unpublished-candidate`. The runtime accepts both the old
+`hidden_states` descriptor and this fixed final-position descriptor, and reads the tensor's actual strides.
+
+Conversion success is separate from fidelity, quality and performance. The completed F/Q and runtime checks,
+including the failed first descriptor attempt, are in the
+[candidate validation record](../../../../docs/validation/jev27b/README.md#final-token-output-2026-11-05).
+This recipe does not upload or replace the published model.
+
 ## Merge and references
 
 - `merge` adds each LoRA pair to its projection as `bf16(fp32(W) + 2.0 * (fp32(B) @ fp32(A)))`,

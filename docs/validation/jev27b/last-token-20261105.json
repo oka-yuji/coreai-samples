@@ -1,0 +1,698 @@
+{
+  "schema": "typed-decision-last-token-validation/1",
+  "date": "2026-11-05",
+  "status": "quality-validated-unpublished-candidate",
+  "code_revision": "8fcb8843bcb90171b7f5f22473df052cead75758",
+  "decision_sha256": "0db5ca716c7fea75605bffddf2d1d6de03fd80c471b3528277beb98a663d9880",
+  "asset_sha256": "be2b71cf1cf8385b0b096ebd1f103f705a3e4ff4e86819a1a999845f47f7a3b7",
+  "source": {
+    "asset_sha256": "965396ce46af30aca1e65df8fe2e0fa4639be120b8bb18a7edeefc5dbbc86de0",
+    "calibration": {
+      "calibration_id": "jev27b-refit/93bcba90332627ce",
+      "calibration_sha256": "93bcba90332627cef0f5b67cce78eb29b4f8cc55ce4701000d4cef6829be0f79",
+      "per_kind": {
+        "choice": 1.0053791,
+        "noul": 1.0056266,
+        "score": 1.010558
+      },
+      "source": "refit"
+    },
+    "decision_sha256": "2f34243a3d28500075e09d02d9f9f565a7c4b02f94a7d47b2a3caba7262d357d",
+    "repository": "okayuji/jev-27b-coreai"
+  },
+  "output": {
+    "name": "last_token_hidden_state",
+    "dtype": "float16",
+    "shape": [
+      1,
+      1,
+      5120
+    ],
+    "element_bytes": 10240,
+    "previous_8192_token_output_element_bytes": 83886080,
+    "note": "Element payload only; not total model memory or a measured speedup."
+  },
+  "conversion": {
+    "passed": true,
+    "checks": {
+      "float32_gated_delta_updates": true,
+      "hashes_match": true,
+      "inspect": true,
+      "monitor": true,
+      "wrapped_every_linear_attention_layer": true
+    },
+    "compared_tensors": 1622,
+    "differing_tensors": 0,
+    "layout_equal": true,
+    "gdn_layers": 48,
+    "preserved_file_sha256": {
+      "LICENSE": "bbedc3fda3305820b977265f01b8619d87570a6739de3a5582c3464840f1e57a",
+      "calibration-refit.json": "93bcba90332627cef0f5b67cce78eb29b4f8cc55ce4701000d4cef6829be0f79",
+      "head.safetensors": "8256776bac46e653a3e126ab4e8d5e6d0eed73e7fa6f1e55306083607e44753d",
+      "tokenizer/chat_template.jinja": "c3cf9e34abf4f9e36c2d72165aa9c132d3e2a725b6c2586aaa3a8af9d7a81041",
+      "tokenizer/tokenizer.json": "06b9509352d2af50381ab2247e083b80d32d5c0aba91c272ca9ff729b6a0e523",
+      "tokenizer/tokenizer_config.json": "66e427c470fe580fe8c7b5725d857af23d8417e37fae62667ec698306a19987b"
+    },
+    "sizes": {
+      "aimodel_bytes": 16044286162,
+      "bundle_bytes": 16064822084,
+      "main_mlirb_bytes": 16044286025
+    },
+    "first_attempt": {
+      "code_revision": "2ba5310",
+      "passed": false,
+      "reason": "select plus unsqueeze produced a dynamic batch and width descriptor",
+      "output_shape": [
+        null,
+        1,
+        null
+      ]
+    },
+    "accepted_fix": "Explicit reshape to [1,1,hidden_size]; original descriptor conditions preserved."
+  },
+  "fidelity": {
+    "passed": true,
+    "rows": 302,
+    "forwarded": 301,
+    "rejected_above_limit": 1,
+    "criteria": {
+      "maximum": 0.03,
+      "mean": 0.01,
+      "sum_tolerance": 0.001,
+      "top_rule": 0.06
+    },
+    "temperature_1": {
+      "max_probability_error": 0.006441215722344573,
+      "mean_probability_error": 0.0011415651094303348,
+      "bands": {
+        "2049-4096": {
+          "max": 0.006441215722344573,
+          "mean": 0.001746535928981291,
+          "passed": true,
+          "rows": 10
+        },
+        "4097-8192": {
+          "max": 0.005706978901359044,
+          "mean": 0.0028185213521084895,
+          "passed": true,
+          "rows": 11
+        },
+        "513-2048": {
+          "max": 0.0034286234241987096,
+          "mean": 0.0014133052268265624,
+          "passed": true,
+          "rows": 11
+        },
+        "<=512": {
+          "max": 0.004599648814571866,
+          "mean": 0.00103938901962986,
+          "passed": true,
+          "rows": 269
+        }
+      },
+      "by_kind": {
+        "choice": {
+          "max": 0.004562600139204009,
+          "mean": 0.0012623387998464497,
+          "rows": 110
+        },
+        "noul": {
+          "max": 0.0040397388319159955,
+          "mean": 0.0006983006103255505,
+          "rows": 94
+        },
+        "score": {
+          "max": 0.006441215722344573,
+          "mean": 0.001434160542111542,
+          "rows": 97
+        }
+      },
+      "unevaluated": []
+    },
+    "top_changes_against_quantized_reference": 0
+  },
+  "old_native_parity": {
+    "F": {
+      "rows": 302,
+      "forwarded": 301,
+      "rejected": 1,
+      "identity_matches": true,
+      "finite_and_complete": true,
+      "all_outputs_bit_equal": false,
+      "fields": {
+        "logits": {
+          "bit_equal_rows": 0,
+          "max_abs_difference": 0.010089397430419922
+        },
+        "probabilities": {
+          "bit_equal_rows": 0,
+          "max_abs_difference": 0.00042885541915893555
+        },
+        "probabilities_t1": {
+          "bit_equal_rows": 0,
+          "max_abs_difference": 0.0004324913024902344
+        }
+      },
+      "actual_sha256": "0a14943119e6506d6b065cc0e4e5d358045f7d20a40027f12934d9e8653ed4ea",
+      "reference_sha256": "1500078c198ba1fd91dfedc8195c0fac9651613d16a9c8f039c2fa42053e66e2",
+      "reference_backbone_rerun": false,
+      "reference_normalization": "Production Swift head normalization of saved native logits at the published temperatures; original T=1 probabilities checked bit for bit."
+    },
+    "Q": {
+      "rows": 900,
+      "forwarded": 900,
+      "rejected": 0,
+      "identity_matches": true,
+      "finite_and_complete": true,
+      "all_outputs_bit_equal": false,
+      "fields": {
+        "logits": {
+          "bit_equal_rows": 0,
+          "max_abs_difference": 0.011588096618652344
+        },
+        "probabilities": {
+          "bit_equal_rows": 0,
+          "max_abs_difference": 0.0006055235862731934
+        },
+        "probabilities_t1": {
+          "bit_equal_rows": 0,
+          "max_abs_difference": 0.0006120800971984863
+        }
+      },
+      "actual_sha256": "063390b316ba4186a1561d4019b439c8d1cf4088d6ff3dfc939f854bdaa87bcc",
+      "reference_sha256": "0d44b350b034d2644e3b6e474bbd57714e302a907b37ac0e0a31e2b65e0752cc",
+      "reference_backbone_rerun": false,
+      "reference_normalization": "Production Swift head normalization of saved native logits at the published temperatures; original T=1 probabilities checked bit for bit."
+    },
+    "top_changes": {
+      "F": 0,
+      "Q": 0
+    }
+  },
+  "quality": {
+    "candidate_passed_existing_criteria": true,
+    "baseline_passed_existing_criteria": true,
+    "conditions": {
+      "baseline": {
+        "D1-1": {
+          "choice_accuracy": {
+            "difference": -0.6666666666666666,
+            "field": "accuracy",
+            "interval": {
+              "high": 1.6666666666666667,
+              "invalid": 0,
+              "low": -3.0,
+              "valid": 2000
+            },
+            "interval_crosses_limit": true,
+            "kind": "choice",
+            "limit": -2,
+            "passed": true,
+            "rows": 300,
+            "sense": ">=",
+            "stage_1m": 87.33333333333333,
+            "stage_3": 86.66666666666667,
+            "unit": "points"
+          },
+          "noul_brier": {
+            "difference": 0.00024366839737963956,
+            "field": "brier_soft",
+            "interval": {
+              "high": 0.0004199439004618951,
+              "invalid": 0,
+              "low": 8.681936798189742e-05,
+              "valid": 2000
+            },
+            "interval_crosses_limit": false,
+            "kind": "noul",
+            "limit": 0.01,
+            "passed": true,
+            "rows": 300,
+            "sense": "<=",
+            "stage_1m": 0.0014101895997453069,
+            "stage_3": 0.0016538579971249463,
+            "unit": "Brier"
+          },
+          "score_mae_normalized": {
+            "difference": 0.0005068485176758964,
+            "field": "mae_normalized",
+            "interval": {
+              "high": 0.0012908683554728533,
+              "invalid": 0,
+              "low": -0.00029203278545136433,
+              "valid": 2000
+            },
+            "interval_crosses_limit": false,
+            "kind": "score",
+            "limit": 0.02,
+            "passed": true,
+            "rows": 300,
+            "sense": "<=",
+            "stage_1m": 0.021201811709383477,
+            "stage_3": 0.021708660227059372,
+            "unit": "MAE / 5"
+          }
+        },
+        "D1-2": {
+          "choice_accuracy": {
+            "field": "accuracy",
+            "gain_4bit": 26.333333333333332,
+            "gain_bf16": 25.333333333333332,
+            "gain_pytorch_4bit": 26.666666666666668,
+            "higher_is_better": true,
+            "judged": 6.066666666666666,
+            "kind": "choice",
+            "reason": "gain(4bit) - 0.8 gain(bf16) >= 0",
+            "share": 1.0394736842105263,
+            "stage3_against_stage2": -0.3333333333333333,
+            "status": "pass",
+            "unit": "points",
+            "values": {
+              "0": 62.0,
+              "0q": 60.333333333333336,
+              "1m": 87.33333333333333,
+              "2": 87.0,
+              "3": 86.66666666666667
+            }
+          },
+          "kl": {
+            "field": "kl",
+            "gain_4bit": 0.3554974894678935,
+            "gain_bf16": 0.33782751981478687,
+            "gain_pytorch_4bit": 0.35545807269708984,
+            "higher_is_better": false,
+            "judged": 0.08523547361606398,
+            "kind": "all",
+            "reason": "gain(4bit) - 0.8 gain(bf16) >= 0",
+            "share": 1.0523047076294854,
+            "stage3_against_stage2": 3.941677080368175e-05,
+            "status": "pass",
+            "unit": "nats",
+            "values": {
+              "0": 0.3576502722907381,
+              "0q": 0.3757172632555808,
+              "1m": 0.019822752475951243,
+              "2": 0.02025919055849096,
+              "3": 0.02021977378768728
+            }
+          },
+          "noul_brier": {
+            "field": "brier_soft",
+            "gain_4bit": 0.07230191880131617,
+            "gain_bf16": 0.0647529074756013,
+            "gain_pytorch_4bit": 0.07228731533949874,
+            "higher_is_better": false,
+            "judged": 0.020499592820835126,
+            "kind": "noul",
+            "reason": "gain(4bit) - 0.8 gain(bf16) >= 0",
+            "share": 1.1165818126168205,
+            "stage3_against_stage2": 1.4603461817437342e-05,
+            "status": "pass",
+            "unit": "Brier",
+            "values": {
+              "0": 0.06616309707534661,
+              "0q": 0.07395577679844112,
+              "1m": 0.0014101895997453069,
+              "2": 0.0016684614589423837,
+              "3": 0.0016538579971249463
+            }
+          },
+          "score_mae_normalized": {
+            "field": "mae_normalized",
+            "gain_4bit": 0.09011640140227925,
+            "gain_bf16": 0.09371171224415581,
+            "gain_pytorch_4bit": 0.09008325394742374,
+            "higher_is_better": false,
+            "judged": 0.015147031606954603,
+            "kind": "score",
+            "reason": "gain(4bit) - 0.8 gain(bf16) >= 0",
+            "share": 0.961634349050102,
+            "stage3_against_stage2": 3.3147454855515096e-05,
+            "status": "pass",
+            "unit": "MAE / 5",
+            "values": {
+              "0": 0.11491352395353928,
+              "0q": 0.11182506162933863,
+              "1m": 0.021201811709383477,
+              "2": 0.021741807681914888,
+              "3": 0.021708660227059372
+            }
+          }
+        }
+      },
+      "candidate": {
+        "D1-1": {
+          "choice_accuracy": {
+            "difference": -0.6666666666666666,
+            "field": "accuracy",
+            "interval": {
+              "high": 1.6666666666666667,
+              "invalid": 0,
+              "low": -3.0,
+              "valid": 2000
+            },
+            "interval_crosses_limit": true,
+            "kind": "choice",
+            "limit": -2,
+            "passed": true,
+            "rows": 300,
+            "sense": ">=",
+            "stage_1m": 87.33333333333333,
+            "stage_3": 86.66666666666667,
+            "unit": "points"
+          },
+          "noul_brier": {
+            "difference": 0.0002443187452448075,
+            "field": "brier_soft",
+            "interval": {
+              "high": 0.00042073227172118586,
+              "invalid": 0,
+              "low": 8.760452526165922e-05,
+              "valid": 2000
+            },
+            "interval_crosses_limit": false,
+            "kind": "noul",
+            "limit": 0.01,
+            "passed": true,
+            "rows": 300,
+            "sense": "<=",
+            "stage_1m": 0.0014101895997453069,
+            "stage_3": 0.0016545083449901144,
+            "unit": "Brier"
+          },
+          "score_mae_normalized": {
+            "difference": 0.0005115728908814524,
+            "field": "mae_normalized",
+            "interval": {
+              "high": 0.0012962629685284392,
+              "invalid": 0,
+              "low": -0.0002809367097132609,
+              "valid": 2000
+            },
+            "interval_crosses_limit": false,
+            "kind": "score",
+            "limit": 0.02,
+            "passed": true,
+            "rows": 300,
+            "sense": "<=",
+            "stage_1m": 0.021201811709383477,
+            "stage_3": 0.02171338460026493,
+            "unit": "MAE / 5"
+          }
+        },
+        "D1-2": {
+          "choice_accuracy": {
+            "field": "accuracy",
+            "gain_4bit": 26.333333333333332,
+            "gain_bf16": 25.333333333333332,
+            "gain_pytorch_4bit": 26.666666666666668,
+            "higher_is_better": true,
+            "judged": 6.066666666666666,
+            "kind": "choice",
+            "reason": "gain(4bit) - 0.8 gain(bf16) >= 0",
+            "share": 1.0394736842105263,
+            "stage3_against_stage2": -0.3333333333333333,
+            "status": "pass",
+            "unit": "points",
+            "values": {
+              "0": 62.0,
+              "0q": 60.333333333333336,
+              "1m": 87.33333333333333,
+              "2": 87.0,
+              "3": 86.66666666666667
+            }
+          },
+          "kl": {
+            "field": "kl",
+            "gain_4bit": 0.3554962134540669,
+            "gain_bf16": 0.33782751981478687,
+            "gain_pytorch_4bit": 0.35545807269708984,
+            "higher_is_better": false,
+            "judged": 0.08523419760223738,
+            "kind": "all",
+            "reason": "gain(4bit) - 0.8 gain(bf16) >= 0",
+            "share": 1.0523009305132005,
+            "stage3_against_stage2": 3.8140756977049495e-05,
+            "status": "pass",
+            "unit": "nats",
+            "values": {
+              "0": 0.3576502722907381,
+              "0q": 0.3757172632555808,
+              "1m": 0.019822752475951243,
+              "2": 0.02025919055849096,
+              "3": 0.020221049801513912
+            }
+          },
+          "noul_brier": {
+            "field": "brier_soft",
+            "gain_4bit": 0.072301268453451,
+            "gain_bf16": 0.0647529074756013,
+            "gain_pytorch_4bit": 0.07228731533949874,
+            "higher_is_better": false,
+            "judged": 0.020498942472969954,
+            "kind": "noul",
+            "reason": "gain(4bit) - 0.8 gain(bf16) >= 0",
+            "share": 1.1165717690853325,
+            "stage3_against_stage2": 1.3953113952269204e-05,
+            "status": "pass",
+            "unit": "Brier",
+            "values": {
+              "0": 0.06616309707534661,
+              "0q": 0.07395577679844112,
+              "1m": 0.0014101895997453069,
+              "2": 0.0016684614589423837,
+              "3": 0.0016545083449901144
+            }
+          },
+          "score_mae_normalized": {
+            "field": "mae_normalized",
+            "gain_4bit": 0.09011167702907369,
+            "gain_bf16": 0.09371171224415581,
+            "gain_pytorch_4bit": 0.09008325394742374,
+            "higher_is_better": false,
+            "judged": 0.015142307233749042,
+            "kind": "score",
+            "reason": "gain(4bit) - 0.8 gain(bf16) >= 0",
+            "share": 0.9615839351467337,
+            "stage3_against_stage2": 2.842308164995727e-05,
+            "status": "pass",
+            "unit": "MAE / 5",
+            "values": {
+              "0": 0.11491352395353928,
+              "0q": 0.11182506162933863,
+              "1m": 0.021201811709383477,
+              "2": 0.021741807681914888,
+              "3": 0.02171338460026493
+            }
+          }
+        }
+      }
+    },
+    "stage3_at_temperature1": {
+      "baseline": {
+        "all": {
+          "kl": 0.02021977378768728,
+          "rows": 900,
+          "top1": 0.9033333333333333
+        },
+        "choice": {
+          "accuracy": 86.66666666666667,
+          "hits": 260,
+          "kl": 0.03438079722107947,
+          "rows": 300,
+          "top1": 0.8666666666666667
+        },
+        "noul": {
+          "auroc": 0.9933837429111532,
+          "auroc_excluded_ties": 1,
+          "auroc_rows": 299,
+          "brier_hard": 0.08574651540182328,
+          "brier_soft": 0.0016538579971249463,
+          "hits": 285,
+          "kl": 0.0041710592876839795,
+          "rows": 300,
+          "top1": 0.95
+        },
+        "score": {
+          "hits": 268,
+          "kl": 0.02210746485429839,
+          "mae": 0.10854330113529687,
+          "mae_normalized": 0.021708660227059372,
+          "rows": 300,
+          "top1": 0.8933333333333333
+        }
+      },
+      "candidate": {
+        "all": {
+          "kl": 0.020221049801513912,
+          "rows": 900,
+          "top1": 0.9033333333333333
+        },
+        "choice": {
+          "accuracy": 86.66666666666667,
+          "hits": 260,
+          "kl": 0.03438148063616281,
+          "rows": 300,
+          "top1": 0.8666666666666667
+        },
+        "noul": {
+          "auroc": 0.9933837429111532,
+          "auroc_excluded_ties": 1,
+          "auroc_rows": 299,
+          "brier_hard": 0.08575032338349618,
+          "brier_soft": 0.0016545083449901144,
+          "hits": 285,
+          "kl": 0.004172501587758474,
+          "rows": 300,
+          "top1": 0.95
+        },
+        "score": {
+          "hits": 268,
+          "kl": 0.022109167180620455,
+          "mae": 0.10856692300132466,
+          "mae_normalized": 0.02171338460026493,
+          "rows": 300,
+          "top1": 0.8933333333333333
+        }
+      }
+    },
+    "temperatures": {
+      "1": {
+        "choice": 1.0,
+        "noul": 1.0,
+        "score": 1.0
+      },
+      "card": {
+        "choice": 1.0161280671450397,
+        "noul": 1.0143134751376188,
+        "score": 1.0036213515883572
+      }
+    },
+    "definitions": "agreement with the teacher distribution, not calibration against real-world correctness"
+  },
+  "runtime_checks": {
+    "old_bundle_four_lengths_bit_identical": true,
+    "gpu_suite": "TypedDecisionInferenceTests",
+    "gpu_configuration": "Release with -enable-testing",
+    "gpu_tests_passed": 6,
+    "gpu_exit": 0
+  },
+  "interpretation": {
+    "weights_and_layer_structure_unchanged": true,
+    "calibration_reused_not_refitted": true,
+    "calibration_holdout_not_rerun_for_this_variant": true,
+    "latency_comparison": "pending separately",
+    "teacher_agreement_not_real_world_accuracy": true
+  },
+  "sources": [
+    {
+      "file": "variant.json",
+      "sha256": "0d714d0a9a03cc56e2cc9d446b6e24ff409702be6a84e393b8d6274b04117267",
+      "run_id": "20261104T194219-e2447dc1"
+    },
+    {
+      "file": "inspect.json",
+      "sha256": "e9f09b39d46a2d518f82dab2a84e611accbdbcc31eba57e171d9e7a81a924cfd",
+      "run_id": "20261104T194219-e2447dc1"
+    },
+    {
+      "file": "quantized-hashes.json",
+      "sha256": "fcb55032425fb03c8215880612e4e5a24a5abe6aae28c2215c9da2c5f1a12fca",
+      "run_id": "20261104T194219-e2447dc1"
+    },
+    {
+      "file": "provenance.json",
+      "sha256": "1188dc27143e29cbfeb5e7b0eb74c7caeebe52ede07a1b46d1aba3d945c6992e",
+      "run_id": "20261104T194219-e2447dc1"
+    },
+    {
+      "file": "plan.json",
+      "sha256": "a81a3bf7c2ce70698f1f4a3921182271c031e5aa8ee2a92da5ea09ef0cf5048c",
+      "run_id": "20261104T200017-m2-F-sampled-fixed"
+    },
+    {
+      "file": "execution.json",
+      "sha256": "9b98c929060169724c43cd1b464389cf7b6fed50dbe2ba3ebaa841f863b59e14",
+      "run_id": "20261104T200017-m2-F-sampled-fixed"
+    },
+    {
+      "file": "result.json",
+      "sha256": "0a14943119e6506d6b065cc0e4e5d358045f7d20a40027f12934d9e8653ed4ea",
+      "run_id": "20261104T200017-m2-F-sampled-fixed"
+    },
+    {
+      "file": "plan.json",
+      "sha256": "b0b74fd66462924086cd5aff2a255edad4aced46cfcaf4e4d336af681af013da",
+      "run_id": "20261104T202315-m2-Q-sampled-fixed"
+    },
+    {
+      "file": "execution.json",
+      "sha256": "342b54477b932592e7ac66c0d1048c102e480f75de26bb217cce1d9307d7510b",
+      "run_id": "20261104T202315-m2-Q-sampled-fixed"
+    },
+    {
+      "file": "result.json",
+      "sha256": "063390b316ba4186a1561d4019b439c8d1cf4088d6ff3dfc939f854bdaa87bcc",
+      "run_id": "20261104T202315-m2-Q-sampled-fixed"
+    },
+    {
+      "file": "plan.json",
+      "sha256": "3d178abe8c52837285a2d9c154eb3c86fe843b34effdd84c2df024f088557d14",
+      "run_id": "20261104T205004-m2-old-compat-sampled-alternating"
+    },
+    {
+      "file": "execution.json",
+      "sha256": "c017f774f42fa1a1ce5b98a95da8574db57a4045c2b40504859b6c7fbda2807a",
+      "run_id": "20261104T205004-m2-old-compat-sampled-alternating"
+    },
+    {
+      "file": "result.json",
+      "sha256": "19e1346341d95b1e4d16872dee1d3846303963fb810ccfb9d6940c2bf3691f2b",
+      "run_id": "20261104T205004-m2-old-compat-sampled-alternating"
+    },
+    {
+      "file": "m2-F-fidelity/comparison.json",
+      "sha256": "43ed9686c96576fb0586f3cc857394bba5035104124dc4d8788248808ce5c273"
+    },
+    {
+      "file": "m2-F-parity.json",
+      "sha256": "a407e443641b7d8464b2d3435f3ea8e2e283a160a185c1927ea9eb7d4bda7988"
+    },
+    {
+      "file": "m2-Q-parity.json",
+      "sha256": "992c4d84d39748f664f600865f40ebf51f3d37cb7b69fc899334e667b1c680a7"
+    },
+    {
+      "file": "m2-Q-quality-baseline/quality.json",
+      "sha256": "292199ba23e9cac546872c07dd5080e073cfb9badcac9fbde478581b94736e96"
+    },
+    {
+      "file": "m2-Q-quality-candidate/quality.json",
+      "sha256": "ec5d1a1b41c2918157c91897dd0d10dffb2f39c0d3f8c33937f4747ce8cf02af"
+    },
+    {
+      "file": "m2-Q-quality-comparison.json",
+      "sha256": "2d099a8740c8358197a074b13c6a1001b9e19dd582dd24afa1f3bccf1d4980c2"
+    },
+    {
+      "file": "m2-old-bundle-parity.json",
+      "sha256": "37a477aa8148a040b660fe02add2a7e4310e463893af3415489a07a1bfaf8988"
+    },
+    {
+      "file": "m2-gpu-tests.json",
+      "sha256": "b2fa78b17edd6346bcc3032372c764b937777efacb7846c4db6f530b37cae885"
+    },
+    {
+      "file": "m2-gpu-tests.log",
+      "sha256": "4cfbd4d82b25b73e41d193ba62ed58207d41ab1673e3136ebd9e4872dd36af73"
+    },
+    {
+      "file": "baseline-F-published-temperatures.json",
+      "sha256": "1500078c198ba1fd91dfedc8195c0fac9651613d16a9c8f039c2fa42053e66e2"
+    },
+    {
+      "file": "baseline-Q-published-temperatures.json",
+      "sha256": "0d44b350b034d2644e3b6e474bbd57714e302a907b37ac0e0a31e2b65e0752cc"
+    }
+  ]
+}

@@ -246,3 +246,45 @@ Six serialized GPU tests passed in Release with testability enabled. The added s
 uncooperative 1472-token forward to finish, reports cancellation, reloads once and returns a bit-identical next
 answer. CPU tests separately cover busy, failed reloads, stale bookmarks and modified bundles. The GPU suite
 is diagnostic evidence without a separate benchmark plan, so its record remains legacy rather than a latency claim.
+
+## Final-token output (2026-11-05)
+
+[`last-token-20261105.json`](last-token-20261105.json) records the private candidate from #500. Conversion
+`20261104T194219-e2447dc1` at `8fcb8843bcb90171b7f5f22473df052cead75758` produced decision SHA-256
+`0db5ca716c7fea75605bffddf2d1d6de03fd80c471b3528277beb98a663d9880` and asset SHA-256
+`be2b71cf1cf8385b0b096ebd1f103f705a3e4ff4e86819a1a999845f47f7a3b7`. All 1,622 quantized tensor hashes and
+their layout match the published asset; all 48 gated delta updates retain float32 inputs. Head, tokenizer,
+template, slot layout and published temperatures are unchanged. The bundle is marked `unpublished-candidate`.
+
+The output descriptor is float16 `[1,1,5120]`. It contains 10,240 bytes of elements, compared with 83,886,080
+for the previous 8,192-token output. The backbone still computes every layer; this number is not total memory
+or an acceleration ratio. The first conversion (`20261104T193249-84183233`) failed the descriptor check:
+`select` followed by `unsqueeze` produced `[?,1,?]`. An explicit reshape fixes the descriptor without relaxing it.
+
+| Check | Result |
+|---|---|
+| F, 302 rows | 301 forward passes; the 8,193-token row rejected; every band passes max ≤0.03 and mean ≤0.01 at T=1 |
+| F versus same-weight quantized reference | Maximum probability error 0.00644122, mean 0.00114157; no top change |
+| Q, 900 rows | Existing D1-1 and D1-2 pass; no top change versus previous native results |
+| Old versus candidate native values | Not bit-identical; maximum T=1 probability difference 0.00043249 on F and 0.00061208 on Q |
+| Q choice agreement with teacher, T=1 | 86.6667% before and after; merged reference 87.3333% |
+| Q noul soft Brier, T=1 | 0.001653858 before; 0.001654508 after |
+| Q score normalized MAE, T=1 | 0.021708660 before; 0.021713385 after |
+| Old bundle through new runtime | All outputs bit-identical at 100/500/2,000/8,192 tokens |
+| Candidate runtime | Six serialized GPU tests passed in Release with testability enabled, including cancellation and recovery |
+
+These quality metrics measure agreement with the teacher distribution. The Q choice difference against the merged
+reference is −0.667 percentage points; its 95% bootstrap interval [−3.000, +1.667] crosses the −2-point limit.
+The existing decision rule uses the point estimate, so it passes without establishing the whole interval above
+that limit. The old native and candidate outputs were scored with the same frozen references and criteria.
+For the F/Q native-to-native probability comparison, saved old logits were normalized with the production Swift
+head at the published temperatures after verifying their original T=1 probabilities bit for bit; the old backbone
+was not rerun. Q acceptance metrics above use T=1. The original source-card temperatures in the scorer remain
+separate from the published refitted temperatures in the bundles.
+
+Calibration files and values were reused. Cal/H and the Japanese set were not rerun for this candidate.
+These are diagnostic checks under the shared model lock on the same M4 Max 128 GiB machine, on AC reporting
+68 W. Per-row thermal state was not recorded for these CLI runs or GPU tests. CPU builds/tests were permitted during validation;
+these rows are not the controlled speed comparison. There is no separate common-protocol benchmark plan for
+these checks, so the model record marks them legacy. All source-file hashes are in the JSON; private inputs
+and raw outputs are excluded. The public HF artifact and its prior evidence remain unchanged.

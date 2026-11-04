@@ -27,6 +27,17 @@ Tools/Verify/.build/release/coreai-verify typed-decide --bundle models/jev27b/bu
 
 同じ形状の間は実行部を保持し、4回目の形状変更前にmodelとfunctionを解放して読み直します。再loadまたはbackbone推論中の失敗・取消では、実行部を破棄します。公開済みの重み・head・tokenizer・温度は変更していません。長さ交替100判断・同長100判断・近い長さの交替20判断は、全出力を保って固定メモリ条件に合格しました。有限の検査であり、無制限利用の保証ではありません。再loadと初回実行の時間が加わります。下の既存の時間は対策前の測定を保持したもので、改善前後・元モデルの同条件比較は別に行います。[測定条件と結果](validation/jev27b/README.md#memory-stability-2026-11-05)。
 
+## 最後の位置だけを返す候補版（2026-11-05）
+
+未公開の候補版はbackboneの出力を `[1, 1, 5120]` に絞る。量子化済みの重み・層・判断head・tokenizer・温度は維持する。
+判断用途に合わせた出力グラフの変更で、モデルの枝刈りではない。8192-token時の出力要素は80 MiBから10 KiBになるが、
+モデル全体のメモリ削減率や速度改善率を表す数値ではない。
+
+既存のF忠実度・Q品質基準に合格し、以前のnative出力とのtopの変化はなかった。浮動小数点値はbit一致ではなく、
+Qでの温度1の確率差は最大0.0006121。choice品質の信頼区間は従来の閾値をまたぎ、校正用holdoutは再評価していない。
+[検証記録](validation/jev27b/README.md#final-token-output-2026-11-05)に制約と最初の変換失敗も残している。
+HFの取得先は従来の全位置出力版のまま。同条件での速度比較は別の #502 で扱う。
+
 <!-- model-report:start -->
 <a id="model-report"></a>
 
@@ -94,6 +105,7 @@ Tools/Verify/.build/release/coreai-verify typed-decide --bundle models/jev27b/bu
 | [E9](validation/jev27b/README.md#memory-stability-2026-11-05) | 2026-11-05 / standard / diagnostic | MacBook Pro (14-inch, 2024), Apple M4 Max, 128 GiB unified memory (Mac16,6) / macOS 27.0 (26A428) / Xcode 27.0 (27A266a), Apple Swift 6.4 (swiftlang-6.4.0.34.1) | warmup 1判断後、同じ8192-token入力を100判断。全logitsと両温度の確率が元とbit一致。CPU build/試験を許したメモリ安定性検査で、他モデルの同時実行はない。RSS・現在footprint・sampled peak・kernel lifetime peakを区別する。最初/最後5件の中央値と固定条件は元の記録を参照。 · variant=uint4 backbone (gdn-fp32) / float32 head; backend=Core AI; GPU preferred; expectFrequentReshapes true; route=coreai-verify typed-decide --sample-memory --wait-nominal-thermal 600; normal Release; external proc_pid_rusage observer; source_revision=14b425269ed24452e0a5ad5a8f3e51d139647a88; artifact_revision=2f34243a3d28500075e09d02d9f9f565a7c4b02f94a7d47b2a3caba7262d357d; code_revision=ff2a2579e30a95a669b492f6f1eb6fca771211be; batch_size=1; concurrency=1; warmups=1; power=AC, pmset reports 68 W; battery and charging state recorded per run; thermal=ProcessInfo thermalState nominal at every row start; not a constant-temperature guarantee |
 | [E10](validation/jev27b/README.md#memory-stability-2026-11-05) | 2026-11-05 / standard / diagnostic | MacBook Pro (14-inch, 2024), Apple M4 Max, 128 GiB unified memory (Mac16,6) / macOS 27.0 (26A428) / Xcode 27.0 (27A266a), Apple Swift 6.4 (swiftlang-6.4.0.34.1) | warmup 2判断後、6144/8192-tokenの交替を20判断。全logitsと両温度の確率が元とbit一致。CPU build/試験を許したメモリ安定性検査で、他モデルの同時実行はない。RSS・現在footprint・sampled peak・kernel lifetime peakを区別する。最初/最後5件の中央値と固定条件は元の記録を参照。 · variant=uint4 backbone (gdn-fp32) / float32 head; backend=Core AI; GPU preferred; expectFrequentReshapes true; route=coreai-verify typed-decide --sample-memory --wait-nominal-thermal 600; normal Release; external proc_pid_rusage observer; source_revision=14b425269ed24452e0a5ad5a8f3e51d139647a88; artifact_revision=2f34243a3d28500075e09d02d9f9f565a7c4b02f94a7d47b2a3caba7262d357d; code_revision=ff2a2579e30a95a669b492f6f1eb6fca771211be; batch_size=1; concurrency=1; warmups=2; power=AC, pmset reports 68 W; battery and charging state recorded per run; thermal=ProcessInfo thermalState nominal at every row start; not a constant-temperature guarantee |
 | [E11](validation/jev27b/README.md#memory-stability-2026-11-05) | 2026-11-05 / legacy / diagnostic | MacBook Pro (14-inch, 2024), Apple M4 Max, 128 GiB unified memory (Mac16,6) / macOS 27.0 (26A428) / Xcode 27.0 (27A266a), Apple Swift 6.4 (swiftlang-6.4.0.34.1) | 診断用GPU6試験が合格。取消を無視する1472-tokenのrun終了後、Sessionが1回再loadして次の答えがbit一致した。再load失敗・busy・改変bundle拒否は別のCPU試験で確認。このsuite単独のbenchmark計画はない。 · variant=uint4 backbone (gdn-fp32) / float32 head; backend=Core AI; GPU preferred; expectFrequentReshapes true; route=TypedDecisionInferenceTests; Release with -enable-testing; six serialized GPU tests; source_revision=14b425269ed24452e0a5ad5a8f3e51d139647a88; artifact_revision=2f34243a3d28500075e09d02d9f9f565a7c4b02f94a7d47b2a3caba7262d357d; code_revision=42a9d95; batch_size=1; concurrency=1; power=AC, pmset reports 68 W; thermal=Not recorded per test; not a latency comparison; 未記録: warmups, plan_sha256 |
+| [E12](validation/jev27b/README.md#final-token-output-2026-11-05) | 2026-11-05 / legacy / diagnostic | MacBook Pro (14-inch, 2024), Apple M4 Max, 128 GiB unified memory (Mac16,6) / macOS 27.0 (26A428) / Xcode 27.0 (27A266a), Apple Swift 6.4 (swiftlang-6.4.0.34.1) | Fは301推論と上限超過1件拒否、Q900件の既存D1-1/D1-2に合格。旧nativeの浮動小数点値とは差があるがtop変化なし。校正を流用しCal/H・日本語セットは再検証していない。共通様式の独立計測計画はなく、公開資産は未変更。 · variant=Unpublished uint4 final-token output candidate / float32 head; backend=Core AI; GPU preferred; expectFrequentReshapes true; route=F/Q CLI inference and scoring; six Release GPU tests with -enable-testing; old-bundle compatibility check; source_revision=14b425269ed24452e0a5ad5a8f3e51d139647a88; artifact_revision=0db5ca716c7fea75605bffddf2d1d6de03fd80c471b3528277beb98a663d9880; code_revision=8fcb8843bcb90171b7f5f22473df052cead75758; batch_size=1; concurrency=1; power=AC, pmset reports 68 W; thermal=Per-row thermal state not recorded for these CLI runs or GPU tests; no timing comparison; 未記録: warmups, plan_sha256 |
 
 ### 導入・制限・進捗
 
@@ -102,6 +114,8 @@ Tools/Verify/.build/release/coreai-verify typed-decide --bundle models/jev27b/bu
 - [検証の記録](validation/jev27b/README.md)
 
 - [日本語(JGLUE)、合格線なし](jev27b.md#japanese-jglue)
+
+- [未公開の最終位置出力版の検証](validation/jev27b/README.md#final-token-output-2026-11-05)
 <!-- model-report:end -->
 
 ## クイックスタート
