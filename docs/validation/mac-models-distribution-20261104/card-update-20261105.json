@@ -1,0 +1,79 @@
+{
+  "schema": 1,
+  "records": [
+    {
+      "repository": "okayuji/Qwen3.8-27B-coreai-4bit",
+      "previous_main": "843c3846b683eb2c946377af2c4d1aed9099278d",
+      "main": "3d50b382595c171c14ec03d56f98b16d5da949a8",
+      "changed_files": [
+        "README.md"
+      ],
+      "readme_sha256": "fd3ff781fbd090630476715cf893d3ca80b922bcc251908b9fd30aa150ec41a6",
+      "scanner_id": "63501ba4f0d44b8a0f05127025407875f7cbd983dc573919d6905b816d9f7baf",
+      "manifest_sha256": "6ac7fea71795e4570374f29b197b63e8c5ebca0b037e5d005fb1d15d68a90c63",
+      "files": 12,
+      "bytes": 16852544966,
+      "local": {
+        "verdict": "passed",
+        "complete": true,
+        "checked_at": "2026-11-04T16:26:07.513863+00:00"
+      },
+      "anonymous_hub": {
+        "verdict": "passed",
+        "complete": true,
+        "history_complete": true,
+        "include_pull_requests": true,
+        "checked_at": "2026-11-04T17:11:01.157202+00:00",
+        "commits": 6,
+        "unique_objects": 17,
+        "refs": [
+          {
+            "ref": "refs/heads/main",
+            "commit": "3d50b382595c171c14ec03d56f98b16d5da949a8"
+          },
+          {
+            "ref": "refs/tags/v1.0.0",
+            "commit": "8e24aebe036eae577d4a3bd019ba728a73358318"
+          }
+        ]
+      },
+      "unresolved_findings": 0,
+      "errors": 0
+    },
+    {
+      "repository": "okayuji/clef-flash-9b-coreai-decide",
+      "previous_main": "12e30be4e391310377c534524df8962359a08b0f",
+      "main": "873722e26cc47bd442af8b8d6103599acbdd6a09",
+      "changed_files": [
+        "README.md"
+      ],
+      "readme_sha256": "07fe55badd932996b2306e8f16aae18802fc9ffb3511b90f3fc2b384314cea71",
+      "scanner_id": "63501ba4f0d44b8a0f05127025407875f7cbd983dc573919d6905b816d9f7baf",
+      "manifest_sha256": "118b9385923ddc4344a9b3c8743a52851e06f4f2be149c70a35a4d09e86528d2",
+      "files": 25,
+      "bytes": 7278592778,
+      "local": {
+        "verdict": "passed",
+        "complete": true,
+        "checked_at": "2026-11-04T16:05:10.595835+00:00"
+      },
+      "anonymous_hub": {
+        "verdict": "passed",
+        "complete": true,
+        "history_complete": true,
+        "include_pull_requests": true,
+        "checked_at": "2026-11-04T16:31:49.950467+00:00",
+        "commits": 19,
+        "unique_objects": 31,
+        "refs": [
+          {
+            "ref": "refs/heads/main",
+            "commit": "873722e26cc47bd442af8b8d6103599acbdd6a09"
+          }
+        ]
+      },
+      "unresolved_findings": 0,
+      "errors": 0
+    }
+  ]
+}
