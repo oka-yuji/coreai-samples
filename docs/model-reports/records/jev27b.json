@@ -13,12 +13,12 @@
     "en": "Typed decisions · macOS CLI",
     "ja": "型付き判断 · macOS CLI"
   },
-  "release": "in_progress",
+  "release": "released",
   "release_note": {
-    "en": "bundle not distributed; publication is decided in #450",
-    "ja": "バンドル非公開。公開は #450 で判断"
+    "en": "macOS CLI; sustained-use memory growth documented",
+    "ja": "macOS CLI。連続利用時のメモリ増加を記録"
   },
-  "download": null,
+  "download": "https://huggingface.co/okayuji/jev-27b-coreai",
   "pages": {
     "en": "docs/jev27b.md",
     "ja": "docs/jev27b.ja.md"
@@ -536,5 +536,6 @@
         "ja": "forward の run 中に取り消した 3 回の依頼は run が返った時点で CancellationError で終わり、checkpoint での取消は run の前に終わった。どちらの取消の後も、次の行の logit は取消の前の同じ行とビット単位で同じだった。試験用 backbone は取消を伝えないので、Core AI の run 自体が止まるかは測っていない。"
       }
     }
-  }
+  },
+  "public_access_evidence": "docs/validation/jev27b/release.md#publication-verification"
 }

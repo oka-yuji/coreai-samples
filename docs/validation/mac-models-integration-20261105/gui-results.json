@@ -1,0 +1,58 @@
+[
+  {
+    "detail" : "artifact=qwen3.8-27b-coreai-4bit revision=8e24aebe036eae577d4a3bd019ba728a73358318 ready=true | shot: cacheDisplay 190157B colors=154",
+    "pass" : true,
+    "screenshot" : "01-library.png",
+    "seconds" : 0.67,
+    "step" : 1,
+    "title" : "The library reports the acquired conversation model"
+  },
+  {
+    "detail" : "phase=loading(preparing: false) preparingShown=false | shot: cacheDisplay 201090B colors=152",
+    "pass" : true,
+    "screenshot" : "02-loading.png",
+    "seconds" : 3.11,
+    "step" : 2,
+    "title" : "Chat shows the loading state while the model opens"
+  },
+  {
+    "detail" : "phase=ready cached=true specializeSeconds=0.00 loadSeconds=5.11 maxMainStall=0.082 preparingShown=false note=Loaded in 5.1 s | shot: cacheDisplay 222294B colors=152",
+    "pass" : true,
+    "screenshot" : "03-ready.png",
+    "seconds" : 2.65,
+    "step" : 3,
+    "title" : "The model is open, the window stayed responsive, and the chat is ready"
+  },
+  {
+    "detail" : "status=TTFT 3.70 s  |  26.4 tok/s  |  input 630  |  reused 0  |  output 67  |  stopToken thoughtChars=0 answer=A context window is the maximum number of tokens (words or subword units) that a language model can process at once, encompassing both the input prompt and the generated output. This limit determines how much information the model can \"see\" and use to generate coherent responses, effectively definin… | shot: cacheDisplay 288227B colors=175",
+    "pass" : true,
+    "screenshot" : "04-chat.png",
+    "seconds" : 7.09,
+    "step" : 4,
+    "title" : "One turn streams to the end and the status line shows the numbers"
+  },
+  {
+    "detail" : "running=true thoughtChars=0 answerChars=311 | shot: cacheDisplay 370965B colors=195",
+    "pass" : true,
+    "screenshot" : "05-generating.png",
+    "seconds" : 3.76,
+    "step" : 5,
+    "title" : "A long reply is streaming"
+  },
+  {
+    "detail" : "halted=true seconds=0.347 keptChars=438 status=TTFT 0.38 s  |  output 92  |  stopped | shot: cacheDisplay 380261B colors=206",
+    "pass" : true,
+    "screenshot" : "06-stopped.png",
+    "seconds" : 0.91,
+    "step" : 6,
+    "title" : "Stop ends the reply within three seconds and keeps what was written"
+  },
+  {
+    "detail" : "entries=0 phase=ready status= | shot: cacheDisplay 235290B colors=161",
+    "pass" : true,
+    "screenshot" : "07-new-chat.png",
+    "seconds" : 0.95,
+    "step" : 7,
+    "title" : "New starts an empty conversation"
+  }
+]
