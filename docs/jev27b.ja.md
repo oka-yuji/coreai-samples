@@ -1,6 +1,6 @@
 # JEV-27B の型付き判断(Core AI 版)
 
-[トップ](../README.ja.md) · [English](jev27b.md) · [Hugging Face から取得](https://huggingface.co/okayuji/jev-27b-coreai-decide)
+[トップ](../README.ja.md) · [English](jev27b.md) · [Hugging Face から取得](https://huggingface.co/okayuji/jev-27b-coreai)
 
 JEV-27B は、状況についての型付きの質問に答えるモデルです。質問の型は `noul`(false か true)、`choice`(2〜16 択)、`score`(0〜5)の 3 つです。このページは、[`jev27b` の変換レシピ](../Tools/Conversion/recipes/jev27b/README.md)が [autotrust/JEV-27B](https://huggingface.co/autotrust/JEV-27B) から作る Core AI の bundle と、その記録した検査を説明します。素のテンプレートを 1 回 prefill して Core AI の資産で最後のトークンの隠れ状態を出し、24 行の判断ヘッドで選択肢の確率に変えます。bundle は Hugging Face から取得し、Mac の `coreai-verify typed-decide` で動かせます。サンプルアプリへの組み込みは別の作業です。
 
@@ -13,7 +13,7 @@ JEV-27B は、状況についての型付きの質問に答えるモデルです
 Rust/Cargo を含む[共通の準備](../README.ja.md#はじめる)と Hugging Face CLI の導入後、リポジトリのルートで実行します。
 
 ~~~sh
-hf download okayuji/jev-27b-coreai-decide --local-dir models/jev27b
+hf download okayuji/jev-27b-coreai --local-dir models/jev27b
 ./Tools/Irodori/build-inputs.sh
 swift build -c release --package-path Tools/Verify --product coreai-verify --force-resolved-versions
 Tools/Verify/.build/release/coreai-verify typed-decide --bundle models/jev27b/bundle --input models/jev27b/examples/request.json --output jev-decision-output.json
@@ -136,7 +136,7 @@ Tools/Verify/.build/release/coreai-verify typed-decide --bundle models/jev27b/bu
 
 - 入力は `state`、`question`、`kind`(`noul` / `choice` / `score`)、`options` です。`choice` は 2〜16 個の重ならない 1 行の選択肢、`noul` は `false` と `true`、`score` は `0`〜`5` だけを受け付けます。描画は JEV-27B の `bare-v1` テンプレートに従い、規則に合わない入力は描き換えずに拒否します。
 - bundle は、`main` だけを持つ Core AI の資産(最後の RMSNorm の後の隠れ状態を返す)、`head.safetensors`(`proj.weight` [24, 5120] と `proj.bias` [24]、float32)、配布元の tokenizer のバイト単位の写し、`decision.json`(`typed-decision-v1`)、書き出しが書く `metadata.json`、`LICENSE`、`NOTICE.md`、`SHA256SUMS` からなります。校正済みの bundle には、温度の再フィットの記録 `calibration-refit.json` が加わります。
-- 評価時の校正済み bundle（公開用の表示変更前）は 13 ファイル、16,064,815,496 バイトで、`decision.json` の SHA-256 は `a2b186a87a64d9e93a56f185a5ebc2a0613d00da7440eeb8c8c2229b64f6adf3` でした。配布する `bundle/` は 13 ファイル、16,064,819,145 バイト、SHA-256 は `e6c3bd52c37579e3d63d382810d75372bf48800d4c4c42ba3af46cc8df0a55ca` です。表示・manifest の変更とモデル本体等の一致は[公開記録](validation/jev27b/release.md)で区別しています。
+- 評価時の校正済み bundle（公開用の表示変更前）は 13 ファイル、16,064,815,496 バイトで、`decision.json` の SHA-256 は `a2b186a87a64d9e93a56f185a5ebc2a0613d00da7440eeb8c8c2229b64f6adf3` でした。配布する `bundle/` は 13 ファイル、16,064,821,387 バイト、SHA-256 は `2f34243a3d28500075e09d02d9f9f565a7c4b02f94a7d47b2a3caba7262d357d` です。公開用表示・校正記録のID表現・manifest の変更と、温度・統計・モデル本体等の一致は[公開記録](validation/jev27b/release.md)で区別しています。
 - Swift の型(`TypedDecisionBundle`、`TypedDecisionModel` など)、`decision.json` の項目、CLI の入出力の詳細は英語のページの [Input and files](jev27b.md#input-and-files) にあります。
 
 ## 評価の詳細

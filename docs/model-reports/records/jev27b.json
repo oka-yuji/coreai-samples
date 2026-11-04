@@ -18,7 +18,7 @@
     "en": "Hugging Face release verification",
     "ja": "Hugging Face の公開確認中"
   },
-  "download": "https://huggingface.co/okayuji/jev-27b-coreai-decide",
+  "download": "https://huggingface.co/okayuji/jev-27b-coreai",
   "pages": {
     "en": "docs/jev27b.md",
     "ja": "docs/jev27b.ja.md"

@@ -1,6 +1,6 @@
 # JEV-27B typed decisions for Core AI
 
-[Home](../README.md) · [日本語](jev27b.ja.md) · [Download on Hugging Face](https://huggingface.co/okayuji/jev-27b-coreai-decide)
+[Home](../README.md) · [日本語](jev27b.ja.md) · [Download on Hugging Face](https://huggingface.co/okayuji/jev-27b-coreai)
 
 JEV-27B answers typed questions about a situation: `noul` (false or true), `choice` (2 to 16 options) and `score` (0 to
 5). This page describes the Core AI bundle that the [`jev27b` recipe](../Tools/Conversion/recipes/jev27b/README.md)
@@ -89,7 +89,7 @@ Install the [common prerequisites](../README.md#get-started), including Rust/Car
 From the repository root, download the model and run the authored example:
 
 ~~~sh
-hf download okayuji/jev-27b-coreai-decide --local-dir models/jev27b
+hf download okayuji/jev-27b-coreai --local-dir models/jev27b
 ./Tools/Irodori/build-inputs.sh
 swift build -c release --package-path Tools/Verify --product coreai-verify --force-resolved-versions
 Tools/Verify/.build/release/coreai-verify typed-decide --bundle models/jev27b/bundle --input models/jev27b/examples/request.json --output jev-decision-output.json
@@ -179,15 +179,15 @@ distribution of the corpus (output distributions of Jev 1.13), not real-world co
 The calibrated bundle used for the recorded evaluations, before release-notice changes, had 13 files and
 16,064,815,496 bytes; its `decision.json` SHA-256 was
 `a2b186a87a64d9e93a56f185a5ebc2a0613d00da7440eeb8c8c2229b64f6adf3`. The published `bundle/` has 13 files and
-16,064,819,145 bytes, with manifest SHA-256
-`e6c3bd52c37579e3d63d382810d75372bf48800d4c4c42ba3af46cc8df0a55ca`. The [release record](validation/jev27b/release.md)
-identifies the documentation-only changes and the unchanged model files. The layout, file contract, Swift types and
+16,064,821,387 bytes, with manifest SHA-256
+`2f34243a3d28500075e09d02d9f9f565a7c4b02f94a7d47b2a3caba7262d357d`. The [release record](validation/jev27b/release.md)
+identifies the publication-metadata changes, the calibration record with hashed identifiers, and the unchanged model files. The layout, file contract, Swift types and
 command line tool are described below.
 
 ### Bundle layout
 
 ```text
-jev-27b-coreai-decide/
+jev-27b-coreai/
   README.md
   LICENSE
   NOTICE.md
