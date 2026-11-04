@@ -40,7 +40,6 @@ struct ModelsView: View {
                         onForget: { vm.forget(folder) })
                 }
                 Button("Open Folder…", systemImage: "folder") { importing = true }
-                DecideModelButton(store: decide)
                 if let message = vm.message {
                     RuntimeMessageText(message)
                         .font(.callout)
@@ -52,6 +51,7 @@ struct ModelsView: View {
                 LabeledContent("Disk available", value: vm.availableSpace.formatted(.byteCount(style: .file)))
             }
         }
+        .disabled(true)
         .demoNavigationTitle("Models")
         .onAppear { vm.refresh() }
         .fileImporter(isPresented: $importing, allowedContentTypes: [.folder]) { result in

@@ -268,6 +268,17 @@ final class ConversationSession {
         sink?.yield(.actions([.evidenceChanged(run: run, evidence)]))
     }
 
+    func releaseModel() {
+        if let session {
+            restoredTranscript = session.transcript
+            restoredTools = toolsVersion
+            restoredModelLocation = chat.bundleURL?.path
+            needsPreparation = true
+        }
+        session = nil
+        model = nil
+    }
+
     func reset(id: String) {
         self.id = id
         run = 0

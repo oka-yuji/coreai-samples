@@ -25,7 +25,7 @@ enum DemoLocalizationCheck {
             keys += [RecipeRequirement.required, .optional, .uncertain].map(\.rawValue)
             keys += [ExtractRunner.notice, "Loaded", "Loading…", "Stopped.", "No match", "On hold"]
             keys += KitchenStatus.allCases.map(\.rawValue)
-            keys += ["Kitchen equipment", "Open Clef-Flash bundle", "Change decision model"]
+            keys += ["Kitchen equipment", "Download Clef-Flash from its heading in the sidebar.", "Unload model"]
             keys += ["none", "Docs", "Thinking", "Thoughts", "Stopping…"]
             keys += ["Ended at the step limit", "Stopped", "Generation failed", "Where Work saves its notes"]
             keys += [

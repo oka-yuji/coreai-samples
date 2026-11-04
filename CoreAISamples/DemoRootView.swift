@@ -122,13 +122,14 @@ struct DemoRootView: View {
     @State private var chat: ChatViewModel
     @State private var host: ConversationHost
     @State private var models = ModelsViewModel()
-    @State private var decide = DecideAssembly.makeStore()
-    @State private var recipes = RecipeAssembly.makeStore()
+    @State private var decide: Store<DecideFeature>
+    @State private var recipes: Store<RecipeFeature>
     @State private var products = ProductAssembly.makeStore()
     @State private var imageSearch = ImageSearchAssembly.makeStore()
     @State private var videoSearch = VideoSearchAssembly.makeStore()
     @State private var speech = SpeechAssembly.makeStore()
     @State private var library = MacModelLibrary()
+    @State private var choice = MacModelChoice()
     @State private var showingExtractionLab = false
     @State private var extract = Store<ExtractFeature>(
         initialState: ExtractState(
@@ -139,9 +140,23 @@ struct DemoRootView: View {
         self.lifetime = lifetime
         let id = UUID()
         _windowID = State(initialValue: id)
-        let chat = ChatViewModel()
+        let managed = LaunchArguments.value("--gui-e2e") == nil
+        let chat = ChatViewModel(managed: managed)
+        let decide = DecideAssembly.makeStore(managed: managed)
+        let recipes = RecipeAssembly.makeStore(managed: managed)
         _chat = State(initialValue: chat)
-        _host = State(initialValue: ConversationHost(chat: chat, termination: { lifetime.finished(id, success: $0) }))
+        _decide = State(initialValue: decide)
+        _recipes = State(initialValue: recipes)
+        _host = State(
+            initialValue: ConversationHost(
+                chat: chat, termination: { lifetime.finished(id, success: $0) },
+                releaseModels: {
+                    decide.send(.ended)
+                    recipes.send(.ended)
+                    for await phases in Observations({ (decide.state.phase, recipes.state.phase) }) {
+                        if phases.0 != .closing && phases.1 != .closing { break }
+                    }
+                }))
     }
 
     var body: some View {
@@ -183,6 +198,7 @@ struct DemoRootView: View {
         .environment(decide)
         .environment(speech)
         .environment(library)
+        .environment(choice)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 DemoLanguagePicker(
@@ -221,10 +237,43 @@ struct DemoRootView: View {
             imageSearch.send(.disappeared)
             videoSearch.send(.disappeared)
         }
+        .onChange(of: library.installed(.clefFlash)?.directory) { old, new in
+            guard old != nil, new != old else { return }
+            decide.send(.ended)
+            recipes.send(.ended)
+        }
         .onChange(of: scenePhase) { _, phase in library.enter(phase) }
         .onChange(of: scenePhase) { if scenePhase == .active { host.store.send(.library(.refresh)) } }
+        .onChange(of: host.state.isTerminating) { wasTerminating, terminating in
+            guard wasTerminating, !terminating else { return }
+            if navigator.selection == .decide { decide.send(.appeared) }
+            if navigator.selection == .recipes { recipes.send(.appeared) }
+        }
         .onChange(of: host.state.id) { host.restorePreferences() }
         .onChange(of: chat.loadStarted) { host.refreshIfModelChanged() }
+        .onChange(of: library.store?.state.usages[DemoModel.qwen.libraryID]) { _, usage in
+            guard choice.requested, !chat.isLoading, usage?.isActive == false, usage?.resource == nil else { return }
+            choice.requested = false
+            library.stopUsing(.qwen)
+        }
+        .task(id: choice.requested ? library.resource(inUse: .qwen)?.directory : nil) {
+            guard choice.requested, let resource = library.resource(inUse: .qwen) else { return }
+            _ = await ModelSwitch.choose(resource.directory, chat: chat, host: host)
+            if chat.phase != .ready { library.stopUsing(.qwen) }
+            choice.requested = false
+        }
+        .task(id: choice.unloading) {
+            guard choice.unloading else { return }
+            guard host.state.canLeave, !chat.isLoading else {
+                choice.unloading = false
+                return
+            }
+            host.runner.session.releaseModel()
+            chat.clearModel()
+            await chat.loader.release()
+            library.stopUsing(.qwen)
+            choice.unloading = false
+        }
         .task {
             await GUIDriver.shared.start(navigator: navigator, chat: chat, host: host, models: models, extract: extract)
         }

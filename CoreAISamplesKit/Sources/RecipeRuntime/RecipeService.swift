@@ -9,6 +9,11 @@ public protocol RecipeService {
     func loadModel(_ path: String) async throws -> String
     func check(_ input: RecipeCheckInput) async throws -> RecipeReport
     func waitForIdle() async
+    func releaseModelResources() async
+}
+
+extension RecipeService {
+    public func releaseModelResources() async { await waitForIdle() }
 }
 
 @MainActor
@@ -17,13 +22,18 @@ public final class LiveRecipeService: RecipeService {
     private let getRecipe: @Sendable (String) async throws -> Recipe
     private let vocabulary: FoodVocabulary
     private let onQueued: (@MainActor () -> Void)?
+    private let acquireModel: @MainActor (String) async throws -> (@MainActor () async -> Void)
+    private var releaseModel: (@MainActor () async -> Void)?
     private var model: DecisionModel?
     private var context: DecisionContext?
     private var contextDocument: Data?
     private var busy = false
     private var waiters: [CheckedContinuation<Void, Never>] = []
 
-    public init() throws {
+    public init(
+        acquireModel: @escaping @MainActor (String) async throws -> (@MainActor () async -> Void) = { _ in {} }
+    ) throws {
+        self.acquireModel = acquireModel
         vocabulary = try FoodVocabulary.bundled()
         onQueued = nil
         let inspector = PhotoInspector()
@@ -38,6 +48,7 @@ public final class LiveRecipeService: RecipeService {
         getRecipe: @escaping @Sendable (String) async throws -> Recipe,
         onQueued: (@MainActor () -> Void)? = nil
     ) {
+        self.acquireModel = { _ in {} }
         self.vocabulary = vocabulary
         self.inspectPhoto = inspectPhoto
         self.getRecipe = getRecipe
@@ -66,14 +77,37 @@ public final class LiveRecipeService: RecipeService {
         await acquire()
         defer { release() }
         try Task.checkCancellation()
-        model = nil
-        context = nil
-        contextDocument = nil
-        let loaded = try await DecisionModel.load(bundle: URL(filePath: path))
+        await discardModel()
+        let relinquish = try await acquireModel(path)
+        let loaded: DecisionModel
+        do {
+            try Task.checkCancellation()
+            loaded = try await DecisionModel.load(bundle: URL(filePath: path))
+            try Task.checkCancellation()
+        } catch {
+            await relinquish()
+            throw error
+        }
+        releaseModel = relinquish
         let name = await loaded.bundle.name
         try Task.checkCancellation()
         model = loaded
         return name
+    }
+
+    public func releaseModelResources() async {
+        await acquire()
+        defer { release() }
+        await discardModel()
+    }
+
+    private func discardModel() async {
+        model = nil
+        context = nil
+        contextDocument = nil
+        let relinquish = releaseModel
+        releaseModel = nil
+        await relinquish?()
     }
 
     public func waitForIdle() async {

@@ -73,8 +73,8 @@ struct RecipeFeatureTests {
         var state = try makeState()
         _ = RecipeFeature.reduce(&state, .fetchRecipe)
         let oldSession = state.session
-        #expect(RecipeFeature.reduce(&state, .ended) == [.cancelAll])
-        #expect(state.phase == .closed)
+        #expect(RecipeFeature.reduce(&state, .ended) == [.cancelAll, .run(.release(oldSession + 1), id: .stopping)])
+        #expect(state.phase == .closing)
         _ = RecipeFeature.reduce(&state, .appeared)
         let before = state
         _ = RecipeFeature.reduce(&state, .recipeLoaded(oldSession, recipe))
@@ -150,13 +150,20 @@ struct RecipeFeatureTests {
         _ = RecipeFeature.reduce(&state, .stop)
         let canceledBarrier = state.session
         _ = RecipeFeature.reduce(&state, .ended)
-        let commands = RecipeFeature.reduce(&state, .appeared)
-        #expect(commands == [.run(.waitForIdle(state.session), id: .stopping)])
-        #expect(state.phase == .stopping && !state.canCheck)
+        let releaseSession = state.session
+        #expect(RecipeFeature.reduce(&state, .appeared).isEmpty)
+        #expect(state.phase == .closing && !state.canCheck)
         _ = RecipeFeature.reduce(&state, .stopped(canceledBarrier))
-        #expect(state.phase == .stopping)
-        _ = RecipeFeature.reduce(&state, .stopped(state.session))
-        #expect(state.canCheck && !state.needsIdleBarrier)
+        _ = RecipeFeature.reduce(&state, .released(canceledBarrier))
+        #expect(state.phase == .closing)
+        _ = RecipeFeature.reduce(&state, .released(releaseSession))
+        #expect(state.phase == .idle && state.modelName == nil && !state.canCheck)
+        _ = RecipeFeature.reduce(&state, .openModel("/new/model"))
+        let loading = state
+        _ = RecipeFeature.reduce(&state, .released(releaseSession))
+        #expect(state == loading)
+        _ = RecipeFeature.reduce(&state, .modelLoaded(state.session, "test-model"))
+        #expect(state.canCheck)
     }
 
     @Test("Changing a displayed ingredient translation keeps the source inventory and its confirmation")

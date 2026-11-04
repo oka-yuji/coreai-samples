@@ -65,7 +65,7 @@ final class ModelsViewModel {
     var message: String?
     @ObservationIgnored private let defaults: UserDefaults
 
-    init(catalog: [CatalogModel] = Catalog.models, defaults: UserDefaults = .standard) {
+    init(catalog: [CatalogModel] = [], defaults: UserDefaults = .standard) {
         self.defaults = defaults
         rows = catalog.map { CatalogRow(model: $0) }
         refresh()

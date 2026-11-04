@@ -15,6 +15,7 @@ final class ConversationRunner {
     let citationGuard: CitationGuard
     private let chat: ChatViewModel
     private let archive: ConversationArchive
+    private let releaseModels: @MainActor () async -> Void
     private let termination: (Bool) -> Void
     private let selectionFactory: (() -> RAGSectionSelector)?
     private let sourceTokenCounter: (@Sendable (String) -> Int)?
@@ -31,6 +32,7 @@ final class ConversationRunner {
         id: String, chat: ChatViewModel, preferences: ConversationPreferences,
         archive: ConversationArchive = ConversationRunner.defaultArchive,
         termination: @escaping (Bool) -> Void = { _ in },
+        releaseModels: @escaping @MainActor () async -> Void = {},
         sessionFactory: ((ToolRunner) -> LanguageModelSession)? = nil, recordsMetrics: Bool = true,
         toolExecutor: ((AgentToolCall) async -> AgentToolOutput)? = nil,
         sourceTokenCounter: (@Sendable (String) -> Int)? = nil,
@@ -48,6 +50,7 @@ final class ConversationRunner {
         self.chat = chat
         self.archive = archive
         self.termination = termination
+        self.releaseModels = releaseModels
         self.sourceTokenCounter = sourceTokenCounter
         self.selectionFactory = selectionFactory
         self.retrieveSources =
@@ -113,6 +116,14 @@ final class ConversationRunner {
             await citationGuard.cancelRepair()
             chat.externallyBusy = false
         case .terminationReady(let success):
+            guard !Task.isCancelled else { return }
+            if success {
+                session.releaseModel()
+                chat.clearModel()
+                await chat.loader.release()
+                guard !Task.isCancelled else { return }
+                await withTaskCancellationShield { await releaseModels() }
+            }
             guard !Task.isCancelled else { return }
             termination(success)
         }

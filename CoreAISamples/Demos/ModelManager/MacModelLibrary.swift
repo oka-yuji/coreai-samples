@@ -10,13 +10,10 @@
     import SwiftUI
 
     @MainActor
-    enum MacModelLibraryServices {
-        static let root = ModelStorage.root.appending(path: "ModelLibrary")
-        static let unconnectedDemoIDs: Set<String> = [
-            "chat", "decide", "recipes", "image-search", "video-search", "comparison", "speech",
-        ]
-        static let assembly = ModelLibraryAssembly(
-            adapters: [OCRMacAdapter()], store: ManagedModelStore(root: root), transfer: ArtifactTransfer())
+    @Observable
+    final class MacModelChoice {
+        var requested = false
+        var unloading = false
     }
 
     @MainActor
@@ -74,7 +71,10 @@
 
         func stopUsing(_ model: DemoModel) { store?.send(.useEnded(model.libraryID)) }
 
-        func isInUse(_ model: DemoModel) -> Bool { store?.state.usages[model.libraryID]?.isActive == true }
+        func isInUse(_ model: DemoModel) -> Bool {
+            store?.state.usages[model.libraryID]?.isActive == true
+                || MacModelLibraryServices.runtimeUses.state.counts[model.libraryID, default: 0] > 0
+        }
 
         func resource(inUse model: DemoModel) -> ValidatedModelResource? {
             guard let resource = store?.state.usages[model.libraryID]?.resource, resource == installed(model) else {

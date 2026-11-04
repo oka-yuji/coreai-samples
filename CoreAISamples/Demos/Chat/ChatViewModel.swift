@@ -62,11 +62,23 @@ final class ChatViewModel {
     var ragBudget = ChatViewModel.launchRAGBudget ?? RAGContext.sourceTokenBudget
     let contextLimit = LaunchArguments.value("--context-limit").flatMap(Int.init) ?? ChatViewModel.defaultContextLimit
 
+    @ObservationIgnored let loader: ChatModelLoader
+    @ObservationIgnored private var loadGeneration = 0
     @ObservationIgnored private(set) var model: LocalLanguageModel?
     nonisolated static var launchRAGBudget: Int? {
         LaunchArguments.value("--rag-budget").flatMap(Int.init).flatMap {
             RAGSettings.budgetChoices.contains($0) ? $0 : nil
         }
+    }
+
+    init(managed: Bool = false) { loader = ChatModelLoader(managed: managed) }
+
+    func clearModel() {
+        loadGeneration += 1
+        model = nil
+        phase = .empty
+        bundleURL = nil
+        modelName = ""
     }
 
     var isLoading: Bool { if case .loading = phase { true } else { false } }
@@ -91,6 +103,8 @@ final class ChatViewModel {
 
     func load(_ url: URL) async {
         guard !isLoading, !isResponding, !externallyBusy else { return }
+        loadGeneration += 1
+        let generation = loadGeneration
         let key = ModelStorage.key(url)
         model = nil
         bundleURL = url
@@ -100,9 +114,8 @@ final class ChatViewModel {
         let clock = ContinuousClock()
         let start = clock.now
         do {
-            _ = try BundleSupport.supportedBundle(at: url)
-            let model = try await LocalLanguageModel(
-                bundle: url, contextLimit: contextLimit, overflow: .dropOldToolOutputs)
+            let model = try await loader.load(url, contextLimit: contextLimit)
+            guard generation == loadGeneration else { return }
             loadSeconds = (clock.now - start) / .seconds(1)
             self.model = model
             ModelStorage.prepared.insert(key)
@@ -114,7 +127,8 @@ final class ChatViewModel {
                     loadSeconds)
             phase = .ready
         } catch {
-            phase = .failed(error.localizedDescription)
+            guard generation == loadGeneration else { return }
+            phase = error is CancellationError ? .empty : .failed(error.localizedDescription)
         }
     }
 

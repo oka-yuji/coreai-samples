@@ -3,7 +3,6 @@ import SwiftUI
 
 struct RecipeModelView: View {
     let state: RecipeState
-    let open: () -> Void
     let retry: () -> Void
 
     var body: some View {
@@ -16,15 +15,9 @@ struct RecipeModelView: View {
                 status.font(.caption)
             }
             Spacer(minLength: 8)
-            VStack(alignment: .trailing, spacing: 6) {
-                Button(
-                    LocalizedStringKey(state.modelName == nil ? "Open Clef-Flash bundle" : "Change decision model"),
-                    action: open)
-                if state.modelName == nil && !state.modelPath.isEmpty {
-                    Button("Retry saved bundle", action: retry)
-                }
+            if state.modelName == nil && !state.modelPath.isEmpty {
+                Button("Retry", action: retry).disabled(state.busy)
             }
-            .disabled(state.busy)
         }
         .padding(.horizontal, 20).padding(.vertical, 12)
         .background(.background.secondary)
@@ -34,12 +27,12 @@ struct RecipeModelView: View {
     private var status: some View {
         switch state.phase {
         case .loading: Text("Loading the decision model...")
-        case .stopping: Text("Waiting for the current operation to stop...")
+        case .stopping, .closing: Text("Waiting for the current operation to stop...")
         default:
             if let name = state.modelName {
                 Text("Loaded: \(name)").foregroundStyle(.green)
             } else {
-                Text("Not loaded. Open a bundle to enable recipe checks.").foregroundStyle(.secondary)
+                Text("Download Clef-Flash from its heading in the sidebar.").foregroundStyle(.secondary)
             }
         }
     }

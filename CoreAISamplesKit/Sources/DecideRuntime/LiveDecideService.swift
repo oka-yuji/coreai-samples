@@ -16,6 +16,8 @@ public enum DecideServiceError: Error, LocalizedError, Sendable {
 
 @MainActor
 public final class LiveDecideService: DecideService {
+    private let acquireModel: @MainActor (String) async throws -> (@MainActor () async -> Void)
+    private var releaseModel: (@MainActor () async -> Void)?
     private var model: DecisionModel?
     private var context: DecisionContext?
     private var documentBytes: Data?
@@ -24,7 +26,11 @@ public final class LiveDecideService: DecideService {
     private var busy = false
     private var waiters: [CheckedContinuation<Void, Never>] = []
 
-    public init(examplesURL: URL? = nil) {
+    public init(
+        examplesURL: URL? = nil,
+        acquireModel: @escaping @MainActor (String) async throws -> (@MainActor () async -> Void) = { _ in {} }
+    ) {
+        self.acquireModel = acquireModel
         self.examplesURL = examplesURL
     }
 
@@ -41,10 +47,18 @@ public final class LiveDecideService: DecideService {
         await acquire()
         defer { release() }
         try Task.checkCancellation()
-        model = nil
-        context = nil
-        documentBytes = nil
-        let loaded = try await DecisionModel.load(bundle: URL(filePath: path))
+        await discardModel()
+        let relinquish = try await acquireModel(path)
+        let loaded: DecisionModel
+        do {
+            try Task.checkCancellation()
+            loaded = try await DecisionModel.load(bundle: URL(filePath: path))
+            try Task.checkCancellation()
+        } catch {
+            await relinquish()
+            throw error
+        }
+        releaseModel = relinquish
         try Task.checkCancellation()
         model = loaded
         let bundle = await loaded.bundle
@@ -68,6 +82,21 @@ public final class LiveDecideService: DecideService {
         let text = try await files.read(url)
         try Task.checkCancellation()
         return text
+    }
+
+    public func releaseModelResources() async {
+        await acquire()
+        defer { release() }
+        await discardModel()
+    }
+
+    private func discardModel() async {
+        model = nil
+        context = nil
+        documentBytes = nil
+        let relinquish = releaseModel
+        releaseModel = nil
+        await relinquish?()
     }
 
     public func waitForIdle() async {
