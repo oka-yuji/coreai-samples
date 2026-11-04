@@ -1,0 +1,45 @@
+{
+  "format": "clef-decision-bundle/1",
+  "name": "clef-flash-9b-decide-v1",
+  "backbone": {
+    "model": "backbone/clef_flash_9b_hidden_gdnfp32_qwen3_5_cfg_dynamic.aimodel",
+    "metadata": "backbone/metadata.json",
+    "lexical": "backbone/lexical.safetensors",
+    "tokenizer": "backbone/tokenizer",
+    "function": "main",
+    "inputs": ["input_ids", "position_ids"],
+    "output": "hidden_states",
+    "states": ["keyCache", "valueCache", "convStates", "recurrentStates"],
+    "hiddenSize": 4096,
+    "quantization": "qwen3_5_cfg (uint4, block 32)",
+    "variant": "gated_delta_update inputs cast to fp32 (clef_backbone_gdnfp32.py)",
+    "sha256": {
+      "main.mlirb": "9df4a0ca25c389fb3317fe49436ede115a2cab23f652b6d9584c6e3a685524f4",
+      "lexical.safetensors": "758ca4781a52ff0eb0f6bd39682cce05605d309ec16d9186f0ef41e4bdf2e83e",
+      "tokenizer/tokenizer.json": "06b9509352d2af50381ab2247e083b80d32d5c0aba91c272ca9ff729b6a0e523"
+    }
+  },
+  "head": {
+    "model": "head/clef_flash_9b_head_q16o8_fp16.aimodel",
+    "function": "main",
+    "inputs": ["hidden", "valid_len", "question_spans", "option_spans", "question_types", "lexical"],
+    "output": "logits",
+    "precision": "fp16",
+    "sha256": {
+      "main.mlirb": "3499f42e07131b5b04d88d657c944eb49b69c35e9afa0eff15ad4527f53c1adc"
+    }
+  },
+  "limits": { "questions": 16, "options": 8, "inputTokens": 9216, "padMultiple": 512 },
+  "rendering": { "upstream": "Cloudflare/clef-flash", "revision": "17f0b0ad64efb65d273590632833508766b2aae6", "file": "joint_schema_model.py", "version": 1 },
+  "source": { "model": "Cloudflare/clef-flash", "revision": "17f0b0ad64efb65d273590632833508766b2aae6", "license": "Apache-2.0" },
+  "conversion": { "tools": "coreai-torch 0.4.3, coreai-core 1.0.0b3, coreai-opt 0.3.0, torch 2.9.0", "upstream": "apple/coreai-models PR #321 @ 36e9350", "date": "2026-10-06" },
+  "verification": {
+    "records": [
+      "2026-10-05-coreai-clef-flash-head-frame-fidelity.md",
+      "2026-10-06-coreai-clef-flash-long-input-drift.md",
+      "2026-10-06-coreai-clef-flash-unused-docs-verification.md",
+      "2026-10-06-coreai-clef-flash-variant-perf-and-bands.md",
+      "2026-10-06-coreai-clef-flash-gpu-memory-growth.md"
+    ]
+  }
+}

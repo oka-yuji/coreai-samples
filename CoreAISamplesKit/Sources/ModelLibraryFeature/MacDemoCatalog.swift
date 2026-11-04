@@ -1,6 +1,7 @@
 public enum MacDemoCatalog {
     public static func make(
-        searchTerms: [String: [String]] = [:], speechArtifact: ModelArtifact, ocrArtifact: ModelArtifact
+        searchTerms: [String: [String]] = [:], speechArtifact: ModelArtifact, ocrArtifact: ModelArtifact,
+        qwenArtifact: ModelArtifact, clefArtifact: ModelArtifact
     ) throws -> ModelCatalog {
         let mac: Set<LibraryPlatform> = [.macOS]
         let demos = [
@@ -31,11 +32,11 @@ public enum MacDemoCatalog {
         return try ModelCatalog(
             models: [
                 model(
-                    "qwen3.8-27b", "Qwen3.8 27B", "Language Model", [described("qwen3.8-27b-coreai-4bit", "4-bit")],
+                    "qwen3.8-27b", "Qwen3.8 27B", "Language Model", [qwenArtifact],
                     ["chat"]),
                 model(
                     "clef-flash-9b", "Clef-Flash 9B", "Document Classification",
-                    [described("clef-flash-9b-coreai-decide", "uint4 + fp16 head")], ["decide", "recipes"]),
+                    [clefArtifact], ["decide", "recipes"]),
                 model(
                     "embeddinggemma2", "EmbeddingGemma 2", "Multimodal Embedding", embedding,
                     ["image-search", "video-search"]),
@@ -48,7 +49,4 @@ public enum MacDemoCatalog {
             demos: demos)
     }
 
-    private static func described(_ id: String, _ title: String) -> ModelArtifact {
-        ModelArtifact(id: id, title: title, contract: id + "-v1", platforms: [.macOS])
-    }
 }
