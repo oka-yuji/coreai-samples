@@ -169,18 +169,70 @@ struct TypedDecisionSessionTests {
     }
 
     @Test("A cache-miss fallback accepts only the same intact bundle version")
-    func fallbackRevalidatesBundle() throws {
+    func fallbackRevalidatesBundle() async throws {
         let root = try TypedDecisionFakeBundle.create()
         defer { try? FileManager.default.removeItem(at: root.deletingLastPathComponent()) }
         let document = TypedDecisionFakeBundle.document()
         try TypedDecisionFakeBundle.write(document, to: root)
         let bundle = try TypedDecisionBundle(url: root)
-        #expect(try TypedDecisionRuntime.revalidated(bundle).version == bundle.version)
+        let calls = Mutex(0)
+        let loader = TypedDecisionLoader<Int>(
+            bundle: bundle, bookmark: Data(), resolve: { _ in nil },
+            fresh: { verified in
+                #expect(verified.version == bundle.version)
+                calls.withLock { $0 += 1 }
+                return (7, Data())
+            })
+        #expect(try await loader.load() == 7)
         let changed = TypedDecisionFakeBundle.setting(1.3, at: ["temperatures", "per_kind", "noul"], in: document)
         try TypedDecisionFakeBundle.write(changed, to: root)
-        #expect(throws: TypedDecisionError.self) { try TypedDecisionRuntime.revalidated(bundle) }
+        await #expect(throws: TypedDecisionError.self) { try await loader.load() }
         try TypedDecisionFakeBundle.write(document, to: root)
         try Data("edit".utf8).write(to: root.appending(path: "fixture.aimodel/main.mlirb"))
-        #expect(throws: TypedDecisionError.self) { try TypedDecisionRuntime.revalidated(bundle) }
+        await #expect(throws: TypedDecisionError.self) { try await loader.load() }
+        #expect(calls.withLock { $0 } == 1)
+    }
+
+    @Test("A fresh load updates the bookmark and a later cache hit does not reread the source bundle")
+    func bookmarkIsRefreshed() async throws {
+        let root = try TypedDecisionFakeBundle.create()
+        defer { try? FileManager.default.removeItem(at: root.deletingLastPathComponent()) }
+        try TypedDecisionFakeBundle.write(TypedDecisionFakeBundle.document(), to: root)
+        let bundle = try TypedDecisionBundle(url: root)
+        let resolved = Mutex<[Data]>([])
+        let calls = Mutex(0)
+        let loader = TypedDecisionLoader<Int>(
+            bundle: bundle, bookmark: Data([1]),
+            resolve: { bookmark in
+                resolved.withLock { $0.append(bookmark) }
+                return bookmark == Data([2]) ? (7, bookmark) : nil
+            },
+            fresh: { _ in
+                calls.withLock { $0 += 1 }
+                return (7, Data([2]))
+            })
+        #expect(try await loader.load() == 7)
+        try FileManager.default.removeItem(at: root.appending(path: "decision.json"))
+        #expect(try await loader.load() == 7)
+        #expect(calls.withLock { $0 } == 1)
+        #expect(resolved.withLock { $0 } == [Data([1]), Data([2])])
+    }
+
+    @Test("A malformed cache bookmark propagates its error without loading a fresh model")
+    func cacheErrorDoesNotFallBack() async throws {
+        let root = try TypedDecisionFakeBundle.create()
+        defer { try? FileManager.default.removeItem(at: root.deletingLastPathComponent()) }
+        try TypedDecisionFakeBundle.write(TypedDecisionFakeBundle.document(), to: root)
+        let bundle = try TypedDecisionBundle(url: root)
+        let calls = Mutex(0)
+        let loader = TypedDecisionLoader<Int>(
+            bundle: bundle, bookmark: Data(), resolve: { _ in throw SessionFailure.expected },
+            fresh: { _ in
+                calls.withLock { $0 += 1 }
+                return (7, Data())
+            })
+        try FileManager.default.removeItem(at: root.appending(path: "decision.json"))
+        await #expect(throws: SessionFailure.self) { try await loader.load() }
+        #expect(calls.withLock { $0 } == 0)
     }
 }

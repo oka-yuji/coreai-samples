@@ -39,15 +39,18 @@ struct TypedDecisionRuntime: TypedDecisionBackbone {
         return (try bind(model: model, bundle: bundle), cached != nil)
     }
 
-    static func reload(bundle: TypedDecisionBundle, bookmark: Data) async throws -> Self {
-        try Task.checkCancellation()
-        if let model = try AIModel(resolvingBookmark: bookmark) {
-            try Task.checkCancellation()
-            return try bind(model: model, bundle: bundle)
-        }
-        let verified = try revalidated(bundle)
-        try Task.checkCancellation()
-        return try await load(bundle: verified).runtime
+    static func loader(bundle: TypedDecisionBundle, bookmark: Data) -> TypedDecisionLoader<Self> {
+        TypedDecisionLoader(
+            bundle: bundle, bookmark: bookmark,
+            resolve: { data in
+                guard let model = try AIModel(resolvingBookmark: data) else { return nil }
+                let runtime = try bind(model: model, bundle: bundle)
+                return (runtime, runtime.bookmarkData)
+            },
+            fresh: { verified in
+                let runtime = try await load(bundle: verified).runtime
+                return (runtime, runtime.bookmarkData)
+            })
     }
 
     static func revalidated(_ bundle: TypedDecisionBundle) throws -> TypedDecisionBundle {
