@@ -165,7 +165,7 @@ class LastTokenBackboneTests(unittest.TestCase):
         self.assertFalse(TypedDecisionBackboneLastToken.exports_prefill_graph)
         for tokens in (1, 7, 8192):
             hidden = torch.arange(tokens * 4, dtype=torch.float32).reshape(1, tokens, 4).to(torch.bfloat16)
-            model = SimpleNamespace(model=lambda *_: hidden)
+            model = SimpleNamespace(model=lambda *_: hidden, config=SimpleNamespace(hidden_size=4))
             inputs = torch.zeros((1, tokens), dtype=torch.int32)
             state = torch.zeros((1,), dtype=torch.bfloat16)
             output = TypedDecisionBackboneLastToken.forward(model, inputs, inputs, state, state, state, state)

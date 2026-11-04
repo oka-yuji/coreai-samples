@@ -9,7 +9,7 @@ class TypedDecisionBackboneLastToken(backbone_gdnfp32.TypedDecisionBackboneGdnFp
     def forward(self, input_ids, position_ids, k_cache, v_cache, conv_states, recurrent_states):
         hidden = self.model(input_ids, position_ids, backbone.KVCache(k_cache, v_cache),
                             backbone.DeltaNetCache(conv_states, recurrent_states))
-        return hidden.select(1, -1).unsqueeze(1)
+        return hidden.select(1, -1).reshape(1, 1, self.config.hidden_size)
 
     @classmethod
     def export_output_names(cls):
