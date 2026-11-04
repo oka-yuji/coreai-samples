@@ -7,7 +7,7 @@ unmerged LoRA and the 24-slot fp32 decision head. The recipe merges the LoRA, re
 references, converts the merged backbone to a 4-bit Core AI asset that returns hidden states,
 records the quantized references, assembles a typed-decision bundle
 ([docs/jev27b.md](../../../../docs/jev27b.md)) and compares the Core AI output of the bundle with the
-quantized reference. It does not evaluate the quality of the model. These files record what the
+quantized reference. The later Q steps measure agreement with the frozen teacher distribution; this is not real-world accuracy. These files record what the
 steps rely on:
 
 - `model.json`: the contract checked against the downloaded adapter, head, judge and
@@ -116,6 +116,29 @@ Conversion success is separate from fidelity, quality and performance. The compl
 including the failed first descriptor attempt, are in the
 [candidate validation record](../../../../docs/validation/jev27b/README.md#final-token-output-2026-11-05).
 This recipe does not upload or replace the published model.
+
+## Controlled comparison tools
+
+`Tools.Conversion.adapters.jev27b.benchmark_reference` measures the pinned original System 1 path on MPS.
+It uses the existing reference environment and accepts `--model`, `--snapshot`, a prepared 16-row `--input`,
+the matching four-input `--manifest`, `--thermal-helper` and a new `--output` directory. The helper is built
+from `thermal.swift` with the pinned Apple toolchain. The input must be the fixed P sequence repeated four
+times; row/token hashes, active unmerged LoRA, evaluation mode and MPS residency are checked before timing.
+MPS CPU fallback is rejected. Partial failures remain failed in `status.json`; only a complete run writes
+`result.json`. Run it under the shared model lock and the same external memory/power guard as native trials.
+
+The completed A/B/C/D comparison and its environmental limits are in the
+[validation record](../../../../docs/validation/jev27b/README.md#controlled-comparison-2026-11-05).
+The public numbers can be recomputed without weights or corpus text:
+
+~~~sh
+python3 -m Tools.Conversion.adapters.jev27b.summarize_comparison \
+  docs/validation/jev27b/comparison-20261105.json --check
+~~~
+
+The source Q comparison reuses saved original MPS/BF16 logits with the existing `score.judge` and `score.summary`
+functions at T=1. Input/teacher identity and completeness are checked against the same frozen Q; there is no
+new model run or changed acceptance threshold. The record preserves the source hashes and normalization.
 
 ## Merge and references
 

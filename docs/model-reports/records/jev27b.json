@@ -51,6 +51,13 @@
         "ja": "未公開の最終位置出力版の検証"
       },
       "url": "docs/validation/jev27b/README.md#final-token-output-2026-11-05"
+    },
+    {
+      "title": {
+        "en": "Controlled before/after/source comparison",
+        "ja": "改善前後・原典の同条件比較"
+      },
+      "url": "docs/validation/jev27b/README.md#controlled-comparison-2026-11-05"
     }
   ],
   "support": {
@@ -409,6 +416,118 @@
       "thermal": "Per-row thermal state not recorded for these CLI runs or GPU tests; no timing comparison",
       "model_executed": true,
       "plan_sha256": null
+    },
+    "comparison-published": {
+      "url": "docs/validation/jev27b/README.md#controlled-comparison-2026-11-05",
+      "level": "diagnostic",
+      "outcome": "passed",
+      "record_type": "standard",
+      "date": "2026-11-05",
+      "platform": "macos",
+      "device": "MacBook Pro (14-inch, 2024), Apple M4 Max, 128 GiB unified memory (Mac16,6)",
+      "os": "macOS 27.0 (26A428)",
+      "toolchain": "Xcode 27.0 (27A266a), Apple Swift 6.4 (swiftlang-6.4.0.34.1)",
+      "variant": "Published runtime / uint4 gdn-fp32 backbone, float32 head",
+      "backend": "Core AI; GPU preferred; expectFrequentReshapes true",
+      "route": "Normal Release coreai-verify typed-decide --wait-nominal-thermal 600; internal sampler disabled",
+      "source_revision": "14b425269ed24452e0a5ad5a8f3e51d139647a88",
+      "artifact_revision": "2f34243a3d28500075e09d02d9f9f565a7c4b02f94a7d47b2a3caba7262d357d",
+      "code_revision": "806ac642c1f9c907e54af40466df40381f701b99",
+      "workload": {
+        "en": "A: Published runtime. Fixed 100/500/2000/8192-token sequence; two fresh processes, four warmups and three measured rounds each; n=6 per length. A-B-C-D-D-C-B-A order. No concurrent builds/tests/model jobs. External memory observer at 100 ms, complete runs and source hashes in the record. B/C 100-token rows include reload and first-run costs. Source/native precision and LoRA merging differ.",
+        "ja": "A: 公開時。固定100/500/2000/8192-token系列、新process2本で各warmup4判断・計測3周、各長さn=6。順序A-B-C-D-D-C-B-A。build/test/他モデル同時実行なし。100ms外部メモリ採取・全試行・元file hashは記録参照。B/Cの100-token行は再loadと初回推論を含む。原典/nativeは精度とLoRA統合が異なる。"
+      },
+      "batch_size": 1,
+      "concurrency": 1,
+      "warmups": 4,
+      "power": "AC, pmset reports 68 W throughout; High Power mode (powermode 2); battery 100% to 94% over the full sequence",
+      "thermal": "ProcessInfo thermalState nominal at every row start; waits excluded; not constant temperature",
+      "model_executed": true,
+      "plan_sha256": "280dc8957a73de74f944a4937afd585516672f8f7bbd9fd41c0329ae196c1498"
+    },
+    "comparison-memory": {
+      "url": "docs/validation/jev27b/README.md#controlled-comparison-2026-11-05",
+      "level": "diagnostic",
+      "outcome": "passed",
+      "record_type": "standard",
+      "date": "2026-11-05",
+      "platform": "macos",
+      "device": "MacBook Pro (14-inch, 2024), Apple M4 Max, 128 GiB unified memory (Mac16,6)",
+      "os": "macOS 27.0 (26A428)",
+      "toolchain": "Xcode 27.0 (27A266a), Apple Swift 6.4 (swiftlang-6.4.0.34.1)",
+      "variant": "Memory stabilization / uint4 gdn-fp32 backbone, float32 head",
+      "backend": "Core AI; GPU preferred; expectFrequentReshapes true",
+      "route": "Normal Release coreai-verify typed-decide --wait-nominal-thermal 600; internal sampler disabled",
+      "source_revision": "14b425269ed24452e0a5ad5a8f3e51d139647a88",
+      "artifact_revision": "2f34243a3d28500075e09d02d9f9f565a7c4b02f94a7d47b2a3caba7262d357d",
+      "code_revision": "ff2a2579e30a95a669b492f6f1eb6fca771211be",
+      "workload": {
+        "en": "B: Memory stabilization. Fixed 100/500/2000/8192-token sequence; two fresh processes, four warmups and three measured rounds each; n=6 per length. A-B-C-D-D-C-B-A order. No concurrent builds/tests/model jobs. External memory observer at 100 ms, complete runs and source hashes in the record. B/C 100-token rows include reload and first-run costs. Source/native precision and LoRA merging differ.",
+        "ja": "B: メモリ対策。固定100/500/2000/8192-token系列、新process2本で各warmup4判断・計測3周、各長さn=6。順序A-B-C-D-D-C-B-A。build/test/他モデル同時実行なし。100ms外部メモリ採取・全試行・元file hashは記録参照。B/Cの100-token行は再loadと初回推論を含む。原典/nativeは精度とLoRA統合が異なる。"
+      },
+      "batch_size": 1,
+      "concurrency": 1,
+      "warmups": 4,
+      "power": "AC, pmset reports 68 W throughout; High Power mode (powermode 2); battery 100% to 94% over the full sequence",
+      "thermal": "ProcessInfo thermalState nominal at every row start; waits excluded; not constant temperature",
+      "model_executed": true,
+      "plan_sha256": "280dc8957a73de74f944a4937afd585516672f8f7bbd9fd41c0329ae196c1498"
+    },
+    "comparison-final-token": {
+      "url": "docs/validation/jev27b/README.md#controlled-comparison-2026-11-05",
+      "level": "diagnostic",
+      "outcome": "passed",
+      "record_type": "standard",
+      "date": "2026-11-05",
+      "platform": "macos",
+      "device": "MacBook Pro (14-inch, 2024), Apple M4 Max, 128 GiB unified memory (Mac16,6)",
+      "os": "macOS 27.0 (26A428)",
+      "toolchain": "Xcode 27.0 (27A266a), Apple Swift 6.4 (swiftlang-6.4.0.34.1)",
+      "variant": "Unpublished final-token candidate / uint4 gdn-fp32 backbone, float32 head",
+      "backend": "Core AI; GPU preferred; expectFrequentReshapes true",
+      "route": "Normal Release coreai-verify typed-decide --wait-nominal-thermal 600; internal sampler disabled",
+      "source_revision": "14b425269ed24452e0a5ad5a8f3e51d139647a88",
+      "artifact_revision": "0db5ca716c7fea75605bffddf2d1d6de03fd80c471b3528277beb98a663d9880",
+      "code_revision": "8fcb8843bcb90171b7f5f22473df052cead75758",
+      "workload": {
+        "en": "C: Unpublished final-token candidate. Fixed 100/500/2000/8192-token sequence; two fresh processes, four warmups and three measured rounds each; n=6 per length. A-B-C-D-D-C-B-A order. No concurrent builds/tests/model jobs. External memory observer at 100 ms, complete runs and source hashes in the record. B/C 100-token rows include reload and first-run costs. Source/native precision and LoRA merging differ.",
+        "ja": "C: 未公開の最後位置出力候補。固定100/500/2000/8192-token系列、新process2本で各warmup4判断・計測3周、各長さn=6。順序A-B-C-D-D-C-B-A。build/test/他モデル同時実行なし。100ms外部メモリ採取・全試行・元file hashは記録参照。B/Cの100-token行は再loadと初回推論を含む。原典/nativeは精度とLoRA統合が異なる。"
+      },
+      "batch_size": 1,
+      "concurrency": 1,
+      "warmups": 4,
+      "power": "AC, pmset reports 68 W throughout; High Power mode (powermode 2); battery 100% to 94% over the full sequence",
+      "thermal": "ProcessInfo thermalState nominal at every row start; waits excluded; not constant temperature",
+      "model_executed": true,
+      "plan_sha256": "280dc8957a73de74f944a4937afd585516672f8f7bbd9fd41c0329ae196c1498"
+    },
+    "comparison-source": {
+      "url": "docs/validation/jev27b/README.md#controlled-comparison-2026-11-05",
+      "level": "diagnostic",
+      "outcome": "passed",
+      "record_type": "standard",
+      "date": "2026-11-05",
+      "platform": "macos",
+      "device": "MacBook Pro (14-inch, 2024), Apple M4 Max, 128 GiB unified memory (Mac16,6)",
+      "os": "macOS 27.0 (26A428)",
+      "toolchain": "Xcode 27.0 (27A266a), Apple Swift 6.4 (swiftlang-6.4.0.34.1)",
+      "variant": "Original PyTorch/MPS reference / BF16 base, unmerged LoRA, float32 CPU head",
+      "backend": "PyTorch 2.15.0 / MPS; no CPU fallback; float32 CPU head",
+      "route": "Tools.Conversion.adapters.jev27b.benchmark_reference",
+      "source_revision": "14b425269ed24452e0a5ad5a8f3e51d139647a88",
+      "artifact_revision": "14b425269ed24452e0a5ad5a8f3e51d139647a88",
+      "code_revision": "e5c43a859486b261c0111822ce372fc6a0d2f7a2",
+      "workload": {
+        "en": "D: Original PyTorch/MPS reference. Fixed 100/500/2000/8192-token sequence; two fresh processes, four warmups and three measured rounds each; n=6 per length. A-B-C-D-D-C-B-A order. No concurrent builds/tests/model jobs. External memory observer at 100 ms, complete runs and source hashes in the record. B/C 100-token rows include reload and first-run costs. Source/native precision and LoRA merging differ.",
+        "ja": "D: 原典PyTorch/MPS参照実装。固定100/500/2000/8192-token系列、新process2本で各warmup4判断・計測3周、各長さn=6。順序A-B-C-D-D-C-B-A。build/test/他モデル同時実行なし。100ms外部メモリ採取・全試行・元file hashは記録参照。B/Cの100-token行は再loadと初回推論を含む。原典/nativeは精度とLoRA統合が異なる。"
+      },
+      "batch_size": 1,
+      "concurrency": 1,
+      "warmups": 4,
+      "power": "AC, pmset reports 68 W throughout; High Power mode (powermode 2); battery 100% to 94% over the full sequence",
+      "thermal": "ProcessInfo thermalState nominal at every row start; waits excluded; not constant temperature",
+      "model_executed": true,
+      "plan_sha256": "280dc8957a73de74f944a4937afd585516672f8f7bbd9fd41c0329ae196c1498"
     }
   },
   "measurements": [
@@ -714,6 +833,262 @@
       "note": {
         "en": "20 calls of alternating 6,144 and 8,192 tokens after warmup; wait4 maximum RSS including load; no speed claim. RSS and footprint are not added.",
         "ja": "warmup後の6144/8192-tokenの交替20判断。wait4 maximum RSS including load。速度改善の測定ではない。RSSとfootprintは合算しない。"
+      }
+    },
+    {
+      "metric": "latency_s",
+      "value": 0.6499146040000001,
+      "unit": "s",
+      "statistic": "median",
+      "n": 6,
+      "evidence": "comparison-published",
+      "source_value": {
+        "path": "docs/validation/jev27b/comparison-20261105.json",
+        "pointer": "/summary/A/latency_seconds/100/median"
+      },
+      "note": {
+        "en": "A: Published runtime; 100 tokens in the fixed mixed-length sequence. B/C 100-token rows pay runtime recycling cost. Min/max and all samples are in the record; no p95.",
+        "ja": "A: 公開時。固定の混在系列の100 tokens。B/Cの100-token行は実行部の回収費用を含む。min/maxと全試行は記録参照。p95なし。"
+      }
+    },
+    {
+      "metric": "latency_s",
+      "value": 38.92571325,
+      "unit": "s",
+      "statistic": "median",
+      "n": 6,
+      "evidence": "comparison-published",
+      "source_value": {
+        "path": "docs/validation/jev27b/comparison-20261105.json",
+        "pointer": "/summary/A/latency_seconds/8192/median"
+      },
+      "note": {
+        "en": "A: Published runtime; 8192 tokens in the fixed mixed-length sequence. B/C 100-token rows pay runtime recycling cost. Min/max and all samples are in the record; no p95.",
+        "ja": "A: 公開時。固定の混在系列の8192 tokens。B/Cの100-token行は実行部の回収費用を含む。min/maxと全試行は記録参照。p95なし。"
+      }
+    },
+    {
+      "metric": "peak_footprint_bytes",
+      "value": 21327296192,
+      "unit": "B",
+      "statistic": "max",
+      "n": 2,
+      "evidence": "comparison-published",
+      "source_value": {
+        "path": "docs/validation/jev27b/comparison-20261105.json",
+        "pointer": "/summary/A/memory/kernel_footprint_peak_bytes/max"
+      },
+      "note": {
+        "en": "A: Published runtime; maximum across two 16-call processes, including load and warmups. Kernel lifetime counter and wait4 RSS are distinct; no minimum-RAM claim.",
+        "ja": "A: 公開時。load・warmupを含む16判断process2本の最大値。kernel lifetime counterとwait4 RSSは別の指標で、最小必要RAMを表さない。"
+      }
+    },
+    {
+      "metric": "peak_rss_bytes",
+      "value": 32345047040,
+      "unit": "B",
+      "statistic": "max",
+      "n": 2,
+      "evidence": "comparison-published",
+      "source_value": {
+        "path": "docs/validation/jev27b/comparison-20261105.json",
+        "pointer": "/summary/A/memory/max_rss_bytes/max"
+      },
+      "note": {
+        "en": "A: Published runtime; maximum across two 16-call processes, including load and warmups. Kernel lifetime counter and wait4 RSS are distinct; no minimum-RAM claim.",
+        "ja": "A: 公開時。load・warmupを含む16判断process2本の最大値。kernel lifetime counterとwait4 RSSは別の指標で、最小必要RAMを表さない。"
+      }
+    },
+    {
+      "metric": "latency_s",
+      "value": 6.021963271000001,
+      "unit": "s",
+      "statistic": "median",
+      "n": 6,
+      "evidence": "comparison-memory",
+      "source_value": {
+        "path": "docs/validation/jev27b/comparison-20261105.json",
+        "pointer": "/summary/B/latency_seconds/100/median"
+      },
+      "note": {
+        "en": "B: Memory stabilization; 100 tokens in the fixed mixed-length sequence. B/C 100-token rows pay runtime recycling cost. Min/max and all samples are in the record; no p95.",
+        "ja": "B: メモリ対策。固定の混在系列の100 tokens。B/Cの100-token行は実行部の回収費用を含む。min/maxと全試行は記録参照。p95なし。"
+      }
+    },
+    {
+      "metric": "latency_s",
+      "value": 37.737326458,
+      "unit": "s",
+      "statistic": "median",
+      "n": 6,
+      "evidence": "comparison-memory",
+      "source_value": {
+        "path": "docs/validation/jev27b/comparison-20261105.json",
+        "pointer": "/summary/B/latency_seconds/8192/median"
+      },
+      "note": {
+        "en": "B: Memory stabilization; 8192 tokens in the fixed mixed-length sequence. B/C 100-token rows pay runtime recycling cost. Min/max and all samples are in the record; no p95.",
+        "ja": "B: メモリ対策。固定の混在系列の8192 tokens。B/Cの100-token行は実行部の回収費用を含む。min/maxと全試行は記録参照。p95なし。"
+      }
+    },
+    {
+      "metric": "peak_footprint_bytes",
+      "value": 8236938800,
+      "unit": "B",
+      "statistic": "max",
+      "n": 2,
+      "evidence": "comparison-memory",
+      "source_value": {
+        "path": "docs/validation/jev27b/comparison-20261105.json",
+        "pointer": "/summary/B/memory/kernel_footprint_peak_bytes/max"
+      },
+      "note": {
+        "en": "B: Memory stabilization; maximum across two 16-call processes, including load and warmups. Kernel lifetime counter and wait4 RSS are distinct; no minimum-RAM claim.",
+        "ja": "B: メモリ対策。load・warmupを含む16判断process2本の最大値。kernel lifetime counterとwait4 RSSは別の指標で、最小必要RAMを表さない。"
+      }
+    },
+    {
+      "metric": "peak_rss_bytes",
+      "value": 32607485952,
+      "unit": "B",
+      "statistic": "max",
+      "n": 2,
+      "evidence": "comparison-memory",
+      "source_value": {
+        "path": "docs/validation/jev27b/comparison-20261105.json",
+        "pointer": "/summary/B/memory/max_rss_bytes/max"
+      },
+      "note": {
+        "en": "B: Memory stabilization; maximum across two 16-call processes, including load and warmups. Kernel lifetime counter and wait4 RSS are distinct; no minimum-RAM claim.",
+        "ja": "B: メモリ対策。load・warmupを含む16判断process2本の最大値。kernel lifetime counterとwait4 RSSは別の指標で、最小必要RAMを表さない。"
+      }
+    },
+    {
+      "metric": "latency_s",
+      "value": 6.1032811460000005,
+      "unit": "s",
+      "statistic": "median",
+      "n": 6,
+      "evidence": "comparison-final-token",
+      "source_value": {
+        "path": "docs/validation/jev27b/comparison-20261105.json",
+        "pointer": "/summary/C/latency_seconds/100/median"
+      },
+      "note": {
+        "en": "C: Unpublished final-token candidate; 100 tokens in the fixed mixed-length sequence. B/C 100-token rows pay runtime recycling cost. Min/max and all samples are in the record; no p95.",
+        "ja": "C: 未公開の最後位置出力候補。固定の混在系列の100 tokens。B/Cの100-token行は実行部の回収費用を含む。min/maxと全試行は記録参照。p95なし。"
+      }
+    },
+    {
+      "metric": "latency_s",
+      "value": 38.534623895500005,
+      "unit": "s",
+      "statistic": "median",
+      "n": 6,
+      "evidence": "comparison-final-token",
+      "source_value": {
+        "path": "docs/validation/jev27b/comparison-20261105.json",
+        "pointer": "/summary/C/latency_seconds/8192/median"
+      },
+      "note": {
+        "en": "C: Unpublished final-token candidate; 8192 tokens in the fixed mixed-length sequence. B/C 100-token rows pay runtime recycling cost. Min/max and all samples are in the record; no p95.",
+        "ja": "C: 未公開の最後位置出力候補。固定の混在系列の8192 tokens。B/Cの100-token行は実行部の回収費用を含む。min/maxと全試行は記録参照。p95なし。"
+      }
+    },
+    {
+      "metric": "peak_footprint_bytes",
+      "value": 8621176488,
+      "unit": "B",
+      "statistic": "max",
+      "n": 2,
+      "evidence": "comparison-final-token",
+      "source_value": {
+        "path": "docs/validation/jev27b/comparison-20261105.json",
+        "pointer": "/summary/C/memory/kernel_footprint_peak_bytes/max"
+      },
+      "note": {
+        "en": "C: Unpublished final-token candidate; maximum across two 16-call processes, including load and warmups. Kernel lifetime counter and wait4 RSS are distinct; no minimum-RAM claim.",
+        "ja": "C: 未公開の最後位置出力候補。load・warmupを含む16判断process2本の最大値。kernel lifetime counterとwait4 RSSは別の指標で、最小必要RAMを表さない。"
+      }
+    },
+    {
+      "metric": "peak_rss_bytes",
+      "value": 32620363776,
+      "unit": "B",
+      "statistic": "max",
+      "n": 2,
+      "evidence": "comparison-final-token",
+      "source_value": {
+        "path": "docs/validation/jev27b/comparison-20261105.json",
+        "pointer": "/summary/C/memory/max_rss_bytes/max"
+      },
+      "note": {
+        "en": "C: Unpublished final-token candidate; maximum across two 16-call processes, including load and warmups. Kernel lifetime counter and wait4 RSS are distinct; no minimum-RAM claim.",
+        "ja": "C: 未公開の最後位置出力候補。load・warmupを含む16判断process2本の最大値。kernel lifetime counterとwait4 RSSは別の指標で、最小必要RAMを表さない。"
+      }
+    },
+    {
+      "metric": "latency_s",
+      "value": 0.8437297502532601,
+      "unit": "s",
+      "statistic": "median",
+      "n": 6,
+      "evidence": "comparison-source",
+      "source_value": {
+        "path": "docs/validation/jev27b/comparison-20261105.json",
+        "pointer": "/summary/D/latency_seconds/100/median"
+      },
+      "note": {
+        "en": "D: Original PyTorch/MPS reference; 100 tokens in the fixed mixed-length sequence. B/C 100-token rows pay runtime recycling cost. Min/max and all samples are in the record; no p95.",
+        "ja": "D: 原典PyTorch/MPS参照実装。固定の混在系列の100 tokens。B/Cの100-token行は実行部の回収費用を含む。min/maxと全試行は記録参照。p95なし。"
+      }
+    },
+    {
+      "metric": "latency_s",
+      "value": 46.96733383368701,
+      "unit": "s",
+      "statistic": "median",
+      "n": 6,
+      "evidence": "comparison-source",
+      "source_value": {
+        "path": "docs/validation/jev27b/comparison-20261105.json",
+        "pointer": "/summary/D/latency_seconds/8192/median"
+      },
+      "note": {
+        "en": "D: Original PyTorch/MPS reference; 8192 tokens in the fixed mixed-length sequence. B/C 100-token rows pay runtime recycling cost. Min/max and all samples are in the record; no p95.",
+        "ja": "D: 原典PyTorch/MPS参照実装。固定の混在系列の8192 tokens。B/Cの100-token行は実行部の回収費用を含む。min/maxと全試行は記録参照。p95なし。"
+      }
+    },
+    {
+      "metric": "peak_footprint_bytes",
+      "value": 70368075040,
+      "unit": "B",
+      "statistic": "max",
+      "n": 2,
+      "evidence": "comparison-source",
+      "source_value": {
+        "path": "docs/validation/jev27b/comparison-20261105.json",
+        "pointer": "/summary/D/memory/kernel_footprint_peak_bytes/max"
+      },
+      "note": {
+        "en": "D: Original PyTorch/MPS reference; maximum across two 16-call processes, including load and warmups. Kernel lifetime counter and wait4 RSS are distinct; no minimum-RAM claim.",
+        "ja": "D: 原典PyTorch/MPS参照実装。load・warmupを含む16判断process2本の最大値。kernel lifetime counterとwait4 RSSは別の指標で、最小必要RAMを表さない。"
+      }
+    },
+    {
+      "metric": "peak_rss_bytes",
+      "value": 55534206976,
+      "unit": "B",
+      "statistic": "max",
+      "n": 2,
+      "evidence": "comparison-source",
+      "source_value": {
+        "path": "docs/validation/jev27b/comparison-20261105.json",
+        "pointer": "/summary/D/memory/max_rss_bytes/max"
+      },
+      "note": {
+        "en": "D: Original PyTorch/MPS reference; maximum across two 16-call processes, including load and warmups. Kernel lifetime counter and wait4 RSS are distinct; no minimum-RAM claim.",
+        "ja": "D: 原典PyTorch/MPS参照実装。load・warmupを含む16判断process2本の最大値。kernel lifetime counterとwait4 RSSは別の指標で、最小必要RAMを表さない。"
       }
     }
   ],
