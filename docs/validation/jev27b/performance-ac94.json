@@ -96,7 +96,7 @@
       "fresh-3": 0,
       "latency": 0
     },
-    "other_activity": "assertions of pmset -g log during the run (assertions-log.txt): only the caffeinate assertions of the measurement and network tasks of cloudd from 11:27:59 to 11:28:17, between the latency process and the cancellation test; no audio, video or automation assertions. User input (HIDIdleTime): none for 647 to 792 s before the loads and the latency process; input happened during the latency process, the last at about 11:26:13, while it waited for a nominal thermal state before the third round (no row ran then); the cancellation test waited 30 s for 120 s without input",
+    "other_activity": "assertions of pmset -g log during the run (assertions-log.txt): the caffeinate assertions of the measurement, a sleep-prevention caffeinate that had started before the measurement and ended at 11:22:19, and network tasks of cloudd from 11:27:59 to 11:28:17, between the latency process and the cancellation test; no audio, video or automation assertions. User input (HIDIdleTime): none for 647 to 792 s before the loads and the latency process; input happened during the latency process, the last at about 11:26:13, while it waited for a nominal thermal state before the third round (no row ran then); the cancellation test waited 30 s for 120 s without input",
     "other_load": "pgrep found no other model process before the measurement; every stage started with no user input for at least 120 s and no audio, video or automation assertions; GPU use of other processes was not recorded",
     "row_thermal": {
       "largest_wait_seconds": 54.513207833,

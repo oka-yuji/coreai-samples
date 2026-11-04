@@ -107,11 +107,12 @@ test target, as the plan states. Before the measurement `pgrep` found no other m
   and heavy from 11:25:53 to 11:26:52 (moderate until 11:27:02): the 8,192-token row of the second round turned
   moderate and heavy about 20 s into it, and the next row waited until the level was back to nominal. The median rows
   of all four lengths, the loads and the cancellation test ran at nominal pressure. `pmset -g therm` showed no warning.
-- **Other load:** the assertions of `pmset -g log` show only the assertions of the measurement and network tasks of
-  `cloudd` from 11:27:59 to 11:28:17, between the latency process and the cancellation test. There was user input
-  during the latency process, the last at about 11:26:13, while it waited for a nominal thermal state before the third
-  round, so no row ran then; earlier inputs in that process cannot be excluded, since `HIDIdleTime` keeps only the
-  last one. The CPU and GPU use of other processes was not recorded.
+- **Other load:** the assertions of `pmset -g log` show the assertions of the measurement, a sleep-prevention
+  `caffeinate` that had started before the measurement and ended at 11:22:19, and network tasks of `cloudd` from
+  11:27:59 to 11:28:17, between the latency process and the cancellation test; no audio, video or automation activity.
+  There was user input during the latency process, the last at about 11:26:13, while it waited for a nominal thermal
+  state before the third round, so no row ran then; earlier inputs in that process cannot be excluded, since
+  `HIDIdleTime` keeps only the last one. The CPU and GPU use of other processes was not recorded.
 
 The record keeps this evidence as `standard` for the same reasons as the earlier ones: the plan named the power, the
 energy mode, the thermal and other-load conditions and the debug build of the cancellation test before the
