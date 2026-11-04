@@ -10,6 +10,8 @@ struct TypedDecisionRuntime: TypedDecisionBackbone {
     let stateNames: [String]
     let limit: Int
 
+    var bookmarkData: Data { model.bookmarkData }
+
     static func load(bundle: TypedDecisionBundle) async throws -> (runtime: Self, cached: Bool) {
         do {
             let summary = try AIModelAsset(contentsOf: bundle.assetURL).summary(includingStatistics: false)
@@ -34,6 +36,32 @@ struct TypedDecisionRuntime: TypedDecisionBackbone {
             model = try await AIModel.specialize(contentsOf: bundle.assetURL, options: options)
         }
         try Task.checkCancellation()
+        return (try bind(model: model, bundle: bundle), cached != nil)
+    }
+
+    static func loader(bundle: TypedDecisionBundle, bookmark: Data) -> TypedDecisionLoader<Self> {
+        TypedDecisionLoader(
+            bundle: bundle, bookmark: bookmark,
+            resolve: { data in
+                guard let model = try AIModel(resolvingBookmark: data) else { return nil }
+                let runtime = try bind(model: model, bundle: bundle)
+                return (runtime, runtime.bookmarkData)
+            },
+            fresh: { verified in
+                let runtime = try await load(bundle: verified).runtime
+                return (runtime, runtime.bookmarkData)
+            })
+    }
+
+    static func revalidated(_ bundle: TypedDecisionBundle) throws -> TypedDecisionBundle {
+        let verified = try TypedDecisionBundle(url: bundle.url)
+        guard verified.version == bundle.version else {
+            throw TypedDecisionError.invalidBundle("The bundle changed after it was loaded.")
+        }
+        return verified
+    }
+
+    private static func bind(model: AIModel, bundle: TypedDecisionBundle) throws -> Self {
         guard let descriptor = model.functionDescriptor(for: bundle.backboneFunction),
             let function = try model.loadFunction(named: bundle.backboneFunction)
         else { throw TypedDecisionError.invalidBundle("The asset has no \(bundle.backboneFunction) function.") }
@@ -54,10 +82,9 @@ struct TypedDecisionRuntime: TypedDecisionBackbone {
             else { throw TypedDecisionError.invalidBundle("Unsupported state layout: \(name).") }
             states.append(state)
         }
-        let runtime = Self(
+        return Self(
             model: model, function: function, hiddenDescriptor: hidden, stateDescriptors: states,
             hiddenSize: hiddenSize, stateNames: bundle.stateNames, limit: bundle.limits.inputTokens)
-        return (runtime, cached != nil)
     }
 
     func forward(_ ids: [Int], capacity: Int) async throws -> [Float] {

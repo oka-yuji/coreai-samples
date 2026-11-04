@@ -67,6 +67,7 @@ struct TypedDecide: AsyncParsableCommand {
                 let sampled = try await sampleResident { try await Self.decide(row, model: model) }
                 record = sampled.value
                 record.residentBytesMax = sampled.resident
+                record.memoryAfter = Memory.now()
             } else {
                 record = try await Self.decide(row, model: model)
             }
@@ -195,6 +196,7 @@ struct TypedDecideRecord: Encodable {
     var top: Int?
     var elapsedSeconds: Double?
     var residentBytesMax: ResidentMaximum?
+    var memoryAfter: Memory?
     var started: Date?
     var thermalWaitSeconds: Double?
     var thermalStateAtStart: String?

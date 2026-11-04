@@ -15,8 +15,8 @@
   },
   "release": "released",
   "release_note": {
-    "en": "macOS CLI; sustained-use memory growth documented",
-    "ja": "macOS CLI。連続利用時のメモリ増加を記録"
+    "en": "macOS CLI; runtime memory stabilization verified on fixed workloads",
+    "ja": "macOS CLI。固定系列で実行部のメモリ安定化を確認"
   },
   "download": "https://huggingface.co/okayuji/jev-27b-coreai",
   "pages": {
@@ -262,6 +262,118 @@
       "thermal": "pmset -g therm: no warning; thermalmonitord pressure (mTPL) 0 at the start of every stage (the cancellation test waited 50 s); during the latency process moderate from 09:26:46 and heavy 09:26:48-09:29:05 (the 8,192-token row of the second round and the third round)",
       "model_executed": true,
       "plan_sha256": "8763b18a0830395744f3f65e2bd27d5a151d85dc201b1296ea15e175af9128cb"
+    },
+    "memory-stability-alternating": {
+      "url": "docs/validation/jev27b/README.md#memory-stability-2026-11-05",
+      "level": "diagnostic",
+      "outcome": "passed",
+      "record_type": "standard",
+      "date": "2026-11-05",
+      "platform": "macos",
+      "device": "MacBook Pro (14-inch, 2024), Apple M4 Max, 128 GiB unified memory (Mac16,6)",
+      "os": "macOS 27.0 (26A428)",
+      "toolchain": "Xcode 27.0 (27A266a), Apple Swift 6.4 (swiftlang-6.4.0.34.1)",
+      "variant": "uint4 backbone (gdn-fp32) / float32 head",
+      "backend": "Core AI; GPU preferred; expectFrequentReshapes true",
+      "route": "coreai-verify typed-decide --sample-memory --wait-nominal-thermal 600; normal Release; external proc_pid_rusage observer",
+      "source_revision": "14b425269ed24452e0a5ad5a8f3e51d139647a88",
+      "artifact_revision": "2f34243a3d28500075e09d02d9f9f565a7c4b02f94a7d47b2a3caba7262d357d",
+      "code_revision": "ff2a2579e30a95a669b492f6f1eb6fca771211be",
+      "workload": {
+        "en": "4 warmup calls followed by 100 measured calls of four alternating lengths. Every logit and both probability arrays match the baseline bit for bit. Memory stress only: CPU builds/tests were permitted, and no other model job ran. RSS, current footprint, sampled peak and kernel lifetime peak are distinct. See the source record for first/last five medians and the fixed limits.",
+        "ja": "warmup 4判断後、4長さの交替を100判断。全logitsと両温度の確率が元とbit一致。CPU build/試験を許したメモリ安定性検査で、他モデルの同時実行はない。RSS・現在footprint・sampled peak・kernel lifetime peakを区別する。最初/最後5件の中央値と固定条件は元の記録を参照。"
+      },
+      "batch_size": 1,
+      "concurrency": 1,
+      "warmups": 4,
+      "power": "AC, pmset reports 68 W; battery and charging state recorded per run",
+      "thermal": "ProcessInfo thermalState nominal at every row start; not a constant-temperature guarantee",
+      "model_executed": true,
+      "plan_sha256": "8ccb378806a551b400de0cf5ac40c5c3244b0e8c1b4705ec3dcef29840d457f5"
+    },
+    "memory-stability-same": {
+      "url": "docs/validation/jev27b/README.md#memory-stability-2026-11-05",
+      "level": "diagnostic",
+      "outcome": "passed",
+      "record_type": "standard",
+      "date": "2026-11-05",
+      "platform": "macos",
+      "device": "MacBook Pro (14-inch, 2024), Apple M4 Max, 128 GiB unified memory (Mac16,6)",
+      "os": "macOS 27.0 (26A428)",
+      "toolchain": "Xcode 27.0 (27A266a), Apple Swift 6.4 (swiftlang-6.4.0.34.1)",
+      "variant": "uint4 backbone (gdn-fp32) / float32 head",
+      "backend": "Core AI; GPU preferred; expectFrequentReshapes true",
+      "route": "coreai-verify typed-decide --sample-memory --wait-nominal-thermal 600; normal Release; external proc_pid_rusage observer",
+      "source_revision": "14b425269ed24452e0a5ad5a8f3e51d139647a88",
+      "artifact_revision": "2f34243a3d28500075e09d02d9f9f565a7c4b02f94a7d47b2a3caba7262d357d",
+      "code_revision": "ff2a2579e30a95a669b492f6f1eb6fca771211be",
+      "workload": {
+        "en": "1 warmup calls followed by 100 measured calls of the same 8,192-token input. Every logit and both probability arrays match the baseline bit for bit. Memory stress only: CPU builds/tests were permitted, and no other model job ran. RSS, current footprint, sampled peak and kernel lifetime peak are distinct. See the source record for first/last five medians and the fixed limits.",
+        "ja": "warmup 1判断後、同じ8192-token入力を100判断。全logitsと両温度の確率が元とbit一致。CPU build/試験を許したメモリ安定性検査で、他モデルの同時実行はない。RSS・現在footprint・sampled peak・kernel lifetime peakを区別する。最初/最後5件の中央値と固定条件は元の記録を参照。"
+      },
+      "batch_size": 1,
+      "concurrency": 1,
+      "warmups": 1,
+      "power": "AC, pmset reports 68 W; battery and charging state recorded per run",
+      "thermal": "ProcessInfo thermalState nominal at every row start; not a constant-temperature guarantee",
+      "model_executed": true,
+      "plan_sha256": "78ce30df716e6553c136f0a49fb315c9cb8b877c1101f79d4b656ffcd62a4427"
+    },
+    "memory-stability-near": {
+      "url": "docs/validation/jev27b/README.md#memory-stability-2026-11-05",
+      "level": "diagnostic",
+      "outcome": "passed",
+      "record_type": "standard",
+      "date": "2026-11-05",
+      "platform": "macos",
+      "device": "MacBook Pro (14-inch, 2024), Apple M4 Max, 128 GiB unified memory (Mac16,6)",
+      "os": "macOS 27.0 (26A428)",
+      "toolchain": "Xcode 27.0 (27A266a), Apple Swift 6.4 (swiftlang-6.4.0.34.1)",
+      "variant": "uint4 backbone (gdn-fp32) / float32 head",
+      "backend": "Core AI; GPU preferred; expectFrequentReshapes true",
+      "route": "coreai-verify typed-decide --sample-memory --wait-nominal-thermal 600; normal Release; external proc_pid_rusage observer",
+      "source_revision": "14b425269ed24452e0a5ad5a8f3e51d139647a88",
+      "artifact_revision": "2f34243a3d28500075e09d02d9f9f565a7c4b02f94a7d47b2a3caba7262d357d",
+      "code_revision": "ff2a2579e30a95a669b492f6f1eb6fca771211be",
+      "workload": {
+        "en": "2 warmup calls followed by 20 measured calls of alternating 6,144 and 8,192 tokens. Every logit and both probability arrays match the baseline bit for bit. Memory stress only: CPU builds/tests were permitted, and no other model job ran. RSS, current footprint, sampled peak and kernel lifetime peak are distinct. See the source record for first/last five medians and the fixed limits.",
+        "ja": "warmup 2判断後、6144/8192-tokenの交替を20判断。全logitsと両温度の確率が元とbit一致。CPU build/試験を許したメモリ安定性検査で、他モデルの同時実行はない。RSS・現在footprint・sampled peak・kernel lifetime peakを区別する。最初/最後5件の中央値と固定条件は元の記録を参照。"
+      },
+      "batch_size": 1,
+      "concurrency": 1,
+      "warmups": 2,
+      "power": "AC, pmset reports 68 W; battery and charging state recorded per run",
+      "thermal": "ProcessInfo thermalState nominal at every row start; not a constant-temperature guarantee",
+      "model_executed": true,
+      "plan_sha256": "ae09ee672f22786d3f863bfe462ae6e6721bbbe82776d0bc9449c0bc699038af"
+    },
+    "runtime-recovery": {
+      "url": "docs/validation/jev27b/README.md#memory-stability-2026-11-05",
+      "level": "diagnostic",
+      "outcome": "passed",
+      "record_type": "legacy",
+      "date": "2026-11-05",
+      "platform": "macos",
+      "device": "MacBook Pro (14-inch, 2024), Apple M4 Max, 128 GiB unified memory (Mac16,6)",
+      "os": "macOS 27.0 (26A428)",
+      "toolchain": "Xcode 27.0 (27A266a), Apple Swift 6.4 (swiftlang-6.4.0.34.1)",
+      "variant": "uint4 backbone (gdn-fp32) / float32 head",
+      "backend": "Core AI; GPU preferred; expectFrequentReshapes true",
+      "route": "TypedDecisionInferenceTests; Release with -enable-testing; six serialized GPU tests",
+      "source_revision": "14b425269ed24452e0a5ad5a8f3e51d139647a88",
+      "artifact_revision": "2f34243a3d28500075e09d02d9f9f565a7c4b02f94a7d47b2a3caba7262d357d",
+      "code_revision": "42a9d95",
+      "workload": {
+        "en": "Six diagnostic GPU tests passed, including an uncooperative 1,472-token session run cancelled before a reload and a bit-identical next answer. CPU tests separately cover failed reload, busy and changed-bundle rejection. No standalone benchmark plan for this test suite.",
+        "ja": "診断用GPU6試験が合格。取消を無視する1472-tokenのrun終了後、Sessionが1回再loadして次の答えがbit一致した。再load失敗・busy・改変bundle拒否は別のCPU試験で確認。このsuite単独のbenchmark計画はない。"
+      },
+      "batch_size": 1,
+      "concurrency": 1,
+      "warmups": null,
+      "power": "AC, pmset reports 68 W",
+      "thermal": "Not recorded per test; not a latency comparison",
+      "model_executed": true,
+      "plan_sha256": null
     }
   },
   "measurements": [
@@ -472,6 +584,102 @@
         "en": "Largest probability difference of F at temperature 1 between Core AI and the float32 PyTorch run of the same quantized weights.",
         "ja": "温度 1 の F で、Core AI と同じ量子化後の重みの PyTorch float32 の確率差の最大。"
       }
+    },
+    {
+      "metric": "peak_footprint_bytes",
+      "value": 8393766472,
+      "unit": "B",
+      "statistic": "single",
+      "n": 1,
+      "evidence": "memory-stability-alternating",
+      "source_value": {
+        "path": "docs/validation/jev27b/memory-stability-20261105.json",
+        "pointer": "/cases/alternating/kernel_footprint_peak_bytes"
+      },
+      "note": {
+        "en": "100 calls of four alternating lengths after warmup; kernel lifetime footprint peak; no speed claim. RSS and footprint are not added.",
+        "ja": "warmup後の4長さの交替100判断。kernel lifetime footprint peak。速度改善の測定ではない。RSSとfootprintは合算しない。"
+      }
+    },
+    {
+      "metric": "peak_rss_bytes",
+      "value": 32646430720,
+      "unit": "B",
+      "statistic": "single",
+      "n": 1,
+      "evidence": "memory-stability-alternating",
+      "source_value": {
+        "path": "docs/validation/jev27b/memory-stability-20261105.json",
+        "pointer": "/cases/alternating/max_rss_bytes"
+      },
+      "note": {
+        "en": "100 calls of four alternating lengths after warmup; wait4 maximum RSS including load; no speed claim. RSS and footprint are not added.",
+        "ja": "warmup後の4長さの交替100判断。wait4 maximum RSS including load。速度改善の測定ではない。RSSとfootprintは合算しない。"
+      }
+    },
+    {
+      "metric": "peak_footprint_bytes",
+      "value": 6827587384,
+      "unit": "B",
+      "statistic": "single",
+      "n": 1,
+      "evidence": "memory-stability-same",
+      "source_value": {
+        "path": "docs/validation/jev27b/memory-stability-20261105.json",
+        "pointer": "/cases/same/kernel_footprint_peak_bytes"
+      },
+      "note": {
+        "en": "100 calls of the same 8,192-token input after warmup; kernel lifetime footprint peak; no speed claim. RSS and footprint are not added.",
+        "ja": "warmup後の同じ8192-token入力100判断。kernel lifetime footprint peak。速度改善の測定ではない。RSSとfootprintは合算しない。"
+      }
+    },
+    {
+      "metric": "peak_rss_bytes",
+      "value": 32336232448,
+      "unit": "B",
+      "statistic": "single",
+      "n": 1,
+      "evidence": "memory-stability-same",
+      "source_value": {
+        "path": "docs/validation/jev27b/memory-stability-20261105.json",
+        "pointer": "/cases/same/max_rss_bytes"
+      },
+      "note": {
+        "en": "100 calls of the same 8,192-token input after warmup; wait4 maximum RSS including load; no speed claim. RSS and footprint are not added.",
+        "ja": "warmup後の同じ8192-token入力100判断。wait4 maximum RSS including load。速度改善の測定ではない。RSSとfootprintは合算しない。"
+      }
+    },
+    {
+      "metric": "peak_footprint_bytes",
+      "value": 9169450928,
+      "unit": "B",
+      "statistic": "single",
+      "n": 1,
+      "evidence": "memory-stability-near",
+      "source_value": {
+        "path": "docs/validation/jev27b/memory-stability-20261105.json",
+        "pointer": "/cases/near/kernel_footprint_peak_bytes"
+      },
+      "note": {
+        "en": "20 calls of alternating 6,144 and 8,192 tokens after warmup; kernel lifetime footprint peak; no speed claim. RSS and footprint are not added.",
+        "ja": "warmup後の6144/8192-tokenの交替20判断。kernel lifetime footprint peak。速度改善の測定ではない。RSSとfootprintは合算しない。"
+      }
+    },
+    {
+      "metric": "peak_rss_bytes",
+      "value": 32669925376,
+      "unit": "B",
+      "statistic": "single",
+      "n": 1,
+      "evidence": "memory-stability-near",
+      "source_value": {
+        "path": "docs/validation/jev27b/memory-stability-20261105.json",
+        "pointer": "/cases/near/max_rss_bytes"
+      },
+      "note": {
+        "en": "20 calls of alternating 6,144 and 8,192 tokens after warmup; wait4 maximum RSS including load; no speed claim. RSS and footprint are not added.",
+        "ja": "warmup後の6144/8192-tokenの交替20判断。wait4 maximum RSS including load。速度改善の測定ではない。RSSとfootprintは合算しない。"
+      }
     }
   ],
   "omissions": {
@@ -519,21 +727,27 @@
       }
     },
     "stability": {
-      "state": "not_measured",
-      "evidence": [],
+      "state": "passed",
+      "evidence": [
+        "memory-stability-alternating",
+        "memory-stability-same",
+        "memory-stability-near",
+        "runtime-recovery"
+      ],
       "note": {
-        "en": "Two runs of F with the variant bundle (fresh and cached specialization) gave identical logits for all 301 rows, the GPU test returns bit-identical logits for each of its ten rows (at most 512 tokens) run twice in one process, and up to 3,000 consecutive rows ran in one process (Cal). Releasing and reloading the model in one process was not verified.",
-        "ja": "変種の bundle で F を 2 回(特殊化 fresh と cached)流すと 301 行すべてで logit が同じで、GPU の試験は 10 行(512 トークン以下)を 1 プロセスで 2 回ずつ流してビット単位で同じ logit を返し、1 プロセスで最大 3,000 行(Cal)を続けて流した。同じプロセスでの解放と再読み込みは確かめていない。"
+        "en": "100 alternating-length decisions, 100 same-length decisions and 20 nearby-length decisions passed the fixed memory criteria with identical outputs. The runtime recycles model and function before a fourth shape change. A finite workload, not an unlimited-use guarantee; this adds reload cost.",
+        "ja": "長さ交替100判断・同長100判断・近い長さの交替20判断で、出力を保ち固定メモリ条件に合格。4回目の形状変更前にmodel/functionを回収する。有限の検査で無制限利用の保証ではなく、再loadの時間が加わる。"
       }
     },
     "cancellation": {
       "state": "passed",
       "evidence": [
-        "performance"
+        "performance",
+        "runtime-recovery"
       ],
       "note": {
-        "en": "Three requests cancelled during the forward run ended with CancellationError when the run returned, and a request cancelled at the forward checkpoint ended before the run. After both kinds of cancellation the next row returned logits bit-identical to the same row before the cancellation. The test backbone does not pass the cancellation on; whether a Core AI run itself stops was not measured.",
-        "ja": "forward の run 中に取り消した 3 回の依頼は run が返った時点で CancellationError で終わり、checkpoint での取消は run の前に終わった。どちらの取消の後も、次の行の logit は取消の前の同じ行とビット単位で同じだった。試験用 backbone は取消を伝えないので、Core AI の run 自体が止まるかは測っていない。"
+        "en": "Three requests cancelled during the forward run ended with CancellationError when the run returned, and a request cancelled at the forward checkpoint ended before the run. After both kinds of cancellation the next row returned logits bit-identical to the same row before the cancellation. The test backbone does not pass the cancellation on; whether a Core AI run itself stops was not measured. The new session path also passed cancellation, reload and next-answer equality in Release diagnostics.",
+        "ja": "forward の run 中に取り消した 3 回の依頼は run が返った時点で CancellationError で終わり、checkpoint での取消は run の前に終わった。どちらの取消の後も、次の行の logit は取消の前の同じ行とビット単位で同じだった。試験用 backbone は取消を伝えないので、Core AI の run 自体が止まるかは測っていない。 新Session経路もRelease診断で取消・再load・次の答えの一致を確認した。"
       }
     }
   },

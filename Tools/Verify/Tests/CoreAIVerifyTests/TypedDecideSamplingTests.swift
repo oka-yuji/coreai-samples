@@ -71,7 +71,9 @@ import Testing
         let plain = try #require(
             JSONSerialization.jsonObject(with: JSONEncoder.records.encode(row)) as? [String: Any])
         #expect(plain["resident_bytes_max"] == nil)
+        #expect(plain["memory_after"] == nil)
         row.residentBytesMax = ResidentMaximum(rssBytes: 9, footprintBytes: 4, samples: 3, failedSamples: 0)
+        row.memoryAfter = Memory(rssBytes: 2, footprintBytes: 1, footprintPeakBytes: 6)
         let sampled = try #require(
             JSONSerialization.jsonObject(with: JSONEncoder.records.encode(row)) as? [String: Any])
         let maximum = try #require(sampled["resident_bytes_max"] as? [String: Any])
@@ -79,5 +81,9 @@ import Testing
             "rss_bytes": 9, "footprint_bytes": 4, "samples": 3, "failed_samples": 0, "interval_seconds": 0.1,
         ]
         #expect(maximum as NSDictionary == expected)
+        let after = try #require(sampled["memory_after"] as? [String: Any])
+        #expect(after["rss_bytes"] as? Int == 2 && after["footprint_bytes"] as? Int == 1)
+        #expect(after["footprint_peak_bytes"] as? Int == 6)
+        #expect(after["status"] as? String == "ok" && after["unit"] as? String == "B")
     }
 }
