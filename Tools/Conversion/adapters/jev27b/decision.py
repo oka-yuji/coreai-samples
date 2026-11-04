@@ -13,6 +13,7 @@ DECISION = "decision.json"
 SUMS = "SHA256SUMS"
 INPUTS = ("input_ids", "position_ids")
 OUTPUT = "hidden_states"
+LAST_OUTPUT = "last_token_hidden_state"
 STATES = ("keyCache", "valueCache", "convStates", "recurrentStates")
 HEAD_TENSORS = ("proj.weight", "proj.bias")
 HASH_SCHEMA = "typed-decision-quantized-hashes/1"
@@ -183,7 +184,7 @@ def validate(document, root=None):
             size = hidden["size"]
         else:
             errors.append("backbone.hidden needs a float dtype and a positive size")
-        if backbone["function"] != "main" or backbone["inputs"] != list(INPUTS) or backbone["output"] != OUTPUT \
+        if backbone["function"] != "main" or backbone["inputs"] != list(INPUTS) or backbone["output"] not in (OUTPUT, LAST_OUTPUT) \
                 or backbone["states"] != list(STATES) or backbone["context_length"] <= 0:
             errors.append("backbone must describe main with the hidden-state contract and a positive context length")
     if fields(head, HEAD, "head", errors):
