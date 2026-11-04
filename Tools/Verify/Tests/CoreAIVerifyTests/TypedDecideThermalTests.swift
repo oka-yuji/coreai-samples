@@ -34,8 +34,12 @@ import Testing
     @Test("The thermal wait is off by default and takes a limit of zero or more seconds")
     func option() throws {
         #expect(try TypedDecide.parse(required).waitNominalThermal == nil)
+        #expect(try TypedDecide.parse(required + ["--wait-nominal-thermal", "0"]).waitNominalThermal == 0)
         #expect(try TypedDecide.parse(required + ["--wait-nominal-thermal", "600"]).waitNominalThermal == 600)
-        #expect(throws: (any Error).self) { try TypedDecide.parse(required + ["--wait-nominal-thermal", "-1"]) }
+        let error = #expect(throws: (any Error).self) {
+            try TypedDecide.parse(required + ["--wait-nominal-thermal=-1"])
+        }
+        #expect(TypedDecide.message(for: try #require(error)) == "--wait-nominal-thermal takes zero or more seconds.")
     }
 
     @Test("A nominal thermal state starts the row without waiting")
@@ -76,7 +80,7 @@ import Testing
             JSONSerialization.jsonObject(with: JSONEncoder.records.encode(row)) as? [String: Any])
         #expect(plain["started"] == nil && plain["thermal_wait_seconds"] == nil)
         #expect(plain["thermal_state_at_start"] == nil)
-        row.gated(by: ThermalStart(waitedSeconds: 2.5, state: .fair), started: Date(timeIntervalSince1970: 0))
+        row.setStart(ThermalStart(waitedSeconds: 2.5, state: .fair), at: Date(timeIntervalSince1970: 0))
         let gated = try #require(
             JSONSerialization.jsonObject(with: JSONEncoder.records.encode(row)) as? [String: Any])
         #expect(gated["started"] as? String == "1970-01-01T00:00:00Z")

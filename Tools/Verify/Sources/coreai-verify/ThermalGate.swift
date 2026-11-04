@@ -34,7 +34,7 @@ struct ThermalGate {
 }
 
 extension TypedDecideRecord {
-    mutating func gated(by thermal: ThermalStart, started: Date) {
+    mutating func setStart(_ thermal: ThermalStart, at started: Date) {
         self.started = started
         thermalWaitSeconds = thermal.waitedSeconds
         thermalStateAtStart = thermal.stateName

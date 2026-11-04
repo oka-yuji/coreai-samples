@@ -71,7 +71,7 @@ struct TypedDecide: AsyncParsableCommand {
                 record = try await Self.decide(row, model: model)
             }
             if let thermal {
-                record.gated(by: thermal, started: rowStarted)
+                record.setStart(thermal, at: rowStarted)
             }
             records.append(record)
             let summary =
