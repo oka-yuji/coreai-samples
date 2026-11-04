@@ -1,5 +1,6 @@
 import AppKit
 import ConversationFeature
+import CoreAIBackend
 import ExtractFeature
 import FeatureStore
 import Foundation
@@ -31,14 +32,15 @@ final class GUIDriver {
     private var extract: Store<ExtractFeature>?
 
     func start(
-        navigator: DemoNavigator, chat: ChatViewModel, host: ConversationHost, models: ModelsViewModel,
+        navigator: DemoNavigator, chat: ChatViewModel, host: ConversationHost, library: MacModelLibrary,
+        choice: MacModelChoice,
         extract: Store<ExtractFeature>
     ) async {
         guard let path = LaunchArguments.value("--gui-e2e"), !attached else { return }
         attached = true
         self.extract = extract
         outDir = URL(filePath: path, directoryHint: .isDirectory)
-        await run(navigator: navigator, chat: chat, host: host, models: models)
+        await run(navigator: navigator, chat: chat, host: host, library: library, choice: choice)
     }
 
     private func note(_ text: String) {
@@ -166,9 +168,21 @@ final class GUIDriver {
         return (thinking, answer)
     }
 
-    private func run(navigator: DemoNavigator, chat: ChatViewModel, host: ConversationHost, models: ModelsViewModel)
-        async
-    {
+    private func openModel(
+        _ url: URL, direct: Bool, chat: ChatViewModel, library: MacModelLibrary, choice: MacModelChoice
+    ) async {
+        if direct {
+            await chat.load(url)
+        } else {
+            library.use(.qwen)
+            choice.send(.choose)
+        }
+    }
+
+    private func run(
+        navigator: DemoNavigator, chat: ChatViewModel, host: ConversationHost,
+        library: MacModelLibrary, choice: MacModelChoice
+    ) async {
         try? FileManager.default.createDirectory(at: outDir, withIntermediateDirectories: true)
         let metricsBefore =
             (try? String(contentsOf: MetricsLog.fileURL, encoding: .utf8))?.split(separator: "\n").count ?? 0
@@ -178,12 +192,8 @@ final class GUIDriver {
             await finish(metricsBefore: metricsBefore)
             return
         }
-        guard let path = LaunchArguments.value("--model") else {
-            note("--model <folder> is required")
-            await finish(metricsBefore: metricsBefore)
-            return
-        }
-        let url = URL(filePath: path, directoryHint: .isDirectory)
+        let supplied = LaunchArguments.value("--model").map { URL(filePath: $0, directoryHint: .isDirectory) }
+        var selected: URL?
         let preferences = host.preferences
         preferences.resetForHeadless()
         let effort = LaunchArguments.value("--effort")
@@ -199,20 +209,39 @@ final class GUIDriver {
         _ = await wait(seconds: 30) { self.window() != nil }
         await settle()
 
-        await step(1, "models", "Models lists the opened folder") {
-            navigator.selection = .models
-            models.open(url)
-            var cleared = "no"
-            if LaunchArguments.flag("--clear-prepared") {
-                models.clearPrepared(url)
-                cleared = "yes"
+        await step(1, "library", "The library reports the acquired conversation model") {
+            navigator.selection = .chat
+            if let supplied {
+                do {
+                    _ = try BundleSupport.supportedBundle(at: supplied)
+                    if LaunchArguments.flag("--clear-prepared") {
+                        try Engine.deleteSpecializationCache(bundle: ModelBundle(url: supplied))
+                        ModelStorage.prepared.remove(ModelStorage.key(supplied))
+                    }
+                    selected = supplied
+                    return (true, "Explicit diagnostic bundle validated; library acquisition is not exercised.")
+                } catch { return (false, error.localizedDescription) }
             }
-            await self.settle()
-            let folder = models.folders.first { $0.id == ModelStorage.key(url) }
-            return (
-                folder?.name != nil,
-                "folder=\(folder?.id ?? "none") name=\(folder?.name ?? "none") clearPrepared=\(cleared) message=\(models.message ?? "")"
-            )
+            library.refresh()
+            let finished = await self.wait(seconds: 1_800) {
+                library.store?.state.installations.values.allSatisfy { !$0.phase.isBusy } == true
+            }
+            guard finished, let resource = library.installed(.qwen),
+                let artifact = library.store?.state.selectedArtifact(for: DemoModel.qwen.libraryID)
+            else {
+                return (false, "Download Qwen3.8 27B from its sidebar heading before this check.")
+            }
+            if LaunchArguments.flag("--clear-prepared") {
+                do { try MacModelLibrary.clearPrepared(resource.directory, artifact: artifact) } catch {
+                    return (false, error.localizedDescription)
+                }
+            }
+            selected = resource.directory
+            return (true, "artifact=\(resource.artifactID) revision=\(resource.revision) ready=true")
+        }
+        guard let url = selected else {
+            await finish(metricsBefore: metricsBefore)
+            return
         }
 
         var preparingShown = false
@@ -226,9 +255,9 @@ final class GUIDriver {
             }
         }
 
+        async let opening: Void = openModel(url, direct: supplied != nil, chat: chat, library: library, choice: choice)
         await step(2, "loading", "Chat shows the loading state while the model opens") {
             navigator.selection = .chat
-            Task { await chat.load(url) }
             _ = await self.wait(seconds: 5) { chat.isLoading }
             if case .loading(true) = chat.phase { preparingShown = true }
             try? await Task.sleep(for: .seconds(2.5))
@@ -236,7 +265,9 @@ final class GUIDriver {
         }
 
         await step(3, "ready", "The model is open, the window stayed responsive, and the chat is ready") {
-            let loaded = await self.wait(seconds: 900) { !chat.isLoading }
+            let loaded = await self.wait(seconds: 900) {
+                !chat.isLoading && (supplied != nil || !choice.state.selecting)
+            }
             heartbeat.cancel()
             let stats = chat.loadStats
             let responsive = self.maxStall < 0.5
@@ -251,6 +282,8 @@ final class GUIDriver {
                     self.maxStall, String(preparingShown), chat.loadNote)
             )
         }
+
+        if !chat.isLoading { await opening }
 
         if LaunchArguments.flag("--agent") {
             await runAgent(navigator: navigator, host: host)

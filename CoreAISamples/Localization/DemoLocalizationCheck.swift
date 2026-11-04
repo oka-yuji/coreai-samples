@@ -7,8 +7,8 @@ import RecipeFeature
 enum DemoLocalizationCheck {
     static func run() {
         do {
-            let modelNames = Set(Demo.allCases.filter { $0 != .chat && $0 != .models }.map(\.title))
-            var keys = Demo.allCases.map(\.summary) + [Demo.chat.title, Demo.models.title]
+            let modelNames = Set(Demo.allCases.filter { $0 != .chat }.map(\.title))
+            var keys = Demo.allCases.map(\.summary) + [Demo.chat.title, "Models"]
             keys += [
                 "Chat", "Work", "Image search", "Truck inspection", "Extraction lab", "Find objects with the camera",
             ]
@@ -33,11 +33,12 @@ enum DemoLocalizationCheck {
                 "Retry save", "Saving conversation…", "Keep app open",
             ]
             keys += [
-                "Conversations", "Manage", "Rename…", "Delete…", "Move to Trash", "Markdown export is not up to date.",
+                "Conversations", "Rename…", "Delete…", "Move to Trash", "Markdown export is not up to date.",
                 "Downloaded %@ · Available %@", "Conversation history", "Show or hide the conversation history",
                 "Model information", "Removed the prepared copy of %@. The next load prepares it again.",
                 "Could not remove the prepared copy of %@: %@", "Download Irodori from its heading in the sidebar.",
                 "Download %@ from its heading in the sidebar.",
+                "Download Qwen3.8 27B from its heading in the sidebar.", "Choose a model from the menu above.",
             ]
             keys += [
                 "Source citations", "The answer did not cite any supplied source.",
@@ -45,7 +46,6 @@ enum DemoLocalizationCheck {
                 "Notes kept as drafts.", "The question and sources exceed the RAG prompt budget.",
                 "The saved source record is inconsistent.",
             ]
-            keys += Catalog.models.flatMap { [$0.memory, $0.platforms] }
             var failures: [String] = []
             for name in modelNames.sorted() {
                 for language in ["en", "ja"] {

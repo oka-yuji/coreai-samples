@@ -4,17 +4,13 @@ This Mac demo reads a fridge photograph, proposes ingredients for you to review,
 
 ## Start
 
-Download the [Clef-Flash decision bundle](https://huggingface.co/okayuji/clef-flash-9b-coreai-decide) from the repository root with the [Hugging Face CLI](https://huggingface.co/docs/huggingface_hub/guides/cli):
-
-```sh
-hf download okayuji/clef-flash-9b-coreai-decide --local-dir ./models/clef-flash-9b-decide-v1
-```
+The Mac app acquires the [Clef-Flash decision bundle](https://huggingface.co/okayuji/clef-flash-9b-coreai-decide) from its sidebar heading. A separate CLI download is needed only for the optional headless/API examples in the model guide.
 
 The model payload is 7,278,548,313 bytes, with small documentation and example files in addition. The [English model guide](clef-flash.md) and [日本語ガイド](clef-flash.ja.md) describe the measured environment, limits and license. Use this bundle with Recipes or Decide through `DecisionModel`.
 
 1. Open `CoreAISamples.xcodeproj`, choose the **CoreAISamples** scheme and **My Mac**, set the Run build configuration to **Release**, and Run. This requires macOS 27, Xcode 27 and Apple Intelligence with vision available on the Mac.
-2. In the **Clef-Flash 9B** section of the sidebar, select the **Can you make this recipe with what you have?** row. The **EN / JP** control at the top right changes the interface immediately on all six Mac screens and remembers the choice. Original recipe text and model-generated content keep their source language.
-3. The model card above the workflow always names `clef-flash-9b-decide-v1`. Use **Open Clef-Flash bundle** to choose that folder. It shows loading and loaded states; **Retry saved bundle** retries a remembered path when no model is loaded. A successful selection is remembered. `COREAI_DECISION_BUNDLE` can also supply the path when launching the app.
+2. Download the model from the **Clef-Flash 9B** heading in the sidebar, then select the **Can you make this recipe with what you have?** row. The **EN / JP** control at the top right changes the interface immediately on all Mac screens and remembers the choice. Original recipe text and model-generated content keep their source language.
+3. The recipe demo opens the acquired model and shows its loading state and name. **Retry** repeats a failed load. The normal app does not read or remember a model-folder choice; `COREAI_DECISION_BUNDLE` remains available to the explicit headless recipe checks.
 4. Choose **Examples → Three-egg omelette**. This reads the bundled one-egg photo and fetches its recipe. **Open photo** accepts your own image instead.
 5. Check the proposed ingredient names and amounts. For the egg, confirm that the amount is `1 pcs`, then check its confirmation box. You can add pantry ingredients using **Add** beside a recipe ingredient and enter their amounts.
 6. Click **Check recipe**. For this recipe's original two servings, one confirmed egg leaves **Short by 2.00 pcs**. Other ingredients and equipment can remain unchecked; they are shown as needing review.

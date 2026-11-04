@@ -52,7 +52,7 @@ git clone https://github.com/oka-yuji/coreai-samples.git
 cd coreai-samples
 ```
 
-音声入力アダプター用のRust/Cargoと、リポジトリ検査用のPython 3.9以降をインストールします。`CoreAISamples.xcodeproj` を開き、**CoreAISamples**と**My Mac**を選んで実行してください。このスキームはReleaseでビルドします。デバッグ用には**CoreAISamples-Debug**があります。モデルの取得とフォルダ選択は各ガイドに従ってください。重みはGitに含みません。
+音声入力アダプター用のRust/Cargoと、リポジトリ検査用のPython 3.9以降をインストールします。`CoreAISamples.xcodeproj` を開き、**CoreAISamples**と**My Mac**を選んで実行してください。このスキームはReleaseでビルドします。デバッグ用には**CoreAISamples-Debug**があります。Macではサイドバーのモデルの見出しから取得し、その節のデモを開きます。会話では上部のメニューから取得済みのQwenを選びます。TeleOCRは公開までローカルの取り込みを使います。重みはGitに含みません。
 
 iPhone向けのビルド・署名、別アプリの音声デモは[アプリの導入手順（英語）](docs/demo-app.md#iphone-app)を参照してください。ビルド成功だけで、すべてのモデルがその端末に対応しているとは判断しません。
 

@@ -19,7 +19,6 @@ enum Demo: String, CaseIterable, Identifiable {
     case extract
     case speech
     case ocr
-    case models
 
     var id: String { rawValue }
 
@@ -33,7 +32,6 @@ enum Demo: String, CaseIterable, Identifiable {
         case .extract: "GLiNER2.5-multi"
         case .speech: "Irodori"
         case .ocr: "TeleOCR"
-        case .models: "Models"
         }
     }
 
@@ -47,7 +45,6 @@ enum Demo: String, CaseIterable, Identifiable {
         case .extract: "Compare product specifications from official descriptions"
         case .speech: "Generate and play speech from text with Irodori"
         case .ocr: "Read text and tables from a document image"
-        case .models: "Get, open and prepare model bundles"
         }
     }
 
@@ -61,7 +58,6 @@ enum Demo: String, CaseIterable, Identifiable {
         case .extract: "text.magnifyingglass"
         case .speech: "waveform"
         case .ocr: "doc.viewfinder"
-        case .models: "square.and.arrow.down"
         }
     }
 }
@@ -108,7 +104,6 @@ extension Demo {
         case .extract: .gliner
         case .speech: .irodori
         case .ocr: .teleOCR
-        case .models: nil
         }
     }
 }
@@ -122,7 +117,6 @@ struct DemoRootView: View {
     @State private var navigator: DemoNavigator
     @State private var chat: ChatViewModel
     @State private var host: ConversationHost
-    @State private var models = ModelsViewModel()
     @State private var decide: Store<DecideFeature>
     @State private var recipes: Store<RecipeFeature>
     @State private var products = ProductAssembly.makeStore()
@@ -147,7 +141,7 @@ struct DemoRootView: View {
         _choice = State(initialValue: choice)
         let library = MacModelLibrary()
         _library = State(initialValue: library)
-        let managed = LaunchArguments.value("--gui-e2e") == nil
+        let managed = LaunchArguments.value("--gui-e2e") == nil || LaunchArguments.value("--model") == nil
         let chat = ChatViewModel(managed: managed)
         let decide = DecideAssembly.makeStore(managed: managed)
         let recipes = RecipeAssembly.makeStore(managed: managed)
@@ -214,7 +208,7 @@ struct DemoRootView: View {
             }
             .task {
                 await GUIDriver.shared.start(
-                    navigator: navigator, chat: chat, host: host, models: models, extract: extract)
+                    navigator: navigator, chat: chat, host: host, library: library, choice: choice, extract: extract)
             }
     }
 
@@ -286,14 +280,12 @@ struct DemoRootView: View {
                 }
             case .speech?: SpeechView(store: speech)
             case .ocr?: OCRHostView(library: library)
-            case .models?: ModelsView()
             case nil: ContentUnavailableView("Select a demo", systemImage: "square.grid.2x2")
             }
         }
         .environment(navigator)
         .environment(chat)
         .environment(host)
-        .environment(models)
         .environment(decide)
         .environment(speech)
         .environment(library)

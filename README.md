@@ -52,7 +52,7 @@ git clone https://github.com/oka-yuji/coreai-samples.git
 cd coreai-samples
 ```
 
-Install Rust/Cargo for the speech input adapter and Python 3.9+ for repository checks. Open `CoreAISamples.xcodeproj`, choose **CoreAISamples** and **My Mac**, then run. The scheme builds Release; **CoreAISamples-Debug** is available for debugging. Follow a model's guide to obtain and select its bundle. Weights are separate from this repository.
+Install Rust/Cargo for the speech input adapter and Python 3.9+ for repository checks. Open `CoreAISamples.xcodeproj`, choose **CoreAISamples** and **My Mac**, then run. The scheme builds Release; **CoreAISamples-Debug** is available for debugging. Download a model from its heading in the Mac sidebar, then open a demo in that section. Choose the acquired Qwen model from the conversation menu; TeleOCR keeps its local import. Weights are separate from this repository.
 
 For an iPhone build, signing, or the separate speech app, follow the [app setup guide](docs/demo-app.md#iphone-app). A successful build does not establish that every model works on that device.
 

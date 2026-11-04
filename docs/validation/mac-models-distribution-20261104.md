@@ -80,3 +80,16 @@ Both repositories passed the model-release information audit (scanner `63501ba4`
 | Clef-Flash 9B | hub, anonymous, after publication | 2026-11-04 01:14 | 1 ref (`main`), 18 commits, 30 unique objects; `main` manifest equal to the check before publication | passed |
 
 Each check reported no findings, no exceptions and nothing uninspected.
+
+## Quick start card update (2026-11-05)
+
+Issue #466 / PR #494 updates only `README.md` in each public repository to acquire models from the Mac sidebar headings. The optional CLI instructions remain separate. The owner specified full-payload local inspection before the update and anonymous hub inspection afterwards; this supersedes the earlier pre-update equality-gate requirement for this card change. The canonical scanner was not modified. The [public summary](mac-models-distribution-20261104/card-update-20261105.json) records the checked payload manifests and remote revisions; full reports remain private.
+
+| Model | Updated `main` | Local payload | Local result (JST) | Anonymous history result (JST) |
+|---|---|---|---|---|
+| Qwen3.8 27B | `3d50b382595c171c14ec03d56f98b16d5da949a8` | 12 files, 16,852,544,966 bytes | passed, 2026-11-05 01:26 | passed, 2026-11-05 02:11; 6 commits, 17 unique objects |
+| Clef-Flash 9B | `873722e26cc47bd442af8b8d6103599acbdd6a09` | 25 files, 7,278,592,778 bytes | passed, 2026-11-05 01:05 | passed, 2026-11-05 01:31; 19 commits, 31 unique objects |
+
+Both checks used scanner `63501ba4f0d44b8a0f05127025407875f7cbd983dc573919d6905b816d9f7baf` and completed with zero unresolved findings and zero errors. Each local payload contained every distribution file, including the updated card. The anonymous check included all refs, pull-request refs and complete history, and its head manifest equaled the inspected local payload. Both repositories remain public. All non-card files retained their previous object IDs.
+
+The application catalog and download examples still pin Qwen `8e24aebe036eae577d4a3bd019ba728a73358318` (`v1.0.0`) and Clef `12e30be4e391310377c534524df8962359a08b0f`. This card update does not change those inventories. Actual anonymous acquisition through the application library is recorded in [the F validation](mac-language-models-20261104.md); physical-device and ordinary UI acceptance remain separate.

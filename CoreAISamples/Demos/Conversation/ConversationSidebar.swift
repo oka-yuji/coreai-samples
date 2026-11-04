@@ -7,7 +7,6 @@ struct ConversationSidebar: View {
     @Environment(DemoNavigator.self) private var navigator
     @Environment(MacModelLibrary.self) private var library
     @State private var collapsed: Set<DemoModel> = []
-    @State private var manageExpanded = true
     @State private var deletion: ModelDeletionRequest?
 
     var body: some View {
@@ -31,7 +30,6 @@ struct ConversationSidebar: View {
                     header(model)
                 }
             }
-            Section("Manage", isExpanded: $manageExpanded) { demoRow(.models) }
         }
         if let store = library.store {
             list.modelDeletionAlert(store: store, deletion: $deletion)

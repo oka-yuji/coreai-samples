@@ -74,18 +74,23 @@ Results below retain their original dates and workloads. Different rows may use 
 
 ## Quick start
 
-Install the [Hugging Face CLI](https://huggingface.co/docs/huggingface_hub/guides/cli), then get the app and the bundle (12 files, 16.85 GB):
+Get the sample app first. It can download the model from the sidebar:
 
 ```sh
 git clone https://github.com/oka-yuji/coreai-samples.git
 cd coreai-samples
+```
+
+Open `CoreAISamples.xcodeproj`, choose the **CoreAISamples** scheme and **My Mac**, and run; the scheme builds Release. Download the model from the **Qwen3.8 27B** heading in the sidebar, open its conversation demo row, and choose **Qwen3.8 27B** from the model menu above the conversation. The first load took 86.87 s on an M4 Max, 82.84 s of it preparing the model for the GPU; later loads took 3.6–10.3 s. The conversation title shows the model name; use **Chat** mode for conversation or **Work** mode for tasks and notes. Enable **Search and sources → Web** in the conversation settings when you want web research. The sidebar downloads the same pinned revision anonymously; the repository has been public since 2026-11-04.
+
+Chat defaults to 16 generation steps per reply; Work keeps its separate default of eight. In the conversation settings, **Max steps per reply** changes the selected mode's limit from 1 to 64. Each new question starts a fresh budget. If research exhausts it, the app makes one extra answer attempt with tools and reasoning disabled, using the information already collected. **Stop** still cancels the request. See the [budget contract and checks](specs/conversation-step-budget.md).
+
+For command-line use only, install the [Hugging Face CLI](https://huggingface.co/docs/huggingface_hub/guides/cli) and download the pinned bundle separately from the app-managed copy:
+
+```sh
 hf download okayuji/Qwen3.8-27B-coreai-4bit --revision 8e24aebe036eae577d4a3bd019ba728a73358318 \
   --local-dir ./models/qwen3.8-27b-coreai-4bit
 ```
-
-Open `CoreAISamples.xcodeproj`, choose the **CoreAISamples** scheme and **My Mac**, and run; the scheme builds Release. In the **Manage** section of the sidebar, select the **Get, open and prepare model bundles** row to open **Models**, choose **Open Folder…**, select `models/qwen3.8-27b-coreai-4bit` and press **Load**. The first load took 86.87 s on an M4 Max, 82.84 s of it preparing the model for the GPU; later loads took 3.6–10.3 s. The conversation title shows the model name; use **Chat** mode for conversation or **Work** mode for tasks and notes. Enable **Search and sources → Web** in the conversation settings when you want web research. **Models** has a downloader for the same pinned revision that uses anonymous access; the repository has been public since 2026-11-04.
-
-Chat defaults to 16 generation steps per reply; Work keeps its separate default of eight. In the conversation settings, **Max steps per reply** changes the selected mode's limit from 1 to 64. Each new question starts a fresh budget. If research exhausts it, the app makes one extra answer attempt with tools and reasoning disabled, using the information already collected. **Stop** still cancels the request. See the [budget contract and checks](specs/conversation-step-budget.md).
 
 From the command line, in the `CoreAISamplesKit` folder:
 

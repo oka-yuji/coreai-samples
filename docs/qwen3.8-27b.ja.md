@@ -74,16 +74,21 @@ Qwen3.8 27Bの4ビット・テキスト専用バンドルを使い、Macで会�
 
 ## クイックスタート
 
-[Hugging Face CLI](https://huggingface.co/docs/huggingface_hub/guides/cli) を入れて、アプリとバンドル(12 ファイル、16.85 GB)を取得します。
+まずサンプルアプリを取得します。モデルはアプリのサイドバーから取得できます。
 
 ```sh
 git clone https://github.com/oka-yuji/coreai-samples.git
 cd coreai-samples
+```
+
+`CoreAISamples.xcodeproj` を開き、**CoreAISamples** スキームと **My Mac** を選んで実行します(このスキームは Release でビルドします)。サイドバーの **Qwen3.8 27B** の見出しからモデルを取得し、その節の会話の行を開いて、会話上部のモデルメニューから **Qwen3.8 27B** を選びます。初回の読み込みは M4 Max で 86.87 秒かかり、そのうち 82.84 秒が GPU 向けの準備でした。2 回目以降は 3.6〜10.3 秒でした。会話のタイトルにはモデル名を表示します。**チャット**(Chat)モードで話しかけるか、**ワーク**(Work)モードでタスクやメモ保存を行います。Webで調べるときは会話設定の「検索・資料を使う」と「Web」をONにします。サイドバーの見出しから、同じ固定revisionを匿名で取得できます。配布先は2026-11-04から公開しています。画面の表示は右上の **EN / JP** で切り替えられます。
+
+CLIを使う場合だけ、[Hugging Face CLI](https://huggingface.co/docs/huggingface_hub/guides/cli)で固定版を別に取得します。アプリ内の取得とは別の保存先です。
+
+```sh
 hf download okayuji/Qwen3.8-27B-coreai-4bit --revision 8e24aebe036eae577d4a3bd019ba728a73358318 \
   --local-dir ./models/qwen3.8-27b-coreai-4bit
 ```
-
-`CoreAISamples.xcodeproj` を開き、**CoreAISamples** スキームと **My Mac** を選んで実行します(このスキームは Release でビルドします)。サイドバーの **管理**(Manage)の節の **モデルの取得・読込・準備**(Get, open and prepare model bundles)の行で **モデル管理**(Models)を開き、**フォルダを開く…**(Open Folder…)を選び、`models/qwen3.8-27b-coreai-4bit` を選んで **読み込む**(Load)を押します。初回の読み込みは M4 Max で 86.87 秒かかり、そのうち 82.84 秒が GPU 向けの準備でした。2 回目以降は 3.6〜10.3 秒でした。会話のタイトルにはモデル名を表示します。**チャット**(Chat)モードで話しかけるか、**ワーク**(Work)モードでタスクやメモ保存を行います。Webで調べるときは会話設定の「検索・資料を使う」と「Web」をONにします。**モデル管理**には、同じ固定revisionを匿名の経路で取得する機能があります。配布先は2026-11-04から公開しています。画面の表示は右上の **EN / JP** で切り替えられます。
 
 コマンドラインでは、`CoreAISamplesKit` フォルダで次を実行します。
 

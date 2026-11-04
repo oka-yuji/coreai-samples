@@ -1216,17 +1216,6 @@
         }
       }
     },
-    "Change decision model" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "判定モデルを変更"
-          }
-        }
-      }
-    },
     "Change model folder…" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1620,16 +1609,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "自由な言い方の判定にはモデルを選択してください。ボタンでも回答できます。"
-          }
-        }
-      }
-    },
-    "Choose a model from the menu above, or open a bundle folder in Models." : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "上のメニューからモデルを選ぶか、モデル管理でモデルのフォルダを開いてください。"
           }
         }
       }
@@ -3570,17 +3549,6 @@
         }
       }
     },
-    "Get, open and prepare model bundles" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "モデルの取得・読込・準備"
-          }
-        }
-      }
-    },
     "Ginger pork" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4502,26 +4470,6 @@
         }
       }
     },
-    "Manage" : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "管理"
-          }
-        }
-      }
-    },
-    "Manage Models…" : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "モデル管理…"
-          }
-        }
-      }
-    },
     "Markdown export is not up to date." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4836,7 +4784,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "モデル管理"
+            "value" : "モデル"
           }
         }
       }
@@ -5211,17 +5159,6 @@
         }
       }
     },
-    "Not loaded. Open a bundle to enable recipe checks." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "未読込です。モデルのフォルダを選ぶと判定できます。"
-          }
-        }
-      }
-    },
     "Note" : {
       "localizations" : {
         "ja" : {
@@ -5410,33 +5347,12 @@
         }
       }
     },
-    "Open Clef-Flash bundle" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Clef-Flashのフォルダを選択"
-          }
-        }
-      }
-    },
     "Open Folder…" : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "フォルダを開く…"
-          }
-        }
-      }
-    },
-    "Open Models" : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "モデル管理を開く"
           }
         }
       }
@@ -5474,16 +5390,6 @@
         }
       }
     },
-    "Open a Clef-Flash decision bundle to begin." : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Clef-Flashの判定モデルフォルダを開いてください。"
-          }
-        }
-      }
-    },
     "Open a model bundle folder in Models, then load it." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -5491,16 +5397,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "モデル管理でフォルダを選び、モデルを読み込んでください。"
-          }
-        }
-      }
-    },
-    "Open decision bundle…" : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "判定モデルのフォルダを開く…"
           }
         }
       }
@@ -5862,16 +5758,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "写真 → 食材の候補"
-          }
-        }
-      }
-    },
-    "Photos stay on this Mac. Open a decision bundle to check recipes." : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "写真はこのMacで処理します。レシピの判定には、判定モデルを読み込んでください。"
           }
         }
       }
@@ -6725,17 +6611,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "保存を再試行"
-          }
-        }
-      }
-    },
-    "Retry saved bundle" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "前回のフォルダから再読込"
           }
         }
       }
@@ -9863,6 +9738,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "モデルを解放"
+          }
+        }
+      }
+    },
+    "Download Qwen3.8 27B from its heading in the sidebar." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "サイドバーの見出しから Qwen3.8 27B を取得してください。"
+          }
+        }
+      }
+    },
+    "Choose a model from the menu above." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "上部のメニューからモデルを選んでください。"
           }
         }
       }

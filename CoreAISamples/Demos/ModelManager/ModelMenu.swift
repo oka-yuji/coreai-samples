@@ -4,7 +4,6 @@ import SwiftUI
 struct ModelMenu: View {
     @Environment(ChatViewModel.self) private var chat
     @Environment(MacModelLibrary.self) private var library
-    @Environment(DemoNavigator.self) private var navigator
     @Environment(ConversationHost.self) private var host
 
     @Environment(MacModelChoice.self) private var choice
@@ -28,8 +27,6 @@ struct ModelMenu: View {
             if chat.phase == .ready {
                 Button("Unload model") { choice.send(.unload) }
             }
-            Divider()
-            Button("Manage Models…") { navigator.selection = .models }
         } label: {
             modelLabel
                 .font(.body.weight(.medium))
