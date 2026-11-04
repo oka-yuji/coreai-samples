@@ -22,6 +22,7 @@ public enum RecipePhase: Sendable, Equatable {
 
 public struct RecipeState: Sendable, Equatable {
     public var phase: RecipePhase = .idle
+    public var modelRelease = 0
     public var reopenAfterRelease = false
     public var session = 0
     public var revision = 0
@@ -154,6 +155,7 @@ public enum RecipeFeature: Feature {
         case .appeared: return []
         case .released: return []
         case .ended:
+            state.modelRelease += 1
             state.needsIdleBarrier = false
             state.modelName = nil
             state.modelPath = ""

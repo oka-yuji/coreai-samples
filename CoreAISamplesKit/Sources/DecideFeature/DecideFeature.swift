@@ -12,6 +12,7 @@ public struct DecideState: Sendable, Equatable {
     public var loadingExamples = false
     public var exampleSession = 0
     public var phase: Phase = .idle
+    public var modelRelease = 0
     public var reopenAfterRelease = false
     public var session = 0
     public var revision = 0
@@ -149,6 +150,7 @@ public enum DecideFeature: Feature {
             state.message = message
         case .released: return []
         case .ended:
+            state.modelRelease += 1
             state.session += 1
             state.phase = .closing
             state.loadingExamples = false

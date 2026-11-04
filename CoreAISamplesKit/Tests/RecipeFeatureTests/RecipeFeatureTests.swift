@@ -151,6 +151,7 @@ struct RecipeFeatureTests {
         let canceledBarrier = state.session
         _ = RecipeFeature.reduce(&state, .ended)
         let releaseSession = state.session
+        #expect(state.modelRelease == 1)
         #expect(RecipeFeature.reduce(&state, .appeared).isEmpty)
         #expect(state.phase == .closing && !state.canCheck)
         _ = RecipeFeature.reduce(&state, .stopped(canceledBarrier))
