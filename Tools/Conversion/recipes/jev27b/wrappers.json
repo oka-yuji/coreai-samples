@@ -1,0 +1,52 @@
+{
+  "schema": "typed-decision-wrappers/1",
+  "template": "bare-v1",
+  "variants": {
+    "ja": {
+      "JNLI": {
+        "prefix": "仮説: ",
+        "suffix": "\n前提は仮説を含意しますか、矛盾しますか、どちらでもありませんか。",
+        "options": [
+          "含意",
+          "矛盾",
+          "中立"
+        ]
+      },
+      "JNLI:noul": {
+        "prefix": "前提は次の仮説を含意しますか: ",
+        "suffix": ""
+      },
+      "JCommonsenseQA": {
+        "prefix": "質問: ",
+        "suffix": "\n最も適切な答えを選んでください。"
+      },
+      "JSTS": {
+        "prefix": "文2: ",
+        "suffix": "\n文1(state)との意味の類似度を 0(無関係)から 5(同じ意味)で評価してください。"
+      }
+    },
+    "en": {
+      "JNLI": {
+        "prefix": "Hypothesis: ",
+        "suffix": "\nDoes the premise entail, contradict, or stay neutral to the hypothesis?",
+        "options": [
+          "entailment",
+          "contradiction",
+          "neutral"
+        ]
+      },
+      "JNLI:noul": {
+        "prefix": "Does the premise entail this hypothesis? ",
+        "suffix": ""
+      },
+      "JCommonsenseQA": {
+        "prefix": "Question: ",
+        "suffix": "\nChoose the most plausible answer."
+      },
+      "JSTS": {
+        "prefix": "Sentence 2: ",
+        "suffix": "\nRate the semantic similarity to sentence 1 (the state) from 0 (unrelated) to 5 (equivalent)."
+      }
+    }
+  }
+}

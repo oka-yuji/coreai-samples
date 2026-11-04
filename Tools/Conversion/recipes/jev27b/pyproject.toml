@@ -1,0 +1,12 @@
+[project]
+name = "coreai-samples-jev27b"
+version = "0.1.0"
+requires-python = ">=3.11,<3.12"
+dependencies = [
+  "huggingface-hub==1.33.0",
+  "numpy==2.4.6",
+  "peft==0.21.2",
+  "safetensors==0.8.0",
+  "torch==2.15.0",
+  "transformers==5.16.1"
+]

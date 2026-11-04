@@ -20,6 +20,22 @@ def embedding(hidden, mask):
     return torch.nn.functional.normalize(pooled, dim=-1)
 
 
+def image_fixtures(images, image_dir):
+    fixtures = []
+    for name in ["01-oyakodon", "02-ginger-pork", "03-omelette", "04-gratin", "05-caprese"]:
+        data = (images / f"{name}.png").read_bytes()
+        (image_dir / f"{name}.png").write_bytes(data)
+        fixtures.append({"id": name, "image": f"images/{name}.png", "source": "sample refrigerator image",
+                         "sha256": hashlib.sha256(data).hexdigest()})
+    for name, width, height in [("gradient_square", 144, 144), ("gradient_wide", 320, 96), ("gradient_tall", 96, 320)]:
+        yy, xx = np.mgrid[:height, :width]
+        pixels = np.stack([xx * 255 // max(1, width - 1), yy * 255 // max(1, height - 1), (xx + yy) % 256], -1).astype(np.uint8)
+        path = image_dir / f"{name}.png"
+        Image.fromarray(pixels).save(path)
+        fixtures.append({"id": name, "image": f"images/{name}.png", "source": "deterministic pixel fixture", "sha256": hashlib.sha256(path.read_bytes()).hexdigest()})
+    return fixtures
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--source", type=Path, required=True)
@@ -46,17 +62,7 @@ def main():
         fixtures.append({"id": name, "role": role, "text": prompts[role] + content, "raw_text": content})
     image_dir = args.output / "images"
     image_dir.mkdir()
-    for name in ["01-oyakodon", "02-ginger-pork", "03-omelette", "04-gratin", "05-caprese"]:
-        data = (args.images / f"{name}.png").read_bytes()
-        (image_dir / f"{name}.png").write_bytes(data)
-        fixtures.append({"id": name, "image": f"images/{name}.png", "source": "sample refrigerator image",
-                         "sha256": hashlib.sha256(data).hexdigest()})
-    for name, width, height in [("gradient_square", 144, 144), ("gradient_wide", 320, 96), ("gradient_tall", 96, 320)]:
-        yy, xx = np.mgrid[:height, :width]
-        pixels = np.stack([xx * 255 // max(1, width - 1), yy * 255 // max(1, height - 1), (xx + yy) % 256], -1).astype(np.uint8)
-        path = image_dir / f"{name}.png"
-        Image.fromarray(pixels).save(path)
-        fixtures.append({"id": name, "image": f"images/{name}.png", "source": "deterministic pixel fixture", "sha256": hashlib.sha256(path.read_bytes()).hexdigest()})
+    fixtures.extend(image_fixtures(args.images, image_dir))
     specification = {"model_revision": source.name, "text_length": 128, "vision_tokens": 70, "fixtures": fixtures,
                      "fp32_gate": {"cosine_min": 0.99999, "max_abs_max": 0.0001},
                      "low_precision_gate": {"cosine_min": 0.999, "max_abs_max": 0.01}}

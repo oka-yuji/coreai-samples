@@ -244,3 +244,11 @@ checks. It uses the generic plan/run commands with explicit local bindings.
 The [TeleOCR recipe](recipes/teleocr/README.md) exports the pinned TeleOCR vision encoder, token
 embedding and decoder as macOS Core AI assets with a separate Transformers 4.57.3 environment. Select it
 with `--recipe teleocr`. Its Python checks cover the stateless parts; the Swift runtime runs the stateful decoder through `coreai-verify ocr-block` and `coreai-verify ocr`.
+
+The [JEV-27B recipe](recipes/jev27b/README.md) pins the JEV-27B System 1 inputs, a reference
+environment with Transformers 5.16.1 and PEFT 0.21, a separate converter checkout, the typed
+decision computation and the fixed evaluation sets. It merges the LoRA, converts the backbone,
+assembles the bundle and compares the Core AI output with the quantized reference; it does not
+evaluate the quality of the model. Set it up with `--recipe jev27b`. Its plan and run pass the
+`coreai-verify` executable with `--set verify=...`, which `local plan|run` does not do; use the
+commands in its README.

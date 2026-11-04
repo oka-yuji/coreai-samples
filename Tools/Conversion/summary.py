@@ -6,6 +6,8 @@ import sys
 
 from .storage import PipelineError, read_json
 
+MERGE_SCHEMA = "typed-decision-merge/1"
+
 
 def choice(value, allowed):
     if value not in allowed:
@@ -17,6 +19,17 @@ def number(value, *, integer=False):
     if type(value) not in ((int,) if integer else (int, float)) or not math.isfinite(value) or value < 0:
         raise PipelineError("Expected a finite nonnegative report metric")
     return value
+
+
+def merge_comparison(comparison):
+    outputs, weights = comparison["outputs"], comparison["weights"]
+    if type(weights.get("passed")) is not bool:
+        raise PipelineError("Expected a weight check result")
+    return {"passed": comparison["passed"],
+            **{key: number(comparison[key], integer=True) for key in ("rows", "compared", "rejected")},
+            "max_probability_error": number(outputs["max_probability_error"]),
+            "mean_probability_error": number(outputs["mean_probability_error"]),
+            "weights_passed": weights["passed"], "pairs_consumed": number(weights["pairs_consumed"], integer=True)}
 
 
 def project(report, comparison=None):
@@ -48,6 +61,9 @@ def project(report, comparison=None):
     if comparison is not None:
         if type(comparison.get("passed")) is not bool:
             raise PipelineError("Expected a comparison result")
+        if comparison.get("schema") == MERGE_SCHEMA:
+            result["comparison"] = merge_comparison(comparison)
+            return result
         cases = comparison["cases"]
         if not isinstance(cases, list) or not cases:
             raise PipelineError("Expected comparison cases")
