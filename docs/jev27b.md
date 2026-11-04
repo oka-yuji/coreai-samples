@@ -18,7 +18,7 @@ export steps check for 160 GB).
 
 ## Runtime memory stabilization (2026-11-05)
 
-The current runtime keeps the same shape loaded and releases its model and function before a fourth shape change. Failure or cancellation also discards the runtime. The published weights, head, tokenizer and temperatures are unchanged. The fixed 100 alternating-length, 100 same-length and 20 nearby-length decisions passed the memory criteria with bit-identical outputs; this is a finite stability check. Recycling adds load and first-run cost. The latency values below are retained measurements from before this change; the controlled before/after/original comparison is separate. [Measurements and limits](validation/jev27b/README.md#memory-stability-2026-11-05).
+The current runtime keeps the same shape loaded and releases its model and function before a fourth shape change. A failed or cancelled reload or backbone run discards the runtime. The published weights, head, tokenizer and temperatures are unchanged. The fixed 100 alternating-length, 100 same-length and 20 nearby-length decisions passed the memory criteria with bit-identical outputs; this is a finite stability check. Recycling adds load and first-run cost. The latency values below are retained measurements from before this change; the controlled before/after/original comparison is separate. [Measurements and limits](validation/jev27b/README.md#memory-stability-2026-11-05).
 
 <!-- model-report:start -->
 <a id="model-report"></a>

@@ -238,7 +238,7 @@ maximum-memory bound. The specific allocation site inside Core AI remains uniden
 The runtime permits three shape changes and releases both model and function before the fourth; an unchanged
 shape stays loaded. A bookmark keeps the identity of the specialization without retaining the model.
 If the cache entry is absent, the original bundle version and all file hashes are revalidated before reloading.
-A successful reload updates the bookmark. Failure or cancellation discards the runtime, and busy remains set
+A successful reload updates the bookmark. A failed or cancelled reload or backbone run discards the runtime, and busy remains set
 until the running operation finishes. The private direct-runtime diagnostic found about 3.7 seconds per reload;
 its timings are not the final before/after benchmark. The earlier 94 W latency measurements remain historical evidence.
 
