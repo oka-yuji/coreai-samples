@@ -15,10 +15,10 @@
   },
   "release": "in_progress",
   "release_note": {
-    "en": "bundle not distributed; publication is decided in #450",
-    "ja": "バンドル非公開。公開は #450 で判断"
+    "en": "Hugging Face release verification",
+    "ja": "Hugging Face の公開確認中"
   },
-  "download": null,
+  "download": "https://huggingface.co/okayuji/jev-27b-coreai-decide",
   "pages": {
     "en": "docs/jev27b.md",
     "ja": "docs/jev27b.ja.md"
