@@ -7,6 +7,7 @@ struct TypedDecisionRuntime: TypedDecisionBackbone {
     let hiddenDescriptor: NDArrayDescriptor
     let stateDescriptors: [NDArrayDescriptor]
     let hiddenSize: Int
+    let output: TypedDecisionOutput
     let stateNames: [String]
     let limit: Int
 
@@ -66,13 +67,15 @@ struct TypedDecisionRuntime: TypedDecisionBackbone {
             let function = try model.loadFunction(named: bundle.backboneFunction)
         else { throw TypedDecisionError.invalidBundle("The asset has no \(bundle.backboneFunction) function.") }
         let hiddenSize = bundle.hiddenSize
-        guard Set(descriptor.inputNames) == Set(bundle.backboneInputs),
+        guard let output = TypedDecisionOutput(rawValue: bundle.backboneOutput),
+            Set(descriptor.inputNames) == Set(bundle.backboneInputs),
             bundle.backboneInputs.allSatisfy({
                 matches(descriptor.inputDescriptor(of: $0), type: .int32, shape: [1, -1])
             }),
-            matches(
-                descriptor.outputDescriptor(of: bundle.backboneOutput), type: .float16, shape: [1, -1, hiddenSize]),
             case .ndArray(let hidden) = descriptor.outputDescriptor(of: bundle.backboneOutput),
+            output.accepts(
+                shape: hidden.shape, type: hidden.scalarType, interleaved: hidden.interleaveLayout != nil,
+                width: hiddenSize),
             descriptor.stateNames.count == 4, Set(descriptor.stateNames) == Set(bundle.stateNames)
         else { throw TypedDecisionError.invalidBundle("The asset descriptors do not match decision.json.") }
         var states: [NDArrayDescriptor] = []
@@ -84,7 +87,7 @@ struct TypedDecisionRuntime: TypedDecisionBackbone {
         }
         return Self(
             model: model, function: function, hiddenDescriptor: hidden, stateDescriptors: states,
-            hiddenSize: hiddenSize, stateNames: bundle.stateNames, limit: bundle.limits.inputTokens)
+            hiddenSize: hiddenSize, output: output, stateNames: bundle.stateNames, limit: bundle.limits.inputTokens)
     }
 
     func forward(_ ids: [Int], capacity: Int) async throws -> [Float] {
@@ -99,7 +102,8 @@ struct TypedDecisionRuntime: TypedDecisionBackbone {
             "input_ids": Self.integers(ids.map(Int32.init), count: count),
             "position_ids": Self.integers((0..<count).map(Int32.init), count: count),
         ]
-        var hidden = NDArray(descriptor: hiddenDescriptor.resolvingDynamicDimensions([1, count, hiddenSize]))
+        var hidden = NDArray(
+            descriptor: hiddenDescriptor.resolvingDynamicDimensions(output.shape(tokens: count, width: hiddenSize)))
         var first = state(0, capacity: capacity)
         var second = state(1, capacity: capacity)
         var third = state(2, capacity: capacity)
@@ -112,17 +116,10 @@ struct TypedDecisionRuntime: TypedDecisionBackbone {
         stateViews.insert(&third, for: stateNames[2])
         stateViews.insert(&fourth, for: stateNames[3])
         var outputViews = InferenceFunction.MutableViews()
-        outputViews.insert(&hidden, for: "hidden_states")
+        outputViews.insert(&hidden, for: output.rawValue)
         _ = try await function.run(inputs: inputs, states: stateViews, outputViews: outputViews)
         try Task.checkCancellation()
-        var output = [Float](repeating: 0, count: hiddenSize)
-        hidden.view(as: Float16.self).withUnsafePointer { pointer, _, strides in
-            let row = (count - 1) * strides[1]
-            for column in 0..<hiddenSize {
-                output[column] = Float(pointer[row + column * strides[2]])
-            }
-        }
-        return output
+        return try output.values(from: hidden, width: hiddenSize)
     }
 
     private func state(_ index: Int, capacity: Int) -> NDArray {

@@ -20,6 +20,20 @@ export steps check for 160 GB).
 
 The current runtime keeps the same shape loaded and releases its model and function before a fourth shape change. A failed or cancelled reload or backbone run discards the runtime. The published weights, head, tokenizer and temperatures are unchanged. The fixed 100 alternating-length, 100 same-length and 20 nearby-length decisions passed the memory criteria with bit-identical outputs; this is a finite stability check. Recycling adds load and first-run cost. The latency values below are retained measurements from before this change; the controlled before/after/original comparison is separate. [Measurements and limits](validation/jev27b/README.md#memory-stability-2026-11-05).
 
+## Final-token output candidate (2026-11-05)
+
+An unpublished candidate returns only `[1, 1, 5120]` from the backbone. The quantized weights,
+layers, decision head, tokenizer and temperatures stay the same. This specializes the output graph for
+typed decisions; it does not prune the model. At 8,192 tokens the output element payload falls from
+80 MiB to 10 KiB. This is not the total memory reduction or a measured speedup.
+
+The candidate passed the existing F fidelity and Q quality criteria, with no top-choice changes against
+the previous native outputs. Its floating-point values are not bit-identical: the largest probability
+difference at temperature 1 was 0.0006121 on Q. The choice-quality interval still crosses the original
+threshold, and the calibration holdout was not rerun. [The validation record](validation/jev27b/README.md#final-token-output-2026-11-05)
+keeps these limits and the failed first conversion. The Hugging Face download remains the published
+all-token artifact; controlled timing is tracked separately in #502.
+
 <!-- model-report:start -->
 <a id="model-report"></a>
 
@@ -87,6 +101,7 @@ Results below retain their original dates and workloads. Different rows may use 
 | [E9](validation/jev27b/README.md#memory-stability-2026-11-05) | 2026-11-05 / standard / diagnostic | MacBook Pro (14-inch, 2024), Apple M4 Max, 128 GiB unified memory (Mac16,6) / macOS 27.0 (26A428) / Xcode 27.0 (27A266a), Apple Swift 6.4 (swiftlang-6.4.0.34.1) | 1 warmup calls followed by 100 measured calls of the same 8,192-token input. Every logit and both probability arrays match the baseline bit for bit. Memory stress only: CPU builds/tests were permitted, and no other model job ran. RSS, current footprint, sampled peak and kernel lifetime peak are distinct. See the source record for first/last five medians and the fixed limits. · variant=uint4 backbone (gdn-fp32) / float32 head; backend=Core AI; GPU preferred; expectFrequentReshapes true; route=coreai-verify typed-decide --sample-memory --wait-nominal-thermal 600; normal Release; external proc_pid_rusage observer; source_revision=14b425269ed24452e0a5ad5a8f3e51d139647a88; artifact_revision=2f34243a3d28500075e09d02d9f9f565a7c4b02f94a7d47b2a3caba7262d357d; code_revision=ff2a2579e30a95a669b492f6f1eb6fca771211be; batch_size=1; concurrency=1; warmups=1; power=AC, pmset reports 68 W; battery and charging state recorded per run; thermal=ProcessInfo thermalState nominal at every row start; not a constant-temperature guarantee |
 | [E10](validation/jev27b/README.md#memory-stability-2026-11-05) | 2026-11-05 / standard / diagnostic | MacBook Pro (14-inch, 2024), Apple M4 Max, 128 GiB unified memory (Mac16,6) / macOS 27.0 (26A428) / Xcode 27.0 (27A266a), Apple Swift 6.4 (swiftlang-6.4.0.34.1) | 2 warmup calls followed by 20 measured calls of alternating 6,144 and 8,192 tokens. Every logit and both probability arrays match the baseline bit for bit. Memory stress only: CPU builds/tests were permitted, and no other model job ran. RSS, current footprint, sampled peak and kernel lifetime peak are distinct. See the source record for first/last five medians and the fixed limits. · variant=uint4 backbone (gdn-fp32) / float32 head; backend=Core AI; GPU preferred; expectFrequentReshapes true; route=coreai-verify typed-decide --sample-memory --wait-nominal-thermal 600; normal Release; external proc_pid_rusage observer; source_revision=14b425269ed24452e0a5ad5a8f3e51d139647a88; artifact_revision=2f34243a3d28500075e09d02d9f9f565a7c4b02f94a7d47b2a3caba7262d357d; code_revision=ff2a2579e30a95a669b492f6f1eb6fca771211be; batch_size=1; concurrency=1; warmups=2; power=AC, pmset reports 68 W; battery and charging state recorded per run; thermal=ProcessInfo thermalState nominal at every row start; not a constant-temperature guarantee |
 | [E11](validation/jev27b/README.md#memory-stability-2026-11-05) | 2026-11-05 / legacy / diagnostic | MacBook Pro (14-inch, 2024), Apple M4 Max, 128 GiB unified memory (Mac16,6) / macOS 27.0 (26A428) / Xcode 27.0 (27A266a), Apple Swift 6.4 (swiftlang-6.4.0.34.1) | Six diagnostic GPU tests passed, including an uncooperative 1,472-token session run cancelled before a reload and a bit-identical next answer. CPU tests separately cover failed reload, busy and changed-bundle rejection. No standalone benchmark plan for this test suite. · variant=uint4 backbone (gdn-fp32) / float32 head; backend=Core AI; GPU preferred; expectFrequentReshapes true; route=TypedDecisionInferenceTests; Release with -enable-testing; six serialized GPU tests; source_revision=14b425269ed24452e0a5ad5a8f3e51d139647a88; artifact_revision=2f34243a3d28500075e09d02d9f9f565a7c4b02f94a7d47b2a3caba7262d357d; code_revision=42a9d95; batch_size=1; concurrency=1; power=AC, pmset reports 68 W; thermal=Not recorded per test; not a latency comparison; unrecorded: warmups, plan_sha256 |
+| [E12](validation/jev27b/README.md#final-token-output-2026-11-05) | 2026-11-05 / legacy / diagnostic | MacBook Pro (14-inch, 2024), Apple M4 Max, 128 GiB unified memory (Mac16,6) / macOS 27.0 (26A428) / Xcode 27.0 (27A266a), Apple Swift 6.4 (swiftlang-6.4.0.34.1) | F: 301 forwards and one above-limit rejection; Q: 900 rows, existing D1-1/D1-2 passed. Floating-point values differ from the old native artifact; no top changes. Calibration reused; Cal/H and Japanese set not rerun. No separate common-protocol benchmark plan. The public artifact is unchanged. · variant=Unpublished uint4 final-token output candidate / float32 head; backend=Core AI; GPU preferred; expectFrequentReshapes true; route=F/Q CLI inference and scoring; six Release GPU tests with -enable-testing; old-bundle compatibility check; source_revision=14b425269ed24452e0a5ad5a8f3e51d139647a88; artifact_revision=0db5ca716c7fea75605bffddf2d1d6de03fd80c471b3528277beb98a663d9880; code_revision=8fcb8843bcb90171b7f5f22473df052cead75758; batch_size=1; concurrency=1; power=AC, pmset reports 68 W; thermal=Per-row thermal state not recorded for these CLI runs or GPU tests; no timing comparison; unrecorded: warmups, plan_sha256 |
 
 ### Setup, limitations and progress
 
@@ -95,6 +110,8 @@ Results below retain their original dates and workloads. Different rows may use 
 - [Validation records](validation/jev27b/README.md)
 
 - [Japanese (JGLUE), no pass line](jev27b.md#japanese-jglue)
+
+- [Unpublished final-token candidate validation](validation/jev27b/README.md#final-token-output-2026-11-05)
 <!-- model-report:end -->
 
 ## Quick start
@@ -259,7 +276,7 @@ size and SHA-256 of every listed file.
 | Field | Content |
 |---|---|
 | `format` | `typed-decision-v1` |
-| `backbone` | `asset` (folder name of the `.aimodel`), `function` (`main`), `inputs` (`input_ids`, `position_ids`), `output` (`hidden_states`), `hidden` (`dtype` `float16`, `size` 5120), `states` (the four state names in order), `context_length` (262144, the exported limit) |
+| `backbone` | `asset` (folder name of the `.aimodel`), `function` (`main`), `inputs` (`input_ids`, `position_ids`), `output` (`hidden_states` for all tokens, or `last_token_hidden_state` for the candidate's final position), `hidden` (`dtype` `float16`, `size` 5120), `states` (the four state names in order), `context_length` (262144, the exported limit) |
 | `head` | `file` (`head.safetensors`), `weight` (`proj.weight`), `bias` (`proj.bias`), `weight_shape` [24, 5120], `bias_shape` [24], `dtype` `float32`, `sha256` |
 | `slots` | Head rows per kind as `[start, end)`: `noul` [0, 2), `score` [2, 8), `choice` [8, 24). The ranges are disjoint and cover all 24 rows. A choice with n options uses the first n rows of its range. |
 | `verbalizers`, `verbalizer_ids` | Copied unchanged from the distributed `judge_config.json`: the 24 verbalizer strings and their token IDs. |

@@ -1,0 +1,80 @@
+{
+  "version": 1,
+  "name": "jev27b_last_token",
+  "description": "Export a final-token-only candidate from the verified merged checkpoint and published calibrated bundle.",
+  "variables": {
+    "adapters": "$repo/Tools/Conversion/adapters/jev27b",
+    "converter": "$upstream/.venv/bin/python",
+    "quantization_recipe": "$upstream/models/qwen3_5/qwen3_5_cfg.yaml",
+    "bundle_last_token": "jev27b_s1_gdnfp32_lasttoken_qwen3_5_cfg_dynamic"
+  },
+  "python": "$python",
+  "environment": {
+    "HF_HOME": "$hf_cache",
+    "HF_HUB_CACHE": "$hf_cache/hub",
+    "HF_HUB_OFFLINE": "1",
+    "HF_HUB_DISABLE_TELEMETRY": "1",
+    "TRANSFORMERS_OFFLINE": "1",
+    "TOKENIZERS_PARALLELISM": "false"
+  },
+  "steps": [
+    {
+      "id": "export_last_token",
+      "role": "export",
+      "command": [
+        "$converter", "-m", "Tools.Conversion.adapters.jev27b.export_variant", "export-last-token",
+        "--model", "$recipe_dir/model.json",
+        "--merge", "$verified_merge",
+        "--snapshot", "$snapshot",
+        "--base", "$base",
+        "--upstream", "$upstream",
+        "--recipe", "$quantization_recipe",
+        "--baseline", "$baseline_gdnfp32",
+        "--source-bundle", "$published_bundle",
+        "--bundle", "$bundle_last_token",
+        "--output", "$out"
+      ],
+      "cwd": "$repo",
+      "inputs": [
+        "$adapters/export.py",
+        "$adapters/export_variant.py",
+        "$adapters/last_token_bundle.py",
+        "$adapters/backbone.py",
+        "$adapters/backbone_gdnfp32.py",
+        "$adapters/backbone_last_token.py",
+        "$adapters/decision.py",
+        "$adapters/monitor.py",
+        "$adapters/prepare.py",
+        "$adapters/typed_head.py",
+        "$repo/Tools/Conversion/adapters/pinned.py",
+        "$repo/Tools/Conversion/storage.py",
+        "$recipe_dir/model.json",
+        "$quantization_recipe",
+        "$verified_merge/manifest.json",
+        "$verified_merge/checkpoint",
+        "$baseline_gdnfp32",
+        "$published_bundle",
+        "$snapshot/head.safetensors",
+        "$snapshot/calibration.json",
+        "$snapshot/judge_config.json",
+        "$snapshot/adapter/adapter_config.json",
+        "$snapshot/adapter/adapter_model.safetensors",
+        "$snapshot/tokenizer.json",
+        "$snapshot/tokenizer_config.json",
+        "$snapshot/chat_template.jinja",
+        "$base/LICENSE"
+      ],
+      "outputs": [
+        "jev27b_s1_gdnfp32_lasttoken_qwen3_5_cfg_dynamic",
+        "provenance.json", "quantized-hashes.json", "inspect.json", "variant.json"
+      ],
+      "checks": [
+        {"file": "inspect.json", "key": ["passed"], "equals": true},
+        {"file": "variant.json", "key": ["passed"], "equals": true}
+      ],
+      "heavy": true,
+      "timeout_s": 3600,
+      "min_free_bytes": 70000000000
+    }
+  ]
+}
