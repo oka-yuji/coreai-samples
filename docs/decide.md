@@ -12,7 +12,7 @@ hf download okayuji/clef-flash-9b-coreai-decide --local-dir ./models/clef-flash-
 
 The model guide is available in [English](clef-flash.md) and [日本語](clef-flash.ja.md). The download needs internet access; document decisions run locally after the bundle is available.
 
-Use macOS 27 and Xcode 27 on an Apple silicon Mac. Open `CoreAISamples.xcodeproj`, select the `CoreAISamples` scheme and **My Mac**, and run. The scheme uses Release. In the **Clef-Flash 9B** section of the sidebar, select the **Check a document against an editable checklist** row, then **Open decision bundle…** and choose the directory containing `decision.json`. The same button is available in **Models** (the **Get, open and prepare model bundles** row in the **Manage** section). Model weights are separate from this repository.
+Use macOS 27 and Xcode 27 on an Apple silicon Mac. Open `CoreAISamples.xcodeproj`, select the `CoreAISamples` scheme and **My Mac**, and run. The scheme uses Release. Download the model from the **Clef-Flash 9B** heading in the sidebar, then open **Check a document against an editable checklist**. The screen opens the acquired bundle and offers **Retry** if loading fails.
 
 The supported bundle is `clef-flash-9b-decide-v1`: a uint4 backbone with fp32 gated-delta updates, a separate fp16 decision head, BF16 lexical embeddings and a tokenizer. Loading checks the manifest, the required files and all entries in `SHA256SUMS` before specializing the models.
 

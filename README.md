@@ -21,8 +21,8 @@ Checked: **2026-10-19**. ✅ = recorded native-app execution on that OS for the 
 
 | Model / bundle | Use | macOS | iOS | Status | Download | Guide |
 |---|---|---|---|---|---|---|
-| Qwen3.8 27B · 4-bit, text | Chat, Work, `coreai-chat` | [✅](docs/qwen3.8-27b.md#model-report) | [—](docs/qwen3.8-27b.md#model-report) | Released · in-app download pending | [Hugging Face](https://huggingface.co/okayuji/Qwen3.8-27B-coreai-4bit) | [Guide / results](docs/qwen3.8-27b.md) |
-| Clef-Flash 9B · uint4 + fp16 head, text | Recipes, Decide | [✅](docs/clef-flash.md#model-report) | [—](docs/clef-flash.md#model-report) | Released · in-app download pending | [Hugging Face](https://huggingface.co/okayuji/clef-flash-9b-coreai-decide) | [Guide / results](docs/clef-flash.md) |
+| Qwen3.8 27B · 4-bit, text | Chat, Work, `coreai-chat` | [✅](docs/qwen3.8-27b.md#model-report) | [—](docs/qwen3.8-27b.md#model-report) | Released · Mac acquisition and UI checks pending | [Hugging Face](https://huggingface.co/okayuji/Qwen3.8-27B-coreai-4bit) | [Guide / results](docs/qwen3.8-27b.md) |
+| Clef-Flash 9B · uint4 + fp16 head, text | Recipes, Decide | [✅](docs/clef-flash.md#model-report) | [—](docs/clef-flash.md#model-report) | Released · Mac acquisition and UI checks pending | [Hugging Face](https://huggingface.co/okayuji/clef-flash-9b-coreai-decide) | [Guide / results](docs/clef-flash.md) |
 | JEV-27B · uint4 + fp32 head, text | Typed decisions (CLI) | [—](docs/jev27b.md#model-report) | [—](docs/jev27b.md#model-report) | In progress · bundle not distributed; publication is decided in #450 | — | [Guide / results](docs/jev27b.md) |
 | GLiNER2.5-multi · FP32 | Product extraction, inspection memos | [△](docs/model-reports/gliner25.md#model-report) | [△](docs/model-reports/gliner25.md#model-report) | Released · iOS device acceptance pending | [Hugging Face](https://huggingface.co/okayuji/gliner2.5-multi-coreai-fp32) | [Guide / results](docs/model-reports/gliner25.md) |
 | EmbeddingGemma 2 · FP16 / INT4-INT8 PTQ | Image search, video moment search, camera object search | [✅](docs/embeddinggemma2.md#model-report) | [△](docs/embeddinggemma2.md#model-report) | Released · iOS device acceptance pending | [Hugging Face](https://huggingface.co/okayuji/embeddinggemma-2-coreai) | [Guide / results](docs/embeddinggemma2.md) |
@@ -52,7 +52,7 @@ git clone https://github.com/oka-yuji/coreai-samples.git
 cd coreai-samples
 ```
 
-Install Rust/Cargo for the speech input adapter and Python 3.9+ for repository checks. Open `CoreAISamples.xcodeproj`, choose **CoreAISamples** and **My Mac**, then run. The scheme builds Release; **CoreAISamples-Debug** is available for debugging. Follow a model's guide to obtain and select its bundle. Weights are separate from this repository.
+Install Rust/Cargo for the speech input adapter and Python 3.9+ for repository checks. Open `CoreAISamples.xcodeproj`, choose **CoreAISamples** and **My Mac**, then run. The scheme builds Release; **CoreAISamples-Debug** is available for debugging. Download a model from its heading in the Mac sidebar, then open a demo in that section. Choose the acquired Qwen model from the conversation menu; TeleOCR keeps its local import. Weights are separate from this repository.
 
 For an iPhone build, signing, or the separate speech app, follow the [app setup guide](docs/demo-app.md#iphone-app). A successful build does not establish that every model works on that device.
 

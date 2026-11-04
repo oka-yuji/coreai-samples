@@ -72,24 +72,24 @@
 
 冷蔵庫にあるもので、このレシピは作れるか。**Recipes** は冷蔵庫の写真を読み、提案された食材を利用者が確認してから、その在庫をレシピの URL と照らし合わせます。写真には Apple の端末上のモデルを、レシピの必要な食材と道具には **Core AI で動く Clef-Flash 9B** を、数量には Swift のコードを使います。**Decide** は同じ Clef のバンドルで、文書を編集できる質問で採点します。どちらもモデルの校正していない確率を表示します。
 
-**Clef のバンドルは、公開している [Hugging Face のリポジトリ](https://huggingface.co/okayuji/clef-flash-9b-coreai-decide)で別に配布しています。** `hf auth login` なしで、匿名で取得できます。下の `hf download` は revision `12e30be4e391310377c534524df8962359a08b0f`(2026-11-04 時点の `main`)に固定しています。この revision の全 25 ファイル(7,278,592,396 bytes)が匿名の要求に応答したことを[配布の記録(英語)](validation/mac-models-distribution-20261104.md#clef-flash-9b)に残しています。[Hugging Face CLI](https://huggingface.co/docs/huggingface_hub/guides/cli)を入れてから、アプリとバンドルを取得します。バンドルを開くときは `decision.json` を含むフォルダを選びます。
+**Clef のバンドルは、公開している [Hugging Face のリポジトリ](https://huggingface.co/okayuji/clef-flash-9b-coreai-decide)で別に配布しています。** `hf auth login` なしで、匿名で取得できます。下の `hf download` は revision `12e30be4e391310377c534524df8962359a08b0f`(2026-11-04 時点の `main`)に固定しています。この revision の全 25 ファイル(7,278,592,396 bytes)が匿名の要求に応答したことを[配布の記録(英語)](validation/mac-models-distribution-20261104.md#clef-flash-9b)に残しています。まず下の手順でアプリを取得します。[Hugging Face CLI](https://huggingface.co/docs/huggingface_hub/guides/cli)による別のダウンロードは、任意のヘッドレスの例を使う場合だけ必要です。Macアプリでは **Clef-Flash 9B** の見出しから同じ版を取得します。ヘッドレスの例を試す場合だけ、後述の `hf download` で別の保存先へ取得します。
 
 ```sh
 git clone https://github.com/oka-yuji/coreai-samples.git
 cd coreai-samples
-hf download okayuji/clef-flash-9b-coreai-decide --revision 12e30be4e391310377c534524df8962359a08b0f \
-  --local-dir ./models/clef-flash-9b-decide-v1
 ```
 
-`CoreAISamples.xcodeproj` を開き、**CoreAISamples** スキームと **My Mac** を選び、実行の構成を **Release** にして実行します。右上の **EN / JP** で、Mac の 6 つの画面の表示がすべて切り替わります。
+`CoreAISamples.xcodeproj` を開き、**CoreAISamples** スキームと **My Mac** を選び、実行の構成を **Release** にして実行します。右上の **EN / JP** で、Mac の画面の表示がすべて切り替わります。
 
-サイドバーの **Clef-Flash 9B** の節の **今ある食材で、このレシピを作れる？**(Can you make this recipe with what you have?)の行を開き、**Clef-Flashのフォルダを選択**(Open Clef-Flash bundle)を選び、`models/clef-flash-9b-decide-v1` を選びます。**サンプル → 卵3個の卵焼き**(Examples → Three-egg omelette)を選び、提案された卵の数量を `1 pcs` にして確定し、**レシピを判定**(Check recipe)を押します。レシピには卵が 3 個要るので、確定した在庫では 2 個足りません。同梱の 5 枚の写真とレシピの URL は [Recipes の手順](recipes-demo.md)にあります。写真と在庫は Mac から出ません。レシピの URL の取得にはインターネット接続が要ります。
+サイドバーの **Clef-Flash 9B** の見出しからモデルを取得し、その節の **今ある食材で、このレシピを作れる？**(Can you make this recipe with what you have?)の行を開きます。取得済みのモデルが自動で読み込まれます。**サンプル → 卵3個の卵焼き**(Examples → Three-egg omelette)を選び、提案された卵の数量を `1 pcs` にして確定し、**レシピを判定**(Check recipe)を押します。レシピには卵が 3 個要るので、確定した在庫では 2 個足りません。同梱の 5 枚の写真とレシピの URL は [Recipes の手順](recipes-demo.md)にあります。写真と在庫は Mac から出ません。レシピの URL の取得にはインターネット接続が要ります。
 
-同じ節の **編集できる確認項目で文書の条件を判定**(Check a document against an editable checklist)の行を開き、同じバンドルを選んで、**サンプル → 保守契約**(Examples → Maintenance agreement)を選んで **条件を判定**(Run checklist)を押します。質問を編集してもう一度実行すると、文書を使い回します。確認の付け方、JSON の書き出し、Swift の API は [Decide の説明](decide.md)にあります。
+同じ節の **編集できる確認項目で文書の条件を判定**(Check a document against an editable checklist)の行を開くと、同じ取得済みモデルを使います。**サンプル → 保守契約**(Examples → Maintenance agreement)を選んで **条件を判定**(Run checklist)を押します。質問を編集してもう一度実行すると、文書を使い回します。確認の付け方、JSON の書き出し、Swift の API は [Decide の説明](decide.md)にあります。
 
 ビルドしたアプリは、ウィンドウを開かずに記録済みの入力も実行できます。`DECIDE_APP` にアプリの実行ファイルを指定します。
 
 ```sh
+hf download okayuji/clef-flash-9b-coreai-decide --revision 12e30be4e391310377c534524df8962359a08b0f \
+  --local-dir ./models/clef-flash-9b-decide-v1
 COREAI_DECISION_BUNDLE="$PWD/models/clef-flash-9b-decide-v1" "$DECIDE_APP" --decide-json models/clef-flash-9b-decide-v1/examples/maintenance-request.json response.json
 ```
 
