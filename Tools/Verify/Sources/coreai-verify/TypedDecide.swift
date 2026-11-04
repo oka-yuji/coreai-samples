@@ -29,8 +29,14 @@ struct TypedDecide: AsyncParsableCommand {
     @Flag(help: "Sample the process memory every 100 ms while each row runs and record the largest RSS and footprint.")
     var sampleMemory = false
 
+    @Option(help: "Before every row, wait up to this many seconds for a nominal thermal state and record the wait.")
+    var waitNominalThermal: Int?
+
     func validate() throws {
         if let limit, limit <= 0 { throw ValidationError("--limit takes a positive value.") }
+        if let waitNominalThermal, waitNominalThermal < 0 {
+            throw ValidationError("--wait-nominal-thermal takes zero or more seconds.")
+        }
     }
 
     func run() async throws {
@@ -50,6 +56,11 @@ struct TypedDecide: AsyncParsableCommand {
         let clock = ContinuousClock()
         var records: [TypedDecideRecord] = []
         for (index, row) in rows.enumerated() {
+            var thermal: ThermalStart?
+            if let waitNominalThermal {
+                thermal = try await ThermalGate(limit: .seconds(waitNominalThermal)).wait()
+            }
+            let rowStarted = Date.now
             let start = clock.now
             var record: TypedDecideRecord
             if sampleMemory {
@@ -59,8 +70,13 @@ struct TypedDecide: AsyncParsableCommand {
             } else {
                 record = try await Self.decide(row, model: model)
             }
+            if let thermal {
+                record.gated(by: thermal, started: rowStarted)
+            }
             records.append(record)
-            let summary = record.error ?? "\(record.tokenCount ?? 0) tokens"
+            let summary =
+                (record.error ?? "\(record.tokenCount ?? 0) tokens")
+                + (thermal.map { " thermal \($0.stateName) after \($0.waitedSeconds) s" } ?? "")
             FileHandle.standardError.write(
                 Data("[\(index + 1)/\(rows.count)] \(row.id) \(summary) \(seconds(clock.now - start)) s\n".utf8))
         }
@@ -179,4 +195,7 @@ struct TypedDecideRecord: Encodable {
     var top: Int?
     var elapsedSeconds: Double?
     var residentBytesMax: ResidentMaximum?
+    var started: Date?
+    var thermalWaitSeconds: Double?
+    var thermalStateAtStart: String?
 }
