@@ -581,7 +581,7 @@
     "weights_and_layer_structure_unchanged": true,
     "calibration_reused_not_refitted": true,
     "calibration_holdout_not_rerun_for_this_variant": true,
-    "latency_comparison": "pending separately",
+    "latency_comparison": "Separate record: comparison-20261105.json; these validation rows are not performance measurements.",
     "teacher_agreement_not_real_world_accuracy": true
   },
   "sources": [
