@@ -23,7 +23,8 @@ struct LocalSpeechCatalogTests {
             output: output.appending(path: "acquisition.json"), root: root, acquire: artifact.id,
             catalog: { catalog })
         #expect(status == 0)
-        let result = try await ManagedModelStore(root: root).inspect(model: model, artifact: artifact)
+        let result = try await ManagedModelStore(root: root).inspect(
+            model: model, artifact: artifact, verification: .full)
         guard case .ready(let resource) = result else {
             Issue.record("The downloaded model did not pass inspection.")
             return
