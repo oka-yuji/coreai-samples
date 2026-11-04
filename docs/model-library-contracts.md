@@ -125,3 +125,13 @@ Issue #462 adds the usage lease. `ModelUsageFeatureTests` checks the pure pairin
 The test fixtures use `owner/fixture` with fixed revisions and checksums. They are test inputs, not real distributions.
 
 The initial independent review of #171 found an inspection path that bypassed the missing/invalid distribution rule. Validation completion and the execution gate now reject that path, with regression cases for both missing metadata and an unpinned revision.
+
+## Mac language models and legacy migration
+
+`LanguageModelArtifacts` pins the full Qwen3.8 27B and Clef-Flash 9B file inventories to the published revisions in [the distribution record](validation/mac-models-distribution-20261104.md). The storage families additionally require the exact published `metadata.json` or `decision.json` bytes. The iOS catalog is unchanged.
+
+The Mac assembly supplies the former Qwen download directory as a migration candidate and enables source cleanup. Migration verifies the candidate, requires space for the complete copy, writes a cleanup journal, copies and verifies the managed files, and records their installation before retiring the source directory. Missing files, insufficient space, cancellation before promotion and unrecognized source files preserve the original. After promotion, a journal allows cleanup to resume without copying again. The source moves into a private retirement directory before deletion, so an interrupted deletion can resume there. An added source file or cleanup failure keeps the journal and original data; an independently verified managed model remains available. The managed root is excluded from backups.
+
+Conversation model matching maps only the exact former Qwen location to its pinned managed location. Restore, model-switch preparation and model-load refresh use that same comparison; other folders and revisions remain distinct. Prepared GPU copies still use their actual filesystem location.
+
+The window usage lease and a service's runtime lease have different lifetimes. `ManagedModelStore.acquire` atomically checks the installed ledger and canonical managed directory before granting the latter. Live Decide and Recipe services serialize load, execution and release, clear their model and document context, and then return the lease. Their Features retain a closing state and a pending reappearance until release acknowledgement. Chat holds its lease through `ChatModelLoader`; the conversation session releases its model reference before the loader is joined. Application termination awaits the Features' existing release effects instead of releasing the current service a second time. A cancelled termination cannot let that old cleanup clear a newly loaded model.

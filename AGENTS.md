@@ -60,6 +60,8 @@
 | `ModelLibraryRunner` の利用のlease (`CoreAISamplesKit/Sources/ModelLibraryRuntime/ModelLibraryRunner.swift`) | MainActorのrunnerが`usages`(ownerとidentityごとのleaseの配列)と、`makeLibrary`で登録したlibrary storeへの弱参照を所有する。`acquireUsage`はstoreのleaseを取ってから、ledgerの`generation`とownerのlibrary stateの`.ready`・identityの一致を確かめ、満たすときだけ配列へ足して資源を返す。満たさなければleaseを返してnil。`releaseUsage`は1つ、`release(owner:)`はそのownerの全部を、awaitの前に配列から外してから返す。どのuseに対するleaseかの対応はFeatureの`usages`(users・held・pending)が持ち、終わったuseに遅れて届いたleaseはすぐ返す。ready表示のまま拒まれたら、そのartifactを1回だけ検査し直し、同じidentityで再び拒まれたら次の検査まで求めない(`rechecked`)。library Storeを破棄してもleaseは返らないので、`abandon(owner:)`が要る。 | `ModelUsageFeatureTests`、`ModelLibraryUsageTests`(資源を落とす・leaseを持たない・ledgerを確かめない・1件にする・拒否で検査しない・毎回検査する変異で検出を確認)、TSanの`ModelLibraryRuntimeTests`。 |
 
 
+| `ChatModelLoader` / `LiveDecideService` / `LiveRecipeService` | MacのQwen/Clefは画面usageに加えて実モデル用leaseを保持する。ロード・推論・解放の終了を待ち、model/contextを破棄してから返す。Chatは世代で遅いloadを拒否し、会話session側のmodelも先に解放。Decide/Recipeはclosing中の再表示を記録し、release ack後にだけ再ロードする。アプリ終了取消では古いcleanupから新しいserviceを再解放しない。 | LanguageModelArtifactTests.runtimeLease、DecideFeatureTests、RecipeFeatureTests、両RunnerTests、ConversationArchiveSelfTestの旧パス復元、Mac Release。実取得は共有heavy-jobロック下の `--model-library-selftest --acquire`、通常UIは本人確認。 |
+
 ## 公開物の規約
 
 - 手書きのソース・テスト・設定には、doc コメントを含めてコメントを書かない。SwiftPM の `swift-tools-version` と shell の先頭 shebang は、ツールが解釈する宣言として保持する。
