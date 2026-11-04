@@ -168,13 +168,13 @@
       "artifact_revision": "a2b186a87a64d9e93a56f185a5ebc2a0613d00da7440eeb8c8c2229b64f6adf3",
       "code_revision": "9b610f88ba0b7810555384200686472e02cd11f2",
       "workload": {
-        "en": "P: four rows of exactly 100, 500, 2,000 and 8,192 tokens; latency one warmup and three measured rounds per length in one process; three fresh and three cached loads in new processes; /usr/bin/time -l and 100 ms sampling for memory; three cancellations of a 2,000-token request. Measured on AC power (70W USB-C Power Adapter, 68 W; battery 64% to 67%, charging) in the energy mode High Power, the owner's setting (plan-d2b-ac). Every stage started at thermal pressure level 0; the pressure turned heavy during the latency process (the 8,192-token row of the second round and the third round). The warmup is for the latency rounds only; loads and cancellations have none. Other load: no other model process (pgrep before the measurement); GPU use of other processes was not recorded.",
-        "ja": "P はちょうど 100・500・2,000・8,192 トークンの 4 行。1 判断の時間は 1 プロセスで長さごとに warmup 1 回と計測 3 周。ロードは新しいプロセスで fresh 3 回と cached 3 回。メモリは /usr/bin/time -l と 100 ms の採取。取消は 2,000 トークンの依頼で 3 回。AC 給電(70W USB-C 電源アダプター、68 W。残量 64% から 67%、充電中)、本人の設定のエネルギーモード High Power で計測した(plan-d2b-ac)。各段は熱の圧力 level 0 で始めたが、1 判断の時間のプロセスの途中で heavy になった(第 2 周の 8,192 トークンの行と第 3 周)。warmup は 1 判断の時間の周だけで、ロードと取消には無い。他の負荷: モデルの他のプロセスなし(計測の前の pgrep)。ほかのプロセスの GPU の使用は記録していない。"
+        "en": "P: four rows of exactly 100, 500, 2,000 and 8,192 tokens; latency one warmup and three measured rounds per length in one process; three fresh and three cached loads in new processes; /usr/bin/time -l and 100 ms sampling for memory; three cancellations of a 2,000-token request. Measured on AC power (70W USB-C Power Adapter, 68 W; battery 64% to 67%, charging) in the energy mode High Power, the owner's setting (plan-d2b-ac). Every stage started at thermal pressure level 0; the pressure turned heavy during the latency process (the 8,192-token row of the second round and the third round). The warmup is for the latency rounds only; loads and cancellations have none. Other load: no other model process (pgrep before the measurement); pmset -g log shows other activity during the run (audio sessions, a browser video wake lock, a UI automation session) that the battery run did not have; the CPU and GPU use of other processes was not recorded.",
+        "ja": "P はちょうど 100・500・2,000・8,192 トークンの 4 行。1 判断の時間は 1 プロセスで長さごとに warmup 1 回と計測 3 周。ロードは新しいプロセスで fresh 3 回と cached 3 回。メモリは /usr/bin/time -l と 100 ms の採取。取消は 2,000 トークンの依頼で 3 回。AC 給電(70W USB-C 電源アダプター、68 W。残量 64% から 67%、充電中)、本人の設定のエネルギーモード High Power で計測した(plan-d2b-ac)。各段は熱の圧力 level 0 で始めたが、1 判断の時間のプロセスの途中で heavy になった(第 2 周の 8,192 トークンの行と第 3 周)。warmup は 1 判断の時間の周だけで、ロードと取消には無い。他の負荷: モデルの他のプロセスなし(計測の前の pgrep)。pmset -g log には、バッテリー駆動の計測の間には無かったほかの活動(音声のセッション、ブラウザの動画の wake lock、UI の自動操作のセッション)が残っている。ほかのプロセスの CPU と GPU の使用は記録していない。"
       },
       "batch_size": 1,
       "concurrency": 1,
       "warmups": 1,
-      "power": "AC: 70W USB-C Power Adapter, 68 W (pmset -g ac); battery 64% to 67%, charging; energy mode High Power (pmset -g powermode 2)",
+      "power": "AC: 70W USB-C Power Adapter, 68 W (pmset -g ac); battery 64% to 67%, charging; energy mode High Power (powermode 2 in pmset -g)",
       "thermal": "pmset -g therm: no warning; thermalmonitord pressure (mTPL) 0 at the start of every stage (the cancellation test waited 50 s); during the latency process moderate from 09:26:46 and heavy 09:26:48-09:29:05 (the 8,192-token row of the second round and the third round)",
       "model_executed": true,
       "plan_sha256": "8763b18a0830395744f3f65e2bd27d5a151d85dc201b1296ea15e175af9128cb"
@@ -230,7 +230,7 @@
       "batch_size": 1,
       "concurrency": 1,
       "warmups": 1,
-      "power": "Battery power, no AC adapter attached (pmset -g ac); 90% at start, Low Power Mode off (pmset -g powermode 0). Measured on battery by the owner's instruction on 2026-11-04 06:20 JST",
+      "power": "Battery power, no AC adapter attached (pmset -g ac); 90% at start, Low Power Mode off (powermode 0 in pmset -g). Measured on battery by the owner's instruction on 2026-11-04 06:20 JST",
       "thermal": "pmset -g therm: no warning in 10 snapshots; thermalmonitord pressure moderate from 06:28:52 (end of the second round) and heavy 06:29:08-06:32:08 (from the end of the third 2,000-token row through the cancellation test)",
       "model_executed": true,
       "plan_sha256": "d361e027c9f6c4929bc8cafe7ea4f378fcdbfe7e01e795a1229e6cbc5cd5d4b7"
@@ -329,8 +329,8 @@
         "pointer": "/latency/2000/metrics/latency_s/median"
       },
       "note": {
-        "en": "P row of exactly 2,000 tokens; TypedDecisionModel.decide from call to return; lengths interleaved in one process after one warmup each; memory sampled every 100 ms during each row (--sample-memory). On AC power, energy mode High Power (plan-d2b-ac).",
-        "ja": "ちょうど 2,000 トークンの P の行。TypedDecisionModel.decide の呼び出しから復帰まで。1 プロセスで長さを交互に、各長さ warmup 1 回の後。各行の run 中に 100 ms ごとにメモリを採取(--sample-memory)。AC 給電、エネルギーモード High Power(plan-d2b-ac)。"
+        "en": "P row of exactly 2,000 tokens; TypedDecisionModel.decide from call to return; lengths interleaved in one process after one warmup each; memory sampled every 100 ms during each row (--sample-memory). The median row (second round) ended within about a second after the thermal pressure turned moderate, so its last second may have run at moderate pressure. On AC power, energy mode High Power (plan-d2b-ac).",
+        "ja": "ちょうど 2,000 トークンの P の行。TypedDecisionModel.decide の呼び出しから復帰まで。1 プロセスで長さを交互に、各長さ warmup 1 回の後。各行の run 中に 100 ms ごとにメモリを採取(--sample-memory)。中央値の行(第 2 周)は熱の圧力が moderate に変わってから約 1 秒以内に終わったので、最後の約 1 秒は moderate の下だった可能性がある。AC 給電、エネルギーモード High Power(plan-d2b-ac)。"
       }
     },
     {
@@ -409,8 +409,8 @@
         "pointer": "/cancel/metrics/cancel_s/median"
       },
       "note": {
-        "en": "2,000-token request (the state of the refund card example repeated 164 times, not a P row) cancelled after the test backbone reported its forward call; the backbone does not pass the cancellation on, so this is the rest of the run (7.98 s without cancellation). Debug build of the test target (swift test). Nominal thermal pressure (the test started after 50 s of waiting for level 0). On AC power, energy mode High Power (plan-d2b-ac).",
-        "ja": "試験用 backbone が forward の呼び出しを報告した後に取り消した 2,000 トークンの依頼(返金のカードの例の state を 164 回繰り返したもの。P の行ではない)。backbone は取消を伝えないので run の残り時間(取り消さなければ 7.98 s)。試験 target の debug build(swift test)。熱の圧力は nominal(level 0 を 50 s 待ってから開始)。AC 給電、エネルギーモード High Power(plan-d2b-ac)。"
+        "en": "2,000-token request (the state of the refund card example repeated 164 times, not a P row) cancelled after the test backbone reported its forward call; the backbone does not pass the cancellation on, so the request ends only when the run returns; the times (8.60 to 9.00 s) are longer than the same request without cancellation (7.98 s), for a reason not investigated. Debug build of the test target (swift test). Nominal thermal pressure (the test started after 50 s of waiting for level 0). On AC power, energy mode High Power (plan-d2b-ac).",
+        "ja": "試験用 backbone が forward の呼び出しを報告した後に取り消した 2,000 トークンの依頼(返金のカードの例の state を 164 回繰り返したもの。P の行ではない)。backbone は取消を伝えないので、依頼は run が返った時点で終わる。時間(8.60〜9.00 s)は取り消さない同じ依頼(7.98 s)より長く、理由は調べていない。試験 target の debug build(swift test)。熱の圧力は nominal(level 0 を 50 s 待ってから開始)。AC 給電、エネルギーモード High Power(plan-d2b-ac)。"
       }
     },
     {

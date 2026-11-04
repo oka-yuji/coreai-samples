@@ -86,6 +86,7 @@
   },
   "conditions": {
     "builds": "command line measurements: release build of coreai-verify at the plan's code_revision; cancellation test: debug build of the test target (swift test without -c release), as the plan states",
+    "other_activity": "assertions of pmset -g log during the run (assertions-log.txt): audio sessions of coreaudiod from about 09:22 to 09:28:47 and from about 09:29:36 to 09:30:52, a video wake lock of a browser from 09:25:56 to 09:25:58, a UI automation session at 09:23:31 (during the third fresh load), Handoff and network tasks. The battery run (06:22 to 06:33) had none of these (assertions-log-battery-window.txt). Their CPU and GPU use was not recorded",
     "other_load": "pgrep found no other model process before the measurement; GPU use of other processes was not recorded",
     "stages": [
       {
@@ -222,7 +223,7 @@
       "1": "moderate",
       "2": "heavy"
     },
-    "thermal_pressure_rows": "the loads and the first round at nominal; the second round at nominal up to the end of its 2,000-token row, its 8,192-token row moderate from its first second and heavy from 09:26:48; the third round heavy; the cancellation test at nominal after waiting 50 s for level 0",
+    "thermal_pressure_rows": "the loads and the first round at nominal; the second round at nominal until about the end of its 2,000-token row (the median), which ended within about a second after the change to moderate at 09:26:46.57; its 8,192-token row began at moderate and was heavy from 09:26:48; the third round heavy; the cancellation test at nominal after waiting 50 s for level 0. The rows carry no clock times, so their times are rebuilt from the logs within about a second",
     "thermal_pressure_source": "thermalmonitord mTPL from log show over the measurement window, saved right after the run (thermal-log.txt)",
     "waits_seconds": {
       "cached-1": 0,
@@ -954,6 +955,8 @@
   },
   "schema": "jev27b-validation-performance/1",
   "sources": {
+    "assertions-log-battery-window.txt": "3c2ae35756b51fd3cc49b057d9ef1374449c906f0d994023c4c93a7e2f997c33",
+    "assertions-log.txt": "0ea6f29e47f4d178510542f130903ca94cb6ad3f2476321a123cf0d074847727",
     "cancel-test.log": "800420c8778e15ef5d216236d28221ba0660ae58caf464c061eb0727162d0acf",
     "cancel/typed-cancel-run.json": "454e0c5452990387b635452688e70df1efe63a8f03c209424471940f6e85d8ec",
     "cancel/typed-cancel.json": "c068eaf6b1d962a80f3e20bd35d0a9b2e2f2f9868e9ddd81d75d96e9bfb37b99",
@@ -967,8 +970,11 @@
     "load-fresh-1.json": "6a9d4fb4bf12eb4c84ad2ceba245d13171fbcd9cbc3b9777f5f4abe5cc2b3e7c",
     "load-fresh-2.json": "70d552a50451db6c75a1765d1ca7e5019c6079ac21ccd07d52e7bc90e90e00fb",
     "load-fresh-3.json": "033b01f7d314a311c57ce7f0282cdda21192d2bcd81511aaeea8a8a438d48a21",
+    "measure.log": "bf0ce6ce4e4ef988b553960173a978d084c9b64ccbafc7845e2a0af5045e354b",
+    "power-log.txt": "bd7389aff1d806b3506f305b3ccd241868a04dbc9c91615bda8f09befefefe28",
     "records/bundle.jsonl": "8c0cf9ec9af4b8d86d439d302b5584639505d6247ff453d87ee50f744e244376",
-    "records/memory.jsonl": "7dd5217c82a866b63e145087179c1528d94a8f993a09c2caecb886e67eb92885"
+    "records/memory.jsonl": "7dd5217c82a866b63e145087179c1528d94a8f993a09c2caecb886e67eb92885",
+    "thermal-log.txt": "5b6fa3d5d53603e981dddf95021582c153c70ccae91546f0298a4f20f852e043"
   },
   "tests": {
     "build": "debug build of the test target (swift test without -c release)",
