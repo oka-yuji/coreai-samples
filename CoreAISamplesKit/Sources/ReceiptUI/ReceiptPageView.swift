@@ -48,6 +48,10 @@
                 categories
                 footer
             }
+            .frame(
+                minWidth: 640, idealWidth: 960, maxWidth: .infinity, minHeight: 560, idealHeight: 720,
+                maxHeight: .infinity
+            )
             .background(.background)
             .overlay {
                 if hovering {
@@ -176,7 +180,10 @@
                     } else {
                         Image(systemName: "checkmark.circle").foregroundStyle(.secondary)
                     }
-                    receiptText(store.state.phase.label).font(.callout)
+                    receiptText(
+                        store.state.items.isEmpty && !store.state.busy
+                            ? "Add receipts to start" : store.state.phase.label
+                    ).font(.callout)
                     if let active = store.state.active,
                         let item = store.state.items.first(where: { $0.id == active.item })
                     {
@@ -237,26 +244,30 @@
         }
 
         private var categories: some View {
-            ScrollView(.horizontal) {
-                HStack(spacing: 12) {
-                    ForEach(ReceiptCategory.allCases, id: \.self) { category in
-                        let count = store.state.items.filter { $0.record?.fields.category == category }.count
-                        HStack(spacing: 8) {
-                            Image(systemName: category.symbol).foregroundStyle(
-                                category == .review ? .orange : .secondary)
-                            VStack(alignment: .leading, spacing: 3) {
-                                receiptText(category.title).font(.caption).lineLimit(1)
-                                Text(count, format: .number).font(.title3.monospacedDigit().bold())
-                                    .contentTransition(.numericText())
+            GeometryReader { _ in
+                ScrollView(.horizontal) {
+                    HStack(spacing: 12) {
+                        ForEach(ReceiptCategory.allCases, id: \.self) { category in
+                            let count = store.state.items.filter { $0.record?.fields.category == category }.count
+                            HStack(spacing: 8) {
+                                Image(systemName: category.symbol).foregroundStyle(
+                                    category == .review ? .orange : .secondary)
+                                VStack(alignment: .leading, spacing: 3) {
+                                    receiptText(category.title).font(.caption).lineLimit(1)
+                                    Text(count, format: .number).font(.title3.monospacedDigit().bold())
+                                        .contentTransition(.numericText())
+                                }
                             }
+                            .frame(minWidth: 108, alignment: .leading).padding(10)
+                            .background(
+                                .quaternary.opacity(count > 0 ? 0.7 : 0.25), in: RoundedRectangle(cornerRadius: 8)
+                            )
+                            .animation(reduceMotion ? nil : .easeInOut(duration: 0.25), value: count)
+                            .accessibilityElement(children: .combine)
                         }
-                        .frame(minWidth: 108, alignment: .leading).padding(10)
-                        .background(.quaternary.opacity(count > 0 ? 0.7 : 0.25), in: RoundedRectangle(cornerRadius: 8))
-                        .animation(reduceMotion ? nil : .easeInOut(duration: 0.25), value: count)
-                        .accessibilityElement(children: .combine)
-                    }
-                }.padding(.horizontal, 20).padding(.vertical, 12)
-            }.scrollIndicators(.hidden)
+                    }.padding(.horizontal, 20).padding(.vertical, 12)
+                }.scrollIndicators(.hidden)
+            }.frame(height: 90)
         }
 
         private var footer: some View {

@@ -103,6 +103,23 @@
         }
       }
     },
+    "Add receipts to start" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add receipts to start"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "レシートを追加して始めましょう"
+          }
+        }
+      }
+    },
     "Books and reference materials" : {
       "extractionState" : "manual",
       "localizations" : {

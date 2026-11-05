@@ -17,7 +17,7 @@
                         receiptText("OCR text").tag(true)
                     } label: {
                         receiptText("Receipt evidence")
-                    }.pickerStyle(.segmented).frame(width: 170)
+                    }.pickerStyle(.segmented).labelsHidden().frame(width: 170)
                 }
                 if showingText {
                     ScrollView {
@@ -29,9 +29,10 @@
                         VStack(spacing: 16) {
                             ForEach(Array(item.previews.enumerated()), id: \.offset) { index, data in
                                 if let image = NSImage(data: data) {
-                                    Image(nsImage: image).resizable().scaledToFit()
+                                    Image(nsImage: image).resizable().scaledToFit().frame(maxWidth: 580)
                                         .clipShape(RoundedRectangle(cornerRadius: 3))
                                         .shadow(color: .black.opacity(0.12), radius: 5, y: 2)
+                                        .frame(maxWidth: .infinity)
                                         .accessibilityLabel(Text("Receipt page \(index + 1)", bundle: .module))
                                 }
                             }
