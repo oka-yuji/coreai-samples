@@ -5,6 +5,7 @@ extension MacDemoCatalog {
         try make(
             searchTerms: searchTerms, speechArtifact: IrodoriModelArtifact.makeReferenceDownload(platforms: [.macOS]),
             ocrArtifact: TeleOCRModelArtifact.make(),
-            qwenArtifact: LanguageModelArtifacts.qwen(), clefArtifact: LanguageModelArtifacts.clef())
+            qwenArtifact: LanguageModelArtifacts.qwen(), clefArtifact: LanguageModelArtifacts.clef(),
+            jevArtifact: JEVModelArtifact.make())
     }
 }

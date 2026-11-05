@@ -1,0 +1,64 @@
+{
+  "format": "receipt-desk-functional-plan/1",
+  "frozen_date": "2026-11-06",
+  "purpose": "Functional Mac app and Models integration; no performance comparison or receipt accuracy benchmark.",
+  "public_repository": "okayuji/jev-27b-coreai",
+  "public_revision": "acc4cc835f64a75ab9ecee9d5d2e119a3bd29212",
+  "manifest_sha256": "2f34243a3d28500075e09d02d9f9f565a7c4b02f94a7d47b2a3caba7262d357d",
+  "source_revision": "14b425269ed24452e0a5ad5a8f3e51d139647a88",
+  "variant": "uint4 backbone (gdn-fp32) / float32 head",
+  "host": {
+    "device": "Mac17,6 (Apple M5 Max), 128 GiB RAM",
+    "os": "macOS 27.2 (26B123)",
+    "toolchain": "Xcode 27.0 (27A266a), Apple Swift 6.4 (swiftlang-6.4.0.34.1)"
+  },
+  "input_manifest_sha256": "7b3bdd7f0674ad16857eac1785c797c3a2df4dd49255478e239e4721a56d742d",
+  "images": [
+    {
+      "file": "sample-01.png",
+      "sha256": "720e0610452fee2b9460ad751ed243186485d3871f6ea6ed03fe92649d6c5834",
+      "bytes": 67878
+    },
+    {
+      "file": "sample-02.png",
+      "sha256": "6056268eaca8d509a0b139e6c951e28ac60464a7ba86db58783a5bf71ee7ec6c",
+      "bytes": 69697
+    },
+    {
+      "file": "sample-03.png",
+      "sha256": "1e8ee224093dea363d818c573ac9ce843f5d7bb246381356dddd05f0ed5aa2f1",
+      "bytes": 53632
+    },
+    {
+      "file": "sample-04.png",
+      "sha256": "184a672bd28d2d9169d16da35fda36298aa2d86e2fb53fa9739f1c4c8ef4a0bf",
+      "bytes": 59864
+    }
+  ],
+  "checks": [
+    "The normal Mac Models entry downloads the pinned 13 files, validates and opens Receipt Desk without inference on launch.",
+    "The four bundled synthetic receipts produce supplies, meals, travel and review; totals 1320,1100,900,880 and date 2026-11-06.",
+    "The user confirms the first three, totaling JPY 3320; export CSV and original-copy hashes agree.",
+    "Cancelling the folder chooser releases its ticket without losing the reviewed draft; reopening export remains possible.",
+    "Changing purpose or amount invalidates confirmation; classification results never rewrite date or total.",
+    "English/Japanese display changes preserve input and results; wide and narrow layouts keep original, fields, scores and controls reachable.",
+    "The opt-in Models integration verifies the same public bytes through ManagedModelStore and production ReceiptDemoSessions/Store/Service, then closes with zero active leases."
+  ],
+  "expected_categories": [
+    "supplies",
+    "meals",
+    "travel",
+    "review"
+  ],
+  "expected_confirmed_count": 3,
+  "expected_total_yen": "3320",
+  "batch_size": 1,
+  "concurrency": 1,
+  "warmups": 0,
+  "limits": [
+    "Synthetic fixtures are functional examples, not held-out receipt quality evaluation.",
+    "UI operation durations are diagnostic; model preparation and download are separate. No new latency or memory benchmark is claimed.",
+    "Owner acceptance on personal receipts, manual multiwindow switching and other devices/OS versions remain pending.",
+    "The native test uses the pinned downloaded bundle through the existing migration path; the normal app UI separately exercises network acquisition."
+  ]
+}

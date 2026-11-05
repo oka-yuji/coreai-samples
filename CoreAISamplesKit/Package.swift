@@ -16,6 +16,9 @@ let package = Package(
         .iOS("27.0"),
     ],
     products: [
+        .library(name: "ReceiptUI", targets: ["ReceiptUI"]),
+        .library(name: "ReceiptDemoRuntime", targets: ["ReceiptDemoRuntime"]),
+        .library(name: "ReceiptFeature", targets: ["ReceiptFeature"]),
         .library(name: "ReceiptCore", targets: ["ReceiptCore"]),
         .library(name: "ReceiptRuntime", targets: ["ReceiptRuntime"]),
         .library(name: "ImageGenerationCore", targets: ["ImageGenerationCore"]),
@@ -79,6 +82,23 @@ let package = Package(
         .package(url: "https://github.com/swiftlang/swift-markdown.git", exact: "0.9.0"),
     ],
     targets: [
+        .target(
+            name: "ReceiptUI", dependencies: ["ReceiptCore", "ReceiptFeature", "FeatureStore"],
+            resources: [.process("Resources")], swiftSettings: speechSettings + [.defaultIsolation(MainActor.self)]),
+        .target(
+            name: "ReceiptDemoRuntime",
+            dependencies: ["ReceiptCore", "ReceiptFeature", "ReceiptRuntime", "ModelLibraryFeature", "FeatureStore"],
+            swiftSettings: speechSettings),
+        .testTarget(
+            name: "ReceiptDemoRuntimeTests",
+            dependencies: [
+                "ReceiptDemoRuntime", "ReceiptFeature", "ReceiptCore", "FeatureStore", "ModelLibraryFeature",
+                "ModelLibraryRuntime", "ModelLibraryStorage", "ModelLibraryTransfer",
+            ], swiftSettings: speechSettings),
+        .target(name: "ReceiptFeature", dependencies: ["ReceiptCore", "FeatureStore"], swiftSettings: speechSettings),
+        .testTarget(
+            name: "ReceiptFeatureTests", dependencies: ["ReceiptFeature", "ReceiptCore", "FeatureStore"],
+            swiftSettings: speechSettings),
         .target(name: "ReceiptCore", swiftSettings: speechSettings),
         .target(
             name: "ReceiptRuntime", dependencies: ["ReceiptCore", "CoreAIBackend"],

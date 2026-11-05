@@ -548,6 +548,7 @@ private func digest(_ file: URL) throws -> String {
 }
 
 private enum ContractFamily {
+    case jev
     case language
     case decision
     case gliner
@@ -563,6 +564,12 @@ private struct ContractSource: Decodable {
 }
 
 private func family(_ artifact: ModelArtifact) throws -> ContractFamily {
+    if artifact.contract == JEVModelArtifact.contract {
+        guard artifact == (try JEVModelArtifact.make()) else {
+            throw ManagedModelStoreError.contractMismatch("JEV inventory")
+        }
+        return .jev
+    }
     if let profile = SpeechBundleProfile(rawValue: artifact.contract) {
         let expected =
             try artifact.download == nil
@@ -692,6 +699,8 @@ private func verifyFiles(_ directory: URL, _ artifact: ModelArtifact, allowingEx
 private func verify(_ directory: URL, _ artifact: ModelArtifact) throws {
     try verifyFiles(directory, artifact)
     switch try family(artifact) {
+    case .jev:
+        try JEVModelArtifact.validateManifest(Data(contentsOf: directory.appending(path: "decision.json")))
     case .language:
         try LanguageModelArtifacts.validateManifest(
             Data(contentsOf: directory.appending(path: "metadata.json")), decision: false)

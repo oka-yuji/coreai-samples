@@ -9761,6 +9761,278 @@
           }
         }
       }
+    },
+    "After downloading JEV, receipt processing stays on this Mac." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "After downloading JEV, receipt processing stays on this Mac."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "JEV の取得後、レシートの処理はこの Mac 内で完結します。"
+          }
+        }
+      }
+    },
+    "Close and reopen Receipt Desk to start this session." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Close and reopen Receipt Desk to start this session."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Receipt Desk を一度閉じて、開き直してください。"
+          }
+        }
+      }
+    },
+    "Finishing the previous demo…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Finishing the previous demo…"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前のデモの終了を待っています…"
+          }
+        }
+      }
+    },
+    "Includes four synthetic sample receipts. Supports JPY receipts; you confirm the fields and categories." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Includes four synthetic sample receipts. Supports JPY receipts; you confirm the fields and categories."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "4 件の合成サンプルを同梱しています。日本円のレシートを対象に、項目と費目はご自身で確認できます。"
+          }
+        }
+      }
+    },
+    "JEV on Core AI" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "JEV on Core AI"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Core AI 版 JEV"
+          }
+        }
+      }
+    },
+    "Local OCR" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Local OCR"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mac で文字認識"
+          }
+        }
+      }
+    },
+    "Model download: %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Model download: %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルの取得量: %@"
+          }
+        }
+      }
+    },
+    "Open Receipt Desk" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Receipt Desk"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Receipt Desk を開く"
+          }
+        }
+      }
+    },
+    "Open Receipt Desk to organize receipts on this Mac." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Receipt Desk to organize receipts on this Mac."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Receipt Desk を開いて、この Mac でレシートを整理します。"
+          }
+        }
+      }
+    },
+    "Read receipt images and PDFs, review JEV’s category suggestions, then save a ledger with organized copies." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Read receipt images and PDFs, review JEV’s category suggestions, then save a ledger with organized copies."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "画像や PDF のレシートを読み、JEV の費目候補を確認して、台帳と整理済みのコピーを保存できます。"
+          }
+        }
+      }
+    },
+    "Receipt Desk" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Receipt Desk"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Receipt Desk"
+          }
+        }
+      }
+    },
+    "Receipt Desk is unavailable" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Receipt Desk is unavailable"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Receipt Desk を利用できません"
+          }
+        }
+      }
+    },
+    "Reviewed ledger" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reviewed ledger"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "確認済みの台帳"
+          }
+        }
+      }
+    },
+    "Sort receipts into a reviewed expense ledger" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sort receipts into a reviewed expense ledger"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "レシートを分類して経費台帳へ"
+          }
+        }
+      }
+    },
+    "The demo could not finish stopping. Try again." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The demo could not finish stopping. Try again."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "デモを停止できませんでした。もう一度お試しください。"
+          }
+        }
+      }
+    },
+    "The receipt catalog could not be loaded." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The receipt catalog could not be loaded."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "レシート用のモデル情報を読み込めませんでした。"
+          }
+        }
+      }
     }
   },
   "version" : "1.1"
