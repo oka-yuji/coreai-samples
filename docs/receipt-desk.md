@@ -1,8 +1,7 @@
 # Receipt Desk
 
 Receipt Desk is the Mac receipt workflow tracked by [#509](https://github.com/oka-yuji/coreai-samples/issues/509).
-The first merged unit provides the data contracts below. OCR, JEV inference, file export and the Mac interface
-are tracked by [#507](https://github.com/oka-yuji/coreai-samples/issues/507) and
+The core and runtime provide the contracts below. The Mac interface and Models integration are tracked by
 [#508](https://github.com/oka-yuji/coreai-samples/issues/508); this page does not claim an available app demo yet.
 
 ## Data contracts
@@ -50,5 +49,67 @@ decoding, Gregorian dates, extraction fixtures, probability validation, confirma
 paths and CSV cells. The Japanese fixture text is test data rather than a model-quality result. No OCR or JEV model
 runs in this suite.
 
-The application work must separately validate actual OCR, classification, stop/release ordering, export failures and
-the final UI. Receipt-only input cannot establish business purpose or tax eligibility. No accounting service is called.
+## Runtime
+
+`ReceiptRuntime` runs on macOS 27 or later. `ReceiptPipeline` retains at most 20 receipt snapshots, each at most
+20 MiB. It accepts one receipt per JPEG, PNG, HEIC/HEIF or single-frame TIFF file, or a PDF with one to five pages.
+The file reader rejects non-regular files, leaf symlinks, empty files, changed reads and duplicate content.
+An imported snapshot contains the original bytes and their SHA-256; editing or deleting the source afterward does
+not silently change the evidence exported with a ledger.
+
+Vision recognizes fixed Japanese/English text locally with automatic language detection disabled. Core Graphics renders PDF pages; image previews are bounded
+PNG copies. Empty pages remain explicitly unreadable. The deterministic parser proposes a merchant, date and labelled
+total. Ambiguous or unrecognized values need correction; OCR confidence is not a correctness guarantee.
+
+JEV receives the recognized text, corrected merchant and optional purchase purpose as JSON, together with one fixed
+question and eight ordered choices. `TypedDecisionModel` performs actual Core AI inference. Neither the expected
+sample labels nor the UI language is fed into the model. The answer can change only the proposed category; it never
+supplies a total, date, folder path or accounting transaction. The first version performs direct classification and
+has no Decision RAG tree or embedding index.
+
+A pipeline has one active operation. Cancellation joins native work before another request can use it. Release
+permanently closes the instance, waits for any active work, then clears the model and snapshots. A new owner must
+create a new pipeline. Timings returned by read/classify describe that operation and exclude model download/preparation.
+They are diagnostic timings, not a throughput promise.
+
+Export validates every confirmed ledger row against the retained source fingerprint. It writes receipt copies,
+`ledger.csv` and `ledger.json` into a private staging directory, then publishes a new `ReceiptDesk-<UUID>` directory
+with an exclusive rename. Open directory descriptors and recorded file identities keep writes attached to the owned
+staging tree. Publication rechecks exact directory inventories and hashes each retained output file descriptor.
+Cleanup removes only recorded entries whose identities still match; replaced or unrecognized contents
+are preserved and reported as a cleanup failure. A normal failure or cancellation before publication removes staging;
+an existing destination is never overwritten. Successful publication is the commit point. The original receipt is never moved or modified.
+JSON amounts are decimal strings; CSV amounts are exact integer yen. This is a reviewed draft ledger, not a tax filing.
+
+## Runtime checks and samples
+
+`swift test --package-path CoreAISamplesKit --force-resolved-versions --filter ReceiptRuntimeTests` uses fake readers
+and decision engines for source limits, reentrant cancellation/release, retry, invalid classifications, source binding,
+transaction failure and cancellation. Native checks are skipped by default.
+
+The four images under `ReceiptRuntime/Resources/Examples` are synthetic demo receipts, including Japanese text and
+a mixed personal/business purchase. Their generator and input manifest are documented in `Tools/Receipts/README.md`.
+Expected categories are test assertions only. These four examples cannot establish receipt classification accuracy.
+
+Run the following native checks under the shared heavy-job lock described in `AGENTS.md`:
+
+```sh
+RECEIPT_VISION_TEST=1 swift test --package-path CoreAISamplesKit -c release --filter ReceiptNativeTests.nativeOCR
+RECEIPT_JEV_BUNDLE=/path/to/public-jev-bundle RECEIPT_NATIVE_REPORT=/new/report.json swift test --package-path CoreAISamplesKit -c release --filter ReceiptNativeTests.nativeJEV
+```
+
+The JEV test requires the published `okayuji/jev-27b-coreai` revision
+`acc4cc835f64a75ab9ecee9d5d2e119a3bd29212`, whose `decision.json` SHA-256 is
+`2f34243a3d28500075e09d02d9f9f565a7c4b02f94a7d47b2a3caba7262d357d`.
+It checks actual OCR/classification and the exported CSV/original-byte hashes. Host and native results do not stand
+in for the final Mac UI, user receipts, Japanese receipt quality, accounting correctness or iPhone acceptance.
+Receipt-only input cannot establish business purpose or tax eligibility. No accounting service is called.
+
+On 2026-11-06, macOS 27.2 (26B123), Xcode 27.0 and an M5 Max with 128 GiB passed the native image/PDF check
+and the public JEV check. The four synthetic receipts matched the expected supplies/meals/travel/review labels.
+The three confirmable receipts totaled JPY 3,320; the mixed purchase remained review. The check also compared
+exported original-byte hashes and CSV bytes. This is one functional smoke run, not a receipt benchmark or UI acceptance.
+
+The initial native OCR check exposed two issues: automatic language detection read Japanese yen suffixes as letters,
+and the PDF drawing transform did not enlarge pages. Fixed language selection and an explicit rendering scale passed
+the same unchanged sample assertions. The parser never converted the misread letters into money.

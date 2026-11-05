@@ -17,6 +17,7 @@ let package = Package(
     ],
     products: [
         .library(name: "ReceiptCore", targets: ["ReceiptCore"]),
+        .library(name: "ReceiptRuntime", targets: ["ReceiptRuntime"]),
         .library(name: "ImageGenerationCore", targets: ["ImageGenerationCore"]),
         .library(name: "ImageGenerationRuntime", targets: ["ImageGenerationRuntime"]),
         .library(name: "ImageDiagnosticFeature", targets: ["ImageDiagnosticFeature"]),
@@ -79,6 +80,12 @@ let package = Package(
     ],
     targets: [
         .target(name: "ReceiptCore", swiftSettings: speechSettings),
+        .target(
+            name: "ReceiptRuntime", dependencies: ["ReceiptCore", "CoreAIBackend"],
+            resources: [.copy("Resources")], swiftSettings: speechSettings),
+        .testTarget(
+            name: "ReceiptRuntimeTests", dependencies: ["ReceiptRuntime", "ReceiptCore"],
+            swiftSettings: speechSettings),
         .testTarget(
             name: "ReceiptCoreTests", dependencies: ["ReceiptCore"], resources: [.copy("Fixtures")],
             swiftSettings: speechSettings),

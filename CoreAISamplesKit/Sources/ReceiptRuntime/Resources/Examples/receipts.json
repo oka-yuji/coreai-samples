@@ -1,0 +1,30 @@
+[
+  {
+    "file": "sample-01.png",
+    "title": "Office supplies receipt",
+    "purpose": "Pens and paper for a client project",
+    "lines": ["Sample Stationery", "RECEIPT", "2026-11-06", "Copy paper                 900", "Pens                       300", "Subtotal                 1,200", "Tax                        120", "Total JPY                1,320", "Cash                     2,000", "Change                     680"],
+    "expectedCategory": "supplies", "expectedAmount": "1320", "expectedDate": "2026-11-06"
+  },
+  {
+    "file": "sample-02.png",
+    "title": "Japanese cafe receipt",
+    "purpose": "お客様との打ち合わせで購入した飲食物",
+    "lines": ["あおぞらカフェ", "領収書", "2026年11月6日", "コーヒー                    400", "サンドイッチ                600", "小計                     1,000円", "消費税                     100円", "合計                     1,100円", "お預り                   2,000円", "お釣り                     900円"],
+    "expectedCategory": "meals", "expectedAmount": "1100", "expectedDate": "2026-11-06"
+  },
+  {
+    "file": "sample-03.png",
+    "title": "Train ticket receipt",
+    "purpose": "Train to a client meeting",
+    "lines": ["Sample City Rail", "RECEIPT", "2026/11/06", "Train ticket               900", "Total JPY                  900", "Card payment               900"],
+    "expectedCategory": "travel", "expectedAmount": "900", "expectedDate": "2026-11-06"
+  },
+  {
+    "file": "sample-04.png",
+    "title": "Mixed purchase for review",
+    "purpose": "Office stationery and a personal snack were paid together",
+    "lines": ["Sample Marketplace", "RECEIPT", "2026-11-06", "Notebook                   300", "Chocolate                  500", "Subtotal                   800", "Tax                         80", "Total JPY                  880"],
+    "expectedCategory": "review", "expectedAmount": "880", "expectedDate": "2026-11-06"
+  }
+]
