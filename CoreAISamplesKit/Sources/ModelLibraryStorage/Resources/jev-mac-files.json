@@ -1,0 +1,67 @@
+[
+  {
+    "bytes": 11544,
+    "path": "LICENSE",
+    "sha256": "bbedc3fda3305820b977265f01b8619d87570a6739de3a5582c3464840f1e57a"
+  },
+  {
+    "bytes": 4802,
+    "path": "NOTICE.md",
+    "sha256": "9ca60a56dd0c65a1a5dbda41336730b9ea0c84f7f1637faed08e8f1a43a634ea"
+  },
+  {
+    "path": "SHA256SUMS",
+    "bytes": 1138,
+    "sha256": "5bb4e8e5b4b79b8b84f3576bd4d243158b97e5a824101eefe461b1734b4b7991"
+  },
+  {
+    "bytes": 19871,
+    "path": "calibration-refit.json",
+    "sha256": "93bcba90332627cef0f5b67cce78eb29b4f8cc55ce4701000d4cef6829be0f79"
+  },
+  {
+    "path": "decision.json",
+    "bytes": 4844,
+    "sha256": "2f34243a3d28500075e09d02d9f9f565a7c4b02f94a7d47b2a3caba7262d357d"
+  },
+  {
+    "bytes": 491768,
+    "path": "head.safetensors",
+    "sha256": "8256776bac46e653a3e126ab4e8d5e6d0eed73e7fa6f1e55306083607e44753d"
+  },
+  {
+    "bytes": 32,
+    "path": "jev27b_s1_gdnfp32_qwen3_5_cfg_dynamic.aimodel/main.hash",
+    "sha256": "ddc5c3030f568e15899d3bb12e4cd96a2d65e3bb36bc174c3167c3cabf7d1b33"
+  },
+  {
+    "bytes": 16044285337,
+    "path": "jev27b_s1_gdnfp32_qwen3_5_cfg_dynamic.aimodel/main.mlirb",
+    "sha256": "965396ce46af30aca1e65df8fe2e0fa4639be120b8bb18a7edeefc5dbbc86de0"
+  },
+  {
+    "bytes": 105,
+    "path": "jev27b_s1_gdnfp32_qwen3_5_cfg_dynamic.aimodel/metadata.json",
+    "sha256": "cd7122fc213817c8d65853b586d25bd2f090a8dbc5ba54b574926001cb832d3b"
+  },
+  {
+    "bytes": 2545,
+    "path": "metadata.json",
+    "sha256": "2b49e25cab2368581d83ddbd124893d1723ef231f4a50673457a488f25c6302d"
+  },
+  {
+    "bytes": 8952,
+    "path": "tokenizer/chat_template.jinja",
+    "sha256": "c3cf9e34abf4f9e36c2d72165aa9c132d3e2a725b6c2586aaa3a8af9d7a81041"
+  },
+  {
+    "bytes": 19989325,
+    "path": "tokenizer/tokenizer.json",
+    "sha256": "06b9509352d2af50381ab2247e083b80d32d5c0aba91c272ca9ff729b6a0e523"
+  },
+  {
+    "bytes": 1124,
+    "path": "tokenizer/tokenizer_config.json",
+    "sha256": "66e427c470fe580fe8c7b5725d857af23d8417e37fae62667ec698306a19987b"
+  }
+]

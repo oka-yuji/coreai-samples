@@ -1,7 +1,7 @@
 public enum MacDemoCatalog {
     public static func make(
         searchTerms: [String: [String]] = [:], speechArtifact: ModelArtifact, ocrArtifact: ModelArtifact,
-        qwenArtifact: ModelArtifact, clefArtifact: ModelArtifact
+        qwenArtifact: ModelArtifact, clefArtifact: ModelArtifact, jevArtifact: ModelArtifact
     ) throws -> ModelCatalog {
         let mac: Set<LibraryPlatform> = [.macOS]
         let demos = [
@@ -45,8 +45,9 @@ public enum MacDemoCatalog {
                     [PublishedModelArtifacts.glinerFP32(platforms: mac)], ["comparison"]),
                 model("irodori", "Irodori", "Speech Synthesis", [speechArtifact], ["speech"]),
                 TeleOCRDemoCatalog.model(artifact: ocrArtifact),
+                ReceiptDemoCatalog.model(artifact: jevArtifact),
             ],
-            demos: demos)
+            demos: demos + [ReceiptDemoCatalog.demo])
     }
 
 }

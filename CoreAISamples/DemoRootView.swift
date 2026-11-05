@@ -19,6 +19,7 @@ enum Demo: String, CaseIterable, Identifiable {
     case extract
     case speech
     case ocr
+    case receipts
 
     var id: String { rawValue }
 
@@ -32,6 +33,7 @@ enum Demo: String, CaseIterable, Identifiable {
         case .extract: "GLiNER2.5-multi"
         case .speech: "Irodori"
         case .ocr: "TeleOCR"
+        case .receipts: "JEV-27B"
         }
     }
 
@@ -45,6 +47,7 @@ enum Demo: String, CaseIterable, Identifiable {
         case .extract: "Compare product specifications from official descriptions"
         case .speech: "Generate and play speech from text with Irodori"
         case .ocr: "Read text and tables from a document image"
+        case .receipts: "Sort receipts into a reviewed expense ledger"
         }
     }
 
@@ -58,6 +61,7 @@ enum Demo: String, CaseIterable, Identifiable {
         case .extract: "text.magnifyingglass"
         case .speech: "waveform"
         case .ocr: "doc.viewfinder"
+        case .receipts: "receipt"
         }
     }
 }
@@ -69,6 +73,7 @@ enum DemoModel: CaseIterable {
     case gliner
     case irodori
     case teleOCR
+    case jev
 
     var title: String {
         switch self {
@@ -78,6 +83,7 @@ enum DemoModel: CaseIterable {
         case .gliner: "GLiNER2.5-multi"
         case .irodori: "Irodori"
         case .teleOCR: "TeleOCR"
+        case .jev: "JEV-27B"
         }
     }
 
@@ -89,6 +95,7 @@ enum DemoModel: CaseIterable {
         case .gliner: "gliner2.5-multi"
         case .irodori: "irodori"
         case .teleOCR: "teleocr"
+        case .jev: "jev-27b"
         }
     }
 
@@ -104,6 +111,7 @@ extension Demo {
         case .extract: .gliner
         case .speech: .irodori
         case .ocr: .teleOCR
+        case .receipts: .jev
         }
     }
 }
@@ -228,7 +236,7 @@ struct DemoRootView: View {
                 lifetime.close(windowID)
             }
             .onChange(of: navigator.selection) { old, new in
-                if old == .ocr && new != .ocr { library.leave() }
+                if (old == .ocr || old == .receipts) && new != old { library.leave() }
             }
             .onChange(of: library.installed(.irodori)?.directory) { old, new in
                 if old != nil, new != old { speech.send(.bundleUnavailable) }
@@ -280,6 +288,7 @@ struct DemoRootView: View {
                 }
             case .speech?: SpeechView(store: speech)
             case .ocr?: OCRHostView(library: library)
+            case .receipts?: ReceiptHostView(library: library)
             case nil: ContentUnavailableView("Select a demo", systemImage: "square.grid.2x2")
             }
         }

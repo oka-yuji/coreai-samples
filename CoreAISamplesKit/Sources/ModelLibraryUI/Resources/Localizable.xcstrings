@@ -517,6 +517,23 @@
         }
       }
     },
+    "Receipt Classification" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Receipt Classification"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "レシート分類"
+          }
+        }
+      }
+    },
     "Reference voice (FP32)" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -596,6 +613,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "モデル・デモを検索"
+          }
+        }
+      }
+    },
+    "Sort receipts into a reviewed expense ledger" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sort receipts into a reviewed expense ledger"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "レシートを分類して経費台帳へ"
           }
         }
       }

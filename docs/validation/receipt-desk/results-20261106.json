@@ -1,0 +1,69 @@
+{
+  "format": "receipt-desk-validation/1",
+  "plan_sha256": "3ed8dce38c207e8a7946a6145f012599f1aaffa320c3d12d38647dab9f4b63da",
+  "public_bundle_bytes": 16064821387,
+  "public_bundle_files": 13,
+  "normal_app_download_verified": true,
+  "native_models": {
+    "categories": [
+      "supplies",
+      "meals",
+      "travel",
+      "review"
+    ],
+    "confirmedCount": 3,
+    "csvMatched": true,
+    "format": "receipt-models-integration/1",
+    "leasesAfterClose": 0,
+    "manifestSHA256": "2f34243a3d28500075e09d02d9f9f565a7c4b02f94a7d47b2a3caba7262d357d",
+    "originalHashesMatched": true,
+    "os": "Version 27.2 (Build 26B123)",
+    "revision": "acc4cc835f64a75ab9ecee9d5d2e119a3bd29212",
+    "totalYen": "3320",
+    "code_revision": "06100e4e04487a03a78e9e997dc3b24e816942f9"
+  },
+  "initial_ui_export": {
+    "format": "receipt-ui-export-check/1",
+    "code_revision": "9aecf6b5c6f37faa3802808c282340263bb31afd",
+    "count": 3,
+    "total_yen": "3320",
+    "csv_matches": true,
+    "original_copies_match": true,
+    "categories": [
+      "supplies",
+      "meals",
+      "travel"
+    ],
+    "files": [
+      "2026/11/meals/2026-11-06-2.png",
+      "2026/11/supplies/2026-11-06-1.png",
+      "2026/11/travel/2026-11-06-3.png",
+      "ledger.csv",
+      "ledger.json"
+    ]
+  },
+  "final_ui": {
+    "format": "receipt-ui-functional/1",
+    "code_revision": "60189c5c536a0e40cf8335077c46dbc10dbfd68b",
+    "input": "sample-02.png via the standard file picker, without a preset purpose",
+    "category": "meals",
+    "date": "2026-11-06",
+    "amount": "1100",
+    "confirmed_count": 1,
+    "total_yen": "1100",
+    "stop_during_preparation": true,
+    "resume_same_input": true,
+    "amount_edit_clears_confirmation": true,
+    "unchanged_tab_preserves_category": true,
+    "cancel_folder_keeps_draft": true,
+    "export_csv_and_original_hash_match": true,
+    "saved_paths": [
+      "2026/11/meals/2026-11-06-1.png",
+      "ledger.csv",
+      "ledger.json"
+    ],
+    "layouts": "Wide app layouts observed; compact branch not visually verified by the available window controls.",
+    "voiceover": "Accessibility labels inspected; VoiceOver speech not exercised.",
+    "owner_acceptance": "pending"
+  }
+}

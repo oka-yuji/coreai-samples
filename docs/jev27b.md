@@ -7,7 +7,7 @@ JEV-27B answers typed questions about a situation: `noul` (false or true), `choi
 builds from [autotrust/JEV-27B](https://huggingface.co/autotrust/JEV-27B) and the checks recorded for it. One prefill of
 a bare template runs on the Core AI asset, and a 24-row decision head turns the hidden state of the last token into the
 probabilities of the options. Download the bundle from Hugging Face and run it on the Mac with
-`coreai-verify typed-decide`. The sample app does not use this model; app integration remains separate.
+`coreai-verify typed-decide`, or open the Mac app’s **Receipt Desk** from the **JEV-27B** entry in Models.
 
 **For:** Swift developers running and measuring typed decisions on the Mac. **Not for:**
 free-form chat, production decisions, or probabilities used as real-world correctness without further checks.
@@ -15,6 +15,14 @@ free-form chat, production decisions, or probabilities used as real-world correc
 Requirements: Apple silicon, macOS 27, Xcode 27 with Metal Toolchain, GPU execution. Measured on a MacBook Pro (14-inch, 2024), Apple M4 Max, with 128 GiB of unified memory
 (model identifier Mac16,6), macOS 27.0 (26A428). A minimum-memory configuration has not been established. Downloading the bundle does not require conversion. Building it from source needs the reference and converter environments of the recipe, the pinned inputs and free disk space (the
 export steps check for 160 GB).
+
+## Receipt Desk on the Mac
+
+The [Receipt Desk guide](receipt-desk.md) shows the native workflow: add receipt images/PDFs, watch Vision OCR
+and JEV category suggestions arrive, review the fields and export a ledger with organized original copies.
+The Models entry pins public revision `acc4cc835f64a75ab9ecee9d5d2e119a3bd29212` and verifies all 13 files.
+Four synthetic samples are included. JEV supplies a category only; exact yen calculations and safe relative paths
+come from deterministic code, and the user confirms the ledger. There is no Decision RAG tree or embedding index.
 
 ## Runtime memory stabilization (2026-11-05)
 
@@ -84,7 +92,7 @@ Results below retain their original dates and workloads. Different rows may use 
 
 | Platform | State | Verified scope / remaining work | Evidence |
 |---|---|---|---|
-| macos | — | Only the coreai-verify command line tool runs the bundle; app integration is #449. | — |
+| macos | ✅ | Receipt Desk on macOS 27.2/M5 Max: pinned Models download, synthetic OCR/JEV, review and original-copy export. Personal receipts, compact layout and owner acceptance remain pending. | [E17](validation/receipt-desk/README.md#native-app) · [E18](validation/receipt-desk/README.md#models-integration) |
 | ios | — | Native demo is not provided for this platform. | — |
 
 ### Performance and quality
@@ -159,6 +167,8 @@ Results below retain their original dates and workloads. Different rows may use 
 | [E14](validation/jev27b/README.md#controlled-comparison-2026-11-05) | 2026-11-05 / standard / diagnostic | MacBook Pro (14-inch, 2024), Apple M4 Max, 128 GiB unified memory (Mac16,6) / macOS 27.0 (26A428) / Xcode 27.0 (27A266a), Apple Swift 6.4 (swiftlang-6.4.0.34.1) | B: Memory stabilization. Fixed 100/500/2000/8192-token sequence; two fresh processes, four warmups and three measured rounds each; n=6 per length. A-B-C-D-D-C-B-A order. No concurrent builds/tests/model jobs. External memory observer at 100 ms, complete runs and source hashes in the record. B/C 100-token rows include reload and first-run costs. Source/native precision and LoRA merging differ. · variant=Memory stabilization / uint4 gdn-fp32 backbone, float32 head; backend=Core AI; GPU preferred; expectFrequentReshapes true; route=Normal Release coreai-verify typed-decide --wait-nominal-thermal 600; internal sampler disabled; source_revision=14b425269ed24452e0a5ad5a8f3e51d139647a88; artifact_revision=2f34243a3d28500075e09d02d9f9f565a7c4b02f94a7d47b2a3caba7262d357d; code_revision=ff2a2579e30a95a669b492f6f1eb6fca771211be; batch_size=1; concurrency=1; warmups=4; power=AC, pmset reports 68 W throughout; High Power mode (powermode 2); battery 100% to 94% over the full sequence; thermal=ProcessInfo thermalState nominal at every row start; waits excluded; not constant temperature |
 | [E15](validation/jev27b/README.md#controlled-comparison-2026-11-05) | 2026-11-05 / standard / diagnostic | MacBook Pro (14-inch, 2024), Apple M4 Max, 128 GiB unified memory (Mac16,6) / macOS 27.0 (26A428) / Xcode 27.0 (27A266a), Apple Swift 6.4 (swiftlang-6.4.0.34.1) | C: Unpublished final-token candidate. Fixed 100/500/2000/8192-token sequence; two fresh processes, four warmups and three measured rounds each; n=6 per length. A-B-C-D-D-C-B-A order. No concurrent builds/tests/model jobs. External memory observer at 100 ms, complete runs and source hashes in the record. B/C 100-token rows include reload and first-run costs. Source/native precision and LoRA merging differ. · variant=Unpublished final-token candidate / uint4 gdn-fp32 backbone, float32 head; backend=Core AI; GPU preferred; expectFrequentReshapes true; route=Normal Release coreai-verify typed-decide --wait-nominal-thermal 600; internal sampler disabled; source_revision=14b425269ed24452e0a5ad5a8f3e51d139647a88; artifact_revision=0db5ca716c7fea75605bffddf2d1d6de03fd80c471b3528277beb98a663d9880; code_revision=8fcb8843bcb90171b7f5f22473df052cead75758; batch_size=1; concurrency=1; warmups=4; power=AC, pmset reports 68 W throughout; High Power mode (powermode 2); battery 100% to 94% over the full sequence; thermal=ProcessInfo thermalState nominal at every row start; waits excluded; not constant temperature |
 | [E16](validation/jev27b/README.md#controlled-comparison-2026-11-05) | 2026-11-05 / standard / diagnostic | MacBook Pro (14-inch, 2024), Apple M4 Max, 128 GiB unified memory (Mac16,6) / macOS 27.0 (26A428) / Xcode 27.0 (27A266a), Apple Swift 6.4 (swiftlang-6.4.0.34.1) | D: Original PyTorch/MPS reference. Fixed 100/500/2000/8192-token sequence; two fresh processes, four warmups and three measured rounds each; n=6 per length. A-B-C-D-D-C-B-A order. No concurrent builds/tests/model jobs. External memory observer at 100 ms, complete runs and source hashes in the record. B/C 100-token rows include reload and first-run costs. Source/native precision and LoRA merging differ. · variant=Original PyTorch/MPS reference / BF16 base, unmerged LoRA, float32 CPU head; backend=PyTorch 2.15.0 / MPS; no CPU fallback; float32 CPU head; route=Tools.Conversion.adapters.jev27b.benchmark_reference; source_revision=14b425269ed24452e0a5ad5a8f3e51d139647a88; artifact_revision=14b425269ed24452e0a5ad5a8f3e51d139647a88; code_revision=e5c43a859486b261c0111822ce372fc6a0d2f7a2; batch_size=1; concurrency=1; warmups=4; power=AC, pmset reports 68 W throughout; High Power mode (powermode 2); battery 100% to 94% over the full sequence; thermal=ProcessInfo thermalState nominal at every row start; waits excluded; not constant temperature |
+| [E17](validation/receipt-desk/README.md#native-app) | 2026-11-06 / standard / native_app | Mac17,6 (Apple M5 Max), 128 GiB RAM / macOS 27.2 (26B123) / Xcode 27.0 (27A266a), Apple Swift 6.4 (swiftlang-6.4.0.34.1) | Final UI: synthetic Japanese sample PNG via the standard file picker without preset purpose; stop during preparation and resume; amount edit/Tab/restore; confirmation, chooser cancellation and export of one JPY 1100 receipt, with CSV/JSON and original-byte hash checks. The separate earlier four-sample UI run at 9aecf6b is retained in the record. No performance or general receipt-quality criterion; compact layout and owner acceptance remain unverified. · variant=uint4 backbone (gdn-fp32) / float32 head; backend=Vision OCR and Core AI TypedDecisionModel; published all-token JEV asset with runtime recycling; route=CoreAISamples Release Mac app: normal Models download/verification, Receipt Desk file picker, Vision, JEV, stop/retry, edit/confirm and folder export; source_revision=14b425269ed24452e0a5ad5a8f3e51d139647a88; artifact_revision=2f34243a3d28500075e09d02d9f9f565a7c4b02f94a7d47b2a3caba7262d357d; code_revision=60189c5c536a0e40cf8335077c46dbc10dbfd68b; batch_size=1; concurrency=1; warmups=0; power=AC reported 140 W before UI checks; not sampled per request. Functional checks only.; thermal=pmset reported no recorded warning before UI checks; per-call thermal state not recorded. |
+| [E18](validation/receipt-desk/README.md#models-integration) | 2026-11-06 / standard / diagnostic | Mac17,6 (Apple M5 Max), 128 GiB RAM / macOS 27.2 (26B123) / Xcode 27.0 (27A266a), Apple Swift 6.4 (swiftlang-6.4.0.34.1) | Four synthetic receipts matched supplies/meals/travel/review and fixed amounts/dates. Three confirmed records totaled JPY 3320; CSV and copied original hashes matched, with zero leases after close. Rendering adapter only is a test adapter. Uses the downloaded public bytes without source removal; network and normal UI are verified separately. · variant=uint4 backbone (gdn-fp32) / float32 head; backend=Vision OCR and Core AI TypedDecisionModel; published all-token JEV asset with runtime recycling; route=Release ReceiptModelsIntegrationTests.nativeWorkflow: pinned bundle migration, Models inspection/lease and production ReceiptDemoSessions/Store/Service/OCR/JEV/export; source_revision=14b425269ed24452e0a5ad5a8f3e51d139647a88; artifact_revision=2f34243a3d28500075e09d02d9f9f565a7c4b02f94a7d47b2a3caba7262d357d; code_revision=06100e4e04487a03a78e9e997dc3b24e816942f9; batch_size=1; concurrency=1; warmups=0; power=AC reported 140 W before UI checks; not sampled per request. Functional checks only.; thermal=pmset reported no recorded warning before UI checks; per-call thermal state not recorded. |
 
 ### Setup, limitations and progress
 
@@ -171,6 +181,8 @@ Results below retain their original dates and workloads. Different rows may use 
 - [Unpublished final-token candidate validation](validation/jev27b/README.md#final-token-output-2026-11-05)
 
 - [Controlled before/after/source comparison](validation/jev27b/README.md#controlled-comparison-2026-11-05)
+
+- [Receipt Desk guide](receipt-desk.md)
 <!-- model-report:end -->
 
 ## Quick start

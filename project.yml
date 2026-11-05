@@ -115,6 +115,10 @@ targets:
       - package: CoreAISamplesKit
         product: ModelLibraryUI
       - sdk: AVKit.framework
+      - package: CoreAISamplesKit
+        product: ReceiptDemoRuntime
+      - package: CoreAISamplesKit
+        product: ReceiptUI
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.coreai-samples.DemoApp

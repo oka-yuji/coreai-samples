@@ -2,11 +2,17 @@
 
 [トップ](../README.ja.md) · [English](jev27b.md) · [Hugging Face から取得](https://huggingface.co/okayuji/jev-27b-coreai)
 
-JEV-27B は、状況についての型付きの質問に答えるモデルです。質問の型は `noul`(false か true)、`choice`(2〜16 択)、`score`(0〜5)の 3 つです。このページは、[`jev27b` の変換レシピ](../Tools/Conversion/recipes/jev27b/README.md)が [autotrust/JEV-27B](https://huggingface.co/autotrust/JEV-27B) から作る Core AI の bundle と、その記録した検査を説明します。素のテンプレートを 1 回 prefill して Core AI の資産で最後のトークンの隠れ状態を出し、24 行の判断ヘッドで選択肢の確率に変えます。bundle は Hugging Face から取得し、Mac の `coreai-verify typed-decide` で動かせます。サンプルアプリへの組み込みは別の作業です。
+JEV-27B は、状況についての型付きの質問に答えるモデルです。質問の型は `noul`(false か true)、`choice`(2〜16 択)、`score`(0〜5)の 3 つです。このページは、[`jev27b` の変換レシピ](../Tools/Conversion/recipes/jev27b/README.md)が [autotrust/JEV-27B](https://huggingface.co/autotrust/JEV-27B) から作る Core AI の bundle と、その記録した検査を説明します。素のテンプレートを 1 回 prefill して Core AI の資産で最後のトークンの隠れ状態を出し、24 行の判断ヘッドで選択肢の確率に変えます。bundle は Hugging Face から取得し、Mac の `coreai-verify typed-decide` で動かせます。Mac アプリでは Models の **JEV-27B** から **Receipt Desk** を開いて試せます。
 
 **向いている人:** Swift から Mac 上の型付き判断を動かし、測りたい開発者。**向かない用途:** 自由な対話、本番の判断、追加の検査なしに確率を現実の正しさとして使うこと。
 
 必要なもの: Apple silicon、macOS 27、Metal Toolchain を入れた Xcode 27、GPU での実行。計測は MacBook Pro（14インチ、2024年）、Apple M4 Max、メモリ128 GiB（機種ID: Mac16,6）、macOS 27.0(26A428)で行いました。最小のメモリ構成は確かめていません。配布済み bundle の利用には変換は不要です。自分で bundle を作るには、レシピの参照環境と変換環境、固定した入力、空きディスクが要ります(書き出しの段は 160 GB の空きを確かめます)。
+
+## Mac の Receipt Desk
+
+[レシートデモの使い方](receipt-desk.ja.md)に、画像/PDFの追加、文字認識と費目候補の逐次表示、項目の確認、台帳と整理済みコピーの保存をまとめています。Models は公開 revision `acc4cc835f64a75ab9ecee9d5d2e119a3bd29212` の全13ファイルを照合して取得します。4件の合成サンプルも同梱しています。
+
+JEV が提案するのは費目だけです。金額の計算と相対保存先は通常のコードで決め、本人が確認してから書き出します。Decision RAG のツリーや埋め込み索引は使いません。
 
 ## 取得して動かす
 
@@ -87,7 +93,7 @@ AC表示68 W・High Powerを維持し、各判断を平常の熱状態（nominal
 
 | OS | 状態 | 確認した範囲・残る確認 | 根拠 |
 |---|---|---|---|
-| macos | — | bundle は coreai-verify のコマンドラインでだけ動く。アプリへの組み込みは #449。 | — |
+| macos | ✅ | macOS27.2/M5 MaxのReceipt Deskで、固定Models取得・合成例のOCR/JEV・確認・原本コピー保存を確認。実レシート、狭幅表示、本人受入は未確認。 | [E17](validation/receipt-desk/README.md#native-app) · [E18](validation/receipt-desk/README.md#models-integration) |
 | ios | — | このOSのネイティブデモは未提供です。 | — |
 
 ### 性能と品質
@@ -162,6 +168,8 @@ AC表示68 W・High Powerを維持し、各判断を平常の熱状態（nominal
 | [E14](validation/jev27b/README.md#controlled-comparison-2026-11-05) | 2026-11-05 / standard / diagnostic | MacBook Pro (14-inch, 2024), Apple M4 Max, 128 GiB unified memory (Mac16,6) / macOS 27.0 (26A428) / Xcode 27.0 (27A266a), Apple Swift 6.4 (swiftlang-6.4.0.34.1) | B: メモリ対策。固定100/500/2000/8192-token系列、新process2本で各warmup4判断・計測3周、各長さn=6。順序A-B-C-D-D-C-B-A。build/test/他モデル同時実行なし。100ms外部メモリ採取・全試行・元file hashは記録参照。B/Cの100-token行は再loadと初回推論を含む。原典/nativeは精度とLoRA統合が異なる。 · variant=Memory stabilization / uint4 gdn-fp32 backbone, float32 head; backend=Core AI; GPU preferred; expectFrequentReshapes true; route=Normal Release coreai-verify typed-decide --wait-nominal-thermal 600; internal sampler disabled; source_revision=14b425269ed24452e0a5ad5a8f3e51d139647a88; artifact_revision=2f34243a3d28500075e09d02d9f9f565a7c4b02f94a7d47b2a3caba7262d357d; code_revision=ff2a2579e30a95a669b492f6f1eb6fca771211be; batch_size=1; concurrency=1; warmups=4; power=AC, pmset reports 68 W throughout; High Power mode (powermode 2); battery 100% to 94% over the full sequence; thermal=ProcessInfo thermalState nominal at every row start; waits excluded; not constant temperature |
 | [E15](validation/jev27b/README.md#controlled-comparison-2026-11-05) | 2026-11-05 / standard / diagnostic | MacBook Pro (14-inch, 2024), Apple M4 Max, 128 GiB unified memory (Mac16,6) / macOS 27.0 (26A428) / Xcode 27.0 (27A266a), Apple Swift 6.4 (swiftlang-6.4.0.34.1) | C: 未公開の最後位置出力候補。固定100/500/2000/8192-token系列、新process2本で各warmup4判断・計測3周、各長さn=6。順序A-B-C-D-D-C-B-A。build/test/他モデル同時実行なし。100ms外部メモリ採取・全試行・元file hashは記録参照。B/Cの100-token行は再loadと初回推論を含む。原典/nativeは精度とLoRA統合が異なる。 · variant=Unpublished final-token candidate / uint4 gdn-fp32 backbone, float32 head; backend=Core AI; GPU preferred; expectFrequentReshapes true; route=Normal Release coreai-verify typed-decide --wait-nominal-thermal 600; internal sampler disabled; source_revision=14b425269ed24452e0a5ad5a8f3e51d139647a88; artifact_revision=0db5ca716c7fea75605bffddf2d1d6de03fd80c471b3528277beb98a663d9880; code_revision=8fcb8843bcb90171b7f5f22473df052cead75758; batch_size=1; concurrency=1; warmups=4; power=AC, pmset reports 68 W throughout; High Power mode (powermode 2); battery 100% to 94% over the full sequence; thermal=ProcessInfo thermalState nominal at every row start; waits excluded; not constant temperature |
 | [E16](validation/jev27b/README.md#controlled-comparison-2026-11-05) | 2026-11-05 / standard / diagnostic | MacBook Pro (14-inch, 2024), Apple M4 Max, 128 GiB unified memory (Mac16,6) / macOS 27.0 (26A428) / Xcode 27.0 (27A266a), Apple Swift 6.4 (swiftlang-6.4.0.34.1) | D: 原典PyTorch/MPS参照実装。固定100/500/2000/8192-token系列、新process2本で各warmup4判断・計測3周、各長さn=6。順序A-B-C-D-D-C-B-A。build/test/他モデル同時実行なし。100ms外部メモリ採取・全試行・元file hashは記録参照。B/Cの100-token行は再loadと初回推論を含む。原典/nativeは精度とLoRA統合が異なる。 · variant=Original PyTorch/MPS reference / BF16 base, unmerged LoRA, float32 CPU head; backend=PyTorch 2.15.0 / MPS; no CPU fallback; float32 CPU head; route=Tools.Conversion.adapters.jev27b.benchmark_reference; source_revision=14b425269ed24452e0a5ad5a8f3e51d139647a88; artifact_revision=14b425269ed24452e0a5ad5a8f3e51d139647a88; code_revision=e5c43a859486b261c0111822ce372fc6a0d2f7a2; batch_size=1; concurrency=1; warmups=4; power=AC, pmset reports 68 W throughout; High Power mode (powermode 2); battery 100% to 94% over the full sequence; thermal=ProcessInfo thermalState nominal at every row start; waits excluded; not constant temperature |
+| [E17](validation/receipt-desk/README.md#native-app) | 2026-11-06 / standard / native_app | Mac17,6 (Apple M5 Max), 128 GiB RAM / macOS 27.2 (26B123) / Xcode 27.0 (27A266a), Apple Swift 6.4 (swiftlang-6.4.0.34.1) | 最終UIは合成の日本語PNGを標準パネルから用途未入力で追加。準備中の停止と再開、金額編集/Tab/復元、個別確認、保存先選択の取消、1件1100円の保存を行い、CSV/JSONと元bytesのhashを照合。別途行った9aecf6bの4サンプルUI確認も記録に保持。性能・一般的レシート品質の基準ではなく、狭幅表示と本人受入は未確認。 · variant=uint4 backbone (gdn-fp32) / float32 head; backend=Vision OCR and Core AI TypedDecisionModel; published all-token JEV asset with runtime recycling; route=CoreAISamples Release Mac app: normal Models download/verification, Receipt Desk file picker, Vision, JEV, stop/retry, edit/confirm and folder export; source_revision=14b425269ed24452e0a5ad5a8f3e51d139647a88; artifact_revision=2f34243a3d28500075e09d02d9f9f565a7c4b02f94a7d47b2a3caba7262d357d; code_revision=60189c5c536a0e40cf8335077c46dbc10dbfd68b; batch_size=1; concurrency=1; warmups=0; power=AC reported 140 W before UI checks; not sampled per request. Functional checks only.; thermal=pmset reported no recorded warning before UI checks; per-call thermal state not recorded. |
+| [E18](validation/receipt-desk/README.md#models-integration) | 2026-11-06 / standard / diagnostic | Mac17,6 (Apple M5 Max), 128 GiB RAM / macOS 27.2 (26B123) / Xcode 27.0 (27A266a), Apple Swift 6.4 (swiftlang-6.4.0.34.1) | 合成4レシートが消耗品/飲食/交通/要確認と固定金額・日付に一致。確認3件は3320円、CSVと原本コピーhashが一致し、close後leaseは0。描画adapterのみ検査用。取得済み公開bytesの移行元は削除せず、通信・通常UIとは別に確認。 · variant=uint4 backbone (gdn-fp32) / float32 head; backend=Vision OCR and Core AI TypedDecisionModel; published all-token JEV asset with runtime recycling; route=Release ReceiptModelsIntegrationTests.nativeWorkflow: pinned bundle migration, Models inspection/lease and production ReceiptDemoSessions/Store/Service/OCR/JEV/export; source_revision=14b425269ed24452e0a5ad5a8f3e51d139647a88; artifact_revision=2f34243a3d28500075e09d02d9f9f565a7c4b02f94a7d47b2a3caba7262d357d; code_revision=06100e4e04487a03a78e9e997dc3b24e816942f9; batch_size=1; concurrency=1; warmups=0; power=AC reported 140 W before UI checks; not sampled per request. Functional checks only.; thermal=pmset reported no recorded warning before UI checks; per-call thermal state not recorded. |
 
 ### 導入・制限・進捗
 
@@ -174,6 +182,8 @@ AC表示68 W・High Powerを維持し、各判断を平常の熱状態（nominal
 - [未公開の最終位置出力版の検証](validation/jev27b/README.md#final-token-output-2026-11-05)
 
 - [改善前後・原典の同条件比較](validation/jev27b/README.md#controlled-comparison-2026-11-05)
+
+- [Receipt Deskの使い方](receipt-desk.md)
 <!-- model-report:end -->
 
 ## クイックスタート
