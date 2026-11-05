@@ -1,0 +1,188 @@
+{
+  "rules": {
+    "totalLabels": [
+      "Grand Total",
+      "Total",
+      "Amount paid",
+      "Amount due",
+      "合計",
+      "合計金額",
+      "税込合計",
+      "総合計",
+      "お支払い金額",
+      "お支払金額"
+    ],
+    "currencyMarkers": [
+      "JPY",
+      "円",
+      "¥",
+      "￥",
+      "YEN"
+    ],
+    "merchantExclusions": [
+      "Receipt",
+      "Tax invoice",
+      "領収書",
+      "レシート"
+    ],
+    "merchantExcludedPrefixes": [
+      "TEL",
+      "FAX",
+      "Phone",
+      "Subtotal",
+      "Tax",
+      "Cash",
+      "Change",
+      "小計",
+      "消費税",
+      "お預り",
+      "お釣り",
+      "Currency:",
+      "通貨:"
+    ],
+    "datePattern": "([0-9]{4})[年./-]\\s*([0-9]{1,2})[月./-]\\s*([0-9]{1,2})(?:日)?",
+    "foreignCurrencyPattern": "(?i)(?:^\\s*(?:Currency|通貨)(?:\\s*:\\s*|\\s+)(?!(?:JPY|YEN|円|日本円)\\s*$)(?:\\S.*)?$|\\b(?:USD|EUR|GBP|CNY|RMB|KRW|AUD|CAD|INR)\\s*[0-9]|[0-9][0-9,.]*\\s*(?:USD|EUR|GBP|CNY|RMB|KRW|AUD|CAD|INR)\\b|[$€£₩₹]\\s*[0-9])"
+  },
+  "cases": [
+    {
+      "text": "青空文具店\n領収書\n2026年11月6日\n小計 1,000円\n消費税 100円\n合計 1,100円\nお預り 2,000円\nお釣り 900円",
+      "merchant": "青空文具店",
+      "date": "2026-11-06",
+      "amount": "1100",
+      "issues": []
+    },
+    {
+      "text": "Sample Cafe\nReceipt\n2026/11/06\nTotal\nJPY 1,250",
+      "merchant": "Sample Cafe",
+      "date": "2026-11-06",
+      "amount": "1250",
+      "issues": []
+    },
+    {
+      "text": "Example Shop\n2026-11-06\nTotal 100\nTotal 200",
+      "merchant": "Example Shop",
+      "date": "2026-11-06",
+      "amount": "",
+      "issues": [
+        "ambiguousAmount"
+      ]
+    },
+    {
+      "text": "Example Shop\n2026-11-06\nTotal USD 15.00",
+      "merchant": "Example Shop",
+      "date": "2026-11-06",
+      "amount": "",
+      "issues": [
+        "unsupportedCurrency",
+        "missingAmount",
+        "unreadableAmount"
+      ]
+    },
+    {
+      "text": "Example Shop\n2026-11-06\nTotal 15.50",
+      "merchant": "Example Shop",
+      "date": "2026-11-06",
+      "amount": "",
+      "issues": [
+        "missingAmount",
+        "unreadableAmount"
+      ]
+    },
+    {
+      "text": "Example Shop\n2026-11-06\n2026-11-07\nTotal 1000",
+      "merchant": "Example Shop",
+      "date": "",
+      "amount": "1000",
+      "issues": [
+        "ambiguousDate"
+      ]
+    },
+    {
+      "text": "サンプル商店\n２０２６／１１／０６\n合計 ￥１，２００",
+      "merchant": "サンプル商店",
+      "date": "2026-11-06",
+      "amount": "1200",
+      "issues": []
+    },
+    {
+      "text": "Example Shop\nNo amount was printed",
+      "merchant": "Example Shop",
+      "date": "",
+      "amount": "",
+      "issues": [
+        "missingDate",
+        "missingAmount"
+      ]
+    },
+    {
+      "text": "Shop\n2026-11-123\nTotal 1000",
+      "merchant": "Shop",
+      "date": "",
+      "amount": "1000",
+      "issues": [
+        "missingDate"
+      ]
+    },
+    {
+      "text": "Shop\n2026-11-06\nCurrency: USD\nTotal 1000",
+      "merchant": "Shop",
+      "date": "2026-11-06",
+      "amount": "",
+      "issues": [
+        "unsupportedCurrency"
+      ]
+    },
+    {
+      "text": "Shop\n2026-11-06\nCurrency: CHF\nTotal 1000",
+      "merchant": "Shop",
+      "date": "2026-11-06",
+      "amount": "",
+      "issues": [
+        "unsupportedCurrency"
+      ]
+    },
+    {
+      "text": "Shop\n2026-11-06\nCurrency: TWD\nTotal 1000",
+      "merchant": "Shop",
+      "date": "2026-11-06",
+      "amount": "",
+      "issues": [
+        "unsupportedCurrency"
+      ]
+    },
+    {
+      "text": "Shop\n2026-11-06\nCurrency: SGD\nTotal 1000",
+      "merchant": "Shop",
+      "date": "2026-11-06",
+      "amount": "",
+      "issues": [
+        "unsupportedCurrency"
+      ]
+    },
+    {
+      "text": "Shop\n2026-11-06\nCurrency: THB\nTotal 1000",
+      "merchant": "Shop",
+      "date": "2026-11-06",
+      "amount": "",
+      "issues": [
+        "unsupportedCurrency"
+      ]
+    },
+    {
+      "text": "Shop\n2026-11-06\nCurrency: XYZ\nTotal 1000",
+      "merchant": "Shop",
+      "date": "2026-11-06",
+      "amount": "",
+      "issues": [
+        "unsupportedCurrency"
+      ]
+    },
+    {
+      "text": "Currency: JPY\nShop\n2026-11-06\nTotal 1000",
+      "merchant": "Shop",
+      "date": "2026-11-06",
+      "amount": "1000",
+      "issues": []
+    }
+  ]
+}
