@@ -1,0 +1,44 @@
+{
+  "totalLabels": [
+    "Grand Total",
+    "Total",
+    "Amount paid",
+    "Amount due",
+    "合計",
+    "合計金額",
+    "税込合計",
+    "総合計",
+    "お支払い金額",
+    "お支払金額"
+  ],
+  "currencyMarkers": [
+    "JPY",
+    "円",
+    "¥",
+    "￥",
+    "YEN"
+  ],
+  "merchantExclusions": [
+    "Receipt",
+    "Tax invoice",
+    "領収書",
+    "レシート"
+  ],
+  "merchantExcludedPrefixes": [
+    "TEL",
+    "FAX",
+    "Phone",
+    "Subtotal",
+    "Tax",
+    "Cash",
+    "Change",
+    "小計",
+    "消費税",
+    "お預り",
+    "お釣り",
+    "Currency:",
+    "通貨:"
+  ],
+  "datePattern": "([0-9]{4})[年./-]\\s*([0-9]{1,2})[月./-]\\s*([0-9]{1,2})(?:日)?",
+  "foreignCurrencyPattern": "(?i)(?:^\\s*(?:Currency|通貨)(?:\\s*:\\s*|\\s+)(?!(?:JPY|YEN|円|日本円)\\s*$)(?:\\S.*)?$|\\b(?:USD|EUR|GBP|CNY|RMB|KRW|AUD|CAD|INR)\\s*[0-9]|[0-9][0-9,.]*\\s*(?:USD|EUR|GBP|CNY|RMB|KRW|AUD|CAD|INR)\\b|[$€£₩₹]\\s*[0-9])"
+}

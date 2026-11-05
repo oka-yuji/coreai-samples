@@ -16,6 +16,7 @@ public enum ReceiptIssue: String, CaseIterable, Sendable, Codable {
     case unreadableAmount
     case unsupportedCurrency
     case lowRecognitionConfidence
+    case unreadablePage
 }
 
 public struct ReceiptFields: Equatable, Sendable, Codable {
