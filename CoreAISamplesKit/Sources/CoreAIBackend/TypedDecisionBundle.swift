@@ -166,7 +166,8 @@ public struct TypedDecisionBundle: Sendable {
         try require(document.format == "typed-decision-v1", "format must be typed-decision-v1.")
         try require(
             backbone.function == "main" && backbone.inputs == ["input_ids", "position_ids"]
-                && backbone.output == "hidden_states" && backbone.states == states && backbone.contextLength > 0
+                && TypedDecisionOutput(rawValue: backbone.output) != nil
+                && backbone.states == states && backbone.contextLength > 0
                 && backbone.hidden.dtype == "float16" && backbone.hidden.size > 0 && isRelative(backbone.asset),
             "backbone must describe main with the hidden-state contract.")
         try require(

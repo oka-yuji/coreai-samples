@@ -208,3 +208,175 @@ bytes in total, `decision.json` SHA-256 `a2b186a87a64d9e93a56f185a5ebc2a0613d00d
 after plan revision 3 was frozen, with the working tree that was committed as e879c67 at 07:13 (`bundle` in
 `performance.json`). `shasum -a 256 -c SHA256SUMS` and `decision.py --check-files` pass on it (run again at 08:29 on
 2026-11-04; the log stays with the local outputs).
+
+## Memory stability (2026-11-05)
+
+The published artifact is unchanged. [The memory record](memory-stability-20261105.json) compares the normal Release
+CLI before and after the runtime change, then checks three longer workloads on a MacBook Pro (14-inch, 2024),
+Apple M4 Max, 128 GiB (Mac16,6), macOS 27.0. The adapter reports 68 W on AC. Every row starts at a nominal
+ProcessInfo thermal state; CPU builds and tests were allowed during these stability runs. These are separate
+from the controlled latency comparison. Input text and raw corpus identifiers are not included.
+
+| Workload | Warmup / measured calls | Kernel footprint peak | Peak RSS, including load | Added system swap | Output comparison |
+|---|---:|---:|---:|---:|---|
+| 100/500/2000/8192 tokens alternating | 4 / 100 | 8,393,766,472 B | 32,646,430,720 B | 0 B | Every logit and both probability arrays bit-identical |
+| Same 8192-token input | 1 / 100 | 6,827,587,384 B | 32,336,232,448 B | 0 B | Bit-identical |
+| 6144/8192 tokens alternating | 2 / 20 | 9,169,450,928 B | 32,669,925,376 B | 0 B | Bit-identical |
+
+The first two cases require a kernel peak below 12 GiB and a first-five versus last-five median increase
+of at most 512 MiB for each same-length series. The largest increase was 127,090,760 B in the mixed case
+and 34,078,792 B in the same-length case. The nearby-length case has a separate 24 GiB peak limit; its
+median changes are recorded without applying the 512 MiB gate. All cases require swap growth below 128 MiB.
+RSS and footprint are different counters and are not added. A sampled peak is not substituted for the kernel counter.
+
+The normal CLI's original 16 alternating calls reached a kernel footprint peak of 21,396,977,368 B.
+The corresponding 16-call smoke with runtime recycling reached 8,137,602,608 B with identical outputs.
+Holding AIModel and recreating only InferenceFunction was rejected: it completed three rows before
+the stop guard triggered, and its kernel peak reached 50,319,340,624 B. A polling stop trigger is not a strict
+maximum-memory bound. The specific allocation site inside Core AI remains unidentified.
+
+The runtime permits three shape changes and releases both model and function before the fourth; an unchanged
+shape stays loaded. A bookmark keeps the identity of the specialization without retaining the model.
+If the cache entry is absent, the original bundle version and all file hashes are revalidated before reloading.
+A successful reload updates the bookmark. A failed or cancelled reload or backbone run discards the runtime, and busy remains set
+until the running operation finishes. The private direct-runtime diagnostic found about 3.7 seconds per reload;
+its timings are not the final before/after benchmark. The earlier 94 W latency measurements remain historical evidence.
+
+Six serialized GPU tests passed in Release with testability enabled. The added session test waits for an
+uncooperative 1472-token forward to finish, reports cancellation, reloads once and returns a bit-identical next
+answer. CPU tests separately cover busy, failed reloads, stale bookmarks and modified bundles. The GPU suite
+is diagnostic evidence without a separate benchmark plan, so its record remains legacy rather than a latency claim.
+
+## Final-token output (2026-11-05)
+
+[`last-token-20261105.json`](last-token-20261105.json) records the private candidate from #500. Conversion
+`20261104T194219-e2447dc1` at `8fcb8843bcb90171b7f5f22473df052cead75758` produced decision SHA-256
+`0db5ca716c7fea75605bffddf2d1d6de03fd80c471b3528277beb98a663d9880` and asset SHA-256
+`be2b71cf1cf8385b0b096ebd1f103f705a3e4ff4e86819a1a999845f47f7a3b7`. All 1,622 quantized tensor hashes and
+their layout match the published asset; all 48 gated delta updates retain float32 inputs. Head, tokenizer,
+template, slot layout and published temperatures are unchanged. The bundle is marked `unpublished-candidate`.
+
+The output descriptor is float16 `[1,1,5120]`. It contains 10,240 bytes of elements, compared with 83,886,080
+for the previous 8,192-token output. The backbone still computes every layer; this number is not total memory
+or an acceleration ratio. The first conversion (`20261104T193249-84183233`) failed the descriptor check:
+`select` followed by `unsqueeze` produced `[?,1,?]`. An explicit reshape fixes the descriptor without relaxing it.
+
+| Check | Result |
+|---|---|
+| F, 302 rows | 301 forward passes; the 8,193-token row rejected; every band passes max ≤0.03 and mean ≤0.01 at T=1 |
+| F versus same-weight quantized reference | Maximum probability error 0.00644122, mean 0.00114157; no top change |
+| Q, 900 rows | Existing D1-1 and D1-2 pass; no top change versus previous native results |
+| Old versus candidate native values | Not bit-identical; maximum T=1 probability difference 0.00043249 on F and 0.00061208 on Q |
+| Q choice agreement with teacher, T=1 | 86.6667% before and after; merged reference 87.3333% |
+| Q noul soft Brier, T=1 | 0.001653858 before; 0.001654508 after |
+| Q score normalized MAE, T=1 | 0.021708660 before; 0.021713385 after |
+| Old bundle through new runtime | All outputs bit-identical at 100/500/2,000/8,192 tokens |
+| Candidate runtime | Six serialized GPU tests passed in Release with testability enabled, including cancellation and recovery |
+
+These quality metrics measure agreement with the teacher distribution. The Q choice difference against the merged
+reference is −0.667 percentage points; its 95% bootstrap interval [−3.000, +1.667] crosses the −2-point limit.
+The existing decision rule uses the point estimate, so it passes without establishing the whole interval above
+that limit. The old native and candidate outputs were scored with the same frozen references and criteria.
+For the F/Q native-to-native probability comparison, saved old logits were normalized with the production Swift
+head at the published temperatures after verifying their original T=1 probabilities bit for bit; the old backbone
+was not rerun. Q acceptance metrics above use T=1. The original source-card temperatures in the scorer remain
+separate from the published refitted temperatures in the bundles.
+
+Calibration files and values were reused. Cal/H and the Japanese set were not rerun for this candidate.
+These are diagnostic checks under the shared model lock on the same M4 Max 128 GiB machine, on AC reporting
+68 W. Per-row thermal state was not recorded for these CLI runs or GPU tests. CPU builds/tests were permitted during validation;
+these rows are not the controlled speed comparison. There is no separate common-protocol benchmark plan for
+these checks, so the model record marks them legacy. All source-file hashes are in the JSON; private inputs
+and raw outputs are excluded. The public HF artifact and its prior evidence remain unchanged.
+
+## Controlled comparison (2026-11-05)
+
+[`comparison-20261105.json`](comparison-20261105.json) preserves all 128 timing observations, including 32 warmups,
+source-file hashes, per-process memory/load/power observations, and the fixed plan
+`280dc8957a73de74f944a4937afd585516672f8f7bbd9fd41c0329ae196c1498`. Runs took place from 2026-11-04 21:15:15 to
+21:54:25 UTC (2026-11-05 JST). Eight fresh processes completed in order A→B→C→D→D→C→B→A, without a guard stop.
+A is the published runtime/artifact, B adds bounded shape reuse, C adds the unpublished final-token artifact, and
+D runs the pinned original BF16 backbone with active, unmerged LoRA in PyTorch/MPS and its FP32 CPU decision head.
+The JSON pins code, binary, artifacts, source revision, dependencies and measurement helpers for each condition.
+The plan's `frozen_at_utc` is its initial preparation timestamp; the runner captured the final SHA above before
+starting the first process, after the premeasurement guard and identity checks had been strengthened.
+
+All runs used the same MacBook Pro (14-inch, 2024), Apple M4 Max, 128 GiB, macOS 27.0 (26A428), AC reporting 68 W,
+and High Power mode. Battery charge ranged from 100% to 94% over the sequence. Every row, including warmups,
+started at ProcessInfo thermalState nominal; this is not a constant-temperature guarantee. No build, test or
+other model job ran during the measured processes. Background CPU/GPU utilization was not fully instrumented.
+All processes added 0 B of system swap; approximately 2.0 GB of pre-existing system swap was present.
+
+Each process runs one warmup at each of 100/500/2000/8192 tokens, then three measured rounds. Every reported time
+below has n=6 and is **median [minimum, maximum] in seconds**. The four-request sum adds API times within each
+measured round. The boundary is one render/tokenization, backbone, head/softmax and a synchronized CPU result.
+Input prevalidation, initial load, JSON serialization and thermal waits are excluded. Native JSON `elapsed_seconds`
+is the API interval; the diagnostic stderr line also includes prevalidation and is not used for this table.
+
+| Tokens | A: published | B: memory fix | C: final token | D: source |
+|---:|---:|---:|---:|---:|
+| 100 | 0.649915 [0.583927, 0.712413] | 6.021963 [5.950145, 6.077657] | 6.103281 [5.955404, 6.418380] | 0.843730 [0.813807, 0.900861] |
+| 500 | 2.219713 [1.956196, 2.359130] | 1.953377 [1.947658, 1.956321] | 1.956813 [1.951799, 1.958022] | 2.623212 [2.503627, 2.710381] |
+| 2000 | 9.226327 [8.043565, 9.379876] | 8.294314 [8.138351, 8.306313] | 8.207459 [7.648074, 8.278129] | 10.847312 [10.050650, 11.272265] |
+| 8192 | 38.925713 [38.165324, 40.300910] | 37.737326 [36.815382, 38.595914] | 38.534624 [38.115242, 38.729626] | 46.967334 [45.767156, 47.754686] |
+| Four-request sum | 50.960642 [48.877498, 52.646836] | 53.840935 [53.153956, 54.930249] | 54.837211 [53.675951, 55.328512] | 60.705899 [60.365768, 62.602024] |
+
+B/C recycle before each measured 100-token row, so those rows include reload and first-run costs. They are not
+same-shape short-input measurements. The medians of the four lengths need not add up to the median round sum.
+Six observations do not support a p95, and the ranges are observed minima/maxima rather than confidence intervals.
+
+Memory below is the maximum across the two complete processes, including warmup and load:
+
+| Condition | Observed kernel footprint peak (GiB) | Peak RSS (GiB) |
+|---|---:|---:|
+| A: Published runtime | 19.862592 | 30.123672 |
+| B: Memory stabilization | 7.671247 | 30.368088 |
+| C: Final-token candidate | 8.029096 | 30.380081 |
+| D: Source PyTorch/MPS | 65.535377 | 51.720261 |
+
+RSS comes from wait4; footprint uses the largest observed kernel lifetime peak counter, sampled externally every
+100 ms for every condition. The largest observed sampling gap was 0.122 s. A sampled current-footprint maximum
+is kept separately, and the final sampling gap remains unobserved. RSS and footprint are different counters;
+they are not added or treated as the machine's minimum RAM requirement. Source row-end MPS allocator counters
+remain in the private raw results. D loads an unused 2,542,796,800-byte generation head, but does not forward it.
+
+Load phase observations are stored per process. No filesystem or model-cache purge was performed, and every native
+process used a cached specialization. The source adapter-load interval includes its final MPS synchronization;
+these are implementation intervals, not cold-start or individual GPU-stage rankings. Native precision/LoRA merging
+and source BF16/unmerged LoRA differ, so this is a complete-representation comparison rather than framework overhead.
+
+Across the 32 P rows per condition, A/B logits and both probability arrays are bit-identical. C differs from A by
+at most 0.000081540 at T=1, and D by at most 0.021733382; neither changes the top choice on these four inputs.
+Shipping temperatures differ between native and source, so cross-representation probability comparisons use T=1.
+
+The following descriptive Q comparison uses the same 900 frozen teacher distributions and existing scoring functions:
+
+| Q at T=1 | Source BF16, unmerged LoRA | Published native | Final-token native |
+|---|---:|---:|---:|
+| Choice teacher agreement (%) | 87.333333333 | 86.666666667 | 86.666666667 |
+| Noul soft Brier | 0.001398183 | 0.001653858 | 0.001654508 |
+| Score normalized MAE | 0.021251174 | 0.021708660 | 0.021713385 |
+
+Source Q uses the saved original MPS/BF16 outputs from `20261103T154310-65e7b5bb`; the source backbone was not
+rerun for Q. Published-native Q also reuses saved logits; the candidate Q was rerun for #500. Full Q was not rerun
+for the memory-only runtime. All metrics use T=1 and measure agreement with the teacher, not real-world accuracy.
+The original scoring attempt supplied the reduced normalization document to the full input checker and stopped;
+it was corrected to the complete original native result without changing input data or acceptance criteria.
+No new pass threshold is imposed on this descriptive source comparison. The existing F/Q criteria, point-estimate
+rule, choice interval crossing the threshold, and Cal/H/Japanese not rerun are retained in the candidate record.
+
+The adopted change is bounded shape reuse: it reduces the observed kernel peak while adding reload cost. The
+final-token variant has no demonstrated speed or overall-memory advantage over B, so it remains a candidate and
+the public HF artifact is retained. Further work should first address reload cost and shape-dependent retention,
+then inspect state/output lifetimes in a dedicated decision graph. Layer/width reduction or distillation requires
+fresh quality evaluation. No Core ML result is inferred from these measurements.
+
+Recompute the statistics from the public observations:
+
+~~~sh
+python3 -m Tools.Conversion.adapters.jev27b.summarize_comparison   docs/validation/jev27b/comparison-20261105.json --check
+~~~
+
+The summarizer rejects missing, reordered, duplicate, failed or non-nominal processes/rows and non-finite or
+invalid times, including invalid warmups. It requires eight unique run IDs, excludes exactly the first four
+rows of each process, and keeps all valid observations. Private corpus text, raw corpus IDs and local paths are excluded.

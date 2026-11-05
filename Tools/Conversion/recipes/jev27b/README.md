@@ -7,7 +7,7 @@ unmerged LoRA and the 24-slot fp32 decision head. The recipe merges the LoRA, re
 references, converts the merged backbone to a 4-bit Core AI asset that returns hidden states,
 records the quantized references, assembles a typed-decision bundle
 ([docs/jev27b.md](../../../../docs/jev27b.md)) and compares the Core AI output of the bundle with the
-quantized reference. It does not evaluate the quality of the model. These files record what the
+quantized reference. The later Q steps measure agreement with the frozen teacher distribution; this is not real-world accuracy. These files record what the
 steps rely on:
 
 - `model.json`: the contract checked against the downloaded adapter, head, judge and
@@ -88,6 +88,57 @@ reused only when its definition, inputs and dependencies, every `Tools/Conversio
 OS build and platform, the reference environment, the executable and the environment variables
 passed to it (`PATH`, `HOME`, `TMPDIR`, `LANG`, `LC_ALL`, `DEVELOPER_DIR`) are unchanged, so run
 it again from the same shell settings; `--refresh` always executes it again.
+
+## Final-token candidate
+
+`last-token.json` is a separate conversion recipe for #500. It reuses the verified merged checkpoint and
+the published calibrated bundle; it does not rerun merging or change the original recipe. Add three paths
+to a private bindings file: `verified_merge` (the merge artifact folder containing `checkpoint` and
+`manifest.json`), `baseline_gdnfp32` (the original variant artifact folder) and `published_bundle`
+(the calibrated public bundle). Keep the existing reference and converter bindings.
+
+~~~sh
+python3 -m Tools.Conversion plan Tools/Conversion/recipes/jev27b/last-token.json \
+  --bindings .local/conversion/jev27b-last-token.paths.json
+python3 -m Tools.Conversion run Tools/Conversion/recipes/jev27b/last-token.json \
+  --bindings .local/conversion/jev27b-last-token.paths.json \
+  --work-dir .local/conversion/work/jev27b-last-token \
+  --lock-dir "${COREAI_HEAVY_JOB_LOCK:-$HOME/Library/Caches/coreai-samples/heavy-job}"
+~~~
+
+The output `last_token_hidden_state` is float16 `[1,1,5120]`. The exporter requires identical quantized
+tensor hashes/layout and the existing float32 GDN operations. It copies the published head, tokenizer,
+template, slot definitions and calibration unchanged, validates the original asset identity and writes a
+new `decision.json` with `distribution.status = unpublished-candidate`. The runtime accepts both the old
+`hidden_states` descriptor and this fixed final-position descriptor, and reads the tensor's actual strides.
+
+Conversion success is separate from fidelity, quality and performance. The completed F/Q and runtime checks,
+including the failed first descriptor attempt, are in the
+[candidate validation record](../../../../docs/validation/jev27b/README.md#final-token-output-2026-11-05).
+This recipe does not upload or replace the published model.
+
+## Controlled comparison tools
+
+`Tools.Conversion.adapters.jev27b.benchmark_reference` measures the pinned original System 1 path on MPS.
+It uses the existing reference environment and accepts `--model`, `--snapshot`, a prepared 16-row `--input`,
+the matching four-input `--manifest`, `--thermal-helper` and a new `--output` directory. The helper is built
+from `thermal.swift` with the pinned Apple toolchain. The input must be the fixed P sequence repeated four
+times; row/token hashes, active unmerged LoRA, evaluation mode and MPS residency are checked before timing.
+MPS CPU fallback is rejected. Partial failures remain failed in `status.json`; only a complete run writes
+`result.json`. Run it under the shared model lock and the same external memory/power guard as native trials.
+
+The completed A/B/C/D comparison and its environmental limits are in the
+[validation record](../../../../docs/validation/jev27b/README.md#controlled-comparison-2026-11-05).
+The public numbers can be recomputed without weights or corpus text:
+
+~~~sh
+python3 -m Tools.Conversion.adapters.jev27b.summarize_comparison \
+  docs/validation/jev27b/comparison-20261105.json --check
+~~~
+
+The source Q comparison reuses saved original MPS/BF16 logits with the existing `score.judge` and `score.summary`
+functions at T=1. Input/teacher identity and completeness are checked against the same frozen Q; there is no
+new model run or changed acceptance threshold. The record preserves the source hashes and normalization.
 
 ## Merge and references
 

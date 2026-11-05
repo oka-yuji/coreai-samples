@@ -1,0 +1,2076 @@
+{
+  "schema": "jev27b-controlled-comparison-record/1",
+  "date": "2026-11-05",
+  "plan_sha256": "280dc8957a73de74f944a4937afd585516672f8f7bbd9fd41c0329ae196c1498",
+  "plan": {
+    "schema": "jev27b-controlled-comparison/1",
+    "frozen_at_utc": "2026-11-04T20:32:41Z",
+    "issue": 502,
+    "sequence": [
+      "A",
+      "B",
+      "C",
+      "D",
+      "D",
+      "C",
+      "B",
+      "A"
+    ],
+    "warmup_rows_per_process": 4,
+    "measured_rounds_per_process": 3,
+    "processes_per_condition": 2,
+    "measured_n_per_length": 6,
+    "summary": [
+      "median",
+      "min",
+      "max"
+    ],
+    "p95": null,
+    "input_sha256": "61713c289c2f2c5867988edb4f5394692efac57ad537ec9b8dedd5ee1c22e6da",
+    "manifest_sha256": "5da251905302dcc31475f01c7062afa4ecc54b4d66143da9ab04b43adafe6002",
+    "inputs": [
+      {
+        "kind": "noul",
+        "tokens": 100,
+        "n_options": 2,
+        "tokens_sha256": "9c19ce14c4faf01538d6a37e5b2a7a325cc6f7a927bde10926b90af94faed40e"
+      },
+      {
+        "kind": "choice",
+        "tokens": 500,
+        "n_options": 4,
+        "tokens_sha256": "86f979c031e2c05f7da5a1c516e5a59251651135539cf532174cf22470f83a8a"
+      },
+      {
+        "kind": "score",
+        "tokens": 2000,
+        "n_options": 6,
+        "tokens_sha256": "4fa9a11ff84fa24b5764789f9052640b80e2e9617463ea4fb363c2d41e89242f"
+      },
+      {
+        "kind": "noul",
+        "tokens": 8192,
+        "n_options": 2,
+        "tokens_sha256": "b6230ef3136acd81fe7b8cc4cb872dc19518ad4e1bda7d5addd24ccd383f41b2"
+      }
+    ],
+    "conditions": {
+      "A": {
+        "runtime": "Core AI before memory change",
+        "code_revision": "806ac642c1f9c907e54af40466df40381f701b99",
+        "binary_sha256": "ac3d4b3df1dd97f338e44b6c9f0851bebfb77b16fa5d107bc0fb715977ea9732",
+        "decision_sha256": "2f34243a3d28500075e09d02d9f9f565a7c4b02f94a7d47b2a3caba7262d357d",
+        "asset_sha256": "965396ce46af30aca1e65df8fe2e0fa4639be120b8bb18a7edeefc5dbbc86de0"
+      },
+      "B": {
+        "runtime": "Core AI bounded shape reuse",
+        "code_revision": "ff2a2579e30a95a669b492f6f1eb6fca771211be",
+        "binary_sha256": "77dd813faa4c7e020577dff72d7dca4be033894ed8d89c19722e80ebd878c3e7",
+        "resources": [
+          "CoreAISamplesKit_CoreAIBackend.bundle",
+          "swift-transformers_Hub.bundle",
+          "swift-crypto_Crypto.bundle"
+        ],
+        "decision_sha256": "2f34243a3d28500075e09d02d9f9f565a7c4b02f94a7d47b2a3caba7262d357d",
+        "asset_sha256": "965396ce46af30aca1e65df8fe2e0fa4639be120b8bb18a7edeefc5dbbc86de0"
+      },
+      "C": {
+        "runtime": "Core AI final-token output",
+        "code_revision": "8fcb8843bcb90171b7f5f22473df052cead75758",
+        "binary_sha256": "a65db72b766bfb1d3a1aa623b2e9fd974e8017114802df1bd40993f78cc67796",
+        "built_before_python_only_reshape_fix": true,
+        "swift_source_unchanged_since": "2ba5310",
+        "decision_sha256": "0db5ca716c7fea75605bffddf2d1d6de03fd80c471b3528277beb98a663d9880",
+        "quality_required_before_measurement": true,
+        "asset_sha256": "be2b71cf1cf8385b0b096ebd1f103f705a3e4ff4e86819a1a999845f47f7a3b7"
+      },
+      "D": {
+        "runtime": "PyTorch/MPS source System 1 reference",
+        "source_revision": "14b425269ed24452e0a5ad5a8f3e51d139647a88",
+        "dtype": "bfloat16 base, unmerged enabled LoRA, float32 CPU head",
+        "generation_head_forwarded": false,
+        "code_revision": "e5c43a859486b261c0111822ce372fc6a0d2f7a2"
+      }
+    },
+    "power": "AC; pmset 68 W for every run; battery percentage and charging state recorded",
+    "thermal": "nominal at every row start; waits excluded from latency",
+    "batch_size": 1,
+    "concurrency": 1,
+    "other_jobs": "no build, test or other model job during measured processes",
+    "timing_boundary": "one render/tokenization, backbone, head/softmax and synchronized CPU result; prevalidation, load and thermal wait excluded",
+    "instrumentation": "External proc_pid_rusage at 100 ms for every condition; native internal sampler disabled; parent checks AC every two seconds",
+    "load_observation": "internal load phases recorded separately, not a cold-start ranking; no filesystem or model-cache purge",
+    "memory_guard_gib": {
+      "native": 32,
+      "source": 96
+    },
+    "system_swap_delta_guard_bytes": 134217728,
+    "limitations": "Precision, LoRA merge and runtime differ between native and source; this measures the complete representations, not framework overhead alone.",
+    "native_mode": "plain",
+    "source_code_revision": "e5c43a859486b261c0111822ce372fc6a0d2f7a2",
+    "energy_mode": {
+      "pmset_powermode": 2,
+      "name": "High Power"
+    },
+    "measurement_files_sha256": {
+      "reference_script": "100aa1c36ff3a1604e5be854fafa6a2a6423dcdac064b7f82d29902365b5c746",
+      "thermal_source": "d3e7e4e2a6d9b3ef87cb4c0b1fb911f9476bcebfd848cf068ddf19beae04fa0d",
+      "thermal_executable": "59d699354f75a8754119bac8078ae5db24a27b505533bfaa8e884bc45000750d",
+      "observer_source": "e2d104d2054ce2b9afa7b602fc1cf0fd7c1f7287401e0eb143864b4892b7625d",
+      "observer_executable": "a54ba83698222c5ef46a0e3dbd64b43c13bdd0b5b9659e5570cdd24d8b039c4f",
+      "reference_environment_lock": "2f601cbe9eb45120cd49232fc1e391f0ec672db6f482fa92e960a90554ae6ae7",
+      "reference_interpreter": "e12a472e7fc41bc4f7201f12596b7a2408f58ee69a47d4988fc2cc5e43b37fb4",
+      "source_integrity_record": "76bba095993fb6755113bfe8dec5324a9638c99706f04682bc8223d989b11d5e"
+    },
+    "temperatures": {
+      "native_published": {
+        "choice": 1.0053791,
+        "noul": 1.0056266,
+        "score": 1.010558
+      },
+      "source_original": {
+        "noul": 1.0143134751376188,
+        "choice": 1.0161280671450397,
+        "score": 1.0036213515883572
+      },
+      "probability_comparison": "Use T=1 for cross-representation probability differences; shipping probabilities use each representation's own calibration."
+    },
+    "timing_interpretation": "Per-length values describe the fixed mixed-length sequence. B/C recycle before the first 100-token call of each measured round, so those rows include the reload and first-run costs. They are not same-shape steady-state timings.",
+    "mixed_round_summary": "Also report the sum of the four measured API times per round, excluding thermal waits, with n=6 rounds per condition.",
+    "orchestration_sha256": {
+      "run_case_v10.py": "f5ccdaa45df8bf4e537b27df1382051fa0bff8831f78b9dc0a7800452b522102",
+      "run_comparison.py": "678e23e8839f68fec1ebdcf90d43641448a065d828c68a0a58ab96ba9fa62722"
+    }
+  },
+  "host": {
+    "device": "MacBook Pro (14-inch, 2024)",
+    "model_identifier": "Mac16,6",
+    "chip": "Apple M4 Max",
+    "memory_bytes": 137438953472,
+    "os": "macOS 27.0",
+    "os_build": "26A428",
+    "toolchain": "Xcode 27.0 (27A266a), Apple Swift 6.4"
+  },
+  "runs": [
+    {
+      "condition": "A",
+      "run_id": "20261104T211515-comparison-0-A-plain-fixed",
+      "completed": true,
+      "guard_stop": null,
+      "code_revision": "806ac642c1f9c907e54af40466df40381f701b99",
+      "binary_sha256": "ac3d4b3df1dd97f338e44b6c9f0851bebfb77b16fa5d107bc0fb715977ea9732",
+      "input_sha256": "61713c289c2f2c5867988edb4f5394692efac57ad537ec9b8dedd5ee1c22e6da",
+      "decision_sha256": "2f34243a3d28500075e09d02d9f9f565a7c4b02f94a7d47b2a3caba7262d357d",
+      "elapsed_process_seconds": 277.10888479091227,
+      "rows": [
+        {
+          "token_count": 100,
+          "tokens_sha256": "9c19ce14c4faf01538d6a37e5b2a7a325cc6f7a927bde10926b90af94faed40e",
+          "elapsed_seconds": 2.119008917,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 7.0917e-05
+        },
+        {
+          "token_count": 500,
+          "tokens_sha256": "86f979c031e2c05f7da5a1c516e5a59251651135539cf532174cf22470f83a8a",
+          "elapsed_seconds": 1.95611325,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 1.334e-06
+        },
+        {
+          "token_count": 2000,
+          "tokens_sha256": "4fa9a11ff84fa24b5764789f9052640b80e2e9617463ea4fb363c2d41e89242f",
+          "elapsed_seconds": 8.280328416,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 1.375e-06
+        },
+        {
+          "token_count": 8192,
+          "tokens_sha256": "b6230ef3136acd81fe7b8cc4cb872dc19518ad4e1bda7d5addd24ccd383f41b2",
+          "elapsed_seconds": 38.836172625,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 1.041e-06
+        },
+        {
+          "token_count": 100,
+          "tokens_sha256": "9c19ce14c4faf01538d6a37e5b2a7a325cc6f7a927bde10926b90af94faed40e",
+          "elapsed_seconds": 0.6484103750000001,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 1.25e-06
+        },
+        {
+          "token_count": 500,
+          "tokens_sha256": "86f979c031e2c05f7da5a1c516e5a59251651135539cf532174cf22470f83a8a",
+          "elapsed_seconds": 2.317639959,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 1.083e-06
+        },
+        {
+          "token_count": 2000,
+          "tokens_sha256": "4fa9a11ff84fa24b5764789f9052640b80e2e9617463ea4fb363c2d41e89242f",
+          "elapsed_seconds": 9.379876375,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 1.166e-06
+        },
+        {
+          "token_count": 8192,
+          "tokens_sha256": "b6230ef3136acd81fe7b8cc4cb872dc19518ad4e1bda7d5addd24ccd383f41b2",
+          "elapsed_seconds": 40.300909584,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 1.25e-06
+        },
+        {
+          "token_count": 100,
+          "tokens_sha256": "9c19ce14c4faf01538d6a37e5b2a7a325cc6f7a927bde10926b90af94faed40e",
+          "elapsed_seconds": 0.651418833,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 1.291e-06
+        },
+        {
+          "token_count": 500,
+          "tokens_sha256": "86f979c031e2c05f7da5a1c516e5a59251651135539cf532174cf22470f83a8a",
+          "elapsed_seconds": 2.359129708,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 1.042e-06
+        },
+        {
+          "token_count": 2000,
+          "tokens_sha256": "4fa9a11ff84fa24b5764789f9052640b80e2e9617463ea4fb363c2d41e89242f",
+          "elapsed_seconds": 9.337293208,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 2.833e-06
+        },
+        {
+          "token_count": 8192,
+          "tokens_sha256": "b6230ef3136acd81fe7b8cc4cb872dc19518ad4e1bda7d5addd24ccd383f41b2",
+          "elapsed_seconds": 39.590394417,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 1.416e-06
+        },
+        {
+          "token_count": 100,
+          "tokens_sha256": "9c19ce14c4faf01538d6a37e5b2a7a325cc6f7a927bde10926b90af94faed40e",
+          "elapsed_seconds": 0.7026532910000001,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 61.341422
+        },
+        {
+          "token_count": 500,
+          "tokens_sha256": "86f979c031e2c05f7da5a1c516e5a59251651135539cf532174cf22470f83a8a",
+          "elapsed_seconds": 2.01928625,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 1.208e-06
+        },
+        {
+          "token_count": 2000,
+          "tokens_sha256": "4fa9a11ff84fa24b5764789f9052640b80e2e9617463ea4fb363c2d41e89242f",
+          "elapsed_seconds": 8.309222625,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 1e-06
+        },
+        {
+          "token_count": 8192,
+          "tokens_sha256": "b6230ef3136acd81fe7b8cc4cb872dc19518ad4e1bda7d5addd24ccd383f41b2",
+          "elapsed_seconds": 38.234164584,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 1.292e-06
+        }
+      ],
+      "memory": {
+        "max_rss_bytes": 32331825152,
+        "kernel_footprint_peak_bytes": 21327296192,
+        "sampled_footprint_peak_bytes": 21326739136,
+        "system_swap_start_bytes": 1996947456,
+        "system_swap_max_bytes": 1996947456,
+        "system_swap_delta_bytes": 0,
+        "samples": 2572,
+        "max_sample_gap_seconds": 0.11291600000000002,
+        "last_sample_elapsed_seconds": 276.967976
+      },
+      "power": {
+        "ac_all": true,
+        "watts": [
+          68
+        ],
+        "energy_modes": [
+          2
+        ],
+        "battery_percent_min": 100,
+        "battery_percent_max": 100,
+        "before": {
+          "ac": true,
+          "battery_percent": 100,
+          "watts": 68,
+          "charging": false,
+          "battery_status": "finishing charge",
+          "energy_mode": 2
+        },
+        "after": {
+          "ac": true,
+          "battery_percent": 100,
+          "watts": 68,
+          "charging": false,
+          "battery_status": "finishing charge",
+          "energy_mode": 2
+        }
+      },
+      "source_sha256": {
+        "plan.json": "ffd5d60b1258755b4a0af35faf955380db649f15905f9dc6d682f14f08c8aa6b",
+        "execution.json": "0ea94c69a7be00eb9688221fc22f256682cd1be8500f424c847111af2fa43922",
+        "memory.jsonl": "8a7c482950a9ce14d8096763323bbf21af9444ca12496a46f8a63860c58eedbf",
+        "power.jsonl": "aba7c3461eb1849b730c54f9ccef3cf2b722caf8d52a64dba4ed68ca7057a588",
+        "result.json": "8213d5513075b0b9aa90cf35575359a16f0745eaa801fd14250fece6a6bd730e"
+      },
+      "load_seconds": {
+        "backbone": 3.538788875,
+        "bundle": 5.337768791,
+        "head": 0.000188583,
+        "tokenizer": 0.651939208
+      },
+      "specialization": "cached",
+      "asset_sha256": "965396ce46af30aca1e65df8fe2e0fa4639be120b8bb18a7edeefc5dbbc86de0"
+    },
+    {
+      "condition": "B",
+      "run_id": "20261104T211952-comparison-1-B-plain-fixed",
+      "completed": true,
+      "guard_stop": null,
+      "code_revision": "ff2a2579e30a95a669b492f6f1eb6fca771211be",
+      "binary_sha256": "77dd813faa4c7e020577dff72d7dca4be033894ed8d89c19722e80ebd878c3e7",
+      "input_sha256": "61713c289c2f2c5867988edb4f5394692efac57ad537ec9b8dedd5ee1c22e6da",
+      "decision_sha256": "2f34243a3d28500075e09d02d9f9f565a7c4b02f94a7d47b2a3caba7262d357d",
+      "elapsed_process_seconds": 288.85776641592383,
+      "rows": [
+        {
+          "token_count": 100,
+          "tokens_sha256": "9c19ce14c4faf01538d6a37e5b2a7a325cc6f7a927bde10926b90af94faed40e",
+          "elapsed_seconds": 2.152077708,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 7.2375e-05
+        },
+        {
+          "token_count": 500,
+          "tokens_sha256": "86f979c031e2c05f7da5a1c516e5a59251651135539cf532174cf22470f83a8a",
+          "elapsed_seconds": 1.960860875,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 1e-06
+        },
+        {
+          "token_count": 2000,
+          "tokens_sha256": "4fa9a11ff84fa24b5764789f9052640b80e2e9617463ea4fb363c2d41e89242f",
+          "elapsed_seconds": 8.291915458,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 2.542e-06
+        },
+        {
+          "token_count": 8192,
+          "tokens_sha256": "b6230ef3136acd81fe7b8cc4cb872dc19518ad4e1bda7d5addd24ccd383f41b2",
+          "elapsed_seconds": 38.632215375,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 1.041e-06
+        },
+        {
+          "token_count": 100,
+          "tokens_sha256": "9c19ce14c4faf01538d6a37e5b2a7a325cc6f7a927bde10926b90af94faed40e",
+          "elapsed_seconds": 6.021977125,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 1.333e-06
+        },
+        {
+          "token_count": 500,
+          "tokens_sha256": "86f979c031e2c05f7da5a1c516e5a59251651135539cf532174cf22470f83a8a",
+          "elapsed_seconds": 1.953127708,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 1.125e-06
+        },
+        {
+          "token_count": 2000,
+          "tokens_sha256": "4fa9a11ff84fa24b5764789f9052640b80e2e9617463ea4fb363c2d41e89242f",
+          "elapsed_seconds": 8.306312834,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 7.08e-07
+        },
+        {
+          "token_count": 8192,
+          "tokens_sha256": "b6230ef3136acd81fe7b8cc4cb872dc19518ad4e1bda7d5addd24ccd383f41b2",
+          "elapsed_seconds": 36.989114459,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 23.978635917
+        },
+        {
+          "token_count": 100,
+          "tokens_sha256": "9c19ce14c4faf01538d6a37e5b2a7a325cc6f7a927bde10926b90af94faed40e",
+          "elapsed_seconds": 6.021949417,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 1.375e-06
+        },
+        {
+          "token_count": 500,
+          "tokens_sha256": "86f979c031e2c05f7da5a1c516e5a59251651135539cf532174cf22470f83a8a",
+          "elapsed_seconds": 1.9517373340000002,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 1.208e-06
+        },
+        {
+          "token_count": 2000,
+          "tokens_sha256": "4fa9a11ff84fa24b5764789f9052640b80e2e9617463ea4fb363c2d41e89242f",
+          "elapsed_seconds": 8.189469458,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 9.59e-07
+        },
+        {
+          "token_count": 8192,
+          "tokens_sha256": "b6230ef3136acd81fe7b8cc4cb872dc19518ad4e1bda7d5addd24ccd383f41b2",
+          "elapsed_seconds": 37.1349985,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 21.997207458
+        },
+        {
+          "token_count": 100,
+          "tokens_sha256": "9c19ce14c4faf01538d6a37e5b2a7a325cc6f7a927bde10926b90af94faed40e",
+          "elapsed_seconds": 6.077656583,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 1.041e-06
+        },
+        {
+          "token_count": 500,
+          "tokens_sha256": "86f979c031e2c05f7da5a1c516e5a59251651135539cf532174cf22470f83a8a",
+          "elapsed_seconds": 1.956320666,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 1.25e-06
+        },
+        {
+          "token_count": 2000,
+          "tokens_sha256": "4fa9a11ff84fa24b5764789f9052640b80e2e9617463ea4fb363c2d41e89242f",
+          "elapsed_seconds": 8.304597041,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 1.167e-06
+        },
+        {
+          "token_count": 8192,
+          "tokens_sha256": "b6230ef3136acd81fe7b8cc4cb872dc19518ad4e1bda7d5addd24ccd383f41b2",
+          "elapsed_seconds": 36.815381834,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 20.756144667
+        }
+      ],
+      "memory": {
+        "max_rss_bytes": 32603488256,
+        "kernel_footprint_peak_bytes": 7974925800,
+        "sampled_footprint_peak_bytes": 7974368744,
+        "system_swap_start_bytes": 1996947456,
+        "system_swap_max_bytes": 1996947456,
+        "system_swap_delta_bytes": 0,
+        "samples": 2683,
+        "max_sample_gap_seconds": 0.1185570000000098,
+        "last_sample_elapsed_seconds": 288.723379
+      },
+      "power": {
+        "ac_all": true,
+        "watts": [
+          68
+        ],
+        "energy_modes": [
+          2
+        ],
+        "battery_percent_min": 100,
+        "battery_percent_max": 100,
+        "before": {
+          "ac": true,
+          "battery_percent": 100,
+          "watts": 68,
+          "charging": false,
+          "battery_status": "finishing charge",
+          "energy_mode": 2
+        },
+        "after": {
+          "ac": true,
+          "battery_percent": 100,
+          "watts": 68,
+          "charging": false,
+          "battery_status": "finishing charge",
+          "energy_mode": 2
+        }
+      },
+      "source_sha256": {
+        "plan.json": "f2a1a94fa35df2eeccc4015cda562ad9d81ee8d2cf4a5c8a7ffddb123025798c",
+        "execution.json": "e01055b1b31d978b4d027d5abffa8d95915abc5e24b7ca4a81abffaa595c766e",
+        "memory.jsonl": "bb5ca0fb0648ec161516e8eb41b3c0baa01a6b93a7173f2c5f66b1be0b3f9811",
+        "power.jsonl": "8c5d46fbc6c43746c73c3ce13a6ef056efa6387e146625b32fbbdd291d025c33",
+        "result.json": "4d168fed1b973fec4aefb9b726290671d2feb4ef77a7163cf79158205b5d0db3"
+      },
+      "load_seconds": {
+        "backbone": 3.962903333,
+        "bundle": 5.853999667,
+        "head": 0.000183959,
+        "tokenizer": 0.682667292
+      },
+      "specialization": "cached",
+      "asset_sha256": "965396ce46af30aca1e65df8fe2e0fa4639be120b8bb18a7edeefc5dbbc86de0"
+    },
+    {
+      "condition": "C",
+      "run_id": "20261104T212441-comparison-2-C-plain-fixed",
+      "completed": true,
+      "guard_stop": null,
+      "code_revision": "8fcb8843bcb90171b7f5f22473df052cead75758",
+      "binary_sha256": "a65db72b766bfb1d3a1aa623b2e9fd974e8017114802df1bd40993f78cc67796",
+      "input_sha256": "61713c289c2f2c5867988edb4f5394692efac57ad537ec9b8dedd5ee1c22e6da",
+      "decision_sha256": "0db5ca716c7fea75605bffddf2d1d6de03fd80c471b3528277beb98a663d9880",
+      "elapsed_process_seconds": 284.4598660003394,
+      "rows": [
+        {
+          "token_count": 100,
+          "tokens_sha256": "9c19ce14c4faf01538d6a37e5b2a7a325cc6f7a927bde10926b90af94faed40e",
+          "elapsed_seconds": 2.1488775,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 6.8e-05
+        },
+        {
+          "token_count": 500,
+          "tokens_sha256": "86f979c031e2c05f7da5a1c516e5a59251651135539cf532174cf22470f83a8a",
+          "elapsed_seconds": 1.9504599580000002,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 1.083e-06
+        },
+        {
+          "token_count": 2000,
+          "tokens_sha256": "4fa9a11ff84fa24b5764789f9052640b80e2e9617463ea4fb363c2d41e89242f",
+          "elapsed_seconds": 7.7769157920000005,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 1.166e-06
+        },
+        {
+          "token_count": 8192,
+          "tokens_sha256": "b6230ef3136acd81fe7b8cc4cb872dc19518ad4e1bda7d5addd24ccd383f41b2",
+          "elapsed_seconds": 38.954705375,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 9.58e-07
+        },
+        {
+          "token_count": 100,
+          "tokens_sha256": "9c19ce14c4faf01538d6a37e5b2a7a325cc6f7a927bde10926b90af94faed40e",
+          "elapsed_seconds": 6.41838025,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 1e-06
+        },
+        {
+          "token_count": 500,
+          "tokens_sha256": "86f979c031e2c05f7da5a1c516e5a59251651135539cf532174cf22470f83a8a",
+          "elapsed_seconds": 1.9580223330000002,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 1.083e-06
+        },
+        {
+          "token_count": 2000,
+          "tokens_sha256": "4fa9a11ff84fa24b5764789f9052640b80e2e9617463ea4fb363c2d41e89242f",
+          "elapsed_seconds": 8.222483334,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 1.25e-06
+        },
+        {
+          "token_count": 8192,
+          "tokens_sha256": "b6230ef3136acd81fe7b8cc4cb872dc19518ad4e1bda7d5addd24ccd383f41b2",
+          "elapsed_seconds": 38.729626375,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 1.041e-06
+        },
+        {
+          "token_count": 100,
+          "tokens_sha256": "9c19ce14c4faf01538d6a37e5b2a7a325cc6f7a927bde10926b90af94faed40e",
+          "elapsed_seconds": 5.955404416,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 41.578147459
+        },
+        {
+          "token_count": 500,
+          "tokens_sha256": "86f979c031e2c05f7da5a1c516e5a59251651135539cf532174cf22470f83a8a",
+          "elapsed_seconds": 1.957229708,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 1.125e-06
+        },
+        {
+          "token_count": 2000,
+          "tokens_sha256": "4fa9a11ff84fa24b5764789f9052640b80e2e9617463ea4fb363c2d41e89242f",
+          "elapsed_seconds": 7.648074084,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 1.042e-06
+        },
+        {
+          "token_count": 8192,
+          "tokens_sha256": "b6230ef3136acd81fe7b8cc4cb872dc19518ad4e1bda7d5addd24ccd383f41b2",
+          "elapsed_seconds": 38.115242375,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 1.083e-06
+        },
+        {
+          "token_count": 100,
+          "tokens_sha256": "9c19ce14c4faf01538d6a37e5b2a7a325cc6f7a927bde10926b90af94faed40e",
+          "elapsed_seconds": 6.262826916,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 1.125e-06
+        },
+        {
+          "token_count": 500,
+          "tokens_sha256": "86f979c031e2c05f7da5a1c516e5a59251651135539cf532174cf22470f83a8a",
+          "elapsed_seconds": 1.956395958,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 8.75e-07
+        },
+        {
+          "token_count": 2000,
+          "tokens_sha256": "4fa9a11ff84fa24b5764789f9052640b80e2e9617463ea4fb363c2d41e89242f",
+          "elapsed_seconds": 8.192435084,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 1.083e-06
+        },
+        {
+          "token_count": 8192,
+          "tokens_sha256": "b6230ef3136acd81fe7b8cc4cb872dc19518ad4e1bda7d5addd24ccd383f41b2",
+          "elapsed_seconds": 38.519125666,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 1.167e-06
+        }
+      ],
+      "memory": {
+        "max_rss_bytes": 32620363776,
+        "kernel_footprint_peak_bytes": 8621176488,
+        "sampled_footprint_peak_bytes": 8620619432,
+        "system_swap_start_bytes": 1996947456,
+        "system_swap_max_bytes": 1996947456,
+        "system_swap_delta_bytes": 0,
+        "samples": 2641,
+        "max_sample_gap_seconds": 0.1105049999999892,
+        "last_sample_elapsed_seconds": 284.317616001
+      },
+      "power": {
+        "ac_all": true,
+        "watts": [
+          68
+        ],
+        "energy_modes": [
+          2
+        ],
+        "battery_percent_min": 100,
+        "battery_percent_max": 100,
+        "before": {
+          "ac": true,
+          "battery_percent": 100,
+          "watts": 68,
+          "charging": false,
+          "battery_status": "finishing charge",
+          "energy_mode": 2
+        },
+        "after": {
+          "ac": true,
+          "battery_percent": 100,
+          "watts": 68,
+          "charging": false,
+          "battery_status": "finishing charge",
+          "energy_mode": 2
+        }
+      },
+      "source_sha256": {
+        "plan.json": "6ddec4bf4c609fc79a0fdbc11aa4b1715b4b6c0a02a32106657f450ff87300e8",
+        "execution.json": "7e8c0b2b6bde73323d6d7580feb81eac4dd66f76d9b200f759cd8344d031a37d",
+        "memory.jsonl": "852323e222d7de2035ad643674e461b59f0cb054e5afa775c3f792765214a751",
+        "power.jsonl": "07fe682f2785403e8fc9a07005cb9bd61ed9ef861b91d3228f151987b59abeea",
+        "result.json": "49c6e875e7a868e3f41607414171a5a3459034058408b9fad5c5988b93611075"
+      },
+      "load_seconds": {
+        "backbone": 20.767736625,
+        "bundle": 5.867707708,
+        "head": 0.000185542,
+        "tokenizer": 0.67784775
+      },
+      "specialization": "cached",
+      "asset_sha256": "be2b71cf1cf8385b0b096ebd1f103f705a3e4ff4e86819a1a999845f47f7a3b7"
+    },
+    {
+      "condition": "D",
+      "run_id": "20261104T212926-comparison-3-D-original-fixed",
+      "completed": true,
+      "guard_stop": null,
+      "code_revision": "e5c43a859486b261c0111822ce372fc6a0d2f7a2",
+      "binary_sha256": "e12a472e7fc41bc4f7201f12596b7a2408f58ee69a47d4988fc2cc5e43b37fb4",
+      "input_sha256": "61713c289c2f2c5867988edb4f5394692efac57ad537ec9b8dedd5ee1c22e6da",
+      "decision_sha256": null,
+      "elapsed_process_seconds": 348.78432770911604,
+      "rows": [
+        {
+          "token_count": 100,
+          "tokens_sha256": "9c19ce14c4faf01538d6a37e5b2a7a325cc6f7a927bde10926b90af94faed40e",
+          "elapsed_seconds": 0.9273200826719403,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 16.64934749994427
+        },
+        {
+          "token_count": 500,
+          "tokens_sha256": "86f979c031e2c05f7da5a1c516e5a59251651135539cf532174cf22470f83a8a",
+          "elapsed_seconds": 2.4724636245518923,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 0.017795583233237267
+        },
+        {
+          "token_count": 2000,
+          "tokens_sha256": "4fa9a11ff84fa24b5764789f9052640b80e2e9617463ea4fb363c2d41e89242f",
+          "elapsed_seconds": 9.95290408283472,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 0.010170750319957733
+        },
+        {
+          "token_count": 8192,
+          "tokens_sha256": "b6230ef3136acd81fe7b8cc4cb872dc19518ad4e1bda7d5addd24ccd383f41b2",
+          "elapsed_seconds": 47.53347275033593,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 0.010219291783869267
+        },
+        {
+          "token_count": 100,
+          "tokens_sha256": "9c19ce14c4faf01538d6a37e5b2a7a325cc6f7a927bde10926b90af94faed40e",
+          "elapsed_seconds": 0.8138072500005364,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 0.012440457940101624
+        },
+        {
+          "token_count": 500,
+          "tokens_sha256": "86f979c031e2c05f7da5a1c516e5a59251651135539cf532174cf22470f83a8a",
+          "elapsed_seconds": 2.682172750122845,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 0.015462624840438366
+        },
+        {
+          "token_count": 2000,
+          "tokens_sha256": "4fa9a11ff84fa24b5764789f9052640b80e2e9617463ea4fb363c2d41e89242f",
+          "elapsed_seconds": 11.218947624787688,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 0.012006834149360657
+        },
+        {
+          "token_count": 8192,
+          "tokens_sha256": "b6230ef3136acd81fe7b8cc4cb872dc19518ad4e1bda7d5addd24ccd383f41b2",
+          "elapsed_seconds": 45.767155916430056,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 29.177550666965544
+        },
+        {
+          "token_count": 100,
+          "tokens_sha256": "9c19ce14c4faf01538d6a37e5b2a7a325cc6f7a927bde10926b90af94faed40e",
+          "elapsed_seconds": 0.9008614588528872,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 0.012701500207185745
+        },
+        {
+          "token_count": 500,
+          "tokens_sha256": "86f979c031e2c05f7da5a1c516e5a59251651135539cf532174cf22470f83a8a",
+          "elapsed_seconds": 2.674211874604225,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 0.011738916859030724
+        },
+        {
+          "token_count": 2000,
+          "tokens_sha256": "4fa9a11ff84fa24b5764789f9052640b80e2e9617463ea4fb363c2d41e89242f",
+          "elapsed_seconds": 11.272265291772783,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 0.011929625645279884
+        },
+        {
+          "token_count": 8192,
+          "tokens_sha256": "b6230ef3136acd81fe7b8cc4cb872dc19518ad4e1bda7d5addd24ccd383f41b2",
+          "elapsed_seconds": 47.754685583524406,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 0.010659541934728622
+        },
+        {
+          "token_count": 100,
+          "tokens_sha256": "9c19ce14c4faf01538d6a37e5b2a7a325cc6f7a927bde10926b90af94faed40e",
+          "elapsed_seconds": 0.8875475414097309,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 42.5870113754645
+        },
+        {
+          "token_count": 500,
+          "tokens_sha256": "86f979c031e2c05f7da5a1c516e5a59251651135539cf532174cf22470f83a8a",
+          "elapsed_seconds": 2.50703320838511,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 0.010085667483508587
+        },
+        {
+          "token_count": 2000,
+          "tokens_sha256": "4fa9a11ff84fa24b5764789f9052640b80e2e9617463ea4fb363c2d41e89242f",
+          "elapsed_seconds": 10.153127582743764,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 0.010197333060204983
+        },
+        {
+          "token_count": 8192,
+          "tokens_sha256": "b6230ef3136acd81fe7b8cc4cb872dc19518ad4e1bda7d5addd24ccd383f41b2",
+          "elapsed_seconds": 47.00556395854801,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 0.021867500618100166
+        }
+      ],
+      "memory": {
+        "max_rss_bytes": 55396827136,
+        "kernel_footprint_peak_bytes": 70368075040,
+        "sampled_footprint_peak_bytes": 70368075040,
+        "system_swap_start_bytes": 1996947456,
+        "system_swap_max_bytes": 1996947456,
+        "system_swap_delta_bytes": 0,
+        "samples": 3238,
+        "max_sample_gap_seconds": 0.1215200000000003,
+        "last_sample_elapsed_seconds": 348.665231
+      },
+      "power": {
+        "ac_all": true,
+        "watts": [
+          68
+        ],
+        "energy_modes": [
+          2
+        ],
+        "battery_percent_min": 99,
+        "battery_percent_max": 100,
+        "before": {
+          "ac": true,
+          "battery_percent": 100,
+          "watts": 68,
+          "charging": false,
+          "battery_status": "finishing charge",
+          "energy_mode": 2
+        },
+        "after": {
+          "ac": true,
+          "battery_percent": 99,
+          "watts": 68,
+          "charging": false,
+          "battery_status": "finishing charge",
+          "energy_mode": 2
+        }
+      },
+      "source_sha256": {
+        "plan.json": "63a2d163c75af6c2e239b12a9b50e0aba9e9c49184ffef0113b0345863b55df8",
+        "execution.json": "3f6acc44a507f3694c81862bac081b72c7c143c0af2ce7e6ec78d4bba0d8e639",
+        "memory.jsonl": "286d716d997fd8a596d712e892f07dd1b435e482773edabb53fa9347143a8dea",
+        "power.jsonl": "5937286c248f97a0555ef5c5fefe16c0173ff90d2296fa13a74659301a70f54d",
+        "reference/result.json": "677a3a664de018dd4a111e1cffb25ca2b438b9687095c917c5a66876788769bd",
+        "reference/status.json": "8db159858cb3a0117ead428cacc9b33d23052450ec9a4a64ada199504a8b4ab3"
+      },
+      "load_seconds": {
+        "adapter": 1.3213822906836867,
+        "base": 9.550486584194005,
+        "prepare": 3.47018704097718,
+        "total_before_checks": 14.342055915854871
+      },
+      "source_environment": {
+        "revision": "14b425269ed24452e0a5ad5a8f3e51d139647a88",
+        "versions": {
+          "accelerate": "1.15.0",
+          "peft": "0.21.2",
+          "safetensors": "0.8.0",
+          "tokenizers": "0.23.3",
+          "torch": "2.15.0",
+          "transformers": "5.16.1"
+        },
+        "cpu_threads": 12,
+        "interop_threads": 16,
+        "parameter_bytes": 54227155968,
+        "parameter_dtypes": [
+          "torch.bfloat16",
+          "torch.float32"
+        ],
+        "parameter_devices": [
+          "mps:0"
+        ],
+        "unused_generation_head_bytes": 2542796800,
+        "generation_head_forwarded": false,
+        "checks": {
+          "eval": true,
+          "pairs": true,
+          "scale": true,
+          "unmerged": true,
+          "weights": true
+        }
+      }
+    },
+    {
+      "condition": "D",
+      "run_id": "20261104T213515-comparison-4-D-original-fixed",
+      "completed": true,
+      "guard_stop": null,
+      "code_revision": "e5c43a859486b261c0111822ce372fc6a0d2f7a2",
+      "binary_sha256": "e12a472e7fc41bc4f7201f12596b7a2408f58ee69a47d4988fc2cc5e43b37fb4",
+      "input_sha256": "61713c289c2f2c5867988edb4f5394692efac57ad537ec9b8dedd5ee1c22e6da",
+      "decision_sha256": null,
+      "elapsed_process_seconds": 329.64772237464786,
+      "rows": [
+        {
+          "token_count": 100,
+          "tokens_sha256": "9c19ce14c4faf01538d6a37e5b2a7a325cc6f7a927bde10926b90af94faed40e",
+          "elapsed_seconds": 0.8313502501696348,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 0.008653458207845688
+        },
+        {
+          "token_count": 500,
+          "tokens_sha256": "86f979c031e2c05f7da5a1c516e5a59251651135539cf532174cf22470f83a8a",
+          "elapsed_seconds": 2.5609992910176516,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 0.009578416123986244
+        },
+        {
+          "token_count": 2000,
+          "tokens_sha256": "4fa9a11ff84fa24b5764789f9052640b80e2e9617463ea4fb363c2d41e89242f",
+          "elapsed_seconds": 10.804084999486804,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 0.012684458866715431
+        },
+        {
+          "token_count": 8192,
+          "tokens_sha256": "b6230ef3136acd81fe7b8cc4cb872dc19518ad4e1bda7d5addd24ccd383f41b2",
+          "elapsed_seconds": 47.41689083352685,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 0.01016758382320404
+        },
+        {
+          "token_count": 100,
+          "tokens_sha256": "9c19ce14c4faf01538d6a37e5b2a7a325cc6f7a927bde10926b90af94faed40e",
+          "elapsed_seconds": 0.8398978747427464,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 32.2316295420751
+        },
+        {
+          "token_count": 500,
+          "tokens_sha256": "86f979c031e2c05f7da5a1c516e5a59251651135539cf532174cf22470f83a8a",
+          "elapsed_seconds": 2.503627208992839,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 0.010971833020448685
+        },
+        {
+          "token_count": 2000,
+          "tokens_sha256": "4fa9a11ff84fa24b5764789f9052640b80e2e9617463ea4fb363c2d41e89242f",
+          "elapsed_seconds": 10.050649833865464,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 0.009855207987129688
+        },
+        {
+          "token_count": 8192,
+          "tokens_sha256": "b6230ef3136acd81fe7b8cc4cb872dc19518ad4e1bda7d5addd24ccd383f41b2",
+          "elapsed_seconds": 46.97159337531775,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 0.01119279209524393
+        },
+        {
+          "token_count": 100,
+          "tokens_sha256": "9c19ce14c4faf01538d6a37e5b2a7a325cc6f7a927bde10926b90af94faed40e",
+          "elapsed_seconds": 0.8183397501707077,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 0.012263207696378231
+        },
+        {
+          "token_count": 500,
+          "tokens_sha256": "86f979c031e2c05f7da5a1c516e5a59251651135539cf532174cf22470f83a8a",
+          "elapsed_seconds": 2.710381083190441,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 0.009850249625742435
+        },
+        {
+          "token_count": 2000,
+          "tokens_sha256": "4fa9a11ff84fa24b5764789f9052640b80e2e9617463ea4fb363c2d41e89242f",
+          "elapsed_seconds": 11.238024250604212,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 0.011736166663467884
+        },
+        {
+          "token_count": 8192,
+          "tokens_sha256": "b6230ef3136acd81fe7b8cc4cb872dc19518ad4e1bda7d5addd24ccd383f41b2",
+          "elapsed_seconds": 46.72112174984068,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 0.010570917278528214
+        },
+        {
+          "token_count": 100,
+          "tokens_sha256": "9c19ce14c4faf01538d6a37e5b2a7a325cc6f7a927bde10926b90af94faed40e",
+          "elapsed_seconds": 0.8475616257637739,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 41.68593404162675
+        },
+        {
+          "token_count": 500,
+          "tokens_sha256": "86f979c031e2c05f7da5a1c516e5a59251651135539cf532174cf22470f83a8a",
+          "elapsed_seconds": 2.5722127072513103,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 0.009866917505860329
+        },
+        {
+          "token_count": 2000,
+          "tokens_sha256": "4fa9a11ff84fa24b5764789f9052640b80e2e9617463ea4fb363c2d41e89242f",
+          "elapsed_seconds": 10.4756770003587,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 0.009966166689991951
+        },
+        {
+          "token_count": 8192,
+          "tokens_sha256": "b6230ef3136acd81fe7b8cc4cb872dc19518ad4e1bda7d5addd24ccd383f41b2",
+          "elapsed_seconds": 46.96307429205626,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 0.010005916468799114
+        }
+      ],
+      "memory": {
+        "max_rss_bytes": 55534206976,
+        "kernel_footprint_peak_bytes": 69437464008,
+        "sampled_footprint_peak_bytes": 69426634184,
+        "system_swap_start_bytes": 1996947456,
+        "system_swap_max_bytes": 1996947456,
+        "system_swap_delta_bytes": 0,
+        "samples": 3065,
+        "max_sample_gap_seconds": 0.11784499999998843,
+        "last_sample_elapsed_seconds": 329.538945
+      },
+      "power": {
+        "ac_all": true,
+        "watts": [
+          68
+        ],
+        "energy_modes": [
+          2
+        ],
+        "battery_percent_min": 98,
+        "battery_percent_max": 99,
+        "before": {
+          "ac": true,
+          "battery_percent": 99,
+          "watts": 68,
+          "charging": false,
+          "battery_status": "finishing charge",
+          "energy_mode": 2
+        },
+        "after": {
+          "ac": true,
+          "battery_percent": 98,
+          "watts": 68,
+          "charging": true,
+          "battery_status": "charging",
+          "energy_mode": 2
+        }
+      },
+      "source_sha256": {
+        "plan.json": "f19c5087f00eb5b8cb5846d6ea85989069c4f4ac9afcabb4e3fb99060f35ae8c",
+        "execution.json": "30ed0f5e460c6808fc70bd3eb5606d62fc1555700f308905e76262f36b987647",
+        "memory.jsonl": "d7ee514af6c608fa7c8d91f9e1edd01a7c86a07d8e1b741a3970c90e3f3b1a3b",
+        "power.jsonl": "24b7f3631e763892dd7b4892d7e899dd81c792f3a43f68e9ec5aef6c882456b9",
+        "reference/result.json": "2fbd27cb05c71e4325cc0ac2147436b9764e61e9e2acd92cbf268da34a7411a8",
+        "reference/status.json": "5c95b37de19aff52d876d1a2cf8fbae28d780fd19d1dc2a9bcc8b6385a698f66"
+      },
+      "load_seconds": {
+        "adapter": 0.8816784992814064,
+        "base": 6.196432209573686,
+        "prepare": 3.002059457823634,
+        "total_before_checks": 10.080170166678727
+      },
+      "source_environment": {
+        "revision": "14b425269ed24452e0a5ad5a8f3e51d139647a88",
+        "versions": {
+          "accelerate": "1.15.0",
+          "peft": "0.21.2",
+          "safetensors": "0.8.0",
+          "tokenizers": "0.23.3",
+          "torch": "2.15.0",
+          "transformers": "5.16.1"
+        },
+        "cpu_threads": 12,
+        "interop_threads": 16,
+        "parameter_bytes": 54227155968,
+        "parameter_dtypes": [
+          "torch.bfloat16",
+          "torch.float32"
+        ],
+        "parameter_devices": [
+          "mps:0"
+        ],
+        "unused_generation_head_bytes": 2542796800,
+        "generation_head_forwarded": false,
+        "checks": {
+          "eval": true,
+          "pairs": true,
+          "scale": true,
+          "unmerged": true,
+          "weights": true
+        }
+      }
+    },
+    {
+      "condition": "C",
+      "run_id": "20261104T214045-comparison-5-C-plain-fixed",
+      "completed": true,
+      "guard_stop": null,
+      "code_revision": "8fcb8843bcb90171b7f5f22473df052cead75758",
+      "binary_sha256": "a65db72b766bfb1d3a1aa623b2e9fd974e8017114802df1bd40993f78cc67796",
+      "input_sha256": "61713c289c2f2c5867988edb4f5394692efac57ad537ec9b8dedd5ee1c22e6da",
+      "decision_sha256": "0db5ca716c7fea75605bffddf2d1d6de03fd80c471b3528277beb98a663d9880",
+      "elapsed_process_seconds": 273.39559204131365,
+      "rows": [
+        {
+          "token_count": 100,
+          "tokens_sha256": "9c19ce14c4faf01538d6a37e5b2a7a325cc6f7a927bde10926b90af94faed40e",
+          "elapsed_seconds": 2.152680375,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 6.25e-05
+        },
+        {
+          "token_count": 500,
+          "tokens_sha256": "86f979c031e2c05f7da5a1c516e5a59251651135539cf532174cf22470f83a8a",
+          "elapsed_seconds": 1.95396475,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 9.58e-07
+        },
+        {
+          "token_count": 2000,
+          "tokens_sha256": "4fa9a11ff84fa24b5764789f9052640b80e2e9617463ea4fb363c2d41e89242f",
+          "elapsed_seconds": 8.40841825,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 8.75e-07
+        },
+        {
+          "token_count": 8192,
+          "tokens_sha256": "b6230ef3136acd81fe7b8cc4cb872dc19518ad4e1bda7d5addd24ccd383f41b2",
+          "elapsed_seconds": 38.514819167,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 1.125e-06
+        },
+        {
+          "token_count": 100,
+          "tokens_sha256": "9c19ce14c4faf01538d6a37e5b2a7a325cc6f7a927bde10926b90af94faed40e",
+          "elapsed_seconds": 6.088515083,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 9.17e-07
+        },
+        {
+          "token_count": 500,
+          "tokens_sha256": "86f979c031e2c05f7da5a1c516e5a59251651135539cf532174cf22470f83a8a",
+          "elapsed_seconds": 1.957714208,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 1.166e-06
+        },
+        {
+          "token_count": 2000,
+          "tokens_sha256": "4fa9a11ff84fa24b5764789f9052640b80e2e9617463ea4fb363c2d41e89242f",
+          "elapsed_seconds": 8.278128875,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 8.33e-07
+        },
+        {
+          "token_count": 8192,
+          "tokens_sha256": "b6230ef3136acd81fe7b8cc4cb872dc19518ad4e1bda7d5addd24ccd383f41b2",
+          "elapsed_seconds": 38.668039041,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 1e-06
+        },
+        {
+          "token_count": 100,
+          "tokens_sha256": "9c19ce14c4faf01538d6a37e5b2a7a325cc6f7a927bde10926b90af94faed40e",
+          "elapsed_seconds": 6.118047209,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 30.181831417
+        },
+        {
+          "token_count": 500,
+          "tokens_sha256": "86f979c031e2c05f7da5a1c516e5a59251651135539cf532174cf22470f83a8a",
+          "elapsed_seconds": 1.951798916,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 9.58e-07
+        },
+        {
+          "token_count": 2000,
+          "tokens_sha256": "4fa9a11ff84fa24b5764789f9052640b80e2e9617463ea4fb363c2d41e89242f",
+          "elapsed_seconds": 8.153621042,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 1.125e-06
+        },
+        {
+          "token_count": 8192,
+          "tokens_sha256": "b6230ef3136acd81fe7b8cc4cb872dc19518ad4e1bda7d5addd24ccd383f41b2",
+          "elapsed_seconds": 38.389173208,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 1.083e-06
+        },
+        {
+          "token_count": 100,
+          "tokens_sha256": "9c19ce14c4faf01538d6a37e5b2a7a325cc6f7a927bde10926b90af94faed40e",
+          "elapsed_seconds": 5.971251459,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 9.17e-07
+        },
+        {
+          "token_count": 500,
+          "tokens_sha256": "86f979c031e2c05f7da5a1c516e5a59251651135539cf532174cf22470f83a8a",
+          "elapsed_seconds": 1.95435875,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 9.59e-07
+        },
+        {
+          "token_count": 2000,
+          "tokens_sha256": "4fa9a11ff84fa24b5764789f9052640b80e2e9617463ea4fb363c2d41e89242f",
+          "elapsed_seconds": 8.2679065,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 7.5e-07
+        },
+        {
+          "token_count": 8192,
+          "tokens_sha256": "b6230ef3136acd81fe7b8cc4cb872dc19518ad4e1bda7d5addd24ccd383f41b2",
+          "elapsed_seconds": 38.550122125,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 1.291e-06
+        }
+      ],
+      "memory": {
+        "max_rss_bytes": 32608436224,
+        "kernel_footprint_peak_bytes": 8366126592,
+        "sampled_footprint_peak_bytes": 8195864064,
+        "system_swap_start_bytes": 1996947456,
+        "system_swap_max_bytes": 1996947456,
+        "system_swap_delta_bytes": 0,
+        "samples": 2537,
+        "max_sample_gap_seconds": 0.11076399999999964,
+        "last_sample_elapsed_seconds": 273.250732
+      },
+      "power": {
+        "ac_all": true,
+        "watts": [
+          68
+        ],
+        "energy_modes": [
+          2
+        ],
+        "battery_percent_min": 96,
+        "battery_percent_max": 98,
+        "before": {
+          "ac": true,
+          "battery_percent": 98,
+          "watts": 68,
+          "charging": true,
+          "battery_status": "charging",
+          "energy_mode": 2
+        },
+        "after": {
+          "ac": true,
+          "battery_percent": 96,
+          "watts": 68,
+          "charging": true,
+          "battery_status": "charging",
+          "energy_mode": 2
+        }
+      },
+      "source_sha256": {
+        "plan.json": "95ca120d88f3dfb80041650f5eb348bec1b3d73bb1967aba92a385d94693e8db",
+        "execution.json": "08eb42c90a1b90965d4740190e3b3828e47747f2a19175a33a287fe9d0e12da1",
+        "memory.jsonl": "a08837632f39a9209b366c7ca57080f90831aa55b7a466e9aee67369ee20f7b8",
+        "power.jsonl": "fc17825558f001319d66a819eb56b6b9a9e1dddb43ee5c33d037255d4950f99a",
+        "result.json": "265a3770c23941f3edecd7baff31b5f25fa3322a87a2a2d40fef5af14ea3faea"
+      },
+      "load_seconds": {
+        "backbone": 20.155982333,
+        "bundle": 6.248794,
+        "head": 0.000157667,
+        "tokenizer": 0.652295125
+      },
+      "specialization": "cached",
+      "asset_sha256": "be2b71cf1cf8385b0b096ebd1f103f705a3e4ff4e86819a1a999845f47f7a3b7"
+    },
+    {
+      "condition": "B",
+      "run_id": "20261104T214519-comparison-6-B-plain-fixed",
+      "completed": true,
+      "guard_stop": null,
+      "code_revision": "ff2a2579e30a95a669b492f6f1eb6fca771211be",
+      "binary_sha256": "77dd813faa4c7e020577dff72d7dca4be033894ed8d89c19722e80ebd878c3e7",
+      "input_sha256": "61713c289c2f2c5867988edb4f5394692efac57ad537ec9b8dedd5ee1c22e6da",
+      "decision_sha256": "2f34243a3d28500075e09d02d9f9f565a7c4b02f94a7d47b2a3caba7262d357d",
+      "elapsed_process_seconds": 282.45873545855284,
+      "rows": [
+        {
+          "token_count": 100,
+          "tokens_sha256": "9c19ce14c4faf01538d6a37e5b2a7a325cc6f7a927bde10926b90af94faed40e",
+          "elapsed_seconds": 2.179985834,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 4.167918625
+        },
+        {
+          "token_count": 500,
+          "tokens_sha256": "86f979c031e2c05f7da5a1c516e5a59251651135539cf532174cf22470f83a8a",
+          "elapsed_seconds": 1.9556996660000001,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 1.292e-06
+        },
+        {
+          "token_count": 2000,
+          "tokens_sha256": "4fa9a11ff84fa24b5764789f9052640b80e2e9617463ea4fb363c2d41e89242f",
+          "elapsed_seconds": 8.380319583,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 7.92e-07
+        },
+        {
+          "token_count": 8192,
+          "tokens_sha256": "b6230ef3136acd81fe7b8cc4cb872dc19518ad4e1bda7d5addd24ccd383f41b2",
+          "elapsed_seconds": 38.521825167,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 7.91e-07
+        },
+        {
+          "token_count": 100,
+          "tokens_sha256": "9c19ce14c4faf01538d6a37e5b2a7a325cc6f7a927bde10926b90af94faed40e",
+          "elapsed_seconds": 6.075406792,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 8.75e-07
+        },
+        {
+          "token_count": 500,
+          "tokens_sha256": "86f979c031e2c05f7da5a1c516e5a59251651135539cf532174cf22470f83a8a",
+          "elapsed_seconds": 1.9536267500000002,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 1.209e-06
+        },
+        {
+          "token_count": 2000,
+          "tokens_sha256": "4fa9a11ff84fa24b5764789f9052640b80e2e9617463ea4fb363c2d41e89242f",
+          "elapsed_seconds": 8.305301292,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 1.25e-06
+        },
+        {
+          "token_count": 8192,
+          "tokens_sha256": "b6230ef3136acd81fe7b8cc4cb872dc19518ad4e1bda7d5addd24ccd383f41b2",
+          "elapsed_seconds": 38.595913708,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 1.375e-06
+        },
+        {
+          "token_count": 100,
+          "tokens_sha256": "9c19ce14c4faf01538d6a37e5b2a7a325cc6f7a927bde10926b90af94faed40e",
+          "elapsed_seconds": 5.950145,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 35.495600541
+        },
+        {
+          "token_count": 500,
+          "tokens_sha256": "86f979c031e2c05f7da5a1c516e5a59251651135539cf532174cf22470f83a8a",
+          "elapsed_seconds": 1.955564917,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 9.58e-07
+        },
+        {
+          "token_count": 2000,
+          "tokens_sha256": "4fa9a11ff84fa24b5764789f9052640b80e2e9617463ea4fb363c2d41e89242f",
+          "elapsed_seconds": 8.13835075,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 1.084e-06
+        },
+        {
+          "token_count": 8192,
+          "tokens_sha256": "b6230ef3136acd81fe7b8cc4cb872dc19518ad4e1bda7d5addd24ccd383f41b2",
+          "elapsed_seconds": 38.339654416,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 1e-06
+        },
+        {
+          "token_count": 100,
+          "tokens_sha256": "9c19ce14c4faf01538d6a37e5b2a7a325cc6f7a927bde10926b90af94faed40e",
+          "elapsed_seconds": 5.977207708,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 8.34e-07
+        },
+        {
+          "token_count": 500,
+          "tokens_sha256": "86f979c031e2c05f7da5a1c516e5a59251651135539cf532174cf22470f83a8a",
+          "elapsed_seconds": 1.947657708,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 9.58e-07
+        },
+        {
+          "token_count": 2000,
+          "tokens_sha256": "4fa9a11ff84fa24b5764789f9052640b80e2e9617463ea4fb363c2d41e89242f",
+          "elapsed_seconds": 8.284030166,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 1.042e-06
+        },
+        {
+          "token_count": 8192,
+          "tokens_sha256": "b6230ef3136acd81fe7b8cc4cb872dc19518ad4e1bda7d5addd24ccd383f41b2",
+          "elapsed_seconds": 38.479840458,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 1.042e-06
+        }
+      ],
+      "memory": {
+        "max_rss_bytes": 32607485952,
+        "kernel_footprint_peak_bytes": 8236938800,
+        "sampled_footprint_peak_bytes": 8236660272,
+        "system_swap_start_bytes": 1996947456,
+        "system_swap_max_bytes": 1996947456,
+        "system_swap_delta_bytes": 0,
+        "samples": 2623,
+        "max_sample_gap_seconds": 0.11501599999999712,
+        "last_sample_elapsed_seconds": 282.334545
+      },
+      "power": {
+        "ac_all": true,
+        "watts": [
+          68
+        ],
+        "energy_modes": [
+          2
+        ],
+        "battery_percent_min": 95,
+        "battery_percent_max": 96,
+        "before": {
+          "ac": true,
+          "battery_percent": 96,
+          "watts": 68,
+          "charging": true,
+          "battery_status": "charging",
+          "energy_mode": 2
+        },
+        "after": {
+          "ac": true,
+          "battery_percent": 95,
+          "watts": 68,
+          "charging": true,
+          "battery_status": "charging",
+          "energy_mode": 2
+        }
+      },
+      "source_sha256": {
+        "plan.json": "2367e1a6ddff37c1189b29bba7196c80d3a06d1e667f16d4ba1ec8aea26dbfeb",
+        "execution.json": "4db3610aec148e41f1222bd17c7ad346f16cf68b76c4593d85ae9b1e0b97e9f7",
+        "memory.jsonl": "ca30ad2b56325cfb7be1787ee831d575de483f31c0b11749f3bf15d052804c19",
+        "power.jsonl": "033bc9d243b1a665396df5f081567afaa795a11f2b45c7fd702ef2a6e902b853",
+        "result.json": "17563f118357d39ba17ceffb83d96d11c41c53cfde65d5b5840245fe4d58163a"
+      },
+      "load_seconds": {
+        "backbone": 20.029668750000003,
+        "bundle": 6.289094208,
+        "head": 0.000178333,
+        "tokenizer": 0.67670525
+      },
+      "specialization": "cached",
+      "asset_sha256": "965396ce46af30aca1e65df8fe2e0fa4639be120b8bb18a7edeefc5dbbc86de0"
+    },
+    {
+      "condition": "A",
+      "run_id": "20261104T215002-comparison-7-A-plain-fixed",
+      "completed": true,
+      "guard_stop": null,
+      "code_revision": "806ac642c1f9c907e54af40466df40381f701b99",
+      "binary_sha256": "ac3d4b3df1dd97f338e44b6c9f0851bebfb77b16fa5d107bc0fb715977ea9732",
+      "input_sha256": "61713c289c2f2c5867988edb4f5394692efac57ad537ec9b8dedd5ee1c22e6da",
+      "decision_sha256": "2f34243a3d28500075e09d02d9f9f565a7c4b02f94a7d47b2a3caba7262d357d",
+      "elapsed_process_seconds": 263.0998122924939,
+      "rows": [
+        {
+          "token_count": 100,
+          "tokens_sha256": "9c19ce14c4faf01538d6a37e5b2a7a325cc6f7a927bde10926b90af94faed40e",
+          "elapsed_seconds": 2.179006458,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 16.695613875
+        },
+        {
+          "token_count": 500,
+          "tokens_sha256": "86f979c031e2c05f7da5a1c516e5a59251651135539cf532174cf22470f83a8a",
+          "elapsed_seconds": 1.958361708,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 1.25e-06
+        },
+        {
+          "token_count": 2000,
+          "tokens_sha256": "4fa9a11ff84fa24b5764789f9052640b80e2e9617463ea4fb363c2d41e89242f",
+          "elapsed_seconds": 8.282083167,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 1.292e-06
+        },
+        {
+          "token_count": 8192,
+          "tokens_sha256": "b6230ef3136acd81fe7b8cc4cb872dc19518ad4e1bda7d5addd24ccd383f41b2",
+          "elapsed_seconds": 38.490686083,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 1.458e-06
+        },
+        {
+          "token_count": 100,
+          "tokens_sha256": "9c19ce14c4faf01538d6a37e5b2a7a325cc6f7a927bde10926b90af94faed40e",
+          "elapsed_seconds": 0.593851,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 1.666e-06
+        },
+        {
+          "token_count": 500,
+          "tokens_sha256": "86f979c031e2c05f7da5a1c516e5a59251651135539cf532174cf22470f83a8a",
+          "elapsed_seconds": 2.204193709,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 1.375e-06
+        },
+        {
+          "token_count": 2000,
+          "tokens_sha256": "4fa9a11ff84fa24b5764789f9052640b80e2e9617463ea4fb363c2d41e89242f",
+          "elapsed_seconds": 9.209696541,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 1.334e-06
+        },
+        {
+          "token_count": 8192,
+          "tokens_sha256": "b6230ef3136acd81fe7b8cc4cb872dc19518ad4e1bda7d5addd24ccd383f41b2",
+          "elapsed_seconds": 39.003998042,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 1.292e-06
+        },
+        {
+          "token_count": 100,
+          "tokens_sha256": "9c19ce14c4faf01538d6a37e5b2a7a325cc6f7a927bde10926b90af94faed40e",
+          "elapsed_seconds": 0.7124127910000001,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 33.471283166
+        },
+        {
+          "token_count": 500,
+          "tokens_sha256": "86f979c031e2c05f7da5a1c516e5a59251651135539cf532174cf22470f83a8a",
+          "elapsed_seconds": 1.9561960420000002,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 1.416e-06
+        },
+        {
+          "token_count": 2000,
+          "tokens_sha256": "4fa9a11ff84fa24b5764789f9052640b80e2e9617463ea4fb363c2d41e89242f",
+          "elapsed_seconds": 8.0435655,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 1.416e-06
+        },
+        {
+          "token_count": 8192,
+          "tokens_sha256": "b6230ef3136acd81fe7b8cc4cb872dc19518ad4e1bda7d5addd24ccd383f41b2",
+          "elapsed_seconds": 38.165324125,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 1.333e-06
+        },
+        {
+          "token_count": 100,
+          "tokens_sha256": "9c19ce14c4faf01538d6a37e5b2a7a325cc6f7a927bde10926b90af94faed40e",
+          "elapsed_seconds": 0.5839265,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 1.333e-06
+        },
+        {
+          "token_count": 500,
+          "tokens_sha256": "86f979c031e2c05f7da5a1c516e5a59251651135539cf532174cf22470f83a8a",
+          "elapsed_seconds": 2.235233208,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 1.375e-06
+        },
+        {
+          "token_count": 2000,
+          "tokens_sha256": "4fa9a11ff84fa24b5764789f9052640b80e2e9617463ea4fb363c2d41e89242f",
+          "elapsed_seconds": 9.242956958,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 1.333e-06
+        },
+        {
+          "token_count": 8192,
+          "tokens_sha256": "b6230ef3136acd81fe7b8cc4cb872dc19518ad4e1bda7d5addd24ccd383f41b2",
+          "elapsed_seconds": 38.847428458,
+          "thermal_state_at_start": "nominal",
+          "thermal_wait_seconds": 1.459e-06
+        }
+      ],
+      "memory": {
+        "max_rss_bytes": 32345047040,
+        "kernel_footprint_peak_bytes": 20986935024,
+        "sampled_footprint_peak_bytes": 20986377968,
+        "system_swap_start_bytes": 1996947456,
+        "system_swap_max_bytes": 1996947456,
+        "system_swap_delta_bytes": 0,
+        "samples": 2445,
+        "max_sample_gap_seconds": 0.11783999900001163,
+        "last_sample_elapsed_seconds": 262.98534
+      },
+      "power": {
+        "ac_all": true,
+        "watts": [
+          68
+        ],
+        "energy_modes": [
+          2
+        ],
+        "battery_percent_min": 94,
+        "battery_percent_max": 95,
+        "before": {
+          "ac": true,
+          "battery_percent": 95,
+          "watts": 68,
+          "charging": true,
+          "battery_status": "charging",
+          "energy_mode": 2
+        },
+        "after": {
+          "ac": true,
+          "battery_percent": 94,
+          "watts": 68,
+          "charging": true,
+          "battery_status": "charging",
+          "energy_mode": 2
+        }
+      },
+      "source_sha256": {
+        "plan.json": "502a70319bfb5e3abc25c860fec8dae7eca58ccb896a4b7f631f652785fd3ff6",
+        "execution.json": "14504cac88b9402ade9c5bfc0f5b92cd9b4127a67ce5e284ea270274be5c364b",
+        "memory.jsonl": "33dfca1dc81477b4a5a659b1998b2ec076d5d144fe4a2aef8e21bbeddef62ea6",
+        "power.jsonl": "30e4501950ae1926d3fff8996192e8f9e38c32cfe953280aa82b82b70f236223",
+        "result.json": "24a9916c86d9f668cd8ccfbea91d6aff395d327738b92f36c7a7e5b4bfc10b13"
+      },
+      "load_seconds": {
+        "backbone": 3.796808167,
+        "bundle": 5.898275208,
+        "head": 0.000176541,
+        "tokenizer": 0.678499958
+      },
+      "specialization": "cached",
+      "asset_sha256": "965396ce46af30aca1e65df8fe2e0fa4639be120b8bb18a7edeefc5dbbc86de0"
+    }
+  ],
+  "output_comparison": {
+    "A": {
+      "reference": "First measured A row for each token hash",
+      "rows_including_warmups": 32,
+      "compared_fields": [
+        "logits",
+        "probabilities_t1",
+        "probabilities"
+      ],
+      "compared_fields_float32_bit_equal_rows": 32,
+      "max_abs_difference": {
+        "logits": 0,
+        "probabilities_t1": 0,
+        "probabilities": 0
+      },
+      "top_changes_at_temperature1": 0
+    },
+    "B": {
+      "reference": "First measured A row for each token hash",
+      "rows_including_warmups": 32,
+      "compared_fields": [
+        "logits",
+        "probabilities_t1",
+        "probabilities"
+      ],
+      "compared_fields_float32_bit_equal_rows": 32,
+      "max_abs_difference": {
+        "logits": 0,
+        "probabilities_t1": 0,
+        "probabilities": 0
+      },
+      "top_changes_at_temperature1": 0
+    },
+    "C": {
+      "reference": "First measured A row for each token hash",
+      "rows_including_warmups": 32,
+      "compared_fields": [
+        "logits",
+        "probabilities_t1",
+        "probabilities"
+      ],
+      "compared_fields_float32_bit_equal_rows": 0,
+      "max_abs_difference": {
+        "logits": 0.0038552284240722656,
+        "probabilities_t1": 8.153915405273438e-05,
+        "probabilities": 8.106231689453125e-05
+      },
+      "top_changes_at_temperature1": 0
+    },
+    "D": {
+      "reference": "First measured A row for each token hash",
+      "rows_including_warmups": 32,
+      "compared_fields": [
+        "logits",
+        "probabilities_t1"
+      ],
+      "compared_fields_float32_bit_equal_rows": 0,
+      "max_abs_difference": {
+        "logits": 1.173222541809082,
+        "probabilities_t1": 0.02173338128050492
+      },
+      "top_changes_at_temperature1": 0
+    }
+  },
+  "quality_evidence": "docs/validation/jev27b/last-token-20261105.json",
+  "quality_comparison": {
+    "schema": "jev27b-original-q-summary/1",
+    "rows": 900,
+    "temperature": 1,
+    "backbone_rerun": false,
+    "computed_from_saved_logits": true,
+    "memory_only_q_not_rerun": true,
+    "source_run_id": "20261103T154310-65e7b5bb",
+    "source_revision": "14b425269ed24452e0a5ad5a8f3e51d139647a88",
+    "reference_device": "mps",
+    "reference_dtype": "bfloat16",
+    "versions": {
+      "accelerate": "1.15.0",
+      "peft": "0.21.2",
+      "safetensors": "0.8.0",
+      "tokenizers": "0.23.3",
+      "torch": "2.15.0",
+      "transformers": "5.16.1"
+    },
+    "definitions": "Agreement with the frozen teacher distribution, not real-world accuracy; descriptive comparison, no new acceptance criterion.",
+    "target_normalization": {
+      "rows": 900,
+      "normalized": 14,
+      "largest_deviation": 9.999999999998899e-05,
+      "tolerance": 0.001,
+      "rejected": 0
+    },
+    "summary": {
+      "source_unmerged_bf16": {
+        "all": {
+          "rows": 900,
+          "kl": 0.0198399071555897,
+          "top1": 0.9077777777777778
+        },
+        "noul": {
+          "rows": 300,
+          "hits": 286,
+          "top1": 0.9533333333333334,
+          "kl": 0.0035451371500589152,
+          "brier_soft": 0.0013981825539557398,
+          "brier_hard": 0.08418952530559899,
+          "auroc": 0.9941038797371501,
+          "auroc_rows": 299,
+          "auroc_excluded_ties": 1
+        },
+        "choice": {
+          "rows": 300,
+          "hits": 262,
+          "top1": 0.8733333333333333,
+          "kl": 0.0348740965826443,
+          "accuracy": 87.33333333333333
+        },
+        "score": {
+          "rows": 300,
+          "hits": 269,
+          "top1": 0.8966666666666666,
+          "kl": 0.021100487734065882,
+          "mae": 0.10625586984229336,
+          "mae_normalized": 0.021251173968458673
+        }
+      },
+      "native_baseline": {
+        "all": {
+          "kl": 0.02021977378768728,
+          "rows": 900,
+          "top1": 0.9033333333333333
+        },
+        "choice": {
+          "accuracy": 86.66666666666667,
+          "hits": 260,
+          "kl": 0.03438079722107947,
+          "rows": 300,
+          "top1": 0.8666666666666667
+        },
+        "noul": {
+          "auroc": 0.9933837429111532,
+          "auroc_excluded_ties": 1,
+          "auroc_rows": 299,
+          "brier_hard": 0.08574651540182328,
+          "brier_soft": 0.0016538579971249463,
+          "hits": 285,
+          "kl": 0.0041710592876839795,
+          "rows": 300,
+          "top1": 0.95
+        },
+        "score": {
+          "hits": 268,
+          "kl": 0.02210746485429839,
+          "mae": 0.10854330113529687,
+          "mae_normalized": 0.021708660227059372,
+          "rows": 300,
+          "top1": 0.8933333333333333
+        }
+      },
+      "native_last_token": {
+        "all": {
+          "kl": 0.020221049801513912,
+          "rows": 900,
+          "top1": 0.9033333333333333
+        },
+        "choice": {
+          "accuracy": 86.66666666666667,
+          "hits": 260,
+          "kl": 0.03438148063616281,
+          "rows": 300,
+          "top1": 0.8666666666666667
+        },
+        "noul": {
+          "auroc": 0.9933837429111532,
+          "auroc_excluded_ties": 1,
+          "auroc_rows": 299,
+          "brier_hard": 0.08575032338349618,
+          "brier_soft": 0.0016545083449901144,
+          "hits": 285,
+          "kl": 0.004172501587758474,
+          "rows": 300,
+          "top1": 0.95
+        },
+        "score": {
+          "hits": 268,
+          "kl": 0.022109167180620455,
+          "mae": 0.10856692300132466,
+          "mae_normalized": 0.02171338460026493,
+          "rows": 300,
+          "top1": 0.8933333333333333
+        }
+      }
+    },
+    "sources": {
+      "reference": "2af3e9a9b20c5e28af5eb419fe79cc13f463ab7a523660e94de21dbdf4be70df",
+      "peft": "1a41b64dc1f9dfa9ee1c8bf3dbfb0f483b898d7236677a7d341fe7e6a7970ad6",
+      "merged": "9d51a9536683f38924e8e4083adea0c5e249b9311966dd1975f8c0c22736bea7",
+      "baseline": "86dd07b464c904981cfbea4af0d1cc885f41bcddc5345d112aa0a642e910124d",
+      "candidate_quality": "ec5d1a1b41c2918157c91897dd0d10dffb2f39c0d3f8c33937f4747ce8cf02af",
+      "baseline_quality": "292199ba23e9cac546872c07dd5080e073cfb9badcac9fbde478581b94736e96"
+    },
+    "fixture_sha256": "996119dc4e686a9fa2ed24a4ed06d6ee9a6834faeb900e9270b71cba2af5393f",
+    "corpus_integrity_sha256": "c68910f3c005477670905544a44c818561c3fe72dae3f0aa07c358560caf9a05",
+    "scorer_sha256": "1bc647767edd045a4bacaf3b00a4fcd7b8127a28dc6beb3646d302e7b04a0c3a"
+  },
+  "limitations": [
+    "Fixed mixed-length sequence; B/C pay reload and first-run cost on each measured 100-token row.",
+    "Source BF16 plus unmerged LoRA versus native uint4 plus merged LoRA; not framework overhead alone.",
+    "Source retains an unused generation head in memory but does not forward it.",
+    "Nominal thermal state at row start does not imply constant temperature during inference.",
+    "No simultaneous builds, tests or model jobs; background CPU/GPU activity was not fully instrumented.",
+    "RSS and footprint are different counters; neither is an additional allocation to add to the other.",
+    "The footprint peak is the largest observed kernel lifetime counter; the final sampling gap is unobserved.",
+    "Load phase observations are not cold-start rankings; filesystem and model caches were not purged.",
+    "Each latency has six observations; no p95 or population-level speed guarantee."
+  ],
+  "summary": {
+    "A": {
+      "latency_seconds": {
+        "100": {
+          "n": 6,
+          "median": 0.6499146040000001,
+          "min": 0.5839265,
+          "max": 0.7124127910000001,
+          "p95": null
+        },
+        "500": {
+          "n": 6,
+          "median": 2.2197134585000002,
+          "min": 1.9561960420000002,
+          "max": 2.359129708,
+          "p95": null
+        },
+        "2000": {
+          "n": 6,
+          "median": 9.2263267495,
+          "min": 8.0435655,
+          "max": 9.379876375,
+          "p95": null
+        },
+        "8192": {
+          "n": 6,
+          "median": 38.92571325,
+          "min": 38.165324125,
+          "max": 40.300909584,
+          "p95": null
+        }
+      },
+      "mixed_round_seconds": {
+        "n": 6,
+        "median": 50.960642208,
+        "min": 48.877498458,
+        "max": 52.64683629300001,
+        "p95": null
+      },
+      "memory": {
+        "max_rss_bytes": {
+          "n": 2,
+          "median": 32338436096.0,
+          "min": 32331825152,
+          "max": 32345047040,
+          "p95": null
+        },
+        "kernel_footprint_peak_bytes": {
+          "n": 2,
+          "median": 21157115608.0,
+          "min": 20986935024,
+          "max": 21327296192,
+          "p95": null
+        }
+      }
+    },
+    "B": {
+      "latency_seconds": {
+        "100": {
+          "n": 6,
+          "median": 6.021963271000001,
+          "min": 5.950145,
+          "max": 6.077656583,
+          "p95": null
+        },
+        "500": {
+          "n": 6,
+          "median": 1.953377229,
+          "min": 1.947657708,
+          "max": 1.956320666,
+          "p95": null
+        },
+        "2000": {
+          "n": 6,
+          "median": 8.294313603500001,
+          "min": 8.13835075,
+          "max": 8.306312834,
+          "p95": null
+        },
+        "8192": {
+          "n": 6,
+          "median": 37.737326458,
+          "min": 36.815381834,
+          "max": 38.595913708,
+          "p95": null
+        }
+      },
+      "mixed_round_seconds": {
+        "n": 6,
+        "median": 53.840934896,
+        "min": 53.153956124,
+        "max": 54.930248542,
+        "p95": null
+      },
+      "memory": {
+        "max_rss_bytes": {
+          "n": 2,
+          "median": 32605487104.0,
+          "min": 32603488256,
+          "max": 32607485952,
+          "p95": null
+        },
+        "kernel_footprint_peak_bytes": {
+          "n": 2,
+          "median": 8105932300.0,
+          "min": 7974925800,
+          "max": 8236938800,
+          "p95": null
+        }
+      }
+    },
+    "C": {
+      "latency_seconds": {
+        "100": {
+          "n": 6,
+          "median": 6.1032811460000005,
+          "min": 5.955404416,
+          "max": 6.41838025,
+          "p95": null
+        },
+        "500": {
+          "n": 6,
+          "median": 1.956812833,
+          "min": 1.951798916,
+          "max": 1.9580223330000002,
+          "p95": null
+        },
+        "2000": {
+          "n": 6,
+          "median": 8.207459209,
+          "min": 7.648074084,
+          "max": 8.278128875,
+          "p95": null
+        },
+        "8192": {
+          "n": 6,
+          "median": 38.534623895500005,
+          "min": 38.115242375,
+          "max": 38.729626375,
+          "p95": null
+        }
+      },
+      "mixed_round_seconds": {
+        "n": 6,
+        "median": 54.837211229000005,
+        "min": 53.675950583,
+        "max": 55.328512292,
+        "p95": null
+      },
+      "memory": {
+        "max_rss_bytes": {
+          "n": 2,
+          "median": 32614400000.0,
+          "min": 32608436224,
+          "max": 32620363776,
+          "p95": null
+        },
+        "kernel_footprint_peak_bytes": {
+          "n": 2,
+          "median": 8493651540.0,
+          "min": 8366126592,
+          "max": 8621176488,
+          "p95": null
+        }
+      }
+    },
+    "D": {
+      "latency_seconds": {
+        "100": {
+          "n": 6,
+          "median": 0.8437297502532601,
+          "min": 0.8138072500005364,
+          "max": 0.9008614588528872,
+          "p95": null
+        },
+        "500": {
+          "n": 6,
+          "median": 2.6232122909277678,
+          "min": 2.503627208992839,
+          "max": 2.710381083190441,
+          "p95": null
+        },
+        "2000": {
+          "n": 6,
+          "median": 10.847312312573195,
+          "min": 10.050649833865464,
+          "max": 11.272265291772783,
+          "p95": null
+        },
+        "8192": {
+          "n": 6,
+          "median": 46.96733383368701,
+          "min": 45.767155916430056,
+          "max": 47.754685583524406,
+          "p95": null
+        }
+      },
+      "mixed_round_seconds": {
+        "n": 6,
+        "median": 60.70589895825833,
+        "min": 60.3657682929188,
+        "max": 62.6020242087543,
+        "p95": null
+      },
+      "memory": {
+        "max_rss_bytes": {
+          "n": 2,
+          "median": 55465517056.0,
+          "min": 55396827136,
+          "max": 55534206976,
+          "p95": null
+        },
+        "kernel_footprint_peak_bytes": {
+          "n": 2,
+          "median": 69902769524.0,
+          "min": 69437464008,
+          "max": 70368075040,
+          "p95": null
+        }
+      }
+    }
+  }
+}

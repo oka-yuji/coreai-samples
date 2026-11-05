@@ -6,7 +6,7 @@ JEV-27B は、状況についての型付きの質問に答えるモデルです
 
 **向いている人:** Swift から Mac 上の型付き判断を動かし、測りたい開発者。**向かない用途:** 自由な対話、本番の判断、追加の検査なしに確率を現実の正しさとして使うこと。
 
-必要なもの: Apple silicon、macOS 27、Metal Toolchain を入れた Xcode 27、GPU での実行。計測は Mac16,6(Apple M4 Max、メモリ 128 GiB)、macOS 27.0(26A428)で行いました。最小のメモリ構成は確かめていません。配布済み bundle の利用には変換は不要です。自分で bundle を作るには、レシピの参照環境と変換環境、固定した入力、空きディスクが要ります(書き出しの段は 160 GB の空きを確かめます)。
+必要なもの: Apple silicon、macOS 27、Metal Toolchain を入れた Xcode 27、GPU での実行。計測は MacBook Pro（14インチ、2024年）、Apple M4 Max、メモリ128 GiB（機種ID: Mac16,6）、macOS 27.0(26A428)で行いました。最小のメモリ構成は確かめていません。配布済み bundle の利用には変換は不要です。自分で bundle を作るには、レシピの参照環境と変換環境、固定した入力、空きディスクが要ります(書き出しの段は 160 GB の空きを確かめます)。
 
 ## 取得して動かす
 
@@ -22,6 +22,57 @@ Tools/Verify/.build/release/coreai-verify typed-decide --bundle models/jev27b/bu
 出力ファイルには、まだ存在しない名前を使います。モデルを動かすときは `AGENTS.md` の共有ロックを取ります。
 取得先の `bundle/` を指定してください。HF の取得キャッシュ・カード・例は、その外側に置く構成です。
 公開用に書いた入力例と実行結果はモデルカードに、評価済み版と公開版の対応は[公開記録](validation/jev27b/release.md)にあります。
+
+## 実行部のメモリ安定化（2026-11-05）
+
+同じ形状の間は実行部を保持し、4回目の形状変更前にmodelとfunctionを解放して読み直します。再loadまたはbackbone推論中の失敗・取消では、実行部を破棄します。公開済みの重み・head・tokenizer・温度は変更していません。長さ交替100判断・同長100判断・近い長さの交替20判断は、全出力を保って固定メモリ条件に合格しました。有限の検査であり、無制限利用の保証ではありません。再loadと初回実行の時間が加わります。94 Wの既存計測は対策前の履歴として保持し、改善前後・元モデルの同条件比較を次節に示します。[測定条件と結果](validation/jev27b/README.md#memory-stability-2026-11-05)。
+
+## 最後の位置だけを返す候補版（2026-11-05）
+
+未公開の候補版はbackboneの出力を `[1, 1, 5120]` に絞る。量子化済みの重み・層・判断head・tokenizer・温度は維持する。
+判断用途に合わせた出力グラフの変更で、モデルの枝刈りではない。8192-token時の出力要素は80 MiBから10 KiBになるが、
+モデル全体のメモリ削減率や速度改善率を表す数値ではない。
+
+既存のF忠実度・Q品質基準に合格し、以前のnative出力とのtopの変化はなかった。浮動小数点値はbit一致ではなく、
+Qでの温度1の確率差は最大0.0006121。choice品質の信頼区間は従来の閾値をまたぎ、校正用holdoutは再評価していない。
+[検証記録](validation/jev27b/README.md#final-token-output-2026-11-05)に制約と最初の変換失敗も残している。
+同条件比較で候補版の優位性を確認できず、HFは従来の全位置出力版を維持する。結果は次節を参照。
+
+<a id="controlled-comparison"></a>
+
+## 同条件での比較（2026-11-05）
+
+同じM4 Max・128 GiBのMacで、固定4入力をA→B→C→D→D→C→B→Aの順に計測しました。
+各プロセスは長さごとにwarmup 1回と計測3周、各条件・長さの測定は計6回です。
+AC表示68 W・High Powerを維持し、各判断を平常の熱状態（nominal）で開始しました。
+時間は中央値で、初回ロードと熱の回復待ちは除外しています。メモリは2プロセスの最大値です。
+
+| 条件 | 100 tokens（秒） | 8192 tokens（秒） | 4判断の合計（秒） | kernel footprint peak（GiB） | peak RSS（GiB） |
+|---|---:|---:|---:|---:|---:|
+| A: 公開時 | 0.650 | 38.926 | 50.961 | 19.86 | 30.12 |
+| B: メモリ対策 | 6.022 | 37.737 | 53.841 | 7.67 | 30.37 |
+| C: 最後位置出力の候補 | 6.103 | 38.535 | 54.837 | 8.03 | 30.38 |
+| D: 原典 PyTorch/MPS | 0.844 | 46.967 | 60.706 | 65.54 | 51.72 |
+
+**メモリ対策を採用します。** 観測したkernel peakは19.86→7.67 GiBとなり、出力はbit一致を維持しました。
+ロードを含むpeak RSSは約30 GiBで変わりません。4判断の合計は50.96→53.84秒になりました。
+この混在系列では各周の100-token依頼が再ロードと初回推論の費用を負担するため、6.02秒という値を
+同じ短い入力だけを繰り返す定常性能には当てはめません。別途行った100/100/20判断の安定性検査も保持します。
+
+**最後位置出力版は候補として保持し、公開重みの差し替えを見送ります。** F/Qには合格しましたが、
+4判断の合計中央値はB比+1.85%、観測kernel peakは8.03 GiBでした。時間の差は小さく範囲も重なるため、
+速度の優位性は確認できません。出力要素を減らしてもbackboneの計算は残ります。
+実行部は候補を読み込めますが、HFでは従来の全位置出力版を配布します。
+
+原典BF16参照実装に対して、Bの8192-token判断は46.97→37.74秒、4判断合計は60.71→53.84秒でした。
+量子化・LoRA統合・実行系を含む比較です。原典は未使用の生成用head約2.54 GBもロードしますが、
+判断経路だけをforwardします。この参照実装での結果であり、framework単独の効果ではありません。
+同じ固定Qのchoice教師一致率は原典87.33%、native86.67%で、現実の正答率を測った値ではありません。
+
+次はメモリ上限を保ちながら再ロード費用を減らすことを優先し、その後に判断専用graphのstate・出力の寿命を調べる方針です。
+層削減・蒸留には新たな品質評価が必要です。Core MLは未計測です。
+[全試行・範囲・条件・品質指標](validation/jev27b/README.md#controlled-comparison-2026-11-05)を残しています。
+測定6回からp95や無制限利用の保証は出しません。
 
 <!-- model-report:start -->
 <a id="model-report"></a>
@@ -51,8 +102,30 @@ Tools/Verify/.build/release/coreai-verify typed-decide --bundle models/jev27b/bu
 | 要求・パイプライン完了時間 | 2.20761833 s | median; n=3 | [E4](validation/jev27b/README.md#ac-94-w) · ちょうど 500 トークンの P の行。TypedDecisionModel.decide の呼び出しから復帰まで。1 プロセスで長さを交互に、各長さ warmup 1 回の後。各行の run 中に 100 ms ごとにメモリを採取(--sample-memory)。各行は熱の状態 nominal で開始(--wait-nominal-thermal 600)。AC 給電(140 W アダプター、94 W)、エネルギーモード High Power(plan-d2b-ac94)。 |
 | 要求・パイプライン完了時間 | 8.97832325 s | median; n=3 | [E4](validation/jev27b/README.md#ac-94-w) · ちょうど 2,000 トークンの P の行。TypedDecisionModel.decide の呼び出しから復帰まで。1 プロセスで長さを交互に、各長さ warmup 1 回の後。各行の run 中に 100 ms ごとにメモリを採取(--sample-memory)。各行は熱の状態 nominal で開始(--wait-nominal-thermal 600)。AC 給電(140 W アダプター、94 W)、エネルギーモード High Power(plan-d2b-ac94)。 |
 | 要求・パイプライン完了時間 | 37.1391402 s | median; n=3 | [E4](validation/jev27b/README.md#ac-94-w) · ちょうど 8,192 トークンの P の行。TypedDecisionModel.decide の呼び出しから復帰まで。1 プロセスで長さを交互に、各長さ warmup 1 回の後。各行の run 中に 100 ms ごとにメモリを採取(--sample-memory)。各行は熱の状態 nominal で開始(--wait-nominal-thermal 600)。第 2 周の行は始めて約 20 s 後に熱の圧力 heavy になった。中央値の行(第 1 周)は nominal の下。AC 給電(140 W アダプター、94 W)、エネルギーモード High Power(plan-d2b-ac94)。 |
+| 要求・パイプライン完了時間 | 0.649914604 s | median; n=6 | [E13](validation/jev27b/README.md#controlled-comparison-2026-11-05) · A: 公開時。固定の混在系列の100 tokens。B/Cの100-token行は実行部の回収費用を含む。min/maxと全試行は記録参照。p95なし。 |
+| 要求・パイプライン完了時間 | 38.9257133 s | median; n=6 | [E13](validation/jev27b/README.md#controlled-comparison-2026-11-05) · A: 公開時。固定の混在系列の8192 tokens。B/Cの100-token行は実行部の回収費用を含む。min/maxと全試行は記録参照。p95なし。 |
+| 要求・パイプライン完了時間 | 6.02196327 s | median; n=6 | [E14](validation/jev27b/README.md#controlled-comparison-2026-11-05) · B: メモリ対策。固定の混在系列の100 tokens。B/Cの100-token行は実行部の回収費用を含む。min/maxと全試行は記録参照。p95なし。 |
+| 要求・パイプライン完了時間 | 37.7373265 s | median; n=6 | [E14](validation/jev27b/README.md#controlled-comparison-2026-11-05) · B: メモリ対策。固定の混在系列の8192 tokens。B/Cの100-token行は実行部の回収費用を含む。min/maxと全試行は記録参照。p95なし。 |
+| 要求・パイプライン完了時間 | 6.10328115 s | median; n=6 | [E15](validation/jev27b/README.md#controlled-comparison-2026-11-05) · C: 未公開の最後位置出力候補。固定の混在系列の100 tokens。B/Cの100-token行は実行部の回収費用を含む。min/maxと全試行は記録参照。p95なし。 |
+| 要求・パイプライン完了時間 | 38.5346239 s | median; n=6 | [E15](validation/jev27b/README.md#controlled-comparison-2026-11-05) · C: 未公開の最後位置出力候補。固定の混在系列の8192 tokens。B/Cの100-token行は実行部の回収費用を含む。min/maxと全試行は記録参照。p95なし。 |
+| 要求・パイプライン完了時間 | 0.84372975 s | median; n=6 | [E16](validation/jev27b/README.md#controlled-comparison-2026-11-05) · D: 原典PyTorch/MPS参照実装。固定の混在系列の100 tokens。B/Cの100-token行は実行部の回収費用を含む。min/maxと全試行は記録参照。p95なし。 |
+| 要求・パイプライン完了時間 | 46.9673338 s | median; n=6 | [E16](validation/jev27b/README.md#controlled-comparison-2026-11-05) · D: 原典PyTorch/MPS参照実装。固定の混在系列の8192 tokens。B/Cの100-token行は実行部の回収費用を含む。min/maxと全試行は記録参照。p95なし。 |
 | ピークRSS | 32,333,840,384 B | single; n=1 | [E4](validation/jev27b/README.md#ac-94-w) · latency のプロセスの /usr/bin/time -l。読み込みを含む生涯の最大。footprint と足さない。AC 給電(140 W アダプター、94 W)、エネルギーモード High Power(plan-d2b-ac94)。 |
+| ピークRSS | 32,646,430,720 B | single; n=1 | [E8](validation/jev27b/README.md#memory-stability-2026-11-05) · warmup後の4長さの交替100判断。wait4 maximum RSS including load。速度改善の測定ではない。RSSとfootprintは合算しない。 |
+| ピークRSS | 32,336,232,448 B | single; n=1 | [E9](validation/jev27b/README.md#memory-stability-2026-11-05) · warmup後の同じ8192-token入力100判断。wait4 maximum RSS including load。速度改善の測定ではない。RSSとfootprintは合算しない。 |
+| ピークRSS | 32,669,925,376 B | single; n=1 | [E10](validation/jev27b/README.md#memory-stability-2026-11-05) · warmup後の6144/8192-tokenの交替20判断。wait4 maximum RSS including load。速度改善の測定ではない。RSSとfootprintは合算しない。 |
+| ピークRSS | 32,345,047,040 B | max; n=2 | [E13](validation/jev27b/README.md#controlled-comparison-2026-11-05) · A: 公開時。load・warmupを含む16判断process2本の最大値。kernel lifetime counterとwait4 RSSは別の指標で、最小必要RAMを表さない。 |
+| ピークRSS | 32,607,485,952 B | max; n=2 | [E14](validation/jev27b/README.md#controlled-comparison-2026-11-05) · B: メモリ対策。load・warmupを含む16判断process2本の最大値。kernel lifetime counterとwait4 RSSは別の指標で、最小必要RAMを表さない。 |
+| ピークRSS | 32,620,363,776 B | max; n=2 | [E15](validation/jev27b/README.md#controlled-comparison-2026-11-05) · C: 未公開の最後位置出力候補。load・warmupを含む16判断process2本の最大値。kernel lifetime counterとwait4 RSSは別の指標で、最小必要RAMを表さない。 |
+| ピークRSS | 55,534,206,976 B | max; n=2 | [E16](validation/jev27b/README.md#controlled-comparison-2026-11-05) · D: 原典PyTorch/MPS参照実装。load・warmupを含む16判断process2本の最大値。kernel lifetime counterとwait4 RSSは別の指標で、最小必要RAMを表さない。 |
 | ピークphysical footprint | 21,336,815,344 B | single; n=1 | [E4](validation/jev27b/README.md#ac-94-w) · latency のプロセスの /usr/bin/time -l(peak memory footprint)。上限ではない。長さを交互に流す 1 周ごとに 4.1〜4.5 GB 増え、頭打ちになっていない。AC 給電(140 W アダプター、94 W)、エネルギーモード High Power(plan-d2b-ac94)。 |
+| ピークphysical footprint | 8,393,766,472 B | single; n=1 | [E8](validation/jev27b/README.md#memory-stability-2026-11-05) · warmup後の4長さの交替100判断。kernel lifetime footprint peak。速度改善の測定ではない。RSSとfootprintは合算しない。 |
+| ピークphysical footprint | 6,827,587,384 B | single; n=1 | [E9](validation/jev27b/README.md#memory-stability-2026-11-05) · warmup後の同じ8192-token入力100判断。kernel lifetime footprint peak。速度改善の測定ではない。RSSとfootprintは合算しない。 |
+| ピークphysical footprint | 9,169,450,928 B | single; n=1 | [E10](validation/jev27b/README.md#memory-stability-2026-11-05) · warmup後の6144/8192-tokenの交替20判断。kernel lifetime footprint peak。速度改善の測定ではない。RSSとfootprintは合算しない。 |
+| ピークphysical footprint | 21,327,296,192 B | max; n=2 | [E13](validation/jev27b/README.md#controlled-comparison-2026-11-05) · A: 公開時。load・warmupを含む16判断process2本の最大値。kernel lifetime counterとwait4 RSSは別の指標で、最小必要RAMを表さない。 |
+| ピークphysical footprint | 8,236,938,800 B | max; n=2 | [E14](validation/jev27b/README.md#controlled-comparison-2026-11-05) · B: メモリ対策。load・warmupを含む16判断process2本の最大値。kernel lifetime counterとwait4 RSSは別の指標で、最小必要RAMを表さない。 |
+| ピークphysical footprint | 8,621,176,488 B | max; n=2 | [E15](validation/jev27b/README.md#controlled-comparison-2026-11-05) · C: 未公開の最後位置出力候補。load・warmupを含む16判断process2本の最大値。kernel lifetime counterとwait4 RSSは別の指標で、最小必要RAMを表さない。 |
+| ピークphysical footprint | 70,368,075,040 B | max; n=2 | [E16](validation/jev27b/README.md#controlled-comparison-2026-11-05) · D: 原典PyTorch/MPS参照実装。load・warmupを含む16判断process2本の最大値。kernel lifetime counterとwait4 RSSは別の指標で、最小必要RAMを表さない。 |
 | 推論中の常駐メモリ | 17,298,096,128 B | max; n=1 | [E4](validation/jev27b/README.md#ac-94-w) · 計測した 8,192 トークンの行の run 中に 100 ms ごとに採った RSS の最大(--sample-memory)。AC 給電(140 W アダプター、94 W)、エネルギーモード High Power(plan-d2b-ac94)。 |
 | 解放後メモリの基準との差 | 未計測 | — | コマンドラインのプロセスは終わるまでモデルを手放さないので、解放後の基準が無い。 |
 | 課題達成率 | 0.866666667 ratio | mean; n=300 | [E2](validation/jev27b/README.md#quality) · 段 3 の Q の choice の行で top が教師の top と一致した割合(教師分布への一致で、現実の正答率ではない)。段 1′ は 0.8733。 |
@@ -66,8 +139,8 @@ Tools/Verify/.build/release/coreai-verify typed-decide --bundle models/jev27b/bu
 |---|---|---|---|
 | 変換・参照との一致 | 合格（記載範囲） | 温度 1 の F のすべての帯で最大 0.03・平均 0.01 の内側(最大 0.0065)。top の変化なし。 | [E1](validation/jev27b/README.md#fidelity) |
 | 用途の品質 | 合格（記載範囲） | choice の正答率は点推定 −0.67 pt で閾値 −2 pt を満たすが、95% 区間 [−3.00, +1.67] は閾値をまたぐ(n = 300)。noul の Brier +0.00024、score の正規化 MAE +0.00051。教師分布への一致で、現実の正答率ではない。 | [E2](validation/jev27b/README.md#quality) |
-| 連続利用・資源解放 | 未計測 | 変種の bundle で F を 2 回(特殊化 fresh と cached)流すと 301 行すべてで logit が同じで、GPU の試験は 10 行(512 トークン以下)を 1 プロセスで 2 回ずつ流してビット単位で同じ logit を返し、1 プロセスで最大 3,000 行(Cal)を続けて流した。同じプロセスでの解放と再読み込みは確かめていない。 | — |
-| 停止・再試行・回復 | 合格（記載範囲） | forward の run 中に取り消した 3 回の依頼は run が返った時点で CancellationError で終わり、checkpoint での取消は run の前に終わった。どちらの取消の後も、次の行の logit は取消の前の同じ行とビット単位で同じだった。試験用 backbone は取消を伝えないので、Core AI の run 自体が止まるかは測っていない。 | [E4](validation/jev27b/README.md#ac-94-w) |
+| 連続利用・資源解放 | 合格（記載範囲） | 長さ交替100判断・同長100判断・近い長さの交替20判断で、出力を保ち固定メモリ条件に合格。4回目の形状変更前にmodel/functionを回収する。有限の検査で無制限利用の保証ではなく、再loadの時間が加わる。 | [E8](validation/jev27b/README.md#memory-stability-2026-11-05) · [E9](validation/jev27b/README.md#memory-stability-2026-11-05) · [E10](validation/jev27b/README.md#memory-stability-2026-11-05) · [E11](validation/jev27b/README.md#memory-stability-2026-11-05) |
+| 停止・再試行・回復 | 合格（記載範囲） | forward の run 中に取り消した 3 回の依頼は run が返った時点で CancellationError で終わり、checkpoint での取消は run の前に終わった。どちらの取消の後も、次の行の logit は取消の前の同じ行とビット単位で同じだった。試験用 backbone は取消を伝えないので、Core AI の run 自体が止まるかは測っていない。 新Session経路もRelease診断で取消・再load・次の答えの一致を確認した。 | [E4](validation/jev27b/README.md#ac-94-w) · [E11](validation/jev27b/README.md#memory-stability-2026-11-05) |
 
 ### 根拠と測定条件
 
@@ -80,6 +153,15 @@ Tools/Verify/.build/release/coreai-verify typed-decide --bundle models/jev27b/bu
 | [E5](validation/jev27b/README.md#bundle) | 2026-11-04 / standard / conversion | Mac16,6 (Apple M4 Max), 128 GiB RAM / macOS 27.0 (26A428) / Xcode 27.0 (27A266a), Apple Swift 6.4 (swiftlang-6.4.0.34.1) | 校正済み bundle のファイルの大きさ。計画の改訂 3 を凍結した後に数えた。decision.json の SHA-256 は計画の artifact revision と同じ。モデルは読まない。 · variant=uint4 backbone (gdn-fp32) / float32 head; backend=Core AI; GPU preferred; expectFrequentReshapes true; route=performance.py records over the calibrated bundle written by the recipe step calibrate; source_revision=14b425269ed24452e0a5ad5a8f3e51d139647a88; artifact_revision=a2b186a87a64d9e93a56f185a5ebc2a0613d00da7440eeb8c8c2229b64f6adf3; code_revision=e879c67ff30344fc69f5cb6dcde93ed432d9339c; batch_size=1; concurrency=1; warmups=0; power=not applicable (file sizes); thermal=not applicable (file sizes) |
 | [E6](validation/jev27b/README.md#battery-power) | 2026-11-04 / standard / diagnostic | Mac16,6 (Apple M4 Max), 128 GiB RAM / macOS 27.0 (26A428) / Xcode 27.0 (27A266a), Apple Swift 6.4 (swiftlang-6.4.0.34.1) | P はちょうど 100・500・2,000・8,192 トークンの 4 行。1 判断の時間は 1 プロセスで長さごとに warmup 1 回と計測 3 周。ロードは新しいプロセスで fresh 3 回と cached 3 回。メモリは /usr/bin/time -l と 100 ms の採取。取消は 2,000 トークンの依頼で 3 回。本人の決定によりバッテリー駆動で計測した(90% から 76%、アダプターなし、低電力モード off。計画の改訂 3 に記録)。第 3 周と取消の試験は熱の圧力 moderate から heavy の下。warmup は 1 判断の時間の周だけで、ロードと取消には無い。他の負荷: モデルの他のプロセスなし(計測の前の pgrep)。ほかのプロセスの GPU の使用は記録していない。 · variant=uint4 backbone (gdn-fp32) / float32 head; backend=Core AI; GPU preferred; expectFrequentReshapes true; route=coreai-verify typed-decide (release build); TypedDecisionInferenceTests in the debug build of the test target for cancellation; source_revision=14b425269ed24452e0a5ad5a8f3e51d139647a88; artifact_revision=a2b186a87a64d9e93a56f185a5ebc2a0613d00da7440eeb8c8c2229b64f6adf3; code_revision=9d8fdf821470168c3d92276808cb9ff1f815d7de; batch_size=1; concurrency=1; warmups=1; power=Battery power, no AC adapter attached (pmset -g ac); 90% at start, Low Power Mode off (powermode 0 in pmset -g). Measured on battery by the owner's instruction on 2026-11-04 06:20 JST; thermal=pmset -g therm: no warning in 10 snapshots; thermalmonitord pressure moderate from 06:28:52 (end of the second round) and heavy 06:29:08-06:32:08 (from the end of the third 2,000-token row through the cancellation test) |
 | [E7](validation/jev27b/README.md#ac-70-w) | 2026-11-04 / standard / diagnostic | Mac16,6 (Apple M4 Max), 128 GiB RAM / macOS 27.0 (26A428) / Xcode 27.0 (27A266a), Apple Swift 6.4 (swiftlang-6.4.0.34.1) | P はちょうど 100・500・2,000・8,192 トークンの 4 行。1 判断の時間は 1 プロセスで長さごとに warmup 1 回と計測 3 周。ロードは新しいプロセスで fresh 3 回と cached 3 回。メモリは /usr/bin/time -l と 100 ms の採取。取消は 2,000 トークンの依頼で 3 回。AC 給電(70W USB-C 電源アダプター、68 W。残量 64% から 67%、充電中)、本人の設定のエネルギーモード High Power で計測した(plan-d2b-ac)。各段は熱の圧力 level 0 で始めたが、1 判断の時間のプロセスの途中で heavy になった(第 2 周の 8,192 トークンの行と第 3 周)。warmup は 1 判断の時間の周だけで、ロードと取消には無い。他の負荷: モデルの他のプロセスなし(計測の前の pgrep)。pmset -g log には、バッテリー駆動の計測の間には無かったほかの活動(音声のセッション、ブラウザの動画の wake lock、UI の自動操作のセッション)が残っている。ほかのプロセスの CPU と GPU の使用は記録していない。 · variant=uint4 backbone (gdn-fp32) / float32 head; backend=Core AI; GPU preferred; expectFrequentReshapes true; route=coreai-verify typed-decide (release build); TypedDecisionInferenceTests in the debug build of the test target for cancellation; source_revision=14b425269ed24452e0a5ad5a8f3e51d139647a88; artifact_revision=a2b186a87a64d9e93a56f185a5ebc2a0613d00da7440eeb8c8c2229b64f6adf3; code_revision=9b610f88ba0b7810555384200686472e02cd11f2; batch_size=1; concurrency=1; warmups=1; power=AC: 70W USB-C Power Adapter, 68 W (pmset -g ac); battery 64% to 67%, charging; energy mode High Power (powermode 2 in pmset -g); thermal=pmset -g therm: no warning; thermalmonitord pressure (mTPL) 0 at the start of every stage (the cancellation test waited 50 s); during the latency process moderate from 09:26:46 and heavy 09:26:48-09:29:05 (the 8,192-token row of the second round and the third round) |
+| [E8](validation/jev27b/README.md#memory-stability-2026-11-05) | 2026-11-05 / standard / diagnostic | MacBook Pro (14-inch, 2024), Apple M4 Max, 128 GiB unified memory (Mac16,6) / macOS 27.0 (26A428) / Xcode 27.0 (27A266a), Apple Swift 6.4 (swiftlang-6.4.0.34.1) | warmup 4判断後、4長さの交替を100判断。全logitsと両温度の確率が元とbit一致。CPU build/試験を許したメモリ安定性検査で、他モデルの同時実行はない。RSS・現在footprint・sampled peak・kernel lifetime peakを区別する。最初/最後5件の中央値と固定条件は元の記録を参照。 · variant=uint4 backbone (gdn-fp32) / float32 head; backend=Core AI; GPU preferred; expectFrequentReshapes true; route=coreai-verify typed-decide --sample-memory --wait-nominal-thermal 600; normal Release; external proc_pid_rusage observer; source_revision=14b425269ed24452e0a5ad5a8f3e51d139647a88; artifact_revision=2f34243a3d28500075e09d02d9f9f565a7c4b02f94a7d47b2a3caba7262d357d; code_revision=ff2a2579e30a95a669b492f6f1eb6fca771211be; batch_size=1; concurrency=1; warmups=4; power=AC, pmset reports 68 W; battery and charging state recorded per run; thermal=ProcessInfo thermalState nominal at every row start; not a constant-temperature guarantee |
+| [E9](validation/jev27b/README.md#memory-stability-2026-11-05) | 2026-11-05 / standard / diagnostic | MacBook Pro (14-inch, 2024), Apple M4 Max, 128 GiB unified memory (Mac16,6) / macOS 27.0 (26A428) / Xcode 27.0 (27A266a), Apple Swift 6.4 (swiftlang-6.4.0.34.1) | warmup 1判断後、同じ8192-token入力を100判断。全logitsと両温度の確率が元とbit一致。CPU build/試験を許したメモリ安定性検査で、他モデルの同時実行はない。RSS・現在footprint・sampled peak・kernel lifetime peakを区別する。最初/最後5件の中央値と固定条件は元の記録を参照。 · variant=uint4 backbone (gdn-fp32) / float32 head; backend=Core AI; GPU preferred; expectFrequentReshapes true; route=coreai-verify typed-decide --sample-memory --wait-nominal-thermal 600; normal Release; external proc_pid_rusage observer; source_revision=14b425269ed24452e0a5ad5a8f3e51d139647a88; artifact_revision=2f34243a3d28500075e09d02d9f9f565a7c4b02f94a7d47b2a3caba7262d357d; code_revision=ff2a2579e30a95a669b492f6f1eb6fca771211be; batch_size=1; concurrency=1; warmups=1; power=AC, pmset reports 68 W; battery and charging state recorded per run; thermal=ProcessInfo thermalState nominal at every row start; not a constant-temperature guarantee |
+| [E10](validation/jev27b/README.md#memory-stability-2026-11-05) | 2026-11-05 / standard / diagnostic | MacBook Pro (14-inch, 2024), Apple M4 Max, 128 GiB unified memory (Mac16,6) / macOS 27.0 (26A428) / Xcode 27.0 (27A266a), Apple Swift 6.4 (swiftlang-6.4.0.34.1) | warmup 2判断後、6144/8192-tokenの交替を20判断。全logitsと両温度の確率が元とbit一致。CPU build/試験を許したメモリ安定性検査で、他モデルの同時実行はない。RSS・現在footprint・sampled peak・kernel lifetime peakを区別する。最初/最後5件の中央値と固定条件は元の記録を参照。 · variant=uint4 backbone (gdn-fp32) / float32 head; backend=Core AI; GPU preferred; expectFrequentReshapes true; route=coreai-verify typed-decide --sample-memory --wait-nominal-thermal 600; normal Release; external proc_pid_rusage observer; source_revision=14b425269ed24452e0a5ad5a8f3e51d139647a88; artifact_revision=2f34243a3d28500075e09d02d9f9f565a7c4b02f94a7d47b2a3caba7262d357d; code_revision=ff2a2579e30a95a669b492f6f1eb6fca771211be; batch_size=1; concurrency=1; warmups=2; power=AC, pmset reports 68 W; battery and charging state recorded per run; thermal=ProcessInfo thermalState nominal at every row start; not a constant-temperature guarantee |
+| [E11](validation/jev27b/README.md#memory-stability-2026-11-05) | 2026-11-05 / legacy / diagnostic | MacBook Pro (14-inch, 2024), Apple M4 Max, 128 GiB unified memory (Mac16,6) / macOS 27.0 (26A428) / Xcode 27.0 (27A266a), Apple Swift 6.4 (swiftlang-6.4.0.34.1) | 診断用GPU6試験が合格。取消を無視する1472-tokenのrun終了後、Sessionが1回再loadして次の答えがbit一致した。再load失敗・busy・改変bundle拒否は別のCPU試験で確認。このsuite単独のbenchmark計画はない。 · variant=uint4 backbone (gdn-fp32) / float32 head; backend=Core AI; GPU preferred; expectFrequentReshapes true; route=TypedDecisionInferenceTests; Release with -enable-testing; six serialized GPU tests; source_revision=14b425269ed24452e0a5ad5a8f3e51d139647a88; artifact_revision=2f34243a3d28500075e09d02d9f9f565a7c4b02f94a7d47b2a3caba7262d357d; code_revision=42a9d95; batch_size=1; concurrency=1; power=AC, pmset reports 68 W; thermal=Not recorded per test; not a latency comparison; 未記録: warmups, plan_sha256 |
+| [E12](validation/jev27b/README.md#final-token-output-2026-11-05) | 2026-11-05 / legacy / diagnostic | MacBook Pro (14-inch, 2024), Apple M4 Max, 128 GiB unified memory (Mac16,6) / macOS 27.0 (26A428) / Xcode 27.0 (27A266a), Apple Swift 6.4 (swiftlang-6.4.0.34.1) | Fは301推論と上限超過1件拒否、Q900件の既存D1-1/D1-2に合格。旧nativeの浮動小数点値とは差があるがtop変化なし。校正を流用しCal/H・日本語セットは再検証していない。共通様式の独立計測計画はなく、公開資産は未変更。 · variant=Unpublished uint4 final-token output candidate / float32 head; backend=Core AI; GPU preferred; expectFrequentReshapes true; route=F/Q CLI inference and scoring; six Release GPU tests with -enable-testing; old-bundle compatibility check; source_revision=14b425269ed24452e0a5ad5a8f3e51d139647a88; artifact_revision=0db5ca716c7fea75605bffddf2d1d6de03fd80c471b3528277beb98a663d9880; code_revision=8fcb8843bcb90171b7f5f22473df052cead75758; batch_size=1; concurrency=1; power=AC, pmset reports 68 W; thermal=Per-row thermal state not recorded for these CLI runs or GPU tests; no timing comparison; 未記録: warmups, plan_sha256 |
+| [E13](validation/jev27b/README.md#controlled-comparison-2026-11-05) | 2026-11-05 / standard / diagnostic | MacBook Pro (14-inch, 2024), Apple M4 Max, 128 GiB unified memory (Mac16,6) / macOS 27.0 (26A428) / Xcode 27.0 (27A266a), Apple Swift 6.4 (swiftlang-6.4.0.34.1) | A: 公開時。固定100/500/2000/8192-token系列、新process2本で各warmup4判断・計測3周、各長さn=6。順序A-B-C-D-D-C-B-A。build/test/他モデル同時実行なし。100ms外部メモリ採取・全試行・元file hashは記録参照。B/Cの100-token行は再loadと初回推論を含む。原典/nativeは精度とLoRA統合が異なる。 · variant=Published runtime / uint4 gdn-fp32 backbone, float32 head; backend=Core AI; GPU preferred; expectFrequentReshapes true; route=Normal Release coreai-verify typed-decide --wait-nominal-thermal 600; internal sampler disabled; source_revision=14b425269ed24452e0a5ad5a8f3e51d139647a88; artifact_revision=2f34243a3d28500075e09d02d9f9f565a7c4b02f94a7d47b2a3caba7262d357d; code_revision=806ac642c1f9c907e54af40466df40381f701b99; batch_size=1; concurrency=1; warmups=4; power=AC, pmset reports 68 W throughout; High Power mode (powermode 2); battery 100% to 94% over the full sequence; thermal=ProcessInfo thermalState nominal at every row start; waits excluded; not constant temperature |
+| [E14](validation/jev27b/README.md#controlled-comparison-2026-11-05) | 2026-11-05 / standard / diagnostic | MacBook Pro (14-inch, 2024), Apple M4 Max, 128 GiB unified memory (Mac16,6) / macOS 27.0 (26A428) / Xcode 27.0 (27A266a), Apple Swift 6.4 (swiftlang-6.4.0.34.1) | B: メモリ対策。固定100/500/2000/8192-token系列、新process2本で各warmup4判断・計測3周、各長さn=6。順序A-B-C-D-D-C-B-A。build/test/他モデル同時実行なし。100ms外部メモリ採取・全試行・元file hashは記録参照。B/Cの100-token行は再loadと初回推論を含む。原典/nativeは精度とLoRA統合が異なる。 · variant=Memory stabilization / uint4 gdn-fp32 backbone, float32 head; backend=Core AI; GPU preferred; expectFrequentReshapes true; route=Normal Release coreai-verify typed-decide --wait-nominal-thermal 600; internal sampler disabled; source_revision=14b425269ed24452e0a5ad5a8f3e51d139647a88; artifact_revision=2f34243a3d28500075e09d02d9f9f565a7c4b02f94a7d47b2a3caba7262d357d; code_revision=ff2a2579e30a95a669b492f6f1eb6fca771211be; batch_size=1; concurrency=1; warmups=4; power=AC, pmset reports 68 W throughout; High Power mode (powermode 2); battery 100% to 94% over the full sequence; thermal=ProcessInfo thermalState nominal at every row start; waits excluded; not constant temperature |
+| [E15](validation/jev27b/README.md#controlled-comparison-2026-11-05) | 2026-11-05 / standard / diagnostic | MacBook Pro (14-inch, 2024), Apple M4 Max, 128 GiB unified memory (Mac16,6) / macOS 27.0 (26A428) / Xcode 27.0 (27A266a), Apple Swift 6.4 (swiftlang-6.4.0.34.1) | C: 未公開の最後位置出力候補。固定100/500/2000/8192-token系列、新process2本で各warmup4判断・計測3周、各長さn=6。順序A-B-C-D-D-C-B-A。build/test/他モデル同時実行なし。100ms外部メモリ採取・全試行・元file hashは記録参照。B/Cの100-token行は再loadと初回推論を含む。原典/nativeは精度とLoRA統合が異なる。 · variant=Unpublished final-token candidate / uint4 gdn-fp32 backbone, float32 head; backend=Core AI; GPU preferred; expectFrequentReshapes true; route=Normal Release coreai-verify typed-decide --wait-nominal-thermal 600; internal sampler disabled; source_revision=14b425269ed24452e0a5ad5a8f3e51d139647a88; artifact_revision=0db5ca716c7fea75605bffddf2d1d6de03fd80c471b3528277beb98a663d9880; code_revision=8fcb8843bcb90171b7f5f22473df052cead75758; batch_size=1; concurrency=1; warmups=4; power=AC, pmset reports 68 W throughout; High Power mode (powermode 2); battery 100% to 94% over the full sequence; thermal=ProcessInfo thermalState nominal at every row start; waits excluded; not constant temperature |
+| [E16](validation/jev27b/README.md#controlled-comparison-2026-11-05) | 2026-11-05 / standard / diagnostic | MacBook Pro (14-inch, 2024), Apple M4 Max, 128 GiB unified memory (Mac16,6) / macOS 27.0 (26A428) / Xcode 27.0 (27A266a), Apple Swift 6.4 (swiftlang-6.4.0.34.1) | D: 原典PyTorch/MPS参照実装。固定100/500/2000/8192-token系列、新process2本で各warmup4判断・計測3周、各長さn=6。順序A-B-C-D-D-C-B-A。build/test/他モデル同時実行なし。100ms外部メモリ採取・全試行・元file hashは記録参照。B/Cの100-token行は再loadと初回推論を含む。原典/nativeは精度とLoRA統合が異なる。 · variant=Original PyTorch/MPS reference / BF16 base, unmerged LoRA, float32 CPU head; backend=PyTorch 2.15.0 / MPS; no CPU fallback; float32 CPU head; route=Tools.Conversion.adapters.jev27b.benchmark_reference; source_revision=14b425269ed24452e0a5ad5a8f3e51d139647a88; artifact_revision=14b425269ed24452e0a5ad5a8f3e51d139647a88; code_revision=e5c43a859486b261c0111822ce372fc6a0d2f7a2; batch_size=1; concurrency=1; warmups=4; power=AC, pmset reports 68 W throughout; High Power mode (powermode 2); battery 100% to 94% over the full sequence; thermal=ProcessInfo thermalState nominal at every row start; waits excluded; not constant temperature |
 
 ### 導入・制限・進捗
 
@@ -88,6 +170,10 @@ Tools/Verify/.build/release/coreai-verify typed-decide --bundle models/jev27b/bu
 - [検証の記録](validation/jev27b/README.md)
 
 - [日本語(JGLUE)、合格線なし](jev27b.md#japanese-jglue)
+
+- [未公開の最終位置出力版の検証](validation/jev27b/README.md#final-token-output-2026-11-05)
+
+- [改善前後・原典の同条件比較](validation/jev27b/README.md#controlled-comparison-2026-11-05)
 <!-- model-report:end -->
 
 ## クイックスタート
