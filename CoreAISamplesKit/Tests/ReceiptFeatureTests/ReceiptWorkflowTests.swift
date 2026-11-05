@@ -52,6 +52,19 @@ struct ReceiptWorkflowTests {
         #expect(state.phase == .idle && state.items[0].record?.canConfirm == false)
     }
 
+    @Test("Unchanged field binding notifications preserve the reviewed category and confirmation")
+    func unchangedBindings() throws {
+        var state = try completedState()
+        _ = ReceiptFeature.reduce(&state, .confirm(1))
+        let before = state
+        for (field, value) in [
+            (ReceiptField.merchant, "Shop"), (.date, "2026-11-06"), (.amount, "1000"), (.purpose, ""),
+        ] {
+            #expect(ReceiptFeature.reduce(&state, .edit(1, field, value)).isEmpty)
+            #expect(state == before)
+        }
+    }
+
     @Test("Stop joins the operation and preserves a read that committed before cancellation")
     func reconcileRead() throws {
         var state = try readingState()

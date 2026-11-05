@@ -34,7 +34,10 @@
                         field("Purchase purpose (optional)", .purpose, vertical: true)
                         Picker(
                             selection: Binding(
-                                get: { record.fields.category }, set: { store.send(.category(itemID, $0)) })
+                                get: {
+                                    store.state.items.first(where: { $0.id == itemID })?.record?.fields.category
+                                        ?? .review
+                                }, set: { store.send(.category(itemID, $0)) })
                         ) {
                             ForEach(ReceiptCategory.allCases, id: \.self) { category in
                                 receiptText(category.title).tag(category)

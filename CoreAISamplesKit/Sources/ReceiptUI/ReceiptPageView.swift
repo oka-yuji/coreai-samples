@@ -30,13 +30,14 @@
                             if let item = store.state.selected {
                                 if geometry.size.width >= 920 {
                                     ReceiptEvidenceView(item: item).frame(minWidth: 250, maxWidth: .infinity)
-                                    ReceiptInspectorView(store: store, itemID: item.id).frame(
+                                    ReceiptInspectorView(store: store, itemID: item.id).id(item.id).frame(
                                         minWidth: 290, idealWidth: 320, maxWidth: 370)
                                 } else {
                                     ScrollView {
                                         VStack(spacing: 18) {
                                             ReceiptEvidenceView(item: item).frame(height: 340)
-                                            ReceiptInspectorView(store: store, itemID: item.id, scrolling: false)
+                                            ReceiptInspectorView(store: store, itemID: item.id, scrolling: false).id(
+                                                item.id)
                                         }
                                     }.frame(minWidth: 320, maxWidth: .infinity)
                                 }

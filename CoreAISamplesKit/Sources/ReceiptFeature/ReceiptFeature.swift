@@ -48,7 +48,7 @@ public enum ReceiptFeature: Feature {
             if state.items.contains(where: { $0.id == id }) { state.selection = id }
         case .edit(let id, let field, let value):
             guard state.editable, let index = state.items.firstIndex(where: { $0.id == id }),
-                state.items[index].record != nil
+                let record = state.items[index].record, fieldValue(field, in: record.fields) != value
             else { return [] }
             state.items[index].record?.edit(field, value: value)
             state.items[index].revision += 1
@@ -153,6 +153,15 @@ public enum ReceiptFeature: Feature {
             if state.editable { state.message = message }
         }
         return []
+    }
+
+    private static func fieldValue(_ field: ReceiptField, in values: ReceiptFields) -> String {
+        switch field {
+        case .merchant: values.merchant
+        case .date: values.date
+        case .amount: values.amount
+        case .purpose: values.purpose
+        }
     }
 
     static func begin(_ state: inout State, phase: State.Phase, item: Int = 0) -> ReceiptTicket {
