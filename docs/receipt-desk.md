@@ -1,8 +1,37 @@
 # Receipt Desk
 
-Receipt Desk is the Mac receipt workflow tracked by [#509](https://github.com/oka-yuji/coreai-samples/issues/509).
-The core and runtime provide the contracts below. The Mac interface and Models integration are tracked by
-[#508](https://github.com/oka-yuji/coreai-samples/issues/508); this page does not claim an available app demo yet.
+[日本語](receipt-desk.ja.md) · [JEV model guide](jev27b.md)
+
+Receipt Desk turns receipt images/PDFs into category suggestions and a reviewed expense ledger on the Mac.
+Vision reads the text; the published Core AI JEV-27B model suggests one of eight expense labels. You review the
+merchant, date, total and purchase purpose, then save only confirmed receipts. No accounting service is called.
+
+## Try it in the Mac app
+
+1. In Models, select **JEV-27B → Sort receipts into a reviewed expense ledger**. Download the pinned model
+   (16,064,821,387 bytes) and wait for verification, then choose **Open Receipt Desk**.
+2. Choose **Run 4 sample receipts**, or **Add & Process…** to select receipt images/PDFs. Dropping files into
+   Receipt Desk also starts processing. Opening the app or the empty desk does not run OCR or JEV.
+3. Follow the live reading/classification status. Each completed receipt appears immediately with its original,
+   OCR text, proposed fields and category scores. The category counts reflect actual results. OCR/JEV timings
+   show the completed operation; download and model preparation are separate, and these are not benchmark figures.
+4. Correct fields and optionally describe the purchase purpose. **Suggest again** reruns JEV. Changing purpose or
+   merchant invalidates the old category; every value change invalidates confirmation. A manual category is also available.
+5. **Confirm receipt**, or **Confirm eligible** for complete records with no OCR warnings. Only confirmed receipts
+   contribute to the exact integer-yen total. The mixed personal/business sample deliberately remains **Needs review**.
+6. **Export…** selects a parent folder. A new folder contains `ledger.csv`, `ledger.json` and original-byte receipt
+   copies grouped by year/month/category. The inspector previews the relative path. Cancelling the chooser keeps
+   the reviewed draft editable.
+
+**Stop** waits for the active operation to finish. A read or export that already committed is retained, including
+an export that completed just as Stop was pressed. **Process remaining** continues without importing that receipt
+twice. The Mac Models session owns the model and original snapshots. **Export before leaving the desk or closing
+the window**: drafts are held only for that session, and a new owner receives a fresh session.
+
+The four bundled receipts are visibly marked synthetic. They demonstrate supplies, meals, travel and a mixed
+purchase for review. These labels are examples, not a complete chart of accounts. Business use and tax treatment
+cannot be established from receipt text alone. The first version supports whole-yen JPY receipts; foreign currency
+conversion, split allocations, double-entry bookkeeping, saved drafts and iPhone UI are not provided.
 
 ## Data contracts
 
@@ -46,7 +75,9 @@ pure contracts do not perform the write.
 
 `swift test --package-path CoreAISamplesKit --force-resolved-versions --filter ReceiptCoreTests` covers exact amounts,
 decoding, Gregorian dates, extraction fixtures, probability validation, confirmation invalidation, overflow, relative
-paths and CSV cells. The Japanese fixture text is test data rather than a model-quality result. No OCR or JEV model
+paths and CSV cells. `ReceiptFeatureTests` and `ReceiptDemoRuntimeTests` additionally cover stale session/request/revision
+results, confirmation invalidation, chooser cancellation, the real Store cancellation boundary and owner handoff.
+The Japanese fixture text is test data rather than a model-quality result. No OCR or JEV model
 runs in this suite.
 
 ## Runtime
@@ -69,8 +100,8 @@ has no Decision RAG tree or embedding index.
 
 A pipeline has one active operation. Cancellation joins native work before another request can use it. Release
 permanently closes the instance, waits for any active work, then clears the model and snapshots. A new owner must
-create a new pipeline. Timings returned by read/classify describe that operation and exclude model download/preparation.
-They are diagnostic timings, not a throughput promise.
+create a new pipeline. Timings returned by read/classify describe that operation and exclude the initial model download/prepare call.
+A runtime reload triggered inside a classification call is included. They are diagnostic timings, not a throughput promise.
 
 Export validates every confirmed ledger row against the retained source fingerprint. It writes receipt copies,
 `ledger.csv` and `ledger.json` into a private staging directory, then publishes a new `ReceiptDesk-<UUID>` directory
@@ -113,3 +144,15 @@ exported original-byte hashes and CSV bytes. This is one functional smoke run, n
 The initial native OCR check exposed two issues: automatic language detection read Japanese yen suffixes as letters,
 and the PDF drawing transform did not enlarge pages. Fixed language selection and an explicit rendering scale passed
 the same unchanged sample assertions. The parser never converted the misread letters into money.
+
+The opt-in Models integration uses the fixed downloaded bundle through `ManagedModelStore`, the model lease and
+the production `ReceiptDemoSessions`/Store/Service route. It checks the four samples, confirmation, export bytes and
+zero leases after closing. It does not replace normal UI checks or the owner’s acceptance on personal receipts.
+
+```sh
+RECEIPT_MODELS_BUNDLE=/path/to/public-jev-bundle RECEIPT_MODELS_REPORT=/new/report.json swift test --package-path CoreAISamplesKit -c release --filter ReceiptModelsIntegrationTests.nativeWorkflow
+```
+
+Use the shared heavy-job lock for this command. The [functional check plan](validation/receipt-desk/plan-20261106.json)
+fixes the samples and expected workflow before the Mac UI model run. Owner acceptance remains tracked in
+[#508](https://github.com/oka-yuji/coreai-samples/issues/508); build, diagnostic and native UI evidence are kept distinct.

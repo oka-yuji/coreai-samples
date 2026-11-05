@@ -6,17 +6,17 @@
     "ja": "JEV-27B · uint4＋fp32ヘッド、テキスト"
   },
   "use": {
-    "en": "Typed decisions (CLI)",
-    "ja": "型付き判断(CLI)"
+    "en": "Receipt classification / typed decisions",
+    "ja": "レシート分類・型付き判断"
   },
   "overview": {
-    "en": "Typed decisions · macOS CLI",
-    "ja": "型付き判断 · macOS CLI"
+    "en": "Receipt Desk on Mac / typed-decision CLI",
+    "ja": "MacのReceipt Desk・型付き判断CLI"
   },
   "release": "released",
   "release_note": {
-    "en": "macOS CLI; runtime memory stabilization verified on fixed workloads",
-    "ja": "macOS CLI。固定系列で実行部のメモリ安定化を確認"
+    "en": "Public bundle; Mac Receipt Desk functional checks passed on synthetic inputs. Owner acceptance pending.",
+    "ja": "公開bundle。MacのReceipt Deskで合成入力の動作を確認。本人受入は未確認。"
   },
   "download": "https://huggingface.co/okayuji/jev-27b-coreai",
   "pages": {
@@ -58,16 +58,28 @@
         "ja": "改善前後・原典の同条件比較"
       },
       "url": "docs/validation/jev27b/README.md#controlled-comparison-2026-11-05"
+    },
+    {
+      "title": {
+        "en": "Receipt Desk guide",
+        "ja": "Receipt Deskの使い方"
+      },
+      "url": "docs/receipt-desk.md"
     }
   ],
   "support": {
     "macos": {
-      "state": "unavailable",
-      "variants": [],
-      "evidence": [],
+      "state": "verified",
+      "variants": [
+        "uint4 backbone (gdn-fp32) / float32 head"
+      ],
+      "evidence": [
+        "receipt-native-app",
+        "receipt-models-integration"
+      ],
       "note": {
-        "en": "Only the coreai-verify command line tool runs the bundle; app integration is #449.",
-        "ja": "bundle は coreai-verify のコマンドラインでだけ動く。アプリへの組み込みは #449。"
+        "en": "Receipt Desk on macOS 27.2/M5 Max: pinned Models download, synthetic OCR/JEV, review and original-copy export. Personal receipts, compact layout and owner acceptance remain pending.",
+        "ja": "macOS27.2/M5 MaxのReceipt Deskで、固定Models取得・合成例のOCR/JEV・確認・原本コピー保存を確認。実レシート、狭幅表示、本人受入は未確認。"
       }
     },
     "ios": {
@@ -528,6 +540,62 @@
       "thermal": "ProcessInfo thermalState nominal at every row start; waits excluded; not constant temperature",
       "model_executed": true,
       "plan_sha256": "280dc8957a73de74f944a4937afd585516672f8f7bbd9fd41c0329ae196c1498"
+    },
+    "receipt-native-app": {
+      "record_type": "standard",
+      "date": "2026-11-06",
+      "platform": "macos",
+      "device": "Mac17,6 (Apple M5 Max), 128 GiB RAM",
+      "os": "macOS 27.2 (26B123)",
+      "toolchain": "Xcode 27.0 (27A266a), Apple Swift 6.4 (swiftlang-6.4.0.34.1)",
+      "variant": "uint4 backbone (gdn-fp32) / float32 head",
+      "backend": "Vision OCR and Core AI TypedDecisionModel; published all-token JEV asset with runtime recycling",
+      "source_revision": "14b425269ed24452e0a5ad5a8f3e51d139647a88",
+      "artifact_revision": "2f34243a3d28500075e09d02d9f9f565a7c4b02f94a7d47b2a3caba7262d357d",
+      "batch_size": 1,
+      "concurrency": 1,
+      "warmups": 0,
+      "power": "AC reported 140 W before UI checks; not sampled per request. Functional checks only.",
+      "thermal": "pmset reported no recorded warning before UI checks; per-call thermal state not recorded.",
+      "model_executed": true,
+      "plan_sha256": "3ed8dce38c207e8a7946a6145f012599f1aaffa320c3d12d38647dab9f4b63da",
+      "url": "docs/validation/receipt-desk/README.md#native-app",
+      "level": "native_app",
+      "outcome": "passed",
+      "code_revision": "60189c5c536a0e40cf8335077c46dbc10dbfd68b",
+      "route": "CoreAISamples Release Mac app: normal Models download/verification, Receipt Desk file picker, Vision, JEV, stop/retry, edit/confirm and folder export",
+      "workload": {
+        "en": "Final UI: synthetic Japanese sample PNG via the standard file picker without preset purpose; stop during preparation and resume; amount edit/Tab/restore; confirmation, chooser cancellation and export of one JPY 1100 receipt, with CSV/JSON and original-byte hash checks. The separate earlier four-sample UI run at 9aecf6b is retained in the record. No performance or general receipt-quality criterion; compact layout and owner acceptance remain unverified.",
+        "ja": "最終UIは合成の日本語PNGを標準パネルから用途未入力で追加。準備中の停止と再開、金額編集/Tab/復元、個別確認、保存先選択の取消、1件1100円の保存を行い、CSV/JSONと元bytesのhashを照合。別途行った9aecf6bの4サンプルUI確認も記録に保持。性能・一般的レシート品質の基準ではなく、狭幅表示と本人受入は未確認。"
+      }
+    },
+    "receipt-models-integration": {
+      "record_type": "standard",
+      "date": "2026-11-06",
+      "platform": "macos",
+      "device": "Mac17,6 (Apple M5 Max), 128 GiB RAM",
+      "os": "macOS 27.2 (26B123)",
+      "toolchain": "Xcode 27.0 (27A266a), Apple Swift 6.4 (swiftlang-6.4.0.34.1)",
+      "variant": "uint4 backbone (gdn-fp32) / float32 head",
+      "backend": "Vision OCR and Core AI TypedDecisionModel; published all-token JEV asset with runtime recycling",
+      "source_revision": "14b425269ed24452e0a5ad5a8f3e51d139647a88",
+      "artifact_revision": "2f34243a3d28500075e09d02d9f9f565a7c4b02f94a7d47b2a3caba7262d357d",
+      "batch_size": 1,
+      "concurrency": 1,
+      "warmups": 0,
+      "power": "AC reported 140 W before UI checks; not sampled per request. Functional checks only.",
+      "thermal": "pmset reported no recorded warning before UI checks; per-call thermal state not recorded.",
+      "model_executed": true,
+      "plan_sha256": "3ed8dce38c207e8a7946a6145f012599f1aaffa320c3d12d38647dab9f4b63da",
+      "url": "docs/validation/receipt-desk/README.md#models-integration",
+      "level": "diagnostic",
+      "outcome": "passed",
+      "code_revision": "06100e4e04487a03a78e9e997dc3b24e816942f9",
+      "route": "Release ReceiptModelsIntegrationTests.nativeWorkflow: pinned bundle migration, Models inspection/lease and production ReceiptDemoSessions/Store/Service/OCR/JEV/export",
+      "workload": {
+        "en": "Four synthetic receipts matched supplies/meals/travel/review and fixed amounts/dates. Three confirmed records totaled JPY 3320; CSV and copied original hashes matched, with zero leases after close. Rendering adapter only is a test adapter. Uses the downloaded public bytes without source removal; network and normal UI are verified separately.",
+        "ja": "合成4レシートが消耗品/飲食/交通/要確認と固定金額・日付に一致。確認3件は3320円、CSVと原本コピーhashが一致し、close後leaseは0。描画adapterのみ検査用。取得済み公開bytesの移行元は削除せず、通信・通常UIとは別に確認。"
+      }
     }
   },
   "measurements": [
