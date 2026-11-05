@@ -16,6 +16,7 @@ let package = Package(
         .iOS("27.0"),
     ],
     products: [
+        .library(name: "ReceiptCore", targets: ["ReceiptCore"]),
         .library(name: "ImageGenerationCore", targets: ["ImageGenerationCore"]),
         .library(name: "ImageGenerationRuntime", targets: ["ImageGenerationRuntime"]),
         .library(name: "ImageDiagnosticFeature", targets: ["ImageDiagnosticFeature"]),
@@ -77,6 +78,10 @@ let package = Package(
         .package(url: "https://github.com/swiftlang/swift-markdown.git", exact: "0.9.0"),
     ],
     targets: [
+        .target(name: "ReceiptCore", swiftSettings: speechSettings),
+        .testTarget(
+            name: "ReceiptCoreTests", dependencies: ["ReceiptCore"], resources: [.copy("Fixtures")],
+            swiftSettings: speechSettings),
         .target(name: "ImageGenerationCore", swiftSettings: speechSettings),
         .target(
             name: "ImageDiagnosticFeature", dependencies: ["ImageGenerationCore", "FeatureStore"],
