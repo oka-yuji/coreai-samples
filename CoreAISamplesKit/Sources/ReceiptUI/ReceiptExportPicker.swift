@@ -22,6 +22,8 @@
                 } onCancellation: {
                     send(.exportSelected(selection.id, nil))
                 }
+                .fileDialogConfirmationLabel(receiptText("Save here"))
+                .fileDialogMessage(receiptText("Choose a folder for a new ledger and receipt copies."))
         }
     }
 #endif

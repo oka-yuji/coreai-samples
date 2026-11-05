@@ -171,6 +171,23 @@
         }
       }
     },
+    "Choose a folder for a new ledger and receipt copies." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose a folder for a new ledger and receipt copies."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "台帳とレシートのコピーを保存する親フォルダを選んでください。"
+          }
+        }
+      }
+    },
     "Choose a writable folder for the receipt export." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1255,6 +1272,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "4 件のサンプルで試す"
+          }
+        }
+      }
+    },
+    "Save here" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Save here"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このフォルダに保存"
           }
         }
       }
