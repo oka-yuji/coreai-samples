@@ -834,6 +834,23 @@
         }
       }
     },
+    "No category reached the suggestion threshold. Review the purpose and choose a category." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No category reached the suggestion threshold. Review the purpose and choose a category."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "候補を採用できるスコアに届かなかったため、要確認です。用途を確認して費目を選んでください。"
+          }
+        }
+      }
+    },
     "OCR may contain mistakes. Compare the fields with the original." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1612,6 +1629,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "同じ内容のレシートが既に追加されています。"
+          }
+        }
+      }
+    },
+    "Time for this JEV call, including any required re-preparation." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Time for this JEV call, including any required re-preparation."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "JEV の1回の処理時間です。必要になった再準備の時間も含みます。"
           }
         }
       }

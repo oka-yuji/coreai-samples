@@ -73,6 +73,12 @@
                         if let classification = record.classification {
                             Divider()
                             receiptText("JEV category scores").font(.subheadline.bold())
+                            if classification.category == .review && classification.topCategory != .review {
+                                receiptText(
+                                    "No category reached the suggestion threshold. Review the purpose and choose a category."
+                                )
+                                .font(.caption).foregroundStyle(.orange)
+                            }
                             ForEach(Array(ReceiptCategory.allCases.enumerated()), id: \.element) {
                                 index, category in
                                 HStack(spacing: 8) {
@@ -106,7 +112,10 @@
                             HStack {
                                 timing("OCR", seconds)
                                 Spacer()
-                                if let seconds = item.decisionSeconds { timing("JEV", seconds) }
+                                if let seconds = item.decisionSeconds {
+                                    timing("JEV", seconds).help(
+                                        receiptText("Time for this JEV call, including any required re-preparation."))
+                                }
                             }.padding(10).background(
                                 .quaternary.opacity(0.3), in: RoundedRectangle(cornerRadius: 8))
                         }
