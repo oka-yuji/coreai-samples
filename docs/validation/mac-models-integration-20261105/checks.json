@@ -1,0 +1,50 @@
+{
+  "feature_input": "e8e945241ea68d853b5a41e838171db84594de0a",
+  "main_input": "806ac642c1f9c907e54af40466df40381f701b99",
+  "source_changes_from_feature": false,
+  "mac_release": "passed",
+  "ios_release": "passed at eda5a4f; application and package source unchanged in main integration",
+  "package": {
+    "reported_tests": 1199,
+    "runs": 39,
+    "skipped_tests": 64,
+    "issues": 0
+  },
+  "strict_lint": "passed",
+  "swift_format": {
+    "base": "origin/main",
+    "files": 107,
+    "result": "passed"
+  },
+  "privacy_working_and_commits": "passed",
+  "irodori_input_build": "passed",
+  "pins": "passed",
+  "model_reports": "render/check/tests passed",
+  "offline_agent_selftest": "passed",
+  "localization": {
+    "runtime_keys": 100,
+    "missing_japanese": 0
+  },
+  "gui": {
+    "passed": 7,
+    "total": 7,
+    "bundle_id": "com.coreai.samples.validation465",
+    "executable": "CoreAISamplesCheck467",
+    "route": "normal acquired library; no model override",
+    "independent_visual_acceptance": false
+  },
+  "main_merge": "pending owner instruction",
+  "manual_conditions": [
+    "SIDE-03",
+    "HIST-02",
+    "LIB-06",
+    "USE-05",
+    "WIRE-02",
+    "LLM-06",
+    "CLEAN-04",
+    "LIGHT-05",
+    "MAC-01",
+    "MAC-02",
+    "MAC-03"
+  ]
+}

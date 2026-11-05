@@ -1,14 +1,8 @@
 import Foundation
+import ModelLibraryFeature
+import ModelLibraryStorage
 
 enum ModelStorage {
-    static let markerName = ".download-complete.json"
-
-    struct CompletionMarker: Codable {
-        let fileCount: Int
-        let totalBytes: Int64
-        let completedAt: String
-    }
-
     static let root = URL.applicationSupportDirectory.appending(path: Bundle.main.bundleIdentifier ?? "DemoApp")
 
     static var modelsRoot: URL {
@@ -27,23 +21,17 @@ enum ModelStorage {
         return path.count > 1 && path.hasSuffix("/") ? String(path.dropLast()) : path
     }
 
+    static func conversationKey(_ url: URL) -> String {
+        ModelLocationIdentity.key(
+            url, legacy: directory(for: "okayuji/Qwen3.8-27B-coreai-4bit"),
+            managed: root.appending(path: "ModelLibrary/artifacts")
+                .appending(path: LanguageModelArtifacts.qwenID)
+                .appending(path: LanguageModelArtifacts.qwenRevision))
+    }
+
     static var prepared: Set<String> {
         get { Set(UserDefaults.standard.stringArray(forKey: "preparedBundles") ?? []) }
         set { UserDefaults.standard.set(newValue.sorted(), forKey: "preparedBundles") }
-    }
-
-    static func writeCompletionMarker(at directory: URL, fileCount: Int, totalBytes: Int64) {
-        let marker = CompletionMarker(
-            fileCount: fileCount, totalBytes: totalBytes, completedAt: Date.now.ISO8601Format())
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-        try? encoder.encode(marker).write(to: directory.appending(path: markerName))
-    }
-
-    static func isComplete(_ directory: URL) -> Bool {
-        let fileManager = FileManager.default
-        return fileManager.fileExists(atPath: directory.appending(path: markerName).path(percentEncoded: false))
-            && fileManager.fileExists(atPath: directory.appending(path: "metadata.json").path(percentEncoded: false))
     }
 
     static func size(of url: URL) -> Int64 {

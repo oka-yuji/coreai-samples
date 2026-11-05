@@ -1,0 +1,43 @@
+{
+  "scope": "Owner-authorized merge verification after main advanced",
+  "previous_head": "970a45bd8611d58ed179f2e50aa57c0cca81c286",
+  "main_input": "b520c63600427fd4a62dfbd90765e9b48942700f",
+  "merge_conflicts": [
+    "README.md generated model table",
+    "README.ja.md generated model table"
+  ],
+  "resolution": "Regenerated from the combined model records; retained Qwen and Clef release state and JEV updates.",
+  "repository_eight_checks": "passed",
+  "mac_release": "passed",
+  "ios_release_unsigned": "passed",
+  "package": {
+    "reported_tests": 1214,
+    "runs": 39,
+    "skipped_tests": 65,
+    "issues": 0
+  },
+  "conversion": {
+    "python": "3.11.9",
+    "numpy": "2.4.6",
+    "reported_tests": 473,
+    "skipped_tests": 24,
+    "result": "passed with optional environment-dependent skips",
+    "unverified": "11 JEV converter, 7 Magpie and 6 Qwen TTS environment-dependent tests skipped; conversion sources exactly match main."
+  },
+  "model_reports": "render/check/tests passed",
+  "offline_agent_selftest": "passed",
+  "localization": {
+    "runtime_keys": 100,
+    "missing_japanese": 0
+  },
+  "gui": {
+    "passed": 7,
+    "total": 7,
+    "bundle_id": "com.coreai.samples.validation465",
+    "executable": "CoreAISamplesMerge467",
+    "heavy_job_lock": true,
+    "route": "acquired library; no direct model override",
+    "independent_visual_acceptance": false
+  },
+  "owner_manual_acceptance": "pending; merge approval does not mark manual conditions accepted"
+}

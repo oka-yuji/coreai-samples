@@ -1216,17 +1216,6 @@
         }
       }
     },
-    "Change decision model" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "判定モデルを変更"
-          }
-        }
-      }
-    },
     "Change model folder…" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1620,16 +1609,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "自由な言い方の判定にはモデルを選択してください。ボタンでも回答できます。"
-          }
-        }
-      }
-    },
-    "Choose a model from the menu above, or open a bundle folder in Models." : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "上のメニューからモデルを選ぶか、モデル管理でモデルのフォルダを開いてください。"
           }
         }
       }
@@ -2176,6 +2155,16 @@
         }
       }
     },
+    "Conversation history" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "会話の履歴"
+          }
+        }
+      }
+    },
     "Conversation settings" : {
       "localizations" : {
         "ja" : {
@@ -2353,6 +2342,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "モデルを開けませんでした"
+          }
+        }
+      }
+    },
+    "Could not remove the prepared copy of %@: %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Could not remove the prepared copy of %1$@: %2$@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@の準備済みキャッシュを削除できませんでした: %2$@"
           }
         }
       }
@@ -2713,17 +2718,6 @@
         }
       }
     },
-    "Documents" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "文書"
-          }
-        }
-      }
-    },
     "Done" : {
       "localizations" : {
         "ja" : {
@@ -2745,6 +2739,26 @@
         }
       }
     },
+    "Download %@ from its heading in the sidebar." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "サイドバーの見出しから %@ を取得してください。"
+          }
+        }
+      }
+    },
+    "Download Irodori from its heading in the sidebar." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "サイドバーの見出しから Irodori を取得してください。"
+          }
+        }
+      }
+    },
     "Download the Reference voice model. It uses about 3.84 GB. Wait for the model check to finish before recording or choosing an audio file." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2762,6 +2776,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "ダウンロード済み"
+          }
+        }
+      }
+    },
+    "Downloaded %@ · Available %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Downloaded %1$@ · Available %2$@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "取得済み %1$@ · 空き %2$@"
           }
         }
       }
@@ -3515,17 +3545,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "生成には数分かかります。アプリを開いたままお待ちください。「中止」は実行中の処理が終わるまで待ってから停止します。完成したPNGを保存・共有できます。"
-          }
-        }
-      }
-    },
-    "Get, open and prepare model bundles" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "モデルの取得・読込・準備"
           }
         }
       }
@@ -4451,16 +4470,6 @@
         }
       }
     },
-    "Manage Models…" : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "モデル管理…"
-          }
-        }
-      }
-    },
     "Markdown export is not up to date." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4695,6 +4704,16 @@
         }
       }
     },
+    "Model information" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデル情報"
+          }
+        }
+      }
+    },
     "Model probability (uncalibrated)" : {
       "localizations" : {
         "ja" : {
@@ -4765,7 +4784,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "モデル管理"
+            "value" : "モデル"
           }
         }
       }
@@ -4953,16 +4972,6 @@
         }
       }
     },
-    "No asset folder" : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "モデル資産が未選択です"
-          }
-        }
-      }
-    },
     "No close matches" : {
       "localizations" : {
         "ja" : {
@@ -5146,17 +5155,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "この本文からは見つかりませんでした"
-          }
-        }
-      }
-    },
-    "Not loaded. Open a bundle to enable recipe checks." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "未読込です。モデルのフォルダを選ぶと判定できます。"
           }
         }
       }
@@ -5349,43 +5347,12 @@
         }
       }
     },
-    "Open Asset Folder…" : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "モデル資産フォルダを開く…"
-          }
-        }
-      }
-    },
-    "Open Clef-Flash bundle" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Clef-Flashのフォルダを選択"
-          }
-        }
-      }
-    },
     "Open Folder…" : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "フォルダを開く…"
-          }
-        }
-      }
-    },
-    "Open Models" : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "モデル管理を開く"
           }
         }
       }
@@ -5423,16 +5390,6 @@
         }
       }
     },
-    "Open a Clef-Flash decision bundle to begin." : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Clef-Flashの判定モデルフォルダを開いてください。"
-          }
-        }
-      }
-    },
     "Open a model bundle folder in Models, then load it." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -5440,37 +5397,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "モデル管理でフォルダを選び、モデルを読み込んでください。"
-          }
-        }
-      }
-    },
-    "Open an asset folder to extract." : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "モデル資産フォルダを開くと抽出できます。"
-          }
-        }
-      }
-    },
-    "Open decision bundle…" : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "判定モデルのフォルダを開く…"
-          }
-        }
-      }
-    },
-    "Open last model" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "前回のモデルを開く"
           }
         }
       }
@@ -5522,17 +5448,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "写真を開く"
-          }
-        }
-      }
-    },
-    "Open speech model…" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "音声モデルを開く…"
           }
         }
       }
@@ -5843,16 +5758,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "写真 → 食材の候補"
-          }
-        }
-      }
-    },
-    "Photos stay on this Mac. Open a decision bundle to check recipes." : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "写真はこのMacで処理します。レシピの判定には、判定モデルを読み込んでください。"
           }
         }
       }
@@ -6554,6 +6459,16 @@
         }
       }
     },
+    "Removed the prepared copy of %@. The next load prepares it again." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@の準備済みキャッシュを削除しました。次回の読込時に作り直します。"
+          }
+        }
+      }
+    },
     "Rename conversation" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -6696,17 +6611,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "保存を再試行"
-          }
-        }
-      }
-    },
-    "Retry saved bundle" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "前回のフォルダから再読込"
           }
         }
       }
@@ -7295,6 +7199,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "すべての候補を表示"
+          }
+        }
+      }
+    },
+    "Show or hide the conversation history" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "会話の履歴を表示または非表示にします"
           }
         }
       }
@@ -8927,17 +8841,6 @@
         }
       }
     },
-    "Tools" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ツール"
-          }
-        }
-      }
-    },
     "Truck inspection" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -9818,6 +9721,46 @@
         }
       },
       "shouldTranslate" : false
+    },
+    "Download Clef-Flash from its heading in the sidebar." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "サイドバーの見出しから Clef-Flash を取得してください。"
+          }
+        }
+      }
+    },
+    "Unload model" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルを解放"
+          }
+        }
+      }
+    },
+    "Download Qwen3.8 27B from its heading in the sidebar." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "サイドバーの見出しから Qwen3.8 27B を取得してください。"
+          }
+        }
+      }
+    },
+    "Choose a model from the menu above." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "上部のメニューからモデルを選んでください。"
+          }
+        }
+      }
     }
   },
   "version" : "1.1"

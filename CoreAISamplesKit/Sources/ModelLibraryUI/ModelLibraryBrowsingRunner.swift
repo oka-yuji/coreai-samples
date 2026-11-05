@@ -25,6 +25,10 @@ public enum ModelLibraryBrowsingRunner {
                     String(localized: "Demo execution is not connected in this build.", bundle: .module)))
         case .prepareDemo(let session):
             send(.demoPreparationChanged(session.id, .unavailable))
+        case .acquireUsage(let identity, let request):
+            send(.usageAcquired(identity.modelID, request, nil))
+        case .releaseUsage:
+            break
         }
     }
 }

@@ -1,0 +1,28 @@
+{
+  "metadata_version": "0.2",
+  "kind": "llm",
+  "name": "qwen3_8_27b_qwen3_5_cfg_gdnfp32_dynamic",
+  "assets": {
+    "main": "qwen3_8_27b_qwen3_5_cfg_gdnfp32_dynamic.aimodel"
+  },
+  "language": {
+    "tokenizer": "Qwen/Qwen3.8-27B",
+    "vocab_size": 248320,
+    "max_context_length": 262144,
+    "embedded_tokenizer": true,
+    "function_map": {
+      "main": [
+        "main"
+      ]
+    }
+  },
+  "source": {
+    "model_definition": "torch",
+    "hf_model_id": "Qwen/Qwen3.8-27B"
+  },
+  "compression": "qwen3_5_cfg",
+  "compilation": {
+    "date": "2026-10-07T00:01:38.076682+09:00",
+    "targets": []
+  }
+}

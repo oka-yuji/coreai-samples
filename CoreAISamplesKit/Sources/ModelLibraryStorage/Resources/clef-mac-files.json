@@ -1,0 +1,127 @@
+[
+  {
+    "path": ".gitattributes",
+    "bytes": 1792,
+    "sha256": "7d77f854df126b6070f5303fbc4fc1e0625ce28cbe32e132860f56cad5abb743"
+  },
+  {
+    "path": "LICENSE",
+    "bytes": 11544,
+    "sha256": "bbedc3fda3305820b977265f01b8619d87570a6739de3a5582c3464840f1e57a"
+  },
+  {
+    "path": "NOTICE.md",
+    "bytes": 2402,
+    "sha256": "80c99d154583fcfeae5abf69c2ac73f7d2e2de4e3e903d57e108d842f237d360"
+  },
+  {
+    "path": "README.md",
+    "bytes": 11648,
+    "sha256": "62e28d359c01e69340722e3a7c5e73bd07aec67d98baf96d3ab3fbb5a06cf95f"
+  },
+  {
+    "path": "SHA256SUMS",
+    "bytes": 1519,
+    "sha256": "4e942e42f0f25de911ca64747ebb618767324f95b5fe77f93cfec9cda8c39de6"
+  },
+  {
+    "path": "VERIFICATION.md",
+    "bytes": 4782,
+    "sha256": "d3d3b4c6a5bf41f1f832f84e78aa3513afab518e1c7de775293529f2e370b058"
+  },
+  {
+    "path": "backbone/clef_flash_9b_hidden_gdnfp32_qwen3_5_cfg_dynamic.aimodel/main.hash",
+    "bytes": 32,
+    "sha256": "1e61340923df1a642e123bc16b9b3d76d844c3a13fb6af98c8975c028531b9dd"
+  },
+  {
+    "path": "backbone/clef_flash_9b_hidden_gdnfp32_qwen3_5_cfg_dynamic.aimodel/main.mlirb",
+    "bytes": 4980751116,
+    "sha256": "9df4a0ca25c389fb3317fe49436ede115a2cab23f652b6d9584c6e3a685524f4"
+  },
+  {
+    "path": "backbone/clef_flash_9b_hidden_gdnfp32_qwen3_5_cfg_dynamic.aimodel/metadata.json",
+    "bytes": 105,
+    "sha256": "0bc0a704c5f257dac14c9d59953dd72b7eea448f34d2fc519815688f9cfa8c62"
+  },
+  {
+    "path": "backbone/lexical.safetensors",
+    "bytes": 2034237672,
+    "sha256": "758ca4781a52ff0eb0f6bd39682cce05605d309ec16d9186f0ef41e4bdf2e83e"
+  },
+  {
+    "path": "backbone/metadata.json",
+    "bytes": 639,
+    "sha256": "a16e611340891be029f06756dca3598a47a4b749861a78518fbb96eb1b243848"
+  },
+  {
+    "path": "backbone/tokenizer/chat_template.jinja",
+    "bytes": 7756,
+    "sha256": "a4aee8afcf2e0711942cf848899be66016f8d14a889ff9ede07bca099c28f715"
+  },
+  {
+    "path": "backbone/tokenizer/tokenizer.json",
+    "bytes": 19989325,
+    "sha256": "06b9509352d2af50381ab2247e083b80d32d5c0aba91c272ca9ff729b6a0e523"
+  },
+  {
+    "path": "backbone/tokenizer/tokenizer_config.json",
+    "bytes": 1124,
+    "sha256": "f842671db16546726c2818d71390d4b7cd2f7761b208818476473499e03e9883"
+  },
+  {
+    "path": "decision.json",
+    "bytes": 2224,
+    "sha256": "67f69d5bd401104fd594ba74d94622882341c138be6149132d68f9857def852d"
+  },
+  {
+    "path": "examples/maintenance-request.json",
+    "bytes": 9179,
+    "sha256": "c69b2b4157a63ccd56241f0b69c8661b6038322ce54b80fca443e46b2480b8fe"
+  },
+  {
+    "path": "examples/maintenance-response.json",
+    "bytes": 2454,
+    "sha256": "dc813dd0b18aa3bdf220b6b432c520f499621e8d9cf738b347a5e677878d12a9"
+  },
+  {
+    "path": "head/clef_flash_9b_head_q16o8_fp16.aimodel/main.hash",
+    "bytes": 32,
+    "sha256": "eb5cc18488ab766888b1f6778cd3a90e21e3324b6dfb3cba3f5c8e83ca307571"
+  },
+  {
+    "path": "head/clef_flash_9b_head_q16o8_fp16.aimodel/main.mlirb",
+    "bytes": 243542718,
+    "sha256": "3499f42e07131b5b04d88d657c944eb49b69c35e9afa0eff15ad4527f53c1adc"
+  },
+  {
+    "path": "head/clef_flash_9b_head_q16o8_fp16.aimodel/metadata.json",
+    "bytes": 105,
+    "sha256": "f8dcade10712f9cb11ef39a19f02249a202fbeec26d4f6aa046eb9a3aea15ade"
+  },
+  {
+    "path": "verification/alternating-question-sizes.json",
+    "bytes": 3577,
+    "sha256": "4ade6da38f1add2d6b0919536b9967b2c3387ca0cd2ac0f3d74171771e9e36a9"
+  },
+  {
+    "path": "verification/app-scenario.json",
+    "bytes": 424,
+    "sha256": "f2a15bcf47132eee81b9127029579f3327480f8c427e14087477624f7c59b29d"
+  },
+  {
+    "path": "verification/context-reuse.json",
+    "bytes": 2488,
+    "sha256": "e45d218658b11f7776611a8e1ca062cad1ae3a8008c74efa7a2e11007354d909"
+  },
+  {
+    "path": "verification/gui-and-cancellation.json",
+    "bytes": 4380,
+    "sha256": "0b73e63de8774526c5facbe56a685e3123c2fc7162942abef1baa997f4c28ab7"
+  },
+  {
+    "path": "verification/ten-document-summary.json",
+    "bytes": 3359,
+    "sha256": "57a02cfb1ccf00ffcf126f6e3a69fa848b533e572b8406c343eb844dfdd3f1de"
+  }
+]

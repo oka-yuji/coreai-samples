@@ -29,6 +29,9 @@ struct DecideRunnerTests {
         actions = []
         await runner.run(.waitForIdle(8)) { actions.append($0) }
         #expect(actions == [.stopped(8)])
+        actions = []
+        await runner.run(.release(9)) { actions.append($0) }
+        #expect(actions == [.released(9)])
     }
 
     @Test("Service failures are reported as actions and cancellation is not shown as a failure")
@@ -100,6 +103,8 @@ struct DecideRunnerTests {
         #expect(store.state.output == service.output)
         #expect(store.state.phase == .idle)
         store.send(.ended)
+        await completion.wait(for: .release(4))
+        #expect(store.state.phase == .closed)
     }
 }
 

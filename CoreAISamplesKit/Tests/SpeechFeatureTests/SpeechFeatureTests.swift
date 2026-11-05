@@ -176,3 +176,43 @@ extension SpeechFeatureTests {
         #expect(resumed.text == "Test" && resumed.audio == nil && resumed.exportTicket == nil)
     }
 }
+
+extension SpeechFeatureTests {
+    @Test(
+        "A library bundle that becomes unavailable forgets the model, its path and audio, and stops an operation that still uses it"
+    )
+    func bundleUnavailable() {
+        var state = ready()
+        state.lastPath = model.directory.path
+        state.audio = audio
+        _ = SpeechFeature.reduce(&state, .prepareExport)
+        #expect(SpeechFeature.reduce(&state, .bundleUnavailable).isEmpty)
+        #expect(state.model == nil && state.lastPath == nil && state.audio == nil && state.exportTicket == nil)
+        #expect(state.phase == .idle && !state.canGenerate)
+
+        state = ready()
+        _ = SpeechFeature.reduce(&state, .openBundle("/test-model"))
+        let opening = state.session
+        #expect(
+            SpeechFeature.reduce(&state, .bundleUnavailable)
+                == [.cancel(.operation), .run(.stop(opening + 1), id: .stop)])
+        _ = SpeechFeature.reduce(&state, .opened(opening, model))
+        #expect(state.model == nil && state.phase == .stopping)
+        _ = SpeechFeature.reduce(&state, .stopped(state.session))
+        #expect(state.phase == .idle && state.model == nil)
+
+        state = ready()
+        state.lastPath = model.directory.path
+        _ = SpeechFeature.reduce(&state, .ended)
+        #expect(SpeechFeature.reduce(&state, .bundleUnavailable).isEmpty)
+        #expect(!state.presented && state.phase == .stopping && state.model == nil && state.lastPath == nil)
+        _ = SpeechFeature.reduce(&state, .stopped(state.session))
+        #expect(state.phase == .idle)
+
+        var managed = SpeechState(managedModel: model)
+        _ = SpeechFeature.reduce(&managed, .appeared)
+        let kept = managed
+        #expect(SpeechFeature.reduce(&managed, .bundleUnavailable).isEmpty)
+        #expect(managed == kept)
+    }
+}

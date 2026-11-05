@@ -112,6 +112,8 @@ targets:
         product: VideoSearchFeature
       - package: CoreAISamplesKit
         product: VideoSearchRuntime
+      - package: CoreAISamplesKit
+        product: ModelLibraryUI
       - sdk: AVKit.framework
     settings:
       base:

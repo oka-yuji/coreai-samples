@@ -122,13 +122,18 @@ struct DecideFeatureTests {
     @Test("Ending the feature cancels every effect and rejects input until it appears again")
     func ending() {
         var state = readyState()
-        #expect(DecideFeature.reduce(&state, .ended) == [.cancelAll])
+        #expect(DecideFeature.reduce(&state, .ended) == [.cancelAll, .run(.release(1), id: .stop)])
         let closed = state
         #expect(DecideFeature.reduce(&state, .setDocument("new")).isEmpty)
         #expect(DecideFeature.reduce(&state, .completed(0, 0, output())).isEmpty)
         #expect(state == closed)
+        #expect(state.modelRelease == 1)
         _ = DecideFeature.reduce(&state, .appeared)
-        #expect(state.phase == .idle)
+        #expect(state.phase == .closing && state.model == nil)
+        _ = DecideFeature.reduce(&state, .released(0))
+        #expect(state.phase == .closing)
+        _ = DecideFeature.reduce(&state, .released(state.session))
+        #expect(state.phase == .idle && !state.canRun)
     }
 
     @Test("Failures and stale token counts cannot overwrite newer state")
@@ -161,6 +166,7 @@ struct DecideFeatureTests {
         #expect(state.exportData == nil)
         _ = DecideFeature.reduce(&state, .ended)
         _ = DecideFeature.reduce(&state, .appeared)
+        _ = DecideFeature.reduce(&state, .released(state.session))
         _ = DecideFeature.reduce(&state, .prepareExport)
         let current = try #require(state.exportTicket)
         #expect(current.id != previous.id)

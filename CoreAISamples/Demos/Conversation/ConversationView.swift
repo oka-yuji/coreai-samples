@@ -6,12 +6,57 @@ import SwiftUI
 struct ConversationView: View {
     @Environment(ChatViewModel.self) private var chat
     @Environment(ConversationHost.self) private var host
-    @Environment(DemoNavigator.self) private var navigator
+    @Environment(MacModelLibrary.self) private var library
     @Environment(\.locale) private var locale
+    @AppStorage("conversationHistoryVisible") private var historyVisible = true
     @State private var showSettings = false
     @State private var timelinePosition = ScrollPosition(edge: .bottom)
 
     var body: some View {
+        HStack(spacing: 0) {
+            if historyVisible {
+                ConversationHistoryColumn()
+                    .frame(width: 260)
+                Divider()
+            }
+            chatPane
+        }
+        .navigationTitle(modelTitle)
+        .toolbar {
+            ToolbarItemGroup(placement: .navigation) {
+                Button("Conversation history", systemImage: "clock.arrow.circlepath") { historyVisible.toggle() }
+                    .help("Show or hide the conversation history")
+                Button("New conversation", systemImage: "square.and.pencil", action: host.startNew)
+                    .disabled(!host.canManageHistory)
+                    .help("Start a new conversation")
+            }
+            ToolbarItemGroup(placement: .primaryAction) {
+                Button("Copy conversation", systemImage: "doc.on.doc", action: copy)
+                    .disabled(host.state.entries.isEmpty && host.state.readOnlyMarkdown == nil)
+                    .help("Copy the conversation as Markdown")
+                Button("Conversation settings", systemImage: "gearshape") { showSettings.toggle() }
+                    .help("Conversation settings")
+                    .disabled(chat.phase != .ready || host.state.readOnlyMarkdown != nil || host.state.isRestoring)
+                    .popover(isPresented: $showSettings, arrowEdge: .bottom) {
+                        VStack(alignment: .leading, spacing: 0) {
+                            HStack {
+                                Text("Conversation settings").font(.headline)
+                                Spacer()
+                                Button("Done") { showSettings = false }
+                            }
+                            .padding(16)
+                            Divider()
+                            ScrollView { ConversationSettingsView() }
+                                .frame(maxHeight: 520)
+                        }
+                        .frame(width: 560)
+                    }
+            }
+        }
+        .onChange(of: host.state.id) { showSettings = false }
+    }
+
+    private var chatPane: some View {
         VStack(spacing: 0) {
             archiveStatus
             if let markdown = host.state.readOnlyMarkdown {
@@ -43,32 +88,6 @@ struct ConversationView: View {
                 }
             }
         }
-        .navigationTitle(modelTitle)
-        .toolbar {
-            ToolbarItemGroup(placement: .primaryAction) {
-                Button("Copy conversation", systemImage: "doc.on.doc", action: copy)
-                    .disabled(host.state.entries.isEmpty && host.state.readOnlyMarkdown == nil)
-                    .help("Copy the conversation as Markdown")
-                Button("Conversation settings", systemImage: "gearshape") { showSettings.toggle() }
-                    .help("Conversation settings")
-                    .disabled(chat.phase != .ready || host.state.readOnlyMarkdown != nil || host.state.isRestoring)
-                    .popover(isPresented: $showSettings, arrowEdge: .bottom) {
-                        VStack(alignment: .leading, spacing: 0) {
-                            HStack {
-                                Text("Conversation settings").font(.headline)
-                                Spacer()
-                                Button("Done") { showSettings = false }
-                            }
-                            .padding(16)
-                            Divider()
-                            ScrollView { ConversationSettingsView() }
-                                .frame(maxHeight: 520)
-                        }
-                        .frame(width: 560)
-                    }
-            }
-        }
-        .onChange(of: host.state.id) { showSettings = false }
     }
 
     private var modelTitle: Text {
@@ -115,7 +134,6 @@ struct ConversationView: View {
                     .font(.headline)
                 Text("Choose \(host.state.modelID) to continue this conversation.")
                     .foregroundStyle(.secondary)
-                Button("Open Models") { navigator.selection = .models }
             }
         case .loading(let preparing):
             LoadingView(name: chat.modelName, preparing: preparing, since: chat.loadStarted)
@@ -124,7 +142,6 @@ struct ConversationView: View {
                 Label("Could not open the model", systemImage: "exclamationmark.triangle")
                     .font(.headline)
                 RuntimeMessageText(message).foregroundStyle(.secondary).textSelection(.enabled)
-                Button("Open Models") { navigator.selection = .models }
             }
         case .empty:
             VStack(alignment: .leading, spacing: 10) {
@@ -134,11 +151,14 @@ struct ConversationView: View {
                     if !host.state.modelID.isEmpty {
                         Text("Choose \(host.state.modelID) to continue this conversation.")
                     } else {
-                        Text("Choose a model from the menu above, or open a bundle folder in Models.")
+                        if library.installed(.qwen) == nil {
+                            Text("Download Qwen3.8 27B from its heading in the sidebar.")
+                        } else {
+                            Text("Choose a model from the menu above.")
+                        }
                     }
                 }
                 .foregroundStyle(.secondary)
-                Button("Open Models") { navigator.selection = .models }
             }
         }
     }

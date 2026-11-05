@@ -140,6 +140,29 @@ struct ProductFeatureTests {
         #expect(state.phase == .idle)
     }
 
+    @Test(
+        "A library model that becomes unavailable forgets its folder, stops the request under way and keeps the cards and the draft"
+    )
+    func modelUnavailable() throws {
+        var state = ready()
+        let memo = try ProductMemo(source: source(), candidates: [])
+        state.cards = [ProductCard(id: 0, memo: memo)]
+        _ = ProductFeature.reduce(&state, .submit(stamp))
+        #expect(
+            ProductFeature.reduce(&state, .modelUnavailable) == [
+                .cancel(.operation), .run(.waitForIdle(2), id: .drain),
+            ])
+        #expect(state.modelFolder == nil && state.phase == .stopping)
+        #expect(state.cards == [ProductCard(id: 0, memo: memo)] && state.draft.text == "Memory: 16 GB")
+        _ = ProductFeature.reduce(&state, .stopped(2))
+        #expect(state.phase == .idle && !state.canAdd)
+        #expect(ProductFeature.reduce(&state, .modelUnavailable).isEmpty)
+
+        var managed = managed()
+        let kept = managed
+        #expect(ProductFeature.reduce(&managed, .modelUnavailable).isEmpty && managed == kept)
+    }
+
     @MainActor
     @Test("The runner keeps fetched source data intact when passing it to extraction")
     func runner() async throws {

@@ -3,7 +3,7 @@ import Foundation
 
 public struct DecideState: Sendable, Equatable {
     public enum Phase: Sendable, Equatable {
-        case idle, loading, running, stopping, reading, closed
+        case idle, loading, running, stopping, reading, closing, closed
     }
 
     public var input: DecideInput
@@ -12,6 +12,8 @@ public struct DecideState: Sendable, Equatable {
     public var loadingExamples = false
     public var exampleSession = 0
     public var phase: Phase = .idle
+    public var modelRelease = 0
+    public var reopenAfterRelease = false
     public var session = 0
     public var revision = 0
     public var presentationRevision = 0
@@ -56,6 +58,7 @@ public enum DecideAction: Sendable, Equatable {
     case examplesLoaded(Int, [DecideExample])
     case examplesFailed(Int, String)
     case ended
+    case released(Int)
     case openBundle(String)
     case loaded(Int, DecideBundleInfo)
     case setDocument(String)
@@ -90,6 +93,7 @@ public enum DecideEffect: Sendable, Equatable {
     case read(Int, URL)
     case decide(Int, Int, DecideInput, reuse: Bool)
     case waitForIdle(Int)
+    case release(Int)
     case export(DecideExportTicket, DecideOutput, [Int: String])
 }
 
@@ -105,6 +109,18 @@ public enum DecideFeature: Feature {
     public typealias Command = FeatureStore.Command<Effect, EffectID>
 
     public static func reduce(_ state: inout State, _ action: Action) -> [Command] {
+        if case .released(let session) = action {
+            guard state.phase == .closing, state.session == session else { return [] }
+            let reopen = state.reopenAfterRelease
+            state.reopenAfterRelease = false
+            state.phase = .closed
+            return reopen ? reduce(&state, .appeared) : []
+        }
+        if state.phase == .closing {
+            if case .appeared = action { state.reopenAfterRelease = true }
+            if case .ended = action { state.reopenAfterRelease = false }
+            return []
+        }
         if state.phase == .closed {
             guard case .appeared = action else { return [] }
         }
@@ -132,13 +148,16 @@ public enum DecideFeature: Feature {
             guard state.exampleSession == session, state.loadingExamples else { return [] }
             state.loadingExamples = false
             state.message = message
+        case .released: return []
         case .ended:
+            state.modelRelease += 1
             state.session += 1
-            state.phase = .closed
+            state.phase = .closing
             state.loadingExamples = false
+            state.model = nil
             state.exportData = nil
             state.exportTicket = nil
-            return [.cancelAll]
+            return [.cancelAll, .run(.release(state.session), id: .stop)]
         case .openBundle(let path):
             guard !state.busy else { return [] }
             state.session += 1

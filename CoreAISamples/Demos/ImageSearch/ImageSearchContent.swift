@@ -10,6 +10,7 @@ struct ImageSearchContent: View {
     let state: ImageSearchState
     let send: @MainActor (ImageSearchAction) -> Void
     let isPermitted: @MainActor () -> Bool
+    var canUseModel = true
     @State private var choosingImages = false
     @State private var imageRequest = 0
     #if os(iOS)
@@ -55,9 +56,9 @@ struct ImageSearchContent: View {
                     imageRequest = state.session
                     choosingImages = true
                 }
-                .disabled(!state.canIndex)
+                .disabled(!state.canIndex || !canUseModel)
                 Button("Use sample images") { send(.index(ImageSearchAssembly.samples)) }
-                    .disabled(!state.canIndex)
+                    .disabled(!state.canIndex || !canUseModel)
                     .accessibilityIdentifier("image-search-samples")
             }
             HStack(spacing: 10) {
@@ -66,11 +67,11 @@ struct ImageSearchContent: View {
                     "Describe an image to find", text: Binding(get: { state.query }, set: { send(.setQuery($0)) })
                 )
                 .textFieldStyle(.plain)
-                .onSubmit { send(.search) }
+                .onSubmit { if canUseModel { send(.search) } }
                 .accessibilityIdentifier("image-search-query")
                 Button("Search") { send(.search) }
                     .buttonStyle(.borderedProminent)
-                    .disabled(!state.canSearch)
+                    .disabled(!state.canSearch || !canUseModel)
                     .accessibilityIdentifier("image-search-submit")
             }
             .padding(10)
@@ -122,7 +123,7 @@ struct ImageSearchContent: View {
             Label("Index the images again to search them.", systemImage: "arrow.clockwise")
             Button("Index again") { send(.index(state.photos.map(\.url))) }
                 .buttonStyle(.bordered)
-                .disabled(!state.canIndex)
+                .disabled(!state.canIndex || !canUseModel)
         }
         .font(.callout)
     }
@@ -131,7 +132,9 @@ struct ImageSearchContent: View {
         ContentUnavailableView {
             Label("Find images with your own words", systemImage: "photo.on.rectangle.angled")
         } description: {
-            if state.execution == .standalone { Text("Open the model, then choose the images you want to search.") }
+            #if os(iOS)
+                if state.execution == .standalone { Text("Open the model, then choose the images you want to search.") }
+            #endif
         }
         .frame(minHeight: 280)
     }

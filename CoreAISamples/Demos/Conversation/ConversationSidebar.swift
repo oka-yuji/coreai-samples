@@ -1,128 +1,147 @@
-import ConversationFeature
+import FeatureStore
+import ModelLibraryFeature
+import ModelLibraryUI
 import SwiftUI
 
 struct ConversationSidebar: View {
-    private enum Selection: Hashable {
-        case conversation(String)
-        case tool(Demo)
-        case new
-    }
-
-    @Environment(ConversationHost.self) private var host
     @Environment(DemoNavigator.self) private var navigator
-    @State private var editingID: String?
-    @State private var editingTitle = ""
+    @Environment(MacModelLibrary.self) private var library
+    @State private var collapsed: Set<DemoModel> = []
+    @State private var deletion: ModelDeletionRequest?
 
     var body: some View {
         VStack(spacing: 0) {
-            List(selection: selection) {
-                Section("Conversations") {
-                    if host.state.turns.isEmpty && host.state.readOnlyMarkdown == nil {
-                        Label("New conversation", systemImage: "bubble.left").tag(Selection.new)
-                    }
-                    ForEach(host.state.conversationSummaries) { item in
-                        row(item)
-                            .tag(Selection.conversation(item.id))
-                            .disabled(!host.canManageHistory && item.id != host.state.id)
-                            .contextMenu {
-                                Button("Rename…") {
-                                    editingID = item.id
-                                    editingTitle = item.title
-                                }.disabled(item.revision == nil || !host.canManageHistory)
-                                Button("Delete…", role: .destructive) { host.requestDeleteConversation(item.id) }
-                                    .disabled(
-                                        !host.canManageHistory
-                                            || !host.state.library.items.contains { $0.id == item.id })
-                            }
-                    }
-                }
-                Section("Tools") {
-                    ForEach(Demo.allCases.filter { $0 != .chat }) { demo in
-                        Label {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(LocalizedStringKey(demo.title))
-                                Text(LocalizedStringKey(demo.summary)).font(.caption).foregroundStyle(.secondary)
-                            }
-                        } icon: {
-                            Image(systemName: demo.systemImage)
-                        }
-                        .tag(Selection.tool(demo))
-                    }
-                }
-            }
-            if host.state.library.loading != nil || host.state.library.isMutating {
-                ProgressView().controlSize(.small).padding(8)
-            }
-            if host.state.library.error != nil || host.state.library.exportRetryID != nil {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Could not update conversations").font(.caption.bold())
-                    if let message = host.state.library.error {
-                        Text(message).font(.caption).textSelection(.enabled)
-                    } else {
-                        Text("Markdown export is not up to date.").font(.caption)
-                    }
-                    if host.state.library.exportRetryID != nil {
-                        Button("Retry save", action: host.retryConversationExport).disabled(!host.canManageHistory)
-                    }
-                    Button("Refresh") { host.store.send(.library(.refresh)) }
-                        .disabled(host.state.library.isMutating)
-                }.padding(8)
-            }
+            storage
+            list
         }
-        .demoNavigationTitle("Demos")
+        .demoNavigationTitle("Models")
         .navigationSplitViewColumnWidth(min: 220, ideal: 260)
-        .alert(
-            "Rename conversation", isPresented: Binding(get: { editingID != nil }, set: { if !$0 { editingID = nil } })
-        ) {
-            TextField("Title", text: $editingTitle)
-            Button("Save") {
-                if let id = editingID { host.renameConversation(id, title: editingTitle) }
-                editingID = nil
-            }.disabled(editingTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-            Button("Cancel", role: .cancel) { editingID = nil }
+        .onAppear { library.refresh() }
+        .onChange(of: settledArtifacts) { library.measureStorage() }
+    }
+
+    @ViewBuilder private var list: some View {
+        let list = List(selection: selection) {
+            ForEach(DemoModel.allCases, id: \.self) { model in
+                Section(isExpanded: expanded(model)) {
+                    if let failure = failure(of: model) { LibraryFailureView(failure: failure) }
+                    ForEach(model.demos) { demoRow($0) }
+                } header: {
+                    header(model)
+                }
+            }
         }
-        .confirmationDialog(
-            "Delete conversation?",
-            isPresented: Binding(
-                get: { host.state.library.pendingDelete != nil },
-                set: { if !$0 { host.store.send(.library(.cancelDelete)) } }), titleVisibility: .visible
-        ) {
-            Button("Move to Trash", role: .destructive, action: host.confirmDeleteConversation)
-            Button("Cancel", role: .cancel) { host.store.send(.library(.cancelDelete)) }
-        } message: {
-            Text("The conversation and its Markdown export will be moved to the Trash.")
+        if let store = library.store {
+            list.modelDeletionAlert(store: store, deletion: $deletion)
+        } else {
+            list
         }
     }
 
-    private var selection: Binding<Selection?> {
+    private var selection: Binding<Demo?> {
         Binding {
-            guard let demo = navigator.selection else { return nil }
-            if demo != .chat { return .tool(demo) }
-            return host.state.turns.isEmpty && host.state.readOnlyMarkdown == nil ? .new : .conversation(host.state.id)
-        } set: { value in
-            switch value {
-            case .conversation(let id):
-                if id == host.state.id || host.openConversation(id) { navigator.selection = .chat }
-            case .tool(let demo): navigator.selection = demo
-            case .new: navigator.selection = .chat
-            case nil: break
-            }
+            navigator.selection
+        } set: {
+            if let demo = $0 { navigator.selection = demo }
         }
     }
 
-    private func row(_ item: ConversationSummary) -> some View {
-        Label {
-            VStack(alignment: .leading, spacing: 3) {
-                Text(item.title.isEmpty ? item.id : item.title).lineLimit(2)
-                HStack(spacing: 5) {
-                    if let mode = item.mode { Text(LocalizedStringKey(mode == .chat ? "Chat" : "Work")) }
-                    Text(item.updatedAt, format: .dateTime.month(.abbreviated).day().hour().minute())
-                }.font(.caption).foregroundStyle(.secondary)
+    private var settledArtifacts: [String] {
+        library.store?.state.installations.filter { !$0.value.phase.isBusy }.keys.sorted() ?? []
+    }
+
+    private var storage: some View {
+        let downloaded = library.downloadedSize.formatted(.byteCount(style: .file))
+        let available = library.availableSpace.formatted(.byteCount(style: .file))
+        return Text("Downloaded \(downloaded) · Available \(available)")
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 6)
+    }
+
+    private func expanded(_ model: DemoModel) -> Binding<Bool> {
+        Binding {
+            !collapsed.contains(model)
+        } set: { isExpanded in
+            if isExpanded { collapsed.remove(model) } else { collapsed.insert(model) }
+        }
+    }
+
+    private func header(_ model: DemoModel) -> some View {
+        HStack(spacing: 0) {
+            Text(verbatim: model.title)
+            Spacer(minLength: 4)
+            if let store = library.store, let entry = store.state.catalog.model(model.libraryID) {
+                ModelInformationButton(store: store, model: entry, inUse: library.isInUse(model))
+                if store.state.selectedArtifact(for: entry.id)?.sourceKind != nil {
+                    ModelAcquisitionControls(
+                        store: store, model: entry,
+                        requestDeletion: { deletion = ModelDeletionRequest(model: entry, artifact: $0) },
+                        deletionDisabled: library.isInUse(model))
+                }
             }
-        } icon: {
-            Image(
-                systemName: item.revision == nil && (item.id != host.state.id || host.state.readOnlyMarkdown != nil)
-                    ? "doc.text" : "bubble.left.and.bubble.right")
+        }
+        .controlSize(.small)
+    }
+
+    private func failure(of model: DemoModel) -> ModelLibraryFailure? {
+        guard let state = library.store?.state, let artifact = state.selectedArtifact(for: model.libraryID) else {
+            return nil
+        }
+        return state.installations[artifact.id]?.failure
+    }
+
+    private func demoRow(_ demo: Demo) -> some View {
+        Label(LocalizedStringKey(demo.summary), systemImage: demo.systemImage).lineLimit(nil).tag(demo)
+    }
+}
+
+private struct ModelInformationButton: View {
+    let store: Store<ModelLibraryFeature>
+    let model: LibraryModel
+    let inUse: Bool
+    @State private var showing = false
+    @State private var message: Text?
+    @Environment(\.locale) private var locale
+
+    var body: some View {
+        Button {
+            message = nil
+            showing = true
+        } label: {
+            Image(systemName: "info.circle")
+                .frame(minWidth: 44, minHeight: 44)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Model information")
+        .accessibilityValue(Text(verbatim: model.name))
+        .popover(isPresented: $showing) {
+            VStack(alignment: .leading, spacing: 12) {
+                ModelInformationView(store: store, model: model, inUse: inUse)
+                if let artifact = store.state.selectedArtifact(for: model.id),
+                    let resource = store.state.installations[artifact.id]?.resource
+                {
+                    Button("Clear Prepared Copy") {
+                        do {
+                            try MacModelLibrary.clearPrepared(resource.directory, artifact: artifact)
+                            message = Text(
+                                "Removed the prepared copy of \(model.name). The next load prepares it again.")
+                        } catch {
+                            message = Text(
+                                "Could not remove the prepared copy of \(model.name): \(error.localizedDescription)")
+                        }
+                    }
+                    .help("Remove the copy this app prepared for the GPU. The next load prepares it again.")
+                    .disabled(store.state.session?.selection.modelID == model.id || inUse)
+                    if let message { message.font(.callout).foregroundStyle(.secondary) }
+                }
+            }
+            .padding()
+            .frame(width: 360)
+            .environment(\.locale, locale)
         }
     }
 }

@@ -19,6 +19,7 @@ struct RecipeRunnerTests {
             (.loadModel(3, "/model"), .modelLoaded(3, "test-model")),
             (.check(4, 5, service.input), .checked(4, 5, service.report)),
             (.waitForIdle(6), .stopped(6)),
+            (.release(7), .released(7)),
         ]
         for (effect, expected) in pairs {
             var actions: [RecipeAction] = []
@@ -77,16 +78,23 @@ struct RecipeRunnerTests {
             store.send(.appeared)
             #expect(await events.next() == "idle")
         }
-        #expect(store.state.phase == .stopping && !store.state.canCheck)
+        #expect(store.state.phase == (reopen ? .closing : .stopping) && !store.state.canCheck)
         service.finish()
         while store.state.busy { _ = await finished.next() }
         #expect(service.sawCancellation)
-        #expect(store.state.report == nil && store.state.canCheck)
+        #expect(store.state.report == nil && store.state.canCheck == !reopen)
         service.suspend = false
+        if reopen {
+            store.send(.openModel("/managed/model"))
+            while store.state.busy { _ = await finished.next() }
+            #expect(store.state.canCheck)
+        }
         store.send(.check)
         while store.state.busy { _ = await finished.next() }
         #expect(store.state.report == service.report)
         store.send(.ended)
+        while store.state.busy { _ = await finished.next() }
+        #expect(store.state.phase == .closed)
     }
 }
 

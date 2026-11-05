@@ -15,7 +15,8 @@ public final class RecipeRunner {
     public func run(_ effect: RecipeEffect, send: (RecipeAction) -> Void) async {
         let session: Int
         switch effect {
-        case .inspect(let id, _), .fetch(let id, _), .loadModel(let id, _), .check(let id, _, _), .waitForIdle(let id):
+        case .inspect(let id, _), .fetch(let id, _), .loadModel(let id, _), .check(let id, _, _), .waitForIdle(let id),
+            .release(let id):
             session = id
         }
         do {
@@ -39,6 +40,9 @@ public final class RecipeRunner {
                 let report = try await service.check(input)
                 try Task.checkCancellation()
                 send(.checked(id, revision, report))
+            case .release(let id):
+                await service.releaseModelResources()
+                send(.released(id))
             case .waitForIdle(let id):
                 await service.waitForIdle()
                 send(.stopped(id))

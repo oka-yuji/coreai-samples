@@ -31,7 +31,7 @@ swift build -c release
 
 `--prompt` の 1 つが、同じ会話の 1 ターンです。モデルが考えると、思考は `[reasoning]` の下に、回答は `[response]` の下に出ます。`--stats` は標準エラーに JSON の行を書きます。読み込みの 1 行(`cached`、`specialize_s`、`load_s`)と、ターンごとの 1 行です。ターンの行の `cached_tokens` は、前のターンから使い回したプロンプトの部分です。
 
-**3. デモアプリを動かす**。Xcode で `CoreAISamples.xcodeproj` を開き、`CoreAISamples` スキームと `My Mac` を選んで Run を押します。初回は Xcode がパッケージの依存を解決します。`CoreAISamples` スキームは Release でビルドし、`CoreAISamples-Debug` はデバッグ用に Debug でビルドします。アプリでは **モデル管理**(Models)で、手順 1 のバンドルのフォルダを開きます。
+**3. デモアプリを動かす**。Xcode で `CoreAISamples.xcodeproj` を開き、`CoreAISamples` スキームと `My Mac` を選んで Run を押します。初回は Xcode がパッケージの依存を解決します。`CoreAISamples` スキームは Release でビルドし、`CoreAISamples-Debug` はデバッグ用に Debug でビルドします。アプリではサイドバーの Qwen3.8 27B の見出しから取得し、会話上部のモデルメニューから選びます。手順1の自作バンドルはCLIや明示診断で使います。
 
 ## Swift から使う
 
@@ -115,7 +115,7 @@ executor は、推論の状態を取得・変更する前に依頼を検査し�
 
 - **初回の読み込みでモデルを、計算ユニットの自動選択(優先する計算ユニットを指定せず、頻繁な reshape を期待する設定)で準備する。** 設定は `SpecializationOptions.default` に `expectFrequentReshapes = true` を足したものです。Core AI は準備済みのコピーを `~/Library/Caches/coreai-cache/<OS build>/<name>/` に置きます。`<name>` はコマンドラインのツールならプロセスの名前(`coreai-chat`、`coreai-verify`、`swift test` なら `swiftpm-testing-helper`)、アプリならバンドル ID(`com.coreai-samples.DemoApp`)です。同じプログラムの次の読み込みはそれを使い回します。別のプログラムは自分のコピーを準備し、モデルとほぼ同じ容量のディスクを使います(量子化していないバンドルではもっと大きい)。`coreai-chat --stats` で、コピーを使い回したか(`cached`)と準備にかかった時間(`specialize_s`)が分かります。GPU 向けに準備していた以前の版から更新した後の初回の読み込みでは、準備がもう一度走ります(再特殊化)。以前の設定で準備したコピーは、容量不足などで OS が消すか、下の方法で準備済みのコピーを消す(そのプログラムのそのバンドルの新旧両方が消えます)まで残ります。
 
-- **準備済みのコピーを消すには**、呼び出したプログラムのそのバンドルのコピーを消す `Engine.deleteSpecializationCache(bundle:)` を呼ぶか、デモアプリの Models の画面の **準備済みキャッシュを削除**(Clear Prepared Copy。画面の確認では `--clear-prepared`)を使うか、フォルダを消します。
+- **準備済みのコピーを消すには**、呼び出したプログラムのそのバンドルのコピーを消す `Engine.deleteSpecializationCache(bundle:)` を呼ぶか、デモアプリのモデルの見出しにある **モデル情報**(ⓘ)の **準備済みキャッシュを削除**(Clear Prepared Copy。画面の確認では `--clear-prepared`)を使うか、フォルダを消します。
 
 ライブラリでは `LocalLanguageModel.ReloadPolicy(readInterval:footprintLimitBytes:)` を、モデルの初期化の `reloadPolicy:` に渡して設定します。間隔を 0 にすると周期の読み直しを、footprint の上限を 0 にするとメモリの条件を止めます。
 
@@ -137,13 +137,13 @@ executor は、推論の状態を取得・変更する前に依頼を検査し�
 
 - デコードは公式の `sequential` エンジンと同じく、1 トークンずつの同期です。公式の既定のエンジンは処理をパイプラインにして、特に小さいモデルで速くデコードします(`coreai-verify speed` で 3 つを並べて比べられます)。
 
-- 別に配布している Clef のバンドル(取得にはアクセス権が必要)は Decide と Recipes で使います。ChatとWorkには別の言語生成のバンドルが要ります。Qwen3.5 と Qwen3.8 の計測に使った変換器の版は[自分でバンドルを変換する](#自分でバンドルを変換する)にリンクがあり、1.0.0 のタグに含まれない pull request のものです。
+- 別に配布している Clef のバンドル(公開済みで、匿名で取得可能)は Decide と Recipes で使います。ChatとWorkには別の言語生成のバンドルが要ります。Qwen3.5 と Qwen3.8 の計測に使った変換器の版は[自分でバンドルを変換する](#自分でバンドルを変換する)にリンクがあり、1.0.0 のタグに含まれない pull request のものです。
 
 ## リポジトリの構成
 
 ```
 CoreAISamples.xcodeproj  デモアプリのプロジェクト。開いて Run を押す
-CoreAISamples/           macOS の SwiftUI のデモアプリ: Models、Chat(Chat／Work、RAG つき)、Decide、Recipes、Extract
+CoreAISamples/           macOS の SwiftUI のデモアプリ: モデルのサイドバー、Chat(Chat／Work、RAG つき)、Decide、Recipes、Extract
 CoreAISamplesKit/        アプリが使う Swift パッケージ
   Sources/CoreAIBackend/ ランタイム: Engine(Core AI の呼び出し)、LocalLanguageModel(Foundation Models)、ModelBundle(metadata.json)
   Sources/RAGContext/    取得した資料から答えるための段落、順位、トークンの予算、プロンプト、日付。文書フォルダの読み取り
@@ -160,13 +160,13 @@ LICENSE                  コードの MIT ライセンス
 
 `CoreAISamples` は、このリポジトリの `CoreAIBackend` と `RAGContext` で作った macOS の SwiftUI アプリで、公式の `coreai-models` パッケージは使いません。
 
-- **Models** は、この Mac にあるバンドルのフォルダを開いて読み込み、準備したコピーを消します。カタログにはQwen3.8 27B (4bit)が載っていますが、現在の配布先は非公開で匿名取得できないため、取得済みフォルダを開きます。カタログのメモリの値「~32 GiB peak RSS while loading」(日本語表示では「約32 GiB（読み込み時のピークRSS）」)は、[Qwenの計測](qwen3.8-27b.ja.md#主な数値)に記したMac でそのバンドルを読み込んだときのアプリのプロセスの常駐メモリのピークで、`/usr/bin/time -l` で測りました(準備済みのコピーから 31.51 GiB、48 回の中央値。初回 31.88 GiB)。最小のメモリ要件ではありません。
+- **モデルのサイドバー**から固定版の公開バンドルを取得し、各デモを開きます。使用中の取得物は削除できません。解放後は見出しの **モデル情報**(ⓘ)から準備済みのコピーを消せます。メモリと準備時間の実測条件は[Qwenの計測](qwen3.8-27b.ja.md#主な数値)を参照してください。
 - **Chat** は同じ会話の中でChat／Workを切り替えます。「検索・資料を使う」は起動時OFFで、新しい検索や文書取得をせず、モデルの知識と会話履歴から回答します。ONにしてWeb／Docsを選ぶと、資料を先に取得して回答します。モードは変わらず、WorkではOFFでもメモを保存できます。取得した資料と`[S1]`などの出典IDも同じ会話に保存します。[設定と履歴の仕様](specs/conversation-search-access.md)を参照してください。
 - **Work** は Foundation Models のツールのループで メモを保存します。Webの検索・ページ取得は「検索・資料を使う」とWebがONのときだけ許可します。`fetch_page` で開けるのは、この会話で利用者が書いたURL、`web_search` の結果のURL、検索結果や取得したページの本文にあるURLだけで、それ以外は接続の前に断ります。通した取得は会話に現れたURLの文字列そのままで行い、モデルが付けたfragmentなどの書き分けは使いません。由来は会話の間消えません(検索結果の抜粋が取得したページの本文に置き換わった後も残り、会話と一緒に保存します)。修復や続きなどアプリが作った文とモデルの回答は数えません。通信しない再生(cassette の `replay` と固定資料の RAG 評価)では判定しません。`web_search` の検索語に会話の内容が入ることは防げません([詳細](demo-app.md#chat-and-work))。指示は、`fetch_page` で開いたページだけを引用するよう求めます。**Citation guard**(日本語表示では「引用URLの確認」)の設定は既定で off で、on にすると、引用した URL をその課題で取得したページと照合し(由来の判定で断った URL は取得していない扱い)、合わなければ 1 回だけ直させます([詳細](demo-app.md#citation-guard))。
 - **Decide** は Clef-Flash で文書を編集できる選択肢で採点し、文書を使い回し、人の確定とモデルの候補を分けて扱います。
 - **Recipes** は、確認した冷蔵庫の在庫と台所の道具でレシピを照合します。合成した写真 5 枚とそのレシピの URL を同梱し、開発者向けの詳細に実際の判定のスコアと時間を表示します。
 - **Extract** は、Apple と Microsoft の公式の商品説明か、貼り付けたテキストから、出典つきのスペックのカードを最大 4 枚作ります。候補を開くと、元の条件を確かめられます。複数の構成や、見つからなかった項目も、そのまま表示します。これまでのラベルと点検メモの実験は **Extraction lab**(日本語表示では「抽出の検証画面」)に残しており、その B3 の結果は変わりません。商品の抽出は別の用途です。[仕様と検証の状況](specs/product-comparison-demo.md)を参照してください。
 
-デモアプリの Chat と Work が扱うのは Qwen3、Qwen3.5、Qwen3.8 のバンドルです。`CoreAISamples/Demos/ModelManager/BundleSupport.swift` の `BundleSupport.supportedModelIDPrefixes` に、`"google/gemma-"` のようなほかの系統の Hugging Face のモデル ID の先頭を足すと、アプリはその系統のバンドルを開けるようになりますが、動くようにはなりません。ランタイムが扱う停止のトークン、`<think>` のタグ、ツールの呼び出しの形は Qwen のまま(制限を参照)なので、そのようなバンドルは読み込めても崩れた文で答えることがあります。系統の確認はこの一覧だけです。バンドルのフォルダを開くか読み込むときに、アプリはバンドルの `metadata.json` の `source.hf_model_id` を読み、その項目が無いか、どの先頭でも始まらなければ、Models の画面か Chat に理由を出して断ります。バンドルがどう変換されたかは確かめません。
+直接のランタイムと明示診断は Qwen3、Qwen3.5、Qwen3.8 のバンドルを扱います。Macの通常のモデルメニューには、取得済みのQwen3.8 27Bを表示します。`CoreAISamples/Demos/ModelManager/BundleSupport.swift` の `BundleSupport.supportedModelIDPrefixes` に、`"google/gemma-"` のようなほかの系統の Hugging Face のモデル ID の先頭を足すと、アプリはその系統のバンドルを開けるようになりますが、動くようにはなりません。ランタイムが扱う停止のトークン、`<think>` のタグ、ツールの呼び出しの形は Qwen のまま(制限を参照)なので、そのようなバンドルは読み込めても崩れた文で答えることがあります。直接診断の系統確認にはこの一覧を使います。管理ライブラリは固定したファイル一覧とmanifestも検査します。診断でバンドルを読み込むときに、アプリはバンドルの `metadata.json` の `source.hf_model_id` を読み、その項目が無いか、どの先頭でも始まらなければ、Chat または診断の出力に理由を出して断ります。バンドルがどう変換されたかは確かめません。
 
 試すには、`CoreAISamples.xcodeproj` を開いて Run を押します。コマンドラインでのビルド、ヘッドレスの自己テスト、画面の確認、ログは [docs/demo-app.md](demo-app.md) にあります。

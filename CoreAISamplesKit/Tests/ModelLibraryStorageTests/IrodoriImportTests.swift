@@ -184,7 +184,7 @@ struct IrodoriImportTests {
         let file = resource.directory.appending(path: first.path)
         let bytes = try Data(contentsOf: file)
         try Data(repeating: 0, count: bytes.count).write(to: file)
-        #expect(try await store.inspect(model: model, artifact: artifact).resource == nil)
+        #expect(try await store.inspect(model: model, artifact: artifact, verification: .full).resource == nil)
         try bytes.write(to: file)
         let extra = resource.directory.appending(path: "extra.json")
         try Data("{}".utf8).write(to: extra)

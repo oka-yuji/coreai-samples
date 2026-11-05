@@ -17,11 +17,13 @@ public struct RecipeExample: Sendable, Equatable, Codable, Identifiable {
 }
 
 public enum RecipePhase: Sendable, Equatable {
-    case idle, analyzing, fetching, loading, checking, stopping, closed
+    case idle, analyzing, fetching, loading, checking, stopping, closing, closed
 }
 
 public struct RecipeState: Sendable, Equatable {
     public var phase: RecipePhase = .idle
+    public var modelRelease = 0
+    public var reopenAfterRelease = false
     public var session = 0
     public var revision = 0
     public var nextItemID = 0
@@ -65,6 +67,7 @@ public struct RecipeState: Sendable, Equatable {
 public enum RecipeAction: Sendable, Equatable {
     case appeared
     case ended
+    case released(Int)
     case importPhoto(URL)
     case selectExample(RecipeExample)
     case setURL(String)
@@ -97,10 +100,12 @@ public enum RecipeEffect: Sendable, Equatable {
     case loadModel(Int, String)
     case check(Int, Int, RecipeCheckInput)
     case waitForIdle(Int)
+    case release(Int)
 
     public var session: Int {
         switch self {
-        case .inspect(let id, _), .fetch(let id, _), .loadModel(let id, _), .check(let id, _, _), .waitForIdle(let id):
+        case .inspect(let id, _), .fetch(let id, _), .loadModel(let id, _), .check(let id, _, _), .waitForIdle(let id),
+            .release(let id):
             id
         }
     }
@@ -118,6 +123,18 @@ public enum RecipeFeature: Feature {
     public typealias Work = Command<Effect, EffectID>
 
     public static func reduce(_ state: inout State, _ action: Action) -> [Work] {
+        if case .released(let session) = action {
+            guard state.phase == .closing, state.session == session else { return [] }
+            let reopen = state.reopenAfterRelease
+            state.reopenAfterRelease = false
+            state.phase = .closed
+            return reopen ? reduce(&state, .appeared) : []
+        }
+        if state.phase == .closing {
+            if case .appeared = action { state.reopenAfterRelease = true }
+            if case .ended = action { state.reopenAfterRelease = false }
+            return []
+        }
         if case .appeared = action {
             if state.phase == .closed {
                 state.phase = .idle
@@ -136,12 +153,16 @@ public enum RecipeFeature: Feature {
         guard state.phase != .closed else { return [] }
         switch action {
         case .appeared: return []
+        case .released: return []
         case .ended:
-            state.needsIdleBarrier = state.busy || state.needsIdleBarrier
+            state.modelRelease += 1
+            state.needsIdleBarrier = false
+            state.modelName = nil
+            state.modelPath = ""
             state.session += 1
-            state.phase = .closed
+            state.phase = .closing
             state.pendingRecipeURL = nil
-            return [.cancelAll]
+            return [.cancelAll, .run(.release(state.session), id: .stopping)]
         case .stop:
             guard state.busy, state.phase != .stopping else { return [] }
             state.session += 1

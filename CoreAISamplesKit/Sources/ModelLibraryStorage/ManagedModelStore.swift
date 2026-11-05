@@ -28,6 +28,17 @@ public enum ManagedInspection: Sendable {
     case invalid(any Error)
 }
 
+public enum ModelVerification: Sendable {
+    case recorded
+    case full
+}
+
+public enum MigrationResumption: Sendable {
+    case notNeeded
+    case inspected(ManagedInspection)
+    case cleanupPending(ValidatedModelResource, any Error)
+}
+
 public enum MigrationOutcome: Sendable {
     case migrated(ValidatedModelResource)
     case skipped
@@ -95,11 +106,12 @@ public actor ManagedModelStore {
     private let clock: @Sendable () -> Date
     private let writeLedger: @Sendable (Data, URL) throws -> Void
     private let availableCapacity: @Sendable (URL) throws -> Int64
+    private let removeMigratedSources: Bool
     private var leases: [UUID: ModelArtifactIdentity] = [:]
     private var generation = 0
 
     public init(
-        root: URL, clock: @escaping @Sendable () -> Date = { .now },
+        root: URL, removeMigratedSources: Bool = false, clock: @escaping @Sendable () -> Date = { .now },
         writeLedger: @escaping @Sendable (Data, URL) throws -> Void = { try $0.write(to: $1, options: .atomic) },
         availableCapacity: @escaping @Sendable (URL) throws -> Int64 = {
             try $0.resourceValues(forKeys: [.volumeAvailableCapacityForImportantUsageKey])
@@ -107,6 +119,7 @@ public actor ManagedModelStore {
         }
     ) {
         self.root = root
+        self.removeMigratedSources = removeMigratedSources
         self.clock = clock
         self.writeLedger = writeLedger
         self.availableCapacity = availableCapacity
@@ -173,7 +186,9 @@ public actor ManagedModelStore {
         }
     }
 
-    public func inspect(model: LibraryModel, artifact: ModelArtifact) throws -> ManagedInspection {
+    public func inspect(
+        model: LibraryModel, artifact: ModelArtifact, verification: ModelVerification = .recorded
+    ) throws -> ManagedInspection {
         guard artifact.isSourceValid else { return .missing }
         let resource: ValidatedModelResource
         do { resource = try definition(model, artifact) } catch { return .invalid(error) }
@@ -181,7 +196,13 @@ public actor ManagedModelStore {
             $0.matches(resource.identity)
         }
         if itemType(resource.directory) == nil, entry == nil { return .missing }
-        do { try verify(resource.directory, artifact) } catch let error as CancellationError { throw error } catch {
+        do {
+            if verification == .recorded, entry?.records(resource) == true {
+                try verifyStructure(resource.directory, artifact, allowingExtraneous: false)
+            } else {
+                try verify(resource.directory, artifact)
+            }
+        } catch let error as CancellationError { throw error } catch {
             return .invalid(error)
         }
         if entry?.records(resource) != true { try record(resource) }
@@ -242,16 +263,51 @@ public actor ManagedModelStore {
             return MigrationReport(outcomes: outcomes)
         }
         var ready = false
-        do { if case .ready = try inspect(model: model, artifact: artifact) { ready = true } } catch {
+        do {
+            if case .ready = try inspect(model: model, artifact: artifact, verification: .full) { ready = true }
+        } catch {
             for candidate in candidates { outcomes[candidate] = .failed(error) }
             return MigrationReport(outcomes: outcomes)
         }
         for candidate in candidates where outcomes[candidate] == nil {
-            let outcome = ready ? .skipped : copy(candidate, model: model, artifact: artifact)
+            let outcome: MigrationOutcome
+            if ready {
+                do {
+                    try finishMigration(candidate, artifact: artifact)
+                    outcome = .skipped
+                } catch { outcome = .failed(error) }
+            } else {
+                outcome = copy(candidate, model: model, artifact: artifact)
+            }
             if case .migrated = outcome { ready = true }
             outcomes[candidate] = outcome
         }
         return MigrationReport(outcomes: outcomes)
+    }
+
+    public func resumeMigration(
+        candidates: [URL], model: LibraryModel, artifact: ModelArtifact
+    ) throws -> MigrationResumption {
+        guard removeMigratedSources else { return .notNeeded }
+        var journalFailure: (any Error)?
+        do {
+            let journal = try location("migrations", artifact.id, artifact.sourceRevision ?? "").appending(
+                path: "cleanup.json")
+            guard itemType(journal) != nil else { return .notNeeded }
+        } catch {
+            journalFailure = error
+        }
+        let inspection = try inspect(model: model, artifact: artifact, verification: .full)
+        guard case .ready(let resource) = inspection else { return .inspected(inspection) }
+        if let journalFailure { return .cleanupPending(resource, journalFailure) }
+        do {
+            for candidate in candidates { try finishMigration(candidate, artifact: artifact) }
+        } catch let error as CancellationError {
+            throw error
+        } catch {
+            return .cleanupPending(resource, error)
+        }
+        return .inspected(inspection)
     }
 
     public func delete(identity: ModelArtifactIdentity) throws -> Int64 {
@@ -288,6 +344,18 @@ public actor ManagedModelStore {
         return lease
     }
 
+    public func acquire(
+        model: LibraryModel, artifact: ModelArtifact, directory: URL, owner: UUID
+    ) throws -> ResourceLease {
+        let resource = try definition(model, artifact)
+        guard directory.standardizedFileURL.path == resource.directory.standardizedFileURL.path,
+            try readLedger()?.entries.contains(where: { $0.records(resource) }) == true,
+            itemType(resource.directory) == .typeDirectory
+        else { throw ManagedModelStoreError.notInstalled }
+        try Task.checkCancellation()
+        return lease(identity: resource.identity, owner: owner)
+    }
+
     public func activeLeases(identity: ModelArtifactIdentity) -> Int {
         leases.values.filter { $0 == identity }.count
     }
@@ -303,7 +371,7 @@ public actor ManagedModelStore {
     private func copy(_ candidate: URL, model: LibraryModel, artifact: ModelArtifact) -> MigrationOutcome {
         let base = root.resolvingSymlinksInPath().standardizedFileURL.path
         let source = candidate.resolvingSymlinksInPath().standardizedFileURL.path
-        guard source != base, !source.hasPrefix(base + "/") else {
+        guard source != base, !source.hasPrefix(base + "/"), !base.hasPrefix(source + "/") else {
             return .undetermined(ManagedModelStoreError.pathEscape)
         }
         do {
@@ -318,6 +386,13 @@ public actor ManagedModelStore {
             }
         } catch { return .failed(error) }
         do {
+            if removeMigratedSources {
+                try verifyMigrationSource(candidate, artifact: artifact)
+                let record = MigrationRecord(
+                    source: candidate.standardizedFileURL.path, revision: artifact.sourceRevision)
+                let journal = try migrationJournal(artifact)
+                try JSONEncoder().encode(record).write(to: journal, options: .atomic)
+            }
             try FileManager.default.removeItem(at: staging)
             for file in artifact.files {
                 try Task.checkCancellation()
@@ -326,11 +401,62 @@ public actor ManagedModelStore {
                     at: destination.deletingLastPathComponent(), withIntermediateDirectories: true)
                 try FileManager.default.copyItem(at: candidate.appending(path: file.path), to: destination)
             }
-            return .migrated(try promote(staging: staging, model: model, artifact: artifact))
+            let resource = try promote(staging: staging, model: model, artifact: artifact)
+            try finishMigration(candidate, artifact: artifact)
+            return .migrated(resource)
         } catch {
             try? FileManager.default.removeItem(at: staging)
             return .failed(error)
         }
+    }
+
+    private struct MigrationRecord: Codable {
+        let source: String
+        let revision: String?
+    }
+
+    private func migrationJournal(_ artifact: ModelArtifact) throws -> URL {
+        let area = try location("migrations", artifact.id, artifact.sourceRevision ?? "")
+        try FileManager.default.createDirectory(at: area, withIntermediateDirectories: true)
+        return area.appending(path: "cleanup.json")
+    }
+
+    private func verifyMigrationSource(_ source: URL, artifact: ModelArtifact) throws {
+        let allowed = Set(artifact.files.map(\.path)).union([".download-complete.json", ".DS_Store"])
+        for entry in try entries(in: source) where entry.mode != S_IFDIR {
+            guard entry.mode == S_IFREG, allowed.contains(entry.path) else {
+                throw ManagedModelStoreError.unexpectedFile(entry.path)
+            }
+        }
+    }
+
+    private func finishMigration(_ source: URL, artifact: ModelArtifact) throws {
+        guard removeMigratedSources else { return }
+        let journal = try migrationJournal(artifact)
+        guard itemType(journal) != nil else { return }
+        guard itemType(journal) == .typeRegular else { throw ManagedModelStoreError.symbolicLink }
+        let record = try JSONDecoder().decode(MigrationRecord.self, from: Data(contentsOf: journal))
+        guard record.source == source.standardizedFileURL.path, record.revision == artifact.sourceRevision else {
+            return
+        }
+        try Task.checkCancellation()
+        let retired = journal.deletingLastPathComponent().appending(path: "source")
+        if itemType(retired) == nil, itemType(source) != nil {
+            let base = root.resolvingSymlinksInPath().standardizedFileURL.path
+            let path = source.resolvingSymlinksInPath().standardizedFileURL.path
+            guard path != base, !path.hasPrefix(base + "/"), !base.hasPrefix(path + "/") else {
+                throw ManagedModelStoreError.pathEscape
+            }
+            try verifyFiles(source, artifact, allowingExtraneous: true)
+            try verifyMigrationSource(source, artifact: artifact)
+            try Task.checkCancellation()
+            try FileManager.default.moveItem(at: source, to: retired)
+        }
+        if itemType(retired) != nil {
+            guard itemType(retired) == .typeDirectory else { throw ManagedModelStoreError.symbolicLink }
+            try FileManager.default.removeItem(at: retired)
+        }
+        try FileManager.default.removeItem(at: journal)
     }
 
     private func definition(_ model: LibraryModel, _ artifact: ModelArtifact) throws -> ValidatedModelResource {
@@ -422,6 +548,8 @@ private func digest(_ file: URL) throws -> String {
 }
 
 private enum ContractFamily {
+    case language
+    case decision
     case gliner
     case embedding(precision: String)
     case image
@@ -438,7 +566,8 @@ private func family(_ artifact: ModelArtifact) throws -> ContractFamily {
     if let profile = SpeechBundleProfile(rawValue: artifact.contract) {
         let expected =
             try artifact.download == nil
-            ? IrodoriModelArtifact.make(profile: profile) : IrodoriModelArtifact.makeReferenceDownload()
+            ? IrodoriModelArtifact.make(profile: profile, platforms: artifact.platforms)
+            : IrodoriModelArtifact.makeReferenceDownload(platforms: artifact.platforms)
         guard artifact == expected else {
             throw ManagedModelStoreError.contractMismatch("Irodori inventory")
         }
@@ -466,6 +595,8 @@ private func family(_ artifact: ModelArtifact) throws -> ContractFamily {
         return .gliner
     }
     switch artifact.contract {
+    case LanguageModelArtifacts.qwenID + "-v1": return .language
+    case LanguageModelArtifacts.clefID + "-v1": return .decision
     case "embeddinggemma2-fp16-safe-s128-v70": return .embedding(precision: "fp16-safe-s128-v70")
     case "embeddinggemma2-int4-int8-ptq-s128-v70": return .embedding(precision: "int4-int8-ptq-s128-v70")
     default: throw ManagedModelStoreError.contractMismatch("contract")
@@ -561,6 +692,12 @@ private func verifyFiles(_ directory: URL, _ artifact: ModelArtifact, allowingEx
 private func verify(_ directory: URL, _ artifact: ModelArtifact) throws {
     try verifyFiles(directory, artifact)
     switch try family(artifact) {
+    case .language:
+        try LanguageModelArtifacts.validateManifest(
+            Data(contentsOf: directory.appending(path: "metadata.json")), decision: false)
+    case .decision:
+        try LanguageModelArtifacts.validateManifest(
+            Data(contentsOf: directory.appending(path: "decision.json")), decision: true)
     case .gliner:
         _ = try GLiNERAsset(directory: directory)
         let source = try JSONDecoder().decode(

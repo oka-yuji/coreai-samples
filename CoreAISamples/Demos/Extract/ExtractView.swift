@@ -3,15 +3,30 @@ import FeatureStore
 import Foundation
 import GLiNERCore
 import SwiftUI
-import UniformTypeIdentifiers
 
 struct ExtractView: View {
     let store: Store<ExtractFeature>
-    @State private var choosingAsset = false
+    @Environment(MacModelLibrary.self) private var library: MacModelLibrary?
+    @State private var attempted: String?
     @State private var draft: FieldDraft?
     @State private var nextExample = 0
 
     private var state: ExtractState { store.state }
+
+    private var assetToOpen: String? {
+        guard let path = library?.resource(inUse: .gliner)?.directory.path(percentEncoded: false),
+            path != openPath, attempted != path
+        else { return nil }
+        return path
+    }
+
+    private var openPath: String? {
+        switch state.asset {
+        case .opening(let path): path
+        case .ready(let info): info.path
+        case .none, .failed: nil
+        }
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -23,12 +38,6 @@ struct ExtractView: View {
             }
         }
         .demoNavigationTitle("GLiNER2.5-multi")
-        .fileImporter(isPresented: $choosingAsset, allowedContentTypes: [.folder]) { result in
-            if case .success(let url) = result {
-                store.send(.assetFolderChosen(path: url.path(percentEncoded: false)))
-            }
-        }
-        .fileDialogDefaultDirectory(ModelStorage.root)
         .sheet(isPresented: Binding(get: { draft != nil }, set: { if !$0 { draft = nil } })) {
             if let draft {
                 FieldEditor(draft: draft, form: state.schema, isLabel: state.mode == .labels) { form, selected in
@@ -37,13 +46,28 @@ struct ExtractView: View {
                 }
             }
         }
-        .onAppear { store.send(.appeared) }
+        .onAppear {
+            store.send(.appeared)
+            library?.use(.gliner)
+        }
+        .onDisappear {
+            store.send(.closed)
+            library?.stopUsing(.gliner)
+            attempted = nil
+        }
+        .onChange(of: library?.resource(inUse: .gliner)?.directory) { _, new in
+            if new == nil { attempted = nil }
+        }
+        .onChange(of: assetToOpen, initial: true) { _, path in
+            guard let path else { return }
+            attempted = path
+            store.send(.assetFolderChosen(path: path))
+        }
     }
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 10) {
-                Button("Open Asset Folder…") { choosingAsset = true }
                 assetStatus
                 Spacer()
                 Button("Paste Example") {
@@ -92,7 +116,9 @@ struct ExtractView: View {
     @ViewBuilder private var assetStatus: some View {
         switch state.asset {
         case .none:
-            Text("No asset folder").foregroundStyle(.secondary)
+            if let library, library.installed(.gliner) == nil {
+                Text("Download \(DemoModel.gliner.title) from its heading in the sidebar.").foregroundStyle(.secondary)
+            }
         case .opening(let path):
             HStack(spacing: 6) {
                 ProgressView().controlSize(.small)
@@ -124,8 +150,6 @@ struct ExtractView: View {
                     LocalizedStringKey(state.text.isEmpty ? "Paste or type a note." : "Waiting for the text to settle…")
                 )
                 .foregroundStyle(.secondary)
-            } else {
-                Text("Open an asset folder to extract.").foregroundStyle(.secondary)
             }
         }
     }

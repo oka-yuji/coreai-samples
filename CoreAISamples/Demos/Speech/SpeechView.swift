@@ -4,6 +4,8 @@ import SwiftUI
 
 struct SpeechView: View {
     @Bindable var store: Store<SpeechFeature>
+    @Environment(MacModelLibrary.self) private var library
+    @State private var attempted: String?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
@@ -11,15 +13,15 @@ struct SpeechView: View {
                 VStack(alignment: .leading, spacing: 5) {
                     Text("Irodori").font(.title2.bold())
                     Text("Text to speech").font(.headline)
-                    Text(store.state.model?.name ?? "Open an Irodori model folder to begin.")
-                        .font(.callout).foregroundStyle(.secondary).textSelection(.enabled)
+                    if let model = store.state.model {
+                        Text(model.name)
+                            .font(.callout).foregroundStyle(.secondary).textSelection(.enabled)
+                    } else if library.installed(.irodori) == nil {
+                        Text("Download Irodori from its heading in the sidebar.")
+                            .font(.callout).foregroundStyle(.secondary)
+                    }
                 }
                 Spacer()
-                if store.state.model == nil, let path = store.state.lastPath {
-                    Button("Open last model") { store.send(.openBundle(path)) }
-                        .disabled(!store.state.editable)
-                }
-                SpeechModelButton(store: store)
             }
             HStack {
                 Text("Text").font(.headline)
@@ -61,7 +63,10 @@ struct SpeechView: View {
                 Button("Generate speech", systemImage: "waveform") { store.send(.generate) }
                     .buttonStyle(.borderedProminent)
                     .keyboardShortcut(.return, modifiers: .command)
-                    .disabled(!store.state.canGenerate)
+                    .disabled(
+                        !store.state.canGenerate
+                            || library.resource(inUse: .irodori)?.directory.path != store.state.lastPath
+                    )
                     .accessibilityIdentifier("speech.generate")
                 Button("Play", systemImage: "play.fill") { store.send(.play) }
                     .disabled(!store.state.canPlay)
@@ -110,13 +115,35 @@ struct SpeechView: View {
         }
         .padding(20)
         .navigationTitle("Irodori")
-        .onAppear { store.send(.appeared) }
-        .onDisappear { store.send(.ended) }
+        .onAppear {
+            store.send(.appeared)
+            library.use(.irodori)
+        }
+        .onDisappear {
+            store.send(.ended)
+            library.stopUsing(.irodori)
+            attempted = nil
+        }
+        .onChange(of: library.resource(inUse: .irodori)?.directory) { _, new in
+            if new == nil { attempted = nil }
+        }
+        .onChange(of: bundleToOpen, initial: true) { _, path in
+            guard let path else { return }
+            attempted = path
+            store.send(.openBundle(path))
+        }
         .background {
             if let ticket = store.state.exportTicket, let audio = store.state.audio {
                 SpeechExportPresenter(ticket: ticket, data: audio.wav, send: store.send).id(ticket.id)
             }
         }
+    }
+
+    private var bundleToOpen: String? {
+        guard let path = library.resource(inUse: .irodori)?.directory.path, store.state.editable,
+            store.state.model == nil || store.state.lastPath != path, attempted != path
+        else { return nil }
+        return path
     }
 
     private var phaseLabel: String {

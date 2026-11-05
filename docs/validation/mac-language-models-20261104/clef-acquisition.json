@@ -1,0 +1,137 @@
+{
+  "acquisition" : {
+    "artifacts" : [
+      {
+        "artifactID" : "clef-flash-9b-coreai-decide",
+        "definedBytes" : 7278592396,
+        "identity" : {
+          "artifactID" : "clef-flash-9b-coreai-decide",
+          "contract" : "clef-flash-9b-coreai-decide-v1",
+          "modelID" : "clef-flash-9b",
+          "revision" : "12e30be4e391310377c534524df8962359a08b0f",
+          "sourceKind" : "huggingFace",
+          "upstreamRevision" : "17f0b0ad64efb65d273590632833508766b2aae6"
+        },
+        "inspection" : "ready",
+        "measuredBytes" : 7278592396,
+        "modelID" : "clef-flash-9b",
+        "revision" : "12e30be4e391310377c534524df8962359a08b0f",
+        "route" : "download",
+        "seconds" : 407.9,
+        "state" : "ready"
+      }
+    ],
+    "refreshSeconds" : 5.5,
+    "target" : "clef-flash-9b-coreai-decide"
+  },
+  "artifacts" : [
+    {
+      "artifactID" : "qwen3.8-27b-coreai-4bit",
+      "contract" : "qwen3.8-27b-coreai-4bit-v1",
+      "distribution" : "okayuji/Qwen3.8-27B-coreai-4bit@8e24aebe036eae577d4a3bd019ba728a73358318",
+      "files" : 12,
+      "inspection" : "ready",
+      "modelID" : "qwen3.8-27b",
+      "sourceKind" : "huggingFace",
+      "upstreamRevision" : "1d4bf0f2ff6012fd82039f2fa52739d0dd7c60c0"
+    },
+    {
+      "artifactID" : "clef-flash-9b-coreai-decide",
+      "contract" : "clef-flash-9b-coreai-decide-v1",
+      "distribution" : "okayuji/clef-flash-9b-coreai-decide@12e30be4e391310377c534524df8962359a08b0f",
+      "files" : 25,
+      "inspection" : "missing",
+      "modelID" : "clef-flash-9b",
+      "sourceKind" : "huggingFace",
+      "upstreamRevision" : "17f0b0ad64efb65d273590632833508766b2aae6"
+    },
+    {
+      "artifactID" : "embeddinggemma2-fp16-safe-s128-v70",
+      "contract" : "embeddinggemma2-fp16-safe-s128-v70",
+      "distribution" : "okayuji/embeddinggemma-2-coreai@daab6dbfbae1610a87d9f181458419e3ea5ce682",
+      "files" : 13,
+      "inspection" : "missing",
+      "modelID" : "embeddinggemma2",
+      "sourceKind" : "huggingFace",
+      "upstreamRevision" : "914f7f89142e33e77833254d9c9b90c3cef7303b"
+    },
+    {
+      "artifactID" : "embeddinggemma2-int4-int8-ptq-s128-v70",
+      "contract" : "embeddinggemma2-int4-int8-ptq-s128-v70",
+      "distribution" : "okayuji/embeddinggemma-2-coreai@daab6dbfbae1610a87d9f181458419e3ea5ce682",
+      "files" : 16,
+      "inspection" : "missing",
+      "modelID" : "embeddinggemma2",
+      "sourceKind" : "huggingFace",
+      "upstreamRevision" : "914f7f89142e33e77833254d9c9b90c3cef7303b"
+    },
+    {
+      "artifactID" : "gliner2.5-multi-fp32-t256-t512",
+      "contract" : "gliner-gl4-fp32-t256-t512",
+      "distribution" : "okayuji/gliner2.5-multi-coreai-fp32@a88d5df297e46f3d073bb164c3ac44f35d107b25",
+      "files" : 8,
+      "inspection" : "missing",
+      "modelID" : "gliner2.5-multi",
+      "sourceKind" : "huggingFace",
+      "upstreamRevision" : "2ca71aafb3446d9014e1c55c7ff51c9bc7209c47"
+    },
+    {
+      "artifactID" : "irodori-v4.1-small-mf-reference-fp32",
+      "contract" : "irodori-coreai-v2",
+      "distribution" : "okayuji/irodori-v4.1-small-mf-coreai-fp32@f5db5096365c7d1388a5002cfb3280f66cb19375",
+      "files" : 22,
+      "inspection" : "missing",
+      "modelID" : "irodori",
+      "sourceKind" : "huggingFace",
+      "upstreamRevision" : "ccc78f5d480b6e51b69b2d5042a14c4da04fea6e"
+    },
+    {
+      "artifactID" : "teleocr-fp16",
+      "contract" : "teleocr-dynamic-fp16-v1",
+      "files" : 19,
+      "inspection" : "missing",
+      "localManifestSHA256" : "a0783aadd9e824c525c6343352addc0765df7bd1857b9da6064b139cc025e56a",
+      "modelID" : "teleocr",
+      "sourceKind" : "localManifest",
+      "upstreamRevision" : "70a19ec6a3b036311af19ae5e762e650f41a5980"
+    }
+  ],
+  "catalogDemos" : [
+    "chat",
+    "comparison",
+    "decide",
+    "image-search",
+    "ocr",
+    "recipes",
+    "speech",
+    "video-search"
+  ],
+  "catalogValidated" : true,
+  "failures" : [
+
+  ],
+  "platform" : "macOS",
+  "registry" : {
+    "connectedDemos" : [
+      "ocr"
+    ],
+    "matchesCatalog" : true,
+    "unconnectedDemos" : [
+      "chat",
+      "comparison",
+      "decide",
+      "image-search",
+      "recipes",
+      "speech",
+      "video-search"
+    ]
+  },
+  "scope" : "Catalog, registry and store checks of the Mac app. Acquisition of clef-flash-9b-coreai-decide through the library store.",
+  "store" : {
+    "excludedFromBackup" : true,
+    "exists" : true,
+    "path" : "~/Library/Application Support/com.coreai.samples.validation465/ModelLibrary"
+  },
+  "visibleDemos" : 8,
+  "visibleModels" : 6
+}

@@ -14,15 +14,15 @@ AppleのCore AIとFoundation Modelsでオープンモデルを動かすSwiftサ�
 
 **公開済み（Released）**は変換バンドルを一般に取得できる状態、**着手中（In progress）**は変換・検証・公開準備を進めている状態、**対応予定（Planned）**は合意済みで未着手の作業です。「調査」と記したものは実現性の確認予定で、リリースや端末対応の確約ではありません。
 
-JEV-27BはHugging Faceから匿名で取得でき、macOSのCLIで動かせます。変換の完了、バンドルの公開、アプリでの受入はそれぞれ別に扱います。各ガイドとモデル記録に、確かめた範囲を記載しています。
+GLiNER2.5-multi、EmbeddingGemma 2、Qwen3.8 27B、Clef-Flash 9B、JEV-27Bのリポジトリは公開済みで、匿名で取得できます。JEV-27BはmacOSのCLIで動かせます。変換の完了やアプリ実装のマージだけでは公開済みとせず、確認した範囲を各ガイドとIssueに記載します。
 
 <!-- model-catalog:start -->
 確認日: **2026-10-19**. ✅＝該当OSの実機アプリで実行した記録あり（対象の変換版・経路は詳細参照）、△＝実装・旧診断の記録のみ／確認待ち、—＝ネイティブデモ未提供。配布公開、変換成功、本番品質の検収とは別の状態です。
 
 | モデル・バンドル | 用途 | macOS | iOS | 状態 | ダウンロード | ガイド |
 |---|---|---|---|---|---|---|
-| Qwen3.8 27B · 4ビット、テキスト | Chat・Work・`coreai-chat` | [✅](docs/qwen3.8-27b.ja.md#model-report) | [—](docs/qwen3.8-27b.ja.md#model-report) | 着手中 · バンドル非公開 | [アクセス権が必要](https://huggingface.co/okayuji/Qwen3.8-27B-coreai-4bit) | [ガイド・結果](docs/qwen3.8-27b.ja.md) |
-| Clef-Flash 9B · uint4＋fp16ヘッド、テキスト | Recipes・Decide | [✅](docs/clef-flash.ja.md#model-report) | [—](docs/clef-flash.ja.md#model-report) | 着手中 · バンドル非公開 | [アクセス権が必要](https://huggingface.co/okayuji/clef-flash-9b-coreai-decide) | [ガイド・結果](docs/clef-flash.ja.md) |
+| Qwen3.8 27B · 4ビット、テキスト | Chat・Work・`coreai-chat` | [✅](docs/qwen3.8-27b.ja.md#model-report) | [—](docs/qwen3.8-27b.ja.md#model-report) | 公開済み · Mac通常UIの本人確認待ち | [Hugging Face](https://huggingface.co/okayuji/Qwen3.8-27B-coreai-4bit) | [ガイド・結果](docs/qwen3.8-27b.ja.md) |
+| Clef-Flash 9B · uint4＋fp16ヘッド、テキスト | Recipes・Decide | [✅](docs/clef-flash.ja.md#model-report) | [—](docs/clef-flash.ja.md#model-report) | 公開済み · Mac通常UIの本人確認待ち | [Hugging Face](https://huggingface.co/okayuji/clef-flash-9b-coreai-decide) | [ガイド・結果](docs/clef-flash.ja.md) |
 | JEV-27B · uint4＋fp32ヘッド、テキスト | 型付き判断(CLI) | [—](docs/jev27b.ja.md#model-report) | [—](docs/jev27b.ja.md#model-report) | 公開済み · macOS CLI。固定系列で実行部のメモリ安定化を確認 | [Hugging Face](https://huggingface.co/okayuji/jev-27b-coreai) | [ガイド・結果](docs/jev27b.ja.md) |
 | GLiNER2.5-multi · FP32 | 商品情報の抽出・点検メモ | [△](docs/model-reports/gliner25.ja.md#model-report) | [△](docs/model-reports/gliner25.ja.md#model-report) | 公開済み · iOSの実機確認待ち | [Hugging Face](https://huggingface.co/okayuji/gliner2.5-multi-coreai-fp32) | [ガイド・結果](docs/model-reports/gliner25.ja.md) |
 | EmbeddingGemma 2 · FP16／INT4-INT8 PTQ | 画像検索・動画の場面検索・カメラで物探し | [✅](docs/model-reports/embeddinggemma2.ja.md#model-report) | [△](docs/model-reports/embeddinggemma2.ja.md#model-report) | 公開済み · iOSの実機確認待ち | [Hugging Face](https://huggingface.co/okayuji/embeddinggemma-2-coreai) | [ガイド・結果](docs/model-reports/embeddinggemma2.ja.md) |
@@ -52,7 +52,7 @@ git clone https://github.com/oka-yuji/coreai-samples.git
 cd coreai-samples
 ```
 
-音声入力アダプター用のRust/Cargoと、リポジトリ検査用のPython 3.9以降をインストールします。`CoreAISamples.xcodeproj` を開き、**CoreAISamples**と**My Mac**を選んで実行してください。このスキームはReleaseでビルドします。デバッグ用には**CoreAISamples-Debug**があります。モデルの取得とフォルダ選択は各ガイドに従ってください。重みはGitに含まず、非公開バンドルの取得にはアクセス権のあるHugging Faceアカウントが必要です。
+音声入力アダプター用のRust/Cargoと、リポジトリ検査用のPython 3.9以降をインストールします。`CoreAISamples.xcodeproj` を開き、**CoreAISamples**と**My Mac**を選んで実行してください。このスキームはReleaseでビルドします。デバッグ用には**CoreAISamples-Debug**があります。Macではサイドバーのモデルの見出しから取得し、その節のデモを開きます。会話では上部のメニューから取得済みのQwenを選びます。TeleOCRは公開までローカルの取り込みを使います。重みはGitに含みません。
 
 iPhone向けのビルド・署名、別アプリの音声デモは[アプリの導入手順（英語）](docs/demo-app.md#iphone-app)を参照してください。ビルド成功だけで、すべてのモデルがその端末に対応しているとは判断しません。
 

@@ -12,6 +12,47 @@ import Testing
 @MainActor
 struct LocalImageCatalogTests {
     @Test(
+        "LIGHT-03 The explicit self-test fully verifies initial and newly acquired artifacts", arguments: [false, true])
+    func verifiesContents(afterImport: Bool) async throws {
+        let fixture = try ImageBundleFixture()
+        defer { fixture.remove() }
+        let catalog = try IOSDemoCatalog.make(localImageArtifacts: [fixture.artifact])
+        let model = try #require(catalog.model(containing: fixture.artifact.id))
+        let revision = try #require(fixture.artifact.sourceRevision)
+        let file = fixture.root.appending(path: "artifacts/\(fixture.artifact.id)/\(revision)/LICENSE")
+        let change: @Sendable () throws -> Void = {
+            var bytes = try Data(contentsOf: file)
+            bytes[0] ^= 1
+            try bytes.write(to: file)
+        }
+        let store = ManagedModelStore(
+            root: fixture.root,
+            writeLedger: {
+                try $0.write(to: $1, options: .atomic)
+                if afterImport { try change() }
+            })
+        if !afterImport {
+            let staging = try await store.copyForImport(
+                from: fixture.source, model: model, artifact: fixture.artifact, progress: { _ in })
+            _ = try await store.promote(staging: staging, model: model, artifact: fixture.artifact)
+            try change()
+        }
+        let assembly = ModelLibraryAssembly(adapters: [], store: store, transfer: ArtifactTransfer())
+        let result = try await ModelLibrarySelfTest.check(
+            catalog: catalog, root: fixture.root, registry: nil, capabilities: nil,
+            acquire: afterImport ? fixture.artifact.id : nil, assembly: assembly,
+            importBundle: afterImport ? fixture.source : nil)
+        if afterImport {
+            let acquisition = try #require(result.acquisition?.artifacts.first)
+            #expect(acquisition.inspection.contains("checksumMismatch"), Comment(rawValue: "\(acquisition)"))
+            #expect(!result.failures.isEmpty)
+        } else {
+            let artifact = try #require(result.artifacts.first { $0.artifactID == fixture.artifact.id })
+            #expect(artifact.inspection.contains("checksumMismatch"))
+        }
+    }
+
+    @Test(
         "An explicit acquisition check receives the ready library and contributes failures", arguments: [false, true])
     func additionalAcquisitionCheck(fails: Bool) async throws {
         let fixture = try ImageBundleFixture()

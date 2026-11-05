@@ -6,7 +6,7 @@ Qwen3.8 27Bの4ビット・テキスト専用バンドルを使い、Macで会�
 
 要件: AppleシリコンのMac、macOS 27、Metal Toolchainを入れたXcode 27。ダウンロードに16.85 GB、読み込むプログラムごとにほぼ同じ容量の準備済みコピーが必要です。読み込み時のピークRSSは34.2 GB（31.9 GiB）でした。128 GiBのM4 Maxで計測し、最小メモリ構成は未確認です。iPhone・iPadはこのバンドルの対象外です。
 
-**配布状況（2026-10-19）:** バンドルはHugging Faceにありますが、現在は非公開です。以下の取得にはアクセス権のあるアカウントでの `hf auth login` が必要です。アプリ内の匿名ダウンロードは利用できないため、取得済みフォルダを開いてください。
+**配布状況（2026-11-04）:** [Hugging Faceのリポジトリ](https://huggingface.co/okayuji/Qwen3.8-27B-coreai-4bit)は公開済みで、匿名で取得できます。以下の取得に `hf auth login` は要りません。固定しているのはアプリのカタログと同じタグ `v1.0.0`（`8e24aebe036eae577d4a3bd019ba728a73358318`）で、`main`（`843c3846b683eb2c946377af2c4d1aed9099278d`）との違いは `README.md` だけです。固定revisionの全12ファイル（16,852,543,780 bytes）が匿名の要求に応答したことを[配布の記録（英語）](validation/mac-models-distribution-20261104.md#qwen38-27b)に残しています。
 
 アプリをビルドする前に、Rust/Cargoを含む[共通の準備](../README.ja.md#はじめる)を済ませてください。
 
@@ -74,16 +74,21 @@ Qwen3.8 27Bの4ビット・テキスト専用バンドルを使い、Macで会�
 
 ## クイックスタート
 
-[Hugging Face CLI](https://huggingface.co/docs/huggingface_hub/guides/cli) を入れて、アプリとバンドル(12 ファイル、16.85 GB)を取得します。
+まずサンプルアプリを取得します。モデルはアプリのサイドバーから取得できます。
 
 ```sh
 git clone https://github.com/oka-yuji/coreai-samples.git
 cd coreai-samples
+```
+
+`CoreAISamples.xcodeproj` を開き、**CoreAISamples** スキームと **My Mac** を選んで実行します(このスキームは Release でビルドします)。サイドバーの **Qwen3.8 27B** の見出しからモデルを取得し、その節の会話の行を開いて、会話上部のモデルメニューから **Qwen3.8 27B** を選びます。初回の読み込みは M4 Max で 86.87 秒かかり、そのうち 82.84 秒が GPU 向けの準備でした。2 回目以降は 3.6〜10.3 秒でした。会話のタイトルにはモデル名を表示します。**チャット**(Chat)モードで話しかけるか、**ワーク**(Work)モードでタスクやメモ保存を行います。Webで調べるときは会話設定の「検索・資料を使う」と「Web」をONにします。サイドバーの見出しから、同じ固定revisionを匿名で取得できます。配布先は2026-11-04から公開しています。画面の表示は右上の **EN / JP** で切り替えられます。
+
+CLIを使う場合だけ、[Hugging Face CLI](https://huggingface.co/docs/huggingface_hub/guides/cli)で固定版を別に取得します。アプリ内の取得とは別の保存先です。
+
+```sh
 hf download okayuji/Qwen3.8-27B-coreai-4bit --revision 8e24aebe036eae577d4a3bd019ba728a73358318 \
   --local-dir ./models/qwen3.8-27b-coreai-4bit
 ```
-
-`CoreAISamples.xcodeproj` を開き、**CoreAISamples** スキームと **My Mac** を選んで実行します(このスキームは Release でビルドします)。**モデル管理**(Models)で **フォルダを開く…**(Open Folder…)を選び、`models/qwen3.8-27b-coreai-4bit` を選んで **読み込む**(Load)を押します。初回の読み込みは M4 Max で 86.87 秒かかり、そのうち 82.84 秒が GPU 向けの準備でした。2 回目以降は 3.6〜10.3 秒でした。会話のタイトルにはモデル名を表示します。**チャット**(Chat)モードで話しかけるか、**ワーク**(Work)モードでタスクやメモ保存を行います。Webで調べるときは会話設定の「検索・資料を使う」と「Web」をONにします。**モデル管理**のダウンロードは同じ固定revisionを使いますが、匿名取得が必要なため、配布先が非公開の間は利用できません。画面の表示は右上の **EN / JP** で切り替えられます。
 
 コマンドラインでは、`CoreAISamplesKit` フォルダで次を実行します。
 

@@ -2,7 +2,7 @@
 
 [日本語](model-reports/embeddinggemma2.ja.md) · [Home](../README.md)
 
-Search selected images in Japanese or English, then open the original image. The demo includes five sample images, a local model folder picker, image selection, indexing progress, search results, and Stop. Text and image preprocessing run in Swift.
+Search selected images in Japanese or English, then open the original image. The demo includes five sample images, image selection, indexing progress, search results, and Stop. On the Mac it uses the bundle downloaded from the model's heading in the sidebar; the iPhone diagnostic screen keeps a local model folder picker. Text and image preprocessing run in Swift.
 
 Use `main` for the demo. Tracking: [runtime #112](https://github.com/oka-yuji/coreai-samples/issues/112), [demo #113](https://github.com/oka-yuji/coreai-samples/issues/113).
 
@@ -78,13 +78,14 @@ Results below retain their original dates and workloads. Different rows may use 
 
 ## Run the demo
 
-1. Prepare the bundle below, or use the locally prepared bundle from the validation work.
-2. Build and run `CoreAISamples` in Xcode on macOS 27. Select **EmbeddingGemma 2** in the sidebar.
-3. Choose **Open model → Open model folder…** and select the bundle directory.
-4. Choose **Use sample images** or **Choose images…**. Wait for indexing to finish.
-5. Describe an image and select **Search**. Select a result to open its original.
+1. Build and run `CoreAISamples` in Xcode on macOS 27. In the sidebar, download EmbeddingGemma 2 from its heading. **Model information** (ⓘ) selects **FP16** (the default) or **INT4/INT8 PTQ**; the variant cannot be changed while a demo of the window uses the model.
+2. In the **EmbeddingGemma 2** section, select the **Find selected images with your own words** row. The screen loads the downloaded variant through a usage lease (#463); it has no model folder choice. Without a download it shows one line that points to the heading.
+3. Choose **Use sample images** or **Choose images…**. Wait for indexing to finish.
+4. Describe an image and select **Search**. Select a result to open its original.
 
-You can preselect the demo and bundle at launch:
+While the screen is shown, the heading cannot delete the model. Leaving the screen releases the model and its lease. After a deletion, downloading the model again makes the screen work again.
+
+To try a local bundle instead, such as the one prepared below, pass it at launch. The screen then uses that folder without the library or a lease, and indexing loads it:
 
 ```sh
 CoreAISamples.app/Contents/MacOS/CoreAISamples --image-search --embedding-bundle /path/to/bundle
@@ -122,14 +123,14 @@ Use **Example searches** to fill the query, then press **Search**. For the sampl
 
 The default view hides scores below 0.67. **Show all candidates** reveals the complete ranking, including weak matches. This threshold was chosen on six calibration examples and frozen before six separate evaluation queries. The held-out result is **5/6**, including three correctly empty results. `トマトと白いチーズでカプレーゼを作れそうな写真` ranks the correct image first but scores about 0.660, so the default view hides it. The threshold and failed example are retained. The five refrigerator images do not establish a universal relevance threshold; similarity is not a probability.
 
-You can choose up to 50 images. The index is held in memory and discarded when the model or selection changes or the screen closes. The selected images, the query and the results stay; search again after **Index again**, which loads the model folder first when it is not loaded. On the Mac, **Reload selected model** also keeps them; opening a different folder clears them. This is image retrieval, not OCR, image description generation, or an audio/video demo.
+You can choose up to 50 images. The index is held in memory and discarded when the model or selection changes or the screen closes. The selected images, the query and the results stay; search again after **Index again**, which loads the model folder first when it is not loaded. On the Mac, leaving and returning, or deleting and downloading the same variant again, also keeps them; the other variant clears them. This is image retrieval, not OCR, image description generation, or an audio/video demo.
 
 ## Video moment search
 
 Find moments in a video with your own words, then play the video from the moment you select (#129). The demo samples still frames, embeds each frame with the same image encoder and preprocessing as image search, and ranks the frames against the query. Audio, motion between frames and captions are not used.
 
 - **iPhone:** in **Models**, open **Video search demo** under **EmbeddingGemma 2**. **Choose video…** opens the Photos picker, which runs outside the app, so the demo asks for no photo library permission. The chosen video is copied to the app's temporary folder; the next choice replaces the copy. Indexing loads the selected variant when needed. Going back, moving to the background and switching the variant stop the demo and release the model and its index as in image search; the video, the query, the results and the threshold stay, and **Index again** rebuilds the index.
-- **Mac:** select **Find moments in a video with your own words** under **EmbeddingGemma 2** in the sidebar, open the model folder, then choose a movie file. You can preselect the demo and bundle at launch: `CoreAISamples.app/Contents/MacOS/CoreAISamples --embedding-bundle /path/to/bundle --video-search`. Keep `--video-search` last: AppKit reads the arguments as option-value pairs, so a flag placed before `--embedding-bundle` leaves the path on its own, AppKit opens it as a document, and SwiftUI then opens no window.
+- **Mac:** download EmbeddingGemma 2 from its heading in the sidebar, select the **Find moments in a video with your own words** row, then choose a movie file. The screen uses the downloaded variant through a usage lease, as image search does, and has no model folder choice. To use a local bundle instead, without the library or a lease: `CoreAISamples.app/Contents/MacOS/CoreAISamples --embedding-bundle /path/to/bundle --video-search`. Keep `--video-search` last: AppKit reads the arguments as option-value pairs, so a flag placed before `--embedding-bundle` leaves the path on its own, AppKit opens it as a document, and SwiftUI then opens no window.
 
 One frame is taken at the center of each one-second interval, up to 300 frames; a longer video is sampled at 300 evenly spaced times. Frames are decoded with the video's orientation applied, at most 640 pixels on the long side, within 0.5 seconds of the requested time, and a result shows the time of the decoded frame. Frames are requested a few at a time so that decoded frames do not pile up while the model is busy. A time whose frame cannot be decoded is skipped, and a video with no decodable frame is rejected. The index is held in memory only.
 
