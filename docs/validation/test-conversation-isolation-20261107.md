@@ -14,9 +14,9 @@ Both builds use a separate validation bundle identifier. The original applicatio
 | `--agent-e2e`, same model, fixed tool-free prompt | PASS; ordinary validation archive changed | PASS; archive unchanged |
 | `--gui-e2e`, same model, default seven steps | 7/7; ordinary validation archive changed | 7/7; archive unchanged |
 | Original application's conversations | Unchanged | Unchanged |
-| GUI `--agent` scenario | External 420-second deadline at the tool-list step | Pending |
+| GUI `--agent` scenario | Archive changed; nonempty transcript exported | Archive unchanged; nonempty transcript exported |
 
-The GUI Agent scenario's transcript export and complete TCH-03/TCH-04 evidence remain pending. The baseline timeout is retained and is not counted as a pass. The ordinary GUI scenario does not produce the Agent transcript export.
+The initial GUI Agent runs reached an external 420-second deadline at the tool-list step on both builds. A complete rerun allowed the existing 600-second tool wait to finish: before 619.723 seconds, after 621.948 seconds. Both returned exit 1 with the same two pre-existing GUI assertions failing (6/8); both exported one nonempty transcript. This verifies the archive/export boundary and unchanged outcome semantics, not a passing Agent GUI scenario. The original application archive remained unchanged throughout. The ordinary GUI scenario does not produce the Agent transcript export.
 
 - The offline Agent self-test passes, including four diagnostic argument forms, distinct launch directories, normal-directory compatibility, and JSON/selection/Markdown round trips.
 - The default package suite reports 1,277 tests across 43 runs, with no failures. Model-dependent and other opt-in checks remain skipped.
