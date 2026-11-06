@@ -1,4 +1,5 @@
 import CryptoKit
+import Darwin
 import Foundation
 import Testing
 
@@ -100,6 +101,63 @@ struct DecisionContractTests {
         let invalid = RenderedDecision(
             tokenIDs: [2], questionSpans: [0..<1], optionSpans: [[0..<1]], optionIDs: [["a"]], questionTypes: [1])
         #expect(throws: DecisionError.self) { try lexical.vectors(rendered: invalid, questions: 1, options: 2) }
+    }
+
+    @Test(
+        "HMS-01 A large decision bundle preserves its hash with bounded lifetime footprint",
+        .enabled(if: ProcessInfo.processInfo.environment["COREAI_DECISION_HASH_MEMORY"] == "1")
+    )
+    func hashMemory() throws {
+        let folder = URL.temporaryDirectory.appending(path: UUID().uuidString)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        _ = try makeBundle(at: folder)
+        let file = folder.appending(path: "weights.bin")
+        try #require(FileManager.default.createFile(atPath: file.path, contents: nil))
+        let handle = try FileHandle(forWritingTo: file)
+        try handle.truncate(atOffset: 256 * 1_048_576)
+        try handle.close()
+        let sumsURL = folder.appending(path: "SHA256SUMS")
+        let sums = try String(contentsOf: sumsURL, encoding: .utf8)
+        let hash = "a6d72ac7690f53be6ae46ba88506bd97302a093f7108472bd9efc3cefda06484"
+        try Data((sums + hash + "  weights.bin\n").utf8).write(to: sumsURL)
+        let bundle = try DecisionBundle(url: folder)
+        #expect(bundle.name == "fixture")
+        let peak = try kernelPeak()
+        print("HMS-01 synthetic_bytes=268435456 kernel_lifetime_peak_bytes=\(peak)")
+        #expect(peak < 128 * 1_048_576)
+    }
+
+    @Test("HMS-02 Decision bundle read failures and cancellation remain failures")
+    func hashFailures() async throws {
+        let folder = URL.temporaryDirectory.appending(path: UUID().uuidString)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        _ = try makeBundle(at: folder)
+        let cancelled = Task {
+            withUnsafeCurrentTask { $0?.cancel() }
+            return try DecisionBundle(url: folder)
+        }
+        await #expect(throws: CancellationError.self) { try await cancelled.value }
+        let file = folder.appending(path: "backbone/model.aimodel/main.mlirb")
+        try FileManager.default.removeItem(at: file)
+        try FileManager.default.createDirectory(at: file, withIntermediateDirectories: false)
+        #expect(throws: DecisionError.self) { try DecisionBundle(url: folder) }
+    }
+
+    private func kernelPeak() throws -> UInt64 {
+        var info = task_vm_info_data_t()
+        var count = mach_msg_type_number_t(MemoryLayout<task_vm_info_data_t>.size / MemoryLayout<integer_t>.size)
+        let offset = try #require(MemoryLayout<task_vm_info_data_t>.offset(of: \.ledger_phys_footprint_peak))
+        let status = withUnsafeMutablePointer(to: &info) { pointer in
+            pointer.withMemoryRebound(to: integer_t.self, capacity: Int(count)) {
+                task_info(mach_task_self_, task_flavor_t(TASK_VM_INFO), $0, &count)
+            }
+        }
+        try #require(status == KERN_SUCCESS)
+        try #require(Int(count) * MemoryLayout<integer_t>.size >= offset + MemoryLayout<UInt64>.size)
+        try #require(info.ledger_phys_footprint_peak > 0)
+        return UInt64(info.ledger_phys_footprint_peak)
     }
 
     @Test("Valid options alone determine choice, noul and score answers")

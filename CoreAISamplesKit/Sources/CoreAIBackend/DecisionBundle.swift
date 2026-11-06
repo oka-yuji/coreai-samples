@@ -159,10 +159,12 @@ public struct DecisionBundle: Sendable {
         let file = try FileHandle(forReadingFrom: url)
         defer { try? file.close() }
         var hash = SHA256()
-        while let data = try file.read(upToCount: 4 * 1_024 * 1_024), !data.isEmpty {
+        while try autoreleasepool(invoking: {
+            guard let data = try file.read(upToCount: 4 * 1_024 * 1_024), !data.isEmpty else { return false }
             try Task.checkCancellation()
             hash.update(data: data)
-        }
+            return true
+        }) {}
         return hash.finalize().map { String(format: "%02x", $0) }.joined()
     }
 }
