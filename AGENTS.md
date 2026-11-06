@@ -70,6 +70,8 @@
 
 ## 重いジョブ
 
+- DecisionBundleのhashメモリ回帰試験はモデル・GPUを使わず、256 MiBの合成ファイルを実bundle検査へ渡す。process生涯のpeakを測るため、ほかの試験を含めず新しいprocessで `COREAI_DECISION_HASH_MEMORY=1 swift test --package-path CoreAISamplesKit --filter DecisionContractTests.hashMemory` を実行する。既知SHA-256が一致し、kernel lifetime footprint peakが128 MiB未満であることを確認する。既定実行ではskipする。
+
 - Modelsのhashメモリ回帰試験は学習済みモデルやGPUを使わない。process生涯のpeakを測るため、ほかの試験と混ぜず、次をそれぞれ新しいprocessで実行する（既定の全体試験ではskip）:
   `COREAI_HASH_MEMORY_TEST=1 COREAI_HASH_MEMORY_MIB=64 swift test --package-path CoreAISamplesKit --filter ArtifactTransferMemoryTests`
   `COREAI_HASH_MEMORY_TEST=1 COREAI_HASH_MEMORY_MIB=256 swift test --package-path CoreAISamplesKit --filter ArtifactTransferMemoryTests`
