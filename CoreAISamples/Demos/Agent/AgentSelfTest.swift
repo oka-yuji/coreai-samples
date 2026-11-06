@@ -305,7 +305,11 @@ enum AgentSelfTest {
         let fetch = AgentTool<FetchPageArguments>(name: "fetch_page", description: "", run: run)
         var refused = "no arguments"
         if let bad = try? FetchPageArguments(GeneratedContent(json: #"{"url": "not a url"}"#)) {
-            refused = await fetch.call(arguments: bad)
+            do {
+                refused = try await fetch.call(arguments: bad)
+            } catch {
+                refused = "Unexpected thrown tool failure: \(error)"
+            }
         }
         check("tools/failuresAreText", refused == "error: fetch_page needs an absolute http or https URL", refused)
 

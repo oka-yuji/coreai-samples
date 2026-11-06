@@ -51,6 +51,13 @@ enum ConversationBudgetSelfTest {
             let store = ConversationStore(
                 initialState: ConversationState(id: "budget", now: Date(), settings: settings)
             ) { effect, send in
+                if scenario == .toolInFinalBeforeStop, case .stopForBudget = effect,
+                    reference.store?.state.turns.last?.finalAnswerStart != nil
+                {
+                    probe.values.withLock { $0.events.append("stop-wait") }
+                    for await _ in probe.finalStopGate.stream { break }
+                    probe.values.withLock { $0.events.append("stop-deliver") }
+                }
                 await runner.run(effect) { action in
                     send(action)
                     guard let store = reference.store else { return }
@@ -61,20 +68,30 @@ enum ConversationBudgetSelfTest {
                     }
                     updates.continuation.yield(store.state)
                 }
+                if case .generate(_, _, let policy, _) = effect, policy.answerOnly {
+                    probe.values.withLock { $0.events.append("final-return") }
+                    probe.finalStopGate.continuation.finish()
+                }
             }
             reference.store = store
             store.send(.send("Research the fixture", mode: work ? .work : .chat, now: Date()))
             var completed = 0
+            var firstFinalHadFailure = false
             for await state in updates.stream {
                 guard !state.isRunning, state.persistence == .saved else { continue }
                 completed += 1
                 if scenario == .research && completed == 1 {
                     store.send(.send("Follow up on the fixture", mode: .chat, now: Date()))
+                } else if scenario == .toolInFinalBeforeStop && completed == 1 {
+                    firstFinalHadFailure = state.entries.contains { $0.kind == .failure || $0.detail == .noAnswer }
+                    probe.values.withLock { $0.followup = true }
+                    store.send(.send("Continue after the refused final tool", mode: .chat, now: Date()))
                 } else {
                     break
                 }
             }
             updates.continuation.finish()
+            probe.finalStopGate.continuation.finish()
             let state = store.state
             let values = probe.values.withLock { $0 }
             let valid: Bool
@@ -93,6 +110,12 @@ enum ConversationBudgetSelfTest {
                 valid =
                     !state.isRunning && values.finalRequests == 1 && values.executed == ["web_search"]
                     && state.entries.contains { $0.kind == .failure || $0.detail == .noAnswer }
+            case .toolInFinalBeforeStop:
+                valid =
+                    completed == 2 && firstFinalHadFailure && state.turns.count == 2 && state.lastFinish == .eos
+                    && values.finalRequests == 1 && values.executed == ["web_search"]
+                    && values.pendingAtFollowup == 0
+                    && state.entries.contains { $0.kind == .answer && $0.text == "Recovered answer" }
             case .stopFinal:
                 valid =
                     state.lastFinish == .stopped && values.finalRequests == 1
@@ -118,7 +141,7 @@ enum ConversationBudgetSelfTest {
             }
             check(
                 "conversation/budget-" + scenario.rawValue, valid,
-                "finish=\(String(describing: state.lastFinish)) final=\(values.finalRequests) tools=\(values.executed) error=\(state.turns.last?.failure ?? "none") requests=\(values.requests)"
+                "finish=\(String(describing: state.lastFinish)) final=\(values.finalRequests) tools=\(values.executed) error=\(state.turns.last?.failure ?? "none") requests=\(values.requests) pending=\(values.pendingAtFollowup) trace=\(values.events)"
             )
         }
     }
@@ -167,7 +190,8 @@ private final class BudgetStoreReference {
 
 private nonisolated final class BudgetProbe: Sendable {
     enum Scenario: String, CaseIterable, Sendable {
-        case research, answer, failFinal, emptyFinal, toolInFinal, stopFinal, stopBudget, workFinal, workRepairStop
+        case research, answer, failFinal, emptyFinal, toolInFinal, toolInFinalBeforeStop
+        case stopFinal, stopBudget, workFinal, workRepairStop
     }
 
     struct Values: Sendable {
@@ -175,12 +199,16 @@ private nonisolated final class BudgetProbe: Sendable {
         var requests = 0
         var finalRequests = 0
         var retainedOutputs = 0
+        var events: [String] = []
+        var followup = false
+        var pendingAtFollowup = 0
     }
 
     let scenario: Scenario
     let values = Mutex(Values())
     let onFinal: @MainActor @Sendable () -> Void
     let gate = AsyncStream<Void>.makeStream()
+    let finalStopGate = AsyncStream<Void>.makeStream()
 
     init(scenario: Scenario, onFinal: @escaping @MainActor @Sendable () -> Void) {
         self.scenario = scenario
@@ -203,20 +231,33 @@ private nonisolated struct BudgetModel: LanguageModel {
                 values.requests += 1
                 if final {
                     values.finalRequests += 1
+                    values.events.append("final-\(values.finalRequests)")
                     values.retainedOutputs = request.transcript.count {
                         if case .toolOutput = $0 { true } else { false }
                     }
                 }
                 return values.requests
             }
+            if model.probe.values.withLock({ $0.followup }) {
+                let pending =
+                    ConversationTranscript.closingPendingCalls(in: request.transcript).count
+                    - request.transcript.count
+                model.probe.values.withLock { $0.pendingAtFollowup = pending }
+                await channel.send(.response(action: .appendText("Recovered answer", tokenCount: 1)))
+                await channel.send(.response(action: .updateMetadata(["stopReason": "stopToken"])))
+                return
+            }
             if final {
+                if model.probe.values.withLock({ $0.finalRequests }) > 1 {
+                    model.probe.finalStopGate.continuation.finish()
+                }
                 await model.probe.onFinal()
                 switch model.probe.scenario {
                 case .failFinal: throw BudgetFailure.expected
                 case .stopFinal:
                     for await _ in model.probe.gate.stream {}
                     try Task.checkCancellation()
-                case .toolInFinal: break
+                case .toolInFinal, .toolInFinalBeforeStop: break
                 default:
                     let text = model.probe.scenario == .emptyFinal ? "" : "Bounded final answer"
                     await channel.send(.response(action: .appendText(text, tokenCount: text.isEmpty ? 0 : 1)))

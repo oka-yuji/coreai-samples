@@ -192,6 +192,9 @@ final class ConversationSession {
         sink.finish()
         while session.isResponding, !Task.isCancelled { try? await Task.sleep(for: .milliseconds(10)) }
         tools.drain()
+        if limitReached && !session.isResponding {
+            session.transcript = ConversationTranscript.closingPendingCalls(in: session.transcript)
+        }
         let transcript = Array(session.transcript)
         didSendPrompt = self.prompt(in: transcript) != nil
         progress(transcript).forEach(send)

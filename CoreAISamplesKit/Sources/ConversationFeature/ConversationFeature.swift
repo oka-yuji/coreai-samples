@@ -44,6 +44,7 @@ public enum ConversationEffect: Equatable, Sendable {
     case generate(run: Int, prompt: String, policy: TurnPolicy, finalize: Bool)
     case runTool(ToolCallRecord, finalize: Bool)
     case refuseTool(ToolCallRecord, reason: String)
+    case terminateTool(ToolCallRecord, reason: String)
     case stop(run: Int)
     case stopForBudget(run: Int)
     case settleBudgetStop(run: Int, policy: TurnPolicy)
@@ -428,7 +429,11 @@ public enum ConversationFeature: Feature {
         let refusal = policy.refusal(for: call.name)
         if refusal == TurnPolicy.savingRefusal { state.refusedSave = true }
         if state.stopRequested || state.step >= policy.maxSteps {
-            return [.run(.refuseTool(call, reason: refusal ?? endedRefusal), id: nil)] + cutOff(&state)
+            let effect: ConversationEffect =
+                state.stopRequested
+                ? .refuseTool(call, reason: refusal ?? endedRefusal)
+                : .terminateTool(call, reason: refusal ?? endedRefusal)
+            return [.run(effect, id: nil)] + cutOff(&state)
         }
         let finalize = state.step == policy.maxSteps - 1
         guard let refusal else { return [.run(.runTool(call, finalize: finalize), id: nil)] }

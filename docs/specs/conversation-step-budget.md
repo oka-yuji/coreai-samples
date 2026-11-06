@@ -46,6 +46,16 @@ It settles the citation guard, retains or reports drafts, releases the app's
 busy state and then sends the stop acknowledgement. Run identity prevents an
 older stream from overwriting a newer result.
 
+The November 7, 2026 correction (#522) distinguishes a terminal budget refusal
+from an ordinary permission or tool error. At the budget boundary, Feature emits
+a terminal decision and the native Tool ends its generation with CancellationError.
+It does not return a normal tool result that could start another model request
+before asynchronous cancellation arrives. Ordinary tool errors remain text results.
+After the native stream has joined and is no longer responding, pending calls
+are closed before the final transcript update and save. This also applies when
+the answer-only generation itself emits a tool call, preserving a complete
+history for the next ordinary turn without another automatic final attempt.
+
 The native tool-mode declaration and mutable transcript are present in the
 installed macOS 27 SDK. Apple's [tool-calling documentation](https://developer.apple.com/documentation/foundationmodels/expanding-generation-with-tool-calling)
 describes using a session's accumulated context with tool calling disabled.

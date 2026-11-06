@@ -235,7 +235,7 @@ struct ConversationFeatureTests {
         #expect(
             ended == [
                 [
-                    .run(.refuseTool(further, reason: ConversationFeature.endedRefusal), id: nil),
+                    .run(.terminateTool(further, reason: ConversationFeature.endedRefusal), id: nil),
                     .run(.stopForBudget(run: 1), id: .stop),
                 ]
             ])
@@ -389,7 +389,7 @@ struct ConversationFeatureTests {
         #expect(
             ended == [
                 [
-                    .run(.refuseTool(note, reason: "error: saving notes needs Work mode"), id: nil),
+                    .run(.terminateTool(note, reason: "error: saving notes needs Work mode"), id: nil),
                     .run(.stopForBudget(run: 1), id: .stop),
                 ]
             ])
