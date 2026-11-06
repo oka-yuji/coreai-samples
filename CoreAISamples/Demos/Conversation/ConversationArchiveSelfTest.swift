@@ -36,6 +36,7 @@ enum ConversationArchiveSelfTest {
                 taskWebCalls: 1)
             _ = ConversationFeature.reduce(&state, .generationEnded(run: 1, stopReason: "stopToken"))
             let snapshot = ConversationSnapshot(state)
+            try await launchArchives(snapshot, check: check)
             try await archive.save(snapshot, expectedRevision: 0, writer: UUID())
             let stoppedRunner = ConversationRunner(
                 id: "before-generation", chat: ChatViewModel(), preferences: ConversationPreferences(persists: false),
@@ -152,6 +153,40 @@ enum ConversationArchiveSelfTest {
                 "id=\(host.state.id)")
         } catch {
             check("conversation/archiveIntegration", false, error.localizedDescription)
+        }
+    }
+
+    private static func launchArchives(
+        _ snapshot: ConversationSnapshot, check: (String, Bool, String) -> Void
+    ) async throws {
+        let ordinary = await ConversationRunner.makeArchive(arguments: ["demo"]).directory
+        check(
+            "conversation/ordinaryArchive", ordinary == ConversationRunner.conversationsDirectory(),
+            "normal launch keeps its archive")
+        let launches = [
+            ["demo", "--selftest"], ["demo", "--agent-e2e"],
+            ["demo", "--gui-e2e", "/tmp/gui-output"], ["demo", "--gui-e2e=/tmp/gui-output", "--agent"],
+        ]
+        var directories = Set<URL>()
+        for arguments in launches {
+            let archive = ConversationRunner.makeArchive(arguments: arguments)
+            let directory = await archive.directory
+            let second = await ConversationRunner.makeArchive(arguments: arguments).directory
+            check(
+                "conversation/diagnosticArchiveIsolation",
+                directory != ordinary && second != directory && directories.insert(directory).inserted,
+                "each diagnostic launch owns a separate archive")
+            guard directory != ordinary else { continue }
+            defer { try? FileManager.default.removeItem(at: directory) }
+            try await archive.save(snapshot, expectedRevision: 0, writer: UUID(), selectAfterSave: true)
+            let restored = try await archive.latest()
+            let markdown = try String(contentsOf: directory.appending(path: "\(snapshot.id).md"), encoding: .utf8)
+            let selected = try JSONDecoder().decode(
+                String.self, from: Data(contentsOf: directory.appending(path: ".selection")))
+            check(
+                "conversation/diagnosticArchiveExports",
+                restored == .snapshot(snapshot) && selected == snapshot.id && markdown == snapshot.markdown(),
+                "diagnostics retain restoration and Markdown export in their own archive")
         }
     }
 }
