@@ -10,6 +10,36 @@ struct VideoFrameSourceTests {
     let maximumSize = CGSize(width: 640, height: 640)
 
     @Test(
+        "VWC-01/02 Cancelled fixture creation stops requesting frames and leaves no output", arguments: [true, false])
+    func fixtureCancellation(beforeStart: Bool) async throws {
+        let root = URL.temporaryDirectory.appending(path: UUID().uuidString)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let image = try SyntheticVideo.solid(CGColor(gray: 0.5, alpha: 1), width: 160, height: 120)
+        let result = await Task {
+            var requested = 0
+            if beforeStart { withUnsafeCurrentTask { $0?.cancel() } }
+            do {
+                let url = try await SyntheticVideo.write(width: 160, height: 120, frames: 30, root: root) { frame in
+                    requested += 1
+                    if !beforeStart && frame == 1 { withUnsafeCurrentTask { $0?.cancel() } }
+                    return image
+                }
+                SyntheticVideo.remove(url)
+                return (false, requested)
+            } catch is CancellationError {
+                return (true, requested)
+            } catch {
+                Issue.record(error)
+                return (false, requested)
+            }
+        }.value
+        #expect(result.0)
+        #expect(result.1 == (beforeStart ? 0 : 2))
+        #expect(try FileManager.default.contentsOfDirectory(atPath: root.path).isEmpty)
+    }
+
+    @Test(
         "VID-05 A synthetic three-second video yields its length and upright frames at the sampled times in red, green and blue order"
     )
     func colorsInOrder() async throws {
@@ -121,12 +151,17 @@ enum SyntheticVideo {
     }
 
     static func write(
-        width: Int, height: Int, frames: Int, transform: CGAffineTransform = .identity, image: (Int) -> CGImage
+        width: Int, height: Int, frames: Int, transform: CGAffineTransform = .identity,
+        root: URL = .temporaryDirectory, image: (Int) -> CGImage
     ) async throws -> URL {
-        let folder = FileManager.default.temporaryDirectory.appending(path: "video-search-\(UUID().uuidString)")
+        try Task.checkCancellation()
+        let folder = root.appending(path: "video-search-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        var completed = false
+        defer { if !completed { try? FileManager.default.removeItem(at: folder) } }
         let url = folder.appending(path: "clip.mov")
         let writer = try AVAssetWriter(outputURL: url, fileType: .mov)
+        defer { if !completed { writer.cancelWriting() } }
         let input = AVAssetWriterInput(
             mediaType: .video,
             outputSettings: [
@@ -142,14 +177,18 @@ enum SyntheticVideo {
         try writer.start()
         writer.startSession(atSourceTime: .zero)
         for frame in 0..<frames {
+            try Task.checkCancellation()
             let buffer = try pixelBuffer(width: width, height: height, image: image(frame))
             try await receiver.append(
                 CVReadOnlyPixelBuffer(unsafeBuffer: buffer), with: CMTime(value: CMTimeValue(frame), timescale: 10))
         }
         receiver.finish()
         writer.endSession(atSourceTime: CMTime(value: CMTimeValue(frames), timescale: 10))
+        try Task.checkCancellation()
         await writer.finishWriting()
+        try Task.checkCancellation()
         guard writer.status == .completed else { throw writer.error ?? CocoaError(.fileWriteUnknown) }
+        completed = true
         return url
     }
 
