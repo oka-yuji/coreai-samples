@@ -26,10 +26,11 @@ enum AgentReasoningEffort: String, CaseIterable, Identifiable, Sendable {
 struct AgentTool<Arguments: Generable>: Tool {
     let name: String
     let description: String
-    let run: @Sendable (AgentToolCall) async -> String
+    let run: @Sendable (AgentToolCall) async throws -> String
 
-    @concurrent func call(arguments: Arguments) async -> String {
-        await run(AgentToolCall(name: name, arguments: AgentPromptBuilder.arguments(name, arguments.generatedContent)))
+    @concurrent func call(arguments: Arguments) async throws -> String {
+        try await run(
+            AgentToolCall(name: name, arguments: AgentPromptBuilder.arguments(name, arguments.generatedContent)))
     }
 }
 
@@ -133,7 +134,7 @@ enum AgentPromptBuilder {
     }
 
     static func tools(
-        fileOperations: Bool, splitNotes: Bool = true, run: @escaping @Sendable (AgentToolCall) async -> String
+        fileOperations: Bool, splitNotes: Bool = true, run: @escaping @Sendable (AgentToolCall) async throws -> String
     ) -> [any Tool] {
         var tools: [any Tool] = [
             AgentTool<WebSearchArguments>(

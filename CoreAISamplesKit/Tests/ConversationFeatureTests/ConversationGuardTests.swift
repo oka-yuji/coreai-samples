@@ -83,7 +83,7 @@ struct ConversationGuardTests {
         #expect(
             ended == [
                 [
-                    .run(.refuseTool(further, reason: ConversationFeature.endedRefusal), id: nil),
+                    .run(.terminateTool(further, reason: ConversationFeature.endedRefusal), id: nil),
                     .run(.stopForBudget(run: 2), id: .stop),
                 ]
             ])

@@ -10,6 +10,7 @@ final class ToolRunner {
     enum Decision: Equatable, Sendable {
         case run(finalize: Bool)
         case refuse(String)
+        case terminate(String)
         case cancelled
     }
 
@@ -150,11 +151,11 @@ final class ToolRunner {
 
     func tools(fileOperations: Bool, splitNotes: Bool = true) -> [any Tool] {
         AgentPromptBuilder.tools(fileOperations: fileOperations, splitNotes: splitNotes) { [weak self] call in
-            await self?.call(call) ?? ConversationFeature.endedRefusal
+            try await self?.call(call) ?? ConversationFeature.endedRefusal
         }
     }
 
-    private func call(_ call: AgentToolCall) async -> String {
+    private func call(_ call: AgentToolCall) async throws -> String {
         guard let record = session?.request(call) else { return ConversationFeature.endedRefusal }
         let decision = await decision(for: record.id)
         let start = Date()
@@ -164,12 +165,13 @@ final class ToolRunner {
             return await execute(call)
         }
         if !ran { log(call, AgentToolOutput(text: text), start: start, end: Date()) }
+        if case .terminate = decision { throw CancellationError() }
         return text
     }
 
     static func output(for decision: Decision, run: () async -> String) async -> String {
         switch decision {
-        case .refuse(let reason):
+        case .refuse(let reason), .terminate(let reason):
             return reason
         case .cancelled:
             return ConversationFeature.endedRefusal

@@ -72,6 +72,8 @@ final class ConversationRunner {
             tools.resolve(call.id, .run(finalize: finalize))
         case .refuseTool(let call, let reason):
             tools.resolve(call.id, .refuse(reason))
+        case .terminateTool(let call, let reason):
+            tools.resolve(call.id, .terminate(reason))
         case .stop(let run):
             session.stop(run: run)
             if retrievingRun == run {
