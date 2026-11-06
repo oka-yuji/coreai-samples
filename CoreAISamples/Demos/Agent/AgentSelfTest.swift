@@ -391,16 +391,24 @@ enum AgentSelfTest {
             !hostileName.contains("/") && !hostileName.contains("..")
                 && hostileName.hasSuffix(".md") && AgentTools.noteFileName("   ") == "note.md"
                 && AgentTools.noteFileName(String(repeating: "a", count: 300)).count == 83, hostileName)
+        check(
+            "notes/defaultDirectory",
+            AgentTools.defaultNotesDirectory()
+                == ModelStorage.root.appending(path: "agent-notes", directoryHint: .isDirectory),
+            "default directory is inside application support")
         do {
-            let path = try AgentTools.writeNote(title: hostile, content: "body")
+            let root = URL.temporaryDirectory.appending(path: "agent-selftest-write-" + UUID().uuidString)
+            let directory = root.appending(path: "agent-notes", directoryHint: .isDirectory)
+            defer { try? FileManager.default.removeItem(at: root) }
+            let path = try AgentTools.writeNote(title: hostile, content: "body", directory: directory)
             let inside =
                 URL(fileURLWithPath: path).deletingLastPathComponent().standardizedFileURL
-                == AgentTools.defaultNotesDirectory().standardizedFileURL
+                == directory.standardizedFileURL
             check(
                 "notes/write", inside && FileManager.default.fileExists(atPath: path) && path.contains("/agent-notes/"),
                 path)
-            let second = try AgentTools.writeNote(title: hostile, content: "other")
-            let third = try AgentTools.writeNote(title: hostile, content: "more")
+            let second = try AgentTools.writeNote(title: hostile, content: "other", directory: directory)
+            let third = try AgentTools.writeNote(title: hostile, content: "more", directory: directory)
             let kept = (try? String(contentsOf: URL(fileURLWithPath: path), encoding: .utf8)) ?? ""
             let base = String(path.dropLast(3))
             check(
