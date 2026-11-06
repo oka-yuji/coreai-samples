@@ -848,8 +848,9 @@ final class GUIDriver {
     }
 
     private func finish(metricsBefore: Int) async {
+        let directory = await ConversationRunner.defaultArchive.directory
         for id in sessions {
-            let source = ConversationRunner.conversationsDirectory().appending(path: "\(id).md")
+            let source = directory.appending(path: "\(id).md")
             do {
                 try FileManager.default.copyItem(at: source, to: outDir.appending(path: "transcript-\(id).md"))
             } catch {

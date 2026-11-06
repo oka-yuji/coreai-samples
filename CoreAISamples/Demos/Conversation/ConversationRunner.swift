@@ -9,7 +9,7 @@ typealias ConversationStore = Store<ConversationFeature>
 
 @MainActor
 final class ConversationRunner {
-    static let defaultArchive = ConversationArchive(directory: conversationsDirectory())
+    static let defaultArchive = makeArchive(arguments: CommandLine.arguments)
     let session: ConversationSession
     let tools: ToolRunner
     let citationGuard: CitationGuard
@@ -401,6 +401,18 @@ final class ConversationRunner {
 
     static func conversationsDirectory() -> URL {
         ModelStorage.root.appending(path: "conversations", directoryHint: .isDirectory)
+    }
+
+    static func makeArchive(arguments: [String]) -> ConversationArchive {
+        let isolated =
+            LaunchArguments.flag("--selftest", in: arguments)
+            || LaunchArguments.flag("--agent-e2e", in: arguments)
+            || LaunchArguments.value("--gui-e2e", in: arguments) != nil
+        let directory =
+            isolated
+            ? URL.temporaryDirectory.appending(path: "conversation-diagnostic-" + UUID().uuidString)
+            : conversationsDirectory()
+        return ConversationArchive(directory: directory)
     }
 
     static func write(_ snapshot: ConversationSnapshot, to directory: URL) -> ConversationAction? {

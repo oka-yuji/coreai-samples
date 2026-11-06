@@ -85,6 +85,8 @@ xcrun devicectl device copy from --device <UDID> --domain-type appDataContainer 
 
 ## Headless self-test
 
+`--selftest`, `--agent-e2e` and `--gui-e2e` use a separate temporary conversation archive for each process. They do not read or update the ordinary conversation history or its selected conversation. The GUI driver's transcript exports come from that same temporary archive. Normal launches keep their existing history and restoration behavior.
+
 ```bash
 APP=.build/Build/Products/Release/CoreAISamples.app/Contents/MacOS/CoreAISamples
 $APP --selftest --model /path/to/bundle --prompts-file prompts.txt [--max-tokens 2048] [--context-limit 4096]
