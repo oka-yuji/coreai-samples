@@ -27,7 +27,7 @@ Cached boxes are filtered against the current preview angle at drawing time, not
 | Rotation-device failure | `rotationDeviceFailure` injects camera unavailability after capture startup and verifies camera/observer teardown before reporting failure, without starting model preparation. |
 | Stop ordering | `LiveObjectFinderServiceTests.stopDuringPreparation` observes rotation teardown before model cleanup completes and verifies one teardown per search. |
 
-Eight temporary mutations were detected by assertion failures: removing cached-frame angle filtering, accepting an old observation, accepting a repeated angle, accepting an older source binding, losing the capture-generation floor delaying observation teardown until cleanup, retaining the old generation after an angle change and omitting the initial angle seed. All mutated sources were restored before the final checks.
+Eight temporary mutations were detected by assertion failures: removing cached-frame angle filtering, accepting an old observation, accepting a repeated angle, accepting an older source binding, losing the capture-generation floor, delaying observation teardown until cleanup, retaining the old generation after an angle change and omitting the initial angle seed. All mutated sources were restored before the final checks.
 
 The targeted command is `swift test --package-path CoreAISamplesKit --force-resolved-versions --filter ObjectFinderTests`. It uses fake capture/model devices; no camera or learned model is opened. Final repository gates are recorded with the PR.
 
