@@ -70,6 +70,8 @@
 
 ## 重いジョブ
 
+- Chronos-2 の CPU 検査は `swift test --package-path CoreAISamplesKit --filter Chronos`。実モデル照合は共有 heavy-job ロック下で `COREAI_CHRONOS2_BUNDLE=/path/to/chronos2-bundle swift test --package-path CoreAISamplesKit --filter ChronosNativeTests.nativeReference`。CLI は `swift run --package-path CoreAISamplesKit chronos-verify --bundle /path/to/chronos2-bundle --verify --output /new/report.json`。18 条件・6048 値と、解放・再ロード後の先頭 336 値を固定 atol/rtol で照合する。通常試験では実モデル試験を skip し、CPU fake の成功を native・iPhone・通常 UI の受入に代用しない。ランタイムは actor 内で busy を await 中も保持し、release は load/inference 終了と資源破棄を待つ。複数の解放待機者は再開後に状態を書き換えない。
+
 - DecisionBundleのhashメモリ回帰試験はモデル・GPUを使わず、256 MiBの合成ファイルを実bundle検査へ渡す。process生涯のpeakを測るため、ほかの試験を含めず新しいprocessで `COREAI_DECISION_HASH_MEMORY=1 swift test --package-path CoreAISamplesKit --filter DecisionContractTests.hashMemory` を実行する。既知SHA-256が一致し、kernel lifetime footprint peakが128 MiB未満であることを確認する。既定実行ではskipする。
 
 - Modelsのhashメモリ回帰試験は学習済みモデルやGPUを使わない。process生涯のpeakを測るため、ほかの試験と混ぜず、次をそれぞれ新しいprocessで実行する（既定の全体試験ではskip）:
