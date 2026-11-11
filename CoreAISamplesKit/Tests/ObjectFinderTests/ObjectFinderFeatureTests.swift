@@ -6,6 +6,7 @@ import ObjectFinderRuntime
 import Testing
 
 struct ObjectFinderFeatureTests {
+    private let rotationSource = ObjectCameraRotationSource(session: 1, cameraID: "rear-camera", generation: 1)
     private let folder = URL(filePath: "/model")
     private let candidate = ObjectCandidate(
         id: 0, region: .init(x: 0.2, y: 0.2, width: 0.3, height: 0.3), similarity: 0.8)
@@ -114,11 +115,12 @@ struct ObjectFinderFeatureTests {
         preview.expect(state.frame?.captureGeneration)
         preview.receive([candidate], generation: 1, validUntil: 12)
         #expect(preview.visible(at: 10) == [candidate])
-        _ = ObjectFinderFeature.reduce(&state, .poseChanged(.landscapeLeft))
+        _ = ObjectFinderFeature.reduce(&state, .rotationSourceChanged(rotationSource))
+        _ = ObjectFinderFeature.reduce(&state, .captureAngleChanged(rotationSource, 0))
         preview.expect(state.frame?.captureGeneration)
         preview.receive([candidate], generation: 1, validUntil: 12)
         #expect(preview.visible(at: 10).isEmpty)
-        _ = ObjectFinderFeature.reduce(&state, .poseChanged(.portrait))
+        _ = ObjectFinderFeature.reduce(&state, .captureAngleChanged(rotationSource, 90))
         _ = ObjectFinderFeature.reduce(
             &state,
             .analyzed(1, .init(candidates: [candidate], seconds: 0.1, orientationRevision: 2, captureGeneration: 3)))
@@ -183,28 +185,30 @@ struct ObjectFinderFeatureTests {
         var state = active()
         let portrait = ObjectFinderFrame(candidates: [candidate], seconds: 0.2)
         _ = ObjectFinderFeature.reduce(&state, .analyzed(1, portrait))
-        _ = ObjectFinderFeature.reduce(&state, .poseChanged(.landscapeLeft))
+        _ = ObjectFinderFeature.reduce(&state, .rotationSourceChanged(rotationSource))
+        _ = ObjectFinderFeature.reduce(&state, .captureAngleChanged(rotationSource, 0))
         #expect(state.frame == nil && state.matches.isEmpty)
         _ = ObjectFinderFeature.reduce(&state, .analyzed(1, portrait))
         #expect(state.frame == nil)
         let landscape = ObjectFinderFrame(
             candidates: [candidate], seconds: 0.2, rotation: 0, orientationRevision: 1)
         _ = ObjectFinderFeature.reduce(&state, .analyzed(1, landscape))
-        _ = ObjectFinderFeature.reduce(&state, .poseChanged(.flat))
+        _ = ObjectFinderFeature.reduce(&state, .captureAngleChanged(rotationSource, .nan))
         #expect(state.frame == landscape && state.matches == [candidate])
-        _ = ObjectFinderFeature.reduce(&state, .poseChanged(.portrait))
+        _ = ObjectFinderFeature.reduce(&state, .captureAngleChanged(rotationSource, 90))
         _ = ObjectFinderFeature.reduce(&state, .analyzed(1, portrait))
         #expect(state.frame == nil)
     }
 
-    @Test("A rotation observed during preparation reaches the camera even when the device is then flat")
+    @Test("A capture angle observed during preparation reaches the camera despite later invalid updates")
     func sharedOrientationDuringPreparation() {
         var state = ObjectFinderState(folder: folder)
         state.query = "glasses"
         _ = ObjectFinderFeature.reduce(&state, .start)
         let initial = state.cameraRotation
-        let commands = ObjectFinderFeature.reduce(&state, .poseChanged(.landscapeLeft))
-        _ = ObjectFinderFeature.reduce(&state, .poseChanged(.flat))
+        _ = ObjectFinderFeature.reduce(&state, .rotationSourceChanged(rotationSource))
+        let commands = ObjectFinderFeature.reduce(&state, .captureAngleChanged(rotationSource, 0))
+        _ = ObjectFinderFeature.reduce(&state, .captureAngleChanged(rotationSource, .nan))
         #expect(commands == [.cancel(.notification), .run(.orient(state.cameraRotation), id: .orientation)])
         var camera = ObjectCameraConfiguration()
         camera.update(state.cameraRotation)

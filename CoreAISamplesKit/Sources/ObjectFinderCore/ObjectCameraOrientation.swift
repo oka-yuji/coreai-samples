@@ -1,20 +1,36 @@
-public enum ObjectCameraPose: Sendable {
-    case portrait, landscapeLeft, landscapeRight, portraitUpsideDown, flat
+public struct ObjectCameraRotationSource: Equatable, Sendable {
+    public let session: Int
+    public let cameraID: String
+    public let generation: Int
+
+    public init(session: Int, cameraID: String, generation: Int) {
+        self.session = session
+        self.cameraID = cameraID
+        self.generation = generation
+    }
 }
 
 public struct ObjectCameraOrientation: Equatable, Sendable {
     public private(set) var angle: Double = 90
+    public private(set) var source: ObjectCameraRotationSource?
 
     public init() {}
 
-    public mutating func update(_ pose: ObjectCameraPose) {
-        switch pose {
-        case .portrait: angle = 90
-        case .landscapeLeft: angle = 0
-        case .landscapeRight: angle = 180
-        case .portraitUpsideDown: angle = 270
-        case .flat: break
-        }
+    public mutating func bind(_ source: ObjectCameraRotationSource?) { self.source = source }
+
+    public mutating func update(_ value: Double, from source: ObjectCameraRotationSource) -> Bool {
+        guard self.source == source, let value = Self.normalized(value), value != angle else { return false }
+        angle = value
+        return true
+    }
+
+    public static func normalized(_ value: Double) -> Double? {
+        guard value.isFinite else { return nil }
+        let remainder = value.truncatingRemainder(dividingBy: 360)
+        let positive = remainder < 0 ? remainder + 360 : remainder
+        let angle = positive.rounded(.toNearestOrAwayFromZero).truncatingRemainder(dividingBy: 360)
+        guard [0, 90, 180, 270].contains(angle) else { return nil }
+        return angle == 0 ? 0 : angle
     }
 }
 

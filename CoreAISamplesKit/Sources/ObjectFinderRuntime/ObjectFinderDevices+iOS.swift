@@ -15,16 +15,16 @@
                     authorize: Self.authorizeCamera,
                     prepare: { try await finder.prepare(folder: $0, query: $1) },
                     startCamera: {
-                        let frames = try await capture.start(rotation: $0)
-                        preview.connected()
-                        return frames
+                        let started = try await capture.start(rotation: $0)
+                        try preview.connected(cameraID: started.cameraID, generation: started.generation)
+                        return started.frames
                     },
                     stopCamera: { await capture.stop() },
                     checkCamera: { try await capture.checkActive() },
                     candidates: { try await finder.candidates(in: $0, mode: $1) },
                     closeFinder: { try await finder.close() },
-                    beginOrientation: { UIDevice.current.beginGeneratingDeviceOrientationNotifications() },
-                    endOrientation: { UIDevice.current.endGeneratingDeviceOrientationNotifications() },
+                    beginRotation: { preview.beginRotation(session: $0) },
+                    endRotation: { preview.endRotation() },
                     notify: { UINotificationFeedbackGenerator().notificationOccurred(.success) },
                     requestFrame: { try await capture.requestFrame() },
                     trackCandidates: { tryFrame, candidates in

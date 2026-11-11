@@ -22,7 +22,26 @@ struct LiveObjectFinderServiceTests {
                 started: {},
                 receive: { _ in })
         }
-        #expect(fake.prepares == 0 && fake.angles.isEmpty && fake.closes == 1 && fake.orientationEnds == 1)
+        #expect(fake.prepares == 0 && fake.angles.isEmpty && fake.closes == 1 && fake.rotationEnds == 1)
+    }
+
+    @Test("A rotation-device lookup failure stops the started camera before reporting unavailability")
+    func rotationDeviceFailure() async {
+        let fake = FinderDevicesFake()
+        var devices = fake.devices
+        let startCamera = devices.startCamera
+        devices.startCamera = { angle in
+            _ = try await startCamera(angle)
+            throw ObjectFinderFailure.cameraUnavailable
+        }
+        let service = LiveObjectFinderService(devices: devices)
+        await #expect(throws: ObjectFinderFailure.cameraUnavailable) {
+            try await service.search(
+                folder: folder, query: "keys", minimumSimilarity: 0.67, mode: .standard, rotation: initial,
+                started: {}, receive: { _ in })
+        }
+        #expect(fake.prepares == 0 && fake.angles == [90] && fake.frames == nil && fake.closes == 1)
+        #expect(fake.cameraStops == 1 && fake.rotationEnds == 1 && fake.rotationSessions == [1])
     }
 
     @Test("Stopping during model preparation stops the live camera and waits for cleanup", .timeLimit(.minutes(1)))
@@ -42,7 +61,7 @@ struct LiveObjectFinderServiceTests {
         let stop = Task { try await service.stop(session: 1, retainingModel: false) }
         var stopping = fake.stopping.stream.makeAsyncIterator()
         _ = await stopping.next()
-        #expect(fake.closes == 0)
+        #expect(fake.closes == 0 && fake.rotationEnds == 1 && fake.rotationSessions == [1])
         await #expect(throws: ObjectFinderError.busy) {
             try await service.search(
                 folder: folder, query: "keys", minimumSimilarity: 0.67, mode: .standard, rotation: initial, started: {},
@@ -51,7 +70,7 @@ struct LiveObjectFinderServiceTests {
         fake.releasePreparation()
         await #expect(throws: CancellationError.self) { try await search.value }
         try await stop.value
-        #expect(fake.angles == [90] && fake.frames == nil && fake.closes == 1 && fake.orientationEnds == 1)
+        #expect(fake.angles == [90] && fake.frames == nil && fake.closes == 1 && fake.rotationEnds == 1)
     }
 
     @Test(
@@ -108,7 +127,7 @@ struct LiveObjectFinderServiceTests {
         #expect(frame?.rotation == 0 && frame?.orientationRevision == 1)
         search.cancel()
         _ = await search.result
-        #expect(fake.closes == 1 && fake.orientationEnds == 1)
+        #expect(fake.closes == 1 && fake.rotationEnds == 1)
         received.continuation.finish()
     }
 
@@ -380,7 +399,8 @@ final class FinderDevicesFake {
     var closes = 0
     var cameraStops = 0
     var closeCancellation: [Bool] = []
-    var orientationEnds = 0
+    var rotationEnds = 0
+    var rotationSessions: [Int] = []
     var angles: [Double] = []
     var candidateResults: [ObjectCandidate] = []
     var modes: [ObjectSearchMode] = []
@@ -448,7 +468,7 @@ final class FinderDevicesFake {
                 }
                 if let error = self.releaseError { throw error }
             },
-            beginOrientation: {}, endOrientation: { self.orientationEnds += 1 },
+            beginRotation: { self.rotationSessions.append($0) }, endRotation: { self.rotationEnds += 1 },
             notify: { self.notifications += 1 },
             requestFrame: { self.requests += 1 },
             trackCandidates: { _, candidates in

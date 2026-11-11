@@ -102,13 +102,7 @@
                 )
                 .font(.footnote).foregroundStyle(.secondary)
             }
-            .onAppear {
-                store.send(.appeared)
-                updateOrientation()
-            }
-            .onReceive(NotificationCenter.default.publisher(for: UIDevice.orientationDidChangeNotification)) { _ in
-                updateOrientation()
-            }
+            .onAppear { store.send(.appeared) }
             .onDisappear { store.send(.disappeared) }
             .onChange(of: scenePhase) { _, value in
                 if value == .background { store.send(.backgrounded) }
@@ -190,17 +184,6 @@
             store.send(store.state.phase == .idle ? .start : .applyQuery)
         }
 
-        private func updateOrientation() {
-            let pose: ObjectCameraPose
-            switch UIDevice.current.orientation {
-            case .portrait: pose = .portrait
-            case .portraitUpsideDown: pose = .portraitUpsideDown
-            case .landscapeLeft: pose = .landscapeLeft
-            case .landscapeRight: pose = .landscapeRight
-            default: pose = .flat
-            }
-            store.send(.poseChanged(pose))
-        }
     }
 
     extension ObjectFinderContent where FolderSettings == EmptyView {
@@ -219,12 +202,12 @@
                 ScrollView {
                     VStack(spacing: 0) {
                         ObjectFinderLivePreview(
-                            source: preview, minimumSimilarity: store.state.minimumSimilarity,
+                            source: preview, store: store, minimumSimilarity: store.state.minimumSimilarity,
                             maximumBoxes: store.state.maximumBoxes,
                             expectedGeneration: store.state.phase == .searching
-                                ? store.state.frame?.captureGeneration : nil,
-                            rotation: store.state.orientation.angle
+                                ? store.state.frame?.captureGeneration : nil
                         )
+                        .id(ObjectIdentifier(preview))
                         .containerRelativeFrame(.vertical) { length, _ in length * 0.55 }
                         .background(.black)
                         .overlay {
@@ -374,24 +357,22 @@
 
     private struct ObjectFinderLivePreview: UIViewRepresentable {
         let source: ObjectFinderPreview
+        let store: Store<ObjectFinderFeature>
         let minimumSimilarity: Double
         let maximumBoxes: Int
         let expectedGeneration: Int?
-        let rotation: Double
-
-        func makeUIView(context: Context) -> PreviewView { PreviewView(source: source) }
+        func makeUIView(context: Context) -> PreviewView { PreviewView(source: source, store: store) }
 
         func updateUIView(_ view: PreviewView, context: Context) {
             view.minimumSimilarity = minimumSimilarity
             view.maximumBoxes = maximumBoxes
             view.expectedGeneration = expectedGeneration
-            view.rotation = rotation
             view.applyPreviewState()
             view.setNeedsLayout()
         }
 
         static func dismantleUIView(_ view: PreviewView, coordinator: ()) {
-            view.source.detach(from: view.layer)
+            view.finish()
         }
 
         final class PreviewView: UIView {
@@ -399,26 +380,44 @@
             var minimumSimilarity = 0.67
             var maximumBoxes = 3
             var expectedGeneration: Int?
-            var rotation = 90.0
+            private weak var store: Store<ObjectFinderFeature>?
+            private var ended = false
 
-            init(source: ObjectFinderPreview) {
+            init(source: ObjectFinderPreview, store: Store<ObjectFinderFeature>) {
                 self.source = source
+                self.store = store
                 super.init(frame: .zero)
-                source.attach(to: layer)
             }
 
             required init?(coder: NSCoder) { nil }
+
+            override func didMoveToWindow() {
+                super.didMoveToWindow()
+                guard !ended else { return }
+                if window != nil {
+                    source.attach(to: layer) { [weak store] in store?.send($0) }
+                    applyPreviewState()
+                } else {
+                    source.detach(from: layer)
+                }
+            }
 
             override func layoutSubviews() {
                 super.layoutSubviews()
                 applyPreviewState()
             }
 
+            func finish() {
+                ended = true
+                source.detach(from: layer)
+                store = nil
+            }
+
             func applyPreviewState() {
+                guard !ended else { return }
                 source.layout(
                     in: bounds, minimumSimilarity: minimumSimilarity, maximumBoxes: maximumBoxes,
-                    expectedGeneration: expectedGeneration,
-                    rotation: rotation)
+                    expectedGeneration: expectedGeneration, parent: layer)
             }
         }
 
