@@ -6,6 +6,7 @@ public struct ModelInformationView: View {
     private let store: Store<ModelLibraryFeature>
     private let model: LibraryModel
     private let inUse: Bool
+    @Environment(\.locale) private var locale
 
     public init(store: Store<ModelLibraryFeature>, model: LibraryModel, inUse: Bool = false) {
         self.store = store
@@ -19,7 +20,7 @@ public struct ModelInformationView: View {
         let artifacts = store.state.artifacts(for: model.id)
         Form {
             LabeledContent {
-                Text(verbatim: model.classification)
+                Text(verbatim: ModelClassificationPresentation.classification(for: model, locale: locale))
             } label: {
                 libraryText("Category")
             }

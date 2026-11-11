@@ -15,7 +15,7 @@
             return directory
         }()
         static let unconnectedDemoIDs: Set<String> = [
-            "chat", "decide", "recipes", "image-search", "video-search", "comparison", "speech",
+            "chat", "decide", "recipes", "image-search", "video-search", "comparison", "speech", "taxi-forecast",
         ]
         static let runtimeUses = Store<ModelRuntimeUses>(initialState: ModelRuntimeUses.State()) { _, _ in }
 

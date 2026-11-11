@@ -6,6 +6,7 @@
     import ModelLibraryRuntime
     import ModelLibraryStorage
     import ModelLibraryTransfer
+    import ModelLibraryUI
     import Observation
     import SwiftUI
 
@@ -103,6 +104,58 @@
                 store.send(.cancelRequested(artifact))
             }
             MacModelLibraryServices.assembly.runner.abandon(owner: store.state.owner)
+        }
+    }
+
+    struct ChronosPreviewView: View {
+        let library: MacModelLibrary
+        @State private var deletion: ModelDeletionRequest?
+        @Environment(\.locale) private var locale
+
+        var body: some View {
+            Group {
+                if let store = library.store,
+                    let model = store.state.catalog.model(ChronosDemoCatalog.selection.modelID),
+                    let demo = store.state.catalog.demo(ChronosDemoCatalog.selection.demoID)
+                {
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 22) {
+                            Text(
+                                verbatim: ModelClassificationPresentation.classification(for: model, locale: locale)
+                            ).font(.footnote).foregroundStyle(.secondary)
+                            Label(LocalizedStringKey(demo.title), systemImage: demo.systemImage)
+                                .font(.largeTitle.bold())
+                            Text(LocalizedStringKey(demo.summary)).foregroundStyle(.secondary)
+                            ForEach(Array(demo.explanation.enumerated()), id: \.offset) { _, section in
+                                VStack(alignment: .leading, spacing: 6) {
+                                    Text(LocalizedStringKey(section.title)).font(.headline)
+                                    Text(LocalizedStringKey(section.text))
+                                }
+                            }
+                            ModelAcquisitionControls(
+                                store: store, model: model,
+                                requestDeletion: { deletion = ModelDeletionRequest(model: model, artifact: $0) },
+                                showsActionTitle: true, deletionDisabled: library.isInUse(.chronos))
+                            if let artifact = store.state.selectedArtifact(for: model.id),
+                                let failure = store.state.installations[artifact.id]?.failure
+                            {
+                                LibraryFailureView(failure: failure)
+                            }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(32)
+                    }
+                    .modelDeletionAlert(store: store, deletion: $deletion)
+                } else {
+                    ContentUnavailableView {
+                        Label("Chronos-2", systemImage: "exclamationmark.triangle")
+                    } description: {
+                        LibraryFailureView(failure: .unavailable)
+                    }
+                }
+            }
+            .demoNavigationTitle("Chronos-2")
+            .onAppear { library.refresh() }
         }
     }
 #endif

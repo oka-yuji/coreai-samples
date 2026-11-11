@@ -47,6 +47,13 @@
     },
     {
       "title": {
+        "en": "Models import evidence",
+        "ja": "Models導入の検証記録"
+      },
+      "url": "docs/validation/chronos2-models-20261112/README.md"
+    },
+    {
+      "title": {
         "en": "Implementation plan #548",
         "ja": "実装計画 #548"
       },
@@ -59,8 +66,8 @@
       "variants": [],
       "evidence": [],
       "note": {
-        "en": "The native sample is not connected yet; conversion evidence does not establish app support.",
-        "ja": "ネイティブサンプルは未接続です。変換の成功をアプリ対応済みにはしません。"
+        "en": "Models import and an explicit preview are implemented; the prediction screen is not connected yet.",
+        "ja": "Modelsでの導入と明示的なプレビューを実装。予測画面はまだ未接続。"
       }
     },
     "ios": {
@@ -68,8 +75,8 @@
       "variants": [],
       "evidence": [],
       "note": {
-        "en": "The native sample is not connected yet; conversion evidence does not establish app support.",
-        "ja": "ネイティブサンプルは未接続です。変換の成功をアプリ対応済みにはしません。"
+        "en": "Models import and an explicit preview are implemented; the prediction screen is not connected yet.",
+        "ja": "Modelsでの導入と明示的なプレビューを実装。予測画面はまだ未接続。"
       }
     }
   },
@@ -128,6 +135,34 @@
       "power": null,
       "thermal": null,
       "model_executed": true,
+      "plan_sha256": null
+    },
+    "models-20261112": {
+      "url": "docs/validation/chronos2-models-20261112/README.md",
+      "level": "diagnostic",
+      "outcome": "passed",
+      "record_type": "legacy",
+      "date": "2026-11-12",
+      "platform": "macos",
+      "device": "Apple M5 Max / 137438953472 B RAM",
+      "os": "macOS 27.2.1 (26B131)",
+      "toolchain": "Xcode 27.2 (27B52); Swift 6.4.2; SDK 27.2; Debug package tests; Release Mac/iOS applications",
+      "variant": "coreai-fp32-univariate",
+      "backend": "ManagedModelStore and normal Mac Models UI; no inference",
+      "route": "Local bundle import -> inspect -> ready -> lease/release; explicit preview",
+      "source_revision": "29ec3766d36d6f73f0696f85560a422f50e8498c",
+      "artifact_revision": "786dcf97e020c987cbf883f09b486fba5f3fee30a588b87a346ea65d72d20572",
+      "code_revision": "d68828d601fea9d8b6756cc7fe2b2200749d7fa4",
+      "workload": {
+        "en": "Pinned nine-file bundle import, five rejected replacements, lease gating and source-hash preservation; normal Mac import/preview and signed iOS build. No inference or performance measurement.",
+        "ja": "固定9ファイルの導入、5種類の不正置換拒否、leaseと元hash保持。通常Mac画面で導入・プレビュー、署名iOS build。推論・性能計測は行わない。"
+      },
+      "batch_size": null,
+      "concurrency": null,
+      "warmups": null,
+      "power": null,
+      "thermal": null,
+      "model_executed": false,
       "plan_sha256": null
     }
   },

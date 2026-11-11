@@ -219,10 +219,11 @@ public struct ModelLibraryState: Equatable, Sendable {
         return artifact.title
     }
 
-    public func rowDetail(for model: LibraryModel, locale: Locale) -> String {
+    public func rowDetail(for model: LibraryModel, classification: String? = nil, locale: Locale) -> String {
         let size = selectedArtifact(for: model.id).flatMap { installations[$0.id]?.resource?.sizeBytes ?? $0.sizeBytes }
         let formatted = size?.formatted(.byteCount(style: .file).locale(locale))
-        return [model.classification, variantTitle(for: model.id), formatted].compactMap { $0 }.joined(separator: " · ")
+        return [classification ?? model.classification, variantTitle(for: model.id), formatted].compactMap { $0 }
+            .joined(separator: " · ")
     }
 
     public func isConnected(_ selection: DemoSelection) -> Bool {

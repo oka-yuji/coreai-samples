@@ -1762,6 +1762,40 @@
         }
       }
     },
+    "Chronos-2" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chronos-2"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chronos-2"
+          }
+        }
+      }
+    },
+    "Chronos-2 predicts the next 16 values of one time series. The taxi forecast screen is not connected in this build." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chronos-2 predicts the next 16 values of one time series. The taxi forecast screen is not connected in this build."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chronos-2は1つの時系列から16点先までの値を予測します。このビルドではタクシー需要の予測画面は未接続です。"
+          }
+        }
+      }
+    },
     "Citation guard" : {
       "localizations" : {
         "ja" : {
@@ -3190,6 +3224,23 @@
         }
       }
     },
+    "FP32" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "FP32"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "FP32"
+          }
+        }
+      }
+    },
     "Failed at step %lld." : {
       "localizations" : {
         "ja" : {
@@ -3750,6 +3801,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "画像はこの iPhone 内で解析し、保存しません。小さい物や隠れた物は見つからないことがあります。"
+          }
+        }
+      }
+    },
+    "Import the complete prepared Chronos-2 FP32 folder. It uses about 479 MB, plus space for the app copy. This build does not provide a model download." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Import the complete prepared Chronos-2 FP32 folder. It uses about 479 MB, plus space for the app copy. This build does not provide a model download."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "準備済みのChronos-2 FP32フォルダ全体を取り込んでください。容量は約479 MBで、アプリ内のコピーにも空き容量が必要です。このビルドではモデルのダウンロードは提供していません。"
           }
         }
       }
@@ -5947,6 +6015,40 @@
         }
       }
     },
+    "Preview a planned taxi demand forecast from time-series data. Predictions are not connected in this build." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preview a planned taxi demand forecast from time-series data. Predictions are not connected in this build."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "時系列データを使うタクシー需要予測の紹介です。このビルドでは予測機能は未接続です。"
+          }
+        }
+      }
+    },
+    "Preview availability" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preview availability"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "プレビューでできること"
+          }
+        }
+      }
+    },
     "Preview data — no model has run" : {
       "localizations" : {
         "ja" : {
@@ -7876,6 +7978,23 @@
         }
       }
     },
+    "Taxi demand forecast preview" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Taxi demand forecast preview"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "タクシー需要予測のプレビュー"
+          }
+        }
+      }
+    },
     "Technical verification of a Core AI conversion. Zero-shot GLiNER2.5-multi did not reach the pre-registered bar for Japanese inspection memos (outcome B3). The evaluated version is the default candidate filter, R1 + N1: on a second sealed set of 200 memos, fabricated candidates 13/200, primary-span precision 0.788, recall 0.822. Suggestions are uncalibrated scores." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -8776,6 +8895,23 @@
         }
       }
     },
+    "Time Series Forecasting" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Time Series Forecasting"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "時系列予測"
+          }
+        }
+      }
+    },
     "Title" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -9450,6 +9586,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "参照音声を指定しない場合は、モデルが生成する声を使います。"
+          }
+        }
+      }
+    },
+    "You can import, check and delete the model in Models. Preparing it does not start a prediction." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You can import, check and delete the model in Models. Preparing it does not start a prediction."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modelsでモデルの取り込み・検査・削除ができます。準備しても予測は始まりません。"
           }
         }
       }

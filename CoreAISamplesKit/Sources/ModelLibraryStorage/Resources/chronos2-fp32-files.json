@@ -1,0 +1,47 @@
+[
+  {
+    "path": "LICENSE",
+    "bytes": 10142,
+    "sha256": "09e8a9bcec8067104652c168685ab0931e7868f9c8284b66f5ae6edae5f1130b"
+  },
+  {
+    "path": "Model.aimodel/main.hash",
+    "bytes": 32,
+    "sha256": "73219f66d12277e119ec3fcf88c9e4a611a542a0198ad09f0bdc28430cd8d15c"
+  },
+  {
+    "path": "Model.aimodel/main.mlirb",
+    "bytes": 478034790,
+    "sha256": "3094871fc431ae5d86d07c8b487ab53e48e60e9fb56efe803ba18c5bf88889c8"
+  },
+  {
+    "path": "Model.aimodel/metadata.json",
+    "bytes": 323,
+    "sha256": "9e11346bfa2574137adad66e74dc9f5983bbdfc003f29bd22dce4d476aa0ba17"
+  },
+  {
+    "path": "NOTICE",
+    "bytes": 1245,
+    "sha256": "03a39dd9e3a435ba3ad4d6e2a362bb2a57a6374fa4030b047476211b906f82e9"
+  },
+  {
+    "path": "SOURCE_README.md",
+    "bytes": 7773,
+    "sha256": "c7b29bc88f5bc3ebc6e7213b6353be80090d671fefa4aa74ed20498838c16558"
+  },
+  {
+    "path": "chronos2.json",
+    "bytes": 2148,
+    "sha256": "786dcf97e020c987cbf883f09b486fba5f3fee30a588b87a346ea65d72d20572"
+  },
+  {
+    "path": "reference.json",
+    "bytes": 804253,
+    "sha256": "9265b34a83b6d298a5c7ea1f38e37a01f4926a214e96a20d86f9ef18faa38bfa"
+  },
+  {
+    "path": "verification.json",
+    "bytes": 4250,
+    "sha256": "5d5bde1a86c6fda2d0b5ac072d84049ede942832e13dfa60d479443a8c2df850"
+  }
+]

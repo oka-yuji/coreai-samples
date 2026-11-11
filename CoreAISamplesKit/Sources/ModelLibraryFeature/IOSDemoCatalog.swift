@@ -1,7 +1,8 @@
 public enum IOSDemoCatalog {
     public static func make(
         searchTerms: [String: [String]] = [:], localImageArtifacts: [ModelArtifact]? = nil,
-        speechArtifact: ModelArtifact? = nil, referenceSpeechArtifact: ModelArtifact? = nil
+        speechArtifact: ModelArtifact? = nil, referenceSpeechArtifact: ModelArtifact? = nil,
+        chronosArtifact: ModelArtifact? = nil
     ) throws -> ModelCatalog {
         let images = localImageArtifacts ?? verifiedImageArtifacts
         for artifact in images {
@@ -188,6 +189,11 @@ public enum IOSDemoCatalog {
                     searchTerms: searchTerms["irodori"] ?? [], artifacts: speechArtifacts,
                     defaultArtifactID: initialSpeech.id, platforms: [.iOS],
                     demos: [ModelDemoLink(demoID: "speech", platforms: [.iOS])]))
+        }
+        if let chronosArtifact {
+            models.append(
+                ChronosDemoCatalog.model(artifact: chronosArtifact, platforms: [.iOS], searchTerms: searchTerms))
+            demos.append(ChronosDemoCatalog.demo(platforms: [.iOS], searchTerms: searchTerms))
         }
         return try ModelCatalog(models: models, demos: demos)
     }

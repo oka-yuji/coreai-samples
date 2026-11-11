@@ -556,6 +556,7 @@ private enum ContractFamily {
     case image
     case speech
     case ocr
+    case chronos
 }
 
 private struct ContractSource: Decodable {
@@ -564,6 +565,12 @@ private struct ContractSource: Decodable {
 }
 
 private func family(_ artifact: ModelArtifact) throws -> ContractFamily {
+    if artifact.contract == ChronosModelArtifact.contract {
+        guard artifact == (try ChronosModelArtifact.make()) else {
+            throw ManagedModelStoreError.contractMismatch("Chronos inventory")
+        }
+        return .chronos
+    }
     if artifact.contract == JEVModelArtifact.contract {
         guard artifact == (try JEVModelArtifact.make()) else {
             throw ManagedModelStoreError.contractMismatch("JEV inventory")
@@ -724,6 +731,8 @@ private func verify(_ directory: URL, _ artifact: ModelArtifact) throws {
         try IrodoriBundleInventory.validateManifest(Data(contentsOf: directory.appending(path: "irodori.json")))
     case .ocr:
         try TeleOCRModelArtifact.validateManifest(Data(contentsOf: directory.appending(path: "metadata.json")))
+    case .chronos:
+        try ChronosModelArtifact.validateManifest(Data(contentsOf: directory.appending(path: "chronos2.json")))
     case .image:
         let raw = try Data(contentsOf: directory.appending(path: "bundle.json"))
         try verifyImageManifest(raw, artifact)
@@ -787,6 +796,7 @@ private func verifyLocalManifest(_ raw: Data, _ artifact: ModelArtifact) throws 
     case .image: try verifyImageManifest(raw, artifact)
     case .speech: try IrodoriBundleInventory.validateManifest(raw)
     case .ocr: try TeleOCRModelArtifact.validateManifest(raw)
+    case .chronos: try ChronosModelArtifact.validateManifest(raw)
     default: throw ManagedModelStoreError.invalidDefinition
     }
 }
