@@ -1,0 +1,55 @@
+{
+  "requests": 3,
+  "observations": [
+    {
+      "files": 6,
+      "bytes": 478028880
+    },
+    {
+      "files": 6,
+      "bytes": 478028880
+    },
+    {
+      "files": 6,
+      "bytes": 478028880
+    },
+    {
+      "files": 6,
+      "bytes": 478028880
+    }
+  ],
+  "compiled_artifacts_unchanged": true,
+  "files": [
+    {
+      "path": "26B131/chronos-verify/3094871fc431ae5d86d07c8b487ab53e48e60e9fb56efe803ba18c5bf88889c8/1437135650F5EB80B3545D58225DFBDAB1D3F672814A14BDB8BE67FA0A9BB0E1/model.aimodelx/main-this-delegates/MPSGraph/mpsExecutable.mpsgraphpackage/manifest.plist",
+      "bytes": 22816,
+      "sha256": "68a2c3504f4da73727629a7a2cff33f390d34c87be14185486c8012ba5b22022"
+    },
+    {
+      "path": "26B131/chronos-verify/3094871fc431ae5d86d07c8b487ab53e48e60e9fb56efe803ba18c5bf88889c8/1437135650F5EB80B3545D58225DFBDAB1D3F672814A14BDB8BE67FA0A9BB0E1/model.aimodelx/main-this-delegates/MPSGraph/mpsExecutable.mpsgraphpackage/original_model_0.mpsgraph",
+      "bytes": 88016,
+      "sha256": "74f18d76c3123dd079352b4ee3ceafebb0dd629a63800b2d79b06dfcf461bcac"
+    },
+    {
+      "path": "26B131/chronos-verify/3094871fc431ae5d86d07c8b487ab53e48e60e9fb56efe803ba18c5bf88889c8/1437135650F5EB80B3545D58225DFBDAB1D3F672814A14BDB8BE67FA0A9BB0E1/model.aimodelx/main-this-delegates/MPSGraph/mpsExecutable.mpsgraphpackage/reflection.fb",
+      "bytes": 236,
+      "sha256": "bbffc78b4d0cf38660336e32817d15cdc2f51e838a9085290a68a9eb2ec09df8"
+    },
+    {
+      "path": "26B131/chronos-verify/3094871fc431ae5d86d07c8b487ab53e48e60e9fb56efe803ba18c5bf88889c8/1437135650F5EB80B3545D58225DFBDAB1D3F672814A14BDB8BE67FA0A9BB0E1/model.aimodelx/main-this-delegates/MPSGraph/mpsExecutable.mpsgraphpackage/resources.bin",
+      "bytes": 477908756,
+      "sha256": "df6775d70942bddde2912b37593f8ef5e0ff8233ff53be34b80554cbc76dabee"
+    },
+    {
+      "path": "26B131/chronos-verify/3094871fc431ae5d86d07c8b487ab53e48e60e9fb56efe803ba18c5bf88889c8/1437135650F5EB80B3545D58225DFBDAB1D3F672814A14BDB8BE67FA0A9BB0E1/model.aimodelx/main-this.dbginfo",
+      "bytes": 5472,
+      "sha256": "bdc3155e813a15cbe99290e50db6491deee83da90df46814d269a464a372d55b"
+    },
+    {
+      "path": "26B131/chronos-verify/3094871fc431ae5d86d07c8b487ab53e48e60e9fb56efe803ba18c5bf88889c8/1437135650F5EB80B3545D58225DFBDAB1D3F672814A14BDB8BE67FA0A9BB0E1/model.aimodelx/main-this.odix",
+      "bytes": 3584,
+      "sha256": "bab0114475caf9ca562e718d2f44e83c080e31295e0989de6e279e1a3ad8e6d6"
+    }
+  ],
+  "scope": "Observed payloads only, 3 sequential fresh CLI processes. Cache index metadata and specialization events were not instrumented; no latency claim."
+}

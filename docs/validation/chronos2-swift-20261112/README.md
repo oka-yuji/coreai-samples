@@ -33,3 +33,9 @@ The SF scratch environment's CPU tests passed, while the first full-package run 
 ## Asset ownership review
 
 The initial runtime verified source files and then let Core AI reopen their original paths. A regular directory replacement between those operations could disconnect the reported identity from the loaded model. The final runtime copies or clones from open file descriptors into a private directory, validates that complete copy against the original identity, and retains its owner alongside the model and function. A stream-copy fallback remains bounded and checks cancellation. CPU regression tests replace the original graph after snapshot creation, corrupt the copy, inject copy failure, and verify cleanup. The final native gate below was repeated through this ownership path.
+
+## Cache and teardown scope
+
+The runtime deliberately makes a fresh private source snapshot for each load. Cross-load specialization-cache hits and warm-load performance are not promised. [Three additional fresh CLI processes](cache-observation.json) used new snapshot paths; the observed compiled-payload cache remained six files and 478028880 bytes with identical hashes before and after each process. This observation covers the compiled payload only, not cache-index metadata, internal specialization events or other devices. It does not establish an unlimited-run storage bound or a speed result.
+
+The native owner now explicitly drops its function and model references before allowing the source snapshot to be destroyed. Input/output files accept an aliased parent directory and normalized relative paths; bundle roots and internal entries retain no-follow checks. The parent-alias command regression failed before the fix and passed afterward.
