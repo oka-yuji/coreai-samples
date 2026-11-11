@@ -70,6 +70,8 @@
 
 ## 重いジョブ
 
+- NYC API日時の実取得・実モデル結合は共有heavy-jobロック下で `COREAI_CHRONOS2_API_BUNDLE=/path/to/bundle COREAI_CHRONOS2_API_REFERENCE=/path/to/fixed-scenes-reference.json COREAI_CHRONOS2_API_REPORT=/new/private/report.json swift test --package-path CoreAISamplesKit --filter ChronosAPINativeTests.liveHistoryAndNative`。2025-01-24 17:00 NYの履歴20,160値を固定集計と比較し、本番Models/Store/Serviceの20系列×21分位×16点をatol/rtol各1e-4で照合、close後lease 0を確認する。推論前に元応答bytesを含む`report.history.json`、合格時に入力snapshot/hashとraw出力を含む`report.json`を新規保存する。既定はskip。`COREAI_CHRONOS2_API_FIXTURES=/path/to/fixtures`で動く`ChronosAPIReplayTests`は提供応答のCPU再生で、実API・native・通常UIの合格に代用しない。
+
 - NYC固定デモの実モデル結合は共有heavy-jobロック下で `COREAI_CHRONOS2_DEMO_BUNDLE=/path/to/bundle COREAI_CHRONOS2_DEMO_REFERENCE=/path/to/fixed-scenes-reference.json swift test --package-path CoreAISamplesKit --filter ChronosDemoNativeTests.fixedScenes`。本番Models/Store/Service/Sessionsで3場面×20系列の全20,160値を固定atol/rtol各1e-4で比較し、stop後のlease 0を確認する。任意のデータ/結果変数は`docs/chronos2.md`。既定はskip。CPU成功を実モデル・Mac/iPhone UIの受入へ広げない。
 
 - Chronos-2のModels取込検査は共有heavy-jobロック下で `COREAI_CHRONOS2_IMPORT_BUNDLE=/path/to/chronos2-bundle swift test --package-path CoreAISamplesKit --filter ChronosImportTests.knownBundle`。固定9ファイル・478,864,956 bytesのimport/全量inspect/ready、lease中の削除拒否、解放後の削除、不正置換時の旧登録保持、取込前後の元hash一致を確認する。モデル推論は行わず、既定はskip。CPUの合成登録試験を実bundle取込・iPhone・通常UIの受入へ広げない。

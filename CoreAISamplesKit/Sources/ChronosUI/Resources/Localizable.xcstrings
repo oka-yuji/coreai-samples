@@ -18,6 +18,23 @@
         }
       }
     },
+    "API dates require the prepared model for prediction. Fixed scenes remain available without it." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "API dates require the prepared model for prediction. Fixed scenes remain available without it."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "APIの日時を予測するには準備済みのモデルが必要です。同梱の場面はモデルなしでも利用できます。"
+          }
+        }
+      }
+    },
     "Actual" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -103,6 +120,40 @@
         }
       }
     },
+    "Check published dates" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check published dates"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "公開済みの日時を確認"
+          }
+        }
+      }
+    },
+    "Choose an available New York date and time." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose an available New York date and time."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "利用できるニューヨークの日時を選んでください。"
+          }
+        }
+      }
+    },
     "Close and reopen the forecast to start this session." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -137,6 +188,23 @@
         }
       }
     },
+    "Data source" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Data source"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "データの取得元"
+          }
+        }
+      }
+    },
     "Device processing, including preparation when needed: %@ s" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -154,6 +222,108 @@
         }
       }
     },
+    "Displayed result: NYC API" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Displayed result: NYC API"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "表示中の結果: NYC API"
+          }
+        }
+      }
+    },
+    "Displayed result: fixed scene" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Displayed result: fixed scene"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "表示中の結果: 同梱の場面"
+          }
+        }
+      }
+    },
+    "Each taxi zone needs at least one observed count." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Each taxi zone needs at least one observed count."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "各タクシーゾーンに少なくとも1区間の観測が必要です。"
+          }
+        }
+      }
+    },
+    "Fetch 21-day history" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fetch 21-day history"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "21日分の履歴を取得"
+          }
+        }
+      }
+    },
+    "Fetch actual pickups" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fetch actual pickups"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "実際の乗車件数を取得"
+          }
+        }
+      }
+    },
+    "Fetch history, choose on-device prediction, then fetch actual pickups when you want to compare. Missing counts stay missing; published zero counts stay zero." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fetch history, choose on-device prediction, then fetch actual pickups when you want to compare. Missing counts stay missing; published zero counts stay zero."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "履歴を取得して端末内予測を選び、比較したいときに実際の乗車件数を取得します。欠損と、公開済みの0件は区別されます。"
+          }
+        }
+      }
+    },
     "Fixed January 2025 records · New York time" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -167,6 +337,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "2025年1月の固定記録 · ニューヨーク時間"
+          }
+        }
+      }
+    },
+    "Fixed scenes" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fixed scenes"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "同梱の場面"
           }
         }
       }
@@ -324,6 +511,40 @@
         }
       }
     },
+    "Missing history intervals: %lld" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Missing history intervals: %lld"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "履歴の欠損区間: %lld"
+          }
+        }
+      }
+    },
+    "Missing: repeated New York time" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Missing: repeated New York time"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "欠損: ニューヨークの重複時刻"
+          }
+        }
+      }
+    },
     "Model input: 21 days of pickup counts (1,008 half-hour bins). The chart shows the last 4 hours. One series at a time; no weather, event, zone ID or geographic inputs." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -337,6 +558,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "モデルへの入力は21日間の乗車件数（30分区間1,008個）です。グラフは直近4時間を表示します。1系列ずつ予測し、天候・イベント・ゾーンID・地理情報は入力しません。"
+          }
+        }
+      }
+    },
+    "NYC historical records · New York time" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "NYC historical records · New York time"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "NYCの過去の記録 · ニューヨーク時間"
           }
         }
       }
@@ -358,6 +596,91 @@
         }
       }
     },
+    "New York date" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New York date"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ニューヨークの日付"
+          }
+        }
+      }
+    },
+    "New York time" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New York time"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ニューヨークの時刻"
+          }
+        }
+      }
+    },
+    "No published history is available." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No published history is available."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "利用できる公開済みの履歴がありません。"
+          }
+        }
+      }
+    },
+    "Not fetched" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not fetched"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未取得"
+          }
+        }
+      }
+    },
+    "Not published" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not published"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未公開"
+          }
+        }
+      }
+    },
     "Not yet elapsed" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -375,6 +698,23 @@
         }
       }
     },
+    "Observed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Observed"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "観測済み"
+          }
+        }
+      }
+    },
     "Observed trips / 30 min" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -388,6 +728,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "実績件数 / 30分"
+          }
+        }
+      }
+    },
+    "Official NYC API dates" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Official NYC API dates"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "NYC公式APIの日時"
           }
         }
       }
@@ -494,6 +851,23 @@
         }
       }
     },
+    "Prediction failed. The prediction mode has not changed. Try again." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prediction failed. The prediction mode has not changed. Try again."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "予測に失敗しました。予測モードは変更されていません。もう一度お試しください。"
+          }
+        }
+      }
+    },
     "Prediction mode" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -507,6 +881,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "予測方式"
+          }
+        }
+      }
+    },
+    "Published years: %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Published years: %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "公開済みの年: %@"
           }
         }
       }
@@ -681,6 +1072,125 @@
         }
       }
     },
+    "The NYC API publishes historical annual datasets. TLC monthly files are a separate publication. A recent catalog update does not mean recent trip data." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The NYC API publishes historical annual datasets. TLC monthly files are a separate publication. A recent catalog update does not mean recent trip data."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "NYCのAPIは過去のデータを年単位で公開しています。TLCの月次ファイルとは別の公開です。カタログの更新日時は、乗車データの新しさを表しません。"
+          }
+        }
+      }
+    },
+    "The NYC response exceeded the download limit." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The NYC response exceeded the download limit."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "NYCからの応答が取得容量の上限を超えました。"
+          }
+        }
+      }
+    },
+    "The NYC service could not be reached. Try again." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The NYC service could not be reached. Try again."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "NYCのサービスに接続できませんでした。もう一度お試しください。"
+          }
+        }
+      }
+    },
+    "The NYC service is busy. Try again later." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The NYC service is busy. Try again later."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "NYCのサービスが混み合っています。しばらくしてからお試しください。"
+          }
+        }
+      }
+    },
+    "The NYC service redirected the request. The download was stopped." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The NYC service redirected the request. The download was stopped."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "NYCのサービスから別の取得先へ転送されたため、取得を停止しました。"
+          }
+        }
+      }
+    },
+    "The data failed validation. The previous result is still available." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The data failed validation. The previous result is still available."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "データの検証に失敗しました。前の結果は引き続き表示できます。"
+          }
+        }
+      }
+    },
+    "The downloaded history could not be cached. Try again." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The downloaded history could not be cached. Try again."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "取得した履歴を一時保存できませんでした。もう一度お試しください。"
+          }
+        }
+      }
+    },
     "The fixed data or precomputed results failed validation. Reinstall the app resources." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -694,6 +1204,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "固定データまたは事前計算結果の検証に失敗しました。アプリのリソースを再インストールしてください。"
+          }
+        }
+      }
+    },
+    "The full 21-day history has not been published. Choose another date." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The full 21-day history has not been published. Choose another date."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "21日分すべての履歴が公開されていません。別の日時を選んでください。"
           }
         }
       }

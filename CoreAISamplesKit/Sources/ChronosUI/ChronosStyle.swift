@@ -21,7 +21,7 @@ enum ChronosStyle {
     }
 
     static func demand(_ value: Float?) -> Color {
-        guard let value else { return .gray.opacity(0.15) }
+        guard let value, value.isFinite else { return .gray.opacity(0.15) }
         return switch value {
         case ..<50: Color.blue.opacity(0.18)
         case ..<100: Color.teal.opacity(0.35)
@@ -32,7 +32,7 @@ enum ChronosStyle {
     }
 
     static func count(_ value: Float?) -> String {
-        guard let value else { return "—" }
+        guard let value, value.isFinite else { return "—" }
         return String(format: "%.0f", max(0, value))
     }
 
@@ -40,7 +40,7 @@ enum ChronosStyle {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.timeZone = TimeZone(identifier: timeZone)
-        formatter.dateFormat = "HH:mm"
+        formatter.dateFormat = timeZone == "America/New_York" && NYCTime.isAmbiguous(date) ? "HH:mm zzz" : "HH:mm"
         return formatter.string(from: date)
     }
 

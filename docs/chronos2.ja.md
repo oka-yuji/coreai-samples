@@ -115,3 +115,29 @@ D5の明示試験は共有heavy-jobロック下で、`COREAI_CHRONOS2_DEMO_BUNDL
 
 - [実装計画 #548](https://github.com/oka-yuji/coreai-samples/issues/548)
 <!-- model-report:end -->
+
+## NYC公式APIの日時
+
+同梱3場面に加えて「NYC公式APIの日時」を選べる。「公開済みの日時を確認」からニューヨークの日付と30分刻みの時刻を選び、21日分の履歴を取得する。API日時の予測にはModelsの準備済み資源と「端末内予測」の明示選択が必要。予測成功後、「実際の乗車件数を取得」で実績を別途取得する。Modelsを開く操作や取得元の切替だけでは通信・推論を開始しない。
+
+APIは過去の年次データを公開する。TLCの月次Parquetとは別の公開で、カタログの更新日時を乗車データの新しさに読み替えない。2017年以降の終了済み年度を公式domain・owner・provenance・正確な年別名称から探す。0件として補う前に、選択年度のmetadataでidentity・revision・公開済みの履歴年次データという範囲と、日時の`calendar_date`・ゾーンの`number`型を検査する。途中の年度が未公開なら、前後の日時が選択範囲に入っていても21日履歴は取得できない。日時選択と取得の条件を共通にする。
+
+区間はUTCで1800秒ずつ進む。春に存在しない現地時刻は選択肢に入れず、秋の重複時刻は両方とも欠損にする。区別不能な合算件数を片方へ割り当てない。公開済みの0件・未公開・重複時刻の欠損・未取得を区別する。取得失敗時は前の有効な表示とモードを保持する。時刻を進める際も、明示取得した実績の経過済み区間だけを欠損マスクごと次の入力へ加える。
+
+`NYCAPIClient`が公開範囲の世代、通信、一時キャッシュを所有する。取得先は固定2ホストのHTTPSだけで、転送・認証を許さず、受信途中に8 MiBを超えたら停止する。集計行は50,000未満、問い合わせは年境界とUTCの最大7日で分ける。明示的な一過性エラーだけ1回再試行する。各windowに元の応答bytesとSHA-256、URL・区間・status・取得時刻・catalogとdatasetのmetadataを残す。キャッシュは読込前の種類・サイズ検査、各hashの検査、元bytesからの件数再構成を通す。最大32件、1件の元bytesは32 MiB、符号化済みファイルは48 MiB、全体は64 MiBまで。
+
+API予測はゾーンごとのnative全21分位×16点と、不変の入力snapshotを保持する。hashはUTCの開始・予測起点、nullを保持した入力値、dataset版、前処理版、取得証拠を含む決定的なsorted-key JSONのSHA-256。`series`が実際のモデル入力で、後の予測の`actuals`は取り込んだ経過済み区間を裏付ける取得元の証拠。実績の追加取得で以前のsnapshotを変更しない。キャッシュは永続的な予測記録ではない。
+
+提供応答のオフライン再生は、`api-baseline`・`api-fixed-history`・`api-fixed-actuals`を含むフォルダを指定する。
+
+```sh
+COREAI_CHRONOS2_API_FIXTURES=/path/to/fixtures swift test --package-path CoreAISamplesKit --filter ChronosAPIReplayTests
+```
+
+実績fixtureは2時間分だけで、追加の時間を観測済みと推定しない。親担当の実API・native検査は共有heavy-jobロック下で実行する。
+
+```sh
+COREAI_CHRONOS2_API_BUNDLE=/path/to/chronos2-bundle COREAI_CHRONOS2_API_REFERENCE=/path/to/fixed-scenes-reference.json COREAI_CHRONOS2_API_REPORT=/new/private/report.json swift test --package-path CoreAISamplesKit --filter ChronosAPINativeTests.liveHistoryAndNative
+```
+
+2025-01-24 17:00 NYの履歴20,160値を固定集計と比較し、本番Models/Store/Serviceのnative全6,720値を固定atol/rtol各1e-4で照合、close後のlease 0を確認する。推論前に`report.history.json`、照合成功時に`report.json`を保存する。出力はどちらも新規のprivateな場所を使う。既定ではskip。CPU fake・オフライン再生を実API・native・Mac/iPhoneの通常UI・署名・本人受入の合格に広げない。上の生成済み検証表の範囲は従来のまま維持する。

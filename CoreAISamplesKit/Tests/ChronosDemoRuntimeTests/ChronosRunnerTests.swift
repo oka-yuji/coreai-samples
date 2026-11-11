@@ -183,6 +183,69 @@ struct ChronosRunnerTests {
         await service.release()
     }
 
+    @Test(
+        "A4 Production API service requires an explicit native request and preserves missing inputs and complete raw outputs"
+    )
+    func apiRaw() async throws {
+        let capture = ChronosCapture()
+        let fake = try ChronosAPITransportFake()
+        let api = ChronosAPIFixture.client(fake)
+        let resource = session(number: 1).resource
+        var factories = 0
+        let service = LiveChronosService(
+            resource: resource, api: api,
+            makeRuntime: { _, manifest in
+                factories += 1
+                return ChronosRuntime(factory: { ChronosDemoPredictor(capture: capture, manifest: manifest) })
+            })
+        let loaded = try await service.load()
+        #expect(await fake.requests.isEmpty)
+        let origin = try ChronosAPIFixture.date("2025-11-03T22:00:00Z")
+        let history = try await service.history(endingAt: origin, areaIDs: loaded.catalog.areas.map(\.id))
+        let catalog = try loaded.catalog.replacingWithAPI(history)
+        let scene = try #require(catalog.scenarios.first)
+        let request = try #require(catalog.request(scenarioID: scene.id, step: 0, mode: .live))
+        #expect(request.series.allSatisfy { $0.values.filter(\.isNaN).count == 4 })
+        let calls = await fake.requests.count
+        await #expect(throws: ChronosDemoFailure.unavailable) {
+            try await service.actuals(startingAt: origin, areaIDs: loaded.catalog.areas.map(\.id))
+        }
+        #expect(await fake.requests.count == calls && factories == 0)
+        let preview = ChronosForecastRequest(
+            scenarioID: scene.id, originStep: 0, mode: .precomputed, series: request.series, snapshot: request.snapshot)
+        await #expect(throws: ChronosDemoFailure.invalidData) { try await service.predict(preview) }
+        let batch = try await service.predict(request)
+        #expect(batch.inputSnapshot == request.snapshot)
+        #expect(batch.inputSHA256 == (try await api.validate(#require(request.snapshot))))
+        #expect(batch.areas.allSatisfy { $0.raw?.quantiles.count == 21 && $0.raw?.quantiles[20][15] == -1 })
+        let captured = await capture.values
+        #expect(captured.count == 20 && captured.allSatisfy { $0.count == 1008 && $0.filter(\.isNaN).count == 4 })
+        let actuals = try await service.actuals(startingAt: origin, areaIDs: loaded.catalog.areas.map(\.id))
+        #expect(actuals.count == 16 && batch.inputSnapshot?.actuals == nil)
+        await service.release()
+    }
+
+    @Test("A3 Revoked owners and cancellation suppress noncooperative API completion", arguments: [false, true])
+    func delayedAPI(_ revoke: Bool) async throws {
+        let fake = try ChronosAPITransportFake()
+        let api = ChronosAPIFixture.client(fake)
+        var permitted = true
+        let service = LiveChronosService(api: api, permits: { permitted })
+        let runner = ChronosRunner(service: service, permits: { permitted })
+        await fake.hold()
+        var actions: [ChronosFeature.Action] = []
+        let pending = Task { await runner.run(.coverage(10)) { actions.append($0) } }
+        var started = fake.started.stream.makeAsyncIterator()
+        _ = await started.next()
+        if revoke { permitted = false } else { pending.cancel() }
+        let release = Task { await runner.release() }
+        await fake.finish()
+        await pending.value
+        await release.value
+        #expect(actions.isEmpty)
+        #expect(await fake.continuation == nil)
+    }
+
     @Test("D3 Permission lost after one native series prevents the remaining nineteen")
     func seriesBoundary() async throws {
         let capture = ChronosCapture()

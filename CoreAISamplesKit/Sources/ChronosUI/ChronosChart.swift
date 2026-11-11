@@ -11,6 +11,7 @@ struct ChronosChart: View {
         let id: Int
         let time: Date
         let value: Float
+        let segment: Int
     }
 
     private var history: [Point] {
@@ -18,18 +19,38 @@ struct ChronosChart: View {
         let originStep = state.forecast?.originStep ?? state.clockStep
         guard let values = catalog.history(scenarioID: state.scenarioID, areaID: state.areaID, step: originStep)
         else { return [] }
-        var points = values.suffix(8).enumerated().map { index, value in
-            Point(id: index, time: catalog.time(at: originStep - 8 + index, scenarioID: state.scenarioID), value: value)
+        var segment = 0
+        var points: [Point] = []
+        for (index, value) in values.suffix(8).enumerated() {
+            guard value.isFinite else {
+                segment += 1
+                continue
+            }
+            points.append(
+                Point(
+                    id: index, time: catalog.time(at: originStep - 8 + index, scenarioID: state.scenarioID),
+                    value: value, segment: segment))
         }
         if let forecast = state.forecast {
             for lead in 0..<4 {
                 let target = forecast.originStep + lead
-                if let value = catalog.revealedValue(
-                    scenarioID: state.scenarioID, areaID: state.areaID,
-                    targetStep: target, clockStep: state.clockStep)
+                let value: Float?
+                if let actuals = state.selectedScenario?.apiActuals?.series.first(where: { $0.areaID == state.areaID }),
+                    actuals.values.indices.contains(target)
                 {
+                    value = actuals.values[target]
+                } else {
+                    value = catalog.revealedValue(
+                        scenarioID: state.scenarioID, areaID: state.areaID, targetStep: target,
+                        clockStep: state.clockStep)
+                }
+                if let value {
                     points.append(
-                        Point(id: 8 + lead, time: catalog.time(at: target, scenarioID: state.scenarioID), value: value))
+                        Point(
+                            id: 8 + lead, time: catalog.time(at: target, scenarioID: state.scenarioID), value: value,
+                            segment: segment))
+                } else {
+                    segment += 1
                 }
             }
         }
@@ -70,7 +91,7 @@ struct ChronosChart: View {
                 ForEach(history) { point in
                     LineMark(
                         x: .value(copy("Time"), point.time), y: .value(copy("Trips"), point.value),
-                        series: .value(copy("Series"), copy("Actual"))
+                        series: .value(copy("Series"), String(point.segment))
                     )
                     .foregroundStyle(Color.blue)
                     .lineStyle(StrokeStyle(lineWidth: 2))

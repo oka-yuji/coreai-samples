@@ -123,3 +123,29 @@ Results below retain their original dates and workloads. Different rows may use 
 
 - [Implementation plan #548](https://github.com/oka-yuji/coreai-samples/issues/548)
 <!-- model-report:end -->
+
+## Official NYC API dates
+
+The date source supplements the three bundled scenes. Select **Official NYC API dates**, check published dates, choose a New York date and half-hour, and fetch the 21-day history. A prepared Models resource and explicit **On-device prediction** are required to predict an API date. Fetch actual pickups separately after a successful prediction. Entering Models or switching the source starts neither a request nor inference.
+
+The API publishes historical annual datasets; TLC monthly Parquet files are a different publication. The catalog's modification date is not trip-data freshness. Closed years from 2017 onward are discovered from the official domain, owner, provenance and exact annual name. Before filling absent rows with zero, the selected dataset's metadata must confirm the same identity/revision, published historical annual scope and `calendar_date`/`number` column types. A missing year invalidates a 21-day history even when dates on both sides are listed. Requests and date selection share this restriction.
+
+Intervals advance by 1,800 seconds in UTC. New York controls omit spring's nonexistent times. Both occurrences of autumn's repeated floating timestamps are missing; their combined provider counts are never assigned to either occurrence. Published zero is observed zero. Unpublished, ambiguous and not-yet-fetched intervals remain distinct. Failures retain the previous valid display and mode. Advancing uses only the elapsed prefix of explicitly fetched actuals, including its missing mask.
+
+`NYCAPIClient` owns coverage generations, transport and disposable cache. Requests use the two fixed HTTPS hosts, reject redirects and credentials, stop receiving above 8 MiB and accept fewer than 50,000 aggregate rows. Queries split at year boundaries and at seven UTC days. Only an explicit transient error receives one retry. Each window retains original response bytes and SHA-256, query URL/bounds, status, acquisition time and catalog/dataset metadata. Cache reads check file type and size before allocation, then revalidate hashes and rebuild counts from original bytes. Limits are 32 windows, 32 MiB of raw evidence per window, 48 MiB per encoded cache file and 64 MiB total cache storage.
+
+An API forecast retains all native 21×16 values per zone plus its immutable input snapshot. Its SHA-256 covers deterministic sorted-key JSON with UTC start/origin, nullable input counts, dataset revisions, preprocessing version and acquisition evidence. The snapshot's `series` is the exact model input; any `actuals` member is source evidence for the elapsed prefix used by that later prediction. Fetching future actuals never changes an earlier snapshot. The cache is not a saved forecast journal.
+
+CPU tests include fault injection and an optional replay of supplied original responses:
+
+```sh
+COREAI_CHRONOS2_API_FIXTURES=/path/to/fixtures swift test --package-path CoreAISamplesKit --filter ChronosAPIReplayTests
+```
+
+The fixtures directory contains `api-baseline`, `api-fixed-history` and `api-fixed-actuals`. The fixed actuals fixture covers two hours; replay does not infer additional observed hours. Under the shared heavy-job lock, the parent can run the live API/native acceptance check:
+
+```sh
+COREAI_CHRONOS2_API_BUNDLE=/path/to/chronos2-bundle COREAI_CHRONOS2_API_REFERENCE=/path/to/fixed-scenes-reference.json COREAI_CHRONOS2_API_REPORT=/new/private/report.json swift test --package-path CoreAISamplesKit --filter ChronosAPINativeTests.liveHistoryAndNative
+```
+
+It checks Friday 2025-01-24 17:00 New York history against all 20,160 pinned input values, then compares all 6,720 native values through production Models/Store/Service at fixed `atol = rtol = 1e-4` and checks zero leases after closing. It writes `report.history.json` before inference and `report.json` after successful comparison; both must be new private paths. Default tests skip this check. Offline replay and CPU fakes do not establish live API, native, Mac/iPhone UI, signing or user acceptance. The existing generated validation tables above retain their original scope.

@@ -31,7 +31,7 @@ enum LibrarySelectionSelfTest {
                 Demo.taxiForecast.model == .chronos
                     && DemoModel.chronos.demos == [.taxiForecast]
                     && Demo.taxiForecast.libraryID == ChronosDemoCatalog.selection.demoID,
-                "Chronos opens the fixed NYC forecast from its sidebar section.")
+                "Chronos opens fixed scenes and official NYC API dates from its sidebar section.")
             guard let model = catalog.model(ChronosDemoCatalog.selection.modelID) else {
                 check("library/chronosPresentation", false, "The Chronos model is missing.")
                 return
