@@ -199,7 +199,7 @@ public struct ChronosScreen: View {
             }
             if let seconds = state.forecast?.processingSeconds {
                 Text(
-                    "Device processing: \(seconds.formatted(.number.precision(.fractionLength(2)))) s", bundle: .module
+                    "Device processing, including preparation when needed: \(seconds.formatted(.number.precision(.fractionLength(2)))) s", bundle: .module
                 )
                 .font(.caption)
             }

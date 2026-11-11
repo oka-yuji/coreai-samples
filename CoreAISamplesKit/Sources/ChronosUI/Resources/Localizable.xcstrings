@@ -137,19 +137,19 @@
         }
       }
     },
-    "Device processing: %@ s" : {
+    "Device processing, including preparation when needed: %@ s" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Device processing: %@ s"
+            "value" : "Device processing, including preparation when needed: %@ s"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "端末での処理：%@秒"
+            "value" : "端末内処理（必要なモデル準備を含む）：%@秒"
           }
         }
       }
