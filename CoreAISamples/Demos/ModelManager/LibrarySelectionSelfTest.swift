@@ -3,11 +3,60 @@ import ModelLibraryFeature
 import ModelLibraryRuntime
 import ModelLibraryStorage
 import ModelLibraryTransfer
+import ModelLibraryUI
 import Observation
 
 @MainActor
 enum LibrarySelectionSelfTest {
+    static func checkPresentation(_ check: (String, Bool, String) -> Void) {
+        do {
+            let catalog = try MacDemoCatalog.make()
+            let sidebarIDs = DemoModel.allCases.map(\.libraryID)
+            check(
+                "library/sidebarModels",
+                sidebarIDs.count == Set(sidebarIDs).count
+                    && Set(sidebarIDs) == Set(catalog.models.map(\.id)),
+                "The actual sidebar model IDs match the Mac catalog.")
+            let mapped = DemoModel.allCases.allSatisfy { model in
+                guard let entry = catalog.model(model.libraryID) else { return false }
+                let demos = model.demos.map(\.libraryID)
+                return demos.count == Set(demos).count && Set(demos) == Set(entry.demos.map(\.demoID))
+                    && demos.allSatisfy { catalog.demo($0)?.platforms.contains(.macOS) == true }
+            }
+            check(
+                "library/sidebarDemos", mapped && Demo.allCases.allSatisfy { $0.model != nil },
+                "Each actual sidebar demo belongs to its catalog model.")
+            check(
+                "library/chronosSidebarForecast",
+                Demo.taxiForecast.model == .chronos
+                    && DemoModel.chronos.demos == [.taxiForecast]
+                    && Demo.taxiForecast.libraryID == ChronosDemoCatalog.selection.demoID,
+                "Chronos opens the fixed NYC forecast from its sidebar section.")
+            guard let model = catalog.model(ChronosDemoCatalog.selection.modelID) else {
+                check("library/chronosPresentation", false, "The Chronos model is missing.")
+                return
+            }
+            let state = ModelLibraryState(
+                catalog: catalog, environment: LibraryEnvironment(platform: .macOS), owner: UUID())
+            for code in ["en", "ja"] {
+                let locale = Locale(identifier: code)
+                let translated = Bundle.main.localizedString(
+                    forKey: model.category, value: nil, table: nil,
+                    localizations: [Locale.Language(identifier: code)])
+                let classification = ModelClassificationPresentation.classification(for: model, locale: locale)
+                let row = state.rowDetail(for: model, classification: classification, locale: locale)
+                check(
+                    "library/chronosCategory/" + code,
+                    !translated.isEmpty && (code == "en" ? translated == model.category : translated != model.category)
+                        && classification == translated && row.hasPrefix(translated + " · ")
+                        && model.name == "Chronos-2" && model.category == "Time Series Forecasting",
+                    "The UI classification and row use the main app catalog in the requested locale.")
+            }
+        } catch { check("library/presentation", false, error.localizedDescription) }
+    }
+
     static func run(_ check: (String, Bool, String) -> Void) async {
+        checkPresentation(check)
         let root = URL.temporaryDirectory.appending(path: "library-selection-" + UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: root) }
         do {

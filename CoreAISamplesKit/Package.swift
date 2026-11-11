@@ -16,6 +16,9 @@ let package = Package(
         .iOS("27.0"),
     ],
     products: [
+        .library(name: "ChronosFeature", targets: ["ChronosFeature"]),
+        .library(name: "ChronosDemoRuntime", targets: ["ChronosDemoRuntime"]),
+        .library(name: "ChronosUI", targets: ["ChronosUI"]),
         .library(name: "ChronosCore", targets: ["ChronosCore"]),
         .library(name: "ChronosRuntime", targets: ["ChronosRuntime"]),
         .executable(name: "chronos-verify", targets: ["chronos-verify"]),
@@ -85,6 +88,24 @@ let package = Package(
         .package(url: "https://github.com/swiftlang/swift-markdown.git", exact: "0.9.0"),
     ],
     targets: [
+        .target(name: "ChronosFeature", dependencies: ["ChronosCore", "FeatureStore"], swiftSettings: speechSettings),
+        .target(
+            name: "ChronosDemoRuntime",
+            dependencies: ["ChronosFeature", "ChronosRuntime", "ModelLibraryFeature", "FeatureStore"],
+            resources: [.copy("Resources/NYCData")], swiftSettings: speechSettings),
+        .target(
+            name: "ChronosUI",
+            dependencies: ["ChronosFeature", "ChronosDemoRuntime", "FeatureStore", "ModelLibraryRuntime"],
+            resources: [.process("Resources")], swiftSettings: speechSettings + [.defaultIsolation(MainActor.self)]),
+        .testTarget(
+            name: "ChronosFeatureTests", dependencies: ["ChronosFeature", "ChronosCore", "FeatureStore"],
+            swiftSettings: speechSettings),
+        .testTarget(
+            name: "ChronosDemoRuntimeTests",
+            dependencies: [
+                "ChronosDemoRuntime", "ChronosFeature", "ChronosRuntime", "FeatureStore", "ModelLibraryRuntime",
+                "ModelLibraryStorage", "ModelLibraryTransfer",
+            ], swiftSettings: speechSettings),
         .target(name: "ChronosCore", swiftSettings: speechSettings),
         .target(name: "ChronosRuntime", dependencies: ["ChronosCore"], swiftSettings: speechSettings),
         .executableTarget(

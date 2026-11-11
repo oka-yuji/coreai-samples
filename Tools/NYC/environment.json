@@ -1,0 +1,12 @@
+{
+  "python": "3.12.12",
+  "packages": {
+    "numpy": "2.5.4",
+    "pyarrow": "26.0.1",
+    "pyshp": "3.1.8",
+    "pyproj": "3.8.0",
+    "shapely": "2.2.0",
+    "certifi": "2026.10.23"
+  },
+  "note": "Used for independent/reproduction data checks. Keep Python3.12 requirement; NumPy2.5.4 does not support3.11."
+}

@@ -1,5 +1,6 @@
 #if os(iOS)
     import AVFoundation
+    import ChronosUI
     import FeatureStore
     import Foundation
     import ImageGenerationCore
@@ -17,7 +18,7 @@
         static let adapters: [any ModelDemoAdapter] = {
             var result: [any ModelDemoAdapter] = [
                 ProductComparisonAdapter(), ExtractionAdapter(), InspectionAdapter(), ImageSearchAdapter(),
-                VideoSearchAdapter(), ObjectFinderAdapter(), SpeechAdapter(),
+                VideoSearchAdapter(), ObjectFinderAdapter(), SpeechAdapter(), ChronosAdapter(),
             ]
             if (try? IOSDemoCatalog.make().demos.contains { $0.id == "image-generation" }) == true {
                 result.append(
@@ -47,7 +48,8 @@
         static func catalog(searchTerms: [String: [String]] = [:]) throws -> ModelCatalog {
             try IOSDemoCatalog.make(
                 searchTerms: searchTerms, speechArtifact: IrodoriModelArtifact.make(),
-                referenceSpeechArtifact: IrodoriModelArtifact.makeReferenceDownload())
+                referenceSpeechArtifact: IrodoriModelArtifact.makeReferenceDownload(),
+                chronosArtifact: ChronosModelArtifact.make())
         }
 
         static func make(catalog: ModelCatalog) -> ModelLibraryAssembly.Library {

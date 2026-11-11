@@ -47,6 +47,12 @@ enum DemoAppMain {
                     catalog: { try MacDemoCatalog.make() }))
         }
         if LaunchArguments.flag("--check-localization") {
+            var failures = 0
+            LibrarySelectionSelfTest.checkPresentation { name, passed, detail in
+                print("\(passed ? "PASS" : "FAIL") \(name): \(detail)")
+                if !passed { failures += 1 }
+            }
+            if failures > 0 { exit(1) }
             DemoLocalizationCheck.run()
             return
         }

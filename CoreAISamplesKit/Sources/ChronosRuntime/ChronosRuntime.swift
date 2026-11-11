@@ -29,8 +29,10 @@ public actor ChronosRuntime {
     private var closing = false
     private var waiters: [CheckedContinuation<Void, Never>] = []
 
-    public init(bundleURL: URL) {
-        factory = { try await ChronosNativePredictor.load(bundleURL: bundleURL) }
+    public init(bundleURL: URL, expectedManifestSHA256: String? = nil) {
+        factory = {
+            try await ChronosNativePredictor.load(bundleURL: bundleURL, expectedManifestSHA256: expectedManifestSHA256)
+        }
         observe = { _ in }
     }
 

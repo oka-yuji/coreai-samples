@@ -41,6 +41,8 @@ targets:
         basedOnDependencyAnalysis: false
     dependencies:
       - package: CoreAISamplesKit
+        product: ChronosUI
+      - package: CoreAISamplesKit
         product: OCRFeature
       - package: CoreAISamplesKit
         product: OCRDemoRuntime
@@ -176,6 +178,8 @@ targets:
         shell: /bin/bash
         basedOnDependencyAnalysis: false
     dependencies:
+      - package: CoreAISamplesKit
+        product: ChronosUI
       - package: CoreAISamplesKit
         product: ImageGenerationCore
       - package: CoreAISamplesKit

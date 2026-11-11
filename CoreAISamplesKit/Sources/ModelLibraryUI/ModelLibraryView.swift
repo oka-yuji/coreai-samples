@@ -173,8 +173,13 @@
                 HStack(alignment: .firstTextBaseline) {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(verbatim: section.model.name).font(.headline)
-                        Text(verbatim: store.state.rowDetail(for: section.model, locale: locale))
-                            .font(.footnote).foregroundStyle(.secondary)
+                        Text(
+                            verbatim: store.state.rowDetail(
+                                for: section.model,
+                                classification: ModelClassificationPresentation.classification(
+                                    for: section.model, locale: locale), locale: locale)
+                        )
+                        .font(.footnote).foregroundStyle(.secondary)
                     }
                     Spacer(minLength: 8)
                     ModelAcquisitionControls(store: store, model: section.model) {

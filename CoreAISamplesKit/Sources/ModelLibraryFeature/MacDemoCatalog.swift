@@ -1,7 +1,8 @@
 public enum MacDemoCatalog {
     public static func make(
         searchTerms: [String: [String]] = [:], speechArtifact: ModelArtifact, ocrArtifact: ModelArtifact,
-        qwenArtifact: ModelArtifact, clefArtifact: ModelArtifact, jevArtifact: ModelArtifact
+        qwenArtifact: ModelArtifact, clefArtifact: ModelArtifact, jevArtifact: ModelArtifact,
+        chronosArtifact: ModelArtifact
     ) throws -> ModelCatalog {
         let mac: Set<LibraryPlatform> = [.macOS]
         let demos = [
@@ -46,8 +47,9 @@ public enum MacDemoCatalog {
                 model("irodori", "Irodori", "Speech Synthesis", [speechArtifact], ["speech"]),
                 TeleOCRDemoCatalog.model(artifact: ocrArtifact),
                 ReceiptDemoCatalog.model(artifact: jevArtifact),
+                ChronosDemoCatalog.model(artifact: chronosArtifact, platforms: mac, searchTerms: searchTerms),
             ],
-            demos: demos + [ReceiptDemoCatalog.demo])
+            demos: demos + [ReceiptDemoCatalog.demo, ChronosDemoCatalog.demo(platforms: mac, searchTerms: searchTerms)])
     }
 
 }

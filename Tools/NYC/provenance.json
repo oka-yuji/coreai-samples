@@ -1,0 +1,11 @@
+{
+  "reviewed_at": "2026-11-11T14:48:12.733070+00:00",
+  "sources": {
+    "tlc": "https://www.nyc.gov/site/tlc/about/tlc-trip-record-data.page",
+    "public_policy": "https://cityofnewyork.github.io/opendatatsm/publicpolicies.html",
+    "statute": "https://cityofnewyork.github.io/opendatatsm/LocalLaw11of2012.html",
+    "city_terms": "https://www.nyc.gov/main/terms-of-use"
+  },
+  "implementation_decision": "Attribute NYC TLC/City of New York, exact source versions/hashes and aggregation/geometry modifications. Retain informational-use/no-accuracy-guarantee context. Do not label the data Apache-2.0 or CC0, use City logos, or imply endorsement. Include only bounded aggregate counts and simplified GIS data, not raw trips.",
+  "basis": "City public data policy and section23-502(d) describe unrestricted public data use subject to source/version/modification identification; the technical standards explicitly address republishing and application use. TLC states that vendors supplied the records and does not warrant their accuracy."
+}
