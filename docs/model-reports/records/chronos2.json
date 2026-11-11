@@ -117,7 +117,7 @@
       "route": "chronos-verify --verify; separate opt-in native test",
       "source_revision": "29ec3766d36d6f73f0696f85560a422f50e8498c",
       "artifact_revision": "786dcf97e020c987cbf883f09b486fba5f3fee30a588b87a346ea65d72d20572",
-      "code_revision": "2682861432afa020bba6f9ac9d540ca62de0f830",
+      "code_revision": "25903277e60e99bfd85e217a96d69b18df82852c",
       "workload": {
         "en": "18 fixed cases / 6048 raw values, then release/reload and the first 336 values again. Numerical validation, no warmup or performance benchmark. Power/thermal and a benchmark-plan hash were not recorded.",
         "ja": "固定18条件・6048原値、その後の解放/再ロードで先頭336値を再照合。warmupなしの数値検証で性能比較ではない。電源/熱とbenchmark計画hashは未記録。"
