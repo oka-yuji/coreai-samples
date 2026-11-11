@@ -1,6 +1,16 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "About this demo" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このデモについて"
+          }
+        }
+      }
+    },
     "Compare fixed NYC pickup records with a precomputed preview or an explicit on-device forecast." : {
       "extractionState" : "manual",
       "localizations" : {

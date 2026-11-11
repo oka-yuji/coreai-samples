@@ -27,11 +27,12 @@ public final class ChronosAdapter: ModelDemoAdapter {
 public struct ChronosPreview: View {
     @State private var store = ChronosDemoSessions.preview()
     @Environment(\.scenePhase) private var phase
+    private let scrollsContent: Bool
 
-    public init() {}
+    public init(scrollsContent: Bool = true) { self.scrollsContent = scrollsContent }
 
     public var body: some View {
-        ChronosScreen(store: store)
+        ChronosScreen(store: store, scrollsContent: scrollsContent)
             .onAppear { store.send(.appear) }
             .onDisappear { store.send(.suspend) }
             .onChange(of: phase) { _, phase in store.send(phase == .active ? .appear : .suspend) }

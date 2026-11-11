@@ -111,6 +111,7 @@
     struct ChronosPreviewView: View {
         let library: MacModelLibrary
         @State private var deletion: ModelDeletionRequest?
+        @Environment(\.locale) private var locale
 
         var body: some View {
             Group {
@@ -125,31 +126,56 @@
                     } else if let session = store.state.session, session.selection == ChronosDemoCatalog.selection {
                         rendering.content(for: session)
                     } else {
-                        VStack(spacing: 0) {
-                            if let model = store.state.catalog.model(ChronosDemoCatalog.selection.modelID) {
-                                HStack {
-                                    ModelAcquisitionControls(
-                                        store: store, model: model,
-                                        requestDeletion: {
-                                            deletion = ModelDeletionRequest(model: model, artifact: $0)
-                                        },
-                                        showsActionTitle: true)
-                                    if let artifact = store.state.selectedArtifact(for: model.id),
-                                        store.state.installations[artifact.id]?.phase == .ready
-                                    {
-                                        Button("Open on-device forecast") {
-                                            store.send(.openDemo(ChronosDemoCatalog.selection))
+                        ScrollView {
+                            VStack(spacing: 0) {
+                                if let model = store.state.catalog.model(ChronosDemoCatalog.selection.modelID) {
+                                    if let demo = store.state.catalog.demo(ChronosDemoCatalog.selection.demoID) {
+                                        VStack(alignment: .leading, spacing: 8) {
+                                            Text(
+                                                verbatim: ModelClassificationPresentation.classification(
+                                                    for: model, locale: locale)
+                                            ).font(.footnote).foregroundStyle(.secondary)
+                                            Text(LocalizedStringKey(demo.summary)).foregroundStyle(.secondary)
+                                            DisclosureGroup("About this demo") {
+                                                VStack(alignment: .leading, spacing: 12) {
+                                                    ForEach(Array(demo.explanation.enumerated()), id: \.offset) {
+                                                        _, section in
+                                                        VStack(alignment: .leading, spacing: 5) {
+                                                            Text(LocalizedStringKey(section.title)).font(.headline)
+                                                            Text(LocalizedStringKey(section.text))
+                                                        }
+                                                    }
+                                                }.padding(.vertical, 8)
+                                            }
                                         }
-                                        .buttonStyle(.borderedProminent)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                        .padding(.horizontal)
                                     }
-                                }.padding()
-                                if let artifact = store.state.selectedArtifact(for: model.id),
-                                    let failure = store.state.installations[artifact.id]?.failure
-                                {
-                                    LibraryFailureView(failure: failure)
+                                    HStack {
+                                        ModelAcquisitionControls(
+                                            store: store, model: model,
+                                            requestDeletion: {
+                                                deletion = ModelDeletionRequest(model: model, artifact: $0)
+                                            },
+                                            showsActionTitle: true)
+                                        if let artifact = store.state.selectedArtifact(for: model.id),
+                                            store.state.installations[artifact.id]?.phase == .ready
+                                        {
+                                            Button("Open on-device forecast") {
+                                                store.send(.openDemo(ChronosDemoCatalog.selection))
+                                            }
+                                            .buttonStyle(.borderedProminent)
+                                        }
+                                    }.padding()
+                                    if let artifact = store.state.selectedArtifact(for: model.id),
+                                        let failure = store.state.installations[artifact.id]?.failure
+                                    {
+                                        LibraryFailureView(failure: failure)
+                                    }
                                 }
+                                ChronosPreview(scrollsContent: false)
                             }
-                            ChronosPreview()
                         }.modelDeletionAlert(store: store, deletion: $deletion)
                     }
                 } else {

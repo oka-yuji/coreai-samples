@@ -4,81 +4,95 @@ import SwiftUI
 
 public struct ChronosScreen: View {
     private let store: Store<ChronosFeature>
+    private let scrollsContent: Bool
     @Environment(\.locale) private var locale
 
-    public init(store: Store<ChronosFeature>) { self.store = store }
+    public init(store: Store<ChronosFeature>, scrollsContent: Bool = true) {
+        self.store = store
+        self.scrollsContent = scrollsContent
+    }
     private var state: ChronosFeature.State { store.state }
 
     public var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                Text("NYC taxi pickups", bundle: .module).font(.largeTitle.bold())
-                Text("Fixed January 2025 records · New York time", bundle: .module).foregroundStyle(.secondary)
-                if let catalog = state.catalog {
-                    controls(catalog)
-                    HStack {
-                        Text(
-                            LocalizedStringKey(state.mode == .live ? "On-device prediction" : "Precomputed preview"),
-                            bundle: .module
-                        )
-                        .font(.headline)
-                        Spacer()
-                        Text(
-                            ChronosStyle.day(
-                                catalog.time(at: state.clockStep, scenarioID: state.scenarioID),
-                                timeZone: catalog.timeZone))
-                    }
-                    Text("Simulation clock · New York", bundle: .module).font(.caption)
-                    Text(ChronosStyle.time(catalog.time(at: state.clockStep, scenarioID: state.scenarioID)))
-                        .font(.title2.monospacedDigit())
-                    if !state.liveAvailable {
-                        Text(
-                            "This preview uses fixed precomputed results. Open the prepared model from Models for on-device prediction.",
-                            bundle: .module
-                        )
-                        .font(.callout).foregroundStyle(.secondary)
-                    }
-                    actions
-                    if state.phase == .predicting || state.phase == .stopping { ProgressView() }
-                    if let error = state.error {
-                        Text(LocalizedStringKey(ChronosCopy.failure(error)), bundle: .module).foregroundStyle(.red)
-                    }
-                    interval(catalog)
-                    ChronosMap(state: state, select: { store.send(.selectArea($0)) })
-                    numbers
-                    ChronosChart(state: state, compact: false)
-                    Text(
-                        "Model input: 21 days of pickup counts (1,008 half-hour bins). The chart shows the last 4 hours. One series at a time; no weather, event, zone ID or geographic inputs.",
-                        bundle: .module
-                    )
-                    .font(.caption).foregroundStyle(.secondary)
-                    Text(
-                        "Counts are recorded pickups, not passengers or unmet demand. The 10–90% quantile range is not a calibrated coverage guarantee. This is not real-time data.",
-                        bundle: .module
-                    )
-                    .font(.caption).foregroundStyle(.secondary)
-                    Text(
-                        "Apple basemap tiles need a network connection. The fixed records and on-device prediction work offline.",
-                        bundle: .module
-                    )
-                    .font(.caption).foregroundStyle(.secondary)
-                    if let source = URL(string: "https://www.nyc.gov/site/tlc/about/tlc-trip-record-data.page") {
-                        Link(destination: source) { Text("Source: NYC Taxi & Limousine Commission", bundle: .module) }
-                            .font(.caption)
-                    }
-                } else if let error = state.error {
-                    Text(LocalizedStringKey(ChronosCopy.failure(error)), bundle: .module)
-                    Button {
-                        store.send(.appear)
-                    } label: {
-                        Text("Try again", bundle: .module)
-                    }
-                } else {
-                    ProgressView()
-                }
+        #if os(macOS)
+            if scrollsContent {
+                ScrollView { contents }
+            } else {
+                contents
             }
-            .padding(20).frame(maxWidth: 1000, alignment: .leading).frame(maxWidth: .infinity)
+        #else
+            contents
+        #endif
+    }
+
+    private var contents: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            Text("NYC taxi pickups", bundle: .module).font(.largeTitle.bold())
+            Text("Fixed January 2025 records · New York time", bundle: .module).foregroundStyle(.secondary)
+            if let catalog = state.catalog {
+                controls(catalog)
+                HStack {
+                    Text(
+                        LocalizedStringKey(state.mode == .live ? "On-device prediction" : "Precomputed preview"),
+                        bundle: .module
+                    )
+                    .font(.headline)
+                    Spacer()
+                    Text(
+                        ChronosStyle.day(
+                            catalog.time(at: state.clockStep, scenarioID: state.scenarioID),
+                            timeZone: catalog.timeZone))
+                }
+                Text("Simulation clock · New York", bundle: .module).font(.caption)
+                Text(ChronosStyle.time(catalog.time(at: state.clockStep, scenarioID: state.scenarioID)))
+                    .font(.title2.monospacedDigit())
+                if !state.liveAvailable {
+                    Text(
+                        "This preview uses fixed precomputed results. Open the prepared model from Models for on-device prediction.",
+                        bundle: .module
+                    )
+                    .font(.callout).foregroundStyle(.secondary)
+                }
+                actions
+                if state.phase == .predicting || state.phase == .stopping { ProgressView() }
+                if let error = state.error {
+                    Text(LocalizedStringKey(ChronosCopy.failure(error)), bundle: .module).foregroundStyle(.red)
+                }
+                interval(catalog)
+                ChronosMap(state: state, select: { store.send(.selectArea($0)) })
+                numbers
+                ChronosChart(state: state, compact: false)
+                Text(
+                    "Model input: 21 days of pickup counts (1,008 half-hour bins). The chart shows the last 4 hours. One series at a time; no weather, event, zone ID or geographic inputs.",
+                    bundle: .module
+                )
+                .font(.caption).foregroundStyle(.secondary)
+                Text(
+                    "Counts are recorded pickups, not passengers or unmet demand. The 10–90% quantile range is not a calibrated coverage guarantee. This is not real-time data.",
+                    bundle: .module
+                )
+                .font(.caption).foregroundStyle(.secondary)
+                Text(
+                    "Apple basemap tiles need a network connection. The fixed records and on-device prediction work offline.",
+                    bundle: .module
+                )
+                .font(.caption).foregroundStyle(.secondary)
+                if let source = URL(string: "https://www.nyc.gov/site/tlc/about/tlc-trip-record-data.page") {
+                    Link(destination: source) { Text("Source: NYC Taxi & Limousine Commission", bundle: .module) }
+                        .font(.caption)
+                }
+            } else if let error = state.error {
+                Text(LocalizedStringKey(ChronosCopy.failure(error)), bundle: .module)
+                Button {
+                    store.send(.appear)
+                } label: {
+                    Text("Try again", bundle: .module)
+                }
+            } else {
+                ProgressView()
+            }
         }
+        .padding(20).frame(maxWidth: 1000, alignment: .leading).frame(maxWidth: .infinity)
     }
 
     private func controls(_ catalog: ChronosCatalog) -> some View {
@@ -199,7 +213,8 @@ public struct ChronosScreen: View {
             }
             if let seconds = state.forecast?.processingSeconds {
                 Text(
-                    "Device processing, including preparation when needed: \(seconds.formatted(.number.precision(.fractionLength(2)))) s", bundle: .module
+                    "Device processing, including preparation when needed: \(seconds.formatted(.number.precision(.fractionLength(2)))) s",
+                    bundle: .module
                 )
                 .font(.caption)
             }
