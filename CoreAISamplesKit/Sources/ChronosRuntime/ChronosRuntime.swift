@@ -91,7 +91,7 @@ public actor ChronosRuntime {
             paddedCount: context.paddedValues.count,
             seconds: Double(duration.seconds) + Double(duration.attoseconds) / 1e18, loaded: loaded,
             timingBoundary:
-                "Runtime request through validated output; includes bundle hashing and model loading when loaded is true."
+                "Runtime request through validated output; includes bundle hashing, verified snapshot copying and model loading when loaded is true."
         )
     }
 

@@ -4,13 +4,15 @@ import Foundation
 
 struct ChronosNativePredictor: ChronosPredictor {
     let identity: ChronosBundleIdentity
+    private let snapshot: ChronosBundleSnapshot
     private let model: AIModel
     private let function: InferenceFunction
 
     @concurrent
     static func load(bundleURL: URL) async throws -> Self {
         try Task.checkCancellation()
-        let bundle = try await ChronosBundle.open(bundleURL)
+        let snapshot = try await ChronosBundleSnapshot.open(bundleURL)
+        let bundle = snapshot.bundle
         try Task.checkCancellation()
         var options = SpecializationOptions(preferredComputeUnitKind: .gpu)
         options.expectFrequentReshapes = false
@@ -23,7 +25,7 @@ struct ChronosNativePredictor: ChronosPredictor {
         guard let function = try model.loadFunction(named: "main") else { throw ChronosError.invalidModel }
         try validate(function.descriptor)
         try Task.checkCancellation()
-        return Self(identity: bundle.identity, model: model, function: function)
+        return Self(identity: bundle.identity, snapshot: snapshot, model: model, function: function)
     }
 
     @concurrent
