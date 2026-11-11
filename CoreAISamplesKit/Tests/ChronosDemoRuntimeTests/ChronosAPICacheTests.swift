@@ -6,6 +6,22 @@ import Testing
 
 @Suite(.timeLimit(.minutes(1)))
 struct ChronosAPICacheTests {
+    @Test("A4 A new save removes abandoned staging files without deleting unrelated files")
+    func abandonedStaging() async throws {
+        let root = try ChronosAPIFixture.temporary()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let abandoned = root.appending(path: UUID().uuidString + ".tmp")
+        let unrelated = root.appending(path: "retained.txt")
+        try Data("incomplete cache write".utf8).write(to: abandoned)
+        try Data("retained".utf8).write(to: unrelated)
+        let client = ChronosAPIFixture.client(try ChronosAPITransportFake(), cache: root)
+        _ = try await client.window(
+            start: ChronosAPIFixture.date("2025-01-03T22:00:00Z"), count: 1, areaIDs: ["230"])
+        #expect(!FileManager.default.fileExists(atPath: abandoned.path))
+        #expect(try Data(contentsOf: unrelated) == Data("retained".utf8))
+        #expect(try windowFiles(root).count == 1)
+    }
+
     @Test("A4 An intact envelope cannot conceal a modified original response")
     func rawHash() async throws {
         let root = try ChronosAPIFixture.temporary()
@@ -14,8 +30,7 @@ struct ChronosAPICacheTests {
         let client = ChronosAPIFixture.client(fake, cache: root)
         let date = try ChronosAPIFixture.date("2025-01-03T22:00:00Z")
         _ = try await client.window(start: date, count: 1, areaIDs: ["230"])
-        let path = try #require(
-            FileManager.default.contentsOfDirectory(at: root, includingPropertiesForKeys: nil).first)
+        let path = try #require(windowFiles(root).first)
         var envelope = try #require(JSONSerialization.jsonObject(with: Data(contentsOf: path)) as? [String: Any])
         let encodedPayload = try #require(envelope["payload"] as? String)
         let payload = try #require(Data(base64Encoded: encodedPayload))
@@ -46,8 +61,7 @@ struct ChronosAPICacheTests {
         #expect(cached == first)
         #expect(cached.responses[0].data == (try ChronosAPIFixture.rows()))
         #expect(await fake.requests.count == calls)
-        let path = try #require(
-            FileManager.default.contentsOfDirectory(at: root, includingPropertiesForKeys: nil).first)
+        let path = try #require(windowFiles(root).first)
         try Data("broken".utf8).write(to: path)
         await fake.setStatus(503)
         await #expect(throws: ChronosDemoFailure.network) {
@@ -66,8 +80,7 @@ struct ChronosAPICacheTests {
         let client = ChronosAPIFixture.client(fake, cache: cache)
         let date = try ChronosAPIFixture.date("2025-01-03T22:00:00Z")
         _ = try await client.window(start: date, count: 1, areaIDs: ["230"])
-        let file = try #require(
-            FileManager.default.contentsOfDirectory(at: cache, includingPropertiesForKeys: nil).first)
+        let file = try #require(windowFiles(cache).first)
         if link {
             try FileManager.default.removeItem(at: file)
             let sentinel = root.appending(path: "sentinel")
@@ -95,6 +108,11 @@ struct ChronosAPICacheTests {
             _ = try await client.window(
                 start: date.addingTimeInterval(Double(index * 1800)), count: 1, areaIDs: ["230"])
         }
-        #expect(try FileManager.default.contentsOfDirectory(atPath: root.path).count == 32)
+        #expect(try windowFiles(root).count == 32)
+    }
+
+    private func windowFiles(_ directory: URL) throws -> [URL] {
+        try FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil)
+            .filter { $0.pathExtension == "json" }
     }
 }

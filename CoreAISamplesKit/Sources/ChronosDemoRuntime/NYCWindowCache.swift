@@ -39,6 +39,16 @@ struct NYCWindowCache {
         let folder = open(directory.path, O_RDONLY | O_DIRECTORY | O_NOFOLLOW)
         guard folder >= 0 else { throw ChronosDemoFailure.persistence }
         defer { close(folder) }
+        let lock = openat(folder, ".lock", O_CREAT | O_RDWR | O_NOFOLLOW | O_NONBLOCK, 0o600)
+        guard lock >= 0 else { throw ChronosDemoFailure.persistence }
+        defer { close(lock) }
+        var lockInfo = stat()
+        guard fstat(lock, &lockInfo) == 0, lockInfo.st_mode & S_IFMT == S_IFREG,
+            flock(lock, LOCK_EX) == 0
+        else { throw ChronosDemoFailure.persistence }
+        defer { flock(lock, LOCK_UN) }
+        try Task.checkCancellation()
+        try removeAbandonedStaging(folder: folder, directory: directory)
         let temporary = UUID().uuidString + ".tmp"
         let descriptor = openat(folder, temporary, O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW, 0o600)
         guard descriptor >= 0 else { throw ChronosDemoFailure.persistence }
@@ -48,8 +58,20 @@ struct NYCWindowCache {
             unlinkat(folder, temporary, 0)
         }
         try file.write(contentsOf: data)
+        try Task.checkCancellation()
         guard renameat(folder, temporary, folder, key + ".json") == 0 else { throw ChronosDemoFailure.persistence }
         try prune(folder: folder, directory: directory, keeping: key + ".json", bytes: data.count)
+    }
+
+    private func removeAbandonedStaging(folder: Int32, directory: URL) throws {
+        for name in try FileManager.default.contentsOfDirectory(atPath: directory.path) {
+            guard name.hasSuffix(".tmp"), UUID(uuidString: String(name.dropLast(4))) != nil else { continue }
+            var info = stat()
+            guard fstatat(folder, name, &info, AT_SYMLINK_NOFOLLOW) == 0,
+                info.st_mode & S_IFMT == S_IFREG
+            else { continue }
+            guard unlinkat(folder, name, 0) == 0 else { throw ChronosDemoFailure.persistence }
+        }
     }
 
     private func prune(folder: Int32, directory: URL, keeping: String, bytes: Int) throws {
