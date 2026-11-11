@@ -1,0 +1,292 @@
+{
+  "version": 1,
+  "name": "chronos2_fp32",
+  "description": "Pinned Chronos-2 single-series FP32 conversion with independent 18-case reference verification.",
+  "variables": {
+    "adapters": "$repo/Tools/Conversion/adapters/chronos2"
+  },
+  "python": "$python",
+  "environment": {
+    "HF_HUB_OFFLINE": "1",
+    "TRANSFORMERS_OFFLINE": "1",
+    "TOKENIZERS_PARALLELISM": "false",
+    "OMP_NUM_THREADS": "4",
+    "MKL_NUM_THREADS": "4"
+  },
+  "steps": [
+    {
+      "id": "prepare",
+      "role": "prepare",
+      "command": [
+        "$python",
+        "-m",
+        "Tools.Conversion.adapters.chronos2.prepare",
+        "--model",
+        "$recipe_dir/model.json",
+        "--fixtures",
+        "$recipe_dir/fixtures.json",
+        "--snapshot",
+        "$snapshot",
+        "--setup-stamp",
+        "$setup_stamp",
+        "--out",
+        "$out"
+      ],
+      "cwd": "$repo",
+      "inputs": [
+        "$adapters",
+        "$recipe_dir",
+        "$repo/Tools/Conversion/*.py",
+        "$repo/Tools/Conversion/adapters/pinned.py",
+        "$setup_stamp",
+        "$snapshot"
+      ],
+      "outputs": [
+        "ready.json"
+      ],
+      "depends": [],
+      "heavy": true,
+      "cache": false,
+      "timeout_s": 1800,
+      "min_free_bytes": 4000000000,
+      "checks": [
+        {
+          "file": "ready.json",
+          "key": [
+            "ready"
+          ],
+          "equals": true
+        }
+      ]
+    },
+    {
+      "id": "reference",
+      "role": "reference",
+      "command": [
+        "$python",
+        "-m",
+        "Tools.Conversion.adapters.chronos2.reference",
+        "--model",
+        "$recipe_dir/model.json",
+        "--fixtures",
+        "$recipe_dir/fixtures.json",
+        "--snapshot",
+        "$snapshot",
+        "--ready",
+        "$prepare/ready.json",
+        "--out",
+        "$out"
+      ],
+      "cwd": "$repo",
+      "inputs": [
+        "$adapters",
+        "$recipe_dir",
+        "$repo/Tools/Conversion/*.py",
+        "$repo/Tools/Conversion/adapters/pinned.py",
+        "$setup_stamp",
+        "$snapshot"
+      ],
+      "outputs": [
+        "reference.json"
+      ],
+      "depends": [
+        "prepare"
+      ],
+      "heavy": true,
+      "cache": true,
+      "timeout_s": 1800,
+      "min_free_bytes": 4000000000
+    },
+    {
+      "id": "export",
+      "role": "export",
+      "command": [
+        "$python",
+        "-m",
+        "Tools.Conversion.adapters.chronos2.convert",
+        "--model",
+        "$recipe_dir/model.json",
+        "--fixtures",
+        "$recipe_dir/fixtures.json",
+        "--snapshot",
+        "$snapshot",
+        "--ready",
+        "$prepare/ready.json",
+        "--reference",
+        "$reference/reference.json",
+        "--out",
+        "$out"
+      ],
+      "cwd": "$repo",
+      "inputs": [
+        "$adapters",
+        "$recipe_dir",
+        "$repo/Tools/Conversion/*.py",
+        "$repo/Tools/Conversion/adapters/pinned.py",
+        "$setup_stamp",
+        "$snapshot"
+      ],
+      "outputs": [
+        "Model.aimodel",
+        "export.json",
+        "wrapper-actuals.json",
+        "wrapper-comparison.json"
+      ],
+      "depends": [
+        "prepare",
+        "reference"
+      ],
+      "heavy": true,
+      "cache": true,
+      "timeout_s": 3600,
+      "min_free_bytes": 4000000000,
+      "checks": [
+        {
+          "file": "wrapper-comparison.json",
+          "key": [
+            "passed"
+          ],
+          "equals": true
+        },
+        {
+          "file": "wrapper-comparison.json",
+          "key": [
+            "count"
+          ],
+          "equals": 18
+        },
+        {
+          "file": "wrapper-comparison.json",
+          "key": [
+            "elements"
+          ],
+          "equals": 6048
+        }
+      ]
+    },
+    {
+      "id": "verify",
+      "role": "verify",
+      "command": [
+        "$python",
+        "-m",
+        "Tools.Conversion.adapters.chronos2.verify",
+        "--model",
+        "$recipe_dir/model.json",
+        "--fixtures",
+        "$recipe_dir/fixtures.json",
+        "--ready",
+        "$prepare/ready.json",
+        "--reference",
+        "$reference/reference.json",
+        "--export",
+        "$export",
+        "--out",
+        "$out"
+      ],
+      "cwd": "$repo",
+      "inputs": [
+        "$adapters",
+        "$recipe_dir",
+        "$repo/Tools/Conversion/*.py",
+        "$repo/Tools/Conversion/adapters/pinned.py",
+        "$setup_stamp"
+      ],
+      "outputs": [
+        "actuals.json",
+        "comparison.json",
+        "inspection.json",
+        "inspection-raw.json"
+      ],
+      "depends": [
+        "prepare",
+        "reference",
+        "export"
+      ],
+      "heavy": true,
+      "cache": true,
+      "timeout_s": 1800,
+      "min_free_bytes": 4000000000,
+      "checks": [
+        {
+          "file": "comparison.json",
+          "key": [
+            "passed"
+          ],
+          "equals": true
+        },
+        {
+          "file": "comparison.json",
+          "key": [
+            "count"
+          ],
+          "equals": 18
+        },
+        {
+          "file": "comparison.json",
+          "key": [
+            "elements"
+          ],
+          "equals": 6048
+        }
+      ]
+    },
+    {
+      "id": "bundle",
+      "role": "export",
+      "command": [
+        "$python",
+        "-m",
+        "Tools.Conversion.adapters.chronos2.bundle",
+        "--model",
+        "$recipe_dir/model.json",
+        "--fixtures",
+        "$recipe_dir/fixtures.json",
+        "--snapshot",
+        "$snapshot",
+        "--ready",
+        "$prepare/ready.json",
+        "--reference",
+        "$reference/reference.json",
+        "--export",
+        "$export",
+        "--verified",
+        "$verify",
+        "--out",
+        "$out"
+      ],
+      "cwd": "$repo",
+      "inputs": [
+        "$adapters",
+        "$recipe_dir",
+        "$repo/Tools/Conversion/*.py",
+        "$repo/Tools/Conversion/adapters/pinned.py",
+        "$setup_stamp",
+        "$snapshot"
+      ],
+      "outputs": [
+        "bundle",
+        "inventory.json"
+      ],
+      "depends": [
+        "prepare",
+        "reference",
+        "export",
+        "verify"
+      ],
+      "heavy": true,
+      "cache": true,
+      "timeout_s": 1800,
+      "min_free_bytes": 4000000000,
+      "checks": [
+        {
+          "file": "bundle/chronos2.json",
+          "key": [
+            "format"
+          ],
+          "equals": "coreai-samples-chronos2/1"
+        }
+      ]
+    }
+  ]
+}
