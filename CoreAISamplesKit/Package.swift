@@ -16,6 +16,9 @@ let package = Package(
         .iOS("27.0"),
     ],
     products: [
+        .library(name: "ChronosCore", targets: ["ChronosCore"]),
+        .library(name: "ChronosRuntime", targets: ["ChronosRuntime"]),
+        .executable(name: "chronos-verify", targets: ["chronos-verify"]),
         .library(name: "ReceiptUI", targets: ["ReceiptUI"]),
         .library(name: "ReceiptDemoRuntime", targets: ["ReceiptDemoRuntime"]),
         .library(name: "ReceiptFeature", targets: ["ReceiptFeature"]),
@@ -82,6 +85,13 @@ let package = Package(
         .package(url: "https://github.com/swiftlang/swift-markdown.git", exact: "0.9.0"),
     ],
     targets: [
+        .target(name: "ChronosCore", swiftSettings: speechSettings),
+        .target(name: "ChronosRuntime", dependencies: ["ChronosCore"], swiftSettings: speechSettings),
+        .executableTarget(
+            name: "chronos-verify", dependencies: ["ChronosCore", "ChronosRuntime"], swiftSettings: speechSettings),
+        .testTarget(name: "ChronosCoreTests", dependencies: ["ChronosCore"], swiftSettings: speechSettings),
+        .testTarget(
+            name: "ChronosRuntimeTests", dependencies: ["ChronosCore", "ChronosRuntime"], swiftSettings: speechSettings),
         .target(
             name: "ReceiptUI", dependencies: ["ReceiptCore", "ReceiptFeature", "FeatureStore"],
             resources: [.process("Resources")], swiftSettings: speechSettings + [.defaultIsolation(MainActor.self)]),
