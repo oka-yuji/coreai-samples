@@ -35,6 +35,7 @@ struct PreviewDemo: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 15) {
             TextField("Sample input", text: $state.text, axis: .vertical).textFieldStyle(.roundedBorder)
+            Button("Set sample input") { state.text = "A changed sample input." }
             Button("Show sample result") { state.result = "Preview only. No inference was performed." }
                 .buttonStyle(.borderedProminent)
             if !state.result.isEmpty { Text(state.result) }

@@ -5,9 +5,16 @@ import SwiftUI
 
 @main
 struct ModelLibraryPreviewApp: App {
+    var body: some Scene {
+        WindowGroup { PreviewScreen() }
+    }
+}
+
+private struct PreviewScreen: View {
     @State private var driver: PreviewDriver
     @State private var store: Store<ModelLibraryFeature>
     @State private var renderer: PreviewRenderer
+    @State private var holdsStops = false
 
     init() {
         do {
@@ -23,23 +30,25 @@ struct ModelLibraryPreviewApp: App {
         } catch { preconditionFailure(String(describing: error)) }
     }
 
-    var body: some Scene {
-        WindowGroup {
-            VStack(spacing: 0) {
-                HStack {
-                    Text("UI preview · no real models").font(.caption)
-                    Spacer()
-                    Menu("Transfer controls") {
-                        Button("Complete pending downloads") { driver.completeDownloads() }
-                        Button("Fail pending downloads") { driver.failDownloads() }
-                    }
-                    .font(.caption)
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Text("UI preview · no real models").font(.caption)
+                Spacer()
+                Menu("Preview controls") {
+                    Button("Complete pending downloads") { driver.completeDownloads() }
+                    Button("Fail pending downloads") { driver.failDownloads() }
+                    Toggle("Hold demo stops", isOn: $holdsStops)
+                    Button("Complete pending stops") { driver.resolveStops(success: true) }
+                    Button("Fail pending stops") { driver.resolveStops(success: false) }
                 }
-                .padding(10)
-                .background(.yellow.opacity(0.15))
-                ModelLibraryView(store: store, renderer: renderer)
+                .font(.caption)
             }
+            .padding(10)
+            .background(.yellow.opacity(0.15))
+            ModelLibraryView(store: store, renderer: renderer)
         }
+        .onChange(of: holdsStops) { _, value in driver.holdsStops = value }
     }
 }
 
@@ -48,6 +57,8 @@ final class PreviewDriver {
     let catalog: ModelCatalog
     private var installed: Set<String> = ["sample-text-fp32"]
     private var pending: [String: CheckedContinuation<URL, any Error>] = [:]
+    var holdsStops = false
+    private var pendingStops: [LibraryTicket: AsyncStream<Bool>.Continuation] = [:]
 
     init(catalog: ModelCatalog) { self.catalog = catalog }
 
@@ -65,6 +76,11 @@ final class PreviewDriver {
             }
         case .validate(let model, let artifact, let request, _):
             send(.validated(artifact.id, request, resource(model, artifact)))
+        case .importBundle(_, let artifact, let request, _):
+            send(.failed(artifact.id, request, .operation("This fixture does not import real model files.")))
+        case .stopImport(let model, let artifact, let request):
+            send(
+                .importStopped(artifact.id, request, installed.contains(artifact.id) ? resource(model, artifact) : nil))
         case .stopTransfer(let artifactID, let request):
             pending.removeValue(forKey: artifactID)?.resume(throwing: CancellationError())
             send(.transferStopped(artifactID, request))
@@ -72,7 +88,43 @@ final class PreviewDriver {
             installed.remove(resource.artifactID)
             send(.deleted(resource.artifactID, request))
         case .stopDemo(let session, let request):
-            send(.demoStopped(session.id, request))
+            if holdsStops {
+                let channel = AsyncStream<Bool>.makeStream(bufferingPolicy: .bufferingNewest(1))
+                pendingStops[request] = channel.continuation
+                defer {
+                    pendingStops.removeValue(forKey: request)
+                    channel.continuation.finish()
+                }
+                var iterator = channel.stream.makeAsyncIterator()
+                guard let success = await iterator.next(), !Task.isCancelled else { return }
+                if success {
+                    send(.demoStopped(session.id, request))
+                } else {
+                    send(.demoStopFailed(session.id, request, "Preview stop failure"))
+                }
+            } else {
+                send(.demoStopped(session.id, request))
+            }
+        case .prepareDemo(let session):
+            send(.demoPreparationChanged(session.id, .available))
+        case .acquireUsage(let identity, let request):
+            let model = catalog.model(identity.modelID)
+            let artifact = model?.artifacts.first { $0.id == identity.artifactID }
+            let value = model.flatMap { model in
+                artifact.flatMap { installed.contains($0.id) ? resource(model, $0) : nil }
+            }
+            send(.usageAcquired(identity.artifactID, request, value))
+        case .releaseUsage:
+            break
+        }
+    }
+
+    func resolveStops(success: Bool) {
+        let pending = pendingStops
+        pendingStops.removeAll()
+        for continuation in pending.values {
+            continuation.yield(success)
+            continuation.finish()
         }
     }
 

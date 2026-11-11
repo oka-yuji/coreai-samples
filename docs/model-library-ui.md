@@ -10,6 +10,16 @@ The renderer must retain each demo's input/result state across view reconstructi
 
 The controller and real model runner are supplied by app integration; the iOS app uses `ModelLibraryRendering` and `ModelLibraryRunner` from `ModelLibraryRuntime` (see [Runtime](model-library-contracts.md#runtime)). Published model definitions require verified distribution metadata; this component supplies no invented repositories or model revisions. Individual demo redesigns remain separate from this shared host. Dynamic demo text currently resolves through the host app bundle; app integration must supply and verify the corresponding translations and searchable labels in both English and Japanese. The synthetic preview uses English demo names.
 
+## Adaptive navigation
+
+The iOS host uses one `NavigationSplitView` for the model sidebar and selected demo. Regular widths request both columns, with flexible width preferences for the sidebar and detail; the system adjusts them for available space and reserved regions. Compact widths show one column; the selected demo is preferred when the window becomes compact. The detail has a selection-scoped identity, while the library Store and renderer remain owned by the same `PhoneModelLibraryScreen` across resizing.
+
+`ModelLibraryNavigation` derives the preferred compact column and navigation intent from the current selection, pending destination and user action. Selecting the current tile explicitly presents detail even when the Feature makes no state change. Search remains in the sidebar and its query stays in the Store.
+
+The compact detail's **Back to Models** control sends `closeDemo` and is disabled while a stop is pending. The system Back control is hidden from the start so it cannot pop the detail before the stop is acknowledged. Failed stops keep the retry controls visible. The selected demo and its model title remain in detail until the matching acknowledgement clears the selection. This intentionally makes returning an app-controlled action, rather than relying on a native pop followed by repair of the preferred-column binding.
+
+Model switching still uses `openDemo` and the existing stop barrier. Resize synchronization sends no navigation action. The renderer's scrolling-content contract, resource ownership, background suspension and demo-specific stop behavior remain unchanged. A background suspension is different from a layout resize; any input/result cleanup already required by a demo's stop contract still applies.
+
 ## Validation
 
 The reusable UI compiles with the iOS 27 device SDK and through the independent [native preview](../Examples/ModelLibraryPreview/README.md) with the iOS 27 simulator SDK. Its String Catalog contains English source strings and complete Japanese translations. Compiled Japanese strings are present in the generated resource bundle.

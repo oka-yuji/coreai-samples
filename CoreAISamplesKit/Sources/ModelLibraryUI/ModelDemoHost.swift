@@ -7,6 +7,7 @@
         let store: Store<ModelLibraryFeature>
         let renderer: Renderer
         let selection: DemoSelection
+        let showsReturn: Bool
         @State private var explanationExpanded = false
         @State private var showingModel = false
         @State private var deletion: ModelDeletionRequest?
@@ -63,6 +64,7 @@
                         .padding()
                     }
                     .navigationTitle(Text(verbatim: model.name))
+                    .navigationBarBackButtonHidden()
                     .navigationSubtitle(
                         store.state.variantTitle(for: model.id).map {
                             Text(
@@ -72,6 +74,25 @@
                             ?? Text(verbatim: "")
                     )
                     .toolbar {
+                        if showsReturn {
+                            ToolbarItem(placement: .topBarLeading) {
+                                Button {
+                                    if store.state.selection == selection,
+                                        ModelLibraryNavigation.resolve(.showSidebar, state: store.state).destination
+                                            == .library
+                                    {
+                                        store.send(.closeDemo)
+                                    }
+                                } label: {
+                                    Label {
+                                        libraryText("Back to Models")
+                                    } icon: {
+                                        Image(systemName: "chevron.backward")
+                                    }
+                                }
+                                .disabled(store.state.pendingDestination != nil)
+                            }
+                        }
                         ToolbarItem(placement: .topBarTrailing) {
                             Button {
                                 showingModel = true

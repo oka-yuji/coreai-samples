@@ -15,20 +15,29 @@
         private let leadingToolbar: AnyView?
         @State private var deletion: ModelDeletionRequest?
         @State private var showsAbout = false
+        @State private var preferredColumn: ModelLibraryNavigation.Column
+        @State private var columnVisibility = NavigationSplitViewVisibility.all
         @Environment(\.locale) private var locale
+        @Environment(\.horizontalSizeClass) private var horizontalSizeClass
         @ScaledMetric(relativeTo: .body) private var tileWidth = 88
 
         public init(store: Store<ModelLibraryFeature>, renderer: Renderer, leadingToolbar: AnyView? = nil) {
             self.store = store
             self.renderer = renderer
             self.leadingToolbar = leadingToolbar
+            _preferredColumn = State(
+                initialValue: ModelLibraryNavigation.resolve(.synchronize, state: store.state).column)
         }
 
-        private var navigation: Binding<[DemoSelection]> {
+        private var compactColumn: Binding<NavigationSplitViewColumn> {
             Binding(
-                get: { store.state.selection.map { [$0] } ?? [] },
-                set: { path in
-                    if let selection = path.last { store.send(.openDemo(selection)) } else { store.send(.closeDemo) }
+                get: { preferredColumn == .sidebar ? .sidebar : .detail },
+                set: { column in
+                    if column == .sidebar, horizontalSizeClass == .compact {
+                        navigate(.showSidebar)
+                    } else {
+                        preferredColumn = column == .sidebar ? .sidebar : .detail
+                    }
                 })
         }
 
@@ -37,8 +46,9 @@
         }
 
         public var body: some View {
-            NavigationStack(path: navigation) {
+            NavigationSplitView(columnVisibility: $columnVisibility, preferredCompactColumn: compactColumn) {
                 models
+                    .navigationSplitViewColumnWidth(min: 240, ideal: 280)
                     .navigationTitle(Text(verbatim: "Models"))
                     .searchable(text: query, prompt: libraryText("Search models and demos"))
                     .toolbar {
@@ -59,11 +69,35 @@
                             }
                         }
                     }
-                    .navigationDestination(for: DemoSelection.self) { selection in
-                        ModelDemoHost(store: store, renderer: renderer, selection: selection)
+            } detail: {
+                if let selection = store.state.selection {
+                    ModelDemoHost(
+                        store: store, renderer: renderer, selection: selection,
+                        showsReturn: horizontalSizeClass == .compact
+                    )
+                    .id(selection)
+                    .navigationSplitViewColumnWidth(min: 240, ideal: 320)
+                } else {
+                    ContentUnavailableView {
+                        Label {
+                            libraryText("Choose a demo for a model.")
+                        } icon: {
+                            Image(systemName: "square.grid.2x2")
+                        }
+                    } description: {
+                        libraryText("You can read each demo before preparing its model.")
                     }
+                    .navigationSplitViewColumnWidth(min: 240, ideal: 320)
+                }
             }
+            .navigationSplitViewStyle(.balanced)
             .onAppear { store.send(.refresh) }
+            .onChange(of: store.state.selection) { _, _ in navigate(.synchronize) }
+            .onChange(of: store.state.pendingDestination) { _, _ in navigate(.synchronize) }
+            .onChange(of: horizontalSizeClass) { _, sizeClass in
+                if sizeClass == .regular { columnVisibility = .all }
+                navigate(.synchronize)
+            }
             .sheet(isPresented: $showsAbout) {
                 NavigationStack {
                     VStack(alignment: .leading, spacing: 18) {
@@ -90,6 +124,18 @@
                 .presentationDetents([.medium, .large])
             }
             .modelDeletionAlert(store: store, deletion: $deletion)
+        }
+
+        private func navigate(_ intent: ModelLibraryNavigation.Intent) {
+            let update = ModelLibraryNavigation.resolve(intent, state: store.state)
+            preferredColumn = update.column
+            if let destination = update.destination {
+                switch destination {
+                case .library: store.send(.closeDemo)
+                case .demo(let selection): store.send(.openDemo(selection))
+                }
+                preferredColumn = ModelLibraryNavigation.resolve(.synchronize, state: store.state).column
+            }
         }
 
         private var models: some View {
@@ -141,7 +187,7 @@
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: tileWidth), spacing: 16)], spacing: 20) {
                     ForEach(section.demos) { demo in
                         Button {
-                            store.send(.openDemo(DemoSelection(modelID: section.id, demoID: demo.id)))
+                            navigate(.select(DemoSelection(modelID: section.id, demoID: demo.id)))
                         } label: {
                             ModelDemoTile(demo: demo)
                         }
