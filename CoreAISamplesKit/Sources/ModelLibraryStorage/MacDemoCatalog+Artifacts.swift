@@ -6,6 +6,6 @@ extension MacDemoCatalog {
             searchTerms: searchTerms, speechArtifact: IrodoriModelArtifact.makeReferenceDownload(platforms: [.macOS]),
             ocrArtifact: TeleOCRModelArtifact.make(),
             qwenArtifact: LanguageModelArtifacts.qwen(), clefArtifact: LanguageModelArtifacts.clef(),
-            jevArtifact: JEVModelArtifact.make())
+            jevArtifact: JEVModelArtifact.make(), chronosArtifact: ChronosModelArtifact.make())
     }
 }

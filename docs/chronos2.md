@@ -8,7 +8,7 @@ A reproducible FP32 Core AI conversion of Amazon Chronos-2 for one time series a
 
 Use [the maintainer recipe](../Tools/Conversion/recipes/chronos2/README.md) with the pinned official snapshot. Inputs contain 1-8192 observations; missing values and left padding are NaN. The native input is Float32[1,T], T a multiple of 16. The output is Float32[1,21,16], with no state. This profile does not expose covariates, cross-learning, quantization or longer forecast horizons.
 
-No weights are hosted by this repository. The recipe creates a local bundle and inventory for later Models registration. A fresh conversion can have a different asset/manifest hash; update the trusted catalog only after verifying that exact bundle.
+No weights are hosted by this repository. The recipe creates a local bundle and inventory. A fresh conversion can have a different asset/manifest hash; update the trusted catalog only after verifying that exact bundle.
 
 ## Conversion verification
 
@@ -23,6 +23,16 @@ swift run --package-path CoreAISamplesKit chronos-verify --help
 ```
 
 Explicit model commands require the shared lock in `AGENTS.md`. JSON input is `{"context":[1,2,null,4]}`; `null` is missing. Results preserve the full raw `[1,21,16]` tensor and identity. Output files must be new and have an existing parent directory.
+
+## Models import and preview
+
+Models on Mac and iOS lists Chronos-2 with a taxi-demand forecast preview. Select **Import model** and choose the complete prepared Chronos-2 FP32 folder. The nine files use 478,864,956 bytes (about 479 MB); allow additional space for the managed copy. This build provides no download URL. The forecast screen is not connected, and opening Models, importing or inspecting the bundle does not start inference.
+
+The trusted artifact is `chronos2-fp32`, contract `chronos2-fp32-v1`, from `amazon/chronos-2` revision `29ec3766d36d6f73f0696f85560a422f50e8498c`. Its `chronos2.json` SHA-256 is `786dcf97e020c987cbf883f09b486fba5f3fee30a588b87a346ea65d72d20572`. Models requires the exact original manifest bytes and all nine pinned file sizes and hashes. That byte identity fixes the metadata contract, including the state-free Float32 `[1,T]` to `[1,21,16]` ABI, without loading the model or creating a runtime snapshot during import. Even reformatting the manifest requires a new trusted identity.
+
+The existing Models store copies and checks the folder before promotion. Altered, missing, extra or symbolic-link entries are rejected; a rejected replacement preserves the previous registration and input folder. Active leases prevent replacement and deletion until the last lease is released. The source folder is retained when the managed copy is deleted.
+
+CPU checks cover catalog/preview behavior and synthetic storage boundaries. The opt-in real-bundle import check is `COREAI_CHRONOS2_IMPORT_BUNDLE=/path/to/chronos2-bundle swift test --package-path CoreAISamplesKit --filter ChronosImportTests.knownBundle`, under the shared heavy-job lock. It checks import, full inspection, leases, rejected replacements and source hashes without inference. Its default skip is not an import pass; native import, app builds, iPhone inference and normal UI acceptance need separate evidence.
 
 <!-- model-report:start -->
 <a id="model-report"></a>

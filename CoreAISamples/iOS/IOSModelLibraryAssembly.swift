@@ -47,11 +47,12 @@
         static func catalog(searchTerms: [String: [String]] = [:]) throws -> ModelCatalog {
             try IOSDemoCatalog.make(
                 searchTerms: searchTerms, speechArtifact: IrodoriModelArtifact.make(),
-                referenceSpeechArtifact: IrodoriModelArtifact.makeReferenceDownload())
+                referenceSpeechArtifact: IrodoriModelArtifact.makeReferenceDownload(),
+                chronosArtifact: ChronosModelArtifact.make())
         }
 
         static func make(catalog: ModelCatalog) -> ModelLibraryAssembly.Library {
-            let previews = Set(["image-generation"]).intersection(catalog.demos.map(\.id))
+            let previews = Set(["image-generation", "taxi-forecast"]).intersection(catalog.demos.map(\.id))
                 .subtracting(adapters.map(\.demoID))
             do {
                 try catalog.validateConnections(adapterIDs: adapters.map(\.demoID), unconnectedDemoIDs: previews)
@@ -114,7 +115,7 @@
                 registry: checkedAssembly.registry, capabilities: capabilities(), acquire: target,
                 assembly: checkedAssembly,
                 importBundle: folder,
-                unconnectedDemoIDs: Set(["image-generation"]).intersection(previews).subtracting(
+                unconnectedDemoIDs: Set(["image-generation", "taxi-forecast"]).intersection(previews).subtracting(
                     checkedAdapters.map(\.demoID)), afterAcquisition: afterAcquisition,
                 catalog: { try definitions.get() })
         }
