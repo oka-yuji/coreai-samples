@@ -57,9 +57,8 @@ import Testing
 
     private func replay(_ run: Golden.Run, in golden: Golden) throws {
         let label = run.testDescription
-        var sampler = Sampler(
-            mode: Self.mode(k: run.k, p: run.p), temperature: run.temperature,
-            seed: try #require(UInt64(run.seed, radix: 16)))
+        let seed = try #require(UInt64(run.seed, radix: 16))
+        var sampler = Sampler(mode: Self.mode(k: run.k, p: run.p), temperature: run.temperature, seed: seed)
         var tokens: [Int32] = []
         let calls = run.tokens.count / run.logits.count
         for name in run.logits {

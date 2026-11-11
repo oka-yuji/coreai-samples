@@ -125,7 +125,7 @@ struct TypedDecisionSessionTests {
         ) { try await factory.load() }
         let task = Task { try await session.forward([1], capacity: 256) }
         var iterator = entered.makeAsyncIterator()
-        let arrival = await iterator.next()
+        let arrival: Void? = await iterator.next()
         task.cancel()
         await #expect(throws: TypedDecisionError.busy) { try await session.forward([1], capacity: 256) }
         await gate.open()
@@ -158,7 +158,7 @@ struct TypedDecisionSessionTests {
         for count in 1...4 { _ = try await session.forward(Array(repeating: 1, count: count), capacity: 256) }
         let task = Task { try await session.forward([1], capacity: 256) }
         var iterator = entered.makeAsyncIterator()
-        let arrival = await iterator.next()
+        let arrival: Void? = await iterator.next()
         task.cancel()
         await #expect(throws: TypedDecisionError.busy) { try await session.forward([1], capacity: 256) }
         await gate.open()

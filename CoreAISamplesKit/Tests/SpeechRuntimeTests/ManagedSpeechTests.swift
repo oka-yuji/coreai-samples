@@ -3,6 +3,7 @@ import Foundation
 import ModelLibraryFeature
 import SpeechCore
 import SpeechFeature
+import Synchronization
 import Testing
 
 @testable import SpeechRuntime
@@ -45,8 +46,10 @@ struct ManagedSpeechTests {
     @Test("IR-SESSION-01 Only permitted speech operations open the selected resource and deliver results")
     func gateAndResults() async throws {
         let fake = ManagedSpeechFake()
-        var permitted = false
-        let service = ManagedSpeechService(service: fake, directory: URL(filePath: "/managed")) { permitted }
+        let permitted = Mutex(false)
+        let service = ManagedSpeechService(service: fake, directory: URL(filePath: "/managed")) {
+            permitted.withLock { $0 }
+        }
         let runner = SpeechRunner(service: service)
         var actions: [SpeechAction] = []
         await runner.run(.generate(1, "Test", 17)) { actions.append($0) }
@@ -54,7 +57,7 @@ struct ManagedSpeechTests {
         #expect(fake.calls.isEmpty)
         #expect(!actions.contains { if case .generated = $0 { true } else { false } })
         actions.removeAll()
-        permitted = true
+        permitted.withLock { $0 = true }
         await runner.run(.generate(3, "Test", 17)) { actions.append($0) }
         await runner.run(.play(4, fake.audio.wav)) { actions.append($0) }
         #expect(fake.calls == ["open:/managed", "generate:Test:17", "play"])
@@ -88,11 +91,13 @@ struct ManagedSpeechTests {
         let fake = ManagedSpeechFake()
         fake.blockOpen = true
         defer { fake.openGate.open() }
-        var permitted = true
-        let service = ManagedSpeechService(service: fake, directory: URL(filePath: "/managed")) { permitted }
+        let permitted = Mutex(true)
+        let service = ManagedSpeechService(service: fake, directory: URL(filePath: "/managed")) {
+            permitted.withLock { $0 }
+        }
         let operation = Task { try await service.generate(text: "Test", seed: 2) }
         try await fake.openStarted.wait()
-        permitted = false
+        permitted.withLock { $0 = false }
         service.deactivate()
         operation.cancel()
         var stopped = false

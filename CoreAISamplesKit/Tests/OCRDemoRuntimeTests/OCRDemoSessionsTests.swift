@@ -93,7 +93,7 @@ struct OCRDemoSessionsTests {
         while let event = await observed.next() {
             if event.0 == first.id, case .stopped(1) = event.1 { break }
         }
-        weak var unpresented = sessions.bind(next, permits: { true })
+        weak let unpresented = sessions.bind(next, permits: { true })
         #expect(unpresented != nil)
         await sessions.stop(next)
         #expect(unpresented == nil)
