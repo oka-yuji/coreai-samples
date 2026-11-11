@@ -1,0 +1,255 @@
+{
+  "id": "chronos2",
+  "kind": "forecasting",
+  "name": {
+    "en": "Chronos-2",
+    "ja": "Chronos-2"
+  },
+  "use": {
+    "en": "Time series forecasting",
+    "ja": "時系列予測"
+  },
+  "overview": {
+    "en": "Time series forecasting",
+    "ja": "時系列予測"
+  },
+  "release": "in_progress",
+  "release_note": {
+    "en": "FP32 conversion verified; native demo is in development.",
+    "ja": "FP32変換を検証済み。ネイティブデモは開発中。"
+  },
+  "download": null,
+  "pages": {
+    "en": "docs/chronos2.md",
+    "ja": "docs/chronos2.ja.md"
+  },
+  "links": [
+    {
+      "title": {
+        "en": "Conversion recipe",
+        "ja": "変換レシピ"
+      },
+      "url": "Tools/Conversion/recipes/chronos2/README.md"
+    },
+    {
+      "title": {
+        "en": "Conversion evidence",
+        "ja": "変換の検証記録"
+      },
+      "url": "docs/validation/chronos2-conversion-20261111/README.md"
+    },
+    {
+      "title": {
+        "en": "Implementation plan #548",
+        "ja": "実装計画 #548"
+      },
+      "url": "https://github.com/oka-yuji/coreai-samples/issues/548"
+    }
+  ],
+  "support": {
+    "macos": {
+      "state": "unavailable",
+      "variants": [],
+      "evidence": [],
+      "note": {
+        "en": "The native sample is not connected yet; conversion evidence does not establish app support.",
+        "ja": "ネイティブサンプルは未接続です。変換の成功をアプリ対応済みにはしません。"
+      }
+    },
+    "ios": {
+      "state": "unavailable",
+      "variants": [],
+      "evidence": [],
+      "note": {
+        "en": "The native sample is not connected yet; conversion evidence does not establish app support.",
+        "ja": "ネイティブサンプルは未接続です。変換の成功をアプリ対応済みにはしません。"
+      }
+    }
+  },
+  "evidence": {
+    "conversion-20261111": {
+      "url": "docs/validation/chronos2-conversion-20261111/README.md",
+      "level": "conversion",
+      "outcome": "passed",
+      "record_type": "standard",
+      "date": "2026-11-11",
+      "platform": "macos",
+      "device": "Apple M5 Max / 137438953472 B RAM",
+      "os": "macOS 27.2.1 (26B131)",
+      "toolchain": "Xcode 27.2\nBuild version 27B52; Swift 6.4.2; macOS SDK 27.2; Python 3.11.9; chronos-forecasting 2.3.2; torch 2.9.0; coreai-torch 0.4.3; coreai-core 1.0.0b3",
+      "variant": "coreai-fp32-univariate",
+      "backend": "Python Core AI GPU preference; actual delegate not profiled",
+      "route": "Chronos-2 recipe: independent official CPU reference -> Core AI native verification -> bundle",
+      "source_revision": "29ec3766d36d6f73f0696f85560a422f50e8498c",
+      "artifact_revision": "786dcf97e020c987cbf883f09b486fba5f3fee30a588b87a346ea65d72d20572",
+      "code_revision": "e749b5653298b826770f57ac6a814967fad7162a",
+      "workload": {
+        "en": "18 fixed synthetic series, raw length 1-8192, missing values and constant/periodic/trend inputs; all 21 quantiles x 16 forecast steps. One inference per case, no warmup. This measures numerical fidelity only.",
+        "ja": "固定の合成18系列、raw長1〜8192、欠損・定数・周期・傾向。21分位×16点を全件比較。条件ごとに1回、warmupなし。数値一致だけの検査。"
+      },
+      "batch_size": 1,
+      "concurrency": 1,
+      "warmups": 0,
+      "power": "AC Power sampled before and after the run",
+      "thermal": "Note: No thermal warning level has been recorded\nNote: No performance warning level has been recorded\nNote: No CPU power status has been recorded; same after the run; temperature and GPU utilization not measured",
+      "model_executed": true,
+      "plan_sha256": "803abab0c116013d8c4c0f2c9d3e567043f1f4ccec531ef5dfa5ef2a68a9f88d"
+    }
+  },
+  "measurements": [
+    {
+      "metric": "bundle_bytes",
+      "value": 478864956,
+      "unit": "B",
+      "statistic": "single",
+      "n": 1,
+      "evidence": "conversion-20261111",
+      "note": {
+        "en": "Nine-file local bundle, including reference vectors and metadata; not runtime memory.",
+        "ja": "参照ベクトルとmetadataを含む9ファイルのローカルbundle。実行メモリではありません。"
+      },
+      "source_value": {
+        "path": "docs/validation/chronos2-conversion-20261111/results.json",
+        "pointer": "/bundle_bytes"
+      }
+    },
+    {
+      "metric": "reference_error",
+      "value": 0.00152587890625,
+      "unit": "error",
+      "statistic": "max",
+      "n": 6048,
+      "evidence": "conversion-20261111",
+      "note": {
+        "en": "Maximum absolute error over all scalars; each value passed atol 1e-4 + rtol 1e-4. n counts scalar comparisons, not independent runs.",
+        "ja": "全scalarの最大絶対差。各値はatol 1e-4 + rtol 1e-4を満たす。nは比較したscalar数で独立run数ではありません。"
+      },
+      "source_value": {
+        "path": "docs/validation/chronos2-conversion-20261111/results.json",
+        "pointer": "/max_absolute_error"
+      }
+    }
+  ],
+  "omissions": {
+    "prepared_bytes": {
+      "state": "not_measured",
+      "reason": {
+        "en": "Not measured in this conversion-fidelity run; app behavior, task quality and performance require separate evidence.",
+        "ja": "この変換一致検査では未計測。アプリ動作・用途品質・性能は別の証拠で確認します。"
+      }
+    },
+    "first_load_s": {
+      "state": "not_measured",
+      "reason": {
+        "en": "Not measured in this conversion-fidelity run; app behavior, task quality and performance require separate evidence.",
+        "ja": "この変換一致検査では未計測。アプリ動作・用途品質・性能は別の証拠で確認します。"
+      }
+    },
+    "warm_load_s": {
+      "state": "not_measured",
+      "reason": {
+        "en": "Not measured in this conversion-fidelity run; app behavior, task quality and performance require separate evidence.",
+        "ja": "この変換一致検査では未計測。アプリ動作・用途品質・性能は別の証拠で確認します。"
+      }
+    },
+    "latency_s": {
+      "state": "not_measured",
+      "reason": {
+        "en": "Not measured in this conversion-fidelity run; app behavior, task quality and performance require separate evidence.",
+        "ja": "この変換一致検査では未計測。アプリ動作・用途品質・性能は別の証拠で確認します。"
+      }
+    },
+    "peak_rss_bytes": {
+      "state": "not_measured",
+      "reason": {
+        "en": "Not measured in this conversion-fidelity run; app behavior, task quality and performance require separate evidence.",
+        "ja": "この変換一致検査では未計測。アプリ動作・用途品質・性能は別の証拠で確認します。"
+      }
+    },
+    "peak_footprint_bytes": {
+      "state": "not_measured",
+      "reason": {
+        "en": "Not measured in this conversion-fidelity run; app behavior, task quality and performance require separate evidence.",
+        "ja": "この変換一致検査では未計測。アプリ動作・用途品質・性能は別の証拠で確認します。"
+      }
+    },
+    "resident_bytes": {
+      "state": "not_measured",
+      "reason": {
+        "en": "Not measured in this conversion-fidelity run; app behavior, task quality and performance require separate evidence.",
+        "ja": "この変換一致検査では未計測。アプリ動作・用途品質・性能は別の証拠で確認します。"
+      }
+    },
+    "residual_bytes": {
+      "state": "not_measured",
+      "reason": {
+        "en": "Not measured in this conversion-fidelity run; app behavior, task quality and performance require separate evidence.",
+        "ja": "この変換一致検査では未計測。アプリ動作・用途品質・性能は別の証拠で確認します。"
+      }
+    },
+    "task_success": {
+      "state": "not_measured",
+      "reason": {
+        "en": "Not measured in this conversion-fidelity run; app behavior, task quality and performance require separate evidence.",
+        "ja": "この変換一致検査では未計測。アプリ動作・用途品質・性能は別の証拠で確認します。"
+      }
+    },
+    "cancel_s": {
+      "state": "not_measured",
+      "reason": {
+        "en": "Not measured in this conversion-fidelity run; app behavior, task quality and performance require separate evidence.",
+        "ja": "この変換一致検査では未計測。アプリ動作・用途品質・性能は別の証拠で確認します。"
+      }
+    },
+    "forecast_mae": {
+      "state": "not_measured",
+      "reason": {
+        "en": "Not measured in this conversion-fidelity run; app behavior, task quality and performance require separate evidence.",
+        "ja": "この変換一致検査では未計測。アプリ動作・用途品質・性能は別の証拠で確認します。"
+      }
+    },
+    "forecast_wape": {
+      "state": "not_measured",
+      "reason": {
+        "en": "Not measured in this conversion-fidelity run; app behavior, task quality and performance require separate evidence.",
+        "ja": "この変換一致検査では未計測。アプリ動作・用途品質・性能は別の証拠で確認します。"
+      }
+    }
+  },
+  "checks": {
+    "fidelity": {
+      "state": "passed",
+      "evidence": [
+        "conversion-20261111"
+      ],
+      "note": {
+        "en": "The unmodified official reference, export wrapper and native Core AI all pass the fixed 18-case gate.",
+        "ja": "未変更の公式参照とexport wrapper、実Core AIが固定18条件の判定に合格。"
+      }
+    },
+    "quality": {
+      "state": "not_measured",
+      "evidence": [],
+      "note": {
+        "en": "Native Swift/app and held-out task checks are not part of this conversion result.",
+        "ja": "Swift/アプリの実経路と未使用の用途評価は、この変換結果に含みません。"
+      }
+    },
+    "stability": {
+      "state": "not_measured",
+      "evidence": [],
+      "note": {
+        "en": "Native Swift/app and held-out task checks are not part of this conversion result.",
+        "ja": "Swift/アプリの実経路と未使用の用途評価は、この変換結果に含みません。"
+      }
+    },
+    "cancellation": {
+      "state": "not_measured",
+      "evidence": [],
+      "note": {
+        "en": "Native Swift/app and held-out task checks are not part of this conversion result.",
+        "ja": "Swift/アプリの実経路と未使用の用途評価は、この変換結果に含みません。"
+      }
+    }
+  }
+}
