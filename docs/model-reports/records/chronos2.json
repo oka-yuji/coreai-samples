@@ -232,7 +232,7 @@
       "artifact_revision": "786dcf97e020c987cbf883f09b486fba5f3fee30a588b87a346ea65d72d20572",
       "code_revision": "05f8363b5e3de8f9531ebb2fb332b71bb9b795fb",
       "workload": {
-        "en": "Live API20160 inputs and6720 raw native values, zero leases afterclose. NormalMac compares17:00 forecast120 with actual130, then refetches17:30 and displays128. Nine annual metadata snapshots and CPU failure cases checked. No controlled performance or iPhone inference.",
+        "en": "Live API: 20,160 input values and 6,720 raw native outputs; zero leases after close. In the normal Mac app, the 17:00 forecast displays 120 against an observed 130; the 17:30 refetch produces 128. Nine annual metadata snapshots and CPU failure cases were checked. No controlled performance measurement or iPhone inference.",
         "ja": "実API20160入力・native6720原値とclose後lease0。通常Macで17:00予測120/実績130を比較し、17:30へ再取得して予測128を確認。9年度metadataとCPU故障条件も検査。制御した性能計測とiPhone推論は未実施。"
       },
       "batch_size": 1,
@@ -374,7 +374,7 @@
         "api-20261112"
       ],
       "note": {
-        "en": "18 synthetic cases,60 fixedNYC scene/zone cases and20 liveAPI series pass frozen raw-tensor comparisons. The API inputs overlap the fixedFriday workload.",
+        "en": "18 synthetic cases, 60 fixed NYC scene/zone cases and 20 live API series pass frozen raw-tensor comparisons. The API inputs overlap the fixed Friday workload.",
         "ja": "合成18条件・固定NYC60場面/ゾーン・実API20系列が凍結した原tensor照合に合格。API入力は固定金曜の条件と重複。"
       }
     },
@@ -394,7 +394,7 @@
         "api-20261112"
       ],
       "note": {
-        "en": "Release/reload, fixed/API production-service runs with zero leases, and normalMac leave/reopen are checked. No memory measurement or iPhone acceptance.",
+        "en": "Release/reload, fixed and API production-service runs with zero leases, and normal Mac leave/reopen are checked. No memory measurement or iPhone acceptance.",
         "ja": "解放/再load、固定/APIの本番service実行とlease0、通常Mac離脱/再表示を確認。メモリ計測とiPhone受入は未実施。"
       }
     },
