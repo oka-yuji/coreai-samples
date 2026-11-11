@@ -28,6 +28,11 @@ a work directory at a time, so refreshed dependencies cannot move underneath a r
 Reports contain the source run for reused stages. A reused
 measurement is never presented as a fresh measurement.
 
+Cache keys identify declared dependency artifacts by their stage identity and verified
+contents. Their per-attempt storage paths are normalized only in the fingerprint;
+execution still uses the real paths. Stages that consume dependency artifacts must use
+their contents rather than deriving results from temporary directory names.
+
 A pipeline containing a heavy stage holds the shared machine lock from host/input
 fingerprinting through execution, output checks and cached reuse. Another owner's
 lock is never removed. If a child process or its process group cannot be confirmed

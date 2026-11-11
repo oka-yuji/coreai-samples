@@ -285,7 +285,11 @@ def run_locked(recipe, work, *, refresh):
             command = expand(stage["command"], template_bindings)
             executable = executable_path(command[0], environment)
             executable_hash = file_hash(executable)
-            definition = expand(stage, template_bindings)
+            definition_bindings = {
+                **template_bindings,
+                **{dependency: f"<artifact:{dependency}>" for dependency in stage["depends"]},
+            }
+            definition = expand(stage, definition_bindings)
             key = digest({"definition": definition, "inputs": source, "dependencies": dependency_data,
                           "host": host, "engine": engine, "executable": executable_hash})
             object_dir = cached_object(work, key)
