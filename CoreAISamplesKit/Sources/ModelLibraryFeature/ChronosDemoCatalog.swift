@@ -13,14 +13,14 @@ public enum ChronosDemoCatalog {
 
     static func demo(platforms: Set<LibraryPlatform>, searchTerms: [String: [String]]) -> DemoDescriptor {
         DemoDescriptor(
-            id: selection.demoID, title: "Taxi demand forecast preview", systemImage: "chart.xyaxis.line",
+            id: selection.demoID, title: "NYC taxi pickup forecast", systemImage: "chart.xyaxis.line",
             summary:
-                "Preview a planned taxi demand forecast from time-series data. Predictions are not connected in this build.",
+                "Compare fixed NYC pickup records with a precomputed preview or an explicit on-device forecast.",
             explanation: [
                 DemoExplanation(
                     title: "How it works",
                     text:
-                        "Chronos-2 predicts the next 16 values of one time series. The taxi forecast screen is not connected in this build."
+                        "Explore 20 Manhattan taxi zones in three fixed January 2025 scenes. Chronos-2 reads 21 days of pickup counts and displays the next two hours."
                 ),
                 DemoExplanation(
                     title: "1. Prepare the model",
@@ -28,10 +28,10 @@ public enum ChronosDemoCatalog {
                         "Import the complete prepared Chronos-2 FP32 folder. It uses about 479 MB, plus space for the app copy. This build does not provide a model download."
                 ),
                 DemoExplanation(
-                    title: "Preview availability",
+                    title: "Fixed-data preview",
                     text:
-                        "You can import, check and delete the model in Models. Preparing it does not start a prediction."
+                        "The interactive precomputed preview works without the model. Preparing the model does not start a prediction. Apple basemap tiles need network access."
                 ),
-            ], platforms: platforms, searchTerms: searchTerms[selection.demoID])
+            ], platforms: platforms, searchTerms: searchTerms[selection.demoID], allowsPreviewInteraction: true)
     }
 }

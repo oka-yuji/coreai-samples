@@ -192,11 +192,15 @@ public struct DemoDescriptor: ModelDemoDefinition, Codable, Equatable, Identifia
     public let platforms: Set<LibraryPlatform>
     public let visibility: CatalogVisibility
     public let searchTerms: [String]?
+    private let interactivePreview: Bool?
+
+    public var allowsPreviewInteraction: Bool { interactivePreview == true }
 
     public init(
         id: String, title: String, systemImage: String, summary: String,
         explanation: [DemoExplanation] = [], platforms: Set<LibraryPlatform>,
-        visibility: CatalogVisibility = .published, searchTerms: [String]? = nil
+        visibility: CatalogVisibility = .published, searchTerms: [String]? = nil,
+        allowsPreviewInteraction: Bool = false
     ) {
         self.id = id
         self.title = title
@@ -206,6 +210,7 @@ public struct DemoDescriptor: ModelDemoDefinition, Codable, Equatable, Identifia
         self.platforms = platforms
         self.visibility = visibility
         self.searchTerms = searchTerms
+        interactivePreview = allowsPreviewInteraction ? true : nil
     }
 }
 

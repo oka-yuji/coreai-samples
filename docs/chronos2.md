@@ -26,13 +26,35 @@ Explicit model commands require the shared lock in `AGENTS.md`. JSON input is `{
 
 ## Models import and preview
 
-Models on Mac and iOS lists Chronos-2 with a taxi-demand forecast preview. Select **Import model** and choose the complete prepared Chronos-2 FP32 folder. The nine files use 478,864,956 bytes (about 479 MB); allow additional space for the managed copy. This build provides no download URL. The forecast screen is not connected, and opening Models, importing or inspecting the bundle does not start inference.
+Models on Mac and iOS lists Chronos-2 with the fixed NYC taxi pickup forecast. Select **Import model** and choose the complete prepared Chronos-2 FP32 folder. The nine files use 478,864,956 bytes (about 479 MB); allow additional space for the managed copy. This build provides no download URL. Opening Models, importing or inspecting the bundle does not start inference. The interactive precomputed preview works without a model; a prepared model enables explicit on-device prediction. A native failure never switches modes automatically.
 
 The trusted artifact is `chronos2-fp32`, contract `chronos2-fp32-v1`, from `amazon/chronos-2` revision `29ec3766d36d6f73f0696f85560a422f50e8498c`. Its `chronos2.json` SHA-256 is `786dcf97e020c987cbf883f09b486fba5f3fee30a588b87a346ea65d72d20572`. Models requires the exact original manifest bytes and all nine pinned file sizes and hashes. That byte identity fixes the metadata contract, including the state-free Float32 `[1,T]` to `[1,21,16]` ABI, without loading the model or creating a runtime snapshot during import. Even reformatting the manifest requires a new trusted identity.
 
 The existing Models store copies and checks the folder before promotion. Altered, missing, extra or symbolic-link entries are rejected; a rejected replacement preserves the previous registration and input folder. Active leases prevent replacement and deletion until the last lease is released. The source folder is retained when the managed copy is deleted.
 
-CPU checks cover catalog/preview behavior and synthetic storage boundaries. The opt-in real-bundle import check is `COREAI_CHRONOS2_IMPORT_BUNDLE=/path/to/chronos2-bundle swift test --package-path CoreAISamplesKit --filter ChronosImportTests.knownBundle`, under the shared heavy-job lock. It checks import, full inspection, leases, rejected replacements and source hashes without inference. Its default skip is not an import pass; native import, app builds, iPhone inference and normal UI acceptance need separate evidence.
+CPU checks cover catalog/preview behavior, history windows, stop/owner boundaries and synthetic storage. The opt-in real-bundle import check is `COREAI_CHRONOS2_IMPORT_BUNDLE=/path/to/chronos2-bundle swift test --package-path CoreAISamplesKit --filter ChronosImportTests.knownBundle`, under the shared heavy-job lock. It checks import, full inspection, leases, rejected replacements and source hashes without inference. Its default skip is not an import pass; native import, app builds, iPhone inference and normal UI acceptance need separate evidence.
+
+## Fixed NYC demo
+
+Choose one of three January 2025 scenes, a Manhattan taxi zone and a half-hour forecast interval. Advancing reveals only the bin that just elapsed. The forecast keeps its original start time; another explicit prediction appends only elapsed truth to the last 1,008 observations. Forecasts can start at steps 0…12, with four displayed steps and 16 available truth bins. Reset clears the forecast. Changing the display language, zone or interval does not run the model or change its inputs.
+
+The map, numbers and chart share one Feature state. The model reads 21 days, while the chart shows the last four hours and the next two hours. Counts mean recorded pickups, not passengers or unmet demand. The shaded 10–90% quantile range is not a calibrated coverage guarantee. Apple basemap tiles require network access; fixed data and inference do not. Sources, hashes, aggregation, attribution and offline reproduction are in [Tools/NYC](../Tools/NYC/README.md).
+
+Native results retain the complete 21×16 raw tensor and the actual verified bundle identity for every zone. Only presentation clips negative counts. Preview results are explicitly precomputed, retain the supplied 3×4 projection and have no device processing time. The native loader checks the managed manifest identity on its verified snapshot before constructing a Core AI model.
+
+`ChronosFeature` is pure; FeatureStore owns operation tasks, the runner joins the complete 20-series operation, and sessions revoke permission before stopping. Models returns the lease only after session stop and runtime release. Each session gets a fresh service. Preview also uses a Store and stops when hidden or backgrounded.
+
+The opt-in test below requires the shared heavy-job lock, a prepared model and the pinned official fixed-scene reference. It drives production Models/Store/Service/Sessions, compares all 20,160 raw values (60 series) at frozen `atol=rtol=1e-4`, closes the demo and requires zero leases. The reference SHA-256 is fixed in the test. Missing prerequisites are failures when opted in. Default CPU runs skip it; worker CPU success does not establish D5, app/device builds or D7.
+
+```sh
+COREAI_CHRONOS2_DEMO_BUNDLE=/path/to/chronos2-bundle \
+COREAI_CHRONOS2_DEMO_REFERENCE=/path/to/fixed-scenes-reference.json \
+COREAI_CHRONOS2_DEMO_DATA=/path/to/NYCData \
+COREAI_CHRONOS2_DEMO_REPORT=/new/report.json \
+swift test --package-path CoreAISamplesKit --filter ChronosDemoNativeTests.fixedScenes
+```
+
+`COREAI_CHRONOS2_DEMO_DATA` is optional and defaults to the bundled data; the report is optional and never overwrites. The parent still runs raw-source reproduction, all repository checks, full-project generation, Mac Release, signed iOS, native comparison and normal GUI/device acceptance. The generated evaluation table below preserves prior evidence until those checks are recorded.
 
 <!-- model-report:start -->
 <a id="model-report"></a>

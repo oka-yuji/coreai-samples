@@ -1,4 +1,5 @@
 #if os(macOS)
+    import ChronosUI
     import FeatureStore
     import Foundation
     import ModelLibraryFeature
@@ -15,7 +16,7 @@
             return directory
         }()
         static let unconnectedDemoIDs: Set<String> = [
-            "chat", "decide", "recipes", "image-search", "video-search", "comparison", "speech", "taxi-forecast",
+            "chat", "decide", "recipes", "image-search", "video-search", "comparison", "speech",
         ]
         static let runtimeUses = Store<ModelRuntimeUses>(initialState: ModelRuntimeUses.State()) { _, _ in }
 
@@ -37,7 +38,8 @@
         static let assembly: ModelLibraryAssembly = {
             let legacy = ModelStorage.directory(for: "okayuji/Qwen3.8-27B-coreai-4bit")
             return ModelLibraryAssembly(
-                adapters: [OCRMacAdapter(), ReceiptMacAdapter()], store: storage, transfer: ArtifactTransfer(),
+                adapters: [OCRMacAdapter(), ReceiptMacAdapter(), ChronosAdapter()], store: storage,
+                transfer: ArtifactTransfer(),
                 migrationCandidates: { [legacy] })
         }()
     }

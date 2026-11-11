@@ -26,13 +26,27 @@ swift run --package-path CoreAISamplesKit chronos-verify --help
 
 ## Modelsへの取り込みとプレビュー
 
-Mac/iOSのModelsにChronos-2とタクシー需要予測のプレビューを表示します。**Import model**から、準備済みのChronos-2 FP32フォルダ全体を選びます。9ファイルで478,864,956バイト（約479 MB）あり、管理コピーの分の空き容量も必要です。このビルドにダウンロード先はありません。予測画面は未接続で、Modelsの起動・取り込み・検査で推論は始まりません。
+Mac/iOSのModelsにChronos-2とNYC固定タクシー乗車件数予測を表示します。**Import model**から、準備済みのChronos-2 FP32フォルダ全体を選びます。9ファイルで478,864,956バイト（約479 MB）あり、管理コピーの分の空き容量も必要です。このビルドにダウンロード先はありません。Modelsの起動・取り込み・検査で推論は始まりません。モデルがなくても事前計算プレビューを操作でき、準備後は端末内予測を明示的に実行できます。端末内予測の失敗時に方式を自動変更しません。
 
 固定資産は`chronos2-fp32`、契約は`chronos2-fp32-v1`、原典は`amazon/chronos-2`のrevision `29ec3766d36d6f73f0696f85560a422f50e8498c`です。`chronos2.json`のSHA-256は`786dcf97e020c987cbf883f09b486fba5f3fee30a588b87a346ea65d72d20572`で、元のmanifestの全bytesと9ファイルすべての容量・hashを照合します。この完全一致で、stateなし・Float32 `[1,T]`から`[1,21,16]`へのABIを含むmetadataの契約を固定し、取込時にモデルロードやruntimeのsnapshot作成を行いません。manifestの整形だけでも新しい信頼済みidentityが必要です。
 
 既存のModels storeがコピー・検査してから登録します。改変・欠損・余分なファイル・symlinkを拒否し、置換に失敗しても旧登録と入力フォルダを保持します。利用のleaseがある間は置換・削除を拒否し、最後のleaseを解放してから管理コピーを削除できます。元フォルダは削除しません。
 
-CPU検査はcatalog・未接続previewと合成ファイルによる保存境界を対象にします。実bundleの明示検査は、共有heavy-jobロック下で`COREAI_CHRONOS2_IMPORT_BUNDLE=/path/to/chronos2-bundle swift test --package-path CoreAISamplesKit --filter ChronosImportTests.knownBundle`を使います。推論せず、取り込み・全量検査・lease・不正置換の拒否・元hashの不変を確かめます。既定のskipは取込成功ではありません。実bundle取り込み、アプリbuild、iPhone推論、通常UIの受入は別の証拠が必要です。
+CPU検査はcatalog・preview・履歴窓・停止とownerの境界・合成ファイルによる保存境界を対象にします。実bundleの明示検査は、共有heavy-jobロック下で`COREAI_CHRONOS2_IMPORT_BUNDLE=/path/to/chronos2-bundle swift test --package-path CoreAISamplesKit --filter ChronosImportTests.knownBundle`を使います。推論せず、取り込み・全量検査・lease・不正置換の拒否・元hashの不変を確かめます。既定のskipは取込成功ではありません。実bundle取り込み、アプリbuild、iPhone推論、通常UIの受入は別の証拠が必要です。
+
+## NYC固定デモ
+
+2025年1月の3場面からゾーンと30分の予測区間を選びます。「30分進める」は経過した1区間の実績を公開し、既存予測の基準時刻を保持します。再予測を明示したときだけ、経過済み実績を追加した最新1,008点を入力します。予測開始はstep 0〜12、表示4点、既知の実績16点です。リセットで予測を消します。表示言語・ゾーン・表示区間の変更は推論や入力値の変更を起こしません。
+
+地図・数値・グラフは共通のFeature状態を参照します。モデル入力は21日間、グラフは直近4時間と2時間先です。件数は記録された乗車回数で、乗客数や未充足需要ではありません。10〜90%分位は校正済みの的中率を保証しません。Appleの背景地図には通信が必要ですが、固定データと端末内予測はオフラインで使えます。出典・固定hash・集計・帰属・再現方法は[Tools/NYC](../Tools/NYC/README.md)を参照してください。
+
+端末内予測は全21×16値と検証済みモデルのidentityを保持し、負数の0補正は表示境界だけで行います。事前計算は提供された3×4値として明示し、端末での処理時間は付けません。native loaderは検証コピーのmanifestをModelsの期待identityと照合してからCore AIモデルを構築します。
+
+FeatureStoreがTaskを所有し、Runnerが20系列全体の終了を待ちます。sessionは待機前に許可を失効し、runtime解放まで待ってからModelsへ停止を返します。sessionごとに新しいServiceを使い、previewもStoreで寿命を管理します。
+
+D5の明示試験は共有heavy-jobロック下で、`COREAI_CHRONOS2_DEMO_BUNDLE`に実bundle、`COREAI_CHRONOS2_DEMO_REFERENCE`に固定公式参照を渡し、`swift test --package-path CoreAISamplesKit --filter ChronosDemoNativeTests.fixedScenes`を実行します。任意の`COREAI_CHRONOS2_DEMO_DATA`は固定NYCData、`COREAI_CHRONOS2_DEMO_REPORT`は新しい結果ファイルです。省略時は同梱データを使い、結果ファイルは上書きしません。60系列・20,160値を固定atol/rtol各1e-4で照合し、stop後のlease 0を要求します。
+
+workerでは実モデルを動かしていません。親担当が原データ再現、必須検査、完全なproject生成、Mac Release、署名iOS、実モデル照合、通常UIと実機の本人受入を行います。既定skipやCPU成功はD5/D7の合格ではありません。下の生成済み評価表は、追加の証拠が登録されるまで従来の結果を保持します。
 
 <!-- model-report:start -->
 <a id="model-report"></a>

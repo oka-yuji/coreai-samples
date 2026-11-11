@@ -1,6 +1,108 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "Compare fixed NYC pickup records with a precomputed preview or an explicit on-device forecast." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compare fixed NYC pickup records with a precomputed preview or an explicit on-device forecast."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "NYCの固定乗車記録を、事前計算プレビューまたは明示的に実行する端末内予測と比較します。"
+          }
+        }
+      }
+    },
+    "Explore 20 Manhattan taxi zones in three fixed January 2025 scenes. Chronos-2 reads 21 days of pickup counts and displays the next two hours." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Explore 20 Manhattan taxi zones in three fixed January 2025 scenes. Chronos-2 reads 21 days of pickup counts and displays the next two hours."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "2025年1月の固定3場面でマンハッタンの20ゾーンを比較します。Chronos-2が21日間の乗車件数を読み、2時間先まで表示します。"
+          }
+        }
+      }
+    },
+    "Fixed-data preview" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fixed-data preview"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "固定データのプレビュー"
+          }
+        }
+      }
+    },
+    "NYC taxi pickup forecast" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "NYC taxi pickup forecast"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "NYCタクシー乗車件数予測"
+          }
+        }
+      }
+    },
+    "Open on-device forecast" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open on-device forecast"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "端末内予測を開く"
+          }
+        }
+      }
+    },
+    "The interactive precomputed preview works without the model. Preparing the model does not start a prediction. Apple basemap tiles need network access." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The interactive precomputed preview works without the model. Preparing the model does not start a prediction. Apple basemap tiles need network access."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルがなくても事前計算プレビューを操作できます。モデルを準備しただけでは予測を始めません。Appleの背景地図には通信が必要です。"
+          }
+        }
+      }
+    },
     "%@  ·  %@  ·  memory %@  ·  %@" : {
       "localizations" : {
         "en" : {

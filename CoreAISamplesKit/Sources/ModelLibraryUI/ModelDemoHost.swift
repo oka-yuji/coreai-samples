@@ -187,15 +187,20 @@
                                 Link(destination: guide) { libraryText("Model preparation guide") }
                             }
                         } else {
-                            libraryText("You can read this demo now.").font(.headline)
-                            libraryText(
-                                store.state.isConnected(selection)
-                                    ? artifact?.localBundle == nil
-                                        ? "Download the model to enable its controls."
-                                        : "Import the model to enable its controls."
-                                    : "Demo execution is not connected in this build."
-                            )
-                            .font(.callout)
+                            if demo?.allowsPreviewInteraction == true {
+                                libraryText("Explore the fixed preview now. Import the model for on-device prediction.")
+                                    .font(.callout)
+                            } else {
+                                libraryText("You can read this demo now.").font(.headline)
+                                libraryText(
+                                    store.state.isConnected(selection)
+                                        ? artifact?.localBundle == nil
+                                            ? "Download the model to enable its controls."
+                                            : "Import the model to enable its controls."
+                                        : "Demo execution is not connected in this build."
+                                )
+                                .font(.callout)
+                            }
                         }
                         ModelAcquisitionControls(
                             store: store, model: model,
@@ -209,7 +214,9 @@
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding()
                 .background(.quaternary, in: RoundedRectangle(cornerRadius: 16))
-                renderer.preview(for: selection).disabled(true).allowsHitTesting(false)
+                renderer.preview(for: selection)
+                    .disabled(demo?.allowsPreviewInteraction != true)
+                    .allowsHitTesting(demo?.allowsPreviewInteraction == true)
             case .ready(let session):
                 if store.state.permits(session.id, selection: selection) {
                     if selection.modelID == "irodori" {
