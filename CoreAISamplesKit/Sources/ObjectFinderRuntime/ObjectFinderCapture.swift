@@ -33,7 +33,9 @@
             session = preview.session
         }
 
-        func start(rotation: Double) throws -> AsyncThrowingStream<CapturedObjectFrame, any Error> {
+        func start(rotation: Double) throws -> (
+            cameraID: String, generation: Int, frames: AsyncThrowingStream<CapturedObjectFrame, any Error>
+        ) {
             guard continuation == nil else { throw ObjectFinderError.busy }
             generation += 1
             let generation = generation
@@ -61,7 +63,7 @@
                 }
                 session.startRunning()
                 guard session.isRunning else { throw ObjectFinderFailure.cameraUnavailable }
-                return channel.stream
+                return (device.uniqueID, generation, channel.stream)
             } catch {
                 stop()
                 throw error
