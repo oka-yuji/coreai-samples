@@ -47,6 +47,24 @@ struct DemoLanguagePicker: View {
     }
 }
 
+#if os(iOS)
+    struct DemoLanguageMenu: View {
+        @Binding var code: String
+
+        var body: some View {
+            Menu {
+                Picker("Interface language", selection: $code) {
+                    ForEach(DemoLanguage.allCases, id: \.rawValue) { language in
+                        Text(verbatim: language.segment).tag(language.rawValue)
+                    }
+                }
+            } label: {
+                Label("Interface language", systemImage: "globe")
+            }
+        }
+    }
+#endif
+
 struct DemoStrings {
     let locale: Locale
 

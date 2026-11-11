@@ -147,7 +147,15 @@ struct ProductSourceView: View {
                 .padding(24)
             }
             .demoNavigationTitle("Source and conditions")
-            .toolbar { Button("Done") { dismiss() } }
+            .toolbar {
+                #if os(iOS)
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button(role: .confirm) { dismiss() }
+                    }
+                #else
+                    Button("Done") { dismiss() }
+                #endif
+            }
         }
         .frame(idealWidth: 680, idealHeight: 700)
     }

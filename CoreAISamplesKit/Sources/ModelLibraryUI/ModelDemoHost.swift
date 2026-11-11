@@ -76,10 +76,12 @@
                             Button {
                                 showingModel = true
                             } label: {
-                                Image(systemName: "info.circle")
+                                Label {
+                                    libraryText("Model information")
+                                } icon: {
+                                    Image(systemName: "info.circle")
+                                }
                             }
-                            .frame(minWidth: 44, minHeight: 44)
-                            .accessibilityLabel(libraryText("Model information"))
                         }
                     }
                     .sheet(isPresented: $showingModel) {
@@ -88,10 +90,8 @@
                                 .navigationTitle(Text(verbatim: model.name))
                                 .toolbar {
                                     ToolbarItem(placement: .confirmationAction) {
-                                        Button {
+                                        Button(role: .confirm) {
                                             showingModel = false
-                                        } label: {
-                                            libraryText("Done")
                                         }
                                     }
                                 }

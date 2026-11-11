@@ -32,7 +32,7 @@
             case .success(let library):
                 ModelLibraryView(
                     store: library.store, renderer: library.rendering,
-                    leadingToolbar: AnyView(DemoLanguagePicker(code: $languageCode))
+                    leadingToolbar: AnyView(DemoLanguageMenu(code: $languageCode))
                 )
                 .environment(\.locale, (DemoLanguage(rawValue: languageCode) ?? .english).locale)
                 .onChange(of: scenePhase) { _, phase in IOSModelLibraryAssembly.enter(phase, library: library.store) }

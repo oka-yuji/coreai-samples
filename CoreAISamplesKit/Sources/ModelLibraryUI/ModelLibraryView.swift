@@ -44,7 +44,6 @@
                     .toolbar {
                         if let leadingToolbar {
                             ToolbarItem(placement: .topBarLeading) { leadingToolbar }
-                                .sharedBackgroundVisibility(.hidden)
                         }
                         DefaultToolbarItem(kind: .search, placement: .bottomBar)
                         ToolbarSpacer(.fixed, placement: .bottomBar)
@@ -52,10 +51,12 @@
                             Button {
                                 showsAbout = true
                             } label: {
-                                Image(systemName: "info")
+                                Label {
+                                    libraryText("About this app")
+                                } icon: {
+                                    Image(systemName: "info")
+                                }
                             }
-                            .frame(minWidth: 44, minHeight: 44)
-                            .accessibilityLabel(libraryText("About this app"))
                         }
                     }
                     .navigationDestination(for: DemoSelection.self) { selection in
@@ -74,10 +75,8 @@
                     .navigationTitle(libraryText("About this app"))
                     .toolbar {
                         ToolbarItem(placement: .confirmationAction) {
-                            Button {
+                            Button(role: .confirm) {
                                 showsAbout = false
-                            } label: {
-                                libraryText("Done")
                             }
                         }
                     }
