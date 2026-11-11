@@ -1,0 +1,505 @@
+screen,source,pose,window_context,production_status,division_acceptance,camera_occlusion_acceptance,status_bar_acceptance,expanded_island_acceptance,available_evidence
+Models,CoreAISamplesKit/Sources/ModelLibraryUI/ModelLibraryView.swift,Closed portrait,Full screen,unverified,unverified,unverified,unverified,unverified,Production library shell with simulated installation and diagnostic header; native demo bodies not exercised
+Models,CoreAISamplesKit/Sources/ModelLibraryUI/ModelLibraryView.swift,Closed portrait,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Models,CoreAISamplesKit/Sources/ModelLibraryUI/ModelLibraryView.swift,Closed portrait,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Models,CoreAISamplesKit/Sources/ModelLibraryUI/ModelLibraryView.swift,Closed landscape,Full screen,unverified,unverified,unverified,unverified,unverified,Production library shell with simulated installation and diagnostic header; native demo bodies not exercised
+Models,CoreAISamplesKit/Sources/ModelLibraryUI/ModelLibraryView.swift,Closed landscape,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Models,CoreAISamplesKit/Sources/ModelLibraryUI/ModelLibraryView.swift,Closed landscape,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Models,CoreAISamplesKit/Sources/ModelLibraryUI/ModelLibraryView.swift,Open portrait,Full screen,unverified,unverified,unverified,unverified,unverified,Production library shell with simulated installation and diagnostic header; native demo bodies not exercised
+Models,CoreAISamplesKit/Sources/ModelLibraryUI/ModelLibraryView.swift,Open portrait,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Models,CoreAISamplesKit/Sources/ModelLibraryUI/ModelLibraryView.swift,Open portrait,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Models,CoreAISamplesKit/Sources/ModelLibraryUI/ModelLibraryView.swift,Open landscape,Full screen,unverified,unverified,unverified,unverified,unverified,Production library shell with simulated installation and diagnostic header; native demo bodies not exercised
+Models,CoreAISamplesKit/Sources/ModelLibraryUI/ModelLibraryView.swift,Open landscape,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,Two fixture scenes created; only frontmost visible in the screenshot; no tiling pass
+Models,CoreAISamplesKit/Sources/ModelLibraryUI/ModelLibraryView.swift,Open landscape,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Models,CoreAISamplesKit/Sources/ModelLibraryUI/ModelLibraryView.swift,Book,Full screen,unverified,unverified,unverified,unverified,unverified,Production library shell with simulated installation and diagnostic header; native demo bodies not exercised
+Models,CoreAISamplesKit/Sources/ModelLibraryUI/ModelLibraryView.swift,Book,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Models,CoreAISamplesKit/Sources/ModelLibraryUI/ModelLibraryView.swift,Book,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Models,CoreAISamplesKit/Sources/ModelLibraryUI/ModelLibraryView.swift,Laptop,Full screen,unverified,unverified,unverified,unverified,unverified,Production library shell with simulated installation and diagnostic header; native demo bodies not exercised
+Models,CoreAISamplesKit/Sources/ModelLibraryUI/ModelLibraryView.swift,Laptop,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Models,CoreAISamplesKit/Sources/ModelLibraryUI/ModelLibraryView.swift,Laptop,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Models,CoreAISamplesKit/Sources/ModelLibraryUI/ModelLibraryView.swift,Tent,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Models,CoreAISamplesKit/Sources/ModelLibraryUI/ModelLibraryView.swift,Tent,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Models,CoreAISamplesKit/Sources/ModelLibraryUI/ModelLibraryView.swift,Tent,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Product comparison,CoreAISamples/Demos/Products/ProductComparisonContent.swift,Closed portrait,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Product comparison,CoreAISamples/Demos/Products/ProductComparisonContent.swift,Closed portrait,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Product comparison,CoreAISamples/Demos/Products/ProductComparisonContent.swift,Closed portrait,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Product comparison,CoreAISamples/Demos/Products/ProductComparisonContent.swift,Closed landscape,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Product comparison,CoreAISamples/Demos/Products/ProductComparisonContent.swift,Closed landscape,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Product comparison,CoreAISamples/Demos/Products/ProductComparisonContent.swift,Closed landscape,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Product comparison,CoreAISamples/Demos/Products/ProductComparisonContent.swift,Open portrait,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Product comparison,CoreAISamples/Demos/Products/ProductComparisonContent.swift,Open portrait,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Product comparison,CoreAISamples/Demos/Products/ProductComparisonContent.swift,Open portrait,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Product comparison,CoreAISamples/Demos/Products/ProductComparisonContent.swift,Open landscape,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Product comparison,CoreAISamples/Demos/Products/ProductComparisonContent.swift,Open landscape,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Product comparison,CoreAISamples/Demos/Products/ProductComparisonContent.swift,Open landscape,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Product comparison,CoreAISamples/Demos/Products/ProductComparisonContent.swift,Book,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Product comparison,CoreAISamples/Demos/Products/ProductComparisonContent.swift,Book,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Product comparison,CoreAISamples/Demos/Products/ProductComparisonContent.swift,Book,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Product comparison,CoreAISamples/Demos/Products/ProductComparisonContent.swift,Laptop,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Product comparison,CoreAISamples/Demos/Products/ProductComparisonContent.swift,Laptop,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Product comparison,CoreAISamples/Demos/Products/ProductComparisonContent.swift,Laptop,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Product comparison,CoreAISamples/Demos/Products/ProductComparisonContent.swift,Tent,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Product comparison,CoreAISamples/Demos/Products/ProductComparisonContent.swift,Tent,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Product comparison,CoreAISamples/Demos/Products/ProductComparisonContent.swift,Tent,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Text extraction,CoreAISamples/iOS/PhoneExtractContent.swift,Closed portrait,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Text extraction,CoreAISamples/iOS/PhoneExtractContent.swift,Closed portrait,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Text extraction,CoreAISamples/iOS/PhoneExtractContent.swift,Closed portrait,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Text extraction,CoreAISamples/iOS/PhoneExtractContent.swift,Closed landscape,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Text extraction,CoreAISamples/iOS/PhoneExtractContent.swift,Closed landscape,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Text extraction,CoreAISamples/iOS/PhoneExtractContent.swift,Closed landscape,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Text extraction,CoreAISamples/iOS/PhoneExtractContent.swift,Open portrait,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Text extraction,CoreAISamples/iOS/PhoneExtractContent.swift,Open portrait,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Text extraction,CoreAISamples/iOS/PhoneExtractContent.swift,Open portrait,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Text extraction,CoreAISamples/iOS/PhoneExtractContent.swift,Open landscape,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Text extraction,CoreAISamples/iOS/PhoneExtractContent.swift,Open landscape,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Text extraction,CoreAISamples/iOS/PhoneExtractContent.swift,Open landscape,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Text extraction,CoreAISamples/iOS/PhoneExtractContent.swift,Book,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Text extraction,CoreAISamples/iOS/PhoneExtractContent.swift,Book,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Text extraction,CoreAISamples/iOS/PhoneExtractContent.swift,Book,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Text extraction,CoreAISamples/iOS/PhoneExtractContent.swift,Laptop,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Text extraction,CoreAISamples/iOS/PhoneExtractContent.swift,Laptop,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Text extraction,CoreAISamples/iOS/PhoneExtractContent.swift,Laptop,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Text extraction,CoreAISamples/iOS/PhoneExtractContent.swift,Tent,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Text extraction,CoreAISamples/iOS/PhoneExtractContent.swift,Tent,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Text extraction,CoreAISamples/iOS/PhoneExtractContent.swift,Tent,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Truck inspection,CoreAISamples/iOS/TruckInspectionContent.swift,Closed portrait,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Truck inspection,CoreAISamples/iOS/TruckInspectionContent.swift,Closed portrait,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Truck inspection,CoreAISamples/iOS/TruckInspectionContent.swift,Closed portrait,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Truck inspection,CoreAISamples/iOS/TruckInspectionContent.swift,Closed landscape,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Truck inspection,CoreAISamples/iOS/TruckInspectionContent.swift,Closed landscape,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Truck inspection,CoreAISamples/iOS/TruckInspectionContent.swift,Closed landscape,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Truck inspection,CoreAISamples/iOS/TruckInspectionContent.swift,Open portrait,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Truck inspection,CoreAISamples/iOS/TruckInspectionContent.swift,Open portrait,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Truck inspection,CoreAISamples/iOS/TruckInspectionContent.swift,Open portrait,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Truck inspection,CoreAISamples/iOS/TruckInspectionContent.swift,Open landscape,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Truck inspection,CoreAISamples/iOS/TruckInspectionContent.swift,Open landscape,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Truck inspection,CoreAISamples/iOS/TruckInspectionContent.swift,Open landscape,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Truck inspection,CoreAISamples/iOS/TruckInspectionContent.swift,Book,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Truck inspection,CoreAISamples/iOS/TruckInspectionContent.swift,Book,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Truck inspection,CoreAISamples/iOS/TruckInspectionContent.swift,Book,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Truck inspection,CoreAISamples/iOS/TruckInspectionContent.swift,Laptop,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Truck inspection,CoreAISamples/iOS/TruckInspectionContent.swift,Laptop,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Truck inspection,CoreAISamples/iOS/TruckInspectionContent.swift,Laptop,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Truck inspection,CoreAISamples/iOS/TruckInspectionContent.swift,Tent,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Truck inspection,CoreAISamples/iOS/TruckInspectionContent.swift,Tent,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Truck inspection,CoreAISamples/iOS/TruckInspectionContent.swift,Tent,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image search,CoreAISamples/Demos/ImageSearch/ImageSearchContent.swift,Closed portrait,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image search,CoreAISamples/Demos/ImageSearch/ImageSearchContent.swift,Closed portrait,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image search,CoreAISamples/Demos/ImageSearch/ImageSearchContent.swift,Closed portrait,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image search,CoreAISamples/Demos/ImageSearch/ImageSearchContent.swift,Closed landscape,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image search,CoreAISamples/Demos/ImageSearch/ImageSearchContent.swift,Closed landscape,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image search,CoreAISamples/Demos/ImageSearch/ImageSearchContent.swift,Closed landscape,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image search,CoreAISamples/Demos/ImageSearch/ImageSearchContent.swift,Open portrait,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image search,CoreAISamples/Demos/ImageSearch/ImageSearchContent.swift,Open portrait,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image search,CoreAISamples/Demos/ImageSearch/ImageSearchContent.swift,Open portrait,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image search,CoreAISamples/Demos/ImageSearch/ImageSearchContent.swift,Open landscape,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image search,CoreAISamples/Demos/ImageSearch/ImageSearchContent.swift,Open landscape,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image search,CoreAISamples/Demos/ImageSearch/ImageSearchContent.swift,Open landscape,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image search,CoreAISamples/Demos/ImageSearch/ImageSearchContent.swift,Book,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image search,CoreAISamples/Demos/ImageSearch/ImageSearchContent.swift,Book,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image search,CoreAISamples/Demos/ImageSearch/ImageSearchContent.swift,Book,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image search,CoreAISamples/Demos/ImageSearch/ImageSearchContent.swift,Laptop,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image search,CoreAISamples/Demos/ImageSearch/ImageSearchContent.swift,Laptop,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image search,CoreAISamples/Demos/ImageSearch/ImageSearchContent.swift,Laptop,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image search,CoreAISamples/Demos/ImageSearch/ImageSearchContent.swift,Tent,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image search,CoreAISamples/Demos/ImageSearch/ImageSearchContent.swift,Tent,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image search,CoreAISamples/Demos/ImageSearch/ImageSearchContent.swift,Tent,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Video search,CoreAISamples/Demos/VideoSearch/VideoSearchContent.swift,Closed portrait,Full screen,unverified,unverified,unverified,unverified,unverified,Model-free surrogate comparison; see observations.csv
+Video search,CoreAISamples/Demos/VideoSearch/VideoSearchContent.swift,Closed portrait,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Video search,CoreAISamples/Demos/VideoSearch/VideoSearchContent.swift,Closed portrait,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Video search,CoreAISamples/Demos/VideoSearch/VideoSearchContent.swift,Closed landscape,Full screen,unverified,unverified,unverified,unverified,unverified,Model-free surrogate comparison; see observations.csv
+Video search,CoreAISamples/Demos/VideoSearch/VideoSearchContent.swift,Closed landscape,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Video search,CoreAISamples/Demos/VideoSearch/VideoSearchContent.swift,Closed landscape,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Video search,CoreAISamples/Demos/VideoSearch/VideoSearchContent.swift,Open portrait,Full screen,unverified,unverified,unverified,unverified,unverified,Model-free surrogate comparison; see observations.csv
+Video search,CoreAISamples/Demos/VideoSearch/VideoSearchContent.swift,Open portrait,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Video search,CoreAISamples/Demos/VideoSearch/VideoSearchContent.swift,Open portrait,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Video search,CoreAISamples/Demos/VideoSearch/VideoSearchContent.swift,Open landscape,Full screen,unverified,unverified,unverified,unverified,unverified,Model-free surrogate comparison; see observations.csv
+Video search,CoreAISamples/Demos/VideoSearch/VideoSearchContent.swift,Open landscape,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Video search,CoreAISamples/Demos/VideoSearch/VideoSearchContent.swift,Open landscape,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Video search,CoreAISamples/Demos/VideoSearch/VideoSearchContent.swift,Book,Full screen,unverified,unverified,unverified,unverified,unverified,Model-free surrogate comparison; see observations.csv
+Video search,CoreAISamples/Demos/VideoSearch/VideoSearchContent.swift,Book,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Video search,CoreAISamples/Demos/VideoSearch/VideoSearchContent.swift,Book,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Video search,CoreAISamples/Demos/VideoSearch/VideoSearchContent.swift,Laptop,Full screen,unverified,unverified,unverified,unverified,unverified,Model-free surrogate comparison; see observations.csv
+Video search,CoreAISamples/Demos/VideoSearch/VideoSearchContent.swift,Laptop,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Video search,CoreAISamples/Demos/VideoSearch/VideoSearchContent.swift,Laptop,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Video search,CoreAISamples/Demos/VideoSearch/VideoSearchContent.swift,Tent,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Video search,CoreAISamples/Demos/VideoSearch/VideoSearchContent.swift,Tent,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Video search,CoreAISamples/Demos/VideoSearch/VideoSearchContent.swift,Tent,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Camera search,CoreAISamples/iOS/ObjectFinderContent.swift,Closed portrait,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Camera search,CoreAISamples/iOS/ObjectFinderContent.swift,Closed portrait,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Camera search,CoreAISamples/iOS/ObjectFinderContent.swift,Closed portrait,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Camera search,CoreAISamples/iOS/ObjectFinderContent.swift,Closed landscape,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Camera search,CoreAISamples/iOS/ObjectFinderContent.swift,Closed landscape,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Camera search,CoreAISamples/iOS/ObjectFinderContent.swift,Closed landscape,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Camera search,CoreAISamples/iOS/ObjectFinderContent.swift,Open portrait,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Camera search,CoreAISamples/iOS/ObjectFinderContent.swift,Open portrait,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Camera search,CoreAISamples/iOS/ObjectFinderContent.swift,Open portrait,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Camera search,CoreAISamples/iOS/ObjectFinderContent.swift,Open landscape,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Camera search,CoreAISamples/iOS/ObjectFinderContent.swift,Open landscape,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Camera search,CoreAISamples/iOS/ObjectFinderContent.swift,Open landscape,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Camera search,CoreAISamples/iOS/ObjectFinderContent.swift,Book,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Camera search,CoreAISamples/iOS/ObjectFinderContent.swift,Book,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Camera search,CoreAISamples/iOS/ObjectFinderContent.swift,Book,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Camera search,CoreAISamples/iOS/ObjectFinderContent.swift,Laptop,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Camera search,CoreAISamples/iOS/ObjectFinderContent.swift,Laptop,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Camera search,CoreAISamples/iOS/ObjectFinderContent.swift,Laptop,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Camera search,CoreAISamples/iOS/ObjectFinderContent.swift,Tent,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Camera search,CoreAISamples/iOS/ObjectFinderContent.swift,Tent,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Camera search,CoreAISamples/iOS/ObjectFinderContent.swift,Tent,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image generation,CoreAISamplesKit/Sources/ImageGenerationUI/ImageGenerationContent.swift,Closed portrait,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image generation,CoreAISamplesKit/Sources/ImageGenerationUI/ImageGenerationContent.swift,Closed portrait,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image generation,CoreAISamplesKit/Sources/ImageGenerationUI/ImageGenerationContent.swift,Closed portrait,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image generation,CoreAISamplesKit/Sources/ImageGenerationUI/ImageGenerationContent.swift,Closed landscape,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image generation,CoreAISamplesKit/Sources/ImageGenerationUI/ImageGenerationContent.swift,Closed landscape,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image generation,CoreAISamplesKit/Sources/ImageGenerationUI/ImageGenerationContent.swift,Closed landscape,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image generation,CoreAISamplesKit/Sources/ImageGenerationUI/ImageGenerationContent.swift,Open portrait,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image generation,CoreAISamplesKit/Sources/ImageGenerationUI/ImageGenerationContent.swift,Open portrait,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image generation,CoreAISamplesKit/Sources/ImageGenerationUI/ImageGenerationContent.swift,Open portrait,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image generation,CoreAISamplesKit/Sources/ImageGenerationUI/ImageGenerationContent.swift,Open landscape,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image generation,CoreAISamplesKit/Sources/ImageGenerationUI/ImageGenerationContent.swift,Open landscape,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image generation,CoreAISamplesKit/Sources/ImageGenerationUI/ImageGenerationContent.swift,Open landscape,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image generation,CoreAISamplesKit/Sources/ImageGenerationUI/ImageGenerationContent.swift,Book,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image generation,CoreAISamplesKit/Sources/ImageGenerationUI/ImageGenerationContent.swift,Book,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image generation,CoreAISamplesKit/Sources/ImageGenerationUI/ImageGenerationContent.swift,Book,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image generation,CoreAISamplesKit/Sources/ImageGenerationUI/ImageGenerationContent.swift,Laptop,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image generation,CoreAISamplesKit/Sources/ImageGenerationUI/ImageGenerationContent.swift,Laptop,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image generation,CoreAISamplesKit/Sources/ImageGenerationUI/ImageGenerationContent.swift,Laptop,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image generation,CoreAISamplesKit/Sources/ImageGenerationUI/ImageGenerationContent.swift,Tent,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image generation,CoreAISamplesKit/Sources/ImageGenerationUI/ImageGenerationContent.swift,Tent,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image generation,CoreAISamplesKit/Sources/ImageGenerationUI/ImageGenerationContent.swift,Tent,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Speech,CoreAISamples/iOS/PhoneSpeechContent.swift,Closed portrait,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Speech,CoreAISamples/iOS/PhoneSpeechContent.swift,Closed portrait,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Speech,CoreAISamples/iOS/PhoneSpeechContent.swift,Closed portrait,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Speech,CoreAISamples/iOS/PhoneSpeechContent.swift,Closed landscape,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Speech,CoreAISamples/iOS/PhoneSpeechContent.swift,Closed landscape,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Speech,CoreAISamples/iOS/PhoneSpeechContent.swift,Closed landscape,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Speech,CoreAISamples/iOS/PhoneSpeechContent.swift,Open portrait,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Speech,CoreAISamples/iOS/PhoneSpeechContent.swift,Open portrait,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Speech,CoreAISamples/iOS/PhoneSpeechContent.swift,Open portrait,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Speech,CoreAISamples/iOS/PhoneSpeechContent.swift,Open landscape,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Speech,CoreAISamples/iOS/PhoneSpeechContent.swift,Open landscape,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Speech,CoreAISamples/iOS/PhoneSpeechContent.swift,Open landscape,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Speech,CoreAISamples/iOS/PhoneSpeechContent.swift,Book,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Speech,CoreAISamples/iOS/PhoneSpeechContent.swift,Book,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Speech,CoreAISamples/iOS/PhoneSpeechContent.swift,Book,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Speech,CoreAISamples/iOS/PhoneSpeechContent.swift,Laptop,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Speech,CoreAISamples/iOS/PhoneSpeechContent.swift,Laptop,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Speech,CoreAISamples/iOS/PhoneSpeechContent.swift,Laptop,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Speech,CoreAISamples/iOS/PhoneSpeechContent.swift,Tent,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Speech,CoreAISamples/iOS/PhoneSpeechContent.swift,Tent,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Speech,CoreAISamples/iOS/PhoneSpeechContent.swift,Tent,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+About app sheet,CoreAISamplesKit/Sources/ModelLibraryUI/ModelLibraryView.swift,Closed portrait,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+About app sheet,CoreAISamplesKit/Sources/ModelLibraryUI/ModelLibraryView.swift,Closed portrait,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+About app sheet,CoreAISamplesKit/Sources/ModelLibraryUI/ModelLibraryView.swift,Closed portrait,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+About app sheet,CoreAISamplesKit/Sources/ModelLibraryUI/ModelLibraryView.swift,Closed landscape,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+About app sheet,CoreAISamplesKit/Sources/ModelLibraryUI/ModelLibraryView.swift,Closed landscape,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+About app sheet,CoreAISamplesKit/Sources/ModelLibraryUI/ModelLibraryView.swift,Closed landscape,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+About app sheet,CoreAISamplesKit/Sources/ModelLibraryUI/ModelLibraryView.swift,Open portrait,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+About app sheet,CoreAISamplesKit/Sources/ModelLibraryUI/ModelLibraryView.swift,Open portrait,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+About app sheet,CoreAISamplesKit/Sources/ModelLibraryUI/ModelLibraryView.swift,Open portrait,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+About app sheet,CoreAISamplesKit/Sources/ModelLibraryUI/ModelLibraryView.swift,Open landscape,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+About app sheet,CoreAISamplesKit/Sources/ModelLibraryUI/ModelLibraryView.swift,Open landscape,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+About app sheet,CoreAISamplesKit/Sources/ModelLibraryUI/ModelLibraryView.swift,Open landscape,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+About app sheet,CoreAISamplesKit/Sources/ModelLibraryUI/ModelLibraryView.swift,Book,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+About app sheet,CoreAISamplesKit/Sources/ModelLibraryUI/ModelLibraryView.swift,Book,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+About app sheet,CoreAISamplesKit/Sources/ModelLibraryUI/ModelLibraryView.swift,Book,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+About app sheet,CoreAISamplesKit/Sources/ModelLibraryUI/ModelLibraryView.swift,Laptop,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+About app sheet,CoreAISamplesKit/Sources/ModelLibraryUI/ModelLibraryView.swift,Laptop,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+About app sheet,CoreAISamplesKit/Sources/ModelLibraryUI/ModelLibraryView.swift,Laptop,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+About app sheet,CoreAISamplesKit/Sources/ModelLibraryUI/ModelLibraryView.swift,Tent,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+About app sheet,CoreAISamplesKit/Sources/ModelLibraryUI/ModelLibraryView.swift,Tent,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+About app sheet,CoreAISamplesKit/Sources/ModelLibraryUI/ModelLibraryView.swift,Tent,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Model information sheet,CoreAISamplesKit/Sources/ModelLibraryUI/ModelDemoHost.swift,Closed portrait,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Model information sheet,CoreAISamplesKit/Sources/ModelLibraryUI/ModelDemoHost.swift,Closed portrait,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Model information sheet,CoreAISamplesKit/Sources/ModelLibraryUI/ModelDemoHost.swift,Closed portrait,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Model information sheet,CoreAISamplesKit/Sources/ModelLibraryUI/ModelDemoHost.swift,Closed landscape,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Model information sheet,CoreAISamplesKit/Sources/ModelLibraryUI/ModelDemoHost.swift,Closed landscape,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Model information sheet,CoreAISamplesKit/Sources/ModelLibraryUI/ModelDemoHost.swift,Closed landscape,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Model information sheet,CoreAISamplesKit/Sources/ModelLibraryUI/ModelDemoHost.swift,Open portrait,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Model information sheet,CoreAISamplesKit/Sources/ModelLibraryUI/ModelDemoHost.swift,Open portrait,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Model information sheet,CoreAISamplesKit/Sources/ModelLibraryUI/ModelDemoHost.swift,Open portrait,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Model information sheet,CoreAISamplesKit/Sources/ModelLibraryUI/ModelDemoHost.swift,Open landscape,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Model information sheet,CoreAISamplesKit/Sources/ModelLibraryUI/ModelDemoHost.swift,Open landscape,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Model information sheet,CoreAISamplesKit/Sources/ModelLibraryUI/ModelDemoHost.swift,Open landscape,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Model information sheet,CoreAISamplesKit/Sources/ModelLibraryUI/ModelDemoHost.swift,Book,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Model information sheet,CoreAISamplesKit/Sources/ModelLibraryUI/ModelDemoHost.swift,Book,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Model information sheet,CoreAISamplesKit/Sources/ModelLibraryUI/ModelDemoHost.swift,Book,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Model information sheet,CoreAISamplesKit/Sources/ModelLibraryUI/ModelDemoHost.swift,Laptop,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Model information sheet,CoreAISamplesKit/Sources/ModelLibraryUI/ModelDemoHost.swift,Laptop,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Model information sheet,CoreAISamplesKit/Sources/ModelLibraryUI/ModelDemoHost.swift,Laptop,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Model information sheet,CoreAISamplesKit/Sources/ModelLibraryUI/ModelDemoHost.swift,Tent,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Model information sheet,CoreAISamplesKit/Sources/ModelLibraryUI/ModelDemoHost.swift,Tent,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Model information sheet,CoreAISamplesKit/Sources/ModelLibraryUI/ModelDemoHost.swift,Tent,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Model import picker,CoreAISamplesKit/Sources/ModelLibraryUI/ModelAcquisitionControls.swift,Closed portrait,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Model import picker,CoreAISamplesKit/Sources/ModelLibraryUI/ModelAcquisitionControls.swift,Closed portrait,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Model import picker,CoreAISamplesKit/Sources/ModelLibraryUI/ModelAcquisitionControls.swift,Closed portrait,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Model import picker,CoreAISamplesKit/Sources/ModelLibraryUI/ModelAcquisitionControls.swift,Closed landscape,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Model import picker,CoreAISamplesKit/Sources/ModelLibraryUI/ModelAcquisitionControls.swift,Closed landscape,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Model import picker,CoreAISamplesKit/Sources/ModelLibraryUI/ModelAcquisitionControls.swift,Closed landscape,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Model import picker,CoreAISamplesKit/Sources/ModelLibraryUI/ModelAcquisitionControls.swift,Open portrait,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Model import picker,CoreAISamplesKit/Sources/ModelLibraryUI/ModelAcquisitionControls.swift,Open portrait,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Model import picker,CoreAISamplesKit/Sources/ModelLibraryUI/ModelAcquisitionControls.swift,Open portrait,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Model import picker,CoreAISamplesKit/Sources/ModelLibraryUI/ModelAcquisitionControls.swift,Open landscape,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Model import picker,CoreAISamplesKit/Sources/ModelLibraryUI/ModelAcquisitionControls.swift,Open landscape,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Model import picker,CoreAISamplesKit/Sources/ModelLibraryUI/ModelAcquisitionControls.swift,Open landscape,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Model import picker,CoreAISamplesKit/Sources/ModelLibraryUI/ModelAcquisitionControls.swift,Book,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Model import picker,CoreAISamplesKit/Sources/ModelLibraryUI/ModelAcquisitionControls.swift,Book,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Model import picker,CoreAISamplesKit/Sources/ModelLibraryUI/ModelAcquisitionControls.swift,Book,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Model import picker,CoreAISamplesKit/Sources/ModelLibraryUI/ModelAcquisitionControls.swift,Laptop,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Model import picker,CoreAISamplesKit/Sources/ModelLibraryUI/ModelAcquisitionControls.swift,Laptop,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Model import picker,CoreAISamplesKit/Sources/ModelLibraryUI/ModelAcquisitionControls.swift,Laptop,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Model import picker,CoreAISamplesKit/Sources/ModelLibraryUI/ModelAcquisitionControls.swift,Tent,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Model import picker,CoreAISamplesKit/Sources/ModelLibraryUI/ModelAcquisitionControls.swift,Tent,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Model import picker,CoreAISamplesKit/Sources/ModelLibraryUI/ModelAcquisitionControls.swift,Tent,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Product source evidence sheet,CoreAISamples/Demos/Products/ProductComparisonContent.swift,Closed portrait,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Product source evidence sheet,CoreAISamples/Demos/Products/ProductComparisonContent.swift,Closed portrait,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Product source evidence sheet,CoreAISamples/Demos/Products/ProductComparisonContent.swift,Closed portrait,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Product source evidence sheet,CoreAISamples/Demos/Products/ProductComparisonContent.swift,Closed landscape,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Product source evidence sheet,CoreAISamples/Demos/Products/ProductComparisonContent.swift,Closed landscape,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Product source evidence sheet,CoreAISamples/Demos/Products/ProductComparisonContent.swift,Closed landscape,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Product source evidence sheet,CoreAISamples/Demos/Products/ProductComparisonContent.swift,Open portrait,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Product source evidence sheet,CoreAISamples/Demos/Products/ProductComparisonContent.swift,Open portrait,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Product source evidence sheet,CoreAISamples/Demos/Products/ProductComparisonContent.swift,Open portrait,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Product source evidence sheet,CoreAISamples/Demos/Products/ProductComparisonContent.swift,Open landscape,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Product source evidence sheet,CoreAISamples/Demos/Products/ProductComparisonContent.swift,Open landscape,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Product source evidence sheet,CoreAISamples/Demos/Products/ProductComparisonContent.swift,Open landscape,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Product source evidence sheet,CoreAISamples/Demos/Products/ProductComparisonContent.swift,Book,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Product source evidence sheet,CoreAISamples/Demos/Products/ProductComparisonContent.swift,Book,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Product source evidence sheet,CoreAISamples/Demos/Products/ProductComparisonContent.swift,Book,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Product source evidence sheet,CoreAISamples/Demos/Products/ProductComparisonContent.swift,Laptop,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Product source evidence sheet,CoreAISamples/Demos/Products/ProductComparisonContent.swift,Laptop,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Product source evidence sheet,CoreAISamples/Demos/Products/ProductComparisonContent.swift,Laptop,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Product source evidence sheet,CoreAISamples/Demos/Products/ProductComparisonContent.swift,Tent,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Product source evidence sheet,CoreAISamples/Demos/Products/ProductComparisonContent.swift,Tent,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Product source evidence sheet,CoreAISamples/Demos/Products/ProductComparisonContent.swift,Tent,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image detail sheet,CoreAISamples/Demos/ImageSearch/ImageSearchContent.swift,Closed portrait,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image detail sheet,CoreAISamples/Demos/ImageSearch/ImageSearchContent.swift,Closed portrait,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image detail sheet,CoreAISamples/Demos/ImageSearch/ImageSearchContent.swift,Closed portrait,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image detail sheet,CoreAISamples/Demos/ImageSearch/ImageSearchContent.swift,Closed landscape,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image detail sheet,CoreAISamples/Demos/ImageSearch/ImageSearchContent.swift,Closed landscape,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image detail sheet,CoreAISamples/Demos/ImageSearch/ImageSearchContent.swift,Closed landscape,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image detail sheet,CoreAISamples/Demos/ImageSearch/ImageSearchContent.swift,Open portrait,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image detail sheet,CoreAISamples/Demos/ImageSearch/ImageSearchContent.swift,Open portrait,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image detail sheet,CoreAISamples/Demos/ImageSearch/ImageSearchContent.swift,Open portrait,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image detail sheet,CoreAISamples/Demos/ImageSearch/ImageSearchContent.swift,Open landscape,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image detail sheet,CoreAISamples/Demos/ImageSearch/ImageSearchContent.swift,Open landscape,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image detail sheet,CoreAISamples/Demos/ImageSearch/ImageSearchContent.swift,Open landscape,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image detail sheet,CoreAISamples/Demos/ImageSearch/ImageSearchContent.swift,Book,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image detail sheet,CoreAISamples/Demos/ImageSearch/ImageSearchContent.swift,Book,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image detail sheet,CoreAISamples/Demos/ImageSearch/ImageSearchContent.swift,Book,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image detail sheet,CoreAISamples/Demos/ImageSearch/ImageSearchContent.swift,Laptop,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image detail sheet,CoreAISamples/Demos/ImageSearch/ImageSearchContent.swift,Laptop,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image detail sheet,CoreAISamples/Demos/ImageSearch/ImageSearchContent.swift,Laptop,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image detail sheet,CoreAISamples/Demos/ImageSearch/ImageSearchContent.swift,Tent,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image detail sheet,CoreAISamples/Demos/ImageSearch/ImageSearchContent.swift,Tent,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image detail sheet,CoreAISamples/Demos/ImageSearch/ImageSearchContent.swift,Tent,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image photo/file pickers,CoreAISamples/Demos/ImageSearch/ImageSearchContent.swift,Closed portrait,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image photo/file pickers,CoreAISamples/Demos/ImageSearch/ImageSearchContent.swift,Closed portrait,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image photo/file pickers,CoreAISamples/Demos/ImageSearch/ImageSearchContent.swift,Closed portrait,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image photo/file pickers,CoreAISamples/Demos/ImageSearch/ImageSearchContent.swift,Closed landscape,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image photo/file pickers,CoreAISamples/Demos/ImageSearch/ImageSearchContent.swift,Closed landscape,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image photo/file pickers,CoreAISamples/Demos/ImageSearch/ImageSearchContent.swift,Closed landscape,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image photo/file pickers,CoreAISamples/Demos/ImageSearch/ImageSearchContent.swift,Open portrait,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image photo/file pickers,CoreAISamples/Demos/ImageSearch/ImageSearchContent.swift,Open portrait,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image photo/file pickers,CoreAISamples/Demos/ImageSearch/ImageSearchContent.swift,Open portrait,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image photo/file pickers,CoreAISamples/Demos/ImageSearch/ImageSearchContent.swift,Open landscape,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image photo/file pickers,CoreAISamples/Demos/ImageSearch/ImageSearchContent.swift,Open landscape,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image photo/file pickers,CoreAISamples/Demos/ImageSearch/ImageSearchContent.swift,Open landscape,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image photo/file pickers,CoreAISamples/Demos/ImageSearch/ImageSearchContent.swift,Book,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image photo/file pickers,CoreAISamples/Demos/ImageSearch/ImageSearchContent.swift,Book,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image photo/file pickers,CoreAISamples/Demos/ImageSearch/ImageSearchContent.swift,Book,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image photo/file pickers,CoreAISamples/Demos/ImageSearch/ImageSearchContent.swift,Laptop,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image photo/file pickers,CoreAISamples/Demos/ImageSearch/ImageSearchContent.swift,Laptop,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image photo/file pickers,CoreAISamples/Demos/ImageSearch/ImageSearchContent.swift,Laptop,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image photo/file pickers,CoreAISamples/Demos/ImageSearch/ImageSearchContent.swift,Tent,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image photo/file pickers,CoreAISamples/Demos/ImageSearch/ImageSearchContent.swift,Tent,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image photo/file pickers,CoreAISamples/Demos/ImageSearch/ImageSearchContent.swift,Tent,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Video photo/file pickers,CoreAISamples/Demos/VideoSearch/VideoSearchContent.swift,Closed portrait,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Video photo/file pickers,CoreAISamples/Demos/VideoSearch/VideoSearchContent.swift,Closed portrait,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Video photo/file pickers,CoreAISamples/Demos/VideoSearch/VideoSearchContent.swift,Closed portrait,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Video photo/file pickers,CoreAISamples/Demos/VideoSearch/VideoSearchContent.swift,Closed landscape,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Video photo/file pickers,CoreAISamples/Demos/VideoSearch/VideoSearchContent.swift,Closed landscape,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Video photo/file pickers,CoreAISamples/Demos/VideoSearch/VideoSearchContent.swift,Closed landscape,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Video photo/file pickers,CoreAISamples/Demos/VideoSearch/VideoSearchContent.swift,Open portrait,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Video photo/file pickers,CoreAISamples/Demos/VideoSearch/VideoSearchContent.swift,Open portrait,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Video photo/file pickers,CoreAISamples/Demos/VideoSearch/VideoSearchContent.swift,Open portrait,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Video photo/file pickers,CoreAISamples/Demos/VideoSearch/VideoSearchContent.swift,Open landscape,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Video photo/file pickers,CoreAISamples/Demos/VideoSearch/VideoSearchContent.swift,Open landscape,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Video photo/file pickers,CoreAISamples/Demos/VideoSearch/VideoSearchContent.swift,Open landscape,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Video photo/file pickers,CoreAISamples/Demos/VideoSearch/VideoSearchContent.swift,Book,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Video photo/file pickers,CoreAISamples/Demos/VideoSearch/VideoSearchContent.swift,Book,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Video photo/file pickers,CoreAISamples/Demos/VideoSearch/VideoSearchContent.swift,Book,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Video photo/file pickers,CoreAISamples/Demos/VideoSearch/VideoSearchContent.swift,Laptop,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Video photo/file pickers,CoreAISamples/Demos/VideoSearch/VideoSearchContent.swift,Laptop,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Video photo/file pickers,CoreAISamples/Demos/VideoSearch/VideoSearchContent.swift,Laptop,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Video photo/file pickers,CoreAISamples/Demos/VideoSearch/VideoSearchContent.swift,Tent,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Video photo/file pickers,CoreAISamples/Demos/VideoSearch/VideoSearchContent.swift,Tent,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Video photo/file pickers,CoreAISamples/Demos/VideoSearch/VideoSearchContent.swift,Tent,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Video export/share,CoreAISamples/Demos/VideoSearch/VideoSearchContent.swift,Closed portrait,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Video export/share,CoreAISamples/Demos/VideoSearch/VideoSearchContent.swift,Closed portrait,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Video export/share,CoreAISamples/Demos/VideoSearch/VideoSearchContent.swift,Closed portrait,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Video export/share,CoreAISamples/Demos/VideoSearch/VideoSearchContent.swift,Closed landscape,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Video export/share,CoreAISamples/Demos/VideoSearch/VideoSearchContent.swift,Closed landscape,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Video export/share,CoreAISamples/Demos/VideoSearch/VideoSearchContent.swift,Closed landscape,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Video export/share,CoreAISamples/Demos/VideoSearch/VideoSearchContent.swift,Open portrait,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Video export/share,CoreAISamples/Demos/VideoSearch/VideoSearchContent.swift,Open portrait,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Video export/share,CoreAISamples/Demos/VideoSearch/VideoSearchContent.swift,Open portrait,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Video export/share,CoreAISamples/Demos/VideoSearch/VideoSearchContent.swift,Open landscape,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Video export/share,CoreAISamples/Demos/VideoSearch/VideoSearchContent.swift,Open landscape,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Video export/share,CoreAISamples/Demos/VideoSearch/VideoSearchContent.swift,Open landscape,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Video export/share,CoreAISamples/Demos/VideoSearch/VideoSearchContent.swift,Book,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Video export/share,CoreAISamples/Demos/VideoSearch/VideoSearchContent.swift,Book,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Video export/share,CoreAISamples/Demos/VideoSearch/VideoSearchContent.swift,Book,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Video export/share,CoreAISamples/Demos/VideoSearch/VideoSearchContent.swift,Laptop,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Video export/share,CoreAISamples/Demos/VideoSearch/VideoSearchContent.swift,Laptop,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Video export/share,CoreAISamples/Demos/VideoSearch/VideoSearchContent.swift,Laptop,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Video export/share,CoreAISamples/Demos/VideoSearch/VideoSearchContent.swift,Tent,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Video export/share,CoreAISamples/Demos/VideoSearch/VideoSearchContent.swift,Tent,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Video export/share,CoreAISamples/Demos/VideoSearch/VideoSearchContent.swift,Tent,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Camera search sheet,CoreAISamples/iOS/ObjectFinderContent.swift,Closed portrait,Full screen,unverified,unverified,unverified,unverified,unverified,Model-free surrogate comparison; see observations.csv
+Camera search sheet,CoreAISamples/iOS/ObjectFinderContent.swift,Closed portrait,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Camera search sheet,CoreAISamples/iOS/ObjectFinderContent.swift,Closed portrait,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Camera search sheet,CoreAISamples/iOS/ObjectFinderContent.swift,Closed landscape,Full screen,unverified,unverified,unverified,unverified,unverified,Model-free surrogate comparison; see observations.csv
+Camera search sheet,CoreAISamples/iOS/ObjectFinderContent.swift,Closed landscape,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Camera search sheet,CoreAISamples/iOS/ObjectFinderContent.swift,Closed landscape,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Camera search sheet,CoreAISamples/iOS/ObjectFinderContent.swift,Open portrait,Full screen,unverified,unverified,unverified,unverified,unverified,Model-free surrogate comparison; see observations.csv
+Camera search sheet,CoreAISamples/iOS/ObjectFinderContent.swift,Open portrait,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Camera search sheet,CoreAISamples/iOS/ObjectFinderContent.swift,Open portrait,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Camera search sheet,CoreAISamples/iOS/ObjectFinderContent.swift,Open landscape,Full screen,unverified,unverified,unverified,unverified,unverified,Model-free surrogate comparison; see observations.csv
+Camera search sheet,CoreAISamples/iOS/ObjectFinderContent.swift,Open landscape,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Camera search sheet,CoreAISamples/iOS/ObjectFinderContent.swift,Open landscape,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Camera search sheet,CoreAISamples/iOS/ObjectFinderContent.swift,Book,Full screen,unverified,unverified,unverified,unverified,unverified,Model-free surrogate comparison; see observations.csv
+Camera search sheet,CoreAISamples/iOS/ObjectFinderContent.swift,Book,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Camera search sheet,CoreAISamples/iOS/ObjectFinderContent.swift,Book,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Camera search sheet,CoreAISamples/iOS/ObjectFinderContent.swift,Laptop,Full screen,unverified,unverified,unverified,unverified,unverified,Model-free surrogate comparison; see observations.csv
+Camera search sheet,CoreAISamples/iOS/ObjectFinderContent.swift,Laptop,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Camera search sheet,CoreAISamples/iOS/ObjectFinderContent.swift,Laptop,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Camera search sheet,CoreAISamples/iOS/ObjectFinderContent.swift,Tent,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Camera search sheet,CoreAISamples/iOS/ObjectFinderContent.swift,Tent,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Camera search sheet,CoreAISamples/iOS/ObjectFinderContent.swift,Tent,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image reference/crop sheet,CoreAISamplesKit/Sources/ImageGenerationUI/ImageGenerationContent.swift,Closed portrait,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image reference/crop sheet,CoreAISamplesKit/Sources/ImageGenerationUI/ImageGenerationContent.swift,Closed portrait,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image reference/crop sheet,CoreAISamplesKit/Sources/ImageGenerationUI/ImageGenerationContent.swift,Closed portrait,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image reference/crop sheet,CoreAISamplesKit/Sources/ImageGenerationUI/ImageGenerationContent.swift,Closed landscape,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image reference/crop sheet,CoreAISamplesKit/Sources/ImageGenerationUI/ImageGenerationContent.swift,Closed landscape,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image reference/crop sheet,CoreAISamplesKit/Sources/ImageGenerationUI/ImageGenerationContent.swift,Closed landscape,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image reference/crop sheet,CoreAISamplesKit/Sources/ImageGenerationUI/ImageGenerationContent.swift,Open portrait,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image reference/crop sheet,CoreAISamplesKit/Sources/ImageGenerationUI/ImageGenerationContent.swift,Open portrait,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image reference/crop sheet,CoreAISamplesKit/Sources/ImageGenerationUI/ImageGenerationContent.swift,Open portrait,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image reference/crop sheet,CoreAISamplesKit/Sources/ImageGenerationUI/ImageGenerationContent.swift,Open landscape,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image reference/crop sheet,CoreAISamplesKit/Sources/ImageGenerationUI/ImageGenerationContent.swift,Open landscape,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image reference/crop sheet,CoreAISamplesKit/Sources/ImageGenerationUI/ImageGenerationContent.swift,Open landscape,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image reference/crop sheet,CoreAISamplesKit/Sources/ImageGenerationUI/ImageGenerationContent.swift,Book,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image reference/crop sheet,CoreAISamplesKit/Sources/ImageGenerationUI/ImageGenerationContent.swift,Book,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image reference/crop sheet,CoreAISamplesKit/Sources/ImageGenerationUI/ImageGenerationContent.swift,Book,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image reference/crop sheet,CoreAISamplesKit/Sources/ImageGenerationUI/ImageGenerationContent.swift,Laptop,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image reference/crop sheet,CoreAISamplesKit/Sources/ImageGenerationUI/ImageGenerationContent.swift,Laptop,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image reference/crop sheet,CoreAISamplesKit/Sources/ImageGenerationUI/ImageGenerationContent.swift,Laptop,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image reference/crop sheet,CoreAISamplesKit/Sources/ImageGenerationUI/ImageGenerationContent.swift,Tent,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image reference/crop sheet,CoreAISamplesKit/Sources/ImageGenerationUI/ImageGenerationContent.swift,Tent,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image reference/crop sheet,CoreAISamplesKit/Sources/ImageGenerationUI/ImageGenerationContent.swift,Tent,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image reference picker,CoreAISamplesKit/Sources/ImageGenerationUI/ImageGenerationContent.swift,Closed portrait,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image reference picker,CoreAISamplesKit/Sources/ImageGenerationUI/ImageGenerationContent.swift,Closed portrait,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image reference picker,CoreAISamplesKit/Sources/ImageGenerationUI/ImageGenerationContent.swift,Closed portrait,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image reference picker,CoreAISamplesKit/Sources/ImageGenerationUI/ImageGenerationContent.swift,Closed landscape,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image reference picker,CoreAISamplesKit/Sources/ImageGenerationUI/ImageGenerationContent.swift,Closed landscape,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image reference picker,CoreAISamplesKit/Sources/ImageGenerationUI/ImageGenerationContent.swift,Closed landscape,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image reference picker,CoreAISamplesKit/Sources/ImageGenerationUI/ImageGenerationContent.swift,Open portrait,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image reference picker,CoreAISamplesKit/Sources/ImageGenerationUI/ImageGenerationContent.swift,Open portrait,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image reference picker,CoreAISamplesKit/Sources/ImageGenerationUI/ImageGenerationContent.swift,Open portrait,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image reference picker,CoreAISamplesKit/Sources/ImageGenerationUI/ImageGenerationContent.swift,Open landscape,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image reference picker,CoreAISamplesKit/Sources/ImageGenerationUI/ImageGenerationContent.swift,Open landscape,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image reference picker,CoreAISamplesKit/Sources/ImageGenerationUI/ImageGenerationContent.swift,Open landscape,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image reference picker,CoreAISamplesKit/Sources/ImageGenerationUI/ImageGenerationContent.swift,Book,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image reference picker,CoreAISamplesKit/Sources/ImageGenerationUI/ImageGenerationContent.swift,Book,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image reference picker,CoreAISamplesKit/Sources/ImageGenerationUI/ImageGenerationContent.swift,Book,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image reference picker,CoreAISamplesKit/Sources/ImageGenerationUI/ImageGenerationContent.swift,Laptop,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image reference picker,CoreAISamplesKit/Sources/ImageGenerationUI/ImageGenerationContent.swift,Laptop,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image reference picker,CoreAISamplesKit/Sources/ImageGenerationUI/ImageGenerationContent.swift,Laptop,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image reference picker,CoreAISamplesKit/Sources/ImageGenerationUI/ImageGenerationContent.swift,Tent,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image reference picker,CoreAISamplesKit/Sources/ImageGenerationUI/ImageGenerationContent.swift,Tent,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image reference picker,CoreAISamplesKit/Sources/ImageGenerationUI/ImageGenerationContent.swift,Tent,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image PNG export/share,CoreAISamplesKit/Sources/ImageGenerationUI/ImageGenerationPresentation.swift,Closed portrait,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image PNG export/share,CoreAISamplesKit/Sources/ImageGenerationUI/ImageGenerationPresentation.swift,Closed portrait,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image PNG export/share,CoreAISamplesKit/Sources/ImageGenerationUI/ImageGenerationPresentation.swift,Closed portrait,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image PNG export/share,CoreAISamplesKit/Sources/ImageGenerationUI/ImageGenerationPresentation.swift,Closed landscape,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image PNG export/share,CoreAISamplesKit/Sources/ImageGenerationUI/ImageGenerationPresentation.swift,Closed landscape,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image PNG export/share,CoreAISamplesKit/Sources/ImageGenerationUI/ImageGenerationPresentation.swift,Closed landscape,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image PNG export/share,CoreAISamplesKit/Sources/ImageGenerationUI/ImageGenerationPresentation.swift,Open portrait,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image PNG export/share,CoreAISamplesKit/Sources/ImageGenerationUI/ImageGenerationPresentation.swift,Open portrait,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image PNG export/share,CoreAISamplesKit/Sources/ImageGenerationUI/ImageGenerationPresentation.swift,Open portrait,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image PNG export/share,CoreAISamplesKit/Sources/ImageGenerationUI/ImageGenerationPresentation.swift,Open landscape,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image PNG export/share,CoreAISamplesKit/Sources/ImageGenerationUI/ImageGenerationPresentation.swift,Open landscape,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image PNG export/share,CoreAISamplesKit/Sources/ImageGenerationUI/ImageGenerationPresentation.swift,Open landscape,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image PNG export/share,CoreAISamplesKit/Sources/ImageGenerationUI/ImageGenerationPresentation.swift,Book,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image PNG export/share,CoreAISamplesKit/Sources/ImageGenerationUI/ImageGenerationPresentation.swift,Book,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image PNG export/share,CoreAISamplesKit/Sources/ImageGenerationUI/ImageGenerationPresentation.swift,Book,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image PNG export/share,CoreAISamplesKit/Sources/ImageGenerationUI/ImageGenerationPresentation.swift,Laptop,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image PNG export/share,CoreAISamplesKit/Sources/ImageGenerationUI/ImageGenerationPresentation.swift,Laptop,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image PNG export/share,CoreAISamplesKit/Sources/ImageGenerationUI/ImageGenerationPresentation.swift,Laptop,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image PNG export/share,CoreAISamplesKit/Sources/ImageGenerationUI/ImageGenerationPresentation.swift,Tent,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image PNG export/share,CoreAISamplesKit/Sources/ImageGenerationUI/ImageGenerationPresentation.swift,Tent,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Image PNG export/share,CoreAISamplesKit/Sources/ImageGenerationUI/ImageGenerationPresentation.swift,Tent,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Speech reference picker,CoreAISamples/Demos/Speech/SpeechReferenceControls.swift,Closed portrait,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Speech reference picker,CoreAISamples/Demos/Speech/SpeechReferenceControls.swift,Closed portrait,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Speech reference picker,CoreAISamples/Demos/Speech/SpeechReferenceControls.swift,Closed portrait,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Speech reference picker,CoreAISamples/Demos/Speech/SpeechReferenceControls.swift,Closed landscape,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Speech reference picker,CoreAISamples/Demos/Speech/SpeechReferenceControls.swift,Closed landscape,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Speech reference picker,CoreAISamples/Demos/Speech/SpeechReferenceControls.swift,Closed landscape,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Speech reference picker,CoreAISamples/Demos/Speech/SpeechReferenceControls.swift,Open portrait,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Speech reference picker,CoreAISamples/Demos/Speech/SpeechReferenceControls.swift,Open portrait,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Speech reference picker,CoreAISamples/Demos/Speech/SpeechReferenceControls.swift,Open portrait,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Speech reference picker,CoreAISamples/Demos/Speech/SpeechReferenceControls.swift,Open landscape,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Speech reference picker,CoreAISamples/Demos/Speech/SpeechReferenceControls.swift,Open landscape,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Speech reference picker,CoreAISamples/Demos/Speech/SpeechReferenceControls.swift,Open landscape,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Speech reference picker,CoreAISamples/Demos/Speech/SpeechReferenceControls.swift,Book,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Speech reference picker,CoreAISamples/Demos/Speech/SpeechReferenceControls.swift,Book,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Speech reference picker,CoreAISamples/Demos/Speech/SpeechReferenceControls.swift,Book,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Speech reference picker,CoreAISamples/Demos/Speech/SpeechReferenceControls.swift,Laptop,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Speech reference picker,CoreAISamples/Demos/Speech/SpeechReferenceControls.swift,Laptop,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Speech reference picker,CoreAISamples/Demos/Speech/SpeechReferenceControls.swift,Laptop,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Speech reference picker,CoreAISamples/Demos/Speech/SpeechReferenceControls.swift,Tent,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Speech reference picker,CoreAISamples/Demos/Speech/SpeechReferenceControls.swift,Tent,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Speech reference picker,CoreAISamples/Demos/Speech/SpeechReferenceControls.swift,Tent,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Speech WAV export,CoreAISamples/Demos/Speech/SpeechExport.swift,Closed portrait,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Speech WAV export,CoreAISamples/Demos/Speech/SpeechExport.swift,Closed portrait,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Speech WAV export,CoreAISamples/Demos/Speech/SpeechExport.swift,Closed portrait,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Speech WAV export,CoreAISamples/Demos/Speech/SpeechExport.swift,Closed landscape,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Speech WAV export,CoreAISamples/Demos/Speech/SpeechExport.swift,Closed landscape,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Speech WAV export,CoreAISamples/Demos/Speech/SpeechExport.swift,Closed landscape,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Speech WAV export,CoreAISamples/Demos/Speech/SpeechExport.swift,Open portrait,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Speech WAV export,CoreAISamples/Demos/Speech/SpeechExport.swift,Open portrait,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Speech WAV export,CoreAISamples/Demos/Speech/SpeechExport.swift,Open portrait,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Speech WAV export,CoreAISamples/Demos/Speech/SpeechExport.swift,Open landscape,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Speech WAV export,CoreAISamples/Demos/Speech/SpeechExport.swift,Open landscape,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Speech WAV export,CoreAISamples/Demos/Speech/SpeechExport.swift,Open landscape,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Speech WAV export,CoreAISamples/Demos/Speech/SpeechExport.swift,Book,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Speech WAV export,CoreAISamples/Demos/Speech/SpeechExport.swift,Book,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Speech WAV export,CoreAISamples/Demos/Speech/SpeechExport.swift,Book,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Speech WAV export,CoreAISamples/Demos/Speech/SpeechExport.swift,Laptop,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Speech WAV export,CoreAISamples/Demos/Speech/SpeechExport.swift,Laptop,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Speech WAV export,CoreAISamples/Demos/Speech/SpeechExport.swift,Laptop,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Speech WAV export,CoreAISamples/Demos/Speech/SpeechExport.swift,Tent,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Speech WAV export,CoreAISamples/Demos/Speech/SpeechExport.swift,Tent,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Speech WAV export,CoreAISamples/Demos/Speech/SpeechExport.swift,Tent,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Inspection share,CoreAISamples/iOS/TruckInspectionContent.swift,Closed portrait,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Inspection share,CoreAISamples/iOS/TruckInspectionContent.swift,Closed portrait,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Inspection share,CoreAISamples/iOS/TruckInspectionContent.swift,Closed portrait,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Inspection share,CoreAISamples/iOS/TruckInspectionContent.swift,Closed landscape,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Inspection share,CoreAISamples/iOS/TruckInspectionContent.swift,Closed landscape,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Inspection share,CoreAISamples/iOS/TruckInspectionContent.swift,Closed landscape,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Inspection share,CoreAISamples/iOS/TruckInspectionContent.swift,Open portrait,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Inspection share,CoreAISamples/iOS/TruckInspectionContent.swift,Open portrait,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Inspection share,CoreAISamples/iOS/TruckInspectionContent.swift,Open portrait,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Inspection share,CoreAISamples/iOS/TruckInspectionContent.swift,Open landscape,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Inspection share,CoreAISamples/iOS/TruckInspectionContent.swift,Open landscape,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Inspection share,CoreAISamples/iOS/TruckInspectionContent.swift,Open landscape,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Inspection share,CoreAISamples/iOS/TruckInspectionContent.swift,Book,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Inspection share,CoreAISamples/iOS/TruckInspectionContent.swift,Book,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Inspection share,CoreAISamples/iOS/TruckInspectionContent.swift,Book,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Inspection share,CoreAISamples/iOS/TruckInspectionContent.swift,Laptop,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Inspection share,CoreAISamples/iOS/TruckInspectionContent.swift,Laptop,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Inspection share,CoreAISamples/iOS/TruckInspectionContent.swift,Laptop,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Inspection share,CoreAISamples/iOS/TruckInspectionContent.swift,Tent,Full screen,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Inspection share,CoreAISamples/iOS/TruckInspectionContent.swift,Tent,Same-app multiple windows,unverified,unverified,unverified,unverified,unverified,No native view/device validation
+Inspection share,CoreAISamples/iOS/TruckInspectionContent.swift,Tent,Other-app Split View,unverified,unverified,unverified,unverified,unverified,No native view/device validation

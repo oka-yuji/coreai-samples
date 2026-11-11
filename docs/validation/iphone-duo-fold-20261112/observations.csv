@@ -1,0 +1,97 @@
+session,prototype,kind,container,pose,layout,ax_query_present,ax_run_present,ax_activation,query_division_intersection,run_division_intersection,media_division_intersection,query_occlusion_intersection,run_occlusion_intersection,geometry_does_not_establish_visibility,native_production_acceptance
+1,1095b96,video,Library host,Open landscape,Current,True,True,not_attempted,False,False,False,False,False,True,unverified
+1,1095b96,video,Library host,Open landscape,Split,True,True,not_attempted,False,False,False,False,False,True,unverified
+1,1095b96,video,Library host,Open landscape,Vertical split,True,True,not_attempted,False,False,False,False,False,True,unverified
+1,1095b96,video,Library host,Open landscape,Overlay,True,True,not_attempted,False,False,False,False,False,True,unverified
+1,1095b96,video,Library host,Open landscape,Vertical overlay,True,True,not_attempted,False,False,False,False,False,True,unverified
+1,1095b96,video,Library host,Open landscape,Reserved regions,True,True,not_attempted,False,False,False,False,False,True,unverified
+1,1095b96,video,Library host,Book,Current,True,True,not_attempted,False,False,False,False,False,True,unverified
+1,1095b96,video,Library host,Book,Split,True,True,not_attempted,False,False,False,False,False,True,unverified
+1,1095b96,video,Library host,Book,Vertical split,True,True,not_attempted,False,False,False,False,False,True,unverified
+1,1095b96,video,Library host,Book,Overlay,True,True,not_attempted,False,False,False,False,False,True,unverified
+1,1095b96,video,Library host,Book,Vertical overlay,True,True,not_attempted,False,False,False,False,False,True,unverified
+1,1095b96,video,Library host,Book,Reserved regions,True,True,not_attempted,False,False,False,False,False,True,unverified
+1,1095b96,video,Library host,Laptop,Current,True,True,not_attempted,False,True,False,False,False,True,unverified
+1,1095b96,video,Library host,Laptop,Split,True,True,not_attempted,False,False,False,False,False,True,unverified
+1,1095b96,video,Library host,Laptop,Vertical split,True,True,not_attempted,False,False,False,False,False,True,unverified
+1,1095b96,video,Library host,Laptop,Overlay,True,True,not_attempted,False,False,False,False,False,True,unverified
+1,1095b96,video,Library host,Laptop,Vertical overlay,True,True,not_attempted,False,False,False,False,False,True,unverified
+1,1095b96,video,Library host,Laptop,Reserved regions,True,True,not_attempted,False,False,True,False,False,True,unverified
+1,1095b96,video,Library host,Open portrait,Current,True,True,not_attempted,False,False,False,False,False,True,unverified
+1,1095b96,video,Library host,Open portrait,Split,True,True,not_attempted,False,False,False,False,False,True,unverified
+1,1095b96,video,Library host,Open portrait,Vertical split,True,True,not_attempted,False,False,False,False,False,True,unverified
+1,1095b96,video,Library host,Open portrait,Overlay,True,True,not_attempted,False,False,False,False,False,True,unverified
+1,1095b96,video,Library host,Open portrait,Vertical overlay,True,True,not_attempted,False,False,False,False,False,True,unverified
+1,1095b96,video,Library host,Open portrait,Reserved regions,True,True,not_attempted,False,False,False,False,False,True,unverified
+1,1095b96,video,Library host,Closed landscape,Current,True,True,not_attempted,False,False,False,False,False,True,unverified
+1,1095b96,video,Library host,Closed landscape,Split,False,False,not_attempted,False,False,False,False,False,True,unverified
+1,1095b96,video,Library host,Closed landscape,Vertical split,False,False,not_attempted,False,False,False,False,False,True,unverified
+1,1095b96,video,Library host,Closed landscape,Overlay,True,True,not_attempted,False,False,False,False,False,True,unverified
+1,1095b96,video,Library host,Closed landscape,Vertical overlay,True,True,not_attempted,False,False,False,False,False,True,unverified
+1,1095b96,video,Library host,Closed landscape,Reserved regions,True,True,not_attempted,False,False,False,False,False,True,unverified
+1,1095b96,video,Library host,Closed portrait,Current,True,True,not_attempted,False,False,False,False,False,True,unverified
+1,1095b96,video,Library host,Closed portrait,Split,True,True,not_attempted,False,False,False,False,False,True,unverified
+1,1095b96,video,Library host,Closed portrait,Vertical split,True,True,not_attempted,False,False,False,False,False,True,unverified
+1,1095b96,video,Library host,Closed portrait,Overlay,True,True,not_attempted,False,False,False,False,False,True,unverified
+1,1095b96,video,Library host,Closed portrait,Vertical overlay,True,True,not_attempted,False,False,False,False,False,True,unverified
+1,1095b96,video,Library host,Closed portrait,Reserved regions,True,True,not_attempted,False,False,False,False,False,True,unverified
+2,96dcb60,camera,Camera sheet,Closed portrait,Current,True,True,not_attempted,False,False,False,False,False,True,unverified
+2,96dcb60,camera,Camera sheet,Closed portrait,Split,True,True,not_attempted,False,False,False,False,False,True,unverified
+2,96dcb60,camera,Camera sheet,Closed portrait,Vertical split,True,True,not_attempted,False,False,False,False,False,True,unverified
+2,96dcb60,camera,Camera sheet,Closed portrait,Overlay,True,True,not_attempted,False,False,False,False,False,True,unverified
+2,96dcb60,camera,Camera sheet,Closed portrait,Vertical overlay,True,True,not_attempted,False,False,False,False,False,True,unverified
+2,96dcb60,camera,Camera sheet,Closed portrait,Reserved regions,True,True,not_attempted,False,False,False,False,False,True,unverified
+2,96dcb60,camera,Camera sheet,Closed landscape,Current,True,True,not_attempted,False,False,False,False,False,True,unverified
+2,96dcb60,camera,Camera sheet,Closed landscape,Split,False,False,not_attempted,False,False,False,False,False,True,unverified
+2,96dcb60,camera,Camera sheet,Closed landscape,Vertical split,False,False,not_attempted,False,False,False,False,False,True,unverified
+2,96dcb60,camera,Camera sheet,Closed landscape,Overlay,True,True,not_attempted,False,False,False,False,False,True,unverified
+2,96dcb60,camera,Camera sheet,Closed landscape,Vertical overlay,True,True,not_attempted,False,False,False,False,False,True,unverified
+2,96dcb60,camera,Camera sheet,Closed landscape,Reserved regions,True,True,not_attempted,False,False,False,False,False,True,unverified
+2,96dcb60,camera,Camera sheet,Open portrait,Current,True,True,not_attempted,False,False,False,False,False,True,unverified
+2,96dcb60,camera,Camera sheet,Open portrait,Split,True,True,not_attempted,False,False,False,False,False,True,unverified
+2,96dcb60,camera,Camera sheet,Open portrait,Vertical split,True,True,not_attempted,False,False,False,False,False,True,unverified
+2,96dcb60,camera,Camera sheet,Open portrait,Overlay,True,True,not_attempted,False,False,False,False,False,True,unverified
+2,96dcb60,camera,Camera sheet,Open portrait,Vertical overlay,True,True,not_attempted,False,False,False,False,False,True,unverified
+2,96dcb60,camera,Camera sheet,Open portrait,Reserved regions,True,True,not_attempted,False,False,False,False,False,True,unverified
+2,96dcb60,camera,Camera sheet,Laptop,Current,True,True,passed,False,False,True,False,False,True,unverified
+2,96dcb60,camera,Camera sheet,Laptop,Split,True,True,passed,False,False,False,False,False,True,unverified
+2,96dcb60,camera,Camera sheet,Laptop,Vertical split,True,True,passed,False,False,False,False,False,True,unverified
+2,96dcb60,camera,Camera sheet,Laptop,Overlay,True,True,passed,False,False,False,False,False,True,unverified
+2,96dcb60,camera,Camera sheet,Laptop,Vertical overlay,True,True,passed,False,False,False,False,False,True,unverified
+2,96dcb60,camera,Camera sheet,Laptop,Reserved regions,True,True,passed,False,False,False,False,False,True,unverified
+2,96dcb60,camera,Camera sheet,Book,Current,True,True,passed,False,False,False,False,False,True,unverified
+2,96dcb60,camera,Camera sheet,Book,Split,True,True,passed,False,False,True,False,False,True,unverified
+2,96dcb60,camera,Camera sheet,Book,Vertical split,True,True,passed,False,False,True,False,False,True,unverified
+2,96dcb60,camera,Camera sheet,Book,Overlay,True,True,passed,False,False,True,False,False,True,unverified
+2,96dcb60,camera,Camera sheet,Book,Vertical overlay,True,True,passed,False,False,True,False,False,True,unverified
+2,96dcb60,camera,Camera sheet,Book,Reserved regions,True,True,passed,False,False,True,False,False,True,unverified
+2,96dcb60,camera,Camera sheet,Open landscape,Current,True,True,passed,False,False,False,False,False,True,unverified
+2,96dcb60,camera,Camera sheet,Open landscape,Split,True,True,passed,False,False,False,False,False,True,unverified
+2,96dcb60,camera,Camera sheet,Open landscape,Vertical split,True,True,passed,False,False,False,False,False,True,unverified
+2,96dcb60,camera,Camera sheet,Open landscape,Overlay,True,True,passed,False,False,False,False,False,True,unverified
+2,96dcb60,camera,Camera sheet,Open landscape,Vertical overlay,True,True,passed,False,False,False,False,False,True,unverified
+2,96dcb60,camera,Camera sheet,Open landscape,Reserved regions,True,True,passed,False,False,False,False,False,True,unverified
+2,96dcb60,video,Standalone,Closed landscape,Current,True,True,passed,False,False,False,False,False,True,unverified
+2,96dcb60,video,Standalone,Closed landscape,Split,False,False,not_possible,False,False,False,False,False,True,unverified
+2,96dcb60,video,Standalone,Closed landscape,Vertical split,False,False,not_possible,False,False,False,False,False,True,unverified
+2,96dcb60,video,Standalone,Closed landscape,Overlay,True,True,passed,False,False,False,False,False,True,unverified
+2,96dcb60,video,Standalone,Closed landscape,Vertical overlay,True,True,passed,False,False,False,False,False,True,unverified
+2,96dcb60,video,Standalone,Closed landscape,Reserved regions,True,True,passed,False,False,False,False,False,True,unverified
+2,96dcb60,video,Split detail root,Closed landscape,Current,True,True,passed,False,False,False,False,False,True,unverified
+2,96dcb60,video,Split detail root,Closed landscape,Split,False,False,not_possible,False,False,False,False,False,True,unverified
+2,96dcb60,video,Split detail root,Closed landscape,Vertical split,False,False,not_possible,False,False,False,False,False,True,unverified
+2,96dcb60,video,Split detail root,Closed landscape,Overlay,True,True,passed,False,False,False,False,False,True,unverified
+2,96dcb60,video,Split detail root,Closed landscape,Vertical overlay,True,True,passed,False,False,False,False,False,True,unverified
+2,96dcb60,video,Split detail root,Closed landscape,Reserved regions,True,True,passed,False,False,False,False,False,True,unverified
+2,96dcb60,video,Split detail root,Laptop,Split,True,True,passed,False,False,False,False,False,True,unverified
+2,96dcb60,video,Split detail root,Laptop,Overlay,True,True,passed,False,False,False,False,False,True,unverified
+2,96dcb60,video,Split detail root,Laptop,Reserved regions,True,True,passed,False,False,False,False,False,True,unverified
+2,96dcb60,video,Standalone,Laptop,Split,True,True,passed,False,False,False,False,False,True,unverified
+2,96dcb60,video,Standalone,Laptop,Overlay,True,True,passed,False,False,False,False,False,True,unverified
+2,96dcb60,video,Standalone,Laptop,Reserved regions,True,True,passed,False,False,False,False,False,True,unverified
+2,96dcb60,video,Standalone,Book,Split,True,True,passed,False,False,False,False,False,True,unverified
+2,96dcb60,video,Standalone,Book,Overlay,True,True,passed,False,False,False,False,False,True,unverified
+2,96dcb60,video,Standalone,Book,Reserved regions,True,True,passed,False,False,False,False,False,True,unverified
+2,96dcb60,video,Split detail root,Book,Split,True,True,passed,False,False,False,False,False,True,unverified
+2,96dcb60,video,Split detail root,Book,Overlay,True,True,passed,False,False,False,False,False,True,unverified
+2,96dcb60,video,Split detail root,Book,Reserved regions,True,True,passed,False,False,False,False,False,True,unverified
