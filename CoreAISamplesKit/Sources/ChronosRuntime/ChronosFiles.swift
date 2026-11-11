@@ -16,14 +16,15 @@ enum ChronosFiles {
         else { throw ChronosError.invalidBundle("relative path") }
     }
 
-    static func openDirectory(_ url: URL) throws -> Int32 {
+    static func openDirectory(_ url: URL, followFinalLink: Bool = false) throws -> Int32 {
         guard url.isFileURL, url.path.hasPrefix("/"), !url.path.contains("\0") else {
             throw ChronosError.invalidBundle("directory URL")
         }
         guard url.path.split(separator: "/").allSatisfy({ $0 != "." && $0 != ".." }) else {
             throw ChronosError.invalidBundle("directory alias")
         }
-        let descriptor = Darwin.open(url.path, O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC)
+        let flags = O_RDONLY | O_DIRECTORY | O_CLOEXEC | (followFinalLink ? 0 : O_NOFOLLOW)
+        let descriptor = Darwin.open(url.path, flags)
         guard descriptor >= 0 else { throw failure() }
         return descriptor
     }
@@ -103,7 +104,7 @@ enum ChronosFiles {
     }
 
     static func read(_ url: URL, limit: Int) throws -> Data {
-        let directory = try openDirectory(url.deletingLastPathComponent())
+        let directory = try openDirectory(url.deletingLastPathComponent(), followFinalLink: true)
         defer { Darwin.close(directory) }
         return try read(url.lastPathComponent, in: directory, limit: limit)
     }

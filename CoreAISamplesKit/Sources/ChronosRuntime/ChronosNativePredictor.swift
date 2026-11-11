@@ -1,12 +1,35 @@
 import ChronosCore
 import CoreAI
 import Foundation
+import Synchronization
 
-struct ChronosNativePredictor: ChronosPredictor {
+final class ChronosNativePredictor: ChronosPredictor {
     let identity: ChronosBundleIdentity
-    private let snapshot: ChronosBundleSnapshot
-    private let model: AIModel
-    private let function: InferenceFunction
+    private struct Resources {
+        var snapshot: ChronosBundleSnapshot?
+        var model: AIModel?
+        var function: InferenceFunction?
+    }
+
+    private let resources: Mutex<Resources>
+
+    private init(
+        identity: ChronosBundleIdentity, snapshot: ChronosBundleSnapshot, model: AIModel,
+        function: InferenceFunction
+    ) {
+        self.identity = identity
+        resources = Mutex(Resources(snapshot: snapshot, model: model, function: function))
+    }
+
+    deinit {
+        let snapshot = resources.withLock { $0.snapshot }
+        resources.withLock {
+            $0.function = nil
+            $0.model = nil
+            $0.snapshot = nil
+        }
+        withExtendedLifetime(snapshot) {}
+    }
 
     @concurrent
     static func load(bundleURL: URL) async throws -> Self {
@@ -30,7 +53,12 @@ struct ChronosNativePredictor: ChronosPredictor {
 
     @concurrent
     func predict(_ context: ChronosContext) async throws -> ChronosPrediction {
+        defer { withExtendedLifetime(self) {} }
         try Task.checkCancellation()
+        let function = try resources.withLock {
+            guard let function = $0.function else { throw ChronosError.invalidModel }
+            return function
+        }
         try Self.validate(function.descriptor)
         let input = NDArray(scalars: context.paddedValues, shape: [1, context.paddedValues.count])
         var outputs = try await function.run(inputs: ["context": input])

@@ -45,8 +45,14 @@ public enum ChronosCommand: Equatable, Sendable {
             throw ChronosError.invalidArguments
         }
         let mode: Mode
-        if let input = values["--input"] { mode = .input(URL(fileURLWithPath: input)) } else { mode = .verify }
-        return .run(bundle: URL(fileURLWithPath: bundle), mode: mode, output: URL(fileURLWithPath: output))
+        if let input = values["--input"] {
+            mode = .input(URL(fileURLWithPath: input).standardizedFileURL)
+        } else {
+            mode = .verify
+        }
+        return .run(
+            bundle: URL(fileURLWithPath: bundle).standardizedFileURL, mode: mode,
+            output: URL(fileURLWithPath: output).standardizedFileURL)
     }
 
     public static func decodeInput(_ data: Data) throws -> ChronosContext {
@@ -118,14 +124,14 @@ struct ChronosPredictionReport: Encodable {
 
 public enum ChronosReportFile {
     public static func requireNew(_ url: URL) throws {
-        let directory = try ChronosFiles.openDirectory(url.deletingLastPathComponent())
+        let directory = try ChronosFiles.openDirectory(url.deletingLastPathComponent(), followFinalLink: true)
         defer { Darwin.close(directory) }
         try requireNew(url.lastPathComponent, in: directory)
     }
 
     public static func save(_ value: some Encodable, to url: URL) throws {
         let data = try ChronosJSON.encode(value)
-        let directory = try ChronosFiles.openDirectory(url.deletingLastPathComponent())
+        let directory = try ChronosFiles.openDirectory(url.deletingLastPathComponent(), followFinalLink: true)
         defer { Darwin.close(directory) }
         let name = url.lastPathComponent
         try requireNew(name, in: directory)

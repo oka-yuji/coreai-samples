@@ -9,15 +9,19 @@ struct ChronosCommandTests {
     @Test("The command accepts exactly one explicit input mode and help")
     func parsing() throws {
         #expect(try ChronosCommand.parse(["--help"]) == .help)
-        let bundle = URL(fileURLWithPath: "bundle")
-        let input = URL(fileURLWithPath: "input.json")
-        let output = URL(fileURLWithPath: "output.json")
+        let bundle = URL(fileURLWithPath: "bundle").standardizedFileURL
+        let input = URL(fileURLWithPath: "input.json").standardizedFileURL
+        let output = URL(fileURLWithPath: "output.json").standardizedFileURL
         #expect(
             try ChronosCommand.parse(["--bundle", "bundle", "--input", "input.json", "--output", "output.json"])
                 == .run(bundle: bundle, mode: .input(input), output: output))
         #expect(
             try ChronosCommand.parse(["--output", "output.json", "--verify", "--bundle", "bundle"])
                 == .run(bundle: bundle, mode: .verify, output: output))
+        #expect(
+            try ChronosCommand.parse([
+                "--bundle", "./bundle", "--input", "./input.json", "--output", "child/../output.json",
+            ]) == .run(bundle: bundle, mode: .input(input), output: output))
         for arguments in [
             [], ["--bundle"], ["--help", "--verify"], ["--unknown"],
             ["--bundle", "b", "--output", "o"],
@@ -77,6 +81,27 @@ struct ChronosCommandTests {
             try FileManager.default.contentsOfDirectory(atPath: folder.url.path).sorted() == [
                 "link.json", "result.json",
             ])
+    }
+
+    @Test("Input and output files support an aliased parent while preserving no overwrite")
+    func parentAlias() throws {
+        let folder = try ChronosTestFolder()
+        let outside = try ChronosTestFolder()
+        defer {
+            folder.clean()
+            outside.clean()
+        }
+        let alias = outside.url.appendingPathComponent("alias")
+        try FileManager.default.createSymbolicLink(at: alias, withDestinationURL: folder.url)
+        let input = alias.appendingPathComponent("input.json")
+        try Data(#"{"context":[1,null,3]}"#.utf8).write(to: input)
+        let context = try ChronosCommand.decodeInput(ChronosFiles.read(input, limit: ChronosFiles.inputLimit))
+        #expect(context.rawCount == 3)
+        let output = alias.appendingPathComponent("output.json")
+        try ChronosReportFile.requireNew(output)
+        try ChronosReportFile.save(["value": 7], to: output)
+        #expect(try JSONDecoder().decode([String: Int].self, from: Data(contentsOf: output)) == ["value": 7])
+        #expect(throws: ChronosError.outputExists) { try ChronosReportFile.save(["value": 8], to: output) }
     }
 
     @Test("Encoding and output path failures leave no partial report")
