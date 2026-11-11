@@ -44,6 +44,18 @@ The normal `CoreAISamples-iOS` app provides **Models → Irodori → Speech demo
 xcodebuild -project CoreAISamples.xcodeproj -scheme CoreAISamples-iOS -configuration Release -destination 'generic/platform=iOS' build
 ```
 
+**iPhone Duo.** Build with Xcode 27.1 or later to use the full inner and outer displays and the system's vertical toolbars. An iOS 27.0 SDK build resizes on the inner display but still avoids the status-bar area and keeps horizontal bars. The deployment target remains iOS 27.0. See [Apple's preparation guide](https://developer.apple.com/iphone-duo/prepare/).
+
+For a side-by-side Xcode installation, select its Developer folder for this command with `DEVELOPER_DIR`; changing the machine's `xcode-select` setting is not required. Verify the selected version with `xcodebuild -version` using the same environment.
+
+```bash
+DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer \
+xcodebuild -project CoreAISamples.xcodeproj -scheme CoreAISamples-iOS -configuration Release \
+  -destination 'generic/platform=iOS' -onlyUsePackageVersionsFromResolvedFile CODE_SIGNING_ALLOWED=NO build
+```
+
+The iOS language control is a named globe menu. About and model information use named symbols, standard completion and cancellation actions use system button roles, and **Use this crop** keeps its specific name and confirmation symbol. The system places and overflows these controls according to the available space. Mac controls retain their existing presentation. Check both Duo displays and orientations, each sheet, search, language switching, and VoiceOver on a physical device; a successful build or the synthetic Models preview does not establish those results. The toolbar change does not add the two-column Models layout or change camera rotation.
+
 To install it, copy `Config/Local.xcconfig.template` to `Config/Local.xcconfig` and set `DEVELOPMENT_TEAM` (the template signs the iPhone build too), turn on Developer Mode on the iPhone and connect it. In Xcode, choose the `CoreAISamples-iOS` scheme and the iPhone and press Run (a Release build; the first Run also registers the iPhone with the team), or, once the iPhone is registered, from the command line:
 
 ```bash

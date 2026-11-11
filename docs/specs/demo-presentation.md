@@ -5,6 +5,7 @@ The user's 2026-10-09 feedback requests a consistent EN/JP control, String Catal
 ## Scope and contracts
 
 - Mac Chat (Chat and Work), Decide, Recipes, Extract, Models and the sidebar share one trailing toolbar language control. The preference is persisted. Selecting a language updates presentation without rebuilding Stores or re-running inference.
+- On the normal iOS Models path, the same persisted language preference is selected from an **Interface language** globe menu so the control can participate in vertical toolbars and overflow menus. Mac and the legacy diagnostic screens keep their segmented EN/JP control. Changing the control's presentation does not change any demo input, prompt, session or result.
 - English remains the code and protocol language. Japanese translations live in String Catalog resources. The previous English-only UI convention is superseded by the user's explicit request.
 - The app's Localizable catalog holds controls, statuses and explanations. The Ingredients catalog holds known ingredient display names, preserving distinctions such as chicken versus chicken thigh. Unknown labels fall back to their original spelling.
 - Recipe source text, documents, chat/agent responses, filenames and identifiers remain original data. Unrecognized runtime messages are identified as original details. Localization does not rewrite the recipe, prompts, options or confirmed inventory.
