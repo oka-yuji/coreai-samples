@@ -48,6 +48,9 @@ MLPerf Clientは用途に応じた品質確認と、TTFT、トークン生成速
 | OCR | CER、WER、構造/レイアウトF1 | 正規化、読み順、言語、文書の種類、画像サイズ |
 | 深度 | AbsRel、実スケールのRMSE、delta1 | 正解の単位、scale/shift合わせ、有効画素、評価集合 |
 | 動画 | 完成までの時間、生成frames/s、人の時間的一貫性・内容評価 | frame数、FPS、解像度、step、seed、音声 |
+| 時系列予測 | 件数単位のMAEと、上限を1に切らない比率のWAPE | 予測基準時刻、間隔、予測期間、ゾーン/系列、実績の有効マスク、原分位と宣言した件数補正 |
+
+予測のMAEは、比較できる組の絶対誤差の合計を組数で割ります。WAPEは同じ誤差合計を実績の絶対値の合計で割り、分母が0なら未定義、1を超える値も保持します。比較できた組数と全組数を併記し、宣言した件数補正後・丸め前の予測値で計算して、原分位は別に保持します。欠損や未公開の実績を0へ置き換えません。これらの用途品質は変換の数値一致とは別です。
 
 TTFTは要求開始から最初の出力token/chunkまでです。思考を含む「最初の表示文字」や「最終回答の開始」と分け、`prefillSeconds`だけをTTFTへ読み替えません。decode速度とITLは最初のchunk以降の実token数と時間で定義し、chunk数とtoken数を混同しません。[NVIDIA AIPerfの定義](https://docs.nvidia.com/aiperf/reference/ai-perf-metrics-reference)
 

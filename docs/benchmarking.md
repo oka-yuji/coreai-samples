@@ -48,6 +48,9 @@ Memory counters are separate quantities. Record raw bytes for new runs, identify
 | OCR | CER, WER, structure/layout F1 | Normalization, reading order, language, document types and image dimensions |
 | Depth | AbsRel, metric-depth RMSE, delta1 | Ground-truth scale, scale/shift alignment, valid-pixel mask and dataset |
 | Video | Complete generation time, generated frames/s, human temporal/content rubric | Frame count, FPS, resolution, steps, seed, audio and temporal consistency |
+| Forecasting | MAE in counts and WAPE as an uncapped ratio | Forecast origin, interval, horizon, zones/series, available observation mask, raw quantiles and declared count-domain clipping |
+
+Forecast MAE is the sum of absolute errors divided by the number of comparable pairs. WAPE divides that same sum by the sum of absolute actual values; it is undefined when that denominator is zero and can exceed 1. Record the comparable-pair count and the total possible count. Use declared count-domain clipping before error calculation, keep predictions unrounded, and retain the original quantiles separately. Missing or unpublished observations are excluded rather than converted to zero. These task metrics are separate from conversion fidelity.
 
 TTFT measures request start to the first output token/chunk; first *visible text* and first *final answer* can be later. Preserve that distinction for reasoning/tool models. `prefillSeconds` alone is not a measured TTFT. Define decode speed and ITL over tokens after the first chunk, including the actual chunk token count; token and chunk counts are not interchangeable. [NVIDIA AIPerf metric definitions](https://docs.nvidia.com/aiperf/reference/ai-perf-metrics-reference)
 

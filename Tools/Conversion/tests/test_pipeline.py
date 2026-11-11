@@ -90,6 +90,21 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(second["stages"][0]["origin"], first["run_id"])
         self.assertEqual(first["stages"][0]["key"], second["stages"][0]["key"])
 
+    def test_uncached_dependency_reuses_identical_content_without_its_attempt_path(self):
+        self.data["steps"][0]["cache"] = False
+        self.add_verify()
+        first, second = self.execute(), self.execute()
+        self.assertEqual([row["status"] for row in second["stages"]], ["executed", "reused"])
+        self.assertNotEqual(first["stages"][0]["artifacts"], second["stages"][0]["artifacts"])
+        self.assertEqual(first["stages"][1]["key"], second["stages"][1]["key"])
+        self.assertEqual(self.count(), 3)
+        write_json(self.source, {"value": 2})
+        changed = self.execute()
+        self.assertEqual([row["status"] for row in changed["stages"]], ["executed", "executed"])
+        self.assertNotEqual(second["stages"][1]["key"], changed["stages"][1]["key"])
+        self.assertEqual(read_json(Path(changed["stages"][1]["artifacts"]) / "result.json")["value"], 2)
+        self.assertEqual(self.count(), 5)
+
     def test_input_change_invalidates_reference_and_dependents(self):
         self.add_verify()
         self.execute()

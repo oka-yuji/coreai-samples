@@ -1,0 +1,24 @@
+Chronos-2
+Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+
+Source model: amazon/chronos-2
+Source revision: 29ec3766d36d6f73f0696f85560a422f50e8498c
+Source: https://huggingface.co/amazon/chronos-2
+Implementation: https://github.com/amazon-science/chronos-forecasting
+Pinned implementation distribution: chronos-forecasting 2.3.2
+License: Apache License, Version 2.0 (included as LICENSE)
+
+This conversion adapts the InstanceNorm.forward implementation from
+chronos/chronos_bolt.py. The zero-scale epsilon is emitted with torch.full_like
+to retain Float32 precision in Core AI. Its formula and inherited inverse
+remain unchanged. The original official reference model is not modified.
+
+The conversion wrapper selects one series and one 16-step output patch.
+Local export decompositions replace isnan(x) with x != x and complete
+nonoverlapping last-axis size=stride=16 unfold with reshape. The decomposition
+table is copied for this export. No model weights or quantile ordering are
+changed. Core AI packaging and verification are maintained by coreai-samples.
+
+SOURCE_README.md in each bundle is the unmodified, hash-verified official
+model card. This notice records conversion changes and does not imply
+endorsement by Amazon.
