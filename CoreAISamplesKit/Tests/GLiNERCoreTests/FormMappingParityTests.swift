@@ -292,7 +292,9 @@ struct FormMappingParityTests {
         let form = try formU1()
         let expected = try preregistration.form.map { field in
             let entity = preregistration.numberEntities[field.key] ?? preregistration.methodI.valueEntities[field.key]
-            return EntityLabel(name: try #require(entity?.label), description: try #require(entity?.description))
+            let name = try #require(entity?.label)
+            let description = try #require(entity?.description)
+            return EntityLabel(name: name, description: description)
         }
         try #require(expected.count == 6)
         #expect(form.extractionSchema() == .entities(expected))
