@@ -6,6 +6,33 @@ import Testing
 
 struct ChronosAPIReplayTests {
     @Test(
+        "A4 Fractional acquisition times preserve snapshot hashes through JSON round trips",
+        arguments: [0.00001, 0.1234567, 0.9999999])
+    func fractionalTime(_ fraction: Double) async throws {
+        let now = Date(timeIntervalSince1970: 1_794_441_600 + fraction)
+        let fake = try ChronosAPITransportFake()
+        let client = NYCAPIClient(transport: { try await fake.receive($0) }, now: { now }, retryDelay: {})
+        let history = try await client.window(
+            start: ChronosAPIFixture.date("2025-01-03T22:00:00Z"), count: 1008, areaIDs: ["230"])
+        let snapshot = try ForecastInputSnapshot(history: history, actuals: nil, step: 0)
+        let hash = try await client.validate(snapshot)
+        let bytes = try NYCAPIContract.encode(snapshot)
+        let decoded = try NYCAPIContract.decode(ForecastInputSnapshot.self, bytes)
+        #expect(try NYCAPIContract.encode(decoded) == bytes)
+        #expect(try await client.validate(decoded) == hash)
+    }
+
+    @Test(
+        "A4 A captured live snapshot retains its prediction-time hash after decoding",
+        .enabled(if: ProcessInfo.processInfo.environment["COREAI_CHRONOS2_API_SNAPSHOT"] != nil))
+    func capturedSnapshot() throws {
+        let path = URL(filePath: try #require(ProcessInfo.processInfo.environment["COREAI_CHRONOS2_API_SNAPSHOT"]))
+        let report = try NYCAPIContract.decode(SnapshotReport.self, Data(contentsOf: path))
+        let encoded = try NYCAPIContract.encode(report.forecast.inputSnapshot)
+        #expect(NYCAPIContract.hash(encoded) == report.forecast.inputSHA256)
+    }
+
+    @Test(
         "A1 All nine pinned official annual metadata records satisfy the historical publication contract",
         .enabled(if: ProcessInfo.processInfo.environment["COREAI_CHRONOS2_API_ANNUAL_METADATA"] != nil))
     func annualMetadata() throws {
@@ -75,6 +102,14 @@ struct ChronosAPIReplayTests {
             let observed = try #require(actuals.series.first { $0.areaID == row.areaID })
             #expect(row.values == Array(prior.values.dropFirst()) + observed.values.prefix(1))
         }
+    }
+
+    private struct SnapshotReport: Decodable {
+        struct Forecast: Decodable {
+            let inputSnapshot: ForecastInputSnapshot
+            let inputSHA256: String
+        }
+        let forecast: Forecast
     }
 }
 
