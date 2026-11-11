@@ -35,6 +35,9 @@ python3 -m unittest discover -s Tools/ModelReports/tests -v
 check_stage=package-pins-tests
 printf 'CHECK RUN: %s\n' "$check_stage"
 python3 -m unittest discover -s Tools/Packages/tests -v
+check_stage=localization-tests
+printf 'CHECK RUN: %s\n' "$check_stage"
+python3 -m unittest discover -s Tools/Localization/tests -v
 check_stage=build-irodori-inputs
 printf 'CHECK RUN: %s\n' "$check_stage"
 ./Tools/Irodori/build-inputs.sh
