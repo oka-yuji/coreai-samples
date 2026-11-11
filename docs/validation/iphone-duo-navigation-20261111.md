@@ -42,6 +42,9 @@ The four new `NAV-*` tests live in `ModelLibraryTests.swift`. The targeted comma
 
 - Hiding the system Back did not disable either pop recognizer on this runtime: both were enabled and their delegates allowed beginning. A temporary UIKit probe verified that the final guard disabled both and restored them after return. Coordinate-based swipe automation failed with `noWindowsAvailable`; actual finger gestures on hardware remain an owner check. The diagnostic code was removed.
 
+- A second temporary probe invoked the public UIKit `accessibilityPerformEscape()` on the navigation bar, root view and navigation controller. With the final hidden-Back implementation, each returned false, the stack stayed at two controllers and no stop request appeared. A positive control restored the native Back and removed the custom return/gesture guard/escape modifier: the same bar call returned true and reduced the stack to one before the binding began a stop. This establishes the native bar fallback for the tested runtime, not a complete VoiceOver gesture or focus test.
+- An alternative block-based escape hook was discarded after the iOS 27.1 runtime rejected the `accessibilityPerformEscapeBlock` getter on `UIKitNavigationBar`, despite its SDK declaration and a successful build. None of that alternative or the diagnostic code remains in the implementation.
+
 ## Acceptance boundary
 
 NAV-01 through NAV-05 have code/test/build evidence. The simulator observations support the navigation investigation, but do not replace the owner's NAV-06 through NAV-10 acceptance on main. Physical Duo behavior, the ordinary iPhone, real-model continuity, VoiceOver escape and multi-window scene-phase effects remain unverified here. The automation bridge's secondary Cancel action did not produce a navigation change and is not treated as a VoiceOver gesture test. The existing background/stop cleanup contracts were not changed. Screenshots remain private.
