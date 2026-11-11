@@ -120,7 +120,7 @@ D5の明示試験は共有heavy-jobロック下で、`COREAI_CHRONOS2_DEMO_BUNDL
 
 同梱3場面に加えて「NYC公式APIの日時」を選べる。「公開済みの日時を確認」からニューヨークの日付と30分刻みの時刻を選び、21日分の履歴を取得する。API日時の予測にはModelsの準備済み資源と「端末内予測」の明示選択が必要。予測成功後、「実際の乗車件数を取得」で実績を別途取得する。Modelsを開く操作や取得元の切替だけでは通信・推論を開始しない。
 
-APIは過去の年次データを公開する。TLCの月次Parquetとは別の公開で、カタログの更新日時を乗車データの新しさに読み替えない。2017年以降の終了済み年度を公式domain・owner・provenance・正確な年別名称から探す。0件として補う前に、選択年度のmetadataでidentity・revision・公開済みの履歴年次データという範囲と、日時の`calendar_date`・ゾーンの`number`型を検査する。途中の年度が未公開なら、前後の日時が選択範囲に入っていても21日履歴は取得できない。日時選択と取得の条件を共通にする。
+APIは過去の年次データを公開する。TLCの月次Parquetとは別の公開で、カタログの更新日時を乗車データの新しさに読み替えない。2017年以降の終了済み年度を公式domain・owner・provenance・正確な年別名称から探す。0件として補う前に、選択年度のmetadataでidentity・revision・公開済みの履歴年次データという範囲と、日時の`calendar_date`・ゾーンの`number`型を検査する。catalogのrevisionはUTCの秒またはミリ秒の対応書式全体と一致し、`rowsUpdatedAt`と照合する。実データの更新が対象年度末以降であることも検査する。`publicationDate`は取得した2019〜2021年度のように年度途中を指すため、完成日時の代わりにしない。2021の`As needed`は、公式metadataが過去年次公開と訂正だけの更新を明記する場合に限り扱う。途中の年度が未公開なら、前後の日時が選択範囲に入っていても21日履歴は取得できない。日時選択と取得の条件を共通にする。
 
 区間はUTCで1800秒ずつ進む。春に存在しない現地時刻は選択肢に入れず、秋の重複時刻は両方とも欠損にする。区別不能な合算件数を片方へ割り当てない。公開済みの0件・未公開・重複時刻の欠損・未取得を区別する。取得失敗時は前の有効な表示とモードを保持する。時刻を進める際も、明示取得した実績の経過済み区間だけを欠損マスクごと次の入力へ加える。
 
@@ -133,6 +133,8 @@ API予測はゾーンごとのnative全21分位×16点と、不変の入力snaps
 ```sh
 COREAI_CHRONOS2_API_FIXTURES=/path/to/fixtures swift test --package-path CoreAISamplesKit --filter ChronosAPIReplayTests
 ```
+
+9年度の固定metadataの再生は、`api-baseline`と`api-annual-metadata`を含む取得記録を`COREAI_CHRONOS2_API_ANNUAL_METADATA`へ渡し、`ChronosAPIReplayTests.annualMetadata`で実行する。
 
 実績fixtureは2時間分だけで、追加の時間を観測済みと推定しない。親担当の実API・native検査は共有heavy-jobロック下で実行する。
 

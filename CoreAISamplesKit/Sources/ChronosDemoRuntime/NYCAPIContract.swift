@@ -131,17 +131,26 @@ enum NYCCatalogValidation {
             metadata.id == dataset.id, metadata.name == "\(dataset.year) Yellow Taxi Trip Data",
             metadata.owner.id == "5fuc-pqz2", metadata.provenance == "official",
             metadata.publicationStage == "published", metadata.assetType == "dataset",
-            metadata.metadata.customFields["Update"]?["Update Frequency"] == "Historical data",
+            historical(metadata.metadata.customFields["Update"]),
             metadata.metadata.customFields["Dataset Information"]?["Agency"] == "Taxi and Limousine Commission (TLC)",
             let yearEnd = NYCTime.yearStart(dataset.year + 1),
-            metadata.publicationDate >= yearEnd.timeIntervalSince1970,
+            metadata.publicationDate > 0,
             metadata.publicationDate <= evidence.acquiredAt.timeIntervalSince1970,
+            metadata.rowsUpdatedAt >= yearEnd.timeIntervalSince1970,
             timestamp(dataset.revision)?.timeIntervalSince1970 == metadata.rowsUpdatedAt,
             metadata.columns.filter({ $0.fieldName == "tpep_pickup_datetime" }).map(\.dataTypeName) == [
                 "calendar_date"
             ],
             metadata.columns.filter({ $0.fieldName == "pulocationid" }).map(\.dataTypeName) == ["number"]
         else { throw ChronosDemoFailure.invalidData }
+    }
+
+    private static func historical(_ update: [String: String]?) -> Bool {
+        guard let frequency = update?["Update Frequency"] else { return false }
+        if frequency == "Historical data" { return true }
+        return frequency == "As needed"
+            && update?["Update Frequency Details"]
+                == "As this is historical data, the dataset is only published once. The data will only be changed rarely if there are corrections needed."
     }
 
     static func timestamp(_ text: String) -> Date? {

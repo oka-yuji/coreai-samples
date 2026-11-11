@@ -6,6 +6,38 @@ import Testing
 
 struct ChronosAPIReplayTests {
     @Test(
+        "A1 All nine pinned official annual metadata records satisfy the historical publication contract",
+        .enabled(if: ProcessInfo.processInfo.environment["COREAI_CHRONOS2_API_ANNUAL_METADATA"] != nil))
+    func annualMetadata() throws {
+        let root = URL(
+            filePath: try #require(ProcessInfo.processInfo.environment["COREAI_CHRONOS2_API_ANNUAL_METADATA"]))
+        let catalog = try Data(contentsOf: root.appending(path: "api-baseline/catalog.json"))
+        try #require(NYCAPIContract.hash(catalog) == "a20275e84796d07e7bc72609a4b5eb061fa451464795db9071f804b661b6b8ac")
+        let coverage = try NYCCatalogValidation.read(
+            ChronosAPIFixture.evidence(catalog, url: NYCAPIContract.catalogURL()), now: ChronosAPIFixture.now)
+        let hashes: [Int: String] = [
+            2017: "42fffa46fe789d4e72f5cbd3465945cd0cfa8ad1b25351709479b51dcc8b13fb",
+            2018: "41b757c4bf7b8baa8140bbb846cff505bfa2f982186d6392179bfa51ebce2d6f",
+            2019: "d2da4e3e53f842c929788128eb55a306d010312ef00488980b427a0782dfb10c",
+            2020: "32f07dfeb2de4cc247d963896b1f58b13c72b777c3fe3d0bb3339545af9a8047",
+            2021: "e41e226d56683a0b38d3b139842631a76f25b0b5a98a72eae9ecd55d8b0175d2",
+            2022: "bd908860357a838941a066073697a16c7832b3f45ab5e6c053a66b85b0d403cd",
+            2023: "67ccc406f73bf49875fef85a82f7d033973c39a755f381ced5566eccb68e4f99",
+            2024: "79ce192e836631024896124b06d5ef8b0a4f2948179bd935e5d1a89909108540",
+            2025: "8f43be37dcde843cc8a2ddd508f5fc9a580ccaf7c0145674e5a238fe7a9e0a24",
+        ]
+        try #require(Set(coverage.datasets.map(\.year)) == Set(hashes.keys))
+        var rejected: [Int] = []
+        for dataset in coverage.datasets {
+            let bytes = try Data(contentsOf: root.appending(path: "api-annual-metadata/\(dataset.year).json"))
+            try #require(NYCAPIContract.hash(bytes) == hashes[dataset.year])
+            let evidence = try ChronosAPIFixture.evidence(bytes, url: NYCAPIContract.metadataURL(dataset))
+            do { try NYCCatalogValidation.metadata(evidence, dataset: dataset) } catch { rejected.append(dataset.year) }
+        }
+        #expect(rejected.isEmpty, "Rejected annual dataset years: \(rejected)")
+    }
+
+    @Test(
         "A4 Offline replay of original NYC responses matches all 20,160 independently aggregated inputs",
         .enabled(if: ProcessInfo.processInfo.environment["COREAI_CHRONOS2_API_FIXTURES"] != nil))
     func realResponseReplay() async throws {

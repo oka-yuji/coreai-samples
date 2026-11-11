@@ -27,13 +27,44 @@ struct ChronosAPIValidationTests {
         }
     }
 
+    @Test("A1 A late publication date cannot authorize rows last updated before the annual period closed")
+    func incompleteAnnualRevision() throws {
+        let dataset = APIDataset(year: 2025, id: "irx2-vgm4", revision: "2025-06-01T00:00:00.000Z")
+        var metadata = try #require(
+            JSONSerialization.jsonObject(with: ChronosAPIFixture.metadata(dataset)) as? [String: Any])
+        metadata["rowsUpdatedAt"] = try ChronosAPIFixture.date("2025-06-01T00:00:00Z").timeIntervalSince1970
+        let evidence = try ChronosAPIFixture.evidence(
+            JSONSerialization.data(withJSONObject: metadata), url: NYCAPIContract.metadataURL(dataset))
+        #expect(throws: ChronosDemoFailure.invalidData) {
+            try NYCCatalogValidation.metadata(evidence, dataset: dataset)
+        }
+    }
+
+    @Test("A1 An as-needed update label alone does not establish a historical annual publication")
+    func unprovenHistoricalMetadata() throws {
+        var metadata = try #require(JSONSerialization.jsonObject(with: ChronosAPIFixture.metadata()) as? [String: Any])
+        metadata["metadata"] = [
+            "custom_fields": [
+                "Update": ["Update Frequency": "As needed"],
+                "Dataset Information": ["Agency": "Taxi and Limousine Commission (TLC)"],
+            ]
+        ]
+        let evidence = try ChronosAPIFixture.evidence(
+            JSONSerialization.data(withJSONObject: metadata),
+            url: NYCAPIContract.metadataURL(ChronosAPIFixture.dataset()))
+        #expect(throws: ChronosDemoFailure.invalidData) {
+            try NYCCatalogValidation.metadata(evidence, dataset: ChronosAPIFixture.dataset())
+        }
+    }
+
     @Test("A1 Metadata must prove the same historical annual publication and dataset revision")
     func metadataIdentity() throws {
         let original = try #require(JSONSerialization.jsonObject(with: ChronosAPIFixture.metadata()) as? [String: Any])
         let changes: [(String, Any)] = [
             ("id", "aaaa-bbbb"), ("name", "2024 Yellow Taxi Trip Data"), ("owner", ["id": "other"]),
             ("provenance", "community"), ("publicationStage", "unpublished"),
-            ("publicationDate", 1_700_000_000), ("rowsUpdatedAt", 1_790_873_868),
+            ("publicationDate", 0), ("publicationDate", ChronosAPIFixture.now.timeIntervalSince1970 + 1),
+            ("rowsUpdatedAt", 1_790_873_868),
             ("metadata", ["custom_fields": ["Update": ["Update Frequency": "Monthly"]]]),
         ]
         for (key, value) in changes {
