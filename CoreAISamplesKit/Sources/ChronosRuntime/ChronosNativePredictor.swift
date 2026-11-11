@@ -32,10 +32,11 @@ final class ChronosNativePredictor: ChronosPredictor {
     }
 
     @concurrent
-    static func load(bundleURL: URL) async throws -> Self {
+    static func load(bundleURL: URL, expectedManifestSHA256: String? = nil) async throws -> Self {
         try Task.checkCancellation()
         let snapshot = try await ChronosBundleSnapshot.open(bundleURL)
         let bundle = snapshot.bundle
+        try validateIdentity(bundle.identity, expectedManifestSHA256: expectedManifestSHA256)
         try Task.checkCancellation()
         var options = SpecializationOptions(preferredComputeUnitKind: .gpu)
         options.expectFrequentReshapes = false
@@ -49,6 +50,12 @@ final class ChronosNativePredictor: ChronosPredictor {
         try validate(function.descriptor)
         try Task.checkCancellation()
         return Self(identity: bundle.identity, snapshot: snapshot, model: model, function: function)
+    }
+
+    static func validateIdentity(_ identity: ChronosBundleIdentity, expectedManifestSHA256: String?) throws {
+        guard expectedManifestSHA256 == nil || identity.manifest.sha256 == expectedManifestSHA256 else {
+            throw ChronosError.invalidBundle("managed manifest identity")
+        }
     }
 
     @concurrent
