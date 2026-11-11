@@ -64,6 +64,10 @@
     "video": [
       "generation_fps",
       "human_score"
+    ],
+    "forecasting": [
+      "forecast_mae",
+      "forecast_wape"
     ]
   },
   "metrics": {
@@ -515,6 +519,26 @@
       "label": {
         "en": "OCR normalized reading-order error",
         "ja": "OCR正規化読み順誤り"
+      },
+      "units": [
+        "ratio"
+      ],
+      "min": 0
+    },
+    "forecast_mae": {
+      "label": {
+        "en": "Forecast MAE",
+        "ja": "予測のMAE"
+      },
+      "units": [
+        "count"
+      ],
+      "min": 0
+    },
+    "forecast_wape": {
+      "label": {
+        "en": "Forecast WAPE",
+        "ja": "予測のWAPE"
       },
       "units": [
         "ratio"
