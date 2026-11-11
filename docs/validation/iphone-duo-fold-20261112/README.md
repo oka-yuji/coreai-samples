@@ -30,9 +30,13 @@ The report was later integrated with main `3c75011`, which adds Chronos Models s
 
 The six poses are closed portrait, closed landscape, open portrait, open landscape, Book, and Laptop. The layouts are Current, Split, Vertical split, Overlay, Vertical overlay, and Reserved regions. The vertical variants restrict the arrangement axis. The split-detail-root comparison removes the host scroll view but still places the fixture in a `NavigationSplitView` detail column; it is an experimental placement, not an adopted contract.
 
+Split uses media as primary content and controls as secondary content. Overlay reverses these roles: controls are primary and media is secondary. These are concrete configurations, so the different control availability does not isolate the layout style from content assignment. Media AX presence was not recorded; preserved query/run controls in Overlay do not prove that all media content remained available in closed landscape.
+
 AX presence and AX activation are different measurements. Eight cases omitted both query and run controls from AX: closed-landscape Split and Vertical split in each of the four containers. The other listed cases exposed both controls. The 38 successful activation checks incremented a synthetic counter; they did not execute a search or camera model and do not establish finger reachability. The first block and the first 18 camera cases checked presence only. Geometry may remain for controls absent from AX, so a stored rectangle is not evidence of visibility or operability.
 
 Block 1 used prototype `1095b96`; block 2's comparison used `96dcb60`. The corrected scaling and final fold observations used `c546dcc`. A diagnostic header, synthetic controls/results, and test media affect the available space. The video fixture is not the production pinned-player/results implementation, and the camera fixture is not `AVCaptureVideoPreviewLayer`.
+
+Block 2 changed the input preset from `A synthetic blue object` to `Retained synthetic input` before the Laptop camera observations and retained it through the subsequent fixture observations. The comparison therefore does not keep input text constant throughout the block. No claim is made that the change has zero effect on layout.
 
 ## Findings and alternatives
 
@@ -52,6 +56,8 @@ The Tech Talk lists some nesting restrictions without explicitly permitting plac
 Region intersections use each node's local coordinate space and only active regions. The region frame already includes its margins; margins are not added a second time. Scroll containers do not automatically divide their content around a fold. [ReservedRegion documentation](https://developer.apple.com/documentation/swiftui/reservedregion)
 
 ## Camera fit and fill
+
+The camera-sheet fixture also had active-division intersections: its media rectangle intersected the fold in Laptop/Current and in Book with Split, Vertical split, Overlay, Vertical overlay, and Reserved regions. These six cases all passed the synthetic Run activation check, which says nothing about the visibility of the whole preview. They are evidence to repeat on the native camera screen; the diagnostic header and surrogate media prevent treating them as production defects. Retaining the current layout does not establish that it avoids the fold.
 
 The corrected Current camera-sheet fixture used a 621 by 385.55 point viewport in open portrait. The visible fraction is the geometric intersection of a synthetic field and that viewport, divided by the field's area.
 

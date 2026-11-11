@@ -40,7 +40,44 @@
     "real_model_execution": false,
     "real_camera_execution": false,
     "finger_reachability_verified": false,
-    "prototype_code_merged": false
+    "prototype_code_merged": false,
+    "content_assignment": {
+      "Split and Vertical split": {
+        "primary": "media",
+        "secondary": "controls"
+      },
+      "Overlay and Vertical overlay": {
+        "primary": "controls",
+        "secondary": "media"
+      },
+      "media_ax_presence": "not_recorded"
+    },
+    "input_change": {
+      "block": 2,
+      "before": "Laptop camera observations",
+      "from": "A synthetic blue object",
+      "to": "Retained synthetic input",
+      "retained": "subsequent fixture observations",
+      "layout_effect": "not_isolated"
+    },
+    "camera_media_division_intersections": [
+      {
+        "pose": "Laptop",
+        "layouts": [
+          "Current"
+        ]
+      },
+      {
+        "pose": "Book",
+        "layouts": [
+          "Split",
+          "Vertical split",
+          "Overlay",
+          "Vertical overlay",
+          "Reserved regions"
+        ]
+      }
+    ]
   },
   "selected_geometry_examples": [
     {
