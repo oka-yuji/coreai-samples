@@ -1,0 +1,86 @@
+{
+  "version": 1,
+  "sources": [
+    {
+      "url": "https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2025-01.parquet",
+      "file": "yellow_tripdata_2025-01.parquet",
+      "bytes": 59158238,
+      "sha256": "9af277e4c0d3f9deb30644da822981e1e7df6af58313170fd3aa8a474485488a",
+      "downloaded_at": "2026-11-09T22:46:26.486189+00:00"
+    },
+    {
+      "url": "https://d37ci6vzurychx.cloudfront.net/misc/taxi_zones.zip",
+      "file": "taxi_zones.zip",
+      "bytes": 1022574,
+      "sha256": "f6d711917bb4340f8f644d5366c51665489eb2d426dd1a4a55677721ae5adf17",
+      "downloaded_at": "2026-11-09T22:46:23.176429+00:00"
+    },
+    {
+      "url": "https://d37ci6vzurychx.cloudfront.net/misc/taxi_zone_lookup.csv",
+      "file": "taxi_zone_lookup.csv",
+      "bytes": 12331,
+      "sha256": "1a99e105092230f8620f301edcca7f80d3080642ff404d28ed957d3fa222c8ed",
+      "downloaded_at": "2026-11-09T22:46:22.985831+00:00"
+    }
+  ],
+  "zone_ids": [
+    48,
+    50,
+    68,
+    90,
+    100,
+    107,
+    137,
+    142,
+    143,
+    161,
+    162,
+    163,
+    164,
+    170,
+    186,
+    229,
+    230,
+    233,
+    234,
+    246
+  ],
+  "history_steps": 1008,
+  "truth_steps": 16,
+  "interval_seconds": 1800,
+  "timezone": "America/New_York",
+  "simplify_feet": 15,
+  "scenarios": [
+    {
+      "id": "friday-evening",
+      "name": {
+        "ja": "金曜の夕方",
+        "en": "Friday evening"
+      },
+      "origin": "2025-01-24T17:00:00-05:00",
+      "focus_area": "230"
+    },
+    {
+      "id": "weekday-morning",
+      "name": {
+        "ja": "平日の朝",
+        "en": "Weekday morning"
+      },
+      "origin": "2025-01-28T08:00:00-05:00",
+      "focus_area": "161"
+    },
+    {
+      "id": "saturday-night",
+      "name": {
+        "ja": "土曜の夜",
+        "en": "Saturday night"
+      },
+      "origin": "2025-01-25T21:00:00-05:00",
+      "focus_area": "186"
+    }
+  ],
+  "source_title": {
+    "ja": "NYC TLC 公開乗車記録",
+    "en": "NYC TLC public trip records"
+  }
+}

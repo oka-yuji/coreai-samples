@@ -1,0 +1,16 @@
+{
+  "sha256": {
+    "city.json": "de17bc4a6ef36b340aeb709779d3765b846cf9f03680df3e751f32f7f15495f0",
+    "forecasts.json": "8de8c40c66a33466e42c493b3c9f93b6ab2748883a18798d7d1c093ca311899b",
+    "friday-evening.input.json": "099070a7fed88f9041c9bee110ed80dba0998697a4bc203ea1231899035d4f7e",
+    "friday-evening.truth.json": "23389b89a06a94ae5d1d6ab0d615cf769331ee9acf0dfb8780490e7a22b88826",
+    "manifest.json": "7c3e0575487885d64c0d01e8639cce824c21d0a74c45300ee00c042a363fed03",
+    "saturday-night.input.json": "5a0b638761360987df3d79174a9baaa35b94d8d9e33ef967c547125b97b47f8f",
+    "saturday-night.truth.json": "8ba4e4dcaef74abaa1b741f46c4642269a38e0095f9f2feb8f25576dba1fc184",
+    "weekday-morning.input.json": "c36832b3d90cbbab2328f3f7b25e53cc3d02edf37da2fbc06354f1516ea13063",
+    "weekday-morning.truth.json": "fe30406b3dedef0380ae070741ca3b0b8d9b09c28983d8edf8981eb41027d91f"
+  },
+  "modelRevision": "29ec3766d36d6f73f0696f85560a422f50e8498c",
+  "graphSHA256": "3094871fc431ae5d86d07c8b487ab53e48e60e9fb56efe803ba18c5bf88889c8",
+  "referenceSHA256": "8f894aaac769294a3e6843225e6f86519f85090d747b16d94a288fb987661470"
+}
