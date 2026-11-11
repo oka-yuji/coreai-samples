@@ -147,9 +147,10 @@ enum NYCCatalogValidation {
     static func timestamp(_ text: String) -> Date? {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        if let date = formatter.date(from: text) { return date }
+        if let date = formatter.date(from: text), formatter.string(from: date) == text { return date }
         formatter.formatOptions = [.withInternetDateTime]
-        return formatter.date(from: text)
+        guard let date = formatter.date(from: text), formatter.string(from: date) == text else { return nil }
+        return date
     }
 
     private struct Catalog: Decodable {

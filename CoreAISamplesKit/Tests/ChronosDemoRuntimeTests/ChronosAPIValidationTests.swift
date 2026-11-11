@@ -6,6 +6,27 @@ import Testing
 
 @Suite(.timeLimit(.minutes(1)))
 struct ChronosAPIValidationTests {
+    @Test(
+        "A1 Malformed revision timestamps cannot authorize an eligible dataset",
+        arguments: [
+            "2026-10-01T16:57:47.000Zgarbage", "2026-02-30T16:57:47.000Z",
+            "2026-10-01T24:00:00.000Z", "2026-10-01T16:57:47.000Z\n",
+        ])
+    func malformedRevision(_ revision: String) async throws {
+        let dataset = APIDataset(year: 2025, id: "irx2-vgm4", revision: revision)
+        let fake = try ChronosAPITransportFake(catalog: ChronosAPIFixture.catalog([ChronosAPIFixture.item(dataset)]))
+        await #expect(throws: ChronosDemoFailure.invalidData) {
+            try await ChronosAPIFixture.client(fake).coverage()
+        }
+    }
+
+    @Test("A1 Canonical UTC revision timestamps retain their exact epoch")
+    func canonicalRevision() {
+        for text in ["2026-10-01T16:57:47.000Z", "2026-10-01T16:57:47Z"] {
+            #expect(NYCCatalogValidation.timestamp(text)?.timeIntervalSince1970 == 1_790_873_867)
+        }
+    }
+
     @Test("A1 Metadata must prove the same historical annual publication and dataset revision")
     func metadataIdentity() throws {
         let original = try #require(JSONSerialization.jsonObject(with: ChronosAPIFixture.metadata()) as? [String: Any])
