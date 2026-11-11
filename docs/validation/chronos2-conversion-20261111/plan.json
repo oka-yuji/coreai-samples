@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "purpose": "Chronos-2 FP32 conversion fidelity and artifact identity; not forecasting quality or latency benchmarking",
+  "source_revision": "29ec3766d36d6f73f0696f85560a422f50e8498c",
+  "source_weights_sha256": "ddcda3c7508bf2528087723e98a20707cc04b7f370ae275a9fd88078ddba4f42",
+  "fixture_sha256": "fba4ad536faceedbc54063ed9406d32a93652de08789be1226e8af2319be1e67",
+  "case_count": 18,
+  "values_per_case": 336,
+  "criteria": {
+    "atol": 0.0001,
+    "rtol": 0.0001,
+    "all_finite": true,
+    "all_cases_required": true,
+    "all_quantiles_required": true,
+    "shape": [
+      1,
+      21,
+      16
+    ]
+  },
+  "source_hashes": {
+    "Tools/Conversion/adapters/chronos2/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "Tools/Conversion/adapters/chronos2/artifacts.py": "18eb6c04e3762308879e60717f0f2c04e7ddabdc02478c7be1ec6e4825789e70",
+    "Tools/Conversion/adapters/chronos2/bundle.py": "78c0422b81916880cd36555a78e49ff060d68fbb2b3cc63095d3eeca74ce922b",
+    "Tools/Conversion/adapters/chronos2/contracts.py": "477ab616ed1d308a4e1e0b629d7f3cf6c4556b4115afac5375853a71c9bbb8e5",
+    "Tools/Conversion/adapters/chronos2/convert.py": "92cefd63b1e970123df069018dc1802c902a36a62b3905b9dd515ac3fa60a3bb",
+    "Tools/Conversion/adapters/chronos2/model_wrapper.py": "89111f4650e081b1bdfac5323e7ebfd3e07239d65a04c5da2a0e007ff5f2b8bc",
+    "Tools/Conversion/adapters/chronos2/prepare.py": "0528efac93015034d9e11b6d88efe288c47ce577a38c330ea51aeb2e4efdad81",
+    "Tools/Conversion/adapters/chronos2/reference.py": "f08750ae14bac993cf04b6060cdaedda1507e7a8098c0e77b77c1272d17f090e",
+    "Tools/Conversion/adapters/chronos2/setup.py": "e2435850ee5ab106625d2be82a072bcec77c8df0c47b9bc1225b72156fc09934",
+    "Tools/Conversion/adapters/chronos2/verify.py": "fd58db4acb5b0eef54362a67b82cb449151263e353d14bea482b465c5b54ce95",
+    "Tools/Conversion/__init__.py": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+    "Tools/Conversion/__main__.py": "277b08066809947bc97ead86c50f3dc301d56ce6615707f058cdbdc34b087ffd",
+    "Tools/Conversion/local.py": "734145a4d106924d8159e026ae736e62bec021a0003cd4905c3ffc409622ac1c",
+    "Tools/Conversion/recipe.py": "fed50a3eaf472efe9e535226e18c7f7da89126d70e7b8bf3fd0bf53e3ced3653",
+    "Tools/Conversion/runner.py": "65b6e60eff599bb7d3e12e54a502b9ef82bf4a6ac926d307dd927637b16c43a1",
+    "Tools/Conversion/storage.py": "ed63a96533443dfac971fbf8184400bc39d9514f36c5c333e1a2f6fce90eaf09",
+    "Tools/Conversion/summary.py": "9335c0362f403ae4f20edc2cea4e31fd45552fa2df5bbea1124e4cfa856ed8d7",
+    "Tools/Conversion/adapters/pinned.py": "1c81762da37e8b43840c911f9b1daf718112a54530716d48cad8f6a8df6ce2ce",
+    "Tools/Conversion/recipes/chronos2/LICENSE": "09e8a9bcec8067104652c168685ab0931e7868f9c8284b66f5ae6edae5f1130b",
+    "Tools/Conversion/recipes/chronos2/NOTICE": "03a39dd9e3a435ba3ad4d6e2a362bb2a57a6374fa4030b047476211b906f82e9",
+    "Tools/Conversion/recipes/chronos2/README.md": "0af6b2cca6ad08dd2b7983079074a7beeea4d60ebc78887ea4ceb10366e512e0",
+    "Tools/Conversion/recipes/chronos2/fixtures.json": "fba4ad536faceedbc54063ed9406d32a93652de08789be1226e8af2319be1e67",
+    "Tools/Conversion/recipes/chronos2/model.json": "02bf407ea1bb068a19aea52adbd25f2a4f8b90c7a5144e1a7f5e8f23b095b872",
+    "Tools/Conversion/recipes/chronos2/pyproject.toml": "360e30328e07c879ba9c279a93523951b53f1e272314108c16de591030a03d7b",
+    "Tools/Conversion/recipes/chronos2/recipe.json": "e5ae50f1df1be6ce44412dcd231d35a74ecdd7b2d285992e54ee97b62f04fe5b",
+    "Tools/Conversion/recipes/chronos2/uv.lock": "1097fb2ca196b2b44c8e4846b2f239935988d753e433093064037e766cbc1f04"
+  },
+  "hardware": {
+    "device": "Apple M5 Max",
+    "memory_bytes": 137438953472
+  },
+  "concurrency": 1,
+  "warmups": 0,
+  "native_repetitions": 1,
+  "performance_scope": "not measured; stage durations must not be published as inference latency",
+  "failure_policy": "Retain every failed run. No tolerance, expected data, or quantile selection changes to make a failed run pass.",
+  "supersedes": "b67fb81d877d93bac45c44305624e65bd114a1f46dc4f6eb70b918b4888fe994",
+  "revision_reason": "Record power and thermal observations before and after the final fidelity execution; all inputs, criteria and model code are unchanged.",
+  "recorded_at": "2026-11-11T12:44:11.664022+00:00",
+  "code_revision": "e749b5653298b826770f57ac6a814967fad7162a",
+  "context_sampling": "pmset power source and thermal warnings sampled before and after; no latency or memory benchmark",
+  "environment": {
+    "recorded_at": "2026-11-11T12:00:54.787029+00:00",
+    "xcode": "Xcode 27.2\nBuild version 27B52",
+    "swift": "Apple Swift version 6.4.2 (swiftlang-6.4.2.1.9 clang-2100.4.1.1)\nTarget: arm64-apple-macosx27.2.0",
+    "sdk": "27.2",
+    "policy": "Pin DEVELOPER_DIR per task and compare the recorded version/identity before and after native verification. The application path can itself be replaced, so a path alone is not proof of a fixed toolchain."
+  },
+  "original_frozen_plan_sha256": "803abab0c116013d8c4c0f2c9d3e567043f1f4ccec531ef5dfa5ef2a68a9f88d",
+  "redaction": "The host developer directory is omitted. This view is not byte-identical to the frozen private controller plan."
+}

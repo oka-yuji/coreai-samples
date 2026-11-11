@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "checked_on": "2026-10-19",
+  "checked_on": "2026-11-11",
   "models": [
     "qwen38-27b",
     "clef-flash",
@@ -15,6 +15,7 @@
     "teleocr",
     "minicpm-v47",
     "depth-anything3",
-    "ltx25"
+    "ltx25",
+    "chronos2"
   ]
 }

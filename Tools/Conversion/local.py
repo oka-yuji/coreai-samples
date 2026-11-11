@@ -21,6 +21,13 @@ def default_lock():
 
 
 def recipe_path(name, precision=None):
+    if name == "chronos2":
+        if precision not in (None, "fp32"):
+            raise PipelineError("Chronos-2 supports only FP32")
+        path = TOOL / "recipes/chronos2/recipe.json"
+        if not path.is_file():
+            raise PipelineError("The Chronos-2 recipe is unavailable")
+        return path
     if name == "teleocr" and precision == "int4_int8":
         return TOOL / "recipes" / name / "recipe-quantized.json"
     if name == "qwen_image21_mobile":
@@ -94,6 +101,9 @@ def build_upstream(upstream, revision):
 
 
 def setup(workspace, recipe, snapshot, lock=None):
+    if recipe.parent.name == "chronos2":
+        from .adapters.chronos2.setup import setup as setup_chronos2
+        return setup_chronos2(workspace, recipe, snapshot, lock)
     contract_path = recipe.parent / "model.json"
     contract = read_json(contract_path)
     if recipe.parent.name == "jev27b":
@@ -247,7 +257,7 @@ def main():
     parser = argparse.ArgumentParser(description="Prepare and use the maintainer's local conversion workspace.")
     parser.add_argument("action", choices=("setup", "plan", "run"))
     parser.add_argument("--recipe", default="qwen3_06b")
-    parser.add_argument("--precision", choices=("fp16_safe", "int4_int8", *IMAGE_CANDIDATES, "ios"))
+    parser.add_argument("--precision", choices=("fp32", "fp16_safe", "int4_int8", *IMAGE_CANDIDATES, "ios"))
     parser.add_argument("--workspace", type=Path, default=ROOT / ".local/conversion")
     parser.add_argument("--snapshot", type=Path)
     parser.add_argument("--lock-dir", type=Path, default=default_lock())
@@ -255,6 +265,9 @@ def main():
     args = parser.parse_args()
     try:
         recipe = recipe_path(args.recipe, args.precision)
+        if args.recipe == "chronos2":
+            from .adapters.chronos2.artifacts import reject_links
+            reject_links(args.workspace)
         workspace = args.workspace.expanduser().resolve()
         if args.action == "setup":
             if args.refresh:

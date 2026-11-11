@@ -69,6 +69,25 @@ class RecordTests(unittest.TestCase):
         row['metric'] = 'cer'
         validate(ROOT, self.spec, self.model)
 
+    def test_forecasting_template_selects_count_error_and_uncapped_relative_error(self):
+        result = template(self.spec, 'forecasting', 'chronos2')
+        self.assertEqual(result['metrics']['forecast_mae'], 'count')
+        self.assertEqual(result['metrics']['forecast_wape'], 'ratio')
+        self.assertNotIn('ttft_s', result['metrics'])
+
+    def test_forecast_error_can_exceed_total_actuals_but_cannot_be_negative(self):
+        row = self.model['measurements'][0]
+        row.update(metric='forecast_wape', value=1.25, unit='ratio')
+        validate(ROOT, self.spec, self.model)
+        row['value'] = -0.1
+        with self.assertRaisesRegex(ValueError, 'Out of range'):
+            validate(ROOT, self.spec, self.model)
+        row.update(metric='forecast_mae', value=12.5, unit='count')
+        validate(ROOT, self.spec, self.model)
+        row['unit'] = 'ratio'
+        with self.assertRaises(ValueError):
+            validate(ROOT, self.spec, self.model)
+
     def test_percentile_requires_sufficient_samples(self):
         self.model['measurements'][0].update(statistic='p95', n=19)
         with self.assertRaisesRegex(ValueError, 'p95'):

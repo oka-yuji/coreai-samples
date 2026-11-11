@@ -1,0 +1,119 @@
+{
+  "scope": "Exploratory original scalar-epsilon export; not the final recipe",
+  "source_revision": "29ec3766d36d6f73f0696f85560a422f50e8498c",
+  "atol": 0.0001,
+  "rtol": 0.0001,
+  "passed": false,
+  "completed": 18,
+  "expected": 18,
+  "cases": [
+    {
+      "id": "trend-1",
+      "passed": false,
+      "max_abs": 0.32403564453125,
+      "count": 336
+    },
+    {
+      "id": "trend-15",
+      "passed": true,
+      "max_abs": 3.0517578125e-05,
+      "count": 336
+    },
+    {
+      "id": "trend-16",
+      "passed": true,
+      "max_abs": 2.6702880859375e-05,
+      "count": 336
+    },
+    {
+      "id": "trend-17",
+      "passed": true,
+      "max_abs": 1.52587890625e-05,
+      "count": 336
+    },
+    {
+      "id": "trend-32",
+      "passed": true,
+      "max_abs": 1.1444091796875e-05,
+      "count": 336
+    },
+    {
+      "id": "trend-64",
+      "passed": true,
+      "max_abs": 9.5367431640625e-06,
+      "count": 336
+    },
+    {
+      "id": "trend-1008",
+      "passed": true,
+      "max_abs": 3.814697265625e-06,
+      "count": 336
+    },
+    {
+      "id": "trend-8192",
+      "passed": true,
+      "max_abs": 3.814697265625e-06,
+      "count": 336
+    },
+    {
+      "id": "constant-zero",
+      "passed": true,
+      "max_abs": 1.1743850336642936e-10,
+      "count": 336
+    },
+    {
+      "id": "constant-positive",
+      "passed": true,
+      "max_abs": 0.0,
+      "count": 336
+    },
+    {
+      "id": "periodic",
+      "passed": true,
+      "max_abs": 1.52587890625e-05,
+      "count": 336
+    },
+    {
+      "id": "negative-scale",
+      "passed": true,
+      "max_abs": 1.52587890625e-05,
+      "count": 336
+    },
+    {
+      "id": "missing-16",
+      "passed": true,
+      "max_abs": 0.0001220703125,
+      "count": 336
+    },
+    {
+      "id": "missing-1008",
+      "passed": true,
+      "max_abs": 2.288818359375e-05,
+      "count": 336
+    },
+    {
+      "id": "missing-8192",
+      "passed": true,
+      "max_abs": 1.52587890625e-05,
+      "count": 336
+    },
+    {
+      "id": "single-observed",
+      "passed": false,
+      "max_abs": 1.19708251953125,
+      "count": 336
+    },
+    {
+      "id": "large-counts",
+      "passed": true,
+      "max_abs": 0.00048828125,
+      "count": 336
+    },
+    {
+      "id": "leading-missing",
+      "passed": true,
+      "max_abs": 7.62939453125e-06,
+      "count": 336
+    }
+  ]
+}
