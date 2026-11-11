@@ -61,8 +61,8 @@ D5の明示試験は共有heavy-jobロック下で、`COREAI_CHRONOS2_DEMO_BUNDL
 
 | OS | 状態 | 確認した範囲・残る確認 | 根拠 |
 |---|---|---|---|
-| macos | ✅ | 通常Modelsから固定場面の実推論、区間/時刻変更と再表示を確認。本人受入は未完。 | [E4](validation/chronos2-demo-20261112/README.md) |
-| ios | △ | 操作可能な固定プレビューと推論adapterを接続し署名build成功。実iPhoneの推論とUI受入は未確認。 | [E4](validation/chronos2-demo-20261112/README.md) |
+| macos | ✅ | 通常Modelsで固定/API履歴の実推論・明示的な実績比較・時刻変更を確認。本人受入は未完。 | [E4](validation/chronos2-demo-20261112/README.md) · [E5](validation/chronos2-api-20261112/README.md) |
+| ios | △ | 固定/API画面と推論adapterを接続し署名build成功。実iPhoneの推論とUI受入は未確認。 | [E4](validation/chronos2-demo-20261112/README.md) · [E5](validation/chronos2-api-20261112/README.md) |
 
 ### 性能と品質
 
@@ -87,9 +87,9 @@ D5の明示試験は共有heavy-jobロック下で、`COREAI_CHRONOS2_DEMO_BUNDL
 
 | 確認項目 | 状態 | 対象範囲・残る確認 | 根拠 |
 |---|---|---|---|
-| 変換・参照との一致 | 合格（記載範囲） | 合成18条件と固定NYC60場面/ゾーンが凍結した原tensor照合に合格。 | [E1](validation/chronos2-conversion-20261111/README.md) · [E2](validation/chronos2-swift-20261112/README.md) · [E4](validation/chronos2-demo-20261112/README.md) |
+| 変換・参照との一致 | 合格（記載範囲） | 合成18条件・固定NYC60場面/ゾーン・実API20系列が凍結した原tensor照合に合格。API入力は固定金曜の条件と重複。 | [E1](validation/chronos2-conversion-20261111/README.md) · [E2](validation/chronos2-swift-20261112/README.md) · [E4](validation/chronos2-demo-20261112/README.md) · [E5](validation/chronos2-api-20261112/README.md) |
 | 用途の品質 | 未計測 | 数値一致と固定場面の操作は未使用データの予測品質を示すものではありません。 | — |
-| 連続利用・資源解放 | 合格（記載範囲） | 解放/再load、60系列の本番service照合とlease0、通常Macの離脱/再表示を確認。メモリ計測とiPhone受入は未実施。 | [E2](validation/chronos2-swift-20261112/README.md) · [E4](validation/chronos2-demo-20261112/README.md) |
+| 連続利用・資源解放 | 合格（記載範囲） | 解放/再load、固定/APIの本番service実行とlease0、通常Mac離脱/再表示を確認。メモリ計測とiPhone受入は未実施。 | [E2](validation/chronos2-swift-20261112/README.md) · [E4](validation/chronos2-demo-20261112/README.md) · [E5](validation/chronos2-api-20261112/README.md) |
 | 停止・再試行・回復 | 未計測 | 取消と停止joinはCPU fakeで検査済み。実モデルの取消と通常アプリは未計測。 | — |
 
 ### 根拠と測定条件
@@ -100,6 +100,7 @@ D5の明示試験は共有heavy-jobロック下で、`COREAI_CHRONOS2_DEMO_BUNDL
 | [E2](validation/chronos2-swift-20261112/README.md) | 2026-11-12 / legacy / diagnostic | Apple M5 Max / 137438953472 B RAM / macOS 27.2.1 (26B131) / Xcode 27.2 (27B52); Swift 6.4.2; macOS/iOS SDK 27.2; Debug package | 固定18条件・6048原値、その後の解放/再ロードで先頭336値を再照合。warmupなしの数値検証で性能比較ではない。電源/熱とbenchmark計画hashは未記録。 · variant=coreai-fp32-univariate; backend=Swift Core AI GPU preference; actual delegate not profiled; route=chronos-verify --verify; separate opt-in native test; source_revision=29ec3766d36d6f73f0696f85560a422f50e8498c; artifact_revision=786dcf97e020c987cbf883f09b486fba5f3fee30a588b87a346ea65d72d20572; code_revision=25903277e60e99bfd85e217a96d69b18df82852c; batch_size=1; concurrency=1; warmups=0; 未記録: power, thermal, plan_sha256 |
 | [E3](validation/chronos2-models-20261112/README.md) | 2026-11-12 / legacy / diagnostic | Apple M5 Max / 137438953472 B RAM / macOS 27.2.1 (26B131) / Xcode 27.2 (27B52); Swift 6.4.2; SDK 27.2; Debug package tests; Release Mac/iOS applications | 固定9ファイルの導入、5種類の不正置換拒否、leaseと元hash保持。通常Mac画面で導入・プレビュー、署名iOS build。推論・性能計測は行わない。 · variant=coreai-fp32-univariate; backend=ManagedModelStore and normal Mac Models UI; no inference; route=Local bundle import -> inspect -> ready -> lease/release; explicit preview; source_revision=29ec3766d36d6f73f0696f85560a422f50e8498c; artifact_revision=786dcf97e020c987cbf883f09b486fba5f3fee30a588b87a346ea65d72d20572; code_revision=d68828d601fea9d8b6756cc7fe2b2200749d7fa4; 未記録: batch_size, concurrency, warmups, power, thermal, plan_sha256 |
 | [E4](validation/chronos2-demo-20261112/README.md) | 2026-11-12 / legacy / native_app | Apple M5 Max / 137438953472 B RAM / macOS 27.2.1 (26B131) / Xcode 27.2 (27B52); Swift 6.4.2; SDK 27.2; Debug package and Release Mac application | 固定60場面/ゾーン・20160原値。通常Mac画面で端末内予測・比較・離脱を確認。停止とowner境界はCPU fakeでも検査。iPhone推論・本人受入・性能計測は未実施。電源/熱とbenchmark計画hashは未記録。 · variant=coreai-fp32-univariate; backend=Swift Core AI GPU preference; actual delegate not profiled; route=Normal Mac Models -> explicit on-device prediction -> interval and clock changes -> leave/reopen; separate production-service native comparison; source_revision=29ec3766d36d6f73f0696f85560a422f50e8498c; artifact_revision=786dcf97e020c987cbf883f09b486fba5f3fee30a588b87a346ea65d72d20572; code_revision=06e010133afd10d0d31532cfa804b97818944b30; batch_size=1; concurrency=1; warmups=0; 未記録: power, thermal, plan_sha256 |
+| [E5](validation/chronos2-api-20261112/README.md) | 2026-11-12 / legacy / native_app | Apple M5 Max / 137438953472 B RAM / macOS 27.2.1 (26B131) / Xcode 27.2 (27B52); Swift 6.4.2; SDK 27.2; Debug package and Release Mac application | 実API20160入力・native6720原値とclose後lease0。通常Macで17:00予測120/実績130を比較し、17:30へ再取得して予測128を確認。9年度metadataとCPU故障条件も検査。制御した性能計測とiPhone推論は未実施。 · variant=coreai-fp32-univariate; backend=Swift Core AI GPU preference; actual delegate not profiled; route=Normal Mac Models -> official API history -> explicit native forecast -> separate actuals; production Models/Store/Service integration test; source_revision=29ec3766d36d6f73f0696f85560a422f50e8498c; artifact_revision=786dcf97e020c987cbf883f09b486fba5f3fee30a588b87a346ea65d72d20572; code_revision=05f8363b5e3de8f9531ebb2fb332b71bb9b795fb; batch_size=1; concurrency=1; warmups=0; 未記録: power, thermal, plan_sha256 |
 
 ### 導入・制限・進捗
 
@@ -112,6 +113,8 @@ D5の明示試験は共有heavy-jobロック下で、`COREAI_CHRONOS2_DEMO_BUNDL
 - [Models導入の検証記録](validation/chronos2-models-20261112/README.md)
 
 - [固定NYCデモの検証記録](validation/chronos2-demo-20261112/README.md)
+
+- [公式APIデモの検証記録](validation/chronos2-api-20261112/README.md)
 
 - [実装計画 #548](https://github.com/oka-yuji/coreai-samples/issues/548)
 <!-- model-report:end -->

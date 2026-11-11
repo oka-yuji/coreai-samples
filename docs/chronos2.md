@@ -69,8 +69,8 @@ Results below retain their original dates and workloads. Different rows may use 
 
 | Platform | State | Verified scope / remaining work | Evidence |
 |---|---|---|---|
-| macos | ✅ | Normal Models route, native fixed-scene prediction, interval/clock changes and reopen checked. User acceptance remains open. | [E4](validation/chronos2-demo-20261112/README.md) |
-| ios | △ | Interactive fixed preview and native adapter are connected; signed build passed. Physical iPhone inference and UI acceptance remain open. | [E4](validation/chronos2-demo-20261112/README.md) |
+| macos | ✅ | Normal Models route supports fixed scenes and API histories, native prediction, explicit actual comparison and time changes. User acceptance remains open. | [E4](validation/chronos2-demo-20261112/README.md) · [E5](validation/chronos2-api-20261112/README.md) |
+| ios | △ | Fixed/API UI and native adapter are connected; signed build passed. Physical iPhone inference and UI acceptance remain open. | [E4](validation/chronos2-demo-20261112/README.md) · [E5](validation/chronos2-api-20261112/README.md) |
 
 ### Performance and quality
 
@@ -95,9 +95,9 @@ Results below retain their original dates and workloads. Different rows may use 
 
 | Check | State | Scope / remaining work | Evidence |
 |---|---|---|---|
-| Conversion / reference fidelity | Passed (stated scope) | 18 synthetic cases and 60 fixed NYC scene/zone cases pass frozen raw-tensor comparisons. | [E1](validation/chronos2-conversion-20261111/README.md) · [E2](validation/chronos2-swift-20261112/README.md) · [E4](validation/chronos2-demo-20261112/README.md) |
+| Conversion / reference fidelity | Passed (stated scope) | 18 synthetic cases,60 fixedNYC scene/zone cases and20 liveAPI series pass frozen raw-tensor comparisons. The API inputs overlap the fixedFriday workload. | [E1](validation/chronos2-conversion-20261111/README.md) · [E2](validation/chronos2-swift-20261112/README.md) · [E4](validation/chronos2-demo-20261112/README.md) · [E5](validation/chronos2-api-20261112/README.md) |
 | Task quality | Not measured | Numerical fidelity and fixed-scene operation do not establish held-out forecasting quality. | — |
-| Repeated use / resource release | Passed (stated scope) | Release/reload, 60-series production-service comparison with zero leases, and normal Mac leave/reopen checked. No memory measurement or iPhone acceptance. | [E2](validation/chronos2-swift-20261112/README.md) · [E4](validation/chronos2-demo-20261112/README.md) |
+| Repeated use / resource release | Passed (stated scope) | Release/reload, fixed/API production-service runs with zero leases, and normalMac leave/reopen are checked. No memory measurement or iPhone acceptance. | [E2](validation/chronos2-swift-20261112/README.md) · [E4](validation/chronos2-demo-20261112/README.md) · [E5](validation/chronos2-api-20261112/README.md) |
 | Stop / retry / recovery | Not measured | CPU fakes cover cancellation and stop joins; cancellation of the native model and normal app remain unmeasured. | — |
 
 ### Evidence and conditions
@@ -108,6 +108,7 @@ Results below retain their original dates and workloads. Different rows may use 
 | [E2](validation/chronos2-swift-20261112/README.md) | 2026-11-12 / legacy / diagnostic | Apple M5 Max / 137438953472 B RAM / macOS 27.2.1 (26B131) / Xcode 27.2 (27B52); Swift 6.4.2; macOS/iOS SDK 27.2; Debug package | 18 fixed cases / 6048 raw values, then release/reload and the first 336 values again. Numerical validation, no warmup or performance benchmark. Power/thermal and a benchmark-plan hash were not recorded. · variant=coreai-fp32-univariate; backend=Swift Core AI GPU preference; actual delegate not profiled; route=chronos-verify --verify; separate opt-in native test; source_revision=29ec3766d36d6f73f0696f85560a422f50e8498c; artifact_revision=786dcf97e020c987cbf883f09b486fba5f3fee30a588b87a346ea65d72d20572; code_revision=25903277e60e99bfd85e217a96d69b18df82852c; batch_size=1; concurrency=1; warmups=0; unrecorded: power, thermal, plan_sha256 |
 | [E3](validation/chronos2-models-20261112/README.md) | 2026-11-12 / legacy / diagnostic | Apple M5 Max / 137438953472 B RAM / macOS 27.2.1 (26B131) / Xcode 27.2 (27B52); Swift 6.4.2; SDK 27.2; Debug package tests; Release Mac/iOS applications | Pinned nine-file bundle import, five rejected replacements, lease gating and source-hash preservation; normal Mac import/preview and signed iOS build. No inference or performance measurement. · variant=coreai-fp32-univariate; backend=ManagedModelStore and normal Mac Models UI; no inference; route=Local bundle import -> inspect -> ready -> lease/release; explicit preview; source_revision=29ec3766d36d6f73f0696f85560a422f50e8498c; artifact_revision=786dcf97e020c987cbf883f09b486fba5f3fee30a588b87a346ea65d72d20572; code_revision=d68828d601fea9d8b6756cc7fe2b2200749d7fa4; unrecorded: batch_size, concurrency, warmups, power, thermal, plan_sha256 |
 | [E4](validation/chronos2-demo-20261112/README.md) | 2026-11-12 / legacy / native_app | Apple M5 Max / 137438953472 B RAM / macOS 27.2.1 (26B131) / Xcode 27.2 (27B52); Swift 6.4.2; SDK 27.2; Debug package and Release Mac application | 60 fixed scene/zone cases / 20160 raw values; native Mac GUI prediction and comparison, then close. CPU fakes cover stop/owner boundaries. No iPhone inference, user acceptance or performance measurement. Power/thermal and a benchmark-plan hash were not recorded. · variant=coreai-fp32-univariate; backend=Swift Core AI GPU preference; actual delegate not profiled; route=Normal Mac Models -> explicit on-device prediction -> interval and clock changes -> leave/reopen; separate production-service native comparison; source_revision=29ec3766d36d6f73f0696f85560a422f50e8498c; artifact_revision=786dcf97e020c987cbf883f09b486fba5f3fee30a588b87a346ea65d72d20572; code_revision=06e010133afd10d0d31532cfa804b97818944b30; batch_size=1; concurrency=1; warmups=0; unrecorded: power, thermal, plan_sha256 |
+| [E5](validation/chronos2-api-20261112/README.md) | 2026-11-12 / legacy / native_app | Apple M5 Max / 137438953472 B RAM / macOS 27.2.1 (26B131) / Xcode 27.2 (27B52); Swift 6.4.2; SDK 27.2; Debug package and Release Mac application | Live API20160 inputs and6720 raw native values, zero leases afterclose. NormalMac compares17:00 forecast120 with actual130, then refetches17:30 and displays128. Nine annual metadata snapshots and CPU failure cases checked. No controlled performance or iPhone inference. · variant=coreai-fp32-univariate; backend=Swift Core AI GPU preference; actual delegate not profiled; route=Normal Mac Models -> official API history -> explicit native forecast -> separate actuals; production Models/Store/Service integration test; source_revision=29ec3766d36d6f73f0696f85560a422f50e8498c; artifact_revision=786dcf97e020c987cbf883f09b486fba5f3fee30a588b87a346ea65d72d20572; code_revision=05f8363b5e3de8f9531ebb2fb332b71bb9b795fb; batch_size=1; concurrency=1; warmups=0; unrecorded: power, thermal, plan_sha256 |
 
 ### Setup, limitations and progress
 
@@ -120,6 +121,8 @@ Results below retain their original dates and workloads. Different rows may use 
 - [Models import evidence](validation/chronos2-models-20261112/README.md)
 
 - [Fixed NYC demo evidence](validation/chronos2-demo-20261112/README.md)
+
+- [Official API demo evidence](validation/chronos2-api-20261112/README.md)
 
 - [Implementation plan #548](https://github.com/oka-yuji/coreai-samples/issues/548)
 <!-- model-report:end -->
