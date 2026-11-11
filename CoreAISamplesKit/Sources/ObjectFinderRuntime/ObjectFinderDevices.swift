@@ -20,8 +20,8 @@ struct ObjectFinderDevices {
     var checkCamera: () async throws -> Void
     var candidates: (CGImage, ObjectSearchMode) async throws -> [ObjectCandidate]
     var closeFinder: () async throws -> Void
-    var beginOrientation: () -> Void
-    var endOrientation: () -> Void
+    var beginRotation: (Int) -> Void
+    var endRotation: () -> Void
     var notify: () -> Void
     var requestFrame: () async throws -> Void
     var trackCandidates: (CapturedObjectFrame, [ObjectCandidate]) async -> [ObjectCandidate] = { _, candidates in

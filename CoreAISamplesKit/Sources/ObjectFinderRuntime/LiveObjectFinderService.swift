@@ -6,6 +6,7 @@ import ObjectFinderFeature
 public final class LiveObjectFinderService: ObjectFinderService {
     private let devices: ObjectFinderDevices
     private var busy = false
+    private var rotationActive = false
     private var stopRequested = false
     private var currentSession = 0
     private var stoppedSession = 0
@@ -32,7 +33,8 @@ public final class LiveObjectFinderService: ObjectFinderService {
         retainedFinder = false
         cleanupFailure = nil
         configuration.update(rotation)
-        devices.beginOrientation()
+        rotationActive = true
+        devices.beginRotation(currentSession)
         var failure: (any Error)?
         var reusable = false
         do {
@@ -94,6 +96,7 @@ public final class LiveObjectFinderService: ObjectFinderService {
             failure = error
         }
         await withTaskCancellationShield {
+            endRotation()
             await devices.stopCamera()
             if stopRequested, retainOnStop, reusable, failure is CancellationError {
                 retainedFinder = true
@@ -103,7 +106,6 @@ public final class LiveObjectFinderService: ObjectFinderService {
                     failure = failure ?? error
                 }
             }
-            devices.endOrientation()
             finish()
         }
         if let failure { throw failure }
@@ -116,6 +118,7 @@ public final class LiveObjectFinderService: ObjectFinderService {
         if !stopRequested { retainOnStop = retainingModel }
         if !retainingModel { retainOnStop = false }
         stopRequested = true
+        endRotation()
         await withTaskCancellationShield { await devices.stopCamera() }
         guard session == currentSession else { return }
         var joined = false
@@ -145,6 +148,12 @@ public final class LiveObjectFinderService: ObjectFinderService {
 
     public func setRotation(_ rotation: ObjectCameraRotation) {
         configuration.update(rotation)
+    }
+
+    private func endRotation() {
+        guard rotationActive else { return }
+        rotationActive = false
+        devices.endRotation()
     }
 
     private func checkStop() throws {

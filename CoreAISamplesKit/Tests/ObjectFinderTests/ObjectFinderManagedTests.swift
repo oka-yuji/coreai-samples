@@ -73,6 +73,7 @@ private func next(
 @MainActor
 @Suite(.timeLimit(.minutes(1)))
 struct ObjectFinderManagedTests {
+    private let rotationSource = ObjectCameraRotationSource(session: 1, cameraID: "rear-camera", generation: 1)
     enum LibraryExit: CaseIterable {
         case back, background, interruption
     }
@@ -90,7 +91,8 @@ struct ObjectFinderManagedTests {
         var actions = finder.actions.makeAsyncIterator()
         var requests = finder.requests.makeAsyncIterator()
         for action in [
-            ObjectFinderAction.appeared, .poseChanged(.landscapeLeft), .queryChanged("glasses"), .thresholdChanged(0.7),
+            ObjectFinderAction.appeared, .captureAngleChanged(rotationSource, 0), .queryChanged("glasses"),
+            .thresholdChanged(0.7),
             .folderSelected(replacement), .stop, .disappeared, .appeared,
         ] {
             finder.store.send(action)
@@ -110,7 +112,7 @@ struct ObjectFinderManagedTests {
         finder.store.send(.start)
         _ = await requests.next()
         #expect(finder.store.state.phase == .searching && finder.store.state.failure == nil)
-        #expect(finder.permission.checks == 2 && finder.camera.authorizations == 1 && finder.camera.angles == [0])
+        #expect(finder.permission.checks == 2 && finder.camera.authorizations == 1 && finder.camera.angles == [90])
         #expect(await finder.encoder.loads == [selected])
         #expect(await finder.encoder.queries == ["glasses"])
         try await finder.release()
@@ -282,10 +284,11 @@ struct ObjectFinderManagedTests {
         preview.receive([candidate], generation: 3, validUntil: 12)
         #expect(finder.store.state.matches == [candidate] && preview.visible(at: 10) == [candidate])
         #expect(preview.visible(at: 12.5).isEmpty)
-        finder.store.send(.poseChanged(.landscapeLeft))
+        finder.store.send(.rotationSourceChanged(rotationSource))
+        finder.store.send(.captureAngleChanged(rotationSource, 0))
         finder.store.send(.analyzed(1, frame))
         #expect(finder.store.state.frame == nil && finder.store.state.orientationRevision == 1)
-        finder.store.send(.poseChanged(.portrait))
+        finder.store.send(.captureAngleChanged(rotationSource, 90))
         finder.store.send(.analyzed(1, frame))
         #expect(finder.store.state.frame == nil)
         finder.store.send(.queryChanged("keys"))

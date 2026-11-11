@@ -142,7 +142,8 @@ public enum ObjectFinderAction: Sendable {
     case maximumBoxesChanged(Int)
     case searchModeChanged(ObjectSearchMode)
     case inputFailed(String)
-    case poseChanged(ObjectCameraPose)
+    case rotationSourceChanged(ObjectCameraRotationSource)
+    case captureAngleChanged(ObjectCameraRotationSource, Double)
     case start, applyQuery, stop, disappeared, appeared, backgrounded
     case started(Int)
     case analyzed(Int, ObjectFinderFrame)
@@ -185,19 +186,25 @@ public enum ObjectFinderFeature: Feature {
             if state.phase == .idle { state.searchMode = mode }
         case .inputFailed(let message):
             if state.phase == .idle { state.failure = .operation(message) }
-        case .poseChanged(let pose):
-            let angle = state.orientation.angle
-            state.orientation.update(pose)
-            if angle != state.orientation.angle {
-                state.orientationRevision += 1
-                clear(&state)
-                if state.phase == .starting || state.phase == .searching {
-                    return [.cancel(.notification), .run(.orient(state.cameraRotation), id: .orientation)]
-                }
-            }
+        case .rotationSourceChanged(let source):
+            guard source.session == state.session, state.phase == .starting || state.phase == .searching,
+                state.presented, source.generation > 0, !source.cameraID.isEmpty,
+                source.generation > (state.orientation.source?.generation ?? 0)
+            else { return [] }
+            state.orientation.bind(source)
+            clear(&state)
+            return [.cancel(.notification)]
+        case .captureAngleChanged(let source, let angle):
+            guard source.session == state.session, state.phase == .starting || state.phase == .searching,
+                state.presented, state.orientation.update(angle, from: source)
+            else { return [] }
+            state.orientationRevision += 1
+            clear(&state)
+            return [.cancel(.notification), .run(.orient(state.cameraRotation), id: .orientation)]
         case .start:
             guard state.canStart, let folder = state.folder else { return [] }
             state.session += 1
+            state.orientation.bind(nil)
             state.submittedQuery = state.query.trimmingCharacters(in: .whitespacesAndNewlines)
             state.phase = .starting
             state.restartAfterStop = false
@@ -216,6 +223,7 @@ public enum ObjectFinderFeature: Feature {
         case .applyQuery:
             guard state.canApplyQuery else { return [] }
             state.restartAfterStop = true
+            state.orientation.bind(nil)
             state.phase = .stopping
             clear(&state)
             return [.cancel(.notification), .run(.stop(state.session, retainingModel: true), id: .control)]
@@ -250,17 +258,20 @@ public enum ObjectFinderFeature: Feature {
         case .failed(let session, let failure):
             guard state.session == session, state.phase == .starting || state.phase == .searching else { return [] }
             state.phase = .idle
+            state.orientation.bind(nil)
             state.restartAfterStop = false
             clear(&state)
             state.failure = failure
         case .stopFailed(let session, let failure):
             guard state.session == session, state.phase == .stopping || state.phase == .idle else { return [] }
             state.phase = .idle
+            state.orientation.bind(nil)
             state.restartAfterStop = false
             state.releasePending = true
             clear(&state)
             state.failure = failure
         case .stop, .backgrounded, .disappeared:
+            state.orientation.bind(nil)
             let cancelsReplacement = state.restartAfterStop
             state.restartAfterStop = false
             if case .disappeared = action { state.presented = false }
