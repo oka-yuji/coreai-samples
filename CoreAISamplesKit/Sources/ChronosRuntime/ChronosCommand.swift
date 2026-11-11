@@ -46,13 +46,22 @@ public enum ChronosCommand: Equatable, Sendable {
         }
         let mode: Mode
         if let input = values["--input"] {
-            mode = .input(URL(fileURLWithPath: input).standardizedFileURL)
+            mode = .input(try fileURL(input))
         } else {
             mode = .verify
         }
         return .run(
-            bundle: URL(fileURLWithPath: bundle).standardizedFileURL, mode: mode,
-            output: URL(fileURLWithPath: output).standardizedFileURL)
+            bundle: try fileURL(bundle), mode: mode, output: try fileURL(output))
+    }
+
+    private static func fileURL(_ path: String) throws -> URL {
+        let url = URL(fileURLWithPath: path)
+        guard !path.contains("\0"), let parent = realpath(url.deletingLastPathComponent().path, nil) else {
+            throw ChronosError.invalidArguments
+        }
+        defer { free(parent) }
+        return URL(fileURLWithPath: String(cString: parent), isDirectory: true)
+            .appendingPathComponent(url.lastPathComponent)
     }
 
     public static func decodeInput(_ data: Data) throws -> ChronosContext {

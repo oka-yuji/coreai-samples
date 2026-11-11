@@ -20,7 +20,7 @@ struct ChronosCommandTests {
                 == .run(bundle: bundle, mode: .verify, output: output))
         #expect(
             try ChronosCommand.parse([
-                "--bundle", "./bundle", "--input", "./input.json", "--output", "child/../output.json",
+                "--bundle", "./bundle", "--input", "./input.json", "--output", "./output.json",
             ]) == .run(bundle: bundle, mode: .input(input), output: output))
         for arguments in [
             [], ["--bundle"], ["--help", "--verify"], ["--unknown"],
@@ -102,6 +102,38 @@ struct ChronosCommandTests {
         try ChronosReportFile.save(["value": 7], to: output)
         #expect(try JSONDecoder().decode([String: Int].self, from: Data(contentsOf: output)) == ["value": 7])
         #expect(throws: ChronosError.outputExists) { try ChronosReportFile.save(["value": 8], to: output) }
+    }
+
+    @Test("Parent traversal after a symlink keeps the filesystem destination for new and missing files")
+    func traversedAlias() throws {
+        let folder = try ChronosTestFolder()
+        defer { folder.clean() }
+        let local = folder.url.appendingPathComponent("local")
+        let remote = folder.url.appendingPathComponent("remote")
+        let nested = remote.appendingPathComponent("nested")
+        try FileManager.default.createDirectory(at: local, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: nested, withIntermediateDirectories: true)
+        let link = local.appendingPathComponent("link")
+        try FileManager.default.createSymbolicLink(at: link, withDestinationURL: nested)
+        try Data(#"{"context":[9]}"#.utf8).write(to: local.appendingPathComponent("missing.json"))
+        let command = try ChronosCommand.parse([
+            "--bundle", folder.url.path, "--input", link.path + "/../missing.json",
+            "--output", link.path + "/../result.json",
+        ])
+        guard case .run(_, .input(let input), let output) = command else {
+            Issue.record("The command must retain input mode")
+            return
+        }
+        #expect(input.lastPathComponent == "missing.json")
+        #expect(output.lastPathComponent == "result.json")
+        #expect(
+            input.deletingLastPathComponent().resolvingSymlinksInPath().path == remote.resolvingSymlinksInPath().path)
+        #expect(
+            output.deletingLastPathComponent().resolvingSymlinksInPath().path == remote.resolvingSymlinksInPath().path)
+        #expect(throws: (any Error).self) { try ChronosFiles.read(input, limit: ChronosFiles.inputLimit) }
+        try ChronosReportFile.save(["value": 3], to: output)
+        #expect(FileManager.default.fileExists(atPath: remote.appendingPathComponent("result.json").path))
+        #expect(!FileManager.default.fileExists(atPath: local.appendingPathComponent("result.json").path))
     }
 
     @Test("Encoding and output path failures leave no partial report")
