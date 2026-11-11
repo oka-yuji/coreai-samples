@@ -27,6 +27,8 @@ The final display check confirmed Japanese guidance and quantile labels, and exp
 
 ## Lifecycle and platform boundaries
 
+The Mac preview retains model classification, summary and expandable preparation guidance. The expanded guide and forecast share one scroll view; scrolling to the final content was checked in the normal app. On iOS, the existing host owns vertical scrolling, with no nested Chronos scroll view. The device-processing label explicitly includes model preparation when needed. All ten catalogs contain 1,393 keys with no missing translations or placeholder mismatch.
+
 CPU tests cover elapsed-only history, unchanged forecast origin, stale completions, cancellation, delayed release, owner changes, permission revocation and managed identity validation before model construction. The shared iOS host now permits interaction only for explicitly opted-in previews; older descriptors retain their disabled-preview default.
 
 Mac Release and signed iOS Release builds passed. The iOS artifact passed signature verification and contains both file-sharing keys. No physical iPhone inference or normal iPhone UI acceptance was performed. Package tests intentionally skip model checks unless explicitly enabled. The reference comparison ran under the shared heavy-job lock using `ChronosDemoNativeTests.fixedScenes` at source commit `06e010133afd10d0d31532cfa804b97818944b30`; subsequent changes in this unit affect presentation and evidence only.

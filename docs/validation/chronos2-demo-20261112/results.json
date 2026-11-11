@@ -9,7 +9,7 @@
   "rtol": 0.0001,
   "scope": "Production Models, Store and Service; fixed scenes only. GUI and device acceptance are separate.",
   "source_commit": "06e010133afd10d0d31532cfa804b97818944b30",
-  "presentation_commit": "eef246b",
+  "presentation_commit": "305566c7f9025fea5d3862bf4cfcda1a85e6cb2e",
   "fixed_history_truth_values": 61440,
   "reproduced_source_files": 8,
   "cache_frames": 39,
@@ -17,7 +17,7 @@
   "cache_requests": 780,
   "compiler_static_localization_keys": 49,
   "catalogs": 10,
-  "catalog_keys": 1392,
+  "catalog_keys": 1393,
   "localization_missing": 0,
   "mac_normal_gui": true,
   "signed_ios_build": true,
@@ -42,5 +42,6 @@
     ],
     "reopened_mode": "precomputed",
     "reopened_forecast": null
-  }
+  },
+  "host_scrolling": "One vertical scroll owner: Mac preview host or Mac native screen; iOS ModelDemoHost."
 }
