@@ -4,12 +4,14 @@ extension ChronosCatalog {
     public var isAPI: Bool { scenarios.first?.apiHistory != nil }
 
     public func replacingWithAPI(_ history: APIWindow, actuals: APIWindow? = nil) throws -> ChronosCatalog {
-        guard history.count == 1008, !history.availability.contains(.unpublished),
+        try history.requireVerifiedHistory()
+        guard history.count == 1008,
             Set(history.series.map(\.areaID)) == Set(areas.map(\.id))
         else { throw ChronosDemoFailure.invalidData }
         _ = try ForecastInputSnapshot(history: history, actuals: nil, step: 0)
         if let actuals {
             guard actuals.start == history.end, actuals.count == 16,
+                actuals.verification == history.verification,
                 Set(actuals.series.map(\.areaID)) == Set(areas.map(\.id)),
                 actuals.datasets.allSatisfy({ dataset in
                     history.datasets.first(where: { $0.year == dataset.year }).map { $0 == dataset } ?? true

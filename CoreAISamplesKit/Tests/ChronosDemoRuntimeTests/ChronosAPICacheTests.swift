@@ -14,7 +14,7 @@ struct ChronosAPICacheTests {
         let unrelated = root.appending(path: "retained.txt")
         try Data("incomplete cache write".utf8).write(to: abandoned)
         try Data("retained".utf8).write(to: unrelated)
-        let client = ChronosAPIFixture.client(try ChronosAPITransportFake(), cache: root)
+        let client = try ChronosAPIFixture.client(try ChronosAPITransportFake(), cache: root)
         _ = try await client.window(
             start: ChronosAPIFixture.date("2025-01-03T22:00:00Z"), count: 1, areaIDs: ["230"])
         #expect(!FileManager.default.fileExists(atPath: abandoned.path))
@@ -27,7 +27,7 @@ struct ChronosAPICacheTests {
         let root = try ChronosAPIFixture.temporary()
         defer { try? FileManager.default.removeItem(at: root) }
         let fake = try ChronosAPITransportFake()
-        let client = ChronosAPIFixture.client(fake, cache: root)
+        let client = try ChronosAPIFixture.client(fake, cache: root)
         let date = try ChronosAPIFixture.date("2025-01-03T22:00:00Z")
         _ = try await client.window(start: date, count: 1, areaIDs: ["230"])
         let path = try #require(windowFiles(root).first)
@@ -53,7 +53,7 @@ struct ChronosAPICacheTests {
         let root = try ChronosAPIFixture.temporary()
         defer { try? FileManager.default.removeItem(at: root) }
         let fake = try ChronosAPITransportFake(rows: ChronosAPIFixture.rows())
-        let client = ChronosAPIFixture.client(fake, cache: root)
+        let client = try ChronosAPIFixture.client(fake, cache: root, value: 7)
         let date = try ChronosAPIFixture.date("2025-01-03T22:00:00Z")
         let first = try await client.window(start: date, count: 1, areaIDs: ["230"])
         let calls = await fake.requests.count
@@ -77,7 +77,7 @@ struct ChronosAPICacheTests {
         defer { try? FileManager.default.removeItem(at: root) }
         let fake = try ChronosAPITransportFake()
         let cache = root.appending(path: "cache")
-        let client = ChronosAPIFixture.client(fake, cache: cache)
+        let client = try ChronosAPIFixture.client(fake, cache: cache)
         let date = try ChronosAPIFixture.date("2025-01-03T22:00:00Z")
         _ = try await client.window(start: date, count: 1, areaIDs: ["230"])
         let file = try #require(windowFiles(cache).first)
@@ -102,7 +102,7 @@ struct ChronosAPICacheTests {
     func pruning() async throws {
         let root = try ChronosAPIFixture.temporary()
         defer { try? FileManager.default.removeItem(at: root) }
-        let client = ChronosAPIFixture.client(try ChronosAPITransportFake(), cache: root, capacity: 50)
+        let client = try ChronosAPIFixture.client(try ChronosAPITransportFake(), cache: root, capacity: 50)
         let date = try ChronosAPIFixture.date("2025-01-03T22:00:00Z")
         for index in 0..<34 {
             _ = try await client.window(

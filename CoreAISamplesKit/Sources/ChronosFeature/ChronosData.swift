@@ -79,6 +79,7 @@ public enum ChronosDemoFailure: String, Error, Equatable, Sendable {
     case predictionFailed
     case invalidDate
     case unpublishedHistory
+    case unverifiedHistory
     case noData
     case network
     case rateLimited

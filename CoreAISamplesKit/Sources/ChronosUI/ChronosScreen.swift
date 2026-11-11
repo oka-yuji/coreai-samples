@@ -252,6 +252,7 @@ enum ChronosCopy {
             "Prediction failed. The prediction mode has not changed. Try again."
         case .invalidDate: "Choose an available New York date and time."
         case .unpublishedHistory: "The full 21-day history has not been published. Choose another date."
+        case .unverifiedHistory: "The full 21-day history is not independently verified. Choose a verified API date."
         case .noData: "Each taxi zone needs at least one observed count."
         case .network: "The NYC service could not be reached. Try again."
         case .rateLimited: "The NYC service is busy. Try again later."
@@ -266,6 +267,7 @@ enum ChronosCopy {
         case .observed: "Observed"
         case .notFetched: "Not fetched"
         case .unpublished: "Not published"
+        case .unverified: "Not independently verified"
         case .ambiguousTime: "Missing: repeated New York time"
         }
     }

@@ -15,12 +15,12 @@ public enum ChronosDemoCatalog {
         DemoDescriptor(
             id: selection.demoID, title: "NYC taxi pickup forecast", systemImage: "chart.xyaxis.line",
             summary:
-                "Explore fixed scenes with a precomputed preview, or select official NYC API dates for an on-device forecast.",
+                "Explore fixed scenes with a precomputed preview, or select verified NYC API dates for an on-device forecast.",
             explanation: [
                 DemoExplanation(
                     title: "How it works",
                     text:
-                        "Explore 20 Manhattan taxi zones in three fixed January 2025 scenes or published NYC API dates. Fetch 21 days of history, predict on this device, then explicitly fetch actual pickups to compare."
+                        "Explore 20 Manhattan taxi zones in three fixed scenes or independently verified January 2025 API data. Forecast origins run from January 22 through February 1 at 00:00 New York time. Fetch 21 days of history, predict on this device, then fetch actuals to compare."
                 ),
                 DemoExplanation(
                     title: "1. Prepare the model",

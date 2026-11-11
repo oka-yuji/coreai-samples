@@ -168,6 +168,10 @@ struct ChronosChart: View {
             }
             .font(.caption)
             Text("Shaded area: model 10–90% quantiles", bundle: .module).font(.caption2).foregroundStyle(.secondary)
+            if state.selectedScenario?.apiActuals?.availability.contains(.unverified) == true {
+                Text("Unverified actuals are missing from the chart and cannot advance the forecast.", bundle: .module)
+                    .font(.caption2).foregroundStyle(.secondary)
+            }
         }
         .padding(16)
         .background(ChronosStyle.surface, in: RoundedRectangle(cornerRadius: 20))

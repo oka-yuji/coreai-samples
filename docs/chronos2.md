@@ -127,28 +127,71 @@ Results below retain their original dates and workloads. Different rows may use 
 - [Implementation plan #548](https://github.com/oka-yuji/coreai-samples/issues/548)
 <!-- model-report:end -->
 
-## Official NYC API dates
+## Verified NYC API dates
 
-The date source supplements the three bundled scenes. Select **Official NYC API dates**, check published dates, choose a New York date and half-hour, and fetch the 21-day history. A prepared Models resource and explicit **On-device prediction** are required to predict an API date. Fetch actual pickups separately after a successful prediction. Entering Models or switching the source starts neither a request nor inference.
+The date source supplements the three bundled scenes. Select **Verified NYC API dates**, check verified dates, choose a New York date and half-hour, and fetch the 21-day history. A prepared Models resource and explicit **On-device prediction** are required for API predictions. Fetch actual pickups separately after a successful prediction. Entering Models or switching the source starts neither a request nor inference.
 
-The API publishes historical annual datasets; TLC monthly Parquet files are a different publication. The catalog's modification date is not trip-data freshness. Closed years from 2017 onward are discovered from the official domain, owner, provenance and exact annual name. Before filling absent rows with zero, the selected dataset's metadata must confirm the same identity/revision, published historical annual scope and `calendar_date`/`number` column types. The catalog revision must be a complete canonical UTC timestamp and match `rowsUpdatedAt`; data must have been updated after the annual period closed. `publicationDate` can precede that boundary, as in the captured 2019–2021 metadata. The 2021 `As needed` frequency is accepted only with the provider’s explicit historical-publication/corrections declaration. A missing year invalidates a 21-day history even when dates on both sides are listed. Requests and date selection share this restriction.
+The shipped evidence covers these 20 Manhattan zones, rather than every year listed in the official catalog:
 
-Intervals advance by 1,800 seconds in UTC. New York controls omit spring's nonexistent times. Both occurrences of autumn's repeated floating timestamps are missing; their combined provider counts are never assigned to either occurrence. Published zero is observed zero. Unpublished, ambiguous and not-yet-fetched intervals remain distinct. Failures retain the previous valid display and mode. Advancing uses only the elapsed prefix of explicitly fetched actuals, including its missing mask.
+| Boundary | New York time | UTC |
+|---|---|---|
+| Verified data, start inclusive | 2025-01-01 00:00 EST | 2025-01-01T05:00:00Z |
+| Verified data, end exclusive | 2025-02-01 00:00 EST | 2025-02-01T05:00:00Z |
+| Earliest forecast origin | 2025-01-22 00:00 EST | 2025-01-22T05:00:00Z |
+| Latest forecast origin, inclusive | 2025-02-01 00:00 EST | 2025-02-01T05:00:00Z |
 
-`NYCAPIClient` owns coverage generations, transport and disposable cache. Requests use the two fixed HTTPS hosts, reject redirects and credentials, stop receiving above 8 MiB and accept fewer than 50,000 aggregate rows. Queries split at year boundaries and at seven UTC days. Only an explicit transient error receives one retry. Each window retains original response bytes and SHA-256, query URL/bounds, status, acquisition time and catalog/dataset metadata. Cache reads check file type and size before allocation, then revalidate hashes and rebuild counts from original bytes. After a successful save, committed cache files are limited to 32 windows and 64 MiB. Each window has at most 32 MiB of raw evidence and a 48 MiB encoded file. One exclusive lock covers recovery of abandoned UUID staging files, writing and pruning. An active save can temporarily add one encoded file before pruning.
+Forecast origins need 1,008 preceding half-hours. The data interval and selectable forecast origins therefore differ. The pinned dataset is `irx2-vgm4`, revision `2026-10-01T16:57:47.000Z`. A listed year with another revision, or a slot outside approved evidence, is **unverified** with a null count. An absent catalog year is **unpublished**. Neither becomes zero, and no aggregate request is made for those spans. A 21-day history containing either is refused with the corresponding reason. A 16-slot actuals window can have a verified prefix and an unverified suffix at January's end; only the prefix can advance the forecast. Unknown revisions never gain trust from dates alone.
 
-An API forecast retains all native 21×16 values per zone plus its immutable input snapshot. Its SHA-256 covers deterministic sorted-key JSON with UTC start/origin, nullable input counts, dataset revisions, preprocessing version and acquisition evidence. The snapshot's `series` is the exact model input; any `actuals` member is source evidence for the elapsed prefix used by that later prediction. Fetching future actuals never changes an earlier snapshot. The cache is not a saved forecast journal.
+The API publishes annual datasets; monthly TLC Parquet files are a separate publication. Annual metadata is not a completion watermark. Official domain, owner, provenance, annual name, publication state, TLC agency, column types and exact catalog revision still establish dataset identity. Metadata is captured and validated before and after all aggregate requests. Both captures must agree with the pinned catalog revision. This detects changes exposed by the provider's revision contract, not a transactional snapshot guarantee. Reconstructed counts must also exactly match the independent reference for every requested verified slot. An empty response for a positive reference count is a validation error; an absent group for a verified zero is observed zero. Errors retain the previous valid display and prediction mode.
 
-CPU tests include fault injection and an optional replay of supplied original responses:
+### Independent January reconciliation
+
+The runtime owns [the exact reference bytes](../CoreAISamplesKit/Sources/ChronosDemoRuntime/Resources/NYCVerified/january-2025.json), outside the unchanged fixed-scene `NYCData` resources. Its identity is SHA-256 `2da47735c51b5987dec9f6bee72c97acd39abe4870991e413dca30a1912c6530` (88,976 bytes). The resource records dataset ID/revision, half-open interval, 1,800-second spacing, `America/New_York`, 20 unique zone IDs, and both original source hashes. Loading checks the pinned bytes, identity, boundaries, shape, finite integer counts and zone set. The pure Feature receives a value-only verification policy; it performs no bundle IO. Adding support requires another independently verified resource and its explicitly approved policy entry.
+
+| Original source | SHA-256 |
+|---|---|
+| [January 2025 Parquet](https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2025-01.parquet) | `9af277e4c0d3f9deb30644da822981e1e7df6af58313170fd3aa8a474485488a` |
+| [February 2025 Parquet](https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2025-02.parquet) | `037cba555a73663f3a51a2c27816e40e3feb364769942bdf122b9da31e377bd3` |
+
+The supervisor's independent count compared all 20 zones × 1,488 January half-hours: 29,760 exact matches across five API captures at an unchanged revision. The initial January-only comparison **failed at nine cells**. February's file contains 30 January pickups, ten in the selected zones; including those ten explains all nine differences. The failed reference identity was `68d9a72188d1fb7bd8a3e6b07990c4163b404a67b233427eedfb15ea4dfdde55`. These are January counts, not whole-year numerical verification.
+
+| Zone | January 31 local start | API | January-only count |
+|---|---|---:|---:|
+| 186 | 23:00 | 54 | 53 |
+| 234 | 23:30 | 163 | 162 |
+| 246 | 23:30 | 36 | 35 |
+| 48 | 22:30 | 152 | 151 |
+| 48 | 23:00 | 113 | 111 |
+| 50 | 23:30 | 25 | 24 |
+| 68 | 22:00 | 143 | 142 |
+| 68 | 23:30 | 91 | 90 |
+| 90 | 23:30 | 88 | 87 |
+
+### Missingness, provenance and reuse
+
+Intervals advance by 1,800 seconds in UTC. New York controls omit spring's nonexistent times; invalid provider rows in that local hour are rejected, never reassigned. The supervisor's query for 2025-03-09 02:00–03:00 in the 20 zones returned zero groups. This does not establish that other years contain no such rows. Spring is outside the shipped verified range; synthetic verification profiles retain the DST and invalid-row CPU tests. Both occurrences of an ambiguous autumn timestamp remain missing inside an explicitly verified profile. Observed zero, unverified, unpublished, ambiguous and not fetched are separate states.
+
+`NYCAPIClient` owns coverage generations, transport and disposable cache. Requests use the two fixed HTTPS hosts, reject redirects and credentials, stop receiving above 8 MiB and accept fewer than 50,000 aggregate rows. Queries cover only verified intersections, split at New York years and seven UTC days. Only an explicit transient error receives one retry. Each window retains original HTTP bytes and their SHA-256, query URL/bounds, status, acquisition time, catalog and pre/post metadata evidence. Reference hashes identify independent evidence and never replace HTTP body hashes.
+
+Cache keys and persisted windows include verification policy/reference identities and preprocessing `nyc-utc30m-verified-v3`. Old broad-year entries cannot bypass this policy. Reads check file type and size, raw hashes, metadata, current approved policy and reconstructed counts against the pinned reference. After a successful save, cache files are limited to 32 windows and 64 MiB. Each window has at most 32 MiB of raw evidence and a 48 MiB encoded file. One exclusive lock covers recovery of abandoned UUID staging files, writing and pruning; an active save can temporarily add one encoded file before pruning.
+
+An API forecast retains all native 21×16 values per zone plus its immutable input snapshot. Its SHA-256 covers deterministic sorted-key JSON including UTC start/origin, nullable counts, revisions, preprocessing, verification identities and acquisition evidence. Snapshot validation rechecks the same policy and raw evidence. Only elapsed verified actuals can enter later model input, with the existing ambiguity mask preserved. Fetching future actuals never changes an earlier snapshot. The cache is not a saved forecast journal.
+
+### Validation
+
+CPU boundary, corruption, unknown-revision, reference-positive/empty-response, zero, pre/post metadata, cancellation and cache tests use:
 
 ```sh
+swift test --package-path CoreAISamplesKit --filter 'ChronosVerifiedRangeTests|ChronosAPI|ChronosFeature'
 COREAI_CHRONOS2_API_FIXTURES=/path/to/fixtures swift test --package-path CoreAISamplesKit --filter ChronosAPIReplayTests
 ```
 
-The fixtures directory contains `api-baseline`, `api-fixed-history` and `api-fixed-actuals`. A separate pinned nine-year metadata replay uses `COREAI_CHRONOS2_API_ANNUAL_METADATA=/path/to/capture` with `ChronosAPIReplayTests.annualMetadata`; that capture contains `api-baseline` and `api-annual-metadata`. The fixed actuals fixture covers two hours; replay does not infer additional observed hours. Under the shared heavy-job lock, the parent can run the live API/native acceptance check:
+The fixtures directory contains `api-baseline`, `api-fixed-history` and `api-fixed-actuals`. Replay checks 20,160 history values and 80 actuals against the production verification resource, retaining their original HTTP hashes. The actuals fixture covers two hours, without inferring additional observed hours. The separate nine-year metadata replay uses `COREAI_CHRONOS2_API_ANNUAL_METADATA=/path/to/capture` with `ChronosAPIReplayTests.annualMetadata`; its directory contains `api-baseline` and `api-annual-metadata`. Nine valid metadata records do not establish nine verified years.
+
+Under the shared heavy-job lock, the parent runs live API/native acceptance:
 
 ```sh
 COREAI_CHRONOS2_API_BUNDLE=/path/to/chronos2-bundle COREAI_CHRONOS2_API_REFERENCE=/path/to/fixed-scenes-reference.json COREAI_CHRONOS2_API_REPORT=/new/private/report.json swift test --package-path CoreAISamplesKit --filter ChronosAPINativeTests.liveHistoryAndNative
 ```
 
-It checks Friday 2025-01-24 17:00 New York history against all 20,160 pinned input values, then compares all 6,720 native values through production Models/Store/Service at fixed `atol = rtol = 1e-4` and checks zero leases after closing. It writes `report.history.json` before inference and `report.json` after successful comparison; both must be new private paths. Default tests skip this check. Offline replay and CPU fakes do not establish live API, native, Mac/iPhone UI, signing or user acceptance. The existing generated validation tables above retain their original scope.
+It retains Friday 2025-01-24 17:00 New York, all 20,160 fixed input values, all 6,720 native values, fixed `atol = rtol = 1e-4`, the source model identity and the zero-lease check. It writes new private `report.history.json` before inference and `report.json` after success. Default tests skip native execution. The parent also owns the renewed 29,760-count live reconciliation, actual GUI checks, signed builds and review. CPU replay does not establish live API, native, Mac/iPhone UI or user acceptance. The generated validation tables above retain their original evidence and are updated separately by the parent.

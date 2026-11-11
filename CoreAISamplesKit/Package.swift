@@ -92,7 +92,7 @@ let package = Package(
         .target(
             name: "ChronosDemoRuntime",
             dependencies: ["ChronosFeature", "ChronosRuntime", "ModelLibraryFeature", "FeatureStore"],
-            resources: [.copy("Resources/NYCData")], swiftSettings: speechSettings),
+            resources: [.copy("Resources/NYCData"), .copy("Resources/NYCVerified")], swiftSettings: speechSettings),
         .target(
             name: "ChronosUI",
             dependencies: ["ChronosFeature", "ChronosDemoRuntime", "FeatureStore", "ModelLibraryRuntime"],

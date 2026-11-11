@@ -68,10 +68,34 @@ enum ChronosAPIFixture {
         try NYCCatalogValidation.read(evidence(catalog(), url: NYCAPIContract.catalogURL()), now: now)
     }
 
-    static func client(_ fixture: ChronosAPITransportFake, cache: URL? = nil, capacity: Int = 32) -> NYCAPIClient {
-        NYCAPIClient(
+    static func syntheticProfile(value: Float = 0, areas: [String] = ["230"]) throws -> NYCVerificationProfile {
+        let ranges = try [2024, 2025].map { year in
+            try APIVerifiedRange(
+                dataset: dataset(year), start: #require(NYCTime.yearStart(year)),
+                end: #require(NYCTime.yearStart(year + 1)), areaIDs: areas,
+                referenceSHA256: String(repeating: "a", count: 64))
+        }
+        let series = try ranges.map { range in
+            var values: [Float?] = Array(repeating: 0, count: Int(range.end.timeIntervalSince(range.start) / 1800))
+            if range.dataset.year == 2025 {
+                let offset = Int(try date("2025-01-03T22:00:00Z").timeIntervalSince(range.start) / 1800)
+                values[offset] = value
+            }
+            return areas.map { CountSeries(areaID: $0, values: values) }
+        }
+        return try NYCVerificationProfile(
+            policy: APIVerificationPolicy(version: "synthetic-zero-fixture-v1", ranges: ranges), references: series)
+    }
+
+    static func client(
+        _ fixture: ChronosAPITransportFake, cache: URL? = nil, capacity: Int = 32, value: Float = 0,
+        areas: [String] = ["230"]
+    )
+        throws -> NYCAPIClient
+    {
+        try NYCAPIClient(
             cacheDirectory: cache, transport: { try await fixture.receive($0) }, maxCachedWindows: capacity,
-            now: { now }, retryDelay: {})
+            now: { now }, retryDelay: {}, verification: syntheticProfile(value: value, areas: areas))
     }
 
     static func temporary() throws -> URL {

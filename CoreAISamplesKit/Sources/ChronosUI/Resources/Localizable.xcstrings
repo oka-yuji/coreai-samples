@@ -120,19 +120,19 @@
         }
       }
     },
-    "Check published dates" : {
+    "Check verified dates" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Check published dates"
+            "value" : "Check verified dates"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "公開済みの日時を確認"
+            "value" : "検証済みの日時を確認"
           }
         }
       }
@@ -307,19 +307,19 @@
         }
       }
     },
-    "Fetch history, choose on-device prediction, then fetch actual pickups when you want to compare. Missing counts stay missing; published zero counts stay zero." : {
+    "Fetch history, choose on-device prediction, then fetch actual pickups to compare. Unverified, unpublished and ambiguous intervals stay missing; only verified zero counts are shown as zero." : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Fetch history, choose on-device prediction, then fetch actual pickups when you want to compare. Missing counts stay missing; published zero counts stay zero."
+            "value" : "Fetch history, choose on-device prediction, then fetch actual pickups to compare. Unverified, unpublished and ambiguous intervals stay missing; only verified zero counts are shown as zero."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "履歴を取得して端末内予測を選び、比較したいときに実際の乗車件数を取得します。欠損と、公開済みの0件は区別されます。"
+            "value" : "履歴を取得して端末内で予測し、比較したいときに実績を取得します。未検証・未公開・重複時刻の区間は欠損のまま保ち、検証済みの0件だけを0と表示します。"
           }
         }
       }
@@ -596,19 +596,19 @@
         }
       }
     },
-    "New York date" : {
+    "Verified forecast date (New York)" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "New York date"
+            "value" : "Verified forecast date (New York)"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ニューヨークの日付"
+            "value" : "検証済みの予測日（ニューヨーク）"
           }
         }
       }
@@ -630,19 +630,19 @@
         }
       }
     },
-    "No published history is available." : {
+    "No independently verified history is available for the current API revision." : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "No published history is available."
+            "value" : "No independently verified history is available for the current API revision."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "利用できる公開済みの履歴がありません。"
+            "value" : "現在のAPI版には独立照合済みの履歴がありません。"
           }
         }
       }
@@ -732,19 +732,19 @@
         }
       }
     },
-    "Official NYC API dates" : {
+    "Verified NYC API dates" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Official NYC API dates"
+            "value" : "Verified NYC API dates"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "NYC公式APIの日時"
+            "value" : "検証済みのNYC API日時"
           }
         }
       }
@@ -881,23 +881,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "予測方式"
-          }
-        }
-      }
-    },
-    "Published years: %@" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Published years: %@"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "公開済みの年: %@"
           }
         }
       }
@@ -1072,19 +1055,19 @@
         }
       }
     },
-    "The NYC API publishes historical annual datasets. TLC monthly files are a separate publication. A recent catalog update does not mean recent trip data." : {
+    "Only independently verified API ranges are selectable. A listed year or recent catalog update does not establish complete trip counts." : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "The NYC API publishes historical annual datasets. TLC monthly files are a separate publication. A recent catalog update does not mean recent trip data."
+            "value" : "Only independently verified API ranges are selectable. A listed year or recent catalog update does not establish complete trip counts."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "NYCのAPIは過去のデータを年単位で公開しています。TLCの月次ファイルとは別の公開です。カタログの更新日時は、乗車データの新しさを表しません。"
+            "value" : "独立照合済みのAPI期間だけを選べます。年度の掲載や最近のカタログ更新だけでは、乗車件数が揃っているとは判断できません。"
           }
         }
       }
@@ -1357,6 +1340,91 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "上限"
+          }
+        }
+      }
+    },
+    "Forecast origins (New York): %@ to %@, inclusive." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Forecast origins (New York): %@ to %@, inclusive."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選べる予測起点（ニューヨーク）: %@〜%@（両端を含む）"
+          }
+        }
+      }
+    },
+    "Not independently verified" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not independently verified"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "独立照合されていません"
+          }
+        }
+      }
+    },
+    "The full 21-day history is not independently verified. Choose a verified API date." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The full 21-day history is not independently verified. Choose a verified API date."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "21日分の履歴全体が独立照合されていません。検証済みのAPI日時を選んでください。"
+          }
+        }
+      }
+    },
+    "Unverified actuals are missing from the chart and cannot advance the forecast." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unverified actuals are missing from the chart and cannot advance the forecast."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未検証の実績はグラフ上でも欠損となり、その区間へ予測を進めることはできません。"
+          }
+        }
+      }
+    },
+    "Verified data (New York): %@ to %@, end excluded." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verified data (New York): %@ to %@, end excluded."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "検証済みデータ期間（ニューヨーク）: %@〜%@（終端を含まない）"
           }
         }
       }

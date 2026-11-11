@@ -13,43 +13,54 @@ enum NYCWindowValidation {
         return coverage.datasets.filter { years.contains($0.year) }
     }
 
-    static func chunks(start: Date, count: Int, datasets: [APIDataset]) throws -> [Chunk] {
+    static func chunks(start: Date, count: Int, coverage: APICoverage, areas: [String]) throws -> [Chunk] {
         let end = start.addingTimeInterval(Double(count * 1800))
         var chunks: [Chunk] = []
-        for dataset in datasets {
-            guard let first = NYCTime.yearStart(dataset.year), let last = NYCTime.yearStart(dataset.year + 1)
-            else { throw ChronosDemoFailure.invalidDate }
-            var cursor = max(first, start)
-            let stop = min(last, end)
-            while cursor < stop {
-                if NYCTime.isAmbiguous(cursor) {
-                    cursor.addTimeInterval(1800)
-                    continue
-                }
-                var next = min(stop, cursor.addingTimeInterval(7 * 86400))
-                while NYCTime.isAmbiguous(next), next > cursor { next.addTimeInterval(-1800) }
-                if next == cursor { next = cursor.addingTimeInterval(1800) }
-                chunks.append(Chunk(dataset: dataset, start: cursor, end: next))
-                cursor = next
+        var cursor = start
+        while cursor < end {
+            guard coverage.availability(at: cursor, areaIDs: areas) == .observed else {
+                cursor.addTimeInterval(1800)
+                continue
             }
+            guard let dataset = coverage.datasets.first(where: { $0.year == NYCTime.year(cursor) }) else {
+                throw ChronosDemoFailure.invalidData
+            }
+            var next = cursor.addingTimeInterval(1800)
+            let stop = min(end, cursor.addingTimeInterval(7 * 86400))
+            while next < stop, NYCTime.year(next) == dataset.year,
+                coverage.availability(at: next, areaIDs: areas) == .observed
+            { next.addTimeInterval(1800) }
+            chunks.append(Chunk(dataset: dataset, start: cursor, end: next))
+            cursor = next
         }
         return chunks
     }
 
     static func make(
         start: Date, count: Int, areas: [String], coverage: APICoverage,
-        metadata: [APIEvidence], responses: [APIEvidence], fetchedAt: Date
+        metadata: [APIEvidence], responses: [APIEvidence], fetchedAt: Date,
+        profile supplied: NYCVerificationProfile? = nil
     ) throws -> APIWindow {
+        let profile = try supplied ?? NYCVerifiedResource.bundled()
         guard NYCAPIContract.validAreas(areas), (1...1024).contains(count),
+            start.timeIntervalSince1970.isFinite, start == NYCTime.aligned(start),
+            coverage.verification == profile.policy,
             ([coverage.evidence] + metadata + responses).reduce(0, { $0 + $1.data.count }) <= NYCAPIContract.rawLimit
         else { throw ChronosDemoFailure.invalidData }
         let datasets = datasets(start: start, count: count, coverage: coverage)
-        guard metadata.count == datasets.count else { throw ChronosDemoFailure.invalidData }
-        for (dataset, evidence) in zip(datasets, metadata) {
-            try NYCCatalogValidation.metadata(evidence, dataset: dataset)
-        }
-        let chunks = try chunks(start: start, count: count, datasets: datasets)
+        let chunks = try chunks(start: start, count: count, coverage: coverage, areas: areas)
+        let queried = datasets.filter { dataset in chunks.contains { $0.dataset == dataset } }
+        guard metadata.count == queried.count * 2 else { throw ChronosDemoFailure.invalidData }
         guard chunks.count == responses.count else { throw ChronosDemoFailure.invalidData }
+        for (index, dataset) in queried.enumerated() {
+            let before = metadata[index]
+            let after = metadata[index + queried.count]
+            try NYCCatalogValidation.metadata(before, dataset: dataset)
+            try NYCCatalogValidation.metadata(after, dataset: dataset)
+            guard responses.allSatisfy({ before.acquiredAt <= $0.acquiredAt && $0.acquiredAt <= after.acquiredAt }),
+                after.acquiredAt <= fetchedAt
+            else { throw ChronosDemoFailure.invalidData }
+        }
         var rows: [String: Float] = [:]
         for (chunk, evidence) in zip(chunks, responses) {
             try NYCAPIContract.verify(evidence)
@@ -59,30 +70,38 @@ enum NYCWindowValidation {
             else { throw ChronosDemoFailure.invalidData }
             try append(evidence.data, chunk: chunk, areas: areas, rows: &rows)
         }
-        let years = Set(datasets.map(\.year))
         let dates = (0..<count).map { start.addingTimeInterval(Double($0 * 1800)) }
-        let availability: [SlotAvailability] = dates.map {
-            if !years.contains(NYCTime.year($0)) { return .unpublished }
-            return NYCTime.isAmbiguous($0) ? .ambiguousTime : .observed
-        }
+        let availability = dates.map { coverage.availability(at: $0, areaIDs: areas) }
         let keys = dates.map(NYCTime.key)
-        let series = areas.map { area in
+        let series = try areas.map { area in
             CountSeries(
                 areaID: area,
-                values: keys.indices.map {
-                    availability[$0] == .observed ? rows[keys[$0] + ":" + area] ?? 0 : nil
+                values: try keys.indices.map { index in
+                    guard availability[index] == .observed else { return nil }
+                    guard let dataset = datasets.first(where: { $0.year == NYCTime.year(dates[index]) }) else {
+                        throw ChronosDemoFailure.invalidData
+                    }
+                    let value = rows[keys[index] + ":" + area] ?? 0
+                    guard value == (try profile.count(at: dates[index], areaID: area, dataset: dataset)) else {
+                        throw ChronosDemoFailure.invalidData
+                    }
+                    return value
                 })
         }
         return try APIWindow(
             start: start, count: count, series: series, availability: availability, datasets: datasets,
-            fetchedAt: fetchedAt, catalog: coverage.evidence, metadata: metadata, responses: responses)
+            fetchedAt: fetchedAt, catalog: coverage.evidence, metadata: metadata, responses: responses,
+            verification: profile.policy)
     }
 
-    static func validate(_ window: APIWindow) throws {
-        let coverage = try NYCCatalogValidation.read(window.catalog, now: window.catalog.acquiredAt)
+    static func validate(_ window: APIWindow, profile supplied: NYCVerificationProfile? = nil) throws {
+        let profile = try supplied ?? NYCVerifiedResource.bundled()
+        guard window.verification == profile.policy else { throw ChronosDemoFailure.invalidData }
+        let coverage = try NYCCatalogValidation.read(
+            window.catalog, now: window.catalog.acquiredAt, verification: profile.policy)
         let copy = try make(
             start: window.start, count: window.count, areas: window.series.map(\.areaID), coverage: coverage,
-            metadata: window.metadata, responses: window.responses, fetchedAt: window.fetchedAt)
+            metadata: window.metadata, responses: window.responses, fetchedAt: window.fetchedAt, profile: profile)
         guard copy == window else { throw ChronosDemoFailure.invalidData }
     }
 

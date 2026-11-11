@@ -10,29 +10,36 @@ struct ChronosAPIControls: View {
         VStack(alignment: .leading, spacing: 12) {
             Picker(selection: Binding(get: { state.source }, set: { store.send(.selectSource($0)) })) {
                 Text("Fixed scenes", bundle: .module).tag(ChronosFeature.Source.fixed)
-                Text("Official NYC API dates", bundle: .module).tag(ChronosFeature.Source.api)
+                Text("Verified NYC API dates", bundle: .module).tag(ChronosFeature.Source.api)
             } label: {
                 Text("Data source", bundle: .module)
             }
             .pickerStyle(.segmented)
             if state.source == .api {
                 Text(
-                    "The NYC API publishes historical annual datasets. TLC monthly files are a separate publication. A recent catalog update does not mean recent trip data.",
+                    "Only independently verified API ranges are selectable. A listed year or recent catalog update does not establish complete trip counts.",
                     bundle: .module
                 )
                 .font(.caption).foregroundStyle(.secondary)
                 Button {
                     store.send(.refreshCoverage)
                 } label: {
-                    Text("Check published dates", bundle: .module)
+                    Text("Check verified dates", bundle: .module)
                 }
                 .disabled(state.phase != .ready)
                 if let coverage = state.coverage {
-                    Text(
-                        "Published years: \(coverage.datasets.map { String($0.year) }.joined(separator: ", "))",
-                        bundle: .module
-                    )
-                    .font(.caption)
+                    ForEach(coverage.verifiedRanges, id: \.lowerBound) { range in
+                        Text(
+                            "Verified data (New York): \(rangeLabel(range.lowerBound)) to \(rangeLabel(range.upperBound)), end excluded.",
+                            bundle: .module
+                        ).font(.caption)
+                    }
+                    ForEach(coverage.selectableRanges, id: \.lowerBound) { range in
+                        Text(
+                            "Forecast origins (New York): \(rangeLabel(range.lowerBound)) to \(rangeLabel(range.upperBound)), inclusive.",
+                            bundle: .module
+                        ).font(.caption)
+                    }
                     if let date = state.requestedOrigin, let range = coverage.selectableRange {
                         DatePicker(
                             selection: Binding(
@@ -48,7 +55,7 @@ struct ChronosAPIControls: View {
                                         store.send(.selectDate(slot))
                                     }
                                 }), in: range, displayedComponents: .date
-                        ) { Text("New York date", bundle: .module) }
+                        ) { Text("Verified forecast date (New York)", bundle: .module) }
                         .environment(\.timeZone, NYCTime.calendar.timeZone)
                         .environment(\.calendar, NYCTime.calendar)
                         Picker(selection: Binding(get: { date }, set: { store.send(.selectDate($0)) })) {
@@ -62,7 +69,9 @@ struct ChronosAPIControls: View {
                         .pickerStyle(.menu)
                     }
                     if coverage.selectableRange == nil {
-                        Text("No published history is available.", bundle: .module)
+                        Text(
+                            "No independently verified history is available for the current API revision.",
+                            bundle: .module)
                     }
                 }
                 HStack {
@@ -80,7 +89,7 @@ struct ChronosAPIControls: View {
                     .disabled(!state.canFetchActuals)
                 }
                 Text(
-                    "Fetch history, choose on-device prediction, then fetch actual pickups when you want to compare. Missing counts stay missing; published zero counts stay zero.",
+                    "Fetch history, choose on-device prediction, then fetch actual pickups to compare. Unverified, unpublished and ambiguous intervals stay missing; only verified zero counts are shown as zero.",
                     bundle: .module
                 )
                 .font(.caption).foregroundStyle(.secondary)
@@ -108,6 +117,14 @@ struct ChronosAPIControls: View {
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.timeZone = NYCTime.calendar.timeZone
         formatter.dateFormat = "HH:mm zzz"
+        return formatter.string(from: date)
+    }
+
+    private func rangeLabel(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = NYCTime.calendar.timeZone
+        formatter.dateFormat = "yyyy-MM-dd HH:mm zzz"
         return formatter.string(from: date)
     }
 }

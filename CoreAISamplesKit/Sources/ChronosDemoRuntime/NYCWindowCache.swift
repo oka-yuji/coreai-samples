@@ -8,7 +8,7 @@ struct NYCWindowCache {
     let directory: URL?
     let capacity: Int
 
-    func read(_ key: String) throws -> APIWindow? {
+    func read(_ key: String, profile: NYCVerificationProfile) throws -> APIWindow? {
         guard let directory else { return nil }
         let folder = open(directory.path, O_RDONLY | O_DIRECTORY | O_NOFOLLOW)
         guard folder >= 0 else { return nil }
@@ -26,7 +26,7 @@ struct NYCWindowCache {
         let envelope = try NYCAPIContract.decode(Envelope.self, data)
         guard NYCAPIContract.hash(envelope.payload) == envelope.sha256 else { throw ChronosDemoFailure.invalidData }
         let value = try NYCAPIContract.decode(APIWindow.self, envelope.payload)
-        try NYCWindowValidation.validate(value)
+        try NYCWindowValidation.validate(value, profile: profile)
         return value
     }
 

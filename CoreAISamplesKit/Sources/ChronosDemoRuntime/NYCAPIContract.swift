@@ -97,7 +97,9 @@ enum NYCAPIContract {
 }
 
 enum NYCCatalogValidation {
-    static func read(_ evidence: APIEvidence, now: Date) throws -> APICoverage {
+    static func read(
+        _ evidence: APIEvidence, now: Date, verification: APIVerificationPolicy = .january2025
+    ) throws -> APICoverage {
         try NYCAPIContract.verify(evidence)
         guard evidence.url.host == "api.us.socrata.com" else { throw ChronosDemoFailure.invalidData }
         let catalog = try NYCAPIContract.decode(Catalog.self, evidence.data)
@@ -110,7 +112,7 @@ enum NYCCatalogValidation {
             guard let name = resource.name else { throw ChronosDemoFailure.invalidData }
             guard name.contains("Yellow Taxi Trip Data") else { continue }
             guard let year = Int(name.prefix(4)) else { throw ChronosDemoFailure.invalidData }
-            guard year >= 2017, year < NYCTime.year(now) else { continue }
+            guard year >= 2017 else { continue }
             guard name == "\(year) Yellow Taxi Trip Data", let id = resource.id, NYCAPIContract.validID(id),
                 let revision = resource.dataUpdatedAt, let updated = timestamp(revision), updated <= now,
                 let columns = resource.columnsFieldName,
@@ -121,7 +123,7 @@ enum NYCCatalogValidation {
         guard Set(datasets.map(\.year)).count == datasets.count,
             Set(datasets.map(\.id)).count == datasets.count
         else { throw ChronosDemoFailure.invalidData }
-        return APICoverage(datasets: datasets, evidence: evidence)
+        return APICoverage(datasets: datasets, evidence: evidence, verification: verification)
     }
 
     static func metadata(_ evidence: APIEvidence, dataset: APIDataset) throws {
@@ -133,10 +135,9 @@ enum NYCCatalogValidation {
             metadata.publicationStage == "published", metadata.assetType == "dataset",
             historical(metadata.metadata.customFields["Update"]),
             metadata.metadata.customFields["Dataset Information"]?["Agency"] == "Taxi and Limousine Commission (TLC)",
-            let yearEnd = NYCTime.yearStart(dataset.year + 1),
             metadata.publicationDate > 0,
             metadata.publicationDate <= evidence.acquiredAt.timeIntervalSince1970,
-            metadata.rowsUpdatedAt >= yearEnd.timeIntervalSince1970,
+            metadata.rowsUpdatedAt > 0, metadata.rowsUpdatedAt <= evidence.acquiredAt.timeIntervalSince1970,
             timestamp(dataset.revision)?.timeIntervalSince1970 == metadata.rowsUpdatedAt,
             metadata.columns.filter({ $0.fieldName == "tpep_pickup_datetime" }).map(\.dataTypeName) == [
                 "calendar_date"

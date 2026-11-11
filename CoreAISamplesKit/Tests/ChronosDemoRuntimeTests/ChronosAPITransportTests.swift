@@ -60,7 +60,7 @@ struct ChronosAPITransportTests {
     @Test("A3 A newer coverage refresh wins even when the old transport ignores cancellation")
     func refreshGeneration() async throws {
         let fake = try ChronosAPITransportFake()
-        let client = ChronosAPIFixture.client(fake)
+        let client = try ChronosAPIFixture.client(fake)
         await fake.hold()
         let old = Task { try await client.coverage(refresh: true) }
         var events = fake.started.stream.makeAsyncIterator()
@@ -77,7 +77,7 @@ struct ChronosAPITransportTests {
     @Test("A3 Cancellation of a noncooperative chunk stops every subsequent chunk")
     func cancelledChunk() async throws {
         let fake = try ChronosAPITransportFake()
-        let client = ChronosAPIFixture.client(fake)
+        let client = try ChronosAPIFixture.client(fake)
         _ = try await client.coverage()
         await fake.hold(path: "/resource/")
         let operation = Task {

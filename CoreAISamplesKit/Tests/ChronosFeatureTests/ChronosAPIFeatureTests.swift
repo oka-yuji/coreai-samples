@@ -139,7 +139,10 @@ struct ChronosAPIFeatureTests {
     }
 
     private func coverage() throws -> APICoverage {
-        APICoverage(datasets: [APIDataset(year: 2025, id: "irx2-vgm4", revision: "revision")], evidence: try evidence())
+        APICoverage(
+            datasets: APIVerificationPolicy.january2025.ranges.map(\.dataset), evidence: try evidence(),
+            verification: APIVerificationPolicy(
+                version: "feature-fixture-v1", ranges: APIVerificationPolicy.january2025.ranges))
     }
 
     private func evidence() throws -> APIEvidence {
@@ -156,6 +159,6 @@ struct ChronosAPIFeatureTests {
             series: [CountSeries(areaID: "230", values: (0..<count).map { missing.contains($0) ? nil : 1 })],
             availability: (0..<count).map { missing.contains($0) ? .ambiguousTime : .observed },
             datasets: coverage().datasets, fetchedAt: Date(timeIntervalSince1970: 0), catalog: evidence(), metadata: [],
-            responses: [])
+            responses: [], verification: coverage().verification)
     }
 }

@@ -189,7 +189,7 @@ struct ChronosRunnerTests {
     func apiRaw() async throws {
         let capture = ChronosCapture()
         let fake = try ChronosAPITransportFake()
-        let api = ChronosAPIFixture.client(fake)
+        let api = try ChronosAPIFixture.client(fake, areas: NYCAPIContract.zoneIDs)
         let resource = session(number: 1).resource
         var factories = 0
         let service = LiveChronosService(
@@ -228,7 +228,7 @@ struct ChronosRunnerTests {
     @Test("A3 Revoked owners and cancellation suppress noncooperative API completion", arguments: [false, true])
     func delayedAPI(_ revoke: Bool) async throws {
         let fake = try ChronosAPITransportFake()
-        let api = ChronosAPIFixture.client(fake)
+        let api = try ChronosAPIFixture.client(fake)
         var permitted = true
         let service = LiveChronosService(api: api, permits: { permitted })
         let runner = ChronosRunner(service: service, permits: { permitted })

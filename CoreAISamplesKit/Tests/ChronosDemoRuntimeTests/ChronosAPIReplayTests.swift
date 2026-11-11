@@ -11,7 +11,9 @@ struct ChronosAPIReplayTests {
     func fractionalTime(_ fraction: Double) async throws {
         let now = Date(timeIntervalSince1970: 1_794_441_600 + fraction)
         let fake = try ChronosAPITransportFake()
-        let client = NYCAPIClient(transport: { try await fake.receive($0) }, now: { now }, retryDelay: {})
+        let client = try NYCAPIClient(
+            transport: { try await fake.receive($0) }, now: { now }, retryDelay: {},
+            verification: ChronosAPIFixture.syntheticProfile())
         let history = try await client.window(
             start: ChronosAPIFixture.date("2025-01-03T22:00:00Z"), count: 1008, areaIDs: ["230"])
         let snapshot = try ForecastInputSnapshot(history: history, actuals: nil, step: 0)

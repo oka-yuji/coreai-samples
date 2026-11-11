@@ -27,7 +27,7 @@ struct ChronosAPIValidationTests {
         }
     }
 
-    @Test("A1 A late publication date cannot authorize rows last updated before the annual period closed")
+    @Test("A1 Publication and revision dates establish identity but cannot authorize unverified counts")
     func incompleteAnnualRevision() throws {
         let dataset = APIDataset(year: 2025, id: "irx2-vgm4", revision: "2025-06-01T00:00:00.000Z")
         var metadata = try #require(
@@ -35,9 +35,12 @@ struct ChronosAPIValidationTests {
         metadata["rowsUpdatedAt"] = try ChronosAPIFixture.date("2025-06-01T00:00:00Z").timeIntervalSince1970
         let evidence = try ChronosAPIFixture.evidence(
             JSONSerialization.data(withJSONObject: metadata), url: NYCAPIContract.metadataURL(dataset))
-        #expect(throws: ChronosDemoFailure.invalidData) {
-            try NYCCatalogValidation.metadata(evidence, dataset: dataset)
-        }
+        try NYCCatalogValidation.metadata(evidence, dataset: dataset)
+        let coverage = APICoverage(datasets: [dataset], evidence: evidence)
+        #expect(coverage.selectableRanges.isEmpty)
+        #expect(
+            coverage.availability(at: try ChronosAPIFixture.date("2025-01-03T22:00:00Z"), areaIDs: ["230"])
+                == .unverified)
     }
 
     @Test("A1 An as-needed update label alone does not establish a historical annual publication")
@@ -79,7 +82,7 @@ struct ChronosAPIValidationTests {
         }
     }
 
-    @Test("A1 Only trusted closed annual datasets are selectable and gaps reject history")
+    @Test("A1 Listed years still require independent evidence and gaps reject history")
     func catalogTrust() throws {
         var untrusted = ChronosAPIFixture.item()
         untrusted["owner"] = ["id": "other"]
@@ -87,10 +90,13 @@ struct ChronosAPIValidationTests {
         let data = try ChronosAPIFixture.catalog([ChronosAPIFixture.item(), untrusted, open])
         let coverage = try NYCCatalogValidation.read(
             ChronosAPIFixture.evidence(data, url: NYCAPIContract.catalogURL()), now: ChronosAPIFixture.now)
-        #expect(coverage.datasets == [ChronosAPIFixture.dataset()])
+        #expect(coverage.datasets == [ChronosAPIFixture.dataset(), ChronosAPIFixture.dataset(2026)])
+        #expect(
+            coverage.availability(at: try ChronosAPIFixture.date("2026-01-01T05:00:00Z"), areaIDs: ["230"])
+                == .unverified)
         let gap = APICoverage(
             datasets: [ChronosAPIFixture.dataset(2023), ChronosAPIFixture.dataset()], evidence: coverage.evidence)
-        #expect(gap.selectableRanges.count == 2)
+        #expect(gap.selectableRanges.count == 1)
         #expect(!gap.allowsHistory(endingAt: try ChronosAPIFixture.date("2025-01-05T22:00:00Z")))
         #expect(gap.allowsHistory(endingAt: try ChronosAPIFixture.date("2025-01-24T22:00:00Z")))
     }
@@ -111,7 +117,7 @@ struct ChronosAPIValidationTests {
     @Test("A1 Metadata identity and floating timestamp types are validated before zero filling")
     func metadataTypes() async throws {
         let fake = try ChronosAPITransportFake(metadata: ["irx2-vgm4": ChronosAPIFixture.metadata(type: "text")])
-        let client = ChronosAPIFixture.client(fake)
+        let client = try ChronosAPIFixture.client(fake)
         let date = try ChronosAPIFixture.date("2025-01-03T22:00:00Z")
         await #expect(throws: ChronosDemoFailure.invalidData) {
             try await client.window(start: date, count: 1, areaIDs: ["230"])
@@ -122,7 +128,7 @@ struct ChronosAPIValidationTests {
     @Test("A2 Entire published zero histories are valid and unlisted years stay missing")
     func zeros() async throws {
         let fake = try ChronosAPITransportFake()
-        let client = ChronosAPIFixture.client(fake)
+        let client = try ChronosAPIFixture.client(fake)
         let start = try ChronosAPIFixture.date("2025-01-03T22:00:00Z")
         let history = try await client.window(start: start, count: 1008, areaIDs: ["230"])
         #expect(history.series[0].values == Array(repeating: 0, count: 1008))
@@ -154,7 +160,7 @@ struct ChronosAPIValidationTests {
             ChronosAPIFixture.rows(copies: 2), ChronosAPIFixture.rows(copies: 50_000),
         ]
         for data in cases {
-            let client = ChronosAPIFixture.client(try ChronosAPITransportFake(rows: data))
+            let client = try ChronosAPIFixture.client(try ChronosAPITransportFake(rows: data))
             await #expect(throws: ChronosDemoFailure.invalidData) {
                 try await client.window(
                     start: ChronosAPIFixture.date("2025-01-03T22:00:00Z"), count: 1, areaIDs: ["230"])
@@ -164,7 +170,7 @@ struct ChronosAPIValidationTests {
 
     @Test("A2 Both autumn folds are missing while spring UTC slots stay consecutive")
     func daylightSaving() async throws {
-        let client = ChronosAPIFixture.client(try ChronosAPITransportFake())
+        let client = try ChronosAPIFixture.client(try ChronosAPITransportFake())
         let autumn = try await client.window(
             start: ChronosAPIFixture.date("2025-11-02T04:00:00Z"), count: 8, areaIDs: ["230"])
         #expect(
@@ -187,7 +193,7 @@ struct ChronosAPIValidationTests {
             metadata: [old.id: ChronosAPIFixture.metadata(old), "irx2-vgm4": ChronosAPIFixture.metadata()])
         let value = try await ChronosAPIFixture.client(fake).window(
             start: ChronosAPIFixture.date("2024-12-25T05:00:00Z"), count: 1008, areaIDs: ["230"])
-        #expect(value.responses.count == 3 && value.metadata.count == 2)
+        #expect(value.responses.count == 3 && value.metadata.count == 4)
         #expect(
             value.responses.allSatisfy {
                 ($0.end ?? .distantFuture).timeIntervalSince($0.start ?? .distantPast) <= 7 * 86400

@@ -37,26 +37,31 @@ public struct APIEvidence: Codable, Equatable, Sendable {
 public struct APICoverage: Codable, Equatable, Sendable {
     public let datasets: [APIDataset]
     public let evidence: APIEvidence
+    public let verification: APIVerificationPolicy
 
-    public init(datasets: [APIDataset], evidence: APIEvidence) {
+    public init(datasets: [APIDataset], evidence: APIEvidence, verification: APIVerificationPolicy = .january2025) {
         self.datasets = datasets.sorted { $0.year < $1.year }
         self.evidence = evidence
+        self.verification = verification
+    }
+
+    public var verifiedRanges: [Range<Date>] {
+        var intervals: [Range<Date>] = []
+        for range in verification.ranges where datasets.contains(range.dataset) {
+            if let last = intervals.last, range.start <= last.upperBound {
+                intervals[intervals.count - 1] = last.lowerBound..<max(last.upperBound, range.end)
+            } else {
+                intervals.append(range.start..<range.end)
+            }
+        }
+        return intervals
     }
 
     public var selectableRanges: [ClosedRange<Date>] {
-        var ranges: [ClosedRange<Date>] = []
-        var first: Int?
-        var previous: Int?
-        for year in datasets.map(\.year) {
-            if let previous, year != previous + 1, let startYear = first {
-                if let range = range(startYear, previous) { ranges.append(range) }
-                first = nil
-            }
-            if first == nil { first = year }
-            previous = year
+        verifiedRanges.compactMap {
+            let first = $0.lowerBound.addingTimeInterval(1008 * 1800)
+            return first <= $0.upperBound ? first...$0.upperBound : nil
         }
-        if let first, let previous, let range = range(first, previous) { ranges.append(range) }
-        return ranges
     }
 
     public var selectableRange: ClosedRange<Date>? {
@@ -69,9 +74,8 @@ public struct APICoverage: Codable, Equatable, Sendable {
             && selectableRanges.contains { $0.contains(origin) }
     }
 
-    private func range(_ first: Int, _ last: Int) -> ClosedRange<Date>? {
-        guard let start = NYCTime.yearStart(first), let end = NYCTime.yearStart(last + 1) else { return nil }
-        return start.addingTimeInterval(1008 * 1800)...end
+    public func availability(at date: Date, areaIDs: [String]) -> SlotAvailability {
+        verification.availability(at: date, datasets: datasets, areaIDs: areaIDs)
     }
 }
 
@@ -79,6 +83,7 @@ public enum SlotAvailability: String, Codable, Equatable, Sendable {
     case observed
     case notFetched
     case unpublished
+    case unverified
     case ambiguousTime
 }
 
@@ -93,7 +98,7 @@ public struct CountSeries: Codable, Equatable, Sendable {
 }
 
 public struct APIWindow: Codable, Equatable, Sendable {
-    public static let preprocessingVersion = "nyc-utc30m-v2"
+    public static let preprocessingVersion = "nyc-utc30m-verified-v3"
     public let start: Date
     public let count: Int
     public let series: [CountSeries]
@@ -103,10 +108,12 @@ public struct APIWindow: Codable, Equatable, Sendable {
     public let catalog: APIEvidence
     public let metadata: [APIEvidence]
     public let responses: [APIEvidence]
+    public let verification: APIVerificationPolicy
 
     public init(
         start: Date, count: Int, series: [CountSeries], availability: [SlotAvailability], datasets: [APIDataset],
-        fetchedAt: Date, catalog: APIEvidence, metadata: [APIEvidence], responses: [APIEvidence]
+        fetchedAt: Date, catalog: APIEvidence, metadata: [APIEvidence], responses: [APIEvidence],
+        verification: APIVerificationPolicy = .january2025
     ) throws {
         guard start.timeIntervalSince1970.isFinite, start == NYCTime.aligned(start),
             fetchedAt.timeIntervalSince1970.isFinite,
@@ -131,11 +138,27 @@ public struct APIWindow: Codable, Equatable, Sendable {
         self.catalog = catalog
         self.metadata = metadata
         self.responses = responses
+        self.verification = verification
     }
 
     public var end: Date { start.addingTimeInterval(Double(count * 1800)) }
     public var availablePrefix: Int {
-        availability.firstIndex(where: { $0 == .unpublished || $0 == .notFetched }) ?? count
+        availability.firstIndex(where: { $0 == .unpublished || $0 == .unverified || $0 == .notFetched }) ?? count
+    }
+
+    public func requireVerifiedHistory() throws {
+        guard count == 1008 else { throw ChronosDemoFailure.invalidData }
+        let expected = (0..<count).map {
+            verification.availability(
+                at: start.addingTimeInterval(Double($0 * 1800)), datasets: datasets, areaIDs: series.map(\.areaID))
+        }
+        if availability.contains(.unpublished) || expected.contains(.unpublished) {
+            throw ChronosDemoFailure.unpublishedHistory
+        }
+        if availability.contains(.unverified) || expected.contains(.unverified) {
+            throw ChronosDemoFailure.unverifiedHistory
+        }
+        guard !availability.contains(.notFetched) else { throw ChronosDemoFailure.invalidData }
     }
 }
 
@@ -149,7 +172,25 @@ public struct ForecastInputSnapshot: Codable, Equatable, Sendable {
     public let actuals: APIWindow?
 
     public init(history: APIWindow, actuals: APIWindow?, step: Int) throws {
-        guard history.count == 1008, !history.availability.contains(.unpublished), (0...12).contains(step),
+        try history.requireVerifiedHistory()
+        guard (0...12).contains(step) else { throw ChronosDemoFailure.invalidData }
+        if let actuals, step > 0 {
+            guard actuals.verification == history.verification,
+                Set(actuals.series.map(\.areaID)) == Set(history.series.map(\.areaID))
+            else { throw ChronosDemoFailure.invalidData }
+            let expected = (0..<step).map {
+                actuals.verification.availability(
+                    at: actuals.start.addingTimeInterval(Double($0 * 1800)), datasets: actuals.datasets,
+                    areaIDs: actuals.series.map(\.areaID))
+            }
+            if actuals.availability.prefix(step).contains(.unpublished) || expected.contains(.unpublished) {
+                throw ChronosDemoFailure.unpublishedHistory
+            }
+            if actuals.availability.prefix(step).contains(.unverified) || expected.contains(.unverified) {
+                throw ChronosDemoFailure.unverifiedHistory
+            }
+        }
+        guard (0...12).contains(step),
             step == 0 || (actuals?.start == history.end && step <= (actuals?.availablePrefix ?? 0))
         else { throw ChronosDemoFailure.unpublishedHistory }
         var inputs: [CountSeries] = []

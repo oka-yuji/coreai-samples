@@ -7,27 +7,31 @@ public actor NYCAPIClient {
     private let wait: @Sendable () async throws -> Void
     private let now: @Sendable () -> Date
     private let cache: NYCWindowCache
+    private var verification: NYCVerificationProfile?
     private var cachedCoverage: APICoverage?
     private var generation = 0
 
     public init(
         cacheDirectory: URL? = nil, transport: Transport? = nil, maxCachedWindows: Int = 32,
         now: @escaping @Sendable () -> Date = { Date() },
-        retryDelay: @escaping @Sendable () async throws -> Void = { try await Task.sleep(for: .seconds(2)) }
+        retryDelay: @escaping @Sendable () async throws -> Void = { try await Task.sleep(for: .seconds(2)) },
+        verification: NYCVerificationProfile? = nil
     ) {
         self.transport = transport ?? { try await NYCHTTPTransport().receive($0) }
         self.now = now
         wait = retryDelay
         cache = NYCWindowCache(directory: cacheDirectory, capacity: min(32, max(1, maxCachedWindows)))
+        self.verification = verification
     }
 
     public func coverage(refresh: Bool = false) async throws -> APICoverage {
         try Task.checkCancellation()
         if !refresh, let cachedCoverage { return cachedCoverage }
+        let profile = try profile()
         generation += 1
         let ticket = generation
         let evidence = try await fetch(NYCAPIContract.catalogURL())
-        let result = try NYCCatalogValidation.read(evidence, now: evidence.acquiredAt)
+        let result = try NYCCatalogValidation.read(evidence, now: evidence.acquiredAt, verification: profile.policy)
         try check(ticket)
         cachedCoverage = result
         return result
@@ -38,18 +42,24 @@ public actor NYCAPIClient {
             NYCAPIContract.validAreas(areaIDs)
         else { throw ChronosDemoFailure.invalidDate }
         let coverage = try await coverage(refresh: refresh)
+        let profile = try profile()
         let ticket = generation
-        if count == 1008, !coverage.allowsHistory(endingAt: start.addingTimeInterval(1008 * 1800)) {
-            throw ChronosDemoFailure.unpublishedHistory
+        if count == 1008 {
+            let availability = (0..<count).map {
+                coverage.availability(at: start.addingTimeInterval(Double($0 * 1800)), areaIDs: areaIDs)
+            }
+            if availability.contains(.unpublished) { throw ChronosDemoFailure.unpublishedHistory }
+            if availability.contains(.unverified) { throw ChronosDemoFailure.unverifiedHistory }
         }
         let areas = areaIDs.sorted()
         let datasets = NYCWindowValidation.datasets(start: start, count: count, coverage: coverage)
         let key = NYCAPIContract.hash(
             try NYCAPIContract.encode(
                 CacheKey(
-                    start: start, count: count, areas: areas, datasets: datasets, catalogHash: coverage.evidence.sha256)
+                    start: start, count: count, areas: areas, datasets: datasets, catalogHash: coverage.evidence.sha256,
+                    verification: profile.policy)
             ))
-        if !refresh, let saved = try? cache.read(key), saved.start == start, saved.count == count,
+        if !refresh, let saved = try? cache.read(key, profile: profile), saved.start == start, saved.count == count,
             saved.series.map(\.areaID) == areas, saved.datasets == datasets,
             saved.catalog.sha256 == coverage.evidence.sha256
         {
@@ -59,7 +69,9 @@ public actor NYCAPIClient {
         var metadata: [APIEvidence] = []
         var responses: [APIEvidence] = []
         var bytes = coverage.evidence.data.count
-        for dataset in datasets {
+        let chunks = try NYCWindowValidation.chunks(start: start, count: count, coverage: coverage, areas: areas)
+        let queried = datasets.filter { dataset in chunks.contains { $0.dataset == dataset } }
+        for dataset in queried {
             try check(ticket, coverage: coverage)
             let evidence = try await fetch(NYCAPIContract.metadataURL(dataset))
             try check(ticket, coverage: coverage)
@@ -68,7 +80,7 @@ public actor NYCAPIClient {
             guard bytes <= NYCAPIContract.rawLimit else { throw ChronosDemoFailure.responseTooLarge }
             metadata.append(evidence)
         }
-        for chunk in try NYCWindowValidation.chunks(start: start, count: count, datasets: datasets) {
+        for chunk in chunks {
             try check(ticket, coverage: coverage)
             let url = try NYCAPIContract.queryURL(chunk.dataset, start: chunk.start, end: chunk.end, areas: areas)
             let evidence = try await fetch(url, start: chunk.start, end: chunk.end)
@@ -77,9 +89,18 @@ public actor NYCAPIClient {
             guard bytes <= NYCAPIContract.rawLimit else { throw ChronosDemoFailure.responseTooLarge }
             responses.append(evidence)
         }
+        for dataset in queried {
+            try check(ticket, coverage: coverage)
+            let evidence = try await fetch(NYCAPIContract.metadataURL(dataset))
+            try check(ticket, coverage: coverage)
+            try NYCCatalogValidation.metadata(evidence, dataset: dataset)
+            bytes += evidence.data.count
+            guard bytes <= NYCAPIContract.rawLimit else { throw ChronosDemoFailure.responseTooLarge }
+            metadata.append(evidence)
+        }
         let result = try NYCWindowValidation.make(
             start: start, count: count, areas: areas, coverage: coverage, metadata: metadata,
-            responses: responses, fetchedAt: now())
+            responses: responses, fetchedAt: now(), profile: profile)
         try check(ticket, coverage: coverage)
         do { try cache.save(result, key: key) } catch let error as ChronosDemoFailure { throw error } catch {
             throw ChronosDemoFailure.persistence
@@ -89,8 +110,9 @@ public actor NYCAPIClient {
 
     public func validate(_ snapshot: ForecastInputSnapshot) throws -> String {
         try Task.checkCancellation()
-        try NYCWindowValidation.validate(snapshot.history)
-        if let actuals = snapshot.actuals { try NYCWindowValidation.validate(actuals) }
+        let profile = try profile()
+        try NYCWindowValidation.validate(snapshot.history, profile: profile)
+        if let actuals = snapshot.actuals { try NYCWindowValidation.validate(actuals, profile: profile) }
         let offset = snapshot.origin.timeIntervalSince(snapshot.history.end) / 1800
         guard offset.isFinite, (0...12).contains(offset), offset.rounded() == offset,
             try ForecastInputSnapshot(history: snapshot.history, actuals: snapshot.actuals, step: Int(offset))
@@ -102,6 +124,13 @@ public actor NYCAPIClient {
     private func check(_ ticket: Int, coverage: APICoverage? = nil) throws {
         try Task.checkCancellation()
         guard ticket == generation, coverage.map({ $0 == cachedCoverage }) ?? true else { throw CancellationError() }
+    }
+
+    private func profile() throws -> NYCVerificationProfile {
+        if let verification { return verification }
+        let value = try NYCVerifiedResource.bundled()
+        verification = value
+        return value
     }
 
     private func fetch(_ url: URL, start: Date? = nil, end: Date? = nil) async throws -> APIEvidence {
@@ -144,6 +173,7 @@ public actor NYCAPIClient {
         let areas: [String]
         let datasets: [APIDataset]
         let catalogHash: String
+        let verification: APIVerificationPolicy
         let preprocessing = APIWindow.preprocessingVersion
     }
 }
