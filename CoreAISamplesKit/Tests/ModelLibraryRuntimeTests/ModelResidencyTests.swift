@@ -138,7 +138,7 @@ struct ModelResidencyTests {
         let candidate = try await second.show()
         #expect(second.library.state.demoPreparation == .occupied)
         #expect(try second.adapter("comparison").contents.isEmpty)
-        weak var library = first?.library
+        weak let library = first?.library
         harness.runner.abandon(owner: owner.id.owner)
         first = nil
         #expect(library == nil)
@@ -171,7 +171,7 @@ struct ModelResidencyTests {
         let preparing = Task { await harness.runner.prepare(owner) }
         if let library = first?.library { await awaitDemoState(library) { $0.demoPreparation == .preparing } }
 
-        weak var library = first?.library
+        weak let library = first?.library
         first = nil
         #expect(library == nil)
         harness.ledger.release()

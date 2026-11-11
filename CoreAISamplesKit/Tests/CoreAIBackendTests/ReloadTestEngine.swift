@@ -115,7 +115,7 @@ final class ReloadTestEngine: RuntimeEngine {
         self.id = id
         self.control = control
         self.contextLimit = contextLimit
-        control.state.withLock { $0.liveEngines.insert(id) }
+        control.state.withLock { _ = $0.liveEngines.insert(id) }
     }
 
     deinit {

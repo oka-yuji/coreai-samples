@@ -61,8 +61,9 @@ struct ImageRuntimeFixture: Sendable {
         for (kind, component) in components {
             let asset = try #require(component["asset"] as? String)
             let moved = assetFolder.isEmpty ? asset : assetFolder + "/" + asset
-            let weights = files.removeValue(forKey: asset + "/weights.bin")
-            files[moved + "/weights.bin"] = try #require(weights)
+            let removed = files.removeValue(forKey: asset + "/weights.bin")
+            let weights = try #require(removed)
+            files[moved + "/weights.bin"] = weights
             components[kind]?["asset"] = moved
         }
         profile["components"] = components
