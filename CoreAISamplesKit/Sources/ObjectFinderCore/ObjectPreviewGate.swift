@@ -5,12 +5,33 @@ public struct ObjectPreviewGate: Equatable, Sendable {
     private var candidates: [ObjectCandidate] = []
     private var validUntil = 0.0
     private var rotation = 90.0
+    private var captureGeneration: Int?
+    private var captureAngle: Double?
 
     public init() {}
 
-    public mutating func begin(_ generation: Int) {
+    public mutating func prepareCapture() {
+        captureGeneration = nil
+        captureAngle = nil
+        expectedGeneration = nil
+        candidates = []
+        validUntil = 0
+    }
+
+    public mutating func updateCaptureAngle(_ value: Double) {
+        guard let angle = ObjectCameraOrientation.normalized(value), angle != captureAngle else { return }
+        captureAngle = angle
+        if let captureGeneration { minimumGeneration = max(minimumGeneration, captureGeneration + 1) }
+        expectedGeneration = nil
+        candidates = []
+        validUntil = 0
+    }
+
+    public mutating func begin(_ generation: Int, rotation: Double) {
         guard generation >= 0, generation >= minimumGeneration, generation >= receivedGeneration else { return }
         minimumGeneration = generation
+        captureGeneration = generation
+        captureAngle = rotation
         expectedGeneration = nil
         candidates = []
         validUntil = 0

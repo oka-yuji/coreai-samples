@@ -23,7 +23,7 @@
         @MainActor private lazy var rotationObserver = ObjectFinderRotationObserver(
             sourceChanged: { [weak self] in self?.receive?(.rotationSourceChanged($0)) },
             previewChanged: { [weak self] in self?.setPreviewRotation($0) },
-            captureChanged: { [weak self] in self?.receive?(.captureAngleChanged($0, $1)) })
+            captureChanged: { [weak self] in self?.setCaptureRotation($1, source: $0) })
 
         @MainActor
         public init() {
@@ -62,6 +62,7 @@
             rotationObserver.end()
             activeSession = session
             cameraID = nil
+            gate.prepareCapture()
         }
 
         @MainActor
@@ -74,9 +75,9 @@
         }
 
         @MainActor
-        func connected(cameraID: String, generation: Int) throws {
+        func connected(cameraID: String, generation: Int, rotation: Double) throws {
             guard let activeSession else { throw CancellationError() }
-            gate.begin(generation)
+            gate.begin(generation, rotation: rotation)
             try rotationObserver.select(cameraID: cameraID, session: activeSession)
             self.cameraID = cameraID
             configureRotation()
@@ -94,6 +95,14 @@
         private func setPreviewRotation(_ angle: Double) {
             rotation = angle
             applyRotation()
+            redraw()
+        }
+
+        @MainActor
+        private func setCaptureRotation(_ angle: Double, source: ObjectCameraRotationSource) {
+            guard activeSession == source.session else { return }
+            gate.updateCaptureAngle(angle)
+            receive?(.captureAngleChanged(source, angle))
             redraw()
         }
 

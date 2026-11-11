@@ -16,7 +16,7 @@
                     prepare: { try await finder.prepare(folder: $0, query: $1) },
                     startCamera: {
                         let started = try await capture.start(rotation: $0)
-                        try preview.connected(cameraID: started.cameraID, generation: started.generation)
+                        try preview.connected(cameraID: started.cameraID, generation: started.generation, rotation: $0)
                         return started.frames
                     },
                     stopCamera: { await capture.stop() },

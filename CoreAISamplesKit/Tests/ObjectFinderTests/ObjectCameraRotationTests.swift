@@ -135,14 +135,45 @@ struct ObjectCameraRotationTests {
         var gate = ObjectPreviewGate()
         gate.expect(8)
         gate.receive([candidate], generation: 8, validUntil: 12)
-        gate.begin(9)
+        gate.begin(9, rotation: 90)
         gate.expect(8)
         gate.receive([candidate], generation: 8, validUntil: 12)
         #expect(gate.visible(at: 10, rotation: 90).isEmpty)
         gate.receive([candidate], generation: 9, validUntil: 12)
         gate.expect(9)
-        gate.begin(8)
+        gate.begin(8, rotation: 90)
         #expect(gate.visible(at: 10, rotation: 90) == [candidate])
+    }
+
+    @Test("A delayed layout cannot revive old boxes after capture turns away and back before reconnecting")
+    func angleChangeBeforeLayout() {
+        var gate = ObjectPreviewGate()
+        gate.prepareCapture()
+        gate.begin(7, rotation: 90)
+        gate.expect(7)
+        gate.receive([candidate], generation: 7, validUntil: 12, rotation: 90)
+        gate.updateCaptureAngle(90)
+        #expect(gate.visible(at: 10, rotation: 90) == [candidate])
+        gate.updateCaptureAngle(0)
+        gate.updateCaptureAngle(90)
+        gate.expect(7)
+        gate.receive([candidate], generation: 7, validUntil: 12, rotation: 90)
+        #expect(gate.visible(at: 10, rotation: 90).isEmpty)
+        gate.begin(9, rotation: 90)
+        gate.receive([candidate], generation: 9, validUntil: 12, rotation: 90)
+        gate.expect(9)
+        #expect(gate.visible(at: 10, rotation: 90) == [candidate])
+    }
+
+    @Test("A nondefault capture-start angle seeds observation without invalidating the new stream")
+    func captureStartupSeed() {
+        var gate = ObjectPreviewGate()
+        gate.prepareCapture()
+        gate.begin(1, rotation: 0)
+        gate.expect(1)
+        gate.receive([candidate], generation: 1, validUntil: 12, rotation: 0)
+        gate.updateCaptureAngle(0)
+        #expect(gate.visible(at: 10, rotation: 0) == [candidate])
     }
 
     @Test("A previous search session cannot bind an observer after a replacement search starts")
