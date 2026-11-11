@@ -17,7 +17,7 @@ Use Xcode 27.1 or later and a runtime that actually lists iPhone Duo among its s
 
 1. In Closed, open an installed sample demo. Use **Set sample input** and **Show sample result** to establish nondefault state without relying on accessibility setters to commit a text edit.
 2. In Device Hub, choose Open and Partially Open, then Closed. Check the two-column and single-column layouts, the selected demo, and the unchanged input/result. Also check both open orientations and reselect the current tile from the sidebar.
-3. Enable **Hold demo stops** in Preview controls. In Closed, use **Back to Models**. Detail must remain visible, with the return control disabled while stopping.
+3. Enable **Hold demo stops** in Preview controls. In Closed and Open, use **Back to Models**. Detail must remain visible, with the return control disabled while stopping.
 4. Choose **Fail pending stops**. The failure and **Retry stopping** must remain in detail. Retry, then choose **Complete pending stops**; only that completion returns to Models.
 5. In a two-column layout, switch demos with stops held. The old detail remains until completion, then the new demo appears. Disable held stops when finished with these cases.
 

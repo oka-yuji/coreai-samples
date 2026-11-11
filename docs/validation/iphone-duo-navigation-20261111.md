@@ -6,7 +6,7 @@ Issue [#533](https://github.com/oka-yuji/coreai-samples/issues/533), following t
 
 One navigation split view owns the sidebar and selected detail. Its preferred compact column and column visibility are local presentation state. `ModelLibraryNavigation` is a pure policy; it does not create or stop sessions. All navigation still reaches the existing `openDemo` and `closeDemo` actions. The library Store and renderer stay outside the changing column layout.
 
-The compact **Back to Models** button sends the close request before any column transition. It is disabled while the stop is pending. The system's immediate pop is hidden from the start, so a second Back cannot leave the stopping or retry view. Matching acknowledgement clears the selection, then the preferred column returns to the sidebar. The same selection keeps the same detail identity.
+The **Back to Models** button in both layouts sends the close request before any column transition. It is disabled while the stop is pending. The system Back is hidden from the start, and a MainActor UIKit bridge disables edge and content pop gestures while the detail owns them. Overlapping guards share ownership; the last release restores the original enabled state. A second return cannot leave the stopping or retry view. Matching acknowledgement clears the selection, then the preferred column returns to the sidebar. The same selection keeps the same detail identity.
 
 Both columns have flexible width preferences, and regular widths request both columns. This avoids the default portrait sidebar overlay observed on the Duo simulator without inspecting the device model or hardcoding a screen size. The grid's adaptive tile sizing is unchanged.
 
@@ -23,6 +23,8 @@ Xcode 27.2 (`27B52`), Swift 6.4.2, device SDK iOS 27.2 and deployment target iOS
 | Existing stop/session tests | The demo-switch, failed-stop/retry and background-suspension tests remained successful. |
 | Layout | Closed showed one column. Open landscape, open portrait and Partially Open showed the sidebar and detail. |
 | Retention | Fixture-set nondefault input and the sample result remained through opening, rotating, partial folding, reselection and closing. |
+| Two-column return | The return button retained stopping detail until completion, then showed the empty detail and enabled model deletion. |
+| Pop-gesture ownership | Both recognizers were disabled in Closed, Open detail, Closed again and while stopping. After returning to Models, both restored their original enabled state. |
 | Two-column switching | Selecting another demo kept the old stopping detail until completion, then showed the new demo. |
 | View lifetime | A temporary root/renderer-child probe kept one Store, owner and active session through Closed, Open, rotation, Partially Open and Closed. Neither view disappeared and scenePhase did not change during those actions. |
 | Repository gates | Privacy, strict lint, changed-file formatting, all String Catalogs, the Rust input adapter, default package tests, macOS Release, dependency pins and unsigned iOS Release passed. |
@@ -37,6 +39,8 @@ The four new `NAV-*` tests live in `ModelLibraryTests.swift`. The targeted comma
 - An accessibility value assignment did not establish a committed text-field edit. Retention checks therefore use **Set sample input**, which changes the fixture's actual observable state. Native keyboard entry is not claimed by that check.
 - The lifecycle probe's control case detected renderer disappearance and session removal on an ordinary return to Models, then inactive/background when Home was pressed. The probe code was removed; these are synthetic single-window observations, not proof of real image-generation continuity or multi-window behavior.
 - Runtime version numbers alone did not identify Duo support: iOS 27.2 `24B8117` lacked the device, while iOS 27.1 `24A94425` supported it. The separately available iOS 27.2 `24B91016s` also listed Duo; it was not used for these UI checks.
+
+- Hiding the system Back did not disable either pop recognizer on this runtime: both were enabled and their delegates allowed beginning. A temporary UIKit probe verified that the final guard disabled both and restored them after return. Coordinate-based swipe automation failed with `noWindowsAvailable`; actual finger gestures on hardware remain an owner check. The diagnostic code was removed.
 
 ## Acceptance boundary
 

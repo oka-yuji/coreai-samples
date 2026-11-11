@@ -71,12 +71,9 @@
                     }
             } detail: {
                 if let selection = store.state.selection {
-                    ModelDemoHost(
-                        store: store, renderer: renderer, selection: selection,
-                        showsReturn: horizontalSizeClass == .compact
-                    )
-                    .id(selection)
-                    .navigationSplitViewColumnWidth(min: 240, ideal: 320)
+                    ModelDemoHost(store: store, renderer: renderer, selection: selection)
+                        .id(selection)
+                        .navigationSplitViewColumnWidth(min: 240, ideal: 320)
                 } else {
                     ContentUnavailableView {
                         Label {
