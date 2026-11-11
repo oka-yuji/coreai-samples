@@ -2,11 +2,7 @@ import ChronosCore
 import Darwin
 import Foundation
 
-public struct ChronosBundleIdentity: Codable, Equatable, Sendable {
-    public let source: ChronosSource
-    public let manifest: ChronosFileIdentity
-    public let files: [String: ChronosFileIdentity]
-}
+public typealias ChronosBundleIdentity = ChronosCore.ChronosBundleIdentity
 
 public struct ChronosBundle: Sendable {
     public let url: URL

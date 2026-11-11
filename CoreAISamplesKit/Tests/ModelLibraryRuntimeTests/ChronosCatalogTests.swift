@@ -16,7 +16,7 @@ struct ChronosCatalogTests {
             #expect(model.platforms == [platform] && model.demos.map(\.demoID) == ["taxi-forecast"])
             #expect(model.demos.allSatisfy { $0.requiredCapabilities.isEmpty && $0.optionalCapabilities.isEmpty })
             let demo = try #require(catalog.demo("taxi-forecast"))
-            #expect(demo.summary.contains("not connected"))
+            #expect(demo.summary.contains("precomputed preview") && demo.summary.contains("on-device forecast"))
             #expect(demo.explanation.contains { $0.text.contains("479 MB") && $0.text.contains("Import") })
             #expect(demo.explanation.contains { $0.text.contains("does not start a prediction") })
             let connected = catalog.demos.map(\.id).filter { $0 != demo.id }
@@ -83,5 +83,33 @@ struct ChronosCatalogTests {
 
     private func catalogs(_ artifact: ModelArtifact) throws -> [(LibraryPlatform, ModelCatalog)] {
         [(.macOS, try MacDemoCatalog.make()), (.iOS, try IOSDemoCatalog.make(chronosArtifact: artifact))]
+    }
+}
+
+extension ChronosCatalogTests {
+    @Test("D4 A connected Chronos demo previews missing data and creates a session only for a ready model")
+    func connectedChronos() throws {
+        let artifact = try ChronosModelArtifact.make()
+        let catalog = try MacDemoCatalog.make()
+        let selection = ChronosDemoCatalog.selection
+        var state = ModelLibraryState(
+            catalog: catalog, environment: LibraryEnvironment(platform: .macOS, connectedDemos: [selection.demoID]),
+            owner: UUID())
+        _ = ModelLibraryFeature.reduce(&state, .openDemo(selection))
+        #expect(state.access(to: selection) == .preview(.missing) && state.session == nil)
+        _ = ModelLibraryFeature.reduce(&state, .refresh)
+        let ticket = try #require(state.installations[artifact.id]?.requestID)
+        let resource = ValidatedModelResource(
+            modelID: selection.modelID, artifactID: artifact.id, contract: artifact.contract,
+            revision: try #require(artifact.sourceRevision), upstreamRevision: artifact.upstream?.revision,
+            directory: URL(filePath: "/unused-chronos"), sizeBytes: try #require(artifact.totalFileBytes),
+            sourceKind: .localManifest)
+        _ = ModelLibraryFeature.reduce(&state, .inspected(artifact.id, ticket, resource))
+        #expect(state.installations[artifact.id]?.phase == .ready)
+        _ = ModelLibraryFeature.reduce(&state, .openDemo(selection))
+        let session = try #require(state.session)
+        #expect(state.access(to: selection) == .ready(session) && state.demoPreparation == .pending)
+        let commands = ModelLibraryFeature.reduce(&state, .requestDemoPreparation(session.id))
+        #expect(!commands.isEmpty && state.demoPreparation == .preparing)
     }
 }

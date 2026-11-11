@@ -16,7 +16,7 @@ Amazon Chronos-2を、単系列・16点先の分位予測としてCore AIのFP32
 
 ## Swift runtime
 
-`ChronosCore`が系列と全21分位を検査し、`ChronosRuntime`が同時に1要求だけを所有します。停止はload/推論の終了とモデル破棄を待ちます。[MacのSwift検証](validation/chronos2-swift-20261112/README.md)は同じ18条件と解放/再ロードに合格しました。iOS libraryのビルドは成功していますが、iPhone推論と通常デモは未確認です。
+`ChronosCore`が系列と全21分位を検査し、`ChronosRuntime`が同時に1要求だけを所有します。停止はload/推論の終了とモデル破棄を待ちます。[MacのSwift検証](validation/chronos2-swift-20261112/README.md)は同じ18条件と解放/再ロードに合格しました。固定NYCの本番service照合と通常Mac画面も確認済みです。実iPhoneの推論は未確認です。
 
 ```sh
 swift run --package-path CoreAISamplesKit chronos-verify --help
@@ -26,13 +26,27 @@ swift run --package-path CoreAISamplesKit chronos-verify --help
 
 ## Modelsへの取り込みとプレビュー
 
-Mac/iOSのModelsにChronos-2とタクシー需要予測のプレビューを表示します。**Import model**から、準備済みのChronos-2 FP32フォルダ全体を選びます。9ファイルで478,864,956バイト（約479 MB）あり、管理コピーの分の空き容量も必要です。このビルドにダウンロード先はありません。予測画面は未接続で、Modelsの起動・取り込み・検査で推論は始まりません。
+Mac/iOSのModelsにChronos-2とNYC固定タクシー乗車件数予測を表示します。**Import model**から、準備済みのChronos-2 FP32フォルダ全体を選びます。9ファイルで478,864,956バイト（約479 MB）あり、管理コピーの分の空き容量も必要です。このビルドにダウンロード先はありません。Modelsの起動・取り込み・検査で推論は始まりません。モデルがなくても事前計算プレビューを操作でき、準備後は端末内予測を明示的に実行できます。端末内予測の失敗時に方式を自動変更しません。
 
 固定資産は`chronos2-fp32`、契約は`chronos2-fp32-v1`、原典は`amazon/chronos-2`のrevision `29ec3766d36d6f73f0696f85560a422f50e8498c`です。`chronos2.json`のSHA-256は`786dcf97e020c987cbf883f09b486fba5f3fee30a588b87a346ea65d72d20572`で、元のmanifestの全bytesと9ファイルすべての容量・hashを照合します。この完全一致で、stateなし・Float32 `[1,T]`から`[1,21,16]`へのABIを含むmetadataの契約を固定し、取込時にモデルロードやruntimeのsnapshot作成を行いません。manifestの整形だけでも新しい信頼済みidentityが必要です。
 
 既存のModels storeがコピー・検査してから登録します。改変・欠損・余分なファイル・symlinkを拒否し、置換に失敗しても旧登録と入力フォルダを保持します。利用のleaseがある間は置換・削除を拒否し、最後のleaseを解放してから管理コピーを削除できます。元フォルダは削除しません。
 
-CPU検査はcatalog・未接続previewと合成ファイルによる保存境界を対象にします。実bundleの明示検査は、共有heavy-jobロック下で`COREAI_CHRONOS2_IMPORT_BUNDLE=/path/to/chronos2-bundle swift test --package-path CoreAISamplesKit --filter ChronosImportTests.knownBundle`を使います。推論せず、取り込み・全量検査・lease・不正置換の拒否・元hashの不変を確かめます。既定のskipは取込成功ではありません。実bundle取り込み、アプリbuild、iPhone推論、通常UIの受入は別の証拠が必要です。
+CPU検査はcatalog・preview・履歴窓・停止とownerの境界・合成ファイルによる保存境界を対象にします。実bundleの明示検査は、共有heavy-jobロック下で`COREAI_CHRONOS2_IMPORT_BUNDLE=/path/to/chronos2-bundle swift test --package-path CoreAISamplesKit --filter ChronosImportTests.knownBundle`を使います。推論せず、取り込み・全量検査・lease・不正置換の拒否・元hashの不変を確かめます。既定のskipは取込成功ではありません。実bundle取り込み、アプリbuild、iPhone推論、通常UIの受入は別の証拠が必要です。
+
+## NYC固定デモ
+
+2025年1月の3場面からゾーンと30分の予測区間を選びます。「30分進める」は経過した1区間の実績を公開し、既存予測の基準時刻を保持します。再予測を明示したときだけ、経過済み実績を追加した最新1,008点を入力します。予測開始はstep 0〜12、表示4点、既知の実績16点です。リセットで予測を消します。表示言語・ゾーン・表示区間の変更は推論や入力値の変更を起こしません。
+
+地図・数値・グラフは共通のFeature状態を参照します。モデル入力は21日間、グラフは直近4時間と2時間先です。件数は記録された乗車回数で、乗客数や未充足需要ではありません。10〜90%分位は校正済みの的中率を保証しません。Appleの背景地図には通信が必要ですが、固定データと端末内予測はオフラインで使えます。出典・固定hash・集計・帰属・再現方法は[Tools/NYC](../Tools/NYC/README.md)を参照してください。
+
+端末内予測は全21×16値と検証済みモデルのidentityを保持し、負数の0補正は表示境界だけで行います。事前計算は提供された3×4値として明示し、端末での処理時間は付けません。native loaderは検証コピーのmanifestをModelsの期待identityと照合してからCore AIモデルを構築します。
+
+FeatureStoreがTaskを所有し、Runnerが20系列全体の終了を待ちます。sessionは待機前に許可を失効し、runtime解放まで待ってからModelsへ停止を返します。sessionごとに新しいServiceを使い、previewもStoreで寿命を管理します。
+
+D5の明示試験は共有heavy-jobロック下で、`COREAI_CHRONOS2_DEMO_BUNDLE`に実bundle、`COREAI_CHRONOS2_DEMO_REFERENCE`に固定公式参照を渡し、`swift test --package-path CoreAISamplesKit --filter ChronosDemoNativeTests.fixedScenes`を実行します。任意の`COREAI_CHRONOS2_DEMO_DATA`は固定NYCData、`COREAI_CHRONOS2_DEMO_REPORT`は新しい結果ファイルです。省略時は同梱データを使い、結果ファイルは上書きしません。60系列・20,160値を固定atol/rtol各1e-4で照合し、stop後のlease 0を要求します。
+
+[検証記録](validation/chronos2-demo-20261112/README.md)に原データ再現、実モデル照合、通常Mac画面、翻訳とホストbuildの結果を残しています。実iPhoneの推論と本人受入は未確認です。既定skipやCPU成功を実モデル・本人受入の合格には数えません。
 
 <!-- model-report:start -->
 <a id="model-report"></a>
@@ -47,8 +61,8 @@ CPU検査はcatalog・未接続previewと合成ファイルによる保存境界
 
 | OS | 状態 | 確認した範囲・残る確認 | 根拠 |
 |---|---|---|---|
-| macos | — | Modelsでの導入と明示的なプレビューを実装。予測画面はまだ未接続。 | — |
-| ios | — | Modelsでの導入と明示的なプレビューを実装。予測画面はまだ未接続。 | — |
+| macos | ✅ | 通常Modelsから固定場面の実推論、区間/時刻変更と再表示を確認。本人受入は未完。 | [E4](validation/chronos2-demo-20261112/README.md) |
+| ios | △ | 操作可能な固定プレビューと推論adapterを接続し署名build成功。実iPhoneの推論とUI受入は未確認。 | [E4](validation/chronos2-demo-20261112/README.md) |
 
 ### 性能と品質
 
@@ -73,9 +87,9 @@ CPU検査はcatalog・未接続previewと合成ファイルによる保存境界
 
 | 確認項目 | 状態 | 対象範囲・残る確認 | 根拠 |
 |---|---|---|---|
-| 変換・参照との一致 | 合格（記載範囲） | 公式FP32、Python Core AI、Swift Core AIが同じ18条件に合格。 | [E1](validation/chronos2-conversion-20261111/README.md) · [E2](validation/chronos2-swift-20261112/README.md) |
-| 用途の品質 | 未計測 | 未使用データの予測品質と通常アプリの動作は、数値一致では確認していません。 | — |
-| 連続利用・資源解放 | 合格（記載範囲） | Mac Swiftの18要求と1回の解放/再ロードに合格。所有と遅い完了はCPU fakeで検査。メモリ計測・通常アプリ/iPhone受入は未実施。 | [E2](validation/chronos2-swift-20261112/README.md) |
+| 変換・参照との一致 | 合格（記載範囲） | 合成18条件と固定NYC60場面/ゾーンが凍結した原tensor照合に合格。 | [E1](validation/chronos2-conversion-20261111/README.md) · [E2](validation/chronos2-swift-20261112/README.md) · [E4](validation/chronos2-demo-20261112/README.md) |
+| 用途の品質 | 未計測 | 数値一致と固定場面の操作は未使用データの予測品質を示すものではありません。 | — |
+| 連続利用・資源解放 | 合格（記載範囲） | 解放/再load、60系列の本番service照合とlease0、通常Macの離脱/再表示を確認。メモリ計測とiPhone受入は未実施。 | [E2](validation/chronos2-swift-20261112/README.md) · [E4](validation/chronos2-demo-20261112/README.md) |
 | 停止・再試行・回復 | 未計測 | 取消と停止joinはCPU fakeで検査済み。実モデルの取消と通常アプリは未計測。 | — |
 
 ### 根拠と測定条件
@@ -85,6 +99,7 @@ CPU検査はcatalog・未接続previewと合成ファイルによる保存境界
 | [E1](validation/chronos2-conversion-20261111/README.md) | 2026-11-11 / standard / conversion | Apple M5 Max / 137438953472 B RAM / macOS 27.2.1 (26B131) / Xcode 27.2 Build version 27B52; Swift 6.4.2; macOS SDK 27.2; Python 3.11.9; chronos-forecasting 2.3.2; torch 2.9.0; coreai-torch 0.4.3; coreai-core 1.0.0b3 | 固定の合成18系列、raw長1〜8192、欠損・定数・周期・傾向。21分位×16点を全件比較。条件ごとに1回、warmupなし。数値一致だけの検査。 · variant=coreai-fp32-univariate; backend=Python Core AI GPU preference; actual delegate not profiled; route=Chronos-2 recipe: independent official CPU reference -> Core AI native verification -> bundle; source_revision=29ec3766d36d6f73f0696f85560a422f50e8498c; artifact_revision=786dcf97e020c987cbf883f09b486fba5f3fee30a588b87a346ea65d72d20572; code_revision=e749b5653298b826770f57ac6a814967fad7162a; batch_size=1; concurrency=1; warmups=0; power=AC Power sampled before and after the run; thermal=Note: No thermal warning level has been recorded Note: No performance warning level has been recorded Note: No CPU power status has been recorded; same after the run; temperature and GPU utilization not measured |
 | [E2](validation/chronos2-swift-20261112/README.md) | 2026-11-12 / legacy / diagnostic | Apple M5 Max / 137438953472 B RAM / macOS 27.2.1 (26B131) / Xcode 27.2 (27B52); Swift 6.4.2; macOS/iOS SDK 27.2; Debug package | 固定18条件・6048原値、その後の解放/再ロードで先頭336値を再照合。warmupなしの数値検証で性能比較ではない。電源/熱とbenchmark計画hashは未記録。 · variant=coreai-fp32-univariate; backend=Swift Core AI GPU preference; actual delegate not profiled; route=chronos-verify --verify; separate opt-in native test; source_revision=29ec3766d36d6f73f0696f85560a422f50e8498c; artifact_revision=786dcf97e020c987cbf883f09b486fba5f3fee30a588b87a346ea65d72d20572; code_revision=25903277e60e99bfd85e217a96d69b18df82852c; batch_size=1; concurrency=1; warmups=0; 未記録: power, thermal, plan_sha256 |
 | [E3](validation/chronos2-models-20261112/README.md) | 2026-11-12 / legacy / diagnostic | Apple M5 Max / 137438953472 B RAM / macOS 27.2.1 (26B131) / Xcode 27.2 (27B52); Swift 6.4.2; SDK 27.2; Debug package tests; Release Mac/iOS applications | 固定9ファイルの導入、5種類の不正置換拒否、leaseと元hash保持。通常Mac画面で導入・プレビュー、署名iOS build。推論・性能計測は行わない。 · variant=coreai-fp32-univariate; backend=ManagedModelStore and normal Mac Models UI; no inference; route=Local bundle import -> inspect -> ready -> lease/release; explicit preview; source_revision=29ec3766d36d6f73f0696f85560a422f50e8498c; artifact_revision=786dcf97e020c987cbf883f09b486fba5f3fee30a588b87a346ea65d72d20572; code_revision=d68828d601fea9d8b6756cc7fe2b2200749d7fa4; 未記録: batch_size, concurrency, warmups, power, thermal, plan_sha256 |
+| [E4](validation/chronos2-demo-20261112/README.md) | 2026-11-12 / legacy / native_app | Apple M5 Max / 137438953472 B RAM / macOS 27.2.1 (26B131) / Xcode 27.2 (27B52); Swift 6.4.2; SDK 27.2; Debug package and Release Mac application | 固定60場面/ゾーン・20160原値。通常Mac画面で端末内予測・比較・離脱を確認。停止とowner境界はCPU fakeでも検査。iPhone推論・本人受入・性能計測は未実施。電源/熱とbenchmark計画hashは未記録。 · variant=coreai-fp32-univariate; backend=Swift Core AI GPU preference; actual delegate not profiled; route=Normal Mac Models -> explicit on-device prediction -> interval and clock changes -> leave/reopen; separate production-service native comparison; source_revision=29ec3766d36d6f73f0696f85560a422f50e8498c; artifact_revision=786dcf97e020c987cbf883f09b486fba5f3fee30a588b87a346ea65d72d20572; code_revision=06e010133afd10d0d31532cfa804b97818944b30; batch_size=1; concurrency=1; warmups=0; 未記録: power, thermal, plan_sha256 |
 
 ### 導入・制限・進捗
 
@@ -95,6 +110,8 @@ CPU検査はcatalog・未接続previewと合成ファイルによる保存境界
 - [Swift実行の検証記録](validation/chronos2-swift-20261112/README.md)
 
 - [Models導入の検証記録](validation/chronos2-models-20261112/README.md)
+
+- [固定NYCデモの検証記録](validation/chronos2-demo-20261112/README.md)
 
 - [実装計画 #548](https://github.com/oka-yuji/coreai-samples/issues/548)
 <!-- model-report:end -->

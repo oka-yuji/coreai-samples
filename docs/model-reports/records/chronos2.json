@@ -15,8 +15,8 @@
   },
   "release": "in_progress",
   "release_note": {
-    "en": "FP32 conversion verified; native demo is in development.",
-    "ja": "FP32変換を検証済み。ネイティブデモは開発中。"
+    "en": "FP32 conversion and fixed NYC Mac demo verified; API selection and records are in development.",
+    "ja": "FP32変換と固定NYCのMacデモを検証済み。API日時選択と記録は開発中。"
   },
   "download": null,
   "pages": {
@@ -54,6 +54,13 @@
     },
     {
       "title": {
+        "en": "Fixed NYC demo evidence",
+        "ja": "固定NYCデモの検証記録"
+      },
+      "url": "docs/validation/chronos2-demo-20261112/README.md"
+    },
+    {
+      "title": {
         "en": "Implementation plan #548",
         "ja": "実装計画 #548"
       },
@@ -62,21 +69,27 @@
   ],
   "support": {
     "macos": {
-      "state": "unavailable",
-      "variants": [],
-      "evidence": [],
+      "state": "verified",
+      "variants": [
+        "coreai-fp32-univariate"
+      ],
+      "evidence": [
+        "demo-20261112"
+      ],
       "note": {
-        "en": "Models import and an explicit preview are implemented; the prediction screen is not connected yet.",
-        "ja": "Modelsでの導入と明示的なプレビューを実装。予測画面はまだ未接続。"
+        "en": "Normal Models route, native fixed-scene prediction, interval/clock changes and reopen checked. User acceptance remains open.",
+        "ja": "通常Modelsから固定場面の実推論、区間/時刻変更と再表示を確認。本人受入は未完。"
       }
     },
     "ios": {
-      "state": "unavailable",
+      "state": "pending",
       "variants": [],
-      "evidence": [],
+      "evidence": [
+        "demo-20261112"
+      ],
       "note": {
-        "en": "Models import and an explicit preview are implemented; the prediction screen is not connected yet.",
-        "ja": "Modelsでの導入と明示的なプレビューを実装。予測画面はまだ未接続。"
+        "en": "Interactive fixed preview and native adapter are connected; signed build passed. Physical iPhone inference and UI acceptance remain open.",
+        "ja": "操作可能な固定プレビューと推論adapterを接続し署名build成功。実iPhoneの推論とUI受入は未確認。"
       }
     }
   },
@@ -163,6 +176,34 @@
       "power": null,
       "thermal": null,
       "model_executed": false,
+      "plan_sha256": null
+    },
+    "demo-20261112": {
+      "url": "docs/validation/chronos2-demo-20261112/README.md",
+      "level": "native_app",
+      "outcome": "passed",
+      "record_type": "legacy",
+      "date": "2026-11-12",
+      "platform": "macos",
+      "device": "Apple M5 Max / 137438953472 B RAM",
+      "os": "macOS 27.2.1 (26B131)",
+      "toolchain": "Xcode 27.2 (27B52); Swift 6.4.2; SDK 27.2; Debug package and Release Mac application",
+      "variant": "coreai-fp32-univariate",
+      "backend": "Swift Core AI GPU preference; actual delegate not profiled",
+      "route": "Normal Mac Models -> explicit on-device prediction -> interval and clock changes -> leave/reopen; separate production-service native comparison",
+      "source_revision": "29ec3766d36d6f73f0696f85560a422f50e8498c",
+      "artifact_revision": "786dcf97e020c987cbf883f09b486fba5f3fee30a588b87a346ea65d72d20572",
+      "code_revision": "06e010133afd10d0d31532cfa804b97818944b30",
+      "workload": {
+        "en": "60 fixed scene/zone cases / 20160 raw values; native Mac GUI prediction and comparison, then close. CPU fakes cover stop/owner boundaries. No iPhone inference, user acceptance or performance measurement. Power/thermal and a benchmark-plan hash were not recorded.",
+        "ja": "固定60場面/ゾーン・20160原値。通常Mac画面で端末内予測・比較・離脱を確認。停止とowner境界はCPU fakeでも検査。iPhone推論・本人受入・性能計測は未実施。電源/熱とbenchmark計画hashは未記録。"
+      },
+      "batch_size": 1,
+      "concurrency": 1,
+      "warmups": 0,
+      "power": null,
+      "thermal": null,
+      "model_executed": true,
       "plan_sha256": null
     }
   },
@@ -291,29 +332,31 @@
       "state": "passed",
       "evidence": [
         "conversion-20261111",
-        "swift-20261112"
+        "swift-20261112",
+        "demo-20261112"
       ],
       "note": {
-        "en": "Official FP32, Python Core AI and Swift Core AI pass the same 18-case gate.",
-        "ja": "公式FP32、Python Core AI、Swift Core AIが同じ18条件に合格。"
+        "en": "18 synthetic cases and 60 fixed NYC scene/zone cases pass frozen raw-tensor comparisons.",
+        "ja": "合成18条件と固定NYC60場面/ゾーンが凍結した原tensor照合に合格。"
       }
     },
     "quality": {
       "state": "not_measured",
       "evidence": [],
       "note": {
-        "en": "Held-out forecasting quality and normal app behavior are not established by numerical fidelity.",
-        "ja": "未使用データの予測品質と通常アプリの動作は、数値一致では確認していません。"
+        "en": "Numerical fidelity and fixed-scene operation do not establish held-out forecasting quality.",
+        "ja": "数値一致と固定場面の操作は未使用データの予測品質を示すものではありません。"
       }
     },
     "stability": {
       "state": "passed",
       "evidence": [
-        "swift-20261112"
+        "swift-20261112",
+        "demo-20261112"
       ],
       "note": {
-        "en": "Mac Swift: 18 sequential requests and one release/reload repeat. CPU fakes test ownership and delayed completion. No memory measurement or normal app/iPhone acceptance.",
-        "ja": "Mac Swiftの18要求と1回の解放/再ロードに合格。所有と遅い完了はCPU fakeで検査。メモリ計測・通常アプリ/iPhone受入は未実施。"
+        "en": "Release/reload, 60-series production-service comparison with zero leases, and normal Mac leave/reopen checked. No memory measurement or iPhone acceptance.",
+        "ja": "解放/再load、60系列の本番service照合とlease0、通常Macの離脱/再表示を確認。メモリ計測とiPhone受入は未実施。"
       }
     },
     "cancellation": {

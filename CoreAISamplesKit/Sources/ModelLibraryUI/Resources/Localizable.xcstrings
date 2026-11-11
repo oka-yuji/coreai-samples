@@ -310,6 +310,16 @@
         }
       }
     },
+    "Explore the fixed preview now. Import the model for on-device prediction." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "固定データのプレビューを今すぐ操作できます。端末内で予測するにはモデルを取り込んでください。"
+          }
+        }
+      }
+    },
     "For research and evaluation only. Commercial use requires a separate license." : {
       "localizations" : {
         "ja" : {

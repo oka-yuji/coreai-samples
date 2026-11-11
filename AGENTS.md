@@ -70,6 +70,8 @@
 
 ## 重いジョブ
 
+- NYC固定デモの実モデル結合は共有heavy-jobロック下で `COREAI_CHRONOS2_DEMO_BUNDLE=/path/to/bundle COREAI_CHRONOS2_DEMO_REFERENCE=/path/to/fixed-scenes-reference.json swift test --package-path CoreAISamplesKit --filter ChronosDemoNativeTests.fixedScenes`。本番Models/Store/Service/Sessionsで3場面×20系列の全20,160値を固定atol/rtol各1e-4で比較し、stop後のlease 0を確認する。任意のデータ/結果変数は`docs/chronos2.md`。既定はskip。CPU成功を実モデル・Mac/iPhone UIの受入へ広げない。
+
 - Chronos-2のModels取込検査は共有heavy-jobロック下で `COREAI_CHRONOS2_IMPORT_BUNDLE=/path/to/chronos2-bundle swift test --package-path CoreAISamplesKit --filter ChronosImportTests.knownBundle`。固定9ファイル・478,864,956 bytesのimport/全量inspect/ready、lease中の削除拒否、解放後の削除、不正置換時の旧登録保持、取込前後の元hash一致を確認する。モデル推論は行わず、既定はskip。CPUの合成登録試験を実bundle取込・iPhone・通常UIの受入へ広げない。
 
 - Chronos-2 の CPU 検査は `swift test --package-path CoreAISamplesKit --filter Chronos`。実モデル照合は共有 heavy-job ロック下で `COREAI_CHRONOS2_BUNDLE=/path/to/chronos2-bundle swift test --package-path CoreAISamplesKit --filter ChronosNativeTests.nativeReference`。CLI は `swift run --package-path CoreAISamplesKit chronos-verify --bundle /path/to/chronos2-bundle --verify --output /new/report.json`。18 条件・6048 値と、解放・再ロード後の先頭 336 値を固定 atol/rtol で照合する。通常試験では実モデル試験を skip し、CPU fake の成功を native・iPhone・通常 UI の受入に代用しない。ランタイムは actor 内で busy を await 中も保持し、release は load/inference 終了と資源破棄を待つ。複数の解放待機者は再開後に状態を書き換えない。Native predictor は fd から clone/stream copy して再検証した専用コピーを model/function と同期間保持し、検査後に元フォルダを開き直さない。

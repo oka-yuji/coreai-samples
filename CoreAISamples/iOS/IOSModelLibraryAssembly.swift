@@ -1,5 +1,6 @@
 #if os(iOS)
     import AVFoundation
+    import ChronosUI
     import FeatureStore
     import Foundation
     import ImageGenerationCore
@@ -17,7 +18,7 @@
         static let adapters: [any ModelDemoAdapter] = {
             var result: [any ModelDemoAdapter] = [
                 ProductComparisonAdapter(), ExtractionAdapter(), InspectionAdapter(), ImageSearchAdapter(),
-                VideoSearchAdapter(), ObjectFinderAdapter(), SpeechAdapter(),
+                VideoSearchAdapter(), ObjectFinderAdapter(), SpeechAdapter(), ChronosAdapter(),
             ]
             if (try? IOSDemoCatalog.make().demos.contains { $0.id == "image-generation" }) == true {
                 result.append(
@@ -52,7 +53,7 @@
         }
 
         static func make(catalog: ModelCatalog) -> ModelLibraryAssembly.Library {
-            let previews = Set(["image-generation", "taxi-forecast"]).intersection(catalog.demos.map(\.id))
+            let previews = Set(["image-generation"]).intersection(catalog.demos.map(\.id))
                 .subtracting(adapters.map(\.demoID))
             do {
                 try catalog.validateConnections(adapterIDs: adapters.map(\.demoID), unconnectedDemoIDs: previews)
@@ -115,7 +116,7 @@
                 registry: checkedAssembly.registry, capabilities: capabilities(), acquire: target,
                 assembly: checkedAssembly,
                 importBundle: folder,
-                unconnectedDemoIDs: Set(["image-generation", "taxi-forecast"]).intersection(previews).subtracting(
+                unconnectedDemoIDs: Set(["image-generation"]).intersection(previews).subtracting(
                     checkedAdapters.map(\.demoID)), afterAcquisition: afterAcquisition,
                 catalog: { try definitions.get() })
         }

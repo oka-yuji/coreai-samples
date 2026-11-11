@@ -1,23 +1,8 @@
 import ChronosCore
 import Foundation
 
-public struct ChronosFileIdentity: Codable, Equatable, Sendable {
-    public let bytes: Int64
-    public let sha256: String
-
-    func validate() throws {
-        guard bytes > 0, sha256.utf8.count == 64,
-            sha256.utf8.allSatisfy({ (48...57).contains($0) || (97...102).contains($0) })
-        else { throw ChronosError.invalidBundle("file identity") }
-    }
-}
-
-public struct ChronosSource: Codable, Equatable, Sendable {
-    public let modelId: String
-    public let revision: String
-
-    static let expected = Self(modelId: ChronosContract.source, revision: ChronosContract.revision)
-}
+public typealias ChronosFileIdentity = ChronosCore.ChronosFileIdentity
+public typealias ChronosSource = ChronosCore.ChronosSource
 
 struct ChronosABI: Codable, Equatable, Sendable {
     struct Tensor: Codable, Equatable, Sendable {

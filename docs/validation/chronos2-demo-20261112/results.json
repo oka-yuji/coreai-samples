@@ -1,0 +1,47 @@
+{
+  "atol": 0.0001,
+  "cases": 60,
+  "elements": 20160,
+  "format": "chronos2-demo-native/1",
+  "leasesAfterClose": 0,
+  "manifestSHA256": "786dcf97e020c987cbf883f09b486fba5f3fee30a588b87a346ea65d72d20572",
+  "referenceSHA256": "8f894aaac769294a3e6843225e6f86519f85090d747b16d94a288fb987661470",
+  "rtol": 0.0001,
+  "scope": "Production Models, Store and Service; fixed scenes only. GUI and device acceptance are separate.",
+  "source_commit": "06e010133afd10d0d31532cfa804b97818944b30",
+  "presentation_commit": "305566c7f9025fea5d3862bf4cfcda1a85e6cb2e",
+  "fixed_history_truth_values": 61440,
+  "reproduced_source_files": 8,
+  "cache_frames": 39,
+  "cache_reference_scalar_comparisons": 262080,
+  "cache_requests": 780,
+  "compiler_static_localization_keys": 49,
+  "catalogs": 10,
+  "catalog_keys": 1393,
+  "localization_missing": 0,
+  "mac_normal_gui": true,
+  "signed_ios_build": true,
+  "iphone_inference": false,
+  "user_acceptance": false,
+  "performance_benchmark": false,
+  "gui_observations": {
+    "last_observed": 95,
+    "cached_median": 120,
+    "cached_range": [
+      102,
+      146
+    ],
+    "actual_before_advance": null,
+    "actual_after_advance": 130,
+    "forecast_origin_retained": "17:00",
+    "native_median": 120,
+    "native_lead2_median": 128,
+    "native_lead2_range": [
+      105,
+      158
+    ],
+    "reopened_mode": "precomputed",
+    "reopened_forecast": null
+  },
+  "host_scrolling": "One vertical scroll owner: Mac preview host or Mac native screen; iOS ModelDemoHost."
+}

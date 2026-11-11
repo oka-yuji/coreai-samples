@@ -50,7 +50,7 @@ enum Demo: String, CaseIterable, Identifiable {
         case .speech: "Generate and play speech from text with Irodori"
         case .ocr: "Read text and tables from a document image"
         case .receipts: "Sort receipts into a reviewed expense ledger"
-        case .taxiForecast: "Taxi demand forecast preview"
+        case .taxiForecast: "NYC taxi pickup forecast"
         }
     }
 
@@ -256,7 +256,7 @@ struct DemoRootView: View {
                 lifetime.close(windowID)
             }
             .onChange(of: navigator.selection) { old, new in
-                if (old == .ocr || old == .receipts) && new != old { library.leave() }
+                if (old == .ocr || old == .receipts || old == .taxiForecast) && new != old { library.leave() }
             }
             .onChange(of: library.installed(.irodori)?.directory) { old, new in
                 if old != nil, new != old { speech.send(.bundleUnavailable) }
