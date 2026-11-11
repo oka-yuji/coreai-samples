@@ -21,7 +21,9 @@
                 if let model, let demo {
                     ScrollView {
                         VStack(alignment: .leading, spacing: 20) {
-                            Text(verbatim: model.classification).font(.footnote).foregroundStyle(.secondary)
+                            Text(
+                                verbatim: ModelClassificationPresentation.classification(for: model, locale: locale)
+                            ).font(.footnote).foregroundStyle(.secondary)
                             Text(LocalizedStringKey(demo.title)).font(.title3.bold())
                             Text(LocalizedStringKey(demo.summary)).foregroundStyle(.secondary)
                             if model.id == "irodori", store.state.artifacts(for: model.id).count > 1 {

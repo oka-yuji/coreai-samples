@@ -20,6 +20,7 @@ enum Demo: String, CaseIterable, Identifiable {
     case speech
     case ocr
     case receipts
+    case taxiForecast
 
     var id: String { rawValue }
 
@@ -34,6 +35,7 @@ enum Demo: String, CaseIterable, Identifiable {
         case .speech: "Irodori"
         case .ocr: "TeleOCR"
         case .receipts: "JEV-27B"
+        case .taxiForecast: "Chronos-2"
         }
     }
 
@@ -48,6 +50,7 @@ enum Demo: String, CaseIterable, Identifiable {
         case .speech: "Generate and play speech from text with Irodori"
         case .ocr: "Read text and tables from a document image"
         case .receipts: "Sort receipts into a reviewed expense ledger"
+        case .taxiForecast: "Taxi demand forecast preview"
         }
     }
 
@@ -62,6 +65,7 @@ enum Demo: String, CaseIterable, Identifiable {
         case .speech: "waveform"
         case .ocr: "doc.viewfinder"
         case .receipts: "receipt"
+        case .taxiForecast: "chart.xyaxis.line"
         }
     }
 }
@@ -74,6 +78,7 @@ enum DemoModel: CaseIterable {
     case irodori
     case teleOCR
     case jev
+    case chronos
 
     var title: String {
         switch self {
@@ -84,6 +89,7 @@ enum DemoModel: CaseIterable {
         case .irodori: "Irodori"
         case .teleOCR: "TeleOCR"
         case .jev: "JEV-27B"
+        case .chronos: "Chronos-2"
         }
     }
 
@@ -96,6 +102,7 @@ enum DemoModel: CaseIterable {
         case .irodori: "irodori"
         case .teleOCR: "teleocr"
         case .jev: "jev-27b"
+        case .chronos: ChronosDemoCatalog.selection.modelID
         }
     }
 
@@ -103,6 +110,18 @@ enum DemoModel: CaseIterable {
 }
 
 extension Demo {
+    var libraryID: String {
+        switch self {
+        case .imageSearch: "image-search"
+        case .videoSearch: "video-search"
+        case .extract: "comparison"
+        case .ocr: TeleOCRDemoCatalog.selection.demoID
+        case .receipts: ReceiptDemoCatalog.selection.demoID
+        case .taxiForecast: ChronosDemoCatalog.selection.demoID
+        case .chat, .decide, .recipes, .speech: rawValue
+        }
+    }
+
     var model: DemoModel? {
         switch self {
         case .chat: .qwen
@@ -112,6 +131,7 @@ extension Demo {
         case .speech: .irodori
         case .ocr: .teleOCR
         case .receipts: .jev
+        case .taxiForecast: .chronos
         }
     }
 }
@@ -289,6 +309,7 @@ struct DemoRootView: View {
             case .speech?: SpeechView(store: speech)
             case .ocr?: OCRHostView(library: library)
             case .receipts?: ReceiptHostView(library: library)
+            case .taxiForecast?: ChronosPreviewView(library: library)
             case nil: ContentUnavailableView("Select a demo", systemImage: "square.grid.2x2")
             }
         }
