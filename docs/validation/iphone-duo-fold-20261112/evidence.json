@@ -1,0 +1,376 @@
+{
+  "schema_version": 1,
+  "base_main": "4b9a9f85a123ed277a545576e4965d3bea0b5ed9",
+  "prerequisite_prs": [
+    540,
+    549,
+    552
+  ],
+  "host": {
+    "xcode": "27.2 (27B52)",
+    "swift": "6.4.2",
+    "device_sdk": "27.2",
+    "simulator": "iPhone Duo",
+    "runtime": "iOS 27.1 (24A94425)"
+  },
+  "study": {
+    "sessions": 2,
+    "comparative_cases": 96,
+    "session1_checkpoints": 37,
+    "session1_unique_cases": 36,
+    "session2_comparative_cases": 60,
+    "axis_variants": [
+      "Current",
+      "Split",
+      "Vertical split",
+      "Overlay",
+      "Vertical overlay",
+      "Reserved regions"
+    ],
+    "poses": [
+      "Closed portrait",
+      "Closed landscape",
+      "Open portrait",
+      "Open landscape",
+      "Book",
+      "Laptop"
+    ],
+    "ax_absent_cases": 8,
+    "ax_activation_passes": 38,
+    "real_model_execution": false,
+    "real_camera_execution": false,
+    "finger_reachability_verified": false,
+    "prototype_code_merged": false
+  },
+  "selected_geometry_examples": [
+    {
+      "case": {
+        "kind": "video",
+        "container": "Library host",
+        "pose": "Laptop",
+        "layout": "Current"
+      },
+      "nodes": {
+        "video.media": {
+          "division": [
+            {
+              "active": true,
+              "frame": [
+                -352,
+                -89.83333333333331,
+                669,
+                40
+              ]
+            }
+          ],
+          "frame": [
+            352,
+            545.3333333333334,
+            285,
+            240
+          ],
+          "occlusion": [
+            {
+              "active": false,
+              "frame": [
+                -331,
+                -329.6666666666667,
+                37,
+                58
+              ]
+            }
+          ]
+        },
+        "video.query": {
+          "division": [
+            {
+              "active": true,
+              "frame": [
+                -368,
+                58.83333333333334,
+                669,
+                40
+              ]
+            }
+          ],
+          "frame": [
+            368,
+            396.6666666666667,
+            253,
+            34
+          ],
+          "occlusion": [
+            {
+              "active": false,
+              "frame": [
+                -347,
+                -181,
+                37,
+                57.99999999999997
+              ]
+            }
+          ]
+        },
+        "video.run": {
+          "division": [
+            {
+              "active": true,
+              "frame": [
+                -368,
+                10.833333333333314,
+                669,
+                40
+              ]
+            }
+          ],
+          "frame": [
+            368,
+            444.6666666666667,
+            175.66666666666663,
+            34.333333333333314
+          ],
+          "occlusion": [
+            {
+              "active": false,
+              "frame": [
+                -347,
+                -229.00000000000006,
+                37,
+                58
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "case": {
+        "kind": "video",
+        "container": "Library host",
+        "pose": "Laptop",
+        "layout": "Reserved regions"
+      },
+      "nodes": {
+        "video.media": {
+          "division": [
+            {
+              "active": true,
+              "frame": [
+                -336,
+                90.83333333333337,
+                669,
+                40
+              ]
+            }
+          ],
+          "frame": [
+            336,
+            364.66666666666663,
+            317,
+            240
+          ],
+          "occlusion": [
+            {
+              "active": false,
+              "frame": [
+                -315,
+                -149,
+                37,
+                58
+              ]
+            }
+          ]
+        },
+        "video.query": {
+          "division": [
+            {
+              "active": true,
+              "frame": [
+                -352,
+                -173.16666666666663,
+                669,
+                40
+              ]
+            }
+          ],
+          "frame": [
+            352,
+            628.6666666666666,
+            285,
+            34
+          ],
+          "occlusion": [
+            {
+              "active": false,
+              "frame": [
+                -331,
+                -413,
+                37,
+                58
+              ]
+            }
+          ]
+        },
+        "video.run": {
+          "division": [
+            {
+              "active": true,
+              "frame": [
+                -352,
+                -221.16666666666663,
+                669,
+                40
+              ]
+            }
+          ],
+          "frame": [
+            352,
+            676.6666666666666,
+            175.66666666666663,
+            34.33333333333337
+          ],
+          "occlusion": [
+            {
+              "active": false,
+              "frame": [
+                -331,
+                -461,
+                37,
+                58
+              ]
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "synthetic_fit_fill": {
+    "prototype": "c546dcc",
+    "pose": "Open portrait",
+    "layout": "Current",
+    "container": "Camera sheet",
+    "native_AVCaptureVideoPreviewLayer_test": false,
+    "records": [
+      {
+        "aspect": "9:16",
+        "scaling": "fit",
+        "viewport": [
+          24,
+          232,
+          621,
+          385.55
+        ],
+        "field": [
+          226.0641,
+          232,
+          216.8719,
+          385.55
+        ],
+        "visible_fraction": 1.0
+      },
+      {
+        "aspect": "9:16",
+        "scaling": "fill",
+        "viewport": [
+          24,
+          232,
+          621,
+          385.55
+        ],
+        "field": [
+          24,
+          -127.225,
+          621,
+          1104
+        ],
+        "visible_fraction": 0.34923
+      },
+      {
+        "aspect": "16:9",
+        "scaling": "fill",
+        "viewport": [
+          24,
+          232,
+          621,
+          385.55
+        ],
+        "field": [
+          -8.2111,
+          232,
+          685.4222,
+          385.55
+        ],
+        "visible_fraction": 0.906011
+      },
+      {
+        "aspect": "16:9",
+        "scaling": "fit",
+        "viewport": [
+          24,
+          232,
+          621,
+          385.55
+        ],
+        "field": [
+          24,
+          250.1188,
+          621,
+          349.3125
+        ],
+        "visible_fraction": 1.0
+      }
+    ]
+  },
+  "multiple_windows": {
+    "supportsMultipleWindows": true,
+    "created_scenes": 2,
+    "simultaneous_tiling_verified": false,
+    "events": [
+      {
+        "scene": "A",
+        "event": "appear",
+        "phase": null
+      },
+      {
+        "scene": "A",
+        "event": "scene",
+        "phase": "active"
+      },
+      {
+        "scene": "A",
+        "event": "scene",
+        "phase": "inactive"
+      },
+      {
+        "scene": "B",
+        "event": "appear",
+        "phase": null
+      },
+      {
+        "scene": "A",
+        "event": "scene",
+        "phase": "background"
+      },
+      {
+        "scene": "B",
+        "event": "scene",
+        "phase": "background"
+      }
+    ],
+    "interpretation": "Scene creation and lifecycle notifications were observed. These events do not establish a causal fold-to-background transition for a simultaneously visible secondary window."
+  },
+  "discarded": [
+    "Session1 v1/v2 geometry: an outgoing view could replace a newer node observation.",
+    "Session2 v6 fill=true comparison: synthetic content was not constrained before clipping.",
+    "Resize-mode visual result: the display became black while AX/log updates continued."
+  ],
+  "limits": [
+    "The fixture adds a diagnostic header and uses synthetic controls/results. Rectangle intersections are fixture findings, not production regressions.",
+    "Geometry can remain for controls omitted from AX; geometry presence is not visible or actionable availability.",
+    "The ReservedRegion variant uses 160-point horizontal and 140-point vertical minimum panes, otherwise falls back to a scroll view. It contains no occlusion-avoidance algorithm.",
+    "Tent, other-app Split View, expanded Live Activity, an active physical inner camera, all eight native demo bodies and the complete sheet set remain unverified."
+  ],
+  "integration_base": "3c75011d8478de463300d5635dbe3bb2d9b12bb5",
+  "coverage_base": "4b9a9f85a123ed277a545576e4965d3bea0b5ed9",
+  "later_demo_excluded": "Chronos (added after the eight-demo study base)"
+}
