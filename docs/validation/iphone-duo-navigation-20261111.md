@@ -24,6 +24,7 @@ Xcode 27.2 (`27B52`), Swift 6.4.2, device SDK iOS 27.2 and deployment target iOS
 | Layout | Closed showed one column. Open landscape, open portrait and Partially Open showed the sidebar and detail. |
 | Retention | Fixture-set nondefault input and the sample result remained through opening, rotating, partial folding, reselection and closing. |
 | Two-column switching | Selecting another demo kept the old stopping detail until completion, then showed the new demo. |
+| View lifetime | A temporary root/renderer-child probe kept one Store, owner and active session through Closed, Open, rotation, Partially Open and Closed. Neither view disappeared and scenePhase did not change during those actions. |
 | Repository gates | Privacy, strict lint, changed-file formatting, all String Catalogs, the Rust input adapter, default package tests, macOS Release, dependency pins and unsigned iOS Release passed. |
 
 The four new `NAV-*` tests live in `ModelLibraryTests.swift`. The targeted command was `swift test --package-path CoreAISamplesKit --force-resolved-versions --filter ModelLibraryTests`. The repository's required full test and build commands were also used; isolated build folders are selected explicitly when checking dependency pins.
@@ -34,6 +35,7 @@ The four new `NAV-*` tests live in `ModelLibraryTests.swift`. The targeted comma
 - The default split layout hid or overlaid the sidebar in the inner portrait presentation. Requesting both columns and giving the detail a flexible width resolved the observed 669-point regular-width preview case.
 - The older preview driver had a nonexhaustive effect switch. Its synthetic effects were updated, and explicit held-stop/failure/completion controls were added. Held stops use a cancellable stream rather than timed sleeps.
 - An accessibility value assignment did not establish a committed text-field edit. Retention checks therefore use **Set sample input**, which changes the fixture's actual observable state. Native keyboard entry is not claimed by that check.
+- The lifecycle probe's control case detected renderer disappearance and session removal on an ordinary return to Models, then inactive/background when Home was pressed. The probe code was removed; these are synthetic single-window observations, not proof of real image-generation continuity or multi-window behavior.
 - Runtime version numbers alone did not identify Duo support: iOS 27.2 `24B8117` lacked the device, while iOS 27.1 `24A94425` supported it. The separately available iOS 27.2 `24B91016s` also listed Duo; it was not used for these UI checks.
 
 ## Acceptance boundary

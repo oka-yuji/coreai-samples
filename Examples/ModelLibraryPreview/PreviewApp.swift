@@ -113,7 +113,7 @@ final class PreviewDriver {
             let value = model.flatMap { model in
                 artifact.flatMap { installed.contains($0.id) ? resource(model, $0) : nil }
             }
-            send(.usageAcquired(identity.artifactID, request, value))
+            send(.usageAcquired(identity.modelID, request, value))
         case .releaseUsage:
             break
         }
