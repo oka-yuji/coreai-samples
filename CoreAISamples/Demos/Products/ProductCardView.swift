@@ -150,7 +150,7 @@ struct ProductSourceView: View {
             .toolbar {
                 #if os(iOS)
                     ToolbarItem(placement: .confirmationAction) {
-                        Button(role: .confirm) { dismiss() }
+                        Button("Done", systemImage: "checkmark", role: .confirm) { dismiss() }
                     }
                 #else
                     Button("Done") { dismiss() }

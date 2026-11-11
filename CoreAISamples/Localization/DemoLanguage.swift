@@ -61,6 +61,7 @@ struct DemoLanguagePicker: View {
             } label: {
                 Label("Interface language", systemImage: "globe")
             }
+            .accessibilityValue(Text(verbatim: (DemoLanguage(rawValue: code) ?? .english).segment))
         }
     }
 #endif

@@ -64,6 +64,12 @@ struct ImageReferenceConfirmation: View {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(role: .cancel) {
                         send(.dismissReference(preview.id))
+                    } label: {
+                        Label {
+                            Text("Cancel", bundle: .module)
+                        } icon: {
+                            Image(systemName: "xmark")
+                        }
                     }
                 }
                 ToolbarItem(placement: .confirmationAction) {

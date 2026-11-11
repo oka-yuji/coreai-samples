@@ -77,6 +77,12 @@
                         ToolbarItem(placement: .confirmationAction) {
                             Button(role: .confirm) {
                                 showsAbout = false
+                            } label: {
+                                Label {
+                                    libraryText("Done")
+                                } icon: {
+                                    Image(systemName: "checkmark")
+                                }
                             }
                         }
                     }

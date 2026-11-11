@@ -4,7 +4,7 @@ Issue [#532](https://github.com/oka-yuji/coreai-samples/issues/532), based on `9
 
 ## Implemented scope
 
-The normal iOS Models entry uses a named globe menu for the existing language preference. Mac and legacy diagnostic entries retain their segmented picker. About and model information expose both a name and a symbol, without custom toolbar sizing. Completion and cancellation controls use the system button roles. The reference-image confirmation retains **Use this crop** and adds its confirmation symbol. The two sheets shared with Mac keep their previous Mac toolbar branches.
+The normal iOS Models entry uses a named globe menu for the existing language preference and exposes the current EN/JP choice as its accessibility value. Mac and legacy diagnostic entries retain their segmented picker. About and model information expose both a name and a symbol, without custom toolbar sizing. Completion and cancellation controls use the system button roles with the existing localized labels and explicit symbols, preserving the app's selected presentation language. The reference-image confirmation retains **Use this crop** and adds its confirmation symbol. The two sheets shared with Mac keep their previous Mac toolbar branches.
 
 This unit preserves the existing navigation, model ownership, demo operations, language preference, input and results. Two-column navigation, camera rotation, and fold-specific content arrangements belong to the subsequent Issues.
 
