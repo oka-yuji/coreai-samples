@@ -234,6 +234,65 @@ struct ModelLibraryTests {
         #expect(state.session == nil)
     }
 
+    @Test("NAV-01 Selecting the current demo presents its detail without replacing its session")
+    func selectedDemoPresentsDetail() throws {
+        var state = try installedState()
+        _ = reduce(&state, .openDemo(first))
+        let original = state
+        let update = ModelLibraryNavigation.resolve(.select(first), state: state)
+        #expect(update.column == .detail)
+        #expect(update.destination == .demo(first))
+        #expect(reduce(&state, .openDemo(first)).isEmpty)
+        #expect(state == original)
+    }
+
+    @Test("NAV-02 Returning to Models keeps detail visible until the matching stop acknowledgement")
+    func navigationWaitsForStop() throws {
+        var state = try installedState()
+        _ = reduce(&state, .queryChanged("entity"))
+        _ = reduce(&state, .openDemo(first))
+        let session = try #require(state.session)
+        let update = ModelLibraryNavigation.resolve(.showSidebar, state: state)
+        #expect(update.column == .detail && update.destination == .library)
+        _ = reduce(&state, .closeDemo)
+        let request = try #require(state.stopRequestID)
+        #expect(ModelLibraryNavigation.resolve(.synchronize, state: state).column == .detail)
+        #expect(ModelLibraryNavigation.resolve(.select(second), state: state).destination == nil)
+        _ = reduce(&state, .demoStopped(session.id, ticket(request.number + 1)))
+        #expect(ModelLibraryNavigation.resolve(.synchronize, state: state).column == .detail)
+        _ = reduce(&state, .demoStopped(session.id, request))
+        #expect(ModelLibraryNavigation.resolve(.synchronize, state: state).column == .sidebar)
+        #expect(state.query == "entity")
+    }
+
+    @Test("NAV-03 A failed stop keeps the retry detail visible until retry succeeds")
+    func navigationKeepsFailedStopVisible() throws {
+        var state = try installedState()
+        _ = reduce(&state, .openDemo(first))
+        let session = try #require(state.session)
+        _ = reduce(&state, .closeDemo)
+        let request = try #require(state.stopRequestID)
+        _ = reduce(&state, .demoStopFailed(session.id, request, "Still stopping"))
+        let update = ModelLibraryNavigation.resolve(.showSidebar, state: state)
+        #expect(update.column == .detail && update.destination == nil)
+        _ = reduce(&state, .retryDemoStop)
+        let retry = try #require(state.stopRequestID)
+        #expect(ModelLibraryNavigation.resolve(.synchronize, state: state).column == .detail)
+        _ = reduce(&state, .demoStopped(session.id, retry))
+        #expect(ModelLibraryNavigation.resolve(.synchronize, state: state).column == .sidebar)
+    }
+
+    @Test("NAV-04 Resizing with a selected demo keeps its detail without issuing navigation")
+    func navigationPreservesSelectionOnResize() throws {
+        var state = try installedState()
+        #expect(ModelLibraryNavigation.resolve(.synchronize, state: state).column == .sidebar)
+        _ = reduce(&state, .openDemo(first))
+        let original = state
+        let update = ModelLibraryNavigation.resolve(.synchronize, state: state)
+        #expect(update.column == .detail && update.destination == nil)
+        #expect(state == original)
+    }
+
     @Test("Demo switches wait for the old session to stop and reject stale acknowledgements")
     func demoSwitch() throws {
         var state = try installedState()

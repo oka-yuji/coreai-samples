@@ -63,6 +63,9 @@
                         .padding()
                     }
                     .navigationTitle(Text(verbatim: model.name))
+                    .navigationBarBackButtonHidden()
+                    .background(ModelNavigationGuard())
+                    .accessibilityAction(.escape, returnToLibrary)
                     .navigationSubtitle(
                         store.state.variantTitle(for: model.id).map {
                             Text(
@@ -72,6 +75,16 @@
                             ?? Text(verbatim: "")
                     )
                     .toolbar {
+                        ToolbarItem(placement: .topBarLeading) {
+                            Button(action: returnToLibrary) {
+                                Label {
+                                    libraryText("Back to Models")
+                                } icon: {
+                                    Image(systemName: "chevron.backward")
+                                }
+                            }
+                            .disabled(store.state.pendingDestination != nil)
+                        }
                         ToolbarItem(placement: .topBarTrailing) {
                             Button {
                                 showingModel = true
@@ -111,6 +124,14 @@
                         libraryText("This demo is not available on this device.")
                     }
                 }
+            }
+        }
+
+        private func returnToLibrary() {
+            if store.state.selection == selection,
+                ModelLibraryNavigation.resolve(.showSidebar, state: store.state).destination == .library
+            {
+                store.send(.closeDemo)
             }
         }
 
