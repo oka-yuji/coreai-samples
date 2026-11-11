@@ -40,6 +40,13 @@
     },
     {
       "title": {
+        "en": "Swift runtime evidence",
+        "ja": "Swift実行の検証記録"
+      },
+      "url": "docs/validation/chronos2-swift-20261112/README.md"
+    },
+    {
+      "title": {
         "en": "Implementation plan #548",
         "ja": "実装計画 #548"
       },
@@ -94,6 +101,34 @@
       "thermal": "Note: No thermal warning level has been recorded\nNote: No performance warning level has been recorded\nNote: No CPU power status has been recorded; same after the run; temperature and GPU utilization not measured",
       "model_executed": true,
       "plan_sha256": "803abab0c116013d8c4c0f2c9d3e567043f1f4ccec531ef5dfa5ef2a68a9f88d"
+    },
+    "swift-20261112": {
+      "url": "docs/validation/chronos2-swift-20261112/README.md",
+      "level": "diagnostic",
+      "outcome": "passed",
+      "record_type": "legacy",
+      "date": "2026-11-12",
+      "platform": "macos",
+      "device": "Apple M5 Max / 137438953472 B RAM",
+      "os": "macOS 27.2.1 (26B131)",
+      "toolchain": "Xcode 27.2 (27B52); Swift 6.4.2; macOS/iOS SDK 27.2; Debug package",
+      "variant": "coreai-fp32-univariate",
+      "backend": "Swift Core AI GPU preference; actual delegate not profiled",
+      "route": "chronos-verify --verify; separate opt-in native test",
+      "source_revision": "29ec3766d36d6f73f0696f85560a422f50e8498c",
+      "artifact_revision": "786dcf97e020c987cbf883f09b486fba5f3fee30a588b87a346ea65d72d20572",
+      "code_revision": "25903277e60e99bfd85e217a96d69b18df82852c",
+      "workload": {
+        "en": "18 fixed cases / 6048 raw values, then release/reload and the first 336 values again. Numerical validation, no warmup or performance benchmark. Power/thermal and a benchmark-plan hash were not recorded.",
+        "ja": "固定18条件・6048原値、その後の解放/再ロードで先頭336値を再照合。warmupなしの数値検証で性能比較ではない。電源/熱とbenchmark計画hashは未記録。"
+      },
+      "batch_size": 1,
+      "concurrency": 1,
+      "warmups": 0,
+      "power": null,
+      "thermal": null,
+      "model_executed": true,
+      "plan_sha256": null
     }
   },
   "measurements": [
@@ -220,35 +255,38 @@
     "fidelity": {
       "state": "passed",
       "evidence": [
-        "conversion-20261111"
+        "conversion-20261111",
+        "swift-20261112"
       ],
       "note": {
-        "en": "The unmodified official reference, export wrapper and native Core AI all pass the fixed 18-case gate.",
-        "ja": "未変更の公式参照とexport wrapper、実Core AIが固定18条件の判定に合格。"
+        "en": "Official FP32, Python Core AI and Swift Core AI pass the same 18-case gate.",
+        "ja": "公式FP32、Python Core AI、Swift Core AIが同じ18条件に合格。"
       }
     },
     "quality": {
       "state": "not_measured",
       "evidence": [],
       "note": {
-        "en": "Native Swift/app and held-out task checks are not part of this conversion result.",
-        "ja": "Swift/アプリの実経路と未使用の用途評価は、この変換結果に含みません。"
+        "en": "Held-out forecasting quality and normal app behavior are not established by numerical fidelity.",
+        "ja": "未使用データの予測品質と通常アプリの動作は、数値一致では確認していません。"
       }
     },
     "stability": {
-      "state": "not_measured",
-      "evidence": [],
+      "state": "passed",
+      "evidence": [
+        "swift-20261112"
+      ],
       "note": {
-        "en": "Native Swift/app and held-out task checks are not part of this conversion result.",
-        "ja": "Swift/アプリの実経路と未使用の用途評価は、この変換結果に含みません。"
+        "en": "Mac Swift: 18 sequential requests and one release/reload repeat. CPU fakes test ownership and delayed completion. No memory measurement or normal app/iPhone acceptance.",
+        "ja": "Mac Swiftの18要求と1回の解放/再ロードに合格。所有と遅い完了はCPU fakeで検査。メモリ計測・通常アプリ/iPhone受入は未実施。"
       }
     },
     "cancellation": {
       "state": "not_measured",
       "evidence": [],
       "note": {
-        "en": "Native Swift/app and held-out task checks are not part of this conversion result.",
-        "ja": "Swift/アプリの実経路と未使用の用途評価は、この変換結果に含みません。"
+        "en": "CPU fakes cover cancellation and stop joins; cancellation of the native model and normal app remain unmeasured.",
+        "ja": "取消と停止joinはCPU fakeで検査済み。実モデルの取消と通常アプリは未計測。"
       }
     }
   }
