@@ -33,7 +33,7 @@ public struct ChronosScreen: View {
                         .font(.title2.monospacedDigit())
                     if !state.liveAvailable {
                         Text(
-                            "Import Chronos-2 in Models to enable on-device prediction. This preview uses fixed precomputed results.",
+                            "This preview uses fixed precomputed results. Open the prepared model from Models for on-device prediction.",
                             bundle: .module
                         )
                         .font(.callout).foregroundStyle(.secondary)

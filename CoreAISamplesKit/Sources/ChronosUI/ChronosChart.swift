@@ -36,6 +36,25 @@ struct ChronosChart: View {
         return points
     }
 
+    private var chartTimeZone: TimeZone {
+        TimeZone(identifier: state.catalog?.timeZone ?? "America/New_York") ?? .gmt
+    }
+
+    private var chartCalendar: Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = chartTimeZone
+        return calendar
+    }
+
+    private func intervalLabel(_ date: Date, kind: String) -> Text {
+        let zone = state.catalog?.timeZone ?? "America/New_York"
+        let interval =
+            ChronosStyle.day(date, timeZone: zone) + " "
+            + ChronosStyle.interval(date, date.addingTimeInterval(1800), timeZone: zone)
+            + " · America/New_York · "
+        return Text(verbatim: interval) + Text(LocalizedStringKey(kind), bundle: .module)
+    }
+
     private func copy(_ key: String) -> String {
         String(localized: String.LocalizationValue(key), bundle: .module, locale: locale)
     }
@@ -55,6 +74,8 @@ struct ChronosChart: View {
                     )
                     .foregroundStyle(Color.blue)
                     .lineStyle(StrokeStyle(lineWidth: 2))
+                    .accessibilityLabel(intervalLabel(point.time, kind: "Actual pickups"))
+                    .accessibilityValue(Text(verbatim: ChronosStyle.count(point.value)))
                 }
                 if let forecast = state.forecast, let values = state.selectedForecast, let catalog = state.catalog {
                     ForEach(0..<4, id: \.self) { index in
@@ -66,6 +87,7 @@ struct ChronosChart: View {
                                 yEnd: .value(copy("Upper"), max(0, values.upper[index]))
                             )
                             .foregroundStyle(ChronosStyle.taxi.opacity(0.2))
+                            .accessibilityHidden(true)
                         }
                         LineMark(
                             x: .value(copy("Time"), date), y: .value(copy("Forecast"), max(0, values.median[index])),
@@ -73,17 +95,24 @@ struct ChronosChart: View {
                         )
                         .foregroundStyle(Color.orange)
                         .lineStyle(StrokeStyle(lineWidth: 2.5, dash: [5, 4]))
+                        .accessibilityLabel(intervalLabel(date, kind: "Forecast"))
+                        .accessibilityValue(
+                            Text(
+                                "Median \(ChronosStyle.count(values.median[index])), 10–90%: \(ChronosStyle.count(values.lower[index]))–\(ChronosStyle.count(values.upper[index]))",
+                                bundle: .module))
                         PointMark(
                             x: .value(copy("Time"), date), y: .value(copy("Forecast"), max(0, values.median[index]))
                         )
                         .symbolSize(index == state.lead ? 55 : 25)
                         .foregroundStyle(Color.orange)
+                        .accessibilityHidden(true)
                     }
                     RuleMark(
                         x: .value(copy("Origin"), catalog.time(at: forecast.originStep, scenarioID: state.scenarioID))
                     )
                     .foregroundStyle(.secondary.opacity(0.4))
                     .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 3]))
+                    .accessibilityHidden(true)
                 }
             }
             .chartXAxis {
@@ -100,6 +129,8 @@ struct ChronosChart: View {
             .chartYScale(domain: .automatic(includesZero: true))
             .frame(height: compact ? 190 : 250)
             .accessibilityLabel(Text("History and forecast chart", bundle: .module))
+            .environment(\.timeZone, chartTimeZone)
+            .environment(\.calendar, chartCalendar)
             HStack(spacing: 16) {
                 Label {
                     Text("Actual pickups", bundle: .module)
