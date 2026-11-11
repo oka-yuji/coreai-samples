@@ -80,6 +80,23 @@ struct ChronosChart: View {
         String(localized: String.LocalizationValue(key), bundle: .module, locale: locale)
     }
 
+    @ViewBuilder private var accessibleValues: some View {
+        ForEach(history) { point in
+            intervalLabel(point.time, kind: "Actual pickups")
+                .accessibilityValue(Text(verbatim: ChronosStyle.count(point.value)))
+        }
+        if let forecast = state.forecast, let values = state.selectedForecast, let catalog = state.catalog {
+            ForEach(0..<4, id: \.self) { index in
+                let date = catalog.time(at: forecast.originStep + index, scenarioID: state.scenarioID)
+                intervalLabel(date, kind: "Forecast")
+                    .accessibilityValue(
+                        Text(
+                            "Median \(ChronosStyle.count(values.median[index])), 10–90%: \(ChronosStyle.count(values.lower[index]))–\(ChronosStyle.count(values.upper[index]))",
+                            bundle: .module))
+            }
+        }
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
@@ -150,6 +167,7 @@ struct ChronosChart: View {
             .chartYScale(domain: .automatic(includesZero: true))
             .frame(height: compact ? 190 : 250)
             .accessibilityLabel(Text("History and forecast chart", bundle: .module))
+            .accessibilityChildren { accessibleValues }
             .environment(\.timeZone, chartTimeZone)
             .environment(\.calendar, chartCalendar)
             HStack(spacing: 16) {
