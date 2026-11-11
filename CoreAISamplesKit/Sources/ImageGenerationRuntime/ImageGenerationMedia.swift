@@ -25,7 +25,7 @@ public actor ImageGenerationMedia {
             properties[kCGImagePropertyColorModel] as? String == kCGImagePropertyColorModelRGB as String,
             properties[kCGImagePropertyDepth] as? Int == 8,
             CGImageSourceGetType(source) as String? != UTType.png.identifier
-                || Self.pngColorType(url).map { $0 != 3 } == true
+                || Self.pngColorType(url).map({ $0 != 3 }) == true
         else { throw ImageGenerationError.unsupportedImage }
         let pixels: ImageGenerationPixels
         if max(width, height) <= 1_024 {
