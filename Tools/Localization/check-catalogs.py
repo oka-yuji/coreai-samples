@@ -1,7 +1,9 @@
 import collections
 import json
+import os
 from pathlib import Path
 import re
+import subprocess
 import sys
 
 
@@ -16,19 +18,21 @@ def units(node):
 
 
 def placeholders(value):
-    pattern = r"%(?!%)(?:(\d+)\$)?[-+#0 '\d.]*(ll[diuoxX]|[hlLztj]?[diuoxXfFeEgGaAcCsSp]|@)"
+    pattern = r"%(?:%|(?:(\d+)\$)?[-+#0'\d.]*(ll[diuoxX]|[hlLztj]?[diuoxXfFeEgGaAcCsSp]|@))"
     result = []
-    for index, match in enumerate(re.finditer(pattern, value), 1):
-        result.append((int(match[1]) if match[1] else index, match[2]))
+    for match in re.finditer(pattern, value):
+        if match[2]:
+            result.append((int(match[1]) if match[1] else len(result) + 1, match[2]))
     return collections.Counter(result)
 
 
 root = Path(__file__).resolve().parents[2]
-catalogs = sorted((root / "CoreAISamples/Resources").glob("*.xcstrings"))
+listing = subprocess.run(["git", "-C", str(root), "ls-files", "-z", "--", "*.xcstrings"], stdout=subprocess.PIPE, check=True).stdout
+catalogs = sorted(os.fsdecode(name) for name in listing.split(b"\0") if name)
 errors = []
 counts = {}
-for path in catalogs:
-    data = json.loads(path.read_text())
+for name in catalogs:
+    data = json.loads((root / name).read_text())
     source = data["sourceLanguage"]
     languages = {source}
     for entry in data["strings"].values():
@@ -46,13 +50,13 @@ for path in catalogs:
                 continue
             values = list(units(localization or {}))
             if not values:
-                errors.append(f"{path.name}: {language}: missing translation: {key}")
+                errors.append(f"{name}: {language}: missing translation: {key}")
             for unit in values:
                 value = unit.get("value", "")
                 if unit.get("state") != "translated" or (key and not value):
-                    errors.append(f"{path.name}: {language}: incomplete translation: {key}")
+                    errors.append(f"{name}: {language}: incomplete translation: {key}")
                 if placeholders(value) != expected:
-                    errors.append(f"{path.name}: {language}: placeholder mismatch: {key}")
-    counts[path.name] = {"keys": len(data["strings"]), "translatedKeys": translated_count, "languages": sorted(languages)}
+                    errors.append(f"{name}: {language}: placeholder mismatch: {key}")
+    counts[name] = {"keys": len(data["strings"]), "translatedKeys": translated_count, "languages": sorted(languages)}
 print(json.dumps({"catalogs": counts, "errors": errors}, ensure_ascii=False, indent=2))
 sys.exit(bool(errors) or not catalogs)
