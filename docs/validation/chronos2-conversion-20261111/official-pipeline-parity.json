@@ -1,0 +1,192 @@
+{
+  "schema_version": 1,
+  "distribution": "chronos-forecasting",
+  "version": "2.3.2",
+  "source_revision": "29ec3766d36d6f73f0696f85560a422f50e8498c",
+  "route": "Chronos2Pipeline.predict on raw unpadded input vs saved official model-forward references",
+  "context_length": 8192,
+  "prediction_length": 16,
+  "batch_size": 1,
+  "cross_learning": false,
+  "atol": 0.0001,
+  "rtol": 0.0001,
+  "passed": true,
+  "count": 18,
+  "elements": 6048,
+  "max_absolute_error": 0.0,
+  "cases": [
+    {
+      "id": "trend-1",
+      "passed": true,
+      "count": 336,
+      "raw_length": 1,
+      "max_absolute_error": 0.0,
+      "pipeline_tensor_sha256": "d7680a69757b4e6ae959ae0ab4c1f978c5da9c618c72b8d8c21bd869b041977d",
+      "reference_tensor_sha256": "d7680a69757b4e6ae959ae0ab4c1f978c5da9c618c72b8d8c21bd869b041977d"
+    },
+    {
+      "id": "trend-15",
+      "passed": true,
+      "count": 336,
+      "raw_length": 15,
+      "max_absolute_error": 0.0,
+      "pipeline_tensor_sha256": "3ef6465ea9c5d9353a51db8f951a31ee628fb70a673017f7be3ae512094c912a",
+      "reference_tensor_sha256": "3ef6465ea9c5d9353a51db8f951a31ee628fb70a673017f7be3ae512094c912a"
+    },
+    {
+      "id": "trend-16",
+      "passed": true,
+      "count": 336,
+      "raw_length": 16,
+      "max_absolute_error": 0.0,
+      "pipeline_tensor_sha256": "22fc4f670382289823e0710b60c394f9c4fa7288f4e963d5133b6d8fbf30edae",
+      "reference_tensor_sha256": "22fc4f670382289823e0710b60c394f9c4fa7288f4e963d5133b6d8fbf30edae"
+    },
+    {
+      "id": "trend-17",
+      "passed": true,
+      "count": 336,
+      "raw_length": 17,
+      "max_absolute_error": 0.0,
+      "pipeline_tensor_sha256": "df56801bb94b1546f97bf894904c62180907166a79178cd5a9389f28f110b2b2",
+      "reference_tensor_sha256": "df56801bb94b1546f97bf894904c62180907166a79178cd5a9389f28f110b2b2"
+    },
+    {
+      "id": "trend-32",
+      "passed": true,
+      "count": 336,
+      "raw_length": 32,
+      "max_absolute_error": 0.0,
+      "pipeline_tensor_sha256": "8c0d75bee45808b7c9687e0bfd29a35a7884d33d1755246004d7e6b61af8619a",
+      "reference_tensor_sha256": "8c0d75bee45808b7c9687e0bfd29a35a7884d33d1755246004d7e6b61af8619a"
+    },
+    {
+      "id": "trend-64",
+      "passed": true,
+      "count": 336,
+      "raw_length": 64,
+      "max_absolute_error": 0.0,
+      "pipeline_tensor_sha256": "a7dd5752981c6fd275fe8a6272673aaa45ee6cbbe350a1f33903a657cf63803c",
+      "reference_tensor_sha256": "a7dd5752981c6fd275fe8a6272673aaa45ee6cbbe350a1f33903a657cf63803c"
+    },
+    {
+      "id": "trend-1008",
+      "passed": true,
+      "count": 336,
+      "raw_length": 1008,
+      "max_absolute_error": 0.0,
+      "pipeline_tensor_sha256": "1849f2392fa1a5591ecc6bb716037defcc29af9c86dad7da343dbfae92e9aafe",
+      "reference_tensor_sha256": "1849f2392fa1a5591ecc6bb716037defcc29af9c86dad7da343dbfae92e9aafe"
+    },
+    {
+      "id": "trend-8192",
+      "passed": true,
+      "count": 336,
+      "raw_length": 8192,
+      "max_absolute_error": 0.0,
+      "pipeline_tensor_sha256": "6f040c399ad33e8230e5f6790a1b7f1ce49f8a97aef8d072c17cd349332594ff",
+      "reference_tensor_sha256": "6f040c399ad33e8230e5f6790a1b7f1ce49f8a97aef8d072c17cd349332594ff"
+    },
+    {
+      "id": "constant-zero",
+      "passed": true,
+      "count": 336,
+      "raw_length": 1008,
+      "max_absolute_error": 0.0,
+      "pipeline_tensor_sha256": "04c13b83e0009ab36e80b310584ee11c4eb2d34bfea3af5063825497c9eeaeb0",
+      "reference_tensor_sha256": "04c13b83e0009ab36e80b310584ee11c4eb2d34bfea3af5063825497c9eeaeb0"
+    },
+    {
+      "id": "constant-positive",
+      "passed": true,
+      "count": 336,
+      "raw_length": 1008,
+      "max_absolute_error": 0.0,
+      "pipeline_tensor_sha256": "2ff2dabdad727863f540bf3ef389ca8d154c244600f4706947db59ff3b9a1f8f",
+      "reference_tensor_sha256": "2ff2dabdad727863f540bf3ef389ca8d154c244600f4706947db59ff3b9a1f8f"
+    },
+    {
+      "id": "periodic",
+      "passed": true,
+      "count": 336,
+      "raw_length": 1008,
+      "max_absolute_error": 0.0,
+      "pipeline_tensor_sha256": "c2f35c92d228d047e08760a1e27517371c18836325f23d5c9afc805fcd1d569b",
+      "reference_tensor_sha256": "c2f35c92d228d047e08760a1e27517371c18836325f23d5c9afc805fcd1d569b"
+    },
+    {
+      "id": "negative-scale",
+      "passed": true,
+      "count": 336,
+      "raw_length": 1008,
+      "max_absolute_error": 0.0,
+      "pipeline_tensor_sha256": "a14cbd60983b9c8f09619fbb0b981bbcd0d6d95b08889298c44683f0b3341ce9",
+      "reference_tensor_sha256": "a14cbd60983b9c8f09619fbb0b981bbcd0d6d95b08889298c44683f0b3341ce9"
+    },
+    {
+      "id": "missing-16",
+      "passed": true,
+      "count": 336,
+      "raw_length": 16,
+      "max_absolute_error": 0.0,
+      "pipeline_tensor_sha256": "e0aef8f777fd0651ec85c0763d29a1f8026b80257757f064929fd1efa952c47e",
+      "reference_tensor_sha256": "e0aef8f777fd0651ec85c0763d29a1f8026b80257757f064929fd1efa952c47e"
+    },
+    {
+      "id": "missing-1008",
+      "passed": true,
+      "count": 336,
+      "raw_length": 1008,
+      "max_absolute_error": 0.0,
+      "pipeline_tensor_sha256": "b0c0c8ce4af09d811c12f245e585a8d1f7f618dffcf293f994e3055c48089171",
+      "reference_tensor_sha256": "b0c0c8ce4af09d811c12f245e585a8d1f7f618dffcf293f994e3055c48089171"
+    },
+    {
+      "id": "missing-8192",
+      "passed": true,
+      "count": 336,
+      "raw_length": 8192,
+      "max_absolute_error": 0.0,
+      "pipeline_tensor_sha256": "23977d219d1816e6b5475a55ac2a9fd74e3e1510b65f06cfa3ad2db4788d24ac",
+      "reference_tensor_sha256": "23977d219d1816e6b5475a55ac2a9fd74e3e1510b65f06cfa3ad2db4788d24ac"
+    },
+    {
+      "id": "single-observed",
+      "passed": true,
+      "count": 336,
+      "raw_length": 1008,
+      "max_absolute_error": 0.0,
+      "pipeline_tensor_sha256": "1f5c933b9e6fb91a6bb0f8a26bca01dce39bea6c9efc18d9521c0f56258f8696",
+      "reference_tensor_sha256": "1f5c933b9e6fb91a6bb0f8a26bca01dce39bea6c9efc18d9521c0f56258f8696"
+    },
+    {
+      "id": "large-counts",
+      "passed": true,
+      "count": 336,
+      "raw_length": 1008,
+      "max_absolute_error": 0.0,
+      "pipeline_tensor_sha256": "6859156a992b0411e5a841bb411fd037bc731165712f168e588ebce0ab3bd5e7",
+      "reference_tensor_sha256": "6859156a992b0411e5a841bb411fd037bc731165712f168e588ebce0ab3bd5e7"
+    },
+    {
+      "id": "leading-missing",
+      "passed": true,
+      "count": 336,
+      "raw_length": 1008,
+      "max_absolute_error": 0.0,
+      "pipeline_tensor_sha256": "64e911d450f3ac58a342a4572cbdb68ff2a2f4ae01a8c89ff2520786a6485361",
+      "reference_tensor_sha256": "64e911d450f3ac58a342a4572cbdb68ff2a2f4ae01a8c89ff2520786a6485361"
+    }
+  ],
+  "upstream_source_hashes": {
+    "chronos_bolt.py": "93b3af9e4521ea981c4228b1acaa252321f7a190512f956088394426182c8b8c",
+    "chronos2/config.py": "d4ffa61c796ee87b340540e7f8131008aedcf7b1c580321053dec51d609d3101",
+    "chronos2/dataset.py": "90b34b05af99069972a33aa780019ab2fca7514e907b68921a2d5c9205584e0a",
+    "chronos2/model.py": "2aaab2f90cc9bb486d69483cb1f0d11b593643ce54c97f4902958a7776905782",
+    "chronos2/pipeline.py": "9fad1e4fb7251471463a40408a32d25d31b23b7afb88069911f095071b9b0599",
+    "chronos2/layers.py": "73493f306ecfaa21fa57636ff46321ccb5d50ded02a382598cf759dbfc9dd60f"
+  },
+  "tensor_hash_format": "Row-major Float32 little endian, shape [1,21,16]",
+  "reference_file_sha256": "9265b34a83b6d298a5c7ea1f38e37a01f4926a214e96a20d86f9ef18faa38bfa",
+  "all_tensor_bytes_equal": true
+}

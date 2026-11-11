@@ -13,6 +13,10 @@ Issue [#541](https://github.com/oka-yuji/coreai-samples/issues/541). The product
 
 The official CPU reference loads an unmodified model in its own process. The export wrapper is checked against those vectors before conversion. Native vectors are independently rechecked during packaging; a pass flag alone cannot publish a bundle. No live data, customer data, weights or raw logs are committed here.
 
+## Official raw-input API comparison
+
+The pinned `chronos-forecasting` 2.3.2 `Chronos2Pipeline.predict` was also called directly with each raw, unpadded fixture as a single series, `prediction_length=16`, `context_length=8192`, batch size 1 and cross-learning disabled. All 18 cases / 6,048 outputs were bit-identical to the saved official-forward references. [The API parity record](official-pipeline-parity.json) includes per-case Float32 tensor hashes and the installed upstream source-file hashes. This confirms the supported profile's raw-input preprocessing; inputs beyond the declared limit, multiple series and covariates remain outside the profile.
+
 ## Retained failures and fixes
 
 The initial plain export stopped on unsupported `aten.isnan.default` and `aten.unfold.default`. The limited decomposition uses self-inequality for NaN and reshape only for complete nonoverlapping last-axis patches of size/stride 16.

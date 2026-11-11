@@ -32,14 +32,13 @@ def inspected_asset():
         "metadata": {"producer": "coreai-core 1.0.0b3", "author": "Amazon", "license": "Apache-2.0",
                      "creationDate": "2026-11-11T00:00:00Z",
                      "creatorDefinedMetadata": {"source_revision": REVISION}},
-        "path": str(REPO / ".sf-tmp/private/Model.aimodel"),
+        "path": str(REPO / ".local/private/Model.aimodel"),
     }
 
 
 class ChronosFiles:
     def setUp(self):
-        scratch = REPO / ".sf-tmp"
-        scratch.mkdir(exist_ok=True)
+        scratch = Path(tempfile.gettempdir()).resolve()
         self.temporary = tempfile.TemporaryDirectory(dir=scratch)
         self.addCleanup(self.temporary.cleanup)
         self.root = Path(self.temporary.name)
