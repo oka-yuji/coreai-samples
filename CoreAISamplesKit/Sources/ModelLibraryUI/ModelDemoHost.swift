@@ -65,6 +65,7 @@
                     .navigationTitle(Text(verbatim: model.name))
                     .navigationBarBackButtonHidden()
                     .background(ModelNavigationGuard())
+                    .accessibilityAction(.escape, returnToLibrary)
                     .navigationSubtitle(
                         store.state.variantTitle(for: model.id).map {
                             Text(
@@ -75,14 +76,7 @@
                     )
                     .toolbar {
                         ToolbarItem(placement: .topBarLeading) {
-                            Button {
-                                if store.state.selection == selection,
-                                    ModelLibraryNavigation.resolve(.showSidebar, state: store.state).destination
-                                        == .library
-                                {
-                                    store.send(.closeDemo)
-                                }
-                            } label: {
+                            Button(action: returnToLibrary) {
                                 Label {
                                     libraryText("Back to Models")
                                 } icon: {
@@ -130,6 +124,14 @@
                         libraryText("This demo is not available on this device.")
                     }
                 }
+            }
+        }
+
+        private func returnToLibrary() {
+            if store.state.selection == selection,
+                ModelLibraryNavigation.resolve(.showSidebar, state: store.state).destination == .library
+            {
+                store.send(.closeDemo)
             }
         }
 
