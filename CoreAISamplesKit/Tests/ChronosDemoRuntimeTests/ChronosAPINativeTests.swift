@@ -13,6 +13,29 @@ import Testing
 @MainActor
 struct ChronosAPINativeTests {
     @Test(
+        "A5 The live client validates all 29,760 January counts against its shipped independent reference",
+        .enabled(if: ProcessInfo.processInfo.environment["COREAI_CHRONOS2_API_MONTH_REPORT"] != nil),
+        .timeLimit(.minutes(10)))
+    func liveVerifiedMonth() async throws {
+        let output = URL(
+            filePath: try #require(ProcessInfo.processInfo.environment["COREAI_CHRONOS2_API_MONTH_REPORT"]))
+        try #require(!FileManager.default.fileExists(atPath: output.path))
+        let client = NYCAPIClient()
+        let first = try await client.window(
+            start: ChronosAPIFixture.date("2025-01-01T05:00:00Z"), count: 1008, areaIDs: NYCAPIContract.zoneIDs)
+        let second = try await client.window(
+            start: first.end, count: 480, areaIDs: NYCAPIContract.zoneIDs)
+        let windows = [first, second]
+        let expectedEnd = try ChronosAPIFixture.date("2025-02-01T05:00:00Z")
+        try #require(second.end == expectedEnd)
+        try #require(windows.allSatisfy { $0.availability.allSatisfy { $0 == .observed } })
+        try #require(windows.allSatisfy { $0.verification == .january2025 })
+        let elements = windows.reduce(0) { $0 + $1.series.reduce(0) { $0 + $1.values.count } }
+        try #require(elements == 29_760)
+        try NYCAPIContract.encode(MonthReport(windows: windows)).write(to: output, options: .withoutOverwriting)
+    }
+
+    @Test(
         "A5 Live NYC history and production Models sessions match 20,160 inputs and all 6,720 raw native outputs",
         .enabled(if: ProcessInfo.processInfo.environment["COREAI_CHRONOS2_API_BUNDLE"] != nil), .timeLimit(.minutes(30))
     )
@@ -135,5 +158,11 @@ struct ChronosAPINativeTests {
         let atol = 0.0001
         let rtol = 0.0001
         let leasesAfterClose = 0
+    }
+
+    private struct MonthReport: Encodable {
+        let windows: [APIWindow]
+        let format = "chronos2-verified-january/1"
+        let comparedElements = 29_760
     }
 }
