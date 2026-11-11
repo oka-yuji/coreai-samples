@@ -62,17 +62,25 @@ struct ImageReferenceConfirmation: View {
             .navigationTitle(Text("Confirm reference", bundle: .module))
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button {
+                    Button(role: .cancel) {
                         send(.dismissReference(preview.id))
                     } label: {
-                        Text("Cancel", bundle: .module)
+                        Label {
+                            Text("Cancel", bundle: .module)
+                        } icon: {
+                            Image(systemName: "xmark")
+                        }
                     }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button {
+                    Button(role: .confirm) {
                         send(.confirmReference(preview.id))
                     } label: {
-                        Text("Use this crop", bundle: .module)
+                        Label {
+                            Text("Use this crop", bundle: .module)
+                        } icon: {
+                            Image(systemName: "checkmark")
+                        }
                     }.keyboardShortcut(.defaultAction)
                 }
             }

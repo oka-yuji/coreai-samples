@@ -272,7 +272,15 @@ private struct OriginalSearchPhoto: View {
             .padding()
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .navigationTitle(Text(verbatim: photo.url.lastPathComponent))
-            .toolbar { Button("Done") { dismiss() } }
+            .toolbar {
+                #if os(iOS)
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Done", systemImage: "checkmark", role: .confirm) { dismiss() }
+                    }
+                #else
+                    Button("Done") { dismiss() }
+                #endif
+            }
         }
         #if os(macOS)
             .frame(minWidth: 640, minHeight: 500)
