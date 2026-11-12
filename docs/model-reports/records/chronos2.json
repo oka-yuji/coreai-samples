@@ -15,8 +15,8 @@
   },
   "release": "in_progress",
   "release_note": {
-    "en": "FP32 conversion and fixed/API NYC Mac demos verified; persistent forecast records are in development.",
-    "ja": "FP32変換と固定/APIのNYC Macデモを検証済み。予測の永続記録は開発中。"
+    "en": "FP32 conversion, fixed NYC scenes and verified January API dates work on Mac; persistent forecast records are in development.",
+    "ja": "FP32変換、固定NYC場面、照合済み1月のAPI日時をMacで検証済み。予測の永続記録は開発中。"
   },
   "download": null,
   "pages": {
@@ -85,8 +85,8 @@
         "api-20261112"
       ],
       "note": {
-        "en": "Normal Models route supports fixed scenes and API histories, native prediction, explicit actual comparison and time changes. User acceptance remains open.",
-        "ja": "通常Modelsで固定/API履歴の実推論・明示的な実績比較・時刻変更を確認。本人受入は未完。"
+        "en": "Fixed scenes and the independently verified January 2025 API range are connected. The earlier API GUI route is checked; final range UI verification is recorded in the evidence. User acceptance remains open.",
+        "ja": "固定場面と独立照合済みの2025年1月API範囲を接続。前版のAPI GUI経路を確認済みで、最終範囲UIの結果は検証記録へ対応する。本人受入は未完。"
       }
     },
     "ios": {
@@ -227,13 +227,13 @@
       "toolchain": "Xcode 27.2 (27B52); Swift 6.4.2; SDK 27.2; Debug package and Release Mac application",
       "variant": "coreai-fp32-univariate",
       "backend": "Swift Core AI GPU preference; actual delegate not profiled",
-      "route": "Normal Mac Models -> official API history -> explicit native forecast -> separate actuals; production Models/Store/Service integration test",
+      "route": "Production Models/Store/Service with a pinned January API reference; separate normal Mac GUI",
       "source_revision": "29ec3766d36d6f73f0696f85560a422f50e8498c",
       "artifact_revision": "786dcf97e020c987cbf883f09b486fba5f3fee30a588b87a346ea65d72d20572",
-      "code_revision": "05f8363b5e3de8f9531ebb2fb332b71bb9b795fb",
+      "code_revision": "02aa27facf98b6d7d503f72a06e8ac0b123dec01",
       "workload": {
-        "en": "Live API: 20,160 input values and 6,720 raw native outputs; zero leases after close. In the normal Mac app, the 17:00 forecast displays 120 against an observed 130; the 17:30 refetch produces 128. Nine annual metadata snapshots and CPU failure cases were checked. No controlled performance measurement or iPhone inference.",
-        "ja": "実API20160入力・native6720原値とclose後lease0。通常Macで17:00予測120/実績130を比較し、17:30へ再取得して予測128を確認。9年度metadataとCPU故障条件も検査。制御した性能計測とiPhone推論は未実施。"
+        "en": "The production client validates all 29,760 January counts. The native path compares 20,160 Friday inputs and 6,720 raw outputs, then closes with zero leases. Normal Mac checks cover explicit acquisition/prediction/actuals and the verified month-end stop; chart accessibility fixes have separate source attribution. No controlled performance measurement or iPhone inference.",
+        "ja": "本番clientで1月全29,760値を照合。native経路は金曜20,160入力・6,720原値とclose後lease0を確認。通常Macで明示取得/予測/実績と月末停止を確認。チャートAX修正の版は別記。制御した性能計測とiPhone推論は未実施。"
       },
       "batch_size": 1,
       "concurrency": 1,

@@ -1,0 +1,69 @@
+{
+  "format": "chronos2-api-normal-mac-gui/1",
+  "code_commit": "60109c0b198889aa93b20826126e4e2604f0f485",
+  "binary_sha256": "f5cfd204491c24279e284c36d48011e14cd20269d0e3a0c633aec5f6bf503db3",
+  "data_source": "Verified January 2025 API at pinned revision; normal Models route",
+  "origin_new_york": "2025-01-24T17:00:00-05:00",
+  "zone": "230",
+  "actuals": [
+    130,
+    149,
+    124,
+    152
+  ],
+  "displayed_medians": [
+    120,
+    126,
+    128,
+    132
+  ],
+  "displayed_lower": [
+    102,
+    104,
+    105,
+    107
+  ],
+  "displayed_upper": [
+    146,
+    155,
+    158,
+    165
+  ],
+  "ax_actual_elements": 12,
+  "ax_forecast_elements": 4,
+  "each_interval_retains_new_york_label": true,
+  "overlap_retains_quantiles": true,
+  "visual_lines_and_band_unchanged": true,
+  "app_exited": true,
+  "source_and_managed_files_per_copy": 9,
+  "all_model_hashes_match": true,
+  "binary_unchanged_during_run": true,
+  "physical_iphone": false,
+  "voiceover_speech_verified": false,
+  "audio_graph_descriptor_verified": false,
+  "failures_retained": [
+    {
+      "source_commit": "8f5143498698fd4dd8a249fbb9ef77792cb9b19f",
+      "failure": "Automatic coincident-mark grouping switched to host-zone dates and omitted quantiles."
+    },
+    {
+      "source_commit": "6dc625350cfe152f5e7a316dc05e84b0d9555c45",
+      "failure": "Synthetic Text children combined all values under the first interval label."
+    }
+  ],
+  "month_end_prior_run": {
+    "source_commit": "8f5143498698fd4dd8a249fbb9ef77792cb9b19f",
+    "origin_new_york": "2025-01-31T22:00:00-05:00",
+    "displayed_actuals": [
+      255,
+      235,
+      128,
+      114
+    ],
+    "advances_allowed": 4,
+    "stops_at": "2025-02-01T00:00:00-05:00",
+    "reforecast_keeps_actuals_unverified": true,
+    "remaining_twelve_slots_individually_inspected_in_gui": false
+  },
+  "scope": "Assistant-operated normal Mac UI and CUA accessibility tree, separate from all-raw native comparison and user acceptance."
+}

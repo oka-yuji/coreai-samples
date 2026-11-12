@@ -1,0 +1,116 @@
+{
+  "format": "chronos2-api-verification/1",
+  "source_commit": "05f8363b5e3de8f9531ebb2fb332b71bb9b795fb",
+  "input_elements": 20160,
+  "raw_output_elements": 6720,
+  "atol": 0.0001,
+  "rtol": 0.0001,
+  "max_absolute_error": 0.000152587890625,
+  "leases_after_close": 0,
+  "manifest_sha256": "786dcf97e020c987cbf883f09b486fba5f3fee30a588b87a346ea65d72d20572",
+  "graph_sha256": "3094871fc431ae5d86d07c8b487ab53e48e60e9fb56efe803ba18c5bf88889c8",
+  "input_snapshot_sha256": "8c0038b1002bd78b0157e1564c88d8476244f8daeacc95ebc5ea7c224338997e",
+  "datasets": [
+    {
+      "id": "irx2-vgm4",
+      "revision": "2026-10-01T16:57:47.000Z",
+      "year": 2025
+    }
+  ],
+  "preprocessing": "nyc-utc30m-v2",
+  "history_start_utc": "2025-01-03T22:00:00+00:00",
+  "origin_utc": "2025-01-24T22:00:00+00:00",
+  "source_evidence": [
+    {
+      "role": "catalog",
+      "url": "https://api.us.socrata.com/api/catalog/v1?search_context=data.cityofnewyork.us&q=Yellow%20Taxi%20Trip%20Data&limit=1000",
+      "status": 200,
+      "acquired_at_utc": "2026-11-11T21:03:58.242608+00:00",
+      "bytes": 1004681,
+      "sha256": "73f318ca6119266c93e4e7f047590b6822b8d56481d1cbf2f14ae26d8787a93f"
+    },
+    {
+      "role": "metadata",
+      "url": "https://data.cityofnewyork.us/api/views/irx2-vgm4.json",
+      "status": 200,
+      "acquired_at_utc": "2026-11-11T21:03:59.157172+00:00",
+      "bytes": 34906,
+      "sha256": "8f43be37dcde843cc8a2ddd508f5fc9a580ccaf7c0145674e5a238fe7a9e0a24"
+    },
+    {
+      "role": "aggregate",
+      "url": "https://data.cityofnewyork.us/resource/irx2-vgm4.json?$select=date_trunc_ymd(tpep_pickup_datetime)%20as%20day,date_extract_hh(tpep_pickup_datetime)%20as%20hour,date_extract_mm(tpep_pickup_datetime)%3E%3D30%20as%20second_half,pulocationid%20as%20zone,count(*)%20as%20trips&$where=tpep_pickup_datetime%20%3E%3D%20'2025-01-03T17:00:00'%20AND%20tpep_pickup_datetime%20%3C%20'2025-01-10T17:00:00'%20AND%20pulocationid%20in(100,107,137,142,143,161,162,163,164,170,186,229,230,233,234,246,48,50,68,90)&$group=day,hour,second_half,zone&$order=day,hour,second_half,zone&$limit=50000",
+      "status": 200,
+      "acquired_at_utc": "2026-11-11T21:04:09.596204+00:00",
+      "bytes": 602064,
+      "sha256": "18910db9bfda8d0cf17b75ef510686d66cb1541d444f44916424628af6b72110"
+    },
+    {
+      "role": "aggregate",
+      "url": "https://data.cityofnewyork.us/resource/irx2-vgm4.json?$select=date_trunc_ymd(tpep_pickup_datetime)%20as%20day,date_extract_hh(tpep_pickup_datetime)%20as%20hour,date_extract_mm(tpep_pickup_datetime)%3E%3D30%20as%20second_half,pulocationid%20as%20zone,count(*)%20as%20trips&$where=tpep_pickup_datetime%20%3E%3D%20'2025-01-10T17:00:00'%20AND%20tpep_pickup_datetime%20%3C%20'2025-01-17T17:00:00'%20AND%20pulocationid%20in(100,107,137,142,143,161,162,163,164,170,186,229,230,233,234,246,48,50,68,90)&$group=day,hour,second_half,zone&$order=day,hour,second_half,zone&$limit=50000",
+      "status": 200,
+      "acquired_at_utc": "2026-11-11T21:04:26.020534+00:00",
+      "bytes": 606725,
+      "sha256": "8fabf054892995109be5c9aab54b281b84861b014b011b1b741eec8984d4c897"
+    },
+    {
+      "role": "aggregate",
+      "url": "https://data.cityofnewyork.us/resource/irx2-vgm4.json?$select=date_trunc_ymd(tpep_pickup_datetime)%20as%20day,date_extract_hh(tpep_pickup_datetime)%20as%20hour,date_extract_mm(tpep_pickup_datetime)%3E%3D30%20as%20second_half,pulocationid%20as%20zone,count(*)%20as%20trips&$where=tpep_pickup_datetime%20%3E%3D%20'2025-01-17T17:00:00'%20AND%20tpep_pickup_datetime%20%3C%20'2025-01-24T17:00:00'%20AND%20pulocationid%20in(100,107,137,142,143,161,162,163,164,170,186,229,230,233,234,246,48,50,68,90)&$group=day,hour,second_half,zone&$order=day,hour,second_half,zone&$limit=50000",
+      "status": 200,
+      "acquired_at_utc": "2026-11-11T21:04:39.905563+00:00",
+      "bytes": 606641,
+      "sha256": "f4c390010c072478b7874898a9d20855a1f362a1ffb41e403019994b877c7f26"
+    }
+  ],
+  "mac_gui": {
+    "published_years": [
+      2017,
+      2018,
+      2019,
+      2020,
+      2021,
+      2022,
+      2023,
+      2024,
+      2025
+    ],
+    "visual_initial_date": "2025-01-24",
+    "initial_time": "17:00 EST",
+    "missing_history_intervals": 0,
+    "initial_median": 120,
+    "initial_range": [
+      102,
+      146
+    ],
+    "initial_actual_before_fetch": null,
+    "initial_actual_after_fetch": 130,
+    "changed_requested_time": "17:30 EST",
+    "old_forecast_retained_before_refetch": true,
+    "prediction_disabled_until_refetch": true,
+    "refetched_last_observed": 130,
+    "changed_median": 128,
+    "changed_range": [
+      109,
+      153
+    ],
+    "changed_actual_before_fetch": null,
+    "fixed_scene_reset_last_observed": 95,
+    "fixed_scene_forecast_cleared": true,
+    "leave_destination": "TeleOCR preview"
+  },
+  "managed_and_source_nine_hashes_match": true,
+  "localization": {
+    "catalogs": 10,
+    "keys": 1426,
+    "languages": [
+      "ja"
+    ],
+    "missing": 0,
+    "compiler_ui_static_keys": 80
+  },
+  "signed_ios_build": true,
+  "physical_iphone_inference": false,
+  "user_acceptance": false,
+  "performance_benchmark": false,
+  "comparison": "Native JSON values are decoded back to Float32 before comparison with the pinned official Float32 reference."
+}
