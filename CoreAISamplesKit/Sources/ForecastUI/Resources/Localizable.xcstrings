@@ -731,7 +731,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Runtime includes validation and model loading when needed. Metrics use the same dates with actuals, median and baseline. WAPE is unavailable when actuals sum to zero. Negative predictions are shown as zero; raw output is preserved."
+            "value" : "Runtime includes validation and model loading when needed. Metrics use the same dates with actuals, median and baseline. WAPE is unavailable when actuals sum to zero. Negative predictions use zero in both the chart and metrics; raw output is preserved."
           }
         },
         "ja" : {
