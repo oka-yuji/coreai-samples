@@ -120,7 +120,8 @@
         "api-20261112",
         "journal-20261112",
         "sales-20261113",
-        "download-20261113"
+        "download-20261113",
+        "download-recheck-20261113"
       ],
       "note": {
         "en": "Normal Mac checks cover NYC fixed/API/history and product-sales forecasting. Fresh public download and production-service native comparison passed separately; normal download UI and user acceptance remain open.",
@@ -367,6 +368,34 @@
       "thermal": null,
       "model_executed": true,
       "plan_sha256": null
+    },
+    "download-recheck-20261113": {
+      "url": "docs/validation/chronos2-download-20261113/README.md",
+      "level": "diagnostic",
+      "outcome": "passed",
+      "record_type": "legacy",
+      "date": "2026-11-13",
+      "platform": "macos",
+      "device": "Apple M5 Max / 137438953472 B RAM",
+      "os": "macOS 27.2.1 (26B131)",
+      "toolchain": "Xcode 27.2 (27B52); Swift 6.4.2; SDK 27.2; Debug package tests; Release Mac/iOS build checks",
+      "variant": "coreai-fp32-univariate",
+      "backend": "Swift Core AI GPU preference; actual delegate not profiled",
+      "route": "Fresh production Models download -> corrected production-linked catalog -> Store/Sessions/Service -> same60 fixed NYC cases -> close",
+      "source_revision": "29ec3766d36d6f73f0696f85560a422f50e8498c",
+      "artifact_revision": "786dcf97e020c987cbf883f09b486fba5f3fee30a588b87a346ea65d72d20572",
+      "code_revision": "ec02f94bde596787ef83c837499732b9c76f3c2a",
+      "workload": {
+        "en": "Second fresh download after sales integration and the opt-in catalog repair. Same60 scene/zone cases and20160 raw values; no additional held-out data. Full case set, Float32-reconstructed raw output, original hashes and zero leases pass. Test50.129s and wrapper63.754719333s include validation work; not performance measurements.",
+        "ja": "売上統合とopt-in catalog修正後の再取得。既存と同じ60場面/ゾーン・20160原値で、未使用データの追加ではない。全case集合・Float32復元原値・元hash不変・lease0を確認。Test50.129秒とwrapper63.754719333秒は検査全体で性能値ではない。"
+      },
+      "batch_size": 1,
+      "concurrency": 1,
+      "warmups": 0,
+      "power": null,
+      "thermal": null,
+      "model_executed": true,
+      "plan_sha256": null
     }
   },
   "measurements": [
@@ -557,7 +586,8 @@
         "demo-20261112",
         "api-20261112",
         "sales-20261113",
-        "download-20261113"
+        "download-20261113",
+        "download-recheck-20261113"
       ],
       "note": {
         "en": "18 synthetic cases, 60 fixed NYC scene/zone cases and 20 live API series pass frozen raw-tensor comparisons. The API inputs overlap the fixed Friday workload. Product sales adds 16 fixed windows, repeated after release/reopen, against official FP32. Fresh public download repeats the same 60 NYC cases; it adds no held-out series.",
@@ -579,7 +609,8 @@
         "demo-20261112",
         "api-20261112",
         "sales-20261113",
-        "download-20261113"
+        "download-20261113",
+        "download-recheck-20261113"
       ],
       "note": {
         "en": "Release/reload, production-service zero leases and normal Mac leave/reopen are checked for NYC and sales. Sales records point memory and whole-process lifetime peak; iPhone acceptance remains open. Fresh public acquisition/native prediction also preserves source hashes and returns all leases.",
