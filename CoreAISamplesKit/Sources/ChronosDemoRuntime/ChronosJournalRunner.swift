@@ -158,7 +158,7 @@ public final class ChronosJournalRunner {
             if sysctlbyname(key, &bytes, &count, nil, 0) == 0 {
                 let candidate = String(
                     decoding: bytes.prefix(while: { $0 != 0 }).map { UInt8(bitPattern: $0) }, as: UTF8.self)
-                if candidate.range(of: "^(Mac|iPhone|iPad)[0-9]+,[0-9]+$", options: .regularExpression) != nil {
+                if ChronosJournalValidation.acceptsHardwareModel(candidate) {
                     hardware = candidate
                 }
             }

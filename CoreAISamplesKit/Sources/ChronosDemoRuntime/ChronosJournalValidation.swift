@@ -51,9 +51,7 @@ enum ChronosJournalValidation {
         for area in value.areas { _ = try ChronosPrediction(quantiles: area.raw.quantiles) }
         let device = value.device
         guard
-            device.hardwareModel.range(
-                of: "^(Mac[0-9]+,[0-9]+|iPhone[0-9]+,[0-9]+|iPad[0-9]+,[0-9]+|unknown)$", options: .regularExpression)
-                != nil,
+            acceptsHardwareModel(device.hardwareModel),
             ["macOS", "iOS", "unknown"].contains(device.operatingSystem),
             device.operatingSystemVersion.range(
                 of: "^[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}$", options: .regularExpression) != nil,
@@ -67,6 +65,14 @@ enum ChronosJournalValidation {
         } else if value.inputSHA256 != nil {
             throw ChronosDemoFailure.invalidData
         }
+    }
+
+    static func acceptsHardwareModel(_ value: String) -> Bool {
+        guard value.utf8.count <= 128 else { return false }
+        if value == "unknown" { return true }
+        let pattern =
+            "^(Mac|MacBook|MacBookAir|MacBookPro|Macmini|MacPro|MacStudio|iMac|iMacPro|iPhone|iPad)[0-9]+,[0-9]+$"
+        return value.range(of: pattern, options: .regularExpression) == value.startIndex..<value.endIndex
     }
 
     static func check(
