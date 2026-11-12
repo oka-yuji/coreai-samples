@@ -70,6 +70,8 @@
 
 ## 重いジョブ
 
+- Chronos公開DLの実結合は共有heavy-jobロック下で `COREAI_CHRONOS2_DOWNLOAD_OUTPUT=/new/output COREAI_CHRONOS2_DOWNLOAD_SOURCE=/path/to/original-bundle COREAI_CHRONOS2_DOWNLOAD_REFERENCE=/path/to/fixed-scenes-reference.json swift test --package-path CoreAISamplesKit --filter ChronosDownloadNativeTests.freshModelsDownload`。出力先は既存を拒否し、親folderは先に作る。空のmanaged store・移行候補なしで固定HF revisionから9filesを実取得し、本番Models/Store/Sessions/Serviceで60系列・20,160原値、manifest identity、元bundle全hash不変、stop後lease0を確認する。取得だけでは推論しない。既定はskip。描画だけのadapterによる成功を通常GUI・iPhone・本人受入へ広げない。
+
 - Chronos予測記録の実結合は共有heavy-jobロック下で `COREAI_CHRONOS2_JOURNAL_BUNDLE=/path/to/bundle COREAI_CHRONOS2_JOURNAL_REFERENCE=/path/to/fixed-scenes-reference.json COREAI_CHRONOS2_JOURNAL_OUTPUT=/new/output swift test --package-path CoreAISamplesKit --filter ChronosAPINativeTests.liveJournal`。本番Models/Store/Service/Sessionsで20,160入力・6,720原値・80実績、原記録bytes/hash不変、再読込み、stop後lease0を確認する。出力folderは既存を拒否し、既定はskip。描画用adapterの成功を通常UI・iPhone・本人受入へ広げない。
 
 - NYC API日時の実取得・実モデル結合は共有heavy-jobロック下で `COREAI_CHRONOS2_API_BUNDLE=/path/to/bundle COREAI_CHRONOS2_API_REFERENCE=/path/to/fixed-scenes-reference.json COREAI_CHRONOS2_API_REPORT=/new/private/report.json swift test --package-path CoreAISamplesKit --filter ChronosAPINativeTests.liveHistoryAndNative`。2025-01-24 17:00 NYの履歴20,160値を固定集計と比較し、本番Models/Store/Serviceの20系列×21分位×16点をatol/rtol各1e-4で照合、close後lease 0を確認する。推論前に元応答bytesを含む`report.history.json`、合格時に入力snapshot/hashとraw出力を含む`report.json`を新規保存する。既定はskip。`COREAI_CHRONOS2_API_FIXTURES=/path/to/fixtures`で動く`ChronosAPIReplayTests`は提供応答のCPU再生で、実API・native・通常UIの合格に代用しない。
