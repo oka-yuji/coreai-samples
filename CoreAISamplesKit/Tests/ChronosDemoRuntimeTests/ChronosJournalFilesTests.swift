@@ -9,6 +9,7 @@ import Testing
 
 @Suite(.timeLimit(.minutes(1)))
 struct ChronosJournalFilesTests {
+    @MainActor
     @Test(
         "J2 Active staging stays locked across owners and task cancellation is checked after the write",
         arguments: [false, true])
