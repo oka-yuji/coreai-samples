@@ -23,7 +23,7 @@ def lines(data):
 
 
 def fail():
-    print("Could not read all issues, pull requests, comments, reviews and edits with gh.", file=sys.stderr)
+    diagnostic("Could not read all issues, pull requests, comments, reviews and edits with gh.")
     sys.exit(2)
 
 
@@ -35,16 +35,22 @@ def listing(path):
     return [item for page in gh("--paginate", "--slurp", f"repos/{repository}/{path}") for item in page]
 
 
-def progress(phase, completed, total=None):
-    count = str(completed) if total is None else f"{completed}/{total}"
+def diagnostic(message):
+    if sys.stderr is None:
+        return
     try:
-        print(f"Audit progress: {phase} {count}", file=sys.stderr, flush=True)
+        print(message, file=sys.stderr, flush=True)
     except BrokenPipeError:
         discard = os.open(os.devnull, os.O_WRONLY)
         try:
             os.dup2(discard, sys.stderr.fileno())
         finally:
             os.close(discard)
+
+
+def progress(phase, completed, total=None):
+    count = str(completed) if total is None else f"{completed}/{total}"
+    diagnostic(f"Audit progress: {phase} {count}")
 
 
 def scan():
@@ -99,10 +105,10 @@ repository = parser.parse_args().repository
 try:
     found = scan()
 except (OSError, subprocess.CalledProcessError, LookupError, TypeError, ValueError, AttributeError) as error:
-    print(f"{type(error).__name__}: {error}", file=sys.stderr)
+    diagnostic(f"{type(error).__name__}: {error}")
     fail()
 for item in found:
     print(item)
 if found:
-    print(f"{len(found)} lines contain an absolute local path.", file=sys.stderr)
+    diagnostic(f"{len(found)} lines contain an absolute local path.")
 sys.exit(1 if found else 0)

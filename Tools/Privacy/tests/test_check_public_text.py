@@ -214,6 +214,34 @@ class PublicTextChecks(unittest.TestCase):
                     self.assertTrue(messages[-2].startswith(cause), messages)
                 self.assertNotIn("scan complete", result.stderr)
 
+    def test_progress_reader_closing_before_api_failure_preserves_exit_two(self):
+        (self.bin / "fake.json").write_text(json.dumps({"block_first": True, "output": "", "code": 1}))
+        environment = dict(os.environ, PATH=os.pathsep.join([str(self.bin), os.environ.get("PATH", "")]))
+        child = subprocess.Popen([sys.executable, "-I", str(SCRIPT), REPOSITORY], stdin=subprocess.PIPE,
+                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=environment)
+        try:
+            ready, _, _ = select.select([child.stderr], [], [], 5)
+            self.assertTrue(ready)
+            self.assertEqual(child.stderr.readline(), b"Audit progress: issue/PR inventory 0\n")
+            child.stderr.close()
+            child.stderr = None
+            stdout, _ = child.communicate(b"x", timeout=10)
+            self.assertEqual(child.returncode, 2)
+            self.assertEqual(stdout, b"")
+        finally:
+            if child.poll() is None:
+                child.kill()
+            child.communicate()
+
+    def test_missing_stderr_never_sends_progress_to_stdout(self):
+        (self.bin / "fake.json").write_text(json.dumps(repository([issue(1, "plain")])))
+        environment = dict(os.environ, PATH=os.pathsep.join([str(self.bin), os.environ.get("PATH", "")]))
+        command = [sys.executable, "-I", "-c", "import os,sys;os.close(2);os.execv(sys.argv[1],sys.argv[1:])",
+                   sys.executable, "-I", str(SCRIPT), REPOSITORY]
+        result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=environment, timeout=10)
+        self.assertEqual(result.returncode, 0)
+        self.assertEqual(result.stdout, b"")
+
 
 if __name__ == "__main__":
     unittest.main()
