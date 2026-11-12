@@ -95,6 +95,8 @@ public struct ForecastScreen: View {
                     Text("Source: Hierarchical Sales Data · Mendeley Data v1", bundle: .module)
                 }
             }
+            Text("Paolo Mancuso, Veronica Piccialli and Antonio M. Sudoso (2021)", bundle: .module).font(.caption)
+                .foregroundStyle(.secondary)
             Text(
                 "Noncommercial data · CC BY-NC 3.0 at Mendeley; UCI lists CC BY 4.0. Loading stores the verified original in this app’s cache for offline use.",
                 bundle: .module

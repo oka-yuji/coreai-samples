@@ -613,6 +613,16 @@
         }
       }
     },
+    "Paolo Mancuso, Veronica Piccialli and Antonio M. Sudoso (2021)" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paolo Mancuso、Veronica Piccialli、Antonio M. Sudoso（2021年）"
+          }
+        }
+      }
+    },
     "Predict on this device" : {
       "extractionState" : "manual",
       "localizations" : {

@@ -6,7 +6,7 @@ The Mac sidebar and iOS Models offer **Product sales forecast** under Chronos-2.
 
 ## Source and terms
 
-[Hierarchical Sales Data, Mendeley Data v1](https://doi.org/10.17632/njdkntcpc9.1), dataset `njdkntcpc9`, is the source. [UCI's listing](https://archive.ics.uci.edu/dataset/611/hierarchical+sales+data) labels CC BY 4.0; the original Mendeley distribution specifies **CC BY-NC 3.0**. Use the original noncommercial terms. The app displays the source link and this distinction beside the data action. No original or derived real sales values are bundled in source, tests or resources.
+[Hierarchical Sales Data, Mendeley Data v1](https://doi.org/10.17632/njdkntcpc9.1), dataset `njdkntcpc9`, is the source. The dataset creators are Paolo Mancuso, Veronica Piccialli and Antonio M. Sudoso (2021). [UCI's listing](https://archive.ics.uci.edu/dataset/611/hierarchical+sales+data) labels CC BY 4.0; the original Mendeley distribution specifies **CC BY-NC 3.0**. Use the original noncommercial terms. The app displays the source link and this distinction beside the data action. No original or derived real sales values are bundled in source, tests or resources.
 
 The only acquisition URL is:
 

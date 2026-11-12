@@ -6,6 +6,8 @@ MacのサイドバーとiOSのModelsで、Chronos-2の「商品売上予測」�
 
 ## 出典と条件
 
+作成者はPaolo Mancuso、Veronica Piccialli、Antonio M. Sudoso（2021年）です。
+
 原典は[Hierarchical Sales Data、Mendeley Data v1](https://doi.org/10.17632/njdkntcpc9.1)です。[UCI](https://archive.ics.uci.edu/dataset/611/hierarchical+sales+data)の表示はCC BY 4.0ですが、Mendeleyの原配布は**CC BY-NC 3.0**です。原典の非商用利用条件を適用し、取得ボタンの隣にも明示します。実売上・元CSV・派生fixtureはアプリやリポジトリへ同梱しません。
 
 取得先は[原典ファイル](https://data.mendeley.com/public-files/datasets/njdkntcpc9/files/08bb4f43-6dfa-4995-b268-42fa0690ba6b/file_downloaded)だけです。応答上限2 MiB、888,985 bytes、SHA-256 `0dfd4a5bf801bf79ddb5fb1f6bc8d023487c36dd6a2a70b312cdfa9fa6568d83`を検査してから解析・保存します。標準の配布元リダイレクトは許しますが、内容の一致は必須です。actorがアプリの専用cacheだけを管理し、読込ごとに再検査します。有効なcacheはオフラインでも使えます。破損は画面に表示し、再度の明示読込で再取得します。[再取得手順](../Tools/Forecasting/README.md)。
