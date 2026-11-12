@@ -195,6 +195,7 @@ public enum IOSDemoCatalog {
                 ChronosDemoCatalog.model(artifact: chronosArtifact, platforms: [.iOS], searchTerms: searchTerms))
             demos.append(ChronosDemoCatalog.demo(platforms: [.iOS], searchTerms: searchTerms))
             demos.append(ChronosDemoCatalog.salesDemo(platforms: [.iOS], searchTerms: searchTerms))
+            demos.append(ChronosDemoCatalog.bikeDemo(platforms: [.iOS], searchTerms: searchTerms))
         }
         return try ModelCatalog(models: models, demos: demos)
     }

@@ -97,6 +97,7 @@ let package = Package(
             dependencies: [
                 "ForecastFeature", "ChronosRuntime", "ModelLibraryFeature", "ModelLibraryRuntime", "FeatureStore",
             ],
+            resources: [.copy("Resources/SeoulBike")],
             swiftSettings: speechSettings),
         .target(
             name: "ForecastUI",

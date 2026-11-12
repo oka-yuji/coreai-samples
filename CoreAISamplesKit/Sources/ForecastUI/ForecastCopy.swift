@@ -18,13 +18,22 @@ enum ForecastCopy {
 
     static func day(_ date: Date, kind: ForecastKind) -> String {
         guard let calendar = try? kind.calendar() else { return "" }
-        let parts = calendar.dateComponents([.year, .month, .day], from: date)
+        let parts = calendar.dateComponents([.year, .month, .day, .hour], from: date)
         guard let year = parts.year, let month = parts.month, let day = parts.day else { return "" }
-        return String(format: "%04d-%02d-%02d", year, month, day)
+        let date = String(format: "%04d-%02d-%02d", year, month, day)
+        return kind == .seoulBike ? date + String(format: " %02d:00", parts.hour ?? 0) : date
     }
 
-    static func failure(_ failure: ForecastFailure) -> String {
-        switch failure {
+    static func failure(_ failure: ForecastFailure, kind: ForecastKind) -> String {
+        if kind == .seoulBike {
+            switch failure {
+            case .invalidData, .sourceMismatch, .cache, .network:
+                return "The bundled bike data could not be verified. Close and reopen the demo to retry."
+            case .invalidRequest: return "Choose a valid whole hour and horizon."
+            default: break
+            }
+        }
+        return switch failure {
         case .invalidData, .sourceMismatch: "Sales data did not match the verified source. Load again to retry."
         case .invalidRequest: "Choose a valid product, date and horizon."
         case .network: "Could not load sales data. Check the connection and try again."

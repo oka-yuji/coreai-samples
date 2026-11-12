@@ -5,6 +5,7 @@ public enum ForecastFeature: Feature {
     public enum Phase: Sendable, Equatable { case idle, loading, ready, predicting, stopping }
 
     public struct State: Sendable, Equatable {
+        public let kind: ForecastKind
         public var dataset: ForecastDataset?
         public var seriesID = "B1_1"
         public var originIndex = 365
@@ -17,11 +18,18 @@ public enum ForecastFeature: Feature {
         public var ended = false
         public let liveAvailable: Bool
 
-        public init(liveAvailable: Bool = false) { self.liveAvailable = liveAvailable }
+        public init(kind: ForecastKind = .productSales, liveAvailable: Bool = false) {
+            self.kind = kind
+            self.liveAvailable = liveAvailable
+            seriesID = kind == .productSales ? "B1_1" : BikeDataset.seriesID
+            originIndex = kind.contextCount
+            horizon = kind == .productSales ? 14 : 16
+        }
         public var isWorking: Bool { phase == .loading || phase == .predicting }
         public var canSelect: Bool { active && phase == .ready && !ended }
         public var request: ForecastRequest? {
-            try? dataset?.request(seriesID: seriesID, originIndex: originIndex, horizon: horizon)
+            guard dataset?.kind == kind else { return nil }
+            return try? dataset?.request(seriesID: seriesID, originIndex: originIndex, horizon: horizon)
         }
         public var canPredict: Bool {
             canSelect && liveAvailable && request?.context.contains(where: { $0 != nil }) == true
@@ -71,9 +79,14 @@ public enum ForecastFeature: Feature {
             state.result = nil
             return [.run(.load(state.ticket, refresh: refresh), id: .operation)]
         case .loaded(let ticket, let dataset):
-            guard state.active, ticket == state.ticket, state.phase == .loading,
-                let first = dataset.series.first, let origins = dataset.origins(horizon: state.horizon)
-            else { return [] }
+            guard state.active, ticket == state.ticket, state.phase == .loading else { return [] }
+            guard dataset.kind == state.kind, let first = dataset.series.first,
+                let origins = dataset.origins(horizon: state.horizon)
+            else {
+                state.phase = state.dataset == nil ? .idle : .ready
+                state.error = .invalidData
+                return []
+            }
             state.dataset = dataset
             state.seriesID = first.id
             state.originIndex = origins.upperBound

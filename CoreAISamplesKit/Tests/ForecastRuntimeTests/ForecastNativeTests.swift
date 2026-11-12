@@ -29,10 +29,43 @@ struct ForecastNativeTests {
         try #require(!FileManager.default.fileExists(atPath: output.path))
         let sourceBytes = try Data(contentsOf: csv)
         try SalesSource.validate(sourceBytes)
+        try await verify(
+            kind: .productSales, bundle: bundle, sourceBytes: sourceBytes, referenceURL: referenceURL, output: output)
+        #expect(SHA256.hash(data: try Data(contentsOf: csv)) == SHA256.hash(data: sourceBytes))
+    }
+    @Test(
+        "B4 Production Models and bike sessions compare all five windows, release leases and repeat",
+        .enabled(
+            if: ["COREAI_FORECAST_BUNDLE", "COREAI_BIKE_REFERENCE", "COREAI_BIKE_REPORT"]
+                .allSatisfy { ProcessInfo.processInfo.environment[$0] != nil }),
+        .timeLimit(.minutes(30)))
+    func bike() async throws {
+        let environment = ProcessInfo.processInfo.environment
+        let bundle = URL(filePath: try #require(environment["COREAI_FORECAST_BUNDLE"]))
+        let reference = URL(filePath: try #require(environment["COREAI_BIKE_REFERENCE"]))
+        let output = URL(filePath: try #require(environment["COREAI_BIKE_REPORT"]))
+        let directory = try #require(BikeSource.bundledDirectory)
+        let source = try BikeSource.read(directory)
+        try await verify(kind: .seoulBike, bundle: bundle, sourceBytes: source, referenceURL: reference, output: output)
+        #expect(try BikeSource.read(directory) == source)
+    }
+
+    private func verify(
+        kind: ForecastKind, bundle: URL, sourceBytes: Data, referenceURL: URL, output: URL
+    ) async throws {
+        try #require(!FileManager.default.fileExists(atPath: output.path))
         let sourceHash = SHA256.hash(data: sourceBytes).map { String(format: "%02x", $0) }.joined()
         let referenceData = try Data(contentsOf: referenceURL)
         let reference = try JSONDecoder().decode(ForecastReference.self, from: referenceData)
         try #require(!reference.cases.isEmpty && Set(reference.cases.map(\.id)).count == reference.cases.count)
+        if kind == .seoulBike {
+            try #require(reference.cases.count == 5)
+            try #require(Set(reference.cases.map(\.originIndex)).count == 5)
+            try #require(
+                reference.cases.allSatisfy {
+                    $0.seriesID == BikeDataset.seriesID && $0.horizon == 16 && $0.context.count == 336
+                })
+        }
         let root = URL.temporaryDirectory.appending(path: "forecast-native-" + UUID().uuidString)
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: root) }
@@ -43,7 +76,7 @@ struct ForecastNativeTests {
         var memory = [ForecastMemory.capture("beforeImport")]
         let staging = try await storage.copyForImport(from: bundle, model: model, artifact: artifact) { _ in }
         let installed = try await storage.promote(staging: staging, model: model, artifact: artifact)
-        let adapter = ForecastNativeAdapter(source: sourceBytes, cache: root.appending(path: "cache"))
+        let adapter = ForecastNativeAdapter(kind: kind, source: sourceBytes, cache: root.appending(path: "cache"))
         let assembly = ModelLibraryAssembly(adapters: [adapter], store: storage, transfer: ArtifactTransfer())
         let effects = AsyncStream<ModelLibraryEffect>.makeStream()
         defer {
@@ -67,7 +100,7 @@ struct ForecastNativeTests {
         var records: [ForecastNativeRecord] = []
         var actions = adapter.actions.stream.makeAsyncIterator()
         for pass in 1...2 {
-            library.send(.openDemo(ChronosDemoCatalog.salesSelection))
+            library.send(.openDemo(kind.selection))
             let session = try #require(library.state.session)
             do {
                 _ = rendering.content(for: session)
@@ -85,11 +118,13 @@ struct ForecastNativeTests {
                 for item in reference.cases {
                     let request = try dataset.request(
                         seriesID: item.seriesID, originIndex: item.originIndex, horizon: item.horizon)
-                    try #require(request.context == item.context && request.context.count == 365)
+                    try #require(request.context == item.context && request.context.count == kind.contextCount)
                     let context = try ChronosContext(request.context.map { $0 ?? .nan })
-                    try #require(context.rawCount == 365 && context.paddedValues.count == 368)
                     try #require(
-                        zip(context.paddedValues.suffix(365), item.context).allSatisfy { raw, expected in
+                        context.rawCount == kind.contextCount
+                            && context.paddedValues.count == (kind.contextCount + 15) / 16 * 16)
+                    try #require(
+                        zip(context.paddedValues.suffix(kind.contextCount), item.context).allSatisfy { raw, expected in
                             expected.map { raw == $0 } ?? raw.isNaN
                         })
                     store.send(.selectSeries(item.seriesID))
@@ -122,6 +157,12 @@ struct ForecastNativeTests {
                     if pass == 2 {
                         let first = try #require(records.first { $0.id == item.id && $0.pass == 1 })
                         try #require(first.result.request == result.request && first.result.identity == result.identity)
+                        for (prior, current) in zip(first.result.raw.quantiles, result.raw.quantiles) {
+                            try #require(
+                                zip(prior, current).allSatisfy {
+                                    abs(Double($0) - Double($1)) <= 0.0001 + 0.0001 * abs(Double($0))
+                                })
+                        }
                     }
                     records.append(
                         ForecastNativeRecord(
@@ -142,6 +183,9 @@ struct ForecastNativeTests {
             memory.append(ForecastMemory.capture("afterClose"))
         }
         let report = ForecastNativeReport(
+            format: kind == .productSales ? "chronos2-sales-native/1" : "chronos2-bike-native/1",
+            sourceManifestSHA256: kind == .seoulBike ? BikeSource.manifestSHA256 : nil,
+            originalSourceSHA256: kind == .seoulBike ? BikeSource.originalSHA256 : nil,
             sourceSHA256: sourceHash, sourceBytes: sourceBytes.count,
             referenceSHA256: SHA256.hash(data: referenceData).map { String(format: "%02x", $0) }.joined(),
             records: records, memory: memory)
@@ -149,8 +193,8 @@ struct ForecastNativeTests {
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         encoder.dateEncodingStrategy = .iso8601
         try encoder.encode(report).write(to: output, options: .withoutOverwriting)
-        #expect(SHA256.hash(data: try Data(contentsOf: csv)) == SHA256.hash(data: sourceBytes))
     }
+
 }
 
 struct ForecastReference: Decodable {
@@ -181,7 +225,9 @@ struct ForecastNativeRecord: Encodable {
 }
 
 struct ForecastNativeReport: Encodable {
-    let format = "chronos2-sales-native/1"
+    let format: String
+    let sourceManifestSHA256: String?
+    let originalSourceSHA256: String?
     let scope =
         "Production Models, Store, Service and Sessions; rendering adapter replaced. Not GUI or iPhone acceptance."
     let os = ProcessInfo.processInfo.operatingSystemVersionString
@@ -199,17 +245,21 @@ struct ForecastNativeReport: Encodable {
 
 @MainActor
 final class ForecastNativeAdapter: ModelDemoAdapter {
-    let demoID = ChronosDemoCatalog.salesSelection.demoID
+    let demoID: String
     let actions = AsyncStream<ForecastFeature.Action>.makeStream()
     let sessions: ForecastDemoSessions
     var store: Store<ForecastFeature>?
 
-    init(source: Data, cache: URL) {
+    init(kind: ForecastKind, source: Data, cache: URL) {
+        demoID = kind.selection.demoID
+        let repository: any ForecastDataLoading =
+            kind == .productSales ? SalesDataRepository(cacheDirectory: cache, fetch: { source }) : BikeDataRepository()
         let sink = actions.continuation
         sessions = ForecastDemoSessions(
+            kind: kind,
             makeService: { resource, permits in
                 LiveForecastService(
-                    resource: resource, repository: SalesDataRepository(cacheDirectory: cache, fetch: { source }),
+                    kind: kind, resource: resource, repository: repository,
                     permits: permits)
             }, observe: { _, action in sink.yield(action) })
     }

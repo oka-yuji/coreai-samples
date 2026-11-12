@@ -1,6 +1,6 @@
 # Seoul Bike source data
 
-This prepares the independent source-data portion of Issue #530. It includes no Swift target, UI, model execution, weather forecast or forecast-quality result. Forecast integration and its acceptance checks are separate work.
+This prepares the pinned source data for Issue #530. The [Seoul Bike demo](../../docs/chronos2-bike.md) now reads this copied resource folder through ForecastRuntime, verifies the CSV/manifest/notice hashes and parses the hourly data in ForecastFeature. The source tool itself performs no model execution, weather forecast or forecast-quality evaluation. Native and normal UI acceptance remain separate checks.
 
 ## Source and attribution
 
