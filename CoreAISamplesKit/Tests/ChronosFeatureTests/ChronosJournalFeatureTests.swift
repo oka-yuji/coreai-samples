@@ -39,4 +39,29 @@ struct ChronosJournalFeatureTests {
     private func batch(_ mode: ChronosForecastMode) -> ChronosForecastBatch {
         ChronosForecastBatch(scenarioID: "fixed", originStep: 0, mode: mode, areas: [], processingSeconds: nil)
     }
+
+    @Test("J2 Publication follows the first queued save and the active selected check")
+    func publicationTickets() {
+        var state = ChronosJournalFeature.State()
+        let native = batch(.live)
+        _ = ChronosJournalFeature.reduce(&state, .capture(native))
+        _ = ChronosJournalFeature.reduce(&state, .capture(native))
+        #expect(state.saveTicket == 2)
+        #expect(ChronosJournalFeature.permits(.save(1, native), in: state))
+        #expect(!ChronosJournalFeature.permits(.save(2, native), in: state))
+        let id = UUID()
+        state.presented = true
+        state.selectedID = id
+        state.ticket = 3
+        state.busy = true
+        state.checking = true
+        #expect(ChronosJournalFeature.permits(.check(3, id), in: state))
+        #expect(!ChronosJournalFeature.permits(.check(2, id), in: state))
+        #expect(!ChronosJournalFeature.permits(.check(3, UUID()), in: state))
+        _ = ChronosJournalFeature.reduce(&state, .close)
+        #expect(!ChronosJournalFeature.permits(.check(3, id), in: state))
+        #expect(ChronosJournalFeature.permits(.save(1, native), in: state))
+        _ = ChronosJournalFeature.reduce(&state, .suspend)
+        #expect(!ChronosJournalFeature.permits(.save(1, native), in: state))
+    }
 }

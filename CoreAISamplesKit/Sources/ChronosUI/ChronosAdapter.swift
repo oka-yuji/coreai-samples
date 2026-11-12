@@ -14,7 +14,7 @@ public final class ChronosAdapter: ModelDemoAdapter {
     public func preview(for selection: DemoSelection) -> AnyView { AnyView(ChronosPreview()) }
 
     public func content(for session: ModelDemoSession, gate: DemoExecutionGate) -> AnyView {
-        guard gate.session == session, gate.isPermitted(), let store = sessions.bind(session, permits: gate.isPermitted)
+        guard gate.session == session, gate.isPermitted(), let store = sessions.bind(session, gate: gate)
         else {
             return AnyView(Text("Close and reopen the forecast to start this session.", bundle: .module))
         }

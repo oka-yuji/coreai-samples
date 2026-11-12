@@ -4,20 +4,39 @@ import Foundation
 import Synchronization
 
 public final class ChronosPublicationPermit: Sendable {
-    private let allowed = Mutex(true)
+    private enum State { case allowed, invalidated, revoked }
+    private let state = Mutex(State.allowed)
     public init() {}
-    public func revoke() { allowed.withLock { $0 = false } }
+    public func revoke() { state.withLock { $0 = .revoked } }
+
+    func invalidate() {
+        state.withLock { if case .allowed = $0 { $0 = .invalidated } }
+    }
 
     func publish(_ operation: () throws -> Void) throws {
-        try allowed.withLock {
+        try state.withLock {
             try Task.checkCancellation()
-            guard $0 else { throw CancellationError() }
+            switch $0 {
+            case .allowed: break
+            case .invalidated: throw ChronosPublicationInvalidated()
+            case .revoked: throw CancellationError()
+            }
             try operation()
         }
     }
 }
 
+struct ChronosPublicationInvalidated: Error {}
+
 public actor ChronosJournalFiles {
+    struct Prepared: Sendable {
+        fileprivate let record: ChronosForecastRecord
+        fileprivate let check: ChronosActualCheck?
+        fileprivate let data: Data
+
+        var recordID: UUID { record.id }
+    }
+
     public static let payloadLimit = 192 * 1024 * 1024
     static let fileLimit = 256 * 1024 * 1024 + 4096
     private let directory: URL
@@ -37,8 +56,52 @@ public actor ChronosJournalFiles {
     }
 
     public func create(_ record: ChronosForecastRecord, permit: ChronosPublicationPermit) throws {
+        try publish(prepare(record), permit: permit)
+    }
+
+    func prepare(
+        id: UUID, savedAt: Date, batch: ChronosForecastBatch, device: ChronosRecordDevice
+    ) throws -> Prepared {
+        if let snapshot = batch.inputSnapshot {
+            guard batch.inputSHA256 == NYCAPIContract.hash(try NYCAPIContract.encode(snapshot)) else {
+                throw ChronosDemoFailure.invalidData
+            }
+        }
+        return try prepare(ChronosForecastRecord(id: id, savedAt: savedAt, batch: batch, device: device))
+    }
+
+    private func prepare(_ record: ChronosForecastRecord) throws -> Prepared {
+        try Task.checkCancellation()
         try ChronosJournalValidation.record(record, profile: profile)
         let data = try envelope(record, id: record.id, recordID: nil)
+        return Prepared(record: record, check: nil, data: data)
+    }
+
+    func prepare(
+        id: UUID, record: ChronosForecastRecord, checkedAt: Date, actuals: APIWindow
+    ) throws -> Prepared {
+        try prepare(ChronosActualCheck(id: id, record: record, checkedAt: checkedAt, actuals: actuals), record: record)
+    }
+
+    private func prepare(_ check: ChronosActualCheck, record: ChronosForecastRecord) throws -> Prepared {
+        try Task.checkCancellation()
+        try ChronosJournalValidation.check(check, record: record, profile: profile)
+        return try Prepared(record: record, check: check, data: envelope(check, id: check.id, recordID: record.id))
+    }
+
+    func matches(_ prepared: Prepared) throws -> Bool {
+        try record(prepared.recordID) == prepared.record
+    }
+
+    func publish(_ prepared: Prepared, permit: ChronosPublicationPermit) throws {
+        if let check = prepared.check {
+            try append(prepared, check: check, permit: permit)
+        } else {
+            try create(prepared, permit: permit)
+        }
+    }
+
+    private func create(_ prepared: Prepared, permit: ChronosPublicationPermit) throws {
         try withRoot { root in
             try cleanup(root)
             let pending = ".pending-" + UUID().uuidString
@@ -50,10 +113,10 @@ public actor ChronosJournalFiles {
                 close(folder)
                 unlinkat(root, pending, AT_REMOVEDIR)
             }
-            try writeFile(data, name: "prediction.json", in: folder)
+            try writeFile(prepared.data, name: "prediction.json", in: folder)
             try beforePublish(permit)
             try permit.publish {
-                guard renameatx_np(root, pending, root, record.id.uuidString, UInt32(RENAME_EXCL)) == 0 else {
+                guard renameatx_np(root, pending, root, prepared.recordID.uuidString, UInt32(RENAME_EXCL)) == 0 else {
                     throw ChronosDemoFailure.persistence
                 }
                 published = true
@@ -62,9 +125,16 @@ public actor ChronosJournalFiles {
     }
 
     public func append(_ check: ChronosActualCheck, permit: ChronosPublicationPermit) throws {
+        let record = try record(check.recordID)
+        try publish(prepare(check, record: record), permit: permit)
+    }
+
+    private func append(
+        _ prepared: Prepared, check: ChronosActualCheck, permit: ChronosPublicationPermit
+    ) throws {
         try withRoot { root in
             let record = try readRecord(check.recordID, in: root)
-            try ChronosJournalValidation.check(check, record: record, profile: profile)
+            guard record == prepared.record else { throw ChronosDemoFailure.invalidData }
             let folder = try ChronosJournalBoundary.folder(check.recordID.uuidString, in: root)
             defer { close(folder) }
             guard mkdirat(folder, "checks", 0o700) == 0 || errno == EEXIST else {
@@ -75,7 +145,7 @@ public actor ChronosJournalFiles {
             try cleanup(checks)
             let pending = ".pending-" + UUID().uuidString + ".tmp"
             defer { unlinkat(checks, pending, 0) }
-            try writeFile(try envelope(check, id: check.id, recordID: record.id), name: pending, in: checks)
+            try writeFile(prepared.data, name: pending, in: checks)
             try beforePublish(permit)
             try permit.publish {
                 guard renameatx_np(checks, pending, checks, check.id.uuidString + ".json", UInt32(RENAME_EXCL)) == 0

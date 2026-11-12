@@ -2,16 +2,16 @@ import ChronosFeature
 import FeatureStore
 import Foundation
 import ModelLibraryFeature
+import ModelLibraryRuntime
 
 @MainActor
 public final class ChronosDemoSessions {
-    private final class Permission { var active = true }
     private struct Entry {
         let session: ModelDemoSession
         let store: Store<ChronosFeature>
         let runner: ChronosRunner
         let journal: Store<ChronosJournalFeature>
-        let permission: Permission
+        let permission: ChronosSessionPermission
     }
 
     public typealias Factory =
@@ -34,18 +34,40 @@ public final class ChronosDemoSessions {
         self.observeJournal = observeJournal
     }
 
-    public func bind(_ session: ModelDemoSession, permits: @escaping @MainActor () -> Bool) -> Store<ChronosFeature>? {
+    public func bind(_ session: ModelDemoSession, gate: DemoExecutionGate) -> Store<ChronosFeature>? {
+        guard gate.session == session else { return nil }
+        return bind(session, permits: gate.isPermitted, retainPermission: gate.retainPermission)
+    }
+
+    public func bind(
+        _ session: ModelDemoSession, permits: @escaping @MainActor () -> Bool,
+        retainPermission: (@MainActor () -> DemoExecutionPermission?)? = nil
+    ) -> Store<ChronosFeature>? {
         guard session.selection == ChronosDemoCatalog.selection, permits() else { return nil }
         if let entry = entries[session.id] {
             return entry.session == session && entry.permission.active ? entry.store : nil
         }
         if let previous = latest[session.selection], entries[previous] != nil { return nil }
-        let permission = Permission()
+        let permission = ChronosSessionPermission()
         let allowed: @MainActor () -> Bool = { [weak self] in
             permission.active && self?.latest[session.selection] == session.id && permits()
         }
+        let retain: @MainActor () -> DemoExecutionPermission? = { [weak self] in
+            guard let self else { return nil }
+            let owner: DemoExecutionPermission
+            if let retainPermission {
+                guard let retained = retainPermission() else { return nil }
+                owner = retained
+            } else {
+                owner = DemoExecutionPermission(isPermitted: permits)
+            }
+            return DemoExecutionPermission {
+                permission.active && self.latest[session.selection] == session.id && owner.isPermitted()
+            }
+        }
         let observeJournal = observeJournal
-        let journal = journalAssembly.makeStore(permits: allowed, observe: { observeJournal(session.id, $0) })
+        let journal = journalAssembly.makeStore(
+            permits: allowed, retainPermission: retain, observe: { observeJournal(session.id, $0) })
         let runner = ChronosRunner(service: makeService(session.resource, allowed), permits: allowed, journal: journal)
         let observe = observe
         let store = Store<ChronosFeature>(initialState: ChronosFeature.State()) { effect, send in

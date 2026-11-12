@@ -91,7 +91,9 @@ let package = Package(
         .target(name: "ChronosFeature", dependencies: ["ChronosCore", "FeatureStore"], swiftSettings: speechSettings),
         .target(
             name: "ChronosDemoRuntime",
-            dependencies: ["ChronosFeature", "ChronosRuntime", "ModelLibraryFeature", "FeatureStore"],
+            dependencies: [
+                "ChronosFeature", "ChronosRuntime", "ModelLibraryFeature", "ModelLibraryRuntime", "FeatureStore",
+            ],
             resources: [.copy("Resources/NYCData"), .copy("Resources/NYCVerified")], swiftSettings: speechSettings),
         .target(
             name: "ChronosUI",
@@ -104,7 +106,7 @@ let package = Package(
             name: "ChronosDemoRuntimeTests",
             dependencies: [
                 "ChronosDemoRuntime", "ChronosFeature", "ChronosRuntime", "FeatureStore", "ModelLibraryRuntime",
-                "ModelLibraryStorage", "ModelLibraryTransfer",
+                "ModelLibraryStorage", "ModelLibraryTransfer", "ModelLibraryTestSupport",
             ], swiftSettings: speechSettings),
         .target(name: "ChronosCore", swiftSettings: speechSettings),
         .target(name: "ChronosRuntime", dependencies: ["ChronosCore"], swiftSettings: speechSettings),

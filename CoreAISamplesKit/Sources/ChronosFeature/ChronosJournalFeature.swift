@@ -50,6 +50,20 @@ public enum ChronosJournalFeature: Feature {
 
     public enum EffectID: Hashable, Sendable { case save, operation }
 
+    public static func permits(_ effect: Effect, in state: State) -> Bool {
+        guard state.active, !state.ended else { return false }
+        switch effect {
+        case .save(let ticket, _):
+            return state.saving && state.saves.first?.ticket == ticket
+        case .check(let ticket, let id):
+            return accepts(state, ticket) && state.busy && state.checking && state.selectedID == id
+        case .detail(let ticket, let id):
+            return accepts(state, ticket) && state.busy && state.selectedID == id
+        case .list(let ticket):
+            return accepts(state, ticket) && state.busy && state.selectedID == nil
+        }
+    }
+
     public static func reduce(_ state: inout State, _ action: Action) -> [Command<Effect, EffectID>] {
         guard !state.ended else { return [] }
         switch action {

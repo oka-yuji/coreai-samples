@@ -12,10 +12,16 @@ public protocol ModelDemoAdapter: AnyObject {
 nonisolated public struct DemoExecutionGate: Sendable {
     public let session: ModelDemoSession
     public let isPermitted: @MainActor @Sendable () -> Bool
+    public let retainPermission: @MainActor @Sendable () -> DemoExecutionPermission?
 
-    public init(session: ModelDemoSession, isPermitted: @escaping @MainActor @Sendable () -> Bool) {
+    public init(
+        session: ModelDemoSession,
+        retainPermission: (@MainActor @Sendable () -> DemoExecutionPermission?)? = nil,
+        isPermitted: @escaping @MainActor @Sendable () -> Bool
+    ) {
         self.session = session
         self.isPermitted = isPermitted
+        self.retainPermission = retainPermission ?? { DemoExecutionPermission(isPermitted: isPermitted) }
     }
 }
 

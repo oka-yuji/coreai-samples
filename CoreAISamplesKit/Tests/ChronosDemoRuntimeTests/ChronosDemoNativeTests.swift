@@ -167,7 +167,7 @@ final class ChronosNativeAdapter: ModelDemoAdapter {
     func preview(for selection: DemoSelection) -> AnyView { AnyView(EmptyView()) }
     func content(for session: ModelDemoSession, gate: DemoExecutionGate) -> AnyView {
         guard gate.session == session, gate.isPermitted() else { return AnyView(EmptyView()) }
-        store = sessions.bind(session, permits: gate.isPermitted)
+        store = sessions.bind(session, gate: gate)
         journalStore = sessions.journal(for: session)
         return AnyView(EmptyView())
     }
