@@ -507,7 +507,7 @@
       ],
       "note": {
         "en": "18 synthetic cases, 60 fixed NYC scene/zone cases and 20 live API series pass frozen raw-tensor comparisons. The API inputs overlap the fixed Friday workload. Product sales adds 16 fixed windows, repeated after release/reopen, against official FP32.",
-        "ja": "合成18条件・固定NYC60場面/ゾーン・実API20系列が凍結した原tensor照合に合格。API入力は固定金曜の条件と重複。 商品売上は固定16窓を解放/再表示後も公式FP32と照合。"
+        "ja": "合成18条件・固定NYC60場面/ゾーン・実API20系列が凍結した原tensor照合に合格。API入力は固定金曜の条件と重複。商品売上は固定16窓を解放/再表示後も公式FP32と照合。"
       }
     },
     "quality": {
