@@ -1548,19 +1548,19 @@
         }
       }
     },
-    "The check could not be saved. Free some space and retry." : {
+    "The check could not be saved. Check storage access and available space, then retry." : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "The check could not be saved. Free some space and retry."
+            "value" : "The check could not be saved. Check storage access and available space, then retry."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "確認結果を保存できませんでした。空き容量を確保して再試行してください。"
+            "value" : "確認結果を保存できませんでした。保存先へのアクセスと空き容量を確認して再試行してください。"
           }
         }
       }
