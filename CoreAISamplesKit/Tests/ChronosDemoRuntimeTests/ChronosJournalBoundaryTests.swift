@@ -6,6 +6,35 @@ import Testing
 @testable import ChronosDemoRuntime
 
 struct ChronosJournalBoundaryTests {
+    @Test("J2 Concurrent initialization opens the same lock inode for both owners")
+    func initialLockRace() async throws {
+        let root = try ChronosAPIFixture.temporary()
+        defer { try? FileManager.default.removeItem(at: root) }
+        for index in 0..<32 {
+            let directory = root.appending(path: String(index))
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: false)
+            let descriptor = open(directory.path, O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC)
+            try #require(descriptor >= 0)
+            defer { close(descriptor) }
+            let inodes = try await withThrowingTaskGroup(of: UInt64.self) { group in
+                for _ in 0..<2 {
+                    group.addTask {
+                        let lock = try ChronosJournalBoundary.openLock(in: descriptor)
+                        defer { close(lock) }
+                        var information = stat()
+                        try #require(fstat(lock, &information) == 0)
+                        try #require(information.st_mode & S_IFMT == S_IFREG && information.st_nlink == 1)
+                        return UInt64(information.st_ino)
+                    }
+                }
+                var values: [UInt64] = []
+                for try await value in group { values.append(value) }
+                return values
+            }
+            #expect(inodes.count == 2 && Set(inodes).count == 1)
+        }
+    }
+
     @Test(
         "J2 Controlled directories and files reject links nonregular entries and oversized envelopes",
         arguments: ["root", "record", "prediction", "checks", "check", "fifo", "oversized"])

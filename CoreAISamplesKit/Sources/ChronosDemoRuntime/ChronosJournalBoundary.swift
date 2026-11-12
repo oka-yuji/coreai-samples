@@ -3,6 +3,19 @@ import Darwin
 import Foundation
 
 enum ChronosJournalBoundary {
+    static func openLock(in root: Int32) throws -> Int32 {
+        let flags = O_RDWR | O_NOFOLLOW | O_NONBLOCK | O_CLOEXEC
+        let existing = openat(root, ".lock", flags)
+        if existing >= 0 { return existing }
+        guard errno == ENOENT else { throw ChronosDemoFailure.persistence }
+        let created = openat(root, ".lock", flags | O_CREAT | O_EXCL, 0o600)
+        if created >= 0 { return created }
+        guard errno == EEXIST || errno == ENOENT else { throw ChronosDemoFailure.persistence }
+        let shared = openat(root, ".lock", flags)
+        guard shared >= 0 else { throw ChronosDemoFailure.persistence }
+        return shared
+    }
+
     static func folder(_ name: String, in parent: Int32) throws -> Int32 {
         let descriptor = openat(parent, name, O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC)
         guard descriptor >= 0 else { throw ChronosDemoFailure.invalidData }

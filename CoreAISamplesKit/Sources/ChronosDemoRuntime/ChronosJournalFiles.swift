@@ -257,8 +257,7 @@ public actor ChronosJournalFiles {
         else { throw ChronosDemoFailure.persistence }
         let root = try ChronosJournalBoundary.folder(name, in: ancestor)
         defer { close(root) }
-        let lock = openat(root, ".lock", O_CREAT | O_RDWR | O_NOFOLLOW | O_NONBLOCK | O_CLOEXEC, 0o600)
-        guard lock >= 0 else { throw ChronosDemoFailure.persistence }
+        let lock = try ChronosJournalBoundary.openLock(in: root)
         defer { close(lock) }
         var info = stat()
         guard fstat(lock, &info) == 0, info.st_mode & S_IFMT == S_IFREG, info.st_nlink == 1,
