@@ -149,8 +149,15 @@ struct ForecastNativeTests {
                         try #require(item.quantiles[row].count == 16)
                         for step in 0..<16 {
                             let expected = item.quantiles[row][step]
-                            let error = abs(Double(result.raw.quantiles[row][step]) - expected)
-                            try #require(expected.isFinite && error <= 0.0001 + 0.0001 * abs(expected))
+                            let actual = Double(result.raw.quantiles[row][step])
+                            let error = abs(actual - expected)
+                            let limit = 0.0001 + 0.0001 * abs(expected)
+                            try #require(
+                                expected.isFinite && error <= limit,
+                                """
+                                Case \(item.id), pass \(pass), quantile \(row), step \(step): \
+                                reference \(expected), native \(actual), error \(error), limit \(limit)
+                                """)
                             maximumAbsoluteError = max(maximumAbsoluteError, error)
                         }
                     }
