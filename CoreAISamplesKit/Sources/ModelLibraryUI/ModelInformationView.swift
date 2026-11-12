@@ -52,16 +52,8 @@ public struct ModelInformationView: View {
                 }
             }
             if let download = artifact?.download {
-                LabeledContent {
-                    Text(verbatim: download.repository)
-                } label: {
-                    libraryText("Repository")
-                }
-                LabeledContent {
-                    Text(verbatim: download.revision).textSelection(.enabled)
-                } label: {
-                    libraryText("Revision")
-                }
+                identifier("Repository", value: download.repository)
+                identifier("Revision", value: download.revision)
             }
             if let localBundle = artifact?.localBundle {
                 LabeledContent {
@@ -69,11 +61,7 @@ public struct ModelInformationView: View {
                 } label: {
                     libraryText("Source")
                 }
-                LabeledContent {
-                    Text(verbatim: localBundle.manifestSHA256).textSelection(.enabled)
-                } label: {
-                    libraryText("Manifest SHA-256")
-                }
+                identifier("Manifest SHA-256", value: localBundle.manifestSHA256)
                 if artifact?.contract == "qwen-image21-mobile-v2" {
                     libraryText("For research and evaluation only. Commercial use requires a separate license.")
                         .font(.callout)
@@ -88,5 +76,17 @@ public struct ModelInformationView: View {
                 }
             }
         }
+    }
+
+    private func identifier(_ title: String, value: String) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            libraryText(title).foregroundStyle(.secondary)
+            Text(verbatim: value)
+                .font(.caption.monospaced())
+                .textSelection(.enabled)
+                .lineLimit(nil)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
