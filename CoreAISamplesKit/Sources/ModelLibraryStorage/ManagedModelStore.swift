@@ -250,6 +250,12 @@ public actor ManagedModelStore {
             throw error
         }
         try? manager.removeItem(at: trash)
+        let imported = URL(filePath: stagingPath)
+        if artifact.sourceKind == .localManifest,
+            imported.deletingLastPathComponent().path == areaPath, UUID(uuidString: imported.lastPathComponent) != nil
+        {
+            discardDownloadStaging(at: area, paths: artifact.files.map(\.path))
+        }
         _ = rmdir(area.path)
         return resource
     }

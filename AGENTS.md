@@ -70,6 +70,8 @@
 
 ## 重いジョブ
 
+- Chronos公開DLの実結合は共有heavy-jobロック下で `COREAI_CHRONOS2_DOWNLOAD_OUTPUT=/new/output COREAI_CHRONOS2_DOWNLOAD_SOURCE=/path/to/original-bundle COREAI_CHRONOS2_DOWNLOAD_REFERENCE=/path/to/fixed-scenes-reference.json swift test --package-path CoreAISamplesKit --filter ChronosDownloadNativeTests.freshModelsDownload`。出力先は既存を拒否し、親folderは先に作る。空のmanaged store・移行候補なしで固定HF revisionから9filesを実取得し、本番Models/Store/Sessions/Serviceで60系列・20,160原値、manifest identity、元bundle全hash不変、stop後lease0を確認する。取得だけでは推論しない。既定はskip。描画だけのadapterによる成功を通常GUI・iPhone・本人受入へ広げない。
+
 - 商品売上デモの実モデル結合は共有heavy-jobロック下で `COREAI_FORECAST_BUNDLE=/path/to/chronos2-bundle COREAI_SALES_CSV=/path/to/hierarchical_sales_data.csv COREAI_FORECAST_REFERENCE=/path/to/sales-reference.json COREAI_FORECAST_REPORT=/new/report.json swift test --package-path CoreAISamplesKit --force-resolved-versions --filter ForecastNativeTests.sales`。原CSVの固定hash・全21分位×16点・本番Models/Store/Service/Sessions・close後lease0・再表示の一致を確認する。元CSVと全raw報告は非公開で保持し、実売上をGit/アプリへ同梱しない。通常suiteはskipし、Macの検査adapter成功を通常UI/iPhone/本人受入の代わりにしない。現在値のメモリとprocess生涯peakを分ける。
 
 - Chronos予測記録の実結合は共有heavy-jobロック下で `COREAI_CHRONOS2_JOURNAL_BUNDLE=/path/to/bundle COREAI_CHRONOS2_JOURNAL_REFERENCE=/path/to/fixed-scenes-reference.json COREAI_CHRONOS2_JOURNAL_OUTPUT=/new/output swift test --package-path CoreAISamplesKit --filter ChronosAPINativeTests.liveJournal`。本番Models/Store/Service/Sessionsで20,160入力・6,720原値・80実績、原記録bytes/hash不変、再読込み、stop後lease0を確認する。出力folderは既存を拒否し、既定はskip。描画用adapterの成功を通常UI・iPhone・本人受入へ広げない。

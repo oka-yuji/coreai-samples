@@ -1,0 +1,514 @@
+{
+  "schema": "chronos2-download-validation/1",
+  "date": "2026-11-13",
+  "date_timezone": "Asia/Tokyo",
+  "code_revision": "9c7da3d0de00ef86f8ca1235385a254bd82f7982",
+  "product_code_revision": "cf53f2932ccf8f80ffd4b067367f8e66b075fb2e",
+  "distribution": {
+    "repository": "okayuji/chronos-2-coreai-fp32",
+    "public": true,
+    "published_at_utc": "2026-11-12T16:14:47.660657+00:00",
+    "release_tag": "v1.0.1",
+    "release_commit": "f422aa3a7c1173566c99fbfceb97e874b0121dab",
+    "app_download_revision": "d3ead488046498faa8b3b5103b1923e52a313d0e",
+    "app_download_root": "bundle",
+    "bundle_files_unchanged_between_releases": 9,
+    "preserved_v100_tag": true,
+    "upstream_revision": "29ec3766d36d6f73f0696f85560a422f50e8498c",
+    "manifest_sha256": "786dcf97e020c987cbf883f09b486fba5f3fee30a588b87a346ea65d72d20572",
+    "graph_sha256": "3094871fc431ae5d86d07c8b487ab53e48e60e9fb56efe803ba18c5bf88889c8",
+    "runtime_files": 9,
+    "runtime_bytes": 478864956,
+    "payload_files": 16,
+    "payload_bytes": 478899086,
+    "payload_manifest_sha256": "759d00a0f592268d7ae5411f05df1100b08518c33112816cea45e647d1dc046f"
+  },
+  "information_audit": {
+    "scanner_id": "63501ba4f0d44b8a0f05127025407875f7cbd983dc573919d6905b816d9f7baf",
+    "stages": {
+      "local_payload": {
+        "verdict": "passed",
+        "complete": true,
+        "errors": 0,
+        "unresolved_findings": 0
+      },
+      "private_history": {
+        "verdict": "passed",
+        "complete": true,
+        "errors": 0,
+        "unresolved_findings": 0,
+        "commits": 3,
+        "unique_objects": 16,
+        "refs": 3,
+        "history_complete": true,
+        "pull_request_refs_included": true
+      },
+      "prepublication_gate": {
+        "verdict": "passed",
+        "complete": true,
+        "errors": 0
+      },
+      "anonymous_public_history": {
+        "verdict": "passed",
+        "complete": true,
+        "errors": 0,
+        "unresolved_findings": 0,
+        "commits": 3,
+        "unique_objects": 16,
+        "refs": 3,
+        "history_complete": true,
+        "pull_request_refs_included": true
+      }
+    },
+    "unresolved_findings": 0,
+    "errors": 0,
+    "allowlist_entries": 0,
+    "anonymous_history_byte_source": "Existing audit objects were fully rescanned and checked against anonymous public revision SHA-256/git-blob identities and sizes. This does not claim a fresh model GET.",
+    "fresh_model_get_claimed_by_history_audit": false
+  },
+  "anonymous_get": {
+    "nonmodel": {
+      "revision": "f422aa3a7c1173566c99fbfceb97e874b0121dab",
+      "files": 7,
+      "bytes": 34130,
+      "all_sizes_hashes_match": true,
+      "inventory": [
+        {
+          "path": "verification/example-conditions.json",
+          "bytes": 1777,
+          "sha256": "4f847019e7d022d463572d126ab1785712b580a7961bd1d80ba17a18738be054"
+        },
+        {
+          "path": "verification/example-input.json",
+          "bytes": 25,
+          "sha256": "4fcc7e1a2ff80b89258775a6752b7b88a375930aabfd8848aaff184571720c4a"
+        },
+        {
+          "path": ".gitattributes",
+          "bytes": 1563,
+          "sha256": "fa643179c665fe9f9ed74d2902c52f163745a730afecdc49472bdacdec361b90"
+        },
+        {
+          "path": "verification/example-output.json",
+          "bytes": 8826,
+          "sha256": "c6e9eaef6e070b1b3d2be135c2a588aee856ded389000feba91364ad03205642"
+        },
+        {
+          "path": "README.md",
+          "bytes": 10552,
+          "sha256": "c05b4923eed79b8f437c183e1ac89b0467f36a7a1b46a3137844597bb53aebef"
+        },
+        {
+          "path": "LICENSE",
+          "bytes": 10142,
+          "sha256": "09e8a9bcec8067104652c168685ab0931e7868f9c8284b66f5ae6edae5f1130b"
+        },
+        {
+          "path": "NOTICE",
+          "bytes": 1245,
+          "sha256": "03a39dd9e3a435ba3ad4d6e2a362bb2a57a6374fa4030b047476211b906f82e9"
+        }
+      ],
+      "owner_token_sent": false,
+      "netrc_used": false,
+      "proxy_auth_sent": false,
+      "cookies_sent": false
+    },
+    "app_bundle": {
+      "revision": "d3ead488046498faa8b3b5103b1923e52a313d0e",
+      "root": "bundle",
+      "files": 9,
+      "bytes": 478864956,
+      "inventory": [
+        {
+          "bytes": 10142,
+          "path": "LICENSE",
+          "sha256": "09e8a9bcec8067104652c168685ab0931e7868f9c8284b66f5ae6edae5f1130b"
+        },
+        {
+          "bytes": 32,
+          "path": "Model.aimodel/main.hash",
+          "sha256": "73219f66d12277e119ec3fcf88c9e4a611a542a0198ad09f0bdc28430cd8d15c"
+        },
+        {
+          "bytes": 478034790,
+          "path": "Model.aimodel/main.mlirb",
+          "sha256": "3094871fc431ae5d86d07c8b487ab53e48e60e9fb56efe803ba18c5bf88889c8"
+        },
+        {
+          "bytes": 323,
+          "path": "Model.aimodel/metadata.json",
+          "sha256": "9e11346bfa2574137adad66e74dc9f5983bbdfc003f29bd22dce4d476aa0ba17"
+        },
+        {
+          "bytes": 1245,
+          "path": "NOTICE",
+          "sha256": "03a39dd9e3a435ba3ad4d6e2a362bb2a57a6374fa4030b047476211b906f82e9"
+        },
+        {
+          "bytes": 7773,
+          "path": "SOURCE_README.md",
+          "sha256": "c7b29bc88f5bc3ebc6e7213b6353be80090d671fefa4aa74ed20498838c16558"
+        },
+        {
+          "bytes": 2148,
+          "path": "chronos2.json",
+          "sha256": "786dcf97e020c987cbf883f09b486fba5f3fee30a588b87a346ea65d72d20572"
+        },
+        {
+          "bytes": 804253,
+          "path": "reference.json",
+          "sha256": "9265b34a83b6d298a5c7ea1f38e37a01f4926a214e96a20d86f9ef18faa38bfa"
+        },
+        {
+          "bytes": 4250,
+          "path": "verification.json",
+          "sha256": "5d5bde1a86c6fda2d0b5ac072d84049ede942832e13dfa60d479443a8c2df850"
+        }
+      ],
+      "all_http_status_200": true,
+      "all_sizes_hashes_match": true,
+      "fresh_managed_store": true,
+      "migration_candidates": 0,
+      "production_transfer": true,
+      "source_kind": "localManifest",
+      "manifest_sha256": "786dcf97e020c987cbf883f09b486fba5f3fee30a588b87a346ea65d72d20572",
+      "authentication_scope": "Initial URLRequests have no explicit headers. Production ephemeral URLSession disables cookies, credential storage and URL cache. No authenticated model client is used."
+    }
+  },
+  "native": {
+    "test": "ChronosDownloadNativeTests.freshModelsDownload",
+    "code_revision": "9c7da3d0de00ef86f8ca1235385a254bd82f7982",
+    "started_at_utc": "2026-11-12T16:53:57.964713+00:00",
+    "completed_at_utc": "2026-11-12T16:55:02.439463+00:00",
+    "reference_sha256": "8f894aaac769294a3e6843225e6f86519f85090d747b16d94a288fb987661470",
+    "cases": 60,
+    "elements": 20160,
+    "atol": 0.0001,
+    "rtol": 0.0001,
+    "max_absolute_error": 0.0002288818359375,
+    "all_within_tolerance": true,
+    "persisted_raw_values_independently_compared": 20160,
+    "source_files_unchanged": true,
+    "leases_after_close": 0,
+    "inference_during_acquisition": false,
+    "shared_lock_released": true,
+    "test_elapsed_seconds": 50.765,
+    "wrapper_elapsed_seconds": 64.47399308299646,
+    "timing_scope": "Single validation run. Test duration includes source hashing, downloads, validation, native setup, all forecasts, cleanup and evidence writing; wrapper duration also includes SwiftPM build and orchestration. Neither is an inference-latency or throughput measurement.",
+    "scope": "Production Models, Store, sessions and service; drawing-only adapter. GUI and iPhone acceptance are separate.",
+    "retained_runtime_warning": "Failed to import MPS module",
+    "device": "Apple M5 Max",
+    "memory_bytes": 137438953472,
+    "os": "macOS 27.2.1 (26B131)",
+    "xcode": "Xcode 27.2 / Build version 27B52",
+    "swift": "Apple Swift version 6.4.2 (swiftlang-6.4.2.1.9 clang-2100.4.1.1)",
+    "sdk": "27.2",
+    "environment_capture": "Host identity was captured after this run on the same machine. Power, thermal state and a controlled benchmark-plan hash were not captured."
+  },
+  "earlier_private_cli": {
+    "authenticated": true,
+    "public_anonymous": false,
+    "code_revision": "3b3cfe2f70fa6f2b4fa7d9a8aeed51211f890dd3",
+    "example_tag": "v1.0.1",
+    "example_values": 336,
+    "example_max_absolute_error": 0.0,
+    "full_reference_tag": "v1.0.0",
+    "full_reference_cases": 18,
+    "full_reference_values": 6048,
+    "reload_matches_first": true,
+    "scope": "18 cases/6048 values and reload from v1.0.0; all nine bundle files are identical in v1.0.1."
+  },
+  "builds_and_cpu": {
+    "product_code_revision": "cf53f2932ccf8f80ffd4b067367f8e66b075fb2e",
+    "required_checks_passed": 8,
+    "mac_release_build": true,
+    "ios_signed_release_build": true,
+    "ios_embedded_inventory_bytes_match": true,
+    "ios_file_sharing": true,
+    "ios_open_documents_in_place": true,
+    "localization_catalogs": 10,
+    "localization_keys": 1465,
+    "missing_translations": 0,
+    "placeholder_mismatches": 0,
+    "compiled_translation_checks_passed": 28,
+    "changed_resource_entries_verified_in_en_ja_mac_ios": 7,
+    "distinct_key_strings": 6
+  },
+  "retained_preparation_failures": [
+    {
+      "stage": "initial_independent_harness",
+      "result": "compile_error",
+      "cause": "Extraneous request argument label; corrected before evaluating product behavior."
+    },
+    {
+      "stage": "independent_baseline_after_harness_fix",
+      "tests": 5,
+      "failed_tests": 3,
+      "cause": "The previous catalog rejected combined manifest and download definitions."
+    },
+    {
+      "stage": "sf_worker_test_compile",
+      "result": "compile_error",
+      "cause": "Nested require macro expansion; checked URL extracted into a local value."
+    },
+    {
+      "stage": "candidate_scope_review",
+      "result": "rejected_extra_behavior",
+      "cause": "A fixture without demo links led to acquisition of asset-only models. Original visibility restored; fixture corrected and no-demo regression retained. Original SF inputs and result preserved."
+    },
+    {
+      "stage": "initial_ios_build",
+      "result": "built_but_unsigned",
+      "cause": "Ignored local signing configuration was absent. Existing configuration copied without changing its source; later signed artifact verified."
+    },
+    {
+      "stage": "native_test_compile",
+      "result": "isolation_error",
+      "cause": "Borrowed AsyncStream iterator required next(isolation: #isolation), verified against SE-0421 and the SDK before the successful build."
+    },
+    {
+      "stage": "normal_mac_information_layout",
+      "result": "G561-1 confirmed then corrected",
+      "cause": "Complete AX values did not expose visual clipping in the narrow popover. Stacked wrapping identifiers at 6dbb0ad were rechecked in both locales on the 84dce327 rebuilt app."
+    },
+    {
+      "stage": "post_merge_opt_in_catalog",
+      "result": "CPU regression red then green",
+      "cause": "The original model gained a sales demo link while the opt-in catalog retained only the taxi descriptor; fixed in 11c54a9 with a shared builder and default CPU test."
+    },
+    {
+      "stage": "post_merge_full_package",
+      "result": "First run failed an unchanged RAG timing assertion; isolated and full reruns passed",
+      "observed_seconds": 2.985081416,
+      "limit_seconds": 2,
+      "source_or_threshold_changed": false,
+      "cause_established": false
+    }
+  ],
+  "acceptance": {
+    "fresh_production_download_and_native": true,
+    "drawing_only_adapter": true,
+    "normal_gui_download_acceptance": false,
+    "physical_iphone_inference": false,
+    "user_cd07": false,
+    "held_out_forecasting_quality_measured": false,
+    "controlled_performance_measured": false,
+    "peak_memory_measured": false
+  },
+  "post_sales_integration": {
+    "base_revision": "aab92e5de833a80fa422170fd29d21f799b533aa",
+    "code_revision": "84dce3275887c11350f9d21e5efcab6e44e7925c",
+    "source_tree": "3982b2e8b9ed7233ab44e3d2c09fe7de63a536b2",
+    "required_checks_passed": 8,
+    "additional_signed_ios_build": true,
+    "localization_catalogs": 11,
+    "localization_keys": 1530,
+    "missing_translations": 0,
+    "placeholder_mismatches": 0,
+    "resource_entries": 7,
+    "distinct_key_strings": 6,
+    "compiled_translation_checks_passed": 28,
+    "original_sales_evidence_and_measurements_preserved": true,
+    "artifacts": [
+      {
+        "platform": "macos",
+        "signature_verified": true,
+        "binary_sha256": "97d50d9dcea2a694e1d54c9a57e3c04d0b75481408089b50c06bf47cf883c63b",
+        "binary_bytes": 50644432,
+        "info_plist_sha256": "ec9f1bb21920879f825393583c7e5c31157d2c4dac04a7060e39a043595d749c",
+        "info_plist": {
+          "CFBundleIdentifier": "com.coreai-samples.DemoApp",
+          "CFBundleExecutable": "CoreAISamples",
+          "CFBundleShortVersionString": "1.0",
+          "CFBundleVersion": "1",
+          "LSMinimumSystemVersion": "27.0"
+        },
+        "code_resources_sha256": "4747d1faf06253ed13ebc80c90cdcff11f6f6c2842b6fd228e9fe0fd4f5fcfbb",
+        "chronos_resources": {
+          "chronos2-fp32-download.json": {
+            "bytes": 130,
+            "sha256": "e9834830db8343c0cd54897f0e94f248e36b27675fe38f1b584b4bf2f7d70c35",
+            "matches_staged_source": true
+          },
+          "chronos2-fp32-files.json": {
+            "bytes": 1280,
+            "sha256": "ac5c482c4797c0e70c07787d88351fe30f801ac7b4035ee61f49b9f14d3bb3f9",
+            "matches_staged_source": true
+          }
+        },
+        "download_locator": {
+          "repository": "okayuji/chronos-2-coreai-fp32",
+          "revision": "d3ead488046498faa8b3b5103b1923e52a313d0e",
+          "root": "bundle"
+        },
+        "artifact_stable_during_readback": true
+      },
+      {
+        "platform": "ios",
+        "signature_verified": true,
+        "binary_sha256": "88ad87702ece2c66cb7e9aa00fb5fdd7686accc4c181d1b63a97f1c4f5c7a309",
+        "binary_bytes": 30449920,
+        "info_plist_sha256": "085eb6e4e00ca04a15bdd446d99173774506659a995f46beb43b6a03bd4e5be0",
+        "info_plist": {
+          "CFBundleIdentifier": "com.coreai-samples.DemoApp.ios",
+          "CFBundleExecutable": "CoreAISamples-iOS",
+          "CFBundleShortVersionString": "1.0",
+          "CFBundleVersion": "1",
+          "MinimumOSVersion": "27.0",
+          "UIFileSharingEnabled": true,
+          "LSSupportsOpeningDocumentsInPlace": true
+        },
+        "code_resources_sha256": "19e8e8be1fabe0c79a298670e604cbad4e5360daa18bc92e761881398e21f5a2",
+        "increased_memory_limit_entitlement": true,
+        "chronos_resources": {
+          "chronos2-fp32-download.json": {
+            "bytes": 130,
+            "sha256": "e9834830db8343c0cd54897f0e94f248e36b27675fe38f1b584b4bf2f7d70c35",
+            "matches_staged_source": true
+          },
+          "chronos2-fp32-files.json": {
+            "bytes": 1280,
+            "sha256": "ac5c482c4797c0e70c07787d88351fe30f801ac7b4035ee61f49b9f14d3bb3f9",
+            "matches_staged_source": true
+          }
+        },
+        "download_locator": {
+          "repository": "okayuji/chronos-2-coreai-fp32",
+          "revision": "d3ead488046498faa8b3b5103b1923e52a313d0e",
+          "root": "bundle"
+        },
+        "artifact_stable_during_readback": true
+      }
+    ]
+  },
+  "gui_metadata_check": {
+    "code_revision": "84dce3275887c11350f9d21e5efcab6e44e7925c",
+    "source_tree": "3982b2e8b9ed7233ab44e3d2c09fe7de63a536b2",
+    "binary_sha256": "97d50d9dcea2a694e1d54c9a57e3c04d0b75481408089b50c06bf47cf883c63b",
+    "completed_at_utc": "2026-11-12T17:53:10.788888+00:00",
+    "locales": [
+      "en",
+      "ja"
+    ],
+    "normal_mac_app": true,
+    "existing_import_still_ready": true,
+    "full_identifier_values_and_labels_visually_checked": true,
+    "accessibility_values_match": true,
+    "download_or_import_guidance_match": true,
+    "resolved_finding": "G561-1",
+    "download_clicked": false,
+    "model_inference_executed": false,
+    "model_preparation_clicked": false,
+    "data_deleted": false,
+    "app_exited": true,
+    "japanese_restored": true,
+    "shared_lock_released": true
+  },
+  "post_merge_catalog_cpu_regression": {
+    "code_revision": "11c54a9d92db5edfbfef631fe762e8d0e0c3c33d",
+    "test": "ChronosDownloadNativeTests.productionCatalog",
+    "old_construction": "invalidLink(chronos2, product-sales-forecast)",
+    "red_exit_code": 1,
+    "green_exit_code": 0,
+    "original_model_artifacts_and_all_demo_links_preserved": true,
+    "only_taxi_connected": true,
+    "product_sources_changed": false,
+    "retained_native_code_revision": "9c7da3d0de00ef86f8ca1235385a254bd82f7982",
+    "full_package_recheck_exit_code": 0,
+    "lint_format_privacy_passed": true,
+    "native_rerun_during_cpu_repair": false
+  },
+  "post_merge_native_recheck": {
+    "test": "ChronosDownloadNativeTests.freshModelsDownload",
+    "code_revision": "ec02f94bde596787ef83c837499732b9c76f3c2a",
+    "started_at_utc": "2026-11-12T18:11:44.017080+00:00",
+    "completed_at_utc": "2026-11-12T18:12:47.772524+00:00",
+    "reference_sha256": "8f894aaac769294a3e6843225e6f86519f85090d747b16d94a288fb987661470",
+    "cases": 60,
+    "elements": 20160,
+    "atol": 0.0001,
+    "rtol": 0.0001,
+    "max_absolute_error": 0.0002288818359375,
+    "all_within_tolerance": true,
+    "persisted_raw_values_independently_compared": 20160,
+    "source_files_unchanged": true,
+    "leases_after_close": 0,
+    "inference_during_acquisition": false,
+    "shared_lock_released": true,
+    "test_elapsed_seconds": 50.129,
+    "wrapper_elapsed_seconds": 63.754719333010144,
+    "timing_scope": "Single validation run. Test duration includes source hashing, downloads, validation, native setup, all forecasts, cleanup and evidence writing; wrapper duration also includes SwiftPM build and orchestration. Neither is an inference-latency or throughput measurement.",
+    "scope": "Production Models, Store, sessions and service; drawing-only adapter. GUI and iPhone acceptance are separate.",
+    "retained_runtime_warning": "Failed to import MPS module",
+    "device": "Apple M5 Max",
+    "memory_bytes": 137438953472,
+    "os": "macOS 27.2.1 (26B131)",
+    "xcode": "Xcode 27.2 / Build version 27B52",
+    "swift": "Apple Swift version 6.4.2 (swiftlang-6.4.2.1.9 clang-2100.4.1.1)",
+    "sdk": "27.2",
+    "environment_capture": "Host identity was captured after this run on the same machine. Power, thermal state and a controlled benchmark-plan hash were not captured.",
+    "catalog_fix_included": true,
+    "case_set_same_as_prior_run": true,
+    "persisted_native_sha256": "c69c2789788d9d1dc6b78176143479af50159cecc84ae41b7fa6b6188214e694",
+    "persisted_acquisition_sha256": "d5c0865cb22aa95e85b1e448f8142a7114cb7e594c6cd0f48d367b1c6f9c7f63",
+    "persisted_output_and_acquisition_identical_to_prior_run": true
+  },
+  "latest_native_code_revision": "ec02f94bde596787ef83c837499732b9c76f3c2a",
+  "review_followup": {
+    "storage_code_revision": "736a8b13de787eeae07415420b6dda171cef492f",
+    "ui_code_revision": "4115c851acd1af8ea8f99ded6d3a26a04b764ca8",
+    "storage_cpu": {
+      "fixture": "Small synthetic local-manifest image bundle, same storage paths; no real Chronos or network bytes",
+      "seeded_completed_files": 2,
+      "seeded_stale_partial_files": 2,
+      "new_test_definitions": 4,
+      "failure_cases": 5,
+      "symlink_cases": 3,
+      "targeted_tests": 40,
+      "targeted_suites": 7,
+      "red_then_green": true,
+      "uuid_unknown_other_artifact_and_symlink_targets_preserved": true,
+      "failed_import_prior_installation_and_ledger_preserved": true,
+      "normal_download_cancel_active_part_cleanup_unchanged": true,
+      "cleanup_after_successful_import_commit_only": true,
+      "cleanup_best_effort": true
+    },
+    "required_checks_passed": 8,
+    "signed_ios_build_passed": true,
+    "ui_checks_passed": 5,
+    "ui_source_sha256": "3447bc60ba8c4ee44a4986e57b5e3486baef3bf0e90700063948cf26527720a4",
+    "gui": {
+      "source": "4115c851acd1af8ea8f99ded6d3a26a04b764ca8",
+      "source_tree": "5f7b9e6227b3ac359f7c4cd0c154c0658ffe9dde",
+      "binary_sha256": "06aa9c8211e05cfff944c1b4459a5a4f48b1e728a9718fe7cf6cc73ab14a6f05",
+      "completed_at": "2026-11-12T18:51:05.987172+00:00",
+      "app_exited": true,
+      "binary_unchanged": true,
+      "model_inference_executed": false,
+      "download_clicked": false,
+      "existing_resource_ready": true,
+      "jp_restored": true,
+      "lock_released": true,
+      "local_only_gui_checked": false
+    },
+    "hybrid_source_row_omitted_in_both_locales": true,
+    "full_identifiers_visible_in_both_locales": true,
+    "local_only_and_license_source_branches_retained": true,
+    "physical_iphone_checked": false,
+    "new_native_run_after_storage_cleanup": false,
+    "hybrid_failure_action": {
+      "code_revision": "92f55b6af9b8e4f1cab6bcc4cf3c199793cd3d03",
+      "source_tree": "b797c391824e96240dc626647c4ab74596a52a16",
+      "hybrid_failed_title": "Download model",
+      "download_only_failed_title": "Retry download",
+      "local_only_failed_title": "Import model",
+      "required_checks_passed": 8,
+      "signed_ios_build_passed": true,
+      "new_localization_keys": false,
+      "state_transitions_changed": false,
+      "failed_state_gui_exercised": false,
+      "new_native_run": false
+    }
+  }
+}

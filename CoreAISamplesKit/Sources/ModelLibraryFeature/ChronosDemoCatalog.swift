@@ -53,7 +53,7 @@ public enum ChronosDemoCatalog {
                 DemoExplanation(
                     title: "1. Prepare the model",
                     text:
-                        "Import the complete prepared Chronos-2 FP32 folder. It uses about 479 MB, plus space for the app copy. This build does not provide a model download."
+                        "Download the Chronos-2 FP32 model, or import the complete prepared folder. Model files use about 479 MB. Importing requires extra space for the app copy."
                 ),
                 DemoExplanation(
                     title: "Fixed-data preview",
