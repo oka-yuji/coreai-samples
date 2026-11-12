@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "checked_on": "2026-11-11",
+  "checked_on": "2026-11-13",
   "models": [
     "qwen38-27b",
     "clef-flash",

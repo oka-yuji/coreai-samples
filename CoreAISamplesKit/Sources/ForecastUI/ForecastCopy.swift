@@ -1,0 +1,38 @@
+import ForecastFeature
+import Foundation
+
+enum ForecastCopy {
+    static func text(_ key: String, locale: Locale) -> String {
+        String(localized: String.LocalizationValue(key), bundle: .module, locale: locale)
+    }
+
+    static func number(_ value: Double?, locale: Locale) -> String {
+        value.map { $0.formatted(.number.precision(.fractionLength(0...2)).locale(locale)) }
+            ?? text("Unavailable", locale: locale)
+    }
+
+    static func percent(_ value: Double?, locale: Locale) -> String {
+        value.map { $0.formatted(.percent.precision(.fractionLength(1)).locale(locale)) }
+            ?? text("Unavailable", locale: locale)
+    }
+
+    static func day(_ date: Date, kind: ForecastKind) -> String {
+        guard let calendar = try? kind.calendar() else { return "" }
+        let parts = calendar.dateComponents([.year, .month, .day], from: date)
+        guard let year = parts.year, let month = parts.month, let day = parts.day else { return "" }
+        return String(format: "%04d-%02d-%02d", year, month, day)
+    }
+
+    static func failure(_ failure: ForecastFailure) -> String {
+        switch failure {
+        case .invalidData, .sourceMismatch: "Sales data did not match the verified source. Load again to retry."
+        case .invalidRequest: "Choose a valid product, date and horizon."
+        case .network: "Could not load sales data. Check the connection and try again."
+        case .responseTooLarge: "The source response exceeded the size limit."
+        case .cache: "Could not read or save the sales cache. Load again to retry."
+        case .unavailable: "Prepare and open the model from Models to enable prediction."
+        case .predictionFailed: "Prediction failed. Try again or close and reopen the demo."
+        case .busy: "Wait for the current operation to finish."
+        }
+    }
+}

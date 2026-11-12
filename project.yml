@@ -43,6 +43,8 @@ targets:
       - package: CoreAISamplesKit
         product: ChronosUI
       - package: CoreAISamplesKit
+        product: ForecastUI
+      - package: CoreAISamplesKit
         product: OCRFeature
       - package: CoreAISamplesKit
         product: OCRDemoRuntime
@@ -180,6 +182,8 @@ targets:
     dependencies:
       - package: CoreAISamplesKit
         product: ChronosUI
+      - package: CoreAISamplesKit
+        product: ForecastUI
       - package: CoreAISamplesKit
         product: ImageGenerationCore
       - package: CoreAISamplesKit

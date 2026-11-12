@@ -13,8 +13,12 @@ struct ChronosCatalogTests {
         for (platform, catalog) in try catalogs(artifact) {
             let model = try #require(catalog.model("chronos2"))
             #expect(model.artifacts == [artifact] && model.defaultArtifactID == "chronos2-fp32")
-            #expect(model.platforms == [platform] && model.demos.map(\.demoID) == ["taxi-forecast"])
-            #expect(model.demos.allSatisfy { $0.requiredCapabilities.isEmpty && $0.optionalCapabilities.isEmpty })
+            #expect(
+                model.platforms == [platform]
+                    && model.demos.map(\.demoID) == ["taxi-forecast", "product-sales-forecast"])
+            #expect(
+                model.demos.allSatisfy { $0.requiredCapabilities.isEmpty }
+                    && model.demos[0].optionalCapabilities.isEmpty && model.demos[1].optionalCapabilities == [.network])
             let demo = try #require(catalog.demo("taxi-forecast"))
             #expect(demo.summary.contains("precomputed preview") && demo.summary.contains("on-device forecast"))
             #expect(demo.summary.contains("verified NYC API dates"))
