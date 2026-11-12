@@ -3,7 +3,7 @@ import Foundation
 
 enum ForecastCopy {
     static func text(_ key: String, locale: Locale) -> String {
-        String(localized: String.LocalizationValue(key), bundle: .module, locale: locale)
+        Bundle.module.localizedString(forKey: key, value: nil, table: nil, localizations: [locale.language])
     }
 
     static func number(_ value: Double?, locale: Locale) -> String {

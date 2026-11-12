@@ -112,6 +112,7 @@ let package = Package(
                 "ForecastRuntime", "ForecastFeature", "ChronosRuntime", "ChronosCore", "FeatureStore",
                 "ModelLibraryRuntime", "ModelLibraryStorage", "ModelLibraryTransfer", "ModelLibraryFeature",
             ], swiftSettings: speechSettings),
+        .testTarget(name: "ForecastUITests", dependencies: ["ForecastUI"], swiftSettings: speechSettings),
         .target(name: "ChronosFeature", dependencies: ["ChronosCore", "FeatureStore"], swiftSettings: speechSettings),
         .target(
             name: "ChronosDemoRuntime",
