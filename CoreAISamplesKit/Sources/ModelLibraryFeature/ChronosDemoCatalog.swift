@@ -1,5 +1,6 @@
 public enum ChronosDemoCatalog {
     public static let selection = DemoSelection(modelID: "chronos2", demoID: "taxi-forecast")
+    public static let salesSelection = DemoSelection(modelID: "chronos2", demoID: "product-sales-forecast")
 
     static func model(
         artifact: ModelArtifact, platforms: Set<LibraryPlatform>, searchTerms: [String: [String]]
@@ -8,7 +9,34 @@ public enum ChronosDemoCatalog {
             id: selection.modelID, name: "Chronos-2", category: "Time Series Forecasting",
             searchTerms: searchTerms[selection.modelID] ?? ["time series", "forecast", "taxi"],
             artifacts: [artifact], defaultArtifactID: artifact.id, platforms: platforms,
-            demos: [ModelDemoLink(demoID: selection.demoID, platforms: platforms)])
+            demos: [
+                ModelDemoLink(demoID: selection.demoID, platforms: platforms),
+                ModelDemoLink(demoID: salesSelection.demoID, platforms: platforms, optionalCapabilities: [.network]),
+            ])
+    }
+
+    static func salesDemo(platforms: Set<LibraryPlatform>, searchTerms: [String: [String]]) -> DemoDescriptor {
+        DemoDescriptor(
+            id: salesSelection.demoID, title: "Product sales forecast", systemImage: "chart.bar.xaxis",
+            summary: "Compare 7 or 14 days of product sales with actuals and a seasonal baseline.",
+            explanation: [
+                DemoExplanation(
+                    title: "How it works",
+                    text:
+                        "Choose a product and a historical date. Predict from the preceding 365 calendar days with Chronos-2 on this device. Missing sales stay missing."
+                ),
+                DemoExplanation(
+                    title: "Public sales data",
+                    text:
+                        "Load the original Mendeley Hierarchical Sales Data explicitly. The source uses CC BY-NC 3.0; UCI lists CC BY 4.0. Noncommercial source terms apply. No sales values are bundled."
+                ),
+                DemoExplanation(
+                    title: "1. Prepare the model",
+                    text:
+                        "Use the same prepared Chronos-2 FP32 model as the taxi demo. Opening this demo or preparing the model never starts a download or prediction."
+                ),
+            ], platforms: platforms, searchTerms: searchTerms[salesSelection.demoID] ?? ["sales", "product", "SKU"],
+            allowsPreviewInteraction: true)
     }
 
     static func demo(platforms: Set<LibraryPlatform>, searchTerms: [String: [String]]) -> DemoDescriptor {

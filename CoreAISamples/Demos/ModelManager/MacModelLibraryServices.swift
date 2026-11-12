@@ -1,6 +1,7 @@
 #if os(macOS)
     import ChronosUI
     import FeatureStore
+    import ForecastUI
     import Foundation
     import ModelLibraryFeature
     import ModelLibraryRuntime
@@ -38,7 +39,7 @@
         static let assembly: ModelLibraryAssembly = {
             let legacy = ModelStorage.directory(for: "okayuji/Qwen3.8-27B-coreai-4bit")
             return ModelLibraryAssembly(
-                adapters: [OCRMacAdapter(), ReceiptMacAdapter(), ChronosAdapter()], store: storage,
+                adapters: [OCRMacAdapter(), ReceiptMacAdapter(), ChronosAdapter(), ForecastAdapter()], store: storage,
                 transfer: ArtifactTransfer(),
                 migrationCandidates: { [legacy] })
         }()

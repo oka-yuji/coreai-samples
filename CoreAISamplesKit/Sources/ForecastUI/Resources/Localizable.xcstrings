@@ -1,0 +1,1002 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "1. Prepare the model" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1. Prepare the model"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1. モデルを準備"
+          }
+        }
+      }
+    },
+    "14 days" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "14 days"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "14日"
+          }
+        }
+      }
+    },
+    "7 days" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "7 days"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "7日"
+          }
+        }
+      }
+    },
+    "7-day seasonal naive · dashed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "7-day seasonal naive · dashed"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "7日周期の季節ナイーブ · 破線"
+          }
+        }
+      }
+    },
+    "Actual" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Actual"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "実績"
+          }
+        }
+      }
+    },
+    "Actuals" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Actuals"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "実績"
+          }
+        }
+      }
+    },
+    "Actuals · squares" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Actuals · squares"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "実績 · 四角"
+          }
+        }
+      }
+    },
+    "Baseline" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Baseline"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "基準値"
+          }
+        }
+      }
+    },
+    "Choose a product and a historical date. Predict from the preceding 365 calendar days with Chronos-2 on this device. Missing sales stay missing." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose a product and a historical date. Predict from the preceding 365 calendar days with Chronos-2 on this device. Missing sales stay missing."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "商品と過去の日付を選び、直前365暦日の売上からChronos-2で端末内予測します。欠損は欠損のまま扱います。"
+          }
+        }
+      }
+    },
+    "Choose a valid product, date and horizon." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose a valid product, date and horizon."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "有効な商品・日付・予測期間を選んでください。"
+          }
+        }
+      }
+    },
+    "Close and reopen the forecast to start this session." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Close and reopen the forecast to start this session."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "予測画面を閉じて開き直してください。"
+          }
+        }
+      }
+    },
+    "Compare 7 or 14 days of product sales with actuals and a seasonal baseline." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compare 7 or 14 days of product sales with actuals and a seasonal baseline."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "7日・14日の商品売上予測を、実績と季節ナイーブで比較します。"
+          }
+        }
+      }
+    },
+    "Compared dates: %lld" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compared dates: %lld"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "比較日数：%lld"
+          }
+        }
+      }
+    },
+    "Could not load sales data. Check the connection and try again." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Could not load sales data. Check the connection and try again."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "売上データを取得できませんでした。接続を確認し、再試行してください。"
+          }
+        }
+      }
+    },
+    "Could not read or save the sales cache. Load again to retry." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Could not read or save the sales cache. Load again to retry."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "売上キャッシュを読み込み・保存できませんでした。もう一度読み込んでください。"
+          }
+        }
+      }
+    },
+    "Daily observed sales · Europe/Rome" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Daily observed sales · Europe/Rome"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "日次の売上実績 · Europe/Rome"
+          }
+        }
+      }
+    },
+    "Date" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Date"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "日付"
+          }
+        }
+      }
+    },
+    "Finishing the current operation…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Finishing the current operation…"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "現在の処理の終了を待っています…"
+          }
+        }
+      }
+    },
+    "Forecast" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Forecast"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "予測"
+          }
+        }
+      }
+    },
+    "Forecast start · Europe/Rome" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Forecast start · Europe/Rome"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "予測開始日 · Europe/Rome"
+          }
+        }
+      }
+    },
+    "History" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "History"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "履歴"
+          }
+        }
+      }
+    },
+    "History shows the last 8 weeks. Gaps are missing observations." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "History shows the last 8 weeks. Gaps are missing observations."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "履歴は直前8週間を表示します。空白は欠損した観測です。"
+          }
+        }
+      }
+    },
+    "History · circles" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "History · circles"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "履歴 · 丸"
+          }
+        }
+      }
+    },
+    "Horizon" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Horizon"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "予測期間"
+          }
+        }
+      }
+    },
+    "How it works" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "How it works"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使い方"
+          }
+        }
+      }
+    },
+    "Input: the previous 365 calendar days, without future sales or promotions. This model supports 7 or 14 displayed days; 28 days and covariates are not supported." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Input: the previous 365 calendar days, without future sales or promotions. This model supports 7 or 14 displayed days; 28 days and covariates are not supported."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "入力は直前365暦日で、将来の売上や販促は含みません。表示は7日・14日に対応しています。28日予測と共変量には対応していません。"
+          }
+        }
+      }
+    },
+    "Load public sales data" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Load public sales data"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "公開売上データを読み込む"
+          }
+        }
+      }
+    },
+    "Load the original Mendeley Hierarchical Sales Data explicitly. The source uses CC BY-NC 3.0; UCI lists CC BY 4.0. Noncommercial source terms apply. No sales values are bundled." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Load the original Mendeley Hierarchical Sales Data explicitly. The source uses CC BY-NC 3.0; UCI lists CC BY 4.0. Noncommercial source terms apply. No sales values are bundled."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "操作してMendeleyのHierarchical Sales Data原典を取得します。原典はCC BY-NC 3.0、UCIの表示はCC BY 4.0です。原典の非商用利用条件が適用されます。売上データは同梱していません。"
+          }
+        }
+      }
+    },
+    "MAE" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MAE"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MAE"
+          }
+        }
+      }
+    },
+    "Median" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Median"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "中央値"
+          }
+        }
+      }
+    },
+    "Median and P10–P90 band" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Median and P10–P90 band"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "中央値とP10–P90の帯"
+          }
+        }
+      }
+    },
+    "Missing" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Missing"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "欠損"
+          }
+        }
+      }
+    },
+    "Noncommercial data · CC BY-NC 3.0 at Mendeley; UCI lists CC BY 4.0. Loading stores the verified original in this app’s cache for offline use." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Noncommercial data · CC BY-NC 3.0 at Mendeley; UCI lists CC BY 4.0. Loading stores the verified original in this app’s cache for offline use."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "非商用データ · MendeleyはCC BY-NC 3.0、UCIの表示はCC BY 4.0です。読み込み時に検証済み原典をアプリのキャッシュへ保存し、オフラインでも利用できます。"
+          }
+        }
+      }
+    },
+    "Observed sales are not unmet demand. Missing dates are not zero or assumed store closures. The P10–P90 range is not a coverage guarantee." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Observed sales are not unmet demand. Missing dates are not zero or assumed store closures. The P10–P90 range is not a coverage guarantee."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "売上実績は潜在需要ではありません。欠損日を売上ゼロや休業日とは見なしません。P10–P90の範囲は的中率の保証ではありません。"
+          }
+        }
+      }
+    },
+    "P10" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "P10"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "P10"
+          }
+        }
+      }
+    },
+    "P90" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "P90"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "P90"
+          }
+        }
+      }
+    },
+    "Paolo Mancuso, Veronica Piccialli and Antonio M. Sudoso (2021)" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paolo Mancuso、Veronica Piccialli、Antonio M. Sudoso（2021年）"
+          }
+        }
+      }
+    },
+    "Predict on this device" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Predict on this device"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この端末で予測"
+          }
+        }
+      }
+    },
+    "Prediction failed. Try again or close and reopen the demo." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prediction failed. Try again or close and reopen the demo."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "予測に失敗しました。再試行するか、デモを閉じて開き直してください。"
+          }
+        }
+      }
+    },
+    "Prepare and open the model from Models to enable prediction." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prepare and open the model from Models to enable prediction."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "予測するには、Modelsでモデルを準備して開いてください。"
+          }
+        }
+      }
+    },
+    "Product" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Product"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "商品"
+          }
+        }
+      }
+    },
+    "Product sales forecast" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Product sales forecast"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "商品売上予測"
+          }
+        }
+      }
+    },
+    "Public sales data" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Public sales data"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "公開売上データ"
+          }
+        }
+      }
+    },
+    "Runtime includes validation and model loading when needed. Metrics use the same dates with actuals, median and baseline. WAPE is unavailable when actuals sum to zero. Negative predictions use zero in both the chart and metrics; raw output is preserved." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Runtime includes validation and model loading when needed. Metrics use the same dates with actuals, median and baseline. WAPE is unavailable when actuals sum to zero. Negative predictions use zero in both the chart and metrics; raw output is preserved."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "実行時間には必要に応じた検証とモデル読込を含みます。指標は実績・中央値・基準値が揃う同じ日を比較します。実績の合計がゼロの場合、WAPEは算出できません。負の予測はグラフと指標の計算でゼロとして扱い、元の出力は保持します。"
+          }
+        }
+      }
+    },
+    "Runtime: %@ s" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Runtime: %@ s"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "実行時間：%@ 秒"
+          }
+        }
+      }
+    },
+    "Sales" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sales"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "売上"
+          }
+        }
+      }
+    },
+    "Sales by calendar date" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sales by calendar date"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暦日ごとの売上"
+          }
+        }
+      }
+    },
+    "Sales by calendar date · Europe/Rome" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sales by calendar date · Europe/Rome"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暦日ごとの売上 · Europe/Rome"
+          }
+        }
+      }
+    },
+    "Sales data did not match the verified source. Load again to retry." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sales data did not match the verified source. Load again to retry."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "売上データが検証済み原典と一致しません。もう一度読み込んでください。"
+          }
+        }
+      }
+    },
+    "Seasonal naive" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seasonal naive"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "季節ナイーブ"
+          }
+        }
+      }
+    },
+    "Series" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Series"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "系列"
+          }
+        }
+      }
+    },
+    "Source: Hierarchical Sales Data · Mendeley Data v1" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Source: Hierarchical Sales Data · Mendeley Data v1"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "出典：Hierarchical Sales Data · Mendeley Data v1"
+          }
+        }
+      }
+    },
+    "Stop" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stop"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "停止"
+          }
+        }
+      }
+    },
+    "The source response exceeded the size limit." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The source response exceeded the size limit."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "取得データが容量の上限を超えました。"
+          }
+        }
+      }
+    },
+    "Unavailable" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unavailable"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "算出不可"
+          }
+        }
+      }
+    },
+    "Use the same prepared Chronos-2 FP32 model as the taxi demo. Opening this demo or preparing the model never starts a download or prediction." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use the same prepared Chronos-2 FP32 model as the taxi demo. Opening this demo or preparing the model never starts a download or prediction."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "タクシーデモと同じChronos-2 FP32モデルを使います。画面を開いたりモデルを準備したりしても、データ取得や予測は始まりません。"
+          }
+        }
+      }
+    },
+    "WAPE" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "WAPE"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "WAPE"
+          }
+        }
+      }
+    },
+    "Wait for the current operation to finish." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wait for the current operation to finish."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "現在の処理が終了するまでお待ちください。"
+          }
+        }
+      }
+    },
+    "Working…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Working…"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "処理中…"
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

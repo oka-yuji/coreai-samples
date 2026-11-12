@@ -10332,6 +10332,108 @@
           }
         }
       }
+    },
+    "Choose a product and a historical date. Predict from the preceding 365 calendar days with Chronos-2 on this device. Missing sales stay missing." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose a product and a historical date. Predict from the preceding 365 calendar days with Chronos-2 on this device. Missing sales stay missing."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "商品と過去の日付を選び、直前365暦日の売上からChronos-2で端末内予測します。欠損は欠損のまま扱います。"
+          }
+        }
+      }
+    },
+    "Compare 7 or 14 days of product sales with actuals and a seasonal baseline." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compare 7 or 14 days of product sales with actuals and a seasonal baseline."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "7日・14日の商品売上予測を、実績と季節ナイーブで比較します。"
+          }
+        }
+      }
+    },
+    "Load the original Mendeley Hierarchical Sales Data explicitly. The source uses CC BY-NC 3.0; UCI lists CC BY 4.0. Noncommercial source terms apply. No sales values are bundled." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Load the original Mendeley Hierarchical Sales Data explicitly. The source uses CC BY-NC 3.0; UCI lists CC BY 4.0. Noncommercial source terms apply. No sales values are bundled."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "操作してMendeleyのHierarchical Sales Data原典を取得します。原典はCC BY-NC 3.0、UCIの表示はCC BY 4.0です。原典の非商用利用条件が適用されます。売上データは同梱していません。"
+          }
+        }
+      }
+    },
+    "Product sales forecast" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Product sales forecast"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "商品売上予測"
+          }
+        }
+      }
+    },
+    "Public sales data" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Public sales data"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "公開売上データ"
+          }
+        }
+      }
+    },
+    "Use the same prepared Chronos-2 FP32 model as the taxi demo. Opening this demo or preparing the model never starts a download or prediction." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use the same prepared Chronos-2 FP32 model as the taxi demo. Opening this demo or preparing the model never starts a download or prediction."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "タクシーデモと同じChronos-2 FP32モデルを使います。画面を開いたりモデルを準備したりしても、データ取得や予測は始まりません。"
+          }
+        }
+      }
     }
   },
   "version" : "1.1"
