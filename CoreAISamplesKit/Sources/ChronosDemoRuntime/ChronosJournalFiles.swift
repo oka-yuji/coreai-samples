@@ -118,7 +118,7 @@ public actor ChronosJournalFiles {
                     name == checkID.uuidString + ".json"
                 else { throw ChronosDemoFailure.invalidData }
                 let data = try readEnvelope(name, in: checks, id: checkID, recordID: id)
-                let value = try NYCAPIContract.decode(ChronosActualCheck.self, data)
+                let value = try ChronosJournalCodec.decode(ChronosActualCheck.self, data)
                 guard value.id == checkID else { throw ChronosDemoFailure.invalidData }
                 try ChronosJournalValidation.check(value, record: record, profile: profile)
                 return value
@@ -133,25 +133,25 @@ public actor ChronosJournalFiles {
         let folder = try ChronosJournalBoundary.folder(id.uuidString, in: root)
         defer { close(folder) }
         let data = try readEnvelope("prediction.json", in: folder, id: id, recordID: nil)
-        let record = try NYCAPIContract.decode(ChronosForecastRecord.self, data)
+        let record = try ChronosJournalCodec.decode(ChronosForecastRecord.self, data)
         guard record.id == id else { throw ChronosDemoFailure.invalidData }
         try ChronosJournalValidation.record(record, profile: profile)
         return record
     }
 
     private func envelope<T: Encodable>(_ value: T, id: UUID, recordID: UUID?) throws -> Data {
-        let payload = try NYCAPIContract.encode(value)
+        let payload = try ChronosJournalCodec.encode(value)
         guard payload.count <= Self.payloadLimit else { throw ChronosDemoFailure.invalidData }
-        return try NYCAPIContract.encode(
+        return try ChronosJournalCodec.encode(
             Envelope(
-                schema: "chronos-journal-envelope/1", id: id, recordID: recordID, payload: payload,
+                schema: "chronos-journal-envelope/2", id: id, recordID: recordID, payload: payload,
                 sha256: NYCAPIContract.hash(payload)))
     }
 
     private func readEnvelope(_ name: String, in folder: Int32, id: UUID, recordID: UUID?) throws -> Data {
         let data = try ChronosJournalBoundary.read(name, in: folder, limit: Self.fileLimit)
-        let value = try NYCAPIContract.decode(Envelope.self, data)
-        guard value.schema == "chronos-journal-envelope/1", value.id == id, value.recordID == recordID,
+        let value = try ChronosJournalCodec.decode(Envelope.self, data)
+        guard value.schema == "chronos-journal-envelope/2", value.id == id, value.recordID == recordID,
             value.payload.count <= Self.payloadLimit, NYCAPIContract.hash(value.payload) == value.sha256
         else { throw ChronosDemoFailure.invalidData }
         return value.payload

@@ -178,7 +178,7 @@ struct ChronosAPINativeTests {
         while let effect = await completed.next() { if case .stopDemo = effect { break } }
         try #require(await storage.activeLeases(identity: installed.identity) == 0)
         if let journalResult, let journalOutput {
-            try NYCAPIContract.encode(journalResult).write(
+            try ChronosJournalCodec.encode(journalResult).write(
                 to: journalOutput.appending(path: "verification.json"), options: .withoutOverwriting)
         }
         try NYCAPIContract.encode(Report(forecast: #require(batch))).write(to: reportURL, options: .withoutOverwriting)
@@ -230,7 +230,8 @@ struct ChronosAPINativeTests {
         let checks: [ChronosActualCheck]
         let originalSHA256: String
         let reloadedSHA256: String
-        let format = "chronos2-journal-native/1"
+        let format = "chronos2-journal-native/2"
+        let dateEncoding = "foundation-reference-seconds"
         let inputElements = 20_160
         let rawOutputElements = 6720
         let actualElements = 80
