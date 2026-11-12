@@ -1,6 +1,7 @@
 import json
 import os
 from pathlib import Path
+import select
 import subprocess
 import sys
 import tempfile
@@ -16,6 +17,10 @@ import sys
 from pathlib import Path
 
 fake = json.loads(Path(__file__).with_name("fake.json").read_text())
+marker = Path(__file__).with_name("unblocked")
+if fake.get("block_first") and not marker.exists():
+    sys.stdin.buffer.read(1)
+    marker.touch()
 if "output" in fake:
     sys.stdout.write(fake["output"])
     sys.exit(fake["code"])
@@ -131,6 +136,31 @@ class PublicTextChecks(unittest.TestCase):
         result = self.run_check(repository(plain, [issue(101, body)], history={"I101": edits((body, None))}))
         self.assertEqual(result.returncode, 1, result.stderr)
         self.assertEqual(result.stdout.splitlines(), ["issue #101 body:2", "issue #101 body:2 (edit 1)"])
+        self.assertIn("current text and edit histories 100/101", result.stderr)
+        self.assertIn("current text and edit histories 101/101", result.stderr)
+
+    def test_progress_is_visible_before_a_blocked_api_call_returns(self):
+        fake = dict(repository([issue(1, "private payload")]), block_first=True)
+        (self.bin / "fake.json").write_text(json.dumps(fake), encoding="utf-8")
+        environment = dict(os.environ, PATH=os.pathsep.join([str(self.bin), os.environ.get("PATH", "")]))
+        child = subprocess.Popen(
+            [sys.executable, "-I", str(SCRIPT), REPOSITORY], stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=environment,
+        )
+        try:
+            ready, _, _ = select.select([child.stderr], [], [], 5)
+            self.assertTrue(ready, "No progress was flushed before the blocked API returned")
+            self.assertEqual(child.stderr.readline(), b"Audit progress: issue/PR inventory 0\n")
+            self.assertIsNone(child.poll())
+            stdout, stderr = child.communicate(b"x", timeout=10)
+            self.assertEqual(child.returncode, 0, stderr)
+            self.assertEqual(stdout, b"")
+            self.assertNotIn(b"private payload", stderr)
+            self.assertIn(b"scan complete; finding lines 0", stderr)
+        finally:
+            if child.poll() is None:
+                child.kill()
+            child.communicate()
 
     def test_paths_separated_by_json_and_url_escapes_are_reported(self):
         body = "\n".join([
@@ -164,6 +194,7 @@ class PublicTextChecks(unittest.TestCase):
                 self.assertTrue(messages[-1].startswith("Could not read"), messages)
                 if cause:
                     self.assertTrue(messages[-2].startswith(cause), messages)
+                self.assertNotIn("scan complete", result.stderr)
 
 
 if __name__ == "__main__":

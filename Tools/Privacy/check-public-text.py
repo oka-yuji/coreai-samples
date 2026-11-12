@@ -34,18 +34,36 @@ def listing(path):
     return [item for page in gh("--paginate", "--slurp", f"repos/{repository}/{path}") for item in page]
 
 
+def progress(phase, completed, total=None):
+    count = str(completed) if total is None else f"{completed}/{total}"
+    print(f"Audit progress: {phase} {count}", file=sys.stderr, flush=True)
+
+
 def scan():
     entries = []
-    for issue in listing("issues?state=all&per_page=100"):
+    progress("issue/PR inventory", 0)
+    issues = listing("issues?state=all&per_page=100")
+    progress("issue/PR inventory", len(issues))
+    review_total = sum("pull_request" in issue for issue in issues)
+    review_count = 0
+    progress("PR review inventories", review_count, review_total)
+    for issue in issues:
         kind = "pr" if "pull_request" in issue else "issue"
         entries.append((kind, issue["number"], issue["node_id"], [("title", issue["title"]), ("body", issue["body"])]))
         if kind == "pr":
             for review in listing(f"pulls/{issue['number']}/reviews?per_page=100"):
                 entries.append(("review", review["id"], review["node_id"], [("", review["body"])]))
+            review_count += 1
+            if review_count % 25 == 0 or review_count == review_total:
+                progress("PR review inventories", review_count, review_total)
     for kind, path in (("comment", "issues/comments"), ("review-comment", "pulls/comments")):
-        for comment in listing(f"{path}?per_page=100"):
+        progress(f"{kind} inventory", 0)
+        comments = listing(f"{path}?per_page=100")
+        for comment in comments:
             entries.append((kind, comment["id"], comment["node_id"], [("", comment["body"])]))
+        progress(f"{kind} inventory", len(comments))
     found = []
+    progress("current text and edit histories", 0, len(entries))
     for start in range(0, len(entries), 100):
         batch = entries[start:start + 100]
         request = json.dumps({"query": query % json.dumps([entry[2] for entry in batch])}).encode()
@@ -62,6 +80,8 @@ def scan():
                 place = f"{kind} #{number} {part}" if part else f"{kind} {number}"
                 suffix = f" (edit {version})" if version else ""
                 found += [((kinds.index(kind), number, part != "title", version, line), f"{place}:{line}{suffix}") for line in lines((text or "").encode())]
+        progress("current text and edit histories", start + len(batch), len(entries))
+    progress("scan complete; finding lines", len(found))
     return [item for _, item in sorted(found)]
 
 
