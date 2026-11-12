@@ -38,7 +38,7 @@ public actor NYCAPIClient {
     }
 
     public func window(start: Date, count: Int, areaIDs: [String], refresh: Bool = false) async throws -> APIWindow {
-        guard start.timeIntervalSince1970.isFinite, start == NYCTime.aligned(start), (1...1024).contains(count),
+        guard NYCTime.isValidWindow(start: start, count: count),
             NYCAPIContract.validAreas(areaIDs)
         else { throw ChronosDemoFailure.invalidDate }
         let coverage = try await coverage(refresh: refresh)

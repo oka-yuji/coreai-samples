@@ -115,9 +115,8 @@ public struct APIWindow: Codable, Equatable, Sendable {
         fetchedAt: Date, catalog: APIEvidence, metadata: [APIEvidence], responses: [APIEvidence],
         verification: APIVerificationPolicy = .january2025
     ) throws {
-        guard start.timeIntervalSince1970.isFinite, start == NYCTime.aligned(start),
-            fetchedAt.timeIntervalSince1970.isFinite,
-            (1...1024).contains(count), availability.count == count, !availability.contains(.notFetched),
+        guard NYCTime.isValidWindow(start: start, count: count), NYCTime.isSupported(fetchedAt),
+            availability.count == count, !availability.contains(.notFetched),
             !series.isEmpty, Set(series.map(\.areaID)).count == series.count,
             series.allSatisfy({
                 $0.values.count == count
@@ -141,13 +140,15 @@ public struct APIWindow: Codable, Equatable, Sendable {
         self.verification = verification
     }
 
-    public var end: Date { start.addingTimeInterval(Double(count * 1800)) }
+    public var end: Date { start.addingTimeInterval(Double(count) * 1800) }
     public var availablePrefix: Int {
         availability.firstIndex(where: { $0 == .unpublished || $0 == .unverified || $0 == .notFetched }) ?? count
     }
 
     public func requireVerifiedHistory() throws {
-        guard count == 1008 else { throw ChronosDemoFailure.invalidData }
+        guard count == 1008, NYCTime.isValidWindow(start: start, count: count) else {
+            throw ChronosDemoFailure.invalidData
+        }
         let expected = (0..<count).map {
             verification.availability(
                 at: start.addingTimeInterval(Double($0 * 1800)), datasets: datasets, areaIDs: series.map(\.areaID))

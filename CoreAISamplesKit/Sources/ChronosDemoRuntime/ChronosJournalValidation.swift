@@ -7,8 +7,7 @@ enum ChronosJournalValidation {
         let value = evidence.snapshot
         guard evidence.bytes.count <= 96 * 1024 * 1024,
             NYCAPIContract.hash(evidence.bytes) == evidence.sha256,
-            try NYCAPIContract.encode(value) == evidence.bytes,
-            (0...12).contains(value.originStep), value.origin.timeIntervalSince1970.isFinite,
+            (0...12).contains(value.originStep), NYCTime.isSupported(value.origin), NYCTime.isSupported(value.start),
             value.origin == NYCTime.aligned(value.origin),
             value.start == value.origin.addingTimeInterval(-1008 * 1800),
             value.series.count == 20, Set(value.series.map(\.areaID)) == Set(NYCAPIContract.zoneIDs),
@@ -28,17 +27,19 @@ enum ChronosJournalValidation {
                 value.preprocessing == APIWindow.preprocessingVersion
             else { throw ChronosDemoFailure.invalidData }
             try NYCWindowValidation.validate(api.history, profile: profile)
-            guard value.scenarioID == "api-" + String(Int(api.history.end.timeIntervalSince1970))
+            guard let originSeconds = Int(exactly: api.history.end.timeIntervalSince1970),
+                value.scenarioID == "api-" + String(originSeconds)
             else { throw ChronosDemoFailure.invalidData }
             if let actuals = api.actuals { try NYCWindowValidation.validate(actuals, profile: profile) }
             guard try ForecastInputSnapshot(history: api.history, actuals: api.actuals, step: value.originStep) == api
             else { throw ChronosDemoFailure.invalidData }
         }
+        guard try NYCAPIContract.encode(value) == evidence.bytes else { throw ChronosDemoFailure.invalidData }
     }
 
     static func record(_ value: ChronosForecastRecord, profile: NYCVerificationProfile? = nil) throws {
         guard value.schema == "chronos-native-record/1", value.mode == .live,
-            value.savedAt.timeIntervalSince1970.isFinite, value.processingSeconds.isFinite,
+            NYCTime.isSupported(value.savedAt), value.processingSeconds.isFinite,
             value.processingSeconds >= 0,
             value.quantileLevels == ChronosContract.quantileLevels,
             value.timingBoundary == "sequential-native-predictions-including-preparation",
@@ -72,7 +73,8 @@ enum ChronosJournalValidation {
         _ value: ChronosActualCheck, record: ChronosForecastRecord, profile: NYCVerificationProfile? = nil
     ) throws {
         guard value.schema == "chronos-actual-check/1", value.recordID == record.id,
-            value.checkedAt.timeIntervalSince1970.isFinite
+            NYCTime.isSupported(value.checkedAt), value.actuals.start == record.input.snapshot.origin,
+            value.actuals.count == 4
         else { throw ChronosDemoFailure.invalidData }
         try NYCWindowValidation.validate(value.actuals, profile: profile)
         guard

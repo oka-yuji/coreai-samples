@@ -14,12 +14,15 @@ enum NYCWindowValidation {
     }
 
     static func chunks(start: Date, count: Int, coverage: APICoverage, areas: [String]) throws -> [Chunk] {
-        let end = start.addingTimeInterval(Double(count * 1800))
+        guard NYCTime.isValidWindow(start: start, count: count) else { throw ChronosDemoFailure.invalidData }
+        let end = start.addingTimeInterval(Double(count) * 1800)
         var chunks: [Chunk] = []
         var cursor = start
         while cursor < end {
             guard coverage.availability(at: cursor, areaIDs: areas) == .observed else {
-                cursor.addTimeInterval(1800)
+                let next = cursor.addingTimeInterval(1800)
+                guard next > cursor else { throw ChronosDemoFailure.invalidData }
+                cursor = next
                 continue
             }
             guard let dataset = coverage.datasets.first(where: { $0.year == NYCTime.year(cursor) }) else {
@@ -29,7 +32,11 @@ enum NYCWindowValidation {
             let stop = min(end, cursor.addingTimeInterval(7 * 86400))
             while next < stop, NYCTime.year(next) == dataset.year,
                 coverage.availability(at: next, areaIDs: areas) == .observed
-            { next.addTimeInterval(1800) }
+            {
+                let following = next.addingTimeInterval(1800)
+                guard following > next else { throw ChronosDemoFailure.invalidData }
+                next = following
+            }
             chunks.append(Chunk(dataset: dataset, start: cursor, end: next))
             cursor = next
         }
@@ -42,8 +49,8 @@ enum NYCWindowValidation {
         profile supplied: NYCVerificationProfile? = nil
     ) throws -> APIWindow {
         let profile = try supplied ?? NYCVerifiedResource.bundled()
-        guard NYCAPIContract.validAreas(areas), (1...1024).contains(count),
-            start.timeIntervalSince1970.isFinite, start == NYCTime.aligned(start),
+        guard NYCAPIContract.validAreas(areas), NYCTime.isValidWindow(start: start, count: count),
+            NYCTime.isSupported(fetchedAt),
             coverage.verification == profile.policy,
             ([coverage.evidence] + metadata + responses).reduce(0, { $0 + $1.data.count }) <= NYCAPIContract.rawLimit
         else { throw ChronosDemoFailure.invalidData }
@@ -96,7 +103,9 @@ enum NYCWindowValidation {
 
     static func validate(_ window: APIWindow, profile supplied: NYCVerificationProfile? = nil) throws {
         let profile = try supplied ?? NYCVerifiedResource.bundled()
-        guard window.verification == profile.policy else { throw ChronosDemoFailure.invalidData }
+        guard window.verification == profile.policy, NYCTime.isValidWindow(start: window.start, count: window.count),
+            NYCTime.isSupported(window.fetchedAt)
+        else { throw ChronosDemoFailure.invalidData }
         let coverage = try NYCCatalogValidation.read(
             window.catalog, now: window.catalog.acquiredAt, verification: profile.policy)
         let copy = try make(

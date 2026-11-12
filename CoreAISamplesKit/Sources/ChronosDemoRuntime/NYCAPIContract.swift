@@ -58,7 +58,8 @@ enum NYCAPIContract {
     }
 
     static func queryURL(_ dataset: APIDataset, start: Date, end: Date, areas: [String]) throws -> URL {
-        guard validID(dataset.id), validAreas(areas) else { throw ChronosDemoFailure.invalidData }
+        guard validID(dataset.id), validAreas(areas), NYCTime.isSupported(start), NYCTime.isSupported(end), start < end
+        else { throw ChronosDemoFailure.invalidData }
         return try url(
             "https://data.cityofnewyork.us/resource/\(dataset.id).json",
             [
@@ -84,7 +85,8 @@ enum NYCAPIContract {
 
     static func verify(_ evidence: APIEvidence) throws {
         guard evidence.status == 200, validURL(evidence.url), evidence.data.count <= byteLimit,
-            hash(evidence.data) == evidence.sha256, evidence.acquiredAt.timeIntervalSince1970.isFinite
+            hash(evidence.data) == evidence.sha256, NYCTime.isSupported(evidence.acquiredAt),
+            evidence.start.map(NYCTime.isSupported) != false, evidence.end.map(NYCTime.isSupported) != false
         else { throw ChronosDemoFailure.invalidData }
     }
 
@@ -101,7 +103,9 @@ enum NYCCatalogValidation {
         _ evidence: APIEvidence, now: Date, verification: APIVerificationPolicy = .january2025
     ) throws -> APICoverage {
         try NYCAPIContract.verify(evidence)
-        guard evidence.url.host == "api.us.socrata.com" else { throw ChronosDemoFailure.invalidData }
+        guard evidence.url.host == "api.us.socrata.com", NYCTime.isSupported(now) else {
+            throw ChronosDemoFailure.invalidData
+        }
         let catalog = try NYCAPIContract.decode(Catalog.self, evidence.data)
         guard catalog.results.count < 1000 else { throw ChronosDemoFailure.invalidData }
         var datasets: [APIDataset] = []
