@@ -4,6 +4,8 @@
 
 The Seoul Bike demo uses the existing Chronos-2 FP32 artifact to compare hourly rental predictions with held-out observations and a weekly seasonal baseline. It shares the Forecast Store, runner, service, sessions and model ownership with product sales. NYC taxi and product sales remain separate destinations.
 
+Seoul Bike requests Core AI's CPU-only execution with `expectFrequentReshapes=false`. The same fixed five reference windows exposed a raw tail-quantile mismatch with GPU preference; CPU-only execution passed the unchanged `atol=rtol=1e-4` probe. The model files, input and output contract are unchanged. Product sales and NYC retain GPU preference. This setting does not establish general forecast accuracy or iPhone performance.
+
 ## Use the demo
 
 1. Open **Chronos-2 → Seoul Bike forecast** in the Mac sidebar, or select the Seoul Bike demo in iOS Models. Prepare the same Chronos-2 artifact through the available Models acquisition controls.

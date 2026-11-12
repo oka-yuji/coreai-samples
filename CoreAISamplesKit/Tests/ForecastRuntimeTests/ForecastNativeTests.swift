@@ -195,6 +195,7 @@ struct ForecastNativeTests {
         let report = ForecastNativeReport(
             format: kind == .productSales ? "chronos2-sales-native/2" : "chronos2-bike-native/2",
             scalarFailures: records.reduce(0) { $0 + $1.scalarFailures },
+            requestedComputeUnits: kind == .seoulBike ? "cpuOnly" : "gpuPreferred",
             sourceManifestSHA256: kind == .seoulBike ? BikeSource.manifestSHA256 : nil,
             originalSourceSHA256: kind == .seoulBike ? BikeSource.originalSHA256 : nil,
             sourceSHA256: sourceHash, sourceBytes: sourceBytes.count,
@@ -239,6 +240,7 @@ struct ForecastNativeRecord: Encodable {
 struct ForecastNativeReport: Encodable {
     let format: String
     let scalarFailures: Int
+    let requestedComputeUnits: String
     let sourceManifestSHA256: String?
     let originalSourceSHA256: String?
     let scope =

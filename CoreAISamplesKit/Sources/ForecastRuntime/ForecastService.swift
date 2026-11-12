@@ -29,15 +29,19 @@ public final class LiveForecastService: ForecastService {
         kind: ForecastKind = .productSales, resource: ValidatedModelResource? = nil,
         repository: (any ForecastDataLoading)? = nil,
         permits: @escaping @MainActor () -> Bool = { true },
-        makeRuntime: @escaping @MainActor (URL, String) -> ChronosRuntime = {
-            ChronosRuntime(bundleURL: $0, expectedManifestSHA256: $1)
-        }
+        makeRuntime: (@MainActor (URL, String) -> ChronosRuntime)? = nil
     ) {
         self.resource = resource
         self.kind = kind
         self.repository = repository ?? Self.repository(for: kind)
         self.permits = permits
-        self.makeRuntime = makeRuntime
+        self.makeRuntime =
+            makeRuntime
+            ?? {
+                ChronosRuntime(
+                    bundleURL: $0, expectedManifestSHA256: $1,
+                    computeUnits: kind == .seoulBike ? .cpuOnly : .gpuPreferred)
+            }
     }
 
     public func load(refresh: Bool) async throws -> ForecastDataset {

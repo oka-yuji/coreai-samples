@@ -32,14 +32,16 @@ final class ChronosNativePredictor: ChronosPredictor {
     }
 
     @concurrent
-    static func load(bundleURL: URL, expectedManifestSHA256: String? = nil) async throws -> Self {
+    static func load(
+        bundleURL: URL, expectedManifestSHA256: String? = nil,
+        computeUnits: ChronosComputeUnits = .gpuPreferred
+    ) async throws -> Self {
         try Task.checkCancellation()
         let snapshot = try await ChronosBundleSnapshot.open(bundleURL)
         let bundle = snapshot.bundle
         try validateIdentity(bundle.identity, expectedManifestSHA256: expectedManifestSHA256)
         try Task.checkCancellation()
-        var options = SpecializationOptions(preferredComputeUnitKind: .gpu)
-        options.expectFrequentReshapes = false
+        let options = specializationOptions(for: computeUnits)
         let model = try await AIModel(contentsOf: bundle.url.appendingPathComponent("Model.aimodel"), options: options)
         try Task.checkCancellation()
         guard model.functionNames == ["main"], let descriptor = model.functionDescriptor(for: "main") else {
@@ -50,6 +52,16 @@ final class ChronosNativePredictor: ChronosPredictor {
         try validate(function.descriptor)
         try Task.checkCancellation()
         return Self(identity: bundle.identity, snapshot: snapshot, model: model, function: function)
+    }
+
+    static func specializationOptions(for computeUnits: ChronosComputeUnits) -> SpecializationOptions {
+        var options: SpecializationOptions
+        switch computeUnits {
+        case .gpuPreferred: options = SpecializationOptions(preferredComputeUnitKind: .gpu)
+        case .cpuOnly: options = .cpuOnly
+        }
+        options.expectFrequentReshapes = false
+        return options
     }
 
     static func validateIdentity(_ identity: ChronosBundleIdentity, expectedManifestSHA256: String?) throws {

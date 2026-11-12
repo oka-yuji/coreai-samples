@@ -1,6 +1,11 @@
 import ChronosCore
 import Foundation
 
+public enum ChronosComputeUnits: Sendable {
+    case gpuPreferred
+    case cpuOnly
+}
+
 public protocol ChronosPredictor: Sendable {
     var identity: ChronosBundleIdentity { get }
     func predict(_ context: ChronosContext) async throws -> ChronosPrediction
@@ -29,9 +34,13 @@ public actor ChronosRuntime {
     private var closing = false
     private var waiters: [CheckedContinuation<Void, Never>] = []
 
-    public init(bundleURL: URL, expectedManifestSHA256: String? = nil) {
+    public init(
+        bundleURL: URL, expectedManifestSHA256: String? = nil,
+        computeUnits: ChronosComputeUnits = .gpuPreferred
+    ) {
         factory = {
-            try await ChronosNativePredictor.load(bundleURL: bundleURL, expectedManifestSHA256: expectedManifestSHA256)
+            try await ChronosNativePredictor.load(
+                bundleURL: bundleURL, expectedManifestSHA256: expectedManifestSHA256, computeUnits: computeUnits)
         }
         observe = { _ in }
     }

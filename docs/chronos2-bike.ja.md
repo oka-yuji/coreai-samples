@@ -4,6 +4,8 @@
 
 Seoul Bikeデモは既存のChronos-2 FP32資産で、時間別レンタル件数の予測を実績・週周期の季節ナイーブと比較します。商品売上と同じForecastのStore・Runner・Service・Sessionsとモデル所有を再利用し、NYCタクシー・商品売上は別の入口として維持しています。
 
+Seoul BikeはCore AIのCPU専用実行と`expectFrequentReshapes=false`を使います。固定5起点のGPU優先実行で裾の分位に数値不一致があり、CPU専用のprobeでは変更していないatol/rtol各1e-4を満たしました。モデルファイルと入出力契約は変更せず、商品売上とNYCはGPU優先を維持します。この設定だけで一般的な予測精度やiPhone性能を保証しません。
+
 ## 操作
 
 1. Macのサイドバーで **Chronos-2 → Seoul Bike予測**、iOSのModelsでSeoul Bikeデモを開きます。既存のModels取得操作から同じChronos-2資産を準備します。
