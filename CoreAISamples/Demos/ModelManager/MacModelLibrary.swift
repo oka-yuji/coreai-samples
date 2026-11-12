@@ -2,6 +2,7 @@
     import ChronosUI
     import CoreAI
     import FeatureStore
+    import ForecastUI
     import Foundation
     import ModelLibraryFeature
     import ModelLibraryRuntime
@@ -110,6 +111,7 @@
 
     struct ChronosPreviewView: View {
         let library: MacModelLibrary
+        var selection = ChronosDemoCatalog.selection
         @State private var deletion: ModelDeletionRequest?
         @Environment(\.locale) private var locale
 
@@ -123,13 +125,13 @@
                                 Button("Try again") { store.send(.retryDemoStop) }
                             }
                         }
-                    } else if let session = store.state.session, session.selection == ChronosDemoCatalog.selection {
+                    } else if let session = store.state.session, session.selection == selection {
                         rendering.content(for: session)
                     } else {
                         ScrollView {
                             VStack(spacing: 0) {
-                                if let model = store.state.catalog.model(ChronosDemoCatalog.selection.modelID) {
-                                    if let demo = store.state.catalog.demo(ChronosDemoCatalog.selection.demoID) {
+                                if let model = store.state.catalog.model(selection.modelID) {
+                                    if let demo = store.state.catalog.demo(selection.demoID) {
                                         VStack(alignment: .leading, spacing: 8) {
                                             Text(
                                                 verbatim: ModelClassificationPresentation.classification(
@@ -163,7 +165,7 @@
                                             store.state.installations[artifact.id]?.phase == .ready
                                         {
                                             Button("Open on-device forecast") {
-                                                store.send(.openDemo(ChronosDemoCatalog.selection))
+                                                store.send(.openDemo(selection))
                                             }
                                             .buttonStyle(.borderedProminent)
                                         }
@@ -174,7 +176,11 @@
                                         LibraryFailureView(failure: failure)
                                     }
                                 }
-                                ChronosPreview(scrollsContent: false)
+                                if selection == ChronosDemoCatalog.salesSelection {
+                                    ForecastPreview(scrollsContent: false)
+                                } else {
+                                    ChronosPreview(scrollsContent: false)
+                                }
                             }
                         }.modelDeletionAlert(store: store, deletion: $deletion)
                     }

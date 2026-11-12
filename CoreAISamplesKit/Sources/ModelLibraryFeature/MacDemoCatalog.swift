@@ -49,7 +49,10 @@ public enum MacDemoCatalog {
                 ReceiptDemoCatalog.model(artifact: jevArtifact),
                 ChronosDemoCatalog.model(artifact: chronosArtifact, platforms: mac, searchTerms: searchTerms),
             ],
-            demos: demos + [ReceiptDemoCatalog.demo, ChronosDemoCatalog.demo(platforms: mac, searchTerms: searchTerms)])
+            demos: demos + [
+                ReceiptDemoCatalog.demo, ChronosDemoCatalog.demo(platforms: mac, searchTerms: searchTerms),
+                ChronosDemoCatalog.salesDemo(platforms: mac, searchTerms: searchTerms),
+            ])
     }
 
 }

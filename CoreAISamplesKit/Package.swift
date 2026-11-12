@@ -16,6 +16,9 @@ let package = Package(
         .iOS("27.0"),
     ],
     products: [
+        .library(name: "ForecastFeature", targets: ["ForecastFeature"]),
+        .library(name: "ForecastRuntime", targets: ["ForecastRuntime"]),
+        .library(name: "ForecastUI", targets: ["ForecastUI"]),
         .library(name: "ChronosFeature", targets: ["ChronosFeature"]),
         .library(name: "ChronosDemoRuntime", targets: ["ChronosDemoRuntime"]),
         .library(name: "ChronosUI", targets: ["ChronosUI"]),
@@ -88,6 +91,26 @@ let package = Package(
         .package(url: "https://github.com/swiftlang/swift-markdown.git", exact: "0.9.0"),
     ],
     targets: [
+        .target(name: "ForecastFeature", dependencies: ["ChronosCore", "FeatureStore"], swiftSettings: speechSettings),
+        .target(
+            name: "ForecastRuntime",
+            dependencies: [
+                "ForecastFeature", "ChronosRuntime", "ModelLibraryFeature", "ModelLibraryRuntime", "FeatureStore",
+            ],
+            swiftSettings: speechSettings),
+        .target(
+            name: "ForecastUI",
+            dependencies: ["ForecastFeature", "ForecastRuntime", "FeatureStore", "ModelLibraryRuntime"],
+            resources: [.process("Resources")], swiftSettings: speechSettings + [.defaultIsolation(MainActor.self)]),
+        .testTarget(
+            name: "ForecastFeatureTests", dependencies: ["ForecastFeature", "ChronosCore", "FeatureStore"],
+            swiftSettings: speechSettings),
+        .testTarget(
+            name: "ForecastRuntimeTests",
+            dependencies: [
+                "ForecastRuntime", "ForecastFeature", "ChronosRuntime", "ChronosCore", "FeatureStore",
+                "ModelLibraryRuntime", "ModelLibraryStorage", "ModelLibraryTransfer", "ModelLibraryFeature",
+            ], swiftSettings: speechSettings),
         .target(name: "ChronosFeature", dependencies: ["ChronosCore", "FeatureStore"], swiftSettings: speechSettings),
         .target(
             name: "ChronosDemoRuntime",
