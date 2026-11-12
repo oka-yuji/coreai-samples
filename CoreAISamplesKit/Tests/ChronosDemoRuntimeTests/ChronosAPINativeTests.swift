@@ -40,7 +40,27 @@ struct ChronosAPINativeTests {
         .enabled(if: ProcessInfo.processInfo.environment["COREAI_CHRONOS2_API_BUNDLE"] != nil), .timeLimit(.minutes(30))
     )
     func liveHistoryAndNative() async throws {
-        let environment = ProcessInfo.processInfo.environment
+        try await native(environment: ProcessInfo.processInfo.environment, journalOutput: nil)
+    }
+
+    @Test(
+        "J4 Live Models predictions persist all native values, append verified actuals and release every lease",
+        .enabled(if: ProcessInfo.processInfo.environment["COREAI_CHRONOS2_JOURNAL_BUNDLE"] != nil),
+        .timeLimit(.minutes(30)))
+    func liveJournal() async throws {
+        var environment = ProcessInfo.processInfo.environment
+        let output = URL(filePath: try #require(environment["COREAI_CHRONOS2_JOURNAL_OUTPUT"]))
+        try #require(!FileManager.default.fileExists(atPath: output.path))
+        try FileManager.default.createDirectory(at: output, withIntermediateDirectories: true)
+        let bundle: String = try #require(environment["COREAI_CHRONOS2_JOURNAL_BUNDLE"])
+        let reference: String = try #require(environment["COREAI_CHRONOS2_JOURNAL_REFERENCE"])
+        environment["COREAI_CHRONOS2_API_BUNDLE"] = bundle
+        environment["COREAI_CHRONOS2_API_REFERENCE"] = reference
+        environment["COREAI_CHRONOS2_API_REPORT"] = output.appending(path: "native.json").path
+        try await native(environment: environment, journalOutput: output)
+    }
+
+    private func native(environment: [String: String], journalOutput: URL?) async throws {
         let source = URL(filePath: try #require(environment["COREAI_CHRONOS2_API_BUNDLE"]))
         let referenceURL = URL(filePath: try #require(environment["COREAI_CHRONOS2_API_REFERENCE"]))
         let reportURL = URL(filePath: try #require(environment["COREAI_CHRONOS2_API_REPORT"]))
@@ -62,12 +82,17 @@ struct ChronosAPINativeTests {
         let storage = ManagedModelStore(root: root.appending(path: "models"))
         let staging = try await storage.copyForImport(from: source, model: model, artifact: artifact) { _ in }
         let installed = try await storage.promote(staging: staging, model: model, artifact: artifact)
-        let adapter = try ChronosNativeAdapter(directory: ChronosRepository.bundledDirectory(), api: NYCAPIClient())
+        let client = NYCAPIClient()
+        let journal = ChronosJournalAssembly(
+            files: ChronosJournalFiles(directory: (journalOutput ?? root).appending(path: "records")), api: client)
+        let adapter = try ChronosNativeAdapter(
+            directory: ChronosRepository.bundledDirectory(), api: client, journal: journal)
         let assembly = ModelLibraryAssembly(adapters: [adapter], store: storage, transfer: ArtifactTransfer())
         let effects = AsyncStream<ModelLibraryEffect>.makeStream()
         defer {
             effects.continuation.finish()
             adapter.actions.continuation.finish()
+            adapter.journalActions.continuation.finish()
         }
         let library = Store<ModelLibraryFeature>(
             initialState: ModelLibraryState(
@@ -86,6 +111,7 @@ struct ChronosAPINativeTests {
         library.send(.openDemo(ChronosDemoCatalog.selection))
         let session = try #require(library.state.session)
         var batch: ChronosForecastBatch?
+        var journalResult: JournalReport?
         do {
             _ = rendering.content(for: session)
             library.send(.requestDemoPreparation(session.id))
@@ -138,6 +164,10 @@ struct ChronosAPINativeTests {
             }
             try #require(count == 6720)
             batch = forecast
+            if let journalOutput {
+                journalResult = try await verifyJournal(
+                    adapter, assembly: journal, output: journalOutput, fixed: fixed, forecast: forecast)
+            }
         } catch {
             await withTaskCancellationShield {
                 await assembly.runner.run(.stopDemo(session, session.id), send: { _ in })
@@ -147,7 +177,66 @@ struct ChronosAPINativeTests {
         library.send(.closeDemo)
         while let effect = await completed.next() { if case .stopDemo = effect { break } }
         try #require(await storage.activeLeases(identity: installed.identity) == 0)
+        if let journalResult, let journalOutput {
+            try NYCAPIContract.encode(journalResult).write(
+                to: journalOutput.appending(path: "verification.json"), options: .withoutOverwriting)
+        }
         try NYCAPIContract.encode(Report(forecast: #require(batch))).write(to: reportURL, options: .withoutOverwriting)
+    }
+
+    private func verifyJournal(
+        _ adapter: ChronosNativeAdapter, assembly: ChronosJournalAssembly, output: URL,
+        fixed: ChronosScenario, forecast: ChronosForecastBatch
+    ) async throws -> JournalReport {
+        let store = try #require(adapter.journalStore)
+        var actions = adapter.journalActions.stream.makeAsyncIterator()
+        while await actions.next() != nil {
+            if store.state.savedID != nil || store.state.saveError != nil { break }
+        }
+        try #require(store.state.saveError == nil)
+        let id = try #require(store.state.savedID)
+        let path = output.appending(path: "records/\(id.uuidString)/prediction.json")
+        let original = try Data(contentsOf: path)
+        let record = try await assembly.files.record(id)
+        try #require(record.input.snapshot.api == forecast.inputSnapshot && record.identity == forecast.identity)
+        try #require(record.areas.map(\.forecast) == forecast.areas)
+        store.send(.open)
+        store.send(.select(id))
+        while await actions.next() != nil { if store.state.detail != nil || store.state.error != nil { break } }
+        try #require(store.state.error == nil)
+        store.send(.check)
+        while await actions.next() != nil { if !store.state.busy { break } }
+        try #require(store.state.error == nil)
+        let detail = try #require(store.state.detail)
+        let check = try #require(detail.checks.first)
+        try #require(detail.checks.count == 1 && check.actuals.start == record.input.snapshot.origin)
+        try #require(check.actuals.availability == Array(repeating: .observed, count: 4))
+        for series in check.actuals.series {
+            let expected = try #require(fixed.truth[series.areaID])
+            try #require(series.values == expected.prefix(4).map(Optional.some))
+        }
+        try #require(check.actuals.series.count == 20 && check.metrics.comparedCount == 80)
+        let reloaded = try await ChronosJournalFiles(directory: output.appending(path: "records")).detail(id)
+        try #require(reloaded == detail && reloaded.record == record)
+        let after = try Data(contentsOf: path)
+        try #require(original == after)
+        return JournalReport(
+            record: record, checks: reloaded.checks, originalSHA256: NYCAPIContract.hash(original),
+            reloadedSHA256: NYCAPIContract.hash(after))
+    }
+
+    private struct JournalReport: Encodable {
+        let record: ChronosForecastRecord
+        let checks: [ChronosActualCheck]
+        let originalSHA256: String
+        let reloadedSHA256: String
+        let format = "chronos2-journal-native/1"
+        let inputElements = 20_160
+        let rawOutputElements = 6720
+        let actualElements = 80
+        let atol = 0.0001
+        let rtol = 0.0001
+        let leasesAfterClose = 0
     }
 
     private struct Report: Encodable {

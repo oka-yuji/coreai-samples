@@ -112,6 +112,67 @@ public actor ChronosRepository {
             areas: try frame.validatedAreas(), processingSeconds: nil)
     }
 
+    func capture(_ request: ChronosForecastRequest) throws -> ChronosInputEvidence {
+        let catalog = try load()
+        let capture: ChronosInputCapture
+        if let snapshot = request.snapshot {
+            capture = ChronosInputCapture(
+                source: .api, scenarioID: request.scenarioID, originStep: request.originStep,
+                origin: snapshot.origin, series: snapshot.series, preprocessing: snapshot.preprocessing, api: snapshot)
+        } else {
+            let files = try validateFiles()
+            let names = [
+                "manifest.json", "city.json", request.scenarioID + ".input.json", request.scenarioID + ".truth.json",
+            ]
+            capture = ChronosInputCapture(
+                source: .fixed, scenarioID: request.scenarioID, originStep: request.originStep,
+                origin: catalog.time(at: request.originStep, scenarioID: request.scenarioID),
+                series: request.series.map {
+                    CountSeries(areaID: $0.areaID, values: $0.values.map { $0.isNaN ? nil : $0 })
+                },
+                preprocessing: "nyc-fixed-utc30m-v1", fixedFiles: files.filter { names.contains($0.key) })
+        }
+        guard
+            capture.series.map({ ChronosSeriesInput(areaID: $0.areaID, values: $0.values.map { $0 ?? .nan }) })
+                == request.series
+        else { throw ChronosDemoFailure.invalidData }
+        let bytes = try NYCAPIContract.encode(capture)
+        let evidence = ChronosInputEvidence(snapshot: capture, bytes: bytes, sha256: NYCAPIContract.hash(bytes))
+        if capture.source == .fixed { try Self.validateFixed(capture) }
+        return evidence
+    }
+
+    static func validateFixed(_ input: ChronosInputCapture) throws {
+        let files = input.fixedFiles
+        let names = ["manifest.json", "city.json", input.scenarioID + ".input.json", input.scenarioID + ".truth.json"]
+        guard Set(files.keys) == Set(names), input.preprocessing == "nyc-fixed-utc30m-v1", input.api == nil,
+            files.allSatisfy({ hashes[$0.key] == NYCAPIContract.hash($0.value) })
+        else { throw ChronosDemoFailure.invalidData }
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        guard let manifestBytes = files["manifest.json"], let cityBytes = files["city.json"],
+            let historyBytes = files[input.scenarioID + ".input.json"],
+            let truthBytes = files[input.scenarioID + ".truth.json"]
+        else { throw ChronosDemoFailure.invalidData }
+        let manifest = try decoder.decode(SourceManifest.self, from: manifestBytes)
+        let city = try decoder.decode(City.self, from: cityBytes)
+        let history = try decoder.decode(SeriesFile.self, from: historyBytes)
+        let truth = try decoder.decode(SeriesFile.self, from: truthBytes)
+        guard let scenario = manifest.scenarios.first(where: { $0.id == input.scenarioID }),
+            let originText = scenario.forecastOrigin, let origin = ISO8601DateFormatter().date(from: originText),
+            input.origin == origin.addingTimeInterval(Double(input.originStep * 1800)),
+            input.series.map(\.areaID) == city.areas.map(\.id)
+        else { throw ChronosDemoFailure.invalidData }
+        for series in input.series {
+            guard let past = history.series.first(where: { $0.areaId == series.areaID }),
+                let future = truth.series.first(where: { $0.areaId == series.areaID }),
+                let values = ChronosHistoryWindow.make(
+                    history: past.counts, truth: future.counts, revealed: input.originStep, maxLength: 1008),
+                series.values == values.map(Optional.some)
+            else { throw ChronosDemoFailure.invalidData }
+        }
+    }
+
     public static let graphSHA256 = "3094871fc431ae5d86d07c8b487ab53e48e60e9fb56efe803ba18c5bf88889c8"
     static let hashes: [String: String] = [
         "city.json": "de17bc4a6ef36b340aeb709779d3765b846cf9f03680df3e751f32f7f15495f0",

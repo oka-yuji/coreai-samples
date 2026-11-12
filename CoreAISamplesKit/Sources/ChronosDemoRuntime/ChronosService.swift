@@ -84,6 +84,7 @@ public final class LiveChronosService: ChronosService {
             try check()
             return batch
         }
+        let capturedInput = try await repository.capture(request)
         guard let resource, resource.modelID == ChronosDemoCatalog.selection.modelID,
             resource.artifactID == "chronos2-fp32", resource.contract == "chronos2-fp32-v1",
             resource.sourceKind == .localManifest, resource.upstreamRevision == ChronosContract.revision
@@ -104,7 +105,7 @@ public final class LiveChronosService: ChronosService {
                 identity == nil || identity == result.identity
             else { throw ChronosDemoFailure.predictionFailed }
             identity = result.identity
-            areas.append(ChronosAreaForecast(areaID: series.areaID, raw: result.prediction))
+            areas.append(ChronosAreaForecast(areaID: series.areaID, raw: result.prediction, identity: result.identity))
         }
         try check()
         let duration = start.duration(to: .now).components
@@ -112,7 +113,7 @@ public final class LiveChronosService: ChronosService {
         return ChronosForecastBatch(
             scenarioID: request.scenarioID, originStep: request.originStep, mode: .live, areas: areas,
             processingSeconds: Double(duration.seconds) + Double(duration.attoseconds) / 1e18,
-            identity: identity, inputSnapshot: request.snapshot, inputSHA256: inputHash)
+            identity: identity, inputSnapshot: request.snapshot, inputSHA256: inputHash, capturedInput: capturedInput)
     }
 
     public func coverage() async throws -> APICoverage {
