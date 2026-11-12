@@ -1,0 +1,232 @@
+{
+  "as_of": "2026-11-12T04:59:46.284736+00:00",
+  "status": "Implementation analysis captured before final Issue547 peer review and merge; user acceptance remains pending.",
+  "scope": "Evidence-backed improvement candidates; no SF implementation changes authorized or performed here.",
+  "items": [
+    {
+      "id": "SF-01",
+      "component": "task preparation",
+      "observed": "The full tracked repository was 47,603,453 bytes; the SF base archive limit is 32 MB. This was detected before launch, not an executed failure.",
+      "evidence": [
+        "events.jsonl:2026-11-11T11:01:51",
+        "logs/546-snapshot.json"
+      ],
+      "proposed": "Preflight archive/source bytes and explicit exclusions; retain target commit and per-file hashes for filtered snapshots.",
+      "implemented_in_this_task": "Private snapshot builders retain source hashes and exclusions. The parent verifies the full real checkout; SF itself is unchanged."
+    },
+    {
+      "id": "SF-02",
+      "component": "verification command setup",
+      "observed": "Run 632c7346 completed its worker and protected contract check, then the parent-supplied python -I unittest command could not import Tools.",
+      "evidence": [
+        "sf/runs/632c73462f554d36869a4ffcc9c119b6/result.json",
+        "sf/runs/632c73462f554d36869a4ffcc9c119b6/verify-1/stderr.txt"
+      ],
+      "proposed": "Validate verifier cwd/import/dependency assumptions before expensive execution; retain command failure attribution separately from candidate defects.",
+      "implemented_in_this_task": "Corrected the verifier and submitted run 9c048ee5; retained the original failed run."
+    },
+    {
+      "id": "SF-03",
+      "component": "execution budget",
+      "observed": "Initial analysis run cf98e9fa timed out after 899.93 seconds with cleanup confirmed. It was not accepted.",
+      "evidence": [
+        "sf/runs/cf98e9fa3a354a8ab69816050cfd2100/result.json"
+      ],
+      "proposed": "Task-size-appropriate budget and bounded discovery deliverables before implementation; report timeout as incomplete.",
+      "implemented_in_this_task": "Later tasks used an explicit 3,600-second budget and fixed source, contract and verification commands."
+    },
+    {
+      "id": "SF-04",
+      "component": "dependency isolation",
+      "observed": "The complete Swift package needs pinned external sources and Rust archives beyond the source snapshot limit. Cache permissions and native capacity queries differ between SF and the host.",
+      "evidence": [
+        "verify_package.py",
+        "verification-template/_sf/external-dependencies.json",
+        "dependency-snapshot"
+      ],
+      "proposed": "First-class hash-pinned external dependency snapshot and explicit scratch/cache capabilities, distinct from model inputs.",
+      "implemented_in_this_task": "Private dependency manifests, copy/hash verification and isolated scratch directories; parent checks the full original package separately."
+    },
+    {
+      "id": "SF-05",
+      "component": "acceptance boundary",
+      "observed": "Catalog tests missed the actual Mac sidebar route in #544; an iOS preview host disabled interaction in #545. Catalog entries also missed verbatim rendering and interpolation-key differences.",
+      "evidence": [
+        "review/544/acceptance-final.json",
+        "analysis/545-self-review-final.json",
+        "analysis/545-compiler-localization.json",
+        "analysis/545-gui-verification.json"
+      ],
+      "proposed": "Declare parent-required actualentrypoint/locale/compilerkey/GUI checks in UI task specs and track incomplete evidence.",
+      "implemented_in_this_task": "Added route checks, explicit preview interaction, compiler-key validation and normal GUI checks. Parent corrections are recorded separately."
+    },
+    {
+      "id": "SF-06",
+      "component": "review completion semantics",
+      "observed": "A peer returned complete=true while retaining plausible/unverified candidates and SDK/project coverage limits. Parent acceptance required resolving and auditing those gaps.",
+      "evidence": [
+        "review/545/peer-1/result.json",
+        "review/545/peer-2/result.json",
+        "review/545/acceptance-final.json"
+      ],
+      "proposed": "Gate acceptance on unresolved candidates and essential coverage as well as process completion; preserve finding history and exactbase/head/tree.",
+      "implemented_in_this_task": "Actual Claude follow-up and parent pair/tree/path audit. A second Codex agent is not labelled the opposite AI."
+    },
+    {
+      "id": "SF-07",
+      "component": "parent orchestration",
+      "observed": "Parent verifier argument, revision and working-directory mistakes required correction. Existing user changes included 39 translation entries and four other dirty files. These are not SF worker defects.",
+      "evidence": [
+        "events.jsonl",
+        "analysis/545-primary-preservation/result.json",
+        "apply_sf_candidate.py"
+      ],
+      "proposed": "Construct commands from validated state, assert cwd/head, and use a reviewed application transaction with protected user-change overlays.",
+      "implemented_in_this_task": "Guarded candidate application in a separate worktree; original changes backed up and compared by bytes/catalog entries. No reset or stash discarded them."
+    },
+    {
+      "id": "SF-08",
+      "component": "publication and evidence",
+      "observed": "SF runs remain verified_pending_review after separate parent acceptance and merge. A whole-repository public-history audit also takes many sequential GitHub calls without progress counters.",
+      "evidence": [
+        "analysis/sf-run-metrics.json",
+        "progress.json",
+        "events.jsonl",
+        "logs/545-public-text.log"
+      ],
+      "proposed": "Link parent acceptance receipts and PR/squash IDs without changing SF verification meaning; provide audit progress counters and retain final manualpending state.",
+      "implemented_in_this_task": "The live HTML joins SF state to parent outcomes. Public-text audits and acceptance receipts remain separate; neither SF schema nor privacy tools were modified."
+    },
+    {
+      "id": "SF-09",
+      "component": "data publication contract",
+      "observed": "Annual metadata and a fixed fixture did not prove all periods were fully observed. The repair pins independent counts, revision and range; unknown data is distinct from zero or unpublished data.",
+      "evidence": [
+        "review/546/peer-1/result.json",
+        "issues/api.verified-plan.md",
+        "tasks/546-api-verified.json"
+      ],
+      "proposed": "Make evidence-backed inputscope and unknown-state semantics explicit before UI date-range implementation.",
+      "implemented_in_this_task": "SF repair 1cc579f8, parent whole-month/native/month-end checks and actual Claude follow-ups completed. PR #556 merged; the old annual-end prose was corrected."
+    },
+    {
+      "id": "SF-10",
+      "component": "reference-data boundaries",
+      "observed": "The 29,760 January API counts differed in nine month-end cells from January Parquet alone. February Parquet contains 30 January pickups, ten in the selected zones; including them resolves every cell.",
+      "evidence": [
+        "nyc/api-january-verification/result.json",
+        "nyc/api-january-reconciled/result.json"
+      ],
+      "proposed": "Treat filenameperiod andeventtimeperiod separately; retainfailure andadjacentsourceprovenance.",
+      "implemented_in_this_task": "Retained both failed and successful comparisons and both source hashes; supplied reference 2da47735 to the SF repair."
+    },
+    {
+      "id": "SF-11",
+      "component": "chart accessibility acceptance",
+      "observed": "Overlapping actual/forecast chart marks lost explicit New York labels and quantiles in normal accessibility output. Isolated-series checks had passed.",
+      "evidence": [
+        "analysis/546-verified-gui.json:G546-1",
+        "analysis/546-chart-ax-recheck.json",
+        "analysis/546-chart-elements-gui.json"
+      ],
+      "proposed": "For charts, test overlapping actual/forecast values and accessibility element boundaries as well as visual axes and isolated series.",
+      "implemented_in_this_task": "The first Text-child repair failed per-interval correspondence. Explicit elements at 60109c0 passed 16 normal Mac interval labels with values/quantiles. Audio Graph and spoken VoiceOver were not measured."
+    },
+    {
+      "id": "SF-12",
+      "component": "process interruption and artifact ownership",
+      "observed": "A daemon restart left the monitor, required checks and a reviewer lock running. Another same-source build regenerated the GUI artifact before launch.",
+      "evidence": [
+        "events.jsonl",
+        "analysis/546-chart-ax-recheck-lock.json",
+        "logs/required-checks-6dc62535/results.json"
+      ],
+      "proposed": "Resume from process/lock/source/artifact receipts; do not restart or delete a shared job merely because the chat tool session disappeared. Freeze the artifact only after competing builds complete.",
+      "implemented_in_this_task": "Inspected processes, owner/inode and artifact hashes, reused existing jobs and resumed the reviewer. Preserved the previous artifact identity rather than starting duplicate work."
+    },
+    {
+      "id": "SF-13",
+      "component": "fixture representativeness",
+      "observed": "The first SF journal run passed 155 CPU checks. Parent native J4 then failed exact snapshot equality after all 6,720 raw outputs matched. Unix-epoch fixtures had missed reference-clock Date precision loss through millisecond JSON.",
+      "evidence": [
+        "validation/547-native/test.log",
+        "logs/547-date-precision-probe.log",
+        "logs/547-date-red.log",
+        "logs/547-date-green-final.log"
+      ],
+      "proposed": "Include production-created values at serialization boundaries; separate byte/hash stability from in-memory value equality and retain independent live integration.",
+      "implemented_in_this_task": "Journal-specific reference-clock encoding/envelope 2, three fractional-date cases and two successful later native trials. The API canonical-byte format is unchanged."
+    },
+    {
+      "id": "SF-14",
+      "component": "authorization and asynchronous effect ordering",
+      "observed": "An owner can become unauthorized before a later Store effect cancels its Task. A real-file regression published during that gap while unrelated-update and cancellation controls passed.",
+      "evidence": [
+        "analysis/547-self-review.json",
+        "analysis/547-publication-design.json",
+        "logs/547-publication-red-fixed-test.log",
+        "tasks/547-publication.json"
+      ],
+      "proposed": "Declare the publication linearization boundary and everypermission source explicitly; protect same-ID retry and delayed-stop tests outsideworker control.",
+      "implemented_in_this_task": "SF repair 460da822 observes real Models/session/journal permission sources, keeps Store unchanged and retries identical prepared bytes. Host protected checks and final native/GUI pass; exact final review remains a separate gate."
+    },
+    {
+      "id": "SF-15",
+      "component": "persisted-input domain validation",
+      "observed": "Finite, aligned dates can still exceed supported Calendar/Int domains or prevent fixed-step progress. Four safe invalid constructor cases were accepted by the initial code.",
+      "evidence": [
+        "analysis/547-date-domain-probe.log",
+        "logs/547-bounds-red.log",
+        "logs/547-bounds-green.log"
+      ],
+      "proposed": "Validate supportedcalendar/size/count domain before derivedloops andintegercasts, including rehashedvalid-envelope payloads.",
+      "implemented_in_this_task": "At a82ec6c, dates/counts are bounded before loops and casts. Rehashed corrupt records reject. The original full-record trap/hang was not executed."
+    },
+    {
+      "id": "SF-16",
+      "component": "live execution observability",
+      "observed": "The repair CLI had task/thread events while SF output files remained empty. Its first model tool occurred 660.601 seconds after task start. Buffered writes lack periodic flush; the provider wait cause is unproven.",
+      "evidence": [
+        "analysis/547-sf-startup-observation.json",
+        "tukuru-sf:d69efe4c/tukuru_sf/processes.py:130-163"
+      ],
+      "proposed": "Expose process/threadstart andheartbeat separately frommodelprogress; flushboundedchunks/periodicintervals andreport time-to-firsttool. Do not label emptybufferedlogs as no execution.",
+      "implemented_in_this_task": "Read-only diagnosis and one existing worker. No account secrets, inferred provider cause or SF product modifications are included."
+    },
+    {
+      "id": "SF-17",
+      "component": "verification capability preflight",
+      "observed": "Broad repair verification exposed five existing capacity-dependent tests: important-usage capacity was zero in SF despite substantial host free space. This is distinct from the lock race.",
+      "evidence": [
+        "analysis/547-capacity-environment.json",
+        "tasks/547-publication.json"
+      ],
+      "proposed": "Preflight requiredOScapabilities separatelyfromdiskavailability; support explicitparent/hostverification receipts withoutrewritingSFfailedstate orsilentlydisablingtests.",
+      "implemented_in_this_task": "Retained SF failed state. The identical protected verifier passed all 370 tests on the host for the same candidate/specification. Explicit host receipt gates application; no tests were disabled and no SF result was rewritten."
+    },
+    {
+      "id": "SF-18",
+      "component": "failure attribution and concurrency verification",
+      "observed": "An isolated two-owner journal test intermittently failed independently of SF capacity. Relative openat(O_CREAT) on a new lock reproduced in independent C/Python probes.",
+      "evidence": [
+        "analysis/547-lock-fix-review.json",
+        "analysis/547-lock-fix-probe.json",
+        "logs/547-owners-fixed-repeat/results.json"
+      ],
+      "proposed": "Separate environment capability failures from real concurrent IO failures. Exercise fresh initialization and record process, inode and bounded recovery evidence.",
+      "implemented_in_this_task": "Existing-only open, exclusive create and one bounded reopen; 32 fresh Swift directories, ten isolated repetitions and 100 synchronized independent directories passed. No universal OS attribution."
+    },
+    {
+      "id": "SF-19",
+      "component": "presentation-boundary acceptance",
+      "observed": "All 113 Chronos catalog/compiler keys passed, but an English parent opened a Japanese history sheet in the normal Mac app.",
+      "evidence": [
+        "analysis/547-gui-verification.json:G547-1",
+        "analysis/547-locale-gui.json",
+        "analysis/547-sheet-review.json"
+      ],
+      "proposed": "Verify environment propagation through actual sheets, not just translation completeness. Keep saved-data hashes separate from display-language checks.",
+      "implemented_in_this_task": "Two-line locale propagation; Mac/iOS builds and English list/detail/metric GUI passed, with five saved files unchanged. Sheet-open Quit remains an unresolved observation for user acceptance."
+    }
+  ]
+}

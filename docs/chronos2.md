@@ -69,8 +69,8 @@ Results below retain their original dates and workloads. Different rows may use 
 
 | Platform | State | Verified scope / remaining work | Evidence |
 |---|---|---|---|
-| macos | ✅ | Fixed scenes and the independently verified January 2025 API range are connected. The earlier API GUI route is checked; final range UI verification is recorded in the evidence. User acceptance remains open. | [E4](validation/chronos2-demo-20261112/README.md) · [E5](validation/chronos2-api-20261112/README.md) |
-| ios | △ | Fixed/API UI and native adapter are connected; signed build passed. Physical iPhone inference and UI acceptance remain open. | [E4](validation/chronos2-demo-20261112/README.md) · [E5](validation/chronos2-api-20261112/README.md) |
+| macos | ✅ | Normal Mac checks cover fixed/API prediction, immutable history, restart and separate actual checks. User acceptance remains open. | [E4](validation/chronos2-demo-20261112/README.md) · [E5](validation/chronos2-api-20261112/README.md) · [E6](validation/chronos2-journal-20261112/README.md) |
+| ios | △ | Fixed/API/history UI and native adapter are connected; signed build passed. Physical iPhone inference and UI acceptance remain open. | [E4](validation/chronos2-demo-20261112/README.md) · [E5](validation/chronos2-api-20261112/README.md) · [E6](validation/chronos2-journal-20261112/README.md) |
 
 ### Performance and quality
 
@@ -109,6 +109,7 @@ Results below retain their original dates and workloads. Different rows may use 
 | [E3](validation/chronos2-models-20261112/README.md) | 2026-11-12 / legacy / diagnostic | Apple M5 Max / 137438953472 B RAM / macOS 27.2.1 (26B131) / Xcode 27.2 (27B52); Swift 6.4.2; SDK 27.2; Debug package tests; Release Mac/iOS applications | Pinned nine-file bundle import, five rejected replacements, lease gating and source-hash preservation; normal Mac import/preview and signed iOS build. No inference or performance measurement. · variant=coreai-fp32-univariate; backend=ManagedModelStore and normal Mac Models UI; no inference; route=Local bundle import -> inspect -> ready -> lease/release; explicit preview; source_revision=29ec3766d36d6f73f0696f85560a422f50e8498c; artifact_revision=786dcf97e020c987cbf883f09b486fba5f3fee30a588b87a346ea65d72d20572; code_revision=d68828d601fea9d8b6756cc7fe2b2200749d7fa4; unrecorded: batch_size, concurrency, warmups, power, thermal, plan_sha256 |
 | [E4](validation/chronos2-demo-20261112/README.md) | 2026-11-12 / legacy / native_app | Apple M5 Max / 137438953472 B RAM / macOS 27.2.1 (26B131) / Xcode 27.2 (27B52); Swift 6.4.2; SDK 27.2; Debug package and Release Mac application | 60 fixed scene/zone cases / 20160 raw values; native Mac GUI prediction and comparison, then close. CPU fakes cover stop/owner boundaries. No iPhone inference, user acceptance or performance measurement. Power/thermal and a benchmark-plan hash were not recorded. · variant=coreai-fp32-univariate; backend=Swift Core AI GPU preference; actual delegate not profiled; route=Normal Mac Models -> explicit on-device prediction -> interval and clock changes -> leave/reopen; separate production-service native comparison; source_revision=29ec3766d36d6f73f0696f85560a422f50e8498c; artifact_revision=786dcf97e020c987cbf883f09b486fba5f3fee30a588b87a346ea65d72d20572; code_revision=06e010133afd10d0d31532cfa804b97818944b30; batch_size=1; concurrency=1; warmups=0; unrecorded: power, thermal, plan_sha256 |
 | [E5](validation/chronos2-api-20261112/README.md) | 2026-11-12 / legacy / native_app | Apple M5 Max / 137438953472 B RAM / macOS 27.2.1 (26B131) / Xcode 27.2 (27B52); Swift 6.4.2; SDK 27.2; Debug package and Release Mac application | The production client validates all 29,760 January counts. The native path compares 20,160 Friday inputs and 6,720 raw outputs, then closes with zero leases. Normal Mac checks cover explicit acquisition/prediction/actuals and the verified month-end stop; chart accessibility fixes have separate source attribution. No controlled performance measurement or iPhone inference. · variant=coreai-fp32-univariate; backend=Swift Core AI GPU preference; actual delegate not profiled; route=Production Models/Store/Service with a pinned January API reference; separate normal Mac GUI; source_revision=29ec3766d36d6f73f0696f85560a422f50e8498c; artifact_revision=786dcf97e020c987cbf883f09b486fba5f3fee30a588b87a346ea65d72d20572; code_revision=02aa27facf98b6d7d503f72a06e8ac0b123dec01; batch_size=1; concurrency=1; warmups=0; unrecorded: power, thermal, plan_sha256 |
+| [E6](validation/chronos2-journal-20261112/README.md) | 2026-11-12 / legacy / native_app | Apple M5 Max / 137438953472 B RAM / macOS 27.2.1 (26B131) / Xcode 27.2 (27B52); Swift 6.4.2; SDK 27.2; Debug package and Release Mac application | One fixed Friday origin: 20,160 inputs, 6,720 raw outputs and 80 actual pairs; independent saved-file arithmetic and hash checks, zero leases. Normal Mac save/restart/check and locale correction have separate source attribution. No held-out quality or controlled performance measurement; power/thermal and benchmark-plan hash unrecorded. · variant=coreai-fp32-univariate; backend=Swift Core AI GPU preference; actual delegate not profiled; route=Production Models/Store/service/session -> live verified API -> native prediction -> immutable journal -> separate actual check -> reload -> stop; separate normal Mac GUI; source_revision=29ec3766d36d6f73f0696f85560a422f50e8498c; artifact_revision=786dcf97e020c987cbf883f09b486fba5f3fee30a588b87a346ea65d72d20572; code_revision=10a262c29916de06e99affbb75b3e8d1eb55d788; batch_size=1; concurrency=1; warmups=0; unrecorded: power, thermal, plan_sha256 |
 
 ### Setup, limitations and progress
 
@@ -125,6 +126,10 @@ Results below retain their original dates and workloads. Different rows may use 
 - [Official API demo evidence](validation/chronos2-api-20261112/README.md)
 
 - [Implementation plan #548](https://github.com/oka-yuji/coreai-samples/issues/548)
+
+- [Saved forecast evidence](validation/chronos2-journal-20261112/README.md)
+
+- [TukuruSF execution analysis](validation/chronos2-tsf-20261112/README.md)
 <!-- model-report:end -->
 
 ## Verified NYC API dates
@@ -195,3 +200,24 @@ COREAI_CHRONOS2_API_BUNDLE=/path/to/chronos2-bundle COREAI_CHRONOS2_API_REFERENC
 ```
 
 It retains Friday 2025-01-24 17:00 New York, all 20,160 fixed input values, all 6,720 native values, fixed `atol = rtol = 1e-4`, the source model identity and the zero-lease check. It writes new private `report.history.json` before inference and `report.json` after success. Default tests skip native execution. The parent also owns the renewed 29,760-count live reconciliation, actual GUI checks, signed builds and review. CPU replay does not establish live API, native, Mac/iPhone UI or user acceptance. The generated validation tables above retain their original evidence and are updated separately by the parent.
+
+## Saved forecasts and actual checks
+
+Successful on-device predictions are saved automatically. Precomputed previews do not create records. Wait for **Forecast saved on this device**, then open **Forecast history** to select a record. Records survive app restart. **Check published actuals** is a separate network action for the saved origin and the first two forecast hours across all twenty zones; it never reruns the model. A check cannot change the original forecast or earlier checks.
+
+The detail shows the New York origin, source, local save time, model version, comparison status and pair count. MAE and WAPE use the nonnegative, unrounded median and only comparable pairs. WAPE is absent when the actual total is zero. Unknown revisions and out-of-range data remain independently unverified, distinct from unpublished data, an unchecked record, observed zero and an ambiguous repeated time. A failed request is an error, not missing or zero data. The shipped API verification scope remains January 2025.
+
+A save failure leaves the prediction visible with an explicit retry. Retrying preserves the same record UUID, dates and bytes. Closing, changing selection or backgrounding invalidates unfinished work; completed records stay stored. A record that fails validation is shown as unreadable. The app does not automatically prune saved records or migrate the separate prototype app's files. Save times come from the device clock and are not independent timestamp certification.
+
+Records use the app's Application Support directory, under `coreai-samples/ChronosJournal-v1`. Each record retains all twenty 1,008-value inputs and 21×16 raw outputs, the actual verified model identity, source bytes/hashes, preprocessing and acquisition evidence. Only presentation and metrics clip negative medians. Journal envelope version 2 preserves Date reference-clock values; the established API canonical-byte format remains separate. Reads validate the complete record, not just its outer hash. Limits are 192 MiB per payload and 256 MiB + 4 KiB per envelope. Directory entries, files and lock initialization retain no-follow and exclusive-publication checks.
+
+The explicit integration test below uses production Models, Store, service, sessions and journal storage, with a drawing-only test adapter. It compares 20,160 API inputs and all 6,720 raw native outputs to the pinned references, saves the result, appends eighty actual values, reloads, verifies the original file is unchanged and checks zero leases after stop. Use the shared heavy-job lock. The output directory must not already exist. Default runs skip this model/network check.
+
+```sh
+COREAI_CHRONOS2_JOURNAL_BUNDLE=/path/to/chronos2-bundle \
+COREAI_CHRONOS2_JOURNAL_REFERENCE=/path/to/fixed-scenes-reference.json \
+COREAI_CHRONOS2_JOURNAL_OUTPUT=/new/output \
+swift test --package-path CoreAISamplesKit --filter ChronosAPINativeTests.liveJournal
+```
+
+[Journal verification and retained failures](validation/chronos2-journal-20261112/README.md) and [TukuruSF execution analysis](validation/chronos2-tsf-20261112/README.md) distinguish automated checks, normal Mac operation, integration and pending user/iPhone acceptance.

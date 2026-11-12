@@ -1,0 +1,32 @@
+{
+  "format": "chronos2-journal-gui/1",
+  "operator": "Codex via normal macOS application UI",
+  "workflow_source_commit": "10a262c29916de06e99affbb75b3e8d1eb55d788",
+  "locale_source_commit": "9b98f01f142fcddd500277520c71a67a02fdf0bb",
+  "records": 2,
+  "checks": 3,
+  "steps": [
+    "Precomputed preview produced no new record.",
+    "Explicit fixed-scene native prediction saved one immutable record.",
+    "Two explicit actual checks appeared with separate timestamps; original prediction and first check hashes stayed unchanged.",
+    "Explicit verified API history and native prediction saved a second record with API provenance.",
+    "After Done and normal Quit, relaunch restored both records from the preview route without model inference.",
+    "An explicit actual check on the API record after restart showed 80/80, MAE 13.97 and WAPE 11.24%, without rerunning the model.",
+    "Source and managed model copies retained all nine file hashes; the exercised application binary stayed unchanged during each trial.",
+    "Locale correction: EN list/detail/buttons/metrics and percentage rendering passed visual and accessibility inspection. Five stored JSON files stayed byte-identical; JP was restored before exit."
+  ],
+  "retained_finding": {
+    "id": "G547-1",
+    "before": "EN parent opened a Japanese history sheet at 10a262c.",
+    "after": "Explicit sheet locale propagation at 9b98f01 passed the same normal UI check.",
+    "status": "resolved"
+  },
+  "quit_observation": {
+    "observed": "Command-Q and the Quit menu while the history sheet was open did not terminate the app through CUA. Done followed by Command-Q exited normally.",
+    "investigation": "No journal-specific Quit override was found. Delegate entry, pending termination work and reply were not instrumented.",
+    "status": "Cause unresolved; not classified as an intended modal behavior or a demonstrated journal defect.",
+    "followup": "Recheck during user acceptance; if reproducible, capture termination delegate and pending-host state before changing the shared lifecycle."
+  },
+  "physical_iphone": "not_executed",
+  "user_acceptance": "pending"
+}

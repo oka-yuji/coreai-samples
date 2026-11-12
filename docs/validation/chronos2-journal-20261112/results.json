@@ -1,0 +1,187 @@
+{
+  "format": "chronos2-journal-validation/1",
+  "issue": 547,
+  "date": "2026-11-12",
+  "runtime_source_commit": "10a262c29916de06e99affbb75b3e8d1eb55d788",
+  "ui_source_commit": "9b98f01f142fcddd500277520c71a67a02fdf0bb",
+  "source_relation": "The only code change after the native/full-suite source adds two locale propagation lines to ChronosJournalScreen.swift. Mac/iOS Release builds and normal locale GUI were repeated.",
+  "model_revision": "29ec3766d36d6f73f0696f85560a422f50e8498c",
+  "manifest_sha256": "786dcf97e020c987cbf883f09b486fba5f3fee30a588b87a346ea65d72d20572",
+  "graph_sha256": "3094871fc431ae5d86d07c8b487ab53e48e60e9fb56efe803ba18c5bf88889c8",
+  "reference_sha256": "8f894aaac769294a3e6843225e6f86519f85090d747b16d94a288fb987661470",
+  "january_reference_sha256": "2da47735c51b5987dec9f6bee72c97acd39abe4870991e413dca30a1912c6530",
+  "origin": "2025-01-24T17:00:00-05:00",
+  "native": {
+    "trial": "547-native-final",
+    "passed": true,
+    "raw_values": 6720,
+    "max_absolute_error": 0.000152587890625,
+    "atol": 0.0001,
+    "rtol": 0.0001,
+    "input_values": 20160,
+    "compared_pairs": 80,
+    "actual_total": 9940,
+    "mean_absolute_error": 13.965053582191468,
+    "weighted_absolute_percentage_error": 11.239479744218485,
+    "metric_tolerance": 1e-10,
+    "original_sha256": "71fef45d17a6d46dddfd33b12537e6c7e360d7417d44d06c18bbe42e8eeea49d",
+    "prediction_file_bytes": 12715328,
+    "check_file_bytes": 1927834,
+    "envelope_and_payload_match_report": true,
+    "input_bytes_hash_valid": true,
+    "leases_after_close": 0,
+    "scope": "Independent Python arithmetic/file checks of the actual saved native record. One fixed demo origin, not held-out quality."
+  },
+  "required_checks": [
+    {
+      "name": "privacy-tree",
+      "argv": [
+        "python3",
+        "-I",
+        "Tools/Privacy/check-local-paths.py"
+      ],
+      "returncode": 0,
+      "elapsed_seconds": 0.5492352500004927,
+      "source_commit": "10a262c29916de06e99affbb75b3e8d1eb55d788"
+    },
+    {
+      "name": "privacy-history",
+      "argv": [
+        "python3",
+        "-I",
+        "Tools/Privacy/check-local-paths.py",
+        "--commits",
+        "origin/main..HEAD"
+      ],
+      "returncode": 0,
+      "elapsed_seconds": 0.057961541999247856,
+      "source_commit": "10a262c29916de06e99affbb75b3e8d1eb55d788"
+    },
+    {
+      "name": "swiftlint",
+      "argv": [
+        "swiftlint",
+        "lint",
+        "--config",
+        ".swiftlint.yml",
+        "--baseline",
+        ".swiftlint-baseline.json",
+        "--strict",
+        "--no-cache"
+      ],
+      "returncode": 0,
+      "elapsed_seconds": 1.3682679170015035,
+      "source_commit": "10a262c29916de06e99affbb75b3e8d1eb55d788"
+    },
+    {
+      "name": "format",
+      "argv": [
+        "python3",
+        "Tools/Format/check_format.py",
+        "--base",
+        "origin/main"
+      ],
+      "returncode": 0,
+      "elapsed_seconds": 1.108708542000386,
+      "source_commit": "10a262c29916de06e99affbb75b3e8d1eb55d788"
+    },
+    {
+      "name": "irodori-inputs",
+      "argv": [
+        "./Tools/Irodori/build-inputs.sh"
+      ],
+      "returncode": 0,
+      "elapsed_seconds": 10.212039999998524,
+      "source_commit": "10a262c29916de06e99affbb75b3e8d1eb55d788"
+    },
+    {
+      "name": "swift-tests",
+      "argv": [
+        "swift",
+        "test",
+        "--package-path",
+        "CoreAISamplesKit",
+        "--force-resolved-versions"
+      ],
+      "returncode": 0,
+      "elapsed_seconds": 189.17270354200446,
+      "source_commit": "10a262c29916de06e99affbb75b3e8d1eb55d788"
+    },
+    {
+      "name": "mac-release",
+      "argv": [
+        "xcodebuild",
+        "-project",
+        "CoreAISamples.xcodeproj",
+        "-scheme",
+        "CoreAISamples",
+        "-configuration",
+        "Release",
+        "-destination",
+        "platform=macOS",
+        "-onlyUsePackageVersionsFromResolvedFile",
+        "build"
+      ],
+      "returncode": 0,
+      "elapsed_seconds": 51.90142595799989,
+      "source_commit": "10a262c29916de06e99affbb75b3e8d1eb55d788"
+    },
+    {
+      "name": "package-pins",
+      "argv": [
+        "python3",
+        "-I",
+        "Tools/Packages/check-pins.py"
+      ],
+      "returncode": 0,
+      "elapsed_seconds": 0.026021874997240957,
+      "source_commit": "10a262c29916de06e99affbb75b3e8d1eb55d788"
+    }
+  ],
+  "locale_artifact": {
+    "source_commit": "9b98f01f142fcddd500277520c71a67a02fdf0bb",
+    "signature_verified": true,
+    "file_sharing": true,
+    "open_documents_in_place": true,
+    "verified_reference_sha256": "2da47735c51b5987dec9f6bee72c97acd39abe4870991e413dca30a1912c6530",
+    "binary_sha256": "35a340ce9a66c7aa4462e6820245525be517b51891b4952b7a15e9e7f9646f5f",
+    "physical_iphone_inference": false,
+    "mac_release_build": true,
+    "ios_release_build": true
+  },
+  "localization": {
+    "catalogs": 10,
+    "keys": 1459,
+    "missing": 0,
+    "placeholder_mismatch": 0,
+    "chronos_compiler_static_keys": 113,
+    "compiler_keys_missing": 0,
+    "headless_application_check_passed": true
+  },
+  "execution": {
+    "host": "Apple M5 Max / 128 GiB",
+    "os": "macOS 27.2.1 (26B131)",
+    "toolchain": "Xcode 27.2 (27B52), Swift 6.4.2, SDK 27.2",
+    "model_lock": "Owned shared heavy-job lock with owner/inode-checked cleanup",
+    "backend": "Core AI GPU preference; actual delegate not profiled",
+    "power": null,
+    "thermal": null,
+    "performance_benchmark": false
+  },
+  "acceptance": {
+    "J1": "passed",
+    "J2": "passed",
+    "J3": "passed",
+    "J4": "passed",
+    "J5": "Checks passed; documentation checks and exact final review are recorded in the PR receipt.",
+    "J6": "See the separate TukuruSF execution report.",
+    "J7": "pending_user"
+  },
+  "limitations": [
+    "One fixed origin, not held-out forecasting quality or independent timestamp certification.",
+    "Native/default-skipped tests were run explicitly; default CPU success alone is not native acceptance.",
+    "No physical iPhone inference, device memory/latency measurement or user acceptance.",
+    "No actual GPU delegate claim from preference or the retained MPS import warning.",
+    "No process-kill or power-loss durability claim; fault injection and controlled concurrent writers were tested."
+  ]
+}
