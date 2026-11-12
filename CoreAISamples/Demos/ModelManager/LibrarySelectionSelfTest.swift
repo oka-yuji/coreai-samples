@@ -29,9 +29,14 @@ enum LibrarySelectionSelfTest {
             check(
                 "library/chronosSidebarForecast",
                 Demo.taxiForecast.model == .chronos
-                    && DemoModel.chronos.demos == [.taxiForecast]
+                    && DemoModel.chronos.demos == [.taxiForecast, .productSales]
                     && Demo.taxiForecast.libraryID == ChronosDemoCatalog.selection.demoID,
                 "Chronos opens fixed scenes and verified NYC API dates from its sidebar section.")
+            check(
+                "library/salesSidebarForecast",
+                Demo.productSales.model == .chronos
+                    && Demo.productSales.libraryID == ChronosDemoCatalog.salesSelection.demoID,
+                "Product sales has its own sidebar destination and shares the Chronos model.")
             guard let model = catalog.model(ChronosDemoCatalog.selection.modelID) else {
                 check("library/chronosPresentation", false, "The Chronos model is missing.")
                 return

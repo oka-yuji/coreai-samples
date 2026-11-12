@@ -1,0 +1,150 @@
+{
+  "format": "chronos-sales-validation/1",
+  "date": "2026-11-13",
+  "issue": 529,
+  "native_code_revision": "55df3378a40a98f8e34c6fafa8e8a33bb1001e71",
+  "gui_code_revision": "1954168e1dcfd8dd8f7af438c0370d080b0b5a31",
+  "source": {
+    "url": "https://data.mendeley.com/datasets/njdkntcpc9/1",
+    "doi": "10.17632/njdkntcpc9.1",
+    "creators": [
+      "Paolo Mancuso",
+      "Veronica Piccialli",
+      "Antonio M. Sudoso"
+    ],
+    "license": "CC-BY-NC-3.0 at original distributor; conflicting CC-BY-4.0 UCI listing",
+    "bytes": 888985,
+    "sha256": "0dfd4a5bf801bf79ddb5fb1f6bc8d023487c36dd6a2a70b312cdfa9fa6568d83",
+    "rows": 1798,
+    "calendar_days": 1826,
+    "missing_days": 28,
+    "selected_skus": [
+      "B1_1",
+      "B2_1",
+      "B3_1",
+      "B4_1"
+    ],
+    "origins": [
+      "2016-03-26",
+      "2018-06-01",
+      "2018-09-01",
+      "2018-12-01"
+    ],
+    "raw_context": 365,
+    "padded_context": 368,
+    "displayed_horizons": [
+      7,
+      14
+    ],
+    "redistributed_observations": false
+  },
+  "native": {
+    "passed": true,
+    "route": "Production Models/Store/Service/Sessions; only rendering and source acquisition replaced by test boundaries",
+    "cases_per_pass": 16,
+    "passes": 2,
+    "scalar_comparisons": 10752,
+    "atol": 0.0001,
+    "rtol": 0.0001,
+    "max_absolute_error": 8.392333984375e-05,
+    "leases_after_each_close": [
+      0,
+      0
+    ],
+    "reference_sha256": "18207121565a0c12248624d8b2702e222b86092fb849f3c5a248b79786da35e0",
+    "private_report_sha256": "f78f88e68735af2ef1dc7e8dd2f04e6beac94472d12b58aef753ef345f249da7",
+    "independent_metrics_audit": true,
+    "independent_metrics_tolerance": 1e-10,
+    "nonfatal_log_message": "Failed to import MPS module; two messages, one per model load. The native test completed. Actual delegate was not profiled."
+  },
+  "diagnostic_metrics": {
+    "valid_pairs": 212,
+    "possible_pairs": 224,
+    "model_mae": 4.448845335335101,
+    "baseline_mae": 5.150943396226415,
+    "model_wape": 0.9016780220755656,
+    "baseline_wape": 1.0439770554493308,
+    "pair_policy": "First pass only; same observed actual/model/seasonal-naive triples; no zero imputation; negative predictions clipped to zero before metrics, no display rounding.",
+    "quality_boundary": "Fixed retrospective demo origins, not a held-out study or evidence of no overlap with model pretraining."
+  },
+  "timing": {
+    "unit": "s",
+    "new_session_request_seconds": [
+      1.7145386249999999,
+      1.328287291
+    ],
+    "already_loaded_request_count": 30,
+    "already_loaded_request_min": 0.004352583,
+    "already_loaded_request_median": 0.005259208499999999,
+    "already_loaded_request_max": 0.007274125,
+    "boundary": "Runtime request through validated output, including verification/copy/model load when loaded=true. Excludes data acquisition, Models import, UI and metric calculation. Debug package; zero warmups; no controlled repeated benchmark or cache isolation."
+  },
+  "memory": {
+    "unit": "B",
+    "before_import_footprint": 11322088,
+    "after_final_close_footprint": 66159552,
+    "sampled_footprint_max": 211739432,
+    "kernel_lifetime_peak": 212411176,
+    "sampled_rss_max": 10795155456,
+    "returned_words": [
+      93
+    ],
+    "boundary": "Point samples and whole-test-process kernel lifetime peak, including import and both passes. Not per-request peak, model-only residency, GPU allocation sum or iPhone budget."
+  },
+  "host": {
+    "device": "Apple M5 Max",
+    "ram_bytes": 137438953472,
+    "os": "macOS 27.2.1 (26B131)",
+    "xcode": "27.2 (27B52)",
+    "swift": "6.4.2",
+    "sdk": "27.2",
+    "power": "AC Power before and after",
+    "thermal": "pmset reported no thermal/performance warning before and after; temperature/GPU load not measured"
+  },
+  "gui": {
+    "passed": true,
+    "route": "Normal Mac sidebar and existing imported model",
+    "conditions": [
+      "B1_1 / 2018-12-01 / 14 days",
+      "B2_1 / 2018-12-01 / 7 days"
+    ],
+    "checks": [
+      "Normal Mac sidebar reaches sales preview; native disabled without opening prepared model",
+      "Explicit source acquisition, exact cached source hash, no automatic prediction",
+      "B1_1 / 2018-12-01 / 14-day native prediction: values and 13-day metrics match native reference report after display rounding",
+      "Missing actual on December 8 remains missing",
+      "Chart spans the full selected history and forecast after explicit X-domain fix",
+      "Four SKU options; product and horizon changes clear results and do not infer",
+      "B2_1 / same origin / 7-day native prediction matches report prefix metrics",
+      "EN/JP switch preserves input, result and runtime value; both clipping explanations visible",
+      "Navigate to unchanged NYC precomputed preview and back; sales returns to fresh preview without old prediction",
+      "Quit observed and application process absent; original JP interface restored"
+    ],
+    "initial_failure": "Numeric day-index chart compressed observations at the right edge; explicit visible X domain fixed in 1954168, then normal GUI rechecked.",
+    "network_boundary": "Verified cache reused by code and CPU offline test; actual host network was not disabled",
+    "original_japanese_interface_restored": true,
+    "app_exit_confirmed": true
+  },
+  "validation": {
+    "required_commands_exit_zero": true,
+    "full_swift_tests_exit_zero": true,
+    "mac_release_exit_zero": true,
+    "ios_release_exit_zero": true,
+    "ios_signing": "Existing ignored local signing configuration reused; host codesign verification passed. Initial unsigned build and sandbox trust failure retained separately.",
+    "ios_file_sharing_keys": true,
+    "ios_increased_memory_entitlement": true,
+    "localization_missing": 0,
+    "physical_iphone_inference": false,
+    "user_acceptance": false
+  },
+  "workflow": {
+    "sf_run": "0a9f7369bed34a31b01dfd7940ddbe5a",
+    "sf_result": "verified_pending_review",
+    "parent_fixes": [
+      "Prediction errors no longer force sales cache refresh; four-case red/green regression",
+      "Explicit English localization updated with its key and Japanese value",
+      "Visible chart X domain fixed after normal Mac inspection"
+    ],
+    "peer_review": "Actual Claude Code initial review and final follow-up are retained in the PR; execution success is separate from acceptance."
+  }
+}
