@@ -274,7 +274,7 @@
       "route": "Production Models/Store/service/session -> live verified API -> native prediction -> immutable journal -> separate actual check -> reload -> stop; separate normal Mac GUI",
       "source_revision": "29ec3766d36d6f73f0696f85560a422f50e8498c",
       "artifact_revision": "786dcf97e020c987cbf883f09b486fba5f3fee30a588b87a346ea65d72d20572",
-      "code_revision": "10a262c29916de06e99affbb75b3e8d1eb55d788",
+      "code_revision": "48adfc21c80ff7ceb1828f5b7326fde1c760d0be",
       "workload": {
         "en": "One fixed Friday origin: 20,160 inputs, 6,720 raw outputs and 80 actual pairs; independent saved-file arithmetic and hash checks, zero leases. Normal Mac save/restart/check and locale correction have separate source attribution. No held-out quality or controlled performance measurement; power/thermal and benchmark-plan hash unrecorded.",
         "ja": "固定金曜1起点の20,160入力・6,720原値・80比較ペア。保存ファイルから独立計算とhash確認、lease0。通常Macの保存/再起動/実績確認とlocale修正は版を別記。独立した精度評価・制御した性能計測ではなく、電源/熱とbenchmark計画hashは未記録。"

@@ -28,5 +28,22 @@
     "followup": "Recheck during user acceptance; if reproducible, capture termination delegate and pending-host state before changing the shared lifecycle."
   },
   "physical_iphone": "not_executed",
-  "user_acceptance": "pending"
+  "user_acceptance": "pending",
+  "final_followup": {
+    "source_commit": "815830f",
+    "status": "passed",
+    "completed_at": "2026-11-12T05:31:40.749191+00:00",
+    "prior_five_files_unchanged": true,
+    "model_hashes9x2_match_pinned": true,
+    "binary_unchanged": true,
+    "app_exited": true,
+    "lock_released": true,
+    "observations": [
+      "Normal Models -> explicit native Friday prediction -> saved indicator; median120/range102–146.",
+      "English history listed the new fixed record plus both previous fixed/API records.",
+      "New record detail initially not checked; explicit actual check displayed80/80,MAE13.97,WAPE11.24%.",
+      "English sheet title/actions/metrics render correctly; restoredJP,Done thenCommand-Q exited.",
+      "No iPhone or actual inactive-phase GUI operation performed."
+    ]
+  }
 }

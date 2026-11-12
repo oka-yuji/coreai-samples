@@ -219,14 +219,39 @@
     {
       "id": "SF-19",
       "component": "presentation-boundary acceptance",
-      "observed": "All 113 Chronos catalog/compiler keys passed, but an English parent opened a Japanese history sheet in the normal Mac app.",
+      "observed": "Catalog and GUI acceptance are separate: an English parent opened a Japanese sheet. The earlier compiler count also confused 113 catalog entries with 69 statically extracted keys.",
       "evidence": [
         "analysis/547-gui-verification.json:G547-1",
         "analysis/547-locale-gui.json",
-        "analysis/547-sheet-review.json"
+        "analysis/547-sheet-review.json",
+        "analysis/547-final-compiler-localization.json"
       ],
       "proposed": "Verify environment propagation through actual sheets, not only translation completeness. Keep saved-data hashes separate from display-language checks.",
-      "implemented_in_this_task": "Two-line locale propagation; Mac/iOS builds and English list/detail/metric GUI passed, with five saved files unchanged. Sheet-open Quit remains an unresolved observation for user acceptance."
+      "implemented_in_this_task": "Explicit sheet locale propagation, compiled artifacts and English GUI passed. Actual compiler output was recounted: 69 static keys present in the 113-entry catalog, with dynamic callers reviewed separately. Historical evidence and corrections are retained."
+    },
+    {
+      "id": "SF-20",
+      "component": "lifecycle acceptance",
+      "observed": "Independent review found that journal inactive state rejected a valid successful prediction while Models still allowed inference. CPU fixtures had not covered success arriving in that phase.",
+      "evidence": [
+        "review/547/peer-1/result.json:F1",
+        "logs/547-inactive-red.log",
+        "logs/547-inactive-green.log"
+      ],
+      "proposed": "Test valid completion in every lifecycle phase, separately from owner withdrawal and task cancellation. Verify queue and publication rules independently.",
+      "implemented_in_this_task": "Kept native captures queued during inactivity, deferred saving until appear, retained ended-session rejection; pure Feature and production Runner/Store red-to-green evidence."
+    },
+    {
+      "id": "SF-21",
+      "component": "environment fixture coverage",
+      "observed": "The M5 host identifier matched a narrow pattern that excluded four older Mac families. Independent review and official Apple identifiers exposed that gap.",
+      "evidence": [
+        "review/547/peer-1/result.json:F3",
+        "logs/547-device-red.log",
+        "logs/547-device-green.log"
+      ],
+      "proposed": "Include supported identifier families and malformed inputs in provenance tests. Distinguish identifier support from real hardware execution.",
+      "implemented_in_this_task": "One bounded validator for capture and reload; eight accepted and five rejected inputs. Physical-device inference remains unverified."
     }
   ]
 }

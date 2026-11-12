@@ -23,7 +23,7 @@ The normal sidebar opened the interactive precomputed preview with no inference.
 
 Source and managed bundle hashes remained unchanged. The app was closed before the shared model lock was released. These observations establish the stated Mac route, not a performance benchmark or user acceptance.
 
-The final display check confirmed Japanese guidance and quantile labels, and explicit chart accessibility labels for New York half-hour intervals on a device configured for Tokyo. Setting only the SwiftUI calendar/time-zone environment did not correct the chart's automatic accessibility dates. Explicit mark labels fixed that behavior. Compiler-extracted localization keys also exposed literal `%` escaping in interpolated text; the corrected catalog matches all 49 extracted static keys.
+The final display check confirmed Japanese guidance and quantile labels, and explicit chart accessibility labels for New York half-hour intervals on a device configured for Tokyo. Setting only the SwiftUI calendar/time-zone environment did not correct the chart's automatic accessibility dates. Explicit mark labels fixed that behavior. Compiler output exposed literal `%` escaping in interpolated text, and the corrected catalog/GUI checks passed. The earlier count of 49 static keys can be reproduced by including catalog-derived generated symbols: the retained iOS artifact has 33 keys extracted from handwritten ChronosUI files and 49 generated-symbol keys, while the catalog has 49 entries. This is a later recount of retained iOS output, not a rerun of the historical Mac build; 49 no longer denotes independently extracted handwritten call sites.
 
 ## Lifecycle and platform boundaries
 

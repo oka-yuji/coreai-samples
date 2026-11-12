@@ -43,6 +43,8 @@ The journal publication repair retained an SF failure when its sandbox reported 
 
 The [evidence-linked improvement list](improvements.json) identifies the affected component, observation, proposed change and the workaround actually used in this task. These are candidates for TukuruSF development, not claims that TukuruSF itself was modified.
 
+The first complete-pair Claude review also exposed inactive capture loss, a narrow hardware-identifier pattern and unreadable spacing in several proposals. The parent reproduced and fixed the functional cases, corrected the text and retained a failed scheduling microprobe separately. Passing `complete=true` did not bypass candidate resolution. The final acceptance receipt identifies the follow-up review.
+
 The most useful next changes are verifier preflight, explicit external-dependency inputs, artifact-level UI acceptance, candidate/coverage-aware review gates and durable parent acceptance receipts. Process recovery should report the existing job before offering another execution. Public-text history audits would benefit from progress counters.
 
 ## Remaining acceptance boundary
