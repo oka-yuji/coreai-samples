@@ -41,6 +41,11 @@ struct ForecastChart: View {
         }
     }
 
+    private var visibleDomain: ClosedRange<Int> {
+        guard let first = days.first, let last = days.last else { return 0...1 }
+        return first.id...max(first.id + 1, last.id)
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Sales by calendar date", bundle: .module).font(.headline)
@@ -72,6 +77,7 @@ struct ForecastChart: View {
                         .foregroundStyle(.primary).symbol(.square).symbolSize(30)
                 }
             }
+            .chartXScale(domain: visibleDomain)
             .chartXAxis {
                 AxisMarks(values: days.filter { $0.id % 14 == state.originIndex % 14 }.map(\.id)) { value in
                     AxisGridLine()
