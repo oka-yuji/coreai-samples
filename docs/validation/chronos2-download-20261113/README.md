@@ -96,6 +96,14 @@ Commit `ec02f94bde596787ef83c837499732b9c76f3c2a` subsequently passed a second f
 
 This recheck used the corrected catalog helper and the integrated sales catalog. Its test took 50.129 seconds and its wrapper 63.754719333010144 seconds. These remain validation intervals, not performance measurements. It repeats the same fixed dataset, adds no held-out quality cases, and retains the MPS import warning. Normal GUI download and physical iPhone acceptance remain unperformed.
 
+## Review follow-up
+
+A successful local import could leave completed files from an earlier interrupted download in the artifact's staging directory. Commit `736a8b13de787eeae07415420b6dda171cef492f` cleans those known files only after the import is promoted and its ledger is committed. Descriptor-relative operations refuse symlink traversal and preserve UUID import directories, unknown files and other artifacts. Only empty known parent directories are removed. Cleanup is best-effort and does not invalidate a committed installation. Failed or cancelled imports, insufficient space, ledger rollback and active leases retain the prior installation and resumable download data.
+
+A small storage fixture reproduced the residue, then passed with the correction. It seeded two completed files and two stale partial files; ordinary download cancellation already removes its active partial file. Four new test definitions include five failure cases, three symlink cases and a UUID/inventory-prefix collision. The targeted regressions passed forty tests in seven suites. All eight required checks and the signed iOS build passed. These storage tests do not claim another real-bundle download or model run. The recorded `ec02f94` native recheck remains valid for the unchanged download path; the cleanup branch is limited to a direct UUID local-import directory.
+
+Commit `4115c851acd1af8ea8f99ded6d3a26a04b764ca8` omits the ambiguous Source/Local bundle row for artifacts supporting both download and import. Repository, revision, manifest and license information remain; local-only artifacts retain their source row. The final Mac build was inspected in Japanese and English: complete identifiers, no hybrid source row and the existing ready resource were confirmed. No acquisition, deletion, preparation or prediction was activated. The attempted local-only GUI inspection only toggled a sidebar group and was restored; it is not counted as a visual pass. Both release builds, signatures and embedded definitions were checked. The guide now identifies the down-arrow control in icon-only presentations and the ready checkmark.
+
 ## Reproduce the opt-in check
 
 Use the shared heavy-job lock described in `AGENTS.md`. Supply the original known bundle only for before/after hash checks; acquisition must still use the network. Use a new output path with an existing parent directory and the fixed sixty-case reference.

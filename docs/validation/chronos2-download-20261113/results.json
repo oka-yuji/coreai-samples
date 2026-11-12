@@ -270,12 +270,12 @@
     {
       "stage": "normal_mac_information_layout",
       "result": "G561-1 confirmed then corrected",
-      "cause": "Complete AX values did not expose visual clipping in the narrow popover. Stacked wrapping identifiers at6dbb0ad were rechecked in both locales on the84dce327 rebuilt app."
+      "cause": "Complete AX values did not expose visual clipping in the narrow popover. Stacked wrapping identifiers at 6dbb0ad were rechecked in both locales on the 84dce327 rebuilt app."
     },
     {
       "stage": "post_merge_opt_in_catalog",
       "result": "CPU regression red then green",
-      "cause": "The original model gained a sales demo link while the opt-in catalog retained only the taxi descriptor; fixed in11c54a9 with a shared builder and default CPU test."
+      "cause": "The original model gained a sales demo link while the opt-in catalog retained only the taxi descriptor; fixed in 11c54a9 with a shared builder and default CPU test."
     },
     {
       "stage": "post_merge_full_package",
@@ -454,5 +454,48 @@
     "persisted_acquisition_sha256": "d5c0865cb22aa95e85b1e448f8142a7114cb7e594c6cd0f48d367b1c6f9c7f63",
     "persisted_output_and_acquisition_identical_to_prior_run": true
   },
-  "latest_native_code_revision": "ec02f94bde596787ef83c837499732b9c76f3c2a"
+  "latest_native_code_revision": "ec02f94bde596787ef83c837499732b9c76f3c2a",
+  "review_followup": {
+    "storage_code_revision": "736a8b13de787eeae07415420b6dda171cef492f",
+    "ui_code_revision": "4115c851acd1af8ea8f99ded6d3a26a04b764ca8",
+    "storage_cpu": {
+      "fixture": "Small synthetic local-manifest image bundle, same storage paths; no real Chronos or network bytes",
+      "seeded_completed_files": 2,
+      "seeded_stale_partial_files": 2,
+      "new_test_definitions": 4,
+      "failure_cases": 5,
+      "symlink_cases": 3,
+      "targeted_tests": 40,
+      "targeted_suites": 7,
+      "red_then_green": true,
+      "uuid_unknown_other_artifact_and_symlink_targets_preserved": true,
+      "failed_import_prior_installation_and_ledger_preserved": true,
+      "normal_download_cancel_active_part_cleanup_unchanged": true,
+      "cleanup_after_successful_import_commit_only": true,
+      "cleanup_best_effort": true
+    },
+    "required_checks_passed": 8,
+    "signed_ios_build_passed": true,
+    "ui_checks_passed": 5,
+    "ui_source_sha256": "3447bc60ba8c4ee44a4986e57b5e3486baef3bf0e90700063948cf26527720a4",
+    "gui": {
+      "source": "4115c851acd1af8ea8f99ded6d3a26a04b764ca8",
+      "source_tree": "5f7b9e6227b3ac359f7c4cd0c154c0658ffe9dde",
+      "binary_sha256": "06aa9c8211e05cfff944c1b4459a5a4f48b1e728a9718fe7cf6cc73ab14a6f05",
+      "completed_at": "2026-11-12T18:51:05.987172+00:00",
+      "app_exited": true,
+      "binary_unchanged": true,
+      "model_inference_executed": false,
+      "download_clicked": false,
+      "existing_resource_ready": true,
+      "jp_restored": true,
+      "lock_released": true,
+      "local_only_gui_checked": false
+    },
+    "hybrid_source_row_omitted_in_both_locales": true,
+    "full_identifiers_visible_in_both_locales": true,
+    "local_only_and_license_source_branches_retained": true,
+    "physical_iphone_checked": false,
+    "new_native_run_after_storage_cleanup": false
+  }
 }
