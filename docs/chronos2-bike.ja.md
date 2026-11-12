@@ -46,6 +46,6 @@ COREAI_FORECAST_BUNDLE=/path/to/chronos2-bundle COREAI_BIKE_REFERENCE=/path/to/b
 
 固定参照は異なる5起点で `series_id=seoul-bike`、`horizon=16`、336入力と21分位×16点を持ちます。本番Models・Store・Service・Sessionsで全入力と全raw値をatol/rtol各1e-4で照合し、close後lease 0、再表示・再実行を確認します。新規・上書き禁止の非公開reportにraw予測・実績・基準値・同一ペアの指標・時間・モデルidentity・メモリの境界を保存します。正規化CSV、原CSV、出典manifestのSHA-256は別項目です。現在値のメモリ採取とprocess生涯kernel peakを混同しません。
 
-version 2のreportは条件ごとと全体の `scalarFailures` を記録します。数値不一致は試験失敗を維持したまま、残りの原出力とlease検査も記録します。reportが存在するだけでは合格ではなく、試験の正常終了と不一致0件の両方が必要です。不正な入力・identity・shape・ライフサイクル条件では直ちに試験を停止します。
+version 2のreportは条件ごとと全体の `scalarFailures` を記録します。数値不一致は試験失敗を維持したまま、残りの原出力とlease検査も記録します。reportが存在するだけでは合格ではなく、試験の正常終了と不一致0件の両方が必要です。入力・identity・shape・ライフサイクル・再実行一致が不成立なら、直ちに試験を停止します。
 
 実モデル、通常Mac/iPhone画面、読み上げ、署名build、本人受入は監督側の確認です。CPU成功や試験入口の追加だけでは合格にしません。
