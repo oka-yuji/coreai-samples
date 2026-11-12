@@ -36,16 +36,10 @@ def listing(path):
 
 
 def diagnostic(message):
-    if sys.stderr is None:
-        return
     try:
-        print(message, file=sys.stderr, flush=True)
-    except BrokenPipeError:
-        discard = os.open(os.devnull, os.O_WRONLY)
-        try:
-            os.dup2(discard, sys.stderr.fileno())
-        finally:
-            os.close(discard)
+        os.write(2, (message + "\n").encode("utf-8", errors="backslashreplace"))
+    except OSError:
+        pass
 
 
 def progress(phase, completed, total=None):

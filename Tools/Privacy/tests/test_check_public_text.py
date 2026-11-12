@@ -242,6 +242,21 @@ class PublicTextChecks(unittest.TestCase):
         self.assertEqual(result.returncode, 0)
         self.assertEqual(result.stdout, b"")
 
+    def test_unwritable_progress_file_does_not_change_audit_outcome(self):
+        environment = dict(os.environ, PATH=os.pathsep.join([str(self.bin), os.environ.get("PATH", "")]))
+        cases = [(repository([issue(1, "plain")]), 0),
+                 (repository([issue(1, absolute("Users", "alice", "x"))]), 1),
+                 ({"output": "", "code": 1}, 2)]
+        bootstrap = "import os,sys,resource,signal;signal.signal(signal.SIGXFSZ,signal.SIG_IGN);resource.setrlimit(resource.RLIMIT_FSIZE,(0,0));os.execv(sys.argv[1],sys.argv[1:])"
+        for fake, expected in cases:
+            with self.subTest(expected=expected):
+                (self.bin / "fake.json").write_text(json.dumps(fake))
+                with (self.bin / "stderr.log").open("wb") as stderr:
+                    result = subprocess.run([sys.executable, "-I", "-c", bootstrap, sys.executable, "-I", str(SCRIPT), REPOSITORY],
+                                            stdout=subprocess.PIPE, stderr=stderr, env=environment, timeout=10)
+                self.assertEqual(result.returncode, expected)
+                self.assertEqual(result.stdout, b"issue #1 body:1\n" if expected == 1 else b"")
+
 
 if __name__ == "__main__":
     unittest.main()
