@@ -54,7 +54,9 @@ public struct ModelAcquisitionControls: View {
             switch installation.phase {
             case .missing, .failed:
                 if let method = policy.preferredMethod {
-                    acquisitionButton(artifact, method: method, retrying: installation.phase == .failed)
+                    acquisitionButton(
+                        artifact, method: method,
+                        retrying: installation.phase == .failed && !(method == .download && policy.allowsImport))
                     if method == .download, policy.allowsImport {
                         acquisitionButton(artifact, method: .importBundle)
                     }
