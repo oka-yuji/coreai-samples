@@ -11,7 +11,7 @@
         "events.jsonl:2026-11-11T11:01:51",
         "logs/546-snapshot.json"
       ],
-      "proposed": "Preflight archive/source bytes and explicit exclusions; retain target commit and per-file hashes for filtered snapshots.",
+      "proposed": "Preflight source/archive size and explicit exclusions; retain the target commit and per-file hashes for filtered snapshots.",
       "implemented_in_this_task": "Private snapshot builders retain source hashes and exclusions. The parent verifies the full real checkout; SF itself is unchanged."
     },
     {
@@ -22,7 +22,7 @@
         "sf/runs/632c73462f554d36869a4ffcc9c119b6/result.json",
         "sf/runs/632c73462f554d36869a4ffcc9c119b6/verify-1/stderr.txt"
       ],
-      "proposed": "Validate verifier cwd/import/dependency assumptions before expensive execution; retain command failure attribution separately from candidate defects.",
+      "proposed": "Validate verifier working directory, imports and dependencies before expensive execution. Attribute command setup failures separately from candidate defects.",
       "implemented_in_this_task": "Corrected the verifier and submitted run 9c048ee5; retained the original failed run."
     },
     {
@@ -32,7 +32,7 @@
       "evidence": [
         "sf/runs/cf98e9fa3a354a8ab69816050cfd2100/result.json"
       ],
-      "proposed": "Task-size-appropriate budget and bounded discovery deliverables before implementation; report timeout as incomplete.",
+      "proposed": "Use task-appropriate budgets and bounded exploration deliverables before implementation. Keep timeouts incomplete.",
       "implemented_in_this_task": "Later tasks used an explicit 3,600-second budget and fixed source, contract and verification commands."
     },
     {
@@ -44,7 +44,7 @@
         "verification-template/_sf/external-dependencies.json",
         "dependency-snapshot"
       ],
-      "proposed": "First-class hash-pinned external dependency snapshot and explicit scratch/cache capabilities, distinct from model inputs.",
+      "proposed": "Provide hash-pinned external dependency inputs and explicit scratch/cache capabilities, separate from model inputs.",
       "implemented_in_this_task": "Private dependency manifests, copy/hash verification and isolated scratch directories; parent checks the full original package separately."
     },
     {
@@ -57,7 +57,7 @@
         "analysis/545-compiler-localization.json",
         "analysis/545-gui-verification.json"
       ],
-      "proposed": "Declare parent-required actualentrypoint/locale/compilerkey/GUI checks in UI task specs and track incomplete evidence.",
+      "proposed": "Declare required parent checks for actual entry points, locale presentation, compiler keys and GUI behavior in UI task specifications.",
       "implemented_in_this_task": "Added route checks, explicit preview interaction, compiler-key validation and normal GUI checks. Parent corrections are recorded separately."
     },
     {
@@ -69,7 +69,7 @@
         "review/545/peer-2/result.json",
         "review/545/acceptance-final.json"
       ],
-      "proposed": "Gate acceptance on unresolved candidates and essential coverage as well as process completion; preserve finding history and exactbase/head/tree.",
+      "proposed": "Require candidate resolution and essential coverage in addition to process completion. Preserve finding history and exact base/head/tree identities.",
       "implemented_in_this_task": "Actual Claude follow-up and parent pair/tree/path audit. A second Codex agent is not labelled the opposite AI."
     },
     {
@@ -81,7 +81,7 @@
         "analysis/545-primary-preservation/result.json",
         "apply_sf_candidate.py"
       ],
-      "proposed": "Construct commands from validated state, assert cwd/head, and use a reviewed application transaction with protected user-change overlays.",
+      "proposed": "Build commands from validated state, assert working directory and head, and apply candidates through a reviewed transaction that preserves user changes.",
       "implemented_in_this_task": "Guarded candidate application in a separate worktree; original changes backed up and compared by bytes/catalog entries. No reset or stash discarded them."
     },
     {
@@ -94,7 +94,7 @@
         "events.jsonl",
         "logs/545-public-text.log"
       ],
-      "proposed": "Link parent acceptance receipts and PR/squash IDs without changing SF verification meaning; provide audit progress counters and retain final manualpending state.",
+      "proposed": "Link parent acceptance receipts and squash commit IDs without changing SF verification meaning. Add audit progress counters and keep manual acceptance pending.",
       "implemented_in_this_task": "The live HTML joins SF state to parent outcomes. Public-text audits and acceptance receipts remain separate; neither SF schema nor privacy tools were modified."
     },
     {
@@ -106,7 +106,7 @@
         "issues/api.verified-plan.md",
         "tasks/546-api-verified.json"
       ],
-      "proposed": "Make evidence-backed inputscope and unknown-state semantics explicit before UI date-range implementation.",
+      "proposed": "Define evidence-backed input scope and unknown-data semantics before implementing date-range controls.",
       "implemented_in_this_task": "SF repair 1cc579f8, parent whole-month/native/month-end checks and actual Claude follow-ups completed. PR #556 merged; the old annual-end prose was corrected."
     },
     {
@@ -117,7 +117,7 @@
         "nyc/api-january-verification/result.json",
         "nyc/api-january-reconciled/result.json"
       ],
-      "proposed": "Treat filenameperiod andeventtimeperiod separately; retainfailure andadjacentsourceprovenance.",
+      "proposed": "Distinguish the filename period from the event-time period. Retain failed comparisons and adjacent source provenance.",
       "implemented_in_this_task": "Retained both failed and successful comparisons and both source hashes; supplied reference 2da47735 to the SF repair."
     },
     {
@@ -129,7 +129,7 @@
         "analysis/546-chart-ax-recheck.json",
         "analysis/546-chart-elements-gui.json"
       ],
-      "proposed": "For charts, test overlapping actual/forecast values and accessibility element boundaries as well as visual axes and isolated series.",
+      "proposed": "Test overlapping actual/forecast values and separate accessibility elements, alongside visual axes and isolated series.",
       "implemented_in_this_task": "The first Text-child repair failed per-interval correspondence. Explicit elements at 60109c0 passed 16 normal Mac interval labels with values/quantiles. Audio Graph and spoken VoiceOver were not measured."
     },
     {
@@ -141,7 +141,7 @@
         "analysis/546-chart-ax-recheck-lock.json",
         "logs/required-checks-6dc62535/results.json"
       ],
-      "proposed": "Resume from process/lock/source/artifact receipts; do not restart or delete a shared job merely because the chat tool session disappeared. Freeze the artifact only after competing builds complete.",
+      "proposed": "Resume from process, lock, source and artifact receipts. Do not restart a shared job because a chat tool session disappeared. Freeze GUI artifacts after other builds finish.",
       "implemented_in_this_task": "Inspected processes, owner/inode and artifact hashes, reused existing jobs and resumed the reviewer. Preserved the previous artifact identity rather than starting duplicate work."
     },
     {
@@ -154,7 +154,7 @@
         "logs/547-date-red.log",
         "logs/547-date-green-final.log"
       ],
-      "proposed": "Include production-created values at serialization boundaries; separate byte/hash stability from in-memory value equality and retain independent live integration.",
+      "proposed": "Use production-created values at serialization boundaries. Distinguish byte/hash stability from in-memory equality and retain independent live integration.",
       "implemented_in_this_task": "Journal-specific reference-clock encoding/envelope 2, three fractional-date cases and two successful later native trials. The API canonical-byte format is unchanged."
     },
     {
@@ -167,7 +167,7 @@
         "logs/547-publication-red-fixed-test.log",
         "tasks/547-publication.json"
       ],
-      "proposed": "Declare the publication linearization boundary and everypermission source explicitly; protect same-ID retry and delayed-stop tests outsideworker control.",
+      "proposed": "Specify the exact publication boundary and every permission source. Protect same-ID retries and delayed-stop tests outside worker control.",
       "implemented_in_this_task": "SF repair 460da822 observes real Models/session/journal permission sources, keeps Store unchanged and retries identical prepared bytes. Host protected checks and final native/GUI pass; exact final review remains a separate gate."
     },
     {
@@ -179,7 +179,7 @@
         "logs/547-bounds-red.log",
         "logs/547-bounds-green.log"
       ],
-      "proposed": "Validate supportedcalendar/size/count domain before derivedloops andintegercasts, including rehashedvalid-envelope payloads.",
+      "proposed": "Validate supported calendar, size and count domains before loops and integer casts, including corrupt payloads with valid recalculated hashes.",
       "implemented_in_this_task": "At a82ec6c, dates/counts are bounded before loops and casts. Rehashed corrupt records reject. The original full-record trap/hang was not executed."
     },
     {
@@ -190,7 +190,7 @@
         "analysis/547-sf-startup-observation.json",
         "tukuru-sf:d69efe4c/tukuru_sf/processes.py:130-163"
       ],
-      "proposed": "Expose process/threadstart andheartbeat separately frommodelprogress; flushboundedchunks/periodicintervals andreport time-to-firsttool. Do not label emptybufferedlogs as no execution.",
+      "proposed": "Expose process/thread start and heartbeat separately from model progress. Flush bounded output periodically and report time to first tool. Empty buffered logs do not mean no execution.",
       "implemented_in_this_task": "Read-only diagnosis and one existing worker. No account secrets, inferred provider cause or SF product modifications are included."
     },
     {
@@ -201,7 +201,7 @@
         "analysis/547-capacity-environment.json",
         "tasks/547-publication.json"
       ],
-      "proposed": "Preflight requiredOScapabilities separatelyfromdiskavailability; support explicitparent/hostverification receipts withoutrewritingSFfailedstate orsilentlydisablingtests.",
+      "proposed": "Preflight required OS capabilities separately from disk availability. Accept explicit parent/host receipts without rewriting failed SF state or silently disabling tests.",
       "implemented_in_this_task": "Retained SF failed state. The identical protected verifier passed all 370 tests on the host for the same candidate/specification. Explicit host receipt gates application; no tests were disabled and no SF result was rewritten."
     },
     {
@@ -213,7 +213,7 @@
         "analysis/547-lock-fix-probe.json",
         "logs/547-owners-fixed-repeat/results.json"
       ],
-      "proposed": "Separate environment capability failures from real concurrent IO failures. Exercise fresh initialization and record process, inode and bounded recovery evidence.",
+      "proposed": "Separate environment capability failures from concurrent IO failures. Test fresh initialization and retain process, inode and bounded recovery evidence.",
       "implemented_in_this_task": "Existing-only open, exclusive create and one bounded reopen; 32 fresh Swift directories, ten isolated repetitions and 100 synchronized independent directories passed. No universal OS attribution."
     },
     {
@@ -225,7 +225,7 @@
         "analysis/547-locale-gui.json",
         "analysis/547-sheet-review.json"
       ],
-      "proposed": "Verify environment propagation through actual sheets, not just translation completeness. Keep saved-data hashes separate from display-language checks.",
+      "proposed": "Verify environment propagation through actual sheets, not only translation completeness. Keep saved-data hashes separate from display-language checks.",
       "implemented_in_this_task": "Two-line locale propagation; Mac/iOS builds and English list/detail/metric GUI passed, with five saved files unchanged. Sheet-open Quit remains an unresolved observation for user acceptance."
     }
   ]
