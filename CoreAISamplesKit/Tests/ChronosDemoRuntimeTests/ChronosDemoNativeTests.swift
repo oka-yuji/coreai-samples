@@ -127,7 +127,7 @@ struct ChronosDemoNativeTests {
     }
 }
 
-private struct ChronosScenesReference: Decodable {
+struct ChronosScenesReference: Decodable {
     struct Entry: Decodable {
         let scenarioID: String
         let originStep: Int
@@ -143,18 +143,18 @@ private struct ChronosScenesReference: Decodable {
 }
 
 @MainActor
-private final class ChronosNativeAdapter: ModelDemoAdapter {
+final class ChronosNativeAdapter: ModelDemoAdapter {
     let demoID = ChronosDemoCatalog.selection.demoID
     let actions = AsyncStream<ChronosFeature.Action>.makeStream()
     let sessions: ChronosDemoSessions
     var store: Store<ChronosFeature>?
 
-    init(directory: URL) {
+    init(directory: URL, api: NYCAPIClient? = nil) {
         let sink = actions.continuation
         sessions = ChronosDemoSessions(
             makeService: { resource, permits in
                 LiveChronosService(
-                    resource: resource, repository: ChronosRepository(directory: directory), permits: permits)
+                    resource: resource, repository: ChronosRepository(directory: directory), api: api, permits: permits)
             }, observe: { _, action in sink.yield(action) })
     }
     func preview(for selection: DemoSelection) -> AnyView { AnyView(EmptyView()) }

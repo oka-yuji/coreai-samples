@@ -1,6 +1,40 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "Explore 20 Manhattan taxi zones in three fixed scenes or independently verified January 2025 API data. Forecast origins run from January 22 through February 1 at 00:00 New York time. Fetch 21 days of history, predict on this device, then fetch actuals to compare." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Explore 20 Manhattan taxi zones in three fixed scenes or independently verified January 2025 API data. Forecast origins run from January 22 through February 1 at 00:00 New York time. Fetch 21 days of history, predict on this device, then fetch actuals to compare."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "マンハッタンの20ゾーンを、同梱3場面または独立照合済みの2025年1月のAPIデータで確認します。選べる予測起点はニューヨーク時間の1月22日0時〜2月1日0時です。21日分の履歴を取得して端末内で予測し、実績を別途取得して比較できます。"
+          }
+        }
+      }
+    },
+    "Explore fixed scenes with a precomputed preview, or select verified NYC API dates for an on-device forecast." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Explore fixed scenes with a precomputed preview, or select verified NYC API dates for an on-device forecast."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "同梱の場面を事前計算で確認するか、検証済みのNYC API日時を選んで端末内で予測します。"
+          }
+        }
+      }
+    },
     "About this demo" : {
       "localizations" : {
         "ja" : {

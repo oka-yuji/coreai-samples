@@ -23,3 +23,17 @@ The first command recreates the original eight JSON files, whose hashes are in `
 To regenerate predictions, the parent must hold the repository's shared heavy-job lock and run the existing `chronos-verify --bundle … --input … --output …` for each scene, origin and zone. Each input is `{"context": (history + truth[:origin])[-1008:]}`. Require the current manifest and graph identity in each output, compare all 21×16 values against official FP32 results at the frozen tolerance, then retain only indices 2/10/18 and the first four steps in the preview file. Record the new actual generation time separately and review any hash update. Do not relabel the supplied generation timestamp or invent cached device timings.
 
 The native Models integration test and parent checks are documented in `docs/chronos2.md`. CPU checks do not certify model fidelity, the Apple basemap, GUI interaction or iPhone memory behavior.
+
+## Verified API reference
+
+The shipped API reference covers the twenty demo zones and all 1,488 half-hour pickup intervals in January 2025. It pins dataset `irx2-vgm4` at revision `2026-10-01T16:57:47.000Z` and reference SHA-256 `2da47735c51b5987dec9f6bee72c97acd39abe4870991e413dca30a1912c6530`.
+
+The January file alone differs from the annual API at nine month-end cells. The February file contains thirty January pickup records, ten in the selected zones; including those ten resolves all 29,760 counts. Both raw sources are required for reproduction. The initial mismatch remains in the validation history. Monthly filenames are not exact pickup-time boundaries.
+
+Place the pinned January and February Parquet files in a private directory and use the Python environment in `environment.json`:
+
+```sh
+python Tools/NYC/verify_api_reference.py --raw /path/to/raw
+```
+
+The command hashes both sources and independently reaggregates their January pickup columns. It does not contact the API or claim that an unknown revision or month is verified. Raw trips stay outside Git. The reference JSON carries both official source URLs and hashes; NYC TLC attribution and the data-use qualifications above also apply.

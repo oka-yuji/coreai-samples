@@ -8,7 +8,20 @@ import ModelLibraryFeature
 public protocol ChronosService {
     func load() async throws -> ChronosLoadedDemo
     func predict(_ request: ChronosForecastRequest) async throws -> ChronosForecastBatch
+    func coverage() async throws -> APICoverage
+    func history(endingAt origin: Date, areaIDs: [String]) async throws -> APIWindow
+    func actuals(startingAt origin: Date, areaIDs: [String]) async throws -> APIWindow
     func release() async
+}
+
+extension ChronosService {
+    public func coverage() async throws -> APICoverage { throw ChronosDemoFailure.unavailable }
+    public func history(endingAt origin: Date, areaIDs: [String]) async throws -> APIWindow {
+        throw ChronosDemoFailure.unavailable
+    }
+    public func actuals(startingAt origin: Date, areaIDs: [String]) async throws -> APIWindow {
+        throw ChronosDemoFailure.unavailable
+    }
 }
 
 @MainActor
@@ -18,9 +31,14 @@ public final class LiveChronosService: ChronosService {
     private let makeRuntime: @MainActor (URL, String) -> ChronosRuntime
     private var repository: ChronosRepository?
     private var runtime: ChronosRuntime?
+    private let api: NYCAPIClient
+    private var apiHistory: APIWindow?
+    private var apiActuals: APIWindow?
+    private var predictedOrigin: Date?
 
     public init(
         resource: ValidatedModelResource? = nil, repository: ChronosRepository? = nil,
+        api: NYCAPIClient? = nil,
         permits: @escaping @MainActor () -> Bool = { true },
         makeRuntime: @escaping @MainActor (URL, String) -> ChronosRuntime = {
             ChronosRuntime(bundleURL: $0, expectedManifestSHA256: $1)
@@ -30,6 +48,11 @@ public final class LiveChronosService: ChronosService {
         self.repository = repository
         self.permits = permits
         self.makeRuntime = makeRuntime
+        self.api =
+            api
+            ?? NYCAPIClient(
+                cacheDirectory: FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)
+                    .first?.appending(path: "ChronosAPI"))
     }
 
     public func load() async throws -> ChronosLoadedDemo {
@@ -44,7 +67,15 @@ public final class LiveChronosService: ChronosService {
     public func predict(_ request: ChronosForecastRequest) async throws -> ChronosForecastBatch {
         try check()
         guard let repository else { throw ChronosDemoFailure.invalidData }
-        let catalog = try await repository.load()
+        var catalog = try await repository.load()
+        var inputHash: String?
+        if let snapshot = request.snapshot {
+            guard request.mode == .live, snapshot.history == apiHistory,
+                snapshot.actuals == nil || snapshot.actuals == apiActuals
+            else { throw ChronosDemoFailure.invalidData }
+            inputHash = try await api.validate(snapshot)
+            catalog = try catalog.replacingWithAPI(snapshot.history, actuals: snapshot.actuals)
+        }
         try check()
         guard catalog.request(scenarioID: request.scenarioID, step: request.originStep, mode: request.mode) == request
         else { throw ChronosDemoFailure.invalidData }
@@ -77,10 +108,42 @@ public final class LiveChronosService: ChronosService {
         }
         try check()
         let duration = start.duration(to: .now).components
+        if let snapshot = request.snapshot { predictedOrigin = snapshot.history.end }
         return ChronosForecastBatch(
             scenarioID: request.scenarioID, originStep: request.originStep, mode: .live, areas: areas,
             processingSeconds: Double(duration.seconds) + Double(duration.attoseconds) / 1e18,
-            identity: identity)
+            identity: identity, inputSnapshot: request.snapshot, inputSHA256: inputHash)
+    }
+
+    public func coverage() async throws -> APICoverage {
+        try check()
+        let result = try await api.coverage(refresh: true)
+        try check()
+        return result
+    }
+
+    public func history(endingAt origin: Date, areaIDs: [String]) async throws -> APIWindow {
+        try check()
+        let result = try await api.window(start: origin.addingTimeInterval(-1008 * 1800), count: 1008, areaIDs: areaIDs)
+        try check()
+        apiHistory = result
+        apiActuals = nil
+        predictedOrigin = nil
+        return result
+    }
+
+    public func actuals(startingAt origin: Date, areaIDs: [String]) async throws -> APIWindow {
+        try check()
+        guard predictedOrigin == origin, apiHistory?.end == origin else { throw ChronosDemoFailure.unavailable }
+        let result = try await api.window(start: origin, count: 16, areaIDs: areaIDs)
+        try check()
+        guard let history = apiHistory,
+            result.datasets.allSatisfy({ dataset in
+                history.datasets.first(where: { $0.year == dataset.year }).map { $0 == dataset } ?? true
+            })
+        else { throw ChronosDemoFailure.invalidData }
+        apiActuals = result
+        return result
     }
 
     public func release() async {

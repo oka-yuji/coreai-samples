@@ -15,8 +15,8 @@
   },
   "release": "in_progress",
   "release_note": {
-    "en": "FP32 conversion and fixed NYC Mac demo verified; API selection and records are in development.",
-    "ja": "FP32変換と固定NYCのMacデモを検証済み。API日時選択と記録は開発中。"
+    "en": "FP32 conversion, fixed NYC scenes and verified January API dates work on Mac; persistent forecast records are in development.",
+    "ja": "FP32変換、固定NYC場面、照合済み1月のAPI日時をMacで検証済み。予測の永続記録は開発中。"
   },
   "download": null,
   "pages": {
@@ -61,6 +61,13 @@
     },
     {
       "title": {
+        "en": "Official API demo evidence",
+        "ja": "公式APIデモの検証記録"
+      },
+      "url": "docs/validation/chronos2-api-20261112/README.md"
+    },
+    {
+      "title": {
         "en": "Implementation plan #548",
         "ja": "実装計画 #548"
       },
@@ -74,22 +81,24 @@
         "coreai-fp32-univariate"
       ],
       "evidence": [
-        "demo-20261112"
+        "demo-20261112",
+        "api-20261112"
       ],
       "note": {
-        "en": "Normal Models route, native fixed-scene prediction, interval/clock changes and reopen checked. User acceptance remains open.",
-        "ja": "通常Modelsから固定場面の実推論、区間/時刻変更と再表示を確認。本人受入は未完。"
+        "en": "Fixed scenes and the independently verified January 2025 API range are connected. The earlier API GUI route is checked; final range UI verification is recorded in the evidence. User acceptance remains open.",
+        "ja": "固定場面と独立照合済みの2025年1月API範囲を接続。前版のAPI GUI経路を確認済みで、最終範囲UIの結果は検証記録へ対応する。本人受入は未完。"
       }
     },
     "ios": {
       "state": "pending",
       "variants": [],
       "evidence": [
-        "demo-20261112"
+        "demo-20261112",
+        "api-20261112"
       ],
       "note": {
-        "en": "Interactive fixed preview and native adapter are connected; signed build passed. Physical iPhone inference and UI acceptance remain open.",
-        "ja": "操作可能な固定プレビューと推論adapterを接続し署名build成功。実iPhoneの推論とUI受入は未確認。"
+        "en": "Fixed/API UI and native adapter are connected; signed build passed. Physical iPhone inference and UI acceptance remain open.",
+        "ja": "固定/API画面と推論adapterを接続し署名build成功。実iPhoneの推論とUI受入は未確認。"
       }
     }
   },
@@ -197,6 +206,34 @@
       "workload": {
         "en": "60 fixed scene/zone cases / 20160 raw values; native Mac GUI prediction and comparison, then close. CPU fakes cover stop/owner boundaries. No iPhone inference, user acceptance or performance measurement. Power/thermal and a benchmark-plan hash were not recorded.",
         "ja": "固定60場面/ゾーン・20160原値。通常Mac画面で端末内予測・比較・離脱を確認。停止とowner境界はCPU fakeでも検査。iPhone推論・本人受入・性能計測は未実施。電源/熱とbenchmark計画hashは未記録。"
+      },
+      "batch_size": 1,
+      "concurrency": 1,
+      "warmups": 0,
+      "power": null,
+      "thermal": null,
+      "model_executed": true,
+      "plan_sha256": null
+    },
+    "api-20261112": {
+      "url": "docs/validation/chronos2-api-20261112/README.md",
+      "level": "native_app",
+      "outcome": "passed",
+      "record_type": "legacy",
+      "date": "2026-11-12",
+      "platform": "macos",
+      "device": "Apple M5 Max / 137438953472 B RAM",
+      "os": "macOS 27.2.1 (26B131)",
+      "toolchain": "Xcode 27.2 (27B52); Swift 6.4.2; SDK 27.2; Debug package and Release Mac application",
+      "variant": "coreai-fp32-univariate",
+      "backend": "Swift Core AI GPU preference; actual delegate not profiled",
+      "route": "Production Models/Store/Service with a pinned January API reference; separate normal Mac GUI",
+      "source_revision": "29ec3766d36d6f73f0696f85560a422f50e8498c",
+      "artifact_revision": "786dcf97e020c987cbf883f09b486fba5f3fee30a588b87a346ea65d72d20572",
+      "code_revision": "02aa27facf98b6d7d503f72a06e8ac0b123dec01",
+      "workload": {
+        "en": "The production client validates all 29,760 January counts. The native path compares 20,160 Friday inputs and 6,720 raw outputs, then closes with zero leases. Normal Mac checks cover explicit acquisition/prediction/actuals and the verified month-end stop; chart accessibility fixes have separate source attribution. No controlled performance measurement or iPhone inference.",
+        "ja": "本番clientで1月全29,760値を照合。native経路は金曜20,160入力・6,720原値とclose後lease0を確認。通常Macで明示取得/予測/実績と月末停止を確認。チャートAX修正の版は別記。制御した性能計測とiPhone推論は未実施。"
       },
       "batch_size": 1,
       "concurrency": 1,
@@ -333,11 +370,12 @@
       "evidence": [
         "conversion-20261111",
         "swift-20261112",
-        "demo-20261112"
+        "demo-20261112",
+        "api-20261112"
       ],
       "note": {
-        "en": "18 synthetic cases and 60 fixed NYC scene/zone cases pass frozen raw-tensor comparisons.",
-        "ja": "合成18条件と固定NYC60場面/ゾーンが凍結した原tensor照合に合格。"
+        "en": "18 synthetic cases, 60 fixed NYC scene/zone cases and 20 live API series pass frozen raw-tensor comparisons. The API inputs overlap the fixed Friday workload.",
+        "ja": "合成18条件・固定NYC60場面/ゾーン・実API20系列が凍結した原tensor照合に合格。API入力は固定金曜の条件と重複。"
       }
     },
     "quality": {
@@ -352,11 +390,12 @@
       "state": "passed",
       "evidence": [
         "swift-20261112",
-        "demo-20261112"
+        "demo-20261112",
+        "api-20261112"
       ],
       "note": {
-        "en": "Release/reload, 60-series production-service comparison with zero leases, and normal Mac leave/reopen checked. No memory measurement or iPhone acceptance.",
-        "ja": "解放/再load、60系列の本番service照合とlease0、通常Macの離脱/再表示を確認。メモリ計測とiPhone受入は未実施。"
+        "en": "Release/reload, fixed and API production-service runs with zero leases, and normal Mac leave/reopen are checked. No memory measurement or iPhone acceptance.",
+        "ja": "解放/再load、固定/APIの本番service実行とlease0、通常Mac離脱/再表示を確認。メモリ計測とiPhone受入は未実施。"
       }
     },
     "cancellation": {

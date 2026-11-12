@@ -1,0 +1,95 @@
+{
+  "scope": "Nine captured official metadata responses; not a numerical completeness audit of every year.",
+  "records": [
+    {
+      "year": 2017,
+      "id": "biws-g3hs",
+      "url": "https://data.cityofnewyork.us/api/views/biws-g3hs.json",
+      "acquired_at_utc": "2026-11-11T20:40:19.883759+00:00",
+      "sha256": "42fffa46fe789d4e72f5cbd3465945cd0cfa8ad1b25351709479b51dcc8b13fb",
+      "publication_date_utc": "2018-03-29T14:10:07+00:00",
+      "rows_updated_at_utc": "2018-03-28T20:35:03+00:00",
+      "update_frequency": "Historical data"
+    },
+    {
+      "year": 2018,
+      "id": "t29m-gskq",
+      "url": "https://data.cityofnewyork.us/api/views/t29m-gskq.json",
+      "acquired_at_utc": "2026-11-11T20:40:20.957577+00:00",
+      "sha256": "41b757c4bf7b8baa8140bbb846cff505bfa2f982186d6392179bfa51ebce2d6f",
+      "publication_date_utc": "2019-04-05T16:28:21+00:00",
+      "rows_updated_at_utc": "2019-04-05T15:42:41+00:00",
+      "update_frequency": "Historical data"
+    },
+    {
+      "year": 2019,
+      "id": "2upf-qytp",
+      "url": "https://data.cityofnewyork.us/api/views/2upf-qytp.json",
+      "acquired_at_utc": "2026-11-11T20:40:22.026403+00:00",
+      "sha256": "d2da4e3e53f842c929788128eb55a306d010312ef00488980b427a0782dfb10c",
+      "publication_date_utc": "2019-08-21T20:58:59+00:00",
+      "rows_updated_at_utc": "2020-03-06T16:08:32+00:00",
+      "update_frequency": "Historical data"
+    },
+    {
+      "year": 2020,
+      "id": "kxp8-n2sj",
+      "url": "https://data.cityofnewyork.us/api/views/kxp8-n2sj.json",
+      "acquired_at_utc": "2026-11-11T20:40:23.053060+00:00",
+      "sha256": "32f07dfeb2de4cc247d963896b1f58b13c72b777c3fe3d0bb3339545af9a8047",
+      "publication_date_utc": "2020-09-24T18:42:32+00:00",
+      "rows_updated_at_utc": "2021-03-04T19:27:29+00:00",
+      "update_frequency": "Historical data"
+    },
+    {
+      "year": 2021,
+      "id": "m6nq-qud6",
+      "url": "https://data.cityofnewyork.us/api/views/m6nq-qud6.json",
+      "acquired_at_utc": "2026-11-11T20:40:24.101590+00:00",
+      "sha256": "e41e226d56683a0b38d3b139842631a76f25b0b5a98a72eae9ecd55d8b0175d2",
+      "publication_date_utc": "2021-11-05T18:39:47+00:00",
+      "rows_updated_at_utc": "2022-04-29T20:34:42+00:00",
+      "update_frequency": "As needed"
+    },
+    {
+      "year": 2022,
+      "id": "qp3b-zxtp",
+      "url": "https://data.cityofnewyork.us/api/views/qp3b-zxtp.json",
+      "acquired_at_utc": "2026-11-11T20:40:25.198818+00:00",
+      "sha256": "bd908860357a838941a066073697a16c7832b3f45ab5e6c053a66b85b0d403cd",
+      "publication_date_utc": "2023-10-18T14:39:32+00:00",
+      "rows_updated_at_utc": "2023-10-18T20:16:26+00:00",
+      "update_frequency": "Historical data"
+    },
+    {
+      "year": 2023,
+      "id": "4b4i-vvec",
+      "url": "https://data.cityofnewyork.us/api/views/4b4i-vvec.json",
+      "acquired_at_utc": "2026-11-11T20:40:26.216813+00:00",
+      "sha256": "67ccc406f73bf49875fef85a82f7d033973c39a755f381ced5566eccb68e4f99",
+      "publication_date_utc": "2024-07-01T16:07:15+00:00",
+      "rows_updated_at_utc": "2024-07-01T20:32:33+00:00",
+      "update_frequency": "Historical data"
+    },
+    {
+      "year": 2024,
+      "id": "rwwi-khbc",
+      "url": "https://data.cityofnewyork.us/api/views/rwwi-khbc.json",
+      "acquired_at_utc": "2026-11-11T20:40:27.428072+00:00",
+      "sha256": "79ce192e836631024896124b06d5ef8b0a4f2948179bd935e5d1a89909108540",
+      "publication_date_utc": "2026-08-20T15:36:26+00:00",
+      "rows_updated_at_utc": "2026-08-21T20:39:49+00:00",
+      "update_frequency": "Historical data"
+    },
+    {
+      "year": 2025,
+      "id": "irx2-vgm4",
+      "url": "https://data.cityofnewyork.us/api/views/irx2-vgm4.json",
+      "acquired_at_utc": "2026-11-11T20:40:28.561322+00:00",
+      "sha256": "8f43be37dcde843cc8a2ddd508f5fc9a580ccaf7c0145674e5a238fe7a9e0a24",
+      "publication_date_utc": "2026-09-29T16:45:49+00:00",
+      "rows_updated_at_utc": "2026-10-01T16:57:47+00:00",
+      "update_frequency": "Historical data"
+    }
+  ]
+}

@@ -2,16 +2,25 @@ import FeatureStore
 import Foundation
 
 public enum ChronosFeature: Feature {
+    public enum Source: String, CaseIterable, Sendable { case fixed, api }
+
     public enum Phase: Equatable, Sendable {
         case idle
         case loading
         case ready
         case predicting
+        case fetchingCoverage
+        case fetchingHistory
+        case fetchingActuals
         case stopping
     }
 
     public struct State: Equatable, Sendable {
         public var catalog: ChronosCatalog?
+        public var fixedCatalog: ChronosCatalog?
+        public var source: Source = .fixed
+        public var coverage: APICoverage?
+        public var requestedOrigin: Date?
         public var liveAvailable = false
         public var scenarioID = "friday-evening"
         public var areaID = "230"
@@ -29,11 +38,35 @@ public enum ChronosFeature: Feature {
 
         public var canPredict: Bool {
             guard active, phase == .ready, let catalog else { return false }
+            if source == .api {
+                return catalog.isAPI && requestedOrigin == catalog.origin && mode == .live && liveAvailable
+                    && catalog.request(scenarioID: scenarioID, step: clockStep, mode: .live) != nil
+            }
             return clockStep <= catalog.truthSteps - catalog.horizon && (mode == .precomputed || liveAvailable)
+        }
+
+        public var canFetchHistory: Bool {
+            active && phase == .ready && source == .api
+                && requestedOrigin.map { coverage?.allowsHistory(endingAt: $0) == true } == true
+        }
+
+        public var canFetchActuals: Bool {
+            active && phase == .ready && source == .api && catalog?.isAPI == true
+                && forecast?.mode == .live && forecast?.inputSnapshot != nil
+                && requestedOrigin == catalog?.origin
+        }
+
+        public var isWorking: Bool {
+            [.loading, .predicting, .fetchingCoverage, .fetchingHistory, .fetchingActuals].contains(phase)
         }
 
         public var canAdvance: Bool {
             guard active, phase == .ready, let catalog, let forecast else { return false }
+            if source == .api {
+                guard requestedOrigin == catalog.origin,
+                    let actuals = selectedScenario?.apiActuals, clockStep < actuals.availablePrefix
+                else { return false }
+            }
             return clockStep < min(catalog.truthSteps, forecast.originStep + catalog.horizon)
         }
 
@@ -48,14 +81,28 @@ public enum ChronosFeature: Feature {
             if let prediction = forecast?.area(areaID), prediction.median.indices.contains(lead) {
                 return prediction.median[lead]
             }
-            return catalog?.history(scenarioID: scenarioID, areaID: areaID, step: clockStep)?.last
+            let value = catalog?.history(scenarioID: scenarioID, areaID: areaID, step: clockStep)?.last
+            return value?.isFinite == true ? value : nil
         }
 
         public var selectedTruth: Float? {
             guard let forecast else { return nil }
+            if let actuals = selectedScenario?.apiActuals,
+                let row = actuals.series.first(where: { $0.areaID == areaID }),
+                row.values.indices.contains(forecast.originStep + lead)
+            {
+                return row.values[forecast.originStep + lead]
+            }
             return catalog?.revealedValue(
                 scenarioID: scenarioID, areaID: areaID,
                 targetStep: forecast.originStep + lead, clockStep: clockStep)
+        }
+
+        public var selectedAvailability: SlotAvailability {
+            guard let actuals = selectedScenario?.apiActuals, let forecast,
+                actuals.availability.indices.contains(forecast.originStep + lead)
+            else { return .notFetched }
+            return actuals.availability[forecast.originStep + lead]
         }
     }
 
@@ -64,6 +111,14 @@ public enum ChronosFeature: Feature {
         case suspend
         case ended
         case loaded(Int, ChronosLoadedDemo)
+        case selectSource(Source)
+        case selectDate(Date)
+        case refreshCoverage
+        case coverageLoaded(Int, APICoverage)
+        case fetchHistory
+        case historyLoaded(Int, APIWindow)
+        case fetchActuals
+        case actualsLoaded(Int, APIWindow)
         case failed(Int, ChronosDemoFailure)
         case cancelled(Int)
         case released(Int)
@@ -82,18 +137,25 @@ public enum ChronosFeature: Feature {
     public enum Effect: Equatable, Sendable {
         case load(Int)
         case predict(Int, ChronosForecastRequest)
+        case coverage(Int)
+        case history(Int, Date, [String])
+        case actuals(Int, Date, [String])
         case release(Int)
     }
 
     public enum EffectID: Hashable, Sendable {
         case load
         case prediction
+        case acquisition
         case release
     }
 
     public static func reduce(_ state: inout State, _ action: Action) -> [Command<Effect, EffectID>] {
         guard !state.ended else { return [] }
         switch action {
+        case .selectSource, .selectDate, .refreshCoverage, .coverageLoaded, .fetchHistory, .historyLoaded,
+            .fetchActuals, .actualsLoaded:
+            return reduceAPI(&state, action)
         case .appear:
             state.active = true
             if state.phase == .stopping { return [] }
@@ -118,6 +180,7 @@ public enum ChronosFeature: Feature {
         case .loaded(let ticket, let demo):
             guard ticket == state.ticket, state.active, state.phase == .loading else { return [] }
             state.catalog = demo.catalog
+            state.fixedCatalog = demo.catalog
             state.liveAvailable = demo.liveAvailable
             state.mode = demo.liveAvailable ? .live : .precomputed
             if let scenario = demo.catalog.scenarios.first {
@@ -127,7 +190,9 @@ public enum ChronosFeature: Feature {
             state.phase = .ready
             state.error = nil
         case .selectScenario(let id):
-            guard state.active, state.phase == .ready, let scenario = state.catalog?.scenario(id) else { return [] }
+            guard state.active, state.source == .fixed, state.phase == .ready,
+                let scenario = state.catalog?.scenario(id)
+            else { return [] }
             state.scenarioID = id
             state.areaID = scenario.focusArea
             state.clockStep = 0
@@ -142,13 +207,15 @@ public enum ChronosFeature: Feature {
             guard state.active, (0..<4).contains(lead) else { return [] }
             state.lead = lead
         case .selectMode(let mode):
-            guard state.active, state.phase == .ready, mode == .precomputed || state.liveAvailable else { return [] }
+            guard state.active, state.phase == .ready, mode == .precomputed || state.liveAvailable,
+                state.source != .api || mode == .live
+            else { return [] }
             state.mode = mode
             state.forecast = nil
             state.error = nil
             state.ticket += 1
         case .cancelPrediction:
-            guard state.active, state.phase == .predicting else { return [] }
+            guard state.active, state.isWorking else { return [] }
             state.ticket += 1
             state.phase = .stopping
             return [.cancelAll, .run(.release(state.ticket), id: .release)]
@@ -172,7 +239,11 @@ public enum ChronosFeature: Feature {
                 validSource = batch.processingSeconds == nil && batch.areas.allSatisfy { $0.raw == nil }
             }
             guard batch.scenarioID == state.scenarioID, batch.originStep == state.clockStep, batch.mode == state.mode,
-                Set(batch.areas.map(\.areaID)) == expected, batch.areas.count == expected.count, validSource
+                Set(batch.areas.map(\.areaID)) == expected, batch.areas.count == expected.count, validSource,
+                batch.inputSnapshot
+                    == state.catalog?.request(
+                        scenarioID: state.scenarioID, step: state.clockStep, mode: state.mode)?.snapshot,
+                state.source != .api || (batch.inputSHA256?.count == 64 && batch.mode == .live)
             else {
                 state.phase = .ready
                 state.error = .predictionFailed
@@ -182,15 +253,14 @@ public enum ChronosFeature: Feature {
             state.lead = 0
             state.phase = .ready
         case .failed(let ticket, let failure):
-            guard ticket == state.ticket, state.active, state.phase == .loading || state.phase == .predicting else {
+            guard ticket == state.ticket, state.active, state.isWorking else {
                 return []
             }
             state.phase = state.catalog == nil ? .idle : .ready
             state.error = failure
         case .cancelled(let ticket):
             guard ticket == state.ticket, state.active else { return [] }
-            if state.phase == .predicting { state.phase = .ready }
-            if state.phase == .loading { state.phase = .idle }
+            if state.isWorking { state.phase = state.catalog == nil ? .idle : .ready }
         case .advance:
             guard state.canAdvance else { return [] }
             state.clockStep += 1

@@ -23,7 +23,9 @@ public final class ChronosRunner {
         }
         let ticket: Int
         switch effect {
-        case .load(let value), .predict(let value, _), .release(let value): ticket = value
+        case .load(let value), .predict(let value, _), .release(let value), .coverage(let value),
+            .history(let value, _, _), .actuals(let value, _, _):
+            ticket = value
         }
         guard !busy, !closing else {
             send(.failed(ticket, .busy))
@@ -45,6 +47,11 @@ public final class ChronosRunner {
             switch effect {
             case .load: action = .loaded(ticket, try await service.load())
             case .predict(_, let request): action = .predicted(ticket, try await service.predict(request))
+            case .coverage: action = .coverageLoaded(ticket, try await service.coverage())
+            case .history(_, let origin, let areas):
+                action = .historyLoaded(ticket, try await service.history(endingAt: origin, areaIDs: areas))
+            case .actuals(_, let origin, let areas):
+                action = .actualsLoaded(ticket, try await service.actuals(startingAt: origin, areaIDs: areas))
             case .release: return
             }
             try Task.checkCancellation()

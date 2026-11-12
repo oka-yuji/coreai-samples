@@ -1,0 +1,104 @@
+{
+  "passed": true,
+  "compared_values": 29760,
+  "different_values": 0,
+  "differences": [],
+  "january_pickups_in_february_file": 30,
+  "selected_zone_additional_pickups": 10,
+  "reference_sha256": "2da47735c51b5987dec9f6bee72c97acd39abe4870991e413dca30a1912c6530",
+  "scope": "20zones x1488January halfhours; January+February sourcefiles filtered toJanuary pickup times; five API captures at unchanged revision",
+  "sources": [
+    {
+      "file": "yellow_tripdata_2025-01.parquet",
+      "sha256": "9af277e4c0d3f9deb30644da822981e1e7df6af58313170fd3aa8a474485488a",
+      "rows": 3475226
+    },
+    {
+      "file": "yellow_tripdata_2025-02.parquet",
+      "sha256": "037cba555a73663f3a51a2c27816e40e3feb364769942bdf122b9da31e377bd3",
+      "rows": 3577543
+    }
+  ],
+  "data_interval_new_york": [
+    "2025-01-01T00:00:00-05:00",
+    "2025-02-01T00:00:00-05:00"
+  ],
+  "forecast_origin_interval_new_york": [
+    "2025-01-22T00:00:00-05:00",
+    "2025-02-01T00:00:00-05:00"
+  ],
+  "live_production_client_values": 29760,
+  "initial_january_only_comparison": {
+    "passed": false,
+    "compared_values": 29760,
+    "different_values": 9,
+    "differences": [
+      {
+        "areaID": "186",
+        "index": 1486,
+        "local_start": "2025-01-31T23:00:00",
+        "api": 54,
+        "parquet": 53
+      },
+      {
+        "areaID": "234",
+        "index": 1487,
+        "local_start": "2025-01-31T23:30:00",
+        "api": 163,
+        "parquet": 162
+      },
+      {
+        "areaID": "246",
+        "index": 1487,
+        "local_start": "2025-01-31T23:30:00",
+        "api": 36,
+        "parquet": 35
+      },
+      {
+        "areaID": "48",
+        "index": 1485,
+        "local_start": "2025-01-31T22:30:00",
+        "api": 152,
+        "parquet": 151
+      },
+      {
+        "areaID": "48",
+        "index": 1486,
+        "local_start": "2025-01-31T23:00:00",
+        "api": 113,
+        "parquet": 111
+      },
+      {
+        "areaID": "50",
+        "index": 1487,
+        "local_start": "2025-01-31T23:30:00",
+        "api": 25,
+        "parquet": 24
+      },
+      {
+        "areaID": "68",
+        "index": 1484,
+        "local_start": "2025-01-31T22:00:00",
+        "api": 143,
+        "parquet": 142
+      },
+      {
+        "areaID": "68",
+        "index": 1487,
+        "local_start": "2025-01-31T23:30:00",
+        "api": 91,
+        "parquet": 90
+      },
+      {
+        "areaID": "90",
+        "index": 1487,
+        "local_start": "2025-01-31T23:30:00",
+        "api": 88,
+        "parquet": 87
+      }
+    ],
+    "source_parquet_sha256": "9af277e4c0d3f9deb30644da822981e1e7df6af58313170fd3aa8a474485488a",
+    "reference_sha256": "68d9a72188d1fb7bd8a3e6b07990c4163b404a67b233427eedfb15ea4dfdde55",
+    "metadata_revision_stable": true
+  }
+}

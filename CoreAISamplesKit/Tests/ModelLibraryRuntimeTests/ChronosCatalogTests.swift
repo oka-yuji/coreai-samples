@@ -17,6 +17,7 @@ struct ChronosCatalogTests {
             #expect(model.demos.allSatisfy { $0.requiredCapabilities.isEmpty && $0.optionalCapabilities.isEmpty })
             let demo = try #require(catalog.demo("taxi-forecast"))
             #expect(demo.summary.contains("precomputed preview") && demo.summary.contains("on-device forecast"))
+            #expect(demo.summary.contains("verified NYC API dates"))
             #expect(demo.explanation.contains { $0.text.contains("479 MB") && $0.text.contains("Import") })
             #expect(demo.explanation.contains { $0.text.contains("does not start a prediction") })
             let connected = catalog.demos.map(\.id).filter { $0 != demo.id }

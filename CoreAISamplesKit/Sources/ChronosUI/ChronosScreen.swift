@@ -28,8 +28,9 @@ public struct ChronosScreen: View {
     private var contents: some View {
         VStack(alignment: .leading, spacing: 20) {
             Text("NYC taxi pickups", bundle: .module).font(.largeTitle.bold())
-            Text("Fixed January 2025 records · New York time", bundle: .module).foregroundStyle(.secondary)
+            Text("NYC historical records · New York time", bundle: .module).foregroundStyle(.secondary)
             if let catalog = state.catalog {
+                ChronosAPIControls(store: store)
                 controls(catalog)
                 HStack {
                     Text(
@@ -54,7 +55,7 @@ public struct ChronosScreen: View {
                     .font(.callout).foregroundStyle(.secondary)
                 }
                 actions
-                if state.phase == .predicting || state.phase == .stopping { ProgressView() }
+                if state.isWorking || state.phase == .stopping { ProgressView() }
                 if let error = state.error {
                     Text(LocalizedStringKey(ChronosCopy.failure(error)), bundle: .module).foregroundStyle(.red)
                 }
@@ -97,19 +98,25 @@ public struct ChronosScreen: View {
 
     private func controls(_ catalog: ChronosCatalog) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            Picker(selection: Binding(get: { state.scenarioID }, set: { store.send(.selectScenario($0)) })) {
-                ForEach(catalog.scenarios) { scene in Text(ChronosCopy.name(scene.name, locale: locale)).tag(scene.id) }
-            } label: {
-                Text("Scene", bundle: .module)
+            if state.source == .fixed {
+                Picker(selection: Binding(get: { state.scenarioID }, set: { store.send(.selectScenario($0)) })) {
+                    ForEach(catalog.scenarios) { scene in
+                        Text(ChronosCopy.name(scene.name, locale: locale)).tag(scene.id)
+                    }
+                } label: {
+                    Text("Scene", bundle: .module)
+                }
+                .disabled(state.phase != .ready)
             }
-            .disabled(state.phase != .ready)
             Picker(selection: Binding(get: { state.areaID }, set: { store.send(.selectArea($0)) })) {
                 ForEach(catalog.areas) { area in Text(ChronosCopy.name(area.name, locale: locale)).tag(area.id) }
             } label: {
                 Text("Taxi zone", bundle: .module)
             }
             Picker(selection: Binding(get: { state.mode }, set: { store.send(.selectMode($0)) })) {
-                Text("Precomputed preview", bundle: .module).tag(ChronosForecastMode.precomputed)
+                if state.source == .fixed || state.mode == .precomputed {
+                    Text("Precomputed preview", bundle: .module).tag(ChronosForecastMode.precomputed)
+                }
                 if state.liveAvailable { Text("On-device prediction", bundle: .module).tag(ChronosForecastMode.live) }
             } label: {
                 Text("Prediction mode", bundle: .module)
@@ -130,7 +137,9 @@ public struct ChronosScreen: View {
             store.send(.predict)
         } label: {
             Text(
-                LocalizedStringKey(state.mode == .live ? "Predict on this device" : "Show precomputed forecast"),
+                LocalizedStringKey(
+                    state.mode == .live || state.source == .api ? "Predict on this device" : "Show precomputed forecast"
+                ),
                 bundle: .module)
         }.buttonStyle(.borderedProminent).disabled(!state.canPredict)
         Button {
@@ -143,7 +152,7 @@ public struct ChronosScreen: View {
         } label: {
             Text("Reset", bundle: .module)
         }.disabled(state.phase != .ready)
-        if state.phase == .predicting {
+        if state.isWorking {
             Button {
                 store.send(.cancelPrediction)
             } label: {
@@ -196,7 +205,14 @@ public struct ChronosScreen: View {
                     VStack(alignment: .leading) {
                         Text("Actual pickups", bundle: .module)
                         Text(ChronosStyle.count(state.selectedTruth)).font(.largeTitle.monospacedDigit())
-                        if state.selectedTruth == nil { Text("Not yet elapsed", bundle: .module).font(.caption) }
+                        if state.selectedTruth == nil {
+                            Text(
+                                LocalizedStringKey(
+                                    state.catalog?.isAPI == true
+                                        ? ChronosCopy.availability(state.selectedAvailability) : "Not yet elapsed"),
+                                bundle: .module
+                            ).font(.caption)
+                        }
                     }
                 }
             }
@@ -229,11 +245,30 @@ enum ChronosCopy {
 
     static func failure(_ error: ChronosDemoFailure) -> String {
         switch error {
-        case .invalidData: "The fixed data or precomputed results failed validation. Reinstall the app resources."
+        case .invalidData: "The data failed validation. The previous result is still available."
         case .unavailable: "The managed model is unavailable. Reopen the demo from Models."
         case .busy: "The previous operation is still finishing. Try again."
         case .predictionFailed:
-            "Prediction failed. The prediction mode has not changed. Try again or select precomputed preview."
+            "Prediction failed. The prediction mode has not changed. Try again."
+        case .invalidDate: "Choose an available New York date and time."
+        case .unpublishedHistory: "The full 21-day history has not been published. Choose another date."
+        case .unverifiedHistory: "The full 21-day history is not independently verified. Choose a verified API date."
+        case .noData: "Each taxi zone needs at least one observed count."
+        case .network: "The NYC service could not be reached. Try again."
+        case .rateLimited: "The NYC service is busy. Try again later."
+        case .responseTooLarge: "The NYC response exceeded the download limit."
+        case .redirectDenied: "The NYC service redirected the request. The download was stopped."
+        case .persistence: "The downloaded history could not be cached. Try again."
+        }
+    }
+
+    static func availability(_ value: SlotAvailability) -> String {
+        switch value {
+        case .observed: "Observed"
+        case .notFetched: "Not fetched"
+        case .unpublished: "Not published"
+        case .unverified: "Not independently verified"
+        case .ambiguousTime: "Missing: repeated New York time"
         }
     }
 }

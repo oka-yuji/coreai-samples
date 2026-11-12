@@ -1,0 +1,134 @@
+{
+  "format": "chronos2-api-verification/2",
+  "source_commit": "02aa27facf98b6d7d503f72a06e8ac0b123dec01",
+  "input_elements": 20160,
+  "raw_output_elements": 6720,
+  "atol": 0.0001,
+  "rtol": 0.0001,
+  "max_absolute_error": 0.000152587890625,
+  "comparison": "Native JSON values decoded as Float32 before comparison with the pinned official Float32 reference.",
+  "leases_after_close": 0,
+  "manifest_sha256": "786dcf97e020c987cbf883f09b486fba5f3fee30a588b87a346ea65d72d20572",
+  "graph_sha256": "3094871fc431ae5d86d07c8b487ab53e48e60e9fb56efe803ba18c5bf88889c8",
+  "input_snapshot_sha256": "dd6952eeec6d8545fef966e6950134f24ef3777d38330dbc323ec798a08d4c66",
+  "datasets": [
+    {
+      "id": "irx2-vgm4",
+      "revision": "2026-10-01T16:57:47.000Z",
+      "year": 2025
+    }
+  ],
+  "preprocessing": "nyc-utc30m-verified-v3",
+  "verification_policy": {
+    "ranges": [
+      {
+        "areaIDs": [
+          "100",
+          "107",
+          "137",
+          "142",
+          "143",
+          "161",
+          "162",
+          "163",
+          "164",
+          "170",
+          "186",
+          "229",
+          "230",
+          "233",
+          "234",
+          "246",
+          "48",
+          "50",
+          "68",
+          "90"
+        ],
+        "dataset": {
+          "id": "irx2-vgm4",
+          "revision": "2026-10-01T16:57:47.000Z",
+          "year": 2025
+        },
+        "end": 1738386000000,
+        "referenceSHA256": "2da47735c51b5987dec9f6bee72c97acd39abe4870991e413dca30a1912c6530",
+        "start": 1735707600000
+      }
+    ],
+    "version": "nyc-independent-counts-v1"
+  },
+  "source_evidence": [
+    {
+      "role": "catalog",
+      "url": "https://api.us.socrata.com/api/catalog/v1?search_context=data.cityofnewyork.us&q=Yellow%20Taxi%20Trip%20Data&limit=1000",
+      "status": 200,
+      "acquired_at_utc": "2026-11-11T23:33:14.943336+00:00",
+      "bytes": 1004637,
+      "sha256": "b2d5c7c05342792f2fad3b72851066474ee62115e74a29fcfa7e6688277a1511"
+    },
+    {
+      "role": "metadata",
+      "url": "https://data.cityofnewyork.us/api/views/irx2-vgm4.json",
+      "status": 200,
+      "acquired_at_utc": "2026-11-11T23:33:16.251946+00:00",
+      "bytes": 34906,
+      "sha256": "8f43be37dcde843cc8a2ddd508f5fc9a580ccaf7c0145674e5a238fe7a9e0a24"
+    },
+    {
+      "role": "metadata",
+      "url": "https://data.cityofnewyork.us/api/views/irx2-vgm4.json",
+      "status": 200,
+      "acquired_at_utc": "2026-11-11T23:35:03.198143+00:00",
+      "bytes": 34906,
+      "sha256": "8f43be37dcde843cc8a2ddd508f5fc9a580ccaf7c0145674e5a238fe7a9e0a24"
+    },
+    {
+      "role": "aggregate",
+      "url": "https://data.cityofnewyork.us/resource/irx2-vgm4.json?$select=date_trunc_ymd(tpep_pickup_datetime)%20as%20day,date_extract_hh(tpep_pickup_datetime)%20as%20hour,date_extract_mm(tpep_pickup_datetime)%3E%3D30%20as%20second_half,pulocationid%20as%20zone,count(*)%20as%20trips&$where=tpep_pickup_datetime%20%3E%3D%20'2025-01-03T17:00:00'%20AND%20tpep_pickup_datetime%20%3C%20'2025-01-10T17:00:00'%20AND%20pulocationid%20in(100,107,137,142,143,161,162,163,164,170,186,229,230,233,234,246,48,50,68,90)&$group=day,hour,second_half,zone&$order=day,hour,second_half,zone&$limit=50000",
+      "status": 200,
+      "acquired_at_utc": "2026-11-11T23:33:57.843628+00:00",
+      "bytes": 602064,
+      "sha256": "18910db9bfda8d0cf17b75ef510686d66cb1541d444f44916424628af6b72110"
+    },
+    {
+      "role": "aggregate",
+      "url": "https://data.cityofnewyork.us/resource/irx2-vgm4.json?$select=date_trunc_ymd(tpep_pickup_datetime)%20as%20day,date_extract_hh(tpep_pickup_datetime)%20as%20hour,date_extract_mm(tpep_pickup_datetime)%3E%3D30%20as%20second_half,pulocationid%20as%20zone,count(*)%20as%20trips&$where=tpep_pickup_datetime%20%3E%3D%20'2025-01-10T17:00:00'%20AND%20tpep_pickup_datetime%20%3C%20'2025-01-17T17:00:00'%20AND%20pulocationid%20in(100,107,137,142,143,161,162,163,164,170,186,229,230,233,234,246,48,50,68,90)&$group=day,hour,second_half,zone&$order=day,hour,second_half,zone&$limit=50000",
+      "status": 200,
+      "acquired_at_utc": "2026-11-11T23:34:30.107262+00:00",
+      "bytes": 606725,
+      "sha256": "8fabf054892995109be5c9aab54b281b84861b014b011b1b741eec8984d4c897"
+    },
+    {
+      "role": "aggregate",
+      "url": "https://data.cityofnewyork.us/resource/irx2-vgm4.json?$select=date_trunc_ymd(tpep_pickup_datetime)%20as%20day,date_extract_hh(tpep_pickup_datetime)%20as%20hour,date_extract_mm(tpep_pickup_datetime)%3E%3D30%20as%20second_half,pulocationid%20as%20zone,count(*)%20as%20trips&$where=tpep_pickup_datetime%20%3E%3D%20'2025-01-17T17:00:00'%20AND%20tpep_pickup_datetime%20%3C%20'2025-01-24T17:00:00'%20AND%20pulocationid%20in(100,107,137,142,143,161,162,163,164,170,186,229,230,233,234,246,48,50,68,90)&$group=day,hour,second_half,zone&$order=day,hour,second_half,zone&$limit=50000",
+      "status": 200,
+      "acquired_at_utc": "2026-11-11T23:35:02.084922+00:00",
+      "bytes": 606641,
+      "sha256": "f4c390010c072478b7874898a9d20855a1f362a1ffb41e403019994b877c7f26"
+    }
+  ],
+  "live_full_january_elements": 29760,
+  "source_reproduction": {
+    "passed": true,
+    "values": 29760,
+    "reference_sha256": "2da47735c51b5987dec9f6bee72c97acd39abe4870991e413dca30a1912c6530",
+    "sources": [
+      {
+        "file": "yellow_tripdata_2025-01.parquet",
+        "sha256": "9af277e4c0d3f9deb30644da822981e1e7df6af58313170fd3aa8a474485488a",
+        "rows": 3475226
+      },
+      {
+        "file": "yellow_tripdata_2025-02.parquet",
+        "sha256": "037cba555a73663f3a51a2c27816e40e3feb364769942bdf122b9da31e377bd3",
+        "rows": 3577543
+      }
+    ],
+    "scope": "January pickup intervals across both monthly source files; no live API claim"
+  },
+  "initial_january_differences": 9,
+  "additional_january_pickups_from_february": 10,
+  "physical_iphone_inference": false,
+  "user_acceptance": false,
+  "performance_benchmark": false,
+  "post_range_gui": "gui.json"
+}
