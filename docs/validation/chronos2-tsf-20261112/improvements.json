@@ -1,5 +1,4 @@
 {
-  "as_of": "2026-11-12T04:59:46.284736+00:00",
   "status": "Implementation analysis captured before final Issue547 peer review and merge; user acceptance remains pending.",
   "scope": "Evidence-backed improvement candidates; no SF implementation changes authorized or performed here.",
   "items": [
@@ -253,5 +252,7 @@
       "proposed": "Include supported identifier families and malformed inputs in provenance tests. Distinguish identifier support from real hardware execution.",
       "implemented_in_this_task": "One bounded validator for capture and reload; eight accepted and five rejected inputs. Physical-device inference remains unverified."
     }
-  ]
+  ],
+  "initial_capture_at": "2026-11-12T04:59:46.284736+00:00",
+  "updated_at": "2026-11-12T05:51:48.699902+00:00"
 }

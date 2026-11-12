@@ -39,11 +39,11 @@
     "app_exited": true,
     "lock_released": true,
     "observations": [
-      "Normal Models -> explicit native Friday prediction -> saved indicator; median120/range102–146.",
-      "English history listed the new fixed record plus both previous fixed/API records.",
-      "New record detail initially not checked; explicit actual check displayed80/80,MAE13.97,WAPE11.24%.",
-      "English sheet title/actions/metrics render correctly; restoredJP,Done thenCommand-Q exited.",
-      "No iPhone or actual inactive-phase GUI operation performed."
+      "Normal Models route: explicit native Friday prediction showed the saved indicator, median 120 and range 102–146.",
+      "English history listed the new fixed record and both previous fixed/API records.",
+      "The new record was initially unchecked. An explicit actual check displayed 80/80, MAE 13.97 and WAPE 11.24%.",
+      "The English sheet title, actions and metrics rendered correctly. JP was restored; Done followed by Command-Q exited.",
+      "No physical iPhone operation or inactive-phase GUI test was performed."
     ]
   }
 }

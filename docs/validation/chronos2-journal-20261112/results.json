@@ -4,7 +4,7 @@
   "date": "2026-11-12",
   "runtime_source_commit": "48adfc21c80ff7ceb1828f5b7326fde1c760d0be",
   "ui_source_commit": "815830fda5efcf4e3cc58682be2983544f800fba",
-  "source_relation": "Initial native and GUI evidence at10a262c/9b98f01 is preserved. After peer review, inactive capture queueing, Mac hardware identifiers and error guidance were corrected. Required eight checks passed atcffd664; final native rerun at48adfc2 passed. The only later source change815830f wraps one UI string without changing behavior.",
+  "source_relation": "Initial native and GUI evidence at 10a262c and 9b98f01 is preserved. After peer review, inactive capture queueing, Mac hardware identifiers and error guidance were corrected. The eight required checks passed at cffd664; the final native rerun at 48adfc2 passed. The only later source change, 815830f, wraps one UI string without changing behavior.",
   "model_revision": "29ec3766d36d6f73f0696f85560a422f50e8498c",
   "manifest_sha256": "786dcf97e020c987cbf883f09b486fba5f3fee30a588b87a346ea65d72d20572",
   "graph_sha256": "3094871fc431ae5d86d07c8b487ab53e48e60e9fb56efe803ba18c5bf88889c8",
