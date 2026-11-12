@@ -86,6 +86,10 @@ The first protected fixture omitted demo links, and the SF worker broadened acqu
 
 The first fresh-worktree iOS build succeeded but produced an unsigned artifact because the ignored local signing configuration was absent. The existing configuration was copied without changing its source, then the signed artifact was checked separately. The native test's first borrowed AsyncStream iterator call failed isolation checking; `next(isolation: #isolation)` corrected it after checking SE-0421 and the SDK. Its successful compilation was recorded before the later actual network/native run.
 
+After the sales demo merged, the opt-in test retained a production model with both demo links but supplied only the taxi descriptor. Review caught the resulting `invalidLink` before download; default runs skipped this entry. Commit `11c54a9d92db5edfbfef631fe762e8d0e0c3c33d` shares catalog construction with a default CPU regression, preserving the original model/artifacts and every linked descriptor while connecting only taxi. The old construction failed that CPU check, and the corrected construction passed. This is a test-only repair. The native execution remains the recorded `9c7da3d` run; production transfer, Store, lease and Chronos execution code are unchanged, and no new native run is claimed after the merge.
+
+The repair's first full package run hit an unchanged RAG HTML timing assertion at 2.985081416 seconds against a two-second limit. The isolated case and a subsequent full package run passed without source or threshold changes. The first failure is retained; its cause is not established. Lint, format and privacy checks also passed for the repair.
+
 ## Reproduce the opt-in check
 
 Use the shared heavy-job lock described in `AGENTS.md`. Supply the original known bundle only for before/after hash checks; acquisition must still use the network. Use a new output path with an existing parent directory and the fixed sixty-case reference.

@@ -271,6 +271,19 @@
       "stage": "normal_mac_information_layout",
       "result": "G561-1 confirmed then corrected",
       "cause": "Complete AX values did not expose visual clipping in the narrow popover. Stacked wrapping identifiers at6dbb0ad were rechecked in both locales on the84dce327 rebuilt app."
+    },
+    {
+      "stage": "post_merge_opt_in_catalog",
+      "result": "CPU regression red then green",
+      "cause": "The original model gained a sales demo link while the opt-in catalog retained only the taxi descriptor; fixed in11c54a9 with a shared builder and default CPU test."
+    },
+    {
+      "stage": "post_merge_full_package",
+      "result": "First run failed an unchanged RAG timing assertion; isolated and full reruns passed",
+      "observed_seconds": 2.985081416,
+      "limit_seconds": 2,
+      "source_or_threshold_changed": false,
+      "cause_established": false
     }
   ],
   "acceptance": {
@@ -391,5 +404,19 @@
     "app_exited": true,
     "japanese_restored": true,
     "shared_lock_released": true
+  },
+  "post_merge_catalog_cpu_regression": {
+    "code_revision": "11c54a9d92db5edfbfef631fe762e8d0e0c3c33d",
+    "test": "ChronosDownloadNativeTests.productionCatalog",
+    "old_construction": "invalidLink(chronos2, product-sales-forecast)",
+    "red_exit_code": 1,
+    "green_exit_code": 0,
+    "original_model_artifacts_and_all_demo_links_preserved": true,
+    "only_taxi_connected": true,
+    "product_sources_changed": false,
+    "native_rerun": false,
+    "retained_native_code_revision": "9c7da3d0de00ef86f8ca1235385a254bd82f7982",
+    "full_package_recheck_exit_code": 0,
+    "lint_format_privacy_passed": true
   }
 }
