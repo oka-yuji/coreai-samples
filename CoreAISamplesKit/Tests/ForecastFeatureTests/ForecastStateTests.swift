@@ -74,4 +74,18 @@ struct ForecastStateTests {
         _ = ForecastFeature.reduce(&state, .loaded(1, try syntheticDataset()))
         #expect(!state.canPredict && ForecastFeature.reduce(&state, .predict).isEmpty)
     }
+
+    @Test(
+        "S2 Reloading data after a prediction failure preserves the verified offline cache",
+        arguments: [ForecastFailure.predictionFailed, .unavailable, .invalidRequest, .busy])
+    func predictionFailureKeepsCache(_ failure: ForecastFailure) throws {
+        var state = ForecastFeature.State(liveAvailable: true)
+        _ = ForecastFeature.reduce(&state, .appear)
+        _ = ForecastFeature.reduce(&state, .loadData)
+        _ = ForecastFeature.reduce(&state, .loaded(1, try syntheticDataset()))
+        _ = ForecastFeature.reduce(&state, .predict)
+        _ = ForecastFeature.reduce(&state, .failed(state.ticket, failure))
+        let next = state.ticket + 1
+        #expect(ForecastFeature.reduce(&state, .loadData) == [.run(.load(next, refresh: false), id: .operation)])
+    }
 }

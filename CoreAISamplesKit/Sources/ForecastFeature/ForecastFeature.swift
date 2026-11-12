@@ -60,7 +60,11 @@ public enum ForecastFeature: Feature {
             state.active = true
         case .loadData:
             guard state.active, state.phase == .idle || state.phase == .ready else { return [] }
-            let refresh = state.error != nil
+            let refresh =
+                switch state.error {
+                case .invalidData, .sourceMismatch, .responseTooLarge, .network, .cache: true
+                case .invalidRequest, .unavailable, .predictionFailed, .busy, nil: false
+                }
             state.ticket += 1
             state.phase = .loading
             state.error = nil
