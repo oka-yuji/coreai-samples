@@ -56,10 +56,12 @@ public struct ModelInformationView: View {
                 identifier("Revision", value: download.revision)
             }
             if let localBundle = artifact?.localBundle {
-                LabeledContent {
-                    libraryText("Local bundle")
-                } label: {
-                    libraryText("Source")
+                if artifact?.download == nil {
+                    LabeledContent {
+                        libraryText("Local bundle")
+                    } label: {
+                        libraryText("Source")
+                    }
                 }
                 identifier("Manifest SHA-256", value: localBundle.manifestSHA256)
                 if artifact?.contract == "qwen-image21-mobile-v2" {
