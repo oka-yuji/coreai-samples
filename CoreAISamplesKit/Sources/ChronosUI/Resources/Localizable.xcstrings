@@ -1616,19 +1616,19 @@
         }
       }
     },
-    "The forecast is ready, but could not be saved. Free some space and retry." : {
+    "The forecast is ready, but could not be saved. Check storage access and available space, then retry." : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "The forecast is ready, but could not be saved. Free some space and retry."
+            "value" : "The forecast is ready, but could not be saved. Check storage access and available space, then retry."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "予測は完了しましたが、保存できませんでした。空き容量を確保して再試行してください。"
+            "value" : "予測はできましたが、保存できませんでした。保存先へのアクセスと空き容量を確認して再試行してください。"
           }
         }
       }

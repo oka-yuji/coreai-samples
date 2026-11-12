@@ -20,8 +20,11 @@ struct ChronosJournalControl: View {
             if store.state.saving {
                 ProgressView { Text("Saving forecast…", bundle: .module) }
             } else if store.state.saveError != nil {
-                Text("The forecast is ready, but could not be saved. Free some space and retry.", bundle: .module)
-                    .foregroundStyle(.red)
+                Text(
+                    "The forecast is ready, but could not be saved. Check storage access and available space, then retry.",
+                    bundle: .module
+                )
+                .foregroundStyle(.red)
                 Button {
                     store.send(.retrySave)
                 } label: {
