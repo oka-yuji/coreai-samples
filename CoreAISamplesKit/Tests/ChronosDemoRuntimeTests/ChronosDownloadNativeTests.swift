@@ -16,6 +16,29 @@ import Testing
 
 @MainActor
 struct ChronosDownloadNativeTests {
+    @Test("CD-05 The download catalog preserves the production model and all links with only taxi connected")
+    func productionCatalog() throws {
+        let original = try MacDemoCatalog.make()
+        let model = try #require(original.model("chronos2"))
+        let catalog = try downloadCatalog()
+        #expect(catalog.models == [model])
+        #expect(catalog.model(model.id)?.artifacts == model.artifacts)
+        let linked = Set(model.demos.map(\.demoID))
+        #expect(catalog.demos == original.demos.filter { linked.contains($0.id) })
+        let taxi = ChronosDemoCatalog.selection
+        let others = linked.subtracting([taxi.demoID])
+        try #require(!others.isEmpty)
+        try catalog.validateConnections(adapterIDs: [taxi.demoID], unconnectedDemoIDs: others)
+        let state = ModelLibraryState(
+            catalog: catalog, environment: LibraryEnvironment(platform: .macOS, connectedDemos: [taxi.demoID]),
+            owner: UUID())
+        #expect(state.canBrowse(taxi) && state.isConnected(taxi))
+        for demoID in others {
+            let selection = DemoSelection(modelID: model.id, demoID: demoID)
+            #expect(state.canBrowse(selection) && !state.isConnected(selection))
+        }
+    }
+
     @Test(
         "CD-05 Fresh Models downloads match all fixed native outputs and preserve the original bundle after release",
         .enabled(if: ProcessInfo.processInfo.environment["COREAI_CHRONOS2_DOWNLOAD_OUTPUT"] != nil),
@@ -38,10 +61,8 @@ struct ChronosDownloadNativeTests {
             reference.format == "chronos2-nyc-reference/1" && reference.modelRevision == ChronosContract.revision
                 && reference.atol == 0.0001 && reference.rtol == 0.0001 && reference.cases.count == 60)
         try #require(reference.sourceHashes == ChronosRepository.hashes.filter { $0.key != "forecasts.json" })
-        let originalCatalog = try MacDemoCatalog.make()
-        let model = try #require(originalCatalog.model("chronos2"))
-        let demo = try #require(originalCatalog.demo(ChronosDemoCatalog.selection.demoID))
-        let catalog = try ModelCatalog(models: [model], demos: [demo])
+        let catalog = try downloadCatalog()
+        let model = try #require(catalog.model("chronos2"))
         let artifact = try ChronosModelArtifact.make()
         let download = try #require(artifact.download)
         try #require(
@@ -145,6 +166,13 @@ struct ChronosDownloadNativeTests {
             }
             throw error
         }
+    }
+
+    private func downloadCatalog() throws -> ModelCatalog {
+        let original = try MacDemoCatalog.make()
+        let model = try #require(original.model("chronos2"))
+        let linked = Set(model.demos.map(\.demoID))
+        return try ModelCatalog(models: [model], demos: original.demos.filter { linked.contains($0.id) })
     }
 
     private func predict(
