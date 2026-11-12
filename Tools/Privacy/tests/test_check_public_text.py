@@ -175,6 +175,24 @@ class PublicTextChecks(unittest.TestCase):
         self.assertEqual(result.returncode, 1, result.stderr)
         self.assertEqual(result.stdout.splitlines(), [f"issue #1 body:{line}" for line in range(1, 6)] + ["issue #2 body:3"])
 
+    def test_closed_progress_pipe_preserves_audit_exit_codes(self):
+        cases = [(repository([issue(1, "plain")]), 0),
+                 (repository([issue(1, absolute("Users", "alice", "x"))]), 1),
+                 ({"output": "", "code": 1}, 2)]
+        environment = dict(os.environ, PATH=os.pathsep.join([str(self.bin), os.environ.get("PATH", "")]))
+        for fake, expected in cases:
+            with self.subTest(expected=expected):
+                (self.bin / "fake.json").write_text(json.dumps(fake), encoding="utf-8")
+                reader, writer = os.pipe()
+                os.close(reader)
+                try:
+                    result = subprocess.run([sys.executable, "-I", str(SCRIPT), REPOSITORY],
+                                            stdout=subprocess.PIPE, stderr=writer, env=environment, timeout=10)
+                finally:
+                    os.close(writer)
+                self.assertEqual(result.returncode, expected)
+                self.assertEqual(result.stdout, b"issue #1 body:1\n" if expected == 1 else b"")
+
     def test_api_failures_exit_with_two_instead_of_reporting_no_paths(self):
         path = absolute("Users", "alice", "x")
         plain = [issue(number, "plain") for number in range(1, 101)]

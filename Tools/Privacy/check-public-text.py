@@ -1,5 +1,6 @@
 import argparse
 import json
+import os
 import re
 import subprocess
 import sys
@@ -36,7 +37,14 @@ def listing(path):
 
 def progress(phase, completed, total=None):
     count = str(completed) if total is None else f"{completed}/{total}"
-    print(f"Audit progress: {phase} {count}", file=sys.stderr, flush=True)
+    try:
+        print(f"Audit progress: {phase} {count}", file=sys.stderr, flush=True)
+    except BrokenPipeError:
+        discard = os.open(os.devnull, os.O_WRONLY)
+        try:
+            os.dup2(discard, sys.stderr.fileno())
+        finally:
+            os.close(discard)
 
 
 def scan():
