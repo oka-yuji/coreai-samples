@@ -1,0 +1,70 @@
+{
+  "allowed_labels": {
+    "Functioning Day": [
+      "No",
+      "Yes"
+    ],
+    "Holiday": [
+      "Holiday",
+      "No Holiday"
+    ],
+    "Seasons": [
+      "Autumn",
+      "Spring",
+      "Summer",
+      "Winter"
+    ]
+  },
+  "citation": "Seoul Bike Sharing Demand [Dataset]. (2020). UCI Machine Learning Repository. https://doi.org/10.24432/C5F62R.",
+  "dataset_doi": "10.24432/C5F62R",
+  "download_url": "https://archive.ics.uci.edu/static/public/560/seoul%2Bbike%2Bsharing%2Bdemand.zip",
+  "first_local": "2017-12-01T00:00:00",
+  "format": "chronos-seoul-bike-source/1",
+  "last_local": "2018-11-30T23:00:00",
+  "license": "CC-BY-4.0",
+  "license_url": "https://creativecommons.org/licenses/by/4.0/",
+  "line_endings": "CRLF",
+  "non_functioning_rows": 295,
+  "normalization": "original_bytes.decode('cp1252').encode('utf-8')",
+  "normalized_bytes": 604168,
+  "normalized_encoding": "UTF-8",
+  "normalized_sha256": "d2f7a0f0ba95e82678ead794429a18a7f696aa3b82c9b9ec34ec47806ff0767b",
+  "original_headers": [
+    "Date",
+    "Rented Bike Count",
+    "Hour",
+    "Temperature(°C)",
+    "Humidity(%)",
+    "Wind speed (m/s)",
+    "Visibility (10m)",
+    "Dew point temperature(°C)",
+    "Solar Radiation (MJ/m2)",
+    "Rainfall(mm)",
+    "Snowfall (cm)",
+    "Seasons",
+    "Holiday",
+    "Functioning Day"
+  ],
+  "rows": 8760,
+  "source_bytes": 604166,
+  "source_encoding": "Windows-1252",
+  "source_sha256": "373339b71a8935d69e9af0abf26a70744632119862eeb3919efb389a7b749c60",
+  "source_url": "https://archive.ics.uci.edu/dataset/560/seoul+bike+sharing+demand",
+  "time_zone": "Asia/Seoul",
+  "units": {
+    "Date": "dd/MM/yyyy",
+    "Dew point temperature(°C)": "°C",
+    "Hour": "hour (0-23)",
+    "Humidity(%)": "%",
+    "Rainfall(mm)": "mm",
+    "Rented Bike Count": "bikes",
+    "Snowfall (cm)": "cm",
+    "Solar Radiation (MJ/m2)": "MJ/m2",
+    "Temperature(°C)": "°C",
+    "Visibility (10m)": "10m",
+    "Wind speed (m/s)": "m/s"
+  },
+  "zip_bytes": 604298,
+  "zip_member": "SeoulBikeData.csv",
+  "zip_sha256": "139e9908f0a3544bb222386855c9ce107e96467306bb8e4ce936aab59e7baac4"
+}
