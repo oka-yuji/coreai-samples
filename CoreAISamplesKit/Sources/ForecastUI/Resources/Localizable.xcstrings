@@ -715,7 +715,7 @@
         }
       }
     },
-    "Runtime includes validation and model loading when needed. Metrics use the same dates with actuals, median and baseline. WAPE is unavailable when actuals sum to zero. Negative predictions are shown as zero; raw output is preserved." : {
+    "Runtime includes validation and model loading when needed. Metrics use the same dates with actuals, median and baseline. WAPE is unavailable when actuals sum to zero. Negative predictions use zero in both the chart and metrics; raw output is preserved." : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -727,7 +727,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "実行時間には必要に応じた検証とモデル読込を含みます。指標は実績・中央値・基準値が揃う同じ日を比較します。実績の合計がゼロの場合、WAPEは算出できません。負の予測は表示のみゼロにし、元の出力は保持します。"
+            "value" : "実行時間には必要に応じた検証とモデル読込を含みます。指標は実績・中央値・基準値が揃う同じ日を比較します。実績の合計がゼロの場合、WAPEは算出できません。負の予測はグラフと指標の計算でゼロとして扱い、元の出力は保持します。"
           }
         }
       }

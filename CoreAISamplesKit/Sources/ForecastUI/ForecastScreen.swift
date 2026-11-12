@@ -158,7 +158,7 @@ public struct ForecastScreen: View {
             Text("Runtime: \(result.seconds, format: .number.precision(.fractionLength(2))) s", bundle: .module)
                 .font(.caption)
             Text(
-                "Runtime includes validation and model loading when needed. Metrics use the same dates with actuals, median and baseline. WAPE is unavailable when actuals sum to zero. Negative predictions are shown as zero; raw output is preserved.",
+                "Runtime includes validation and model loading when needed. Metrics use the same dates with actuals, median and baseline. WAPE is unavailable when actuals sum to zero. Negative predictions use zero in both the chart and metrics; raw output is preserved.",
                 bundle: .module
             ).font(.caption).foregroundStyle(.secondary)
         }
