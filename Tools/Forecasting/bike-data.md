@@ -81,10 +81,4 @@ python3 -B -I -m unittest discover -s Tools/Forecasting -p test_bike_source.py -
 
 Temporary fixtures use the operating system temporary directory and respect `TMPDIR`. Tests reverse only the encoding of the bundled CSV and verify the independent original hash. They reconstruct the original ZIP container with its fixed member metadata and verify its independent archive hash. HTTP responses are mocked and real network entry points are blocked. Tests cover exact repeated output, original immutability, metadata/units/attribution, malformed and oversized inputs, strict row semantics, ZIP rejection before parsing, bounded HTTP reads, destination preservation, and write-failure cleanup.
 
-In the supervised workspace, the protected verifier additionally reads the original UCI CSV independently, runs the real CLI twice, compares every output byte with the bundled resources, checks overwrite/unknown/oversized refusal and source immutability, and invokes the offline tests:
-
-```sh
-python3 -I _sf/verify_bike.py . . .sf-build/check-1
-```
-
-Use a fresh verification directory for each attempt. This verifies source preparation only. Live UCI download, the Swift parser, Forecast UI, native inference, Mac/iPhone acceptance and final repository reviews remain outside these checks.
+The source-resource directory intentionally contains exactly the three pinned files. Unexpected additions are rejected by the runtime and source checks; reproduce from a clean source folder. These checks cover data preparation. See the [Seoul Bike demo](../../docs/chronos2-bike.md) for runtime and app verification.
