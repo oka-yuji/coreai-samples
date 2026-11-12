@@ -61,9 +61,7 @@ class BikeSourceTests(unittest.TestCase):
             raise AssertionError("The offline archive fixture does not match the original ZIP")
 
     def setUp(self):
-        scratch = ROOT / ".sf-tmp"
-        scratch.mkdir(exist_ok=True)
-        temporary = tempfile.TemporaryDirectory(prefix="bike-source-", dir=scratch)
+        temporary = tempfile.TemporaryDirectory(prefix="bike-source-")
         self.addCleanup(temporary.cleanup)
         self.folder = Path(temporary.name)
         self.source = self.folder / "original.csv"

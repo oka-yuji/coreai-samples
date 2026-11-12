@@ -79,7 +79,7 @@ All validation and output serialization finish in memory before the new output d
 python3 -B -I -m unittest discover -s Tools/Forecasting -p test_bike_source.py -v
 ```
 
-Temporary fixtures stay in `.sf-tmp/`. Tests reverse only the encoding of the bundled CSV and verify the independent original hash. They reconstruct the original ZIP container with its fixed member metadata and verify its independent archive hash. HTTP responses are mocked and real network entry points are blocked. Tests cover exact repeated output, original immutability, metadata/units/attribution, malformed and oversized inputs, strict row semantics, ZIP rejection before parsing, bounded HTTP reads, destination preservation, and write-failure cleanup.
+Temporary fixtures use the operating system temporary directory and respect `TMPDIR`. Tests reverse only the encoding of the bundled CSV and verify the independent original hash. They reconstruct the original ZIP container with its fixed member metadata and verify its independent archive hash. HTTP responses are mocked and real network entry points are blocked. Tests cover exact repeated output, original immutability, metadata/units/attribution, malformed and oversized inputs, strict row semantics, ZIP rejection before parsing, bounded HTTP reads, destination preservation, and write-failure cleanup.
 
 In the supervised workspace, the protected verifier additionally reads the original UCI CSV independently, runs the real CLI twice, compares every output byte with the bundled resources, checks overwrite/unknown/oversized refusal and source immutability, and invokes the offline tests:
 
