@@ -4,6 +4,7 @@ import SwiftUI
 
 struct ChronosJournalControl: View {
     let store: Store<ChronosJournalFeature>
+    @Environment(\.locale) private var locale
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -32,6 +33,7 @@ struct ChronosJournalControl: View {
         }
         .sheet(isPresented: Binding(get: { store.state.presented }, set: { if !$0 { store.send(.close) } })) {
             ChronosJournalScreen(store: store)
+                .environment(\.locale, locale)
         }
     }
 }
