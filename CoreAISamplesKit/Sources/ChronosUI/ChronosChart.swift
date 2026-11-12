@@ -80,21 +80,28 @@ struct ChronosChart: View {
         String(localized: String.LocalizationValue(key), bundle: .module, locale: locale)
     }
 
-    @ViewBuilder private var accessibleValues: some View {
-        ForEach(history) { point in
-            intervalLabel(point.time, kind: "Actual pickups")
-                .accessibilityValue(Text(verbatim: ChronosStyle.count(point.value)))
-        }
-        if let forecast = state.forecast, let values = state.selectedForecast, let catalog = state.catalog {
-            ForEach(0..<4, id: \.self) { index in
-                let date = catalog.time(at: forecast.originStep + index, scenarioID: state.scenarioID)
-                intervalLabel(date, kind: "Forecast")
-                    .accessibilityValue(
-                        Text(
-                            "Median \(ChronosStyle.count(values.median[index])), 10–90%: \(ChronosStyle.count(values.lower[index]))–\(ChronosStyle.count(values.upper[index]))",
-                            bundle: .module))
+    private var accessibleValues: some View {
+        VStack {
+            ForEach(history) { point in
+                Rectangle()
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(intervalLabel(point.time, kind: "Actual pickups"))
+                    .accessibilityValue(Text(verbatim: ChronosStyle.count(point.value)))
+            }
+            if let forecast = state.forecast, let values = state.selectedForecast, let catalog = state.catalog {
+                ForEach(0..<4, id: \.self) { index in
+                    let date = catalog.time(at: forecast.originStep + index, scenarioID: state.scenarioID)
+                    Rectangle()
+                        .accessibilityElement(children: .ignore)
+                        .accessibilityLabel(intervalLabel(date, kind: "Forecast"))
+                        .accessibilityValue(
+                            Text(
+                                "Median \(ChronosStyle.count(values.median[index])), 10–90%: \(ChronosStyle.count(values.lower[index]))–\(ChronosStyle.count(values.upper[index]))",
+                                bundle: .module))
+                }
             }
         }
+        .accessibilityElement(children: .contain)
     }
 
     var body: some View {
