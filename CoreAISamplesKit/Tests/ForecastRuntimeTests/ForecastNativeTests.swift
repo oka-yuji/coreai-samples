@@ -145,6 +145,7 @@ struct ForecastNativeTests {
                     }
                     try #require(item.quantiles.count == 21)
                     var maximumAbsoluteError = 0.0
+                    var scalarFailures = 0
                     for row in 0..<21 {
                         try #require(item.quantiles[row].count == 16)
                         for step in 0..<16 {
@@ -152,12 +153,14 @@ struct ForecastNativeTests {
                             let actual = Double(result.raw.quantiles[row][step])
                             let error = abs(actual - expected)
                             let limit = 0.0001 + 0.0001 * abs(expected)
-                            try #require(
-                                expected.isFinite && error <= limit,
+                            let matches = expected.isFinite && error <= limit
+                            #expect(
+                                matches,
                                 """
                                 Case \(item.id), pass \(pass), quantile \(row), step \(step): \
                                 reference \(expected), native \(actual), error \(error), limit \(limit)
                                 """)
+                            if !matches { scalarFailures += 1 }
                             maximumAbsoluteError = max(maximumAbsoluteError, error)
                         }
                     }
@@ -174,7 +177,7 @@ struct ForecastNativeTests {
                     records.append(
                         ForecastNativeRecord(
                             id: item.id, pass: pass, result: result, metrics: result.metrics,
-                            scalars: 336, maximumAbsoluteError: maximumAbsoluteError))
+                            scalars: 336, scalarFailures: scalarFailures, maximumAbsoluteError: maximumAbsoluteError))
                     memory.append(ForecastMemory.capture("afterPrediction"))
                 }
             } catch {
@@ -190,7 +193,8 @@ struct ForecastNativeTests {
             memory.append(ForecastMemory.capture("afterClose"))
         }
         let report = ForecastNativeReport(
-            format: kind == .productSales ? "chronos2-sales-native/1" : "chronos2-bike-native/1",
+            format: kind == .productSales ? "chronos2-sales-native/2" : "chronos2-bike-native/2",
+            scalarFailures: records.reduce(0) { $0 + $1.scalarFailures },
             sourceManifestSHA256: kind == .seoulBike ? BikeSource.manifestSHA256 : nil,
             originalSourceSHA256: kind == .seoulBike ? BikeSource.originalSHA256 : nil,
             sourceSHA256: sourceHash, sourceBytes: sourceBytes.count,
@@ -228,11 +232,13 @@ struct ForecastNativeRecord: Encodable {
     let result: ForecastResult
     let metrics: ForecastMetrics
     let scalars: Int
+    let scalarFailures: Int
     let maximumAbsoluteError: Double
 }
 
 struct ForecastNativeReport: Encodable {
     let format: String
+    let scalarFailures: Int
     let sourceManifestSHA256: String?
     let originalSourceSHA256: String?
     let scope =
