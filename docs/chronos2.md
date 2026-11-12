@@ -69,8 +69,8 @@ Results below retain their original dates and workloads. Different rows may use 
 
 | Platform | State | Verified scope / remaining work | Evidence |
 |---|---|---|---|
-| macos | ✅ | Normal Mac checks cover fixed/API prediction, immutable history, restart and separate actual checks. User acceptance remains open. | [E4](validation/chronos2-demo-20261112/README.md) · [E5](validation/chronos2-api-20261112/README.md) · [E6](validation/chronos2-journal-20261112/README.md) |
-| ios | △ | Fixed/API/history UI and native adapter are connected; signed build passed. Physical iPhone inference and UI acceptance remain open. | [E4](validation/chronos2-demo-20261112/README.md) · [E5](validation/chronos2-api-20261112/README.md) · [E6](validation/chronos2-journal-20261112/README.md) |
+| macos | ✅ | Normal Mac checks cover NYC fixed/API/history and product-sales forecasting. User acceptance remains open. | [E4](validation/chronos2-demo-20261112/README.md) · [E5](validation/chronos2-api-20261112/README.md) · [E6](validation/chronos2-journal-20261112/README.md) · [E7](validation/chronos2-sales-20261113/README.md) |
+| ios | △ | NYC and product-sales UI/native adapters are connected; signed host builds pass. Physical iPhone inference and UI acceptance remain open. | [E4](validation/chronos2-demo-20261112/README.md) · [E5](validation/chronos2-api-20261112/README.md) · [E6](validation/chronos2-journal-20261112/README.md) · [E7](validation/chronos2-sales-20261113/README.md) |
 
 ### Performance and quality
 
@@ -80,24 +80,25 @@ Results below retain their original dates and workloads. Different rows may use 
 | Prepared cache size | Not measured | — | Not measured in this conversion-fidelity run; app behavior, task quality and performance require separate evidence. |
 | First load, including specialization | Not measured | — | Not measured in this conversion-fidelity run; app behavior, task quality and performance require separate evidence. |
 | Load from prepared cache | Not measured | — | Not measured in this conversion-fidelity run; app behavior, task quality and performance require separate evidence. |
-| Request / pipeline completion time | Not measured | — | Not measured in this conversion-fidelity run; app behavior, task quality and performance require separate evidence. |
+| Request / pipeline completion time | Not measured | — | No controlled timing benchmark. Functional sales request intervals, including new-session validation/load, are recorded separately in the sales evidence. |
 | Peak RSS | Not measured | — | Not measured in this conversion-fidelity run; app behavior, task quality and performance require separate evidence. |
-| Peak physical footprint | Not measured | — | Not measured in this conversion-fidelity run; app behavior, task quality and performance require separate evidence. |
+| Peak physical footprint | 212,411,176 B | single; n=1 | [E7](validation/chronos2-sales-20261113/README.md) · Kernel lifetime peak of one Debug test process including import and both sales passes; not per-request/model-only/GPU memory or an iPhone budget. |
 | Resident memory during inference | Not measured | — | Not measured in this conversion-fidelity run; app behavior, task quality and performance require separate evidence. |
 | Memory after release minus baseline | Not measured | — | Not measured in this conversion-fidelity run; app behavior, task quality and performance require separate evidence. |
 | Task success fraction | Not measured | — | Not measured in this conversion-fidelity run; app behavior, task quality and performance require separate evidence. |
 | Reference error (definition in evidence) | 0.00152587891 error | max; n=6048 | [E1](validation/chronos2-conversion-20261111/README.md) · Maximum absolute error over all scalars; each value passed atol 1e-4 + rtol 1e-4. n counts scalar comparisons, not independent runs. |
+| Reference error (definition in evidence) | 8.39233398e-05 error | max; n=10752 | [E7](validation/chronos2-sales-20261113/README.md) · Sales: 16 fixed windows repeated after reload; all 21 x 16 raw values satisfy fixed atol/rtol 1e-4. Repeated scalar comparisons, not independent quality samples. |
 | Stop acknowledgement time | Not measured | — | Not measured in this conversion-fidelity run; app behavior, task quality and performance require separate evidence. |
-| Forecast MAE | Not measured | — | Not measured in this conversion-fidelity run; app behavior, task quality and performance require separate evidence. |
-| Forecast WAPE | Not measured | — | Not measured in this conversion-fidelity run; app behavior, task quality and performance require separate evidence. |
+| Forecast MAE | 4.44884534 count | aggregate; n=212 | [E7](validation/chronos2-sales-20261113/README.md) · Fixed sales first pass only: 212/224 common valid pairs; clipped unrounded median, seasonal naive in evidence. No held-out quality claim. |
+| Forecast WAPE | 0.901678022 ratio | aggregate; n=212 | [E7](validation/chronos2-sales-20261113/README.md) · Same fixed sales pairs and common denominator; seasonal-naive comparison and zero/missing policy in evidence. |
 
 ### Verification coverage
 
 | Check | State | Scope / remaining work | Evidence |
 |---|---|---|---|
-| Conversion / reference fidelity | Passed (stated scope) | 18 synthetic cases, 60 fixed NYC scene/zone cases and 20 live API series pass frozen raw-tensor comparisons. The API inputs overlap the fixed Friday workload. | [E1](validation/chronos2-conversion-20261111/README.md) · [E2](validation/chronos2-swift-20261112/README.md) · [E4](validation/chronos2-demo-20261112/README.md) · [E5](validation/chronos2-api-20261112/README.md) |
-| Task quality | Not measured | Numerical fidelity and fixed-scene operation do not establish held-out forecasting quality. | — |
-| Repeated use / resource release | Passed (stated scope) | Release/reload, fixed and API production-service runs with zero leases, and normal Mac leave/reopen are checked. No memory measurement or iPhone acceptance. | [E2](validation/chronos2-swift-20261112/README.md) · [E4](validation/chronos2-demo-20261112/README.md) · [E5](validation/chronos2-api-20261112/README.md) |
+| Conversion / reference fidelity | Passed (stated scope) | 18 synthetic cases, 60 fixed NYC scene/zone cases and 20 live API series pass frozen raw-tensor comparisons. The API inputs overlap the fixed Friday workload. Product sales adds 16 fixed windows, repeated after release/reopen, against official FP32. | [E1](validation/chronos2-conversion-20261111/README.md) · [E2](validation/chronos2-swift-20261112/README.md) · [E4](validation/chronos2-demo-20261112/README.md) · [E5](validation/chronos2-api-20261112/README.md) · [E7](validation/chronos2-sales-20261113/README.md) |
+| Task quality | Not measured | Fixed sales diagnostics are recorded, but neither numerical fidelity nor retrospective demo windows establish held-out forecasting quality. | — |
+| Repeated use / resource release | Passed (stated scope) | Release/reload, production-service zero leases and normal Mac leave/reopen are checked for NYC and sales. Sales records point memory and whole-process lifetime peak; iPhone acceptance remains open. | [E2](validation/chronos2-swift-20261112/README.md) · [E4](validation/chronos2-demo-20261112/README.md) · [E5](validation/chronos2-api-20261112/README.md) · [E7](validation/chronos2-sales-20261113/README.md) |
 | Stop / retry / recovery | Not measured | CPU fakes cover cancellation and stop joins; cancellation of the native model and normal app remain unmeasured. | — |
 
 ### Evidence and conditions
@@ -110,6 +111,7 @@ Results below retain their original dates and workloads. Different rows may use 
 | [E4](validation/chronos2-demo-20261112/README.md) | 2026-11-12 / legacy / native_app | Apple M5 Max / 137438953472 B RAM / macOS 27.2.1 (26B131) / Xcode 27.2 (27B52); Swift 6.4.2; SDK 27.2; Debug package and Release Mac application | 60 fixed scene/zone cases / 20160 raw values; native Mac GUI prediction and comparison, then close. CPU fakes cover stop/owner boundaries. No iPhone inference, user acceptance or performance measurement. Power/thermal and a benchmark-plan hash were not recorded. · variant=coreai-fp32-univariate; backend=Swift Core AI GPU preference; actual delegate not profiled; route=Normal Mac Models -> explicit on-device prediction -> interval and clock changes -> leave/reopen; separate production-service native comparison; source_revision=29ec3766d36d6f73f0696f85560a422f50e8498c; artifact_revision=786dcf97e020c987cbf883f09b486fba5f3fee30a588b87a346ea65d72d20572; code_revision=06e010133afd10d0d31532cfa804b97818944b30; batch_size=1; concurrency=1; warmups=0; unrecorded: power, thermal, plan_sha256 |
 | [E5](validation/chronos2-api-20261112/README.md) | 2026-11-12 / legacy / native_app | Apple M5 Max / 137438953472 B RAM / macOS 27.2.1 (26B131) / Xcode 27.2 (27B52); Swift 6.4.2; SDK 27.2; Debug package and Release Mac application | The production client validates all 29,760 January counts. The native path compares 20,160 Friday inputs and 6,720 raw outputs, then closes with zero leases. Normal Mac checks cover explicit acquisition/prediction/actuals and the verified month-end stop; chart accessibility fixes have separate source attribution. No controlled performance measurement or iPhone inference. · variant=coreai-fp32-univariate; backend=Swift Core AI GPU preference; actual delegate not profiled; route=Production Models/Store/Service with a pinned January API reference; separate normal Mac GUI; source_revision=29ec3766d36d6f73f0696f85560a422f50e8498c; artifact_revision=786dcf97e020c987cbf883f09b486fba5f3fee30a588b87a346ea65d72d20572; code_revision=02aa27facf98b6d7d503f72a06e8ac0b123dec01; batch_size=1; concurrency=1; warmups=0; unrecorded: power, thermal, plan_sha256 |
 | [E6](validation/chronos2-journal-20261112/README.md) | 2026-11-12 / legacy / native_app | Apple M5 Max / 137438953472 B RAM / macOS 27.2.1 (26B131) / Xcode 27.2 (27B52); Swift 6.4.2; SDK 27.2; Debug package and Release Mac application | One fixed Friday origin: 20,160 inputs, 6,720 raw outputs and 80 actual pairs; independent saved-file arithmetic and hash checks, zero leases. Normal Mac save/restart/check and locale correction have separate source attribution. No held-out quality or controlled performance measurement; power/thermal and benchmark-plan hash unrecorded. · variant=coreai-fp32-univariate; backend=Swift Core AI GPU preference; actual delegate not profiled; route=Production Models/Store/service/session -> live verified API -> native prediction -> immutable journal -> separate actual check -> reload -> stop; separate normal Mac GUI; source_revision=29ec3766d36d6f73f0696f85560a422f50e8498c; artifact_revision=786dcf97e020c987cbf883f09b486fba5f3fee30a588b87a346ea65d72d20572; code_revision=48adfc21c80ff7ceb1828f5b7326fde1c760d0be; batch_size=1; concurrency=1; warmups=0; unrecorded: power, thermal, plan_sha256 |
+| [E7](validation/chronos2-sales-20261113/README.md) | 2026-11-13 / legacy / native_app | Apple M5 Max / 137438953472 B RAM / macOS 27.2.1 (26B131) / Xcode 27.2 (27B52); Swift 6.4.2; SDK 27.2; Debug package and Release Mac/iOS builds | Four SKUs x four retrospective origins, 365-point histories, two passes / 10752 raw comparisons; 212/224 first-pass paired actuals. Normal Mac chart fix at 1954168. Diagnostic timing and whole-process memory only; no controlled benchmark or held-out quality. · variant=coreai-fp32-univariate; backend=Swift Core AI GPU preference; actual delegate not profiled; route=Production Models/Store/Service/Sessions with original sales CSV; independent raw/metric audit; separate normal Mac sidebar; source_revision=29ec3766d36d6f73f0696f85560a422f50e8498c; artifact_revision=786dcf97e020c987cbf883f09b486fba5f3fee30a588b87a346ea65d72d20572; code_revision=55df3378a40a98f8e34c6fafa8e8a33bb1001e71; batch_size=1; concurrency=1; warmups=0; power=AC Power before and after; thermal=pmset reported no thermal/performance warnings before and after; temperature and GPU load unmeasured; unrecorded: plan_sha256 |
 
 ### Setup, limitations and progress
 
@@ -130,6 +132,10 @@ Results below retain their original dates and workloads. Different rows may use 
 - [Saved forecast evidence](validation/chronos2-journal-20261112/README.md)
 
 - [TukuruSF execution analysis](validation/chronos2-tsf-20261112/README.md)
+
+- [Product sales demo](chronos2-sales.md)
+
+- [Product sales verification](validation/chronos2-sales-20261113/README.md)
 <!-- model-report:end -->
 
 ## Verified NYC API dates
@@ -221,3 +227,7 @@ swift test --package-path CoreAISamplesKit --filter ChronosAPINativeTests.liveJo
 ```
 
 [Journal verification and retained failures](validation/chronos2-journal-20261112/README.md) and [TukuruSF execution analysis](validation/chronos2-tsf-20261112/README.md) distinguish automated checks, normal Mac operation, integration and pending user/iPhone acceptance.
+
+## Product sales
+
+The [product-sales demo](chronos2-sales.md) adds four original-source SKUs, 7/14-day forecasts, missing-day handling and seasonal-naive comparison. Data acquisition is explicit and respects the original noncommercial terms. [Native and normal Mac verification](validation/chronos2-sales-20261113/README.md) is separate from physical iPhone and user acceptance.

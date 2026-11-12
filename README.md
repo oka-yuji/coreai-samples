@@ -17,7 +17,7 @@ Start with a model below. Each guide covers setup, supported devices, measuremen
 The GLiNER2.5-multi, EmbeddingGemma 2, Qwen3.8 27B, Clef-Flash 9B and JEV-27B repositories are public and anonymously downloadable. JEV-27B runs through the macOS command line tool. A completed conversion or merged app implementation alone does not count as a public release. Model-specific guides and issues record the verified scope.
 
 <!-- model-catalog:start -->
-Checked: **2026-11-11**. ✅ = recorded native-app execution on that OS for the variant/route in the guide; △ = implementation, older diagnostic evidence or acceptance pending; — = no native demo. A mark is separate from bundle publication, conversion success and full production qualification.
+Checked: **2026-11-13**. ✅ = recorded native-app execution on that OS for the variant/route in the guide; △ = implementation, older diagnostic evidence or acceptance pending; — = no native demo. A mark is separate from bundle publication, conversion success and full production qualification.
 
 | Model / bundle | Use | macOS | iOS | Status | Download | Guide |
 |---|---|---|---|---|---|---|
@@ -35,7 +35,7 @@ Checked: **2026-11-11**. ✅ = recorded native-app execution on that OS for the 
 | MiniCPM-V 4.7 1B | Image/video understanding | [—](docs/model-reports/minicpm-v47.md#model-report) | [—](docs/model-reports/minicpm-v47.md#model-report) | Planned · investigation | — | [Guide / results](docs/model-reports/minicpm-v47.md) |
 | Depth Anything 3 Small | Depth and camera pose | [—](docs/model-reports/depth-anything3.md#model-report) | [—](docs/model-reports/depth-anything3.md#model-report) | Planned · investigation | — | [Guide / results](docs/model-reports/depth-anything3.md) |
 | LTX 2.5 | Video generation | [—](docs/model-reports/ltx25.md#model-report) | [—](docs/model-reports/ltx25.md#model-report) | Planned · investigation | — | [Guide / results](docs/model-reports/ltx25.md) |
-| Chronos-2 | Time series forecasting | [✅](docs/chronos2.md#model-report) | [△](docs/chronos2.md#model-report) | In progress · FP32 conversion, fixed scenes, verified January API dates and saved forecasts work on Mac; physical iPhone and user acceptance remain pending. | — | [Guide / results](docs/chronos2.md) |
+| Chronos-2 | Time series forecasting | [✅](docs/chronos2.md#model-report) | [△](docs/chronos2.md#model-report) | In progress · FP32 conversion, NYC fixed/API/history and product-sales forecasting work on Mac; physical iPhone and user acceptance remain pending. | — | [Guide / results](docs/chronos2.md) |
 <!-- model-catalog:end -->
 
 The iOS app opens **Models**, with seven demos connected to their providers. Models downloads the pinned GLiNER2.5-multi FP32 and EmbeddingGemma 2 FP16 (default) or INT4/INT8 PTQ bundles anonymously from Hugging Face, and imports the known Irodori FP32 folder locally. Every file is checked before execution is enabled. Irodori supports text/seed input, explicit generation, playback/stop and WAV export; see the [iPhone setup and acceptance guide](docs/irodori/iphone.md#use-irodori-from-models). The [earlier integration record](docs/validation/ios-models-integration-20261018.md) and [Irodori validation](docs/irodori/managed-validation.md) keep host checks separate from pending device acceptance. Local diagnostics and public bundle release are separate milestones.

@@ -2,6 +2,7 @@
     import AVFoundation
     import ChronosUI
     import FeatureStore
+    import ForecastUI
     import Foundation
     import ImageGenerationCore
     import ImageGenerationRuntime
@@ -18,7 +19,7 @@
         static let adapters: [any ModelDemoAdapter] = {
             var result: [any ModelDemoAdapter] = [
                 ProductComparisonAdapter(), ExtractionAdapter(), InspectionAdapter(), ImageSearchAdapter(),
-                VideoSearchAdapter(), ObjectFinderAdapter(), SpeechAdapter(), ChronosAdapter(),
+                VideoSearchAdapter(), ObjectFinderAdapter(), SpeechAdapter(), ChronosAdapter(), ForecastAdapter(),
             ]
             if (try? IOSDemoCatalog.make().demos.contains { $0.id == "image-generation" }) == true {
                 result.append(
