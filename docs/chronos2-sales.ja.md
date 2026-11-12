@@ -32,4 +32,4 @@ ForecastFeatureが純粋なデータ・入力・指標・ticket状態、Storeが
 
 reportには実データ由来の入力・全出力も含むため非公開で保存します。source/reference hash、同一ペアの指標、各要求の時間、OS/機種/precision、現在のRSS/footprintとprocess生涯のkernel peakを区別します。SDKの返却件数で項目の有効性を確認し、未対応のメモリ値はnullです。runtime時間は必要な検証・コピー・モデル読込を含み、データ取得・Models取込・描画・指標計算を除きます。生涯peakを要求単位のpeakやGPU総量へ読み替えません。
 
-この実装自体は実モデル数値合格・性能・署名端末build・通常UI受入を主張しません。独立native照合、最終lint/build、Mac/iPhoneの操作と本人受入は親担当者が確認します。CPU成功だけで予測品質や端末対応を判定しません。NYCの保護対象と振る舞いは変更しません。
+[検証記録](validation/chronos2-sales-20261113/README.md)には、固定16条件を2回実行した全分位照合、独立した指標計算、通常Macの操作、署名済みのhost buildを残しています。実iPhoneの推論と本人受入は未確認です。固定バックテストと機能確認中の時間を、一般的な予測品質や制御した性能benchmarkへ読み替えません。
