@@ -231,8 +231,9 @@
     "localization_keys": 1465,
     "missing_translations": 0,
     "placeholder_mismatches": 0,
-    "changed_keys_verified_in_en_ja_mac_ios": 7,
-    "compiled_translation_checks_passed": 28
+    "compiled_translation_checks_passed": 28,
+    "changed_resource_entries_verified_in_en_ja_mac_ios": 7,
+    "distinct_key_strings": 6
   },
   "retained_preparation_failures": [
     {
@@ -265,6 +266,11 @@
       "stage": "native_test_compile",
       "result": "isolation_error",
       "cause": "Borrowed AsyncStream iterator required next(isolation: #isolation), verified against SE-0421 and the SDK before the successful build."
+    },
+    {
+      "stage": "normal_mac_information_layout",
+      "result": "G561-1 confirmed then corrected",
+      "cause": "Complete AX values did not expose visual clipping in the narrow popover. Stacked wrapping identifiers at6dbb0ad were rechecked in both locales on the84dce327 rebuilt app."
     }
   ],
   "acceptance": {
@@ -276,5 +282,114 @@
     "held_out_forecasting_quality_measured": false,
     "controlled_performance_measured": false,
     "peak_memory_measured": false
+  },
+  "post_sales_integration": {
+    "base_revision": "aab92e5de833a80fa422170fd29d21f799b533aa",
+    "code_revision": "84dce3275887c11350f9d21e5efcab6e44e7925c",
+    "source_tree": "3982b2e8b9ed7233ab44e3d2c09fe7de63a536b2",
+    "required_checks_passed": 8,
+    "additional_signed_ios_build": true,
+    "localization_catalogs": 11,
+    "localization_keys": 1530,
+    "missing_translations": 0,
+    "placeholder_mismatches": 0,
+    "resource_entries": 7,
+    "distinct_key_strings": 6,
+    "compiled_translation_checks_passed": 28,
+    "original_sales_evidence_and_measurements_preserved": true,
+    "artifacts": [
+      {
+        "platform": "macos",
+        "signature_verified": true,
+        "binary_sha256": "97d50d9dcea2a694e1d54c9a57e3c04d0b75481408089b50c06bf47cf883c63b",
+        "binary_bytes": 50644432,
+        "info_plist_sha256": "ec9f1bb21920879f825393583c7e5c31157d2c4dac04a7060e39a043595d749c",
+        "info_plist": {
+          "CFBundleIdentifier": "com.coreai-samples.DemoApp",
+          "CFBundleExecutable": "CoreAISamples",
+          "CFBundleShortVersionString": "1.0",
+          "CFBundleVersion": "1",
+          "LSMinimumSystemVersion": "27.0"
+        },
+        "code_resources_sha256": "4747d1faf06253ed13ebc80c90cdcff11f6f6c2842b6fd228e9fe0fd4f5fcfbb",
+        "chronos_resources": {
+          "chronos2-fp32-download.json": {
+            "bytes": 130,
+            "sha256": "e9834830db8343c0cd54897f0e94f248e36b27675fe38f1b584b4bf2f7d70c35",
+            "matches_staged_source": true
+          },
+          "chronos2-fp32-files.json": {
+            "bytes": 1280,
+            "sha256": "ac5c482c4797c0e70c07787d88351fe30f801ac7b4035ee61f49b9f14d3bb3f9",
+            "matches_staged_source": true
+          }
+        },
+        "download_locator": {
+          "repository": "okayuji/chronos-2-coreai-fp32",
+          "revision": "d3ead488046498faa8b3b5103b1923e52a313d0e",
+          "root": "bundle"
+        },
+        "artifact_stable_during_readback": true
+      },
+      {
+        "platform": "ios",
+        "signature_verified": true,
+        "binary_sha256": "88ad87702ece2c66cb7e9aa00fb5fdd7686accc4c181d1b63a97f1c4f5c7a309",
+        "binary_bytes": 30449920,
+        "info_plist_sha256": "085eb6e4e00ca04a15bdd446d99173774506659a995f46beb43b6a03bd4e5be0",
+        "info_plist": {
+          "CFBundleIdentifier": "com.coreai-samples.DemoApp.ios",
+          "CFBundleExecutable": "CoreAISamples-iOS",
+          "CFBundleShortVersionString": "1.0",
+          "CFBundleVersion": "1",
+          "MinimumOSVersion": "27.0",
+          "UIFileSharingEnabled": true,
+          "LSSupportsOpeningDocumentsInPlace": true
+        },
+        "code_resources_sha256": "19e8e8be1fabe0c79a298670e604cbad4e5360daa18bc92e761881398e21f5a2",
+        "increased_memory_limit_entitlement": true,
+        "chronos_resources": {
+          "chronos2-fp32-download.json": {
+            "bytes": 130,
+            "sha256": "e9834830db8343c0cd54897f0e94f248e36b27675fe38f1b584b4bf2f7d70c35",
+            "matches_staged_source": true
+          },
+          "chronos2-fp32-files.json": {
+            "bytes": 1280,
+            "sha256": "ac5c482c4797c0e70c07787d88351fe30f801ac7b4035ee61f49b9f14d3bb3f9",
+            "matches_staged_source": true
+          }
+        },
+        "download_locator": {
+          "repository": "okayuji/chronos-2-coreai-fp32",
+          "revision": "d3ead488046498faa8b3b5103b1923e52a313d0e",
+          "root": "bundle"
+        },
+        "artifact_stable_during_readback": true
+      }
+    ]
+  },
+  "gui_metadata_check": {
+    "code_revision": "84dce3275887c11350f9d21e5efcab6e44e7925c",
+    "source_tree": "3982b2e8b9ed7233ab44e3d2c09fe7de63a536b2",
+    "binary_sha256": "97d50d9dcea2a694e1d54c9a57e3c04d0b75481408089b50c06bf47cf883c63b",
+    "completed_at_utc": "2026-11-12T17:53:10.788888+00:00",
+    "locales": [
+      "en",
+      "ja"
+    ],
+    "normal_mac_app": true,
+    "existing_import_still_ready": true,
+    "full_identifier_values_and_labels_visually_checked": true,
+    "accessibility_values_match": true,
+    "download_or_import_guidance_match": true,
+    "resolved_finding": "G561-1",
+    "download_clicked": false,
+    "model_inference_executed": false,
+    "model_preparation_clicked": false,
+    "data_deleted": false,
+    "app_exited": true,
+    "japanese_restored": true,
+    "shared_lock_released": true
   }
 }
