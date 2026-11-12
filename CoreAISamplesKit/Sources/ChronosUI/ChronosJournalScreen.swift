@@ -190,7 +190,9 @@ struct ChronosJournalScreen: View {
     }
 
     private func failure(_ error: ChronosDemoFailure) -> String {
-        if error == .persistence { return "The check could not be saved. Check storage access and available space, then retry." }
+        if error == .persistence {
+            return "The check could not be saved. Check storage access and available space, then retry."
+        }
         if error == .invalidData {
             return "This record or response failed validation. The original forecast has not changed."
         }
