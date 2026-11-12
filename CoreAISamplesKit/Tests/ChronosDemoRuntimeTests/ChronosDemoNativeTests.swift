@@ -42,7 +42,9 @@ struct ChronosDemoNativeTests {
         let storage = ManagedModelStore(root: root.appending(path: "models"))
         let staging = try await storage.copyForImport(from: source, model: model, artifact: artifact) { _ in }
         let installed = try await storage.promote(staging: staging, model: model, artifact: artifact)
-        let adapter = ChronosNativeAdapter(directory: directory)
+        let adapter = ChronosNativeAdapter(
+            directory: directory,
+            journal: ChronosJournalAssembly(files: ChronosJournalFiles(directory: root.appending(path: "journal"))))
         let assembly = ModelLibraryAssembly(adapters: [adapter], store: storage, transfer: ArtifactTransfer())
         let effects = AsyncStream<ModelLibraryEffect>.makeStream()
         let library = Store<ModelLibraryFeature>(
@@ -123,6 +125,7 @@ struct ChronosDemoNativeTests {
             ).write(to: URL(filePath: output), options: .withoutOverwriting)
         }
         adapter.actions.continuation.finish()
+        adapter.journalActions.continuation.finish()
         effects.continuation.finish()
     }
 }
@@ -146,21 +149,26 @@ struct ChronosScenesReference: Decodable {
 final class ChronosNativeAdapter: ModelDemoAdapter {
     let demoID = ChronosDemoCatalog.selection.demoID
     let actions = AsyncStream<ChronosFeature.Action>.makeStream()
+    let journalActions = AsyncStream<ChronosJournalFeature.Action>.makeStream()
     let sessions: ChronosDemoSessions
     var store: Store<ChronosFeature>?
+    var journalStore: Store<ChronosJournalFeature>?
 
-    init(directory: URL, api: NYCAPIClient? = nil) {
+    init(directory: URL, api: NYCAPIClient? = nil, journal: ChronosJournalAssembly = .shared) {
         let sink = actions.continuation
+        let journalSink = journalActions.continuation
         sessions = ChronosDemoSessions(
             makeService: { resource, permits in
                 LiveChronosService(
                     resource: resource, repository: ChronosRepository(directory: directory), api: api, permits: permits)
-            }, observe: { _, action in sink.yield(action) })
+            }, journal: journal, observe: { _, action in sink.yield(action) },
+            observeJournal: { _, action in journalSink.yield(action) })
     }
     func preview(for selection: DemoSelection) -> AnyView { AnyView(EmptyView()) }
     func content(for session: ModelDemoSession, gate: DemoExecutionGate) -> AnyView {
         guard gate.session == session, gate.isPermitted() else { return AnyView(EmptyView()) }
-        store = sessions.bind(session, permits: gate.isPermitted)
+        store = sessions.bind(session, gate: gate)
+        journalStore = sessions.journal(for: session)
         return AnyView(EmptyView())
     }
     func stop(_ session: ModelDemoSession) async throws { await sessions.stop(session) }

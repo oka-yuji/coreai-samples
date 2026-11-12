@@ -103,6 +103,23 @@
         }
       }
     },
+    "Back" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Back"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "戻る"
+          }
+        }
+      }
+    },
     "Cancel" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -120,6 +137,23 @@
         }
       }
     },
+    "Check published actuals" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check published actuals"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "公開済みの実績を確認"
+          }
+        }
+      }
+    },
     "Check verified dates" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -133,6 +167,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "検証済みの日時を確認"
+          }
+        }
+      }
+    },
+    "Checked: %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Checked: %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "確認日時：%@"
+          }
+        }
+      }
+    },
+    "Checks compare the first 2 hours across 20 taxi zones. Each check is kept separately." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Checks compare the first 2 hours across 20 taxi zones. Each check is kept separately."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "20のタクシーゾーンについて、予測から最初の2時間を比較します。確認結果は毎回別々に保存されます。"
           }
         }
       }
@@ -167,6 +235,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "予測画面を閉じて開き直してください。"
+          }
+        }
+      }
+    },
+    "Compared: %lld / %lld" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compared: %lld / %lld"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "比較件数：%lld / %lld"
           }
         }
       }
@@ -252,6 +337,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "表示中の結果: 同梱の場面"
+          }
+        }
+      }
+    },
+    "Done" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Done"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "完了"
           }
         }
       }
@@ -375,6 +477,23 @@
         }
       }
     },
+    "Forecast history" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Forecast history"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "予測履歴"
+          }
+        }
+      }
+    },
     "Forecast interval" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -409,6 +528,57 @@
         }
       }
     },
+    "Forecast origins (New York): %@ to %@, inclusive." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Forecast origins (New York): %@ to %@, inclusive."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選べる予測起点（ニューヨーク）: %@〜%@（両端を含む）"
+          }
+        }
+      }
+    },
+    "Forecast saved on this device" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Forecast saved on this device"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この端末に予測を保存しました"
+          }
+        }
+      }
+    },
+    "Fully compared" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fully compared"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "全件比較済み"
+          }
+        }
+      }
+    },
     "History and forecast chart" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -422,6 +592,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "乗車履歴と予測のグラフ"
+          }
+        }
+      }
+    },
+    "Incomparable New York time" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Incomparable New York time"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ニューヨーク時刻を特定できないため比較不能"
           }
         }
       }
@@ -473,6 +660,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "マンハッタン · 20のタクシーゾーン"
+          }
+        }
+      }
+    },
+    "Mean absolute error: %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mean absolute error: %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "平均絶対誤差：%@"
           }
         }
       }
@@ -562,6 +766,23 @@
         }
       }
     },
+    "Model version: %@ · %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Model version: %@ · %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルの版：%@・%@"
+          }
+        }
+      }
+    },
     "NYC historical records · New York time" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -592,23 +813,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "NYCタクシー乗車件数"
-          }
-        }
-      }
-    },
-    "Verified forecast date (New York)" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Verified forecast date (New York)"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "検証済みの予測日（ニューヨーク）"
           }
         }
       }
@@ -647,6 +851,23 @@
         }
       }
     },
+    "No saved forecasts yet. Successful on-device predictions are saved automatically." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No saved forecasts yet. Successful on-device predictions are saved automatically."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保存された予測はありません。端末内での予測が成功すると自動保存されます。"
+          }
+        }
+      }
+    },
     "Not fetched" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -660,6 +881,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "未取得"
+          }
+        }
+      }
+    },
+    "Not independently verified" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not independently verified"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "独立照合されていません"
           }
         }
       }
@@ -732,23 +970,6 @@
         }
       }
     },
-    "Verified NYC API dates" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Verified NYC API dates"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "検証済みのNYC API日時"
-          }
-        }
-      }
-    },
     "On-device prediction" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -766,6 +987,23 @@
         }
       }
     },
+    "Only independently verified API ranges are selectable. A listed year or recent catalog update does not establish complete trip counts." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only independently verified API ranges are selectable. A listed year or recent catalog update does not establish complete trip counts."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "独立照合済みのAPI期間だけを選べます。年度の掲載や最近のカタログ更新だけでは、乗車件数が揃っているとは判断できません。"
+          }
+        }
+      }
+    },
     "Origin" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -779,6 +1017,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "予測の基準時刻"
+          }
+        }
+      }
+    },
+    "Partly compared" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Partly compared"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一部比較済み"
+          }
+        }
+      }
+    },
+    "Percentage error is unavailable when there are no pairs or the actual total is zero." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Percentage error is unavailable when there are no pairs or the actual total is zero."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "比較できる値がない場合や実績合計が0の場合、パーセント誤差は表示されません。"
           }
         }
       }
@@ -885,6 +1157,57 @@
         }
       }
     },
+    "Publication pending" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Publication pending"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "公開待ち"
+          }
+        }
+      }
+    },
+    "Recorded · Not checked" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recorded · Not checked"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保存済み・実績未確認"
+          }
+        }
+      }
+    },
+    "Reload records" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reload records"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "記録を再読み込み"
+          }
+        }
+      }
+    },
     "Reset" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -898,6 +1221,74 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "リセット"
+          }
+        }
+      }
+    },
+    "Retry saving" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Retry saving"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保存を再試行"
+          }
+        }
+      }
+    },
+    "Saved times use this device’s clock and are not independently certified." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saved times use this device’s clock and are not independently certified."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保存日時は端末の時計によるもので、第三者が証明した時刻ではありません。"
+          }
+        }
+      }
+    },
+    "Saved: %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saved: %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保存日時：%@"
+          }
+        }
+      }
+    },
+    "Saving forecast…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saving forecast…"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "予測を保存中…"
           }
         }
       }
@@ -1021,6 +1412,40 @@
         }
       }
     },
+    "Source: NYC public API" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Source: NYC public API"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "入力元：NYC公開API"
+          }
+        }
+      }
+    },
+    "Source: bundled NYC records" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Source: bundled NYC records"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "入力元：同梱のNYC記録"
+          }
+        }
+      }
+    },
     "Tap a zone" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1051,23 +1476,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "タクシーゾーン"
-          }
-        }
-      }
-    },
-    "Only independently verified API ranges are selectable. A listed year or recent catalog update does not establish complete trip counts." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Only independently verified API ranges are selectable. A listed year or recent catalog update does not establish complete trip counts."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "独立照合済みのAPI期間だけを選べます。年度の掲載や最近のカタログ更新だけでは、乗車件数が揃っているとは判断できません。"
           }
         }
       }
@@ -1140,6 +1548,23 @@
         }
       }
     },
+    "The check could not be saved. Check storage access and available space, then retry." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The check could not be saved. Check storage access and available space, then retry."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "確認結果を保存できませんでした。保存先へのアクセスと空き容量を確認して再試行してください。"
+          }
+        }
+      }
+    },
     "The data failed validation. The previous result is still available." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1191,6 +1616,23 @@
         }
       }
     },
+    "The forecast is ready, but could not be saved. Check storage access and available space, then retry." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The forecast is ready, but could not be saved. Check storage access and available space, then retry."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "予測はできましたが、保存できませんでした。保存先へのアクセスと空き容量を確認して再試行してください。"
+          }
+        }
+      }
+    },
     "The full 21-day history has not been published. Choose another date." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1204,6 +1646,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "21日分すべての履歴が公開されていません。別の日時を選んでください。"
+          }
+        }
+      }
+    },
+    "The full 21-day history is not independently verified. Choose a verified API date." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The full 21-day history is not independently verified. Choose a verified API date."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "21日分の履歴全体が独立照合されていません。検証済みのAPI日時を選んでください。"
           }
         }
       }
@@ -1255,6 +1714,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "このプレビューは固定の事前計算結果です。端末内予測はModelsで準備したモデルから開いてください。"
+          }
+        }
+      }
+    },
+    "This record could not be read" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This record could not be read"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この記録を読み込めませんでした"
+          }
+        }
+      }
+    },
+    "This record or response failed validation. The original forecast has not changed." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This record or response failed validation. The original forecast has not changed."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "記録または応答の検証に失敗しました。保存済みの原予測は変更されていません。"
           }
         }
       }
@@ -1327,74 +1820,6 @@
         }
       }
     },
-    "Upper" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Upper"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "上限"
-          }
-        }
-      }
-    },
-    "Forecast origins (New York): %@ to %@, inclusive." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Forecast origins (New York): %@ to %@, inclusive."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "選べる予測起点（ニューヨーク）: %@〜%@（両端を含む）"
-          }
-        }
-      }
-    },
-    "Not independently verified" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Not independently verified"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "独立照合されていません"
-          }
-        }
-      }
-    },
-    "The full 21-day history is not independently verified. Choose a verified API date." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The full 21-day history is not independently verified. Choose a verified API date."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "21日分の履歴全体が独立照合されていません。検証済みのAPI日時を選んでください。"
-          }
-        }
-      }
-    },
     "Unverified actuals are missing from the chart and cannot advance the forecast." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1412,6 +1837,40 @@
         }
       }
     },
+    "Upper" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Upper"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "上限"
+          }
+        }
+      }
+    },
+    "Verified NYC API dates" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verified NYC API dates"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "検証済みのNYC API日時"
+          }
+        }
+      }
+    },
     "Verified data (New York): %@ to %@, end excluded." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1425,6 +1884,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "検証済みデータ期間（ニューヨーク）: %@〜%@（終端を含まない）"
+          }
+        }
+      }
+    },
+    "Verified forecast date (New York)" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verified forecast date (New York)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "検証済みの予測日（ニューヨーク）"
+          }
+        }
+      }
+    },
+    "Weighted absolute percentage error: %@%%" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Weighted absolute percentage error: %@%%"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "加重絶対パーセント誤差：%@%%"
           }
         }
       }

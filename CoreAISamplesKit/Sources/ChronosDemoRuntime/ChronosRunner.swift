@@ -1,18 +1,24 @@
 import ChronosFeature
+import FeatureStore
 import Foundation
 
 @MainActor
 public final class ChronosRunner {
     private let service: any ChronosService
     private let permits: @MainActor () -> Bool
+    private let journal: Store<ChronosJournalFeature>?
     private var busy = false
     private var closing = false
     private var operations: [CheckedContinuation<Void, Never>] = []
     private var releases: [CheckedContinuation<Void, Never>] = []
 
-    public init(service: any ChronosService, permits: @escaping @MainActor () -> Bool = { true }) {
+    public init(
+        service: any ChronosService, permits: @escaping @MainActor () -> Bool = { true },
+        journal: Store<ChronosJournalFeature>? = nil
+    ) {
         self.service = service
         self.permits = permits
+        self.journal = journal
     }
 
     public func run(_ effect: ChronosFeature.Effect, send: (ChronosFeature.Action) -> Void) async {
@@ -57,6 +63,7 @@ public final class ChronosRunner {
             try Task.checkCancellation()
             guard permits(), !closing else { throw CancellationError() }
             send(action)
+            if case .predicted(_, let batch) = action { journal?.send(.capture(batch)) }
         } catch {
             guard !Task.isCancelled, !closing, permits() else { return }
             if error is CancellationError {
@@ -68,6 +75,7 @@ public final class ChronosRunner {
     }
 
     public func release() async {
+        journal?.send(.suspend)
         if closing {
             await withCheckedContinuation { releases.append($0) }
             return

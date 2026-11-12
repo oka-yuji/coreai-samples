@@ -42,7 +42,7 @@ public struct ChronosContext: Sendable {
     }
 }
 
-public struct ChronosPrediction: Sendable, Equatable, Encodable {
+public struct ChronosPrediction: Sendable, Equatable, Codable {
     public let quantiles: [[Float]]
 
     public init(quantiles: [[Float]]) throws {
@@ -50,5 +50,10 @@ public struct ChronosPrediction: Sendable, Equatable, Encodable {
             quantiles.allSatisfy({ $0.count == ChronosContract.patchSize && $0.allSatisfy(\.isFinite) })
         else { throw ChronosError.invalidPrediction }
         self.quantiles = quantiles
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        try self.init(quantiles: values.decode([[Float]].self, forKey: .quantiles))
     }
 }

@@ -1,0 +1,944 @@
+{
+  "format": "chronos-tukurusf-execution/1",
+  "captured_at": "2026-11-12T04:59:46.463071+00:00",
+  "source_commit_before_report": "9b98f01f142fcddd500277520c71a67a02fdf0bb",
+  "sf_revision": "d69efe4c78b990202b1a8188d5ce451186203251",
+  "parent_issue": 548,
+  "capture_boundary": "Before final Issue547 review and merge; later GitHub and local acceptance receipts remain separate.",
+  "interpretation": "SF execution metadata and raw CLI usage; not a model-performance benchmark. Parent validation/review/merge are separate outcomes. Nonzero commands include intentional red tests and grep no-match; they are not automatically defects or SF failures. No cost estimate or inferred resolved model ID.",
+  "raw_logs": "Private local task directory; prompts, raw responses, environment details and model files are excluded.",
+  "runs": [
+    {
+      "run_id": "cf98e9fa3a354a8ab69816050cfd2100",
+      "state": "failed",
+      "created_at": "2026-11-11T11:01:32.595232+00:00",
+      "updated_at": "2026-11-11T11:16:50.413481+00:00",
+      "issue_url": "https://github.com/oka-yuji/coreai-samples/issues/531",
+      "spec_sha256": "aac69c8f51149ef2fea007f85a15cd8967824c5d55aceab946f32a1444698fe9",
+      "fixed_base": "d4592315f946a70794fc14eaff8e0e5859ea6e1e",
+      "target_revision": null,
+      "candidate_source_sha256": null,
+      "requested_profile": {
+        "effort": "max",
+        "kind": "codex_frontier",
+        "model": "gpt-6-astra"
+      },
+      "actual_model_id": null,
+      "actual_model_id_reason": "Command selection recorded; CLI response metadata must establish any resolved ID.",
+      "total_elapsed_seconds": 900.1593600829999,
+      "worker_elapsed_seconds": 899.9322964170001,
+      "worker_exit": -15,
+      "worker_stop_reason": "timed_out",
+      "worker_output_bytes": 988263,
+      "reported_usage": [],
+      "verification": [],
+      "changed_path_count": 0,
+      "outside_scope": null,
+      "protected_unchanged": null,
+      "source_unchanged_during_verification": null,
+      "cleanup_confirmed": true,
+      "parent_outcome": null,
+      "scope_sha256": "dabfe8c6680a648fb6884c8421863f9cff8a93d17802f9d5c3378b782b5f63a5",
+      "nonzero_worker_commands": 5
+    },
+    {
+      "run_id": "632c73462f554d36869a4ffcc9c119b6",
+      "state": "failed",
+      "created_at": "2026-11-11T11:20:13.772297+00:00",
+      "updated_at": "2026-11-11T11:24:12.559405+00:00",
+      "issue_url": "https://github.com/oka-yuji/coreai-samples/issues/541",
+      "spec_sha256": "822a44dd89654c5d7d1a97b0a0077982cc001390efe75a5444bf681f110af3d5",
+      "fixed_base": "e0805f44fd5ee7ae372d805d02272d11229fda4b",
+      "target_revision": "bc7ccf4c0ede0a7ce4100c7b66d0146351327b6c",
+      "candidate_source_sha256": "0c483a87602bedc05bac79748b7be1645f2c27efccea5a3565aed2f79c48e0f5",
+      "requested_profile": {
+        "effort": "max",
+        "kind": "codex_frontier",
+        "model": "gpt-6-astra"
+      },
+      "actual_model_id": null,
+      "actual_model_id_reason": "Command selection recorded; CLI response metadata must establish any resolved ID.",
+      "total_elapsed_seconds": 224.4755316249998,
+      "worker_elapsed_seconds": 223.2713266249998,
+      "worker_exit": 0,
+      "worker_stop_reason": null,
+      "worker_output_bytes": 57252,
+      "reported_usage": [
+        {
+          "input_tokens": 369156,
+          "cached_input_tokens": 321536,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 8596,
+          "reasoning_output_tokens": 3240
+        }
+      ],
+      "verification": [
+        {
+          "returncode": 0,
+          "elapsed_seconds": 0.1777892499999325,
+          "stop_reason": null
+        },
+        {
+          "returncode": 1,
+          "elapsed_seconds": 0.22822016600002826,
+          "stop_reason": null
+        }
+      ],
+      "changed_path_count": 3,
+      "outside_scope": [],
+      "protected_unchanged": true,
+      "source_unchanged_during_verification": null,
+      "cleanup_confirmed": true,
+      "parent_outcome": null,
+      "scope_sha256": "7c8b674031c0870806bc13caf5ea4710ce721e661827da7c63d4b3e3eb83ff15",
+      "nonzero_worker_commands": 0
+    },
+    {
+      "run_id": "9c048ee5b2724790a8cf58a6bf236b25",
+      "state": "verified_pending_review",
+      "created_at": "2026-11-11T11:26:42.844040+00:00",
+      "updated_at": "2026-11-11T11:30:42.505594+00:00",
+      "issue_url": "https://github.com/oka-yuji/coreai-samples/issues/541",
+      "spec_sha256": "7a951b6e580d165edaadf91beea2d9651730d6e52f82225bff98dcd96f0f9051",
+      "fixed_base": "65f2cf0949fa3fb7cfc4919e2442fa691b52e151",
+      "target_revision": "bc7ccf4c0ede0a7ce4100c7b66d0146351327b6c",
+      "candidate_source_sha256": "7935287858534ad3588821fb23a8f13647a177b60b505dbf024c8e7159e06035",
+      "requested_profile": {
+        "effort": "max",
+        "kind": "codex_frontier",
+        "model": "gpt-6-astra"
+      },
+      "actual_model_id": null,
+      "actual_model_id_reason": "Command selection recorded; CLI response metadata must establish any resolved ID.",
+      "total_elapsed_seconds": 207.05127904200026,
+      "worker_elapsed_seconds": 205.60183870799983,
+      "worker_exit": 0,
+      "worker_stop_reason": null,
+      "worker_output_bytes": 229475,
+      "reported_usage": [
+        {
+          "input_tokens": 696934,
+          "cached_input_tokens": 620288,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 7445,
+          "reasoning_output_tokens": 3403
+        }
+      ],
+      "verification": [
+        {
+          "returncode": 0,
+          "elapsed_seconds": 0.1789931670000442,
+          "stop_reason": null
+        },
+        {
+          "returncode": 0,
+          "elapsed_seconds": 0.25955583299992213,
+          "stop_reason": null
+        }
+      ],
+      "changed_path_count": 2,
+      "outside_scope": [],
+      "protected_unchanged": true,
+      "source_unchanged_during_verification": true,
+      "cleanup_confirmed": true,
+      "parent_outcome": null,
+      "scope_sha256": "7c8b674031c0870806bc13caf5ea4710ce721e661827da7c63d4b3e3eb83ff15",
+      "nonzero_worker_commands": 1
+    },
+    {
+      "run_id": "0cdb8c7ab25841e980a09339f29cb0d2",
+      "state": "verified_pending_review",
+      "created_at": "2026-11-11T11:43:55.380626+00:00",
+      "updated_at": "2026-11-11T12:12:41.115405+00:00",
+      "issue_url": "https://github.com/oka-yuji/coreai-samples/issues/541",
+      "spec_sha256": "6e4988a7b76ae2872ae4c88d999be062ff49c7805d62a9182cf67a9f3830a9f8",
+      "fixed_base": "2e22976259cab9d20b8fc2fcf4f686bba6ba705a",
+      "target_revision": "fcdbc74fea743684fcccf60c79b84b7a79387209",
+      "candidate_source_sha256": "63521b91d54a3a4e7734fc0a7584ac644cb0f6d91f1eef813a6eef54e24e0a63",
+      "requested_profile": {
+        "effort": "max",
+        "kind": "codex_frontier",
+        "model": "gpt-6-astra"
+      },
+      "actual_model_id": null,
+      "actual_model_id_reason": "Command selection recorded; CLI response metadata must establish any resolved ID.",
+      "total_elapsed_seconds": 1699.074253875,
+      "worker_elapsed_seconds": 1686.143119292,
+      "worker_exit": 0,
+      "worker_stop_reason": null,
+      "worker_output_bytes": 880016,
+      "reported_usage": [
+        {
+          "input_tokens": 4239385,
+          "cached_input_tokens": 4123008,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 59843,
+          "reasoning_output_tokens": 22585
+        }
+      ],
+      "verification": [
+        {
+          "returncode": 0,
+          "elapsed_seconds": 0.17848304199924314,
+          "stop_reason": null
+        },
+        {
+          "returncode": 0,
+          "elapsed_seconds": 0.229128292000496,
+          "stop_reason": null
+        },
+        {
+          "returncode": 0,
+          "elapsed_seconds": 11.489183792000404,
+          "stop_reason": null
+        }
+      ],
+      "changed_path_count": 17,
+      "outside_scope": [],
+      "protected_unchanged": true,
+      "source_unchanged_during_verification": true,
+      "cleanup_confirmed": true,
+      "parent_outcome": "親側の検証・レビュー完了 / PR #542をmainへ統合",
+      "scope_sha256": "6d58d4deb24bfe5fd7f7dd908148fccbc170e0bf64e053bcb5fe05c4cfa8d33f",
+      "nonzero_worker_commands": 10
+    },
+    {
+      "run_id": "80e8da5aec6f4c9ea64a09291420f3e2",
+      "state": "verified_pending_review",
+      "created_at": "2026-11-11T14:28:57.400537+00:00",
+      "updated_at": "2026-11-11T14:55:56.832331+00:00",
+      "issue_url": "https://github.com/oka-yuji/coreai-samples/issues/543",
+      "spec_sha256": "7abe63f54c7403760caa5a2a8f08a8f354eea8890aaf16c3861178114c825b31",
+      "fixed_base": "e5e275638eb7b8c280d4ca5b05b389740c254e65",
+      "target_revision": "2d3a7ffd6c810d853d30ce98f1e76099bbfbd0f8",
+      "candidate_source_sha256": "189c7af6114214fdb2363ce30b90caeda48a84c85c9550f3a1737fba4817e56e",
+      "requested_profile": {
+        "effort": "max",
+        "kind": "codex_frontier",
+        "model": "gpt-6-astra"
+      },
+      "actual_model_id": null,
+      "actual_model_id_reason": "Command selection recorded; CLI response metadata must establish any resolved ID.",
+      "total_elapsed_seconds": 1505.194406875,
+      "worker_elapsed_seconds": 1489.2207629999994,
+      "worker_exit": 0,
+      "worker_stop_reason": null,
+      "worker_output_bytes": 498735,
+      "reported_usage": [
+        {
+          "input_tokens": 4530527,
+          "cached_input_tokens": 4403456,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 51429,
+          "reasoning_output_tokens": 18438
+        }
+      ],
+      "verification": [
+        {
+          "returncode": 0,
+          "elapsed_seconds": 13.636050999999497,
+          "stop_reason": null
+        },
+        {
+          "returncode": 0,
+          "elapsed_seconds": 1.1534120830001484,
+          "stop_reason": null
+        }
+      ],
+      "changed_path_count": 20,
+      "outside_scope": [],
+      "protected_unchanged": true,
+      "source_unchanged_during_verification": true,
+      "cleanup_confirmed": true,
+      "parent_outcome": "親側の検証・レビュー完了 / PR #551をmainへ統合",
+      "scope_sha256": "f9cde849092b053910f32a870a1b612aa3c98b1324165c0c67ec99beb93dc149",
+      "nonzero_worker_commands": 9
+    },
+    {
+      "run_id": "3759279a1c9644608612e94f660f7550",
+      "state": "verified_pending_review",
+      "created_at": "2026-11-11T16:06:24.045085+00:00",
+      "updated_at": "2026-11-11T16:21:11.552632+00:00",
+      "issue_url": "https://github.com/oka-yuji/coreai-samples/issues/544",
+      "spec_sha256": "9a02a814322ebfc25700050596696c6d40af3eb00160c8a9f2e874cbe08f4289",
+      "fixed_base": "280b38b9641e3586a77bc98fbc56249d650777cc",
+      "target_revision": "bcb60d25aa01a581b098fa18961bf8bb571a8539",
+      "candidate_source_sha256": "b30fa39a46e5ed879a26c1a2f09f001e1ff567ccd2a70e697ef927f5843c4ae3",
+      "requested_profile": {
+        "effort": "max",
+        "kind": "codex_frontier",
+        "model": "gpt-6-astra"
+      },
+      "actual_model_id": null,
+      "actual_model_id_reason": "Command selection recorded; CLI response metadata must establish any resolved ID.",
+      "total_elapsed_seconds": 859.4633404169981,
+      "worker_elapsed_seconds": 799.6321750419993,
+      "worker_exit": 0,
+      "worker_stop_reason": null,
+      "worker_output_bytes": 604652,
+      "reported_usage": [
+        {
+          "input_tokens": 3653204,
+          "cached_input_tokens": 3510912,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 29674,
+          "reasoning_output_tokens": 8286
+        }
+      ],
+      "verification": [
+        {
+          "returncode": 0,
+          "elapsed_seconds": 57.493669749997935,
+          "stop_reason": null
+        },
+        {
+          "returncode": 0,
+          "elapsed_seconds": 1.1586182909995841,
+          "stop_reason": null
+        }
+      ],
+      "changed_path_count": 18,
+      "outside_scope": [],
+      "protected_unchanged": true,
+      "source_unchanged_during_verification": true,
+      "cleanup_confirmed": true,
+      "parent_outcome": "親側の実bundle検査後、UI配線を追加修正 / PR #553統合",
+      "scope_sha256": "cc696fa3dbfe8569f22be2ed9d162386a9429dbe0b354be392688e53cb75bfff",
+      "nonzero_worker_commands": 4
+    },
+    {
+      "run_id": "9edc4896874b417d93741a234d98dde4",
+      "state": "verified_pending_review",
+      "created_at": "2026-11-11T16:57:41.773003+00:00",
+      "updated_at": "2026-11-11T17:11:20.327536+00:00",
+      "issue_url": "https://github.com/oka-yuji/coreai-samples/issues/544",
+      "spec_sha256": "6ca7ba1c3d4736c876cdb6a5d4616ef9e53e9eccc63ecf0f82000309f54a3149",
+      "fixed_base": "c36cd1d04be98991f71e4060e770827f12b91980",
+      "target_revision": "f4a6a7531fc1f0fed3f5d3780676915899e0ddba",
+      "candidate_source_sha256": "c696d788514949e20bd99a763aa909faad2e565fb9f828ba33c3939c0b65d1b4",
+      "requested_profile": {
+        "effort": "max",
+        "kind": "codex_frontier",
+        "model": "gpt-6-astra"
+      },
+      "actual_model_id": null,
+      "actual_model_id_reason": "Command selection recorded; CLI response metadata must establish any resolved ID.",
+      "total_elapsed_seconds": 818.4800395830025,
+      "worker_elapsed_seconds": 758.9385025419979,
+      "worker_exit": 0,
+      "worker_stop_reason": null,
+      "worker_output_bytes": 621825,
+      "reported_usage": [
+        {
+          "input_tokens": 3855549,
+          "cached_input_tokens": 3727744,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 25486,
+          "reasoning_output_tokens": 12619
+        }
+      ],
+      "verification": [
+        {
+          "returncode": 0,
+          "elapsed_seconds": 57.22735387499779,
+          "stop_reason": null
+        },
+        {
+          "returncode": 0,
+          "elapsed_seconds": 1.1760149159999855,
+          "stop_reason": null
+        }
+      ],
+      "changed_path_count": 10,
+      "outside_scope": [],
+      "protected_unchanged": true,
+      "source_unchanged_during_verification": true,
+      "cleanup_confirmed": true,
+      "parent_outcome": "Mac実入口・分類翻訳の修正を通常UIと両レビューで確認 / PR #553統合",
+      "scope_sha256": "4d530f6fd6f114ed5e29badf97ae45a6863a1b3365d0a701d870289da32bd076",
+      "nonzero_worker_commands": 5
+    },
+    {
+      "run_id": "4f19867b797140b2b3545c4425d34314",
+      "state": "verified_pending_review",
+      "created_at": "2026-11-11T18:03:18.916012+00:00",
+      "updated_at": "2026-11-11T18:25:49.100537+00:00",
+      "issue_url": "https://github.com/oka-yuji/coreai-samples/issues/545",
+      "spec_sha256": "80cd262744a1eb6645646f7a54a9048a3bd462cab2bc212ffb2ebed260947aa9",
+      "fixed_base": "92b79061ac91329c34d7785ad5cf191280fb6e06",
+      "target_revision": "f7f9e02c41f69ede09676413b4be6f0e994b63de",
+      "candidate_source_sha256": "f0b44836402e8619bc97119cc155c920af120630fce1c21fdb519987a171e70a",
+      "requested_profile": {
+        "effort": "max",
+        "kind": "codex_frontier",
+        "model": "gpt-6-astra"
+      },
+      "actual_model_id": null,
+      "actual_model_id_reason": "Command selection recorded; CLI response metadata must establish any resolved ID.",
+      "total_elapsed_seconds": 1350.0933960420007,
+      "worker_elapsed_seconds": 1286.8332635000006,
+      "worker_exit": 0,
+      "worker_stop_reason": null,
+      "worker_output_bytes": 1295462,
+      "reported_usage": [
+        {
+          "input_tokens": 6073445,
+          "cached_input_tokens": 5915648,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 52627,
+          "reasoning_output_tokens": 13101
+        }
+      ],
+      "verification": [
+        {
+          "returncode": 0,
+          "elapsed_seconds": 60.832990750001045,
+          "stop_reason": null
+        },
+        {
+          "returncode": 0,
+          "elapsed_seconds": 1.2664772089992766,
+          "stop_reason": null
+        }
+      ],
+      "changed_path_count": 56,
+      "outside_scope": [],
+      "protected_unchanged": true,
+      "source_unchanged_during_verification": true,
+      "cleanup_confirmed": true,
+      "parent_outcome": "親の全自動検証と実Claude再レビュー完了／PR555をmainへ統合／D7本人待ち",
+      "scope_sha256": "e7a1329f7bac978bfc2283250fe9f5e7b266d819114d95ed4fd97a65158d81cb",
+      "nonzero_worker_commands": 5
+    },
+    {
+      "run_id": "86e55f1814764920b00b786909d99dc6",
+      "state": "verified_pending_review",
+      "created_at": "2026-11-11T19:44:36.887499+00:00",
+      "updated_at": "2026-11-11T20:18:32.823721+00:00",
+      "issue_url": "https://github.com/oka-yuji/coreai-samples/issues/546",
+      "spec_sha256": "8de0a5bf499ccc4e25e9757e44bbaf99ddf1a294f8b2c7fa60d563df53783603",
+      "fixed_base": "9d56c5ec118c65eb260bfddd9a716148ec86fa57",
+      "target_revision": "388a5e2522ee42cf06d03fc7146f05ae87fff61d",
+      "candidate_source_sha256": "13952d0c1396dc6c068a61b782f0f8fb33a75675a7ba828c068e28ac426f313b",
+      "requested_profile": {
+        "effort": "max",
+        "kind": "codex_frontier",
+        "model": "gpt-6-astra"
+      },
+      "actual_model_id": null,
+      "actual_model_id_reason": "Command selection recorded; CLI response metadata must establish any resolved ID.",
+      "total_elapsed_seconds": 1993.8949995000003,
+      "worker_elapsed_seconds": 1936.9541981660004,
+      "worker_exit": 0,
+      "worker_stop_reason": null,
+      "worker_output_bytes": 642520,
+      "reported_usage": [
+        {
+          "input_tokens": 7714918,
+          "cached_input_tokens": 7563136,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 73061,
+          "reasoning_output_tokens": 24288
+        }
+      ],
+      "verification": [
+        {
+          "returncode": 0,
+          "elapsed_seconds": 54.65757654100162,
+          "stop_reason": null
+        },
+        {
+          "returncode": 0,
+          "elapsed_seconds": 1.203225958000985,
+          "stop_reason": null
+        }
+      ],
+      "changed_path_count": 34,
+      "outside_scope": [],
+      "protected_unchanged": true,
+      "source_unchanged_during_verification": true,
+      "cleanup_confirmed": true,
+      "parent_outcome": "親の参照範囲修正・全検証・両レビュー後PR556をmainへ統合",
+      "scope_sha256": "05edc85ddc9fca9fba2c960dc1e1be56521654ebc3943eae05b33881f0162b61",
+      "nonzero_worker_commands": 5
+    },
+    {
+      "run_id": "1cc579f82ed84eee8fda719e2294d24b",
+      "state": "verified_pending_review",
+      "created_at": "2026-11-11T22:53:06.643069+00:00",
+      "updated_at": "2026-11-11T23:13:43.707456+00:00",
+      "issue_url": "https://github.com/oka-yuji/coreai-samples/issues/546",
+      "spec_sha256": "08e6fd84ccbcd4b9ac9ecd83fa6748acc059510e45d540a01ec567647e33e890",
+      "fixed_base": "29934bd57198b6158aa9e3d2e72d3c1d96178aec",
+      "target_revision": "96955cfb7032d8372bebb53b859b9668da789241",
+      "candidate_source_sha256": "1c9bfd77f006060f74ef9dd73b24712565dc2b130c95e35fb602fee2a04b54d4",
+      "requested_profile": {
+        "effort": "max",
+        "kind": "codex_frontier",
+        "model": "gpt-6-astra"
+      },
+      "actual_model_id": null,
+      "actual_model_id_reason": "Command selection recorded; CLI response metadata must establish any resolved ID.",
+      "total_elapsed_seconds": 1233.1119092910012,
+      "worker_elapsed_seconds": 1158.5429262079997,
+      "worker_exit": 0,
+      "worker_stop_reason": null,
+      "worker_output_bytes": 719707,
+      "reported_usage": [
+        {
+          "input_tokens": 6066020,
+          "cached_input_tokens": 5912704,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 44003,
+          "reasoning_output_tokens": 12489
+        }
+      ],
+      "verification": [
+        {
+          "returncode": 0,
+          "elapsed_seconds": 72.25064674999885,
+          "stop_reason": null
+        },
+        {
+          "returncode": 0,
+          "elapsed_seconds": 1.1234888750041137,
+          "stop_reason": null
+        }
+      ],
+      "changed_path_count": 29,
+      "outside_scope": [],
+      "protected_unchanged": true,
+      "source_unchanged_during_verification": true,
+      "cleanup_confirmed": true,
+      "parent_outcome": "範囲修正と親の全実測・GUI修正・両レビュー完了／PR556統合",
+      "scope_sha256": "ae10e7b6f2375277c02492f8783bde7dadf007fede53f98ebd49ba6b25b7fa48",
+      "nonzero_worker_commands": 6
+    },
+    {
+      "run_id": "32b22fcec8bd4cf39355d7420938be5d",
+      "state": "verified_pending_review",
+      "created_at": "2026-11-12T00:35:57.285394+00:00",
+      "updated_at": "2026-11-12T01:10:09.479572+00:00",
+      "issue_url": "https://github.com/oka-yuji/coreai-samples/issues/547",
+      "spec_sha256": "71cf4ea80ecf8fabf49b386a9161483032bc62a792afe0923e293ae8d91c7eaf",
+      "fixed_base": "049e32d5825a4e452cb5d7fe4655ce95c29da985",
+      "target_revision": "082f3c6cc60c8503cd952cd815453fb1fe9e3f3e",
+      "candidate_source_sha256": "e778765016d8d473906dc291c4fd1af38b01743cd5ed5becb69ec05cf5c4befc",
+      "requested_profile": {
+        "effort": "max",
+        "kind": "codex_frontier",
+        "model": "gpt-6-astra"
+      },
+      "actual_model_id": null,
+      "actual_model_id_reason": "Command selection recorded; CLI response metadata must establish any resolved ID.",
+      "total_elapsed_seconds": 2015.6522376249995,
+      "worker_elapsed_seconds": 1933.2463423750014,
+      "worker_exit": 0,
+      "worker_stop_reason": null,
+      "worker_output_bytes": 883175,
+      "reported_usage": [
+        {
+          "input_tokens": 7340234,
+          "cached_input_tokens": 7190016,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 66154,
+          "reasoning_output_tokens": 25718
+        }
+      ],
+      "verification": [
+        {
+          "returncode": 0,
+          "elapsed_seconds": 79.95840012499684,
+          "stop_reason": null
+        },
+        {
+          "returncode": 0,
+          "elapsed_seconds": 1.2352275419980288,
+          "stop_reason": null
+        }
+      ],
+      "changed_path_count": 26,
+      "outside_scope": [],
+      "protected_unchanged": true,
+      "source_unchanged_during_verification": true,
+      "cleanup_confirmed": true,
+      "parent_outcome": "SF CPU合格後、親がDate・日時domain・公開許可の不足を検出。修正と最終native/GUI成功、最終レビュー待ち。",
+      "scope_sha256": "1bc3266b084e163d50573b4755d9a22f9b089634ebcfb0855aa006a2960273eb",
+      "nonzero_worker_commands": 3
+    },
+    {
+      "run_id": "460da822a9784b38863c39b5af4f7298",
+      "state": "failed",
+      "created_at": "2026-11-12T02:53:51.528770+00:00",
+      "updated_at": "2026-11-12T03:45:40.503641+00:00",
+      "issue_url": "https://github.com/oka-yuji/coreai-samples/issues/547",
+      "spec_sha256": "b2962c66eb83f8a6e65684a2aa65afb9087b3e9bea4126ce2f40da1e4f951170",
+      "fixed_base": "d6fdc2621d4eb6d34e2e915d20b5ff5006447ca7",
+      "target_revision": "a82ec6c676326715c2aa0c8763d54b6e815ac029",
+      "candidate_source_sha256": "4addfe7e677b0e18fb7830046f28d4a9540f89146ff6387af23c205d9470c702",
+      "requested_profile": {
+        "effort": "max",
+        "kind": "codex_frontier",
+        "model": "gpt-6-astra"
+      },
+      "actual_model_id": null,
+      "actual_model_id_reason": "Command selection recorded; CLI response metadata must establish any resolved ID.",
+      "total_elapsed_seconds": 3108.789133624996,
+      "worker_elapsed_seconds": 3007.287597333001,
+      "worker_exit": 0,
+      "worker_stop_reason": null,
+      "worker_output_bytes": 895319,
+      "reported_usage": [
+        {
+          "input_tokens": 10994968,
+          "cached_input_tokens": 10785024,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 59579,
+          "reasoning_output_tokens": 29601
+        }
+      ],
+      "verification": [
+        {
+          "returncode": 1,
+          "elapsed_seconds": 100.52620612500323,
+          "stop_reason": null
+        }
+      ],
+      "changed_path_count": 19,
+      "outside_scope": [],
+      "protected_unchanged": true,
+      "source_unchanged_during_verification": null,
+      "cleanup_confirmed": true,
+      "parent_outcome": "SF容量条件のfailedを保持。同じ候補/保護370件はhost合格。別のlock競合とlocale修正後、親native/GUI成功。最終レビュー待ち。",
+      "scope_sha256": "5e4293b6c71709a69987d23d664070f7b4b0ab5d22dc8403f07a4da1b2ba71fd",
+      "nonzero_worker_commands": 15
+    }
+  ],
+  "scopes": {
+    "dabfe8c6680a648fb6884c8421863f9cff8a93d17802f9d5c3378b782b5f63a5": {
+      "allowed_paths": [
+        "Analysis/chronos-plan.json"
+      ],
+      "protected_paths": [
+        "AGENTS.md",
+        "TaxiKit",
+        "App",
+        "Model",
+        "Tools",
+        "Config",
+        "Tests",
+        "UITests",
+        "project.yml"
+      ]
+    },
+    "7c8b674031c0870806bc13caf5ea4710ce721e661827da7c63d4b3e3eb83ff15": {
+      "allowed_paths": [
+        "Tools/Conversion/adapters/chronos2/__init__.py",
+        "Tools/Conversion/adapters/chronos2/contracts.py",
+        "Tools/Conversion/tests/test_chronos2_contracts.py"
+      ],
+      "protected_paths": [
+        "_sf",
+        "AGENTS.md",
+        "CLAUDE.md",
+        ".gitignore",
+        "Tools/Conversion/local.py"
+      ]
+    },
+    "6d58d4deb24bfe5fd7f7dd908148fccbc170e0bf64e053bcb5fe05c4cfa8d33f": {
+      "allowed_paths": [
+        "Tools/Conversion/adapters/chronos2/*",
+        "Tools/Conversion/recipes/chronos2/recipe.json",
+        "Tools/Conversion/recipes/chronos2/README.md",
+        "Tools/Conversion/recipes/chronos2/NOTICE",
+        "Tools/Conversion/local.py",
+        "Tools/Conversion/tests/test_chronos2_*.py"
+      ],
+      "protected_paths": [
+        "_sf",
+        "AGENTS.md",
+        "CLAUDE.md",
+        ".gitignore",
+        "Tools/Conversion/recipes/chronos2/model.json",
+        "Tools/Conversion/recipes/chronos2/fixtures.json",
+        "Tools/Conversion/recipes/chronos2/pyproject.toml",
+        "Tools/Conversion/recipes/chronos2/uv.lock",
+        "Tools/Conversion/recipes/chronos2/LICENSE"
+      ]
+    },
+    "f9cde849092b053910f32a870a1b612aa3c98b1324165c0c67ec99beb93dc149": {
+      "allowed_paths": [
+        "CoreAISamplesKit/Package.swift",
+        "CoreAISamplesKit/Sources/ChronosCore/*",
+        "CoreAISamplesKit/Sources/ChronosRuntime/*",
+        "CoreAISamplesKit/Sources/chronos-verify/*",
+        "CoreAISamplesKit/Tests/ChronosCoreTests/*",
+        "CoreAISamplesKit/Tests/ChronosRuntimeTests/*",
+        ".swiftlint.yml",
+        "AGENTS.md"
+      ],
+      "protected_paths": [
+        "_sf",
+        "CLAUDE.md",
+        ".gitignore",
+        "CoreAISamplesKit/Package.resolved"
+      ]
+    },
+    "cc696fa3dbfe8569f22be2ed9d162386a9429dbe0b354be392688e53cb75bfff": {
+      "allowed_paths": [
+        "CoreAISamplesKit/Package.swift",
+        "CoreAISamplesKit/Sources/ModelLibraryFeature/*",
+        "CoreAISamplesKit/Sources/ModelLibraryStorage/*",
+        "CoreAISamplesKit/Sources/ChronosRuntime/ChronosBundle.swift",
+        "CoreAISamplesKit/Tests/ModelLibraryTests/*",
+        "CoreAISamplesKit/Tests/ModelLibraryStorageTests/*",
+        "CoreAISamplesKit/Tests/ModelLibraryRuntimeTests/*",
+        "CoreAISamples/Demos/ModelManager/MacModelLibraryServices.swift",
+        "CoreAISamples/iOS/IOSModelLibraryAssembly.swift",
+        "CoreAISamples/Resources/Localizable.xcstrings",
+        "AGENTS.md",
+        "docs/chronos2.md",
+        "docs/chronos2.ja.md"
+      ],
+      "protected_paths": [
+        "_sf",
+        "CLAUDE.md",
+        ".gitignore",
+        "CoreAISamplesKit/Package.resolved",
+        ".swiftlint.yml"
+      ]
+    },
+    "4d530f6fd6f114ed5e29badf97ae45a6863a1b3365d0a701d870289da32bd076": {
+      "allowed_paths": [
+        "CoreAISamplesKit/Package.swift",
+        "CoreAISamplesKit/Sources/ModelLibraryFeature/*",
+        "CoreAISamplesKit/Sources/ModelLibraryUI/*",
+        "CoreAISamplesKit/Sources/ModelLibraryStorage/*",
+        "CoreAISamplesKit/Sources/ChronosRuntime/ChronosBundle.swift",
+        "CoreAISamplesKit/Tests/ModelLibraryTests/*",
+        "CoreAISamplesKit/Tests/ModelLibraryStorageTests/*",
+        "CoreAISamplesKit/Tests/ModelLibraryRuntimeTests/*",
+        "CoreAISamples/Demos/ModelManager/*",
+        "CoreAISamples/DemoRootView.swift",
+        "CoreAISamples/DemoAppMain.swift",
+        "CoreAISamples/DemoLocalizationCheck.swift",
+        "CoreAISamples/Demos/Conversation/ConversationSidebar.swift",
+        "CoreAISamples/iOS/IOSModelLibraryAssembly.swift",
+        "CoreAISamples/Resources/Localizable.xcstrings",
+        "AGENTS.md",
+        "docs/chronos2.md",
+        "docs/chronos2.ja.md"
+      ],
+      "protected_paths": [
+        "_sf",
+        "CLAUDE.md",
+        ".gitignore",
+        "CoreAISamplesKit/Package.resolved",
+        ".swiftlint.yml"
+      ]
+    },
+    "e7a1329f7bac978bfc2283250fe9f5e7b266d819114d95ed4fd97a65158d81cb": {
+      "allowed_paths": [
+        "CoreAISamplesKit/Package.swift",
+        "CoreAISamplesKit/Sources/ChronosCore/*",
+        "CoreAISamplesKit/Sources/ChronosRuntime/*",
+        "CoreAISamplesKit/Sources/ChronosFeature/*",
+        "CoreAISamplesKit/Sources/ChronosDemoRuntime/*",
+        "CoreAISamplesKit/Sources/ChronosUI/*",
+        "CoreAISamplesKit/Sources/ModelLibraryFeature/ChronosDemoCatalog.swift",
+        "CoreAISamplesKit/Tests/ChronosCoreTests/*",
+        "CoreAISamplesKit/Tests/ChronosRuntimeTests/*",
+        "CoreAISamplesKit/Tests/ChronosFeatureTests/*",
+        "CoreAISamplesKit/Tests/ChronosDemoRuntimeTests/*",
+        "CoreAISamplesKit/Tests/ModelLibraryRuntimeTests/ChronosCatalogTests.swift",
+        "CoreAISamplesKit/Tests/ModelLibraryRuntimeTests/MacDemoCatalogTests.swift",
+        "CoreAISamples/DemoRootView.swift",
+        "CoreAISamples/DemoAppMain.swift",
+        "CoreAISamples/Demos/ModelManager/*",
+        "CoreAISamples/Demos/Chronos/*",
+        "CoreAISamples/iOS/Chronos*",
+        "CoreAISamples/iOS/IOSModelLibraryAssembly.swift",
+        "CoreAISamples/Resources/Localizable.xcstrings",
+        "project.yml",
+        ".swiftlint.yml",
+        "AGENTS.md",
+        "Tools/NYC/*",
+        "docs/chronos2.md",
+        "docs/chronos2.ja.md"
+      ],
+      "protected_paths": [
+        "_sf",
+        "CLAUDE.md",
+        ".gitignore",
+        "CoreAISamplesKit/Package.resolved",
+        "CoreAISamples.xcodeproj"
+      ]
+    },
+    "05edc85ddc9fca9fba2c960dc1e1be56521654ebc3943eae05b33881f0162b61": {
+      "allowed_paths": [
+        "CoreAISamplesKit/Package.swift",
+        "CoreAISamplesKit/Sources/ChronosFeature/*",
+        "CoreAISamplesKit/Sources/ChronosDemoRuntime/*",
+        "CoreAISamplesKit/Sources/ChronosUI/*",
+        "CoreAISamplesKit/Tests/ChronosFeatureTests/*",
+        "CoreAISamplesKit/Tests/ChronosDemoRuntimeTests/*",
+        "CoreAISamplesKit/Sources/ModelLibraryFeature/ChronosDemoCatalog.swift",
+        "CoreAISamplesKit/Tests/ModelLibraryRuntimeTests/ChronosCatalogTests.swift",
+        "CoreAISamples/Resources/Localizable.xcstrings",
+        "CoreAISamples/Demos/ModelManager/LibrarySelectionSelfTest.swift",
+        "project.yml",
+        ".swiftlint.yml",
+        "AGENTS.md",
+        "docs/chronos2.md",
+        "docs/chronos2.ja.md"
+      ],
+      "protected_paths": [
+        "_sf",
+        "CLAUDE.md",
+        ".gitignore",
+        "CoreAISamplesKit/Package.resolved",
+        "CoreAISamples.xcodeproj",
+        "CoreAISamplesKit/Sources/ChronosDemoRuntime/Resources/NYCData"
+      ]
+    },
+    "ae10e7b6f2375277c02492f8783bde7dadf007fede53f98ebd49ba6b25b7fa48": {
+      "allowed_paths": [
+        "CoreAISamplesKit/Package.swift",
+        "CoreAISamplesKit/Sources/ChronosFeature/*",
+        "CoreAISamplesKit/Sources/ChronosDemoRuntime/*",
+        "CoreAISamplesKit/Sources/ChronosUI/*",
+        "CoreAISamplesKit/Tests/ChronosFeatureTests/*",
+        "CoreAISamplesKit/Tests/ChronosDemoRuntimeTests/*",
+        "CoreAISamplesKit/Sources/ModelLibraryFeature/ChronosDemoCatalog.swift",
+        "CoreAISamplesKit/Tests/ModelLibraryRuntimeTests/ChronosCatalogTests.swift",
+        "CoreAISamples/Resources/Localizable.xcstrings",
+        "CoreAISamples/Demos/ModelManager/LibrarySelectionSelfTest.swift",
+        "project.yml",
+        ".swiftlint.yml",
+        "AGENTS.md",
+        "Tools/NYC/*",
+        "docs/chronos2.md",
+        "docs/chronos2.ja.md"
+      ],
+      "protected_paths": [
+        "_sf",
+        "CLAUDE.md",
+        ".gitignore",
+        "CoreAISamplesKit/Package.resolved",
+        "CoreAISamples.xcodeproj",
+        "CoreAISamplesKit/Sources/ChronosDemoRuntime/Resources/NYCData"
+      ]
+    },
+    "1bc3266b084e163d50573b4755d9a22f9b089634ebcfb0855aa006a2960273eb": {
+      "allowed_paths": [
+        "CoreAISamplesKit/Package.swift",
+        "CoreAISamplesKit/Sources/ChronosCore/ChronosContract.swift",
+        "CoreAISamplesKit/Tests/ChronosCoreTests/*",
+        "CoreAISamplesKit/Sources/ChronosFeature/*",
+        "CoreAISamplesKit/Sources/ChronosDemoRuntime/*",
+        "CoreAISamplesKit/Sources/ChronosUI/*",
+        "CoreAISamplesKit/Tests/ChronosFeatureTests/*",
+        "CoreAISamplesKit/Tests/ChronosDemoRuntimeTests/*",
+        "CoreAISamplesKit/Sources/ModelLibraryFeature/ChronosDemoCatalog.swift",
+        "CoreAISamplesKit/Tests/ModelLibraryRuntimeTests/ChronosCatalogTests.swift",
+        "CoreAISamples/Resources/Localizable.xcstrings",
+        "CoreAISamples/Demos/ModelManager/LibrarySelectionSelfTest.swift",
+        "project.yml",
+        ".swiftlint.yml",
+        "AGENTS.md",
+        "docs/chronos2.md",
+        "docs/chronos2.ja.md"
+      ],
+      "protected_paths": [
+        "_sf",
+        "CLAUDE.md",
+        ".gitignore",
+        "CoreAISamplesKit/Package.resolved",
+        "CoreAISamples.xcodeproj",
+        "CoreAISamplesKit/Sources/ChronosDemoRuntime/Resources/NYCData",
+        "CoreAISamplesKit/Sources/ChronosDemoRuntime/Resources/NYCVerified"
+      ]
+    },
+    "5e4293b6c71709a69987d23d664070f7b4b0ab5d22dc8403f07a4da1b2ba71fd": {
+      "allowed_paths": [
+        "CoreAISamplesKit/Package.swift",
+        "CoreAISamplesKit/Sources/ChronosCore/ChronosContract.swift",
+        "CoreAISamplesKit/Tests/ChronosCoreTests/*",
+        "CoreAISamplesKit/Sources/ChronosFeature/*",
+        "CoreAISamplesKit/Sources/ChronosDemoRuntime/*",
+        "CoreAISamplesKit/Sources/ChronosUI/*",
+        "CoreAISamplesKit/Tests/ChronosFeatureTests/*",
+        "CoreAISamplesKit/Tests/ChronosDemoRuntimeTests/*",
+        "CoreAISamplesKit/Sources/ModelLibraryFeature/ChronosDemoCatalog.swift",
+        "CoreAISamplesKit/Tests/ModelLibraryRuntimeTests/ChronosCatalogTests.swift",
+        "CoreAISamples/Resources/Localizable.xcstrings",
+        "CoreAISamples/Demos/ModelManager/LibrarySelectionSelfTest.swift",
+        "project.yml",
+        ".swiftlint.yml",
+        "AGENTS.md",
+        "docs/chronos2.md",
+        "docs/chronos2.ja.md",
+        "CoreAISamplesKit/Sources/ModelLibraryRuntime/ModelLibraryRunner.swift",
+        "CoreAISamplesKit/Sources/ModelLibraryRuntime/ModelDemoAdapter.swift",
+        "CoreAISamplesKit/Sources/ModelLibraryRuntime/ModelLibraryGate*.swift",
+        "CoreAISamplesKit/Sources/ModelLibraryRuntime/DemoExecution*.swift",
+        "CoreAISamplesKit/Tests/ModelLibraryRuntimeTests/*"
+      ],
+      "protected_paths": [
+        "_sf",
+        "CLAUDE.md",
+        ".gitignore",
+        "CoreAISamplesKit/Package.resolved",
+        "CoreAISamples.xcodeproj",
+        "CoreAISamplesKit/Sources/ChronosDemoRuntime/Resources/NYCData",
+        "CoreAISamplesKit/Sources/ChronosDemoRuntime/Resources/NYCVerified",
+        "CoreAISamplesKit/Sources/FeatureStore/Store.swift",
+        "CoreAISamplesKit/Sources/ChronosUI/ChronosChart.swift",
+        "CoreAISamplesKit/Sources/ChronosDemoRuntime/ChronosJournalCodec.swift",
+        "CoreAISamplesKit/Sources/ChronosDemoRuntime/ChronosJournalValidation.swift",
+        "CoreAISamplesKit/Sources/ChronosFeature/NYCTime.swift",
+        "CoreAISamplesKit/Sources/ChronosFeature/NYCAPIData.swift",
+        "CoreAISamplesKit/Sources/ChronosDemoRuntime/NYCAPIClient.swift",
+        "CoreAISamplesKit/Sources/ChronosDemoRuntime/NYCAPIContract.swift",
+        "CoreAISamplesKit/Sources/ChronosDemoRuntime/NYCWindowValidation.swift",
+        "CoreAISamplesKit/Tests/ChronosDemoRuntimeTests/ChronosJournalDateTests.swift",
+        "CoreAISamplesKit/Tests/ChronosDemoRuntimeTests/ChronosJournalBoundsTests.swift"
+      ]
+    }
+  },
+  "separate_parent_host_verification": [
+    {
+      "run_id": "460da822a9784b38863c39b5af4f7298",
+      "original_sf_state": "failed",
+      "original_sf_error": "RuntimeError: Independent verification stopped or failed",
+      "base_sha": "d6fdc2621d4eb6d34e2e915d20b5ff5006447ca7",
+      "candidate_source_sha256": "4addfe7e677b0e18fb7830046f28d4a9540f89146ff6387af23c205d9470c702",
+      "sf_spec_sha256": "b2962c66eb83f8a6e65684a2aa65afb9087b3e9bea4126ce2f40da1e4f951170",
+      "execution_boundary": "Normal host, same immutable protected verifier and checks; no SF database/result mutation.",
+      "started_at": "2026-11-12T03:47:34.600012+00:00",
+      "finished_at": "2026-11-12T03:49:06.936511+00:00",
+      "passed": true,
+      "source_unchanged": true,
+      "protected_unchanged": true,
+      "cleanup_confirmed": true,
+      "checks": [
+        {
+          "status": "exited",
+          "returncode": 0,
+          "elapsed_seconds": 91.86980058300105,
+          "stop_reason": null,
+          "remaining_observed_pids": [],
+          "cleanup_errors": []
+        },
+        {
+          "status": "exited",
+          "returncode": 0,
+          "elapsed_seconds": 0.17852887499611825,
+          "stop_reason": null,
+          "remaining_observed_pids": [],
+          "cleanup_errors": []
+        }
+      ]
+    }
+  ]
+}

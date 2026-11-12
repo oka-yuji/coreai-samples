@@ -106,7 +106,8 @@
       "ja"
     ],
     "missing": 0,
-    "compiler_ui_static_keys": 80
+    "legacy_reported_compiler_ui_static_keys": 80,
+    "compiler_count_status": "Historical summary only; withdrawn as an independently established handwritten static count. See the final validation README correction."
   },
   "signed_ios_build": true,
   "physical_iphone_inference": false,

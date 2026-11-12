@@ -15,8 +15,8 @@
   },
   "release": "in_progress",
   "release_note": {
-    "en": "FP32 conversion, fixed NYC scenes and verified January API dates work on Mac; persistent forecast records are in development.",
-    "ja": "FP32変換、固定NYC場面、照合済み1月のAPI日時をMacで検証済み。予測の永続記録は開発中。"
+    "en": "FP32 conversion, fixed scenes, verified January API dates and saved forecasts work on Mac; physical iPhone and user acceptance remain pending.",
+    "ja": "FP32変換・固定場面・照合済み1月API・予測履歴をMacで検証済み。実iPhoneと本人受入は未確認。"
   },
   "download": null,
   "pages": {
@@ -72,6 +72,20 @@
         "ja": "実装計画 #548"
       },
       "url": "https://github.com/oka-yuji/coreai-samples/issues/548"
+    },
+    {
+      "title": {
+        "en": "Saved forecast evidence",
+        "ja": "予測履歴の検証記録"
+      },
+      "url": "docs/validation/chronos2-journal-20261112/README.md"
+    },
+    {
+      "title": {
+        "en": "TukuruSF execution analysis",
+        "ja": "TukuruSFの実行分析"
+      },
+      "url": "docs/validation/chronos2-tsf-20261112/README.md"
     }
   ],
   "support": {
@@ -82,11 +96,12 @@
       ],
       "evidence": [
         "demo-20261112",
-        "api-20261112"
+        "api-20261112",
+        "journal-20261112"
       ],
       "note": {
-        "en": "Fixed scenes and the independently verified January 2025 API range are connected. The earlier API GUI route is checked; final range UI verification is recorded in the evidence. User acceptance remains open.",
-        "ja": "固定場面と独立照合済みの2025年1月API範囲を接続。前版のAPI GUI経路を確認済みで、最終範囲UIの結果は検証記録へ対応する。本人受入は未完。"
+        "en": "Normal Mac checks cover fixed/API prediction, immutable history, restart and separate actual checks. User acceptance remains open.",
+        "ja": "通常Macで固定/API予測、不変の履歴、再起動、別操作の実績確認を検証。本人受入は未完。"
       }
     },
     "ios": {
@@ -94,11 +109,12 @@
       "variants": [],
       "evidence": [
         "demo-20261112",
-        "api-20261112"
+        "api-20261112",
+        "journal-20261112"
       ],
       "note": {
-        "en": "Fixed/API UI and native adapter are connected; signed build passed. Physical iPhone inference and UI acceptance remain open.",
-        "ja": "固定/API画面と推論adapterを接続し署名build成功。実iPhoneの推論とUI受入は未確認。"
+        "en": "Fixed/API/history UI and native adapter are connected; signed build passed. Physical iPhone inference and UI acceptance remain open.",
+        "ja": "固定/API/履歴画面と推論adapterを接続し署名build成功。実iPhoneの推論とUI受入は未確認。"
       }
     }
   },
@@ -234,6 +250,34 @@
       "workload": {
         "en": "The production client validates all 29,760 January counts. The native path compares 20,160 Friday inputs and 6,720 raw outputs, then closes with zero leases. Normal Mac checks cover explicit acquisition/prediction/actuals and the verified month-end stop; chart accessibility fixes have separate source attribution. No controlled performance measurement or iPhone inference.",
         "ja": "本番clientで1月全29,760値を照合。native経路は金曜20,160入力・6,720原値とclose後lease0を確認。通常Macで明示取得/予測/実績と月末停止を確認。チャートAX修正の版は別記。制御した性能計測とiPhone推論は未実施。"
+      },
+      "batch_size": 1,
+      "concurrency": 1,
+      "warmups": 0,
+      "power": null,
+      "thermal": null,
+      "model_executed": true,
+      "plan_sha256": null
+    },
+    "journal-20261112": {
+      "url": "docs/validation/chronos2-journal-20261112/README.md",
+      "level": "native_app",
+      "outcome": "passed",
+      "record_type": "legacy",
+      "date": "2026-11-12",
+      "platform": "macos",
+      "device": "Apple M5 Max / 137438953472 B RAM",
+      "os": "macOS 27.2.1 (26B131)",
+      "toolchain": "Xcode 27.2 (27B52); Swift 6.4.2; SDK 27.2; Debug package and Release Mac application",
+      "variant": "coreai-fp32-univariate",
+      "backend": "Swift Core AI GPU preference; actual delegate not profiled",
+      "route": "Production Models/Store/service/session -> live verified API -> native prediction -> immutable journal -> separate actual check -> reload -> stop; separate normal Mac GUI",
+      "source_revision": "29ec3766d36d6f73f0696f85560a422f50e8498c",
+      "artifact_revision": "786dcf97e020c987cbf883f09b486fba5f3fee30a588b87a346ea65d72d20572",
+      "code_revision": "48adfc21c80ff7ceb1828f5b7326fde1c760d0be",
+      "workload": {
+        "en": "One fixed Friday origin: 20,160 inputs, 6,720 raw outputs and 80 actual pairs; independent saved-file arithmetic and hash checks, zero leases. Normal Mac save/restart/check and locale correction have separate source attribution. No held-out quality or controlled performance measurement; power/thermal and benchmark-plan hash unrecorded.",
+        "ja": "固定金曜1起点の20,160入力・6,720原値・80比較ペア。保存ファイルから独立計算とhash確認、lease0。通常Macの保存/再起動/実績確認とlocale修正は版を別記。独立した精度評価・制御した性能計測ではなく、電源/熱とbenchmark計画hashは未記録。"
       },
       "batch_size": 1,
       "concurrency": 1,

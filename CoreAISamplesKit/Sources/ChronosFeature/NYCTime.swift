@@ -1,6 +1,18 @@
 import Foundation
 
 public enum NYCTime {
+    public static func isSupported(_ date: Date) -> Bool {
+        let seconds = date.timeIntervalSince1970
+        return seconds.isFinite && (-62_135_596_800..<253_402_300_800).contains(seconds)
+    }
+
+    public static func isValidWindow(start: Date, count: Int) -> Bool {
+        guard (1...1024).contains(count), isSupported(start), start == aligned(start) else { return false }
+        let duration = Double(count) * 1800
+        let end = start.addingTimeInterval(duration)
+        return isSupported(end) && end > start && end.timeIntervalSince(start) == duration
+    }
+
     public static var calendar: Calendar {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(identifier: "America/New_York") ?? .gmt
@@ -31,6 +43,7 @@ public enum NYCTime {
     }
 
     public static func matchingSlot(on day: Date, preserving time: Date, in range: ClosedRange<Date>? = nil) -> Date? {
+        guard isSupported(day), isSupported(time) else { return nil }
         let parts = calendar.dateComponents([.hour, .minute], from: time)
         let options = slots(on: day).filter {
             calendar.component(.hour, from: $0) == parts.hour && calendar.component(.minute, from: $0) == parts.minute
@@ -43,8 +56,11 @@ public enum NYCTime {
     }
 
     public static func slots(on date: Date) -> [Date] {
+        guard isSupported(date) else { return [] }
         let start = calendar.startOfDay(for: date)
-        guard let end = calendar.date(byAdding: .day, value: 1, to: start) else { return [] }
-        return (0..<Int(end.timeIntervalSince(start) / 1800)).map { start.addingTimeInterval(Double($0 * 1800)) }
+        guard let end = calendar.date(byAdding: .day, value: 1, to: start), isSupported(start), isSupported(end),
+            let count = Int(exactly: end.timeIntervalSince(start) / 1800), (1...50).contains(count)
+        else { return [] }
+        return (0..<count).map { start.addingTimeInterval(Double($0 * 1800)) }
     }
 }

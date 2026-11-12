@@ -125,6 +125,7 @@ public struct ChronosForecastRequest: Equatable, Sendable {
 public struct ChronosAreaForecast: Equatable, Encodable, Sendable {
     public let areaID: String
     public let raw: ChronosPrediction?
+    public let identity: ChronosBundleIdentity?
     private let projection: [[Float]]
     public var lower: [Float] { projection[0].map { max(0, $0) } }
     public var median: [Float] { projection[1].map { max(0, $0) } }
@@ -136,14 +137,16 @@ public struct ChronosAreaForecast: Equatable, Encodable, Sendable {
         }
         self.areaID = areaID
         raw = nil
+        identity = nil
         projection = [lower, median, upper]
     }
 }
 
 extension ChronosAreaForecast {
-    public init(areaID: String, raw: ChronosPrediction) {
+    public init(areaID: String, raw: ChronosPrediction, identity: ChronosBundleIdentity? = nil) {
         self.areaID = areaID
         self.raw = raw
+        self.identity = identity
         projection = [2, 10, 18].map { Array(raw.quantiles[$0].prefix(4)) }
     }
 }
@@ -157,11 +160,13 @@ public struct ChronosForecastBatch: Equatable, Encodable, Sendable {
     public let identity: ChronosBundleIdentity?
     public let inputSnapshot: ForecastInputSnapshot?
     public let inputSHA256: String?
+    public let capturedInput: ChronosInputEvidence?
 
     public init(
         scenarioID: String, originStep: Int, mode: ChronosForecastMode, areas: [ChronosAreaForecast],
         processingSeconds: Double?, identity: ChronosBundleIdentity? = nil,
-        inputSnapshot: ForecastInputSnapshot? = nil, inputSHA256: String? = nil
+        inputSnapshot: ForecastInputSnapshot? = nil, inputSHA256: String? = nil,
+        capturedInput: ChronosInputEvidence? = nil
     ) {
         self.scenarioID = scenarioID
         self.originStep = originStep
@@ -171,6 +176,7 @@ public struct ChronosForecastBatch: Equatable, Encodable, Sendable {
         self.identity = identity
         self.inputSnapshot = inputSnapshot
         self.inputSHA256 = inputSHA256
+        self.capturedInput = capturedInput
     }
 
     public func area(_ id: String) -> ChronosAreaForecast? { areas.first { $0.areaID == id } }

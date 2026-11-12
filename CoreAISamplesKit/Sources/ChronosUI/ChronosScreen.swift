@@ -5,15 +5,30 @@ import SwiftUI
 public struct ChronosScreen: View {
     private let store: Store<ChronosFeature>
     private let scrollsContent: Bool
+    private let journal: Store<ChronosJournalFeature>?
     @Environment(\.locale) private var locale
+    @Environment(\.scenePhase) private var scenePhase
 
-    public init(store: Store<ChronosFeature>, scrollsContent: Bool = true) {
+    public init(
+        store: Store<ChronosFeature>, scrollsContent: Bool = true, journal: Store<ChronosJournalFeature>? = nil
+    ) {
         self.store = store
         self.scrollsContent = scrollsContent
+        self.journal = journal
     }
     private var state: ChronosFeature.State { store.state }
 
     public var body: some View {
+        content
+            .onAppear { journal?.send(.appear) }
+            .onDisappear { journal?.send(.suspend) }
+            .onChange(of: scenePhase) { _, phase in journal?.send(phase == .active ? .appear : .suspend) }
+            .onChange(of: state.phase) { _, phase in
+                if phase == .ready, state.active, scenePhase == .active { journal?.send(.appear) }
+            }
+    }
+
+    @ViewBuilder private var content: some View {
         #if os(macOS)
             if scrollsContent {
                 ScrollView { contents }
@@ -29,6 +44,7 @@ public struct ChronosScreen: View {
         VStack(alignment: .leading, spacing: 20) {
             Text("NYC taxi pickups", bundle: .module).font(.largeTitle.bold())
             Text("NYC historical records · New York time", bundle: .module).foregroundStyle(.secondary)
+            if let journal { ChronosJournalControl(store: journal) }
             if let catalog = state.catalog {
                 ChronosAPIControls(store: store)
                 controls(catalog)

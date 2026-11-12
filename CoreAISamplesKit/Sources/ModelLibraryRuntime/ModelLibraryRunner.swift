@@ -24,14 +24,23 @@ public final class ModelLibraryRunner {
     private let registry: ModelDemoAdapterRegistry
     private let store: ManagedModelStore
     private let retryDelays: [Duration]
-    private var leases: [LibraryTicket: (session: ModelDemoSession, lease: Lease)] = [:]
+    private let gateChanges = ModelLibraryGateChanges()
+    private var leases: [LibraryTicket: (session: ModelDemoSession, lease: Lease)] = [:] {
+        willSet { gateChanges.invalidate() }
+    }
     private var abandoned: [LibraryTicket: ModelDemoSession] = [:]
-    private var stopping: [LibraryTicket: [CheckedContinuation<String?, Never>]] = [:]
-    private var releasedThrough: [UUID: Int] = [:]
+    private var stopping: [LibraryTicket: [CheckedContinuation<String?, Never>]] = [:] {
+        willSet { gateChanges.invalidate() }
+    }
+    private var releasedThrough: [UUID: Int] = [:] {
+        willSet { gateChanges.invalidate() }
+    }
     private var libraries: [UUID: LibraryReference] = [:]
     private var registered: [UUID: LibraryReference] = [:]
     private var usages: [UsageKey: [ResourceLease]] = [:]
-    private var resident: ModelDemoSession?
+    private var resident: ModelDemoSession? {
+        willSet { gateChanges.invalidate() }
+    }
     private var bound: Set<LibraryTicket> = []
     private lazy var work = Store<DemoRuntimeWork>(initialState: DemoRuntimeWork.State()) { [weak self] job, _ in
         switch job {
@@ -98,6 +107,7 @@ public final class ModelLibraryRunner {
     }
 
     public func abandon(owner: UUID) {
+        releasedThrough[owner] = .max
         work.send(.abandon(owner))
     }
 
@@ -110,11 +120,24 @@ public final class ModelLibraryRunner {
         if library.state.owner == session.id.owner, library.state.session == session {
             libraries[session.id.owner] = LibraryReference(store: library)
         }
-        return DemoExecutionGate(session: session) { [weak self, weak library] in
-            guard let self, let library else { return false }
-            return resident == session && library.state.permits(session.id, selection: session.selection)
-                && isLeased(session) && stopping[session.id] == nil
-        }
+        return DemoExecutionGate(
+            session: session,
+            retainPermission: { [weak self, weak library] in
+                guard let self, let library else { return nil }
+                return DemoExecutionPermission { self.permits(session, in: library) }
+            },
+            isPermitted: { [weak self, weak library] in
+                guard let self, let library else { return false }
+                return permits(session, in: library)
+            }
+        )
+    }
+
+    private func permits(_ session: ModelDemoSession, in library: Store<ModelLibraryFeature>) -> Bool {
+        _ = gateChanges.generation
+        return resident == session && library.state.permits(session.id, selection: session.selection)
+            && isLeased(session) && stopping[session.id] == nil
+            && session.id.number > releasedThrough[session.id.owner, default: 0]
     }
 
     func bind(_ session: ModelDemoSession, in library: Store<ModelLibraryFeature>) -> DemoExecutionGate? {

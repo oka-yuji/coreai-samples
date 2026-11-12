@@ -15,7 +15,6 @@
   "cache_frames": 39,
   "cache_reference_scalar_comparisons": 262080,
   "cache_requests": 780,
-  "compiler_static_localization_keys": 49,
   "catalogs": 10,
   "catalog_keys": 1393,
   "localization_missing": 0,
@@ -43,5 +42,14 @@
     "reopened_mode": "precomputed",
     "reopened_forecast": null
   },
-  "host_scrolling": "One vertical scroll owner: Mac preview host or Mac native screen; iOS ModelDemoHost."
+  "host_scrolling": "One vertical scroll owner: Mac preview host or Mac native screen; iOS ModelDemoHost.",
+  "legacy_reported_compiler_static_localization_keys": 49,
+  "localization_evidence_correction": {
+    "date": "2026-11-12",
+    "catalog_entries": 49,
+    "retained_ios_handwritten_static_keys": 33,
+    "retained_ios_generated_symbol_keys": 49,
+    "historical_mac_handwritten_count": "not_reestablished",
+    "note": "Generated catalog symbols reproduce the earlier total but cannot establish handwritten call-site coverage. The original summary value is preserved under the legacy key."
+  }
 }
