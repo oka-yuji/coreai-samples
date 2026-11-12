@@ -104,6 +104,8 @@ A small storage fixture reproduced the residue, then passed with the correction.
 
 Commit `4115c851acd1af8ea8f99ded6d3a26a04b764ca8` omits the ambiguous Source/Local bundle row for artifacts supporting both download and import. Repository, revision, manifest and license information remain; local-only artifacts retain their source row. The final Mac build was inspected in Japanese and English: complete identifiers, no hybrid source row and the existing ready resource were confirmed. No acquisition, deletion, preparation or prediction was activated. The attempted local-only GUI inspection only toggled a sidebar group and was restored; it is not counted as a visual pass. Both release builds, signatures and embedded definitions were checked. The guide now identifies the down-arrow control in icon-only presentations and the ready checkmark.
 
+Commit `92f55b6af9b8e4f1cab6bcc4cf3c199793cd3d03` also keeps the preferred action neutral after a hybrid acquisition failure: it uses Download model, since the prior failure may have been an import. Download-only retry labels and local-import actions retain their behavior. This changes only the existing button's retry flag; no state transition, resource, localization key or model code changes. All eight required checks and the signed iOS build passed for tree `b797c391824e96240dc626647c4ab74596a52a16`. The failed GUI state was not exercised separately, and no new model run is claimed.
+
 ## Reproduce the opt-in check
 
 Use the shared heavy-job lock described in `AGENTS.md`. Supply the original known bundle only for before/after hash checks; acquisition must still use the network. Use a new output path with an existing parent directory and the fixed sixty-case reference.

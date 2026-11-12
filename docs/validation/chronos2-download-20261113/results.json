@@ -496,6 +496,19 @@
     "full_identifiers_visible_in_both_locales": true,
     "local_only_and_license_source_branches_retained": true,
     "physical_iphone_checked": false,
-    "new_native_run_after_storage_cleanup": false
+    "new_native_run_after_storage_cleanup": false,
+    "hybrid_failure_action": {
+      "code_revision": "92f55b6af9b8e4f1cab6bcc4cf3c199793cd3d03",
+      "source_tree": "b797c391824e96240dc626647c4ab74596a52a16",
+      "hybrid_failed_title": "Download model",
+      "download_only_failed_title": "Retry download",
+      "local_only_failed_title": "Import model",
+      "required_checks_passed": 8,
+      "signed_ios_build_passed": true,
+      "new_localization_keys": false,
+      "state_transitions_changed": false,
+      "failed_state_gui_exercised": false,
+      "new_native_run": false
+    }
   }
 }
