@@ -68,7 +68,7 @@ public enum ChronosJournalFeature: Feature {
         guard !state.ended else { return [] }
         switch action {
         case .capture(let batch):
-            guard state.active, batch.mode == .live else { return [] }
+            guard batch.mode == .live else { return [] }
             state.saveTicket += 1
             state.savedID = nil
             state.saves.append(PendingSave(ticket: state.saveTicket, batch: batch))
@@ -159,7 +159,7 @@ public enum ChronosJournalFeature: Feature {
     }
 
     private static func startSave(_ state: inout State) -> [Command<Effect, EffectID>] {
-        guard let pending = state.saves.first else { return [] }
+        guard state.active, let pending = state.saves.first else { return [] }
         state.saving = true
         state.saveError = nil
         return [.run(.save(pending.ticket, pending.batch), id: .save)]

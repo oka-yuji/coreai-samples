@@ -9,6 +9,50 @@ import Testing
 @MainActor
 @Suite(.timeLimit(.minutes(1)))
 struct ChronosJournalRunnerTests {
+    @Test("J1 A displayed native result received while inactive is persisted after resuming")
+    func inactivePrediction() async throws {
+        let root = try ChronosAPIFixture.temporary()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let files = ChronosJournalFiles(directory: root.appending(path: "journal"))
+        let id = UUID()
+        let runner = ChronosJournalRunner(
+            files: files, actuals: { _, _ in throw ChronosDemoFailure.network },
+            now: { ChronosAPIFixture.now }, makeID: { id }, device: { ChronosJournalFixture.device })
+        let completed = AsyncStream<ChronosJournalFeature.Action>.makeStream()
+        defer { completed.continuation.finish() }
+        let journal = Store<ChronosJournalFeature>(initialState: ChronosJournalFeature.State()) { effect, send in
+            await runner.run(effect) { action in
+                send(action)
+                completed.continuation.yield(action)
+            }
+        }
+        runner.attach(to: journal)
+        let batch = try await ChronosJournalFixture.batch()
+        let catalog = try await ChronosRepository.bundled().load()
+        var feature = ChronosFeature.State()
+        _ = ChronosFeature.reduce(&feature, .appear)
+        _ = ChronosFeature.reduce(
+            &feature, .loaded(feature.ticket, ChronosLoadedDemo(catalog: catalog, liveAvailable: true)))
+        _ = ChronosFeature.reduce(&feature, .predict)
+        let predictor = ChronosRunner(
+            service: ChronosJournalPredictionStub(catalog: catalog, batch: batch), journal: journal)
+        let request = try #require(catalog.request(scenarioID: batch.scenarioID, step: 0, mode: .live))
+        journal.send(.suspend)
+        await predictor.run(.predict(feature.ticket, request)) { action in
+            _ = ChronosFeature.reduce(&feature, action)
+        }
+        #expect(feature.forecast == batch && feature.error == nil)
+        try #require(journal.state.saves.count == 1 && !journal.state.saving)
+        #expect(try await files.list().isEmpty)
+        journal.send(.appear)
+        var actions = completed.stream.makeAsyncIterator()
+        _ = await actions.next()
+        #expect(journal.state.savedID == id && journal.state.saveError == nil)
+        #expect(try await files.record(id).input == batch.capturedInput)
+        #expect(try await files.list().count == 1)
+        journal.send(.ended)
+    }
+
     @Test(
         "J2 Close back selection background and session end prevent late noncooperative actuals from being saved",
         arguments: ["close", "back", "select", "background", "ended"])

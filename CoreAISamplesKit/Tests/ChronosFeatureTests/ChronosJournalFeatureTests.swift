@@ -4,6 +4,22 @@ import Foundation
 import Testing
 
 struct ChronosJournalFeatureTests {
+    @Test("J1 Native successes received while inactive are queued and saved once after resuming")
+    func inactiveCapture() {
+        var state = ChronosJournalFeature.State()
+        let native = batch(.live)
+        _ = ChronosJournalFeature.reduce(&state, .suspend)
+        #expect(ChronosJournalFeature.reduce(&state, .capture(batch(.precomputed))).isEmpty)
+        #expect(state.saves.isEmpty)
+        #expect(ChronosJournalFeature.reduce(&state, .capture(native)).isEmpty)
+        #expect(state.saves.count == 1 && !state.saving)
+        #expect(!ChronosJournalFeature.permits(.save(1, native), in: state))
+        #expect(ChronosJournalFeature.reduce(&state, .appear) == [.run(.save(1, native), id: .save)])
+        #expect(ChronosJournalFeature.reduce(&state, .appear).isEmpty)
+        #expect(ChronosJournalFeature.reduce(&state, .saved(1, UUID())).isEmpty)
+        #expect(state.saves.isEmpty && !state.saving)
+    }
+
     @Test("J1 Only native successes enqueue saves and retries retain the captured batch")
     func captures() {
         var state = ChronosJournalFeature.State()
