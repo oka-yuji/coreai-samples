@@ -5,9 +5,11 @@ import Testing
 struct ModelLocalImportFeatureTests {
     private let source = URL(filePath: "/selected/bundle")
 
-    @Test("QMI-06 A local bundle reaches ready without creating a session for an unconnected demo")
-    func localImportWithoutAdapter() throws {
-        var fixture = try fixture()
+    @Test(
+        "QMI-06 A local bundle reaches ready without creating a session for an unconnected demo",
+        arguments: [false, true])
+    func localImportWithoutAdapter(downloadable: Bool) throws {
+        var fixture = try fixture(downloadable: downloadable)
         let (model, artifact) = (fixture.model, fixture.artifact)
         #expect(fixture.state.variantTitle(for: model.id) == artifact.title)
         let effects = ModelLibraryFeature.reduce(&fixture.state, .importRequested(artifact.id, source))
@@ -46,9 +48,11 @@ struct ModelLocalImportFeatureTests {
         }
     }
 
-    @Test("QMI-03 Cancelling a replacement waits for inspection and rejects late copy and validation results")
-    func cancelKeepsVerifiedPriorResource() throws {
-        var fixture = try fixture(installed: true)
+    @Test(
+        "QMI-03 Cancelling a replacement waits for inspection and rejects late copy and validation results",
+        arguments: [false, true])
+    func cancelKeepsVerifiedPriorResource(downloadable: Bool) throws {
+        var fixture = try fixture(installed: true, downloadable: downloadable)
         let id = fixture.artifact.id
         _ = ModelLibraryFeature.reduce(&fixture.state, .importRequested(id, source))
         let ticket = try #require(fixture.state.installations[id]?.requestID)
@@ -66,10 +70,12 @@ struct ModelLocalImportFeatureTests {
         #expect(ModelLibraryFeature.reduce(&fixture.state, .validated(id, ticket, fixture.resource)).isEmpty)
     }
 
-    @Test("QMI-03 Failed replacement rechecks the previous installation instead of trusting a retained resource")
-    func failureRechecksStorage() throws {
+    @Test(
+        "QMI-03 Failed replacement rechecks the previous installation instead of trusting a retained resource",
+        arguments: [false, true])
+    func failureRechecksStorage(downloadable: Bool) throws {
         for restored in [true, false] {
-            var fixture = try fixture(installed: true)
+            var fixture = try fixture(installed: true, downloadable: downloadable)
             let id = fixture.artifact.id
             _ = ModelLibraryFeature.reduce(&fixture.state, .importRequested(id, source))
             let ticket = try #require(fixture.state.installations[id]?.requestID)
@@ -87,16 +93,18 @@ struct ModelLocalImportFeatureTests {
         }
     }
 
-    @Test("QMI-04 A current demo prevents replacement and a resource from the wrong source never becomes ready")
-    func liveDemoAndWrongSource() throws {
-        var fixture = try fixture(installed: true, connected: true)
+    @Test(
+        "QMI-04 A current demo prevents replacement and a resource from the wrong source never becomes ready",
+        arguments: [false, true])
+    func liveDemoAndWrongSource(downloadable: Bool) throws {
+        var fixture = try fixture(installed: true, connected: true, downloadable: downloadable)
         let id = fixture.artifact.id
         let selection = DemoSelection(modelID: fixture.model.id, demoID: "image-generation")
         _ = ModelLibraryFeature.reduce(&fixture.state, .openDemo(selection))
         #expect(fixture.state.session != nil)
         #expect(ModelLibraryFeature.reduce(&fixture.state, .importRequested(id, source)).isEmpty)
         #expect(fixture.state.installations[id]?.failure == .modelInUse)
-        var other = try self.fixture()
+        var other = try self.fixture(downloadable: downloadable)
         _ = ModelLibraryFeature.reduce(&other.state, .importRequested(id, source))
         let ticket = try #require(other.state.installations[id]?.requestID)
         _ = ModelLibraryFeature.reduce(&other.state, .importCopied(id, ticket))
@@ -109,10 +117,40 @@ struct ModelLocalImportFeatureTests {
         #expect(other.state.installations[id]?.resource == nil)
     }
 
-    private func fixture(installed: Bool = false, connected: Bool = false) throws -> LocalFeatureFixture {
+    @Test("CD-02 A download after a cancelled import uses transfer cancellation and rejects the previous completion")
+    func switchesAcquisitionRoute() throws {
+        var fixture = try fixture(downloadable: true)
+        let id = fixture.artifact.id
+        _ = ModelLibraryFeature.reduce(&fixture.state, .importRequested(id, source))
+        let importing = try #require(fixture.state.installations[id]?.requestID)
+        _ = ModelLibraryFeature.reduce(&fixture.state, .cancelRequested(id))
+        _ = ModelLibraryFeature.reduce(&fixture.state, .importStopped(id, importing, nil))
+        let operations = ModelLibraryFeature.reduce(&fixture.state, .downloadRequested(id))
+        let downloading = try #require(fixture.state.installations[id]?.requestID)
+        #expect(downloading != importing && fixture.state.installations[id]?.phase == .downloading(nil))
+        #expect(operations == [.run(.download(fixture.model, fixture.artifact, downloading), id: .resource(id))])
+        _ = ModelLibraryFeature.reduce(&fixture.state, .downloaded(id, downloading, URL(filePath: "/staging/model")))
+        #expect(fixture.state.installations[id]?.phase == .validating)
+        #expect(
+            ModelLibraryFeature.reduce(&fixture.state, .cancelRequested(id)) == [
+                .cancel(.resource(id)), .run(.stopTransfer(artifactID: id, downloading), id: .stopping(id)),
+            ])
+        let stopping = fixture.state
+        _ = ModelLibraryFeature.reduce(&fixture.state, .importStopped(id, importing, fixture.resource))
+        _ = ModelLibraryFeature.reduce(&fixture.state, .validated(id, importing, fixture.resource))
+        #expect(fixture.state == stopping)
+        _ = ModelLibraryFeature.reduce(&fixture.state, .transferStopped(id, downloading))
+        #expect(fixture.state.installations[id] == ModelInstallation() && fixture.state.session == nil)
+    }
+
+    private func fixture(installed: Bool = false, connected: Bool = false, downloadable: Bool = false) throws
+        -> LocalFeatureFixture
+    {
         let hash = String(repeating: "a", count: 64)
         let artifact = ModelArtifact(
             id: "qwen-mobile", title: "Mobile", contract: "qwen-image21-mobile-v2", platforms: [.iOS],
+            download: downloadable
+                ? ModelDownload(repository: "owner/model", revision: String(repeating: "b", count: 40)) : nil,
             files: [ModelArtifactFile(path: "bundle.json", bytes: 12, sha256: hash)],
             localBundle: ModelLocalBundle(manifestSHA256: hash, profileID: "fixture-qmi-profile"))
         let model = LibraryModel(

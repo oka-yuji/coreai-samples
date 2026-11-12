@@ -8,7 +8,7 @@ struct ChronosImportTests {
     @Test("The pinned Chronos bundle is recognized by the managed store before importing")
     func definition() async throws {
         let artifact = try ChronosModelArtifact.make()
-        #expect(artifact.isSourceValid && artifact.sourceKind == .localManifest && artifact.download == nil)
+        #expect(artifact.isSourceValid && artifact.sourceKind == .localManifest && artifact.download?.isValid == true)
         #expect(artifact.files.count == 9 && artifact.totalFileBytes == 478_864_956)
         #expect(artifact.sizeBytes == artifact.totalFileBytes && artifact.platforms == [.macOS, .iOS])
         #expect(

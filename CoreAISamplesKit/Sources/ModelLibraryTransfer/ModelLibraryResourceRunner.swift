@@ -61,15 +61,8 @@ public final class ModelLibraryResourceRunner {
             }
         case .validate(let model, let artifact, let ticket, let staging):
             await exclusively(artifact.id, ticket, send, failure: validationFailure) { [self] send in
-                do {
-                    let resource = try await store.promote(staging: staging, model: model, artifact: artifact)
-                    send(.validated(artifact.id, ticket, resource))
-                } catch {
-                    if artifact.sourceKind == .localManifest {
-                        try? await store.discardImport(staging: staging, model: model, artifact: artifact)
-                    }
-                    throw error
-                }
+                let resource = try await store.promote(staging: staging, model: model, artifact: artifact)
+                send(.validated(artifact.id, ticket, resource))
             }
         case .delete(let resource, let ticket):
             await exclusively(resource.artifactID, ticket, send, failure: deletionFailure) { [self] send in

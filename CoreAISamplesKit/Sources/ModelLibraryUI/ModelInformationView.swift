@@ -62,11 +62,17 @@ public struct ModelInformationView: View {
                 } label: {
                     libraryText("Revision")
                 }
-            } else if artifact?.localBundle != nil {
+            }
+            if let localBundle = artifact?.localBundle {
                 LabeledContent {
                     libraryText("Local bundle")
                 } label: {
                     libraryText("Source")
+                }
+                LabeledContent {
+                    Text(verbatim: localBundle.manifestSHA256).textSelection(.enabled)
+                } label: {
+                    libraryText("Manifest SHA-256")
                 }
                 if artifact?.contract == "qwen-image21-mobile-v2" {
                     libraryText("For research and evaluation only. Commercial use requires a separate license.")

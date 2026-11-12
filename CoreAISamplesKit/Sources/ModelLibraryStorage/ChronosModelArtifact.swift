@@ -9,13 +9,16 @@ public enum ChronosModelArtifact {
     public static let manifestSHA256 = "786dcf97e020c987cbf883f09b486fba5f3fee30a588b87a346ea65d72d20572"
 
     public static func make() throws -> ModelArtifact {
-        guard let url = Bundle.module.url(forResource: "chronos2-fp32-files", withExtension: "json") else {
+        guard let url = Bundle.module.url(forResource: "chronos2-fp32-files", withExtension: "json"),
+            let locator = Bundle.module.url(forResource: "chronos2-fp32-download", withExtension: "json")
+        else {
             throw ManagedModelStoreError.invalidDefinition
         }
         let files = try JSONDecoder().decode([ModelArtifactFile].self, from: Data(contentsOf: url))
+        let download = try JSONDecoder().decode(ModelDownload.self, from: Data(contentsOf: locator))
         return ModelArtifact(
             id: "chronos2-fp32", title: "FP32", contract: contract, platforms: [.macOS, .iOS],
-            sizeBytes: files.reduce(0) { $0 + $1.bytes },
+            sizeBytes: files.reduce(0) { $0 + $1.bytes }, download: download,
             upstream: ModelUpstream(repository: modelID, revision: revision), files: files,
             localBundle: ModelLocalBundle(
                 manifestSHA256: manifestSHA256, profileID: "chronos2-fp32", manifestPath: "chronos2.json"))

@@ -1,6 +1,23 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "Download the Chronos-2 FP32 model, or import the complete prepared folder. Model files use about 479 MB. Importing requires extra space for the app copy." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download the Chronos-2 FP32 model, or import the complete prepared folder. Model files use about 479 MB. Importing requires extra space for the app copy."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chronos-2 FP32モデルをダウンロードするか、準備済みフォルダ全体を取り込んでください。モデルの容量は約479 MBです。取り込みにはアプリ内のコピー用の空き容量も必要です。"
+          }
+        }
+      }
+    },
     "Explore 20 Manhattan taxi zones in three fixed scenes or independently verified January 2025 API data. Forecast origins run from January 22 through February 1 at 00:00 New York time. Fetch 21 days of history, predict on this device, then fetch actuals to compare." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3947,23 +3964,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "画像はこの iPhone 内で解析し、保存しません。小さい物や隠れた物は見つからないことがあります。"
-          }
-        }
-      }
-    },
-    "Import the complete prepared Chronos-2 FP32 folder. It uses about 479 MB, plus space for the app copy. This build does not provide a model download." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Import the complete prepared Chronos-2 FP32 folder. It uses about 479 MB, plus space for the app copy. This build does not provide a model download."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "準備済みのChronos-2 FP32フォルダ全体を取り込んでください。容量は約479 MBで、アプリ内のコピーにも空き容量が必要です。このビルドではモデルのダウンロードは提供していません。"
           }
         }
       }
