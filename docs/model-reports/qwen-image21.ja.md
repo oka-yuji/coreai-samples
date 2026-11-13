@@ -16,7 +16,7 @@ Apple Core AIで、文章から画像を生成したり、参照画像1枚を編
 
 ## 公開と検証
 
-[公開記録](../validation/mobile-image-lab-release-20261113/README.md)で、公開・取得・サービス接続・実機受入を分けています。全配布物、認証付き全履歴、公開直前gateと公開後の匿名全履歴の情報検査は合格しています。アプリの追加分はCPU回帰、Mac Release、署名iOS Release、実署名・権限とコンパイル済みの日英表示を確認しました。全量新規取得の結果は同じ記録で別に追跡します。通常iPhone操作は[QD-07](https://github.com/oka-yuji/coreai-samples/issues/562)として本人確認待ちです。
+[公開記録](../validation/mobile-image-lab-release-20261113/README.md)で、公開・取得・サービス接続・実機受入を分けています。全配布物、認証付き全履歴、公開直前gateと公開後の匿名全履歴の情報検査は合格しています。アプリの追加分はCPU回帰、Mac Release、署名iOS Release、実署名・権限とコンパイル済みの日英表示を確認しました。ホストで匿名の全量新規取得・全51hash・live-service接続が合格し、同じ記録に範囲と診断の時間上限を残しています。通常iPhone操作は[QD-07](https://github.com/oka-yuji/coreai-samples/issues/562)として本人確認待ちです。
 
 配布版の変更は`README.txt`・`NOTICE.txt`と、それらに対応する`bundle.json`の2項目だけです。残る48ファイルと計算に関わるmanifest値は原本と一致します。既存5部品の予算を、新しい完全identityへ明示的に結び付けました。**metadata同等性を、新manifestでの実機再測定とは扱いません**。端末・OS・profile・identity・メモリの検査は維持しています。
 

@@ -78,8 +78,25 @@
     "ios_memory_entitlement": true
   },
   "fresh_production_acquisition": {
-    "status": "running",
-    "scope": "Empty host Models store; fixed anonymous 51-file download, full inspection and live-service binding without inference"
+    "status": "passed",
+    "source_commit": "45ea92faa92e8a71bb888084d298f5a76f8a4406",
+    "started_at": "2026-11-13T07:45:44.589068+00:00",
+    "finished_at": "2026-11-13T08:09:30.921568+00:00",
+    "wrapper_seconds": 1426.3053017920174,
+    "scope": "Fresh empty host Models store, anonymous pinned download, full inspection, actual acquired resource passed to ManagedImageGeneration/LiveImageGenerationService with explicit known phone calibration; no adapter rendering, phone operation or inference",
+    "files": 51,
+    "bytes": 13783495057,
+    "requests": 51,
+    "all_http_status": 200,
+    "migration_candidates": 0,
+    "lease_after_release": 0,
+    "live_service_binding": true,
+    "generation_executed": false,
+    "independent_file_hashes": "download-files.json",
+    "diagnostic_settle_limit_seconds": 1800,
+    "timing_note": "Whole verification duration, not model inference performance or a download speed guarantee",
+    "acquisition_report_sha256": "3c90a9bdeb1d5bec784bd991ea453b40df00edfdd5271a8790c9ce6c4a14598d",
+    "download_report_sha256": "a45bf08da85378c5ac75ed8756ba7e3d9183260dd867adf4cec95bbca342973e"
   },
   "historical_failures_retained": [
     "An interrupted original-bundle audit was not a pass",
