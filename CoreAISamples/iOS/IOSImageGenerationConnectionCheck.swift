@@ -25,6 +25,7 @@
             var sourceKind: ModelSourceKind?
             var budget: ImageMemoryBudget?
             var prepared = false
+            var permissionDuringFactory: Bool?
             var permissionAfterBinding: Bool?
             var closed = false
             var permissionAfterClose: Bool?
@@ -33,12 +34,14 @@
 
         private let factory: Factory
         private let output: URL
+        private let expectedIdentity: ModelArtifactIdentity
         private var report = Report()
         private var createdSession: ModelDemoSession?
         private var permission: ManagedImageGeneration.Permission?
 
-        init(output: URL, factory: @escaping Factory) {
+        init(output: URL, expectedIdentity: ModelArtifactIdentity, factory: @escaping Factory) {
             self.output = output
+            self.expectedIdentity = expectedIdentity
             self.factory = factory
         }
 
@@ -53,6 +56,11 @@
             report.contract = session.resource.contract
             report.revision = session.resource.revision
             report.sourceKind = session.resource.sourceKind
+            report.permissionDuringFactory = permission()
+            guard matchesExpected(session), report.permissionDuringFactory == false else {
+                report.failures.append("The factory received an unexpected image identity or premature permission")
+                return nil
+            }
             guard let created = factory(session, permission) else {
                 report.failures.append("The production factory did not provide a calibrated image service")
                 return nil
@@ -64,9 +72,11 @@
 
         func check(_ library: ModelLibraryAssembly.Library) async -> [String] {
             let selection = DemoSelection(modelID: "qwen-image21-turbo", demoID: "image-generation")
+            library.store.send(
+                .selectArtifact(modelID: expectedIdentity.modelID, artifactID: expectedIdentity.artifactID))
             library.store.send(.openDemo(selection))
             guard let session = library.store.state.session,
-                session.selection == selection, session.resource.artifactID == QwenImage21Artifact.nativeComplex.id
+                session.selection == selection, matchesExpected(session)
             else {
                 library.store.send(.closeDemo)
                 report.failures.append("The ordinary Models store did not open the expected image session")
@@ -106,6 +116,13 @@
             }
             if Task.isCancelled { report.failures.append("The connection check was cancelled") }
             return save()
+        }
+
+        private func matchesExpected(_ session: ModelDemoSession) -> Bool {
+            session.selection == DemoSelection(modelID: expectedIdentity.modelID, demoID: "image-generation")
+                && IOSDemoCatalog.imageGenerationIdentity(for: expectedIdentity.artifactID) == expectedIdentity
+                && session.resource.identity == expectedIdentity
+                && session.resource.upstreamRevision == ImageGenerationProfile.revision
         }
 
         private func wait(_ finished: @escaping @MainActor @Sendable () -> Bool) async -> Bool {

@@ -600,7 +600,8 @@ private func family(_ artifact: ModelArtifact) throws -> ContractFamily {
             }
             return .ocr
         }
-        guard artifact.contract == "qwen-image21-mobile-v2", artifact.download == nil,
+        guard artifact.contract == "qwen-image21-mobile-v2",
+            artifact.download == nil || artifact == MobileImageLabArtifact.published,
             artifact.localBundle?.manifestPath == "bundle.json",
             artifact.upstream?.repository == "Qwen/Qwen-Image-2.1-Turbo",
             artifact.upstream?.revision == ImageGenerationProfile.revision,

@@ -24,6 +24,12 @@ public struct ImageGenerationContent: View {
                 Text(state.modelName).font(.headline)
                 Text("Create a 512-square image, or edit one reference image.", bundle: .module)
                     .foregroundStyle(.secondary)
+                Text("Built with Qwen", bundle: .module).font(.subheadline)
+                Text(
+                    "For noncommercial research and evaluation only. Commercial use requires a separate license.",
+                    bundle: .module
+                ).font(.caption).foregroundStyle(.secondary)
+                licenseLink
                 if state.availability == .unsupported {
                     Label {
                         Text("Generation is not available for this model on this device yet.", bundle: .module)
@@ -258,12 +264,6 @@ public struct ImageGenerationContent: View {
                     } label: {
                         Text("Elapsed seconds", bundle: .module)
                     }
-                    if let license = URL(
-                        string:
-                            "https://huggingface.co/Qwen/Qwen-Image-2.1-Turbo/blob/\(ImageGenerationProfile.revision)/LICENSE"
-                    ) {
-                        Link(destination: license) { Text("Qwen Research License", bundle: .module) }
-                    }
                 } label: {
                     Text("Image details", bundle: .module)
                 }
@@ -271,6 +271,17 @@ public struct ImageGenerationContent: View {
             .frame(maxWidth: .infinity, alignment: .leading)
         } label: {
             Text("Last completed image", bundle: .module)
+        }
+    }
+
+    private var licenseLink: some View {
+        Group {
+            if let license = URL(
+                string:
+                    "https://huggingface.co/Qwen/Qwen-Image-2.1-Turbo/blob/\(ImageGenerationProfile.revision)/LICENSE"
+            ) {
+                Link(destination: license) { Text("Qwen Research License", bundle: .module) }
+            }
         }
     }
 

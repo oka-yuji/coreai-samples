@@ -627,6 +627,28 @@
           }
         }
       }
+    },
+    "Built with Qwen" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Built with Qwen"
+          }
+        }
+      }
+    },
+    "For noncommercial research and evaluation only. Commercial use requires a separate license." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "非商用の研究・評価用途に限られます。商用利用には別途ライセンスが必要です。"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

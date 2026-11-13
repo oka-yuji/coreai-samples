@@ -70,6 +70,8 @@
 
 ## 重いジョブ
 
+- Mobile Image Labの公開取得は共有heavy-jobロック下で `COREAI_MOBILE_IMAGE_DOWNLOAD_OUTPUT=/new/output swift test --package-path CoreAISamplesKit --filter MobileImageDownloadNativeTests.freshDownload`。既存出力を拒否し、親folderは先に作る。空のModelsと移行候補0から固定HF revisionの51filesを実取得し、全量inspect・新manifest・lease中の削除拒否・解放後lease0を確認する。取得物とacquisition/download JSONは保持する。生成・編集・新しい品質/性能評価・実iPhone操作は行わず、既定はskip。
+
 - Chronos公開DLの実結合は共有heavy-jobロック下で `COREAI_CHRONOS2_DOWNLOAD_OUTPUT=/new/output COREAI_CHRONOS2_DOWNLOAD_SOURCE=/path/to/original-bundle COREAI_CHRONOS2_DOWNLOAD_REFERENCE=/path/to/fixed-scenes-reference.json swift test --package-path CoreAISamplesKit --filter ChronosDownloadNativeTests.freshModelsDownload`。出力先は既存を拒否し、親folderは先に作る。空のmanaged store・移行候補なしで固定HF revisionから9filesを実取得し、本番Models/Store/Sessions/Serviceで60系列・20,160原値、manifest identity、元bundle全hash不変、stop後lease0を確認する。取得だけでは推論しない。既定はskip。描画だけのadapterによる成功を通常GUI・iPhone・本人受入へ広げない。
 
 - Seoul Bikeデモの実モデル結合は共有heavy-jobロック下で `COREAI_FORECAST_BUNDLE=/path/to/chronos2-bundle COREAI_BIKE_REFERENCE=/path/to/bike-reference.json COREAI_BIKE_REPORT=/new/report.json swift test --package-path CoreAISamplesKit --force-resolved-versions --filter ForecastNativeTests.bike`。同梱した8760時間の検査済みデータ、本番Models/Store/Service/Sessions、固定5起点の全21分位×16点と再表示後の再実行、close後lease0を照合する。通常suiteはskip。商品売上のnative回帰は専用変数とfilterで別process実行し、メモリの生涯peakを混ぜない。通常UI・実iPhone・本人受入は別に確認する。

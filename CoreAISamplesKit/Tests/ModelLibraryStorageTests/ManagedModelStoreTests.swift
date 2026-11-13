@@ -34,7 +34,7 @@ struct ManagedModelStoreTests {
         defer { fixture.remove() }
         let store = fixture.store()
         let catalog = try IOSDemoCatalog.make()
-        #expect(catalog.models.flatMap(\.artifacts).count == 4)
+        #expect(catalog.models.flatMap(\.artifacts).count == 5)
         for model in catalog.models {
             for artifact in model.artifacts {
                 let revision = try #require(artifact.sourceRevision)

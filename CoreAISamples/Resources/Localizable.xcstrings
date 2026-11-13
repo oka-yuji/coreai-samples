@@ -3968,22 +3968,6 @@
         }
       }
     },
-    "Import the complete prepared Qwen Image folder from Files. It uses 13.78 GB, plus space for the app copy. This build does not provide a model download." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Import the complete prepared Qwen Image folder from Files. It uses 13.78 GB, plus space for the app copy. This build does not provide a model download."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "「ファイル」から準備済みのQwen Imageフォルダを丸ごと取り込んでください。モデルは13.78 GBあり、アプリ内へコピーする分の空き容量も必要です。このビルドではモデルのダウンロードを提供していません。"
-          }
-        }
-      }
-    },
     "Import the prepared Reference voice model folder from Files. It uses about 3.84 GB, plus space for the app copy. The legacy model supports text-only generation." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -8938,22 +8922,6 @@
         }
       }
     },
-    "This build enables Qwen Image on iPhone 17 Pro with iOS 27.0.1. Check the included LICENSE and NOTICE for the model terms. Your prompt and reference image stay on the device." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "This build enables Qwen Image on iPhone 17 Pro with iOS 27.0.1. Check the included LICENSE and NOTICE for the model terms. Your prompt and reference image stay on the device."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "このビルドではiOS 27.0.1のiPhone 17 ProでQwen Imageを利用できます。モデルの利用条件は同梱のLICENSEとNOTICEをご確認ください。指示文と参照画像は端末内で処理されます。"
-          }
-        }
-      }
-    },
     "This model does not support a reference voice. Choose the reference-voice model." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -10533,6 +10501,72 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "タクシーデモと同じ準備済みChronos-2 FP32モデルを使います。同梱サンプルを読み込み、予測ボタンで端末内推論を開始します。表示・準備・選択変更だけでは推論しません。"
+          }
+        }
+      }
+    },
+    "Download Mobile Image Lab (13.78 GB), or import its complete prepared folder from Files. To use an existing installation, select the legacy W4/W8 variant." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download Mobile Image Lab (13.78 GB), or import its complete prepared folder from Files. To use an existing installation, select the legacy W4/W8 variant."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mobile Image Lab（13.78 GB）をダウンロードするか、「ファイル」から準備済みのフォルダを丸ごと取り込んでください。既存のインストールを使う場合は、旧版の「W4/W8」を選んでください。"
+          }
+        }
+      }
+    },
+    "This build supports iPhone 17 Pro with iOS 27.0.1. Your prompt and reference image stay on the device." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This build supports iPhone 17 Pro with iOS 27.0.1. Your prompt and reference image stay on the device."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このビルドはiOS 27.0.1のiPhone 17 Proに対応しています。指示文と参照画像は端末内で処理されます。"
+          }
+        }
+      }
+    },
+    "Built with Qwen" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Built with Qwen"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Built with Qwen"
+          }
+        }
+      }
+    },
+    "Derived from Qwen Image 2.1 Turbo. For noncommercial research and evaluation only. Check the included LICENSE and NOTICE. Commercial use requires a separate license." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Derived from Qwen Image 2.1 Turbo. For noncommercial research and evaluation only. Check the included LICENSE and NOTICE. Commercial use requires a separate license."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Qwen Image 2.1 Turboを基にしています。非商用の研究・評価用途に限られます。同梱のLICENSEとNOTICEをご確認ください。商用利用には別途ライセンスが必要です。"
           }
         }
       }
