@@ -51,7 +51,7 @@ Apple Core AIで、文章から画像を生成したり、参照画像1枚を編
 | OS | 状態 | 確認した範囲・残る確認 | 根拠 |
 |---|---|---|---|
 | macos | — | このOSのネイティブデモは未提供です。 | — |
-| ios | △ | 本体の同一processで固定の生成・編集10回が完走し、保存RGBA8とPNG画素は全件で既合格の本体出力と一致。実測予算はiPhone18,1／24A446と固定ローカル資産に限定。Modelsで13,783,495,099 bytesを取り込み、別processで再取込なしに復元し、採用予算で本番画像serviceの接続・終了を確認した。通常UI操作・本人受入・待ち時間の受入は別。公開モデルDLは未設定。 過去の結果は元の8b9e3474 manifestのまま保持する。別の公開9d61c180 identityへ固定DLと既存較正の明示的な束縛を追加した。metadata同等性を新しい実機測定とは扱わない。 | [E16](../research/qwen-image21-png-input-device-20261030.json) · [E17](../research/qwen-image21-device-calibration-20261101.json) · [E18](../research/qwen-image21-device-calibration-20261101.json) |
+| ios | △ | 本体の同一processで固定の生成・編集10回が完走し、保存RGBA8とPNG画素は全件で既合格の本体出力と一致。実測予算はiPhone18,1／24A446と固定ローカル資産に限定。Modelsで13,783,495,099 bytesを取り込み、別processで再取込なしに復元し、採用予算で本番画像serviceの接続・終了を確認した。通常UI操作・本人受入・待ち時間の受入は別。当時のアプリでは元の資産の公開モデルDLは未設定だった。 過去の結果は元の8b9e3474 manifestのまま保持する。別の公開9d61c180 identityへ固定DLと既存較正の明示的な束縛を追加した。metadata同等性を新しい実機測定とは扱わない。 | [E16](../research/qwen-image21-png-input-device-20261030.json) · [E17](../research/qwen-image21-device-calibration-20261101.json) · [E18](../research/qwen-image21-device-calibration-20261101.json) |
 
 ### 性能と品質
 
