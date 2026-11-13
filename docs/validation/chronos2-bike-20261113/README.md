@@ -48,3 +48,9 @@ Host: Apple M5 Max, 137,438,953,472 bytes RAM, macOS 27.2.1(26B131), Xcode 27.2(
 Full repository checks, source reproduction tests, Mac Release and signed iOS Release passed. Actual app bundles were checked for all three source resources, compiled translations, both iOS file-sharing keys and the increased-memory entitlement. Sales passed another 10,752 native scalar comparisons with independent metrics. CPU fakes cover cancellation/stop joins; native in-flight cancellation, physical iPhone operation, spoken VoiceOver and human acceptance remain unverified. The host network was not disabled for the GUI checks.
 
 B1–B6 have the stated evidence. B7 remains for the user's Mac/iPhone interaction. TukuruSF schema 1 worker verification, parent corrections, raw/native/GUI checks, independent AI review and merge are separate stages. Earlier numerical and setup failures remain in the structured record and private logs.
+
+## Integration with public acquisition support
+
+After main added public Models download/import support in PR #563, commit `daf3ea1f2807f6a30121c62f452d8a954e4519a7` repeated both production native tests: 3,360 bike and 10,752 sales scalar comparisons passed, both closes returned zero leases, and independent metrics remained correct. Every Float32 raw output was identical to the earlier CPU-fix run. These are integration repeats, not new quality samples.
+
+Full checks and signed Mac/iOS builds passed again. The acquisition test's CPU catalog check includes all three Chronos demo links while connecting only its taxi adapter. Normal Mac GUI retained the previously imported model without reacquisition, opened Seoul Bike, predicted the fixed May 17 window and preserved values and runtime across correctly translated EN/JP AX labels. The app was closed with Japanese restored. This follow-up does not claim a fresh GUI network download or physical iPhone acceptance.

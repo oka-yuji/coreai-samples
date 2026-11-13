@@ -463,5 +463,81 @@
       "CPU-only execution for Seoul Bike with fixed threshold unchanged",
       "Explicit language lookup for shared forecast AX labels and unavailable metrics"
     ]
+  },
+  "integration": {
+    "base_main": "bef5364",
+    "code_revision": "daf3ea1f2807f6a30121c62f452d8a954e4519a7",
+    "native_bike_scalar_comparisons": 3360,
+    "native_sales_scalar_comparisons": 10752,
+    "scalar_failures": 0,
+    "both_closes_lease_zero": true,
+    "independent_audit_passed": true,
+    "raw_float32_outputs_identical_to_initial_cpu_run": true,
+    "bike_report_sha256": "378970ff4f022f2305906ca432f5d859b4d82cdb2cb1c413ba35e3884a08e03f",
+    "sales_report_sha256": "2667268fb7c730745afb2ea66642751b49f024d7fb1f67066a1928e89d4edce0",
+    "gui": {
+      "source_commit": "daf3ea1f2807f6a30121c62f452d8a954e4519a7",
+      "integrated_main": "bef5364",
+      "existing_import_ready_without_reacquisition": true,
+      "all_three_chronos_destinations_visible": true,
+      "explicit_prepare_and_load_no_auto_prediction": true,
+      "bike_origin": "2018-05-17T08:00 Asia/Seoul",
+      "horizon": 16,
+      "first_actual": 152,
+      "first_median": 99.48,
+      "first_p10": 61.7,
+      "first_p90": 548.05,
+      "model_mae": 358.37,
+      "model_wape_percent": 198.5,
+      "naive_mae": 180.56,
+      "naive_wape_percent": 100.0,
+      "runtime_display_seconds": 1.58,
+      "english_and_japanese_ax_correct": true,
+      "locale_change_preserves_result_and_runtime": true,
+      "last_weather_time": "2018-05-17T07:00 Asia/Seoul",
+      "last_temperature": 19.1,
+      "app_closed": true,
+      "model_process_absent": true,
+      "original_japanese_restored": true,
+      "actual_network_download_performed": false,
+      "finished_utc": "2026-11-13T02:23:39.584194+00:00"
+    },
+    "artifacts": {
+      "source_commit": "daf3ea1f2807f6a30121c62f452d8a954e4519a7",
+      "platforms": {
+        "mac": {
+          "signature_verified": true,
+          "resource_hashes": {
+            "SeoulBikeData.csv": "d2f7a0f0ba95e82678ead794429a18a7f696aa3b82c9b9ec34ec47806ff0767b",
+            "NOTICE.txt": "64137efc03276045d14e77e9e5402fa2cccf49333852c0df2e5ba469fb5d9f27",
+            "manifest.json": "b0dc815d7d5f97f2aa0d1aeafdf116b756f273b3e660aab73a1e07fd15966593"
+          },
+          "compiled_string_values_checked": {
+            "en": 96,
+            "ja": 97
+          },
+          "executable_sha256": "74bf099fc857bc503312fbbafa80c9ca40b96090d3e92d2ba1f04f07ff0098d1"
+        },
+        "ios": {
+          "signature_verified": true,
+          "resource_hashes": {
+            "SeoulBikeData.csv": "d2f7a0f0ba95e82678ead794429a18a7f696aa3b82c9b9ec34ec47806ff0767b",
+            "NOTICE.txt": "64137efc03276045d14e77e9e5402fa2cccf49333852c0df2e5ba469fb5d9f27",
+            "manifest.json": "b0dc815d7d5f97f2aa0d1aeafdf116b756f273b3e660aab73a1e07fd15966593"
+          },
+          "compiled_string_values_checked": {
+            "en": 96,
+            "ja": 97
+          },
+          "executable_sha256": "68459a34a4d8200e889533b13cfd27db8b98706701acf5b561d77e62a8a1191a",
+          "file_sharing": true,
+          "opening_documents_in_place": true,
+          "increased_memory_limit": true
+        }
+      }
+    },
+    "required_checks_passed": true,
+    "download_catalog_cpu_regression": "Production model links preserved, with all linked descriptors and only taxi connected in the acquisition test.",
+    "scope": "Combined with public Models download/import support. Existing import remains ready. This follow-up did not perform a fresh network download and adds no independent quality samples."
   }
 }
