@@ -22,6 +22,7 @@ enum Demo: String, CaseIterable, Identifiable {
     case receipts
     case taxiForecast
     case productSales
+    case seoulBike
 
     var id: String { rawValue }
 
@@ -36,7 +37,7 @@ enum Demo: String, CaseIterable, Identifiable {
         case .speech: "Irodori"
         case .ocr: "TeleOCR"
         case .receipts: "JEV-27B"
-        case .taxiForecast, .productSales: "Chronos-2"
+        case .taxiForecast, .productSales, .seoulBike: "Chronos-2"
         }
     }
 
@@ -53,6 +54,7 @@ enum Demo: String, CaseIterable, Identifiable {
         case .receipts: "Sort receipts into a reviewed expense ledger"
         case .taxiForecast: "NYC taxi pickup forecast"
         case .productSales: "Product sales forecast"
+        case .seoulBike: "Seoul Bike forecast"
         }
     }
 
@@ -69,6 +71,7 @@ enum Demo: String, CaseIterable, Identifiable {
         case .receipts: "receipt"
         case .taxiForecast: "chart.xyaxis.line"
         case .productSales: "chart.bar.xaxis"
+        case .seoulBike: "bicycle"
         }
     }
 }
@@ -122,6 +125,7 @@ extension Demo {
         case .receipts: ReceiptDemoCatalog.selection.demoID
         case .taxiForecast: ChronosDemoCatalog.selection.demoID
         case .productSales: ChronosDemoCatalog.salesSelection.demoID
+        case .seoulBike: ChronosDemoCatalog.bikeSelection.demoID
         case .chat, .decide, .recipes, .speech: rawValue
         }
     }
@@ -135,7 +139,7 @@ extension Demo {
         case .speech: .irodori
         case .ocr: .teleOCR
         case .receipts: .jev
-        case .taxiForecast, .productSales: .chronos
+        case .taxiForecast, .productSales, .seoulBike: .chronos
         }
     }
 }
@@ -260,7 +264,10 @@ struct DemoRootView: View {
                 lifetime.close(windowID)
             }
             .onChange(of: navigator.selection) { old, new in
-                if (old == .ocr || old == .receipts || old == .taxiForecast || old == .productSales) && new != old {
+                if (old == .ocr || old == .receipts || old == .taxiForecast || old == .productSales
+                    || old == .seoulBike)
+                    && new != old
+                {
                     library.leave()
                 }
             }
@@ -317,6 +324,7 @@ struct DemoRootView: View {
             case .receipts?: ReceiptHostView(library: library)
             case .taxiForecast?: ChronosPreviewView(library: library)
             case .productSales?: ChronosPreviewView(library: library, selection: ChronosDemoCatalog.salesSelection)
+            case .seoulBike?: ChronosPreviewView(library: library, selection: ChronosDemoCatalog.bikeSelection)
             case nil: ContentUnavailableView("Select a demo", systemImage: "square.grid.2x2")
             }
         }

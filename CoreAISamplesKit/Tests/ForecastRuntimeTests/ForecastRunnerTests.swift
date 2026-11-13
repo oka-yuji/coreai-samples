@@ -86,22 +86,28 @@ struct ForecastRunnerTests {
         await runner.release()
     }
 
-    @Test("S2 Sessions revoke before joining and a delayed old close cannot release a newer service")
-    func sessions() async throws {
-        let first = try ForecastServiceFake()
-        let second = try ForecastServiceFake()
+    @Test(
+        "S2 B2 Sessions revoke before joining and a delayed old close cannot release a newer service",
+        arguments: [ForecastKind.productSales, .seoulBike])
+    func sessions(_ kind: ForecastKind) async throws {
+        let dataset =
+            try await kind == .seoulBike ? BikeDataRepository().load() : SalesDataset.parse(ForecastFixture.csv())
+        let first = try ForecastServiceFake(dataset: dataset)
+        let second = try ForecastServiceFake(dataset: dataset)
         var created = 0
         var permission: (@MainActor () -> Bool)?
-        let sessions = ForecastDemoSessions(makeService: { _, permits in
-            created += 1
-            if created == 1 {
-                permission = permits
-                return first
-            }
-            return second
-        })
-        let old = ForecastFixture.session(1)
-        let new = ForecastFixture.session(2)
+        let sessions = ForecastDemoSessions(
+            kind: kind,
+            makeService: { _, permits in
+                created += 1
+                if created == 1 {
+                    permission = permits
+                    return first
+                }
+                return second
+            })
+        let old = ForecastFixture.session(1, kind: kind)
+        let new = ForecastFixture.session(2, kind: kind)
         let bound = sessions.bind(old, permits: { true })
         let store = try #require(bound)
         #expect(store.state.phase == .idle && first.loads == 0 && first.predictions == 0)

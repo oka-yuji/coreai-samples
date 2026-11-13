@@ -29,7 +29,7 @@ struct MacDemoCatalogTests {
         #expect(
             sections.map { $0.demos.map(\.id) } == [
                 ["chat"], ["decide", "recipes"], ["image-search", "video-search"], ["comparison"], ["speech"], ["ocr"],
-                ["receipt-desk"], ["taxi-forecast", "product-sales-forecast"],
+                ["receipt-desk"], ["taxi-forecast", "product-sales-forecast", "seoul-bike-forecast"],
             ])
         #expect(sections.map { $0.artifacts.count } == [1, 1, 2, 1, 1, 1, 1, 1])
         #expect(catalog.sections(platform: .iOS, audience: .release).isEmpty)
@@ -37,15 +37,17 @@ struct MacDemoCatalogTests {
             catalog.models.filter { $0.id != "chronos2" }.flatMap(\.artifacts).allSatisfy { $0.platforms == [.macOS] })
         #expect(catalog.demos.allSatisfy { $0.platforms == [.macOS] })
         #expect(
-            catalog.demos.filter { !["taxi-forecast", "product-sales-forecast"].contains($0.id) }.allSatisfy {
+            catalog.demos.filter {
+                !["taxi-forecast", "product-sales-forecast", "seoul-bike-forecast"].contains($0.id)
+            }.allSatisfy {
                 $0.title == $0.summary
             })
         try catalog.validateConnections(
-            adapterIDs: ["ocr", "product-sales-forecast", "receipt-desk", "taxi-forecast"],
+            adapterIDs: ["ocr", "product-sales-forecast", "receipt-desk", "seoul-bike-forecast", "taxi-forecast"],
             unconnectedDemoIDs: unconnected)
         #expect(throws: ModelCatalogError.invalidDemo("speech")) {
             try catalog.validateConnections(
-                adapterIDs: ["ocr", "product-sales-forecast", "receipt-desk", "taxi-forecast"],
+                adapterIDs: ["ocr", "product-sales-forecast", "receipt-desk", "seoul-bike-forecast", "taxi-forecast"],
                 unconnectedDemoIDs: unconnected.subtracting(["speech"]))
         }
         for id in ["qwen3.8-27b", "clef-flash-9b"] {
@@ -68,7 +70,7 @@ struct MacDemoCatalogTests {
     }
 
     @Test(
-        "LIB-01 The Mac self-test reports eight models, eleven demos and the connected OCR, receipt and Chronos demos"
+        "LIB-01 The Mac self-test reports eight models, twelve demos and the connected OCR, receipt and Chronos demos"
     )
     func selfTest() async throws {
         let root = URL.temporaryDirectory.appending(path: "mac-catalog-\(UUID().uuidString)")
@@ -80,6 +82,7 @@ struct MacDemoCatalogTests {
         registry.register(FakeAdapter("receipt-desk", label: OwnerLabels(), sink: sink))
         registry.register(FakeAdapter("taxi-forecast", label: OwnerLabels(), sink: sink))
         registry.register(FakeAdapter("product-sales-forecast", label: OwnerLabels(), sink: sink))
+        registry.register(FakeAdapter("seoul-bike-forecast", label: OwnerLabels(), sink: sink))
         let output = root.appending(path: "report.json")
         let status = await ModelLibrarySelfTest.run(
             output: output, root: root.appending(path: "managed"), registry: registry, unconnectedDemoIDs: unconnected,
@@ -87,14 +90,16 @@ struct MacDemoCatalogTests {
         #expect(status == 0)
         let report = try #require(JSONSerialization.jsonObject(with: Data(contentsOf: output)) as? [String: Any])
         #expect(report["failures"] as? [String] == [] && report["catalogValidated"] as? Bool == true)
-        #expect(report["visibleModels"] as? Int == 8 && report["visibleDemos"] as? Int == 11)
+        #expect(report["visibleModels"] as? Int == 8 && report["visibleDemos"] as? Int == 12)
         #expect(
             report["catalogDemos"] as? [String]
-                == unconnected.union(["ocr", "product-sales-forecast", "receipt-desk", "taxi-forecast"]).sorted())
+                == unconnected.union([
+                    "ocr", "product-sales-forecast", "receipt-desk", "seoul-bike-forecast", "taxi-forecast",
+                ]).sorted())
         let connections = try #require(report["registry"] as? [String: Any])
         #expect(
             connections["connectedDemos"] as? [String] == [
-                "ocr", "product-sales-forecast", "receipt-desk", "taxi-forecast",
+                "ocr", "product-sales-forecast", "receipt-desk", "seoul-bike-forecast", "taxi-forecast",
             ])
         #expect(connections["unconnectedDemos"] as? [String] == unconnected.sorted())
         #expect(connections["matchesCatalog"] as? Bool == true)

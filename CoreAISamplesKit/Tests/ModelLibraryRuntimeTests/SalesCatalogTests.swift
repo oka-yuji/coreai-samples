@@ -10,7 +10,7 @@ struct ForecastCatalogTests {
         for catalog in catalogs {
             let model = try #require(catalog.model("chronos2"))
             #expect(model.artifacts == [artifact])
-            #expect(model.demos.map(\.demoID) == ["taxi-forecast", "product-sales-forecast"])
+            #expect(model.demos.map(\.demoID) == ["taxi-forecast", "product-sales-forecast", "seoul-bike-forecast"])
             let sales = try #require(catalog.demo(ChronosDemoCatalog.salesSelection.demoID))
             #expect(sales.title == "Product sales forecast" && sales.allowsPreviewInteraction)
             #expect(sales.explanation.contains { $0.text.contains("CC BY-NC 3.0") })

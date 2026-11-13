@@ -31,10 +31,10 @@ enum ForecastFixture {
         SalesDataRepository(cacheDirectory: root, fetch: { csv() }, admit: SalesDataset.parse)
     }
 
-    static func session(_ number: Int) -> ModelDemoSession {
+    static func session(_ number: Int, kind: ForecastKind = .productSales) -> ModelDemoSession {
         let owner = UUID()
         return ModelDemoSession(
-            id: LibraryTicket(owner: owner, number: number), selection: ChronosDemoCatalog.salesSelection,
+            id: LibraryTicket(owner: owner, number: number), selection: kind.selection,
             resource: ValidatedModelResource(
                 modelID: "chronos2", artifactID: "chronos2-fp32", contract: "chronos2-fp32-v1",
                 revision: String(repeating: "a", count: 64), upstreamRevision: ChronosContract.revision,
@@ -66,7 +66,9 @@ final class ForecastServiceFake: ForecastService {
     var predictions = 0
     var releasedWhileBusy = false
 
-    init() throws { dataset = try SalesDataset.parse(ForecastFixture.csv()) }
+    init(dataset: ForecastDataset? = nil) throws {
+        self.dataset = try dataset ?? SalesDataset.parse(ForecastFixture.csv())
+    }
 
     func load(refresh: Bool) async throws -> ForecastDataset {
         loads += 1

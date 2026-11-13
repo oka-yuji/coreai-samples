@@ -18,15 +18,18 @@ public final class ForecastDemoSessions {
     public typealias Factory =
         @MainActor (ValidatedModelResource, @escaping @MainActor () -> Bool) -> any ForecastService
     private let makeService: Factory
+    public let kind: ForecastKind
     private let observe: @MainActor (LibraryTicket, ForecastFeature.Action) -> Void
     private var entries: [LibraryTicket: Entry] = [:]
     private var latest: LibraryTicket?
 
     public init(
+        kind: ForecastKind = .productSales,
         makeService: Factory? = nil,
         observe: @escaping @MainActor (LibraryTicket, ForecastFeature.Action) -> Void = { _, _ in }
     ) {
-        self.makeService = makeService ?? { LiveForecastService(resource: $0, permits: $1) }
+        self.kind = kind
+        self.makeService = makeService ?? { LiveForecastService(kind: kind, resource: $0, permits: $1) }
         self.observe = observe
     }
 
@@ -38,7 +41,7 @@ public final class ForecastDemoSessions {
     public func bind(
         _ session: ModelDemoSession, permits: @escaping @MainActor () -> Bool
     ) -> Store<ForecastFeature>? {
-        guard session.selection == ChronosDemoCatalog.salesSelection, permits() else { return nil }
+        guard session.selection == kind.selection, permits() else { return nil }
         if let entry = entries[session.id] {
             return entry.session == session && entry.permission.active ? entry.store : nil
         }
@@ -49,7 +52,8 @@ public final class ForecastDemoSessions {
         }
         let runner = ForecastRunner(service: makeService(session.resource, allowed), permits: allowed)
         let observe = observe
-        let store = Store<ForecastFeature>(initialState: ForecastFeature.State(liveAvailable: true)) { effect, send in
+        let store = Store<ForecastFeature>(initialState: ForecastFeature.State(kind: kind, liveAvailable: true)) {
+            effect, send in
             await runner.run(effect) { action in
                 send(action)
                 observe(session.id, action)
@@ -71,10 +75,18 @@ public final class ForecastDemoSessions {
         if latest == session.id { latest = nil }
     }
 
-    public static func preview(service: (any ForecastService)? = nil) -> Store<ForecastFeature> {
-        let runner = ForecastRunner(service: service ?? LiveForecastService())
-        return Store<ForecastFeature>(initialState: ForecastFeature.State()) { effect, send in
+    public static func preview(
+        kind: ForecastKind = .productSales, service: (any ForecastService)? = nil
+    ) -> Store<ForecastFeature> {
+        let runner = ForecastRunner(service: service ?? LiveForecastService(kind: kind))
+        return Store<ForecastFeature>(initialState: ForecastFeature.State(kind: kind)) { effect, send in
             await runner.run(effect, send: send)
         }
+    }
+}
+
+extension ForecastKind {
+    public var selection: DemoSelection {
+        self == .productSales ? ChronosDemoCatalog.salesSelection : ChronosDemoCatalog.bikeSelection
     }
 }

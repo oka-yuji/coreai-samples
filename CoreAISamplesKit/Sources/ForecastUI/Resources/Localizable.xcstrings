@@ -996,6 +996,652 @@
           }
         }
       }
+    },
+    "Seoul Bike forecast" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seoul Bike forecast"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seoul Bike予測"
+          }
+        }
+      }
+    },
+    "Hourly observed rentals · Asia/Seoul" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hourly observed rentals · Asia/Seoul"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "時間別レンタル実績 · Asia/Seoul"
+          }
+        }
+      }
+    },
+    "Load bundled bike data" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Load bundled bike data"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "同梱の自転車データを読み込む"
+          }
+        }
+      }
+    },
+    "Forecast start · Asia/Seoul" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Forecast start · Asia/Seoul"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "予測起点 · Asia/Seoul"
+          }
+        }
+      }
+    },
+    "Hour · Asia/Seoul" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hour · Asia/Seoul"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "時刻 · Asia/Seoul"
+          }
+        }
+      }
+    },
+    "1 h" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 h"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1時間"
+          }
+        }
+      }
+    },
+    "4 h" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "4 h"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "4時間"
+          }
+        }
+      }
+    },
+    "8 h" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "8 h"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "8時間"
+          }
+        }
+      }
+    },
+    "16 h" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "16 h"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "16時間"
+          }
+        }
+      }
+    },
+    "Compared hours: %lld / %lld" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compared hours: %lld / %lld"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "比較した時間数: %lld / %lld"
+          }
+        }
+      }
+    },
+    "Rentals by hour" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rentals by hour"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "時間別レンタル件数"
+          }
+        }
+      }
+    },
+    "Rentals by hour · Asia/Seoul" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rentals by hour · Asia/Seoul"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "時間別レンタル件数 · Asia/Seoul"
+          }
+        }
+      }
+    },
+    "History shows the last 72 hours in Asia/Seoul. Gaps are missing observations." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "History shows the last 72 hours in Asia/Seoul. Gaps are missing observations."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Asia/Seoulの直前72時間を表示しています。空白は欠測です。"
+          }
+        }
+      }
+    },
+    "168-hour seasonal naive · dashed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "168-hour seasonal naive · dashed"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "168時間周期の季節ナイーブ · 破線"
+          }
+        }
+      }
+    },
+    "Shutdown zeros are observed rentals, not zero latent demand. The P10–P90 range is not a coverage guarantee." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shutdown zeros are observed rentals, not zero latent demand. The P10–P90 range is not a coverage guarantee."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "非稼働時の0件はレンタル実績であり、潜在需要がないという意味ではありません。P10〜P90の範囲は実績の包含を保証しません。"
+          }
+        }
+      }
+    },
+    "Input: only the preceding 336 hourly rental counts. Horizons are 1, 4, 8 or 16 hours. Weather inputs and 24-hour or recursive forecasts are not supported." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Input: only the preceding 336 hourly rental counts. Horizons are 1, 4, 8 or 16 hours. Weather inputs and 24-hour or recursive forecasts are not supported."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "入力は起点より前の336時間のレンタル件数だけです。予測期間は1・4・8・16時間です。天候入力、24時間予測、予測値を再入力する延長予測には対応していません。"
+          }
+        }
+      }
+    },
+    "Runtime includes validation and model loading when needed. Metrics compare the same hours with actuals, median and baseline. WAPE is unavailable when actuals sum to zero. Negative predictions use zero in the chart and metrics; all raw quantiles are preserved." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Runtime includes validation and model loading when needed. Metrics compare the same hours with actuals, median and baseline. WAPE is unavailable when actuals sum to zero. Negative predictions use zero in the chart and metrics; all raw quantiles are preserved."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "実行時間には検査と必要時のモデル読み込みを含みます。指標は実績・中央値・基準値がそろう同じ時間で比較します。実績の合計が0ならWAPEは算出しません。負の予測値はグラフと指標だけ0とし、全分位の原値を保持します。"
+          }
+        }
+      }
+    },
+    "The bundled bike data could not be verified. Close and reopen the demo to retry." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The bundled bike data could not be verified. Close and reopen the demo to retry."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "同梱の自転車データを検証できませんでした。デモを閉じて開き直してください。"
+          }
+        }
+      }
+    },
+    "Choose a valid whole hour and horizon." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose a valid whole hour and horizon."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "有効な整数時と予測期間を選んでください。"
+          }
+        }
+      }
+    },
+    "Past observed weather · last 72 hours" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Past observed weather · last 72 hours"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "過去の実測天候 · 直前72時間"
+          }
+        }
+      }
+    },
+    "Past observations only: not model input and not a future weather forecast." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Past observations only: not model input and not a future weather forecast."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "過去の実測値です。モデル入力や将来の天気予報ではありません。"
+          }
+        }
+      }
+    },
+    "Last observation · %@ Asia/Seoul" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Last observation · %@ Asia/Seoul"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最後の観測 · %@ Asia/Seoul"
+          }
+        }
+      }
+    },
+    "Operating: yes" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Operating: yes"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "稼働状態: 稼働"
+          }
+        }
+      }
+    },
+    "Operating: no · observed rentals are zero" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Operating: no · observed rentals are zero"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "稼働状態: 非稼働 · レンタル実績は0件"
+          }
+        }
+      }
+    },
+    "Holiday: yes" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Holiday: yes"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "休日: はい"
+          }
+        }
+      }
+    },
+    "Holiday: no" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Holiday: no"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "休日: いいえ"
+          }
+        }
+      }
+    },
+    "Rainfall (mm)" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rainfall (mm)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "降水量 (mm)"
+          }
+        }
+      }
+    },
+    "Temperature (°C)" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Temperature (°C)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "気温 (°C)"
+          }
+        }
+      }
+    },
+    "Rainfall (mm) · Asia/Seoul" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rainfall (mm) · Asia/Seoul"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "降水量 (mm) · Asia/Seoul"
+          }
+        }
+      }
+    },
+    "Temperature (°C) · Asia/Seoul" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Temperature (°C) · Asia/Seoul"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "気温 (°C) · Asia/Seoul"
+          }
+        }
+      }
+    },
+    "Source: Seoul Bike Sharing Demand · UCI" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Source: Seoul Bike Sharing Demand · UCI"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "出典: Seoul Bike Sharing Demand · UCI"
+          }
+        }
+      }
+    },
+    "Seoul Bike Sharing Demand [Dataset]. (2020). UCI Machine Learning Repository. https://doi.org/10.24432/C5F62R." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seoul Bike Sharing Demand [Dataset]. (2020). UCI Machine Learning Repository. https://doi.org/10.24432/C5F62R."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seoul Bike Sharing Demand [Dataset]. (2020). UCI Machine Learning Repository. https://doi.org/10.24432/C5F62R."
+          }
+        }
+      }
+    },
+    "Creative Commons Attribution 4.0 International (CC BY 4.0)" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Creative Commons Attribution 4.0 International (CC BY 4.0)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "クリエイティブ・コモンズ 表示 4.0 国際 (CC BY 4.0)"
+          }
+        }
+      }
+    },
+    "Encoding only: Windows-1252 (CP1252) to UTF-8. CRLF line endings, headers, rows, units and values are unchanged. No imputation or aggregation. The bundled sample works offline." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Encoding only: Windows-1252 (CP1252) to UTF-8. CRLF line endings, headers, rows, units and values are unchanged. No imputation or aggregation. The bundled sample works offline."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "文字コードだけをWindows-1252 (CP1252)からUTF-8へ変更しています。CRLF改行、列名、行、単位、値は維持し、補完や集計はしていません。同梱サンプルはオフラインで使えます。"
+          }
+        }
+      }
+    },
+    "Hour" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hour"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "時刻"
+          }
+        }
+      }
+    },
+    "mm" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "mm"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "mm"
+          }
+        }
+      }
+    },
+    "°C" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "°C"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "°C"
+          }
+        }
+      }
+    },
+    "Rentals" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rentals"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "レンタル件数"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

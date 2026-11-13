@@ -178,6 +178,8 @@
                                 }
                                 if selection == ChronosDemoCatalog.salesSelection {
                                     ForecastPreview(scrollsContent: false)
+                                } else if selection == ChronosDemoCatalog.bikeSelection {
+                                    ForecastPreview(kind: .seoulBike, scrollsContent: false)
                                 } else {
                                     ChronosPreview(scrollsContent: false)
                                 }

@@ -35,7 +35,7 @@ GLiNER2.5-multi、EmbeddingGemma 2、Qwen3.8 27B、Clef-Flash 9B、JEV-27B、Chr
 | MiniCPM-V 4.7 1B | 画像・動画の理解 | [—](docs/model-reports/minicpm-v47.ja.md#model-report) | [—](docs/model-reports/minicpm-v47.ja.md#model-report) | 対応予定 · 調査 | — | [ガイド・結果](docs/model-reports/minicpm-v47.ja.md) |
 | Depth Anything 3 Small | 深度・カメラ姿勢 | [—](docs/model-reports/depth-anything3.ja.md#model-report) | [—](docs/model-reports/depth-anything3.ja.md#model-report) | 対応予定 · 調査 | — | [ガイド・結果](docs/model-reports/depth-anything3.ja.md) |
 | LTX 2.5 | 動画生成 | [—](docs/model-reports/ltx25.ja.md#model-report) | [—](docs/model-reports/ltx25.ja.md#model-report) | 対応予定 · 調査 | — | [ガイド・結果](docs/model-reports/ltx25.ja.md) |
-| Chronos-2 | 時系列予測 | [✅](docs/chronos2.ja.md#model-report) | [△](docs/chronos2.ja.md#model-report) | 公開済み · FP32版を公開。MacでNYC固定/API/履歴・商品売上予測とModels新規取得/native照合を確認。実iPhoneと本人受入は未確認。 | [Hugging Face](https://huggingface.co/okayuji/chronos-2-coreai-fp32) | [ガイド・結果](docs/chronos2.ja.md) |
+| Chronos-2 | 時系列予測 | [✅](docs/chronos2.ja.md#model-report) | [△](docs/chronos2.ja.md#model-report) | 公開済み · Modelsから取得できるFP32版を公開。MacでNYC・商品売上・CPU専用Seoul Bikeを確認。実iPhoneと本人受入は未確認。 | [Hugging Face](https://huggingface.co/okayuji/chronos-2-coreai-fp32) | [ガイド・結果](docs/chronos2.ja.md) |
 <!-- model-catalog:end -->
 
 iOSアプリは通常起動で**Models**を開き、7つのデモを各実行部へ接続しています。固定版のGLiNER2.5-multi FP32とEmbeddingGemma 2のFP16（既定）またはINT4/INT8 PTQはHugging Faceから匿名で取得し、Irodori FP32は既知のローカルフォルダを取り込みます。全ファイルの検査後に操作が有効になります。Irodoriでは文・seedの入力、明示生成、再生・停止、WAV保存を試せます。[iPhoneの導入・確認手順（英語）](docs/irodori/iphone.md#use-irodori-from-models)を参照してください。[従来の統合記録](docs/validation/ios-models-integration-20261018.md)と[Irodoriの検証記録（英語）](docs/irodori/managed-validation.md)では、ホスト検証と未完了の実機受入を区別しています。ローカルの診断実行とバンドルの一般公開は別の到達点です。

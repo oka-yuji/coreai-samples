@@ -18,12 +18,15 @@ struct ForecastChart: View {
     let state: ForecastFeature.State
     @Environment(\.locale) private var locale
 
+    private var timeLabel: LocalizedStringKey { state.kind == .productSales ? "Date" : "Hour" }
+    private var quantityLabel: LocalizedStringKey { state.kind == .productSales ? "Sales" : "Rentals" }
+
     private var days: [Day] {
         guard let dataset = state.dataset,
             let series = dataset.series.first(where: { $0.id == state.seriesID }),
             let request = state.request
         else { return [] }
-        let start = max(0, state.originIndex - 56)
+        let start = max(0, state.originIndex - (state.kind == .productSales ? 56 : 72))
         var segment = 0
         return (start..<(state.originIndex + state.horizon)).map { index in
             let step = index - state.originIndex
@@ -48,38 +51,50 @@ struct ForecastChart: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Sales by calendar date", bundle: .module).font(.headline)
+            Text(
+                LocalizedStringKey(state.kind == .productSales ? "Sales by calendar date" : "Rentals by hour"),
+                bundle: .module
+            ).font(.headline)
             legend
             Chart(days) { day in
                 if let history = day.history {
-                    PointMark(x: .value("Date", day.id), y: .value("Sales", history))
+                    PointMark(x: .value(timeLabel, day.id), y: .value(quantityLabel, history))
                         .foregroundStyle(.secondary).symbolSize(16)
                 }
                 if let lower = day.lower, let upper = day.upper {
-                    AreaMark(x: .value("Date", day.id), yStart: .value("P10", lower), yEnd: .value("P90", upper))
+                    AreaMark(x: .value(timeLabel, day.id), yStart: .value("P10", lower), yEnd: .value("P90", upper))
                         .foregroundStyle(.blue.opacity(0.15))
+                    if state.horizon == 1 {
+                        RuleMark(x: .value(timeLabel, day.id), yStart: .value("P10", lower), yEnd: .value("P90", upper))
+                            .foregroundStyle(.blue.opacity(0.4)).lineStyle(StrokeStyle(lineWidth: 4))
+                    }
                 }
                 if let median = day.median {
-                    LineMark(x: .value("Date", day.id), y: .value("Median", median), series: .value("Series", "median"))
-                        .foregroundStyle(.blue).lineStyle(StrokeStyle(lineWidth: 2))
+                    LineMark(
+                        x: .value(timeLabel, day.id), y: .value("Median", median), series: .value("Series", "median")
+                    )
+                    .foregroundStyle(.blue).lineStyle(StrokeStyle(lineWidth: 2))
+                    PointMark(x: .value(timeLabel, day.id), y: .value("Median", median))
+                        .foregroundStyle(.blue).symbolSize(18)
                 }
                 if let baseline = day.baseline {
                     LineMark(
-                        x: .value("Date", day.id), y: .value("Baseline", baseline),
+                        x: .value(timeLabel, day.id), y: .value("Baseline", baseline),
                         series: .value("Series", "baseline-\(day.baselineSegment)")
                     )
                     .foregroundStyle(.orange).lineStyle(StrokeStyle(lineWidth: 2, dash: [5, 4]))
-                    PointMark(x: .value("Date", day.id), y: .value("Baseline", baseline))
+                    PointMark(x: .value(timeLabel, day.id), y: .value("Baseline", baseline))
                         .foregroundStyle(.orange).symbol(.diamond).symbolSize(16)
                 }
                 if let actual = day.actual {
-                    PointMark(x: .value("Date", day.id), y: .value("Actual", actual))
+                    PointMark(x: .value(timeLabel, day.id), y: .value("Actual", actual))
                         .foregroundStyle(.primary).symbol(.square).symbolSize(30)
                 }
             }
             .chartXScale(domain: visibleDomain)
             .chartXAxis {
-                AxisMarks(values: days.filter { $0.id % 14 == state.originIndex % 14 }.map(\.id)) { value in
+                let stride = state.kind == .productSales ? 14 : 24
+                AxisMarks(values: days.filter { $0.id % stride == state.originIndex % stride }.map(\.id)) { value in
                     AxisGridLine()
                     AxisTick()
                     AxisValueLabel {
@@ -93,15 +108,25 @@ struct ForecastChart: View {
             .frame(height: 280)
             .accessibilityRepresentation {
                 VStack(alignment: .leading) {
-                    Text("Sales by calendar date · Europe/Rome", bundle: .module)
+                    Text(
+                        LocalizedStringKey(
+                            state.kind == .productSales
+                                ? "Sales by calendar date · Europe/Rome" : "Rentals by hour · Asia/Seoul"),
+                        bundle: .module)
                     ForEach(days) { day in
                         Text(verbatim: accessibility(day)).accessibilityElement(children: .ignore)
                             .accessibilityLabel(accessibility(day))
                     }
                 }.accessibilityElement(children: .contain)
             }
-            Text("History shows the last 8 weeks. Gaps are missing observations.", bundle: .module)
-                .font(.caption).foregroundStyle(.secondary)
+            Text(
+                LocalizedStringKey(
+                    state.kind == .productSales
+                        ? "History shows the last 8 weeks. Gaps are missing observations."
+                        : "History shows the last 72 hours in Asia/Seoul. Gaps are missing observations."),
+                bundle: .module
+            )
+            .font(.caption).foregroundStyle(.secondary)
         }
     }
 
@@ -123,7 +148,10 @@ struct ForecastChart: View {
                 Image(systemName: "line.diagonal").foregroundStyle(.blue)
             }
             Label {
-                Text("7-day seasonal naive · dashed", bundle: .module)
+                Text(
+                    LocalizedStringKey(
+                        state.kind == .productSales
+                            ? "7-day seasonal naive · dashed" : "168-hour seasonal naive · dashed"), bundle: .module)
             } icon: {
                 Image(systemName: "diamond.fill").foregroundStyle(.orange)
             }
@@ -138,7 +166,7 @@ struct ForecastChart: View {
                 ("Actuals", day.actual), ("Median", day.median), ("P10", day.lower), ("P90", day.upper),
                 ("Seasonal naive", day.baseline),
             ]
-        return "\(day.label) Europe/Rome, \(state.seriesID). "
+        return "\(day.label) \(state.kind.timeZoneID), \(state.seriesID). "
             + values.map { name, value in
                 ForecastCopy.text(name, locale: locale) + ": "
                     + (value.map { ForecastCopy.number(Double($0), locale: locale) }

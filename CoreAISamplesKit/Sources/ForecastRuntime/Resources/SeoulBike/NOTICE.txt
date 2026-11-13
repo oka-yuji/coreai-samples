@@ -1,0 +1,15 @@
+Seoul Bike Sharing Demand [Dataset]. (2020). UCI Machine Learning Repository. https://doi.org/10.24432/C5F62R.
+
+Source: https://archive.ics.uci.edu/dataset/560/seoul+bike+sharing+demand
+Original archive: https://archive.ics.uci.edu/static/public/560/seoul%2Bbike%2Bsharing%2Bdemand.zip
+License: Creative Commons Attribution 4.0 International (CC BY 4.0).
+https://creativecommons.org/licenses/by/4.0/
+
+Modification: Encoding only, from Windows-1252 (CP1252) to UTF-8.
+CRLF line endings, headers, rows, units and values are unchanged.
+No imputation or aggregation was performed.
+
+These are observed rentals and historical observed weather in Asia/Seoul.
+The 295 Functioning Day=No rows record zero rentals during shutdown;
+they do not establish zero latent demand. Weather is not a future forecast.
+No forecast-quality claim is made.
