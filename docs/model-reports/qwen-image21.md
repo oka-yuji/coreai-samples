@@ -1,8 +1,41 @@
-# Qwen Image 2.1 Turbo
+# Mobile Image Lab
 
 [Home](../../README.md) · [日本語](qwen-image21.ja.md)
 
-Image generation and editing
+Generate an image from text or edit one reference image with Apple Core AI. This conversion of Qwen Image 2.1 Turbo is for **non-commercial research and evaluation only**. **Built with Qwen**.
+
+The calibrated configuration is **iPhone 17 Pro, iOS 27.0.1 (`iPhone18,1` / `24A446`)**. Other hardware or OS builds remain unavailable for generation. A native Mac image demo is not provided.
+
+## Quick start
+
+Build the iOS app from [PR #565](https://github.com/oka-yuji/coreai-samples/pull/565) or a main revision containing it. In **Models → Mobile Image Lab**, select **Mobile Image Lab W4/W8**, choose **Download model**, and open the image-generation demo after inspection completes. Enter a prompt to generate; adding one reference image selects editing. Generation starts only after your explicit action.
+
+The [public bundle](https://huggingface.co/okayuji/mobile-image-lab-coreai) has **51 files, 13,783,495,057 bytes** under `bundle/`, pinned to `fdd2b8cb17f48976207039f1f780360ba60275dc` (`v1.0.0`). Transfer and preparation need additional free space; payload size is not a measured RAM requirement. The profile produces 512 × 512 images in eight steps.
+
+For an existing installation, select the retained legacy W4/W8 variant. Its original `8b9e3474…` manifest and calibration remain separate from the public `9d61c180…` identity. Selection does not automatically migrate, replace or download an installed bundle. The [local-import contract](../qwen-image21-local-import.md) covers folder import.
+
+## Release verification
+
+The [release record](../validation/mobile-image-lab-release-20261113/README.md) separates publication, acquisition, service binding and device acceptance. Local payload, authenticated full-history and publication-gate audits passed; the anonymous full-history audit also passed. The new app entry passed CPU regressions, Mac Release, signed iOS Release, actual signature/entitlement checks and compiled Japanese/English string checks. Fresh production acquisition is tracked separately in that record. Ordinary iPhone interaction remains [QD-07](https://github.com/oka-yuji/coreai-samples/issues/562).
+
+Only `README.txt`, `NOTICE.txt` and their two inventory entries in `bundle.json` differ from the original asset. The other 48 files and computational manifest values match. The existing five component budgets are explicitly bound to the new full identity; **this metadata equivalence is not a new device measurement**. Hardware, OS, profile, identity and memory checks remain in force.
+
+## Saved output example
+
+The [saved teapot PNG](https://huggingface.co/okayuji/mobile-image-lab-coreai/resolve/fdd2b8cb17f48976207039f1f780360ba60275dc/examples/g02-20261021.png) is attempt `0-0`, case `g02-20261021`, from the November 1 calibration: iPhone 17 Pro / iOS 27.0.1, code `03e6184`, fixed noise, runtime diagnostics enabled and a new service per request. It took **308.60 seconds** using the original `8b9e3474…` bundle. This is a historical diagnostic, not a new download-path speed result or latency guarantee. [Conditions and output hash](../research/qwen-image21-device-calibration-20261101.json).
+
+## Limitations
+
+- Hardware/build support is limited to the exact calibrated pair above; iOS acceptance remains pending. Publication does not establish support for a newer OS or another phone.
+- Historical ten-request results, failed comparisons and unmet performance goals below are retained. Ordinary UI acceptance, warm p50/p95 and immediate reuse of one service remain separate. No new image-quality or speed benchmark was performed for this release.
+- The 62,370,841,163-byte FP32 diagnostic bundle in the historical tables is a different artifact from this release.
+- Successful download, inspection or service construction does not establish image-generation success on the user's phone.
+
+## License and attribution
+
+Weights, upstream configuration and converted model assets use the September 20, 2026 [Qwen Research License Agreement](https://huggingface.co/okayuji/mobile-image-lab-coreai/blob/fdd2b8cb17f48976207039f1f780360ba60275dc/bundle/LICENSE). Non-commercial means **research or evaluation only**; commercial use requires a separate license from the original rights holder.
+
+The bundle includes the unchanged license and [NOTICE.txt](https://huggingface.co/okayuji/mobile-image-lab-coreai/blob/fdd2b8cb17f48976207039f1f780360ba60275dc/bundle/NOTICE.txt) with required attribution and modification notices. Upstream is [Qwen/Qwen-Image-2.1-Turbo at `fc13ba1`](https://huggingface.co/Qwen/Qwen-Image-2.1-Turbo/tree/fc13ba1986fcb905854dc8de2f52eee395f49b5b). Mobile Image Lab is the distribution's primary name; Qwen identifies its origin. The app-code license does not replace the model terms or grant general trademark rights.
 
 <!-- model-report:start -->
 <a id="model-report"></a>
@@ -18,7 +51,7 @@ Results below retain their original dates and workloads. Different rows may use 
 | Platform | State | Verified scope / remaining work | Evidence |
 |---|---|---|---|
 | macos | — | Native demo is not provided for this platform. | — |
-| ios | △ | Ten fixed generation/editing requests completed in one main-app process and all saved RGBA8/PNG pixels match the accepted native outputs. The measured profile is limited to iPhone18,1 / 24A446 and the pinned local artifact. Models imported all 13,783,495,099 bytes, restored the installed resource in new processes, and bound then closed one production image service with the adopted budget. Ordinary UI interaction, owner acceptance and latency acceptance remain separate; no public model download is configured. | [E16](../research/qwen-image21-png-input-device-20261030.json) · [E17](../research/qwen-image21-device-calibration-20261101.json) · [E18](../research/qwen-image21-device-calibration-20261101.json) |
+| ios | △ | Ten fixed generation/editing requests completed in one main-app process and all saved RGBA8/PNG pixels match the accepted native outputs. The measured profile is limited to iPhone18,1 / 24A446 and the pinned local artifact. Models imported all 13,783,495,099 bytes, restored the installed resource in new processes, and bound then closed one production image service with the adopted budget. Ordinary UI interaction, owner acceptance and latency acceptance remain separate; no public model download is configured. Those historical results retain the original 8b9e3474 manifest. The separate public 9d61c180 identity has a pinned download and explicitly inherited calibration; metadata equivalence is not a new device measurement. | [E16](../research/qwen-image21-png-input-device-20261030.json) · [E17](../research/qwen-image21-device-calibration-20261101.json) · [E18](../research/qwen-image21-device-calibration-20261101.json) |
 
 ### Performance and quality
 
@@ -101,4 +134,12 @@ Results below retain their original dates and workloads. Different rows may use 
 - [Nine completed trials and the interrupted tenth request](../research/qwen-image21-device-series-partial-20261031.json)
 
 - [Ten-request device calibration, recovery and Models verification](../research/qwen-image21-device-calibration-20261101.json)
+
+- [Public research bundle](https://huggingface.co/okayuji/mobile-image-lab-coreai)
+
+- [Public download and identity binding #562](https://github.com/oka-yuji/coreai-samples/issues/562)
+
+- [Pinned model license](https://huggingface.co/okayuji/mobile-image-lab-coreai/blob/fdd2b8cb17f48976207039f1f780360ba60275dc/bundle/LICENSE)
+
+- [Public release verification](../validation/mobile-image-lab-release-20261113/README.md)
 <!-- model-report:end -->

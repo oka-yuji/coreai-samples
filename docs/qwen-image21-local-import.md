@@ -1,6 +1,6 @@
 # Qwen Image local bundle import
 
-This implements the acquisition contract from [#263](https://github.com/oka-yuji/coreai-samples/issues/263), QMI practical v2. The production allowlist is currently empty: a reviewed bundle from #216 must supply its real manifest hash and complete file inventory before Qwen appears in the ordinary Models catalog. CPU fixtures exercise the contract without loading model weights. They do not complete the real-device acceptance checks.
+This records the local acquisition contract introduced by [#263](https://github.com/oka-yuji/coreai-samples/issues/263), QMI practical v2. The ordinary catalog now retains the original calibrated local variant and adds the separately identified public Mobile Image Lab variant. See the [model guide](model-reports/qwen-image21.md) for download, exact device/OS support and research-license conditions. The original implementation acceptance below is historical, not the release status.
 
 ## Trust and storage
 
@@ -16,14 +16,14 @@ Copying and promotion belong to one resource operation. The copied notification 
 
 `IOSDemoCatalog.make(localImageArtifacts:)` supports injecting trusted definitions for CPU verification. Ordinary app construction uses its built-in allowlist. Registered adapter IDs must be unique and known; missing adapters require an explicit unconnected-demo declaration. An unconnected image-generation demo can explain and acquire its resource without invoking a model adapter.
 
-The Models self-test accepts `--import-local-bundle` with a Documents-relative folder and requires exactly one local artifact selected with `--acquire`. Its report distinguishes source kind, manifest identity, acquisition failure and the inspection of any preserved installation. Actual device commands and bundle identity will be recorded when #216 supplies the reviewed artifact.
+The Models self-test accepts `--import-local-bundle` with a Documents-relative folder and requires exactly one local artifact selected with `--acquire`. Its report distinguishes source kind, manifest identity, acquisition failure and the inspection of any preserved installation. The [November 1 device record](research/qwen-image21-device-calibration-20261101.json) identifies the original local bundle and its device import/service-binding checks. Explicit connection diagnostics must select the exact requested legacy or public artifact before opening the demo.
 
 ```sh
 swift test --package-path CoreAISamplesKit \
   --filter 'ModelLocalSourceTests|ModelLocalImportFeatureTests|LocalImageImportTests|LocalImportRunnerTests|LocalImageCatalogTests|ManagedModelStoreTests.legacySourceLedger'
 ```
 
-## Acceptance boundaries
+## Original #263 acceptance boundaries
 
 | Condition | Evidence and remaining work |
 |---|---|
