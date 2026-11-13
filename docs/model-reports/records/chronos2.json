@@ -369,13 +369,13 @@
       "toolchain": "Xcode 27.2 (27B52); Swift 6.4.2; SDK 27.2; Debug package and Release Mac/iOS builds",
       "variant": "coreai-fp32-univariate",
       "backend": "Swift Core AI cpuOnly; EFR=false; per-operator placement not profiled",
-      "route": "Production Models/Store/Service/Sessions; independent source/raw/metric audit; separate normal Mac GUI at7251127",
+      "route": "Production Models/Store/Service/Sessions; independent source/raw/metric audit; separate normal Mac GUI at 7251127",
       "source_revision": "29ec3766d36d6f73f0696f85560a422f50e8498c",
       "artifact_revision": "786dcf97e020c987cbf883f09b486fba5f3fee30a588b87a346ea65d72d20572",
       "code_revision": "0008c7d7a74693172a93eb2a1b0de8908e91fb3e",
       "workload": {
-        "en": "Five frozen Seoul origins,336 preceding counts, all21x16 raw values, two passes/3360 comparisons and zero leases. First-pass80-hour diagnostics only; earlier GPU failure retained. No iPhone or controlled benchmark.",
-        "ja": "Seoulの固定5起点、直前336件、全21x16原値を2回/3360値照合しlease0。初回80時間の診断だけで、先のGPU不合格も保持。iPhoneと制御benchmarkは未確認。"
+        "en": "Five frozen Seoul origins, 336 preceding counts, all 21 × 16 raw values, two passes / 3,360 comparisons and zero leases. First-pass 80-hour diagnostics only; earlier GPU failure retained. No iPhone or controlled benchmark.",
+        "ja": "Seoulの固定5起点、直前336時間、全21分位×16点を2回・3,360値照合しlease 0を確認。初回80時間の診断だけで、先のGPU不合格も保持。iPhoneと制御benchmarkは未確認。"
       },
       "batch_size": 1,
       "concurrency": 1,
@@ -402,8 +402,8 @@
       "artifact_revision": "786dcf97e020c987cbf883f09b486fba5f3fee30a588b87a346ea65d72d20572",
       "code_revision": "1b47558cbc1943780815aaa391cf780f3d8d3ac1",
       "workload": {
-        "en": "May17 tail scalar exceeds frozen atol/rtol1e-4 on each pass. EFR=true also failed a different scalar. CPU-only was subsequently adopted without changing assets or thresholds.",
-        "ja": "May17の裾の1値が各passで固定atol/rtol1e-4を超えた。EFR=trueも別の値が不合格。資産と閾値を変えずCPU専用を採用した。"
+        "en": "The May 17 tail scalar exceeds frozen atol/rtol 1e-4 on each pass. EFR=true also failed a different scalar. CPU-only was subsequently adopted without changing assets or thresholds.",
+        "ja": "May 17の裾の1値が各passで固定atol/rtol 1e-4を超えた。EFR=trueも別の値が不合格。資産と閾値を変えずCPU専用を採用した。"
       },
       "batch_size": 1,
       "concurrency": 1,
@@ -575,8 +575,8 @@
       "n": 3360,
       "evidence": "bike-20261113",
       "note": {
-        "en": "CPU-only bike: five frozen windows twice; all raw values meet fixed atol/rtol1e-4. Repeats are not independent quality samples.",
-        "ja": "CPU専用の自転車5窓を2回。全原値が固定atol/rtol1e-4以内。反復は独立した品質標本ではない。"
+        "en": "CPU-only bike: five frozen windows twice; all raw values meet fixed atol/rtol 1e-4. Repeats are not independent quality samples.",
+        "ja": "CPU専用の自転車5窓を2回。全原値が固定atol/rtol 1e-4以内。反復は独立した品質標本ではない。"
       },
       "source_value": {
         "path": "docs/validation/chronos2-bike-20261113/results.json",
@@ -591,7 +591,7 @@
       "n": 80,
       "evidence": "bike-20261113",
       "note": {
-        "en": "First-pass80 hourly pairs only; naive comparison and unfavorable per-origin results are retained. No held-out quality claim.",
+        "en": "First-pass 80 hourly pairs only; naive comparison and unfavorable per-origin results are retained. No held-out quality claim.",
         "ja": "初回80時間の同一ペア。季節ナイーブと不利な起点別結果も保持。未使用データの品質評価ではない。"
       },
       "source_value": {
@@ -607,7 +607,7 @@
       "n": 80,
       "evidence": "bike-20261113",
       "note": {
-        "en": "Same80 pairs and denominator; per-hour groups08:00-23:00 have five dates each.",
+        "en": "Same 80 pairs and denominator; per-hour groups from 08:00 through 23:00 contain five dates each.",
         "ja": "同じ80ペアと分母。08〜23時の時間帯別は各5日だけ。"
       },
       "source_value": {

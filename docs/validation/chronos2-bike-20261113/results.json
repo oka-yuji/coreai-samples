@@ -44,7 +44,7 @@
     "reference_sha256": "faf013707ad003f8f0995407d54900b5c826bff8311b2bf90f5484b5c6dab8f0",
     "report_sha256": "d66e62173d4378dce11104828665f8ccd0a11294e14dd7d3513a43d8c6ef190f",
     "independent_source_raw_and_metric_audit": true,
-    "later_locale_change": "Native source modules, dependencies and fixed conditions unchanged; normal GUI and full builds rerun at7251127. Exact per-kind verification-input comparisons retained privately."
+    "later_locale_change": "Native source modules, dependencies and fixed conditions unchanged; normal GUI and full builds rerun at 7251127. Exact per-kind verification-input comparisons retained privately."
   },
   "retained_failures": {
     "initial_gpu_native": "Strict comparison failed before a full report was saved; not counted as a pass.",
@@ -266,7 +266,7 @@
       "baseline_wape": 0.9390557939914163
     }
   ],
-  "quality_boundary": "First pass only, five fixed retrospective origins at08:00. Future observations excluded from input, but unseen pretraining data, general forecasting quality and calibrated coverage are not established. Second pass is a repeat check. Median negatives clipped only for display/metrics; no quantile sorting.",
+  "quality_boundary": "First pass only, five fixed retrospective origins at 08:00. Future observations are excluded from input, but unseen pretraining data, general forecasting quality and calibrated coverage are not established. The second pass is a repeat check. Median negatives are clipped only for display/metrics; quantiles are not sorted.",
   "timing": {
     "loaded_request_seconds": [
       1.042556959,
@@ -296,8 +296,8 @@
     "device": "Apple M5 Max / Mac17,6",
     "ram_bytes": 137438953472,
     "os": "Version 27.2.1 (Build 26B131)",
-    "toolchain": "Xcode27.2(27B52); Swift6.4.2; SDK27.2",
-    "reference": "chronos-forecasting2.3.2 / Torch2.9.0, official CPU FP32",
+    "toolchain": "Xcode 27.2 (27B52); Swift 6.4.2; SDK 27.2",
+    "reference": "chronos-forecasting 2.3.2 / Torch 2.9.0, official CPU FP32",
     "power": "AC before and after",
     "thermal": "pmset: no thermal/performance warnings; temperature and utilization unmeasured",
     "record_type": "legacy functional record, not a controlled benchmark",
@@ -337,10 +337,10 @@
       "date_change_clears_result_without_auto_predict": true
     },
     "zero_actuals": {
-      "selection_basis": "Earliest source hour08 window after required history with16 zero actuals:2018-04-11",
+      "selection_basis": "Earliest source window starting at 08:00 after the required history with 16 zero actuals: 2018-04-11",
       "original_planned_oct5_zero_assumption_was_incorrect": true,
       "oct5_actual_sum": 713,
-      "april11_nonfunctioning": "No in all16source rows",
+      "april11_nonfunctioning": "No in all 16 source rows",
       "h16_count": 16,
       "model_mae": 307.79,
       "naive_mae": 1163.75,
@@ -459,7 +459,7 @@
     ],
     "parent_changes": [
       "OS temporary test fixtures and public reproduction instructions",
-      "Finite-scalar failures remain test failures while complete format2 reports are saved",
+      "Finite-scalar failures remain test failures while complete format 2 reports are saved",
       "CPU-only execution for Seoul Bike with fixed threshold unchanged",
       "Explicit language lookup for shared forecast AX labels and unavailable metrics"
     ]
