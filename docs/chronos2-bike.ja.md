@@ -51,3 +51,5 @@ COREAI_FORECAST_BUNDLE=/path/to/chronos2-bundle COREAI_BIKE_REFERENCE=/path/to/b
 version 2のreportは条件ごとと全体の `scalarFailures` を記録します。数値不一致は試験失敗を維持したまま、残りの原出力とlease検査も記録します。reportが存在するだけでは合格ではなく、試験の正常終了と不一致0件の両方が必要です。入力・identity・shape・ライフサイクル・再実行一致が不成立なら、直ちに試験を停止します。
 
 実モデル、通常Mac/iPhone画面、読み上げ、署名build、本人受入は監督側の確認です。CPU成功や試験入口の追加だけでは合格にしません。
+
+[検証記録](validation/chronos2-bike-20261113/README.md)に、CPU専用の固定5窓を2回照合した結果、独立した指標計算、通常Mac操作、売上/NYC回帰、署名host buildを残しています。実iPhoneの推論と本人受入は未確認です。

@@ -1,0 +1,467 @@
+{
+  "format": "chronos2-bike-verification/1",
+  "date": "2026-11-13",
+  "acceptance": "Issue530 planv2; B1-B6 evidence, B7 user Mac/iPhone check remains open",
+  "native_code_revision": "0008c7d7a74693172a93eb2a1b0de8908e91fb3e",
+  "gui_code_revision": "7251127ee8e49ff0370299818b31be4817487930",
+  "source": {
+    "citation": "Seoul Bike Sharing Demand [Dataset]. (2020). UCI Machine Learning Repository.",
+    "doi": "https://doi.org/10.24432/C5F62R",
+    "license": "CC BY 4.0",
+    "rows": 8760,
+    "timezone": "Asia/Seoul",
+    "nonfunctioning_zero_rows": 295,
+    "transformation": "CP1252 to UTF-8 only; CRLF, rows and values retained",
+    "original_csv_sha256": "373339b71a8935d69e9af0abf26a70744632119862eeb3919efb389a7b749c60",
+    "utf8_csv_sha256": "d2f7a0f0ba95e82678ead794429a18a7f696aa3b82c9b9ec34ec47806ff0767b",
+    "manifest_sha256": "b0dc815d7d5f97f2aa0d1aeafdf116b756f273b3e660aab73a1e07fd15966593"
+  },
+  "model": {
+    "source_revision": "29ec3766d36d6f73f0696f85560a422f50e8498c",
+    "manifest_sha256": "786dcf97e020c987cbf883f09b486fba5f3fee30a588b87a346ea65d72d20572",
+    "shape": [
+      1,
+      21,
+      16
+    ],
+    "precision": "FP32",
+    "requested_compute_units": "cpuOnly",
+    "expect_frequent_reshapes": false,
+    "weights_changed": false
+  },
+  "native": {
+    "passed": true,
+    "cases_per_pass": 5,
+    "passes": 2,
+    "scalar_comparisons": 3360,
+    "scalar_failures": 0,
+    "atol": 0.0001,
+    "rtol": 0.0001,
+    "max_absolute_error": 0.001708984375,
+    "leases_after_each_close": 0,
+    "context_count": 336,
+    "padding_count": 0,
+    "reference_sha256": "faf013707ad003f8f0995407d54900b5c826bff8311b2bf90f5484b5c6dab8f0",
+    "report_sha256": "d66e62173d4378dce11104828665f8ccd0a11294e14dd7d3513a43d8c6ef190f",
+    "independent_source_raw_and_metric_audit": true,
+    "later_locale_change": "Native source modules, dependencies and fixed conditions unchanged; normal GUI and full builds rerun at7251127. Exact per-kind verification-input comparisons retained privately."
+  },
+  "retained_failures": {
+    "initial_gpu_native": "Strict comparison failed before a full report was saved; not counted as a pass.",
+    "gpu_full_report_scalar_failures": 2,
+    "gpu_preference_probe": {
+      "case": "2018-05-17T08:00 Asia/Seoul",
+      "failed_scalars_of_1680": 1,
+      "quantile_index": 0,
+      "step": 0,
+      "actual": -1.23602294921875,
+      "reference": -1.236328125,
+      "absolute_error": 0.00030517578125,
+      "threshold": 0.00022363281250000004,
+      "ratio": 1.3646288209606985,
+      "passed": false
+    },
+    "gpu_frequent_reshapes": "A different November quantile failed the same fixed tolerance; this setting was not adopted.",
+    "cause_boundary": "CPU-only passed all frozen values; the responsible numerical operation was not identified. No general accuracy comparison is inferred.",
+    "locale_gui": "EN body text changed while forecast/weather AX labels stayed Japanese; explicit Bundle language lookup fixed this, with red10issues/green2tests and final GUI confirmation."
+  },
+  "diagnostic_metrics": {
+    "valid_pairs": 80,
+    "actual_sum": 21245.0,
+    "model_mae": 449.954253578186,
+    "baseline_mae": 372.65,
+    "model_wape": 1.6943440944342143,
+    "baseline_wape": 1.4032478230171805
+  },
+  "per_origin": [
+    {
+      "origin": "2018-02-15T08:00 Asia/Seoul",
+      "valid_pairs": 16,
+      "actual_sum": 2865.0,
+      "model_mae": 28.907435417175293,
+      "baseline_mae": 120.0625,
+      "model_wape": 0.1614376847032477,
+      "baseline_wape": 0.6705061082024433
+    },
+    {
+      "origin": "2018-05-17T08:00 Asia/Seoul",
+      "valid_pairs": 16,
+      "actual_sum": 2889.0,
+      "model_mae": 358.3667392730713,
+      "baseline_mae": 180.5625,
+      "model_wape": 1.984724066586757,
+      "baseline_wape": 1.0
+    },
+    {
+      "origin": "2018-08-15T08:00 Asia/Seoul",
+      "valid_pairs": 16,
+      "actual_sum": 14219.0,
+      "model_mae": 93.96698951721191,
+      "baseline_mae": 336.5625,
+      "model_wape": 0.10573681920496453,
+      "baseline_wape": 0.3787186159364231
+    },
+    {
+      "origin": "2018-10-05T08:00 Asia/Seoul",
+      "valid_pairs": 16,
+      "actual_sum": 713.0,
+      "model_mae": 1133.7490062713623,
+      "baseline_mae": 44.5625,
+      "model_wape": 25.441772931755676,
+      "baseline_wape": 1.0
+    },
+    {
+      "origin": "2018-11-08T08:00 Asia/Seoul",
+      "valid_pairs": 16,
+      "actual_sum": 559.0,
+      "model_mae": 634.7810974121094,
+      "baseline_mae": 1181.5,
+      "model_wape": 18.169047510901162,
+      "baseline_wape": 33.8175313059034
+    }
+  ],
+  "per_hour": [
+    {
+      "hour_asia_seoul": "08:00",
+      "valid_pairs": 5,
+      "actual_sum": 1173.0,
+      "model_mae": 168.29462127685548,
+      "baseline_mae": 729.2,
+      "model_wape": 0.7173683771391963,
+      "baseline_wape": 3.1082693947144073
+    },
+    {
+      "hour_asia_seoul": "09:00",
+      "valid_pairs": 5,
+      "actual_sum": 806.0,
+      "model_mae": 153.66652069091796,
+      "baseline_mae": 309.0,
+      "model_wape": 0.9532662573878286,
+      "baseline_wape": 1.9168734491315136
+    },
+    {
+      "hour_asia_seoul": "10:00",
+      "valid_pairs": 5,
+      "actual_sum": 865.0,
+      "model_mae": 149.05251770019532,
+      "baseline_mae": 199.2,
+      "model_wape": 0.8615752468219382,
+      "baseline_wape": 1.1514450867052024
+    },
+    {
+      "hour_asia_seoul": "11:00",
+      "valid_pairs": 5,
+      "actual_sum": 992.0,
+      "model_mae": 189.87279663085937,
+      "baseline_mae": 224.6,
+      "model_wape": 0.957020144308767,
+      "baseline_wape": 1.1320564516129032
+    },
+    {
+      "hour_asia_seoul": "12:00",
+      "valid_pairs": 5,
+      "actual_sum": 1244.0,
+      "model_mae": 281.0220672607422,
+      "baseline_mae": 308.8,
+      "model_wape": 1.1295099166428544,
+      "baseline_wape": 1.2411575562700965
+    },
+    {
+      "hour_asia_seoul": "13:00",
+      "valid_pairs": 5,
+      "actual_sum": 1463.0,
+      "model_mae": 356.11192626953124,
+      "baseline_mae": 335.2,
+      "model_wape": 1.217060581919109,
+      "baseline_wape": 1.1455912508544088
+    },
+    {
+      "hour_asia_seoul": "14:00",
+      "valid_pairs": 5,
+      "actual_sum": 1312.0,
+      "model_mae": 330.5966461181641,
+      "baseline_mae": 284.6,
+      "model_wape": 1.259895755023491,
+      "baseline_wape": 1.0846036585365855
+    },
+    {
+      "hour_asia_seoul": "15:00",
+      "valid_pairs": 5,
+      "actual_sum": 1287.0,
+      "model_mae": 397.9910064697266,
+      "baseline_mae": 263.2,
+      "model_wape": 1.546196606331494,
+      "baseline_wape": 1.0225330225330225
+    },
+    {
+      "hour_asia_seoul": "16:00",
+      "valid_pairs": 5,
+      "actual_sum": 1294.0,
+      "model_mae": 501.9654479980469,
+      "baseline_mae": 274.2,
+      "model_wape": 1.9395882843819432,
+      "baseline_wape": 1.0595054095826892
+    },
+    {
+      "hour_asia_seoul": "17:00",
+      "valid_pairs": 5,
+      "actual_sum": 1423.0,
+      "model_mae": 658.387939453125,
+      "baseline_mae": 428.6,
+      "model_wape": 2.313379969968816,
+      "baseline_wape": 1.5059732958538299
+    },
+    {
+      "hour_asia_seoul": "18:00",
+      "valid_pairs": 5,
+      "actual_sum": 1660.0,
+      "model_mae": 922.4404846191406,
+      "baseline_mae": 898.8,
+      "model_wape": 2.7784351946359656,
+      "baseline_wape": 2.707228915662651
+    },
+    {
+      "hour_asia_seoul": "19:00",
+      "valid_pairs": 5,
+      "actual_sum": 1570.0,
+      "model_mae": 775.7640869140625,
+      "baseline_mae": 504.0,
+      "model_wape": 2.470586264057524,
+      "baseline_wape": 1.605095541401274
+    },
+    {
+      "hour_asia_seoul": "20:00",
+      "valid_pairs": 5,
+      "actual_sum": 1721.0,
+      "model_mae": 651.0087951660156,
+      "baseline_mae": 353.8,
+      "model_wape": 1.891367795369017,
+      "baseline_wape": 1.0278907611853574
+    },
+    {
+      "hour_asia_seoul": "21:00",
+      "valid_pairs": 5,
+      "actual_sum": 1712.0,
+      "model_mae": 640.4152160644531,
+      "baseline_mae": 327.2,
+      "model_wape": 1.8703715422443141,
+      "baseline_wape": 0.955607476635514
+    },
+    {
+      "hour_asia_seoul": "22:00",
+      "valid_pairs": 5,
+      "actual_sum": 1558.0,
+      "model_mae": 577.389729309082,
+      "baseline_mae": 303.2,
+      "model_wape": 1.8529837269225995,
+      "baseline_wape": 0.9730423620025674
+    },
+    {
+      "hour_asia_seoul": "23:00",
+      "valid_pairs": 5,
+      "actual_sum": 1165.0,
+      "model_mae": 445.2882553100586,
+      "baseline_mae": 218.8,
+      "model_wape": 1.9111083918886635,
+      "baseline_wape": 0.9390557939914163
+    }
+  ],
+  "quality_boundary": "First pass only, five fixed retrospective origins at08:00. Future observations excluded from input, but unseen pretraining data, general forecasting quality and calibrated coverage are not established. Second pass is a repeat check. Median negatives clipped only for display/metrics; no quantile sorting.",
+  "timing": {
+    "loaded_request_seconds": [
+      1.042556959,
+      0.46969425
+    ],
+    "already_loaded_requests": 8,
+    "already_loaded_min_seconds": 0.014244167,
+    "already_loaded_max_seconds": 0.014527167,
+    "already_loaded_median_seconds": 0.014393041499999999,
+    "boundary": "Runtime request through validated output; includes bundle hashing, verified snapshot copying and model loading when loaded is true.",
+    "not_included": "Source loading, Models import, rendering and metric calculation",
+    "benchmark": false,
+    "warmups": 0,
+    "controlled_repeats": false
+  },
+  "memory": {
+    "kernel_lifetime_peak": 56198560,
+    "sampled_rss_max": 643416064,
+    "sampled_footprint_max": 51889568,
+    "before_import_footprint": 10453760,
+    "after_close_footprint": 51495776,
+    "returned_words": 93,
+    "sample_count": 23,
+    "boundary": "One Debug test process including import and two passes. Point RSS/footprint, sampled maxima and kernel lifetime peak are distinct. Not model-only residency, GPU allocation total, request peak or iPhone budget."
+  },
+  "environment": {
+    "device": "Apple M5 Max / Mac17,6",
+    "ram_bytes": 137438953472,
+    "os": "Version 27.2.1 (Build 26B131)",
+    "toolchain": "Xcode27.2(27B52); Swift6.4.2; SDK27.2",
+    "reference": "chronos-forecasting2.3.2 / Torch2.9.0, official CPU FP32",
+    "power": "AC before and after",
+    "thermal": "pmset: no thermal/performance warnings; temperature and utilization unmeasured",
+    "record_type": "legacy functional record, not a controlled benchmark",
+    "plan_sha256": null
+  },
+  "gui": {
+    "source_commit": "7251127ee8e49ff0370299818b31be4817487930",
+    "normal_mac_gui": true,
+    "initial_preview_and_last_day_bounds": "analysis/530-gui-v1.json; UI binding and state unchanged except string lookup",
+    "may17_08_h16": {
+      "actual_first": 152,
+      "median_first": 99.48,
+      "p10_first": 61.7,
+      "p90_first": 548.05,
+      "actual_last": 35,
+      "median_last": 427.19,
+      "p10_last": 70.77,
+      "p90_last": 1477.28,
+      "model_mae": 358.37,
+      "model_wape_percent": 198.5,
+      "naive_mae": 180.56,
+      "naive_wape_percent": 100.0,
+      "compared_hours": 16,
+      "runtime_display_seconds": 0.47,
+      "locale_switch_preserves_values_dates_runtime": true,
+      "english_and_japanese_ax_labels_correct": true
+    },
+    "weather": {
+      "may_temperature_and_rain_charts_visually_inspected": true,
+      "history_only72hours": true,
+      "last_may_temperature": 19.1,
+      "last_may_rain": 0,
+      "winter_origin": "2018-02-15T08:00 Asia/Seoul",
+      "winter_last_observation": "2018-02-15T07:00 Asia/Seoul",
+      "winter_last_temperature": -3,
+      "negative_axis_and_curve_visually_inspected": true,
+      "date_change_clears_result_without_auto_predict": true
+    },
+    "zero_actuals": {
+      "selection_basis": "Earliest source hour08 window after required history with16 zero actuals:2018-04-11",
+      "original_planned_oct5_zero_assumption_was_incorrect": true,
+      "oct5_actual_sum": 713,
+      "april11_nonfunctioning": "No in all16source rows",
+      "h16_count": 16,
+      "model_mae": 307.79,
+      "naive_mae": 1163.75,
+      "english_wape": "Unavailable for both",
+      "japanese_wape": "算出不可 for both",
+      "horizon_change_clears_result_without_auto_predict": true,
+      "h1_count": 1,
+      "h1_model_mae": 28.42,
+      "h1_naive_mae": 1284,
+      "h1_wape": "unavailable",
+      "runtime_display_seconds": 0.02,
+      "displayed_first_p10": 28.77,
+      "displayed_first_median": 28.42,
+      "ordering_note": "Displayed raw-derived P10 is above median at this additional UI origin; original reference not compared for this origin, quantiles are not sorted and range is not a calibration guarantee."
+    },
+    "sales_regression": {
+      "sku": "B1_1",
+      "origin": "2018-12-01 Europe/Rome",
+      "horizon": 14,
+      "compared_dates": 13,
+      "model_mae": 1.71,
+      "model_wape_percent": 65.5,
+      "naive_mae": 1.85,
+      "naive_wape_percent": 70.6,
+      "runtime_display_seconds": 1.58,
+      "dec8_missing_actuals": true,
+      "english_ax_missing_label_correct": true
+    },
+    "nyc_regression": {
+      "mode": "On-device prediction",
+      "scene": "Friday evening",
+      "origin": "2025-01-24T17:00 America/New_York",
+      "zone": "Times Sq/Theatre District",
+      "median": 120,
+      "p10": 102,
+      "p90": 146,
+      "runtime_display_seconds": 1.55,
+      "normal_journal_saved_record": true
+    },
+    "return_to_bike": {
+      "fresh_preview_no_data_or_previous_result": true,
+      "manual_load_and_prepare_required": true
+    },
+    "shutdown": {
+      "language_restored": "ja",
+      "app_closed": true,
+      "model_processes_absent": true
+    },
+    "not_claimed": [
+      "physical iPhone inference or UI",
+      "human user acceptance",
+      "VoiceOver spoken output/audio graph descriptor",
+      "host network disabled offline test",
+      "in-flight native stop button click",
+      "general forecasting quality or speed benchmark"
+    ]
+  },
+  "regression": {
+    "sales_native_passed": true,
+    "sales_scalar_comparisons": 10752,
+    "sales_requested_compute_units": "gpuPreferred",
+    "sales_independent_metric_audit_passed": true,
+    "nyc_normal_native_gui_passed": true
+  },
+  "validation": {
+    "required_commands_passed": true,
+    "mac_release_passed": true,
+    "signed_ios_release_passed": true,
+    "actual_artifacts": {
+      "source_commit": "7251127ee8e49ff0370299818b31be4817487930",
+      "platforms": {
+        "mac": {
+          "signature_verified": true,
+          "resource_hashes": {
+            "SeoulBikeData.csv": "d2f7a0f0ba95e82678ead794429a18a7f696aa3b82c9b9ec34ec47806ff0767b",
+            "NOTICE.txt": "64137efc03276045d14e77e9e5402fa2cccf49333852c0df2e5ba469fb5d9f27",
+            "manifest.json": "b0dc815d7d5f97f2aa0d1aeafdf116b756f273b3e660aab73a1e07fd15966593"
+          },
+          "compiled_string_values_checked": {
+            "en": 96,
+            "ja": 97
+          },
+          "executable_sha256": "29a778fd592b412648546576dcf3115afcf7475c08d8af02d51eabc2850f82cd"
+        },
+        "ios": {
+          "signature_verified": true,
+          "resource_hashes": {
+            "SeoulBikeData.csv": "d2f7a0f0ba95e82678ead794429a18a7f696aa3b82c9b9ec34ec47806ff0767b",
+            "NOTICE.txt": "64137efc03276045d14e77e9e5402fa2cccf49333852c0df2e5ba469fb5d9f27",
+            "manifest.json": "b0dc815d7d5f97f2aa0d1aeafdf116b756f273b3e660aab73a1e07fd15966593"
+          },
+          "compiled_string_values_checked": {
+            "en": 96,
+            "ja": 97
+          },
+          "executable_sha256": "a45de3890b3a9914cd2729c8ec9fe8357abbe03c8c9da545239aa16d41c2bb22",
+          "file_sharing": true,
+          "opening_documents_in_place": true,
+          "increased_memory_limit": true
+        }
+      }
+    },
+    "physical_iphone_inference": false,
+    "user_acceptance": false
+  },
+  "workflow": {
+    "sf_schema_version": 1,
+    "sf_data_run_failed": "19011f90c5f346e7b889c1749759f5b3",
+    "sf_retry_verified": "14d796a7dcad4342ba5c70d733928a43",
+    "sf_ui_verified": "7cf721d9c0744a499360b764bd58bd03",
+    "sf_boundary": "Protected verification is separate from parent source/native/GUI checks, independent reviews and merge.",
+    "retained_setup_failures": [
+      "First SF verifier scratch collision; same candidate retried with corrected verifier",
+      "Private CLI diagnostic read camelCase instead of snake_case; first raw output preserved, rerun in new folder",
+      "Compiled strings reader retried read-only through plutil after Python XML encoding rejection"
+    ],
+    "parent_changes": [
+      "OS temporary test fixtures and public reproduction instructions",
+      "Finite-scalar failures remain test failures while complete format2 reports are saved",
+      "CPU-only execution for Seoul Bike with fixed threshold unchanged",
+      "Explicit language lookup for shared forecast AX labels and unavailable metrics"
+    ]
+  }
+}

@@ -61,8 +61,8 @@ D5の明示試験は共有heavy-jobロック下で、`COREAI_CHRONOS2_DEMO_BUNDL
 
 | OS | 状態 | 確認した範囲・残る確認 | 根拠 |
 |---|---|---|---|
-| macos | ✅ | 通常MacでNYCの固定/API/履歴と商品売上予測を確認。本人受入は未完。 | [E4](validation/chronos2-demo-20261112/README.md) · [E5](validation/chronos2-api-20261112/README.md) · [E6](validation/chronos2-journal-20261112/README.md) · [E7](validation/chronos2-sales-20261113/README.md) |
-| ios | △ | NYCと商品売上の画面/推論adapterを接続し署名host build成功。実iPhoneの推論とUI受入は未確認。 | [E4](validation/chronos2-demo-20261112/README.md) · [E5](validation/chronos2-api-20261112/README.md) · [E6](validation/chronos2-journal-20261112/README.md) · [E7](validation/chronos2-sales-20261113/README.md) |
+| macos | ✅ | 通常MacでNYC・商品売上・CPU専用Seoul Bikeを確認。本人受入は未完。 | [E4](validation/chronos2-demo-20261112/README.md) · [E5](validation/chronos2-api-20261112/README.md) · [E6](validation/chronos2-journal-20261112/README.md) · [E7](validation/chronos2-sales-20261113/README.md) · [E8](validation/chronos2-bike-20261113/README.md) |
+| ios | △ | NYC・売上・Seoul Bikeを接続し署名host build成功。実iPhoneの推論/UIは未確認。 | [E4](validation/chronos2-demo-20261112/README.md) · [E5](validation/chronos2-api-20261112/README.md) · [E6](validation/chronos2-journal-20261112/README.md) · [E7](validation/chronos2-sales-20261113/README.md) · [E8](validation/chronos2-bike-20261113/README.md) |
 
 ### 性能と品質
 
@@ -75,22 +75,26 @@ D5の明示試験は共有heavy-jobロック下で、`COREAI_CHRONOS2_DEMO_BUNDL
 | 要求・パイプライン完了時間 | 未計測 | — | 制御した時間benchmarkは未計測。新sessionの検証/ロードを含む売上の機能確認中の要求時間は売上根拠へ別記。 |
 | ピークRSS | 未計測 | — | この変換一致検査では未計測。アプリ動作・用途品質・性能は別の証拠で確認します。 |
 | ピークphysical footprint | 212,411,176 B | single; n=1 | [E7](validation/chronos2-sales-20261113/README.md) · 取込と売上2回分を含むDebug試験process一つのkernel生涯peak。要求単位・モデル単独・GPUメモリ・iPhone予算ではない。 |
+| ピークphysical footprint | 56,198,560 B | single; n=1 | [E8](validation/chronos2-bike-20261113/README.md) · 取込と2passを含むDebug process全体のkernel生涯peak。RSS・モデル単独・iPhone予算とは別。 |
 | 推論中の常駐メモリ | 未計測 | — | この変換一致検査では未計測。アプリ動作・用途品質・性能は別の証拠で確認します。 |
 | 解放後メモリの基準との差 | 未計測 | — | この変換一致検査では未計測。アプリ動作・用途品質・性能は別の証拠で確認します。 |
 | 課題達成率 | 未計測 | — | この変換一致検査では未計測。アプリ動作・用途品質・性能は別の証拠で確認します。 |
 | 参照との誤差（定義は根拠参照） | 0.00152587891 error | max; n=6048 | [E1](validation/chronos2-conversion-20261111/README.md) · 全scalarの最大絶対差。各値はatol 1e-4 + rtol 1e-4を満たす。nは比較したscalar数で独立run数ではありません。 |
 | 参照との誤差（定義は根拠参照） | 8.39233398e-05 error | max; n=10752 | [E7](validation/chronos2-sales-20261113/README.md) · 売上の固定16窓を再load後も照合。全21×16原値が固定atol/rtol各1e-4以内。反復scalar数で、独立した品質標本数ではない。 |
+| 参照との誤差（定義は根拠参照） | 0.00170898438 error | max; n=3360 | [E8](validation/chronos2-bike-20261113/README.md) · CPU専用の自転車5窓を2回。全原値が固定atol/rtol1e-4以内。反復は独立した品質標本ではない。 |
 | 停止受付から完了までの時間 | 未計測 | — | この変換一致検査では未計測。アプリ動作・用途品質・性能は別の証拠で確認します。 |
 | 予測のMAE | 4.44884534 count | aggregate; n=212 | [E7](validation/chronos2-sales-20261113/README.md) · 固定売上の初回のみ、共通有効212/224ペア。負値補正後・表示丸め前の中央値。季節ナイーブは根拠参照。独立した品質評価ではない。 |
+| 予測のMAE | 449.954254 count | aggregate; n=80 | [E8](validation/chronos2-bike-20261113/README.md) · 初回80時間の同一ペア。季節ナイーブと不利な起点別結果も保持。未使用データの品質評価ではない。 |
 | 予測のWAPE | 0.901678022 ratio | aggregate; n=212 | [E7](validation/chronos2-sales-20261113/README.md) · 同じ固定売上ペアと共通分母。季節ナイーブ比較、ゼロ分母/欠損の扱いは根拠参照。 |
+| 予測のWAPE | 1.69434409 ratio | aggregate; n=80 | [E8](validation/chronos2-bike-20261113/README.md) · 同じ80ペアと分母。08〜23時の時間帯別は各5日だけ。 |
 
 ### 検証した範囲
 
 | 確認項目 | 状態 | 対象範囲・残る確認 | 根拠 |
 |---|---|---|---|
-| 変換・参照との一致 | 合格（記載範囲） | 合成18条件・固定NYC60場面/ゾーン・実API20系列が凍結した原tensor照合に合格。API入力は固定金曜の条件と重複。商品売上は固定16窓を解放/再表示後も公式FP32と照合。 | [E1](validation/chronos2-conversion-20261111/README.md) · [E2](validation/chronos2-swift-20261112/README.md) · [E4](validation/chronos2-demo-20261112/README.md) · [E5](validation/chronos2-api-20261112/README.md) · [E7](validation/chronos2-sales-20261113/README.md) |
-| 用途の品質 | 未計測 | 固定売上の診断指標は記録したが、数値一致や過去デモ窓を未使用データの予測品質とは扱わない。 | — |
-| 連続利用・資源解放 | 合格（記載範囲） | NYCと売上で解放/再load、本番serviceのlease0、通常Macの離脱/再表示を確認。売上では点のメモリとprocess生涯peakを記録。iPhone受入は未確認。 | [E2](validation/chronos2-swift-20261112/README.md) · [E4](validation/chronos2-demo-20261112/README.md) · [E5](validation/chronos2-api-20261112/README.md) · [E7](validation/chronos2-sales-20261113/README.md) |
+| 変換・参照との一致 | 合格（記載範囲） | 合成18条件・固定NYC60場面/ゾーン・実API20系列が凍結した原tensor照合に合格。API入力は固定金曜の条件と重複。商品売上は固定16窓を解放/再表示後も公式FP32と照合。 Seoul BikeはCPU専用で固定5窓を2回照合。先のGPU不合格も保持。 | [E1](validation/chronos2-conversion-20261111/README.md) · [E2](validation/chronos2-swift-20261112/README.md) · [E4](validation/chronos2-demo-20261112/README.md) · [E5](validation/chronos2-api-20261112/README.md) · [E7](validation/chronos2-sales-20261113/README.md) · [E8](validation/chronos2-bike-20261113/README.md) |
+| 用途の品質 | 未計測 | 不利な結果も含め売上と自転車の固定診断を記録。未使用データでの一般的予測品質は未評価。 | — |
+| 連続利用・資源解放 | 合格（記載範囲） | NYCと売上で解放/再load、本番serviceのlease0、通常Macの離脱/再表示を確認。売上では点のメモリとprocess生涯peakを記録。iPhone受入は未確認。 Seoul Bikeも解放/再表示とlease0を確認。 | [E2](validation/chronos2-swift-20261112/README.md) · [E4](validation/chronos2-demo-20261112/README.md) · [E5](validation/chronos2-api-20261112/README.md) · [E7](validation/chronos2-sales-20261113/README.md) · [E8](validation/chronos2-bike-20261113/README.md) |
 | 停止・再試行・回復 | 未計測 | 取消と停止joinはCPU fakeで検査済み。実モデルの取消と通常アプリは未計測。 | — |
 
 ### 根拠と測定条件
@@ -104,6 +108,8 @@ D5の明示試験は共有heavy-jobロック下で、`COREAI_CHRONOS2_DEMO_BUNDL
 | [E5](validation/chronos2-api-20261112/README.md) | 2026-11-12 / legacy / native_app | Apple M5 Max / 137438953472 B RAM / macOS 27.2.1 (26B131) / Xcode 27.2 (27B52); Swift 6.4.2; SDK 27.2; Debug package and Release Mac application | 本番clientで1月全29,760値を照合。native経路は金曜20,160入力・6,720原値とclose後lease0を確認。通常Macで明示取得/予測/実績と月末停止を確認。チャートAX修正の版は別記。制御した性能計測とiPhone推論は未実施。 · variant=coreai-fp32-univariate; backend=Swift Core AI GPU preference; actual delegate not profiled; route=Production Models/Store/Service with a pinned January API reference; separate normal Mac GUI; source_revision=29ec3766d36d6f73f0696f85560a422f50e8498c; artifact_revision=786dcf97e020c987cbf883f09b486fba5f3fee30a588b87a346ea65d72d20572; code_revision=02aa27facf98b6d7d503f72a06e8ac0b123dec01; batch_size=1; concurrency=1; warmups=0; 未記録: power, thermal, plan_sha256 |
 | [E6](validation/chronos2-journal-20261112/README.md) | 2026-11-12 / legacy / native_app | Apple M5 Max / 137438953472 B RAM / macOS 27.2.1 (26B131) / Xcode 27.2 (27B52); Swift 6.4.2; SDK 27.2; Debug package and Release Mac application | 固定金曜1起点の20,160入力・6,720原値・80比較ペア。保存ファイルから独立計算とhash確認、lease0。通常Macの保存/再起動/実績確認とlocale修正は版を別記。独立した精度評価・制御した性能計測ではなく、電源/熱とbenchmark計画hashは未記録。 · variant=coreai-fp32-univariate; backend=Swift Core AI GPU preference; actual delegate not profiled; route=Production Models/Store/service/session -> live verified API -> native prediction -> immutable journal -> separate actual check -> reload -> stop; separate normal Mac GUI; source_revision=29ec3766d36d6f73f0696f85560a422f50e8498c; artifact_revision=786dcf97e020c987cbf883f09b486fba5f3fee30a588b87a346ea65d72d20572; code_revision=48adfc21c80ff7ceb1828f5b7326fde1c760d0be; batch_size=1; concurrency=1; warmups=0; 未記録: power, thermal, plan_sha256 |
 | [E7](validation/chronos2-sales-20261113/README.md) | 2026-11-13 / legacy / native_app | Apple M5 Max / 137438953472 B RAM / macOS 27.2.1 (26B131) / Xcode 27.2 (27B52); Swift 6.4.2; SDK 27.2; Debug package and Release Mac/iOS builds | 4商品×4過去起点、365点履歴、2回/10752原値照合。初回の比較212/224ペア。通常Macの軸修正は1954168。時間とprocess全体メモリは診断値で、制御したbenchmarkや未使用データの品質評価ではない。 · variant=coreai-fp32-univariate; backend=Swift Core AI GPU preference; actual delegate not profiled; route=Production Models/Store/Service/Sessions with original sales CSV; independent raw/metric audit; separate normal Mac sidebar; source_revision=29ec3766d36d6f73f0696f85560a422f50e8498c; artifact_revision=786dcf97e020c987cbf883f09b486fba5f3fee30a588b87a346ea65d72d20572; code_revision=55df3378a40a98f8e34c6fafa8e8a33bb1001e71; batch_size=1; concurrency=1; warmups=0; power=AC Power before and after; thermal=pmset reported no thermal/performance warnings before and after; temperature and GPU load unmeasured; 未記録: plan_sha256 |
+| [E8](validation/chronos2-bike-20261113/README.md) | 2026-11-13 / legacy / native_app | Apple M5 Max / 137438953472 B RAM / macOS 27.2.1 (26B131) / Xcode 27.2 (27B52); Swift 6.4.2; SDK 27.2; Debug package and Release Mac/iOS builds | Seoulの固定5起点、直前336件、全21x16原値を2回/3360値照合しlease0。初回80時間の診断だけで、先のGPU不合格も保持。iPhoneと制御benchmarkは未確認。 · variant=coreai-fp32-univariate; backend=Swift Core AI cpuOnly; EFR=false; per-operator placement not profiled; route=Production Models/Store/Service/Sessions; independent source/raw/metric audit; separate normal Mac GUI at7251127; source_revision=29ec3766d36d6f73f0696f85560a422f50e8498c; artifact_revision=786dcf97e020c987cbf883f09b486fba5f3fee30a588b87a346ea65d72d20572; code_revision=0008c7d7a74693172a93eb2a1b0de8908e91fb3e; batch_size=1; concurrency=1; warmups=0; power=AC Power before and after; thermal=pmset reported no thermal/performance warnings before and after; temperature and GPU load unmeasured; 未記録: plan_sha256 |
+| [E9](validation/chronos2-bike-20261113/README.md) | 2026-11-13 / legacy / diagnostic | Apple M5 Max / 137438953472 B RAM / macOS 27.2.1 (26B131) / Xcode 27.2 (27B52); Swift 6.4.2; SDK 27.2; Debug package and Release Mac/iOS builds | May17の裾の1値が各passで固定atol/rtol1e-4を超えた。EFR=trueも別の値が不合格。資産と閾値を変えずCPU専用を採用した。 · variant=coreai-fp32-univariate; backend=Swift Core AI GPU preference; EFR=false; actual delegate not profiled; route=Same frozen five Seoul windows; full native report retained two scalar failures across two passes; source_revision=29ec3766d36d6f73f0696f85560a422f50e8498c; artifact_revision=786dcf97e020c987cbf883f09b486fba5f3fee30a588b87a346ea65d72d20572; code_revision=1b47558cbc1943780815aaa391cf780f3d8d3ac1; batch_size=1; concurrency=1; warmups=0; power=AC Power before and after; thermal=pmset reported no thermal/performance warnings before and after; temperature and GPU load unmeasured; 未記録: plan_sha256 |
 
 ### 導入・制限・進捗
 
@@ -128,6 +134,10 @@ D5の明示試験は共有heavy-jobロック下で、`COREAI_CHRONOS2_DEMO_BUNDL
 - [商品売上デモ](chronos2-sales.md)
 
 - [商品売上の検証](validation/chronos2-sales-20261113/README.md)
+
+- [Seoul Bikeデモ](chronos2-bike.md)
+
+- [Seoul Bike検証](validation/chronos2-bike-20261113/README.md)
 <!-- model-report:end -->
 
 ## 検証済みのNYC API日時

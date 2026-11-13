@@ -51,3 +51,5 @@ The fixed reference supplies five distinct origins with `series_id=seoul-bike`, 
 The version 2 report records `scalarFailures` for each case and the complete run. Scalar mismatches keep the test failed while allowing the remaining outputs and lease checks to be recorded. A report's existence does not mean the comparison passed: require a successful test exit and zero scalar failures. Invalid inputs, identities, shapes, lifecycle conditions or repeat comparisons still stop the test immediately.
 
 Native execution, normal Mac/iPhone UI, accessibility, signed builds and user acceptance are supervisor checks. Their outcomes are not inferred from CPU success or from this harness being present.
+
+[Recorded verification](validation/chronos2-bike-20261113/README.md) covers the fixed CPU-only windows twice, independent metric arithmetic, normal Mac interaction, sales/NYC regression and signed host builds. Physical iPhone inference and user acceptance remain open.
