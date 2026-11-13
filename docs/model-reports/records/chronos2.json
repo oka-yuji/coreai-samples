@@ -728,7 +728,7 @@
       ],
       "note": {
         "en": "18 synthetic cases, 60 fixed NYC scene/zone cases and 20 live API series pass frozen raw-tensor comparisons. The API inputs overlap the fixed Friday workload. Product sales adds 16 fixed windows, repeated after release/reopen, against official FP32. Fresh public download repeats the same 60 NYC cases; it adds no held-out series. Seoul Bike uses CPU-only for five frozen windows twice; earlier GPU failures remain recorded.",
-        "ja": "合成18条件・固定NYC60場面/ゾーン・実API20系列が凍結した原tensor照合に合格。API入力は固定金曜の条件と重複。商品売上は固定16窓を解放/再表示後も公式FP32と照合。公開版の新規取得でも同じNYC60条件を再照合し、未使用系列の追加とはしない。 Seoul BikeはCPU専用で固定5窓を2回照合。先のGPU不合格も保持。"
+        "ja": "合成18条件・固定NYC60場面/ゾーン・実API20系列が凍結した原tensor照合に合格。API入力は固定金曜の条件と重複。商品売上は固定16窓を解放/再表示後も公式FP32と照合。公開版の新規取得でも同じNYC60条件を再照合し、未使用系列の追加とはしない。Seoul BikeはCPU専用で固定5窓を2回照合。先のGPU不合格も保持。"
       }
     },
     "quality": {
@@ -752,7 +752,7 @@
       ],
       "note": {
         "en": "Release/reload, production-service zero leases and normal Mac leave/reopen are checked for NYC and sales. Sales records point memory and whole-process lifetime peak; iPhone acceptance remains open. Fresh public acquisition/native prediction also preserves source hashes and returns all leases. Seoul Bike also passes release/reopen and zero-lease checks.",
-        "ja": "NYCと売上で解放/再load、本番serviceのlease0、通常Macの離脱/再表示を確認。売上では点のメモリとprocess生涯peakを記録。iPhone受入は未確認。公開版の新規取得/native予測も元hash不変とlease解放を確認。 Seoul Bikeも解放/再表示とlease0を確認。"
+        "ja": "NYCと売上で解放/再load、本番serviceのlease0、通常Macの離脱/再表示を確認。売上では点のメモリとprocess生涯peakを記録。iPhone受入は未確認。公開版の新規取得/native予測も元hash不変とlease解放を確認。Seoul Bikeも解放/再表示とlease0を確認。"
       }
     },
     "cancellation": {

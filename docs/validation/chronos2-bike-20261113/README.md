@@ -39,11 +39,11 @@ Product sales B1_1 / December 1 / 14 days preserved 13 valid pairs and the missi
 
 ## Timing, memory and validation limits
 
-The two new-session requests took 1.042557 and 0.469694s. Eight already-loaded requests ranged 0.014244–0.014527s. These are functional Debug intervals with no warmup or twenty-repeat/cache-isolation protocol, not a controlled performance comparison. Runtime includes bundle validation, verified copying and model loading when needed; source loading, Models import, UI and metrics are outside it.
+The two new-session requests took 1.042557 and 0.469694 s. Eight already-loaded requests ranged 0.014244–0.014527 s. These are functional Debug intervals with no warmup or twenty-repeat/cache-isolation protocol, not a controlled performance comparison. Runtime includes bundle validation, verified copying and model loading when needed; source loading, Models import, UI and metrics are outside it.
 
 The process kernel lifetime footprint peak was **56,198,560 bytes**, sampled RSS maximum **643,416,064 bytes**, and sampled footprint maximum **51,889,568 bytes**. Returned SDK field counts were 93. The lifetime includes import and both passes; these are not model-only memory, total GPU allocations, per-request peaks or an iPhone budget.
 
-Host: Apple M5 Max, 137,438,953,472 bytes RAM, macOS 27.2.1(26B131), Xcode 27.2(27B52), Swift 6.4.2 and SDK 27.2. AC power and no `pmset` thermal/performance warning were observed before/after. Temperature, utilization and a benchmark-plan hash are unmeasured. The record remains a legacy functional record.
+Host: Apple M5 Max, 137,438,953,472 bytes RAM, macOS 27.2.1 (26B131), Xcode 27.2 (27B52), Swift 6.4.2 and SDK 27.2. AC power and no `pmset` thermal/performance warning were observed before/after. Temperature, utilization and a benchmark-plan hash are unmeasured. The record remains a legacy functional record.
 
 Full repository checks, source reproduction tests, Mac Release and signed iOS Release passed. Actual app bundles were checked for all three source resources, compiled translations, both iOS file-sharing keys and the increased-memory entitlement. Sales passed another 10,752 native scalar comparisons with independent metrics. CPU fakes cover cancellation/stop joins; native in-flight cancellation, physical iPhone operation, spoken VoiceOver and human acceptance remain unverified. The host network was not disabled for the GUI checks.
 

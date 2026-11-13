@@ -1,7 +1,7 @@
 {
   "format": "chronos2-bike-verification/1",
   "date": "2026-11-13",
-  "acceptance": "Issue530 planv2; B1-B6 evidence, B7 user Mac/iPhone check remains open",
+  "acceptance": "Issue #530, plan v2; B1–B6 evidence, B7 user Mac/iPhone check remains open",
   "native_code_revision": "0008c7d7a74693172a93eb2a1b0de8908e91fb3e",
   "gui_code_revision": "7251127ee8e49ff0370299818b31be4817487930",
   "source": {
@@ -63,7 +63,7 @@
     },
     "gpu_frequent_reshapes": "A different November quantile failed the same fixed tolerance; this setting was not adopted.",
     "cause_boundary": "CPU-only passed all frozen values; the responsible numerical operation was not identified. No general accuracy comparison is inferred.",
-    "locale_gui": "EN body text changed while forecast/weather AX labels stayed Japanese; explicit Bundle language lookup fixed this, with red10issues/green2tests and final GUI confirmation."
+    "locale_gui": "EN body text changed while forecast/weather AX labels stayed Japanese; explicit Bundle language lookup fixed this, with red: 10 issues; green: 2 tests and final GUI confirmation."
   },
   "diagnostic_metrics": {
     "valid_pairs": 80,
