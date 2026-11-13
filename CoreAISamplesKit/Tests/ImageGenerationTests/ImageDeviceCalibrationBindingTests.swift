@@ -11,7 +11,7 @@ struct ImageDeviceCalibrationBindingTests {
     func productionCalibration() throws {
         let catalog = try IOSDemoCatalog.make()
         let model = try #require(catalog.model("qwen-image21-turbo"))
-        #expect(model.artifacts == [artifact])
+        #expect(model.artifacts == [MobileImageLabArtifact.published, artifact])
         #expect(artifact.download == nil && artifact.sourceKind == .localManifest)
         let calibration = try ImageDeviceCalibration.makeQwenImage21NativeComplex()
         let budget = try #require(

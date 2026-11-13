@@ -2,23 +2,23 @@
   "id": "qwen-image21",
   "kind": "image",
   "name": {
-    "en": "Qwen Image 2.1 Turbo",
-    "ja": "Qwen Image 2.1 Turbo"
+    "en": "Mobile Image Lab",
+    "ja": "Mobile Image Lab"
   },
   "use": {
     "en": "Image generation and editing",
     "ja": "画像の生成・編集"
   },
   "overview": {
-    "en": "Image generation and editing",
-    "ja": "画像の生成・編集"
+    "en": "Image generation and single-image editing for non-commercial research and evaluation. Built with Qwen.",
+    "ja": "非商用の研究・評価向けの画像生成と参照画像1枚の編集。Built with Qwen。"
   },
-  "release": "in_progress",
+  "release": "released",
   "release_note": {
-    "en": "Ten iPhone trials and Models import/restart/service binding verified; ordinary UI acceptance pending",
-    "ja": "iPhone連続10回・Models取込／再起動／サービス接続確認済み／通常UI受入は未完"
+    "en": "Public research bundle and Models download. Exact calibrated phone/OS only; ordinary iPhone acceptance remains pending.",
+    "ja": "研究用bundleを公開しModelsの取得に対応。較正済みの端末・OSに限定し、通常iPhoneの本人受入は未完。"
   },
-  "download": null,
+  "download": "https://huggingface.co/okayuji/mobile-image-lab-coreai",
   "pages": {
     "en": "docs/model-reports/qwen-image21.md",
     "ja": "docs/model-reports/qwen-image21.ja.md"
@@ -107,6 +107,34 @@
         "ja": "実機10回の較正・中断回収・Models検証"
       },
       "url": "docs/research/qwen-image21-device-calibration-20261101.json"
+    },
+    {
+      "title": {
+        "en": "Public research bundle",
+        "ja": "公開研究用bundle"
+      },
+      "url": "https://huggingface.co/okayuji/mobile-image-lab-coreai"
+    },
+    {
+      "title": {
+        "en": "Public download and identity binding #562",
+        "ja": "公開DLとidentity接続 #562"
+      },
+      "url": "https://github.com/oka-yuji/coreai-samples/issues/562"
+    },
+    {
+      "title": {
+        "en": "Pinned model license",
+        "ja": "固定版のモデルライセンス"
+      },
+      "url": "https://huggingface.co/okayuji/mobile-image-lab-coreai/blob/fdd2b8cb17f48976207039f1f780360ba60275dc/bundle/LICENSE"
+    },
+    {
+      "title": {
+        "en": "Public release verification",
+        "ja": "公開時の検証記録"
+      },
+      "url": "docs/validation/mobile-image-lab-release-20261113/README.md"
     }
   ],
   "support": {
@@ -128,8 +156,8 @@
         "models-connection-20261101"
       ],
       "note": {
-        "en": "Ten fixed generation/editing requests completed in one main-app process and all saved RGBA8/PNG pixels match the accepted native outputs. The measured profile is limited to iPhone18,1 / 24A446 and the pinned local artifact. Models imported all 13,783,495,099 bytes, restored the installed resource in new processes, and bound then closed one production image service with the adopted budget. Ordinary UI interaction, owner acceptance and latency acceptance remain separate; no public model download is configured.",
-        "ja": "本体の同一processで固定の生成・編集10回が完走し、保存RGBA8とPNG画素は全件で既合格の本体出力と一致。実測予算はiPhone18,1／24A446と固定ローカル資産に限定。Modelsで13,783,495,099 bytesを取り込み、別processで再取込なしに復元し、採用予算で本番画像serviceの接続・終了を確認した。通常UI操作・本人受入・待ち時間の受入は別。公開モデルDLは未設定。"
+        "en": "Ten fixed generation/editing requests completed in one main-app process and all saved RGBA8/PNG pixels match the accepted native outputs. The measured profile is limited to iPhone18,1 / 24A446 and the pinned local artifact. Models imported all 13,783,495,099 bytes, restored the installed resource in new processes, and bound then closed one production image service with the adopted budget. Ordinary UI interaction, owner acceptance and latency acceptance remain separate. The recorded app had no public model download configured for the original artifact. Those historical results retain the original 8b9e3474 manifest. The separate public 9d61c180 identity has a pinned download and explicitly inherited calibration; metadata equivalence is not a new device measurement.",
+        "ja": "本体の同一processで固定の生成・編集10回が完走し、保存RGBA8とPNG画素は全件で既合格の本体出力と一致。実測予算はiPhone18,1／24A446と固定ローカル資産に限定。Modelsで13,783,495,099 bytesを取り込み、別processで再取込なしに復元し、採用予算で本番画像serviceの接続・終了を確認した。通常UI操作・本人受入・待ち時間の受入は別。当時のアプリでは元の資産の公開モデルDLは未設定だった。 過去の結果は元の8b9e3474 manifestのまま保持する。別の公開9d61c180 identityへ固定DLと既存較正の明示的な束縛を追加した。metadata同等性を新しい実機測定とは扱わない。"
       }
     }
   },
@@ -823,5 +851,6 @@
         "ja": "この範囲の共通プロトコルによる確認は未実施です。"
       }
     }
-  }
+  },
+  "public_access_evidence": "docs/validation/mobile-image-lab-release-20261113/results.json"
 }

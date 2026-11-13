@@ -1,8 +1,41 @@
-# Qwen Image 2.1 Turbo
+# Mobile Image Lab
 
 [トップ](../../README.ja.md) · [English](qwen-image21.md)
 
-画像の生成・編集
+Apple Core AIで、文章から画像を生成したり、参照画像1枚を編集したりする研究用モデルです。Qwen Image 2.1 Turboから変換したもので、**非商用の研究・評価に限り利用できます**。**Built with Qwen**。
+
+較正済みの条件は **iPhone 17 Pro・iOS 27.0.1（`iPhone18,1` / `24A446`）** です。未知の端末やOS buildでは生成を許可しません。Macのネイティブ画像デモは未提供です。
+
+## クイックスタート
+
+[PR #565](https://github.com/oka-yuji/coreai-samples/pull/565)、またはそれを含むmainからiOSアプリをビルドします。**Models → Mobile Image Lab**で**Mobile Image Lab W4/W8**を選び、**モデルをダウンロード**します。検査完了後に画像生成デモを開き、指示文を入力して生成します。参照画像1枚を指定すると編集になります。明示的な操作で生成を開始します。
+
+[公開bundle](https://huggingface.co/okayuji/mobile-image-lab-coreai)の`bundle/`は**51ファイル・13,783,495,057 bytes**です。revision `fdd2b8cb17f48976207039f1f780360ba60275dc`（`v1.0.0`）に固定しています。転送と準備には別途空き容量が必要です。この容量は必要RAMの実測値ではありません。出力は512 × 512、8stepです。
+
+既存の導入済み資産を使うときは、旧W4/W8 variantを選んでください。元の`8b9e3474…`のmanifestと較正は、公開版`9d61c180…`と別に保持します。選択による自動移行・置換・ダウンロードはありません。フォルダの取込は[ローカル取込の契約](../qwen-image21-local-import.md)を参照してください。
+
+## 公開と検証
+
+[公開記録](../validation/mobile-image-lab-release-20261113/README.md)で、公開・取得・サービス接続・実機受入を分けています。全配布物、認証付き全履歴、公開直前gateと公開後の匿名全履歴の情報検査は合格しています。アプリの追加分はCPU回帰、Mac Release、署名iOS Release、実署名・権限とコンパイル済みの日英表示を確認しました。ホストで匿名の全量新規取得・全51hash・live-service接続が合格し、同じ記録に範囲と診断の時間上限を残しています。通常iPhone操作は[QD-07](https://github.com/oka-yuji/coreai-samples/issues/562)として本人確認待ちです。
+
+配布版の変更は`README.txt`・`NOTICE.txt`と、それらに対応する`bundle.json`の2項目だけです。残る48ファイルと計算に関わるmanifest値は原本と一致します。既存5部品の予算を、新しい完全identityへ明示的に結び付けました。**metadata同等性を、新manifestでの実機再測定とは扱いません**。端末・OS・profile・identity・メモリの検査は維持しています。
+
+## 保存済みの出力例
+
+[保存済みのティーポットPNG](https://huggingface.co/okayuji/mobile-image-lab-coreai/resolve/fdd2b8cb17f48976207039f1f780360ba60275dc/examples/g02-20261021.png)は、2026年11月1日の較正のattempt `0-0`、case `g02-20261021`の出力です。iPhone 17 Pro・iOS 27.0.1、code `03e6184`、固定noise・runtime診断あり・依頼ごとに新serviceの条件で、**308.60秒**かかりました。元の`8b9e3474…`bundleによる過去の診断値で、今回のDL経路の速度評価や待ち時間の保証ではありません。[元の条件と出力hash](../research/qwen-image21-device-calibration-20261101.json)。
+
+## 制約
+
+- 対応する端末・OS buildは上記の較正済み条件に限定し、iOS受入は確認中のままです。公開だけで新OSや別端末への対応を追加しません。
+- 元の10回計測、過去の失敗、未達の性能目標は以下に保持します。通常UIの本人受入、warm p50／p95、同じserviceの即時再利用は別です。今回の公開では性能・画質の追加評価を行っていません。
+- 過去の表の62,370,841,163 bytesは以前のFP32診断bundleで、公開bundleとは別です。
+- 取得・検査やサービス生成の成功を、利用者のiPhoneでの画像生成成功とは扱いません。
+
+## ライセンスと由来
+
+重み・原典設定・変換したモデル資産には、2026年9月20日版の[Qwen Research License Agreement](https://huggingface.co/okayuji/mobile-image-lab-coreai/blob/fdd2b8cb17f48976207039f1f780360ba60275dc/bundle/LICENSE)が適用されます。非商用の範囲は**研究・評価のみ**で、商用には原権利者との別契約が必要です。
+
+変更していないLICENSEと、指定の帰属表示・変更表示を含む[NOTICE.txt](https://huggingface.co/okayuji/mobile-image-lab-coreai/blob/fdd2b8cb17f48976207039f1f780360ba60275dc/bundle/NOTICE.txt)を同梱しています。原典は[Qwen/Qwen-Image-2.1-Turboの`fc13ba1`](https://huggingface.co/Qwen/Qwen-Image-2.1-Turbo/tree/fc13ba1986fcb905854dc8de2f52eee395f49b5b)です。配布の主名称はMobile Image Labとし、Qwenは由来の説明に用います。アプリのコード側のライセンスでモデルの利用条件を置き換えることはできず、モデル規約は一般的な商標利用の許諾を与えません。
 
 <!-- model-report:start -->
 <a id="model-report"></a>
@@ -18,7 +51,7 @@
 | OS | 状態 | 確認した範囲・残る確認 | 根拠 |
 |---|---|---|---|
 | macos | — | このOSのネイティブデモは未提供です。 | — |
-| ios | △ | 本体の同一processで固定の生成・編集10回が完走し、保存RGBA8とPNG画素は全件で既合格の本体出力と一致。実測予算はiPhone18,1／24A446と固定ローカル資産に限定。Modelsで13,783,495,099 bytesを取り込み、別processで再取込なしに復元し、採用予算で本番画像serviceの接続・終了を確認した。通常UI操作・本人受入・待ち時間の受入は別。公開モデルDLは未設定。 | [E16](../research/qwen-image21-png-input-device-20261030.json) · [E17](../research/qwen-image21-device-calibration-20261101.json) · [E18](../research/qwen-image21-device-calibration-20261101.json) |
+| ios | △ | 本体の同一processで固定の生成・編集10回が完走し、保存RGBA8とPNG画素は全件で既合格の本体出力と一致。実測予算はiPhone18,1／24A446と固定ローカル資産に限定。Modelsで13,783,495,099 bytesを取り込み、別processで再取込なしに復元し、採用予算で本番画像serviceの接続・終了を確認した。通常UI操作・本人受入・待ち時間の受入は別。当時のアプリでは元の資産の公開モデルDLは未設定だった。 過去の結果は元の8b9e3474 manifestのまま保持する。別の公開9d61c180 identityへ固定DLと既存較正の明示的な束縛を追加した。metadata同等性を新しい実機測定とは扱わない。 | [E16](../research/qwen-image21-png-input-device-20261030.json) · [E17](../research/qwen-image21-device-calibration-20261101.json) · [E18](../research/qwen-image21-device-calibration-20261101.json) |
 
 ### 性能と品質
 
@@ -101,4 +134,12 @@
 - [9回の実機完了と10回目の中断記録](../research/qwen-image21-device-series-partial-20261031.json)
 
 - [実機10回の較正・中断回収・Models検証](../research/qwen-image21-device-calibration-20261101.json)
+
+- [公開研究用bundle](https://huggingface.co/okayuji/mobile-image-lab-coreai)
+
+- [公開DLとidentity接続 #562](https://github.com/oka-yuji/coreai-samples/issues/562)
+
+- [固定版のモデルライセンス](https://huggingface.co/okayuji/mobile-image-lab-coreai/blob/fdd2b8cb17f48976207039f1f780360ba60275dc/bundle/LICENSE)
+
+- [公開時の検証記録](../validation/mobile-image-lab-release-20261113/README.md)
 <!-- model-report:end -->

@@ -1,0 +1,114 @@
+{
+  "schema": "mobile-image-lab-release/1",
+  "date": "2026-11-13",
+  "issue": 562,
+  "code_revision": "45ea92faa92e8a71bb888084d298f5a76f8a4406",
+  "repository": "okayuji/mobile-image-lab-coreai",
+  "revision": "fdd2b8cb17f48976207039f1f780360ba60275dc",
+  "tag": "v1.0.0",
+  "public": true,
+  "license": {
+    "name": "Qwen Research License",
+    "source_revision": "fc13ba1986fcb905854dc8de2f52eee395f49b5b",
+    "use": "noncommercial research/evaluation only",
+    "commercial": "separate license required",
+    "primary_name": "Mobile Image Lab",
+    "attribution": "Built with Qwen"
+  },
+  "payload": {
+    "files": 54,
+    "bytes": 13783865737,
+    "manifest_sha256": "160e57164b3f600e82829d94484b45880e58764c8037cf69e48f2524f52ab5fe"
+  },
+  "bundle": {
+    "files": 51,
+    "bytes": 13783495057,
+    "manifest_sha256": "9d61c180a8c72b67ba34e8ece6e842fec489dc98fc68b2b875fa07a1900dd3e5",
+    "original_manifest_sha256": "8b9e34748d760fa9ec7762f5064652281c80effb19c692bcdbe8ef1e521d59ad",
+    "changed_files": [
+      "README.txt",
+      "NOTICE.txt",
+      "bundle.json"
+    ],
+    "unchanged_files": 48,
+    "computational_manifest_unchanged": true,
+    "original_bundle_unchanged": true
+  },
+  "audit": {
+    "local": "passed",
+    "authenticated_full_history": "passed",
+    "publication_gate": "passed",
+    "anonymous_full_history": "passed",
+    "commits": 2,
+    "refs": 2,
+    "unique_objects": 55,
+    "records": 59,
+    "findings": 0,
+    "unread": 0,
+    "errors": 0,
+    "allowlist": 0,
+    "reports_sha256": {
+      "local": "7b6d11b7939719d37b24c1ee7beb6715f3f9899f74976bac3f34a1d669d6992e",
+      "authenticated_hub": "41fb447c20e78b1ce46ba5ed270604ec7e2ebcc908db184e665b7189aa2b37b4",
+      "gate": "50165fc8b133578a27c985d8371a278a5167a5a9b83242028aebd143ec460ba7",
+      "anonymous_hub": "093991bca086f45b7d35afa65cf749a094b03c9fbeb2ce3c5a72f7b25cce5a62"
+    },
+    "anonymous_scope": "Remote identities without authentication plus all historical cached bytes rescanned; not a fresh app payload download"
+  },
+  "calibration": {
+    "hardware": "iPhone18,1",
+    "os_build": "24A446",
+    "basis": "Existing five component budgets carried forward only after metadata equivalence",
+    "new_device_measurement": false,
+    "unknown_identity_hardware_os_rejected": true
+  },
+  "software_checks": {
+    "privacy": "passed",
+    "commit_privacy": "passed",
+    "swiftlint": "passed",
+    "swift_format": "passed",
+    "irodori_inputs": "macos and iphoneos passed",
+    "package_tests": "passed after correcting the five-artifact catalog expectation",
+    "mac_release": "passed",
+    "signed_ios_release": "passed",
+    "package_pins": "passed for both exact DerivedData folders",
+    "localization": "11 catalogs / 1578 keys / no missing translations or placeholder mismatches",
+    "compiled_localization_matches": 20,
+    "ios_file_sharing_keys": true,
+    "ios_memory_entitlement": true
+  },
+  "fresh_production_acquisition": {
+    "status": "passed",
+    "source_commit": "45ea92faa92e8a71bb888084d298f5a76f8a4406",
+    "started_at": "2026-11-13T07:45:44.589068+00:00",
+    "finished_at": "2026-11-13T08:09:30.921568+00:00",
+    "wrapper_seconds": 1426.3053017920174,
+    "scope": "Fresh empty host Models store, anonymous pinned download, full inspection, actual acquired resource passed to ManagedImageGeneration/LiveImageGenerationService with explicit known phone calibration; no adapter rendering, phone operation or inference",
+    "files": 51,
+    "bytes": 13783495057,
+    "requests": 51,
+    "all_http_status": 200,
+    "migration_candidates": 0,
+    "lease_after_release": 0,
+    "live_service_binding": true,
+    "generation_executed": false,
+    "independent_file_hashes": "download-files.json",
+    "diagnostic_settle_limit_seconds": 1800,
+    "timing_note": "Whole verification duration, not model inference performance or a download speed guarantee",
+    "acquisition_report_sha256": "3c90a9bdeb1d5bec784bd991ea453b40df00edfdd5271a8790c9ce6c4a14598d",
+    "download_report_sha256": "a45bf08da85378c5ac75ed8756ba7e3d9183260dd867adf4cec95bbca342973e"
+  },
+  "historical_failures_retained": [
+    "An interrupted original-bundle audit was not a pass",
+    "The first HF card used an invalid relative license URL; upload stopped",
+    "The uploader extended .gitattributes by 62 bytes; v3 was frozen and fully reaudited before publication",
+    "SF preflight and protected-fixture compile failures remain failed; candidate was checked independently by the parent",
+    "Full package regression initially expected four catalog artifacts; corrected to five without weakening per-artifact checks"
+  ],
+  "not_performed": [
+    "new image-quality benchmark",
+    "new performance benchmark",
+    "new-manifest iPhone inference",
+    "ordinary iPhone UI or owner acceptance QD-07"
+  ]
+}

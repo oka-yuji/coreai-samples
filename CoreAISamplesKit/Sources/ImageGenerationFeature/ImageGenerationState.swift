@@ -83,7 +83,7 @@ public struct ImageGenerationState: Equatable, Sendable {
     public var requestID: UUID?
 
     public init(
-        owner: UUID, availability: Availability, modelName: String = "Qwen Image 2.1 Turbo", retaining: Self? = nil
+        owner: UUID, availability: Availability, modelName: String = "Mobile Image Lab", retaining: Self? = nil
     ) {
         self.owner = owner
         self.availability = availability

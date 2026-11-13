@@ -80,9 +80,10 @@
         static func runSelfTest(acquire target: String? = nil) async -> Int32 {
             guard let output = LaunchArguments.value("--model-library-selftest") else { return 2 }
             let checkImageConnection = LaunchArguments.flag("--check-image-generation-connection")
-            guard !checkImageConnection || target == QwenImage21Artifact.nativeComplex.id else {
+            let expectedImageIdentity = IOSDemoCatalog.imageGenerationIdentity(for: target)
+            guard !checkImageConnection || expectedImageIdentity != nil else {
                 FileHandle.standardError.write(
-                    Data("Image connection verification requires the exact Qwen artifact target.\n".utf8))
+                    Data("Image connection verification requires an exact known image artifact target.\n".utf8))
                 return 2
             }
             let outputURL = URL(filePath: output, relativeTo: .documentsDirectory)
@@ -91,10 +92,14 @@
             }
             let definitions = Result { try catalog() }
             let previews = (try? definitions.get().demos.map(\.id)) ?? []
-            let connection =
-                checkImageConnection
-                ? IOSImageGenerationConnectionCheck(
-                    output: outputURL.appendingPathExtension("image-connection.json"), factory: makeImageService) : nil
+            let connection: IOSImageGenerationConnectionCheck?
+            if checkImageConnection, let expectedImageIdentity {
+                connection = IOSImageGenerationConnectionCheck(
+                    output: outputURL.appendingPathExtension("image-connection.json"),
+                    expectedIdentity: expectedImageIdentity, factory: makeImageService)
+            } else {
+                connection = nil
+            }
             let checkedAdapters = adapters.map { adapter -> any ModelDemoAdapter in
                 guard let connection, adapter.demoID == "image-generation" else { return adapter }
                 return ImageGenerationAdapter { session, permission in

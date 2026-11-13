@@ -118,7 +118,7 @@ public enum IOSDemoCatalog {
                         DemoExplanation(
                             title: "1. Prepare the model",
                             text:
-                                "Import the complete prepared Qwen Image folder from Files. It uses 13.78 GB, plus space for the app copy. This build does not provide a model download."
+                                "Download Mobile Image Lab (13.78 GB), or import its complete prepared folder from Files. To use an existing installation, select the legacy W4/W8 variant."
                         ),
                         DemoExplanation(
                             title: "2. Describe the image",
@@ -133,13 +133,19 @@ public enum IOSDemoCatalog {
                         DemoExplanation(
                             title: "Device and model requirements",
                             text:
-                                "This build enables Qwen Image on iPhone 17 Pro with iOS 27.0.1. Check the included LICENSE and NOTICE for the model terms. Your prompt and reference image stay on the device."
+                                "This build supports iPhone 17 Pro with iOS 27.0.1. Your prompt and reference image stay on the device."
+                        ),
+                        DemoExplanation(
+                            title: "Built with Qwen",
+                            text:
+                                "Derived from Qwen Image 2.1 Turbo. For noncommercial research and evaluation only. Check the included LICENSE and NOTICE. Commercial use requires a separate license."
                         ),
                     ], platforms: [.iOS], searchTerms: searchTerms["image-generation"]))
             models.append(
                 LibraryModel(
-                    id: "qwen-image21-turbo", name: "Qwen Image 2.1 Turbo", category: "Image Generation",
-                    searchTerms: searchTerms["qwen-image21-turbo"] ?? [], artifacts: images,
+                    id: "qwen-image21-turbo", name: "Mobile Image Lab", category: "Image Generation",
+                    searchTerms: ["Qwen", "Qwen Image 2.1 Turbo"] + (searchTerms["qwen-image21-turbo"] ?? []),
+                    artifacts: images,
                     defaultArtifactID: initial.id, platforms: [.iOS],
                     demos: [ModelDemoLink(demoID: "image-generation", platforms: [.iOS])]))
         }
@@ -231,5 +237,16 @@ public enum IOSDemoCatalog {
         ]
     }
 
-    private static let verifiedImageArtifacts: [ModelArtifact] = [QwenImage21Artifact.nativeComplex]
+    public static func imageGenerationIdentity(for target: String?) -> ModelArtifactIdentity? {
+        guard let artifact = verifiedImageArtifacts.first(where: { $0.id == target }),
+            let revision = artifact.sourceRevision
+        else { return nil }
+        return ModelArtifactIdentity(
+            modelID: "qwen-image21-turbo", artifactID: artifact.id, contract: artifact.contract,
+            revision: revision, sourceKind: .localManifest)
+    }
+
+    private static let verifiedImageArtifacts: [ModelArtifact] = [
+        MobileImageLabArtifact.published, QwenImage21Artifact.nativeComplex,
+    ]
 }
