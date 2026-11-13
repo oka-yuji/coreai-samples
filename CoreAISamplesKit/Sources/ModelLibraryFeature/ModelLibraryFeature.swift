@@ -264,7 +264,7 @@ public enum ModelLibraryFeature: Feature {
             state.installations[artifactID]?.failure = .downloadNotConfigured
             return []
         }
-        guard download.isValid else {
+        guard download.isValid, artifact.isSourceValid else {
             state.installations[artifactID]?.failure = .invalidDownload
             return []
         }

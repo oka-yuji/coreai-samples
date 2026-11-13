@@ -1,6 +1,7 @@
 import json
 import os
 from pathlib import Path
+import select
 import subprocess
 import sys
 import tempfile
@@ -16,6 +17,10 @@ import sys
 from pathlib import Path
 
 fake = json.loads(Path(__file__).with_name("fake.json").read_text())
+marker = Path(__file__).with_name("unblocked")
+if fake.get("block_first") and not marker.exists():
+    sys.stdin.buffer.read(1)
+    marker.touch()
 if "output" in fake:
     sys.stdout.write(fake["output"])
     sys.exit(fake["code"])
@@ -131,6 +136,31 @@ class PublicTextChecks(unittest.TestCase):
         result = self.run_check(repository(plain, [issue(101, body)], history={"I101": edits((body, None))}))
         self.assertEqual(result.returncode, 1, result.stderr)
         self.assertEqual(result.stdout.splitlines(), ["issue #101 body:2", "issue #101 body:2 (edit 1)"])
+        self.assertIn("current text and edit histories 100/101", result.stderr)
+        self.assertIn("current text and edit histories 101/101", result.stderr)
+
+    def test_progress_is_visible_before_a_blocked_api_call_returns(self):
+        fake = dict(repository([issue(1, "private payload")]), block_first=True)
+        (self.bin / "fake.json").write_text(json.dumps(fake), encoding="utf-8")
+        environment = dict(os.environ, PATH=os.pathsep.join([str(self.bin), os.environ.get("PATH", "")]))
+        child = subprocess.Popen(
+            [sys.executable, "-I", str(SCRIPT), REPOSITORY], stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=environment,
+        )
+        try:
+            ready, _, _ = select.select([child.stderr], [], [], 5)
+            self.assertTrue(ready, "No progress was flushed before the blocked API returned")
+            self.assertEqual(child.stderr.readline(), b"Audit progress: issue/PR inventory 0\n")
+            self.assertIsNone(child.poll())
+            stdout, stderr = child.communicate(b"x", timeout=10)
+            self.assertEqual(child.returncode, 0, stderr)
+            self.assertEqual(stdout, b"")
+            self.assertNotIn(b"private payload", stderr)
+            self.assertIn(b"scan complete; finding lines 0", stderr)
+        finally:
+            if child.poll() is None:
+                child.kill()
+            child.communicate()
 
     def test_paths_separated_by_json_and_url_escapes_are_reported(self):
         body = "\n".join([
@@ -144,6 +174,24 @@ class PublicTextChecks(unittest.TestCase):
         result = self.run_check(repository([issue(1, body), issue(2, mixed)]))
         self.assertEqual(result.returncode, 1, result.stderr)
         self.assertEqual(result.stdout.splitlines(), [f"issue #1 body:{line}" for line in range(1, 6)] + ["issue #2 body:3"])
+
+    def test_closed_progress_pipe_preserves_audit_exit_codes(self):
+        cases = [(repository([issue(1, "plain")]), 0),
+                 (repository([issue(1, absolute("Users", "alice", "x"))]), 1),
+                 ({"output": "", "code": 1}, 2)]
+        environment = dict(os.environ, PATH=os.pathsep.join([str(self.bin), os.environ.get("PATH", "")]))
+        for fake, expected in cases:
+            with self.subTest(expected=expected):
+                (self.bin / "fake.json").write_text(json.dumps(fake), encoding="utf-8")
+                reader, writer = os.pipe()
+                os.close(reader)
+                try:
+                    result = subprocess.run([sys.executable, "-I", str(SCRIPT), REPOSITORY],
+                                            stdout=subprocess.PIPE, stderr=writer, env=environment, timeout=10)
+                finally:
+                    os.close(writer)
+                self.assertEqual(result.returncode, expected)
+                self.assertEqual(result.stdout, b"issue #1 body:1\n" if expected == 1 else b"")
 
     def test_api_failures_exit_with_two_instead_of_reporting_no_paths(self):
         path = absolute("Users", "alice", "x")
@@ -164,6 +212,50 @@ class PublicTextChecks(unittest.TestCase):
                 self.assertTrue(messages[-1].startswith("Could not read"), messages)
                 if cause:
                     self.assertTrue(messages[-2].startswith(cause), messages)
+                self.assertNotIn("scan complete", result.stderr)
+
+    def test_progress_reader_closing_before_api_failure_preserves_exit_two(self):
+        (self.bin / "fake.json").write_text(json.dumps({"block_first": True, "output": "", "code": 1}))
+        environment = dict(os.environ, PATH=os.pathsep.join([str(self.bin), os.environ.get("PATH", "")]))
+        child = subprocess.Popen([sys.executable, "-I", str(SCRIPT), REPOSITORY], stdin=subprocess.PIPE,
+                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=environment)
+        try:
+            ready, _, _ = select.select([child.stderr], [], [], 5)
+            self.assertTrue(ready)
+            self.assertEqual(child.stderr.readline(), b"Audit progress: issue/PR inventory 0\n")
+            child.stderr.close()
+            child.stderr = None
+            stdout, _ = child.communicate(b"x", timeout=10)
+            self.assertEqual(child.returncode, 2)
+            self.assertEqual(stdout, b"")
+        finally:
+            if child.poll() is None:
+                child.kill()
+            child.communicate()
+
+    def test_missing_stderr_never_sends_progress_to_stdout(self):
+        (self.bin / "fake.json").write_text(json.dumps(repository([issue(1, "plain")])))
+        environment = dict(os.environ, PATH=os.pathsep.join([str(self.bin), os.environ.get("PATH", "")]))
+        command = [sys.executable, "-I", "-c", "import os,sys;os.close(2);os.execv(sys.argv[1],sys.argv[1:])",
+                   sys.executable, "-I", str(SCRIPT), REPOSITORY]
+        result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=environment, timeout=10)
+        self.assertEqual(result.returncode, 0)
+        self.assertEqual(result.stdout, b"")
+
+    def test_unwritable_progress_file_does_not_change_audit_outcome(self):
+        environment = dict(os.environ, PATH=os.pathsep.join([str(self.bin), os.environ.get("PATH", "")]))
+        cases = [(repository([issue(1, "plain")]), 0),
+                 (repository([issue(1, absolute("Users", "alice", "x"))]), 1),
+                 ({"output": "", "code": 1}, 2)]
+        bootstrap = "import os,sys,resource,signal;signal.signal(signal.SIGXFSZ,signal.SIG_IGN);resource.setrlimit(resource.RLIMIT_FSIZE,(0,0));os.execv(sys.argv[1],sys.argv[1:])"
+        for fake, expected in cases:
+            with self.subTest(expected=expected):
+                (self.bin / "fake.json").write_text(json.dumps(fake))
+                with (self.bin / "stderr.log").open("wb") as stderr:
+                    result = subprocess.run([sys.executable, "-I", "-c", bootstrap, sys.executable, "-I", str(SCRIPT), REPOSITORY],
+                                            stdout=subprocess.PIPE, stderr=stderr, env=environment, timeout=10)
+                self.assertEqual(result.returncode, expected)
+                self.assertEqual(result.stdout, b"issue #1 body:1\n" if expected == 1 else b"")
 
 
 if __name__ == "__main__":

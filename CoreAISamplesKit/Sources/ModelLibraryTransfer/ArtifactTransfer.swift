@@ -72,7 +72,8 @@ public actor ArtifactTransfer {
         _ model: LibraryModel, _ artifact: ModelArtifact, _ staging: URL,
         _ progress: @Sendable (ModelTransferProgress) -> Void
     ) async throws {
-        guard let source = artifact.download, source.isValid, model.artifact(artifact.id) == artifact,
+        guard let source = artifact.download, artifact.isSourceValid, model.artifact(artifact.id) == artifact,
+            let total = artifact.totalFileBytes,
             !artifact.files.isEmpty, Set(artifact.files.map(\.path)).count == artifact.files.count,
             Set(artifact.files.map(\.path)).isDisjoint(with: artifact.files.map { $0.path + ".part" }),
             source.root.isEmpty || isRelative(source.root), artifact.files.allSatisfy({ isRelative($0.path) })
@@ -91,7 +92,6 @@ public actor ArtifactTransfer {
                 pending.append((file, url))
             }
         }
-        let total = artifact.files.reduce(0) { $0 + $1.bytes }
         guard try availableCapacity(staging) >= total - completed else {
             throw ArtifactTransferError.insufficientSpace
         }

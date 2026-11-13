@@ -232,7 +232,10 @@ public enum ModelLibrarySelfTest {
         }
         guard
             importBundle != nil
-                || selected.allSatisfy({ $0.1.sourceKind != .localManifest || installed.contains($0.1.id) })
+                || selected.allSatisfy({
+                    $0.1.sourceKind != .localManifest || installed.contains($0.1.id)
+                        || ModelAcquisitionPolicy(artifact: $0.1).preferredMethod == .download
+                })
         else {
             throw Failure(description: "A selected folder is required before acquiring an uninstalled local artifact")
         }
@@ -253,14 +256,14 @@ public enum ModelLibrarySelfTest {
             var elapsed: Double?
             var timedOut = false
             if library.state.installations[artifact.id]?.phase != .ready || importBundle != nil {
-                route = artifact.sourceKind == .localManifest ? "local-import" : "download"
+                route = importBundle != nil ? "local-import" : "download"
                 let start = clock.now
-                if artifact.sourceKind == .localManifest {
-                    guard let importBundle else {
-                        throw Failure(description: "A selected folder is required for local import")
-                    }
+                if let importBundle {
                     library.send(.importRequested(artifact.id, importBundle))
                 } else {
+                    guard ModelAcquisitionPolicy(artifact: artifact).preferredMethod != .importBundle else {
+                        throw Failure(description: "A selected folder is required for local import")
+                    }
                     library.send(.downloadRequested(artifact.id))
                 }
                 if await !settle(library, [artifact.id]) {

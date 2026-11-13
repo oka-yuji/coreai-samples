@@ -2,13 +2,13 @@
 
 [ホーム](../README.ja.md) · [English](chronos2.md)
 
-Amazon Chronos-2を、単系列・16点先の分位予測としてCore AIのFP32へ変換する再現手順です。MacのPython Core AI経路は固定した合成18条件に合格しています。Swift runtime、Models、NYCサンプルの追加は[#548](https://github.com/oka-yuji/coreai-samples/issues/548)で進めます。
+Amazon Chronos-2を、単系列・16点先の分位予測としてCore AIのFP32へ変換した公開版です。Modelsから[配布bundle](https://huggingface.co/okayuji/chronos-2-coreai-fp32)を取得してNYCタクシーデモへ渡せます。Macの新規取得と本番serviceのnative予測を検証済みで、通常の取得画面・実iPhone・本人受入は未確認です。[公開検証記録](validation/chronos2-download-20261113/README.md)に範囲と失敗経緯を残しています。
 
 ## 変換の契約
 
 [保守用レシピ](../Tools/Conversion/recipes/chronos2/README.md)へ固定した公式snapshotを渡します。観測は1〜8192点、欠損と左paddingはNaN。native入力は16の倍数長のFloat32[1,T]、出力はFloat32[1,21,16]、stateなしです。このprofileは共変量、cross-learning、量子化、16点を超える予測を公開しません。
 
-このリポジトリで重みは配布しません。レシピはローカルbundleとinventoryを作ります。新規変換では資産やmanifestのhashが変わり得るため、そのbundleを検証してから信頼するcatalogを更新します。
+重みは[Hugging Face](https://huggingface.co/okayuji/chronos-2-coreai-fp32)で別配布します。レシピはローカルbundleとinventoryを作ります。新規変換では資産やmanifestのhashが変わり得るため、そのbundleを検証してから信頼するcatalogを更新します。
 
 ## 変換の検証
 
@@ -24,15 +24,23 @@ swift run --package-path CoreAISamplesKit chronos-verify --help
 
 モデル実行時は`AGENTS.md`の共有ロックを使います。JSON入力は`{"context":[1,2,null,4]}`で、`null`が欠損です。結果は補正前の全`[1,21,16]`値とidentityを保持します。出力は既存フォルダ内の新しいファイルに限ります。
 
-## Modelsへの取り込みとプレビュー
+## Modelsからの取得・取り込みとプレビュー
 
-Mac/iOSのModelsにChronos-2とNYC固定タクシー乗車件数予測を表示します。**Import model**から、準備済みのChronos-2 FP32フォルダ全体を選びます。9ファイルで478,864,956バイト（約479 MB）あり、管理コピーの分の空き容量も必要です。このビルドにダウンロード先はありません。Modelsの起動・取り込み・検査で推論は始まりません。モデルがなくても事前計算プレビューを操作でき、準備後は端末内予測を明示的に実行できます。端末内予測の失敗時に方式を自動変更しません。
+**Models**で**Chronos-2**を選び、**モデルをダウンロード**を選びます（一覧やiPhoneでは下向き矢印のボタンです）。固定した9ファイル・478,864,956バイト（約479 MB）を匿名で取得し、すべてを検査します。管理用・実行用コピーの空き容量も必要です。既知のChronos-2 FP32フォルダ全体を選ぶ**モデルを取り込む**も利用できます。既存の正常な取り込み済み資産は、そのまま使えます。
+
+準備完了のチェックマークが表示されたらNYCタクシーデモを開き、**端末内予測**を選んで**この端末で予測**を押します。Modelsの起動・取得・取り込み・検査・準備で予測を自動実行しません。モデルがなくても**事前計算プレビュー**を操作できます。端末内予測が失敗しても方式を自動変更しません。Mac/iOSに同じ取得経路を接続し、署名iOS buildも確認済みですが、実iPhoneの取得と推論は未確認です。
+
+アプリはHF commit `d3ead488046498faa8b3b5103b1923e52a313d0e`（`v1.0.0`）の`bundle/`を取得します。公開版`v1.0.1`は`f422aa3a7c1173566c99fbfceb97e874b0121dab`で、変更はモデルカードだけです。9ファイルのbundleは全bytesが同一で、両方の公開版とアプリの固定先を保持しています。
 
 固定資産は`chronos2-fp32`、契約は`chronos2-fp32-v1`、原典は`amazon/chronos-2`のrevision `29ec3766d36d6f73f0696f85560a422f50e8498c`です。`chronos2.json`のSHA-256は`786dcf97e020c987cbf883f09b486fba5f3fee30a588b87a346ea65d72d20572`で、元のmanifestの全bytesと9ファイルすべての容量・hashを照合します。この完全一致で、stateなし・Float32 `[1,T]`から`[1,21,16]`へのABIを含むmetadataの契約を固定し、取込時にモデルロードやruntimeのsnapshot作成を行いません。manifestの整形だけでも新しい信頼済みidentityが必要です。
+
+40桁のHF commitは取得するbytesを選び、64桁のmanifest hashは信頼する資産・保存先・leaseを識別します。両方の契約を検査し、取得先を追加しても`localManifest`のidentityと取り込み済み登録は変わりません。HTTPの取得revisionにmanifest hashを使うことはありません。
 
 既存のModels storeがコピー・検査してから登録します。改変・欠損・余分なファイル・symlinkを拒否し、置換に失敗しても旧登録と入力フォルダを保持します。利用のleaseがある間は置換・削除を拒否し、最後のleaseを解放してから管理コピーを削除できます。元フォルダは削除しません。
 
 CPU検査はcatalog・preview・履歴窓・停止とownerの境界・合成ファイルによる保存境界を対象にします。実bundleの明示検査は、共有heavy-jobロック下で`COREAI_CHRONOS2_IMPORT_BUNDLE=/path/to/chronos2-bundle swift test --package-path CoreAISamplesKit --filter ChronosImportTests.knownBundle`を使います。推論せず、取り込み・全量検査・lease・不正置換の拒否・元hashの不変を確かめます。既定のskipは取込成功ではありません。実bundle取り込み、アプリbuild、iPhone推論、通常UIの受入は別の証拠が必要です。
+
+[公開DLの検査](validation/chronos2-download-20261113/README.md)は空のmanaged store・移行候補なしから実取得し、9ファイル全件を照合してから本番Models/Store/session/serviceで固定60場面・ゾーンの20,160原値を比較しました。元hash不変とclose後lease0も確認しています。同じ固定参照による変換一致の検査で、独立した予測品質や性能の評価ではありません。共有ロック下で新規`COREAI_CHRONOS2_DOWNLOAD_OUTPUT`、hash検査用の元bundleを`COREAI_CHRONOS2_DOWNLOAD_SOURCE`、固定参照を`COREAI_CHRONOS2_DOWNLOAD_REFERENCE`へ渡し、`swift test --package-path CoreAISamplesKit --filter ChronosDownloadNativeTests.freshModelsDownload`で再現します。既定はskipで、通常GUI・実iPhone・本人受入は別に確認します。
 
 ## NYC固定デモ
 
@@ -61,8 +69,8 @@ D5の明示試験は共有heavy-jobロック下で、`COREAI_CHRONOS2_DEMO_BUNDL
 
 | OS | 状態 | 確認した範囲・残る確認 | 根拠 |
 |---|---|---|---|
-| macos | ✅ | 通常MacでNYC・商品売上・CPU専用Seoul Bikeを確認。本人受入は未完。 | [E4](validation/chronos2-demo-20261112/README.md) · [E5](validation/chronos2-api-20261112/README.md) · [E6](validation/chronos2-journal-20261112/README.md) · [E7](validation/chronos2-sales-20261113/README.md) · [E8](validation/chronos2-bike-20261113/README.md) |
-| ios | △ | NYC・売上・Seoul Bikeを接続し署名host build成功。実iPhoneの推論/UIは未確認。 | [E4](validation/chronos2-demo-20261112/README.md) · [E5](validation/chronos2-api-20261112/README.md) · [E6](validation/chronos2-journal-20261112/README.md) · [E7](validation/chronos2-sales-20261113/README.md) · [E8](validation/chronos2-bike-20261113/README.md) |
+| macos | ✅ | 通常MacでNYC・商品売上・CPU専用Seoul Bikeを確認。公開版の新規取得/native照合は別途成功。通常DL画面と本人受入は未確認。 | [E4](validation/chronos2-demo-20261112/README.md) · [E5](validation/chronos2-api-20261112/README.md) · [E6](validation/chronos2-journal-20261112/README.md) · [E7](validation/chronos2-sales-20261113/README.md) · [E8](validation/chronos2-bike-20261113/README.md) · [E10](validation/chronos2-download-20261113/README.md) · [E11](validation/chronos2-download-20261113/README.md) |
+| ios | △ | NYC・売上・Seoul BikeとDL/取込を接続し署名build成功。実iPhoneの取得・推論と本人受入は未確認。 | [E4](validation/chronos2-demo-20261112/README.md) · [E5](validation/chronos2-api-20261112/README.md) · [E6](validation/chronos2-journal-20261112/README.md) · [E7](validation/chronos2-sales-20261113/README.md) · [E8](validation/chronos2-bike-20261113/README.md) · [E10](validation/chronos2-download-20261113/README.md) |
 
 ### 性能と品質
 
@@ -82,6 +90,7 @@ D5の明示試験は共有heavy-jobロック下で、`COREAI_CHRONOS2_DEMO_BUNDL
 | 参照との誤差（定義は根拠参照） | 0.00152587891 error | max; n=6048 | [E1](validation/chronos2-conversion-20261111/README.md) · 全scalarの最大絶対差。各値はatol 1e-4 + rtol 1e-4を満たす。nは比較したscalar数で独立run数ではありません。 |
 | 参照との誤差（定義は根拠参照） | 8.39233398e-05 error | max; n=10752 | [E7](validation/chronos2-sales-20261113/README.md) · 売上の固定16窓を再load後も照合。全21×16原値が固定atol/rtol各1e-4以内。反復scalar数で、独立した品質標本数ではない。 |
 | 参照との誤差（定義は根拠参照） | 0.00170898438 error | max; n=3360 | [E8](validation/chronos2-bike-20261113/README.md) · CPU専用の自転車5窓を2回。全原値が固定atol/rtol1e-4以内。反復は独立した品質標本ではない。 |
+| 参照との誤差（定義は根拠参照） | 0.000228881836 error | max; n=20160 | [E10](validation/chronos2-download-20261113/README.md) · 新規取得bundleで既存の固定NYC60条件を照合。原値の最大絶対差で、全値がatol 1e-4 + rtol 1e-4内。独立した用途品質や反復run数ではありません。 |
 | 停止受付から完了までの時間 | 未計測 | — | この変換一致検査では未計測。アプリ動作・用途品質・性能は別の証拠で確認します。 |
 | 予測のMAE | 4.44884534 count | aggregate; n=212 | [E7](validation/chronos2-sales-20261113/README.md) · 固定売上の初回のみ、共通有効212/224ペア。負値補正後・表示丸め前の中央値。季節ナイーブは根拠参照。独立した品質評価ではない。 |
 | 予測のMAE | 449.954254 count | aggregate; n=80 | [E8](validation/chronos2-bike-20261113/README.md) · 初回80時間の同一ペア。季節ナイーブと不利な起点別結果も保持。未使用データの品質評価ではない。 |
@@ -92,9 +101,9 @@ D5の明示試験は共有heavy-jobロック下で、`COREAI_CHRONOS2_DEMO_BUNDL
 
 | 確認項目 | 状態 | 対象範囲・残る確認 | 根拠 |
 |---|---|---|---|
-| 変換・参照との一致 | 合格（記載範囲） | 合成18条件・固定NYC60場面/ゾーン・実API20系列が凍結した原tensor照合に合格。API入力は固定金曜の条件と重複。商品売上は固定16窓を解放/再表示後も公式FP32と照合。 Seoul BikeはCPU専用で固定5窓を2回照合。先のGPU不合格も保持。 | [E1](validation/chronos2-conversion-20261111/README.md) · [E2](validation/chronos2-swift-20261112/README.md) · [E4](validation/chronos2-demo-20261112/README.md) · [E5](validation/chronos2-api-20261112/README.md) · [E7](validation/chronos2-sales-20261113/README.md) · [E8](validation/chronos2-bike-20261113/README.md) |
+| 変換・参照との一致 | 合格（記載範囲） | 合成18条件・固定NYC60場面/ゾーン・実API20系列が凍結した原tensor照合に合格。API入力は固定金曜の条件と重複。商品売上は固定16窓を解放/再表示後も公式FP32と照合。公開版の新規取得でも同じNYC60条件を再照合し、未使用系列の追加とはしない。 Seoul BikeはCPU専用で固定5窓を2回照合。先のGPU不合格も保持。 | [E1](validation/chronos2-conversion-20261111/README.md) · [E2](validation/chronos2-swift-20261112/README.md) · [E4](validation/chronos2-demo-20261112/README.md) · [E5](validation/chronos2-api-20261112/README.md) · [E7](validation/chronos2-sales-20261113/README.md) · [E8](validation/chronos2-bike-20261113/README.md) · [E10](validation/chronos2-download-20261113/README.md) · [E11](validation/chronos2-download-20261113/README.md) |
 | 用途の品質 | 未計測 | 不利な結果も含め売上と自転車の固定診断を記録。未使用データでの一般的予測品質は未評価。 | — |
-| 連続利用・資源解放 | 合格（記載範囲） | NYCと売上で解放/再load、本番serviceのlease0、通常Macの離脱/再表示を確認。売上では点のメモリとprocess生涯peakを記録。iPhone受入は未確認。 Seoul Bikeも解放/再表示とlease0を確認。 | [E2](validation/chronos2-swift-20261112/README.md) · [E4](validation/chronos2-demo-20261112/README.md) · [E5](validation/chronos2-api-20261112/README.md) · [E7](validation/chronos2-sales-20261113/README.md) · [E8](validation/chronos2-bike-20261113/README.md) |
+| 連続利用・資源解放 | 合格（記載範囲） | NYCと売上で解放/再load、本番serviceのlease0、通常Macの離脱/再表示を確認。売上では点のメモリとprocess生涯peakを記録。iPhone受入は未確認。公開版の新規取得/native予測も元hash不変とlease解放を確認。 Seoul Bikeも解放/再表示とlease0を確認。 | [E2](validation/chronos2-swift-20261112/README.md) · [E4](validation/chronos2-demo-20261112/README.md) · [E5](validation/chronos2-api-20261112/README.md) · [E7](validation/chronos2-sales-20261113/README.md) · [E8](validation/chronos2-bike-20261113/README.md) · [E10](validation/chronos2-download-20261113/README.md) · [E11](validation/chronos2-download-20261113/README.md) |
 | 停止・再試行・回復 | 未計測 | 取消と停止joinはCPU fakeで検査済み。実モデルの取消と通常アプリは未計測。 | — |
 
 ### 根拠と測定条件
@@ -110,6 +119,8 @@ D5の明示試験は共有heavy-jobロック下で、`COREAI_CHRONOS2_DEMO_BUNDL
 | [E7](validation/chronos2-sales-20261113/README.md) | 2026-11-13 / legacy / native_app | Apple M5 Max / 137438953472 B RAM / macOS 27.2.1 (26B131) / Xcode 27.2 (27B52); Swift 6.4.2; SDK 27.2; Debug package and Release Mac/iOS builds | 4商品×4過去起点、365点履歴、2回/10752原値照合。初回の比較212/224ペア。通常Macの軸修正は1954168。時間とprocess全体メモリは診断値で、制御したbenchmarkや未使用データの品質評価ではない。 · variant=coreai-fp32-univariate; backend=Swift Core AI GPU preference; actual delegate not profiled; route=Production Models/Store/Service/Sessions with original sales CSV; independent raw/metric audit; separate normal Mac sidebar; source_revision=29ec3766d36d6f73f0696f85560a422f50e8498c; artifact_revision=786dcf97e020c987cbf883f09b486fba5f3fee30a588b87a346ea65d72d20572; code_revision=55df3378a40a98f8e34c6fafa8e8a33bb1001e71; batch_size=1; concurrency=1; warmups=0; power=AC Power before and after; thermal=pmset reported no thermal/performance warnings before and after; temperature and GPU load unmeasured; 未記録: plan_sha256 |
 | [E8](validation/chronos2-bike-20261113/README.md) | 2026-11-13 / legacy / native_app | Apple M5 Max / 137438953472 B RAM / macOS 27.2.1 (26B131) / Xcode 27.2 (27B52); Swift 6.4.2; SDK 27.2; Debug package and Release Mac/iOS builds | Seoulの固定5起点、直前336件、全21x16原値を2回/3360値照合しlease0。初回80時間の診断だけで、先のGPU不合格も保持。iPhoneと制御benchmarkは未確認。 · variant=coreai-fp32-univariate; backend=Swift Core AI cpuOnly; EFR=false; per-operator placement not profiled; route=Production Models/Store/Service/Sessions; independent source/raw/metric audit; separate normal Mac GUI at7251127; source_revision=29ec3766d36d6f73f0696f85560a422f50e8498c; artifact_revision=786dcf97e020c987cbf883f09b486fba5f3fee30a588b87a346ea65d72d20572; code_revision=0008c7d7a74693172a93eb2a1b0de8908e91fb3e; batch_size=1; concurrency=1; warmups=0; power=AC Power before and after; thermal=pmset reported no thermal/performance warnings before and after; temperature and GPU load unmeasured; 未記録: plan_sha256 |
 | [E9](validation/chronos2-bike-20261113/README.md) | 2026-11-13 / legacy / diagnostic | Apple M5 Max / 137438953472 B RAM / macOS 27.2.1 (26B131) / Xcode 27.2 (27B52); Swift 6.4.2; SDK 27.2; Debug package and Release Mac/iOS builds | May17の裾の1値が各passで固定atol/rtol1e-4を超えた。EFR=trueも別の値が不合格。資産と閾値を変えずCPU専用を採用した。 · variant=coreai-fp32-univariate; backend=Swift Core AI GPU preference; EFR=false; actual delegate not profiled; route=Same frozen five Seoul windows; full native report retained two scalar failures across two passes; source_revision=29ec3766d36d6f73f0696f85560a422f50e8498c; artifact_revision=786dcf97e020c987cbf883f09b486fba5f3fee30a588b87a346ea65d72d20572; code_revision=1b47558cbc1943780815aaa391cf780f3d8d3ac1; batch_size=1; concurrency=1; warmups=0; power=AC Power before and after; thermal=pmset reported no thermal/performance warnings before and after; temperature and GPU load unmeasured; 未記録: plan_sha256 |
+| [E10](validation/chronos2-download-20261113/README.md) | 2026-11-13 / legacy / diagnostic | Apple M5 Max / 137438953472 B RAM / macOS 27.2.1 (26B131) / Xcode 27.2 (27B52); Swift 6.4.2; SDK 27.2; Debug package tests; Release Mac/iOS build checks | d3ead488から匿名9GET・478864956バイトを新規取得。固定60場面/ゾーン・20160原値、元hash不変とlease0を照合。同じ固定参照の再利用で、新しい独立評価データではない。ホスト識別は実行後に取得、電源/熱・benchmark計画hashは未記録。GUI・iPhone・本人受入は別。 · variant=coreai-fp32-univariate; backend=Swift Core AI GPU preference; actual delegate not profiled; route=Fresh public Models download -> full validation -> production Store/sessions/service -> fixed native forecasts -> close; drawing-only adapter; source_revision=29ec3766d36d6f73f0696f85560a422f50e8498c; artifact_revision=786dcf97e020c987cbf883f09b486fba5f3fee30a588b87a346ea65d72d20572; code_revision=9c7da3d0de00ef86f8ca1235385a254bd82f7982; batch_size=1; concurrency=1; warmups=0; 未記録: power, thermal, plan_sha256 |
+| [E11](validation/chronos2-download-20261113/README.md) | 2026-11-13 / legacy / diagnostic | Apple M5 Max / 137438953472 B RAM / macOS 27.2.1 (26B131) / Xcode 27.2 (27B52); Swift 6.4.2; SDK 27.2; Debug package tests; Release Mac/iOS build checks | 売上統合とopt-in catalog修正後の再取得。既存と同じ60場面/ゾーン・20160原値で、未使用データの追加ではない。全case集合・Float32復元原値・元hash不変・lease0を確認。Test50.129秒とwrapper63.754719333秒は検査全体で性能値ではない。 · variant=coreai-fp32-univariate; backend=Swift Core AI GPU preference; actual delegate not profiled; route=Fresh production Models download -> corrected production-linked catalog -> Store/Sessions/Service -> same 60 fixed NYC cases -> close; source_revision=29ec3766d36d6f73f0696f85560a422f50e8498c; artifact_revision=786dcf97e020c987cbf883f09b486fba5f3fee30a588b87a346ea65d72d20572; code_revision=ec02f94bde596787ef83c837499732b9c76f3c2a; batch_size=1; concurrency=1; warmups=0; 未記録: power, thermal, plan_sha256 |
 
 ### 導入・制限・進捗
 
@@ -138,6 +149,8 @@ D5の明示試験は共有heavy-jobロック下で、`COREAI_CHRONOS2_DEMO_BUNDL
 - [Seoul Bikeデモ](chronos2-bike.md)
 
 - [Seoul Bike検証](validation/chronos2-bike-20261113/README.md)
+
+- [公開ダウンロードの検証記録](validation/chronos2-download-20261113/README.md)
 <!-- model-report:end -->
 
 ## 検証済みのNYC API日時

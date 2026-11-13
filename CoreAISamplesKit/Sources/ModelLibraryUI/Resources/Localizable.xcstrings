@@ -248,6 +248,40 @@
         }
       }
     },
+    "Download or import the model to enable its controls." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download or import the model to enable its controls."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルをダウンロードまたは取り込むと操作できます。"
+          }
+        }
+      }
+    },
+    "Download the Chronos-2 FP32 model, or import the complete prepared folder. Model files use about 479 MB. Importing requires extra space for the app copy." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download the Chronos-2 FP32 model, or import the complete prepared folder. Model files use about 479 MB. Importing requires extra space for the app copy."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chronos-2 FP32モデルをダウンロードするか、準備済みフォルダ全体を取り込んでください。モデルの容量は約479 MBです。取り込みにはアプリ内のコピー用の空き容量も必要です。"
+          }
+        }
+      }
+    },
     "Download the Reference voice model to enable recording and audio files." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -306,6 +340,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "変換したモデルを、具体的なデモで試せます。"
+          }
+        }
+      }
+    },
+    "Explore the fixed preview now. Download or import the model for on-device prediction." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Explore the fixed preview now. Download or import the model for on-device prediction."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "固定データのプレビューを今すぐ操作できます。端末内で予測するにはモデルをダウンロードまたは取り込んでください。"
+          }
+        }
+      }
+    },
+    "Explore the fixed preview now. Download the model for on-device prediction." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Explore the fixed preview now. Download the model for on-device prediction."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "固定データのプレビューを今すぐ操作できます。端末内で予測するにはモデルをダウンロードしてください。"
           }
         }
       }
@@ -445,6 +513,23 @@
         }
       }
     },
+    "Manifest SHA-256" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Manifest SHA-256"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "マニフェストのSHA-256"
+          }
+        }
+      }
+    },
     "Model" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -484,6 +569,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "モデルの準備手順を開く"
+          }
+        }
+      }
+    },
+    "Model ready" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Model ready"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデル準備完了"
           }
         }
       }

@@ -49,47 +49,31 @@ public struct ModelAcquisitionControls: View {
     }
 
     private func acquisition(_ artifact: ModelArtifact, installation: ModelInstallation) -> some View {
-        HStack(spacing: 4) {
+        let policy = ModelAcquisitionPolicy(artifact: artifact)
+        return HStack(spacing: 4) {
             switch installation.phase {
             case .missing, .failed:
-                Button {
-                    acquire(artifact)
-                } label: {
-                    if showsActionTitle {
-                        libraryText(
-                            artifact.localBundle != nil
-                                ? "Import model"
-                                : installation.phase == .failed ? "Retry download" : "Download model"
-                        )
-                        .padding(.leading, 12)
+                if let method = policy.preferredMethod {
+                    acquisitionButton(
+                        artifact, method: method,
+                        retrying: installation.phase == .failed && !(method == .download && policy.allowsImport))
+                    if method == .download, policy.allowsImport {
+                        acquisitionButton(artifact, method: .importBundle)
                     }
-                    Image(
-                        systemName: artifact.localBundle != nil
-                            ? "folder.badge.plus"
-                            : installation.phase == .failed ? "arrow.clockwise" : "arrow.down.circle"
-                    )
-                    .frame(minWidth: 44, minHeight: 44)
-                    .contentShape(Rectangle())
                 }
-                .accessibilityLabel(
-                    libraryText(
-                        artifact.localBundle != nil
-                            ? "Import model" : installation.phase == .failed ? "Retry download" : "Download model")
-                )
-                .accessibilityValue(Text(verbatim: model.name))
             case .ready:
                 Image(systemName: "checkmark").foregroundStyle(.secondary)
-                    .accessibilityLabel(libraryText(artifact.localBundle == nil ? "Downloaded" : "Imported"))
-                if artifact.localBundle != nil {
+                    .accessibilityLabel(libraryText(policy.readyTitle))
+                if policy.allowsImport {
                     Button {
-                        acquire(artifact)
+                        acquire(artifact, method: .importBundle)
                     } label: {
                         Image(systemName: "folder.badge.plus")
                             .frame(minWidth: 44, minHeight: 44)
                             .contentShape(Rectangle())
                     }
                     .accessibilityLabel(libraryText("Import again"))
-                    .disabled(store.state.session?.selection.modelID == model.id)
+                    .disabled(store.state.session?.selection.modelID == model.id || deletionDisabled)
                 }
                 Button {
                     requestDeletion(artifact)
@@ -103,25 +87,9 @@ public struct ModelAcquisitionControls: View {
                 .accessibilityValue(Text(verbatim: model.name))
                 .disabled(store.state.session?.selection.modelID == model.id || deletionDisabled)
             case .downloading(let progress), .importing(let progress):
-                VStack(spacing: 3) {
-                    if let fraction = progress?.fraction {
-                        ProgressView(value: fraction)
-                            .accessibilityLabel(
-                                libraryText(artifact.localBundle == nil ? "Downloading" : "Importing"))
-                    } else {
-                        ProgressView().accessibilityLabel(
-                            libraryText(artifact.localBundle == nil ? "Downloading" : "Importing"))
-                    }
+                if let method = ModelAcquisitionPolicy.transferMethod(for: installation.phase) {
+                    transferProgress(artifact, method: method, progress: progress)
                 }
-                .frame(width: 30)
-                Button {
-                    store.send(.cancelRequested(artifact.id))
-                } label: {
-                    Image(systemName: "xmark")
-                        .frame(minWidth: 44, minHeight: 44)
-                        .contentShape(Rectangle())
-                }
-                .accessibilityLabel(libraryText(artifact.localBundle == nil ? "Cancel download" : "Cancel import"))
             case .inspecting, .validating:
                 ProgressView().accessibilityLabel(libraryText("Checking model"))
                 Button {
@@ -141,8 +109,52 @@ public struct ModelAcquisitionControls: View {
         .buttonStyle(.plain)
     }
 
-    private func acquire(_ artifact: ModelArtifact) {
-        if artifact.localBundle != nil {
+    private func acquisitionButton(
+        _ artifact: ModelArtifact, method: ModelAcquisitionPolicy.Method, retrying: Bool = false
+    ) -> some View {
+        Button {
+            acquire(artifact, method: method)
+        } label: {
+            if showsActionTitle {
+                libraryText(method.actionTitle(retrying: retrying)).padding(.leading, 12)
+            }
+            Image(systemName: method.systemImage(retrying: retrying))
+                .frame(minWidth: 44, minHeight: 44)
+                .contentShape(Rectangle())
+        }
+        .accessibilityLabel(libraryText(method.actionTitle(retrying: retrying)))
+        .accessibilityValue(Text(verbatim: model.name))
+        .disabled(method == .importBundle && (store.state.session?.selection.modelID == model.id || deletionDisabled))
+    }
+
+    private func transferProgress(
+        _ artifact: ModelArtifact, method: ModelAcquisitionPolicy.Method, progress: ModelTransferProgress?
+    ) -> some View {
+        Group {
+            VStack(spacing: 3) {
+                if let fraction = progress?.fraction {
+                    ProgressView(value: fraction)
+                        .accessibilityLabel(
+                            libraryText(method.progressTitle))
+                } else {
+                    ProgressView().accessibilityLabel(
+                        libraryText(method.progressTitle))
+                }
+            }
+            .frame(width: 30)
+            Button {
+                store.send(.cancelRequested(artifact.id))
+            } label: {
+                Image(systemName: "xmark")
+                    .frame(minWidth: 44, minHeight: 44)
+                    .contentShape(Rectangle())
+            }
+            .accessibilityLabel(libraryText(method.cancellationTitle))
+        }
+    }
+
+    private func acquire(_ artifact: ModelArtifact, method: ModelAcquisitionPolicy.Method) {
+        if method == .importBundle {
             importArtifactID = artifact.id
             choosingBundle = true
         } else {

@@ -40,6 +40,7 @@ public struct ModelDownload: Codable, Equatable, Sendable {
                     && part.unicodeScalars.allSatisfy(characters.contains)
             }
             && isLowercaseHex(revision, count: 40)
+            && (root.isEmpty || isRelativePath(root))
     }
 }
 
@@ -118,11 +119,7 @@ public struct ModelArtifact: Codable, Equatable, Sendable {
     }
 
     public var sourceKind: ModelSourceKind? {
-        switch (download, localBundle) {
-        case (.some, nil): .huggingFace
-        case (nil, .some): .localManifest
-        default: nil
-        }
+        if localBundle != nil { .localManifest } else if download != nil { .huggingFace } else { nil }
     }
 
     public var sourceRevision: String? {
@@ -134,12 +131,13 @@ public struct ModelArtifact: Codable, Equatable, Sendable {
     }
 
     public var isSourceValid: Bool {
+        guard download?.isValid != false else { return false }
         switch sourceKind {
-        case .huggingFace: download?.isValid == true
+        case .huggingFace: return true
         case .localManifest:
-            localBundle?.isValid == true
+            return localBundle?.isValid == true
                 && files.contains { $0.path == localBundle?.manifestPath && $0.sha256 == localBundle?.manifestSHA256 }
-        case nil: false
+        case nil: return false
         }
     }
 
@@ -155,7 +153,7 @@ public struct ModelArtifact: Codable, Equatable, Sendable {
 
     var isWellFormed: Bool {
         !id.isEmpty && !title.isEmpty && !contract.isEmpty && !platforms.isEmpty && (sizeBytes ?? 0) >= 0
-            && (download == nil || localBundle == nil) && (localBundle == nil || isSourceValid)
+            && (localBundle == nil || isSourceValid)
             && totalFileBytes != nil
             && (download.map { !files.isEmpty && ($0.root.isEmpty || isRelativePath($0.root)) } ?? true)
             && files.allSatisfy { isRelativePath($0.path) && $0.bytes >= 0 && isLowercaseHex($0.sha256, count: 64) }

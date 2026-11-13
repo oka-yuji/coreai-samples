@@ -188,14 +188,22 @@
                             }
                         } else {
                             if demo?.allowsPreviewInteraction == true {
-                                libraryText("Explore the fixed preview now. Import the model for on-device prediction.")
-                                    .font(.callout)
+                                libraryText(
+                                    artifact?.download != nil
+                                        ? artifact?.localBundle != nil
+                                            ? "Explore the fixed preview now. Download or import the model for on-device prediction."
+                                            : "Explore the fixed preview now. Download the model for on-device prediction."
+                                        : "Explore the fixed preview now. Import the model for on-device prediction."
+                                )
+                                .font(.callout)
                             } else {
                                 libraryText("You can read this demo now.").font(.headline)
                                 libraryText(
                                     store.state.isConnected(selection)
-                                        ? artifact?.localBundle == nil
-                                            ? "Download the model to enable its controls."
+                                        ? artifact?.download != nil
+                                            ? artifact?.localBundle != nil
+                                                ? "Download or import the model to enable its controls."
+                                                : "Download the model to enable its controls."
                                             : "Import the model to enable its controls."
                                         : "Demo execution is not connected in this build."
                                 )

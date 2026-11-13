@@ -13,12 +13,12 @@
     "en": "Time series forecasting",
     "ja": "時系列予測"
   },
-  "release": "in_progress",
+  "release": "released",
   "release_note": {
-    "en": "FP32 conversion and NYC/sales/CPU-only Seoul Bike demos work on Mac; physical iPhone and user acceptance remain pending.",
-    "ja": "FP32変換とNYC/売上/CPU専用Seoul BikeをMacで確認。実iPhoneと本人受入は未確認。"
+    "en": "Public FP32 bundle available from Models; NYC, product sales and CPU-only Seoul Bike verified on Mac. Physical iPhone and user acceptance remain pending.",
+    "ja": "Modelsから取得できるFP32版を公開。MacでNYC・商品売上・CPU専用Seoul Bikeを確認。実iPhoneと本人受入は未確認。"
   },
-  "download": null,
+  "download": "https://huggingface.co/okayuji/chronos-2-coreai-fp32",
   "pages": {
     "en": "docs/chronos2.md",
     "ja": "docs/chronos2.ja.md"
@@ -114,6 +114,13 @@
         "ja": "Seoul Bike検証"
       },
       "url": "docs/validation/chronos2-bike-20261113/README.md"
+    },
+    {
+      "title": {
+        "en": "Public download evidence",
+        "ja": "公開ダウンロードの検証記録"
+      },
+      "url": "docs/validation/chronos2-download-20261113/README.md"
     }
   ],
   "support": {
@@ -127,11 +134,13 @@
         "api-20261112",
         "journal-20261112",
         "sales-20261113",
-        "bike-20261113"
+        "bike-20261113",
+        "download-20261113",
+        "download-recheck-20261113"
       ],
       "note": {
-        "en": "Normal Mac checks cover NYC, product sales and CPU-only Seoul Bike. User acceptance remains open.",
-        "ja": "通常MacでNYC・商品売上・CPU専用Seoul Bikeを確認。本人受入は未完。"
+        "en": "Normal Mac checks cover NYC, product sales and CPU-only Seoul Bike. Fresh public download/native comparison passed separately; normal download UI and user acceptance remain open.",
+        "ja": "通常MacでNYC・商品売上・CPU専用Seoul Bikeを確認。公開版の新規取得/native照合は別途成功。通常DL画面と本人受入は未確認。"
       }
     },
     "ios": {
@@ -142,11 +151,12 @@
         "api-20261112",
         "journal-20261112",
         "sales-20261113",
-        "bike-20261113"
+        "bike-20261113",
+        "download-20261113"
       ],
       "note": {
-        "en": "NYC, sales and Seoul Bike adapters are connected and signed host builds pass; physical iPhone inference/UI remain unverified.",
-        "ja": "NYC・売上・Seoul Bikeを接続し署名host build成功。実iPhoneの推論/UIは未確認。"
+        "en": "NYC, sales and Seoul Bike adapters plus download/import controls are connected; signed builds pass. Physical iPhone download, inference and user acceptance remain open.",
+        "ja": "NYC・売上・Seoul BikeとDL/取込を接続し署名build成功。実iPhoneの取得・推論と本人受入は未確認。"
       }
     }
   },
@@ -402,6 +412,62 @@
       "thermal": "pmset reported no thermal/performance warnings before and after; temperature and GPU load unmeasured",
       "model_executed": true,
       "plan_sha256": null
+    },
+    "download-20261113": {
+      "url": "docs/validation/chronos2-download-20261113/README.md",
+      "level": "diagnostic",
+      "outcome": "passed",
+      "record_type": "legacy",
+      "date": "2026-11-13",
+      "platform": "macos",
+      "device": "Apple M5 Max / 137438953472 B RAM",
+      "os": "macOS 27.2.1 (26B131)",
+      "toolchain": "Xcode 27.2 (27B52); Swift 6.4.2; SDK 27.2; Debug package tests; Release Mac/iOS build checks",
+      "variant": "coreai-fp32-univariate",
+      "backend": "Swift Core AI GPU preference; actual delegate not profiled",
+      "route": "Fresh public Models download -> full validation -> production Store/sessions/service -> fixed native forecasts -> close; drawing-only adapter",
+      "source_revision": "29ec3766d36d6f73f0696f85560a422f50e8498c",
+      "artifact_revision": "786dcf97e020c987cbf883f09b486fba5f3fee30a588b87a346ea65d72d20572",
+      "code_revision": "9c7da3d0de00ef86f8ca1235385a254bd82f7982",
+      "workload": {
+        "en": "Nine anonymous GETs from d3ead488, 478864956 bytes; 60 fixed scene/zone cases and 20160 raw values compared, then source hashes and zero leases checked. The same fixed-scene reference is reused, not a new held-out set. Host identity captured after the run; power/thermal and benchmark-plan hash unrecorded. GUI, iPhone and user acceptance are separate.",
+        "ja": "d3ead488から匿名9GET・478864956バイトを新規取得。固定60場面/ゾーン・20160原値、元hash不変とlease0を照合。同じ固定参照の再利用で、新しい独立評価データではない。ホスト識別は実行後に取得、電源/熱・benchmark計画hashは未記録。GUI・iPhone・本人受入は別。"
+      },
+      "batch_size": 1,
+      "concurrency": 1,
+      "warmups": 0,
+      "power": null,
+      "thermal": null,
+      "model_executed": true,
+      "plan_sha256": null
+    },
+    "download-recheck-20261113": {
+      "url": "docs/validation/chronos2-download-20261113/README.md",
+      "level": "diagnostic",
+      "outcome": "passed",
+      "record_type": "legacy",
+      "date": "2026-11-13",
+      "platform": "macos",
+      "device": "Apple M5 Max / 137438953472 B RAM",
+      "os": "macOS 27.2.1 (26B131)",
+      "toolchain": "Xcode 27.2 (27B52); Swift 6.4.2; SDK 27.2; Debug package tests; Release Mac/iOS build checks",
+      "variant": "coreai-fp32-univariate",
+      "backend": "Swift Core AI GPU preference; actual delegate not profiled",
+      "route": "Fresh production Models download -> corrected production-linked catalog -> Store/Sessions/Service -> same 60 fixed NYC cases -> close",
+      "source_revision": "29ec3766d36d6f73f0696f85560a422f50e8498c",
+      "artifact_revision": "786dcf97e020c987cbf883f09b486fba5f3fee30a588b87a346ea65d72d20572",
+      "code_revision": "ec02f94bde596787ef83c837499732b9c76f3c2a",
+      "workload": {
+        "en": "Second fresh download after sales integration and the opt-in catalog repair. Same 60 scene/zone cases and 20,160 raw values; no additional held-out data. Full case set, Float32-reconstructed raw output, original hashes and zero leases pass. Test 50.129 s and wrapper 63.754719333 s include validation work; not performance measurements.",
+        "ja": "売上統合とopt-in catalog修正後の再取得。既存と同じ60場面/ゾーン・20160原値で、未使用データの追加ではない。全case集合・Float32復元原値・元hash不変・lease0を確認。Test50.129秒とwrapper63.754719333秒は検査全体で性能値ではない。"
+      },
+      "batch_size": 1,
+      "concurrency": 1,
+      "warmups": 0,
+      "power": null,
+      "thermal": null,
+      "model_executed": true,
+      "plan_sha256": null
     }
   },
   "measurements": [
@@ -564,6 +630,22 @@
         "path": "docs/validation/chronos2-bike-20261113/results.json",
         "pointer": "/memory/kernel_lifetime_peak"
       }
+    },
+    {
+      "metric": "reference_error",
+      "value": 0.0002288818359375,
+      "unit": "error",
+      "statistic": "max",
+      "n": 20160,
+      "evidence": "download-20261113",
+      "note": {
+        "en": "Freshly downloaded bundle, same 60 fixed NYC cases. Maximum absolute error across raw values; every value passes atol 1e-4 + rtol 1e-4. This is neither held-out task quality nor an independent repeat count.",
+        "ja": "新規取得bundleで既存の固定NYC60条件を照合。原値の最大絶対差で、全値がatol 1e-4 + rtol 1e-4内。独立した用途品質や反復run数ではありません。"
+      },
+      "source_value": {
+        "path": "docs/validation/chronos2-download-20261113/results.json",
+        "pointer": "/native/max_absolute_error"
+      }
     }
   ],
   "omissions": {
@@ -640,11 +722,13 @@
         "demo-20261112",
         "api-20261112",
         "sales-20261113",
-        "bike-20261113"
+        "bike-20261113",
+        "download-20261113",
+        "download-recheck-20261113"
       ],
       "note": {
-        "en": "18 synthetic cases, 60 fixed NYC scene/zone cases and 20 live API series pass frozen raw-tensor comparisons. The API inputs overlap the fixed Friday workload. Product sales adds 16 fixed windows, repeated after release/reopen, against official FP32. Seoul Bike uses CPU-only for five frozen windows twice; earlier GPU failures remain recorded.",
-        "ja": "合成18条件・固定NYC60場面/ゾーン・実API20系列が凍結した原tensor照合に合格。API入力は固定金曜の条件と重複。商品売上は固定16窓を解放/再表示後も公式FP32と照合。 Seoul BikeはCPU専用で固定5窓を2回照合。先のGPU不合格も保持。"
+        "en": "18 synthetic cases, 60 fixed NYC scene/zone cases and 20 live API series pass frozen raw-tensor comparisons. The API inputs overlap the fixed Friday workload. Product sales adds 16 fixed windows, repeated after release/reopen, against official FP32. Fresh public download repeats the same 60 NYC cases; it adds no held-out series. Seoul Bike uses CPU-only for five frozen windows twice; earlier GPU failures remain recorded.",
+        "ja": "合成18条件・固定NYC60場面/ゾーン・実API20系列が凍結した原tensor照合に合格。API入力は固定金曜の条件と重複。商品売上は固定16窓を解放/再表示後も公式FP32と照合。公開版の新規取得でも同じNYC60条件を再照合し、未使用系列の追加とはしない。 Seoul BikeはCPU専用で固定5窓を2回照合。先のGPU不合格も保持。"
       }
     },
     "quality": {
@@ -662,11 +746,13 @@
         "demo-20261112",
         "api-20261112",
         "sales-20261113",
-        "bike-20261113"
+        "bike-20261113",
+        "download-20261113",
+        "download-recheck-20261113"
       ],
       "note": {
-        "en": "Release/reload, production-service zero leases and normal Mac leave/reopen are checked for NYC and sales. Sales records point memory and whole-process lifetime peak; iPhone acceptance remains open. Seoul Bike also passes release/reopen and zero-lease checks.",
-        "ja": "NYCと売上で解放/再load、本番serviceのlease0、通常Macの離脱/再表示を確認。売上では点のメモリとprocess生涯peakを記録。iPhone受入は未確認。 Seoul Bikeも解放/再表示とlease0を確認。"
+        "en": "Release/reload, production-service zero leases and normal Mac leave/reopen are checked for NYC and sales. Sales records point memory and whole-process lifetime peak; iPhone acceptance remains open. Fresh public acquisition/native prediction also preserves source hashes and returns all leases. Seoul Bike also passes release/reopen and zero-lease checks.",
+        "ja": "NYCと売上で解放/再load、本番serviceのlease0、通常Macの離脱/再表示を確認。売上では点のメモリとprocess生涯peakを記録。iPhone受入は未確認。公開版の新規取得/native予測も元hash不変とlease解放を確認。 Seoul Bikeも解放/再表示とlease0を確認。"
       }
     },
     "cancellation": {
@@ -677,5 +763,6 @@
         "ja": "取消と停止joinはCPU fakeで検査済み。実モデルの取消と通常アプリは未計測。"
       }
     }
-  }
+  },
+  "public_access_evidence": "docs/validation/chronos2-download-20261113/README.md#information-audit-and-anonymous-acquisition"
 }
