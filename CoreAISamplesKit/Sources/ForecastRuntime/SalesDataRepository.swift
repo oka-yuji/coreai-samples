@@ -17,7 +17,7 @@ public enum SalesSource {
     }
 }
 
-public actor SalesDataRepository {
+public actor SalesDataRepository: ForecastDataLoading {
     public typealias Fetch = @Sendable () async throws -> Data
     private let cacheDirectory: URL?
     private let fetch: Fetch

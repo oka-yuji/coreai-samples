@@ -52,6 +52,7 @@ public enum MacDemoCatalog {
             demos: demos + [
                 ReceiptDemoCatalog.demo, ChronosDemoCatalog.demo(platforms: mac, searchTerms: searchTerms),
                 ChronosDemoCatalog.salesDemo(platforms: mac, searchTerms: searchTerms),
+                ChronosDemoCatalog.bikeDemo(platforms: mac, searchTerms: searchTerms),
             ])
     }
 

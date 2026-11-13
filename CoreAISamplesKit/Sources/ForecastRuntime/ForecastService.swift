@@ -14,7 +14,8 @@ public protocol ForecastService {
 @MainActor
 public final class LiveForecastService: ForecastService {
     private let resource: ValidatedModelResource?
-    private let repository: SalesDataRepository
+    private let kind: ForecastKind
+    private let repository: any ForecastDataLoading
     private let permits: @MainActor () -> Bool
     private let makeRuntime: @MainActor (URL, String) -> ChronosRuntime
     private var dataset: ForecastDataset?
@@ -25,16 +26,22 @@ public final class LiveForecastService: ForecastService {
     private var releases: [CheckedContinuation<Void, Never>] = []
 
     public init(
-        resource: ValidatedModelResource? = nil, repository: SalesDataRepository = SalesDataRepository(),
+        kind: ForecastKind = .productSales, resource: ValidatedModelResource? = nil,
+        repository: (any ForecastDataLoading)? = nil,
         permits: @escaping @MainActor () -> Bool = { true },
-        makeRuntime: @escaping @MainActor (URL, String) -> ChronosRuntime = {
-            ChronosRuntime(bundleURL: $0, expectedManifestSHA256: $1)
-        }
+        makeRuntime: (@MainActor (URL, String) -> ChronosRuntime)? = nil
     ) {
         self.resource = resource
-        self.repository = repository
+        self.kind = kind
+        self.repository = repository ?? Self.repository(for: kind)
         self.permits = permits
-        self.makeRuntime = makeRuntime
+        self.makeRuntime =
+            makeRuntime
+            ?? {
+                ChronosRuntime(
+                    bundleURL: $0, expectedManifestSHA256: $1,
+                    computeUnits: kind == .seoulBike ? .cpuOnly : .gpuPreferred)
+            }
     }
 
     public func load(refresh: Bool) async throws -> ForecastDataset {
@@ -42,6 +49,7 @@ public final class LiveForecastService: ForecastService {
         defer { finish() }
         let loaded = try await repository.load(refresh: refresh)
         try check()
+        guard loaded.kind == kind else { throw ForecastFailure.invalidData }
         dataset = loaded
         return loaded
     }
@@ -49,7 +57,7 @@ public final class LiveForecastService: ForecastService {
     public func predict(_ request: ForecastRequest) async throws -> ForecastResult {
         try begin()
         defer { finish() }
-        guard let dataset,
+        guard request.kind == kind, let dataset, dataset.kind == kind,
             try dataset.request(seriesID: request.seriesID, originIndex: request.originIndex, horizon: request.horizon)
                 == request
         else { throw ForecastFailure.invalidRequest }
@@ -90,6 +98,13 @@ public final class LiveForecastService: ForecastService {
         try check()
         guard !busy else { throw ForecastFailure.busy }
         busy = true
+    }
+
+    private static func repository(for kind: ForecastKind) -> any ForecastDataLoading {
+        switch kind {
+        case .productSales: SalesDataRepository()
+        case .seoulBike: BikeDataRepository()
+        }
     }
 
     private func check() throws {

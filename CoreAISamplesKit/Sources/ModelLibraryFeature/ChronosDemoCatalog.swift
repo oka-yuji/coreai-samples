@@ -1,6 +1,7 @@
 public enum ChronosDemoCatalog {
     public static let selection = DemoSelection(modelID: "chronos2", demoID: "taxi-forecast")
     public static let salesSelection = DemoSelection(modelID: "chronos2", demoID: "product-sales-forecast")
+    public static let bikeSelection = DemoSelection(modelID: "chronos2", demoID: "seoul-bike-forecast")
 
     static func model(
         artifact: ModelArtifact, platforms: Set<LibraryPlatform>, searchTerms: [String: [String]]
@@ -12,7 +13,32 @@ public enum ChronosDemoCatalog {
             demos: [
                 ModelDemoLink(demoID: selection.demoID, platforms: platforms),
                 ModelDemoLink(demoID: salesSelection.demoID, platforms: platforms, optionalCapabilities: [.network]),
+                ModelDemoLink(demoID: bikeSelection.demoID, platforms: platforms),
             ])
+    }
+
+    static func bikeDemo(platforms: Set<LibraryPlatform>, searchTerms: [String: [String]]) -> DemoDescriptor {
+        DemoDescriptor(
+            id: bikeSelection.demoID, title: "Seoul Bike forecast", systemImage: "bicycle",
+            summary: "Compare hourly rentals with actuals and a weekly baseline, alongside past observed weather.",
+            explanation: [
+                DemoExplanation(
+                    title: "How it works",
+                    text:
+                        "Choose a whole hour in Asia/Seoul and predict 1, 4, 8 or 16 hours from the preceding 336 rental counts. Weather is past observation only, not model input or a future forecast."
+                ),
+                DemoExplanation(
+                    title: "Bundled public data",
+                    text:
+                        "Seoul Bike Sharing Demand (2020), UCI Machine Learning Repository, CC BY 4.0. Encoding changed from Windows-1252 to UTF-8; values and CRLF line endings are unchanged. Shutdown zeros are observed rentals, not zero latent demand."
+                ),
+                DemoExplanation(
+                    title: "1. Prepare the model",
+                    text:
+                        "Use the same prepared Chronos-2 FP32 model as the taxi demo. Load the bundled sample, then explicitly predict on this device. Opening, preparing and changing selections never start inference."
+                ),
+            ], platforms: platforms, searchTerms: searchTerms[bikeSelection.demoID] ?? ["Seoul", "bike", "weather"],
+            allowsPreviewInteraction: true)
     }
 
     static func salesDemo(platforms: Set<LibraryPlatform>, searchTerms: [String: [String]]) -> DemoDescriptor {

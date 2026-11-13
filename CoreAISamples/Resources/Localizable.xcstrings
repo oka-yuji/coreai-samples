@@ -10434,6 +10434,108 @@
           }
         }
       }
+    },
+    "Seoul Bike forecast" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seoul Bike forecast"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seoul Bike予測"
+          }
+        }
+      }
+    },
+    "Compare hourly rentals with actuals and a weekly baseline, alongside past observed weather." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compare hourly rentals with actuals and a weekly baseline, alongside past observed weather."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "時間別レンタル件数の予測・実績・週周期の基準値を、過去の実測天候とともに比較します。"
+          }
+        }
+      }
+    },
+    "Choose a whole hour in Asia/Seoul and predict 1, 4, 8 or 16 hours from the preceding 336 rental counts. Weather is past observation only, not model input or a future forecast." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose a whole hour in Asia/Seoul and predict 1, 4, 8 or 16 hours from the preceding 336 rental counts. Weather is past observation only, not model input or a future forecast."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Asia/Seoulの整数時を選び、直前336時間のレンタル件数から1・4・8・16時間先まで予測します。天候は過去の実測値であり、モデル入力や将来予報ではありません。"
+          }
+        }
+      }
+    },
+    "Bundled public data" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bundled public data"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "同梱の公開データ"
+          }
+        }
+      }
+    },
+    "Seoul Bike Sharing Demand (2020), UCI Machine Learning Repository, CC BY 4.0. Encoding changed from Windows-1252 to UTF-8; values and CRLF line endings are unchanged. Shutdown zeros are observed rentals, not zero latent demand." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seoul Bike Sharing Demand (2020), UCI Machine Learning Repository, CC BY 4.0. Encoding changed from Windows-1252 to UTF-8; values and CRLF line endings are unchanged. Shutdown zeros are observed rentals, not zero latent demand."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seoul Bike Sharing Demand (2020)、UCI Machine Learning Repository、CC BY 4.0。文字コードをWindows-1252からUTF-8へ変更し、値とCRLF改行は維持しています。非稼働時の0件はレンタル実績であり、潜在需要がないという意味ではありません。"
+          }
+        }
+      }
+    },
+    "Use the same prepared Chronos-2 FP32 model as the taxi demo. Load the bundled sample, then explicitly predict on this device. Opening, preparing and changing selections never start inference." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use the same prepared Chronos-2 FP32 model as the taxi demo. Load the bundled sample, then explicitly predict on this device. Opening, preparing and changing selections never start inference."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "タクシーデモと同じ準備済みChronos-2 FP32モデルを使います。同梱サンプルを読み込み、予測ボタンで端末内推論を開始します。表示・準備・選択変更だけでは推論しません。"
+          }
+        }
+      }
     }
   },
   "version" : "1.1"

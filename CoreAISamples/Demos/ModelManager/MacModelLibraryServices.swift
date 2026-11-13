@@ -39,7 +39,10 @@
         static let assembly: ModelLibraryAssembly = {
             let legacy = ModelStorage.directory(for: "okayuji/Qwen3.8-27B-coreai-4bit")
             return ModelLibraryAssembly(
-                adapters: [OCRMacAdapter(), ReceiptMacAdapter(), ChronosAdapter(), ForecastAdapter()], store: storage,
+                adapters: [
+                    OCRMacAdapter(), ReceiptMacAdapter(), ChronosAdapter(), ForecastAdapter(),
+                    ForecastAdapter(kind: .seoulBike),
+                ], store: storage,
                 transfer: ArtifactTransfer(),
                 migrationCandidates: { [legacy] })
         }()

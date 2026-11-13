@@ -15,7 +15,7 @@ struct ChronosCatalogTests {
             #expect(model.artifacts == [artifact] && model.defaultArtifactID == "chronos2-fp32")
             #expect(
                 model.platforms == [platform]
-                    && model.demos.map(\.demoID) == ["taxi-forecast", "product-sales-forecast"])
+                    && model.demos.map(\.demoID) == ["taxi-forecast", "product-sales-forecast", "seoul-bike-forecast"])
             #expect(
                 model.demos.allSatisfy { $0.requiredCapabilities.isEmpty }
                     && model.demos[0].optionalCapabilities.isEmpty && model.demos[1].optionalCapabilities == [.network])

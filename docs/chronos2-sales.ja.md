@@ -32,4 +32,6 @@ ForecastFeatureが純粋なデータ・入力・指標・ticket状態、Storeが
 
 reportには実データ由来の入力・全出力も含むため非公開で保存します。source/reference hash、同一ペアの指標、各要求の時間、OS/機種/precision、現在のRSS/footprintとprocess生涯のkernel peakを区別します。SDKの返却件数で項目の有効性を確認し、未対応のメモリ値はnullです。runtime時間は必要な検証・コピー・モデル読込を含み、データ取得・Models取込・描画・指標計算を除きます。生涯peakを要求単位のpeakやGPU総量へ読み替えません。
 
+共通の試験はversion 2のreportに条件ごとと全体の`scalarFailures`を保持します。数値不一致は試験失敗を維持したまま、残りの原出力とlease検査も記録します。reportが存在するだけでは合格ではなく、試験の終了コード0と不一致0件の両方が必要です。入力・identity・shape・ライフサイクル・再実行一致が不成立なら、保存前に停止することがあります。
+
 [検証記録](validation/chronos2-sales-20261113/README.md)には、固定16条件を2回実行した全分位照合、独立した指標計算、通常Macの操作、署名済みのhost buildを残しています。実iPhoneの推論と本人受入は未確認です。固定バックテストと機能確認中の時間を、一般的な予測品質や制御した性能benchmarkへ読み替えません。
