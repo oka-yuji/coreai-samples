@@ -26,7 +26,7 @@ Explicit model commands require the shared lock in `AGENTS.md`. JSON input is `{
 
 ## Models download, import and preview
 
-Open **Models**, select **Chronos-2**, and use the **Download model** control (a down-arrow icon in Models lists and on iPhone). The application anonymously downloads and checks the nine pinned files, totaling 478,864,956 bytes (about 479 MB). Allow additional space for managed and runtime copies. **Import model** remains available for a complete, known Chronos-2 FP32 folder; existing valid imports stay ready and do not require another download.
+Open **Models**, select **Chronos-2**, and use the **Download model** control (a down-arrow icon in Models lists and on iPhone). The application anonymously downloads and checks the nine pinned files, totaling 478,864,956 bytes (about 479 MB). Allow additional space for managed and runtime copies. Models shows only this download control on Mac and iOS, without an **Import model** control. Existing valid imports stay ready and do not require another download. Importing a complete, known Chronos-2 FP32 folder remains in the Models store, the iOS `--model-library-selftest` with `--import-local-bundle`, and `ChronosImportTests`.
 
 When the ready checkmark appears, open the NYC taxi demo, choose **On-device prediction** and select **Predict on this device**. Opening Models, downloading, importing, inspecting or preparing the bundle does not start forecasts automatically. The interactive **Precomputed preview** works without a model. A native failure never switches modes automatically. Mac and iOS use this acquisition UI; the signed iOS build has been checked, while physical iPhone download and inference remain unverified.
 
@@ -78,7 +78,7 @@ Results below retain their original dates and workloads. Different rows may use 
 | Platform | State | Verified scope / remaining work | Evidence |
 |---|---|---|---|
 | macos | ✅ | Normal Mac checks cover NYC, product sales and CPU-only Seoul Bike. Fresh public download/native comparison passed separately; normal download UI and user acceptance remain open. | [E4](validation/chronos2-demo-20261112/README.md) · [E5](validation/chronos2-api-20261112/README.md) · [E6](validation/chronos2-journal-20261112/README.md) · [E7](validation/chronos2-sales-20261113/README.md) · [E8](validation/chronos2-bike-20261113/README.md) · [E10](validation/chronos2-download-20261113/README.md) · [E11](validation/chronos2-download-20261113/README.md) |
-| ios | △ | NYC, sales and Seoul Bike adapters plus download/import controls are connected; signed builds pass. Physical iPhone download, inference and user acceptance remain open. | [E4](validation/chronos2-demo-20261112/README.md) · [E5](validation/chronos2-api-20261112/README.md) · [E6](validation/chronos2-journal-20261112/README.md) · [E7](validation/chronos2-sales-20261113/README.md) · [E8](validation/chronos2-bike-20261113/README.md) · [E10](validation/chronos2-download-20261113/README.md) |
+| ios | △ | NYC, sales and Seoul Bike adapters plus download controls are connected; signed builds pass. Physical iPhone download, inference and user acceptance remain open. | [E4](validation/chronos2-demo-20261112/README.md) · [E5](validation/chronos2-api-20261112/README.md) · [E6](validation/chronos2-journal-20261112/README.md) · [E7](validation/chronos2-sales-20261113/README.md) · [E8](validation/chronos2-bike-20261113/README.md) · [E10](validation/chronos2-download-20261113/README.md) |
 
 ### Performance and quality
 

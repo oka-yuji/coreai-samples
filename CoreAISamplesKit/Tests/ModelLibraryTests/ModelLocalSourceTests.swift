@@ -82,10 +82,30 @@ struct ModelLocalSourceTests {
         #expect(try JSONDecoder().decode(ModelArtifact.self, from: JSONEncoder().encode(artifact)) == artifact)
         let policy = ModelAcquisitionPolicy(artifact: artifact)
         #expect(policy.preferredMethod == (remote ? .download : local ? .importBundle : nil))
-        #expect(policy.allowsImport == local)
+        #expect(policy.allowsImport == (local && !remote))
         if local && remote { #expect(policy.readyTitle == "Model ready") }
         if local && !remote { #expect(policy.readyTitle == "Imported") }
         if remote && !local { #expect(policy.readyTitle == "Downloaded") }
+    }
+
+    @Test(
+        "DLO-01 An artifact with both a download source and a local manifest uses download and does not allow import")
+    func downloadSourceDisablesImport() throws {
+        let artifact = localArtifact(
+            download: ModelDownload(repository: "owner/model", revision: String(repeating: "b", count: 40)))
+        try #require(artifact.isSourceValid && artifact.localBundle != nil)
+        let policy = ModelAcquisitionPolicy(artifact: artifact)
+        #expect(policy.preferredMethod == .download)
+        #expect(!policy.allowsImport)
+    }
+
+    @Test("DLO-02 A local manifest artifact without a download source still allows import")
+    func localManifestAllowsImport() throws {
+        let artifact = localArtifact()
+        try #require(artifact.isSourceValid && artifact.download == nil)
+        let policy = ModelAcquisitionPolicy(artifact: artifact)
+        #expect(policy.preferredMethod == .importBundle)
+        #expect(policy.allowsImport)
     }
 
     @Test(

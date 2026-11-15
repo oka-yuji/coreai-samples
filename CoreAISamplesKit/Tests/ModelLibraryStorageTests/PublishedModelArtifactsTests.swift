@@ -39,4 +39,18 @@ struct PublishedModelArtifactsTests {
                     visibility: mac.visibility, localBundle: mac.localBundle) == phone)
         }
     }
+
+    @Test(
+        "DLO-03 The iOS catalog disallows import for Chronos-2 FP32 and Mobile Image Lab W4/W8 and allows it for the legacy W4/W8",
+        arguments: [
+            ("chronos2-fp32", false), (MobileImageLabArtifact.published.id, false),
+            (QwenImage21Artifact.nativeComplex.id, true),
+        ])
+    func downloadOnlyCatalogArtifacts(id: String, allowsImport: Bool) throws {
+        let catalog = try IOSDemoCatalog.make(chronosArtifact: ChronosModelArtifact.make())
+        let artifact = try #require(catalog.model(containing: id)?.artifact(id))
+        let policy = ModelAcquisitionPolicy(artifact: artifact)
+        #expect(policy.allowsImport == allowsImport)
+        #expect(policy.preferredMethod == (allowsImport ? .importBundle : .download))
+    }
 }

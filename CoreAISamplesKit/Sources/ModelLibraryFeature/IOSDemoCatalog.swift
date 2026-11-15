@@ -118,7 +118,7 @@ public enum IOSDemoCatalog {
                         DemoExplanation(
                             title: "1. Prepare the model",
                             text:
-                                "Download Mobile Image Lab (13.78 GB), or import its complete prepared folder from Files. To use an existing installation, select the legacy W4/W8 variant."
+                                "Download Mobile Image Lab (13.78 GB). To use an existing installation, select the legacy W4/W8 variant."
                         ),
                         DemoExplanation(
                             title: "2. Describe the image",

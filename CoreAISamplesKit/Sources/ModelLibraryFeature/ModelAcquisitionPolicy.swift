@@ -24,7 +24,7 @@ public struct ModelAcquisitionPolicy: Equatable, Sendable {
     public let readyTitle: String
 
     public init(artifact: ModelArtifact) {
-        allowsImport = artifact.isSourceValid && artifact.localBundle != nil
+        allowsImport = artifact.isSourceValid && artifact.localBundle != nil && artifact.download == nil
         preferredMethod =
             if artifact.isSourceValid, artifact.download != nil { .download } else if allowsImport {
                 .importBundle

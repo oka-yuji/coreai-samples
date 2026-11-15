@@ -26,7 +26,7 @@ swift run --package-path CoreAISamplesKit chronos-verify --help
 
 ## Modelsからの取得・取り込みとプレビュー
 
-**Models**で**Chronos-2**を選び、**モデルをダウンロード**を選びます（一覧やiPhoneでは下向き矢印のボタンです）。固定した9ファイル・478,864,956バイト（約479 MB）を匿名で取得し、すべてを検査します。管理用・実行用コピーの空き容量も必要です。既知のChronos-2 FP32フォルダ全体を選ぶ**モデルを取り込む**も利用できます。既存の正常な取り込み済み資産は、そのまま使えます。
+**Models**で**Chronos-2**を選び、**モデルをダウンロード**を選びます（一覧やiPhoneでは下向き矢印のボタンです）。固定した9ファイル・478,864,956バイト（約479 MB）を匿名で取得し、すべてを検査します。管理用・実行用コピーの空き容量も必要です。MacとiOSのModelsはこのダウンロードのボタンだけを表示し、**モデルを取り込む**のボタンは表示しません。既存の正常な取り込み済み資産は、そのまま使えます。既知のChronos-2 FP32フォルダ全体の取り込みは、ModelsのStore、iOSの`--model-library-selftest`に`--import-local-bundle`を付けた自己試験、`ChronosImportTests`に残ります。
 
 準備完了のチェックマークが表示されたらNYCタクシーデモを開き、**端末内予測**を選んで**この端末で予測**を押します。Modelsの起動・取得・取り込み・検査・準備で予測を自動実行しません。モデルがなくても**事前計算プレビュー**を操作できます。端末内予測が失敗しても方式を自動変更しません。Mac/iOSに同じ取得経路を接続し、署名iOS buildも確認済みですが、実iPhoneの取得と推論は未確認です。
 
@@ -70,7 +70,7 @@ D5の明示試験は共有heavy-jobロック下で、`COREAI_CHRONOS2_DEMO_BUNDL
 | OS | 状態 | 確認した範囲・残る確認 | 根拠 |
 |---|---|---|---|
 | macos | ✅ | 通常MacでNYC・商品売上・CPU専用Seoul Bikeを確認。公開版の新規取得/native照合は別途成功。通常DL画面と本人受入は未確認。 | [E4](validation/chronos2-demo-20261112/README.md) · [E5](validation/chronos2-api-20261112/README.md) · [E6](validation/chronos2-journal-20261112/README.md) · [E7](validation/chronos2-sales-20261113/README.md) · [E8](validation/chronos2-bike-20261113/README.md) · [E10](validation/chronos2-download-20261113/README.md) · [E11](validation/chronos2-download-20261113/README.md) |
-| ios | △ | NYC・売上・Seoul BikeとDL/取込を接続し署名build成功。実iPhoneの取得・推論と本人受入は未確認。 | [E4](validation/chronos2-demo-20261112/README.md) · [E5](validation/chronos2-api-20261112/README.md) · [E6](validation/chronos2-journal-20261112/README.md) · [E7](validation/chronos2-sales-20261113/README.md) · [E8](validation/chronos2-bike-20261113/README.md) · [E10](validation/chronos2-download-20261113/README.md) |
+| ios | △ | NYC・売上・Seoul BikeとDLを接続し署名build成功。実iPhoneの取得・推論と本人受入は未確認。 | [E4](validation/chronos2-demo-20261112/README.md) · [E5](validation/chronos2-api-20261112/README.md) · [E6](validation/chronos2-journal-20261112/README.md) · [E7](validation/chronos2-sales-20261113/README.md) · [E8](validation/chronos2-bike-20261113/README.md) · [E10](validation/chronos2-download-20261113/README.md) |
 
 ### 性能と品質
 
