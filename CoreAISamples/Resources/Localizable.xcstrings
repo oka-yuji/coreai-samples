@@ -6274,6 +6274,9 @@
         }
       }
     },
+    "Qwen3.8 27B" : {
+      "shouldTranslate" : false
+    },
     "R1 (clauseFieldName)" : {
       "shouldTranslate" : false
     },
@@ -6832,6 +6835,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "再開"
+          }
+        }
+      }
+    },
+    "Retry" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Retry"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "再試行"
           }
         }
       }
