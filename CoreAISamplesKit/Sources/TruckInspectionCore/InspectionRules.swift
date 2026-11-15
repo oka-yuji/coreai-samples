@@ -57,9 +57,33 @@ public enum InspectionRules {
     public static func confirmation(_ text: String, vocabulary: InspectionVocabulary) -> InspectionConfirmation {
         let value = normalize(text)
         guard !value.isEmpty else { return .unknown }
-        if vocabulary.no.contains(where: { normalize($0) == value }) { return .no }
-        if vocabulary.yes.contains(where: { normalize($0) == value }) { return .yes }
-        return .unknown
+        let negatives = vocabulary.no.map(normalize).filter { !$0.isEmpty }
+        if negatives.contains(where: { $0 == value }) { return .no }
+        if negatives.contains(where: { value.range(of: $0) != nil }) { return .unknown }
+        let positives = vocabulary.yes.map(normalize).filter { !$0.isEmpty }.map(Array.init)
+        return canSegmentResponse(value, into: positives) ? .yes : .unknown
+    }
+
+    private static func canSegmentResponse(_ value: String, into tokens: [[Character]]) -> Bool {
+        let characters = Array(value)
+        var reachable = Array(repeating: false, count: characters.count + 1)
+        reachable[characters.count] = true
+        for start in stride(from: characters.count - 1, through: 0, by: -1) {
+            for token in tokens where !token.isEmpty {
+                let end = start + token.count
+                guard end <= characters.count, reachable[end] else { continue }
+                var matches = true
+                for offset in 0..<token.count where characters[start + offset] != token[offset] {
+                    matches = false
+                    break
+                }
+                if matches {
+                    reachable[start] = true
+                    break
+                }
+            }
+        }
+        return reachable[0]
     }
 
     public static func resolveFinal(_ text: String?, lastPartial: String) -> String {

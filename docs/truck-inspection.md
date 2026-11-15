@@ -26,7 +26,7 @@ An explicit button choice or exact item-specific alias precedes model classifica
 
 A model score is not a calibrated probability of correctness. Every model candidate requires explicit confirmation, including scores above 0.85. This differs from the earlier equipment demo because these records concern vehicle inspections. Invalid scores, an incorrect result count, all-zero scores and tied winners are rejected.
 
-Confirmation uses only complete phrases from the vocabulary, with negative phrases checked first. Ambiguous, contradictory and empty responses remain unknown. Repeated uncertainty leaves the candidate unconfirmed.
+Confirmation accepts a complete affirmative phrase or a sequence composed entirely of affirmative vocabulary phrases after normalization. Exact negative phrases take precedence; other responses containing a negative phrase, and ambiguous or empty responses, remain unknown. Repeated uncertainty leaves the candidate unconfirmed.
 
 An empty final speech result uses the last nonempty partial result. The listening clock allows up to six seconds before ending audio; the silence interval begins after the first changed nonempty partial. After audio ends, the final wait is limited to two seconds. A missing or empty transcript is never a normal inspection result.
 
