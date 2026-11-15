@@ -1,0 +1,232 @@
+{
+  "schema_version": 1,
+  "issue": 273,
+  "trial": "first_real_swift_task_with_regular_ornith",
+  "recorded_on": "2026-11-15",
+  "scope": "One visible, pre-frozen development task. This is not a hidden benchmark or proof of general accuracy/speed improvement.",
+  "source_base": "d06f9fa78779da0e6f741075474bd5de64555f13",
+  "worker_base": "fbef3ec15cf24ddde6cabcf593ab706c0e2519ae",
+  "sf_revision": "beed3b99e1dc608b9c185c435ec42044ea7c7a3e",
+  "run_id": "6ce7ce03aaa84b00ad66a3d1bebb8d3a",
+  "sf_state": "verified_pending_review",
+  "model": {
+    "repository": "ornith-ai/Ornith-1.5-35B-A3B-MLX",
+    "revision": "1713baf2e38984a3c557195caf167759144d1d7e",
+    "dtype": "BF16",
+    "context_tokens": 65536,
+    "parallel": 1,
+    "mtp_requested": false,
+    "effective_sampling": null,
+    "effective_reasoning": null,
+    "unknown_reason": "CLI/runtime evidence does not establish complete effective inference parameters."
+  },
+  "independent_cases": {
+    "count": 66,
+    "visible_to_worker": true,
+    "fixture_sha256": "9102bc73fe499a8ec460c5c1d69e680a0947e45c1289c32c53aafcd100e79219",
+    "baseline_passed": 48,
+    "baseline_failed": 18,
+    "first_submission_passed": 66,
+    "first_submission_failed": 0,
+    "source_sha256": "3e07bd4ac008f8bcc7ad72804031732468ab05dc66d412ea30f2d7b60d9b5125"
+  },
+  "interventions": {
+    "parent_requested_implementation_retries": 0,
+    "parent_implementation_edits": 0,
+    "recorded_file_change_events": 2,
+    "worker_command_failures": [
+      {
+        "command_index": 10,
+        "exit_code": 1,
+        "category": "swift_compilation"
+      },
+      {
+        "command_index": 13,
+        "exit_code": 2,
+        "category": "command_invocation"
+      }
+    ],
+    "description": "The worker submitted an initial patch and corrected a compiler argument-label error. A mistyped verifier path was also retried. The parent supplied tests and documentation, not the implementation."
+  },
+  "time_seconds": {
+    "worker": 677.6991920000291,
+    "sf_total": 792.3468425419996,
+    "independent_verification": 3.366513249988202,
+    "note": "SF total includes worker time; do not add them. Includes fixed model verification, load/unload and independent verification."
+  },
+  "cli_reported_usage": {
+    "input_tokens": 524952,
+    "cached_input_tokens": 475094,
+    "cache_write_input_tokens": 0,
+    "output_tokens": 28927,
+    "reasoning_output_tokens": 28117,
+    "noncached_input_tokens": 49858,
+    "note": "Cumulative CLI-reported token accounting. Parent/reviewer tokens, electricity and a same-task frontier comparison are not measured here."
+  },
+  "resource_checks": {
+    "cleanup_confirmed": true,
+    "weights_unchanged": true,
+    "normal_config_unchanged": true,
+    "lock_released": true
+  },
+  "scope_checks": {
+    "changed_paths": [
+      "CoreAISamplesKit/Sources/TruckInspectionCore/InspectionRules.swift"
+    ],
+    "outside_scope": [],
+    "protected_unchanged": true,
+    "base_unchanged": true,
+    "source_unchanged_during_verification": true
+  },
+  "validation": [
+    {
+      "name": "irodori-build",
+      "argv": [
+        "./Tools/Irodori/build-inputs.sh"
+      ],
+      "returncode": 0,
+      "elapsed_seconds": 10.551066790998448,
+      "log_sha256": "b276ffb3c307141415a22e1339a079280db54adc9f15bf76c010847a7266d9bf"
+    },
+    {
+      "name": "swift-tests",
+      "argv": [
+        "swift",
+        "test",
+        "--package-path",
+        "CoreAISamplesKit",
+        "--force-resolved-versions"
+      ],
+      "returncode": 0,
+      "elapsed_seconds": 117.44028570898809,
+      "log_sha256": "70bee05dc2211d526c6ba04315d19f3b3ed52ac40218ebf4aba41289a340a2f5"
+    },
+    {
+      "name": "mac-release",
+      "argv": [
+        "xcodebuild",
+        "-project",
+        "CoreAISamples.xcodeproj",
+        "-scheme",
+        "CoreAISamples",
+        "-configuration",
+        "Release",
+        "-destination",
+        "platform=macOS",
+        "-onlyUsePackageVersionsFromResolvedFile",
+        "build"
+      ],
+      "returncode": 0,
+      "elapsed_seconds": 98.40512237499934,
+      "log_sha256": "b561af692ba6955516f2b316f0109ab716b3790054794430b9e135e053e0c4ad"
+    },
+    {
+      "name": "privacy-tree",
+      "argv": [
+        "python3",
+        "-I",
+        "Tools/Privacy/check-local-paths.py"
+      ],
+      "returncode": 0,
+      "elapsed_seconds": 1.0297944160411134,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "privacy-commits",
+      "argv": [
+        "python3",
+        "-I",
+        "Tools/Privacy/check-local-paths.py",
+        "--commits",
+        "origin/main..HEAD"
+      ],
+      "returncode": 0,
+      "elapsed_seconds": 0.0710086659528315,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "swiftlint",
+      "argv": [
+        "swiftlint",
+        "lint",
+        "--config",
+        ".swiftlint.yml",
+        "--baseline",
+        ".swiftlint-baseline.json",
+        "--strict",
+        "--no-cache"
+      ],
+      "returncode": 0,
+      "elapsed_seconds": 2.054840041033458,
+      "log_sha256": "b37bd9d16a4f7bdb5245a060b8a678a87cab0acca64a639a412f087641d2181c"
+    },
+    {
+      "name": "format",
+      "argv": [
+        "python3",
+        "Tools/Format/check_format.py",
+        "--base",
+        "origin/main"
+      ],
+      "returncode": 0,
+      "elapsed_seconds": 0.16592754097655416,
+      "log_sha256": "de9e84ba04c2940e08b97c6db9a12b8aeb617fe94034b05d70ba71ad6ea6141d"
+    },
+    {
+      "name": "pins-after-build",
+      "argv": [
+        "python3",
+        "-I",
+        "Tools/Packages/check-pins.py"
+      ],
+      "returncode": 0,
+      "elapsed_seconds": 0.02508741698693484,
+      "log_sha256": "7efd2fd79acc36955057eab1dfbf4399052552952ac9e70eeaa9fc3ac2e83b69"
+    }
+  ],
+  "limitations": [
+    "Owner iPhone voice confirmation CONFIRM-05 is pending.",
+    "Opt-in model/device tests were skipped in the normal Swift suite.",
+    "All 66 development cases were available to the worker; success is not an unseen-task accuracy estimate.",
+    "The initial model catalog refresh warning and progress parse gap are retained in private raw logs; worker stdout JSON was reparsed in full."
+  ],
+  "raw_evidence": [
+    {
+      "private_record": "ornith-273-20261115/freeze.json",
+      "sha256": "f69f71c0e821e90cba1ea413189ea96a6ce14c3de573e0560a5a379fbc981dd3"
+    },
+    {
+      "private_record": "ornith-273-20261115/task-first.json",
+      "sha256": "3688b8c2b4c8826e5f4403324e1359979636dd3d320f4b3f271aae23dc2b99d0"
+    },
+    {
+      "private_record": "ornith-273-20261115/oracle-calibration.json",
+      "sha256": "3593c2b860b0872117779ced1bce2e6cc6c9f22444d56367b84ccc6a8b5ea3c7"
+    },
+    {
+      "private_record": "ornith-273-20261115/baseline/report.json",
+      "sha256": "2654f92be20eff90f805fd2815dd4c41e888fec0aaf13dc59d268ce0620c4fce"
+    },
+    {
+      "private_record": "ornith-273-20261115/trials/first/result.json",
+      "sha256": "350539ed05ba52ffeb3019b3e352f8ff0f28e3d3a3cf4eb68532e61dd2eaa2ec"
+    },
+    {
+      "private_record": "ornith-273-20261115/trials/first/candidate.patch",
+      "sha256": "878169953889c019fd8f306e817cc2025894a19089d0d0b2359cdb282384c1c2"
+    },
+    {
+      "private_record": "ornith-273-20261115/trials/first/oracle-report.json",
+      "sha256": "6ff8a3285fa9b2a7362a8d941f7491bdf94901b972a60a7b2ea8c429ceded3af"
+    }
+  ],
+  "validation_history": [
+    {
+      "name": "pins-before-build",
+      "returncode": 1,
+      "classification": "parent_verification_setup",
+      "cause": "Xcode DerivedData for the new checkout did not exist yet. Rechecked successfully after the Release build.",
+      "log_sha256": "03eb18ef34a79cbd3b725e5bbb9b25054f3dee76aca30754c15c68486c965a19"
+    }
+  ]
+}

@@ -1,0 +1,530 @@
+{
+  "schema_version": 1,
+  "vocabulary": {
+    "yes": [
+      "はい",
+      "ええ",
+      "うん",
+      "そうです",
+      "その通り",
+      "合っています",
+      "合ってます",
+      "正しいです",
+      "オーケー",
+      "OK",
+      "問題ありません",
+      "問題ない",
+      "大丈夫",
+      "大丈夫です"
+    ],
+    "no": [
+      "いいえ",
+      "いや",
+      "違います",
+      "違う",
+      "違いますね",
+      "そうではない",
+      "そうじゃない",
+      "合っていません",
+      "訂正",
+      "訂正します",
+      "間違いです",
+      "だめ"
+    ],
+    "retry": "もう一度確認します。",
+    "confirm": "{item}は、{answer}として記録します。合っていますか。",
+    "acknowledged": "{item}、{answer}で記録しました。",
+    "completed": "点検結果の入力が終わりました。記録を確認してください。"
+  },
+  "cases": [
+    {
+      "id": "yes-single-00",
+      "text": "はい",
+      "expected": "yes",
+      "baseline": "yes"
+    },
+    {
+      "id": "yes-single-01",
+      "text": "ええ",
+      "expected": "yes",
+      "baseline": "yes"
+    },
+    {
+      "id": "yes-single-02",
+      "text": "うん",
+      "expected": "yes",
+      "baseline": "yes"
+    },
+    {
+      "id": "yes-single-03",
+      "text": "そうです",
+      "expected": "yes",
+      "baseline": "yes"
+    },
+    {
+      "id": "yes-single-04",
+      "text": "その通り",
+      "expected": "yes",
+      "baseline": "yes"
+    },
+    {
+      "id": "yes-single-05",
+      "text": "合っています",
+      "expected": "yes",
+      "baseline": "yes"
+    },
+    {
+      "id": "yes-single-06",
+      "text": "合ってます",
+      "expected": "yes",
+      "baseline": "yes"
+    },
+    {
+      "id": "yes-single-07",
+      "text": "正しいです",
+      "expected": "yes",
+      "baseline": "yes"
+    },
+    {
+      "id": "yes-single-08",
+      "text": "オーケー",
+      "expected": "yes",
+      "baseline": "yes"
+    },
+    {
+      "id": "yes-single-09",
+      "text": "OK",
+      "expected": "yes",
+      "baseline": "yes"
+    },
+    {
+      "id": "yes-single-10",
+      "text": "問題ありません",
+      "expected": "yes",
+      "baseline": "yes"
+    },
+    {
+      "id": "yes-single-11",
+      "text": "問題ない",
+      "expected": "yes",
+      "baseline": "yes"
+    },
+    {
+      "id": "yes-single-12",
+      "text": "大丈夫",
+      "expected": "yes",
+      "baseline": "yes"
+    },
+    {
+      "id": "yes-single-13",
+      "text": "大丈夫です",
+      "expected": "yes",
+      "baseline": "yes"
+    },
+    {
+      "id": "no-single-00",
+      "text": "いいえ",
+      "expected": "no",
+      "baseline": "no"
+    },
+    {
+      "id": "no-single-01",
+      "text": "いや",
+      "expected": "no",
+      "baseline": "no"
+    },
+    {
+      "id": "no-single-02",
+      "text": "違います",
+      "expected": "no",
+      "baseline": "no"
+    },
+    {
+      "id": "no-single-03",
+      "text": "違う",
+      "expected": "no",
+      "baseline": "no"
+    },
+    {
+      "id": "no-single-04",
+      "text": "違いますね",
+      "expected": "no",
+      "baseline": "no"
+    },
+    {
+      "id": "no-single-05",
+      "text": "そうではない",
+      "expected": "no",
+      "baseline": "no"
+    },
+    {
+      "id": "no-single-06",
+      "text": "そうじゃない",
+      "expected": "no",
+      "baseline": "no"
+    },
+    {
+      "id": "no-single-07",
+      "text": "合っていません",
+      "expected": "no",
+      "baseline": "no"
+    },
+    {
+      "id": "no-single-08",
+      "text": "訂正",
+      "expected": "no",
+      "baseline": "no"
+    },
+    {
+      "id": "no-single-09",
+      "text": "訂正します",
+      "expected": "no",
+      "baseline": "no"
+    },
+    {
+      "id": "no-single-10",
+      "text": "間違いです",
+      "expected": "no",
+      "baseline": "no"
+    },
+    {
+      "id": "no-single-11",
+      "text": "だめ",
+      "expected": "no",
+      "baseline": "no"
+    },
+    {
+      "id": "yes-compound-00",
+      "text": "はい合ってます",
+      "expected": "yes",
+      "baseline": "unknown"
+    },
+    {
+      "id": "yes-compound-01",
+      "text": "はい、合っています",
+      "expected": "yes",
+      "baseline": "unknown"
+    },
+    {
+      "id": "yes-compound-02",
+      "text": "ええ大丈夫です",
+      "expected": "yes",
+      "baseline": "unknown"
+    },
+    {
+      "id": "yes-compound-03",
+      "text": "はいはい",
+      "expected": "yes",
+      "baseline": "unknown"
+    },
+    {
+      "id": "yes-compound-04",
+      "text": "うんうん",
+      "expected": "yes",
+      "baseline": "unknown"
+    },
+    {
+      "id": "yes-compound-05",
+      "text": "はい OK",
+      "expected": "yes",
+      "baseline": "unknown"
+    },
+    {
+      "id": "yes-compound-06",
+      "text": "ＯＫ　ｏｋ",
+      "expected": "yes",
+      "baseline": "unknown"
+    },
+    {
+      "id": "yes-compound-07",
+      "text": "大丈夫です大丈夫",
+      "expected": "yes",
+      "baseline": "unknown"
+    },
+    {
+      "id": "yes-compound-08",
+      "text": "問題ありませんはい",
+      "expected": "yes",
+      "baseline": "unknown"
+    },
+    {
+      "id": "yes-compound-09",
+      "text": "そうですその通り",
+      "expected": "yes",
+      "baseline": "unknown"
+    },
+    {
+      "id": "yes-compound-10",
+      "text": "はい\n合ってます",
+      "expected": "yes",
+      "baseline": "unknown"
+    },
+    {
+      "id": "yes-compound-11",
+      "text": "オーケー正しいです",
+      "expected": "yes",
+      "baseline": "unknown"
+    },
+    {
+      "id": "yes-compound-12",
+      "text": "はいええうん",
+      "expected": "yes",
+      "baseline": "unknown"
+    },
+    {
+      "id": "yes-compound-13",
+      "text": "合ってます、合っています",
+      "expected": "yes",
+      "baseline": "unknown"
+    },
+    {
+      "id": "ambiguous-00",
+      "text": "はい違います",
+      "expected": "unknown",
+      "baseline": "unknown"
+    },
+    {
+      "id": "ambiguous-01",
+      "text": "いや、合ってます",
+      "expected": "unknown",
+      "baseline": "unknown"
+    },
+    {
+      "id": "ambiguous-02",
+      "text": "いいえはい",
+      "expected": "unknown",
+      "baseline": "unknown"
+    },
+    {
+      "id": "ambiguous-03",
+      "text": "はい、でも違います",
+      "expected": "unknown",
+      "baseline": "unknown"
+    },
+    {
+      "id": "ambiguous-04",
+      "text": "はい多分",
+      "expected": "unknown",
+      "baseline": "unknown"
+    },
+    {
+      "id": "ambiguous-05",
+      "text": "たぶんはい",
+      "expected": "unknown",
+      "baseline": "unknown"
+    },
+    {
+      "id": "ambiguous-06",
+      "text": "はいです",
+      "expected": "unknown",
+      "baseline": "unknown"
+    },
+    {
+      "id": "ambiguous-07",
+      "text": "大丈夫ですか",
+      "expected": "unknown",
+      "baseline": "unknown"
+    },
+    {
+      "id": "ambiguous-08",
+      "text": "合ってま",
+      "expected": "unknown",
+      "baseline": "unknown"
+    },
+    {
+      "id": "ambiguous-09",
+      "text": "そうで",
+      "expected": "unknown",
+      "baseline": "unknown"
+    },
+    {
+      "id": "ambiguous-10",
+      "text": "問題なしじゃない",
+      "expected": "unknown",
+      "baseline": "unknown"
+    },
+    {
+      "id": "ambiguous-11",
+      "text": "ありがとうはい",
+      "expected": "unknown",
+      "baseline": "unknown"
+    },
+    {
+      "id": "ambiguous-12",
+      "text": "そうじゃないはい",
+      "expected": "unknown",
+      "baseline": "unknown"
+    },
+    {
+      "id": "ambiguous-13",
+      "text": "ＯＫ、訂正します",
+      "expected": "unknown",
+      "baseline": "unknown"
+    },
+    {
+      "id": "ambiguous-14",
+      "text": "はい合っていません",
+      "expected": "unknown",
+      "baseline": "unknown"
+    },
+    {
+      "id": "empty-00",
+      "text": "",
+      "expected": "unknown",
+      "baseline": "unknown"
+    },
+    {
+      "id": "empty-01",
+      "text": " ",
+      "expected": "unknown",
+      "baseline": "unknown"
+    },
+    {
+      "id": "empty-02",
+      "text": "　\n",
+      "expected": "unknown",
+      "baseline": "unknown"
+    },
+    {
+      "id": "empty-03",
+      "text": "。、!?",
+      "expected": "unknown",
+      "baseline": "unknown"
+    },
+    {
+      "id": "overlap-needs-alternate-split",
+      "text": "abc",
+      "expected": "yes",
+      "baseline": "unknown",
+      "vocabulary": {
+        "yes": [
+          "ab",
+          "a",
+          "bc"
+        ],
+        "no": [
+          "no"
+        ],
+        "retry": "",
+        "confirm": "",
+        "acknowledged": "",
+        "completed": ""
+      }
+    },
+    {
+      "id": "overlap-vocabulary-order",
+      "text": "abc",
+      "expected": "yes",
+      "baseline": "unknown",
+      "vocabulary": {
+        "yes": [
+          "bc",
+          "a",
+          "ab"
+        ],
+        "no": [
+          "no"
+        ],
+        "retry": "",
+        "confirm": "",
+        "acknowledged": "",
+        "completed": ""
+      }
+    },
+    {
+      "id": "negative-across-positive-words",
+      "text": "abcd",
+      "expected": "unknown",
+      "baseline": "unknown",
+      "vocabulary": {
+        "yes": [
+          "ab",
+          "cd"
+        ],
+        "no": [
+          "bc"
+        ],
+        "retry": "",
+        "confirm": "",
+        "acknowledged": "",
+        "completed": ""
+      }
+    },
+    {
+      "id": "negative-wins-exact-collision",
+      "text": "ok",
+      "expected": "no",
+      "baseline": "no",
+      "vocabulary": {
+        "yes": [
+          "ok"
+        ],
+        "no": [
+          "ok"
+        ],
+        "retry": "",
+        "confirm": "",
+        "acknowledged": "",
+        "completed": ""
+      }
+    },
+    {
+      "id": "empty-normalized-positive-token",
+      "text": "aa",
+      "expected": "yes",
+      "baseline": "unknown",
+      "vocabulary": {
+        "yes": [
+          "",
+          "。",
+          "a"
+        ],
+        "no": [
+          "no"
+        ],
+        "retry": "",
+        "confirm": "",
+        "acknowledged": "",
+        "completed": ""
+      }
+    },
+    {
+      "id": "unknown-with-empty-positive-token",
+      "text": "b",
+      "expected": "unknown",
+      "baseline": "unknown",
+      "vocabulary": {
+        "yes": [
+          "",
+          "a"
+        ],
+        "no": [
+          "no"
+        ],
+        "retry": "",
+        "confirm": "",
+        "acknowledged": "",
+        "completed": ""
+      }
+    },
+    {
+      "id": "unicode-canonical-compound",
+      "text": "égo",
+      "expected": "yes",
+      "baseline": "unknown",
+      "vocabulary": {
+        "yes": [
+          "é",
+          "go"
+        ],
+        "no": [
+          "no"
+        ],
+        "retry": "",
+        "confirm": "",
+        "acknowledged": "",
+        "completed": ""
+      }
+    }
+  ]
+}
