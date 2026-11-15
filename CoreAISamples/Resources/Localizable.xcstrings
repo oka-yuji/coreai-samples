@@ -1,19 +1,19 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
-    "Download the Chronos-2 FP32 model, or import the complete prepared folder. Model files use about 479 MB. Importing requires extra space for the app copy." : {
+    "Download the Chronos-2 FP32 model. Model files use about 479 MB." : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Download the Chronos-2 FP32 model, or import the complete prepared folder. Model files use about 479 MB. Importing requires extra space for the app copy."
+            "value" : "Download the Chronos-2 FP32 model. Model files use about 479 MB."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Chronos-2 FP32モデルをダウンロードするか、準備済みフォルダ全体を取り込んでください。モデルの容量は約479 MBです。取り込みにはアプリ内のコピー用の空き容量も必要です。"
+            "value" : "Chronos-2 FP32モデルをダウンロードしてください。モデルの容量は約479 MBです。"
           }
         }
       }
@@ -10524,18 +10524,18 @@
         }
       }
     },
-    "Download Mobile Image Lab (13.78 GB), or import its complete prepared folder from Files. To use an existing installation, select the legacy W4/W8 variant." : {
+    "Download Mobile Image Lab (13.78 GB). To use an existing installation, select the legacy W4/W8 variant." : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Download Mobile Image Lab (13.78 GB), or import its complete prepared folder from Files. To use an existing installation, select the legacy W4/W8 variant."
+            "value" : "Download Mobile Image Lab (13.78 GB). To use an existing installation, select the legacy W4/W8 variant."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Mobile Image Lab（13.78 GB）をダウンロードするか、「ファイル」から準備済みのフォルダを丸ごと取り込んでください。既存のインストールを使う場合は、旧版の「W4/W8」を選んでください。"
+            "value" : "Mobile Image Lab（13.78 GB）をダウンロードしてください。既存のインストールを使う場合は、旧版の「W4/W8」を選んでください。"
           }
         }
       }

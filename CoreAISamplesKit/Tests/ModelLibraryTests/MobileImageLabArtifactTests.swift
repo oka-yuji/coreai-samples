@@ -43,7 +43,7 @@ struct MobileImageLabArtifactTests {
                     repository: "okayuji/mobile-image-lab-coreai", revision: "fdd2b8cb17f48976207039f1f780360ba60275dc",
                     root: "bundle"))
         #expect(ModelAcquisitionPolicy(artifact: artifact).preferredMethod == .download)
-        #expect(ModelAcquisitionPolicy(artifact: artifact).allowsImport)
+        #expect(!ModelAcquisitionPolicy(artifact: artifact).allowsImport)
         #expect(ModelAcquisitionPolicy(artifact: legacy).preferredMethod == .importBundle)
     }
 

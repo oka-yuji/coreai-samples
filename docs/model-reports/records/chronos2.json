@@ -155,8 +155,8 @@
         "download-20261113"
       ],
       "note": {
-        "en": "NYC, sales and Seoul Bike adapters plus download/import controls are connected; signed builds pass. Physical iPhone download, inference and user acceptance remain open.",
-        "ja": "NYC・売上・Seoul BikeとDL/取込を接続し署名build成功。実iPhoneの取得・推論と本人受入は未確認。"
+        "en": "NYC, sales and Seoul Bike adapters plus download controls are connected; signed builds pass. Physical iPhone download, inference and user acceptance remain open.",
+        "ja": "NYC・売上・Seoul BikeとDLを接続し署名build成功。実iPhoneの取得・推論と本人受入は未確認。"
       }
     }
   },

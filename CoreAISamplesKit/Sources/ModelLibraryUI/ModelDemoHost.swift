@@ -177,7 +177,7 @@
                                 Text("Model files: \(bytes.formatted(.byteCount(style: .file)))", bundle: .module)
                                     .font(.caption).foregroundStyle(.secondary)
                             }
-                            if artifact?.localBundle != nil {
+                            if let artifact, ModelAcquisitionPolicy(artifact: artifact).allowsImport {
                                 libraryText("Importing keeps the original folder and creates a separate app copy.")
                                     .font(.caption).foregroundStyle(.secondary)
                             }
@@ -190,9 +190,7 @@
                             if demo?.allowsPreviewInteraction == true {
                                 libraryText(
                                     artifact?.download != nil
-                                        ? artifact?.localBundle != nil
-                                            ? "Explore the fixed preview now. Download or import the model for on-device prediction."
-                                            : "Explore the fixed preview now. Download the model for on-device prediction."
+                                        ? "Explore the fixed preview now. Download the model for on-device prediction."
                                         : "Explore the fixed preview now. Import the model for on-device prediction."
                                 )
                                 .font(.callout)
@@ -201,9 +199,7 @@
                                 libraryText(
                                     store.state.isConnected(selection)
                                         ? artifact?.download != nil
-                                            ? artifact?.localBundle != nil
-                                                ? "Download or import the model to enable its controls."
-                                                : "Download the model to enable its controls."
+                                            ? "Download the model to enable its controls."
                                             : "Import the model to enable its controls."
                                         : "Demo execution is not connected in this build."
                                 )
