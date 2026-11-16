@@ -8,14 +8,12 @@ The full license text is in LICENSE.
 
 Changes made for this bundle:
 - The PyTorch model was converted to Apple Core AI assets in artifacts/.
-- Assets converted to 16-bit floating point: $half_precision. In those assets,
-  RMSNorm and the sinusoidal time embedding still compute in 32-bit floating point.
-- Debug information was removed from the converted assets.
+${precision}- Debug information was removed from the converted assets.
 - tokenizer.json is the unmodified file from the original revision.
 
 This bundle is not made, endorsed or supported by OpenBMB.
 
 Use:
-- Do not use this model to impersonate a person, to commit fraud or to spread
-  disinformation.
-- State clearly that generated audio is AI-generated.
+The original model card asks that the model not be used to impersonate a person,
+to commit fraud or to spread disinformation, and that generated audio be clearly
+identified as AI-generated. This notice does not change the license terms.

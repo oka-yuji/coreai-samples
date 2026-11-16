@@ -11,7 +11,8 @@ procedure and the rules are in the [recipe](../../Tools/Conversion/recipes/voxcp
 The six FP32 Core AI assets met the component criteria against the original PyTorch
 implementation. The FP32 generation from text of five sentences met the end-to-end rule,
 with three of 239 patches replaced. Debug information was removed from all twelve FP32
-and FP16 assets without changing their programs. The three app bundles have fixed
+and FP16 assets, and the programs without location information did not change. The
+three app bundles have fixed
 inventories and contain no absolute path of the working environment, and the FP32
 bundle repeated the component comparisons with the same results. No app reads the
 bundles yet. Listening, the Swift runtime, the Mac app and iPhone are not verified.
@@ -36,10 +37,13 @@ reference implementation, even with the same seed.
   - `20261116T161959-fc494398`: the eight export stages;
   - `20261116T181059-4ca849d6`: the original generations and the component comparisons;
   - `20261116T195122-3ad68b2e`: the generation check and the precision comparison;
-  - `20261116T204724-264d1994`: debug-information removal, the bundles and their
-    re-check;
-  - `20261116T205245-64d2dd5f`: all 18 stages verified and reused, without new
-    measurements.
+  - `20261116T201921-cc114781`: the first `strip` implementation, which saved the
+    programs without removing debug information (not used);
+  - `20261116T202807-b4d07f2b` and `20261116T204724-264d1994`: debug-information
+    removal, bundles and re-checks that were replaced after source changes (not used;
+    the memory measurements below used their bundles);
+  - `20261116T212827-22314097`: the current debug-information removal, bundles and re-check;
+  - `20261116T214150-e16889ef`: all 18 stages verified and reused, without new measurements.
 
 ## Component comparisons
 
@@ -182,16 +186,18 @@ Each worker generated `plain` once before the timed generation. The load average
 No sample was clipped when rounding to 16 bits. Both FP16 configurations leave the FP32
 latent criterion from the first patches (patch 1 in the median generation), so they
 produce audio on a different trajectory from FP32. Their stop patch equaled FP32 in 10
-of 15 generations. Their audio quality is judged by the owner's listening, which has not
-been done.
+of 15 generations. Their audio quality has not been evaluated; no listening comparison
+has been done.
 
 ## Debug information and bundles
 
-`strip` loads each exported asset with `AIModelAsset.load`, applies `strip_debug_info`
-to the program and saves that same program with `save_asset` and the original metadata.
-The program is printed as generic MLIR without locations and with every constant and
-resource, and the SHA-256 of that text is compared after loading, after the removal and
-after loading the saved asset in a new process.
+`strip` (its own module, `strip.py`) loads each exported asset with `AIModelAsset.load`,
+applies `strip_debug_info` to the program and saves that same program with `save_asset`
+and the original metadata. The program is printed as generic MLIR without locations and
+with every constant and resource, and the SHA-256 of that text is compared after
+loading, after the removal and after loading the saved asset in a new process. This
+compares the programs without location information; `main.hash` and the creation date
+in `metadata.json` change.
 
 - All twelve digests are equal. `main.mlirb` became 177 to 18,277 bytes smaller (63,625
   bytes in total), `main.hash` changed, and only `creationDate` changed in
@@ -200,15 +206,20 @@ after loading the saved asset in a new process.
   and `ralm` FP16 (two functions that share two states) before and after the removal.
   Function descriptors were equal, and outputs and final states were bitwise equal over
   a sequence of calls. The stage wrote the same `main.mlirb` as the probe for these
-  three assets.
-- The first stage implementation stripped a temporary program: `AIModelAsset.program`
-  reads the bytecode again on every access, so all twelve saved programs were unchanged
-  while the digests were equal. Its outputs are not used, and the stage now also
-  requires `main.mlirb` to change.
-- `strip` ran twice on the same exported assets: in `20261116T202807-b4d07f2b`, and in
-  `20261116T204724-264d1994` after a change to the path-scan source. `main.mlirb` and
-  `main.hash` were byte-identical for all twelve assets; only `creationDate` in
-  `metadata.json` differed. The bundles and inventories come from the second run.
+  three assets. The probe was a one-off script outside the repository: it loaded both
+  versions with GPU-preferred specialization, called every function in the order of the
+  contract with fixed random inputs and zeroed states, and compared descriptors, outputs
+  and final states bit for bit. The repository has no entry point for it; repeating it
+  means writing that procedure again.
+- The first implementation (`20261116T201921-cc114781`) stripped a temporary program:
+  `AIModelAsset.program` reads the bytecode again on every access, so all twelve saved
+  programs were unchanged while the digests were equal. Its outputs are not used, and
+  the stage now also requires `main.mlirb` to change.
+- After that fix, `strip` ran three times on the same exported assets, each time after
+  a source change: `20261116T202807-b4d07f2b`, `20261116T204724-264d1994` and
+  `20261116T212827-22314097`. `main.mlirb` and `main.hash` were byte-identical for all
+  twelve assets in the three runs; only `creationDate` in `metadata.json` differed. The
+  bundles and inventories come from `20261116T212827-22314097`.
 
 | Asset | FP32 bytes | FP16 bytes |
 |---|---:|---:|
@@ -222,24 +233,35 @@ after loading the saved asset in a new process.
 
 Each bundle holds `manifest.json`, the unmodified `tokenizer.json` of the pinned
 revision, the Apache-2.0 `LICENSE` of the official checkout, a `NOTICE` and the six
-assets. The three bundles are APFS clones of the same stripped assets. No configuration
-is the default; the owner chooses one by listening.
+assets. No configuration is the default yet; it will be chosen after a listening
+comparison. The stage checks every file of a bundle against its source: the asset files
+against the sizes and SHA-256 values that `strip` recorded after the removal,
+`tokenizer.json` against `model.json`, `LICENSE` against the file at the pinned commit
+(11,298 bytes, SHA-256 `4f10acc209addacfad28293315c74c4cd648f771ee1263a748f1781d1e0265e4`),
+and `manifest.json` and `NOTICE` against the bytes it wrote. A missing, extra or
+changed file fails the stage. In `20261116T212827-22314097`, `clonefile` cloned all 18
+asset files of each bundle and none was copied (`check.json` records both counts), so
+the bundles share their blocks with the stripped assets. Copies of the three bundles
+would need about 19 GB; the stage requires 25 GB of free space.
 
 | Bundle | Precisions | Files | Bytes | Inventory |
 |---|---|---:|---:|---|
-| `fp32` | all FP32 | 22 | 9,349,325,575 | [fp32](../../Tools/Conversion/recipes/voxcpm2/bundles/fp32.inventory.json) |
-| `fp16` | all FP16 | 22 | 4,677,413,608 | [fp16](../../Tools/Conversion/recipes/voxcpm2/bundles/fp16.inventory.json) |
-| `fp16_proj32` | FP16, `proj` FP32 | 22 | 4,715,188,110 | [fp16_proj32](../../Tools/Conversion/recipes/voxcpm2/bundles/fp16_proj32.inventory.json) |
+| `fp32` | all FP32 | 22 | 9,349,325,520 | [fp32](../../Tools/Conversion/recipes/voxcpm2/bundles/fp32.inventory.json) |
+| `fp16` | all FP16 | 22 | 4,677,413,664 | [fp16](../../Tools/Conversion/recipes/voxcpm2/bundles/fp16.inventory.json) |
+| `fp16_proj32` | FP16, `proj` FP32 | 22 | 4,715,188,166 | [fp16_proj32](../../Tools/Conversion/recipes/voxcpm2/bundles/fp16_proj32.inventory.json) |
 
-The path scan reads every byte and counts 18 byte patterns: the home, external-volume
-and temporary-folder prefixes and the user name, in UTF-8 and UTF-16LE. It records only
-counts and file names.
+The path scan reads every byte and counts 132 byte patterns: the home,
+external-volume and temporary-folder prefixes written with `/`, `\/`, `\u002f`,
+`\u002F`, `%2f` or `%2F` as the separator, `-Users-` and the user name, each in UTF-8,
+UTF-16LE and UTF-16BE. It records only counts and file names.
 
-- The 66 files (18,741,927,293 bytes) of the three bundles: 0 matches.
+- The 66 files (18,741,927,350 bytes) of the three bundles: 0 matches.
 - The six export folders before the removal (42 files, 14,019,535,475 bytes): 0 matches.
   The removal therefore did not have to remove a path. Planted strings confirmed that
-  the scan detects a home path in UTF-8 and UTF-16LE, an external volume, a temporary
-  folder and a match across a read boundary, and that it ignores a clean relative path.
+  the scan detects a home path in UTF-8, UTF-16LE and UTF-16BE, with the JSON escapes
+  `\/` and `\u002F` and the percent escape `%2f`, an external volume, a temporary
+  folder, the user name and a match across a read boundary, and that it ignores a clean
+  relative path.
 
 `bundle_verify` loaded every asset of the three bundles; all function descriptors match
 the contract. With the FP32 bundle, all 3,934 comparisons that decide the result were
@@ -254,16 +276,27 @@ first generation of a new process: FP32 took 7.82 seconds (0.465 seconds per sec
 audio) after a 7.07-second load, FP16 5.11 seconds (0.304) after a 3.40-second load.
 The load includes specialization; whether a specialization cache was used was not
 controlled. Time to the first playable audio, cold specialization and load times in an
-app were not measured. In the bundle run, `strip` executed for 71 seconds, `bundle` for
-132 seconds and `bundle_verify` for 37 seconds; the record keeps the public run summary.
+app were not measured. In `20261116T212827-22314097`, `strip` executed for 71 seconds,
+`bundle` for 607 seconds (most of it the path scan with 132 patterns) and
+`bundle_verify` for 39 seconds; the record keeps the public run summary.
 
 ## Memory
 
-Each configuration generated `long` (seed 1708, 97 text tokens, 105 patches) once from a
-copy of its bundle, in a new process of the Python host, under the shared heavy-job
-lock. The first sample follows the imports and the tokenizer. The process values come
-from `proc_pid_rusage` and `getrusage`; wired memory (`vm_stat`) and swap (`sysctl`)
-are whole-system values.
+The FP32 and FP16 bundles each generated `long` (seed 1708, 97 text tokens, 105
+patches) once from a copy of the bundle, in a new process of the Python host, under the
+shared heavy-job lock. The values below were measured with the bundles of
+`20261116T204724-264d1994`. Their `main.mlirb` and `main.hash` are byte-identical to
+those of the current bundles (`20261116T212827-22314097`), and only the creation dates in
+`metadata.json` differ; the measurement was not repeated for the current bundles.
+
+A one-off script outside the repository made the measurement. It loaded the assets of
+a bundle through the recipe's Python host, generated once, and sampled
+`proc_pid_rusage` (current and lifetime maximum physical footprint, resident size),
+`getrusage` (maximum resident size), `vm_stat` (wired memory) and `sysctl vm.swapusage`
+before loading, after loading, after the generation and after release. The repository
+has no entry point for it; repeating it means writing that procedure again. The first
+sample follows the imports and the tokenizer. Wired memory and swap are whole-system
+values.
 
 | Value (bytes) | FP32 | FP16 |
 |---|---:|---:|
@@ -284,8 +317,9 @@ Release means closing the components and collecting garbage. Swap use stayed at
 file-backed pages of the mapped weights, which the physical footprint does not count;
 the two are not added. System wired memory rose during the first generation by about the
 size of the assets and had not fallen at the sample right after release; it is not
-attributed to this process alone. The same measurement on the bundles of the first
-`strip` run, whose programs are byte-identical, gave process memory values within 2.1%
+attributed to this process alone. The same measurement on the bundles of
+`20261116T202807-b4d07f2b`, whose programs are also byte-identical, gave process memory
+values within 2.1%
 and generation times within 1.1%; the load times differed by up to 25% (the JSON keeps
 both). These are diagnostic values of the Python host, not the memory of an app, and
 they do not set a minimum RAM.
@@ -301,4 +335,6 @@ they do not set a minimum RAM.
   generations without replacement.
 - Quantitative audio quality (such as CER or human ratings) and listening. FP16 assets
   and configurations are recorded, not accepted.
+- The memory of the `fp16_proj32` configuration; only the FP32 and FP16 bundles were
+  measured.
 - Publication. Publishing the bundles needs a separate information check.

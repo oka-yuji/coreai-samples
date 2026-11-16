@@ -81,7 +81,7 @@
       "backend": "Python Core AI host, GPU-preferred specialization; compute units not profiled",
       "route": "VoxCPM2 recipe: original FP32 CPU reference -> component comparisons -> FP32 generation from text -> debug-information removal -> FP32 bundle re-check",
       "source_revision": "7936080b41163874f38610f46f438e2c0757f9fd",
-      "artifact_revision": "90cb2bb7268d00f6c0171089c098b9b6d9646d7aca1b627c00d476634fd53080",
+      "artifact_revision": "f771b72d2b18eb01b0a832cadee4bfff37ca7c76a3627defbf1f868d158d70e8",
       "code_revision": null,
       "workload": {
         "en": "Five fixed sentences with seed 1708: 3,934 component comparisons that decide the result, FP32 generation from text with at most one replaced patch per sentence (3 of 239), and the same comparisons with the FP32 bundle after debug-information removal. No app; the Python host only.",
@@ -137,11 +137,11 @@
       "backend": "Python Core AI host, GPU-preferred specialization; compute units not profiled",
       "route": "One new Python process per bundle: load -> one generation of long -> release, under the shared heavy-job lock",
       "source_revision": "7936080b41163874f38610f46f438e2c0757f9fd",
-      "artifact_revision": "fp32 90cb2bb7268d00f6c0171089c098b9b6d9646d7aca1b627c00d476634fd53080; fp16 9661fcc4d5d6859dd96075f5c041b66eae76b86855ebb82919aeda162292c88e",
+      "artifact_revision": "bundles of 20261116T204724-264d1994 (same main.mlirb and main.hash as the current fp32 and fp16 bundles)",
       "code_revision": null,
       "workload": {
-        "en": "Sentence long (97 text tokens, 105 patches, 16.8 s of audio), seed 1708, first generation of the process. Process memory sampled before and after load, after the generation and after release. Recorded without a pass or fail; not app memory.",
-        "ja": "文long(97 token、105パッチ、音声16.8秒)、seed 1708、プロセスで最初の生成。ロードの前後、生成の後、解放の後にプロセスのメモリを採取。合否なしの記録で、アプリのメモリではない。"
+        "en": "Sentence long (97 text tokens, 105 patches, 16.8 s of audio), seed 1708, first generation of the process. Process memory sampled before and after load, after the generation and after release by a one-off script outside the repository. Recorded without a pass or fail; not app memory.",
+        "ja": "文long(97 token、105パッチ、音声16.8秒)、seed 1708、プロセスで最初の生成。ロードの前後、生成の後、解放の後にプロセスのメモリを、リポジトリの外の1回限りのスクリプトで採取。合否なしの記録で、アプリのメモリではない。"
       },
       "batch_size": 1,
       "concurrency": 1,
@@ -155,7 +155,7 @@
   "measurements": [
     {
       "metric": "bundle_bytes",
-      "value": 9349325575,
+      "value": 9349325520,
       "unit": "B",
       "statistic": "single",
       "n": 1,
@@ -171,7 +171,7 @@
     },
     {
       "metric": "bundle_bytes",
-      "value": 4677413608,
+      "value": 4677413664,
       "unit": "B",
       "statistic": "single",
       "n": 1,
@@ -187,7 +187,7 @@
     },
     {
       "metric": "bundle_bytes",
-      "value": 4715188110,
+      "value": 4715188166,
       "unit": "B",
       "statistic": "single",
       "n": 1,
@@ -479,8 +479,8 @@
     "human_score": {
       "state": "not_measured",
       "reason": {
-        "en": "Not measured; the owner's listening is pending.",
-        "ja": "未計測。本人の試聴は未完了。"
+        "en": "Not measured; no listening comparison has been done.",
+        "ja": "未計測。聴き比べは未実施。"
       }
     }
   },
@@ -499,8 +499,8 @@
       "state": "not_measured",
       "evidence": [],
       "note": {
-        "en": "No quality evaluation; the owner judges the configurations by listening.",
-        "ja": "品質の評価は未実施。構成は本人が聴いて決める。"
+        "en": "No quality evaluation; the default configuration will be chosen after a listening comparison.",
+        "ja": "品質の評価は未実施。既定の構成は聴き比べの後に決める。"
       }
     },
     "stability": {

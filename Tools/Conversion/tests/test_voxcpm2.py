@@ -195,6 +195,8 @@ class VoxCPM2ContractTests(unittest.TestCase):
         self.assertTrue({"$snapshot/tokenizer.json", "$recipe_dir/synthesis.json"} <= set(stages["synthesis_compare"]["inputs"]))
         self.assertTrue({"$snapshot", "$upstream/src/voxcpm", "$recipe_dir/synthesis.json"} <= set(stages["synthesis_check"]["inputs"]))
         self.assertIn("$recipe_dir/fixtures.json", stages["reference"]["inputs"])
+        self.assertEqual(stages["strip"]["command"][2], "Tools.Conversion.adapters.voxcpm2.strip")
+        self.assertNotIn("$adapters/bundle.py", stages["strip"]["inputs"])
         self.assertNotIn("$snapshot", stages["bundle"]["inputs"])
         self.assertTrue({"$snapshot/tokenizer.json", "$upstream/LICENSE", "$recipe_dir/bundle-notice.txt", "$recipe_dir/synthesis.json"}
                         <= set(stages["bundle"]["inputs"]))

@@ -7,15 +7,15 @@ Speech generation
 The six FP32 Core AI assets of OpenBMB VoxCPM2 match the original components within
 the recorded criteria, and FP32 generation from text was checked on a Python host. Three
 app bundles (FP32, FP16, and FP16 with `proj` in FP32) are made, but no app reads them
-yet, and no configuration is the default yet.
+yet. The default configuration will be chosen after a listening comparison.
 
 The audio comes from the same weights run with Core AI. Numerical differences near
 rounding boundaries inside the model can make the generated result differ from the
 reference implementation, even with the same seed.
 
 Configurations with FP16 assets produce audio on a different trajectory from FP32. Their
-stop patch equaled FP32 in 10 of 15 generations. Their audio quality is judged by the
-owner's listening, which has not been done.
+stop patch equaled FP32 in 10 of 15 generations. Their audio quality has not been
+evaluated; no listening comparison has been done.
 
 Not verified: iPhone, the Mac app, reference audio (voice cloning), streaming playback,
 the Neural Engine, 8-bit and 4-bit quantization, behavior for general sentences and
@@ -41,9 +41,9 @@ Results below retain their original dates and workloads. Different rows may use 
 
 | Metric | Result | Statistic / samples | Scope and evidence |
 |---|---|---|---|
-| Bundle / payload size | 9,349,325,575 B | single; n=1 | [E1](../validation/voxcpm2-conversion-20261117.md) · fp32 bundle: 22 files, including the manifest, tokenizer, license and notice. |
-| Bundle / payload size | 4,677,413,608 B | single; n=1 | [E1](../validation/voxcpm2-conversion-20261117.md) · fp16 bundle: 22 files. FP16 results are recorded only. |
-| Bundle / payload size | 4,715,188,110 B | single; n=1 | [E1](../validation/voxcpm2-conversion-20261117.md) · fp16_proj32 bundle (FP16 with proj in FP32): 22 files. FP16 results are recorded only. |
+| Bundle / payload size | 9,349,325,520 B | single; n=1 | [E1](../validation/voxcpm2-conversion-20261117.md) · fp32 bundle: 22 files, including the manifest, tokenizer, license and notice. |
+| Bundle / payload size | 4,677,413,664 B | single; n=1 | [E1](../validation/voxcpm2-conversion-20261117.md) · fp16 bundle: 22 files. FP16 results are recorded only. |
+| Bundle / payload size | 4,715,188,166 B | single; n=1 | [E1](../validation/voxcpm2-conversion-20261117.md) · fp16_proj32 bundle (FP16 with proj in FP32): 22 files. FP16 results are recorded only. |
 | Prepared cache size | Not measured | — | Not measured; the size of the specialization cache was not recorded. |
 | First load, including specialization | Not measured | — | Not measured as defined: the load times of the memory runs (fp32 7.07 s, fp16 3.40 s) did not control the specialization cache. |
 | Load from prepared cache | Not measured | — | Not measured as defined: the load times of the memory runs did not control the specialization cache. |
@@ -65,14 +65,14 @@ Results below retain their original dates and workloads. Different rows may use 
 | Real-time factor (generation / audio duration) | 0.294079473 ratio | median; n=15 | [E2](../validation/voxcpm2-conversion-20261117.md) · fp16: as above. Audio follows a different trajectory from FP32; listening pending. |
 | Real-time factor (generation / audio duration) | 0.294309107 ratio | median; n=15 | [E2](../validation/voxcpm2-conversion-20261117.md) · fp16_proj32: as above. Audio follows a different trajectory from FP32; listening pending. |
 | Character error rate | Not measured | — | Not measured; no speech recognition evaluation. |
-| Human quality score (rubric required) | Not measured | — | Not measured; the owner's listening is pending. |
+| Human quality score (rubric required) | Not measured | — | Not measured; no listening comparison has been done. |
 
 ### Verification coverage
 
 | Check | State | Scope / remaining work | Evidence |
 |---|---|---|---|
 | Conversion / reference fidelity | Passed (stated scope) | FP32 components, FP32 generation from text of five sentences with three replaced patches, and the FP32 bundle re-check pass. FP16 is recorded only; listening is pending. | [E1](../validation/voxcpm2-conversion-20261117.md) |
-| Task quality | Not measured | No quality evaluation; the owner judges the configurations by listening. | — |
+| Task quality | Not measured | No quality evaluation; the default configuration will be chosen after a listening comparison. | — |
 | Repeated use / resource release | Not measured | No repeated use or release check in an app. | — |
 | Stop / retry / recovery | Not measured | No stop or retry check. | — |
 
@@ -80,9 +80,9 @@ Results below retain their original dates and workloads. Different rows may use 
 
 | Evidence | Date / record / route level | Device / OS / tools | Workload and recorded conditions |
 |---|---|---|---|
-| [E1](../validation/voxcpm2-conversion-20261117.md) | 2026-11-17 / legacy / conversion | Apple M5 Max / 137438953472 B RAM / macOS 27.2.1 (26B131) / Xcode 27.2 (27B52); Python 3.11.9; torch 2.9.0; transformers 4.57.3; coreai-core 1.0.0b3; coreai-torch 0.4.3 | Five fixed sentences with seed 1708: 3,934 component comparisons that decide the result, FP32 generation from text with at most one replaced patch per sentence (3 of 239), and the same comparisons with the FP32 bundle after debug-information removal. No app; the Python host only. · variant=fp32 bundle; backend=Python Core AI host, GPU-preferred specialization; compute units not profiled; route=VoxCPM2 recipe: original FP32 CPU reference -> component comparisons -> FP32 generation from text -> debug-information removal -> FP32 bundle re-check; source_revision=7936080b41163874f38610f46f438e2c0757f9fd; artifact_revision=90cb2bb7268d00f6c0171089c098b9b6d9646d7aca1b627c00d476634fd53080; batch_size=1; concurrency=1; unrecorded: code_revision, warmups, power, thermal, plan_sha256 |
+| [E1](../validation/voxcpm2-conversion-20261117.md) | 2026-11-17 / legacy / conversion | Apple M5 Max / 137438953472 B RAM / macOS 27.2.1 (26B131) / Xcode 27.2 (27B52); Python 3.11.9; torch 2.9.0; transformers 4.57.3; coreai-core 1.0.0b3; coreai-torch 0.4.3 | Five fixed sentences with seed 1708: 3,934 component comparisons that decide the result, FP32 generation from text with at most one replaced patch per sentence (3 of 239), and the same comparisons with the FP32 bundle after debug-information removal. No app; the Python host only. · variant=fp32 bundle; backend=Python Core AI host, GPU-preferred specialization; compute units not profiled; route=VoxCPM2 recipe: original FP32 CPU reference -> component comparisons -> FP32 generation from text -> debug-information removal -> FP32 bundle re-check; source_revision=7936080b41163874f38610f46f438e2c0757f9fd; artifact_revision=f771b72d2b18eb01b0a832cadee4bfff37ca7c76a3627defbf1f868d158d70e8; batch_size=1; concurrency=1; unrecorded: code_revision, warmups, power, thermal, plan_sha256 |
 | [E2](../validation/voxcpm2-conversion-20261117.md) | 2026-11-17 / legacy / diagnostic | Apple M5 Max / 137438953472 B RAM / macOS 27.2.1 (26B131) / Xcode 27.2 (27B52); Python 3.11.9; torch 2.9.0; transformers 4.57.3; coreai-core 1.0.0b3; coreai-torch 0.4.3 | Five sentences x seeds 1708-1710 per configuration, each timed after one warm-up generation in the same worker; load average 4.1-6.1. Recorded without a pass or fail. The bundles hold the same programs without debug information. · variant=fp32, fp16 and fp16_proj32 configurations; backend=Python Core AI host, GPU-preferred specialization; compute units not profiled; route=VoxCPM2 recipe synthesis_compare: exported assets, one worker process per generation; source_revision=7936080b41163874f38610f46f438e2c0757f9fd; batch_size=1; concurrency=1; warmups=1; unrecorded: artifact_revision, code_revision, power, thermal, plan_sha256 |
-| [E3](../validation/voxcpm2-conversion-20261117.md) | 2026-11-17 / legacy / diagnostic | Apple M5 Max / 137438953472 B RAM / macOS 27.2.1 (26B131) / Xcode 27.2 (27B52); Python 3.11.9; torch 2.9.0; transformers 4.57.3; coreai-core 1.0.0b3; coreai-torch 0.4.3 | Sentence long (97 text tokens, 105 patches, 16.8 s of audio), seed 1708, first generation of the process. Process memory sampled before and after load, after the generation and after release. Recorded without a pass or fail; not app memory. · variant=fp32 and fp16 bundles; backend=Python Core AI host, GPU-preferred specialization; compute units not profiled; route=One new Python process per bundle: load -> one generation of long -> release, under the shared heavy-job lock; source_revision=7936080b41163874f38610f46f438e2c0757f9fd; artifact_revision=fp32 90cb2bb7268d00f6c0171089c098b9b6d9646d7aca1b627c00d476634fd53080; fp16 9661fcc4d5d6859dd96075f5c041b66eae76b86855ebb82919aeda162292c88e; batch_size=1; concurrency=1; warmups=0; unrecorded: code_revision, power, thermal, plan_sha256 |
+| [E3](../validation/voxcpm2-conversion-20261117.md) | 2026-11-17 / legacy / diagnostic | Apple M5 Max / 137438953472 B RAM / macOS 27.2.1 (26B131) / Xcode 27.2 (27B52); Python 3.11.9; torch 2.9.0; transformers 4.57.3; coreai-core 1.0.0b3; coreai-torch 0.4.3 | Sentence long (97 text tokens, 105 patches, 16.8 s of audio), seed 1708, first generation of the process. Process memory sampled before and after load, after the generation and after release by a one-off script outside the repository. Recorded without a pass or fail; not app memory. · variant=fp32 and fp16 bundles; backend=Python Core AI host, GPU-preferred specialization; compute units not profiled; route=One new Python process per bundle: load -> one generation of long -> release, under the shared heavy-job lock; source_revision=7936080b41163874f38610f46f438e2c0757f9fd; artifact_revision=bundles of 20261116T204724-264d1994 (same main.mlirb and main.hash as the current fp32 and fp16 bundles); batch_size=1; concurrency=1; warmups=0; unrecorded: code_revision, power, thermal, plan_sha256 |
 
 ### Setup, limitations and progress
 

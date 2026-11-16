@@ -1,5 +1,5 @@
 {
-  "bytes": 9349325575,
+  "bytes": 9349325520,
   "count": 22,
   "files": [
     {
@@ -8,9 +8,9 @@
       "sha256": "4f10acc209addacfad28293315c74c4cd648f771ee1263a748f1781d1e0265e4"
     },
     {
-      "bytes": 999,
+      "bytes": 975,
       "path": "NOTICE",
-      "sha256": "13370d70e6ca3329ca4ff0660314086ae24ebedba772aa4b66203551e752e6ad"
+      "sha256": "8eb74471ac4181d48f7a68f134921a2e66d828a275a622f6333220de546c3a86"
     },
     {
       "bytes": 32,
@@ -25,7 +25,7 @@
     {
       "bytes": 445,
       "path": "artifacts/dit-fp32.aimodel/metadata.json",
-      "sha256": "b99bf1dc9b6ef5aee30752fda3bde84c104964dd80c28ce8f8df3b23a4c7c480"
+      "sha256": "36b41dba53d463b3efb811414b2a2071cd89256d86900534a856c014c336703e"
     },
     {
       "bytes": 32,
@@ -40,7 +40,7 @@
     {
       "bytes": 448,
       "path": "artifacts/locenc-fp32.aimodel/metadata.json",
-      "sha256": "17ead0348b2c948ed8bc60f652918edfd7b8a9a32086f9ce635d7335c4e65547"
+      "sha256": "271a80f97c7c71be913208e2099f248b948c67d6d21b337d01dcfe6c7de26cc2"
     },
     {
       "bytes": 32,
@@ -55,7 +55,7 @@
     {
       "bytes": 446,
       "path": "artifacts/proj-fp32.aimodel/metadata.json",
-      "sha256": "bc6e3981369eb7f4a84c72ef2b20e606824de5d64a0902d731c3efb48ef65b81"
+      "sha256": "23ee7e534b71332cef3d94191406492a6607256fa73fe11a785505955188ea0b"
     },
     {
       "bytes": 32,
@@ -70,7 +70,7 @@
     {
       "bytes": 446,
       "path": "artifacts/ralm-fp32.aimodel/metadata.json",
-      "sha256": "19104fcf5f4be88cafcdbd636b919ec885b2735ab17710f07b526afda81462be"
+      "sha256": "40c1b53df4064d5ee9641e6739cfcb1dd15dedf7725311e41d4c60c242a24490"
     },
     {
       "bytes": 32,
@@ -85,7 +85,7 @@
     {
       "bytes": 446,
       "path": "artifacts/tslm-fp32.aimodel/metadata.json",
-      "sha256": "0a91d75a440ce09f9574893436e88b4f32d31af56d63d4918bfc960cc9cd564e"
+      "sha256": "e06e5c896562ca220b7cf5f95b479c49d6c38cda5179c3baa59387b8fc986538"
     },
     {
       "bytes": 32,
@@ -100,12 +100,12 @@
     {
       "bytes": 445,
       "path": "artifacts/vae-fp32.aimodel/metadata.json",
-      "sha256": "8973de22e121943e984f9f9e6a9e1baf70b9273bf74ad069a6df07753c5490b4"
+      "sha256": "8141d5eb7337f84b74a47cb847f55bc4af1796e98bd584d57213c970ceb7b82b"
     },
     {
-      "bytes": 14463,
+      "bytes": 14432,
       "path": "manifest.json",
-      "sha256": "afd9d920e1f16af75b45ebf7d824549632e2e3fd7d1721b3e68581565b405d97"
+      "sha256": "eda3c0098d35c8b305884e84ffd79005a7562cb027510ee2fa3b7f55ef2493da"
     },
     {
       "bytes": 3676772,

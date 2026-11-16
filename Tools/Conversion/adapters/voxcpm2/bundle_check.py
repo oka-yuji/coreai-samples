@@ -23,6 +23,21 @@ def shim(root, scratch, contract):
     return groups
 
 
+def judge(summary, fsq, criterion_met, baseline):
+    def counts(values):
+        return {key: {name: value[name] for name in ("count", "passed", "gate")} for key, value in values.items()}
+
+    def classes(values):
+        return {key: values[key] for key in ("calls", "match", "boundary", "fail")}
+
+    result = {"criterion_met": criterion_met, "counts_equal_before_removal": counts(summary) == counts(baseline["summary"]),
+              "fsq_equal_before_removal": classes(fsq) == classes(baseline["fsq"]),
+              "errors_equal_before_removal": {key: value.get("normalized_max") for key, value in summary.items()}
+              == {key: value.get("normalized_max") for key, value in baseline["summary"].items()}}
+    result["passed"] = bool(criterion_met and result["counts_equal_before_removal"] and result["fsq_equal_before_removal"])
+    return result
+
+
 def recheck(args):
     contract = load_contract(args.contract)
     reference = read_json(args.reference / "reference.json")
@@ -46,17 +61,10 @@ def recheck(args):
                         rows.extend(Checks(components, contract, args.reference, record, np.float32).run(list(contract["assets"])))
                 components.close()
     summary, fsq = aggregate(rows), fsq_summary(rows, contract["criteria"])
-    counts = {key: {name: value[name] for name in ("count", "passed", "gate")} for key, value in summary.items()}
-    expected = {key: {name: value[name] for name in ("count", "passed", "gate")} for key, value in baseline["summary"].items()}
     gated = [row for row in rows if row["gate"]]
-    report |= {"summary": summary, "fsq": fsq, "gated_rows": len(gated), "gated_failed": sum(not row["passed"] for row in gated),
-               "criterion_met": verdict(rows, contract["criteria"]), "counts_equal_before_removal": counts == expected,
-               "fsq_equal_before_removal": {key: fsq[key] for key in ("calls", "match", "boundary", "fail")}
-               == {key: baseline["fsq"][key] for key in ("calls", "match", "boundary", "fail")},
-               "errors_equal_before_removal": all(summary[key].get("normalized_max") == baseline["summary"][key].get("normalized_max")
-                                                  for key in summary)}
+    report |= {"summary": summary, "fsq": fsq, "gated_rows": len(gated), "gated_failed": sum(not row["passed"] for row in gated)}
+    report |= judge(summary, fsq, verdict(rows, contract["criteria"]), baseline)
     write_json(args.output / "rows.json", rows)
-    report["passed"] = bool(report["criterion_met"] and report["counts_equal_before_removal"] and report["fsq_equal_before_removal"])
     report["complete"] = True
     write_json(args.output / "comparison.json", report)
     print(json.dumps({key: report[key] for key in ("passed", "gated_rows", "gated_failed", "counts_equal_before_removal",

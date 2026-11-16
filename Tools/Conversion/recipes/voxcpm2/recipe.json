@@ -902,8 +902,7 @@
       "command": [
         "$python",
         "-m",
-        "Tools.Conversion.adapters.voxcpm2.bundle",
-        "strip",
+        "Tools.Conversion.adapters.voxcpm2.strip",
         "--contract",
         "$recipe_dir/model.json",
         "--export",
@@ -923,8 +922,7 @@
       ],
       "cwd": "$repo",
       "inputs": [
-        "$adapters/bundle.py",
-        "$adapters/runtime.py",
+        "$adapters/strip.py",
         "$adapters/source.py",
         "$recipe_dir/model.json"
       ],
@@ -979,7 +977,6 @@
         "$python",
         "-m",
         "Tools.Conversion.adapters.voxcpm2.bundle",
-        "assemble",
         "--contract",
         "$recipe_dir/model.json",
         "--settings",
@@ -1029,7 +1026,7 @@
       ],
       "heavy": true,
       "timeout_s": 3600,
-      "min_free_bytes": 10000000000,
+      "min_free_bytes": 25000000000,
       "checks": [
         {
           "file": "bundles/check.json",

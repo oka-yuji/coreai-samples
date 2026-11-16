@@ -68,8 +68,13 @@
     "export": "20261116T161959-fc494398",
     "reference_and_components": "20261116T181059-4ca849d6",
     "generation": "20261116T195122-3ad68b2e",
-    "bundle": "20261116T204724-264d1994",
-    "reuse": "20261116T205245-64d2dd5f",
+    "strip_without_removal": "20261116T201921-cc114781",
+    "replaced_bundles": [
+      "20261116T202807-b4d07f2b",
+      "20261116T204724-264d1994"
+    ],
+    "bundle": "20261116T212827-22314097",
+    "reuse": "20261116T214150-e16889ef",
     "reused_stages": 18,
     "stages": 18
   },
@@ -432,13 +437,22 @@
         "same_main_mlirb_as_stage": true
       }
     ],
-    "repeat": {
-      "run": "20261116T202807-b4d07f2b",
-      "main_mlirb_identical": true,
-      "main_hash_identical": true,
-      "metadata_differs": true,
-      "semantic_identical": true
-    },
+    "repeat": [
+      {
+        "run": "20261116T202807-b4d07f2b",
+        "main_mlirb_identical": true,
+        "main_hash_identical": true,
+        "metadata_differs": true,
+        "semantic_identical": true
+      },
+      {
+        "run": "20261116T204724-264d1994",
+        "main_mlirb_identical": true,
+        "main_hash_identical": true,
+        "metadata_differs": true,
+        "semantic_identical": true
+      }
+    ],
     "retained_failure": {
       "run": "20261116T201921-cc114781",
       "finding": "The first implementation stripped a temporary program because AIModelAsset.program reads the bytecode again on every access; main.mlirb of all twelve saved assets was unchanged while the digests were equal. Its outputs are not used, and the stage now also requires main.mlirb to change."
@@ -447,7 +461,7 @@
   "bundles": {
     "fp16": {
       "files": 22,
-      "bytes": 4677413608,
+      "bytes": 4677413664,
       "precisions": {
         "tslm": "fp16",
         "ralm": "fp16",
@@ -456,13 +470,17 @@
         "dit": "fp16",
         "vae": "fp16"
       },
-      "manifest_sha256": "417fa8f0ae95ab005adfdd17ea8418d160e738945dda4033be83f102618d44c1",
-      "inventory_sha256": "9661fcc4d5d6859dd96075f5c041b66eae76b86855ebb82919aeda162292c88e",
+      "asset_files": {
+        "cloned": 18,
+        "copied": 0
+      },
+      "manifest_sha256": "fbe90a07bcdb4736b2b8b9dcd0b1f11b71857c28e4d506aad216bcda6c76754c",
+      "inventory_sha256": "dda09b4268cc4f4ff90c8a5d4f84f3e5712ba5df803891239c8981dd57a9a93f",
       "inventory": "Tools/Conversion/recipes/voxcpm2/bundles/fp16.inventory.json"
     },
     "fp16_proj32": {
       "files": 22,
-      "bytes": 4715188110,
+      "bytes": 4715188166,
       "precisions": {
         "tslm": "fp16",
         "ralm": "fp16",
@@ -471,13 +489,17 @@
         "dit": "fp16",
         "vae": "fp16"
       },
-      "manifest_sha256": "3ca5ca92bb5fdc49fb54c1fcd79074d342c84aa47e3330507eb9791e4ff654eb",
-      "inventory_sha256": "27d7b936b15cef3374c615a631dafb11e70d5eac5e471b819268151d48b7710e",
+      "asset_files": {
+        "cloned": 18,
+        "copied": 0
+      },
+      "manifest_sha256": "f7eb7f49fad8af5b58f1ed14c4ae53be508e885bbc1cbd93a0291bda30d536c6",
+      "inventory_sha256": "f46ec1c302dedc0445dc3dca9e92bc4ebbb762efac1189f206e18c4d7da822f7",
       "inventory": "Tools/Conversion/recipes/voxcpm2/bundles/fp16_proj32.inventory.json"
     },
     "fp32": {
       "files": 22,
-      "bytes": 9349325575,
+      "bytes": 9349325520,
       "precisions": {
         "tslm": "fp32",
         "ralm": "fp32",
@@ -486,31 +508,44 @@
         "dit": "fp32",
         "vae": "fp32"
       },
-      "manifest_sha256": "afd9d920e1f16af75b45ebf7d824549632e2e3fd7d1721b3e68581565b405d97",
-      "inventory_sha256": "90cb2bb7268d00f6c0171089c098b9b6d9646d7aca1b627c00d476634fd53080",
+      "asset_files": {
+        "cloned": 18,
+        "copied": 0
+      },
+      "manifest_sha256": "eda3c0098d35c8b305884e84ffd79005a7562cb027510ee2fa3b7f55ef2493da",
+      "inventory_sha256": "f771b72d2b18eb01b0a832cadee4bfff37ca7c76a3627defbf1f868d158d70e8",
       "inventory": "Tools/Conversion/recipes/voxcpm2/bundles/fp32.inventory.json"
     }
   },
   "path_scan": {
-    "patterns": 18,
+    "patterns": 132,
     "encodings": [
       "utf-8",
-      "utf-16-le"
+      "utf-16-le",
+      "utf-16-be"
+    ],
+    "separators": [
+      "/",
+      "\\/",
+      "\\u002f",
+      "\\u002F",
+      "%2f",
+      "%2F"
     ],
     "bundles": {
       "fp16": {
         "files": 22,
-        "bytes": 4677413608,
+        "bytes": 4677413664,
         "hits": 0
       },
       "fp16_proj32": {
         "files": 22,
-        "bytes": 4715188110,
+        "bytes": 4715188166,
         "hits": 0
       },
       "fp32": {
         "files": 22,
-        "bytes": 9349325575,
+        "bytes": 9349325520,
         "hits": 0
       }
     },
@@ -550,8 +585,13 @@
       "clean_detected": false,
       "detected": {
         "boundary": true,
+        "json": true,
+        "percent": true,
         "temporary": true,
-        "utf16": true,
+        "unicode": true,
+        "user": true,
+        "utf16be": true,
+        "utf16le": true,
         "utf8": true,
         "volume": true
       }
@@ -1666,6 +1706,11 @@
       ]
     }
   },
+  "memory_bundles": {
+    "run": "20261116T204724-264d1994",
+    "programs_identical_to_current": true,
+    "note": "Measured once per bundle with a one-off script outside the repository; not repeated for the current bundles."
+  },
   "memory": {
     "fp32": {
       "sentence": "long",
@@ -1749,7 +1794,7 @@
     }
   },
   "memory_earlier_bundle": {
-    "note": "The same measurement on the bundles of 20261116T202807-b4d07f2b, whose programs are byte-identical; only creationDate in metadata.json differs.",
+    "note": "The same measurement on the bundles of 20261116T202807-b4d07f2b, whose programs are also byte-identical; only creationDate in metadata.json differs.",
     "values": {
       "fp16": {
         "sentence": "long",
@@ -1843,147 +1888,147 @@
         "index": 0,
         "role": "reference",
         "status": "reused",
-        "prepare_s": 1.6380428749835119,
+        "prepare_s": 1.662528500019107,
         "execute_s": 0,
-        "total_s": 1.6381125840125605
+        "total_s": 1.662588000006508
       },
       {
         "index": 1,
         "role": "verify",
         "status": "reused",
-        "prepare_s": 1.6004112079972401,
+        "prepare_s": 1.6219648330006748,
         "execute_s": 0,
-        "total_s": 1.600423916010186
+        "total_s": 1.6219802499981597
       },
       {
         "index": 2,
         "role": "export",
         "status": "reused",
-        "prepare_s": 4.44898225000361,
+        "prepare_s": 4.47883404098684,
         "execute_s": 0,
-        "total_s": 4.449015834019519
+        "total_s": 4.478874500025995
       },
       {
         "index": 3,
         "role": "export",
         "status": "reused",
-        "prepare_s": 2.303270042000804,
+        "prepare_s": 2.349634500045795,
         "execute_s": 0,
-        "total_s": 2.303302749991417
+        "total_s": 2.3496753750368953
       },
       {
         "index": 4,
         "role": "export",
         "status": "reused",
-        "prepare_s": 1.6228947089985013,
+        "prepare_s": 1.649841499980539,
         "execute_s": 0,
-        "total_s": 1.6229187090066262
+        "total_s": 1.6498712499742396
       },
       {
         "index": 5,
         "role": "export",
         "status": "reused",
-        "prepare_s": 1.9834120000014082,
+        "prepare_s": 2.0336812090245076,
         "execute_s": 0,
-        "total_s": 1.9834505839971825
+        "total_s": 2.0337186669930816
       },
       {
         "index": 6,
         "role": "export",
         "status": "reused",
-        "prepare_s": 2.007939000031911,
+        "prepare_s": 2.0337289170129225,
         "execute_s": 0,
-        "total_s": 2.0079662920325063
+        "total_s": 2.033765667001717
       },
       {
         "index": 7,
         "role": "export",
         "status": "reused",
-        "prepare_s": 1.6776502919965424,
+        "prepare_s": 1.7044810419902205,
         "execute_s": 0,
-        "total_s": 1.6776773750316352
+        "total_s": 1.7045117919915356
       },
       {
         "index": 8,
         "role": "export",
         "status": "reused",
-        "prepare_s": 3.4514165419968776,
+        "prepare_s": 3.544269542035181,
         "execute_s": 0,
-        "total_s": 3.451449375017546
+        "total_s": 3.544308207987342
       },
       {
         "index": 9,
         "role": "export",
         "status": "reused",
-        "prepare_s": 2.0672287910128944,
+        "prepare_s": 2.1102507920004427,
         "execute_s": 0,
-        "total_s": 2.0672640000120737
+        "total_s": 2.110285083996132
       },
       {
         "index": 10,
         "role": "verify",
         "status": "reused",
-        "prepare_s": 0.00234175001969561,
+        "prepare_s": 0.0023025409900583327,
         "execute_s": 0,
-        "total_s": 0.0023514589993283153
+        "total_s": 0.002318207989446819
       },
       {
         "index": 11,
         "role": "verify",
         "status": "reused",
-        "prepare_s": 0.002049833012279123,
+        "prepare_s": 0.0020946250297129154,
         "execute_s": 0,
-        "total_s": 0.0020587079925462604
+        "total_s": 0.0021059580030851066
       },
       {
         "index": 12,
         "role": "verify",
         "status": "reused",
-        "prepare_s": 0.0023416659678332508,
+        "prepare_s": 0.0023475419729948044,
         "execute_s": 0,
-        "total_s": 0.0023514159838669
+        "total_s": 0.002360332990065217
       },
       {
         "index": 13,
         "role": "verify",
         "status": "reused",
-        "prepare_s": 0.016858457995112985,
+        "prepare_s": 0.016934540995862335,
         "execute_s": 0,
-        "total_s": 0.016883625008631498
+        "total_s": 0.016962624969892204
       },
       {
         "index": 14,
         "role": "verify",
         "status": "reused",
-        "prepare_s": 1.6286110829678364,
+        "prepare_s": 1.6758567089564167,
         "execute_s": 0,
-        "total_s": 1.6286387919681147
+        "total_s": 1.6758896249812096
       },
       {
         "index": 15,
         "role": "export",
         "status": "executed",
-        "prepare_s": 0.0010112919844686985,
-        "execute_s": 70.72431399999186,
-        "total_s": 81.07685912499437
+        "prepare_s": 0.0012203750084154308,
+        "execute_s": 71.08959508303087,
+        "total_s": 81.52965237497119
       },
       {
         "index": 16,
         "role": "export",
         "status": "executed",
-        "prepare_s": 0.0024705419782549143,
-        "execute_s": 131.89427550003165,
-        "total_s": 148.5152813749737
+        "prepare_s": 0.0023804170195944607,
+        "execute_s": 606.8174742909614,
+        "total_s": 623.4603062500246
       },
       {
         "index": 17,
         "role": "verify",
         "status": "executed",
-        "prepare_s": 0.0011529999901540577,
-        "execute_s": 37.20851558295544,
-        "total_s": 45.14686224999605
+        "prepare_s": 0.0011214580154046416,
+        "execute_s": 39.06569183303509,
+        "total_s": 47.019910750037525
       }
     ],
-    "elapsed_s": 300.47770841704914
+    "elapsed_s": 778.2099572910229
   }
 }
