@@ -246,6 +246,13 @@ The [Magpie TTS v2607 recipe](recipes/magpie/README.md) defines an FP32 macOS re
 profile with four Core AI components, pinned NeMo references and Japanese audio
 checks. It uses the generic plan/run commands with explicit local bindings.
 
+The [VoxCPM2 recipe](recipes/voxcpm2/README.md) checks the pinned model snapshot and
+official source checkout before every model stage. It exports six Core AI assets in
+FP32 and FP16 and compares each function with the original PyTorch implementation.
+It uses a separate frozen environment under `.local/conversion/voxcpm2/.venv` and the
+generic plan/run commands with explicit local bindings. Text-to-speech generation
+from start to finish and an app bundle are not yet included.
+
 The [TeleOCR recipe](recipes/teleocr/README.md) exports the pinned TeleOCR vision encoder, token
 embedding and decoder as macOS Core AI assets with a separate Transformers 4.57.3 environment. Select it
 with `--recipe teleocr`. Its Python checks cover the stateless parts; the Swift runtime runs the stateful decoder through `coreai-verify ocr-block` and `coreai-verify ocr`.
