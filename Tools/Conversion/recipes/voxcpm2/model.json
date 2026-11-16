@@ -1,0 +1,302 @@
+{
+  "version": 1,
+  "model_id": "openbmb/VoxCPM2",
+  "revision": "7936080b41163874f38610f46f438e2c0757f9fd",
+  "upstream_revision": "300e4260b509066151d623dc9c0aa922cf82232b",
+  "license": "Apache-2.0",
+  "files": {
+    ".gitattributes": {
+      "bytes": 1519,
+      "sha256": "11ad7efa24975ee4b0c3c3a38ed18737f0658a5f75a0a96787b576a78a023361"
+    },
+    "README.md": {
+      "bytes": 7903,
+      "sha256": "feb850b390aa5051b81cbdc73b048361273552f003dd386b4da9c39ec9b6f055"
+    },
+    "audiovae.pth": {
+      "bytes": 376951122,
+      "sha256": "94b5d51e107e0507d4acc976cfdadb64edd6fd06d1f751dadbf2fd1594274bf1"
+    },
+    "config.json": {
+      "bytes": 4336,
+      "sha256": "405f0dcd92f7feba6011ed4eac5c8d4f74cba9712f07fd5cfa3063bbdd95402c"
+    },
+    "model.safetensors": {
+      "bytes": 4580080592,
+      "sha256": "f7f964cfa9da23653baec6e6f7750719977ad944ed9f95fe52fe3a620506891d"
+    },
+    "special_tokens_map.json": {
+      "bytes": 1632,
+      "sha256": "068594063e37662c02b21acf42ebb334ef6a74fb810e68a2368f88f08351de76"
+    },
+    "tokenization_voxcpm2.py": {
+      "bytes": 2895,
+      "sha256": "84489ea32b6ee0cae22ed5480cacb6df85c46624c3119be9a2021c3649a12729"
+    },
+    "tokenizer.json": {
+      "bytes": 3676772,
+      "sha256": "f8984687e4a92a3503d521396d454b7d68e9fdaab2a0288eb3536c7c1aa4bc20"
+    },
+    "tokenizer_config.json": {
+      "bytes": 5059,
+      "sha256": "e78a3ebb48a0b9437efd1823b6b726c823da89e49dd8bcc90c02419d9baa772b"
+    }
+  },
+  "architecture": {
+    "hidden_size": 2048,
+    "tslm_layers": 28,
+    "ralm_layers": 8,
+    "kv_heads": 2,
+    "head_dim": 128,
+    "vocab_size": 73448,
+    "patch_size": 4,
+    "feat_dim": 64,
+    "sample_rate": 48000
+  },
+  "execution": {
+    "capacity": 1024,
+    "prefill_length": 145,
+    "max_text_tokens": 144,
+    "audio_start_token": 101,
+    "pad_token": 0,
+    "state_initial_value": 0.0,
+    "specialization": "gpu_preferred"
+  },
+  "generation": {
+    "inference_timesteps": 10,
+    "cfg_value": 2.0,
+    "sway_sampling_coef": 1.0,
+    "cfg_zero_star": true,
+    "zero_init_steps": 1,
+    "dit_calls_per_patch": 9,
+    "min_len": 2,
+    "max_patches_ratio": 6.0,
+    "max_patches_offset": 10,
+    "max_len": 4096,
+    "samples_per_patch": 7680
+  },
+  "criteria": {
+    "normalized_max_limit": 0.001,
+    "nonfinite": 0,
+    "min_kv_steps": 8,
+    "fsq_boundary_distance": 1e-05,
+    "fsq_boundary_max_dims": 1,
+    "fsq_boundary_max_fraction": 0.02
+  },
+  "fp16": {
+    "kept_fp32_modules": ["MiniCPMRMSNorm", "SinusoidalPosEmb"],
+    "float_interface": "float16",
+    "integer_interface": "int32",
+    "gated": false
+  },
+  "decisions": {
+    "prefill": {
+      "choice": "One asset per language model: tslm holds embed, prefill and step; ralm holds prefill and step. The functions share the weights and the k_cache and v_cache states.",
+      "reason": "A weight-free check with the original MiniCPM layers found the same state descriptors in both functions, prefill-then-step outputs equal to the original up to the last cache position, bit-equal repeats with new or reused states, and a two-function asset 0.3% larger than the step-only asset. Separate prefill assets would store the language-model weights twice. Each export records its size against the unique parameter bytes."
+    },
+    "embed": {
+      "choice": "A separate embed function; prefill takes embeddings.",
+      "reason": "A later reference-audio prompt can pass embeddings that mix text and audio features without a new prefill function."
+    },
+    "state": {
+      "choice": "Two states per language model, [layers, 2, capacity, 128]. Each layer reads its cache through where, and a step writes every layer with one scatter_.",
+      "reason": "Index assignment aborts specialization. In weight-free models with the real cache shapes, this form matched per-layer states and stayed within about 0.3 ms of their step time at capacity 1024, with 4 arrays instead of 72 for the host. Scatter into each layer slice was fast in three of four configurations but 2.5 times slower in one, for an unknown reason."
+    },
+    "capacity": {
+      "choice": 1024,
+      "reason": "T + 1 + min(int(6 * T + 10), 4096) <= 1024 holds for T <= 144 text tokens. The capacity stage records the 2048 step and prefill times; they do not change the contract."
+    },
+    "prefill_length": {
+      "choice": 145,
+      "reason": "144 text tokens and the audio start token. Positions from length onward are zero in the cache and do not change the outputs."
+    },
+    "time_input": {
+      "choice": "Float t and dt inputs, as in the original estimator.",
+      "reason": "Precomputed time tables selected by step number did not change chained FP16 results in the investigation of 2026-11-16. In FP16 assets t is rounded to float16 before the float32 sinusoidal embedding."
+    },
+    "vae": {
+      "choice": "Streaming decode of one patch with 26 causal convolution states.",
+      "reason": "A native host emits audio patch by patch. A whole-utterance decode is not part of the contract."
+    },
+    "fp16": {
+      "choice": "Every asset is also exported in FP16, with RMSNorm and the sinusoidal time embedding computed in float32.",
+      "reason": "Errors and times are recorded without acceptance. Mixed precision is a choice of FP32 and FP16 assets, without separate assets."
+    }
+  },
+  "assets": {
+    "tslm": {
+      "functions": {
+        "embed": {
+          "inputs": [
+            ["ids", "int32", [1, 145]]
+          ],
+          "outputs": [
+            ["embeds", "float32", [1, 145, 2048]]
+          ],
+          "states": []
+        },
+        "prefill": {
+          "inputs": [
+            ["embeds", "float32", [1, 145, 2048]],
+            ["length", "int32", [1]]
+          ],
+          "outputs": [
+            ["hidden", "float32", [1, 145, 2048]]
+          ],
+          "states": [
+            ["k_cache", "float32", [28, 2, 1024, 128]],
+            ["v_cache", "float32", [28, 2, 1024, 128]]
+          ]
+        },
+        "step": {
+          "inputs": [
+            ["embed", "float32", [1, 2048]],
+            ["position", "int32", [1]]
+          ],
+          "outputs": [
+            ["hidden", "float32", [1, 2048]]
+          ],
+          "states": [
+            ["k_cache", "float32", [28, 2, 1024, 128]],
+            ["v_cache", "float32", [28, 2, 1024, 128]]
+          ]
+        }
+      }
+    },
+    "ralm": {
+      "functions": {
+        "prefill": {
+          "inputs": [
+            ["embeds", "float32", [1, 145, 2048]],
+            ["length", "int32", [1]]
+          ],
+          "outputs": [
+            ["hidden", "float32", [1, 145, 2048]]
+          ],
+          "states": [
+            ["k_cache", "float32", [8, 2, 1024, 128]],
+            ["v_cache", "float32", [8, 2, 1024, 128]]
+          ]
+        },
+        "step": {
+          "inputs": [
+            ["embed", "float32", [1, 2048]],
+            ["position", "int32", [1]]
+          ],
+          "outputs": [
+            ["hidden", "float32", [1, 2048]]
+          ],
+          "states": [
+            ["k_cache", "float32", [8, 2, 1024, 128]],
+            ["v_cache", "float32", [8, 2, 1024, 128]]
+          ]
+        }
+      }
+    },
+    "proj": {
+      "functions": {
+        "heads": {
+          "inputs": [
+            ["lm_hidden", "float32", [1, 2048]],
+            ["residual_hidden", "float32", [1, 2048]]
+          ],
+          "outputs": [
+            ["dit_hidden", "float32", [1, 2048]],
+            ["stop_logits", "float32", [1, 2]]
+          ],
+          "states": []
+        },
+        "fuse": {
+          "inputs": [
+            ["lm_raw", "float32", [1, 2048]],
+            ["curr_embed", "float32", [1, 2048]]
+          ],
+          "outputs": [
+            ["lm_hidden", "float32", [1, 2048]],
+            ["residual_input", "float32", [1, 2048]]
+          ],
+          "states": []
+        },
+        "prefill_fuse": {
+          "inputs": [
+            ["hidden", "float32", [1, 145, 2048]]
+          ],
+          "outputs": [
+            ["residual_inputs", "float32", [1, 145, 2048]]
+          ],
+          "states": []
+        }
+      }
+    },
+    "locenc": {
+      "functions": {
+        "main": {
+          "inputs": [
+            ["patch", "float32", [1, 64, 4]]
+          ],
+          "outputs": [
+            ["curr_embed", "float32", [1, 2048]]
+          ],
+          "states": []
+        }
+      }
+    },
+    "dit": {
+      "functions": {
+        "main": {
+          "inputs": [
+            ["x", "float32", [2, 64, 4]],
+            ["mu", "float32", [2, 2048]],
+            ["t", "float32", [2]],
+            ["cond", "float32", [2, 64, 4]],
+            ["dt", "float32", [2]]
+          ],
+          "outputs": [
+            ["velocity", "float32", [2, 64, 4]]
+          ],
+          "states": []
+        }
+      }
+    },
+    "vae": {
+      "functions": {
+        "main": {
+          "inputs": [
+            ["latent", "float32", [1, 64, 4]]
+          ],
+          "outputs": [
+            ["audio", "float32", [1, 1, 7680]]
+          ],
+          "states": [
+            ["state_00", "float32", [1, 64, 6]],
+            ["state_01", "float32", [1, 2048, 1]],
+            ["state_02", "float32", [1, 1024, 6]],
+            ["state_03", "float32", [1, 1024, 18]],
+            ["state_04", "float32", [1, 1024, 54]],
+            ["state_05", "float32", [1, 1024, 1]],
+            ["state_06", "float32", [1, 512, 6]],
+            ["state_07", "float32", [1, 512, 18]],
+            ["state_08", "float32", [1, 512, 54]],
+            ["state_09", "float32", [1, 512, 1]],
+            ["state_10", "float32", [1, 256, 6]],
+            ["state_11", "float32", [1, 256, 18]],
+            ["state_12", "float32", [1, 256, 54]],
+            ["state_13", "float32", [1, 256, 1]],
+            ["state_14", "float32", [1, 128, 6]],
+            ["state_15", "float32", [1, 128, 18]],
+            ["state_16", "float32", [1, 128, 54]],
+            ["state_17", "float32", [1, 128, 1]],
+            ["state_18", "float32", [1, 64, 6]],
+            ["state_19", "float32", [1, 64, 18]],
+            ["state_20", "float32", [1, 64, 54]],
+            ["state_21", "float32", [1, 64, 1]],
+            ["state_22", "float32", [1, 32, 6]],
+            ["state_23", "float32", [1, 32, 18]],
+            ["state_24", "float32", [1, 32, 54]],
+            ["state_25", "float32", [1, 32, 6]]
+          ]
+        }
+      }
+    }
+  }
+}

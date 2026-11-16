@@ -4,7 +4,11 @@ import unittest
 from unittest.mock import Mock, patch
 
 import torch
-from chronos.chronos_bolt import InstanceNorm
+
+try:
+    from chronos.chronos_bolt import InstanceNorm
+except ImportError as error:
+    raise unittest.SkipTest(f"Chronos-2 dependencies unavailable: {error}") from error
 
 from Tools.Conversion.adapters.chronos2 import convert, model_wrapper, reference
 from Tools.Conversion.adapters.chronos2.artifacts import CORE_CONFIG, FORECAST_CONFIG, QUANTILES

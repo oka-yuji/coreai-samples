@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "seed": 1708,
+  "inference_timesteps": 10,
+  "cfg_value": 2.0,
+  "min_len": 2,
+  "max_len": 4096,
+  "normalize": false,
+  "retry_badcase": false,
+  "fixtures": [
+    {
+      "id": "plain",
+      "text": "こんにちは。今日はよい天気ですね。"
+    },
+    {
+      "id": "design",
+      "text": "(A young woman, gentle and calm voice)確認が終わりました。次の作業を始めます。"
+    },
+    {
+      "id": "long",
+      "text": "本日の会議では、来月の展示会に向けた準備の進め方について話し合いました。まず、会場の配置図を確認し、受付と休憩所の位置を決めました。次に、当日の担当者の割り当てと、資料を印刷する部数を見直しました。"
+    },
+    {
+      "id": "heldout_ja",
+      "text": "明日の午後三時に、駅前の図書館で待ち合わせましょう。雨の場合は、入口の屋根の下で待っています。"
+    },
+    {
+      "id": "heldout_en",
+      "text": "(A middle-aged man, low and steady voice)The train to the airport leaves from platform four in ten minutes."
+    }
+  ]
+}
