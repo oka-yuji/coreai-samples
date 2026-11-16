@@ -120,7 +120,7 @@ class Tape:
         return forward_step
 
 
-def host_checks(values, length):
+def host_checks(values, length, calls, batch):
     equal = np.array_equal
     patches = values["patch"].shape[0]
     steps = values["tslm_step_out"].shape[0]
@@ -134,7 +134,7 @@ def host_checks(values, length):
         t = np.float32(t - dt)
         if index < len(t_span) - 1:
             dt = np.float32(t - t_span[index + 1])
-    expected_times = np.repeat(np.array(times, np.float32)[None, :, None], 2, axis=2)
+    expected_times = np.repeat(np.array(times, np.float32)[None, :, None], batch, axis=2)
     return {
         "embeds_are_prefill_input": equal(values["embeds"], values["tslm_prefill_in"]),
         "prefill_fuse_input_is_hidden_and_zero": equal(values["prefill_fuse_in"], np.concatenate((values["tslm_prefill_out"], zero), -1)),
@@ -143,7 +143,7 @@ def host_checks(values, length):
         "first_residual_is_last_prefill_row": equal(values["residual_hidden_in"][0], values["ralm_prefill_out"][:, length - 1]),
         "lm_hidden_follows_fsq": equal(values["lm_hidden_in"][1:], values["fsq_out"]),
         "residual_follows_ralm_step": equal(values["residual_hidden_in"][1:], values["ralm_step_out"]),
-        "dit_conditional_mu_is_solver_mu": equal(values["dit_mu"][:, :, 0], np.repeat(values["mu"], 9, axis=1)),
+        "dit_conditional_mu_is_solver_mu": equal(values["dit_mu"][:, :, 0], np.repeat(values["mu"], calls, axis=1)),
         "first_cond_is_zero": not np.any(values["cond"][0]),
         "cond_is_previous_patch": equal(values["cond"][1:], values["patch"][:-1]),
         "step_input_is_locenc_output": equal(values["tslm_step_in"], values["curr_embed"][:steps, :, 0]),
@@ -155,7 +155,7 @@ def host_checks(values, length):
         "steps_are_patches_minus_one": steps == patches - 1,
         "dit_batch_repeats_x_cond_t": equal(values["dit_x"][:, :, 0], values["dit_x"][:, :, 1])
                                       and equal(values["dit_cond"][:, :, 0], values["dit_cond"][:, :, 1])
-                                      and equal(values["dit_cond"][:, :, 0], np.repeat(values["cond"], 9, axis=1)),
+                                      and equal(values["dit_cond"][:, :, 0], np.repeat(values["cond"], calls, axis=1)),
         "dit_unconditional_mu_and_dt_are_zero": not np.any(values["dit_mu"][:, :, 1]) and not np.any(values["dit_dt"]),
         "dit_times_follow_t_span": equal(values["dit_t"], np.broadcast_to(expected_times, values["dit_t"].shape)),
         "latent_is_patches": equal(values["latent"], np.concatenate(list(values["patch"][:, 0]), -1)[None]),
@@ -193,11 +193,14 @@ def quantizer(model, values, distance):
 
 
 def capture(model, fixture, specification, contract, root):
-    execution = contract["execution"]
+    execution, generation = contract["execution"], contract["generation"]
+    frames, calls = contract["architecture"]["patch_size"], generation["dit_calls_per_patch"]
+    batch = next(shape[0] for name, _, shape in contract["assets"]["dit"]["functions"]["main"]["inputs"] if name == "x")
     text = re.sub(r"\s+", " ", fixture["text"].replace("\n", " "))
     ids = model.text_tokenizer(text)
     length = len(ids) + 1
-    if length > execution["prefill_length"] or length + min(int(len(ids) * 6.0 + 10), 4096) > execution["capacity"]:
+    limit = min(int(len(ids) * generation["max_patches_ratio"] + generation["max_patches_offset"]), generation["max_len"])
+    if length > execution["prefill_length"] or length + limit > execution["capacity"]:
         raise ValueError(f"The fixture does not fit the execution contract: {fixture['id']}")
     tape = Tape(model)
     started = time.perf_counter()
@@ -211,16 +214,15 @@ def capture(model, fixture, specification, contract, root):
     values = {**tape.values, **{name: np.stack(rows) for name, rows in tape.lists.items()}}
     patches = values["patch"].shape[0]
     with torch.inference_mode(), model.audio_vae.streaming_decode() as decoder:
-        chunks = [decoder.decode_chunk(torch.from_numpy(values["latent"][..., 4 * i:4 * i + 4].copy())) for i in range(patches)]
+        chunks = [decoder.decode_chunk(torch.from_numpy(values["latent"][..., frames * i:frames * (i + 1)].copy()))
+                  for i in range(patches)]
     values["stream_audio"] = np.stack([array(chunk) for chunk in chunks])
-    shapes = {"dit_x": (patches, 9, 2), "dit_mu": (patches, 9, 2), "dit_t": (patches, 9, 2), "dit_cond": (patches, 9, 2),
-              "dit_dt": (patches, 9, 2), "dit_velocity": (patches, 9, 2)}
-    for name, prefix in shapes.items():
-        values[name] = values[name].reshape(*prefix, *values[name].shape[2:])
+    for name in ("dit_x", "dit_mu", "dit_t", "dit_cond", "dit_dt", "dit_velocity"):
+        values[name] = values[name].reshape(patches, calls, batch, *values[name].shape[2:])
     reproduced = quantizer(model, values, contract["criteria"]["fsq_boundary_distance"])
     if values["ids"].shape != (1, length) or values["ids"][0, -1] != execution["audio_start_token"]:
         raise ValueError("The prompt is not the text followed by the audio start token")
-    checks = {**host_checks(values, length), "fsq_codes_reproduce_fsq_out": reproduced}
+    checks = {**host_checks(values, length, calls, batch), "fsq_codes_reproduce_fsq_out": reproduced}
     if not all(checks.values()) or tape.settings != {"cfg_value": specification["cfg_value"], "cfg_zero_star": True}:
         raise ValueError(f"The original computation differs from the recorded host contract: {checks}")
     if any(not np.isfinite(value).all() for value in values.values()):
@@ -253,6 +255,9 @@ def main():
     specification = read_json(args.fixtures)
     if specification.get("version") != 1 or specification["normalize"] or specification["retry_badcase"]:
         raise ValueError("Only unnormalized text without bad-case retries is supported")
+    for key in ("inference_timesteps", "cfg_value", "min_len", "max_len"):
+        if specification[key] != contract["generation"][key]:
+            raise ValueError(f"The fixtures and the contract disagree on {key}")
     model = load_model(args.snapshot, args.upstream, contract)
     args.output.mkdir(parents=True)
     report = {"complete": False, "contract": contract, "specification": specification,

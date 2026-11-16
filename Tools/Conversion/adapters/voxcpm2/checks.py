@@ -93,13 +93,12 @@ class Checks:
             outcome = classify_fuse((fsq[index], fused[index]), (out["lm_hidden"], out["residual_input"]),
                                     candidates.get(index, []), self.limit)
             measured = [outcome[name] for name in ("lm_hidden", "residual_input") if "normalized_max" in outcome[name]]
+            errors = {key: max(row[key] for row in measured) for key in ("normalized_max", "max_abs")} if measured else {}
             self.rows.append({"asset": "proj", "case": "fuse", "fixture": self.record["id"], "gate": True, "index": index,
                               "passed": outcome["category"] != "fail",
                               "nonfinite": sum(outcome[name]["nonfinite"] for name in ("lm_hidden", "residual_input")),
-                              "normalized_max": max((row["normalized_max"] for row in measured), default=None),
-                              "max_abs": max((row["max_abs"] for row in measured), default=None),
-                              "fsq_tie_distance": float(ties[index]), "candidates": len(candidates.get(index, [])),
-                              **outcome})
+                              **errors, "fsq_tie_distance": float(ties[index]),
+                              "candidates": len(candidates.get(index, [])), **outcome})
         hidden = self.load("tslm_prefill_out")
         blank = np.zeros((1, size - length, hidden.shape[-1]), np.float32)
         out = self.components.call("proj", "prefill_fuse", {"hidden": self.padded(hidden, blank)})

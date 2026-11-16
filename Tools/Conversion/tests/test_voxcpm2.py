@@ -10,7 +10,7 @@ import unittest
 
 import numpy as np
 
-from Tools.Conversion.adapters.voxcpm2.checks import classify_fuse, fsq_summary, fuse_candidates, verdict
+from Tools.Conversion.adapters.voxcpm2.checks import Checks, aggregate, classify_fuse, fsq_summary, fuse_candidates, verdict
 from Tools.Conversion.adapters.voxcpm2.runtime import validate_inputs
 from Tools.Conversion.adapters.voxcpm2.source import compare, expected_config, load_contract, validate_source, with_capacity
 from Tools.Conversion.recipe import load_recipe
@@ -141,6 +141,11 @@ class VoxCPM2ContractTests(unittest.TestCase):
         patches = min(int(tokens * generation["max_patches_ratio"] + generation["max_patches_offset"]), generation["max_len"])
         self.assertLessEqual(tokens + 1 + patches, execution["capacity"])
 
+    def test_bundled_fixtures_follow_the_generation_contract(self):
+        fixtures = json.loads((RECIPE / "fixtures.json").read_text(encoding="utf-8"))
+        for key in ("inference_timesteps", "cfg_value", "min_len", "max_len"):
+            self.assertEqual(fixtures[key], CONTRACT["generation"][key], key)
+
     def test_recorded_rows_do_not_gate_the_result(self):
         recorded = {"gate": False, "passed": False, "nonfinite": 0, "case": "chunk"}
         self.assertTrue(verdict([recorded, {"gate": True, "passed": True, "nonfinite": 0, "case": "step"}], CONTRACT["criteria"]))
@@ -244,6 +249,57 @@ class VoxCPM2BoundaryRuleTests(unittest.TestCase):
         self.assertFalse(verdict(rows(3), CONTRACT["criteria"]))
         summary = fsq_summary(rows(3), CONTRACT["criteria"])
         self.assertEqual((summary["calls"], summary["boundary"], summary["fixtures"]["f"]["boundary"]), (100, 3, 3))
+
+    def test_non_finite_fuse_outputs_fail_without_breaking_the_summary(self):
+        generator = np.random.default_rng(3)
+        hidden, patches, length = 4, 3, 2
+        contract = copy.deepcopy(CONTRACT)
+        contract["execution"]["prefill_length"] = 3
+
+        def values(*shape):
+            return generator.normal(size=shape).astype(np.float32)
+
+        arrays = {"lm_hidden_in": values(patches, 1, hidden), "residual_hidden_in": values(patches, 1, hidden),
+                  "mu": values(patches, 1, hidden), "stop_logits": values(patches, 1, 2),
+                  "tslm_step_out": values(patches - 1, 1, hidden), "tslm_step_in": values(patches - 1, 1, hidden),
+                  "fsq_out": values(patches - 1, 1, hidden), "fuse_out": values(patches - 1, 1, hidden),
+                  "fsq_tie_distance": np.full(patches - 1, 0.25, np.float32),
+                  "fsq_candidate_step": np.zeros(0, np.int32), "fsq_candidate_dim": np.zeros(0, np.int32),
+                  "fsq_candidate_distance": np.zeros(0, np.float32), "fsq_candidate_code": np.zeros((0, 2), np.float32),
+                  "fsq_candidate_lm_hidden": np.zeros((0, 1, hidden), np.float32),
+                  "fsq_candidate_residual_input": np.zeros((0, 1, hidden), np.float32),
+                  "tslm_prefill_out": values(1, length, hidden), "prefill_fuse_out": values(1, length, hidden)}
+
+        class Projection:
+            calls = {"heads": 0, "fuse": 0}
+
+            def call(self, asset, function, inputs, state=None):
+                if function == "prefill_fuse":
+                    padding = np.zeros((1, 1, hidden), np.float32)
+                    return {"residual_inputs": np.concatenate((arrays["prefill_fuse_out"], padding), 1)}
+                index = self.calls[function]
+                self.calls[function] += 1
+                if function == "heads":
+                    return {"dit_hidden": arrays["mu"][index], "stop_logits": arrays["stop_logits"][index]}
+                if index == 1:
+                    return {"lm_hidden": np.full((1, hidden), np.nan, np.float32),
+                            "residual_input": np.full((1, hidden), np.inf, np.float32)}
+                return {"lm_hidden": arrays["fsq_out"][index], "residual_input": arrays["fuse_out"][index]}
+
+        with tempfile.TemporaryDirectory() as directory:
+            folder = Path(directory) / "fixture"
+            folder.mkdir()
+            for name, value in arrays.items():
+                np.save(folder / f"{name}.npy", value, allow_pickle=False)
+            record = {"id": "fixture", "directory": "fixture", "length": length}
+            rows = Checks(Projection(), contract, directory, record, np.float32).run(["proj"])
+        summary = aggregate(rows)
+        self.assertEqual((summary["proj.fuse"]["count"], summary["proj.fuse"]["passed"]), (2, 1))
+        broken = [row for row in rows if row["case"] == "fuse" and not row["passed"]]
+        self.assertEqual([(row["index"], row["category"], row["nonfinite"]) for row in broken], [(1, "fail", 2 * hidden)])
+        self.assertNotIn("normalized_max", broken[0])
+        self.assertEqual(fsq_summary(rows, contract["criteria"])["fail"], 1)
+        self.assertFalse(verdict(rows, contract["criteria"]))
 
 
 def tiny_lm(rope, seed):
@@ -392,6 +448,34 @@ class VoxCPM2WrapperTests(unittest.TestCase):
             for name, _, example, inputs, _, _ in functions(model, asset, CONTRACT):
                 with self.subTest(asset=asset, function=name):
                     self.assertEqual(len({id(value) for value in example}), len(inputs))
+
+    def test_kept_fp32_modules_follow_the_contract(self):
+        from Tools.Conversion.adapters.voxcpm2.wrappers import KEPT_FP32
+
+        self.assertEqual(list(KEPT_FP32), CONTRACT["fp16"]["kept_fp32_modules"])
+
+    def test_reference_rejects_fixtures_that_disagree_with_the_contract_before_loading(self):
+        from unittest import mock
+
+        from Tools.Conversion.adapters.voxcpm2 import reference
+
+        bundled = json.loads((RECIPE / "fixtures.json").read_text(encoding="utf-8"))
+
+        def run(specification):
+            with tempfile.TemporaryDirectory() as directory:
+                fixtures, output = Path(directory) / "fixtures.json", Path(directory) / "output"
+                fixtures.write_text(json.dumps(specification), encoding="utf-8")
+                arguments = ["reference", "--snapshot", directory, "--upstream", directory, "--contract",
+                             str(RECIPE / "model.json"), "--fixtures", str(fixtures), "--output", str(output)]
+                with mock.patch("sys.argv", arguments), mock.patch.object(reference, "load_model", side_effect=LookupError) as load:
+                    with self.assertRaises((LookupError, ValueError)) as raised:
+                        reference.main()
+                return type(raised.exception), load.call_count, output.exists()
+
+        self.assertEqual(run(bundled), (LookupError, 1, False))
+        for key, value in (("inference_timesteps", 9), ("cfg_value", 1.5), ("min_len", 3), ("max_len", 2048)):
+            with self.subTest(key=key):
+                self.assertEqual(run({**bundled, key: value}), (ValueError, 0, False))
 
     def test_streaming_vae_matches_the_original_streaming_decoder(self):
         from voxcpm.modules.audiovae import AudioVAEConfigV2, AudioVAEV2
