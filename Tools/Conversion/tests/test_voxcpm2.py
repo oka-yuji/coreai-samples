@@ -1,9 +1,9 @@
+import ast
 import copy
 import importlib.util
 import json
 import math
 from pathlib import Path
-import re
 import tempfile
 from types import SimpleNamespace
 import unittest
@@ -18,6 +18,14 @@ from Tools.Conversion.storage import file_hash
 
 RECIPE = Path(__file__).resolve().parents[1] / "recipes" / "voxcpm2"
 CONTRACT = load_contract(RECIPE / "model.json")
+
+
+def relative_imports(text):
+    found = set()
+    for node in ast.walk(ast.parse(text)):
+        if isinstance(node, ast.ImportFrom) and node.level == 1:
+            found.update([node.module.split(".")[0]] if node.module else [alias.name for alias in node.names])
+    return {name + ".py" for name in found}
 
 
 def configuration(contract):
@@ -151,6 +159,11 @@ class VoxCPM2ContractTests(unittest.TestCase):
         self.assertTrue(verdict([recorded, {"gate": True, "passed": True, "nonfinite": 0, "case": "step"}], CONTRACT["criteria"]))
         self.assertFalse(verdict([recorded], CONTRACT["criteria"]))
 
+    def test_relative_imports_include_every_import_form(self):
+        sample = ("from .alpha import (\n    One,\n    Two,\n)\nfrom . import beta, gamma\nfrom .delta import Three\n"
+                  "from ...storage import read_json\nimport numpy\n\n\ndef late():\n    from .epsilon import Four\n")
+        self.assertEqual(relative_imports(sample), {"alpha.py", "beta.py", "gamma.py", "delta.py", "epsilon.py"})
+
     def test_recipe_declares_sources_and_checks(self):
         bindings = {"python": "/usr/bin/python3", "snapshot": "/snapshot", "upstream": "/upstream"}
         recipe = load_recipe(RECIPE / "recipe.json", bindings, Path(__file__).resolve().parents[3])
@@ -165,8 +178,7 @@ class VoxCPM2ContractTests(unittest.TestCase):
         adapters = Path(__file__).resolve().parents[1] / "adapters" / "voxcpm2"
 
         def imports(name):
-            text = (adapters / name).read_text(encoding="utf-8")
-            return {(module or member) + ".py" for module, member in re.findall(r"^from \.(\w*) import (\w+)", text, re.M)}
+            return relative_imports((adapters / name).read_text(encoding="utf-8"))
 
         for stage in stages.values():
             self.assertNotIn("$adapters", stage["inputs"])

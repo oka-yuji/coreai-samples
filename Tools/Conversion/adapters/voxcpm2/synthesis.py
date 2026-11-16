@@ -49,10 +49,10 @@ class Tokenizer:
         return host.prompt_ids(ids, self.vocabulary, self.audio_start)
 
 
-def finite(values, call, kind):
+def finite(values, details, kind):
     broken = sorted(name for name, value in values.items() if value.dtype.kind == "f" and not np.isfinite(value).all())
     if broken:
-        raise GenerationError({"reason": f"nonfinite_{kind}", "call": call, "names": broken})
+        raise GenerationError({"reason": f"nonfinite_{kind}", **details, "names": broken})
 
 
 class Assets:
@@ -75,11 +75,12 @@ class Assets:
 
     def call(self, asset, function, values, state=None):
         precision = self.precisions[asset]
+        details = {"call": f"{asset}.{function}", "precision": precision}
         values = {name: np.asarray(value) for name, value in values.items()}
-        finite(values, f"{asset}.{function}", "input")
         values = {name: value.astype(FLOATS[precision]) if value.dtype.kind == "f" else value for name, value in values.items()}
+        finite(values, details, "input")
         outputs = self.loaded[precision].call(asset, function, values, state)
-        finite(outputs, f"{asset}.{function}", "output")
+        finite(outputs, details, "output")
         return {name: value.astype(np.float32) for name, value in outputs.items()}
 
     def load_seconds(self):
@@ -212,16 +213,18 @@ class Alignment:
                   "valid": all(value.dtype == np.float32 and value.shape == reference[name][index].shape and np.isfinite(value).all()
                                for value, name in zip(values, names, strict=True)),
                   "schedule": self.schedule}
-        original = np.asarray(self.solve(noise, dit_hidden, cond), dtype=np.float32)
-        if original.shape != expected.shape or not np.isfinite(original).all():
+        solved = self.solve([values, tuple(reference[name][index] for name in names)])
+        original, rerun = (np.asarray(value, dtype=np.float32) for value in solved)
+        if any(value.shape != expected.shape or not np.isfinite(value).all() for value in (original, rerun)):
             raise GenerationError({"reason": "invalid_original_solution", "patch": index})
         scale, reference_scale = (max(float(np.max(np.abs(value))), 1e-8) for value in (original, expected))
         a, b = (float(np.max(np.abs(original.astype(np.float64) - value))) for value in (latent, expected))
         record = {"kind": "latent", "error": error, "inputs": inputs, "a": a / scale, "a_reference_scale": a / reference_scale,
-                  "b": b / scale, "b_reference_scale": b / reference_scale}
-        self.arrays[f"patch_{index}"] = np.stack([latent, original, expected])
+                  "b": b / scale, "b_reference_scale": b / reference_scale,
+                  "original_reproduces_reference": bool(np.array_equal(rerun, expected))}
+        self.arrays[f"patch_{index}"] = np.stack([latent, original, expected, rerun])
         if not (inputs["noise_bitwise"] and inputs["dit_hidden"]["passed"] and inputs["cond"]["passed"] and inputs["valid"]
-                and inputs["schedule"] and record["a"] <= self.limit):
+                and inputs["schedule"] and record["original_reproduces_reference"] and record["a"] <= self.limit):
             raise GenerationError({"reason": "latent_mismatch", "patch": index, **record})
         self.replace(index, record)
         return expected.copy()
@@ -269,14 +272,16 @@ class OriginalSolver:
     def __init__(self, job, directory):
         self.job, self.directory, self.count = job, directory, 0
 
-    def __call__(self, noise, dit_hidden, cond):
+    def __call__(self, cases):
         folder = self.directory / f"original-{self.count}"
         self.count += 1
         folder.mkdir()
-        np.savez(folder / "inputs.npz", noise=noise, dit_hidden=dit_hidden, cond=cond)
-        write_json(folder / "job.json", {key: self.job[key] for key in ("contract", "snapshot", "upstream")})
+        np.savez(folder / "inputs.npz", **{f"{name}_{number}": value for number, case in enumerate(cases)
+                                           for name, value in zip(("noise", "dit_hidden", "cond"), case, strict=True)})
+        write_json(folder / "job.json", {key: self.job[key] for key in ("contract", "snapshot", "upstream")} | {"cases": len(cases)})
         subprocess.run([sys.executable, "-m", __spec__.name, "solve", str(folder / "job.json")], check=True)
-        return np.load(folder / "latent.npy")
+        with np.load(folder / "latents.npz") as latents:
+            return [latents[f"latent_{number}"] for number in range(len(cases))]
 
 
 def solve_original(path):
@@ -287,13 +292,16 @@ def solve_original(path):
     generation = contract["generation"]
     model = load_model(Path(job["snapshot"]), Path(job["upstream"]), contract)
     with np.load(path.parent / "inputs.npz") as arrays:
-        noise, dit_hidden, cond = (torch.from_numpy(arrays[name].copy()) for name in ("noise", "dit_hidden", "cond"))
+        cases = [[torch.from_numpy(arrays[f"{name}_{number}"].copy()) for name in ("noise", "dit_hidden", "cond")]
+                 for number in range(job["cases"])]
+    latents = {}
     with torch.inference_mode():
         span = torch.linspace(1, 0, generation["inference_timesteps"] + 1, dtype=torch.float32)
         span = span + generation["sway_sampling_coef"] * (torch.cos(torch.pi / 2 * span) - 1 + span)
-        latent = model.feat_decoder.solve_euler(noise, span, dit_hidden, cond, cfg_value=generation["cfg_value"],
-                                                use_cfg_zero_star=generation["cfg_zero_star"])
-    np.save(path.parent / "latent.npy", latent.numpy())
+        for number, (noise, dit_hidden, cond) in enumerate(cases):
+            latents[f"latent_{number}"] = model.feat_decoder.solve_euler(
+                noise, span, dit_hidden, cond, cfg_value=generation["cfg_value"], use_cfg_zero_star=generation["cfg_zero_star"]).numpy()
+    np.savez(path.parent / "latents.npz", **latents)
 
 
 def pcm16(audio):
@@ -302,8 +310,8 @@ def pcm16(audio):
     return np.clip(scaled, -32768, 32767).astype("<i2"), clipped
 
 
-def write_wav(path, result, sample_rate):
-    samples, clipped = pcm16(result.waveform())
+def write_wav(path, audio, sample_rate):
+    samples, clipped = pcm16(audio)
     path.parent.mkdir(parents=True, exist_ok=True)
     with wave.open(str(path), "wb") as handle:
         handle.setnchannels(1)
@@ -311,6 +319,20 @@ def write_wav(path, result, sample_rate):
         handle.setframerate(sample_rate)
         handle.writeframes(samples.tobytes())
     return clipped
+
+
+def write_listening(output, takes, labels, listen_seed, sample_rate):
+    paths = []
+    for sentence, seed in sorted({(sentence, seed) for sentence, seed, _ in takes}):
+        folder = output / ("listen" if seed == listen_seed else f"listen-extra/{seed}") / sentence
+        for label, name in sorted(labels[sentence].items()):
+            if (sentence, seed, name) in takes:
+                paths.append(folder / f"{label}.wav")
+                write_wav(paths[-1], takes[sentence, seed, name], sample_rate)
+    stamp = time.time_ns()
+    for path in paths:
+        os.utime(path, ns=(stamp, stamp))
+    return paths
 
 
 def decibels(value):
@@ -331,16 +353,34 @@ def describe(result, reference, limit, rate, replaced=()):
     count = min(result.patches, len(expected))
     rows = [compare(expected[index], result.latents[index], limit) for index in range(count)]
     failed = [index for index, row in enumerate(rows) if not row["passed"]]
+    natural = result.limit is not None and len(expected) < result.limit
     complete = result.succeeded and result.patches == len(expected)
     audio = compare(np.concatenate(list(reference.load("stream_audio")), axis=-1).reshape(-1), result.waveform(), limit) if complete else None
     return {"finish": result.finish, "error": result.error, "patches": result.patches, "stopped_patch": result.stopped_patch,
-            "reference_patches": len(expected), "reference_stopped_patch": len(expected) - 1,
+            "reference_patches": len(expected), "reference_stopped_patch": len(expected) - 1, "reference_natural_stop": natural,
             "latent_errors": [row.get("normalized_max") for row in rows],
             "latent_max": max((row["normalized_max"] for row in rows if "normalized_max" in row), default=None),
             "first_latent_out_of_criterion": failed[0] if failed else None,
             "stop_logits_max_abs": float(np.max(np.abs(np.stack(result.stop_logits[:count]) - stops[:count]))) if count else None,
             "audio": audio, "seconds": result.seconds, **(levels(result.waveform(), rate) if result.succeeded else {}),
-            "passed": bool(complete and not [index for index in failed if index not in replaced] and audio["passed"])}
+            "passed": bool(natural and complete and not [index for index in failed if index not in replaced] and audio["passed"])}
+
+
+def fixture_verdict(ids, expected_ids, noise, expected_noise, description):
+    count = min(len(noise), len(expected_noise))
+    checks = {"ids_match": [int(value) for value in ids] == [int(value) for value in expected_ids],
+              "noise_match": bool(count) and all(np.array_equal(noise[index], expected_noise[index]) for index in range(count))}
+    return {**checks, "passed": bool(checks["ids_match"] and checks["noise_match"] and description["passed"])}
+
+
+def limit_verdict(result, patches, reference_patches, audio_written):
+    return bool(patches < reference_patches and result.finish == "limit" and result.patches == patches and not result.succeeded
+                and not audio_written)
+
+
+def overall_verdict(fixtures, replacement, limit_entry):
+    return bool(fixtures and all(entry["passed"] for entry in fixtures.values()) and replacement["within_limit"]
+                and limit_entry["passed"])
 
 
 def save_result(result, directory, extra):
@@ -431,12 +471,10 @@ def check_fixture(base, contract, tokenizer, text, seed, reference, root, scratc
     replacing, info = isolated({**job, "reference": root, "fixture": name}, folder)
     positions = info.get("positions", [])
     replaced = [row["patch"] for row in positions if row["kind"] == "latent"]
-    noise = reference.load("dit_x")[:, 0, :1]
-    count = min(replacing.patches, len(noise))
-    entry = {"text_tokens": len(ids) - 1, "limit": replacing.limit,
-             "ids_match": ids == reference.load("ids").reshape(-1).tolist(),
-             "noise_match": bool(count) and all(np.array_equal(replacing.noise[index], noise[index]) for index in range(count)),
-             "replacing": describe(replacing, reference, limit, rate, replaced), "fuse_calls": info.get("fuse_calls"),
+    description = describe(replacing, reference, limit, rate, replaced)
+    verdict = fixture_verdict(ids, reference.load("ids").reshape(-1), replacing.noise, reference.load("dit_x")[:, 0, :1], description)
+    entry = {"text_tokens": len(ids) - 1, "limit": replacing.limit, "ids_match": verdict["ids_match"], "noise_match": verdict["noise_match"],
+             "replacing": description, "fuse_calls": info.get("fuse_calls"),
              "positions": [{"fixture": name, **position} for position in positions], "replaced_patches": info.get("replaced", []),
              "load_seconds": info.get("load_seconds")}
     if (folder / "replacements.npz").exists():
@@ -447,7 +485,7 @@ def check_fixture(base, contract, tokenizer, text, seed, reference, root, scratc
         folder = scratch / f"{name}-free"
         free, _ = isolated(job, folder)
     entry["without_replacement"] = describe(free, reference, limit, rate)
-    entry["passed"] = bool(entry["ids_match"] and entry["noise_match"] and entry["replacing"]["passed"])
+    entry["passed"] = verdict["passed"]
     entry["swift_reference"] = save_reference(free, folder, output / "swift_reference" / name, seed)
     return entry, positions
 
@@ -456,13 +494,12 @@ def limit_check(base, contract, tokenizer, text, seed, settings, record, output,
     result, _ = isolated({**base, "ids": tokenizer(text), "seed": seed, "limit": settings["patches"]}, scratch / "limit")
     path = output / "limit-check.wav"
     try:
-        write_wav(path, result, contract["architecture"]["sample_rate"])
+        write_wav(path, result.waveform(), contract["architecture"]["sample_rate"])
     except ValueError:
         pass
     entry = {"fixture": settings["fixture"], "limit": settings["patches"], "reference_patches": record["patches"],
              "finish": result.finish, "patches": result.patches, "succeeded": result.succeeded, "audio_written": path.exists()}
-    entry["passed"] = bool(settings["patches"] < record["patches"] and result.finish == "limit"
-                           and result.patches == settings["patches"] and not result.succeeded and not entry["audio_written"])
+    entry["passed"] = limit_verdict(result, settings["patches"], record["patches"], entry["audio_written"])
     return entry
 
 
@@ -498,8 +535,7 @@ def check(args):
         report["limit_check"] = limit_check(base, contract, tokenizer, texts[target["fixture"]], seed, target, record, args.output,
                                             Path(scratch))
     report["environment_after"] = environment()
-    report["passed"] = bool(all(entry["passed"] for entry in fixtures.values()) and report["replacement"]["within_limit"]
-                            and report["limit_check"]["passed"])
+    report["passed"] = overall_verdict(fixtures, report["replacement"], report["limit_check"])
     report["complete"] = True
     write_json(args.output / "check.json", report)
     print(json.dumps({"passed": report["passed"], "replacement": report["replacement"],
@@ -563,7 +599,7 @@ def compare_runs(args):
     base = {"contract": str(args.contract), "export": [str(path) for path in args.export]}
     first = next(iter(sentences))
     warmup = {"ids": ids[first], "seed": settings["seeds"][0]}
-    missing, baselines = [], {}
+    missing, baselines, takes = [], {}, {}
     with tempfile.TemporaryDirectory() as scratch:
         for name in order:
             entry = {"precisions": configurations[name], "warmup": {"sentence": first, "seed": warmup["seed"]},
@@ -585,9 +621,9 @@ def compare_runs(args):
                         row |= latent_errors(baselines[sentence, seed], result, limit)
                     if result.succeeded:
                         audio = result.waveform()
-                        folder = Path("listen") if seed == settings["listen_seed"] else Path("listen-extra") / str(seed)
+                        takes[sentence, seed, name] = audio
                         row |= {**levels(audio, rate), "seconds_per_audio_second": result.seconds * rate / audio.size,
-                                "clipped_samples": write_wav(args.output / folder / sentence / f"{labelled[sentence][name]}.wav", result, rate)}
+                                "clipped_samples": pcm16(audio)[1]}
                     else:
                         missing.append({"sentence": sentence, "seed": seed, "label": labelled[sentence][name], "finish": result.finish})
                     rows.append(row)
@@ -596,6 +632,7 @@ def compare_runs(args):
             report["configurations"][name] = entry
             report["rows"].extend(rows)
             write_json(args.output / "comparison.json", report)
+    write_listening(args.output, takes, labels, settings["listen_seed"], rate)
     write_json(args.output / "listen-key.json", {"label_seed": settings["label_seed"], "listen_seed": settings["listen_seed"],
                                                  "labels": labels, "without_audio": missing})
     report["complete"] = True

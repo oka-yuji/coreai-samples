@@ -362,15 +362,23 @@ of the asset contract and uses the model-free calculations in `host.py`.
 - **States**: every request starts from new zeroed states. Prefill outputs are passed
   on unchanged, and step `i` uses position `length + i`.
 - **End**: a generation ends with `stop` (the stop head after patch 2), `limit` (the
-  patch limit without a stop) or `error` (a non-finite input or output, or a
-  disagreement that the rule below cannot explain). Only `stop` is a success. The
-  other two return no audio and are not retried.
+  patch limit without a stop) or `error`. An `error` is a non-finite output, an input
+  that is not finite after conversion to the asset precision (for example a float32
+  value beyond the float16 range), or a disagreement that the rule below cannot
+  explain. Only `stop` is a success. The other two return no audio and are not
+  retried.
 - **Precision**: a configuration maps every asset to FP32 or FP16. FP16 assets
   receive float16 inputs; the host itself computes in float32.
-- **Processes**: every generation runs in its own worker process. In one process
-  that ran an FP32 configuration and part of an FP16 one, the Python runtime stopped
-  with `SIGTRAP` while allocating an output array (`NDArray+Pool.swift`), after
-  about 16,000 output arrays. One generation allocates at most about 10,100.
+- **Processes**: every generation runs in its own worker process. A patch allocates
+  17 output arrays (2 from `proj.heads`, 9 from the solver calls, 2 from
+  `proj.fuse`, and 1 each from LocEnc, the VAE and the two steps), and the prefill
+  allocates 4. In one process that ran an FP32 configuration and part of an FP16
+  one, the Python runtime stopped with `SIGTRAP` while allocating an output array
+  (`NDArray+Pool.swift`); by this count, the generations that finished before the
+  stop had allocated about 15,700. A
+  worker of the precision comparison runs one generation after a warm-up
+  generation of `plain`; at the patch limits of `plain` (124) and `long` (592) it
+  allocates at most 2,112 + 10,068 = 12,180 arrays.
 
 ### FP32 check
 
@@ -397,7 +405,8 @@ the original only because it was replaced is not counted as agreement.
      PyTorch on the CPU in FP32) is given the inputs that Core AI actually used for
      that patch, before any replacement. Its result and the Core AI latent differ by
      at most the criterion. The original solver runs in its own child process, only
-     when a latent needs it.
+     when a latent needs it. In the same process it also solves the original inputs
+     of that patch, and its result must equal the original latent bit for bit.
 
    Anything else fails the sentence. The record keeps the latent before replacement,
    its error, the input errors, the difference `a` between the original solver's
@@ -406,13 +415,15 @@ the original only because it was replaced is not counted as agreement.
    result and on the scale of the original latent.
 
 The replaced patches are the union of both kinds; a `proj.fuse` replacement at step
-`k` counts as patch `k + 1`, which uses its outputs. At most one patch per sentence
+`k` counts as patch `k + 1`, which uses its outputs. A patch whose `proj.fuse`
+outputs and latent are both replaced counts once. At most one patch per sentence
 and at most 2% of the original patches (4 of 239) may be replaced. These limits are
 in `synthesis.json`. They were set after the observations below and are operating
 limits, not a proof of correctness. A sentence passes when every comparison point
-holds within these limits, every value is finite, and the replacing generation
-ends with a stop at the original stop patch. Its joined audio must also meet the
-criterion against the original streaming decode.
+holds within these limits, every value is finite, the original generation stopped
+before its patch limit, and the replacing generation ends with a stop at the
+original stop patch. Its joined audio must also meet the criterion against the
+original streaming decode.
 
 Solver consistency on the same inputs does not show that the language-model side
 that produced those inputs is correct. The per-component comparisons above and the
@@ -452,9 +463,10 @@ the load average. There is no pass or fail.
 The audio is written as 48 kHz mono 16-bit WAV files without level changes. Seed
 1708 goes to `compare/listen/<sentence>/<label>.wav`, the other seeds to
 `compare/listen-extra/<seed>/<sentence>/<label>.wav`. Labels A to C are assigned to
-the configurations per sentence with a recorded random seed. The key is
-`compare/listen-key.json`, outside the listening folders. The files stay outside
-Git.
+the configurations per sentence with a recorded random seed. The files are written
+after all generations, in label order, and get one shared modification time, so
+the times do not show the configuration. The key is `compare/listen-key.json`,
+outside the listening folders. The files stay outside Git.
 
 The audio comes from the same weights run with Core AI. Numerical differences near
 rounding boundaries inside the model can make the generated result differ from the
@@ -481,7 +493,8 @@ were replaced (two `proj.fuse` and one latent), at most one per sentence.
 - `plain`, patch 9: before replacement the latent was 3.87e-3 from the original. Its
   inputs matched the original (noise bit for bit, `dit_hidden` 1.35e-6, `cond`
   7.3e-6). With those inputs the original solver gave a latent 2.6e-5 from the Core
-  AI latent (`a`) and 3.84e-3 from the original latent (`b`).
+  AI latent (`a`) and 3.84e-3 from the original latent (`b`). From the original
+  inputs, the same solver process reproduced the original latent bit for bit.
 - In the replacing generations, the other latents stayed within the criterion
   before replacement (largest 4.3e-4, in `long`), and the joined audio differed from
   the original streaming decode by 9.1e-6 to 8.2e-4.
@@ -499,13 +512,13 @@ the 239 patches, and differed from the original latent by 3.84e-3 at patch 9.
 
 The precision comparison (15 generations per configuration, Python host,
 GPU-preferred specialization, each time after one warm-up generation in its worker,
-load average 3.7 to 5.6):
+load average 4.1 to 6.1):
 
 | Configuration | Stopped | Stop patch as FP32 | Latent error against FP32 (median of medians / largest) | ms per patch (median) | Seconds per second of audio (median) |
 |---|---:|---:|---:|---:|---:|
-| FP32 | 15/15 | — | — | 72.4 | 0.452 |
-| FP16 | 15/15 | 10/15 | 0.118 / 2.14 | 47.0 | 0.293 |
-| FP16 with `proj` in FP32 | 15/15 | 10/15 | 0.055 / 2.67 | 46.9 | 0.293 |
+| FP32 | 15/15 | — | — | 72.9 | 0.456 |
+| FP16 | 15/15 | 10/15 | 0.118 / 2.14 | 47.1 | 0.294 |
+| FP16 with `proj` in FP32 | 15/15 | 10/15 | 0.055 / 2.67 | 47.1 | 0.294 |
 
 No sample was clipped at 16 bits. In both FP16 configurations every generation
 leaves the FP32 latent criterion early (from patch 1 in the median generation).

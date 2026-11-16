@@ -3,12 +3,14 @@ import importlib.util
 from pathlib import Path
 import tempfile
 import unittest
+import wave
 
 import numpy as np
 
 from Tools.Conversion.adapters.voxcpm2.source import load_contract
-from Tools.Conversion.adapters.voxcpm2.synthesis import (Alignment, Assets, GenerationError, Result, Tokenizer, Trace, generate,
-                                                         load_result, pcm16, replacement_summary, save_result, write_wav)
+from Tools.Conversion.adapters.voxcpm2.synthesis import (Alignment, Assets, GenerationError, Result, Tokenizer, Trace, describe,
+                                                         fixture_verdict, generate, limit_verdict, load_result, overall_verdict,
+                                                         pcm16, replacement_summary, save_result, write_listening, write_wav)
 from Tools.Conversion.storage import file_hash
 
 RECIPE = Path(__file__).resolve().parents[1] / "recipes" / "voxcpm2"
@@ -43,6 +45,31 @@ class FakeAssets:
     def inputs(self, asset, function, name):
         return [values[name] for called_asset, called_function, values, _ in self.calls
                 if (called_asset, called_function) == (asset, function)]
+
+
+class FakeReference:
+    def __init__(self, arrays):
+        self.arrays = arrays
+
+    def load(self, name):
+        return self.arrays[name]
+
+
+def described(patches=4, reference_patches=4, limit=10, finish="stop", latent_shift=None, audio_shift=0.0, replaced=()):
+    generator = np.random.default_rng(11)
+    latents = generator.normal(size=(reference_patches, 1, 64, 4)).astype(np.float32)
+    audio = generator.normal(size=(reference_patches, 1, 1, 7680)).astype(np.float32)
+    stops = generator.normal(size=(reference_patches, 1, 2)).astype(np.float32)
+    result = Result(IDS, limit)
+    for index in range(patches):
+        latent = latents[index] + np.float32(latent_shift[1] if latent_shift and latent_shift[0] == index else 0.0)
+        result.noise.append(np.zeros((1, 64, 4), np.float32))
+        result.latents.append(latent)
+        result.stop_logits.append(stops[index])
+        result.audio.append(audio[index] + np.float32(audio_shift))
+    result.finish = finish
+    reference = FakeReference({"patch": latents, "stop_logits": stops, "stream_audio": audio})
+    return describe(result, reference, LIMIT, CONTRACT["architecture"]["sample_rate"], replaced)
 
 
 class FakeComponents:
@@ -124,6 +151,75 @@ class VoxCPM2SynthesisRuleTests(unittest.TestCase):
                         with self.assertRaises(ValueError):
                             loaded.waveform()
 
+    def test_assets_reject_inputs_that_overflow_the_asset_precision(self):
+        assets = Assets.__new__(Assets)
+        assets.precisions, assets.loaded = {"tslm": "fp16"}, {"fp16": FakeComponents(0.5)}
+        with np.errstate(over="ignore"), self.assertRaises(GenerationError) as raised:
+            assets.call("tslm", "step", {"embed": np.full((1, 2048), 1e5, np.float32), "position": np.array([7], np.int32)})
+        details = raised.exception.details
+        self.assertEqual((details["reason"], details["precision"], details["names"]), ("nonfinite_input", "fp16", ["embed"]))
+        self.assertEqual(assets.loaded["fp16"].seen, [])
+
+    def test_a_complete_generation_passes_only_with_every_condition(self):
+        self.assertTrue(described()["passed"])
+        cases = {"audio outside the criterion": {"audio_shift": 0.5}, "another stop patch": {"patches": 3},
+                 "an end other than stop": {"finish": "limit"}, "a latent outside the criterion": {"latent_shift": (2, 0.5)},
+                 "an original that reached its patch limit": {"limit": 4}}
+        for name, change in cases.items():
+            with self.subTest(name):
+                self.assertFalse(described(**change)["passed"])
+
+    def test_a_replaced_latent_is_excluded_after_its_original_error_is_recorded(self):
+        description = described(latent_shift=(2, 0.5), replaced=(2,))
+        self.assertTrue(description["passed"])
+        self.assertGreater(description["latent_errors"][2], LIMIT)
+        self.assertEqual(description["first_latent_out_of_criterion"], 2)
+        self.assertFalse(described(latent_shift=(2, 0.5), replaced=(1,))["passed"])
+        self.assertTrue(described()["reference_natural_stop"])
+        self.assertFalse(described(limit=4)["reference_natural_stop"])
+
+    def test_token_ids_and_noise_must_equal_the_original(self):
+        noise = [np.full((1, 64, 4), index, np.float32) for index in range(3)]
+        good = {"passed": True}
+        self.assertTrue(fixture_verdict(IDS, np.array(IDS, np.int32), noise, np.stack(noise), good)["passed"])
+        changed = [*noise[:2], np.nextafter(noise[2], np.float32(3))]
+        for name, arguments in {"token IDs": (IDS[:-1] + [0], np.array(IDS, np.int32), noise, np.stack(noise), good),
+                                "noise": (IDS, np.array(IDS, np.int32), changed, np.stack(noise), good),
+                                "generation": (IDS, np.array(IDS, np.int32), noise, np.stack(noise), {"passed": False})}.items():
+            with self.subTest(name):
+                self.assertFalse(fixture_verdict(*arguments)["passed"])
+
+    def test_the_limit_check_requires_an_unfinished_generation_without_audio(self):
+        result = Result(IDS, 8)
+        result.latents, result.finish = [np.zeros((1, 64, 4), np.float32)] * 8, "limit"
+        self.assertTrue(limit_verdict(result, 8, 15, False))
+        self.assertFalse(limit_verdict(result, 8, 15, True))
+        self.assertFalse(limit_verdict(result, 8, 8, False))
+        result.finish = "stop"
+        self.assertFalse(limit_verdict(result, 8, 15, False))
+
+    def test_the_stage_passes_only_when_every_part_passes(self):
+        fixtures = {"a": {"passed": True}, "b": {"passed": True}}
+        self.assertTrue(overall_verdict(fixtures, {"within_limit": True}, {"passed": True}))
+        self.assertFalse(overall_verdict({**fixtures, "b": {"passed": False}}, {"within_limit": True}, {"passed": True}))
+        self.assertFalse(overall_verdict(fixtures, {"within_limit": False}, {"passed": True}))
+        self.assertFalse(overall_verdict(fixtures, {"within_limit": True}, {"passed": False}))
+        self.assertFalse(overall_verdict({}, {"within_limit": True}, {"passed": True}))
+
+    def test_listening_files_are_written_in_label_order_with_one_time(self):
+        labels = {"one": {"A": "fp16", "B": "fp32", "C": "mixed"}, "two": {"A": "fp32", "B": "mixed", "C": "fp16"}}
+        keys = [(sentence, seed, name) for sentence in labels for seed in (1, 2) for name in ("fp32", "fp16", "mixed")]
+        takes = {key: np.full(480, index / 100, np.float32) for index, key in enumerate(keys)}
+        with tempfile.TemporaryDirectory() as directory:
+            paths = write_listening(Path(directory), takes, labels, 1, CONTRACT["architecture"]["sample_rate"])
+            names = [path.relative_to(directory).as_posix() for path in paths]
+            self.assertEqual(names[:4], ["listen/one/A.wav", "listen/one/B.wav", "listen/one/C.wav", "listen-extra/2/one/A.wav"])
+            self.assertEqual(len(names), 12)
+            self.assertEqual(len({path.stat().st_mtime_ns for path in paths}), 1)
+            with wave.open(str(paths[0]), "rb") as handle:
+                frames = np.frombuffer(handle.readframes(handle.getnframes()), dtype="<i2")
+            np.testing.assert_array_equal(frames, pcm16(takes["one", 1, "fp16"])[0])
+
     def test_samples_beyond_full_scale_are_counted_when_rounded_to_16_bits(self):
         samples, clipped = pcm16([1.5, -1.5, 0.25, 1.0, -1.0])
         self.assertEqual((samples.tolist(), clipped), ([32767, -32768, 8192, 32767, -32767], 2))
@@ -166,7 +262,7 @@ class VoxCPM2SynthesisHostTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "audio.wav"
             with self.assertRaises(ValueError):
-                write_wav(path, result, CONTRACT["architecture"]["sample_rate"])
+                write_wav(path, result.waveform(), CONTRACT["architecture"]["sample_rate"])
             self.assertFalse(path.exists())
         stopped = generate(FakeAssets(stop_at=4), CONTRACT, IDS, seed=1, limit=5)
         self.assertEqual((stopped.finish, stopped.patches), ("stop", 5))
@@ -229,15 +325,16 @@ class VoxCPM2ReplacementTests(unittest.TestCase):
         candidates = {1: [{"dim": 7, "distance": 4e-7, "code": 3.0, "candidate_code": 2.0, "outputs": alternative}]}
         return reference, candidates, alternative
 
-    def generate(self, outputs=matching, stop_at=4, shifted=(), solve=None, change=None):
+    def generate(self, outputs=matching, stop_at=4, shifted=(), solve=None, change=None, rerun_shift=0.0):
         reference, candidates, alternative = self.reference(shifted)
         if change:
             change(reference)
         solved = []
 
-        def original(noise, dit_hidden, cond):
-            solved.append((noise.copy(), dit_hidden.copy(), cond.copy()))
-            return solve(noise, dit_hidden, cond) if solve else noise.copy()
+        def original(cases):
+            solved.append([tuple(value.copy() for value in case) for case in cases])
+            index = next(index for index, noise in enumerate(reference["noise"]) if np.array_equal(noise, cases[1][0]))
+            return [solve(*cases[0]) if solve else cases[0][0].copy(), reference["patch"][index] + np.float32(rerun_shift)]
 
         alignment = Alignment(reference, candidates, LIMIT, original, 1, True)
         assets = FakeAssets(stop_at=stop_at, fuse=lambda step: outputs(step, reference, alternative))
@@ -265,9 +362,38 @@ class VoxCPM2ReplacementTests(unittest.TestCase):
         np.testing.assert_array_equal(assets.inputs("vae", "main", "latent")[2], reference["patch"][2])
         calls = CONTRACT["generation"]["dit_calls_per_patch"]
         np.testing.assert_array_equal(assets.inputs("dit", "main", "cond")[3 * calls][:1], reference["patch"][2])
-        self.assertEqual(len(solved), 1)
-        np.testing.assert_array_equal(solved[0][0], reference["noise"][2])
-        np.testing.assert_array_equal(solved[0][2], reference["noise"][1])
+        self.assertEqual((len(solved), len(solved[0]), record["original_reproduces_reference"]), (1, 2, True))
+        np.testing.assert_array_equal(solved[0][0][0], reference["noise"][2])
+        np.testing.assert_array_equal(solved[0][0][2], reference["noise"][1])
+        for value, name in zip(solved[0][1], ("noise", "mu", "cond"), strict=True):
+            np.testing.assert_array_equal(value, reference[name][2])
+
+    def test_the_original_solver_must_reproduce_the_original_latent_from_the_original_inputs(self):
+        result, alignment, _, _, _ = self.generate(shifted=(2,), rerun_shift=1e-6)
+        self.assertEqual((result.finish, result.error["reason"], result.error["original_reproduces_reference"]),
+                         ("error", "latent_mismatch", False))
+        self.assertEqual(alignment.positions, [])
+
+    def test_each_input_condition_stops_a_latent_replacement(self):
+        noise = noise_sequence(4, 3)
+        patch = noise.copy()
+        patch[1] = patch[1] + np.float32(0.5)
+        reference = {"noise": noise, "patch": patch, "mu": np.zeros((3, 1, 2048), np.float32),
+                     "cond": np.concatenate([np.zeros_like(patch[:1]), patch[:-1]])}
+        inputs = {"noise": noise[1], "dit_hidden": np.zeros((1, 2048), np.float32), "cond": reference["cond"][1]}
+        cases = {"noise": ({"noise": noise[1] + np.float32(1e-6)}, True), "cond": ({"cond": reference["cond"][1] + np.float32(0.5)}, True),
+                 "valid": ({"dit_hidden": np.zeros((1, 2048), np.float64)}, True), "schedule": ({}, False)}
+        for name, (change, schedule) in {"control": ({}, True), **cases}.items():
+            alignment = Alignment(reference, {}, LIMIT, lambda solved: [solved[0][0].copy(), patch[1]], 1, schedule)
+            with self.subTest(name):
+                arguments = {**inputs, **change}
+                if name == "control":
+                    np.testing.assert_array_equal(alignment.latent(1, noise[1], **arguments), patch[1])
+                    continue
+                with self.assertRaises(GenerationError) as raised:
+                    alignment.latent(1, noise[1], **arguments)
+                self.assertEqual(raised.exception.details["reason"], "latent_mismatch")
+                self.assertEqual(alignment.positions, [])
 
     def test_a_latent_whose_inputs_differ_from_the_reference_stops(self):
         def change(reference):
