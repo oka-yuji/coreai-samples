@@ -250,8 +250,10 @@ The [VoxCPM2 recipe](recipes/voxcpm2/README.md) checks the pinned model snapshot
 official source checkout before every model stage. It exports six Core AI assets in
 FP32 and FP16 and compares each function with the original PyTorch implementation.
 It uses a separate frozen environment under `.local/conversion/voxcpm2/.venv` and the
-generic plan/run commands with explicit local bindings. Text-to-speech generation
-from start to finish and an app bundle are not yet included.
+generic plan/run commands with explicit local bindings. A Python host also
+generates speech from text with the assets: it compares the FP32 generation with
+the original and records FP32 and FP16 configurations with audio for listening. An
+app bundle is not yet included.
 
 The [TeleOCR recipe](recipes/teleocr/README.md) exports the pinned TeleOCR vision encoder, token
 embedding and decoder as macOS Core AI assets with a separate Transformers 4.57.3 environment. Select it
