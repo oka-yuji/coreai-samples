@@ -5,14 +5,17 @@ import VoxCPMCore
 struct VoxCPMStopRuleTests {
     @Test(
         "The patch limit for T text tokens is min(6T + 10, capacity - T - 1)",
-        arguments: [(1024, 28, 178), (1024, 144, 874), (1024, 145, 878), (1024, 1022, 1), (64, 7, 52), (64, 8, 55)])
+        arguments: [
+            (1024, 28, 178), (1024, 144, 874), (1024, 145, 878), (1024, 1022, 1), (64, 7, 52), (64, 8, 55),
+            (Int.max, Int.max / 2, Int.max - Int.max / 2 - 1),
+        ])
     func patchLimit(capacity: Int, textTokenCount: Int, limit: Int) throws {
         #expect(try VoxCPMStopRule.patchLimit(textTokenCount: textTokenCount, capacity: capacity) == limit)
     }
 
     @Test(
         "A text that leaves no room for a single patch is rejected",
-        arguments: [(1024, 1023), (1024, 4096), (64, 63)])
+        arguments: [(1024, 1023), (1024, 4096), (64, 63), (1024, Int.max), (Int.min, 0)])
     func textWithoutRoom(capacity: Int, textTokenCount: Int) {
         #expect(throws: VoxCPMError.self) {
             try VoxCPMStopRule.patchLimit(textTokenCount: textTokenCount, capacity: capacity)

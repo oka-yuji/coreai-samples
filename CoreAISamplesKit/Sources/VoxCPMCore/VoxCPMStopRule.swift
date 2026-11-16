@@ -5,9 +5,15 @@ public enum VoxCPMStopRule {
 
     public static func patchLimit(textTokenCount: Int, capacity: Int) throws -> Int {
         guard textTokenCount >= 0 else { throw VoxCPMError.invalidTextTokenCount }
-        let limit = min(patchesPerTextToken * textTokenCount + extraPatches, capacity - textTokenCount - 1)
-        guard limit >= 1 else { throw VoxCPMError.textTooLong }
-        return limit
+        let room = capacity.subtractingReportingOverflow(textTokenCount)
+        let byCapacity = room.partialValue.subtractingReportingOverflow(1)
+        guard !room.overflow, !byCapacity.overflow, byCapacity.partialValue >= 1 else {
+            throw VoxCPMError.textTooLong
+        }
+        let scaled = patchesPerTextToken.multipliedReportingOverflow(by: textTokenCount)
+        let byText = scaled.partialValue.addingReportingOverflow(extraPatches)
+        guard !scaled.overflow, !byText.overflow else { return byCapacity.partialValue }
+        return min(byText.partialValue, byCapacity.partialValue)
     }
 
     public static func step(patchIndex: Int, limit: Int, stopLogits: [Float]) throws -> VoxCPMPatchStep {
