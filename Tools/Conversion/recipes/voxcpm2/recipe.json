@@ -887,6 +887,217 @@
           "equals": true
         }
       ]
+    },
+    {
+      "id": "strip",
+      "role": "export",
+      "depends": [
+        "tslm_export",
+        "ralm_export",
+        "proj_export",
+        "locenc_export",
+        "dit_export",
+        "vae_export"
+      ],
+      "command": [
+        "$python",
+        "-m",
+        "Tools.Conversion.adapters.voxcpm2.strip",
+        "--contract",
+        "$recipe_dir/model.json",
+        "--export",
+        "$tslm_export/export",
+        "--export",
+        "$ralm_export/export",
+        "--export",
+        "$proj_export/export",
+        "--export",
+        "$locenc_export/export",
+        "--export",
+        "$dit_export/export",
+        "--export",
+        "$vae_export/export",
+        "--output",
+        "$out/stripped"
+      ],
+      "cwd": "$repo",
+      "inputs": [
+        "$adapters/strip.py",
+        "$adapters/source.py",
+        "$recipe_dir/model.json"
+      ],
+      "outputs": [
+        "stripped/strip.json",
+        "stripped/tslm-fp32.aimodel",
+        "stripped/tslm-fp16.aimodel",
+        "stripped/ralm-fp32.aimodel",
+        "stripped/ralm-fp16.aimodel",
+        "stripped/proj-fp32.aimodel",
+        "stripped/proj-fp16.aimodel",
+        "stripped/locenc-fp32.aimodel",
+        "stripped/locenc-fp16.aimodel",
+        "stripped/dit-fp32.aimodel",
+        "stripped/dit-fp16.aimodel",
+        "stripped/vae-fp32.aimodel",
+        "stripped/vae-fp16.aimodel"
+      ],
+      "heavy": true,
+      "timeout_s": 7200,
+      "min_free_bytes": 20000000000,
+      "checks": [
+        {
+          "file": "stripped/strip.json",
+          "key": [
+            "complete"
+          ],
+          "equals": true
+        },
+        {
+          "file": "stripped/strip.json",
+          "key": [
+            "passed"
+          ],
+          "equals": true
+        }
+      ]
+    },
+    {
+      "id": "bundle",
+      "role": "export",
+      "depends": [
+        "strip",
+        "tslm_export",
+        "ralm_export",
+        "proj_export",
+        "locenc_export",
+        "dit_export",
+        "vae_export"
+      ],
+      "command": [
+        "$python",
+        "-m",
+        "Tools.Conversion.adapters.voxcpm2.bundle",
+        "--contract",
+        "$recipe_dir/model.json",
+        "--settings",
+        "$recipe_dir/synthesis.json",
+        "--stripped",
+        "$strip/stripped",
+        "--tokenizer",
+        "$snapshot/tokenizer.json",
+        "--license",
+        "$upstream/LICENSE",
+        "--notice",
+        "$recipe_dir/bundle-notice.txt",
+        "--export",
+        "$tslm_export/export",
+        "--export",
+        "$ralm_export/export",
+        "--export",
+        "$proj_export/export",
+        "--export",
+        "$locenc_export/export",
+        "--export",
+        "$dit_export/export",
+        "--export",
+        "$vae_export/export",
+        "--output",
+        "$out/bundles"
+      ],
+      "cwd": "$repo",
+      "inputs": [
+        "$adapters/bundle.py",
+        "$adapters/runtime.py",
+        "$adapters/source.py",
+        "$recipe_dir/model.json",
+        "$recipe_dir/synthesis.json",
+        "$recipe_dir/bundle-notice.txt",
+        "$snapshot/tokenizer.json",
+        "$upstream/LICENSE"
+      ],
+      "outputs": [
+        "bundles/check.json",
+        "bundles/fp32",
+        "bundles/fp16",
+        "bundles/fp16_proj32",
+        "bundles/fp32.inventory.json",
+        "bundles/fp16.inventory.json",
+        "bundles/fp16_proj32.inventory.json"
+      ],
+      "heavy": true,
+      "timeout_s": 3600,
+      "min_free_bytes": 25000000000,
+      "checks": [
+        {
+          "file": "bundles/check.json",
+          "key": [
+            "complete"
+          ],
+          "equals": true
+        },
+        {
+          "file": "bundles/check.json",
+          "key": [
+            "passed"
+          ],
+          "equals": true
+        }
+      ]
+    },
+    {
+      "id": "bundle_verify",
+      "role": "verify",
+      "depends": [
+        "reference",
+        "verify_fp32",
+        "bundle"
+      ],
+      "command": [
+        "$python",
+        "-m",
+        "Tools.Conversion.adapters.voxcpm2.bundle_check",
+        "--contract",
+        "$recipe_dir/model.json",
+        "--bundles",
+        "$bundle/bundles",
+        "--reference",
+        "$reference/reference",
+        "--baseline",
+        "$verify_fp32/verification",
+        "--output",
+        "$out/bundle_verify"
+      ],
+      "cwd": "$repo",
+      "inputs": [
+        "$adapters/bundle_check.py",
+        "$adapters/checks.py",
+        "$adapters/runtime.py",
+        "$adapters/source.py",
+        "$recipe_dir/model.json"
+      ],
+      "outputs": [
+        "bundle_verify/comparison.json",
+        "bundle_verify/rows.json"
+      ],
+      "heavy": true,
+      "timeout_s": 3600,
+      "min_free_bytes": 4000000000,
+      "checks": [
+        {
+          "file": "bundle_verify/comparison.json",
+          "key": [
+            "complete"
+          ],
+          "equals": true
+        },
+        {
+          "file": "bundle_verify/comparison.json",
+          "key": [
+            "passed"
+          ],
+          "equals": true
+        }
+      ]
     }
   ]
 }

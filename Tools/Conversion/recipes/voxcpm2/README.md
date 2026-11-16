@@ -8,9 +8,12 @@ on the CPU in FP32. The comparison uses inputs and outputs recorded from five
 generations: four Japanese sentences and one English sentence with a voice
 description. Two more stages join the assets from text to audio with a Python host:
 one compares the FP32 generation of the same five sentences with the original, and
-one records FP32 and FP16 configurations and writes audio for listening. The Swift
-runtime, iPhone, quantization, reference audio and listening quality are not
-covered. `model.json` is the asset contract that a native host follows.
+one records FP32 and FP16 configurations and writes audio for listening. The last
+three stages remove debug information from the assets, assemble three app bundles
+with a manifest and fixed inventories, and compare the FP32 bundle with the original
+again. The Swift runtime, iPhone, quantization, reference audio and listening
+quality are not covered. `model.json` is the asset contract that a native host
+follows.
 
 ## Fixed inputs
 
@@ -84,7 +87,9 @@ From the repository root:
 
 The generic runner owns the shared lock, process groups, timeouts and reuse. All
 stages run offline and reject existing output directories. A complete FP32 and
-FP16 run writes about 21 GB of assets, plus Core AI specialization caches.
+FP16 run writes about 21 GB of assets and 14 GB of assets without debug information,
+plus Core AI specialization caches. The bundles hold another 19 GB of asset files,
+which take no further space when they are cloned (see [App bundles](#app-bundles)).
 
 ## Stages
 
@@ -124,6 +129,14 @@ FP16 run writes about 21 GB of assets, plus Core AI specialization caches.
    the FP32 assets and compares the `proj.fuse` outputs and the patch latents with
    the original generation. It fails unless the rule in
    [End-to-end generation](#end-to-end-generation) is met.
+9. `strip` removes debug information from the twelve FP32 and FP16 assets and checks
+   that the programs without location information stay the same. `main.hash` and
+   the creation date in `metadata.json` change.
+10. `bundle` assembles the bundles `fp32`, `fp16` and `fp16_proj32`, writes their
+    inventories and scans every byte for absolute paths.
+11. `bundle_verify` checks every bundled asset against the contract and repeats the
+    comparisons of `verify_fp32` with the FP32 bundle. See
+    [App bundles](#app-bundles).
 
 Every stage declares only the adapter modules it imports, so changing or adding a
 module runs again only the stages that import it.
@@ -497,7 +510,7 @@ were replaced (two `proj.fuse` and one latent), at most one per sentence.
   inputs, the same solver process reproduced the original latent bit for bit.
 - In the replacing generations, the other latents stayed within the criterion
   before replacement (largest 4.3e-4, in `long`), and the joined audio differed from
-  the original streaming decode by 9.1e-6 to 8.2e-4.
+  the original streaming decode by 9.1e-6 to 8.1e-4.
 - Without replacement, `long` and `heldout_ja` leave the original trajectory from
   the patch that uses the `proj.fuse` call replaced above (patches 9 and 30), and
   `plain` from patch 9. All five sentences still stop at the original patch.
@@ -524,6 +537,111 @@ No sample was clipped at 16 bits. In both FP16 configurations every generation
 leaves the FP32 latent criterion early (from patch 1 in the median generation).
 Which configuration becomes the default is decided by listening.
 
+## App bundles
+
+`strip`, `bundle` and `bundle_verify` turn the exported assets into folders that an
+app reads.
+
+- **Debug information**: `strip` loads each of the twelve FP32 and FP16 assets with
+  `AIModelAsset.load`, applies `strip_debug_info` to the program and saves that same
+  program with `save_asset` and the original metadata. `AIModelAsset.program` reads the
+  bytecode again on every access, so the removal and the save must use one program
+  object; the stage fails unless `main.mlirb` changes. It prints each program as
+  generic MLIR without locations and with every constant and resource, and compares
+  the SHA-256 of that text after loading, after the removal and after loading the
+  saved asset in a new process. The three must be equal. `strip.py` is a module of its
+  own, so changes to the bundle code do not run the removal again; every removal
+  writes a new creation date into `metadata.json`.
+- **Bundles**: `bundle` makes `fp32`, `fp16` and `fp16_proj32` with the precisions of
+  `synthesis.json`. No configuration is the default yet; it will be chosen after a
+  listening comparison. Each bundle is a self-contained folder:
+
+  ```text
+  manifest.json
+  tokenizer.json   the unmodified file of the pinned revision
+  LICENSE          the Apache-2.0 text of the official checkout
+  NOTICE           the changes made and the conditions of use
+  artifacts/<asset>-<precision>.aimodel/main.mlirb, main.hash, metadata.json
+  ```
+
+  The asset files are cloned with `clonefile` when the file system allows it and
+  copied otherwise; `check.json` records how many files were cloned and copied.
+  Copying all three bundles would need about 19 GB, and the stage asks for 25 GB of
+  free space. The stage reads only `tokenizer.json` from the snapshot and `LICENSE`
+  from the checkout. The notice comes from `bundle-notice.txt`.
+- **Inventories**: `bundle` checks every file of a bundle against its source: the
+  asset files against the sizes and SHA-256 values that `strip` recorded after the
+  removal, `tokenizer.json` against `model.json`, `LICENSE` against the size and
+  SHA-256 of the file at the pinned commit (kept in `bundle.py`), and `manifest.json`
+  and `NOTICE` against the bytes it wrote. A missing, extra or changed file, or a
+  symbolic link, fails the stage. The checked list, with the relative path, size and
+  SHA-256 of every file, becomes `<configuration>.inventory.json`.
+- **Absolute paths**: `bundle` reads every byte of every bundle and counts the home,
+  external-volume and temporary-folder prefixes, written with `/` or with the escaped
+  separators `\/`, `\u002f`, `\u002F`, `%2f` and `%2F`, and the current user name, in
+  UTF-8, UTF-16LE and UTF-16BE. It records only counts and file names, never the
+  matched text, and fails on any match. It also records the same scan of the exported
+  assets before the removal, and checks with planted strings that the scan finds a
+  home path in UTF-8, UTF-16LE and UTF-16BE and with the JSON and percent escapes, an
+  external volume, a temporary folder, the user name and a match across a read
+  boundary, and that it ignores a clean relative path.
+- **Re-check**: `bundle_verify` loads every asset of the three bundles and checks its
+  function descriptors against `model.json`. With the FP32 bundle it repeats the
+  comparisons of `verify_fp32` and requires the same counts, results and `proj.fuse`
+  classes as before the removal.
+
+### Manifest
+
+`manifest.json` is the contract that a native host reads. Its values are copied from
+`model.json`, and a test compares them:
+
+| Key | Content |
+|---|---|
+| `format` | 1 |
+| `model` | `model_id`, `revision`, `upstream_revision`, `license` |
+| `configuration` | `name` and the precision of every asset |
+| `assets` | per asset: `path` relative to the bundle, `precision`, and per function the `inputs`, `outputs` and `states` as `[name, dtype, shape]` |
+| `execution` | `capacity`, `prefill_length`, `max_text_tokens`, `audio_start_token`, `pad_token`, `state_initial_value`, `specialization` |
+| `generation` | the generation settings of `model.json`, including `samples_per_patch` 7680 |
+| `structure` | `patch` `[1, 64, 4]`, `sample_rate` 48000 |
+| `tokenizer` | `tokenizer.json` |
+
+In FP16 assets every floating input, output and state is float16, and `ids`,
+`length` and `position` stay int32. The manifest contains no paths of the working
+environment, dates or host names.
+
+### Inventories in the repository
+
+`bundles/<configuration>.inventory.json` are the inventories of the bundles made on
+2026-11-17 and recorded in the
+[validation record](../../../../docs/validation/voxcpm2-conversion-20261117.md). They
+describe those bundles only. Every export and every `strip` run writes a new creation
+date into `metadata.json`, so the hashes change even when the programs do not (three
+`strip` runs on the same exports gave the same `main.mlirb` and `main.hash`). Replace
+the inventories together with the bundles. To keep a bundle outside the work
+directory, clone it (for example with `cp -cR` to
+`.local/conversion/voxcpm2/bundles/<configuration>/`) and check the copy against its
+inventory.
+
+### Bundle results
+
+The run of 2026-11-17 passed all three stages, and a second run reused all 18.
+
+- All twelve programs have the same digest before and after the removal. `main.mlirb`
+  became 177 to 18,277 bytes smaller per asset, and in `metadata.json` only
+  `creationDate` changed. A probe before the stage found equal descriptors and bitwise
+  equal outputs and states for `proj` FP32, `vae` FP32 (26 states) and `ralm` FP16
+  (two functions sharing two states).
+- `fp32` has 22 files and 9,349,325,520 bytes, `fp16` 22 files and 4,677,413,664 bytes,
+  and `fp16_proj32` 22 files and 4,715,188,166 bytes. All 18 asset files of each
+  bundle were cloned; none was copied.
+- No match for the 132 patterns in the 18,741,927,350 bytes of the bundles. The
+  exported assets had no match before the removal either; the planted strings were all
+  found.
+- With the FP32 bundle, all 3,934 comparisons that decide the result pass, and
+  `proj.fuse` gives 233 matches, 1 boundary-consistent call and no failure, as before
+  the removal.
+
 ## Limits
 
 The component checks start from recorded inputs. The end-to-end check covers five
@@ -536,8 +654,9 @@ above). Not checked:
   the generations without replacement;
 - how often replacements are needed for other sentences and seeds;
 - whether the Swift runtime behaves the same way;
-- listening quality, which the owner judges by listening.
+- listening quality; no listening comparison has been done.
 
-FP16 parts and configurations are recorded, not accepted. The Python runtime cannot
-set `expectFrequentReshapes`; all shapes here are static. Reference-audio prompts,
+No app reads the bundles yet. FP16 parts and configurations are recorded, not
+accepted. The Python runtime cannot set `expectFrequentReshapes`; all shapes here are
+static. Reference-audio prompts,
 the VAE encoder, quantization and iPhone are out of scope.
