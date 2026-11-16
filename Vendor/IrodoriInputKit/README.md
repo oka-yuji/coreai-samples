@@ -2,6 +2,8 @@
 
 Local Swift/Rust input adapter for Irodori-TTS-v4.1-Small-MF. It pins tokenizers 0.22.2 and Unicode 15.0.0 normalization, preserves embedded NUL bytes, and reproduces the pinned PyTorch CPU noise algorithm on Apple silicon.
 
+The `VoxCPMTokenizers` product uses the same Rust library and C interface for VoxCPM2. It checks the pinned SHA-256 of the VoxCPM2 `tokenizer.json`, returns the raw IDs without special tokens, normalization or truncation, and reads the vocabulary keyed by ID.
+
 Build the static library with `Tools/Irodori/build-inputs.sh` from the repository root before running package tests. The Mac application build also runs that script. Rust/Cargo and the Xcode command line tools are required.
 
 Release build dependencies keep their symbols intact with

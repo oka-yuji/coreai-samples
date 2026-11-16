@@ -1,0 +1,764 @@
+{
+  "format": 1,
+  "model": {
+    "model_id": "openbmb/VoxCPM2",
+    "revision": "7936080b41163874f38610f46f438e2c0757f9fd",
+    "upstream_revision": "300e4260b509066151d623dc9c0aa922cf82232b",
+    "license": "Apache-2.0"
+  },
+  "configuration": {
+    "name": "fp16",
+    "precisions": {
+      "tslm": "fp16",
+      "ralm": "fp16",
+      "proj": "fp16",
+      "locenc": "fp16",
+      "dit": "fp16",
+      "vae": "fp16"
+    }
+  },
+  "assets": {
+    "tslm": {
+      "path": "artifacts/tslm-fp16.aimodel",
+      "precision": "fp16",
+      "functions": {
+        "embed": {
+          "inputs": [
+            [
+              "ids",
+              "int32",
+              [
+                1,
+                145
+              ]
+            ]
+          ],
+          "outputs": [
+            [
+              "embeds",
+              "float16",
+              [
+                1,
+                145,
+                2048
+              ]
+            ]
+          ],
+          "states": []
+        },
+        "prefill": {
+          "inputs": [
+            [
+              "embeds",
+              "float16",
+              [
+                1,
+                145,
+                2048
+              ]
+            ],
+            [
+              "length",
+              "int32",
+              [
+                1
+              ]
+            ]
+          ],
+          "outputs": [
+            [
+              "hidden",
+              "float16",
+              [
+                1,
+                145,
+                2048
+              ]
+            ]
+          ],
+          "states": [
+            [
+              "k_cache",
+              "float16",
+              [
+                28,
+                2,
+                1024,
+                128
+              ]
+            ],
+            [
+              "v_cache",
+              "float16",
+              [
+                28,
+                2,
+                1024,
+                128
+              ]
+            ]
+          ]
+        },
+        "step": {
+          "inputs": [
+            [
+              "embed",
+              "float16",
+              [
+                1,
+                2048
+              ]
+            ],
+            [
+              "position",
+              "int32",
+              [
+                1
+              ]
+            ]
+          ],
+          "outputs": [
+            [
+              "hidden",
+              "float16",
+              [
+                1,
+                2048
+              ]
+            ]
+          ],
+          "states": [
+            [
+              "k_cache",
+              "float16",
+              [
+                28,
+                2,
+                1024,
+                128
+              ]
+            ],
+            [
+              "v_cache",
+              "float16",
+              [
+                28,
+                2,
+                1024,
+                128
+              ]
+            ]
+          ]
+        }
+      }
+    },
+    "ralm": {
+      "path": "artifacts/ralm-fp16.aimodel",
+      "precision": "fp16",
+      "functions": {
+        "prefill": {
+          "inputs": [
+            [
+              "embeds",
+              "float16",
+              [
+                1,
+                145,
+                2048
+              ]
+            ],
+            [
+              "length",
+              "int32",
+              [
+                1
+              ]
+            ]
+          ],
+          "outputs": [
+            [
+              "hidden",
+              "float16",
+              [
+                1,
+                145,
+                2048
+              ]
+            ]
+          ],
+          "states": [
+            [
+              "k_cache",
+              "float16",
+              [
+                8,
+                2,
+                1024,
+                128
+              ]
+            ],
+            [
+              "v_cache",
+              "float16",
+              [
+                8,
+                2,
+                1024,
+                128
+              ]
+            ]
+          ]
+        },
+        "step": {
+          "inputs": [
+            [
+              "embed",
+              "float16",
+              [
+                1,
+                2048
+              ]
+            ],
+            [
+              "position",
+              "int32",
+              [
+                1
+              ]
+            ]
+          ],
+          "outputs": [
+            [
+              "hidden",
+              "float16",
+              [
+                1,
+                2048
+              ]
+            ]
+          ],
+          "states": [
+            [
+              "k_cache",
+              "float16",
+              [
+                8,
+                2,
+                1024,
+                128
+              ]
+            ],
+            [
+              "v_cache",
+              "float16",
+              [
+                8,
+                2,
+                1024,
+                128
+              ]
+            ]
+          ]
+        }
+      }
+    },
+    "proj": {
+      "path": "artifacts/proj-fp16.aimodel",
+      "precision": "fp16",
+      "functions": {
+        "heads": {
+          "inputs": [
+            [
+              "lm_hidden",
+              "float16",
+              [
+                1,
+                2048
+              ]
+            ],
+            [
+              "residual_hidden",
+              "float16",
+              [
+                1,
+                2048
+              ]
+            ]
+          ],
+          "outputs": [
+            [
+              "dit_hidden",
+              "float16",
+              [
+                1,
+                2048
+              ]
+            ],
+            [
+              "stop_logits",
+              "float16",
+              [
+                1,
+                2
+              ]
+            ]
+          ],
+          "states": []
+        },
+        "fuse": {
+          "inputs": [
+            [
+              "lm_raw",
+              "float16",
+              [
+                1,
+                2048
+              ]
+            ],
+            [
+              "curr_embed",
+              "float16",
+              [
+                1,
+                2048
+              ]
+            ]
+          ],
+          "outputs": [
+            [
+              "lm_hidden",
+              "float16",
+              [
+                1,
+                2048
+              ]
+            ],
+            [
+              "residual_input",
+              "float16",
+              [
+                1,
+                2048
+              ]
+            ]
+          ],
+          "states": []
+        },
+        "prefill_fuse": {
+          "inputs": [
+            [
+              "hidden",
+              "float16",
+              [
+                1,
+                145,
+                2048
+              ]
+            ]
+          ],
+          "outputs": [
+            [
+              "residual_inputs",
+              "float16",
+              [
+                1,
+                145,
+                2048
+              ]
+            ]
+          ],
+          "states": []
+        }
+      }
+    },
+    "locenc": {
+      "path": "artifacts/locenc-fp16.aimodel",
+      "precision": "fp16",
+      "functions": {
+        "main": {
+          "inputs": [
+            [
+              "patch",
+              "float16",
+              [
+                1,
+                64,
+                4
+              ]
+            ]
+          ],
+          "outputs": [
+            [
+              "curr_embed",
+              "float16",
+              [
+                1,
+                2048
+              ]
+            ]
+          ],
+          "states": []
+        }
+      }
+    },
+    "dit": {
+      "path": "artifacts/dit-fp16.aimodel",
+      "precision": "fp16",
+      "functions": {
+        "main": {
+          "inputs": [
+            [
+              "x",
+              "float16",
+              [
+                2,
+                64,
+                4
+              ]
+            ],
+            [
+              "mu",
+              "float16",
+              [
+                2,
+                2048
+              ]
+            ],
+            [
+              "t",
+              "float16",
+              [
+                2
+              ]
+            ],
+            [
+              "cond",
+              "float16",
+              [
+                2,
+                64,
+                4
+              ]
+            ],
+            [
+              "dt",
+              "float16",
+              [
+                2
+              ]
+            ]
+          ],
+          "outputs": [
+            [
+              "velocity",
+              "float16",
+              [
+                2,
+                64,
+                4
+              ]
+            ]
+          ],
+          "states": []
+        }
+      }
+    },
+    "vae": {
+      "path": "artifacts/vae-fp16.aimodel",
+      "precision": "fp16",
+      "functions": {
+        "main": {
+          "inputs": [
+            [
+              "latent",
+              "float16",
+              [
+                1,
+                64,
+                4
+              ]
+            ]
+          ],
+          "outputs": [
+            [
+              "audio",
+              "float16",
+              [
+                1,
+                1,
+                7680
+              ]
+            ]
+          ],
+          "states": [
+            [
+              "state_00",
+              "float16",
+              [
+                1,
+                64,
+                6
+              ]
+            ],
+            [
+              "state_01",
+              "float16",
+              [
+                1,
+                2048,
+                1
+              ]
+            ],
+            [
+              "state_02",
+              "float16",
+              [
+                1,
+                1024,
+                6
+              ]
+            ],
+            [
+              "state_03",
+              "float16",
+              [
+                1,
+                1024,
+                18
+              ]
+            ],
+            [
+              "state_04",
+              "float16",
+              [
+                1,
+                1024,
+                54
+              ]
+            ],
+            [
+              "state_05",
+              "float16",
+              [
+                1,
+                1024,
+                1
+              ]
+            ],
+            [
+              "state_06",
+              "float16",
+              [
+                1,
+                512,
+                6
+              ]
+            ],
+            [
+              "state_07",
+              "float16",
+              [
+                1,
+                512,
+                18
+              ]
+            ],
+            [
+              "state_08",
+              "float16",
+              [
+                1,
+                512,
+                54
+              ]
+            ],
+            [
+              "state_09",
+              "float16",
+              [
+                1,
+                512,
+                1
+              ]
+            ],
+            [
+              "state_10",
+              "float16",
+              [
+                1,
+                256,
+                6
+              ]
+            ],
+            [
+              "state_11",
+              "float16",
+              [
+                1,
+                256,
+                18
+              ]
+            ],
+            [
+              "state_12",
+              "float16",
+              [
+                1,
+                256,
+                54
+              ]
+            ],
+            [
+              "state_13",
+              "float16",
+              [
+                1,
+                256,
+                1
+              ]
+            ],
+            [
+              "state_14",
+              "float16",
+              [
+                1,
+                128,
+                6
+              ]
+            ],
+            [
+              "state_15",
+              "float16",
+              [
+                1,
+                128,
+                18
+              ]
+            ],
+            [
+              "state_16",
+              "float16",
+              [
+                1,
+                128,
+                54
+              ]
+            ],
+            [
+              "state_17",
+              "float16",
+              [
+                1,
+                128,
+                1
+              ]
+            ],
+            [
+              "state_18",
+              "float16",
+              [
+                1,
+                64,
+                6
+              ]
+            ],
+            [
+              "state_19",
+              "float16",
+              [
+                1,
+                64,
+                18
+              ]
+            ],
+            [
+              "state_20",
+              "float16",
+              [
+                1,
+                64,
+                54
+              ]
+            ],
+            [
+              "state_21",
+              "float16",
+              [
+                1,
+                64,
+                1
+              ]
+            ],
+            [
+              "state_22",
+              "float16",
+              [
+                1,
+                32,
+                6
+              ]
+            ],
+            [
+              "state_23",
+              "float16",
+              [
+                1,
+                32,
+                18
+              ]
+            ],
+            [
+              "state_24",
+              "float16",
+              [
+                1,
+                32,
+                54
+              ]
+            ],
+            [
+              "state_25",
+              "float16",
+              [
+                1,
+                32,
+                6
+              ]
+            ]
+          ]
+        }
+      }
+    }
+  },
+  "execution": {
+    "capacity": 1024,
+    "prefill_length": 145,
+    "max_text_tokens": 144,
+    "audio_start_token": 101,
+    "pad_token": 0,
+    "state_initial_value": 0.0,
+    "specialization": "gpu_preferred"
+  },
+  "generation": {
+    "inference_timesteps": 10,
+    "cfg_value": 2.0,
+    "sway_sampling_coef": 1.0,
+    "cfg_zero_star": true,
+    "zero_init_steps": 1,
+    "dit_calls_per_patch": 9,
+    "min_len": 2,
+    "max_patches_ratio": 6.0,
+    "max_patches_offset": 10,
+    "max_len": 4096,
+    "samples_per_patch": 7680
+  },
+  "structure": {
+    "patch": [
+      1,
+      64,
+      4
+    ],
+    "sample_rate": 48000
+  },
+  "tokenizer": "tokenizer.json"
+}

@@ -476,7 +476,7 @@
       },
       "manifest_sha256": "fbe90a07bcdb4736b2b8b9dcd0b1f11b71857c28e4d506aad216bcda6c76754c",
       "inventory_sha256": "dda09b4268cc4f4ff90c8a5d4f84f3e5712ba5df803891239c8981dd57a9a93f",
-      "inventory": "Tools/Conversion/recipes/voxcpm2/bundles/fp16.inventory.json"
+      "inventory": "CoreAISamplesKit/Sources/SpeechAssets/Resources/voxcpm2-fp16.inventory.json"
     },
     "fp16_proj32": {
       "files": 22,
@@ -495,7 +495,7 @@
       },
       "manifest_sha256": "f7eb7f49fad8af5b58f1ed14c4ae53be508e885bbc1cbd93a0291bda30d536c6",
       "inventory_sha256": "f46ec1c302dedc0445dc3dca9e92bc4ebbb762efac1189f206e18c4d7da822f7",
-      "inventory": "Tools/Conversion/recipes/voxcpm2/bundles/fp16_proj32.inventory.json"
+      "inventory": "CoreAISamplesKit/Sources/SpeechAssets/Resources/voxcpm2-fp16_proj32.inventory.json"
     },
     "fp32": {
       "files": 22,
@@ -514,7 +514,7 @@
       },
       "manifest_sha256": "eda3c0098d35c8b305884e84ffd79005a7562cb027510ee2fa3b7f55ef2493da",
       "inventory_sha256": "f771b72d2b18eb01b0a832cadee4bfff37ca7c76a3627defbf1f868d158d70e8",
-      "inventory": "Tools/Conversion/recipes/voxcpm2/bundles/fp32.inventory.json"
+      "inventory": "CoreAISamplesKit/Sources/SpeechAssets/Resources/voxcpm2-fp32.inventory.json"
     }
   },
   "path_scan": {
