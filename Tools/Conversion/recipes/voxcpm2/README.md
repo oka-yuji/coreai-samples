@@ -6,10 +6,11 @@ for text-only (zero-shot) speech generation into six macOS Core AI assets, in FP
 and FP16. Each function is compared with the original PyTorch implementation, run
 on the CPU in FP32. The comparison uses inputs and outputs recorded from five
 generations: four Japanese sentences and one English sentence with a voice
-description. The comparison is per component. It is not an end-to-end generation
-check, and it does not cover the Swift runtime, iPhone, quantization, reference
-audio or listening quality. `model.json` is the asset contract that a native host
-follows.
+description. Two more stages join the assets from text to audio with a Python host:
+one compares the FP32 generation of the same five sentences with the original, and
+one records FP32 and FP16 configurations and writes audio for listening. The Swift
+runtime, iPhone, quantization, reference audio and listening quality are not
+covered. `model.json` is the asset contract that a native host follows.
 
 ## Fixed inputs
 
@@ -116,6 +117,16 @@ FP16 run writes about 21 GB of assets, plus Core AI specialization caches.
 6. `verify_fp32` loads the FP32 assets with GPU-preferred specialization. It
    checks every function descriptor against `model.json` and repeats all
    comparisons. It fails unless the criteria below are met.
+7. `synthesis_compare` generates five sentences from text with three seeds in three
+   precision configurations, records the results without a pass or fail, and
+   writes audio for listening.
+8. `synthesis_check` generates the five sentences of `fixtures.json` from text with
+   the FP32 assets and compares the `proj.fuse` outputs and the patch latents with
+   the original generation. It fails unless the rule in
+   [End-to-end generation](#end-to-end-generation) is met.
+
+Every stage declares only the adapter modules it imports, so changing or adding a
+module runs again only the stages that import it.
 
 ## Asset contract
 
@@ -271,7 +282,7 @@ specializations gave the same result.
 
 ### Results
 
-The run of 2026-11-17 completed all 13 stages; a second run reused every stage.
+The runs of 2026-11-17 completed all 15 stages; a second run reused every stage.
 Values come from the `comparison.json` files of `verify_fp32` and `verify_fp16`,
 and from `capacity.json`.
 
@@ -283,17 +294,17 @@ and from `capacity.json`.
 
 | Function | FP32 comparisons within | FP32 largest error | FP16 largest error | FP32 ms | FP16 ms |
 |---|---:|---:|---:|---:|---:|
-| `tslm.embed` | 5/5 | 0 | 8.6e-08 | 0.60 / 0.59 | 0.53 / 0.53 |
-| `tslm.prefill` | 15/15 | 2.2e-06 | 3.8e-03 | 39.80 / 40.22 | 13.24 / 13.31 |
-| `tslm.step` | 234/234 | 1.1e-06 | 3.2e-03 | 13.30 / 13.53 | 8.10 / 8.21 |
-| `ralm.prefill` | 15/15 | 1.1e-06 | 2.6e-03 | 11.66 / 11.68 | 4.25 / 4.17 |
-| `ralm.step` | 234/234 | 1.6e-06 | 6.0e-03 | 4.24 / 4.25 | 2.75 / 2.78 |
-| `proj.heads` | 478/478 | 3.4e-07 | 6.1e-04 | 0.67 / 0.67 | 0.64 / 0.65 |
-| `proj.fuse` | 234/234 calls | see below | 3.8e-03 | 0.54 / 0.54 | 0.50 / 0.51 |
-| `proj.prefill_fuse` | 5/5 | 1.1e-07 | 4.5e-04 | 0.85 / 0.87 | 0.69 / 0.70 |
-| `locenc.main` | 239/239 | 3.1e-06 | 1.7e-03 | 3.12 / 3.11 | 2.08 / 2.09 |
-| `dit.main` | 2151/2151 | 4.6e-06 | 7.9e-03 | 4.84 / 4.82 | 3.07 / 3.07 |
-| `vae.main`, joined | 5/5 | 4.2e-06 | 3.6e-03 | 4.00 / 4.00 | 3.11 / 3.11 |
+| `tslm.embed` | 5/5 | 0 | 8.6e-08 | 0.60 / 0.60 | 0.54 / 0.53 |
+| `tslm.prefill` | 15/15 | 2.2e-06 | 3.8e-03 | 39.85 / 39.72 | 14.31 / 13.35 |
+| `tslm.step` | 234/234 | 1.1e-06 | 3.2e-03 | 13.37 / 13.35 | 8.57 / 8.22 |
+| `ralm.prefill` | 15/15 | 1.1e-06 | 2.6e-03 | 11.66 / 11.51 | 4.25 / 4.25 |
+| `ralm.step` | 234/234 | 1.6e-06 | 6.0e-03 | 4.23 / 4.23 | 2.85 / 2.81 |
+| `proj.heads` | 478/478 | 3.4e-07 | 6.1e-04 | 0.66 / 0.66 | 0.66 / 0.68 |
+| `proj.fuse` | 234/234 calls | see below | 3.8e-03 | 0.54 / 0.55 | 0.51 / 0.51 |
+| `proj.prefill_fuse` | 5/5 | 1.1e-07 | 4.5e-04 | 0.84 / 0.86 | 0.70 / 0.71 |
+| `locenc.main` | 239/239 | 3.1e-06 | 1.7e-03 | 3.13 / 3.16 | 2.13 / 2.25 |
+| `dit.main` | 2151/2151 | 4.6e-06 | 7.9e-03 | 4.88 / 4.92 | 3.08 / 3.12 |
+| `vae.main`, joined | 5/5 | 4.2e-06 | 3.6e-03 | 4.00 / 4.01 | 3.13 / 3.13 |
 
 Results for `proj.fuse` in FP32:
 
@@ -328,18 +339,205 @@ Capacity 2048 passes the same comparisons and is slower:
 
 | Function | Capacity 1024 (ms) | Capacity 2048 (ms) |
 |---|---:|---:|
-| `tslm.step` | 13.27 / 13.35 | 14.35 / 14.24 |
-| `ralm.step` | 4.23 / 4.22 | 4.61 / 4.51 |
-| `tslm.prefill` | 39.76 / 39.81 | 40.22 / 40.13 |
-| `ralm.prefill` | 11.54 / 11.66 | 12.04 / 11.82 |
+| `tslm.step` | 13.30 / 13.64 | 14.13 / 14.48 |
+| `ralm.step` | 4.26 / 4.25 | 4.83 / 4.52 |
+| `tslm.prefill` | 39.64 / 39.70 | 40.07 / 40.33 |
+| `ralm.prefill` | 11.53 / 11.68 | 12.00 / 11.85 |
+
+## End-to-end generation
+
+`synthesis.py` joins the assets from text to audio. It follows the zero-shot steps
+of the asset contract and uses the model-free calculations in `host.py`.
+
+- **Text**: whitespace is reduced as in the reference stage. `tokenizer.json` is read
+  with `tokenizers` after its size and SHA-256 are checked against `model.json`. No
+  BOS is added, `host.prompt_ids` splits the multi-character kanji tokens, and the
+  audio start token is appended.
+- **Patch limit**: a text with more than 144 tokens, or without room for one patch in
+  the cache, is rejected before any model call. A generation has at most
+  `min(int(6 * T + 10), 4096, 1024 - T - 1)` patches for `T` text tokens.
+- **Noise**: every patch draws `[1, 64, 4]` standard normal values from a CPU
+  `torch.Generator` seeded with the request seed, in the order of the original
+  solver.
+- **States**: every request starts from new zeroed states. Prefill outputs are passed
+  on unchanged, and step `i` uses position `length + i`.
+- **End**: a generation ends with `stop` (the stop head after patch 2), `limit` (the
+  patch limit without a stop) or `error`. An `error` is a non-finite output, an input
+  that is not finite after conversion to the asset precision (for example a float32
+  value beyond the float16 range), or a disagreement that the rule below cannot
+  explain. Only `stop` is a success. The other two return no audio and are not
+  retried.
+- **Precision**: a configuration maps every asset to FP32 or FP16. FP16 assets
+  receive float16 inputs; the host itself computes in float32.
+- **Processes**: every generation runs in its own worker process. A patch allocates
+  17 output arrays (2 from `proj.heads`, 9 from the solver calls, 2 from
+  `proj.fuse`, and 1 each from LocEnc, the VAE and the two steps), and the prefill
+  allocates 4. In one process that ran an FP32 configuration and part of an FP16
+  one, the Python runtime stopped with `SIGTRAP` while allocating an output array
+  (`NDArray+Pool.swift`); by this count, the generations that finished before the
+  stop had allocated about 15,700. A
+  worker of the precision comparison runs one generation after a warm-up
+  generation of `plain`; at the patch limits of `plain` (124) and `long` (592) it
+  allocates at most 2,112 + 10,068 = 12,180 arrays.
+
+### FP32 check
+
+`synthesis_check` generates the five sentences of `fixtures.json` with seed 1708 and
+the FP32 assets, and compares them with the original generation recorded by
+`reference`. The token IDs and the noise of every patch must equal the original bit
+for bit.
+
+The generation that is judged replaces values at two kinds of comparison points.
+Each point is judged on the value before any replacement, and a value that equals
+the original only because it was replaced is not counted as agreement.
+
+1. **`proj.fuse` outputs**, at every step: both outputs within the criterion
+   continue unchanged; a boundary-consistent call (rule above) continues with the
+   original outputs of that call; anything else fails the sentence.
+2. **Patch latents**, at every patch, before LocEnc, the VAE and the next `cond` use
+   them. A latent within the criterion continues unchanged. A latent outside the
+   criterion is solver-consistent on the same inputs only if both of the following
+   hold, and then continues as the original latent:
+   - The solver inputs of that patch match the original: the noise bit for bit, and
+     `dit_hidden` and `cond` within the criterion. The time schedule, CFG value,
+     types and shapes follow the contract, and every value is finite.
+   - The original solver (`UnifiedCFM.solve_euler` with the original estimator, in
+     PyTorch on the CPU in FP32) is given the inputs that Core AI actually used for
+     that patch, before any replacement. Its result and the Core AI latent differ by
+     at most the criterion. The original solver runs in its own child process, only
+     when a latent needs it. In the same process it also solves the original inputs
+     of that patch, and its result must equal the original latent bit for bit.
+
+   Anything else fails the sentence. The record keeps the latent before replacement,
+   its error, the input errors, the difference `a` between the original solver's
+   result and the Core AI latent, and the difference `b` between that result and
+   the original latent. `a` and `b` are given on the scale of the original solver's
+   result and on the scale of the original latent.
+
+The replaced patches are the union of both kinds; a `proj.fuse` replacement at step
+`k` counts as patch `k + 1`, which uses its outputs. A patch whose `proj.fuse`
+outputs and latent are both replaced counts once. At most one patch per sentence
+and at most 2% of the original patches (4 of 239) may be replaced. These limits are
+in `synthesis.json`. They were set after the observations below and are operating
+limits, not a proof of correctness. A sentence passes when every comparison point
+holds within these limits, every value is finite, the original generation stopped
+before its patch limit, and the replacing generation ends with a stop at the
+original stop patch. Its joined audio must also meet the criterion against the
+original streaming decode.
+
+Solver consistency on the same inputs does not show that the language-model side
+that produced those inputs is correct. The per-component comparisons above and the
+comparison of the replacing generation cover that side.
+
+The stage also generates all five sentences without any replacement and records,
+without a pass or fail, the latent error of every patch, the first patch outside the
+criterion, the largest error, the stop patch, the end, the audio length and the peak
+and RMS level. These generations are saved for the Swift runtime under
+`check/swift_reference/<sentence>/`:
+
+- `ids.npy` and the joined `audio.npy`;
+- `patches.npz`: the noise, `dit_hidden`, `cond`, latent and stop logits of every
+  patch;
+- `calls.npz` and `calls.json`: the inputs and outputs of every call in order,
+  including the prefill, each solver call and every `heads`, `locenc`, `vae`,
+  `tslm.step`, `fuse` and `ralm.step` call. Stateful calls (`tslm` and `ralm` steps
+  and the VAE) can be compared one by one only when they are replayed in order from
+  the first call, because their states are not saved.
+
+`plain` limited to 8 patches must end with `limit`, must not be a success and must
+write no audio.
+
+### Precision comparison
+
+`synthesis_compare` generates `plain`, `long` and `design`, and the two sentences in
+`synthesis.json` (a Japanese sentence with a date, times, a number and a price, and
+an English sentence). It uses seeds 1708, 1709 and 1710 in three configurations:
+all FP32, all FP16, and FP16 with the `proj` asset (projections, FSQ and stop head)
+in FP32. The same sentence and seed use the same noise in every configuration.
+
+The stage records the end, the stop patch, the patch count, the audio length, the
+latent errors against FP32, the time after one warm-up generation in the same
+worker, the peak and RMS level, the samples clipped when rounding to 16 bits, and
+the load average. There is no pass or fail.
+
+The audio is written as 48 kHz mono 16-bit WAV files without level changes. Seed
+1708 goes to `compare/listen/<sentence>/<label>.wav`, the other seeds to
+`compare/listen-extra/<seed>/<sentence>/<label>.wav`. Labels A to C are assigned to
+the configurations per sentence with a recorded random seed. The files are written
+after all generations, in label order, and get one shared modification time, so
+the times do not show the configuration. The key is `compare/listen-key.json`,
+outside the listening folders. The files stay outside Git.
+
+The audio comes from the same weights run with Core AI. Numerical differences near
+rounding boundaries inside the model can make the generated result differ from the
+reference implementation, even with the same seed.
+
+### End-to-end results
+
+The run of 2026-11-17 passed `synthesis_check`. Token IDs and noise equal the
+original for all five sentences, and `plain` limited to 8 patches ended with
+`limit`, was not a success and wrote no audio. Three of the 239 original patches
+were replaced (two `proj.fuse` and one latent), at most one per sentence.
+
+| Sentence | Patches (Core AI / original) | Stop patch | Within the criterion without replacement | `proj.fuse` outputs replaced with the original | Latent replaced with the original | Without replacement: first patch outside, largest error, stop patch |
+|---|---:|---:|---|---|---|---|
+| `plain` | 15 / 15 | 14 / 14 | no | — | patch 9 | 9, 6.4e-3, 14 |
+| `design` | 34 / 34 | 33 / 33 | yes | — | — | none, 4.0e-5, 33 |
+| `long` | 105 / 105 | 104 / 104 | no | step 8 (patch 9) | — | 9, 2.19, 104 |
+| `heldout_ja` | 52 / 52 | 51 / 51 | no | step 29 (patch 30) | — | 30, 0.042, 51 |
+| `heldout_en` | 33 / 33 | 32 / 32 | yes | — | — | none, 9.0e-6, 32 |
+
+- `long`, step 8: dimension 283, 4.77e-7 from a boundary, code 3 to 2; the remaining
+  errors are 5.8e-8 and 1.1e-6. `heldout_ja`, step 29: dimension 328, 1.61e-6 from a
+  boundary, code 1 to 0; the remaining errors are 9.8e-8 and 1.2e-6.
+- `plain`, patch 9: before replacement the latent was 3.87e-3 from the original. Its
+  inputs matched the original (noise bit for bit, `dit_hidden` 1.35e-6, `cond`
+  7.3e-6). With those inputs the original solver gave a latent 2.6e-5 from the Core
+  AI latent (`a`) and 3.84e-3 from the original latent (`b`). From the original
+  inputs, the same solver process reproduced the original latent bit for bit.
+- In the replacing generations, the other latents stayed within the criterion
+  before replacement (largest 4.3e-4, in `long`), and the joined audio differed from
+  the original streaming decode by 9.1e-6 to 8.2e-4.
+- Without replacement, `long` and `heldout_ja` leave the original trajectory from
+  the patch that uses the `proj.fuse` call replaced above (patches 9 and 30), and
+  `plain` from patch 9. All five sentences still stop at the original patch.
+
+Two experiments with the original solver looked at `plain` patch 9 (records outside
+Git). With independent random perturbations of 4e-6 of each estimator output, 32
+runs changed the latent by at most 3.2e-4, about 1/12 of the observed difference;
+the verdict fixed before the experiment was undetermined. Given the inputs that the
+Core AI generation without replacement actually used, the original solver agreed
+with the Core AI latent within 2.6e-5 at patch 9 and within 2.6e-5 at every one of
+the 239 patches, and differed from the original latent by 3.84e-3 at patch 9.
+
+The precision comparison (15 generations per configuration, Python host,
+GPU-preferred specialization, each time after one warm-up generation in its worker,
+load average 4.1 to 6.1):
+
+| Configuration | Stopped | Stop patch as FP32 | Latent error against FP32 (median of medians / largest) | ms per patch (median) | Seconds per second of audio (median) |
+|---|---:|---:|---:|---:|---:|
+| FP32 | 15/15 | — | — | 72.9 | 0.456 |
+| FP16 | 15/15 | 10/15 | 0.118 / 2.14 | 47.1 | 0.294 |
+| FP16 with `proj` in FP32 | 15/15 | 10/15 | 0.055 / 2.67 | 47.1 | 0.294 |
+
+No sample was clipped at 16 bits. In both FP16 configurations every generation
+leaves the FP32 latent criterion early (from patch 1 in the median generation).
+Which configuration becomes the default is decided by listening.
 
 ## Limits
 
-The checks start from recorded inputs. They do not show that Core AI parts
-chained by a host reproduce the original trajectory; that belongs to the
-end-to-end work. FP16 parts are recorded, not accepted. In the 2026-11-16
-investigation, chaining any FP16 part moved the generated latent trajectory
-beyond 0.001 within a few patches. The Python runtime cannot set
-`expectFrequentReshapes`; all shapes here are static.
-Reference-audio prompts, the VAE encoder, quantization, iPhone and listening
-quality are out of scope.
+The component checks start from recorded inputs. The end-to-end check covers five
+sentences with one seed on the Python host. Its replacing generation agrees with
+the original only along the path with the recorded replacements, and the
+generations without replacement leave the original trajectory (see the results
+above). Not checked:
+
+- same-input comparisons of the language models, their caches and `proj.fuse` along
+  the generations without replacement;
+- how often replacements are needed for other sentences and seeds;
+- whether the Swift runtime behaves the same way;
+- listening quality, which the owner judges by listening.
+
+FP16 parts and configurations are recorded, not accepted. The Python runtime cannot
+set `expectFrequentReshapes`; all shapes here are static. Reference-audio prompts,
+the VAE encoder, quantization and iPhone are out of scope.

@@ -1,9 +1,9 @@
+import ast
 import copy
 import importlib.util
 import json
 import math
 from pathlib import Path
-import re
 import tempfile
 from types import SimpleNamespace
 import unittest
@@ -18,6 +18,14 @@ from Tools.Conversion.storage import file_hash
 
 RECIPE = Path(__file__).resolve().parents[1] / "recipes" / "voxcpm2"
 CONTRACT = load_contract(RECIPE / "model.json")
+
+
+def relative_imports(text):
+    found = set()
+    for node in ast.walk(ast.parse(text)):
+        if isinstance(node, ast.ImportFrom) and node.level == 1:
+            found.update([node.module.split(".")[0]] if node.module else [alias.name for alias in node.names])
+    return {name + ".py" for name in found}
 
 
 def configuration(contract):
@@ -151,6 +159,11 @@ class VoxCPM2ContractTests(unittest.TestCase):
         self.assertTrue(verdict([recorded, {"gate": True, "passed": True, "nonfinite": 0, "case": "step"}], CONTRACT["criteria"]))
         self.assertFalse(verdict([recorded], CONTRACT["criteria"]))
 
+    def test_relative_imports_include_every_import_form(self):
+        sample = ("from .alpha import (\n    One,\n    Two,\n)\nfrom . import beta, gamma\nfrom .delta import Three\n"
+                  "from ...storage import read_json\nimport numpy\n\n\ndef late():\n    from .epsilon import Four\n")
+        self.assertEqual(relative_imports(sample), {"alpha.py", "beta.py", "gamma.py", "delta.py", "epsilon.py"})
+
     def test_recipe_declares_sources_and_checks(self):
         bindings = {"python": "/usr/bin/python3", "snapshot": "/snapshot", "upstream": "/upstream"}
         recipe = load_recipe(RECIPE / "recipe.json", bindings, Path(__file__).resolve().parents[3])
@@ -163,21 +176,29 @@ class VoxCPM2ContractTests(unittest.TestCase):
         exports = [stage for name, stage in stages.items() if name.endswith("_export")]
         self.assertEqual(len(exports), 8)
         adapters = Path(__file__).resolve().parents[1] / "adapters" / "voxcpm2"
+
+        def imports(name):
+            return relative_imports((adapters / name).read_text(encoding="utf-8"))
+
+        for stage in stages.values():
+            self.assertNotIn("$adapters", stage["inputs"])
+            declared = {item.split("/")[-1] for item in stage["inputs"] if item.startswith("$adapters/")}
+            self.assertIn(stage["command"][2].rsplit(".", 1)[-1] + ".py", declared)
+            for name in declared:
+                self.assertLessEqual(imports(name), declared)
+        self.assertIn("host.py", imports("synthesis.py"))
         for stage in exports:
             self.assertEqual(stage["depends"], [])
-            self.assertNotIn("$adapters", stage["inputs"])
             self.assertNotIn("$recipe_dir/fixtures.json", stage["inputs"])
             self.assertTrue({"$snapshot", "$upstream/src/voxcpm", "$recipe_dir/requirements.lock"} <= set(stage["inputs"]))
-            declared = {item.split("/")[-1] for item in stage["inputs"] if item.startswith("$adapters/")}
-            for name in declared:
-                imported = {match + ".py" for match in re.findall(r"^from \.(\w+) import", (adapters / name).read_text(), re.M)}
-                self.assertLessEqual(imported, declared)
-        for name in ("reference", "wrapper_check", "verify_fp16", "verify_fp32", "capacity"):
-            self.assertIn("$adapters", stages[name]["inputs"])
+        self.assertNotIn("$snapshot", stages["synthesis_compare"]["inputs"])
+        self.assertTrue({"$snapshot/tokenizer.json", "$recipe_dir/synthesis.json"} <= set(stages["synthesis_compare"]["inputs"]))
+        self.assertTrue({"$snapshot", "$upstream/src/voxcpm", "$recipe_dir/synthesis.json"} <= set(stages["synthesis_check"]["inputs"]))
         self.assertIn("$recipe_dir/fixtures.json", stages["reference"]["inputs"])
-        for name in ("wrapper_check", "verify_fp32"):
+        for name in ("wrapper_check", "verify_fp32", "synthesis_check"):
             self.assertIn(["passed"], [check["key"] for check in stages[name]["checks"]])
-        self.assertNotIn(["passed"], [check["key"] for check in stages["verify_fp16"]["checks"]])
+        for name in ("verify_fp16", "synthesis_compare"):
+            self.assertNotIn(["passed"], [check["key"] for check in stages[name]["checks"]])
 
 
 class VoxCPM2BoundaryRuleTests(unittest.TestCase):
