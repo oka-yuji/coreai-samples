@@ -1,0 +1,523 @@
+{
+  "id": "voxcpm2",
+  "kind": "tts",
+  "name": {
+    "en": "VoxCPM2",
+    "ja": "VoxCPM2"
+  },
+  "use": {
+    "en": "Speech generation",
+    "ja": "音声生成"
+  },
+  "overview": {
+    "en": "Speech generation",
+    "ja": "音声生成"
+  },
+  "release": "in_progress",
+  "release_note": {
+    "en": "conversion and app bundles verified on the Python host; listening, app and publication pending",
+    "ja": "変換とアプリ用bundleをPythonのホストで検証済み・試聴／アプリ／公開は未完了"
+  },
+  "download": null,
+  "pages": {
+    "en": "docs/model-reports/voxcpm2.md",
+    "ja": "docs/model-reports/voxcpm2.ja.md"
+  },
+  "links": [
+    {
+      "title": {
+        "en": "#573",
+        "ja": "#573"
+      },
+      "url": "https://github.com/oka-yuji/coreai-samples/issues/573"
+    },
+    {
+      "title": {
+        "en": "Conversion recipe",
+        "ja": "変換手順"
+      },
+      "url": "Tools/Conversion/recipes/voxcpm2/README.md"
+    },
+    {
+      "title": {
+        "en": "Conversion and bundle validation",
+        "ja": "変換とbundleの検証記録"
+      },
+      "url": "docs/validation/voxcpm2-conversion-20261117.md"
+    }
+  ],
+  "support": {
+    "macos": {
+      "state": "unavailable",
+      "variants": [],
+      "evidence": [],
+      "note": {
+        "en": "No native demo yet. Results of the Python host are not app support.",
+        "ja": "ネイティブデモは未提供。Pythonのホストの結果はアプリの対応ではない。"
+      }
+    },
+    "ios": {
+      "state": "unavailable",
+      "variants": [],
+      "evidence": [],
+      "note": {
+        "en": "No native demo yet. Results of the Python host are not app support.",
+        "ja": "ネイティブデモは未提供。Pythonのホストの結果はアプリの対応ではない。"
+      }
+    }
+  },
+  "evidence": {
+    "conversion-20261117": {
+      "url": "docs/validation/voxcpm2-conversion-20261117.md",
+      "level": "conversion",
+      "outcome": "passed",
+      "record_type": "legacy",
+      "date": "2026-11-17",
+      "platform": "macos",
+      "device": "Apple M5 Max / 137438953472 B RAM",
+      "os": "macOS 27.2.1 (26B131)",
+      "toolchain": "Xcode 27.2 (27B52); Python 3.11.9; torch 2.9.0; transformers 4.57.3; coreai-core 1.0.0b3; coreai-torch 0.4.3",
+      "variant": "fp32 bundle",
+      "backend": "Python Core AI host, GPU-preferred specialization; compute units not profiled",
+      "route": "VoxCPM2 recipe: original FP32 CPU reference -> component comparisons -> FP32 generation from text -> debug-information removal -> FP32 bundle re-check",
+      "source_revision": "7936080b41163874f38610f46f438e2c0757f9fd",
+      "artifact_revision": "90cb2bb7268d00f6c0171089c098b9b6d9646d7aca1b627c00d476634fd53080",
+      "code_revision": null,
+      "workload": {
+        "en": "Five fixed sentences with seed 1708: 3,934 component comparisons that decide the result, FP32 generation from text with at most one replaced patch per sentence (3 of 239), and the same comparisons with the FP32 bundle after debug-information removal. No app; the Python host only.",
+        "ja": "固定の5文・seed 1708。合否に使う部品の照合3,934件、文章からのFP32の生成(置き換えは各文1パッチ以下、239中3)、デバッグ情報を除いたFP32のbundleでの同じ照合。アプリではなくPythonのホストだけ。"
+      },
+      "batch_size": 1,
+      "concurrency": 1,
+      "warmups": null,
+      "power": null,
+      "thermal": null,
+      "model_executed": true,
+      "plan_sha256": null
+    },
+    "precision-20261117": {
+      "url": "docs/validation/voxcpm2-conversion-20261117.md",
+      "level": "diagnostic",
+      "outcome": "not_applicable",
+      "record_type": "legacy",
+      "date": "2026-11-17",
+      "platform": "macos",
+      "device": "Apple M5 Max / 137438953472 B RAM",
+      "os": "macOS 27.2.1 (26B131)",
+      "toolchain": "Xcode 27.2 (27B52); Python 3.11.9; torch 2.9.0; transformers 4.57.3; coreai-core 1.0.0b3; coreai-torch 0.4.3",
+      "variant": "fp32, fp16 and fp16_proj32 configurations",
+      "backend": "Python Core AI host, GPU-preferred specialization; compute units not profiled",
+      "route": "VoxCPM2 recipe synthesis_compare: exported assets, one worker process per generation",
+      "source_revision": "7936080b41163874f38610f46f438e2c0757f9fd",
+      "artifact_revision": null,
+      "code_revision": null,
+      "workload": {
+        "en": "Five sentences x seeds 1708-1710 per configuration, each timed after one warm-up generation in the same worker; load average 4.1-6.1. Recorded without a pass or fail. The bundles hold the same programs without debug information.",
+        "ja": "構成ごとに5文×seed 1708〜1710。各生成は同じworkerでのwarm-up 1回の後に計時。load average 4.1〜6.1。合否なしの記録。bundleはデバッグ情報を除いた同じprogram。"
+      },
+      "batch_size": 1,
+      "concurrency": 1,
+      "warmups": 1,
+      "power": null,
+      "thermal": null,
+      "model_executed": true,
+      "plan_sha256": null
+    },
+    "memory-20261117": {
+      "url": "docs/validation/voxcpm2-conversion-20261117.md",
+      "level": "diagnostic",
+      "outcome": "not_applicable",
+      "record_type": "legacy",
+      "date": "2026-11-17",
+      "platform": "macos",
+      "device": "Apple M5 Max / 137438953472 B RAM",
+      "os": "macOS 27.2.1 (26B131)",
+      "toolchain": "Xcode 27.2 (27B52); Python 3.11.9; torch 2.9.0; transformers 4.57.3; coreai-core 1.0.0b3; coreai-torch 0.4.3",
+      "variant": "fp32 and fp16 bundles",
+      "backend": "Python Core AI host, GPU-preferred specialization; compute units not profiled",
+      "route": "One new Python process per bundle: load -> one generation of long -> release, under the shared heavy-job lock",
+      "source_revision": "7936080b41163874f38610f46f438e2c0757f9fd",
+      "artifact_revision": "fp32 90cb2bb7268d00f6c0171089c098b9b6d9646d7aca1b627c00d476634fd53080; fp16 9661fcc4d5d6859dd96075f5c041b66eae76b86855ebb82919aeda162292c88e",
+      "code_revision": null,
+      "workload": {
+        "en": "Sentence long (97 text tokens, 105 patches, 16.8 s of audio), seed 1708, first generation of the process. Process memory sampled before and after load, after the generation and after release. Recorded without a pass or fail; not app memory.",
+        "ja": "文long(97 token、105パッチ、音声16.8秒)、seed 1708、プロセスで最初の生成。ロードの前後、生成の後、解放の後にプロセスのメモリを採取。合否なしの記録で、アプリのメモリではない。"
+      },
+      "batch_size": 1,
+      "concurrency": 1,
+      "warmups": 0,
+      "power": null,
+      "thermal": null,
+      "model_executed": true,
+      "plan_sha256": null
+    }
+  },
+  "measurements": [
+    {
+      "metric": "bundle_bytes",
+      "value": 9349325575,
+      "unit": "B",
+      "statistic": "single",
+      "n": 1,
+      "evidence": "conversion-20261117",
+      "note": {
+        "en": "fp32 bundle: 22 files, including the manifest, tokenizer, license and notice.",
+        "ja": "fp32のbundle。manifest・tokenizer・license・noticeを含む22ファイル。"
+      },
+      "source_value": {
+        "path": "docs/validation/voxcpm2-conversion-20261117.json",
+        "pointer": "/bundles/fp32/bytes"
+      }
+    },
+    {
+      "metric": "bundle_bytes",
+      "value": 4677413608,
+      "unit": "B",
+      "statistic": "single",
+      "n": 1,
+      "evidence": "conversion-20261117",
+      "note": {
+        "en": "fp16 bundle: 22 files. FP16 results are recorded only.",
+        "ja": "fp16のbundle。22ファイル。FP16の結果は記録だけ。"
+      },
+      "source_value": {
+        "path": "docs/validation/voxcpm2-conversion-20261117.json",
+        "pointer": "/bundles/fp16/bytes"
+      }
+    },
+    {
+      "metric": "bundle_bytes",
+      "value": 4715188110,
+      "unit": "B",
+      "statistic": "single",
+      "n": 1,
+      "evidence": "conversion-20261117",
+      "note": {
+        "en": "fp16_proj32 bundle (FP16 with proj in FP32): 22 files. FP16 results are recorded only.",
+        "ja": "fp16_proj32のbundle(projだけFP32)。22ファイル。FP16の結果は記録だけ。"
+      },
+      "source_value": {
+        "path": "docs/validation/voxcpm2-conversion-20261117.json",
+        "pointer": "/bundles/fp16_proj32/bytes"
+      }
+    },
+    {
+      "metric": "reference_error",
+      "value": 4.6257605130482945e-06,
+      "unit": "error",
+      "statistic": "max",
+      "n": 2151,
+      "evidence": "conversion-20261117",
+      "note": {
+        "en": "Largest FP32 component error (max abs error / max abs reference), dit.main; proj.fuse is judged by classes instead (233 match, 1 boundary-consistent, 0 fail). n counts dit.main calls.",
+        "ja": "FP32の部品の最大誤差(最大絶対誤差/参照の最大絶対値)、dit.main。proj.fuseは分類で判定(一致233・境界整合1・不合格0)。nはdit.mainの呼び出し数。"
+      },
+      "source_value": {
+        "path": "docs/validation/voxcpm2-conversion-20261117.json",
+        "pointer": "/fidelity/fp32/errors/dit.main.velocity/normalized_max"
+      }
+    },
+    {
+      "metric": "rtf",
+      "value": 0.4558975623290785,
+      "unit": "ratio",
+      "statistic": "median",
+      "n": 15,
+      "evidence": "precision-20261117",
+      "note": {
+        "en": "fp32: generation seconds per second of audio, after one warm-up; excludes loading and saving.",
+        "ja": "fp32。音声1秒あたりの生成秒数。warm-up 1回の後。ロードと保存を除く。"
+      },
+      "source_value": {
+        "path": "docs/validation/voxcpm2-conversion-20261117.json",
+        "pointer": "/generation/precision_comparison/configurations/fp32/summary/median_seconds_per_audio_second"
+      }
+    },
+    {
+      "metric": "rtf",
+      "value": 0.2940794725556929,
+      "unit": "ratio",
+      "statistic": "median",
+      "n": 15,
+      "evidence": "precision-20261117",
+      "note": {
+        "en": "fp16: as above. Audio follows a different trajectory from FP32; listening pending.",
+        "ja": "fp16。同上。FP32と別の軌道の音声。試聴は未完了。"
+      },
+      "source_value": {
+        "path": "docs/validation/voxcpm2-conversion-20261117.json",
+        "pointer": "/generation/precision_comparison/configurations/fp16/summary/median_seconds_per_audio_second"
+      }
+    },
+    {
+      "metric": "rtf",
+      "value": 0.294309106977701,
+      "unit": "ratio",
+      "statistic": "median",
+      "n": 15,
+      "evidence": "precision-20261117",
+      "note": {
+        "en": "fp16_proj32: as above. Audio follows a different trajectory from FP32; listening pending.",
+        "ja": "fp16_proj32。同上。FP32と別の軌道の音声。試聴は未完了。"
+      },
+      "source_value": {
+        "path": "docs/validation/voxcpm2-conversion-20261117.json",
+        "pointer": "/generation/precision_comparison/configurations/fp16_proj32/summary/median_seconds_per_audio_second"
+      }
+    },
+    {
+      "metric": "latency_s",
+      "value": 7.819349666009657,
+      "unit": "s",
+      "statistic": "single",
+      "n": 1,
+      "evidence": "memory-20261117",
+      "note": {
+        "en": "fp32: one generation of long (16.8 s of audio) as the first of a new process; excludes the 7.07 s load.",
+        "ja": "fp32。新しいプロセスで最初のlongの生成(音声16.8秒)。7.07秒のロードを除く。"
+      },
+      "source_value": {
+        "path": "docs/validation/voxcpm2-conversion-20261117.json",
+        "pointer": "/memory/fp32/generation_seconds"
+      }
+    },
+    {
+      "metric": "latency_s",
+      "value": 5.105552542023361,
+      "unit": "s",
+      "statistic": "single",
+      "n": 1,
+      "evidence": "memory-20261117",
+      "note": {
+        "en": "fp16: one generation of long (16.8 s of audio) as the first of a new process; excludes the 3.40 s load.",
+        "ja": "fp16。新しいプロセスで最初のlongの生成(音声16.8秒)。3.40秒のロードを除く。"
+      },
+      "source_value": {
+        "path": "docs/validation/voxcpm2-conversion-20261117.json",
+        "pointer": "/memory/fp16/generation_seconds"
+      }
+    },
+    {
+      "metric": "peak_rss_bytes",
+      "value": 22462464000,
+      "unit": "B",
+      "statistic": "max",
+      "n": 1,
+      "evidence": "memory-20261117",
+      "note": {
+        "en": "fp32: process lifetime maximum resident size (getrusage), including file-backed weight pages. Python host, not app memory.",
+        "ja": "fp32。プロセスの生涯の最大常駐(getrusage)。ファイルにmapした重みのページを含む。Pythonのホストで、アプリのメモリではない。"
+      },
+      "source_value": {
+        "path": "docs/validation/voxcpm2-conversion-20261117.json",
+        "pointer": "/memory/fp32/max_rss_bytes"
+      }
+    },
+    {
+      "metric": "peak_rss_bytes",
+      "value": 11290116096,
+      "unit": "B",
+      "statistic": "max",
+      "n": 1,
+      "evidence": "memory-20261117",
+      "note": {
+        "en": "fp16: process lifetime maximum resident size (getrusage). Python host, not app memory.",
+        "ja": "fp16。プロセスの生涯の最大常駐(getrusage)。Pythonのホストで、アプリのメモリではない。"
+      },
+      "source_value": {
+        "path": "docs/validation/voxcpm2-conversion-20261117.json",
+        "pointer": "/memory/fp16/max_rss_bytes"
+      }
+    },
+    {
+      "metric": "peak_footprint_bytes",
+      "value": 842347816,
+      "unit": "B",
+      "statistic": "max",
+      "n": 1,
+      "evidence": "memory-20261117",
+      "note": {
+        "en": "fp32: kernel lifetime maximum physical footprint of the process. Python host, not app memory.",
+        "ja": "fp32。カーネルが記録したプロセスの生涯の最大physical footprint。Pythonのホストで、アプリのメモリではない。"
+      },
+      "source_value": {
+        "path": "docs/validation/voxcpm2-conversion-20261117.json",
+        "pointer": "/memory/fp32/lifetime_max_phys_footprint_bytes"
+      }
+    },
+    {
+      "metric": "peak_footprint_bytes",
+      "value": 662626224,
+      "unit": "B",
+      "statistic": "max",
+      "n": 1,
+      "evidence": "memory-20261117",
+      "note": {
+        "en": "fp16: kernel lifetime maximum physical footprint of the process. Python host, not app memory.",
+        "ja": "fp16。カーネルが記録したプロセスの生涯の最大physical footprint。Pythonのホストで、アプリのメモリではない。"
+      },
+      "source_value": {
+        "path": "docs/validation/voxcpm2-conversion-20261117.json",
+        "pointer": "/memory/fp16/lifetime_max_phys_footprint_bytes"
+      }
+    },
+    {
+      "metric": "resident_bytes",
+      "value": 16731029504,
+      "unit": "B",
+      "statistic": "single",
+      "n": 1,
+      "evidence": "memory-20261117",
+      "note": {
+        "en": "fp32: resident size sampled after the generation with the assets still loaded.",
+        "ja": "fp32。資産を保持したまま生成の後に採取した常駐サイズ。"
+      },
+      "source_value": {
+        "path": "docs/validation/voxcpm2-conversion-20261117.json",
+        "pointer": "/memory/fp32/resident_bytes/after_generation"
+      }
+    },
+    {
+      "metric": "resident_bytes",
+      "value": 8580218880,
+      "unit": "B",
+      "statistic": "single",
+      "n": 1,
+      "evidence": "memory-20261117",
+      "note": {
+        "en": "fp16: resident size sampled after the generation with the assets still loaded.",
+        "ja": "fp16。資産を保持したまま生成の後に採取した常駐サイズ。"
+      },
+      "source_value": {
+        "path": "docs/validation/voxcpm2-conversion-20261117.json",
+        "pointer": "/memory/fp16/resident_bytes/after_generation"
+      }
+    },
+    {
+      "metric": "residual_bytes",
+      "value": 670462648,
+      "unit": "B",
+      "statistic": "single",
+      "n": 1,
+      "evidence": "memory-20261117",
+      "note": {
+        "en": "fp32: physical footprint after closing the components minus before loading. System wired memory had not fallen at that sample (see evidence).",
+        "ja": "fp32。部品を閉じた後のphysical footprintからロード前を引いた値。その時点でシステムのwiredは減っていない(根拠を参照)。"
+      },
+      "source_value": {
+        "path": "docs/validation/voxcpm2-conversion-20261117.json",
+        "pointer": "/memory/fp32/residual_footprint_bytes"
+      }
+    },
+    {
+      "metric": "residual_bytes",
+      "value": 533831024,
+      "unit": "B",
+      "statistic": "single",
+      "n": 1,
+      "evidence": "memory-20261117",
+      "note": {
+        "en": "fp16: physical footprint after closing the components minus before loading. System wired memory had not fallen at that sample (see evidence).",
+        "ja": "fp16。部品を閉じた後のphysical footprintからロード前を引いた値。その時点でシステムのwiredは減っていない(根拠を参照)。"
+      },
+      "source_value": {
+        "path": "docs/validation/voxcpm2-conversion-20261117.json",
+        "pointer": "/memory/fp16/residual_footprint_bytes"
+      }
+    }
+  ],
+  "omissions": {
+    "prepared_bytes": {
+      "state": "not_measured",
+      "reason": {
+        "en": "Not measured; the size of the specialization cache was not recorded.",
+        "ja": "未計測。特殊化のcacheの大きさは記録していない。"
+      }
+    },
+    "first_load_s": {
+      "state": "not_measured",
+      "reason": {
+        "en": "Not measured as defined: the load times of the memory runs (fp32 7.07 s, fp16 3.40 s) did not control the specialization cache.",
+        "ja": "定義どおりには未計測。メモリの計測のロード時間(fp32 7.07秒、fp16 3.40秒)は特殊化のcacheの状態を制御していない。"
+      }
+    },
+    "warm_load_s": {
+      "state": "not_measured",
+      "reason": {
+        "en": "Not measured as defined: the load times of the memory runs did not control the specialization cache.",
+        "ja": "定義どおりには未計測。メモリの計測のロード時間は特殊化のcacheの状態を制御していない。"
+      }
+    },
+    "task_success": {
+      "state": "not_measured",
+      "reason": {
+        "en": "Not measured; no task-quality evaluation set.",
+        "ja": "未計測。用途の品質の評価セットはない。"
+      }
+    },
+    "cancel_s": {
+      "state": "not_measured",
+      "reason": {
+        "en": "Not measured; no app or stop path yet.",
+        "ja": "未計測。アプリと停止の経路はまだない。"
+      }
+    },
+    "first_audio_s": {
+      "state": "not_measured",
+      "reason": {
+        "en": "Not measured. The Python host does not stream audio, and no app reads the bundles yet.",
+        "ja": "未計測。Pythonのホストは逐次に再生せず、bundleを読むアプリもまだない。"
+      }
+    },
+    "cer": {
+      "state": "not_measured",
+      "reason": {
+        "en": "Not measured; no speech recognition evaluation.",
+        "ja": "未計測。音声認識による評価はしていない。"
+      }
+    },
+    "human_score": {
+      "state": "not_measured",
+      "reason": {
+        "en": "Not measured; the owner's listening is pending.",
+        "ja": "未計測。本人の試聴は未完了。"
+      }
+    }
+  },
+  "checks": {
+    "fidelity": {
+      "state": "passed",
+      "evidence": [
+        "conversion-20261117"
+      ],
+      "note": {
+        "en": "FP32 components, FP32 generation from text of five sentences with three replaced patches, and the FP32 bundle re-check pass. FP16 is recorded only; listening is pending.",
+        "ja": "FP32の部品、置き換え3パッチでの5文のFP32の生成、FP32のbundleの再照合が合格。FP16は記録だけ。試聴は未完了。"
+      }
+    },
+    "quality": {
+      "state": "not_measured",
+      "evidence": [],
+      "note": {
+        "en": "No quality evaluation; the owner judges the configurations by listening.",
+        "ja": "品質の評価は未実施。構成は本人が聴いて決める。"
+      }
+    },
+    "stability": {
+      "state": "not_measured",
+      "evidence": [],
+      "note": {
+        "en": "No repeated use or release check in an app.",
+        "ja": "アプリでの連続利用と解放の確認は未実施。"
+      }
+    },
+    "cancellation": {
+      "state": "not_measured",
+      "evidence": [],
+      "note": {
+        "en": "No stop or retry check.",
+        "ja": "停止と再試行の確認は未実施。"
+      }
+    }
+  }
+}
